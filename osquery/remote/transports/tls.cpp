@@ -198,8 +198,8 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
 
   // Allow request calls to override the default HTTP POST verb.
   HTTPVerb verb = HTTP_POST;
-  if (options_.count("verb") > 0) {
-    verb = (HTTPVerb)options_.get<int>("verb", HTTP_POST);
+  if (options_.count("_verb") > 0) {
+    verb = (HTTPVerb)options_.get<int>("_verb", HTTP_POST);
   }
 
   VLOG(1) << "TLS/HTTPS " << ((verb == HTTP_POST) ? "POST" : "PUT")

@@ -91,18 +91,37 @@ class TLSRequestHelper : private boost::noncopyable {
     auto request = Request<TLSTransport, TSerializer>(uri + uri_suffix);
     request.setOption("hostname", FLAGS_tls_hostname);
 
+    bool compress = false;
+    if (params.count("_compress")) {
+      compress = true;
+      request.setOption("compress", true);
+      params.erase("_compress");
+    }
+
     // The caller-supplied parameters may force a POST request.
     bool force_post = false;
-    if (params.count("verb")) {
-      force_post = (params.get<std::string>("verb") == "POST");
-      params.erase("verb");
+    if (params.count("_verb")) {
+      force_post = (params.get<std::string>("_verb") == "POST");
+      params.erase("_verb");
     }
-    auto status = (FLAGS_tls_node_api && !force_post) ? request.call()
-                                                      : request.call(params);
+
+    bool use_post = true;
+    if (params.count("_get")) {
+      use_post = false;
+      params.erase("_get");
+    }
+    bool should_post = (use_post || force_post);
+    auto status = (should_post) ? request.call(params) : request.call();
+
     // Restore caller-supplied parameters.
     if (force_post) {
-      params.put("verb", "POST");
+      params.put("_verb", "POST");
     }
+
+    if (compress) {
+      params.put("_compress", true);
+    }
+
     if (!status.ok()) {
       return status;
     }
@@ -149,6 +168,7 @@ class TLSRequestHelper : private boost::noncopyable {
   static Status go(const std::string& uri,
                    boost::property_tree::ptree& output) {
     boost::property_tree::ptree params;
+    params.put("_get", true);
     return TLSRequestHelper::go<TSerializer>(uri, params, output);
   }
 
@@ -188,6 +208,7 @@ class TLSRequestHelper : private boost::noncopyable {
   template <class TSerializer>
   static Status go(const std::string& uri, std::string& output) {
     boost::property_tree::ptree params;
+    params.put("_get", true);
     return TLSRequestHelper::go<TSerializer>(uri, params, output);
   }
 
@@ -237,6 +258,7 @@ class TLSRequestHelper : private boost::noncopyable {
                    std::string& output,
                    const size_t attempts) {
     boost::property_tree::ptree params;
+    params.put("_get", true);
     return TLSRequestHelper::go<TSerializer>(uri, params, output, attempts);
   }
 };

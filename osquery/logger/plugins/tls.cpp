@@ -122,6 +122,9 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
   // The response body is ignored (status is set appropriately by
   // TLSRequestHelper::go())
   std::string response;
+  if (FLAGS_logger_tls_compress) {
+    params.put("_compress", true);
+  }
   return TLSRequestHelper::go<JSONSerializer>(uri_, params, response);
 }
 }
