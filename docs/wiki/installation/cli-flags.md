@@ -305,9 +305,9 @@ Enable verbose informational messages.
 
 Directory path for ERROR/WARN/INFO and results logging.
 
-`--logger_mode=640`
+`--logger_mode=420`
 
-File mode for output log files (provided as an octal string).  Note that this
+File mode for output log files (provided as a decimal string).  Note that this
 affects both the query result log and the status logs. **Warning**: If run as root, log files may contain sensitive information!
 
 `--value_max=512`
