@@ -39,6 +39,8 @@ FLAG(uint64,
      3600,
      "Query interval to use if none is provided");
 
+size_t kMaxQueryInterval = 604800;
+
 size_t splayValue(size_t original, size_t splayPercent) {
   if (splayPercent == 0 || splayPercent > 100) {
     return original;
@@ -181,10 +183,11 @@ void Pack::initialize(const std::string& name,
     ScheduledQuery query;
     query.query = q.second.get<std::string>("query", "");
     query.interval = q.second.get("interval", FLAGS_schedule_default_interval);
-    if (query.interval <= 0 || query.query.empty() || query.interval > 592200) {
+    if (query.interval <= 0 || query.query.empty() ||
+        query.interval > kMaxQueryInterval) {
       // Invalid pack query.
-      VLOG(1) << "Query has invalid interval: " << q.first << ": "
-              << query.interval;
+      LOG(WARNING) << "Query has invalid interval: " << q.first << ": "
+                   << query.interval;
       continue;
     }
 
