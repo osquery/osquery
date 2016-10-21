@@ -263,8 +263,8 @@ function Update-GitSubmodule {
 }
 
 function Main {
-  if ($PSVersionTable.PSVersion.Major -lt 3.0 ) {
-    Write-Output "This installer requires Powershell 3.0 or Greater."
+  if ($PSVersionTable.PSVersion.Major -lt 5.0 ) {
+    Write-Output "This installer requires Powershell 5.0 or Greater."
     Exit -1
   }
 
@@ -276,6 +276,7 @@ function Main {
   }
   Write-Host "[+] Success!" -foregroundcolor Green
   Install-Chocolatey
+  Install-ChocoPackage 'cppcheck'
   Install-ChocoPackage '7zip.commandline'
   Install-ChocoPackage 'cmake.portable' '3.6.1'
   Install-ChocoPackage 'python2' '2.7.11'
