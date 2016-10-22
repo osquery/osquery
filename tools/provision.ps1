@@ -5,6 +5,10 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+# We make heavy use of Write-Host, because colors are awesome. #dealwithit.
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope="Function", Target="*")]
+param()
+
 # URL of where our pre-compiled third-party dependenices are archived
 $THIRD_PARTY_ARCHIVE_URL = 'https://osquery-packages.s3.amazonaws.com/choco'
 
@@ -13,6 +17,22 @@ function Test-IsAdmin {
   return ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole] "Administrator"
   )
+}
+
+function Test-RebootPending {
+  $compBasedServ = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending" -ErrorAction Ignore
+  $winUpdate = Get-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired" -ErrorAction Ignore
+  $ccm = $false
+  try {
+    $util = [wmiclass]"\\.\root\ccm\clientsdk:CCM_ClientUtilities"
+    $status = $util.DetermineIfRebootPending()
+    if(($null -ne $status) -and $status.RebootPending){
+      $ccm = $true
+    }
+  } catch {
+    $ccm = $false
+  }
+  return $compBasedServ -or $winUpdate -or $ccm
 }
 
 # Checks if a package is already installed through chocolatey
@@ -157,13 +177,13 @@ function Install-PipPackage {
   }
   $requirements = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'requirements.txt'))
   Write-Host " => Upgrading pip..." -foregroundcolor DarkYellow
-  python -m pip install --upgrade pip
+  python -m pip -q install --upgrade pip
   if ($LastExitCode -ne 0) {
     Write-Host "[-] ERROR: pip upgrade failed." -foregroundcolor Red
     Exit -1
   }
   Write-Host " => Installing from requirements.txt" -foregroundcolor DarkYellow
-  pip install -r $requirements.path
+  pip -q install -r $requirements.path
   if ($LastExitCode -ne 0) {
     Write-Host "[-] ERROR: Install packages from requirements failed." -foregroundcolor Red
     Exit -1
@@ -257,14 +277,14 @@ function Update-GitSubmodule {
   $thirdPartyPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'third-party'))
   Write-Host " => Updating git submodules in $thirdPartyPath ..." -foregroundcolor Yellow
   Push-Location $thirdPartyPath
-  git submodule update --init
+  git submodule --quiet update --init
   Pop-Location
   Write-Host "[+] Submodules updated!" -foregroundcolor Yellow
 }
 
 function Main {
   if ($PSVersionTable.PSVersion.Major -lt 5.0 ) {
-    Write-Output "This installer requires Powershell 5.0 or Greater."
+    Write-Output "This installer currently requires Powershell 5.0 or Greater."
     Exit -1
   }
 
@@ -285,6 +305,10 @@ function Main {
   $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
   $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
   Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
+  if(Test-RebootPending -eq $true) {
+    Write-Host "[-] Windows requires a reboot before continuing. Please reboot your system and then re-run this provisioning script." -foregroundcolor Red
+    Exit
+  }
   Install-ThirdParty
   Install-PowershellLinter
   Write-Host "[+] Done." -foregroundcolor Yellow
