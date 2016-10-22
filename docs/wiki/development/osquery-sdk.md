@@ -19,11 +19,14 @@ using namespace osquery;
 // Note 2: Define at least one plugin.
 class ExampleTablePlugin : public tables::TablePlugin {
  private:
-  tables::TableColumns columns() const {
-    return {{"example_text", "TEXT"}, {"example_integer", "INTEGER"}};
+  tables::TableColumns columns() const override {
+    return {
+      std::make_tuple("example_text", TEXT_TYPE, ColumnOptions::DEFAULT),
+      std::make_tuple("example_integer", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    };
   }
 
-  QueryData generate(tables::QueryContext& request) {
+  QueryData generate(tables::QueryContext& request) override {
     QueryData results;
     Row r;
 
@@ -39,29 +42,32 @@ REGISTER_EXTERNAL(ExampleTablePlugin, "table", "example");
 
 int main(int argc, char* argv[]) {
   // Note 4: Start logging, threads, etc.
-  osquery::Initializer runner(argc, argv, OSQUERY_EXTENSION);
+  osquery::Initializer runner(argc, argv, ToolType::EXTENSION);
 
   // Note 5: Connect to osqueryi or osqueryd.
   auto status = startExtension("example", "0.0.1");
   if (!status.ok()) {
     LOG(ERROR) << status.getMessage();
+    runner.requestShutdown(status.getCode());
   }
 
   // Finally shutdown.
-  runner.shutdown();
+  runner.waitForShutdown();
   return 0;
 }
 ```
 
-Extensions use osquery's [thrift API](https://github.com/facebook/osquery/blob/master/osquery.thrift) to communicate between osqueryi or osqueryd and the extension process. They may be written in any language that supports [Thrift](https://thrift.apache.org/). Only the osquery SDK provides the simple `startExtension` symbol that manages the life of your process including thrift service threads and a watchdog. C++ extensions should link: boost, thrift, glog, gflags, and optionally rocksdb for eventing.
+Extensions use osquery's [Thrift API](https://github.com/facebook/osquery/blob/master/osquery.thrift) to communicate between **osqueryi** or **osqueryd** and the extension process. They may be written in any language that supports [Thrift](https://thrift.apache.org/). Only the osquery SDK provides the simple `startExtension` symbol that manages the life of your process including Thrift service threads and a watchdog. C++ extensions should link: boost, thrift, glog, gflags, and optionally rocksdb for eventing.
 
-The osqueryi or osqueryd processes start an "extension manager" thrift service thread that listens for extension register calls on a UNIX domain socket. Extensions may only communicate if the processes can read/write to this socket. An extension process running as a non-privileged user cannot register plugins to an osqueryd process running as root. Both osqueryi/osqueryd and C++ extensions using `startExtension` will deregister plugins if the communication becomes latent. Both are configurable using gflags or config options.
+The **osqueryi** or **osqueryd** processes start an "extension manager" Thrift service thread that listens for extension register calls on a UNIX domain socket. Extensions may only communicate if the processes can read/write to this socket. An extension process running as a non-privileged user cannot register plugins to an **osqueryd** process running as root. Both the osquery core and C++ extensions using `startExtension` will deregister plugins if the communication becomes latent. Both are configurable using gflags or config options.
 
 ### Using the example extension
 
 Please see the deployment [guide on extensions](../deployment/extensions.md) for a more-complete overview of how and why extensions are used.
 
 If you [build from source](../development/building.md), you will build an example extension. The code can be found in the [`osquery/examples`](https://github.com/facebook/osquery/blob/master/osquery/examples/example_extension.cpp) folder; it adds a config plugin called "example" and additional table called "example". There are two ways to run an extension: load the extension at an arbitrary time after shell or daemon execution, or request an "autoload" of extensions. The auto-loading method has several advantages such as dependencies on external config plugins, and the same management and process monitoring applied to osquery worker processes.
+
+The **osqueryi** shell also allows a quick and easy command-line autoload using `--extension`, let's review both options:
 
 To load the example extension in the shell try:
 ```
@@ -110,6 +116,11 @@ osquery>
 
 If the responsible shell or daemon process ends the extension will soon after detect the loss of communication and also shutdown. Read more about the lifecycle of extensions in the deployment guide.
 
+Alternatively, try:
+```
+$ ./build/darwin/osquery/osqueryi --extension ./build/darwin/osquery/example_extension.ext
+```
+
 ### Building external extensions
 
 Your "external" extension, in the sense that the code is developed and contained somewhere external from the osquery repository, can be built semi-automatically.
@@ -139,11 +150,11 @@ Scanning dependencies of target external_extension_awesome
 
 ## Thrift API
 
-[Thrift](https://thrift.apache.org/) is a code-generation/cross-language service development framework. osquery uses thrift to allow plugin extensions for config retrieval, log export, table implementations, event subscribers, and event publishers. We also use thrift to wrap our SQL implementation using SQLite.
+[Thrift](https://thrift.apache.org/) is a code-generation/cross-language service development framework. osquery uses Thrift to allow plugin extensions for config retrieval, log export, table implementations, event subscribers, and event publishers. We also use Thrift to wrap our SQL implementation using SQLite.
 
 **Extension API**
 
-An extension process should implement the following API. During an extension's set up it will "broadcast" all the registered plugins to a shell or daemon process. Then the extension will be asked to start a UNIX domain socket and thrift service thread implementing the `ping` and `call` methods.
+An extension process should implement the following API. During an extension's set up it will "broadcast" all the registered plugins to a shell or daemon process. Then the extension will be asked to start a UNIX domain socket and Thrift service thread implementing the `ping` and `call` methods.
 
 ```thrift
 service Extension {
@@ -155,7 +166,7 @@ service Extension {
     1:string registry,
     /// The registry item name (plugin name).
     2:string item,
-    /// The thrift-equivilent of an osquery::PluginRequest.
+    /// The Thrift-equivalent of an osquery::PluginRequest.
     3:ExtensionPluginRequest request),
 }
 ```

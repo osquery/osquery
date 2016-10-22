@@ -84,6 +84,8 @@ CLI_FLAG(string,
          "Optional path to a list of autoloaded registry modules")
 #endif
 
+SHELL_FLAG(string, extension, "", "Path to a single extension to autoload");
+
 /**
  * @brief Alias the extensions_socket (used by core) to a simple 'socket'.
  *
@@ -383,6 +385,12 @@ static bool isFileSafe(std::string& path, ExtenableTypes type) {
 
 Status loadExtensions(const std::string& loadfile) {
   std::string autoload_paths;
+  if (!FLAGS_extension.empty()) {
+    // This is a shell-only development flag for quickly loading/using a single
+    // extension. It bypasses the safety check.
+    Watcher::addExtensionPath(FLAGS_extension);
+  }
+
   if (readFile(loadfile, autoload_paths).ok()) {
     for (auto& path : osquery::split(autoload_paths, "\n")) {
       if (isFileSafe(path, EXTENSION)) {
