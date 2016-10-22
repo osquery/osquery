@@ -27,14 +27,14 @@ function setup_brew() {
     git clone $BREW_REPO "$DEPS"
   else
     log "checking for updates to brew"
-    git pull
+    git pull > /dev/null
   fi
 
   # Create a local cache directory
   mkdir -p "$DEPS/.cache"
 
   # Always update the location of the local tap link.
-  log "refreshing local tap: homebrew-osquery-local"
+  log "refreshing local tap: osquery-local"
   mkdir -p "$DEPS/Library/Taps/osquery/"
 
   FORMULA_TAP="$DEPS/Library/Taps/osquery/homebrew-osquery-local"
@@ -53,14 +53,16 @@ function setup_brew() {
   TAPS="$DEPS/Library/Taps/"
 
   # Grab full clone to perform a pin
-  log "installing homebrew core"
+  log "installing and updating Homebrew core"
   $BREW tap homebrew/core --full
-  (cd $TAPS/homebrew/homebrew-core && git pull && git reset --hard $CORE_COMMIT)
+  (cd $TAPS/homebrew/homebrew-core && git pull > /dev/null && \
+      git reset --hard $CORE_COMMIT)
 
   # Need dupes for upzip.
-  log "installing homebrew dupes"
+  log "installing and updating Homebrew dupes"
   $BREW tap homebrew/dupes --full
-  (cd $TAPS/homebrew/homebrew-dupes && git pull && git reset --hard $DUPES_COMMIT)
+  (cd $TAPS/homebrew/homebrew-dupes && git pull > /dev/null && \
+      git reset --hard $DUPES_COMMIT)
 
   # Create a 'legacy' mirror.
   if [[ -L "$DEPS/legacy" ]]; then
