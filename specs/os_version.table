@@ -2,10 +2,14 @@ table_name("os_version")
 description("A single row containing the operating system name and version.")
 schema([
     Column("name", TEXT, "Distribution or product name"),
+    Column("version", TEXT, "Pretty, suitable for presentation, OS version"),
     Column("major", INTEGER, "Major release version"),
     Column("minor", INTEGER, "Minor release version"),
     Column("patch", INTEGER, "Optional patch release"),
     Column("build", TEXT, "Optional build-specific or variant string"),
+    Column("platform", TEXT, "OS Platform or ID"),
+    Column("platform_like", TEXT, "Closely related platforms"),
+    Column("codename", TEXT, "OS version codename"),
 ])
 implementation("system/os_version@genOSVersion")
 fuzz_paths([

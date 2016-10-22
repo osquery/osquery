@@ -26,21 +26,12 @@ class SystemsTablesTests : public testing::Test {};
 TEST_F(SystemsTablesTests, test_os_version) {
   auto results = SQL("select * from os_version");
 
-  // Issue #2564: There is no os_version on Windows.
-  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-    EXPECT_EQ(results.rows().size(), 1U);
+  EXPECT_EQ(results.rows().size(), 1U);
 
-    // Make sure major and minor have data (a missing value of -1 is an error).
-    EXPECT_FALSE(results.rows()[0].at("major").empty());
-
-// Debian does not define a minor.
-#if !defined(DEBIAN)
-    EXPECT_FALSE(results.rows()[0].at("minor").empty());
-#endif
-
-    // The OS name should be filled in too.
-    EXPECT_FALSE(results.rows()[0].at("name").empty());
-  }
+  // Make sure major and minor have data (a missing value of -1 is an error).
+  EXPECT_FALSE(results.rows()[0].at("major").empty());
+  // The OS name should be filled in too.
+  EXPECT_FALSE(results.rows()[0].at("name").empty());
 }
 
 TEST_F(SystemsTablesTests, test_process_info) {
