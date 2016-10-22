@@ -33,6 +33,7 @@ Include line-delimited switches to be interpreted and used as CLI-flags:
 --watchlog_level=2
 ```
 
+If no `--flagfile` is provided, osquery will try to find and use a "default" flagfile at `/etc/osquery/osquery.flags.default`. Both the shell and daemon will discover and use the defaults.
 
 ### Configuration control flags
 

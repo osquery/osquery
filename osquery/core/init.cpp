@@ -187,6 +187,8 @@ using chrono_clock = std::chrono::high_resolution_clock;
 
 namespace fs = boost::filesystem;
 
+DECLARE_string(flagfile);
+
 namespace osquery {
 
 DECLARE_string(distributed_plugin);
@@ -211,6 +213,8 @@ volatile std::sig_atomic_t kExitCode{0};
 
 /// The saved thread ID for shutdown to short-circuit raising a signal.
 static std::thread::id kMainThreadId;
+
+const std::string kDefaultFlagfile = OSQUERY_HOME "/osquery.flags.default";
 
 static inline void printUsage(const std::string& binary, ToolType tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -307,6 +311,13 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     FLAGS_disable_events = true;
   }
 
+  bool default_flags = false;
+  if (FLAGS_flagfile.empty() && isReadable(kDefaultFlagfile)) {
+    // No flagfile was set (daemons and services always set a flagfile).
+    default_flags = true;
+    FLAGS_flagfile = kDefaultFlagfile;
+  }
+
   // Set version string from CMake build
   GFLAGS_NAMESPACE::SetVersionString(kVersion.c_str());
 
@@ -354,6 +365,10 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     }
   } else {
     VLOG(1) << "osquery extension initialized [sdk=" << kSDKVersion << "]";
+  }
+
+  if (default_flags) {
+    VLOG(1) << "Using default flagfile: " << kDefaultFlagfile;
   }
 
   // Initialize the COM libs
