@@ -23,10 +23,16 @@
 #ifdef WIN32
 #pragma warning(push, 3)
 
-/// Suppressing warning C4005: 'ASIO_ERROR_CATEGORY_NOEXCEPT': macro redefinition
+/*
+ * Suppressing warning C4005: 
+ * 'ASIO_ERROR_CATEGORY_NOEXCEPT': macro redefinition
+ */
 #pragma warning(disable: 4005)
 
-/// Suppressing warning C4244: 'argument': conversion from '__int64' to 'long', possible loss of data
+/*
+ * Suppressing warning C4244: 
+ * 'argument': conversion from '__int64' to 'long', possible loss of data
+ */
 #pragma warning(disable: 4244)
 #else
 #pragma clang diagnostic push
