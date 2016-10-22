@@ -34,7 +34,8 @@ const std::string kVersion = STR(OSQUERY_BUILD_VERSION);
 #endif
 const std::string kSDKVersion = OSQUERY_SDK_VERSION;
 const std::string kSDKPlatform = OSQUERY_PLATFORM;
-const PlatformType kPlatformType = static_cast<PlatformType>(OSQUERY_PLATFORM_MASK);
+const PlatformType kPlatformType =
+    static_cast<PlatformType>(OSQUERY_PLATFORM_MASK);
 
 bool versionAtLeast(const std::string& v, const std::string& sdk) {
   if (v == "0.0.0" || sdk == "0.0.0") {

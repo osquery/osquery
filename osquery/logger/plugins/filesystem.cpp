@@ -150,7 +150,8 @@ void FilesystemLoggerPlugin::init(const std::string& name,
   auto basename = (log_path_ / name).string();
 
   google::SetLogDestination(google::GLOG_INFO, (basename + ".INFO.").c_str());
-  google::SetLogDestination(google::GLOG_WARNING, (basename + ".WARNING.").c_str());
+  google::SetLogDestination(google::GLOG_WARNING,
+                            (basename + ".WARNING.").c_str());
   google::SetLogDestination(google::GLOG_ERROR, (basename + ".ERROR.").c_str());
 
   // Store settings for logging to stderr.
