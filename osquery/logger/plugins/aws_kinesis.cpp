@@ -66,15 +66,15 @@ Status KinesisLoggerPlugin::logString(const std::string& s) {
 Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
                                  const std::string& log_type) {
   std::vector<Aws::Kinesis::Model::PutRecordsRequestEntry> entries;
+  if (FLAGS_aws_kinesis_random_partition_key) {
+    boost::uuids::uuid uuid = boost::uuids::random_generator()();
+    partition_key_ = boost::uuids::to_string(uuid);
+  }
   for (const std::string& log : log_data) {
     if (log.size() > kKinesisMaxLogBytes) {
       LOG(ERROR) << "Kinesis log too big, discarding!";
     }
     Aws::Kinesis::Model::PutRecordsRequestEntry entry;
-    if (FLAGS_aws_kinesis_random_partition_key) {
-      boost::uuids::uuid uuid = boost::uuids::random_generator()();
-      partition_key_ = boost::uuids::to_string(uuid);
-    }
     entry.WithPartitionKey(partition_key_)
         .WithData(
             Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length()));
