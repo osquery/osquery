@@ -50,8 +50,7 @@ void DistributedRunner::start() {
 }
 
 Status startDistributed() {
-  if (!FLAGS_disable_distributed && !FLAGS_distributed_plugin.empty() &&
-      Registry::getActive("distributed") == FLAGS_distributed_plugin) {
+  if (!FLAGS_disable_distributed) {
     Dispatcher::addService(std::make_shared<DistributedRunner>());
     return Status(0, "OK");
   } else {
