@@ -73,6 +73,18 @@ Status getExtensions(const std::string& manager_path,
 Status pingExtension(const std::string& path);
 
 /**
+ * @brief Perform an action while waiting for an the extension timeout.
+ *
+ * We define a 'global' extension timeout using CLI flags.
+ * There are several locations where code may act assuming an extension has
+ * loaded or broadcasted a registry.
+ *
+ * @param predicate return true or set stop to end the timeout loop.
+ * @return the last status from the predicate.
+ */
+Status applyExtensionDelay(std::function<Status(bool& stop)> predicate);
+
+/**
  * @brief Request the extensions API to autoload any appropriate extensions.
  *
  * Extensions may be 'autoloaded' using the `extensions_autoload` command line
