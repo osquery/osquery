@@ -299,18 +299,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     }
   }
 
-// To change the default config plugin, compile osquery with
-// -DOSQUERY_DEFAULT_CONFIG_PLUGIN=<new_default_plugin>
-#ifdef OSQUERY_DEFAULT_CONFIG_PLUGIN
-  FLAGS_config_plugin = STR(OSQUERY_DEFAULT_CONFIG_PLUGIN);
-#endif
-
-// To change the default logger plugin, compile osquery with
-// -DOSQUERY_DEFAULT_LOGGER_PLUGIN=<new_default_plugin>
-#ifdef OSQUERY_DEFAULT_LOGGER_PLUGIN
-  FLAGS_logger_plugin = STR(OSQUERY_DEFAULT_LOGGER_PLUGIN);
-#endif
-
   if (tool == ToolType::SHELL) {
     // The shell is transient, rewrite config-loaded paths.
     FLAGS_disable_logging = true;
@@ -428,12 +416,12 @@ void Initializer::initShell() const {
           (fs::path(homedir) / "shell.db").make_preferred().string();
     }
     if (Flag::isDefault("extensions_socket")) {
-#ifdef WIN32
-      osquery::FLAGS_extensions_socket = "\\\\.\\pipe\\shell.em";
-#else
-      osquery::FLAGS_extensions_socket =
-          (fs::path(homedir) / "shell.em").make_preferred().string();
-#endif
+      if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+        osquery::FLAGS_extensions_socket = "\\\\.\\pipe\\shell.em";
+      } else {
+        osquery::FLAGS_extensions_socket =
+            (fs::path(homedir) / "shell.em").make_preferred().string();
+      }
     }
   } else {
     fprintf(
@@ -550,10 +538,8 @@ void Initializer::initActivePlugin(const std::string& type,
 }
 
 void Initializer::start() const {
-#ifndef WIN32
   // Load registry/extension modules before extensions.
   osquery::loadModules();
-#endif
 
   // Pre-extension manager initialization options checking.
   // If the shell or daemon does not need extensions and it will exit quickly,
@@ -624,9 +610,7 @@ void Initializer::start() const {
 
   // Initialize the distributed plugin, if necessary
   if (!FLAGS_disable_distributed) {
-    if (Registry::exists("distributed", FLAGS_distributed_plugin)) {
-      initActivePlugin("distributed", FLAGS_distributed_plugin);
-    }
+    initActivePlugin("distributed", FLAGS_distributed_plugin);
   }
 
   // Start event threads.

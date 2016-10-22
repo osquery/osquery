@@ -77,12 +77,10 @@ CLI_FLAG(string,
          "3",
          "Seconds delay between connectivity checks")
 
-#ifndef WIN32
 CLI_FLAG(string,
          modules_autoload,
          OSQUERY_HOME "/modules.load",
          "Optional path to a list of autoloaded registry modules")
-#endif
 
 /**
  * @brief Alias the extensions_socket (used by core) to a simple 'socket'.
@@ -333,15 +331,18 @@ void loadExtensions() {
   }
 }
 
-#ifndef WIN32
 void loadModules() {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    VLOG(1) << "Windows does not support loadable modules";
+    return;
+  }
+
   auto status =
       loadModules(fs::path(FLAGS_modules_autoload).make_preferred().string());
   if (!status.ok()) {
     VLOG(1) << "Could not autoload modules: " << status.what();
   }
 }
-#endif
 
 static bool isFileSafe(std::string& path, ExtenableTypes type) {
   boost::trim(path);
