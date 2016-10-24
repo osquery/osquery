@@ -1,6 +1,7 @@
 PLATFORM := $(shell uname -s)
 BASH_EXISTS := $(shell which bash)
 SHELL := $(shell which bash)
+SOURCE_DIR := $(shell pwd)
 
 ifneq ($(MAKECMDGOALS),deps)
 GIT_EXISTS := $(shell which git)
@@ -32,11 +33,18 @@ else
 endif
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
 CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../../
+CTEST := $(PATH_SET) ctest ../../
 DOCS_CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"
 
-DEFINES := CTEST_OUTPUT_ON_FAILURE=1
+ANALYSIS := ${SOURCE_DIR}/tools/analysis
+DEFINES := CTEST_OUTPUT_ON_FAILURE=1 ${PATH_SET} \
+	LSAN_OPTIONS="detect_container_overflow=0 \
+	suppressions=${ANALYSIS}/lsan.supp" \
+	ASAN_OPTIONS="suppressions=${ANALYSIS}/asan.supp" \
+	TSAN_OPTIONS="suppressions=${ANALYSIS}/tsan.supp"
+
 .PHONY: docs build
 
 all: .setup
@@ -165,7 +173,7 @@ packages: .setup
 	@cd build/$(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) packages/fast --no-print-directory $(MAKEFLAGS)
 
-debug_packages:
+debug_packages: .setup
 	@cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
@@ -173,6 +181,8 @@ sync: .setup
 	@cd build/$(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) sync --no-print-directory $(MAKEFLAGS)
 
+test:
+	@cd build/$(BUILD_DIR) && $(DEFINES) $(CTEST)
 %::
 	@cd build/$(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $@

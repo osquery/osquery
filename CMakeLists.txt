@@ -179,9 +179,6 @@ elseif(DEFINED ENV{SANITIZE})
       -fsanitize=leak
     )
   endif()
-
-  set(ENV{ASAN_OPTIONS} "detect_container_overflow=0")
-  set(ENV{TSAN_OPTIONS} "suppressions=${CMAKE_SOURCE_DIR}/tools/analysis/tsan.supp")
 else()
   set(DEBUG FALSE)
   if(WINDOWS)
