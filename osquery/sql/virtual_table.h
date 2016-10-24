@@ -20,6 +20,16 @@
 namespace osquery {
 
 /**
+ * @brief A protection around concurrent table attach requests.
+ *
+ * Table attaching is not concurrent. Attaching is the only unprotected SQLite
+ * operation from osquery's usage perspective. The extensions API allows for
+ * concurrent access of non-thread-safe database resources for attaching table
+ * schema and filter routing instructions.
+ */
+extern RecursiveMutex kAttachMutex;
+
+/**
  * @brief osquery cursor object.
  *
  * Only used in the SQLite virtual table module methods.
@@ -70,6 +80,16 @@ Status attachFunctionInternal(
     const std::string &name,
     std::function<
         void(sqlite3_context *context, int argc, sqlite3_value **argv)> func);
+
+/**
+ * A generated foreign amalgamation file includes schema for all tables.
+ *
+ * When the build system generates TablePlugin%s from the .table spec files, it
+ * reads the foreign-platform tables and generates an associated schema plugin.
+ * These plugins are amalgamated into 'foreign_amalgamation' and do not call
+ * their filter generation functions.
+ */
+void registerForeignTables();
 
 /// Attach all table plugins to an in-memory SQLite database.
 void attachVirtualTables(const SQLiteDBInstanceRef &instance);

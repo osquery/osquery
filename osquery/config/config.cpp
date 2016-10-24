@@ -78,9 +78,6 @@ const std::string kFailedQueries = "failed_queries";
 Mutex config_hash_mutex_;
 Mutex config_valid_mutex_;
 
-using RecursiveMutex = std::recursive_mutex;
-using RecursiveLock = std::lock_guard<std::recursive_mutex>;
-
 /// Several config methods require enumeration via predicate lambdas.
 RecursiveMutex config_schedule_mutex_;
 RecursiveMutex config_files_mutex_;

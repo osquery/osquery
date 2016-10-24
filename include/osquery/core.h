@@ -174,9 +174,15 @@ inline bool isPlatform(PlatformType a, const PlatformType& t = kPlatformType) {
   return (static_cast<int>(t) & static_cast<int>(a)) != 0;
 }
 
-/// Helper alias for defining mutexes throughout the codebase.
+/// Helper alias for defining mutexes.
 using Mutex = std::mutex;
 
 /// Helper alias for write locking a mutex.
 using WriteLock = std::lock_guard<Mutex>;
+
+/// Helper alias for defining recursive mutexes.
+using RecursiveMutex = std::recursive_mutex;
+
+/// Helper alias for write locking a recursive mutex.
+using RecursiveLock = std::lock_guard<std::recursive_mutex>;
 }
