@@ -767,6 +767,9 @@ static int shell_exec(
   }
 
   while (zSql[0] && (SQLITE_OK == rc)) {
+    /* A lock for attaching virtual tables, but also the SQL object states. */
+    osquery::RecursiveLock lock(osquery::kAttachMutex);
+
     rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, &zLeftover);
     if (SQLITE_OK != rc) {
       if (pzErrMsg) {
@@ -1531,7 +1534,7 @@ int launchIntoShell(int argc, char** argv) {
     int rc = shell_exec(query, shell_callback, &data, &error);
     if (error != 0) {
       fprintf(stderr, "Error: %s\n", error);
-      return (rc != 0) ? rc : 1;
+      rc = (rc == 0) ? 1 : rc;
     } else if (rc != 0) {
       fprintf(stderr, "Error: unable to process SQL \"%s\"\n", query);
     }
@@ -1565,9 +1568,6 @@ int launchIntoShell(int argc, char** argv) {
         }
       }
     });
-    if (rc != 0) {
-      return rc;
-    }
   } else if (argc > 1 && argv[1] != nullptr) {
     // Run a command or statement from CLI
     char* query = argv[1];

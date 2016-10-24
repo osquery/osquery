@@ -25,25 +25,7 @@ SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
 DECLARE_bool(disable_events);
 
-/**
- * @brief A protection around concurrent table attach requests.
- *
- * Table attaching is not concurrent. Attaching is the only unprotected SQLite
- * operation from osquery's usage perspective. The extensions API allows for
- * concurrent access of non-thread-safe database resources for attaching table
- * schema and filter routing instructions.
- */
-Mutex kAttachMutex;
-
-/**
- * A generated foreign amalgamation file includes schema for all tables.
- *
- * When the build system generates TablePlugin%s from the .table spec files, it
- * reads the foreign-platform tables and generates an associated schema plugin.
- * These plugins are amalgamated into 'foreign_amalgamation' and do not call
- * their filter generation functions.
- */
-void registerForeignTables();
+RecursiveMutex kAttachMutex;
 
 namespace tables {
 namespace sqlite {
@@ -572,7 +554,7 @@ Status attachTableInternal(const std::string& name,
 
   // Note, if the clientData API is used then this will save a registry call
   // within xCreate.
-  WriteLock lock(kAttachMutex);
+  RecursiveLock lock(kAttachMutex);
   int rc = sqlite3_create_module(
       instance->db(), name.c_str(), &module, (void*)&(*instance));
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
@@ -586,7 +568,7 @@ Status attachTableInternal(const std::string& name,
 }
 
 Status detachTableInternal(const std::string& name, sqlite3* db) {
-  WriteLock lock(kAttachMutex);
+  RecursiveLock lock(kAttachMutex);
   auto format = "DROP TABLE IF EXISTS temp." + name;
   int rc = sqlite3_exec(db, format.c_str(), nullptr, nullptr, 0);
   if (rc != SQLITE_OK) {
@@ -603,7 +585,7 @@ Status attachFunctionInternal(
   // Hold the manager connection instance again in callbacks.
   auto dbc = SQLiteDBManager::get();
   // Add some shell-specific functions to the instance.
-  WriteLock lock(kAttachMutex);
+  RecursiveLock lock(kAttachMutex);
   int rc = sqlite3_create_function(
       dbc->db(),
       name.c_str(),
