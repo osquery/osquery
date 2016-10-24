@@ -174,6 +174,11 @@ function brew_internal() {
   export HOMEBREW_OPTIMIZATION_LEVEL=-Os
   if [[ ! -z "$OSQUERY_BUILD_BOTTLES" && ! "$TYPE" = "upstream" ]]; then
     $BREW bottle --skip-relocation "${FORMULA}"
+  elif [[ "$TYPE" = "clean" ]]; then
+    if [[ ! "${INSTALLED}" = "${STABLE}" ]]; then
+      log "brew cleaning older version of $TOOL: ${STABLE}"
+      $BREW remove --force "${FORMULA}"
+    fi
   elif [[ "${INSTALLED}" = "NAN" || "${INSTALLED}" = "None" ]]; then
     log "brew package $TOOL installing new version: ${STABLE}"
     $BREW install $ARGS "${FORMULA}"
@@ -205,6 +210,11 @@ function local_brew_unlink() {
 
 function local_brew_uninstall() {
   brew_internal "uninstall" $@
+}
+
+function brew_clean() {
+  # Remove older versions if installed.
+  brew_internal "clean" $@
 }
 
 function brew_tool() {

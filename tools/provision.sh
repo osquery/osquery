@@ -187,7 +187,9 @@ function platform_linux_main() {
   # Build a bottle for perl and openssl.
   # OpenSSL is needed for the final build.
   # local_brew_tool perl -vd --without-test
+  brew_clean curl
   local_brew_tool openssl
+  local_brew_postinstall openssl
   local_brew_link openssl
 
   # LLVM dependencies.
@@ -248,7 +250,8 @@ function platform_darwin_main() {
   brew_tool makedepend
   brew_tool clang-format
 
-  local_brew_dependency openssl --without-test
+  local_brew_dependency openssl
+  local_brew_postinstall openssl
   local_brew_link openssl
 
   brew_tool pkg-config
