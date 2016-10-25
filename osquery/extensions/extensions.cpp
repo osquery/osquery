@@ -84,6 +84,11 @@ CLI_FLAG(string,
 
 SHELL_FLAG(string, extension, "", "Path to a single extension to autoload");
 
+CLI_FLAG(string,
+         extensions_require,
+         "",
+         "Comma-separated list of required extensions");
+
 /**
  * @brief Alias the extensions_socket (used by core) to a simple 'socket'.
  *
@@ -122,7 +127,7 @@ static Status isNamedPipePathValid(const std::string& path) {
 }
 #endif
 
-Status extensionPathActive(const std::string& path, bool use_timeout = false) {
+Status applyExtensionDelay(std::function<Status(bool& stop)> predicate) {
   // Make sure the extension manager path exists, and is writable.
   size_t delay = 0;
   // The timeout is given in seconds, but checked interval is microseconds.
@@ -130,7 +135,24 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
   if (timeout < kExtensionInitializeLatency * 10) {
     timeout = kExtensionInitializeLatency * 10;
   }
+
+  Status status;
   do {
+    bool stop = false;
+    status = predicate(stop);
+    if (stop || status.ok()) {
+      break;
+    }
+
+    // Increase the total wait detail.
+    delay += kExtensionInitializeLatency;
+    sleepFor(kExtensionInitializeLatency);
+  } while (delay < timeout);
+  return status;
+}
+
+Status extensionPathActive(const std::string& path, bool use_timeout = false) {
+  return applyExtensionDelay(([path, &use_timeout](bool& stop) {
 #ifdef WIN32
     // This makes sure the pipe exists in some capacity (could be busy at the
     // moment)
@@ -149,14 +171,11 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     }
 #endif
     // Only check active once if this check does not allow a timeout.
-    if (!use_timeout || timeout == 0) {
-      break;
+    if (!use_timeout) {
+      stop = true;
     }
-    // Increase the total wait detail.
-    delay += kExtensionInitializeLatency;
-    sleepFor(kExtensionInitializeLatency);
-  } while (delay < timeout);
-  return Status(1, "Extension socket not available: " + path);
+    return Status(1, "Extension socket not available: " + path);
+  }));
 }
 
 void ExtensionWatcher::start() {
@@ -723,6 +742,38 @@ Status startExtensionManager(const std::string& manager_path) {
   // Start the extension manager thread.
   Dispatcher::addService(
       std::make_shared<ExtensionManagerRunner>(manager_path));
+
+  // The shell or daemon flag configuration may require an extension.
+  if (!FLAGS_extensions_require.empty()) {
+    bool waited = false;
+    auto extensions = osquery::split(FLAGS_extensions_require, ",");
+    for (const auto& extension : extensions) {
+      auto status = applyExtensionDelay(([extension, &waited](bool& stop) {
+        ExtensionList extensions;
+        if (getExtensions(extensions).ok()) {
+          for (const auto& existing : extensions) {
+            if (existing.second.name == extension) {
+              return Status(0);
+            }
+          }
+        }
+
+        if (waited) {
+          // If we have already waited for the timeout period, stop early.
+          stop = true;
+        }
+        return Status(1, "Extension not autoloaded: " + extension);
+      }));
+
+      // A required extension was not loaded.
+      waited = true;
+      if (!status.ok()) {
+        LOG(WARNING) << status.getMessage();
+        return status;
+      }
+    }
+  }
+
   return Status(0, "OK");
 }
 }

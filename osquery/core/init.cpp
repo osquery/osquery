@@ -191,14 +191,14 @@ DECLARE_string(flagfile);
 
 namespace osquery {
 
-DECLARE_string(distributed_plugin);
-DECLARE_bool(disable_distributed);
 DECLARE_string(config_plugin);
 DECLARE_bool(config_check);
 DECLARE_bool(config_dump);
-DECLARE_bool(disable_database);
 DECLARE_bool(database_dump);
 DECLARE_string(database_path);
+DECLARE_string(distributed_plugin);
+DECLARE_bool(disable_distributed);
+DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
 
 #if !defined(__APPLE__) && !defined(WIN32)
@@ -521,35 +521,25 @@ bool Initializer::isWorker() {
 
 void Initializer::initActivePlugin(const std::string& type,
                                    const std::string& name) const {
-  // Use a delay, meaning the amount of milliseconds waited for extensions.
-  size_t delay = 0;
-  // The timeout is the maximum milliseconds in seconds to wait for extensions.
-  size_t timeout = atoi(FLAGS_extensions_timeout.c_str()) * 1000;
-  if (timeout < kExtensionInitializeLatency * 10) {
-    timeout = kExtensionInitializeLatency * 10;
-  }
-
-  // Attempt to set the request plugin as active.
-  Status status;
-  do {
-    status = Registry::setActive(type, name);
-    if (status.ok()) {
-      // The plugin was found, and is not active.
-      return;
+  auto status = applyExtensionDelay(([type, name](bool& stop) {
+    auto rs = Registry::setActive(type, name);
+    if (rs.ok()) {
+      // The plugin was found, and is now active.
+      return rs;
     }
 
     if (!Watcher::hasManagedExtensions()) {
-      // The plugin was found locally, and is not active, problem.
-      break;
+      // The plugin must be local, and is not active, problem.
+      stop = true;
     }
-    // The plugin is not local and is not active, wait and retry.
-    delay += kExtensionInitializeLatency;
-    sleepFor(kExtensionInitializeLatency);
-  } while (delay < timeout);
+    return rs;
+  }));
 
-  LOG(ERROR) << "Cannot activate " << name << " " << type
-             << " plugin: " << status.getMessage();
-  requestShutdown(EXIT_CATASTROPHIC);
+  if (!status.ok()) {
+    LOG(ERROR) << "Cannot activate " << name << " " << type
+               << " plugin: " << status.getMessage();
+    requestShutdown(EXIT_CATASTROPHIC);
+  }
 }
 
 void Initializer::start() const {
