@@ -684,8 +684,13 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
     }
   }
 
-  // Let the module initialize any Subscriptions.
-  auto status = Status(0, "OK");
+  // Allow subscribers a configure-time setup to determine if they should run.
+  auto status = specialized_sub->setUp();
+  if (!status) {
+    specialized_sub->disabled = true;
+  }
+
+  // Let the subscriber initialize any Subscriptions.
   if (!FLAGS_disable_events && !specialized_sub->disabled) {
     specialized_sub->expireCheck(true);
     status = specialized_sub->init();

@@ -39,7 +39,10 @@ class SocketEventSubscriber : public EventSubscriber<AuditEventPublisher> {
  public:
   /// This subscriber depends on a configuration boolean.
   Status setUp() override {
-    return Status((FLAGS_audit_allow_sockets) ? 0 : 1);
+    if (!FLAGS_audit_allow_sockets) {
+      return Status(1, "Subscriber disabled via configuration");
+    }
+    return Status(0);
   }
 
   /// The process event subscriber declares an audit event type subscription.
