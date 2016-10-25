@@ -28,8 +28,7 @@ namespace tables {
 #define MAX_NETLINK_ATTEMPTS 8
 
 std::string getNetlinkIP(int family, const char* buffer) {
-  char dst[INET6_ADDRSTRLEN];
-  memset(dst, 0, INET6_ADDRSTRLEN);
+  char dst[INET6_ADDRSTRLEN] = {0};
 
   inet_ntop(family, buffer, dst, INET6_ADDRSTRLEN);
   std::string address(dst);
@@ -96,7 +95,7 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
 void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
   std::string address;
   int mask = 0;
-  char interface[IF_NAMESIZE];
+  char interface[IF_NAMESIZE] = {0};
 
   struct rtmsg* message = static_cast<struct rtmsg*>(NLMSG_DATA(netlink_msg));
   struct rtattr* attr = static_cast<struct rtattr*>(RTM_RTA(message));
@@ -182,10 +181,11 @@ QueryData genRoutes(QueryContext& context) {
     return {};
   }
 
+  memset(netlink_buffer, 0, MAX_NETLINK_SIZE);
   auto netlink_msg = (struct nlmsghdr*)netlink_buffer;
   netlink_msg->nlmsg_len = NLMSG_LENGTH(sizeof(struct rtmsg));
   netlink_msg->nlmsg_type = RTM_GETROUTE; // routes from kernel routing table
-  netlink_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
+  netlink_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST | NLM_F_ATOMIC;
   netlink_msg->nlmsg_seq = 0;
   netlink_msg->nlmsg_pid = getpid();
 
