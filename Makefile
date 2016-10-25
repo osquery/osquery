@@ -39,7 +39,7 @@ FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"
 
 ANALYSIS := ${SOURCE_DIR}/tools/analysis
-DEFINES := CTEST_OUTPUT_ON_FAILURE=1 ${PATH_SET} \
+DEFINES := CTEST_OUTPUT_ON_FAILURE=1 \
 	LSAN_OPTIONS="detect_container_overflow=0 \
 	suppressions=${ANALYSIS}/lsan.supp" \
 	ASAN_OPTIONS="suppressions=${ANALYSIS}/asan.supp" \
@@ -183,6 +183,7 @@ sync: .setup
 
 test:
 	@cd build/$(BUILD_DIR) && $(DEFINES) $(CTEST)
+
 %::
 	@cd build/$(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $@

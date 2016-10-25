@@ -5,11 +5,12 @@ class Curl < AbstractOsqueryFormula
   homepage "https://curl.haxx.se/"
   url "https://curl.haxx.se/download/curl-7.48.0.tar.bz2"
   sha256 "864e7819210b586d42c674a1fdd577ce75a78b3dda64c63565abe5aefd72c753"
+  revision 1
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "24a87b472bd056b78a3f37a793fa57e618d05333f3b6c94827a0fb03a34861e1" => :x86_64_linux
+    sha256 "e10eb6e0dba4312da745f538a2832c27637a69f55731cfa21c95bef122fb6099" => :x86_64_linux
   end
 
   keg_only :provided_by_osx

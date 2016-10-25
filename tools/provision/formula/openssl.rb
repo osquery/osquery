@@ -7,14 +7,14 @@ class Openssl < AbstractOsqueryFormula
   mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2i.tar.gz"
   mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2i.tar.gz"
   sha256 "9287487d11c9545b6efb287cdb70535d4e9b284dd10d51441d9b9963d000de6f"
-  revision 1
+  revision 2
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "34c4d438179121bc38bffde80a9ad1e1213135df9492dbbd1bbc10097d4d29a7" => :sierra
+    sha256 "3a593fed8efd77bf6ae3b9e5b16f7c0072b2f249dff9222344e6a6191f0c76cb" => :sierra
     sha256 "fd11d0d4e127128b81810e1aff2dd7a2e4e81b916fa23cedb6955ddc73dacdb6" => :el_capitan
-    sha256 "e24d6d9361661fe76cb0dfdb75c706d0621ebe8e1438111e912d782c819bf935" => :x86_64_linux
+    sha256 "11cc84110960f765d1ee91a14425c6f4b09734272cd6f14a09f85ff428fe183a" => :x86_64_linux
   end
 
   resource "cacert" do
@@ -127,9 +127,10 @@ class Openssl < AbstractOsqueryFormula
   end
 
   def post_install
+    ENV.delete "LIBRARY_PATH"
     unless OS.mac?
       # Optional: Download and install cacert.pem from curl.haxx.se
-      # (etc/"openssl").install resource("cacert").files("cacert-2016-04-20.pem" => "cert.pem")
+      (etc/"openssl").install resource("cacert").files("cacert-2016-04-20.pem" => "cert.pem")
       return
     end
 
