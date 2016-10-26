@@ -1,0 +1,7 @@
+table_name("sudoers")
+description("Rules for running commands as other users via sudo.")
+schema([
+    Column("header", TEXT, "Symbol for given rule"),
+    Column("rule_details", TEXT, "Rule definition")
+])
+implementation("sudoers@genSudoers")
