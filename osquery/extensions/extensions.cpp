@@ -528,6 +528,7 @@ Status startExtension(const std::string& manager_path,
   // plugins are not available in the extension's local registry.
   Registry::setActive("config", options["config_plugin"].value);
   Registry::setActive("logger", options["logger_plugin"].value);
+  Registry::setActive("distributed", options["distributed_plugin"].value);
   // Set up all lazy registry plugins and the active config/logger plugin.
   Registry::setUp();
 
