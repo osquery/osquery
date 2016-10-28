@@ -70,7 +70,7 @@ function Install-PowershellLinter {
 
   $nugetProviderInstalled = $false
   Write-Host " => Determining whether NuGet package provider is already installed." -foregroundcolor DarkYellow
-  foreach ($provider in Get-PackageProvider -ListAvailable) {
+  foreach ($provider in Get-PackageProvider) {
     if ($provider.Name -eq "NuGet" -and $provider.Version -ge 2.8.5.206) {
       $nugetProviderInstalled = $true
       break
@@ -149,6 +149,9 @@ function Install-ChocoPackage {
       $args += ${packageOptions}
     }
     choco ${args}
+    if (@(3010,2147781575,-2147185721,-2147205120) -Contains $LastExitCode){
+      $LastExitCode = 0
+    }
     if ($LastExitCode -ne 0) {
       Write-Host "[-] ERROR: $packageName $packageVersion failed to install!" -foregroundcolor Red
       Exit -1
@@ -283,8 +286,8 @@ function Update-GitSubmodule {
 }
 
 function Main {
-  if ($PSVersionTable.PSVersion.Major -lt 5.0 ) {
-    Write-Output "This installer currently requires Powershell 5.0 or greater."
+  if ($PSVersionTable.PSVersion.Major -lt 3.0 ) {
+    Write-Output "This installer currently requires Powershell 3.0 or greater."
     Exit -1
   }
 
@@ -295,22 +298,26 @@ function Main {
     Exit -1
   }
   Write-Host "[+] Success!" -foregroundcolor Green
-  Install-Chocolatey
-  Install-ChocoPackage 'cppcheck'
-  Install-ChocoPackage '7zip.commandline'
-  Install-ChocoPackage 'cmake.portable' '3.6.1'
-  Install-ChocoPackage 'python2' '2.7.11'
-  Install-PipPackage
-  Update-GitSubmodule
+  $out = Install-Chocolatey
+  $out = Install-ChocoPackage 'cppcheck'
+  $out = Install-ChocoPackage '7zip.commandline'
+  $out = Install-ChocoPackage 'cmake.portable' '3.6.1'
+  $out = Install-ChocoPackage 'python2' '2.7.11'
+  $out = Install-PipPackage
+  $out = Update-GitSubmodule
   $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
   $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
-  Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
+  $out = Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
   if(Test-RebootPending -eq $true) {
-    Write-Host "[*] Windows requires a reboot before continuing. Please reboot your system and then re-run this provisioning script." -foregroundcolor Red
-    Exit
+    Write-Host "*** Windows requires a reboot to complete installing Visual Studio. Please reboot your system and re-run this provisioning script. ***" -foregroundcolor yellow
+    Exit 0
   }
-  Install-ThirdParty
-  Install-PowershellLinter
+  $out = Install-ThirdParty
+  if ($PSVersionTable.PSVersion.Major -lt 5.1 ) {
+    Write-Host "[*] Powershell version is < 5.1. Skipping Powershell Linter Installation." -foregroundcolor yellow
+  } else {
+    $out = Install-PowershellLinter
+  }
   Write-Host "[+] Done." -foregroundcolor Yellow
 }
 
