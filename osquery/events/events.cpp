@@ -120,7 +120,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   WriteLock lock(subscription_lock_);
   for (const auto& subscription : subscriptions_) {
     auto es = EventFactory::getEventSubscriber(subscription->subscriber_name);
-    if (es != nullptr && es->state() == SUBSCRIBER_RUNNING) {
+    if (es != nullptr && es->state() == EventState::EVENT_RUNNING) {
       fireCallback(subscription, ec);
     }
   }
@@ -593,6 +593,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
     // Publishers auto tear down when their run loop stops.
   }
   publisher->tearDown();
+  publisher->state(EventState::EVENT_NONE);
 
   // Do not remove the publisher from the event factory.
   // If the event factory's `end` method was called these publishers will be
@@ -631,7 +632,12 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
   // Do not set up event publisher if events are disabled.
   ef.event_pubs_[type_id] = specialized_pub;
   if (!FLAGS_disable_events) {
+    if (specialized_pub->state() != EventState::EVENT_NONE) {
+      specialized_pub->tearDown();
+    }
+
     auto status = specialized_pub->setUp();
+    specialized_pub->state(EventState::EVENT_SETUP);
     if (!status.ok()) {
       // Only start event loop if setUp succeeds.
       LOG(INFO) << "Event publisher failed setup: " << type_id << ": "
@@ -684,19 +690,24 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
     }
   }
 
+  if (specialized_sub->state() != EventState::EVENT_NONE) {
+    specialized_sub->tearDown();
+  }
+
   // Allow subscribers a configure-time setup to determine if they should run.
   auto status = specialized_sub->setUp();
   if (!status) {
     specialized_sub->disabled = true;
   }
+  specialized_sub->state(EventState::EVENT_SETUP);
 
   // Let the subscriber initialize any Subscriptions.
   if (!FLAGS_disable_events && !specialized_sub->disabled) {
     specialized_sub->expireCheck(true);
     status = specialized_sub->init();
-    specialized_sub->state(SUBSCRIBER_RUNNING);
+    specialized_sub->state(EventState::EVENT_RUNNING);
   } else {
-    specialized_sub->state(SUBSCRIBER_PAUSED);
+    specialized_sub->state(EventState::EVENT_PAUSED);
   }
 
   auto& ef = EventFactory::getInstance();
@@ -722,7 +733,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
 
   // Set state of subscriber.
   if (!status.ok()) {
-    specialized_sub->state(SUBSCRIBER_FAILED);
+    specialized_sub->state(EventState::EVENT_FAILED);
     return Status(1, status.getMessage());
   } else {
     return Status(0, "OK");
@@ -796,6 +807,7 @@ Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
       // If a publisher's run loop was not started, call tearDown since
       // the setUp happened at publisher registration time.
       publisher->tearDown();
+      publisher->state(EventState::EVENT_NONE);
       // If the run loop did run the tear down and erase will happen in the
       // event thread wrapper when isEnding is next checked.
       ef.event_pubs_.erase(type_id);

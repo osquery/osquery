@@ -43,8 +43,6 @@ Status UdevEventPublisher::setUp() {
   return Status(0, "OK");
 }
 
-void UdevEventPublisher::configure() {}
-
 void UdevEventPublisher::tearDown() {
   WriteLock lock(mutex_);
   if (monitor_ != nullptr) {

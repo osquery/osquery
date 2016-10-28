@@ -79,15 +79,15 @@ class UdevEventPublisher
   DECLARE_PUBLISHER("udev");
 
  public:
-  Status setUp() override;
+  virtual ~UdevEventPublisher() {
+    tearDown();
+  }
 
-  void configure() override;
+  Status setUp() override;
 
   void tearDown() override;
 
   Status run() override;
-
-  UdevEventPublisher() : EventPublisher(){};
 
   /**
    * @brief Return a string representation of a udev property.

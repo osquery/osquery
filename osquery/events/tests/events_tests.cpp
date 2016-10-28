@@ -20,8 +20,12 @@ namespace osquery {
 
 class EventsTests : public ::testing::Test {
  public:
-  void SetUp() override { Registry::registry("config_parser")->setUp(); }
-  void TearDown() override { EventFactory::end(true); }
+  void SetUp() override {
+    Registry::registry("config_parser")->setUp();
+  }
+  void TearDown() override {
+    EventFactory::end(true);
+  }
 };
 
 // The most basic event publisher uses useless Subscription/Event.
@@ -186,10 +190,14 @@ class TestEventPublisher
     smallest_ever_ = smallest_subscription;
   }
 
-  void tearDown() override { smallest_ever_ += 1; }
+  void tearDown() override {
+    smallest_ever_ += 1;
+  }
 
   // Custom methods do not make sense, but for testing it exists.
-  int getTestValue() { return smallest_ever_; }
+  int getTestValue() {
+    return smallest_ever_;
+  }
 
  public:
   bool configure_run{false};
@@ -271,9 +279,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
   bool shouldFireBethHathTolled{false};
   size_t timesConfigured{0};
 
-  FakeEventSubscriber() { setName("FakeSubscriber"); }
+  FakeEventSubscriber() {
+    setName("FakeSubscriber");
+  }
 
-  void configure() override { timesConfigured++; }
+  void configure() override {
+    timesConfigured++;
+  }
 
   Status Callback(const ECRef& ec, const SCRef& sc) {
     // We don't care about the subscription or the event contexts.
@@ -399,7 +411,9 @@ TEST_F(EventsTests, test_fire_event) {
 
 class SubFakeEventSubscriber : public FakeEventSubscriber {
  public:
-  SubFakeEventSubscriber() { setName("SubFakeSubscriber"); }
+  SubFakeEventSubscriber() {
+    setName("SubFakeSubscriber");
+  }
 
  private:
   FRIEND_TEST(EventsTests, test_subscriber_names);
@@ -435,6 +449,6 @@ TEST_F(EventsTests, test_event_toggle_subscribers) {
 
   // Registering a disabled subscriber will put it into a paused state.
   EventFactory::registerEventSubscriber(sub);
-  EXPECT_EQ(sub->state(), SUBSCRIBER_PAUSED);
+  EXPECT_EQ(sub->state(), EventState::EVENT_PAUSED);
 }
 }

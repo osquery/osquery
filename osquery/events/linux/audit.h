@@ -159,7 +159,10 @@ class AuditEventPublisher
   Status run() override;
 
  public:
-  AuditEventPublisher() : EventPublisher(){};
+  AuditEventPublisher() : EventPublisher() {}
+  virtual ~AuditEventPublisher() {
+    tearDown();
+  }
 
  private:
   /// Maintain a list of audit rule data for displaying or deleting.
