@@ -165,9 +165,8 @@ void genOSXDefaultPreferences(QueryContext& context, QueryData& results) {
     app_map = (CFArrayRef)CFArrayCreateMutable(
         kCFAllocatorDefault, domains.size(), &kCFTypeArrayCallBacks);
     for (const auto& domain : domains) {
-      auto cf_domain = CFStringCreateWithCString(kCFAllocatorDefault,
-                                                 domain.c_str(),
-                                                 kCFStringEncodingASCII);
+      auto cf_domain = CFStringCreateWithCString(
+          kCFAllocatorDefault, domain.c_str(), kCFStringEncodingASCII);
       CFArrayAppendValue((CFMutableArrayRef)app_map, cf_domain);
       CFRelease(cf_domain);
     }
@@ -244,9 +243,24 @@ void genOSXPlistPreferences(const std::string& path, QueryData& results) {
 QueryData genOSXPreferences(QueryContext& context) {
   QueryData results;
 
-  if (context.constraints["path"].exists(EQUALS)) {
-    // Read preferences from a plist at path.
+  if (context.constraints["path"].exists(EQUALS | LIKE)) {
+    // Resolve file paths for EQUALS and LIKE operations.
     auto paths = context.constraints["path"].getAll(EQUALS);
+    context.expandConstraints(
+        "path",
+        LIKE,
+        paths,
+        ([&](const std::string& pattern, std::set<std::string>& out) {
+          std::vector<std::string> patterns;
+          auto status =
+              resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+          if (status.ok()) {
+            for (const auto& resolved : patterns) {
+              out.insert(resolved);
+            }
+          }
+          return status;
+        }));
     for (const auto& path : paths) {
       genOSXPlistPreferences(path, results);
     }
