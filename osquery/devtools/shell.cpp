@@ -50,6 +50,8 @@ extern int sqlite3WhereTrace;
 
 namespace fs = boost::filesystem;
 
+DECLARE_string(flagfile);
+
 namespace osquery {
 
 /// Define flags used by the shell. They are parsed by the drop-in shell.
@@ -67,34 +69,44 @@ SHELL_FLAG(string, A, "", "Select all from a table");
 
 DECLARE_string(nullvalue);
 DECLARE_string(extensions_socket);
+DECLARE_string(tls_hostname);
+DECLARE_string(logger_plugin);
+DECLARE_string(logger_path);
+DECLARE_string(logger_tls_endpoint);
+DECLARE_string(distributed_plugin);
+DECLARE_string(config_plugin);
+DECLARE_string(config_path);
+DECLARE_string(config_tls_endpoint);
+DECLARE_string(database_path);
 }
 
 static char zHelp[] =
     "Welcome to the osquery shell. Please explore your OS!\n"
     "You are connected to a transient 'in-memory' virtual database.\n"
     "\n"
-    ".all [TABLE]       Select all from a table\n"
-    ".bail ON|OFF       Stop after hitting an error; default OFF\n"
-    ".echo ON|OFF       Turn command echo on or off\n"
-    ".exit              Exit this program\n"
-    ".header(s) ON|OFF  Turn display of headers on or off\n"
-    ".help              Show this message\n"
-    ".mode MODE         Set output mode where MODE is one of:\n"
-    "                     csv      Comma-separated values\n"
-    "                     column   Left-aligned columns.  (See .width)\n"
-    "                     line     One value per line\n"
-    "                     list     Values delimited by .separator string\n"
-    "                     pretty   Pretty printed SQL results (default)\n"
-    ".nullvalue STR     Use STRING in place of NULL values\n"
-    ".print STR...      Print literal STRING\n"
-    ".quit              Exit this program\n"
-    ".schema [TABLE]    Show the CREATE statements\n"
-    ".separator STR     Change separator used by output mode and .import\n"
-    ".socket            Show the osquery extensions socket path\n"
-    ".show              Show the current values for various settings\n"
-    ".tables [TABLE]    List names of tables\n"
-    ".trace FILE|off    Output each SQL statement as it is run\n"
-    ".width [NUM1]+     Set column widths for \"column\" mode\n";
+    ".all [TABLE]     Select all from a table\n"
+    ".bail ON|OFF     Stop after hitting an error\n"
+    ".echo ON|OFF     Turn command echo on or off\n"
+    ".exit            Exit this program\n"
+    ".features        List osquery's features and their statuses\n"
+    ".headers ON|OFF  Turn display of headers on or off\n"
+    ".help            Show this message\n"
+    ".mode MODE       Set output mode where MODE is one of:\n"
+    "                   csv      Comma-separated values\n"
+    "                   column   Left-aligned columns see .width\n"
+    "                   line     One value per line\n"
+    "                   list     Values delimited by .separator string\n"
+    "                   pretty   Pretty printed SQL results (default)\n"
+    ".nullvalue STR   Use STRING in place of NULL values\n"
+    ".print STR...    Print literal STRING\n"
+    ".quit            Exit this program\n"
+    ".schema [TABLE]  Show the CREATE statements\n"
+    ".separator STR   Change separator used by output mode\n"
+    ".socket          Show the osquery extensions socket path\n"
+    ".show            Show the current values for various settings\n"
+    ".summary         Alias for the show meta command\n"
+    ".tables [TABLE]  List names of tables\n"
+    ".width [NUM1]+   Set column widths for \"column\" mode\n";
 
 static char zTimerHelp[] =
     ".timer ON|OFF      Turn the CPU timer measurement on or off\n";
@@ -223,8 +235,8 @@ static bool stdin_is_interactive = true;
 // True if an interrupt (Control-C) has been received.
 static volatile int seenInterrupt = 0;
 
-static char mainPrompt[20]; // First line prompt. default: "sqlite> "
-static char continuePrompt[20]; // Continuation prompt. default: "   ...> "
+static char mainPrompt[26]; // First line prompt. default: "sqlite> "
+static char continuePrompt[26]; // Continuation prompt. default: "   ...> "
 
 // A global char* and an SQL function to access its current value
 // from within an SQL statement. This program used to use the
@@ -239,6 +251,19 @@ void shellstaticFunc(sqlite3_context* context,
   assert(0 == argc);
   assert(zShellStatic);
   sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC);
+}
+
+/*
+** Output text to the console in a font that attracts extra attention.
+*/
+static void print_bold(const char* zText) {
+  if (stdin_is_interactive) {
+    printf("\033[1m");
+  }
+  printf("%s", zText);
+  if (stdin_is_interactive) {
+    printf("\033[0m");
+  }
 }
 
 /*
@@ -1027,40 +1052,6 @@ static int booleanValue(char* zArg) {
   return 0;
 }
 
-/*
-** Close an output file, assuming it is not stderr or stdout
-*/
-static void output_file_close(FILE* f) {
-  if (f && f != stdout && f != stderr) {
-    fclose(f);
-  }
-}
-
-/*
-** Try to open an output file.   The names "stdout" and "stderr" are
-** recognized and do the right thing.  NULL is returned if the output
-** filename is "off".
-*/
-static FILE* output_file_open(const char* zFile) {
-  FILE* f;
-  if (strcmp(zFile, "stdout") == 0) {
-    f = stdout;
-  } else if (strcmp(zFile, "stderr") == 0) {
-    f = stderr;
-  } else if (strcmp(zFile, "off") == 0) {
-    f = 0;
-  } else {
-    boost::optional<FILE*> fp = osquery::platformFopen(zFile, "wb");
-    if (!fp.is_initialized()) {
-      fprintf(stderr, "Error: cannot open \"%s\"\n", zFile);
-      f = 0;
-    } else {
-      f = *fp;
-    }
-  }
-  return f;
-}
-
 inline void meta_tables(int nArg, char** azArg) {
   auto tables = osquery::Registry::names("table");
   std::sort(tables.begin(), tables.end());
@@ -1085,6 +1076,124 @@ inline void meta_schema(int nArg, char** azArg) {
               "CREATE TABLE %s%s;\n",
               table_name.c_str(),
               osquery::columnDefinition(response, true).c_str());
+    }
+  }
+}
+
+inline void meta_features(struct callback_data* p) {
+  auto results = osquery::SQL::SQL(
+      "select * from osquery_flags where (name like 'disable_%' or name like "
+      "'enable_%') and type = 'bool'");
+  for (const auto& flag : results.rows()) {
+    fprintf(
+        p->out, "%s: %s\n", flag.at("name").c_str(), flag.at("value").c_str());
+  }
+}
+
+inline void meta_version(struct callback_data* p) {
+  fprintf(p->out, "osquery %s\n", osquery::kVersion.c_str());
+  fprintf(p->out, "using SQLite %s\n", sqlite3_libversion());
+}
+
+inline void meta_show(struct callback_data* p) {
+  // The show/summary meta command is provided to help with general debugging.
+  // All of this information is 'duplicate', and can be found with better
+  // detail within osquery virtual tables.
+  print_bold("osquery");
+  printf(
+      " - being built, with love, at Facebook\n"
+      "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+  meta_version(p);
+
+  fprintf(p->out, "\nGeneral settings:\n");
+  fprintf(p->out, "%13.13s: %s\n", "Flagfile", FLAGS_flagfile.c_str());
+  // Show helpful config-related settings.
+  fprintf(
+      p->out, "%13.13s: %s", "Config", osquery::FLAGS_config_plugin.c_str());
+  if (osquery::FLAGS_config_plugin == "filesystem") {
+    fprintf(p->out, " (%s)\n", osquery::FLAGS_config_path.c_str());
+  } else if (osquery::FLAGS_config_plugin == "tls") {
+    fprintf(p->out,
+            " (%s%s)\n",
+            osquery::FLAGS_tls_hostname.c_str(),
+            osquery::FLAGS_config_tls_endpoint.c_str());
+  } else {
+    fprintf(p->out, "\n");
+  }
+
+  // Show helpful logger-related settings.
+  fprintf(
+      p->out, "%13.13s: %s", "Logger", osquery::FLAGS_logger_plugin.c_str());
+  if (osquery::FLAGS_logger_plugin == "filesystem") {
+    fprintf(p->out, " (%s)\n", osquery::FLAGS_logger_path.c_str());
+  } else if (osquery::FLAGS_logger_plugin == "tls") {
+    fprintf(p->out,
+            " (%s%s)\n",
+            osquery::FLAGS_tls_hostname.c_str(),
+            osquery::FLAGS_logger_tls_endpoint.c_str());
+  } else {
+    fprintf(p->out, "\n");
+  }
+
+  fprintf(p->out,
+          "%13.13s: %s\n",
+          "Distributed",
+          osquery::FLAGS_distributed_plugin.c_str());
+
+  auto database = osquery::Registry::getActive("database");
+  fprintf(p->out, "%13.13s: %s", "Database", database.c_str());
+  if (database == "rocksdb") {
+    fprintf(p->out, " (%s)\n", osquery::FLAGS_database_path.c_str());
+  } else {
+    fprintf(p->out, "\n");
+  }
+
+  {
+    auto results = osquery::SQL::selectAllFrom("osquery_extensions");
+    std::vector<std::string> extensions;
+    for (const auto& extension : results) {
+      extensions.push_back(extension.at("name"));
+    }
+    fprintf(p->out,
+            "%13.13s: %s\n",
+            "Extensions",
+            osquery::join(extensions, ", ").c_str());
+
+    fprintf(p->out,
+            "%13.13s: %s\n",
+            "Socket",
+            osquery::FLAGS_extensions_socket.c_str());
+  }
+
+  fprintf(p->out, "\nShell settings:\n");
+  fprintf(p->out, "%13.13s: %s\n", "echo", p->echoOn ? "on" : "off");
+  fprintf(p->out, "%13.13s: %s\n", "headers", p->showHeader ? "on" : "off");
+  fprintf(p->out, "%13.13s: %s\n", "mode", modeDescr[p->mode]);
+  fprintf(p->out, "%13.13s: ", "nullvalue");
+  output_c_string(p->out, p->nullvalue);
+  fprintf(p->out, "\n");
+  fprintf(p->out,
+          "%13.13s: %s\n",
+          "output",
+          strlen30(p->outfile) ? p->outfile : "stdout");
+  fprintf(p->out, "%13.13s: ", "separator");
+  output_c_string(p->out, p->separator);
+  fprintf(p->out, "\n");
+  fprintf(p->out, "%13.13s: ", "width");
+  for (int i = 0; i < ArraySize(p->colWidth) && p->colWidth[i] != 0; i++) {
+    fprintf(p->out, "%d ", p->colWidth[i]);
+  }
+  fprintf(p->out, "\n");
+
+  {
+    fprintf(p->out, "\nNon-default flags/options:\n");
+    auto results = osquery::SQL::SQL(
+        "select * from osquery_flags where default_value <> value");
+    for (const auto& flag : results.rows()) {
+      fprintf(p->out,
+              "  %s: %s\n",
+              flag.at("name").c_str(),
+              flag.at("value").c_str());
     }
   }
 }
@@ -1176,6 +1285,8 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
       exit(rc);
     }
     rc = 2;
+  } else if (c == 'f' && strncmp(azArg[0], "features", n) == 0 && nArg == 1) {
+    meta_features(p);
   } else if (c == 'h' && (strncmp(azArg[0], "header", n) == 0 ||
                           strncmp(azArg[0], "headers", n) == 0) &&
              nArg > 1 && nArg < 3) {
@@ -1185,10 +1296,6 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
     if (HAS_TIMER) {
       fprintf(stderr, "%s", zTimerHelp);
     }
-  } else if (c == 'l' && strncmp(azArg[0], "log", n) == 0 && nArg >= 2) {
-    const char* zFile = azArg[1];
-    output_file_close(p->pLog);
-    p->pLog = output_file_open(zFile);
   } else if (c == 'm' && strncmp(azArg[0], "mode", n) == 0 && nArg == 2) {
     int n2 = strlen30(azArg[1]);
     if ((n2 == 4 && strncmp(azArg[1], "line", n2) == 0) ||
@@ -1235,26 +1342,10 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
                      "%.*s",
                      (int)sizeof(p->separator) - 1,
                      azArg[1]);
-  } else if (c == 's' && strncmp(azArg[0], "show", n) == 0 && nArg == 1) {
-    int i;
-    fprintf(p->out, "%9.9s: %s\n", "echo", p->echoOn ? "on" : "off");
-    fprintf(p->out, "%9.9s: %s\n", "headers", p->showHeader ? "on" : "off");
-    fprintf(p->out, "%9.9s: %s\n", "mode", modeDescr[p->mode]);
-    fprintf(p->out, "%9.9s: ", "nullvalue");
-    output_c_string(p->out, p->nullvalue);
-    fprintf(p->out, "\n");
-    fprintf(p->out,
-            "%9.9s: %s\n",
-            "output",
-            strlen30(p->outfile) ? p->outfile : "stdout");
-    fprintf(p->out, "%9.9s: ", "separator");
-    output_c_string(p->out, p->separator);
-    fprintf(p->out, "\n");
-    fprintf(p->out, "%9.9s: ", "width");
-    for (i = 0; i < ArraySize(p->colWidth) && p->colWidth[i] != 0; i++) {
-      fprintf(p->out, "%d ", p->colWidth[i]);
-    }
-    fprintf(p->out, "\n");
+  } else if (c == 's' && (strncmp(azArg[0], "show", n) == 0 ||
+                          strncmp(azArg[0], "summary", n) == 0) &&
+             nArg == 1) {
+    meta_show(p);
   } else if (c == 't' && n > 1 && strncmp(azArg[0], "tables", n) == 0 &&
              nArg < 3) {
     meta_tables(nArg, azArg);
@@ -1267,12 +1358,8 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
   } else if (HAS_TIMER && c == 't' && n >= 5 &&
              strncmp(azArg[0], "timer", n) == 0 && nArg == 2) {
     enableTimer = booleanValue(azArg[1]);
-  } else if (c == 't' && strncmp(azArg[0], "trace", n) == 0 && nArg > 1) {
-    output_file_close(p->traceOut);
-    p->traceOut = output_file_open(azArg[1]);
   } else if (c == 'v' && strncmp(azArg[0], "version", n) == 0) {
-    fprintf(p->out, "osquery %s\n", osquery::kVersion.c_str());
-    fprintf(p->out, "using SQLite %s\n", sqlite3_libversion());
+    meta_version(p);
   } else if (c == 'w' && strncmp(azArg[0], "width", n) == 0 && nArg > 1) {
     int j;
     assert(nArg <= ArraySize(azArg));
@@ -1479,16 +1566,20 @@ static void main_init(struct callback_data* data) {
 
   sqlite3_config(SQLITE_CONFIG_URI, 1);
   sqlite3_config(SQLITE_CONFIG_LOG, shellLog, data);
-  sqlite3_snprintf(sizeof(mainPrompt), mainPrompt, "osquery> ");
-  sqlite3_snprintf(sizeof(continuePrompt), continuePrompt, "    ...> ");
-  sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
-}
 
-/*
-** Output text to the console in a font that attracts extra attention.
-*/
-static void printBold(const char* zText) {
-  printf("\033[1m%s\033[0m", zText);
+  auto term = osquery::getEnvVar("TERM");
+  if (term.is_initialized() &&
+      (*term).find("xterm-256color") != std::string::npos) {
+    sqlite3_snprintf(
+        sizeof(mainPrompt), mainPrompt, "\033[38;5;147mosquery> \033[0m");
+    sqlite3_snprintf(sizeof(continuePrompt),
+                     continuePrompt,
+                     "\033[38;5;147m    ...> \033[0m");
+  } else {
+    sqlite3_snprintf(sizeof(mainPrompt), mainPrompt, "osquery> ");
+    sqlite3_snprintf(sizeof(continuePrompt), continuePrompt, "    ...> ");
+  }
+  sqlite3_config(SQLITE_CONFIG_SINGLETHREAD);
 }
 
 namespace osquery {
@@ -1583,12 +1674,8 @@ int launchIntoShell(int argc, char** argv) {
   } else {
     // Run commands received from standard input
     if (stdin_is_interactive) {
-      printBold("osquery");
-      printf(
-          " - being built, with love, at Facebook\n"
-          "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
       printf("Using a ");
-      printBold("virtual database");
+      print_bold("virtual database");
       printf(". Need help, type '.help'\n");
 
       auto history_file =
