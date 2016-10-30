@@ -81,9 +81,9 @@ using BaseEventSubscriber = EventSubscriber<BaseEventPublisher>;
 using EventSubscriberRef = std::shared_ptr<EventSubscriber<BaseEventPublisher>>;
 
 /**
- * @brief EventSubscriber%s may exist in various states.
+ * @brief EventSubscriber%s and Publishers may exist in various states.
  *
- * The subscriber will move through states when osquery is initializing the
+ * The class will move through states when osquery is initializing the
  * registry, starting event publisher loops, and requesting initialization of
  * each subscriber and the optional set of subscriptions it creates. If this
  * initialization fails the publishers or EventFactory may eject, warn, or
@@ -91,15 +91,17 @@ using EventSubscriberRef = std::shared_ptr<EventSubscriber<BaseEventPublisher>>;
  *
  * The supported states are:
  * - None: The default state, uninitialized.
+ * - Setup: The Subscriber is attached and has run setup.
  * - Running: Subscriber is ready for events.
  * - Paused: Subscriber was initialized but is not currently accepting events.
  * - Failed: Subscriber failed to initialize or is otherwise offline.
  */
-enum EventSubscriberState {
-  SUBSCRIBER_NONE,
-  SUBSCRIBER_RUNNING,
-  SUBSCRIBER_PAUSED,
-  SUBSCRIBER_FAILED,
+enum class EventState {
+  EVENT_NONE = 0,
+  EVENT_SETUP,
+  EVENT_RUNNING,
+  EVENT_PAUSED,
+  EVENT_FAILED,
 };
 
 /// Use a single placeholder for the EventContextRef passed to EventCallback.
@@ -175,7 +177,35 @@ struct Subscription : private boost::noncopyable {
   Subscription() = delete;
 };
 
-class EventPublisherPlugin : public Plugin, public InterruptableRunnable {
+class Eventer {
+ public:
+  /**
+   * @brief Request the subscriber's initialization state.
+   *
+   * When event subscribers are created (initialized) they are expected to emit
+   * a set of subscriptions to their publisher "type". If the subscriber fails
+   * to initialize then the publisher may remove any intermediate subscriptions.
+   */
+  EventState state() const {
+    return state_;
+  }
+
+ protected:
+  /// Set the subscriber state.
+  void state(EventState state) {
+    state_ = state;
+  }
+
+ private:
+  /// The event subscriber's run state.
+  EventState state_{EventState::EVENT_NONE};
+
+  friend class EventFactory;
+};
+
+class EventPublisherPlugin : public Plugin,
+                             public InterruptableRunnable,
+                             public Eventer {
  public:
   /**
    * @brief A new Subscription was added, potentially change state based on all
@@ -344,7 +374,7 @@ class EventPublisherPlugin : public Plugin, public InterruptableRunnable {
   FRIEND_TEST(EventsTests, test_fire_event);
 };
 
-class EventSubscriberPlugin : public Plugin {
+class EventSubscriberPlugin : public Plugin, public Eventer {
  public:
   /**
    * @brief Add Subscription%s to the EventPublisher this module will act on.
@@ -506,7 +536,7 @@ class EventSubscriberPlugin : public Plugin {
    * loops.
    */
   EventSubscriberPlugin()
-      : expire_events_(true), expire_time_(0), optimize_time_(0){};
+      : expire_events_(true), expire_time_(0), optimize_time_(0) {}
   virtual ~EventSubscriberPlugin() {}
 
   /**
@@ -987,24 +1017,8 @@ class EventSubscriber : public EventSubscriberPlugin {
   }
 
  public:
-  /**
-   * @brief Request the subscriber's initialization state.
-   *
-   * When event subscribers are created (initialized) they are expected to emit
-   * a set of subscriptions to their publisher "type". If the subscriber fails
-   * to initialize then the publisher may remove any intermediate subscriptions.
-   */
-  EventSubscriberState state() const {
-    return state_;
-  }
-
-  /// Set the subscriber state.
-  void state(EventSubscriberState state) {
-    state_ = state;
-  }
-
   explicit EventSubscriber(bool enabled = true)
-      : EventSubscriberPlugin(), disabled(!enabled), state_(SUBSCRIBER_NONE) {}
+      : EventSubscriberPlugin(), disabled(!enabled) {}
   virtual ~EventSubscriber() {}
 
  protected:
@@ -1020,10 +1034,6 @@ class EventSubscriber : public EventSubscriberPlugin {
    * in their constructor or worst case before EventSubsciber::init.
    */
   bool disabled{false};
-
- private:
-  /// The event subscriber's run state.
-  EventSubscriberState state_;
 
  private:
   friend class EventFactory;

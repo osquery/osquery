@@ -108,7 +108,9 @@ void INotifyEventPublisher::configure() {
 }
 
 void INotifyEventPublisher::tearDown() {
-  ::close(inotify_handle_);
+  if (inotify_handle_ > -1) {
+    ::close(inotify_handle_);
+  }
   inotify_handle_ = -1;
 }
 

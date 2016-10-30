@@ -70,7 +70,7 @@ QueryData genOsqueryEvents(QueryContext& context) {
       r["events"] = INTEGER(subref->numEvents());
 
       // Subscribers are always active, even if their publisher is not.
-      r["active"] = (subref->state() == SUBSCRIBER_RUNNING) ? "1" : "0";
+      r["active"] = (subref->state() == EventState::EVENT_RUNNING) ? "1" : "0";
     } else {
       r["subscriptions"] = "0";
       r["events"] = "0";

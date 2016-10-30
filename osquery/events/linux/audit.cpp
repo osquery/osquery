@@ -169,6 +169,7 @@ void AuditEventPublisher::tearDown() {
   }
 
   audit_close(handle_);
+  handle_ = 0;
 }
 
 inline void handleAuditConfigChange(const struct audit_reply& reply) {

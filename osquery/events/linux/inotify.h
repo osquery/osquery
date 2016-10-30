@@ -118,6 +118,10 @@ class INotifyEventPublisher
   DECLARE_PUBLISHER("inotify");
 
  public:
+  virtual ~INotifyEventPublisher() {
+    tearDown();
+  }
+
   /// Create an `inotify` handle descriptor.
   Status setUp() override;
 
@@ -139,7 +143,9 @@ class INotifyEventPublisher
       struct inotify_event* event) const;
 
   /// Check if the application-global `inotify` handle is alive.
-  bool isHandleOpen() const { return inotify_handle_ > 0; }
+  bool isHandleOpen() const {
+    return inotify_handle_ > 0;
+  }
 
   /// Check all added Subscription%s for a path.
   bool isPathMonitored(const std::string& path) const;
@@ -177,10 +183,14 @@ class INotifyEventPublisher
                   const INotifyEventContextRef& ec) const override;
 
   /// Get the INotify file descriptor.
-  int getHandle() const { return inotify_handle_; }
+  int getHandle() const {
+    return inotify_handle_;
+  }
 
   /// Get the number of actual INotify active descriptors.
-  size_t numDescriptors() const { return descriptors_.size(); }
+  size_t numDescriptors() const {
+    return descriptors_.size();
+  }
 
   /// If we overflow, try and restart the monitor
   Status restartMonitoring();
