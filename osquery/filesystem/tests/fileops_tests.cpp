@@ -324,6 +324,30 @@ TEST_F(FileOpsTests, test_seekFile) {
   }
 }
 
+TEST_F(FileOpsTests, test_large_read_write) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  const std::string expected(600000000, 'A');
+  const ssize_t expected_len = expected.size();
+
+  {
+    PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    auto write_len = fd.write(expected.c_str(), expected_len);
+    EXPECT_EQ(expected_len, write_len);
+  }
+
+  {
+    std::vector<char> buffer(expected_len);
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_TRUE(fd.isValid());
+    auto read_len = fd.read(buffer.data(), expected_len);
+    EXPECT_EQ(expected_len, read_len);
+    EXPECT_EQ(expected, std::string(buffer.data()));
+  }
+}
+
 TEST_F(FileOpsTests, test_glob) {
   {
     std::vector<fs::path> expected{kFakeDirectory + "/door.txt",
