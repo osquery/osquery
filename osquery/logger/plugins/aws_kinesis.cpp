@@ -36,6 +36,14 @@ FLAG(uint64,
      aws_kinesis_period,
      10,
      "Seconds between flushing logs to Kinesis (default 10)");
+FLAG(uint64,
+     aws_kinesis_failed_upload_retry_count,
+     10,
+     "How many times failed uploads will be reattempted");
+FLAG(uint64,
+     aws_kinesis_failed_upload_retry_delay,
+     5000,
+     "The delay in milliseconds to wait before reattempting failed uploads");
 FLAG(string, aws_kinesis_stream, "", "Name of Kinesis stream for logging")
 FLAG(bool,
      aws_kinesis_random_partition_key,
@@ -87,19 +95,36 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
 
   Aws::Kinesis::Model::PutRecordsOutcome outcome = client_->PutRecords(request);
   Aws::Kinesis::Model::PutRecordsResult result = outcome.GetResult();
+  VLOG(1) << "Successfully sent "
+          << result.GetRecords().size() - result.GetFailedRecordCount()
+          << " of " << result.GetRecords().size() << " logs to Kinesis.";
   if (result.GetFailedRecordCount() != 0) {
+    std::vector<std::string> resend;
+    std::string error_msg = "";
+    int i = 0;
     for (const auto& record : result.GetRecords()) {
       if (!record.GetErrorMessage().empty()) {
-        LOG(ERROR) << "Kinesis write for " << result.GetFailedRecordCount()
-                   << " of " << result.GetRecords().size()
-                   << " records failed with error " << record.GetErrorMessage();
-        return Status(1, record.GetErrorMessage());
+        resend.push_back(log_data[i]);
+        error_msg = record.GetErrorMessage();
       }
+      i++;
+    }
+    LOG(ERROR) << "Kinesis write for " << result.GetFailedRecordCount()
+               << " of " << result.GetRecords().size()
+               << " records failed with error " << error_msg;
+    if (retry_count > 0) {
+      sleepFor(FLAGS_aws_kinesis_failed_upload_retry_delay);
+      VLOG(1) << "Resending " << result.GetFailedRecordCount()
+              << " records to Kinesis";
+      retry_count = --retry_count;
+      send(resend, log_type);
+    } else {
+      retry_count = FLAGS_aws_kinesis_failed_upload_retry_count;
+      return Status(1, error_msg);
     }
   }
 
-  VLOG(1) << "Successfully sent " << result.GetRecords().size()
-          << " logs to Kinesis.";
+  retry_count = FLAGS_aws_kinesis_failed_upload_retry_count;
   return Status(0);
 }
 
