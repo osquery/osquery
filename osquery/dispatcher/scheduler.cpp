@@ -127,8 +127,11 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
 
   status = logQueryLogItem(item);
   if (!status.ok()) {
-    LOG(ERROR) << "Error logging the results of query: " << name << ": "
-               << status.toString();
+    // If log directory is not available, then the daemon shouldn't continue.
+    std::string error = "Error logging the results of query: " + name + ": " +
+                        status.toString();
+    LOG(ERROR) << error;
+    Initializer::requestShutdown(EXIT_CATASTROPHIC, error);
   }
 }
 
