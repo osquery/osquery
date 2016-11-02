@@ -14,7 +14,6 @@
 #include <utility>
 #include <vector>
 
-#include <boost/noncopyable.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config.h>
@@ -22,11 +21,10 @@
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
 
-#include "osquery/core/process.h"
-
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
 /// Init function for tests and benchmarks.
 void initTesting();
 
@@ -34,7 +32,10 @@ void initTesting();
 void shutdownTesting();
 
 /// Any SQL-dependent tests should use kTestQuery for a pre-populated example.
-const std::string kTestQuery = "SELECT * FROM test_table";
+const std::string kTestQuery{"SELECT * FROM test_table"};
+
+/// A fake directory tree should be used for filesystem iterator testing.
+const std::string kFakeDirectoryName{"fstree"};
 
 /// Tests can be run from within the source or build directory.
 /// The test initializer will attempt to discovery the current working path.
@@ -43,9 +44,6 @@ extern std::string kTestDataPath;
 /// Tests should limit intermediate input/output to a working directory.
 /// Config data, logging results, and intermediate database/caching usage.
 extern std::string kTestWorkingDirectory;
-
-/// A fake directory tree should be used for filesystem iterator testing.
-const std::string kFakeDirectoryName = "fstree";
 extern std::string kFakeDirectory;
 
 // Get an example generate config with one static source name to JSON content.
@@ -122,42 +120,5 @@ void createMockFileStructure();
 
 // remove the small directory structure used for testing
 void tearDownMockFileStructure();
-
-class TLSServerRunner : private boost::noncopyable {
- public:
-  /// Create a singleton TLS server runner.
-  static TLSServerRunner& instance() {
-    static TLSServerRunner instance;
-    return instance;
-  }
-
-  /// Set associated flags for testing client TLS usage.
-  static void setClientConfig();
-
-  /// Unset or restore associated flags for testing client TLS usage.
-  static void unsetClientConfig();
-
-  /// TCP port accessor.
-  static const std::string& port() { return instance().port_; }
-
-  /// Start the server if it hasn't started already.
-  static void start();
-
-  /// Stop the service when the process exits.
-  static void stop();
-
- private:
-  /// Current server handle.
-  std::shared_ptr<PlatformProcess> server_{nullptr};
-
-  /// Current server TLS port.
-  std::string port_;
-
- private:
-  std::string tls_hostname_;
-  std::string enroll_tls_endpoint_;
-  std::string tls_server_certs_;
-  std::string enroll_secret_path_;
-};
 }
 

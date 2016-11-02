@@ -496,6 +496,12 @@ EventPublisherRef EventSubscriberPlugin::getPublisher() const {
 
 void EventSubscriberPlugin::removeSubscriptions() {
   subscription_count_ = 0;
+  auto publisher = getPublisher();
+  if (publisher == nullptr) {
+    LOG(WARNING) << "Cannot remove subscriptions from: " << getName();
+    return;
+  }
+
   getPublisher()->removeSubscriptions(getName());
 }
 

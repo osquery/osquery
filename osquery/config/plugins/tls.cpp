@@ -86,8 +86,14 @@ Status TLSConfigPlugin::setUp() {
 Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
   std::string json;
 
+  pt::ptree params;
+  if (FLAGS_tls_node_api) {
+    // The TLS node API morphs some verbs and variables.
+    params.put("_get", true);
+  }
+
   auto s = TLSRequestHelper::go<JSONSerializer>(
-      uri_, json, FLAGS_config_tls_max_attempts);
+      uri_, params, json, FLAGS_config_tls_max_attempts);
   if (!s.ok()) {
     return s;
   }

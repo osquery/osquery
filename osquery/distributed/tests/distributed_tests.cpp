@@ -21,6 +21,7 @@
 
 #include "osquery/core/json.h"
 #include "osquery/sql/sqlite_util.h"
+#include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
 namespace pt = boost::property_tree;

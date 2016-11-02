@@ -13,6 +13,7 @@
 #include <osquery/logger.h>
 #include <osquery/database.h>
 
+#include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
 #include "osquery/logger/plugins/tls.h"
@@ -29,12 +30,20 @@ class TLSLoggerTests : public testing::Test {
 };
 
 TEST_F(TLSLoggerTests, test_database) {
+  // Start a server.
+  TLSServerRunner::start();
+  TLSServerRunner::setClientConfig();
+
   auto forwarder = std::make_shared<TLSLogForwarder>();
   std::string expected = "{\"new_json\": true}";
   forwarder->logString(expected);
   StatusLogLine status;
   status.message = "{\"status\": \"bar\"}";
   forwarder->logStatus({status});
+
+  // Stop the server.
+  TLSServerRunner::unsetClientConfig();
+  TLSServerRunner::stop();
 
   std::vector<std::string> indexes;
   scanDatabaseKeys(kLogs, indexes);

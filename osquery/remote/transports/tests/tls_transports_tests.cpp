@@ -18,6 +18,7 @@
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/transports/tls.h"
 
+#include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
 namespace pt = boost::property_tree;

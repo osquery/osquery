@@ -95,6 +95,11 @@ bool INotifyEventPublisher::monitorSubscription(
 }
 
 void INotifyEventPublisher::configure() {
+  if (inotify_handle_ == -1) {
+    // This publisher has not been setup correctly.
+    return;
+  }
+
   for (auto& sub : subscriptions_) {
     // Anytime a configure is called, try to monitor all subscriptions.
     // Configure is called as a response to removing/adding subscriptions.
