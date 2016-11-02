@@ -18,36 +18,40 @@
 namespace osquery {
 namespace tables {
 
-#define OSX_VERSION_PATH "/System/Library/CoreServices/SystemVersion.plist"
+const std::string kVersionPath{
+    "/System/Library/CoreServices/SystemVersion.plist"};
 
 QueryData genOSVersion(QueryContext& context) {
+  Row r;
+  r["platform"] = "darwin";
+  r["platform_like"] = "darwin";
+
   // The version path plist is parsed by the OS X tool: sw_vers.
   auto sw_vers =
-      SQL::selectAllFrom("preferences", "path", EQUALS, OSX_VERSION_PATH);
-  if (sw_vers.size() == 0) {
-    return {};
+      SQL::selectAllFrom("preferences", "path", EQUALS, kVersionPath);
+  if (sw_vers.empty()) {
+    return {r};
   }
 
-  std::string version_string;
-  Row r;
   for (const auto& row : sw_vers) {
     // Iterate over each plist key searching for the version string.
     if (row.at("key") == "ProductBuildVersion") {
       r["build"] = row.at("value");
     } else if (row.at("key") == "ProductVersion") {
-      version_string = row.at("value");
+      r["version"] = row.at("value");
     } else if (row.at("key") == "ProductName") {
       r["name"] = row.at("value");
     }
   }
 
   r["patch"] = "0";
-  auto version = osquery::split(version_string, ".");
+  auto version = osquery::split(r["version"], ".");
   switch (version.size()) {
   case 3:
     r["patch"] = INTEGER(version[2]);
   case 2:
     r["minor"] = INTEGER(version[1]);
+  case 1:
     r["major"] = INTEGER(version[0]);
     break;
   }
