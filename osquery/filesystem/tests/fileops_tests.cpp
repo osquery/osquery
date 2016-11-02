@@ -687,4 +687,30 @@ TEST_F(FileOpsTests, test_glob) {
     EXPECT_TRUE(globResultsMatch(result, expected));
   }
 }
+
+TEST_F(FileOpsTests, test_zero_permissions_file) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  const std::string expected_str = "0_permissions";
+  const ssize_t expected_len = expected_str.size();
+
+  // Setup file for testing
+  PlatformFile fd(path, PF_CREATE_NEW | PF_READ | PF_WRITE);
+  ASSERT_TRUE(fd.isValid());
+  EXPECT_EQ(expected_len, fd.write(expected_str.c_str(), expected_len));
+  EXPECT_TRUE(platformChmod(path, 0));
+
+  // Test file
+  EXPECT_TRUE(!fd.isExecutable().ok());
+
+  std::vector<char> buf(expected_len);
+  EXPECT_EQ(0, fd.read(buf.data(), expected_len));
+
+  auto modes = {R_OK, W_OK, X_OK};
+  for (auto& mode : modes) {
+    EXPECT_EQ(-1, platformAccess(path, mode));
+  }
+  EXPECT_EQ(boost::none, platformFopen(path, "r"));
+}
 }
