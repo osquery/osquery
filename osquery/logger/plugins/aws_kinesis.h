@@ -25,7 +25,6 @@
 namespace osquery {
 
 DECLARE_uint64(aws_kinesis_period);
-DECLARE_uint64(aws_kinesis_failed_upload_retry_count);
 
 class KinesisLogForwarder : public BufferedLogForwarder {
  private:
@@ -48,7 +47,6 @@ class KinesisLogForwarder : public BufferedLogForwarder {
   std::shared_ptr<Aws::Kinesis::KinesisClient> client_{nullptr};
 
   FRIEND_TEST(KinesisTests, test_send);
-  int retry_count = FLAGS_aws_kinesis_failed_upload_retry_count;
 };
 
 class KinesisLoggerPlugin : public LoggerPlugin {
