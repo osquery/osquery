@@ -15,11 +15,7 @@ endif
 DISTRO := $(shell . ./tools/lib.sh; _platform)
 DISTRO_VERSION := $(shell . ./tools/lib.sh; _distro $(DISTRO))
 ifeq ($(DISTRO),darwin)
-	ifeq ($(DISTRO_VERSION), 10.11)
-		BUILD_DIR = darwin
-	else
-		BUILD_DIR = darwin$(DISTRO_VERSION)
-	endif
+	BUILD_DIR = darwin$(DISTRO_VERSION)
 else ifeq ($(DISTRO),freebsd)
 	BUILD_DIR = freebsd$(DISTRO_VERSION)
 else
@@ -129,7 +125,10 @@ strip: .setup
 distclean:
 	rm -rf .sources build/$(BUILD_DIR) build/debug_$(BUILD_DIR) build/docs
 ifeq ($(PLATFORM),Linux)
-		rm -rf build/linux
+	rm -rf build/linux build/debug_linux
+endif
+ifeq ($(PLATFORM),Darwin)
+	rm -rf build/darwin build/debug_darwin
 endif
 
 depsclean:
@@ -157,6 +156,10 @@ endif
 ifeq ($(PLATFORM),Linux)
 	@ln -snf $(BUILD_DIR) build/linux
 	@ln -snf debug_$(BUILD_DIR) build/debug_linux
+endif
+ifeq ($(PLATFORM),Darwin)
+	@ln -sfn $(BUILD_DIR) build/darwin
+	@ln -sfn debug_$(BUILD_DIR) build/debug_darwin
 endif
 	@export PYTHONPATH="$DEPS_DIR/lib/python2.7/site-packages"
 
