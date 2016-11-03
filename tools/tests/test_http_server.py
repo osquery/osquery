@@ -31,6 +31,10 @@ EXAMPLE_CONFIG = {
     "node_invalid": False,
 }
 
+# A 'node' variation of the TLS API uses a GET for config.
+EXAMPLE_NODE_CONFIG = EXAMPLE_CONFIG
+EXAMPLE_NODE_CONFIG["node"] = True
+
 EXAMPLE_DISTRIBUTED = {
     "queries": {
         "info": "select * from osquery_info",
@@ -45,7 +49,12 @@ EXAMPLE_DISTRIBUTED_ACCELERATE = {
     "accelerate" : "60"
 }
 
-TEST_RESPONSE = {
+TEST_GET_RESPONSE = {
+    "foo": "baz",
+    "config": "baz",
+}
+
+TEST_POST_RESPONSE = {
     "foo": "bar",
 }
 
@@ -81,7 +90,10 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         debug("RealSimpleHandler::get %s" % self.path)
         self._set_headers()
-        self._reply(TEST_RESPONSE)
+        if self.path == '/config':
+            self.config(request, node=True)
+        else:
+            self._reply(TEST_GET_RESPONSE)
 
     def do_HEAD(self):
         debug("RealSimpleHandler::head %s" % self.path)
@@ -105,7 +117,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         elif self.path == '/distributed_write':
             self.distributed_write(request)
         else:
-            self._reply(TEST_RESPONSE)
+            self._reply(TEST_POST_RESPONSE)
 
     def enroll(self, request):
         '''A basic enrollment endpoint'''
@@ -122,7 +134,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             return
         self._reply(ENROLL_RESPONSE)
 
-    def config(self, request):
+    def config(self, request, node=False):
         '''A basic config endpoint'''
 
         # This endpoint responds with a JSON body that is the entire config
@@ -146,6 +158,9 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         if ENROLL_RESET["count"] % ENROLL_RESET["max"] == 0:
             ENROLL_RESET["first"] = 0
             self._reply(FAILED_ENROLL_RESPONSE)
+            return
+        if node:
+            self._reply(EXAMPLE_NODE_CONFIG)
             return
         self._reply(EXAMPLE_CONFIG)
 

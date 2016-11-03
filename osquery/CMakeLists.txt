@@ -339,7 +339,7 @@ if(NOT DEFINED ENV{SKIP_TESTS})
 
   if(NOT ${OSQUERY_BUILD_SDK_ONLY})
     # osquery core (additional) set of unit tests built outside of SDK.
-    add_executable(osquery_additional_tests main/tests.cpp ${OSQUERY_ADDITIONAL_TESTS})
+    add_executable(osquery_additional_tests tests/test_additional_util.cpp main/tests.cpp ${OSQUERY_ADDITIONAL_TESTS})
     ADD_DEFAULT_LINKS(osquery_additional_tests TRUE)
     target_link_libraries(osquery_additional_tests gtest gmock libosquery_testing)
     SET_OSQUERY_COMPILE(osquery_additional_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
