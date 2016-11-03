@@ -68,9 +68,9 @@ TEST_F(KinesisTests, test_send) {
   outcome.GetResult().AddRecords(entry);
   entry.SetErrorCode("foo");
   entry.SetErrorMessage("Foo error");
-  outcome.GetResult().SetFailedRecordCount(1);
+  outcome.GetResult().SetFailedRecordCount(2);
   outcome.GetResult().AddRecords(entry);
-  forwarder.retry_count = 0;
+
   EXPECT_CALL(*client,
               PutRecords(Property(
                   &Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
