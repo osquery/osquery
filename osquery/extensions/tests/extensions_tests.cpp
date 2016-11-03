@@ -35,21 +35,19 @@ const int kTimeout = 3000;
 class ExtensionsTest : public testing::Test {
  protected:
   void SetUp() override {
-#ifdef WIN32
-    socket_path = OSQUERY_SOCKET;
-#else
-    socket_path = kTestWorkingDirectory;
-#endif
+    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+      socket_path = OSQUERY_SOCKET;
+    } else {
+      socket_path = kTestWorkingDirectory;
+    }
 
     socket_path += "testextmgr" + std::to_string(rand());
 
-#ifdef WIN32
-    if (namedPipeExists(socket_path).ok()) {
-#else
-    remove(socket_path);
-    if (pathExists(socket_path).ok()) {
-#endif
-      throw std::domain_error("Cannot test sockets: " + socket_path);
+    if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+      remove(socket_path);
+      if (pathExists(socket_path)) {
+        throw std::domain_error("Cannot test sockets: " + socket_path);
+      }
     }
   }
 
@@ -57,9 +55,9 @@ class ExtensionsTest : public testing::Test {
     Dispatcher::stopServices();
     Dispatcher::joinServices();
 
-#ifndef WIN32
-    remove(socket_path);
-#endif
+    if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+      remove(socket_path);
+    }
   }
 
   bool ping(int attempts = 3) {
@@ -109,15 +107,11 @@ class ExtensionsTest : public testing::Test {
     return extensions;
   }
 
-  bool socketExists(const std::string& _socket_path) {
+  bool socketExistsLocal(const std::string& socket_path) {
     // Wait until the runnable/thread created the socket.
     int delay = 0;
     while (delay < kTimeout) {
-#ifdef WIN32
-      if (namedPipeExists(_socket_path).ok()) {
-#else
-      if (pathExists(_socket_path).ok() && isReadable(_socket_path).ok()) {
-#endif
+      if (osquery::socketExists(socket_path).ok()) {
         return true;
       }
       sleepFor(kDelay);
@@ -135,14 +129,14 @@ TEST_F(ExtensionsTest, test_manager_runnable) {
   auto status = startExtensionManager(socket_path);
   EXPECT_TRUE(status.ok());
   // Call success if the Unix socket was created.
-  EXPECT_TRUE(socketExists(socket_path));
+  EXPECT_TRUE(socketExistsLocal(socket_path));
 }
 
 TEST_F(ExtensionsTest, test_extension_runnable) {
   auto status = startExtensionManager(socket_path);
   EXPECT_TRUE(status.ok());
   // Wait for the extension manager to start.
-  EXPECT_TRUE(socketExists(socket_path));
+  EXPECT_TRUE(socketExistsLocal(socket_path));
 
   // Test the extension manager API 'ping' call.
   EXPECT_TRUE(ping());
@@ -151,7 +145,7 @@ TEST_F(ExtensionsTest, test_extension_runnable) {
 TEST_F(ExtensionsTest, test_extension_start) {
   auto status = startExtensionManager(socket_path);
   EXPECT_TRUE(status.ok());
-  EXPECT_TRUE(socketExists(socket_path));
+  EXPECT_TRUE(socketExistsLocal(socket_path));
 
   // Now allow duplicates (for testing, since EM/E are the same).
   Registry::allowDuplicates(true);
@@ -170,7 +164,7 @@ TEST_F(ExtensionsTest, test_extension_start) {
   RouteUUID uuid = (RouteUUID)stoi(status.getMessage(), nullptr, 0);
 
   // We can test-wait for the extensions's socket to open.
-  EXPECT_TRUE(socketExists(socket_path + "." + std::to_string(uuid)));
+  EXPECT_TRUE(socketExistsLocal(socket_path + "." + std::to_string(uuid)));
 
   // Then clean up the registry modifications.
   Registry::removeBroadcast(uuid);
@@ -194,7 +188,7 @@ CREATE_REGISTRY(ExtensionPlugin, "extension_test");
 TEST_F(ExtensionsTest, test_extension_broadcast) {
   auto status = startExtensionManager(socket_path);
   EXPECT_TRUE(status.ok());
-  EXPECT_TRUE(socketExists(socket_path));
+  EXPECT_TRUE(socketExistsLocal(socket_path));
 
   // This time we're going to add a plugin to the extension_test registry.
   Registry::add<TestExtensionPlugin>("extension_test", "test_item");
@@ -224,7 +218,7 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
   }
 
   auto ext_socket = socket_path + "." + std::to_string(uuid);
-  EXPECT_TRUE(socketExists(ext_socket));
+  EXPECT_TRUE(socketExistsLocal(ext_socket));
 
   // Make sure the EM registered the extension (called in start extension).
   auto extensions = registeredExtensions();

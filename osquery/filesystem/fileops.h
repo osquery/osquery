@@ -106,13 +106,9 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
  * Provides a platform agnostic enumeration for file seek operations. These
  * are translated to the appropriate flags for the underlying platform.
  */
-
 enum SeekMode { PF_SEEK_BEGIN = 0, PF_SEEK_CURRENT, PF_SEEK_END };
 
 #ifdef WIN32
-/// Checks for the existence of a named pipe socket
-Status namedPipeExists(const std::string& path);
-
 /// Takes a Windows FILETIME object and returns seconds since epoch
 LONGLONG filetimeToUnixtime(const FILETIME& ft);
 
@@ -306,6 +302,25 @@ bool platformIsatty(FILE* f);
 /// Opens a file and returns boost::none on error
 boost::optional<FILE*> platformFopen(const std::string& filename,
                                      const std::string& mode);
+
+/**
+ * @brief Checks for the existence of a named pipe or UNIX socket.
+ *
+ * This method is overloaded to perform two actions. If removal is requested
+ * the success is determined based on the non-existence or successful removal
+ * of the socket path. Otherwise the result is straightforward.
+ *
+ * The removal action is only used when extensions or the extension manager
+ * is first starting.
+ *
+ * @param path The filesystem path to a UNIX socket or Windows named pipe.
+ * @param remove_socket Attempt to remove the socket if it exists.
+ *
+ * @return Success if the socket exists and removal was not requested. False
+ * if the socket exists and removal was requested (and the attempt to remove
+ * had failed).
+ */
+Status socketExists(const fs::path& path, bool remove_socket = false);
 
 /**
 * @brief Returns the OS root system directory.

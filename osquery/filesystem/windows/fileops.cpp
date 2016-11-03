@@ -1249,13 +1249,26 @@ boost::optional<FILE*> platformFopen(const std::string& filename,
   return fp;
 }
 
-Status namedPipeExists(const std::string& path) {
-  // Wait 500ms for the named pipe status
-  if (::WaitNamedPipeA(path.c_str(), 500) == 0) {
+/**
+ * @brief The windows implementation introduces a 500ms max wait.
+ *
+ * We cannot use existing methods to determine the lifespan of the
+ * extensions/extensions manager socket. On Windows, the Thrift install is
+ * brittle and does not like a quick connect and disconnect. To compensate, we
+ * use WaitNamedPipe to determine the existence of a named pipe. If the named
+ * pipe does not exist, WaitNamedPipe should error with ERROR_BAD_PATHNAME.
+ */
+Status socketExists(const fs::path& path, bool remove_socket) {
+  DWORD timeout = (remove_socket) ? 0 : 500;
+  if (::WaitNamedPipeA(path.string().c_str(), timeout) == 0) {
     DWORD error = ::GetLastError();
     if (error == ERROR_BAD_PATHNAME) {
       return Status(1, "Named pipe path is invalid");
     } else if (error == ERROR_FILE_NOT_FOUND) {
+      if (remove_socket) {
+        return Status(0);
+      }
+
       return Status(1, "Named pipe does not exist");
     }
   }
