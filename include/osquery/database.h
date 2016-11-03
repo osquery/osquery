@@ -519,9 +519,6 @@ class DatabasePlugin : public Plugin {
   /// The database was opened in a ReadOnly mode.
   bool read_only_{false};
 
-  /// True if the database was started in an in-memory mode.
-  bool in_memory_{false};
-
   /// Original requested path on disk.
   std::string path_;
 };

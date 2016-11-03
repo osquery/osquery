@@ -23,7 +23,6 @@
 namespace osquery {
 
 DECLARE_string(database_path);
-DECLARE_bool(database_in_memory);
 
 const std::map<std::string, std::string> kDBSettings = {
     {"synchronous", "OFF"},      {"count_changes", "OFF"},
@@ -85,9 +84,8 @@ Status SQLiteDatabasePlugin::setUp() {
   // Consume the current settings.
   // A configuration update may change them, but that does not affect state.
   path_ = FLAGS_database_path;
-  in_memory_ = FLAGS_database_in_memory;
 
-  if (!in_memory_ && pathExists(path_).ok() && !isReadable(path_).ok()) {
+  if (pathExists(path_).ok() && !isReadable(path_).ok()) {
     return Status(1, "Cannot read database path: " + path_);
   }
 
@@ -98,10 +96,9 @@ Status SQLiteDatabasePlugin::setUp() {
   // Tests may trash calls to setUp, make sure subsequent calls do not leak.
   close();
 
-  // Can actually try to create a DB in memory with: in_memory_.
   // Open the SQLite backing storage at path_
   auto result = sqlite3_open_v2(
-      ((in_memory_) ? ":memory:" : path_.c_str()),
+      path_.c_str(),
       &db_,
       (SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE),
       nullptr);

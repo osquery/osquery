@@ -27,7 +27,6 @@
 namespace osquery {
 
 DECLARE_string(database_path);
-DECLARE_bool(database_in_memory);
 
 class GlogRocksDBLogger : public rocksdb::Logger {
  public:
@@ -179,9 +178,6 @@ Status RocksDBDatabasePlugin::setUp() {
   // Consume the current settings.
   // A configuration update may change them, but that does not affect state.
   path_ = fs::path(FLAGS_database_path).make_preferred().string();
-  if (FLAGS_database_in_memory) {
-    LOG(INFO) << "RocksDB ignoring request for an in-memory database";
-  }
 
   if (pathExists(path_).ok() && !isReadable(path_).ok()) {
     return Status(1, "Cannot read RocksDB path: " + path_);
