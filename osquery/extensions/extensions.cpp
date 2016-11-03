@@ -754,7 +754,7 @@ Status startExtensionManager(const std::string& manager_path) {
         if (getExtensions(extensions).ok()) {
           for (const auto& existing : extensions) {
             if (existing.second.name == extension) {
-              return Status(0);
+              return pingExtension(getExtensionSocket(existing.first));
             }
           }
         }
