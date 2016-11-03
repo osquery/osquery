@@ -8,13 +8,14 @@
  *
  */
 
+extern "C" {
+#include <xar/xar.h>
+}
+
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-
-/// Include the "external" (not OS X provided) libarchive header.
-#include <archive.h>
-#include <archive_entry.h>
 
 #include "osquery/tables/applications/browser_utils.h"
 #include "osquery/tables/system/system_utils.h"
@@ -135,14 +136,8 @@ inline void genSafariExtension(const std::string& uid,
   r["uid"] = uid;
   r["path"] = path;
 
-  // Loop through (Plist key -> table column name) in kSafariExtensionKeys.
-  struct archive* ext = archive_read_new();
-  if (ext == nullptr) {
-    return;
-  }
-
   // Perform a dry run of the file read.
-  if (!readFile(path).ok()) {
+  if (!isReadable(path).ok()) {
     return;
   }
 
@@ -152,45 +147,59 @@ inline void genSafariExtension(const std::string& uid,
     return;
   }
 
-  // Use open_file, instead of the preferred open_filename for OS X 10.9.
-  archive_read_support_format_xar(ext);
-  if (archive_read_open_filename(ext, path.c_str(), 10240) != ARCHIVE_OK) {
-    archive_read_finish(ext);
+  xar_t xar = xar_open(path.c_str(), READ);
+  if (xar == nullptr) {
+    TLOG << "Cannot open extension archive: " << path;
     return;
   }
 
-  struct archive_entry* entry = nullptr;
-  while (archive_read_next_header(ext, &entry) == ARCHIVE_OK) {
-    auto item_path = archive_entry_pathname(entry);
-    // Documentation for libarchive mentions these APIs may return NULL.
-    if (item_path == nullptr) {
-      archive_read_data_skip(ext);
-      continue;
+  xar_iter_t iter = xar_iter_new();
+  xar_file_t xfile = xar_file_first(xar, iter);
+
+  size_t max_files = 500;
+  for (size_t index = 0; index < max_files; ++index) {
+    if (xfile == nullptr) {
+      break;
     }
 
-    // Assume there is no non-root Info.
-    if (std::string(item_path).find("Info.plist") == std::string::npos) {
-      archive_read_data_skip(ext);
-      continue;
+    char* xfile_path = xar_get_path(xfile);
+    if (xfile_path == nullptr) {
+      break;
     }
 
-    // Read the decompressed Info.plist content.
-    auto content = std::string(archive_entry_size(entry), '\0');
-    archive_read_data_into_buffer(ext, &content[0], content.size());
-
-    // If the Plist can be parsed, extract important keys into columns.
-    pt::ptree tree;
-    if (parsePlistContent(content, tree).ok()) {
-      for (const auto& it : kSafariExtensionKeys) {
-        r[it.second] = tree.get(it.first, "");
+    // Clean up the allocated content ASAP.
+    std::string entry_path(xfile_path);
+    free(xfile_path);
+    if (entry_path.find("Info.plist") != std::string::npos) {
+      if (xar_verify(xar, xfile) != XAR_STREAM_OK) {
+        TLOG << "Extension info extraction failed verification: " << path;
       }
+
+      size_t size = 0;
+      char* buffer = nullptr;
+      if (xar_extract_tobuffersz(xar, xfile, &buffer, &size) != 0 ||
+          size == 0) {
+        break;
+      }
+
+      std::string content(buffer, size);
+      free(buffer);
+
+      pt::ptree tree;
+      if (parsePlistContent(content, tree).ok()) {
+        for (const auto& it : kSafariExtensionKeys) {
+          r[it.second] = tree.get(it.first, "");
+        }
+      }
+      break;
     }
-    break;
+
+    xfile = xar_file_next(iter);
   }
 
-  archive_read_close(ext);
-  archive_read_finish(ext);
-  results.push_back(std::move(r));
+  xar_iter_free(iter);
+  xar_close(xar);
+  results.push_back(r);
 }
 
 QueryData genSafariExtensions(QueryContext& context) {
