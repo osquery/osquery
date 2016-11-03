@@ -18,7 +18,7 @@ if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("-framework DiskArbitration")
 
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.dylib")
-  ADD_OSQUERY_LINK_ADDITIONAL("libarchive.dylib")
+  ADD_OSQUERY_LINK_ADDITIONAL("libxar.dylib")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
   ADD_OSQUERY_LINK_ADDITIONAL("tsk")
 elseif(FREEBSD)
