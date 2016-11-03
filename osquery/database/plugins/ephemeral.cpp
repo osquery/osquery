@@ -14,7 +14,6 @@
 namespace osquery {
 
 DECLARE_string(database_path);
-DECLARE_bool(database_in_memory);
 
 class EphemeralDatabasePlugin : public DatabasePlugin {
   using DBType = std::map<std::string, std::map<std::string, std::string> >;
