@@ -113,7 +113,8 @@ The read request sends the enrollment **node_key** for identification. The distr
 {
   "queries": {
     "id1": "select * from osquery_info;",
-    "id2": "select * from osquery_schedule;"
+    "id2": "select * from osquery_schedule;",
+    "id3": "select * from does_not_exist;"
   },
   "node_invalid": false // Optional, return true to indicate re-enrollment.
 }
@@ -131,10 +132,19 @@ The read request sends the enrollment **node_key** for identification. The distr
     "id2": [
       {"column1": "value1", "column2": "value2"},
       {"column1": "value1", "column2": "value2"}
-    ]
+    ],
+    "id3": []
+  },
+  "statuses": {
+    "id1": 0,
+    "id2": 0,
+    "id3": 2,
   }
 }
 ```
+
+In version 2.1.2 the distributed write API added the top-level `statuses` key.
+These error codes correspond to SQLite error codes. Consider non-0 values to indicate query execution failures.
 
 **Distributed write** response POST body:
 ```json

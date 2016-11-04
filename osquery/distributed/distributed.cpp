@@ -33,9 +33,7 @@ FLAG(bool,
      true,
      "Disable distributed queries (default true)");
 
-Mutex distributed_queries_mutex_;
-Mutex distributed_results_mutex_;
-const std::string kDistributedQueryPrefix = "distributed.";
+const std::string kDistributedQueryPrefix{"distributed."};
 
 Status DistributedPlugin::call(const PluginRequest& request,
                                PluginResponse& response) {
@@ -80,33 +78,31 @@ Status Distributed::pullUpdates() {
 }
 
 size_t Distributed::getPendingQueryCount() {
-  std::vector<std::string> distributed_queries;
-  scanDatabaseKeys(kQueries, distributed_queries, kDistributedQueryPrefix);
-  return distributed_queries.size();
+  std::vector<std::string> queries;
+  scanDatabaseKeys(kQueries, queries, kDistributedQueryPrefix);
+  return queries.size();
 }
 
 size_t Distributed::getCompletedCount() {
-  WriteLock lock(distributed_results_mutex_);
   return results_.size();
 }
 
 Status Distributed::serializeResults(std::string& json) {
-  pt::ptree tree;
-
-  {
-    WriteLock lock(distributed_results_mutex_);
-    for (const auto& result : results_) {
-      pt::ptree qd;
-      auto s = serializeQueryData(result.results, qd);
-      if (!s.ok()) {
-        return s;
-      }
-      tree.add_child(result.request.id, qd);
+  pt::ptree queries;
+  pt::ptree statuses;
+  for (const auto& result : results_) {
+    pt::ptree qd;
+    auto s = serializeQueryData(result.results, qd);
+    if (!s.ok()) {
+      return s;
     }
-  }
+    queries.add_child(result.request.id, qd);
+    statuses.put(result.request.id, result.status.getCode());
+    }
 
   pt::ptree results;
-  results.add_child("queries", tree);
+  results.add_child("queries", queries);
+  results.add_child("statuses", statuses);
 
   std::stringstream ss;
   try {
@@ -120,24 +116,22 @@ Status Distributed::serializeResults(std::string& json) {
 }
 
 void Distributed::addResult(const DistributedQueryResult& result) {
-  WriteLock wlock_results(distributed_results_mutex_);
   results_.push_back(result);
 }
 
 Status Distributed::runQueries() {
   while (getPendingQueryCount() > 0) {
-    auto query = popRequest();
-    LOG(INFO) << "Executing distributed query: " << query.id << ": "
-              << query.query;
+    auto request = popRequest();
+    LOG(INFO) << "Executing distributed query: " << request.id << ": "
+              << request.query;
 
-    auto sql = SQL(query.query);
+    auto sql = SQL(request.query);
     if (!sql.getStatus().ok()) {
-      LOG(ERROR) << "Error executing distributed query: " << query.id << ": "
+      LOG(ERROR) << "Error executing distributed query: " << request.id << ": "
                  << sql.getMessageString();
-      continue;
     }
 
-    DistributedQueryResult result(std::move(query), std::move(sql.rows()));
+    DistributedQueryResult result(request, sql.rows(), sql.getStatus());
     addResult(result);
   }
   return flushCompleted();
@@ -183,6 +177,7 @@ Status Distributed::acceptWork(const std::string& work) {
       }
       setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
     }
+
     if (tree.count("accelerate") > 0) {
       auto new_time = tree.get<std::string>("accelerate", "");
       unsigned long duration;
@@ -206,14 +201,16 @@ Status Distributed::acceptWork(const std::string& work) {
 }
 
 DistributedQueryRequest Distributed::popRequest() {
-  WriteLock wlock_queries(distributed_queries_mutex_);
-  std::vector<std::string> distributed_queries;
-  scanDatabaseKeys(kQueries, distributed_queries, kDistributedQueryPrefix);
+  // Read all pending queries.
+  std::vector<std::string> queries;
+  scanDatabaseKeys(kQueries, queries, kDistributedQueryPrefix);
+
+  // Set the last-most-recent query as the request, and delete it.
   DistributedQueryRequest request;
-  request.id =
-      distributed_queries.front().substr(kDistributedQueryPrefix.size());
-  getDatabaseValue(kQueries, distributed_queries.front(), request.query);
-  deleteDatabaseValue(kQueries, distributed_queries.front());
+  const auto& next = queries.front();
+  request.id = next.substr(kDistributedQueryPrefix.size());
+  getDatabaseValue(kQueries, next, request.query);
+  deleteDatabaseValue(kQueries, next);
   return request;
 }
 
@@ -231,6 +228,7 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
   if (!s.ok()) {
     return s;
   }
+
   std::stringstream ss;
   try {
     pt::write_json(ss, tree, false);
@@ -288,6 +286,7 @@ Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
   if (!s.ok()) {
     return s;
   }
+
   std::stringstream ss;
   try {
     pt::write_json(ss, tree, false);
@@ -322,9 +321,9 @@ Status deserializeDistributedQueryResult(const pt::ptree& tree,
 
 Status deserializeDistributedQueryResultJSON(const std::string& json,
                                              DistributedQueryResult& r) {
-  std::stringstream ss(json);
   pt::ptree tree;
   try {
+    std::stringstream ss(json);
     pt::read_json(ss, tree);
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error serializing JSON: " + std::string(e.what()));

@@ -26,13 +26,6 @@ namespace osquery {
 struct DistributedQueryRequest {
  public:
   explicit DistributedQueryRequest() {}
-  explicit DistributedQueryRequest(const std::string& q, const std::string& i)
-      : query(q), id(i) {}
-
-  /// equals operator
-  bool operator==(const DistributedQueryRequest& comp) const {
-    return (comp.query == query) && (comp.id == id);
-  }
 
   std::string query;
   std::string id;
@@ -87,18 +80,15 @@ Status deserializeDistributedQueryRequestJSON(const std::string& json,
  */
 struct DistributedQueryResult {
  public:
-  explicit DistributedQueryResult() {}
-  explicit DistributedQueryResult(const DistributedQueryRequest& req,
-                                  const QueryData& res)
-      : request(req), results(res) {}
-
-  /// equals operator
-  bool operator==(const DistributedQueryResult& comp) const {
-    return (comp.request == request) && (comp.results == results);
-  }
+  DistributedQueryResult() {}
+  DistributedQueryResult(const DistributedQueryRequest& req,
+                         const QueryData& res,
+                         const Status& s)
+      : request(req), results(res), status(s) {}
 
   DistributedQueryRequest request;
   QueryData results;
+  Status status;
 };
 
 /**
