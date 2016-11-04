@@ -328,7 +328,7 @@ TEST_F(FileOpsTests, test_large_read_write) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
 
-  const std::string expected(600000000, 'A');
+  const std::string expected(200000000, 'A');
   const ssize_t expected_len = expected.size();
 
   {
