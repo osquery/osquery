@@ -35,6 +35,7 @@ void DistributedRunner::start() {
     if (dist.getPendingQueryCount() > 0) {
       dist.runQueries();
     }
+
     std::string str_acu = "0";
     Status database = getDatabaseValue(
         kPersistentSettings, "distributed_accelerate_checkins_expire", str_acu);
