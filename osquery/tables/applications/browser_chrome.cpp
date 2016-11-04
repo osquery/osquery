@@ -16,7 +16,9 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
+#ifdef WIN32
 #pragma warning(disable : 4503)
+#endif
 
 QueryData genChromeExtensions(QueryContext& context) {
   fs::path chromePath;

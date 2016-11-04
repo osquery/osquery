@@ -161,7 +161,7 @@ TEST_F(FileOpsTests, test_shareRead) {
     buf.assign(test1_size, '\0');
 
     EXPECT_EQ(test1_size, reader_fd->read(buf.data(), test1_size));
-    EXPECT_EQ(test1_size, buf.size());
+    EXPECT_EQ(static_cast<size_t>(test1_size), buf.size());
 
     for (ssize_t i = 0; i < test1_size; i++) {
       EXPECT_EQ(test1_data[i], buf[i]);
@@ -228,7 +228,7 @@ TEST_F(FileOpsTests, test_append) {
     std::vector<char> buf;
     buf.assign(test_size, '\0');
     EXPECT_EQ(test_size, fd.read(buf.data(), test_size));
-    EXPECT_EQ(test_size, buf.size());
+    EXPECT_EQ(static_cast<size_t>(test_size), buf.size());
 
     for (ssize_t i = 0; i < test_size; i++) {
       EXPECT_EQ(test_data[i], buf[i]);
