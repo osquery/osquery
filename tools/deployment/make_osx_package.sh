@@ -233,12 +233,13 @@ function main() {
     log "creating RPM equivalent"
 
     PACKAGE_ARCH=$(uname -m)
+    PACKAGE_ITERATION="1.darwin"
     RPM_APP_VERSION=$(echo ${APP_VERSION}|tr '-' '_')
-    OUTPUT_RPM_PATH="$BUILD_DIR/osquery-$RPM_APP_VERSION-1.$PACKAGE_ARCH.rpm"
+    OUTPUT_RPM_PATH="$BUILD_DIR/osquery-$RPM_APP_VERSION-$PACKAGE_ITERATION.$PACKAGE_ARCH.rpm"
     CMD="$FPM -s dir -t rpm \
       -n osquery \
       -v $RPM_APP_VERSION \
-      --iteration 1 -a $PACKAGE_ARCH \
+      --iteration $PACKAGE_ITERATION -a $PACKAGE_ARCH \
       -p $OUTPUT_RPM_PATH \
       --url https://osquery.io -m osquery@osquery.io \
       --vendor Facebook --license BSD \
