@@ -41,11 +41,11 @@ const std::map<int, std::string> kDriverType = {
     {0x00000001, "KERNEL"}, {0x00000002, "FILE_SYSTEM"},
 };
 
-static std::map<std::string, std::string> loadedDrivers;
-
-bool queryDrvInfo(const SC_HANDLE& schScManager,
+void queryDrvInfo(const SC_HANDLE& schScManager,
                   ENUM_SERVICE_STATUS_PROCESS& svc,
-                  Row& r) {
+                  Row& loadedDrivers,
+                  QueryData& results) {
+  Row r;
   DWORD cbBufSize = 0;
 
   auto schService =
@@ -53,11 +53,11 @@ bool queryDrvInfo(const SC_HANDLE& schScManager,
 
   if (schService == nullptr) {
     TLOG << "OpenService failed (" << GetLastError() << ")";
-    return false;
+    return;
   }
 
   QueryServiceConfig(schService, nullptr, 0, &cbBufSize);
-  auto lpsc = (LPQUERY_SERVICE_CONFIG)malloc(cbBufSize);
+  auto lpsc = static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize));
   if (QueryServiceConfig(schService, lpsc, cbBufSize, &cbBufSize) != 0) {
     TLOG << "QueryServiceConfig failed (" << GetLastError() << ")";
   }
@@ -75,9 +75,9 @@ bool queryDrvInfo(const SC_HANDLE& schScManager,
   r["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
 
   if (kDriverType.count(lpsc->dwServiceType) > 0) {
-    r["driver_type"] = SQL_TEXT(kDriverType.at(lpsc->dwServiceType));
+    r["type"] = SQL_TEXT(kDriverType.at(lpsc->dwServiceType));
   } else {
-    r["driver_type"] = SQL_TEXT("UNKNOWN");
+    r["type"] = SQL_TEXT("UNKNOWN");
   }
 
   QueryData regResults;
@@ -90,30 +90,36 @@ bool queryDrvInfo(const SC_HANDLE& schScManager,
     }
   }
 
+  results.push_back(r);
   free(lpsc);
   CloseServiceHandle(schService);
-  return true;
 }
 
-void enumLoadedDrivers() {
+void enumLoadedDrivers(Row& loadedDrivers) {
   DWORD bytesNeeded = 0;
   int driversCount = 0;
 
   auto ret = EnumDeviceDrivers(nullptr, 0, &bytesNeeded);
-  auto drvBaseAddr = (LPVOID*)malloc(bytesNeeded);
+  auto drvBaseAddr = static_cast<LPVOID*>(malloc(bytesNeeded));
+
+  if (drvBaseAddr == nullptr) {
+    TLOG << "enumLoadedDrivers failed to allocate required memory ("
+         << bytesNeeded << ")";
+    return;
+  }
 
   ret = EnumDeviceDrivers(drvBaseAddr, bytesNeeded, &bytesNeeded);
 
   driversCount = bytesNeeded / sizeof(drvBaseAddr[0]);
 
-  if (ret && (bytesNeeded > 0)) {
-    auto driverPath = (LPSTR)malloc(MAX_PATH + 1);
-    auto driverName = (LPSTR)malloc(MAX_PATH + 1);
+  if (ret && (driversCount > 0)) {
+    auto driverPath = static_cast<LPSTR>(malloc(MAX_PATH + 1));
+    auto driverName = static_cast<LPSTR>(malloc(MAX_PATH + 1));
 
     ZeroMemory(driverPath, MAX_PATH + 1);
     ZeroMemory(driverName, MAX_PATH + 1);
 
-    for (int i = 0; i < driversCount; i++) {
+    for (size_t i = 0; i < driversCount; i++) {
       if (GetDeviceDriverFileName(drvBaseAddr[i], driverPath, MAX_PATH) != 0) {
         if (GetDeviceDriverBaseName(drvBaseAddr[i], driverName, MAX_PATH) !=
             0) {
@@ -138,10 +144,11 @@ void enumLoadedDrivers() {
 QueryData genDrivers(QueryContext& context) {
   DWORD bytesNeeded = 0;
   DWORD serviceCount = 0;
+  Row loadedDrivers;
   QueryData results;
 
   // Get All Loaded Drivers including ones managed by SCM
-  enumLoadedDrivers();
+  enumLoadedDrivers(loadedDrivers);
 
   auto schScManager = OpenSCManager(nullptr, nullptr, GENERIC_READ);
   if (schScManager == nullptr) {
@@ -160,7 +167,7 @@ QueryData genDrivers(QueryContext& context) {
                        nullptr,
                        nullptr);
 
-  auto buf = (PVOID)malloc(bytesNeeded);
+  auto buf = static_cast<PVOID>(malloc(bytesNeeded));
   if (EnumServicesStatusEx(schScManager,
                            SC_ENUM_PROCESS_INFO,
                            SERVICE_DRIVER,
@@ -171,12 +178,9 @@ QueryData genDrivers(QueryContext& context) {
                            &serviceCount,
                            nullptr,
                            nullptr) != 0) {
-    ENUM_SERVICE_STATUS_PROCESS* services = (ENUM_SERVICE_STATUS_PROCESS*)buf;
+    auto services = static_cast<ENUM_SERVICE_STATUS_PROCESS*>(buf);
     for (DWORD i = 0; i < serviceCount; ++i) {
-      Row r;
-      if (queryDrvInfo(schScManager, services[i], r)) {
-        results.push_back(r);
-      }
+      queryDrvInfo(schScManager, services[i], loadedDrivers, results);
     }
   } else {
     TLOG << "EnumServiceStatusEx failed (" << GetLastError() << ")";
