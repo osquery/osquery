@@ -1,7 +1,7 @@
 table_name("drivers")
 description("Lists all installed and loaded Windows Drivers and their relevant data")
 schema([
-    Column("name", TEXT, "Driver name, drivers not managed by SCM are displayed as <driver_name>"),
+    Column("name", TEXT, "Driver name"),
     Column("display_name", TEXT, "Driver Display name"),
     Column("status", TEXT, "Driver Current status: STOPPED, START_PENDING, STOP_PENDING, RUNNING, CONTINUE_PENDING, PAUSE_PENDING, PAUSED"),
     Column("start_type", TEXT, "Driver start type: BOOT_START, SYSTEM_START, AUTO_START, DEMAND_START, DISABLED"),

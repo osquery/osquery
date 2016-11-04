@@ -191,7 +191,7 @@ QueryData genDrivers(QueryContext& context) {
 
   for (const auto& element : loadedDrivers) {
     Row r;
-    r["name"] = "<" + element.second + ">";
+    r["name"] = element.second;
     r["path"] = element.first;
     r["status"] = SQL_TEXT(kDrvStatus[4]);
     results.push_back(r);
