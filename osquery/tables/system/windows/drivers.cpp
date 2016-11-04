@@ -62,17 +62,18 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
     TLOG << "QueryServiceConfig failed (" << GetLastError() << ")";
   }
 
-  // SCM can provide more info about the driver but not all drivers are
-  // managed by SCM, So Here we remove driver from loadedDrivers list to avoid
-  // duplicates
-  // As the driver is already in SCM list.
-  loadedDrivers.erase(lpsc->lpBinaryPathName);
-
   r["name"] = SQL_TEXT(svc.lpServiceName);
   r["display_name"] = SQL_TEXT(svc.lpDisplayName);
   r["status"] = SQL_TEXT(kDrvStatus[svc.ServiceStatusProcess.dwCurrentState]);
   r["start_type"] = SQL_TEXT(kDrvStartType[lpsc->dwStartType]);
-  r["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
+
+  // If SCM can't get 'path' of the driver then use the path
+  // available in loadedDrivers list
+  if (strlen(lpsc->lpBinaryPathName) <= 0) {
+    r["path"] = loadedDrivers[svc.lpServiceName];
+  } else {
+    r["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
+  }
 
   if (kDriverType.count(lpsc->dwServiceType) > 0) {
     r["type"] = SQL_TEXT(kDriverType.at(lpsc->dwServiceType));
@@ -90,6 +91,8 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
     }
   }
 
+  // Remove the driver from loadedDrivers list to avoid duplicates
+  loadedDrivers.erase(svc.lpServiceName);
   results.push_back(r);
   free(lpsc);
   CloseServiceHandle(schService);
@@ -120,12 +123,15 @@ void enumLoadedDrivers(Row& loadedDrivers) {
     ZeroMemory(driverName, MAX_PATH + 1);
 
     for (size_t i = 0; i < driversCount; i++) {
-      if (GetDeviceDriverFileName(drvBaseAddr[i], driverPath, MAX_PATH) != 0) {
-        if (GetDeviceDriverBaseName(drvBaseAddr[i], driverName, MAX_PATH) !=
+      if (GetDeviceDriverBaseName(drvBaseAddr[i], driverName, MAX_PATH) != 0) {
+        if (GetDeviceDriverFileName(drvBaseAddr[i], driverPath, MAX_PATH) !=
             0) {
-          loadedDrivers[driverPath] = driverName;
+          // Removing file extension
+          auto fileExtension = strrchr(driverName, '.');
+          *fileExtension = '\0';
+          loadedDrivers[driverName] = driverPath;
         } else {
-          loadedDrivers[driverPath] = "";
+          loadedDrivers[driverName] = "";
         }
       } else {
         TLOG << "GetDeviceDriverFileName failed (" << GetLastError() << ")";
@@ -191,8 +197,8 @@ QueryData genDrivers(QueryContext& context) {
 
   for (const auto& element : loadedDrivers) {
     Row r;
-    r["name"] = element.second;
-    r["path"] = element.first;
+    r["name"] = element.first;
+    r["path"] = element.second;
     r["status"] = SQL_TEXT(kDrvStatus[4]);
     results.push_back(r);
   }
