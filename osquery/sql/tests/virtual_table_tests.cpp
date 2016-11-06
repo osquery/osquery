@@ -243,10 +243,6 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
     attachTableInternal("k", k->columnDefinition(), dbc);
   }
 
-  QueryData results;
-  std::string statement;
-  std::map<std::string, std::string> expected;
-
   std::vector<std::pair<std::string, QueryData>> constraint_tests = {
       MP("select k.x from p, k", makeResult("x", {"1", "2", "1", "2"})),
       MP("select k.x from (select * from k) k2, p, k where k.x = p.x",

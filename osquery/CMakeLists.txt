@@ -22,7 +22,17 @@ set(OSQUERY_TABLES_TESTS "")
 if(WINDOWS)
   add_compile_options(/W3 /WX)
 else()
-  add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+  add_compile_options(
+    -Wall
+    -Wextra
+    -Wshadow
+    -pedantic
+    -Wuseless-cast
+    -Wno-c99-extensions
+    -Wno-zero-length-array
+    -Wno-unused-parameter
+    -Wno-gnu-case-range
+  )
 endif()
 
 if(WINDOWS)

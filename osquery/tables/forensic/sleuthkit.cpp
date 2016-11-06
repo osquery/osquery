@@ -138,10 +138,10 @@ void DeviceHelper::inodes(
         predicate) {
   // Given a set of constraint inodes, convert each to an INUM.
   for (const auto& inode : inodes) {
-    long int meta = 0;
-    safeStrtol(inode, 10, meta);
+    long int inode_meta = 0;
+    safeStrtol(inode, 10, inode_meta);
     auto* file = new TskFsFile();
-    if (file->open(fs, file, static_cast<TSK_INUM_T>(meta)) == 0) {
+    if (file->open(fs, file, static_cast<TSK_INUM_T>(inode_meta)) == 0) {
       // Attempt to get the meta and filesystem name for the inode.
       // If this inode is a file a valid meta/name structures are parsed.
       auto* meta = file->getMeta();
@@ -252,10 +252,10 @@ void DeviceHelper::generateFiles(const std::string& partition,
   delete dir;
 
   // If we are recursing.
-  for (const auto& dir : additional) {
-    if (std::find(loops_.begin(), loops_.end(), dir.second) == loops_.end()) {
-      generateFiles(partition, fs, dir.second, results, dir.first);
-      loops_.insert(dir.second);
+  for (const auto& d : additional) {
+    if (std::find(loops_.begin(), loops_.end(), d.second) == loops_.end()) {
+      generateFiles(partition, fs, d.second, results, d.first);
+      loops_.insert(d.second);
     }
   }
 }

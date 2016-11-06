@@ -219,7 +219,7 @@ int xCreate(sqlite3* db,
 
   // Create the requested 'aliases'.
   for (const auto& view : views) {
-    auto statement = "CREATE VIEW " + view + " AS SELECT * FROM " + name;
+    statement = "CREATE VIEW " + view + " AS SELECT * FROM " + name;
     sqlite3_exec(db, statement.c_str(), nullptr, nullptr, nullptr);
   }
   *ppVtab = (sqlite3_vtab*)pVtab;

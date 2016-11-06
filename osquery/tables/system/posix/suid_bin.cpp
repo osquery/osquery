@@ -92,22 +92,22 @@ void genSuidBinsFromPath(const std::string& path, QueryData& results) {
   auto it = fs::recursive_directory_iterator(fs::path(path));
   fs::recursive_directory_iterator end;
   while (it != end) {
-    fs::path path = *it;
+    fs::path subpath = *it;
     try {
       // Do not traverse symlinked directories.
-      if (fs::is_directory(path) && fs::is_symlink(path)) {
+      if (fs::is_directory(subpath) && fs::is_symlink(subpath)) {
         it.no_push();
       }
 
       int perms = it.status().permissions();
-      if (isSuidBin(path, perms)) {
+      if (isSuidBin(subpath, perms)) {
         // Only emit suid bins.
-        genBin(path, perms, results);
+        genBin(subpath, perms, results);
       }
 
       ++it;
     } catch (fs::filesystem_error& e) {
-      VLOG(1) << "Cannot read binary from " << path;
+      VLOG(1) << "Cannot read binary from " << subpath;
       it.no_push();
       // Try to recover, otherwise break.
       try {

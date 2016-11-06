@@ -36,11 +36,12 @@ fs::path kEtcHosts = (getSystemRoot() / "system32\\drivers\\etc\\hosts");
 QueryData parseEtcHostsContent(const std::string& content) {
   QueryData results;
 
-  for (const auto& i : osquery::split(content, "\n")) {
-    auto line = split(i);
+  for (const auto& _line : osquery::split(content, "\n")) {
+    auto line = split(_line);
     if (line.size() == 0 || boost::starts_with(line[0], "#")) {
       continue;
     }
+
     Row r;
     r["address"] = line[0];
     if (line.size() > 1) {

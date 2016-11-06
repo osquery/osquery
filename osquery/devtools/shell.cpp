@@ -1324,12 +1324,12 @@ static int do_meta_command(char* zLine, struct callback_data* p) {
                      ArraySize(p->nullvalue) - 1,
                      azArg[1]);
   } else if (c == 'p' && n >= 3 && strncmp(azArg[0], "print", n) == 0) {
-    int i;
-    for (i = 1; i < nArg; i++) {
-      if (i > 1) {
+    int j;
+    for (j = 1; j < nArg; j++) {
+      if (j > 1) {
         fprintf(p->out, " ");
       }
-      fprintf(p->out, "%s", azArg[i]);
+      fprintf(p->out, "%s", azArg[j]);
     }
     fprintf(p->out, "\n");
   } else if (c == 'q' && strncmp(azArg[0], "quit", n) == 0 && nArg == 1) {
