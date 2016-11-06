@@ -156,7 +156,7 @@ Status PlatformFile::isExecutable() const {
   return Status(1, "Not executable");
 }
 
-Status PlatformFile::isNonWritable() const {
+Status PlatformFile::isImmutable() const {
   struct stat file;
   if (::fstat(handle_, &file) < 0) {
     return Status(-1, "fstat error");
