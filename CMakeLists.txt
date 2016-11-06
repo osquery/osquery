@@ -399,7 +399,7 @@ if(WINDOWS)
   file(GLOB INCLUDE_DIRS LIST_DIRECTORIES true "${WINDOWS_DEP_DIR}/*/*/include")
   include_directories(${INCLUDE_DIRS})
   include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local")
-  
+
   ## TODO(FIXME): temporary for now
   include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
   include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")

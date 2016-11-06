@@ -17,8 +17,6 @@
 
 #include <iostream>
 
-#include <linenoise.h>
-
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <osquery/core.h>
@@ -90,20 +88,6 @@ int profile(int argc, char* argv[]) {
   return 0;
 }
 
-void table_completion_function(char const* prefix, linenoiseCompletions* lc) {
-  std::vector<std::string> tables = osquery::Registry::names("table");
-  size_t index = 0;
-
-  while (index < tables.size()) {
-    const std::string& table = tables.at(index);
-    ++index;
-
-    if (boost::algorithm::starts_with(table, prefix)) {
-      linenoiseAddCompletion(lc, table.c_str());
-    }
-  }
-}
-
 int main(int argc, char* argv[]) {
   // Parse/apply flags, start registry, load logger/config plugins.
   osquery::Initializer runner(argc, argv, osquery::ToolType::SHELL);
@@ -124,8 +108,6 @@ int main(int argc, char* argv[]) {
       osquery::FLAGS_disable_extensions = true;
     }
   }
-
-  linenoiseSetCompletionCallback(table_completion_function);
 
   int retcode = 0;
   if (osquery::FLAGS_profile <= 0) {
