@@ -416,6 +416,8 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
   }
 }
 
+#ifdef WIN32
+// Windows-specific test for file "immutability"
 TEST_F(FileOpsTests, test_immutable) {
   const auto root_dir = (fs::temp_directory_path() / "immutable-test").string();
   const auto temp_file = root_dir + "/test";
@@ -465,6 +467,7 @@ TEST_F(FileOpsTests, test_immutable) {
 
   fs::remove_all(root_dir);
 }
+#endif
 
 TEST_F(FileOpsTests, test_glob) {
   {
