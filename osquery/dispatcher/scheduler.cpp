@@ -24,7 +24,7 @@
 
 namespace osquery {
 
-FLAG(bool, enable_monitor, false, "Enable the schedule monitor");
+FLAG(bool, enable_monitor, true, "Enable the schedule monitor");
 
 FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
 

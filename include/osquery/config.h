@@ -29,6 +29,9 @@ class Pack;
 class Schedule;
 class ConfigParserPlugin;
 
+/// The name of the executing query within the single-threaded schedule.
+extern const std::string kExecutingQuery;
+
 /**
  * @brief The programmatic representation of osquery's configuration
  *

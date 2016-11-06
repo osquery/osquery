@@ -13,6 +13,7 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
@@ -262,6 +263,9 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   kToolType = ToolType::DAEMON;
   FLAGS_events_optimize = true;
 
+  // Must also define an executing query.
+  setDatabaseValue(kPersistentSettings, kExecutingQuery, "events_db_test");
+
   QueryContext context;
   auto t = getUnixTime();
   auto results = sub->genTable(context);
@@ -282,8 +286,7 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   // The optimize time should have been written to the database.
   // It should be the same as the current (relative) optimize time.
   std::string content;
-  getDatabaseValue(
-      "events", "optimize.DBFakePublisher.DBFakeSubscriber", content);
+  getDatabaseValue("events", "optimize.events_db_test", content);
   EXPECT_EQ(std::to_string(sub->optimize_time_), content);
 
   // Restore the tool type.
