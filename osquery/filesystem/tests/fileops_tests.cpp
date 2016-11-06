@@ -428,21 +428,22 @@ TEST_F(FileOpsTests, test_immutable) {
 
     EXPECT_TRUE(
         platformChmod(temp_file, S_IRUSR | S_IWGRP | S_IROTH | S_IWOTH));
-    EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IROTH));
+    EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IRGRP | S_IROTH));
 
     auto status = fd.isImmutable();
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(1, status.getCode());
 
-    EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IROTH));
-    EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IWGRP | S_IROTH | S_IWOTH));
+    EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IRGRP | S_IROTH));
+    EXPECT_TRUE(platformChmod(root_dir,
+                              S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH));
 
     status = fd.isImmutable();
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(1, status.getCode());
 
-    EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IROTH));
-    EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IWGRP | S_IROTH));
+    EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IRGRP | S_IROTH));
+    EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH));
 
     status = fd.isImmutable();
     EXPECT_FALSE(status.ok());
@@ -452,13 +453,15 @@ TEST_F(FileOpsTests, test_immutable) {
     EXPECT_TRUE(platformChmod(root_dir, 0));
     EXPECT_TRUE(fd.isImmutable().ok());
 
-    EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IROTH));
-    EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IROTH));
+    EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IRGRP | S_IROTH));
+    EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IRGRP | S_IROTH));
     EXPECT_TRUE(fd.isImmutable().ok());
   }
 
-  EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH));
-  EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH));
+  EXPECT_TRUE(platformChmod(
+      temp_file, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH));
+  EXPECT_TRUE(platformChmod(
+      root_dir, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH));
 
   fs::remove_all(root_dir);
 }
