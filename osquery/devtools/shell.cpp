@@ -1584,6 +1584,55 @@ static void main_init(struct callback_data* data) {
 
 namespace osquery {
 
+void tableCompletionFunction(char const* prefix, linenoiseCompletions* lc) {
+  std::vector<std::string> tables = osquery::Registry::names("table");
+  size_t index = 0;
+
+  while (index < tables.size()) {
+    const std::string& table = tables.at(index);
+    ++index;
+
+    if (boost::algorithm::starts_with(table, prefix)) {
+      linenoiseAddCompletion(lc, table.c_str());
+    }
+  }
+}
+
+int runQuery(struct callback_data* data, const char* query) {
+  char* error = 0;
+  int rc = shell_exec(query, shell_callback, data, &error);
+  if (error != 0) {
+    fprintf(stderr, "Error: %s\n", error);
+    rc = (rc == 0) ? 1 : rc;
+  } else if (rc != 0) {
+    fprintf(stderr, "Error: unable to process SQL \"%s\"\n", query);
+  }
+  return rc;
+}
+
+int runPack(struct callback_data* data) {
+  int rc = 0;
+
+  // Check every pack for a name matching the requested --pack flag.
+  Config::getInstance().packs([data, &rc](std::shared_ptr<Pack>& pack) {
+    if (pack->getName() != FLAGS_pack) {
+      return;
+    }
+
+    for (const auto& query : pack->getSchedule()) {
+      rc = runQuery(data, query.second.query.c_str());
+      if (rc != 0) {
+        fprintf(stderr,
+                "Could not execute query %s: %s\n",
+                query.first.c_str(),
+                query.second.query.c_str());
+        return;
+      }
+    }
+  });
+  return rc;
+}
+
 int launchIntoShell(int argc, char** argv) {
   struct callback_data data;
   main_init(&data);
@@ -1620,18 +1669,6 @@ int launchIntoShell(int argc, char** argv) {
   sqlite3_snprintf(
       sizeof(data.nullvalue), data.nullvalue, "%s", FLAGS_nullvalue.c_str());
 
-  auto runQuery = [&data](const char* query) {
-    char* error = 0;
-    int rc = shell_exec(query, shell_callback, &data, &error);
-    if (error != 0) {
-      fprintf(stderr, "Error: %s\n", error);
-      rc = (rc == 0) ? 1 : rc;
-    } else if (rc != 0) {
-      fprintf(stderr, "Error: unable to process SQL \"%s\"\n", query);
-    }
-    return rc;
-  };
-
   int rc = 0;
   if (FLAGS_L || FLAGS_A.size() > 0) {
     // Helper meta commands from shell switches.
@@ -1642,23 +1679,7 @@ int launchIntoShell(int argc, char** argv) {
     rc = do_meta_command(cmd, &data);
     delete[] cmd;
   } else if (FLAGS_pack.size() > 0) {
-    // Check every pack for a name matching the requested --pack flag.
-    Config::getInstance().packs([&runQuery, &rc](std::shared_ptr<Pack>& pack) {
-      if (pack->getName() != FLAGS_pack) {
-        return;
-      }
-
-      for (const auto& query : pack->getSchedule()) {
-        rc = runQuery(query.second.query.c_str());
-        if (rc != 0) {
-          fprintf(stderr,
-                  "Could not execute query %s: %s\n",
-                  query.first.c_str(),
-                  query.second.query.c_str());
-          return;
-        }
-      }
-    });
+    rc = runPack(&data);
   } else if (argc > 1 && argv[1] != nullptr) {
     // Run a command or statement from CLI
     char* query = argv[1];
@@ -1666,7 +1687,7 @@ int launchIntoShell(int argc, char** argv) {
       rc = do_meta_command(query, &data);
       rc = (rc == 2) ? 0 : rc;
     } else {
-      rc = runQuery(query);
+      rc = runQuery(&data, query);
       if (rc != 0) {
         return rc;
       }
@@ -1684,6 +1705,8 @@ int launchIntoShell(int argc, char** argv) {
               .string();
       linenoiseHistorySetMaxLen(100);
       linenoiseHistoryLoad(history_file.c_str());
+      linenoiseSetCompletionCallback(tableCompletionFunction);
+
       rc = process_input(&data, 0);
 
       linenoiseHistorySave(history_file.c_str());
