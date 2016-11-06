@@ -31,12 +31,14 @@ namespace errc = boost::system::errc;
 
 namespace osquery {
 
-#define CHMOD_READ                                                             \
-  SYNCHRONIZE | READ_CONTROL | FILE_READ_ATTRIBUTES | FILE_READ_EA |           \
-      FILE_READ_DATA
+/*
+ * Avoid having the same right being used in multiple CHMOD_* macros. Doing so
+ * will cause issues when requesting certain permissions in the presence of deny
+ * access control entries
+ */
+#define CHMOD_READ (FILE_READ_DATA | FILE_READ_EA)
 #define CHMOD_WRITE                                                            \
-  FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA | FILE_WRITE_DATA | FILE_APPEND_DATA | \
-      DELETE
+  (FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES | FILE_WRITE_DATA | FILE_WRITE_EA)
 #define CHMOD_EXECUTE FILE_EXECUTE
 
 using AclObject = std::unique_ptr<unsigned char[]>;
@@ -224,14 +226,23 @@ static DWORD getNewAclSize(PACL dacl,
   return acl_size;
 }
 
-static AclObject modifyAcl(
-    PACL acl, PSID target, bool allow_read, bool allow_write, bool allow_exec) {
+static AclObject modifyAcl(PACL acl,
+                           PSID target,
+                           bool allow_read,
+                           bool allow_write,
+                           bool allow_exec,
+                           bool target_is_owner = false) {
   if (acl == nullptr || !::IsValidAcl(acl) || target == nullptr ||
       !::IsValidSid(target)) {
     return std::move(AclObject());
   }
 
-  DWORD allow_mask = 0;
+  /*
+   * On POSIX, all users can view the owner, group, world permissions of a file.
+   * To mimic this behavior on Windows, we give READ_CONTROL permissions to
+   * everyone. READ_CONTROL allows for an user to read the target file's DACL.
+   */
+  DWORD allow_mask = READ_CONTROL;
   DWORD deny_mask = 0;
 
   ACL_SIZE_INFORMATION info = {0};
@@ -241,36 +252,61 @@ static AclObject modifyAcl(
     return std::move(AclObject());
   }
 
-  // We have defined CHMOD_READ, CHMOD_WRITE, and CHMOD_EXECUTE as combinations
-  // of Windows access masks in order to simulate the intended effects of the r,
-  // w, x permissions of POSIX. In order to correctly simulate the permissions,
-  // any permissions set will be explicitly allowed and any permissions that are
-  // unset are explicitly denied. This is all done via access allowed and access
-  // denied ACEs.
+  if (target_is_owner) {
+    /*
+     * Owners should always have the ability to delete the target file and
+     * modify the target file's DACL--at least this appears to be the case for
+     * POSIX.
+     */
+    allow_mask |= DELETE | WRITE_DAC;
+  }
+
+  /*
+   * We have defined CHMOD_READ, CHMOD_WRITE, and CHMOD_EXECUTE as combinations
+   * of Windows access masks in order to simulate the intended effects of the r,
+   * w, x permissions of POSIX. In order to correctly simulate the permissions,
+   * any permissions set will be explicitly allowed and any permissions that are
+   * unset are explicitly denied. This is all done via access allowed and access
+   * denied ACEs.
+   *
+   * We add additional rights for allow cases because we do not want to pollute
+   * the CHMOD_* with overlapping rights. For instance, adding SYNCHRONIZE to
+   * both CHMOD_READ and CHMOD_EXECUTE will be problematic if execute is denied.
+   * SYNCHRONIZE will be added to a deny access control entry which will prevent
+   * even a GENERIC_READ from occurring.
+   */
 
   if (allow_read) {
-    allow_mask = CHMOD_READ;
+    allow_mask |= CHMOD_READ | FILE_READ_ATTRIBUTES | SYNCHRONIZE;
   } else {
-    deny_mask = CHMOD_READ;
+    deny_mask |= CHMOD_READ;
   }
 
   if (allow_write) {
-    allow_mask |= CHMOD_WRITE;
+    allow_mask |= CHMOD_WRITE | DELETE | SYNCHRONIZE;
   } else {
+    // Only deny DELETE if the principal is not the owner
+    if (!target_is_owner) {
+      deny_mask |= DELETE;
+    }
+
     deny_mask |= CHMOD_WRITE;
   }
 
   if (allow_exec) {
-    allow_mask |= CHMOD_EXECUTE;
+    allow_mask |= CHMOD_EXECUTE | FILE_READ_ATTRIBUTES | SYNCHRONIZE;
   } else {
     deny_mask |= CHMOD_EXECUTE;
+  }
+
+  // Only if r and x are denied do we deny FILE_READ_ATTRIBUTES
+  if (!allow_read && !allow_exec) {
+    deny_mask |= FILE_READ_ATTRIBUTES;
   }
 
   DWORD new_acl_size = 0;
   if (allow_read && allow_write && allow_exec) {
     new_acl_size = getNewAclSize(acl, target, info, true, false);
-  } else if (!allow_read && !allow_write && !allow_exec) {
-    new_acl_size = getNewAclSize(acl, target, info, false, true);
   } else {
     new_acl_size = getNewAclSize(acl, target, info, true, true);
   }
@@ -623,25 +659,33 @@ static Status isWriteDenied(PACL acl) {
       return Status(-1, "GetAce failed");
     }
 
-    /// Check to see if the deny ACE is for Everyone
+    /*
+     * Check to see if the deny ACE is for Everyone while making sure that there
+     * must be no allow ACE that allow for writes before the denies
+     */
     if (entry->AceType == ACCESS_DENIED_ACE_TYPE) {
       PACCESS_DENIED_ACE denied_ace = (PACCESS_DENIED_ACE)entry;
+
       if (::EqualSid(&denied_ace->SidStart, world) &&
-          (denied_ace->Mask & FILE_WRITE_ATTRIBUTES) == FILE_WRITE_ATTRIBUTES &&
-          (denied_ace->Mask & FILE_WRITE_EA) == FILE_WRITE_EA &&
-          (denied_ace->Mask & FILE_WRITE_DATA) == FILE_WRITE_DATA &&
-          (denied_ace->Mask & FILE_APPEND_DATA) == FILE_APPEND_DATA) {
+          (denied_ace->Mask & CHMOD_WRITE) == CHMOD_WRITE) {
         return Status(0, "OK");
       }
     } else if (entry->AceType == ACCESS_ALLOWED_ACE_TYPE) {
-      break;
+      // This covers the case where the DACL has been modified by platformChmod
+      PACCESS_ALLOWED_ACE allowed_ace = (PACCESS_ALLOWED_ACE)entry;
+
+      // Check to see if ANY of CHMOD_WRITE rights are set
+      if ((allowed_ace->Mask & CHMOD_WRITE) != 0) {
+        // Fail, since we discovered an access allowed ACE that enables write
+        break;
+      }
     }
   }
 
   return Status(1, "No deny ACE for write");
 }
 
-Status PlatformFile::isNonWritable() const {
+Status PlatformFile::isImmutable() const {
   PACL file_dacl = nullptr;
   PSECURITY_DESCRIPTOR file_sd = nullptr;
 
@@ -660,6 +704,8 @@ Status PlatformFile::isNonWritable() const {
 
   std::vector<char> path_buf;
   path_buf.assign(MAX_PATH + 1, '\0');
+
+  // Derive the parent directory and insure it is also immutable
 
   if (::GetFinalPathNameByHandleA(
           handle_, path_buf.data(), MAX_PATH, FILE_NAME_NORMALIZED) == 0) {
@@ -920,7 +966,8 @@ bool platformChmod(const std::string& path, mode_t perms) {
                                    owner,
                                    (perms & S_IRUSR) == S_IRUSR,
                                    (perms & S_IWUSR) == S_IWUSR,
-                                   (perms & S_IXUSR) == S_IXUSR);
+                                   (perms & S_IXUSR) == S_IXUSR,
+                                   true);
   acl = reinterpret_cast<PACL>(acl_buffer.get());
 
   if (acl == nullptr) {

@@ -202,9 +202,9 @@ class PlatformFile {
    * @brief Determines how immutable the file is to external modifications.
    * @note Currently, this is only implemented on Windows. The Windows version
    *       of this function ensures that writes are explicitly denied for the
-   *       file and the file's parent directory.
+   *       file AND the file's parent directory.
    */
-  Status isNonWritable() const;
+  Status isImmutable() const;
 
   bool getFileTimes(PlatformTime& times);
 

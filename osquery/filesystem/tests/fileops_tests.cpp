@@ -348,6 +348,116 @@ TEST_F(FileOpsTests, test_large_read_write) {
   }
 }
 
+TEST_F(FileOpsTests, test_chmod_no_exec) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  {
+    PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(4, fd.write("TEST", 4));
+  }
+
+  EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH));
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_TRUE(fd.isValid());
+
+    auto status = fd.isExecutable();
+    EXPECT_TRUE(!status.ok());
+    EXPECT_EQ(1, status.getCode());
+  }
+}
+
+TEST_F(FileOpsTests, test_chmod_no_read) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  {
+    PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(4, fd.write("TEST", 4));
+  }
+
+  EXPECT_TRUE(platformChmod(path, S_IWUSR | S_IWOTH));
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_FALSE(fd.isValid());
+  }
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+  }
+}
+
+TEST_F(FileOpsTests, test_chmod_no_write) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  {
+    PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(4, fd.write("TEST", 4));
+  }
+
+  EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IROTH));
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_TRUE(fd.isValid());
+  }
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
+    EXPECT_FALSE(fd.isValid());
+  }
+}
+
+TEST_F(FileOpsTests, test_immutable) {
+  const std::string root_dir = kFakeDirectory + "/immutable";
+  const std::string temp_file = root_dir + "/test";
+
+  fs::create_directories(root_dir);
+
+  PlatformFile fd(temp_file, PF_CREATE_NEW | PF_WRITE);
+  EXPECT_TRUE(fd.isValid());
+
+  EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH));
+  EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IROTH));
+
+  auto status = fd.isImmutable();
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(1, status.getCode());
+
+  EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IROTH));
+  EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH));
+
+  status = fd.isImmutable();
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(1, status.getCode());
+
+  EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IROTH));
+  EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IWUSR | S_IROTH));
+
+  status = fd.isImmutable();
+  EXPECT_FALSE(status.ok());
+  EXPECT_EQ(1, status.getCode());
+
+  EXPECT_TRUE(platformChmod(temp_file, 0));
+  EXPECT_TRUE(platformChmod(root_dir, 0));
+  EXPECT_TRUE(fd.isImmutable().ok());
+
+  EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IROTH));
+  EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IROTH));
+  EXPECT_TRUE(fd.isImmutable().ok());
+
+  EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IWUSR | S_IROTH));
+  EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IWUSR | S_IROTH));
+}
+
 TEST_F(FileOpsTests, test_glob) {
   {
     std::vector<fs::path> expected{kFakeDirectory + "/door.txt",
