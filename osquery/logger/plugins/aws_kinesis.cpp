@@ -111,7 +111,8 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
       // exit if all uploads fail right off the bat
       // note, this will go back to the default logger batch retry code
       if (retry_count == 0 ||
-          static_cast<int>(original_data_size) == result.GetFailedRecordCount()) {
+          static_cast<int>(original_data_size) ==
+              result.GetFailedRecordCount()) {
         LOG(ERROR) << "Kinesis write for " << result.GetFailedRecordCount()
                    << " of " << result.GetRecords().size()
                    << " records failed with error " << error_msg;
