@@ -79,6 +79,7 @@ class AbstractOsqueryFormula < Formula
     # Reset compile flags for safety, we want to control them explicitly.
     reset "CFLAGS"
     reset "CXXFLAGS"
+    reset "CPPFLAGS"
 
     # Reset the following since the logic within the 'std' environment does not
     # known about our legacy runtime 'glibc' formula name.
@@ -119,11 +120,14 @@ class AbstractOsqueryFormula < Formula
       append "LDFLAGS", "-Wl,-rpath,#{default_prefix}/lib"
 
       # Adding this one line to help gcc too.
-      append "LDFLAGS", "-L#{default_prefix}/lib"
-      # We want the legacy path to be the last thing prepended.
-      prepend "LDFLAGS", "-L#{legacy_prefix}/lib"
+      if !["openssl"].include?(self.name)
+        append "LDFLAGS", "-L#{default_prefix}/lib"
+        # We want the legacy path to be the last thing prepended.
+        prepend "LDFLAGS", "-L#{legacy_prefix}/lib"
+      end
 
       prepend_path "LIBRARY_PATH", default_prefix/"lib"
+      # prepend_path "LIBRARY_PATH", Formula["osquery/osquery-local/glibc"].lib
       prepend_path "LIBRARY_PATH", legacy_prefix/"lib"
 
       # This is already set to the PREFIX
@@ -141,6 +145,8 @@ class AbstractOsqueryFormula < Formula
     # Everyone receives:
     append "CFLAGS", "-fPIC -DNDEBUG -Os -march=core2"
     append "CXXFLAGS", "-fPIC -DNDEBUG -Os -march=core2"
+
+    prepend_path "PKG_CONFIG_PATH", legacy_prefix/"lib/pkgconfig"
 
     self.audit
     reset "DEBUG"
@@ -160,5 +166,6 @@ class AbstractOsqueryFormula < Formula
     puts ":: LD_LIBRARY_PATH : " + ENV["LD_LIBRARY_PATH"].to_s
     puts ":: LIBRARY_PATH    : " + ENV["LIBRARY_PATH"].to_s
     puts ":: LD_RUN_PATH     : " + ENV["LD_RUN_PATH"].to_s
+    puts ":: PKG_CONFIG_PATH : " + ENV["PKG_CONFIG_PATH"].to_s
   end
 end

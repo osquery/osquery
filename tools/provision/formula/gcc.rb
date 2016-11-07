@@ -1,26 +1,6 @@
 require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 
 class Gcc < AbstractOsqueryFormula
-  def arch
-    if Hardware::CPU.type == :intel
-      if MacOS.prefer_64_bit?
-        "x86_64"
-      else
-        "i686"
-      end
-    elsif Hardware::CPU.type == :ppc
-      if MacOS.prefer_64_bit?
-        "powerpc64"
-      else
-        "powerpc"
-      end
-    end
-  end
-
-  def osmajor
-    `uname -r`.chomp
-  end
-
   desc "GNU compiler collection"
   homepage "https://gcc.gnu.org"
   url "https://ftp.heanet.ie/mirrors/gnu/gcc/gcc-5.3.0/gcc-5.3.0.tar.bz2"
@@ -40,12 +20,7 @@ class Gcc < AbstractOsqueryFormula
   option "with-nls", "Build with native language support (localization)"
   option "with-jit", "Build the jit compiler"
   option "with-fortran", "Build without the gfortran compiler"
-  # enabling multilib on a host that can't run 64-bit results in build failures
-  if OS.mac?
-    option "without-multilib", "Build without multilib support" if MacOS.prefer_64_bit?
-  else
-    option "with-multilib", "Build with multilib support"
-  end
+  option "with-multilib", "Build with multilib support"
 
   depends_on "zlib" unless OS.mac?
   depends_on "binutils" if build.with? "glibc"
@@ -53,13 +28,6 @@ class Gcc < AbstractOsqueryFormula
   depends_on "libmpc"
   depends_on "mpfr"
   depends_on "isl"
-  depends_on "ecj" if build.with?("java") || build.with?("all-languages")
-
-  if MacOS.version < :leopard && OS.mac?
-    # The as that comes with Tiger isn't capable of dealing with the
-    # PPC asm that comes in libitm
-    depends_on "cctools" => :build
-  end
 
   fails_with :gcc_4_0
   fails_with :llvm
@@ -67,45 +35,22 @@ class Gcc < AbstractOsqueryFormula
   # GCC bootstraps itself, so it is OK to have an incompatible C++ stdlib
   cxxstdlib_check :skip
 
-  # The bottles are built on systems with the CLT installed, and do not work
-  # out of the box on Xcode-only systems due to an incorrect sysroot.
-  pour_bottle? do
-    reason "The bottle needs the Xcode CLT to be installed."
-    satisfy { MacOS::CLT.installed? }
-  end
-
   def version_suffix
     version.to_s.slice(/\d/)
   end
 
-  # Fix for libgccjit.so linkage on Darwin
-  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64089
-  patch :DATA if OS.mac?
+  def osmajor
+    `uname -r`.chomp
+  end
 
   def install
     # GCC will suffer build errors if forced to use a particular linker.
     ENV.delete "LD"
 
-    if OS.mac? && MacOS.version < :leopard
-      ENV["AS"] = ENV["AS_FOR_TARGET"] = "#{Formula["cctools"].bin}/as"
-    end
-
-    if build.with? "all-languages"
-      # Everything but Ada, which requires a pre-existing GCC Ada compiler
-      # (gnat) to bootstrap. GCC 4.6.0 adds go as a language option, but it is
-      # currently only compilable on Linux.
-      languages = %w[c c++ objc obj-c++ fortran java jit]
-    else
-      # C, C++ compilers are always built
-      languages = %w[c c++]
-
-      languages << "fortran" if build.with? "fortran"
-      languages << "java" if build.with? "java"
-      languages << "jit" if build.with? "jit"
-    end
+    # C, C++ compilers are always built
+    languages = %w[c c++]
 
     args = []
-    args << "--build=#{arch}-apple-darwin#{osmajor}" if OS.mac?
 
     # Fix for GCC 4.4 and older that do not support -static-libstdc++
     # gengenrtl: error while loading shared libraries: libstdc++.so.6
@@ -113,24 +58,24 @@ class Gcc < AbstractOsqueryFormula
     ln_s ["/usr/lib64/libstdc++.so.6", "/lib64/libgcc_s.so.1"], lib
     binutils = Formula["binutils"].prefix/"x86_64-pc-linux-gnu/bin"
     args += [
-      #"--with-native-system-header-dir=#{HOMEBREW_PREFIX}/include",
-      "--with-native-system-header-dir=#{Formula["glibc-legacy"].include}",
-      "--with-local-prefix=#{HOMEBREW_PREFIX}",
+      "--with-native-system-header-dir=#{legacy_prefix}/include",
+      "--with-local-prefix=#{default_prefix}",
       "--with-build-time-tools=#{binutils}",
     ]
+
     # Set the search path for glibc libraries and objects.
-    ENV["LIBRARY_PATH"] = "#{Formula["glibc-legacy"].lib}:#{Formula["cctools"].lib}"
+    # CentOS 7 doesn't like: #{Formula["glibc-legacy"].lib}:
+    # ENV["LIBRARY_PATH"] = "#{Formula["osquery/osquery-local/glibc"].lib}:#{Formula["cctools"].lib}"
 
     args += [
       "--prefix=#{prefix}",
-      ("--libdir=#{lib}/gcc/#{version_suffix}" if OS.mac?),
       "--enable-languages=#{languages.join(",")}",
       # Make most executables versioned to avoid conflicts.
       "--program-suffix=-#{version_suffix}",
-      "--with-gmp=#{Formula["gmp"].opt_prefix}",
-      "--with-mpfr=#{Formula["mpfr"].opt_prefix}",
-      "--with-mpc=#{Formula["libmpc"].opt_prefix}",
-      "--with-isl=#{Formula["isl"].opt_prefix}",
+      "--with-gmp=#{default_prefix}/opt/gmp",
+      "--with-mpfr=#{default_prefix}/opt/mpfr",
+      "--with-mpc=#{default_prefix}/opt/libmpc",
+      "--with-isl=#{default_prefix}/opt/isl",
       "--with-system-zlib",
       "--enable-libstdcxx-time=yes",
       "--enable-stage1-checking",
@@ -149,58 +94,37 @@ class Gcc < AbstractOsqueryFormula
 
     # "Building GCC with plugin support requires a host that supports
     # -fPIC, -shared, -ldl and -rdynamic."
-    args << "--enable-plugin" if !OS.mac? || MacOS.version > :tiger
+    args << "--enable-plugin"
 
     # The pre-Mavericks toolchain requires the older DWARF-2 debugging data
     # format to avoid failure during the stage 3 comparison of object files.
     # See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=45248
     args << "--with-dwarf2" if OS.mac? && MacOS.version <= :mountain_lion
-
     args << "--disable-nls" if build.without? "nls"
-
-    if build.with?("java") || build.with?("all-languages")
-      args << "--with-ecj-jar=#{Formula["ecj"].opt_share}/java/ecj.jar"
-    end
-
-    if build.without?("multilib") || !MacOS.prefer_64_bit?
-      args << "--disable-multilib"
-    else
-      args << "--enable-multilib"
-    end
-
-    args << "--enable-host-shared" if build.with?("jit") || build.with?("all-languages")
+    args << "--disable-multilib"
 
     # Ensure correct install names when linking against libgcc_s;
     # see discussion in https://github.com/Homebrew/homebrew/pull/34303
-    inreplace "libgcc/config/t-slibgcc-darwin", "@shlib_slibdir@", "#{HOMEBREW_PREFIX}/lib/gcc/#{version_suffix}"
+    inreplace "libgcc/config/t-slibgcc-darwin", "@shlib_slibdir@", "#{default_prefix}/lib/gcc/#{version_suffix}"
     inreplace "libitm/method-serial.cc", "assert (ok);", "(void) ok;"
+
+    ENV.delete "LDFLAGS"
+    ENV.delete "LD_LIBRARY_PATH"
+    # ENV.delete "LIBRARY_PATH"
 
     # osquery: speed up the build by skipping the bootstrap.
     args << "--disable-bootstrap"
     args << "--disable-libgomp"
 
     mkdir "build" do
-      if OS.mac? && !MacOS::CLT.installed?
-        # For Xcode-only systems, we need to tell the sysroot path.
-        # "native-system-headers" will be appended
-        args << "--with-native-system-header-dir=/usr/include"
-        args << "--with-sysroot=#{MacOS.sdk_path}"
-      end
-
       system "../configure", *args
       system "make"
       system "make", "install"
 
-      if build.with?("fortran") || build.with?("all-languages")
-        bin.install_symlink bin/"gfortran-#{version_suffix}" => "gfortran"
-      end
-
-      if OS.linux?
-        # Create cpp, gcc and g++ symlinks
-        bin.install_symlink "cpp-#{version_suffix}" => "cpp"
-        bin.install_symlink "gcc-#{version_suffix}" => "gcc"
-        bin.install_symlink "g++-#{version_suffix}" => "g++"
-      end
+      # Create cpp, gcc and g++ symlinks
+      bin.install_symlink "cpp-#{version_suffix}" => "cpp"
+      bin.install_symlink "gcc-#{version_suffix}" => "gcc"
+      bin.install_symlink "g++-#{version_suffix}" => "g++"
     end
 
     # Handle conflicts between GCC formulae and avoid interfering
@@ -242,8 +166,6 @@ class Gcc < AbstractOsqueryFormula
   end
 
   def post_install
-    return unless OS.linux?
-
     # Create cc and c++ symlinks, unless they already exist
     homebrew_bin = Pathname.new "#{HOMEBREW_PREFIX}/bin"
     homebrew_bin.install_symlink "gcc" => "cc" unless (homebrew_bin/"cc").exist?
@@ -275,22 +197,12 @@ class Gcc < AbstractOsqueryFormula
       + -isystem #{legacy_prefix}/include -isystem #{default_prefix}/include
 
       *link_libgcc:
-      #{glibc.installed? ? "-nostdlib -L#{libgcc}" : "+"} -L#{default_prefix}/lib
+      #{glibc.installed? ? "-nostdlib -L#{libgcc}" : "+"} -L#{legacy_prefix}/lib -L#{default_prefix}/lib
 
       *link:
       + --dynamic-linker #{legacy_prefix}/lib/ld-linux-x86-64.so.2 -rpath #{default_prefix}/lib
 
     EOS
-  end
-
-  def caveats
-    if build.with?("multilib") then <<-EOS.undent
-      GCC has been built with multilib support. Notably, OpenMP may not work:
-        https://gcc.gnu.org/bugzilla/show_bug.cgi?id=60670
-      If you need OpenMP support you may want to
-        brew reinstall gcc --without-multilib
-      EOS
-    end
   end
 
   test do
@@ -315,57 +227,5 @@ class Gcc < AbstractOsqueryFormula
     EOS
     system "#{bin}/g++-#{version_suffix}", "-o", "hello-cc", "hello-cc.cc"
     assert_equal "Hello, world!\n", `./hello-cc`
-
-    if build.with?("fortran") || build.with?("all-languages")
-      fixture = <<-EOS.undent
-        integer,parameter::m=10000
-        real::a(m), b(m)
-        real::fact=0.5
-
-        do concurrent (i=1:m)
-          a(i) = a(i) + fact*b(i)
-        end do
-        print *, "done"
-        end
-      EOS
-      (testpath/"in.f90").write(fixture)
-      system "#{bin}/gfortran", "-c", "in.f90"
-      system "#{bin}/gfortran", "-o", "test", "in.o"
-      assert_equal "done", `./test`.strip
-    end
   end
 end
-__END__
-diff --git a/gcc/jit/Make-lang.in b/gcc/jit/Make-lang.in
-index 44d0750..4df2a9c 100644
---- a/gcc/jit/Make-lang.in
-+++ b/gcc/jit/Make-lang.in
-@@ -85,8 +85,7 @@ $(LIBGCCJIT_FILENAME): $(jit_OBJS) \
-	     $(jit_OBJS) libbackend.a libcommon-target.a libcommon.a \
-	     $(CPPLIB) $(LIBDECNUMBER) $(LIBS) $(BACKENDLIBS) \
-	     $(EXTRA_GCC_OBJS) \
--	     -Wl,--version-script=$(srcdir)/jit/libgccjit.map \
--	     -Wl,-soname,$(LIBGCCJIT_SONAME)
-+	     -Wl,-install_name,$(LIBGCCJIT_SONAME)
-
- $(LIBGCCJIT_SONAME_SYMLINK): $(LIBGCCJIT_FILENAME)
-	ln -sf $(LIBGCCJIT_FILENAME) $(LIBGCCJIT_SONAME_SYMLINK)
-diff --git a/gcc/jit/jit-playback.c b/gcc/jit/jit-playback.c
-index 925fa86..01cfd4b 100644
---- a/gcc/jit/jit-playback.c
-+++ b/gcc/jit/jit-playback.c
-@@ -2416,6 +2416,15 @@ invoke_driver (const char *ctxt_progname,
-      time.  */
-   ADD_ARG ("-fno-use-linker-plugin");
-
-+#if defined (DARWIN_X86) || defined (DARWIN_PPC)
-+  /* OS X's linker defaults to treating undefined symbols as errors.
-+     If the context has any imported functions or globals they will be
-+     undefined until the .so is dynamically-linked into the process.
-+     Ensure that the driver passes in "-undefined dynamic_lookup" to the
-+     linker.  */
-+  ADD_ARG ("-Wl,-undefined,dynamic_lookup");
-+#endif
-+
-   /* pex argv arrays are NULL-terminated.  */
-   argvec.safe_push (NULL);

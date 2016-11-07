@@ -50,11 +50,11 @@ class Openssl < AbstractOsqueryFormula
       "enable-cms",
     ]
     if OS.linux?
-      args << [
+      args += [
         ENV.cppflags,
         ENV.cflags,
         ENV.ldflags,
-      ].join(" ")
+      ]
     end
     return args
   end

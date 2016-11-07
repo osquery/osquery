@@ -17,4 +17,6 @@ function distro_main() {
   package g++
   package ruby
   package curl
+  package bison
+  package flex
 }

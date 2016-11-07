@@ -27,6 +27,7 @@ ifneq ($(OSQUERY_DEPS),)
 else
 	DEPS_DIR = /usr/local/osquery
 endif
+
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
 CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../../
 CTEST := $(PATH_SET) ctest ../../
@@ -44,6 +45,11 @@ DEFINES := CTEST_OUTPUT_ON_FAILURE=1 \
 .PHONY: docs build
 
 all: .setup
+ifeq ($(wildcard $(DEPS_DIR)/.*),)
+	@echo "-- Warning! Cannot find dependencies install directory: $(DEPS_DIR)"
+	@echo "-- Have you run: make deps?"
+	@false
+endif
 	@cd build/$(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 

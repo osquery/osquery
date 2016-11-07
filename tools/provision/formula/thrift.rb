@@ -48,6 +48,7 @@ class Thrift < AbstractOsqueryFormula
       "--with-openssl=#{HOMEBREW_PREFIX}"
     ]
 
+    ENV.prepend_path "PATH", Formula["bison"].bin
     system "./bootstrap.sh" unless build.stable?
     system "./configure", "--disable-debug",
                           "--prefix=#{prefix}",

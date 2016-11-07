@@ -6,9 +6,10 @@
 
 # osquery-specific helper macros
 macro(LOG_PLATFORM NAME)
-  set(LINK "https://github.com/facebook/osquery/issues/2169")
-  LOG("Welcome to the redesigned v1.8.0 osquery build system!")
-  LOG("For migration and details please see: ${ESC}[1m${LINK}${ESC}[m")
+  set(LINK "http://osquery.readthedocs.io/en/stable/development/building/")
+  LOG("Welcome to osquery's build-- thank you for your patience! :)")
+  LOG("For a brief tutorial see: ${ESC}[1m${LINK}${ESC}[m")
+  LOG("If at first you dont succeed, perhaps: make distclean; make depsclean")
   LOG("Building for platform ${ESC}[36;1m${NAME} (${OSQUERY_BUILD_PLATFORM}, ${OSQUERY_BUILD_DISTRO})${ESC}[m")
   LOG("Building osquery version ${ESC}[36;1m ${OSQUERY_BUILD_VERSION} sdk ${OSQUERY_BUILD_SDK_VERSION}${ESC}[m")
 endmacro(LOG_PLATFORM)
