@@ -3,6 +3,9 @@ theme: readthedocs
 
 docs_dir: docs/wiki
 site_dir: build/wiki
+extra_css:
+- theme/osquery.css
+
 pages:
 - Introduction:
   - Welcome to osquery: index.md
