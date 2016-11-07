@@ -95,7 +95,7 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
     Aws::Kinesis::Model::PutRecordsResult result = outcome.GetResult();
     VLOG(1) << "Successfully sent "
             << result.GetRecords().size() - result.GetFailedRecordCount()
-            << " of " << result.GetRecords().size() << " logs to Kinesis.";
+            << " of " << result.GetRecords().size() << " logs to Kinesis";
     if (result.GetFailedRecordCount() != 0) {
       std::vector<std::string> resend;
       std::string error_msg = "";
@@ -110,7 +110,7 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
       // exit if all uploads fail right off the bat
       // exit if we have tried too many times
       // note, this will go back to the default logger batch retry code
-      if (retry_count < 1 ||
+      if (retry_count == 0 ||
           int(log_data.size()) == result.GetFailedRecordCount()) {
         LOG(ERROR) << "Kinesis write for " << result.GetFailedRecordCount()
                    << " of " << result.GetRecords().size()
