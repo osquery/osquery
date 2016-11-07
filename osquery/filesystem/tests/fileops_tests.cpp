@@ -432,7 +432,7 @@ TEST_F(FileOpsTests, test_immutable) {
         platformChmod(temp_file, S_IRUSR | S_IWGRP | S_IROTH | S_IWOTH));
     EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IRGRP | S_IROTH));
 
-    auto status = fd.isImmutable();
+    auto status = fd.hasSafePermissions();
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(1, status.getCode());
 
@@ -440,24 +440,24 @@ TEST_F(FileOpsTests, test_immutable) {
     EXPECT_TRUE(platformChmod(root_dir,
                               S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH));
 
-    status = fd.isImmutable();
+    status = fd.hasSafePermissions();
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(1, status.getCode());
 
     EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IRGRP | S_IROTH));
     EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH));
 
-    status = fd.isImmutable();
+    status = fd.hasSafePermissions();
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(1, status.getCode());
 
     EXPECT_TRUE(platformChmod(temp_file, 0));
     EXPECT_TRUE(platformChmod(root_dir, 0));
-    EXPECT_TRUE(fd.isImmutable().ok());
+    EXPECT_TRUE(fd.hasSafePermissions().ok());
 
     EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IRGRP | S_IROTH));
     EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IRGRP | S_IROTH));
-    EXPECT_TRUE(fd.isImmutable().ok());
+    EXPECT_TRUE(fd.hasSafePermissions().ok());
   }
 
   EXPECT_TRUE(platformChmod(

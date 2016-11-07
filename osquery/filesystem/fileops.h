@@ -204,7 +204,7 @@ class PlatformFile {
    *       of this function ensures that writes are explicitly denied for the
    *       file AND the file's parent directory.
    */
-  Status isImmutable() const;
+  Status hasSafePermissions() const;
 
   bool getFileTimes(PlatformTime& times);
 

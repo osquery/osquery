@@ -685,7 +685,7 @@ static Status isWriteDenied(PACL acl) {
   return Status(1, "No deny ACE for write");
 }
 
-Status PlatformFile::isImmutable() const {
+Status PlatformFile::hasSafePermissions() const {
   PACL file_dacl = nullptr;
   PSECURITY_DESCRIPTOR file_sd = nullptr;
 
