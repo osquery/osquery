@@ -123,7 +123,7 @@ strip: .setup
 	cd build/$(BUILD_DIR) && find ./osquery -executable -type f | xargs strip
 
 distclean:
-	rm -rf .sources build/$(BUILD_DIR) build/debug_$(BUILD_DIR) build/docs
+	rm -rf .sources build/$(BUILD_DIR) build/debug_$(BUILD_DIR) build/docs build/wiki
 ifeq ($(PLATFORM),Linux)
 	rm -rf build/linux build/debug_linux
 endif
