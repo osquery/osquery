@@ -98,7 +98,7 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
   CloseServiceHandle(schService);
 }
 
-void enumLoadedDrivers(Row& loadedDrivers) {
+void enumLoadedDrivers(std::map<std::string, std::string>& loadedDrivers) {
   DWORD bytesNeeded = 0;
   int driversCount = 0;
 
@@ -150,7 +150,7 @@ void enumLoadedDrivers(Row& loadedDrivers) {
 QueryData genDrivers(QueryContext& context) {
   DWORD bytesNeeded = 0;
   DWORD serviceCount = 0;
-  Row loadedDrivers;
+  std::map<std::string, std::string> loadedDrivers;
   QueryData results;
 
   // Get All Loaded Drivers including ones managed by SCM
