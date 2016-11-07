@@ -67,15 +67,15 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
                                  const std::string& log_type) {
   size_t retry_count = 100;
   size_t retry_delay = 3000;
-  std::vector<std::string> batch = log_data;
+  size_t original_data_size = log_data.size();
   // exit if we have sent all the data
-  while (batch.size() > 0) {
+  while (log_data.size() > 0) {
     if (FLAGS_aws_kinesis_random_partition_key) {
       boost::uuids::uuid uuid = boost::uuids::random_generator()();
       partition_key_ = boost::uuids::to_string(uuid);
     }
     std::vector<Aws::Kinesis::Model::PutRecordsRequestEntry> entries;
-    for (const std::string& log : batch) {
+    for (const std::string& log : log_data) {
       if (log.size() > kKinesisMaxLogBytes) {
         LOG(ERROR) << "Kinesis log too big, discarding!";
       }
@@ -102,16 +102,16 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
       int i = 0;
       for (const auto& record : result.GetRecords()) {
         if (!record.GetErrorMessage().empty()) {
-          resend.push_back(batch[i]);
+          resend.push_back(log_data[i]);
           error_msg = record.GetErrorMessage();
         }
         i++;
       }
-      // exit if all uploads fail right off the bat
       // exit if we have tried too many times
+      // exit if all uploads fail right off the bat
       // note, this will go back to the default logger batch retry code
       if (retry_count == 0 ||
-          static_cast<int>(log_data.size()) == result.GetFailedRecordCount()) {
+          static_cast<int>(original_data_size) == result.GetFailedRecordCount()) {
         LOG(ERROR) << "Kinesis write for " << result.GetFailedRecordCount()
                    << " of " << result.GetRecords().size()
                    << " records failed with error " << error_msg;
@@ -120,10 +120,10 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
 
       VLOG(1) << "Resending " << result.GetFailedRecordCount()
               << " records to Kinesis";
-      batch = resend;
+      log_data = resend;
       sleepFor(retry_delay);
     } else {
-      batch.clear();
+      log_data.clear();
     }
     --retry_count;
     retry_delay += 1000;
