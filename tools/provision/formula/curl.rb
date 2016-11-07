@@ -5,7 +5,7 @@ class Curl < AbstractOsqueryFormula
   homepage "https://curl.haxx.se/"
   url "https://curl.haxx.se/download/curl-7.48.0.tar.bz2"
   sha256 "864e7819210b586d42c674a1fdd577ce75a78b3dda64c63565abe5aefd72c753"
-  revision 1
+  revision 2
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"

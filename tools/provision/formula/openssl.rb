@@ -3,11 +3,11 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Openssl < AbstractOsqueryFormula
   desc "SSL/TLS cryptography library"
   homepage "https://openssl.org/"
-  url "https://www.openssl.org/source/openssl-1.0.2i.tar.gz"
-  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2i.tar.gz"
-  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2i.tar.gz"
-  sha256 "9287487d11c9545b6efb287cdb70535d4e9b284dd10d51441d9b9963d000de6f"
-  revision 2
+  url "https://www.openssl.org/source/openssl-1.0.2j.tar.gz"
+  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2j.tar.gz"
+  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2j.tar.gz"
+  sha256 "e7aff292be21c259c6af26469c7a9b3ba26e9abaaffd325e3dccc9785256c431"
+  revision 1
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -40,17 +40,26 @@ class Openssl < AbstractOsqueryFormula
     }
   end
 
-  def configure_args; %W[
-    --prefix=#{prefix}
-    --openssldir=#{openssldir}
-    no-ssl2
-    no-ssl3
-    no-asm
-    zlib-dynamic
-    shared
-    enable-cms
-    #{[ENV.cppflags, ENV.cflags, ENV.ldflags].join(" ") unless OS.mac?}
-  ]
+  def configure_args
+    args = [
+      "--prefix=#{prefix}",
+      "--openssldir=#{openssldir}",
+      "no-ssl2",
+      "no-ssl3",
+      "no-asm",
+      "zlib-dynamic",
+      "shared",
+      "enable-cms",
+    ]
+    if OS.linux?
+      args << [
+        ENV.cppflags,
+        ENV.cflags,
+        ENV.ldflags,
+        "-Wl,--version-script=#{prefix}/openssl.ld",
+      ].join(" ")
+    end
+    return args
   end
 
   def install
@@ -65,6 +74,22 @@ class Openssl < AbstractOsqueryFormula
     archs = [Hardware::CPU.arch_64_bit]
 
     dirs = []
+
+    version_script = prefix/"openssl.ld"
+    version_script.write <<-EOS.undent
+      OPENSSL_1.0.1d {
+        global:
+          *;
+      };
+      OPENSSL_1.0.1 {
+        global:
+          *;
+      };
+      OPENSSL_1.0.0 {
+        global:
+          *;
+      };
+    EOS
 
     archs.each do |arch|
       if build.universal?
