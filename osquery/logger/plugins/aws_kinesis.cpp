@@ -68,7 +68,7 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
   size_t retry_count = 100;
   size_t retry_delay = 3000;
   size_t original_data_size = log_data.size();
-  // exit if we have sent all the data
+  // exit if we sent all the data
   while (log_data.size() > 0) {
     if (FLAGS_aws_kinesis_random_partition_key) {
       boost::uuids::uuid uuid = boost::uuids::random_generator()();
