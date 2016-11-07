@@ -65,41 +65,70 @@ Status KinesisLoggerPlugin::logString(const std::string& s) {
 
 Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
                                  const std::string& log_type) {
-  std::vector<Aws::Kinesis::Model::PutRecordsRequestEntry> entries;
-  if (FLAGS_aws_kinesis_random_partition_key) {
-    boost::uuids::uuid uuid = boost::uuids::random_generator()();
-    partition_key_ = boost::uuids::to_string(uuid);
-  }
-  for (const std::string& log : log_data) {
-    if (log.size() > kKinesisMaxLogBytes) {
-      LOG(ERROR) << "Kinesis log too big, discarding!";
+  size_t retry_count = 100;
+  size_t retry_delay = 3000;
+  size_t original_data_size = log_data.size();
+  // exit if we sent all the data
+  while (log_data.size() > 0) {
+    if (FLAGS_aws_kinesis_random_partition_key) {
+      boost::uuids::uuid uuid = boost::uuids::random_generator()();
+      partition_key_ = boost::uuids::to_string(uuid);
     }
-    Aws::Kinesis::Model::PutRecordsRequestEntry entry;
-    entry.WithPartitionKey(partition_key_)
-        .WithData(
-            Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length()));
-    entries.push_back(std::move(entry));
-  }
+    std::vector<Aws::Kinesis::Model::PutRecordsRequestEntry> entries;
+    for (const std::string& log : log_data) {
+      if (log.size() > kKinesisMaxLogBytes) {
+        LOG(ERROR) << "Kinesis log too big, discarding!";
+      }
+      Aws::Kinesis::Model::PutRecordsRequestEntry entry;
+      entry.WithPartitionKey(partition_key_)
+          .WithData(Aws::Utils::ByteBuffer((unsigned char*)log.c_str(),
+                                           log.length()));
+      entries.push_back(std::move(entry));
+    }
 
-  Aws::Kinesis::Model::PutRecordsRequest request;
-  request.WithStreamName(FLAGS_aws_kinesis_stream)
-      .WithRecords(std::move(entries));
+    Aws::Kinesis::Model::PutRecordsRequest request;
+    request.WithStreamName(FLAGS_aws_kinesis_stream)
+        .WithRecords(std::move(entries));
 
-  Aws::Kinesis::Model::PutRecordsOutcome outcome = client_->PutRecords(request);
-  Aws::Kinesis::Model::PutRecordsResult result = outcome.GetResult();
-  if (result.GetFailedRecordCount() != 0) {
-    for (const auto& record : result.GetRecords()) {
-      if (!record.GetErrorMessage().empty()) {
+    Aws::Kinesis::Model::PutRecordsOutcome outcome =
+        client_->PutRecords(request);
+    Aws::Kinesis::Model::PutRecordsResult result = outcome.GetResult();
+    VLOG(1) << "Successfully sent "
+            << result.GetRecords().size() - result.GetFailedRecordCount()
+            << " of " << result.GetRecords().size() << " logs to Kinesis";
+    if (result.GetFailedRecordCount() != 0) {
+      std::vector<std::string> resend;
+      std::string error_msg = "";
+      int i = 0;
+      for (const auto& record : result.GetRecords()) {
+        if (!record.GetErrorMessage().empty()) {
+          resend.push_back(log_data[i]);
+          error_msg = record.GetErrorMessage();
+        }
+        i++;
+      }
+      // exit if we have tried too many times
+      // exit if all uploads fail right off the bat
+      // note, this will go back to the default logger batch retry code
+      if (retry_count == 0 ||
+          static_cast<int>(original_data_size) ==
+              result.GetFailedRecordCount()) {
         LOG(ERROR) << "Kinesis write for " << result.GetFailedRecordCount()
                    << " of " << result.GetRecords().size()
-                   << " records failed with error " << record.GetErrorMessage();
-        return Status(1, record.GetErrorMessage());
+                   << " records failed with error " << error_msg;
+        return Status(1, error_msg);
       }
-    }
-  }
 
-  VLOG(1) << "Successfully sent " << result.GetRecords().size()
-          << " logs to Kinesis.";
+      VLOG(1) << "Resending " << result.GetFailedRecordCount()
+              << " records to Kinesis";
+      log_data = resend;
+      sleepFor(retry_delay);
+    } else {
+      log_data.clear();
+    }
+    --retry_count;
+    retry_delay += 1000;
+  }
   return Status(0);
 }
 
