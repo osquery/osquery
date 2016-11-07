@@ -65,8 +65,8 @@ Status KinesisLoggerPlugin::logString(const std::string& s) {
 
 Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
                                  const std::string& log_type) {
-  int retry_count = 100;
-  int retry_delay = 3000;
+  size_t retry_count = 100;
+  size_t retry_delay = 3000;
   std::vector<std::string> batch = log_data;
   // exit if we have sent all the data
   while (batch.size() > 0) {
