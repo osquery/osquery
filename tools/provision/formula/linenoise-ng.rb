@@ -11,6 +11,7 @@ class LinenoiseNg < AbstractOsqueryFormula
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "94ad589501fb7d118dfab673b8e45d268d726175243b2a205ad5eca446c9352e" => :sierra
+    sha256 "1c603b4b30ce90128aad7343005acb689b300c739a7261efcb73baf531501381" => :x86_64_linux
   end
 
   def install
