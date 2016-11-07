@@ -11,9 +11,8 @@ class Python < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "7a65be973f72ecbfdb56c7e0a703a199bf5c14f8cacb9aac37684d99871a2741" => :sierra
-    sha256 "96d0ef61fc9c1045696b1171952119b30c67dc5c45ad0ec458f78aa3ee0424da" => :el_capitan
-    sha256 "d1b62a9115e0449f6136e5dafe9d9d138a473f384dd346a09bd9172b04a26c34" => :x86_64_linux
+    sha256 "1265af027b94fa87f2323de0dea0a820f415ea1d4adc73b70d3de85defa0c61c" => :sierra
+    sha256 "0be76c72908afd57aed0a2754a6970798814b460cb110eebbe11e2142aaa4a0b" => :x86_64_linux
   end
 
   option :universal
