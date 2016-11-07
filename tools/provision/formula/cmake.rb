@@ -5,6 +5,7 @@ class Cmake < AbstractOsqueryFormula
   homepage "https://www.cmake.org/"
   url "https://cmake.org/files/v3.6/cmake-3.6.1.tar.gz"
   sha256 "28ee98ec40427d41a45673847db7a905b59ce9243bb866eaf59dce0f58aaef11"
+  revision 1
 
   head "https://cmake.org/cmake.git"
 
