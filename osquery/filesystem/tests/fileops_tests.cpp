@@ -417,7 +417,8 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
 }
 
 TEST_F(FileOpsTests, test_safe_permissions) {
-  const auto root_dir = (fs::temp_directory_path() / "immutable-test").string();
+  const auto root_dir =
+      (fs::temp_directory_path() / "safe-perms-test").string();
   const auto temp_file = root_dir + "/test";
   const int all_access = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP |
                          S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;

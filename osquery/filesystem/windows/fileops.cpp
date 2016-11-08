@@ -705,8 +705,7 @@ Status PlatformFile::hasSafePermissions() const {
   std::vector<char> path_buf;
   path_buf.assign(MAX_PATH + 1, '\0');
 
-  // Derive the parent directory and insure it is also immutable
-
+  // Derive the parent directory and insure it also has safe permissions
   if (::GetFinalPathNameByHandleA(
           handle_, path_buf.data(), MAX_PATH, FILE_NAME_NORMALIZED) == 0) {
     return Status(-1, "GetFinalPathNameByHandleA failed");
