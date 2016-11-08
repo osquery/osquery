@@ -16,7 +16,6 @@
 // clang-format off
 #include <LM.h>
 // clang-format on
-#include <Shlobj.h>
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
@@ -39,14 +38,15 @@ QueryData genUsers(QueryContext& context) {
   DWORD dwResumeHandle = 0;
   NET_API_STATUS nEnumStatus;
 
-  nEnumStatus = NetUserEnum(nullptr,
-                            dwGenericUserLevel,
-                            FILTER_NORMAL_ACCOUNT,
-                            (LPBYTE*)&pUserBuffer,
-                            dwPreferredMaxLength,
-                            &dwEntriesRead,
-                            &dwTotalEntries,
-                            &dwResumeHandle);
+  nEnumStatus =
+      NetUserEnum(nullptr,
+                  dwGenericUserLevel,
+                  FILTER_NORMAL_ACCOUNT | FILTER_WORKSTATION_TRUST_ACCOUNT,
+                  reinterpret_cast<LPBYTE*>(&pUserBuffer),
+                  dwPreferredMaxLength,
+                  &dwEntriesRead,
+                  &dwTotalEntries,
+                  &dwResumeHandle);
 
   // We save the original pointer to the USER_INFO_3 buff for mem management
   LPUSER_INFO_3 pUserIterationBuffer = pUserBuffer;
@@ -74,7 +74,7 @@ QueryData genUsers(QueryContext& context) {
     nStatus = NetUserGetInfo(nullptr,
                              pUserIterationBuffer->usri3_name,
                              dwDetailedUserLevel,
-                             (LPBYTE*)&pSidUserBuffer);
+                             reinterpret_cast<LPBYTE*>(&pSidUserBuffer));
     if (nStatus != NERR_Success) {
       if (pSidUserBuffer != nullptr) {
         NetApiBufferFree(pSidUserBuffer);
@@ -93,10 +93,10 @@ QueryData genUsers(QueryContext& context) {
       continue;
     }
     r["uuid"] = sStringSid;
-    std::string query = "SELECT LocalPath FROM Win32_UserProfile where SID=\"" +
-                        std::string(sStringSid) + "\"";
+    auto query = "SELECT LocalPath FROM Win32_UserProfile where SID=\"" +
+                 std::string(sStringSid) + "\"";
     WmiRequest wmiRequest(query);
-    std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
+    auto& wmiResults = wmiRequest.results();
     if (wmiResults.size() != 0) {
       wmiResults[0].GetString("LocalPath", r["directory"]);
     }
