@@ -492,8 +492,8 @@ TEST_F(FileOpsTests, test_safe_permissions) {
     EXPECT_TRUE(fd.hasSafePermissions().ok());
   }
 
-  EXPECT_TRUE(platformChmod(temp_file, all_access));
   EXPECT_TRUE(platformChmod(root_dir, all_access));
+  EXPECT_TRUE(platformChmod(temp_file, all_access));
 
   fs::remove_all(root_dir);
 }
