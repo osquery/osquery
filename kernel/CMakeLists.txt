@@ -116,7 +116,7 @@ if(APPLE)
   # make kernel-load
   add_custom_target(
     kernel-test-load
-    DEPENDS kernel-build
+    DEPENDS system_sip kernel-build
     # Move the kernel extension bundle to /tmp to change ownership.
     # A virtual machine shared folder/filesystem may not allow root owned files.
     COMMAND sudo cp -R "${CMAKE_BINARY_DIR}/kernel/osquery.kext" "/tmp/"
@@ -259,9 +259,17 @@ else()
   endif()
 endif()
 
+add_custom_target(
+  kernel-dev-check
+  COMMAND echo "Checking for kernel development mode"
+  COMMAND echo "See http://osquery.readthedocs.io/en/stable/development/kernel/"
+  COMMAND echo "if this step fails"
+  COMMAND nvram -x boot-args 2> /dev/null | grep -q "kext-dev-mode=1"
+)
+
 # make kernel-build
 add_custom_target(
   kernel-build
-  DEPENDS kernel-layout base_kernel
+  DEPENDS kernel-dev-check kernel-layout base_kernel
   COMMAND echo "-- Building osquery kernel extension/module..."
 )
