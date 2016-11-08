@@ -348,6 +348,157 @@ TEST_F(FileOpsTests, test_large_read_write) {
   }
 }
 
+TEST_F(FileOpsTests, test_chmod_no_exec) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  {
+    PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(4, fd.write("TEST", 4));
+  }
+
+  EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH));
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_TRUE(fd.isValid());
+
+    auto status = fd.isExecutable();
+    EXPECT_TRUE(!status.ok());
+    EXPECT_EQ(1, status.getCode());
+  }
+}
+
+TEST_F(FileOpsTests, test_chmod_no_read) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  {
+    PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(4, fd.write("TEST", 4));
+  }
+
+  EXPECT_TRUE(platformChmod(path, S_IWUSR | S_IWOTH));
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_FALSE(fd.isValid());
+  }
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+  }
+}
+
+TEST_F(FileOpsTests, test_chmod_no_write) {
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  {
+    PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(4, fd.write("TEST", 4));
+  }
+
+  EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IROTH));
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_TRUE(fd.isValid());
+  }
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
+    EXPECT_FALSE(fd.isValid());
+  }
+}
+
+TEST_F(FileOpsTests, test_safe_permissions) {
+  const auto root_dir =
+      (fs::temp_directory_path() / "safe-perms-test").string();
+  const auto temp_file = root_dir + "/test";
+  const int all_access = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP |
+                         S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
+
+  fs::create_directories(root_dir);
+
+  {
+    PlatformFile fd(temp_file, PF_CREATE_ALWAYS | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+
+    EXPECT_TRUE(
+        platformChmod(temp_file, S_IRUSR | S_IWGRP | S_IROTH | S_IWOTH));
+    EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IRGRP | S_IROTH));
+
+    auto status = fd.hasSafePermissions();
+    EXPECT_FALSE(status.ok());
+    EXPECT_EQ(1, status.getCode());
+
+    if (isPlatform(PlatformType::TYPE_POSIX)) {
+      // On POSIX, chmod on a file requires +x on the parent directory
+      EXPECT_TRUE(platformChmod(root_dir, all_access));
+    }
+
+    EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IRGRP | S_IROTH));
+    EXPECT_TRUE(platformChmod(root_dir,
+                              S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH));
+
+    status = fd.hasSafePermissions();
+
+    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+      EXPECT_FALSE(status.ok());
+      EXPECT_EQ(1, status.getCode());
+    } else {
+      // On POSIX, we only check to see if temp_file has S_IWOTH
+      EXPECT_TRUE(status.ok());
+    }
+
+    if (isPlatform(PlatformType::TYPE_POSIX)) {
+      // On POSIX, chmod on a file requires +x on the parent directory
+      EXPECT_TRUE(platformChmod(root_dir, all_access));
+    }
+
+    EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IRGRP | S_IROTH));
+    EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH));
+
+    status = fd.hasSafePermissions();
+
+    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+      EXPECT_FALSE(status.ok());
+      EXPECT_EQ(1, status.getCode());
+    } else {
+      // On POSIX, we only check to see if temp_file has S_IWOTH
+      EXPECT_TRUE(status.ok());
+    }
+
+    if (isPlatform(PlatformType::TYPE_POSIX)) {
+      // On POSIX, chmod on a file requires +x on the parent directory
+      EXPECT_TRUE(platformChmod(root_dir, all_access));
+    }
+
+    EXPECT_TRUE(platformChmod(temp_file, 0));
+    EXPECT_TRUE(platformChmod(root_dir, 0));
+    EXPECT_TRUE(fd.hasSafePermissions().ok());
+
+    if (isPlatform(PlatformType::TYPE_POSIX)) {
+      // On POSIX, chmod on a file requires +x on the parent directory
+      EXPECT_TRUE(platformChmod(root_dir, all_access));
+    }
+
+    EXPECT_TRUE(platformChmod(temp_file, S_IRUSR | S_IRGRP | S_IROTH));
+    EXPECT_TRUE(platformChmod(root_dir, S_IRUSR | S_IRGRP | S_IROTH));
+    EXPECT_TRUE(fd.hasSafePermissions().ok());
+  }
+
+  EXPECT_TRUE(platformChmod(root_dir, all_access));
+  EXPECT_TRUE(platformChmod(temp_file, all_access));
+
+  fs::remove_all(root_dir);
+}
+
 TEST_F(FileOpsTests, test_glob) {
   {
     std::vector<fs::path> expected{kFakeDirectory + "/door.txt",
