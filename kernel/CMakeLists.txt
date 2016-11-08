@@ -116,7 +116,7 @@ if(APPLE)
   # make kernel-load
   add_custom_target(
     kernel-test-load
-    DEPENDS system_sip kernel-build
+    DEPENDS kernel-build
     # Move the kernel extension bundle to /tmp to change ownership.
     # A virtual machine shared folder/filesystem may not allow root owned files.
     COMMAND sudo cp -R "${CMAKE_BINARY_DIR}/kernel/osquery.kext" "/tmp/"
