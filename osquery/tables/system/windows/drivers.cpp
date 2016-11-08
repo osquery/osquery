@@ -43,7 +43,7 @@ const std::map<int, std::string> kDriverType = {
 
 void queryDrvInfo(const SC_HANDLE& schScManager,
                   ENUM_SERVICE_STATUS_PROCESS& svc,
-                  Row& loadedDrivers,
+                  std::map<std::string, std::string>& loadedDrivers,
                   QueryData& results) {
   Row r;
   DWORD cbBufSize = 0;
