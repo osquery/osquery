@@ -8,7 +8,7 @@
  *
  */
 
-#pragma comment(lib, "netapi32.lib")
+#include <iostream>
 
 #define _WIN32_DCOM
 #define WIN32_LEAN_AND_MEAN
@@ -16,7 +16,6 @@
 // clang-format off
 #include <LM.h>
 // clang-format on
-#include <Shlobj.h>
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
@@ -30,89 +29,71 @@ namespace tables {
 QueryData genUsers(QueryContext& context) {
   QueryData results;
 
-  // USER_INFO_3 conains generic user information
-  LPUSER_INFO_3 pUserBuffer = nullptr;
-  DWORD dwGenericUserLevel = 3;
-  DWORD dwPreferredMaxLength = MAX_PREFERRED_LENGTH;
-  DWORD dwEntriesRead = 0;
-  DWORD dwTotalEntries = 0;
-  DWORD dwResumeHandle = 0;
-  NET_API_STATUS nEnumStatus;
-
-  nEnumStatus = NetUserEnum(nullptr,
-                            dwGenericUserLevel,
-                            FILTER_NORMAL_ACCOUNT,
-                            (LPBYTE*)&pUserBuffer,
-                            dwPreferredMaxLength,
-                            &dwEntriesRead,
-                            &dwTotalEntries,
-                            &dwResumeHandle);
-
-  // We save the original pointer to the USER_INFO_3 buff for mem management
-  LPUSER_INFO_3 pUserIterationBuffer = pUserBuffer;
-  if (pUserIterationBuffer == nullptr || nEnumStatus != NERR_Success) {
-    if (pUserBuffer != nullptr) {
-      NetApiBufferFree(pUserBuffer);
-    }
+  WmiRequest req("select * from Win32_UserProfile");
+  if (!req.getStatus().ok()) {
     return results;
   }
 
-  for (DWORD i = 0; i < dwEntriesRead; i++) {
+  std::vector<WmiResultItem>& wmiResults = req.results();
+  TLOG << wmiResults.size();
+  for (const auto& res : wmiResults) {
     Row r;
-    r["username"] = wstringToString(pUserIterationBuffer->usri3_name);
-    r["description"] = wstringToString(pUserIterationBuffer->usri3_comment);
-    r["uid"] = BIGINT(pUserIterationBuffer->usri3_user_id);
-    r["gid"] = BIGINT(pUserIterationBuffer->usri3_primary_group_id);
-    r["uid_signed"] = r["uid"];
-    r["gid_signed"] = r["gid"];
-    r["shell"] = "C:\\Windows\\system32\\cmd.exe";
 
-    // USER_INFO_23 contains detailed info, like the user Sid
-    DWORD dwDetailedUserLevel = 23;
-    LPUSER_INFO_23 pSidUserBuffer = nullptr;
+    std::string sidString;
+    res.GetString("LocalPath", r["directory"]);
+    res.GetString("SID", sidString);
+    r["uuid"] = sidString;
+
+    PSID sid;
+    auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
+    if (ret == 0) {
+      TLOG << "Convert SID to string failed with: " << GetLastError();
+    }
+
+    wchar_t accntName[UNLEN];
+    wchar_t domName[DNLEN];
+    unsigned long accntNameLen = UNLEN;
+    unsigned long domNameLen = DNLEN;
+    SID_NAME_USE eUse;
+
+    /// The MSDN doc guaruntees us that the string values returned will be null
+    /// terminated.
+    ret = LookupAccountSidW(
+        nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
+    if (ret != 0) {
+      r["username"] = wstringToString(accntName);
+    } else {
+      TLOG << "Lookup Account by SID failed with: " << GetLastError();
+    }
+
+    /// USER_INFO_3 contains detailed info, like the uid
+    unsigned long dwDetailedUserLevel = 3;
+    LPUSER_INFO_3 pUserInfoBuffer = nullptr;
+
     NET_API_STATUS nStatus;
     nStatus = NetUserGetInfo(nullptr,
-                             pUserIterationBuffer->usri3_name,
+                             accntName,
                              dwDetailedUserLevel,
-                             (LPBYTE*)&pSidUserBuffer);
+                             reinterpret_cast<LPBYTE*>(&pUserInfoBuffer));
     if (nStatus != NERR_Success) {
-      if (pSidUserBuffer != nullptr) {
-        NetApiBufferFree(pSidUserBuffer);
-        pSidUserBuffer = nullptr;
+      if (pUserInfoBuffer != nullptr) {
+        NetApiBufferFree(pUserInfoBuffer);
+        pUserInfoBuffer = nullptr;
       }
       continue;
     }
 
-    LPTSTR sStringSid = nullptr;
-    auto ret =
-        ConvertSidToStringSid(pSidUserBuffer->usri23_user_sid, &sStringSid);
-    if (ret == 0) {
-      if (pSidUserBuffer != nullptr) {
-        NetApiBufferFree(pSidUserBuffer);
-      }
-      continue;
-    }
-    r["uuid"] = sStringSid;
-    std::string query = "SELECT LocalPath FROM Win32_UserProfile where SID=\"" +
-                        std::string(sStringSid) + "\"";
-    WmiRequest wmiRequest(query);
-    std::vector<WmiResultItem>& wmiResults = wmiRequest.results();
-    if (wmiResults.size() != 0) {
-      wmiResults[0].GetString("LocalPath", r["directory"]);
-    }
-    LocalFree(sStringSid);
-    NetApiBufferFree(pSidUserBuffer);
+    r["uid"] = INTEGER(pUserInfoBuffer->usri3_user_id);
+    r["uid_signed"] = INTEGER(pUserInfoBuffer->usri3_user_id);
+    r["gid"] = INTEGER(pUserInfoBuffer->usri3_primary_group_id);
+    r["gid_signed"] = INTEGER(pUserInfoBuffer->usri3_primary_group_id);
+    r["description"] = wstringToString(pUserInfoBuffer->usri3_comment);
+    NetApiBufferFree(pUserInfoBuffer);
+    r["shell"] = "C:\\Windows\\system32\\cmd.exe";
 
     results.push_back(r);
-    pUserIterationBuffer++;
-  }
-  NetApiBufferFree(pUserBuffer);
 
-  if (nEnumStatus == ERROR_MORE_DATA) {
-    LOG(WARNING)
-        << "NetUserEnum contains more data: users table may be incomplete";
   }
-
   return results;
 }
 }
