@@ -197,7 +197,7 @@ class Gcc < AbstractOsqueryFormula
       + -isystem #{legacy_prefix}/include -isystem #{default_prefix}/include
 
       *link_libgcc:
-      #{glibc.installed? ? "-nostdlib -L#{libgcc}" : "+"} -L#{legacy_prefix}/lib -L#{default_prefix}/lib
+      #{glibc.installed? ? "-nostdlib -L#{libgcc}" : "+"} -L#{legacy_prefix}/lib -L#{default_prefix}/lib -lrt -lpthread
 
       *link:
       + --dynamic-linker #{legacy_prefix}/lib/ld-linux-x86-64.so.2 -rpath #{default_prefix}/lib

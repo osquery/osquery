@@ -67,6 +67,7 @@ function platform_linux_main() {
   brew_tool m4
   brew_tool autoconf
   brew_tool automake
+  brew_tool libxml2
 
   # OpenSSL is needed for the final build.
   brew_clean osquery/osquery-local/curl
@@ -84,6 +85,9 @@ function platform_linux_main() {
 
   # LLVM/Clang.
   brew_tool osquery/osquery-local/llvm
+  set_deps_compilers clang
+
+  brew_dependency osquery/osquery-local/lz4
 
   # General Linux dependencies and custom formulas for table implementations.
   brew_dependency osquery/osquery-local/util-linux
@@ -117,6 +121,8 @@ function platform_darwin_main() {
   brew_tool osquery/osquery-local/python
   brew_tool osquery/osquery-local/cmake --without-docs
 
+  brew_dependency osquery/osquery-local/lz4
+
   platform_posix_main
 }
 
@@ -128,7 +134,6 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/cpp-netlib
   brew_dependency osquery/osquery-local/google-benchmark
   brew_dependency osquery/osquery-local/pcre
-  brew_dependency osquery/osquery-local/lz4
   brew_dependency osquery/osquery-local/snappy
   brew_dependency osquery/osquery-local/sleuthkit
   brew_dependency osquery/osquery-local/libmagic
