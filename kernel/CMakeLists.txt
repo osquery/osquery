@@ -263,7 +263,6 @@ add_custom_target(
   kernel-dev-check
   COMMAND echo "Checking for kernel development mode"
   COMMAND echo "See http://osquery.readthedocs.io/en/stable/development/kernel/"
-  COMMAND echo "if this step fails"
   COMMAND nvram -x boot-args 2> /dev/null | grep -q "kext-dev-mode=1"
 )
 
