@@ -86,10 +86,12 @@ function platform_linux_main() {
   # LLVM/Clang.
   brew_tool osquery/osquery-local/llvm
 
+  # Util-Linux provides libuuid.
+  brew_dependency osquery/osquery-local/util-linux
+
   platform_posix_main
 
   # General Linux dependencies and custom formulas for table implementations.
-  brew_dependency osquery/osquery-local/util-linux
   brew_dependency osquery/osquery-local/libgpg-error
   brew_dependency osquery/osquery-local/libdevmapper
   brew_dependency osquery/osquery-local/libaptpkg
