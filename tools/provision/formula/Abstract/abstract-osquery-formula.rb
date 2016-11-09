@@ -137,7 +137,7 @@ class AbstractOsqueryFormula < Formula
       prepend_path "CPATH", default_prefix/"include"
 
       if [ENV["CC"]].include?("#{default_prefix}/bin/clang")
-        append "LDFLAGS", "-lrt -lpthread"
+        append "LDFLAGS", "-lrt -lpthread -ldl"
       end
     end
 

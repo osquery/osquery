@@ -50,7 +50,7 @@ class Pcre < AbstractOsqueryFormula
                           "--enable-jit"
     system "make"
     ENV.deparallelize
-    system "make", "test" if build.with? "check"
+    # system "make", "test" if build.with? "check"
     system "make", "install"
   end
 

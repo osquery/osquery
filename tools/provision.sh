@@ -87,7 +87,7 @@ function platform_linux_main() {
   brew_tool osquery/osquery-local/llvm
   set_deps_compilers clang
 
-  brew_dependency osquery/osquery-local/lz4
+  platform_posix_main
 
   # General Linux dependencies and custom formulas for table implementations.
   brew_dependency osquery/osquery-local/util-linux
@@ -102,7 +102,6 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libdpkg
   brew_dependency osquery/osquery-local/librpm
 
-  platform_posix_main
 }
 
 function platform_darwin_main() {
@@ -121,28 +120,27 @@ function platform_darwin_main() {
   brew_tool osquery/osquery-local/python
   brew_tool osquery/osquery-local/cmake --without-docs
 
-  brew_dependency osquery/osquery-local/lz4
-
   platform_posix_main
 }
 
  function platform_posix_main() {
   # List of LLVM-compiled dependencies.
-  brew_dependency osquery/osquery-local/linenoise-ng
+  brew_dependency osquery/osquery-local/lz4
+  brew_dependency osquery/osquery-local/libmagic
+  brew_dependency osquery/osquery-local/pcre
   brew_dependency osquery/osquery-local/boost
   brew_dependency osquery/osquery-local/asio
   brew_dependency osquery/osquery-local/cpp-netlib
   brew_dependency osquery/osquery-local/google-benchmark
-  brew_dependency osquery/osquery-local/pcre
   brew_dependency osquery/osquery-local/snappy
   brew_dependency osquery/osquery-local/sleuthkit
-  brew_dependency osquery/osquery-local/libmagic
   brew_dependency osquery/osquery-local/thrift
   brew_dependency osquery/osquery-local/rocksdb
   brew_dependency osquery/osquery-local/gflags
   brew_dependency osquery/osquery-local/aws-sdk-cpp
   brew_dependency osquery/osquery-local/yara
   brew_dependency osquery/osquery-local/glog
+  brew_dependency osquery/osquery-local/linenoise-ng
 
   # POSIX-shared locally-managed tools.
   brew_tool osquery/osquery-local/zzuf
