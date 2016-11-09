@@ -42,6 +42,13 @@ class AbstractOsqueryFormula < Formula
     end
   end
 
+  def osquery_cmake_args
+    std_cmake_args + [
+      "-DCMAKE_LIBRARY_PATH=#{ENV["LIBRARY_PATH"]}",
+      "-DCMAKE_INCLUDE_PATH=#{legacy_prefix}/include:#{default_prefix}/include",
+    ]
+  end
+
   def reset(name)
     ENV.delete name
   end

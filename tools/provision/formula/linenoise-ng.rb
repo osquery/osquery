@@ -17,7 +17,7 @@ class LinenoiseNg < AbstractOsqueryFormula
   def install
     mkdir "build"
     cd "build" do
-      args = std_cmake_args
+      args = osquery_cmake_args
       args += [
         "-DCMAKE_CXX_FLAGS=-mno-avx -fPIC"
       ]

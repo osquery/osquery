@@ -202,7 +202,9 @@ function brew_tool() {
 
 function brew_dependency() {
   # Essentially uses clang instead of GCC.
+  set_deps_compilers clang
   brew_internal "dependency" $@
+  set_deps_compilers gcc
 }
 
 function brew_link() {

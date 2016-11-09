@@ -85,7 +85,6 @@ function platform_linux_main() {
 
   # LLVM/Clang.
   brew_tool osquery/osquery-local/llvm
-  set_deps_compilers clang
 
   platform_posix_main
 

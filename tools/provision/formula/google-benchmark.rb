@@ -23,7 +23,7 @@ class GoogleBenchmark < AbstractOsqueryFormula
     ENV.cxx11
     ENV.append_to_cflags "-Wno-zero-length-array"
 
-    system "cmake", *std_cmake_args
+    system "cmake", *osquery_cmake_args
     system "make"
     system "make", "install"
   end

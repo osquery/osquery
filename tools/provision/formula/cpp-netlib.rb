@@ -29,7 +29,7 @@ class CppNetlib < AbstractOsqueryFormula
     ]
 
     # NB: Do not build examples or tests as they require submodules.
-    args += std_cmake_args
+    args += osquery_cmake_args
     system "cmake", *args
     system "make"
     system "make", "install"

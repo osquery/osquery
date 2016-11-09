@@ -21,7 +21,7 @@ class AwsSdkCpp < AbstractOsqueryFormula
 
     inreplace "CMakeLists.txt", "${CMAKE_CXX_FLAGS_RELEASE} -s", "${CMAKE_CXX_FLAGS_RELEASE}"
 
-    args = std_cmake_args
+    args = osquery_cmake_args
     args << "-DSTATIC_LINKING=1"
     args << "-DNO_HTTP_CLIENT=1"
     args << "-DMINIMIZE_SIZE=ON"
