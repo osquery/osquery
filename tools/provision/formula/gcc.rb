@@ -108,8 +108,8 @@ class Gcc < AbstractOsqueryFormula
     inreplace "libgcc/config/t-slibgcc-darwin", "@shlib_slibdir@", "#{default_prefix}/lib/gcc/#{version_suffix}"
     inreplace "libitm/method-serial.cc", "assert (ok);", "(void) ok;"
 
-    ENV.delete "LDFLAGS"
-    ENV.delete "LD_LIBRARY_PATH"
+    # ENV.delete "LDFLAGS"
+    # ENV.delete "LD_LIBRARY_PATH"
     # ENV.delete "LIBRARY_PATH"
 
     # osquery: speed up the build by skipping the bootstrap.
