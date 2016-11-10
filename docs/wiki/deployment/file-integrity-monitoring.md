@@ -95,6 +95,8 @@ File accesses on Linux using inotify may induce unexpected and unwanted performa
 
 To enable access monitoring for the above set of directories in 'homes' and the single 'etc'.
 
+**WARNING:** The hashes of files will not be calculated to avoid generating additional access events.
+
 ### Process File Accesses on OS X
 
 It is possible to monitor for file accesses by process using the osquery OS X kernel module. File accesses induce a LOT of stress on the system and are more or less useless giving the context from userland monitoring systems (aka, not having the process that caused the modification).

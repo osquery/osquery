@@ -97,11 +97,8 @@ Status FileEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     decorateFileEvent(
         ec->path, (ec->action == "CREATED" || ec->action == "UPDATED"), r);
   } else {
-    // The access event on Linux would generate additional events if stated.
-    for (const auto& column : kCommonFileColumns) {
-      r[column] = "0";
-    }
-    r["hashed"] = "0";
+    // The access event on Linux would generate additional events if hashed.
+    decorateFileEvent(ec->path, false, r);
   }
 
   // A callback is somewhat useless unless it changes the EventSubscriber
