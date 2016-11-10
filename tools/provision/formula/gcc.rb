@@ -63,10 +63,6 @@ class Gcc < AbstractOsqueryFormula
       "--with-build-time-tools=#{binutils}",
     ]
 
-    # Set the search path for glibc libraries and objects.
-    # CentOS 7 doesn't like: #{Formula["glibc-legacy"].lib}:
-    # ENV["LIBRARY_PATH"] = "#{Formula["osquery/osquery-local/glibc"].lib}:#{Formula["cctools"].lib}"
-
     args += [
       "--prefix=#{prefix}",
       "--enable-languages=#{languages.join(",")}",
@@ -110,7 +106,6 @@ class Gcc < AbstractOsqueryFormula
 
     ENV.delete "LDFLAGS"
     ENV.delete "LD_LIBRARY_PATH"
-    # ENV.delete "LIBRARY_PATH"
 
     # osquery: speed up the build by skipping the bootstrap.
     args << "--disable-bootstrap"

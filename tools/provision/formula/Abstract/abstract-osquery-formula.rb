@@ -134,7 +134,6 @@ class AbstractOsqueryFormula < Formula
       end
 
       prepend_path "LIBRARY_PATH", default_prefix/"lib"
-      # prepend_path "LIBRARY_PATH", Formula["osquery/osquery-local/glibc"].lib
       prepend_path "LIBRARY_PATH", legacy_prefix/"lib"
 
       # This is already set to the PREFIX
