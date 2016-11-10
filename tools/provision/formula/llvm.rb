@@ -92,6 +92,9 @@ class Llvm < AbstractOsqueryFormula
   fails_with :llvm
 
   def install
+    # Added to gcc's specs, but also needed here.
+    ENV.append "LDFLAGS", "-lrt -lpthread"
+
     # Apple's libstdc++ is too old to build LLVM
     ENV.libcxx if ENV.compiler == :clang
 

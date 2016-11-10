@@ -21,7 +21,7 @@ import subprocess
 
 ORACLE_RELEASE = "/etc/oracle-release"
 SYSTEM_RELEASE = "/etc/system-release"
-LSB_RELEASE        = "/etc/lsb-release"
+LSB_RELEASE    = "/etc/lsb-release"
 DEBIAN_VERSION = "/etc/debian_version"
 
 def _platform():

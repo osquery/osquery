@@ -3,9 +3,9 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Zzuf < AbstractOsqueryFormula
   desc "Transparent application input fuzzer"
   homepage "http://caca.zoy.org/wiki/zzuf"
-  url "https://github.com/theopolis/zzuf/archive/v0.15-osx-r1.tar.gz"
-  sha256 "78c2250829b205c94643afa31bf8155bac629c9c8676d9a37670c62c16f4f03b"
-  version "0.15-osx-r1"
+  url "https://github.com/theopolis/zzuf/archive/v0.15-osx-r2.tar.gz"
+  sha256 "9f59bac21aef5408bbdaab0b2732ca5848dbd3e74297b66c34245bdbc04db86e"
+  version "0.15-osx-r2"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"

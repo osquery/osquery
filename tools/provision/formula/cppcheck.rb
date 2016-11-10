@@ -26,7 +26,7 @@ class Cppcheck < AbstractOsqueryFormula
     args << "-DHAVE_RULES=ON" if build.with? "rules"
 
     mkdir "build" do
-      args += std_cmake_args
+      args += osquery_cmake_args
       system "cmake", "..", *args
       system "make"
       system "make", "install"

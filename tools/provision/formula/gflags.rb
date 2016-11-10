@@ -19,7 +19,7 @@ class Gflags < AbstractOsqueryFormula
   def install
     ENV.cxx11
 
-    args = std_cmake_args
+    args = osquery_cmake_args
     args << "-DBUILD_SHARED_LIBS=OFF"
 
     mkdir "buildroot" do

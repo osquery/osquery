@@ -52,6 +52,8 @@ class Cmake < AbstractOsqueryFormula
     end
 
     ENV.append "CXXFLAGS", "-L#{legacy_prefix}/lib"
+    ENV.append "CXXFLAGS", "-L#{default_prefix}/lib"
+    ENV.append "CXXFLAGS", "-lrt -lpthread"
 
     system "./bootstrap", *args
     system "make"

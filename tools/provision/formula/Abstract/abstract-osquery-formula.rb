@@ -42,6 +42,13 @@ class AbstractOsqueryFormula < Formula
     end
   end
 
+  def osquery_cmake_args
+    std_cmake_args + [
+      "-DCMAKE_LIBRARY_PATH=#{ENV["LIBRARY_PATH"]}",
+      "-DCMAKE_INCLUDE_PATH=#{legacy_prefix}/include:#{default_prefix}/include",
+    ]
+  end
+
   def reset(name)
     ENV.delete name
   end
@@ -79,6 +86,7 @@ class AbstractOsqueryFormula < Formula
     # Reset compile flags for safety, we want to control them explicitly.
     reset "CFLAGS"
     reset "CXXFLAGS"
+    reset "CPPFLAGS"
 
     # Reset the following since the logic within the 'std' environment does not
     # known about our legacy runtime 'glibc' formula name.
@@ -119,9 +127,11 @@ class AbstractOsqueryFormula < Formula
       append "LDFLAGS", "-Wl,-rpath,#{default_prefix}/lib"
 
       # Adding this one line to help gcc too.
-      append "LDFLAGS", "-L#{default_prefix}/lib"
-      # We want the legacy path to be the last thing prepended.
-      prepend "LDFLAGS", "-L#{legacy_prefix}/lib"
+      if !["openssl"].include?(self.name)
+        append "LDFLAGS", "-L#{default_prefix}/lib"
+        # We want the legacy path to be the last thing prepended.
+        prepend "LDFLAGS", "-L#{legacy_prefix}/lib"
+      end
 
       prepend_path "LIBRARY_PATH", default_prefix/"lib"
       prepend_path "LIBRARY_PATH", legacy_prefix/"lib"
@@ -131,6 +141,10 @@ class AbstractOsqueryFormula < Formula
 
       # Set the search path for header files.
       prepend_path "CPATH", default_prefix/"include"
+
+      if [ENV["CC"]].include?("#{default_prefix}/bin/clang")
+        append "LDFLAGS", "-lrt -lpthread -ldl"
+      end
     end
 
     if !OS.linux?
@@ -141,6 +155,8 @@ class AbstractOsqueryFormula < Formula
     # Everyone receives:
     append "CFLAGS", "-fPIC -DNDEBUG -Os -march=core2"
     append "CXXFLAGS", "-fPIC -DNDEBUG -Os -march=core2"
+
+    prepend_path "PKG_CONFIG_PATH", legacy_prefix/"lib/pkgconfig"
 
     self.audit
     reset "DEBUG"
@@ -160,5 +176,6 @@ class AbstractOsqueryFormula < Formula
     puts ":: LD_LIBRARY_PATH : " + ENV["LD_LIBRARY_PATH"].to_s
     puts ":: LIBRARY_PATH    : " + ENV["LIBRARY_PATH"].to_s
     puts ":: LD_RUN_PATH     : " + ENV["LD_RUN_PATH"].to_s
+    puts ":: PKG_CONFIG_PATH : " + ENV["PKG_CONFIG_PATH"].to_s
   end
 end

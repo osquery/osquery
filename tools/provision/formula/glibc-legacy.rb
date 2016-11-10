@@ -23,6 +23,8 @@ class GlibcLegacy < AbstractOsqueryFormula
   # Linux kernel headers 2.6.19 or later are required
   depends_on "linux-headers" => [:build, :recommended]
 
+  # This package is provided for legacy headers and linking to maintain ABI
+  # compatibility for the deploy-targets.
   set_legacy
 
   def install
@@ -82,7 +84,7 @@ diff -Nur glibc-2.12.2/configure glibc-2.12.2-patched/configure
 +    3.4* | 4.[0-9]* | 5.[0-9]* )
         ac_prog_version="$ac_prog_version, ok"; ac_verc_fail=no;;
      *) ac_prog_version="$ac_prog_version, bad"; ac_verc_fail=yes;;
- 
+
 @@ -5252,7 +5252,7 @@
    ac_prog_version=`$MAKE --version 2>&1 | sed -n 's/^.*GNU Make[^0-9]*\([0-9][0-9.]*\).*$/\1/p'`
    case $ac_prog_version in
@@ -91,35 +93,35 @@ diff -Nur glibc-2.12.2/configure glibc-2.12.2-patched/configure
 +    3.79* | 3.[89]* | 4.[0-9]* )
         ac_prog_version="$ac_prog_version, ok"; ac_verc_fail=no;;
      *) ac_prog_version="$ac_prog_version, bad"; ac_verc_fail=yes;;
- 
+
 diff -Nur glibc-2.12.2/math/bits/mathcalls.h glibc-2.12.2-patched/math/bits/mathcalls.h
 --- glibc-2.12.2/math/bits/mathcalls.h  2010-12-13 02:47:26.000000000 -0800
 +++ glibc-2.12.2-patched/math/bits/mathcalls.h  2016-07-17 14:51:30.329424398 -0700
 @@ -197,9 +197,11 @@
  _Mdouble_END_NAMESPACE
- 
+
  #ifdef __USE_MISC
 +# if !defined __cplusplus || __cplusplus < 201103L /* Conflicts with C++11.  */
  /* Return 0 if VALUE is finite or NaN, +1 if it
     is +Infinity, -1 if it is -Infinity.  */
  __MATHDECL_1 (int,isinf,, (_Mdouble_ __value)) __attribute__ ((__const__));
 +#endif
- 
+
  /* Return nonzero if VALUE is finite and not NaN.  */
  __MATHDECL_1 (int,finite,, (_Mdouble_ __value)) __attribute__ ((__const__));
 @@ -226,13 +228,14 @@
  __END_NAMESPACE_C99
  #endif
- 
+
 -
  /* Return nonzero if VALUE is not a number.  */
  __MATHDECL_1 (int,__isnan,, (_Mdouble_ __value)) __attribute__ ((__const__));
- 
+
  #if defined __USE_MISC || defined __USE_XOPEN
 +# if !defined __cplusplus || __cplusplus < 201103L /* Conflicts with C++11.  */
  /* Return nonzero if VALUE is not a number.  */
  __MATHDECL_1 (int,isnan,, (_Mdouble_ __value)) __attribute__ ((__const__));
 +#endif
- 
+
  /* Bessel functions.  */
  __MATHCALL (j0,, (_Mdouble_));

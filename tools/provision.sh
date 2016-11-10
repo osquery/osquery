@@ -27,14 +27,136 @@ LINUXBREW_DUPES="83cad3d474e6d245cd543521061bba976529e5df"
 source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/provision/lib.sh"
 
+function platform_linux_main() {
+  brew_uninstall bison
+
+  # GCC 5x bootstrapping.
+  brew_tool patchelf
+  brew_tool zlib
+  brew_tool binutils
+  brew_tool linux-headers
+  brew_tool gmp
+  brew_tool mpfr
+  brew_tool libmpc
+  brew_tool isl
+  brew_tool pkg-config
+
+  # Build a bottle of a modern glibc.
+  brew_tool osquery/osquery-local/glibc
+
+  # Build a bottle for a legacy glibc.
+  brew_tool osquery/osquery-local/glibc-legacy
+
+  # GCC 5x.
+  brew_tool osquery/osquery-local/gcc
+
+  # Need LZMA for final builds.
+  brew_tool osquery/osquery-local/zlib-legacy
+  brew_tool osquery/osquery-local/xz
+
+  brew_tool osquery/osquery-local/ncurses
+  brew_tool osquery/osquery-local/bzip2
+  brew_tool osquery/osquery-local/readline
+
+  brew_tool unzip
+  brew_tool sqlite
+  brew_tool makedepend
+  brew_tool libidn
+  brew_tool libedit
+  brew_tool libtool
+  brew_tool m4
+  brew_tool autoconf
+  brew_tool automake
+  brew_tool libxml2
+
+  # OpenSSL is needed for the final build.
+  brew_clean osquery/osquery-local/curl
+  brew_tool osquery/osquery-local/openssl
+
+  # Curl and Python are needed for LLVM mostly.
+  brew_tool osquery/osquery-local/curl
+  brew_tool osquery/osquery-local/python
+  brew_tool osquery/osquery-local/cmake --without-docs
+
+  # Linux library secondary dependencies.
+  brew_tool osquery/osquery-local/berkeley-db
+  brew_tool osquery/osquery-local/popt
+  brew_tool osquery/osquery-local/beecrypt
+
+  # LLVM/Clang.
+  brew_tool osquery/osquery-local/llvm
+
+  # Util-Linux provides libuuid.
+  brew_dependency osquery/osquery-local/util-linux
+
+  platform_posix_main
+
+  # General Linux dependencies and custom formulas for table implementations.
+  brew_dependency osquery/osquery-local/libgpg-error
+  brew_dependency osquery/osquery-local/libdevmapper
+  brew_dependency osquery/osquery-local/libaptpkg
+  brew_dependency osquery/osquery-local/libiptables
+  brew_dependency osquery/osquery-local/libgcrypt
+  brew_dependency osquery/osquery-local/libcryptsetup
+  brew_dependency osquery/osquery-local/libudev
+  brew_dependency osquery/osquery-local/libaudit
+  brew_dependency osquery/osquery-local/libdpkg
+  brew_dependency osquery/osquery-local/librpm
+
+}
+
+function platform_darwin_main() {
+  brew_tool xz
+  brew_tool readline
+  brew_tool sqlite
+  brew_tool makedepend
+  brew_tool clang-format
+  brew_tool pkg-config
+  brew_tool bison
+  brew_tool autoconf
+  brew_tool automake
+  brew_tool libtool
+
+  brew_dependency osquery/osquery-local/openssl
+  brew_tool osquery/osquery-local/python
+  brew_tool osquery/osquery-local/cmake --without-docs
+
+  platform_posix_main
+}
+
+ function platform_posix_main() {
+  # List of LLVM-compiled dependencies.
+  brew_dependency osquery/osquery-local/lz4
+  brew_dependency osquery/osquery-local/libmagic
+  brew_dependency osquery/osquery-local/pcre
+  brew_dependency osquery/osquery-local/boost
+  brew_dependency osquery/osquery-local/asio
+  brew_dependency osquery/osquery-local/cpp-netlib
+  brew_dependency osquery/osquery-local/google-benchmark
+  brew_dependency osquery/osquery-local/snappy
+  brew_dependency osquery/osquery-local/sleuthkit
+  brew_dependency osquery/osquery-local/thrift
+  brew_dependency osquery/osquery-local/rocksdb
+  brew_dependency osquery/osquery-local/gflags
+  brew_dependency osquery/osquery-local/aws-sdk-cpp
+  brew_dependency osquery/osquery-local/yara
+  brew_dependency osquery/osquery-local/glog
+  brew_dependency osquery/osquery-local/linenoise-ng
+
+  # POSIX-shared locally-managed tools.
+  brew_dependency osquery/osquery-local/zzuf
+  brew_dependency osquery/osquery-local/cppcheck
+  brew_dependency osquery/osquery-local/ccache
+}
+
 function main() {
   platform OS
   distro $OS DISTRO
   threads THREADS
 
   if ! hash sudo 2>/dev/null; then
-   echo "Please install sudo in this machine"
-   exit 0
+    echo "Please install sudo in this machine"
+    exit 1
   fi
 
   # Setup the osquery dependency directory.
@@ -101,7 +223,7 @@ function main() {
     brew_bottle "$2"
     return
   elif [[ "$1" = "install" ]]; then
-    local_brew_dependency "$2"
+    brew_dependency "$2"
     return
   fi
 
@@ -135,161 +257,6 @@ function main() {
 
   log "running auxiliary initialization"
   initialize $OS
-}
-
-function platform_linux_main() {
-  # GCC 5x bootstrapping.
-  brew_tool patchelf
-  brew_tool zlib
-  brew_tool binutils
-  brew_tool linux-headers
-
-  # Build a bottle of a modern glibc.
-  local_brew_tool glibc
-  local_brew_postinstall glibc
-
-  # Build a bottle for a legacy glibc.
-  local_brew_tool glibc-legacy
-  local_brew_unlink glibc-legacy
-  local_brew_link glibc-legacy
-  local_brew_postinstall glibc-legacy
-
-  # Additional GCC 5x bootstrapping.
-  brew_tool gmp
-  brew_tool mpfr
-  brew_tool libmpc
-  brew_tool isl
-
-  # GCC 5x.
-  local_brew_tool gcc
-  # Remove gcc-postinstall when GCC is next updated.
-  local_brew_postinstall gcc
-  set_deps_compilers gcc
-
-  # Need LZMA for final builds.
-  local_brew_tool zlib-legacy
-  local_brew_tool xz
-
-  # GCC-compiled (C) dependencies.
-  brew_tool pkg-config
-
-  # Build a bottle for ncurses
-  local_brew_tool ncurses
-
-  # Need BZIP/Readline for final build.
-  local_brew_tool bzip2
-  brew_tool unzip
-  local_brew_tool readline
-  brew_tool sqlite
-  brew_tool makedepend
-  brew_tool libidn
-
-  # Build a bottle for perl and openssl.
-  # OpenSSL is needed for the final build.
-  # local_brew_tool perl -vd --without-test
-  brew_clean curl
-  local_brew_tool openssl
-  local_brew_postinstall openssl
-  local_brew_link openssl
-
-  # LLVM dependencies.
-  brew_tool libxml2
-  brew_tool libedit
-  brew_tool libtool
-  brew_tool m4
-  brew_tool bison
-
-  # More LLVM dependencies.
-  brew_tool autoconf
-  brew_tool automake
-
-  # Curl and Python are needed for LLVM mostly.
-  local_brew_tool curl
-  local_brew_tool python
-  local_brew_postinstall python
-  local_brew_tool cmake --without-docs
-
-  # Linux library secondary dependencies.
-  local_brew_tool berkeley-db
-  local_brew_tool popt
-  local_brew_tool beecrypt
-
-  # LLVM/Clang.
-  local_brew_tool llvm
-  set_deps_compilers clang
-
-  # General Linux dependencies.
-  local_brew_dependency util-linux
-
-  platform_posix_main
-
-  local_brew_tool zzuf
-  local_brew_tool cppcheck
-  local_brew_tool ccache
-
-  # Linux specific custom formulas.
-  local_brew_dependency libgpg-error
-  local_brew_dependency libdevmapper
-  local_brew_dependency libaptpkg
-  local_brew_dependency libiptables
-  local_brew_dependency libgcrypt
-  local_brew_dependency libcryptsetup
-  local_brew_dependency libudev
-  local_brew_dependency libaudit
-  local_brew_dependency libdpkg
-  local_brew_dependency librpm
-
-  # Restore the compilers to GCC for the remainder of provisioning.
-  set_deps_compilers gcc
-}
-
-function platform_darwin_main() {
-  brew_tool xz
-  brew_tool readline
-  brew_tool sqlite
-  brew_tool makedepend
-  brew_tool clang-format
-
-  local_brew_dependency openssl
-  local_brew_postinstall openssl
-  local_brew_link openssl
-
-  brew_tool pkg-config
-  brew_tool autoconf
-  brew_tool automake
-  brew_tool libtool
-  brew_tool bison
-  brew_link bison
-
-  local_brew_tool python
-  local_brew_postinstall python
-  local_brew_tool cmake --without-docs
-
-  platform_posix_main
-
-  local_brew_tool zzuf
-  local_brew_tool cppcheck
-  local_brew_tool ccache
-}
-
-function platform_posix_main() {
-  # List of LLVM-compiled dependencies.
-  local_brew_dependency linenoise-ng
-  local_brew_dependency boost
-  local_brew_dependency asio
-  local_brew_dependency cpp-netlib
-  local_brew_dependency google-benchmark
-  local_brew_dependency pcre
-  local_brew_dependency lz4
-  local_brew_dependency snappy
-  local_brew_dependency sleuthkit
-  local_brew_dependency libmagic
-  local_brew_dependency thrift
-  local_brew_dependency rocksdb
-  local_brew_dependency gflags
-  local_brew_dependency aws-sdk-cpp
-  local_brew_dependency yara
-  local_brew_dependency glog
 }
 
 check $1 "$2"

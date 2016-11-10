@@ -3,9 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Libmagic < AbstractOsqueryFormula
   desc "Implementation of the file(1) command"
   homepage "https://www.darwinsys.com/file/"
-  url "ftp://ftp.astron.com/pub/file/file-5.25.tar.gz"
-  mirror "https://fossies.org/linux/misc/file-5.25.tar.gz"
-  sha256 "3735381563f69fb4239470b8c51b876a80425348b8285a7cded8b61d6b890eca"
+  url "https://fossies.org/linux/misc/file-5.29.tar.gz"
+  sha256 "ea661277cd39bf8f063d3a83ee875432cc3680494169f952787e002bdd3884c0"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -21,9 +20,6 @@ class Libmagic < AbstractOsqueryFormula
 
   def install
     ENV.universal_binary if build.universal?
-
-    # Clean up "src/magic.h" as per http://bugs.gw.com/view.php?id=330
-    rm "src/magic.h"
 
     system "./configure", "--disable-dependency-tracking",
                           "--disable-silent-rules",
