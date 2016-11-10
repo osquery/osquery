@@ -22,26 +22,28 @@
 namespace osquery {
 namespace tables {
 
-typedef std::pair<std::string, int> RegisterBit_t;
-typedef std::pair<std::string, RegisterBit_t> FeatureDef_t;
+using RegisterBit = std::pair<std::string, int>;
+using FeatureDef = std::pair<std::string, RegisterBit>;
 
-std::map<int, std::vector<FeatureDef_t> > kCPUFeatures = {
+std::map<int, std::vector<FeatureDef>> kCPUFeatures{
     {1,
      {
-      FEATURE("pae", "edx", 6),
-      FEATURE("msr", "edx", 5),
-      FEATURE("mtrr", "edx", 12),
-      FEATURE("acpi", "edx", 22),
-      FEATURE("htt", "edx", 28),
-      FEATURE("ia64", "edx", 30),
-      FEATURE("vmx", "ecx", 5),
-      FEATURE("smx", "ecx", 6),
-      FEATURE("hypervisor", "ecx", 31),
-      FEATURE("aes", "ecx", 25),
+         FEATURE("pae", "edx", 6),
+         FEATURE("msr", "edx", 5),
+         FEATURE("mtrr", "edx", 12),
+         FEATURE("acpi", "edx", 22),
+         FEATURE("htt", "edx", 28),
+         FEATURE("ia64", "edx", 30),
+         FEATURE("vmx", "ecx", 5),
+         FEATURE("smx", "ecx", 6),
+         FEATURE("hypervisor", "ecx", 31),
+         FEATURE("aes", "ecx", 25),
      }},
     {7,
      {
-      FEATURE("mpx", "ebx", 14), FEATURE("sha", "ebx", 29),
+         FEATURE("sgx", "ebx", 2),
+         FEATURE("mpx", "ebx", 14),
+         FEATURE("sha", "ebx", 29),
      }},
 };
 
@@ -108,13 +110,13 @@ inline Status genStrings(QueryData& results) {
   // Do the same to grab the optional hypervisor ID.
   cpuid(0x40000000, 0, regs);
   if (regs[0] && 0xFF000000 != 0) {
-    std::stringstream hypervisor_string;
-    registerToString(regs[1], hypervisor_string);
-    registerToString(regs[2], hypervisor_string);
-    registerToString(regs[3], hypervisor_string);
+    std::stringstream hypervisor;
+    hypervisor << std::hex << std::setw(8) << std::setfill('0') << (int)regs[0];
+    hypervisor << std::hex << std::setw(8) << std::setfill('0') << (int)regs[1];
+    hypervisor << std::hex << std::setw(8) << std::setfill('0') << (int)regs[2];
 
     r["feature"] = "hypervisor_id";
-    r["value"] = hypervisor_string.str();
+    r["value"] = hypervisor.str();
     r["output_register"] = "ebx,ecx,edx";
     r["output_bit"] = "0";
     r["input_eax"] = "0x40000000";
@@ -131,7 +133,7 @@ inline Status genStrings(QueryData& results) {
 
   r["feature"] = "serial";
   r["value"] = serial.str();
-  r["output_register"] = "eax,ebx,ecx,edx";
+  r["output_register"] = "eax,eax,ecx";
   r["output_bit"] = "0";
   r["input_eax"] = "1,3";
   results.push_back(r);
@@ -169,12 +171,13 @@ QueryData genCPUID(QueryContext& context) {
   genFamily(results);
 
   int regs[4] = {-1};
-  int feature_register, feature_bit;
-  for (auto& feature_set : kCPUFeatures) {
+  int feature_register = 0;
+  int feature_bit = 0;
+  for (const auto& feature_set : kCPUFeatures) {
     int eax = feature_set.first;
     cpuid(eax, 0, regs);
 
-    for (auto& feature : feature_set.second) {
+    for (const auto& feature : feature_set.second) {
       Row r;
 
       r["feature"] = feature.first;
@@ -196,6 +199,34 @@ QueryData genCPUID(QueryContext& context) {
       r["input_eax"] = boost::lexical_cast<std::string>(eax);
       results.push_back(r);
     }
+  }
+
+  {
+    Row r;
+    r["output_register"] = "eax,ebx,ecx,edx";
+    r["output_bit"] = INTEGER(0);
+
+    cpuid(0x12, 0, regs);
+    std::stringstream sgx0;
+    sgx0 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[0];
+    sgx0 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[1];
+    sgx0 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[2];
+    sgx0 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[3];
+    r["feature"] = "sgx0";
+    r["value"] = sgx0.str();
+    r["input_eax"] = std::to_string(0x12);
+    results.push_back(r);
+
+    cpuid(0x12, 1, regs);
+    std::stringstream sgx1;
+    sgx1 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[0];
+    sgx1 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[1];
+    sgx1 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[2];
+    sgx1 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[3];
+    r["feature"] = "sgx1";
+    r["value"] = sgx1.str();
+    r["input_eax"] = std::to_string(0x12) + ",1";
+    results.push_back(r);
   }
 
   return results;
