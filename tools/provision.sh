@@ -144,9 +144,9 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/linenoise-ng
 
   # POSIX-shared locally-managed tools.
-  brew_tool osquery/osquery-local/zzuf
-  brew_tool osquery/osquery-local/cppcheck
-  brew_tool osquery/osquery-local/ccache
+  brew_dependency osquery/osquery-local/zzuf
+  brew_dependency osquery/osquery-local/cppcheck
+  brew_dependency osquery/osquery-local/ccache
 }
 
 function main() {
