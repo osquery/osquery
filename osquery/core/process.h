@@ -275,4 +275,12 @@ void setToBackgroundPriority();
 * and on posix platforms returns getpid()
 */
 int platformGetPid();
+
+/**
+* @brief Returns the current thread id
+*
+* On Windows, returns the value of GetCurrentThreadId
+* and on posix platforms returns gettid()
+*/
+int platformGetTid();
 }

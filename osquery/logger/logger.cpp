@@ -90,7 +90,23 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 
   /// Set the forwarding mode of the buffering sink.
   static void forward(bool forward = false) {
+    WriteLock lock(instance().forward_mutex_);
     instance().forward_ = forward;
+  }
+
+  /// Turn off forwarding and lock the instance forwarding state.
+  /// Caller MUST make matching restoreForwardingAndUnlock call.
+  static bool haltForwardingAndLock() {
+    instance().forward_mutex_.lock();
+    bool current_state = instance().forward_;
+    instance().forward_ = false;
+    return current_state;
+  }
+
+  /// Restore forwarding state and unlock.
+  static void restoreForwardingAndUnlock(bool forward) {
+    instance().forward_ = forward;
+    instance().forward_mutex_.unlock();
   }
 
   /// Remove the buffered log sink from Glog.
@@ -190,8 +206,12 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Mutex for checking primary status.
   Mutex primary_mutex_;
 
+  /// Mutex to safely turn on/off forwarding
+  Mutex forward_mutex_;
+
  private:
   friend class LoggerDisabler;
+  friend class LoggerForwardingDisabler;
 };
 
 /// Scoped helper to perform logging actions without races.
@@ -219,6 +239,15 @@ class LoggerDisabler {
   /// Value of the BufferedLogSink's enabled status when constructed.
   bool enabled_;
 };
+
+/// Scoped helper to disable forwarding
+LoggerForwardingDisabler::LoggerForwardingDisabler() {
+  forward_state_ = BufferedLogSink::haltForwardingAndLock();
+}
+
+LoggerForwardingDisabler::~LoggerForwardingDisabler() {
+  BufferedLogSink::restoreForwardingAndUnlock(forward_state_);
+}
 
 static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
                                      PluginRequest& request) {
@@ -375,16 +404,16 @@ void BufferedLogSink::send(google::LogSeverity severity,
       auto& enabled = BufferedLogSink::enabledPlugins();
       if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
         // May use the logs_ storage to buffer/delay sending logs.
-        std::vector<StatusLogLine> log;
-        log.push_back({(StatusLogSeverity)severity,
-                       std::string(base_filename),
-                       line,
-                       std::string(message, message_len)});
+        logs_.push_back({(StatusLogSeverity)severity,
+                         std::string(base_filename),
+                         line,
+                         std::string(message, message_len)});
         PluginRequest request = {{"status", "true"}};
-        serializeIntermediateLog(log, request);
+        serializeIntermediateLog(logs_, request);
         if (!request["log"].empty()) {
           request["log"].pop_back();
         }
+        logs_.clear();
         Registry::call("logger", logger, request);
       }
     }
@@ -489,6 +518,14 @@ Status logSnapshotQuery(const QueryLogItem& item) {
     json.pop_back();
   }
   return Registry::call("logger", {{"snapshot", json}});
+}
+
+bool haltForwardingAndLock() {
+  return (BufferedLogSink::haltForwardingAndLock());
+}
+
+void restoreForwardingAndUnlock(bool forward) {
+  BufferedLogSink::restoreForwardingAndUnlock(forward);
 }
 
 void relayStatusLogs() {
