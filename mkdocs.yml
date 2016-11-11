@@ -9,10 +9,9 @@ extra_css:
 pages:
 - Introduction:
   - Welcome to osquery: index.md
-  - Features Overview: introduction/overview.md
   - osqueryi (shell): introduction/using-osqueryi.md
   - osqueryd (daemon): introduction/using-osqueryd.md
-  - SQL Intro: introduction/sql.md
+  - SQL Introduction: introduction/sql.md
 - Installation:
   - Install on OS X: installation/install-osx.md
   - Install on Linux: installation/install-linux.md
