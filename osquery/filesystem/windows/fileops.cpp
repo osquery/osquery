@@ -183,10 +183,12 @@ static DWORD getNewAclSize(PACL dacl,
   // This contains the current buffer size of dacl
   DWORD acl_size = info.AclBytesInUse;
 
-  // By default, we assume that the ACL as pointed to by the dacl arugment does
-  // not contain any access control entries (further known as ACE) associated
-  // with sid. If we require an access allowed and/or access denied ACE, we will
-  // increment acl_size by the size of the new ACE.
+  /*
+   * By default, we assume that the ACL as pointed to by the dacl arugment does
+   * not contain any access control entries (further known as ACE) associated
+   * with sid. If we require an access allowed and/or access denied ACE, we will
+   * increment acl_size by the size of the new ACE.
+   */
 
   if (needs_allowed) {
     acl_size +=
@@ -197,9 +199,11 @@ static DWORD getNewAclSize(PACL dacl,
     acl_size += sizeof(ACCESS_DENIED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
   }
 
-  // Enumerate the current ACL looking for ACEs associated with sid. Since our
-  // assumption is that such a sid does not exist, we need to subtract their
-  // size from acl_size if found.
+  /*
+   * Enumerate the current ACL looking for ACEs associated with sid. Since our
+   * assumption is that such a sid does not exist, we need to subtract their
+   * size from acl_size if found.
+   */
   PACE_HEADER entry = nullptr;
   for (DWORD i = 0; i < info.AceCount; i++) {
     if (!::GetAce(dacl, i, (LPVOID*)&entry)) {
@@ -225,6 +229,129 @@ static DWORD getNewAclSize(PACL dacl,
   }
 
   return acl_size;
+}
+
+static Status checkAccessWithSD(PSECURITY_DESCRIPTOR sd, mode_t mode) {
+  BOOL status = FALSE;
+  DWORD access_rights = 0;
+  HANDLE process_token = INVALID_HANDLE_VALUE;
+  HANDLE impersonate_token = INVALID_HANDLE_VALUE;
+
+  if ((mode & R_OK) == R_OK) {
+    access_rights = GENERIC_READ;
+  }
+
+  if ((mode & W_OK) == W_OK) {
+    access_rights |= GENERIC_WRITE;
+  }
+
+  if ((mode & X_OK) == X_OK) {
+    access_rights |= GENERIC_EXECUTE;
+  }
+
+  status = ::OpenProcessToken(
+      ::GetCurrentProcess(),
+      TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_DUPLICATE | STANDARD_RIGHTS_READ,
+      &process_token);
+  if (!status) {
+    return Status(-1, "OpenProcessToken failed");
+  }
+
+  status = ::DuplicateToken(
+      process_token, SecurityImpersonation, &impersonate_token);
+  ::CloseHandle(process_token);
+
+  if (!status) {
+    return Status(-1, "DuplicateToken failed");
+  }
+
+  GENERIC_MAPPING mapping = {static_cast<ACCESS_MASK>(-1),
+                             static_cast<ACCESS_MASK>(-1),
+                             static_cast<ACCESS_MASK>(-1),
+                             static_cast<ACCESS_MASK>(-1)};
+  PRIVILEGE_SET privileges = {0};
+
+  BOOL access_status = FALSE;
+  DWORD granted_access = 0;
+  DWORD privileges_length = sizeof(privileges);
+
+  mapping.GenericRead = FILE_GENERIC_READ;
+  mapping.GenericWrite = FILE_GENERIC_WRITE;
+  mapping.GenericExecute = FILE_GENERIC_EXECUTE;
+  mapping.GenericAll = FILE_ALL_ACCESS;
+
+  ::MapGenericMask(&access_rights, &mapping);
+
+  status = ::AccessCheck(sd,
+                         impersonate_token,
+                         access_rights,
+                         &mapping,
+                         &privileges,
+                         &privileges_length,
+                         &granted_access,
+                         &access_status);
+  ::CloseHandle(impersonate_token);
+
+  if (!status) {
+    return Status(-1, "AccessCheck failed");
+  }
+
+  if (access_status) {
+    return Status(0, "OK");
+  }
+
+  return Status(1, "Bad mode for file");
+}
+
+static Status hasAccess(const fs::path& path, mode_t mode) {
+  DWORD result = -1;
+  PSECURITY_DESCRIPTOR sd = nullptr;
+  SECURITY_INFORMATION security_info = OWNER_SECURITY_INFORMATION |
+                                       GROUP_SECURITY_INFORMATION |
+                                       DACL_SECURITY_INFORMATION;
+
+  result = ::GetNamedSecurityInfoW(path.wstring().c_str(),
+                                   SE_FILE_OBJECT,
+                                   security_info,
+                                   nullptr,
+                                   nullptr,
+                                   nullptr,
+                                   nullptr,
+                                   &sd);
+  if (result != ERROR_SUCCESS) {
+    return Status(-1, "GetNamedSecurityInfo failed: " + std::to_string(result));
+  }
+
+  auto status = checkAccessWithSD(sd, mode);
+  ::LocalFree(sd);
+
+  return status;
+}
+
+static Status hasAccess(HANDLE handle, mode_t mode) {
+  BOOL status = FALSE;
+  DWORD sd_size = 0;
+  SECURITY_INFORMATION security_info = OWNER_SECURITY_INFORMATION |
+                                       GROUP_SECURITY_INFORMATION |
+                                       DACL_SECURITY_INFORMATION;
+
+  status =
+      ::GetUserObjectSecurity(handle, &security_info, nullptr, 0, &sd_size);
+  if (status || (!status && ::GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
+    return Status(-1, "GetUserObjectSecurity get SD size error");
+  }
+
+  std::vector<char> sd_buffer;
+  sd_buffer.assign(sd_size, '\0');
+
+  PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR)sd_buffer.data();
+  status =
+      ::GetUserObjectSecurity(handle, &security_info, sd, sd_size, &sd_size);
+  if (!status) {
+    return Status(-1, "GetUserObjectSecurity failed");
+  }
+
+  return checkAccessWithSD(sd, mode);
 }
 
 static AclObject modifyAcl(PACL acl,
@@ -319,18 +446,20 @@ static AclObject modifyAcl(PACL acl,
     return std::move(AclObject());
   }
 
-  // Enumerate through the old ACL and copy over all the non-relevant ACEs
-  // (read: ACEs that are inherited and not associated with the specified sid).
-  // We disregard the ACEs associated with our sid in the old ACL and replace
-  // them with updated access masks.
-  //
-  // The curious bit here is how we order things. In normal Windows ACLs, the
-  // ACEs are ordered in a fashion where access denied ACEs have priority to
-  // access allowed ACEs. While this is a strong policy, this doesn't fit into
-  // our use case and in fact, hurts it. Setting 0600 would prevent even the
-  // owner from reading/writing! To counter this, we selectively order the ACEs
-  // in our new ACL to fit our needs. This will generate complaints with tools
-  // that deal with viewing or modifying the ACL (such as File Explorer).
+  /*
+   * Enumerate through the old ACL and copy over all the non-relevant ACEs
+   * (read: ACEs that are inherited and not associated with the specified sid).
+   * We disregard the ACEs associated with our sid in the old ACL and replace
+   * them with updated access masks.
+   *
+   * The curious bit here is how we order things. In normal Windows ACLs, the
+   * ACEs are ordered in a fashion where access denied ACEs have priority to
+   * access allowed ACEs. While this is a strong policy, this doesn't fit into
+   * our use case and in fact, hurts it. Setting 0600 would prevent even the
+   * owner from reading/writing! To counter this, we selectively order the ACEs
+   * in our new ACL to fit our needs. This will generate complaints with tools
+   * that deal with viewing or modifying the ACL (such as File Explorer).
+   */
 
   DWORD i = 0;
   PACE_HEADER entry = nullptr;
@@ -561,82 +690,7 @@ Status PlatformFile::isOwnerCurrentUser() const {
 }
 
 Status PlatformFile::isExecutable() const {
-  BOOL ret = FALSE;
-  DWORD sd_size = 0;
-  SECURITY_INFORMATION security_info = OWNER_SECURITY_INFORMATION |
-                                       GROUP_SECURITY_INFORMATION |
-                                       DACL_SECURITY_INFORMATION;
-
-  ret = ::GetUserObjectSecurity(handle_, &security_info, nullptr, 0, &sd_size);
-  if (ret || (!ret && ::GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
-    return Status(-1, "GetUserObjectSecurity get SD size error");
-  }
-
-  std::vector<char> sd_buffer;
-  sd_buffer.assign(sd_size, '\0');
-
-  PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR)sd_buffer.data();
-  ret = ::GetUserObjectSecurity(handle_, &security_info, sd, sd_size, &sd_size);
-  if (!ret) {
-    return Status(-1, "GetUserObjectSecurity failed");
-  }
-
-  HANDLE process_token = INVALID_HANDLE_VALUE;
-  HANDLE impersonate_token = INVALID_HANDLE_VALUE;
-
-  ret = ::OpenProcessToken(
-      ::GetCurrentProcess(),
-      TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_DUPLICATE | STANDARD_RIGHTS_READ,
-      &process_token);
-  if (!ret) {
-    return Status(-1, "OpenProcessToken failed");
-  }
-
-  ret = ::DuplicateToken(
-      process_token, SecurityImpersonation, &impersonate_token);
-  ::CloseHandle(process_token);
-
-  if (!ret) {
-    return Status(-1, "DuplicateToken failed");
-  }
-
-  GENERIC_MAPPING mapping = {static_cast<ACCESS_MASK>(-1),
-                             static_cast<ACCESS_MASK>(-1),
-                             static_cast<ACCESS_MASK>(-1),
-                             static_cast<ACCESS_MASK>(-1)};
-  PRIVILEGE_SET privileges = {0};
-
-  BOOL result = FALSE;
-  DWORD access_rights = GENERIC_EXECUTE;
-  DWORD granted_access = 0;
-  DWORD privileges_length = sizeof(privileges);
-
-  mapping.GenericRead = FILE_GENERIC_READ;
-  mapping.GenericWrite = FILE_GENERIC_WRITE;
-  mapping.GenericExecute = FILE_GENERIC_EXECUTE;
-  mapping.GenericAll = FILE_ALL_ACCESS;
-
-  ::MapGenericMask(&access_rights, &mapping);
-
-  ret = ::AccessCheck(sd,
-                      impersonate_token,
-                      access_rights,
-                      &mapping,
-                      &privileges,
-                      &privileges_length,
-                      &granted_access,
-                      &result);
-  ::CloseHandle(impersonate_token);
-
-  if (!ret) {
-    return Status(-1, "AccessCheck failed");
-  }
-
-  if (result) {
-    return Status(0, "OK");
-  }
-
-  return Status(1, "No execute permissions");
+  return hasAccess(handle_, X_OK);
 }
 
 static Status isWriteDenied(PACL acl) {
@@ -1026,9 +1080,11 @@ bool platformChmod(const std::string& path, mode_t perms) {
 std::vector<std::string> platformGlob(const std::string& find_path) {
   fs::path full_path(find_path);
 
-  // This is a naive implementation of GLOB_TILDE. If the first two characters
-  // in the path are '~/' or '~\', we replace it with the value of the
-  // USERPROFILE environment variable.
+  /*
+   * This is a naive implementation of GLOB_TILDE. If the first two characters
+   * in the path are '~/' or '~\', we replace it with the value of the
+   * USERPROFILE environment variable.
+   */
   if (find_path.size() >= 2 && find_path[0] == '~' &&
       (find_path[1] == '/' || find_path[1] == '\\')) {
     auto homedir = getEnvVar("USERPROFILE");
@@ -1044,20 +1100,26 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
   valid_paths.push_back(fs::path(""));
 
   if (full_path.has_parent_path()) {
-    // The provided glob pattern contains more than one directory to traverse.
-    // We enumerate each component in the path to generate a list of all
-    // possible directories that we need to perform our glob pattern match.
+    /*
+     * The provided glob pattern contains more than one directory to traverse.
+     * We enumerate each component in the path to generate a list of all
+     * possible directories that we need to perform our glob pattern match.
+     */
     for (auto& component : full_path.parent_path()) {
       std::vector<fs::path> tmp_valid_paths;
 
-      // This will enumerate the old set of valid paths and update it by looking
-      // for directories matching the specified glob pattern.
+      /*
+       * This will enumerate the old set of valid paths and update it by looking
+       * for directories matching the specified glob pattern.
+       */
       for (auto const& valid_path : valid_paths) {
         if (hasGlobBraces(component.string())) {
-          // If the component contains braces, we convert the component into a
-          // regex, enumerate through all the directories in the current
-          // directory and only mark the ones fitting the regex pattern as
-          // valid.
+          /*
+           * If the component contains braces, we convert the component into a
+           * regex, enumerate through all the directories in the current
+           * directory and only mark the ones fitting the regex pattern as
+           * valid.
+           */
           std::regex component_pattern(globToRegex(component.string()));
           WindowsFindFiles wf(valid_path / "*");
           for (auto const& file_path : wf.getDirectories()) {
@@ -1067,17 +1129,21 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
             }
           }
         } else if (std::regex_match(component.string(), pattern)) {
-          // If the component contains wildcard characters such as * or ?, we
-          // pass the pattern into the Windows FindFirstFileA function to get a
-          // list of valid directories.
+          /*
+           * If the component contains wildcard characters such as * or ?, we
+           * pass the pattern into the Windows FindFirstFileA function to get a
+           * list of valid directories.
+           */
           WindowsFindFiles wf(valid_path / component);
           for (auto const& result : wf.getDirectories()) {
             tmp_valid_paths.push_back(result);
           }
         } else {
-          // Since there are no braces and other glob-like wildcards, we are
-          // going to append the component to the previous valid path and append
-          // the new path to the list
+          /*
+           * Since there are no braces and other glob-like wildcards, we are
+           * going to append the component to the previous valid path and append
+           * the new path to the list
+           */
           boost::system::error_code ec;
           if (fs::exists(valid_path / component, ec) &&
               ec.value() == errc::success) {
@@ -1093,10 +1159,12 @@ std::vector<std::string> platformGlob(const std::string& find_path) {
 
   std::vector<std::string> results;
 
-  // After generating all the valid directories, we enumerate the valid paths
-  // and instead of getting back all the glob pattern matching directories, we
-  // unrestrict it to get back files as well. We append the file names to the
-  // valid paths are return the list.
+  /*
+   * After generating all the valid directories, we enumerate the valid paths
+   * and instead of getting back all the glob pattern matching directories, we
+   * unrestrict it to get back files as well. We append the file names to the
+   * valid paths are return the list.
+   */
   for (auto const& valid_path : valid_paths) {
     if (hasGlobBraces(full_path.filename().string())) {
       std::regex component_pattern(globToRegex(full_path.filename().string()));
@@ -1147,7 +1215,13 @@ boost::optional<std::string> getHomeDirectory() {
 }
 
 int platformAccess(const std::string& path, mode_t mode) {
-  return _access(path.c_str(), mode);
+  auto status = hasAccess(path, mode);
+  if (status.ok()) {
+    return 0;
+  }
+
+  // Error or invalid access right
+  return -1;
 }
 
 static std::string normalizeDirPath(const fs::path& path) {
