@@ -97,7 +97,7 @@ The POSTed logger data is exactly the same as logged to disk by the **filesystem
 
 **Distributed queries**
 
-As of version 1.5.3 osquery provides *beta* support for "ad-hoc" or distributed queries. The concept of running a query outside of the schedule and having results returned immediately. Distributed queries must be explicitly enabled with a [CLI flag](../installation/cli-flags.md) or option and have the explicitly-enabled distributed plugin configured.
+As of version 1.5.3 osquery provides support for "ad-hoc" or distributed queries. The concept of running a query outside of the schedule and having results returned immediately. Distributed queries must be explicitly enabled with a [CLI flag](../installation/cli-flags.md) or option and have the explicitly-enabled distributed plugin configured.
 
 **Distributed read** request POST body:
 ```json

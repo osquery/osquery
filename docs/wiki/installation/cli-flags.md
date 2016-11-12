@@ -76,19 +76,15 @@ Disable userland watchdog process. **osqueryd** uses a watchdog process to monit
 Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug). The default watchdog process uses a "level" to configure performance limits.
 The higher the level the more strict the limits become. The "debug" level disables the performance limits completely.
 
-`--utc=false`
+`--utc=true`
 
-Attempt to convert all UNIX calendar times to UTC. In version 1.8.0 this will be `true` by default.
+Attempt to convert all UNIX calendar times to UTC.
 
 **Windows Only**
 
 Windows builds include a `--install` and `--uninstall` that will create a Windows service using the `osqueryd.exe` binary and preserve an optional `--flagfile` if provided.
 
 ### Backing storage control flags
-
-`--database_in_memory=false`
-
-Keep osquery backing-store in memory. This has a number of performance implications and is not recommended. For the default backing-store, RocksDB, this option is not supported.
 
 `--database_path=/var/osquery/osquery.db`
 
@@ -127,6 +123,10 @@ Extensions are loaded as processes. They are expected to start a thrift service 
 `--modules_autoload=/etc/osquery/modules.load`
 
 Optional path to a list of autoloaded library module-based extensions. Modules are similar to extensions but are loaded as shared libraries. They are less flexible and should be built using the same GCC runtime and developer dependency library versions as osqueryd. See the extensions [deployment](../deployment/extensions.md) page for more details on extension module autoloading.
+
+`--extensions_require=custom1,custom1`
+
+Optional comma-delimited set of extension names to require before **osqueryi** or **osqueryd** will start. The tool will fail if the extension has not started according to the interval and timeout.
 
 ### Remote settings (optional for config/logger/distributed) flags
 
@@ -241,10 +241,6 @@ Control the delimiter between pack name and pack query names. When queries are a
 
 Optionally set the default interval value. This is used if you schedule a query
 which does not define an interval.
-
-`--worker_threads=4`
-
-Number of work dispatch threads. (Deprecated) This flag is a no-op.
 
 `--schedule_timeout=0`
 

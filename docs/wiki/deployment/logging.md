@@ -1,11 +1,11 @@
-The osquery daemon uses a default **filesystem** logger plugin. Like the config, output from the filesystem plugin is written as JSON. Results from the query schedule are written to **/var/log/osquery/osqueryd.results.log**.
+The osquery daemon uses a default **filesystem** logger plugin. Like the config, output from the filesystem plugin is written as JSON. Results from the query schedule are written to `/var/log/osquery/osqueryd.results.log`.
 
 There are two types of logs:
 
 - Status logs (info, warning, error, and fatal)
 - Query schedule results logs, including logs from snapshot queries
 
-If you run **osqueryd** in a verbose mode then peek at **/var/log/osquery/**:
+If you run **osqueryd** in a verbose mode then peek at `/var/log/osquery/`:
 
 ```
 $ ls -l /var/log/osquery/
@@ -15,7 +15,9 @@ lrwxr-xr-x   1 root  wheel    77 Sep 30 17:37 osqueryd.INFO -> osqueryd.INFO.201
 -rw-------   1 root  wheel   388 Sep 30 17:37 osqueryd.results.log
 ```
 
-## Logger Plugins
+On Windows this directory defaults to `C:\ProgramData\osquery\log`.
+
+## Logger plugins
 
 osquery includes logger plugins that support configurable logging to a variety of interfaces. The built in logger plugins are **filesystem** (default), **tls** and **syslog**. Multiple logger plugins may be used simultaneously, effectively copying logs to each interface. To enable multiple loggers set the `--logger_plugin` option to a comma separated list of the requested plugins.
 
@@ -189,5 +191,3 @@ Most of the time the **Event format** is the most appropriate. The next section 
 
 If you need a way to uniquely identify hosts embedded into **osqueryd**'s results log, then the `--host_identifier` flag is what you're looking for.
 By default, **host_identifier** is set to "hostname". The host's hostname will be used as the host identifier in results logs. If hostnames are not unique or consistent in your environment, you can launch osqueryd with `--host_identifier=uuid`.
-
-On Linux, a new UUID will be generated and stored in RocksDB so that it persists across reboots. On OS X, this will attempt to use the hardware UUID and fail back to using a custom generated UUID if that fails.
