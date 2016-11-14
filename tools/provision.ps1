@@ -324,14 +324,14 @@ function Main {
       Write-Host "[*] Please reboot your system and re-run this provisioning script." -foregroundcolor yellow
       Exit 0
     }
-  }
 
-  $out = Install-ThirdParty
-  if ($PSVersionTable.PSVersion.Major -lt 5.1 ) {
-    Write-Host "[*] Powershell version is < 5.1. Skipping Powershell Linter Installation." -foregroundcolor yellow
-  } else {
-    $out = Install-PowershellLinter
+    if ($PSVersionTable.PSVersion.Major -lt 5.1 ) {
+      Write-Host "[*] Powershell version is < 5.1. Skipping Powershell Linter Installation." -foregroundcolor yellow
+    } else {
+      $out = Install-PowershellLinter
+    }
   }
+  $out = Install-ThirdParty
   Write-Host "[+] Done." -foregroundcolor Yellow
 }
 
