@@ -305,9 +305,13 @@ function Main {
   $out = Install-ChocoPackage 'python2' '2.7.11'
   $out = Install-PipPackage
   $out = Update-GitSubmodule
-  $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
-  $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
-  $out = Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
+  if (Test-Path env:OSQUERY_BUILD_HOST) {
+    $out = Install-ChocoPackage 'visualcppbuildtools'
+  } else {
+    $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
+    $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
+    $out = Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
+  }
   if(Test-RebootPending -eq $true) {
     Write-Host "*** Windows requires a reboot to complete installing Visual Studio. Please reboot your system and re-run this provisioning script. ***" -foregroundcolor yellow
     Exit 0
