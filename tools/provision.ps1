@@ -232,12 +232,18 @@ function Install-ThirdParty {
       $packageName = $packageData[0]
       $packageVersion = [string]::Join('.', $packageData[1..$packageData.length])
 
+      if (($packageName -eq "clang-format") -and (Test-Path env:OSQUERY_BUILD_HOST)) {
+        Write-Host "[*] Skipping $packageName $packageVersion on build hosts." -foregroundcolor Green
+        continue
+      }
+
       Write-Host " => Determining whether $packageName is already installed..." -foregroundcolor DarkYellow
       $isInstalled = Test-ChocoPackageInstalled $packageName $packageVersion
       if ($isInstalled) {
         Write-Host "[*] $packageName $packageVersion already installed." -foregroundcolor Green
         continue
       }
+
       # Chocolatey package is installed, but version is off
       $oldVersionInstalled = Test-ChocoPackageInstalled $packageName
       if ($oldVersionInstalled) {
@@ -297,6 +303,7 @@ function Main {
     Write-Host "[-] ERROR: Please run this script with Admin privileges!" -foregroundcolor Red
     Exit -1
   }
+
   Write-Host "[+] Success!" -foregroundcolor Green
   $out = Install-Chocolatey
   $out = Install-ChocoPackage 'cppcheck'
@@ -311,11 +318,14 @@ function Main {
     $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
     $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
     $out = Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
+
+    if(Test-RebootPending -eq $true) {
+      Write-Host "[*] Windows requires a reboot to complete installing Visual Studio." -foregroundcolor yellow
+      Write-Host "[*] Please reboot your system and re-run this provisioning script." -foregroundcolor yellow
+      Exit 0
+    }
   }
-  if(Test-RebootPending -eq $true) {
-    Write-Host "*** Windows requires a reboot to complete installing Visual Studio. Please reboot your system and re-run this provisioning script. ***" -foregroundcolor yellow
-    Exit 0
-  }
+
   $out = Install-ThirdParty
   if ($PSVersionTable.PSVersion.Major -lt 5.1 ) {
     Write-Host "[*] Powershell version is < 5.1. Skipping Powershell Linter Installation." -foregroundcolor yellow
