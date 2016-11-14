@@ -57,7 +57,8 @@ TEST_F(TLSConfigTests, test_retrieve_config) {
   c.load();
 
   const auto& hashes = c.hash_;
-  EXPECT_EQ("c109cd4fc0a928dba787384a89f9d03d", hashes.at("tls_plugin"));
+  EXPECT_EQ("b7718020a76ced2eda82336bd15165009603d4fb",
+            hashes.at("tls_plugin"));
 
   // Configure the plugin to use the node API.
   Flag::updateValue("tls_node_api", "1");

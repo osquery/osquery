@@ -8,7 +8,7 @@
  *
  */
 
-#include <osquery/hash.h>
+#include <osquery/sha1.h>
 
 #include "osquery/tables/system/smbios_utils.h"
 
@@ -124,9 +124,9 @@ void genSMBIOSTable(size_t index,
 
   r["handle"] = BIGINT((unsigned long long)hdr->handle);
   r["header_size"] = INTEGER((unsigned short)hdr->length);
-
   r["size"] = INTEGER(size);
-  r["md5"] = hashFromBuffer(HASH_TYPE_MD5, address, size);
+  r["sha1"] = getBufferSHA1(address, size);
+
   results.push_back(r);
 }
 

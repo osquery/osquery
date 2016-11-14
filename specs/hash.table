@@ -7,8 +7,7 @@ schema([
     Column("sha1", TEXT, "SHA1 hash of provided filesystem data"),
     Column("sha256", TEXT, "SHA256 hash of provided filesystem data"),
 ])
-attributes(utility=True)
-implementation("utility/hash@genHash")
+implementation("hash@genHash")
 examples([
   "select * from hash where path = '/etc/passwd'",
   "select * from hash where directory = '/etc/'",

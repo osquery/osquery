@@ -12,9 +12,9 @@
 #include <random>
 
 #include <osquery/core.h>
-#include <osquery/hash.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
+#include <osquery/sha1.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
@@ -71,7 +71,8 @@ size_t getMachineShard(const std::string& hostname = "", bool force = false) {
 
   // An optional input hostname may override hostname detection for testing.
   auto hn = (hostname.empty()) ? getHostname() : hostname;
-  auto hn_hash = hashFromBuffer(HASH_TYPE_MD5, hn.c_str(), hn.size());
+  auto hn_hash = getBufferSHA1(hn.c_str(), hn.size());
+
   if (hn_hash.size() >= 2) {
     long hn_char;
     if (safeStrtol(hn_hash.substr(0, 2), 16, hn_char)) {

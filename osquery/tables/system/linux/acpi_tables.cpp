@@ -12,7 +12,7 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
-#include <osquery/hash.h>
+#include <osquery/sha1.h>
 #include <osquery/tables.h>
 
 namespace fs = boost::filesystem;
@@ -48,8 +48,7 @@ void genACPITable(const std::string& table, QueryData& results) {
     r["size"] = INTEGER(-1);
   } else {
     r["size"] = INTEGER(table_content.size());
-    r["md5"] = osquery::hashFromBuffer(
-        HASH_TYPE_MD5, table_content.c_str(), table_content.length());
+    r["sha1"] = getBufferSHA1(table_content.c_str(), table_content.length());
   }
 
   results.push_back(r);

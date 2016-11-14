@@ -9,7 +9,6 @@
  */
 
 #include <osquery/filesystem.h>
-#include <osquery/hash.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 

@@ -10,9 +10,9 @@
 
 #pragma once
 
-#include <boost/noncopyable.hpp>
-
 #include <string>
+
+#include <boost/noncopyable.hpp>
 
 namespace osquery {
 
@@ -102,25 +102,31 @@ class Hash : private boost::noncopyable {
 };
 
 /**
- * @brief Compute a hash digest from an already allocated buffer.
- *
- * @param hash_type The osquery-supported hash algorithm.
- * @param buffer A caller-controlled buffer.
- * @param size The length of buffer in bytes.
- * @return A string (hex) representation of the hash digest.
- */
-std::string hashFromBuffer(HashType hash_type, const void* buffer, size_t size);
-
-/**
  * @brief Compute a hash digest from the file content at a path.
  *
- *
  * @param hash_type The osquery-supported hash algorithm.
- * @param path Filesystem path, the hash target.
+ * @param path Filesystem path (the hash target).
  * @return A string (hex) representation of the hash digest.
  */
 std::string hashFromFile(HashType hash_type, const std::string& path);
 
-/// Get multiple hashes from a file simultaneously.
+/**
+ * @brief Compute multiple hashes from a files contents simultaneously.
+ *
+ * @param mask Bitmask specifying target osquery-supported algorithms.
+ * @param path Filesystem path (the hash target).
+ * @return A struct containing string (hex) representations
+ *         of the hash digests.
+ */
 MultiHashes hashMultiFromFile(int mask, const std::string& path);
+
+/**
+ * @brief Compute a hash digest from the contents of a buffer.
+ *
+ * @param hash_type The osquery-supported hash algorithm.
+ * @param buffer A caller-controlled buffer (already allocated).
+ * @param size The length of buffer in bytes.
+ * @return A string (hex) representation of the hash digest.
+ */
+std::string hashFromBuffer(HashType hash_type, const void* buffer, size_t size);
 }
