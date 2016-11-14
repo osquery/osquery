@@ -11,6 +11,7 @@ class Libxml2 < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
+    sha256 "92cbb6676f6788431da1b915781c4e44e3194fb286818e04dcfa428aa8879620" => :x86_64_linux
   end
 
   option :universal
