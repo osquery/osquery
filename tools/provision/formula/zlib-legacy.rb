@@ -10,7 +10,7 @@ class ZlibLegacy < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "caa265822ed35d1e0b2a702aa959d4044a00be3e22ad6e99d685d85bd36d2be6" => :x86_64_linux
+    sha256 "5c1f26773d0c85c6379d1435c591e4760302ad41145370b6ca09025bb3c638e0" => :x86_64_linux
   end
 
   option :universal
