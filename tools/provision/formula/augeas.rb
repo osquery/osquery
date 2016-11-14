@@ -11,6 +11,7 @@ class Augeas < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
+    sha256 "a090cf5f9ecfa57f858433cc6ad46cd9d64430844c1fafd380848179887fb486" => :sierra
     sha256 "8ef71ee4d9bb8c976150af61e811ff31e065ffb9f6c28cc4b8b8cd7145e9cd2c" => :x86_64_linux
   end
 
