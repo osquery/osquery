@@ -3,9 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Augeas < AbstractOsqueryFormula
   desc "A configuration editing tool and API"
   homepage "http://augeas.net/"
-  url "https://github.com/hercules-team/augeas.git",
-    :revision => "c765202fb507fa882ce7b5706265e040c65aa3bf"
-  version "1.7.0rc1"
+  url "https://github.com/hercules-team/augeas/archive/release-1.7.0.tar.gz"
+  version "1.7.0"
   revision 1
 
   bottle do
