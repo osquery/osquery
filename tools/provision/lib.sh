@@ -90,9 +90,12 @@ function set_deps_compilers() {
   if [[ "$1" = "gcc" ]]; then
     export CC="$DEPS/bin/gcc"
     export CXX="$DEPS/bin/g++"
-  else
+  elif [[ -f "$DEPS/bin/clang" ]]; then
     export CC="$DEPS/bin/clang"
     export CXX="$DEPS/bin/clang++"
+  else
+    unset CC
+    unset CXX
   fi
 }
 
@@ -204,7 +207,9 @@ function brew_dependency() {
   # Essentially uses clang instead of GCC.
   set_deps_compilers clang
   brew_internal "dependency" $@
-  set_deps_compilers gcc
+  if [[ -f "$DEPS/bin/gcc" ]]; then
+    set_deps_compilers gcc
+  fi
 }
 
 function brew_link() {
