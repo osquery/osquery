@@ -85,6 +85,8 @@ if(NOT WINDOWS)
   ADD_OSQUERY_LINK_ADDITIONAL("ssl")
   ADD_OSQUERY_LINK_ADDITIONAL("yara")
   ADD_OSQUERY_LINK_ADDITIONAL("crypto")
+  ADD_OSQUERY_LINK_ADDITIONAL("libpthread")
+
   ADD_OSQUERY_LINK_CORE("crypto")
 
   # Linenoise will be used when compiling osqueryi.
@@ -331,15 +333,15 @@ if(NOT DEFINED ENV{SKIP_TESTS})
   # osquery benchmarks.
   if(NOT DEFINED ENV{SKIP_BENCHMARKS} AND NOT ${OSQUERY_BUILD_SDK_ONLY})
     add_executable(osquery_benchmarks main/benchmarks.cpp ${OSQUERY_BENCHMARKS})
+    target_link_libraries(osquery_benchmarks benchmark libosquery_testing pthread)
     ADD_DEFAULT_LINKS(osquery_benchmarks TRUE)
-    target_link_libraries(osquery_benchmarks benchmark libosquery_testing)
     SET_OSQUERY_COMPILE(osquery_benchmarks "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
     set(BENCHMARK_TARGET "$<TARGET_FILE:osquery_benchmarks>")
 
     # osquery kernel benchmarks.
     add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
+    target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing pthread)
     ADD_DEFAULT_LINKS(osquery_kernel_benchmarks TRUE)
-    target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing)
     SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
 
     # make benchmark
