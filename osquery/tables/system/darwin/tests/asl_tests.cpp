@@ -168,6 +168,12 @@ TEST_F(AslTests, test_convert_like_regex) {
 }
 
 TEST_F(AslTests, test_actual_query) {
+  auto version = SQL::selectAllFrom("os_version");
+  if (version[0]["minor"] == "12") {
+    // MacOS Sierra does not support ASL.
+    return;
+  }
+
   // An integration test, this test writes to ASL, and then verifies that we
   // can query for the written log
   std::string time_str = std::to_string(std::time(nullptr));
