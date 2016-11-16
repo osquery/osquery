@@ -14,6 +14,7 @@ endif
 
 DISTRO := $(shell . ./tools/lib.sh; _platform)
 DISTRO_VERSION := $(shell . ./tools/lib.sh; _distro $(DISTRO))
+DARWIN_BUILD := 10.12
 ifeq ($(DISTRO),darwin)
 	BUILD_DIR = darwin$(DISTRO_VERSION)
 else ifeq ($(DISTRO),freebsd)
@@ -155,6 +156,12 @@ endif
 ifeq ($(DISTRO),unknown_version)
 	@echo Unknown, non-Redhat, non-Ubuntu based Linux distro
 	@false
+endif
+ifeq ($(DISTRO),darwin)
+ifneq ($(DISTRO_VERSION),$(DARWIN_BUILD))
+	@echo "-- Warning! The only Apple OS supported for building is $(DARWIN_BUILD)"
+	@echo "-- Note: Installing and running osquery is supported on versions 10.9+"
+endif
 endif
 	@mkdir -p build/docs
 	@mkdir -p build/$(BUILD_DIR)
