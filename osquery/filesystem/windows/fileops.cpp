@@ -17,14 +17,16 @@
 
 #include <memory>
 #include <regex>
-#include <string>
 #include <vector>
 
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
+#include <osquery/logger.h>
+
 #include "osquery/core/process.h"
 #include "osquery/filesystem/fileops.h"
+
 
 namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;
@@ -854,11 +856,12 @@ ssize_t PlatformFile::write(const void* buf, size_t nbyte) {
 
   if (is_nonblock_) {
     AsyncEvent write_event;
-    if (!::WriteFile(handle_,
-                     buf,
-                     static_cast<DWORD>(nbyte),
-                     &bytes_written,
-                     &write_event.overlapped_)) {
+    auto ret = ::WriteFile(handle_,
+      buf,
+      static_cast<DWORD>(nbyte),
+      &bytes_written,
+      &write_event.overlapped_);
+    if (ret == 0) {
       last_error = ::GetLastError();
       if (last_error == ERROR_IO_PENDING) {
         if (!::GetOverlappedResultEx(
@@ -871,6 +874,7 @@ ssize_t PlatformFile::write(const void* buf, size_t nbyte) {
             nret = -1;
           } else {
             // Error of unknown origin
+            TLOG << "PlatformFile::write failed with: " << GetLastError();
             nret = -1;
           }
         } else {
@@ -878,11 +882,11 @@ ssize_t PlatformFile::write(const void* buf, size_t nbyte) {
           nret = bytes_written;
         }
       } else {
+        TLOG << "PlatformFile::write failed with: " << GetLastError();
         nret = -1;
       }
     } else {
-      // This should not occur...
-      nret = -1;
+      nret = bytes_written;
     }
   } else {
     if (!::WriteFile(
