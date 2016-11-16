@@ -473,7 +473,8 @@ const std::string& osqueryHomeDirectory() {
 
     // Fail over to a temporary directory (used for the shell).
     auto temp =
-        fs::temp_directory_path(ec) / fs::unique_path("osquery%%%%%%%%", ec);
+        fs::temp_directory_path(ec) /
+        (std::string("osquery-") + std::to_string((rand() % 10000) + 20000));
     boost::filesystem::create_directories(temp, ec);
     homedir = temp.make_preferred().string();
   }

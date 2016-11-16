@@ -27,7 +27,6 @@
 #include "osquery/core/process.h"
 #include "osquery/filesystem/fileops.h"
 
-
 namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;
 
@@ -381,7 +380,8 @@ static AclObject modifyAcl(PACL acl,
   return std::move(new_acl_buffer);
 }
 
-PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
+PlatformFile::PlatformFile(const std::string& path, int mode, int perms)
+    : fname_(path) {
   DWORD access_mask = 0;
   DWORD flags_and_attrs = 0;
   DWORD creation_disposition = 0;
@@ -807,8 +807,8 @@ ssize_t PlatformFile::read(void* buf, size_t nbyte) {
   }
 
   ssize_t nret = -1;
-  DWORD bytes_read = 0;
-  DWORD last_error = 0;
+  unsigned long bytes_read = 0;
+  unsigned long last_error = 0;
 
   has_pending_io_ = false;
 
@@ -818,14 +818,15 @@ ssize_t PlatformFile::read(void* buf, size_t nbyte) {
     } else {
       last_read_.overlapped_.Offset = cursor_;
       last_read_.buffer_.reset(new char[nbyte]);
-
-      if (::ReadFile(handle_,
-                     last_read_.buffer_.get(),
-                     static_cast<DWORD>(nbyte),
-                     &bytes_read,
-                     &last_read_.overlapped_) != 0) {
+      auto ret = ::ReadFile(handle_,
+                            last_read_.buffer_.get(),
+                            static_cast<unsigned long>(nbyte),
+                            &bytes_read,
+                            &last_read_.overlapped_);
+      if (ret != 0) {
         memcpy_s(buf, nbyte, last_read_.buffer_.get(), bytes_read);
         nret = bytes_read;
+        cursor_ += bytes_read;
       } else {
         last_error = ::GetLastError();
         if (last_error == ERROR_IO_PENDING || last_error == ERROR_MORE_DATA) {
@@ -834,9 +835,9 @@ ssize_t PlatformFile::read(void* buf, size_t nbyte) {
       }
     }
   } else {
-    if (::ReadFile(
-            handle_, buf, static_cast<DWORD>(nbyte), &bytes_read, nullptr) !=
-        0) {
+    auto ret = ::ReadFile(
+        handle_, buf, static_cast<unsigned long>(nbyte), &bytes_read, nullptr);
+    if (ret != 0) {
       nret = bytes_read;
     }
   }
@@ -849,23 +850,24 @@ ssize_t PlatformFile::write(const void* buf, size_t nbyte) {
   }
 
   ssize_t nret = 0;
-  DWORD bytes_written = 0;
-  DWORD last_error = 0;
+  unsigned long bytes_written = 0;
+  unsigned long last_error = 0;
 
   has_pending_io_ = false;
 
   if (is_nonblock_) {
     AsyncEvent write_event;
     auto ret = ::WriteFile(handle_,
-      buf,
-      static_cast<DWORD>(nbyte),
-      &bytes_written,
-      &write_event.overlapped_);
+                           buf,
+                           static_cast<unsigned long>(nbyte),
+                           &bytes_written,
+                           &write_event.overlapped_);
     if (ret == 0) {
       last_error = ::GetLastError();
       if (last_error == ERROR_IO_PENDING) {
-        if (!::GetOverlappedResultEx(
-                handle_, &write_event.overlapped_, &bytes_written, 0, TRUE)) {
+        ret = ::GetOverlappedResultEx(
+            handle_, &write_event.overlapped_, &bytes_written, 0, TRUE);
+        if (ret == 0) {
           last_error = ::GetLastError();
           if (last_error == ERROR_IO_INCOMPLETE) {
             has_pending_io_ = true;
@@ -874,7 +876,8 @@ ssize_t PlatformFile::write(const void* buf, size_t nbyte) {
             nret = -1;
           } else {
             // Error of unknown origin
-            TLOG << "PlatformFile::write failed with: " << GetLastError();
+            TLOG << "Write to " << fname_ << " failed with error ("
+                 << GetLastError() << ")";
             nret = -1;
           }
         } else {
@@ -882,15 +885,19 @@ ssize_t PlatformFile::write(const void* buf, size_t nbyte) {
           nret = bytes_written;
         }
       } else {
-        TLOG << "PlatformFile::write failed with: " << GetLastError();
+        TLOG << "Write to " << fname_ << " failed with error ("
+             << GetLastError() << ")";
         nret = -1;
       }
     } else {
       nret = bytes_written;
     }
   } else {
-    if (!::WriteFile(
-            handle_, buf, static_cast<DWORD>(nbyte), &bytes_written, nullptr)) {
+    if (!::WriteFile(handle_,
+                     buf,
+                     static_cast<unsigned long>(nbyte),
+                     &bytes_written,
+                     nullptr)) {
       nret = -1;
     } else {
       nret = bytes_written;

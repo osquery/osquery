@@ -52,7 +52,9 @@ class FileOpsTests : public testing::Test {
 class TempFile {
  public:
   TempFile()
-      : path_((fs::temp_directory_path() / fs::unique_path())
+      : path_((fs::temp_directory_path() /
+               (std::string("osquery-") +
+                std::to_string((rand() % 10000) + 20000)))
                   .make_preferred()
                   .string()) {}
 

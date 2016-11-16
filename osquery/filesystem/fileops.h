@@ -219,6 +219,8 @@ class PlatformFile {
   size_t size() const;
 
  private:
+  fs::path fname_;
+
   PlatformHandle handle_{kInvalidHandle};
 
   bool is_nonblock_{false};
