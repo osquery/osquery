@@ -128,6 +128,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
       try {
         ExtensionStatus status;
         auto client = EXManagerClient(path);
+        client.get()->ping(status);
         return Status(0, "OK");
       } catch (const std::exception& /* e */) {
         // Path might exist without a connected extension or extension manager.
@@ -189,7 +190,6 @@ void ExtensionWatcher::watch() {
       auto client = EXManagerClient(path_);
       // Ping the extension manager until it goes down.
       client.get()->ping(status);
-
     } catch (const std::exception& /* e */) {
       core_sane = false;
     }
