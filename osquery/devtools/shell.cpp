@@ -24,9 +24,6 @@
 #else
 #include <sys/resource.h>
 #include <sys/time.h>
-
-#include <readline/history.h>
-#include <readline/readline.h>
 #endif
 
 #include <linenoise.h>

@@ -53,10 +53,8 @@ function platform_linux_main() {
   # Need LZMA for final builds.
   brew_tool osquery/osquery-local/zlib-legacy
   brew_tool osquery/osquery-local/xz
-
   brew_tool osquery/osquery-local/ncurses
   brew_tool osquery/osquery-local/bzip2
-  brew_tool osquery/osquery-local/readline
 
   brew_tool unzip
   brew_tool sqlite
