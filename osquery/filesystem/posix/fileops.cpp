@@ -340,6 +340,30 @@ boost::optional<FILE*> platformFopen(const std::string& filename,
   return fp;
 }
 
+Status socketExists(const fs::path& path, bool remove_socket) {
+  // This implies that the socket is writable.
+  if (pathExists(path).ok()) {
+    if (!isWritable(path).ok()) {
+      return Status(1, "Cannot write extension socket: " + path.string());
+    } else if (remove_socket && !osquery::remove(path).ok()) {
+      return Status(1, "Cannot remove extension socket: " + path.string());
+    }
+  } else {
+    // The path does not exist.
+    if (!pathExists(path.parent_path()).ok()) {
+      return Status(1, "Extension socket directory missing: " + path.string());
+    } else if (!isWritable(path.parent_path()).ok()) {
+      return Status(1, "Cannot create extension socket: " + path.string());
+    }
+
+    // If we are not requesting to remove the socket then this is a failure.
+    if (!remove_socket) {
+      return Status(1, "Socket does not exist");
+    }
+  }
+  return Status(0);
+}
+
 fs::path getSystemRoot() {
   return fs::path("/");
 }
