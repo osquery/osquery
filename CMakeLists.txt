@@ -174,10 +174,11 @@ elseif(DEFINED ENV{SANITIZE})
   if (DEFINED ENV{SANITIZE_THREAD})
     add_compile_options(-fsanitize=thread)
   else()
-    add_compile_options(
-      -fsanitize=address
-      -fsanitize=leak
-    )
+    add_compile_options(-fsanitize=address)
+    if(LINUX)
+      # LSAN is not available on OS X 10.12.
+      add_compile_options(-fsanitize=leak)
+    endif()
   endif()
 else()
   set(DEBUG FALSE)
