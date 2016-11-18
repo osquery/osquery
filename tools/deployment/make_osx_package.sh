@@ -51,6 +51,7 @@ OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
 OSQUERY_DB_LOCATION="/private/var/osquery/osquery.db/"
 OSQUERY_LOG_DIR="/private/var/log/osquery/"
 TLS_CERT_CHAIN_DST="/private/var/osquery/tls-server-certs.pem"
+FLAGFILE_DST="/private/var/osquery/osquery.flags"
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX="$WORKING_DIR/prefix"
@@ -85,6 +86,7 @@ fi
 
 POSTINSTALL_AUTOSTART_TEXT="
 cp $LAUNCHD_DST $LD_INSTALL
+touch $FLAGFILE_DST
 launchctl load $LD_INSTALL
 "
 
