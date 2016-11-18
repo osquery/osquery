@@ -12,6 +12,8 @@ schema([
     Column("obytes", BIGINT, "Output bytes"),
     Column("ierrors", BIGINT, "Input errors"),
     Column("oerrors", BIGINT, "Output errors"),
+    Column("idrops", BIGINT, "Input drops"),
+    Column("odrops", BIGINT, "Output drops"),
     Column("last_change", BIGINT, "Time of last device modification (optional)"),
     Column("description", TEXT, "Short description of the object—a one-line string."),
     Column("manufacturer", TEXT, "Name of the network adapter's manufacturer."),
