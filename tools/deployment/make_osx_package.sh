@@ -204,7 +204,7 @@ function main() {
   if [[ "$TLS_CERT_CHAIN_SRC" != "" && -f "$TLS_CERT_CHAIN_SRC" ]]; then
     cp $TLS_CERT_CHAIN_SRC $INSTALL_PREFIX$TLS_CERT_CHAIN_DST
   fi
- 
+
   # Move/install pre/post install scripts within the packaging root.
   log "finalizing preinstall and postinstall scripts"
   if [ $AUTOSTART == true ]  || [ $CLEAN == true ]; then
@@ -229,7 +229,8 @@ function main() {
 
   # We optionally create an RPM equivalent.
   FPM=$(which fpm)
-  if [[ ! "$FPM" = "" ]]; then
+  RPMBUILD=$(which rpmbuild)
+  if [[ ! "$FPM" = "" && ! "$RPMBUILD" = "" ]]; then
     log "creating RPM equivalent"
 
     PACKAGE_ARCH=$(uname -m)
@@ -246,6 +247,8 @@ function main() {
       \"$INSTALL_PREFIX/=/\""
     eval "$CMD"
     log "RPM package (also) created at $OUTPUT_RPM_PATH"
+  else
+    log "Skipping OS X RPM package build: Cannot find fpm and rpmbuild"
   fi
 
   # Check if a kernel extension should be built alongside.
