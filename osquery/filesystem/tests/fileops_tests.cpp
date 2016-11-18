@@ -370,6 +370,16 @@ TEST_F(FileOpsTests, test_chmod_no_exec) {
     EXPECT_TRUE(!status.ok());
     EXPECT_EQ(1, status.getCode());
   }
+
+  EXPECT_TRUE(platformChmod(
+      path, S_IRUSR | S_IWUSR | S_IXUSR | S_IROTH | S_IWOTH | S_IXOTH));
+
+  {
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_TRUE(fd.isValid());
+
+    EXPECT_TRUE(fd.isExecutable().ok());
+  }
 }
 
 TEST_F(FileOpsTests, test_chmod_no_read) {
@@ -416,6 +426,93 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
     EXPECT_FALSE(fd.isValid());
   }
+}
+
+TEST_F(FileOpsTests, test_access) {
+  const int all_access = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP |
+                         S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
+
+  TempFile tmp_file;
+  std::string path = tmp_file.path();
+
+  {
+    PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    EXPECT_EQ(4, fd.write("TEST", 4));
+  }
+
+  EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IWUSR | S_IXUSR));
+
+  EXPECT_EQ(0, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(0, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(0, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(0, platformAccess(path, W_OK | X_OK));
+  EXPECT_EQ(0, platformAccess(path, R_OK));
+  EXPECT_EQ(0, platformAccess(path, W_OK));
+  EXPECT_EQ(0, platformAccess(path, X_OK));
+
+  EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IWUSR));
+
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(0, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+  EXPECT_EQ(0, platformAccess(path, R_OK));
+  EXPECT_EQ(0, platformAccess(path, W_OK));
+  EXPECT_EQ(-1, platformAccess(path, X_OK));
+
+  EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IXUSR));
+
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(0, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+  EXPECT_EQ(0, platformAccess(path, R_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK));
+  EXPECT_EQ(0, platformAccess(path, X_OK));
+
+  EXPECT_TRUE(platformChmod(path, S_IWUSR | S_IXUSR));
+
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(0, platformAccess(path, W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK));
+  EXPECT_EQ(0, platformAccess(path, W_OK));
+  EXPECT_EQ(0, platformAccess(path, X_OK));
+
+  EXPECT_TRUE(platformChmod(path, S_IRUSR));
+
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+  EXPECT_EQ(0, platformAccess(path, R_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK));
+  EXPECT_EQ(-1, platformAccess(path, X_OK));
+
+  EXPECT_TRUE(platformChmod(path, S_IWUSR));
+
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK));
+  EXPECT_EQ(0, platformAccess(path, W_OK));
+  EXPECT_EQ(-1, platformAccess(path, X_OK));
+
+  EXPECT_TRUE(platformChmod(path, S_IXUSR));
+
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK));
+  EXPECT_EQ(0, platformAccess(path, X_OK));
+
+  // Reset permissions
+  EXPECT_TRUE(platformChmod(path, all_access));
 }
 
 TEST_F(FileOpsTests, test_safe_permissions) {

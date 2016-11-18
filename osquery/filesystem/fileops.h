@@ -41,14 +41,10 @@ using ssize_t = SSIZE_T;
 using PlatformHandle = HANDLE;
 using PlatformTimeType = FILETIME;
 
-/**
- * Windows does not define these, X_OK on Windows just ensures that the
- * file is readable.
- */
-#define F_OK 0
+// Windows do not define these by default
 #define R_OK 4
 #define W_OK 2
-#define X_OK R_OK
+#define X_OK 1
 
 // Windows does not define these constants, and they are neater
 // than using raw octal for platformChmod, etc.
