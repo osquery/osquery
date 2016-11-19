@@ -25,6 +25,7 @@ source $SCRIPT_DIR/lib.sh
 # $ export RUN_TARGET=target
 
 # Run the build function and the tests
-build true
+if [[ -z "$SKIP_TESTS" ]]; then RUN_TESTS=true; else RUN_TESTS=false; fi
+build $RUN_TESTS
 
 exit 0
