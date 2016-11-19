@@ -107,6 +107,42 @@ function checkout_thirdparty() {
   git submodule update
 }
 
+function build_target() {
+  threads THREADS
+
+  # Clean previous build artifacts.
+  $MAKE clean
+
+  # Build osquery.
+  if [[ -z "$RUN_TARGET" ]]; then
+    $MAKE -j$THREADS
+  else
+    $MAKE $RUN_TARGET -j$THREADS
+  fi
+}
+
+function check_deterministic() {
+  # Expect the project to have been built.
+  DAEMON=build/$DISTRO/osquery/osqueryd
+  strip $DAEMON
+  RUN1=$(shasum -a 256 $DAEMON)
+
+  # Build again.
+  $MAKE distclean
+  build_target
+
+  strip $DAEMON
+  RUN2=$(shasum -a 256 $DAEMON)
+  echo "Initial build: $RUN1"
+  echo " Second build: $RUN2"
+  if [[ "$RUN1" = "$RUN2" ]]; then
+    exit 0
+  fi
+
+  # The build is not deterministic.
+  exit 1
+}
+
 function initialize() {
   DISTRO=$1
   checkout_thirdparty
@@ -116,7 +152,6 @@ function initialize() {
 }
 
 function build() {
-  threads THREADS
   platform PLATFORM
   distro $PLATFORM DISTRO
 
@@ -144,15 +179,8 @@ function build() {
     initialize $DISTRO
   fi
 
-  # Clean previous build artifacts.
-  $MAKE clean
-
   # Build osquery.
-  if [[ -z "$RUN_TARGET" ]]; then
-    $MAKE -j$THREADS
-  else
-    $MAKE $RUN_TARGET -j$THREADS
-  fi
+  build_target
 
   if [[ $BUILD_KERNEL = 1 ]]; then
     # Build osquery kernel (optional).
@@ -163,6 +191,10 @@ function build() {
 
     # Load osquery kernel (optional).
     $MAKE kernel-test-load
+  fi
+
+  if [[ ! -z "$RUN_DETERMINISTIC" ]]; then
+    check_deterministic
   fi
 
   if [[ $RUN_TESTS = true ]]; then
