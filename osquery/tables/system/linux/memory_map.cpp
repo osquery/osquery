@@ -33,6 +33,9 @@ QueryData genMemoryMap(QueryContext& context) {
   for (const auto& line : regions) {
     auto b1 = line.find_first_of("-");
     auto b2 = line.find_first_of(" : ");
+    if (b1 == std::string::npos || b2 == std::string::npos) {
+      continue;
+    }
 
     Row r;
     r["start"] = "0x" + line.substr(0, b1);
