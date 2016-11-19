@@ -12,6 +12,7 @@
 #include <mutex>
 #include <random>
 
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/config.h>
@@ -71,8 +72,8 @@ DECLARE_bool(disable_events);
  * On process or worker resume an initializer or config may check if the
  * resume was the result of a failure during an executing query.
  */
-const std::string kExecutingQuery = "executing_query";
-const std::string kFailedQueries = "failed_queries";
+const std::string kExecutingQuery{"executing_query"};
+const std::string kFailedQueries{"failed_queries"};
 
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
@@ -112,7 +113,9 @@ class Schedule : private boost::noncopyable {
    * next iterator element or skipped.
    */
   struct Step {
-    bool operator()(PackRef& pack) { return pack->shouldPackExecute(); }
+    bool operator()(PackRef& pack) {
+      return pack->shouldPackExecute();
+    }
   };
 
   /// Add a pack to the schedule
@@ -122,7 +125,9 @@ class Schedule : private boost::noncopyable {
   }
 
   /// Remove a pack, by name.
-  void remove(const std::string& pack) { remove(pack, ""); }
+  void remove(const std::string& pack) {
+    remove(pack, "");
+  }
 
   /// Remove a pack by name and source.
   void remove(const std::string& pack, const std::string& source) {
@@ -151,10 +156,17 @@ class Schedule : private boost::noncopyable {
   /// Boost gives us a nice template for maintaining the state of the iterator
   using iterator = boost::filter_iterator<Step, container::iterator>;
 
-  iterator begin() { return iterator(packs_.begin(), packs_.end()); }
-  iterator end() { return iterator(packs_.end(), packs_.end()); }
+  iterator begin() {
+    return iterator(packs_.begin(), packs_.end());
+  }
 
-  PackRef& last() { return packs_.back(); }
+  iterator end() {
+    return iterator(packs_.end(), packs_.end());
+  }
+
+  PackRef& last() {
+    return packs_.back();
+  }
 
  private:
   /// Underlying storage for the packs
@@ -352,6 +364,8 @@ Status Config::load() {
  */
 inline void stripConfigComments(std::string& json) {
   std::string sink;
+
+  boost::replace_all(json, "\\\n", "");
   for (auto& line : osquery::split(json, "\n")) {
     boost::trim(line);
     if (line.size() > 0 && line[0] == '#') {
@@ -443,9 +457,11 @@ Status Config::genPack(const std::string& name,
   }
 
   try {
+    auto clone = response[0][name];
+    stripConfigComments(clone);
     pt::ptree pack_tree;
     std::stringstream pack_stream;
-    pack_stream << response[0][name];
+    pack_stream << clone;
     pt::read_json(pack_stream, pack_tree);
     addPack(name, source, pack_tree);
   } catch (const pt::json_parser::json_parser_error& /* e */) {

@@ -14,6 +14,7 @@ from __future__ import print_function
 import json
 import os
 import subprocess
+import string
 import unittest
 
 # osquery-specific testing utils
@@ -37,7 +38,9 @@ class ReleaseTests(test_base.QueryTester):
         for root, dirs, files in os.walk(PACKS_DIR):
             for name in files:
                 with open(os.path.join(PACKS_DIR, name), 'r') as fh:
-                    packs[name] = json.loads(fh.read())
+                    content = fh.read()
+                    content = string.replace(content, "\\\n", "")
+                    packs[name] = json.loads(content)
         for name, pack in packs.items():
             if "queries" not in pack:
                 continue
