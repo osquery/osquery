@@ -15,6 +15,10 @@ class Augeas < AbstractOsqueryFormula
     sha256 "8ef71ee4d9bb8c976150af61e811ff31e065ffb9f6c28cc4b8b8cd7145e9cd2c" => :x86_64_linux
   end
 
+  # The autoconfigure requests readline.
+  # We avoid compiling the augeas tooling, thus do not need readline.
+  patch :DATA
+
   def install
     ENV.append_to_cflags "-I/usr/include/libxml2" if OS.mac?
     system "./autogen.sh", "--without-selinux", "--prefix=#{prefix}"
@@ -35,3 +39,17 @@ class Augeas < AbstractOsqueryFormula
     system "make", "install-data-am"
   end
 end
+__END__
+diff --git a/configure.ac b/configure.ac
+index 5230efe..d639e14 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -91,7 +91,7 @@ AUGEAS_COMPILE_WARNINGS(maximum)
+ AUGEAS_CFLAGS=-std=gnu99
+ AC_SUBST(AUGEAS_CFLAGS)
+ 
+-AUGEAS_CHECK_READLINE
++# AUGEAS_CHECK_READLINE
+ AC_CHECK_FUNCS([open_memstream uselocale])
+ 
+ AC_MSG_CHECKING([how to pass version script to the linker ($LD)])
