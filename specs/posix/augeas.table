@@ -1,9 +1,12 @@
-table_name("augeas")
+table_name("augeas", aliases=["configurations"])
 description("Configuration files parsed by augeas.")
 schema([
-    Column("path", TEXT, "The path of the configuration item"),
+    Column("node", TEXT, "The node path of the configuration item"),
     Column("value", TEXT, "The value of the configuration item"),
     Column("label", TEXT, "The label of the configuration item"),
-    Column("filename", TEXT, "The path to the configuration file")
+    Column("path", TEXT, "The path to the configuration file")
 ])
 implementation("other/augeas@genAugeas")
+examples([
+  "select * from augeas where path = '/etc/hosts'",
+])

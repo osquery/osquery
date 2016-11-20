@@ -18,74 +18,81 @@
 namespace osquery {
 namespace tables {
 
-void reportAugeasError(const augeas* aug) {
-  const char* error_message = aug_error_message(const_cast<augeas*>(aug));
+void reportAugeasError(augeas* aug) {
+  const char* error_message = aug_error_message(aug);
   VLOG(1) << "An error has occurred while trying to query augeas: "
           << error_message;
 }
 
-void getSpanInfo(augeas* aug,
-                 Row& r,
-                 QueryContext& context,
-                 const std::string& path) {
-  auto index = context.getCache(path);
-  const auto cached_filename = index.find("filename");
-  if (cached_filename != index.end()) {
-    r["filename"] = cached_filename->second;
-  } else {
-    char* filename = nullptr;
-    // Unused for now
-    unsigned int label_start = 0;
-    unsigned int label_end = 0;
-    unsigned int value_start = 0;
-    unsigned int value_end = 0;
-    unsigned int span_start = 0;
-    unsigned int span_end = 0;
+std::string getSpanInfo(augeas* aug,
+                        const std::string& node,
+                        QueryContext& context) {
+  const auto& index = context.getCache(node);
+  if (index.count("filename")) {
+    return index.at("filename");
+  }
 
-    int result = aug_span(aug,
-                          path.c_str(),
-                          &filename,
-                          &label_start,
-                          &label_end,
-                          &value_start,
-                          &value_end,
-                          &span_start,
-                          &span_end);
-    if (result == 0 && filename != nullptr) {
-      r["filename"] = filename;
-      context.setCache(path, "filename", filename);
-      // aug_span() allocates the filename and expects the caller to free it.
-      free(filename);
-    }
+  char* filename = nullptr;
+  // Unused for now.
+  unsigned int label_start = 0;
+  unsigned int label_end = 0;
+  unsigned int value_start = 0;
+  unsigned int value_end = 0;
+  unsigned int span_start = 0;
+  unsigned int span_end = 0;
+
+  int result = aug_span(aug,
+                        node.c_str(),
+                        &filename,
+                        &label_start,
+                        &label_end,
+                        &value_start,
+                        &value_end,
+                        &span_start,
+                        &span_end);
+
+  if (result == 0 && filename != nullptr) {
+    context.setCache(node, "filename", filename);
+    // aug_span() allocates the filename and expects the caller to free it.
+    free(filename);
+    return context.getCache(node).at("filename");
+  } else {
+    return "";
   }
 }
 
-void getLabelInfo(const augeas* aug,
-                  Row& r,
-                  QueryContext& context,
-                  const std::string& path) {
-  auto index = context.getCache(path);
-  const auto cached_label = index.find("label");
-  if (cached_label != index.end()) {
-    r["label"] = cached_label->second;
-  } else {
-    const char* label = nullptr;
-    int result = aug_label(aug, path.c_str(), &label);
-    if (result == 1 && label != nullptr) {
-      r["label"] = label;
-      context.setCache(path, "label", label);
+std::string getLabelInfo(const augeas* aug,
+                         const std::string& node,
+                         QueryContext& context) {
+  const auto& index = context.getCache(node);
+  if (index.count("label")) {
+    return index.at("label");
+  }
 
-      // Do not call free() on label. Augeas needs it.
-    }
+  const char* label = nullptr;
+  int result = aug_label(aug, node.c_str(), &label);
+  if (result == 1 && label != nullptr) {
+    context.setCache(node, "label", label);
+    // Do not call free() on label. Augeas needs it.
+    return context.getCache(node).at("label");
+  } else {
+    return "";
   }
 }
 
-void matchAgueasPattern(QueryData& results,
+void matchAugeasPattern(augeas* aug,
+                        const std::string& pattern,
+                        QueryData& results,
                         QueryContext& context,
-                        augeas* aug,
-                        const std::string& pattern) {
+                        bool use_path = false) {
+  // The caller may supply an Augeas PATH/NODE expression or filesystem path.
+  // Below we formulate a Augeas pattern from a path if needed.
   char** matches = nullptr;
-  int len = aug_match(aug, pattern.c_str(), &matches);
+  int len = aug_match(
+      aug,
+      (use_path ? ("/files/" + pattern + "|/files" + pattern + "//*").c_str()
+                : pattern.c_str()),
+      &matches);
 
   // Handle matching errors.
   if (matches == nullptr) {
@@ -95,28 +102,33 @@ void matchAgueasPattern(QueryData& results,
     return;
   }
 
-  for (int i = 0; i < len; i++) {
-    Row r;
+  // Emit a row for each match.
+  for (size_t i = 0; i < static_cast<size_t>(len); i++) {
     if (matches[i] == nullptr) {
       continue;
     }
 
     // The caller is responsible for the matching memory.
-    std::string path(static_cast<const char*>(matches[i]));
+    std::string node(matches[i]);
     free(matches[i]);
 
+    Row r;
     const char* value = nullptr;
-    int result = aug_get(aug, path.c_str(), &value);
+    int result = aug_get(aug, node.c_str(), &value);
     if (result == 1) {
-      r["path"] = path;
+      r["node"] = node;
 
       if (value != nullptr) {
         r["value"] = value;
       }
 
-      getSpanInfo(aug, r, context, path);
+      if (!use_path) {
+        r["path"] = getSpanInfo(aug, node, context);
+      } else {
+        r["path"] = pattern;
+      }
 
-      getLabelInfo(aug, r, context, path);
+      r["label"] = getLabelInfo(aug, node, context);
 
       results.push_back(r);
     } else if (result < 1) {
@@ -124,35 +136,40 @@ void matchAgueasPattern(QueryData& results,
     }
   }
 
-  // aug_match() allocates the matches array and expects the
-  // caller to free it
+  // aug_match() allocates the matches array and expects the caller to free it.
   free(matches);
 }
 
 QueryData genAugeas(QueryContext& context) {
-  QueryData results;
-
   augeas* aug = aug_init(nullptr, nullptr, AUG_NO_ERR_CLOSE | AUG_ENABLE_SPAN);
 
   // Handle initialization errors.
   if (aug == nullptr) {
     VLOG(1) << "An error has occurred while trying to initialize augeas";
-    return results;
+    return {};
   } else if (aug_error(aug) != AUG_NOERROR) {
     // Do not use aug_error_details() here since augeas is not fully
     // initialized.
     VLOG(1) << "An error has occurred while trying to initialize augeas: "
             << aug_error_message(aug);
     aug_close(aug);
-    return results;
+    return {};
   }
 
+  QueryData results;
   if (context.hasConstraint("path", EQUALS)) {
+    // Allow requests via filesystem path.
+    // We will request the pattern match by path using an optional argument.
     auto paths = context.constraints["path"].getAll(EQUALS);
-    auto pattern = boost::algorithm::join(paths, "|");
-    matchAgueasPattern(results, context, aug, pattern);
+    for (const auto& path : paths) {
+      matchAugeasPattern(aug, path, results, context, true);
+    }
+  } else if (context.hasConstraint("node", EQUALS)) {
+    auto nodes = context.constraints["node"].getAll(EQUALS);
+    auto pattern = boost::algorithm::join(nodes, "|");
+    matchAugeasPattern(aug, pattern, results, context);
   } else {
-    matchAgueasPattern(results, context, aug, "/files//*");
+    matchAugeasPattern(aug, "/files//*", results, context);
   }
 
   aug_close(aug);
