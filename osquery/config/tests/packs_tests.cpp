@@ -150,6 +150,30 @@ TEST_F(PacksTests, test_discovery_cache) {
   c.reset();
 }
 
+TEST_F(PacksTests, test_multi_pack) {
+  std::string multi_pack_content = "{\"first\": {}, \"second\": {}}";
+  pt::ptree multi_pack;
+
+  {
+    // Convert the content into the expected pack form (ptree).
+    std::stringstream json_stream;
+    json_stream << multi_pack_content;
+    pt::read_json(json_stream, multi_pack);
+  }
+
+  Config c;
+  c.addPack("*", "", multi_pack);
+
+  std::vector<std::string> pack_names;
+  c.packs(([&pack_names](std::shared_ptr<Pack>& p) {
+    pack_names.push_back(p->getName());
+  }));
+
+  std::vector<std::string> expected = {"first", "second"};
+  ASSERT_EQ(expected.size(), pack_names.size());
+  EXPECT_EQ(expected, pack_names);
+}
+
 TEST_F(PacksTests, test_discovery_zero_state) {
   Pack pack("discovery_pack", getPackWithDiscovery());
   auto stats = pack.getStats();

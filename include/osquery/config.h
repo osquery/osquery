@@ -113,10 +113,14 @@ class Config : private boost::noncopyable {
   void hashSource(const std::string& source, const std::string& content);
 
   /// Whether or not the last loaded config was valid.
-  bool isValid() const { return valid_; }
+  bool isValid() const {
+    return valid_;
+  }
 
   /// Get start time of config.
-  size_t getStartTime() const { return start_time_; }
+  size_t getStartTime() const {
+    return start_time_;
+  }
 
   /**
    * @brief Add a pack to the osquery schedule
@@ -322,6 +326,7 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
   FRIEND_TEST(EventsConfigParserPluginTests, test_get_event);
   FRIEND_TEST(PacksTests, test_discovery_cache);
+  FRIEND_TEST(PacksTests, test_multi_pack);
   FRIEND_TEST(SchedulerTests, test_monitor);
   FRIEND_TEST(SchedulerTests, test_config_results_purge);
   FRIEND_TEST(EventsTests, test_event_subscriber_configure);
@@ -488,7 +493,9 @@ class ConfigParserPlugin : public Plugin {
    *
    * More complex parsers that require dynamic casting are not recommended.
    */
-  const boost::property_tree::ptree& getData() const { return data_; }
+  const boost::property_tree::ptree& getData() const {
+    return data_;
+  }
 
  protected:
   /// Allow the config to request parser state resets.
@@ -501,4 +508,16 @@ class ConfigParserPlugin : public Plugin {
  private:
   friend class Config;
 };
+
+/**
+ * @brief Boost's 1.59 property tree based JSON parser does not accept comments.
+ *
+ * For semi-compatibility with existing configurations we will attempt to strip
+ * hash and C++ style comments. It is OK for the config update to be latent
+ * as it is a single event. But some configuration plugins may update running
+ * configurations.
+ *
+ * @parms json A mutable input/output string that will contain stripped JSON.
+ */
+void stripConfigComments(std::string& json);
 }
