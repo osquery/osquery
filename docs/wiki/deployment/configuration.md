@@ -135,6 +135,17 @@ The pack value may also be a string, such as:
 
 If using a string instead of an inline JSON dictionary the configuration plugin will be asked to "generate" that resource. In the case of the default **filesystem** plugin, these strings are considered paths.
 
+The **filesystem** plugin supports another convention for adding a directory of packs:
+```json
+{
+  "packs": {
+    "*": "/path/to/*",
+  }
+}
+```
+
+Here the name `*` asks the plugin to *glob* the value and construct a multi-pack. The name of each pack will correspond to the filename *leaf* without the final extension, e.g. `/path/to/external_pack.conf` will be named `external_pack`.
+
 Queries added to the schedule from packs inherit the pack name as part of the scheduled query name identifier. For example, consider the embedded `active_directory` query above, it is in the `internal_stuff` pack so the scheduled query name becomes: `pack_internal_stuff_active_directory`. The delimiter can be changed using the `--pack_delimiter=_`, see the [CLI Options](../installation/cli-flags.md) for more details.
 
 ### Discovery queries

@@ -11,14 +11,18 @@
 #include <vector>
 
 #include <boost/filesystem/operations.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-namespace fs = boost::filesystem;
+#include "osquery/core/json.h"
+
 namespace errc = boost::system::errc;
+namespace fs = boost::filesystem;
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -63,10 +67,51 @@ Status FilesystemConfigPlugin::genConfig(
 Status FilesystemConfigPlugin::genPack(const std::string& name,
                                        const std::string& value,
                                        std::string& pack) {
+  if (name == "*") {
+    // The config requested a multi-pack.
+    std::vector<std::string> paths;
+    resolveFilePattern(value, paths);
+
+    pt::ptree multi_pack;
+    for (const auto& path : paths) {
+      std::string content;
+      if (!readFile(path, content)) {
+        LOG(WARNING) << "Cannot read multi-pack file: " << path;
+        continue;
+      }
+
+      // Assemble an intermediate property tree for simplified parsing.
+      pt::ptree single_pack;
+      stripConfigComments(content);
+      try {
+        std::stringstream json_stream;
+        json_stream << content;
+        pt::read_json(json_stream, single_pack);
+      } catch (const pt::json_parser::json_parser_error& /* e */) {
+        LOG(WARNING) << "Cannot read multi-pack JSON: " << path;
+        continue;
+      }
+
+      multi_pack.put_child(fs::path(path).stem().string(), single_pack);
+    }
+
+    // We should have a property tree of pack content mimicking embedded
+    // configuration packs, ready to parse as a string.
+    std::ostringstream output;
+    pt::write_json(output, multi_pack, false);
+    pack = output.str();
+    if (pack.empty()) {
+      return Status(1, "Multi-pack content empty");
+    }
+
+    return Status(0);
+  }
+
   boost::system::error_code ec;
   if (!fs::is_regular_file(value, ec) || ec.value() != errc::success) {
     return Status(1, value + " is not a valid path");
   }
+
   return readFile(value, pack);
 }
 }

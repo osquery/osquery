@@ -251,14 +251,29 @@ Config::Config()
 void Config::addPack(const std::string& name,
                      const std::string& source,
                      const pt::ptree& tree) {
-  RecursiveLock wlock(config_schedule_mutex_);
-  try {
-    schedule_->add(std::make_shared<Pack>(name, source, tree));
-    if (schedule_->last()->shouldPackExecute()) {
-      applyParsers(source + FLAGS_pack_delimiter + name, tree, true);
+  auto addSinglePack = ([this, &source](const std::string pack_name,
+                                        const pt::ptree& pack_tree) {
+    RecursiveLock wlock(config_schedule_mutex_);
+    try {
+      schedule_->add(std::make_shared<Pack>(pack_name, source, pack_tree));
+      if (schedule_->last()->shouldPackExecute()) {
+        applyParsers(
+            source + FLAGS_pack_delimiter + pack_name, pack_tree, true);
+      }
+    } catch (const std::exception& e) {
+      LOG(WARNING) << "Error adding pack: " << pack_name << ": " << e.what();
     }
-  } catch (const std::exception& e) {
-    LOG(WARNING) << "Error adding pack: " << name << ": " << e.what();
+  });
+
+  if (name == "*") {
+    // This is a multi-pack, expect the config plugin to have generated a
+    // "name": {pack-content} response similar to embedded pack content
+    // within the configuration.
+    for (const auto& pack : tree) {
+      addSinglePack(pack.first, pack.second);
+    }
+  } else {
+    addSinglePack(name, tree);
   }
 }
 
@@ -354,15 +369,7 @@ Status Config::load() {
   return status;
 }
 
-/**
- * @brief Boost's 1.59 property tree based JSON parser does not accept comments.
- *
- * For semi-compatibility with existing configurations we will attempt to strip
- * hash and C++ style comments. It is OK for the config update to be latent
- * as it is a single event. But some configuration plugins may update running
- * configurations.
- */
-inline void stripConfigComments(std::string& json) {
+void stripConfigComments(std::string& json) {
   std::string sink;
 
   boost::replace_all(json, "\\\n", "");

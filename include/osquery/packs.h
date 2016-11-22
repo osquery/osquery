@@ -15,8 +15,8 @@
 #include <string>
 #include <vector>
 
-#include <boost/property_tree/ptree.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/database.h>
 
@@ -39,6 +39,7 @@ class Pack : private boost::noncopyable {
  public:
   Pack(const std::string& name, const boost::property_tree::ptree& tree)
       : Pack(name, "", tree) {}
+
   Pack(const std::string& name,
        const std::string& source,
        const boost::property_tree::ptree& tree) {
@@ -77,7 +78,9 @@ class Pack : private boost::noncopyable {
   /// Returns the minimum version that the pack is configured to run on
   const std::string& getVersion() const;
 
-  size_t getShard() const { return shard_; }
+  size_t getShard() const {
+    return shard_;
+  }
 
   /// Returns the schedule dictated by the pack
   const std::map<std::string, ScheduledQuery>& getSchedule() const;
@@ -147,7 +150,7 @@ class Pack : private boost::noncopyable {
    *
    * Initialization must include pack content
    */
-  Pack(){};
+  Pack() {}
 
  private:
   FRIEND_TEST(PacksTests, test_check_platform);

@@ -36,9 +36,9 @@ inline GlobLimits operator|(GlobLimits a, GlobLimits b) {
 }
 
 /// Globbing wildcard character.
-const std::string kSQLGlobWildcard = "%";
+const std::string kSQLGlobWildcard{"%"};
 /// Globbing wildcard recursive character (double wildcard).
-const std::string kSQLGlobRecursive = kSQLGlobWildcard + kSQLGlobWildcard;
+const std::string kSQLGlobRecursive{kSQLGlobWildcard + kSQLGlobWildcard};
 
 /**
  * @brief Read a file from disk.
