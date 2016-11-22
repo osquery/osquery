@@ -11,8 +11,10 @@
 #include <map>
 #include <string>
 
+#include <boost/algorithm/string/trim_all.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/xpressive/xpressive.hpp>
-
 #include <osquery/filesystem.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
@@ -26,6 +28,7 @@ namespace tables {
 
 const std::string kOSRelease = "/etc/os-release";
 const std::string kRedhatRelease = "/etc/redhat-release";
+const std::string kGentooRelease = "/etc/gentoo-release";
 
 const std::map<std::string, std::string> kOSReleaseColumns = {
     {"NAME", "name"},
@@ -84,16 +87,25 @@ QueryData genOSRelease() {
 
 QueryData genOSVersion(QueryContext& context) {
   if (isReadable(kOSRelease)) {
-    return genOSRelease();
-  }
-
-  std::string content;
-  if (!isReadable(kRedhatRelease) || !readFile(kRedhatRelease, content).ok()) {
-    // This is an unknown Linux OS.
-    return {};
+    boost::system::error_code ec;
+    // Funtoo has an empty os-release file.
+    if (boost::filesystem::file_size(kOSRelease, ec) > 0) {
+      return genOSRelease();
+    }
   }
 
   Row r;
+  std::string content;
+  if (readFile(kRedhatRelease, content).ok()) {
+    r["platform_like"] = "rhel";
+  } else if (readFile(kGentooRelease, content).ok()) {
+    r["platform_like"] = "gentoo";
+  } else {
+    return {};
+  }
+
+  boost::algorithm::trim_all(content);
+
   // This is an older version of a Redhat-based OS.
   auto rx = xp::sregex::compile(
       "(?P<name>[\\w+\\s]+) .* "
@@ -111,7 +123,6 @@ QueryData genOSVersion(QueryContext& context) {
   }
 
   r["version"] = content;
-  r["platform_like"] = "rhel";
 
   // No build name.
   r["build"] = "";

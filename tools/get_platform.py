@@ -23,6 +23,7 @@ ORACLE_RELEASE = "/etc/oracle-release"
 SYSTEM_RELEASE = "/etc/system-release"
 LSB_RELEASE    = "/etc/lsb-release"
 DEBIAN_VERSION = "/etc/debian_version"
+GENTOO_RELEASE = "/etc/gentoo-release"
 
 def _platform():
     osType, _, _, _, _, _ = platform.uname()
@@ -67,6 +68,9 @@ def _platform():
 
         if os.path.exists(DEBIAN_VERSION):
             return ("debian", "debian")
+
+        if os.path.exists(GENTOO_RELEASE):
+            return ("gentoo", "gentoo")
     else:
         return (None, osType.lower())
 
@@ -144,6 +148,12 @@ def _distro(osType):
         results = rawResult.split("-")
         if len(results) > 0:
           return results[0]
+    elif osType == "gentoo":
+        with open(GENTOO_RELEASE, "r") as fd:
+          contents = fd.read()
+          results = contents.split()
+        if len(results) > 0:
+          return results[len(results) -1]
     elif osType == "windows":
         return "windows%s" % osVersion
 

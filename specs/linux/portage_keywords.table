@@ -1,0 +1,13 @@
+table_name("portage_keywords")
+description("A summary about portage configurations like keywords, mask and unmask.")
+schema([
+    Column("package", TEXT, "Package name"),
+    Column("version", TEXT, "The version which are affected by the use flags, empty means all"),
+    Column("keyword", TEXT, "The keyword applied to the package"),
+    Column("mask", INTEGER, "If the package is masked"),
+    Column("unmask", INTEGER, "If the package is unmasked"),
+])
+implementation("system/portage_keywords@genPortageKeywordSummary")
+fuzz_paths([
+    "/etc/portage/",
+])

@@ -1,0 +1,17 @@
+table_name("portage_packages")
+description("Current list of installed packages")
+schema([
+    Column("package", TEXT, "Package name"),
+    Column("version", TEXT, "The version which are affected by the use flags, empty means all"),
+    Column("slot", TEXT, "The slot used by package"),
+    Column("build_time", BIGINT, "Unix time when package was built"),
+    Column("repository", TEXT, "From which repository the ebuild was used"),
+    Column("eapi", BIGINT, "The eapi for the ebuild"),
+    Column("size", BIGINT, "The size of the package"),
+	Column("world", INTEGER, "If package is in the world file"),
+])
+implementation("system/portage_packages@portagePackages")
+fuzz_paths([
+    "/var/db/pkg/",
+    "/var/lib/portage",
+])
