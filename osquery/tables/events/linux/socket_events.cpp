@@ -11,6 +11,7 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
@@ -32,8 +33,6 @@ namespace tables {
 extern long getUptime();
 }
 
-// Depend on the external decodeAuditValue audit-related process events method.
-extern std::string decodeAuditValue(const std::string& s);
 
 class SocketEventSubscriber : public EventSubscriber<AuditEventPublisher> {
  public:
@@ -52,30 +51,10 @@ class SocketEventSubscriber : public EventSubscriber<AuditEventPublisher> {
   Status Callback(const ECRef& ec, const SCRef& sc);
 
  private:
-  /// Socket events come in pairs, first the syscall then the structure.
-  bool waiting_for_saddr_{false};
-
-  /// The intermediate row structure.
-  Row row_;
+  AuditAssembler asm_;
 };
 
 REGISTER(SocketEventSubscriber, "event_subscriber", "socket_events");
-
-Status SocketEventSubscriber::init() {
-  auto sc = createSubscriptionContext();
-
-  // Monitor for bind and connect syscalls.
-  sc->rules.push_back({AUDIT_SYSCALL_BIND, ""});
-  sc->rules.push_back({AUDIT_SYSCALL_CONNECT, ""});
-  // Also grab SADDR structures
-  sc->types.insert(AUDIT_TYPE_SOCKADDR);
-
-  // Drop events if they are encountered outside of the expected state.
-  // sc->types = {AUDIT_SYSCALL};
-  subscribe(&SocketEventSubscriber::Callback, sc);
-
-  return Status(0, "OK");
-}
 
 void parseSockAddr(const std::string& saddr, Row& r, bool local) {
   // The protocol is not included in the audit message.
@@ -127,46 +106,72 @@ void parseSockAddr(const std::string& saddr, Row& r, bool local) {
   }
 }
 
-Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
-  if (waiting_for_saddr_) {
-    if (ec->type == AUDIT_TYPE_SOCKADDR) {
-      auto& saddr = ec->fields["saddr"];
-      if (saddr.size() < 4 || saddr[0] == '1') {
-        return Status(0);
-      }
-      row_["protocol"] = "0";
-      row_["local_port"] = "0";
-      row_["remote_port"] = "0";
-      // Parse the struct and emit the row.
-      parseSockAddr(saddr, row_, (row_.at("action") == "bind"));
-      add(row_);
-      Row().swap(row_);
-      waiting_for_saddr_ = false;
+bool SocketUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
+  if (type == AUDIT_TYPE_SOCKADDR) {
+    const auto& saddr = fields.at("saddr");
+    if (saddr.size() < 4 || saddr[0] == '1') {
+      return false;
     }
-  } else if (ec->type != AUDIT_TYPE_SYSCALL) {
-    return Status(0);
+
+    r["protocol"] = "0";
+    r["local_port"] = "0";
+    r["remote_port"] = "0";
+    // Parse the struct and emit the row.
+    parseSockAddr(saddr, r, false); //(r.at("action") == "bind")
+    return true;
   }
 
+  r["pid"] = fields.at("pid");
+  r["path"] = decodeAuditValue(fields.at("exe"));
+  // TODO: This is a hex value.
+  r["fd"] = fields.at("a0");
+  // The open/bind success status.
+  r["success"] = (fields.at("success") == "yes") ? "1" : "0";
+  r["uptime"] = std::to_string(tables::getUptime());
+  return true;
+}
+
+Status SocketEventSubscriber::init() {
+  asm_.start(10, {AUDIT_TYPE_SYSCALL, AUDIT_TYPE_SOCKADDR}, &SocketUpdate);
+
+  auto sc = createSubscriptionContext();
+
+  // Monitor for bind and connect syscalls.
+  sc->rules.push_back({AUDIT_SYSCALL_BIND, ""});
+  sc->rules.push_back({AUDIT_SYSCALL_CONNECT, ""});
+  // Also grab SADDR structures
+  sc->types.insert(AUDIT_TYPE_SOCKADDR);
+
+  // Drop events if they are encountered outside of the expected state.
+  // sc->types = {AUDIT_SYSCALL};
+  subscribe(&SocketEventSubscriber::Callback, sc);
+
+  return Status(0, "OK");
+}
+
+Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
   if (ec->syscall == AUDIT_SYSCALL_CONNECT) {
     // The connect syscall must exit with EINPROGRESS
     if (ec->fields.count("exit") && ec->fields.at("exit") != "-115") {
       return Status(0);
     }
-    row_["action"] = "connect";
-  } else if (ec->syscall == AUDIT_SYSCALL_BIND) {
-    row_["action"] = "bind";
-  } else {
+  } else if (ec->type == AUDIT_TYPE_SYSCALL &&
+             ec->syscall != AUDIT_SYSCALL_BIND) {
     return Status(0);
   }
 
-  row_["pid"] = ec->fields["pid"];
-  row_["path"] = decodeAuditValue(ec->fields["exe"]);
-  // TODO: This is a hex value.
-  row_["fd"] = ec->fields["a0"];
-  // The open/bind success status.
-  row_["success"] = (ec->fields["success"] == "yes") ? "1" : "0";
-  row_["uptime"] = BIGINT(tables::getUptime());
-  waiting_for_saddr_ = true;
+  auto fields = asm_.add(ec->auid, ec->type, ec->fields);
+
+  if (ec->syscall == AUDIT_SYSCALL_CONNECT) {
+    asm_.set(ec->auid, "action", "connect");
+  } else if (ec->syscall == AUDIT_SYSCALL_BIND) {
+    asm_.set(ec->auid, "action", "bind");
+  }
+
+  if (fields.is_initialized()) {
+    add(*fields);
+  }
+
   return Status(0);
 }
 } // namespace osquery
