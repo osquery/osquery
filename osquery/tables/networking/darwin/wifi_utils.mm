@@ -13,6 +13,9 @@
 
 #include "osquery/tables/networking/darwin/wifi_utils.h"
 
+namespace osquery {
+namespace tables {
+
 std::string extractSsid(const CFDataRef& data) {
   if (data == nil) {
     return "";
@@ -30,7 +33,7 @@ std::string extractSsid(const CFDataRef& data) {
   return ss.str();
 }
 
-std::string getSecurityName(CWSecurity cw) {
+std::string getSecurityName(const CWSecurity cw) {
   switch (cw) {
   case kCWSecurityNone:
     return "Open";
@@ -58,7 +61,7 @@ std::string getSecurityName(CWSecurity cw) {
   }
 }
 
-int getChannelWidth(CWChannel* cwc) {
+int getChannelWidth(const CWChannel* cwc) {
   switch ([cwc channelWidth]) {
   case kCWChannelWidth20MHz:
     return 20;
@@ -74,7 +77,7 @@ int getChannelWidth(CWChannel* cwc) {
   }
 }
 
-int getChannelBand(CWChannel* cwc) {
+int getChannelBand(const CWChannel* cwc) {
   switch ([cwc channelBand]) {
   case kCWChannelBand2GHz:
     return 2;
@@ -86,7 +89,7 @@ int getChannelBand(CWChannel* cwc) {
   }
 }
 
-std::string getInterfaceModeName(CWInterfaceMode cwim) {
+std::string getInterfaceModeName(const CWInterfaceMode cwim) {
   switch (cwim) {
   case kCWInterfaceModeStation:
     return "Station";
@@ -98,4 +101,7 @@ std::string getInterfaceModeName(CWInterfaceMode cwim) {
   default:
     return "None";
   }
+}
+
+}
 }

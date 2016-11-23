@@ -29,10 +29,9 @@ QueryData genWifiStatus(QueryContext& context) {
   }
   for (CWInterface* interface in interfaces) {
     Row r;
-    NSString* strptr;
     r["interface"] = std::string([[interface interfaceName] UTF8String]);
     r["ssid"] = extractSsid((__bridge CFDataRef)[interface ssidData]);
-    strptr = [interface bssid];
+    NSString* strptr = [interface bssid];
     if (strptr != nil) {
       r["bssid"] = std::string([strptr UTF8String]);
     }
@@ -44,8 +43,10 @@ QueryData genWifiStatus(QueryContext& context) {
     r["noise"] = INTEGER([interface noiseMeasurement]);
     r["security_type"] = getSecurityName([interface security]);
     CWChannel* cwc = [interface wlanChannel];
-    r["channel_width"] = INTEGER(getChannelWidth(cwc));
-    r["channel_band"] = INTEGER(getChannelBand(cwc));
+    if (cwc != nil) {
+      r["channel_width"] = INTEGER(getChannelWidth(cwc));
+      r["channel_band"] = INTEGER(getChannelBand(cwc));
+    }
     r["transmit_rate"] = INTEGER([interface transmitRate]);
     r["mode"] = getInterfaceModeName([interface interfaceMode]);
     results.push_back(r);

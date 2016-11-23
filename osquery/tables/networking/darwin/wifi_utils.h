@@ -9,20 +9,26 @@
  */
 
 #include <CoreWLAN/CoreWLAN.h>
+
 #include <iomanip>
-// SSIDs have no character set associated with them
-// mirror Apple's representation of them
+
+namespace osquery {
+namespace tables {
+
+/// SSIDs have no character set, mirror Apple's representation of them
 std::string extractSsid(const CFDataRef& data);
 
-// Change an Apple Constant into a human readable string representing
-// the network encryption type
-std::string getSecurityName(CWSecurity cw);
+/// Change a constant into a string representing the network encryption type
+std::string getSecurityName(const CWSecurity cw);
 
-// Change an Apple constant into the channel width
-int getChannelWidth(CWChannel* cwc);
+/// Change a constant into the channel width
+int getChannelWidth(const CWChannel* cwc);
 
-// Change an Apple constant into the channel band
-int getChannelBand(CWChannel* cwc);
+/// Change a constant into the channel band
+int getChannelBand(const CWChannel* cwc);
 
-// Change an Apple constant into the mode name
-std::string getInterfaceModeName(CWInterfaceMode cwim);
+/// Change a constant into the mode name
+std::string getInterfaceModeName(const CWInterfaceMode cwim);
+
+}
+}
