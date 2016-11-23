@@ -1,0 +1,15 @@
+table_name("wifi_scan")
+description("Scan for nearby WiFi networks")
+schema([
+    Column("interface", TEXT, "Name of the interface"),
+    Column("ssid", TEXT, "SSID octets of the network"),
+    Column("bssid", TEXT, "The current basic service set identifier"),
+    Column("network_name", TEXT, "Name of the network"),
+    Column("rssi", INTEGER, "The current received signal strength indication (dbm)"),
+    Column("noise", INTEGER, "The current noise measurement (dBm)"),
+    Column("channel_width", INTEGER, "Channel width"),
+    Column("channel_band", INTEGER, "Channel band"),
+])
+attributes(cacheable=False)
+implementation("networking/wifi_status@genWifiScan")
+fuzz_paths([])
