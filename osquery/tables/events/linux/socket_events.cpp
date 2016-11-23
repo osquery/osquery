@@ -11,6 +11,7 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
@@ -32,9 +33,6 @@ namespace tables {
 extern long getUptime();
 }
 
-// Depend on the external decodeAuditValue audit-related process events method.
-extern std::string decodeAuditValue(const std::string& s);
-
 class SocketEventSubscriber : public EventSubscriber<AuditEventPublisher> {
  public:
   /// This subscriber depends on a configuration boolean.
@@ -52,51 +50,35 @@ class SocketEventSubscriber : public EventSubscriber<AuditEventPublisher> {
   Status Callback(const ECRef& ec, const SCRef& sc);
 
  private:
-  /// Socket events come in pairs, first the syscall then the structure.
-  bool waiting_for_saddr_{false};
-
-  /// The intermediate row structure.
-  Row row_;
+  AuditAssembler asm_;
 };
 
 REGISTER(SocketEventSubscriber, "event_subscriber", "socket_events");
 
-Status SocketEventSubscriber::init() {
-  auto sc = createSubscriptionContext();
-
-  // Monitor for bind and connect syscalls.
-  sc->rules.push_back({AUDIT_SYSCALL_BIND, ""});
-  sc->rules.push_back({AUDIT_SYSCALL_CONNECT, ""});
-  // Also grab SADDR structures
-  sc->types.insert(AUDIT_TYPE_SOCKADDR);
-
-  // Drop events if they are encountered outside of the expected state.
-  // sc->types = {AUDIT_SYSCALL};
-  subscribe(&SocketEventSubscriber::Callback, sc);
-
-  return Status(0, "OK");
+inline std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
+  long result{0};
+  safeStrtol(saddr.substr(offset, 8), 16, result);
+  return std::to_string((result & 0xff000000) >> 24) + "." +
+         std::to_string((result & 0x00ff0000) >> 16) + "." +
+         std::to_string((result & 0x0000ff00) >> 8) + "." +
+         std::to_string((result & 0x000000ff));
 }
 
-void parseSockAddr(const std::string& saddr, Row& r, bool local) {
+void parseSockAddr(const std::string& saddr, Row& r) {
   // The protocol is not included in the audit message.
   if (saddr[0] == '0' && saddr[1] == '2') {
     // IPv4
     r["family"] = "2";
     long result{0};
     safeStrtol(saddr.substr(4, 4), 16, result);
-    r[(local) ? "local_port" : "remote_port"] = INTEGER(result);
-    safeStrtol(saddr.substr(8, 8), 16, result);
-    auto address = std::to_string((result & 0xff000000) >> 24) + "." +
-                   std::to_string((result & 0x00ff0000) >> 16) + "." +
-                   std::to_string((result & 0x0000ff00) >> 8) + "." +
-                   std::to_string((result & 0x000000ff));
-    r[(local) ? "local_address" : "remote_address"] = std::move(address);
+    r["remote_port"] = INTEGER(result);
+    r["remote_address"] = ip4FromSaddr(saddr, 8);
   } else if (saddr[0] == '0' && saddr[1] == 'A') {
     // IPv6
     r["family"] = "11";
     long result{0};
     safeStrtol(saddr.substr(4, 4), 16, result);
-    r[(local) ? "local_port" : "remote_port"] = INTEGER(result);
+    r["remote_port"] = INTEGER(result);
     std::string address;
     for (size_t i = 0; i < 8; ++i) {
       address += saddr.substr(16 + (i * 4), 4);
@@ -105,7 +87,7 @@ void parseSockAddr(const std::string& saddr, Row& r, bool local) {
       }
     }
     boost::algorithm::to_lower(address);
-    r[(local) ? "local_address" : "remote_address"] = std::move(address);
+    r["remote_address"] = std::move(address);
   } else if (saddr[0] == '0' && saddr[1] == '1' && saddr.size() > 6) {
     // Unix domain
     r["family"] = "1";
@@ -127,46 +109,74 @@ void parseSockAddr(const std::string& saddr, Row& r, bool local) {
   }
 }
 
-Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
-  if (waiting_for_saddr_) {
-    if (ec->type == AUDIT_TYPE_SOCKADDR) {
-      auto& saddr = ec->fields["saddr"];
-      if (saddr.size() < 4 || saddr[0] == '1') {
-        return Status(0);
-      }
-      row_["protocol"] = "0";
-      row_["local_port"] = "0";
-      row_["remote_port"] = "0";
-      // Parse the struct and emit the row.
-      parseSockAddr(saddr, row_, (row_.at("action") == "bind"));
-      add(row_);
-      Row().swap(row_);
-      waiting_for_saddr_ = false;
+bool SocketUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
+  if (type == AUDIT_TYPE_SOCKADDR) {
+    const auto& saddr = fields.at("saddr");
+    if (saddr.size() < 4 || saddr[0] == '1') {
+      return false;
     }
-  } else if (ec->type != AUDIT_TYPE_SYSCALL) {
-    return Status(0);
+
+    r["protocol"] = "0";
+    r["local_port"] = "0";
+    r["remote_port"] = "0";
+    // Parse the struct and emit the row.
+    parseSockAddr(saddr, r);
+    return true;
   }
 
-  if (ec->syscall == AUDIT_SYSCALL_CONNECT) {
-    // The connect syscall must exit with EINPROGRESS
-    if (ec->fields.count("exit") && ec->fields.at("exit") != "-115") {
-      return Status(0);
-    }
-    row_["action"] = "connect";
-  } else if (ec->syscall == AUDIT_SYSCALL_BIND) {
-    row_["action"] = "bind";
-  } else {
-    return Status(0);
-  }
-
-  row_["pid"] = ec->fields["pid"];
-  row_["path"] = decodeAuditValue(ec->fields["exe"]);
+  r["pid"] = fields.at("pid");
+  r["path"] = decodeAuditValue(fields.at("exe"));
   // TODO: This is a hex value.
-  row_["fd"] = ec->fields["a0"];
+  r["fd"] = fields.at("a0");
   // The open/bind success status.
-  row_["success"] = (ec->fields["success"] == "yes") ? "1" : "0";
-  row_["uptime"] = BIGINT(tables::getUptime());
-  waiting_for_saddr_ = true;
+  r["success"] = (fields.at("success") == "yes") ? "1" : "0";
+  r["uptime"] = std::to_string(tables::getUptime());
+  return true;
+}
+
+Status SocketEventSubscriber::init() {
+  asm_.start(10, {AUDIT_TYPE_SYSCALL, AUDIT_TYPE_SOCKADDR}, &SocketUpdate);
+
+  auto sc = createSubscriptionContext();
+
+  // Monitor for bind and connect syscalls.
+  sc->rules.push_back({AUDIT_SYSCALL_BIND, ""});
+  sc->rules.push_back({AUDIT_SYSCALL_CONNECT, ""});
+  // Also grab SADDR structures
+  sc->types.insert(AUDIT_TYPE_SOCKADDR);
+
+  // Drop events if they are encountered outside of the expected state.
+  // sc->types = {AUDIT_SYSCALL};
+  subscribe(&SocketEventSubscriber::Callback, sc);
+
+  return Status(0, "OK");
+}
+
+Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
+  if (ec->syscall == AUDIT_SYSCALL_CONNECT) {
+    if (ec->fields.count("exit") && ec->fields.at("exit") != "-115") {
+      // The connect syscall may want an exit with EINPROGRESS.
+    }
+  } else if (ec->type == AUDIT_TYPE_SYSCALL &&
+             ec->syscall != AUDIT_SYSCALL_BIND) {
+    return Status(0);
+  }
+
+  auto fields = asm_.add(ec->auid, ec->type, ec->fields);
+  if (ec->syscall == AUDIT_SYSCALL_CONNECT) {
+    asm_.set(ec->auid, "action", "connect");
+  } else if (ec->syscall == AUDIT_SYSCALL_BIND) {
+    asm_.set(ec->auid, "action", "bind");
+  }
+
+  if (fields.is_initialized()) {
+    if ((*fields)["action"] == "bind") {
+      (*fields)["local_port"] = std::move((*fields)["remote_port"]);
+      (*fields)["local_address"] = std::move((*fields)["remote_address"]);
+    }
+    add(*fields);
+  }
+
   return Status(0);
 }
 } // namespace osquery

@@ -46,6 +46,98 @@ enum AuditStatus {
 
 static const int kAuditMTimeout = 4000;
 
+void AuditAssembler::start(size_t capacity,
+                           std::vector<size_t> types,
+                           AuditUpdate update) {
+  capacity_ = capacity;
+  update_ = update;
+
+  queue_.clear();
+  queue_.reserve(capacity_);
+  mt_.clear();
+  m_.clear();
+
+  types_ = std::move(types);
+}
+
+boost::optional<AuditFields> AuditAssembler::add(Auid id,
+                                                 size_t type,
+                                                 const AuditFields& fields) {
+  auto it = m_.find(id);
+  if (it == m_.end()) {
+    // A new audit ID.
+    if (queue_.size() == capacity_) {
+      evict(queue_.front());
+    }
+
+    if (types_.size() == 1 && type == types_[0]) {
+      // This is an easy match.
+      AuditFields r;
+      if (update_ == nullptr) {
+        m_[id] = {};
+        return boost::none;
+      } else if (!update_(type, fields, r)) {
+        return boost::none;
+      }
+      return r;
+    }
+
+    // Add the type, push the ID onto the queue, and update.
+    mt_[id] = {type};
+    queue_.push_back(id);
+    if (update_ == nullptr) {
+      m_[id] = {};
+    } else {
+      update_(type, fields, m_[id]);
+    }
+    return boost::none;
+  }
+
+  // Add the type and update.
+  auto& mt = mt_[id];
+  if (std::find(mt.begin(), mt.end(), type) == mt.end()) {
+    mt.push_back(type);
+  }
+
+  if (update_ != nullptr && !update_(type, fields, m_[id])) {
+    evict(id);
+    return boost::none;
+  }
+
+  // Check if the message is complete (all types seen).
+  if (complete(id)) {
+    auto new_fields = std::move(it->second);
+    evict(id);
+    return new_fields;
+  }
+
+  // Move the audit ID to the front of the queue.
+  shuffle(id);
+  return boost::none;
+}
+
+void AuditAssembler::evict(Auid id) {
+  queue_.erase(std::remove(queue_.begin(), queue_.end(), id), queue_.end());
+  mt_.erase(id);
+  m_.erase(id);
+}
+
+void AuditAssembler::shuffle(Auid id) {
+  queue_.erase(std::remove(queue_.begin(), queue_.end(), id), queue_.end());
+  queue_.push_back(id);
+}
+
+bool AuditAssembler::complete(Auid id) {
+  // Is this type enough.
+  const auto& types = mt_.at(id);
+  for (const auto& t : types_) {
+    if (std::find(types.begin(), types.end(), t) == types.end()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 Status AuditEventPublisher::setUp() {
   if (FLAGS_disable_audit) {
     return Status(1, "Publisher disabled via configuration");
@@ -85,6 +177,9 @@ Status AuditEventPublisher::setUp() {
     // Want to set a min sane buffer and maximum number of events/second min.
     // This is normally controlled through the audit config, but we must
     // enforce sane minimums: -b 8192 -e 100
+    audit_set_backlog_wait_time(handle_, 1);
+    audit_set_backlog_limit(handle_, 1024);
+    audit_set_failure(handle_, AUDIT_FAIL_SILENT);
 
     // Request only the highest priority of audit status messages.
     set_aumessage_mode(MSG_QUIET, DBG_NO);
@@ -168,6 +263,11 @@ void AuditEventPublisher::tearDown() {
     }
   }
 
+  // Restore audit configuration defaults.
+  audit_set_backlog_limit(handle_, 0);
+  audit_set_backlog_wait_time(handle_, 60000);
+  audit_set_failure(handle_, AUDIT_FAIL_PRINTK);
+
   audit_close(handle_);
   handle_ = 0;
 }
@@ -182,12 +282,13 @@ inline bool handleAuditReply(const struct audit_reply& reply,
   ec->type = reply.type;
 
   // Tokenize the message.
-  auto message = std::string(reply.message, reply.len);
+  std::string message(reply.message, reply.len);
   auto preamble_end = message.find("): ");
   if (preamble_end == std::string::npos) {
     return false;
   } else {
-    ec->preamble = message.substr(0, preamble_end + 1);
+    safeStrtoul(message.substr(6, 10), 10, ec->time);
+    safeStrtoul(message.substr(21, preamble_end - 21), 10, ec->auid);
     message = message.substr(preamble_end + 3);
   }
 
@@ -204,7 +305,7 @@ inline bool handleAuditReply(const struct audit_reply& reply,
       // This is a terminating sequence, the end of an enclosure or space tok.
       if (!key.empty()) {
         // Multiple space tokens are supported.
-        ec->fields[key] = value;
+        ec->fields.emplace(key, value);
       }
       found_enclose = false;
       found_assignment = false;
@@ -227,7 +328,7 @@ inline bool handleAuditReply(const struct audit_reply& reply,
 
   // Last step, if there was no trailing tokenizer.
   if (!key.empty()) {
-    ec->fields[key] = value;
+    ec->fields.emplace(key, value);
   }
 
   // There is a special field for syscalls.
@@ -288,7 +389,7 @@ static inline bool adjust_reply(struct audit_reply* rep, int len) {
   return true;
 }
 
-static inline int safe_audit_get_reply(int fd, struct audit_reply* rep) {
+static inline bool safe_audit_get_reply(int fd, struct audit_reply* rep) {
   if (fd < 0) {
     return -EBADF;
   }
@@ -354,6 +455,8 @@ Status AuditEventPublisher::run() {
       // Build rules cache.
       handleListRules();
       break;
+    case AUDIT_SECCOMP:
+      break;
     case AUDIT_GET:
       // Make a copy of the status reply and store as the most-recent.
       if (reply_.status != nullptr) {
@@ -397,7 +500,7 @@ Status AuditEventPublisher::run() {
   });
 
   // Reset the reply data.
-  int result = 0;
+  bool result = false;
   do {
     // Request a reply in a non-blocking mode.
     // This allows the publisher's run loop to periodically request an audit
@@ -406,10 +509,10 @@ Status AuditEventPublisher::run() {
     // This non-blocking also allows faster receipt of multi-message events.
     result = safe_audit_get_reply(handle_, &reply_);
 
-    if (result > 0) {
+    if (result) {
       inspectReply();
     }
-  } while (result > 0);
+  } while (result && !isEnding());
 
   if (static_cast<pid_t>(status_.pid) != getpid()) {
     if (control_ && status_.pid != 0) {

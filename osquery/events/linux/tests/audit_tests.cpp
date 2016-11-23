@@ -24,16 +24,14 @@ namespace osquery {
 extern bool handleAuditReply(const struct audit_reply& reply,
                              AuditEventContextRef& ec);
 
-/// Internal audit subscriber (process events) testable methods.
-extern std::string decodeAuditValue(const std::string& e);
-extern Status validAuditState(int type, AuditProcessEventState& state);
-
 /// Internal audit subscriber (socket events) testable methods.
-extern void parseSockAddr(const std::string& saddr, Row& r, bool local);
+extern void parseSockAddr(const std::string& saddr, Row& r);
 
 class AuditTests : public testing::Test {
  protected:
-  void SetUp() override { Row().swap(row_); }
+  void SetUp() override {
+    Row().swap(row_);
+  }
 
  protected:
   Row row_;
@@ -59,7 +57,8 @@ TEST_F(AuditTests, test_handle_reply) {
   free((char*)reply.message);
 
   EXPECT_EQ(reply.type, ec->type);
-  EXPECT_EQ(ec->preamble, "audit(1440542781.644:403030)");
+  EXPECT_EQ(1440542781U, ec->time);
+  EXPECT_EQ(403030U, ec->auid);
   EXPECT_EQ(ec->fields.size(), 4U);
   EXPECT_EQ(ec->fields.count("argc"), 1U);
   EXPECT_EQ(ec->fields["argc"], "3");
@@ -82,91 +81,103 @@ TEST_F(AuditTests, test_audit_value_decode) {
   EXPECT_EQ(decoded_fail, "7");
 }
 
-TEST_F(AuditTests, test_valid_audit_state) {
-  AuditProcessEventState state = STATE_SYSCALL;
+size_t kAuditCounter{0};
 
-  // The first state must be a syscall.
-  EXPECT_TRUE(validAuditState(STATE_SYSCALL, state));
-  EXPECT_EQ(state, STATE_EXECVE);
-
-  // Followed by an EXECVE, CWD, or PATH
-  EXPECT_TRUE(validAuditState(STATE_EXECVE, state));
-  EXPECT_EQ(state, STATE_CWD);
-  EXPECT_TRUE(validAuditState(STATE_CWD, state));
-  EXPECT_EQ(state, STATE_PATH);
-  EXPECT_TRUE(validAuditState(STATE_PATH, state));
-  // Finally, the state is reset to syscall.
-  EXPECT_EQ(state, STATE_SYSCALL);
+bool SimpleUpdate(size_t t, const AuditFields& f, AuditFields& m) {
+  kAuditCounter++;
+  for (const auto& i : f) {
+    m[i.first] = i.second;
+  }
+  return true;
 }
 
-TEST_F(AuditTests, test_valid_audit_state_exceptions) {
-  AuditProcessEventState state = STATE_SYSCALL;
-  validAuditState(STATE_SYSCALL, state);
+TEST_F(AuditTests, test_audit_assembler) {
+  // Test the queue correctness.
+  AuditAssembler asmb;
 
-  // Now allow for other acceptable transitions.
-  EXPECT_TRUE(validAuditState(STATE_PATH, state));
-  EXPECT_EQ(state, STATE_SYSCALL);
+  std::vector<size_t> expected_types{1, 2, 3};
+  asmb.start(3, expected_types, nullptr);
 
-  state = STATE_SYSCALL;
-  validAuditState(STATE_SYSCALL, state);
-  EXPECT_TRUE(validAuditState(STATE_PATH, state));
-  EXPECT_EQ(state, STATE_SYSCALL);
-}
+  AuditFields expected_fields{{"1", "1"}};
+  asmb.add(100U, 1, expected_fields);
 
-TEST_F(AuditTests, test_valid_audit_state_failues) {
-  // Now check invalid states.
-  AuditProcessEventState state = STATE_SYSCALL;
-  EXPECT_FALSE(validAuditState(STATE_EXECVE, state));
-  EXPECT_FALSE(validAuditState(STATE_CWD, state));
-  EXPECT_FALSE(validAuditState(STATE_PATH, state));
+  EXPECT_EQ(3U, asmb.capacity_);
+  EXPECT_EQ(1U, asmb.queue_.size());
 
-  // Two syscalls in a row: invalid.
-  state = STATE_SYSCALL;
-  validAuditState(STATE_SYSCALL, state);
-  EXPECT_FALSE(validAuditState(STATE_SYSCALL, state));
+  EXPECT_EQ(expected_types, asmb.types_);
+  // This will be empty since there is no update method.
+  EXPECT_TRUE(asmb.m_[100].empty());
 
-  // A cwd must come after an exec.
-  state = STATE_SYSCALL;
-  validAuditState(STATE_SYSCALL, state);
-  EXPECT_FALSE(validAuditState(STATE_CWD, state));
+  expected_fields = {{"2", "2"}};
+  asmb.add(100U, 1, expected_fields);
 
-  // Two execs in a row: invalid.
-  state = STATE_SYSCALL;
-  validAuditState(STATE_SYSCALL, state);
-  validAuditState(STATE_EXECVE, state);
-  EXPECT_FALSE(validAuditState(STATE_EXECVE, state));
+  // Again empty.
+  EXPECT_TRUE(asmb.m_[100].empty());
+  EXPECT_EQ(1U, asmb.mt_[100].size());
+
+  asmb.add(100U, 2, expected_fields);
+  asmb.add(100U, 3, expected_fields);
+  EXPECT_TRUE(asmb.m_.empty());
+  EXPECT_EQ(0U, asmb.queue_.size());
+
+  // Flood with incomplete messages.
+  for (size_t i = 0; i < 101; i++) {
+    asmb.add(i, 1, {});
+  }
+  EXPECT_EQ(3U, asmb.queue_.size());
+  EXPECT_EQ(3U, asmb.mt_.size());
+  EXPECT_EQ(3U, asmb.m_.size());
+
+  // Flood with complete messages.
+  for (size_t i = 0; i < 101; i++) {
+    asmb.add(i, 3, {});
+    asmb.add(i, 1, {});
+    asmb.add(i, 2, {});
+  }
+
+  // All of the queue items should have been removed.
+  EXPECT_EQ(0U, asmb.queue_.size());
+  EXPECT_EQ(0U, asmb.mt_.size());
+  EXPECT_EQ(0U, asmb.m_.size());
+
+  asmb.start(3U, {1, 2, 3}, &SimpleUpdate);
+  EXPECT_FALSE(asmb.add(1, 1, expected_fields).is_initialized());
+  EXPECT_EQ(1U, kAuditCounter);
+
+  // Inject duplicate.
+  EXPECT_FALSE(asmb.add(1, 1, expected_fields).is_initialized());
+  EXPECT_EQ(2U, kAuditCounter);
+
+  EXPECT_FALSE(asmb.add(1, 2, expected_fields).is_initialized());
+  auto fields = asmb.add(1, 3, expected_fields);
+  EXPECT_TRUE(fields.is_initialized());
+  EXPECT_EQ(*fields, expected_fields);
 }
 
 TEST_F(AuditTests, test_parse_sock_addr) {
   Row r;
   std::string msg = "02001F907F0000010000000000000000";
-  parseSockAddr(msg, r, true);
-  ASSERT_FALSE(r["local_address"].empty());
-  EXPECT_EQ(r["local_address"], "127.0.0.1");
+  parseSockAddr(msg, r);
+  ASSERT_FALSE(r["remote_address"].empty());
+  EXPECT_EQ(r["remote_address"], "127.0.0.1");
   EXPECT_EQ(r["family"], "2");
-  EXPECT_EQ(r["local_port"], "8080");
-
-  Row r2;
-  parseSockAddr(msg, r2, false);
-  ASSERT_FALSE(r2["remote_address"].empty());
-  EXPECT_EQ(r2["remote_address"], "127.0.0.1");
-  EXPECT_EQ(r2["remote_port"], "8080");
+  EXPECT_EQ(r["remote_port"], "8080");
 
   Row r3;
   std::string msg2 = "0A001F9100000000FE80000000000000022522FFFEB03684000000";
-  parseSockAddr(msg2, r3, false);
+  parseSockAddr(msg2, r3);
   ASSERT_FALSE(r3["remote_address"].empty());
   EXPECT_EQ(r3["remote_address"], "fe80:0000:0000:0000:0225:22ff:feb0:3684");
   EXPECT_EQ(r3["remote_port"], "8081");
 
   Row r4;
   std::string msg3 = "01002F746D702F6F7371756572792E656D0000";
-  parseSockAddr(msg3, r4, true);
+  parseSockAddr(msg3, r4);
   ASSERT_FALSE(r4["socket"].empty());
   EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
 
   msg3 = "0100002F746D702F6F7371756572792E656D";
-  parseSockAddr(msg3, r4, true);
+  parseSockAddr(msg3, r4);
   EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
 }
 }

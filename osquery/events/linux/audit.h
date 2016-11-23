@@ -10,11 +10,13 @@
 
 #pragma once
 
+#include <libaudit.h>
+
 #include <map>
 #include <set>
 #include <vector>
 
-#include <libaudit.h>
+#include <boost/algorithm/hex.hpp>
 
 #include <osquery/events.h>
 
@@ -40,6 +42,8 @@ struct AuditRule {
 
   /// All rules must include an action and set of flags.
   int flags{AUDIT_FILTER_EXIT};
+
+  /// The rule action.
   int action{AUDIT_ALWAYS};
 
   /// Audit rules are used for matching events to subscribers.
@@ -58,21 +62,101 @@ struct AuditRuleInternal {
   int action{0};
 };
 
+/// The audit ID is a smaller integer.
+using Auid = size_t;
+
+/// Alias the field container so we can replace and improve with refactors.
+using AuditFields = std::map<std::string, std::string>;
+
 /**
- * @brief Audit will generate consecutive messages related to a process event.
+ * @brief The message callback method used within AuditAssembler.
  *
- * The first are the syscall details, which contain information about the
- * process generating the event. That is followed by the exec arguments
- * including the canonicalized/interpreted program name. The working directory
- * and a null-delimited set of path messages follow and complete the set of
- * information.
+ * When a subscriber requires multiple audit messages it will call %start on
+ * an AuditAssembler. That subscriber must provide a callable AuditUpdate to
+ * move message content from the single message line into the assembler's
+ * row data.
+ *
+ * @param type The audit message type.
+ * @param fields The current message's fields.
+ * @param r The persistent row data.
+ * @return true if the message was parsed correctly, false if the multi-message
+ *   encountered an error and should be removed.
  */
-enum AuditProcessEventState {
-  STATE_SYSCALL = AUDIT_SYSCALL,
-  STATE_EXECVE = AUDIT_EXECVE,
-  STATE_CWD = AUDIT_CWD,
-  STATE_PATH = AUDIT_PATH,
+using AuditUpdate =
+    std::function<bool(size_t type, const AuditFields& fields, AuditFields& r)>;
+
+/**
+ * @brief A multi-message assembler based on expectations of message-type sets.
+ *
+ * Event publshers based on audit that expect to receive more than one message
+ * in order to construct a single row must used an assbler. This will transact
+ * several message types into a single set of fields.
+ *
+ * The publisher determines an acceptable queue size (the max number of)
+ * concurrent audit IDs to maintain. It then defines a set of expected types
+ * where when an ID has seen one of each the message is complete.
+ *
+ * The publisher also sets an update callable to transfer needed fields from
+ * the audit message into a persisent Row.
+ */
+class AuditAssembler : private boost::noncopyable {
+ public:
+  /// Start or restart the message assembler.
+  void start(size_t capacity, std::vector<size_t> types, AuditUpdate update);
+
+  /// Add a message from audit.
+  boost::optional<AuditFields> add(Auid id,
+                                   size_t type,
+                                   const AuditFields& fields);
+
+  /// Allow the publisher to explicit-set fields.
+  void set(Auid id, const std::string& key, const std::string& value) {
+    m_[id][key] = value;
+  }
+
+  /// Remove an audit ID from the queue and clear associated messages/types.
+  void evict(Auid id);
+
+  /// Shuffle an audit ID to the front of the queue.
+  void shuffle(Auid id);
+
+  /// Check if the audit ID has completed each required message types.
+  bool complete(Auid id);
+
+ private:
+  /// A map of audit ID to aggregate message fields.
+  std::unordered_map<Auid, AuditFields> m_;
+
+  /// A map of audit ID to current set of types seen.
+  std::unordered_map<Auid, std::vector<size_t>> mt_;
+
+  /// A functional callable to sanitize individual messages.
+  AuditUpdate update_{nullptr};
+
+  /// The queue size.
+  size_t capacity_{0};
+
+  /// The in-order (by time) queue of audit IDs.
+  std::vector<Auid> queue_;
+
+  /// The set of required types.
+  std::vector<size_t> types_;
+
+ private:
+  FRIEND_TEST(AuditTests, test_audit_assembler);
 };
+
+/// Handle quote and hex-encoded audit field content.
+inline std::string decodeAuditValue(const std::string& s) {
+  if (s.size() > 1 && s[0] == '"') {
+    return s.substr(1, s.size() - 2);
+  }
+  try {
+    return boost::algorithm::unhex(s);
+  } catch (const boost::algorithm::hex_decode_error& e) {
+    return s;
+  }
+}
 
 struct AuditSubscriptionContext : public SubscriptionContext {
   /**
@@ -117,8 +201,11 @@ struct AuditEventContext : public EventContext {
    */
   std::map<std::string, std::string> fields;
 
-  /// Each message will contain the audit time.
-  std::string preamble;
+  /// Each message will contain the audit ID.
+  size_t auid{0};
+
+  /// Each message will contain the event time.
+  size_t time{0};
 };
 
 using AuditEventContextRef = std::shared_ptr<AuditEventContext>;
