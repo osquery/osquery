@@ -30,7 +30,7 @@ QueryData genWifiScan(QueryContext& context) {
     NSSet<CWNetwork*>* networks =
         [interface scanForNetworksWithName:nil error:nil];
 
-    for (CWNetwork* network in networks){
+    for (CWNetwork* network in networks) {
       Row r;
       r["interface"] = std::string([[interface interfaceName] UTF8String]);
       r["ssid"] = extractSsid((__bridge CFDataRef)[network ssidData]);
