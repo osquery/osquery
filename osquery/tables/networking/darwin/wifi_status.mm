@@ -22,8 +22,8 @@ namespace tables {
 QueryData genWifiStatus(QueryContext& context) {
   QueryData results;
   std::string interfaceName = "en0";
-  NSArray<CWInterface *> * interfaces =
-    [[CWWiFiClient sharedWiFiClient] interfaces];
+  NSArray<CWInterface*>* interfaces =
+      [[CWWiFiClient sharedWiFiClient] interfaces];
   if (interfaces == nil || [interfaces count] == 0) {
     return results;
   }
