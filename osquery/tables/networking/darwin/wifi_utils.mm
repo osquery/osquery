@@ -30,7 +30,7 @@ std::string extractSsid(const CFDataRef& data) {
   return ss.str();
 }
 
-std::string getSecurityName(CWSecurity cw){
+std::string getSecurityName(CWSecurity cw) {
   switch (cw) {
   case kCWSecurityNone:
     return "Open";
@@ -58,7 +58,7 @@ std::string getSecurityName(CWSecurity cw){
   }
 }
 
-int getChannelWidth(CWChannel* cwc){
+int getChannelWidth(CWChannel* cwc) {
   switch ([cwc channelWidth]) {
   case kCWChannelWidth20MHz:
     return 20;
@@ -74,7 +74,7 @@ int getChannelWidth(CWChannel* cwc){
   }
 }
 
-int getChannelBand(CWChannel* cwc){
+int getChannelBand(CWChannel* cwc) {
   switch ([cwc channelBand]) {
   case kCWChannelBand2GHz:
     return 2;
@@ -86,7 +86,7 @@ int getChannelBand(CWChannel* cwc){
   }
 }
 
-std::string getInterfaceModeName(CWInterfaceMode cwim){
+std::string getInterfaceModeName(CWInterfaceMode cwim) {
   switch (cwim) {
   case kCWInterfaceModeStation:
     return "Station";

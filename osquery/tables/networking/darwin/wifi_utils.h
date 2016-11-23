@@ -8,8 +8,8 @@
  *
  */
 
-#include <iomanip>
 #include <CoreWLAN/CoreWLAN.h>
+#include <iomanip>
 // SSIDs have no character set associated with them
 // mirror Apple's representation of them
 std::string extractSsid(const CFDataRef& data);
