@@ -8,8 +8,6 @@
  *
  */
 
-#include <iomanip>
-
 #include <CoreFoundation/CoreFoundation.h>
 #include <Foundation/Foundation.h>
 
@@ -20,6 +18,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/tables/networking/darwin/wifi_utils.h"
 
 namespace osquery {
 namespace tables {
@@ -53,22 +52,6 @@ Status getKnownNetworksKey(std::string& key) {
             ? "RememberedNetworks"
             : "KnownNetworks";
   return Status(0, "ok");
-}
-
-// SSIDs have no character set associated with them
-// mirror Apple's representation of them
-std::string extractSsid(const CFDataRef& data) {
-  std::stringstream ss;
-  auto bytes = CFDataGetBytePtr(data);
-  auto length = CFDataGetLength(data);
-  for (CFIndex i = 0; i < length; i++) {
-    if (i > 0 && i % 4 == 0) {
-      ss << " ";
-    }
-    ss << std::setfill('0') << std::setw(2) << std::hex
-       << (unsigned int)bytes[i];
-  }
-  return ss.str();
 }
 
 std::string extractNetworkProperties(const CFTypeRef& property) {
