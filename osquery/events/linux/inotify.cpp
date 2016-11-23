@@ -212,8 +212,14 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
   // Get the pathname the watch fired on.
   {
     WriteLock lock(path_mutex_);
-    ec->path = descriptor_paths_.at(event->wd);
+    if (descriptor_paths_.find(event->wd) == descriptor_paths_.end()) {
+      // return a blank event context if we can't find the paths for the event
+      return ec;
+    } else {
+      ec->path = descriptor_paths_.at(event->wd);
+    }
   }
+
   if (event->len > 1) {
     ec->path += event->name;
   }
