@@ -1,4 +1,4 @@
-table_name("wifi_scan")
+table_name("wifi_survey")
 description("Scan for nearby WiFi networks")
 schema([
     Column("interface", TEXT, "Name of the interface"),
@@ -11,5 +11,5 @@ schema([
     Column("channel_band", INTEGER, "Channel band"),
 ])
 attributes(cacheable=False)
-implementation("networking/wifi_status@genWifiScan")
+implementation("networking/wifi_survey@genWifiScan")
 fuzz_paths([])
