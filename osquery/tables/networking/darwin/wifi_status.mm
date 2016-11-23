@@ -22,21 +22,22 @@ namespace tables {
 QueryData genWifiStatus(QueryContext& context) {
   QueryData results;
   std::string interfaceName = "en0";
-  NSArray<CWInterface *> * interfaces = [[CWWiFiClient sharedWiFiClient] interfaces];
+  NSArray<CWInterface*>* interfaces =
+      [[CWWiFiClient sharedWiFiClient] interfaces];
   if (interfaces == nil || [interfaces count] == 0){
     return results;
   }
-  for (CWInterface *interface in interfaces) {
+  for (CWInterface* interface in interfaces) {
     Row r;
-    NSString * strptr;
+    NSString* strptr;
     r["interface"] = std::string([[interface interfaceName] UTF8String]);
     r["ssid"] = extractSsid((__bridge CFDataRef)[interface ssidData]);
-     strptr = [interface bssid];
-     if (strptr != nil) {
-       r["bssid"] = std::string([strptr UTF8String]);
+    strptr = [interface bssid];
+    if (strptr != nil) {
+      r["bssid"] = std::string([strptr UTF8String]);
     }
     strptr = [interface ssid];
-    if (strptr != nil){
+    if (strptr != nil) {
       r["network_name"] = std::string([strptr UTF8String]);
     }
     r["rssi"] = INTEGER([interface rssiValue]);

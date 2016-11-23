@@ -31,71 +31,71 @@ std::string extractSsid(const CFDataRef& data) {
 }
 
 std::string getSecurityName(CWSecurity cw){
-  switch(cw) {
- 		case kCWSecurityNone:
- 			return "Open";
- 		case kCWSecurityWEP:
- 			return "WEP";
- 		case kCWSecurityWPAPersonal:
- 			return "WPA Personal";
-    case kCWSecurityWPAPersonalMixed:
-      return "WPA Personal Mixed";
-    case kCWSecurityWPA2Personal:
- 			return "WPA2 Personal";
-    case kCWSecurityPersonal:
-      return "Personal";
-    case kCWSecurityDynamicWEP:
- 			return "Dynamic WEP";
- 		case kCWSecurityWPAEnterprise:
- 			return "WPA Enterprise";
- 		case kCWSecurityWPA2Enterprise:
- 			return "WPA2 Enterprise";
-    case kCWSecurityEnterprise:
-      return "Enterprise";
-    case kCWSecurityUnknown:
-    default:
-      return "Unknown";
- 	}
+  switch (cw) {
+  case kCWSecurityNone:
+    return "Open";
+  case kCWSecurityWEP:
+    return "WEP";
+  case kCWSecurityWPAPersonal:
+    return "WPA Personal";
+  case kCWSecurityWPAPersonalMixed:
+    return "WPA Personal Mixed";
+  case kCWSecurityWPA2Personal:
+    return "WPA2 Personal";
+  case kCWSecurityPersonal:
+    return "Personal";
+  case kCWSecurityDynamicWEP:
+    return "Dynamic WEP";
+  case kCWSecurityWPAEnterprise:
+    return "WPA Enterprise";
+  case kCWSecurityWPA2Enterprise:
+    return "WPA2 Enterprise";
+  case kCWSecurityEnterprise:
+    return "Enterprise";
+  case kCWSecurityUnknown:
+  default:
+    return "Unknown";
+  }
 }
 
 int getChannelWidth(CWChannel* cwc){
-  switch([cwc channelWidth]) {
- 		case kCWChannelWidth20MHz:
- 			return 20;
- 		case kCWChannelWidth40MHz:
- 			return 40;
- 		case kCWChannelWidth80MHz:
- 			return 80;
-    case kCWChannelWidth160MHz:
-      return 160;
-    case kCWChannelWidthUnknown:
-    default:
-      return -1;
- 	}
+  switch ([cwc channelWidth]) {
+  case kCWChannelWidth20MHz:
+    return 20;
+  case kCWChannelWidth40MHz:
+    return 40;
+  case kCWChannelWidth80MHz:
+    return 80;
+  case kCWChannelWidth160MHz:
+    return 160;
+  case kCWChannelWidthUnknown:
+  default:
+    return -1;
+  }
 }
 
 int getChannelBand(CWChannel* cwc){
-  switch([cwc channelBand]) {
- 		case kCWChannelBand2GHz:
- 			return 2;
- 		case kCWChannelBand5GHz:
- 			return 5;
-    case kCWChannelBandUnknown:
-    default:
-      return -1;
- 	}
+  switch ([cwc channelBand]) {
+  case kCWChannelBand2GHz:
+    return 2;
+  case kCWChannelBand5GHz:
+    return 5;
+  case kCWChannelBandUnknown:
+  default:
+    return -1;
+  }
 }
 
 std::string getInterfaceModeName(CWInterfaceMode cwim){
-  switch(cwim) {
- 		case kCWInterfaceModeStation:
- 			return "Station";
-    case kCWInterfaceModeIBSS:
- 			return "IBSS";
-    case kCWInterfaceModeHostAP:
- 			return "Host AP";
-    case kCWInterfaceModeNone:
-    default:
-      return "None";
- 	}
+  switch (cwim) {
+  case kCWInterfaceModeStation:
+    return "Station";
+  case kCWInterfaceModeIBSS:
+    return "IBSS";
+  case kCWInterfaceModeHostAP:
+    return "Host AP";
+  case kCWInterfaceModeNone:
+  default:
+    return "None";
+  }
 }

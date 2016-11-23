@@ -54,8 +54,6 @@ Status getKnownNetworksKey(std::string& key) {
   return Status(0, "ok");
 }
 
-
-
 std::string extractNetworkProperties(const CFTypeRef& property) {
   if (CFGetTypeID(property) == CFDataGetTypeID()) {
     return extractSsid((CFDataRef)property);

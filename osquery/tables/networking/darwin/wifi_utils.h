@@ -25,4 +25,4 @@ int getChannelWidth(CWChannel* cwc);
 int getChannelBand(CWChannel* cwc);
 
 // Change an Apple constant into the mode name
-std::string getInterfaceModeName(CWInterfaceMode cwim); 
+std::string getInterfaceModeName(CWInterfaceMode cwim);
