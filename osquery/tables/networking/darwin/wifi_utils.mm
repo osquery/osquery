@@ -14,7 +14,7 @@
 #include "osquery/tables/networking/darwin/wifi_utils.h"
 
 std::string extractSsid(const CFDataRef& data) {
-  if(data == nil){
+  if (data == nil) {
     return "";
   }
   std::stringstream ss;

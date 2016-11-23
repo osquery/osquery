@@ -32,8 +32,8 @@ QueryData genWifiStatus(QueryContext& context) {
     r["interface"] = std::string([[interface interfaceName] UTF8String]);
     r["ssid"] = extractSsid((__bridge CFDataRef)[interface ssidData]);
      strptr = [interface bssid];
-    if (strptr != nil){
-      r["bssid"] = std::string([strptr UTF8String]);
+     if (strptr != nil) {
+       r["bssid"] = std::string([strptr UTF8String]);
     }
     strptr = [interface ssid];
     if (strptr != nil){
