@@ -33,7 +33,6 @@ namespace tables {
 extern long getUptime();
 }
 
-
 class SocketEventSubscriber : public EventSubscriber<AuditEventPublisher> {
  public:
   /// This subscriber depends on a configuration boolean.
@@ -56,26 +55,30 @@ class SocketEventSubscriber : public EventSubscriber<AuditEventPublisher> {
 
 REGISTER(SocketEventSubscriber, "event_subscriber", "socket_events");
 
-void parseSockAddr(const std::string& saddr, Row& r, bool local) {
+inline std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
+  long result{0};
+  safeStrtol(saddr.substr(offset, 8), 16, result);
+  return std::to_string((result & 0xff000000) >> 24) + "." +
+         std::to_string((result & 0x00ff0000) >> 16) + "." +
+         std::to_string((result & 0x0000ff00) >> 8) + "." +
+         std::to_string((result & 0x000000ff));
+}
+
+void parseSockAddr(const std::string& saddr, Row& r) {
   // The protocol is not included in the audit message.
   if (saddr[0] == '0' && saddr[1] == '2') {
     // IPv4
     r["family"] = "2";
     long result{0};
     safeStrtol(saddr.substr(4, 4), 16, result);
-    r[(local) ? "local_port" : "remote_port"] = INTEGER(result);
-    safeStrtol(saddr.substr(8, 8), 16, result);
-    auto address = std::to_string((result & 0xff000000) >> 24) + "." +
-                   std::to_string((result & 0x00ff0000) >> 16) + "." +
-                   std::to_string((result & 0x0000ff00) >> 8) + "." +
-                   std::to_string((result & 0x000000ff));
-    r[(local) ? "local_address" : "remote_address"] = std::move(address);
+    r["remote_port"] = INTEGER(result);
+    r["remote_address"] = ip4FromSaddr(saddr, 8);
   } else if (saddr[0] == '0' && saddr[1] == 'A') {
     // IPv6
     r["family"] = "11";
     long result{0};
     safeStrtol(saddr.substr(4, 4), 16, result);
-    r[(local) ? "local_port" : "remote_port"] = INTEGER(result);
+    r["remote_port"] = INTEGER(result);
     std::string address;
     for (size_t i = 0; i < 8; ++i) {
       address += saddr.substr(16 + (i * 4), 4);
@@ -84,7 +87,7 @@ void parseSockAddr(const std::string& saddr, Row& r, bool local) {
       }
     }
     boost::algorithm::to_lower(address);
-    r[(local) ? "local_address" : "remote_address"] = std::move(address);
+    r["remote_address"] = std::move(address);
   } else if (saddr[0] == '0' && saddr[1] == '1' && saddr.size() > 6) {
     // Unix domain
     r["family"] = "1";
@@ -117,7 +120,7 @@ bool SocketUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
     r["local_port"] = "0";
     r["remote_port"] = "0";
     // Parse the struct and emit the row.
-    parseSockAddr(saddr, r, false); //(r.at("action") == "bind")
+    parseSockAddr(saddr, r);
     return true;
   }
 
@@ -151,9 +154,8 @@ Status SocketEventSubscriber::init() {
 
 Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
   if (ec->syscall == AUDIT_SYSCALL_CONNECT) {
-    // The connect syscall must exit with EINPROGRESS
     if (ec->fields.count("exit") && ec->fields.at("exit") != "-115") {
-      return Status(0);
+      // The connect syscall may want an exit with EINPROGRESS.
     }
   } else if (ec->type == AUDIT_TYPE_SYSCALL &&
              ec->syscall != AUDIT_SYSCALL_BIND) {
@@ -161,7 +163,6 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
   }
 
   auto fields = asm_.add(ec->auid, ec->type, ec->fields);
-
   if (ec->syscall == AUDIT_SYSCALL_CONNECT) {
     asm_.set(ec->auid, "action", "connect");
   } else if (ec->syscall == AUDIT_SYSCALL_BIND) {
@@ -169,6 +170,10 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
   }
 
   if (fields.is_initialized()) {
+    if ((*fields)["action"] == "bind") {
+      (*fields)["local_port"] = std::move((*fields)["remote_port"]);
+      (*fields)["local_address"] = std::move((*fields)["remote_address"]);
+    }
     add(*fields);
   }
 

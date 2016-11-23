@@ -103,7 +103,7 @@ REGISTER(ProcessEventSubscriber, "event_subscriber", "process_events");
 
 Status ProcessEventSubscriber::init() {
   asm_.start(
-      10, {AUDIT_SYSCALL, AUDIT_EXECVE, AUDIT_PATH, AUDIT_CWD}, &ProcessUpdate);
+      20, {AUDIT_SYSCALL, AUDIT_EXECVE, AUDIT_PATH, AUDIT_CWD}, &ProcessUpdate);
 
   auto sc = createSubscriptionContext();
 
