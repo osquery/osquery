@@ -102,6 +102,5 @@ std::string getInterfaceModeName(const CWInterfaceMode cwim) {
     return "None";
   }
 }
-
 }
 }

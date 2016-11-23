@@ -29,6 +29,5 @@ int getChannelBand(const CWChannel* cwc);
 
 /// Change a constant into the mode name
 std::string getInterfaceModeName(const CWInterfaceMode cwim);
-
 }
 }
