@@ -230,8 +230,8 @@ function main() {
   log "package created at $OUTPUT_PKG_PATH"
 
   # We optionally create an RPM equivalent.
-  FPM=$(which fpm)
-  RPMBUILD=$(which rpmbuild)
+  FPM=$(which fpm || true)
+  RPMBUILD=$(which rpmbuild || true)
   if [[ ! "$FPM" = "" && ! "$RPMBUILD" = "" ]]; then
     log "creating RPM equivalent"
 

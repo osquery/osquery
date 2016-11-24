@@ -123,7 +123,11 @@ function build_target() {
 
 function check_deterministic() {
   # Expect the project to have been built.
-  DAEMON=build/$DISTRO/osquery/osqueryd
+  ALIAS=$DISTRO
+  if [[ "$OS" = "darwin" ]]; then
+    ALIAS=darwin
+  fi
+  DAEMON=build/$ALIAS/osquery/osqueryd
   strip $DAEMON
   RUN1=$(shasum -a 256 $DAEMON)
 
