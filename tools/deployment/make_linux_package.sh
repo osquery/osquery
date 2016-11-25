@@ -184,12 +184,8 @@ function main() {
     PACKAGE_DEPENDENCIES="$PACKAGE_DEPENDENCIES -d \"$element\""
   done
 
-  platform OS
-  distro $OS DISTRO
-  FPM="fpm"
-  if [[ $DISTRO == "lucid" ]]; then
-    FPM="/var/lib/gems/1.8/bin/fpm"
-  fi
+  # Let callers provide their own fpm if desired
+  FPM=${FPM:="fpm"}
 
   POSTINST_CMD=""
   if [[ $OSQUERY_POSTINSTALL != "" ]] && [[ -f $OSQUERY_POSTINSTALL ]]; then
