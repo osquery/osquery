@@ -13,6 +13,7 @@
 #include <map>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/noncopyable.hpp>
 
 #define GFLAGS_DLL_DEFINE_FLAG
 #define GFLAGS_DLL_DECLARE_FLAG
@@ -61,7 +62,7 @@ struct FlagInfo {
  * The osquery-specific gflags-like options define macro `FLAG` uses a Flag
  * instance to track the options data.
  */
-class Flag {
+class Flag : private boost::noncopyable {
  public:
   /*
    * @brief Create a new flag.
@@ -85,9 +86,6 @@ class Flag {
   /// Keep the ctor private, for accessing through `add` wrapper.
   Flag() {}
   virtual ~Flag() {}
-
-  Flag(Flag const&);
-  void operator=(Flag const&);
 
  public:
   /// The public flags instance, usable when parsing `--help`.
@@ -151,7 +149,10 @@ class Flag {
                          bool cli = false);
 
  private:
+  /// The container of all shell, CLI, and normal flags.
   std::map<std::string, FlagDetail> flags_;
+
+  /// A container for hidden or aliased (legacy, compatibility) flags.
   std::map<std::string, FlagDetail> aliases_;
 };
 
@@ -171,7 +172,9 @@ class FlagAlias {
     return *this;
   }
 
-  operator T() const { return boost::lexical_cast<T>(Flag::getValue(name_)); }
+  operator T() const {
+    return boost::lexical_cast<T>(Flag::getValue(name_));
+  }
 
   FlagAlias(const std::string& alias,
             const std::string& type,
@@ -180,6 +183,7 @@ class FlagAlias {
       : name_(name) {}
 
  private:
+  /// Friendly flag name.
   std::string name_;
 };
 }
@@ -187,31 +191,73 @@ class FlagAlias {
 /*
  * @brief Replace gflags' `DEFINE_type` macros to track osquery flags.
  *
- * @param type The `_type` symbol portion of the gflags define.
- * @param name The name symbol passed to gflags' `DEFINE_type`.
- * @param value The default value, use a C++ literal.
- * @param desc A string literal used for help display.
+ * Do not use this macro within the codebase directly! Use the subsequent macros
+ * that abstract the tail of boolean arguments into meaningful statements.
+ *
+ * @param type(t) The `_type` symbol portion of the gflags define.
+ * @param name(n) The name symbol passed to gflags' `DEFINE_type`.
+ * @param value(v) The default value, use a C++ literal.
+ * @param desc(d) A string literal used for help display.
+ * @param shell(s) Boolean, true if this is only supported in osqueryi.
+ * @param extension(e) Boolean, true if this is only supported in an extension.
+ * @param cli(c) Boolean, true if this can only be set on the CLI (or flagfile).
+ *   This helps documentation since flags can also be set within configuration
+ *   as "options".
+ * @param hidden(h) Boolean, true if this is hidden from help displays.
  */
-#define OSQUERY_FLAG(t, n, v, d, s, e, c, h)              \
-  DEFINE_##t(n, v, d);                                    \
-  namespace flags {                                       \
-  const int flag_##n = Flag::create(#n, {d, s, e, c, h}); \
+#define OSQUERY_FLAG(t, n, v, d, s, e, c, h)                                   \
+  DEFINE_##t(n, v, d);                                                         \
+  namespace flags {                                                            \
+  const int flag_##n = Flag::create(#n, {d, s, e, c, h});                      \
   }
 
+/*
+ * @brief Create a command line flag and configuration option.
+ *
+ * This is an abstraction around Google GFlags that allows osquery to organize
+ * the various types of "flags" used to turn features on and off and configure.
+ *
+ * A FLAG can be set within a `flagfile`, as a command line switch, or via
+ * a configuration's "options" key.
+ *
+ * @param t the type of flag, use the C++ symbol or literal type exactly.
+ * @param n the flag name as a symbol, write flagname instead of "flagname".
+ * @param v the default value.
+ * @param d the help description, please be concise.
+ */
 #define FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, 0, 0, 0, 0)
+
+/// See FLAG, but SHELL_FLAG%s are only available in osqueryi.
 #define SHELL_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, 1, 0, 0, 0)
+
+/// See FLAG, but EXTENSION_FLAG%s are only available to extensions.
 #define EXTENSION_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, 0, 1, 0, 0)
+
+/// See FLAG, but CLI_FLAG%s cannot be set within configuration "options".
 #define CLI_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, 0, 0, 1, 0)
+
+/// See FLAG, but HIDDEN_FLAGS%s are not shown in --help.
 #define HIDDEN_FLAG(t, n, v, d) OSQUERY_FLAG(t, n, v, d, 0, 0, 0, 1)
 
-#define OSQUERY_FLAG_ALIAS(t, a, n, s, e)                             \
-  FlagAlias<t> FLAGS_##a(#a, #t, #n, &FLAGS_##n);                     \
-  namespace flags {                                                   \
-  static GFLAGS_NAMESPACE::FlagRegisterer oflag_##a(                  \
-      #a, #t, #a, #a, &FLAGS_##n, &FLAGS_##n);                        \
-  const int flag_alias_##a = Flag::createAlias(#a, {#n, s, e, 0, 1}); \
+/**
+ * @brief Create an alias to a command line flag.
+ *
+ * Like OSQUERY_FLAG, do not use this in the osquery codebase. Use the derived
+ * macros that abstract the tail of boolean arguments.
+ */
+#define OSQUERY_FLAG_ALIAS(t, a, n, s, e)                                      \
+  FlagAlias<t> FLAGS_##a(#a, #t, #n, &FLAGS_##n);                              \
+  namespace flags {                                                            \
+  static GFLAGS_NAMESPACE::FlagRegisterer oflag_##a(                           \
+      #a, #a, #a, &FLAGS_##n, &FLAGS_##n);                                     \
+  const int flag_alias_##a = Flag::createAlias(#a, {#n, s, e, 0, 1});          \
   }
 
+/// See FLAG, FLAG_ALIAS aliases a flag name to an existing FLAG.
 #define FLAG_ALIAS(t, a, n) OSQUERY_FLAG_ALIAS(t, a, n, 0, 0)
+
+/// See FLAG_ALIAS, SHELL_FLAG_ALIAS%es are only available in osqueryi.
 #define SHELL_FLAG_ALIAS(t, a, n) _OSQUERY_FLAG_ALIAS(t, a, n, 1, 0)
+
+/// See FLAG_ALIAS, EXTENSION_FLAG_ALIAS%es are only available to extensions.
 #define EXTENSION_FLAG_ALIAS(a, n) OSQUERY_FLAG_ALIAS(std::string, a, n, 0, 1)
