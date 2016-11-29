@@ -19,6 +19,8 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
+#include <osquery/dispatcher.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
@@ -119,5 +121,77 @@ TEST_F(PermissionsTests, test_nobody_drop) {
   // Now that the dropper is gone, the effective user/group should be restored.
   EXPECT_EQ(geteuid(), getuid());
   EXPECT_EQ(getegid(), getgid());
+}
+
+std::string kMultiThreadPermissionPath;
+
+class PermissionsRunnable : public InternalRunnable {
+ private:
+  void start() override {
+    while (!interrupted()) {
+      if (!writeTextFile(kMultiThreadPermissionPath, "test")) {
+        throw std::runtime_error("Cannot write " + kMultiThreadPermissionPath);
+      }
+      ticks++;
+    }
+  }
+
+ public:
+  std::atomic<size_t> ticks{0};
+};
+
+bool waitForTick(const std::shared_ptr<PermissionsRunnable>& runnable) {
+  size_t now = runnable->ticks;
+  size_t timeout = 1000;
+  size_t delay = 0;
+  while (delay < timeout) {
+    sleepFor(20);
+    if (runnable->ticks > now) {
+      return true;
+    }
+    sleepFor(200);
+    delay += 220;
+  }
+  return false;
+}
+
+TEST_F(PermissionsTests, test_multi_thread_permissions) {
+  if (getuid() != 0) {
+    LOG(WARNING) << "Not root, skipping multi-thread deprivilege testing";
+    return;
+  }
+
+  ASSERT_EQ(0U, geteuid());
+
+  // Set the multi-thread path, which both threads will write into.
+  auto multi_thread_path = fs::path(kTestWorkingDirectory) / "threadperms.txt";
+  kMultiThreadPermissionPath = multi_thread_path.string();
+
+  // This thread has super-user permissions.
+  ASSERT_TRUE(writeTextFile(kMultiThreadPermissionPath, "test", 600));
+
+  // Start our permissions thread.
+  auto perms_thread = std::make_shared<PermissionsRunnable>();
+  Dispatcher::addService(perms_thread);
+
+  // Wait for the permissions thread to write once.
+  EXPECT_TRUE(waitForTick(perms_thread));
+
+  // Attempt to drop to nobody.
+  auto nobody = getpwnam("nobody");
+  EXPECT_NE(nobody, nullptr);
+
+  {
+    auto dropper = DropPrivileges::get();
+    EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
+    EXPECT_EQ(geteuid(), nobody->pw_uid);
+
+    // Now we wait for the permissions thread to write once while this thread's
+    // permissions are dropped.
+    EXPECT_TRUE(waitForTick(perms_thread));
+  }
+
+  Dispatcher::stopServices();
+  Dispatcher::joinServices();
 }
 }
