@@ -171,8 +171,7 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
     Row r;
     // Both route and arp tables may include an interface.
     if ((route->rtm_addrs & RTA_GATEWAY) == RTA_GATEWAY) {
-      auto sdl = (struct sockaddr_dl *)addr_map[RTAX_GATEWAY];
-      r["interface"] = ifmap[(int)sdl->sdl_index];
+      r["interface"] = ifmap[(int)route->rtm_index];
     }
 
     Status row_status;
