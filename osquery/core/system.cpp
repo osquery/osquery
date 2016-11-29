@@ -19,6 +19,7 @@
 #include <signal.h>
 
 #if !defined(__FreeBSD__) && !defined(WIN32)
+#include <sys/syscall.h>
 #include <uuid/uuid.h>
 #endif
 
@@ -303,8 +304,20 @@ bool DropPrivileges::dropTo(const std::string& user) {
   return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
 }
 
+bool setThreadEffective(uid_t uid, gid_t gid) {
+#ifdef __APPLE__
+  return (pthread_setugid_np(uid, gid) == 0);
+#else
+  return (syscall(SYS_setresgid, -1, gid, -1) == 0 &&
+          syscall(SYS_setresuid, -1, uid, -1) == 0);
+#endif
+}
+
 bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
-  if (dropped() && uid == to_user_ && gid == to_group_) {
+  if (uid == geteuid() && gid == getegid()) {
+    // Privileges do not need to be dropped.
+    return true;
+  } else if (dropped() && uid == to_user_ && gid == to_group_) {
     // Privileges are already dropped to the requested user and group.
     return true;
   } else if (dropped()) {
@@ -320,9 +333,8 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
   original_groups_ = (gid_t*)malloc(group_size_ * sizeof(gid_t));
   group_size_ = getgroups(group_size_, original_groups_);
   setgroups(1, &gid);
-  if (setegid(gid) != 0) {
-    return false;
-  } else if (seteuid(uid) != 0) {
+
+  if (!setThreadEffective(uid, gid)) {
     (void)setegid(getgid());
     return false;
   }
@@ -339,20 +351,23 @@ void DropPrivileges::restoreGroups() {
   group_size_ = 0;
   free(original_groups_);
   original_groups_ = nullptr;
-}
-
-DropPrivileges::~DropPrivileges() {
-  if (dropped_) {
-    // We are elevating privileges, there is no security vulnerability if either
-    // privilege change fails.
-    (void)seteuid(getuid());
-    (void)setegid(getgid());
-    dropped_ = false;
   }
 
-  if (original_groups_ != nullptr) {
-    restoreGroups();
+  DropPrivileges::~DropPrivileges() {
+    // We are elevating privileges, there is no security vulnerability if
+    // either privilege change fails.
+    if (dropped_) {
+#ifdef __APPLE__
+      setThreadEffective(KAUTH_UID_NONE, KAUTH_GID_NONE);
+#else
+      setThreadEffective(getuid(), getgid());
+#endif
+      dropped_ = false;
+    }
+
+    if (original_groups_ != nullptr) {
+      restoreGroups();
+    }
   }
-}
 #endif
 }
