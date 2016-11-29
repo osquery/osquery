@@ -117,8 +117,7 @@ function main() {
   platform OS
   distro $OS DISTRO
 
-  touch "$BUILD_DIR/$PACKAGE_NAME$(get_pkg_suffix)"
-  OUTPUT_PKG_PATH=`realpath "$BUILD_DIR/$PACKAGE_NAME$(get_pkg_suffix)"`
+  OUTPUT_PKG_PATH=`realpath "$BUILD_DIR"`/$PACKAGE_NAME$(get_pkg_suffix)
 
   rm -rf $WORKING_DIR
   rm -f $OUTPUT_PKG_PATH
@@ -261,8 +260,7 @@ function main() {
   fi
 
   PACKAGE_DEBUG_DEPENDENCIES=`echo "$PACKAGE_DEBUG_DEPENDENCIES"|tr '-' '_'`
-  touch "$BUILD_DIR/$PACKAGE_DEBUG_NAME$(get_pkg_suffix)"
-  OUTPUT_DEBUG_PKG_PATH=`realpath "$BUILD_DIR/$PACKAGE_DEBUG_NAME$(get_pkg_suffix)"`
+  OUTPUT_DEBUG_PKG_PATH=`realpath "$BUILD_DIR"`/$PACKAGE_DEBUG_NAME$(get_pkg_suffix)
   if [[ ! -z "$DEBUG" ]]; then
     rm -f $OUTPUT_DEBUG_PKG_PATH
     CMD="$FPM -s dir -t $PACKAGE_TYPE            \
