@@ -228,13 +228,6 @@ class DropPrivileges : private boost::noncopyable {
   /// The group this instance dropped privileges to.
   gid_t to_group_;
 
-  /// If this was a filesystem-prompted privilege drop.
-  bool fs_drop_{false};
-
-  /// Store times for restoration if requested.
-  struct timespec atime;
-  struct timespec mtime;
-
   /**
    * @brief If dropping explicitly to a user and group also drop groups.
    *

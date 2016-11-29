@@ -268,80 +268,36 @@ Status createPidFile() {
 
 #ifndef WIN32
 
-#if defined(__linux__)
-#include <sys/fsuid.h>
-static inline int _fs_set_group(gid_t gid) {
-  return setfsgid(gid) * 0;
+bool ownerFromResult(const QueryData& result, long& uid, long& gid) {
+  if (result.empty()) {
+    return false;
+  }
+
+  if (!safeStrtol(result[0].at("uid"), 10, uid) ||
+      !safeStrtol(result[0].at("gid"), 10, gid)) {
+    return false;
+  }
+  return true;
 }
-static inline int _fs_set_user(uid_t uid) {
-  return setfsuid(uid) * 0;
-}
-#else
-static inline int _fs_set_group(gid_t gid) {
-  return setegid(gid);
-}
-static inline int _fs_set_user(uid_t uid) {
-  return seteuid(uid);
-}
-#endif
 
 bool DropPrivileges::dropToParent(const fs::path& path) {
-  uid_t to_user{0};
-  gid_t to_group{0};
-  // Open the parent path of the requested file to operate on.
-  int pfd = open(path.parent_path().string().c_str(), O_RDONLY | O_NONBLOCK);
-  if (pfd >= 0) {
-    struct stat file;
-    if (geteuid() == 0 && fstat(pfd, &file) >= 0 &&
-        (file.st_uid != 0 || file.st_gid != 0)) {
-      // A drop is required if this process is executed as a superuser and
-      // the folder can be altered by non-super users.
-      to_user = file.st_uid;
-      to_group = file.st_gid;
-    }
-    close(pfd);
+  auto result =
+      SQL::selectAllFrom("file", "path", EQUALS, path.parent_path().string());
+
+  long uid = 0;
+  long gid = 0;
+  if (!ownerFromResult(result, uid, gid)) {
+    return false;
   }
-
-  if (to_user == 0 && to_group == 0) {
-    // No drop required.
-    return true;
-  } else if (dropped() && to_user == to_user_ && to_group == to_group_) {
-    // They are already dropped to the correct user/group.
-    return true;
-  } else if (!dropped()) {
-    // Privileges should be dropped.
-    if (_fs_set_group(to_group) != 0) {
-      return false;
-    } else if (_fs_set_user(to_user) != 0) {
-      // Privileges are not dropped and could not be set for the user.
-      // Restore the group and fail.
-      (void)_fs_set_group(getgid());
-      return false;
-    }
-
-    // Privileges are now dropped to the requested user/group.
-    to_user_ = to_user;
-    to_group_ = to_group;
-    dropped_ = true;
-    fs_drop_ = true;
-    return true;
-  }
-
-  // Privileges are dropped but not to the requested user/group.
-  // Proceed with extreme caution.
-  return false;
+  return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
 }
 
 bool DropPrivileges::dropTo(const std::string& user) {
   auto result = SQL::selectAllFrom("users", "username", EQUALS, user);
-  if (result.size() == 0) {
-    return false;
-  }
 
   long uid = 0;
   long gid = 0;
-  if (!safeStrtol(result[0].at("uid"), 10, uid) ||
-      !safeStrtol(result[0].at("gid"), 10, gid)) {
+  if (!ownerFromResult(result, uid, gid)) {
     return false;
   }
   return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
@@ -387,17 +343,10 @@ void DropPrivileges::restoreGroups() {
 
 DropPrivileges::~DropPrivileges() {
   if (dropped_) {
-    // 1. On Linux/BSD we do not need to differentiate between FS/E since FS
-    // is set implicitly by seteuid.
-    // 2. We are elevating privileges, there is no security vulnerability if
-    // either privilege change fails.
-    if (fs_drop_) {
-      (void)_fs_set_user(getuid());
-      (void)_fs_set_group(getgid());
-    } else {
-      (void)seteuid(getuid());
-      (void)setegid(getgid());
-    }
+    // We are elevating privileges, there is no security vulnerability if either
+    // privilege change fails.
+    (void)seteuid(getuid());
+    (void)setegid(getgid());
     dropped_ = false;
   }
 
