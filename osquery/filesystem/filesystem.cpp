@@ -75,33 +75,20 @@ Status writeTextFile(const fs::path& path,
   return Status(0, "OK");
 }
 
-struct OpenReadableFile {
+struct OpenReadableFile : private boost::noncopyable {
  public:
   explicit OpenReadableFile(const fs::path& path, bool blocking = false) {
-#ifndef WIN32
-    dropper_ = DropPrivileges::get();
-    if (dropper_->dropToParent(path)) {
-#endif
-      int mode = PF_OPEN_EXISTING | PF_READ;
-      if (!blocking) {
-        mode |= PF_NONBLOCK;
-      }
-
-      // Open the file descriptor and allow caller to perform error checking.
-      fd.reset(new PlatformFile(path.string(), mode));
-#ifndef WIN32
+    int mode = PF_OPEN_EXISTING | PF_READ;
+    if (!blocking) {
+      mode |= PF_NONBLOCK;
     }
-#endif
+
+    // Open the file descriptor and allow caller to perform error checking.
+    fd.reset(new PlatformFile(path.string(), mode));
   }
 
-  ~OpenReadableFile() {}
-
+ public:
   std::unique_ptr<PlatformFile> fd{nullptr};
-
-#ifndef WIN32
- private:
-  DropPrivilegesRef dropper_{nullptr};
-#endif
 };
 
 Status readFile(const fs::path& path,
