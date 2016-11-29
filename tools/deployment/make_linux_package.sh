@@ -117,7 +117,7 @@ function main() {
   platform OS
   distro $OS DISTRO
 
-  OUTPUT_PKG_PATH=`realpath "$BUILD_DIR/$PACKAGE_NAME$(get_pkg_suffix)"`
+  OUTPUT_PKG_PATH=`realpath "$BUILD_DIR"`/$PACKAGE_NAME$(get_pkg_suffix)
 
   rm -rf $WORKING_DIR
   rm -f $OUTPUT_PKG_PATH
@@ -183,12 +183,8 @@ function main() {
     PACKAGE_DEPENDENCIES="$PACKAGE_DEPENDENCIES -d \"$element\""
   done
 
-  platform OS
-  distro $OS DISTRO
-  FPM="fpm"
-  if [[ $DISTRO == "lucid" ]]; then
-    FPM="/var/lib/gems/1.8/bin/fpm"
-  fi
+  # Let callers provide their own fpm if desired
+  FPM=${FPM:="fpm"}
 
   POSTINST_CMD=""
   if [[ $OSQUERY_POSTINSTALL != "" ]] && [[ -f $OSQUERY_POSTINSTALL ]]; then
@@ -264,7 +260,7 @@ function main() {
   fi
 
   PACKAGE_DEBUG_DEPENDENCIES=`echo "$PACKAGE_DEBUG_DEPENDENCIES"|tr '-' '_'`
-  OUTPUT_DEBUG_PKG_PATH=`realpath "$BUILD_DIR/$PACKAGE_DEBUG_NAME$(get_pkg_suffix)"`
+  OUTPUT_DEBUG_PKG_PATH=`realpath "$BUILD_DIR"`/$PACKAGE_DEBUG_NAME$(get_pkg_suffix)
   if [[ ! -z "$DEBUG" ]]; then
     rm -f $OUTPUT_DEBUG_PKG_PATH
     CMD="$FPM -s dir -t $PACKAGE_TYPE            \
