@@ -18,8 +18,6 @@
 
 namespace osquery {
 
-using OpReg = QueryPlanner::Opcode::Register;
-
 /// SQL provider for osquery internal/core.
 REGISTER_INTERNAL(SQLiteSQLPlugin, "sql", "sql");
 
@@ -27,6 +25,10 @@ FLAG(string,
      disable_tables,
      "Not Specified",
      "Comma-delimited list of table names to be disabled");
+
+DECLARE_string(nullvalue);
+
+using OpReg = QueryPlanner::Opcode::Register;
 
 using SQLiteDBInstanceRef = std::shared_ptr<SQLiteDBInstance>;
 
@@ -346,11 +348,16 @@ int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
     return SQLITE_MISUSE;
   }
 
-  QueryData* qData = (QueryData*)argument;
+  auto qData = static_cast<QueryData*>(argument);
   Row r;
   for (int i = 0; i < argc; i++) {
     if (column[i] != nullptr) {
-      r[column[i]] = (argv[i] != nullptr) ? argv[i] : "";
+      if (r.count(column[i])) {
+        // Found a column name collision in the result.
+        VLOG(1) << "Detected overloaded column name " << column[i]
+                << " in query result consider using aliases";
+      }
+      r[column[i]] = (argv[i] != nullptr) ? argv[i] : FLAGS_nullvalue;
     }
   }
   (*qData).push_back(std::move(r));
