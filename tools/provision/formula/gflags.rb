@@ -3,8 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Gflags < AbstractOsqueryFormula
   desc "Library for processing command-line flags"
   homepage "https://gflags.github.io/gflags/"
-  url "https://github.com/gflags/gflags/archive/v2.1.2.tar.gz"
-  sha256 "d8331bd0f7367c8afd5fcb5f5e85e96868a00fd24b7276fa5fcee1e5575c2662"
+  url "https://github.com/gflags/gflags/archive/v2.2.0.tar.gz"
+  sha256 "466c36c6508a451734e4f4d76825cf9cd9b8716d2b70ef36479ae40f08271f88"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
