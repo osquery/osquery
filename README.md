@@ -83,7 +83,7 @@ The list of supported platforms for **running** osquery is massive:
 
 ## Building from source
 
-[Building](https://osquery.readthedocs.org/en/latest/development/building/) osquery from source is encouraged! Join our developer community by giving us feedback in Github issues or submitting pull requests!
+Building osquery from source is encouraged! [Check out the documentation](https://osquery.readthedocs.org/en/latest/development/building/) to get started and join our developer community by giving us feedback in Github issues or submitting pull requests!
 
 We *officially* support a subset of OS versions for **building** because it is rather intense.
 - Ubuntu 14.04 and 16.04, CentOS 6.5 and 7
