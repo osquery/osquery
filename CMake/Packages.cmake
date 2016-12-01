@@ -17,27 +17,30 @@ elseif(LINUX)
     DEPENDS daemon shell
   )
 
+  set(DEB_PACKAGE_DEPENDENCIES "libc6 (>=2.12), zlib1g")
+  set(RPM_PACKAGE_DEPENDENCIES "glibc >= 2.12, zlib")
+
   find_program(FPM_EXECUTABLE "fpm" ENV PATH)
   find_program(RPMBUILD_EXECUTABLE "rpmbuild" ENV PATH)
 
   if(FPM_EXECUTABLE)
     add_custom_command(TARGET packages PRE_BUILD
       COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
-        -t "deb" -i "1.14"
+        -t "deb" -i "1.14" -d '${DEB_PACKAGE_DEPENDENCIES}'
     )
     add_custom_command(TARGET packages PRE_BUILD
       COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
-        -t "deb" -i "1.16" -s
+        -t "deb" -i "1.16" -s -d '${DEB_PACKAGE_DEPENDENCIES}'
     )
 
     if(RPMBUILD_EXECUTABLE)
       add_custom_command(TARGET packages PRE_BUILD
         COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
-          -t "rpm" -i "1.el6"
+          -t "rpm" -i "1.el6" -d '${RPM_PACKAGE_DEPENDENCIES}'
       )
       add_custom_command(TARGET packages PRE_BUILD
         COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
-          -t "rpm" -i "1.el7" -s
+          -t "rpm" -i "1.el7" -s -d '${RPM_PACKAGE_DEPENDENCIES}'
       )
     else()
       WARNING_LOG("Skipping RPM/CentOS packages: Cannot find rpmbuild")
