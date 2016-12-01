@@ -149,7 +149,38 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/ccache
 }
 
+function sysprep() {
+  RUN_SYSPREP=false
+  if [[ ! -z "$SKIP_DISTRO_MAIN" ]]; then
+    if [[ "$SKIP_DISTRO_MAIN" = "False" || "$SKIP_DISTRO_MAIN" = "0" ]]; then
+      RUN_SYSPREP=true
+    fi
+  fi
+
+  if [[ ! "$RUN_SYSPREP" = "true" ]]; then
+    return
+  fi
+
+  # Each OS/Distro may have specific provisioning needs.
+  # These scripts are optional and should installed the needed packages for:
+  # 1. A basic ruby interpreter to run brew
+  # 2. A GCC compiler to compile a modern glibc/GCC and legacy glibc.
+  # 3. Curl, git, autotools, autopoint, and gawk.
+  OS_SCRIPT="$SCRIPT_DIR/provision/$OS.sh"
+  if [[ -f "$OS_SCRIPT" ]]; then
+    log "found $OS provision script: $OS_SCRIPT"
+    source "$OS_SCRIPT"
+    if [[ "$1" = "build" ]]; then
+      distro_main
+    fi
+  else
+    log "your $OS does not use a provision script"
+  fi
+}
+
 function main() {
+  ACTION=$1
+
   platform OS
   distro $OS DISTRO
   threads THREADS
@@ -167,7 +198,7 @@ function main() {
     DEPS_DIR="/usr/local/osquery"
   fi
 
-  if [[ "$1" = "clean" ]]; then
+  if [[ "$ACTION" = "clean" ]]; then
     do_sudo rm -rf "$DEPS_DIR"
     return
   fi
@@ -189,21 +220,7 @@ function main() {
     BREW_TYPE="linux"
   fi
 
-  # Each OS/Distro may have specific provisioning needs.
-  # These scripts are optional and should installed the needed packages for:
-  # 1. A basic ruby interpreter to run brew
-  # 2. A GCC compiler to compile a modern glibc/GCC and legacy glibc.
-  # 3. Curl, git, autotools, autopoint, and gawk.
-  OS_SCRIPT="$SCRIPT_DIR/provision/$OS.sh"
-  if [[ -f "$OS_SCRIPT" ]]; then
-    log "found $OS provision script: $OS_SCRIPT"
-    source "$OS_SCRIPT"
-    if [[ -z "$SKIP_DISTRO_MAIN" && "$1" = "build" ]]; then
-      distro_main
-    fi
-  else
-    log "your $OS does not use a provision script"
-  fi
+  sysprep $ACTION
 
   # The dependency directory (DEPS_DIR) will contain our legacy runtime glibc
   # and various compilers/library dependencies.
@@ -219,10 +236,10 @@ function main() {
   export PATH="$DEPS_DIR/bin:$PATH"
   setup_brew "$DEPS_DIR" "$BREW_TYPE"
 
-  if [[ "$1" = "bottle" ]]; then
+  if [[ "$ACTION" = "bottle" ]]; then
     brew_bottle "$2"
     return
-  elif [[ "$1" = "install" ]]; then
+  elif [[ "$ACTION" = "install" ]]; then
     brew_dependency "$2"
     return
   fi

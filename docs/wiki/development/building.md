@@ -11,6 +11,12 @@ We include a `make deps` command to make it easier for developers to get started
 
 **WARNING:** This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
 
+For our build hosts (CentOS, Ubuntu 12, 14, 16, macOS 10.12, Windows 2016) we use a `sysprep` target to update the host and install these basic dependencies.
+
+```sh
+make sysprep
+```
+
 ## Building on OS X
 
 `make deps` will take care of installing the appropriate library dependencies, but it's recommended to take a look at the Makefile, just in case something conflicts with your environment.
@@ -19,6 +25,7 @@ The complete installation/build steps are as follows:
 
 ```sh
 $ git clone https://github.com/facebook/osquery.git
+$ # make sysprep
 $ cd osquery
 $ make deps
 $ make
@@ -60,6 +67,7 @@ Once you have logged into the vagrant box, run the following to create a package
 
 ```sh
 $ cd /vagrant
+$ make sysprep
 $ make deps
 $ make
 $ make test
@@ -255,6 +263,7 @@ SKIP_TESTS=True # Skip unit test building (very very not recommended!)
 SKIP_INTEGRATION_TESTS=True # Skip python tests when using "make test"
 SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
 SKIP_TABLES=True # Build platform without any table implementations or specs
+SKIP_DISTRO_MAIN=False # Run the sysprep update/install within make deps
 SQLITE_DEBUG=True # Enable SQLite query debugging (very verbose!)
 ```
 
