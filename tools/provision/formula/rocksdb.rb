@@ -3,8 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Rocksdb < AbstractOsqueryFormula
   desc "Persistent key-value store for fast storage environments"
   homepage "http://rocksdb.org"
-  url "https://github.com/facebook/rocksdb/archive/v4.9.tar.gz"
-  sha256 "7c96c7e7facc11c15f57c608a3b256af79283accb5988d7b2f4f810e29c68c0b"
+  url "https://github.com/facebook/rocksdb/archive/v4.11.2.tar.gz"
+  sha256 "9374be06fdfccbbdbc60de90b72b5db7040e1bc4e12532e4c67aaec8181b45be"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
