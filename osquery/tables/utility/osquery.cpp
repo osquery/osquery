@@ -211,6 +211,13 @@ QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
 
   Row r;
+
+  static std::string uuid;
+  if (uuid.size() == 0) {
+    getGeneratedUUID(uuid);
+  }
+  r["uuid"] = uuid;
+
   r["pid"] = INTEGER(PlatformProcess::getCurrentProcess()->pid());
   r["version"] = kVersion;
 

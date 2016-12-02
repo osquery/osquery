@@ -73,7 +73,8 @@ CLI_FLAG(bool,
 FLAG(string,
      host_identifier,
      "hostname",
-     "Field used to identify the host running osquery (hostname, uuid)");
+     "Field used to identify the host running osquery (hostname, uuid, "
+     "hardware_id)");
 
 FLAG(bool, utc, true, "Convert all UNIX times to UTC");
 
@@ -110,7 +111,6 @@ std::string getHostname() {
 }
 
 std::string generateNewUUID() {
-  LOG(INFO) << "Cannot retrieve platform UUID: generating an ephemeral UUID";
   boost::uuids::uuid uuid = boost::uuids::random_generator()();
   return boost::uuids::to_string(uuid);
 }
@@ -148,6 +148,7 @@ std::string generateHostUUID() {
   }
 
   // Unable to get the hardware UUID, just return a new UUID
+  LOG(INFO) << "Cannot retrieve platform UUID: generating an ephemeral UUID";
   return generateNewUUID();
 }
 
@@ -164,18 +165,38 @@ Status getHostUUID(std::string& ident) {
   return status;
 }
 
+Status getGeneratedUUID(std::string& ident) {
+  // Lookup the generated UUID previously generated and stored.
+  auto status = getDatabaseValue(kPersistentSettings, "generated_uuid", ident);
+  if (ident.size() == 0) {
+    // There was no UUID stored in the database, generate one and store it.
+    ident = osquery::generateNewUUID();
+    VLOG(1) << "Using UUID " << ident << " as host identifier";
+    return setDatabaseValue(kPersistentSettings, "generated_uuid", ident);
+  }
+
+  return status;
+}
+
 std::string getHostIdentifier() {
-  if (FLAGS_host_identifier != "uuid") {
+  if (FLAGS_host_identifier == "hardware_id") {
+    // Determine a host-based identifier (best-effort), and persist.
+    static std::string ident;
+    if (ident.size() == 0) {
+      getHostUUID(ident);
+    }
+    return ident;
+  } else if (FLAGS_host_identifier == "uuid") {
+    // Generate a identifier/UUID for this application launch, and persist.
+    static std::string ident;
+    if (ident.size() == 0) {
+      getGeneratedUUID(ident);
+    }
+    return ident;
+  } else {
     // use the hostname as the default machine identifier
     return osquery::getHostname();
   }
-
-  // Generate a identifier/UUID for this application launch, and persist.
-  static std::string ident;
-  if (ident.size() == 0) {
-    getHostUUID(ident);
-  }
-  return ident;
 }
 
 std::string getAsciiTime() {
