@@ -71,6 +71,7 @@ ENROLL_RESPONSE = {
     "node_key": "this_is_a_node_secret"
 }
 
+RECEIVED_REQUESTS = []
 
 def debug(response):
     print("-- [DEBUG] %s" % str(response))
@@ -116,6 +117,8 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             self.distributed_read(request)
         elif self.path == '/distributed_write':
             self.distributed_write(request)
+        elif self.path == '/test_read_requests':
+            self.test_read_requests()
         else:
             self._reply(TEST_POST_RESPONSE)
 
@@ -129,6 +132,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # Alternatively, each client could authenticate with a TLS client cert.
         # Then, access to the enrollment endpoint implies the required auth.
         # A generated node_key is still supplied for identification.
+        self._push_request('enroll', request)
         if ARGS.use_enroll_secret and ENROLL_SECRET != request["enroll_secret"]:
             self._reply(FAILED_ENROLL_RESPONSE)
             return
@@ -148,6 +152,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
 
         # The osquery TLS config plugin calls the TLS enroll plugin to retrieve
         # a node_key, then submits that key alongside config/logger requests.
+        self._push_request('config', request)
         if "node_key" not in request or request["node_key"] not in NODE_KEYS:
             self._reply(FAILED_ENROLL_RESPONSE)
             return
@@ -178,6 +183,18 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
     def log(self, request):
         self._reply({})
 
+    def test_read_requests(self):
+        # call made by unit tests to retrieve the entire history of requests 
+        # made by code under test. Used by unit tests to verify that the code
+        # under test made the expected calls to the TLS backend
+        self._reply(RECEIVED_REQUESTS)
+
+    def _push_request(self, command, request):
+        # Archive the http command and the request body so that unit tests
+        # can retrieve it later for verification purposes
+        request['command'] = command
+        RECEIVED_REQUESTS.append(request)
+        
     def _reply(self, response):
         debug("Replying: %s" % (str(response)))
         self.wfile.write(json.dumps(response))

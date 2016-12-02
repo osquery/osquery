@@ -25,6 +25,8 @@
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"
 
+#include "osquery/config/plugins/tls.h"
+
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -49,29 +51,21 @@ CLI_FLAG(uint64,
 DECLARE_bool(tls_secret_always);
 DECLARE_string(tls_enroll_override);
 DECLARE_bool(tls_node_api);
-
-class TLSConfigPlugin;
-
-class TLSConfigPlugin : public ConfigPlugin,
-                        std::enable_shared_from_this<TLSConfigPlugin> {
- public:
-  Status setUp() override;
-  Status genConfig(std::map<std::string, std::string>& config) override;
-
- protected:
-  /// Calculate the URL once and cache the result.
-  std::string uri_;
-};
-
-class TLSConfigRefreshRunner : public InternalRunnable {
- public:
-  /// A simple wait/interruptible lock.
-  void start();
-};
+DECLARE_bool(enroll_always);
 
 REGISTER(TLSConfigPlugin, "config", "tls");
 
 Status TLSConfigPlugin::setUp() {
+  if (FLAGS_enroll_always && !FLAGS_disable_enrollment) {
+    // clear any cached node key
+    clearNodeKey();
+    auto node_key = getNodeKey("tls");
+    if (node_key.size() == 0) {
+      // Could not generate a node key, continue logging to stderr.
+      return Status(1, "No node key, TLS config failed.");
+    }
+  }
+
   uri_ = TLSRequestHelper::makeURI(FLAGS_config_tls_endpoint);
 
   // If the initial configuration includes a non-0 refresh, start an additional
