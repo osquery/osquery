@@ -1440,14 +1440,20 @@ static int _all_whitespace(const char* z) {
 ** Return the number of errors.
 */
 static int process_input(struct callback_data* p, FILE* in) {
-  char* zLine = 0; /* A single input line */
-  char* zSql = 0; /* Accumulated SQL text */
-  int nLine; /* Length of current line */
+  /* A single input line */
+  char* zLine = nullptr;
+
+  /* Accumulated SQL text */
+  char* zSql = nullptr;
+
+  /* Error message returned */
+  char* zErrMsg = nullptr;
+
+  int nLine = 0; /* Length of current line */
   int nSql = 0; /* Bytes of zSql[] used */
   int nAlloc = 0; /* Allocated zSql[] space */
   int nSqlPrior = 0; /* Bytes of zSql[] used by prior line */
-  char* zErrMsg; /* Error message returned */
-  int rc; /* Error code */
+  int rc = 0; /* Error code */
   int errCnt = 0; /* Number of errors seen */
   int lineno = 0; /* Current line number */
   int startline = 0; /* Line number for start of current input */
@@ -1455,7 +1461,7 @@ static int process_input(struct callback_data* p, FILE* in) {
   while (errCnt == 0 || !bail_on_error || (in == 0 && stdin_is_interactive)) {
     fflush(p->out);
     zLine = one_input_line(in, zLine, nSql > 0);
-    if (zLine == 0) {
+    if (zLine == nullptr) {
       /* End of input */
       if (stdin_is_interactive) {
         printf("\n");
@@ -1463,7 +1469,7 @@ static int process_input(struct callback_data* p, FILE* in) {
       break;
     }
     if (seenInterrupt) {
-      if (in != 0) {
+      if (in != nullptr) {
         break;
       }
       seenInterrupt = 0;
@@ -1475,7 +1481,7 @@ static int process_input(struct callback_data* p, FILE* in) {
       }
       continue;
     }
-    if (zLine && zLine[0] == '.' && nSql == 0) {
+    if (zLine != nullptr && zLine[0] == '.' && nSql == 0) {
       if (p->echoOn) {
         printf("%s\n", zLine);
       }
@@ -1490,10 +1496,15 @@ static int process_input(struct callback_data* p, FILE* in) {
     nLine = strlen30(zLine);
     if (nSql + nLine + 2 >= nAlloc) {
       nAlloc = nSql + nLine + 100;
-      zSql = (char*)realloc(zSql, nAlloc);
-      if (zSql == 0) {
+      auto qSql = (char*)realloc(zSql, nAlloc);
+      if (qSql == nullptr) {
         fprintf(stderr, "Error: out of memory\n");
+        if (zSql != nullptr) {
+          free(zSql);
+        }
         exit(1);
+      } else {
+        zSql = qSql;
       }
     }
     nSqlPrior = nSql;
@@ -1518,18 +1529,18 @@ static int process_input(struct callback_data* p, FILE* in) {
       BEGIN_TIMER;
       rc = shell_exec(zSql, shell_callback, p, &zErrMsg);
       END_TIMER;
-      if (rc || zErrMsg) {
-        char zPrefix[100];
+      if (rc || zErrMsg != nullptr) {
+        char zPrefix[100] = {0};
         if (in != 0 || !stdin_is_interactive) {
           sqlite3_snprintf(
               sizeof(zPrefix), zPrefix, "Error: near line %d:", startline);
         } else {
           sqlite3_snprintf(sizeof(zPrefix), zPrefix, "Error:");
         }
-        if (zErrMsg != 0) {
+        if (zErrMsg != nullptr) {
           fprintf(stderr, "%s %s\n", zPrefix, zErrMsg);
           sqlite3_free(zErrMsg);
-          zErrMsg = 0;
+          zErrMsg = nullptr;
         }
         errCnt++;
       }
@@ -1541,12 +1552,16 @@ static int process_input(struct callback_data* p, FILE* in) {
       nSql = 0;
     }
   }
+
   if (nSql) {
     if (!_all_whitespace(zSql)) {
       fprintf(stderr, "Error: incomplete SQL: %s\n", zSql);
     }
+  }
+  if (zSql != nullptr) {
     free(zSql);
   }
+
   free(zLine);
   return errCnt > 0;
 }
@@ -1596,9 +1611,9 @@ void tableCompletionFunction(char const* prefix, linenoiseCompletions* lc) {
 }
 
 int runQuery(struct callback_data* data, const char* query) {
-  char* error = 0;
+  char* error = nullptr;
   int rc = shell_exec(query, shell_callback, data, &error);
-  if (error != 0) {
+  if (error != nullptr) {
     fprintf(stderr, "Error: %s\n", error);
     rc = (rc == 0) ? 1 : rc;
   } else if (rc != 0) {
