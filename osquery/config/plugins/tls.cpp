@@ -70,7 +70,8 @@ Status TLSConfigPlugin::setUp() {
     auto node_key = getNodeKey("tls");
     if (node_key.size() == 0) {
       // Could not generate a node key, continue logging to stderr.
-      return Status(1, "No node key, TLS config failed.");
+      LOG(WARNING) << "Error generating node key, TLS config failed";
+      return Status(1);
     }
   }
 
@@ -144,6 +145,7 @@ void TLSConfigRefreshRunner::start() {
     // Since the pause occurs before the logic, we need to check for an
     // interruption request.
     if (interrupted()) {
+      VLOG(1) << "TLS Config refresh was interrupted by request";
       return;
     }
 

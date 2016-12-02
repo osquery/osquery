@@ -156,7 +156,8 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   try {
     yaraParser = std::dynamic_pointer_cast<YARAConfigParserPlugin>(parser);
   } catch (const std::bad_cast& e) {
-    return Status(1, "Error casting yara config parser plugin");
+    LOG(WARNING) << "Error casting yara config parser plugin: " << e.what();
+    return Status(1, e.what());
   }
   if (yaraParser == nullptr || yaraParser.get() == nullptr) {
     return Status(1, "Yara parser unknown.");

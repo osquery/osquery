@@ -643,8 +643,8 @@ void Plugin::setResponse(const std::string& key,
   std::ostringstream output;
   try {
     boost::property_tree::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
-    // The plugin response could not be serialized.
+  } catch (const pt::json_parser::json_parser_error& e) {
+    VLOG(1) << "Error serializing plugin response: " << e.what();
   }
   response.push_back({{key, output.str()}});
 }

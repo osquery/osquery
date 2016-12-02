@@ -44,6 +44,8 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
   for (const auto& option : options) {
     std::string value = options.get<std::string>(option.first, "");
     if (value.empty()) {
+      VLOG(1) << "Empty option value from " << option.first
+              << " in config source: " << source;
       continue;
     }
 

@@ -9,6 +9,7 @@
  */
 
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 
 namespace boost {
 template <>
@@ -44,7 +45,8 @@ int Flag::createAlias(const std::string& alias, const FlagDetail& flag) {
 Status Flag::getDefaultValue(const std::string& name, std::string& value) {
   flags::CommandLineFlagInfo info;
   if (!flags::GetCommandLineFlagInfo(name.c_str(), &info)) {
-    return Status(1, "Flags name not found.");
+    LOG(WARNING) << "Flags name not found: " << name;
+    return Status(1, "Flags name not found: " + name);
   }
 
   value = info.default_value;
@@ -95,7 +97,8 @@ Status Flag::updateValue(const std::string& name, const std::string& value) {
     flags::SetCommandLineOption(real_name.c_str(), value.c_str());
     return Status(0, "OK");
   }
-  return Status(1, "Flag not found");
+  LOG(WARNING) << "Flag not found: " << name;
+  return Status(1, "Flag not found: " + name);
 }
 
 std::map<std::string, FlagInfo> Flag::flags() {
@@ -105,7 +108,7 @@ std::map<std::string, FlagInfo> Flag::flags() {
   std::map<std::string, FlagInfo> flags;
   for (const auto& flag : info) {
     if (instance().flags_.count(flag.name) == 0) {
-      // This flag info was not defined within osquery.
+      VLOG(1) << "Flag not defined within osquery: " << flag.name;
       continue;
     }
 
@@ -161,7 +164,8 @@ void Flag::printFlags(bool shell, bool external, bool cli) {
         continue;
       }
     } else {
-      // This flag was not defined as an osquery flag or flag alias.
+      VLOG(1) << "Flag or flag alias not defined within osquery: "
+              << flag.second->name;
       continue;
     }
 

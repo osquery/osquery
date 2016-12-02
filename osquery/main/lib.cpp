@@ -11,6 +11,7 @@
 #include <string>
 
 #include <osquery/core.h>
+#include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
 
@@ -57,7 +58,8 @@ bool versionAtLeast(const std::string& v, const std::string& sdk) {
       } else if (std::stoi(chunk) > std::stoi(required_version[index])) {
         return true;
       }
-    } catch (const std::invalid_argument& /* e */) {
+    } catch (const std::invalid_argument& e) {
+      VLOG(1) << "Failed to parse version number: " << e.what();
       if (chunk.compare(required_version[index]) < 0) {
         return false;
       }

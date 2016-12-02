@@ -286,8 +286,8 @@ rocksdb::ColumnFamilyHandle* RocksDBDatabasePlugin::getHandleForColumnFamily(
         return handles_[i];
       }
     }
-  } catch (const std::exception& /* e */) {
-    // pass through and return nullptr
+  } catch (const std::exception& e) {
+    VLOG(1) << "Failed to retrieve handles: " << e.what();
   }
   return nullptr;
 }

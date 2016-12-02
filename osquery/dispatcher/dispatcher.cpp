@@ -63,7 +63,7 @@ void InterruptableRunnable::pauseMilli(std::chrono::milliseconds milli) {
   try {
     point_.pause(milli);
   } catch (const RunnerInterruptError&) {
-    // The pause request was canceled.
+    VLOG(1) << "The pause request was cancelled";
   }
 }
 

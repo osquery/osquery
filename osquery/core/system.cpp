@@ -228,8 +228,9 @@ Status checkStalePid(const std::string& content) {
   int pid;
   try {
     pid = boost::lexical_cast<int>(content);
-  } catch (const boost::bad_lexical_cast& /* e */) {
-    return Status(0, "Could not parse pid from existing pidfile");
+  } catch (const boost::bad_lexical_cast& e) {
+    LOG(WARNING) << "Could not parse pid from existing pidifle: " << e.what();
+    return Status(0, e.what());
   }
 
   PlatformProcess target(pid);
@@ -274,6 +275,7 @@ Status createPidFile() {
     std::string content;
     auto read_status = readFile(pidfile_path, content, true);
     if (!read_status.ok()) {
+      LOG(WARNING) << "Could not read pidfile: " << read_status.toString();
       return Status(1, "Could not read pidfile: " + read_status.toString());
     }
 
@@ -287,7 +289,6 @@ Status createPidFile() {
   try {
     boost::filesystem::remove(pidfile_path);
   } catch (const boost::filesystem::filesystem_error& /* e */) {
-    // Unable to remove old pidfile.
     LOG(WARNING) << "Unable to remove the osqueryd pidfile";
   }
 

@@ -133,8 +133,7 @@ TEST_F(TLSTransportsTests, test_call_verify_peer) {
     // error or request-connection problem.
     EXPECT_EQ(status.getCode(), 2);
     if (!nameError(status)) {
-      EXPECT_EQ(status.getMessage(),
-                "Request error: certificate verify failed");
+      EXPECT_EQ(status.getMessage(), "certificate verify failed");
     }
   }
 }

@@ -82,7 +82,8 @@ Status TLSDistributedPlugin::writeResults(const std::string& json) {
     std::stringstream ss(json);
     pt::read_json(ss, params);
   } catch (const pt::ptree_error& e) {
-    return Status(1, "Error parsing JSON: " + std::string(e.what()));
+    LOG(WARNING) << "Error parsing JSON: " << e.what();
+    return Status(1, e.what());
   }
 
   // The response is ignored.

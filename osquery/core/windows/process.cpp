@@ -15,6 +15,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/logger.h>
+
 #include "osquery/core/process.h"
 
 namespace osquery {
@@ -129,8 +131,10 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
     handle = reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(
         std::stoull(*launcher_handle, nullptr, 16)));
   } catch (std::invalid_argument e) {
+    LOG(WARNING) << "Error retrieving handle: " << e.what();
     return std::make_shared<PlatformProcess>();
   } catch (std::out_of_range e) {
+    LOG(WARNING) << "Error retrieving handle: " << e.what();
     return std::make_shared<PlatformProcess>();
   }
 

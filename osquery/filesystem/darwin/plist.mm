@@ -202,7 +202,8 @@ Status parsePlist(const fs::path& path, pt::ptree& tree) {
     @try {
       // Parse the plist data into a core foundation dictionary-literal.
       status = filterPlist(plist_data, tree);
-    } @catch (NSException* exception) {
+    } @catch (NSException* e) {
+      LOG(WARNING) << "Plist data is corrupted";
       status = Status(1, "Plist data is corrupted");
     }
     [stream close];

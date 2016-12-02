@@ -71,6 +71,8 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
     for (const auto& path : category.second) {
       auto pattern = path.second.get_value<std::string>("");
       if (pattern.empty()) {
+        VLOG(1) << "Empty pattern from path " << path.first
+                << " in config source: " << source;
         continue;
       }
       replaceGlobWildcards(pattern);
