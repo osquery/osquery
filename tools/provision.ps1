@@ -140,7 +140,7 @@ function Install-ChocoPackage {
   $isInstalled = Test-ChocoPackageInstalled $packageName $packageVersion
   if (-not $isInstalled) {
     Write-Host " => Did not find. Installing $packageName $packageVersion" -foregroundcolor Cyan
-    $args = @("install", "-y", "-r", "${packageName}")
+    $args = @("install", "-s", "https://chocolatey.org/api/v2/", "-y", "-r", "${packageName}")
     if ($packageVersion -ne '') {
       $args += @("--version", "${packageVersion}")
     }
