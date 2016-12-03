@@ -199,7 +199,7 @@ struct AuditEventContext : public EventContext {
    * If the field contained a space in the value the data will be hex encoded.
    * It is the responsibility of the subscription callback/handler to parse.
    */
-  std::map<std::string, std::string> fields;
+  AuditFields fields;
 
   /// Each message will contain the audit ID.
   size_t auid{0};
@@ -247,6 +247,7 @@ class AuditEventPublisher
 
  public:
   AuditEventPublisher() : EventPublisher() {}
+
   virtual ~AuditEventPublisher() {
     tearDown();
   }
@@ -292,4 +293,10 @@ class AuditEventPublisher
   /// Track all rule data added by the publisher.
   std::vector<struct AuditRuleInternal> transient_rules_;
 };
+
+/**
+ * @brief Populate an event context from a single audit reply.
+ */
+bool handleAuditReply(const struct audit_reply& reply,
+                      AuditEventContextRef& ec);
 }
