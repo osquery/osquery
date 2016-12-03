@@ -187,4 +187,8 @@ bool isUserAdmin() {
 int platformGetPid() {
   return (int)GetCurrentProcessId();
 }
+
+int platformGetTid() {
+  return (int)GetCurrentThreadId();
+}
 }

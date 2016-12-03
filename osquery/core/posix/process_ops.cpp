@@ -14,6 +14,7 @@
 #include <stdlib.h>
 
 #include <sys/resource.h>
+#include <sys/syscall.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -85,5 +86,9 @@ bool isUserAdmin() {
 
 int platformGetPid() {
   return (int)getpid();
+}
+
+int platformGetTid() {
+  return (int)syscall(SYS_gettid);
 }
 }

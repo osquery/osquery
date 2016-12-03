@@ -130,6 +130,11 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
 
   // There is a spurious warning on first open.
   if (log_line.find("Error when reading") == std::string::npos) {
+    // Rocksdb calls are non-reentrant. Since this callback is made in the
+    // context of a rocksdb api call, turn log forwarding off to prevent the
+    // logger from trying to make a call back into rocksdb and causing a
+    // deadlock
+    LoggerForwardingDisabler forwarding_disabler;
     LOG(INFO) << "RocksDB: " << log_line;
   }
 }
