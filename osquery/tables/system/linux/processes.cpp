@@ -229,7 +229,7 @@ static inline SimpleProcStat getProcStat(const std::string& pid) {
     stat.user_time = details.at(11);
     stat.system_time = details.at(12);
     stat.nice = details.at(16);
-    stat.threads = details.at(20);
+    stat.threads = details.at(17);
     try {
       stat.start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
     } catch (const boost::bad_lexical_cast& e) {
