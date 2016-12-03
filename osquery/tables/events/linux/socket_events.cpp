@@ -64,7 +64,7 @@ inline std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
          std::to_string((result & 0x000000ff));
 }
 
-void parseSockAddr(const std::string& saddr, Row& r) {
+void parseSockAddr(const std::string& saddr, AuditFields& r) {
   // The protocol is not included in the audit message.
   if (saddr[0] == '0' && saddr[1] == '2') {
     // IPv4

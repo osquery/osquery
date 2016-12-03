@@ -11,6 +11,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/utility/string_ref.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
@@ -261,12 +262,13 @@ void AuditEventPublisher::tearDown() {
     for (auto& rule : transient_rules_) {
       audit_delete_rule_data(handle_, &rule.rule, rule.flags, rule.action);
     }
-  }
 
-  // Restore audit configuration defaults.
-  audit_set_backlog_limit(handle_, 0);
-  audit_set_backlog_wait_time(handle_, 60000);
-  audit_set_failure(handle_, AUDIT_FAIL_PRINTK);
+    // Restore audit configuration defaults.
+    audit_set_backlog_limit(handle_, 0);
+    audit_set_backlog_wait_time(handle_, 60000);
+    audit_set_failure(handle_, AUDIT_FAIL_PRINTK);
+    audit_set_enabled(handle_, AUDIT_DISABLED);
+  }
 
   audit_close(handle_);
   handle_ = 0;
@@ -276,27 +278,30 @@ inline void handleAuditConfigChange(const struct audit_reply& reply) {
   // Another daemon may have taken control.
 }
 
-inline bool handleAuditReply(const struct audit_reply& reply,
-                             AuditEventContextRef& ec) {
+bool handleAuditReply(const struct audit_reply& reply,
+                      AuditEventContextRef& ec) {
   // Build an event context around this reply.
   ec->type = reply.type;
-
   // Tokenize the message.
-  std::string message(reply.message, reply.len);
-  auto preamble_end = message.find("): ");
+  boost::string_ref message_view(reply.message, reply.len);
+  auto preamble_end = message_view.find("): ");
   if (preamble_end == std::string::npos) {
     return false;
-  } else {
-    safeStrtoul(message.substr(6, 10), 10, ec->time);
-    safeStrtoul(message.substr(21, preamble_end - 21), 10, ec->auid);
-    message = message.substr(preamble_end + 3);
   }
+
+  safeStrtoul(std::string(message_view.substr(6, 10)), 10, ec->time);
+  safeStrtoul(
+      std::string(message_view.substr(21, preamble_end - 21)), 10, ec->auid);
+  boost::string_ref field_view(message_view.substr(preamble_end + 3));
 
   // The linear search will construct series of key value pairs.
   std::string key, value;
+  key.reserve(20);
+  value.reserve(256);
+
   // There are several ways of representing value data (enclosed strings, etc).
   bool found_assignment{false}, found_enclose{false};
-  for (const auto& c : message) {
+  for (const auto& c : field_view) {
     // Iterate over each character in the audit message.
     if ((found_enclose && c == '"') || (!found_enclose && c == ' ')) {
       if (c == '"') {
@@ -305,7 +310,7 @@ inline bool handleAuditReply(const struct audit_reply& reply,
       // This is a terminating sequence, the end of an enclosure or space tok.
       if (!key.empty()) {
         // Multiple space tokens are supported.
-        ec->fields.emplace(key, value);
+        ec->fields.emplace(std::make_pair(std::move(key), std::move(value)));
       }
       found_enclose = false;
       found_assignment = false;
@@ -328,7 +333,7 @@ inline bool handleAuditReply(const struct audit_reply& reply,
 
   // Last step, if there was no trailing tokenizer.
   if (!key.empty()) {
-    ec->fields.emplace(key, value);
+    ec->fields.emplace(std::make_pair(std::move(key), std::move(value)));
   }
 
   // There is a special field for syscalls.
@@ -382,7 +387,7 @@ static inline bool adjust_reply(struct audit_reply* rep, int len) {
   case AUDIT_FIRST_USER_MSG... AUDIT_LAST_USER_MSG:
   case AUDIT_FIRST_USER_MSG2... AUDIT_LAST_USER_MSG2:
   case AUDIT_FIRST_EVENT... AUDIT_INTEGRITY_LAST_MSG:
-    rep->message = static_cast<const char*>(NLMSG_DATA(rep->nlh));
+    rep->message = static_cast<char*>(NLMSG_DATA(rep->nlh));
   default:
     break;
   }
