@@ -1,0 +1,16 @@
+table_name("patches")
+description("Lists all the patches applied. Note: This does not include patches applied via MSI or downloaded from Windows Update (e.g. Service Packs).")
+schema([
+  Column("csname", TEXT, "The name of the host the patch is installed on."),
+  Column("hotfix_id", TEXT, "The KB ID of the patch."),
+  Column("caption", TEXT, "Short description of the patch."),
+  Column("description", TEXT, "Fuller description of the patch."),
+  Column("fix_comments", TEXT, "Additional comments about the patch."),
+  Column("installed_by", TEXT, "The system context in which the patch as installed."),
+  Column("install_date", TEXT, "Indicates when the patch was installed. Lack of a value does not indicate that the patch was not installed."),
+  Column("installed_on", TEXT, "The date when the patch was installed."),
+])
+implementation("system/windows/patches@genInstalledPatches")
+examples([
+  "select * from patches",
+])
