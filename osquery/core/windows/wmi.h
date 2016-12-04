@@ -55,7 +55,7 @@ std::string wstringToString(const wchar_t* src);
 std::string bstrToString(const BSTR src);
 
 /**
-* @breif Helper class to hold 1 result object from a WMI request
+* @brief Helper class to hold 1 result object from a WMI request
 *
 * This class is used to return to the user just the base type
 * and value requested from WMI. The class is largely used by
@@ -96,6 +96,22 @@ class WmiResultItem {
   * @returns Status indiciating the success of the query
   */
   Status GetUChar(const std::string& name, unsigned char& ret) const;
+
+  /**
+  * @brief Windows WMI Helper function to retrieve an unsigned Short from WMI
+  * query
+  *
+  * @returns Status indiciating the success of the query
+  */
+  Status GetUnsignedShort(const std::string& name, unsigned short& ret) const;
+
+  /**
+  * @brief Windows WMI Helper function to retrieve an unsigned Short from WMI
+  * query
+  *
+  * @returns Status indiciating the success of the query
+  */
+  Status GetUnsignedInt32(const std::string& name, unsigned int& ret) const;
 
   /**
   * @brief Windows WMI Helper function to retrieve a Long result from a WMI

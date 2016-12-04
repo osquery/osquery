@@ -1,0 +1,15 @@
+table_name("arp_cache")
+description("Queries the ARP cache.")
+schema([
+  Column('interface_index', INTEGER, 'derp'),
+  Column('interface_alias', TEXT, 'derp'),
+  Column('ip_address', TEXT, 'derp'),
+  Column('link_layer_address', TEXT, 'derp'),
+  Column('store', TEXT, 'derp'),
+  Column('state', TEXT, 'derp'),
+  Column('address_family', TEXT, 'derp'),
+])
+implementation("network/windows/arp_cache@genArpCache")
+examples([
+  "select * from arp_cache",
+])
