@@ -34,14 +34,14 @@ namespace tables {
     {3, "Delay"},
     {4, "Stale"},
     {5, "Reachable"},
-    {6, "Permenant"},
+    {6, "Permanent"},
     {7, "TBD"},
   };
 
   QueryData genArpCache(QueryContext& context) {
     QueryData results;
 
-    WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor where InterfaceIndex", L"ROOT\\StandardCimv2");
+    WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor", L"ROOT\\StandardCimv2");
     std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
 
     if (wmiResults.size() != 0) {

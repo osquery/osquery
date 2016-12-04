@@ -1,13 +1,13 @@
 table_name("arp_cache")
 description("Queries the ARP cache.")
 schema([
-  Column('interface_index', INTEGER, 'derp'),
-  Column('interface_alias', TEXT, 'derp'),
-  Column('ip_address', TEXT, 'derp'),
-  Column('link_layer_address', TEXT, 'derp'),
-  Column('store', TEXT, 'derp'),
-  Column('state', TEXT, 'derp'),
-  Column('address_family', TEXT, 'derp'),
+  Column('interface_index', INTEGER, 'The index of the interface.'),
+  Column('interface_alias', TEXT, 'The friendly name of the interface.'),
+  Column('ip_address', TEXT, 'The IP address neighbor.'),
+  Column('link_layer_address', TEXT, 'The link layer address of the neighbor.'),
+  Column('store', TEXT, 'Indicates whether the interface store of the neighbor persists after a reboot.'),
+  Column('state', TEXT, 'The discovery state of the neighbor.'),
+  Column('address_family', TEXT, 'The address family of the neighbor.'),
 ])
 implementation("network/windows/arp_cache@genArpCache")
 examples([
