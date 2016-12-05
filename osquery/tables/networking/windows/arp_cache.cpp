@@ -8,8 +8,8 @@
 *
 */
 
-#include <string>
 #include <osquery/tables.h>
+#include <string>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
@@ -17,17 +17,15 @@
 namespace osquery {
 namespace tables {
 
-  const std::map<unsigned short, const std::string> mapOfAddressFamily = {
-    {2, "IPv4"},
-    {23, "IPv6"},
-  };
+const std::map<unsigned short, const std::string> mapOfAddressFamily = {
+    {2, "IPv4"}, {23, "IPv6"},
+};
 
-  const std::map<unsigned char, const std::string> mapOfStore = {
-    {0, "Persistent"},
-    {1, "Active"},
-  };
+const std::map<unsigned char, const std::string> mapOfStore = {
+    {0, "Persistent"}, {1, "Active"},
+};
 
-  const std::map<unsigned char, const std::string> mapOfState = {
+const std::map<unsigned char, const std::string> mapOfState = {
     {0, "Unreachable"},
     {1, "Incomplete"},
     {2, "Probe"},
@@ -36,39 +34,40 @@ namespace tables {
     {5, "Reachable"},
     {6, "Permanent"},
     {7, "TBD"},
-  };
+};
 
-  QueryData genArpCache(QueryContext& context) {
-    QueryData results;
+QueryData genArpCache(QueryContext& context) {
+  QueryData results;
 
-    WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor", L"ROOT\\StandardCimv2");
-    std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
+  WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor",
+                          L"ROOT\\StandardCimv2");
+  std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
 
-    if (wmiResults.size() != 0) {
-      Row r;
+  if (wmiResults.size() != 0) {
+    Row r;
 
-      for (const auto& item : wmiResults) {
-        unsigned short usiPlaceHolder;
-        unsigned char cPlaceHolder;
-        unsigned int uiPlaceHolder;
+    for (const auto& item : wmiResults) {
+      unsigned short usiPlaceHolder;
+      unsigned char cPlaceHolder;
+      unsigned int uiPlaceHolder;
 
-        item.GetUnsignedShort("AddressFamily", usiPlaceHolder);
-        r["address_family"] = SQL_TEXT(mapOfAddressFamily.at(usiPlaceHolder));
-        item.GetUChar("Store", cPlaceHolder);
-        r["store"] = SQL_TEXT(mapOfStore.at(cPlaceHolder));
-        item.GetUChar("State", cPlaceHolder);
-        r["state"] = SQL_TEXT(mapOfState.at(cPlaceHolder));
-        item.GetUnsignedInt32("InterfaceIndex", uiPlaceHolder);
-        r["interface_index"] = INTEGER(uiPlaceHolder);
-        item.GetString("IPAddress", r["ip_address"]);
-        item.GetString("InterfaceAlias", r["interface_alias"]);
-        item.GetString("LinkLayerAddress", r["link_layer_address"]);
+      item.GetUnsignedShort("AddressFamily", usiPlaceHolder);
+      r["address_family"] = SQL_TEXT(mapOfAddressFamily.at(usiPlaceHolder));
+      item.GetUChar("Store", cPlaceHolder);
+      r["store"] = SQL_TEXT(mapOfStore.at(cPlaceHolder));
+      item.GetUChar("State", cPlaceHolder);
+      r["state"] = SQL_TEXT(mapOfState.at(cPlaceHolder));
+      item.GetUnsignedInt32("InterfaceIndex", uiPlaceHolder);
+      r["interface_index"] = INTEGER(uiPlaceHolder);
+      item.GetString("IPAddress", r["ip_address"]);
+      item.GetString("InterfaceAlias", r["interface_alias"]);
+      item.GetString("LinkLayerAddress", r["link_layer_address"]);
 
-        results.push_back(r);
-      }
+      results.push_back(r);
     }
-
-    return results;
   }
+
+  return results;
+}
 }
 }
