@@ -35,6 +35,55 @@ function Test-RebootPending {
   return $compBasedServ -or $winUpdate -or $ccm
 }
 
+# Checks for the existence of a supplied string in the System path. If the
+# string does not exist, this function adds it. If it does exist this function
+# does nothing.
+function Add-ToPath {
+  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  param(
+    [string] $appendPath = ''
+  )
+  if (-not $PSCmdlet.ShouldProcess('Add-ToPath')) {
+    Exit -1
+  }
+  if ($appendPath[-1] -ne ';') {
+    $appendPath += ';'
+  }
+  $oldPath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+  if (($appendPath[0] -ne ';') -and ($oldPath[-1] -ne ';')) {
+    $appendPath = ';' + $appendPath
+  }
+  if (-not ($oldPath -imatch [regex]::escape($appendPath))) {
+    $newPath = $oldPath + ';' + $appendPath
+    [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
+  }
+  # Append the newly added path to the sessions Path variable, for immediate use.
+  $env:Path += $appendPath
+}
+
+# Searchs the system path for a specified directory, and if exists, deletes
+# the value from the system path.
+function Remove-FromPath {
+  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  param(
+    [string] $removePath = ''
+  )
+  if (-not $PSCmdlet.ShouldProcess('Remove-FromPath')) {
+    Exit -1
+  }
+  if ($removePath[-1] -ne ';') {
+    $removePath += ';'
+  }
+  if ($removePath[0] -ne ';') {
+    $removePath = ';' + $removePath
+  }
+  $oldPath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+  if ($oldPath -imatch [regex]::escape($removePath)) {
+    $newPath = $oldPath -Replace [regex]::escape($removePath), $NULL
+    [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
+  }
+}
+
 # Checks if a package is already installed through chocolatey
 # Returns true if:
 #  * The package is installed and the user supplies no version
@@ -111,14 +160,15 @@ function Install-Chocolatey {
   }
   Write-Host " => Attemping to detect presence of chocolatey..." -foregroundcolor DarkYellow
   if ($null -eq (Get-Command 'choco.exe' -ErrorAction SilentlyContinue)) {
-    if (Test-Path $env:ALLUSERSPROFILE\chocolatey\bin) {
-      Write-Host "[-] WARN: Chocolatey appears to be installed, but was not in path!" -foregroundcolor Yellow
+    if (Test-Path "$env:ALLUSERSPROFILE\chocolatey\bin") {
+      Write-Host "[-] WARN: Chocolatey appears to be installed, but cannot be found in the system path!" -foregroundcolor Yellow
     } else {
       Write-Host " => Did not find. Installing chocolatey..." -foregroundcolor Cyan
       Invoke-Expression ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
     }
     Write-Host " => Adding chocolatey to path."
-    $env:Path = "$env:Path;$env:ALLUSERSPROFILE\chocolatey\bin"
+    $chocoPath = $env:ALLUSERSPROFILE+'\chocolatey\bin'
+    Add-ToPath $chocoPath
   } else {
     Write-Host "[*] Chocolatey is already installed." -foregroundcolor Green
   }
@@ -169,7 +219,11 @@ function Install-PipPackage {
     Exit -1
   }
   Write-Host " => Attempting to install Python packages" -foregroundcolor DarkYellow
-  $env:Path = "$env:Path;$env:HOMEDRIVE\tools\python2;$env:HOMEDRIVE\tools\python2\Scripts"
+  $pythonPath = $env:HOMEDRIVE+'\tools\python2'
+  Add-ToPath $pythonPath
+  $pythonScriptsPath = $env:HOMEDRIVE+'\tools\python2\Scripts'
+  Add-ToPath $pythonScriptsPath
+
   if ($null -eq (Get-Command 'python.exe' -ErrorAction SilentlyContinue)) {
     Write-Host "[-] ERROR: failed to find python" -foregroundcolor Red
     Exit -1
