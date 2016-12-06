@@ -97,11 +97,9 @@ void WinSockets::parseSocketTable(WinSockTableType sockType,
     std::vector<char> localAddr(128, 0x0);
     std::vector<char> remoteAddr(128, 0x0);
 
-    auto proto = static_cast<unsigned int>(sockType);
-    r["protocol"] = INTEGER(proto);
-
     switch (sockType) {
     case WinSockTableType::tcp: {
+      r["protocol"] = INTEGER(IPPROTO_TCP);
       auto tcpLocalAddr = tcpTable_->table[i].dwLocalAddr;
       auto retVal =
           InetNtopA(AF_INET, &tcpLocalAddr, localAddr.data(), localAddr.size());
@@ -127,6 +125,7 @@ void WinSockets::parseSocketTable(WinSockTableType sockType,
     }
 
     case WinSockTableType::tcp6: {
+      r["protocol"] = INTEGER(IPPROTO_TCP);
       auto tcp6LocalAddr = tcp6Table_->table[i].ucLocalAddr;
       auto retVal = InetNtopA(
           AF_INET6, tcp6LocalAddr, localAddr.data(), localAddr.size());
@@ -152,6 +151,7 @@ void WinSockets::parseSocketTable(WinSockTableType sockType,
     }
 
     case WinSockTableType::udp: {
+      r["protocol"] = INTEGER(IPPROTO_UDP);
       auto udpLocalAddr = udpTable_->table[i].dwLocalAddr;
       auto retVal =
           InetNtopA(AF_INET, &udpLocalAddr, localAddr.data(), localAddr.size());
@@ -169,6 +169,7 @@ void WinSockets::parseSocketTable(WinSockTableType sockType,
     }
 
     case WinSockTableType::udp6: {
+      r["protocol"] = INTEGER(IPPROTO_UDP);
       auto udp6LocalAddr = udp6Table_->table[i].ucLocalAddr;
       auto retVal = InetNtopA(
           AF_INET6, udp6LocalAddr, localAddr.data(), localAddr.size());
