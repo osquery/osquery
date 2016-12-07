@@ -151,6 +151,20 @@ class LoggerPlugin : public Plugin {
     return false;
   }
 
+  /**
+   * @brief Set the process name.
+   */
+  void setName(const std::string& name) {
+    name_ = name;
+  }
+
+  /**
+   * @brief Get the process name.
+   */
+  const std::string& name() const {
+    return name_;
+  }
+
  protected:
   /** @brief Virtual method which should implement custom logging.
    *
@@ -216,6 +230,9 @@ class LoggerPlugin : public Plugin {
   virtual Status logEvent(const std::string& s) {
     return Status(1, "Not enabled");
   }
+
+ private:
+  std::string name_;
 };
 
 /// Set the verbose mode, changes Glog's sinking logic and will affect plugins.
