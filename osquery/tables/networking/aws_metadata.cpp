@@ -25,7 +25,7 @@ namespace http = boost::network::http;
 namespace osquery {
 namespace tables {
 
-#define AWS_META_DEBUG true
+//#define AWS_META_DEBUG true
 
 static bool initialized = false;
 
@@ -63,7 +63,7 @@ void awsMetaInit() {
     initialized = true;
 }
 
-Status AwsData::Get() {
+std::string AwsData::DoGet() {
     std::string ret;
     std::string url = awsBaseUrl + subUrl;
     http::client::request req(url);
@@ -79,7 +79,7 @@ Status AwsData::Get() {
     }
     catch (const std::exception& e) {
         VLOG(1) << "error in http request to " << url << " failed: " << e.what();
-        return Status(1, "http get failed");
+        return ret;
     }
     // check http status
     boost::uint16_t http_status_code = res.status(); 
@@ -90,20 +90,20 @@ Status AwsData::Get() {
 
     // silent ignore of 404: some AWS API REST entry points are not always available depending on AMI config
     if(http_status_code == 404) {
-        return Status(0, "404");
+        return ret;
     }
     // log "hard" errors
     if(http_status_code != 200) {
         VLOG(1) << "error in http request to " << url << " http code: " << http_status_code;
-        return Status(1, "http error");
+        return ret;
     }
     // populate
-    http_body = res.body();
+    ret = res.body();
 
-    return Status(0, "OK");
+    return ret;
 }
 
-Status GenericAwsData::ExtractResult(Row& r) {
+Status GenericAwsData::ExtractResult(Row& r, std::string http_body) {
     switch(sqlType) {
         case TEXT_TYPE:
             r[fieldName] = TEXT(http_body.c_str());
@@ -117,16 +117,16 @@ Status GenericAwsData::ExtractResult(Row& r) {
     return Status(0, "OK");
 }
 
-Status IamArnAwsData::ExtractResult(Row& r) {
-	pt::ptree tree;
-  	try {
+Status IamArnAwsData::ExtractResult(Row& r, std::string http_body) {
+    pt::ptree tree;
+    try {
     	std::stringstream json_stream;
-    	json_stream << http_body;
-    	pt::read_json(json_stream, tree);
-  	} catch (const pt::json_parser::json_parser_error& e ) {
-    	VLOG(1) << "Could not parse Iam Arn JSON from " << subUrl << ": " << e.what();
+        json_stream << http_body;
+        pt::read_json(json_stream, tree);
+    } catch (const pt::json_parser::json_parser_error& e ) {
+        VLOG(1) << "Could not parse Iam Arn JSON from " << subUrl << ": " << e.what();
         return Status(0, "JSON parse failure");
-  	}
+    }
     
     std::string val = tree.get<std::string>("InstanceProfileArn");
     r[fieldName] = TEXT(val.c_str());
@@ -146,7 +146,7 @@ QueryData genAwsMetadata(QueryContext& context) {
     using AwsFieldsIter = std::vector<AwsData*>::iterator;
     for(AwsFieldsIter it = AwsFields.begin(); it != AwsFields.end(); ++it) {
         // Error is logged within
-        (*it)->GetAndExtractResult(r);
+        (*it)->Get(r);
     }
 
     // create the full row

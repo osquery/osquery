@@ -38,9 +38,11 @@ class AwsData {
   std::string subUrl;
 
   /**
-   * @brief http content
+   * @brief HTTP get the data
+   *
+   * @return osquery Status
    */
-  std::string http_body;
+  std::string DoGet();
 
   public:
   /**
@@ -61,9 +63,10 @@ class AwsData {
    * @brief Extract relevant data from return API call, pure virtual
    *
    * @param r The row to which the value need to be added
+   * @param http_body content of the http response body
    * @return osquery Status
    */
-  virtual Status ExtractResult(Row& r) = 0;
+  virtual Status ExtractResult(Row& r, std::string http_body) = 0;
 
   /**
    * @brief HTTP get and extract data
@@ -71,16 +74,15 @@ class AwsData {
    * @param r The row to which the value need to be added
    * @return osquery Status
    */
-  Status GetAndExtractResult(Row& r) {
-      Get();
-      return ExtractResult(r);
+  Status Get(Row& r) {
+      std::string http_body = DoGet();
+      if(!http_body.empty()) {
+        return ExtractResult(r, http_body);
+      }
+      // no hard error if no response
+      return Status(0, "OK");
   }
-  /**
-   * @brief HTTP get the data
-   *
-   * @return osquery Status
-   */
-  Status Get();
+
 };
 
 /**
@@ -92,7 +94,7 @@ class GenericAwsData : public AwsData {
   GenericAwsData(ColumnType in_sqlType, std::string in_fieldName, std::string in_subUrl) 
       : AwsData(in_sqlType, in_fieldName, in_subUrl) {}
 
-  virtual Status ExtractResult(Row& r);
+  virtual Status ExtractResult(Row& r, std::string http_body);
 };
 
 /**
@@ -104,7 +106,7 @@ class IamArnAwsData : public AwsData {
   IamArnAwsData(ColumnType in_sqlType, std::string in_fieldName, std::string in_subUrl) 
       : AwsData(in_sqlType, in_fieldName, in_subUrl) {}
 
-  virtual Status ExtractResult(Row& r);
+  virtual Status ExtractResult(Row& r, std::string http_body);
 };
 
 }
