@@ -21,6 +21,12 @@
 
 namespace osquery {
 
+/// At startup, always do a new enrollment instead of using a cached one
+CLI_FLAG(bool,
+         enroll_always,
+         false,
+         "On startup, send a new enrollment request");
+
 /// Allow users to disable enrollment features.
 CLI_FLAG(bool,
          disable_enrollment,
