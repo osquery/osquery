@@ -36,6 +36,8 @@ else()
 endif()
 
 if(WINDOWS)
+  ADD_OSQUERY_LINK_CORE("ws2_32.lib")
+  ADD_OSQUERY_LINK_CORE("iphlpapi.lib")
   ADD_OSQUERY_LINK_CORE("netapi32.lib")
   ADD_OSQUERY_LINK_CORE("rpcrt4.lib")
   ADD_OSQUERY_LINK_CORE("shlwapi.lib")

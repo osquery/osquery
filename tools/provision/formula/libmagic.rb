@@ -9,7 +9,7 @@ class Libmagic < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "906e03a38f95e1d5fad4bd540a64bbcdcc7235993cf760b005d15446b16e7be0" => :sierra
+    sha256 "ccd48e50e008e3def7f9b57dcc3f2c6686077bbe097df35ed70f718f6b5bd96b" => :sierra
     sha256 "eb2fe5ed3c272eeb44d7b8f8a2e7d759a8f22ca35037deef848243e794079530" => :x86_64_linux
   end
 
