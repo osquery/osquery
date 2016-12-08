@@ -146,6 +146,8 @@ Status RocksDBDatabasePlugin::setUp() {
 
   if (!initialized_) {
     initialized_ = true;
+    options_.OptimizeForSmallDb();
+
     // Set meta-data (mostly) handling options.
     options_.create_if_missing = true;
     options_.create_missing_column_families = true;
@@ -160,10 +162,11 @@ Status RocksDBDatabasePlugin::setUp() {
     options_.compaction_style = rocksdb::kCompactionStyleLevel;
     options_.arena_block_size = (4 * 1024);
     options_.write_buffer_size = (4 * 1024) * 100; // 100 blocks.
-    options_.max_write_buffer_number = 3;
+    options_.max_write_buffer_number = 4;
     options_.min_write_buffer_number_to_merge = 1;
-    options_.max_background_compactions = 2;
-    options_.max_background_flushes = 2;
+    // Before adding the OptimizeForSmallDB API call we used:
+    //   options_.max_background_compactions = 2;
+    //   options_.max_background_flushes = 2;
 
     // Create an environment to replace the default logger.
     if (logger_ == nullptr) {
