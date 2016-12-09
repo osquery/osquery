@@ -248,6 +248,29 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill(True)
 
     @test_base.flaky
+    def test_6_extensions_directory_autoload(self):
+        loader = test_base.Autoloader(
+            [test_base.ARGS.build + "/osquery/"])
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "extensions_timeout": EXTENSION_TIMEOUT,
+            "extensions_autoload": loader.path,
+        })
+        self.assertTrue(daemon.isAlive())
+
+        # Get a python-based thrift client
+        client = test_base.EXClient(daemon.options["extensions_socket"])
+        self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
+        em = client.getEM()
+
+        # The waiting extension should have connected to the daemon.
+        result = test_base.expect(em.extensions, 1)
+        self.assertEqual(len(result), 1)
+
+        client.close()
+        daemon.kill(True)
+
+    @test_base.flaky
     def test_7_extensions_autoload_watchdog(self):
         loader = test_base.Autoloader(
             [test_base.ARGS.build + "/osquery/example_extension.ext"])

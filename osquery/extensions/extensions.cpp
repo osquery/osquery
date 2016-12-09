@@ -336,43 +336,73 @@ static bool isFileSafe(std::string& path, ExtendableType type) {
 }
 
 Status loadExtensions(const std::string& loadfile) {
-  std::string autoload_paths;
   if (!FLAGS_extension.empty()) {
     // This is a shell-only development flag for quickly loading/using a single
     // extension. It bypasses the safety check.
     Watcher::addExtensionPath(FLAGS_extension);
   }
 
-  if (readFile(loadfile, autoload_paths).ok()) {
-    for (auto& path : osquery::split(autoload_paths, "\n")) {
-      if (isFileSafe(path, ExtendableType::EXTENSION)) {
-        // After the path is sanitized the watcher becomes responsible for
-        // forking and executing the extension binary.
-        Watcher::addExtensionPath(path);
-      }
-    }
-    return Status(0, "OK");
+  std::string autoload_paths;
+  if (!readFile(loadfile, autoload_paths).ok()) {
+    return Status(1, "Failed reading: " + loadfile);
   }
-  return Status(1, "Failed reading: " + loadfile);
+
+  // The set of binaries to auto-load, after safety is confirmed.
+  std::set<std::string> autoload_binaries;
+  for (auto& path : osquery::split(autoload_paths, "\n")) {
+    if (isDirectory(path)) {
+      std::vector<std::string> paths;
+      listFilesInDirectory(path, paths, true);
+      for (auto& embedded_path : paths) {
+        if (isFileSafe(embedded_path, ExtendableType::EXTENSION)) {
+          autoload_binaries.insert(std::move(embedded_path));
+        }
+      }
+    } else if (isFileSafe(path, ExtendableType::EXTENSION)) {
+      autoload_binaries.insert(path);
+    }
+  }
+
+  for (const auto& binary : autoload_binaries) {
+    // After the path is sanitized the watcher becomes responsible for
+    // forking and executing the extension binary.
+    Watcher::addExtensionPath(binary);
+  }
+  return Status(0, "OK");
 }
 
 Status loadModules(const std::string& loadfile) {
-  // Split the search path for modules using a ':' delimiter.
-  bool all_loaded = true;
   std::string autoload_paths;
-  if (readFile(loadfile, autoload_paths).ok()) {
-    for (auto& path : osquery::split(autoload_paths, "\n")) {
-      if (isFileSafe(path, ExtendableType::MODULE)) {
-        RegistryModuleLoader loader(path);
-        loader.init();
-      } else {
-        all_loaded = false;
-      }
-    }
-    // Return an aggregate failure if any load fails (invalid search path).
-    return Status((all_loaded) ? 0 : 1);
+  if (!readFile(loadfile, autoload_paths).ok()) {
+    return Status(1, "Failed reading: " + loadfile);
   }
-  return Status(1, "Failed reading: " + loadfile);
+
+  bool all_loaded = true;
+  std::set<std::string> autoload_objects;
+  for (auto& path : osquery::split(autoload_paths, "\n")) {
+    if (isDirectory(path)) {
+      std::vector<std::string> paths;
+      listFilesInDirectory(path, paths, true);
+      for (auto& embedded_path : paths) {
+        if (isFileSafe(embedded_path, ExtendableType::MODULE)) {
+          autoload_objects.insert(std::move(embedded_path));
+        } else {
+          all_loaded = false;
+        }
+      }
+    } else if (isFileSafe(path, ExtendableType::MODULE)) {
+      autoload_objects.insert(path);
+    } else {
+      all_loaded = false;
+    }
+  }
+
+  for (const auto& object : autoload_objects) {
+    RegistryModuleLoader loader(object);
+    loader.init();
+  }
+  // Return an aggregate failure if any load fails (invalid search path).
+  return Status((all_loaded) ? 0 : 1);
 }
 
 Status startExtension(const std::string& name, const std::string& version) {
