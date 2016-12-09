@@ -219,28 +219,28 @@ function Install-PipPackage {
     Exit -1
   }
   Write-Host " => Attempting to install Python packages" -foregroundcolor DarkYellow
-  $pythonPath = $env:HOMEDRIVE+'\tools\python2'
+  $pythonPath = [Environment]::GetEnvironmentVariable("OSQUERY_PYTHON_PATH", "Machine")
   Add-ToPath $pythonPath
-  $pythonScriptsPath = $env:HOMEDRIVE+'\tools\python2\Scripts'
-  Add-ToPath $pythonScriptsPath
+  $pipPath = "$pythonPath\Scripts"
+  Add-ToPath $pipPath
+  if (-not (Test-Path "$pythonPath\python.exe")) {
+    Write-Host "[-] ERROR: failed to find python in C:\tools\python2!" -foregroundcolor Red
+    Exit -1
+  }
+  if (-not (Test-Path "$pipPath\pip.exe")) {
+    Write-Host "[-] ERROR: failed to find pip in C:\tools\python2\Scripts!" -foregroundcolor Red
+    Exit -1
+  }
 
-  if ($null -eq (Get-Command 'python.exe' -ErrorAction SilentlyContinue)) {
-    Write-Host "[-] ERROR: failed to find python" -foregroundcolor Red
-    Exit -1
-  }
-  if ($null -eq (Get-Command 'pip.exe' -ErrorAction SilentlyContinue)) {
-    Write-Host "[-] ERROR: failed to find pip" -foregroundcolor Red
-    Exit -1
-  }
   $requirements = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'requirements.txt'))
   Write-Host " => Upgrading pip..." -foregroundcolor DarkYellow
-  python -m pip -q install --upgrade pip
+  & "$pythonPath\python.exe" -m pip -q install --upgrade pip
   if ($LastExitCode -ne 0) {
     Write-Host "[-] ERROR: pip upgrade failed." -foregroundcolor Red
     Exit -1
   }
   Write-Host " => Installing from requirements.txt" -foregroundcolor DarkYellow
-  pip -q install -r $requirements.path
+  & "$pipPath\pip.exe" -q install -r $requirements.path
   if ($LastExitCode -ne 0) {
     Write-Host "[-] ERROR: Install packages from requirements failed." -foregroundcolor Red
     Exit -1
@@ -363,7 +363,10 @@ function Main {
   $out = Install-ChocoPackage 'cppcheck'
   $out = Install-ChocoPackage '7zip.commandline'
   $out = Install-ChocoPackage 'cmake.portable' '3.6.1'
-  $out = Install-ChocoPackage 'python2' '2.7.11'
+  $chocoParams = @("--params=`"/InstallDir:C:\tools\python2`"")
+  $out = Install-ChocoPackage 'python2' '' ${chocoParams}
+  # Convenience variable for accessing Python
+  [Environment]::SetEnvironmentVariable("OSQUERY_PYTHON_PATH", "C:\tools\python2", "Machine")
   $out = Install-PipPackage
   $out = Update-GitSubmodule
   if (Test-Path env:OSQUERY_BUILD_HOST) {
@@ -379,7 +382,7 @@ function Main {
       Exit 0
     }
 
-    if ($PSVersionTable.PSVersion.Major -lt 5.1 ) {
+    if ($PSVersionTable.PSVersion.Major -lt 5 -and $PSVersionTable.PSVersion.Minor -lt 1 ) {
       Write-Host "[*] Powershell version is < 5.1. Skipping Powershell Linter Installation." -foregroundcolor yellow
     } else {
       $out = Install-PowershellLinter
