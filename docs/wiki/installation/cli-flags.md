@@ -315,6 +315,10 @@ Maximum returned row value size.
 
 Set the syslog facility (number) 0-23 for the results log. When using the **syslog** logger plugin the default facility is 19 at the `LOG_INFO` level, which does not log to `/var/log/system`.
 
+`--logger_syslog_prepend_cee`
+
+Prepend a `@cee:` cookie to JSON-formatted messages sent to the **syslog** logger plugin. Several syslog parsers use this cookie to indicate that the message payload is parseable JSON. The default value is false.
+
 ## Distributed query service flags
 
 `--distributed_plugin=tls`

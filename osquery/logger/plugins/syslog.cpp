@@ -20,6 +20,11 @@ FLAG(int32,
      LOG_LOCAL3 >> 3,
      "Syslog facility for status and results logs (0-23, default 19)");
 
+FLAG(bool,
+     logger_syslog_prepend_cee,
+     false,
+     "Prepend @cee: tag to logged JSON messages");
+
 class SyslogLoggerPlugin : public LoggerPlugin {
  public:
   bool usesLogStatus() override { return true; }
@@ -34,7 +39,11 @@ class SyslogLoggerPlugin : public LoggerPlugin {
 REGISTER(SyslogLoggerPlugin, "logger", "syslog");
 
 Status SyslogLoggerPlugin::logString(const std::string& s) {
-  syslog(LOG_INFO, "%s", s.c_str());
+  if (FLAGS_logger_syslog_prepend_cee) {
+    syslog(LOG_INFO, "@cee:%s", s.c_str());
+  } else {
+    syslog(LOG_INFO, "%s", s.c_str());
+  }
   return Status(0, "OK");
 }
 
