@@ -29,7 +29,7 @@ QueryData genWmiFilters(QueryContext& context) {
   std::stringstream ss;
   ss << "SELECT * FROM __EventFilter";
 
-  WmiRequest request(ss.str(), L"ROOT\\Subscription");
+  WmiRequest request(ss.str(), (BSTR)L"ROOT\\Subscription");
   if (request.getStatus().ok()) {
     std::vector<WmiResultItem>& results = request.results();
     for (const auto& result : results) {
