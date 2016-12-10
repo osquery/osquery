@@ -13,8 +13,6 @@
 
 #include <signal.h>
 
-#include <sys/types.h>
-
 #include <boost/algorithm/string.hpp>
 
 #include "osquery/core/process.h"
@@ -23,7 +21,7 @@ namespace osquery {
 
 static PlatformPidType __declspec(nothrow)
     duplicateHandle(osquery::PlatformPidType src) {
-  osquery::PlatformPidType handle = osquery::kInvalidPid;
+  auto handle = osquery::kInvalidPid;
 
   if (src != osquery::kInvalidPid) {
     if (!::DuplicateHandle(GetCurrentProcess(),
@@ -73,7 +71,7 @@ bool PlatformProcess::operator!=(const PlatformProcess& process) const {
 }
 
 int PlatformProcess::pid() const {
-  return (int)::GetProcessId(id_);
+  return static_cast<int>(::GetProcessId(id_));
 }
 
 bool PlatformProcess::kill() const {
@@ -85,7 +83,7 @@ bool PlatformProcess::kill() const {
 }
 
 ProcessState PlatformProcess::checkStatus(int& status) const {
-  DWORD exit_code = 0;
+  unsigned long exit_code = 0;
   if (!::GetExitCodeProcess(nativeHandle(), &exit_code)) {
     return PROCESS_ERROR;
   }
@@ -99,7 +97,7 @@ ProcessState PlatformProcess::checkStatus(int& status) const {
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::getCurrentProcess() {
-  HANDLE handle =
+  auto handle =
       ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, ::GetCurrentProcessId());
   if (handle == nullptr) {
     return std::make_shared<PlatformProcess>();
@@ -117,7 +115,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
   // Convert the environment variable into a HANDLE (the value from environment
   // variable should be a hex value). As a precaution, ensure that the HANDLE is
   // valid.
-  HANDLE handle = INVALID_HANDLE_VALUE;
+  auto handle = INVALID_HANDLE_VALUE;
 
   try {
     handle = reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(
@@ -138,7 +136,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
 std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
     const std::string& exec_path, int argc, char** argv) {
   ::STARTUPINFOA si = {0};
-  ::PROCESS_INFORMATION pi = {0};
+  ::PROCESS_INFORMATION pi = {nullptr};
 
   si.cb = sizeof(si);
 
@@ -150,7 +148,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   // SYNCHRONIZE permissions allows for WaitForSingleObject.
   // PROCESS_QUERY_LIMITED_INFORMATION allows for the ability to use the
   // GetProcessId and GetExitCodeProcess API functions.
-  HANDLE hLauncherProcess =
+  auto hLauncherProcess =
       ::OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION,
                     TRUE,
                     GetCurrentProcessId());
@@ -159,7 +157,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   }
 
   handle_stream << hLauncherProcess;
-  std::string handle = handle_stream.str();
+  auto handle = handle_stream.str();
 
   // In the POSIX version, the environment variable OSQUERY_WORKER is set to the
   // string form of the child process' process ID. However, this is not easily
@@ -201,11 +199,11 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
     }
   }
 
-  std::string cmdline = argv_stream.str();
+  auto cmdline = argv_stream.str();
   std::vector<char> mutable_argv(cmdline.begin(), cmdline.end());
   mutable_argv.push_back('\0');
 
-  BOOL status = ::CreateProcessA(exec_path.c_str(),
+  auto status = ::CreateProcessA(exec_path.c_str(),
                                  mutable_argv.data(),
                                  nullptr,
                                  nullptr,
@@ -238,7 +236,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     const std::string& extensions_interval,
     const std::string& verbose) {
   ::STARTUPINFOA si = {0};
-  ::PROCESS_INFORMATION pi = {0};
+  ::PROCESS_INFORMATION pi = {nullptr};
 
   si.cb = sizeof(si);
 
@@ -259,7 +257,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   // CreateProcess since that argument requires a modifiable buffer. So,
   // instead, we off-load the contents of argv into a vector which will have its
   // backing memory as modifiable.
-  std::string argv = argv_stream.str();
+  auto argv = argv_stream.str();
   std::vector<char> mutable_argv(argv.begin(), argv.end());
   mutable_argv.push_back('\0');
 
@@ -270,7 +268,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     return std::shared_ptr<PlatformProcess>();
   }
 
-  BOOL status = ::CreateProcessA(exec_path.c_str(),
+  auto status = ::CreateProcessA(exec_path.c_str(),
                                  mutable_argv.data(),
                                  nullptr,
                                  nullptr,
@@ -298,25 +296,25 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
   std::shared_ptr<PlatformProcess> process;
 
   STARTUPINFOA si = {0};
-  PROCESS_INFORMATION pi = {0};
+  PROCESS_INFORMATION pi = {nullptr};
 
   auto argv = "python " + args;
   std::vector<char> mutable_argv(argv.begin(), argv.end());
   mutable_argv.push_back('\0');
   si.cb = sizeof(si);
 
-  auto drive = getEnvVar("SystemDrive");
-  std::string python_path("");
-  if (drive.is_initialized()) {
-    python_path = *drive;
+  auto pythonEnv = getEnvVar("OSQUERY_PYTHON_PATH");
+  std::string pythonPath("");
+  if (pythonEnv.is_initialized()) {
+    pythonPath = *pythonEnv;
   }
 
   // Python is installed at this location if the provisioning script is used.
   // This path should work regardless of the existence of the SystemDrive
   // environment variable.
-  python_path += "\\tools\\python2\\python.exe";
+  pythonPath += "\\python.exe";
 
-  if (::CreateProcessA(python_path.c_str(),
+  if (::CreateProcessA(pythonPath.c_str(),
                        mutable_argv.data(),
                        nullptr,
                        nullptr,
