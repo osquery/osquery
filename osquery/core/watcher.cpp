@@ -50,23 +50,33 @@ using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
 
 const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
-    {MEMORY_LIMIT, {100, 50, 1000}},
+    {WatchdogLimitType::MEMORY_LIMIT, {100, 50, 1000}},
     // User or system CPU worker can utilize for LATENCY_LIMIT seconds.
-    {UTILIZATION_LIMIT, {90, 80, 1000}},
+    {WatchdogLimitType::UTILIZATION_LIMIT, {90, 80, 1000}},
     // Number of seconds the worker should run, else consider the exit fatal.
-    {RESPAWN_LIMIT, {20, 20, 1000}},
+    {WatchdogLimitType::RESPAWN_LIMIT, {20, 20, 1000}},
     // If the worker respawns too quickly, backoff on creating additional.
-    {RESPAWN_DELAY, {5, 5, 1}},
+    {WatchdogLimitType::RESPAWN_DELAY, {5, 5, 1}},
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
-    {LATENCY_LIMIT, {12, 6, 1000}},
+    {WatchdogLimitType::LATENCY_LIMIT, {12, 6, 1000}},
     // How often to poll for performance limit violations.
-    {INTERVAL, {3, 3, 3}},
+    {WatchdogLimitType::INTERVAL, {3, 3, 3}},
 };
 
 CLI_FLAG(int32,
          watchdog_level,
          0,
          "Performance limit level (0=normal, 1=restrictive, -1=off)");
+
+CLI_FLAG(uint64,
+         watchdog_memory_limit,
+         0,
+         "Override watchdog profile memory limit");
+
+CLI_FLAG(uint64,
+         watchdog_utilization_limit,
+         0,
+         "Override watchdog profile CPU utilization limit");
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
@@ -219,7 +229,7 @@ void WatcherRunner::start() {
       // A test harness can end the thread immediately.
       break;
     }
-    pauseMilli(getWorkerLimit(INTERVAL) * 1000);
+    pauseMilli(getWorkerLimit(WatchdogLimitType::INTERVAL) * 1000);
   } while (!interrupted() && ok());
 }
 
@@ -265,7 +275,7 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   PerformanceChange change;
 
   // IV is the check interval in seconds, and utilization is set per-second.
-  change.iv = std::max(getWorkerLimit(INTERVAL), (size_t)1);
+  change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), (size_t)1);
   UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
   try {
     change.parent =
@@ -278,8 +288,10 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   }
 
   // Check the difference of CPU time used since last check.
-  if (user_time - state.user_time > getWorkerLimit(UTILIZATION_LIMIT) ||
-      system_time - state.system_time > getWorkerLimit(UTILIZATION_LIMIT)) {
+  if (user_time - state.user_time >
+          getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT) ||
+      system_time - state.system_time >
+          getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT)) {
     state.sustained_latency++;
   } else {
     state.sustained_latency = 0;
@@ -313,7 +325,8 @@ static bool exceededMemoryLimit(const PerformanceChange& change) {
     return false;
   }
 
-  return (change.footprint > getWorkerLimit(MEMORY_LIMIT) * 1024 * 1024);
+  return (change.footprint >
+          getWorkerLimit(WatchdogLimitType::MEMORY_LIMIT) * 1024 * 1024);
 }
 
 static bool exceededCyclesLimit(const PerformanceChange& change) {
@@ -322,7 +335,7 @@ static bool exceededCyclesLimit(const PerformanceChange& change) {
   }
 
   auto latency = change.sustained_latency * change.iv;
-  return (latency >= getWorkerLimit(LATENCY_LIMIT));
+  return (latency >= getWorkerLimit(WatchdogLimitType::LATENCY_LIMIT));
 }
 
 Status WatcherRunner::isWatcherHealthy(const PlatformProcess& watcher,
@@ -390,12 +403,12 @@ void WatcherRunner::createWorker() {
   {
     WatcherLocker locker;
     if (Watcher::getState(Watcher::getWorker()).last_respawn_time >
-        getUnixTime() - getWorkerLimit(RESPAWN_LIMIT)) {
+        getUnixTime() - getWorkerLimit(WatchdogLimitType::RESPAWN_LIMIT)) {
       LOG(WARNING) << "osqueryd worker respawning too quickly: "
                    << Watcher::workerRestartCount() << " times";
       Watcher::workerRestarted();
       // The configured automatic delay.
-      size_t delay = getWorkerLimit(RESPAWN_DELAY) * 1000;
+      size_t delay = getWorkerLimit(WatchdogLimitType::RESPAWN_DELAY) * 1000;
       // Exponential back off for quickly-respawning clients.
       delay +=
           static_cast<size_t>(pow(2, Watcher::workerRestartCount())) * 1000;
@@ -451,7 +464,7 @@ bool WatcherRunner::createExtension(const std::string& extension) {
   {
     WatcherLocker locker;
     if (Watcher::getState(extension).last_respawn_time >
-        getUnixTime() - getWorkerLimit(RESPAWN_LIMIT)) {
+        getUnixTime() - getWorkerLimit(WatchdogLimitType::RESPAWN_LIMIT)) {
       LOG(WARNING) << "Extension respawning too quickly: " << extension;
       // Unlike a worker, if an extension respawns to quickly we give up.
       return false;
@@ -501,13 +514,23 @@ void WatcherWatcherRunner::start() {
       Initializer::requestShutdown();
       break;
     }
-    pauseMilli(getWorkerLimit(INTERVAL) * 1000);
+    pauseMilli(getWorkerLimit(WatchdogLimitType::INTERVAL) * 1000);
   }
 }
 
 size_t getWorkerLimit(WatchdogLimitType name) {
   if (kWatchdogLimits.count(name) == 0) {
     return 0;
+  }
+
+  if (name == WatchdogLimitType::MEMORY_LIMIT &&
+      FLAGS_watchdog_memory_limit > 0) {
+    return FLAGS_watchdog_memory_limit;
+  }
+
+  if (name == WatchdogLimitType::UTILIZATION_LIMIT &&
+      FLAGS_watchdog_utilization_limit > 0) {
+    return FLAGS_watchdog_utilization_limit;
   }
 
   auto level = FLAGS_watchdog_level;

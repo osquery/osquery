@@ -42,7 +42,7 @@ class WatcherRunner;
  * here, and organized into levels. Such that a caller may enforce rigor or
  * relax the performance expectations of a osquery daemon.
  */
-enum WatchdogLimitType {
+enum class WatchdogLimitType {
   MEMORY_LIMIT,
   UTILIZATION_LIMIT,
   RESPAWN_LIMIT,
@@ -109,13 +109,19 @@ class Watcher : private boost::noncopyable {
                                      size_t respawn_time);
 
   /// Lock access to extensions.
-  static void lock() { instance().lock_.lock(); }
+  static void lock() {
+    instance().lock_.lock();
+  }
 
   /// Unlock access to extensions.
-  static void unlock() { instance().lock_.unlock(); }
+  static void unlock() {
+    instance().lock_.unlock();
+  }
 
   /// Accessor for autoloadable extension paths.
-  static const ExtensionMap& extensions() { return instance().extensions_; }
+  static const ExtensionMap& extensions() {
+    return instance().extensions_;
+  }
 
   /// Lookup extension path from pid.
   static std::string getExtensionPath(const PlatformProcess& child);
@@ -131,7 +137,9 @@ class Watcher : private boost::noncopyable {
   static PerformanceState& getState(const std::string& extension);
 
   /// Accessor for the worker process.
-  static PlatformProcess& getWorker() { return *instance().worker_; }
+  static PlatformProcess& getWorker() {
+    return *instance().worker_;
+  }
 
   /// Setter for worker process.
   static void setWorker(const std::shared_ptr<PlatformProcess>& child) {
@@ -146,13 +154,19 @@ class Watcher : private boost::noncopyable {
   static void reset(const PlatformProcess& child);
 
   /// Count the number of worker restarts.
-  static size_t workerRestartCount() { return instance().worker_restarts_; }
+  static size_t workerRestartCount() {
+    return instance().worker_restarts_;
+  }
 
   /// Become responsible for the worker's fate, but do not guarantee its safety.
-  static void bindFates() { instance().restart_worker_ = false; }
+  static void bindFates() {
+    instance().restart_worker_ = false;
+  }
 
   /// Check if the worker and watcher's fates are bound.
-  static bool fatesBound() { return !instance().restart_worker_; }
+  static bool fatesBound() {
+    return !instance().restart_worker_;
+  }
 
   /**
    * @brief Return the state of autoloadable extensions.
@@ -164,7 +178,9 @@ class Watcher : private boost::noncopyable {
   static bool hasManagedExtensions();
 
   /// Check the status of the last worker.
-  static int getWorkerStatus() { return instance().worker_status_; }
+  static int getWorkerStatus() {
+    return instance().worker_status_;
+  }
 
  private:
   /// Do not request the lock until extensions are used.
@@ -179,7 +195,9 @@ class Watcher : private boost::noncopyable {
 
  private:
   /// Inform the watcher that the worker restarted without cause.
-  static void workerRestarted() { instance().worker_restarts_++; }
+  static void workerRestarted() {
+    instance().worker_restarts_++;
+  }
 
  private:
   /// Performance state for the worker process.
@@ -228,10 +246,14 @@ class Watcher : private boost::noncopyable {
 class WatcherLocker {
  public:
   /// Construct and gain watcher lock.
-  WatcherLocker() { Watcher::lock(); }
+  WatcherLocker() {
+    Watcher::lock();
+  }
 
   /// Destruct and release watcher lock.
-  ~WatcherLocker() { Watcher::unlock(); }
+  ~WatcherLocker() {
+    Watcher::unlock();
+  }
 };
 
 /**
@@ -287,7 +309,9 @@ class WatcherRunner : public InternalRunnable {
 
  private:
   /// For testing only, ask the WatcherRunner to run a start loop once.
-  void runOnce() { run_once_ = true; }
+  void runOnce() {
+    run_once_ = true;
+  }
 
  private:
   /// Keep the invocation daemon's argc to iterate through argv.
