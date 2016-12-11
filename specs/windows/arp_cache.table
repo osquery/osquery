@@ -1,15 +1,12 @@
 table_name("arp_cache")
 description("Queries the ARP cache.")
 schema([
-  Column('interface_index', INTEGER, 'The index of the interface.'),
-  Column('interface_alias', TEXT, 'The friendly name of the interface.'),
-  Column('ip_address', TEXT, 'The IP address neighbor.'),
-  Column('link_layer_address', TEXT, 'The link layer address of the neighbor.'),
-  Column('store', TEXT, 'Indicates whether the interface store of the neighbor persists after a reboot.'),
-  Column('state', TEXT, 'The discovery state of the neighbor.'),
-  Column('address_family', TEXT, 'The address family of the neighbor.'),
+  Column('address', TEXT, 'IPv4 address target'),
+  Column('mac', TEXT, 'MAC address of broadcasted address'),
+  Column('interface', TEXT, 'Interface of the network for the MAC'),
+  Column('permanent', TEXT, '1 for true, 0 for false'),
 ])
-implementation("network/windows/arp_cache@genArpCache")
+implementation("network/windows/arp_cache@genCrossPlatformArpCache")
 examples([
   "select * from arp_cache",
 ])
