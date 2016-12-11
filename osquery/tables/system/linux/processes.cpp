@@ -12,11 +12,12 @@
 #include <string>
 
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/noncopyable.hpp>
 #include <boost/regex.hpp>
 
 #include <osquery/core.h>
@@ -64,7 +65,7 @@ inline std::string readProcLink(const std::string& attr,
   return result;
 }
 
-// In the case where the linked binary path ends in " (deleted", and a file
+// In the case where the linked binary path ends in " (deleted)", and a file
 // actually exists at that path, check whether the inode of that file matches
 // the inode of the mapped file in /proc/%pid/maps
 Status deletedMatchesInode(const std::string& path, const std::string& pid) {
@@ -183,7 +184,7 @@ void genProcessMap(const std::string& pid, QueryData& results) {
   }
 }
 
-struct SimpleProcStat {
+struct SimpleProcStat : private boost::noncopyable {
   // Output from string parsing /proc/<pid>/status.
   std::string name; // Name:
   std::string real_uid; // Uid: * - - -
@@ -206,81 +207,135 @@ struct SimpleProcStat {
   std::string user_time;
   std::string system_time;
   std::string start_time;
+
+  explicit SimpleProcStat(const std::string& pid);
 };
 
-static inline SimpleProcStat getProcStat(const std::string& pid) {
-  SimpleProcStat stat;
+SimpleProcStat::SimpleProcStat(const std::string& pid) {
   std::string content;
-
   if (readFile(getProcAttr("stat", pid), content).ok()) {
     auto start = content.find_last_of(")");
     // Start parsing stats from ") <MODE>..."
     if (start == std::string::npos || content.size() <= start + 2) {
-      return stat;
+      return;
     }
+
     auto details = osquery::split(content.substr(start + 2), " ");
     if (details.size() <= 19) {
-      return stat;
+      return;
     }
 
-    stat.state = details.at(0);
-    stat.parent = details.at(1);
-    stat.group = details.at(2);
-    stat.user_time = details.at(11);
-    stat.system_time = details.at(12);
-    stat.nice = details.at(16);
-    stat.threads = details.at(17);
+    this->state = details.at(0);
+    this->parent = details.at(1);
+    this->group = details.at(2);
+    this->user_time = details.at(11);
+    this->system_time = details.at(12);
+    this->nice = details.at(16);
+    this->threads = details.at(17);
     try {
-      stat.start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
+      this->start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
     } catch (const boost::bad_lexical_cast& e) {
-      stat.start_time = "-1";
+      this->start_time = "-1";
     }
   }
 
-  if (readFile(getProcAttr("status", pid), content).ok()) {
-    for (const auto& line : osquery::split(content, "\n")) {
-      // Status lines are formatted: Key: Value....\n.
-      auto detail = osquery::split(line, ":", 1);
-      if (detail.size() != 2) {
-        continue;
-      }
+  // /proc/N/status may be not available, or readable by this user.
+  if (!readFile(getProcAttr("status", pid), content).ok()) {
+    return;
+  }
 
-      // There are specific fields from each detail.
-      if (detail.at(0) == "Name") {
-        stat.name = detail.at(1);
-      } else if (detail.at(0) == "VmRSS") {
-        detail[1].erase(detail.at(1).end() - 3, detail.at(1).end());
-        // Memory is reported in kB.
-        stat.resident_size = detail.at(1) + "000";
-      } else if (detail.at(0) == "VmSize") {
-        detail[1].erase(detail.at(1).end() - 3, detail.at(1).end());
-        // Memory is reported in kB.
-        stat.total_size = detail.at(1) + "000";
-      } else if (detail.at(0) == "Gid") {
-        // Format is: R E - -
-        auto gid_detail = osquery::split(detail.at(1), "\t");
-        if (gid_detail.size() == 4) {
-          stat.real_gid = gid_detail.at(0);
-          stat.effective_gid = gid_detail.at(1);
-          stat.saved_gid = gid_detail.at(2);
-        }
-      } else if (detail.at(0) == "Uid") {
-        auto uid_detail = osquery::split(detail.at(1), "\t");
-        if (uid_detail.size() == 4) {
-          stat.real_uid = uid_detail.at(0);
-          stat.effective_uid = uid_detail.at(1);
-          stat.saved_uid = uid_detail.at(2);
-        }
+  for (const auto& line : osquery::split(content, "\n")) {
+    // Status lines are formatted: Key: Value....\n.
+    auto detail = osquery::split(line, ":", 1);
+    if (detail.size() != 2) {
+      continue;
+    }
+
+    // There are specific fields from each detail.
+    if (detail.at(0) == "Name") {
+      this->name = detail.at(1);
+    } else if (detail.at(0) == "VmRSS") {
+      detail[1].erase(detail.at(1).end() - 3, detail.at(1).end());
+      // Memory is reported in kB.
+      this->resident_size = detail.at(1) + "000";
+    } else if (detail.at(0) == "VmSize") {
+      detail[1].erase(detail.at(1).end() - 3, detail.at(1).end());
+      // Memory is reported in kB.
+      this->total_size = detail.at(1) + "000";
+    } else if (detail.at(0) == "Gid") {
+      // Format is: R E - -
+      auto gid_detail = osquery::split(detail.at(1), "\t");
+      if (gid_detail.size() == 4) {
+        this->real_gid = gid_detail.at(0);
+        this->effective_gid = gid_detail.at(1);
+        this->saved_gid = gid_detail.at(2);
+      }
+    } else if (detail.at(0) == "Uid") {
+      auto uid_detail = osquery::split(detail.at(1), "\t");
+      if (uid_detail.size() == 4) {
+        this->real_uid = uid_detail.at(0);
+        this->effective_uid = uid_detail.at(1);
+        this->saved_uid = uid_detail.at(2);
       }
     }
   }
+}
 
-  return stat;
+/**
+ * @brief Determine if the process path (binary) exists on the filesystem.
+ *
+ * If the path of the executable that started the process is available and
+ * the path exists on disk, set on_disk to 1. If the path is not
+ * available, set on_disk to -1. If, and only if, the path of the
+ * executable is available and the file does NOT exist on disk, set on_disk
+ * to 0.
+ *
+ * @param pid The string (because we're referencing file path) pid.
+ * @param path A mutable string found from /proc/N/exe. If this is found
+ *             to contain the (deleted) suffix, it will be removed.
+ * @return A tristate -1 error, 1 yes, 0 nope.
+ */
+int getOnDisk(const std::string& pid, std::string& path) {
+  if (path.empty()) {
+    return -1;
+  }
+
+  // The string appended to the exe path when the binary is deleted
+  const std::string kDeletedString = " (deleted)";
+  if (!boost::algorithm::ends_with(path, kDeletedString)) {
+    return (osquery::pathExists(path)) ? 1 : 0;
+  }
+
+  if (!osquery::pathExists(path)) {
+    // No file exists with the path including " (deleted)", so we can strip
+    // this from the path and set on_disk = 0
+    path.erase(path.size() - kDeletedString.size());
+    return 0;
+  }
+
+  // Special case in which we have to check the inode to see whether the
+  // process is actually running from a binary file ending with
+  // " (deleted)". See #1607
+  std::string maps_contents;
+  Status deleted = deletedMatchesInode(path, pid);
+  if (deleted.getCode() == -1) {
+    LOG(ERROR) << deleted.getMessage();
+    return -1;
+  } else if (deleted.getCode() == 0) {
+    // The process is actually running from a binary ending with
+    // " (deleted)"
+    return 1;
+  } else {
+    // There is a collision with a file name ending in " (deleted)", but
+    // that file is not the binary for this process
+    path.erase(path.size() - kDeletedString.size());
+    return 0;
+  }
 }
 
 void genProcess(const std::string& pid, QueryData& results) {
   // Parse the process stat and status.
-  auto proc_stat = getProcStat(pid);
+  SimpleProcStat proc_stat(pid);
 
   Row r;
   r["pid"] = pid;
@@ -302,46 +357,7 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["egid"] = proc_stat.effective_gid;
   r["sgid"] = proc_stat.saved_gid;
 
-  // If the path of the executable that started the process is available and
-  // the path exists on disk, set on_disk to 1. If the path is not
-  // available, set on_disk to -1. If, and only if, the path of the
-  // executable is available and the file does NOT exist on disk, set on_disk
-  // to 0.
-  if (r["path"].empty()) {
-    r["on_disk"] = "-1";
-  } else {
-    // The string appended to the exe path when the binary is deleted
-    const std::string kDeletedString = " (deleted)";
-    if (!boost::algorithm::ends_with(r["path"], kDeletedString)) {
-      r["on_disk"] = osquery::pathExists(r["path"]) ? "1" : "0";
-    } else {
-      if (!osquery::pathExists(r["path"])) {
-        // No file exists with the path including " (deleted)", so we can strip
-        // this from the path and set on_disk = 0
-        r["path"].erase(r["path"].size() - kDeletedString.size());
-        r["on_disk"] = "0";
-      } else {
-        // Special case in which we have to check the inode to see whether the
-        // process is actually running from a binary file ending with
-        // " (deleted)". See #1607
-        std::string maps_contents;
-        Status deleted = deletedMatchesInode(r["path"], r["pid"]);
-        if (deleted.getCode() == -1) {
-          LOG(ERROR) << deleted.getMessage();
-          r["on_disk"] = "";
-        } else if (deleted.getCode() == 0) {
-          // The process is actually running from a binary ending with
-          // " (deleted)"
-          r["on_disk"] = "1";
-        } else {
-          // There is a collision with a file name ending in " (deleted)", but
-          // that file is not the binary for this process
-          r["path"].erase(r["path"].size() - kDeletedString.size());
-          r["on_disk"] = "0";
-        }
-      }
-    }
-  }
+  r["on_disk"] = INTEGER(getOnDisk(pid, r["path"]));
 
   // size/memory information
   r["wired_size"] = "0"; // No support for unpagable counters in linux.
