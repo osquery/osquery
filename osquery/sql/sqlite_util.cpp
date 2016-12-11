@@ -19,7 +19,7 @@
 namespace osquery {
 
 /// SQL provider for osquery internal/core.
-REGISTER_INTERNAL(SQLiteSQLPlugin, "sql", "sql");
+// REGISTER_INTERNAL(SQLiteSQLPlugin, "sql", "sql");
 
 FLAG(string,
      disable_tables,

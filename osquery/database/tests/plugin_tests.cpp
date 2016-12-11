@@ -14,19 +14,23 @@ namespace osquery {
 
 class EphemeralDatabasePluginTests : public DatabasePluginTests {
  protected:
-  std::string name() override { return "ephemeral"; }
+  std::string name() override {
+    return "ephemeral";
+  }
 };
 
 // Define the default set of database plugin operation tests.
 CREATE_DATABASE_TESTS(EphemeralDatabasePluginTests);
 
 void DatabasePluginTests::testPluginCheck() {
+  auto& rf = RegistryFactory::get();
+
   // Do not worry about multiple set-active calls.
   // For testing purposes they should be idempotent.
-  EXPECT_TRUE(Registry::setActive("database", getName()));
+  EXPECT_TRUE(rf.setActive("database", getName()));
 
   // Get an instance of the database plugin and call check.
-  auto plugin = Registry::get("database", getName());
+  auto plugin = rf.plugin("database", getName());
   auto db_plugin = std::dynamic_pointer_cast<DatabasePlugin>(plugin);
   EXPECT_TRUE(db_plugin->checkDB());
 
@@ -63,8 +67,8 @@ void DatabasePluginTests::testScan() {
   getPlugin()->put(kQueries, "test_scan_foo3", "baz");
 
   std::vector<std::string> keys;
-  std::vector<std::string> expected = {"test_scan_foo1", "test_scan_foo2",
-                                       "test_scan_foo3"};
+  std::vector<std::string> expected = {
+      "test_scan_foo1", "test_scan_foo2", "test_scan_foo3"};
   auto s = getPlugin()->scan(kQueries, keys, "");
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.getMessage(), "OK");

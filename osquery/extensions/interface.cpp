@@ -41,10 +41,10 @@ void ExtensionHandler::call(ExtensionResponse& _return,
   // Call will receive an extension or core's request to call the other's
   // internal registry call. It is the ONLY actor that resolves registry
   // item aliases.
-  auto local_item = Registry::getAlias(registry, item);
+  auto local_item = RegistryFactory::get().getAlias(registry, item);
   if (local_item.empty()) {
     // Extensions may not know about active (non-option based registries).
-    local_item = Registry::getActive(registry);
+    local_item = RegistryFactory::get().getActive(registry);
   }
 
   PluginResponse response;
@@ -54,7 +54,8 @@ void ExtensionHandler::call(ExtensionResponse& _return,
     plugin_request[request_item.first] = request_item.second;
   }
 
-  auto status = Registry::call(registry, local_item, plugin_request, response);
+  auto status =
+      RegistryFactory::call(registry, local_item, plugin_request, response);
   _return.status.code = status.getCode();
   _return.status.message = status.getMessage();
   _return.status.uuid = uuid_;
@@ -131,7 +132,7 @@ void ExtensionManagerHandler::registerExtension(
           << ", version=" << info.version << ", sdk=" << info.sdk_version
           << ")";
 
-  if (!Registry::addBroadcast(uuid, registry).ok()) {
+  if (!RegistryFactory::get().addBroadcast(uuid, registry).ok()) {
     LOG(WARNING) << "Could not add extension " << info.name
                  << ": invalid extension registry";
     _return.code = ExtensionCode::EXT_FAILED;
@@ -155,7 +156,7 @@ void ExtensionManagerHandler::deregisterExtension(
   }
 
   // On success return the uuid of the now de-registered extension.
-  Registry::removeBroadcast(uuid);
+  RegistryFactory::get().removeBroadcast(uuid);
   extensions_.erase(uuid);
   _return.code = ExtensionCode::EXT_SUCCESS;
   _return.uuid = uuid;
@@ -194,7 +195,7 @@ void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
 
 void ExtensionManagerHandler::refresh() {
   std::vector<RouteUUID> removed_routes;
-  const auto uuids = Registry::routeUUIDs();
+  const auto uuids = RegistryFactory::get().routeUUIDs();
   for (const auto& ext : extensions_) {
     // Find extension UUIDs that have gone away.
     if (std::find(uuids.begin(), uuids.end(), ext.first) == uuids.end()) {

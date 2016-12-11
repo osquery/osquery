@@ -133,7 +133,7 @@ QueryData genOsqueryRegistry(QueryContext& context) {
   QueryData results;
 
   auto isActive = [](const std::string& plugin,
-                     const std::shared_ptr<RegistryHelperCore>& registry) {
+                     const RegistryInterfaceRef& registry) {
     if (FLAGS_disable_logging && registry->getName() == "logger") {
       return false;
     } else if (FLAGS_disable_events &&
@@ -146,26 +146,28 @@ QueryData genOsqueryRegistry(QueryContext& context) {
     return (none_active || plugin == active);
   };
 
-  const auto& registries = RegistryFactory::all();
-  for (const auto& registry : registries) {
-    const auto& plugins = registry.second->all();
+  auto& rf = RegistryFactory::get();
+  for (const auto& registry_name : rf.names()) {
+    // const auto& plugins = registry.second->all();
+    const auto& plugins = rf.plugins(registry_name);
+    auto registry = rf.registry(registry_name);
     for (const auto& plugin : plugins) {
       Row r;
-      r["registry"] = registry.first;
+      r["registry"] = registry_name;
       r["name"] = plugin.first;
       r["owner_uuid"] = "0";
-      r["internal"] = (registry.second->isInternal(plugin.first)) ? "1" : "0";
-      r["active"] = (isActive(plugin.first, registry.second)) ? "1" : "0";
+      r["internal"] = (registry->isInternal(plugin.first)) ? "1" : "0";
+      r["active"] = (isActive(plugin.first, registry)) ? "1" : "0";
       results.push_back(r);
     }
 
-    for (const auto& route : registry.second->getExternal()) {
+    for (const auto& route : registry->getExternal()) {
       Row r;
-      r["registry"] = registry.first;
+      r["registry"] = registry_name;
       r["name"] = route.first;
       r["owner_uuid"] = INTEGER(route.second);
       r["internal"] = "0";
-      r["active"] = (isActive(route.first, registry.second)) ? "1" : "0";
+      r["active"] = (isActive(route.first, registry)) ? "1" : "0";
       results.push_back(r);
     }
   }
@@ -190,7 +192,7 @@ QueryData genOsqueryExtensions(QueryContext& context) {
     }
   }
 
-  const auto& modules = RegistryFactory::getModules();
+  const auto& modules = RegistryFactory::get().getModules();
   for (const auto& module : modules) {
     Row r;
     r["uuid"] = SQL_TEXT(module.first);

@@ -21,7 +21,7 @@ namespace osquery {
 class EventsTests : public ::testing::Test {
  public:
   void SetUp() override {
-    Registry::registry("config_parser")->setUp();
+    RegistryFactory::get().registry("config_parser")->setUp();
   }
   void TearDown() override {
     EventFactory::end(true);
@@ -120,9 +120,10 @@ TEST_F(EventsTests, test_create_using_registry) {
   // Store the number of default event publishers (in core).
   size_t default_publisher_count = EventFactory::numEventPublishers();
 
+  auto& rf = RegistryFactory::get();
   // Now add another registry item, but do not yet attach it.
-  auto UniqueEventPublisherRegistryItem =
-      Registry::add<UniqueEventPublisher>("event_publisher", "unique");
+  rf.registry("event_publisher")
+      ->add("unique", std::make_shared<UniqueEventPublisher>());
   EXPECT_EQ(EventFactory::numEventPublishers(), default_publisher_count);
 
   // Now attach and make sure it was added.
@@ -361,8 +362,8 @@ TEST_F(EventsTests, test_event_subscriber_configure) {
   EventFactory::registerEventSubscriber(sub);
   // Register this subscriber (within the RegistryFactory), so it receives
   // configure/reconfigure events.
-  auto registry = Registry::registry("event_subscriber");
-  registry->add(sub);
+  auto& rf = RegistryFactory::get();
+  rf.registry("event_subscriber")->add("fake", sub);
 
   // Assure we start from a base state.
   EXPECT_EQ(sub->timesConfigured, 0U);
@@ -371,7 +372,7 @@ TEST_F(EventsTests, test_event_subscriber_configure) {
   Config::getInstance().update({{"data", "{}"}});
   EXPECT_EQ(sub->timesConfigured, 1U);
 
-  registry->remove(sub->getName());
+  rf.registry("event_subscriber")->remove(sub->getName());
   Config::getInstance().update({{"data", "{}"}});
   EXPECT_EQ(sub->timesConfigured, 1U);
 }

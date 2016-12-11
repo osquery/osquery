@@ -58,8 +58,8 @@ Status DistributedPlugin::call(const PluginRequest& request,
 }
 
 Status Distributed::pullUpdates() {
-  auto& distributed_plugin = Registry::getActive("distributed");
-  if (!Registry::exists("distributed", distributed_plugin)) {
+  auto distributed_plugin = RegistryFactory::get().getActive("distributed");
+  if (!RegistryFactory::get().exists("distributed", distributed_plugin)) {
     return Status(1, "Missing distributed plugin: " + distributed_plugin);
   }
 
@@ -98,7 +98,7 @@ Status Distributed::serializeResults(std::string& json) {
     }
     queries.add_child(result.request.id, qd);
     statuses.put(result.request.id, result.status.getCode());
-    }
+  }
 
   pt::ptree results;
   results.add_child("queries", queries);
@@ -142,8 +142,8 @@ Status Distributed::flushCompleted() {
     return Status(0, "OK");
   }
 
-  auto& distributed_plugin = Registry::getActive("distributed");
-  if (!Registry::exists("distributed", distributed_plugin)) {
+  auto distributed_plugin = RegistryFactory::get().getActive("distributed");
+  if (!RegistryFactory::get().exists("distributed", distributed_plugin)) {
     return Status(1, "Missing distributed plugin " + distributed_plugin);
   }
 

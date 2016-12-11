@@ -522,7 +522,7 @@ bool Initializer::isWorker() {
 void Initializer::initActivePlugin(const std::string& type,
                                    const std::string& name) const {
   auto status = applyExtensionDelay(([type, name](bool& stop) {
-    auto rs = Registry::setActive(type, name);
+    auto rs = RegistryFactory::get().setActive(type, name);
     if (rs.ok()) {
       // The plugin was found, and is now active.
       return rs;

@@ -365,13 +365,4 @@ void relayStatusLogs();
  * Linux/Darwin: this uses syslog's LOG_NOTICE.
  */
 void systemLog(const std::string& line);
-
-/**
- * @brief Logger plugin registry.
- *
- * This creates an osquery registry for "logger" which may implement
- * LoggerPlugin. Only strings are logged in practice, and LoggerPlugin provides
- * a helper member for transforming PluginRequest%s to strings.
- */
-CREATE_REGISTRY(LoggerPlugin, "logger");
 }

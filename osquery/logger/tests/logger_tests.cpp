@@ -118,8 +118,9 @@ class TestLoggerPlugin : public LoggerPlugin {
 };
 
 TEST_F(LoggerTests, test_plugin) {
-  Registry::add<TestLoggerPlugin>("logger", "test");
-  Registry::setUp();
+  auto& rf = RegistryFactory::get();
+  rf.registry("logger")->add("test", std::make_shared<TestLoggerPlugin>());
+  rf.setUp();
 
   auto s = Registry::call("logger", "test", {{"string", "foobar"}});
   EXPECT_TRUE(s.ok());
@@ -127,9 +128,10 @@ TEST_F(LoggerTests, test_plugin) {
 }
 
 TEST_F(LoggerTests, test_logger_init) {
+  auto& rf = RegistryFactory::get();
   // Expect the logger to have been registered from the first test.
-  EXPECT_TRUE(Registry::exists("logger", "test"));
-  EXPECT_TRUE(Registry::setActive("logger", "test").ok());
+  EXPECT_TRUE(rf.exists("logger", "test"));
+  EXPECT_TRUE(rf.setActive("logger", "test").ok());
 
   initStatusLogger("logger_test");
   // This will be printed to stdout.
@@ -173,7 +175,7 @@ TEST_F(LoggerTests, test_logger_log_status) {
 
 TEST_F(LoggerTests, test_feature_request) {
   // Retrieve the test logger plugin.
-  auto plugin = Registry::get("logger", "test");
+  auto plugin = RegistryFactory::get().plugin("logger", "test");
   auto logger = std::dynamic_pointer_cast<TestLoggerPlugin>(plugin);
 
   logger->shouldLogEvent = false;
@@ -188,7 +190,7 @@ TEST_F(LoggerTests, test_feature_request) {
 
 TEST_F(LoggerTests, test_logger_variations) {
   // Retrieve the test logger plugin.
-  auto plugin = Registry::get("logger", "test");
+  auto plugin = RegistryFactory::get().plugin("logger", "test");
   auto logger = std::dynamic_pointer_cast<TestLoggerPlugin>(plugin);
   // Change the behavior.
   logger->shouldLogStatus = false;
@@ -245,8 +247,10 @@ class SecondTestLoggerPlugin : public LoggerPlugin {
 };
 
 TEST_F(LoggerTests, test_multiple_loggers) {
-  Registry::add<SecondTestLoggerPlugin>("logger", "second_test");
-  EXPECT_TRUE(Registry::setActive("logger", "test,second_test").ok());
+  auto& rf = RegistryFactory::get();
+  rf.registry("logger")->add("second_test",
+                             std::make_shared<SecondTestLoggerPlugin>());
+  EXPECT_TRUE(rf.setActive("logger", "test,second_test").ok());
 
   // With two active loggers, the string should be added twice.
   logString("this is a test", "added");
@@ -259,7 +263,7 @@ TEST_F(LoggerTests, test_multiple_loggers) {
   EXPECT_EQ(0U, LoggerTests::statuses_logged);
 
   // Now try to initialize multiple loggers (1) forwards, (2) does not.
-  Registry::setActive("logger", "test,second_test");
+  rf.setActive("logger", "test,second_test");
   initLogger("logger_test");
   LOG(WARNING) << "Logger test is generating a warning status (5)";
   // Now that the "test" logger is initialized, the status log will be
@@ -281,7 +285,7 @@ TEST_F(LoggerTests, test_multiple_loggers) {
 }
 
 TEST_F(LoggerTests, test_logger_scheduled_query) {
-  Registry::setActive("logger", "test");
+  RegistryFactory::get().setActive("logger", "test");
 
   QueryLogItem item;
   item.name = "test_query";

@@ -1050,7 +1050,7 @@ static int booleanValue(char* zArg) {
 }
 
 inline void meta_tables(int nArg, char** azArg) {
-  auto tables = osquery::Registry::names("table");
+  auto tables = osquery::RegistryFactory::get().names("table");
   std::sort(tables.begin(), tables.end());
   for (const auto& table_name : tables) {
     if (nArg == 1 || table_name.find(azArg[1]) == 0) {
@@ -1060,18 +1060,18 @@ inline void meta_tables(int nArg, char** azArg) {
 }
 
 inline void meta_schema(int nArg, char** azArg) {
-  for (const auto& table_name : osquery::Registry::names("table")) {
-    if (nArg > 1 && table_name.find(azArg[1]) != 0) {
+  for (const auto& table : osquery::RegistryFactory::get().names("table")) {
+    if (nArg > 1 && table.find(azArg[1]) != 0) {
       continue;
     }
 
     osquery::PluginResponse response;
     auto status = osquery::Registry::call(
-        "table", table_name, {{"action", "columns"}}, response);
+        "table", table, {{"action", "columns"}}, response);
     if (status.ok()) {
       fprintf(stdout,
               "CREATE TABLE %s%s;\n",
-              table_name.c_str(),
+              table.c_str(),
               osquery::columnDefinition(response, true).c_str());
     }
   }
@@ -1137,7 +1137,7 @@ inline void meta_show(struct callback_data* p) {
           "Distributed",
           osquery::FLAGS_distributed_plugin.c_str());
 
-  auto database = osquery::Registry::getActive("database");
+  auto database = osquery::RegistryFactory::get().getActive("database");
   fprintf(p->out, "%13.13s: %s", "Database", database.c_str());
   if (database == "rocksdb") {
     fprintf(p->out, " (%s)\n", osquery::FLAGS_database_path.c_str());
@@ -1597,7 +1597,7 @@ static void main_init(struct callback_data* data) {
 namespace osquery {
 
 void tableCompletionFunction(char const* prefix, linenoiseCompletions* lc) {
-  std::vector<std::string> tables = osquery::Registry::names("table");
+  auto tables = osquery::RegistryFactory::get().names("table");
   size_t index = 0;
 
   while (index < tables.size()) {

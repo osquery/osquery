@@ -20,7 +20,7 @@ namespace osquery {
 class TLSConfigPlugin;
 
 class TLSConfigPlugin : public ConfigPlugin,
-                        std::enable_shared_from_this<TLSConfigPlugin> {
+                        public std::enable_shared_from_this<TLSConfigPlugin> {
  public:
   Status setUp() override;
   Status genConfig(std::map<std::string, std::string>& config) override;

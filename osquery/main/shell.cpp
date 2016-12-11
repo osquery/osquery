@@ -65,7 +65,7 @@ int profile(int argc, char* argv[]) {
 
   // Perform some duplication from Initializer with respect to database setup.
   osquery::DatabasePlugin::setAllowOpen(true);
-  osquery::Registry::setActive("database", "ephemeral");
+  osquery::RegistryFactory::get().setActive("database", "ephemeral");
 
   auto dbc = osquery::SQLiteDBManager::get();
   for (size_t i = 0; i < static_cast<size_t>(osquery::FLAGS_profile); ++i) {

@@ -203,6 +203,4 @@ Status query(const std::string& query, QueryData& results);
  * @return status indicating success or failure of the operation.
  */
 Status getQueryColumns(const std::string& q, TableColumns& columns);
-
-CREATE_LAZY_REGISTRY(SQLPlugin, "sql");
 }

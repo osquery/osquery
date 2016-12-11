@@ -36,17 +36,29 @@ extern void stripConfigComments(std::string& json);
 
 class ConfigTests : public testing::Test {
  public:
-  ConfigTests() { Config::getInstance().reset(); }
+  ConfigTests() {
+    Config::getInstance().reset();
+  }
 
  protected:
-  void SetUp() { createMockFileStructure(); }
+  void SetUp() {
+    createMockFileStructure();
+  }
 
-  void TearDown() { tearDownMockFileStructure(); }
+  void TearDown() {
+    tearDownMockFileStructure();
+  }
 
  protected:
-  Status load() { return Config::getInstance().load(); }
-  void setLoaded() { Config::getInstance().loaded_ = true; }
-  Config& get() { return Config::getInstance(); }
+  Status load() {
+    return Config::getInstance().load();
+  }
+  void setLoaded() {
+    Config::getInstance().loaded_ = true;
+  }
+  Config& get() {
+    return Config::getInstance();
+  }
 };
 
 class TestConfigPlugin : public ConfigPlugin {
@@ -80,10 +92,11 @@ class TestConfigPlugin : public ConfigPlugin {
 };
 
 TEST_F(ConfigTests, test_plugin) {
-  Registry::add<TestConfigPlugin>("config", "test");
+  auto& rf = RegistryFactory::get();
+  rf.registry("config")->add("test", std::make_shared<TestConfigPlugin>());
 
   // Change the active config plugin.
-  EXPECT_TRUE(Registry::setActive("config", "test").ok());
+  EXPECT_TRUE(rf.setActive("config", "test").ok());
 
   PluginResponse response;
   auto status = Registry::call("config", {{"action", "genConfig"}}, response);
@@ -140,13 +153,14 @@ TEST_F(ConfigTests, test_schedule_blacklist) {
 }
 
 TEST_F(ConfigTests, test_pack_noninline) {
-  Registry::add<TestConfigPlugin>("config", "test");
+  auto& rf = RegistryFactory::get();
+  rf.registry("config")->add("test", std::make_shared<TestConfigPlugin>());
   // Change the active config plugin.
-  EXPECT_TRUE(Registry::setActive("config", "test").ok());
+  EXPECT_TRUE(rf.setActive("config", "test").ok());
 
   // Get a specialized config/test plugin.
-  const auto& plugin = std::dynamic_pointer_cast<TestConfigPlugin>(
-      Registry::get("config", "test"));
+  const auto& plugin =
+      std::dynamic_pointer_cast<TestConfigPlugin>(rf.plugin("config", "test"));
 
   this->load();
   // Expect the test plugin to have recorded 1 pack.
@@ -268,7 +282,9 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
 bool TestConfigParserPlugin::update_called = false;
 
 TEST_F(ConfigTests, test_get_parser) {
-  Registry::add<TestConfigParserPlugin>("config_parser", "test");
+  auto& rf = RegistryFactory::get();
+  rf.registry("config_parser")
+      ->add("test", std::make_shared<TestConfigParserPlugin>());
 
   auto s = get().update(getTestConfigMap());
   EXPECT_TRUE(s.ok());
@@ -288,37 +304,43 @@ TEST_F(ConfigTests, test_get_parser) {
 
 class PlaceboConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() const override { return {}; }
+  std::vector<std::string> keys() const override {
+    return {};
+  }
   Status update(const std::string&, const ParserConfig&) override {
     return Status(0);
   }
 
   /// Make sure configure is called.
-  void configure() override { configures++; }
+  void configure() override {
+    configures++;
+  }
 
   size_t configures{0};
 };
 
 TEST_F(ConfigTests, test_plugin_reconfigure) {
+  auto& rf = RegistryFactory::get();
   // Add a configuration plugin (could be any plugin) that will react to
   // config updates.
-  Registry::add<PlaceboConfigParserPlugin>("config_parser", "placebo");
+  rf.registry("config_parser")
+      ->add("placebo", std::make_shared<PlaceboConfigParserPlugin>());
 
   // Create a config that has been loaded.
   setLoaded();
   get().update({{"data", "{}"}});
   // Get the placebo.
   auto placebo = std::static_pointer_cast<PlaceboConfigParserPlugin>(
-      Registry::get("config_parser", "placebo"));
+      rf.plugin("config_parser", "placebo"));
   EXPECT_EQ(placebo->configures, 1U);
 }
 
 TEST_F(ConfigTests, test_pack_file_paths) {
   size_t count = 0;
-  auto fileCounter =
-      [&count](const std::string& c, const std::vector<std::string>& files) {
-        count += files.size();
-      };
+  auto fileCounter = [&count](const std::string& c,
+                              const std::vector<std::string>& files) {
+    count += files.size();
+  };
 
   get().addPack("unrestricted_pack", "", getUnrestrictedPack());
   get().files(fileCounter);

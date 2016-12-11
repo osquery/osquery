@@ -64,7 +64,10 @@ auto {{table_name_cc}}Register = []() {
     QueryData generate(QueryContext& request) override { return QueryData(); }
   };
 
-  Registry::add<{{table_name_cc}}TablePlugin>("table", "{{table_name}}");
+  //Registry::add<{{table_name_cc}}TablePlugin>("table", "{{table_name}}");
+  //REGISTER({{table_name_cc}}TablePlugin, "table", "{{table_name}}");
+  const registries::PI<{{table_name_cc}}TablePlugin>
+  k{{table_name_cc}}TablePlugin("table", "{{table_name}}");
 /// END[GENTABLE]
 };
 

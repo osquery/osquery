@@ -31,7 +31,7 @@ DECLARE_bool(events_optimize);
 
 class EventsDatabaseTests : public ::testing::Test {
   void SetUp() override {
-    Registry::registry("config_parser")->setUp();
+    RegistryFactory::get().registry("config_parser")->setUp();
     optimize_ = FLAGS_events_optimize;
     FLAGS_events_optimize = false;
 

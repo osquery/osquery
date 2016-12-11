@@ -123,7 +123,7 @@ void TLSConfigRefreshRunner::start() {
     }
 
     // Access the configuration.
-    auto plugin = Registry::get("config", "tls");
+    auto plugin = RegistryFactory::get().plugin("config", "tls");
     if (plugin != nullptr) {
       auto config_plugin = std::dynamic_pointer_cast<ConfigPlugin>(plugin);
 

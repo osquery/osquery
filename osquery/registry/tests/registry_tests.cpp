@@ -21,6 +21,10 @@ class CatPlugin : public Plugin {
  public:
   CatPlugin() : some_value_(0) {}
 
+  Status call(const PluginRequest&, PluginResponse&) override {
+    return Status(0);
+  }
+
  protected:
   int some_value_;
 };
@@ -36,10 +40,10 @@ class HouseCat : public CatPlugin {
 
 /// This is a manual registry type without a name, so we cannot broadcast
 /// this registry type and it does NOT need to conform to a registry API.
-class CatRegistry : public RegistryHelper<CatPlugin> {};
+class CatRegistry : public RegistryType<CatPlugin> {};
 
 TEST_F(RegistryTests, test_registry) {
-  CatRegistry cats;
+  CatRegistry cats("cats");
 
   /// Add a CatRegistry item (a plugin) called "house".
   cats.add<HouseCat>("house");
