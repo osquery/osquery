@@ -97,7 +97,7 @@ Status WmiResultItem::GetUChar(const std::string& name,
 }
 
 Status WmiResultItem::GetUnsignedShort(const std::string& name,
-                                unsigned short& ret) const {
+                                       unsigned short& ret) const {
   std::wstring property_name = stringToWstring(name);
   VARIANT value;
   HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
