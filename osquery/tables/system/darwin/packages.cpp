@@ -286,7 +286,10 @@ void genPackageReceipt(const std::string& path, QueryData& results) {
       r[kPkgReceiptKeys.at(row.at("key"))] = row.at("value");
     }
   }
-  results.push_back(std::move(r));
+
+  if (!r["package_id"].empty()) {
+    results.push_back(std::move(r));
+  }
 }
 
 QueryData genPackageReceipts(QueryContext& context) {
