@@ -47,8 +47,7 @@ class WinSockets : private boost::noncopyable {
   MIB_UDP6TABLE_OWNER_PID* udp6Table_ = nullptr;
 
   /// Helper function to allocate a table based off of family and protocol
-  void* WinSockets::allocateSocketTable(unsigned long protocol,
-                                        unsigned long family);
+  void* allocateSocketTable(unsigned long protocol, unsigned long family);
 };
 }
 }

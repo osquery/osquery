@@ -242,7 +242,7 @@ WmiRequest::WmiRequest(const std::string& query, BSTR nspace) {
   }
 
   hr = services_->ExecQuery(
-      L"WQL", (BSTR)wql.c_str(), WBEM_FLAG_FORWARD_ONLY, nullptr, &enum_);
+      (BSTR)L"WQL", (BSTR)wql.c_str(), WBEM_FLAG_FORWARD_ONLY, nullptr, &enum_);
   if (hr != S_OK) {
     enum_ = nullptr;
     return;
