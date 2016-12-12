@@ -76,6 +76,16 @@ Disable userland watchdog process. **osqueryd** uses a watchdog process to monit
 Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug). The default watchdog process uses a "level" to configure performance limits.
 The higher the level the more strict the limits become. The "debug" level disables the performance limits completely.
 
+The watchdog "profiles" can be overridden for Memory and CPU Utilization.
+
+`--watchdog_memory_limit=0`
+
+If this value is non-0 the watchdog level (`--watchdog_level`) for maximum memory is overridden. Use this if you would like to allow the `osqueryd` process to allocate more than 100M, but somewhere less than 1G.
+
+`--watchdog_utilization_limit=0`
+
+If this value is non-0 the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 90% of a thread for more than 6 seconds of wall time.
+
 `--utc=true`
 
 Attempt to convert all UNIX calendar times to UTC.

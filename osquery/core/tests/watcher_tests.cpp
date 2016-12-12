@@ -196,10 +196,14 @@ class FakeWatcherRunner : public WatcherRunner {
   *
   * Internal calls to getProcessRow will return this structure.
   */
-  void setProcessRow(QueryData qd) { qd_ = std::move(qd); }
+  void setProcessRow(QueryData qd) {
+    qd_ = std::move(qd);
+  }
 
   /// The tests do not have access to the processes table.
-  QueryData getProcessRow(pid_t pid) const override { return qd_; }
+  QueryData getProcessRow(pid_t pid) const override {
+    return qd_;
+  }
 
  private:
   QueryData qd_;
@@ -232,7 +236,7 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
   EXPECT_EQ(100U, state.initial_footprint);
 
   // The measurement of latency applies an interval value normalization.
-  auto iv = std::max(getWorkerLimit(INTERVAL), (size_t)1);
+  auto iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), (size_t)1);
   EXPECT_EQ(100U / iv, state.user_time);
   EXPECT_EQ(0U, state.sustained_latency);
 
