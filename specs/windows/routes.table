@@ -1,13 +1,13 @@
 table_name("routes")
 description("Queries the IP routing table.")
 schema([
-  Column('interface_index', INTEGER, 'Local interface index'),
   Column('destination',	TEXT, 'Destination prefix address'),
   Column('netmask', TEXT, 'Netmask length'),
   Column('gateway', TEXT, 'Route gateway'),
   Column('source', TEXT,	'Route source'),
   Column('flags', TEXT, 'Flags to describe route'),
-  Column('mtu', INTEGER, 'Maximum Transmission Unit for the route'),
+  Column('interface', TEXT, 'Route local interface'),
+  Column('mtu', UNSIGNED_BIGINT, 'Maximum Transmission Unit for the route'),
   Column('metric', INTEGER, 'Cost of route. Lowest is preferred'),
   Column('type', TEXT, 'Type of route'),
   Column('address_family', TEXT, 'Address family of IP'),

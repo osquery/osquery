@@ -52,13 +52,139 @@ osquery> SELECT
 namespace osquery {
 namespace tables {
 
-QueryData genRoutes(QueryContext& context) {
-  QueryData results;
+std::map<DWORD, std::string> routeType = {
+    {MIB_IPROUTE_TYPE_OTHER, "other"},
+    {MIB_IPROUTE_TYPE_INVALID, "invalid"},
+    {MIB_IPROUTE_TYPE_DIRECT, "local"},
+    {MIB_IPROUTE_TYPE_INDIRECT, "remote"},
+};
+
+PMIB_IPINTERFACE_TABLE getInterfaces(int type = AF_UNSPEC) {
+  DWORD dwRetVal = 0;
+  PMIB_IPINTERFACE_TABLE interfaceTable = nullptr;
+
+  dwRetVal = GetIpInterfaceTable(type, &interfaceTable);
+  if (dwRetVal != NO_ERROR) {
+    return nullptr;
+  }
+
+  return interfaceTable;
+}
+
+std::map<unsigned long, PIP_ADAPTER_INFO> getAdapterAddressMapping() {
+  std::map<unsigned long, PIP_ADAPTER_INFO> returnMapping;
+  IP_ADAPTER_INFO AdapterInfo[32]; // naive for now
+  DWORD dwBufLen = sizeof(AdapterInfo);
+  DWORD dwStatus = GetAdaptersInfo(AdapterInfo, &dwBufLen);
+
+  if (dwStatus == ERROR_SUCCESS) {
+    PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
+    while (pAdapterInfo) {
+      returnMapping.insert(std::pair<unsigned long, PIP_ADAPTER_INFO>(
+          pAdapterInfo->Index, pAdapterInfo));
+      pAdapterInfo = pAdapterInfo->Next;
+    }
+  }
+
+  return returnMapping;
+}
+
+std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
+    int type = AF_UNSPEC) {
+  std::map<unsigned long, MIB_IPINTERFACE_ROW> returnMapping;
+  PMIB_IPINTERFACE_TABLE interfaces;
+
+  if ((interfaces = getInterfaces(type)) != nullptr) {
+    for (int i = 0; i < (int)interfaces->NumEntries; ++i) {
+      MIB_IPINTERFACE_ROW currentRow = interfaces->Table[i];
+      returnMapping.insert(std::pair<unsigned long, MIB_IPINTERFACE_ROW>(
+          currentRow.InterfaceIndex, currentRow));
+    }
+  }
+
+  return returnMapping;
+}
+
+QueryData genIPv4Routes(QueryContext& context) {
   Row r;
+  QueryData results;
+  DWORD dwSize = 0;
+  DWORD status;
+  struct in_addr addr;
+  char buffer[INET_ADDRSTRLEN];
+  PVOID tmpIPAddr = &addr;
+  std::map<unsigned long, MIB_IPINTERFACE_ROW> interfaces =
+      getInterfaceRowMapping(AF_INET);
+  std::map<unsigned long, PIP_ADAPTER_INFO> adapters =
+      getAdapterAddressMapping();
+  PMIB_IPFORWARDTABLE ipTable =
+      (MIB_IPFORWARDTABLE*)malloc(sizeof(MIB_IPFORWARDTABLE));
+
+  if (ipTable == NULL) {
+    return results;
+  }
+
+  if (GetIpForwardTable(ipTable, &dwSize, 0) == ERROR_INSUFFICIENT_BUFFER) {
+    free(ipTable);
+    ipTable = (MIB_IPFORWARDTABLE*)malloc(dwSize);
+    if (ipTable == NULL) {
+      return results;
+    }
+  }
+
+  status = GetIpForwardTable(ipTable, &dwSize, FALSE);
+  if (status == NO_ERROR) {
+    for (int i = 0; i < (int)ipTable->dwNumEntries; ++i) {
+      MIB_IPFORWARDROW* currentRow = &ipTable->table[i];
+      MIB_IPINTERFACE_ROW actualInterface =
+          interfaces.at(currentRow->dwForwardIfIndex);
+      std::string ifaceIP;
+
+      // Special values for the loopback device, denoted as index 1
+      if (currentRow->dwForwardIfIndex != 1) {
+        PIP_ADAPTER_INFO actualAdapter =
+            adapters.at(currentRow->dwForwardIfIndex);
+        ifaceIP = actualAdapter->IpAddressList.IpAddress.String;
+        r["mtu"] = INTEGER(actualInterface.NlMtu);
+      } else {
+        ifaceIP = "127.0.0.1";
+        r["mtu"] = UNSIGNED_BIGINT(0xFFFFFFFF);
+      }
+      r["address_family"] = SQL_TEXT("IPv4");
+      addr.S_un.S_addr = currentRow->dwForwardDest;
+      InetNtop(AF_INET, tmpIPAddr, buffer, sizeof(buffer));
+      r["destination"] = SQL_TEXT(buffer);
+      addr.S_un.S_addr = currentRow->dwForwardMask;
+      InetNtop(AF_INET, tmpIPAddr, buffer, sizeof(buffer));
+      r["netmask"] = SQL_TEXT(buffer);
+      addr.S_un.S_addr = currentRow->dwForwardNextHop;
+      InetNtop(AF_INET, tmpIPAddr, buffer, sizeof(buffer));
+      r["gateway"] = SQL_TEXT(buffer);
+      r["metric"] = INTEGER(currentRow->dwForwardMetric1);
+      r["type"] = routeType.at(currentRow->dwForwardType);
+      r["interface"] = SQL_TEXT(ifaceIP);
+      r["flags"] = SQL_TEXT("");
+
+      results.push_back(r);
+    }
+  }
+
+  // Cleanup
+  FreeMibTable(ipTable);
+  SecureZeroMemory(tmpIPAddr, sizeof(tmpIPAddr));
+  ipTable = nullptr;
+  tmpIPAddr = nullptr;
+
+  return results;
+}
+
+QueryData genIPv6Routes(QueryContext& context) {
+  Row r;
+  QueryData results;
   unsigned long numEntries = 0;
   PMIB_IPFORWARD_TABLE2* ipTable = nullptr;
   ipTable = (PMIB_IPFORWARD_TABLE2*)malloc(sizeof(PMIB_IPFORWARD_TABLE2));
-  GetIpForwardTable2(AF_UNSPEC, ipTable);
+  GetIpForwardTable2(AF_INET6, ipTable);
   numEntries = ipTable[0]->NumEntries;
 
   for (unsigned long i = 0; i < numEntries; ++i) {
@@ -71,43 +197,16 @@ QueryData genRoutes(QueryContext& context) {
     std::vector<std::string> flagList;
     PVOID ipAddr = nullptr;
     PVOID gateway = nullptr;
+    ipAddr = (struct sockaddr_in6*)&currentRow.DestinationPrefix.Prefix.Ipv6
+                 .sin6_addr;
+    gateway = (struct sockaddr_in6*)&currentRow.NextHop.Ipv6.sin6_addr;
 
-    if (addrFamily == AF_INET) {
-      ipAddr = (struct sockaddr_in*)&currentRow.DestinationPrefix.Prefix.Ipv4
-                   .sin_addr;
-      gateway = (struct sockaddr_in*)&currentRow.NextHop.Ipv4.sin_addr;
-      sAddrFamily = "IPv4";
-    } else {
-      ipAddr = (struct sockaddr_in6*)&currentRow.DestinationPrefix.Prefix.Ipv6
-                   .sin6_addr;
-      gateway = (struct sockaddr_in6*)&currentRow.NextHop.Ipv6.sin6_addr;
-      sAddrFamily = "IPv6";
-    }
-
-    r["interface_index"] = INTEGER(currentRow.InterfaceIndex);
     InetNtop(addrFamily, ipAddr, (PSTR)buf, sizeof(buf));
     r["destination"] = SQL_TEXT(buf);
-
-    // nexthop is equivalent to gateway in POSIX
     InetNtop(addrFamily, gateway, (PSTR)buf, sizeof(buf));
     r["gateway"] = SQL_TEXT(buf);
-
-    // Construct a string to represent the flags
-    if (currentRow.Publish == (BOOLEAN) true) {
-      flagList.push_back("P");
-    }
-    if (currentRow.AutoconfigureAddress == (BOOLEAN) true) {
-      flagList.push_back("A");
-    }
-    if (currentRow.Immortal == (BOOLEAN) true) {
-      flagList.push_back("I");
-    }
-    if (currentRow.Loopback == (BOOLEAN) true) {
-      flagList.push_back("L");
-    }
-    r["flags"] = SQL_TEXT(boost::algorithm::join(flagList, ""));
-
-    r["address_family"] = SQL_TEXT(sAddrFamily);
+    r["flags"] = SQL_TEXT("");
+    r["address_family"] = SQL_TEXT("IPv6");
 
     // TODO: This does not exist in the Windows route.
     r["mtu"] = "nyi";
@@ -115,9 +214,8 @@ QueryData genRoutes(QueryContext& context) {
     // TODO: Metric needs to be properly calculated to match
     // what is in route.exe
     r["metric"] = INTEGER(currentRow.Metric);
-
-    // TODO: The netmask needs to be calculated... somehow???
-    r["netmask"] = "nyi";
+    // no netmask in IPv6 routing land??
+    r["netmask"] = "";
 
     // TODO: Type of connection lookup data structure.
     r["type"] = "nyi";
@@ -132,6 +230,17 @@ QueryData genRoutes(QueryContext& context) {
 
   FreeMibTable(ipTable);
   ipTable = nullptr;
+
+  return results;
+}
+
+QueryData genRoutes(QueryContext& context) {
+  QueryData results;
+  QueryData v4Results = genIPv4Routes(context);
+
+  for (auto const& item : v4Results) {
+    results.push_back(item);
+  }
 
   return results;
 }
