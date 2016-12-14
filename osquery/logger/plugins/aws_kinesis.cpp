@@ -70,17 +70,22 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
   size_t original_data_size = log_data.size();
   // exit if we sent all the data
   while (log_data.size() > 0) {
-    if (FLAGS_aws_kinesis_random_partition_key) {
-      boost::uuids::uuid uuid = boost::uuids::random_generator()();
-      partition_key_ = boost::uuids::to_string(uuid);
-    }
     std::vector<Aws::Kinesis::Model::PutRecordsRequestEntry> entries;
     for (const std::string& log : log_data) {
       if (log.size() > kKinesisMaxLogBytes) {
         LOG(ERROR) << "Kinesis log too big, discarding!";
       }
+
+      std::string record_partition_key = partition_key_;
+      if (FLAGS_aws_kinesis_random_partition_key) {
+        // Generate a random partition key for each record, ensuring that
+        // records are spread evenly across shards.
+        boost::uuids::uuid uuid = boost::uuids::random_generator()();
+        record_partition_key = boost::uuids::to_string(uuid);
+      }
+
       Aws::Kinesis::Model::PutRecordsRequestEntry entry;
-      entry.WithPartitionKey(partition_key_)
+      entry.WithPartitionKey(record_partition_key)
           .WithData(Aws::Utils::ByteBuffer((unsigned char*)log.c_str(),
                                            log.length()));
       entries.push_back(std::move(entry));
