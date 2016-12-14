@@ -13,8 +13,6 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include <aws/core/utils/Outcome.h>
-#include <aws/firehose/model/DescribeDeliveryStreamRequest.h>
-#include <aws/firehose/model/DescribeDeliveryStreamResult.h>
 #include <aws/firehose/model/PutRecordBatchRequest.h>
 #include <aws/firehose/model/PutRecordBatchResponseEntry.h>
 #include <aws/firehose/model/PutRecordBatchResult.h>
@@ -116,8 +114,6 @@ Status FirehoseLogForwarder::setUp() {
   }
 
   // Make sure we can connect to designated stream
-  Aws::Firehose::Model::DescribeDeliveryStreamRequest r;
-  r.SetDeliveryStreamName(FLAGS_aws_firehose_stream);
   VLOG(1) << "Firehose logging initialized with stream: "
           << FLAGS_aws_firehose_stream;
   return Status(0);
