@@ -52,8 +52,9 @@ std::vector<std::string> procFromFile(const std::string &path) {
 static void genCpuTimeLine(const std::string &line, QueryData &results) {
 
   auto words = osquery::split(line, " ");
+  auto num_words = words.size();
 
-  if (words.size() < 11) {
+  if (num_words < 8) {
     // This probably means there's an error in the /proc/stat file.
     return;
   }
@@ -73,9 +74,9 @@ static void genCpuTimeLine(const std::string &line, QueryData &results) {
   r["iowait"] = words[5];
   r["irq"] = words[6];
   r["softirq"] = words[7];
-  r["steal"] = words[8];
-  r["guest"] = words[9];
-  r["guest_nice"] = words[10];
+  r["steal"] = num_words > 8 ? words[8] : "0";
+  r["guest"] = num_words > 9 ? words[9] : "0";
+  r["guest_nice"] = num_words > 10 ? words[10] : "0";
 
   results.push_back(r);
 }
