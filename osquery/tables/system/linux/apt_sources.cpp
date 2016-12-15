@@ -43,7 +43,7 @@ void closeConfig() {
 
 bool isFieldOkay(const char* fieldValue) {
   // Ensure the value is initialized so we don't segfault
-  return (fieldValue != 0 && fieldValue[0] != 0);
+  return (fieldValue != nullptr && fieldValue[0] != 0);
 }
 
 void extractAptSourceInfo(pkgCache::PkgFileIterator src,
@@ -85,23 +85,42 @@ QueryData genAptSrcs(QueryContext& context) {
   // Note: _config comes from apt-pkg/configuration.h
   //       _system comes from apt-pkg/pkgsystem.h
   pkgInitConfig(*_config);
+
+  if (!getEnvVar("APT_CONFIG").is_initialized()) {
+    _config->Set("Dir::State", "/var/lib/apt");
+    _config->Set("Dir::State::status", "/var/lib/dpkg/status");
+    _config->Set("Dir::Cache", "/var/cache/apt");
+    _config->Set("Dir::Etc", "/etc/apt");
+    _config->Set("Dir::Bin::methods", "/lib/apt/methods");
+    _config->Set("Dir::Bin::solvers", "/lib/apt/solvers");
+    _config->Set("Dir::Bin::planners", "/lib/apt/planners");
+    _config->Set("Dir::Log", "/var/log/apt");
+  }
+
   pkgInitSystem(*_config, _system);
+  if (_system == nullptr) {
+    return results;
+  }
 
   pkgCacheFile cache_file;
   pkgCache* cache = cache_file.GetPkgCache();
+  if (cache == nullptr) {
+    closeConfig();
+    return results;
+  }
+
   pkgSourceList* src_list = cache_file.GetSourceList();
-  if (cache == nullptr || src_list == nullptr) {
+  if (src_list == nullptr) {
     cache_file.Close();
     closeConfig();
     return results;
   }
 
   // For each apt cache file that contains packages
-  for (pkgCache::PkgFileIterator file = cache->FileBegin(); file && !file.end();
-       ++file) {
+  for (auto file = cache->FileBegin(); file && !file.end(); ++file) {
     // Locate the associated index files to ensure the repository is installed
-    pkgIndexFile* pkgIndex;
-    if (!src_list->FindIndex(file, pkgIndex)) {
+    pkgIndexFile* pkgIndex = nullptr;
+    if (!src_list->FindIndex(file, pkgIndex) || pkgIndex == nullptr) {
       continue;
     }
 
