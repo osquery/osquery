@@ -270,7 +270,7 @@ function main() {
   $PIP install --upgrade pip
   # Pip may change locations after upgrade.
   PIP=`which pip`
-  $PIP install -r requirements.txt
+  $PIP install -I -r requirements.txt
 
   log "running auxiliary initialization"
   initialize $OS
