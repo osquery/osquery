@@ -5,14 +5,13 @@ class Thrift < AbstractOsqueryFormula
   homepage "https://thrift.apache.org/"
   url "https://www.apache.org/dyn/closer.cgi?path=/thrift/0.9.3/thrift-0.9.3.tar.gz"
   sha256 "b0740a070ac09adde04d43e852ce4c320564a292f26521c46b78e0641564969e"
-  revision 2
+  revision 3
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "7c4a1aa18ee2473aebcf78093b59168fa0663b639c895c3a6795c69739c20305" => :sierra
-    sha256 "d1117be1bd961e63402db5bd824a1ad848b54ee28a06338b17bd9235643dfd0b" => :el_capitan
-    sha256 "da5294848c117ee640ad5a287b00d9af4e013264235d2579453e5ce35b1795d5" => :x86_64_linux
+    sha256 "53780643a25a2d09098159f33415d274f43e6ef0f46ea7bcc64ca698dd180cd9" => :sierra
+    sha256 "f662c63b728d14c175103561e12681e5589a587140312e3ce641661ac6821e3d" => :x86_64_linux
   end
 
   depends_on "bison" => :build
