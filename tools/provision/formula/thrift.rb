@@ -5,7 +5,7 @@ class Thrift < AbstractOsqueryFormula
   homepage "https://thrift.apache.org/"
   url "https://www.apache.org/dyn/closer.cgi?path=/thrift/0.9.3/thrift-0.9.3.tar.gz"
   sha256 "b0740a070ac09adde04d43e852ce4c320564a292f26521c46b78e0641564969e"
-  revision 1
+  revision 3
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -27,8 +27,6 @@ class Thrift < AbstractOsqueryFormula
     ENV.cxx11
     ENV["PY_PREFIX"] = prefix
     ENV.append "CPPFLAGS", "-DOPENSSL_NO_SSL3"
-
-    rm_rf Dir["#{HOMEBREW_PREFIX}/lib/python2.7/site-packages/thrift"]
 
     exclusions = [
       "--without-ruby",
@@ -75,3 +73,20 @@ index 98c5326..7c73f4e 100644
    } else if (protocol == TLSv1_0) {
      ctx_ = SSL_CTX_new(TLSv1_method());
    } else if (protocol == TLSv1_1) {
+diff --git a/lib/cpp/src/thrift/transport/TServerSocket.cpp b/lib/cpp/src/thrift/transport/TServerSocket.cpp
+index daa1524..c1e6676 100644
+--- a/lib/cpp/src/thrift/transport/TServerSocket.cpp
++++ b/lib/cpp/src/thrift/transport/TServerSocket.cpp
+@@ -528,6 +528,12 @@ shared_ptr<TTransport> TServerSocket::acceptImpl() {
+         // a certain number
+         continue;
+       }
++
++      // Special case because we expect setuid syscalls in other threads.
++      if (THRIFT_GET_SOCKET_ERROR == EINTR) {
++        continue;
++      }
++
+       int errno_copy = THRIFT_GET_SOCKET_ERROR;
+       GlobalOutput.perror("TServerSocket::acceptImpl() THRIFT_POLL() ", errno_copy);
+       throw TTransportException(TTransportException::UNKNOWN, "Unknown", errno_copy);

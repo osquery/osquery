@@ -561,8 +561,8 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
             self.assertEqual(result.status.code, 0)
             return result.response
         except Exception as e:
-            print("General exception executing query: %s" % (
-                utils.lightred(query)))
+            print("General exception executing query: %s (%s)" % (
+                utils.lightred(query), str(e)))
             raise e
 
     def _execute_set(self, queries):
