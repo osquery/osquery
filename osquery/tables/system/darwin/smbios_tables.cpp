@@ -133,11 +133,15 @@ QueryData genPlatformInfo(QueryContext& context) {
 
   {
     auto address = getIOKitProperty(details, "fv-main-address");
-    auto value = boost::lexical_cast<size_t>(address);
+    if (!address.empty()) {
+      auto value = boost::lexical_cast<size_t>(address);
 
-    std::stringstream hex_id;
-    hex_id << std::hex << std::setw(8) << std::setfill('0') << value;
-    r["address"] = "0x" + hex_id.str();
+      std::stringstream hex_id;
+      hex_id << std::hex << std::setw(8) << std::setfill('0') << value;
+      r["address"] = "0x" + hex_id.str();
+    } else {
+      r["address"] = "0x0";
+    }
   }
 
   {
