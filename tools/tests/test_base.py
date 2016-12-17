@@ -51,8 +51,9 @@ try:
     from thrift.transport import TSocket
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
-except ImportError:
+except ImportError as e:
     print("Cannot import thrift: pip install thrift?")
+    print(str(e))
     exit(1)
 
 '''Defaults that should be used in integration tests.'''
@@ -561,8 +562,8 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
             self.assertEqual(result.status.code, 0)
             return result.response
         except Exception as e:
-            print("General exception executing query: %s" % (
-                utils.lightred(query)))
+            print("General exception executing query: %s (%s)" % (
+                utils.lightred(query), str(e)))
             raise e
 
     def _execute_set(self, queries):

@@ -78,8 +78,8 @@ endif()
 set(C_COMPILE_FLAGS "")
 set(CXX_COMPILE_FLAGS "")
 
-find_program(PYTHON_EXECUTABLE "python" ENV PATH)
-find_program(THRIFT_COMPILER "thrift" ENV PATH)
+find_program(PYTHON_EXECUTABLE "python" ${BUILD_DEPS} ENV PATH)
+find_program(THRIFT_COMPILER "thrift" ${BUILD_DEPS} ENV PATH)
 
 # Use osquery language to set platform/os
 if(DEFINED ENV{OSQUERY_PLATFORM})
@@ -130,7 +130,7 @@ elseif(WIN32)
   set(OS_WHOLELINK_POST "")
   set(WINDOWS TRUE)
 else()
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11")
+  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libstdc++")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
   set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
   # Set CMAKE variables depending on platform, to know which tables and what
