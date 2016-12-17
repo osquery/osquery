@@ -51,8 +51,9 @@ try:
     from thrift.transport import TSocket
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
-except ImportError:
+except ImportError as e:
     print("Cannot import thrift: pip install thrift?")
+    print(str(e))
     exit(1)
 
 '''Defaults that should be used in integration tests.'''

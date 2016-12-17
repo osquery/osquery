@@ -1,7 +1,6 @@
 Jinja2
 argparse
-# Provided by our thrift package
-# thrift
+thrift
 
 # The pip / setup tools for Windows will not include psutil
 # Needed for integration tests

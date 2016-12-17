@@ -54,6 +54,13 @@ class Thrift < AbstractOsqueryFormula
     system "make", "-j#{ENV.make_jobs}"
     system "make", "install"
   end
+
+  def post_install
+    # Since we manually place the thrift module into the site-packages path
+    # We need to clean up the previous version's left over links.
+    rm_rf Dir["#{HOMEBREW_PREFIX}/lib/python2.7/site-packages/thrift*"]
+  end
+
 end
 
 __END__
