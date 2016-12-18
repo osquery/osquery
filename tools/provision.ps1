@@ -199,8 +199,14 @@ function Install-ChocoPackage {
       $args += ${packageOptions}
     }
     choco ${args}
+    # Visual studio will occasionally exit with one of the following codes,
+    # indicating a system reboot is needed before continuing.
     if (@(3010,2147781575,-2147185721,-2147205120) -Contains $LastExitCode){
       $LastExitCode = 0
+    }
+    if (1638 -eq $LastExitCode){
+      $LastExitCode = 0
+      Write-Host "[*] WARN: A version of $packageName already exists, skipping" -foregroundcolor Yellow
     }
     if ($LastExitCode -ne 0) {
       Write-Host "[-] ERROR: $packageName $packageVersion failed to install!" -foregroundcolor Red
