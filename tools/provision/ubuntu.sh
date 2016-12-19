@@ -19,4 +19,5 @@ function distro_main() {
   package curl
   package bison
   package flex
+  package liblldpctl-dev
 }
