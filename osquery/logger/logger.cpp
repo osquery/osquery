@@ -315,7 +315,6 @@ void setVerboseLevel() {
     // Do log only WARNING, ERROR to log sinks.
     if (kToolType == ToolType::DAEMON) {
       FLAGS_minloglevel = google::GLOG_INFO;
-      FLAGS_stderrthreshold = google::GLOG_INFO;
     } else {
       FLAGS_minloglevel = google::GLOG_WARNING;
       FLAGS_stderrthreshold = google::GLOG_WARNING;
@@ -335,7 +334,6 @@ void initStatusLogger(const std::string& name) {
   FLAGS_logbufsecs = 0; // flush the log buffer immediately
   FLAGS_stop_logging_if_full_disk = true;
   FLAGS_max_log_size = 10; // max size for individual log file is 10MB
-  FLAGS_logtostderr = true;
 
   setVerboseLevel();
   // Start the logging, and announce the daemon is starting.
