@@ -9,10 +9,10 @@
  */
 
 #include <osquery/events.h>
-#include <osquery/hash.h>
 #include <osquery/sql.h>
 
 #include "osquery/tables/events/event_utils.h"
+#include "osquery/tables/system/hash.h"
 
 namespace osquery {
 

@@ -8,9 +8,8 @@
  *
  */
 
-#include <osquery/hash.h>
-
 #include "osquery/tables/system/smbios_utils.h"
+#include "osquery/tables/system/hash.h"
 
 namespace osquery {
 namespace tables {

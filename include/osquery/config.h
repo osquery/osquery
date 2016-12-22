@@ -100,9 +100,9 @@ class Config : private boost::noncopyable {
   /**
    * @brief Calculate the hash of the osquery config
    *
-   * @return The MD5 of the osquery config
+   * @return The SHA1 hash of the osquery config
    */
-  Status getMD5(std::string& hash);
+  Status genHash(std::string& hash);
 
   /**
    * @brief Hash a source's config data

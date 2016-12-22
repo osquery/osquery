@@ -21,7 +21,6 @@
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
-#include <osquery/hash.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
@@ -130,4 +129,3 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
 #undef CREATE_LAZY_REGISTRY
 #define CREATE_LAZY_REGISTRY "Do not CREATE_LAZY_REGISTRY in the osquery SDK"
 }
-

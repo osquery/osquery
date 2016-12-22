@@ -10,7 +10,6 @@
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/hash.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 

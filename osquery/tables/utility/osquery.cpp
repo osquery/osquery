@@ -213,7 +213,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["version"] = kVersion;
 
   std::string hash_string;
-  auto s = Config::getInstance().getMD5(hash_string);
+  auto s = Config::getInstance().genHash(hash_string);
   r["config_hash"] = (s.ok()) ? hash_string : "";
   r["config_valid"] = Config::getInstance().isValid() ? INTEGER(1) : INTEGER(0);
   r["extensions"] =

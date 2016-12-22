@@ -19,7 +19,6 @@
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
-#include <osquery/hash.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
@@ -716,11 +715,10 @@ void Config::getPerformanceStats(
 
 void Config::hashSource(const std::string& source, const std::string& content) {
   WriteLock wlock(config_hash_mutex_);
-  hash_[source] =
-      hashFromBuffer(HASH_TYPE_MD5, &(content.c_str())[0], content.size());
+  hash_[source] = getBufferSHA1(content.c_str(), content.size());
 }
 
-Status Config::getMD5(std::string& hash) {
+Status Config::genHash(std::string& hash) {
   if (!valid_) {
     return Status(1, "Current config is not valid");
   }
@@ -736,8 +734,8 @@ Status Config::getMD5(std::string& hash) {
   for (const auto& it : hash_) {
     add(it.second);
   }
+  hash = getBufferSHA1(buffer.data(), buffer.size());
 
-  hash = hashFromBuffer(HASH_TYPE_MD5, &buffer[0], buffer.size());
   return Status(0, "OK");
 }
 

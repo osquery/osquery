@@ -15,7 +15,6 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_core
   ${OS_CORE_SOURCE}
   tables.cpp
   flags.cpp
-  hash.cpp
   watcher.cpp
   process_shared.cpp
 )

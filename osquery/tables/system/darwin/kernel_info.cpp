@@ -12,7 +12,6 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include <osquery/hash.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
