@@ -12,6 +12,7 @@
 #include <osquery/sql.h>
 
 #include "osquery/tables/events/event_utils.h"
+#include "osquery/tables/system/hash.h"
 
 namespace osquery {
 
@@ -31,13 +32,11 @@ void decorateFileEvent(const std::string& path, bool hash, Row& r) {
   }
 
   if (hash) {
-    auto data = SQL::selectAllFrom("hash", "path", EQUALS, path);
-    if (data.size() == 1) {
-      auto& hashes = data.at(0);
-      r["md5"] = std::move(hashes["md5"]);
-      r["sha1"] = std::move(hashes["sha1"]);
-      r["sha256"] = std::move(hashes["sha256"]);
-    }
+    auto hashes = hashMultiFromFile(
+        HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
+    r["md5"] = std::move(hashes.md5);
+    r["sha1"] = std::move(hashes.sha1);
+    r["sha256"] = std::move(hashes.sha256);
     // Hashed determines the success/status of hashing, -1 failed, 1 success.
     r["hashed"] = (r.at("md5").empty()) ? "-1" : "1";
   } else {

@@ -14,7 +14,6 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
-#include <osquery/sha1.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 

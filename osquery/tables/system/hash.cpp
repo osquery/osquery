@@ -15,9 +15,10 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/filesystem.h>
-#include <osquery/hash.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include "osquery/tables/system/hash.h"
 
 namespace osquery {
 

@@ -8,12 +8,14 @@
  *
  */
 
+#include <iomanip>
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/archive/iterators/transform_width.hpp>
-#include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/binary_from_base64.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
+#include <boost/uuid/sha1.hpp>
 
 #include "osquery/core/conversions.h"
 
@@ -115,5 +117,21 @@ std::vector<std::string> split(const std::string& s,
 
 std::string join(const std::vector<std::string>& s, const std::string& tok) {
   return boost::algorithm::join(s, tok);
+}
+
+std::string getBufferSHA1(const char* buffer, size_t size) {
+  // SHA1 produces 160-bit digests, so allocate (5 * 32) bits.
+  uint32_t digest[5] = {0};
+  boost::uuids::detail::sha1 sha1;
+  sha1.process_bytes(buffer, size);
+  sha1.get_digest(digest);
+
+  // Convert digest to desired hex string representation.
+  std::stringstream result;
+  result << std::hex << std::setfill('0');
+  for (size_t i = 0; i < 5; ++i) {
+    result << std::setw(sizeof(uint32_t) * 2) << digest[i];
+  }
+  return result.str();
 }
 }

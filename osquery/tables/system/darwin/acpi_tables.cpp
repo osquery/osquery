@@ -11,10 +11,10 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 
-#include <osquery/sha1.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/tables/system/hash.h"
 
 namespace osquery {
 namespace tables {
@@ -29,7 +29,7 @@ void genACPITable(const void* key, const void* value, void* results) {
 
   r["name"] = stringFromCFString((CFStringRef)key);
   r["size"] = INTEGER(length);
-  r["sha1"] = getBufferSHA1(CFDataGetBytePtr(data), length);
+  r["md5"] = hashFromBuffer(HASH_TYPE_MD5, CFDataGetBytePtr(data), length);
 
   ((QueryData*)results)->push_back(r);
 }

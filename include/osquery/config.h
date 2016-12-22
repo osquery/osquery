@@ -102,7 +102,7 @@ class Config : private boost::noncopyable {
    *
    * @return The SHA1 hash of the osquery config
    */
-  Status getSHA1(std::string& hash);
+  Status genHash(std::string& hash);
 
   /**
    * @brief Hash a source's config data

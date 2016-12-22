@@ -17,7 +17,6 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_core
   flags.cpp
   watcher.cpp
   process_shared.cpp
-  sha1.cpp
 )
 
 file(GLOB OSQUERY_CORE_TESTS "tests/*.cpp")
