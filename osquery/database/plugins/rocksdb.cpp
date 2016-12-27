@@ -89,6 +89,13 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
    */
   rocksdb::DB* getDB() const;
 
+  /**
+   * @brief Helper method to repair a corrupted db. Best effort only.
+   *
+   * @return nothing.
+   */
+  void repairDB();
+
  private:
   bool initialized_{false};
 
@@ -201,7 +208,16 @@ Status RocksDBDatabasePlugin::setUp() {
   // Attempt to create a RocksDB instance and handles.
   auto s =
       rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+
+  if (s.IsCorruption()) {
+    // The database is corrupt - try to repair it
+    repairDB();
+    s = rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+  }
+
   if (!s.ok() || db_ == nullptr) {
+    LOG(INFO) << "Rocksdb open failed (" << s.code() << ":" << s.subcode()
+              << ") " << s.ToString();
     if (kDBHandleOptionRequireWrite) {
       // A failed open in R/W mode is a runtime error.
       return Status(1, s.ToString());
@@ -240,6 +256,21 @@ void RocksDBDatabasePlugin::close() {
   if (db_ != nullptr) {
     delete db_;
     db_ = nullptr;
+  }
+}
+
+void RocksDBDatabasePlugin::repairDB() {
+  // ROCKSDB_LITE does not have a RepairDB method. No option but to delete the
+  // corrupted DB
+  LOG(INFO) << "Deleting corrupted database files";
+  std::vector<std::string> file_names;
+  auto s = listFilesInDirectory(path_, file_names);
+  if (s.ok()) {
+    for (auto file : file_names) {
+      osquery::remove(file);
+    }
+  } else {
+    LOG(INFO) << "Unable to list " << path_ << ": " << s.toString();
   }
 }
 
