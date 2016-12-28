@@ -20,15 +20,15 @@
 namespace osquery {
 namespace tables {
 
-const std::map<unsigned short, const std::string> mapOfAddressFamily = {
+const std::map<unsigned short, const std::string> kMapOfAddressFamily = {
     {2, "IPv4"}, {23, "IPv6"},
 };
 
-const std::map<unsigned char, const std::string> mapOfStore = {
+const std::map<unsigned char, const std::string> kMapOfStore = {
     {0, "Persistent"}, {1, "Active"},
 };
 
-const std::map<unsigned char, const std::string> mapOfState = {
+const std::map<unsigned char, const std::string> kMapOfState = {
     {0, "Unreachable"},
     {1, "Incomplete"},
     {2, "Probe"},
@@ -44,9 +44,9 @@ QueryData genArpCache(QueryContext& context) {
   QueryData results;
   QueryData interfaces = genInterfaceDetails(context);
   WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor",
-                          L"ROOT\\StandardCimv2");
+                          (BSTR)L"ROOT\\StandardCimv2");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  std::map<long, std::string> mapOfInterfaces = {
+  std::map<long, std::string> kMapOfInterfaces = {
       {1, ""}, // loopback
   };
   unsigned short usiPlaceHolder;
@@ -55,20 +55,22 @@ QueryData genArpCache(QueryContext& context) {
   std::string strPlaceHolder;
 
   for (auto& iface : interfaces) {
-    long interfaceIndex = atol(iface["interface"].c_str());
+    long interfaceIndex;
+
+    safeStrtol(iface["interface"], 10, interfaceIndex);
     std::string macAddress = iface["mac"];
-    mapOfInterfaces.insert(
+    kMapOfInterfaces.insert(
         std::pair<long, std::string>(interfaceIndex, macAddress));
   }
   for (const auto& item : wmiResults) {
     item.GetUnsignedShort("AddressFamily", usiPlaceHolder);
-    r["address_family"] = SQL_TEXT(mapOfAddressFamily.at(usiPlaceHolder));
+    r["address_family"] = SQL_TEXT(kMapOfAddressFamily.at(usiPlaceHolder));
     item.GetUChar("Store", cPlaceHolder);
-    r["store"] = SQL_TEXT(mapOfStore.at(cPlaceHolder));
+    r["store"] = SQL_TEXT(kMapOfStore.at(cPlaceHolder));
     item.GetUChar("State", cPlaceHolder);
-    r["state"] = SQL_TEXT(mapOfState.at(cPlaceHolder));
+    r["state"] = SQL_TEXT(kMapOfState.at(cPlaceHolder));
     item.GetUnsignedInt32("InterfaceIndex", uiPlaceHolder);
-    r["interface"] = SQL_TEXT(mapOfInterfaces.at(uiPlaceHolder));
+    r["interface"] = SQL_TEXT(kMapOfInterfaces.at(uiPlaceHolder));
     item.GetString("IPAddress", r["ip_address"]);
     item.GetString("InterfaceAlias", r["interface_alias"]);
     item.GetString("LinkLayerAddress", strPlaceHolder);

@@ -106,8 +106,8 @@ class WmiResultItem {
   Status GetUnsignedShort(const std::string& name, unsigned short& ret) const;
 
   /**
-  * @brief Windows WMI Helper function to retrieve an unsigned Short from WMI
-  * query
+  * @brief Windows WMI Helper function to retrieve an unsigned 32 bit integer
+  * from a WMI query
   *
   * @returns Status indiciating the success of the query
   */
