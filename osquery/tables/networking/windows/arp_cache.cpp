@@ -8,11 +8,13 @@
 *
 */
 
-#include <boost/range/algorithm/find.hpp>
-#include <osquery/tables.h>
 #include <string>
 
-#include "boost/algorithm/string/replace.hpp"
+#include <boost/range/algorithm/find.hpp>
+#include <boost/algorithm/string/replace.hpp>
+
+#include <osquery/tables.h>
+
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 #include "osquery/tables/networking/windows/interfaces.h"
@@ -46,7 +48,7 @@ QueryData genArpCache(QueryContext& context) {
   WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor",
                           (BSTR)L"ROOT\\StandardCimv2");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  std::map<long, std::string> kMapOfInterfaces = {
+  std::map<long, std::string> mapOfInterfaces = {
       {1, ""}, // loopback
   };
   unsigned short usiPlaceHolder;
@@ -59,10 +61,10 @@ QueryData genArpCache(QueryContext& context) {
 
     safeStrtol(iface["interface"], 10, interfaceIndex);
     std::string macAddress = iface["mac"];
-    kMapOfInterfaces.insert(
+    mapOfInterfaces.insert(
         std::pair<long, std::string>(interfaceIndex, macAddress));
   }
-  for (const auto& item : wmiResults) {
+  for (const auto &item : wmiResults) {
     item.GetUnsignedShort("AddressFamily", usiPlaceHolder);
     r["address_family"] = SQL_TEXT(kMapOfAddressFamily.at(usiPlaceHolder));
     item.GetUChar("Store", cPlaceHolder);
@@ -70,7 +72,7 @@ QueryData genArpCache(QueryContext& context) {
     item.GetUChar("State", cPlaceHolder);
     r["state"] = SQL_TEXT(kMapOfState.at(cPlaceHolder));
     item.GetUnsignedInt32("InterfaceIndex", uiPlaceHolder);
-    r["interface"] = SQL_TEXT(kMapOfInterfaces.at(uiPlaceHolder));
+    r["interface"] = SQL_TEXT(mapOfInterfaces.at(uiPlaceHolder));
     item.GetString("IPAddress", r["ip_address"]);
     item.GetString("InterfaceAlias", r["interface_alias"]);
     item.GetString("LinkLayerAddress", strPlaceHolder);
