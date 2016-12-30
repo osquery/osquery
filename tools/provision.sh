@@ -239,6 +239,9 @@ function main() {
   if [[ "$ACTION" = "bottle" ]]; then
     brew_bottle "$2"
     return
+  elif [[ "$ACTION" = "uninstall" ]]; then
+    brew_uninstall "$2"
+    return
   elif [[ "$ACTION" = "install" ]]; then
     brew_dependency "$2"
     return
