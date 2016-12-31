@@ -10,6 +10,18 @@
 
 #pragma once
 
+#include <chrono>
+#include <memory>
+#include <string>
+#include <thread>
+
+#include <boost/noncopyable.hpp>
+#include <boost/optional.hpp>
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -21,20 +33,8 @@
 #pragma warning(pop)
 #endif
 
-#include <chrono>
-#include <memory>
-#include <string>
-#include <thread>
-
-#include <boost/noncopyable.hpp>
-#include <boost/optional.hpp>
-
 #include <osquery/core.h>
 #include <osquery/system.h>
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
 
 namespace osquery {
 

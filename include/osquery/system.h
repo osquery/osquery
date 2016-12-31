@@ -10,11 +10,6 @@
 
 #pragma once
 
-#ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
-
 #include <csignal>
 #include <memory>
 #include <mutex>
@@ -42,12 +37,12 @@ extern volatile std::sig_atomic_t kExitCode;
 /// most appropriate alternative since process ID on Windows are stored in
 /// a DWORD.
 using pid_t = DWORD;
-using PlatformPidType = HANDLE;
-using ModuleHandle = HMODULE;
+using PlatformPidType = void*;
 #else
 using PlatformPidType = pid_t;
-using ModuleHandle = void*;
 #endif
+
+using ModuleHandle = void*;
 
 class Initializer : private boost::noncopyable {
  public:

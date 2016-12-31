@@ -10,11 +10,15 @@
 
 #pragma once
 
+#include <codecvt>
 #include <iostream>
 #include <string>
 #include <vector>
 
-#include <codecvt>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #define _WIN32_DCOM
 #define WIN32_LEAN_AND_MEAN
 #include <WbemIdl.h>
