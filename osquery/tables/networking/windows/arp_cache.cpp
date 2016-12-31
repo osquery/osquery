@@ -10,8 +10,8 @@
 
 #include <string>
 
-#include <boost/range/algorithm/find.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/range/algorithm/find.hpp>
 
 #include <osquery/tables.h>
 
@@ -64,7 +64,7 @@ QueryData genArpCache(QueryContext& context) {
     mapOfInterfaces.insert(
         std::pair<long, std::string>(interfaceIndex, macAddress));
   }
-  for (const auto &item : wmiResults) {
+  for (const auto& item : wmiResults) {
     item.GetUnsignedShort("AddressFamily", usiPlaceHolder);
     r["address_family"] = SQL_TEXT(kMapOfAddressFamily.at(usiPlaceHolder));
     item.GetUChar("Store", cPlaceHolder);
