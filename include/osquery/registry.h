@@ -117,7 +117,7 @@ class Plugin : private boost::noncopyable {
                       PluginResponse& response) = 0;
 
   /// Allow the plugin to introspect into the registered name (for logging).
-  void setName(const std::string& name) {
+  virtual void setName(const std::string& name) final {
     name_ = name;
   }
 
@@ -168,9 +168,18 @@ class RegistryInterface : private boost::noncopyable {
       : name_(name), auto_setup_(auto_setup) {}
   virtual ~RegistryInterface() {}
 
-  /// Allow the autoloaders to add.
-  virtual Status add(const std::string& p,
-                     std::shared_ptr<Plugin> i,
+  /**
+   * @brief This is the only way to add plugins to a registry.
+   *
+   * It must be implemented by the templated child, which knows the type of
+   * registry and which can downcast the input plugin.
+   *
+   * @param plugin_name An indexable name for the plugin.
+   * @param plugin A type-specific plugin reference.
+   * @param internal true if this is internal to the osquery SDK.
+   */
+  virtual Status add(const std::string& plugin_name,
+                     const PluginRef& plugin_item,
                      bool internal = false) = 0;
 
   /**
@@ -201,6 +210,17 @@ class RegistryInterface : private boost::noncopyable {
     return name_;
   }
 
+  /// Facility method to check if a registry item exists.
+  bool exists(const std::string& item_name, bool local = false) const;
+
+  /// Facility method to count the number of items in this registry.
+  size_t count() const {
+    return items_.size();
+  }
+
+  /// Facility method to list the registry item identifiers.
+  std::vector<std::string> names() const;
+
   /**
    * @brief Allow a plugin to perform some setup functions when osquery starts.
    *
@@ -214,9 +234,27 @@ class RegistryInterface : private boost::noncopyable {
    */
   virtual void setUp();
 
- protected:
   virtual PluginRef plugin(const std::string& plugin_name) const = 0;
 
+  /// Construct and return a map of plugin names to their implementation.
+  const std::map<std::string, PluginRef>& plugins() {
+    return items_;
+  }
+
+  /**
+   * @brief Create a routes table for this registry.
+   *
+   * This is called by the extensions API to allow an extension process to
+   * broadcast each registry and the set of plugins (and their optional) route
+   * information.
+   *
+   * The "table" registry and table plugins are the primary user of the route
+   * information. Each plugin will include the SQL statement used to attach
+   * an equivalent virtual table.
+   */
+  RegistryRoutes getRoutes() const;
+
+ protected:
   /**
    * @brief The only method a plugin user should call.
    *
@@ -236,20 +274,6 @@ class RegistryInterface : private boost::noncopyable {
   virtual Status call(const std::string& item_name,
                       const PluginRequest& request,
                       PluginResponse& response);
-
- protected:
-  /**
-   * @brief Create a routes table for this registry.
-   *
-   * This is called by the extensions API to allow an extension process to
-   * broadcast each registry and the set of plugins (and their optional) route
-   * information.
-   *
-   * The "table" registry and table plugins are the primary user of the route
-   * information. Each plugin will include the SQL statement used to attach
-   * an equivalent virtual table.
-   */
-  RegistryRoutes getRoutes() const;
 
   /**
    * @brief Add a set of item names broadcasted by an extension uuid.
@@ -289,28 +313,20 @@ class RegistryInterface : private boost::noncopyable {
    */
   virtual void removeExternalPlugin(const std::string& name) const = 0;
 
-  /// Facility method to check if a registry item exists.
-  bool exists(const std::string& item_name, bool local = false) const;
-
-  /// Facility method to list the registry item identifiers.
-  std::vector<std::string> names() const;
-
-  /// Facility method to count the number of items in this registry.
-  size_t count() const {
-    return items_.size();
-  }
-
   /// Allow the registry to introspect into the registered name (for logging).
   void setName(const std::string& name) {
     name_ = name;
   }
 
-  Status add(const std::string& plugin_name, bool internal);
-
-  /// Construct and return a map of plugin names to their implementation.
-  const std::map<std::string, PluginRef>& plugins() {
-    return items_;
-  }
+  /**
+   * @brief The implementation adder will call addPlugin.
+   *
+   * Once a downcast is completed the work for adding internal/external/module
+   * indexes is provided here.
+   */
+  Status addPlugin(const std::string& plugin_name,
+                   const PluginRef& plugin_item,
+                   bool internal);
 
   /// Set an 'active' plugin to receive registry calls when no item name given.
   Status setActive(const std::string& item_name);
@@ -372,28 +388,19 @@ class RegistryType : public RegistryInterface {
 
  public:
   RegistryType(const std::string& name, bool auto_setup = false)
-      : RegistryInterface(name, auto_setup)
-  /*,*/
-  /*add_(&RegistryInterface::addExternal),
-        remove_(&RegistryInterface::removeExternal)*/ {}
+      : RegistryInterface(name, auto_setup),
+        add_(&PluginType::addExternal),
+        remove_(&PluginType::removeExternal) {}
   virtual ~RegistryType() {}
 
   Status add(const std::string& plugin_name,
-             PluginRef plugin,
+             const PluginRef& plugin_item,
              bool internal = false) override {
-    if (items_.count(plugin_name) > 0) {
-      return Status(1, "Duplicate registry item exists: " + plugin_name);
+    if (nullptr == std::dynamic_pointer_cast<PluginType>(plugin_item)) {
+      throw std::runtime_error("Cannot add foreign plugin type: " +
+                               plugin_name);
     }
-
-    auto plugin_type = std::dynamic_pointer_cast<PluginType>(plugin);
-    if (plugin_type == nullptr) {
-      return Status(1, "Cannot add foreign plugin type: " + plugin_name);
-    }
-
-    plugin_type->setName(plugin_name);
-    // items_[item_name] = item;
-    items_.emplace(std::make_pair(plugin_name, std::move(plugin)));
-    return RegistryInterface::add(plugin_name, internal);
+    return addPlugin(plugin_name, plugin_item, internal);
   }
 
   /**

@@ -19,7 +19,7 @@ DECLARE_bool(logger_secondary_status_only);
 
 class LoggerTests : public testing::Test {
  public:
-  void SetUp() {
+  void SetUp() override {
     // Backup the logging status, then disable.
     logging_status_ = FLAGS_disable_logging;
     FLAGS_disable_logging = false;
@@ -31,7 +31,7 @@ class LoggerTests : public testing::Test {
     last_status = {O_INFO, "", -1, ""};
   }
 
-  void TearDown() {
+  void TearDown() override {
     FLAGS_disable_logging = logging_status_;
   }
 
@@ -263,7 +263,7 @@ TEST_F(LoggerTests, test_multiple_loggers) {
   EXPECT_EQ(0U, LoggerTests::statuses_logged);
 
   // Now try to initialize multiple loggers (1) forwards, (2) does not.
-  rf.setActive("logger", "test,second_test");
+  // rf.setActive("logger", "test,second_test");
   initLogger("logger_test");
   LOG(WARNING) << "Logger test is generating a warning status (5)";
   // Now that the "test" logger is initialized, the status log will be

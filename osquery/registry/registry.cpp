@@ -159,15 +159,24 @@ std::string RegistryInterface::getAlias(const std::string& alias) const {
   return aliases_.at(alias);
 }
 
-Status RegistryInterface::add(const std::string& item_name, bool internal) {
+Status RegistryInterface::addPlugin(const std::string& plugin_name,
+                                    const PluginRef& plugin_item,
+                                    bool internal) {
+  if (items_.count(plugin_name) > 0) {
+    return Status(1, "Duplicate registry item exists: " + plugin_name);
+  }
+
+  plugin_item->setName(plugin_name);
+  items_.emplace(std::make_pair(plugin_name, plugin_item));
+
   // The item can be listed as internal, meaning it does not broadcast.
   if (internal) {
-    internal_.push_back(item_name);
+    internal_.push_back(plugin_name);
   }
 
   // The item may belong to a module.
   if (RegistryFactory::get().usingModule()) {
-    modules_[item_name] = RegistryFactory::get().getModule();
+    modules_[plugin_name] = RegistryFactory::get().getModule();
   }
 
   return Status(0, "OK");

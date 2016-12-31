@@ -49,7 +49,7 @@ TEST_F(TLSConfigTests, test_retrieve_config) {
   // Trigger the enroll.
   auto endpoint = Flag::getValue("config_tls_endpoint");
   Flag::updateValue("config_tls_endpoint", "/config");
-  Registry::setActive("config", "tls");
+  Registry::get().setActive("config", "tls");
 
   // Expect a POST to the /config endpoint.
   // A GET will return different results.
@@ -62,7 +62,7 @@ TEST_F(TLSConfigTests, test_retrieve_config) {
 
   // Configure the plugin to use the node API.
   Flag::updateValue("tls_node_api", "1");
-  Registry::setActive("config", "tls");
+  Registry::get().setActive("config", "tls");
 
   PluginResponse response;
   auto status = Registry::call("config", {{"action", "genConfig"}}, response);
@@ -98,7 +98,7 @@ TEST_F(TLSConfigTests, test_setup) {
   // TLSConfigPlugin::setUp default case.
   //
   // Make TLSConfigPlugin do a setup
-  auto tls_config_plugin = Registry::get("config", "tls");
+  auto tls_config_plugin = Registry::get().plugin("config", "tls");
 
   status = tls_config_plugin->setUp();
   ASSERT_TRUE(status.ok());

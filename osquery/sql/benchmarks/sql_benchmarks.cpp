@@ -39,7 +39,8 @@ class BenchmarkTablePlugin : public TablePlugin {
 static void SQL_virtual_table_registry(benchmark::State& state) {
   // Add a sample virtual table plugin.
   // Profile calling the plugin's column data.
-  Registry::add<BenchmarkTablePlugin>("table", "benchmark");
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("benchmark", std::make_shared<BenchmarkTablePlugin>());
   while (state.KeepRunning()) {
     PluginResponse res;
     Registry::call("table", "benchmark", {{"action", "generate"}}, res);
@@ -49,7 +50,9 @@ static void SQL_virtual_table_registry(benchmark::State& state) {
 BENCHMARK(SQL_virtual_table_registry);
 
 static void SQL_virtual_table_internal(benchmark::State& state) {
-  Registry::add<BenchmarkTablePlugin>("table", "benchmark");
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("benchmark", std::make_shared<BenchmarkTablePlugin>());
+
   PluginResponse res;
   Registry::call("table", "benchmark", {{"action", "columns"}}, res);
 
@@ -66,7 +69,9 @@ static void SQL_virtual_table_internal(benchmark::State& state) {
 BENCHMARK(SQL_virtual_table_internal);
 
 static void SQL_virtual_table_internal_global(benchmark::State& state) {
-  Registry::add<BenchmarkTablePlugin>("table", "benchmark");
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("benchmark", std::make_shared<BenchmarkTablePlugin>());
+
   PluginResponse res;
   Registry::call("table", "benchmark", {{"action", "columns"}}, res);
 
@@ -83,7 +88,9 @@ static void SQL_virtual_table_internal_global(benchmark::State& state) {
 BENCHMARK(SQL_virtual_table_internal_global);
 
 static void SQL_virtual_table_internal_unique(benchmark::State& state) {
-  Registry::add<BenchmarkTablePlugin>("table", "benchmark");
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("benchmark", std::make_shared<BenchmarkTablePlugin>());
+
   PluginResponse res;
   Registry::call("table", "benchmark", {{"action", "columns"}}, res);
 
@@ -118,7 +125,9 @@ class BenchmarkLongTablePlugin : public TablePlugin {
 };
 
 static void SQL_virtual_table_internal_long(benchmark::State& state) {
-  Registry::add<BenchmarkLongTablePlugin>("table", "long_benchmark");
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("long_benchmark", std::make_shared<BenchmarkLongTablePlugin>());
+
   PluginResponse res;
   Registry::call("table", "long_benchmark", {{"action", "columns"}}, res);
 
@@ -159,7 +168,9 @@ class BenchmarkWideTablePlugin : public TablePlugin {
 };
 
 static void SQL_virtual_table_internal_wide(benchmark::State& state) {
-  Registry::add<BenchmarkWideTablePlugin>("table", "wide_benchmark");
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("wide_benchmark", std::make_shared<BenchmarkWideTablePlugin>());
+
   PluginResponse res;
   Registry::call("table", "wide_benchmark", {{"action", "columns"}}, res);
 
@@ -189,7 +200,7 @@ BENCHMARK(SQL_select_metadata);
 static void SQL_select_basic(benchmark::State& state) {
   // Profile executing a query against an internal, already attached table.
   while (state.KeepRunning()) {
-    auto results = SQLInternal("select * from benchmark");
+    SQLInternal results("select * from benchmark");
   }
 }
 

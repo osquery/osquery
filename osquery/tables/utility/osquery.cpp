@@ -192,7 +192,7 @@ QueryData genOsqueryExtensions(QueryContext& context) {
     }
   }
 
-  const auto& modules = RegistryFactory::get().getModules();
+  auto modules = RegistryFactory::get().getModules();
   for (const auto& module : modules) {
     Row r;
     r["uuid"] = SQL_TEXT(module.first);

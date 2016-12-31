@@ -32,7 +32,7 @@ class INotifyTests : public testing::Test {
  protected:
   void SetUp() override {
     // INotify will use data from the config and config parsers.
-    Registry::registry("config_parser")->setUp();
+    Registry::get().registry("config_parser")->setUp();
 
     // Create a basic path trigger, this is a file path.
     real_test_path = kTestWorkingDirectory + "inotify-trigger" +

@@ -46,7 +46,7 @@ class DistributedTests : public testing::Test {
         Flag::getValue("distributed_tls_write_endpoint");
     Flag::updateValue("distributed_tls_write_endpoint", "/distributed_write");
 
-    Registry::setActive("distributed", "tls");
+    Registry::get().setActive("distributed", "tls");
   }
 
   void TearDown() {

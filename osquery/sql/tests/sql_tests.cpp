@@ -55,7 +55,8 @@ class TestTablePlugin : public TablePlugin {
 };
 
 TEST_F(SQLTests, test_raw_access_context) {
-  Registry::add<TestTablePlugin>("table", "test");
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("test", std::make_shared<TestTablePlugin>());
   auto results = SQL::selectAllFrom("test");
 
   EXPECT_EQ(results.size(), 1U);

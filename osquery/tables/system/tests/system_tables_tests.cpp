@@ -24,7 +24,7 @@ namespace tables {
 class SystemsTablesTests : public testing::Test {};
 
 TEST_F(SystemsTablesTests, test_os_version) {
-  auto results = SQL("select * from os_version");
+  SQL results("select * from os_version");
 
   EXPECT_EQ(results.rows().size(), 1U);
 
@@ -35,7 +35,7 @@ TEST_F(SystemsTablesTests, test_os_version) {
 }
 
 TEST_F(SystemsTablesTests, test_process_info) {
-  auto results = SQL("select * from osquery_info join processes using (pid)");
+  SQL results("select * from osquery_info join processes using (pid)");
   ASSERT_EQ(results.rows().size(), 1U);
 
   // Make sure there is a valid UID and parent.
@@ -48,19 +48,23 @@ TEST_F(SystemsTablesTests, test_process_info) {
 }
 
 TEST_F(SystemsTablesTests, test_processes) {
-  auto results = SQL("select pid, name from processes limit 1");
-  ASSERT_EQ(results.rows().size(), 1U);
+  {
+    SQL results("select pid, name from processes limit 1");
+    ASSERT_EQ(results.rows().size(), 1U);
 
-  EXPECT_FALSE(results.rows()[0].at("pid").empty());
-  EXPECT_FALSE(results.rows()[0].at("name").empty());
+    EXPECT_FALSE(results.rows()[0].at("pid").empty());
+    EXPECT_FALSE(results.rows()[0].at("name").empty());
+  }
 
-  // Make sure an invalid pid within the query constraint returns no rows.
-  results = SQL("select pid, name from processes where pid = -1");
-  EXPECT_EQ(results.rows().size(), 0U);
+  {
+    // Make sure an invalid pid within the query constraint returns no rows.
+    SQL results("select pid, name from processes where pid = -1");
+    EXPECT_EQ(results.rows().size(), 0U);
+  }
 }
 
 TEST_F(SystemsTablesTests, test_processes_memory_cpu) {
-  auto results = SQL("select * from osquery_info join processes using (pid)");
+  SQL results("select * from osquery_info join processes using (pid)");
   long long bytes;
   safeStrtoll(results.rows()[0].at("resident_size"), 0, bytes);
 
@@ -74,7 +78,7 @@ TEST_F(SystemsTablesTests, test_processes_memory_cpu) {
 
   // Make sure user/system time are in seconds, pray we haven't actually used
   // more than 100 seconds of CPU.
-  auto results2 = SQL("select * from osquery_info join processes using (pid)");
+  SQL results2("select * from osquery_info join processes using (pid)");
 
   long long cpu_start, value;
   safeStrtoll(results.rows()[0].at("user_time"), 0, cpu_start);
@@ -94,27 +98,37 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
   std::string join_preamble =
       "select * from (select path from osquery_info join processes using "
       "(pid)) p";
-  auto results = SQL(join_preamble + " join file using (path);");
-  ASSERT_EQ(results.rows().size(), 1U);
+  {
+    SQL results(join_preamble + " join file using (path);");
+    ASSERT_EQ(results.rows().size(), 1U);
+  }
 
-  // The same holds for an explicit left join.
-  results = SQL(join_preamble + "left join file using (path);");
-  ASSERT_EQ(results.rows().size(), 1U);
+  {
+    // The same holds for an explicit left join.
+    SQL results(join_preamble + "left join file using (path);");
+    ASSERT_EQ(results.rows().size(), 1U);
+  }
 
-  // A secondary inner join against hash.
-  results =
-      SQL(join_preamble + " join file using (path) join hash using (path);");
-  ASSERT_EQ(results.rows().size(), 1U);
+  {
+    // A secondary inner join against hash.
+    SQL results(join_preamble +
+                " join file using (path) join hash using (path);");
+    ASSERT_EQ(results.rows().size(), 1U);
+  }
 
-  results = SQL(join_preamble +
+  {
+    SQL results(join_preamble +
                 " left join file using (path) left join hash using (path);");
-  ASSERT_EQ(results.rows().size(), 1U);
+    ASSERT_EQ(results.rows().size(), 1U);
+  }
 
-  // Check LIKE and = operands.
-  results =
-      SQL("select path from file where path = '/etc/' or path LIKE '/dev/%' or "
-          "path LIKE '\\Windows\\%';");
-  ASSERT_GT(results.rows().size(), 1U);
+  {
+    // Check LIKE and = operands.
+    SQL results(
+        "select path from file where path = '/etc/' or path LIKE '/dev/%' or "
+        "path LIKE '\\Windows\\%';");
+    ASSERT_GT(results.rows().size(), 1U);
+  }
 }
 }
 }

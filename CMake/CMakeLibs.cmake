@@ -305,12 +305,12 @@ set(GLOBAL PROPERTY AMALGAMATE_TARGETS "")
 macro(GET_GENERATION_DEPS BASE_PATH)
   # Depend on the generation code.
   set(GENERATION_DEPENDENCIES "")
-  file(GLOB TABLE_FILES_TEMPLATES "${BASE_PATH}/osquery/tables/templates/*.in")
+  file(GLOB TABLE_FILES_TEMPLATES "${BASE_PATH}/tools/codegen/templates/*.in")
   file(GLOB CODEGEN_PYTHON_FILES "${BASE_PATH}/tools/codegen/*.py")
   set(GENERATION_DEPENDENCIES
-    "${CODEGEN_PYTHON_FILES}"
     "${BASE_PATH}/specs/blacklist"
   )
+  list(APPEND GENERATION_DEPENDENCIES ${CODEGEN_PYTHON_FILES})
   list(APPEND GENERATION_DEPENDENCIES ${TABLE_FILES_TEMPLATES})
 endmacro()
 

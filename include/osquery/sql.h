@@ -16,11 +16,23 @@
 
 #include <osquery/database.h>
 #include <osquery/flags.h>
+#include <osquery/registry.h>
 #include <osquery/tables.h>
 
 namespace osquery {
 
 DECLARE_int32(value_max);
+
+class only_movable {
+ protected:
+  only_movable() {}
+  only_movable(only_movable&&) {}
+  ~only_movable() {}
+
+ private:
+  only_movable(const only_movable&);
+  only_movable& operator=(const only_movable&);
+};
 
 /**
  * @brief The core interface to executing osquery SQL commands.
@@ -40,7 +52,7 @@ DECLARE_int32(value_max);
  *   }
  * @endcode
  */
-class SQL {
+class SQL : private only_movable {
  public:
   /**
    * @brief Instantiate an instance of the class with a query.
@@ -48,6 +60,9 @@ class SQL {
    * @param q An osquery SQL query.
    */
   explicit SQL(const std::string& q);
+
+  SQL(SQL&&) = default;
+  SQL& operator=(SQL&&) = default;
 
   /**
    * @brief Accessor for the rows returned by the query.
@@ -112,6 +127,7 @@ class SQL {
    */
   SQL() {}
 
+ protected:
   /// The internal member which holds the results of the query.
   QueryData results_;
 
@@ -160,7 +176,7 @@ class SQLPlugin : public Plugin {
   virtual void detach(const std::string& name) {}
 
  public:
-  Status call(const PluginRequest& request, PluginResponse& response);
+  Status call(const PluginRequest& request, PluginResponse& response) override;
 };
 
 /**

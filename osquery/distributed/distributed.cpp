@@ -125,7 +125,7 @@ Status Distributed::runQueries() {
     LOG(INFO) << "Executing distributed query: " << request.id << ": "
               << request.query;
 
-    auto sql = SQL(request.query);
+    SQL sql(request.query);
     if (!sql.getStatus().ok()) {
       LOG(ERROR) << "Error executing distributed query: " << request.id << ": "
                  << sql.getMessageString();
@@ -164,10 +164,12 @@ Status Distributed::flushCompleted() {
 }
 
 Status Distributed::acceptWork(const std::string& work) {
-  pt::ptree tree;
-  std::stringstream ss(work);
   try {
-    pt::read_json(ss, tree);
+    pt::ptree tree;
+    {
+      std::stringstream ss(work);
+      pt::read_json(ss, tree);
+    }
 
     auto& queries = tree.get_child("queries");
     for (const auto& node : queries) {

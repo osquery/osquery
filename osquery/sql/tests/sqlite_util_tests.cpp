@@ -120,15 +120,19 @@ TEST_F(SQLiteUtilTests, test_affected_tables) {
 }
 
 TEST_F(SQLiteUtilTests, test_table_attributes_event_based) {
-  auto sql_internal = SQLInternal("select * from process_events");
-  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-    EXPECT_TRUE(sql_internal.ok());
-    EXPECT_TRUE(sql_internal.eventBased());
+  {
+    SQLInternal sql_internal("select * from process_events");
+    if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+      EXPECT_TRUE(sql_internal.ok());
+      EXPECT_TRUE(sql_internal.eventBased());
+    }
   }
 
-  sql_internal = SQLInternal("select * from time");
-  EXPECT_TRUE(sql_internal.ok());
-  EXPECT_FALSE(sql_internal.eventBased());
+  {
+    SQLInternal sql_internal("select * from time");
+    EXPECT_TRUE(sql_internal.ok());
+    EXPECT_FALSE(sql_internal.eventBased());
+  }
 }
 
 TEST_F(SQLiteUtilTests, test_get_query_columns) {
