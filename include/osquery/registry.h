@@ -528,7 +528,7 @@ class RegistryFactory : private boost::noncopyable {
   /// Direct access to a registry instance.
   RegistryInterfaceRef registry(const std::string& registry_name) const;
 
-  void add(const std::string& name, RegistryInterfaceRef interface);
+  void add(const std::string& name, RegistryInterfaceRef reg);
 
   /// Direct access to all registries.
   std::map<std::string, RegistryInterfaceRef> all() const;

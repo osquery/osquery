@@ -274,16 +274,14 @@ std::vector<std::string> RegistryInterface::names() const {
   return names;
 }
 
-void RegistryFactory::add(const std::string& name,
-                          std::shared_ptr<RegistryInterface> interface) {
+void RegistryFactory::add(const std::string& name, RegistryInterfaceRef reg) {
   if (exists(name)) {
     std::runtime_error("Cannot add duplicate registry: " + name);
   }
-  registries_[name] = std::move(interface);
+  registries_[name] = std::move(reg);
 }
 
-std::shared_ptr<RegistryInterface> RegistryFactory::registry(
-    const std::string& t) const {
+RegistryInterfaceRef RegistryFactory::registry(const std::string& t) const {
   if (!exists(t)) {
     throw std::runtime_error("Unknown registry requested: " + t);
   }

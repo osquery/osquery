@@ -149,7 +149,7 @@ ModuleHandle platformModuleOpen(const std::string& path) {
 }
 
 void* platformModuleGetSymbol(ModuleHandle module, const std::string& symbol) {
-  return ::GetProcAddress(module, symbol.c_str());
+  return ::GetProcAddress(static_cast<HMODULE>(module), symbol.c_str());
 }
 
 std::string platformModuleGetError() {
@@ -157,7 +157,7 @@ std::string platformModuleGetError() {
 }
 
 bool platformModuleClose(ModuleHandle module) {
-  return (::FreeLibrary(module) != 0);
+  return (::FreeLibrary(static_cast<HMODULE>(module)) != 0);
 }
 
 void cleanupDefunctProcesses() {}
