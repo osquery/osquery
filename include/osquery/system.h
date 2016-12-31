@@ -36,7 +36,7 @@ extern volatile std::sig_atomic_t kExitCode;
 /// Unfortunately, pid_t is not defined in Windows, however, DWORD is the
 /// most appropriate alternative since process ID on Windows are stored in
 /// a DWORD.
-using pid_t = DWORD;
+using pid_t = unsigned long;
 using PlatformPidType = void*;
 #else
 using PlatformPidType = pid_t;
