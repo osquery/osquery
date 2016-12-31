@@ -10,6 +10,11 @@
 
 #pragma once
 
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 #include <csignal>
 #include <memory>
 #include <mutex>
@@ -31,6 +36,18 @@ namespace osquery {
  * that will continue the shutdown process.
  */
 extern volatile std::sig_atomic_t kExitCode;
+
+#ifdef WIN32
+/// Unfortunately, pid_t is not defined in Windows, however, DWORD is the
+/// most appropriate alternative since process ID on Windows are stored in
+/// a DWORD.
+using pid_t = DWORD;
+using PlatformPidType = HANDLE;
+using ModuleHandle = HMODULE;
+#else
+using PlatformPidType = pid_t;
+using ModuleHandle = void*;
+#endif
 
 class Initializer : private boost::noncopyable {
  public:

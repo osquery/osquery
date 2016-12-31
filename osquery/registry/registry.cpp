@@ -21,6 +21,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
+#include "osquery/core/process.h"
 
 namespace pt = boost::property_tree;
 

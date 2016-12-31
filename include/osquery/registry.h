@@ -19,8 +19,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
-
-#include "osquery/core/process.h"
+#include <osquery/system.h>
 
 namespace osquery {
 
@@ -71,14 +70,6 @@ using ModuleInitalizer = void (*)(void);
 /// The registry includes a single optimization for table generation.
 struct QueryContext;
 
-template <class PluginItem>
-class PluginFactory {};
-
-class Plugin;
-
-/// Helper definition for a shared pointer to a Plugin.
-using PluginRef = std::shared_ptr<Plugin>;
-
 class Plugin : private boost::noncopyable {
  public:
   virtual ~Plugin() {}
@@ -127,13 +118,13 @@ class Plugin : private boost::noncopyable {
   }
 
  public:
-  // Set the output request key to a serialized property tree.
-  // Used by the plugin to set a serialized PluginResponse.
+  /// Set the output request key to a serialized property tree.
+  /// Used by the plugin to set a serialized PluginResponse.
   static void setResponse(const std::string& key,
                           const boost::property_tree::ptree& tree,
                           PluginResponse& response);
 
-  // Get a PluginResponse key as a property tree.
+  /// Get a PluginResponse key as a property tree.
   static void getResponse(const std::string& key,
                           const PluginResponse& response,
                           boost::property_tree::ptree& tree);
@@ -158,6 +149,9 @@ class Plugin : private boost::noncopyable {
  protected:
   std::string name_;
 };
+
+/// Helper definition for a shared pointer to a Plugin.
+using PluginRef = std::shared_ptr<Plugin>;
 
 /**
  * @brief This is the registry interface.
@@ -346,8 +340,6 @@ class RegistryInterface : private boost::noncopyable {
 
  protected:
   /// A map of registered plugin instances to their registered identifier.
-  // AUTOLOADER: This should be in the Registry (templated version).
-  // std::map<std::string, std::shared_ptr<Plugin>> items_;
   std::map<std::string, PluginRef> items_;
 
   /// If aliases are used, a map of alias to item name.
@@ -413,8 +405,6 @@ class RegistryType : public RegistryInterface {
    * @return A std::shared_ptr of type RegistryType.
    */
   PluginRef plugin(const std::string& plugin_name) const override {
-    // return std::dynamic_pointer_cast<RegistryType>(items_.at(item_name));
-    // return items_.at(plugin_name);
     if (items_.count(plugin_name) == 0) {
       return nullptr;
     }
@@ -470,10 +460,10 @@ class RegistryModuleLoader : private boost::noncopyable {
   void init();
 
  private:
-  // Keep the handle for symbol resolution/calling.
+  /// Keep the handle for symbol resolution/calling.
   ModuleHandle handle_{nullptr};
 
-  // Keep the path for debugging/logging.
+  /// Keep the path for debugging/logging.
   std::string path_;
 
  private:
@@ -644,6 +634,7 @@ class RegistryFactory : private boost::noncopyable {
   /// Initialize a module for lookup, resolution, and its registrations.
   void initModule(const std::string& path);
 
+  /// Finish module registration.
   void shutdownModule();
 
   /// Check if the registries are locked.
@@ -815,6 +806,7 @@ struct PI {
   namespace registries {                                                       \
   const RI<t> k##t(n, n, false);                                               \
   }
+
 #define CREATE_LAZY_REGISTRY(t, n)                                             \
   namespace registries {                                                       \
   const RI<t> k##t(n, n, true);                                                \

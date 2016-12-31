@@ -22,6 +22,8 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/process.h"
+
 namespace osquery {
 namespace tables {
 

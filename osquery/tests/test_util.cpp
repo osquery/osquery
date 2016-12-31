@@ -27,6 +27,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/json.h"
+#include "osquery/core/process.h"
 #include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;

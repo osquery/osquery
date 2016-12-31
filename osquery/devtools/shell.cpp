@@ -37,6 +37,7 @@
 #include <osquery/flags.h>
 #include <osquery/packs.h>
 
+#include "osquery/core/process.h"
 #include "osquery/devtools/devtools.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/sql/virtual_table.h"
