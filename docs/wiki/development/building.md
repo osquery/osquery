@@ -131,7 +131,7 @@ We use a minimum set of packages from Homebrew and Linuxbrew, mostly just tools.
 
 ### Adding or changing dependencies
 
-If you need to bump a dependency version, change the way it is built, or add a new dependency-- use the formulas in `./tools/provision/formulas`. Let's consider a simple example:
+If you need to bump a dependency version, change the way it is built, or add a new dependency-- use the formulas in `./tools/provision/formula/`. Let's consider a simple example:
 
 ```
 require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
@@ -155,6 +155,21 @@ end
 This looks A LOT like normal *brew formulas. For a new dependency do not add a `bottle` section. For help with writing formulas see [Homebrew's Formula Cookbook](https://github.com/Homebrew/brew/blob/master/share/doc/homebrew/Formula-Cookbook.md). Note that we use an Abstract to control the environment variables and control relocation on Linux.
 
 If you want to make build changes see the Cookbook for `revision` edits. Note that committing new or edited formulas will invalidate package caches this will cause the package to be built from source on the test/build hosts.
+
+**If this is a new dependency** then you need to add a line to `./tools/provision.sh` for Linux and or OS X at the order/time it should be installed.
+
+When a dependency is updated by a maintainer or contributor the flow should follow:
+* Update the target formula in `./tools/provision/formula/`.
+* Run `make deps` and the dependency change should cause a rebuild from source.
+* Build and run the osquery tests, and submit the change in a pull request.
+
+After the change is merged, a maintainer can provide a bottle/binary version:
+* Run `./tools/provision.sh uninstall TARGET` to remove the from-source build.
+* Run `make build_deps` to build a bottle version from source.
+* Run `./tools/provision.sh bottle TARGET` to generate the bottle.
+* Update the formula again with the SHA256 printed to stdout.
+* Upload the `/usr/local/osquery/TARGET-VERSION.tar.gz` to the S3 `bottles` folder.
+* Create a pull request with the updated SHA256.
 
 ## AWS EC2 Backed Vagrant Targets
 
