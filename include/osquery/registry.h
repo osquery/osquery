@@ -713,7 +713,7 @@ class RegistryFactory : private boost::noncopyable {
 using Registry = RegistryFactory;
 
 class AutoRegisterInterface;
-using AutoRegisterSet = std::vector<std::shared_ptr<AutoRegisterInterface>>;
+using AutoRegisterSet = std::vector<std::unique_ptr<AutoRegisterInterface>>;
 
 class AutoRegisterInterface {
  public:
@@ -726,9 +726,7 @@ class AutoRegisterInterface {
   /// Either autoload a registry, or create an internal plugin.
   bool optional_;
 
-  AutoRegisterInterface(const std::string& _type,
-                        const std::string& _name,
-                        bool optional)
+  AutoRegisterInterface(const char* _type, const char* _name, bool optional)
       : type_(_type), name_(_name), optional_(optional) {}
   virtual ~AutoRegisterInterface() {}
 
@@ -743,7 +741,7 @@ class AutoRegisterInterface {
   }
 
   /// Insert a new registry.
-  static void autoloadRegistry(std::shared_ptr<AutoRegisterInterface> ar_) {
+  static void autoloadRegistry(std::unique_ptr<AutoRegisterInterface> ar_) {
     registries().push_back(std::move(ar_));
   }
 
@@ -754,7 +752,7 @@ class AutoRegisterInterface {
   }
 
   /// Insert a new plugin.
-  static void autoloadPlugin(std::shared_ptr<AutoRegisterInterface> ar_) {
+  static void autoloadPlugin(std::unique_ptr<AutoRegisterInterface> ar_) {
     plugins().push_back(std::move(ar_));
   }
 };
@@ -762,9 +760,9 @@ class AutoRegisterInterface {
 namespace registries {
 
 template <class R>
-class AutoRegister : public AutoRegisterInterface {
+class AR : public AutoRegisterInterface {
  public:
-  AutoRegister(const std::string& t, const std::string& n, bool optional)
+  AR(const char* t, const char* n, bool optional)
       : AutoRegisterInterface(t, n, optional) {}
 
   void run() override {
@@ -774,9 +772,9 @@ class AutoRegister : public AutoRegisterInterface {
 };
 
 template <class P>
-class AutoPluginer : public AutoRegisterInterface {
+class AP : public AutoRegisterInterface {
  public:
-  AutoPluginer(const std::string& t, const std::string& n, bool optional)
+  AP(const char* t, const char* n, bool optional)
       : AutoRegisterInterface(t, n, optional) {}
 
   void run() override {
@@ -787,17 +785,15 @@ class AutoPluginer : public AutoRegisterInterface {
 
 template <class R>
 struct RI {
-  explicit RI(const std::string& t, const std::string& n, bool o = false) {
-    AutoRegisterInterface::autoloadRegistry(
-        std::make_shared<AutoRegister<R>>(t, n, o));
+  RI(const char* t, const char* n, bool o = false) {
+    AutoRegisterInterface::autoloadRegistry(std::make_unique<AR<R>>(t, n, o));
   }
 };
 
 template <class P>
 struct PI {
-  explicit PI(const std::string& t, const std::string& n, bool o = false) {
-    AutoRegisterInterface::autoloadPlugin(
-        std::make_shared<AutoPluginer<P>>(t, n, o));
+  PI(const char* t, const char* n, bool o = false) {
+    AutoRegisterInterface::autoloadPlugin(std::make_unique<AP<P>>(t, n, o));
   }
 };
 }
