@@ -276,7 +276,7 @@ std::vector<std::string> RegistryInterface::names() const {
 
 void RegistryFactory::add(const std::string& name, RegistryInterfaceRef reg) {
   if (exists(name)) {
-    std::runtime_error("Cannot add duplicate registry: " + name);
+    throw std::runtime_error("Cannot add duplicate registry: " + name);
   }
   registries_[name] = std::move(reg);
 }
