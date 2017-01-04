@@ -11,9 +11,9 @@ elseif(FREEBSD)
   file(GLOB OSQUERY_EVENTS_FREEBSD "freebsd/*.cpp")
   ADD_OSQUERY_LIBRARY(FALSE osquery_events_freebsd ${OSQUERY_EVENTS_FREEBSD})
 elseif(WINDOWS)
-  # TODO: When we have Windows events, uncomment these
-  # file(GLOB OSQUERY_EVENTS_WINDOWS "windows/*.cpp")
-  # ADD_OSQUERY_LIBRARY(FALSE osquery_events_windows ${OSQUERY_EVENTS_WINDOWS})
+  ADD_OSQUERY_LINK_CORE("wevtapi.lib")
+  file(GLOB OSQUERY_EVENTS_WINDOWS "windows/*.cpp")
+  ADD_OSQUERY_LIBRARY(FALSE osquery_events_windows ${OSQUERY_EVENTS_WINDOWS})
 else()
   # See the root CMakeLists for SYSTEMD detection.
   # The udev library link is not available without systemd-devel.

@@ -1,0 +1,19 @@
+table_name("windows_events")
+description("All of the Windows registry hives.")
+schema([
+    Column("time", BIGINT, "Current unix epoch time"),
+    Column("datetime", TEXT, "Friendly event time according to Windows"),
+    Column("source", TEXT, "Source of the Windows event log"),
+    Column("provider_name", TEXT, "Provider name of the Windows event log"),
+    Column("provider_guid", TEXT, "Provider guid of the Windows event log"),
+    Column("eventid", INTEGER, "Event ID of the Windows event log"),
+    Column("task", INTEGER, "Task value associated with the Windows event log"),
+    Column("level", INTEGER, "The severity level associated with the event"),
+    Column("keywords", BIGINT, "A bitmask of the keywords defined in the event"),
+    Column("data", TEXT, "Event data associated with the event"),
+])
+attributes(event_subscriber=True)
+implementation("windows_events@WindowsEventSubscriber::genTable")
+examples([
+  "select * from windows_events",
+])
