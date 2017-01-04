@@ -1,12 +1,12 @@
 /*
- *  Copyright (c) 2014-present, Facebook, Inc.
- *  All rights reserved.
- *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
- */
+*  Copyright (c) 2014-present, Facebook, Inc.
+*  All rights reserved.
+*
+*  This source code is licensed under the BSD-style license found in the
+*  LICENSE file in the root directory of this source tree. An additional grant
+*  of patent rights can be found in the PATENTS file in the same directory.
+*
+*/
 
 #define _WIN32_DCOM
 #define WIN32_LEAN_AND_MEAN
@@ -15,60 +15,28 @@
 #include <LM.h>
 // clang-format on
 
-#include <string>
 #include <vector>
 
-#include <boost/optional.hpp>
-
 #include <osquery/system.h>
+#include <osquery/logger.h>
 
 #include "osquery/core/process.h"
 #include "osquery/core/windows/wmi.h"
 
 namespace osquery {
 
-int platformGetUid() {
-  DWORD nbytes = 0;
-  HANDLE token = INVALID_HANDLE_VALUE;
-
-  if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token)) {
-    return -1;
-  }
-
-  ::GetTokenInformation(token, TokenUser, nullptr, 0, &nbytes);
-  if (nbytes == 0) {
-    ::CloseHandle(token);
-    return -1;
-  }
-
-  std::vector<char> tu_buffer;
-  tu_buffer.assign(nbytes, '\0');
-  PTOKEN_USER tu = nullptr;
-
-  BOOL status = ::GetTokenInformation(token,
-                                      TokenUser,
-                                      tu_buffer.data(),
-                                      static_cast<DWORD>(tu_buffer.size()),
-                                      &nbytes);
-  ::CloseHandle(token);
-  if (status == 0) {
-    return -1;
-  }
-
-  LPSTR sid = nullptr;
-  tu = (PTOKEN_USER)tu_buffer.data();
-  SID_NAME_USE eUse = SidTypeUnknown;
-  DWORD unameSize = 0;
-  DWORD domNameSize = 1;
+int getUidFromSid(PSID sid) {
+  auto eUse = SidTypeUnknown;
+  unsigned long unameSize = 0;
+  unsigned long domNameSize = 1;
 
   // LookupAccountSid first gets the size of the username buff required.
   LookupAccountSid(
-      nullptr, tu->User.Sid, nullptr, &unameSize, nullptr, &domNameSize, &eUse);
-
+      nullptr, sid, nullptr, &unameSize, nullptr, &domNameSize, &eUse);
   std::vector<char> uname(unameSize);
   std::vector<char> domName(domNameSize);
   auto ret = LookupAccountSid(nullptr,
-                              tu->User.Sid,
+                              sid,
                               uname.data(),
                               &unameSize,
                               domName.data(),
@@ -78,30 +46,92 @@ int platformGetUid() {
   if (ret == 0) {
     return -1;
   }
-
   // USER_INFO_3 struct contains the RID (uid) of our user
-  DWORD userInfoLevel = 3;
-  LPUSER_INFO_3 userBuff = nullptr;
-  std::wstring wideUserName = stringToWstring(std::string(uname.data()));
-  ret = NetUserGetInfo(
-      nullptr, wideUserName.c_str(), userInfoLevel, (LPBYTE*)&userBuff);
+  unsigned long userInfoLevel = 3;
+  unsigned char* userBuff = nullptr;
+  auto wideUserName = stringToWstring(uname.data());
+  ret = NetUserGetInfo(nullptr, wideUserName.c_str(), userInfoLevel, &userBuff);
 
-  if (ret != NERR_Success) {
+  if (ret != NERR_Success || userBuff == nullptr) {
+    return -1;
+  }
+  auto uid = LPUSER_INFO_3(userBuff)->usri3_user_id;
+  NetApiBufferFree(userBuff);
+  return uid;
+}
+
+int getGidFromSid(PSID sid) {
+  auto eUse = SidTypeUnknown;
+  unsigned long unameSize = 0;
+  unsigned long domNameSize = 1;
+
+  // LookupAccountSid first gets the size of the username buff required.
+  LookupAccountSid(
+      nullptr, sid, nullptr, &unameSize, nullptr, &domNameSize, &eUse);
+  std::vector<char> uname(unameSize);
+  std::vector<char> domName(domNameSize);
+  auto ret = LookupAccountSid(nullptr,
+                              sid,
+                              uname.data(),
+                              &unameSize,
+                              domName.data(),
+                              &domNameSize,
+                              &eUse);
+
+  if (ret == 0) {
+    return -1;
+  }
+  // USER_INFO_3 struct contains the RID (uid) of our user
+  unsigned long userInfoLevel = 3;
+  unsigned char* userBuff = nullptr;
+  auto wideUserName = stringToWstring(uname.data());
+  ret = NetUserGetInfo(nullptr, wideUserName.c_str(), userInfoLevel, &userBuff);
+
+  if (ret != NERR_Success || userBuff == nullptr) {
+    return -1;
+  }
+  auto gid = LPUSER_INFO_3(userBuff)->usri3_primary_group_id;
+  NetApiBufferFree(userBuff);
+  return gid;
+}
+
+int platformGetUid() {
+  auto token = INVALID_HANDLE_VALUE;
+  if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token)) {
     return -1;
   }
 
-  ::LocalFree(sid);
-  return userBuff->usri3_user_id;
+  unsigned long nbytes = 0;
+  ::GetTokenInformation(token, TokenUser, nullptr, 0, &nbytes);
+  if (nbytes == 0) {
+    ::CloseHandle(token);
+    return -1;
+  }
+
+  std::vector<char> tu_buffer;
+  tu_buffer.assign(nbytes, '\0');
+
+  auto status = ::GetTokenInformation(token,
+                                      TokenUser,
+                                      tu_buffer.data(),
+                                      static_cast<DWORD>(tu_buffer.size()),
+                                      &nbytes);
+  ::CloseHandle(token);
+  if (status == 0) {
+    return -1;
+  }
+
+  auto tu = PTOKEN_USER(tu_buffer.data());
+  return getUidFromSid(tu->User.Sid);
 }
 
 bool isLauncherProcessDead(PlatformProcess& launcher) {
-  DWORD code = 0;
+  unsigned long code = 0;
   if (!::GetExitCodeProcess(launcher.nativeHandle(), &code)) {
-    // TODO(#1991): If an error occurs with GetExitCodeProcess, do we want to
-    // return a Status object to describe the error with more granularity?
+    LOG(WARNING) << "GetExitCodeProcess did not return a value, error code ("
+                 << GetLastError() << ")";
     return false;
   }
-
   return (code != STILL_ACTIVE);
 }
 
@@ -114,15 +144,15 @@ bool unsetEnvVar(const std::string& name) {
 }
 
 boost::optional<std::string> getEnvVar(const std::string& name) {
-  const int kInitialBufferSize = 1024;
+  const auto kInitialBufferSize = 1024;
   std::vector<char> buf;
   buf.assign(kInitialBufferSize, '\0');
 
-  DWORD value_len =
+  auto value_len =
       ::GetEnvironmentVariableA(name.c_str(), buf.data(), kInitialBufferSize);
   if (value_len == 0) {
-    // TODO(#1991): Do we want figure out a way to be more granular in terms of
-    // the error to return?
+    VLOG(1) << "Unable to find environment variable (" << GetLastError()
+            << "): " << name;
     return boost::none;
   }
 
@@ -185,10 +215,10 @@ bool isUserAdmin() {
 }
 
 int platformGetPid() {
-  return (int)GetCurrentProcessId();
+  return static_cast<int>(GetCurrentProcessId());
 }
 
 int platformGetTid() {
-  return (int)GetCurrentThreadId();
+  return static_cast<int>(GetCurrentThreadId());
 }
 }

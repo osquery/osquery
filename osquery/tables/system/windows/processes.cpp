@@ -31,6 +31,8 @@
 #include "osquery/core/windows/wmi.h"
 
 namespace osquery {
+int getUidFromSid(PSID sid);
+int getGidFromSid(PSID sid);
 namespace tables {
 
 std::set<long> getSelectedPids(const QueryContext& context) {
@@ -56,17 +58,24 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   std::string sPlaceHolder;
   HANDLE hProcess = nullptr;
 
-  // We store the current processes PID, as there are API calls which are more
-  // efficient for populating process info for the current process.
+  /// Store current process pid for more efficient API use.
   auto currentPid = GetCurrentProcessId();
 
   s = result.GetLong("ProcessId", pid);
   r["pid"] = s.ok() ? BIGINT(pid) : BIGINT(-1);
+
+  long uid = -1;
+  long gid = -1;
   if (pid == currentPid) {
     hProcess = GetCurrentProcess();
   } else {
     hProcess =
         OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
+  }
+
+  if (GetLastError() == ERROR_ACCESS_DENIED) {
+    uid = 0;
+    gid = 0;
   }
 
   result.GetString("Name", r["name"]);
@@ -90,15 +99,12 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   r["root"] = r["cwd"];
 
   r["pgroup"] = "-1";
-  r["uid"] = "-1";
   r["euid"] = "-1";
   r["suid"] = "-1";
-  r["gid"] = "-1";
   r["egid"] = "-1";
   r["sgid"] = "-1";
   r["start_time"] = "0";
 
-  // We pre-populate the info, in the event the API calls fail.
   result.GetString("UserModeTime", sPlaceHolder);
   long long llHolder;
   osquery::safeStrtoll(sPlaceHolder, 10, llHolder);
@@ -106,20 +112,44 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   result.GetString("KernelModeTime", sPlaceHolder);
   osquery::safeStrtoll(sPlaceHolder, 10, llHolder);
   r["system_time"] = BIGINT(llHolder / 10000000);
-
   result.GetString("PrivatePageCount", sPlaceHolder);
   r["wired_size"] = BIGINT(sPlaceHolder);
   result.GetString("WorkingSetSize", sPlaceHolder);
   r["resident_size"] = sPlaceHolder;
   result.GetString("VirtualSize", sPlaceHolder);
   r["total_size"] = BIGINT(sPlaceHolder);
-  results_data.push_back(r);
 
-  // OpenProcess returns nullptr on error, GetCurrentProcess returns a
-  // psuedo-handle of -1, which is the same as INVALID_HANDLE_VALUE
-  if (hProcess != nullptr && hProcess != INVALID_HANDLE_VALUE) {
-    CloseHandle(hProcess);
+  /// Get the process UID and GID from its SID
+  HANDLE tok = nullptr;
+  std::vector<char> tokOwner(sizeof(TOKEN_OWNER), 0x0);
+  auto ret = OpenProcessToken(hProcess, TOKEN_READ, &tok);
+  if (ret != 0 && tok != nullptr) {
+    unsigned long tokOwnerBuffLen;
+    ret = GetTokenInformation(tok, TokenOwner, nullptr, 0, &tokOwnerBuffLen);
+    if (ret == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+      tokOwner.resize(tokOwnerBuffLen);
+      ret = GetTokenInformation(
+          tok, TokenOwner, tokOwner.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
+    }
   }
+  if (uid != 0 && ret != 0 && !tokOwner.empty()) {
+    auto sid = PTOKEN_OWNER(tokOwner.data())->Owner;
+    r["uid"] = INTEGER(getUidFromSid(sid));
+    r["gid"] = INTEGER(getGidFromSid(sid));
+  } else {
+    r["uid"] = INTEGER(uid);
+    r["gid"] = INTEGER(gid);
+  }
+
+  if (hProcess != nullptr) {
+    CloseHandle(hProcess);
+    hProcess = nullptr;
+  }
+  if (tok != nullptr) {
+    CloseHandle(tok);
+    tok = nullptr;
+  }
+  results_data.push_back(r);
 }
 
 QueryData genProcesses(QueryContext& context) {
