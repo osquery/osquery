@@ -1,4 +1,4 @@
-Jinja2
+Jinja2==2.8
 argparse
 thrift
 
