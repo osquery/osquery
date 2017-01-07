@@ -117,7 +117,7 @@ if(APPLE)
     -mmacosx-version-min=${OSX_VERSION_MIN}
   )
 
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libc++")
+  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libc++")
   set(OS_WHOLELINK_PRE "-Wl,-force_load")
   set(OS_WHOLELINK_POST "")
   # Special compile flags for Objective-C++
@@ -130,7 +130,7 @@ elseif(WIN32)
   set(OS_WHOLELINK_POST "")
   set(WINDOWS TRUE)
 else()
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++11 -stdlib=libstdc++")
+  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libstdc++")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
   set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
   # Set CMAKE variables depending on platform, to know which tables and what

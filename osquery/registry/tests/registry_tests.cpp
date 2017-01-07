@@ -15,15 +15,50 @@
 
 namespace osquery {
 
-class RegistryTests : public testing::Test {};
+/// Normally we have "Registry" that dictates the set of possible API methods
+/// for all registry types. Here we use a "TestRegistry" instead.
+class TestCoreRegistry : public RegistryFactory {};
 
 class CatPlugin : public Plugin {
  public:
   CatPlugin() : some_value_(0) {}
 
+  Status call(const PluginRequest&, PluginResponse&) override {
+    return Status(0);
+  }
+
  protected:
   int some_value_;
 };
+
+class DogPlugin : public Plugin {
+ public:
+  DogPlugin() : some_value_(10000) {}
+
+  Status call(const PluginRequest&, PluginResponse&) override {
+    return Status(0);
+  }
+
+ protected:
+  int some_value_;
+};
+
+class RegistryTests : public testing::Test {
+ public:
+  void SetUp() override {
+    if (!kSetUp) {
+      TestCoreRegistry::get().add(
+          "cat", std::make_shared<RegistryType<CatPlugin>>("cat"));
+      TestCoreRegistry::get().add(
+          "dog", std::make_shared<RegistryType<DogPlugin>>("dog"));
+      kSetUp = true;
+    }
+  }
+
+  static bool kSetUp;
+};
+
+bool RegistryTests::kSetUp{false};
 
 class HouseCat : public CatPlugin {
  public:
@@ -36,68 +71,53 @@ class HouseCat : public CatPlugin {
 
 /// This is a manual registry type without a name, so we cannot broadcast
 /// this registry type and it does NOT need to conform to a registry API.
-class CatRegistry : public RegistryHelper<CatPlugin> {};
+class CatRegistry : public RegistryType<CatPlugin> {
+ public:
+  CatRegistry(const std::string& name) : RegistryType(name) {}
+};
 
 TEST_F(RegistryTests, test_registry) {
-  CatRegistry cats;
+  CatRegistry cats("cats");
 
   /// Add a CatRegistry item (a plugin) called "house".
-  cats.add<HouseCat>("house");
+  cats.add("house", std::make_shared<HouseCat>());
   EXPECT_EQ(cats.count(), 1U);
 
   /// Try to add the same plugin with the same name, this is meaningless.
-  cats.add<HouseCat>("house");
+  cats.add("house", std::make_shared<HouseCat>());
+
   /// Now add the same plugin with a different name, a new plugin instance
   /// will be created and registered.
-  cats.add<HouseCat>("house2");
+  cats.add("house2", std::make_shared<HouseCat>());
   EXPECT_EQ(cats.count(), 2U);
 
   /// Request a plugin to call an API method.
-  auto cat = cats.get("house");
+  auto cat = cats.plugin("house");
   cats.setUp();
 
   /// Now let's iterate over every registered Cat plugin.
-  EXPECT_EQ(cats.all().size(), 2U);
+  EXPECT_EQ(cats.plugins().size(), 2U);
 }
-
-/// Normally we have "Registry" that dictates the set of possible API methods
-/// for all registry types. Here we use a "TestRegistry" instead.
-class TestCoreRegistry : public RegistryFactory {};
-
-/// We can automatically create a registry type as long as that type conforms
-/// to the registry API defined in the "Registry". Here we use "TestRegistry".
-/// The above "CatRegistry" was easier to understand, but using a auto
-/// registry via the registry create method, we can assign a tracked name
-/// and then broadcast that registry name to other plugins.
-auto AutoCatRegistry = TestCoreRegistry::create<CatPlugin>("cat");
 
 TEST_F(RegistryTests, test_auto_factory) {
   /// Using the registry, and a registry type by name, we can register a
   /// plugin HouseCat called "house" like above.
-  TestCoreRegistry::registry("cat")->add<HouseCat>("auto_house");
-  TestCoreRegistry::add<HouseCat>("cat", "auto_house2");
-  TestCoreRegistry::registry("cat")->setUp();
+  auto cat_registry = TestCoreRegistry::get().registry("cat");
+  cat_registry->add("auto_house", std::make_shared<HouseCat>());
+  cat_registry->setUp();
 
   /// When acting on registries by name we can check the broadcasted
   /// registry name of other plugin processes (via Thrift) as well as
   /// internally registered plugins like HouseCat.
-  EXPECT_EQ(TestCoreRegistry::registry("cat")->count(), 2U);
-  EXPECT_EQ(TestCoreRegistry::count("cat"), 2U);
+  EXPECT_EQ(TestCoreRegistry::get().registry("cat")->count(), 1U);
+  EXPECT_EQ(TestCoreRegistry::get().count("cat"), 1U);
 
   /// And we can call an API method, since we guarantee CatPlugins conform
   /// to the "TestCoreRegistry"'s "TestPluginAPI".
-  auto cat = TestCoreRegistry::get("cat", "auto_house");
-  auto same_cat = TestCoreRegistry::get("cat", "auto_house");
+  auto cat = TestCoreRegistry::get().plugin("cat", "auto_house");
+  auto same_cat = TestCoreRegistry::get().plugin("cat", "auto_house");
   EXPECT_EQ(cat, same_cat);
 }
-
-class DogPlugin : public Plugin {
- public:
-  DogPlugin() : some_value_(10000) {}
-
- protected:
-  int some_value_;
-};
 
 class Doge : public DogPlugin {
  public:
@@ -113,42 +133,36 @@ class BadDoge : public DogPlugin {
   }
 };
 
-auto AutoDogRegistry = TestCoreRegistry::create<DogPlugin>("dog", true);
-
 TEST_F(RegistryTests, test_auto_registries) {
-  TestCoreRegistry::add<Doge>("dog", "doge");
-  TestCoreRegistry::registry("dog")->setUp();
+  auto dog_registry = TestCoreRegistry::get().registry("dog");
+  dog_registry->add("doge", std::make_shared<Doge>());
+  dog_registry->setUp();
 
-  EXPECT_EQ(TestCoreRegistry::count("dog"), 1U);
+  EXPECT_EQ(TestCoreRegistry::get().count("dog"), 1U);
 }
 
 TEST_F(RegistryTests, test_persistant_registries) {
-  EXPECT_EQ(TestCoreRegistry::count("cat"), 2U);
+  EXPECT_EQ(TestCoreRegistry::get().count("cat"), 1U);
 }
 
 TEST_F(RegistryTests, test_registry_exceptions) {
-  EXPECT_TRUE(TestCoreRegistry::add<Doge>("dog", "duplicate_dog").ok());
-  // Bad dog will be added fine, but when setup is run, it will be removed.
-  EXPECT_TRUE(TestCoreRegistry::add<BadDoge>("dog", "bad_doge").ok());
-  TestCoreRegistry::registry("dog")->setUp();
-  // Make sure bad dog does not exist.
-  EXPECT_FALSE(TestCoreRegistry::exists("dog", "bad_doge"));
-  EXPECT_EQ(TestCoreRegistry::count("dog"), 2U);
+  auto dog_registry = TestCoreRegistry::get().registry("dog");
+  EXPECT_TRUE(dog_registry->add("doge2", std::make_shared<Doge>()).ok());
+  // Bad dog will be added fine.
+  EXPECT_TRUE(dog_registry->add("bad_doge", std::make_shared<BadDoge>()).ok());
+  dog_registry->setUp();
+  // Make sure bad dog does exist.
+  EXPECT_TRUE(TestCoreRegistry::get().exists("dog", "bad_doge"));
+  EXPECT_EQ(TestCoreRegistry::get().count("dog"), 3U);
 
   unsigned int exception_count = 0;
   try {
-    TestCoreRegistry::registry("does_not_exist");
-  } catch (const std::out_of_range& /* e */) {
+    TestCoreRegistry::get().registry("does_not_exist");
+  } catch (const std::runtime_error& /* e */) {
     exception_count++;
   }
 
-  try {
-    TestCoreRegistry::add<HouseCat>("does_not_exist", "cat");
-  } catch (const std::out_of_range& /* e */) {
-    exception_count++;
-  }
-
-  EXPECT_EQ(exception_count, 2U);
+  EXPECT_EQ(exception_count, 1U);
 }
 
 class WidgetPlugin : public Plugin {
@@ -190,20 +204,22 @@ Status SpecialWidget::call(const PluginRequest& request,
 #define UNUSED(x) (void)(x)
 
 TEST_F(RegistryTests, test_registry_api) {
-  auto AutoWidgetRegistry = TestCoreRegistry::create<WidgetPlugin>("widgets");
-  UNUSED(AutoWidgetRegistry);
+  TestCoreRegistry::get().add(
+      "widgets", std::make_shared<RegistryType<WidgetPlugin>>("widgets"));
 
-  TestCoreRegistry::add<SpecialWidget>("widgets", "special");
+  auto widgets = TestCoreRegistry::get().registry("widgets");
+  widgets->add("special", std::make_shared<SpecialWidget>());
 
   // Test route info propogation, from item to registry, to broadcast.
-  auto ri = TestCoreRegistry::get("widgets", "special")->routeInfo();
+  auto ri = TestCoreRegistry::get().plugin("widgets", "special")->routeInfo();
   EXPECT_EQ(ri[0].at("name"), "special");
-  auto rr = TestCoreRegistry::registry("widgets")->getRoutes();
+
+  auto rr = TestCoreRegistry::get().registry("widgets")->getRoutes();
   EXPECT_EQ(rr.size(), 1U);
   EXPECT_EQ(rr.at("special")[0].at("name"), "special");
 
   // Broadcast will include all registries, and all their items.
-  auto broadcast_info = TestCoreRegistry::getBroadcast();
+  auto broadcast_info = TestCoreRegistry::get().getBroadcast();
   EXPECT_TRUE(broadcast_info.size() >= 3U);
   EXPECT_EQ(broadcast_info.at("widgets").at("special")[0].at("name"),
             "special");
@@ -221,11 +237,11 @@ TEST_F(RegistryTests, test_registry_api) {
 }
 
 TEST_F(RegistryTests, test_real_registry) {
-  EXPECT_TRUE(Registry::count() > 0U);
+  EXPECT_TRUE(Registry::get().count() > 0U);
 
   bool has_one_registered = false;
-  for (const auto& registry : Registry::all()) {
-    if (Registry::count(registry.first) > 0) {
+  for (const auto& registry : Registry::get().all()) {
+    if (Registry::get().count(registry.first) > 0) {
       has_one_registered = true;
       break;
     }
@@ -235,42 +251,47 @@ TEST_F(RegistryTests, test_real_registry) {
 
 TEST_F(RegistryTests, test_registry_modules) {
   // Test the registry's module loading state tracking.
-  RegistryFactory::locked(false);
-  EXPECT_FALSE(RegistryFactory::locked());
-  RegistryFactory::locked(true);
-  EXPECT_TRUE(RegistryFactory::locked());
-  RegistryFactory::locked(false);
+  RegistryFactory::get().locked(false);
+  EXPECT_FALSE(RegistryFactory::get().locked());
+  RegistryFactory::get().locked(true);
+  EXPECT_TRUE(RegistryFactory::get().locked());
+  RegistryFactory::get().locked(false);
 
   // Test initializing a module load and the module's registry modifications.
-  EXPECT_EQ(0U, RegistryFactory::getModule());
-  RegistryFactory::initModule("/my/test/module");
+  EXPECT_EQ(0U, RegistryFactory::get().getModule());
+  RegistryFactory::get().initModule("/my/test/module");
   // The registry is locked, no modifications during module global ctors.
-  EXPECT_TRUE(RegistryFactory::locked());
+  EXPECT_TRUE(RegistryFactory::get().locked());
   // The 'is the registry using a module' is not set during module ctors.
-  EXPECT_FALSE(RegistryFactory::usingModule());
-  EXPECT_EQ(RegistryFactory::getModules().size(), 1U);
+  EXPECT_FALSE(RegistryFactory::get().usingModule());
+  EXPECT_EQ(RegistryFactory::get().getModules().size(), 1U);
   // The unittest can introspect into the current module.
-  auto& module = RegistryFactory::getModules().at(RegistryFactory::getModule());
+  auto module = RegistryFactory::get().getModules().at(
+      RegistryFactory::get().getModule());
   EXPECT_EQ(module.path, "/my/test/module");
   EXPECT_EQ(module.name, "");
-  RegistryFactory::declareModule("test", "0.1.1", "0.0.0", "0.0.1");
+
+  RegistryFactory::get().declareModule("test", "0.1.1", "0.0.0", "0.0.1");
   // The registry is unlocked after the module is declared.
   // This assures that module modifications happen with the correct information
   // and state tracking (aka the SDK limits, name, and version).
-  EXPECT_FALSE(RegistryFactory::locked());
+  EXPECT_FALSE(RegistryFactory::get().locked());
   // Now the 'is the registry using a module' is set for the duration of the
   // modules loading.
-  EXPECT_TRUE(RegistryFactory::usingModule());
+  EXPECT_TRUE(RegistryFactory::get().usingModule());
+  // The unittest can introspect into the current module.
+  module = RegistryFactory::get().getModules().at(
+      RegistryFactory::get().getModule());
   EXPECT_EQ(module.name, "test");
   EXPECT_EQ(module.version, "0.1.1");
   EXPECT_EQ(module.sdk_version, "0.0.1");
 
   // Finally, when the module load is complete, we clear state.
-  RegistryFactory::shutdownModule();
+  RegistryFactory::get().shutdownModule();
   // The registry is again locked.
-  EXPECT_TRUE(RegistryFactory::locked());
+  EXPECT_TRUE(RegistryFactory::get().locked());
   // And the registry is no longer using a module.
-  EXPECT_FALSE(RegistryFactory::usingModule());
-  EXPECT_EQ(0U, RegistryFactory::getModule());
+  EXPECT_FALSE(RegistryFactory::get().usingModule());
+  EXPECT_EQ(0U, RegistryFactory::get().getModule());
 }
 }

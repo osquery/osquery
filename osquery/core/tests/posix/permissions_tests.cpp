@@ -23,6 +23,7 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
+#include "osquery/core/process.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tests/test_util.h"
 

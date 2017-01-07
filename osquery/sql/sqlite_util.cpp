@@ -18,9 +18,6 @@
 
 namespace osquery {
 
-/// SQL provider for osquery internal/core.
-REGISTER_INTERNAL(SQLiteSQLPlugin, "sql", "sql");
-
 FLAG(string,
      disable_tables,
      "Not Specified",
@@ -108,6 +105,26 @@ const std::map<std::string, QueryPlanner::Opcode> kSQLOpcodes = {
     OpComparator("IfNeg"),
     OpComparator("IfNotZero"),
 };
+
+/// The SQLiteSQLPlugin implements the "sql" registry for internal/core.
+class SQLiteSQLPlugin : public SQLPlugin {
+ public:
+  /// Execute SQL and store results.
+  Status query(const std::string& q, QueryData& results) const override;
+
+  /// Introspect, explain, the suspected types selected in an SQL statement.
+  Status getQueryColumns(const std::string& q,
+                         TableColumns& columns) const override;
+
+  /// Create a SQLite module and attach (CREATE).
+  Status attach(const std::string& name) override;
+
+  /// Detach a virtual table (DROP).
+  void detach(const std::string& name) override;
+};
+
+/// SQL provider for osquery internal/core.
+REGISTER_INTERNAL(SQLiteSQLPlugin, "sql", "sql");
 
 std::string getStringForSQLiteReturnCode(int code) {
   if (kSQLiteReturnCodes.find(code) != kSQLiteReturnCodes.end()) {

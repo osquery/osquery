@@ -37,7 +37,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
   auto t0 = getUnixTime();
   Config::getInstance().recordQueryStart(name);
-  auto sql = SQLInternal(query.query);
+  SQLInternal sql(query.query);
   // Snapshot the performance after, and compare.
   auto t1 = getUnixTime();
   auto r1 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
@@ -62,6 +62,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
   LOG(INFO) << "Executing scheduled query: " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
+
   auto sql =
       (FLAGS_enable_monitor) ? monitor(name, query) : SQLInternal(query.query);
 

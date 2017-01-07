@@ -37,7 +37,7 @@ class FileEventsTableTests : public testing::Test {
     FLAGS_registry_exceptions = true;
 
     // Setup configuration parsers for file paths accesses.
-    Registry::registry("config_parser")->setUp();
+    Registry::get().registry("config_parser")->setUp();
   }
 
   void TearDown() override {
@@ -55,10 +55,10 @@ class FileEventsTableTests : public testing::Test {
 
 #ifndef WIN32
 TEST_F(FileEventsTableTests, test_subscriber_exists) {
-  ASSERT_TRUE(Registry::exists("event_subscriber", "file_events"));
+  ASSERT_TRUE(Registry::get().exists("event_subscriber", "file_events"));
 
   // Note: do not perform a reinterpret cast like this.
-  auto plugin = Registry::get("event_subscriber", "file_events");
+  auto plugin = Registry::get().plugin("event_subscriber", "file_events");
   auto* subscriber =
       reinterpret_cast<std::shared_ptr<FileEventSubscriber>*>(&plugin);
   EXPECT_NE(subscriber, nullptr);
@@ -89,25 +89,34 @@ TEST_F(FileEventsTableTests, test_configure_subscriptions) {
   attachEvents();
 
   // Load a configuration with file paths, verify subscriptions.
-  Registry::add<FileEventsTestsConfigPlugin>("config", "file_events_tests");
-  Registry::setActive("config", "file_events_tests");
+  auto registry = RegistryFactory::get().registry("config");
+  registry->add("file_events_tests",
+                std::make_shared<FileEventsTestsConfigPlugin>());
+  RegistryFactory::get().setActive("config", "file_events_tests");
   this->load();
 
   // Explicitly request a configure for subscribers.
-  Registry::registry("event_subscriber")->configure();
+  Registry::get().registry("event_subscriber")->configure();
 
   std::string q = "select * from osquery_events where name = 'file_events'";
-  auto results = SQL(q);
-  ASSERT_EQ(results.rows().size(), 1U);
-  auto& row = results.rows()[0];
-  // Expect the paths within "unrestricted_pack" to be created as subscriptions.
-  EXPECT_EQ(row.at("subscriptions"), "2");
+
+  {
+    SQL results(q);
+    ASSERT_EQ(results.rows().size(), 1U);
+    auto& row = results.rows()[0];
+    // Expect the paths within "unrestricted_pack" to be created as
+    // subscriptions.
+    EXPECT_EQ(row.at("subscriptions"), "2");
+  }
 
   // The most important part, make sure a reconfigure removes the subscriptions.
   Config::getInstance().update({{"data", "{}"}});
-  results = SQL(q);
-  auto& row2 = results.rows()[0];
-  EXPECT_EQ(row2.at("subscriptions"), "0");
+
+  {
+    SQL results(q);
+    auto& row2 = results.rows()[0];
+    EXPECT_EQ(row2.at("subscriptions"), "0");
+  }
 }
 #endif
 }

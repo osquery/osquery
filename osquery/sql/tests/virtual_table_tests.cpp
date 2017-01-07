@@ -146,7 +146,8 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   EXPECT_EQ(status.getCode(), SQLITE_ERROR);
 
   // The table attach will complete only when the table name is registered.
-  Registry::add<sampleTablePlugin>("table", "sample");
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("sample", std::make_shared<sampleTablePlugin>());
   PluginResponse response;
   status = Registry::call("table", "sample", {{"action", "columns"}}, response);
   EXPECT_TRUE(status.ok());
@@ -231,8 +232,9 @@ static QueryData makeResult(const std::string& col,
 
 TEST_F(VirtualTableTests, test_constraints_stacking) {
   // Add two testing tables to the registry.
-  Registry::add<pTablePlugin>("table", "p");
-  Registry::add<kTablePlugin>("table", "k");
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("p", std::make_shared<pTablePlugin>());
+  tables->add("k", std::make_shared<kTablePlugin>());
   auto dbc = SQLiteDBManager::getUnique();
 
   {
@@ -317,13 +319,12 @@ class jsonTablePlugin : public TablePlugin {
 
 TEST_F(VirtualTableTests, test_json_extract) {
   // Get a database connection.
-  Registry::add<jsonTablePlugin>("table", "json");
-  auto dbc = SQLiteDBManager::getUnique();
+  auto tables = RegistryFactory::get().registry("table");
+  auto json = std::make_shared<jsonTablePlugin>();
+  tables->add("json", json);
 
-  {
-    auto json = std::make_shared<jsonTablePlugin>();
-    attachTableInternal("json", json->columnDefinition(), dbc);
-  }
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal("json", json->columnDefinition(), dbc);
 
   QueryData results;
   // Run a query with a join within.
@@ -397,13 +398,11 @@ class cacheTablePlugin : public TablePlugin {
 
 TEST_F(VirtualTableTests, test_table_cache) {
   // Get a database connection.
-  Registry::add<cacheTablePlugin>("table", "cache");
+  auto tables = RegistryFactory::get().registry("table");
+  auto cache = std::make_shared<cacheTablePlugin>();
+  tables->add("cache", cache);
   auto dbc = SQLiteDBManager::getUnique();
-
-  {
-    auto cache = std::make_shared<cacheTablePlugin>();
-    attachTableInternal("cache", cache->columnDefinition(), dbc);
-  }
+  attachTableInternal("cache", cache->columnDefinition(), dbc);
 
   QueryData results;
   // Run a query with a join within.
@@ -512,22 +511,19 @@ class defaultScanTablePlugin : public TablePlugin {
 TEST_F(VirtualTableTests, test_indexing_costs) {
   // Get a database connection.
   auto dbc = SQLiteDBManager::getUnique();
-  auto table_registry = Registry::registry("table");
+  auto table_registry = RegistryFactory::get().registry("table");
 
   auto i = std::make_shared<indexIOptimizedTablePlugin>();
-  i->setName("index_i");
+  table_registry->add("index_i", i);
   attachTableInternal("index_i", i->columnDefinition(), dbc);
-  table_registry->add(i);
 
   auto j = std::make_shared<indexJOptimizedTablePlugin>();
-  j->setName("index_j");
+  table_registry->add("index_j", j);
   attachTableInternal("index_j", j->columnDefinition(), dbc);
-  table_registry->add(j);
 
   auto default_scan = std::make_shared<defaultScanTablePlugin>();
-  default_scan->setName("default_scan");
+  table_registry->add("default_scan", default_scan);
   attachTableInternal("default_scan", default_scan->columnDefinition(), dbc);
-  table_registry->add(default_scan);
 
   QueryData results;
   queryInternal(

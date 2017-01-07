@@ -29,7 +29,6 @@
 #include <yara.h>
 
 namespace osquery {
-namespace tables {
 
 /// The file change event publishers are slightly different in OS X and Linux.
 #ifdef __APPLE__
@@ -190,6 +189,5 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   }
 
   return Status(0, "OK");
-}
 }
 }

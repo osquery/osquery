@@ -207,7 +207,7 @@ Status checkStalePid(const std::string& content) {
   query_text << "SELECT name FROM processes WHERE pid = " << pid
              << " AND name LIKE 'osqueryd%';";
 
-  auto q = SQL(query_text.str());
+  SQL q(query_text.str());
   if (!q.ok()) {
     return Status(1, "Error querying processes: " + q.getMessageString());
   }
@@ -351,23 +351,23 @@ void DropPrivileges::restoreGroups() {
   group_size_ = 0;
   free(original_groups_);
   original_groups_ = nullptr;
-  }
+}
 
-  DropPrivileges::~DropPrivileges() {
-    // We are elevating privileges, there is no security vulnerability if
-    // either privilege change fails.
-    if (dropped_) {
+DropPrivileges::~DropPrivileges() {
+  // We are elevating privileges, there is no security vulnerability if
+  // either privilege change fails.
+  if (dropped_) {
 #ifdef __APPLE__
-      setThreadEffective(KAUTH_UID_NONE, KAUTH_GID_NONE);
+    setThreadEffective(KAUTH_UID_NONE, KAUTH_GID_NONE);
 #else
-      setThreadEffective(getuid(), getgid());
+    setThreadEffective(getuid(), getgid());
 #endif
-      dropped_ = false;
-    }
-
-    if (original_groups_ != nullptr) {
-      restoreGroups();
-    }
+    dropped_ = false;
   }
+
+  if (original_groups_ != nullptr) {
+    restoreGroups();
+  }
+}
 #endif
 }

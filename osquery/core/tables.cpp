@@ -21,6 +21,8 @@ namespace osquery {
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 
+CREATE_LAZY_REGISTRY(TablePlugin, "table");
+
 size_t TablePlugin::kCacheInterval = 0;
 size_t TablePlugin::kCacheStep = 0;
 

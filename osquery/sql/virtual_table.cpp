@@ -604,7 +604,7 @@ void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
   }
 
   PluginResponse response;
-  for (const auto& name : Registry::names("table")) {
+  for (const auto& name : RegistryFactory::get().names("table")) {
     // Column information is nice for virtual table create call.
     auto status =
         Registry::call("table", name, {{"action", "columns"}}, response);

@@ -58,8 +58,8 @@ Status DistributedPlugin::call(const PluginRequest& request,
 }
 
 Status Distributed::pullUpdates() {
-  auto& distributed_plugin = Registry::getActive("distributed");
-  if (!Registry::exists("distributed", distributed_plugin)) {
+  auto distributed_plugin = RegistryFactory::get().getActive("distributed");
+  if (!RegistryFactory::get().exists("distributed", distributed_plugin)) {
     return Status(1, "Missing distributed plugin: " + distributed_plugin);
   }
 
@@ -98,7 +98,7 @@ Status Distributed::serializeResults(std::string& json) {
     }
     queries.add_child(result.request.id, qd);
     statuses.put(result.request.id, result.status.getCode());
-    }
+  }
 
   pt::ptree results;
   results.add_child("queries", queries);
@@ -125,7 +125,7 @@ Status Distributed::runQueries() {
     LOG(INFO) << "Executing distributed query: " << request.id << ": "
               << request.query;
 
-    auto sql = SQL(request.query);
+    SQL sql(request.query);
     if (!sql.getStatus().ok()) {
       LOG(ERROR) << "Error executing distributed query: " << request.id << ": "
                  << sql.getMessageString();
@@ -142,8 +142,8 @@ Status Distributed::flushCompleted() {
     return Status(0, "OK");
   }
 
-  auto& distributed_plugin = Registry::getActive("distributed");
-  if (!Registry::exists("distributed", distributed_plugin)) {
+  auto distributed_plugin = RegistryFactory::get().getActive("distributed");
+  if (!RegistryFactory::get().exists("distributed", distributed_plugin)) {
     return Status(1, "Missing distributed plugin " + distributed_plugin);
   }
 
@@ -164,10 +164,12 @@ Status Distributed::flushCompleted() {
 }
 
 Status Distributed::acceptWork(const std::string& work) {
-  pt::ptree tree;
-  std::stringstream ss(work);
   try {
-    pt::read_json(ss, tree);
+    pt::ptree tree;
+    {
+      std::stringstream ss(work);
+      pt::read_json(ss, tree);
+    }
 
     auto& queries = tree.get_child("queries");
     for (const auto& node : queries) {

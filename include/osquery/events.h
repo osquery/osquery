@@ -259,6 +259,11 @@ class EventPublisherPlugin : public Plugin,
    */
   virtual void stop() override {}
 
+  /// This is a plugin type and must implement a call method.
+  Status call(const PluginRequest&, PluginResponse&) override {
+    return Status(0);
+  }
+
   /**
    * @brief A new EventSubscriber is subscribing events of this publisher type.
    *
@@ -383,6 +388,11 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * EventPublisher has `setUp` and is ready to subscription for events.
    */
   virtual Status init() {
+    return Status(0);
+  }
+
+  /// This is a plugin type and must implement a call method.
+  Status call(const PluginRequest&, PluginResponse&) override {
     return Status(0);
   }
 

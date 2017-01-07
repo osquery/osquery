@@ -484,6 +484,10 @@ class ConfigParserPlugin : public Plugin {
   /// Allow parsers to perform some setup before the configuration is loaded.
   Status setUp() override;
 
+  Status call(const PluginRequest&, PluginResponse&) override {
+    return Status(0);
+  }
+
   /**
    * @brief Accessor for parser-manipulated data.
    *

@@ -288,23 +288,6 @@ Status getQueryColumnsInternal(const std::string& q,
                                TableColumns& columns,
                                sqlite3* db);
 
-/// The SQLiteSQLPlugin implements the "sql" registry for internal/core.
-class SQLiteSQLPlugin : SQLPlugin {
- public:
-  /// Execute SQL and store results.
-  Status query(const std::string& q, QueryData& results) const override;
-
-  /// Introspect, explain, the suspected types selected in an SQL statement.
-  Status getQueryColumns(const std::string& q,
-                         TableColumns& columns) const override;
-
-  /// Create a SQLite module and attach (CREATE).
-  Status attach(const std::string& name) override;
-
-  /// Detach a virtual table (DROP).
-  void detach(const std::string& name) override;
-};
-
 /**
  * @brief SQLInternal: SQL, but backed by internal calls.
  */

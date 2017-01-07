@@ -37,9 +37,13 @@ class FilesystemLoggerTests : public testing::Test {
     FLAGS_disable_logging = false;
   }
 
-  void TearDown() override { FLAGS_disable_logging = logging_status_; }
+  void TearDown() override {
+    FLAGS_disable_logging = logging_status_;
+  }
 
-  std::string getContent() { return std::string(); }
+  std::string getContent() {
+    return std::string();
+  }
 
  protected:
   /// Save the status of logging before running tests, restore afterward.
@@ -50,11 +54,11 @@ class FilesystemLoggerTests : public testing::Test {
 };
 
 TEST_F(FilesystemLoggerTests, test_filesystem_init) {
-  EXPECT_TRUE(Registry::exists("logger", "filesystem"));
+  EXPECT_TRUE(Registry::get().exists("logger", "filesystem"));
 
   // This will attempt to log a string (an empty string).
-  EXPECT_TRUE(Registry::setActive("logger", "filesystem"));
-  EXPECT_TRUE(Registry::get("logger", "filesystem")->setUp());
+  EXPECT_TRUE(Registry::get().setActive("logger", "filesystem"));
+  EXPECT_TRUE(Registry::get().plugin("logger", "filesystem")->setUp());
   ASSERT_TRUE(fs::exists(results_path_));
 
   // Make sure the content is empty.

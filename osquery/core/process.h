@@ -10,15 +10,19 @@
 
 #pragma once
 
+#include <chrono>
 #include <memory>
 #include <string>
+#include <thread>
 
-#ifdef WIN32
+#include <boost/noncopyable.hpp>
+#include <boost/optional.hpp>
 
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
 
+#ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -29,25 +33,10 @@
 #pragma warning(pop)
 #endif
 
-#include <boost/noncopyable.hpp>
-#include <boost/optional.hpp>
-
 #include <osquery/core.h>
+#include <osquery/system.h>
 
 namespace osquery {
-
-#ifdef WIN32
-
-/// Unfortunately, pid_t is not defined in Windows, however, DWORD is the
-/// most appropriate alternative since process ID on Windows are stored in
-/// a DWORD.
-using pid_t = DWORD;
-using PlatformPidType = HANDLE;
-using ModuleHandle = HMODULE;
-#else
-using PlatformPidType = pid_t;
-using ModuleHandle = void*;
-#endif
 
 /// Constant for an invalid process
 const PlatformPidType kInvalidPid = (PlatformPidType)-1;
@@ -211,8 +200,10 @@ class SecurityDescriptor {
 /// Returns the current user's ID (UID on POSIX systems and RID for Windows)
 int platformGetUid();
 
-/// Causes the current thread to sleep for a specified time in milliseconds.
-void sleepFor(size_t msec);
+inline void sleepFor(size_t msec) {
+  std::chrono::milliseconds mduration(msec);
+  std::this_thread::sleep_for(mduration);
+}
 
 /// Set the enviroment variable name with value value.
 bool setEnvVar(const std::string& name, const std::string& value);

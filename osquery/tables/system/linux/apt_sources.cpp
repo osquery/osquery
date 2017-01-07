@@ -14,8 +14,8 @@
 #define __DEBUG
 #endif
 
-#include <apt-pkg/init.h>
 #include <apt-pkg/cachefile.h>
+#include <apt-pkg/init.h>
 
 #ifdef __DEBUG
 #define DEBUG
@@ -23,6 +23,8 @@
 
 #include <osquery/system.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/process.h"
 
 namespace osquery {
 namespace tables {

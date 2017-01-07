@@ -154,15 +154,15 @@ class LoggerPlugin : public Plugin {
   /**
    * @brief Set the process name.
    */
-  void setName(const std::string& name) {
-    name_ = name;
+  void setProcessName(const std::string& name) {
+    process_name_ = name;
   }
 
   /**
    * @brief Get the process name.
    */
   const std::string& name() const {
-    return name_;
+    return process_name_;
   }
 
  protected:
@@ -232,7 +232,7 @@ class LoggerPlugin : public Plugin {
   }
 
  private:
-  std::string name_;
+  std::string process_name_;
 };
 
 /// Set the verbose mode, changes Glog's sinking logic and will affect plugins.
@@ -365,13 +365,4 @@ void relayStatusLogs();
  * Linux/Darwin: this uses syslog's LOG_NOTICE.
  */
 void systemLog(const std::string& line);
-
-/**
- * @brief Logger plugin registry.
- *
- * This creates an osquery registry for "logger" which may implement
- * LoggerPlugin. Only strings are logged in practice, and LoggerPlugin provides
- * a helper member for transforming PluginRequest%s to strings.
- */
-CREATE_REGISTRY(LoggerPlugin, "logger");
 }

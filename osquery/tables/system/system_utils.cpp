@@ -10,6 +10,8 @@
 
 #include <osquery/sql.h>
 
+#include "osquery/core/process.h"
+
 namespace osquery {
 namespace tables {
 

@@ -20,13 +20,25 @@
 #include "osquery/tests/test_util.h"
 
 /// The following test macros allow pretty test output.
-#define CREATE_DATABASE_TESTS(n)                      \
-  TEST_F(n, test_plugin_check) { testPluginCheck(); } \
-  TEST_F(n, test_put) { testPut(); }                  \
-  TEST_F(n, test_get) { testGet(); }                  \
-  TEST_F(n, test_delete) { testDelete(); }            \
-  TEST_F(n, test_scan) { testScan(); }                \
-  TEST_F(n, test_scan_limit) { testScanLimit(); }
+#define CREATE_DATABASE_TESTS(n)                                               \
+  TEST_F(n, test_plugin_check) {                                               \
+    testPluginCheck();                                                         \
+  }                                                                            \
+  TEST_F(n, test_put) {                                                        \
+    testPut();                                                                 \
+  }                                                                            \
+  TEST_F(n, test_get) {                                                        \
+    testGet();                                                                 \
+  }                                                                            \
+  TEST_F(n, test_delete) {                                                     \
+    testDelete();                                                              \
+  }                                                                            \
+  TEST_F(n, test_scan) {                                                       \
+    testScan();                                                                \
+  }                                                                            \
+  TEST_F(n, test_scan_limit) {                                                 \
+    testScanLimit();                                                           \
+  }
 
 namespace osquery {
 
@@ -35,21 +47,23 @@ DECLARE_string(database_path);
 class DatabasePluginTests : public testing::Test {
  public:
   void SetUp() override {
-    existing_plugin_ = Registry::getActive("database");
-    Registry::get("database", existing_plugin_)->tearDown();
+    auto& rf = RegistryFactory::get();
+    existing_plugin_ = rf.getActive("database");
+    rf.plugin("database", existing_plugin_)->tearDown();
 
     setName(name());
     path_ = FLAGS_database_path;
     boost::filesystem::remove_all(path_);
 
-    auto plugin = Registry::get("database", getName());
+    auto plugin = rf.plugin("database", getName());
     plugin_ = std::dynamic_pointer_cast<DatabasePlugin>(plugin);
     plugin_->reset();
   }
 
   void TearDown() override {
-    Registry::get("database", name_)->tearDown();
-    Registry::setActive("database", existing_plugin_);
+    auto& rf = RegistryFactory::get();
+    rf.plugin("database", name_)->tearDown();
+    rf.setActive("database", existing_plugin_);
   }
 
  protected:
@@ -61,9 +75,15 @@ class DatabasePluginTests : public testing::Test {
   virtual std::string name() = 0;
 
  private:
-  void setName(const std::string& name) { name_ = name; }
-  const std::string& getName() { return name_; }
-  std::shared_ptr<DatabasePlugin> getPlugin() { return plugin_; }
+  void setName(const std::string& name) {
+    name_ = name;
+  }
+  const std::string& getName() {
+    return name_;
+  }
+  std::shared_ptr<DatabasePlugin> getPlugin() {
+    return plugin_;
+  }
 
  private:
   /// Plugin name

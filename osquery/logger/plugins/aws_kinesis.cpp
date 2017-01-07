@@ -10,12 +10,11 @@
 
 #include <algorithm>
 
-#include <boost/algorithm/string/join.hpp>
-
 #include <aws/core/utils/Outcome.h>
 #include <aws/kinesis/model/PutRecordsRequest.h>
 #include <aws/kinesis/model/PutRecordsRequestEntry.h>
 #include <aws/kinesis/model/PutRecordsResult.h>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
@@ -23,6 +22,7 @@
 #include <osquery/registry.h>
 #include <osquery/system.h>
 
+#include "osquery/core/process.h"
 #include "osquery/logger/plugins/aws_kinesis.h"
 #include "osquery/logger/plugins/aws_util.h"
 
@@ -34,7 +34,9 @@ FLAG(uint64,
      aws_kinesis_period,
      10,
      "Seconds between flushing logs to Kinesis (default 10)");
+
 FLAG(string, aws_kinesis_stream, "", "Name of Kinesis stream for logging")
+
 FLAG(bool,
      aws_kinesis_random_partition_key,
      false,
@@ -42,6 +44,7 @@ FLAG(bool,
 
 // This is the max per AWS docs
 const size_t KinesisLogForwarder::kKinesisMaxRecords = 500;
+
 // Max size of log + partition key is 1MB. Max size of partition key is 256B.
 const size_t KinesisLogForwarder::kKinesisMaxLogBytes = 1000000 - 256;
 

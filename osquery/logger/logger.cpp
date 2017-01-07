@@ -47,6 +47,15 @@ FLAG(bool,
      false,
      "Only send status logs to secondary logger plugins");
 
+/**
+ * @brief Logger plugin registry.
+ *
+ * This creates an osquery registry for "logger" which may implement
+ * LoggerPlugin. Only strings are logged in practice, and LoggerPlugin provides
+ * a helper member for transforming PluginRequest%s to strings.
+ */
+CREATE_REGISTRY(LoggerPlugin, "logger");
+
 class LoggerDisabler;
 
 /**
@@ -359,11 +368,11 @@ void initLogger(const std::string& name) {
 
   bool forward = false;
   PluginRequest features_request = {{"action", "features"}};
-  const auto& logger_plugin = Registry::getActive("logger");
+  auto logger_plugin = RegistryFactory::get().getActive("logger");
   // Allow multiple loggers, make sure each is accessible.
   for (const auto& logger : osquery::split(logger_plugin, ",")) {
     BufferedLogSink::setPrimary(logger);
-    if (!Registry::exists("logger", logger)) {
+    if (!RegistryFactory::get().exists("logger", logger)) {
       continue;
     }
 
@@ -399,7 +408,7 @@ void BufferedLogSink::send(google::LogSeverity severity,
                            size_t message_len) {
   // Either forward the log to an enabled logger or buffer until one exists.
   if (forward_) {
-    const auto& logger_plugin = Registry::getActive("logger");
+    auto logger_plugin = RegistryFactory::get().getActive("logger");
     for (const auto& logger : osquery::split(logger_plugin, ",")) {
       auto& enabled = BufferedLogSink::enabledPlugins();
       if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
@@ -441,7 +450,7 @@ Status LoggerPlugin::call(const PluginRequest& request,
     return this->logSnapshot(request.at("snapshot"));
   } else if (request.count("init") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
-    this->setName(request.at("init"));
+    this->setProcessName(request.at("init"));
     this->init(this->name(), intermediate_logs);
     return Status(0);
   } else if (request.count("status") > 0) {
@@ -460,7 +469,8 @@ Status LoggerPlugin::call(const PluginRequest& request,
 }
 
 Status logString(const std::string& message, const std::string& category) {
-  return logString(message, category, Registry::getActive("logger"));
+  return logString(
+      message, category, RegistryFactory::get().getActive("logger"));
 }
 
 Status logString(const std::string& message,
@@ -475,7 +485,7 @@ Status logString(const std::string& message,
 }
 
 Status logQueryLogItem(const QueryLogItem& results) {
-  return logQueryLogItem(results, Registry::getActive("logger"));
+  return logQueryLogItem(results, RegistryFactory::get().getActive("logger"));
 }
 
 Status logQueryLogItem(const QueryLogItem& results,

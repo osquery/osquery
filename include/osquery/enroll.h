@@ -85,13 +85,4 @@ Status clearNodeKey();
  * @return enroll_secret The trimmed content read from FLAGS_enroll_secret_path.
  */
 const std::string getEnrollSecret();
-
-/**
- * @brief Enroll plugin registry.
- *
- * This creates an osquery registry for "enroll" which may implement
- * EnrollPlugin. Only strings are logged in practice, and EnrollPlugin
- * provides a helper member for transforming PluginRequests to strings.
- */
-CREATE_LAZY_REGISTRY(EnrollPlugin, "enroll");
 }

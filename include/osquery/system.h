@@ -32,6 +32,18 @@ namespace osquery {
  */
 extern volatile std::sig_atomic_t kExitCode;
 
+#ifdef WIN32
+/// Unfortunately, pid_t is not defined in Windows, however, DWORD is the
+/// most appropriate alternative since process ID on Windows are stored in
+/// a DWORD.
+using pid_t = unsigned long;
+using PlatformPidType = void*;
+#else
+using PlatformPidType = pid_t;
+#endif
+
+using ModuleHandle = void*;
+
 class Initializer : private boost::noncopyable {
  public:
   /**

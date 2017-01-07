@@ -160,7 +160,7 @@ void ExtensionManagerWatcher::start() {
   }
 
   // When interrupted, request each extension tear down.
-  const auto uuids = Registry::routeUUIDs();
+  const auto uuids = RegistryFactory::get().routeUUIDs();
   for (const auto& uuid : uuids) {
     try {
       auto path = getExtensionSocket(uuid);
@@ -212,7 +212,7 @@ void ExtensionWatcher::watch() {
 void ExtensionManagerWatcher::watch() {
   // Watch the set of extensions, if the socket is removed then the extension
   // will be deregistered.
-  const auto uuids = Registry::routeUUIDs();
+  const auto uuids = RegistryFactory::get().routeUUIDs();
 
   ExtensionStatus status;
   for (const auto& uuid : uuids) {
@@ -255,7 +255,7 @@ void ExtensionManagerWatcher::watch() {
   for (const auto& uuid : failures_) {
     if (uuid.second > 1) {
       LOG(INFO) << "Extension UUID " << uuid.first << " has gone away";
-      Registry::removeBroadcast(uuid.first);
+      RegistryFactory::get().removeBroadcast(uuid.first);
       failures_[uuid.first] = 1;
     }
   }
@@ -414,7 +414,7 @@ Status startExtension(const std::string& name,
                       const std::string& min_sdk_version) {
   // Tell the registry that this is an extension.
   // When a broadcast is requested this registry should not send core plugins.
-  Registry::setExternal();
+  RegistryFactory::get().setExternal();
 
   // Latency converted to milliseconds, used as a thread interruptible.
   auto latency = atoi(FLAGS_extensions_interval.c_str()) * 1000;
@@ -445,7 +445,7 @@ Status startExtension(const std::string& manager_path,
   }
 
   // The Registry broadcast is used as the ExtensionRegistry.
-  auto broadcast = Registry::getBroadcast();
+  auto broadcast = RegistryFactory::get().getBroadcast();
   // The extension will register and provide name, version, sdk details.
   InternalExtensionInfo info;
   info.name = name;
@@ -483,11 +483,12 @@ Status startExtension(const std::string& manager_path,
 
   // Set the active config and logger plugins. The core will arbitrate if the
   // plugins are not available in the extension's local registry.
-  Registry::setActive("config", options["config_plugin"].value);
-  Registry::setActive("logger", options["logger_plugin"].value);
-  Registry::setActive("distributed", options["distributed_plugin"].value);
+  auto& rf = RegistryFactory::get();
+  rf.setActive("config", options["config_plugin"].value);
+  rf.setActive("logger", options["logger_plugin"].value);
+  rf.setActive("distributed", options["distributed_plugin"].value);
   // Set up all lazy registry plugins and the active config/logger plugin.
-  Registry::setUp();
+  rf.setUp();
 
   // Start the extension's Thrift server
   Dispatcher::addService(

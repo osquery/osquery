@@ -826,6 +826,4 @@ inline const std::string& columnTypeName(ColumnType type) {
 
 /// Get the column type from the string representation.
 ColumnType columnTypeName(const std::string& type);
-
-CREATE_LAZY_REGISTRY(TablePlugin, "table");
 }

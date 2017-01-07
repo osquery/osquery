@@ -897,12 +897,12 @@ void EventFactory::end(bool join) {
 }
 
 void attachEvents() {
-  const auto& publishers = Registry::all("event_publisher");
+  const auto& publishers = RegistryFactory::get().plugins("event_publisher");
   for (const auto& publisher : publishers) {
     EventFactory::registerEventPublisher(publisher.second);
   }
 
-  const auto& subscribers = Registry::all("event_subscriber");
+  const auto& subscribers = RegistryFactory::get().plugins("event_subscriber");
   for (const auto& subscriber : subscribers) {
     auto status = EventFactory::registerEventSubscriber(subscriber.second);
     if (!status.ok()) {
@@ -915,7 +915,7 @@ void attachEvents() {
   // Subsequent configuration updates will update the subscribers followed
   // by the publishers.
   if (!FLAGS_disable_events) {
-    Registry::registry("event_publisher")->configure();
+    RegistryFactory::get().registry("event_publisher")->configure();
   }
 }
 }

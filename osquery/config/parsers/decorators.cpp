@@ -65,7 +65,9 @@ namespace {
  */
 class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() const override { return {PARSER_NAME}; }
+  std::vector<std::string> keys() const override {
+    return {PARSER_NAME};
+  }
 
   Status setUp() override;
 
@@ -198,7 +200,7 @@ inline void addDecoration(const std::string& source,
 inline void runDecorators(const std::string& source,
                           const std::vector<std::string>& queries) {
   for (const auto& query : queries) {
-    auto results = SQL(query);
+    SQL results(query);
     if (results.rows().size() > 0) {
       // Notice the warning above about undefined behavior when:
       // 1: You include decorators that emit the same column name

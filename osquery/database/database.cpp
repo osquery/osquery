@@ -47,8 +47,8 @@ const std::string kQueries = "queries";
 const std::string kEvents = "events";
 const std::string kLogs = "logs";
 
-const std::vector<std::string> kDomains = {kPersistentSettings, kQueries,
-                                           kEvents, kLogs};
+const std::vector<std::string> kDomains = {
+    kPersistentSettings, kQueries, kEvents, kLogs};
 
 bool DatabasePlugin::kDBHandleOptionAllowOpen(false);
 bool DatabasePlugin::kDBHandleOptionRequireWrite(false);
@@ -411,12 +411,12 @@ bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
 bool DatabasePlugin::initPlugin() {
   // Initialize the database plugin using the flag.
   auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
-  return Registry::setActive("database", plugin).ok();
+  return RegistryFactory::get().setActive("database", plugin).ok();
 }
 
 void DatabasePlugin::shutdown() {
-  auto datbase_registry = Registry::registry("database");
-  for (auto& plugin : datbase_registry->names()) {
+  auto datbase_registry = RegistryFactory::get().registry("database");
+  for (auto& plugin : RegistryFactory::get().names("database")) {
     datbase_registry->remove(plugin);
   }
 }
@@ -486,18 +486,19 @@ Status DatabasePlugin::call(const PluginRequest& request,
 }
 
 static inline std::shared_ptr<DatabasePlugin> getDatabasePlugin() {
-  if (!Registry::exists("database", Registry::getActive("database"), true)) {
+  auto& rf = RegistryFactory::get();
+  if (!rf.exists("database", rf.getActive("database"), true)) {
     return nullptr;
   }
 
-  auto plugin = Registry::get("database", Registry::getActive("database"));
+  auto plugin = rf.plugin("database", rf.getActive("database"));
   return std::dynamic_pointer_cast<DatabasePlugin>(plugin);
 }
 
 Status getDatabaseValue(const std::string& domain,
                         const std::string& key,
                         std::string& value) {
-  if (Registry::external()) {
+  if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
     PluginRequest request = {
@@ -520,7 +521,7 @@ Status getDatabaseValue(const std::string& domain,
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         const std::string& value) {
-  if (Registry::external()) {
+  if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
     PluginRequest request = {
@@ -533,7 +534,7 @@ Status setDatabaseValue(const std::string& domain,
 }
 
 Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
-  if (Registry::external()) {
+  if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
     PluginRequest request = {
@@ -556,7 +557,7 @@ Status scanDatabaseKeys(const std::string& domain,
                         std::vector<std::string>& keys,
                         const std::string& prefix,
                         size_t max) {
-  if (Registry::external()) {
+  if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
     PluginRequest request = {{"action", "scan"},

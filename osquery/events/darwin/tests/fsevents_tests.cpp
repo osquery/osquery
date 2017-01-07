@@ -18,8 +18,8 @@
 #include <osquery/flags.h>
 #include <osquery/tables.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/events/darwin/fsevents.h"
+#include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
 
@@ -33,7 +33,7 @@ class FSEventsTests : public testing::Test {
  protected:
   void SetUp() override {
     // FSEvents will use data from the config and config parsers.
-    Registry::registry("config_parser")->setUp();
+    Registry::get().registry("config_parser")->setUp();
 
     FLAGS_verbose = true;
     real_test_path = kTestWorkingDirectory + "fsevents-triggers" +

@@ -281,14 +281,14 @@ bool Pack::checkDiscovery() {
   discovery_cache_.first = current;
   discovery_cache_.second = true;
   for (const auto& q : discovery_queries_) {
-    auto sql = SQL(q);
-    if (!sql.ok()) {
+    SQL results(q);
+    if (!results.ok()) {
       LOG(WARNING) << "Discovery query failed (" << q
-                   << "): " << sql.getMessageString();
+                   << "): " << results.getMessageString();
       discovery_cache_.second = false;
       break;
     }
-    if (sql.rows().size() == 0) {
+    if (results.rows().size() == 0) {
       discovery_cache_.second = false;
       break;
     }

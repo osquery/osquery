@@ -13,8 +13,8 @@
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/enroll.h>
-#include <osquery/flags.h>
 #include <osquery/filesystem.h>
+#include <osquery/flags.h>
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
@@ -50,6 +50,15 @@ CLI_FLAG(bool,
          disable_reenrollment,
          false,
          "Disable re-enrollment attempts if related plugins return invalid");
+
+/**
+ * @brief Enroll plugin registry.
+ *
+ * This creates an osquery registry for "enroll" which may implement
+ * EnrollPlugin. Only strings are logged in practice, and EnrollPlugin
+ * provides a helper member for transforming PluginRequests to strings.
+ */
+CREATE_LAZY_REGISTRY(EnrollPlugin, "enroll");
 
 Status clearNodeKey() {
   return deleteDatabaseValue(kPersistentSettings, "nodeKey");

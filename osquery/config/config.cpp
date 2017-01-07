@@ -224,7 +224,7 @@ void saveScheduleBlacklist(const std::map<std::string, size_t>& blacklist) {
 }
 
 Schedule::Schedule() {
-  if (Registry::external()) {
+  if (RegistryFactory::get().external()) {
     // Extensions should not restore or save schedule details.
     return;
   }
@@ -334,8 +334,8 @@ void Config::packs(std::function<void(PackRef& pack)> predicate) {
 
 Status Config::load() {
   valid_ = false;
-  auto& config_plugin = Registry::getActive("config");
-  if (!Registry::exists("config", config_plugin)) {
+  auto config_plugin = RegistryFactory::get().getActive("config");
+  if (!RegistryFactory::get().exists("config", config_plugin)) {
     return Status(1, "Missing config plugin " + config_plugin);
   }
 
@@ -408,14 +408,15 @@ Status Config::updateSource(const std::string& source,
   }
 
   // extract the "schedule" key and store it as the main pack
-  if (tree.count("schedule") > 0 && !Registry::external()) {
+  auto& rf = RegistryFactory::get();
+  if (tree.count("schedule") > 0 && !rf.external()) {
     auto& schedule = tree.get_child("schedule");
     pt::ptree main_pack;
     main_pack.add_child("queries", schedule);
     addPack("main", source, main_pack);
   }
 
-  if (tree.count("scheduledQueries") > 0 && !Registry::external()) {
+  if (tree.count("scheduledQueries") > 0 && !rf.external()) {
     auto& scheduled_queries = tree.get_child("scheduledQueries");
     pt::ptree queries;
     for (const std::pair<std::string, pt::ptree>& query : scheduled_queries) {
@@ -431,7 +432,7 @@ Status Config::updateSource(const std::string& source,
   }
 
   // extract the "packs" key into additional pack objects
-  if (tree.count("packs") > 0 && !Registry::external()) {
+  if (tree.count("packs") > 0 && !rf.external()) {
     auto& packs = tree.get_child("packs");
     for (const auto& pack : packs) {
       auto value = packs.get<std::string>(pack.first, "");
@@ -480,7 +481,7 @@ void Config::applyParsers(const std::string& source,
                           const pt::ptree& tree,
                           bool pack) {
   // Iterate each parser.
-  for (const auto& plugin : Registry::all("config_parser")) {
+  for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {
     std::shared_ptr<ConfigParserPlugin> parser = nullptr;
     try {
       parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
@@ -511,7 +512,7 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   // A config plugin may call update from an extension. This will update
   // the config instance within the extension process and the update must be
   // reflected in the core.
-  if (Registry::external()) {
+  if (RegistryFactory::get().external()) {
     for (const auto& source : config) {
       PluginRequest request = {
           {"action", "update"},
@@ -542,7 +543,7 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     // The config has since been loaded.
     // This update call is most likely a response to an async update request
     // from a config plugin. This request should request all plugins to update.
-    for (const auto& registry : Registry::all()) {
+    for (const auto& registry : RegistryFactory::get().all()) {
       if (registry.first == "event_publisher" ||
           registry.first == "event_subscriber") {
         continue;
@@ -552,8 +553,8 @@ Status Config::update(const std::map<std::string, std::string>& config) {
 
     // If events are enabled configure the subscribers before publishers.
     if (!FLAGS_disable_events) {
-      Registry::registry("event_subscriber")->configure();
-      Registry::registry("event_publisher")->configure();
+      RegistryFactory::get().registry("event_subscriber")->configure();
+      RegistryFactory::get().registry("event_publisher")->configure();
     }
   }
 
@@ -624,7 +625,7 @@ void Config::reset() {
   start_time_ = 0;
 
   // Also request each parse to reset state.
-  for (const auto& plugin : Registry::all("config_parser")) {
+  for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {
     std::shared_ptr<ConfigParserPlugin> parser = nullptr;
     try {
       parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
@@ -741,11 +742,12 @@ Status Config::genHash(std::string& hash) {
 
 const std::shared_ptr<ConfigParserPlugin> Config::getParser(
     const std::string& parser) {
-  if (!Registry::exists("config_parser", parser, true)) {
+  if (!RegistryFactory::get().exists("config_parser", parser, true)) {
     return nullptr;
   }
 
-  auto plugin = Registry::get("config_parser", parser);
+  auto plugin = RegistryFactory::get().plugin("config_parser", parser);
+  // This is an error, need to check for existance (and not nullptr).
   return std::dynamic_pointer_cast<ConfigParserPlugin>(plugin);
 }
 
