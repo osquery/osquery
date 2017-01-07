@@ -32,7 +32,6 @@ endif
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
 CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../../
 CTEST := $(PATH_SET) ctest ../../
-DOCS_CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"
 
@@ -55,7 +54,8 @@ endif
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 docs: .setup
-	@cd build && DOCS=True $(DOCS_CMAKE) && \
+	@mkdir -p docs
+	@cd build/docs && DOCS=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
 format_master:
