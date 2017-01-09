@@ -906,8 +906,8 @@ void attachEvents() {
   for (const auto& subscriber : subscribers) {
     auto status = EventFactory::registerEventSubscriber(subscriber.second);
     if (!status.ok()) {
-      LOG(INFO) << "Error registering subscriber: " << subscriber.first << ": "
-                << status.getMessage();
+      VLOG(1) << "Error registering subscriber: " << subscriber.first << ": "
+              << status.getMessage();
     }
   }
 

@@ -66,14 +66,14 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
 
 inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
-  LOG(INFO) << "Executing scheduled query: " << name << ": " << query.query;
+  LOG(INFO) << "Executing scheduled query " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
 
   auto sql =
       (FLAGS_enable_monitor) ? monitor(name, query) : SQLInternal(query.query);
 
   if (!sql.ok()) {
-    LOG(ERROR) << "Error executing scheduled query: " << name << ": "
+    LOG(ERROR) << "Error executing scheduled query " << name << ": "
                << sql.getMessageString();
     return;
   }

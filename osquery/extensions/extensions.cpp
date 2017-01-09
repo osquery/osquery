@@ -199,7 +199,7 @@ void ExtensionWatcher::watch() {
   }
 
   if (!core_sane) {
-    LOG(INFO) << "Extension watcher ending: osquery core has gone away";
+    VLOG(1) << "Extension watcher ending: osquery core has gone away";
     exitFatal(0);
   }
 

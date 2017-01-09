@@ -111,7 +111,7 @@ std::string getHostname() {
 }
 
 std::string generateNewUUID() {
-  LOG(INFO) << "Cannot retrieve platform UUID: generating an ephemeral UUID";
+  VLOG(1) << "Cannot retrieve platform UUID: generating an ephemeral UUID";
   boost::uuids::uuid uuid = boost::uuids::random_generator()();
   return boost::uuids::to_string(uuid);
 }
@@ -259,8 +259,7 @@ Status checkStalePid(const std::string& content) {
 
     return Status(1, "osqueryd (" + content + ") is already running");
   } else {
-    VLOG(1) << "Found stale process for osqueryd (" << content
-            << ") removing pidfile";
+    VLOG(1) << "Found stale process for osqueryd (" << content << ")";
   }
 
   return Status(0, "OK");
