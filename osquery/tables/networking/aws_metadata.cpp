@@ -11,13 +11,13 @@
 
 #include <boost/network/protocol/http/client.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/tables/networking/aws_metadata.h"
 
 namespace pt = boost::property_tree;
 namespace http = boost::network::http;
@@ -25,19 +25,103 @@ namespace http = boost::network::http;
 namespace osquery {
 namespace tables {
 
-//#define AWS_META_DEBUG true
+/**
+ * @brief SuperClass for AWS metadata accessors
+ */
+class AwsData : public boost::noncopyable {
+  protected:
+  /**
+   * @brief SQL type for the value
+   */
+  ColumnType sqlType;
+
+  /**
+   * @brief SQL column name
+   */
+  std::string fieldName;
+
+  /**
+   * @brief API URL
+   */
+  std::string subUrl;
+
+  /**
+   * @brief HTTP get the data
+   *
+   * @return osquery Status
+   */
+  std::string DoGet() const;
+
+  public:
+  /**
+   * @brief ctor
+   */
+  AwsData(ColumnType _sqlType, std::string _fieldName, std::string _subUrl)
+    : sqlType(_sqlType), fieldName(std::move(_fieldName)), subUrl(std::move(_subUrl)) {}
+
+  /**
+   * @brief dtor
+   */
+  virtual ~AwsData() {}
+
+  /**
+   * @brief Extract relevant data from return API call, pure virtual
+   *
+   * @param r The row to which the value need to be added
+   * @param http_body content of the http response body
+   * @return osquery Status
+   */
+  virtual Status ExtractResult(Row& r, std::string http_body) const = 0;
+
+  /**
+   * @brief HTTP get and extract data
+   *
+   * @param r The row to which the value need to be added
+   * @return osquery Status
+   */
+  Status Get(Row& r) const {
+      std::string http_body = DoGet();
+      if(!http_body.empty()) {
+        return ExtractResult(r, http_body);
+      }
+      // no hard error if no response
+      return Status(0, "OK");
+  }
+
+};
+
+/**
+ * @brief handle all data not requiring parsing
+ */
+class GenericAwsData : public AwsData {
+  public:
+
+  GenericAwsData(ColumnType in_sqlType, std::string in_fieldName, std::string in_subUrl)
+      : AwsData(in_sqlType, in_fieldName, in_subUrl) {}
+
+  virtual Status ExtractResult(Row& r, std::string http_body) const override;
+};
+
+/**
+ * @brief Handle IAM parsing
+ */
+class IamArnAwsData : public AwsData {
+  public:
+
+  IamArnAwsData(ColumnType in_sqlType, std::string in_fieldName, std::string in_subUrl)
+      : AwsData(in_sqlType, in_fieldName, in_subUrl) {}
+
+  virtual Status ExtractResult(Row& r, std::string http_body) const override;
+};
 
 static bool initialized = false;
 
 // use of the ipv4 address to be region independent (vs hostname based)
-const static std::string awsBaseUrl{"http://169.254.169.254/latest/"};
+const static std::string kAwsBaseUrl{"http://169.254.169.254/latest/"};
 
 static std::vector<AwsData*> AwsFields; 
 
 void awsMetaInit() {
-#if defined(AWS_META_DEBUG)
-    VLOG(0) << "awsMetaInit() called";
-#endif
     AwsFields.push_back(new GenericAwsData(TEXT_TYPE, "ami_id", "meta-data/ami-id"));
     AwsFields.push_back(new GenericAwsData(INTEGER_TYPE, "ami_launch_index", "meta-data/ami-launch-index"));
     AwsFields.push_back(new GenericAwsData(TEXT_TYPE, "ami_manifest_path", "meta-data/ami-manifest-path"));
@@ -63,9 +147,9 @@ void awsMetaInit() {
     initialized = true;
 }
 
-std::string AwsData::DoGet() {
+std::string AwsData::DoGet() const {
     std::string ret;
-    std::string url = awsBaseUrl + subUrl;
+    std::string url = kAwsBaseUrl + subUrl;
     http::client::request req(url);
     http::client::response res;
 
@@ -84,10 +168,6 @@ std::string AwsData::DoGet() {
     // check http status
     boost::uint16_t http_status_code = res.status(); 
 
-#if defined(AWS_META_DEBUG)
-    VLOG(0) << "http.get " << url << " status_code " << http_status_code;
-#endif
-
     // silent ignore of 404: some AWS API REST entry points are not always available depending on AMI config
     if(http_status_code == 404) {
         return ret;
@@ -103,7 +183,7 @@ std::string AwsData::DoGet() {
     return ret;
 }
 
-Status GenericAwsData::ExtractResult(Row& r, std::string http_body) {
+Status GenericAwsData::ExtractResult(Row& r, std::string http_body) const {
     switch(sqlType) {
         case TEXT_TYPE:
             r[fieldName] = TEXT(http_body.c_str());
@@ -117,7 +197,7 @@ Status GenericAwsData::ExtractResult(Row& r, std::string http_body) {
     return Status(0, "OK");
 }
 
-Status IamArnAwsData::ExtractResult(Row& r, std::string http_body) {
+Status IamArnAwsData::ExtractResult(Row& r, std::string http_body) const {
     pt::ptree tree;
     try {
     	std::stringstream json_stream;

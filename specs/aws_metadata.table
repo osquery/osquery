@@ -1,5 +1,5 @@
-table_name("aws_meta")
-description("aws metadata")
+table_name("aws_metadata")
+description("access AWS metadata available to VM's running as EC2 instances in AWS")
 schema([
     Column("ami_id", TEXT, "AMI id of EC2 instance"),
     Column("ami_launch_index", INTEGER, "EC2 launche index"),
