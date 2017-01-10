@@ -41,8 +41,7 @@ const std::map<unsigned char, const std::string> kMapOfState = {
     {7, "TBD"},
 };
 
-QueryData genArpCache(QueryContext& context) {
-  Row r;
+QueryData genIPv4ArpCache(QueryContext& context) {
   QueryData results;
   QueryData interfaces = genInterfaceDetails(context);
   WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor",
@@ -66,6 +65,7 @@ QueryData genArpCache(QueryContext& context) {
     }
   }
   for (const auto& item : wmiResults) {
+    Row r;
     item.GetUnsignedShort("AddressFamily", usiPlaceHolder);
     r["address_family"] = SQL_TEXT(kMapOfAddressFamily.at(usiPlaceHolder));
     item.GetUChar("Store", cPlaceHolder);
@@ -86,9 +86,9 @@ QueryData genArpCache(QueryContext& context) {
   return results;
 }
 
-QueryData genCrossPlatformArpCache(QueryContext& context) {
+QueryData genArpCache(QueryContext& context) {
   QueryData results;
-  QueryData winArpCache = genArpCache(context);
+  QueryData winArpCache = genIPv4ArpCache(context);
 
   for (const auto& item : winArpCache) {
     if (item.at("link_layer_address").empty() ||
