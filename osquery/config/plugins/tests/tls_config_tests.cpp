@@ -20,9 +20,10 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
+#include "osquery/config/plugins/tls.h"
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
-
+#include "osquery/dispatcher/scheduler.h"
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/transports/tls.h"
@@ -31,8 +32,6 @@
 #include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
-#include "osquery/config/plugins/tls.h"
-
 namespace pt = boost::property_tree;
 
 namespace osquery {
@@ -40,14 +39,39 @@ namespace osquery {
 DECLARE_string(tls_hostname);
 DECLARE_bool(enroll_always);
 
-class TLSConfigTests : public testing::Test {};
+class TLSConfigTests : public testing::Test {
+ public:
+  void SetUp() override {
+    TLSServerRunner::start();
+    TLSServerRunner::setClientConfig();
+
+    active_ = Registry::get().getActive("config");
+    plugin_ = Flag::getValue("config_plugin");
+    endpoint_ = Flag::getValue("config_tls_endpoint");
+    node_ = Flag::getValue("tls_node_api");
+    enroll_ = FLAGS_enroll_always;
+  }
+
+  void TearDown() override {
+    TLSServerRunner::unsetClientConfig();
+    TLSServerRunner::stop();
+
+    Flag::updateValue("config_plugin", plugin_);
+    Flag::updateValue("config_tls_endpoint", endpoint_);
+    Flag::updateValue("tls_node_api", node_);
+    FLAGS_enroll_always = enroll_;
+  }
+
+ private:
+  std::string active_;
+  std::string plugin_;
+  std::string endpoint_;
+  std::string node_;
+  bool enroll_{false};
+};
 
 TEST_F(TLSConfigTests, test_retrieve_config) {
-  TLSServerRunner::start();
-  TLSServerRunner::setClientConfig();
-
   // Trigger the enroll.
-  auto endpoint = Flag::getValue("config_tls_endpoint");
   Flag::updateValue("config_tls_endpoint", "/config");
   Registry::get().setActive("config", "tls");
 
@@ -57,7 +81,7 @@ TEST_F(TLSConfigTests, test_retrieve_config) {
   c.load();
 
   const auto& hashes = c.hash_;
-  EXPECT_EQ("b7718020a76ced2eda82336bd15165009603d4fb",
+  EXPECT_EQ("d9b4a05d914c81a1ed4ce129928e2d9a0309c753",
             hashes.at("tls_plugin"));
 
   // Configure the plugin to use the node API.
@@ -71,19 +95,25 @@ TEST_F(TLSConfigTests, test_retrieve_config) {
 
   // The GET and POST results are slightly different.
   EXPECT_EQ("baz", response[0]["tls_plugin"]);
+}
 
-  // Clean up.
-  Flag::updateValue("tls_node_api", "0");
-  Flag::updateValue("config_tls_endpoint", endpoint);
-  TLSServerRunner::unsetClientConfig();
-  TLSServerRunner::stop();
+TEST_F(TLSConfigTests, test_runner_and_scheduler) {
+  Flag::updateValue("config_tls_endpoint", "/config");
+  // Will cause another enroll.
+  Registry::get().setActive("config", "tls");
+
+  // Seed our instance config with a schedule.
+  Config::getInstance().load();
+
+  // Start a scheduler runner for 3 seconds.
+  auto t = static_cast<unsigned long int>(getUnixTime());
+  Dispatcher::addService(std::make_shared<SchedulerRunner>(t + 1, 1));
+  // Reload our instance config.
+  Config::getInstance().load();
+  Dispatcher::joinServices();
 }
 
 TEST_F(TLSConfigTests, test_setup) {
-  // Start a server.
-  TLSServerRunner::start();
-  TLSServerRunner::setClientConfig();
-
   // Set a cached node key like the code would have set after a successful
   // enroll. Setting both nodeKey and nodeKeyTime emulates the behavior of a
   // successful enroll.
@@ -152,9 +182,5 @@ TEST_F(TLSConfigTests, test_setup) {
   // Verify that it is indeed Enroll
   db_value = response_tree.get<std::string>(".command");
   EXPECT_STREQ(db_value.c_str(), "enroll");
-
-  // Stop the server.
-  TLSServerRunner::unsetClientConfig();
-  TLSServerRunner::stop();
 }
 }

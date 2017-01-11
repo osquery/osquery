@@ -26,7 +26,7 @@ from urlparse import parse_qs
 
 EXAMPLE_CONFIG = {
     "schedule": {
-        "tls_proc": {"query": "select * from processes", "interval": 0},
+        "tls_proc": {"query": "select * from processes", "interval": 1},
     },
     "node_invalid": False,
 }
