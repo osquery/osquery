@@ -390,10 +390,13 @@ Status Config::updateSource(const std::string& source,
   // Compute a 'synthesized' hash using the content before it is parsed.
   hashSource(source, json);
 
-  // Remove all packs from this source.
-  schedule_->removeAll(source);
-  // Remove all files from this source.
-  removeFiles(source);
+  {
+    RecursiveLock lock(config_schedule_mutex_);
+    // Remove all packs from this source.
+    schedule_->removeAll(source);
+    // Remove all files from this source.
+    removeFiles(source);
+  }
 
   // load the config (source.second) into a pt::ptree
   pt::ptree tree;
@@ -481,6 +484,7 @@ void Config::applyParsers(const std::string& source,
                           const pt::ptree& tree,
                           bool pack) {
   // Iterate each parser.
+  RecursiveLock lock(config_schedule_mutex_);
   for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {
     std::shared_ptr<ConfigParserPlugin> parser = nullptr;
     try {
