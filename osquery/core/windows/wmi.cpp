@@ -96,6 +96,42 @@ Status WmiResultItem::GetUChar(const std::string& name,
   return Status(0);
 }
 
+Status WmiResultItem::GetUnsignedShort(const std::string& name,
+                                       unsigned short& ret) const {
+  std::wstring property_name = stringToWstring(name);
+  VARIANT value;
+  HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
+
+  if (hr != S_OK) {
+    return Status(-1, "Error retrieving data from WMI query.");
+  }
+  if (value.vt != VT_I4) {
+    VariantClear(&value);
+    return Status(-1, "Invalid data type returned.");
+  }
+  ret = value.uiVal;
+  VariantClear(&value);
+  return Status(0);
+}
+
+Status WmiResultItem::GetUnsignedInt32(const std::string& name,
+                                       unsigned int& ret) const {
+  std::wstring property_name = stringToWstring(name);
+  VARIANT value;
+  HRESULT hr = result_->Get(property_name.c_str(), 0, &value, nullptr, nullptr);
+
+  if (hr != S_OK) {
+    return Status(-1, "Error retrieving data from WMI query.");
+  }
+  if (value.vt != VT_I4) {
+    VariantClear(&value);
+    return Status(-1, "Invalid data type returned.");
+  }
+  ret = value.uiVal;
+  VariantClear(&value);
+  return Status(0);
+}
+
 Status WmiResultItem::GetLong(const std::string& name, long& ret) const {
   std::wstring property_name = stringToWstring(name);
   VARIANT value;
