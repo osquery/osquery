@@ -17,8 +17,6 @@
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
-#pragma comment(lib, "version.lib")
-
 namespace osquery {
 namespace tables {
 

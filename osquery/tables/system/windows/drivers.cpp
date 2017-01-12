@@ -20,8 +20,6 @@
 
 #include "osquery/tables/system/windows/registry.h"
 
-#pragma comment(lib, "Advapi32.lib")
-
 namespace osquery {
 namespace tables {
 

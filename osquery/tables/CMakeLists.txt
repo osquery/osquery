@@ -37,6 +37,10 @@ elseif(FREEBSD)
   ADD_OSQUERY_LINK_ADDITIONAL("elf")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
 elseif(WINDOWS)
+  # Additional Windows libraries
+  ADD_OSQUERY_LINK_ADDITIONAL("Advapi32.lib")
+  ADD_OSQUERY_LINK_ADDITIONAL("version.lib")
+
   # Windows specific tables
   file(GLOB OSQUERY_WINDOWS_TABLES "*/windows/*.cpp")
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_windows
