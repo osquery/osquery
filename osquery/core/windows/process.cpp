@@ -91,9 +91,21 @@ bool PlatformProcess::cleanup() const {
     return false;
   }
 
-  auto timeout = static_cast<DWORD>((FLAGS_alarm_timeout + 1) * 1000);
-  auto result = ::WaitForSingleObject(nativeHandle(), timeout);
-  return (result == 0);
+  size_t delay = 0;
+  size_t timeout = (FLAGS_alarm_timeout + 1) + 1000;
+  while (delay < timeout) {
+    unsigned long status = 0;
+    if (::GetExitCodeProcess(nativeHandle(), &status) != 0) {
+      if (status == STILL_ACTIVE) {
+        return true;
+      }
+    }
+
+    sleepFor(200);
+    delay += 200;
+  }
+
+  return false;
 }
 
 ProcessState PlatformProcess::checkStatus(int& status) const {
