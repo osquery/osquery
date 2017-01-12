@@ -16,6 +16,8 @@
 #include <sys/sysctl.h>
 #elif defined(__linux__)
 #include <sys/sysinfo.h>
+#elif defined(WIN32)
+#include <windows.h>
 #endif
 
 namespace osquery {
@@ -43,6 +45,8 @@ long getUptime() {
   }
 
   return sys_info.uptime;
+#elif defined(WIN32)
+  return (long)GetTickCount64() / 1000;
 #endif
 
   return -1;
