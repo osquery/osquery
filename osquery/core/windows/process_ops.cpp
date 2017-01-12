@@ -190,8 +190,6 @@ bool platformModuleClose(ModuleHandle module) {
   return (::FreeLibrary(static_cast<HMODULE>(module)) != 0);
 }
 
-void cleanupDefunctProcesses() {}
-
 void setToBackgroundPriority() {}
 
 // Helper function to determine if thread is running with admin privilege.

@@ -15,9 +15,13 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/flags.h>
+
 #include "osquery/core/process.h"
 
 namespace osquery {
+
+DECLARE_uint64(alarm_timeout);
 
 static PlatformPidType __declspec(nothrow)
     duplicateHandle(osquery::PlatformPidType src) {
@@ -54,7 +58,7 @@ PlatformProcess::PlatformProcess(PlatformProcess&& src) noexcept {
 }
 
 PlatformProcess::~PlatformProcess() {
-  if (id_ != kInvalidPid) {
+  if (isValid()) {
     ::CloseHandle(id_);
     id_ = kInvalidPid;
   }
@@ -75,11 +79,21 @@ int PlatformProcess::pid() const {
 }
 
 bool PlatformProcess::kill() const {
-  if (id_ == kInvalidPid) {
+  if (!isValid()) {
     return false;
   }
 
   return (::TerminateProcess(id_, 0) != FALSE);
+}
+
+bool PlatformProcess::cleanup() const {
+  if (!isValid()) {
+    return false;
+  }
+
+  auto timeout = static_cast<DWORD>((FLAGS_alarm_timeout + 1) * 1000);
+  auto result = ::WaitForSingleObject(nativeHandle(), timeout);
+  return (result == 0);
 }
 
 ProcessState PlatformProcess::checkStatus(int& status) const {

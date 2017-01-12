@@ -8,6 +8,7 @@
  *
  */
 
+#include <errno.h>
 #include <signal.h>
 
 #include <sys/types.h>
@@ -15,6 +16,7 @@
 
 #include <vector>
 
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
@@ -23,6 +25,8 @@
 extern char** environ;
 
 namespace osquery {
+
+DECLARE_uint64(alarm_timeout);
 
 PlatformProcess::PlatformProcess(PlatformPidType id) : id_(id) {}
 
@@ -41,7 +45,7 @@ int PlatformProcess::pid() const {
 }
 
 bool PlatformProcess::kill() const {
-  if (id_ == kInvalidPid) {
+  if (!isValid()) {
     return false;
   }
 
@@ -49,11 +53,34 @@ bool PlatformProcess::kill() const {
   return (status == 0);
 }
 
+bool PlatformProcess::cleanup() const {
+  if (!isValid()) {
+    return false;
+  }
+
+  size_t delay = 0;
+  size_t timeout = (FLAGS_alarm_timeout + 1) * 1000;
+  while (delay < timeout) {
+    int status = 0;
+    if (checkStatus(status) == PROCESS_EXITED) {
+      return true;
+    }
+
+    sleepFor(200);
+    delay += 200;
+  }
+  // The requested process did not exit.
+  return false;
+}
+
 ProcessState PlatformProcess::checkStatus(int& status) const {
   int process_status = 0;
 
   pid_t result = ::waitpid(nativeHandle(), &process_status, WNOHANG);
   if (result < 0) {
+    if (errno == ECHILD) {
+      return PROCESS_EXITED;
+    }
     return PROCESS_ERROR;
   }
 

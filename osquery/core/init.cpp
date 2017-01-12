@@ -95,9 +95,6 @@ enum {
   " - https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/"  \
   "\n\n";
 
-/// Seconds to alarm and quit for non-responsive event loops.
-#define SIGNAL_ALARM_TIMEOUT 4
-
 /// For Windows, SIGILL and SIGTERM
 #ifdef WIN32
 
@@ -110,6 +107,10 @@ enum {
 #define SIGUSR1 SIGILL
 
 #endif
+
+namespace osquery {
+CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
+}
 
 namespace {
 extern "C" {
@@ -145,7 +146,7 @@ void signalHandler(int num) {
 #ifndef WIN32
       // Time to stop, set an upper bound time constraint on how long threads
       // have to terminate (join). Publishers may be in 20ms or similar sleeps.
-      alarm(SIGNAL_ALARM_TIMEOUT);
+      alarm(osquery::FLAGS_alarm_timeout);
 #endif
 
       // Restore the default signal handler.
@@ -344,6 +345,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   std::signal(SIGINT, signalHandler);
   std::signal(SIGHUP, signalHandler);
   std::signal(SIGALRM, signalHandler);
+  std::signal(SIGCHLD, SIG_IGN);
 #endif
 
   std::signal(SIGABRT, signalHandler);

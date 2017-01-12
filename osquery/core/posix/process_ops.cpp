@@ -21,9 +21,13 @@
 
 #include <boost/optional.hpp>
 
+#include <osquery/flags.h>
+
 #include "osquery/core/process.h"
 
 namespace osquery {
+
+DECLARE_uint64(alarm_timeout);
 
 int platformGetUid() {
   return ::getuid();
@@ -69,10 +73,6 @@ std::string platformModuleGetError() {
 
 bool platformModuleClose(ModuleHandle module) {
   return (::dlclose(module) == 0);
-}
-
-void cleanupDefunctProcesses() {
-  ::waitpid(-1, nullptr, WNOHANG);
 }
 
 void setToBackgroundPriority() {
