@@ -90,6 +90,10 @@ if(NOT WINDOWS)
   ADD_OSQUERY_LINK_ADDITIONAL("crypto")
   ADD_OSQUERY_LINK_ADDITIONAL("libpthread")
 
+  ADD_OSQUERY_LINK_CORE("curl")
+  ADD_OSQUERY_LINK_CORE("ssl")
+  ADD_OSQUERY_LINK_CORE("crypto")
+
   # Linenoise will be used when compiling osqueryi.
   ADD_OSQUERY_LINK_ADDITIONAL("linenoise")
 endif()
