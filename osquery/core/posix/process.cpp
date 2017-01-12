@@ -16,7 +16,6 @@
 
 #include <vector>
 
-#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
@@ -25,8 +24,6 @@
 extern char** environ;
 
 namespace osquery {
-
-DECLARE_uint64(alarm_timeout);
 
 PlatformProcess::PlatformProcess(PlatformPidType id) : id_(id) {}
 
@@ -51,26 +48,6 @@ bool PlatformProcess::kill() const {
 
   int status = ::kill(id_, SIGKILL);
   return (status == 0);
-}
-
-bool PlatformProcess::cleanup() const {
-  if (!isValid()) {
-    return false;
-  }
-
-  size_t delay = 0;
-  size_t timeout = (FLAGS_alarm_timeout + 1) * 1000;
-  while (delay < timeout) {
-    int status = 0;
-    if (checkStatus(status) == PROCESS_EXITED) {
-      return true;
-    }
-
-    sleepFor(200);
-    delay += 200;
-  }
-  // The requested process did not exit.
-  return false;
 }
 
 ProcessState PlatformProcess::checkStatus(int& status) const {

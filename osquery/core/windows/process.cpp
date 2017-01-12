@@ -15,13 +15,9 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <osquery/flags.h>
-
 #include "osquery/core/process.h"
 
 namespace osquery {
-
-DECLARE_uint64(alarm_timeout);
 
 static PlatformPidType __declspec(nothrow)
     duplicateHandle(osquery::PlatformPidType src) {
@@ -86,31 +82,13 @@ bool PlatformProcess::kill() const {
   return (::TerminateProcess(id_, 0) != FALSE);
 }
 
-bool PlatformProcess::cleanup() const {
-  if (!isValid()) {
-    return false;
-  }
-
-  size_t delay = 0;
-  size_t timeout = (FLAGS_alarm_timeout + 1) + 1000;
-  while (delay < timeout) {
-    unsigned long status = 0;
-    if (::GetExitCodeProcess(nativeHandle(), &status) != 0) {
-      if (status == STILL_ACTIVE) {
-        return true;
-      }
-    }
-
-    sleepFor(200);
-    delay += 200;
-  }
-
-  return false;
-}
-
 ProcessState PlatformProcess::checkStatus(int& status) const {
   unsigned long exit_code = 0;
   if (!::GetExitCodeProcess(nativeHandle(), &exit_code)) {
+    unsigned long last_error = GetLastError();
+    if (last_error == ERROR_WAIT_NO_CHILDREN) {
+      return PROCESS_EXITED;
+    }
     return PROCESS_ERROR;
   }
 
