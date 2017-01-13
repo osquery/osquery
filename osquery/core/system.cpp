@@ -40,6 +40,7 @@
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
@@ -54,6 +55,8 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
+DECLARE_uint64(alarm_timeout);
 
 /// The path to the pidfile for osqueryd
 CLI_FLAG(string,
@@ -265,6 +268,26 @@ Status createPidFile() {
           << pidfile_path.string();
   auto status = writeTextFile(pidfile_path, pid, 0644);
   return status;
+}
+
+bool PlatformProcess::cleanup() const {
+  if (!isValid()) {
+    return false;
+  }
+
+  size_t delay = 0;
+  size_t timeout = (FLAGS_alarm_timeout + 1) * 1000;
+  while (delay < timeout) {
+    int status = 0;
+    if (checkStatus(status) == PROCESS_EXITED) {
+      return true;
+    }
+
+    sleepFor(200);
+    delay += 200;
+  }
+  // The requested process did not exit.
+  return false;
 }
 
 #ifndef WIN32

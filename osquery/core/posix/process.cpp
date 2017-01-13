@@ -8,6 +8,7 @@
  *
  */
 
+#include <errno.h>
 #include <signal.h>
 
 #include <sys/types.h>
@@ -41,7 +42,7 @@ int PlatformProcess::pid() const {
 }
 
 bool PlatformProcess::kill() const {
-  if (id_ == kInvalidPid) {
+  if (!isValid()) {
     return false;
   }
 
@@ -54,6 +55,9 @@ ProcessState PlatformProcess::checkStatus(int& status) const {
 
   pid_t result = ::waitpid(nativeHandle(), &process_status, WNOHANG);
   if (result < 0) {
+    if (errno == ECHILD) {
+      return PROCESS_EXITED;
+    }
     return PROCESS_ERROR;
   }
 

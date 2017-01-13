@@ -54,7 +54,7 @@ PlatformProcess::PlatformProcess(PlatformProcess&& src) noexcept {
 }
 
 PlatformProcess::~PlatformProcess() {
-  if (id_ != kInvalidPid) {
+  if (isValid()) {
     ::CloseHandle(id_);
     id_ = kInvalidPid;
   }
@@ -75,7 +75,7 @@ int PlatformProcess::pid() const {
 }
 
 bool PlatformProcess::kill() const {
-  if (id_ == kInvalidPid) {
+  if (!isValid()) {
     return false;
   }
 
@@ -85,6 +85,10 @@ bool PlatformProcess::kill() const {
 ProcessState PlatformProcess::checkStatus(int& status) const {
   unsigned long exit_code = 0;
   if (!::GetExitCodeProcess(nativeHandle(), &exit_code)) {
+    unsigned long last_error = GetLastError();
+    if (last_error == ERROR_WAIT_NO_CHILDREN) {
+      return PROCESS_EXITED;
+    }
     return PROCESS_ERROR;
   }
 

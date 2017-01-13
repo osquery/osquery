@@ -112,6 +112,16 @@ class PlatformProcess : private boost::noncopyable {
   /// Hard terminates the process
   bool kill() const;
 
+  /**
+   * @brief Wait or cleanup a process, usually a child process.
+   *
+   * This will wait for a process to cleanup. Use this after requesting a
+   * graceful shutdown.
+   *
+   * @return true if the process was cleaned, otherwise false.
+   */
+  bool cleanup() const;
+
   /// Returns whether the PlatformProcess object is valid
   bool isValid() const {
     return (id_ != kInvalidPid);
@@ -252,9 +262,6 @@ bool platformModuleClose(ModuleHandle module);
  * Note, this only works on worker processes.
  */
 bool isLauncherProcessDead(PlatformProcess& launcher);
-
-/// Waits for defunct processes to terminate.
-void cleanupDefunctProcesses();
 
 /// Sets the current process to run with background scheduling priority.
 void setToBackgroundPriority();
