@@ -46,7 +46,16 @@ bool PlatformProcess::kill() const {
     return false;
   }
 
-  int status = ::kill(id_, SIGKILL);
+  int status = ::kill(nativeHandle(), SIGKILL);
+  return (status == 0);
+}
+
+bool PlatformProcess::killGracefully() const {
+  if (!isValid()) {
+    return false;
+  }
+
+  int status = ::kill(nativeHandle(), SIGUSR2);
   return (status == 0);
 }
 

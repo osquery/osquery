@@ -105,6 +105,7 @@ enum {
 /// For Windows, SIGILL and SIGTERM are not generated signals. To supplant the
 /// SIGUSR1 use-case on POSIX, we use SIGILL.
 #define SIGUSR1 SIGILL
+#define SIGUSR2 SIGILL
 
 #endif
 
@@ -142,7 +143,7 @@ void signalHandler(int num) {
         // Reload configuration.
       }
     } else if (num == SIGTERM || num == SIGINT || num == SIGABRT ||
-               num == SIGUSR1) {
+               num == SIGUSR1 || num == SIGUSR2) {
 #ifndef WIN32
       // Time to stop, set an upper bound time constraint on how long threads
       // have to terminate (join). Publishers may be in 20ms or similar sleeps.
@@ -350,6 +351,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   std::signal(SIGABRT, signalHandler);
   std::signal(SIGUSR1, signalHandler);
+  std::signal(SIGUSR2, signalHandler);
 
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {

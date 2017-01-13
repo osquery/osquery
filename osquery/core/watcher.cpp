@@ -265,12 +265,16 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
 }
 
 void WatcherRunner::stopChild(const PlatformProcess& child) const {
-  child.kill();
+  child.killGracefully();
 
   // Clean up the defunct (zombie) process.
   if (!child.cleanup()) {
-    Initializer::requestShutdown(EXIT_CATASTROPHIC,
-                                 "Watcher cannot stop worker process");
+    // The child did not exit, force kill and attempt to cleanup again.
+    child.kill();
+    if (!child.cleanup()) {
+      Initializer::requestShutdown(EXIT_CATASTROPHIC,
+                                   "Watcher cannot stop worker process");
+    }
   }
 }
 
