@@ -12,7 +12,7 @@
 
 #include <csignal>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <vector>
 
@@ -175,10 +175,13 @@ inline bool isPlatform(PlatformType a, const PlatformType& t = kPlatformType) {
 }
 
 /// Helper alias for defining mutexes.
-using Mutex = std::mutex;
+using Mutex = std::shared_timed_mutex;
 
 /// Helper alias for write locking a mutex.
-using WriteLock = std::lock_guard<Mutex>;
+using WriteLock = std::unique_lock<Mutex>;
+
+/// Helper alias for read locking a mutex.
+using ReadLock = std::shared_lock<Mutex>;
 
 /// Helper alias for defining recursive mutexes.
 using RecursiveMutex = std::recursive_mutex;

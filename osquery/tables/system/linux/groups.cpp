@@ -8,8 +8,8 @@
  *
  */
 
-#include <set>
 #include <mutex>
+#include <set>
 
 #include <grp.h>
 
@@ -19,21 +19,21 @@
 namespace osquery {
 namespace tables {
 
-std::mutex grpEnumerationMutex;
+Mutex grpEnumerationMutex;
 
-QueryData genGroups(QueryContext &context) {
-  std::lock_guard<std::mutex> lock(grpEnumerationMutex);
+QueryData genGroups(QueryContext& context) {
   QueryData results;
-  struct group *grp = nullptr;
+  struct group* grp = nullptr;
   std::set<long> groups_in;
 
+  WriteLock lock(grpEnumerationMutex);
   setgrent();
   while ((grp = getgrent()) != nullptr) {
     if (std::find(groups_in.begin(), groups_in.end(), grp->gr_gid) ==
         groups_in.end()) {
       Row r;
       r["gid"] = INTEGER(grp->gr_gid);
-      r["gid_signed"] = INTEGER((int32_t) grp->gr_gid);
+      r["gid_signed"] = INTEGER((int32_t)grp->gr_gid);
       r["groupname"] = TEXT(grp->gr_name);
       results.push_back(r);
       groups_in.insert(grp->gr_gid);

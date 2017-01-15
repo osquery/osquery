@@ -362,10 +362,10 @@ class EventPublisherPlugin : public Plugin,
   std::atomic<bool> started_{false};
 
   /// A lock for incrementing the next EventContextID.
-  std::mutex ec_id_lock_;
+  Mutex ec_id_lock_;
 
   /// A lock for subscription manipulation.
-  std::mutex subscription_lock_;
+  Mutex subscription_lock_;
 
   /// A helper count of event publisher runloop iterations.
   std::atomic<size_t> restart_count_{0};
@@ -643,10 +643,10 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   size_t optimize_eid_{0};
 
   /// Lock used when incrementing the EventID database index.
-  std::mutex event_id_lock_;
+  Mutex event_id_lock_;
 
   /// Lock used when recording an EventID and time into search bins.
-  std::mutex event_record_lock_;
+  Mutex event_record_lock_;
 
  private:
   friend class EventFactory;

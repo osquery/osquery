@@ -43,7 +43,7 @@ class SQLiteDBInstance : private boost::noncopyable {
   SQLiteDBInstance() {
     init();
   }
-  SQLiteDBInstance(sqlite3*& db, std::mutex& mtx);
+  SQLiteDBInstance(sqlite3*& db, Mutex& mtx);
   ~SQLiteDBInstance();
 
   /// Check if the instance is the osquery primary.
@@ -88,7 +88,7 @@ class SQLiteDBInstance : private boost::noncopyable {
   sqlite3* db_{nullptr};
 
   /// An attempted unique lock on the manager's primary database access mutex.
-  std::unique_lock<std::mutex> lock_;
+  WriteLock lock_;
 
   /// Vector of tables that need their constraints cleared after execution.
   std::map<std::string, VirtualTableContent*> affected_tables_;
@@ -169,10 +169,10 @@ class SQLiteDBManager : private boost::noncopyable {
   SQLiteDBInstanceRef connection_{nullptr};
 
   /// Mutex and lock around sqlite3 access.
-  std::mutex mutex_;
+  Mutex mutex_;
 
   /// A write mutex for initializing the primary database.
-  std::mutex create_mutex_;
+  Mutex create_mutex_;
 
   /// Member variable to hold set of disabled tables.
   std::unordered_set<std::string> disabled_tables_;

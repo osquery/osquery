@@ -25,9 +25,12 @@ namespace osquery {
 DECLARE_string(database_path);
 
 const std::map<std::string, std::string> kDBSettings = {
-    {"synchronous", "OFF"},      {"count_changes", "OFF"},
-    {"default_temp_store", "2"}, {"auto_vacuum", "FULL"},
-    {"journal_mode", "OFF"},     {"cache_size", "1000"},
+    {"synchronous", "OFF"},
+    {"count_changes", "OFF"},
+    {"default_temp_store", "2"},
+    {"auto_vacuum", "FULL"},
+    {"journal_mode", "OFF"},
+    {"cache_size", "1000"},
     {"page_count", "1000"},
 };
 
@@ -57,10 +60,14 @@ class SQLiteDatabasePlugin : public DatabasePlugin {
   Status setUp() override;
 
   /// Database workflow: close and cleanup.
-  void tearDown() override { close(); }
+  void tearDown() override {
+    close();
+  }
 
   /// Need to tear down open resources,
-  virtual ~SQLiteDatabasePlugin() { close(); }
+  virtual ~SQLiteDatabasePlugin() {
+    close();
+  }
 
  private:
   void close();
@@ -70,7 +77,7 @@ class SQLiteDatabasePlugin : public DatabasePlugin {
   sqlite3* db_{nullptr};
 
   /// Deconstruction mutex.
-  std::mutex close_mutex_;
+  Mutex close_mutex_;
 };
 
 /// Backing-storage provider for osquery internal/core.
@@ -144,7 +151,7 @@ Status SQLiteDatabasePlugin::setUp() {
 }
 
 void SQLiteDatabasePlugin::close() {
-  std::unique_lock<std::mutex> lock(close_mutex_);
+  WriteLock lock(close_mutex_);
   if (db_ != nullptr) {
     sqlite3_close(db_);
     db_ = nullptr;

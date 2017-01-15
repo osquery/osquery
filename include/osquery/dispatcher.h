@@ -36,7 +36,9 @@ class RunnerInterruptPoint : private boost::noncopyable {
   void cancel();
 
   /// Pause until the requested millisecond delay has elapsed or a cancel.
-  void pause(size_t milli) { pause(std::chrono::milliseconds(milli)); }
+  void pause(size_t milli) {
+    pause(std::chrono::milliseconds(milli));
+  }
 
   /// Pause until the requested millisecond delay has elapsed or a cancel.
   void pause(std::chrono::milliseconds milli);
@@ -69,7 +71,9 @@ class InterruptableRunnable {
   virtual void stop() = 0;
 
   /// Put the runnable into an interruptible sleep.
-  virtual void pause() { pauseMilli(std::chrono::milliseconds(100)); }
+  virtual void pause() {
+    pauseMilli(std::chrono::milliseconds(100));
+  }
 
   /// Put the runnable into an interruptible sleep.
   virtual void pauseMilli(size_t milli) {
@@ -81,7 +85,9 @@ class InterruptableRunnable {
 
  private:
   /// Testing only, the interruptible will bypass initial interruption check.
-  void mustRun() { bypass_check_ = true; }
+  void mustRun() {
+    bypass_check_ = true;
+  }
 
  private:
   /**
@@ -91,7 +97,7 @@ class InterruptableRunnable {
    * Interruption means resources have been stopped.
    * Non-interruption means no attempt to affect resources has been started.
    */
-  std::mutex stopping_;
+  Mutex stopping_;
 
   /// If a service includes a run loop it should check for interrupted.
   std::atomic<bool> interrupted_{false};
@@ -134,7 +140,9 @@ class InternalRunnable : private boost::noncopyable,
    * #hasRun makes a much better guess at the state of the thread.
    * If it has run then stop must be called.
    */
-  bool hasRun() { return run_; }
+  bool hasRun() {
+    return run_;
+  }
 
  protected:
   /// Require the runnable thread define an entrypoint.
@@ -182,7 +190,9 @@ class Dispatcher : private boost::noncopyable {
   static void stopServices();
 
   /// Return number of services.
-  size_t serviceCount() { return services_.size(); }
+  size_t serviceCount() {
+    return services_.size();
+  }
 
  private:
   /**
@@ -200,7 +210,9 @@ class Dispatcher : private boost::noncopyable {
 
  private:
   /// For testing only, reset the stopping status for unittests.
-  void resetStopping() { stopping_ = false; }
+  void resetStopping() {
+    stopping_ = false;
+  }
 
  private:
   /// The set of shared osquery service threads.
