@@ -24,7 +24,7 @@ FLAG(int32, worker_threads, 4, "Number of work dispatch threads");
 
 /// Cancel the pause request.
 void RunnerInterruptPoint::cancel() {
-  WriteLock lock(mutex_);
+  std::unique_lock<std::mutex> lock(mutex_);
   stop_ = true;
   condition_.notify_all();
 }

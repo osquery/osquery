@@ -20,7 +20,7 @@
 namespace osquery {
 namespace tables {
 
-std::mutex pwdEnumerationMutex;
+Mutex pwdEnumerationMutex;
 
 void genUser(const struct passwd* pwd, QueryData& results) {
   Row r;

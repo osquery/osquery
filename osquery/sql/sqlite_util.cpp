@@ -184,7 +184,7 @@ void SQLiteSQLPlugin::detach(const std::string& name) {
   detachTableInternal(name, dbc->db());
 }
 
-SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, std::mutex& mtx)
+SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
     : db_(db), lock_(mtx, std::try_to_lock) {
   if (lock_.owns_lock()) {
     primary_ = true;
@@ -282,7 +282,7 @@ SQLiteDBInstanceRef SQLiteDBManager::getUnique() {
 
 SQLiteDBInstanceRef SQLiteDBManager::getConnection(bool primary) {
   auto& self = instance();
-  std::unique_lock<std::mutex> lock(self.create_mutex_);
+  WriteLock lock(self.create_mutex_);
 
   if (self.db_ == nullptr) {
     // Create primary SQLite DB instance.

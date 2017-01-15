@@ -108,7 +108,7 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
   rocksdb::Options options_;
 
   /// Deconstruction mutex.
-  std::mutex close_mutex_;
+  Mutex close_mutex_;
 };
 
 /// Backing-storage provider for osquery internal/core.
@@ -231,7 +231,7 @@ Status RocksDBDatabasePlugin::setUp() {
 }
 
 void RocksDBDatabasePlugin::close() {
-  std::unique_lock<std::mutex> lock(close_mutex_);
+  WriteLock lock(close_mutex_);
   for (auto handle : handles_) {
     delete handle;
   }
