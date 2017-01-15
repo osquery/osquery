@@ -55,7 +55,7 @@ bool PlatformProcess::killGracefully() const {
     return false;
   }
 
-  int status = ::kill(nativeHandle(), SIGUSR2);
+  int status = ::kill(nativeHandle(), SIGINT);
   return (status == 0);
 }
 
