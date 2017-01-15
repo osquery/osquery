@@ -79,7 +79,11 @@ bool PlatformProcess::kill() const {
     return false;
   }
 
-  return (::TerminateProcess(id_, 0) != FALSE);
+  return (::TerminateProcess(nativeHandle(), 0) != FALSE);
+}
+
+bool PlatformProcess::killGracefully() const {
+  return kill();
 }
 
 ProcessState PlatformProcess::checkStatus(int& status) const {

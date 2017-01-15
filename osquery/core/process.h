@@ -113,6 +113,11 @@ class PlatformProcess : private boost::noncopyable {
   bool kill() const;
 
   /**
+   * @brief Attempt to kill a process gracefully, usually a child process.
+   */
+  bool killGracefully() const;
+
+  /**
    * @brief Wait or cleanup a process, usually a child process.
    *
    * This will wait for a process to cleanup. Use this after requesting a
