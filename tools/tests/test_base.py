@@ -555,7 +555,7 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
 
         # The sets of example tests will use the extensions APIs.
         self.client = EXClient(self.daemon.options["extensions_socket"])
-        expectTrue(self.client.open)
+        expectTrue(self.client.try_open)
         self.assertTrue(self.client.open())
         self.em = self.client.getEM()
 
