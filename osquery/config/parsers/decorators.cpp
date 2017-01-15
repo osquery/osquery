@@ -194,6 +194,7 @@ void DecoratorsConfigParserPlugin::updateDecorations(
 inline void addDecoration(const std::string& source,
                           const std::string& name,
                           const std::string& value) {
+  WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsMutex);
   DecoratorsConfigParserPlugin::kDecorations[source][name] = value;
 }
 
@@ -237,7 +238,6 @@ void runDecorators(DecorationPoint point,
 
   // Abstract the use of the decorator parser API.
   auto dp = std::dynamic_pointer_cast<DecoratorsConfigParserPlugin>(parser);
-  WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsMutex);
   if (point == DECORATE_LOAD) {
     for (const auto& target_source : dp->load_) {
       if (source.empty() || target_source.first == source) {
@@ -268,7 +268,7 @@ void getDecorations(std::map<std::string, std::string>& results) {
     return;
   }
 
-  WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsMutex);
+  ReadLock lock(DecoratorsConfigParserPlugin::kDecorationsMutex);
   // Copy the decorations into the log_item.
   for (const auto& source : DecoratorsConfigParserPlugin::kDecorations) {
     for (const auto& decoration : source.second) {
