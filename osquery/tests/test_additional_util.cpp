@@ -30,6 +30,7 @@ DECLARE_string(tls_hostname);
 DECLARE_string(enroll_tls_endpoint);
 DECLARE_string(tls_server_certs);
 DECLARE_string(enroll_secret_path);
+DECLARE_bool(disable_caching);
 
 void TLSServerRunner::start() {
   auto& self = instance();
@@ -54,7 +55,10 @@ void TLSServerRunner::start() {
   std::string query =
       "select pid from listening_ports where port = '" + self.port_ + "'";
   while (delay < 2 * 1000) {
+    auto caching = FLAGS_disable_caching;
+    FLAGS_disable_caching = true;
     auto results = SQL(query);
+    FLAGS_disable_caching = caching;
     if (results.rows().size() > 0) {
       self.server_.reset(
           new PlatformProcess(std::atoi(results.rows()[0].at("pid").c_str())));
