@@ -589,6 +589,9 @@ Status scanDatabaseKeys(const std::string& domain,
                         const std::string& prefix,
                         size_t max = 0);
 
+/// Allow callers to reload or reset the database plugin.
+void resetDatabase();
+
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
 }

@@ -251,7 +251,7 @@ void SQLiteDBInstance::clearAffectedTables() {
 }
 
 SQLiteDBInstance::~SQLiteDBInstance() {
-  if (!isPrimary()) {
+  if (!isPrimary() && db_ != nullptr) {
     sqlite3_close(db_);
   } else {
     db_ = nullptr;
@@ -266,6 +266,16 @@ SQLiteDBManager::SQLiteDBManager() : db_(nullptr) {
 bool SQLiteDBManager::isDisabled(const std::string& table_name) {
   const auto& element = instance().disabled_tables_.find(table_name);
   return (element != instance().disabled_tables_.end());
+}
+
+void SQLiteDBManager::resetPrimary() {
+  auto& self = instance();
+  WriteLock create_lock(self.create_mutex_);
+  WriteLock connection_lock(self.mutex_);
+
+  self.connection_.reset();
+  sqlite3_close(self.db_);
+  self.db_ = nullptr;
 }
 
 void SQLiteDBManager::setDisabledTables(const std::string& list) {

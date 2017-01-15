@@ -20,6 +20,7 @@
 namespace osquery {
 
 DECLARE_bool(disable_logging);
+DECLARE_uint64(schedule_reload);
 
 class SchedulerTests : public testing::Test {
   void SetUp() override {
@@ -170,5 +171,18 @@ TEST_F(SchedulerTests, test_scheduler) {
   // Restore plugin settings.
   TablePlugin::kCacheStep = backup_step;
   TablePlugin::kCacheInterval = backup_interval;
+}
+
+TEST_F(SchedulerTests, test_scheduler_reload) {
+  std::string config =
+      "{\"schedule\":{\"1\":{"
+      "\"query\":\"select * from processes\", \"interval\":1}}}";
+  auto backup_reload = FLAGS_schedule_reload;
+
+  // Start the scheduler;
+  auto expire = static_cast<unsigned long int>(getUnixTime() + 1);
+  FLAGS_schedule_reload = 1;
+  SchedulerRunner runner(expire, 1);
+  FLAGS_schedule_reload = backup_reload;
 }
 }

@@ -505,6 +505,8 @@ Status DatabasePlugin::call(const PluginRequest& request,
       response.push_back({{"k", k}});
     }
     return status;
+  } else if (request.at("action") == "reset") {
+    return this->reset();
   }
 
   return Status(1, "Unknown database plugin action");
@@ -601,6 +603,14 @@ Status scanDatabaseKeys(const std::string& domain,
   } else {
     auto plugin = getDatabasePlugin();
     return plugin->scan(domain, keys, prefix, max);
+  }
+}
+
+void resetDatabase() {
+  PluginRequest request = {{"action", "reset"}};
+  if (!Registry::call("database", request)) {
+    LOG(WARNING) << "Unable to reset database plugin: "
+                 << Registry::get().getActive("database");
   }
 }
 
