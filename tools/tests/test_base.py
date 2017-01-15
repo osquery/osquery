@@ -385,6 +385,13 @@ class EXClient(object):
         if self.transport:
             self.transport.close()
 
+    def try_open(self, timeout=0.1, interval=0.01):
+        '''Try to open, on success, close the UNIX domain socket.'''
+        did_open = self.open(timeout, interval)
+        if did_open:
+            self.close()
+        return did_open
+
     def open(self, timeout=0.1, interval=0.01):
         '''Attempt to open the UNIX domain socket.'''
         delay = 0
@@ -548,7 +555,7 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
 
         # The sets of example tests will use the extensions APIs.
         self.client = EXClient(self.daemon.options["extensions_socket"])
-        expectTrue(self.client.open)
+        expectTrue(self.client.try_open)
         self.assertTrue(self.client.open())
         self.em = self.client.getEM()
 

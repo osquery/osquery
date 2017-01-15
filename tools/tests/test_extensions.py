@@ -22,9 +22,9 @@ import time
 import threading
 import unittest
 
-
 # osquery-specific testing utils
 import test_base
+import utils
 
 EXTENSION_TIMEOUT = 10
 
@@ -212,7 +212,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client
         client = test_base.EXClient(extension.options["extensions_socket"])
-        test_base.expectTrue(client.open)
+        test_base.expectTrue(client.try_open)
         self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
@@ -249,8 +249,9 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
     @test_base.flaky
     def test_6_extensions_directory_autoload(self):
-        loader = test_base.Autoloader(
-            [test_base.ARGS.build + "/osquery/"])
+        utils.copy_file(test_base.ARGS.build + "/osquery/example_extension.ext",
+            test_base.CONFIG_DIR)
+        loader = test_base.Autoloader([test_base.CONFIG_DIR])
         daemon = self._run_daemon({
             "disable_watchdog": True,
             "extensions_timeout": EXTENSION_TIMEOUT,
@@ -332,7 +333,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Get a python-based thrift client to the manager and extension.
         client = test_base.EXClient(extension.options["extensions_socket"])
-        test_base.expectTrue(client.open)
+        test_base.expectTrue(client.try_open)
         self.assertTrue(client.open(timeout=EXTENSION_TIMEOUT))
         em = client.getEM()
 
@@ -342,7 +343,7 @@ class ExtensionTests(test_base.ProcessGenerator, unittest.TestCase):
         ex_uuid = result.keys()[0]
         client2 = test_base.EXClient(extension.options["extensions_socket"],
             uuid=ex_uuid)
-        test_base.expectTrue(client2.open)
+        test_base.expectTrue(client2.try_open)
         self.assertTrue(client2.open(timeout=EXTENSION_TIMEOUT))
         ex = client2.getEX()
 

@@ -62,6 +62,10 @@ def reset_dir(p):
         pass
 
 
+def copy_file(f, d):
+    shutil.copy(f, d)
+
+
 def platform():
     platform = sys.platform
     if platform.find("linux") == 0:
