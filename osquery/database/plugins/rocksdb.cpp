@@ -130,10 +130,10 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
 
   // There is a spurious warning on first open.
   if (log_line.find("Error when reading") == std::string::npos) {
-    // Rocksdb calls are non-reentrant. Since this callback is made in the
-    // context of a rocksdb api call, turn log forwarding off to prevent the
-    // logger from trying to make a call back into rocksdb and causing a
-    // deadlock
+    // RocksDB calls are non-reentrant. Since this callback is made in the
+    // context of a RocksDB API call, turn log forwarding off to prevent the
+    // logger from trying to make a call back into RocksDB and causing a
+    // deadlock.
     LoggerForwardingDisabler forwarding_disabler;
     LOG(INFO) << "RocksDB: " << log_line;
   }
@@ -141,7 +141,7 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
 
 Status RocksDBDatabasePlugin::setUp() {
   if (!kDBHandleOptionAllowOpen) {
-    LOG(WARNING) << RLOG(1629) << "Not allowed to create DBHandle instance";
+    LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
   }
 
   if (!initialized_) {

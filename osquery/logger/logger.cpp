@@ -224,7 +224,7 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 };
 
 /// Scoped helper to perform logging actions without races.
-class LoggerDisabler {
+class LoggerDisabler : private boost::noncopyable {
  public:
   LoggerDisabler()
       : stderr_status_(FLAGS_logtostderr),
