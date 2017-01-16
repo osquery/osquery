@@ -11,9 +11,9 @@
 #include <set>
 
 // Keep sys/socket first.
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <libproc.h>
+#include <sys/socket.h>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
@@ -33,9 +33,9 @@ enum descriptor_type {
 };
 
 // From processes.cpp
-std::set<int> getProcList(const QueryContext &context);
+std::set<int> getProcList(const QueryContext& context);
 
-inline std::string socketIpAsString(const struct in_sockinfo *in,
+inline std::string socketIpAsString(const struct in_sockinfo* in,
                                     int type,
                                     int family) {
   char dst[INET6_ADDRSTRLEN];
@@ -61,9 +61,9 @@ inline std::string socketIpAsString(const struct in_sockinfo *in,
   return address;
 }
 
-void parseNetworkSocket(const struct socket_fdinfo socket_info, Row &r) {
+void parseNetworkSocket(const struct socket_fdinfo socket_info, Row& r) {
   // Set socket protocol.
-  const struct in_sockinfo *in;
+  const struct in_sockinfo* in = nullptr;
   if (socket_info.psi.soi_kind == SOCKINFO_TCP) {
     in = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini;
   } else {
@@ -77,7 +77,7 @@ void parseNetworkSocket(const struct socket_fdinfo socket_info, Row &r) {
   r["remote_port"] = INTEGER(ntohs(in->insi_fport));
 }
 
-void genFileDescriptor(int pid, int descriptor, QueryData &results) {
+void genFileDescriptor(int pid, int descriptor, QueryData& results) {
   struct vnode_fdinfowithpath vi;
   if (proc_pidfdinfo(pid,
                      descriptor,
@@ -94,7 +94,7 @@ void genFileDescriptor(int pid, int descriptor, QueryData &results) {
   results.push_back(r);
 }
 
-void genSocketDescriptor(int pid, int descriptor, QueryData &results) {
+void genSocketDescriptor(int pid, int descriptor, QueryData& results) {
   struct socket_fdinfo si;
   if (proc_pidfdinfo(pid,
                      descriptor,
@@ -139,7 +139,7 @@ void genSocketDescriptor(int pid, int descriptor, QueryData &results) {
     r["local_port"] = "0";
     r["remote_address"] = "";
     r["remote_port"] = "0";
-    if ((char *)si.psi.soi_proto.pri_un.unsi_addr.ua_sun.sun_path != nullptr) {
+    if ((char*)si.psi.soi_proto.pri_un.unsi_addr.ua_sun.sun_path != nullptr) {
       r["path"] = si.psi.soi_proto.pri_un.unsi_addr.ua_sun.sun_path;
     } else {
       r["path"] = "";
@@ -154,7 +154,7 @@ void genSocketDescriptor(int pid, int descriptor, QueryData &results) {
   }
 }
 
-void genOpenDescriptors(int pid, descriptor_type type, QueryData &results) {
+void genOpenDescriptors(int pid, descriptor_type type, QueryData& results) {
   int bufsize = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
   if (bufsize == -1) {
     VLOG(1) << "Could not list descriptors for pid: " << pid;
@@ -170,17 +170,17 @@ void genOpenDescriptors(int pid, descriptor_type type, QueryData &results) {
         fd_info.proc_fdtype == PROX_FDTYPE_VNODE) {
       genFileDescriptor(pid, fd_info.proc_fd, results);
     } else if (type == DESCRIPTORS_TYPE_SOCKET &&
-        fd_info.proc_fdtype == PROX_FDTYPE_SOCKET) {
+               fd_info.proc_fdtype == PROX_FDTYPE_SOCKET) {
       genSocketDescriptor(pid, fd_info.proc_fd, results);
     }
   }
 }
 
-QueryData genOpenSockets(QueryContext &context) {
+QueryData genOpenSockets(QueryContext& context) {
   QueryData results;
 
   auto pidlist = getProcList(context);
-  for (auto &pid : pidlist) {
+  for (auto& pid : pidlist) {
     if (!context.constraints["pid"].matches(pid)) {
       // Optimize by not searching when a pid is a constraint.
       continue;
@@ -191,11 +191,11 @@ QueryData genOpenSockets(QueryContext &context) {
   return results;
 }
 
-QueryData genOpenFiles(QueryContext &context) {
+QueryData genOpenFiles(QueryContext& context) {
   QueryData results;
 
   auto pidlist = getProcList(context);
-  for (auto &pid : pidlist) {
+  for (auto& pid : pidlist) {
     if (!context.constraints["pid"].matches(pid)) {
       // Optimize by not searching when a pid is a constraint.
       continue;
