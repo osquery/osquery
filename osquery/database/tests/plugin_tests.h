@@ -24,6 +24,9 @@
   TEST_F(n, test_plugin_check) {                                               \
     testPluginCheck();                                                         \
   }                                                                            \
+  TEST_F(n, test_reset) {                                                      \
+    testReset();                                                               \
+  }                                                                            \
   TEST_F(n, test_put) {                                                        \
     testPut();                                                                 \
   }                                                                            \
@@ -97,6 +100,7 @@ class DatabasePluginTests : public testing::Test {
 
  protected:
   void testPluginCheck();
+  void testReset();
   void testPut();
   void testGet();
   void testDelete();

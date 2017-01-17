@@ -38,6 +38,19 @@ void DatabasePluginTests::testPluginCheck() {
   EXPECT_TRUE(db_plugin->reset());
 }
 
+void DatabasePluginTests::testReset() {
+  RegistryFactory::get().setActive("database", getName());
+  setDatabaseValue(kLogs, "reset", "1");
+  resetDatabase();
+
+  if ("ephemeral" != getName()) {
+    // The ephemeral plugin is special and does not persist after reset.
+    std::string value;
+    EXPECT_TRUE(getDatabaseValue(kLogs, "reset", value));
+    EXPECT_EQ(value, "1");
+  }
+}
+
 void DatabasePluginTests::testPut() {
   auto s = getPlugin()->put(kQueries, "test_put", "bar");
   EXPECT_TRUE(s.ok());

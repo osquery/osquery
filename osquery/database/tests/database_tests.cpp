@@ -72,13 +72,4 @@ TEST_F(DatabaseTests, test_delete_values) {
   EXPECT_FALSE(s.ok());
   EXPECT_TRUE(value.empty());
 }
-
-TEST_F(DatabaseTests, test_reset) {
-  setDatabaseValue(kLogs, "reset", "1");
-  resetDatabase();
-
-  std::string value;
-  EXPECT_TRUE(getDatabaseValue(kLogs, "reset", value));
-  EXPECT_EQ(value, "1");
-}
 }

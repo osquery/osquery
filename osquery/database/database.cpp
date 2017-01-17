@@ -634,7 +634,6 @@ void resetDatabase() {
     LOG(WARNING) << "Unable to reset database plugin: "
                  << Registry::get().getActive("database");
   }
-  printf("done\n");
 }
 
 void dumpDatabase() {
