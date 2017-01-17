@@ -26,7 +26,7 @@ namespace osquery {
  * @brief A list of supported backing storage categories: called domains.
  *
  * RocksDB has a concept of "column families" which are kind of like tables
- * in other databases. kDomainds is populated with a list of all column
+ * in other databases. kDomains is populated with a list of all column
  * families. If a string exists in kDomains, it's a column family in the
  * database.
  *
