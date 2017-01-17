@@ -99,11 +99,15 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
 
   /// Protect additions to the decorator set.
   static Mutex kDecorationsMutex;
+
+  /// Protect the configuration controlled content.
+  static Mutex kDecorationsConfigMutex;
 };
 }
 
 DecorationStore DecoratorsConfigParserPlugin::kDecorations;
 Mutex DecoratorsConfigParserPlugin::kDecorationsMutex;
+Mutex DecoratorsConfigParserPlugin::kDecorationsConfigMutex;
 
 Status DecoratorsConfigParserPlugin::setUp() {
   // Decorators are kept within customized data structures.
@@ -128,7 +132,7 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
 
 void DecoratorsConfigParserPlugin::clearSources(const std::string& source) {
   // Reset the internal data store.
-  WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsMutex);
+  WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsConfigMutex);
   if (intervals_.count(source) > 0) {
     intervals_[source].clear();
   }
@@ -152,7 +156,7 @@ void DecoratorsConfigParserPlugin::reset() {
 
 void DecoratorsConfigParserPlugin::updateDecorations(
     const std::string& source, const pt::ptree& decorators) {
-  WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsMutex);
+  WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsConfigMutex);
   // Assign load decorators.
   auto& load_key = kDecorationPointKeys.at(DECORATE_LOAD);
   if (decorators.count(load_key) > 0) {
@@ -237,6 +241,7 @@ void runDecorators(DecorationPoint point,
   }
 
   // Abstract the use of the decorator parser API.
+  ReadLock lock(DecoratorsConfigParserPlugin::kDecorationsConfigMutex);
   auto dp = std::dynamic_pointer_cast<DecoratorsConfigParserPlugin>(parser);
   if (point == DECORATE_LOAD) {
     for (const auto& target_source : dp->load_) {
