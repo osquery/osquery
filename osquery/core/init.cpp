@@ -293,7 +293,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 #endif
   }
 
-  Flag::create("alsologtostderr",
+  Flag::create("logtostderr",
                {"Log messages to stderr in addition to the logger plugin(s)",
                 false,
                 false,

@@ -315,6 +315,9 @@ void setVerboseLevel() {
     // Do log only WARNING, ERROR to log sinks.
     if (kToolType == ToolType::DAEMON) {
       FLAGS_minloglevel = google::GLOG_INFO;
+      if (Flag::isDefault("stderrthreshold")) {
+        FLAGS_stderrthreshold = google::GLOG_INFO;
+      }
     } else {
       FLAGS_minloglevel = google::GLOG_WARNING;
       FLAGS_stderrthreshold = google::GLOG_WARNING;
