@@ -293,6 +293,15 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 #endif
   }
 
+  Flag::create("logtostderr",
+               {"Log messages to stderr in addition to the logger plugin(s)",
+                false,
+                false,
+                true,
+                false});
+  Flag::create("stderrthreshold",
+               {"Stderr log level threshold", false, false, true, false});
+
   // osquery implements a custom help/usage output.
   for (int i = 1; i < *argc_; i++) {
     auto help = std::string((*argv_)[i]);

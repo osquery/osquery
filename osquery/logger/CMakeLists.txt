@@ -6,6 +6,7 @@ if(WINDOWS)
     "plugins/buffered.cpp"
     "plugins/filesystem.cpp"
     "plugins/tls.cpp"
+    "plugins/stdout.cpp"
   )
   file(GLOB OSQUERY_LOGGER_PLUGIN_TESTS "plugins/tests/filesystem_logger_tests.cpp")
 else()
