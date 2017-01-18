@@ -8,15 +8,16 @@
  *
  */
 
-#include <map>
-#include <set>
-
 #include <libproc.h>
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #include <sys/sysctl.h>
 
 #include <mach-o/dyld_images.h>
+
+#include <array>
+#include <map>
+#include <set>
 
 #include <boost/algorithm/string.hpp>
 
@@ -44,6 +45,17 @@ namespace tables {
 // SZOMB  (5) Awaiting collection by parent
 const char kProcessStateMapping[] = {' ', 'I', 'R', 'S', 'T', 'Z'};
 
+/**
+ * @brief Use process APIs for quick process path access.
+ *
+ * This has a secondary effect if the process is run as root. It can inspect
+ * the process memory for the first region to find the EXE path. This helps
+ * if the process's program was deleted.
+ *
+ * @param pid The pid requested.
+ */
+static std::string getProcPath(int pid);
+
 std::set<int> getProcList(const QueryContext& context) {
   std::set<int> pidlist;
   if (context.constraints.count("pid") > 0 &&
@@ -62,13 +74,8 @@ std::set<int> getProcList(const QueryContext& context) {
     return pidlist;
   }
 
-  // arbitrarily create a list with 2x capacity in case more processes have
-  // been loaded since the last proc_listpids was executed
+  // Use twice the number of PIDs returned to handle races.
   pid_t pids[2 * bufsize / sizeof(pid_t)];
-
-  // now that we've allocated "pids", let's overwrite num_pids with the actual
-  // amount of data that was returned for proc_listpids when we populate the
-  // pids data structure
   bufsize = proc_listpids(PROC_ALL_PIDS, 0, pids, sizeof(pids));
   if (bufsize <= 0) {
     VLOG(1) << "An error occurred retrieving the process list";
@@ -77,7 +84,7 @@ std::set<int> getProcList(const QueryContext& context) {
 
   size_t num_pids = bufsize / sizeof(pid_t);
   for (size_t i = 0; i < num_pids; ++i) {
-    // if the pid is negative or 0, it doesn't represent a real process so
+    // If the pid is negative or 0, it doesn't represent a real process so
     // continue the iterations so that we don't add it to the results set
     if (pids[i] <= 0) {
       continue;
@@ -86,16 +93,6 @@ std::set<int> getProcList(const QueryContext& context) {
   }
 
   return pidlist;
-}
-
-inline std::string getProcPath(int pid) {
-  char path[PROC_PIDPATHINFO_MAXSIZE] = {0};
-  int bufsize = proc_pidpath(pid, path, sizeof(path));
-  if (bufsize <= 0) {
-    path[0] = '\0';
-  }
-
-  return std::string(path);
 }
 
 struct proc_cred {
@@ -147,14 +144,14 @@ inline bool getProcCred(int pid, proc_cred& cred) {
 }
 
 // Get the max args space
-static int genMaxArgs() {
+static inline int genMaxArgs() {
   static int argmax = 0;
 
   if (argmax == 0) {
     int mib[2] = {CTL_KERN, KERN_ARGMAX};
     size_t size = sizeof(argmax);
     if (sysctl(mib, 2, &argmax, &size, nullptr, 0) == -1) {
-      VLOG(1) << "An error occurred retrieving the max arg size";
+      VLOG(1) << "An error occurred retrieving the max argument size";
       return 0;
     }
   }
@@ -186,19 +183,16 @@ struct proc_args {
 
 proc_args getProcRawArgs(int pid, size_t argmax) {
   proc_args args;
-  uid_t euid = geteuid();
   char procargs[argmax];
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
   if (sysctl(mib, 3, &procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
-    if (euid == 0) {
-      VLOG(1) << "An error occurred retrieving the env for pid: " << pid;
-    }
     return args;
   }
 
   // The number of arguments is an integer in front of the result buffer.
   int nargs = 0;
   memcpy(&nargs, procargs, sizeof(nargs));
+
   // Walk the \0-tokenized list of arguments until reaching the returned 'max'
   // number of arguments or the number appended to the front.
   const char* current_arg = &procargs[0] + sizeof(nargs);
@@ -246,9 +240,6 @@ QueryData genProcesses(QueryContext& context) {
   for (auto& pid : pidlist) {
     Row r;
     r["pid"] = INTEGER(pid);
-    r["path"] = getProcPath(pid);
-    // OS X proc_name only returns 16 bytes, use the basename of the path.
-    r["name"] = fs::path(r["path"]).filename().string();
 
     {
       // The command line invocation including arguments.
@@ -279,12 +270,30 @@ QueryData genProcesses(QueryContext& context) {
       continue;
     }
 
+    // If the process is not a Zombie, try to find the path and name.
+    if (cred.status != 5) {
+      r["path"] = getProcPath(pid);
+      // OS X proc_name only returns 16 bytes, use the basename of the path.
+      r["name"] = fs::path(r["path"]).filename().string();
+    } else {
+      r["path"] = "";
+      std::vector<char> name(17);
+      proc_name(pid, name.data(), 16);
+      r["name"] = std::string(name.data());
+    }
+
     // If the path of the executable that started the process is available and
     // the path exists on disk, set on_disk to 1. If the path is not
     // available, set on_disk to -1. If, and only if, the path of the
     // executable is available and the file does NOT exist on disk, set on_disk
     // to 0.
-    r["on_disk"] = osquery::pathExists(r["path"]).toString();
+    if (r["path"].empty()) {
+      r["on_disk"] = INTEGER(-1);
+    } else if (pathExists(r["path"])) {
+      r["on_disk"] = INTEGER(1);
+    } else {
+      r["on_disk"] = INTEGER(0);
+    }
 
     // systems usage and time information
     struct rusage_info_v2 rusage_info_data;
@@ -317,8 +326,8 @@ QueryData genProcesses(QueryContext& context) {
     struct proc_taskinfo task_info;
     status =
         proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &task_info, sizeof(task_info));
-    if (status == 0) {
-      r["threads"] = task_info.pti_threadnum;
+    if (status == sizeof(task_info)) {
+      r["threads"] = INTEGER(task_info.pti_threadnum);
     } else {
       r["threads"] = "-1";
     }
@@ -517,7 +526,7 @@ void genProcessLibraries(const mach_port_t& task,
   }
 }
 
-void genProcessMemoryMap(int pid, QueryData& results) {
+void genProcessMemoryMap(int pid, QueryData& results, bool exe_only = false) {
   mach_port_t task = MACH_PORT_NULL;
   kern_return_t status = task_for_pid(mach_task_self(), pid, &task);
   if (status != KERN_SUCCESS) {
@@ -527,7 +536,9 @@ void genProcessMemoryMap(int pid, QueryData& results) {
 
   // Create a map of library paths from the dyld cache.
   std::map<vm_address_t, std::string> libraries;
-  genProcessLibraries(task, libraries);
+  if (!exe_only) {
+    genProcessLibraries(task, libraries);
+  }
 
   // Use address offset (starting at 0) to count memory maps.
   vm_address_t address = 0;
@@ -555,12 +566,32 @@ void genProcessMemoryMap(int pid, QueryData& results) {
     }
 
     genMemoryRegion(pid, address, size, info, libraries, results);
+    if (exe_only) {
+      break;
+    }
     address += size;
   }
 
   if (task != MACH_PORT_NULL) {
     mach_port_deallocate(mach_task_self(), task);
   }
+}
+
+static std::string getProcPath(int pid) {
+  char path[PROC_PIDPATHINFO_MAXSIZE] = {0};
+  int bufsize = proc_pidpath(pid, path, sizeof(path));
+  if (bufsize <= 0) {
+    if (getuid() == 0) {
+      QueryData memory_map;
+      genProcessMemoryMap(pid, memory_map, true);
+      if (memory_map.size() > 0) {
+        return memory_map[0]["path"];
+      }
+    }
+    path[0] = '\0';
+  }
+
+  return std::string(path);
 }
 
 QueryData genProcessMemoryMap(QueryContext& context) {
