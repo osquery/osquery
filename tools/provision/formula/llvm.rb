@@ -49,11 +49,12 @@ class Llvm < AbstractOsqueryFormula
     end
   end
 
-  bottle do
-    root_url "https://osquery-packages.s3.amazonaws.com/bottles"
-    cellar :any_skip_relocation
-    sha256 "349e1f8f4831665c87245cdc727c34b23f7bbd6b6fccbd7c39a3c3a89b002767" => :x86_64_linux
-  end
+  # The current bottle does not build LLVMgold.so
+  #bottle do
+  #  root_url "https://osquery-packages.s3.amazonaws.com/bottles"
+  #  cellar :any_skip_relocation
+  #  sha256 "349e1f8f4831665c87245cdc727c34b23f7bbd6b6fccbd7c39a3c3a89b002767" => :x86_64_linux
+  #end
 
   head do
     url "http://llvm.org/git/llvm.git"
@@ -86,6 +87,8 @@ class Llvm < AbstractOsqueryFormula
   option "without-polly", "Do not build Polly optimizer"
 
   deprecated_option "rtti" => "with-rtti"
+
+  depends_on "binutils" if build.with? "clang"
 
   # Apple's libstdc++ is too old to build LLVM
   fails_with :gcc
@@ -121,6 +124,12 @@ class Llvm < AbstractOsqueryFormula
     if build.with? "rtti"
       args << "-DLLVM_ENABLE_RTTI=ON"
       args << "-DLLVM_ENABLE_EH=ON"
+    end
+
+    if build.with? "clang"
+      # build the LLVMGold plugin
+      binutils = Formula["binutils"].prefix/"include"
+      args << "-DLLVM_BINUTILS_INCDIR=#{binutils}"
     end
 
     args << "-DLLVM_BUILD_EXTERNAL_COMPILER_RT=ON" if build.with? "compiler-rt"
