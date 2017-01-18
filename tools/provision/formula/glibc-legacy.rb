@@ -2,8 +2,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 
 class GlibcLegacy < AbstractOsqueryFormula
   desc "The GNU C Library"
-  homepage "https://www.gnu.org/software/libc/download.html"
-  url "https://ftp.heanet.ie/mirrors/gnu/glibc/glibc-2.13.tar.bz2"
+  homepage "https://www.gnu.org/software/libc"
+  url "ftp.gnu.org/gnu/glibc/glibc-2.13.tar.bz2"
   sha256 "0173c92a0545e6d99a46a4fbed2da00ba26556f5c6198e2f9f1631ed5318dbb2"
 
   bottle do
