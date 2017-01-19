@@ -4,6 +4,6 @@ schema([
     Column("target_name", TEXT, "Address of prometheus target"),
     Column("metric_name", TEXT, "Name of collected Prometheus metric"),
     Column("metric_value", DOUBLE, "Value of collected Prometheus metric"),
-    Column("timestamp", BIGINT, "Unix timestamp of collected data in MS"),
+    Column("timestamp_ms", BIGINT, "Unix timestamp of collected data in MS"),
 ])
 implementation("applications/prometheus_metrics@genPrometheusMetrics")
