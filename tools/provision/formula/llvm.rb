@@ -22,7 +22,7 @@ end
 class Llvm < AbstractOsqueryFormula
   desc "Next-gen compiler infrastructure"
   homepage "http://llvm.org/"
-  revision 1
+  revision 2
 
   stable do
     url "http://llvm.org/releases/3.8.1/llvm-3.8.1.src.tar.xz"
@@ -49,12 +49,11 @@ class Llvm < AbstractOsqueryFormula
     end
   end
 
-  # The current bottle does not build LLVMgold.so
-  #bottle do
-  #  root_url "https://osquery-packages.s3.amazonaws.com/bottles"
-  #  cellar :any_skip_relocation
-  #  sha256 "349e1f8f4831665c87245cdc727c34b23f7bbd6b6fccbd7c39a3c3a89b002767" => :x86_64_linux
-  #end
+  bottle do
+    root_url "https://osquery-packages.s3.amazonaws.com/bottles"
+    cellar :any_skip_relocation
+    sha256 "349e1f8f4831665c87245cdc727c34b23f7bbd6b6fccbd7c39a3c3a89b002767" => :x86_64_linux
+  end
 
   head do
     url "http://llvm.org/git/llvm.git"
