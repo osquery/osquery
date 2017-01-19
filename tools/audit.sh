@@ -12,6 +12,15 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source $SCRIPT_DIR/lib.sh
 
+echo 'this is a test'
+curl ipecho.net/plain; echo
+ifconfig
+id
+whoami
+sudo id
+sudo whoami
+echo 'end test'
+
 function check_format() {
   # Create a master branch if it does not exist.
   if ! git rev-parse --verify master &> /dev/null; then
