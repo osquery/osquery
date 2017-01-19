@@ -18,8 +18,8 @@ source "$SOURCE_DIR/tools/lib.sh"
 
 PACKAGE_VERSION=`git describe --tags HEAD || echo 'unknown-version'`
 PACKAGE_ARCH="x86_64"
-PACKAGE_ITERATION=""
 PACKAGE_TYPE=""
+PACKAGE_ITERATION=""
 DESCRIPTION="osquery is an operating system instrumentation toolchain."
 PACKAGE_NAME="osquery"
 if [[ $PACKAGE_VERSION == *"-"* ]]; then
@@ -33,7 +33,7 @@ SYSTEMD_SERVICE_SRC="$SCRIPT_DIR/osqueryd.service"
 SYSTEMD_SERVICE_DST="/usr/lib/systemd/system/osqueryd.service"
 SYSTEMD_SYSCONFIG_SRC="$SCRIPT_DIR/osqueryd.sysconfig"
 SYSTEMD_SYSCONFIG_DST="/etc/sysconfig/osqueryd"
-SYSTEMD_SYSCONFIG_DST_DEBIAN="/etc/default/osqueryd"
+SYSTEMD_SYSCONFIG_DST_DEB="/etc/default/osqueryd"
 CTL_SRC="$SCRIPT_DIR/osqueryctl"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/usr/share/osquery/packs/"
@@ -48,7 +48,6 @@ OSQUERY_EXAMPLE_CONFIG_DST="/usr/share/osquery/osquery.example.conf"
 OSQUERY_LOG_DIR="/var/log/osquery/"
 OSQUERY_VAR_DIR="/var/osquery"
 OSQUERY_ETC_DIR="/etc/osquery"
-USE_SYSTEMD=0
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX=$WORKING_DIR/prefix
@@ -59,12 +58,13 @@ function usage() {
     [-u|--preuninst] /path/to/pre-uninstall
     [-p|--postinst] /path/to/post-install
     [-c|--config] /path/to/embedded.config
-    [-s|--systemd]
   This will generate an Linux package with:
   (1) An example config /usr/share/osquery/osquery.example.conf
   (2) An init.d script /etc/init.d/osqueryd
-  (3) A default TLS certificate bundle (provided by cURL)
-  (4) The osquery toolset /usr/bin/osquery*"
+  (3) A systemd service file /usr/lib/systemd/system/osqueryd.service and
+      a sysconfig file /etc/{default|sysconfig}/osqueryd as appropriate
+  (4) A default TLS certificate bundle (provided by cURL)
+  (5) The osquery toolset /usr/bin/osquery*"
 }
 
 function parse_args() {
@@ -73,22 +73,20 @@ function parse_args() {
       -t | --type )           shift
                               PACKAGE_TYPE=$1
                               ;;
-      -c | --config )         shift
-                              OSQUERY_CONFIG_SRC=$1
+      -i | --iteration )      shift
+                              PACKAGE_ITERATION=$1
                               ;;
-      -p | --postinst )       shift
-                              OSQUERY_POSTINSTALL=$1
+      -d | --dependencies )   shift
+                              PACKAGE_DEPENDENCIES="${@}"
                               ;;
       -u | --preuninst)       shift
                               OSQUERY_PREUNINSTALL=$1
                               ;;
-      -i | --iteration )      shift
-                              PACKAGE_ITERATION=$1
+      -p | --postinst )       shift
+                              OSQUERY_POSTINSTALL=$1
                               ;;
-      -s | --systemd )        USE_SYSTEMD=1
-                              ;;
-      -d | --dependencies )   shift
-                              PACKAGE_DEPENDENCIES="${@}"
+      -c | --config )         shift
+                              OSQUERY_CONFIG_SRC=$1
                               ;;
       -h | --help )           usage
                               ;;
@@ -160,30 +158,25 @@ function main() {
     cp $OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC $INSTALL_PREFIX/$OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST
   fi
 
-  if [[ $PACKAGE_TYPE = "deb" && $USE_SYSTEMD = "1" ]]; then
-    #Change config path to Ubuntu/Xenial default
-    SYSTEMD_SYSCONFIG_DST=$SYSTEMD_SYSCONFIG_DST_DEBIAN
+  if [[ $PACKAGE_TYPE = "deb" ]]; then
+    #Change config path to Ubuntu default
+    SYSTEMD_SYSCONFIG_DST=$SYSTEMD_SYSCONFIG_DST_DEB
   fi
 
-  PKG_INIT_LOG="for upstart"
-  if [[ $USE_SYSTEMD = "1" ]]; then
-    PKG_INIT_LOG="for systemd"
-    # Install the systemd service and sysconfig
-    mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
-    mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST`
-    cp $SYSTEMD_SERVICE_SRC $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
-    cp $SYSTEMD_SYSCONFIG_SRC $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST
-  else
-    mkdir -p `dirname $INSTALL_PREFIX$INITD_DST`
-    cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
-  fi
+  log "copying osquery init scripts"
+  mkdir -p `dirname $INSTALL_PREFIX$INITD_DST`
+  mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SERVICE_DST`
+  mkdir -p `dirname $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST`
+  cp $INITD_SRC $INSTALL_PREFIX$INITD_DST
+  cp $SYSTEMD_SERVICE_SRC $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
+  cp $SYSTEMD_SYSCONFIG_SRC $INSTALL_PREFIX$SYSTEMD_SYSCONFIG_DST
 
-  if [[ $PACKAGE_TYPE = "deb" && $USE_SYSTEMD = "1" ]]; then
+  if [[ $PACKAGE_TYPE = "deb" ]]; then
     #Change config path in service unit
     sed -i 's/sysconfig/default/g' $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
   fi
 
-  log "creating $PACKAGE_TYPE package ($PKG_INIT_LOG)"
+  log "creating $PACKAGE_TYPE package"
   IFS=',' read -a deps <<< "$PACKAGE_DEPENDENCIES"
   PACKAGE_DEPENDENCIES=
   for element in "${deps[@]}"
@@ -216,6 +209,8 @@ function main() {
     --iteration $PACKAGE_ITERATION \
     -a $PACKAGE_ARCH               \
     --log error                    \
+    --config-files $INITD_DST      \
+    --config-files $SYSTEMD_SYSCONFIG_DST \
     $PREUNINST_CMD                 \
     $POSTINST_CMD                  \
     $PACKAGE_DEPENDENCIES          \
@@ -274,8 +269,8 @@ function main() {
     rm -f $OUTPUT_DEBUG_PKG_PATH
     CMD="$FPM -s dir -t $PACKAGE_TYPE            \
       -n $PACKAGE_DEBUG_NAME -v $PACKAGE_VERSION \
-      --iteration $PACKAGE_ITERATION             \
       -a $PACKAGE_ARCH                           \
+      --iteration $PACKAGE_ITERATION             \
       --log error                                \
       -d \"$PACKAGE_DEBUG_DEPENDENCIES\"         \
       -p $OUTPUT_DEBUG_PKG_PATH                  \
