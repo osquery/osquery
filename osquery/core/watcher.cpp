@@ -197,7 +197,7 @@ void WatcherRunner::start() {
 
     // Loop over every managed extension and check sanity.
     for (const auto& extension : Watcher::extensions()) {
-      if (!watch(*extension.second)) {
+      if (!isChildSane(*extension.second)) {
         // The extension manager also watches for extension-related failures.
         // The watchdog is more general, but may find failed extensions first.
         if (!createExtension(extension.first)) {
@@ -399,7 +399,7 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
 
   // The worker is sane, no action needed.
   // Attempt to flush status logs to the well-behaved worker.
-  if (use_worker_) {
+  if (use_worker_ && child.pid() == Watcher::getWorker().pid()) {
     relayStatusLogs();
   }
 
