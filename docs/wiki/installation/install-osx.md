@@ -1,6 +1,4 @@
-Continuous integration currently tests stable release versions of osquery against 10.9 and 10.11 (as listed under the _Build_status_ column on the project [README](https://github.com/facebook/osquery/blob/master/README.md)). There are no reported issues which block expected core functionality on 10.12.
-
-Each tagged release of osquery may be installed on all versions of OS X.
+Continuous integration currently tests stable release versions of osquery against macOS 10.12 (as listed under the _Build_status_ column on the project [README](https://github.com/facebook/osquery/blob/master/README.md)). There are no reported issues which block expected core functionality on 10.10, however 10.9 and previous OS X versions do not work.
 
 ## Package Installation
 
@@ -26,7 +24,7 @@ This package does NOT install a LaunchDaemon to start **osqueryd**. You may use 
 
 ### Post installation steps
 
-Only applies if you have never installed and run osqueryd on this Mac.
+Only applies if you have never installed and run **osqueryd** on this Mac.
 
 After completing the brew installation run the following commands. If you are using the chef recipe to install osquery then these steps are not necessary, the [recipe](http://osquery.readthedocs.io/en/stable/deployment/configuration/#chef-os-x) has this covered.
 
