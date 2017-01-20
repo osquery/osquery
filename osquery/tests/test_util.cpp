@@ -239,18 +239,41 @@ ScheduledQuery getOsqueryScheduledQuery() {
   return sq;
 }
 
-std::pair<pt::ptree, Row> getSerializedRow() {
+ColumnNames getSerializedRowColumnNames(bool unordered_and_repeated) {
+  ColumnNames cn;
+  if (unordered_and_repeated) {
+    cn.push_back("repeated_column");
+  }
+  cn.push_back("alphabetical");
+  cn.push_back("foo");
+  cn.push_back("meaning_of_life");
+  cn.push_back("repeated_column");
+  return cn;
+}
+
+std::pair<pt::ptree, Row> getSerializedRow(bool unordered_and_repeated) {
   Row r;
-  r["foo"] = "bar";
-  r["meaning_of_life"] = "42";
+  ColumnNames cns = getSerializedRowColumnNames(unordered_and_repeated);
   pt::ptree arr;
-  arr.put<std::string>("foo", "bar");
-  arr.put<std::string>("meaning_of_life", "42");
+  for (auto cn : cns) {
+    std::string c_value = cn + "_value";
+    r[cn] = c_value;
+    arr.add<std::string>(cn, c_value);
+  }
   return std::make_pair(arr, r);
 }
 
 std::pair<pt::ptree, QueryData> getSerializedQueryData() {
-  auto r = getSerializedRow();
+  auto r = getSerializedRow(false);
+  QueryData q = {r.second, r.second};
+  pt::ptree arr;
+  arr.push_back(std::make_pair("", r.first));
+  arr.push_back(std::make_pair("", r.first));
+  return std::make_pair(arr, q);
+}
+
+std::pair<pt::ptree, QueryData> getSerializedQueryDataWithColumnOrder() {
+  auto r = getSerializedRow(true);
   QueryData q = {r.second, r.second};
   pt::ptree arr;
   arr.push_back(std::make_pair("", r.first));

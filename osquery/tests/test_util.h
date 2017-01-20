@@ -67,15 +67,23 @@ QueryData getTestDBExpectedResults();
 // need to be performed on the dataset to make the results be pair.second
 std::vector<std::pair<std::string, QueryData> > getTestDBResultStream();
 
+// getSerializedRowColumnNames returns a vector of test column names that
+// are in alphabetical order. If unordered_and_repeated is true, the
+// vector includes a repeated column name and is in non-alphabetical order
+ColumnNames getSerializedRowColumnNames(bool unordered_and_repeated);
+
 // getSerializedRow() return an std::pair where pair->first is a string which
 // should serialize to pair->second. pair->second should deserialize
 // to pair->first
-std::pair<pt::ptree, Row> getSerializedRow();
+std::pair<pt::ptree, Row> getSerializedRow(bool unordered_and_repeated = false);
 
 // getSerializedQueryData() return an std::pair where pair->first is a string
 // which should serialize to pair->second. pair->second should
-// deserialize to pair->first
+// deserialize to pair->first. getSerializedQueryDataWithColumnOrder
+// returns a pair where pair->second is a tree that has a repeated column and
+// the child nodes are not in alphabetical order
 std::pair<pt::ptree, QueryData> getSerializedQueryData();
+std::pair<pt::ptree, QueryData> getSerializedQueryDataWithColumnOrder();
 std::pair<std::string, QueryData> getSerializedQueryDataJSON();
 
 // getSerializedDiffResults() return an std::pair where pair->first is a string

@@ -65,6 +65,17 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
+Status serializeRow(const Row& r, const ColumnNames& cols, pt::ptree& tree) {
+  try {
+    for (auto& c : cols) {
+      tree.add<std::string>(c, r.at(c));
+    }
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
+
 Status serializeRowJSON(const Row& r, std::string& json) {
   pt::ptree tree;
   auto status = serializeRow(r, tree);
@@ -108,6 +119,20 @@ Status serializeQueryData(const QueryData& q, pt::ptree& tree) {
   for (const auto& r : q) {
     pt::ptree serialized;
     auto s = serializeRow(r, serialized);
+    if (!s.ok()) {
+      return s;
+    }
+    tree.push_back(std::make_pair("", serialized));
+  }
+  return Status(0, "OK");
+}
+
+Status serializeQueryData(const QueryData& q,
+                          const ColumnNames& cols,
+                          pt::ptree& tree) {
+  for (const auto& r : q) {
+    pt::ptree serialized;
+    auto s = serializeRow(r, cols, serialized);
     if (!s.ok()) {
       return s;
     }

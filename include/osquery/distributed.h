@@ -83,11 +83,13 @@ struct DistributedQueryResult {
   DistributedQueryResult() {}
   DistributedQueryResult(const DistributedQueryRequest& req,
                          const QueryData& res,
+                         const ColumnNames& cols,
                          const Status& s)
-      : request(req), results(res), status(s) {}
+      : request(req), results(res), columns(cols), status(s) {}
 
   DistributedQueryRequest request;
   QueryData results;
+  ColumnNames columns;
   Status status;
 };
 
