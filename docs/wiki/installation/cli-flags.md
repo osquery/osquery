@@ -329,6 +329,14 @@ Set the syslog facility (number) 0-23 for the results log. When using the **sysl
 
 Prepend a `@cee:` cookie to JSON-formatted messages sent to the **syslog** logger plugin. Several syslog parsers use this cookie to indicate that the message payload is parseable JSON. The default value is false.
 
+`--logtostderr=true`
+
+This is default `true` and will also send log messages in GLog format to the process's `stderr`. The logs are limited by severity and the following flag: `--stderrthreshold`.
+
+`--stderrthreshold=2`
+
+This controls the types of logs sent to the process's `stderr`. It does NOT limit or control the types sent to the logger plugin. The default value 2 is `ERROR`, set this to `0` for all non-verbose types. If the `--verbose` flag is set this value is overridden to `0`.
+
 ## Distributed query service flags
 
 `--distributed_plugin=tls`
