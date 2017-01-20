@@ -29,8 +29,6 @@ struct retData {
   std::chrono::milliseconds timestampMS;
 };
 
-typedef std::map<std::string, retData*> scrapeResults;
-
 class PrometheusMetrics {
  public:
   PrometheusMetrics(std::vector<std::string> urls, long timeoutDurationS = 1L)

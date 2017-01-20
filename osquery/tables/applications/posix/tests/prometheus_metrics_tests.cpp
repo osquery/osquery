@@ -67,7 +67,7 @@ TEST_F(PrometheusMetricsTest, happy_path_0_metrics) {
           std::chrono::system_clock::now().time_since_epoch()));
 
   retData* r0 = new retData{0, "", now};
-  scrapeResults sr = {{"example1.com", r0}};
+  std::map<std::string, retData*> sr = {{"example1.com", r0}};
 
   // Initialize expected output.
   QueryData expected;
@@ -94,7 +94,7 @@ TEST_F(PrometheusMetricsTest, happy_path_1_metric) {
           std::chrono::system_clock::now().time_since_epoch()));
   retData* r0 = new retData{
       500, "# some comment\nprocess_virtual_memory_bytes 1.3934592e+07", now};
-  scrapeResults sr = {{"example1.com", r0}};
+  std::map<std::string, retData*> sr = {{"example1.com", r0}};
 
   // Initialize expected output.
   QueryData expected = {
@@ -158,7 +158,7 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_1_target) {
       "1.3934592e+07\n",
       now,
   };
-  scrapeResults sr = {{"example1.com", r0}};
+  std::map<std::string, retData*> sr = {{"example1.com", r0}};
 
   // Initialize expected output.
   QueryData expected = {
@@ -313,7 +313,8 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
       "1.3934592e+07\n",
       now,
   };
-  scrapeResults sr = {{"example1.com", r0}, {"example2.com", r1}};
+  std::map<std::string, retData*> sr = {{"example1.com", r0},
+                                        {"example2.com", r1}};
 
   // Initialize expected output.
   QueryData expected = {
