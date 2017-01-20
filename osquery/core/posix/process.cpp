@@ -64,6 +64,7 @@ ProcessState PlatformProcess::checkStatus(int& status) const {
 
   pid_t result = ::waitpid(nativeHandle(), &process_status, WNOHANG);
   if (result < 0) {
+    process_status = -1;
     if (errno == ECHILD) {
       return PROCESS_EXITED;
     }
