@@ -344,6 +344,11 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     }
     // Initialize the shell after setting modified defaults and parsing flags.
     initShell();
+  } else {
+    // The daemon will only output ERROR logs to stderr.
+    if (Flag::isDefault("stderrthreshold")) {
+      Flag::updateValue("stderrthreshold", "2");
+    }
   }
 
 #ifndef WIN32
