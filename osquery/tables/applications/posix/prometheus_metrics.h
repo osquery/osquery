@@ -13,7 +13,9 @@
 
 #include <osquery/tables.h>
 
-#include <curl/curl.h>
+#include <boost/network/protocol/http/client.hpp>
+
+namespace http = boost::network::http;
 
 namespace osquery {
 namespace tables {
@@ -24,21 +26,19 @@ const std::string col_value = "metric_value";
 const std::string col_timestamp = "timestamp_ms";
 
 struct retData {
-  int size;
   std::string content;
   std::chrono::milliseconds timestampMS;
 };
 
 class PrometheusMetrics {
  public:
-  PrometheusMetrics(std::vector<std::string> urls, long timeoutDurationS = 1L)
+  PrometheusMetrics(std::vector<std::string> urls, int timeoutDurationS = 1)
       : urls_(urls),
-        multiHandle_(curl_multi_init()),
-        timeoutDurtionS_(timeoutDurationS) {}
+        options_(http::client::options().follow_redirects(true).timeout(
+            timeoutDurationS)),
+        client_(options_) {}
 
-  virtual ~PrometheusMetrics() {
-    curl_multi_cleanup(multiHandle_);
-  }
+  virtual ~PrometheusMetrics() {}
 
   QueryData& queryPrometheusTargets();
 
@@ -48,8 +48,8 @@ class PrometheusMetrics {
  private:
   std::vector<std::string> urls_;
   QueryData rows_;
-  CURLM* multiHandle_;
-  long timeoutDurtionS_;
+  http::client::options options_;
+  http::client client_;
 
   void parseScrapeResults(std::map<std::string, retData*>& scrapeResults);
 };

@@ -66,7 +66,7 @@ TEST_F(PrometheusMetricsTest, happy_path_0_metrics) {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::system_clock::now().time_since_epoch()));
 
-  retData* r0 = new retData{0, "", now};
+  retData* r0 = new retData{"", now};
   std::map<std::string, retData*> sr = {{"example1.com", r0}};
 
   // Initialize expected output.
@@ -93,7 +93,7 @@ TEST_F(PrometheusMetricsTest, happy_path_1_metric) {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::system_clock::now().time_since_epoch()));
   retData* r0 = new retData{
-      500, "# some comment\nprocess_virtual_memory_bytes 1.3934592e+07", now};
+      "# some comment\nprocess_virtual_memory_bytes 1.3934592e+07", now};
   std::map<std::string, retData*> sr = {{"example1.com", r0}};
 
   // Initialize expected output.
@@ -127,7 +127,6 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_1_target) {
   std::string nowStr(std::to_string(now.count()));
 
   retData* r0 = new retData{
-      500,
       "# HELP node_vmstat_unevictable_pgs_stranded /proc/vmstat information "
       "field unevictable_pgs_stranded.\n# TYPE "
       "node_vmstat_unevictable_pgs_stranded "
@@ -248,7 +247,6 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
   std::string nowStr(std::to_string(now.count()));
 
   retData* r0 = new retData{
-      500,
       "# HELP node_vmstat_unevictable_pgs_stranded /proc/vmstat information "
       "field unevictable_pgs_stranded.\n# TYPE "
       "node_vmstat_unevictable_pgs_stranded "
@@ -280,7 +278,6 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
       now,
   };
   retData* r1 = new retData{
-      500,
       "# HELP node_vmstat_unevictable_pgs_stranded /proc/vmstat information "
       "field unevictable_pgs_stranded.\n# TYPE "
       "node_vmstat_unevictable_pgs_stranded "

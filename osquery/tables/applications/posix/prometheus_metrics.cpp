@@ -7,7 +7,6 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -20,37 +19,10 @@
 #include <osquery/tables/applications/posix/prometheus_metrics.h>
 #include <osquery/tables/applications/posix/prometheus_metrics_utils.h>
 
+namespace http = boost::network::http;
+
 namespace osquery {
 namespace tables {
-
-#ifdef _WIN32
-inline void wait(int x) {
-  Sleep(x);
-}
-#else
-/* Portable sleep for platforms other than Windows. */
-inline void wait(int x) {
-  struct timeval wait = {0, (x)*1000};
-  (void)select(0, NULL, NULL, NULL, &wait);
-}
-#endif
-
-size_t writeCallback(void* contents, size_t size, size_t nmemb, void* userp) {
-  size_t realSize = size * nmemb;
-  struct retData* payload = (struct retData*)userp;
-
-  payload->timestampMS = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch());
-
-  char* cContents = (char*)contents;
-  for (size_t i = 0; i < realSize; i++) {
-    payload->content.push_back(cContents[i]);
-  }
-
-  payload->size += realSize;
-
-  return realSize;
-}
 
 void PrometheusMetrics::parseScrapeResults(
     std::map<std::string, retData*>& scrapeResults) {
@@ -87,73 +59,24 @@ void PrometheusMetrics::parseScrapeResults(
 
 std::map<std::string, retData*> PrometheusMetrics::scrapeTargets() {
   std::map<std::string, retData*> results;
-  std::vector<CURL*> handles;
-  int stillRunning, repeat0fd;
 
-  // create a separate handle per target url
-  for (auto const& url : urls_) {
-    CURL* handle = curl_easy_init();
-    CURLcode code = CURLE_FAILED_INIT;
-    retData* ret = new retData;
+  for (const auto& url : urls_) {
+    try {
+      retData* rd = new retData;
 
-    if (CURLE_OK ==
-            (code = curl_easy_setopt(handle, CURLOPT_URL, url.c_str())) &&
-        CURLE_OK == (code = curl_easy_setopt(
-                         handle, CURLOPT_WRITEFUNCTION, &writeCallback)) &&
-        CURLE_OK == (code = curl_easy_setopt(handle, CURLOPT_WRITEDATA, ret)) &&
-        CURLE_OK == (code = curl_easy_setopt(
-                         handle, CURLOPT_TIMEOUT, timeoutDurtionS_))) {
-      handles.push_back(handle);
-      curl_multi_add_handle(multiHandle_, handle);
-      results[url] = ret;
+      http::client::request request(url);
+      http::client::response response(client_.get(request));
 
-    } else {
-      LOG(ERROR) << "failed on intialization of curl handle for '" << url
-                 << "' with error: " << curl_easy_strerror(code);
-      curl_easy_cleanup(handle);
+      rd->timestampMS = std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::system_clock::now().time_since_epoch());
+      rd->content = static_cast<std::string>(body(response));
+
+      results[url] = rd;
+
+    } catch (std::exception& e) {
+      LOG(ERROR) << "failed on scrape of target " << url
+                 << " with error: " << e.what();
     }
-  }
-
-  // send async requests and watch for changes
-  // initiate multiperform action
-  curl_multi_perform(multiHandle_, &stillRunning);
-
-  do {
-    CURLMcode status;
-    int numfds;
-
-    status = curl_multi_wait(
-        multiHandle_, NULL, 0, timeoutDurtionS_ * 1000, &numfds);
-    if (status != CURLM_OK) {
-      // log error
-      LOG(ERROR) << "failed on curl_multi_wait: "
-                 << curl_multi_strerror(status);
-      break;
-    }
-    /* From libcurl docs:
-      'numfds' being zero means either a timeout or no file descriptors to
-      wait for. Try timeout on first occurrence, then assume no file
-      descriptors and no file descriptors to wait for means wait for 100
-      milliseconds. */
-    if (!numfds) {
-      repeat0fd++;
-
-      if (repeat0fd > 1) {
-        wait(100);
-      }
-
-    } else {
-      repeat0fd = 0;
-    }
-
-    curl_multi_perform(multiHandle_, &stillRunning);
-
-  } while (stillRunning);
-
-  // clean up handles
-  for (auto& handle : handles) {
-    curl_multi_remove_handle(multiHandle_, handle);
-    curl_easy_cleanup(handle);
   }
 
   return results;
