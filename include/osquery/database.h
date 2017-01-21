@@ -73,6 +73,13 @@ using RowData = std::string;
 using Row = std::map<std::string, RowData>;
 
 /**
+ * @brief A vector of column names associated with a query
+ *
+ * ColumnNames is a vector of the column names, in order, returned by a query.
+ */
+using ColumnNames = std::vector<std::string>;
+
+/**
  * @brief Serialize a Row into a property tree
  *
  * @param r the Row to serialize
@@ -129,6 +136,19 @@ using QueryData = std::vector<Row>;
  * @return Status indicating the success or failure of the operation
  */
 Status serializeQueryData(const QueryData& q,
+                          boost::property_tree::ptree& tree);
+
+/**
+ * @brief Serialize a QueryData object into a property tree
+ *
+ * @param q the QueryData to serialize
+ * @param cols the TableColumn vector indicating column order
+ * @param tree the output property tree
+ *
+ * @return Status indicating the success or failure of the operation
+ */
+Status serializeQueryData(const QueryData& q,
+                          const ColumnNames& cols,
                           boost::property_tree::ptree& tree);
 
 /**

@@ -90,6 +90,13 @@ class SQL : private only_movable {
   const QueryData& rows() const;
 
   /**
+   * @brief Column information for the query
+   *
+   * @return A ColumnNames object for the query
+   */
+  const ColumnNames& columns();
+
+  /**
    * @brief Accessor to switch off of when checking the success of a query.
    *
    * @return A bool indicating the success or failure of the operation.
@@ -146,11 +153,17 @@ class SQL : private only_movable {
   SQL() {}
 
  protected:
+  /// The internal member which holds the query string
+  std::string q_;
+
   /// The internal member which holds the results of the query.
   QueryData results_;
 
   /// The internal member which holds the status of the query.
   Status status_;
+
+  /// The internal member which holds the column names and order for the query
+  ColumnNames columns_;
 };
 
 /**

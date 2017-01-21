@@ -33,6 +33,14 @@ QueryData getExampleQueryData(size_t x, size_t y) {
   return qd;
 }
 
+ColumnNames getExampleColumnNames(size_t x) {
+  ColumnNames cn;
+  for (size_t i = 0; i < x; i++) {
+    cn.push_back("key" + std::to_string(i));
+  }
+  return cn;
+}
+
 static void DATABASE_serialize(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range_x(), state.range_y());
   while (state.KeepRunning()) {
@@ -42,6 +50,20 @@ static void DATABASE_serialize(benchmark::State& state) {
 }
 
 BENCHMARK(DATABASE_serialize)->ArgPair(1, 1)->ArgPair(10, 10)->ArgPair(10, 100);
+
+static void DATABASE_serialize_column_order(benchmark::State& state) {
+  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  auto cn = getExampleColumnNames(state.range_x());
+  while (state.KeepRunning()) {
+    boost::property_tree::ptree tree;
+    serializeQueryData(qd, cn, tree);
+  }
+}
+
+BENCHMARK(DATABASE_serialize_column_order)
+    ->ArgPair(1, 1)
+    ->ArgPair(10, 10)
+    ->ArgPair(10, 100);
 
 static void DATABASE_serialize_json(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range_x(), state.range_y());

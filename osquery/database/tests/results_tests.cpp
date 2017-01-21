@@ -69,6 +69,16 @@ TEST_F(ResultsTests, test_serialize_query_data) {
   EXPECT_EQ(results.first, tree);
 }
 
+TEST_F(ResultsTests, test_serialize_query_data_in_column_order) {
+  auto results = getSerializedQueryDataWithColumnOrder();
+  auto column_names = getSerializedRowColumnNames(true);
+  pt::ptree tree;
+  auto s = serializeQueryData(results.second, column_names, tree);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+  EXPECT_EQ(results.first, tree);
+}
+
 TEST_F(ResultsTests, test_serialize_query_data_json) {
   auto results = getSerializedQueryDataJSON();
   std::string json;

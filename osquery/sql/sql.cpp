@@ -23,11 +23,23 @@ FLAG(int32, value_max, 512, "Maximum returned row value size");
 CREATE_LAZY_REGISTRY(SQLPlugin, "sql");
 
 SQL::SQL(const std::string& q) {
-  status_ = query(q, results_);
+  TableColumns table_columns;
+  q_ = q;
+  status_ = getQueryColumns(q_, table_columns);
+  if (status_.ok()) {
+    for (auto c : table_columns) {
+      columns_.push_back(std::get<0>(c));
+    }
+    status_ = query(q_, results_);
+  }
 }
 
 const QueryData& SQL::rows() const {
   return results_;
+}
+
+const ColumnNames& SQL::columns() {
+  return columns_;
 }
 
 bool SQL::ok() {
