@@ -33,12 +33,6 @@ else()
     -Wno-unused-parameter
     -Wno-gnu-case-range
   )
-  if (CMAKE_CXX_COMPILER MATCHES "clang")
-    # Enable LTO when building with clang on Unix
-    add_compile_options(
-      -flto
-    )
-  endif()
 endif()
 
 if(WINDOWS)
@@ -112,12 +106,6 @@ endif()
 
 # The platform-specific SDK + core linker flags.
 if(NOT WINDOWS)
-  if (CMAKE_CXX_COMPILER MATCHES "clang")
-    # When doing a clang on Unix LTO build, the link step also needs
-    # -flto on the comand line
-    ADD_OSQUERY_LINK_CORE("-flto")
-    ADD_OSQUERY_LINK_ADDITIONAL("-flto")
-  endif()
   ADD_OSQUERY_LINK_CORE("-rdynamic")
 endif()
 if(APPLE)
