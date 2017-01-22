@@ -72,6 +72,12 @@ if(NOT WIN32)
     -fdata-sections
     -ffunction-sections
   )
+  if (CMAKE_CXX_COMPILER MATCHES "clang")
+    # Only enale LTO builds when using clang on Unix, for now
+    add_compile_options(
+      -flto
+    )
+  endif()
 endif()
 
 # osquery additional compiler flags added by CMake.
@@ -140,6 +146,18 @@ else()
   else()
     set(LINUX TRUE)
   endif()
+endif()
+
+if(LINUX AND CMAKE_CXX_COMPILER MATCHES "clang")
+  # Use the LLVM versions of ar and ranlib to support LTO builds
+  find_program(LLVMRANLIB_EXECUTABLE "llvm-ranlib" ENV PATH)
+  find_program(LLVMAR_EXECUTABLE "llvm-ar" ENV PATH)
+  set(CMAKE_AR "${LLVMAR_EXECUTABLE}")
+  set(CMAKE_RANLIB "${LLVMRANLIB_EXECUTABLE}")
+  set(CMAKE_C_ARCHIVE_CREATE "${LLVMAR_EXECUTABLE} qc <TARGET> <LINK_FLAGS> <OBJECTS>")
+  set(CMAKE_CXX_ARCHIVE_CREATE "${LLVMAR_EXECUTABLE} qc <TARGET> <LINK_FLAGS> <OBJECTS>")
+  set(CMAKE_C_ARCHIVE_FINISH "${LLVMRANLIB_EXECUTABLE} <TARGET>")
+  set(CMAKE_CXX_ARCHIVE_FINISH "${CMAKE_C_ARCHIVE_FINISH}")
 endif()
 
 # make debug (environment variable from Makefile)
@@ -267,6 +285,12 @@ if(WINDOWS)
   endforeach(flag_var)
 
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
+else()
+  if (CMAKE_CXX_COMPILER MATCHES "clang")
+    # Clang on Unix uses LTO; we also need to pass -flto when linking
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
+  endif()
+
 endif()
 
 if(NOT IS_DIRECTORY ${CMAKE_SOURCE_DIR}/third-party/sqlite3)

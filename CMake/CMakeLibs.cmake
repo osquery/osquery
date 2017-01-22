@@ -283,6 +283,10 @@ macro(ADD_OSQUERY_MODULE TARGET)
     # However it is only provided as an example for unit testing.
     target_link_libraries(${TARGET} "-static-libstdc++")
   endif()
+  if(NOT WINDOWS AND CMAKE_CXX_COMPILER MATCHES "clang")
+    #enable LTO builds of modules when building with clang on Unix
+    target_link_libraries(${TARGET} "-flto")
+  endif()
   set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
   set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME ${TARGET})
 endmacro(ADD_OSQUERY_MODULE)

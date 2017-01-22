@@ -22,7 +22,7 @@ end
 class Llvm < AbstractOsqueryFormula
   desc "Next-gen compiler infrastructure"
   homepage "http://llvm.org/"
-  revision 1
+  revision 2
 
   stable do
     url "http://llvm.org/releases/3.8.1/llvm-3.8.1.src.tar.xz"
@@ -87,6 +87,8 @@ class Llvm < AbstractOsqueryFormula
 
   deprecated_option "rtti" => "with-rtti"
 
+  depends_on "binutils" if build.with? "clang"
+
   # Apple's libstdc++ is too old to build LLVM
   fails_with :gcc
   fails_with :llvm
@@ -121,6 +123,12 @@ class Llvm < AbstractOsqueryFormula
     if build.with? "rtti"
       args << "-DLLVM_ENABLE_RTTI=ON"
       args << "-DLLVM_ENABLE_EH=ON"
+    end
+
+    if build.with? "clang"
+      # build the LLVMGold plugin
+      binutils = Formula["binutils"].prefix/"include"
+      args << "-DLLVM_BINUTILS_INCDIR=#{binutils}"
     end
 
     args << "-DLLVM_BUILD_EXTERNAL_COMPILER_RT=ON" if build.with? "compiler-rt"
