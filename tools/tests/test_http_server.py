@@ -75,7 +75,8 @@ RECEIVED_REQUESTS = []
 
 def debug(response):
     print("-- [DEBUG] %s" % str(response))
-
+    sys.stdout.flush()
+    sys.stderr.flush()
 
 ENROLL_RESET = {
     "count": 1,
@@ -201,7 +202,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
 
 
 def handler():
-    print("[DEBUG] Shutting down HTTP server via timeout (%d) seconds."
+    debug("Shutting down HTTP server via timeout (%d) seconds." 
           % (ARGS.timeout))
     thread.interrupt_main()
 
