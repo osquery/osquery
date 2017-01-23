@@ -134,7 +134,7 @@ class MockWithWatchWatcherRunner : public WatcherRunner {
                             PerformanceState& watcher_state));
 
   /// The state machine is starting, and is forking a managed extension.
-  MOCK_METHOD1(createExtension, bool(const std::string& extension));
+  MOCK_METHOD1(createExtension, void(const std::string& extension));
 
   /// The state machine is starting, and is forking the managed 'worker'.
   MOCK_METHOD0(createWorker, void());

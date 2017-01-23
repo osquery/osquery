@@ -200,9 +200,8 @@ void WatcherRunner::start() {
       if (!isChildSane(*extension.second)) {
         // The extension manager also watches for extension-related failures.
         // The watchdog is more general, but may find failed extensions first.
-        if (!createExtension(extension.first)) {
-          extension_restarts_[extension.first] += 1;
-        }
+        createExtension(extension.first);
+        extension_restarts_[extension.first] += 1;
       } else {
         extension_restarts_[extension.first] = 0;
       }
@@ -467,14 +466,13 @@ void WatcherRunner::createWorker() {
           << ") executing worker (" << worker->pid() << ")";
 }
 
-bool WatcherRunner::createExtension(const std::string& extension) {
+void WatcherRunner::createExtension(const std::string& extension) {
   {
     WatcherLocker locker;
     if (Watcher::getState(extension).last_respawn_time >
         getUnixTime() - getWorkerLimit(WatchdogLimitType::RESPAWN_LIMIT)) {
       LOG(WARNING) << "Extension respawning too quickly: " << extension;
       // Unlike a worker, if an extension respawns to quickly we give up.
-      return false;
     }
   }
 
@@ -486,7 +484,7 @@ bool WatcherRunner::createExtension(const std::string& extension) {
     // Extension binary has become unsafe.
     LOG(WARNING) << RLOG(1382)
                  << "Extension binary has unsafe permissions: " << extension;
-    return false;
+    return;
   }
 
   auto ext_process =
@@ -507,7 +505,6 @@ bool WatcherRunner::createExtension(const std::string& extension) {
   VLOG(1) << "Created and monitoring extension child (" << ext_process->pid()
           << "): " << extension;
 
-  return true;
 }
 
 void WatcherWatcherRunner::start() {
