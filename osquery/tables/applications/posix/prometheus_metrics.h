@@ -7,7 +7,10 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#pragma once
+
 #include <chrono>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -33,25 +36,41 @@ struct retData {
 class PrometheusMetrics {
  public:
   PrometheusMetrics(std::vector<std::string> urls, int timeoutDurationS = 1)
-      : urls_(urls),
-        options_(http::client::options().follow_redirects(true).timeout(
+      : options_(http::client::options().follow_redirects(true).timeout(
             timeoutDurationS)),
-        client_(options_) {}
+        client_(options_) {
+    for (const auto& url : urls) {
+      retData* rd = new retData;
+      scrapeResults_[url] = rd;
+    }
+  }
 
-  virtual ~PrometheusMetrics() {}
+  virtual ~PrometheusMetrics() {
+    for (auto& target : scrapeResults_) {
+      delete target.second;
+    }
+  }
 
   QueryData& queryPrometheusTargets();
 
  protected:
-  virtual std::map<std::string, retData*> scrapeTargets();
+  /**
+  * @brief Constructor to be used by derived classes for testing.
+  *
+  * @param Stubbed scrapeResults with scraped content already injected.
+  *
+   */
+  PrometheusMetrics(std::map<std::string, retData*> stubbedSR)
+      : scrapeResults_(stubbedSR) {}
 
  private:
-  std::vector<std::string> urls_;
+  std::map<std::string, retData*> scrapeResults_;
   QueryData rows_;
   http::client::options options_;
   http::client client_;
 
-  void parseScrapeResults(std::map<std::string, retData*>& scrapeResults);
+  virtual void scrapeTargets();
+  void parseScrapeResults();
 };
 }
 }

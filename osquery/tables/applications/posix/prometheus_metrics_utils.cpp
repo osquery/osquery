@@ -9,8 +9,6 @@
  */
 
 #include <iostream>
-#include <string>
-#include <vector>
 
 #include <osquery/config.h>
 #include <osquery/logger.h>

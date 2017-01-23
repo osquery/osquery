@@ -7,10 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <map>
 #include <sstream>
-#include <string>
-#include <vector>
 
 #include <osquery/config.h>
 #include <osquery/logger.h>
@@ -24,9 +21,8 @@ namespace http = boost::network::http;
 namespace osquery {
 namespace tables {
 
-void PrometheusMetrics::parseScrapeResults(
-    std::map<std::string, retData*>& scrapeResults) {
-  for (auto const& target : scrapeResults) {
+void PrometheusMetrics::parseScrapeResults() {
+  for (auto const& target : scrapeResults_) {
     std::stringstream ss(target.second->content);
     std::string dest;
     std::string ts(std::to_string(target.second->timestampMS.count()));
@@ -57,40 +53,27 @@ void PrometheusMetrics::parseScrapeResults(
   }
 }
 
-std::map<std::string, retData*> PrometheusMetrics::scrapeTargets() {
-  std::map<std::string, retData*> results;
-
-  for (const auto& url : urls_) {
+void PrometheusMetrics::scrapeTargets() {
+  for (auto& target : scrapeResults_) {
     try {
-      retData* rd = new retData;
-
-      http::client::request request(url);
+      http::client::request request(target.first);
       http::client::response response(client_.get(request));
 
-      rd->timestampMS = std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::system_clock::now().time_since_epoch());
-      rd->content = static_cast<std::string>(body(response));
-
-      results[url] = rd;
+      target.second->timestampMS =
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              std::chrono::system_clock::now().time_since_epoch());
+      target.second->content = static_cast<std::string>(body(response));
 
     } catch (std::exception& e) {
-      LOG(ERROR) << "failed on scrape of target " << url
+      LOG(ERROR) << "failed on scrape of target " << target.first
                  << " with error: " << e.what();
     }
   }
-
-  return results;
 }
 
 QueryData& PrometheusMetrics::queryPrometheusTargets() {
-  std::map<std::string, retData*> scrapeResults(scrapeTargets());
-
-  parseScrapeResults(scrapeResults);
-
-  // free heap mem
-  for (auto& target : scrapeResults) {
-    delete target.second;
-  }
+  scrapeTargets();
+  parseScrapeResults();
 
   return rows_;
 }

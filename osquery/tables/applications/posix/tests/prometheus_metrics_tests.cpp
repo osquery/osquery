@@ -16,13 +16,11 @@ namespace tables {
 
 class TestPM : public PrometheusMetrics {
  public:
-  std::map<std::string, retData*> scrapeResults_;
-  TestPM(std::vector<std::string> urls) : PrometheusMetrics(urls) {}
+  TestPM(std::map<std::string, retData*> stubbedSR)
+      : PrometheusMetrics(stubbedSR) {}
 
  protected:
-  virtual std::map<std::string, retData*> scrapeTargets() {
-    return scrapeResults_;
-  }
+  virtual void scrapeTargets() override {}
 };
 
 inline bool comparePMRow(Row& row1, Row& row2) {
@@ -59,9 +57,7 @@ TEST_F(PrometheusMetricsTest, no_target_urls) {
 }
 
 TEST_F(PrometheusMetricsTest, happy_path_0_metrics) {
-  /* Initialize stubbed scrape results.
-   Must allocate on heap b/c queryPrometheusTargets assumes so and calls
-  delete. */
+  // Initialize stubbed scrape results.
   std::chrono::milliseconds now(
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::system_clock::now().time_since_epoch()));
@@ -72,23 +68,14 @@ TEST_F(PrometheusMetricsTest, happy_path_0_metrics) {
   // Initialize expected output.
   QueryData expected;
 
-  // Construct url vector for obj instantiation.
-  std::vector<std::string> urls;
-  for (const auto& ea : sr) {
-    urls.push_back(ea.first);
-  }
-
   // Initialize TestPM instance
-  TestPM pm(urls);
-  pm.scrapeResults_ = sr;
+  TestPM pm(sr);
 
   validatePMTest(pm, expected);
 }
 
 TEST_F(PrometheusMetricsTest, happy_path_1_metric) {
-  /* Initialize stubbed scrape results.
-   Must allocate on heap b/c queryPrometheusTargets assumes so and calls
-  delete. */
+  // Initialize stubbed scrape results.
   std::chrono::milliseconds now(
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::system_clock::now().time_since_epoch()));
@@ -104,23 +91,14 @@ TEST_F(PrometheusMetricsTest, happy_path_1_metric) {
        {col_timestamp, std::to_string(now.count())}},
   };
 
-  // Construct url vector for obj instantiation.
-  std::vector<std::string> urls;
-  for (const auto& ea : sr) {
-    urls.push_back(ea.first);
-  }
-
   // Initialize TestPM instance
-  TestPM pm(urls);
-  pm.scrapeResults_ = sr;
+  TestPM pm(sr);
 
   validatePMTest(pm, expected);
 }
 
 TEST_F(PrometheusMetricsTest, happy_path_10_metrics_1_target) {
-  /* Initialize stubbed scrape results.
-   Must allocate on heap b/c queryPrometheusTargets assumes so and calls
-  delete. */
+  // Initialize stubbed scrape results.
   std::chrono::milliseconds now(
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::system_clock::now().time_since_epoch()));
@@ -223,23 +201,14 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_1_target) {
       },
   };
 
-  // Construct url vector for obj instantiation.
-  std::vector<std::string> urls;
-  for (const auto& ea : sr) {
-    urls.push_back(ea.first);
-  }
-
   // Initialize TestPM instance
-  TestPM pm(urls);
-  pm.scrapeResults_ = sr;
+  TestPM pm(sr);
 
   validatePMTest(pm, expected);
 }
 
 TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
-  /* Initialize stubbed scrape results.
-   Must allocate on heap b/c queryPrometheusTargets assumes so and calls
-  delete. */
+  // Initialize stubbed scrape results.
   std::chrono::milliseconds now(
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::system_clock::now().time_since_epoch()));
@@ -437,15 +406,8 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
       },
   };
 
-  // Construct url vector for obj instantiation.
-  std::vector<std::string> urls;
-  for (const auto& ea : sr) {
-    urls.push_back(ea.first);
-  }
-
   // Initialize TestPM instance
-  TestPM pm(urls);
-  pm.scrapeResults_ = sr;
+  TestPM pm(sr);
 
   validatePMTest(pm, expected);
 }
