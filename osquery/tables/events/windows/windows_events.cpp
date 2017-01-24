@@ -27,7 +27,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 FLAG(string,
-     windows_event_additional_channels,
+     windows_additional_event_channels,
      "",
      "Comma-separated list of additional Windows event log channels");
 
@@ -36,7 +36,7 @@ FLAG(string,
 *
 * By default we subscribe to all system channels. To subscribe to additional
 * channels one can hand them as a comma separated string to the
-* --windows_event_additional_channels flag.
+* --windows_additional_event_channels flag.
 */
 const std::set<std::wstring> kDefaultSubscriptionChannels = {
     L"System", L"Application", L"Setup", L"Security",
@@ -48,7 +48,7 @@ class WindowsEventSubscriber
   Status init() override {
     auto wc = createSubscriptionContext();
     for (const auto& chan :
-         osquery::split(FLAGS_windows_event_additional_channels, ",")) {
+         osquery::split(FLAGS_windows_additional_event_channels, ",")) {
       wc->sources.insert(stringToWstring(chan));
     }
     for (const auto& chan : kDefaultSubscriptionChannels) {
@@ -62,6 +62,19 @@ class WindowsEventSubscriber
 };
 
 REGISTER(WindowsEventSubscriber, "event_subscriber", "windows_events");
+
+/// Helper function to recursively parse a boost ptree
+void parseTree(const pt::ptree& tree, std::map<std::string, std::string>& res) {
+  for (const auto& node : tree) {
+    auto nodeName = node.second.get("<xmlattr>.Name", "");
+
+    if (nodeName.empty()) {
+      nodeName = node.first.empty() ? "DataElement" : node.first;
+    }
+    res[nodeName] = node.second.data();
+    parseTree(node.second, res);
+  }
+}
 
 Status WindowsEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r;
@@ -87,12 +100,20 @@ Status WindowsEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
    * all data elements belonging to the choice.
    */
   pt::ptree jsonOut;
-  auto eventTypes = ec->eventRecord.get_child("Event", pt::ptree());
-  for (const auto& evt : eventTypes) {
-    for (const auto& iter : evt.second) {
-      jsonOut.put(iter.second.get("<xmlattr>.Name", "DataElement"),
-                  iter.second.data());
+  std::map<std::string, std::string> results;
+  std::string eventDataType;
+
+  for (const auto& node : ec->eventRecord.get_child("Event", pt::ptree())) {
+    /// We have already processed the System event data above
+    if (node.first == "System" || node.first == "<xmlattr>") {
+      continue;
     }
+    eventDataType = node.first;
+    parseTree(node.second, results);
+  }
+  for (const auto& val : results) {
+    /// Reconstruct the event format as much as possible
+    jsonOut.put(eventDataType + "." + val.first, val.second);
   }
 
   std::stringstream ss;
