@@ -23,6 +23,7 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/core.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/filesystem/fileops.h"
@@ -267,6 +268,11 @@ QueryData genRegistry(QueryContext& context) {
   if (context.constraints["hive"].exists(EQUALS) &&
       context.constraints["hive"].getAll(EQUALS).size() > 0) {
     rHives = context.constraints["hive"].getAll(EQUALS);
+    if (rHives.find("HKEY_CURRENT_USER") != rHives.end() ||
+        rHives.find("HKEY_CURRENT_USER_LOCAL_SETTINGS") != rHives.end()) {
+      LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; query "
+                      "HKEY_USERS with the desired users SID instead";
+    }
   } else {
     for (auto& h : kRegistryHives) {
       rHives.insert(h.first);
