@@ -153,7 +153,7 @@ TEST_F(EventsDatabaseTests, test_record_range) {
 
   for (size_t j = 0; j < 30; j++) {
     // 110 is 10 below an index (60.2).
-    sub->testAdd(110 + j);
+    sub->testAdd(110 + static_cast<int>(j));
   }
 
   indexes = sub->getIndexes(110, 0);
@@ -215,7 +215,7 @@ TEST_F(EventsDatabaseTests, test_gentable) {
   ASSERT_EQ(0U, sub->optimize_time_);
   ASSERT_EQ(0U, sub->expire_time_);
 
-  auto t = getUnixTime();
+  auto t = static_cast<int>(getUnixTime());
   sub->testAdd(t - 1);
   sub->testAdd(t);
   sub->testAdd(t + 1);
@@ -255,7 +255,7 @@ TEST_F(EventsDatabaseTests, test_gentable) {
 TEST_F(EventsDatabaseTests, test_optimize) {
   auto sub = std::make_shared<DBFakeEventSubscriber>();
   for (size_t i = 800; i < 800 + 10; ++i) {
-    sub->testAdd(i);
+    sub->testAdd(static_cast<int>(i));
   }
 
   // Lie about the tool type to enable optimizations.
@@ -267,7 +267,7 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   setDatabaseValue(kPersistentSettings, kExecutingQuery, "events_db_test");
 
   QueryContext context;
-  auto t = getUnixTime();
+  auto t = static_cast<int>(getUnixTime());
   auto results = sub->genTable(context);
   EXPECT_EQ(10U, results.size());
   // Optimization will set the time NOW as the minimum event time.
@@ -278,7 +278,7 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   EXPECT_EQ(10U, sub->optimize_eid_);
 
   for (size_t i = t + 800; i < t + 800 + 10; ++i) {
-    sub->testAdd(i);
+    sub->testAdd(static_cast<int>(i));
   }
   results = sub->genTable(context);
   EXPECT_EQ(10U, results.size());

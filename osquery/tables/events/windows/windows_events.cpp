@@ -9,17 +9,16 @@
  */
 
 #include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include <boost/property_tree/xml_parser.hpp>
-#include <osquery/core/conversions.h>
-#include <osquery/core/json.h>
-#include <osquery/core/windows/wmi.h>
-
+#include "osquery/core/conversions.h"
+#include "osquery/core/json.h"
+#include "osquery/core/windows/wmi.h"
 #include "osquery/events/windows/windows_event_log.h"
 #include "osquery/filesystem/fileops.h"
 
@@ -27,66 +26,39 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-FLAG(uint64,
-     windows_events_expiry,
-     60 * 60 * 24 * 30, // Keep 30 days by default
-     "Timeout to expire event subscriber results");
-
-FLAG(uint64,
-     windows_events_max,
-     100000,
-     "Maximum number of events per type to buffer");
-
 FLAG(string,
-     additional_windows_event_channels,
+     windows_event_additional_channels,
      "",
-     "Additional Windows event log channels to subscribe to");
+     "Comma-separated list of additional Windows event log channels");
+
+/*
+* @brief the Windows Event log channels to subscribe to
+*
+* By default we subscribe to all system channels. To subscribe to additional
+* channels one can hand them as a comma separated string to the
+* --windows_event_additional_channels flag.
+*/
+const std::set<std::wstring> kDefaultSubscriptionChannels = {
+    L"System", L"Application", L"Setup", L"Security",
+};
 
 class WindowsEventSubscriber
     : public EventSubscriber<WindowsEventLogEventPublisher> {
  public:
   Status init() override {
-    WindowsEventLogSubscriptionContextRef wc = createSubscriptionContext();
-    for (const auto& tok :
-         osquery::split(FLAGS_additional_windows_event_channels, ",")) {
-      defaultSubscriptionChannels.insert(stringToWstring(tok));
+    auto wc = createSubscriptionContext();
+    for (const auto& chan :
+         osquery::split(FLAGS_windows_event_additional_channels, ",")) {
+      wc->sources.insert(stringToWstring(chan));
     }
-    wc->sources = this->defaultSubscriptionChannels;
+    for (const auto& chan : kDefaultSubscriptionChannels) {
+      wc->sources.insert(chan);
+    }
     subscribe(&WindowsEventSubscriber::Callback, wc);
     return Status(0, "OK");
   }
 
-  size_t getEventsExpiry() override {
-    return FLAGS_windows_events_expiry;
-  }
-
-  size_t getEventsMax() override {
-    return FLAGS_windows_events_max;
-  }
-
   Status Callback(const ECRef& ec, const SCRef& sc);
-
- private:
-  /*
-   * @brief the Windows Event log channels to subscribe to
-   *
-   * By default we subscribe to all system channels. To subscribe to additional
-   * channels one can hand them as a comma separated string to the
-   * --additional_windows_event_channels flag.
-   */
-  std::set<std::wstring> defaultSubscriptionChannels = {
-      L"System",
-      L"Application",
-      L"Setup",
-      L"Security",
-      L"Windows PowerShell",
-      L"Hardware Events",
-      L"Internet Explorer",
-      L"Key Management Service",
-      L"PreEmptive",
-      L"Texus",
-      L"ThinPrint Diagnostics",
-  };
 };
 
 REGISTER(WindowsEventSubscriber, "event_subscriber", "windows_events");
@@ -108,13 +80,21 @@ Status WindowsEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["level"] = INTEGER(ec->eventRecord.get("Event.System.Level", -1));
   r["keywords"] = BIGINT(ec->eventRecord.get("Event.System.Keywords", -1));
 
+  /*
+   * From the MSDN definition of the Event Schema, each event will have
+   * an XML choice element containing the event data, if any. The first
+   * iteration enumerates this choice, and the second iteration enumerates
+   * all data elements belonging to the choice.
+   */
   pt::ptree jsonOut;
-  auto data = ec->eventRecord.get_child("Event.EventData");
-  for (pt::ptree::const_iterator iter = data.begin(); iter != data.end();
-       ++iter) {
-    jsonOut.put(iter->second.get("<xmlattr>.Name", "Data"),
-                iter->second.data());
+  auto eventTypes = ec->eventRecord.get_child("Event", pt::ptree());
+  for (const auto& evt : eventTypes) {
+    for (const auto& iter : evt.second) {
+      jsonOut.put(iter.second.get("<xmlattr>.Name", "DataElement"),
+                  iter.second.data());
+    }
   }
+
   std::stringstream ss;
   boost::property_tree::write_json(ss, jsonOut);
   r["data"] = ss.str();

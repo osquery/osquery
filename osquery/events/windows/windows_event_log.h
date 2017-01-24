@@ -17,8 +17,6 @@
 
 #include <osquery/events.h>
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 /**
@@ -46,7 +44,7 @@ struct WindowsEventLogSubscriptionContext : public SubscriptionContext {
  */
 struct WindowsEventLogEventContext : public EventContext {
   /// A Windows event log record converted from XML
-  pt::ptree eventRecord;
+  boost::property_tree::ptree eventRecord;
 
   /*
    * In Windows event logs, the source to which an event belongs is referred
@@ -92,8 +90,8 @@ class WindowsEventLogEventPublisher
       EVT_SUBSCRIBE_NOTIFY_ACTION action, PVOID pContext, EVT_HANDLE hEvent);
 
   /// Helper function to convert an XML event blob into a property tree
-  static Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
-                                                          pt::ptree& propTree);
+  static Status WindowsEventLogEventPublisher::parseEvent(
+      EVT_HANDLE evt, boost::property_tree::ptree& propTree);
 
  private:
   /// Restarts the osquery Windows Event Log Events publisher
@@ -102,19 +100,15 @@ class WindowsEventLogEventPublisher
   /// Ensures that all Windows event log subscriptions are removed
   void stop() override;
 
+  /// Returns whether or not the publisher has active subscriptions
+  bool isSubscriptionActive() const;
+
  private:
   /// Vector of all handles to windows event log publisher callbacks
   std::vector<EVT_HANDLE> win_event_handles_;
 
  public:
-  // TODO: Write some full integration tests.
-  // friend class WindowsEventLogTests;
-  // FRIEND_TEST(WindowsEventLogTests, test_windows_event_log_init);
-  // FRIEND_TEST(WindowsEventLogTests, test_windows_event_log_optimization);
-  // FRIEND_TEST(WindowsEventLogTests, test_windows_event_log_recursion);
-  // FRIEND_TEST(WindowsEventLogTests,
-  // test_windows_event_log_match_subscription);
-  // FRIEND_TEST(WindowsEventLogTests,
-  // test_windows_event_log_embedded_wildcards);
+  friend class WindowsEventLogTests;
+  FRIEND_TEST(WindowsEventLogTests, test_register_event_pub);
 };
 }

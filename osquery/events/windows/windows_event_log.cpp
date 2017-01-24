@@ -26,42 +26,34 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-FLAG(bool,
-     enable_windows_event_log,
-     false,
-     "Enable the windows event log publisher");
-
 REGISTER(WindowsEventLogEventPublisher, "event_publisher", "windows_event_log");
 
 const std::chrono::milliseconds kWinEventLogPause(200);
 
 void WindowsEventLogEventPublisher::configure() {
   stop();
-  {
-    for (auto sub : subscriptions_) {
-      auto sc = getSubscriptionContext(sub->context);
-      for (const auto& chan : sc->sources) {
-        /*
-         * We don't apply any filtering to the Windows event logs. It's assumed
-         * that if filtering is required, this will be handled via SQL queries
-         * or in the subscriber logic.
-         */
-        auto hSubscription =
-            EvtSubscribe(nullptr,
-                         nullptr,
-                         chan.c_str(),
-                         L"*",
-                         nullptr,
-                         nullptr,
-                         EVT_SUBSCRIBE_CALLBACK(winEventCallback),
-                         EvtSubscribeToFutureEvents);
-        if (hSubscription == nullptr) {
-          LOG(WARNING) << "Failed to subscribe to "
-                       << wstringToString(chan.c_str()) << ": ("
-                       << std::to_string(GetLastError()) << ")";
-        } else {
-          this->win_event_handles_.push_back(hSubscription);
-        }
+  for (auto& sub : subscriptions_) {
+    auto sc = getSubscriptionContext(sub->context);
+    for (const auto& chan : sc->sources) {
+      /*
+       * We don't apply any filtering to the Windows event logs. It's assumed
+       * that if filtering is required, this will be handled via SQL queries
+       * or in the subscriber logic.
+       */
+      auto hSubscription =
+          EvtSubscribe(nullptr,
+                       nullptr,
+                       chan.c_str(),
+                       L"*",
+                       nullptr,
+                       nullptr,
+                       EVT_SUBSCRIBE_CALLBACK(winEventCallback),
+                       EvtSubscribeToFutureEvents);
+      if (hSubscription == nullptr) {
+        LOG(WARNING) << "Failed to subscribe to "
+                     << wstringToString(chan.c_str()) << ": " << GetLastError();
+      } else {
+        win_event_handles_.push_back(hSubscription);
       }
     }
   }
@@ -72,19 +64,14 @@ void WindowsEventLogEventPublisher::restart() {
 }
 
 Status WindowsEventLogEventPublisher::run() {
-  if (this->win_event_handles_.empty()) {
-    configure();
-  }
   pause();
   return Status(0, "OK");
 }
 
-// TODO: Check this for mem/handle leaks
 void WindowsEventLogEventPublisher::stop() {
-  for (auto& e : this->win_event_handles_) {
+  for (auto& e : win_event_handles_) {
     if (e != nullptr) {
       EvtClose(e);
-      e = nullptr;
     }
   }
   win_event_handles_.clear();
@@ -98,15 +85,13 @@ unsigned long __stdcall WindowsEventLogEventPublisher::winEventCallback(
     EVT_SUBSCRIBE_NOTIFY_ACTION action, PVOID pContext, EVT_HANDLE hEvent) {
   UNREFERENCED_PARAMETER(pContext);
 
-  unsigned long status = ERROR_SUCCESS;
-  pt::ptree propTree;
-  Status s;
   switch (action) {
   case EvtSubscribeActionError:
-    VLOG(1) << "Windows event callback failed with (" << hEvent << ")";
+    VLOG(1) << "Windows event callback failed: " << hEvent;
     break;
-  case EvtSubscribeActionDeliver:
-    s = parseEvent(hEvent, propTree);
+  case EvtSubscribeActionDeliver: {
+    pt::ptree propTree;
+    auto s = parseEvent(hEvent, propTree);
     if (s.ok()) {
       auto ec = createEventContext();
       /// We leave the parsing of the properties up to the subscriber
@@ -114,15 +99,15 @@ unsigned long __stdcall WindowsEventLogEventPublisher::winEventCallback(
       ec->channel = stringToWstring(propTree.get("Event.System.Channel", ""));
       EventFactory::fire<WindowsEventLogEventPublisher>(ec);
     } else {
-      VLOG(1) << "Error rendering Windows event log (" << s.getCode() << ")";
+      VLOG(1) << "Error rendering Windows event log: " << s.getCode();
     }
-    break;
+  } break;
 
   default:
-    VLOG(1) << "Received unknown action from Windows event log ("
-            << GetLastError() << ")";
+    VLOG(1) << "Received unknown action from Windows event log: "
+            << GetLastError();
   }
-  return status;
+  return ERROR_SUCCESS;
 }
 
 Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
@@ -145,7 +130,7 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
                 &buffUsed,
                 &propCount);
     } else {
-      return Status(1, std::to_string(GetLastError()));
+      return Status(GetLastError(), "Event rendering failed");
     }
   }
   if (GetLastError() != ERROR_SUCCESS) {
@@ -153,7 +138,7 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
       free(xml);
       xml = nullptr;
     }
-    return Status(1, std::to_string(GetLastError()));
+    return Status(GetLastError(), "Event rendering failed");
   }
   std::stringstream ss;
   ss << wstringToString(xml);
@@ -169,9 +154,10 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
 bool WindowsEventLogEventPublisher::shouldFire(
     const WindowsEventLogSubscriptionContextRef& sc,
     const WindowsEventLogEventContextRef& ec) const {
-  if (sc->sources.find(ec->channel) != sc->sources.end()) {
-    return true;
-  }
-  return false;
+  return sc->sources.find(ec->channel) != sc->sources.end();
+}
+
+bool WindowsEventLogEventPublisher::isSubscriptionActive() const {
+  return win_event_handles_.size() > 0;
 }
 }
