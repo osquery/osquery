@@ -140,5 +140,26 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
         daemon.kill()
 
+    def test_7_logger_stdout(self):
+        logger_path = test_base.getTestDirectory(test_base.CONFIG_DIR)
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "disable_extensions": True,
+            "disable_logging": False,
+            "logger_plugin": "stdout",
+            "logger_path": logger_path,
+            "verbose": True,
+        })
+
+        info_path = os.path.join(logger_path, "osqueryd.INFO")
+        def pathDoesntExist():
+            if os.path.exists(info_path):
+                return False
+            return True
+        self.assertTrue(daemon.isAlive())
+        self.assertTrue(pathDoesntExist())
+        daemon.kill()
+
+
 if __name__ == '__main__':
     test_base.Tester().run()
