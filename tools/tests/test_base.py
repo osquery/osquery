@@ -93,8 +93,8 @@ CONFIG = None
 '''Expect ARGS to contain the argparsed namespace.'''
 ARGS = None
 
-if os.name == "nt":
-    import wexpect
+#if os.name == "nt":
+#    import wexpect
 
 class OsqueryUnknownException(Exception):
     '''Exception thrown for unknown output from the shell'''
@@ -122,7 +122,7 @@ class OsqueryWrapper(REPLWrapper):
                                             k, v in options.iteritems()])
         if os.name == "nt":
             argv = shlex.split(command, posix=False)
-            proc = wexpect.spawn(argv[0], args=argv[1 : ], env=env)
+            proc = pexpect.popen_spawn.PopenSpawn(argv, env=env)
         else:
             proc = pexpect.spawn(command, env=env)
 

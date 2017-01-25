@@ -47,7 +47,7 @@ def getLatestOsqueryShell():
 class OsqueryiTest(unittest.TestCase):
     def setUp(self):
         self.binary = getLatestOsqueryShell()
-        self.osqueryi = test_base.OsqueryWrapper(self.binary)
+        self.osqueryi = test_base.OsqueryWrapper(command=self.binary)
         self.dbpath = "%s%s" % (
             test_base.CONFIG["options"]["database_path"],
             str(random.randint(1000, 9999)))
