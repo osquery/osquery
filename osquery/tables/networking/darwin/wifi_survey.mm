@@ -36,6 +36,10 @@ QueryData genWifiScan(QueryContext& context) {
       r["ssid"] = extractSsid((__bridge CFDataRef)[network ssidData]);
       r["bssid"] = std::string([[network bssid] UTF8String]);
       r["network_name"] = std::string([[network ssid] UTF8String]);
+      NSString* country_code = [network countryCode];
+      if (country_code != nil) {
+        r["country_code"] = std::string([country_code UTF8String]);
+      }
       r["rssi"] = INTEGER([network rssiValue]);
       r["noise"] = INTEGER([network noiseMeasurement]);
       CWChannel* cwc = [network wlanChannel];

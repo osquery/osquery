@@ -39,6 +39,10 @@ QueryData genWifiStatus(QueryContext& context) {
     if (strptr != nil) {
       r["network_name"] = std::string([strptr UTF8String]);
     }
+    NSString* country_code = [interface countryCode];
+    if (country_code != nil) {
+      r["country_code"] = std::string([country_code UTF8String]);
+    }
     r["rssi"] = INTEGER([interface rssiValue]);
     r["noise"] = INTEGER([interface noiseMeasurement]);
     r["security_type"] = getSecurityName([interface security]);
