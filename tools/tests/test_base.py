@@ -62,9 +62,11 @@ CONFIG_DIR = "/tmp/osquery-tests-python%d/" % (os.getuid())
 CONFIG_NAME = CONFIG_DIR + "tests"
 DEFAULT_CONFIG = {
     "options": {
+        "flagfile": "/dev/null",
         "database_path": "%s.db" % CONFIG_NAME,
         "pidfile": "%s.pid" % CONFIG_NAME,
         "config_path": "%s.conf" % CONFIG_NAME,
+        "extensions_autoload": "/dev/null",
         "extensions_socket": "%s.em" % CONFIG_NAME,
         "extensions_interval": "1",
         "extensions_timeout": "0",
