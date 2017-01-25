@@ -13,69 +13,61 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include <osquery/tables/applications/posix/prometheus_metrics.h>
-#include <osquery/tables/applications/posix/prometheus_metrics_utils.h>
+#include <osquery/core/conversions.h>
+
+#include "osquery/config/parsers/prometheus_targets.h"
+#include "osquery/tables/applications/posix/prometheus_metrics.h"
 
 namespace http = boost::network::http;
 
 namespace osquery {
 namespace tables {
 
-void PrometheusMetrics::parseScrapeResults() {
-  for (auto const& target : scrapeResults_) {
-    std::stringstream ss(target.second->content);
+void parseScrapeResults(
+    const std::map<std::string, PrometheusResponseData>& scrapeResults,
+    QueryData& rows) {
+  for (auto const& target : scrapeResults) {
+    std::stringstream ss(target.second.content);
     std::string dest;
-    std::string ts(std::to_string(target.second->timestampMS.count()));
 
     while (std::getline(ss, dest)) {
-      if (dest[0] != '#') {
-        std::stringstream iss(dest);
-        std::string idest;
-        std::vector<std::string> metric;
-
-        while (std::getline(iss, idest, ' ')) {
-          if (dest != "") {
-            metric.push_back(idest);
-          }
-        }
+      if (!dest.empty() && dest[0] != '#') {
+        auto metric(osquery::split(dest, " "));
 
         if (metric.size() > 1) {
           Row r;
-          r[col_target_name] = target.first;
-          r[col_timestamp] = ts;
-          r[col_metric] = metric[0];
-          r[col_value] = metric[1];
+          r[kColTargetName] = target.first;
+          r[kColTimeStamp] = BIGINT(target.second.timestampMS.count());
+          r[kColMetric] = metric[0];
+          r[kColValue] = metric[1];
 
-          rows_.push_back(r);
+          rows.push_back(r);
         }
       }
     }
   }
 }
 
-void PrometheusMetrics::scrapeTargets() {
-  for (auto& target : scrapeResults_) {
+void scrapeTargets(
+    std::map<std::string, PrometheusResponseData>& scrapeResults) {
+  http::client client(
+      http::client::options().follow_redirects(true).timeout(1));
+
+  for (auto& target : scrapeResults) {
     try {
       http::client::request request(target.first);
-      http::client::response response(client_.get(request));
+      http::client::response response(client.get(request));
 
-      target.second->timestampMS =
+      target.second.timestampMS =
           std::chrono::duration_cast<std::chrono::milliseconds>(
               std::chrono::system_clock::now().time_since_epoch());
-      target.second->content = static_cast<std::string>(body(response));
+      target.second.content = static_cast<std::string>(body(response));
 
     } catch (std::exception& e) {
-      LOG(ERROR) << "failed on scrape of target " << target.first
-                 << " with error: " << e.what();
+      LOG(ERROR) << "Failed on scrape of target " << target.first << ": "
+                 << e.what();
     }
   }
-}
-
-QueryData& PrometheusMetrics::queryPrometheusTargets() {
-  scrapeTargets();
-  parseScrapeResults();
-
-  return rows_;
 }
 
 QueryData genPrometheusMetrics(QueryContext& context) {
@@ -86,25 +78,46 @@ QueryData genPrometheusMetrics(QueryContext& context) {
     return result;
   }
 
-  const auto& config = parser->getData().get_child(configParserRootKey);
-
+  /* Add a specific value to the default property tree to differentiate it from
+   * the scenario where the user does not provide any prometheus_targets config.
+   */
+  const auto& config = parser->getData().get_child(
+      kConfigParserRootKey, boost::property_tree::ptree("UNEXPECTED"));
+  if (config.get_value("") == "UNEXPECTED") {
+    LOG(WARNING) << "Could not load prometheus_targets root key: "
+                 << kConfigParserRootKey;
+    return result;
+  }
   if (config.count("urls") == 0) {
+    /* Only warn the user if they supplied the config, but did not supply any
+     * urls. */
+    if (!config.empty()) {
+      LOG(WARNING)
+          << "Configuration for prometheus_targets is missing field: urls";
+    }
+
     return result;
   }
 
-  const auto& urls = config.get_child("urls");
-  std::vector<std::string> iurls;
-  for (const auto& url : urls) {
+  std::map<std::string, PrometheusResponseData> sr;
+  /* Below should be unreachable if there were no urls child node, but we set
+   * handle with default value for consistency's sake and for added robustness.
+   */
+  auto urls = config.get_child("urls", boost::property_tree::ptree());
+  if (urls.empty()) {
+    return result;
+  }
+  for (const auto& url :
+       config.get_child("urls", boost::property_tree::ptree())) {
     if (!url.first.empty()) {
       return result;
     }
 
-    iurls.push_back(url.second.data());
+    sr[url.second.data()] = PrometheusResponseData{};
   }
 
-  PrometheusMetrics pm(iurls);
-
-  result = pm.queryPrometheusTargets();
+  scrapeTargets(sr);
+  parseScrapeResults(sr, result);
 
   return result;
 }

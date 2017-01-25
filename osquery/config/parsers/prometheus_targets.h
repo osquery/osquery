@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015, Welsey Shields
+ *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
  *  This source code is licensed under the BSD-style license found in the
@@ -14,18 +14,13 @@
 
 #include <osquery/config.h>
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
-const std::string configParserRootKey("prometheus_targets");
+const std::string kConfigParserRootKey("prometheus_targets");
 
 class PrometheusMetricsConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() const override {
-    return {configParserRootKey};
-  }
-
+  std::vector<std::string> keys() const override;
   Status setUp() override;
   Status update(const std::string& source, const ParserConfig& config) override;
 };

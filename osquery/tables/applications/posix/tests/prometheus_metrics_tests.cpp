@@ -9,27 +9,20 @@
  */
 #include <gtest/gtest.h>
 
-#include <osquery/tables/applications/posix/prometheus_metrics.h>
+#include "osquery/tables/applications/posix/prometheus_metrics.h"
 
 namespace osquery {
 namespace tables {
 
-class TestPM : public PrometheusMetrics {
- public:
-  TestPM(std::map<std::string, retData*> stubbedSR)
-      : PrometheusMetrics(stubbedSR) {}
-
- protected:
-  virtual void scrapeTargets() override {}
-};
-
 inline bool comparePMRow(Row& row1, Row& row2) {
-  return (row1[col_target_name] + row1[col_metric]) <
-         (row2[col_target_name] + row2[col_metric]);
+  return (row1[kColTargetName] + row1[kColMetric]) <
+         (row2[kColTargetName] + row2[kColMetric]);
 }
 
-void validatePMTest(PrometheusMetrics& pm, QueryData& expected) {
-  QueryData got = pm.queryPrometheusTargets();
+void validate(std::map<std::string, PrometheusResponseData>& scrapeResults,
+              QueryData& expected) {
+  QueryData got;
+  parseScrapeResults(scrapeResults, got);
 
   ASSERT_EQ(got.size(), expected.size());
 
@@ -38,22 +31,21 @@ void validatePMTest(PrometheusMetrics& pm, QueryData& expected) {
   std::sort(expected.begin(), expected.end(), comparePMRow);
 
   for (size_t i = 0; i < got.size(); i++) {
-    EXPECT_TRUE(expected[i][col_target_name] == got[i][col_target_name]);
-    EXPECT_TRUE(expected[i][col_metric] == got[i][col_metric]);
-    EXPECT_TRUE(expected[i][col_value] == got[i][col_value]);
-    EXPECT_TRUE(expected[i][col_timestamp] == got[i][col_timestamp]);
+    EXPECT_TRUE(expected[i][kColTargetName] == got[i][kColTargetName]);
+    EXPECT_TRUE(expected[i][kColMetric] == got[i][kColMetric]);
+    EXPECT_TRUE(expected[i][kColValue] == got[i][kColValue]);
+    EXPECT_TRUE(expected[i][kColTimeStamp] == got[i][kColTimeStamp]);
   }
 }
 
 class PrometheusMetricsTest : public ::testing::Test {};
 
-TEST_F(PrometheusMetricsTest, no_target_urls) {
-  std::vector<std::string> urls;
-  PrometheusMetrics pm(urls);
+TEST_F(PrometheusMetricsTest, no_targets) {
+  std::map<std::string, PrometheusResponseData> sr;
 
   QueryData expected;
 
-  validatePMTest(pm, expected);
+  validate(sr, expected);
 }
 
 TEST_F(PrometheusMetricsTest, happy_path_0_metrics) {
@@ -62,16 +54,13 @@ TEST_F(PrometheusMetricsTest, happy_path_0_metrics) {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::system_clock::now().time_since_epoch()));
 
-  retData* r0 = new retData{"", now};
-  std::map<std::string, retData*> sr = {{"example1.com", r0}};
+  PrometheusResponseData r0 = PrometheusResponseData{"", now};
+  std::map<std::string, PrometheusResponseData> sr = {{"example1.com", r0}};
 
   // Initialize expected output.
   QueryData expected;
 
-  // Initialize TestPM instance
-  TestPM pm(sr);
-
-  validatePMTest(pm, expected);
+  validate(sr, expected);
 }
 
 TEST_F(PrometheusMetricsTest, happy_path_1_metric) {
@@ -79,22 +68,39 @@ TEST_F(PrometheusMetricsTest, happy_path_1_metric) {
   std::chrono::milliseconds now(
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::system_clock::now().time_since_epoch()));
-  retData* r0 = new retData{
+  PrometheusResponseData r0 = PrometheusResponseData{
       "# some comment\nprocess_virtual_memory_bytes 1.3934592e+07", now};
-  std::map<std::string, retData*> sr = {{"example1.com", r0}};
+  std::map<std::string, PrometheusResponseData> sr = {{"example1.com", r0}};
 
   // Initialize expected output.
   QueryData expected = {
-      {{col_target_name, "example1.com"},
-       {col_metric, "process_virtual_memory_bytes"},
-       {col_value, "1.3934592e+07"},
-       {col_timestamp, std::to_string(now.count())}},
+      {{kColTargetName, "example1.com"},
+       {kColMetric, "process_virtual_memory_bytes"},
+       {kColValue, "1.3934592e+07"},
+       {kColTimeStamp, std::to_string(now.count())}},
   };
 
-  // Initialize TestPM instance
-  TestPM pm(sr);
+  validate(sr, expected);
+}
 
-  validatePMTest(pm, expected);
+TEST_F(PrometheusMetricsTest, happy_path_extra_spaces_lines) {
+  // Initialize stubbed scrape results.
+  std::chrono::milliseconds now(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::system_clock::now().time_since_epoch()));
+  PrometheusResponseData r0 = PrometheusResponseData{
+      "# some comment\n\nprocess_virtual_memory_bytes   1.3934592e+07  ", now};
+  std::map<std::string, PrometheusResponseData> sr = {{"example1.com", r0}};
+
+  // Initialize expected output.
+  QueryData expected = {
+      {{kColTargetName, "example1.com"},
+       {kColMetric, "process_virtual_memory_bytes"},
+       {kColValue, "1.3934592e+07"},
+       {kColTimeStamp, std::to_string(now.count())}},
+  };
+
+  validate(sr, expected);
 }
 
 TEST_F(PrometheusMetricsTest, happy_path_10_metrics_1_target) {
@@ -104,7 +110,7 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_1_target) {
           std::chrono::system_clock::now().time_since_epoch()));
   std::string nowStr(std::to_string(now.count()));
 
-  retData* r0 = new retData{
+  PrometheusResponseData r0 = PrometheusResponseData{
       "# HELP node_vmstat_unevictable_pgs_stranded /proc/vmstat information "
       "field unevictable_pgs_stranded.\n# TYPE "
       "node_vmstat_unevictable_pgs_stranded "
@@ -135,76 +141,73 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_1_target) {
       "1.3934592e+07\n",
       now,
   };
-  std::map<std::string, retData*> sr = {{"example1.com", r0}};
+  std::map<std::string, PrometheusResponseData> sr = {{"example1.com", r0}};
 
   // Initialize expected output.
   QueryData expected = {
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "node_vmstat_unevictable_pgs_stranded"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "node_vmstat_unevictable_pgs_stranded"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "node_vmstat_workingset_activate"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "node_vmstat_workingset_activate"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "node_vmstat_workingset_nodereclaim"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "node_vmstat_workingset_nodereclaim"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "node_vmstat_workingset_refault"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "node_vmstat_workingset_refault"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_cpu_seconds_total"},
-          {col_value, "0.25"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_cpu_seconds_total"},
+          {kColValue, "0.25"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_max_fds"},
-          {col_value, "1.048576e+06"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_max_fds"},
+          {kColValue, "1.048576e+06"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_open_fds"},
-          {col_value, "7"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_open_fds"},
+          {kColValue, "7"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_resident_memory_bytes"},
-          {col_value, "1.0170368e+07"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_resident_memory_bytes"},
+          {kColValue, "1.0170368e+07"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_start_time_seconds"},
-          {col_value, "1.48475733855e+09"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_start_time_seconds"},
+          {kColValue, "1.48475733855e+09"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_virtual_memory_bytes"},
-          {col_value, "1.3934592e+07"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_virtual_memory_bytes"},
+          {kColValue, "1.3934592e+07"},
+          {kColTimeStamp, nowStr},
       },
   };
 
-  // Initialize TestPM instance
-  TestPM pm(sr);
-
-  validatePMTest(pm, expected);
+  validate(sr, expected);
 }
 
 TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
@@ -215,7 +218,7 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
 
   std::string nowStr(std::to_string(now.count()));
 
-  retData* r0 = new retData{
+  PrometheusResponseData r0 = PrometheusResponseData{
       "# HELP node_vmstat_unevictable_pgs_stranded /proc/vmstat information "
       "field unevictable_pgs_stranded.\n# TYPE "
       "node_vmstat_unevictable_pgs_stranded "
@@ -246,7 +249,7 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
       "1.3934592e+07\n",
       now,
   };
-  retData* r1 = new retData{
+  PrometheusResponseData r1 = PrometheusResponseData{
       "# HELP node_vmstat_unevictable_pgs_stranded /proc/vmstat information "
       "field unevictable_pgs_stranded.\n# TYPE "
       "node_vmstat_unevictable_pgs_stranded "
@@ -279,137 +282,134 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
       "1.3934592e+07\n",
       now,
   };
-  std::map<std::string, retData*> sr = {{"example1.com", r0},
-                                        {"example2.com", r1}};
+  std::map<std::string, PrometheusResponseData> sr = {{"example1.com", r0},
+                                                      {"example2.com", r1}};
 
   // Initialize expected output.
   QueryData expected = {
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "node_vmstat_unevictable_pgs_stranded"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "node_vmstat_unevictable_pgs_stranded"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "node_vmstat_workingset_activate"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "node_vmstat_workingset_activate"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "node_vmstat_workingset_nodereclaim"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "node_vmstat_workingset_nodereclaim"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "node_vmstat_workingset_refault"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "node_vmstat_workingset_refault"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_cpu_seconds_total"},
-          {col_value, "0.25"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_cpu_seconds_total"},
+          {kColValue, "0.25"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_max_fds"},
-          {col_value, "1.048576e+06"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_max_fds"},
+          {kColValue, "1.048576e+06"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_open_fds"},
-          {col_value, "7"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_open_fds"},
+          {kColValue, "7"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_resident_memory_bytes"},
-          {col_value, "1.0170368e+07"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_resident_memory_bytes"},
+          {kColValue, "1.0170368e+07"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_start_time_seconds"},
-          {col_value, "1.48475733855e+09"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_start_time_seconds"},
+          {kColValue, "1.48475733855e+09"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example1.com"},
-          {col_metric, "process_virtual_memory_bytes"},
-          {col_value, "1.3934592e+07"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example1.com"},
+          {kColMetric, "process_virtual_memory_bytes"},
+          {kColValue, "1.3934592e+07"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example2.com"},
-          {col_metric, "node_vmstat_unevictable_pgs_stranded2"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example2.com"},
+          {kColMetric, "node_vmstat_unevictable_pgs_stranded2"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example2.com"},
-          {col_metric, "node_vmstat_workingset_activate2"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example2.com"},
+          {kColMetric, "node_vmstat_workingset_activate2"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example2.com"},
-          {col_metric, "node_vmstat_workingset_nodereclaim2"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example2.com"},
+          {kColMetric, "node_vmstat_workingset_nodereclaim2"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example2.com"},
-          {col_metric, "node_vmstat_workingset_refault2"},
-          {col_value, "0"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example2.com"},
+          {kColMetric, "node_vmstat_workingset_refault2"},
+          {kColValue, "0"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example2.com"},
-          {col_metric, "process_cpu_seconds_total2"},
-          {col_value, "0.25"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example2.com"},
+          {kColMetric, "process_cpu_seconds_total2"},
+          {kColValue, "0.25"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example2.com"},
-          {col_metric, "process_max_fds2"},
-          {col_value, "1.048576e+06"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example2.com"},
+          {kColMetric, "process_max_fds2"},
+          {kColValue, "1.048576e+06"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example2.com"},
-          {col_metric, "process_open_fds2"},
-          {col_value, "7"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example2.com"},
+          {kColMetric, "process_open_fds2"},
+          {kColValue, "7"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example2.com"},
-          {col_metric, "process_resident_memory_bytes2"},
-          {col_value, "1.0170368e+07"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example2.com"},
+          {kColMetric, "process_resident_memory_bytes2"},
+          {kColValue, "1.0170368e+07"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example2.com"},
-          {col_metric, "process_start_time_seconds2"},
-          {col_value, "1.48475733855e+09"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example2.com"},
+          {kColMetric, "process_start_time_seconds2"},
+          {kColValue, "1.48475733855e+09"},
+          {kColTimeStamp, nowStr},
       },
       {
-          {col_target_name, "example2.com"},
-          {col_metric, "process_virtual_memory_bytes2"},
-          {col_value, "1.3934592e+07"},
-          {col_timestamp, nowStr},
+          {kColTargetName, "example2.com"},
+          {kColMetric, "process_virtual_memory_bytes2"},
+          {kColValue, "1.3934592e+07"},
+          {kColTimeStamp, nowStr},
       },
   };
 
-  // Initialize TestPM instance
-  TestPM pm(sr);
-
-  validatePMTest(pm, expected);
+  validate(sr, expected);
 }
 }
 }

@@ -13,26 +13,30 @@
 #include <osquery/config.h>
 #include <osquery/logger.h>
 
-#include <osquery/tables/applications/posix/prometheus_metrics_utils.h>
+#include "osquery/config/parsers/prometheus_targets.h"
 
 namespace osquery {
 
+std::vector<std::string> PrometheusMetricsConfigParserPlugin::keys() const {
+  return {kConfigParserRootKey};
+}
+
 Status PrometheusMetricsConfigParserPlugin::setUp() {
-  data_.put_child(configParserRootKey, pt::ptree());
+  data_.put_child(kConfigParserRootKey, boost::property_tree::ptree());
   return Status(0, "OK");
 }
 
 Status PrometheusMetricsConfigParserPlugin::update(const std::string& source,
                                                    const ParserConfig& config) {
-  if (config.count(configParserRootKey) > 0) {
-    data_ = pt::ptree();
-    data_.put_child(configParserRootKey, config.at(configParserRootKey));
+  if (config.count(kConfigParserRootKey) > 0) {
+    data_ = boost::property_tree::ptree();
+    data_.put_child(kConfigParserRootKey, config.at(kConfigParserRootKey));
   }
 
   return Status(0, "OK");
 }
 
-REGISTER(PrometheusMetricsConfigParserPlugin,
-         "config_parser",
-         "prometheus_targets");
+REGISTER_INTERNAL(PrometheusMetricsConfigParserPlugin,
+                  "config_parser",
+                  "prometheus_targets");
 }
