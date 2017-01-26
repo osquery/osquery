@@ -302,7 +302,7 @@ class WatcherRunner : public InternalRunnable {
   virtual void createWorker();
 
   /// Fork an extension process.
-  virtual bool createExtension(const std::string& extension);
+  virtual void createExtension(const std::string& extension);
 
   /// If a worker/extension has otherwise gone insane, stop it.
   virtual void stopChild(const PlatformProcess& child) const;
