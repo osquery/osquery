@@ -21,12 +21,18 @@
 #include "osquery/core/process.h"
 #include "osquery/database/query.h"
 #include "osquery/dispatcher/scheduler.h"
+#include "osquery/sql/sqlite_util.h"
 
 namespace osquery {
 
 FLAG(bool, enable_monitor, true, "Enable the schedule monitor");
 
-FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit")
+FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit");
+
+FLAG(uint64,
+     schedule_reload,
+     7200,
+     "Interval in seconds to reload database arenas");
 
 /// Used to bypass (optimize-out) the set-differential of query results.
 DECLARE_bool(events_optimize);
@@ -149,9 +155,14 @@ void SchedulerRunner::start() {
           }
         }));
     // Configuration decorators run on 60 second intervals only.
-    if (i % 60 == 0) {
+    if ((i % 60) == 0) {
       runDecorators(DECORATE_INTERVAL, i);
     }
+    if (FLAGS_schedule_reload > 0 && (i % FLAGS_schedule_reload) == 0) {
+      SQLiteDBManager::resetPrimary();
+      resetDatabase();
+    }
+
     // Put the thread into an interruptible sleep without a config instance.
     pauseMilli(interval_ * 1000);
     if (interrupted()) {

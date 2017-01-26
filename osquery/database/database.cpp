@@ -33,6 +33,7 @@ CLI_FLAG(string,
 FLAG_ALIAS(std::string, db_path, database_path);
 
 FLAG(bool, disable_database, false, "Disable the persistent RocksDB storage");
+
 DECLARE_bool(decorations_top_level);
 
 #if defined(SKIP_ROCKSDB)
@@ -53,6 +54,14 @@ const std::vector<std::string> kDomains = {
 bool DatabasePlugin::kDBHandleOptionAllowOpen(false);
 bool DatabasePlugin::kDBHandleOptionRequireWrite(false);
 std::atomic<bool> DatabasePlugin::kCheckingDB(false);
+
+/**
+ * @brief A reader/writer mutex protecting database resets.
+ *
+ * A write is locked while using reset flows. A read is locked when calling
+ * database plugin APIs.
+ */
+Mutex kDatabaseReset;
 
 Status serializeRow(const Row& r, pt::ptree& tree) {
   try {
@@ -447,6 +456,7 @@ void DatabasePlugin::shutdown() {
 }
 
 Status DatabasePlugin::reset() {
+  // Keep this simple, scope the critical section to the broader methods.
   tearDown();
   return setUp();
 }
@@ -505,6 +515,8 @@ Status DatabasePlugin::call(const PluginRequest& request,
       response.push_back({{"k", k}});
     }
     return status;
+  } else if (request.at("action") == "reset") {
+    return this->reset();
   }
 
   return Status(1, "Unknown database plugin action");
@@ -523,6 +535,8 @@ static inline std::shared_ptr<DatabasePlugin> getDatabasePlugin() {
 Status getDatabaseValue(const std::string& domain,
                         const std::string& key,
                         std::string& value) {
+  ReadLock lock(kDatabaseReset);
+
   if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
@@ -546,6 +560,8 @@ Status getDatabaseValue(const std::string& domain,
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         const std::string& value) {
+  ReadLock lock(kDatabaseReset);
+
   if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
@@ -559,6 +575,8 @@ Status setDatabaseValue(const std::string& domain,
 }
 
 Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
+  ReadLock lock(kDatabaseReset);
+
   if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
@@ -582,6 +600,8 @@ Status scanDatabaseKeys(const std::string& domain,
                         std::vector<std::string>& keys,
                         const std::string& prefix,
                         size_t max) {
+  ReadLock lock(kDatabaseReset);
+
   if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
@@ -601,6 +621,18 @@ Status scanDatabaseKeys(const std::string& domain,
   } else {
     auto plugin = getDatabasePlugin();
     return plugin->scan(domain, keys, prefix, max);
+  }
+}
+
+void resetDatabase() {
+  WriteLock lock(kDatabaseReset);
+
+  // Prevent RocksDB reentrancy by logger plugins during plugin setup.
+  LoggerForwardingDisabler disable_logging;
+  PluginRequest request = {{"action", "reset"}};
+  if (!Registry::call("database", request)) {
+    LOG(WARNING) << "Unable to reset database plugin: "
+                 << Registry::get().getActive("database");
   }
 }
 

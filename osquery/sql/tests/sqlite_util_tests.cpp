@@ -64,6 +64,16 @@ TEST_F(SQLiteUtilTests, test_sqlite_instance) {
   EXPECT_EQ(internal_db, SQLiteDBManager::get()->db());
 }
 
+TEST_F(SQLiteUtilTests, test_reset) {
+  auto internal_db = SQLiteDBManager::get()->db();
+  SQLiteDBManager::resetPrimary();
+  auto new_internal_db = SQLiteDBManager::get()->db();
+
+  // Assume the internal (primary) database we reset and recreated.
+  EXPECT_NE(nullptr, new_internal_db);
+  EXPECT_NE(internal_db, new_internal_db);
+}
+
 TEST_F(SQLiteUtilTests, test_direct_query_execution) {
   auto dbc = getTestDBC();
   QueryData results;

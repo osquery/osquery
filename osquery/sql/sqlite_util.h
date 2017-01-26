@@ -143,6 +143,14 @@ class SQLiteDBManager : private boost::noncopyable {
   static SQLiteDBInstanceRef getUnique();
 
   /**
+   * @brief Reset the primary database connection.
+   *
+   * Over time it may be helpful to remove SQLite's arena.
+   * We can periodically close and re-initialize and connect virtual tables.
+   */
+  static void resetPrimary();
+
+  /**
    * @brief Check if `table_name` is disabled.
    *
    * Check if `table_name` is in the list of tables passed in to the

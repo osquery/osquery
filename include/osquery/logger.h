@@ -20,6 +20,8 @@
 
 #include <glog/logging.h>
 
+#include <boost/noncopyable.hpp>
+
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -330,7 +332,7 @@ Status logSnapshotQuery(const QueryLogItem& item);
  * The logger forwarding state is restored and unlocked as soon as the object
  * of this class goes out of scope.
  */
-class LoggerForwardingDisabler {
+class LoggerForwardingDisabler : private boost::noncopyable {
  public:
   LoggerForwardingDisabler();
   ~LoggerForwardingDisabler();

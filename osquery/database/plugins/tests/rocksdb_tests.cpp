@@ -16,7 +16,9 @@ namespace osquery {
 
 class RocksDBDatabasePluginTests : public DatabasePluginTests {
  protected:
-  std::string name() override { return "rocksdb"; }
+  std::string name() override {
+    return "rocksdb";
+  }
 };
 
 // Define the default set of database plugin operation tests.
