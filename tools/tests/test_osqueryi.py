@@ -184,6 +184,22 @@ class OsqueryiTest(unittest.TestCase):
         self.assertTrue(0 <= int(row['seconds']) <= 60)
 
     @test_base.flaky
+    def test_foreign_tables(self):
+        '''Requires the --enable_foreign flag to add at least one table.'''
+        self.osqueryi.run_command(' ')
+
+        query = 'SELECT count(1) c FROM osquery_registry;'
+        result = self.osqueryi.run_query(query)
+        before = int(result[0]['c'])
+
+        osqueryi2 = test_base.OsqueryWrapper(self.binary,
+            args={"enable_foreign": True})
+        osqueryi2.run_command(' ')
+        result = osqueryi2.run_query(query)
+        after = int(result[0]['c'])
+        self.assertGreater(after, before)
+
+    @test_base.flaky
     def test_time_using_all(self):
         self.osqueryi.run_command(' ')
         result = self.osqueryi.run_command('.all time')
