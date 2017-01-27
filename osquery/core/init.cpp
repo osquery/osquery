@@ -446,14 +446,7 @@ void Initializer::initShell() const {
       osquery::FLAGS_database_path =
           (fs::path(homedir) / "shell.db").make_preferred().string();
     }
-    if (Flag::isDefault("extensions_socket")) {
-      if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-        osquery::FLAGS_extensions_socket = "\\\\.\\pipe\\shell.em";
-      } else {
-        osquery::FLAGS_extensions_socket =
-            (fs::path(homedir) / "shell.em").make_preferred().string();
-      }
-    }
+    initShellSocket(homedir);
   } else {
     fprintf(
         stderr, "Cannot access or create osquery home: %s", homedir.c_str());

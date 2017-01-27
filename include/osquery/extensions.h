@@ -123,6 +123,17 @@ Status loadModules(const std::string& loadfile);
 Status loadModuleFile(const std::string& path);
 
 /**
+ * @brief Initialize the extensions socket path variable for osqueryi.
+ *
+ * If the shell is invoked with a default extensions_socket flag there is a
+ * chance the path is 'overloaded' by multiple shells, use this method to
+ * determine a unique user-local path.
+ *
+ * @param Path to user's home directory.
+ */
+void initShellSocket(const std::string& home);
+
+/**
  * @brief Call a Plugin exposed by an Extension Registry route.
  *
  * This is mostly a Registry%-internal method used to call an ExtensionHandler
