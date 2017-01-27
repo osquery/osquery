@@ -267,6 +267,22 @@ class DropPrivileges : private boost::noncopyable {
 std::string getHostname();
 
 /**
+ * @brief Getter for an instance uuid
+ *
+ * @return ok on success and ident is set to the instance uuid, otherwise
+ * failure.
+ */
+Status getInstanceUUID(std::string& ident);
+
+/**
+ * @brief Getter for an ephemeral uuid
+ *
+ * @return ok on success and ident is set to the ephemeral uuid, otherwise
+ * failure.
+ */
+Status getEphemeralUUID(std::string& ident);
+
+/**
  * @brief Getter for a host's uuid.
  *
  * @return ok on success and ident is set to the host's uuid, otherwise failure.

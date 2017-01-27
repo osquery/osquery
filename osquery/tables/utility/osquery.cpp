@@ -229,6 +229,12 @@ QueryData genOsqueryInfo(QueryContext& context) {
     r["watcher"] = "-1";
   }
 
+  std::string uuid;
+  r["uuid"] = (getHostUUID(uuid)) ? uuid : "";
+
+  std::string instance;
+  r["instance_id"] = (getInstanceUUID(instance)) ? instance : "";
+
   results.push_back(r);
   return results;
 }

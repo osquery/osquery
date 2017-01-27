@@ -73,7 +73,8 @@ CLI_FLAG(bool,
 FLAG(string,
      host_identifier,
      "hostname",
-     "Field used to identify the host running osquery (hostname, uuid)");
+     "Field used to identify the host running osquery (hostname, uuid, "
+     "instance, ephemeral)");
 
 FLAG(bool, utc, true, "Convert all UNIX times to UTC");
 
@@ -151,6 +152,29 @@ std::string generateHostUUID() {
   return generateNewUUID();
 }
 
+Status getInstanceUUID(std::string& ident) {
+  // Lookup the instance identifier (UUID) previously generated and stored.
+  auto status =
+      getDatabaseValue(kPersistentSettings, "instance_uuid_v1", ident);
+  if (ident.size() == 0) {
+    // There was no UUID stored in the database, generate one and store it.
+    ident = osquery::generateNewUUID();
+    VLOG(1) << "Using UUID " << ident << " as host identifier";
+    return setDatabaseValue(kPersistentSettings, "instance_uuid_v1", ident);
+  }
+
+  return status;
+}
+
+Status getEphemeralUUID(std::string& ident) {
+  if (ident.size() == 0) {
+    ident = osquery::generateNewUUID();
+  }
+  VLOG(1) << "Using UUID " << ident << " as host identifier";
+
+  return Status(0, "OK");
+}
+
 Status getHostUUID(std::string& ident) {
   // Lookup the host identifier (UUID) previously generated and stored.
   auto status = getDatabaseValue(kPersistentSettings, "host_uuid_v3", ident);
@@ -165,15 +189,22 @@ Status getHostUUID(std::string& ident) {
 }
 
 std::string getHostIdentifier() {
-  if (FLAGS_host_identifier != "uuid") {
-    // use the hostname as the default machine identifier
-    return osquery::getHostname();
-  }
-
-  // Generate a identifier/UUID for this application launch, and persist.
   static std::string ident;
+
   if (ident.size() == 0) {
-    getHostUUID(ident);
+    if (FLAGS_host_identifier == "uuid") {
+      getHostUUID(ident);
+    } else if (FLAGS_host_identifier == "instance") {
+      getInstanceUUID(ident);
+    } else if (FLAGS_host_identifier == "ephemeral") {
+      getEphemeralUUID(ident);
+    } else {
+      // assuming the default of "hostname" as the machine identifier
+      // intentionally not set to `ident` because the hostname may change
+      // throughout the life of the process and we always want to be using the
+      // most current hostname
+      return osquery::getHostname();
+    }
   }
   return ident;
 }

@@ -298,11 +298,13 @@ Log scheduled results as events.
 
 `--host_identifier=hostname`
 
-Field used to identify the host running osquery: **hostname**, **uuid**.
+Field used to identify the host running osquery: **hostname**, **uuid**, **ephemeral**, **instance**.
 
-Select either **hostname** or **uuid** for the host identifier.
-DHCP may assign variable hostnames, if this is the case, select UUID for a
-consistent logging label.
+DHCP may assign variable hostnames, if this is the case, you may need a consistent logging label. Three options are available to you:
+
+- `uuid` uses the platform (DMTF) host UUID, fetched at process start.
+- `instance` uses an instance-unique UUID generated at process start, persisted in the backing store.
+- `ephemeral` uses an instance-unique UUID generated at process start, not persisted.
 
 `--verbose=false`
 
