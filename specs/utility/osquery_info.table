@@ -1,6 +1,7 @@
 table_name("osquery_info")
 description("Top level information about the running version of osquery.")
 schema([
+    Column("uuid", TEXT, "Universally unique osqueryd instance ID"),
     Column("pid", INTEGER, "Process (or thread/handle) ID"),
     Column("version", TEXT, "osquery toolkit version"),
     Column("config_hash", TEXT, "Hash of the working configuration state"),

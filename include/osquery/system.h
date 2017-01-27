@@ -274,6 +274,13 @@ std::string getHostname();
 Status getHostUUID(std::string& ident);
 
 /**
+ * @brief Getter for a more random generated uuid.
+ *
+ * @return ok on success and ident is set to the host's uuid, otherwise failure.
+ */
+Status getGeneratedUUID(std::string& ident);
+
+/**
  * @brief generate a uuid to uniquely identify this machine
  *
  * @return uuid string to identify this machine
