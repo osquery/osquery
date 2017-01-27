@@ -261,6 +261,23 @@ void ExtensionManagerWatcher::watch() {
   }
 }
 
+void initShellSocket(const std::string& homedir) {
+  if (!Flag::isDefault("extensions_socket")) {
+    return;
+  }
+
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    osquery::FLAGS_extensions_socket = "\\\\.\\pipe\\shell.em";
+  } else {
+    osquery::FLAGS_extensions_socket =
+        (fs::path(homedir) / "shell.em").make_preferred().string();
+  }
+
+  if (extensionPathActive(FLAGS_extensions_socket, false)) {
+    FLAGS_extensions_socket += std::to_string((uint16_t)rand());
+  }
+}
+
 void loadExtensions() {
   // Disabling extensions will disable autoloading.
   if (FLAGS_disable_extensions) {
