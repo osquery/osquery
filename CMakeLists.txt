@@ -509,7 +509,6 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0")
 
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
-add_subdirectory(external)
 
 # Include the kernel building targets/macros
 if(NOT ${OSQUERY_BUILD_SDK_ONLY})
