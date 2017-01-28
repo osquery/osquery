@@ -184,29 +184,31 @@ void genProcessMap(const std::string& pid, QueryData& results) {
   }
 }
 
+/**
+ *  Output from string parsing /proc/<pid>/status.
+ */
 struct SimpleProcStat : private boost::noncopyable {
-  // Output from string parsing /proc/<pid>/status.
-  std::string name; // Name:
-  std::string real_uid; // Uid: * - - -
-  std::string real_gid; // Gid: * - - -
-  std::string effective_uid; // Uid: - * - -
-  std::string effective_gid; // Gid: - * - -
-  std::string saved_uid; // Uid: - - * -
-  std::string saved_gid; // Gid: - - * -
-
-  std::string resident_size; // VmRSS:
-  std::string total_size; // VmSize:
-
-  // Output from sring parsing /proc/<pid>/stat.
+ public:
+  std::string name;
+  std::string real_uid;
+  std::string real_gid;
+  std::string effective_uid;
+  std::string effective_gid;
+  std::string saved_uid;
+  std::string saved_gid;
+  std::string resident_size;
+  std::string total_size;
   std::string state;
   std::string parent;
   std::string group;
   std::string nice;
   std::string threads;
-
   std::string user_time;
   std::string system_time;
   std::string start_time;
+
+  /// For errors processing proc data.
+  Status status;
 
   explicit SimpleProcStat(const std::string& pid);
 };
@@ -217,11 +219,13 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
     auto start = content.find_last_of(")");
     // Start parsing stats from ") <MODE>..."
     if (start == std::string::npos || content.size() <= start + 2) {
+      status = Status(1, "Invalid /proc/stat header");
       return;
     }
 
     auto details = osquery::split(content.substr(start + 2), " ");
     if (details.size() <= 19) {
+      status = Status(1, "Invalid /proc/stat content");
       return;
     }
 
@@ -241,6 +245,7 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
 
   // /proc/N/status may be not available, or readable by this user.
   if (!readFile(getProcAttr("status", pid), content).ok()) {
+    status = Status(1, "Cannot read /proc/status");
     return;
   }
 
@@ -336,6 +341,11 @@ int getOnDisk(const std::string& pid, std::string& path) {
 void genProcess(const std::string& pid, QueryData& results) {
   // Parse the process stat and status.
   SimpleProcStat proc_stat(pid);
+
+  if (!proc_stat.status.ok()) {
+    VLOG(1) << proc_stat.status.getMessage() << " for pid " << pid;
+    return;
+  }
 
   Row r;
   r["pid"] = pid;
