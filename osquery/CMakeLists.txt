@@ -149,6 +149,9 @@ add_subdirectory(registry)
 add_subdirectory(sql)
 add_subdirectory(remote)
 
+# Add externals directory from parent
+add_subdirectory("${CMAKE_SOURCE_DIR}/external" "${CMAKE_BINARY_DIR}/external")
+
 if(NOT DEFINED ENV{SKIP_TABLES})
   add_subdirectory(tables)
 
