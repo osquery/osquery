@@ -41,6 +41,8 @@ OSQUERY_POSTINSTALL=${OSQUERY_POSTINSTALL:-""}
 OSQUERY_PREUNINSTALL=${OSQUERY_PREUNINSTALL:-""}
 OSQUERY_CONFIG_SRC=${OSQUERY_CONFIG_SRC:-""}
 OSQUERY_TLS_CERT_CHAIN_SRC=${OSQUERY_TLS_CERT_CHAIN_SRC:-""}
+OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="/usr/local/osquery/etc/openssl/cert.pem"
+OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST="/usr/share/osquery/certs/certs.pem"
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/usr/share/osquery/osquery.example.conf"
 OSQUERY_LOG_DIR="/var/log/osquery/"
@@ -61,7 +63,8 @@ function usage() {
   This will generate an Linux package with:
   (1) An example config /usr/share/osquery/osquery.example.conf
   (2) An init.d script /etc/init.d/osqueryd
-  (3) The osquery toolset /usr/bin/osquery*"
+  (3) A default TLS certificate bundle (provided by cURL)
+  (4) The osquery toolset /usr/bin/osquery*"
 }
 
 function parse_args() {
@@ -147,8 +150,14 @@ function main() {
   fi
 
   if [[ $OSQUERY_TLS_CERT_CHAIN_SRC != "" ]] && [[ -f $OSQUERY_TLS_CERT_CHAIN_SRC ]]; then
-    log "tls server certs file setup"
+    log "custom tls server certs file setup"
     cp $OSQUERY_TLS_CERT_CHAIN_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/tls-server-certs.pem
+  fi
+
+  if [[ $OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC != "" ]] && [[ -f $OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST ]]; then
+    log "built-in tls server certs file setup"
+    mkdir -p `dirname $INSTALL_PREFIX/$OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST`
+    cp $OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC $INSTALL_PREFIX/$OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST
   fi
 
   if [[ $PACKAGE_TYPE = "deb" && $USE_SYSTEMD = "1" ]]; then
