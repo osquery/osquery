@@ -95,7 +95,7 @@ if(NOT WINDOWS)
 endif()
 
 if(APPLE)
-  ADD_OSQUERY_LINK_CORE("liblzma libbz2")
+  ADD_OSQUERY_LINK_CORE("libbz2")
 else()
   if(NOT WINDOWS)
     ADD_OSQUERY_LINK_CORE("lzma")
