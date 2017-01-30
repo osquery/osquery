@@ -84,12 +84,12 @@ Status TLSConfigPlugin::setUp() {
 void TLSConfigPlugin::updateDelayPeriod(bool success) {
   if (success) {
     if (kCurrentDelay != FLAGS_config_tls_refresh) {
-      LOG(WARNING) << "Normal configuration delay restored";
+      VLOG(1) << "Normal configuration delay restored";
       kCurrentDelay = FLAGS_config_tls_refresh;
     }
   } else {
     if (kCurrentDelay == FLAGS_config_tls_refresh) {
-      LOG(WARNING) << "Using accelerated configuration delay";
+      VLOG(1) << "Using accelerated configuration delay";
       kCurrentDelay = FLAGS_config_tls_accelerated_refresh;
     }
   }
