@@ -48,12 +48,20 @@ CLI_FLAG(uint64,
          0,
          "Optional interval in seconds to re-read configuration");
 
+/// How long to wait when config update fails
+CLI_FLAG(uint64,
+         config_tls_accelerated_refresh,
+         300,
+         "Interval to wait if reading a configuration fails");
+
 DECLARE_bool(tls_secret_always);
 DECLARE_string(tls_enroll_override);
 DECLARE_bool(tls_node_api);
 DECLARE_bool(enroll_always);
 
 REGISTER(TLSConfigPlugin, "config", "tls");
+
+std::atomic<size_t> TLSConfigPlugin::kCurrentDelay{0};
 
 Status TLSConfigPlugin::setUp() {
   if (FLAGS_enroll_always && !FLAGS_disable_enrollment) {
@@ -68,13 +76,23 @@ Status TLSConfigPlugin::setUp() {
 
   uri_ = TLSRequestHelper::makeURI(FLAGS_config_tls_endpoint);
 
-  // If the initial configuration includes a non-0 refresh, start an additional
-  // service that sleeps and periodically regenerates the configuration.
-  if (FLAGS_config_tls_refresh >= 1) {
-    Dispatcher::addService(std::make_shared<TLSConfigRefreshRunner>());
-  }
+  kCurrentDelay = FLAGS_config_tls_refresh;
 
   return Status(0, "OK");
+}
+
+void TLSConfigPlugin::updateDelayPeriod(bool success) {
+  if (success) {
+    if (kCurrentDelay != FLAGS_config_tls_refresh) {
+      VLOG(1) << "Normal configuration delay restored";
+      kCurrentDelay = FLAGS_config_tls_refresh;
+    }
+  } else {
+    if (kCurrentDelay == FLAGS_config_tls_refresh) {
+      VLOG(1) << "Using accelerated configuration delay";
+      kCurrentDelay = FLAGS_config_tls_accelerated_refresh;
+    }
+  }
 }
 
 Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
@@ -88,25 +106,32 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
 
   auto s = TLSRequestHelper::go<JSONSerializer>(
       uri_, params, json, FLAGS_config_tls_max_attempts);
-  if (!s.ok()) {
-    return s;
-  }
 
-  if (FLAGS_tls_node_api) {
-    // The node API embeds configuration data (JSON escaped).
-    pt::ptree tree;
-    try {
-      std::stringstream input;
-      input << json;
-      pt::read_json(input, tree);
-    } catch (const pt::json_parser::json_parser_error& /* e */) {
-      VLOG(1) << "Could not parse JSON from TLS node API";
+  if (s.ok()) {
+    if (FLAGS_tls_node_api) {
+      // The node API embeds configuration data (JSON escaped).
+      pt::ptree tree;
+      try {
+        std::stringstream input;
+        input << json;
+        pt::read_json(input, tree);
+      } catch (const pt::json_parser::json_parser_error& /* e */) {
+        VLOG(1) << "Could not parse JSON from TLS node API";
+      }
+
+      // Re-encode the config key into JSON.
+      config["tls_plugin"] = unescapeUnicode(tree.get("config", ""));
+    } else {
+      config["tls_plugin"] = json;
     }
+  }
+  updateDelayPeriod(s.ok());
 
-    // Re-encode the config key into JSON.
-    config["tls_plugin"] = unescapeUnicode(tree.get("config", ""));
-  } else {
-    config["tls_plugin"] = json;
+  // If the initial configuration includes a non-0 refresh, start an additional
+  // service that sleeps and periodically regenerates the configuration.
+  if (!started_thread_ && FLAGS_config_tls_refresh >= 1) {
+    Dispatcher::addService(std::make_shared<TLSConfigRefreshRunner>());
+    started_thread_ = true;
   }
   return s;
 }
@@ -115,7 +140,7 @@ void TLSConfigRefreshRunner::start() {
   while (!interrupted()) {
     // Cool off and time wait the configured period.
     // Apply this interruption initially as at t=0 the config was read.
-    pauseMilli(FLAGS_config_tls_refresh * 1000);
+    pauseMilli(TLSConfigPlugin::kCurrentDelay * 1000);
     // Since the pause occurs before the logic, we need to check for an
     // interruption request.
     if (interrupted()) {
