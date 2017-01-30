@@ -818,8 +818,7 @@ ssize_t PlatformFile::getOverlappedResultForRead(void* buf,
   DWORD bytes_read = 0;
   DWORD last_error = 0;
 
-  if (::GetOverlappedResultEx(
-          handle_, &last_read_.overlapped_, &bytes_read, 0, TRUE)) {
+  if (::GetOverlappedResult(handle_, &last_read_.overlapped_, &bytes_read, 0)) {
     // Read operation has finished
 
     // NOTE: We do NOT support situations where the second read operation uses a
@@ -919,8 +918,8 @@ ssize_t PlatformFile::write(const void* buf, size_t nbyte) {
     if (ret == 0) {
       last_error = ::GetLastError();
       if (last_error == ERROR_IO_PENDING) {
-        ret = ::GetOverlappedResultEx(
-            handle_, &write_event.overlapped_, &bytes_written, 0, TRUE);
+        ret = ::GetOverlappedResult(
+            handle_, &write_event.overlapped_, &bytes_written, 0);
         if (ret == 0) {
           last_error = ::GetLastError();
           if (last_error == ERROR_IO_INCOMPLETE) {
