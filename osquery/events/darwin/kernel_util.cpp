@@ -89,7 +89,7 @@ void loadKernelExtension() {
       CFArrayCreate(nullptr, (const void**)urls, 1, &kCFTypeArrayCallBacks);
   if (KextManagerLoadKextWithIdentifier(kKernelBundleId, directoryArray) !=
       kOSReturnSuccess) {
-    LOG(INFO) << "Could not autoload kernel extension";
+    VLOG(1) << "Could not autoload kernel extension";
   } else {
     VLOG(1) << "Autoloaded osquery kernel extension";
   }

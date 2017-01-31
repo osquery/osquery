@@ -199,7 +199,7 @@ Status RocksDBDatabasePlugin::setUp() {
   }
 
   if (!DatabasePlugin::kCheckingDB) {
-    LOG(INFO) << "Opening RocksDB handle: " << path_;
+    VLOG(1) << "Opening RocksDB handle: " << path_;
   }
 
   // Tests may trash calls to setUp, make sure subsequent calls do not leak.
