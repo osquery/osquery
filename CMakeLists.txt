@@ -72,12 +72,6 @@ if(NOT WIN32)
     -fdata-sections
     -ffunction-sections
   )
-  if (CMAKE_CXX_COMPILER MATCHES "clang")
-    # Only enale LTO builds when using clang on Unix, for now
-    add_compile_options(
-      -flto
-    )
-  endif()
 endif()
 
 # osquery additional compiler flags added by CMake.
@@ -219,6 +213,12 @@ else()
       -fPIC
       -fpic
     )
+    if (CMAKE_CXX_COMPILER MATCHES "clang")
+      # Only enale LTO builds when using clang on Unix, for now
+      add_compile_options(
+        -flto
+      )
+    endif()
   endif()
 endif()
 # Generate a compile_commands.json for static analyzer input.
