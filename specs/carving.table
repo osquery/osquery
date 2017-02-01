@@ -1,0 +1,13 @@
+table_name("carving")
+description("Forensic File Carves")
+schema([
+    Column("timestamp", BIGINT, "timestamp at which the carve was kicked off"),
+    Column("md5", TEXT, "An md5 sum of the carved data"),
+    Column("path", TEXT, "The path of the requested carve data"),
+    Column("carve", INTEGER, "Integer value used to kick off the carving")
+])
+attributes(user_data=True)
+implementation("forensic/carving@genCarves")
+examples([
+  "select * from carving where path='/Users/thor/Downloads/malicious.exe and carve=1'",
+])
