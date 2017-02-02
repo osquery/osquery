@@ -13,15 +13,32 @@
 #include <set>
 
 #include <osquery/dispatcher.h>
+#include <osquery/filesystem.h>
 
 namespace osquery {
 
 class Carver : public InternalRunnable {
  public:
   Carver(const std::set<std::string>& paths);
+  ~Carver();
   void start();
 
-private:
+ private:
+  /*
+   * @brief A helper function to 'carve' files from disk
+   */
+  Status carve(const boost::filesystem::path& path);
+  /*
+   * @brief A helper function to compress files in a specified directory
+   */
+  Status compress(const boost::filesystem::path& path);
+  /*
+   * @brief A helper function to encrypt a specified path
+   */
+  Status encrypt(const boost::filesystem::path& path);
+
+ private:
   std::set<std::string> carvePaths_;
+  boost::filesystem::path carveDir_;
 };
 }

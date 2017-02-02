@@ -29,12 +29,27 @@ void enumerateCarves(QueryData& results) {
 QueryData genCarves(QueryContext& context) {
   QueryData results;
 
-  if (context.constraints["carve"].exists(EQUALS) &&
-      context.constraints["path"].getAll(EQUALS).size() > 0) {
-    /// Kick off the file carver with the path requested by the user
-    Dispatcher::addService(
-        std::make_shared<Carver>(context.constraints["path"].getAll(EQUALS)));
+  auto paths = context.constraints["path"].getAll(EQUALS);
+  context.expandConstraints(
+      "path",
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
+
+  if (context.constraints["carve"].exists(EQUALS) && paths.size() > 0) {
+    Dispatcher::addService(std::make_shared<Carver>(paths));
   } else {
+    // TODO: Is this necessary? I should be able to just return the db contents
     enumerateCarves(results);
   }
 
