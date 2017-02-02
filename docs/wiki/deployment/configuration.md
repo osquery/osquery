@@ -395,6 +395,22 @@ Example:
 
 There is a strict relationship between the top-level `file_paths` key, and `yara`'s equivalent subkey.
 
+### Prometheus
+
+The `prometheus_targets` key can be used to configure Prometheus targets to be queried. The metric timestamp of millisecond precision is taken when the target response is received.  The `prometheus_targets` parent key consists of one child key `urls`, which contains a list target urls to be scraped.
+
+Example:
+```json
+{
+  "prometheus_targets": {
+    "urls": [
+      "http://localhost:9100/metrics",
+      "http://localhost:9101/metrics"
+    ]
+  }
+}
+```
+
 ### Decorator queries
 
 Decorator queries exist in osquery versions 1.7.3+ and are used to add additional "decorations" to results and snapshot logs. There are three types of decorator queries based on when and how you want the decoration data.
