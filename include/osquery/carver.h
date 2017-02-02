@@ -31,14 +31,17 @@ class Carver : public InternalRunnable {
   /*
    * @brief A helper function to compress files in a specified directory
    */
-  Status compress(const boost::filesystem::path& path);
+  Status compress(const std::set<boost::filesystem::path>& path);
+
   /*
-   * @brief A helper function to encrypt a specified path
+   * @brief Helper function to exfil a file to the graph endpoint.
    */
-  Status encrypt(const boost::filesystem::path& path);
+  Status exfil(const boost::filesystem::path& path);
 
  private:
-  std::set<std::string> carvePaths_;
+  std::set<boost::filesystem::path> carvePaths_;
+  boost::filesystem::path archivePath_;
   boost::filesystem::path carveDir_;
+  std::string carveGuid_;
 };
 }
