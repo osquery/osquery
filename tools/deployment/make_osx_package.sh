@@ -50,6 +50,8 @@ OSQUERY_CONFIG_SRC=""
 OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
 OSQUERY_DB_LOCATION="/private/var/osquery/osquery.db/"
 OSQUERY_LOG_DIR="/private/var/log/osquery/"
+OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="/usr/local/osquery/etc/openssl/cert.pem"
+OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST="/usr/share/osquery/certs/certs.pem"
 TLS_CERT_CHAIN_DST="/private/var/osquery/tls-server-certs.pem"
 FLAGFILE_DST="/private/var/osquery/osquery.flags"
 
@@ -114,7 +116,8 @@ function usage() {
   (1) An example config /var/osquery/osquery.example.config
   (2) An optional config /var/osquery/osquery.config if [-c] is used
   (3) A LaunchDaemon plist /var/osquery/com.facebook.osqueryd.plist
-  (4) The osquery toolset /usr/local/bin/osquery*
+  (4) A default TLS certificate bundle (provided by cURL)
+  (5) The osquery toolset /usr/local/bin/osquery*
 
   To enable osqueryd to run at boot using Launchd, pass the -a flag.
   If the LaunchDaemon was previously installed a newer version of this package
@@ -205,6 +208,11 @@ function main() {
   cp $PACKS_SRC/* $INSTALL_PREFIX$PACKS_DST
   if [[ "$TLS_CERT_CHAIN_SRC" != "" && -f "$TLS_CERT_CHAIN_SRC" ]]; then
     cp $TLS_CERT_CHAIN_SRC $INSTALL_PREFIX$TLS_CERT_CHAIN_DST
+  fi
+
+  if [[ $OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC != "" ]] && [[ -f $OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC ]]; then
+    mkdir -p `dirname $INSTALL_PREFIX/$OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST`
+    cp $OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC $INSTALL_PREFIX/$OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST
   fi
 
   # Move/install pre/post install scripts within the packaging root.
