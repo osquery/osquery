@@ -6,6 +6,7 @@ $serviceDescription = 'osquery daemon service'
 $progData =  [System.Environment]::GetEnvironmentVariable('ProgramData')
 $targetFolder = Join-Path $progData 'osquery'
 $daemonFolder = Join-Path $targetFolder 'osqueryd'
+$logFolder = Join-Path $targetFolder 'log'
 $targetDaemonBin = Join-Path $targetFolder 'osqueryd.exe'
 $destDaemonBin = Join-Path $daemonFolder 'osqueryd.exe'
 $destClientBin = Join-Path $targetFolder 'osqueryi.exe'
@@ -36,6 +37,7 @@ if ($packageParameters) {
 }
 
 New-Item -Force -Type directory -Path $daemonFolder
+New-Item -Force -Type directory -Path $logFolder
 $packagePath = "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\\bin\\osquery.zip"
 Get-ChocolateyUnzip -FileFullPath $packagePath -Destination $targetFolder
 

@@ -28,6 +28,24 @@ function Main() {
   }
   & '.\tools\make-win64-binaries.bat'
 
+  # Listing of artifacts bundled with osquery
+  $scriptPath = Get-Location
+  $chocoPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
+  $certs = Join-Path "$chocoPath" 'lib\openssl\local\certs'
+  if (-not (Test-Path $certs)) {
+    Write-Host "[*] Did not find openssl certs.pem" -ForegroundColor Yellow
+  }
+
+  $conf = Join-Path $scriptPath '.\tools\deployment\osquery.example.conf'
+  if (-not (Test-Path $conf)) {
+    Write-Host "[*] Did not find example configuration" -ForegroundColor Yellow
+  }
+
+  $packs = Join-Path $scriptPath '.\packs'
+  if (-not (Test-Path $packs)) {
+    Write-Host "[*] Did not find example packs" -ForegroundColor Yellow
+  }
+
   $nupkg =
 @'
 <?xml version="1.0" encoding="utf-8"?>
@@ -83,19 +101,26 @@ $nupkg +=
   </files>
 </package>
 '@
-  Copy-Item -Recurse -Force '.\tools\deployment\chocolatey\' '.\build\'
-  New-Item -Force -ItemType Directory -Path '.\build\chocolatey\tools\bin'
-  $buildDir = '.\build\windows10\osquery\Release\'
+  Copy-Item -Recurse -Force "$scriptPath\tools\deployment\chocolatey\" "$scriptPath\build\"
+  Copy-Item -Recurse -Force $packs "$scriptPath\build\packs-examples"
+  $packsPath = "$scriptPath\build\packs-examples"
+  New-Item -Force -ItemType Directory -Path "$scriptPath\build\chocolatey\tools\bin"
+  $buildDir = "$scriptPath\build\windows10\osquery\Release\"
   $clientPath = Join-Path $buildDir 'osqueryi.exe'
   $daemonPath = Join-Path $buildDir 'osqueryd.exe'
-  $nupkg | Out-File -Encoding "UTF8" '.\build\chocolatey\osquery.nuspec'
+  $manageScriptPath = "$scriptPath\tools\manage-osqueryd.ps1"
+  $nupkg | Out-File -Encoding "UTF8" "$scriptPath\build\chocolatey\osquery.nuspec"
   if (-not ((Test-Path $clientPath) -or (Test-Path $daemonPath))) {
     Write-Host '[-] Unable to find osquery binaries!  Check the results of the build scripts!' -ForegroundColor Red
     exit
   }
-  7z a '.\build\chocolatey\tools\bin\osquery.zip' $clientPath $daemonPath
+
+  # This bundles up all of the files we distribute.
+  # Issue #2962 - This is where we can bundle additional deploy artifacts.
+
+  7z a "$scriptPath\build\chocolatey\tools\bin\osquery.zip" $clientPath $daemonPath $certs $conf $packsPath $manageScriptPath
   Write-Debug "[+] Creating the chocolatey package for osquery $version"
-  Set-Location '.\build\chocolatey\'
+  Set-Location "$scriptPath\build\chocolatey\"
   choco pack
 
   Write-Host "[+] Chocolatey Package has been created. Run 'choco push' to push the package to Chocolatey" -ForegroundColor Green
