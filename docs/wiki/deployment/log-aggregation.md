@@ -31,10 +31,9 @@ filter {
 
 output {
   stdout {}
-  elasticsearch_http {
-     host=> "127.0.0.1"
-     port=> 9200
-   }
+  elasticsearch {
+     hosts=> "127.0.0.1:9200"
+  }
 }
 ```
 
