@@ -270,12 +270,15 @@ bool SQLiteDBManager::isDisabled(const std::string& table_name) {
 
 void SQLiteDBManager::resetPrimary() {
   auto& self = instance();
-  WriteLock create_lock(self.create_mutex_);
-  WriteLock connection_lock(self.mutex_);
 
+  WriteLock connection_lock(self.mutex_);
   self.connection_.reset();
-  sqlite3_close(self.db_);
-  self.db_ = nullptr;
+
+  {
+    WriteLock create_lock(self.create_mutex_);
+    sqlite3_close(self.db_);
+    self.db_ = nullptr;
+  }
 }
 
 void SQLiteDBManager::setDisabledTables(const std::string& list) {

@@ -66,12 +66,22 @@ TEST_F(SQLiteUtilTests, test_sqlite_instance) {
 
 TEST_F(SQLiteUtilTests, test_reset) {
   auto internal_db = SQLiteDBManager::get()->db();
+  ASSERT_NE(nullptr, internal_db);
+
+  sqlite3_exec(internal_db,
+               "create view test_view as select 'test';",
+               nullptr,
+               nullptr,
+               nullptr);
+
   SQLiteDBManager::resetPrimary();
-  auto new_internal_db = SQLiteDBManager::get()->db();
+  auto instance = SQLiteDBManager::get();
+
+  QueryData results;
+  queryInternal("select * from test_view", results, instance->db());
 
   // Assume the internal (primary) database we reset and recreated.
-  EXPECT_NE(nullptr, new_internal_db);
-  EXPECT_NE(internal_db, new_internal_db);
+  EXPECT_EQ(results.size(), 0U);
 }
 
 TEST_F(SQLiteUtilTests, test_direct_query_execution) {
