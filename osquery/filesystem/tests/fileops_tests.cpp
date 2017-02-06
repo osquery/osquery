@@ -330,8 +330,9 @@ TEST_F(FileOpsTests, test_large_read_write) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
 
-  const std::string expected(200000000, 'A');
+  const std::string expected(20000000, 'A');
   const ssize_t expected_len = expected.size();
+  ASSERT_EQ(strlen(expected.data()), 20000000U);
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
