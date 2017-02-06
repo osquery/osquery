@@ -26,6 +26,7 @@ import threading
 import unittest
 import utils
 import pexpect
+import timeout_decorator
 
 # While this path can be variable, in practice is lives statically.
 OSQUERY_DEPENDENCIES = "/usr/local/osquery"
@@ -514,6 +515,7 @@ class Tester(object):
         utils.reset_dir(CONFIG_DIR)
         CONFIG = read_config(ARGS.config) if ARGS.config else DEFAULT_CONFIG
 
+    @timeout_decorator.timeout(20 * 60)
     def run(self):
         os.setpgrp()
         unittest_args = [sys.argv[0]]
@@ -578,14 +580,16 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
     def _execute_set(self, queries):
         for example in queries:
             start_time = time.time()
+            print("Query: %s ..." % (example), end='')
+            sys.stdout.flush()
+
             result = self._execute(example)
             end_time = time.time()
             duration_ms = int((end_time - start_time) * 1000)
             if duration_ms > 2000:
                 # Query took longer than 2 seconds.
                 duration_ms = utils.lightred(duration_ms)
-            print("Query (%sms): %s, rows: %d" % (
-                duration_ms, example, len(result)))
+            print(" (%sms) rows: %d" % (duration_ms, len(result)))
 
 
 def expectTrue(functional, interval=0.01, timeout=8):

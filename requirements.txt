@@ -6,6 +6,7 @@ thrift
 # Needed for integration tests
 psutil
 pexpect
+timeout-decorator
 
 # For building the wiki
 mkdocs
