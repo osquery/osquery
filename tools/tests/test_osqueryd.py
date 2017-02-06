@@ -56,6 +56,9 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
     @test_base.flaky
     def test_3_daemon_with_watchdog(self):
+        # This test does not join the service threads properly (waits for int).
+        if os.environ.get('SANITIZE') is not None:
+            return
         daemon = self._run_daemon({
             "disable_watchdog": False,
             "ephemeral": True,
