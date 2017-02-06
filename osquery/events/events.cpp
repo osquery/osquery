@@ -671,13 +671,17 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
 
   auto& ef = EventFactory::getInstance();
   auto type_id = specialized_pub->type();
-  if (ef.event_pubs_.count(type_id) != 0) {
-    // This is a duplicate event publisher.
-    return Status(1, "Duplicate publisher type");
+  {
+    WriteLock lock(getInstance().factory_lock_);
+    if (ef.event_pubs_.count(type_id) != 0) {
+      // This is a duplicate event publisher.
+      return Status(1, "Duplicate publisher type");
+    }
+
+    // Do not set up event publisher if events are disabled.
+    ef.event_pubs_[type_id] = specialized_pub;
   }
 
-  // Do not set up event publisher if events are disabled.
-  ef.event_pubs_[type_id] = specialized_pub;
   if (!FLAGS_disable_events) {
     if (specialized_pub->state() != EventState::EVENT_NONE) {
       specialized_pub->tearDown();
@@ -758,7 +762,10 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
   }
 
   auto& ef = EventFactory::getInstance();
-  ef.event_subs_[name] = specialized_sub;
+  {
+    WriteLock lock(getInstance().factory_lock_);
+    ef.event_subs_[name] = specialized_sub;
+  }
 
   // Set state of subscriber.
   if (!status.ok()) {
@@ -825,6 +832,8 @@ Status EventFactory::deregisterEventPublisher(const EventPublisherRef& pub) {
 
 Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
   auto& ef = EventFactory::getInstance();
+
+  WriteLock lock(getInstance().factory_lock_);
   EventPublisherRef publisher = ef.getEventPublisher(type_id);
   if (publisher == nullptr) {
     return Status(1, "No event publisher to deregister");
@@ -848,6 +857,7 @@ Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
 }
 
 std::vector<std::string> EventFactory::publisherTypes() {
+  WriteLock lock(getInstance().factory_lock_);
   std::vector<std::string> types;
   for (const auto& publisher : getInstance().event_pubs_) {
     types.push_back(publisher.first);
@@ -856,6 +866,7 @@ std::vector<std::string> EventFactory::publisherTypes() {
 }
 
 std::vector<std::string> EventFactory::subscriberNames() {
+  WriteLock lock(getInstance().factory_lock_);
   std::vector<std::string> names;
   for (const auto& subscriber : getInstance().event_subs_) {
     names.push_back(subscriber.first);
@@ -866,12 +877,9 @@ std::vector<std::string> EventFactory::subscriberNames() {
 void EventFactory::end(bool join) {
   auto& ef = EventFactory::getInstance();
 
-  {
-    WriteLock lock(getInstance().factory_lock_);
-    // Call deregister on each publisher.
-    for (const auto& publisher : ef.publisherTypes()) {
-      deregisterEventPublisher(publisher);
-    }
+  // Call deregister on each publisher.
+  for (const auto& publisher : ef.publisherTypes()) {
+    deregisterEventPublisher(publisher);
   }
 
   // Stop handling exceptions for the publisher threads.
