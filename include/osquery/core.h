@@ -96,14 +96,14 @@
 #define OSQUERY_HOME "\\ProgramData\\osquery"
 #define OSQUERY_DB_HOME OSQUERY_HOME
 #define OSQUERY_SOCKET "\\\\.\\pipe\\"
-#define OSQUERY_LOG_HOME "\\ProgramData\\osquery\\log\\"
-#define OSQUERY_CERTS_HOME "\\ProgramData\\osquery\\certs\\"
+#define OSQUERY_LOG_HOME OSQUERY_HOME "\\log\\"
+#define OSQUERY_CERTS_HOME OSQUERY_HOME "\\certs\\"
 #else
 #define OSQUERY_HOME "/var/osquery"
 #define OSQUERY_DB_HOME OSQUERY_HOME
 #define OSQUERY_SOCKET OSQUERY_DB_HOME "/"
 #define OSQUERY_LOG_HOME "/var/log/osquery/"
-#define OSQUERY_CERTS_HOME "/usr/share/osquery/certs/"
+#define OSQUERY_CERTS_HOME OSQUERY_HOME "/certs/"
 #endif
 
 /// A configuration error is catastrophic and should exit the watcher.
