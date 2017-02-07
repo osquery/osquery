@@ -26,33 +26,24 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-FLAG(string,
-     windows_additional_event_channels,
-     "",
-     "Comma-separated list of additional Windows event log channels");
-
 /*
 * @brief the Windows Event log channels to subscribe to
 *
 * By default we subscribe to all system channels. To subscribe to additional
-* channels one can hand them as a comma separated string to the
-* --windows_additional_event_channels flag.
+* channels specify them via this flag as a comma separated list.
 */
-const std::set<std::wstring> kDefaultSubscriptionChannels = {
-    L"System", L"Application", L"Setup", L"Security",
-};
+FLAG(string,
+     windows_event_channels,
+     "System,Application,Setup,Security",
+     "Comma-separated list of Windows event log channels");
 
 class WindowsEventSubscriber
     : public EventSubscriber<WindowsEventLogEventPublisher> {
  public:
   Status init() override {
     auto wc = createSubscriptionContext();
-    for (const auto& chan :
-         osquery::split(FLAGS_windows_additional_event_channels, ",")) {
+    for (const auto& chan : osquery::split(FLAGS_windows_event_channels, ",")) {
       wc->sources.insert(stringToWstring(chan));
-    }
-    for (const auto& chan : kDefaultSubscriptionChannels) {
-      wc->sources.insert(chan);
     }
     subscribe(&WindowsEventSubscriber::Callback, wc);
     return Status(0, "OK");

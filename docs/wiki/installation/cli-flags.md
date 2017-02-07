@@ -278,6 +278,12 @@ Since event rows are only "added" it does not make sense to emit "removed" resul
 
 Maximum number of events to buffer in the backing store while waiting for a query to 'drain' or trigger an expiration. If the expiration (`events_expiry`) is set to 1 day, this max value indicates that only 1000 events will be stored before dropping each day. In this case the limiting time is almost always the scheduled query. If a scheduled query that select from events-based tables occurs sooner than the expiration time that interval becomes the limit.
 
+**Windows Only**
+
+`--windows_event_channels="System,Application,Setup,Security"`
+
+List of Windows event log channels to subscribe to. By default the Windows event log publisher will subscribe to some of the more common major event log channels. However you can subscribe to additional channels using the `Log Name` field value in the Windows event viewer. For example, to subscribe to Windows Powershell script block logging one would first enable the feature and then subscribe to the channel with `--windows_event_channels="Microsoft-Windows-PowerShell/Operational"`
+
 ### Logging/results flags
 
 `--logger_plugin=filesystem`
