@@ -13,6 +13,16 @@ $destClientBin = Join-Path $targetFolder 'osqueryi.exe'
 $packageParameters = $env:chocolateyPackageParameters
 $arguments = @{}
 
+# Before modifying we ensure to stop the service, if it exists
+if ((Get-Service $serviceName -ErrorAction SilentlyContinue) -and (Get-Service $serviceName).Status -eq 'Running') {
+  Stop-Service $serviceName
+}
+
+# Lastly, ensure that the Deny Write ACLs have been removed before modifying
+if (Test-Path $daemonFolder) {
+  Set-DenyWriteAcl $daemonFolder 'Remove'
+}
+
 # Now parse the packageParameters using good old regular expression
 if ($packageParameters) {
   $match_pattern = "\/(?<option>([a-zA-Z]+)):(?<value>([`"'])?([a-zA-Z0-9- _\\:\.]+)([`"'])?)|\/(?<option>([a-zA-Z]+))"
