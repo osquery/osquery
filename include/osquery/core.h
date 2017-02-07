@@ -91,7 +91,7 @@
 #define OSQUERY_DB_HOME "/var/osquery"
 #define OSQUERY_SOCKET OSQUERY_DB_HOME "/"
 #define OSQUERY_LOG_HOME "/var/log/osquery/"
-#define OSQUERY_CERTS_HOME "/usr/local/share/osquery/certs/"
+#define OSQUERY_CERTS_HOME "/var/osquery/certs/"
 #elif defined(WIN32)
 #define OSQUERY_HOME "\\ProgramData\\osquery"
 #define OSQUERY_DB_HOME OSQUERY_HOME
