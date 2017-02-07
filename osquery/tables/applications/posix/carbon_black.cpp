@@ -16,6 +16,7 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 namespace fs = boost::filesystem;
@@ -27,7 +28,7 @@ namespace tables {
 #define kCbSensorIdFile "/var/lib/cb/sensor.id"
 // Path to the Carbon Black sensor settings file
 #define kCbSensorSettingsFile "/var/lib/cb/sensorsettings.ini"
-// Path to Carbon Black direcotry
+// Path to Carbon Black directory
 #define kCbDir "/var/lib/cb/"
 
 // Get the Carbon Black sensor ID
@@ -54,7 +55,14 @@ void getSensorSettings(Row& r) {
     return;
   }
   boost::property_tree::ptree pt;
-  boost::property_tree::ini_parser::read_ini(kCbSensorSettingsFile, pt);
+  try {
+    boost::property_tree::ini_parser::read_ini(kCbSensorSettingsFile, pt);
+  } catch (const boost::property_tree::ini_parser::ini_parser_error& e) {
+    LOG(ERROR) << "Error parsing ini file: " << e.what();
+    return;
+  }
+
+  // After successful parsing, the values are extracted
   std::string config_name = pt.get<std::string>("CB.ConfigName");
   boost::replace_all(config_name, "%20", " ");
   r["config_name"] = SQL_TEXT(config_name);
