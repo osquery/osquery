@@ -9,34 +9,26 @@ class Lldpd < AbstractOsqueryFormula
   option :universal
 
   depends_on "pkg-config" => :build
-  depends_on "readline"
   depends_on "libevent"
-  depends_on "net-snmp" if build.with? "snmp"
-  depends_on "jansson" if build.with? "json"
 
   def install
     if OS.mac?
-      readline = Formula["readline"]
       args = [
         "--prefix=#{prefix}",
         "--sysconfdir=#{etc}",
         "--localstatedir=#{var}",
-        "--with-xml",
-        "--with-readline",
+        "--enable-shared=no",
         "--with-privsep-chroot=/var/empty",
         "--with-privsep-user=nobody",
         "--with-privsep-group=nogroup",
         "--with-launchddaemonsdir=no",
-        "CPPFLAGS=-I#{readline.include} -DRONLY=1",
-        "LDFLAGS=-L#{readline.lib}",
       ]
-      args << (build.with?("snmp") ? "--with-snmp" : "--without-snmp")
-      args << (build.with?("json") ? "--with-json" : "--without-json")
     else
       args = [
         "--prefix=#{prefix}",
         "--sysconfdir=#{etc}",
-        "--localstatedir=#{var}",
+        "--localstatedir=/var",
+        "--enable-shared=no",
         "--with-privsep-chroot=/var/empty",
         "--with-privsep-user=nobody",
         "--with-privsep-group=nogroup",
