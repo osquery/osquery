@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <thread>
+
 #include <osquery/dispatcher.h>
 #include <osquery/extensions.h>
 
@@ -121,7 +123,7 @@ class ExtensionHandler : virtual public ExtensionIf {
 
  protected:
   /// Transient UUID assigned to the extension after registering.
-  RouteUUID uuid_;
+  std::atomic<RouteUUID> uuid_;
 };
 
 /**
@@ -227,6 +229,9 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
 
   /// Maintain a map of extension UUID to metadata for tracking deregistration.
   InternalExtensionList extensions_;
+
+  /// Mutex for extensions accessors.
+  Mutex extensions_mutex_;
 };
 
 typedef SHARED_PTR_IMPL<ExtensionHandler> ExtensionHandlerRef;

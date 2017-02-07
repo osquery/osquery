@@ -92,6 +92,8 @@ ExtensionManagerHandler::ExtensionManagerHandler() {
 
 void ExtensionManagerHandler::extensions(InternalExtensionList& _return) {
   refresh();
+
+  ReadLock lock(extensions_mutex_);
   _return = extensions_;
 }
 
@@ -140,6 +142,7 @@ void ExtensionManagerHandler::registerExtension(
     return;
   }
 
+  WriteLock lock(extensions_mutex_);
   extensions_[uuid] = info;
   _return.code = ExtensionCode::EXT_SUCCESS;
   _return.message = "OK";
@@ -148,15 +151,20 @@ void ExtensionManagerHandler::registerExtension(
 
 void ExtensionManagerHandler::deregisterExtension(
     ExtensionStatus& _return, const ExtensionRouteUUID uuid) {
-  if (extensions_.count(uuid) == 0) {
-    _return.code = ExtensionCode::EXT_FAILED;
-    _return.message = "No extension UUID registered";
-    _return.uuid = 0;
-    return;
+  {
+    ReadLock lock(extensions_mutex_);
+    if (extensions_.count(uuid) == 0) {
+      _return.code = ExtensionCode::EXT_FAILED;
+      _return.message = "No extension UUID registered";
+      _return.uuid = 0;
+      return;
+    }
   }
 
   // On success return the uuid of the now de-registered extension.
   RegistryFactory::get().removeBroadcast(uuid);
+
+  WriteLock lock(extensions_mutex_);
   extensions_.erase(uuid);
   _return.code = ExtensionCode::EXT_SUCCESS;
   _return.uuid = uuid;
@@ -196,6 +204,8 @@ void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
 void ExtensionManagerHandler::refresh() {
   std::vector<RouteUUID> removed_routes;
   const auto uuids = RegistryFactory::get().routeUUIDs();
+
+  WriteLock lock(extensions_mutex_);
   for (const auto& ext : extensions_) {
     // Find extension UUIDs that have gone away.
     if (std::find(uuids.begin(), uuids.end(), ext.first) == uuids.end()) {
@@ -213,6 +223,7 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
   refresh();
 
   // Search the remaining extension list for duplicates.
+  ReadLock lock(extensions_mutex_);
   for (const auto& extension : extensions_) {
     if (extension.second.name == name) {
       return true;
