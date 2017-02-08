@@ -39,6 +39,9 @@ QueryData genMemoryMap(QueryContext& context) {
 
     Row r;
     r["start"] = "0x" + line.substr(0, b1);
+    if (b1 == line.length()) {
+      continue;
+    }
     r["end"] = "0x" + line.substr(b1 + 1, b2 - b1);
     r["name"] = line.substr(b2 + 3);
     results.push_back(r);
