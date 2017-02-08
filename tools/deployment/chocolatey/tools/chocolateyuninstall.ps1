@@ -4,10 +4,10 @@ $serviceName = 'osqueryd'
 
 # Remove the osquery path from the System PATH variable. Note: Here
 # we don't make use of our local vars, as Regex requires escaping the '\'
-$oldPath = [System.Environment]::GetEnvironmentVariable('Path', 'User')
+$oldPath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
 if ($oldPath -imatch [regex]::escape($targetFolder)) {
   $newPath = $oldPath -replace [regex]::escape($targetFolder),$NULL
-  [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+  [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
 }
 
 if ((Get-Service $serviceName -ErrorAction SilentlyContinue)) {
