@@ -39,7 +39,7 @@ QueryData genMemoryMap(QueryContext& context) {
 
     Row r;
     r["start"] = "0x" + line.substr(0, b1);
-    if (b1 == line.length()) {
+    if (b1 == line.size() || line.size() <= b2 + 3) {
       continue;
     }
     r["end"] = "0x" + line.substr(b1 + 1, b2 - b1);
