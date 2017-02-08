@@ -22,7 +22,6 @@ if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("libxar.dylib")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
   ADD_OSQUERY_LINK_ADDITIONAL("tsk")
-  ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
 elseif(FREEBSD)
   include_directories("/usr/local/include/libxml2")
 
@@ -85,7 +84,6 @@ else()
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
   ADD_OSQUERY_LINK_ADDITIONAL("tsk")
-  ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
 
   ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg lzma lz4 bz2")
   ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio beecrypt popt db")
@@ -93,6 +91,8 @@ endif()
 
 if(APPLE OR LINUX)
   file(GLOB OSQUERY_CROSS_EVENTS_TABLES "events/*.cpp")
+
+  ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
 
   if(APPLE)
     ADD_OSQUERY_LINK_ADDITIONAL("libiconv")

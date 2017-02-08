@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -22,106 +23,8 @@
 namespace osquery {
 namespace tables {
 
-// Column constants for lldp_neighbors table
-const std::string kColInterface = "interface";
-const std::string kColChassisIndex = "rid";
-const std::string kColChassisIdType = "chassis_id_type";
-const std::string kColChassisId = "chassis_id";
-const std::string kColChassisSysname = "chassis_sysname";
-const std::string kColChassisSysDesc = "chassis_sys_description";
-const std::string kColChassisBridgeCapabilityAvailable =
-    "chassis_bridge_capability_available";
-const std::string kColChassisBridgeCapabilityEnabled =
-    "chassis_bridge_capability_enabled";
-const std::string kColChassisRouterCapabilityAvailable =
-    "chassis_router_capability_available";
-const std::string kColChassisRouterCapabilityEnabled =
-    "chassis_router_capability_enabled";
-const std::string kColChassisRepeaterCapabilityAvailable =
-    "chassis_repeater_capability_available";
-const std::string kColChassisRepeaterCapabilityEnabled =
-    "chassis_repeater_capability_enabled";
-const std::string kColChassisWLANCapabilityAvailable =
-    "chassis_wlan_capability_available";
-const std::string kColChassisWLANCapabilityEnabled =
-    "chassis_wlan_capability_enabled";
-const std::string kColChassisTelCapabilityAvailable =
-    "chassis_tel_capability_available";
-const std::string kColChassisTelCapabilityEnabled =
-    "chassis_tel_capability_enabled";
-const std::string kColChassisDOCSISCapabilityAvailable =
-    "chassis_docsis_capability_available";
-const std::string kColChassisDOCSISCapabilityEnabled =
-    "chassis_docsis_capability_enabled";
-const std::string kColChassisStationCapabilityAvailable =
-    "chassis_station_capability_available";
-const std::string kColChassisStationCapabilityEnabled =
-    "chassis_station_capability_enabled";
-const std::string kColChassisOtherCapabilityAvailable =
-    "chassis_other_capability_available";
-const std::string kColChassisOtherCapabilityEnabled =
-    "chassis_other_capability_enabled";
-const std::string kColChassisMgmtIPs = "chassis_mgmt_ips";
-const std::string kColPortIdType = "port_id_type";
-const std::string kColPortId = "port_id";
-const std::string kColPortDesc = "port_description";
-const std::string kColPortAge = "port_ttl";
-const std::string kColPortMFS = "port_mfs";
-const std::string kColPortAggrId = "port_aggregation_id";
-const std::string kColPortAutonegSupported = "port_autoneg_supported";
-const std::string kColPortAutonegEnabled = "port_autoneg_enabled";
-const std::string kColPortMauType = "port_mau_type";
-const std::string kColPortAutoneg10BaseTHDEnabled =
-    "port_autoneg_10baset_hd_enabled";
-const std::string kColPortAutoneg10BaseTFDEnabled =
-    "port_autoneg_10baset_fd_enabled";
-const std::string kColPortAutoNeg100BaseTXHDEnabled =
-    "port_autoneg_100basetx_hd_enabled";
-const std::string kColPortAutoneg100BaseTXFDEnabled =
-    "port_autoneg_100basetx_fd_enabled";
-const std::string kColAutoNeg100BaseT2HDEnabled =
-    "port_autoneg_100baset2_hd_enabled";
-const std::string kColAutoNeg100BaseT2FDEnabled =
-    "port_autoneg_100baset2_fd_enabled";
-const std::string kColPortAutoneg100BaseT4HDEnabled =
-    "port_autoneg_100baset4_hd_enabled";
-const std::string kColPortAutoneg100BaseT4FDEnabled =
-    "port_autoneg_100baset4_fd_enabled";
-const std::string kColPortAutoneg1000BaseXHDEnabled =
-    "port_autoneg_1000basex_hd_enabled";
-const std::string kColPortAutoneg1000BaseXFDEnabled =
-    "port_autoneg_1000basex_fd_enabled";
-const std::string kColPortAutoneg1000BaseTHDEnabled =
-    "port_autoneg_1000baset_hd_enabled";
-const std::string kColPortAutoneg1000BaseTFDEnabled =
-    "port_autoneg_1000baset_fd_enabled";
-const std::string kColPowerDeviceType = "power_device_type";
-const std::string kColPowerMDISupported = "power_mdi_supported";
-const std::string kColPowerMDIEnabled = "power_mdi_enabled";
-const std::string kColPowerPairControlEnabled = "power_paircontrol_enabled";
-const std::string kColPowerPairs = "power_pairs";
-const std::string kColPowerClass = "power_class";
-const std::string kColPower8023atEnabled = "power_8023at_enabled";
-const std::string kColPower8023atPowerType = "power_8023at_power_type";
-const std::string kColPower8023atPowerSource = "power_8023at_power_source";
-const std::string kColPower8023atPowerPriority = "power_8023at_power_priority";
-const std::string kColPower8023atPowerAllocated =
-    "power_8023at_power_allocated";
-const std::string kColPower8023atPowerRequested =
-    "power_8023at_power_requested";
-const std::string kColVLANS = "vlans";
-const std::string kColPVID = "pvid";
-const std::string kColPPVIDsSupported = "ppvids_supported";
-const std::string kColPPVIDsEnabled = "ppvids_enabled";
-const std::string kColPIDs = "pids";
-const std::string kColMEDType = "med_device_type";
-const std::string kColMEDCapabilityCapabilities = "med_capability_capabilities";
-const std::string kColMEDCapabilityPolicy = "med_capability_policy";
-const std::string kColMEDCapabilityLocation = "med_capability_location";
-const std::string kColMEDCapabilityMDIPSE = "med_capability_mdi_pse";
-const std::string kColMEDCapabilityMDIPD = "med_capability_mdi_pd";
-const std::string kColMEDCapabilityInventory = "med_capability_inventory";
-const std::string kColMEDPolicies = "med_policies";
+// Deleter to be used with unique_ptr wrap on lldp_atom_t pointers.
+auto delLLDPAtom = [](lldpctl_atom_t* a) { lldpctl_atom_dec_ref(a); };
 
 /* kNoAtomStrDefault is the default value used when lldp_atom_get_str does not
  * return a valid string value. */
@@ -133,12 +36,12 @@ struct ChassisCapability {
 };
 
 inline std::string getAtomStr(lldpctl_atom_t* atom, lldpctl_key_t key) {
-  if (!atom) {
+  if (atom == nullptr) {
     return kNoAtomStrDefault;
   }
 
   const char* val = lldpctl_atom_get_str(atom, key);
-  if (val == NULL) {
+  if (val == nullptr) {
     return kNoAtomStrDefault;
   }
 
@@ -147,18 +50,18 @@ inline std::string getAtomStr(lldpctl_atom_t* atom, lldpctl_key_t key) {
 
 inline std::string commaDelimitedStr(lldpctl_atom_t* things,
                                      lldpctl_key_t key) {
-  if (!things) {
+  if (things == nullptr) {
     return "";
   }
 
   std::string result;
-  lldpctl_atom_t* each;
+  lldpctl_atom_t* each = nullptr;
 
   lldpctl_atom_foreach(things, each) {
     result = result + getAtomStr(each, key) + ",";
   }
   // Remove trailing comma.
-  if (result.size() > 0) {
+  if (!result.empty()) {
     result.pop_back();
   }
 
@@ -193,14 +96,14 @@ class LLDPNeighbor {
 
   void getChassis();
   void getChasisCapability(u_int8_t mask,
-                           std::string availCol,
-                           std::string enabledCol);
+                           std::string const& availCol,
+                           std::string const& enabledCol);
   void getPort();
   void getPMDAutoNeg(long int autonegAdversised,
                      long int hdMask,
                      long int fdMask,
-                     std::string hdCol,
-                     std::string fdCol);
+                     std::string const& hdCol,
+                     std::string const& fdCol);
   void getVLAN();
   void getMED();
   void getMEDCap();
@@ -209,8 +112,8 @@ class LLDPNeighbor {
 };
 
 inline void LLDPNeighbor::getChasisCapability(u_int8_t mask,
-                                              std::string availCol,
-                                              std::string enabledCol) {
+                                              std::string const& availCol,
+                                              std::string const& enabledCol) {
   if (lldpctl_atom_get_int(chassis_, lldpctl_k_chassis_cap_available) & mask) {
     row_[availCol] = "1";
     row_[enabledCol] =
@@ -223,30 +126,30 @@ inline void LLDPNeighbor::getChasisCapability(u_int8_t mask,
 inline void LLDPNeighbor::getPMDAutoNeg(long int autonegAdversised,
                                         long int hdMask,
                                         long int fdMask,
-                                        std::string hdCol,
-                                        std::string fdCol) {
+                                        std::string const& hdCol,
+                                        std::string const& fdCol) {
   row_[hdCol] = ((autonegAdversised & hdMask) ? "1" : "0");
   row_[fdCol] = ((autonegAdversised & fdMask) ? "1" : "0");
 }
 
 void LLDPNeighbor::getPIDs() {
-  lldpctl_atom_t* pids = lldpctl_atom_get(port_, lldpctl_k_port_pis);
-  row_[kColPIDs] = commaDelimitedStr(pids, lldpctl_k_pi_id);
-
-  lldpctl_atom_dec_ref(pids);
+  std::unique_ptr<lldpctl_atom_t, decltype(delLLDPAtom)> pids(
+      lldpctl_atom_get(port_, lldpctl_k_port_pis), delLLDPAtom);
+  row_["pids"] = commaDelimitedStr(pids.get(), lldpctl_k_pi_id);
 }
 
 void LLDPNeighbor::getPPVIDs() {
-  lldpctl_atom_t* ppvids = lldpctl_atom_get(port_, lldpctl_k_port_ppvids);
-  if (!ppvids) {
+  std::unique_ptr<lldpctl_atom_t, decltype(delLLDPAtom)> ppvids(
+      lldpctl_atom_get(port_, lldpctl_k_port_ppvids), delLLDPAtom);
+  if (ppvids.get() == nullptr) {
     return;
   }
 
   std::string supported;
   std::string enabled;
 
-  lldpctl_atom_t* ppvid;
-  lldpctl_atom_foreach(ppvids, ppvid) {
+  lldpctl_atom_t* ppvid = nullptr;
+  lldpctl_atom_foreach(ppvids.get(), ppvid) {
     long int status = lldpctl_atom_get_int(ppvid, lldpctl_k_ppvid_status);
     long int id = lldpctl_atom_get_int(ppvid, lldpctl_k_ppvid_id);
 
@@ -266,14 +169,12 @@ void LLDPNeighbor::getPPVIDs() {
   if (supported.size() > 0) {
     supported.pop_back();
   }
-  row_[kColPPVIDsSupported] = supported;
+  row_["ppvids_supported"] = supported;
 
   if (enabled.size() > 0) {
     enabled.pop_back();
   }
-  row_[kColPPVIDsEnabled] = enabled;
-
-  lldpctl_atom_dec_ref(ppvids);
+  row_["ppvids_enabled"] = enabled;
 }
 
 void LLDPNeighbor::getMEDCap() {
@@ -283,17 +184,17 @@ void LLDPNeighbor::getMEDCap() {
     return;
   }
 
-  row_[kColMEDCapabilityCapabilities] =
+  row_["med_capability_capabilities"] =
       (availableCap & LLDP_MED_CAP_CAP) ? "1" : "0";
-  row_[kColMEDCapabilityPolicy] =
+  row_["med_capability_policy"] =
       (availableCap & LLDP_MED_CAP_POLICY) ? "1" : "0";
-  row_[kColMEDCapabilityLocation] =
+  row_["med_capability_location"] =
       (availableCap & LLDP_MED_CAP_LOCATION) ? "1" : "0";
-  row_[kColMEDCapabilityMDIPSE] =
+  row_["med_capability_mdi_pse"] =
       (availableCap & LLDP_MED_CAP_MDI_PSE) ? "1" : "0";
-  row_[kColMEDCapabilityMDIPD] =
+  row_["med_capability_mdi_pd"] =
       (availableCap & LLDP_MED_CAP_MDI_PD) ? "1" : "0";
-  row_[kColMEDCapabilityInventory] =
+  row_["med_capability_inventory"] =
       (availableCap & LLDP_MED_CAP_IV) ? "1" : "0";
 }
 
@@ -302,79 +203,73 @@ void LLDPNeighbor::getMED() {
     return;
   }
 
-  row_[kColMEDType] = getAtomStr(chassis_, lldpctl_k_chassis_med_type);
+  row_["med_device_type"] = getAtomStr(chassis_, lldpctl_k_chassis_med_type);
   // Capabilities status
   getMEDCap();
 
   // Policy Capabilities
-  // TODO add MED policy tags and defined/undefined tags
-  lldpctl_atom_t* policies =
-      lldpctl_atom_get(port_, lldpctl_k_port_med_policies);
-  row_[kColMEDPolicies] =
-      commaDelimitedStr(policies, lldpctl_k_med_policy_type);
-
-  lldpctl_atom_dec_ref(policies);
-
-  // TODO add MED Location, Power, Inventory details.
+  std::unique_ptr<lldpctl_atom_t, decltype(delLLDPAtom)> policies(
+      lldpctl_atom_get(port_, lldpctl_k_port_med_policies), delLLDPAtom);
+  row_["med_policies"] =
+      commaDelimitedStr(policies.get(), lldpctl_k_med_policy_type);
 }
 
 void LLDPNeighbor::getVLAN() {
-  row_[kColPVID] = getAtomStr(port_, lldpctl_k_port_vlan_pvid);
+  row_["pvid"] = getAtomStr(port_, lldpctl_k_port_vlan_pvid);
 
-  lldpctl_atom_t* vlans = lldpctl_atom_get(port_, lldpctl_k_port_vlans);
-  row_[kColVLANS] = commaDelimitedStr(vlans, lldpctl_k_vlan_id);
+  std::unique_ptr<lldpctl_atom_t, decltype(delLLDPAtom)> vlans(
+      lldpctl_atom_get(port_, lldpctl_k_port_vlans), delLLDPAtom);
 
-  lldpctl_atom_dec_ref(vlans);
+  row_["vlans"] = commaDelimitedStr(vlans.get(), lldpctl_k_vlan_id);
 }
 
 void LLDPNeighbor::getPort() {
-  row_[kColPortId] = getAtomStr(port_, lldpctl_k_port_id);
-  row_[kColPortIdType] = getAtomStr(port_, lldpctl_k_port_id_subtype);
-  row_[kColPortAggrId] = getAtomStr(port_, lldpctl_k_port_dot3_aggregid);
-  row_[kColPortDesc] = getAtomStr(port_, lldpctl_k_port_descr);
-  row_[kColPortAge] = getAtomStr(port_, lldpctl_k_port_age);
-  row_[kColPortMFS] = getAtomStr(port_, lldpctl_k_port_dot3_mfs);
+  row_["port_id"] = getAtomStr(port_, lldpctl_k_port_id);
+  row_["port_id_type"] = getAtomStr(port_, lldpctl_k_port_id_subtype);
+  row_["port_aggregation_id"] = getAtomStr(port_, lldpctl_k_port_dot3_aggregid);
+  row_["port_description"] = getAtomStr(port_, lldpctl_k_port_descr);
+  row_["port_ttl"] = getAtomStr(port_, lldpctl_k_port_age);
+  row_["port_mfs"] = getAtomStr(port_, lldpctl_k_port_dot3_mfs);
 
   // Dot3 power stuff
-  lldpctl_atom_t* power = lldpctl_atom_get(port_, lldpctl_k_port_dot3_power);
-  if (power &&
-      lldpctl_atom_get_int(power, lldpctl_k_dot3_power_devicetype) > 0) {
-    row_[kColPowerDeviceType] =
-        getAtomStr(power, lldpctl_k_dot3_power_devicetype);
-    row_[kColPowerMDISupported] =
-        lldpctl_atom_get_int(power, lldpctl_k_dot3_power_supported);
-    row_[kColPowerMDIEnabled] =
-        lldpctl_atom_get_int(power, lldpctl_k_dot3_power_enabled);
-    row_[kColPowerPairControlEnabled] =
-        lldpctl_atom_get_int(power, lldpctl_k_dot3_power_paircontrol);
-    row_[kColPowerPairs] = getAtomStr(power, lldpctl_k_dot3_power_pairs);
-    row_[kColPowerClass] = getAtomStr(power, lldpctl_k_dot3_power_class);
-    row_[kColPower8023atEnabled] =
-        (lldpctl_atom_get_int(power, lldpctl_k_dot3_power_type) >
+  std::unique_ptr<lldpctl_atom_t, decltype(delLLDPAtom)> power(
+      lldpctl_atom_get(port_, lldpctl_k_port_dot3_power), delLLDPAtom);
+  auto pp = power.get();
+  if (pp != nullptr &&
+      lldpctl_atom_get_int(pp, lldpctl_k_dot3_power_devicetype) > 0) {
+    row_["power_device_type"] = getAtomStr(pp, lldpctl_k_dot3_power_devicetype);
+    row_["power_mdi_supported"] =
+        lldpctl_atom_get_int(pp, lldpctl_k_dot3_power_supported);
+    row_["power_mdi_enabled"] =
+        lldpctl_atom_get_int(pp, lldpctl_k_dot3_power_enabled);
+    row_["power_paircontrol_enabled"] =
+        lldpctl_atom_get_int(pp, lldpctl_k_dot3_power_paircontrol);
+    row_["power_pairs"] = getAtomStr(pp, lldpctl_k_dot3_power_pairs);
+    row_["power_class"] = getAtomStr(pp, lldpctl_k_dot3_power_class);
+    row_["power_8023at_enabled"] =
+        (lldpctl_atom_get_int(pp, lldpctl_k_dot3_power_type) >
          LLDP_DOT3_POWER_8023AT_OFF);
-    row_[kColPower8023atPowerType] =
-        getAtomStr(power, lldpctl_k_dot3_power_type);
-    row_[kColPower8023atPowerSource] =
-        getAtomStr(power, lldpctl_k_dot3_power_source);
-    row_[kColPower8023atPowerPriority] =
-        getAtomStr(power, lldpctl_k_dot3_power_priority);
-    row_[kColPower8023atPowerRequested] =
-        getAtomStr(power, lldpctl_k_dot3_power_requested);
-    row_[kColPower8023atPowerAllocated] =
-        getAtomStr(power, lldpctl_k_dot3_power_allocated);
+    row_["power_8023at_power_type"] = getAtomStr(pp, lldpctl_k_dot3_power_type);
+    row_["power_8023at_power_source"] =
+        getAtomStr(pp, lldpctl_k_dot3_power_source);
+    row_["power_8023at_power_priority"] =
+        getAtomStr(pp, lldpctl_k_dot3_power_priority);
+    row_["power_8023at_power_requested"] =
+        getAtomStr(pp, lldpctl_k_dot3_power_requested);
+    row_["power_8023at_power_allocated"] =
+        getAtomStr(pp, lldpctl_k_dot3_power_allocated);
   }
-  lldpctl_atom_dec_ref(power);
 
   // Auto-Negotiations
   bool autoneg_supported =
       lldpctl_atom_get_int(port_, lldpctl_k_port_dot3_autoneg_support);
-  row_[kColPortAutonegSupported] = (autoneg_supported) ? "1" : "0";
+  row_["port_autoneg_supported"] = (autoneg_supported) ? "1" : "0";
 
   bool autoneg_enabled =
       lldpctl_atom_get_int(port_, lldpctl_k_port_dot3_autoneg_enabled);
-  row_[kColPortAutonegEnabled] = (autoneg_enabled) ? "1" : "0";
+  row_["port_autoneg_enabled"] = (autoneg_enabled) ? "1" : "0";
 
-  row_[kColPortMauType] = getAtomStr(port_, lldpctl_k_port_dot3_mautype);
+  row_["port_mau_type"] = getAtomStr(port_, lldpctl_k_port_dot3_mautype);
 
   if (autoneg_supported && autoneg_enabled) {
     long int advertised =
@@ -383,71 +278,72 @@ void LLDPNeighbor::getPort() {
     getPMDAutoNeg(advertised,
                   LLDP_DOT3_LINK_AUTONEG_10BASE_T,
                   LLDP_DOT3_LINK_AUTONEG_10BASET_FD,
-                  kColPortAutoneg10BaseTHDEnabled,
-                  kColPortAutoneg10BaseTFDEnabled);
+                  "port_autoneg_10baset_hd_enabled",
+                  "port_autoneg_10baset_fd_enabled");
     getPMDAutoNeg(advertised,
                   LLDP_DOT3_LINK_AUTONEG_100BASE_TX,
                   LLDP_DOT3_LINK_AUTONEG_100BASE_TXFD,
-                  kColPortAutoNeg100BaseTXHDEnabled,
-                  kColPortAutoneg100BaseTXFDEnabled);
+                  "port_autoneg_100basetx_hd_enabled",
+                  "port_autoneg_100basetx_fd_enabled");
     getPMDAutoNeg(advertised,
                   LLDP_DOT3_LINK_AUTONEG_100BASE_T2,
                   LLDP_DOT3_LINK_AUTONEG_100BASE_T2FD,
-                  kColAutoNeg100BaseT2HDEnabled,
-                  kColAutoNeg100BaseT2FDEnabled);
+                  "port_autoneg_100baset2_hd_enabled",
+                  "port_autoneg_100baset2_fd_enabled");
     getPMDAutoNeg(advertised,
                   LLDP_DOT3_LINK_AUTONEG_100BASE_T4,
                   LLDP_DOT3_LINK_AUTONEG_100BASE_T4,
-                  kColPortAutoneg100BaseT4HDEnabled,
-                  kColPortAutoneg100BaseT4FDEnabled);
+                  "port_autoneg_100baset4_hd_enabled",
+                  "port_autoneg_100baset4_fd_enabled");
     getPMDAutoNeg(advertised,
                   LLDP_DOT3_LINK_AUTONEG_1000BASE_X,
                   LLDP_DOT3_LINK_AUTONEG_1000BASE_XFD,
-                  kColPortAutoneg1000BaseXHDEnabled,
-                  kColPortAutoneg1000BaseXFDEnabled);
+                  "port_autoneg_1000basex_hd_enabled",
+                  "port_autoneg_1000basex_fd_enabled");
     getPMDAutoNeg(advertised,
                   LLDP_DOT3_LINK_AUTONEG_1000BASE_T,
                   LLDP_DOT3_LINK_AUTONEG_1000BASE_TFD,
-                  kColPortAutoneg1000BaseTHDEnabled,
-                  kColPortAutoneg1000BaseTFDEnabled);
+                  "port_autoneg_1000baset_hd_enabled",
+                  "port_autoneg_1000baset_fd_enabled");
   }
 }
 
 void LLDPNeighbor::getChassis() {
-  row_[kColChassisIndex] = getAtomStr(chassis_, lldpctl_k_chassis_index);
-  row_[kColChassisId] = getAtomStr(chassis_, lldpctl_k_chassis_id);
-  row_[kColChassisIdType] = getAtomStr(chassis_, lldpctl_k_chassis_id_subtype);
-  row_[kColChassisSysname] = getAtomStr(chassis_, lldpctl_k_chassis_name);
-  row_[kColChassisSysDesc] = getAtomStr(chassis_, lldpctl_k_chassis_descr);
+  row_["rid"] = getAtomStr(chassis_, lldpctl_k_chassis_index);
+  row_["chassis_id"] = getAtomStr(chassis_, lldpctl_k_chassis_id);
+  row_["chassis_id_type"] = getAtomStr(chassis_, lldpctl_k_chassis_id_subtype);
+  row_["chassis_sysname"] = getAtomStr(chassis_, lldpctl_k_chassis_name);
+  row_["chassis_sys_description"] =
+      getAtomStr(chassis_, lldpctl_k_chassis_descr);
 
   getChasisCapability(LLDP_CAP_BRIDGE,
-                      kColChassisBridgeCapabilityAvailable,
-                      kColChassisBridgeCapabilityEnabled);
+                      "chassis_bridge_capability_available",
+                      "chassis_bridge_capability_enabled");
   getChasisCapability(LLDP_CAP_ROUTER,
-                      kColChassisRouterCapabilityAvailable,
-                      kColChassisRouterCapabilityEnabled);
+                      "chassis_router_capability_available",
+                      "chassis_router_capability_enabled");
   getChasisCapability(LLDP_CAP_WLAN,
-                      kColChassisWLANCapabilityAvailable,
-                      kColChassisWLANCapabilityEnabled);
+                      "chassis_wlan_capability_available",
+                      "chassis_wlan_capability_enabled");
   getChasisCapability(LLDP_CAP_REPEATER,
-                      kColChassisRepeaterCapabilityAvailable,
-                      kColChassisRepeaterCapabilityEnabled);
+                      "chassis_repeater_capability_available",
+                      "chassis_repeater_capability_enabled");
   getChasisCapability(LLDP_CAP_TELEPHONE,
-                      kColChassisTelCapabilityAvailable,
-                      kColChassisTelCapabilityEnabled);
+                      "chassis_tel_capability_available",
+                      "chassis_tel_capability_enabled");
   getChasisCapability(LLDP_CAP_DOCSIS,
-                      kColChassisDOCSISCapabilityAvailable,
-                      kColChassisDOCSISCapabilityEnabled);
+                      "chassis_docsis_capability_available",
+                      "chassis_docsis_capability_enabled");
   getChasisCapability(LLDP_CAP_STATION,
-                      kColChassisStationCapabilityAvailable,
-                      kColChassisStationCapabilityEnabled);
+                      "chassis_station_capability_available",
+                      "chassis_station_capability_enabled");
   getChasisCapability(LLDP_CAP_OTHER,
-                      kColChassisOtherCapabilityAvailable,
-                      kColChassisOtherCapabilityEnabled);
+                      "chassis_other_capability_available",
+                      "chassis_other_capability_enabled");
 
-  lldpctl_atom_t* mgmts = lldpctl_atom_get(chassis_, lldpctl_k_chassis_mgmt);
-  row_[kColChassisMgmtIPs] = commaDelimitedStr(mgmts, lldpctl_k_mgmt_ip);
-  lldpctl_atom_dec_ref(mgmts);
+  std::unique_ptr<lldpctl_atom_t, decltype(delLLDPAtom)> mgmts(
+      lldpctl_atom_get(chassis_, lldpctl_k_chassis_mgmt), delLLDPAtom);
+  row_["chassis_mgmt_ips"] = commaDelimitedStr(mgmts.get(), lldpctl_k_mgmt_ip);
 }
 
 /**
@@ -472,16 +368,21 @@ Row& LLDPNeighbor::getNeighbor() {
 QueryData genLLDPNeighbors(QueryContext& context) {
   QueryData rows;
 
-  lldpctl_conn_t* conn(lldpctl_new(nullptr, nullptr, nullptr));
-  lldpctl_error_t err = lldpctl_last_error(conn);
+  auto delConn = [](lldpctl_conn_t* c) { lldpctl_release(c); };
+  std::unique_ptr<lldpctl_conn_t, decltype(delConn)> conn(
+      lldpctl_new(nullptr, nullptr, nullptr), delConn);
+
+  lldpctl_error_t err = lldpctl_last_error(conn.get());
   if (err != LLDPCTL_NO_ERROR) {
     LOG(ERROR) << "could not initiate new lldpd connection: "
                << lldpctl_strerror(err);
     return rows;
   }
 
-  lldpctl_atom_t* interfaces = lldpctl_get_interfaces(conn);
-  err = lldpctl_last_error(conn);
+  std::unique_ptr<lldpctl_atom_t, decltype(delLLDPAtom)> interfaces(
+      lldpctl_get_interfaces(conn.get()), delLLDPAtom);
+
+  err = lldpctl_last_error(conn.get());
   if (err != LLDPCTL_NO_ERROR) {
     LOG(WARNING) << "could not connect to lldpd (hint: you might need to "
                     "install lldpd v0.9.X or run in sudo): "
@@ -489,32 +390,26 @@ QueryData genLLDPNeighbors(QueryContext& context) {
     return rows;
   }
 
-  lldpctl_atom_t* interface;
-  lldpctl_atom_foreach(interfaces, interface) {
+  lldpctl_atom_t* interface = nullptr;
+  lldpctl_atom_foreach(interfaces.get(), interface) {
     std::string ifaceName = getAtomStr(interface, lldpctl_k_interface_name);
-    lldpctl_atom_t* port = lldpctl_get_port(interface);
 
-    lldpctl_atom_t* neighbors =
-        lldpctl_atom_get(port, lldpctl_k_port_neighbors);
-    lldpctl_atom_t* neighbor;
-    lldpctl_atom_foreach(neighbors, neighbor) {
-      lldpctl_atom_t* chassis =
-          lldpctl_atom_get(neighbor, lldpctl_k_port_chassis);
+    std::unique_ptr<lldpctl_atom_t, decltype(delLLDPAtom)> port(
+        lldpctl_get_port(interface), delLLDPAtom);
+    std::unique_ptr<lldpctl_atom_t, decltype(delLLDPAtom)> neighbors(
+        lldpctl_atom_get(port.get(), lldpctl_k_port_neighbors), delLLDPAtom);
 
-      LLDPNeighbor n(neighbor, chassis);
+    lldpctl_atom_t* neighbor = nullptr;
+    lldpctl_atom_foreach(neighbors.get(), neighbor) {
+      std::unique_ptr<lldpctl_atom_t, decltype(delLLDPAtom)> chassis(
+          lldpctl_atom_get(neighbor, lldpctl_k_port_chassis), delLLDPAtom);
+
+      LLDPNeighbor n(neighbor, chassis.get());
       Row& row = n.getNeighbor();
-      row[kColInterface] = ifaceName;
+      row["interface"] = ifaceName;
       rows.push_back(row);
-
-      lldpctl_atom_dec_ref(chassis);
     }
-
-    lldpctl_atom_dec_ref(neighbors);
-    lldpctl_atom_dec_ref(port);
   }
-
-  lldpctl_atom_dec_ref(interfaces);
-  lldpctl_release(conn);
 
   return rows;
 }
