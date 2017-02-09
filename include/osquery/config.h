@@ -231,9 +231,17 @@ class Config : private boost::noncopyable {
    * @brief Call the genConfig method of the config retriever plugin.
    *
    * This may perform a resource load such as TCP request or filesystem read.
+   * If a non-zero value is passed to --config_refresh, this starts a thread
+   * that periodically calls genConfig to reload config state
+   */
+  Status refresh();
+
+  /**
+   * @brief Check if a config plugin is registered and load configs.
+   *
+   * Calls refresh after confirming a config plugin is registered
    */
   Status load();
-  Status refresh();
 
   /// A step method for Config::update.
   Status updateSource(const std::string& source, const std::string& json);
@@ -519,10 +527,11 @@ class ConfigParserPlugin : public Plugin {
   friend class Config;
 };
 
+// A thread that periodically reloads configuration state
 class ConfigRefreshRunner : public InternalRunnable {
-  public:
-    /// A simple wait/interruptible lock.
-    void start();
+ public:
+  /// A simple wait/interruptible lock.
+  void start();
 };
 
 /**

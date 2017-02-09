@@ -362,8 +362,9 @@ Status Config::refresh() {
     }
     status = update(response[0]);
 
-    // If the initial configuration includes a non-0 refresh, start an additional
-    // service that sleeps and periodically regenerates the configuration.
+    // If the initial configuration includes a non-0 refresh, start an
+    // additional service that sleeps and periodically regenerates the
+    // configuration.
     if (!started_thread_ && FLAGS_config_refresh >= 1) {
       Dispatcher::addService(std::make_shared<ConfigRefreshRunner>());
       started_thread_ = true;
