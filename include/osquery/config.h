@@ -20,6 +20,7 @@
 
 #include <osquery/core.h>
 #include <osquery/database.h>
+#include <osquery/dispatcher.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 
@@ -232,6 +233,7 @@ class Config : private boost::noncopyable {
    * This may perform a resource load such as TCP request or filesystem read.
    */
   Status load();
+  Status refresh();
 
   /// A step method for Config::update.
   Status updateSource(const std::string& source, const std::string& json);
@@ -311,6 +313,8 @@ class Config : private boost::noncopyable {
   /// or the initialization load step.
   bool loaded_{false};
 
+  bool started_thread_{false};
+
   /// A UNIX timestamp recorded when the config started.
   size_t start_time_{0};
 
@@ -319,6 +323,7 @@ class Config : private boost::noncopyable {
 
  private:
   friend class ConfigTests;
+  friend class ConfigRefreshRunner;
   friend class FilePathsConfigParserPluginTests;
   friend class FileEventsTableTests;
   friend class DecoratorsConfigParserPluginTests;
@@ -512,6 +517,12 @@ class ConfigParserPlugin : public Plugin {
 
  private:
   friend class Config;
+};
+
+class ConfigRefreshRunner : public InternalRunnable {
+  public:
+    /// A simple wait/interruptible lock.
+    void start();
 };
 
 /**
