@@ -3,9 +3,9 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Broker < AbstractOsqueryFormula
   desc "Broker Communication Library"
   homepage "https://github.com/bro/broker"
-  url "https://github.com/bro/broker.git",
-	  :revision => "68a36ed81480ba935268bcaf7b6f2249d23436da"
-  head "https://github.com/bro/broker.git"
+  url "https://github.com/bro/broker.git"
+	  #:revision => "68a36ed81480ba935268bcaf7b6f2249d23436da"
+  #head "https://github.com/bro/broker.git"
   sha256 "0b9e5c36c3f9b591b613c53995691ae750b81480325c409379b467eb8cd74bd9"
   version "0.6"
 
@@ -16,15 +16,13 @@ class Broker < AbstractOsqueryFormula
       cellar :any_skip_relocation
   end
 
-  depends_on "osquery/osquery-local/caf"
+  depends_on "caf"
   depends_on "cmake" => :build
 
   # Use static libcaf
   patch :DATA
 
   def install
-    ENV.cxx11
-
     prepend "CXXFLAGS", "-std=c++11 -stdlib=libstdc++ -static-libstdc++ -Wextra -Wall -ftemplate-depth=512 -pedantic"
     args = %W[--prefix=#{prefix} --disable-pybroker --enable-static-only --with-caf=#{default_prefix}]
 
@@ -81,5 +79,20 @@ index 4a827c1..6a40879 100644
                       /usr/lib
                       /usr/local/lib
                       /opt/local/lib
+--
+2.7.4
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a0d0855..3786df1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -209,7 +209,7 @@ set(CMAKE_CXX_FLAGS \"\${CXXFLAGS} \${CMAKE_CXX_FLAGS}\")" >> patchfile2
+ add_subdirectory(bindings)
+
+ enable_testing()
+-add_subdirectory(tests)
++#add_subdirectory(tests)
+
+
+
 --
 2.7.4

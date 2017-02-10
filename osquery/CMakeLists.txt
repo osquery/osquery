@@ -67,8 +67,8 @@ else()
 endif()
 
 ADD_OSQUERY_LINK_CORE("broker")
-ADD_OSQUERY_LINK_CORE("caf_core")
-ADD_OSQUERY_LINK_CORE("caf_io")
+ADD_OSQUERY_LINK_CORE("caf_core_static")
+ADD_OSQUERY_LINK_CORE("caf_io_static")
 
 if(APPLE OR LINUX)
   ADD_OSQUERY_LINK_CORE("libdl")
