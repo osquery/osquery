@@ -129,6 +129,12 @@ else()
   ADD_OSQUERY_LINK_CORE("lz4")
 endif()
 
+if(NOT WINDOWS)
+  ADD_OSQUERY_LINK_CORE("broker")
+  ADD_OSQUERY_LINK_CORE("caf_core_static")
+  ADD_OSQUERY_LINK_CORE("caf_io_static")
+endif()
+
 if(APPLE OR LINUX)
   ADD_OSQUERY_LINK_CORE("libdl")
   ADD_OSQUERY_LINK_ADDITIONAL("rocksdb_lite")
