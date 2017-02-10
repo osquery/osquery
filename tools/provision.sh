@@ -148,8 +148,8 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/cppcheck
   brew_dependency osquery/osquery-local/ccache
 
-  brew_dependency osquery/osquery-local/caf --debug --verbose
-  brew_dependency osquery/osquery-local/broker --debug --verbose
+  brew_dependency osquery/osquery-local/caf
+  brew_dependency osquery/osquery-local/broker
 }
 
 function sysprep() {

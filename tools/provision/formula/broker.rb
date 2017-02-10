@@ -3,8 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Broker < AbstractOsqueryFormula
   desc "Broker Communication Library"
   homepage "https://github.com/bro/broker"
-  url "https://github.com/bro/broker.git"
-	  #:revision => "68a36ed81480ba935268bcaf7b6f2249d23436da"
+  url "https://github.com/bro/broker.git",
+	  :revision => "68a36ed81480ba935268bcaf7b6f2249d23436da"
   #head "https://github.com/bro/broker.git"
   sha256 "0b9e5c36c3f9b591b613c53995691ae750b81480325c409379b467eb8cd74bd9"
   version "0.6"
