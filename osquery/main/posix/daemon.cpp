@@ -15,6 +15,7 @@
 
 #include "osquery/dispatcher/distributed.h"
 #include "osquery/dispatcher/scheduler.h"
+#include "osquery/dispatcher/bro.h"
 
 const std::string kWatcherWorkerName = "osqueryd: worker";
 
@@ -36,6 +37,12 @@ int main(int argc, char* argv[]) {
   auto s = osquery::startDistributed();
   if (!s.ok()) {
     VLOG(1) << "Not starting the distributed query service: " << s.toString();
+  }
+
+  // Conditionally begin the distributed query service
+  auto s_bro = osquery::startBro();
+  if (!s_bro.ok()) {
+    VLOG(1) << "Not starting the bro service: " << s_bro.toString();
   }
 
   // Begin the schedule runloop.

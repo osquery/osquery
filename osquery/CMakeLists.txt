@@ -66,6 +66,10 @@ else()
   ADD_OSQUERY_LINK_CORE("glog")
 endif()
 
+ADD_OSQUERY_LINK_CORE("broker")
+ADD_OSQUERY_LINK_CORE("caf_core")
+ADD_OSQUERY_LINK_CORE("caf_io")
+
 if(APPLE OR LINUX)
   ADD_OSQUERY_LINK_CORE("libdl")
 elseif(FREEBSD)
@@ -135,6 +139,7 @@ endif()
 set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
 
 # Add subdirectories
+add_subdirectory(bro)
 add_subdirectory(config)
 add_subdirectory(core)
 add_subdirectory(database)
