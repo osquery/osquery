@@ -1,4 +1,4 @@
-Continuous integration currently tests stable release versions of osquery against macOS 10.12 (as listed under the _Build_status_ column on the project [README](https://github.com/facebook/osquery/blob/master/README.md)). There are no reported issues which block expected core functionality on 10.10, however 10.9 and previous OS X versions do not work.
+Continuous integration currently tests stable release versions of osquery against macOS 10.12 (as listed under the _Build_status_ column on the project [README](https://github.com/facebook/osquery/blob/master/README.md)). There are no reported issues which block expected core functionality on 10.11, however 10.10 and previous OS X versions do not work.
 
 ## Package Installation
 
