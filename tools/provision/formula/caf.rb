@@ -4,7 +4,7 @@ class Caf < AbstractOsqueryFormula
   desc "Implementation of the Actor Model for C++"
   homepage "https://actor-framework.org/"
   url "https://github.com/actor-framework/actor-framework.git",
-        :revision => "9fb82f556760e1004e27fb4d303499b603a3fc19"
+        :revision => "09d32c7267acd7552b722d918107863592e91d53"
   sha256 "afc4bc928ecd7d017768e5c85b7300196aa5b70ef11d97e11b21a1ae28ce9d3f"
   head "https://github.com/actor-framework/actor-framework.git",
     :branch => "develop"
@@ -22,8 +22,8 @@ class Caf < AbstractOsqueryFormula
   def install
     ENV.cxx11
 
-    prepend "CXXFLAGS", "-std=c++11 -stdlib=libstdc++ -static-libstdc++ -Wextra -Wall -pedantic"
-    args = %W[--prefix=#{prefix} --no-auto-libc++ --no-examples --no-unit-tests --build-static-only]
+    prepend "CXXFLAGS", "-std=c++11 -stdlib=libstdc++ -static-libstdc++ -Wextra -Wall -ftemplate-depth=512 -pedantic"
+    args = %W[--prefix=#{prefix} --no-auto-libc++ --no-examples --no-unit-tests --no-opencl --no-nexus --no-cash --no-benchmarks --no-riac --build-static-only]
 
     system "./configure", *args
     system "make"
