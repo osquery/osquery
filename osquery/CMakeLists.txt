@@ -20,7 +20,7 @@ set(OSQUERY_TABLES_TESTS "")
 
 # Add all and extra for osquery code.
 if(WINDOWS)
-  add_compile_options(/W3 /WX)
+  add_compile_options(/W3 /WX /guard:cf)
 else()
   add_compile_options(
     -Wall
@@ -55,6 +55,9 @@ if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("ssleay32")
   ADD_OSQUERY_LINK_CORE("eay32")
   ADD_OSQUERY_LINK_CORE("zlibstatic")
+  
+  # Enable control flow guard
+  ADD_OSQUERY_LINK_CORE("-guard:cf")
 else()
   ADD_OSQUERY_LINK_CORE("libpthread")
   ADD_OSQUERY_LINK_CORE("libz")
