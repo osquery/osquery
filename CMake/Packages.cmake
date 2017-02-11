@@ -26,21 +26,13 @@ elseif(LINUX)
   if(FPM_EXECUTABLE)
     add_custom_command(TARGET packages PRE_BUILD
       COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
-        -t "deb" -i "1.14" -d '${DEB_PACKAGE_DEPENDENCIES}'
-    )
-    add_custom_command(TARGET packages PRE_BUILD
-      COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
-        -t "deb" -i "1.16" -s -d '${DEB_PACKAGE_DEPENDENCIES}'
+        -t "deb" -i "1.u16" -d '${DEB_PACKAGE_DEPENDENCIES}'
     )
 
     if(RPMBUILD_EXECUTABLE)
       add_custom_command(TARGET packages PRE_BUILD
         COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
-          -t "rpm" -i "1.el6" -d '${RPM_PACKAGE_DEPENDENCIES}'
-      )
-      add_custom_command(TARGET packages PRE_BUILD
-        COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
-          -t "rpm" -i "1.el7" -s -d '${RPM_PACKAGE_DEPENDENCIES}'
+          -t "rpm" -i "1.el7" -d '${RPM_PACKAGE_DEPENDENCIES}'
       )
     else()
       WARNING_LOG("Skipping RPM/CentOS packages: Cannot find rpmbuild")
