@@ -215,9 +215,7 @@ else()
     )
     if (CMAKE_CXX_COMPILER MATCHES "clang")
       # Only enale LTO builds when using clang on Unix, for now
-      add_compile_options(
-        -flto
-      )
+      add_compile_options(-flto)
     endif()
   endif()
 endif()
@@ -289,6 +287,7 @@ else()
   if (CMAKE_CXX_COMPILER MATCHES "clang")
     # Clang on Unix uses LTO; we also need to pass -flto when linking
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto")
   endif()
 
 endif()
@@ -466,6 +465,7 @@ execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
 
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .lib .dylib .so .a)
+set(CMAKE_SKIP_RPATH TRUE)
 
 # Most dependent packages/libs we want static.
 if(DEFINED ENV{BUILD_LINK_SHARED})
