@@ -6,6 +6,7 @@ class Boost < AbstractOsqueryFormula
   url "https://downloads.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.bz2"
   sha256 "686affff989ac2488f79a97b9479efb9f2abae035b5ed4d8226de6857933fd3b"
   head "https://github.com/boostorg/boost.git"
+  revision 1
 
   # Handle compile failure with boost/graph/adjacency_matrix.hpp
   # https://github.com/Homebrew/homebrew/pull/48262
@@ -71,6 +72,7 @@ class Boost < AbstractOsqueryFormula
       "--with-filesystem",
       "--with-regex",
       "--with-system",
+      "--with-thread",
       "threading=multi",
       "link=static",
       "optimization=space",

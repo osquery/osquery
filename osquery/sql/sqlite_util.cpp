@@ -185,7 +185,7 @@ void SQLiteSQLPlugin::detach(const std::string& name) {
 }
 
 SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
-    : db_(db), lock_(mtx, std::try_to_lock) {
+    : db_(db), lock_(mtx, MUTEX_IMPL::try_to_lock) {
   if (lock_.owns_lock()) {
     primary_ = true;
   } else {

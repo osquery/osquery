@@ -12,9 +12,14 @@
 
 #include <csignal>
 #include <memory>
-#include <shared_mutex>
 #include <string>
 #include <vector>
+
+#ifdef __APPLE__
+#include <boost/thread/shared_mutex.hpp>
+#else
+#include <shared_mutex>
+#endif
 
 #include <osquery/status.h>
 
@@ -177,14 +182,20 @@ inline bool isPlatform(PlatformType a, const PlatformType& t = kPlatformType) {
   return (static_cast<int>(t) & static_cast<int>(a)) != 0;
 }
 
+#ifdef __APPLE__
+#define MUTEX_IMPL boost
+#else
+#define MUTEX_IMPL std
+#endif
+
 /// Helper alias for defining mutexes.
-using Mutex = std::shared_timed_mutex;
+using Mutex = MUTEX_IMPL::shared_timed_mutex;
 
 /// Helper alias for write locking a mutex.
-using WriteLock = std::unique_lock<Mutex>;
+using WriteLock = MUTEX_IMPL::unique_lock<Mutex>;
 
 /// Helper alias for read locking a mutex.
-using ReadLock = std::shared_lock<Mutex>;
+using ReadLock = MUTEX_IMPL::shared_lock<Mutex>;
 
 /// Helper alias for defining recursive mutexes.
 using RecursiveMutex = std::recursive_mutex;
