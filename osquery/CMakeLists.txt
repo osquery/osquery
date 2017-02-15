@@ -99,6 +99,7 @@ endif()
 
 if(APPLE)
   ADD_OSQUERY_LINK_CORE("liblzma libbz2")
+  ADD_OSQUERY_LINK_CORE("boost_thread-mt")
 else()
   if(NOT WINDOWS)
     ADD_OSQUERY_LINK_CORE("lzma")
