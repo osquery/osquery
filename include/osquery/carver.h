@@ -38,10 +38,13 @@ class Carver : public InternalRunnable {
    */
   Status exfil(const boost::filesystem::path& path);
 
+ // TODO: Evaluate if we need all of these :P
  private:
   std::set<boost::filesystem::path> carvePaths_;
   boost::filesystem::path archivePath_;
   boost::filesystem::path carveDir_;
   std::string carveGuid_;
+  std::string startUri_;
+  std::string contUri_;
 };
 }
