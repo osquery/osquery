@@ -24,81 +24,157 @@
 #include "osquery/core/conversions.h"
 
 namespace osquery {
+
+std::string psidToString(PSID sid);
+int getUidFromSid(PSID sid);
+int getGidFromSid(PSID sid);
+
 namespace tables {
 
-QueryData genUsers(QueryContext& context) {
-  QueryData results;
+void ProcessWinProfile(const WmiResultItem& wmiResult,
+                       std::set<std::string>& processedSids,
+                       QueryData& results) {
+  Row r;
+  std::string sidString;
+  wmiResult.GetString("SID", sidString);
 
-  WmiRequest req("select * from Win32_UserProfile");
-  if (!req.getStatus().ok()) {
-    return results;
+  r["uuid"] = sidString;
+  processedSids.insert(sidString);
+  wmiResult.GetString("LocalPath", r["directory"]);
+
+  PSID sid;
+  auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
+  if (ret == 0) {
+    VLOG(1) << "Convert SID to string failed with " << GetLastError();
   }
+  r["uid"] = INTEGER(getUidFromSid(sid));
+  r["gid"] = INTEGER(getGidFromSid(sid));
+  r["uid_signed"] = r["uid"];
+  r["gid_signed"] = r["gid"];
+  r["shell"] = "C:\\Windows\\system32\\cmd.exe";
 
-  auto& wmiResults = req.results();
-  for (const auto& res : wmiResults) {
-    Row r;
-
-    std::string sidString;
-    res.GetString("LocalPath", r["directory"]);
-    res.GetString("SID", sidString);
-    r["uuid"] = sidString;
-
-    PSID sid;
-    auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
-    if (ret == 0) {
-      TLOG << "Convert SID to string failed with: " << GetLastError();
-    }
-
+  WmiRequest accntReq(
+      "select Description, Name from Win32_UserAccount where sid = \"" +
+      r["uuid"] + "\"");
+  auto& accntResults = accntReq.results();
+  if (accntReq.getStatus().ok() && !accntResults.empty()) {
+    accntResults[0].GetString("Description", r["description"]);
+    accntResults[0].GetString("Name", r["username"]);
+  } else {
+    r["description"] = "";
+    // If there is no entry in Win32_UserAccount this is a domain user
     wchar_t accntName[UNLEN] = {0};
     wchar_t domName[DNLEN] = {0};
     unsigned long accntNameLen = UNLEN;
     unsigned long domNameLen = DNLEN;
     SID_NAME_USE eUse;
-
-    /// MSDN guaruntees the string values returned is null terminated.
     ret = LookupAccountSidW(
         nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
-    if (ret != 0) {
-      r["username"] = wstringToString(accntName);
-    } else {
-      TLOG << "Lookup Account by SID failed with: " << GetLastError();
-    }
-
-    /// USER_INFO_3 contains detailed info, like the uid
-    unsigned long dwDetailedUserLevel = 3;
-    LPUSER_INFO_3 pUserInfoBuffer = nullptr;
-
-    NET_API_STATUS nStatus;
-    nStatus = NetUserGetInfo(nullptr,
-                             accntName,
-                             dwDetailedUserLevel,
-                             reinterpret_cast<LPBYTE*>(&pUserInfoBuffer));
-
-    if (nStatus == NERR_Success) {
-      r["uid"] = INTEGER(pUserInfoBuffer->usri3_user_id);
-      r["uid_signed"] = INTEGER(pUserInfoBuffer->usri3_user_id);
-      r["gid"] = INTEGER(pUserInfoBuffer->usri3_primary_group_id);
-      r["gid_signed"] = INTEGER(pUserInfoBuffer->usri3_primary_group_id);
-      r["description"] =
-          SQL_TEXT(wstringToString(pUserInfoBuffer->usri3_comment));
-    } else {
-      /// If NetUserGetInfo fails parse the uid manually
-      auto sidTokens = osquery::split(sidString, "-");
-      if (sidTokens.size() == 8) {
-        r["uid"] = INTEGER(sidTokens.back());
-        r["uid_signed"] = INTEGER(sidTokens.back());
-      }
-    }
-
-    /// Note: there may be a way to get the users prefered shell
-    r["shell"] = "C:\\Windows\\system32\\cmd.exe";
-    results.push_back(r);
-
-    if (pUserInfoBuffer != nullptr) {
-      NetApiBufferFree(pUserInfoBuffer);
-      pUserInfoBuffer = nullptr;
-    }
+    r["username"] = ret != 0 ? wstringToString(accntName) : "";
   }
+  results.push_back(r);
+}
+
+void processWinLocalAccounts(const std::set<std::string>& processedSids,
+                             QueryData& results) {
+  unsigned long dwUserInfoLevel = 3;
+  unsigned long dwNumUsersRead = 0;
+  unsigned long dwTotalUsers = 0;
+  unsigned long resumeHandle = 0;
+  unsigned long ret = 0;
+  LPBYTE userBuffer = nullptr;
+  do {
+    ret = NetUserEnum(nullptr,
+                      dwUserInfoLevel,
+                      0,
+                      &userBuffer,
+                      MAX_PREFERRED_LENGTH,
+                      &dwNumUsersRead,
+                      &dwTotalUsers,
+                      &resumeHandle);
+
+    if ((ret == NERR_Success || ret == ERROR_MORE_DATA) &&
+        userBuffer != nullptr) {
+      auto iterBuff = LPUSER_INFO_3(userBuffer);
+      for (size_t i = 0; i < dwNumUsersRead; i++) {
+        // User level 4 contains the SID value
+        unsigned long dwDetailedUserInfoLevel = 4;
+        LPBYTE userLvl4Buff = nullptr;
+        ret = NetUserGetInfo(nullptr,
+                             iterBuff->usri3_name,
+                             dwDetailedUserInfoLevel,
+                             &userLvl4Buff);
+
+        if (ret != NERR_Success || userLvl4Buff == nullptr) {
+          if (userLvl4Buff != nullptr) {
+            NetApiBufferFree(userLvl4Buff);
+          }
+          VLOG(1) << "Failed to get sid for "
+                  << wstringToString(iterBuff->usri3_name)
+                  << " with error code " << ret;
+          iterBuff++;
+          continue;
+        }
+
+        // Will return empty string on fail
+        auto sid = LPUSER_INFO_4(userLvl4Buff)->usri4_user_sid;
+        auto sidString = psidToString(sid);
+        if (processedSids.find(sidString) != processedSids.end()) {
+          if (userLvl4Buff != nullptr) {
+            NetApiBufferFree(userLvl4Buff);
+          }
+
+          iterBuff++;
+          continue;
+        }
+
+        Row r;
+        r["uuid"] = psidToString(sid);
+        r["username"] = wstringToString(iterBuff->usri3_name);
+        r["uid"] = INTEGER(iterBuff->usri3_user_id);
+        r["gid"] = INTEGER(iterBuff->usri3_primary_group_id);
+        r["uid_signed"] = r["uid"];
+        r["gid_signed"] = r["gid"];
+        r["description"] =
+            wstringToString(LPUSER_INFO_4(userLvl4Buff)->usri4_comment);
+        r["directory"] =
+            wstringToString(LPUSER_INFO_4(userLvl4Buff)->usri4_home_dir);
+        r["shell"] = "C:\\Windows\\System32\\cmd.exe";
+        if (userLvl4Buff != nullptr) {
+          NetApiBufferFree(userLvl4Buff);
+        }
+
+        results.push_back(r);
+        iterBuff++;
+      }
+    } else {
+      // If there are no local users something may be amiss.
+      LOG(WARNING) << "NetUserEnum failed with " << ret;
+    }
+    if (userBuffer != nullptr) {
+      NetApiBufferFree(userBuffer);
+    }
+
+  } while (ret == ERROR_MORE_DATA);
+}
+
+QueryData genUsers(QueryContext& context) {
+  QueryData results;
+
+  // Enumerate all accounts with a profile on this computer
+  WmiRequest req("select * from Win32_UserProfile");
+  if (!req.getStatus().ok()) {
+    return results;
+  }
+  auto& wmiResults = req.results();
+  std::set<std::string> processedSids;
+
+  for (const auto& res : wmiResults) {
+    ProcessWinProfile(res, processedSids, results);
+  }
+
+  // Lastly do a sweep for any accounts that don't yet have a profile
+  processWinLocalAccounts(processedSids, results);
   return results;
 }
 }
