@@ -3,32 +3,19 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Boost < AbstractOsqueryFormula
   desc "Collection of portable C++ source libraries"
   homepage "https://www.boost.org/"
-  url "https://downloads.sourceforge.net/project/boost/boost/1.60.0/boost_1_60_0.tar.bz2"
-  sha256 "686affff989ac2488f79a97b9479efb9f2abae035b5ed4d8226de6857933fd3b"
+  url "https://downloads.sourceforge.net/project/boost/boost/1.63.0/boost_1_63_0.tar.bz2"
+  sha256 "beae2529f759f6b3bf3f4969a19c2e9d6f0c503edcb2de4a61d1428519fcb3b0"
   head "https://github.com/boostorg/boost.git"
   revision 1
-
-  # Handle compile failure with boost/graph/adjacency_matrix.hpp
-  # https://github.com/Homebrew/homebrew/pull/48262
-  # https://svn.boost.org/trac/boost/ticket/11880
-  # patch derived from https://github.com/boostorg/graph/commit/1d5f43d
-  patch :DATA
-
-  # Fix auto-pointer registration in 1.60
-  # https://github.com/boostorg/python/pull/59
-  # patch derived from https://github.com/boostorg/python/commit/f2c465f
-  patch do
-    url "https://raw.githubusercontent.com/Homebrew/patches/9e56b45/boost/boost1_60_0_python_class_metadata.diff"
-    sha256 "1a470c3a2738af409f68e3301eaecd8d07f27a8965824baf8aee0adef463b844"
-  end
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "b133a4ea9b79073a66ef11722dd94ea12f07c64c51ec0216dce193af73f438e9" => :sierra
-    sha256 "5d531037e8fc6760c3cd1522703dc816c1fa2ae22a4695bb9698dc359ffc16c7" => :el_capitan
     sha256 "638c0f9dbd32c9c40459d8a377dcd63406347eccdefccaf8bca344c16f5566b4" => :x86_64_linux
   end
+
+  patch :DATA
 
   env :userpaths
 
@@ -101,15 +88,20 @@ class Boost < AbstractOsqueryFormula
 end
 
 __END__
-diff -Nur boost_1_60_0/boost/graph/adjacency_matrix.hpp boost_1_60_0-patched/boost/graph/adjacency_matrix.hpp
---- boost_1_60_0/boost/graph/adjacency_matrix.hpp	2015-10-23 05:50:19.000000000 -0700
-+++ boost_1_60_0-patched/boost/graph/adjacency_matrix.hpp	2016-01-19 14:03:29.000000000 -0800
-@@ -443,7 +443,7 @@
-     // graph type. Instead, use directedS, which also provides the
-     // functionality required for a Bidirectional Graph (in_edges,
-     // in_degree, etc.).
--    BOOST_STATIC_ASSERT(type_traits::ice_not<(is_same<Directed, bidirectionalS>::value)>::value);
-+    BOOST_STATIC_ASSERT(!(is_same<Directed, bidirectionalS>::value));
-
-     typedef typename mpl::if_<is_directed,
-                                     bidirectional_tag, undirected_tag>::type
+diff --git a/boost/xpressive/match_results.hpp b/boost/xpressive/match_results.hpp
+index e7923f8..5b2790b 100644
+--- a/boost/xpressive/match_results.hpp
++++ b/boost/xpressive/match_results.hpp
+@@ -744,9 +744,9 @@ private:
+     ///
+     void set_prefix_suffix_(BidiIter begin, BidiIter end)
+     {
+-        this->base_ = begin;
+-        this->prefix_ = sub_match<BidiIter>(begin, this->sub_matches_[ 0 ].first, begin != this->sub_matches_[ 0 ].first);
+-        this->suffix_ = sub_match<BidiIter>(this->sub_matches_[ 0 ].second, end, this->sub_matches_[ 0 ].second != end);
++        this->base_ = make_optional(begin);
++        this->prefix_ = make_optional(sub_match<BidiIter>(begin, this->sub_matches_[ 0 ].first, begin != this->sub_matches_[ 0 ].first));
++        this->suffix_ = make_optional(sub_match<BidiIter>(this->sub_matches_[ 0 ].second, end, this->sub_matches_[ 0 ].second != end));
+ 
+         typename nested_results_type::iterator ibegin = this->nested_results_.begin();
+         typename nested_results_type::iterator iend = this->nested_results_.end();
