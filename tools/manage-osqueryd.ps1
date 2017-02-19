@@ -18,7 +18,7 @@ param(
 )
 
 $kServiceName = "osquery daemon service"
-$kServiceBinaryPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'build', 'windows10', 'osquery', 'Release', 'osqueryd.exe'))
+$kServiceBinaryPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'osquery', 'osqueryd', 'osqueryd.exe'))
 
 # Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
 function Test-IsAdmin {
