@@ -8,7 +8,6 @@
  *
  */
 
-
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
 #include <osquery/status.h>
@@ -24,62 +23,58 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-    class BroLoggerPlugin : public LoggerPlugin {
-    public:
-        Status setUp() override;
+class BroLoggerPlugin : public LoggerPlugin {
+ public:
+  Status setUp() override;
 
-        /// Log results (differential) to a distinct path.
-        Status logString(const std::string& s) override;
+  /// Log results (differential) to a distinct path.
+  Status logString(const std::string& s) override;
 
-        /// Log snapshot data to a distinct path.
-        Status logSnapshot(const std::string& s) override;
+  /// Log snapshot data to a distinct path.
+  Status logSnapshot(const std::string& s) override;
 
-        /// Write a status to Bro.
-        Status logStatus(const std::vector<StatusLogLine>& log) override;
+  /// Write a status to Bro.
+  Status logStatus(const std::vector<StatusLogLine>& log) override;
 
-        /**
-         * @brief Initialize the logger plugin after osquery has begun.
-         *
-         */
-        void init(const std::string& name,
-                  const std::vector<StatusLogLine>& log) override;
+  /**
+   * @brief Initialize the logger plugin after osquery has begun.
+   *
+   */
+  void init(const std::string& name,
+            const std::vector<StatusLogLine>& log) override;
 
-    private:
+ private:
+};
 
-    };
+REGISTER(BroLoggerPlugin, "logger", "bro");
 
-    REGISTER(BroLoggerPlugin, "logger", "bro");
+Status BroLoggerPlugin::setUp() {
+  return Status(0, "OK");
+}
 
-    Status BroLoggerPlugin::setUp() {
-        return Status(0, "OK");
-    }
+Status BroLoggerPlugin::logString(const std::string& s) {
+  QueryLogItem item;
+  Status status = deserializeQueryLogItemJSON(s, item);
+  if (status.getCode() == 0) {
+    // printQueryLogItemJSON(s);
+  } else {
+    LOG(ERROR) << "Parsing query result FAILED";
+    return Status(1, "Failed to deserialize QueryLogItem");
+  }
+  return BrokerManager::getInstance()->logQueryLogItemToBro(item);
+}
 
-    Status BroLoggerPlugin::logString(const std::string& s) {
-        QueryLogItem item;
-        Status status = deserializeQueryLogItemJSON(s, item);
-        if ( status.getCode() == 0 ) {
-            //printQueryLogItemJSON(s);
-        } else {
-            LOG(ERROR) << "Parsing query result FAILED";
-            return Status(1, "Failed to deserialize QueryLogItem");
-        }
-        return BrokerManager::getInstance()->logQueryLogItemToBro(item);
-    }
+Status BroLoggerPlugin::logSnapshot(const std::string& s) {
+  // LOG(ERROR) << "logSnapshot = " << s;
+  return this->logString(s);
+}
 
-    Status BroLoggerPlugin::logSnapshot(const std::string& s) {
-        //LOG(ERROR) << "logSnapshot = " << s;
-        return this->logString(s);
-    }
+Status BroLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
+  LOG(ERROR) << "logStatus = ";
+  // NOT IMPLEMENTED
+  return Status(1, "Not implemented");
+}
 
-    Status BroLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
-        LOG(ERROR) << "logStatus = ";
-        // NOT IMPLEMENTED
-        return Status(1, "Not implemented");
-    }
-
-
-    void BroLoggerPlugin::init(const std::string& name,
-                               const std::vector<StatusLogLine>& log) {
-
-    }
+void BroLoggerPlugin::init(const std::string& name,
+                           const std::vector<StatusLogLine>& log) {}
 }

@@ -8,14 +8,14 @@
  *
  */
 
+#include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/config.h>
 #include <osquery/sql.h>
 
-#include "osquery/dispatcher/bro.h"
 #include "osquery/bro/BrokerManager.h"
 #include "osquery/bro/QueryManager.h"
+#include "osquery/dispatcher/bro.h"
 
 #include "osquery/bro/utils.h"
 
@@ -24,45 +24,32 @@
 #include <broker/message_queue.hh>
 
 #include <iostream>
-#include <sys/types.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 namespace osquery {
 
-FLAG(string,
-     bro_ip,
-     "localhost",
-     "IP address of bro (default localhost)")
+FLAG(string, bro_ip, "localhost", "IP address of bro (default localhost)")
 
-FLAG(uint64,
-    bro_port,
-    9999,
-    "Port of bro (default 9999)")
+FLAG(uint64, bro_port, 9999, "Port of bro (default 9999)")
 
-FLAG(string,
-    bro_groups,
-    "{}",
-    "List of groups (default {})")
+FLAG(string, bro_groups, "{}", "List of groups (default {})")
 
-FLAG(bool,
-    disable_bro,
-    true,
-    "Disable bro (default true)");
+FLAG(bool, disable_bro, true, "Disable bro (default true)");
 
 void BroRunner::start() {
-
   // Setup Broker Endpoint
   LOG(INFO) << "Setup Broker Manager";
   broker::init();
-  BrokerManager *bm = BrokerManager::getInstance();
-  QueryManager *qm = QueryManager::getInstance();
+  BrokerManager* bm = BrokerManager::getInstance();
+  QueryManager* qm = QueryManager::getInstance();
 
   // Set Broker UID
   std::string ident;
   auto status_huuid = getHostUUID(ident);
   if (status_huuid.ok())
-    bm->setNodeID( ident );
+    bm->setNodeID(ident);
   std::string uid = bm->getNodeID();
 
   // Subscribe to all and individual topic
@@ -73,38 +60,42 @@ void BroRunner::start() {
   // Set Broker groups and subscribe to group topics
   std::vector<std::string> bro_groups;
   parseBrokerGroups(FLAGS_bro_groups, bro_groups);
-  for (std::string g: bro_groups) {
+  for (std::string g : bro_groups) {
     bm->addGroup(g);
   }
 
   // Connect to Bro and send announce message
-  LOG(INFO) << "Connecting to '" << FLAGS_bro_ip << ":" << FLAGS_bro_port << "'";
+  LOG(INFO) << "Connecting to '" << FLAGS_bro_ip << ":" << FLAGS_bro_port
+            << "'";
   auto status_broker = bm->peerEndpoint(FLAGS_bro_ip, FLAGS_bro_port);
   if (!status_broker.ok()) {
     LOG(ERROR) << status_broker.getMessage();
     Initializer::requestShutdown(status_broker.getCode());
   }
-  LOG(INFO) << "Broker connection established. " << "Ready to process, entering main loop.";
+  LOG(INFO) << "Broker connection established. "
+            << "Ready to process, entering main loop.";
 
-/*
-*
-* MAIN Loop
-*
-*/
+  /*
+  *
+  * MAIN Loop
+  *
+  */
 
   // Wait for any requests
   fd_set fds;
-  std::vector <std::string> topics;
+  std::vector<std::string> topics;
   int sock;
-  broker::message_queue *queue = nullptr;
+  broker::message_queue* queue = nullptr;
   while (!interrupted()) {
     // Retrieve info about each message queue
     FD_ZERO(&fds);
     bm->getTopics(topics); // List of subscribed topics
     int sMax = 0;
-    for (auto topic: topics) {
+    for (auto topic : topics) {
       sock = bm->getMessageQueue(topic)->fd();
-      if (sock > sMax) { sMax = sock; }
+      if (sock > sMax) {
+        sMax = sock;
+      }
       FD_SET(sock, &fds); // each topic -> message_queue -> fd
     }
     // Wait for incoming message
@@ -114,20 +105,20 @@ void BroRunner::start() {
     }
 
     // Check for the socket where a message arrived on
-    for (auto topic: topics) {
+    for (auto topic : topics) {
       queue = bm->getMessageQueue(topic);
       sock = queue->fd();
       if (FD_ISSET(sock, &fds)) {
-
         // Process each message on this socket
-        for (auto &msg: queue->want_pop()) {
+        for (auto& msg : queue->want_pop()) {
           // Check Event Type
-          if ( msg.size() < 1 or ! broker::is<std::string>(msg[0]) ) {
+          if (msg.size() < 1 or !broker::is<std::string>(msg[0])) {
             LOG(WARNING) << "No or invalid event name";
             continue;
           }
           std::string eventName = *broker::get<std::string>(msg[0]);
-          LOG(INFO) << "Received event '" << eventName << "' on topic '" << topic << "'";
+          LOG(INFO) << "Received event '" << eventName << "' on topic '"
+                    << topic << "'";
 
           // osquery::host_execute
           if (eventName == bm->EVENT_HOST_EXECUTE) {
@@ -137,20 +128,22 @@ void BroRunner::start() {
             std::string newQID = qm->addOneTimeQueryEntry(sr);
             if (newQID == "-1") {
               LOG(ERROR) << "Unable to add Broker Query Entry";
-                Initializer::requestShutdown(1);
+              Initializer::requestShutdown(1);
             }
 
             // Execute the query
-            LOG(INFO) << "Executing one-time query: " << sr.response_event << ": " << sr.query;
+            LOG(INFO) << "Executing one-time query: " << sr.response_event
+                      << ": " << sr.query;
             auto sql_query = osquery::SQL(sr.query);
             if (!sql_query.ok()) {
               LOG(ERROR) << "Executing one-time query failed";
-                Initializer::requestShutdown();
+              Initializer::requestShutdown();
             }
 
-              QueryData results = sql_query.rows();
+            QueryData results = sql_query.rows();
             if (results.empty()) {
-              LOG(INFO) << "One-time query: " << sr.response_event << " has no results";
+              LOG(INFO) << "One-time query: " << sr.response_event
+                        << " has no results";
               qm->removeQueryEntry(sr.query);
               continue;
             }
@@ -168,12 +161,13 @@ void BroRunner::start() {
             std::string item_name = "bro";
             std::string json;
             serializeQueryLogItemJSON(item, json);
-            PluginRequest request = {{"snapshot", json},
-                                     {"category", "event"}};
-            auto status_call = osquery::Registry::call(registry_name, item_name, request);
+            PluginRequest request = {{"snapshot", json}, {"category", "event"}};
+            auto status_call =
+                osquery::Registry::call(registry_name, item_name, request);
             if (!status_call.ok()) {
-              std::string error = "Error logging the results of one-time query: " + sr.query + ": " +
-                                  status_call.toString();
+              std::string error =
+                  "Error logging the results of one-time query: " + sr.query +
+                  ": " + status_call.toString();
               LOG(ERROR) << error;
               Initializer::requestShutdown(EXIT_CATASTROPHIC, error);
             }
@@ -204,14 +198,12 @@ void BroRunner::start() {
             // SQL Query Cancel
             SubscriptionRequest sr;
             createSubscriptionRequest("UNSUBSCRIBE", msg, topic, sr);
-            //TODO: find an UNIQUE identifier (currently the exact sql string)
+            // TODO: find an UNIQUE identifier (currently the exact sql string)
             std::string query = sr.query;
 
             qm->removeQueryEntry(query);
 
           } else if (eventName == "osquery::host_test") {
-
-
           } else {
             // Unkown Message
             LOG(ERROR) << "Unknown Event Name: '" << eventName << "'";
@@ -220,7 +212,7 @@ void BroRunner::start() {
           }
 
           // Apply to new config/schedule
-          std::map <std::string, std::string> config_schedule;
+          std::map<std::string, std::string> config_schedule;
           config_schedule["bro"] = qm->getQueryConfigString();
           LOG(INFO) << "Applying new schedule: " << config_schedule["bro"];
           osquery::Config::getInstance().update(config_schedule);
