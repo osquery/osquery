@@ -10,8 +10,6 @@
 
 #include <iostream>
 
-#include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 #include <broker/broker.hh>
@@ -24,7 +22,6 @@
 #include <osquery/sql.h>
 
 #include "osquery/bro/BrokerManager.h"
-#include "osquery/bro/QueryManager.h"
 #include "osquery/bro/utils.h"
 #include "osquery/dispatcher/bro.h"
 
@@ -50,7 +47,7 @@ void BroRunner::start() {
   auto status_huuid = getHostUUID(ident);
   if (status_huuid.ok())
     bm->setNodeID(ident);
-  std::string uid = bm->getNodeID();
+  const auto& uid = bm->getNodeID();
 
   // Subscribe to all and individual topic
   bm->createEndpoint(uid);

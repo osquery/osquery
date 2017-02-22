@@ -40,11 +40,11 @@ class BrokerManager {
 
   // Topic Prefix
   const std::string TOPIC_PREFIX = "/bro/osquery/";
-  const std::string TOPIC_ALL = this->TOPIC_PREFIX + "all";
-  const std::string TOPIC_ANNOUNCE = this->TOPIC_PREFIX + "announce";
-  const std::string TOPIC_PRE_INDIVIDUALS = this->TOPIC_PREFIX + "uid/";
-  const std::string TOPIC_PRE_GROUPS = this->TOPIC_PREFIX + "group/";
-  const std::string TOPIC_PRE_CUSTOMS = this->TOPIC_PREFIX + "custom/";
+  const std::string TOPIC_ALL = TOPIC_PREFIX + "all";
+  const std::string TOPIC_ANNOUNCE = TOPIC_PREFIX + "announce";
+  const std::string TOPIC_PRE_INDIVIDUALS = TOPIC_PREFIX + "uid/";
+  const std::string TOPIC_PRE_GROUPS = TOPIC_PREFIX + "group/";
+  const std::string TOPIC_PRE_CUSTOMS = TOPIC_PREFIX + "custom/";
 
   // Event messages
   const std::string EVENT_HOST_NEW = "osquery::host_new";
@@ -64,7 +64,7 @@ class BrokerManager {
 
   std::vector<std::string> getGroups();
 
-  Status createEndpoint(std::string ep_name);
+  Status createEndpoint(const std::string& ep_name);
 
   broker::endpoint* getEndpoint();
 
@@ -76,7 +76,7 @@ class BrokerManager {
 
   Status getTopics(std::vector<std::string>& topics);
 
-  Status peerEndpoint(std::string ip, int port);
+  Status peerEndpoint(const std::string& ip, int port);
 
   Status logQueryLogItemToBro(const QueryLogItem& qli);
 

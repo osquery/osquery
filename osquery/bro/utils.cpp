@@ -8,6 +8,8 @@
  *
  */
 
+#include <iostream>
+
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
@@ -22,8 +24,6 @@
 
 #include "osquery/bro/utils.h"
 #include "osquery/core/json.h"
-
-#include <iostream>
 
 namespace pt = boost::property_tree;
 
@@ -42,33 +42,25 @@ Status createSubscriptionRequest(const std::string& rType,
   else if (rType == "UNSUBSCRIBE")
     numFields = 7;
   else {
-    LOG(WARNING) << "Unknown Request Type: '" << rType << "'";
-    return Status(1, "Failed to create Subscription Request");
+    return Status(1, "Unknown Request Type: " + rType);
   }
 
   if (msg.size() != numFields) {
-    LOG(WARNING) << "Invalid number of fields for " << rType << " "
-                                                                "message '"
-                 << broker::to_string(msg[0]) << ""
-                                                 "': "
-                 << msg.size() << " (expected " << numFields << ")";
-    return Status(1, "Failed to create Subscription Request");
+    return Status(1, "Invalid number of fields for " + rType + " message '" + broker::to_string(msg[0]) + "': " + std::to_string(msg.size()) + " (expected " + std::to_string(numFields) + ")");
   }
 
   // Query String
   if (broker::is<std::string>(msg[1]))
     sr.query = *broker::get<std::string>(msg[2]);
   else {
-    LOG(WARNING) << "Unexpected data type";
-    return Status(1, "Failed to create Subscription Request");
+    return Status(1, "Unexpected data type; SQL query is not a string");
   }
 
   // Response Event Name
   if (broker::is<std::string>(msg[1]))
     sr.response_event = *broker::get<std::string>(msg[1]);
   else {
-    LOG(WARNING) << "Unexpected data type";
-    return Status(1, "Failed to create Subscription Request");
+    return Status(1, "Unexpected data type; Response Event Name is not a string");
   }
 
   // Cookie
@@ -86,8 +78,7 @@ Status createSubscriptionRequest(const std::string& rType,
     if (broker::is<std::string>(msg[4]))
       sr.response_topic = *broker::get<std::string>(msg[4]);
     else {
-      LOG(WARNING) << "Unexpected data type";
-      return Status(1, "Failed to create Subscription Request");
+      return Status(1, "Unexpected data type; Response Topic Name is not a string");
     }
   }
 
@@ -110,8 +101,7 @@ Status createSubscriptionRequest(const std::string& rType,
     sr.removed = false;
     sr.snapshot = true;
   } else {
-    LOG(ERROR) << "Unknown update type: " << update_type;
-    return Status(1, "Failed to create Subscription Request");
+    return Status(1, "Unknown update type");
   }
 
   // If one-time query
@@ -131,8 +121,7 @@ Status createSubscriptionRequest(const std::string& rType,
   if (broker::is<uint64_t>(msg[6]))
     sr.interval = *broker::get<uint64_t>(msg[6]);
   else {
-    LOG(WARNING) << "Unexpected data type";
-    return Status(1, "Failed to create Subscription Request");
+    return Status(1, "Unexpected data type; Interval is not a number");
   }
 
   return Status(0, "OK");
@@ -157,38 +146,9 @@ Status parseBrokerGroups(const std::string& json_groups,
       }
     }
   } catch (const pt::json_parser::json_parser_error& /* e */) {
-    LOG(ERROR) << "Error parsing the bro groups";
     return Status(1, "Error parsing the bro groups");
   }
   return Status(0, "OK");
-}
-
-/////////////////////////////////////////////////////////
-//////////////// Print Debug Methods/////////////////////
-/////////////////////////////////////////////////////////
-
-void printColumnsInfo(const std::string& q) {
-  // Query Information
-  // Query Columns (ordered list of column name and corresponding SQL type)
-  //   for Column Type see: enum osquery::ColumnType
-  //   for Column Option see: enum class osquery::ColumnOptions
-  TableColumns columns;
-  Status status = getQueryColumns(q, columns);
-  for (std::tuple<std::string, ColumnType, ColumnOptions> t : columns) {
-    LOG(INFO) << std::get<0>(t) << std::endl;
-  }
-}
-
-Status printQueryLogItemJSON(const std::string& json_string) {
-  LOG(INFO) << "QueryLogItemJSON to parse: " << json_string;
-  QueryLogItem item;
-  Status status = deserializeQueryLogItemJSON(json_string, item);
-  if (status.getCode() == 0) {
-    return printQueryLogItem(item);
-  } else {
-    LOG(ERROR) << "Failed to parse Json Query Log Item" << std::endl;
-    return Status(1, "Failed to parse");
-  }
 }
 
 Status printQueryLogItem(const QueryLogItem& item) {
@@ -214,12 +174,7 @@ void printDiffResults(const DiffResults& results) {
 }
 
 void printQueryData(const QueryData& data) {
-  /** using QueryData = std::vector<Row>; **/
-  /** using Row = std::map<std::string, RowData>; **/
-  /** using RowData = std::string; **/
-  //  LOG(INFO) << "Vector size: " << data.size();
   for (const Row& r : data) {
-    //    LOG(INFO) << "\t\t\t (Size: " << r.size() << ")";
     for (const auto& pair : r) {
       LOG(INFO) << "\t\t\t<" << pair.first << ", " << pair.second << "> ";
     }

@@ -30,14 +30,6 @@ Status createSubscriptionRequest(const std::string& rType,
 Status parseBrokerGroups(const std::string& json_groups,
                          std::vector<std::string>& groups);
 
-/////////////////////////////////////////////////////////
-//////////////// Print Debug Methods/////////////////////
-/////////////////////////////////////////////////////////
-
-void printColumnsInfo(const std::string& q);
-
-Status printQueryLogItemJSON(const std::string& json_string);
-
 Status printQueryLogItem(const QueryLogItem& item);
 
 void printDiffResults(const DiffResults& results);

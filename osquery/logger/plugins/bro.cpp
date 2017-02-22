@@ -52,20 +52,17 @@ Status BroLoggerPlugin::logString(const std::string& s) {
   if (status.getCode() == 0) {
     // printQueryLogItemJSON(s);
   } else {
-    LOG(ERROR) << "Parsing query result FAILED";
     return Status(1, "Failed to deserialize QueryLogItem");
   }
   return BrokerManager::getInstance()->logQueryLogItemToBro(item);
 }
 
 Status BroLoggerPlugin::logSnapshot(const std::string& s) {
-  // LOG(ERROR) << "logSnapshot = " << s;
-  return this->logString(s);
+  return logString(s);
 }
 
 Status BroLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
   LOG(ERROR) << "logStatus = ";
-  // NOT IMPLEMENTED
   return Status(1, "Not implemented");
 }
 
