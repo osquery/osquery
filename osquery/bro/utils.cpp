@@ -46,7 +46,11 @@ Status createSubscriptionRequest(const std::string& rType,
   }
 
   if (msg.size() != numFields) {
-    return Status(1, "Invalid number of fields for " + rType + " message '" + broker::to_string(msg[0]) + "': " + std::to_string(msg.size()) + " (expected " + std::to_string(numFields) + ")");
+    return Status(1,
+                  "Invalid number of fields for " + rType + " message '" +
+                      broker::to_string(msg[0]) + "': " +
+                      std::to_string(msg.size()) + " (expected " +
+                      std::to_string(numFields) + ")");
   }
 
   // Query String
@@ -60,7 +64,8 @@ Status createSubscriptionRequest(const std::string& rType,
   if (broker::is<std::string>(msg[1]))
     sr.response_event = *broker::get<std::string>(msg[1]);
   else {
-    return Status(1, "Unexpected data type; Response Event Name is not a string");
+    return Status(1,
+                  "Unexpected data type; Response Event Name is not a string");
   }
 
   // Cookie
@@ -78,7 +83,8 @@ Status createSubscriptionRequest(const std::string& rType,
     if (broker::is<std::string>(msg[4]))
       sr.response_topic = *broker::get<std::string>(msg[4]);
     else {
-      return Status(1, "Unexpected data type; Response Topic Name is not a string");
+      return Status(
+          1, "Unexpected data type; Response Topic Name is not a string");
     }
   }
 

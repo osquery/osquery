@@ -30,7 +30,7 @@ std::string QueryManager::addOneTimeQueryEntry(const SubscriptionRequest& qr) {
     return queryID;
   else
     LOG(WARNING) << status.getMessage();
-    return "-1";
+  return "-1";
 }
 
 Status QueryManager::addScheduleQueryEntry(const SubscriptionRequest& qr) {

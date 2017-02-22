@@ -34,8 +34,8 @@ Status BrokerManager::setNodeID(const std::string& uid) {
     return Status(0, "OK");
 
   } else {
-    LOG(WARNING) << "Node ID already set to '" << nodeID << "' (new: '"
-                 << uid << "')";
+    LOG(WARNING) << "Node ID already set to '" << nodeID << "' (new: '" << uid
+                 << "')";
     return Status(1, "Unable to set Node ID");
   }
 }
@@ -56,8 +56,7 @@ Status BrokerManager::removeGroup(const std::string& group) {
     // Delete Group
     groups.erase(element_pos);
     // Delete message queue (maybe)
-    if (std::find(groups.begin(), groups.end(), group) ==
-        groups.end()) {
+    if (std::find(groups.begin(), groups.end(), group) == groups.end()) {
       return deleteMessageQueue(TOPIC_PRE_GROUPS + group);
     } else {
       return Status(0, "More subscriptions for group exist");
@@ -140,15 +139,18 @@ Status BrokerManager::peerEndpoint(const std::string& ip, int port) {
   if (sql.ok()) {
     for (const auto& row : sql.rows()) {
       std::string if_mac = row.at("address");
-      addr_list.push_back(broker::data(broker::address::from_string(if_mac).get()));
+      addr_list.push_back(
+          broker::data(broker::address::from_string(if_mac).get()));
     }
   } else {
     return Status(1, "Failed to retrieve interface addresses");
   }
 
   // Create Message
-  broker::message announceMsg = broker::message{
-          broker::data(EVENT_HOST_NEW), broker::data(getNodeID()), broker::data(group_list), broker::data(addr_list)};
+  broker::message announceMsg = broker::message{broker::data(EVENT_HOST_NEW),
+                                                broker::data(getNodeID()),
+                                                broker::data(group_list),
+                                                broker::data(addr_list)};
   sendEvent(TOPIC_ANNOUNCE, announceMsg);
 
   return Status(0, "OK");
@@ -180,7 +182,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   // Get Info about SQL Query and Types
   TableColumns columns;
   auto status = getQueryColumns(query, columns);
-  if (! status.ok()) {
+  if (!status.ok()) {
     LOG(ERROR) << status.getMessage();
     Initializer::requestShutdown(status.getCode());
   }
@@ -190,7 +192,8 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
     const auto& columnType = std::get<1>(t);
     // ColumnOptions columnOptions = std::get<2>(t);
     columnTypes[columnName] = columnType;
-    // LOG(INFO) << "Column named '" << columnName << "' is of type '" << kColumnTypeNames.at(columnType) << "'";
+    // LOG(INFO) << "Column named '" << columnName << "' is of type '" <<
+    // kColumnTypeNames.at(columnType) << "'";
   }
 
   // Common message fields
@@ -210,11 +213,11 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
     // Set event name, uid and trigger
     broker::message msg;
     msg.push_back(event_name);
-    broker::record result_info({broker::record::field(broker::data(uid)),
-                                broker::record::field(broker::data(
-                                    broker::enum_value{"osquery::" + trigger})),
-                                broker::record::field(broker::data(
-                                    qm->getEventCookie(queryID)))});
+    broker::record result_info(
+        {broker::record::field(broker::data(uid)),
+         broker::record::field(
+             broker::data(broker::enum_value{"osquery::" + trigger})),
+         broker::record::field(broker::data(qm->getEventCookie(queryID)))});
     msg.push_back(broker::data(result_info));
 
     // Format each column
@@ -289,7 +292,8 @@ Status BrokerManager::sendEvent(const std::string& topic,
   if (ep == nullptr) {
     return Status(1, "Endpoint not set");
   } else {
-    LOG(INFO) << "Sending Message: " << broker::to_string(msg) << " to " << topic;
+    LOG(INFO) << "Sending Message: " << broker::to_string(msg) << " to "
+              << topic;
     ep->send(topic, msg);
   }
 
