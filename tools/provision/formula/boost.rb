@@ -6,7 +6,7 @@ class Boost < AbstractOsqueryFormula
   url "https://downloads.sourceforge.net/project/boost/boost/1.63.0/boost_1_63_0.tar.bz2"
   sha256 "beae2529f759f6b3bf3f4969a19c2e9d6f0c503edcb2de4a61d1428519fcb3b0"
   head "https://github.com/boostorg/boost.git"
-  revision 1
+  revision 2
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -86,22 +86,3 @@ class Boost < AbstractOsqueryFormula
     system "./b2", "install", *args
   end
 end
-
-__END__
-diff --git a/boost/xpressive/match_results.hpp b/boost/xpressive/match_results.hpp
-index e7923f8..5b2790b 100644
---- a/boost/xpressive/match_results.hpp
-+++ b/boost/xpressive/match_results.hpp
-@@ -744,9 +744,9 @@ private:
-     ///
-     void set_prefix_suffix_(BidiIter begin, BidiIter end)
-     {
--        this->base_ = begin;
--        this->prefix_ = sub_match<BidiIter>(begin, this->sub_matches_[ 0 ].first, begin != this->sub_matches_[ 0 ].first);
--        this->suffix_ = sub_match<BidiIter>(this->sub_matches_[ 0 ].second, end, this->sub_matches_[ 0 ].second != end);
-+        this->base_ = make_optional(begin);
-+        this->prefix_ = make_optional(sub_match<BidiIter>(begin, this->sub_matches_[ 0 ].first, begin != this->sub_matches_[ 0 ].first));
-+        this->suffix_ = make_optional(sub_match<BidiIter>(this->sub_matches_[ 0 ].second, end, this->sub_matches_[ 0 ].second != end));
- 
-         typename nested_results_type::iterator ibegin = this->nested_results_.begin();
-         typename nested_results_type::iterator iend = this->nested_results_.end();
