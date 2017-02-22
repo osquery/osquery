@@ -8,6 +8,16 @@
  *
  */
 
+#include <iostream>
+
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <broker/broker.hh>
+#include <broker/endpoint.hh>
+#include <broker/message_queue.hh>
+
 #include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -15,18 +25,8 @@
 
 #include "osquery/bro/BrokerManager.h"
 #include "osquery/bro/QueryManager.h"
-#include "osquery/dispatcher/bro.h"
-
 #include "osquery/bro/utils.h"
-
-#include <broker/broker.hh>
-#include <broker/endpoint.hh>
-#include <broker/message_queue.hh>
-
-#include <iostream>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include "osquery/dispatcher/bro.h"
 
 namespace osquery {
 

@@ -1,14 +1,24 @@
-#include <osquery/status.h>
-#include <osquery/system.h>
+/*
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
-#include "osquery/bro/BrokerManager.h"
+#include <iostream>
 
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
 #include <broker/message_queue.hh>
 #include <broker/report.hh>
 
-#include <iostream>
+#include <osquery/status.h>
+#include <osquery/system.h>
+
+#include "osquery/bro/BrokerManager.h"
 
 namespace osquery {
 

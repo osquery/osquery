@@ -10,14 +10,8 @@
 
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
-#include <osquery/status.h>
-
-#include <exception>
-
-#include <osquery/registry.h>
 
 #include "osquery/bro/BrokerManager.h"
-#include "osquery/bro/QueryManager.h"
 
 namespace fs = boost::filesystem;
 

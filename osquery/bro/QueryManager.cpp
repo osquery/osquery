@@ -1,15 +1,26 @@
+/*
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
+#include <iostream>
+#include <list>
+#include <sstream>
+
+#include <stdlib.h> /* srand, rand */
+#include <time.h>
+
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/status.h>
 #include <osquery/system.h>
 
 #include "osquery/bro/QueryManager.h"
-
-#include <iostream>
-#include <list>
-#include <sstream>
-#include <stdlib.h> /* srand, rand */
-#include <time.h>
 
 namespace osquery {
 
