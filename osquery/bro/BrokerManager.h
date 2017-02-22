@@ -54,33 +54,33 @@ class BrokerManager {
   const std::string EVENT_HOST_SUBSCRIBE = "osquery::host_subscribe";
   const std::string EVENT_HOST_UNSUBSCRIBE = "osquery::host_unsubscribe";
 
-  osquery::Status setNodeID(const std::string& uid);
+  Status setNodeID(const std::string& uid);
 
   std::string getNodeID();
 
-  osquery::Status addGroup(const std::string& group);
+  Status addGroup(const std::string& group);
 
-  osquery::Status removeGroup(const std::string& group);
+  Status removeGroup(const std::string& group);
 
   std::vector<std::string> getGroups();
 
-  osquery::Status createEndpoint(std::string ep_name);
+  Status createEndpoint(std::string ep_name);
 
   broker::endpoint* getEndpoint();
 
-  osquery::Status createMessageQueue(const std::string& topic);
+  Status createMessageQueue(const std::string& topic);
 
-  osquery::Status deleteMessageQueue(const std::string& topic);
+  Status deleteMessageQueue(const std::string& topic);
 
   broker::message_queue* getMessageQueue(const std::string& topic);
 
-  osquery::Status getTopics(std::vector<std::string>& topics);
+  Status getTopics(std::vector<std::string>& topics);
 
-  osquery::Status peerEndpoint(std::string ip, int port);
+  Status peerEndpoint(std::string ip, int port);
 
-  osquery::Status logQueryLogItemToBro(const osquery::QueryLogItem& qli);
+  Status logQueryLogItemToBro(const QueryLogItem& qli);
 
-  osquery::Status sendEvent(const std::string& topic,
+  Status sendEvent(const std::string& topic,
                             const broker::message& msg);
 
  private:

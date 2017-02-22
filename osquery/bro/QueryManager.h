@@ -49,19 +49,19 @@ class QueryManager {
 
   std::string addOneTimeQueryEntry(const SubscriptionRequest& qr);
 
-  osquery::Status addScheduleQueryEntry(const SubscriptionRequest& qr);
+  Status addScheduleQueryEntry(const SubscriptionRequest& qr);
 
-  osquery::Status addQueryEntry(const std::string& queryID,
+  Status addQueryEntry(const std::string& queryID,
                                 const SubscriptionRequest& qr,
                                 const std::string& qtype);
 
   std::string findIDForQuery(const std::string& query);
 
-  osquery::Status findQueryAndType(const std::string& queryID,
+  Status findQueryAndType(const std::string& queryID,
                                    std::string& qtype,
                                    std::string& query);
 
-  osquery::Status removeQueryEntry(const std::string& query);
+  Status removeQueryEntry(const std::string& query);
 
   std::string getQueryConfigString();
 

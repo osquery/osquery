@@ -134,7 +134,7 @@ void BroRunner::start() {
             // Execute the query
             LOG(INFO) << "Executing one-time query: " << sr.response_event
                       << ": " << sr.query;
-            auto sql_query = osquery::SQL(sr.query);
+            auto sql_query = SQL(sr.query);
             if (!sql_query.ok()) {
               LOG(ERROR) << "Executing one-time query failed";
               Initializer::requestShutdown();
@@ -151,9 +151,9 @@ void BroRunner::start() {
             // Assemble a response item (as snapshot)
             QueryLogItem item;
             item.name = newQID;
-            item.identifier = osquery::getHostIdentifier();
-            item.time = osquery::getUnixTime();
-            item.calendar_time = osquery::getAsciiTime();
+            item.identifier = getHostIdentifier();
+            item.time = getUnixTime();
+            item.calendar_time = getAsciiTime();
             item.snapshot_results = results;
 
             // Send snapshot to the logger
@@ -163,7 +163,7 @@ void BroRunner::start() {
             serializeQueryLogItemJSON(item, json);
             PluginRequest request = {{"snapshot", json}, {"category", "event"}};
             auto status_call =
-                osquery::Registry::call(registry_name, item_name, request);
+                Registry::call(registry_name, item_name, request);
             if (!status_call.ok()) {
               std::string error =
                   "Error logging the results of one-time query: " + sr.query +
@@ -215,7 +215,7 @@ void BroRunner::start() {
           std::map<std::string, std::string> config_schedule;
           config_schedule["bro"] = qm->getQueryConfigString();
           LOG(INFO) << "Applying new schedule: " << config_schedule["bro"];
-          osquery::Config::getInstance().update(config_schedule);
+          Config::getInstance().update(config_schedule);
         }
       }
     }

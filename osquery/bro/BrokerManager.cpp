@@ -26,7 +26,7 @@ BrokerManager::BrokerManager() {
   this->qm = QueryManager::getInstance();
 }
 
-osquery::Status BrokerManager::setNodeID(const std::string& uid) {
+Status BrokerManager::setNodeID(const std::string& uid) {
   if (this->nodeID.empty()) {
     // Save new node ID
     this->nodeID = uid;
@@ -43,12 +43,12 @@ std::string BrokerManager::getNodeID() {
   return this->nodeID;
 }
 
-osquery::Status BrokerManager::addGroup(const std::string& group) {
+Status BrokerManager::addGroup(const std::string& group) {
   this->groups.push_back(group);
   return this->createMessageQueue(this->TOPIC_PRE_GROUPS + group);
 }
 
-osquery::Status BrokerManager::removeGroup(const std::string& group) {
+Status BrokerManager::removeGroup(const std::string& group) {
   auto element_pos = std::find(this->groups.begin(), this->groups.end(), group);
   // Group exists?
   if (element_pos != this->groups.end()) {
@@ -182,7 +182,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   }
 
   // Rows to be reported
-  std::vector<std::tuple<osquery::Row, std::string>> rows;
+  std::vector<std::tuple<Row, std::string>> rows;
   for (const auto& row : qli.results.added) {
     rows.emplace_back(row, "ADD");
   }
@@ -217,7 +217,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   bool parse_err = false;
   for (const auto& element : rows) {
     // Get row and trigger
-    osquery::Row row = std::get<0>(element);
+    Row row = std::get<0>(element);
     std::string trigger = std::get<1>(element);
 
     // Set event name, uid and trigger
