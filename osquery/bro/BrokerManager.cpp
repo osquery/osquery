@@ -130,7 +130,7 @@ Status BrokerManager::peerEndpoint(const std::string& ip, int port) {
   // Announce this endpoint to be a bro-osquery extension
   // Collect Groups
   broker::vector group_list;
-  for (std::string g : getGroups()) {
+  for (const auto& g : getGroups()) {
     group_list.push_back(g);
   }
   // Collect IPs
@@ -138,7 +138,7 @@ Status BrokerManager::peerEndpoint(const std::string& ip, int port) {
   SQL sql("SELECT address from interface_addresses");
   if (sql.ok()) {
     for (const auto& row : sql.rows()) {
-      std::string if_mac = row.at("address");
+      const auto& if_mac = row.at("address");
       addr_list.push_back(
           broker::data(broker::address::from_string(if_mac).get()));
     }
