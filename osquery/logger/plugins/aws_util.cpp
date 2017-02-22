@@ -67,6 +67,12 @@ static const std::set<std::string> kAwsRegions = {"us-east-1",
                                                   "ap-northeast-1",
                                                   "ap-northeast-2",
                                                   "sa-east-1"};
+                                                  "sa-east-1",
+                                                  "ap-south-1",
+                                                  "us-east-2",
+                                                  "ca-central-1",
+                                                  "eu-west-1",
+                                                  "eu-west-2"};
 
 // Default AWS region to use when no region set in flags or profile
 static RegionName kDefaultAWSRegion = Aws::Region::US_EAST_1;
