@@ -80,8 +80,7 @@ class BrokerManager {
 
   Status logQueryLogItemToBro(const QueryLogItem& qli);
 
-  Status sendEvent(const std::string& topic,
-                            const broker::message& msg);
+  Status sendEvent(const std::string& topic, const broker::message& msg);
 
  private:
   // The singleton object

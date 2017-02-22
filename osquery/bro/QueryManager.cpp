@@ -36,8 +36,7 @@ std::string QueryManager::addOneTimeQueryEntry(const SubscriptionRequest& qr) {
     return "-1";
 }
 
-Status QueryManager::addScheduleQueryEntry(
-    const SubscriptionRequest& qr) {
+Status QueryManager::addScheduleQueryEntry(const SubscriptionRequest& qr) {
   const std::string queryID = std::to_string(this->_nextUID++);
   return addQueryEntry(queryID, qr, "SCHEDULE");
 }

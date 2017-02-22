@@ -52,14 +52,14 @@ class QueryManager {
   Status addScheduleQueryEntry(const SubscriptionRequest& qr);
 
   Status addQueryEntry(const std::string& queryID,
-                                const SubscriptionRequest& qr,
-                                const std::string& qtype);
+                       const SubscriptionRequest& qr,
+                       const std::string& qtype);
 
   std::string findIDForQuery(const std::string& query);
 
   Status findQueryAndType(const std::string& queryID,
-                                   std::string& qtype,
-                                   std::string& query);
+                          std::string& qtype,
+                          std::string& query);
 
   Status removeQueryEntry(const std::string& query);
 
