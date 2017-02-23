@@ -19,7 +19,7 @@
 
 namespace osquery {
 
-QueryManager* QueryManager::_instance = nullptr;
+QueryManager* QueryManager::kInstance_ = nullptr;
 
 QueryManager::QueryManager() {}
 

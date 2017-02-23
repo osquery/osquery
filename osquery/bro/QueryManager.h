@@ -42,9 +42,9 @@ class QueryManager {
  public:
   // Get a singleton instance
   static QueryManager* getInstance() {
-    if (!_instance)
-      _instance = new QueryManager();
-    return _instance;
+    if (!kInstance_)
+      kInstance_ = new QueryManager();
+    return kInstance_;
   }
 
   std::string addOneTimeQueryEntry(const SubscriptionRequest& qr);
@@ -73,7 +73,7 @@ class QueryManager {
 
  private:
   // The singleton object
-  static QueryManager* _instance;
+  static QueryManager* kInstance_;
 
   // Next unique QueryID
   int _nextUID = 1;

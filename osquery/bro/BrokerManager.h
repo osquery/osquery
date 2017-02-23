@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <iostream>
 #include <list>
+#include <memory>
 
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
@@ -33,9 +34,9 @@ class BrokerManager {
  public:
   // Get a singleton instance
   static BrokerManager* getInstance() {
-    if (!_instance)
-      _instance = new BrokerManager();
-    return _instance;
+    if (!kInstance_)
+      kInstance_ = new BrokerManager();
+    return kInstance_;
   }
 
   // Topic Prefix
@@ -66,8 +67,6 @@ class BrokerManager {
 
   Status createEndpoint(const std::string& ep_name);
 
-  broker::endpoint* getEndpoint();
-
   Status createMessageQueue(const std::string& topic);
 
   Status deleteMessageQueue(const std::string& topic);
@@ -84,7 +83,7 @@ class BrokerManager {
 
  private:
   // The singleton object
-  static BrokerManager* _instance;
+  static BrokerManager* kInstance_;
 
   QueryManager* qm = nullptr;
 

@@ -21,7 +21,7 @@
 
 namespace osquery {
 
-BrokerManager* BrokerManager::_instance = nullptr;
+BrokerManager* BrokerManager::kInstance_ = nullptr;
 
 BrokerManager::BrokerManager() {
   qm = QueryManager::getInstance();
@@ -76,10 +76,6 @@ Status BrokerManager::createEndpoint(const std::string& ep_name) {
   LOG(INFO) << "Creating broker endpoint with name: " << ep_name;
   ep = new broker::endpoint(ep_name);
   return Status(0, "OK");
-}
-
-broker::endpoint* BrokerManager::getEndpoint() {
-  return ep;
 }
 
 Status BrokerManager::createMessageQueue(const std::string& topic) {
