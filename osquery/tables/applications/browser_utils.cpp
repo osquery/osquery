@@ -48,7 +48,7 @@ void genExtension(const std::string& uid,
 
   pt::ptree messagetree;
   // Find out if there are localized values for fields
-  if (tree.get<std::string>("default_locale", "") != "") {
+  if (!tree.get<std::string>("default_locale", "").empty()) {
     // Read the localized variables into a second ptree
     std::string messages_json;
     std::string localized_path = path + "/_locales/" +
@@ -76,12 +76,12 @@ void genExtension(const std::string& uid,
   for (const auto& it : kExtensionKeys) {
     std::string key = tree.get<std::string>(it.first, "");
     // If the value is an i18n reference, grab referenced value
-    if (key.compare(0, localized_prefix.length(), localized_prefix) == 0) {
+    if (key.compare(0, localized_prefix.length(), localized_prefix) == 0 &&
+        key.length() > 8) {
       r[it.second] = messagetree.get<std::string>(
-          key.substr(6, key.length() - 8) + ".message",
-          tree.get<std::string>(it.first, ""));
+          key.substr(6, key.length() - 8) + ".message", key);
     } else {
-      r[it.second] = tree.get<std::string>(it.first, "");
+      r[it.second] = key;
     }
     // Convert JSON bool-types to an integer.
     if (r[it.second] == "true") {
