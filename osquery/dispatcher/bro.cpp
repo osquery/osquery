@@ -162,7 +162,7 @@ void BroRunner::start() {
   // Set Broker groups and subscribe to group topics
   std::vector<std::string> bro_groups;
   parseBrokerGroups(FLAGS_bro_groups, bro_groups);
-  for (std::string g : bro_groups) {
+  for (const auto& g : bro_groups) {
     bm.addGroup(g);
   }
 
