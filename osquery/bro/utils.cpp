@@ -35,37 +35,39 @@ Status createSubscriptionRequest(const std::string& rType,
                                  SubscriptionRequest& sr) {
   // Check number of fields
   unsigned long numFields;
-  if (rType == "EXECUTE")
+  if (rType == "EXECUTE") {
     numFields = 6;
-  else if (rType == "SUBSCRIBE")
+  }
+  else if (rType == "SUBSCRIBE") {
     numFields = 7;
-  else if (rType == "UNSUBSCRIBE")
+  }
+  else if (rType == "UNSUBSCRIBE") {
     numFields = 7;
+  }
   else {
-    return Status(1, "Unknown Request Type: " + rType);
+    return Status(1, "Unknown Request Type '" + rType + "'");
   }
 
   if (msg.size() != numFields) {
     return Status(1,
-                  "Invalid number of fields for " + rType + " message '" +
-                      broker::to_string(msg[0]) + "': " +
-                      std::to_string(msg.size()) + " (expected " +
-                      std::to_string(numFields) + ")");
+                  std::to_string(msg.size()) + " instead of " + std::to_string(numFields) + " fields in '" + rType + "' message '" +
+                      broker::to_string(msg[0]));
   }
 
   // Query String
-  if (broker::is<std::string>(msg[1]))
+  if (broker::is<std::string>(msg[1])) {
     sr.query = *broker::get<std::string>(msg[2]);
+  }
   else {
-    return Status(1, "Unexpected data type; SQL query is not a string");
+    return Status(1, "SQL query is not a string");
   }
 
   // Response Event Name
-  if (broker::is<std::string>(msg[1]))
+  if (broker::is<std::string>(msg[1])) {
     sr.response_event = *broker::get<std::string>(msg[1]);
+  }
   else {
-    return Status(1,
-                  "Unexpected data type; Response Event Name is not a string");
+    return Status(1, "Response Event Name is not a string");
   }
 
   // Cookie
@@ -76,15 +78,15 @@ Status createSubscriptionRequest(const std::string& rType,
   if (broker::to_string(msg[4]).empty()) {
     sr.response_topic = incoming_topic;
     LOG(WARNING) << "No response topic given for event '" << sr.response_event
-                 << "'. Reporting back to "
+                 << "' reporting back to "
                     "incoming topic '"
                  << incoming_topic << "'";
   } else {
-    if (broker::is<std::string>(msg[4]))
+    if (broker::is<std::string>(msg[4])) {
       sr.response_topic = *broker::get<std::string>(msg[4]);
+    }
     else {
-      return Status(
-          1, "Unexpected data type; Response Topic Name is not a string");
+      return Status(1, "Response Topic Name is not a string");
     }
   }
 
@@ -120,14 +122,15 @@ Status createSubscriptionRequest(const std::string& rType,
   // SUBSCRIBE or UNSUBSCRIBE
   if (sr.snapshot) {
     LOG(WARNING)
-        << "Only possible to query ADD and/or REMOVE for schedule queries";
+        << "Only possible to query ADD and/or REMOVE for scheduled queries";
   }
 
   // Interval
-  if (broker::is<uint64_t>(msg[6]))
+  if (broker::is<uint64_t>(msg[6])) {
     sr.interval = *broker::get<uint64_t>(msg[6]);
+  }
   else {
-    return Status(1, "Unexpected data type; Interval is not a number");
+    return Status(1, "Interval is not a number");
   }
 
   return Status(0, "OK");
@@ -158,40 +161,40 @@ Status parseBrokerGroups(const std::string& json_groups,
 }
 
 Status printQueryLogItem(const QueryLogItem& item) {
-  LOG(INFO) << "Parsed query result" << std::endl;
-  LOG(INFO) << "\tDiffResults: " << std::endl;
+  VLOG(1) << "Parsed query result" << std::endl;
+  VLOG(1) << "\tDiffResults: " << std::endl;
   printDiffResults(item.results);
-  LOG(INFO) << "\tQueryData: " << std::endl;
+  VLOG(1) << "\tQueryData: " << std::endl;
   printQueryData(item.snapshot_results);
-  LOG(INFO) << "\tname: " << item.name;
-  LOG(INFO) << "\tidentifier: " << item.identifier;
-  LOG(INFO) << "\ttime: " << std::to_string(item.time);
-  LOG(INFO) << "\tcalendar_time: " << item.calendar_time;
-  LOG(INFO) << "\tdecorations: " << std::endl;
+  VLOG(1) << "\tname: " << item.name;
+  VLOG(1) << "\tidentifier: " << item.identifier;
+  VLOG(1) << "\ttime: " << std::to_string(item.time);
+  VLOG(1) << "\tcalendar_time: " << item.calendar_time;
+  VLOG(1) << "\tdecorations: " << std::endl;
   printDecorations(item.decorations);
   return Status(0, "OK");
 }
 
 void printDiffResults(const DiffResults& results) {
-  LOG(INFO) << "\t\tadded: ";
+  VLOG(1) << "\t\tadded: ";
   printQueryData(results.added);
-  LOG(INFO) << "\t\tremoved: ";
+  VLOG(1) << "\t\tremoved: ";
   printQueryData(results.removed);
 }
 
 void printQueryData(const QueryData& data) {
   for (const Row& r : data) {
     for (const auto& pair : r) {
-      LOG(INFO) << "\t\t\t<" << pair.first << ", " << pair.second << "> ";
+      VLOG(1) << "\t\t\t<" << pair.first << ", " << pair.second << "> ";
     }
-    LOG(INFO) << std::endl;
+    VLOG(1) << std::endl;
   }
 }
 
 void printDecorations(const std::map<std::string, std::string>& deco) {
   /** std::map<std::string, std::string> decorations **/
   for (const auto& pair : deco) {
-    LOG(INFO) << "\t\t\t<" << pair.first << ", " << pair.second << "> ";
+    VLOG(1) << "\t\t\t<" << pair.first << ", " << pair.second << "> ";
   }
 }
 }

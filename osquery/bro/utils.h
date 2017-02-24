@@ -18,7 +18,7 @@
 #include <osquery/status.h>
 #include <osquery/system.h>
 
-#include "osquery/bro/BrokerManager.h"
+#include "osquery/bro/QueryManager.h"
 
 namespace osquery {
 

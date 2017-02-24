@@ -23,20 +23,17 @@
 #include <osquery/status.h>
 #include <osquery/system.h>
 
-#include "osquery/bro/QueryManager.h"
-
 namespace osquery {
 
-class BrokerManager {
- private:
-  BrokerManager();
+class BrokerManager : private boost::noncopyable {
+private:
+    BrokerManager() {}
 
- public:
-  // Get a singleton instance
-  static BrokerManager* getInstance() {
-    if (!kInstance_)
-      kInstance_ = new BrokerManager();
-    return kInstance_;
+public:
+    /// Get a singleton instance of the BrokerManager class;
+  static BrokerManager& getInstance() {
+    static BrokerManager bm;
+    return bm;
   }
 
   // Topic Prefix
@@ -71,7 +68,7 @@ class BrokerManager {
 
   Status deleteMessageQueue(const std::string& topic);
 
-  broker::message_queue* getMessageQueue(const std::string& topic);
+  std::shared_ptr<broker::message_queue> getMessageQueue(const std::string& topic);
 
   Status getTopics(std::vector<std::string>& topics);
 
@@ -82,19 +79,14 @@ class BrokerManager {
   Status sendEvent(const std::string& topic, const broker::message& msg);
 
  private:
-  // The singleton object
-  static BrokerManager* kInstance_;
-
-  QueryManager* qm = nullptr;
-
   // The ID identifying the node (private channel)
-  std::string nodeID = "";
+  std::string nodeID_ = "";
   // The groups of the node
-  std::vector<std::string> groups;
+  std::vector<std::string> groups_;
   // The Broker Endpoint
-  broker::endpoint* ep = nullptr; // delete afterwards
+  std::unique_ptr<broker::endpoint> ep_ = nullptr;
 
   //  Key: topic_Name, Value: message_queue
-  std::map<std::string, broker::message_queue*> messageQueues;
+  std::map<std::string, std::shared_ptr<broker::message_queue>> messageQueues_;
 };
 }

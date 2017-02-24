@@ -35,17 +35,16 @@ struct SubscriptionRequest {
   bool snapshot = false;
 };
 
-class QueryManager {
- private:
-  QueryManager();
+class QueryManager : private boost::noncopyable {
+private:
+    QueryManager() {}
 
- public:
-  // Get a singleton instance
-  static QueryManager* getInstance() {
-    if (!kInstance_)
-      kInstance_ = new QueryManager();
-    return kInstance_;
-  }
+public:
+    /// Get a singleton instance of the QueryManager class
+    static QueryManager& getInstance() {
+      static QueryManager qm;
+      return qm;
+    };
 
   std::string addOneTimeQueryEntry(const SubscriptionRequest& qr);
 
@@ -72,23 +71,20 @@ class QueryManager {
   std::string getEventTopic(const std::string& queryID);
 
  private:
-  // The singleton object
-  static QueryManager* kInstance_;
-
   // Next unique QueryID
-  int _nextUID = 1;
+  int nextUID_ = 1;
 
   // Collection of SQL Subscription queries, Key: QueryID
-  std::map<std::string, ScheduleQueryEntry> scheduleQueries;
+  std::map<std::string, ScheduleQueryEntry> scheduleQueries_;
   // Collection of SQL One-Time Subscription queries, Key: QueryID
-  std::map<std::string, OneTimeQueryEntry> oneTimeQueries;
+  std::map<std::string, OneTimeQueryEntry> oneTimeQueries_;
 
   // Some mapping to maintain the SQL subscriptions
   //  Key: QueryID, Value: Event Cookie to use for the response
-  std::map<std::string, std::string> eventCookies;
+  std::map<std::string, std::string> eventCookies_;
   //  Key: QueryID, Value: Event Name to use for the response
-  std::map<std::string, std::string> eventNames;
+  std::map<std::string, std::string> eventNames_;
   //  Key: QueryID, Value: Topic to use for the response
-  std::map<std::string, std::string> eventTopics;
+  std::map<std::string, std::string> eventTopics_;
 };
 }

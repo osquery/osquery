@@ -39,32 +39,32 @@ void BroRunner::start() {
   // Setup Broker Endpoint
   LOG(INFO) << "Setup Broker Manager";
   broker::init();
-  BrokerManager* bm = BrokerManager::getInstance();
-  QueryManager* qm = QueryManager::getInstance();
+  BrokerManager& bm = BrokerManager::getInstance();
+  QueryManager& qm = QueryManager::getInstance();
 
   // Set Broker UID
   std::string ident;
   auto status_huuid = getHostUUID(ident);
   if (status_huuid.ok())
-    bm->setNodeID(ident);
-  const auto& uid = bm->getNodeID();
+    bm.setNodeID(ident);
+  const auto& uid = bm.getNodeID();
 
   // Subscribe to all and individual topic
-  bm->createEndpoint(uid);
-  bm->createMessageQueue(bm->TOPIC_ALL);
-  bm->createMessageQueue(bm->TOPIC_PRE_INDIVIDUALS + uid);
+  bm.createEndpoint(uid);
+  bm.createMessageQueue(bm.TOPIC_ALL);
+  bm.createMessageQueue(bm.TOPIC_PRE_INDIVIDUALS + uid);
 
   // Set Broker groups and subscribe to group topics
   std::vector<std::string> bro_groups;
   parseBrokerGroups(FLAGS_bro_groups, bro_groups);
   for (std::string g : bro_groups) {
-    bm->addGroup(g);
+    bm.addGroup(g);
   }
 
   // Connect to Bro and send announce message
   LOG(INFO) << "Connecting to '" << FLAGS_bro_ip << ":" << FLAGS_bro_port
             << "'";
-  auto status_broker = bm->peerEndpoint(FLAGS_bro_ip, FLAGS_bro_port);
+  auto status_broker = bm.peerEndpoint(FLAGS_bro_ip, FLAGS_bro_port);
   if (!status_broker.ok()) {
     LOG(ERROR) << status_broker.getMessage();
     Initializer::requestShutdown(status_broker.getCode());
@@ -79,17 +79,18 @@ void BroRunner::start() {
   */
 
   // Wait for any requests
-  fd_set fds;
-  std::vector<std::string> topics;
-  int sock;
-  broker::message_queue* queue = nullptr;
   while (!interrupted()) {
+    fd_set fds;
+    std::vector<std::string> topics;
+    int sock{0};
+    std::shared_ptr<broker::message_queue> queue = nullptr;
+
     // Retrieve info about each message queue
     FD_ZERO(&fds);
-    bm->getTopics(topics); // List of subscribed topics
+    bm.getTopics(topics); // List of subscribed topics
     int sMax = 0;
     for (auto topic : topics) {
-      sock = bm->getMessageQueue(topic)->fd();
+      sock = bm.getMessageQueue(topic)->fd();
       if (sock > sMax) {
         sMax = sock;
       }
@@ -103,7 +104,7 @@ void BroRunner::start() {
 
     // Check for the socket where a message arrived on
     for (auto topic : topics) {
-      queue = bm->getMessageQueue(topic);
+      queue = bm.getMessageQueue(topic);
       sock = queue->fd();
       if (FD_ISSET(sock, &fds)) {
         // Process each message on this socket
@@ -118,11 +119,11 @@ void BroRunner::start() {
                     << topic << "'";
 
           // osquery::host_execute
-          if (eventName == bm->EVENT_HOST_EXECUTE) {
+          if (eventName == bm.EVENT_HOST_EXECUTE) {
             // One-Time Query Execution
             SubscriptionRequest sr;
             createSubscriptionRequest("EXECUTE", msg, topic, sr);
-            std::string newQID = qm->addOneTimeQueryEntry(sr);
+            std::string newQID = qm.addOneTimeQueryEntry(sr);
             if (newQID == "-1") {
               LOG(ERROR) << "Unable to add Broker Query Entry";
               Initializer::requestShutdown(1);
@@ -141,7 +142,7 @@ void BroRunner::start() {
             if (results.empty()) {
               LOG(INFO) << "One-time query: " << sr.response_event
                         << " has no results";
-              qm->removeQueryEntry(sr.query);
+              qm.removeQueryEntry(sr.query);
               continue;
             }
 
@@ -172,33 +173,33 @@ void BroRunner::start() {
             continue;
 
             // osquery::host_join
-          } else if (eventName == bm->EVENT_HOST_JOIN) {
+          } else if (eventName == bm.EVENT_HOST_JOIN) {
             std::string newGroup = *broker::get<std::string>(msg[1]);
-            bm->addGroup(newGroup);
+            bm.addGroup(newGroup);
             continue;
 
             // osquery::host_leave
-          } else if (eventName == bm->EVENT_HOST_LEAVE) {
+          } else if (eventName == bm.EVENT_HOST_LEAVE) {
             std::string newGroup = *broker::get<std::string>(msg[1]);
-            bm->removeGroup(newGroup);
+            bm.removeGroup(newGroup);
             continue;
 
             // osquery::host_subscribe
-          } else if (eventName == bm->EVENT_HOST_SUBSCRIBE) {
+          } else if (eventName == bm.EVENT_HOST_SUBSCRIBE) {
             // New SQL Query Request
             SubscriptionRequest sr;
             createSubscriptionRequest("SUBSCRIBE", msg, topic, sr);
-            qm->addScheduleQueryEntry(sr);
+            qm.addScheduleQueryEntry(sr);
 
             // osquery::host_unsubscribe
-          } else if (eventName == bm->EVENT_HOST_UNSUBSCRIBE) {
+          } else if (eventName == bm.EVENT_HOST_UNSUBSCRIBE) {
             // SQL Query Cancel
             SubscriptionRequest sr;
             createSubscriptionRequest("UNSUBSCRIBE", msg, topic, sr);
             // TODO: find an UNIQUE identifier (currently the exact sql string)
             std::string query = sr.query;
 
-            qm->removeQueryEntry(query);
+            qm.removeQueryEntry(query);
 
           } else if (eventName == "osquery::host_test") {
           } else {
@@ -210,7 +211,7 @@ void BroRunner::start() {
 
           // Apply to new config/schedule
           std::map<std::string, std::string> config_schedule;
-          config_schedule["bro"] = qm->getQueryConfigString();
+          config_schedule["bro"] = qm.getQueryConfigString();
           LOG(INFO) << "Applying new schedule: " << config_schedule["bro"];
           Config::getInstance().update(config_schedule);
         }

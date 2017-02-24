@@ -21,104 +21,94 @@
 
 namespace osquery {
 
-BrokerManager* BrokerManager::kInstance_ = nullptr;
-
-BrokerManager::BrokerManager() {
-  qm = QueryManager::getInstance();
-}
-
 Status BrokerManager::setNodeID(const std::string& uid) {
-  if (nodeID.empty()) {
+  if (nodeID_.empty()) {
     // Save new node ID
-    nodeID = uid;
+    nodeID_ = uid;
     return Status(0, "OK");
 
   } else {
-    LOG(WARNING) << "Node ID already set to '" << nodeID << "' (new: '" << uid
-                 << "')";
-    return Status(1, "Unable to set Node ID");
+      return Status(1, "Node ID already set to '" + nodeID_ + "' (new: '" + uid + "')");
   }
 }
 
 std::string BrokerManager::getNodeID() {
-  return nodeID;
+  return nodeID_;
 }
 
 Status BrokerManager::addGroup(const std::string& group) {
-  groups.push_back(group);
+  groups_.push_back(group);
   return createMessageQueue(TOPIC_PRE_GROUPS + group);
 }
 
 Status BrokerManager::removeGroup(const std::string& group) {
-  auto element_pos = std::find(groups.begin(), groups.end(), group);
+  auto element_pos = std::find(groups_.begin(), groups_.end(), group);
   // Group exists?
-  if (element_pos != groups.end()) {
+  if (element_pos != groups_.end()) {
     // Delete Group
-    groups.erase(element_pos);
+    groups_.erase(element_pos);
     // Delete message queue (maybe)
-    if (std::find(groups.begin(), groups.end(), group) == groups.end()) {
+    if (std::find(groups_.begin(), groups_.end(), group) == groups_.end()) {
       return deleteMessageQueue(TOPIC_PRE_GROUPS + group);
     } else {
-      return Status(0, "More subscriptions for group exist");
+      return Status(0, "More subscriptions for group '" + group + "' exist");
     }
   }
-  return Status(1, "Group does not exist");
+  return Status(1, "Group '" + group + "' does not exist");
 }
 
 std::vector<std::string> BrokerManager::getGroups() {
-  return groups;
+  return groups_;
 }
 
 Status BrokerManager::createEndpoint(const std::string& ep_name) {
-  if (ep != nullptr) {
+  if (ep_ != nullptr) {
     return Status(1, "Broker Endpoint already exists");
   }
-  LOG(INFO) << "Creating broker endpoint with name: " << ep_name;
-  ep = new broker::endpoint(ep_name);
+  VLOG(1) << "Creating broker endpoint with name: " << ep_name;
+  ep_ = std::make_unique<broker::endpoint>(ep_name);
   return Status(0, "OK");
 }
 
 Status BrokerManager::createMessageQueue(const std::string& topic) {
-  if (messageQueues.count(topic) == 0) {
-    LOG(INFO) << "Creating message queue: " << topic;
-    broker::message_queue* mq = new broker::message_queue(topic, *(ep));
-    messageQueues[topic] = mq;
+  if (messageQueues_.count(topic) == 0) {
+    VLOG(1) << "Creating message queue: " << topic;
+    messageQueues_[topic] = std::make_shared<broker::message_queue>(topic, *(ep_));;
     return Status(0, "OK");
   }
-  return Status(1, "Message queue exists for topic");
+  return Status(1, "Message queue exists for topic '" + topic + "'");
 }
 
 Status BrokerManager::deleteMessageQueue(const std::string& topic) {
-  if (messageQueues.count(topic) == 0) {
-    return Status(1, "Message queue does not exist");
+  if (messageQueues_.count(topic) == 0) {
+    return Status(1, "Message queue does not exist for topic '" + topic + "'");
   }
-  broker::message_queue* mq = messageQueues[topic];
-  delete mq;
-  messageQueues.erase(messageQueues.find(topic));
+  // shared_ptr should delete the message_queue and unsubscribe from topic
+  messageQueues_.erase(messageQueues_.find(topic));
   return Status(0, "OK");
 }
 
-broker::message_queue* BrokerManager::getMessageQueue(
+std::shared_ptr<broker::message_queue> BrokerManager::getMessageQueue(
     const std::string& topic) {
-  return messageQueues.at(topic);
+  return messageQueues_.at(topic);
 }
 
 Status BrokerManager::getTopics(std::vector<std::string>& topics) {
   topics.clear();
-  for (const auto& mq : messageQueues) {
+  for (const auto& mq : messageQueues_) {
     topics.push_back(mq.first);
   }
   return Status(0, "OK");
 }
 
 Status BrokerManager::peerEndpoint(const std::string& ip, int port) {
-  LOG(INFO) << "Connecting to " << ip << ":" << port;
-  if (ep == nullptr) {
+  LOG(INFO) << "Connecting to Bro " << ip << ":" << port;
+  if (ep_ == nullptr) {
     return Status(1, "Broker Endpoint not set");
   }
 
-  ep->peer(ip, port);
-  auto cs = ep->outgoing_connection_status().need_pop().front();
+  ep_->peer(ip, port);
+  auto cs = ep_->outgoing_connection_status().need_pop().front();
   if (cs.status != broker::outgoing_connection_status::tag::established) {
     return Status(1, "Failed to connect to bro endpoint");
   }
@@ -158,7 +148,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   // Is this schedule or one-time? Get Query and Type
   std::string query = "";
   std::string qType = "";
-  auto status_find = qm->findQueryAndType(queryID, qType, query);
+  auto status_find = QueryManager::getInstance().findQueryAndType(queryID, qType, query);
   if (!status_find.ok()) {
     return status_find;
   }
@@ -186,18 +176,14 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   for (const auto& t : columns) {
     const auto& columnName = std::get<0>(t);
     const auto& columnType = std::get<1>(t);
-    // ColumnOptions columnOptions = std::get<2>(t);
     columnTypes[columnName] = columnType;
-    // LOG(INFO) << "Column named '" << columnName << "' is of type '" <<
-    // kColumnTypeNames.at(columnType) << "'";
   }
 
   // Common message fields
   const auto& uid = getNodeID();
-  const auto& topic = qm->getEventTopic(queryID);
-  const auto& event_name = qm->getEventName(queryID);
-  LOG(INFO) << "Creating " << rows.size() << " messages for events with name :'"
-            << event_name << "'";
+  const auto& topic = QueryManager::getInstance().getEventTopic(queryID);
+  const auto& event_name = QueryManager::getInstance().getEventName(queryID);
+  VLOG(1) << "Creating " << rows.size() << " messages with event name '" << event_name << "'";
 
   // Create message for each row
   bool parse_err = false;
@@ -213,7 +199,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
         {broker::record::field(broker::data(uid)),
          broker::record::field(
              broker::data(broker::enum_value{"osquery::" + trigger})),
-         broker::record::field(broker::data(qm->getEventCookie(queryID)))});
+         broker::record::field(broker::data(QueryManager::getInstance().getEventCookie(queryID)))});
     msg.push_back(broker::data(result_info));
 
     // Format each column
@@ -222,16 +208,13 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
       if (row.count(colName) != 1) {
         LOG(ERROR) << "Column '" << colName << "' not present in results for '"
                    << event_name << "'";
-        for (const auto& pair : row) {
-          LOG(ERROR) << "\t<" << pair.first << ", " << pair.second << "> ";
-        }
         parse_err = true;
         break;
       }
       const auto& value = row.at(colName);
       switch (columnTypes.at(colName)) {
       case ColumnType::UNKNOWN_TYPE: {
-        LOG(WARNING) << "Sending unknown column type as string";
+        LOG(WARNING) << "Sending unknown column type for column '" + colName + "' as string";
         msg.push_back(broker::data(value));
         break;
       }
@@ -256,12 +239,12 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
         break;
       }
       case ColumnType::BLOB_TYPE: {
-        LOG(WARNING) << "Sending blob column type as string";
+        LOG(WARNING) << "Sending blob column type for column '" + colName + "' as string";
         msg.push_back(broker::data(value));
         break;
       }
       default: {
-        LOG(WARNING) << "Unkown ColumnType!";
+        LOG(WARNING) << "Unknown ColumnType for column '" + colName + "'";
         continue;
       }
       }
@@ -277,7 +260,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
 
   // Delete one-time query information
   if (qType == "ONETIME") {
-    qm->removeQueryEntry(query);
+    QueryManager::getInstance().removeQueryEntry(query);
   }
 
   return Status(0, "OK");
@@ -285,12 +268,11 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
 
 Status BrokerManager::sendEvent(const std::string& topic,
                                 const broker::message& msg) {
-  if (ep == nullptr) {
+  if (ep_ == nullptr) {
     return Status(1, "Endpoint not set");
   } else {
-    LOG(INFO) << "Sending Message: " << broker::to_string(msg) << " to "
-              << topic;
-    ep->send(topic, msg);
+    VLOG(1) << "Sending Message '" << broker::to_string(msg) << "' to  topic '" << topic << "'";
+    ep_->send(topic, msg);
   }
 
   return Status(0, "OK");

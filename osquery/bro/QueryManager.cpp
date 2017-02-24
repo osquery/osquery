@@ -19,22 +19,20 @@
 
 namespace osquery {
 
-QueryManager* QueryManager::kInstance_ = nullptr;
-
-QueryManager::QueryManager() {}
-
 std::string QueryManager::addOneTimeQueryEntry(const SubscriptionRequest& qr) {
-  const auto queryID = std::to_string(_nextUID++);
+  const auto queryID = std::to_string(nextUID_++);
   auto status = addQueryEntry(queryID, qr, "ONETIME");
-  if (status.ok())
-    return queryID;
-  else
-    LOG(WARNING) << status.getMessage();
+  if (status.ok()) {
+      return queryID;
+  }
+  else {
+      LOG(WARNING) << status.getMessage();
+  }
   return "-1";
 }
 
 Status QueryManager::addScheduleQueryEntry(const SubscriptionRequest& qr) {
-  const auto queryID = std::to_string(this->_nextUID++);
+  const auto queryID = std::to_string(this->nextUID_++);
   return addQueryEntry(queryID, qr, "SCHEDULE");
 }
 
@@ -49,26 +47,30 @@ Status QueryManager::addQueryEntry(const std::string& queryID,
   const bool& added = qr.added;
   const bool& removed = qr.removed;
   const bool& snapshot = qr.snapshot;
-  if (scheduleQueries.count(queryID) > 0 or oneTimeQueries.count(queryID) > 0) {
+  if (scheduleQueries_.count(queryID) > 0 or oneTimeQueries_.count(queryID) > 0) {
     return Status(1, "QueryID '" + queryID + "' already exists");
   }
 
-  if (qtype == "SCHEDULE")
-    scheduleQueries[queryID] =
-        ScheduleQueryEntry{queryID, query, interval, added, removed, snapshot};
-  else if (qtype == "ONETIME")
-    oneTimeQueries[queryID] = OneTimeQueryEntry{queryID, query};
-  else
-    return Status(1, "Unknown query type :" + qtype);
-  eventCookies[queryID] = cookie;
-  eventNames[queryID] = response_event;
-  eventTopics[queryID] = response_topic;
+  if (qtype == "SCHEDULE") {
+      scheduleQueries_[queryID] =
+              ScheduleQueryEntry{queryID, query, interval, added, removed, snapshot};
+  }
+  else if (qtype == "ONETIME") {
+      oneTimeQueries_[queryID] = OneTimeQueryEntry{queryID, query};
+  }
+  else {
+      return Status(1, "Unknown query type '" + qtype + "'");
+  }
+
+  eventCookies_[queryID] = cookie;
+  eventNames_[queryID] = response_event;
+  eventTopics_[queryID] = response_topic;
   return Status(0, "OK");
 }
 
 std::string QueryManager::findIDForQuery(const std::string& query) {
   // Search the queryID for this specific query
-  for (const auto& e : scheduleQueries) {
+  for (const auto& e : scheduleQueries_) {
     const auto& queryID = e.first;
     const ScheduleQueryEntry& bqe = e.second;
     if (std::get<1>(bqe) == query) {
@@ -76,7 +78,7 @@ std::string QueryManager::findIDForQuery(const std::string& query) {
     }
   }
 
-  for (const auto& e : oneTimeQueries) {
+  for (const auto& e : oneTimeQueries_) {
     const auto& queryID = e.first;
     const OneTimeQueryEntry& bqe = e.second;
     if (std::get<1>(bqe) == query) {
@@ -89,14 +91,14 @@ std::string QueryManager::findIDForQuery(const std::string& query) {
 Status QueryManager::findQueryAndType(const std::string& queryID,
                                       std::string& qtype,
                                       std::string& query) {
-  if (scheduleQueries.count(queryID) > 0) {
+  if (scheduleQueries_.count(queryID) > 0) {
     qtype = "SCHEDULE";
-    query = std::get<1>(scheduleQueries.at(queryID));
-  } else if (oneTimeQueries.count(queryID) > 0) {
+    query = std::get<1>(scheduleQueries_.at(queryID));
+  } else if (oneTimeQueries_.count(queryID) > 0) {
     qtype = "ONETIME";
-    query = std::get<1>(oneTimeQueries.at(queryID));
+    query = std::get<1>(oneTimeQueries_.at(queryID));
   } else {
-    return Status(1, "QueryID " + queryID + " not in brokerQueries");
+    return Status(1, "QueryID '" + queryID + "' not in brokerQueries");
   }
   return Status(0, "OK");
 }
@@ -104,22 +106,22 @@ Status QueryManager::findQueryAndType(const std::string& queryID,
 Status QueryManager::removeQueryEntry(const std::string& query) {
   const auto& queryID = findIDForQuery(query);
   if (queryID == "") {
-    return Status(1, "Unable to find ID for query: " + query);
+    return Status(1, "Unable to find ID for query '" + query + "'");
   }
 
   // Delete query info
-  eventCookies.erase(queryID);
-  eventTopics.erase(queryID);
-  eventNames.erase(queryID);
-  if (scheduleQueries.count(queryID) >= 1) {
-    LOG(INFO) << "Deleting schedule query '" << query << "' with queryID '"
+  eventCookies_.erase(queryID);
+  eventTopics_.erase(queryID);
+  eventNames_.erase(queryID);
+  if (scheduleQueries_.count(queryID) >= 1) {
+    VLOG(1) << "Deleting schedule query '" << query << "' with queryID '"
               << queryID << "'";
-    scheduleQueries.erase(queryID);
+    scheduleQueries_.erase(queryID);
   }
-  if (oneTimeQueries.count(queryID) >= 1) {
-    LOG(INFO) << "Deleting onetime query '" << query << "' with queryID '"
+  if (oneTimeQueries_.count(queryID) >= 1) {
+    VLOG(1) << "Deleting onetime query '" << query << "' with queryID '"
               << queryID << "'";
-    oneTimeQueries.erase(queryID);
+    oneTimeQueries_.erase(queryID);
   }
 
   return Status(0, "OK");
@@ -128,7 +130,7 @@ Status QueryManager::removeQueryEntry(const std::string& query) {
 std::string QueryManager::getQueryConfigString() {
   // Format each query
   std::vector<std::string> scheduleQ;
-  for (const auto& bq : scheduleQueries) {
+  for (const auto& bq : scheduleQueries_) {
     auto i = bq.second;
     std::stringstream ss;
     ss << "\"" << std::get<0>(i) << "\": {\"query\": \"" << std::get<1>(i)
@@ -155,14 +157,14 @@ std::string QueryManager::getQueryConfigString() {
 }
 
 std::string QueryManager::getEventCookie(const std::string& queryID) {
-  return eventCookies.at(queryID);
+  return eventCookies_.at(queryID);
 }
 
 std::string QueryManager::getEventName(const std::string& queryID) {
-  return eventNames.at(queryID);
+  return eventNames_.at(queryID);
 }
 
 std::string QueryManager::getEventTopic(const std::string& queryID) {
-  return eventTopics.at(queryID);
+  return eventTopics_.at(queryID);
 }
 }
