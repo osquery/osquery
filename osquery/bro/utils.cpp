@@ -67,7 +67,7 @@ Status createSubscriptionRequest(const std::string& rType,
   }
 
   // Cookie
-  std::string cookie = broker::to_string(msg[3]);
+  auto cookie = broker::to_string(msg[3]);
   sr.cookie = cookie;
 
   // Response Topic
@@ -141,11 +141,13 @@ Status parseBrokerGroups(const std::string& json_groups,
     json_stream << clone;
     pt::read_json(json_stream, groups_tree);
 
-    auto pt_groups = groups_tree.get_child("groups");
-    for (const auto& ptg : pt_groups) {
-      std::string ptg_value = pt_groups.get<std::string>(ptg.first);
-      if (!ptg_value.empty()) {
-        groups.push_back(ptg_value);
+    if (groups_tree.count("groups") >= 1) {
+      auto& pt_groups = groups_tree.get_child("groups");
+      for (const auto& ptg : pt_groups) {
+        std::string ptg_value = pt_groups.get<std::string>(ptg.first, "");
+        if (!ptg_value.empty()) {
+          groups.push_back(ptg_value);
+        }
       }
     }
   } catch (const pt::json_parser::json_parser_error& /* e */) {
