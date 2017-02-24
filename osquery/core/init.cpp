@@ -199,7 +199,6 @@ DECLARE_bool(database_dump);
 DECLARE_string(database_path);
 DECLARE_string(distributed_plugin);
 DECLARE_bool(disable_distributed);
-DECLARE_bool(disable_bro);
 DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
 
