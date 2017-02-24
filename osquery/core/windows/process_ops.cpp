@@ -25,6 +25,16 @@
 
 namespace osquery {
 
+std::string psidToString(PSID sid) {
+  LPTSTR sidOut = nullptr;
+  auto ret = ConvertSidToStringSidA(sid, &sidOut);
+  if (ret == 0) {
+    VLOG(1) << "ConvertSidToString failed with " << GetLastError();
+    return std::string("");
+  }
+  return std::string(sidOut);
+}
+
 int getUidFromSid(PSID sid) {
   auto eUse = SidTypeUnknown;
   unsigned long unameSize = 0;
