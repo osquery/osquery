@@ -28,7 +28,8 @@ Status BrokerManager::setNodeID(const std::string& uid) {
     return Status(0, "OK");
 
   } else {
-      return Status(1, "Node ID already set to '" + nodeID_ + "' (new: '" + uid + "')");
+    return Status(
+        1, "Node ID already set to '" + nodeID_ + "' (new: '" + uid + "')");
   }
 }
 
@@ -73,7 +74,9 @@ Status BrokerManager::createEndpoint(const std::string& ep_name) {
 Status BrokerManager::createMessageQueue(const std::string& topic) {
   if (messageQueues_.count(topic) == 0) {
     VLOG(1) << "Creating message queue: " << topic;
-    messageQueues_[topic] = std::make_shared<broker::message_queue>(topic, *(ep_));;
+    messageQueues_[topic] =
+        std::make_shared<broker::message_queue>(topic, *(ep_));
+    ;
     return Status(0, "OK");
   }
   return Status(1, "Message queue exists for topic '" + topic + "'");
@@ -148,7 +151,8 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   // Is this schedule or one-time? Get Query and Type
   std::string query = "";
   std::string qType = "";
-  auto status_find = QueryManager::getInstance().findQueryAndType(queryID, qType, query);
+  auto status_find =
+      QueryManager::getInstance().findQueryAndType(queryID, qType, query);
   if (!status_find.ok()) {
     return status_find;
   }
@@ -183,7 +187,8 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   const auto& uid = getNodeID();
   const auto& topic = QueryManager::getInstance().getEventTopic(queryID);
   const auto& event_name = QueryManager::getInstance().getEventName(queryID);
-  VLOG(1) << "Creating " << rows.size() << " messages with event name '" << event_name << "'";
+  VLOG(1) << "Creating " << rows.size() << " messages with event name '"
+          << event_name << "'";
 
   // Create message for each row
   bool parse_err = false;
@@ -199,7 +204,8 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
         {broker::record::field(broker::data(uid)),
          broker::record::field(
              broker::data(broker::enum_value{"osquery::" + trigger})),
-         broker::record::field(broker::data(QueryManager::getInstance().getEventCookie(queryID)))});
+         broker::record::field(broker::data(
+             QueryManager::getInstance().getEventCookie(queryID)))});
     msg.push_back(broker::data(result_info));
 
     // Format each column
@@ -214,7 +220,8 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
       const auto& value = row.at(colName);
       switch (columnTypes.at(colName)) {
       case ColumnType::UNKNOWN_TYPE: {
-        LOG(WARNING) << "Sending unknown column type for column '" + colName + "' as string";
+        LOG(WARNING) << "Sending unknown column type for column '" + colName +
+                            "' as string";
         msg.push_back(broker::data(value));
         break;
       }
@@ -239,7 +246,8 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
         break;
       }
       case ColumnType::BLOB_TYPE: {
-        LOG(WARNING) << "Sending blob column type for column '" + colName + "' as string";
+        LOG(WARNING) << "Sending blob column type for column '" + colName +
+                            "' as string";
         msg.push_back(broker::data(value));
         break;
       }
@@ -271,7 +279,8 @@ Status BrokerManager::sendEvent(const std::string& topic,
   if (ep_ == nullptr) {
     return Status(1, "Endpoint not set");
   } else {
-    VLOG(1) << "Sending Message '" << broker::to_string(msg) << "' to  topic '" << topic << "'";
+    VLOG(1) << "Sending Message '" << broker::to_string(msg) << "' to  topic '"
+            << topic << "'";
     ep_->send(topic, msg);
   }
 

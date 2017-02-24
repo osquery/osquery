@@ -36,15 +36,15 @@ struct SubscriptionRequest {
 };
 
 class QueryManager : private boost::noncopyable {
-private:
-    QueryManager() {}
+ private:
+  QueryManager() {}
 
-public:
-    /// Get a singleton instance of the QueryManager class
-    static QueryManager& getInstance() {
-      static QueryManager qm;
-      return qm;
-    };
+ public:
+  /// Get a singleton instance of the QueryManager class
+  static QueryManager& getInstance() {
+    static QueryManager qm;
+    return qm;
+  };
 
   std::string addOneTimeQueryEntry(const SubscriptionRequest& qr);
 

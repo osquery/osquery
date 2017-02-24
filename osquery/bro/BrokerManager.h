@@ -26,11 +26,11 @@
 namespace osquery {
 
 class BrokerManager : private boost::noncopyable {
-private:
-    BrokerManager() {}
+ private:
+  BrokerManager() {}
 
-public:
-    /// Get a singleton instance of the BrokerManager class;
+ public:
+  /// Get a singleton instance of the BrokerManager class;
   static BrokerManager& getInstance() {
     static BrokerManager bm;
     return bm;
@@ -68,7 +68,8 @@ public:
 
   Status deleteMessageQueue(const std::string& topic);
 
-  std::shared_ptr<broker::message_queue> getMessageQueue(const std::string& topic);
+  std::shared_ptr<broker::message_queue> getMessageQueue(
+      const std::string& topic);
 
   Status getTopics(std::vector<std::string>& topics);
 

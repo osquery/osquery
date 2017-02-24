@@ -83,7 +83,6 @@ void BroRunner::start() {
     fd_set fds;
     std::vector<std::string> topics;
     int sock{0};
-    std::shared_ptr<broker::message_queue> queue = nullptr;
 
     // Retrieve info about each message queue
     FD_ZERO(&fds);
@@ -104,7 +103,7 @@ void BroRunner::start() {
 
     // Check for the socket where a message arrived on
     for (auto topic : topics) {
-      queue = bm.getMessageQueue(topic);
+      std::shared_ptr<broker::message_queue> queue = bm.getMessageQueue(topic);
       sock = queue->fd();
       if (FD_ISSET(sock, &fds)) {
         // Process each message on this socket

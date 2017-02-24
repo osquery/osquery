@@ -23,10 +23,9 @@ std::string QueryManager::addOneTimeQueryEntry(const SubscriptionRequest& qr) {
   const auto queryID = std::to_string(nextUID_++);
   auto status = addQueryEntry(queryID, qr, "ONETIME");
   if (status.ok()) {
-      return queryID;
-  }
-  else {
-      LOG(WARNING) << status.getMessage();
+    return queryID;
+  } else {
+    LOG(WARNING) << status.getMessage();
   }
   return "-1";
 }
@@ -47,19 +46,18 @@ Status QueryManager::addQueryEntry(const std::string& queryID,
   const bool& added = qr.added;
   const bool& removed = qr.removed;
   const bool& snapshot = qr.snapshot;
-  if (scheduleQueries_.count(queryID) > 0 or oneTimeQueries_.count(queryID) > 0) {
+  if (scheduleQueries_.count(queryID) > 0 or
+      oneTimeQueries_.count(queryID) > 0) {
     return Status(1, "QueryID '" + queryID + "' already exists");
   }
 
   if (qtype == "SCHEDULE") {
-      scheduleQueries_[queryID] =
-              ScheduleQueryEntry{queryID, query, interval, added, removed, snapshot};
-  }
-  else if (qtype == "ONETIME") {
-      oneTimeQueries_[queryID] = OneTimeQueryEntry{queryID, query};
-  }
-  else {
-      return Status(1, "Unknown query type '" + qtype + "'");
+    scheduleQueries_[queryID] =
+        ScheduleQueryEntry{queryID, query, interval, added, removed, snapshot};
+  } else if (qtype == "ONETIME") {
+    oneTimeQueries_[queryID] = OneTimeQueryEntry{queryID, query};
+  } else {
+    return Status(1, "Unknown query type '" + qtype + "'");
   }
 
   eventCookies_[queryID] = cookie;
@@ -115,12 +113,12 @@ Status QueryManager::removeQueryEntry(const std::string& query) {
   eventNames_.erase(queryID);
   if (scheduleQueries_.count(queryID) >= 1) {
     VLOG(1) << "Deleting schedule query '" << query << "' with queryID '"
-              << queryID << "'";
+            << queryID << "'";
     scheduleQueries_.erase(queryID);
   }
   if (oneTimeQueries_.count(queryID) >= 1) {
     VLOG(1) << "Deleting onetime query '" << query << "' with queryID '"
-              << queryID << "'";
+            << queryID << "'";
     oneTimeQueries_.erase(queryID);
   }
 

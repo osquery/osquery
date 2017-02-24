@@ -9,8 +9,8 @@
  */
 
 #include <osquery/dispatcher.h>
-#include <osquery/logger.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 #include <osquery/logger.h>
 
 #include "osquery/bro/BrokerManager.h"
@@ -49,11 +49,15 @@ REGISTER(BroLoggerPlugin, "logger", "bro");
 
 Status BroLoggerPlugin::setUp() {
   if (FLAGS_disable_bro) {
-    return Status(1, "The bro service is disabled. Please set disable_bro to false to use the Bro logger plugin!");
+    return Status(1,
+                  "The bro service is disabled. Please set disable_bro to "
+                  "false to use the Bro logger plugin!");
   }
 
   if (FLAGS_logger_event_type) {
-    return Status(1, "Wrong log format. Cannot deserialize query results. Please disable log_result_events!");
+    return Status(1,
+                  "Wrong log format. Cannot deserialize query results. Please "
+                  "disable log_result_events!");
   }
   return Status(0, "OK");
 }

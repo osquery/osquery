@@ -37,36 +37,32 @@ Status createSubscriptionRequest(const std::string& rType,
   unsigned long numFields;
   if (rType == "EXECUTE") {
     numFields = 6;
-  }
-  else if (rType == "SUBSCRIBE") {
+  } else if (rType == "SUBSCRIBE") {
     numFields = 7;
-  }
-  else if (rType == "UNSUBSCRIBE") {
+  } else if (rType == "UNSUBSCRIBE") {
     numFields = 7;
-  }
-  else {
+  } else {
     return Status(1, "Unknown Request Type '" + rType + "'");
   }
 
   if (msg.size() != numFields) {
     return Status(1,
-                  std::to_string(msg.size()) + " instead of " + std::to_string(numFields) + " fields in '" + rType + "' message '" +
-                      broker::to_string(msg[0]));
+                  std::to_string(msg.size()) + " instead of " +
+                      std::to_string(numFields) + " fields in '" + rType +
+                      "' message '" + broker::to_string(msg[0]));
   }
 
   // Query String
   if (broker::is<std::string>(msg[1])) {
     sr.query = *broker::get<std::string>(msg[2]);
-  }
-  else {
+  } else {
     return Status(1, "SQL query is not a string");
   }
 
   // Response Event Name
   if (broker::is<std::string>(msg[1])) {
     sr.response_event = *broker::get<std::string>(msg[1]);
-  }
-  else {
+  } else {
     return Status(1, "Response Event Name is not a string");
   }
 
@@ -84,8 +80,7 @@ Status createSubscriptionRequest(const std::string& rType,
   } else {
     if (broker::is<std::string>(msg[4])) {
       sr.response_topic = *broker::get<std::string>(msg[4]);
-    }
-    else {
+    } else {
       return Status(1, "Response Topic Name is not a string");
     }
   }
@@ -128,8 +123,7 @@ Status createSubscriptionRequest(const std::string& rType,
   // Interval
   if (broker::is<uint64_t>(msg[6])) {
     sr.interval = *broker::get<uint64_t>(msg[6]);
-  }
-  else {
+  } else {
     return Status(1, "Interval is not a number");
   }
 
