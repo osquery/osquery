@@ -25,6 +25,8 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+DECLARE_string(tls_server_certs);
+
 class TLSTransportsTests : public testing::Test {
  public:
   bool verify(const Status& status) {
@@ -49,16 +51,20 @@ class TLSTransportsTests : public testing::Test {
   }
 
   void SetUp() override {
+    certs_ = FLAGS_tls_server_certs;
+    FLAGS_tls_server_certs = "";
     TLSServerRunner::start();
     port_ = TLSServerRunner::port();
   }
 
   void TearDown() override {
     TLSServerRunner::stop();
+    FLAGS_tls_server_certs = certs_;
   }
 
  protected:
   std::string port_;
+  std::string certs_;
 };
 
 TEST_F(TLSTransportsTests, test_call) {
