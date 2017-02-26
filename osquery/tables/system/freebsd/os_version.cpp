@@ -24,5 +24,13 @@ QueryData genOSVersion(QueryContext& context) {
   r["build"] = "RELEASE";
   return {r};
 }
+
+QueryData genSystemInfo(QueryContext& context) {
+  return QueryData();
+}
+
+QueryData genPlatformInfo(QueryContext& context) {
+  return QueryData();
+}
 }
 }

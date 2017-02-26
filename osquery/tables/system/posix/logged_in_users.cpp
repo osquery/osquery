@@ -22,7 +22,6 @@ Mutex utmpxEnumerationMutex;
 
 const std::map<size_t, std::string> kLoginTypes = {
     {EMPTY, "empty"},
-    {RUN_LVL, "runlevel"},
     {BOOT_TIME, "boot_time"},
     {NEW_TIME, "new_time"},
     {OLD_TIME, "old_time"},
@@ -30,7 +29,10 @@ const std::map<size_t, std::string> kLoginTypes = {
     {LOGIN_PROCESS, "login"},
     {USER_PROCESS, "user"},
     {DEAD_PROCESS, "dead"},
+#if !defined(FREEBSD)
+    {RUN_LVL, "runlevel"},
     {ACCOUNTING, "accounting"},
+#endif
 };
 
 QueryData genLoggedInUsers(QueryContext& context) {

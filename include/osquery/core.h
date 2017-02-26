@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #include <boost/thread/shared_mutex.hpp>
 #else
 #include <shared_mutex>
@@ -182,7 +182,7 @@ inline bool isPlatform(PlatformType a, const PlatformType& t = kPlatformType) {
   return (static_cast<int>(t) & static_cast<int>(a)) != 0;
 }
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #define MUTEX_IMPL boost
 #else
 #define MUTEX_IMPL std
