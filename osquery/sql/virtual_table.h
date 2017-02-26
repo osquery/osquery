@@ -62,25 +62,29 @@ struct VirtualTable : private boost::noncopyable {
   sqlite3_vtab base;
 
   /// Added structure: A content structure with metadata about the table.
-  VirtualTableContent *content{nullptr};
+  VirtualTableContent* content{nullptr};
 
   /// Added structure: The thread-local DB instance associated with the query.
-  SQLiteDBInstance *instance{nullptr};
+  SQLiteDBInstance* instance{nullptr};
 };
 
 /// Attach a table plugin name to an in-memory SQLite database.
-Status attachTableInternal(const std::string &name,
-                           const std::string &statement,
-                           const SQLiteDBInstanceRef &instance);
+Status attachTableInternal(const std::string& name,
+                           const std::string& statement,
+                           const SQLiteDBInstanceRef& instance);
 
 /// Detach (drop) a table.
-Status detachTableInternal(const std::string &name, sqlite3 *db);
+Status detachTableInternal(const std::string& name, sqlite3* db);
 
 Status attachFunctionInternal(
-    const std::string &name,
+    const std::string& name,
     std::function<
-        void(sqlite3_context *context, int argc, sqlite3_value **argv)> func);
+        void(sqlite3_context* context, int argc, sqlite3_value** argv)> func);
 
+/// Attach all table plugins to an in-memory SQLite database.
+void attachVirtualTables(const SQLiteDBInstanceRef& instance);
+
+#if !defined(OSQUERY_EXTERNAL)
 /**
  * A generated foreign amalgamation file includes schema for all tables.
  *
@@ -90,7 +94,5 @@ Status attachFunctionInternal(
  * their filter generation functions.
  */
 void registerForeignTables();
-
-/// Attach all table plugins to an in-memory SQLite database.
-void attachVirtualTables(const SQLiteDBInstanceRef &instance);
+#endif
 }

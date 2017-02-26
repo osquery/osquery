@@ -23,7 +23,7 @@ FLAG(string,
      "Not Specified",
      "Comma-delimited list of table names to be disabled");
 
-DECLARE_string(nullvalue);
+FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
 
 using OpReg = QueryPlanner::Opcode::Register;
 
