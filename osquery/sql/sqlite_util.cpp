@@ -206,7 +206,9 @@ static inline void openOptimized(sqlite3*& db) {
 
   // Register function extensions.
   registerMathExtensions(db);
+#if !defined(FREEBSD)
   registerStringExtensions(db);
+#endif
 }
 
 void SQLiteDBInstance::init() {

@@ -358,12 +358,13 @@ bool DropPrivileges::dropTo(const std::string& user) {
 }
 
 bool setThreadEffective(uid_t uid, gid_t gid) {
-#ifdef __APPLE__
+#if defined(__APPLE__)
   return (pthread_setugid_np(uid, gid) == 0);
-#else
+#elif defined(LINUX)
   return (syscall(SYS_setresgid, -1, gid, -1) == 0 &&
           syscall(SYS_setresuid, -1, uid, -1) == 0);
 #endif
+  return 0;
 }
 
 bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
