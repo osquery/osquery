@@ -600,7 +600,10 @@ Status attachFunctionInternal(
 
 void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
   if (FLAGS_enable_foreign) {
+#if !defined(OSQUERY_EXTERNAL)
+    // Foreign table schema is available for the shell and daemon only.
     registerForeignTables();
+#endif
   }
 
   PluginResponse response;
