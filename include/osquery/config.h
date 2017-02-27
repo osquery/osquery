@@ -20,6 +20,7 @@
 
 #include <osquery/core.h>
 #include <osquery/database.h>
+#include <osquery/dispatcher.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 
@@ -230,6 +231,15 @@ class Config : private boost::noncopyable {
    * @brief Call the genConfig method of the config retriever plugin.
    *
    * This may perform a resource load such as TCP request or filesystem read.
+   * If a non-zero value is passed to --config_refresh, this starts a thread
+   * that periodically calls genConfig to reload config state
+   */
+  Status refresh();
+
+  /**
+   * @brief Check if a config plugin is registered and load configs.
+   *
+   * Calls refresh after confirming a config plugin is registered
    */
   Status load();
 
@@ -311,6 +321,8 @@ class Config : private boost::noncopyable {
   /// or the initialization load step.
   bool loaded_{false};
 
+  bool started_thread_{false};
+
   /// A UNIX timestamp recorded when the config started.
   size_t start_time_{0};
 
@@ -319,6 +331,7 @@ class Config : private boost::noncopyable {
 
  private:
   friend class ConfigTests;
+  friend class ConfigRefreshRunner;
   friend class FilePathsConfigParserPluginTests;
   friend class FileEventsTableTests;
   friend class DecoratorsConfigParserPluginTests;
@@ -512,6 +525,13 @@ class ConfigParserPlugin : public Plugin {
 
  private:
   friend class Config;
+};
+
+// A thread that periodically reloads configuration state
+class ConfigRefreshRunner : public InternalRunnable {
+ public:
+  /// A simple wait/interruptible lock.
+  void start();
 };
 
 /**
