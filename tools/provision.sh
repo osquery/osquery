@@ -100,7 +100,7 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
   brew_dependency osquery/osquery-local/librpm
-
+  brew_dependency osquery/osquery-local/lldpd
 }
 
 function platform_darwin_main() {
@@ -114,6 +114,7 @@ function platform_darwin_main() {
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
+  brew_tool lldpd
 
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl

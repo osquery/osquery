@@ -92,6 +92,8 @@ endif()
 if(APPLE OR LINUX)
   file(GLOB OSQUERY_CROSS_EVENTS_TABLES "events/*.cpp")
 
+  ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
+
   if(APPLE)
     ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
   endif()
