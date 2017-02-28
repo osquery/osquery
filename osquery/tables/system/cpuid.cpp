@@ -10,8 +10,8 @@
 
 #include <iomanip>
 #include <map>
-#include <string>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include <osquery/core.h>
@@ -41,9 +41,16 @@ std::map<int, std::vector<FeatureDef>> kCPUFeatures{
      }},
     {7,
      {
-         FEATURE("sgx", "ebx", 2),
-         FEATURE("mpx", "ebx", 14),
-         FEATURE("sha", "ebx", 29),
+         FEATURE("sgx", "ebx", 2),      FEATURE("avx2", "ebx", 5),
+         FEATURE("smep", "ebx", 7),     FEATURE("bmi2", "ebx", 8),
+         FEATURE("erms", "ebx", 9),     FEATURE("invpcid", "ebx", 10),
+         FEATURE("rtm", "ebx", 11),     FEATURE("pqm", "ebx", 12),
+         FEATURE("mpx", "ebx", 14),     FEATURE("pqe", "ebx", 15),
+         FEATURE("avx512f", "ebx", 16), FEATURE("avx512dq", "ebx", 17),
+         FEATURE("rdseed", "ebx", 18),  FEATURE("adx", "ebx", 19),
+         FEATURE("smap", "ebx", 20),    FEATURE("intel_pt", "ebx", 25),
+         FEATURE("sha", "ebx", 29),     FEATURE("pku", "ecx", 3),
+         FEATURE("ospke", "ecx", 4),    FEATURE("sgx_lc", "ecx", 30),
      }},
 };
 
