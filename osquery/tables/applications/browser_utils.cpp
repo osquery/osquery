@@ -9,7 +9,6 @@
  */
 
 #include <osquery/logger.h>
-
 #include "osquery/tables/applications/browser_utils.h"
 #include "osquery/tables/system/system_utils.h"
 
@@ -36,7 +35,7 @@ void genExtension(const std::string& uid,
     return;
   }
 
-  // Read the extensions data into a JSON blob, then property tree.
+  // Read the extension metadata into a JSON blob, then property tree.
   pt::ptree tree;
   try {
     std::stringstream json_stream;
@@ -47,12 +46,43 @@ void genExtension(const std::string& uid,
     return;
   }
 
+  pt::ptree messagetree;
+  // Find out if there are localized values for fields
+  if (!tree.get<std::string>("default_locale", "").empty()) {
+    // Read the localized variables into a second ptree
+    std::string messages_json;
+    std::string localized_path = path + "/_locales/" +
+                                 tree.get<std::string>("default_locale") +
+                                 "/messages.json";
+    if (!forensicReadFile(localized_path, messages_json).ok()) {
+      VLOG(1) << "Could not read file: " << localized_path;
+      return;
+    }
+
+    try {
+      std::stringstream messages_stream;
+      messages_stream << messages_json;
+      pt::read_json(messages_stream, messagetree);
+    } catch (const pt::json_parser::json_parser_error& /* e */) {
+      VLOG(1) << "Could not parse JSON from: " << localized_path;
+      return;
+    }
+  }
+
+  std::string localized_prefix = "__MSG_";
   Row r;
   r["uid"] = uid;
   // Most of the keys are in the top-level JSON dictionary.
   for (const auto& it : kExtensionKeys) {
-    r[it.second] = tree.get<std::string>(it.first, "");
-
+    std::string key = tree.get<std::string>(it.first, "");
+    // If the value is an i18n reference, grab referenced value
+    if (key.compare(0, localized_prefix.length(), localized_prefix) == 0 &&
+        key.length() > 8) {
+      r[it.second] = messagetree.get<std::string>(
+          key.substr(6, key.length() - 8) + ".message", key);
+    } else {
+      r[it.second] = key;
+    }
     // Convert JSON bool-types to an integer.
     if (r[it.second] == "true") {
       r[it.second] = INTEGER(1);
