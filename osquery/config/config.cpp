@@ -60,6 +60,11 @@ CLI_FLAG(bool,
 
 CLI_FLAG(bool, config_dump, false, "Dump the contents of the configuration");
 
+CLI_FLAG(uint64,
+         config_refresh,
+         0,
+         "Optional interval in seconds to re-read configuration");
+
 DECLARE_string(config_plugin);
 DECLARE_string(pack_delimiter);
 DECLARE_bool(disable_events);
@@ -332,13 +337,7 @@ void Config::packs(std::function<void(PackRef& pack)> predicate) {
   }
 }
 
-Status Config::load() {
-  valid_ = false;
-  auto config_plugin = RegistryFactory::get().getActive("config");
-  if (!RegistryFactory::get().exists("config", config_plugin)) {
-    return Status(1, "Missing config plugin " + config_plugin);
-  }
-
+Status Config::refresh() {
   PluginResponse response;
   auto status = Registry::call("config", {{"action", "genConfig"}}, response);
   if (!status.ok()) {
@@ -357,15 +356,34 @@ Status Config::load() {
                 content.first.c_str(),
                 content.second.c_str());
       }
-      // Instead of forcing the shutdown, request one since the config plugin
-      // may have started services.
+      // Don't force because the config plugin may have started services.
       Initializer::requestShutdown();
     }
     status = update(response[0]);
+
+    /*
+     * If the initial configuration includes a non-0 refresh, start an
+     * additional service that sleeps and periodically regenerates the
+     * configuration.
+     */
+    if (!started_thread_ && FLAGS_config_refresh >= 1) {
+      Dispatcher::addService(std::make_shared<ConfigRefreshRunner>());
+      started_thread_ = true;
+    }
   }
 
   loaded_ = true;
   return status;
+}
+
+Status Config::load() {
+  valid_ = false;
+  auto config_plugin = RegistryFactory::get().getActive("config");
+  if (!RegistryFactory::get().exists("config", config_plugin)) {
+    return Status(1, "Missing config plugin " + config_plugin);
+  }
+
+  return refresh();
 }
 
 void stripConfigComments(std::string& json) {
@@ -806,5 +824,21 @@ Status ConfigParserPlugin::setUp() {
     data_.put(key, "");
   }
   return Status(0, "OK");
+}
+
+void ConfigRefreshRunner::start() {
+  while (!interrupted()) {
+    // Cool off and time wait the configured period.
+    // Apply this interruption initially as at t=0 the config was read.
+    pauseMilli(FLAGS_config_refresh * 1000);
+    // Since the pause occurs before the logic, we need to check for an
+    // interruption request.
+    if (interrupted()) {
+      return;
+    }
+
+    VLOG(1) << "Refreshing configuration state";
+    Config::getInstance().refresh();
+  }
 }
 }

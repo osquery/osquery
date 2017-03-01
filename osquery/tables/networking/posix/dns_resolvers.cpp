@@ -8,6 +8,8 @@
  *
  */
 
+#include <netinet/in.h>
+
 #include <resolv.h>
 
 #include <osquery/core.h>

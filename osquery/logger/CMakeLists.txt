@@ -1,7 +1,7 @@
 file(GLOB OSQUERY_LOGGER "*.cpp")
 ADD_OSQUERY_LIBRARY(TRUE osquery_logger ${OSQUERY_LOGGER})
 
-if(WINDOWS)
+if(WINDOWS OR FREEBSD)
   set(OSQUERY_LOGGER_PLUGINS
     "plugins/buffered.cpp"
     "plugins/filesystem.cpp"

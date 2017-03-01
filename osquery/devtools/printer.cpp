@@ -20,7 +20,7 @@
 
 namespace osquery {
 
-SHELL_FLAG(string, nullvalue, "", "Set string for NULL values, default ''");
+DECLARE_string(nullvalue);
 
 static std::vector<char> kOffset = {0, 0};
 static std::string kToken = "|";

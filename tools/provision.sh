@@ -100,7 +100,7 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
   brew_dependency osquery/osquery-local/librpm
-
+  brew_dependency osquery/osquery-local/lldpd
 }
 
 function platform_darwin_main() {
@@ -114,6 +114,7 @@ function platform_darwin_main() {
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
+  brew_tool lldpd
 
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl
@@ -219,6 +220,8 @@ function main() {
   # Provisioning uses either Linux or Home (OS X) brew.
   if [[ $OS = "darwin" ]]; then
     BREW_TYPE="darwin"
+  elif [[ $OS = "freebsd" ]]; then
+    BREW_TYPE="freebsd"
   else
     BREW_TYPE="linux"
   fi
@@ -237,7 +240,10 @@ function main() {
   # Finally run the setup of *brew, and checkout the needed Taps.
   # This will install a local tap using a symbol to the formula subdir here.
   export PATH="$DEPS_DIR/bin:$PATH"
-  setup_brew "$DEPS_DIR" "$BREW_TYPE"
+
+  if [[ ! "$BREW_TYPE" = "freebsd" ]]; then
+    setup_brew "$DEPS_DIR" "$BREW_TYPE"
+  fi
 
   if [[ "$ACTION" = "bottle" ]]; then
     brew_bottle "$2"
@@ -260,7 +266,7 @@ function main() {
   brew_clear_cache
   if [[ "$BREW_TYPE" = "darwin" ]]; then
     platform_darwin_main
-  else
+  elif [[ "$BREW_TYPE" = "linux" ]]; then
     platform_linux_main
   fi
   brew_clear_cache
@@ -273,9 +279,15 @@ function main() {
   # Pip may have just been installed.
   log "upgrading pip and installing python dependencies"
   PIP=`which pip`
+  if [[ $OS = "freebsd" ]]; then
+    PIP="sudo $PIP"
+  fi
   $PIP install --upgrade pip
   # Pip may change locations after upgrade.
   PIP=`which pip`
+  if [[ $OS = "freebsd" ]]; then
+    PIP="sudo $PIP"
+  fi
   $PIP install -I -r requirements.txt
 
   log "running auxiliary initialization"

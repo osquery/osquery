@@ -23,6 +23,8 @@ if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
   ADD_OSQUERY_LINK_ADDITIONAL("tsk")
 elseif(FREEBSD)
+  include_directories("/usr/local/include/libxml2")
+
   file(GLOB OSQUERY_FREEBSD_TABLES "*/freebsd/*.cpp")
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_freebsd
     ${OSQUERY_FREEBSD_TABLES}
@@ -36,6 +38,7 @@ elseif(FREEBSD)
   ADD_OSQUERY_LINK_ADDITIONAL("kvm")
   ADD_OSQUERY_LINK_ADDITIONAL("elf")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
+  ADD_OSQUERY_LINK_ADDITIONAL("tsk")
 elseif(WINDOWS)
   # Additional Windows libraries
   ADD_OSQUERY_LINK_ADDITIONAL("Advapi32.lib")
@@ -89,13 +92,18 @@ endif()
 if(APPLE OR LINUX)
   file(GLOB OSQUERY_CROSS_EVENTS_TABLES "events/*.cpp")
 
-  ADD_OSQUERY_LINK_ADDITIONAL("augeas fa xml2")
+  ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
+
   if(APPLE)
     ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
   endif()
 else()
   # TODO: When we have Windows events, fill this in
   set(OSQUERY_CROSS_EVENTS_TABLES "")
+endif()
+
+if(APPLE OR LINUX OR FREEBSD)
+  ADD_OSQUERY_LINK_ADDITIONAL("augeas fa xml2")
 endif()
 
 # TODO: These tables should be made Windows-compatible

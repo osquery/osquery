@@ -25,6 +25,8 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+DECLARE_string(tls_server_certs);
+
 class TLSTransportsTests : public testing::Test {
  public:
   bool verify(const Status& status) {
@@ -40,25 +42,34 @@ class TLSTransportsTests : public testing::Test {
       return false;
     }
 
-    if (status.getMessage().find("Address family not supported") !=
-        std::string::npos) {
-      LOG(ERROR) << "Not failing TLS-based transport tests";
-      return false;
-    }
     return true;
   }
 
+  bool nameError(const Status& status) {
+    std::string name_error =
+        "Request error: The format of the specified network name is invalid.";
+    if (status.getMessage() == name_error) {
+      return true;
+    }
+
+    return false;
+  }
+
   void SetUp() override {
+    certs_ = FLAGS_tls_server_certs;
+    FLAGS_tls_server_certs = "";
     TLSServerRunner::start();
     port_ = TLSServerRunner::port();
   }
 
   void TearDown() override {
     TLSServerRunner::stop();
+    FLAGS_tls_server_certs = certs_;
   }
 
  protected:
   std::string port_;
+  std::string certs_;
 };
 
 TEST_F(TLSTransportsTests, test_call) {
@@ -121,7 +132,10 @@ TEST_F(TLSTransportsTests, test_call_verify_peer) {
     // A non-1 exit code means the request failed, but not because of a socket
     // error or request-connection problem.
     EXPECT_EQ(status.getCode(), 2);
-    EXPECT_EQ(status.getMessage(), "Request error: certificate verify failed");
+    if (!nameError(status)) {
+      EXPECT_EQ(status.getMessage(),
+                "Request error: certificate verify failed");
+    }
   }
 }
 

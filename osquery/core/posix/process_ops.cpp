@@ -89,6 +89,9 @@ int platformGetPid() {
 }
 
 int platformGetTid() {
+#if !defined(FREEBSD)
   return (int)syscall(SYS_gettid);
+#endif
+  return 0;
 }
 }

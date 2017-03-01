@@ -6,6 +6,7 @@
 # If a directory includes: "module_NAME" it is built as a module.
 
 add_custom_target(externals)
+add_definitions(-DOSQUERY_EXTERNAL)
 
 macro(SUBDIRLIST OUTPUT PWD)
   file(GLOB children RELATIVE ${PWD} "${PWD}/*")

@@ -130,15 +130,18 @@ elseif(WIN32)
   set(OS_WHOLELINK_POST "")
   set(WINDOWS TRUE)
 else()
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libstdc++")
   set(OS_WHOLELINK_PRE "-Wl,-whole-archive")
   set(OS_WHOLELINK_POST "-Wl,-no-whole-archive")
   # Set CMAKE variables depending on platform, to know which tables and what
   # component-specific globbing is needed.
   if(${OSQUERY_BUILD_PLATFORM} STREQUAL "freebsd")
     set(FREEBSD TRUE)
+    include_directories("/usr/local/include")
+    include_directories("/usr/include")
+    set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libc++")
   else()
     set(LINUX TRUE)
+    set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libstdc++")
   endif()
 endif()
 
@@ -213,7 +216,7 @@ else()
       -fPIC
       -fpic
     )
-    if (CMAKE_CXX_COMPILER MATCHES "clang")
+    if (CMAKE_CXX_COMPILER MATCHES "clang" AND NOT FREEBSD)
       # Only enale LTO builds when using clang on Unix, for now
       add_compile_options(-flto)
     endif()
@@ -283,7 +286,7 @@ if(WINDOWS)
   endforeach(flag_var)
 
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
-else()
+elseif(NOT FREEBSD)
   if (CMAKE_CXX_COMPILER MATCHES "clang")
     # Clang on Unix uses LTO; we also need to pass -flto when linking
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
@@ -465,6 +468,11 @@ execute_process(COMMAND mkdir ${MKDIR_OPTS} "${CMAKE_BINARY_DIR}/generated")
 # We need to link some packages as dynamic/dependent.
 set(CMAKE_FIND_LIBRARY_SUFFIXES .lib .dylib .so .a)
 set(CMAKE_SKIP_RPATH TRUE)
+
+# FreeBSD does not use the osquery build system, link discovered libraries.
+if(FREEBSD)
+  set(ENV{BUILD_LINK_SHARED} TRUE)
+endif()
 
 # Most dependent packages/libs we want static.
 if(DEFINED ENV{BUILD_LINK_SHARED})
