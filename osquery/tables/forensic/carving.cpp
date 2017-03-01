@@ -8,22 +8,52 @@
  *
  */
 
+#include <boost/algorithm/string/join.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include <osquery/carver.h>
 #include <osquery/core.h>
+#include <osquery/database.h>
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+namespace pt = boost::property_tree;
+
 namespace osquery {
 namespace tables {
 
+/// Database prefix used to directly access and manipulate our carver entries
+const std::string kCarverDBPrefix = "carving.";
+
 void enumerateCarves(QueryData& results) {
-  Row r;
-  r["timestamp"] = INTEGER(time(nullptr));
-  r["md5"] = "";
-  r["carve"] = INTEGER(0);
-  r["path"] = "/";
-  results.push_back(r);
+  std::vector<std::string> carves;
+  scanDatabaseKeys(kQueries, carves, kCarverDBPrefix);
+
+  for (const auto& carve : carves) {
+    pt::ptree tree;
+    try {
+      std::stringstream ss(carve);
+      pt::read_json(ss, tree);
+    } catch (const pt::ptree_error& e) {
+      VLOG(1) << "Failed to parse carving entries: " << e.what();
+      return;
+    }
+
+    Row r;
+    r["time"] = BIGINT(tree.get<int>("time"));
+    r["size"] = INTEGER(tree.get<int>("size"));
+    r["sha256"] = SQL_TEXT(tree.get<std::string>("sha256"));
+    r["carve_guid"] = SQL_TEXT(tree.get<std::string>("carve_guid"));
+    r["status"] = SQL_TEXT(tree.get<std::string>("status"));
+    r["carve"] = INTEGER(0);
+    r["path"] = SQL_TEXT(tree.get<std::string>("path"));
+    results.push_back(r);
+  }
 }
 
 QueryData genCarves(QueryContext& context) {
@@ -47,11 +77,27 @@ QueryData genCarves(QueryContext& context) {
       }));
 
   if (context.constraints["carve"].exists(EQUALS) && paths.size() > 0) {
-    Dispatcher::addService(std::make_shared<Carver>(paths));
-  } else {
-    // TODO: Is this necessary? I should be able to just return the db contents
-    enumerateCarves(results);
+    auto guid = boost::uuids::to_string(boost::uuids::random_generator()());
+
+    pt::ptree tree;
+    tree.put("carve_guid", guid);
+    tree.put("time", time(nullptr));
+    tree.put("status", "STARTING");
+    tree.put("sha256", "");
+    tree.put("size", -1);
+    if (paths.size() > 1) {
+      tree.put("path", boost::algorithm::join(paths, ","));
+    } else {
+      tree.put("path", *(paths.begin()));
+    }
+
+    std::ostringstream os;
+    pt::write_json(os, tree, false);
+    setDatabaseValue(kQueries, kCarverDBPrefix + guid, os.str());
+
+    Dispatcher::addService(std::make_shared<Carver>(paths, guid));
   }
+  enumerateCarves(results);
 
   return results;
 }

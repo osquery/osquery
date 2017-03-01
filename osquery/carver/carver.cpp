@@ -8,44 +8,43 @@
  *
  */
 
-#include <sys/stat.h>
-
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/path.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 #include <archive.h>
 #include <archive_entry.h>
 
 #include <osquery/carver.h>
-#include <osquery/dispatcher.h>
-#include <osquery/enroll.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/json.h"
 #include "osquery/filesystem/fileops.h"
-#include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/transports/tls.h"
 #include "osquery/remote/utility.h"
+#include "osquery/tables/system/hash.h"
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 namespace osquery {
 
+/// Prefix used for the temp FS where carved files are stored
 const std::string kCarvePathPrefix = "osquery-carve-";
-const std::string kCarveNamePrefix = "carve-";
-const std::string kEncryptionPassword = "malware";
-const size_t kBuffSize = 8192;
 
-const std::string kFirstSendBlockUri = "";
-const std::string kSendBlockUri = "";
+/// Prefix applied to the file carve tar archive.
+const std::string kCarveNamePrefix = "carve-";
+
+/// Database prefix used to directly access and manipulate our carver entries
+const std::string kCarverDBPrefix = "carving.";
+
+/*
+ * Carver block chunking size. This specifies how big of a block size to
+ * use when carving a file from disk.
+ */
+const size_t kBuffSize = 8192;
 
 DECLARE_string(tls_hostname);
 
@@ -68,7 +67,34 @@ CLI_FLAG(int32,
          8192,
          "Size of blocks used for POSTing data back to remote endpoints");
 
-Carver::Carver(const std::set<std::string>& paths) {
+/// Helper function to update values related to a carve
+void updateCarveValue(const std::string& guid,
+                      const std::string& key,
+                      const std::string& value) {
+  std::string carve;
+  auto s = getDatabaseValue(kQueries, kCarverDBPrefix + guid, carve);
+  if (!s.ok()) {
+    VLOG(1) << "Unable to update status of carve " << guid;
+    return;
+  }
+
+  pt::ptree tree;
+  try {
+    std::stringstream ss(carve);
+    pt::read_json(ss, tree);
+  } catch (const pt::ptree_error& e) {
+    VLOG(1) << "Failed to parse carving entries: " << e.what();
+    return;
+  }
+
+  tree.put(key, value);
+
+  std::ostringstream os;
+  pt::write_json(os, tree, false);
+  setDatabaseValue(kQueries, kCarverDBPrefix + guid, os.str());
+}
+
+Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
   for (const auto& p : paths) {
     carvePaths_.insert(fs::path(p));
   }
@@ -78,7 +104,7 @@ Carver::Carver(const std::set<std::string>& paths) {
   contUri_ = TLSRequestHelper::makeURI(FLAGS_carver_continue_endpoint);
 
   // Generate a unique identifier for this carve
-  carveGuid_ = boost::uuids::to_string(boost::uuids::random_generator()());
+  carveGuid_ = guid;
 
   // TODO: Adding in a manifest file of all carved files might be nice.
   carveDir_ =
@@ -87,36 +113,43 @@ Carver::Carver(const std::set<std::string>& paths) {
   if (!ret) {
     LOG(ERROR) << "Unable to create carve file store";
   }
+
   archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tgz");
 };
 
 Carver::~Carver() {
+  /*
+   * TODO: Currently when a carve finishes/fails, it's all deleted. Is this
+   * our desired behavior? Would it be better to leave the carve tar somewhere
+   * and just delete all temporary carved files?
+   */
   fs::remove_all(carveDir_);
 }
 
 void Carver::start() {
+  updateCarveValue(carveGuid_, "status", "PENDING");
   for (const auto& p : carvePaths_) {
     if (!fs::exists(p)) {
       LOG(WARNING) << "File does not exist on disk: " << p;
     } else {
       Status s = carve(p);
       if (!s.ok()) {
-        LOG(WARNING) << "Error carving file: " << p;
+        LOG(WARNING) << "Failed to carve file: " << p;
       }
     }
   }
 
   auto s = compress(carvePaths_);
   if (!s.ok()) {
-    LOG(WARNING) << "Error compressing file carve archives: " << s.getMessage();
-    // TODO: Cleanup?
+    LOG(WARNING) << "Failed to create carve archive: " << s.getMessage();
+    updateCarveValue(carveGuid_, "status", "FAILED");
     return;
   }
 
   s = exfil(archivePath_);
   if (!s.ok()) {
-    LOG(WARNING) << "Error compressing file carve archives: " << s.getMessage();
-    // TODO: Cleanup?
+    LOG(WARNING) << "Failed to post carve: " << s.getMessage();
+    updateCarveValue(carveGuid_, "status", "FAILED");
     return;
   }
 };
@@ -141,7 +174,6 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
   auto arch = archive_write_new();
   archive_write_set_format_zip(arch);
   archive_write_set_format_pax_restricted(arch);
-  archive_write_set_passphrase(arch, kEncryptionPassword.c_str());
   archive_write_open_filename(arch, archivePath_.string().c_str());
   for (const auto& f : paths) {
     PlatformFile pFile(f.string(), PF_OPEN_EXISTING);
@@ -164,7 +196,13 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
   archive_write_close(arch);
   archive_write_free(arch);
 
-  VLOG(1) << "[+] Archive written to " << archivePath_.string();
+  PlatformFile archFile(archivePath_.string(), PF_OPEN_EXISTING);
+  updateCarveValue(carveGuid_, "size", std::to_string(archFile.size()));
+  updateCarveValue(
+      carveGuid_,
+      "sha256",
+      hashFromFile(HashType::HASH_TYPE_SHA256, archivePath_.string()));
+
   return Status(0, "Ok");
 };
 
@@ -189,17 +227,14 @@ Status Carver::exfil(const boost::filesystem::path& path) {
   boost::property_tree::ptree startRecv;
   status = startRequest.getResponse(startRecv);
   if (!status.ok()) {
-    VLOG(1) << "Did not receive session id";
-    return Status(1, "Did not receive a session id from endpoint");
+    return Status(status.getCode(), status.getMessage());
   }
 
   auto session_id = startRecv.get("session_id", "");
   if (session_id.empty()) {
-    // TODO: Remove VLOG statement here.
-    VLOG(1) << "Did not receive session id from remote endpoint";
     return Status(1, "No session_id received from remote endpoint");
   }
-  VLOG(1) << "[+] Got session ID: " << session_id;
+
   VLOG(1) << "[+] Posting " << blkCount << " blocks of data";
   auto contRequest = Request<TLSTransport, JSONSerializer>(contUri_);
   for (int i = 0; i < blkCount; i++) {
@@ -211,33 +246,16 @@ Status Carver::exfil(const boost::filesystem::path& path) {
     params.put<std::string>("session_id", session_id);
     params.put<std::string>("data", base64Encode(block.data()));
 
-    // TODO: Fill in the status of the carve as "Failed/Retrying" or something.
-    // along with pause/sleep logic
-    // TODO: Is this needed? I don't see why it would be...
-    // contRequest.setOption("hostname", FLAGS_tls_hostname);
+    // TODO: Error sending files.
     status = contRequest.call(params);
     if (!status.ok()) {
       VLOG(1) << "Post of carved block " << i
               << " failed: " << status.getMessage();
       continue;
     }
-
-    // TODO: Do we need a response?
-    // Check the response to ensure the endpoint received our carved block
-    boost::property_tree::ptree contRecv;
-    status = contRequest.getResponse(contRecv);
-    if (!status.ok()) {
-      VLOG(1) << "[-] Error posting block " << i;
-    }
-
-    // TODO: Check the response code
-    //    - If it failed, do we try again? Should there be a flag?
-    //    - If retry, should we keep track of failed attempts?
-    //    - Should we note how many blocks have been sent in the DB?
   }
 
-  // TODO: Update the DB entry with a fail or success
-  
+  updateCarveValue(carveGuid_, "status", "SUCCESS");
   return Status(0, "Ok");
 };
 }
