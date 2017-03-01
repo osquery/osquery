@@ -54,7 +54,7 @@ inline void processMessage(broker::message& msg,
     SubscriptionRequest sr;
     createSubscriptionRequest("EXECUTE", msg, topic, sr);
     std::string newQID = qm.addOneTimeQueryEntry(sr);
-    if (newQID == "-1") {
+    if (newQID.empty()) {
       LOG(ERROR) << "Unable to add Broker Query Entry";
       Initializer::requestShutdown(1);
     }
@@ -94,7 +94,6 @@ inline void processMessage(broker::message& msg,
       LOG(ERROR) << status_call.getMessage();
       Initializer::requestShutdown(status_call.getCode());
     }
-
     return;
 
     // osquery::host_join
@@ -150,8 +149,9 @@ void BroRunner::start() {
   // Set Broker UID
   std::string ident;
   auto status_huuid = getHostUUID(ident);
-  if (status_huuid.ok())
+  if (status_huuid.ok()) {
     bm.setNodeID(ident);
+  }
   const auto& uid = bm.getNodeID();
 
   // Subscribe to all and individual topic

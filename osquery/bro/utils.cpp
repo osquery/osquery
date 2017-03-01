@@ -37,9 +37,7 @@ Status createSubscriptionRequest(const std::string& rType,
   unsigned long numFields;
   if (rType == "EXECUTE") {
     numFields = 6;
-  } else if (rType == "SUBSCRIBE") {
-    numFields = 7;
-  } else if (rType == "UNSUBSCRIBE") {
+  } else if (rType == "SUBSCRIBE" || rType == "UNSUBSCRIBE") {
     numFields = 7;
   } else {
     return Status(1, "Unknown Request Type '" + rType + "'");
@@ -53,24 +51,25 @@ Status createSubscriptionRequest(const std::string& rType,
   }
 
   // Query String
-  if (broker::is<std::string>(msg[1])) {
-    sr.query = *broker::get<std::string>(msg[2]);
-  } else {
+  if (!broker::is<std::string>(msg[1])) {
     return Status(1, "SQL query is not a string");
   }
+  sr.query = *broker::get<std::string>(msg[2]);
 
   // Response Event Name
-  if (broker::is<std::string>(msg[1])) {
-    sr.response_event = *broker::get<std::string>(msg[1]);
-  } else {
+  if (!broker::is<std::string>(msg[1])) {
     return Status(1, "Response Event Name is not a string");
   }
+  sr.response_event = *broker::get<std::string>(msg[1]);
 
   // Cookie
   auto cookie = broker::to_string(msg[3]);
   sr.cookie = cookie;
 
   // Response Topic
+  if (!broker::is<std::string>(msg[4])) {
+    return Status(1, "Response Topic Name is not a string");
+  }
   if (broker::to_string(msg[4]).empty()) {
     sr.response_topic = incoming_topic;
     LOG(WARNING) << "No response topic given for event '" << sr.response_event
@@ -78,11 +77,7 @@ Status createSubscriptionRequest(const std::string& rType,
                     "incoming topic '"
                  << incoming_topic << "'";
   } else {
-    if (broker::is<std::string>(msg[4])) {
-      sr.response_topic = *broker::get<std::string>(msg[4]);
-    } else {
-      return Status(1, "Response Topic Name is not a string");
-    }
+    sr.response_topic = *broker::get<std::string>(msg[4]);
   }
 
   // Update Type
@@ -121,11 +116,10 @@ Status createSubscriptionRequest(const std::string& rType,
   }
 
   // Interval
-  if (broker::is<uint64_t>(msg[6])) {
-    sr.interval = *broker::get<uint64_t>(msg[6]);
-  } else {
+  if (!broker::is<uint64_t>(msg[6])) {
     return Status(1, "Interval is not a number");
   }
+  sr.interval = *broker::get<uint64_t>(msg[6]);
 
   return Status(0, "OK");
 }

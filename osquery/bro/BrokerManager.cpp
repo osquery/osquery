@@ -22,15 +22,14 @@
 namespace osquery {
 
 Status BrokerManager::setNodeID(const std::string& uid) {
-  if (nodeID_.empty()) {
-    // Save new node ID
-    nodeID_ = uid;
-    return Status(0, "OK");
-
-  } else {
+  if (!nodeID_.empty()) {
     return Status(
         1, "Node ID already set to '" + nodeID_ + "' (new: '" + uid + "')");
   }
+
+  // Save new node ID
+  nodeID_ = uid;
+  return Status(0, "OK");
 }
 
 std::string BrokerManager::getNodeID() {
@@ -45,17 +44,18 @@ Status BrokerManager::addGroup(const std::string& group) {
 Status BrokerManager::removeGroup(const std::string& group) {
   auto element_pos = std::find(groups_.begin(), groups_.end(), group);
   // Group exists?
-  if (element_pos != groups_.end()) {
-    // Delete Group
-    groups_.erase(element_pos);
-    // Delete message queue (maybe)
-    if (std::find(groups_.begin(), groups_.end(), group) == groups_.end()) {
-      return deleteMessageQueue(TOPIC_PRE_GROUPS + group);
-    } else {
-      return Status(0, "More subscriptions for group '" + group + "' exist");
-    }
+  if (element_pos == groups_.end()) {
+    return Status(1, "Group '" + group + "' does not exist");
   }
-  return Status(1, "Group '" + group + "' does not exist");
+
+  // Delete Group
+  groups_.erase(element_pos);
+  // Delete message queue (maybe)
+  if (std::find(groups_.begin(), groups_.end(), group) != groups_.end()) {
+    return Status(0, "More subscriptions for group '" + group + "' exist");
+  }
+
+  return deleteMessageQueue(TOPIC_PRE_GROUPS + group);
 }
 
 std::vector<std::string> BrokerManager::getGroups() {
@@ -66,26 +66,28 @@ Status BrokerManager::createEndpoint(const std::string& ep_name) {
   if (ep_ != nullptr) {
     return Status(1, "Broker Endpoint already exists");
   }
+
   VLOG(1) << "Creating broker endpoint with name: " << ep_name;
   ep_ = std::make_unique<broker::endpoint>(ep_name);
   return Status(0, "OK");
 }
 
 Status BrokerManager::createMessageQueue(const std::string& topic) {
-  if (messageQueues_.count(topic) == 0) {
-    VLOG(1) << "Creating message queue: " << topic;
-    messageQueues_[topic] =
-        std::make_shared<broker::message_queue>(topic, *(ep_));
-    ;
-    return Status(0, "OK");
+  if (messageQueues_.count(topic) != 0) {
+    return Status(1, "Message queue exists for topic '" + topic + "'");
   }
-  return Status(1, "Message queue exists for topic '" + topic + "'");
+
+  VLOG(1) << "Creating message queue: " << topic;
+  messageQueues_[topic] =
+      std::make_shared<broker::message_queue>(topic, *(ep_));
+  return Status(0, "OK");
 }
 
 Status BrokerManager::deleteMessageQueue(const std::string& topic) {
   if (messageQueues_.count(topic) == 0) {
     return Status(1, "Message queue does not exist for topic '" + topic + "'");
   }
+
   // shared_ptr should delete the message_queue and unsubscribe from topic
   messageQueues_.erase(messageQueues_.find(topic));
   return Status(0, "OK");
@@ -125,14 +127,13 @@ Status BrokerManager::peerEndpoint(const std::string& ip, int port) {
   // Collect IPs
   broker::vector addr_list;
   SQL sql("SELECT address from interface_addresses");
-  if (sql.ok()) {
-    for (const auto& row : sql.rows()) {
-      const auto& if_mac = row.at("address");
-      addr_list.push_back(
-          broker::data(broker::address::from_string(if_mac).get()));
-    }
-  } else {
+  if (!sql.ok()) {
     return Status(1, "Failed to retrieve interface addresses");
+  }
+  for (const auto& row : sql.rows()) {
+    const auto& if_mac = row.at("address");
+    addr_list.push_back(
+        broker::data(broker::address::from_string(if_mac).get()));
   }
 
   // Create Message

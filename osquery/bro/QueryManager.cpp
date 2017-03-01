@@ -22,12 +22,11 @@ namespace osquery {
 std::string QueryManager::addOneTimeQueryEntry(const SubscriptionRequest& qr) {
   const auto queryID = std::to_string(nextUID_++);
   auto status = addQueryEntry(queryID, qr, "ONETIME");
-  if (status.ok()) {
-    return queryID;
-  } else {
+  if (!status.ok()) {
     LOG(WARNING) << status.getMessage();
+    return "";
   }
-  return "-1";
+  return queryID;
 }
 
 Status QueryManager::addScheduleQueryEntry(const SubscriptionRequest& qr) {
