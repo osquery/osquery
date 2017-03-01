@@ -243,7 +243,8 @@ function main() {
   if [[ ! "$FPM" = "" && ! "$RPMBUILD" = "" ]]; then
     log "creating RPM equivalent"
 
-    PACKAGE_ARCH=$(uname -m)
+    # Yes, RPMs on OS X like i386 as the arch.
+    PACKAGE_ARCH=i386
     PACKAGE_ITERATION="1.darwin"
     RPM_APP_VERSION=$(echo ${APP_VERSION}|tr '-' '_')
     OUTPUT_RPM_PATH="$BUILD_DIR/osquery-$RPM_APP_VERSION-$PACKAGE_ITERATION.$PACKAGE_ARCH.rpm"
