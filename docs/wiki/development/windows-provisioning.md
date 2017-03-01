@@ -4,7 +4,7 @@ The bulk of the development environment provisioning logic is in the `tools\prov
 
 Generating the Visual Studio 2015 solution and building the **osquery** binaries is done via the `tools\make-win64-binaries.bat` batch script. 
 
-<b>Note</b>: Both batch scripts above need to be run from the repo root, i.e their invocation should be exactly as they appear above. Read '<b>Build Process</b>' below for more details on provisioning.
+**Note**: Both batch scripts above need to be run from the repo root, i.e their invocation should be exactly as they appear above. Read '**Build Process**' below for more details on provisioning.
 
 ## Initial Assumptions
 
