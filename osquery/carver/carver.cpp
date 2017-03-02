@@ -96,6 +96,7 @@ void updateCarveValue(const std::string& guid,
 }
 
 Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
+
   for (const auto& p : paths) {
     carvePaths_.insert(fs::path(p));
   }

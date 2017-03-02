@@ -21,6 +21,13 @@ class Carver : public InternalRunnable {
 
   ~Carver();
 
+  /*
+   * @brief A helper function to perform a start to finish carve
+   *
+   * This function walks through the carve, compress, and exfil functions
+   * in one fell swoop. Use of this class should largely happen through
+   * this function.
+   */
   void start();
 
   /*
