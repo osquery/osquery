@@ -13,14 +13,15 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-#include <osquery/carver.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
+#include "osquery/carver/carver.h"
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 #include "osquery/filesystem/fileops.h"
+#include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/transports/tls.h"
 #include "osquery/remote/utility.h"
@@ -114,7 +115,11 @@ Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
     LOG(ERROR) << "Unable to create carve file store";
   }
 
+  // Store the path to our archive for later exfiltration
   archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tgz");
+
+  // Update the DB to reflect that the carve is pending.
+  updateCarveValue(carveGuid_, "status", "PENDING");
 };
 
 Carver::~Carver() {
@@ -127,7 +132,6 @@ Carver::~Carver() {
 }
 
 void Carver::start() {
-  updateCarveValue(carveGuid_, "status", "PENDING");
   for (const auto& p : carvePaths_) {
     if (!fs::exists(p)) {
       LOG(WARNING) << "File does not exist on disk: " << p;
@@ -139,7 +143,12 @@ void Carver::start() {
     }
   }
 
-  auto s = compress(carvePaths_);
+  std::set<fs::path> carvedFiles;
+  for (const auto& p : platformGlob((carveDir_ / "*").string())) {
+    carvedFiles.insert(fs::path(p));
+  }
+
+  auto s = compress(carvedFiles);
   if (!s.ok()) {
     LOG(WARNING) << "Failed to create carve archive: " << s.getMessage();
     updateCarveValue(carveGuid_, "status", "FAILED");
@@ -175,6 +184,7 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
   archive_write_set_format_zip(arch);
   archive_write_set_format_pax_restricted(arch);
   archive_write_open_filename(arch, archivePath_.string().c_str());
+
   for (const auto& f : paths) {
     PlatformFile pFile(f.string(), PF_OPEN_EXISTING);
 
@@ -193,6 +203,7 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
     in.close();
     archive_entry_free(entry);
   }
+
   archive_write_close(arch);
   archive_write_free(arch);
 

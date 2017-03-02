@@ -1,10 +1,7 @@
-ADD_OSQUERY_LIBRARY(TRUE osquery_acquisition
+ADD_OSQUERY_LIBRARY(FALSE osquery_carver
   carver.cpp
 )
-
 ADD_OSQUERY_LINK_ADDITIONAL("archive")
-#ADD_OSQUERY_LINK_ADDITIONAL("boost_iostreams")
 
-#ADD_OSQUERY_LIBRARY(FALSE osquery_acquisition_plugins
-#  plugins/tls.cpp
-#)
+file(GLOB OSQUERY_CARVER_TESTS "tests/*.cpp")
+ADD_OSQUERY_TEST(FALSE ${OSQUERY_CARVER_TESTS})
