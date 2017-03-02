@@ -23,7 +23,8 @@ class Broker < AbstractOsqueryFormula
   patch :DATA
 
   def install
-    prepend "CXXFLAGS", "-std=c++11 -stdlib=libstdc++ -static-libstdc++ -Wextra -Wall -ftemplate-depth=512 -pedantic"
+    #prepend "CXXFLAGS", "-std=c++11 -stdlib=libstdc++ -Wextra -Wall -ftemplate-depth=512 -pedantic"
+    prepend "CXXFLAGS", "-std=c++11 -Wextra -Wall -ftemplate-depth=512"
     args = %W[--prefix=#{prefix} --disable-pybroker --enable-static-only --with-caf=#{default_prefix}]
 
     system "./configure", *args
@@ -82,17 +83,17 @@ index 4a827c1..6a40879 100644
 --
 2.7.4
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index a0d0855..3786df1 100644
+index e439cde..fa224cb 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -209,7 +209,7 @@ set(CMAKE_CXX_FLAGS \"\${CXXFLAGS} \${CMAKE_CXX_FLAGS}\")" >> patchfile2
+@@ -161,7 +161,7 @@ endif ()
  add_subdirectory(bindings)
 
  enable_testing()
 -add_subdirectory(tests)
 +#add_subdirectory(tests)
 
-
+ string(TOUPPER ${CMAKE_BUILD_TYPE} BuildType)
 
 --
 2.7.4

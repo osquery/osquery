@@ -19,9 +19,11 @@ class Caf < AbstractOsqueryFormula
 
   depends_on "cmake" => :build
 
+  # Use both provided and default CXX flags
+  patch :DATA
+
   def install
-    prepend "CXXFLAGS", "-std=c++11 -stdlib=libstdc++ -static-libstdc++ -Wextra -Wall -ftemplate-depth=512 -pedantic"
-    args = %W[--prefix=#{prefix} --no-auto-libc++ --no-examples --no-unit-tests --no-opencl --no-nexus --no-cash --no-benchmarks --no-riac --build-static-only]
+    args = %W[--prefix=#{prefix} --no-examples --no-unit-tests --no-opencl --no-nexus --no-cash --no-benchmarks --no-riac --build-static-only]
 
     system "./configure", *args
     system "make"
@@ -29,3 +31,42 @@ class Caf < AbstractOsqueryFormula
   end
 
 end
+
+__END__
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9a20c5e..6ee9cb2 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -216,18 +216,18 @@ if(CAF_IOS_DEPLOYMENT_TARGET)
+   endif()
+ endif()
+ # check if the user provided CXXFLAGS, set defaults otherwise
+-if(CMAKE_CXX_FLAGS)
+-  set(CMAKE_CXX_FLAGS_DEBUG          "")
+-  set(CMAKE_CXX_FLAGS_MINSIZEREL     "")
+-  set(CMAKE_CXX_FLAGS_RELEASE        "")
+-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
+-else()
+-  set(CMAKE_CXX_FLAGS "-std=c++11 -Wextra -Wall -pedantic ${EXTRA_FLAGS}")
+-  set(CMAKE_CXX_FLAGS_DEBUG          "-O0 -g")
+-  set(CMAKE_CXX_FLAGS_MINSIZEREL     "-Os")
+-  set(CMAKE_CXX_FLAGS_RELEASE        "-O3 -DNDEBUG")
+-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+-endif()
++#if(CMAKE_CXX_FLAGS)
++#  set(CMAKE_CXX_FLAGS_DEBUG          "")
++#  set(CMAKE_CXX_FLAGS_MINSIZEREL     "")
++#  set(CMAKE_CXX_FLAGS_RELEASE        "")
++#  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "")
++#else()
++set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wextra -Wall -pedantic ${EXTRA_FLAGS}")
++set(CMAKE_CXX_FLAGS_DEBUG          "-O0 -g")
++set(CMAKE_CXX_FLAGS_MINSIZEREL     "-Os")
++set(CMAKE_CXX_FLAGS_RELEASE        "-O3 -DNDEBUG")
++set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
++#endif()
+ # set build default build type to RelWithDebInfo if not set
+ if(NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE RelWithDebInfo)
+--
+2.7.4
