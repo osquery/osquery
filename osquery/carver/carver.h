@@ -30,7 +30,6 @@ class Carver : public InternalRunnable {
    */
   void start();
 
- protected:
   /*
    * @brief A helper function to 'carve' files from disk
    *
