@@ -65,6 +65,8 @@ Official chocolatey sources do not provide everything we need. In order to mitig
  * clang-format 3.9.0
  * zlib 1.2.8
 
+Note: By default the execution-time of `choco install` command is set to 2700 seconds. Depending on your internet connection it can take time for boost-msvc14 1.59.0 to install and might result in a time-out error. To avoid this set the value of the execution-time to a higher value.
+
 ## Other Actions
 
  * Upgrades **python2**'s `pip` package
