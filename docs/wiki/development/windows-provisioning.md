@@ -65,7 +65,7 @@ Official chocolatey sources do not provide everything we need. In order to mitig
  * clang-format 3.9.0
  * zlib 1.2.8
 
-Note: By default the execution-time of `choco install` command is set to 2700 seconds. Depending on your internet connection it can take time for boost-msvc14 1.59.0 to install and might result in a time-out error. To avoid this set the value of the execution-time to a higher value.
+**Note:** Depending on your internet connection it can take time for packages to download. A slow internet connection might cause a time-out error. If such an error occurs then increase the value of the execution-time of the `choco install` command.
 
 ## Other Actions
 
