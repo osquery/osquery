@@ -28,6 +28,8 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
+DECLARE_bool(disable_carver);
+
 /// Database prefix used to directly access and manipulate our carver entries
 const std::string kCarverDBPrefix = "carving.";
 

@@ -30,6 +30,7 @@ class Carver : public InternalRunnable {
    */
   void start();
 
+ protected:
   /*
    * @brief A helper function to 'carve' files from disk
    *
@@ -53,6 +54,11 @@ class Carver : public InternalRunnable {
    * carver_start_endpoint and carver_continue_endpoint
    */
   Status exfil(const boost::filesystem::path& path);
+
+  // Getter for the carver status
+  Status getStatus() {
+    return status_;
+  }
 
  private:
   /*
@@ -99,6 +105,9 @@ class Carver : public InternalRunnable {
 
   /// The uri used to receive the data blocks of a carve
   std::string contUri_;
+
+  // Running status of the carver
+  Status status_;
 
  private:
   friend class CarverTests;

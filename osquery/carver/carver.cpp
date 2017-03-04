@@ -56,23 +56,27 @@ const size_t kBuffSize = 8192;
 DECLARE_string(tls_hostname);
 
 /// Session creation endpoint for forensic file carving
-CLI_FLAG(string,
-         carver_start_endpoint,
-         "",
-         "TLS/HTTPS init endpoint for forensic carver");
+FLAG(string,
+     carver_start_endpoint,
+     "",
+     "TLS/HTTPS init endpoint for forensic carver");
 
 /// Data aggregation endpoint for forensic file carving
-CLI_FLAG(
-    string,
-    carver_continue_endpoint,
-    "",
-    "TLS/HTTPS endpoint that receives carved content after session creation");
+FLAG(string,
+     carver_continue_endpoint,
+     "",
+     "TLS/HTTPS endpoint that receives carved content after session creation");
 
 /// Size of blocks used for POSTing data back to remote endpoints
-CLI_FLAG(int32,
-         carver_block_size,
-         8192,
-         "Size of blocks used for POSTing data back to remote endpoints");
+FLAG(int32,
+     carver_block_size,
+     8192,
+     "Size of blocks used for POSTing data back to remote endpoints");
+
+FLAG(bool,
+     disable_carver,
+     true,
+     "Disable the osquery file carver (default true)");
 
 /// Helper function to update values related to a carve
 void updateCarveValue(const std::string& guid,
@@ -81,7 +85,7 @@ void updateCarveValue(const std::string& guid,
   std::string carve;
   auto s = getDatabaseValue(kQueries, kCarverDBPrefix + guid, carve);
   if (!s.ok()) {
-    VLOG(1) << "Unable to update status of carve " << guid;
+    VLOG(1) << "Failed to update status of carve in database " << guid;
     return;
   }
 
@@ -98,10 +102,15 @@ void updateCarveValue(const std::string& guid,
 
   std::ostringstream os;
   pt::write_json(os, tree, false);
-  setDatabaseValue(kQueries, kCarverDBPrefix + guid, os.str());
+  s = setDatabaseValue(kQueries, kCarverDBPrefix + guid, os.str());
+  if (!s.ok()) {
+    VLOG(1) << "Failed to update status of carve in database " << guid;
+    return;
+  }
 }
 
 Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
+  status_ = Status(0, "Ok");
   for (const auto& p : paths) {
     carvePaths_.insert(fs::path(p));
   }
@@ -118,7 +127,7 @@ Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
       fs::temp_directory_path() / fs::path(kCarvePathPrefix + carveGuid_);
   auto ret = fs::create_directory(carveDir_);
   if (!ret) {
-    LOG(ERROR) << "Unable to create carve file store";
+    status_ = Status(1, "Failed to create carve file store");
   }
 
   // Store the path to our archive for later exfiltration
@@ -133,6 +142,11 @@ Carver::~Carver() {
 }
 
 void Carver::start() {
+  // If status_ is not Ok, the creation of our tmp FS failed
+  if (!status_.ok()) {
+    return;
+  }
+
   for (const auto& p : carvePaths_) {
     if (!fs::exists(p)) {
       LOG(WARNING) << "File does not exist on disk: " << p;
