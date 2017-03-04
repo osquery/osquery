@@ -288,7 +288,7 @@ function Install-ThirdParty {
   Try {
     foreach ($package in $packages) {
       $chocoForce = ""
-      $executionTime = 7200
+      $executionTimeout = 7200
       $packageData = $package -split '\.'
       $packageName = $packageData[0]
       $packageVersion = [string]::Join('.', $packageData[1..$packageData.length])
@@ -322,7 +322,7 @@ function Install-ThirdParty {
         Write-Host "[-] ERROR: Downloading $package failed. Check connection?" -foregroundcolor Red
         Exit -1
       }
-      choco install --pre -y -r --execution-timeout=$executionTime $chocoForce $packageName --version=$packageVersion --source="$tmpDir;https://chocolatey.org/api/v2"
+      choco install --pre -y -r --execution-timeout=$executionTimeout $chocoForce $packageName --version=$packageVersion --source="$tmpDir;https://chocolatey.org/api/v2"
       if ($LastExitCode -ne 0) {
         Write-Host "[-] ERROR: Install of $package failed." -foregroundcolor Red
         Exit -1
