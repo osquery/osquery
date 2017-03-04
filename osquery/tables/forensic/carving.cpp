@@ -9,7 +9,6 @@
  */
 
 #include <boost/algorithm/string/join.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -22,6 +21,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/carver/carver.h"
+#include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
 
@@ -33,9 +33,16 @@ const std::string kCarverDBPrefix = "carving.";
 
 void enumerateCarves(QueryData& results) {
   std::vector<std::string> carves;
-  scanDatabaseKeys(kQueries, carves, kCarverDBPrefix);
+  auto s = scanDatabaseKeys(kQueries, carves, kCarverDBPrefix);
 
-  for (const auto& carve : carves) {
+  for (const auto& carveGuid : carves) {
+    std::string carve;
+    s = getDatabaseValue(kQueries, carveGuid, carve);
+    if(!s.ok()) {
+      VLOG(1) << "Failed to retreive carve GUID";
+      continue;
+    }
+
     pt::ptree tree;
     try {
       std::stringstream ss(carve);
@@ -86,7 +93,7 @@ QueryData genCarves(QueryContext& context) {
     tree.put("status", "STARTING");
     tree.put("sha256", "");
     tree.put("size", -1);
-    if (paths.size() > 1) {
+    if(paths.size() > 1) {
       tree.put("path", boost::algorithm::join(paths, ","));
     } else {
       tree.put("path", *(paths.begin()));
@@ -94,7 +101,10 @@ QueryData genCarves(QueryContext& context) {
 
     std::ostringstream os;
     pt::write_json(os, tree, false);
-    setDatabaseValue(kQueries, kCarverDBPrefix + guid, os.str());
+    auto s = setDatabaseValue(kQueries, kCarverDBPrefix + guid, os.str());
+    if(!s.ok()){
+      LOG(WARNING) << "Error inserting new carve entry into the database: " << s.getMessage();
+    }
 
     Dispatcher::addService(std::make_shared<Carver>(paths, guid));
   }

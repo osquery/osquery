@@ -30,6 +30,7 @@ class Carver : public InternalRunnable {
    */
   void start();
 
+ protected:
   /*
    * @brief A helper function to 'carve' files from disk
    *
@@ -101,6 +102,6 @@ class Carver : public InternalRunnable {
   std::string contUri_;
 
  private:
-  friend class CarverClass;
+  friend class CarverTests;
 };
 }

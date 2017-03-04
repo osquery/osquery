@@ -8,6 +8,12 @@
  *
  */
 
+#ifdef WIN32
+#define _WIN32_DCOM
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 #include <boost/property_tree/ptree.hpp>
 
 #include <archive.h>
@@ -33,10 +39,10 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 /// Prefix used for the temp FS where carved files are stored
-const std::string kCarvePathPrefix = "osquery-carve-";
+const std::string kCarvePathPrefix = "osquery_carve_";
 
 /// Prefix applied to the file carve tar archive.
-const std::string kCarveNamePrefix = "carve-";
+const std::string kCarveNamePrefix = "carve_";
 
 /// Database prefix used to directly access and manipulate our carver entries
 const std::string kCarverDBPrefix = "carving.";
@@ -96,7 +102,6 @@ void updateCarveValue(const std::string& guid,
 }
 
 Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
-
   for (const auto& p : paths) {
     carvePaths_.insert(fs::path(p));
   }
@@ -124,11 +129,6 @@ Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
 };
 
 Carver::~Carver() {
-  /*
-   * TODO: Currently when a carve finishes/fails, it's all deleted. Is this
-   * our desired behavior? Would it be better to leave the carve tar somewhere
-   * and just delete all temporary carved files?
-   */
   fs::remove_all(carveDir_);
 }
 
@@ -165,16 +165,24 @@ void Carver::start() {
 };
 
 Status Carver::carve(const boost::filesystem::path& path) {
-  PlatformFile src(path.string(), PF_OPEN_EXISTING);
-  PlatformFile dst((carveDir_ / path.leaf()).string(), PF_CREATE_NEW);
-  std::vector<char> inBuff(kBuffSize, 0);
+  PlatformFile src(path.string(), PF_OPEN_EXISTING | PF_READ);
+  PlatformFile dst((carveDir_ / path.leaf()).string(),
+                   PF_CREATE_NEW | PF_WRITE);
+
+  if (!dst.isValid()) {
+    return Status(1, "Destination tmp FS is not valid.");
+  }
 
   auto blkCount =
       ceil(static_cast<double>(src.size()) / static_cast<double>(kBuffSize));
 
   for (size_t i = 0; i < blkCount; i++) {
-    src.read(inBuff.data(), kBuffSize);
-    dst.write(inBuff.data(), kBuffSize);
+    std::vector<char> inBuff(kBuffSize, 0);
+    auto bytesRead = src.read(inBuff.data(), kBuffSize);
+    auto bytesWritten = dst.write(inBuff.data(), bytesRead);
+    if (bytesWritten < 0) {
+      return Status(1, "Error writing bytes to tmp fs");
+    }
   }
 
   return Status(0, "Ok");
@@ -187,7 +195,7 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
   archive_write_open_filename(arch, archivePath_.string().c_str());
 
   for (const auto& f : paths) {
-    PlatformFile pFile(f.string(), PF_OPEN_EXISTING);
+    PlatformFile pFile(f.string(), PF_OPEN_EXISTING | PF_READ);
 
     auto entry = archive_entry_new();
     archive_entry_set_pathname(entry, f.string().c_str());
@@ -208,7 +216,7 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
   archive_write_close(arch);
   archive_write_free(arch);
 
-  PlatformFile archFile(archivePath_.string(), PF_OPEN_EXISTING);
+  PlatformFile archFile(archivePath_.string(), PF_OPEN_EXISTING | PF_READ);
   updateCarveValue(carveGuid_, "size", std::to_string(archFile.size()));
   updateCarveValue(
       carveGuid_,
@@ -222,14 +230,15 @@ Status Carver::exfil(const boost::filesystem::path& path) {
   auto startRequest = Request<TLSTransport, JSONSerializer>(startUri_);
 
   // Perform the start request to get the session id
-  PlatformFile pFile(path.string(), PF_OPEN_EXISTING);
-  auto blkCount = ceil(static_cast<double>(pFile.size()) /
-                       static_cast<double>(FLAGS_carver_block_size));
+  PlatformFile pFile(path.string(), PF_OPEN_EXISTING | PF_READ);
+  auto blkCount =
+      static_cast<int>(ceil(static_cast<double>(pFile.size()) /
+                            static_cast<double>(FLAGS_carver_block_size)));
   pt::ptree startParams;
 
   startParams.put<int>("block_count", blkCount);
   startParams.put<int>("block_size", FLAGS_carver_block_size);
-  startParams.put<int>("carve_size", pFile.size());
+  startParams.put<size_t>("carve_size", pFile.size());
   startParams.put<std::string>("carve_id", carveGuid_);
   startParams.put<std::string>("node_key", getNodeKey("tls"));
 
@@ -247,16 +256,20 @@ Status Carver::exfil(const boost::filesystem::path& path) {
     return Status(1, "No session_id received from remote endpoint");
   }
 
-  VLOG(1) << "[+] Posting " << blkCount << " blocks of data";
   auto contRequest = Request<TLSTransport, JSONSerializer>(contUri_);
   for (int i = 0; i < blkCount; i++) {
     std::vector<char> block(FLAGS_carver_block_size, 0);
-    pFile.read(block.data(), FLAGS_carver_block_size);
+    auto r = pFile.read(block.data(), FLAGS_carver_block_size);
+
+    if (r != FLAGS_carver_block_size && r > 0) {
+      // resize the buffer to size we read as last block is likely smaller
+      block.resize(r);
+    }
 
     pt::ptree params;
     params.put<int>("block_id", i);
     params.put<std::string>("session_id", session_id);
-    params.put<std::string>("data", base64Encode(block.data()));
+    params.put<std::string>("data", base64Encode(std::string(block.begin(), block.end())));
 
     // TODO: Error sending files.
     status = contRequest.call(params);

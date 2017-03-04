@@ -128,7 +128,7 @@ class TLSTransport : public Transport {
 
   /**
    * @brief Class destructor
-  */
+   */
   virtual ~TLSTransport() {}
 
  public:
@@ -169,10 +169,10 @@ class TLSTransport : public Transport {
 
  protected:
   /**
-    * @brief Modify a request object with base modifications
-    *
-    * @param The request object, to be modified
-    */
+   * @brief Modify a request object with base modifications
+   *
+   * @param The request object, to be modified
+   */
   void decorateRequest(boost::network::http::client::request& r);
 
  protected:

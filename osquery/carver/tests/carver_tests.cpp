@@ -81,9 +81,9 @@ TEST_F(CarverTests, test_carve_files_locally) {
   /*
   // TODO: As the carve DB entry happens in the table, this entry wont exist.
   std::string carveId;
-  std::cout << "[+] Scanning database for " << kCarverDBPrefix + guid_ << std::endl;
-  auto s = getDatabaseValue(kQueries, kCarverDBPrefix + guid_, carveId);
-  EXPECT_TRUE(s.ok());
+  std::cout << "[+] Scanning database for " << kCarverDBPrefix + guid_ <<
+  std::endl; auto s = getDatabaseValue(kQueries, kCarverDBPrefix + guid_,
+  carveId); EXPECT_TRUE(s.ok());
 
   pt::ptree tree;
   std::stringstream ss(carveId);
