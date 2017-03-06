@@ -10,7 +10,6 @@ schema([
   Column('mtu', UNSIGNED_BIGINT, 'Maximum Transmission Unit for the route'),
   Column('metric', INTEGER, 'Cost of route. Lowest is preferred'),
   Column('type', TEXT, 'Type of route'),
-  Column('address_family', TEXT, 'Address family of IP'),
 ])
 implementation("network/windows/routes@genRoutes")
 examples([

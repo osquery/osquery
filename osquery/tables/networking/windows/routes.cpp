@@ -100,7 +100,6 @@ QueryData genIPRoutes(QueryContext& context) {
     PVOID ipAddr = nullptr;
     PVOID gateway = nullptr;
     if (addrFamily == AF_INET6) {
-      r["address_family"] = SQL_TEXT("IPv6");
       r["mtu"] = INTEGER(actualInterface.NlMtu);
       // These are all technically "on-link" addresses according to
       // `route print -6`.
@@ -109,7 +108,6 @@ QueryData genIPRoutes(QueryContext& context) {
                                            .sin6_addr);
       gateway = (struct sockaddr_in6*)(&currentRow.NextHop.Ipv6.sin6_addr);
     } else if (addrFamily == AF_INET) {
-      r["address_family"] = SQL_TEXT("IPv4");
       ipAddr = (struct sockaddr_in*)(&currentRow.DestinationPrefix.Prefix.Ipv4
                                           .sin_addr);
       gateway = (struct sockaddr_in*)(&currentRow.NextHop.Ipv4.sin_addr);
