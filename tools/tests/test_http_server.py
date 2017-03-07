@@ -13,9 +13,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import base64
 import json
 import os
+import random
 import ssl
+import string
 import sys
 import thread
 import threading
@@ -49,6 +52,12 @@ EXAMPLE_DISTRIBUTED_ACCELERATE = {
     "accelerate" : "60"
 }
 
+EXAMPLE_CARVE = {
+    "queries": {
+        "test_carve" : "select * from forensic_carve where path='/tmp/afile.txt' and carve = 1"
+    }
+}
+
 TEST_GET_RESPONSE = {
     "foo": "baz",
     "config": "baz",
@@ -72,6 +81,8 @@ ENROLL_RESPONSE = {
 }
 
 RECEIVED_REQUESTS = []
+FILE_CARVE_DIR = '/tmp/'
+FILE_CARVE_MAP = {}
 
 def debug(response):
     print("-- [DEBUG] %s" % str(response))
@@ -120,6 +131,10 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             self.distributed_write(request)
         elif self.path == '/test_read_requests':
             self.test_read_requests()
+        elif self.path == '/carve_init':
+            self.start_carve(request)
+        elif self.path == '/carve_block':
+            self.continue_carve(request)
         else:
             self._reply(TEST_POST_RESPONSE)
 
@@ -189,6 +204,33 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # made by code under test. Used by unit tests to verify that the code
         # under test made the expected calls to the TLS backend
         self._reply(RECEIVED_REQUESTS)
+
+    def start_carve(self, request):
+        sid = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+        FILE_CARVE_MAP[sid] = {
+            'block_count': int(request['block_count']),
+            'block_size': int(request['block_size']),
+            'blocks_received' : {},
+            'carve_size': int(request['carve_size']),
+            'carve_guid': request['carve_id'],
+        }
+        self._reply({'session_id' : sid})
+
+    def continue_carve(self, request):
+        # Do we already have this block
+        if request['block_id'] in FILE_CARVE_MAP[request['session_id']]['blocks_received']:
+            return
+        # Store block data
+        FILE_CARVE_MAP[request['session_id']]['blocks_received'][int(request['block_id'])] = request['data']
+        # Do we still need more blocks
+        if len(FILE_CARVE_MAP[request['session_id']]['blocks_received']) < FILE_CARVE_MAP[request['session_id']]['block_count']:
+            return
+        f = open(FILE_CARVE_DIR+FILE_CARVE_MAP[request['session_id']]['carve_guid']+'.tar', 'wb')
+        for x in range(0, FILE_CARVE_MAP[request['session_id']]['block_count']):
+            f.write(base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]['blocks_received'][x]))
+        f.close()
+        FILE_CARVE_MAP[request['session_id']] = {}
+
 
     def _push_request(self, command, request):
         # Archive the http command and the request body so that unit tests
