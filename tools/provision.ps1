@@ -268,7 +268,7 @@ function Install-ThirdParty {
   #      Once our chocolatey packages are added to the official repository, installing the third-party
   #      dependencies will be as easy as Install-ChocoPackage '<package-name>'.
   $packages = @(
-    "boost-msvc14.1.59.0",
+    "boost-msvc14.1.63.0",
     "bzip2.1.0.6",
     "doxygen.1.8.11",
     "gflags-dev.2.2.0",
@@ -277,7 +277,7 @@ function Install-ThirdParty {
     "rocksdb.4.11.2",
     "snappy-msvc.1.1.1.8",
     "thrift-dev.0.9.3",
-    "cpp-netlib.0.12.0-r1",
+    "cpp-netlib.0.12.0-r2",
     "linenoise-ng.1.0.0",
     "clang-format.3.9.0",
     "zlib.1.2.8"
