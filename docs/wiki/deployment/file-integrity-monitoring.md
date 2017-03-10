@@ -109,7 +109,7 @@ File accesses on Linux using inotify may induce unexpected and unwanted performa
 }
 ```
 
-The above configuration snippet will enable file integrity monitoring for 'homes', 'etc', and 'tmp' but only enable access monitoring for the above set of 'homes' and the single 'etc' directories.
+The above configuration snippet will enable file integrity monitoring for 'homes', 'etc', and 'tmp' but only enable access monitoring for the 'homes' and 'etc' directories.
 
 **WARNING:** The hashes of files will not be calculated to avoid generating additional access events.
 
