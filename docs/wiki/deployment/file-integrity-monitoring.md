@@ -19,6 +19,8 @@ To get started with FIM (file integrity monitoring), you must first identify whi
 
 For example, you may want to monitor `/etc` along with other files on a Linux system. After you identify your target files and directories you wish to monitor, add them to a new section in the config *file_paths*.
 
+The two areas below that are relevant to FIM are the `file_events` and `file_paths` sections. The `file_events` query is scheduled to collect all of the FIM events that have occurred on any files within the paths specified within `file_paths` on a five minute interval.
+
 ## Example FIM Config
 
 ```json
@@ -85,15 +87,29 @@ fs.inotify.max_queued_events = 32768
 
 ## File Accesses
 
-File accesses on Linux using inotify may induce unexpected and unwanted performance reduction. To prevent 'flooding' of access events alongside FIM, access events for `file_path` categories is an explicit opt-in. Add the following list of categories:
+In addition to FIM which generates events if a file is created/modified/deleted, osquery also supports file access monitoring which can generate events if a file is accessed.
+
+File accesses on Linux using inotify may induce unexpected and unwanted performance reduction. To prevent 'flooding' of access events alongside FIM, enabling access events for `file_path` categories is an explicit opt-in. You may add categories that were defined in your `file_paths` stanza:
 
 ```json
 {
+  "file_paths": {
+    "homes": [
+      "/root/.ssh/%%",
+      "/home/%/.ssh/%%"
+    ],
+    "etc": [
+      "/etc/%%"
+    ],
+    "tmp": [
+      "/tmp/%%"
+    ]
+  },
   "file_accesses": ["homes", "etc"]
 }
 ```
 
-To enable access monitoring for the above set of directories in 'homes' and the single 'etc'.
+The above configuration snippet will enable file integrity monitoring for 'homes', 'etc', and 'tmp' but only enable access monitoring for the 'homes' and 'etc' directories.
 
 **WARNING:** The hashes of files will not be calculated to avoid generating additional access events.
 
