@@ -56,6 +56,11 @@ class ExternalSQLPlugin : public SQLPlugin {
     return queryExternal(q, results);
   }
 
+  Status getQueryTables(const std::string& q,
+                        std::vector<std::string>& tables) const override {
+    return Status(0, "Not used");
+  }
+
   Status getQueryColumns(const std::string& q,
                          TableColumns& columns) const override {
     return getQueryColumnsExternal(q, columns);
