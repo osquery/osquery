@@ -10,8 +10,6 @@
 
 #define WIN32_LEAN_AND_MEAN
 
-#include <boost/algorithm/string/join.hpp>
-#include <osquery/tables.h>
 #include <string>
 #include <windows.h>
 #include <winsock2.h>
@@ -22,20 +20,19 @@
 #include <iphlpapi.h>
 #include <mstcpip.h>
 
+#include <boost/algorithm/string/join.hpp>
+#include <osquery/tables.h>
+
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
-
-#pragma comment(lib, "Iphlpapi.lib")
-#pragma comment(lib, "Ws2_32.lib")
 
 namespace osquery {
 namespace tables {
 
 PMIB_IPINTERFACE_TABLE getInterfaces(int type = AF_UNSPEC) {
-  DWORD dwRetVal = 0;
   PMIB_IPINTERFACE_TABLE interfaceTable = nullptr;
 
-  dwRetVal = GetIpInterfaceTable(type, &interfaceTable);
+  auto dwRetVal = GetIpInterfaceTable(type, &interfaceTable);
   if (dwRetVal != NO_ERROR) {
     return nullptr;
   }
@@ -46,17 +43,20 @@ PMIB_IPINTERFACE_TABLE getInterfaces(int type = AF_UNSPEC) {
 std::map<unsigned long, PIP_ADAPTER_INFO> getAdapterAddressMapping() {
   std::map<unsigned long, PIP_ADAPTER_INFO> returnMapping;
   DWORD dwBufLen = 0;
-  DWORD dwStatus = GetAdaptersInfo(NULL, &dwBufLen);
+  auto dwStatus = GetAdaptersInfo(NULL, &dwBufLen);
 
   if (dwStatus == ERROR_BUFFER_OVERFLOW) {
-    PIP_ADAPTER_INFO pAdapterInfo = (PIP_ADAPTER_INFO)malloc(dwBufLen);
+    auto pAdapterInfo = static_cast<PIP_ADAPTER_INFO>(malloc(dwBufLen));
     dwStatus = GetAdaptersInfo(pAdapterInfo, &dwBufLen);
-    if (dwStatus == S_OK) {
-      while (pAdapterInfo) {
-        returnMapping.insert(std::pair<unsigned long, PIP_ADAPTER_INFO>(
-            pAdapterInfo->Index, pAdapterInfo));
-        pAdapterInfo = pAdapterInfo->Next;
-      }
+
+    if (dwStatus != S_OK) {
+      return returnMapping;
+    }
+
+    while (pAdapterInfo) {
+      returnMapping.insert(std::pair<unsigned long, PIP_ADAPTER_INFO>(
+          pAdapterInfo->Index, pAdapterInfo));
+      pAdapterInfo = pAdapterInfo->Next;
     }
   }
 
@@ -69,7 +69,7 @@ std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
   PMIB_IPINTERFACE_TABLE interfaces;
 
   if ((interfaces = getInterfaces(type)) != nullptr) {
-    for (int i = 0; i < (int)interfaces->NumEntries; ++i) {
+    for (unsigned long i = 0; i < interfaces->NumEntries; ++i) {
       MIB_IPINTERFACE_ROW currentRow = interfaces->Table[i];
       returnMapping.insert(std::pair<unsigned long, MIB_IPINTERFACE_ROW>(
           currentRow.InterfaceIndex, currentRow));
@@ -80,77 +80,85 @@ std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
 }
 
 QueryData genIPRoutes(QueryContext& context) {
-  Row r;
   QueryData results;
-  unsigned long numEntries = 0;
+  PMIB_IPFORWARD_TABLE2* ipTable = nullptr;
+
+  ipTable = static_cast<PMIB_IPFORWARD_TABLE2*>(
+      malloc(sizeof(PMIB_IPFORWARD_TABLE2)));
+  auto result = GetIpForwardTable2(AF_UNSPEC, ipTable);
+
+  if (result != S_OK) {
+    FreeMibTable(ipTable);
+
+    return results;
+  }
+
+  auto numEntries = ipTable[0]->NumEntries;
   auto interfaces = getInterfaceRowMapping();
   auto adapters = getAdapterAddressMapping();
-  PMIB_IPFORWARD_TABLE2* ipTable = nullptr;
-  ipTable = (PMIB_IPFORWARD_TABLE2*)(malloc(sizeof(PMIB_IPFORWARD_TABLE2)));
-  GetIpForwardTable2(AF_UNSPEC, ipTable);
-  numEntries = ipTable[0]->NumEntries;
 
   for (unsigned long i = 0; i < numEntries; ++i) {
-    PIP_ADAPTER_INFO actualAdapter = nullptr;
+    Row r;
+    std::string interfaceIpAddress;
+    PVOID ipAddress = nullptr;
+    PVOID gateway = nullptr;
     auto currentRow = ipTable[0]->Table[i];
-    std::string ifaceIP;
     auto addrFamily = currentRow.DestinationPrefix.Prefix.si_family;
     auto actualInterface = interfaces.at(currentRow.InterfaceIndex);
-    char buf[INET6_ADDRSTRLEN];
-    PVOID ipAddr = nullptr;
-    PVOID gateway = nullptr;
     if (addrFamily == AF_INET6) {
       r["mtu"] = INTEGER(actualInterface.NlMtu);
       // These are all technically "on-link" addresses according to
       // `route print -6`.
       r["type"] = "local";
-      ipAddr = (struct sockaddr_in6*)(&currentRow.DestinationPrefix.Prefix.Ipv6
-                                           .sin6_addr);
-      gateway = (struct sockaddr_in6*)(&currentRow.NextHop.Ipv6.sin6_addr);
+      ipAddress = reinterpret_cast<struct sockaddr_in6*>(
+          &currentRow.DestinationPrefix.Prefix.Ipv6.sin6_addr);
+      gateway = reinterpret_cast<struct sockaddr_in6*>(
+          &currentRow.NextHop.Ipv6.sin6_addr);
     } else if (addrFamily == AF_INET) {
-      ipAddr = (struct sockaddr_in*)(&currentRow.DestinationPrefix.Prefix.Ipv4
-                                          .sin_addr);
-      gateway = (struct sockaddr_in*)(&currentRow.NextHop.Ipv4.sin_addr);
+      ipAddress = reinterpret_cast<struct sockaddr_in*>(
+          &currentRow.DestinationPrefix.Prefix.Ipv4.sin_addr);
+      gateway = reinterpret_cast<struct sockaddr_in*>(
+          &currentRow.NextHop.Ipv4.sin_addr);
 
       // The software loopback is not returned by GetAdaptersInfo, so any
       // lookups into that index must be skipped and default values set.
+      PIP_ADAPTER_INFO actualAdapter = nullptr;
       if (currentRow.InterfaceIndex != 1) {
         actualAdapter = adapters.at(currentRow.InterfaceIndex);
-        ifaceIP = actualAdapter->IpAddressList.IpAddress.String;
+        interfaceIpAddress = actualAdapter->IpAddressList.IpAddress.String;
         r["mtu"] = INTEGER(actualInterface.NlMtu);
       } else {
-        ifaceIP = "127.0.0.1";
+        interfaceIpAddress = "127.0.0.1";
         r["mtu"] = UNSIGNED_BIGINT(0xFFFFFFFF);
       }
-      if (currentRow.Loopback == TRUE) {
-        r["type"] = "local";
-      } else {
-        r["type"] = "remote";
-      }
+      r["type"] = currentRow.Loopback ? "local" : "remote";
     }
-    InetNtop(addrFamily, ipAddr, (PSTR)buf, sizeof(buf));
-    r["destination"] = SQL_TEXT(buf);
-    InetNtop(addrFamily, gateway, (PSTR)buf, sizeof(buf));
-    r["gateway"] = SQL_TEXT(buf);
-    r["interface"] = SQL_TEXT(ifaceIP);
+    std::vector<char> buffer(INET6_ADDRSTRLEN);
+    InetNtop(addrFamily, ipAddress, buffer.data(), buffer.size());
+    r["destination"] = SQL_TEXT(buffer.data());
+    InetNtop(addrFamily, gateway, buffer.data(), buffer.size());
+    r["gateway"] = SQL_TEXT(buffer.data());
+    r["interface"] = SQL_TEXT(interfaceIpAddress);
     r["metric"] = INTEGER(currentRow.Metric + actualInterface.Metric);
     r["netmask"] =
         SQL_TEXT(std::to_string(currentRow.DestinationPrefix.PrefixLength));
-    // WTF goes here?? I don't think Windows has a concept of flags for its
-    // routes :(
-    r["flags"] = SQL_TEXT("");
+    // TODO: implement routes flags
+    r["flags"] = SQL_TEXT("-1");
 
     results.push_back(r);
 
     // Cleanup
-    SecureZeroMemory(ipAddr, sizeof(ipAddr));
+    SecureZeroMemory(ipAddress, sizeof(ipAddress));
     SecureZeroMemory(gateway, sizeof(gateway));
-    ipAddr = nullptr;
+    buffer.clear();
+
+    ipAddress = nullptr;
     gateway = nullptr;
   }
 
   FreeMibTable(ipTable);
-  ipTable = nullptr;
+  interfaces.clear();
+  adapters.clear();
 
   return results;
 }
