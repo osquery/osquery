@@ -10,6 +10,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 
+#include <memory>
 #include <string>
 #include <windows.h>
 #include <winsock2.h>
@@ -29,8 +30,34 @@
 namespace osquery {
 namespace tables {
 
+std::map<unsigned long, std::shared_ptr<IP_ADAPTER_INFO>>
+getAdapterAddressMapping() {
+  std::map<unsigned long, std::shared_ptr<IP_ADAPTER_INFO>> returnMapping;
+  auto dwBufLen = 0UL;
+  auto dwStatus = GetAdaptersInfo(NULL, &dwBufLen);
+
+  if (dwStatus == ERROR_BUFFER_OVERFLOW) {
+    std::vector<BYTE> buffer(dwBufLen);
+    auto pAdapterInfo = reinterpret_cast<PIP_ADAPTER_INFO>(buffer.data());
+    dwStatus = GetAdaptersInfo(pAdapterInfo, &dwBufLen);
+
+    if (dwStatus != NO_ERROR) {
+      return returnMapping;
+    }
+
+    while (pAdapterInfo) {
+      auto sharedPtr = std::make_shared<IP_ADAPTER_INFO>(*pAdapterInfo);
+      returnMapping.insert(std::make_pair(pAdapterInfo->Index, sharedPtr));
+      pAdapterInfo = pAdapterInfo->Next;
+    }
+  }
+
+  return returnMapping;
+}
+
 PMIB_IPINTERFACE_TABLE getInterfaces(int type = AF_UNSPEC) {
-  PMIB_IPINTERFACE_TABLE interfaceTable = nullptr;
+  std::vector<BYTE> buffer;
+  auto interfaceTable = reinterpret_cast<PMIB_IPINTERFACE_TABLE>(buffer.data());
 
   auto dwRetVal = GetIpInterfaceTable(type, &interfaceTable);
   if (dwRetVal != NO_ERROR) {
@@ -38,29 +65,6 @@ PMIB_IPINTERFACE_TABLE getInterfaces(int type = AF_UNSPEC) {
   }
 
   return interfaceTable;
-}
-
-std::map<unsigned long, PIP_ADAPTER_INFO> getAdapterAddressMapping() {
-  std::map<unsigned long, PIP_ADAPTER_INFO> returnMapping;
-  DWORD dwBufLen = 0;
-  auto dwStatus = GetAdaptersInfo(NULL, &dwBufLen);
-
-  if (dwStatus == ERROR_BUFFER_OVERFLOW) {
-    auto pAdapterInfo = static_cast<PIP_ADAPTER_INFO>(malloc(dwBufLen));
-    dwStatus = GetAdaptersInfo(pAdapterInfo, &dwBufLen);
-
-    if (dwStatus != S_OK) {
-      return returnMapping;
-    }
-
-    while (pAdapterInfo) {
-      returnMapping.insert(std::pair<unsigned long, PIP_ADAPTER_INFO>(
-          pAdapterInfo->Index, pAdapterInfo));
-      pAdapterInfo = pAdapterInfo->Next;
-    }
-  }
-
-  return returnMapping;
 }
 
 std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
@@ -71,8 +75,8 @@ std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
   if ((interfaces = getInterfaces(type)) != nullptr) {
     for (unsigned long i = 0; i < interfaces->NumEntries; ++i) {
       MIB_IPINTERFACE_ROW currentRow = interfaces->Table[i];
-      returnMapping.insert(std::pair<unsigned long, MIB_IPINTERFACE_ROW>(
-          currentRow.InterfaceIndex, currentRow));
+      returnMapping.insert(
+          std::make_pair(currentRow.InterfaceIndex, currentRow));
     }
   }
 
@@ -87,7 +91,7 @@ QueryData genIPRoutes(QueryContext& context) {
       malloc(sizeof(PMIB_IPFORWARD_TABLE2)));
   auto result = GetIpForwardTable2(AF_UNSPEC, ipTable);
 
-  if (result != S_OK) {
+  if (result != NO_ERROR) {
     FreeMibTable(ipTable);
 
     return results;
@@ -124,7 +128,7 @@ QueryData genIPRoutes(QueryContext& context) {
       // lookups into that index must be skipped and default values set.
       PIP_ADAPTER_INFO actualAdapter = nullptr;
       if (currentRow.InterfaceIndex != 1) {
-        actualAdapter = adapters.at(currentRow.InterfaceIndex);
+        actualAdapter = adapters.at(currentRow.InterfaceIndex).get();
         interfaceIpAddress = actualAdapter->IpAddressList.IpAddress.String;
         r["mtu"] = INTEGER(actualInterface.NlMtu);
       } else {
@@ -155,10 +159,8 @@ QueryData genIPRoutes(QueryContext& context) {
     ipAddress = nullptr;
     gateway = nullptr;
   }
-
   FreeMibTable(ipTable);
   interfaces.clear();
-  adapters.clear();
 
   return results;
 }
