@@ -1,7 +1,7 @@
 # Generate the thrift intermediate/interface code.
 add_custom_command(
   COMMAND
-    ${THRIFT_COMPILER} --gen cpp:dense --gen py:dense "${CMAKE_SOURCE_DIR}/osquery.thrift"
+    ${THRIFT_COMPILER} --gen cpp --gen py "${CMAKE_SOURCE_DIR}/osquery.thrift"
   DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
   OUTPUT ${OSQUERY_THRIFT_GENERATED_FILES}
