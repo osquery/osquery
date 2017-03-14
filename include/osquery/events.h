@@ -494,10 +494,8 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * The subscriber must count the number of buffered records and check if
    * that count exceeds the configured `events_max` limit. If an overflow
    * occurs the subscriber will expire N-events_max from the end of the queue.
-   *
-   * @param cleanup Perform an intense scan of zombie event IDs.
    */
-  void expireCheck(bool cleanup = false);
+  void expireCheck();
 
   /**
    * @brief Add an EventID, EventTime pair to all matching list types.
