@@ -163,6 +163,7 @@ Status RocksDBDatabasePlugin::setUp() {
     options_.keep_log_file_num = 10;
     options_.max_log_file_size = 1024 * 1024 * 1;
     options_.stats_dump_period_sec = 0;
+    options_.max_manifest_file_size = 1024 * 500;
 
     // Performance and optimization settings.
     options_.compression = rocksdb::kNoCompression;
