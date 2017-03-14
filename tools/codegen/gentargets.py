@@ -40,19 +40,22 @@ thrift_library(
     "cpp",
     "py",
   ],
+  py_base_module="osquery",
   thrift_srcs={
-    "extensions/osquery.thrift": ["Extension", "ExtensionManager"],
+    "extensions.thrift": ["Extension", "ExtensionManager"],
   },
 )
 
 cpp_library(
   name="osquery_sdk",
+  headers=AutoHeaders.RECURSIVE_GLOB,
   link_whole=True,
   srcs=["""
 
 TARGETS_POSTSCRIPT = """  ],
   deps=[
     "@/thrift/lib/cpp/concurrency:concurrency",
+    "@/rocksdb:rocksdb",
     ":if-cpp",
   ],
   external_deps=[
@@ -60,7 +63,6 @@ TARGETS_POSTSCRIPT = """  ],
     "glog",
     "gflags",
     "gtest",
-    "rocksdb",
     ("e2fsprogs", None, "uuid"),
   ],
   compiler_flags=[
@@ -68,13 +70,21 @@ TARGETS_POSTSCRIPT = """  ],
     "-Wno-non-virtual-dtor",
     "-Wno-address",
     "-Wno-overloaded-virtual",
-    "-DOSQUERY_BUILD_VERSION=%s",
-    "-DOSQUERY_BUILD_SDK_VERSION=%s",
+    "-DOSQUERY_BUILD_PLATFORM=centos7",
+    "-DOSQUERY_BUILD_DISTRO=centos7",
+    "-DOSQUERY_PLATFORM_MASK=9",
     "-DOSQUERY_THRIFT_LIB=thrift/lib/cpp",
     "-DOSQUERY_THRIFT_SERVER_LIB=thrift/lib/cpp/server/example",
     "-DOSQUERY_THRIFT_POINTER=std",
     "-DOSQUERY_THRIFT=osquery/gen-cpp/",
   ],
+  propagated_pp_flags=[
+    "-DOSQUERY_BUILD_VERSION=%s",
+    "-DOSQUERY_BUILD_SDK_VERSION=%s",
+    "-DOSQUERY_BUILD_PLATFORM=centos",
+    "-DOSQUERY_BUILD_DISTRO=centos7",
+    "-DOSQUERY_PLATFORM_MASK=9",
+  ]
 )
 """
 
