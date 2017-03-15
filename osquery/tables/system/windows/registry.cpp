@@ -60,6 +60,8 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
 };
 
+const char kRegSep = '\\';
+
 /// Microsoft helper function for getting the contents of a registry key
 void queryKey(const std::string& hive,
               const std::string& key,
@@ -108,6 +110,8 @@ void queryKey(const std::string& hive,
   TCHAR achKey[maxKeyLength];
   DWORD cbName;
 
+  auto fullKeyPath = (("" == key) ? hive : hive + kRegSep + key);
+  
   // Process registry subkeys
   if (cSubKeys > 0) {
     for (DWORD i = 0; i < cSubKeys; i++) {
@@ -124,13 +128,9 @@ void queryKey(const std::string& hive,
         continue;
       }
       Row r;
-      fs::path keyPath(key);
-      r["hive"] = hive;
-      r["key"] = keyPath.string();
-      r["subkey"] = (keyPath / achKey).string();
-      r["name"] = "(Default)";
-      r["type"] = "REG_SZ";
-      r["data"] = "(value not set)";
+      r["key"] = fullKeyPath;
+      r["type"] = "subkey";
+      r["name"] = achKey;
       r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
       results.push_back(r);
     }
@@ -174,10 +174,7 @@ void queryKey(const std::string& hive,
     }
 
     Row r;
-    fs::path keyPath(key);
-    r["hive"] = hive;
-    r["key"] = keyPath.string();
-    r["subkey"] = keyPath.string();
+    r["key"] = fullKeyPath;
     r["name"] = achValue;
     if (kRegistryTypes.count(lpType) > 0) {
       r["type"] = kRegistryTypes.at(lpType);
@@ -259,39 +256,54 @@ void queryKey(const std::string& hive,
   RegCloseKey(hRegistryHandle);
 };
 
+
 QueryData genRegistry(QueryContext& context) {
   QueryData results;
-  std::set<std::string> rHives;
+  //std::set<std::string> rHives;
   std::set<std::string> rKeys;
 
   /// By default, we display all HIVEs
-  if (context.constraints["hive"].exists(EQUALS) &&
-      context.constraints["hive"].getAll(EQUALS).size() > 0) {
-    rHives = context.constraints["hive"].getAll(EQUALS);
-    if (rHives.find("HKEY_CURRENT_USER") != rHives.end() ||
-        rHives.find("HKEY_CURRENT_USER_LOCAL_SETTINGS") != rHives.end()) {
-      LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; query "
-                      "HKEY_USERS with the desired users SID instead";
-    }
+  if (context.constraints["key"].exists(EQUALS) &&
+      context.constraints["key"].getAll(EQUALS).size() > 0) {
+    //rHives = context.constraints["hive"].getAll(EQUALS);
+    //if (rHives.find("HKEY_CURRENT_USER") != rHives.end() ||
+    //    rHives.find("HKEY_CURRENT_USER_LOCAL_SETTINGS") != rHives.end()) {
+    //  LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; query "
+    //                  "HKEY_USERS with the desired users SID instead";
+    //}
+    rKeys = context.constraints["key"].getAll(EQUALS);
   } else {
     for (auto& h : kRegistryHives) {
-      rHives.insert(h.first);
+      rKeys.insert(h.first);
     }
   }
 
   /// By default, we display all keys in each HIVE
-  if (context.constraints["key"].exists(EQUALS) &&
+  /*if (context.constraints["key"].exists(EQUALS) &&
       context.constraints["key"].getAll(EQUALS).size() > 0) {
-    rKeys = context.constraints["key"].getAll(EQUALS);
   } else {
     rKeys.insert("");
-  }
+  }*/
 
-  for (const auto& hive : rHives) {
+  //for (const auto& hive : rHives) {
+  std::string keyPath;
+  std::string hive;
     for (const auto& key : rKeys) {
-      queryKey(hive, key, results);
+      size_t sepPos = key.find(kRegSep);
+      if (sepPos != std::string::npos) {
+        hive = key.substr(0, sepPos);
+        keyPath = key.substr(sepPos + 1);
+        if (keyPath.back() == kRegSep) {
+          keyPath.pop_back();
+        }
+      }
+      else {
+        hive = key;
+        keyPath = "";
+      }
+      queryKey(hive, keyPath, results);
     }
-  }
+  //}
   return results;
 }
 }
