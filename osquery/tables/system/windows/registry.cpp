@@ -131,6 +131,7 @@ void queryKey(const std::string& hive,
       r["key"] = fullKeyPath;
       r["type"] = "subkey";
       r["name"] = achKey;
+      r["path"] = fullKeyPath + kRegSep + achKey;
       r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
       results.push_back(r);
     }
@@ -176,6 +177,7 @@ void queryKey(const std::string& hive,
     Row r;
     r["key"] = fullKeyPath;
     r["name"] = achValue;
+    r["path"] = fullKeyPath + kRegSep + achValue;
     if (kRegistryTypes.count(lpType) > 0) {
       r["type"] = kRegistryTypes.at(lpType);
     } else {
@@ -259,18 +261,11 @@ void queryKey(const std::string& hive,
 
 QueryData genRegistry(QueryContext& context) {
   QueryData results;
-  //std::set<std::string> rHives;
   std::set<std::string> rKeys;
 
   /// By default, we display all HIVEs
-  if (context.constraints["key"].exists(EQUALS) &&
-      context.constraints["key"].getAll(EQUALS).size() > 0) {
-    //rHives = context.constraints["hive"].getAll(EQUALS);
-    //if (rHives.find("HKEY_CURRENT_USER") != rHives.end() ||
-    //    rHives.find("HKEY_CURRENT_USER_LOCAL_SETTINGS") != rHives.end()) {
-    //  LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; query "
-    //                  "HKEY_USERS with the desired users SID instead";
-    //}
+  if ((context.constraints["key"].exists(EQUALS) &&
+      context.constraints["key"].getAll(EQUALS).size() > 0)) {
     rKeys = context.constraints["key"].getAll(EQUALS);
   } else {
     for (auto& h : kRegistryHives) {
@@ -278,32 +273,33 @@ QueryData genRegistry(QueryContext& context) {
     }
   }
 
-  /// By default, we display all keys in each HIVE
-  /*if (context.constraints["key"].exists(EQUALS) &&
-      context.constraints["key"].getAll(EQUALS).size() > 0) {
-  } else {
-    rKeys.insert("");
-  }*/
+  auto wasWarned = false;
+  for (const auto& key : rKeys) {
+    std::string keyPath;
+    std::string hive;
 
-  //for (const auto& hive : rHives) {
-  std::string keyPath;
-  std::string hive;
-    for (const auto& key : rKeys) {
-      size_t sepPos = key.find(kRegSep);
-      if (sepPos != std::string::npos) {
-        hive = key.substr(0, sepPos);
-        keyPath = key.substr(sepPos + 1);
-        if (keyPath.back() == kRegSep) {
-          keyPath.pop_back();
-        }
+    size_t sepPos = key.find(kRegSep);
+    if (sepPos != std::string::npos) {
+      hive = key.substr(0, sepPos);
+      keyPath = key.substr(sepPos + 1);
+      if (keyPath.back() == kRegSep) {
+        keyPath.pop_back();
       }
-      else {
-        hive = key;
-        keyPath = "";
-      }
-      queryKey(hive, keyPath, results);
     }
-  //}
+    else {
+      hive = key;
+      keyPath = "";
+    }
+
+    if (!wasWarned && (hive == "HKEY_CURRENT_USER" ||
+      hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
+      LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
+        "query HKEY_USERS with the desired users SID instead";
+      wasWarned = true;
+    }
+
+    queryKey(hive, keyPath, results);
+  }
   return results;
 }
 }
