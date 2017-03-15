@@ -26,7 +26,7 @@ std::string kNtKernelPath =
 void GetBootArgs(Row& r) {
   QueryData regResults;
   queryKey(
-      "HKEY_LOCAL_MACHINE", "SYSTEM\\CurrentControlSet\\Control", regResults);
+      "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control", regResults);
   for (const auto& aKey : regResults) {
     if (aKey.at("name") == "SystemStartOptions") {
       r["arguments"] = SQL_TEXT(aKey.at("data"));

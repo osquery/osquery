@@ -62,10 +62,30 @@ const std::map<DWORD, std::string> kRegistryTypes = {
 
 const char kRegSep = '\\';
 
+void explodeRegistryPath(const std::string& path,
+                         std::string& rHive, 
+                         std::string& rKey) {
+  size_t sepPos = path.find(kRegSep);
+  if (sepPos != std::string::npos) {
+    rHive = path.substr(0, sepPos);
+    rKey = path.substr(sepPos + 1);
+    if (rKey.back() == kRegSep) {
+      rKey.pop_back();
+    }
+  }
+  else {
+    rHive = path;
+    rKey = "";
+  }
+}
+
 /// Microsoft helper function for getting the contents of a registry key
-void queryKey(const std::string& hive,
-              const std::string& key,
+void queryKey(const std::string& keyPath,
               QueryData& results) {
+  std::string hive;
+  std::string key;
+  explodeRegistryPath(keyPath, hive, key);
+
   if (kRegistryHives.count(hive) != 1) {
     return;
   }
@@ -110,7 +130,6 @@ void queryKey(const std::string& hive,
   TCHAR achKey[maxKeyLength];
   DWORD cbName;
 
-  auto fullKeyPath = (("" == key) ? hive : hive + kRegSep + key);
   
   // Process registry subkeys
   if (cSubKeys > 0) {
@@ -128,10 +147,10 @@ void queryKey(const std::string& hive,
         continue;
       }
       Row r;
-      r["key"] = fullKeyPath;
+      r["key"] = keyPath;
       r["type"] = "subkey";
       r["name"] = achKey;
-      r["path"] = fullKeyPath + kRegSep + achKey;
+      r["path"] = keyPath + kRegSep + achKey;
       r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
       results.push_back(r);
     }
@@ -175,9 +194,9 @@ void queryKey(const std::string& hive,
     }
 
     Row r;
-    r["key"] = fullKeyPath;
+    r["key"] = keyPath;
     r["name"] = achValue;
-    r["path"] = fullKeyPath + kRegSep + achValue;
+    r["path"] = keyPath + kRegSep + achValue;
     if (kRegistryTypes.count(lpType) > 0) {
       r["type"] = kRegistryTypes.at(lpType);
     } else {
@@ -298,7 +317,7 @@ QueryData genRegistry(QueryContext& context) {
       wasWarned = true;
     }
 
-    queryKey(hive, keyPath, results);
+    queryKey(key, results);
   }
   return results;
 }

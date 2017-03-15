@@ -94,8 +94,7 @@ bool QuerySvcInfo(const SC_HANDLE& schScManager,
   }
 
   QueryData regResults;
-  queryKey("HKEY_LOCAL_MACHINE",
-           "SYSTEM\\CurrentControlSet\\Services\\" + r["name"] + "\\Parameters",
+  queryKey("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\" + r["name"] + "\\Parameters",
            regResults);
   for (const auto& aKey : regResults) {
     if (aKey.at("name") == "ServiceDll") {

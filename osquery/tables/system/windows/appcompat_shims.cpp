@@ -31,71 +31,74 @@ QueryData genShims(QueryContext& context) {
   QueryData shimResults;
   std::map<std::string, sdb> sdbs;
 
-  queryKey("HKEY_LOCAL_MACHINE",
-           "SOFTWARE\\Microsoft\\Windows "
+  queryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows "
            "NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB",
            sdbResults);
   for (const auto& rKey : sdbResults) {
     QueryData regResults;
     sdb sdb;
-    std::string subkey = rKey.at("subkey");
-    auto start = subkey.find("{");
-    if (start == std::string::npos) {
-      continue;
+    if (rKey.at("type") == "subkey") {
+      std::string subkey = rKey.at("path");
+      auto start = subkey.find("{");
+      if (start == std::string::npos) {
+        continue;
+      }
+      std::string sdbId = subkey.substr(start, subkey.length());
+      // make sure it's a sane uninstall key
+      queryKey(subkey, regResults);
+      for (const auto& aKey : regResults) {
+        if (aKey.at("name") == "DatabaseDescription") {
+          sdb.description = aKey.at("data");
+        }
+        if (aKey.at("name") == "DatabaseInstallTimeStamp") {
+          // take this crazy windows timestamp to a unix timestamp
+          sdb.installTimestamp = std::stoull(aKey.at("data"));
+          sdb.installTimestamp = (sdb.installTimestamp / 10000000) - 11644473600;
+        }
+        if (aKey.at("name") == "DatabasePath") {
+          sdb.path = aKey.at("data");
+        }
+        if (aKey.at("name") == "DatabaseType") {
+          sdb.type = aKey.at("data");
+        }
+      }
+      sdbs[sdbId] = sdb;
     }
-    std::string sdbId = subkey.substr(start, subkey.length());
-    // make sure it's a sane uninstall key
-    queryKey("HKEY_LOCAL_MACHINE", subkey, regResults);
-    for (const auto& aKey : regResults) {
-      if (aKey.at("name") == "DatabaseDescription") {
-        sdb.description = aKey.at("data");
-      }
-      if (aKey.at("name") == "DatabaseInstallTimeStamp") {
-        // take this crazy windows timestamp to a unix timestamp
-        sdb.installTimestamp = std::stoull(aKey.at("data"));
-        sdb.installTimestamp = (sdb.installTimestamp / 10000000) - 11644473600;
-      }
-      if (aKey.at("name") == "DatabasePath") {
-        sdb.path = aKey.at("data");
-      }
-      if (aKey.at("name") == "DatabaseType") {
-        sdb.type = aKey.at("data");
-      }
-    }
-    sdbs[sdbId] = sdb;
   }
 
   queryKey(
-      "HKEY_LOCAL_MACHINE",
-      "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Custom",
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\"
+      "CurrentVersion\\AppCompatFlags\\Custom",
       shimResults);
   for (const auto& rKey : shimResults) {
     QueryData regResults;
-    std::string subkey = rKey.at("subkey");
-    auto start = rKey.at("subkey").rfind("\\");
-    if (start == std::string::npos) {
-      continue;
-    }
-    std::string executable =
-        rKey.at("subkey").substr(start + 1, rKey.at("subkey").length());
-    // make sure it's a sane uninstall key
-    queryKey("HKEY_LOCAL_MACHINE", subkey, regResults);
-    for (const auto& aKey : regResults) {
-      Row r;
-      std::string sdbId;
-      if (aKey.at("name").length() > 4) {
-        sdbId = aKey.at("name").substr(0, aKey.at("name").length() - 4);
-      }
-      if (sdbs.count(sdbId) == 0) {
+    if (rKey.at("type") == "subkey") {
+      std::string subkey = rKey.at("path");
+      auto start = rKey.at("path").rfind("\\");
+      if (start == std::string::npos) {
         continue;
       }
-      r["executable"] = executable;
-      r["path"] = sdbs.at(sdbId).path;
-      r["description"] = sdbs.at(sdbId).description;
-      r["install_time"] = INTEGER(sdbs.at(sdbId).installTimestamp);
-      r["type"] = sdbs.at(sdbId).type;
-      r["sdb_id"] = sdbId;
-      results.push_back(r);
+      std::string executable =
+        rKey.at("path").substr(start + 1, rKey.at("subkey").length());
+      // make sure it's a sane uninstall key
+      queryKey(subkey, regResults);
+      for (const auto& aKey : regResults) {
+        Row r;
+        std::string sdbId;
+        if (aKey.at("name").length() > 4) {
+          sdbId = aKey.at("name").substr(0, aKey.at("name").length() - 4);
+        }
+        if (sdbs.count(sdbId) == 0) {
+          continue;
+        }
+        r["executable"] = executable;
+        r["path"] = sdbs.at(sdbId).path;
+        r["description"] = sdbs.at(sdbId).description;
+        r["install_time"] = INTEGER(sdbs.at(sdbId).installTimestamp);
+        r["type"] = sdbs.at(sdbId).type;
+        r["sdb_id"] = sdbId;
+        results.push_back(r);
+      }
     }
   }
 

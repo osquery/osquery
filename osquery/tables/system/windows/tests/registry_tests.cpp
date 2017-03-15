@@ -21,17 +21,15 @@ class RegistryTablesTest : public testing::Test {};
 
 TEST_F(RegistryTablesTest, test_registry_existing_key) {
   QueryData results;
-  auto hive = "HKEY_LOCAL_MACHINE";
-  auto key = "SOFTWARE";
-  queryKey(hive, key, results);
+  auto key = "HKEY_LOCAL_MACHINE\\SOFTWARE";
+  queryKey(key, results);
   EXPECT_TRUE(results.size() > 0);
 }
 
 TEST_F(RegistryTablesTest, test_registry_non_existing_key) {
   QueryData results;
-  auto hive = "HKEY_LOCAL_MACHINE";
-  auto key = "PATH\\to\\madeup\\key";
-  queryKey(hive, key, results);
+  auto key = "HKEY_LOCAL_MACHINE\\PATH\\to\\madeup\\key";
+  queryKey(key, results);
   EXPECT_TRUE(results.size() == 0);
 }
 }
