@@ -24,31 +24,6 @@ namespace osquery {
 DECLARE_int32(value_max);
 
 /**
- * @brief An abstract similar to boost's noncopyable that defines moves.
- *
- * By defining protected move constructors we allow the children to assign
- * their's as default.
- */
-class only_movable {
- protected:
-  /// Boilerplate self default constructor.
-  only_movable() {}
-
-  /// Boilerplate self destructor.
-  ~only_movable() {}
-
-  /// Important, existance of a move constructor.
-  only_movable(only_movable&&) {}
-
- private:
-  /// Important, a private copy constructor prevents copying.
-  only_movable(const only_movable&);
-
-  /// Important, a private copy assignment constructor prevents copying.
-  only_movable& operator=(const only_movable&);
-};
-
-/**
  * @brief The core interface to executing osquery SQL commands.
  *
  * @code{.cpp}

@@ -526,12 +526,11 @@ QueryData genSMCKeys(QueryContext &context) {
 
   // If the query is requesting an SMC key by name within the predicate.
   if (context.hasConstraint("key", EQUALS)) {
-    context.forEachConstraint("key",
-                              EQUALS,
-                              ([&smc, &results](const std::string &expr) {
-                                bool hidden = (kSMCHiddenKeys.count(expr) > 0);
-                                genSMCKey(expr, smc, results, hidden);
-                              }));
+    context.iteritems(
+        "key", EQUALS, ([&smc, &results](const std::string& expr) {
+          bool hidden = (kSMCHiddenKeys.count(expr) > 0);
+          genSMCKey(expr, smc, results, hidden);
+        }));
     return results;
   }
 
@@ -575,7 +574,7 @@ inline QueryData getSMCKeysUsingPredicate(
   });
 
   if (context.hasConstraint("key", EQUALS)) {
-    context.forEachConstraint("key", EQUALS, wrapped);
+    context.iteritems("key", EQUALS, wrapped);
   } else {
     // Perform a full scan of the keys category.
     for (const auto &key : keys) {

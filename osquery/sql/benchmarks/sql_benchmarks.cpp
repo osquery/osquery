@@ -20,7 +20,7 @@
 namespace osquery {
 
 class BenchmarkTablePlugin : public TablePlugin {
- private:
+ protected:
   TableColumns columns() const {
     return {
         std::make_tuple("test_int", INTEGER_TYPE, ColumnOptions::DEFAULT),
@@ -33,6 +33,28 @@ class BenchmarkTablePlugin : public TablePlugin {
     results.push_back({{"test_int", "0"}});
     results.push_back({{"test_int", "0"}, {"test_text", "hello"}});
     return results;
+  }
+};
+
+class BenchmarkTableYieldPlugin : public BenchmarkTablePlugin {
+ public:
+  bool usesGenerator() const override {
+    return true;
+  }
+
+  void generator(RowYield& yield, QueryContext& ctx) override {
+    {
+      Row r;
+      r["test_int"] = "0";
+      yield(r);
+    }
+
+    {
+      Row r;
+      r["test_int"] = "0";
+      r["test_text"] = "hello";
+      yield(r);
+    }
   }
 };
 
@@ -57,16 +79,37 @@ static void SQL_virtual_table_internal(benchmark::State& state) {
   Registry::call("table", "benchmark", {{"action", "columns"}}, res);
 
   // Attach a sample virtual table.
-  auto dbc = SQLiteDBManager::get();
+  auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal("benchmark", columnDefinition(res), dbc);
 
   while (state.KeepRunning()) {
     QueryData results;
     queryInternal("select * from benchmark", results, dbc->db());
+    dbc->clearAffectedTables();
   }
 }
 
 BENCHMARK(SQL_virtual_table_internal);
+
+static void SQL_virtual_table_internal_yield(benchmark::State& state) {
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("benchmark_yield", std::make_shared<BenchmarkTableYieldPlugin>());
+
+  PluginResponse res;
+  Registry::call("table", "benchmark_yield", {{"action", "columns"}}, res);
+
+  // Attach a sample virtual table.
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal("benchmark_yield", columnDefinition(res), dbc);
+
+  while (state.KeepRunning()) {
+    QueryData results;
+    queryInternal("select * from benchmark_yield", results, dbc->db());
+    dbc->clearAffectedTables();
+  }
+}
+
+BENCHMARK(SQL_virtual_table_internal_yield);
 
 static void SQL_virtual_table_internal_global(benchmark::State& state) {
   auto tables = RegistryFactory::get().registry("table");
@@ -82,6 +125,7 @@ static void SQL_virtual_table_internal_global(benchmark::State& state) {
 
     QueryData results;
     queryInternal("select * from benchmark", results, dbc->db());
+    dbc->clearAffectedTables();
   }
 }
 
@@ -101,6 +145,7 @@ static void SQL_virtual_table_internal_unique(benchmark::State& state) {
 
     QueryData results;
     queryInternal("select * from benchmark", results, dbc->db());
+    dbc->clearAffectedTables();
   }
 }
 
@@ -138,13 +183,16 @@ static void SQL_virtual_table_internal_long(benchmark::State& state) {
   while (state.KeepRunning()) {
     QueryData results;
     queryInternal("select * from long_benchmark", results, dbc->db());
+    dbc->clearAffectedTables();
   }
 }
 
 BENCHMARK(SQL_virtual_table_internal_long);
 
+size_t kWideCount{0};
+
 class BenchmarkWideTablePlugin : public TablePlugin {
- private:
+ protected:
   TableColumns columns() const override {
     TableColumns cols;
     for (int i = 0; i < 20; i++) {
@@ -156,7 +204,7 @@ class BenchmarkWideTablePlugin : public TablePlugin {
 
   QueryData generate(QueryContext& ctx) override {
     QueryData results;
-    for (int k = 0; k < 50; k++) {
+    for (int k = 0; k < kWideCount; k++) {
       Row r;
       for (int i = 0; i < 20; i++) {
         r["test_" + std::to_string(i)] = "0";
@@ -164,6 +212,23 @@ class BenchmarkWideTablePlugin : public TablePlugin {
       results.push_back(r);
     }
     return results;
+  }
+};
+
+class BenchmarkWideTableYieldPlugin : public BenchmarkWideTablePlugin {
+ public:
+  bool usesGenerator() const override {
+    return true;
+  }
+
+  void generator(RowYield& yield, QueryContext& ctx) override {
+    for (int k = 0; k < kWideCount; k++) {
+      Row r;
+      for (int i = 0; i < 20; i++) {
+        r["test_" + std::to_string(i)] = "0";
+      }
+      yield(r);
+    }
   }
 };
 
@@ -178,20 +243,53 @@ static void SQL_virtual_table_internal_wide(benchmark::State& state) {
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal("wide_benchmark", columnDefinition(res), dbc);
 
+  kWideCount = state.range_y();
   while (state.KeepRunning()) {
     QueryData results;
     queryInternal("select * from wide_benchmark", results, dbc->db());
+    dbc->clearAffectedTables();
   }
 }
 
-BENCHMARK(SQL_virtual_table_internal_wide);
+BENCHMARK(SQL_virtual_table_internal_wide)
+    ->ArgPair(0, 1)
+    ->ArgPair(0, 10)
+    ->ArgPair(0, 100)
+    ->ArgPair(0, 1000);
+
+static void SQL_virtual_table_internal_wide_yield(benchmark::State& state) {
+  auto tables = RegistryFactory::get().registry("table");
+  tables->add("wide_benchmark_yield",
+              std::make_shared<BenchmarkWideTableYieldPlugin>());
+
+  PluginResponse res;
+  Registry::call("table", "wide_benchmark_yield", {{"action", "columns"}}, res);
+
+  // Attach a sample virtual table.
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal("wide_benchmark_yield", columnDefinition(res), dbc);
+
+  kWideCount = state.range_y();
+  while (state.KeepRunning()) {
+    QueryData results;
+    queryInternal("select * from wide_benchmark_yield", results, dbc->db());
+    dbc->clearAffectedTables();
+  }
+}
+
+BENCHMARK(SQL_virtual_table_internal_wide_yield)
+    ->ArgPair(0, 1)
+    ->ArgPair(0, 10)
+    ->ArgPair(0, 100)
+    ->ArgPair(0, 1000);
 
 static void SQL_select_metadata(benchmark::State& state) {
-  auto dbc = SQLiteDBManager::get();
+  auto dbc = SQLiteDBManager::getUnique();
   while (state.KeepRunning()) {
     QueryData results;
     queryInternal(
         "select count(*) from sqlite_temp_master;", results, dbc->db());
+    dbc->clearAffectedTables();
   }
 }
 

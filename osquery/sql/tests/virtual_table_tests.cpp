@@ -421,6 +421,51 @@ TEST_F(VirtualTableTests, test_table_cache) {
   ASSERT_EQ(results[0]["data"], "awesome_data");
 }
 
+class yieldTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("index", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ public:
+  bool usesGenerator() const override {
+    return true;
+  }
+
+  void generator(RowYield& yield, QueryContext& qc) override {
+    for (size_t i = 0; i < 10; i++) {
+      Row r;
+      r["index"] = std::to_string(index_++);
+      yield(r);
+    }
+  }
+
+ private:
+  size_t index_{0};
+};
+
+TEST_F(VirtualTableTests, test_yield_generator) {
+  auto table = std::make_shared<yieldTablePlugin>();
+  auto table_registry = RegistryFactory::get().registry("table");
+  table_registry->add("yield", table);
+
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal("yield", table->columnDefinition(), dbc);
+
+  QueryData results;
+  queryInternal("SELECT * from yield", results, dbc->db());
+  dbc->clearAffectedTables();
+  EXPECT_EQ(results.size(), 10U);
+  EXPECT_EQ(results[0]["index"], "0");
+
+  results.clear();
+  queryInternal("SELECT * from yield", results, dbc->db());
+  dbc->clearAffectedTables();
+  EXPECT_EQ(results[0]["index"], "10");
+}
+
 class indexIOptimizedTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const override {
@@ -528,6 +573,8 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
   QueryData results;
   queryInternal(
       "SELECT * from default_scan JOIN index_i using (i);", results, dbc->db());
+  dbc->clearAffectedTables();
+
   // We expect index_i to optimize, meaning the constraint evaluation
   // understood the marked columns and returned a low cost.
   ASSERT_EQ(1U, default_scan->scans);
@@ -540,6 +587,7 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
   // The inverse should also hold, all cost evaluations will be high.
   queryInternal(
       "SELECT * from index_i JOIN default_scan using (i);", results, dbc->db());
+  dbc->clearAffectedTables();
   EXPECT_EQ(10U, i->scans);
   EXPECT_EQ(1U, default_scan->scans);
 
@@ -552,6 +600,7 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
       "(j);",
       results,
       dbc->db());
+  dbc->clearAffectedTables();
   ASSERT_EQ(1U, default_scan->scans);
   EXPECT_EQ(10U, i->scans);
   EXPECT_EQ(10U, j->scans);
