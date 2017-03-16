@@ -116,6 +116,10 @@ class SQLiteSQLPlugin : public SQLPlugin {
   Status getQueryColumns(const std::string& q,
                          TableColumns& columns) const override;
 
+  /// Similar to getQueryColumns but return the scanned tables.
+  Status getQueryTables(const std::string& q,
+                        std::vector<std::string>& tables) const override;
+
   /// Create a SQLite module and attach (CREATE).
   Status attach(const std::string& name) override;
 
@@ -147,6 +151,14 @@ Status SQLiteSQLPlugin::getQueryColumns(const std::string& q,
                                         TableColumns& columns) const {
   auto dbc = SQLiteDBManager::get();
   return getQueryColumnsInternal(q, columns, dbc->db());
+}
+
+Status SQLiteSQLPlugin::getQueryTables(const std::string& q,
+                                       std::vector<std::string>& tables) const {
+  auto dbc = SQLiteDBManager::get();
+  QueryPlanner planner(q, dbc->db());
+  tables = planner.tables();
+  return Status(0);
 }
 
 SQLInternal::SQLInternal(const std::string& q) {
@@ -334,7 +346,9 @@ QueryPlanner::QueryPlanner(const std::string& query, sqlite3* db) {
 
   for (const auto& row : plan) {
     auto details = osquery::split(row.at("detail"));
-    tables_.push_back(details[2]);
+    if (details.size() > 2 && details[0] == "SCAN") {
+      tables_.push_back(details[2]);
+    }
   }
 }
 
