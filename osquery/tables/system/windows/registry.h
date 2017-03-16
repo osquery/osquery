@@ -20,7 +20,7 @@ void queryKey(const std::string& keyPath,
               QueryData& results);
 
 void explodeRegistryPath(const std::string& path,
-  std::string& rHive,
-  std::string& rKey);
+                         std::string& rHive,
+                         std::string& rKey);
 }
 }
