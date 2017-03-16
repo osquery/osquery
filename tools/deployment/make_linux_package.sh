@@ -105,9 +105,11 @@ function get_pkg_suffix() {
   if [[ $PACKAGE_TYPE == "deb" ]]; then
     # stay compliant with Debian package naming convention
     echo "_${PACKAGE_VERSION}_${PACKAGE_ITERATION}.amd64.${PACKAGE_TYPE}"
-  else
+  elif [[ $PACKAGE_TYPE == "rpm" ]]; then
     V=`echo ${PACKAGE_VERSION}|tr '-' '_'`
     echo "-${V}-${PACKAGE_ITERATION}.${PACKAGE_ARCH}.${PACKAGE_TYPE}"
+  elif [[ $PACKAGE_TYPE == "pacman" ]]; then
+    echo "-${PACKAGE_VERSION}-${PACKAGE_ITERATION}-${PACKAGE_ARCH}.pkg.tar.xz"
   fi
 }
 
@@ -197,6 +199,9 @@ function main() {
   if [[ $OSQUERY_PREUNINSTALL != "" ]] && [[ -f $OSQUERY_PREUNINSTALL ]]; then
     PREUNINST_CMD="--before-remove $OSQUERY_PREUNINSTALL"
   fi
+
+  # Change directory modes
+  find $INSTALL_PREFIX/ -type d | xargs chmod 755
 
   EPILOG="--url https://osquery.io \
     -m osquery@osquery.io          \

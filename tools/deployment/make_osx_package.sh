@@ -241,6 +241,7 @@ function main() {
   FPM=$(which fpm || true)
   RPMBUILD=$(which rpmbuild || true)
   if [[ ! "$FPM" = "" && ! "$RPMBUILD" = "" ]]; then
+    rm -f "$OUTPUT_RPM_PATH"
     log "creating RPM equivalent"
 
     # Yes, RPMs on OS X like i386 as the arch.
