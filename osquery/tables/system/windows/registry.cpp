@@ -281,27 +281,27 @@ void queryKey(const std::string& keyPath,
 QueryData genRegistry(QueryContext& context) {
   QueryData results;
   std::set<std::string> rKeys;
-
+  auto shouldWarnLocalUsers = false;
   /// By default, we display all HIVEs
   if ((context.constraints["key"].exists(EQUALS) &&
       context.constraints["key"].getAll(EQUALS).size() > 0)) {
     rKeys = context.constraints["key"].getAll(EQUALS);
+    shouldWarnLocalUsers = true;
   } else {
     for (auto& h : kRegistryHives) {
       rKeys.insert(h.first);
     }
   }
 
-  auto wasWarned = false;
   for (const auto& key : rKeys) {
-    std::string keyPath;
     std::string hive;
+    std::string keyPath;
     explodeRegistryPath(key, hive, keyPath);
-    if (!wasWarned && (hive == "HKEY_CURRENT_USER" ||
+    if (shouldWarnLocalUsers && (hive == "HKEY_CURRENT_USER" ||
       hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
       LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
         "query HKEY_USERS with the desired users SID instead";
-      wasWarned = true;
+      shouldWarnLocalUsers = false;
     }
     queryKey(key, results);
   }
