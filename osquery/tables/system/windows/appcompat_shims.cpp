@@ -35,35 +35,36 @@ QueryData genShims(QueryContext& context) {
            "NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB",
            sdbResults);
   for (const auto& rKey : sdbResults) {
+    if (rKey.at("type") != "subkey") {
+      continue;
+    }
     QueryData regResults;
     sdb sdb;
-    if (rKey.at("type") == "subkey") {
-      std::string subkey = rKey.at("path");
-      auto start = subkey.find("{");
-      if (start == std::string::npos) {
-        continue;
-      }
-      std::string sdbId = subkey.substr(start, subkey.length());
-      // make sure it's a sane uninstall key
-      queryKey(subkey, regResults);
-      for (const auto& aKey : regResults) {
-        if (aKey.at("name") == "DatabaseDescription") {
-          sdb.description = aKey.at("data");
-        }
-        if (aKey.at("name") == "DatabaseInstallTimeStamp") {
-          // take this crazy windows timestamp to a unix timestamp
-          sdb.installTimestamp = std::stoull(aKey.at("data"));
-          sdb.installTimestamp = (sdb.installTimestamp / 10000000) - 11644473600;
-        }
-        if (aKey.at("name") == "DatabasePath") {
-          sdb.path = aKey.at("data");
-        }
-        if (aKey.at("name") == "DatabaseType") {
-          sdb.type = aKey.at("data");
-        }
-      }
-      sdbs[sdbId] = sdb;
+    std::string subkey = rKey.at("path");
+    auto start = subkey.find("{");
+    if (start == std::string::npos) {
+      continue;
     }
+    std::string sdbId = subkey.substr(start, subkey.length());
+    // make sure it's a sane uninstall key
+    queryKey(subkey, regResults);
+    for (const auto& aKey : regResults) {
+      if (aKey.at("name") == "DatabaseDescription") {
+        sdb.description = aKey.at("data");
+      }
+      if (aKey.at("name") == "DatabaseInstallTimeStamp") {
+        // take this crazy windows timestamp to a unix timestamp
+        sdb.installTimestamp = std::stoull(aKey.at("data"));
+        sdb.installTimestamp = (sdb.installTimestamp / 10000000) - 11644473600;
+      }
+      if (aKey.at("name") == "DatabasePath") {
+        sdb.path = aKey.at("data");
+      }
+      if (aKey.at("name") == "DatabaseType") {
+        sdb.type = aKey.at("data");
+      }
+    }
+    sdbs[sdbId] = sdb;
   }
 
   queryKey(

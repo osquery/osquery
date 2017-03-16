@@ -26,6 +26,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
@@ -60,23 +61,15 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
 };
 
-const char kRegSep = '\\';
+const std::string kRegSep = "\\";
 
 void explodeRegistryPath(const std::string& path,
                          std::string& rHive, 
                          std::string& rKey) {
-  size_t sepPos = path.find(kRegSep);
-  if (sepPos != std::string::npos) {
-    rHive = path.substr(0, sepPos);
-    rKey = path.substr(sepPos + 1);
-    if (rKey.back() == kRegSep) {
-      rKey.pop_back();
-    }
-  }
-  else {
-    rHive = path;
-    rKey = "";
-  }
+  auto toks = osquery::split(path, kRegSep);
+  rHive = toks.front();
+  toks.erase(toks.begin());
+  rKey = osquery::join(toks, kRegSep);
 }
 
 /// Microsoft helper function for getting the contents of a registry key
