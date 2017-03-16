@@ -296,27 +296,13 @@ QueryData genRegistry(QueryContext& context) {
   for (const auto& key : rKeys) {
     std::string keyPath;
     std::string hive;
-
-    size_t sepPos = key.find(kRegSep);
-    if (sepPos != std::string::npos) {
-      hive = key.substr(0, sepPos);
-      keyPath = key.substr(sepPos + 1);
-      if (keyPath.back() == kRegSep) {
-        keyPath.pop_back();
-      }
-    }
-    else {
-      hive = key;
-      keyPath = "";
-    }
-
+    explodeRegistryPath(key, hive, keyPath);
     if (!wasWarned && (hive == "HKEY_CURRENT_USER" ||
       hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
       LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
         "query HKEY_USERS with the desired users SID instead";
       wasWarned = true;
     }
-
     queryKey(key, results);
   }
   return results;
