@@ -188,7 +188,7 @@ void queryKey(const std::string& keyPath,
 
     Row r;
     r["key"] = keyPath;
-    r["name"] = achValue;
+    r["name"] = ((achValue[0] == '\0') ? "(Default)" : achValue);
     r["path"] = keyPath + kRegSep + achValue;
     if (kRegistryTypes.count(lpType) > 0) {
       r["type"] = kRegistryTypes.at(lpType);
