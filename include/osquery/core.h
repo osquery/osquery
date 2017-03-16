@@ -15,8 +15,9 @@
 #include <string>
 #include <vector>
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__linux__)
 #include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #else
 #include <shared_mutex>
 #endif
@@ -182,7 +183,7 @@ inline bool isPlatform(PlatformType a, const PlatformType& t = kPlatformType) {
   return (static_cast<int>(t) & static_cast<int>(a)) != 0;
 }
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__linux__)
 #define MUTEX_IMPL boost
 #else
 #define MUTEX_IMPL std
@@ -198,8 +199,8 @@ using WriteLock = MUTEX_IMPL::unique_lock<Mutex>;
 using ReadLock = MUTEX_IMPL::shared_lock<Mutex>;
 
 /// Helper alias for defining recursive mutexes.
-using RecursiveMutex = std::recursive_mutex;
+using RecursiveMutex = MUTEX_IMPL::recursive_mutex;
 
 /// Helper alias for write locking a recursive mutex.
-using RecursiveLock = std::lock_guard<std::recursive_mutex>;
+using RecursiveLock = MUTEX_IMPL::lock_guard<MUTEX_IMPL::recursive_mutex>;
 }

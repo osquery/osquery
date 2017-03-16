@@ -392,7 +392,7 @@ elseif(OSQUERY_BUILD_PLATFORM STREQUAL "windows")
   LOG_PLATFORM("Windows")
 endif()
 
-if("${OSQUERY_BUILD_DISTRO}" MATCHES "^(centos|rhel|scientific|oracle)7$")
+if("${OSQUERY_BUILD_DISTRO}" MATCHES "^(centos|rhel|scientific|oracle)7$|arch")
   # Useful for libudev version detection.
   set(SYSTEMD TRUE)
 endif()

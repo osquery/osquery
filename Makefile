@@ -32,7 +32,7 @@ endif
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
 CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../../
 CTEST := $(PATH_SET) ctest ../../
-FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
+FORMAT_COMMAND := python2 tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"
 
 ANALYSIS := ${SOURCE_DIR}/tools/analysis
