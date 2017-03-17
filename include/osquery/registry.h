@@ -516,11 +516,6 @@ class RegistryFactory : private boost::noncopyable {
   static Status call(const std::string& registry_name,
                      const PluginRequest& request);
 
-  /// A helper call optimized for table data generation.
-  static Status callTable(const std::string& table_name,
-                          QueryContext& context,
-                          PluginResponse& response);
-
   /// Run `setUp` on every registry that is not marked 'lazy'.
   static void setUp();
 

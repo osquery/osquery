@@ -35,6 +35,7 @@ extern RecursiveMutex kAttachMutex;
  * Only used in the SQLite virtual table module methods.
  */
 struct BaseCursor : private boost::noncopyable {
+ public:
   /// SQLite virtual table cursor.
   sqlite3_vtab_cursor base;
 
@@ -43,6 +44,15 @@ struct BaseCursor : private boost::noncopyable {
 
   /// Table data generated from last access.
   QueryData data;
+
+  /// Callable generator.
+  std::unique_ptr<RowGenerator::pull_type> generator{nullptr};
+
+  /// Results of current call.
+  Row current;
+
+  /// Does the backing local table use a generator type.
+  bool uses_generator{false};
 
   /// Current cursor position.
   size_t row{0};

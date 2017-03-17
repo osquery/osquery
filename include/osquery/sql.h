@@ -24,31 +24,6 @@ namespace osquery {
 DECLARE_int32(value_max);
 
 /**
- * @brief An abstract similar to boost's noncopyable that defines moves.
- *
- * By defining protected move constructors we allow the children to assign
- * their's as default.
- */
-class only_movable {
- protected:
-  /// Boilerplate self default constructor.
-  only_movable() {}
-
-  /// Boilerplate self destructor.
-  ~only_movable() {}
-
-  /// Important, existance of a move constructor.
-  only_movable(only_movable&&) {}
-
- private:
-  /// Important, a private copy constructor prevents copying.
-  only_movable(const only_movable&);
-
-  /// Important, a private copy assignment constructor prevents copying.
-  only_movable& operator=(const only_movable&);
-};
-
-/**
  * @brief The core interface to executing osquery SQL commands.
  *
  * @code{.cpp}
@@ -192,6 +167,10 @@ class SQLPlugin : public Plugin {
   virtual Status getQueryColumns(const std::string& q,
                                  TableColumns& columns) const = 0;
 
+  /// Given a query, return the list of scanned tables.
+  virtual Status getQueryTables(const std::string& q,
+                                std::vector<std::string>& tables) const = 0;
+
   /**
    * @brief Attach a table at runtime.
    *
@@ -250,4 +229,17 @@ Status query(const std::string& query, QueryData& results);
  * @return status indicating success or failure of the operation.
  */
 Status getQueryColumns(const std::string& q, TableColumns& columns);
+
+/**
+ * @brief Extract table names from an input query.
+ *
+ * This should return the scanned virtual tables, not aliases or intermediate
+ * tables, from a given query.
+ *
+ * @param q the query to analyze.
+ * @param tables the output vector to fill with table names.
+ *
+ * @return status indicating success or failure of the operation.
+ */
+Status getQueryTables(const std::string& q, std::vector<std::string>& tables);
 }

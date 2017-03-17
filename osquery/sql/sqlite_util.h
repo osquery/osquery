@@ -226,6 +226,11 @@ class QueryPlanner : private boost::noncopyable {
    */
   Status applyTypes(TableColumns& columns);
 
+  /// Get the list of tables filtered by this query.
+  std::vector<std::string> tables() const {
+    return tables_;
+  }
+
   /**
    * @brief A helper structure to represent an opcode's result and type.
    *

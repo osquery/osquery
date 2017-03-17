@@ -19,9 +19,11 @@ elseif(LINUX)
 
   set(DEB_PACKAGE_DEPENDENCIES "libc6 (>=2.12), zlib1g")
   set(RPM_PACKAGE_DEPENDENCIES "glibc >= 2.12, zlib")
+  set(PACMAN_PACKAGE_DEPENDENCIES "zlib")
 
   find_program(FPM_EXECUTABLE "fpm" ENV PATH)
   find_program(RPMBUILD_EXECUTABLE "rpmbuild" ENV PATH)
+  find_program(BSDTAR_EXECUTABLE "bsdtar" ENV PATH)
 
   if(FPM_EXECUTABLE)
     add_custom_command(TARGET packages PRE_BUILD
@@ -37,6 +39,16 @@ elseif(LINUX)
     else()
       WARNING_LOG("Skipping RPM/CentOS packages: Cannot find rpmbuild")
     endif()
+
+    if(BSDTAR_EXECUTABLE)
+      add_custom_command(TARGET packages PRE_BUILD
+        COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
+          -t "pacman" -i "1.arch" -d '${PACMAN_PACKAGE_DEPENDENCIES}'
+      )
+    else()
+      WARNING_LOG("Skipping ArchLinux packages: Cannot find bsdtar")
+    endif()
+
   else()
     WARNING_LOG("Cannot find fpm executable in path")
   endif()

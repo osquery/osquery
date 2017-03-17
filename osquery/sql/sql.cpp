@@ -141,6 +141,15 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
   } else if (request.at("action") == "detach") {
     this->detach(request.at("table"));
     return Status(0, "OK");
+  } else if (request.at("action") == "tables") {
+    std::vector<std::string> tables;
+    auto status = this->getQueryTables(request.at("query"), tables);
+    if (status.ok()) {
+      for (const auto& table : tables) {
+        response.push_back({{"t", table}});
+      }
+    }
+    return status;
   }
   return Status(1, "Unknown action");
 }
@@ -159,6 +168,16 @@ Status getQueryColumns(const std::string& q, TableColumns& columns) {
   for (const auto& item : response) {
     columns.push_back(make_tuple(
         item.at("n"), columnTypeName(item.at("t")), ColumnOptions::DEFAULT));
+  }
+  return status;
+}
+
+Status getQueryTables(const std::string& q, std::vector<std::string>& tables) {
+  PluginResponse response;
+  auto status = Registry::call(
+      "sql", "sql", {{"action", "tables"}, {"query", q}}, response);
+  for (const auto& table : response) {
+    tables.push_back(table.at("t"));
   }
   return status;
 }

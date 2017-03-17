@@ -11,6 +11,7 @@
 #include <map>
 #include <string>
 
+#include <boost/algorithm/string/find.hpp>
 #include <boost/algorithm/string/trim_all.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -126,6 +127,15 @@ QueryData genOSVersion(QueryContext& context) {
 
   // No build name.
   r["build"] = "";
+
+  if (r["platform"] == "") {
+    // Try to detect CentOS from the name. CentOS6 does not have all of the
+    // keys we expect above that platform is typically extracted from.
+    if (!boost::algorithm::ifind_first(r["name"], "centos").empty()) {
+      r["platform"] = "centos";
+    }
+  }
+
   return {r};
 }
 }

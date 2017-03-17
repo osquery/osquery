@@ -274,7 +274,7 @@ function Install-ThirdParty {
     "gflags-dev.2.2.0",
     "glog.0.3.4",
     "openssl.1.0.2-j",
-    "rocksdb.4.11.2",
+    "rocksdb.5.1.4",
     "snappy-msvc.1.1.1.8",
     "thrift-dev.0.9.3",
     "cpp-netlib.0.12.0-r2",
