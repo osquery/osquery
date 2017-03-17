@@ -50,6 +50,11 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
   /// Data removal method.
   Status remove(const std::string& domain, const std::string& k) override;
 
+  /// Data range removal method.
+  Status removeRange(const std::string& domain,
+                     const std::string& low,
+                     const std::string& high) override;
+
   /// Key/index lookup method.
   Status scan(const std::string& domain,
               std::vector<std::string>& results,
@@ -169,12 +174,10 @@ Status RocksDBDatabasePlugin::setUp() {
     options_.compression = rocksdb::kNoCompression;
     options_.compaction_style = rocksdb::kCompactionStyleLevel;
     options_.arena_block_size = (4 * 1024);
-    options_.write_buffer_size = (4 * 1024) * 100; // 100 blocks.
+    options_.write_buffer_size = (4 * 1024) * 256; // 100 blocks.
     options_.max_write_buffer_number = 4;
     options_.min_write_buffer_number_to_merge = 1;
-    // Before adding the OptimizeForSmallDB API call we used:
-    //   options_.max_background_compactions = 2;
-    //   options_.max_background_flushes = 2;
+    options_.max_background_flushes = 4;
 
     // Create an environment to replace the default logger.
     if (logger_ == nullptr) {
@@ -249,6 +252,9 @@ Status RocksDBDatabasePlugin::setUp() {
 
 void RocksDBDatabasePlugin::close() {
   WriteLock lock(close_mutex_);
+  if (db_ != nullptr) {
+    db_->Flush(rocksdb::FlushOptions());
+  }
   for (auto handle : handles_) {
     delete handle;
   }
@@ -323,6 +329,8 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
   // Events should be fast, and do not need to force syncs.
   if (kEvents != domain) {
     options.sync = true;
+  } else {
+    options.disableWAL = true;
   }
   auto s = getDB()->Put(options, cfh, key, value);
   if (s.code() != 0 && s.IsIOError()) {
@@ -355,6 +363,29 @@ Status RocksDBDatabasePlugin::remove(const std::string& domain,
     options.sync = true;
   }
   auto s = getDB()->Delete(options, cfh, key);
+  return Status(s.code(), s.ToString());
+}
+
+Status RocksDBDatabasePlugin::removeRange(const std::string& domain,
+                                          const std::string& low,
+                                          const std::string& high) {
+  if (read_only_) {
+    return Status(0, "Database in readonly mode");
+  }
+
+  auto cfh = getHandleForColumnFamily(domain);
+  if (cfh == nullptr) {
+    return Status(1, "Could not get column family for " + domain);
+  }
+  auto options = rocksdb::WriteOptions();
+
+  // We could sync here, but large deletes will cause multi-syncs.
+  // For example: event record expirations found in an expired index.
+  if (kEvents != domain) {
+    options.sync = true;
+  }
+  auto s = (low != high) ? getDB()->DeleteRange(options, cfh, low, high)
+                         : getDB()->Delete(options, cfh, low);
   return Status(s.code(), s.ToString());
 }
 
