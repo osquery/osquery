@@ -39,8 +39,8 @@ QueryData genPrograms(QueryContext& context) {
     // make sure it's a sane uninstall key
     boost::smatch matches;
     boost::regex expression(
-      "({[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+})"
-      "$");
+        "({[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+})"
+        "$");
     if (!boost::regex_search(subkey, matches, expression)) {
       continue;
     }

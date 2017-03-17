@@ -31,9 +31,10 @@ QueryData genShims(QueryContext& context) {
   QueryData shimResults;
   std::map<std::string, sdb> sdbs;
 
-  queryKey("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows "
-           "NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB",
-           sdbResults);
+  queryKey(
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows "
+      "NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB",
+      sdbResults);
   for (const auto& rKey : sdbResults) {
     if (rKey.at("type") != "subkey") {
       continue;
@@ -82,7 +83,7 @@ QueryData genShims(QueryContext& context) {
       continue;
     }
     std::string executable =
-      rKey.at("path").substr(start + 1, rKey.at("subkey").length());
+        rKey.at("path").substr(start + 1, rKey.at("subkey").length());
     // make sure it's a sane uninstall key
     queryKey(subkey, regResults);
     for (const auto& aKey : regResults) {

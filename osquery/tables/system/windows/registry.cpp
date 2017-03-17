@@ -64,7 +64,7 @@ const std::map<DWORD, std::string> kRegistryTypes = {
 const std::string kRegSep = "\\";
 
 void explodeRegistryPath(const std::string& path,
-                         std::string& rHive, 
+                         std::string& rHive,
                          std::string& rKey) {
   auto toks = osquery::split(path, kRegSep);
   rHive = toks.front();
@@ -73,8 +73,7 @@ void explodeRegistryPath(const std::string& path,
 }
 
 /// Microsoft helper function for getting the contents of a registry key
-void queryKey(const std::string& keyPath,
-              QueryData& results) {
+void queryKey(const std::string& keyPath, QueryData& results) {
   std::string hive;
   std::string key;
   explodeRegistryPath(keyPath, hive, key);
@@ -123,7 +122,6 @@ void queryKey(const std::string& keyPath,
   TCHAR achKey[maxKeyLength];
   DWORD cbName;
 
-  
   // Process registry subkeys
   if (cSubKeys > 0) {
     for (DWORD i = 0; i < cSubKeys; i++) {
@@ -270,14 +268,13 @@ void queryKey(const std::string& keyPath,
   RegCloseKey(hRegistryHandle);
 };
 
-
 QueryData genRegistry(QueryContext& context) {
   QueryData results;
   std::set<std::string> rKeys;
   auto shouldWarnLocalUsers = false;
   /// By default, we display all HIVEs
   if ((context.constraints["key"].exists(EQUALS) &&
-      context.constraints["key"].getAll(EQUALS).size() > 0)) {
+        context.constraints["key"].getAll(EQUALS).size() > 0)) {
     rKeys = context.constraints["key"].getAll(EQUALS);
     shouldWarnLocalUsers = true;
   } else {
@@ -291,7 +288,7 @@ QueryData genRegistry(QueryContext& context) {
     std::string keyPath;
     explodeRegistryPath(key, hive, keyPath);
     if (shouldWarnLocalUsers && (hive == "HKEY_CURRENT_USER" ||
-      hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
+                                 hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
       LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
         "query HKEY_USERS with the desired users SID instead";
       shouldWarnLocalUsers = false;
