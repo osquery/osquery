@@ -73,33 +73,34 @@ QueryData genShims(QueryContext& context) {
       shimResults);
   for (const auto& rKey : shimResults) {
     QueryData regResults;
-    if (rKey.at("type") == "subkey") {
-      std::string subkey = rKey.at("path");
-      auto start = rKey.at("path").rfind("\\");
-      if (start == std::string::npos) {
+    if (rKey.at("type") != "subkey") {
+      continue;
+    }
+    std::string subkey = rKey.at("path");
+    auto start = rKey.at("path").rfind("\\");
+    if (start == std::string::npos) {
+      continue;
+    }
+    std::string executable =
+      rKey.at("path").substr(start + 1, rKey.at("subkey").length());
+    // make sure it's a sane uninstall key
+    queryKey(subkey, regResults);
+    for (const auto& aKey : regResults) {
+      Row r;
+      std::string sdbId;
+      if (aKey.at("name").length() > 4) {
+        sdbId = aKey.at("name").substr(0, aKey.at("name").length() - 4);
+      }
+      if (sdbs.count(sdbId) == 0) {
         continue;
       }
-      std::string executable =
-        rKey.at("path").substr(start + 1, rKey.at("subkey").length());
-      // make sure it's a sane uninstall key
-      queryKey(subkey, regResults);
-      for (const auto& aKey : regResults) {
-        Row r;
-        std::string sdbId;
-        if (aKey.at("name").length() > 4) {
-          sdbId = aKey.at("name").substr(0, aKey.at("name").length() - 4);
-        }
-        if (sdbs.count(sdbId) == 0) {
-          continue;
-        }
-        r["executable"] = executable;
-        r["path"] = sdbs.at(sdbId).path;
-        r["description"] = sdbs.at(sdbId).description;
-        r["install_time"] = INTEGER(sdbs.at(sdbId).installTimestamp);
-        r["type"] = sdbs.at(sdbId).type;
-        r["sdb_id"] = sdbId;
-        results.push_back(r);
-      }
+      r["executable"] = executable;
+      r["path"] = sdbs.at(sdbId).path;
+      r["description"] = sdbs.at(sdbId).description;
+      r["install_time"] = INTEGER(sdbs.at(sdbId).installTimestamp);
+      r["type"] = sdbs.at(sdbId).type;
+      r["sdb_id"] = sdbId;
+      results.push_back(r);
     }
   }
 
