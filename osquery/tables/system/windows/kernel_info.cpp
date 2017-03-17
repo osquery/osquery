@@ -25,7 +25,7 @@ std::string kNtKernelPath =
 
 void GetBootArgs(Row& r) {
   QueryData regResults;
-  queryKey("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control", 
+  queryKey("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control",
            regResults);
   for (const auto& aKey : regResults) {
     if (aKey.at("name") == "SystemStartOptions") {

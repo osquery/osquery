@@ -41,7 +41,7 @@ TEST_F(RegistryTablesTest, test_explode_registry_path_normal) {
   explodeRegistryPath(path, rHive, rKey);
   EXPECT_TRUE(rKey == "PATH\\to\\madeup\\key");
   EXPECT_TRUE(rHive == "HKEY_LOCAL_MACHINE");
- 
+
   path = "HKEY_LOCAL_MACHINE\\PATH\\to\\madeup\\key\\";
   explodeRegistryPath(path, rHive, rKey);
   EXPECT_TRUE(rKey == "PATH\\to\\madeup\\key");

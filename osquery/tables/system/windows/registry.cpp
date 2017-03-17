@@ -274,7 +274,7 @@ QueryData genRegistry(QueryContext& context) {
   auto shouldWarnLocalUsers = false;
   /// By default, we display all HIVEs
   if ((context.constraints["key"].exists(EQUALS) &&
-        context.constraints["key"].getAll(EQUALS).size() > 0)) {
+       context.constraints["key"].getAll(EQUALS).size() > 0)) {
     rKeys = context.constraints["key"].getAll(EQUALS);
     shouldWarnLocalUsers = true;
   } else {
@@ -290,7 +290,7 @@ QueryData genRegistry(QueryContext& context) {
     if (shouldWarnLocalUsers && (hive == "HKEY_CURRENT_USER" ||
                                  hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
       LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
-        "query HKEY_USERS with the desired users SID instead";
+                      "query HKEY_USERS with the desired users SID instead";
       shouldWarnLocalUsers = false;
     }
     queryKey(key, results);
