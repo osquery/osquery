@@ -31,21 +31,24 @@ QueryData genShims(QueryContext& context) {
   QueryData shimResults;
   std::map<std::string, sdb> sdbs;
 
-  queryKey("HKEY_LOCAL_MACHINE",
-           "SOFTWARE\\Microsoft\\Windows "
-           "NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB",
-           sdbResults);
+  queryKey(
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows "
+      "NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB",
+      sdbResults);
   for (const auto& rKey : sdbResults) {
+    if (rKey.at("type") != "subkey") {
+      continue;
+    }
     QueryData regResults;
     sdb sdb;
-    std::string subkey = rKey.at("subkey");
+    std::string subkey = rKey.at("path");
     auto start = subkey.find("{");
     if (start == std::string::npos) {
       continue;
     }
     std::string sdbId = subkey.substr(start, subkey.length());
     // make sure it's a sane uninstall key
-    queryKey("HKEY_LOCAL_MACHINE", subkey, regResults);
+    queryKey(subkey, regResults);
     for (const auto& aKey : regResults) {
       if (aKey.at("name") == "DatabaseDescription") {
         sdb.description = aKey.at("data");
@@ -66,20 +69,23 @@ QueryData genShims(QueryContext& context) {
   }
 
   queryKey(
-      "HKEY_LOCAL_MACHINE",
-      "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Custom",
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\"
+      "CurrentVersion\\AppCompatFlags\\Custom",
       shimResults);
   for (const auto& rKey : shimResults) {
     QueryData regResults;
-    std::string subkey = rKey.at("subkey");
-    auto start = rKey.at("subkey").rfind("\\");
+    if (rKey.at("type") != "subkey") {
+      continue;
+    }
+    std::string subkey = rKey.at("path");
+    auto start = rKey.at("path").rfind("\\");
     if (start == std::string::npos) {
       continue;
     }
     std::string executable =
-        rKey.at("subkey").substr(start + 1, rKey.at("subkey").length());
+        rKey.at("path").substr(start + 1, rKey.at("subkey").length());
     // make sure it's a sane uninstall key
-    queryKey("HKEY_LOCAL_MACHINE", subkey, regResults);
+    queryKey(subkey, regResults);
     for (const auto& aKey : regResults) {
       Row r;
       std::string sdbId;
