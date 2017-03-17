@@ -5,6 +5,9 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+# Turn on support for Powershell Cmdlet Bindings
+[CmdletBinding(SupportsShouldProcess=$true)]
+
 # We make heavy use of Write-Host, because colors are awesome. #dealwithit.
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope="Function", Target="*")]
 param()
@@ -268,7 +271,7 @@ function Install-ThirdParty {
   #      Once our chocolatey packages are added to the official repository, installing the third-party
   #      dependencies will be as easy as Install-ChocoPackage '<package-name>'.
   $packages = @(
-    "boost-msvc14.1.63.0",
+    "boost-msvc14.1.63.0-r1",
     "bzip2.1.0.6",
     "doxygen.1.8.11",
     "gflags-dev.2.2.0",
@@ -318,6 +321,7 @@ function Install-ThirdParty {
       Write-Host " => Downloading $downloadUrl" -foregroundcolor DarkCyan
       Try {
         (New-Object net.webclient).DownloadFile($downloadUrl, $tmpFilePath)
+        Write-Host " => Done." -foregroundcolor DarkCyan
       } catch [Net.WebException] {
         Write-Host "[-] ERROR: Downloading $package failed. Check connection?" -foregroundcolor Red
         Exit -1
@@ -327,7 +331,7 @@ function Install-ThirdParty {
         Write-Host "[-] ERROR: Install of $package failed." -foregroundcolor Red
         Exit -1
       }
-      Write-Host "[+] DONE" -foregroundcolor Green
+      Write-Host "[+] Done." -foregroundcolor Green
     }
   } Finally {
     Remove-Item $tmpDir -Recurse
@@ -399,4 +403,7 @@ function Main {
   Write-Host "[+] Done." -foregroundcolor Yellow
 }
 
+$startProvTime = Get-Date
 $null = Main
+$endProvTime = Get-Date
+Write-Verbose "[+] Provisioning completed in $(($endProvTime - $startProvTime).TotalSeconds) seconds."
