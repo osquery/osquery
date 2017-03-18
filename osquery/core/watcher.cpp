@@ -504,7 +504,6 @@ void WatcherRunner::createExtension(const std::string& extension) {
   Watcher::resetExtensionCounters(extension, getUnixTime());
   VLOG(1) << "Created and monitoring extension child (" << ext_process->pid()
           << "): " << extension;
-
 }
 
 void WatcherWatcherRunner::start() {

@@ -50,7 +50,7 @@ class SyslogEventSubscriber : public EventSubscriber<SyslogEventPublisher> {
   Status Callback(const ECRef& ec, const SCRef& sc);
 };
 
-REGISTER(SyslogEventSubscriber, "event_subscriber", "syslog");
+REGISTER(SyslogEventSubscriber, "event_subscriber", "syslog_events");
 
 Status SyslogEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r(ec->fields);
