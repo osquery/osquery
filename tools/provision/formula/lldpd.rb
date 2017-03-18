@@ -12,28 +12,17 @@ class Lldpd < AbstractOsqueryFormula
   depends_on "libevent"
 
   def install
-    if OS.mac?
-      args = [
-        "--prefix=#{prefix}",
-        "--sysconfdir=#{etc}",
-        "--localstatedir=#{var}",
-        "--enable-shared=no",
-        "--with-privsep-chroot=/var/empty",
-        "--with-privsep-user=nobody",
-        "--with-privsep-group=nogroup",
-        "--with-launchddaemonsdir=no",
-      ]
-    else
-      args = [
-        "--prefix=#{prefix}",
-        "--sysconfdir=#{etc}",
-        "--localstatedir=/var",
-        "--enable-shared=no",
-        "--with-privsep-chroot=/var/empty",
-        "--with-privsep-user=nobody",
-        "--with-privsep-group=nogroup",
-      ]
-    end
+    args = [
+      "--prefix=#{prefix}",
+      "--sysconfdir=#{etc}",
+      "--localstatedir=/var",
+      "--enable-shared=no",
+      "--with-privsep-chroot=/var/empty",
+      "--with-privsep-user=nobody",
+      "--with-privsep-group=nogroup",
+    ]
+
+    args << "--with-launchddaemonsdir=no" if OS.mac?
 
     system "./configure", *args
     system "make"
