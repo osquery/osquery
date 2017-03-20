@@ -61,15 +61,25 @@ static inline EventTime timeFromRecord(const std::string& record) {
   return afinite;
 }
 
+static inline std::string toIndex(size_t i) {
+  auto j = std::to_string(i);
+  size_t n = 1;
+  while (i /= 10) {
+    n++;
+  }
+  return (n >= 10) ? j : std::string(10 - n, '0').append(std::move(j));
+}
+
 static inline void getOptimizeData(EventTime& o_time,
                                    size_t& o_eid,
+                                   std::string& query_name,
                                    const std::string& publisher) {
   // Read the optimization time for the current executing query.
-  std::string query_name;
   getDatabaseValue(kPersistentSettings, kExecutingQuery, query_name);
   if (query_name.empty()) {
     o_time = 0;
     o_eid = 0;
+    return;
   }
 
   {
@@ -100,7 +110,7 @@ static inline void setOptimizeData(EventTime time,
   }
 
   setDatabaseValue(kEvents, "optimize." + query_name, std::to_string(time));
-  setDatabaseValue(kEvents, "optimize_eid." + query_name, std::to_string(eid));
+  setDatabaseValue(kEvents, "optimize_eid." + query_name, toIndex(eid));
 }
 
 QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
@@ -126,9 +136,16 @@ QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
   } else if (kToolType == ToolType::DAEMON && FLAGS_events_optimize) {
     // If the daemon is querying a subscriber without a 'time' constraint and
     // allows optimization, only emit events since the last query.
-    getOptimizeData(optimize_time_, optimize_eid_, dbNamespace());
+    std::string query_name;
+    getOptimizeData(optimize_time_, optimize_eid_, query_name, dbNamespace());
     start = optimize_time_;
     optimize_time_ = getUnixTime() - 1;
+
+    // Track the queries that have selected data.
+    WriteLock lock(event_query_record_);
+    if (!query_name.empty() && queries_.count(query_name) == 0) {
+      queries_.insert(query_name);
+    }
   }
   return get(start, stop);
 }
@@ -166,7 +183,8 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
 }
 
 std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
-                                                           EventTime stop) {
+                                                           EventTime stop,
+                                                           bool sort) {
   auto index_key = "indexes." + dbNamespace();
   std::vector<std::string> indexes;
 
@@ -185,13 +203,13 @@ std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
     auto step = timeFromRecord(bin);
     auto step_start = step * 60;
     auto step_stop = (step + 1) * 60;
-    if (step_stop < expire_time_) {
+    if (step_stop <= expire_time_) {
       expirations.push_back(bin);
-    } else if (step_start < expire_time_) {
+    } else if (step_start < expire_time_ && sort) {
       expireRecords("60", bin, false);
     }
 
-    if (step >= l_start && (r_stop == 0 || step < r_stop)) {
+    if (step >= l_start && (r_stop == 0 || step < r_stop) && sort) {
       indexes.push_back("60." + bin);
     }
   }
@@ -202,13 +220,15 @@ std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
   }
 
   // Return indexes in binning order.
-  std::sort(indexes.begin(),
-            indexes.end(),
-            [](const std::string& left, const std::string& right) {
-              auto n1 = timeFromRecord(left.substr(left.find(".") + 1));
-              auto n2 = timeFromRecord(right.substr(right.find(".") + 1));
-              return n1 < n2;
-            });
+  if (sort) {
+    std::sort(indexes.begin(),
+              indexes.end(),
+              [](const std::string& left, const std::string& right) {
+                auto n1 = timeFromRecord(left.substr(left.find(".") + 1));
+                auto n2 = timeFromRecord(right.substr(right.find(".") + 1));
+                return n1 < n2;
+              });
+  }
 
   // Update the new time that events expire to now - expiry.
   return indexes;
@@ -217,19 +237,29 @@ std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
 void EventSubscriberPlugin::expireRecords(const std::string& list_type,
                                           const std::string& index,
                                           bool all) {
+  if (!executedAllQueries()) {
+    return;
+  }
+
   auto record_key = "records." + dbNamespace();
   auto data_key = "data." + dbNamespace();
 
   // If the expirations is not removing all records, rewrite the persisting.
   std::vector<std::string> persisting_records;
   // Request all records within this list-size + bin offset.
-  auto expired_records = getRecords({list_type + "." + index});
-  for (const auto& record : expired_records) {
-    if (all || record.second <= expire_time_) {
-      deleteDatabaseValue(kEvents, data_key + "." + record.first);
-    } else {
-      persisting_records.push_back(record.first + ":" +
-                                   std::to_string(record.second));
+  auto expired_records = getRecords({list_type + '.' + index}, false);
+  if (all && expired_records.size() > 1) {
+    deleteDatabaseRange(kEvents,
+                        data_key + '.' + expired_records.begin()->first,
+                        data_key + '.' + expired_records.rbegin()->first);
+  } else {
+    for (const auto& record : expired_records) {
+      if (record.second <= expire_time_) {
+        deleteDatabaseValue(kEvents, data_key + '.' + record.first);
+      } else {
+        persisting_records.push_back(record.first + ':' +
+                                     std::to_string(record.second));
+      }
     }
   }
 
@@ -247,6 +277,10 @@ void EventSubscriberPlugin::expireIndexes(
     const std::string& list_type,
     const std::vector<std::string>& indexes,
     const std::vector<std::string>& expirations) {
+  if (!executedAllQueries()) {
+    return;
+  }
+
   auto index_key = "indexes." + dbNamespace();
 
   // Construct a mutable list of persisting indexes to rewrite as records.
@@ -280,7 +314,7 @@ void EventSubscriberPlugin::expireCheck() {
 
     // There is an overflow of events buffered for this subscriber.
     LOG(WARNING) << "Expiring events for subscriber: " << getName()
-                 << " (limit " << limit << ")";
+                 << " (overflowed limit " << limit << ")";
     VLOG(1) << "Subscriber events " << getName() << " exceeded limit " << limit
             << " by: " << keys.size() - limit;
     // Inspect the N-FLAGS_events_max -th event's value and expire before the
@@ -329,8 +363,7 @@ void EventSubscriberPlugin::expireCheck() {
   // The last-recent event is fetched and the corresponding time is used as
   // the expiration time for the subscriber.
   std::string content;
-  getDatabaseValue(
-      kEvents, data_key + "." + std::to_string(threshold_key), content);
+  getDatabaseValue(kEvents, data_key + "." + toIndex(threshold_key), content);
 
   // Decode the value into a row structure to extract the time.
   Row r;
@@ -341,16 +374,21 @@ void EventSubscriberPlugin::expireCheck() {
   // The last time will become the implicit expiration time.
   size_t last_time = boost::lexical_cast<size_t>(r.at("time"));
   if (last_time > 0) {
-    expire_time_ = last_time;
+    expire_time_ = last_time - (last_time % 60);
   }
 
   // Finally, attempt an index query to trigger expirations.
   // In this case the result set is not used.
-  getIndexes(expire_time_, 0);
+  getIndexes(expire_time_, 0, false);
+}
+
+bool EventSubscriberPlugin::executedAllQueries() const {
+  ReadLock lock(event_query_record_);
+  return queries_.size() >= query_count_;
 }
 
 std::vector<EventRecord> EventSubscriberPlugin::getRecords(
-    const std::vector<std::string>& indexes) {
+    const std::vector<std::string>& indexes, bool optimize) {
   auto record_key = "records." + dbNamespace();
 
   std::vector<EventRecord> records;
@@ -373,7 +411,7 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
     for (; bin_it != bin_records.end(); bin_it++) {
       const auto& eid = *bin_it;
       EventTime et = timeFromRecord(*(++bin_it));
-      if (FLAGS_events_optimize && et <= optimize_time_ + 1) {
+      if (FLAGS_events_optimize && optimize && et <= optimize_time_ + 1) {
         // There is an optimization collision, check for colliding IDs.
         auto eidr = timeFromRecord(eid);
         if (eidr <= optimize_eid_) {
@@ -442,26 +480,25 @@ EventID EventSubscriberPlugin::getEventID() {
   Status status;
   // First get an event ID from the meta key.
   std::string eid_key = "eid." + dbNamespace();
-  std::string last_eid_value;
-  std::string eid_value;
 
   {
     WriteLock lock(event_id_lock_);
-    status = getDatabaseValue(kEvents, eid_key, last_eid_value);
-    if (!status.ok() || last_eid_value.empty()) {
-      last_eid_value = "0";
+    if (last_eid_ == 0) {
+      std::string last_eid_value;
+      status = getDatabaseValue(kEvents, eid_key, last_eid_value);
+      if (!status.ok() || last_eid_value.empty()) {
+        last_eid_value = "0";
+      }
+      last_eid_ = boost::lexical_cast<size_t>(last_eid_value);
     }
 
-    last_eid_ = boost::lexical_cast<size_t>(last_eid_value) + 1;
-    eid_value = boost::lexical_cast<std::string>(last_eid_);
-    status = setDatabaseValue(kEvents, eid_key, eid_value);
+    if (last_eid_ % 10 == 0) {
+      status = setDatabaseValue(kEvents, eid_key, toIndex(last_eid_ + 10));
+    }
+    last_eid_++;
   }
 
-  if (!status.ok()) {
-    return "0";
-  }
-
-  return eid_value;
+  return toIndex(last_eid_);
 }
 
 QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
@@ -514,6 +551,7 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
     // Set the expire time to NOW - "configured lifetime".
     // Index retrieval will apply the constraints checking and auto-expire.
     expire_time_ = getUnixTime() - expiry;
+    expire_time_ = expire_time_ - (expire_time_ % 60);
   }
 
   if (FLAGS_events_optimize) {
@@ -665,7 +703,18 @@ void EventFactory::configUpdate() {
     WriteLock lock(ef.factory_lock_);
     auto subscriber = ef.getEventSubscriber(details.first);
     subscriber->min_expiration_ = details.second.max_interval * 3;
+    subscriber->min_expiration_ += (60 - (subscriber->min_expiration_ % 60));
+
+    // Emit a warning for each subscriber affected by the small expiration.
+    auto expiry = subscriber->getEventsExpiry();
+    if (expiry > 0 && subscriber->min_expiration_ > expiry) {
+      LOG(INFO) << "Subscriber expiration is too low: "
+                << subscriber->getName();
+    }
     subscriber->query_count_ = details.second.query_count;
+
+    WriteLock subscriber_lock(subscriber->event_query_record_);
+    subscriber->queries_.clear();
   }
 
   // If events are enabled configure the subscribers before publishers.
@@ -1034,11 +1083,7 @@ void attachEvents() {
     }
   }
 
-  // Configure the event publishers the first time they load.
-  // Subsequent configuration updates will update the subscribers followed
-  // by the publishers.
-  if (!FLAGS_disable_events) {
-    RegistryFactory::get().registry("event_publisher")->configure();
-  }
+  // Configure the event publishers and subscribers.
+  EventFactory::configUpdate();
 }
 }

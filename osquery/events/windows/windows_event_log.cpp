@@ -59,10 +59,6 @@ void WindowsEventLogEventPublisher::configure() {
   }
 }
 
-void WindowsEventLogEventPublisher::restart() {
-  configure();
-}
-
 Status WindowsEventLogEventPublisher::run() {
   pause();
   return Status(0, "OK");

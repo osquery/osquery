@@ -93,6 +93,8 @@ void DatabasePluginTests::testDeleteRange() {
   EXPECT_FALSE(s.ok());
   s = getPlugin()->get(kQueries, "test2", r);
   EXPECT_FALSE(s.ok());
+  s = getPlugin()->get(kQueries, "test3", r);
+  EXPECT_FALSE(s.ok());
 
   // Expect invalid logically ranges to have no effect.
   getPlugin()->put(kQueries, "new_test1", "1");
