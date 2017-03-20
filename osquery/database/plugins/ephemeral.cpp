@@ -16,7 +16,7 @@ namespace osquery {
 DECLARE_string(database_path);
 
 class EphemeralDatabasePlugin : public DatabasePlugin {
-  using DBType = std::map<std::string, std::map<std::string, std::string> >;
+  using DBType = std::map<std::string, std::map<std::string, std::string>>;
 
  public:
   /// Data retrieval method.
@@ -31,6 +31,10 @@ class EphemeralDatabasePlugin : public DatabasePlugin {
 
   /// Data removal method.
   Status remove(const std::string& domain, const std::string& k) override;
+
+  Status removeRange(const std::string& domain,
+                     const std::string& low,
+                     const std::string& high) override;
 
   /// Key/index lookup method.
   Status scan(const std::string& domain,
@@ -73,6 +77,22 @@ Status EphemeralDatabasePlugin::put(const std::string& domain,
 Status EphemeralDatabasePlugin::remove(const std::string& domain,
                                        const std::string& k) {
   db_[domain].erase(k);
+  return Status(0);
+}
+
+Status EphemeralDatabasePlugin::removeRange(const std::string& domain,
+                                            const std::string& low,
+                                            const std::string& high) {
+  std::vector<std::string> keys;
+  for (const auto& it : db_[domain]) {
+    if (it.first >= low && it.first <= high) {
+      keys.push_back(it.first);
+    }
+  }
+
+  for (const auto& key : keys) {
+    db_[domain].erase(key);
+  }
   return Status(0);
 }
 

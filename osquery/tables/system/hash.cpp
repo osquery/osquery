@@ -106,18 +106,21 @@ MultiHashes hashMultiFromFile(int mask, const std::string& path) {
       {HASH_TYPE_SHA256, std::make_shared<Hash>(HASH_TYPE_SHA256)},
   };
 
-  readFile(path,
-           0,
-           HASH_CHUNK_SIZE,
-           false,
-           true,
-           ([&hashes, &mask](std::string& buffer, size_t size) {
-             for (auto& hash : hashes) {
-               if (mask & hash.first) {
-                 hash.second->update(&buffer[0], size);
-               }
-             }
-           }));
+  auto s = readFile(path,
+                    0,
+                    HASH_CHUNK_SIZE,
+                    false,
+                    true,
+                    ([&hashes, &mask](std::string& buffer, size_t size) {
+                      for (auto& hash : hashes) {
+                        if (mask & hash.first) {
+                          hash.second->update(&buffer[0], size);
+                        }
+                      }
+                    }));
+  if (!s.ok()) {
+    LOG(WARNING) << "Attempted to read file which exceeds flag limits";
+  }
 
   MultiHashes mh;
   mh.mask = mask;

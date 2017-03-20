@@ -67,8 +67,8 @@ static inline void getOptimizeData(EventTime& o_time,
   std::string query_name;
   getDatabaseValue(kPersistentSettings, kExecutingQuery, query_name);
   if (query_name.empty()) {
-    // Fallback when daemons disable query monitoring.
-    query_name = publisher;
+    o_time = 0;
+    o_eid = 0;
   }
 
   {
@@ -95,8 +95,7 @@ static inline void setOptimizeData(EventTime time,
   std::string query_name;
   getDatabaseValue(kPersistentSettings, kExecutingQuery, query_name);
   if (query_name.empty()) {
-    // Fallback when daemons disable query monitoring.
-    query_name = publisher;
+    return;
   }
 
   setDatabaseValue(kEvents, "optimize." + query_name, std::to_string(time));
@@ -264,11 +263,11 @@ void EventSubscriberPlugin::expireIndexes(
   setDatabaseValue(kEvents, index_key + "." + list_type, new_indexes);
 }
 
-void EventSubscriberPlugin::expireCheck(bool cleanup) {
+void EventSubscriberPlugin::expireCheck() {
   auto data_key = "data." + dbNamespace();
   auto eid_key = "eid." + dbNamespace();
   // Min key will be the last surviving key.
-  size_t min_key = 0;
+  size_t threshold_key = 0;
 
   {
     auto limit = getEventsMax();
@@ -289,15 +288,38 @@ void EventSubscriberPlugin::expireCheck(bool cleanup) {
     getDatabaseValue(kEvents, eid_key, last_key);
     // The EID is the next-index.
     // EID - events_max is the most last-recent event to keep.
-    min_key = boost::lexical_cast<size_t>(last_key) - getEventsMax();
+    threshold_key = boost::lexical_cast<size_t>(last_key) - getEventsMax();
 
-    if (cleanup) {
-      // Scan each of the keys in keys, if their ID portion is < min_key.
-      // Nix them, this requires lots of conversions, use with care.
-      for (const auto& key : keys) {
-        if (std::stoul(key.substr(key.rfind('.') + 1)) < min_key) {
-          deleteDatabaseValue(kEvents, key);
+    // Scan each of the keys in keys, if their ID portion is < threshold.
+    // Nix them, this requires lots of conversions, use with care.
+    std::string max_key;
+    std::string min_key;
+    unsigned long min_key_value = 0;
+    unsigned long max_key_value = 0;
+    for (const auto& key : keys) {
+      unsigned long key_value = 0;
+      safeStrtoul(key.substr(key.rfind('.') + 1), 10, key_value);
+
+      if (key_value < static_cast<unsigned long>(threshold_key)) {
+        min_key_value = (min_key_value == 0 || key_value < min_key_value)
+                            ? key_value
+                            : min_key_value;
+        if (min_key_value == key_value) {
+          min_key = key;
         }
+
+        max_key_value = (key_value > max_key_value) ? key_value : max_key_value;
+        if (max_key_value == key_value) {
+          max_key = key;
+        }
+      }
+    }
+
+    if (!min_key.empty()) {
+      if (max_key_value == min_key_value) {
+        deleteDatabaseValue(kEvents, min_key);
+      } else {
+        deleteDatabaseRange(kEvents, min_key, max_key);
       }
     }
   }
@@ -306,7 +328,8 @@ void EventSubscriberPlugin::expireCheck(bool cleanup) {
   // The last-recent event is fetched and the corresponding time is used as
   // the expiration time for the subscriber.
   std::string content;
-  getDatabaseValue(kEvents, data_key + "." + std::to_string(min_key), content);
+  getDatabaseValue(
+      kEvents, data_key + "." + std::to_string(threshold_key), content);
 
   // Decode the value into a row structure to extract the time.
   Row r;
@@ -754,7 +777,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
 
   // Let the subscriber initialize any Subscriptions.
   if (!FLAGS_disable_events && !specialized_sub->disabled) {
-    specialized_sub->expireCheck(true);
+    specialized_sub->expireCheck();
     status = specialized_sub->init();
     specialized_sub->state(EventState::EVENT_RUNNING);
   } else {

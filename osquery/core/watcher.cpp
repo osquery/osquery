@@ -50,11 +50,11 @@ using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
 
 const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
-    {WatchdogLimitType::MEMORY_LIMIT, {100, 50, 1000}},
+    {WatchdogLimitType::MEMORY_LIMIT, {200, 100, 10000}},
     // User or system CPU worker can utilize for LATENCY_LIMIT seconds.
     {WatchdogLimitType::UTILIZATION_LIMIT, {90, 80, 1000}},
     // Number of seconds the worker should run, else consider the exit fatal.
-    {WatchdogLimitType::RESPAWN_LIMIT, {20, 20, 1000}},
+    {WatchdogLimitType::RESPAWN_LIMIT, {10, 4, 1000}},
     // If the worker respawns too quickly, backoff on creating additional.
     {WatchdogLimitType::RESPAWN_DELAY, {5, 5, 1}},
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
@@ -504,7 +504,6 @@ void WatcherRunner::createExtension(const std::string& extension) {
   Watcher::resetExtensionCounters(extension, getUnixTime());
   VLOG(1) << "Created and monitoring extension child (" << ext_process->pid()
           << "): " << extension;
-
 }
 
 void WatcherWatcherRunner::start() {

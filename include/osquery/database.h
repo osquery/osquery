@@ -467,6 +467,11 @@ class DatabasePlugin : public Plugin {
   /// Data removal method.
   virtual Status remove(const std::string& domain, const std::string& k) = 0;
 
+  /// Data removal with range bounds.
+  virtual Status removeRange(const std::string& domain,
+                             const std::string& low,
+                             const std::string& high) = 0;
+
   virtual Status scan(const std::string& domain,
                       std::vector<std::string>& results,
                       const std::string& prefix,
@@ -577,6 +582,11 @@ Status setDatabaseValue(const std::string& domain,
 
 /// Remove a domain/key identified value from backing-store.
 Status deleteDatabaseValue(const std::string& domain, const std::string& key);
+
+/// Remove a range of keys in domain.
+Status deleteDatabaseRange(const std::string& domain,
+                           const std::string& low,
+                           const std::string& high);
 
 /// Get a list of keys for a given domain.
 Status scanDatabaseKeys(const std::string& domain,
