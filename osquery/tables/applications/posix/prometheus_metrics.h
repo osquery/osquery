@@ -49,8 +49,10 @@ void parseScrapeResults(
  * @param scrapeResults map where the key is the target url to be scraped and
  * value is the struct PrometheusResponseData where payload and timestamp are to
  * be written to.
+ *
+ * @param int for request timeout in seconds.
  */
-void scrapeTargets(
-    std::map<std::string, PrometheusResponseData>& scrapeResults);
+void scrapeTargets(std::map<std::string, PrometheusResponseData>& scrapeResults,
+                   int timeoutS = 1);
 }
 }

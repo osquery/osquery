@@ -48,10 +48,10 @@ void parseScrapeResults(
   }
 }
 
-void scrapeTargets(
-    std::map<std::string, PrometheusResponseData>& scrapeResults) {
+void scrapeTargets(std::map<std::string, PrometheusResponseData>& scrapeResults,
+                   int timeoutS) {
   http::client client(
-      http::client::options().follow_redirects(true).timeout(1));
+      http::client::options().follow_redirects(true).timeout(timeoutS));
 
   for (auto& target : scrapeResults) {
     try {
@@ -116,7 +116,10 @@ QueryData genPrometheusMetrics(QueryContext& context) {
     sr[url.second.data()] = PrometheusResponseData{};
   }
 
-  scrapeTargets(sr);
+  int timeout = config.get_child("timeout", boost::property_tree::ptree())
+                    .get_value<int>(1);
+
+  scrapeTargets(sr, timeout);
   parseScrapeResults(sr, result);
 
   return result;
