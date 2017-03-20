@@ -21,6 +21,7 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/windows/wmi.h"
+#include "osquery/tables/system/windows/registry.h"
 #include "osquery/core/conversions.h"
 
 namespace osquery {
@@ -29,40 +30,56 @@ std::string psidToString(PSID sid);
 int getUidFromSid(PSID sid);
 int getGidFromSid(PSID sid);
 
+const std::string kRegProfilePath =
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows "
+    "NT\\CurrentVersion\\ProfileList";
+const char kRegSep = '\\';
+
 namespace tables {
 
-void ProcessWinProfile(const WmiResultItem& wmiResult,
-                       std::set<std::string>& processedSids,
-                       QueryData& results) {
-  Row r;
-  std::string sidString;
-  wmiResult.GetString("SID", sidString);
-
-  r["uuid"] = sidString;
-  processedSids.insert(sidString);
-  wmiResult.GetString("LocalPath", r["directory"]);
-
-  PSID sid;
-  auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
-  if (ret == 0) {
-    VLOG(1) << "Convert SID to string failed with " << GetLastError();
+std::string getUserHomeDir(const std::string& sid) {
+  QueryData res;
+  queryKey(kRegProfilePath + kRegSep + sid, res);
+  for (const auto& kKey : res) {
+    if (kKey.at("name") == "ProfileImagePath") {
+      return kKey.at("data");
+    }
   }
-  r["uid"] = INTEGER(getUidFromSid(sid));
-  r["gid"] = INTEGER(getGidFromSid(sid));
-  r["uid_signed"] = r["uid"];
-  r["gid_signed"] = r["gid"];
-  r["shell"] = "C:\\Windows\\system32\\cmd.exe";
+  return "";
+}
 
-  WmiRequest accntReq(
-      "select Description, Name from Win32_UserAccount where sid = \"" +
-      r["uuid"] + "\"");
-  auto& accntResults = accntReq.results();
-  if (accntReq.getStatus().ok() && !accntResults.empty()) {
-    accntResults[0].GetString("Description", r["description"]);
-    accntResults[0].GetString("Name", r["username"]);
-  } else {
+void processRoamingProfiles(const std::set<std::string>& processedSids,
+                            QueryData& results) {
+  QueryData regResults;
+  queryKey(kRegProfilePath, regResults);
+
+  for (const auto& profile : regResults) {
+    Row r;
+    if (profile.at("type") != "subkey") {
+      continue;
+    }
+
+    auto sidString = profile.at("name");
+    if (processedSids.find(sidString) != processedSids.end()) {
+      continue;
+    }
+    r["uuid"] = sidString;
+    r["directory"] = getUserHomeDir(sidString);
+
+    PSID sid;
+    auto ret = ConvertStringSidToSidA(sidString.c_str(), &sid);
+    if (ret == 0) {
+      VLOG(1) << "Convert SID to string failed with " << GetLastError();
+    }
+    r["uid"] = INTEGER(getUidFromSid(sid));
+    r["gid"] = INTEGER(getGidFromSid(sid));
+    r["uid_signed"] = r["uid"];
+    r["gid_signed"] = r["gid"];
+
+    // TODO
+    r["shell"] = "C:\\Windows\\system32\\cmd.exe";
     r["description"] = "";
-    // If there is no entry in Win32_UserAccount this is a domain user
+
     wchar_t accntName[UNLEN] = {0};
     wchar_t domName[DNLEN] = {0};
     unsigned long accntNameLen = UNLEN;
@@ -71,12 +88,12 @@ void ProcessWinProfile(const WmiResultItem& wmiResult,
     ret = LookupAccountSidW(
         nullptr, sid, accntName, &accntNameLen, domName, &domNameLen, &eUse);
     r["username"] = ret != 0 ? wstringToString(accntName) : "";
+    results.push_back(r);
   }
-  results.push_back(r);
 }
 
-void processWinLocalAccounts(const std::set<std::string>& processedSids,
-                             QueryData& results) {
+void processLocalAccounts(std::set<std::string>& processedSids,
+                          QueryData& results) {
   unsigned long dwUserInfoLevel = 3;
   unsigned long dwNumUsersRead = 0;
   unsigned long dwTotalUsers = 0;
@@ -119,14 +136,7 @@ void processWinLocalAccounts(const std::set<std::string>& processedSids,
         // Will return empty string on fail
         auto sid = LPUSER_INFO_4(userLvl4Buff)->usri4_user_sid;
         auto sidString = psidToString(sid);
-        if (processedSids.find(sidString) != processedSids.end()) {
-          if (userLvl4Buff != nullptr) {
-            NetApiBufferFree(userLvl4Buff);
-          }
-
-          iterBuff++;
-          continue;
-        }
+        processedSids.insert(sidString);
 
         Row r;
         r["uuid"] = psidToString(sid);
@@ -137,8 +147,7 @@ void processWinLocalAccounts(const std::set<std::string>& processedSids,
         r["gid_signed"] = r["gid"];
         r["description"] =
             wstringToString(LPUSER_INFO_4(userLvl4Buff)->usri4_comment);
-        r["directory"] =
-            wstringToString(LPUSER_INFO_4(userLvl4Buff)->usri4_home_dir);
+        r["directory"] = getUserHomeDir(sidString);
         r["shell"] = "C:\\Windows\\System32\\cmd.exe";
         if (userLvl4Buff != nullptr) {
           NetApiBufferFree(userLvl4Buff);
@@ -160,21 +169,11 @@ void processWinLocalAccounts(const std::set<std::string>& processedSids,
 
 QueryData genUsers(QueryContext& context) {
   QueryData results;
-
-  // Enumerate all accounts with a profile on this computer
-  WmiRequest req("select * from Win32_UserProfile");
-  if (!req.getStatus().ok()) {
-    return results;
-  }
-  auto& wmiResults = req.results();
   std::set<std::string> processedSids;
 
-  for (const auto& res : wmiResults) {
-    ProcessWinProfile(res, processedSids, results);
-  }
+  processLocalAccounts(processedSids, results);
+  processRoamingProfiles(processedSids, results);
 
-  // Lastly do a sweep for any accounts that don't yet have a profile
-  processWinLocalAccounts(processedSids, results);
   return results;
 }
 }
