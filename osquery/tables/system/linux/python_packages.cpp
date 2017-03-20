@@ -67,13 +67,13 @@ QueryData genPythonPackages(QueryContext &context) {
       Row r;
       std::string path;
       if (directory.find(".dist-info") != std::string::npos) {
-	path = directory + "/METADATA";
-	genPackage(path, r);
-	results.push_back(r);     
+        path = directory + "/METADATA";
+        genPackage(path, r);
+        results.push_back(r);     
       } else if (directory.find(".egg-info") != std::string::npos) {
-	path = directory + "/PKG-INFO";
-	genPackage(path, r);	
-	results.push_back(r);     
+        path = directory + "/PKG-INFO";
+        genPackage(path, r);	
+        results.push_back(r);     
       }       
     }
   }
