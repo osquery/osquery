@@ -454,9 +454,13 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * be queried using a single backing store `Get` followed by two `Get`s of
    * the most-specific boundary lists.
    *
+   * @param index the set of index to scan.
+   * @param optimize if true apply optimization checks.
+   *
    * @return List of EventID, EventTime%s
    */
-  std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes);
+  std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes,
+                                      bool optimize = true);
 
   /**
    * @brief Get a unique storage-related EventID.
@@ -478,10 +482,13 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    *
    * @param start an inclusive time to begin searching.
    * @param stop an inclusive time to end searching.
+   * @param sort if true the indexes will be sorted.
    *
    * @return List of 'index.step' index strings.
    */
-  std::vector<std::string> getIndexes(EventTime start, EventTime stop);
+  std::vector<std::string> getIndexes(EventTime start,
+                                      EventTime stop,
+                                      bool sort = true);
 
   /**
    * @brief Expire indexes and eventually records.
@@ -582,6 +589,9 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
     return event_count_;
   }
 
+  /// Compare the number of queries run against the queries configured.
+  bool executedAllQueries() const;
+
  private:
   explicit EventSubscriberPlugin(EventSubscriberPlugin const&) = delete;
   EventSubscriberPlugin& operator=(EventSubscriberPlugin const&) = delete;
@@ -660,11 +670,17 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   /// The number of scheduled queries using this subscriber.
   std::atomic<size_t> query_count_{0};
 
+  /// Set of queries that have used this subscriber table.
+  std::set<std::string> queries_;
+
   /// Lock used when incrementing the EventID database index.
   Mutex event_id_lock_;
 
   /// Lock used when recording an EventID and time into search bins.
   Mutex event_record_lock_;
+
+  /// Lock used when recording queries executing against this subscriber.
+  mutable Mutex event_query_record_;
 
  private:
   friend class EventFactory;

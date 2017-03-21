@@ -460,9 +460,10 @@ TEST_F(EventsTests, test_event_subscriber_configure) {
       {{"data",
         "{\"schedule\": {\"1\": {\"query\": \"select * from fake_events\", "
         "\"interval\": 10}, \"2\":{\"query\": \"select * from time, "
-        "fake_events\", \"interval\": 20}, \"3\":{\"query\": \"select * "
+        "fake_events\", \"interval\": 19}, \"3\":{\"query\": \"select * "
         "from fake_events, fake_events\", \"interval\": 5}}}"}});
-  EXPECT_EQ(sub->min_expiration_, 20U * 3);
+  // This will become 19 * 3, rounded up 60.
+  EXPECT_EQ(sub->min_expiration_, 60U);
   EXPECT_EQ(sub->query_count_, 3U);
 
   // Register it within the event factory too.

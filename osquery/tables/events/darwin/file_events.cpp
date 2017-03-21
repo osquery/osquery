@@ -31,7 +31,6 @@ extern const std::set<std::string> kCommonFileColumns;
 class FileEventSubscriber : public EventSubscriber<FSEventsEventPublisher> {
  public:
   Status init() override {
-    configure();
     return Status(0);
   }
 

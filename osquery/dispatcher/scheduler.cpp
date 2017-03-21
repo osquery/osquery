@@ -31,8 +31,13 @@ FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit");
 
 FLAG(uint64,
      schedule_reload,
-     7200,
+     300,
      "Interval in seconds to reload database arenas");
+
+HIDDEN_FLAG(bool,
+            schedule_reload_sql,
+            false,
+            "Reload the SQL implementation during schedule reload");
 
 /// Used to bypass (optimize-out) the set-differential of query results.
 DECLARE_bool(events_optimize);
@@ -159,7 +164,9 @@ void SchedulerRunner::start() {
       runDecorators(DECORATE_INTERVAL, i);
     }
     if (FLAGS_schedule_reload > 0 && (i % FLAGS_schedule_reload) == 0) {
-      SQLiteDBManager::resetPrimary();
+      if (FLAGS_schedule_reload_sql) {
+        SQLiteDBManager::resetPrimary();
+      }
       resetDatabase();
     }
 

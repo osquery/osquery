@@ -100,9 +100,9 @@ TEST_F(EventsDatabaseTests, test_event_module_id) {
 
   // Not normally available outside of EventSubscriber->Add().
   auto event_id1 = sub->getEventID();
-  EXPECT_EQ(event_id1, "1");
+  EXPECT_EQ(event_id1, "0000000001");
   auto event_id2 = sub->getEventID();
-  EXPECT_EQ(event_id2, "2");
+  EXPECT_EQ(event_id2, "0000000002");
 }
 
 TEST_F(EventsDatabaseTests, test_event_add) {
@@ -260,8 +260,8 @@ TEST_F(EventsDatabaseTests, test_gentable) {
 
   // Expect all non-expired results: 11, +
   EXPECT_EQ(9U, results.size());
-  // The expiration time is now - events_expiry.
-  EXPECT_LT(t - (sub->getEventsExpiry() * 2), sub->expire_time_);
+  // The expiration time is now - events_expiry +/ 60.
+  EXPECT_LT(t - (sub->getEventsExpiry() * 2), sub->expire_time_ + 60);
   EXPECT_GT(t, sub->expire_time_);
   // The optimize time will not be changed.
   ASSERT_EQ(0U, sub->optimize_time_);
