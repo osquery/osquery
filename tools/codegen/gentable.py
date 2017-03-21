@@ -370,6 +370,9 @@ def implementation(impl_string, generator=False):
 
     '''Check if the table has a subscriber attribute, if so, enforce time.'''
     if "event_subscriber" in table.attributes:
+        if not table.table_name.endswith("_events"):
+            print(lightred("Event subscriber must use a '_events' suffix"))
+            sys.exit(1)
         columns = {}
         # There is no dictionary comprehension on all supported platforms.
         for column in table.schema:

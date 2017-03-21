@@ -162,7 +162,7 @@ class BenchmarkLongTablePlugin : public TablePlugin {
 
   QueryData generate(QueryContext& ctx) {
     QueryData results;
-    for (int i = 0; i < 1000; i++) {
+    for (size_t i = 0; i < 1000; i++) {
       results.push_back({{"test_int", "0"}, {"test_text", "hello"}});
     }
     return results;
@@ -195,7 +195,7 @@ class BenchmarkWideTablePlugin : public TablePlugin {
  protected:
   TableColumns columns() const override {
     TableColumns cols;
-    for (int i = 0; i < 20; i++) {
+    for (size_t i = 0; i < 20; i++) {
       cols.push_back(std::make_tuple(
           "test_" + std::to_string(i), INTEGER_TYPE, ColumnOptions::DEFAULT));
     }
@@ -204,9 +204,9 @@ class BenchmarkWideTablePlugin : public TablePlugin {
 
   QueryData generate(QueryContext& ctx) override {
     QueryData results;
-    for (int k = 0; k < kWideCount; k++) {
+    for (size_t k = 0; k < kWideCount; k++) {
       Row r;
-      for (int i = 0; i < 20; i++) {
+      for (size_t i = 0; i < 20; i++) {
         r["test_" + std::to_string(i)] = "0";
       }
       results.push_back(r);
@@ -222,9 +222,9 @@ class BenchmarkWideTableYieldPlugin : public BenchmarkWideTablePlugin {
   }
 
   void generator(RowYield& yield, QueryContext& ctx) override {
-    for (int k = 0; k < kWideCount; k++) {
+    for (size_t k = 0; k < kWideCount; k++) {
       Row r;
-      for (int i = 0; i < 20; i++) {
+      for (size_t i = 0; i < 20; i++) {
         r["test_" + std::to_string(i)] = "0";
       }
       yield(r);

@@ -608,6 +608,15 @@ RegistryModuleLoader::~RegistryModuleLoader() {
   handle_ = nullptr;
 }
 
+void Plugin::setName(const std::string& name) {
+  if (!name_.empty() && name != name_) {
+    std::string error = "Cannot rename plugin " + name_ + " to " + name;
+    throw std::runtime_error(error);
+  }
+
+  name_ = name;
+}
+
 void Plugin::getResponse(const std::string& key,
                          const PluginResponse& response,
                          boost::property_tree::ptree& tree) {

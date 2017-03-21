@@ -19,7 +19,9 @@ namespace osquery {
  */
 class EventsConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() const override { return {"events"}; }
+  std::vector<std::string> keys() const override {
+    return {"events"};
+  }
 
   Status setUp() override;
 

@@ -59,15 +59,39 @@ class DBFakeEventSubscriber : public EventSubscriber<DBFakeEventPublisher> {
  public:
   DBFakeEventSubscriber() {
     setName("DBFakeSubscriber");
+    setEventsMax(FLAGS_events_max);
+    setEventsExpiry(FLAGS_events_expiry);
   }
+
   /// Add a fake event at time t
-  Status testAdd(int t) {
+  Status testAdd(size_t t) {
     Row r;
     r["testing"] = "hello from space";
     r["time"] = INTEGER(t);
     r["uptime"] = INTEGER(10);
     return add(r, t);
   }
+
+  size_t getEventsMax() override {
+    return max_;
+  }
+
+  void setEventsMax(size_t max) {
+    max_ = max;
+  }
+
+  size_t getEventsExpiry() override {
+    return expiry_;
+  }
+
+  void setEventsExpiry(size_t expiry) {
+    expiry_ = expiry;
+  }
+
+ private:
+  size_t max_;
+
+  size_t expiry_;
 };
 
 TEST_F(EventsDatabaseTests, test_event_module_id) {
@@ -214,19 +238,20 @@ TEST_F(EventsDatabaseTests, test_gentable) {
 
   ASSERT_EQ(0U, sub->optimize_time_);
   ASSERT_EQ(0U, sub->expire_time_);
+  ASSERT_EQ(0U, sub->min_expiration_);
 
-  auto t = static_cast<int>(getUnixTime());
+  auto t = getUnixTime();
   sub->testAdd(t - 1);
   sub->testAdd(t);
   sub->testAdd(t + 1);
 
   // Test the expire workflow by creating a short expiration time.
-  FLAGS_events_expiry = 10;
+  sub->setEventsExpiry(10);
 
   std::vector<std::string> keys;
   scanDatabaseKeys("events", keys);
   // 9 data records, 1 eid counter, 3 indexes, 15 index records.
-  // Depending on the moment, an additional 3 indexs may be introduced.
+  // Depending on the moment, an additional 3 indexes may be introduced.
   EXPECT_LE(16U, keys.size());
 
   // Perform a "select" equivalent.
@@ -236,7 +261,7 @@ TEST_F(EventsDatabaseTests, test_gentable) {
   // Expect all non-expired results: 11, +
   EXPECT_EQ(9U, results.size());
   // The expiration time is now - events_expiry.
-  EXPECT_LT(t - (FLAGS_events_expiry * 2), sub->expire_time_);
+  EXPECT_LT(t - (sub->getEventsExpiry() * 2), sub->expire_time_);
   EXPECT_GT(t, sub->expire_time_);
   // The optimize time will not be changed.
   ASSERT_EQ(0U, sub->optimize_time_);
@@ -255,7 +280,7 @@ TEST_F(EventsDatabaseTests, test_gentable) {
 TEST_F(EventsDatabaseTests, test_optimize) {
   auto sub = std::make_shared<DBFakeEventSubscriber>();
   for (size_t i = 800; i < 800 + 10; ++i) {
-    sub->testAdd(static_cast<int>(i));
+    sub->testAdd(i);
   }
 
   // Lie about the tool type to enable optimizations.
@@ -267,7 +292,7 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   setDatabaseValue(kPersistentSettings, kExecutingQuery, "events_db_test");
 
   QueryContext context;
-  auto t = static_cast<int>(getUnixTime());
+  auto t = getUnixTime();
   auto results = sub->genTable(context);
   EXPECT_EQ(10U, results.size());
   // Optimization will set the time NOW as the minimum event time.
@@ -278,7 +303,7 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   EXPECT_EQ(10U, sub->optimize_eid_);
 
   for (size_t i = t + 800; i < t + 800 + 10; ++i) {
-    sub->testAdd(static_cast<int>(i));
+    sub->testAdd(i);
   }
   results = sub->genTable(context);
   EXPECT_EQ(10U, results.size());
@@ -296,8 +321,8 @@ TEST_F(EventsDatabaseTests, test_optimize) {
 TEST_F(EventsDatabaseTests, test_expire_check) {
   auto sub = std::make_shared<DBFakeEventSubscriber>();
   // Set the max number of buffered events to something reasonably small.
-  FLAGS_events_max = 10;
-  auto t = 10000;
+  sub->setEventsMax(50);
+  size_t t = 10000;
 
   // We are still at the mercy of the opaque EVENTS_CHECKPOINT define.
   for (size_t x = 0; x < 3; x++) {

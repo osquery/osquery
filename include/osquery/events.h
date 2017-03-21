@@ -115,6 +115,20 @@ using SubscriptionVector = std::vector<SubscriptionRef>;
 extern const std::vector<size_t> kEventTimeLists;
 
 /**
+ * @brief Details for each subscriber as it relates to the schedule.
+ *
+ * This is populated for each configuration update by scanning the schedule.
+ */
+struct SubscriberExpirationDetails {
+ public:
+  /// The max internal is the minimum wait time for expiring subscriber data.
+  size_t max_interval{0};
+
+  /// The number of queries that should run between intervals.
+  size_t query_count{0};
+};
+
+/**
  * @brief DECLARE_PUBLISHER supplies needed boilerplate code that applies a
  * string-type EventPublisherID to identify the publisher declaration.
  */
@@ -284,7 +298,7 @@ class EventPublisherPlugin : public Plugin,
 
   /// Return a string identifier associated with this EventPublisher.
   virtual EventPublisherID type() const {
-    return "publisher";
+    return getName();
   }
 
  public:
@@ -640,6 +654,12 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    */
   size_t optimize_eid_{0};
 
+  /// The minimum acceptable expiration, based on the query schedule.
+  std::atomic<size_t> min_expiration_{0};
+
+  /// The number of scheduled queries using this subscriber.
+  std::atomic<size_t> query_count_{0};
+
   /// Lock used when incrementing the EventID database index.
   Mutex event_id_lock_;
 
@@ -658,6 +678,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   FRIEND_TEST(EventsDatabaseTests, test_gentable);
   FRIEND_TEST(EventsDatabaseTests, test_expire_check);
   FRIEND_TEST(EventsDatabaseTests, test_optimize);
+  FRIEND_TEST(EventsTests, test_event_subscriber_configure);
   friend class DBFakeEventSubscriber;
   friend class BenchmarkEventSubscriber;
 };
@@ -765,8 +786,11 @@ class EventFactory : private boost::noncopyable {
    */
   static Status deregisterEventPublisher(const EventPublisherRef& pub);
 
-  /// Deregister an EventPublisher by EventPublisherID.
+  /// Deregister an EventPublisher by publisher name.
   static Status deregisterEventPublisher(EventPublisherID& type_id);
+
+  /// Deregister an EventSubscriber by the subscriber name.
+  static Status deregisterEventSubscriber(EventSubscriberID& sub);
 
   /// Return an instance to a registered EventPublisher.
   static EventPublisherRef getEventPublisher(EventPublisherID& pub);
@@ -788,6 +812,16 @@ class EventFactory : private boost::noncopyable {
 
   /// Optionally forward events to loggers.
   static void forwardEvent(const std::string& event);
+
+  /**
+   * @brief The event factory, subscribers, and publishers respond to updates.
+   *
+   * This should be called by the Config instance when configuration data is
+   * updated. It is separate from the config parser that takes configuration
+   * information specific to events and acts. This allows the event factory
+   * to make changes relative to the schedule or packs.
+   */
+  static void configUpdate();
 
  public:
   /// The dispatched event thread's entry-point (if needed).

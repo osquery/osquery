@@ -16,6 +16,8 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
+
 namespace osquery {
 
 FLAG(int32, value_max, 512, "Maximum returned row value size");
@@ -172,10 +174,31 @@ Status getQueryColumns(const std::string& q, TableColumns& columns) {
   return status;
 }
 
+Status mockGetQueryTables(std::string copy_q,
+                          std::vector<std::string>& tables) {
+  std::transform(copy_q.begin(), copy_q.end(), copy_q.begin(), ::tolower);
+  auto offset_from = copy_q.find("from ");
+  if (offset_from == std::string::npos) {
+    return Status(1);
+  }
+
+  auto simple_tables = osquery::split(copy_q.substr(offset_from + 5), ",");
+  for (const auto& table : simple_tables) {
+    tables.push_back(table);
+  }
+  return Status(0);
+}
+
 Status getQueryTables(const std::string& q, std::vector<std::string>& tables) {
+  if (!Registry::get().exists("sql", "sql") && kToolType == ToolType::TEST) {
+    // We 'mock' this functionality for internal tests.
+    return mockGetQueryTables(q, tables);
+  }
+
   PluginResponse response;
   auto status = Registry::call(
       "sql", "sql", {{"action", "tables"}, {"query", q}}, response);
+
   for (const auto& table : response) {
     tables.push_back(table.at("t"));
   }

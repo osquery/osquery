@@ -21,6 +21,7 @@
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
@@ -502,10 +503,17 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
     }
   }
 
-  if (getEventsExpiry() > 0) {
+  auto expiry = getEventsExpiry();
+  if (expiry > 0) {
+    // Make sure the configured expiration is at least the minimum needed to
+    // execute all related queries in the schedule.
+    if (expiry < min_expiration_) {
+      expiry = min_expiration_;
+    }
+
     // Set the expire time to NOW - "configured lifetime".
     // Index retrieval will apply the constraints checking and auto-expire.
-    expire_time_ = getUnixTime() - getEventsExpiry();
+    expire_time_ = getUnixTime() - expiry;
   }
 
   if (FLAGS_events_optimize) {
@@ -618,6 +626,55 @@ void EventFactory::forwardEvent(const std::string& event) {
   }
 }
 
+void EventFactory::configUpdate() {
+  // Scan the schedule for queries that touch "_events" tables.
+  // We will count the queries
+  std::map<std::string, SubscriberExpirationDetails> subscriber_details;
+  Config::getInstance().scheduledQueries([&subscriber_details](
+      const std::string& name, const ScheduledQuery& query) {
+    std::vector<std::string> tables;
+    // Convert query string into a list of virtual tables effected.
+    if (!getQueryTables(query.query, tables)) {
+      VLOG(1) << "Cannot get tables from query: " << name;
+      return;
+    }
+
+    // Remove duplicates and select only the subscriber tables.
+    std::set<std::string> subscribers;
+    for (const auto& table : tables) {
+      if (Registry::get().exists("event_subscriber", table)) {
+        subscribers.insert(table);
+      }
+    }
+
+    for (const auto& subscriber : subscribers) {
+      auto& details = subscriber_details[subscriber];
+      details.max_interval = (query.interval > details.max_interval)
+                                 ? query.interval
+                                 : details.max_interval;
+      details.query_count++;
+    }
+  });
+
+  auto& ef = EventFactory::getInstance();
+  for (const auto& details : subscriber_details) {
+    if (!ef.exists(details.first)) {
+      continue;
+    }
+
+    WriteLock lock(ef.factory_lock_);
+    auto subscriber = ef.getEventSubscriber(details.first);
+    subscriber->min_expiration_ = details.second.max_interval * 3;
+    subscriber->query_count_ = details.second.query_count;
+  }
+
+  // If events are enabled configure the subscribers before publishers.
+  if (!FLAGS_disable_events) {
+    RegistryFactory::get().registry("event_subscriber")->configure();
+    RegistryFactory::get().registry("event_publisher")->configure();
+  }
+}
+
 Status EventFactory::run(EventPublisherID& type_id) {
   if (FLAGS_disable_events) {
     return Status(0, "Events disabled");
@@ -631,7 +688,7 @@ Status EventFactory::run(EventPublisherID& type_id) {
   EventPublisherRef publisher = nullptr;
   {
     auto& ef = EventFactory::getInstance();
-    WriteLock lock(getInstance().factory_lock_);
+    WriteLock lock(ef.factory_lock_);
     publisher = ef.getEventPublisher(type_id);
   }
 
@@ -689,11 +746,16 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
   }
 
   if (specialized_pub == nullptr || specialized_pub.get() == nullptr) {
-    return Status(0, "Invalid subscriber");
+    return Status(0, "Invalid publisher");
+  }
+
+  auto type_id = specialized_pub->type();
+  if (type_id.empty()) {
+    // This subscriber did not override its name.
+    return Status(1, "Publishers must have a type");
   }
 
   auto& ef = EventFactory::getInstance();
-  auto type_id = specialized_pub->type();
   {
     WriteLock lock(getInstance().factory_lock_);
     if (ef.event_pubs_.count(type_id) != 0) {
@@ -741,6 +803,11 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
   // The config may use an "events" key to explicitly enabled or disable
   // event subscribers. See EventSubscriber::disable.
   auto name = specialized_sub->getName();
+  if (name.empty()) {
+    // This subscriber did not override its name.
+    return Status(1, "Subscribers must have set a name");
+  }
+
   auto plugin = Config::getInstance().getParser("events");
   if (plugin != nullptr && plugin.get() != nullptr) {
     const auto& data = plugin->getData();
@@ -825,6 +892,9 @@ size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
   } catch (std::out_of_range& /* e */) {
     return 0;
   }
+  if (publisher == nullptr) {
+    return 0;
+  }
   return publisher->numSubscriptions();
 }
 
@@ -856,7 +926,7 @@ Status EventFactory::deregisterEventPublisher(const EventPublisherRef& pub) {
 Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
   auto& ef = EventFactory::getInstance();
 
-  WriteLock lock(getInstance().factory_lock_);
+  WriteLock lock(ef.factory_lock_);
   EventPublisherRef publisher = ef.getEventPublisher(type_id);
   if (publisher == nullptr) {
     return Status(1, "No event publisher to deregister");
@@ -877,6 +947,21 @@ Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
     }
   }
   return Status(0, "OK");
+}
+
+Status EventFactory::deregisterEventSubscriber(EventSubscriberID& sub) {
+  auto& ef = EventFactory::getInstance();
+
+  WriteLock lock(ef.factory_lock_);
+  if (ef.event_subs_.count(sub) == 0) {
+    return Status(1, "Event subscriber is missing");
+  }
+
+  auto& subscriber = ef.event_subs_.at(sub);
+  subscriber->state(EventState::EVENT_NONE);
+  subscriber->tearDown();
+  ef.event_subs_.erase(sub);
+  return Status(0);
 }
 
 std::vector<std::string> EventFactory::publisherTypes() {
@@ -935,6 +1020,13 @@ void attachEvents() {
 
   const auto& subscribers = RegistryFactory::get().plugins("event_subscriber");
   for (const auto& subscriber : subscribers) {
+    if (subscriber.first.find("_events") == std::string::npos ||
+        subscriber.first.find("_events") + 7 != subscriber.first.size()) {
+      LOG(ERROR) << "Error registering subscriber: " << subscriber.first
+                 << ": Must use a '_events' suffix";
+      continue;
+    }
+
     auto status = EventFactory::registerEventSubscriber(subscriber.second);
     if (!status.ok()) {
       VLOG(1) << "Error registering subscriber: " << subscriber.first << ": "
