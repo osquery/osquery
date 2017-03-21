@@ -94,9 +94,6 @@ class WindowsEventLogEventPublisher
       EVT_HANDLE evt, boost::property_tree::ptree& propTree);
 
  private:
-  /// Restarts the osquery Windows Event Log Events publisher
-  void restart();
-
   /// Ensures that all Windows event log subscriptions are removed
   void stop() override;
 

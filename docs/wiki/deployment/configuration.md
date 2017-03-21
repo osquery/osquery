@@ -309,8 +309,7 @@ The `platform` key can be:
 * `darwin` for OS X hosts
 * `freebsd` for FreeBSD hosts
 * `linux` for any RedHat or Debian-based hosts
-* `ubuntu` for Debian-based hosts (yes, we know)
-* `centos` for RedHat-based hosts (also, see above, we get it)
+* `windows` for any Windows desktop or server hosts
 * `any` or `all` for all, alternatively no platform key selects all
 
 The `shard` key works by hashing the hostname then taking the quotient 255 of the first byte. This allows us to select a deterministic 'preview' for the query, this helps when slow-rolling or testing new queries.

@@ -65,6 +65,8 @@ DECLARE_bool(disable_database);
 typedef std::chrono::high_resolution_clock chrono_clock;
 
 void initTesting() {
+  osquery::kToolType = ToolType::TEST;
+
   registryAndPluginInit();
   // Allow unit test execution from anywhere in the osquery source/build tree.
   while (osquery::kTestDataPath != "/") {

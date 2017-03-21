@@ -20,8 +20,7 @@ if(APPLE)
 
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.dylib")
   ADD_OSQUERY_LINK_ADDITIONAL("libxar.dylib")
-  ADD_OSQUERY_LINK_ADDITIONAL("magic")
-  ADD_OSQUERY_LINK_ADDITIONAL("tsk")
+  ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
 elseif(FREEBSD)
   include_directories("/usr/local/include/libxml2")
 
@@ -37,8 +36,6 @@ elseif(FREEBSD)
   ADD_OSQUERY_LINK_ADDITIONAL("util")
   ADD_OSQUERY_LINK_ADDITIONAL("kvm")
   ADD_OSQUERY_LINK_ADDITIONAL("elf")
-  ADD_OSQUERY_LINK_ADDITIONAL("magic")
-  ADD_OSQUERY_LINK_ADDITIONAL("tsk")
 elseif(WINDOWS)
   # Additional Windows libraries
   ADD_OSQUERY_LINK_ADDITIONAL("Advapi32.lib")
@@ -61,29 +58,11 @@ else()
   file(GLOB OSQUERY_LINUX_TABLES_TESTS "*/linux/tests/*.cpp")
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_LINUX_TABLES_TESTS})
 
-  if(REDHAT_BASED)
-    # CentOS specific tables
-    # file(GLOB OSQUERY_REDHAT_TABLES "*/centos/*.cpp")
-    # ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_redhat
-    #   ${OSQUERY_REDHAT_TABLES}
-    # )
-
-  elseif(DEBIAN_BASED)
-    # Ubuntu specific tables
-    # file(GLOB OSQUERY_UBUNTU_TABLES "*/ubuntu/*.cpp")
-    # ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_ubuntu
-    #   ${OSQUERY_UBUNTU_TABLES}
-    # )
-
-  endif()
-
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.so")
   ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper")
   ADD_OSQUERY_LINK_ADDITIONAL("gcrypt gpg-error")
   ADD_OSQUERY_LINK_ADDITIONAL("blkid")
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
-  ADD_OSQUERY_LINK_ADDITIONAL("magic")
-  ADD_OSQUERY_LINK_ADDITIONAL("tsk")
 
   ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg lzma lz4 bz2")
   ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio beecrypt popt db")
@@ -93,17 +72,9 @@ if(APPLE OR LINUX)
   file(GLOB OSQUERY_CROSS_EVENTS_TABLES "events/*.cpp")
 
   ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
-
-  if(APPLE)
-    ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
-  endif()
 else()
   # TODO: When we have Windows events, fill this in
   set(OSQUERY_CROSS_EVENTS_TABLES "")
-endif()
-
-if(APPLE OR LINUX OR FREEBSD)
-  ADD_OSQUERY_LINK_ADDITIONAL("augeas fa xml2")
 endif()
 
 # TODO: These tables should be made Windows-compatible
@@ -124,9 +95,12 @@ if(NOT WINDOWS)
 
   file(GLOB OSQUERY_POSIX_TABLES_TESTS "*/posix/tests/*.cpp")
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_POSIX_TABLES_TESTS})
+
+  ADD_OSQUERY_LINK_ADDITIONAL("magic")
+  ADD_OSQUERY_LINK_ADDITIONAL("tsk")
+  ADD_OSQUERY_LINK_ADDITIONAL("augeas fa xml2")
 endif()
 
-# No cross-platform application tables yet.
 file(GLOB OSQUERY_CROSS_APPLICATIONS_TABLES "applications/*.cpp")
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_applications
   ${OSQUERY_CROSS_APPLICATIONS_TABLES}

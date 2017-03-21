@@ -52,7 +52,6 @@ using FileSubscriptionContextRef = INotifySubscriptionContextRef;
 class YARAEventSubscriber : public FileEventSubscriber {
  public:
   Status init() override {
-    configure();
     return Status(0);
   }
 

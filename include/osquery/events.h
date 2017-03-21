@@ -115,6 +115,20 @@ using SubscriptionVector = std::vector<SubscriptionRef>;
 extern const std::vector<size_t> kEventTimeLists;
 
 /**
+ * @brief Details for each subscriber as it relates to the schedule.
+ *
+ * This is populated for each configuration update by scanning the schedule.
+ */
+struct SubscriberExpirationDetails {
+ public:
+  /// The max internal is the minimum wait time for expiring subscriber data.
+  size_t max_interval{0};
+
+  /// The number of queries that should run between intervals.
+  size_t query_count{0};
+};
+
+/**
  * @brief DECLARE_PUBLISHER supplies needed boilerplate code that applies a
  * string-type EventPublisherID to identify the publisher declaration.
  */
@@ -284,7 +298,7 @@ class EventPublisherPlugin : public Plugin,
 
   /// Return a string identifier associated with this EventPublisher.
   virtual EventPublisherID type() const {
-    return "publisher";
+    return getName();
   }
 
  public:
@@ -440,9 +454,13 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * be queried using a single backing store `Get` followed by two `Get`s of
    * the most-specific boundary lists.
    *
+   * @param index the set of index to scan.
+   * @param optimize if true apply optimization checks.
+   *
    * @return List of EventID, EventTime%s
    */
-  std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes);
+  std::vector<EventRecord> getRecords(const std::vector<std::string>& indexes,
+                                      bool optimize = true);
 
   /**
    * @brief Get a unique storage-related EventID.
@@ -464,10 +482,13 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    *
    * @param start an inclusive time to begin searching.
    * @param stop an inclusive time to end searching.
+   * @param sort if true the indexes will be sorted.
    *
    * @return List of 'index.step' index strings.
    */
-  std::vector<std::string> getIndexes(EventTime start, EventTime stop);
+  std::vector<std::string> getIndexes(EventTime start,
+                                      EventTime stop,
+                                      bool sort = true);
 
   /**
    * @brief Expire indexes and eventually records.
@@ -568,6 +589,9 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
     return event_count_;
   }
 
+  /// Compare the number of queries run against the queries configured.
+  bool executedAllQueries() const;
+
  private:
   explicit EventSubscriberPlugin(EventSubscriberPlugin const&) = delete;
   EventSubscriberPlugin& operator=(EventSubscriberPlugin const&) = delete;
@@ -640,11 +664,23 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    */
   size_t optimize_eid_{0};
 
+  /// The minimum acceptable expiration, based on the query schedule.
+  std::atomic<size_t> min_expiration_{0};
+
+  /// The number of scheduled queries using this subscriber.
+  std::atomic<size_t> query_count_{0};
+
+  /// Set of queries that have used this subscriber table.
+  std::set<std::string> queries_;
+
   /// Lock used when incrementing the EventID database index.
   Mutex event_id_lock_;
 
   /// Lock used when recording an EventID and time into search bins.
   Mutex event_record_lock_;
+
+  /// Lock used when recording queries executing against this subscriber.
+  mutable Mutex event_query_record_;
 
  private:
   friend class EventFactory;
@@ -658,6 +694,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   FRIEND_TEST(EventsDatabaseTests, test_gentable);
   FRIEND_TEST(EventsDatabaseTests, test_expire_check);
   FRIEND_TEST(EventsDatabaseTests, test_optimize);
+  FRIEND_TEST(EventsTests, test_event_subscriber_configure);
   friend class DBFakeEventSubscriber;
   friend class BenchmarkEventSubscriber;
 };
@@ -765,8 +802,11 @@ class EventFactory : private boost::noncopyable {
    */
   static Status deregisterEventPublisher(const EventPublisherRef& pub);
 
-  /// Deregister an EventPublisher by EventPublisherID.
+  /// Deregister an EventPublisher by publisher name.
   static Status deregisterEventPublisher(EventPublisherID& type_id);
+
+  /// Deregister an EventSubscriber by the subscriber name.
+  static Status deregisterEventSubscriber(EventSubscriberID& sub);
 
   /// Return an instance to a registered EventPublisher.
   static EventPublisherRef getEventPublisher(EventPublisherID& pub);
@@ -788,6 +828,16 @@ class EventFactory : private boost::noncopyable {
 
   /// Optionally forward events to loggers.
   static void forwardEvent(const std::string& event);
+
+  /**
+   * @brief The event factory, subscribers, and publishers respond to updates.
+   *
+   * This should be called by the Config instance when configuration data is
+   * updated. It is separate from the config parser that takes configuration
+   * information specific to events and acts. This allows the event factory
+   * to make changes relative to the schedule or packs.
+   */
+  static void configUpdate();
 
  public:
   /// The dispatched event thread's entry-point (if needed).

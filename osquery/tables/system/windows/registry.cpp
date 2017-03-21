@@ -35,6 +35,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
+static const size_t kMaxRecursiveGlobs = 64;
 
 const std::map<std::string, HKEY> kRegistryHives = {
     {"HKEY_CLASSES_ROOT", HKEY_CLASSES_ROOT},
@@ -269,8 +270,12 @@ void queryKey(const std::string& keyPath, QueryData& results) {
   RegCloseKey(hRegistryHandle);
 }
 
-
-Status resolveRegistryGlobs(const std::string& pattern, std::vector<std::string> results) {
+Status resolveRegistryGlobs(std::string& pattern,
+                            std::vector<std::string> results) {
+  boost::replace_all(pattern, "%", "*");
+  auto base =
+    fs::path(pattern.substr(0, pattern.find('*'))).make_preferred().string();
+  auto baseKey = base.parent_path();
   return Status(0, "OK");
 }
 
@@ -291,30 +296,30 @@ QueryData genRegistry(QueryContext& context) {
   QueryData results;
   std::set<std::string> keys;
 
-  if (context.constraints["key"].exists(EQUALS)) {
-    auto keys = context.constraints["key"].getAll(EQUALS);
-  }
-  context.expandConstraints(
-    "key",
-    LIKE,
-    keys,
-    ([&](const std::string& pattern, std::set<std::string>& out) {
-      std::vector<std::string> resolvedKeys;
-      auto status = resolveRegistryGlobs(pattern, resolvedKeys);
-      if (status.ok()) {
-        for (const auto& rk : resolvedKeys) {
-          out.insert(rk);
-        }
-      }
-      return status;
-  }));
-
-  /// By default, we display all HIVEs
-  if (context.constraints.empty() && keys.empty()) {
+  if (!(context.hasConstraint("key") ||
+        context.hasConstraint("key", LIKE))) {
     for (auto& h : kRegistryHives) {
       keys.insert(h.first);
     }
+  } else {
+    keys = context.constraints["key"].getAll(EQUALS);
+    context.expandConstraints(
+        "key",
+        LIKE,
+        keys,
+        ([&](const std::string pattern, std::set<std::string>& out) {
+          std::vector<std::string> resolvedKeys;
+          auto status = resolveRegistryGlobs(pattern, resolvedKeys);
+          if (status.ok()) {
+            for (const auto& rk : resolvedKeys) {
+              out.insert(rk);
+            }
+          }
+          return status;
+        }));
   }
+
+  maybeWarnLocalUsers(keys);
 
   for (const auto& key : keys) {
     queryKey(key, results);

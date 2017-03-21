@@ -17,6 +17,7 @@
 
 #include <osquery/config.h>
 #include <osquery/database.h>
+#include <osquery/events.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -67,7 +68,6 @@ CLI_FLAG(uint64,
 
 DECLARE_string(config_plugin);
 DECLARE_string(pack_delimiter);
-DECLARE_bool(disable_events);
 
 /**
  * @brief The backing store key name for the executing query.
@@ -573,11 +573,7 @@ Status Config::update(const std::map<std::string, std::string>& config) {
       registry.second->configure();
     }
 
-    // If events are enabled configure the subscribers before publishers.
-    if (!FLAGS_disable_events) {
-      RegistryFactory::get().registry("event_subscriber")->configure();
-      RegistryFactory::get().registry("event_publisher")->configure();
-    }
+    EventFactory::configUpdate();
   }
 
   return Status(0, "OK");

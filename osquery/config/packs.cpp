@@ -244,16 +244,18 @@ bool Pack::checkPlatform(const std::string& platform) const {
     return true;
   }
 
-#ifdef __linux__
-  if (platform.find("linux") != std::string::npos) {
-    return true;
-  }
-#endif
-
   if (platform.find("any") != std::string::npos ||
       platform.find("all") != std::string::npos) {
     return true;
   }
+
+  auto linux_type = (platform.find("linux") != std::string::npos ||
+                     platform.find("ubuntu") != std::string::npos ||
+                     platform.find("centos") != std::string::npos);
+  if (linux_type && isPlatform(PlatformType::TYPE_LINUX)) {
+    return true;
+  }
+
   return (platform.find(kSDKPlatform) != std::string::npos);
 }
 

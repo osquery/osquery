@@ -22,11 +22,8 @@ const std::map<std::string, std::vector<ConstraintOperator>> kValidConstraints =
 /// Microsoft helper function for getting the contents of a registry key
 void queryKey(const std::string& keyPath, QueryData& results);
 
-bool validUserConstraintsExist(QueryData& context);
-
-Status expandKeyConstraint(const ConstraintList& constraint, std::set<std::string>& rKeys);
-
-Status expandUserConstraints(QueryContext& context, std::set<std::string>& rKeys);
+Status resolveRegistryGlobs(const std::string& pattern,
+                            std::vector<std::string> results);
 
 void maybeWarnLocalUsers(std::set<std::string>& keys);
 

@@ -1,4 +1,4 @@
-table_name("syslog")
+table_name("syslog_events", aliases=["syslog"])
 schema([
     Column("time", BIGINT, "Current unix epoch time"),
     Column("datetime", TEXT, "Time known to syslog"),

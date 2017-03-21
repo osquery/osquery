@@ -127,9 +127,8 @@ int main(int argc, char* argv[]) {
   } else if ((val = osquery::getEnvVar("OSQUERY_EXTENSION"))) {
     return extensionMain(argc, argv);
   }
-  osquery::registryAndPluginInit();
-  osquery::kProcessTestExecPath = argv[0];
 
+  osquery::kProcessTestExecPath = argv[0];
   osquery::initTesting();
   testing::InitGoogleTest(&argc, argv);
   // Optionally enable Goggle Logging
