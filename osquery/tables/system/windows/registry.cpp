@@ -27,6 +27,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/filesystem.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
@@ -266,33 +267,56 @@ void queryKey(const std::string& keyPath, QueryData& results) {
   }
   delete[](bpDataBuff);
   RegCloseKey(hRegistryHandle);
-};
+}
+
+
+Status resolveRegistryGlobs(const std::string& pattern, std::vector<std::string> results) {
+  return Status(0, "OK");
+}
+
+void maybeWarnLocalUsers(std::set<std::string>& keys) {
+  std::string hive, _;
+  for (const auto& key : keys) {
+    explodeRegistryPath(key, hive, _);
+    if (hive == "HKEY_CURRENT_USER" ||
+        hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS") {
+      LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
+                      "query HKEY_USERS with the desired users SID instead";
+      return;
+    }
+  }
+}
 
 QueryData genRegistry(QueryContext& context) {
   QueryData results;
-  std::set<std::string> rKeys;
-  auto shouldWarnLocalUsers = false;
+  std::set<std::string> keys;
+
+  if (context.constraints["key"].exists(EQUALS)) {
+    auto keys = context.constraints["key"].getAll(EQUALS);
+  }
+  context.expandConstraints(
+    "key",
+    LIKE,
+    keys,
+    ([&](const std::string& pattern, std::set<std::string>& out) {
+      std::vector<std::string> resolvedKeys;
+      auto status = resolveRegistryGlobs(pattern, resolvedKeys);
+      if (status.ok()) {
+        for (const auto& rk : resolvedKeys) {
+          out.insert(rk);
+        }
+      }
+      return status;
+  }));
+
   /// By default, we display all HIVEs
-  if ((context.constraints["key"].exists(EQUALS) &&
-       context.constraints["key"].getAll(EQUALS).size() > 0)) {
-    rKeys = context.constraints["key"].getAll(EQUALS);
-    shouldWarnLocalUsers = true;
-  } else {
+  if (context.constraints.empty() && keys.empty()) {
     for (auto& h : kRegistryHives) {
-      rKeys.insert(h.first);
+      keys.insert(h.first);
     }
   }
 
-  for (const auto& key : rKeys) {
-    std::string hive;
-    std::string keyPath;
-    explodeRegistryPath(key, hive, keyPath);
-    if (shouldWarnLocalUsers && (hive == "HKEY_CURRENT_USER" ||
-                                 hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
-      LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
-                      "query HKEY_USERS with the desired users SID instead";
-      shouldWarnLocalUsers = false;
-    }
+  for (const auto& key : keys) {
     queryKey(key, results);
   }
   return results;

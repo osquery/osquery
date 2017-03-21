@@ -15,8 +15,20 @@
 namespace osquery {
 namespace tables {
 
+// Valid columns/constraints that we use to populate results from registry
+const std::map<std::string, std::vector<ConstraintOperator>> kValidConstraints =
+    {{"key", {EQUALS, LIKE}}};
+
 /// Microsoft helper function for getting the contents of a registry key
 void queryKey(const std::string& keyPath, QueryData& results);
+
+bool validUserConstraintsExist(QueryData& context);
+
+Status expandKeyConstraint(const ConstraintList& constraint, std::set<std::string>& rKeys);
+
+Status expandUserConstraints(QueryContext& context, std::set<std::string>& rKeys);
+
+void maybeWarnLocalUsers(std::set<std::string>& keys);
 
 void explodeRegistryPath(const std::string& path,
                          std::string& rHive,
