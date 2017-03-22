@@ -36,12 +36,12 @@ int checkOverlap() {
     int count = 0;
     for (const auto& key : kPythonPath ) {
       if (count > 1)
-	return -1;
+        return -1;
       else if (key.find(path) != std::string::npos)
-	count += 1;
+        count += 1;
     }
-
   }
+
   return 1;
 }
 
@@ -111,6 +111,7 @@ QueryData genPythonPackages(QueryContext &context) {
       }
     }
   }
+
   return results;
 }
 
