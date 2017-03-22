@@ -1,5 +1,5 @@
 table_name("windows_events")
-description("All of the Windows Event logs.")
+description("Windows Event logs.")
 schema([
     Column("time", BIGINT, "Timestamp the event was received"),
     Column("datetime", TEXT, "System time at which the event occurred"),
