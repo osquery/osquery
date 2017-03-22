@@ -35,7 +35,6 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
-static const size_t kMaxRecursiveGlobs = 64;
 
 const std::map<std::string, HKEY> kRegistryHives = {
     {"HKEY_CLASSES_ROOT", HKEY_CLASSES_ROOT},
@@ -64,7 +63,8 @@ const std::map<DWORD, std::string> kRegistryTypes = {
 };
 
 const std::string kRegSep = "\\";
-const std::string kRegGlob = "%";
+const std::string kRegSingleGlob = "%";
+const std::string kRegRecursiveGlob = "%%";
 
 void explodeRegistryPath(const std::string& path,
                          std::string& rHive,
@@ -300,11 +300,54 @@ void appendSubkeyToKeys(const std::string& subkey,
   rKeys = newKeys;
 }
 
+Status populateAllKeysRecursive(std::set<std::string>& rKeys,
+                                int currDepth,
+                                int maxDepth) {
+  std::set<std::string> subkeys{};
+
+  if (currDepth > maxDepth) {
+    return Status(
+        1, "Max recursive depth (" + std::to_string(maxDepth) + ") reached");
+  }
+
+  for (const auto& key : rKeys) {
+    QueryData regResults;
+    queryKey(key, regResults);
+    for (const auto& r : regResults) {
+      if (r.at("type") == "subkey") {
+        subkeys.insert(r.at("path"));
+      }
+    }
+  }
+
+  if (!(subkeys.size() == 0)) {
+    auto status = populateAllKeysRecursive(subkeys, ++currDepth);
+    if (!status.ok()) {
+      return status;
+    }
+    rKeys.insert(subkeys.begin(), subkeys.end());
+  }
+
+  return Status(0, "OK");
+}
+
 Status resolveRegistryGlobs(const std::string& pattern,
                             std::set<std::string>& results) {
   auto toks = osquery::split(pattern, kRegSep);
+  auto status = Status(0, "OK");
   for (const auto& tok : toks) {
-    if (tok.find(kRegGlob) != std::string::npos) {
+    // If recursive glob is found in middle of path, treat it like standard glob
+    if (tok.find(kRegRecursiveGlob) != std::string::npos &&
+        &tok == &toks.back()) {
+      if (&tok == &toks.front()) {
+        // Special case for "select * from registry where key like '%%'"
+        populateDefaultKeys(results);
+      }
+      status = populateAllKeysRecursive(results);
+      if (!status.ok()) {
+        break;
+      }
+    } else if (tok.find(kRegSingleGlob) != std::string::npos) {
       if (&tok == &toks.front()) {
         populateDefaultKeys(results);
       } else {
@@ -318,7 +361,7 @@ Status resolveRegistryGlobs(const std::string& pattern,
       }
     }
   }
-  return Status(0, "OK");
+  return status;
 }
 
 void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
@@ -340,10 +383,11 @@ QueryData genRegistry(QueryContext& context) {
 
   if (!(context.hasConstraint("key", EQUALS) ||
         context.hasConstraint("key", LIKE))) {
+    // We default to display all HIVEs
     resolveRegistryGlobs("%", keys);
   } else {
     keys = context.constraints["key"].getAll(EQUALS);
-    context.expandConstraints(
+    auto status = context.expandConstraints(
         "key",
         LIKE,
         keys,
@@ -353,6 +397,9 @@ QueryData genRegistry(QueryContext& context) {
           out.insert(resolvedKeys.begin(), resolvedKeys.end());
           return status;
         }));
+    if (!status.ok()) {
+      LOG(ERROR) << status.getMessage();
+    }
   }
 
   maybeWarnLocalUsers(keys);

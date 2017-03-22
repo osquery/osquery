@@ -15,12 +15,17 @@
 namespace osquery {
 namespace tables {
 
+const int kRegMaxRecursiveDepth = 32;
+
 /// Microsoft helper function for getting the contents of a registry key
 void queryKey(const std::string& keyPath, QueryData& results);
 
 Status resolveRegistryGlobs(const std::string& pattern,
                             std::set<std::string>& results);
-void populateDefaultKeys(std::set<std::string>& rKeys);
+
+Status populateAllKeysRecursive(std::set<std::string>& rKeys,
+                                int currDepth = 1,
+                                int maxDepth = kRegMaxRecursiveDepth);
 
 void appendSubkeyToKeys(const std::string& subkey,
                         std::set<std::string>& rKeys);
