@@ -71,9 +71,16 @@ TEST_F(EventsTests, test_event_publisher) {
 TEST_F(EventsTests, test_register_event_publisher) {
   auto basic_pub = std::make_shared<BasicEventPublisher>();
   auto status = EventFactory::registerEventPublisher(basic_pub);
+  EXPECT_FALSE(status.ok());
+
+  // Set a name for the publisher, which becomes the type by default.
+  basic_pub->setName("BasicPublisher");
+  status = EventFactory::registerEventPublisher(basic_pub);
+  EXPECT_TRUE(status.ok());
 
   // This class is the SAME, there was no type override.
   auto another_basic_pub = std::make_shared<AnotherBasicEventPublisher>();
+  another_basic_pub->setName(basic_pub->getName());
   status = EventFactory::registerEventPublisher(another_basic_pub);
   EXPECT_FALSE(status.ok());
 
@@ -82,10 +89,25 @@ TEST_F(EventsTests, test_register_event_publisher) {
   status = EventFactory::registerEventPublisher(fake_pub);
   EXPECT_TRUE(status.ok());
 
-  // May also register the event_pub instance
+  // May also register a similar (same EC, SC), but different publisher.
   auto another_fake_pub = std::make_shared<AnotherFakeEventPublisher>();
   status = EventFactory::registerEventPublisher(another_fake_pub);
   EXPECT_TRUE(status.ok());
+
+  status = EventFactory::deregisterEventPublisher(basic_pub->type());
+  EXPECT_TRUE(status.ok());
+  status = EventFactory::deregisterEventPublisher(fake_pub->type());
+  EXPECT_TRUE(status.ok());
+  status = EventFactory::deregisterEventPublisher(another_fake_pub->type());
+  EXPECT_TRUE(status.ok());
+
+  // Attempting to deregister a publisher a second time.
+  status = EventFactory::deregisterEventPublisher(another_fake_pub->type());
+  EXPECT_FALSE(status.ok());
+
+  // Attempting to deregister a publish that failed registering.
+  status = EventFactory::deregisterEventPublisher(another_basic_pub->type());
+  EXPECT_FALSE(status.ok());
 }
 
 TEST_F(EventsTests, test_event_publisher_types) {
@@ -95,10 +117,18 @@ TEST_F(EventsTests, test_event_publisher_types) {
   EventFactory::registerEventPublisher(pub);
   auto pub2 = EventFactory::getEventPublisher("FakePublisher");
   EXPECT_EQ(pub->type(), pub2->type());
+
+  // It is possible to deregister by base event publisher type.
+  auto status = EventFactory::deregisterEventPublisher(pub2);
+  EXPECT_TRUE(status.ok());
+  // And attempting to deregister by type afterward will fail.
+  status = EventFactory::deregisterEventPublisher(pub->type());
+  EXPECT_FALSE(status.ok());
 }
 
 TEST_F(EventsTests, test_duplicate_event_publisher) {
   auto pub = std::make_shared<BasicEventPublisher>();
+  pub->setName("BasicPublisher");
   auto status = EventFactory::registerEventPublisher(pub);
   EXPECT_TRUE(status.ok());
 
@@ -129,10 +159,16 @@ TEST_F(EventsTests, test_create_using_registry) {
   // Now attach and make sure it was added.
   attachEvents();
   EXPECT_EQ(EventFactory::numEventPublishers(), default_publisher_count + 1U);
+
+  auto status = EventFactory::deregisterEventPublisher("unique");
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(EventsTests, test_create_subscription) {
+  std::string basic_publisher_type = "BasicPublisher";
+
   auto pub = std::make_shared<BasicEventPublisher>();
+  pub->setName(basic_publisher_type);
   EventFactory::registerEventPublisher(pub);
 
   // Make sure a subscription cannot be added for a non-existent event type.
@@ -143,24 +179,33 @@ TEST_F(EventsTests, test_create_subscription) {
 
   // In this case we can still add a blank subscription to an existing event
   // type.
-  status = EventFactory::addSubscription("publisher", subscription);
+  status = EventFactory::addSubscription(basic_publisher_type, subscription);
   EXPECT_TRUE(status.ok());
 
   // Make sure the subscription is added.
-  EXPECT_EQ(EventFactory::numSubscriptions("publisher"), 1U);
+  EXPECT_EQ(EventFactory::numSubscriptions(basic_publisher_type), 1U);
+
+  status = EventFactory::deregisterEventPublisher(basic_publisher_type);
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(EventsTests, test_multiple_subscriptions) {
-  Status status;
+  std::string basic_publisher_type = "BasicPublisher";
 
   auto pub = std::make_shared<BasicEventPublisher>();
+  pub->setName(basic_publisher_type);
   EventFactory::registerEventPublisher(pub);
 
   auto subscription = Subscription::create("subscriber");
-  status = EventFactory::addSubscription("publisher", subscription);
-  status = EventFactory::addSubscription("publisher", subscription);
+  auto status =
+      EventFactory::addSubscription(basic_publisher_type, subscription);
+  status = EventFactory::addSubscription(basic_publisher_type, subscription);
+  EXPECT_TRUE(status.ok());
 
-  EXPECT_EQ(EventFactory::numSubscriptions("publisher"), 2U);
+  EXPECT_EQ(EventFactory::numSubscriptions(basic_publisher_type), 2U);
+
+  status = EventFactory::deregisterEventPublisher(basic_publisher_type);
+  EXPECT_TRUE(status.ok());
 }
 
 struct TestSubscriptionContext : public SubscriptionContext {
@@ -209,22 +254,30 @@ class TestEventPublisher
 
 TEST_F(EventsTests, test_create_custom_event_publisher) {
   auto basic_pub = std::make_shared<BasicEventPublisher>();
+  basic_pub->setName("BasicPublisher");
   EventFactory::registerEventPublisher(basic_pub);
+
   auto pub = std::make_shared<TestEventPublisher>();
   auto status = EventFactory::registerEventPublisher(pub);
+  ASSERT_TRUE(status.ok());
 
   // These event types have unique event type IDs
-  EXPECT_TRUE(status.ok());
   EXPECT_EQ(EventFactory::numEventPublishers(), 2U);
 
   // Make sure the setUp function was called.
   EXPECT_EQ(pub->getTestValue(), 1);
+
+  status = EventFactory::deregisterEventPublisher(pub->type());
+  EXPECT_TRUE(status.ok());
+  status = EventFactory::deregisterEventPublisher(basic_pub->type());
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(EventsTests, test_custom_subscription) {
   // Step 1, register event type
   auto pub = std::make_shared<TestEventPublisher>();
   auto status = EventFactory::registerEventPublisher(pub);
+  ASSERT_TRUE(status.ok());
 
   // Step 2, create and configure a subscription context
   auto sc = std::make_shared<TestSubscriptionContext>();
@@ -240,29 +293,39 @@ TEST_F(EventsTests, test_custom_subscription) {
   // The event type must run configure for each added subscription.
   EXPECT_TRUE(pub->configure_run);
   EXPECT_EQ(pub->getTestValue(), -1);
+
+  status = EventFactory::deregisterEventPublisher(pub->type());
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(EventsTests, test_tear_down) {
   auto pub = std::make_shared<TestEventPublisher>();
   auto status = EventFactory::registerEventPublisher(pub);
+  ASSERT_TRUE(status.ok());
 
   // Make sure set up incremented the test value.
   EXPECT_EQ(pub->getTestValue(), 1);
 
-  status = EventFactory::deregisterEventPublisher("TestPublisher");
+  status = EventFactory::deregisterEventPublisher(pub->type());
   EXPECT_TRUE(status.ok());
 
-  // Make sure tear down inremented the test value.
+  // Make sure tear down incremented the test value.
   EXPECT_EQ(pub->getTestValue(), 2);
 
   // Once more, now deregistering all event types.
   status = EventFactory::registerEventPublisher(pub);
+  EXPECT_TRUE(status.ok());
+
   EXPECT_EQ(pub->getTestValue(), 3);
   EventFactory::end();
   EXPECT_EQ(pub->getTestValue(), 4);
 
   // Make sure the factory state represented.
   EXPECT_EQ(EventFactory::numEventPublishers(), 0U);
+
+  // Implicit deregister due to end of event factory.
+  status = EventFactory::deregisterEventPublisher(pub->type());
+  EXPECT_FALSE(status.ok());
 }
 
 static int kBellHathTolled = 0;
@@ -281,7 +344,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
   size_t timesConfigured{0};
 
   FakeEventSubscriber() {
-    setName("FakeSubscriber");
+    setName("fake_events");
+  }
+
+  explicit FakeEventSubscriber(bool skip_name) {
+    if (!skip_name) {
+      FakeEventSubscriber();
+    }
   }
 
   void configure() override {
@@ -315,12 +384,13 @@ class FakeEventSubscriber : public EventSubscriber<FakeEventPublisher> {
 
  private:
   FRIEND_TEST(EventsTests, test_subscriber_names);
+  FRIEND_TEST(EventsTests, test_event_subscriber_configure);
 };
 
 TEST_F(EventsTests, test_event_subscriber) {
   auto sub = std::make_shared<FakeEventSubscriber>();
   EXPECT_EQ(sub->getType(), "FakePublisher");
-  EXPECT_EQ(sub->getName(), "FakeSubscriber");
+  EXPECT_EQ(sub->getName(), "fake_events");
 }
 
 TEST_F(EventsTests, test_event_subscriber_subscribe) {
@@ -339,6 +409,11 @@ TEST_F(EventsTests, test_event_subscriber_subscribe) {
   pub->fire(ec, 0);
 
   EXPECT_TRUE(sub->bellHathTolled);
+
+  auto status = EventFactory::deregisterEventSubscriber(sub->getName());
+  EXPECT_TRUE(status.ok());
+  status = EventFactory::deregisterEventPublisher(pub->type());
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(EventsTests, test_event_subscriber_context) {
@@ -355,15 +430,23 @@ TEST_F(EventsTests, test_event_subscriber_context) {
   pub->fire(ec, 0);
 
   EXPECT_TRUE(sub->contextBellHathTolled);
+
+  auto status = EventFactory::deregisterEventSubscriber(sub->getName());
+  EXPECT_TRUE(status.ok());
+  status = EventFactory::deregisterEventPublisher(pub->type());
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(EventsTests, test_event_subscriber_configure) {
   auto sub = std::make_shared<FakeEventSubscriber>();
-  EventFactory::registerEventSubscriber(sub);
   // Register this subscriber (within the RegistryFactory), so it receives
   // configure/reconfigure events.
   auto& rf = RegistryFactory::get();
-  rf.registry("event_subscriber")->add("fake", sub);
+  rf.registry("event_subscriber")->add("fake_events", sub);
+
+  // Register it within the event factory too.
+  auto status = EventFactory::registerEventSubscriber(sub);
+  EXPECT_TRUE(status.ok());
 
   // Assure we start from a base state.
   EXPECT_EQ(sub->timesConfigured, 0U);
@@ -372,23 +455,41 @@ TEST_F(EventsTests, test_event_subscriber_configure) {
   Config::getInstance().update({{"data", "{}"}});
   EXPECT_EQ(sub->timesConfigured, 1U);
 
+  // Now update the config to contain sets of scheduled queries.
+  Config::getInstance().update(
+      {{"data",
+        "{\"schedule\": {\"1\": {\"query\": \"select * from fake_events\", "
+        "\"interval\": 10}, \"2\":{\"query\": \"select * from time, "
+        "fake_events\", \"interval\": 19}, \"3\":{\"query\": \"select * "
+        "from fake_events, fake_events\", \"interval\": 5}}}"}});
+  // This will become 19 * 3, rounded up 60.
+  EXPECT_EQ(sub->min_expiration_, 60U);
+  EXPECT_EQ(sub->query_count_, 3U);
+
+  // Register it within the event factory too.
+  EventFactory::deregisterEventSubscriber(sub->getName());
   rf.registry("event_subscriber")->remove(sub->getName());
+
+  // Final check to make sure updates are not effecting this subscriber.
   Config::getInstance().update({{"data", "{}"}});
-  EXPECT_EQ(sub->timesConfigured, 1U);
+  EXPECT_EQ(sub->timesConfigured, 2U);
 }
 
 TEST_F(EventsTests, test_fire_event) {
-  Status status;
-
   auto pub = std::make_shared<BasicEventPublisher>();
-  status = EventFactory::registerEventPublisher(pub);
+  pub->setName("BasicPublisher");
+  auto status = EventFactory::registerEventPublisher(pub);
+  ASSERT_TRUE(status.ok());
 
   auto sub = std::make_shared<FakeEventSubscriber>();
-  EventFactory::registerEventSubscriber(sub);
+  status = EventFactory::registerEventSubscriber(sub);
+  ASSERT_TRUE(status.ok());
 
-  auto subscription = Subscription::create("FakeSubscriber");
+  auto subscription = Subscription::create("fake_events");
   subscription->callback = TestTheeCallback;
-  status = EventFactory::addSubscription("publisher", subscription);
+  status = EventFactory::addSubscription("BasicPublisher", subscription);
+  ASSERT_TRUE(status.ok());
+
   pub->configure();
 
   // The event context creation would normally happen in the event type.
@@ -396,8 +497,10 @@ TEST_F(EventsTests, test_fire_event) {
   pub->fire(ec, 0);
   EXPECT_EQ(kBellHathTolled, 1);
 
-  auto second_subscription = Subscription::create("FakeSubscriber");
-  status = EventFactory::addSubscription("publisher", second_subscription);
+  auto second_subscription = Subscription::create("fake_events");
+  status = EventFactory::addSubscription("BasicPublisher", second_subscription);
+  ASSERT_TRUE(status.ok());
+
   pub->configure();
 
   // Now there are two subscriptions (one sans callback).
@@ -408,12 +511,18 @@ TEST_F(EventsTests, test_fire_event) {
   second_subscription->callback = TestTheeCallback;
   pub->fire(ec, 0);
   EXPECT_EQ(kBellHathTolled, 4);
+
+  status = EventFactory::deregisterEventSubscriber(sub->getName());
+  EXPECT_TRUE(status.ok());
+
+  status = EventFactory::deregisterEventPublisher(pub->type());
+  EXPECT_TRUE(status.ok());
 }
 
 class SubFakeEventSubscriber : public FakeEventSubscriber {
  public:
-  SubFakeEventSubscriber() {
-    setName("SubFakeSubscriber");
+  SubFakeEventSubscriber() : FakeEventSubscriber(true) {
+    setName("sub_fake_events");
   }
 
  private:
@@ -421,17 +530,14 @@ class SubFakeEventSubscriber : public FakeEventSubscriber {
 };
 
 TEST_F(EventsTests, test_subscriber_names) {
-  auto pub = std::make_shared<BasicEventPublisher>();
-  EventFactory::registerEventPublisher(pub);
-
   auto subsub = std::make_shared<SubFakeEventSubscriber>();
   EXPECT_EQ(subsub->getType(), "FakePublisher");
-  EXPECT_EQ(subsub->getName(), "SubFakeSubscriber");
-  EXPECT_EQ(subsub->dbNamespace(), "FakePublisher.SubFakeSubscriber");
+  EXPECT_EQ(subsub->getName(), "sub_fake_events");
+  EXPECT_EQ(subsub->dbNamespace(), "FakePublisher.sub_fake_events");
 
   auto sub = std::make_shared<FakeEventSubscriber>();
-  EXPECT_EQ(sub->getName(), "FakeSubscriber");
-  EXPECT_EQ(sub->dbNamespace(), "FakePublisher.FakeSubscriber");
+  EXPECT_EQ(sub->getName(), "fake_events");
+  EXPECT_EQ(sub->dbNamespace(), "FakePublisher.fake_events");
 }
 
 class DisabledEventSubscriber : public EventSubscriber<FakeEventPublisher> {
@@ -443,7 +549,9 @@ TEST_F(EventsTests, test_event_toggle_subscribers) {
   // Make sure subscribers can disable themselves using the event subscriber
   // constructor parameter.
   auto sub = std::make_shared<DisabledEventSubscriber>();
+  sub->setName("disabled_events");
   EXPECT_TRUE(sub->disabled);
+
   // Normal subscribers will be enabled.
   auto sub2 = std::make_shared<SubFakeEventSubscriber>();
   EXPECT_FALSE(sub2->disabled);
@@ -451,5 +559,8 @@ TEST_F(EventsTests, test_event_toggle_subscribers) {
   // Registering a disabled subscriber will put it into a paused state.
   EventFactory::registerEventSubscriber(sub);
   EXPECT_EQ(sub->state(), EventState::EVENT_PAUSED);
+
+  auto status = EventFactory::deregisterEventSubscriber(sub->getName());
+  EXPECT_TRUE(status.ok());
 }
 }

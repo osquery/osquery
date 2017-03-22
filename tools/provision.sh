@@ -114,7 +114,7 @@ function platform_darwin_main() {
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
-  brew_tool lldpd
+  brew_clean lldpd
 
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl
@@ -143,6 +143,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/glog
   brew_dependency osquery/osquery-local/linenoise-ng
   brew_dependency osquery/osquery-local/augeas
+  brew_dependency osquery/osquery-local/lldpd
 
   # POSIX-shared locally-managed tools.
   brew_dependency osquery/osquery-local/zzuf

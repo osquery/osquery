@@ -74,6 +74,47 @@ void DatabasePluginTests::testDelete() {
   EXPECT_EQ(s.getMessage(), "OK");
 }
 
+void DatabasePluginTests::testDeleteRange() {
+  getPlugin()->put(kQueries, "test_delete", "baz");
+  getPlugin()->put(kQueries, "test1", "1");
+  getPlugin()->put(kQueries, "test2", "2");
+  getPlugin()->put(kQueries, "test3", "3");
+  getPlugin()->put(kQueries, "test4", "4");
+  auto s = getPlugin()->removeRange(kQueries, "test1", "test3");
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.getMessage(), "OK");
+
+  std::string r;
+  getPlugin()->get(kQueries, "test4", r);
+  EXPECT_EQ(r, "4");
+  getPlugin()->get(kQueries, "test_delete", r);
+  EXPECT_EQ(r, "baz");
+  s = getPlugin()->get(kQueries, "test1", r);
+  EXPECT_FALSE(s.ok());
+  s = getPlugin()->get(kQueries, "test2", r);
+  EXPECT_FALSE(s.ok());
+  s = getPlugin()->get(kQueries, "test3", r);
+  EXPECT_FALSE(s.ok());
+
+  // Expect invalid logically ranges to have no effect.
+  getPlugin()->put(kQueries, "new_test1", "1");
+  getPlugin()->put(kQueries, "new_test2", "2");
+  getPlugin()->put(kQueries, "new_test3", "3");
+  getPlugin()->put(kQueries, "new_test4", "4");
+  s = getPlugin()->removeRange(kQueries, "new_test3", "new_test2");
+  EXPECT_TRUE(s.ok());
+  getPlugin()->get(kQueries, "new_test2", r);
+  EXPECT_EQ(r, "2");
+  getPlugin()->get(kQueries, "new_test3", r);
+  EXPECT_EQ(r, "3");
+
+  // An equality range will not delete that single item.
+  s = getPlugin()->removeRange(kQueries, "new_test2", "new_test2");
+  EXPECT_TRUE(s.ok());
+  s = getPlugin()->get(kQueries, "new_test2", r);
+  EXPECT_FALSE(s.ok());
+}
+
 void DatabasePluginTests::testScan() {
   getPlugin()->put(kQueries, "test_scan_foo1", "baz");
   getPlugin()->put(kQueries, "test_scan_foo2", "baz");

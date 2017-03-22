@@ -10,8 +10,6 @@
 
 #include <string>
 
-#include <thrift/TOutput.h>
-
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>

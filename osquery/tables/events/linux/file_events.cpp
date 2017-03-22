@@ -29,7 +29,6 @@ namespace osquery {
 class FileEventSubscriber : public EventSubscriber<INotifyEventPublisher> {
  public:
   Status init() override {
-    configure();
     return Status(0);
   }
 

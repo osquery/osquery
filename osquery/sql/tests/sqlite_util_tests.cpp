@@ -175,6 +175,17 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   ASSERT_FALSE(status.ok());
 }
 
+TEST_F(SQLiteUtilTests, test_get_query_tables) {
+  std::string query =
+      "SELECT * FROM time, osquery_info, (SELECT * FROM file) ff GROUP BY pid";
+  std::vector<std::string> tables;
+  auto status = getQueryTables(query, tables);
+  EXPECT_TRUE(status.ok());
+
+  std::vector<std::string> expected = {"file", "time", "osquery_info"};
+  EXPECT_EQ(expected, tables);
+}
+
 std::vector<ColumnType> getTypes(const TableColumns& columns) {
   std::vector<ColumnType> types;
   for (const auto& col : columns) {

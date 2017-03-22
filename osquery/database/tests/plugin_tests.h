@@ -36,6 +36,9 @@
   TEST_F(n, test_delete) {                                                     \
     testDelete();                                                              \
   }                                                                            \
+  TEST_F(n, test_delete_range) {                                               \
+    testDeleteRange();                                                         \
+  }                                                                            \
   TEST_F(n, test_scan) {                                                       \
     testScan();                                                                \
   }                                                                            \
@@ -104,6 +107,7 @@ class DatabasePluginTests : public testing::Test {
   void testPut();
   void testGet();
   void testDelete();
+  void testDeleteRange();
   void testScan();
   void testScanLimit();
 };

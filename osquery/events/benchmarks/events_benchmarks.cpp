@@ -28,6 +28,8 @@ class BenchmarkEventPublisher
 };
 
 static void EVENTS_register(benchmark::State& state) {
+  RegistryFactory::get().setActive("database", "rocksdb");
+
   while (state.KeepRunning()) {
     auto pub = std::make_shared<BenchmarkEventPublisher>();
     auto type = pub->type();
@@ -42,9 +44,13 @@ BENCHMARK(EVENTS_register);
 class BenchmarkEventSubscriber
     : public EventSubscriber<BenchmarkEventPublisher> {
  public:
-  BenchmarkEventSubscriber() { setName("benchmark"); }
+  BenchmarkEventSubscriber() {
+    setName("benchmark");
+  }
 
-  Status Callback(const ECRef& ec, const SCRef& sc) { return Status(0, "OK"); }
+  Status Callback(const ECRef& ec, const SCRef& sc) {
+    return Status(0, "OK");
+  }
 
   void benchmarkInit() {
     auto sub_ctx = createSubscriptionContext();
@@ -67,7 +73,9 @@ class BenchmarkEventSubscriber
     expire_time_ = et;
   }
 
-  void benchmarkGet(int low, int high) { auto results = get(low, high); }
+  void benchmarkGet(int low, int high) {
+    auto results = get(low, high);
+  }
 };
 
 static void EVENTS_subscribe_fire(benchmark::State& state) {
@@ -117,7 +125,7 @@ BENCHMARK(EVENTS_add_events);
 static void EVENTS_retrieve_events(benchmark::State& state) {
   auto sub = std::make_shared<BenchmarkEventSubscriber>();
 
-  for (int i = 0; i < 1000; i++) {
+  for (int i = 0; i < state.range_y(); i++) {
     sub->benchmarkAdd(i++);
   }
 
@@ -129,8 +137,47 @@ static void EVENTS_retrieve_events(benchmark::State& state) {
 }
 
 BENCHMARK(EVENTS_retrieve_events)
-    ->ArgPair(0, 10)
-    ->ArgPair(0, 50)
     ->ArgPair(0, 100)
-    ->ArgPair(0, 1000);
+    ->ArgPair(0, 1000)
+    ->ArgPair(0, 10000);
+
+static void EVENTS_gentable(benchmark::State& state) {
+  auto sub = std::make_shared<BenchmarkEventSubscriber>();
+
+  for (int i = 0; i < state.range_y(); i++) {
+    sub->benchmarkAdd(i++);
+  }
+
+  QueryContext ctx;
+  while (state.KeepRunning()) {
+    sub->genTable(ctx);
+  }
+
+  sub->clearRows();
+}
+
+BENCHMARK(EVENTS_gentable)
+    ->ArgPair(0, 100)
+    ->ArgPair(0, 1000)
+    ->ArgPair(0, 10000);
+
+static void EVENTS_add_and_gentable(benchmark::State& state) {
+  auto sub = std::make_shared<BenchmarkEventSubscriber>();
+
+  QueryContext ctx;
+  while (state.KeepRunning()) {
+    for (int i = 0; i < state.range_y(); i++) {
+      sub->benchmarkAdd(i++);
+    }
+
+    sub->genTable(ctx);
+  }
+
+  sub->clearRows();
+}
+
+BENCHMARK(EVENTS_add_and_gentable)
+    ->ArgPair(0, 100)
+    ->ArgPair(0, 1000)
+    ->ArgPair(0, 10000);
 }

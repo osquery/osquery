@@ -502,6 +502,12 @@ Status DatabasePlugin::call(const PluginRequest& request,
     return this->put(domain, key, request.at("value"));
   } else if (request.at("action") == "remove") {
     return this->remove(domain, key);
+  } else if (request.at("action") == "remove_range") {
+    auto key_high = (request.count("high") > 0) ? request.at("key_high") : "";
+    if (!key_high.empty() && !key.empty()) {
+      return this->removeRange(domain, key, key_high);
+    }
+    return Status(1, "Missing range");
   } else if (request.at("action") == "scan") {
     // Accumulate scanned keys into a vector.
     std::vector<std::string> keys;
@@ -535,8 +541,11 @@ static inline std::shared_ptr<DatabasePlugin> getDatabasePlugin() {
 Status getDatabaseValue(const std::string& domain,
                         const std::string& key,
                         std::string& value) {
-  ReadLock lock(kDatabaseReset);
+  if (domain.empty()) {
+    return Status(1, "Missing domain");
+  }
 
+  ReadLock lock(kDatabaseReset);
   if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
@@ -560,8 +569,11 @@ Status getDatabaseValue(const std::string& domain,
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         const std::string& value) {
-  ReadLock lock(kDatabaseReset);
+  if (domain.empty()) {
+    return Status(1, "Missing domain");
+  }
 
+  ReadLock lock(kDatabaseReset);
   if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
@@ -575,8 +587,11 @@ Status setDatabaseValue(const std::string& domain,
 }
 
 Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
-  ReadLock lock(kDatabaseReset);
+  if (domain.empty()) {
+    return Status(1, "Missing domain");
+  }
 
+  ReadLock lock(kDatabaseReset);
   if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
@@ -586,6 +601,28 @@ Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
   } else {
     auto plugin = getDatabasePlugin();
     return plugin->remove(domain, key);
+  }
+}
+
+Status deleteDatabaseRange(const std::string& domain,
+                           const std::string& low,
+                           const std::string& high) {
+  if (domain.empty()) {
+    return Status(1, "Missing domain");
+  }
+
+  ReadLock lock(kDatabaseReset);
+  if (RegistryFactory::get().external()) {
+    // External registries (extensions) do not have databases active.
+    // It is not possible to use an extension-based database.
+    PluginRequest request = {{"action", "remove_range"},
+                             {"domain", domain},
+                             {"key", low},
+                             {"key_high", high}};
+    return Registry::call("database", request);
+  } else {
+    auto plugin = getDatabasePlugin();
+    return plugin->removeRange(domain, low, high);
   }
 }
 
@@ -600,8 +637,11 @@ Status scanDatabaseKeys(const std::string& domain,
                         std::vector<std::string>& keys,
                         const std::string& prefix,
                         size_t max) {
-  ReadLock lock(kDatabaseReset);
+  if (domain.empty()) {
+    return Status(1, "Missing domain");
+  }
 
+  ReadLock lock(kDatabaseReset);
   if (RegistryFactory::get().external()) {
     // External registries (extensions) do not have databases active.
     // It is not possible to use an extension-based database.
@@ -628,6 +668,8 @@ void resetDatabase() {
   WriteLock lock(kDatabaseReset);
 
   // Prevent RocksDB reentrancy by logger plugins during plugin setup.
+  VLOG(1) << "Resetting the database plugin: "
+          << Registry::get().getActive("database");
   LoggerForwardingDisabler disable_logging;
   PluginRequest request = {{"action", "reset"}};
   if (!Registry::call("database", request)) {

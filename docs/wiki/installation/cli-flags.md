@@ -71,12 +71,17 @@ Path to the daemon pidfile mutex. The file is used to prevent multiple osqueryd 
 
 Disable userland watchdog process. **osqueryd** uses a watchdog process to monitor the memory and CPU utilization of threads executing the query schedule. If any performance limit is violated the "worker" process will be restarted.
 
-`--watchdog_level=1`
+`--watchdog_level=0`
 
-Performance limit level (0=loose, 1=normal, 2=restrictive, 3=debug). The default watchdog process uses a "level" to configure performance limits.
-The higher the level the more strict the limits become. The "debug" level disables the performance limits completely.
+Performance limit level (0=normal, 1=restrictive, -1=disabled). The watchdog process uses a "level" to configure performance limits.
 
-The watchdog "profiles" can be overridden for Memory and CPU Utilization.
+The level limits are as follows:
+Memory: default 200M, restrictive 100M
+CPU: default 25% (for 9 seconds), restrictive 18% (for 9 seconds)
+
+The normal level allows for 10 restarts if the limits are violated. The restrictive allows for only 4, then the service will be disabled. For both there is a linear backoff of 5 seconds, doubling each retry.
+
+It is better to set the level to disabled `-1` compared to disabling the watchdog outright as the worker/watcher concept is used for extensions autoloading too. The watchdog "profiles" can be overridden for Memory and CPU Utilization.
 
 `--watchdog_memory_limit=0`
 

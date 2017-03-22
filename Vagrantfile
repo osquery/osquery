@@ -20,6 +20,9 @@ targets = {
   "ubuntu16.04"  => {
     "box" => "bento/ubuntu-16.04"
   },
+  "ubuntu16.10"  => {
+    "box" => "bento/ubuntu-16.10"
+  },
   "ubuntu14"  => {
     "box" => "ubuntu/trusty64"
   },
@@ -28,6 +31,12 @@ targets = {
   },
   "freebsd10" => {
     "box" => "bento/freebsd-10.2"
+  },
+  "freebsd11" => {
+    "box" => "bento/freebsd-11.0"
+  },
+  "archlinux" => {
+    "box" => "terrywang/archlinux"
   },
   "aws-amazon2015.03" => {
     "box" => "andytson/aws-dummy",

@@ -27,12 +27,15 @@ QueryData genPrograms(QueryContext& context) {
   QueryData results;
   QueryData regResults;
   queryKey(
-      "HKEY_LOCAL_MACHINE",
-      "SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\"
+      "Windows\\CurrentVersion\\Uninstall",
       regResults);
   for (const auto& rKey : regResults) {
+    if (rKey.at("type") != "subkey") {
+      continue;
+    }
     QueryData appResults;
-    std::string subkey = rKey.at("subkey");
+    std::string subkey = rKey.at("path");
     // make sure it's a sane uninstall key
     boost::smatch matches;
     boost::regex expression(
@@ -41,7 +44,7 @@ QueryData genPrograms(QueryContext& context) {
     if (!boost::regex_search(subkey, matches, expression)) {
       continue;
     }
-    queryKey("HKEY_LOCAL_MACHINE", subkey, appResults);
+    queryKey(subkey, appResults);
     Row r;
     r["identifying_number"] = matches[0];
     for (const auto& aKey : appResults) {

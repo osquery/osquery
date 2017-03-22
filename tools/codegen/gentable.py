@@ -183,6 +183,7 @@ class TableState(Singleton):
         self.fuzz_paths = []
         self.has_options = False
         self.has_column_aliases = False
+        self.generator = False
 
     def columns(self):
         return [i for i in self.schema if isinstance(i, Column)]
@@ -211,6 +212,10 @@ class TableState(Singleton):
         if "cacheable" in self.attributes:
             if len(set(all_options).intersection(NON_CACHEABLE)) > 0:
                 print(lightred("Table cannot be marked cacheable: %s" % (path)))
+                exit(1)
+            if self.generator:
+                print(lightred(
+                    "Table cannot use a generator and be marked cacheable: %s" % (path)))
                 exit(1)
         if self.table_name == "" or self.function == "":
             print(lightred("Invalid table spec: %s" % (path)))
@@ -249,6 +254,7 @@ class TableState(Singleton):
             aliases=self.aliases,
             has_options=self.has_options,
             has_column_aliases=self.has_column_aliases,
+            generator=self.generator,
             attribute_set=[TABLE_ATTRIBUTES[attr] for attr in self.attributes],
         )
 
@@ -339,7 +345,7 @@ def fuzz_paths(paths):
     table.fuzz_paths = paths
 
 
-def implementation(impl_string):
+def implementation(impl_string, generator=False):
     """
     define the path to the implementation file and the function which
     implements the virtual table. You should use the following format:
@@ -360,9 +366,13 @@ def implementation(impl_string):
     table.impl = impl
     table.function = function
     table.class_name = class_name
+    table.generator = generator
 
     '''Check if the table has a subscriber attribute, if so, enforce time.'''
     if "event_subscriber" in table.attributes:
+        if not table.table_name.endswith("_events"):
+            print(lightred("Event subscriber must use a '_events' suffix"))
+            sys.exit(1)
         columns = {}
         # There is no dictionary comprehension on all supported platforms.
         for column in table.schema:

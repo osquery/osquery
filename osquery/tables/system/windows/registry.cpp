@@ -26,6 +26,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
@@ -60,10 +61,23 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
 };
 
+const std::string kRegSep = "\\";
+
+void explodeRegistryPath(const std::string& path,
+                         std::string& rHive,
+                         std::string& rKey) {
+  auto toks = osquery::split(path, kRegSep);
+  rHive = toks.front();
+  toks.erase(toks.begin());
+  rKey = osquery::join(toks, kRegSep);
+}
+
 /// Microsoft helper function for getting the contents of a registry key
-void queryKey(const std::string& hive,
-              const std::string& key,
-              QueryData& results) {
+void queryKey(const std::string& keyPath, QueryData& results) {
+  std::string hive;
+  std::string key;
+  explodeRegistryPath(keyPath, hive, key);
+
   if (kRegistryHives.count(hive) != 1) {
     return;
   }
@@ -124,13 +138,10 @@ void queryKey(const std::string& hive,
         continue;
       }
       Row r;
-      fs::path keyPath(key);
-      r["hive"] = hive;
-      r["key"] = keyPath.string();
-      r["subkey"] = (keyPath / achKey).string();
-      r["name"] = "(Default)";
-      r["type"] = "REG_SZ";
-      r["data"] = "(value not set)";
+      r["key"] = keyPath;
+      r["type"] = "subkey";
+      r["name"] = achKey;
+      r["path"] = keyPath + kRegSep + achKey;
       r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
       results.push_back(r);
     }
@@ -174,11 +185,9 @@ void queryKey(const std::string& hive,
     }
 
     Row r;
-    fs::path keyPath(key);
-    r["hive"] = hive;
-    r["key"] = keyPath.string();
-    r["subkey"] = keyPath.string();
-    r["name"] = achValue;
+    r["key"] = keyPath;
+    r["name"] = ((achValue[0] == '\0') ? "(Default)" : achValue);
+    r["path"] = keyPath + kRegSep + achValue;
     if (kRegistryTypes.count(lpType) > 0) {
       r["type"] = kRegistryTypes.at(lpType);
     } else {
@@ -261,36 +270,30 @@ void queryKey(const std::string& hive,
 
 QueryData genRegistry(QueryContext& context) {
   QueryData results;
-  std::set<std::string> rHives;
   std::set<std::string> rKeys;
-
+  auto shouldWarnLocalUsers = false;
   /// By default, we display all HIVEs
-  if (context.constraints["hive"].exists(EQUALS) &&
-      context.constraints["hive"].getAll(EQUALS).size() > 0) {
-    rHives = context.constraints["hive"].getAll(EQUALS);
-    if (rHives.find("HKEY_CURRENT_USER") != rHives.end() ||
-        rHives.find("HKEY_CURRENT_USER_LOCAL_SETTINGS") != rHives.end()) {
-      LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; query "
-                      "HKEY_USERS with the desired users SID instead";
-    }
+  if ((context.constraints["key"].exists(EQUALS) &&
+       context.constraints["key"].getAll(EQUALS).size() > 0)) {
+    rKeys = context.constraints["key"].getAll(EQUALS);
+    shouldWarnLocalUsers = true;
   } else {
     for (auto& h : kRegistryHives) {
-      rHives.insert(h.first);
+      rKeys.insert(h.first);
     }
   }
 
-  /// By default, we display all keys in each HIVE
-  if (context.constraints["key"].exists(EQUALS) &&
-      context.constraints["key"].getAll(EQUALS).size() > 0) {
-    rKeys = context.constraints["key"].getAll(EQUALS);
-  } else {
-    rKeys.insert("");
-  }
-
-  for (const auto& hive : rHives) {
-    for (const auto& key : rKeys) {
-      queryKey(hive, key, results);
+  for (const auto& key : rKeys) {
+    std::string hive;
+    std::string keyPath;
+    explodeRegistryPath(key, hive, keyPath);
+    if (shouldWarnLocalUsers && (hive == "HKEY_CURRENT_USER" ||
+                                 hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
+      LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
+                      "query HKEY_USERS with the desired users SID instead";
+      shouldWarnLocalUsers = false;
     }
+    queryKey(key, results);
   }
   return results;
 }

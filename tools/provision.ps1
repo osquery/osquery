@@ -5,6 +5,9 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+# Turn on support for Powershell Cmdlet Bindings
+[CmdletBinding(SupportsShouldProcess=$true)]
+
 # We make heavy use of Write-Host, because colors are awesome. #dealwithit.
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope="Function", Target="*")]
 param()
@@ -268,16 +271,16 @@ function Install-ThirdParty {
   #      Once our chocolatey packages are added to the official repository, installing the third-party
   #      dependencies will be as easy as Install-ChocoPackage '<package-name>'.
   $packages = @(
-    "boost-msvc14.1.59.0",
+    "boost-msvc14.1.63.0-r1",
     "bzip2.1.0.6",
     "doxygen.1.8.11",
     "gflags-dev.2.2.0",
     "glog.0.3.4",
     "openssl.1.0.2-j",
-    "rocksdb.4.11.2",
+    "rocksdb.5.1.4",
     "snappy-msvc.1.1.1.8",
     "thrift-dev.0.9.3",
-    "cpp-netlib.0.12.0-r1",
+    "cpp-netlib.0.12.0-r2",
     "linenoise-ng.1.0.0",
     "clang-format.3.9.0",
     "zlib.1.2.8"
@@ -288,6 +291,7 @@ function Install-ThirdParty {
   Try {
     foreach ($package in $packages) {
       $chocoForce = ""
+      $executionTimeout = 7200
       $packageData = $package -split '\.'
       $packageName = $packageData[0]
       $packageVersion = [string]::Join('.', $packageData[1..$packageData.length])
@@ -317,16 +321,17 @@ function Install-ThirdParty {
       Write-Host " => Downloading $downloadUrl" -foregroundcolor DarkCyan
       Try {
         (New-Object net.webclient).DownloadFile($downloadUrl, $tmpFilePath)
+        Write-Host " => Done." -foregroundcolor DarkCyan
       } catch [Net.WebException] {
         Write-Host "[-] ERROR: Downloading $package failed. Check connection?" -foregroundcolor Red
         Exit -1
       }
-      choco install --pre -y -r $chocoForce $packageName --version=$packageVersion --source="$tmpDir;https://chocolatey.org/api/v2"
+      choco install --pre -y -r --execution-timeout=$executionTimeout $chocoForce $packageName --version=$packageVersion --source="$tmpDir;https://chocolatey.org/api/v2"
       if ($LastExitCode -ne 0) {
         Write-Host "[-] ERROR: Install of $package failed." -foregroundcolor Red
         Exit -1
       }
-      Write-Host "[+] DONE" -foregroundcolor Green
+      Write-Host "[+] Done." -foregroundcolor Green
     }
   } Finally {
     Remove-Item $tmpDir -Recurse
@@ -398,4 +403,7 @@ function Main {
   Write-Host "[+] Done." -foregroundcolor Yellow
 }
 
+$startProvTime = Get-Date
 $null = Main
+$endProvTime = Get-Date
+Write-Verbose "[+] Provisioning completed in $(($endProvTime - $startProvTime).TotalSeconds) seconds."

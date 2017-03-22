@@ -447,23 +447,6 @@ Status RegistryFactory::call(const std::string& registry_name,
   return call(registry_name, request, response);
 }
 
-Status RegistryFactory::callTable(const std::string& table_name,
-                                  QueryContext& context,
-                                  PluginResponse& response) {
-  auto& tables = get().registry("table")->items_;
-  // This only works for local tables.
-  if (tables.count(table_name) > 0) {
-    auto plugin = std::dynamic_pointer_cast<TablePlugin>(tables.at(table_name));
-    response = plugin->generate(context);
-    return Status(0);
-  } else {
-    // If the table is not local then it does not benefit from complex contexts.
-    PluginRequest request = {{"action", "generate"}};
-    TablePlugin::setRequestFromContext(context, request);
-    return call("table", table_name, request, response);
-  }
-}
-
 Status RegistryFactory::setActive(const std::string& registry_name,
                                   const std::string& item_name) {
   WriteLock lock(mutex_);
@@ -623,6 +606,15 @@ RegistryModuleLoader::~RegistryModuleLoader() {
   }
   // No need to clean this resource.
   handle_ = nullptr;
+}
+
+void Plugin::setName(const std::string& name) {
+  if (!name_.empty() && name != name_) {
+    std::string error = "Cannot rename plugin " + name_ + " to " + name;
+    throw std::runtime_error(error);
+  }
+
+  name_ = name;
 }
 
 void Plugin::getResponse(const std::string& key,

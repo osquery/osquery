@@ -108,11 +108,9 @@ class Plugin : private boost::noncopyable {
                       PluginResponse& response) = 0;
 
   /// Allow the plugin to introspect into the registered name (for logging).
-  virtual void setName(const std::string& name) final {
-    name_ = name;
-  }
+  virtual void setName(const std::string& name) final;
 
-  /// Force callsites to use #getName to access the plugin item's name.
+  /// Force call-sites to use #getName to access the plugin item's name.
   virtual const std::string& getName() const {
     return name_;
   }
@@ -147,6 +145,7 @@ class Plugin : private boost::noncopyable {
   static void removeExternal(const std::string& name) {}
 
  protected:
+  /// Customized name for the plugin, usually set by the registry.
   std::string name_;
 };
 
@@ -515,11 +514,6 @@ class RegistryFactory : private boost::noncopyable {
   /// A helper call that uses the active plugin (if the registry has one).
   static Status call(const std::string& registry_name,
                      const PluginRequest& request);
-
-  /// A helper call optimized for table data generation.
-  static Status callTable(const std::string& table_name,
-                          QueryContext& context,
-                          PluginResponse& response);
 
   /// Run `setUp` on every registry that is not marked 'lazy'.
   static void setUp();

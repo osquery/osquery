@@ -171,6 +171,27 @@ Status Distributed::acceptWork(const std::string& work) {
       std::stringstream ss(work);
       pt::read_json(ss, tree);
     }
+    std::set<std::string> queries_to_run;
+    // Check for and run discovery queries first
+    if (tree.count("discovery") > 0) {
+      auto& queries = tree.get_child("discovery");
+
+      for (const auto& node : queries) {
+        auto query = queries.get<std::string>(node.first, "");
+        if (query.empty() || node.first.empty()) {
+          return Status(
+              1,
+              "Distributed discovery query does not have complete attributes");
+        }
+        SQL sql(query);
+        if (!sql.getStatus().ok()) {
+          return Status(1, "Distributed discovery query has an SQL error");
+        }
+        if (sql.rows().size() > 0) {
+          queries_to_run.insert(node.first);
+        }
+      }
+    }
 
     auto& queries = tree.get_child("queries");
     for (const auto& node : queries) {
@@ -178,7 +199,9 @@ Status Distributed::acceptWork(const std::string& work) {
       if (query.empty() || node.first.empty()) {
         return Status(1, "Distributed query does not have complete attributes");
       }
-      setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
+      if (queries_to_run.empty() || queries_to_run.count(node.first)) {
+        setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
+      }
     }
 
     if (tree.count("accelerate") > 0) {

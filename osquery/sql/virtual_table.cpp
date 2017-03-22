@@ -102,6 +102,14 @@ int xClose(sqlite3_vtab_cursor* cur) {
 
 int xEof(sqlite3_vtab_cursor* cur) {
   BaseCursor* pCur = (BaseCursor*)cur;
+  if (pCur->uses_generator) {
+    if (*pCur->generator) {
+      return false;
+    }
+    pCur->generator = nullptr;
+    return true;
+  }
+
   if (pCur->row >= pCur->n) {
     // If the requested row exceeds the size of the row set then all rows
     // have been visited, clear the data container.
@@ -119,6 +127,12 @@ int xDestroy(sqlite3_vtab* p) {
 
 int xNext(sqlite3_vtab_cursor* cur) {
   BaseCursor* pCur = (BaseCursor*)cur;
+  if (pCur->uses_generator) {
+    pCur->generator->operator()();
+    if (*pCur->generator) {
+      pCur->current = pCur->generator->get();
+    }
+  }
   pCur->row++;
   return SQLITE_OK;
 }
@@ -233,7 +247,7 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
     // Requested column index greater than column set size.
     return SQLITE_ERROR;
   }
-  if (pCur->row >= pCur->data.size()) {
+  if (!pCur->uses_generator && pCur->row >= pCur->data.size()) {
     // Request row index greater than row set size.
     return SQLITE_ERROR;
   }
@@ -248,9 +262,16 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
         pVtab->content->columns[pVtab->content->aliases.at(column_name)]);
   }
 
+  Row* row = nullptr;
+  if (pCur->uses_generator) {
+    row = &pCur->current;
+  } else {
+    row = &pCur->data[pCur->row];
+  }
+
   // Attempt to cast each xFilter-populated row/column to the SQLite type.
-  const auto& value = pCur->data[pCur->row][column_name];
-  if (pCur->data[pCur->row].count(column_name) == 0) {
+  const auto& value = (*row)[column_name];
+  if (row->count(column_name) == 0) {
     // Missing content.
     VLOG(1) << "Error " << column_name << " is empty";
     sqlite3_result_null(ctx);
@@ -465,8 +486,8 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
       // Constraints failed.
     }
 
-    // Evaluate index and optimized constratint requirements.
-    // These are satisfied regarless of expression content availability.
+    // Evaluate index and optimized constraint requirements.
+    // These are satisfied regardless of expression content availability.
     for (const auto& constraint : constraints) {
       if (options[constraint.first] & ColumnOptions::REQUIRED) {
         // A required option exists in the constraints.
@@ -506,7 +527,27 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
 
   // Generate the row data set.
   plan("Scanning rows for cursor (" + std::to_string(pCur->id) + ")");
-  Registry::callTable(pVtab->content->name, context, pCur->data);
+  if (Registry::get().exists("table", pVtab->content->name, true)) {
+    auto plugin = Registry::get().plugin("table", pVtab->content->name);
+    auto table = std::dynamic_pointer_cast<TablePlugin>(plugin);
+    if (table->usesGenerator()) {
+      pCur->uses_generator = true;
+      pCur->generator = std::make_unique<RowGenerator::pull_type>(
+          std::bind(&TablePlugin::generator,
+                    table,
+                    std::placeholders::_1,
+                    std::move(context)));
+      if (*pCur->generator) {
+        pCur->current = pCur->generator->get();
+      }
+      return SQLITE_OK;
+    }
+    pCur->data = table->generate(context);
+  } else {
+    PluginRequest request = {{"action", "generate"}};
+    TablePlugin::setRequestFromContext(context, request);
+    Registry::call("table", pVtab->content->name, request, pCur->data);
+  }
 
   // Set the number of rows.
   pCur->n = pCur->data.size();

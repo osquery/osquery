@@ -16,6 +16,8 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
+
 namespace osquery {
 
 FLAG(int32, value_max, 512, "Maximum returned row value size");
@@ -141,6 +143,15 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
   } else if (request.at("action") == "detach") {
     this->detach(request.at("table"));
     return Status(0, "OK");
+  } else if (request.at("action") == "tables") {
+    std::vector<std::string> tables;
+    auto status = this->getQueryTables(request.at("query"), tables);
+    if (status.ok()) {
+      for (const auto& table : tables) {
+        response.push_back({{"t", table}});
+      }
+    }
+    return status;
   }
   return Status(1, "Unknown action");
 }
@@ -159,6 +170,37 @@ Status getQueryColumns(const std::string& q, TableColumns& columns) {
   for (const auto& item : response) {
     columns.push_back(make_tuple(
         item.at("n"), columnTypeName(item.at("t")), ColumnOptions::DEFAULT));
+  }
+  return status;
+}
+
+Status mockGetQueryTables(std::string copy_q,
+                          std::vector<std::string>& tables) {
+  std::transform(copy_q.begin(), copy_q.end(), copy_q.begin(), ::tolower);
+  auto offset_from = copy_q.find("from ");
+  if (offset_from == std::string::npos) {
+    return Status(1);
+  }
+
+  auto simple_tables = osquery::split(copy_q.substr(offset_from + 5), ",");
+  for (const auto& table : simple_tables) {
+    tables.push_back(table);
+  }
+  return Status(0);
+}
+
+Status getQueryTables(const std::string& q, std::vector<std::string>& tables) {
+  if (!Registry::get().exists("sql", "sql") && kToolType == ToolType::TEST) {
+    // We 'mock' this functionality for internal tests.
+    return mockGetQueryTables(q, tables);
+  }
+
+  PluginResponse response;
+  auto status = Registry::call(
+      "sql", "sql", {{"action", "tables"}, {"query", q}}, response);
+
+  for (const auto& table : response) {
+    tables.push_back(table.at("t"));
   }
   return status;
 }

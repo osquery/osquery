@@ -21,11 +21,15 @@ namespace osquery {
 /// BEGIN[GENTABLE]
 namespace tables {
 {% if class_name == "" %}\
-osquery::QueryData {{function}}(QueryContext& request);
+{% if generator %}\
+void {{function}}(RowYield& yield, QueryContext& context);
+{% else %}\
+osquery::QueryData {{function}}(QueryContext& context);
+{% endif %}\
 {% else %}
 class {{class_name}} {
  public:
-  osquery::QueryData {{function}}(QueryContext& request);
+  osquery::QueryData {{function}}(QueryContext& context);
 };
 {% endif %}\
 }
@@ -78,11 +82,18 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
       TableAttributes::NONE;
   }
 
-  QueryData generate(QueryContext& request) override {
+{% if generator %}\
+  bool usesGenerator() const override { return true; }
+
+  void generator(RowYield& yield, QueryContext& context) override {
+    tables::{{function}}(yield, context);
+  }
+{% else %}\
+  QueryData generate(QueryContext& context) override {
 {% if class_name != "" %}\
     if (EventFactory::exists(getName())) {
       auto subscriber = EventFactory::getEventSubscriber(getName());
-      return subscriber->{{function}}(request);
+      return subscriber->{{function}}(context);
     } else {
       LOG(ERROR) << "Subscriber table missing: " << getName();
       return QueryData();
@@ -93,13 +104,15 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
       return getCache();
     }
 {% endif %}\
-    auto results = tables::{{function}}(request);
+    auto results = tables::{{function}}(context);
 {% if attributes.cacheable %}\
     setCache(kCacheStep, kCacheInterval, results);
 {% endif %}
     return results;
 {% endif %}\
   }
+{% endif %}\
+
 };
 
 {% if attributes.utility %}

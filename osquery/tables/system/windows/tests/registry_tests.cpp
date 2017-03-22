@@ -21,18 +21,46 @@ class RegistryTablesTest : public testing::Test {};
 
 TEST_F(RegistryTablesTest, test_registry_existing_key) {
   QueryData results;
-  auto hive = "HKEY_LOCAL_MACHINE";
-  auto key = "SOFTWARE";
-  queryKey(hive, key, results);
+  auto key = "HKEY_LOCAL_MACHINE\\SOFTWARE";
+  queryKey(key, results);
   EXPECT_TRUE(results.size() > 0);
 }
 
 TEST_F(RegistryTablesTest, test_registry_non_existing_key) {
   QueryData results;
-  auto hive = "HKEY_LOCAL_MACHINE";
-  auto key = "PATH\\to\\madeup\\key";
-  queryKey(hive, key, results);
+  auto key = "HKEY_LOCAL_MACHINE\\PATH\\to\\madeup\\key";
+  queryKey(key, results);
   EXPECT_TRUE(results.size() == 0);
+}
+
+TEST_F(RegistryTablesTest, test_explode_registry_path_normal) {
+  auto path = "HKEY_LOCAL_MACHINE\\PATH\\to\\madeup\\key";
+  std::string rKey;
+  std::string rHive;
+
+  explodeRegistryPath(path, rHive, rKey);
+  EXPECT_TRUE(rKey == "PATH\\to\\madeup\\key");
+  EXPECT_TRUE(rHive == "HKEY_LOCAL_MACHINE");
+
+  path = "HKEY_LOCAL_MACHINE\\PATH\\to\\madeup\\key\\";
+  explodeRegistryPath(path, rHive, rKey);
+  EXPECT_TRUE(rKey == "PATH\\to\\madeup\\key");
+  EXPECT_TRUE(rHive == "HKEY_LOCAL_MACHINE");
+}
+
+TEST_F(RegistryTablesTest, test_explode_registry_path_just_hive) {
+  auto path = "HKEY_LOCAL_MACHINE";
+  std::string rKey;
+  std::string rHive;
+
+  explodeRegistryPath(path, rHive, rKey);
+  EXPECT_TRUE(rKey == "");
+  EXPECT_TRUE(rHive == "HKEY_LOCAL_MACHINE");
+
+  path = "HKEY_LOCAL_MACHINE\\";
+  explodeRegistryPath(path, rHive, rKey);
+  EXPECT_TRUE(rKey == "");
+  EXPECT_TRUE(rHive == "HKEY_LOCAL_MACHINE");
 }
 }
 }

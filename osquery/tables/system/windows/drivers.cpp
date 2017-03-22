@@ -80,9 +80,9 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
   }
 
   QueryData regResults;
-  queryKey("HKEY_LOCAL_MACHINE",
-           "SYSTEM\\CurrentControlSet\\Services\\" + r["name"],
-           regResults);
+  queryKey(
+      "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\" + r["name"],
+      regResults);
   for (const auto& aKey : regResults) {
     if (aKey.at("name") == "Owners") {
       r["inf"] = SQL_TEXT(aKey.at("data"));

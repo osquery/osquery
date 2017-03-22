@@ -172,6 +172,8 @@ def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
             percents.append(stats["utilization"])
         except psutil.AccessDenied:
             break
+        except psutil.ZombieProcess:
+            break
         delay += step
         if timeout > 0 and delay >= timeout + 2:
             proc.kill()

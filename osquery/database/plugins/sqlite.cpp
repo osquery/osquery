@@ -49,6 +49,11 @@ class SQLiteDatabasePlugin : public DatabasePlugin {
   /// Data removal method.
   Status remove(const std::string& domain, const std::string& k) override;
 
+  /// Data range removal method.
+  Status removeRange(const std::string& domain,
+                     const std::string& low,
+                     const std::string& high) override;
+
   /// Key/index lookup method.
   Status scan(const std::string& domain,
               std::vector<std::string>& results,
@@ -244,6 +249,31 @@ Status SQLiteDatabasePlugin::remove(const std::string& domain,
   sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);
 
   sqlite3_bind_text(stmt, 1, key.c_str(), -1, SQLITE_STATIC);
+  auto rc = sqlite3_step(stmt);
+  if (rc != SQLITE_DONE) {
+    return Status(1);
+  }
+
+  sqlite3_finalize(stmt);
+  if (rand() % 10 == 0) {
+    tryVacuum(db_);
+  }
+  return Status(0);
+}
+
+Status SQLiteDatabasePlugin::removeRange(const std::string& domain,
+                                         const std::string& low,
+                                         const std::string& high) {
+  if (read_only_) {
+    return Status(0, "Database in readonly mode");
+  }
+
+  sqlite3_stmt* stmt = nullptr;
+  std::string q = "delete from " + domain + " where key >= ?1 and key <= ?2;";
+  sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);
+
+  sqlite3_bind_text(stmt, 1, low.c_str(), -1, SQLITE_STATIC);
+  sqlite3_bind_text(stmt, 2, high.c_str(), -1, SQLITE_STATIC);
   auto rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
     return Status(1);

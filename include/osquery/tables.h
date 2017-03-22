@@ -17,6 +17,12 @@
 #include <unordered_map>
 #include <vector>
 
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#endif
+
+#include <boost/coroutine2/all.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -35,6 +41,31 @@
   } while (0)
 
 namespace osquery {
+
+/**
+ * @brief An abstract similar to boost's noncopyable that defines moves.
+ *
+ * By defining protected move constructors we allow the children to assign
+ * their's as default.
+ */
+class only_movable {
+ protected:
+  /// Boilerplate self default constructor.
+  only_movable() {}
+
+  /// Boilerplate self destructor.
+  ~only_movable() {}
+
+  /// Important, existance of a move constructor.
+  only_movable(only_movable&&) {}
+
+ private:
+  /// Important, a private copy constructor prevents copying.
+  only_movable(const only_movable&);
+
+  /// Important, a private copy assignment constructor prevents copying.
+  only_movable& operator=(const only_movable&);
+};
 
 /**
  * @brief osquery does not yet use a NULL type.
@@ -492,11 +523,14 @@ struct VirtualTableContent {
   std::map<std::string, Row> cache;
 };
 
+using RowGenerator = boost::coroutines2::coroutine<Row&>;
+using RowYield = RowGenerator::push_type;
+
 /**
  * @brief A QueryContext is provided to every table generator for optimization
  * on query components like predicate constraints and limits.
  */
-struct QueryContext : private boost::noncopyable {
+struct QueryContext : private only_movable {
   /// Construct a context without cache support.
   QueryContext() : enable_cache_(false), table_(new VirtualTableContent()) {}
 
@@ -510,6 +544,12 @@ struct QueryContext : private boost::noncopyable {
   /// Construct a context and set the table content for caching.
   explicit QueryContext(VirtualTableContent* content)
       : enable_cache_(true), table_(content) {}
+
+  /// Allow moving.
+  QueryContext(QueryContext&&) = default;
+
+  /// Allow move assignment.
+  QueryContext& operator=(QueryContext&&) = default;
 
   /**
    * @brief Check if a constraint exists for a given column operator pair.
@@ -542,9 +582,9 @@ struct QueryContext : private boost::noncopyable {
    * @param predicate A predicate receiving each expression.
    */
   template <typename T>
-  void forEachConstraint(const std::string& column,
-                         ConstraintOperator op,
-                         std::function<void(const T& expr)> predicate) const {
+  void iteritems(const std::string& column,
+                 ConstraintOperator op,
+                 std::function<void(const T& expr)> predicate) const {
     if (constraints.count(column) > 0) {
       const auto& list = constraints.at(column);
       if (list.affinity == TEXT_TYPE) {
@@ -563,11 +603,10 @@ struct QueryContext : private boost::noncopyable {
   }
 
   /// Helper for string type (most all types are TEXT/VARCHAR).
-  void forEachConstraint(
-      const std::string& column,
-      ConstraintOperator op,
-      std::function<void(const std::string& expr)> predicate) const {
-    return forEachConstraint<std::string>(column, op, predicate);
+  void iteritems(const std::string& column,
+                 ConstraintOperator op,
+                 std::function<void(const std::string& expr)> predicate) const {
+    return iteritems<std::string>(column, op, predicate);
   }
 
   /**
@@ -650,7 +689,7 @@ using Constraint = struct Constraint;
  * in osquery/tables/templates/default.cpp.in
  */
 class TablePlugin : public Plugin {
- protected:
+ public:
   /**
    * @brief Table name aliases create full-scan VIEWs for tables.
    *
@@ -695,8 +734,35 @@ class TablePlugin : public Plugin {
    * @param request A query context filled in by SQLite's virtual table API.
    * @return The result rows for this table, given the query context.
    */
-  virtual QueryData generate(QueryContext& request) {
+  virtual QueryData generate(QueryContext& context) {
     return QueryData();
+  }
+
+  /**
+   * @brief Generate a table representation by yielding each row.
+   *
+   * For tables that set generator=True in their spec's implementation, this
+   * generator will be bound to an asymmetric coroutine. It should call the
+   * provided yield function for each Row returned. Treat this like Python's
+   * generator-type methods where the only difference is yield is not reserved
+   * but rather provided with some boilerplate syntax.
+   *
+   * This implementation uses nearly %5 more cycles than the generate method
+   * when the table content is small (less than 100 rows) and has a disadvantage
+   * of not being cachable since the entire contents are not available before
+   * post-filter aggregations. This implementation prevents the need for
+   * multiple representations of table content existing simultaneously and is
+   * always more memory efficient. It can be more compute efficient for tables
+   * with over 1000 rows.
+   *
+   * @param yield a callable that takes a single Row as input.
+   * @param context a query context filled in by SQLite's virtual table API.
+   */
+  virtual void generator(RowYield& yield, QueryContext& context) {}
+
+  /// Override and return true to use the generator and yield method.
+  virtual bool usesGenerator() const {
+    return false;
   }
 
  protected:
@@ -810,6 +876,7 @@ class TablePlugin : public Plugin {
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
   FRIEND_TEST(VirtualTableTests, test_indexing_costs);
+  FRIEND_TEST(VirtualTableTests, test_yield_generator);
 };
 
 /// Helper method to generate the virtual table CREATE statement.

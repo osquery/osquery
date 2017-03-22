@@ -8,6 +8,10 @@
  *
  */
 
+#ifdef WIN32
+#include <intrin.h>
+#endif
+
 #include <iomanip>
 #include <map>
 #include <sstream>

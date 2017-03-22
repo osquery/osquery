@@ -50,8 +50,8 @@ def check_leaks_linux(shell, query, count=1, supp_file=None):
         shell,
         "--profile",
         "%d" % count,
-        "--query",
         query,
+        "--disable_extensions",
     ]
     proc = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -138,7 +138,8 @@ def run_query(shell, query, timeout=0, count=1):
         str(count),
         "--profile_delay",
         "1",
-        query
+        query,
+        "--disable_extensions",
     ], timeout=timeout, count=count)
 
 

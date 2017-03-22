@@ -36,7 +36,6 @@ Status ProcessFileEventSubscriber::init() {
     return Status(1, "No kernel event publisher");
   }
 
-  configure();
   return Status(0);
 }
 
