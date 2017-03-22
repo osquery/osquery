@@ -5,7 +5,8 @@ schema([
     Column("version", TEXT, "Package-supplied version"),
     Column("summary", TEXT, "Package-supplied summary"),
     Column("author", TEXT, "Optional package author"),
-    Column("license", TEXT, "License under which package is launched")
+    Column("license", TEXT, "License under which package is launched"),
+    Column("path", TEXT, "Path at which this module resides")
 ])
 implementation("system/linux/python_packages@genPythonPackages")
 

@@ -13,21 +13,37 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
+#include <osquery/core/conversions.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-#include <osquery/core/conversions.h>
+
 
 namespace osquery {
 namespace tables {
 
-const std::string kPythonPath = "/usr/local/lib/python2.7/";
 const int kNumFields = 2;
-const std::set<std::string> kPath = {
-"/usr/local/lib/python2.7/"
+const std::set<std::string> kPythonPath = {
+  "/usr/local/lib/python2.7/", "/usr/lib/python2.7/dist-packages",
 };
 
+
+// checks if given set of paths are sub-path of one another
+int checkOverlap() {
+
+  for (const auto& path : kPythonPath) {
+    int count = 0;
+    for (const auto& key : kPythonPath ) {
+      if (count > 1)
+	return -1;
+      else if (key.find(path) != std::string::npos)
+	count += 1;
+    }
+
+  }
+  return 1;
+}
 
 void genPackage(std::string path, Row &r) {
   std::ifstream fd (path, std::ios::in | std::ios::binary);
@@ -68,25 +84,29 @@ void genPackage(std::string path, Row &r) {
 QueryData genPythonPackages(QueryContext &context) {
   QueryData results;
   
-  std::vector<std::string> directories;
-  if (listDirectoriesInDirectory(kPythonPath, directories).ok()) {
-    for (const auto& directory : directories) {
-      std::vector<std::string> subdirectories;
-      if (isDirectory(directory).ok()) {
-	if (listDirectoriesInDirectory(directory, subdirectories).ok()) {
-	  for (const auto& subdirectory : subdirectories) {
+  if (checkOverlap() == -1) {
+    VLOG(1) << "Overlapping directories in provided set of paths"; 
+    return results;
+  }
+
+  for (const auto& key : kPythonPath) {
+    std::vector<std::string> directories;
+    if (listDirectoriesInDirectory(key, directories, true).ok()) {    
+      for (const auto& directory : directories) {
+	if (isDirectory(directory).ok()) {
 	    Row r;
 	    std::string path;
-	    if (subdirectory.find(".dist-info") != std::string::npos) {
-	      path = subdirectory + "/METADATA";
+	    if (directory.find(".dist-info") != std::string::npos) {
+	      path = directory + "/METADATA";
 	      genPackage(path, r);
+	      r["path"] = directory;
 	      results.push_back(r);     
-	    } else if (subdirectory.find(".egg-info") != std::string::npos) {
-	      path = subdirectory + "/PKG-INFO";
-	      genPackage(path, r);	
+	    } else if (directory.find(".egg-info") != std::string::npos) {
+	      path = directory + "/PKG-INFO";
+	      genPackage(path, r);
+	      r["path"] = directory;
 	      results.push_back(r);     
 	    }       
-	  }
 	}
       }
     }
