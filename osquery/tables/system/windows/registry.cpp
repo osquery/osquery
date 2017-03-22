@@ -64,6 +64,7 @@ const std::map<DWORD, std::string> kRegistryTypes = {
 };
 
 const std::string kRegSep = "\\";
+const std::string kRegGlob = "%";
 
 void explodeRegistryPath(const std::string& path,
                          std::string& rHive,
@@ -270,18 +271,59 @@ void queryKey(const std::string& keyPath, QueryData& results) {
   RegCloseKey(hRegistryHandle);
 }
 
-Status resolveRegistryGlobs(std::string& pattern,
-                            std::vector<std::string> results) {
-  boost::replace_all(pattern, "%", "*");
-  auto base =
-    fs::path(pattern.substr(0, pattern.find('*'))).make_preferred().string();
-  auto baseKey = base.parent_path();
+void populateDefaultKeys(std::set<std::string>& rKeys) {
+  for (const auto& hive : kRegistryHives) {
+    rKeys.insert(hive.first);
+  }
+}
+
+void replaceKeysWithSubkeys(std::set<std::string>& rKeys) {
+  std::set<std::string> newKeys{};
+  for (const auto& key : rKeys) {
+    QueryData regResults;
+    queryKey(key, regResults);
+    for (const auto& r : regResults) {
+      if (r.at("type") == "subkey") {
+        newKeys.insert(r.at("path"));
+      }
+    }
+  }
+  rKeys = newKeys;
+}
+
+void appendSubkeyToKeys(const std::string& subkey,
+                        std::set<std::string>& rKeys) {
+  std::set<std::string> newKeys{};
+  for (auto& key : rKeys) {
+    newKeys.insert(key + kRegSep + subkey);
+  }
+  rKeys = newKeys;
+}
+
+Status resolveRegistryGlobs(const std::string& pattern,
+                            std::set<std::string>& results) {
+  auto toks = osquery::split(pattern, kRegSep);
+  for (const auto& tok : toks) {
+    if (tok.find(kRegGlob) != std::string::npos) {
+      if (&tok == &toks.front()) {
+        populateDefaultKeys(results);
+      } else {
+        replaceKeysWithSubkeys(results);
+      }
+    } else {
+      if (&tok == &toks.front()) {
+        results.insert(tok);
+      } else {
+        appendSubkeyToKeys(tok, results);
+      }
+    }
+  }
   return Status(0, "OK");
 }
 
-void maybeWarnLocalUsers(std::set<std::string>& keys) {
+void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
   std::string hive, _;
-  for (const auto& key : keys) {
+  for (const auto& key : rKeys) {
     explodeRegistryPath(key, hive, _);
     if (hive == "HKEY_CURRENT_USER" ||
         hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS") {
@@ -296,25 +338,19 @@ QueryData genRegistry(QueryContext& context) {
   QueryData results;
   std::set<std::string> keys;
 
-  if (!(context.hasConstraint("key") ||
+  if (!(context.hasConstraint("key", EQUALS) ||
         context.hasConstraint("key", LIKE))) {
-    for (auto& h : kRegistryHives) {
-      keys.insert(h.first);
-    }
+    resolveRegistryGlobs("%", keys);
   } else {
     keys = context.constraints["key"].getAll(EQUALS);
     context.expandConstraints(
         "key",
         LIKE,
         keys,
-        ([&](const std::string pattern, std::set<std::string>& out) {
-          std::vector<std::string> resolvedKeys;
+        ([&](const std::string& pattern, std::set<std::string>& out) {
+          std::set<std::string> resolvedKeys;
           auto status = resolveRegistryGlobs(pattern, resolvedKeys);
-          if (status.ok()) {
-            for (const auto& rk : resolvedKeys) {
-              out.insert(rk);
-            }
-          }
+          out.insert(resolvedKeys.begin(), resolvedKeys.end());
           return status;
         }));
   }
