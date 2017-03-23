@@ -72,6 +72,19 @@ void explodeRegistryPath(const std::string& path,
   rKey = osquery::join(toks, kRegSep);
 }
 
+Status sanitizeRegistryStrings(const DWORD dataType, BYTE* dataBuff, DWORD dataSize) {
+  auto status = Status(0, "OK");
+  if (dataBuff != NULL && dataSize != NULL) {
+    if (dataSize > 0 && dataType == REG_SZ || dataType == REG_EXPAND_SZ || dataType == REG_MULTI_SZ) {
+      dataBuff[dataSize - 1] = 0x00;
+    }
+  }
+  else if (dataBuff != NULL || dataSize != NULL) {
+    status = Status(1, "Invalid registry data to sanitize");
+  }
+  return status;
+}
+
 /// Microsoft helper function for getting the contents of a registry key
 void queryKey(const std::string& keyPath, QueryData& results) {
   std::string hive;
@@ -151,14 +164,15 @@ void queryKey(const std::string& keyPath, QueryData& results) {
     return;
   }
 
-  BYTE* bpDataBuff = new BYTE[cbMaxValueData];
   DWORD cchValue = maxKeyLength;
   TCHAR achValue[maxValueName];
 
   // Process registry values
   for (size_t i = 0, retCode = ERROR_SUCCESS; i < cValues; i++) {
+    DWORD lpData = (cbMaxValueData == 0) ? NULL : cbMaxValueData;
+    DWORD lpType;
+    BYTE* bpDataBuff = (cbMaxValueData == 0) ? NULL : new BYTE[cbMaxValueData]();
     size_t cnt = 0;
-    ZeroMemory(bpDataBuff, cbMaxValueData);
     cchValue = maxValueName;
     achValue[0] = '\0';
 
@@ -175,12 +189,15 @@ void queryKey(const std::string& keyPath, QueryData& results) {
       continue;
     }
 
-    DWORD lpData = cbMaxValueData;
-    DWORD lpType;
     retCode = RegQueryValueEx(
         hRegistryHandle, achValue, 0, &lpType, bpDataBuff, &lpData);
 
     if (retCode != ERROR_SUCCESS) {
+      continue;
+    }
+
+    auto status = sanitizeRegistryStrings(lpType, bpDataBuff, lpData);
+    if (!status.ok()) {
       continue;
     }
 
@@ -195,7 +212,6 @@ void queryKey(const std::string& keyPath, QueryData& results) {
     }
     r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
 
-    bpDataBuff[cbMaxValueData - 1] = 0x00;
 
     /// REG_LINK is a Unicode string, which in Windows is wchar_t
     char* regLinkStr = nullptr;
@@ -247,7 +263,7 @@ void queryKey(const std::string& keyPath, QueryData& results) {
       r["data"] = boost::algorithm::join(multiSzStrs, ",");
       break;
     case REG_NONE:
-      r["data"] = std::string((char*)bpDataBuff);
+      r["data"] = "(zero-length binary value)";
       break;
     case REG_QWORD:
       r["data"] = std::to_string(*((unsigned long long*)bpDataBuff));
@@ -263,8 +279,8 @@ void queryKey(const std::string& keyPath, QueryData& results) {
     if (regLinkStr != nullptr) {
       delete[](regLinkStr);
     }
+    delete[](bpDataBuff);
   }
-  delete[](bpDataBuff);
   RegCloseKey(hRegistryHandle);
 };
 
