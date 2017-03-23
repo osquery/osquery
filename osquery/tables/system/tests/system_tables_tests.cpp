@@ -63,6 +63,31 @@ TEST_F(SystemsTablesTests, test_processes) {
   }
 }
 
+TEST_F(SystemsTablesTests, test_users) {
+  {
+    SQL results("select uid, uuid, username from users limit 1");
+    ASSERT_EQ(results.rows().size(), 1U);
+
+    EXPECT_FALSE(results.rows()[0].at("uid").empty());
+    if (!isPlatform(PlatformType::TYPE_LINUX)) {
+      EXPECT_FALSE(results.rows()[0].at("uuid").empty());
+    }
+    EXPECT_FALSE(results.rows()[0].at("username").empty());
+  }
+
+  {
+    // Make sure that we can query all users without crash or hang: Issue #3079
+    SQL results("select uid, uuid, username from users");
+    EXPECT_GT(results.rows().size(), 1U);
+  }
+
+  {
+    // Make sure an invalid pid within the query constraint returns no rows.
+    SQL results("select uuid, username from users where uuid = -1");
+    EXPECT_EQ(results.rows().size(), 0U);
+  }
+}
+
 TEST_F(SystemsTablesTests, test_processes_memory_cpu) {
   SQL results("select * from osquery_info join processes using (pid)");
   long long bytes;
