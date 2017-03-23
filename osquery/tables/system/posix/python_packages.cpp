@@ -31,32 +31,32 @@ const std::set<std::string> kPythonPath = {
 void genPackage(std::string path, Row& r) {
   std::string content;
 
-  if (readFile(path, content).ok()) {
-    auto lines = split(content, "\n");
+  if (!readFile(path, content).ok()) {
+    TLOG << "Cannot find info file: " << path;
+    return;
+  }
 
-    for (int i = 0; i < lines.size(); i++) {
-      auto fields = split(lines[i], ":");
+  auto lines = split(content, "\n");
 
-      if (fields.size() != kNumFields) {
-        continue;
-      }
+  for (const auto& line : lines) {
+    auto fields = split(line, ":");
 
-      if (fields[0] == "Name") {
-        r["name"] = fields[1];
-      } else if (fields[0] == "Version") {
-        r["version"] = fields[1];
-      } else if (fields[0] == "Summary") {
-        r["summary"] = fields[1];
-      } else if (fields[0] == "Author") {
-        r["author"] = fields[1];
-      } else if (fields[0] == "License") {
-        r["license"] = fields[1];
-        break;
-      }
+    if (fields.size() != kNumFields) {
+      continue;
     }
 
-  } else {
-    TLOG << "Cannot find info file: " << path;
+    if (fields[0] == "Name") {
+      r["name"] = fields[1];
+    } else if (fields[0] == "Version") {
+      r["version"] = fields[1];
+    } else if (fields[0] == "Summary") {
+      r["summary"] = fields[1];
+    } else if (fields[0] == "Author") {
+      r["author"] = fields[1];
+    } else if (fields[0] == "License") {
+      r["license"] = fields[1];
+      break;
+    }
   }
 }
 
@@ -65,23 +65,26 @@ QueryData genPythonPackages(QueryContext& context) {
 
   for (const auto& key : kPythonPath) {
     std::vector<std::string> directories;
-    if (listDirectoriesInDirectory(key, directories, true).ok()) {
-      for (const auto& directory : directories) {
-        if (isDirectory(directory).ok()) {
-          Row r;
-          std::string path;
-          if (directory.find(".dist-info") != std::string::npos) {
-            path = directory + "/METADATA";
-            genPackage(path, r);
-            r["path"] = directory;
-            results.push_back(r);
-          } else if (directory.find(".egg-info") != std::string::npos) {
-            path = directory + "/PKG-INFO";
-            genPackage(path, r);
-            r["path"] = directory;
-            results.push_back(r);
-          }
-        }
+    if (!listDirectoriesInDirectory(key, directories, true).ok()) {
+      continue;
+    }
+
+    for (const auto& directory : directories) {
+      if (!isDirectory(directory).ok()) {
+        continue;
+      }
+
+      Row r;
+      if (directory.find(".dist-info") != std::string::npos) {
+        auto path = directory + "/METADATA";
+        genPackage(path, r);
+        r["path"] = directory;
+        results.push_back(r);
+      } else if (directory.find(".egg-info") != std::string::npos) {
+        auto path = directory + "/PKG-INFO";
+        genPackage(path, r);
+        r["path"] = directory;
+        results.push_back(r);
       }
     }
   }
