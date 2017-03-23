@@ -35,6 +35,9 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
+const std::set<int> kRegistryStringTypes = {
+    REG_SZ, REG_MULTI_SZ, REG_EXPAND_SZ};
+
 const std::map<std::string, HKEY> kRegistryHives = {
     {"HKEY_CLASSES_ROOT", HKEY_CLASSES_ROOT},
     {"HKEY_CURRENT_CONFIG", HKEY_CURRENT_CONFIG},
@@ -70,21 +73,6 @@ void explodeRegistryPath(const std::string& path,
   rHive = toks.front();
   toks.erase(toks.begin());
   rKey = osquery::join(toks, kRegSep);
-}
-
-Status sanitizeRegistryStrings(const DWORD dataType,
-                               BYTE* dataBuff,
-                               DWORD dataSize) {
-  if (!dataBuff ^ (dataSize == 0)) {
-    return Status(1, "Invalid registry data to sanitize");
-  }
-  if (dataBuff && dataSize != 0) {
-    if (dataSize > 0 &&
-        (kRegistryStringTypes.find(dataType) != kRegistryStringTypes.end())) {
-      dataBuff[dataSize - 1] = 0x00;
-    }
-  }
-  return Status(0, "OK");
 }
 
 /// Microsoft helper function for getting the contents of a registry key
@@ -198,9 +186,11 @@ void queryKey(const std::string& keyPath, QueryData& results) {
       continue;
     }
 
-    auto status = sanitizeRegistryStrings(lpType, bpDataBuff, lpData);
-    if (!status.ok()) {
-      continue;
+    // It's possible for registry entries to have been inserted incorrectly
+    // resulting in non-null-terminated strings
+    if (bpDataBuff != nullptr && lpData != 0 &&
+        kRegistryStringTypes.find(lpType) != kRegistryStringTypes.end()) {
+      bpDataBuff[lpData - 1] = 0x00;
     }
 
     Row r;
