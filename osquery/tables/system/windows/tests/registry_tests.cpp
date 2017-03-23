@@ -78,7 +78,6 @@ TEST_F(RegistryTablesTest, test_sanitize_registry_strings) {
     status = sanitizeRegistryStrings(type, dataBuff, dataSize);
     EXPECT_TRUE(status.ok());
     EXPECT_TRUE(dataBuff[dataSize - 1] == 0x00);
-
   }
 
   dataBuff[dataSize - 1] = 'x';
@@ -88,7 +87,6 @@ TEST_F(RegistryTablesTest, test_sanitize_registry_strings) {
 
   status = sanitizeRegistryStrings(dataType, NULL, dataSize);
   EXPECT_FALSE(status.ok());
-
 }
 }
 }

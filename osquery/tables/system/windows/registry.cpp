@@ -72,14 +72,16 @@ void explodeRegistryPath(const std::string& path,
   rKey = osquery::join(toks, kRegSep);
 }
 
-Status sanitizeRegistryStrings(const DWORD dataType, BYTE* dataBuff, DWORD dataSize) {
+Status sanitizeRegistryStrings(const DWORD dataType,
+                               BYTE* dataBuff,
+                               DWORD dataSize) {
   auto status = Status(0, "OK");
   if (dataBuff != NULL && dataSize != NULL) {
-    if (dataSize > 0 && (kRegistryStringTypes.find(dataType) != kRegistryStringTypes.end())) {
+    if (dataSize > 0 &&
+        (kRegistryStringTypes.find(dataType) != kRegistryStringTypes.end())) {
       dataBuff[dataSize - 1] = 0x00;
     }
-  }
-  else if (dataBuff != NULL || dataSize != NULL) {
+  } else if (dataBuff != NULL || dataSize != NULL) {
     status = Status(1, "Invalid registry data to sanitize");
   }
   return status;
@@ -171,7 +173,8 @@ void queryKey(const std::string& keyPath, QueryData& results) {
   for (size_t i = 0, retCode = ERROR_SUCCESS; i < cValues; i++) {
     DWORD lpData = (cbMaxValueData == 0) ? NULL : cbMaxValueData;
     DWORD lpType;
-    BYTE* bpDataBuff = (cbMaxValueData == 0) ? NULL : new BYTE[cbMaxValueData]();
+    BYTE* bpDataBuff =
+        (cbMaxValueData == 0) ? NULL : new BYTE[cbMaxValueData]();
     size_t cnt = 0;
     cchValue = maxValueName;
     achValue[0] = '\0';
@@ -211,7 +214,6 @@ void queryKey(const std::string& keyPath, QueryData& results) {
       r["type"] = "UNKNOWN";
     }
     r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
-
 
     /// REG_LINK is a Unicode string, which in Windows is wchar_t
     char* regLinkStr = nullptr;

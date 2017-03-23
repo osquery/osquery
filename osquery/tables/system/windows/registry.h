@@ -18,15 +18,17 @@ namespace tables {
 /// Microsoft helper function for getting the contents of a registry key
 void queryKey(const std::string& keyPath, QueryData& results);
 
-
-/* 
+/*
  * Sanitize any strings that were inserted into the registry incorrectly and
  * may contain non-null-terminated strings.
  * https://msdn.microsoft.com/en-us/library/windows/desktop/ms724884(v=vs.85).aspx
  */
-const std::set<int> kRegistryStringTypes = { REG_SZ, REG_MULTI_SZ, REG_EXPAND_SZ };
+const std::set<int> kRegistryStringTypes = {
+    REG_SZ, REG_MULTI_SZ, REG_EXPAND_SZ};
 
-Status sanitizeRegistryStrings(const DWORD dataType, BYTE* dataBuff, DWORD dataSize);
+Status sanitizeRegistryStrings(const DWORD dataType,
+                               BYTE* dataBuff,
+                               DWORD dataSize);
 
 void explodeRegistryPath(const std::string& path,
                          std::string& rHive,
