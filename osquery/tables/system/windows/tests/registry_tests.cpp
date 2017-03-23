@@ -85,7 +85,10 @@ TEST_F(RegistryTablesTest, test_sanitize_registry_strings) {
   EXPECT_TRUE(status.ok());
   EXPECT_FALSE(dataBuff[dataSize - 1] == 0x00);
 
-  status = sanitizeRegistryStrings(dataType, NULL, dataSize);
+  status = sanitizeRegistryStrings(dataType, nullptr, 0);
+  EXPECT_TRUE(status.ok());
+
+  status = sanitizeRegistryStrings(dataType, nullptr, dataSize);
   EXPECT_FALSE(status.ok());
 }
 }

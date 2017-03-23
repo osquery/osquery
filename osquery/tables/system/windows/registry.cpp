@@ -75,16 +75,16 @@ void explodeRegistryPath(const std::string& path,
 Status sanitizeRegistryStrings(const DWORD dataType,
                                BYTE* dataBuff,
                                DWORD dataSize) {
-  auto status = Status(0, "OK");
-  if (dataBuff != NULL && dataSize != NULL) {
+  if (!dataBuff ^ (dataSize == 0)) {
+    return Status(1, "Invalid registry data to sanitize");
+  }
+  if (dataBuff && dataSize != 0) {
     if (dataSize > 0 &&
         (kRegistryStringTypes.find(dataType) != kRegistryStringTypes.end())) {
       dataBuff[dataSize - 1] = 0x00;
     }
-  } else if (dataBuff != NULL || dataSize != NULL) {
-    status = Status(1, "Invalid registry data to sanitize");
   }
-  return status;
+  return Status(0, "OK");
 }
 
 /// Microsoft helper function for getting the contents of a registry key
@@ -168,13 +168,11 @@ void queryKey(const std::string& keyPath, QueryData& results) {
 
   DWORD cchValue = maxKeyLength;
   TCHAR achValue[maxValueName];
+  BYTE* bpDataBuff =
+      (cbMaxValueData == 0) ? nullptr : new BYTE[cbMaxValueData]();
 
   // Process registry values
   for (size_t i = 0, retCode = ERROR_SUCCESS; i < cValues; i++) {
-    DWORD lpData = (cbMaxValueData == 0) ? NULL : cbMaxValueData;
-    DWORD lpType;
-    BYTE* bpDataBuff =
-        (cbMaxValueData == 0) ? NULL : new BYTE[cbMaxValueData]();
     size_t cnt = 0;
     cchValue = maxValueName;
     achValue[0] = '\0';
@@ -187,14 +185,15 @@ void queryKey(const std::string& keyPath, QueryData& results) {
                            nullptr,
                            nullptr,
                            nullptr);
-
     if (retCode != ERROR_SUCCESS) {
       continue;
     }
 
+    DWORD lpData = cbMaxValueData;
+    DWORD lpType;
+
     retCode = RegQueryValueEx(
         hRegistryHandle, achValue, 0, &lpType, bpDataBuff, &lpData);
-
     if (retCode != ERROR_SUCCESS) {
       continue;
     }
@@ -281,8 +280,9 @@ void queryKey(const std::string& keyPath, QueryData& results) {
     if (regLinkStr != nullptr) {
       delete[](regLinkStr);
     }
-    delete[](bpDataBuff);
+    ZeroMemory(bpDataBuff, cbMaxValueData);
   }
+  delete[](bpDataBuff);
   RegCloseKey(hRegistryHandle);
 };
 
