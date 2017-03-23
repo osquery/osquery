@@ -62,5 +62,33 @@ TEST_F(RegistryTablesTest, test_explode_registry_path_just_hive) {
   EXPECT_TRUE(rKey == "");
   EXPECT_TRUE(rHive == "HKEY_LOCAL_MACHINE");
 }
+
+TEST_F(RegistryTablesTest, test_sanitize_registry_strings) {
+  BYTE dataBuff[] = "This is a test";
+  DWORD dataType = REG_SZ;
+  const DWORD dataSize = sizeof(dataBuff) / sizeof(dataBuff[0]);
+  Status status;
+
+  for (const auto& type : kRegistryStringTypes) {
+    status = sanitizeRegistryStrings(type, dataBuff, dataSize);
+    EXPECT_TRUE(status.ok());
+    EXPECT_TRUE(dataBuff[dataSize - 1] == 0x00);
+
+    dataBuff[dataSize - 1] = 'x';
+    status = sanitizeRegistryStrings(type, dataBuff, dataSize);
+    EXPECT_TRUE(status.ok());
+    EXPECT_TRUE(dataBuff[dataSize - 1] == 0x00);
+
+  }
+
+  dataBuff[dataSize - 1] = 'x';
+  status = sanitizeRegistryStrings(REG_BINARY, dataBuff, dataSize);
+  EXPECT_TRUE(status.ok());
+  EXPECT_FALSE(dataBuff[dataSize - 1] == 0x00);
+
+  status = sanitizeRegistryStrings(dataType, NULL, dataSize);
+  EXPECT_FALSE(status.ok());
+
+}
 }
 }

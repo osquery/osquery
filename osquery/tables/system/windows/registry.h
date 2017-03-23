@@ -24,6 +24,8 @@ void queryKey(const std::string& keyPath, QueryData& results);
  * may contain non-null-terminated strings.
  * https://msdn.microsoft.com/en-us/library/windows/desktop/ms724884(v=vs.85).aspx
  */
+const std::set<int> kRegistryStringTypes = { REG_SZ, REG_MULTI_SZ, REG_EXPAND_SZ };
+
 Status sanitizeRegistryStrings(const DWORD dataType, BYTE* dataBuff, DWORD dataSize);
 
 void explodeRegistryPath(const std::string& path,

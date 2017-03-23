@@ -75,7 +75,7 @@ void explodeRegistryPath(const std::string& path,
 Status sanitizeRegistryStrings(const DWORD dataType, BYTE* dataBuff, DWORD dataSize) {
   auto status = Status(0, "OK");
   if (dataBuff != NULL && dataSize != NULL) {
-    if (dataSize > 0 && dataType == REG_SZ || dataType == REG_EXPAND_SZ || dataType == REG_MULTI_SZ) {
+    if (dataSize > 0 && (kRegistryStringTypes.find(dataType) != kRegistryStringTypes.end())) {
       dataBuff[dataSize - 1] = 0x00;
     }
   }
