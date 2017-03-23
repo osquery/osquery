@@ -1,0 +1,11 @@
+table_name("osquery_strict_mode")
+description("Information on the current status osquery strict mode")
+schema([
+    Column("enabled", TEXT, "Is osquery running in strict mode"),
+    Column("public_key", TEXT, "The public key used to verify signatures"),
+    Column("uuid_signing", TEXT, "Are queries required to have the machine UUID appened before signing"),
+    Column("counter_mode", TEXT, "Is osquery in strict counter mode"),
+    Column("counter", INTEGER, "The counter expected for the next query signature to have"),
+])
+attributes(utility=True)
+implementation("osquery@genOsqueryStrictMode")

@@ -119,6 +119,16 @@ std::string join(const std::vector<std::string>& s, const std::string& tok) {
   return boost::algorithm::join(s, tok);
 }
 
+int charToInt(char input) {
+  if (input >= '0' && input <= '9')
+    return input - '0';
+  if (input >= 'A' && input <= 'F')
+    return input - 'A' + 10;
+  if (input >= 'a' && input <= 'f')
+    return input - 'a' + 10;
+  return 0;
+}
+
 std::string getBufferSHA1(const char* buffer, size_t size) {
   // SHA1 produces 160-bit digests, so allocate (5 * 32) bits.
   uint32_t digest[5] = {0};
@@ -133,5 +143,16 @@ std::string getBufferSHA1(const char* buffer, size_t size) {
     result << std::setw(sizeof(uint32_t) * 2) << digest[i];
   }
   return result.str();
+}
+
+std::vector<unsigned char> hexStringToBuffer(const std::string str) {
+  std::vector<unsigned char> ret;
+  if (str.length() % 2 != 0) {
+    return ret;
+  }
+  for (size_t i = 0; i < str.length(); i += 2) {
+    ret.push_back((charToInt(str[i]) << 4) + charToInt(str[i + 1]));
+  }
+  return ret;
 }
 }

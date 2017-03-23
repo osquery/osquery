@@ -27,6 +27,21 @@ import threading
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from urlparse import parse_qs
 
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+ENABLE_SIGNING = False
+HOST_UUID = "A0000000-0111-5555-BBBB-666666666666"
+UUID_SIGNING = False
+COUNTER_MODE = True
+SIGNING_KEY = None
+QUERY_COUNTER = 0
+if ENABLE_SIGNING:
+    # Imports for signing
+    import ecdsa
+    import hashlib
+    with open(SCRIPT_DIR + "/strict_test_key.pem", "r") as fh:
+        SIGNING_KEY = ecdsa.SigningKey.from_pem(fh.read())
+
+
 EXAMPLE_CONFIG = {
     "schedule": {
         "tls_proc": {"query": "select * from processes", "interval": 1},
@@ -201,7 +216,22 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         if "node_key" not in request or request["node_key"] not in NODE_KEYS:
             self._reply(FAILED_ENROLL_RESPONSE)
             return
-        self._reply(EXAMPLE_DISTRIBUTED)
+        if ENABLE_SIGNING:
+            global QUERY_COUNTER, SIGNING_KEY
+            signed_distributed = EXAMPLE_DISTRIBUTED
+            signed_distributed['signatures'] = {}
+            for query in signed_distributed['queries']:
+                sign_str = signed_distributed['queries'][query]
+                if UUID_SIGNING:
+                    sign_str += "\n"+HOST_UUID
+                if COUNTER_MODE:
+                    sign_str += "\n"+str(QUERY_COUNTER)
+                sig = base64.standard_b64encode(SIGNING_KEY.sign(sign_str, hashfunc=hashlib.sha256, sigencode=ecdsa.util.sigencode_der))
+                signed_distributed['signatures'][query] = sig
+                QUERY_COUNTER += 1
+            self._reply(signed_distributed)
+        else:
+            self._reply(EXAMPLE_DISTRIBUTED)
 
     def distributed_write(self, request):
         '''A basic distributed write endpoint'''
