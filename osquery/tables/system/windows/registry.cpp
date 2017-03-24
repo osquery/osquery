@@ -204,75 +204,79 @@ void queryKey(const std::string& keyPath, QueryData& results) {
     }
     r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
 
-    /// REG_LINK is a Unicode string, which in Windows is wchar_t
-    char* regLinkStr = nullptr;
-    if (lpType == REG_LINK) {
-      regLinkStr = new char[cbMaxValueData];
-      const size_t newSize = cbMaxValueData;
-      size_t convertedChars = 0;
-      wcstombs_s(&convertedChars,
-                 regLinkStr,
-                 newSize,
-                 (wchar_t*)bpDataBuff,
-                 _TRUNCATE);
-    }
-
-    BYTE* bpDataBuffTmp = bpDataBuff;
-    std::vector<std::string> multiSzStrs;
-    std::vector<char> regBinary;
-    std::string data;
-
-    switch (lpType) {
-    case REG_FULL_RESOURCE_DESCRIPTOR:
-    case REG_RESOURCE_LIST:
-    case REG_BINARY:
-      for (unsigned int i = 0; i < cbMaxValueData; i++) {
-        regBinary.push_back((char)bpDataBuff[i]);
+    if (bpDataBuff != nullptr) {
+      /// REG_LINK is a Unicode string, which in Windows is wchar_t
+      char* regLinkStr = nullptr;
+      if (lpType == REG_LINK) {
+        regLinkStr = new char[cbMaxValueData];
+        const size_t newSize = cbMaxValueData;
+        size_t convertedChars = 0;
+        wcstombs_s(&convertedChars,
+                   regLinkStr,
+                   newSize,
+                   (wchar_t*)bpDataBuff,
+                   _TRUNCATE);
       }
-      boost::algorithm::hex(
-          regBinary.begin(), regBinary.end(), std::back_inserter(data));
-      r["data"] = data;
-      break;
-    case REG_DWORD:
-      r["data"] = std::to_string(*((int*)bpDataBuff));
-      break;
-    case REG_DWORD_BIG_ENDIAN:
-      r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff)));
-      break;
-    case REG_EXPAND_SZ:
-      r["data"] = std::string((char*)bpDataBuff);
-      break;
-    case REG_LINK:
-      r["data"] = std::string(regLinkStr);
-      break;
-    case REG_MULTI_SZ:
-      while (*bpDataBuffTmp != 0x00) {
-        std::string s((char*)bpDataBuffTmp);
-        bpDataBuffTmp += s.size() + 1;
-        multiSzStrs.push_back(s);
+
+      BYTE* bpDataBuffTmp = bpDataBuff;
+      std::vector<std::string> multiSzStrs;
+      std::vector<char> regBinary;
+      std::string data;
+
+      switch (lpType) {
+      case REG_FULL_RESOURCE_DESCRIPTOR:
+      case REG_RESOURCE_LIST:
+      case REG_BINARY:
+        for (unsigned int i = 0; i < cbMaxValueData; i++) {
+          regBinary.push_back((char)bpDataBuff[i]);
+        }
+        boost::algorithm::hex(
+            regBinary.begin(), regBinary.end(), std::back_inserter(data));
+        r["data"] = data;
+        break;
+      case REG_DWORD:
+        r["data"] = std::to_string(*((int*)bpDataBuff));
+        break;
+      case REG_DWORD_BIG_ENDIAN:
+        r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff)));
+        break;
+      case REG_EXPAND_SZ:
+        r["data"] = std::string((char*)bpDataBuff);
+        break;
+      case REG_LINK:
+        r["data"] = std::string(regLinkStr);
+        break;
+      case REG_MULTI_SZ:
+        while (*bpDataBuffTmp != 0x00) {
+          std::string s((char*)bpDataBuffTmp);
+          bpDataBuffTmp += s.size() + 1;
+          multiSzStrs.push_back(s);
+        }
+        r["data"] = boost::algorithm::join(multiSzStrs, ",");
+        break;
+      case REG_NONE:
+        r["data"] = "(zero-length binary value)";
+        break;
+      case REG_QWORD:
+        r["data"] = std::to_string(*((unsigned long long*)bpDataBuff));
+        break;
+      case REG_SZ:
+        r["data"] = std::string((char*)bpDataBuff);
+        break;
+      default:
+        r["data"] = "";
+        break;
       }
-      r["data"] = boost::algorithm::join(multiSzStrs, ",");
-      break;
-    case REG_NONE:
-      r["data"] = "(zero-length binary value)";
-      break;
-    case REG_QWORD:
-      r["data"] = std::to_string(*((unsigned long long*)bpDataBuff));
-      break;
-    case REG_SZ:
-      r["data"] = std::string((char*)bpDataBuff);
-      break;
-    default:
-      r["data"] = "";
-      break;
+      if (regLinkStr != nullptr) {
+        delete[](regLinkStr);
+      }
+      ZeroMemory(bpDataBuff, cbMaxValueData);
     }
     results.push_back(r);
-    if (regLinkStr != nullptr) {
-      delete[](regLinkStr);
-    }
-    ZeroMemory(bpDataBuff, cbMaxValueData);
   }
-  delete[](bpDataBuff);
+  if (bpDataBuff != nullptr) {
+    delete[](bpDataBuff);
+  }
   RegCloseKey(hRegistryHandle);
 };
 
