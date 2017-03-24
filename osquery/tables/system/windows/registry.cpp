@@ -402,7 +402,7 @@ QueryData genRegistry(QueryContext& context) {
           return status;
         }));
     if (!status.ok()) {
-      LOG(ERROR) << status.getMessage();
+      LOG(INFO) << "Failed to expand globs: " + status.getMessage();
     }
   }
 
