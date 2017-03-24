@@ -117,7 +117,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     const std::string& extensions_socket,
     const std::string& extensions_timeout,
     const std::string& extensions_interval,
-    const std::string& verbose) {
+    bool verbose) {
   auto ext_pid = ::fork();
   if (ext_pid < 0) {
     return std::shared_ptr<PlatformProcess>();
@@ -125,13 +125,13 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     setEnvVar("OSQUERY_EXTENSION", std::to_string(::getpid()).c_str());
     ::execle(exec_path.c_str(),
              ("osquery extension: " + extension).c_str(),
+             (verbose) ? "--verbose" : "--noverbose",
              "--socket",
              extensions_socket.c_str(),
              "--timeout",
              extensions_timeout.c_str(),
              "--interval",
              extensions_interval.c_str(),
-             (verbose == "true") ? "--verbose" : (char*)nullptr,
              (char*)nullptr,
              ::environ);
 

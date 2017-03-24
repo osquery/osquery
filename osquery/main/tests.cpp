@@ -21,7 +21,6 @@
 #include <osquery/logger.h>
 
 #include "osquery/core/process.h"
-#include "osquery/core/testing.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
@@ -42,13 +41,13 @@ const size_t kExpectedWorkerArgsCount =
 
 /// These are the expected arguments for our test extensions process.
 const char* kExpectedExtensionArgs[] = {"osquery extension: extension-test",
+                                        "--verbose",
                                         "--socket",
                                         "socket-name",
                                         "--timeout",
                                         "100",
                                         "--interval",
                                         "5",
-                                        "--verbose",
                                         nullptr};
 const size_t kExpectedExtensionArgsCount =
     (sizeof(osquery::kExpectedExtensionArgs) / sizeof(char*)) - 1;

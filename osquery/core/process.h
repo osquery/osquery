@@ -162,7 +162,7 @@ class PlatformProcess : private boost::noncopyable {
       const std::string& extensions_socket,
       const std::string& extensions_timeout,
       const std::string& extensions_interval,
-      const std::string& verbose);
+      bool verbose = false);
 
   /**
    * @brief Launches a new Python script

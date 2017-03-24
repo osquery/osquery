@@ -14,8 +14,8 @@
 #include <osquery/core.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/testing.h"
 #include "osquery/core/watcher.h"
+#include "osquery/tests/test_util.h"
 
 using namespace testing;
 
