@@ -333,35 +333,34 @@ Status populateAllKeysRecursive(std::set<std::string>& rKeys,
 
 Status resolveRegistryGlobs(const std::string& pattern,
                             std::set<std::string>& results) {
-  auto toks = osquery::split(pattern, kRegSep);
-  auto status = Status(0, "OK");
-  for (const auto& tok : toks) {
-    // If recursive glob is found in middle of path, treat it like standard glob
-    if (tok.find(kRegRecursiveGlob) != std::string::npos &&
-        &tok == &toks.back()) {
-      if (&tok == &toks.front()) {
-        // Special case for "select * from registry where key like '%%'"
-        populateDefaultKeys(results);
-      }
-      status = populateAllKeysRecursive(results);
-      if (!status.ok()) {
-        break;
-      }
-    } else if (tok.find(kRegSingleGlob) != std::string::npos) {
-      if (&tok == &toks.front()) {
-        populateDefaultKeys(results);
-      } else {
-        replaceKeysWithSubkeys(results);
-      }
+  auto pathElems = osquery::split(pattern, kRegSep);
+
+  // Special handling to insert default keys when glob present in first elem
+  if (boost::ends_with(pathElems[0], kRegRecursiveGlob) && pathElems.size() == 1) {
+    // Pattern is '%%', grab everything
+    populateDefaultKeys(results);
+    return populateAllKeysRecursive(results);
+  } else  if (pathElems[0].find(kRegSingleGlob) != std::string::npos) {
+    populateDefaultKeys(results);
+    pathElems.erase(pathElems.begin());
+  }
+  else {
+    results.insert(pathElems[0]);
+    pathElems.erase(pathElems.begin());
+  }
+
+  for (const auto& elem : pathElems) {
+     // We only care about  a recursive glob if it comes at the end of the pattern
+     // i.e. 'HKEY_LOCAL_MACHINE\SOFTWARE\%%'
+    if (boost::ends_with(elem, kRegRecursiveGlob) && &elem == &pathElems.back()) {
+      return populateAllKeysRecursive(results);
+    } else if (elem.find(kRegSingleGlob) != std::string::npos) {
+      replaceKeysWithSubkeys(results);
     } else {
-      if (&tok == &toks.front()) {
-        results.insert(tok);
-      } else {
-        appendSubkeyToKeys(tok, results);
-      }
+        appendSubkeyToKeys(elem, results);
     }
   }
-  return status;
+  return Status(0, "OK");
 }
 
 void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
