@@ -335,12 +335,16 @@ Status resolveRegistryGlobs(const std::string& pattern,
                             std::set<std::string>& results) {
   auto pathElems = osquery::split(pattern, kRegSep);
 
-  // Special handling to insert default keys when glob present in first elem
+  // Pattern is '%%', grab everything
+  // Note that if '%%' is present but not at the end of the pattern
+  // , then it is treated like a single glob
   if (boost::ends_with(pathElems[0], kRegRecursiveGlob) && pathElems.size() == 1) {
-    // Pattern is '%%', grab everything
     populateDefaultKeys(results);
     return populateAllKeysRecursive(results);
-  } else  if (pathElems[0].find(kRegSingleGlob) != std::string::npos) {
+  }
+  
+  // Special handling to insert default keys when glob present in first elem
+  if (pathElems[0].find(kRegSingleGlob) != std::string::npos) {
     populateDefaultKeys(results);
     pathElems.erase(pathElems.begin());
   }
