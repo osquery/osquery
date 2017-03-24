@@ -21,6 +21,8 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/range/adaptor/map.hpp>
+#include <boost/range/algorithm.hpp>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
@@ -62,13 +64,9 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
 };
 
-const std::string kRegSep = "\\";
-const std::string kRegSingleGlob = "%";
-const std::string kRegRecursiveGlob = "%%";
-
-void explodeRegistryPath(const std::string& path,
-                         std::string& rHive,
-                         std::string& rKey) {
+inline void explodeRegistryPath(const std::string& path,
+                                std::string& rHive,
+                                std::string& rKey) {
   auto toks = osquery::split(path, kRegSep);
   rHive = toks.front();
   toks.erase(toks.begin());
@@ -271,14 +269,13 @@ void queryKey(const std::string& keyPath, QueryData& results) {
   RegCloseKey(hRegistryHandle);
 }
 
-void populateDefaultKeys(std::set<std::string>& rKeys) {
-  for (const auto& hive : kRegistryHives) {
-    rKeys.insert(hive.first);
-  }
+inline void populateDefaultKeys(std::set<std::string>& rKeys) {
+  boost::copy(kRegistryHives | boost::adaptors::map_keys,
+              std::inserter(rKeys, rKeys.end()));
 }
 
-void replaceKeysWithSubkeys(std::set<std::string>& rKeys) {
-  std::set<std::string> newKeys{};
+inline void replaceKeysWithSubkeys(std::set<std::string>& rKeys) {
+  std::set<std::string> newKeys;
   for (const auto& key : rKeys) {
     QueryData regResults;
     queryKey(key, regResults);
@@ -291,8 +288,8 @@ void replaceKeysWithSubkeys(std::set<std::string>& rKeys) {
   rKeys = newKeys;
 }
 
-void appendSubkeyToKeys(const std::string& subkey,
-                        std::set<std::string>& rKeys) {
+inline void appendSubkeyToKeys(const std::string& subkey,
+                               std::set<std::string>& rKeys) {
   std::set<std::string> newKeys{};
   for (auto& key : rKeys) {
     newKeys.insert(key + kRegSep + subkey);
@@ -300,14 +297,14 @@ void appendSubkeyToKeys(const std::string& subkey,
   rKeys = newKeys;
 }
 
-Status populateAllKeysRecursive(std::set<std::string>& rKeys,
-                                int currDepth,
-                                int maxDepth) {
+inline Status populateAllKeysRecursive(
+    std::set<std::string>& rKeys,
+    size_t currDepth = 1,
+    size_t maxDepth = kRegMaxRecursiveDepth) {
   std::set<std::string> subkeys{};
 
   if (currDepth > maxDepth) {
-    return Status(
-        1, "Max recursive depth (" + std::to_string(maxDepth) + ") reached");
+    return Status(1, "Max recursive depth reached");
   }
 
   for (const auto& key : rKeys) {
@@ -331,43 +328,47 @@ Status populateAllKeysRecursive(std::set<std::string>& rKeys,
   return Status(0, "OK");
 }
 
-Status resolveRegistryGlobs(const std::string& pattern,
-                            std::set<std::string>& results) {
+Status expandRegistryGlobs(const std::string& pattern,
+                           std::set<std::string>& results) {
   auto pathElems = osquery::split(pattern, kRegSep);
+  if (pathElems.size() == 0) {
+    return Status(0, "OK");
+  }
 
   // Pattern is '%%', grab everything
   // Note that if '%%' is present but not at the end of the pattern
   // , then it is treated like a single glob
-  if (boost::ends_with(pathElems[0], kRegRecursiveGlob) && pathElems.size() == 1) {
+  if (boost::ends_with(pathElems[0], kSQLGlobRecursive) &&
+      pathElems.size() == 1) {
     populateDefaultKeys(results);
     return populateAllKeysRecursive(results);
   }
-  
+
   // Special handling to insert default keys when glob present in first elem
-  if (pathElems[0].find(kRegSingleGlob) != std::string::npos) {
+  if (pathElems[0].find(kSQLGlobWildcard) != std::string::npos) {
     populateDefaultKeys(results);
     pathElems.erase(pathElems.begin());
-  }
-  else {
+  } else {
     results.insert(pathElems[0]);
     pathElems.erase(pathElems.begin());
   }
 
   for (const auto& elem : pathElems) {
-     // We only care about  a recursive glob if it comes at the end of the pattern
-     // i.e. 'HKEY_LOCAL_MACHINE\SOFTWARE\%%'
-    if (boost::ends_with(elem, kRegRecursiveGlob) && &elem == &pathElems.back()) {
+    // We only care about  a recursive glob if it comes at the end of the
+    // pattern i.e. 'HKEY_LOCAL_MACHINE\SOFTWARE\%%'
+    if (boost::ends_with(elem, kSQLGlobRecursive) &&
+        &elem == &pathElems.back()) {
       return populateAllKeysRecursive(results);
-    } else if (elem.find(kRegSingleGlob) != std::string::npos) {
+    } else if (elem.find(kSQLGlobWildcard) != std::string::npos) {
       replaceKeysWithSubkeys(results);
     } else {
-        appendSubkeyToKeys(elem, results);
+      appendSubkeyToKeys(elem, results);
     }
   }
   return Status(0, "OK");
 }
 
-void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
+inline void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
   std::string hive, _;
   for (const auto& key : rKeys) {
     explodeRegistryPath(key, hive, _);
@@ -375,7 +376,7 @@ void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
         hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS") {
       LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
                       "query HKEY_USERS with the desired users SID instead";
-      return;
+      break;
     }
   }
 }
@@ -387,7 +388,7 @@ QueryData genRegistry(QueryContext& context) {
   if (!(context.hasConstraint("key", EQUALS) ||
         context.hasConstraint("key", LIKE))) {
     // We default to display all HIVEs
-    resolveRegistryGlobs("%", keys);
+    expandRegistryGlobs(kSQLGlobWildcard, keys);
   } else {
     keys = context.constraints["key"].getAll(EQUALS);
     auto status = context.expandConstraints(
@@ -396,7 +397,7 @@ QueryData genRegistry(QueryContext& context) {
         keys,
         ([&](const std::string& pattern, std::set<std::string>& out) {
           std::set<std::string> resolvedKeys;
-          auto status = resolveRegistryGlobs(pattern, resolvedKeys);
+          auto status = expandRegistryGlobs(pattern, resolvedKeys);
           out.insert(resolvedKeys.begin(), resolvedKeys.end());
           return status;
         }));
