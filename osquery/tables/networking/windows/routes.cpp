@@ -56,15 +56,14 @@ getAdapterAddressMapping() {
 }
 
 PMIB_IPINTERFACE_TABLE getInterfaces(int type = AF_UNSPEC) {
-  std::vector<BYTE> buffer;
-  auto interfaceTable = reinterpret_cast<PMIB_IPINTERFACE_TABLE>(buffer.data());
+  auto interfaceTable = std::make_unique<PMIB_IPINTERFACE_TABLE>();
 
-  auto dwRetVal = GetIpInterfaceTable(type, &interfaceTable);
+  auto dwRetVal = GetIpInterfaceTable(type, interfaceTable.get());
   if (dwRetVal != NO_ERROR) {
     return nullptr;
   }
 
-  return interfaceTable;
+  return *interfaceTable.get();
 }
 
 std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
