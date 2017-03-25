@@ -110,19 +110,32 @@ QueryData genIPRoutes(QueryContext& context) {
     auto addrFamily = currentRow.DestinationPrefix.Prefix.si_family;
     auto actualInterface = interfaces.at(currentRow.InterfaceIndex);
     if (addrFamily == AF_INET6) {
+      std::vector<char> buffer(INET6_ADDRSTRLEN);
+
       r["mtu"] = INTEGER(actualInterface.NlMtu);
       // These are all technically "on-link" addresses according to
       // `route print -6`.
       r["type"] = "local";
-      ipAddress = reinterpret_cast<struct sockaddr_in6*>(
-          &currentRow.DestinationPrefix.Prefix.Ipv6.sin6_addr);
-      gateway = reinterpret_cast<struct sockaddr_in6*>(
-          &currentRow.NextHop.Ipv6.sin6_addr);
+      auto ipAddress = std::make_unique<IN6_ADDR>(
+          currentRow.DestinationPrefix.Prefix.Ipv6.sin6_addr);
+      auto gateway =
+          std::make_unique<IN6_ADDR>(currentRow.NextHop.Ipv6.sin6_addr);
+
+      InetNtop(addrFamily, ipAddress.get(), buffer.data(), buffer.size());
+      r["destination"] = SQL_TEXT(buffer.data());
+      InetNtop(addrFamily, gateway.get(), buffer.data(), buffer.size());
+      r["gateway"] = SQL_TEXT(buffer.data());
     } else if (addrFamily == AF_INET) {
-      ipAddress = reinterpret_cast<struct sockaddr_in*>(
-          &currentRow.DestinationPrefix.Prefix.Ipv4.sin_addr);
-      gateway = reinterpret_cast<struct sockaddr_in*>(
-          &currentRow.NextHop.Ipv4.sin_addr);
+      std::vector<char> buffer(INET_ADDRSTRLEN);
+      auto ipAddress = std::make_unique<IN_ADDR>(
+          currentRow.DestinationPrefix.Prefix.Ipv4.sin_addr);
+      auto gateway =
+          std::make_unique<IN_ADDR>(currentRow.NextHop.Ipv4.sin_addr);
+
+      InetNtop(addrFamily, ipAddress.get(), buffer.data(), buffer.size());
+      r["destination"] = SQL_TEXT(buffer.data());
+      InetNtop(addrFamily, gateway.get(), buffer.data(), buffer.size());
+      r["gateway"] = SQL_TEXT(buffer.data());
 
       // The software loopback is not returned by GetAdaptersInfo, so any
       // lookups into that index must be skipped and default values set.
@@ -137,11 +150,6 @@ QueryData genIPRoutes(QueryContext& context) {
       }
       r["type"] = currentRow.Loopback ? "local" : "remote";
     }
-    std::vector<char> buffer(INET6_ADDRSTRLEN);
-    InetNtop(addrFamily, ipAddress, buffer.data(), buffer.size());
-    r["destination"] = SQL_TEXT(buffer.data());
-    InetNtop(addrFamily, gateway, buffer.data(), buffer.size());
-    r["gateway"] = SQL_TEXT(buffer.data());
     r["interface"] = SQL_TEXT(interfaceIpAddress);
     r["metric"] = INTEGER(currentRow.Metric + actualInterface.Metric);
     r["netmask"] =
@@ -150,17 +158,10 @@ QueryData genIPRoutes(QueryContext& context) {
     r["flags"] = SQL_TEXT("-1");
 
     results.push_back(r);
-
-    // Cleanup
-    SecureZeroMemory(ipAddress, sizeof(ipAddress));
-    SecureZeroMemory(gateway, sizeof(gateway));
-    buffer.clear();
-
-    ipAddress = nullptr;
-    gateway = nullptr;
   }
+
+  // Cleanup
   FreeMibTable(ipTable);
-  interfaces.clear();
 
   return results;
 }
