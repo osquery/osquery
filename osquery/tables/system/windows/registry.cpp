@@ -227,7 +227,7 @@ void queryKey(const std::string& keyPath, QueryData& results) {
       case REG_FULL_RESOURCE_DESCRIPTOR:
       case REG_RESOURCE_LIST:
       case REG_BINARY:
-        for (unsigned int i = 0; i < cbMaxValueData; i++) {
+        for (size_t i = 0; i < cbMaxValueData; i++) {
           regBinary.push_back((char)bpDataBuff[i]);
         }
         boost::algorithm::hex(
