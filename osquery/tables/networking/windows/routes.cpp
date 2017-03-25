@@ -82,7 +82,7 @@ std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
   return returnMapping;
 }
 
-QueryData genIPRoutes(QueryContext& context) {
+QueryData genRoutes(QueryContext& context) {
   QueryData results;
   PMIB_IPFORWARD_TABLE2* ipTable = nullptr;
 
@@ -162,16 +162,6 @@ QueryData genIPRoutes(QueryContext& context) {
   // Cleanup
   FreeMibTable(ipTable);
 
-  return results;
-}
-
-QueryData genRoutes(QueryContext& context) {
-  QueryData results;
-  QueryData routes = genIPRoutes(context);
-
-  for (auto const& item : routes) {
-    results.push_back(item);
-  }
   return results;
 }
 }
