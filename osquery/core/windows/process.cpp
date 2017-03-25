@@ -242,7 +242,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     const std::string& extensions_socket,
     const std::string& extensions_timeout,
     const std::string& extensions_interval,
-    const std::string& verbose) {
+    bool verbose) {
   ::STARTUPINFOA si = {0};
   ::PROCESS_INFORMATION pi = {nullptr};
 
@@ -253,13 +253,10 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   std::stringstream argv_stream;
   argv_stream << "\"osquery extension: "
               << boost::replace_all_copy(extension, "\"", "") << "\" ";
+  argv_stream << ((verbose) ? "--verbose" : "--noverbose") << " ";
   argv_stream << "--socket \"" << extensions_socket << "\" ";
   argv_stream << "--timeout " << extensions_timeout << " ";
   argv_stream << "--interval " << extensions_interval << " ";
-
-  if (verbose == "true") {
-    argv_stream << "--verbose";
-  }
 
   // We don't directly use argv.c_str() as the value for lpCommandLine in
   // CreateProcess since that argument requires a modifiable buffer. So,

@@ -25,6 +25,20 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
+/// The following codes are specifically for checking whether the child worker
+/// or extension process ran successfully. These values should be the values
+/// captured as exit codes if all the child process checks complete without
+/// deviation.
+#define EXTENSION_SUCCESS_CODE 0x45
+#define WORKER_SUCCESS_CODE 0x57
+
+/// The following are error codes returned by the child process.
+#define ERROR_COMPARE_ARGUMENT -1
+#define ERROR_LAUNCHER_PROCESS -2
+#define ERROR_QUERY_PROCESS_IMAGE -3
+#define ERROR_IMAGE_NAME_LENGTH -4
+#define ERROR_LAUNCHER_MISMATCH -5
+
 /// Init function for tests and benchmarks.
 void initTesting();
 
@@ -46,6 +60,20 @@ extern std::string kTestDataPath;
 extern std::string kTestWorkingDirectory;
 extern std::string kFakeDirectory;
 
+/// Stores the path of the currently executing executable
+extern std::string kProcessTestExecPath;
+
+/// This is the expected module name of the launcher process.
+extern const char* kOsqueryTestModuleName;
+
+/// These are the expected arguments for our test worker process.
+extern const char* kExpectedWorkerArgs[];
+extern const size_t kExpectedWorkerArgsCount;
+
+/// These are the expected arguments for our test extensions process.
+extern const char* kExpectedExtensionArgs[];
+extern const size_t kExpectedExtensionArgsCount;
+
 // Get an example generate config with one static source name to JSON content.
 std::map<std::string, std::string> getTestConfigMap();
 
@@ -65,7 +93,7 @@ QueryData getTestDBExpectedResults();
 // Starting with the dataset returned by createTestDB(), getTestDBResultStream
 // returns a vector of std::pair's where pair.first is the query that would
 // need to be performed on the dataset to make the results be pair.second
-std::vector<std::pair<std::string, QueryData> > getTestDBResultStream();
+std::vector<std::pair<std::string, QueryData>> getTestDBResultStream();
 
 // getSerializedRowColumnNames returns a vector of test column names that
 // are in alphabetical order. If unordered_and_repeated is true, the
@@ -129,4 +157,3 @@ void createMockFileStructure();
 // remove the small directory structure used for testing
 void tearDownMockFileStructure();
 }
-

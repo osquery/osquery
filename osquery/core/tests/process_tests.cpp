@@ -13,7 +13,7 @@
 #include <osquery/core.h>
 
 #include "osquery/core/process.h"
-#include "osquery/core/testing.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
@@ -89,8 +89,7 @@ TEST_F(ProcessTests, test_constructorPosix) {
 TEST_F(ProcessTests, test_getpid) {
   int pid = -1;
 
-  std::shared_ptr<PlatformProcess> process =
-      PlatformProcess::getCurrentProcess();
+  auto process = PlatformProcess::getCurrentProcess();
   EXPECT_NE(nullptr, process.get());
 
 #ifdef WIN32
@@ -123,13 +122,13 @@ TEST_F(ProcessTests, test_envVar) {
 
 TEST_F(ProcessTests, test_launchExtension) {
   {
-    std::shared_ptr<osquery::PlatformProcess> process =
-        osquery::PlatformProcess::launchExtension(kProcessTestExecPath.c_str(),
-                                                  "extension-test",
-                                                  kExpectedExtensionArgs[2],
-                                                  kExpectedExtensionArgs[4],
-                                                  kExpectedExtensionArgs[6],
-                                                  "true");
+    auto process =
+        PlatformProcess::launchExtension(kProcessTestExecPath.c_str(),
+                                         "extension-test",
+                                         kExpectedExtensionArgs[3],
+                                         kExpectedExtensionArgs[5],
+                                         kExpectedExtensionArgs[7],
+                                         true);
     EXPECT_NE(nullptr, process.get());
 
     int code = 0;
@@ -150,11 +149,10 @@ TEST_F(ProcessTests, test_launchWorker) {
     }
     argv.push_back(nullptr);
 
-    std::shared_ptr<osquery::PlatformProcess> process =
-        osquery::PlatformProcess::launchWorker(
-            kProcessTestExecPath.c_str(),
-            static_cast<int>(kExpectedWorkerArgsCount),
-            &argv[0]);
+    auto process = PlatformProcess::launchWorker(
+        kProcessTestExecPath.c_str(),
+        static_cast<int>(kExpectedWorkerArgsCount),
+        &argv[0]);
     for (size_t i = 0; i < argv.size(); i++) {
       delete[] argv[i];
     }
@@ -170,13 +168,13 @@ TEST_F(ProcessTests, test_launchWorker) {
 #ifdef WIN32
 TEST_F(ProcessTests, test_launchExtensionQuotes) {
   {
-    std::shared_ptr<osquery::PlatformProcess> process =
-        osquery::PlatformProcess::launchExtension(kProcessTestExecPath.c_str(),
-                                                  "exten\"sion-te\"st",
-                                                  "socket-name",
-                                                  "100",
-                                                  "5",
-                                                  "true");
+    auto process =
+        PlatformProcess::launchExtension(kProcessTestExecPath.c_str(),
+                                         "exten\"sion-te\"st",
+                                         "socket-name",
+                                         "100",
+                                         "5",
+                                         true);
     EXPECT_NE(nullptr, process.get());
 
     int code = 0;
