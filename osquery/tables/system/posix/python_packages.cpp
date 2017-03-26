@@ -20,7 +20,7 @@
 namespace osquery {
 namespace tables {
 
-const int kNumFields = 2;
+const size_t kNumFields = 2;
 const std::set<std::string> kPythonPath = {
     "/usr/local/lib/python2.7/dist-packages/",
     "/usr/local/lib/python2.7/site-packages/",
@@ -28,7 +28,7 @@ const std::set<std::string> kPythonPath = {
     "/usr/lib/python2.7/site-packages/",
 };
 
-void genPackage(std::string path, Row& r) {
+void genPackage(const std::string& path, Row& r) {
   std::string content;
 
   if (!readFile(path, content).ok()) {
@@ -78,14 +78,14 @@ QueryData genPythonPackages(QueryContext& context) {
       if (directory.find(".dist-info") != std::string::npos) {
         auto path = directory + "/METADATA";
         genPackage(path, r);
-        r["path"] = directory;
-        results.push_back(r);
       } else if (directory.find(".egg-info") != std::string::npos) {
         auto path = directory + "/PKG-INFO";
         genPackage(path, r);
-        r["path"] = directory;
-        results.push_back(r);
+      } else {
+        continue;
       }
+      r["path"] = directory;
+      results.push_back(r);
     }
   }
 
