@@ -114,8 +114,10 @@ Status readFile(const fs::path& path,
                              ? FLAGS_read_max
                              : std::min(FLAGS_read_max, FLAGS_read_user_max));
   if (file_size > read_max) {
-    VLOG(1) << "Cannot read " << path << " size exceeds limit: " << file_size
-            << " > " << read_max;
+    LOG(WARNING) << "Cannot read file that exceeds size limit: "
+                 << path.string();
+    VLOG(1) << "Cannot read " << path.string()
+            << " size exceeds limit: " << file_size << " > " << read_max;
     return Status(1, "File exceeds read limits");
   }
 
