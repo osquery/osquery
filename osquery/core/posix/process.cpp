@@ -123,17 +123,33 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     return std::shared_ptr<PlatformProcess>();
   } else if (ext_pid == 0) {
     setEnvVar("OSQUERY_EXTENSION", std::to_string(::getpid()).c_str());
-    ::execle(exec_path.c_str(),
-             ("osquery extension: " + extension).c_str(),
-             (verbose) ? "--verbose" : "--noverbose",
-             "--socket",
-             extensions_socket.c_str(),
-             "--timeout",
-             extensions_timeout.c_str(),
-             "--interval",
-             extensions_interval.c_str(),
-             (char*)nullptr,
-             ::environ);
+
+    std::vector<const char*> arguments;
+    arguments.push_back(exec_path.c_str());
+
+    auto exec_title = "osquery extension: " + extension;
+    arguments.push_back(exec_title.c_str());
+
+    std::string arg_verbose("--verbose");
+    if (verbose) {
+      arguments.push_back(arg_verbose.c_str());
+    }
+
+    std::string arg_socket("--socket");
+    arguments.push_back(arg_socket.c_str());
+    arguments.push_back(extensions_socket.c_str());
+
+    std::string arg_timeout("--timeout");
+    arguments.push_back(arg_timeout.c_str());
+    arguments.push_back(extensions_timeout.c_str());
+
+    std::string arg_interval("--interval");
+    arguments.push_back(arg_interval.c_str());
+    arguments.push_back(extensions_interval.c_str());
+    arguments.push_back(nullptr);
+
+    char* const* argv = const_cast<char* const*>(&arguments[1]);
+    ::execve(arguments[0], argv, ::environ);
 
     // Code should never reach this point
     VLOG(1) << "Could not start extension process: " << extension;
