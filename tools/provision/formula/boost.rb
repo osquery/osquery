@@ -11,8 +11,8 @@ class Boost < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "4bf5a546eb3e6f46c526c129a10eb31551c207779aa40101d0624926959ef33c" => :sierra
-    sha256 "429a64c15405fcd9c1d5f8712da9834859a8cb5695660d83d8f0d4b380add1c7" => :x86_64_linux
+    sha256 "5f2e5ac7a4a04ce50f3f4a5d6f1d075fb88b100e876cc550380052f775ea3856" => :sierra
+    sha256 "210fbdf8d1430704d638126c13e07cf592a5229b503f14be2cc00212195d5c22" => :x86_64_linux
   end
 
   env :userpaths
