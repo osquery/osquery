@@ -28,13 +28,13 @@ elseif(LINUX)
   if(FPM_EXECUTABLE)
     add_custom_command(TARGET packages PRE_BUILD
       COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
-        -t "deb" -i "1.u16" -d '${DEB_PACKAGE_DEPENDENCIES}'
+        -t "deb" -i "1.linux" -d '${DEB_PACKAGE_DEPENDENCIES}'
     )
 
     if(RPMBUILD_EXECUTABLE)
       add_custom_command(TARGET packages PRE_BUILD
         COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
-          -t "rpm" -i "1.el7" -d '${RPM_PACKAGE_DEPENDENCIES}'
+          -t "rpm" -i "1.linux" -d '${RPM_PACKAGE_DEPENDENCIES}'
       )
     else()
       WARNING_LOG("Skipping RPM/CentOS packages: Cannot find rpmbuild")
@@ -48,6 +48,11 @@ elseif(LINUX)
     else()
       WARNING_LOG("Skipping ArchLinux packages: Cannot find bsdtar")
     endif()
+
+    add_custom_command(TARGET packages PRE_BUILD
+      COMMAND bash "${CMAKE_SOURCE_DIR}/tools/deployment/make_linux_package.sh"
+        -t "tar" -i "1.linux" -d "none"
+    )
 
   else()
     WARNING_LOG("Cannot find fpm executable in path")
