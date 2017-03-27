@@ -8,24 +8,35 @@
 *
 */
 
-#include <fstream>
 #include <string>
 
-#include <osquery/core/conversions.h>
+#include <boost/filesystem.hpp>
+
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/system.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/conversions.h"
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
 
+/// Number of fields when splitting metadata and info.
 const size_t kNumFields = 2;
+
+/// Locations of site and dist packages.
 const std::set<std::string> kPythonPath = {
     "/usr/local/lib/python2.7/dist-packages/",
     "/usr/local/lib/python2.7/site-packages/",
     "/usr/lib/python2.7/dist-packages/",
     "/usr/lib/python2.7/site-packages/",
+    "/Library/Python/2.7/site-packages/",
+};
+
+const std::set<std::string> kDarwinPythonPath = {
+    "/System/Library/Frameworks/Python.framework/Versions/",
 };
 
 void genPackage(const std::string& path, Row& r) {
@@ -60,32 +71,57 @@ void genPackage(const std::string& path, Row& r) {
   }
 }
 
+void genSiteDirectories(const std::string& site, QueryData& results) {
+  std::vector<std::string> directories;
+  if (!listDirectoriesInDirectory(site, directories, true).ok()) {
+    return;
+  }
+
+  for (const auto& directory : directories) {
+    if (!isDirectory(directory).ok()) {
+      continue;
+    }
+
+    Row r;
+    if (directory.find(".dist-info") != std::string::npos) {
+      auto path = directory + "/METADATA";
+      genPackage(path, r);
+    } else if (directory.find(".egg-info") != std::string::npos) {
+      auto path = directory + "/PKG-INFO";
+      genPackage(path, r);
+    } else {
+      continue;
+    }
+    r["path"] = directory;
+    results.push_back(r);
+  }
+}
+
 QueryData genPythonPackages(QueryContext& context) {
   QueryData results;
 
   for (const auto& key : kPythonPath) {
-    std::vector<std::string> directories;
-    if (!listDirectoriesInDirectory(key, directories, true).ok()) {
-      continue;
-    }
+    genSiteDirectories(key, results);
+  }
 
-    for (const auto& directory : directories) {
-      if (!isDirectory(directory).ok()) {
+  if (isPlatform(PlatformType::TYPE_OSX)) {
+    for (const auto& dir : kDarwinPythonPath) {
+      std::vector<std::string> versions;
+      if (!listDirectoriesInDirectory(dir, versions, false).ok()) {
         continue;
       }
 
-      Row r;
-      if (directory.find(".dist-info") != std::string::npos) {
-        auto path = directory + "/METADATA";
-        genPackage(path, r);
-      } else if (directory.find(".egg-info") != std::string::npos) {
-        auto path = directory + "/PKG-INFO";
-        genPackage(path, r);
-      } else {
-        continue;
+      for (const auto& version : versions) {
+        // macOS will link older versions to 2.6.
+        auto version_path = fs::path(version).parent_path();
+        if (fs::is_symlink(symlink_status(version_path))) {
+          continue;
+        }
+
+        auto complete = version + "lib/python" +
+                        version_path.filename().string() + "/site-packages/";
+        genSiteDirectories(complete, results);
       }
-      r["path"] = directory;
-      results.push_back(r);
     }
   }
 
