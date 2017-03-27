@@ -110,6 +110,8 @@ function get_pkg_suffix() {
     echo "-${V}-${PACKAGE_ITERATION}.${PACKAGE_ARCH}.${PACKAGE_TYPE}"
   elif [[ $PACKAGE_TYPE == "pacman" ]]; then
     echo "-${PACKAGE_VERSION}-${PACKAGE_ITERATION}-${PACKAGE_ARCH}.pkg.tar.xz"
+  else
+    echo "-${PACKAGE_VERSION}_${PACKAGE_ITERATION}_${PACKAGE_ARCH}.tar.gz"
   fi
 }
 
