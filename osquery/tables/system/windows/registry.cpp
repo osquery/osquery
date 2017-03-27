@@ -29,9 +29,9 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include <osquery/filesystem.h>
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
+#include <osquery/filesystem.h>
 
 namespace fs = boost::filesystem;
 
@@ -301,7 +301,7 @@ static inline void replaceKeysWithSubkeys(std::set<std::string>& rKeys) {
 }
 
 static inline void appendSubkeyToKeys(const std::string& subkey,
-                               std::set<std::string>& rKeys) {
+                                      std::set<std::string>& rKeys) {
   std::set<std::string> newKeys{};
   for (auto& key : rKeys) {
     newKeys.insert(key + kRegSep + subkey);
