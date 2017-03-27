@@ -10,6 +10,7 @@
 function distro_main() {
   do_sudo pkg update
   do_sudo pkg upgrade -y
+  do_sudo portsnap update
 
   package gmake
   package cmake
@@ -18,11 +19,15 @@ function distro_main() {
   package py27-pip
   package glog
   package snappy
-  package rocksdb
   package thrift
   package thrift-cpp
   package yara
   package boost-libs
   package cpp-netlib
   package magic
+  package sleuthkit
+  package augeas
+
+  ports databases/rocksdb
+  ports devel/linenoise-ng
 }

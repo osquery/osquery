@@ -27,38 +27,52 @@ const std::string kPCIKeyModel = "ID_MODEL_FROM_DATABASE";
 const std::string kPCIKeyID = "PCI_ID";
 const std::string kPCIKeyDriver = "DRIVER";
 
-QueryData genPCIDevices(QueryContext &context) {
+QueryData genPCIDevices(QueryContext& context) {
   QueryData results;
 
-  auto udev_handle = udev_new();
-  if (udev_handle == nullptr) {
+  auto delUdev = [](udev* u) { udev_unref(u); };
+  std::unique_ptr<udev, decltype(delUdev)> udev_handle(udev_new(), delUdev);
+  if (udev_handle.get() == nullptr) {
     VLOG(1) << "Could not get udev handle";
     return results;
   }
 
   // Perform enumeration/search.
-  auto enumerate = udev_enumerate_new(udev_handle);
-  udev_enumerate_add_match_subsystem(enumerate, "pci");
-  udev_enumerate_scan_devices(enumerate);
+  auto delUdevEnum = [](udev_enumerate* e) { udev_enumerate_unref(e); };
+  std::unique_ptr<udev_enumerate, decltype(delUdevEnum)> enumerate(
+      udev_enumerate_new(udev_handle.get()), delUdevEnum);
+  if (enumerate.get() == nullptr) {
+    VLOG(1) << "Could not get udev_enumerate handle";
+    return results;
+  }
+
+  udev_enumerate_add_match_subsystem(enumerate.get(), "pci");
+  udev_enumerate_scan_devices(enumerate.get());
 
   // Get list entries and iterate over entries.
   struct udev_list_entry *device_entries, *entry;
-  device_entries = udev_enumerate_get_list_entry(enumerate);
+  device_entries = udev_enumerate_get_list_entry(enumerate.get());
 
+  auto delUdevDevice = [](udev_device* d) { udev_device_unref(d); };
   udev_list_entry_foreach(entry, device_entries) {
-    const char *path = udev_list_entry_get_name(entry);
-    auto device = udev_device_new_from_syspath(udev_handle, path);
+    const char* path = udev_list_entry_get_name(entry);
+    std::unique_ptr<udev_device, decltype(delUdevDevice)> device(
+        udev_device_new_from_syspath(udev_handle.get(), path), delUdevDevice);
+    if (device.get() == nullptr) {
+      VLOG(1) << "Could not get device";
+      return results;
+    }
 
     Row r;
-    r["pci_slot"] = UdevEventPublisher::getValue(device, kPCIKeySlot);
-    r["pci_class"] = UdevEventPublisher::getValue(device, kPCIKeyClass);
-    r["driver"] = UdevEventPublisher::getValue(device, kPCIKeyDriver);
-    r["vendor"] = UdevEventPublisher::getValue(device, kPCIKeyVendor);
-    r["model"] = UdevEventPublisher::getValue(device, kPCIKeyModel);
+    r["pci_slot"] = UdevEventPublisher::getValue(device.get(), kPCIKeySlot);
+    r["pci_class"] = UdevEventPublisher::getValue(device.get(), kPCIKeyClass);
+    r["driver"] = UdevEventPublisher::getValue(device.get(), kPCIKeyDriver);
+    r["vendor"] = UdevEventPublisher::getValue(device.get(), kPCIKeyVendor);
+    r["model"] = UdevEventPublisher::getValue(device.get(), kPCIKeyModel);
 
     // VENDOR:MODEL ID is in the form of HHHH:HHHH.
     std::vector<std::string> ids;
-    auto device_id = UdevEventPublisher::getValue(device, kPCIKeyID);
+    auto device_id = UdevEventPublisher::getValue(device.get(), kPCIKeyID);
     boost::split(ids, device_id, boost::is_any_of(":"));
     if (ids.size() == 2) {
       r["vendor_id"] = ids[0];
@@ -75,12 +89,7 @@ QueryData genPCIDevices(QueryContext &context) {
     }
 
     results.push_back(r);
-    udev_device_unref(device);
   }
-
-  // Drop references to udev structs.
-  udev_enumerate_unref(enumerate);
-  udev_unref(udev_handle);
 
   return results;
 }
