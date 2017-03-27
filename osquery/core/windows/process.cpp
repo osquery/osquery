@@ -253,7 +253,9 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   std::stringstream argv_stream;
   argv_stream << "\"osquery extension: "
               << boost::replace_all_copy(extension, "\"", "") << "\" ";
-  argv_stream << ((verbose) ? "--verbose" : "--noverbose") << " ";
+  if (verbose) {
+    argv_stream << "--verbose ";
+  }
   argv_stream << "--socket \"" << extensions_socket << "\" ";
   argv_stream << "--timeout " << extensions_timeout << " ";
   argv_stream << "--interval " << extensions_interval << " ";
