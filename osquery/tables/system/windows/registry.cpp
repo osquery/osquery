@@ -29,7 +29,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/filesystem.h"
+#include <osquery/filesystem.h>
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
@@ -269,12 +269,12 @@ void queryKey(const std::string& keyPath, QueryData& results) {
   RegCloseKey(hRegistryHandle);
 }
 
-inline void populateDefaultKeys(std::set<std::string>& rKeys) {
+static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
   boost::copy(kRegistryHives | boost::adaptors::map_keys,
               std::inserter(rKeys, rKeys.end()));
 }
 
-inline void replaceKeysWithSubkeys(std::set<std::string>& rKeys) {
+static inline void replaceKeysWithSubkeys(std::set<std::string>& rKeys) {
   std::set<std::string> newKeys;
   for (const auto& key : rKeys) {
     QueryData regResults;
@@ -288,16 +288,16 @@ inline void replaceKeysWithSubkeys(std::set<std::string>& rKeys) {
   rKeys = newKeys;
 }
 
-inline void appendSubkeyToKeys(const std::string& subkey,
+static inline void appendSubkeyToKeys(const std::string& subkey,
                                std::set<std::string>& rKeys) {
   std::set<std::string> newKeys{};
   for (auto& key : rKeys) {
     newKeys.insert(key + kRegSep + subkey);
   }
-  rKeys = newKeys;
+  rKeys = std::move(newKeys);
 }
 
-inline Status populateAllKeysRecursive(
+static inline Status populateAllKeysRecursive(
     std::set<std::string>& rKeys,
     size_t currDepth = 1,
     size_t maxDepth = kRegMaxRecursiveDepth) {
@@ -317,7 +317,7 @@ inline Status populateAllKeysRecursive(
     }
   }
 
-  if (!(subkeys.size() == 0)) {
+  if (!subkeys.empty()) {
     auto status = populateAllKeysRecursive(subkeys, ++currDepth);
     if (!status.ok()) {
       return status;
@@ -335,9 +335,11 @@ Status expandRegistryGlobs(const std::string& pattern,
     return Status(0, "OK");
   }
 
-  // Pattern is '%%', grab everything
-  // Note that if '%%' is present but not at the end of the pattern
-  // , then it is treated like a single glob
+  /*
+   * Pattern is '%%', grab everything.
+   * Note that if '%%' is present but not at the end of the pattern,
+   * then it is treated like a single glob.
+   */
   if (boost::ends_with(pathElems[0], kSQLGlobRecursive) &&
       pathElems.size() == 1) {
     populateDefaultKeys(results);
@@ -353,22 +355,22 @@ Status expandRegistryGlobs(const std::string& pattern,
     pathElems.erase(pathElems.begin());
   }
 
-  for (const auto& elem : pathElems) {
+  for (auto& elem = pathElems.begin(); elem != pathElems.end(); ++elem) {
     // We only care about  a recursive glob if it comes at the end of the
     // pattern i.e. 'HKEY_LOCAL_MACHINE\SOFTWARE\%%'
-    if (boost::ends_with(elem, kSQLGlobRecursive) &&
-        &elem == &pathElems.back()) {
+    if (boost::ends_with(*elem, kSQLGlobRecursive) &&
+        *elem == pathElems.back()) {
       return populateAllKeysRecursive(results);
-    } else if (elem.find(kSQLGlobWildcard) != std::string::npos) {
+    } else if ((*elem).find(kSQLGlobWildcard) != std::string::npos) {
       replaceKeysWithSubkeys(results);
     } else {
-      appendSubkeyToKeys(elem, results);
+      appendSubkeyToKeys(*elem, results);
     }
   }
   return Status(0, "OK");
 }
 
-inline void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
+static inline void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
   std::string hive, _;
   for (const auto& key : rKeys) {
     explodeRegistryPath(key, hive, _);
