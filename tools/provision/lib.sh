@@ -305,6 +305,12 @@ function package() {
   fi
 }
 
+function ports() {
+  PKG="$1"
+  log "building port $1"
+  (cd /usr/ports/$1; do_sudo make install clean BATCH=yes)
+}
+
 function check() {
   CMD="$1"
   DISTRO_BUILD_DIR="$2"

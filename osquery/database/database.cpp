@@ -445,6 +445,10 @@ bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
 bool DatabasePlugin::initPlugin() {
   // Initialize the database plugin using the flag.
   auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
+  if (isPlatform(PlatformType::TYPE_FREEBSD) && !FLAGS_disable_database) {
+    // Issue #3111: Override the internal plugin to SQLite for FreeBSD.
+    plugin = "sqlite";
+  }
   return RegistryFactory::get().setActive("database", plugin).ok();
 }
 

@@ -25,7 +25,6 @@ else()
   add_compile_options(
     -Wall
     -Wextra
-    -Wshadow
     -pedantic
     -Wuseless-cast
     -Wno-c99-extensions
@@ -33,6 +32,11 @@ else()
     -Wno-unused-parameter
     -Wno-gnu-case-range
   )
+  if(NOT FREEBSD)
+    add_compile_options(
+      -Wshadow
+    )
+  endif()
 endif()
 
 if(WINDOWS)
