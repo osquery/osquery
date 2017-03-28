@@ -25,13 +25,13 @@
 #include <boost/range/algorithm.hpp>
 
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
-#include <osquery/filesystem.h>
 
 namespace fs = boost::filesystem;
 
@@ -286,8 +286,13 @@ static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
               std::inserter(rKeys, rKeys.end()));
 }
 
-static inline void replaceKeysWithSubkeys(std::set<std::string>& rKeys) {
+static inline void populateSubkeys(std::set<std::string>& rKeys,
+                                   bool replaceKeys = false) {
   std::set<std::string> newKeys;
+  if (!replaceKeys) {
+    newKeys = rKeys;
+  }
+
   for (const auto& key : rKeys) {
     QueryData regResults;
     queryKey(key, regResults);
@@ -297,14 +302,14 @@ static inline void replaceKeysWithSubkeys(std::set<std::string>& rKeys) {
       }
     }
   }
-  rKeys = newKeys;
+  rKeys = std::move(newKeys);
 }
 
 static inline void appendSubkeyToKeys(const std::string& subkey,
                                       std::set<std::string>& rKeys) {
   std::set<std::string> newKeys{};
   for (auto& key : rKeys) {
-    newKeys.insert(key + kRegSep + subkey);
+    newKeys.insert(std::move(key) + kRegSep + subkey);
   }
   rKeys = std::move(newKeys);
 }
@@ -313,28 +318,17 @@ static inline Status populateAllKeysRecursive(
     std::set<std::string>& rKeys,
     size_t currDepth = 1,
     size_t maxDepth = kRegMaxRecursiveDepth) {
-  std::set<std::string> subkeys{};
-
   if (currDepth > maxDepth) {
     return Status(1, "Max recursive depth reached");
   }
 
-  for (const auto& key : rKeys) {
-    QueryData regResults;
-    queryKey(key, regResults);
-    for (const auto& r : regResults) {
-      if (r.at("type") == "subkey") {
-        subkeys.insert(r.at("path"));
-      }
-    }
-  }
-
-  if (!subkeys.empty()) {
-    auto status = populateAllKeysRecursive(subkeys, ++currDepth);
+  auto size_pre = rKeys.size();
+  populateSubkeys(rKeys);
+  if (size_pre < rKeys.size()) {
+    auto status = populateAllKeysRecursive(rKeys, ++currDepth);
     if (!status.ok()) {
       return status;
     }
-    rKeys.insert(subkeys.begin(), subkeys.end());
   }
 
   return Status(0, "OK");
@@ -374,7 +368,7 @@ Status expandRegistryGlobs(const std::string& pattern,
         *elem == pathElems.back()) {
       return populateAllKeysRecursive(results);
     } else if ((*elem).find(kSQLGlobWildcard) != std::string::npos) {
-      replaceKeysWithSubkeys(results);
+      populateSubkeys(results, true);
     } else {
       appendSubkeyToKeys(*elem, results);
     }
