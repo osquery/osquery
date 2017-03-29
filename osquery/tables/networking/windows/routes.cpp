@@ -76,11 +76,8 @@ std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
 
 QueryData genRoutes(QueryContext& context) {
   QueryData results;
-  PMIB_IPFORWARD_TABLE2* ipTable = nullptr;
-
-  ipTable = static_cast<PMIB_IPFORWARD_TABLE2*>(
-      malloc(sizeof(PMIB_IPFORWARD_TABLE2)));
-  auto result = GetIpForwardTable2(AF_UNSPEC, ipTable);
+  PMIB_IPFORWARD_TABLE2 ipTable = nullptr;
+  auto result = GetIpForwardTable2(AF_UNSPEC, &ipTable);
 
   if (result != NO_ERROR) {
     FreeMibTable(ipTable);
@@ -88,7 +85,7 @@ QueryData genRoutes(QueryContext& context) {
     return results;
   }
 
-  auto numEntries = ipTable[0]->NumEntries;
+  auto numEntries = ipTable[0].NumEntries;
   auto interfaces = getInterfaceRowMapping();
   auto adapters = getAdapterAddressMapping();
 
@@ -97,7 +94,7 @@ QueryData genRoutes(QueryContext& context) {
     std::string interfaceIpAddress;
     PVOID ipAddress = nullptr;
     PVOID gateway = nullptr;
-    const auto& currentRow = ipTable[0]->Table[i];
+    const auto& currentRow = ipTable[0].Table[i];
     auto addrFamily = currentRow.DestinationPrefix.Prefix.si_family;
     auto actualInterface = interfaces.at(currentRow.InterfaceIndex);
     if (addrFamily == AF_INET6) {
