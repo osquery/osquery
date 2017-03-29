@@ -92,8 +92,6 @@ QueryData genRoutes(QueryContext& context) {
   for (unsigned long i = 0; i < numEntries; ++i) {
     Row r;
     std::string interfaceIpAddress;
-    PVOID ipAddress = nullptr;
-    PVOID gateway = nullptr;
     const auto& currentRow = ipTable[0].Table[i];
     auto addrFamily = currentRow.DestinationPrefix.Prefix.si_family;
     auto actualInterface = interfaces.at(currentRow.InterfaceIndex);
@@ -104,25 +102,21 @@ QueryData genRoutes(QueryContext& context) {
       // These are all technically "on-link" addresses according to
       // `route print -6`.
       r["type"] = "local";
-      auto ipAddress = std::make_unique<IN6_ADDR>(
-          currentRow.DestinationPrefix.Prefix.Ipv6.sin6_addr);
-      auto gateway =
-          std::make_unique<IN6_ADDR>(currentRow.NextHop.Ipv6.sin6_addr);
+      auto ipAddress = currentRow.DestinationPrefix.Prefix.Ipv6.sin6_addr;
+      auto gateway = currentRow.NextHop.Ipv6.sin6_addr;
 
-      InetNtop(addrFamily, ipAddress.get(), buffer.data(), buffer.size());
+      InetNtop(addrFamily, (PVOID)&ipAddress, buffer.data(), buffer.size());
       r["destination"] = SQL_TEXT(buffer.data());
-      InetNtop(addrFamily, gateway.get(), buffer.data(), buffer.size());
+      InetNtop(addrFamily, (PVOID)&gateway, buffer.data(), buffer.size());
       r["gateway"] = SQL_TEXT(buffer.data());
     } else if (addrFamily == AF_INET) {
       std::vector<char> buffer(INET_ADDRSTRLEN);
-      auto ipAddress = std::make_unique<IN_ADDR>(
-          currentRow.DestinationPrefix.Prefix.Ipv4.sin_addr);
-      auto gateway =
-          std::make_unique<IN_ADDR>(currentRow.NextHop.Ipv4.sin_addr);
+      auto ipAddress = currentRow.DestinationPrefix.Prefix.Ipv4.sin_addr;
+      auto gateway = currentRow.NextHop.Ipv4.sin_addr;
 
-      InetNtop(addrFamily, ipAddress.get(), buffer.data(), buffer.size());
+      InetNtop(addrFamily, (PVOID)&ipAddress, buffer.data(), buffer.size());
       r["destination"] = SQL_TEXT(buffer.data());
-      InetNtop(addrFamily, gateway.get(), buffer.data(), buffer.size());
+      InetNtop(addrFamily, (PVOID)&gateway, buffer.data(), buffer.size());
       r["gateway"] = SQL_TEXT(buffer.data());
 
       // The software loopback is not returned by GetAdaptersInfo, so any
