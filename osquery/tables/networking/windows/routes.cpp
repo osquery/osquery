@@ -97,7 +97,7 @@ QueryData genRoutes(QueryContext& context) {
     std::string interfaceIpAddress;
     PVOID ipAddress = nullptr;
     PVOID gateway = nullptr;
-    auto currentRow = ipTable[0]->Table[i];
+    const auto& currentRow = ipTable[0]->Table[i];
     auto addrFamily = currentRow.DestinationPrefix.Prefix.si_family;
     auto actualInterface = interfaces.at(currentRow.InterfaceIndex);
     if (addrFamily == AF_INET6) {
