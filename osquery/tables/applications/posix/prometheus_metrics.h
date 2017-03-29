@@ -53,6 +53,6 @@ void parseScrapeResults(
  * @param int for request timeout in seconds.
  */
 void scrapeTargets(std::map<std::string, PrometheusResponseData>& scrapeResults,
-                   int timeoutS = 1);
+                   size_t timeoutS = 1);
 }
 }
