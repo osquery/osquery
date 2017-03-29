@@ -8,9 +8,8 @@
  *
  */
 
-#include <gtest/gtest.h>
-
 #include <boost/algorithm/string/predicate.hpp>
+#include <gtest/gtest.h>
 
 #include <osquery/sql.h>
 #include <osquery/tables/system/windows/registry.h>
@@ -72,7 +71,7 @@ TEST_F(RegistryTablesTest, test_basic_registry_globbing) {
   std::for_each(
       results.rows().begin(), results.rows().end(), [&](const auto& row) {
         auto key = row.at("key");
-        EXPECT_TRUE(boost::starts_with(key + "\\Micro", kTestKey));
+        EXPECT_TRUE(boost::starts_with(key, kTestKey + "\\Micro"));
         EXPECT_TRUE(std::count(key.begin(), key.end(), '\\') == 3);
       });
 }
