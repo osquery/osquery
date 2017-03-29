@@ -64,6 +64,17 @@ Status KinesisLoggerPlugin::logString(const std::string& s) {
   return forwarder_->logString(s);
 }
 
+Status KinesisLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
+  return forwarder_->logStatus(log);
+}
+
+void KinesisLoggerPlugin::init(const std::string& name,
+                               const std::vector<StatusLogLine>& log) {
+  google::ShutdownGoogleLogging();
+  google::InitGoogleLogging(name.c_str());
+  logStatus(log);
+}
+
 Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
                                  const std::string& log_type) {
   size_t retry_count = 100;

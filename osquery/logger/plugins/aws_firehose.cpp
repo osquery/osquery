@@ -55,6 +55,17 @@ Status FirehoseLoggerPlugin::logString(const std::string& s) {
   return forwarder_->logString(s);
 }
 
+Status FirehoseLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
+  return forwarder_->logStatus(log);
+}
+
+void FirehoseLoggerPlugin::init(const std::string& name,
+                                const std::vector<StatusLogLine>& log) {
+  google::ShutdownGoogleLogging();
+  google::InitGoogleLogging(name.c_str());
+  logStatus(log);
+}
+
 Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
                                   const std::string& log_type) {
   std::vector<Aws::Firehose::Model::Record> records;
