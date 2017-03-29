@@ -30,9 +30,8 @@
 namespace osquery {
 namespace tables {
 
-std::map<unsigned long, std::shared_ptr<IP_ADAPTER_INFO>>
-getAdapterAddressMapping() {
-  std::map<unsigned long, std::shared_ptr<IP_ADAPTER_INFO>> returnMapping;
+std::map<DWORD, IP_ADAPTER_INFO> getAdapterAddressMapping() {
+  std::map<DWORD, IP_ADAPTER_INFO> returnMapping;
   auto dwBufLen = 0UL;
   auto dwStatus = GetAdaptersInfo(NULL, &dwBufLen);
 
@@ -49,8 +48,8 @@ getAdapterAddressMapping() {
   }
 
   while (pAdapterInfo != nullptr) {
-    auto sharedPtr = std::make_shared<IP_ADAPTER_INFO>(*pAdapterInfo);
-    returnMapping.insert(std::make_pair(pAdapterInfo->Index, sharedPtr));
+    auto adapter = *pAdapterInfo;
+    returnMapping.insert(std::make_pair(pAdapterInfo->Index, adapter));
     pAdapterInfo = pAdapterInfo->Next;
   }
 
@@ -140,10 +139,10 @@ QueryData genRoutes(QueryContext& context) {
 
       // The software loopback is not returned by GetAdaptersInfo, so any
       // lookups into that index must be skipped and default values set.
-      PIP_ADAPTER_INFO actualAdapter = nullptr;
+      IP_ADAPTER_INFO actualAdapter;
       if (currentRow.InterfaceIndex != 1) {
-        actualAdapter = adapters.at(currentRow.InterfaceIndex).get();
-        interfaceIpAddress = actualAdapter->IpAddressList.IpAddress.String;
+        actualAdapter = adapters.at(currentRow.InterfaceIndex);
+        interfaceIpAddress = actualAdapter.IpAddressList.IpAddress.String;
         r["mtu"] = INTEGER(actualInterface.NlMtu);
       } else {
         interfaceIpAddress = "127.0.0.1";
