@@ -36,20 +36,22 @@ getAdapterAddressMapping() {
   auto dwBufLen = 0UL;
   auto dwStatus = GetAdaptersInfo(NULL, &dwBufLen);
 
-  if (dwStatus == ERROR_BUFFER_OVERFLOW) {
-    std::vector<BYTE> buffer(dwBufLen);
-    auto pAdapterInfo = reinterpret_cast<PIP_ADAPTER_INFO>(buffer.data());
-    dwStatus = GetAdaptersInfo(pAdapterInfo, &dwBufLen);
+  if (dwStatus != ERROR_BUFFER_OVERFLOW) {
+    return returnMapping;
+  }
 
-    if (dwStatus != NO_ERROR) {
-      return returnMapping;
-    }
+  std::vector<BYTE> buffer(dwBufLen);
+  auto pAdapterInfo = reinterpret_cast<PIP_ADAPTER_INFO>(buffer.data());
+  dwStatus = GetAdaptersInfo(pAdapterInfo, &dwBufLen);
 
-    while (pAdapterInfo) {
-      auto sharedPtr = std::make_shared<IP_ADAPTER_INFO>(*pAdapterInfo);
-      returnMapping.insert(std::make_pair(pAdapterInfo->Index, sharedPtr));
-      pAdapterInfo = pAdapterInfo->Next;
-    }
+  if (dwStatus != NO_ERROR) {
+    return returnMapping;
+  }
+
+  while (pAdapterInfo) {
+    auto sharedPtr = std::make_shared<IP_ADAPTER_INFO>(*pAdapterInfo);
+    returnMapping.insert(std::make_pair(pAdapterInfo->Index, sharedPtr));
+    pAdapterInfo = pAdapterInfo->Next;
   }
 
   return returnMapping;
