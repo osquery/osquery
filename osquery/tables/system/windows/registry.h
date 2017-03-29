@@ -15,11 +15,42 @@
 namespace osquery {
 namespace tables {
 
+// Registry path separator
+const std::string kRegSep = "\\";
+
+// Maximum recursive depth with searching the registry
+const size_t kRegMaxRecursiveDepth = 32;
+
 /// Microsoft helper function for getting the contents of a registry key
 void queryKey(const std::string& keyPath, QueryData& results);
 
-void explodeRegistryPath(const std::string& path,
-                         std::string& rHive,
-                         std::string& rKey);
+/*
+ * @brief Expand a globbing pattern into a set of registry keys to
+ * query
+ *
+ * @param pattern The SQL globbing pattern, e.g.
+ * 'HKEY_LOCAL_MACHINE\%\Microsoft' or 'HKEY_USERS\%\SOFTWARE\%%'
+ * @param results A set that will be populated with all registry keys matching
+ * the glob pattern
+ * @return Failure if the max recursive depth is reached, otherwise success
+ */
+Status expandRegistryGlobs(const std::string& pattern,
+                           std::set<std::string>& results);
+
+/*
+ * @brief Explode a registry path into a HIVE and KEY
+ *
+ * For example, if the path 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft' is provided,
+ * the HIVE is 'HKEY_LOCAL_MACHINE' and the key is 'SOFTWARE\Microsoft'.
+ *
+ * @param path The full registry path, e.g.
+ * 'HKEY_LOCAL_MACHINE\SOFTWARE\MICROSOFT'
+ * @param rHive a string that will be populated with the HIVE
+ * @param rKey a string that will be populated with the KEY
+ *
+ */
+inline void explodeRegistryPath(const std::string& path,
+                                std::string& rHive,
+                                std::string& rKey);
 }
 }

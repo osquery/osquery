@@ -21,8 +21,11 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/range/adaptor/map.hpp>
+#include <boost/range/algorithm.hpp>
 
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -64,11 +67,9 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
 };
 
-const std::string kRegSep = "\\";
-
-void explodeRegistryPath(const std::string& path,
-                         std::string& rHive,
-                         std::string& rKey) {
+inline void explodeRegistryPath(const std::string& path,
+                                std::string& rHive,
+                                std::string& rKey) {
   auto toks = osquery::split(path, kRegSep);
   rHive = toks.front();
   toks.erase(toks.begin());
@@ -278,33 +279,144 @@ void queryKey(const std::string& keyPath, QueryData& results) {
     delete[](bpDataBuff);
   }
   RegCloseKey(hRegistryHandle);
-};
+}
 
-QueryData genRegistry(QueryContext& context) {
-  QueryData results;
-  std::set<std::string> rKeys;
-  auto shouldWarnLocalUsers = false;
-  /// By default, we display all HIVEs
-  if ((context.constraints["key"].exists(EQUALS) &&
-       context.constraints["key"].getAll(EQUALS).size() > 0)) {
-    rKeys = context.constraints["key"].getAll(EQUALS);
-    shouldWarnLocalUsers = true;
-  } else {
-    for (auto& h : kRegistryHives) {
-      rKeys.insert(h.first);
-    }
+static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
+  boost::copy(kRegistryHives | boost::adaptors::map_keys,
+              std::inserter(rKeys, rKeys.end()));
+}
+
+static inline void populateSubkeys(std::set<std::string>& rKeys,
+                                   bool replaceKeys = false) {
+  std::set<std::string> newKeys;
+  if (!replaceKeys) {
+    newKeys = rKeys;
   }
 
   for (const auto& key : rKeys) {
-    std::string hive;
-    std::string keyPath;
-    explodeRegistryPath(key, hive, keyPath);
-    if (shouldWarnLocalUsers && (hive == "HKEY_CURRENT_USER" ||
-                                 hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
+    QueryData regResults;
+    queryKey(key, regResults);
+    for (const auto& r : regResults) {
+      if (r.at("type") == "subkey") {
+        newKeys.insert(r.at("path"));
+      }
+    }
+  }
+  rKeys = std::move(newKeys);
+}
+
+static inline void appendSubkeyToKeys(const std::string& subkey,
+                                      std::set<std::string>& rKeys) {
+  std::set<std::string> newKeys{};
+  for (auto& key : rKeys) {
+    newKeys.insert(std::move(key) + kRegSep + subkey);
+  }
+  rKeys = std::move(newKeys);
+}
+
+static inline Status populateAllKeysRecursive(
+    std::set<std::string>& rKeys,
+    size_t currDepth = 1,
+    size_t maxDepth = kRegMaxRecursiveDepth) {
+  if (currDepth > maxDepth) {
+    return Status(1, "Max recursive depth reached");
+  }
+
+  auto size_pre = rKeys.size();
+  populateSubkeys(rKeys);
+  if (size_pre < rKeys.size()) {
+    auto status = populateAllKeysRecursive(rKeys, ++currDepth);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return Status(0, "OK");
+}
+
+Status expandRegistryGlobs(const std::string& pattern,
+                           std::set<std::string>& results) {
+  auto pathElems = osquery::split(pattern, kRegSep);
+  if (pathElems.size() == 0) {
+    return Status(0, "OK");
+  }
+
+  /*
+   * Pattern is '%%', grab everything.
+   * Note that if '%%' is present but not at the end of the pattern,
+   * then it is treated like a single glob.
+   */
+  if (boost::ends_with(pathElems[0], kSQLGlobRecursive) &&
+      pathElems.size() == 1) {
+    populateDefaultKeys(results);
+    return populateAllKeysRecursive(results);
+  }
+
+  // Special handling to insert default keys when glob present in first elem
+  if (pathElems[0].find(kSQLGlobWildcard) != std::string::npos) {
+    populateDefaultKeys(results);
+    pathElems.erase(pathElems.begin());
+  } else {
+    results.insert(pathElems[0]);
+    pathElems.erase(pathElems.begin());
+  }
+
+  for (auto& elem = pathElems.begin(); elem != pathElems.end(); ++elem) {
+    // We only care about  a recursive glob if it comes at the end of the
+    // pattern i.e. 'HKEY_LOCAL_MACHINE\SOFTWARE\%%'
+    if (boost::ends_with(*elem, kSQLGlobRecursive) &&
+        *elem == pathElems.back()) {
+      return populateAllKeysRecursive(results);
+    } else if ((*elem).find(kSQLGlobWildcard) != std::string::npos) {
+      populateSubkeys(results, true);
+    } else {
+      appendSubkeyToKeys(*elem, results);
+    }
+  }
+  return Status(0, "OK");
+}
+
+static inline void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
+  std::string hive, _;
+  for (const auto& key : rKeys) {
+    explodeRegistryPath(key, hive, _);
+    if (hive == "HKEY_CURRENT_USER" ||
+        hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS") {
       LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
                       "query HKEY_USERS with the desired users SID instead";
-      shouldWarnLocalUsers = false;
+      break;
     }
+  }
+}
+
+QueryData genRegistry(QueryContext& context) {
+  QueryData results;
+  std::set<std::string> keys;
+
+  if (!(context.hasConstraint("key", EQUALS) ||
+        context.hasConstraint("key", LIKE))) {
+    // We default to display all HIVEs
+    expandRegistryGlobs(kSQLGlobWildcard, keys);
+  } else {
+    keys = context.constraints["key"].getAll(EQUALS);
+    auto status = context.expandConstraints(
+        "key",
+        LIKE,
+        keys,
+        ([&](const std::string& pattern, std::set<std::string>& out) {
+          std::set<std::string> resolvedKeys;
+          auto status = expandRegistryGlobs(pattern, resolvedKeys);
+          out.insert(resolvedKeys.begin(), resolvedKeys.end());
+          return status;
+        }));
+    if (!status.ok()) {
+      LOG(INFO) << "Failed to expand globs: " + status.getMessage();
+    }
+  }
+
+  maybeWarnLocalUsers(keys);
+
+  for (const auto& key : keys) {
     queryKey(key, results);
   }
   return results;
