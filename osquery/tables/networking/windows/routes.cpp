@@ -22,6 +22,7 @@
 #include <mstcpip.h>
 
 #include <boost/algorithm/string/join.hpp>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -123,9 +124,15 @@ QueryData genRoutes(QueryContext& context) {
       // lookups into that index must be skipped and default values set.
       IP_ADAPTER_INFO actualAdapter;
       if (currentRow.InterfaceIndex != 1) {
-        actualAdapter = adapters.at(currentRow.InterfaceIndex);
-        interfaceIpAddress = actualAdapter.IpAddressList.IpAddress.String;
-        r["mtu"] = INTEGER(actualInterface.NlMtu);
+        try {
+          actualAdapter = adapters.at(currentRow.InterfaceIndex);
+          interfaceIpAddress = actualAdapter.IpAddressList.IpAddress.String;
+          r["mtu"] = INTEGER(actualInterface.NlMtu);
+        } catch (const std::out_of_range& oor) {
+          LOG(ERROR) << "Error looking up interface "
+                     << currentRow.InterfaceIndex;
+          LOG(ERROR) << oor.what();
+        }
       } else {
         interfaceIpAddress = "127.0.0.1";
         r["mtu"] = UNSIGNED_BIGINT(0xFFFFFFFF);
