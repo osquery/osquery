@@ -48,7 +48,7 @@ getAdapterAddressMapping() {
     return returnMapping;
   }
 
-  while (pAdapterInfo) {
+  while (pAdapterInfo != nullptr) {
     auto sharedPtr = std::make_shared<IP_ADAPTER_INFO>(*pAdapterInfo);
     returnMapping.insert(std::make_pair(pAdapterInfo->Index, sharedPtr));
     pAdapterInfo = pAdapterInfo->Next;
