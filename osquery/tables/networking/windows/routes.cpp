@@ -56,28 +56,19 @@ std::map<DWORD, IP_ADAPTER_INFO> getAdapterAddressMapping() {
   return returnMapping;
 }
 
-PMIB_IPINTERFACE_TABLE getInterfaces(int type = AF_UNSPEC) {
-  auto interfaceTable = std::make_unique<PMIB_IPINTERFACE_TABLE>();
-
-  auto dwRetVal = GetIpInterfaceTable(type, interfaceTable.get());
-  if (dwRetVal != NO_ERROR) {
-    return nullptr;
-  }
-
-  return *interfaceTable.get();
-}
-
 std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
     int type = AF_UNSPEC) {
   std::map<unsigned long, MIB_IPINTERFACE_ROW> returnMapping;
   PMIB_IPINTERFACE_TABLE interfaces;
+  auto dwRetVal = GetIpInterfaceTable(type, &interfaces);
 
-  if ((interfaces = getInterfaces(type)) != nullptr) {
-    for (unsigned long i = 0; i < interfaces->NumEntries; ++i) {
-      MIB_IPINTERFACE_ROW currentRow = interfaces->Table[i];
-      returnMapping.insert(
-          std::make_pair(currentRow.InterfaceIndex, currentRow));
-    }
+  if (dwRetVal != NO_ERROR) {
+    return returnMapping;
+  }
+
+  for (unsigned long i = 0; i < interfaces->NumEntries; ++i) {
+    MIB_IPINTERFACE_ROW currentRow = interfaces->Table[i];
+    returnMapping.insert(std::make_pair(currentRow.InterfaceIndex, currentRow));
   }
 
   return returnMapping;
