@@ -84,7 +84,16 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
   while (log_data.size() > 0) {
     std::vector<Aws::Kinesis::Model::PutRecordsRequestEntry> entries;
     for (const std::string& log : log_data) {
-      if (log.size() > kKinesisMaxLogBytes) {
+      std::string typed_log;
+
+      Status status = appendLogTypeToJson(log_type, log, typed_log);
+      if (!status.ok()) {
+        LOG(ERROR)
+            << "Failed to append log_type key to status log JSON in Kinesis!";
+        return status;
+      }
+
+      if (typed_log.size() > kKinesisMaxLogBytes) {
         LOG(ERROR) << "Kinesis log too big, discarding!";
       }
 
@@ -98,8 +107,8 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
 
       Aws::Kinesis::Model::PutRecordsRequestEntry entry;
       entry.WithPartitionKey(record_partition_key)
-          .WithData(Aws::Utils::ByteBuffer((unsigned char*)log.c_str(),
-                                           log.length()));
+          .WithData(Aws::Utils::ByteBuffer((unsigned char*)typed_log.c_str(),
+                                           typed_log.length()));
       entries.push_back(std::move(entry));
     }
 
