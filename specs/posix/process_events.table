@@ -12,6 +12,7 @@ schema([
         aliases=["environment_count"]),
     Column("env_size", BIGINT, "Actual size (bytes) of environment list",
         aliases=["environment_size"]),
+    Column("auid", BIGINT, "Audit User ID at process start"),
     Column("uid", BIGINT, "User ID at process start"),
     Column("euid", BIGINT, "Effective user ID at process start"),
     Column("gid", BIGINT, "Group ID at process start"),

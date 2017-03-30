@@ -63,7 +63,7 @@ struct AuditRuleInternal {
 };
 
 /// The audit ID is a smaller integer.
-using Auid = size_t;
+using AuditId = size_t;
 
 /// Alias the field container so we can replace and improve with refactors.
 using AuditFields = std::map<std::string, std::string>;
@@ -105,30 +105,30 @@ class AuditAssembler : private boost::noncopyable {
   void start(size_t capacity, std::vector<size_t> types, AuditUpdate update);
 
   /// Add a message from audit.
-  boost::optional<AuditFields> add(Auid id,
+  boost::optional<AuditFields> add(AuditId id,
                                    size_t type,
                                    const AuditFields& fields);
 
   /// Allow the publisher to explicit-set fields.
-  void set(Auid id, const std::string& key, const std::string& value) {
+  void set(AuditId id, const std::string& key, const std::string& value) {
     m_[id][key] = value;
   }
 
   /// Remove an audit ID from the queue and clear associated messages/types.
-  void evict(Auid id);
+  void evict(AuditId id);
 
   /// Shuffle an audit ID to the front of the queue.
-  void shuffle(Auid id);
+  void shuffle(AuditId id);
 
   /// Check if the audit ID has completed each required message types.
-  bool complete(Auid id);
+  bool complete(AuditId id);
 
  private:
   /// A map of audit ID to aggregate message fields.
-  std::unordered_map<Auid, AuditFields> m_;
+  std::unordered_map<AuditId, AuditFields> m_;
 
   /// A map of audit ID to current set of types seen.
-  std::unordered_map<Auid, std::vector<size_t>> mt_;
+  std::unordered_map<AuditId, std::vector<size_t>> mt_;
 
   /// A functional callable to sanitize individual messages.
   AuditUpdate update_{nullptr};
@@ -137,7 +137,7 @@ class AuditAssembler : private boost::noncopyable {
   size_t capacity_{0};
 
   /// The in-order (by time) queue of audit IDs.
-  std::vector<Auid> queue_;
+  std::vector<AuditId> queue_;
 
   /// The set of required types.
   std::vector<size_t> types_;
@@ -202,7 +202,7 @@ struct AuditEventContext : public EventContext {
   AuditFields fields;
 
   /// Each message will contain the audit ID.
-  size_t auid{0};
+  AuditId audit_id{0};
 
   /// Each message will contain the event time.
   size_t time{0};
