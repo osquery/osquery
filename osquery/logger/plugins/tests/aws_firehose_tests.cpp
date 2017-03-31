@@ -53,17 +53,17 @@ TEST_F(FirehoseTests, test_send) {
   auto client = std::make_shared<StrictMock<MockFirehoseClient>>();
   forwarder.client_ = client;
 
-  std::vector<std::string> logs{"foo"};
+  std::vector<std::string> logs{"{\"foo\":\"bar\"}"};
   Aws::Firehose::Model::PutRecordBatchOutcome outcome;
   outcome.GetResult().SetFailedPutCount(0);
   EXPECT_CALL(*client,
               PutRecordBatch(Property(
                   &Aws::Firehose::Model::PutRecordBatchRequest::GetRecords,
-                  ElementsAre(MatchesEntry("foo\n")))))
+                  ElementsAre(MatchesEntry("{\"foo\":\"bar\",\"log_type\":\"results\"}\n")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(0), forwarder.send(logs, "results"));
 
-  logs = {"bar", "foo"};
+  logs = {"{\"bar\":\"foo\"}", "{\"foo\":\"bar\"}"};
   Aws::Firehose::Model::PutRecordBatchResponseEntry entry;
   outcome.GetResult().AddRequestResponses(entry);
   entry.SetErrorCode("foo");
@@ -74,7 +74,7 @@ TEST_F(FirehoseTests, test_send) {
   EXPECT_CALL(*client,
               PutRecordBatch(Property(
                   &Aws::Firehose::Model::PutRecordBatchRequest::GetRecords,
-                  ElementsAre(MatchesEntry("bar\n"), MatchesEntry("foo\n")))))
+                  ElementsAre(MatchesEntry("{\"bar\":\"foo\",\"log_type\":\"results\"}\n"), MatchesEntry("{\"foo\":\"bar\",\"log_type\":\"results\"}\n")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(1, "Foo error"), forwarder.send(logs, "results"));
 }
