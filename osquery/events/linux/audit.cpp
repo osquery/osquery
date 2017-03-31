@@ -61,7 +61,7 @@ void AuditAssembler::start(size_t capacity,
   types_ = std::move(types);
 }
 
-boost::optional<AuditFields> AuditAssembler::add(Auid id,
+boost::optional<AuditFields> AuditAssembler::add(AuditId id,
                                                  size_t type,
                                                  const AuditFields& fields) {
   auto it = m_.find(id);
@@ -117,18 +117,18 @@ boost::optional<AuditFields> AuditAssembler::add(Auid id,
   return boost::none;
 }
 
-void AuditAssembler::evict(Auid id) {
+void AuditAssembler::evict(AuditId id) {
   queue_.erase(std::remove(queue_.begin(), queue_.end(), id), queue_.end());
   mt_.erase(id);
   m_.erase(id);
 }
 
-void AuditAssembler::shuffle(Auid id) {
+void AuditAssembler::shuffle(AuditId id) {
   queue_.erase(std::remove(queue_.begin(), queue_.end(), id), queue_.end());
   queue_.push_back(id);
 }
 
-bool AuditAssembler::complete(Auid id) {
+bool AuditAssembler::complete(AuditId id) {
   // Is this type enough.
   const auto& types = mt_.at(id);
   for (const auto& t : types_) {
@@ -278,6 +278,24 @@ inline void handleAuditConfigChange(const struct audit_reply& reply) {
   // Another daemon may have taken control.
 }
 
+inline bool checkUserCache(AuditId aid) {
+  static std::vector<AuditId> kAuditUserEventCache;
+
+  // User events may be repeated, store the last 10 audit IDs.
+  // Drop duplicates for those last 10.
+  if (std::find(kAuditUserEventCache.begin(),
+                kAuditUserEventCache.end(),
+                aid) != kAuditUserEventCache.end()) {
+    return false;
+  } else {
+    if (kAuditUserEventCache.size() > 10) {
+      kAuditUserEventCache.erase(kAuditUserEventCache.begin());
+    }
+    kAuditUserEventCache.push_back(aid);
+  }
+  return true;
+}
+
 bool handleAuditReply(const struct audit_reply& reply,
                       AuditEventContextRef& ec) {
   // Build an event context around this reply.
@@ -290,8 +308,9 @@ bool handleAuditReply(const struct audit_reply& reply,
   }
 
   safeStrtoul(std::string(message_view.substr(6, 10)), 10, ec->time);
-  safeStrtoul(
-      std::string(message_view.substr(21, preamble_end - 21)), 10, ec->auid);
+  safeStrtoul(std::string(message_view.substr(21, preamble_end - 21)),
+              10,
+              ec->audit_id);
   boost::string_ref field_view(message_view.substr(preamble_end + 3));
 
   // The linear search will construct series of key value pairs.
@@ -334,6 +353,12 @@ bool handleAuditReply(const struct audit_reply& reply,
   // Last step, if there was no trailing tokenizer.
   if (!key.empty()) {
     ec->fields.emplace(std::make_pair(std::move(key), std::move(value)));
+  }
+
+  if (ec->type >= AUDIT_FIRST_USER_MSG && ec->type <= AUDIT_LAST_USER_MSG) {
+    if (!checkUserCache(ec->audit_id)) {
+      return false;
+    }
   }
 
   // There is a special field for syscalls.

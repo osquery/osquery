@@ -49,7 +49,11 @@ Status UserEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   Row r;
   r["uid"] = ec->fields["uid"];
   r["pid"] = ec->fields["pid"];
-  r["message"] = ec->fields["msg"];
+  if (ec->fields.count("msg") && ec->fields.at("msg").size() > 1) {
+    ec->fields["msg"].erase(0, 1);
+    r["message"] = std::move(ec->fields["msg"]);
+  }
+  r["auid"] = ec->fields["auid"];
   r["type"] = INTEGER(ec->type);
   r["path"] = decodeAuditValue(ec->fields["exe"]);
   r["address"] = ec->fields["addr"];
