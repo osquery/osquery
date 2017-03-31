@@ -108,43 +108,45 @@ unsigned long __stdcall WindowsEventLogEventPublisher::winEventCallback(
 
 Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
                                                  pt::ptree& propTree) {
-  unsigned long buffSize = 0;
-  unsigned long buffUsed = 0;
-  unsigned long propCount = 0;
+  DWORD buffSize = 0;
+  DWORD buffUsed = 0;
+  DWORD propCount = 0;
+  Status status;
   LPWSTR xml = nullptr;
-  auto ret = EvtRender(
-      nullptr, evt, EvtRenderEventXml, buffSize, xml, &buffUsed, &propCount);
-  if (ret == 0) {
-    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+  if (!EvtRender(nullptr,
+                 evt,
+                 EvtRenderEventXml,
+                 buffSize,
+                 xml,
+                 &buffUsed,
+                 &propCount)) {
+    if (ERROR_INSUFFICIENT_BUFFER == GetLastError()) {
       buffSize = buffUsed;
       xml = static_cast<LPWSTR>(malloc(buffSize));
-      EvtRender(nullptr,
-                evt,
-                EvtRenderEventXml,
-                buffSize,
-                xml,
-                &buffUsed,
-                &propCount);
+      if (xml != nullptr) {
+        EvtRender(nullptr,
+                  evt,
+                  EvtRenderEventXml,
+                  buffSize,
+                  xml,
+                  &buffUsed,
+                  &propCount);
+      } else {
+        status = Status(GetLastError(), "malloc failed");
+      }
     } else {
-      return Status(GetLastError(), "Event rendering failed");
+      status = Status(GetLastError(), "Event rendering failed");
     }
   }
-  if (GetLastError() != ERROR_SUCCESS) {
-    if (xml != nullptr) {
-      free(xml);
-      xml = nullptr;
-    }
-    return Status(GetLastError(), "Event rendering failed");
-  }
-  std::stringstream ss;
-  ss << wstringToString(xml);
-  read_xml(ss, propTree);
 
   if (xml != nullptr) {
+    std::stringstream ss;
+    ss << wstringToString(xml);
+    read_xml(ss, propTree);
     free(xml);
     xml = nullptr;
   }
-  return Status(0, "OK");
+  return status;
 }
 
 bool WindowsEventLogEventPublisher::shouldFire(
