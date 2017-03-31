@@ -56,10 +56,12 @@ TEST_F(KinesisTests, test_send) {
   std::vector<std::string> logs{"{\"foo\":\"bar\"}"};
   Aws::Kinesis::Model::PutRecordsOutcome outcome;
   outcome.GetResult().SetFailedRecordCount(0);
-  EXPECT_CALL(*client,
-              PutRecords(Property(
-                  &Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
-                  ElementsAre(MatchesEntry("{\"foo\":\"bar\",\"log_type\":\"results\"}", "fake_partition_key")))))
+  EXPECT_CALL(
+      *client,
+      PutRecords(Property(
+          &Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
+          ElementsAre(MatchesEntry("{\"foo\":\"bar\",\"log_type\":\"results\"}",
+                                   "fake_partition_key")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(0), forwarder.send(logs, "results"));
 
@@ -71,11 +73,14 @@ TEST_F(KinesisTests, test_send) {
   outcome.GetResult().SetFailedRecordCount(2);
   outcome.GetResult().AddRecords(entry);
 
-  EXPECT_CALL(*client,
-              PutRecords(Property(
-                  &Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
-                  ElementsAre(MatchesEntry("{\"bar\":\"foo\",\"log_type\":\"results\"}", "fake_partition_key"),
-                              MatchesEntry("{\"foo\":\"bar\",\"log_type\":\"results\"}", "fake_partition_key")))))
+  EXPECT_CALL(
+      *client,
+      PutRecords(Property(
+          &Aws::Kinesis::Model::PutRecordsRequest::GetRecords,
+          ElementsAre(MatchesEntry("{\"bar\":\"foo\",\"log_type\":\"results\"}",
+                                   "fake_partition_key"),
+                      MatchesEntry("{\"foo\":\"bar\",\"log_type\":\"results\"}",
+                                   "fake_partition_key")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(1, "Foo error"), forwarder.send(logs, "results"));
 }

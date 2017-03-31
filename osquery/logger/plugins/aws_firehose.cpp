@@ -76,7 +76,10 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
     if (!status.ok()) {
       LOG(ERROR)
           << "Failed to append log_type key to status log JSON in Firehose!";
-      return status;
+
+      // To achieve behavior parity with TLS logger plugin, skip non-JSON
+      // content
+      continue;
     }
 
     if (typed_log.size() + 1 > kFirehoseMaxLogBytes) {

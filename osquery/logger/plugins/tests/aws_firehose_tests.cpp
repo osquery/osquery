@@ -59,7 +59,8 @@ TEST_F(FirehoseTests, test_send) {
   EXPECT_CALL(*client,
               PutRecordBatch(Property(
                   &Aws::Firehose::Model::PutRecordBatchRequest::GetRecords,
-                  ElementsAre(MatchesEntry("{\"foo\":\"bar\",\"log_type\":\"results\"}\n")))))
+                  ElementsAre(MatchesEntry(
+                      "{\"foo\":\"bar\",\"log_type\":\"results\"}\n")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(0), forwarder.send(logs, "results"));
 
@@ -71,10 +72,13 @@ TEST_F(FirehoseTests, test_send) {
   outcome.GetResult().SetFailedPutCount(1);
   outcome.GetResult().AddRequestResponses(entry);
 
-  EXPECT_CALL(*client,
-              PutRecordBatch(Property(
-                  &Aws::Firehose::Model::PutRecordBatchRequest::GetRecords,
-                  ElementsAre(MatchesEntry("{\"bar\":\"foo\",\"log_type\":\"results\"}\n"), MatchesEntry("{\"foo\":\"bar\",\"log_type\":\"results\"}\n")))))
+  EXPECT_CALL(
+      *client,
+      PutRecordBatch(Property(
+          &Aws::Firehose::Model::PutRecordBatchRequest::GetRecords,
+          ElementsAre(
+              MatchesEntry("{\"bar\":\"foo\",\"log_type\":\"results\"}\n"),
+              MatchesEntry("{\"foo\":\"bar\",\"log_type\":\"results\"}\n")))))
       .WillOnce(Return(outcome));
   EXPECT_EQ(Status(1, "Foo error"), forwarder.send(logs, "results"));
 }
