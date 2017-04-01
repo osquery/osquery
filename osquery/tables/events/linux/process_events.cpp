@@ -26,6 +26,7 @@ extern long getUptime();
 
 bool ProcessUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
   if (type == AUDIT_SYSCALL) {
+    r["auid"] = (fields.count("auid")) ? fields.at("auid") : "0";
     r["pid"] = (fields.count("pid")) ? fields.at("pid") : "0";
     r["parent"] = fields.count("ppid") ? fields.at("ppid") : "0";
     r["uid"] = fields.count("uid") ? fields.at("uid") : "0";
@@ -130,7 +131,7 @@ Status ProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return Status(0, "OK");
   }
 
-  auto fields = asm_.add(ec->auid, ec->type, ec->fields);
+  auto fields = asm_.add(ec->audit_id, ec->type, ec->fields);
   if (fields.is_initialized()) {
     add(*fields);
   }

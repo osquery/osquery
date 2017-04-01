@@ -396,12 +396,13 @@ There is a strict relationship between the top-level `file_paths` key, and `yara
 
 ### Prometheus
 
-The `prometheus_targets` key can be used to configure Prometheus targets to be queried. The metric timestamp of millisecond precision is taken when the target response is received.  The `prometheus_targets` parent key consists of one child key `urls`, which contains a list target urls to be scraped.
+The `prometheus_targets` key can be used to configure Prometheus targets to be queried. The metric timestamp of millisecond precision is taken when the target response is received.  The `prometheus_targets` parent key consists of a child key `urls`, which contains a list target urls to be scraped, and an optional child key `timeout` which contains the request timeout duration in seconds (defaults to 1 second if not provided).
 
 Example:
 ```json
 {
   "prometheus_targets": {
+    "timeout": 5,
     "urls": [
       "http://localhost:9100/metrics",
       "http://localhost:9101/metrics"
