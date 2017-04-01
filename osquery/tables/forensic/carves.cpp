@@ -17,6 +17,7 @@
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/dispatcher.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -26,22 +27,26 @@
 namespace pt = boost::property_tree;
 
 namespace osquery {
-namespace tables {
 
 DECLARE_bool(disable_carver);
 
+namespace tables {
+
+/// Database domain where we store carve table entries
+const std::string kCarveDbDomain = "carves";
+
 /// Database prefix used to directly access and manipulate our carver entries
-const std::string kCarverDBPrefix = "carving.";
+const std::string kCarverDBPrefix = "carves.";
 
 void enumerateCarves(QueryData& results) {
   std::vector<std::string> carves;
-  auto s = scanDatabaseKeys(kQueries, carves, kCarverDBPrefix);
+  scanDatabaseKeys(kCarveDbDomain, carves, kCarverDBPrefix);
 
   for (const auto& carveGuid : carves) {
     std::string carve;
-    s = getDatabaseValue(kQueries, carveGuid, carve);
-    if(!s.ok()) {
-      VLOG(1) << "Failed to retreive carve GUID";
+    auto s = getDatabaseValue(kCarveDbDomain, carveGuid, carve);
+    if (!s.ok()) {
+      VLOG(1) << "Failed to retrieve carve GUID";
       continue;
     }
 
@@ -50,7 +55,7 @@ void enumerateCarves(QueryData& results) {
       std::stringstream ss(carve);
       pt::read_json(ss, tree);
     } catch (const pt::ptree_error& e) {
-      VLOG(1) << "Failed to parse carving entries: " << e.what();
+      VLOG(1) << "Failed to parse carve entries: " << e.what();
       return;
     }
 
@@ -86,7 +91,8 @@ QueryData genCarves(QueryContext& context) {
         return status;
       }));
 
-  if (context.constraints["carve"].exists(EQUALS) && paths.size() > 0) {
+  if (context.constraints["carve"].exists(EQUALS) && paths.size() > 0 &&
+      !FLAGS_disable_carver) {
     auto guid = boost::uuids::to_string(boost::uuids::random_generator()());
 
     pt::ptree tree;
@@ -95,7 +101,7 @@ QueryData genCarves(QueryContext& context) {
     tree.put("status", "STARTING");
     tree.put("sha256", "");
     tree.put("size", -1);
-    if(paths.size() > 1) {
+    if (paths.size() > 1) {
       tree.put("path", boost::algorithm::join(paths, ","));
     } else {
       tree.put("path", *(paths.begin()));
@@ -103,12 +109,13 @@ QueryData genCarves(QueryContext& context) {
 
     std::ostringstream os;
     pt::write_json(os, tree, false);
-    auto s = setDatabaseValue(kQueries, kCarverDBPrefix + guid, os.str());
-    if(!s.ok()){
-      LOG(WARNING) << "Error inserting new carve entry into the database: " << s.getMessage();
+    auto s = setDatabaseValue(kCarveDbDomain, kCarverDBPrefix + guid, os.str());
+    if (!s.ok()) {
+      LOG(WARNING) << "Error inserting new carve entry into the database: "
+                   << s.getMessage();
+    } else {
+      Dispatcher::addService(std::make_shared<Carver>(paths, guid));
     }
-
-    Dispatcher::addService(std::make_shared<Carver>(paths, guid));
   }
   enumerateCarves(results);
 

@@ -1,8 +1,8 @@
-table_name("carving")
-description("Forensic File Carves")
+table_name("carves")
+description("Forensic Memory Carves")
 schema([
-    Column("time", BIGINT, "time at which the carve was kicked off"),
-    Column("sha256", TEXT, "A sha256 sum of the carved archive"),
+    Column("time", BIGINT, "Time at which the carve was kicked off"),
+    Column("sha256", TEXT, "A SHA256 sum of the carved archive"),
     Column("size", INTEGER, "Size of the carved archive"),
     Column("path", TEXT, "The path of the requested carve"),
     Column("status", TEXT, "Status of the carve, can be STARTING, PENDING, SUCCESS, or FAILED"),
@@ -10,8 +10,8 @@ schema([
     Column("carve", INTEGER, "Set this value to '1' to start a file carve")
 ])
 attributes(user_data=True)
-implementation("forensic/carving@genCarves")
+implementation("forensic/carves@genCarves")
 examples([
-  "select * from carving where status like '%FAIL%'",
-  "select * from carving where path like '/Users/%/Downloads/% and carve=1'",
+  "select * from carves where status like '%FAIL%'",
+  "select * from carves where path like '/Users/%/Downloads/% and carve=1'",
 ])

@@ -16,7 +16,7 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
+#include <osquery/sql.h>
 
 #include "osquery/carver/carver.h"
 #include "osquery/core/json.h"
@@ -28,14 +28,8 @@ namespace osquery {
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
-/// Prefix used for temporary carve FS store.
-const std::string kTestCarvePathPrefix = "test-osquery-carve-";
-
 /// Prefix used for posix tar archive.
-const std::string kTestCarveNamePrefix = "test-carve-";
-
-/// Database prefix used to directly access and manipulate our carver entries
-const std::string kCarverDBPrefix = "carving.";
+const std::string kTestCarveNamePrefix = "carve_";
 
 std::string genGuid() {
   return boost::uuids::to_string(boost::uuids::random_generator()());
@@ -45,9 +39,9 @@ class CarverTests : public testing::Test {
  public:
   CarverTests() {
     fs::create_directories(kFakeDirectory + "/files_to_carve/");
-    writeTextFile(kFakeDirectory + "/secrets.txt",
+    writeTextFile(kFakeDirectory + "/files_to_carve/secrets.txt",
                   "This is a message I'd rather no one saw.");
-    writeTextFile(kFakeDirectory + "/evil.exe",
+    writeTextFile(kFakeDirectory + "/files_to_carve/evil.exe",
                   "MZP\x00\x02\x00\x00\x00\x04\x00\x0f\x00\xff\xff");
 
     auto paths = platformGlob(kFakeDirectory + "/files_to_carve/*");
@@ -78,26 +72,14 @@ TEST_F(CarverTests, test_carve_files_locally) {
   auto paths_ = getCarvePaths();
   Carver carve(getCarvePaths(), guid_);
 
-  /*
-  // TODO: As the carve DB entry happens in the table, this entry wont exist.
-  std::string carveId;
-  auto s = getDatabaseValue(kQueries, kCarverDBPrefix + guid_, carveId);
-  EXPECT_TRUE(s.ok());
-
-  pt::ptree tree;
-  std::stringstream ss(carveId);
-  EXPECT_NO_THROW(pt::read_json(ss, tree));
-
-  std::string status = tree.get<std::string>("status");
-  EXPECT_EQ(status, "PENDING");
-  */
   Status s;
   for (const auto& p : paths_) {
     s = carve.carve(fs::path(p));
     EXPECT_TRUE(s.ok());
   }
 
-  auto paths = platformGlob(kTestCarvePathPrefix + "/*");
+  std::string carveFSPath = carve.getCarveDir().string();
+  auto paths = platformGlob(carveFSPath + "/*");
   std::set<fs::path> carves;
   for (const auto& p : paths) {
     carves.insert(fs::path(p));
@@ -107,8 +89,8 @@ TEST_F(CarverTests, test_carve_files_locally) {
   s = carve.compress(carves);
   EXPECT_TRUE(s.ok());
 
-  auto tarPath = kTestCarveNamePrefix + guid_ + ".tgz";
-  PlatformFile tar(tarPath, PF_OPEN_EXISTING);
+  auto tarPath = carveFSPath + "/" + kTestCarveNamePrefix + guid_ + ".tgz";
+  PlatformFile tar(tarPath, PF_OPEN_EXISTING | PF_READ);
   EXPECT_TRUE(tar.isValid());
   EXPECT_GT(tar.size(), static_cast<const unsigned int>(0));
 }

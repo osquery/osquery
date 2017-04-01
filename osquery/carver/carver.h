@@ -30,7 +30,7 @@ class Carver : public InternalRunnable {
    */
   void start();
 
- protected:
+ private:
   /*
    * @brief A helper function to 'carve' files from disk
    *
@@ -47,20 +47,24 @@ class Carver : public InternalRunnable {
   Status compress(const std::set<boost::filesystem::path>& path);
 
   /*
-   * @brief Helper function to exfil a file to the graph endpoint.
+   * @brief Helper function to POST a carve to the graph endpoint.
    *
    * Once all of the files have been carved and the tgz has been
    * created, we POST the carved file to an endpoint specified by the
    * carver_start_endpoint and carver_continue_endpoint
    */
-  Status exfil(const boost::filesystem::path& path);
+  Status postCarve(const boost::filesystem::path& path);
 
   // Getter for the carver status
   Status getStatus() {
     return status_;
   }
 
- private:
+  // Helper function to return the carve directory
+  boost::filesystem::path getCarveDir() {
+    return carveDir_;
+  }
+
   /*
    * @brief a variable to keep track of the temp fs used in carving
    *
@@ -111,5 +115,6 @@ class Carver : public InternalRunnable {
 
  private:
   friend class CarverTests;
+  FRIEND_TEST(CarverTests, test_carve_files_locally);
 };
 }
