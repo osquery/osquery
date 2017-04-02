@@ -311,6 +311,7 @@ function package() {
 function ports() {
   PKG="$1"
   log "building port $1"
+  (cd /usr/ports/$1; do_sudo make deinstall)
   (cd /usr/ports/$1; do_sudo make install clean BATCH=yes)
 }
 

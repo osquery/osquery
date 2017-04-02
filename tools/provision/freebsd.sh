@@ -23,11 +23,12 @@ function distro_main() {
   package thrift-cpp
   package yara
   package boost-libs
-  package cpp-netlib
   package magic
   package sleuthkit
   package augeas
 
+  ports net-mgmt/lldpd
   ports databases/rocksdb
   ports devel/linenoise-ng
+  ports devel/cpp-netlib
 }
