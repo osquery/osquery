@@ -25,14 +25,14 @@
 
 namespace osquery {
 
-FLAG(bool, enable_monitor, true, "Enable the schedule monitor");
-
 FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit");
 
 FLAG(uint64,
      schedule_reload,
      300,
      "Interval in seconds to reload database arenas");
+
+HIDDEN_FLAG(bool, enable_monitor, true, "Enable the schedule monitor");
 
 HIDDEN_FLAG(bool,
             schedule_reload_sql,
@@ -74,9 +74,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   LOG(INFO) << "Executing scheduled query " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
 
-  auto sql =
-      (FLAGS_enable_monitor) ? monitor(name, query) : SQLInternal(query.query);
-
+  auto sql = monitor(name, query);
   if (!sql.ok()) {
     LOG(ERROR) << "Error executing scheduled query " << name << ": "
                << sql.getMessageString();
