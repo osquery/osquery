@@ -42,6 +42,9 @@ FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 FLAG(bool, logger_event_type, true, "Log scheduled results as events");
 FLAG_ALIAS(bool, log_result_events, logger_event_type);
 
+/// Alias for the minloglevel used internally by GLOG.
+FLAG(int32, logger_min_status, 0, "Minimum level for status log recording");
+
 FLAG(bool,
      logger_secondary_status_only,
      false,
@@ -89,7 +92,7 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
             int line,
             const struct ::tm* tm_time,
             const char* message,
-            size_t message_len);
+            size_t message_len) override;
 
  public:
   /// Accessor/mutator to dump all of the buffered logs.
@@ -308,20 +311,32 @@ void setVerboseLevel() {
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.
     // Do log the above and verbose=1 to stderr.
     FLAGS_minloglevel = google::GLOG_INFO;
-    FLAGS_stderrthreshold = google::GLOG_INFO;
+    if (FLAGS_logger_plugin != "stdout") {
+      // Special case for the stdout plugin.
+      FLAGS_stderrthreshold = google::GLOG_INFO;
+    }
     FLAGS_v = 1;
   } else {
     // Do NOT log INFO, WARNING, ERROR to stderr.
     // Do log only WARNING, ERROR to log sinks.
-    if (kToolType == ToolType::DAEMON) {
-      FLAGS_minloglevel = google::GLOG_INFO;
-      if (Flag::isDefault("stderrthreshold")) {
-        FLAGS_stderrthreshold = google::GLOG_INFO;
-      }
-    } else {
-      FLAGS_minloglevel = google::GLOG_WARNING;
-      FLAGS_stderrthreshold = google::GLOG_WARNING;
+    auto default_level = google::GLOG_INFO;
+    if (kToolType == ToolType::SHELL) {
+      default_level = google::GLOG_WARNING;
     }
+
+    if (Flag::isDefault("minloglevel")) {
+      FLAGS_minloglevel = default_level;
+    }
+
+    if (Flag::isDefault("stderrthreshold")) {
+      FLAGS_stderrthreshold = default_level;
+    }
+  }
+
+  if (!Flag::isDefault("logger_min_status")) {
+    long int i = 0;
+    safeStrtol(Flag::getValue("logger_min_status"), 10, i);
+    FLAGS_minloglevel = static_cast<decltype(FLAGS_minloglevel)>(i);
   }
 
   if (FLAGS_disable_logging) {

@@ -48,6 +48,10 @@ Status StdoutLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
 
 void StdoutLoggerPlugin::init(const std::string& name,
                               const std::vector<StatusLogLine>& log) {
+  // Stop the internal Glog facilities.
+  FLAGS_alsologtostderr = false;
+  FLAGS_logtostderr = false;
+
   // Now funnel the intermediate status logs provided to `init`.
   logStatus(log);
 }
