@@ -4,15 +4,14 @@ class Augeas < AbstractOsqueryFormula
   desc "A configuration editing tool and API"
   homepage "http://augeas.net/"
   url "https://github.com/hercules-team/augeas.git",
-    :revision => "c765202fb507fa882ce7b5706265e040c65aa3bf"
-  version "1.7.0rc1"
-  revision 1
+    :revision => "f66a71dc22c0536853bb99585a4bf605018ba6db"
+  version "1.8.0"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "a090cf5f9ecfa57f858433cc6ad46cd9d64430844c1fafd380848179887fb486" => :sierra
-    sha256 "8ef71ee4d9bb8c976150af61e811ff31e065ffb9f6c28cc4b8b8cd7145e9cd2c" => :x86_64_linux
+    sha256 "c0fae5e9c047d39d8e60bedf915d74ebba57bc0cc83c6ab91280e85b0fb8a643" => :sierra
+    sha256 "910d65ee24f4cfd029b424cb24c0fdec92f070d84273ac9fc3657655051254bf" => :x86_64_linux
   end
 
   # The autoconfigure requests readline.
@@ -22,6 +21,14 @@ class Augeas < AbstractOsqueryFormula
   def install
     ENV.append_to_cflags "-I/usr/include/libxml2" if OS.mac?
     system "./autogen.sh", "--without-selinux", "--prefix=#{prefix}"
+
+    args = [
+      "--without-selinux",
+      "--prefix=#{prefix}",
+      "--disable-dependency-tracking",
+      "--enable-shared=no"
+    ]
+    system "./configure", *args
 
     # Build the local gnulib checkout.
     cd "gnulib/lib" do
