@@ -132,7 +132,7 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
                   &buffUsed,
                   &propCount);
       } else {
-        status = Status(GetLastError(), "malloc failed");
+        status = Status(GetLastError(), "Event log buffer malloc failed");
       }
     } else {
       status = Status(GetLastError(), "Event rendering failed");
@@ -144,7 +144,6 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
     ss << wstringToString(xml);
     read_xml(ss, propTree);
     free(xml);
-    xml = nullptr;
   }
   return status;
 }
