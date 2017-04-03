@@ -68,10 +68,12 @@ else()
   ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio beecrypt popt db")
 endif()
 
+if(APPLE OR LINUX OR FREEBSD)
+  ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
+endif()
+
 if(APPLE OR LINUX)
   file(GLOB OSQUERY_CROSS_EVENTS_TABLES "events/*.cpp")
-
-  ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
 else()
   # TODO: When we have Windows events, fill this in
   set(OSQUERY_CROSS_EVENTS_TABLES "")
