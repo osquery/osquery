@@ -163,25 +163,25 @@ TEST_F(AwsUtilTests, test_append_log_type_to_json) {
   Status status;
   std::string output;
 
-  const std::string null_json = "";
+  std::string null_json = "";
 
-  status = appendLogTypeToJson("result", null_json, output);
+  status = appendLogTypeToJson("result", null_json);
   ASSERT_FALSE(status.ok());
   ASSERT_EQ(status.getCode(), 1);
 
   const std::string expected_empty = "{\"log_type\":\"result\"}";
-  const std::string empty_json = "{}";
+  std::string empty_json = "{}";
 
-  status = appendLogTypeToJson("result", empty_json, output);
+  status = appendLogTypeToJson("result", empty_json);
   ASSERT_TRUE(status.ok());
-  ASSERT_EQ(expected_empty, output);
+  ASSERT_EQ(expected_empty, empty_json);
 
   const std::string expected_full =
       "{\"severity\":\"0\",\"log_type\":\"status\"}";
-  const std::string full_json = "{\"severity\":\"0\"}";
+  std::string full_json = "{\"severity\":\"0\"}";
 
-  status = appendLogTypeToJson("status", full_json, output);
+  status = appendLogTypeToJson("status", full_json);
   ASSERT_TRUE(status.ok());
-  ASSERT_EQ(expected_full, output);
+  ASSERT_EQ(expected_full, full_json);
 }
 }

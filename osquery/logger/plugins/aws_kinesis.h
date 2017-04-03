@@ -30,6 +30,8 @@ class KinesisLogForwarder : public BufferedLogForwarder {
  private:
   static const size_t kKinesisMaxLogBytes;
   static const size_t kKinesisMaxRecords;
+  static const size_t kKinesisMaxRetryCount;
+  static const size_t kKinesisInitialRetryDelay;
 
  public:
   KinesisLogForwarder()

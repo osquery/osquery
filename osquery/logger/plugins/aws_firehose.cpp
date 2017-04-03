@@ -69,29 +69,27 @@ void FirehoseLoggerPlugin::init(const std::string& name,
 Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
                                   const std::string& log_type) {
   std::vector<Aws::Firehose::Model::Record> records;
-  for (const std::string& log : log_data) {
-    std::string typed_log;
-
-    Status status = appendLogTypeToJson(log_type, log, typed_log);
+  for (std::string& log : log_data) {
+    Status status = appendLogTypeToJson(log_type, log);
     if (!status.ok()) {
       LOG(ERROR)
-          << "Failed to append log_type key to status log JSON in Firehose!";
+          << "Failed to append log_type key to status log JSON in Firehose";
 
       // To achieve behavior parity with TLS logger plugin, skip non-JSON
       // content
       continue;
     }
 
-    if (typed_log.size() + 1 > kFirehoseMaxLogBytes) {
+    if (log.size() + 1 > kFirehoseMaxLogBytes) {
       LOG(ERROR) << "Firehose log too big, discarding!";
     }
     Aws::Firehose::Model::Record record;
-    auto buffer = Aws::Utils::ByteBuffer((unsigned char*)typed_log.c_str(),
-                                         typed_log.length() + 1);
+    auto buffer =
+        Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length() + 1);
     // Firehose buffers together the individual records, so we must insert
     // newlines here if we want newlines in the resultant files after Firehose
     // processing. See http://goo.gl/Pz6XOj
-    buffer[typed_log.length()] = '\n';
+    buffer[log.length()] = '\n';
     record.SetData(buffer);
     records.push_back(std::move(record));
   }

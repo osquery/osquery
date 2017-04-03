@@ -358,21 +358,19 @@ Status getAWSRegion(std::string& region, bool sts) {
   return Status(0);
 }
 
-Status appendLogTypeToJson(const std::string& log_type,
-                           const std::string& original,
-                           std::string& serialized) {
+Status appendLogTypeToJson(const std::string& log_type, std::string& log) {
   if (log_type.empty()) {
     return Status(1, "log_type is empty");
   }
 
-  if (original.empty()) {
+  if (log.empty()) {
     return Status(1, "original JSON is empty");
   }
 
   pt::ptree params;
   try {
     std::stringstream input;
-    input << original;
+    input << log;
     pt::read_json(input, params);
   } catch (const pt::json_parser::json_parser_error& e) {
     return Status(1,
@@ -388,11 +386,11 @@ Status appendLogTypeToJson(const std::string& log_type,
     return Status(1, std::string("JSON serialization exception: ") + e.what());
   }
 
-  serialized = output.str();
+  log = output.str();
 
   // Get rid of newline
-  if (!serialized.empty()) {
-    serialized.pop_back();
+  if (!log.empty()) {
+    log.pop_back();
   }
   return Status(0, "OK");
 }
