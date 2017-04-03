@@ -1,0 +1,14 @@
+table_name("startup")
+description("Applications configured in the Windows startup list.")
+schema([
+    Column("name", TEXT, "Commonly used product name."),
+    Column("username", TEXT, "The user associated with the startup item"),
+    Column("description", TEXT, "Product description."),
+    Column("path", TEXT, "The filesystem path to the executable."),
+    Column("publisher", TEXT, "Name of the product supplier."),
+    Column("status", TEXT, "Startup status; either enabled or disabled."),
+])
+implementation("startup@genStartup")
+examples([
+  "select * from startup",
+])
