@@ -54,11 +54,18 @@ class FirehoseLoggerPlugin : public LoggerPlugin {
 
   Status setUp() override;
 
+  bool usesLogStatus() override {
+    return true;
+  }
+
  protected:
   void init(const std::string& name,
-            const std::vector<StatusLogLine>& log) override {}
+            const std::vector<StatusLogLine>& log) override;
 
   Status logString(const std::string& s) override;
+
+  /// Log a status (ERROR/WARNING/INFO) message.
+  Status logStatus(const std::vector<StatusLogLine>& log) override;
 
  private:
   std::shared_ptr<FirehoseLogForwarder> forwarder_{nullptr};

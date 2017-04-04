@@ -171,4 +171,16 @@ Status makeAWSClient(std::shared_ptr<Client>& client, bool sts = true) {
       std::make_shared<OsqueryAWSCredentialsProviderChain>(sts), client_config);
   return Status(0);
 }
+
+/**
+ * @brief Parses an input string as JSON, appends a "log_type" key to the
+ * dictionary, and serializes it, mutating the input
+ *
+ * @param log_type The type of log (as passed to a logger plugin's send
+ * function)
+ * @param log The input to be mutated with the appended "log_type" JSON key
+ *
+ * @return 0 if successful, 1 if there were issues
+ */
+Status appendLogTypeToJson(const std::string& log_type, std::string& log);
 }
