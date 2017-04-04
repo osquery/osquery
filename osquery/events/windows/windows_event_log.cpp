@@ -140,11 +140,14 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
   }
 
   if (xml != nullptr) {
-    std::stringstream ss;
-    ss << wstringToString(xml);
-    read_xml(ss, propTree);
+    if (GetLastError() == ERROR_SUCCESS) {
+      std::stringstream ss;
+      ss << wstringToString(xml);
+      read_xml(ss, propTree);
+    }
     free(xml);
   }
+
   return status;
 }
 
