@@ -124,7 +124,7 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
     if (ERROR_INSUFFICIENT_BUFFER == GetLastError()) {
       buffSize = buffUsed;
       xml = static_cast<LPWSTR>(malloc(buffSize));
-      if (xml) {
+      if (xml != nullptr) {
         EvtRender(nullptr,
                   evt,
                   EvtRenderEventXml,
@@ -146,7 +146,10 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
     status = Status(GetLastError(), "Event rendering failed");
   }
 
-  free(xml);
+  if (xml != nullptr) {
+    free(xml);
+  }
+
   return status;
 }
 
