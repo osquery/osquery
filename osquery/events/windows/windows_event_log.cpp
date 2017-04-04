@@ -111,7 +111,7 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
   DWORD buffSize = 0;
   DWORD buffUsed = 0;
   DWORD propCount = 0;
-  Status status;
+  Status status = Status(0, "OK");
   LPWSTR xml = nullptr;
   if (!EvtRender(nullptr,
                  evt,
