@@ -87,9 +87,9 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
   // exit if we sent all the data
   while (log_data.size() > 0) {
     std::vector<Aws::Kinesis::Model::PutRecordsRequestEntry> entries;
-    std::vector<int> valid_log_data_indices;
+    std::vector<size_t> valid_log_data_indices;
 
-    int i = 0;
+    size_t log_data_index = 0;
     for (std::string& log : log_data) {
       if (retry_count == kKinesisMaxRetryCount) {
         // On first send attempt, append log_type to the JSON log content
@@ -99,7 +99,7 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
           LOG(ERROR)
               << "Failed to append log_type key to status log JSON in Kinesis";
 
-          i++;
+          log_data_index++;
           continue;
         }
       }
@@ -121,9 +121,9 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
           .WithData(Aws::Utils::ByteBuffer((unsigned char*)log.c_str(),
                                            log.length()));
       entries.push_back(std::move(entry));
-      valid_log_data_indices.push_back(i);
+      valid_log_data_indices.push_back(log_data_index);
 
-      i++;
+      log_data_index++;
     }
 
     Aws::Kinesis::Model::PutRecordsRequest request;
@@ -139,14 +139,14 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
     if (result.GetFailedRecordCount() != 0) {
       std::vector<std::string> resend;
       std::string error_msg = "";
-      i = 0;
+      log_data_index = 0;
       for (const auto& record : result.GetRecords()) {
         if (!record.GetErrorMessage().empty()) {
-          int log_data_index = valid_log_data_indices[i];
-          resend.push_back(log_data[log_data_index]);
+          size_t valid_log_data_index = valid_log_data_indices[log_data_index];
+          resend.push_back(log_data[valid_log_data_index]);
           error_msg = record.GetErrorMessage();
         }
-        i++;
+        log_data_index++;
       }
       // exit if we have tried too many times
       // exit if all uploads fail right off the bat
