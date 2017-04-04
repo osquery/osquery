@@ -272,6 +272,8 @@ void queryKey(const std::string& keyPath, QueryData& results) {
         delete[](regLinkStr);
       }
       ZeroMemory(bpDataBuff, cbMaxValueData);
+    } else {
+      r["data"] = "";
     }
     results.push_back(r);
   }
