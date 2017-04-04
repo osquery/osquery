@@ -49,6 +49,26 @@ TEST_F(RegistryTablesTest, test_explode_registry_path_normal) {
   EXPECT_TRUE(rHive == "HKEY_LOCAL_MACHINE");
 }
 
+TEST_F(RegistryTablesTest, test_registry_or_clause) {
+  SQL results("SELECT * FROM registry WHERE key = \"" + kTestKey +
+              "\" OR key = \"" + kTestSpecificKey + "\"");
+  auto testKeyFound = false;
+  auto specificKeyFound = false;
+  EXPECT_TRUE(results.rows().size() > 0);
+  for (const auto& row : results.rows()) {
+    auto key = row.at("key");
+    if (boost::starts_with(key, kTestSpecificKey)) {
+      specificKeyFound = true;
+    } else if (boost::starts_with(key, kTestKey)) {
+      testKeyFound = true;
+    } else {
+      assert(false);
+    }
+  }
+  EXPECT_TRUE(testKeyFound);
+  EXPECT_TRUE(specificKeyFound);
+}
+
 TEST_F(RegistryTablesTest, test_explode_registry_path_just_hive) {
   auto path = "HKEY_LOCAL_MACHINE";
   std::string rKey;
