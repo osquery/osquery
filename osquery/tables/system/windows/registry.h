@@ -18,6 +18,9 @@ namespace tables {
 // Registry path separator
 const std::string kRegSep = "\\";
 
+// Default registry key name
+const std::string kDefaultRegName = "(Default)";
+
 // Maximum recursive depth with searching the registry
 const size_t kRegMaxRecursiveDepth = 32;
 
@@ -52,5 +55,10 @@ Status expandRegistryGlobs(const std::string& pattern,
 inline void explodeRegistryPath(const std::string& path,
                                 std::string& rHive,
                                 std::string& rKey);
+
+
+Status getUsernameFromKey(const std::string& key, std::string& rUsername);
+
 }
 }
+

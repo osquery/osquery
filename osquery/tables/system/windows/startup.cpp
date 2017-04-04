@@ -10,16 +10,14 @@
 #define _WIN32_DCOM
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-// clang-format off
-#include <LM.h>
-// clang-format on
 
-#include <boost/regex.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -27,103 +25,66 @@
 #include "osquery/core/windows/wmi.h"
 #include "osquery/tables/system/windows/registry.h"
 
-const std::string kStartupPath =
-    "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
-const std::set<std::string> kStartupConfigPaths = {
-    "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved"
-    "\\Run",
-    "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved"
-    "\\Run32",
-    "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved"
-    "\\StartupFolder",
-};
-const auto kStartupEnabledRegex = boost::regex("0[0-9]0+");
-
 namespace osquery {
 namespace tables {
 
-static inline std::string getStartupStatus(const std::string& startupName) {
-  QueryData regResults;
-  std::string status = "";
-  QueryData userKeys;
-  std::vector<std::string> keys;
-
-  queryKey("HKEY_USERS", regResults);
-  for (const auto& path : kStartupConfigPaths) {
-    for (const auto& regResult : regResults) {
-      keys.push_back(regResult.at("path") + path);
-    }
-    keys.push_back("HKEY_LOCAL_MACHINE" + path);
-  }
-  for (const auto& key : keys) {
-    queryKey(key, regResults);
-    for (const auto& regResult : regResults) {
-      if (regResult.at("name") == startupName) {
-        if (regex_match(regResult.at("data"), kStartupEnabledRegex)) {
-          status = "enabled";
-          break;
-        } else {
-          status = "disabled";
-          break;
-        }
-      }
-    }
-  }
-  return status;
-}
+const std::vector<std::string> kStartupRegKeys = {
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+    "HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+};
+const std::vector<std::string> kStartupFolderDirectories = {
+    "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+    "C:\\Users\\%\\AppData\\Roaming\\Microsoft\\Windows\\Start "
+    "Menu\\Programs\\Startup"};
+const std::string kStartupStatusRegKeys =
+    "HKEY_USERS\\%"
+    "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved"
+    "\\%%";
+const auto kStartupEnabledRegex = boost::regex("0[0-9]0+");
+const std::string kDefaultRegExcludeSQL =
+    "NOT type = \"subkey\" AND NOT name = \"" + kDefaultRegName + "\"";
 
 QueryData genStartup(QueryContext& context) {
   QueryData results;
   std::string username;
-  QueryData regResults;
   std::vector<std::string> keys;
 
-  queryKey("HKEY_USERS", regResults);
-  for (const auto& regResult : regResults) {
-    keys.push_back(regResult.at("path") + kStartupPath);
-  }
-  keys.push_back("HKEY_LOCAL_MACHINE" + kStartupPath);
-  for (const auto& key : keys) {
-    queryKey(key, regResults);
-    for (const auto& regResult : regResults) {
-      if (regResult.at("type") == "subkey" ||
-          regResult.at("name") == "(Default)") {
-        continue;
-      }
-      if (boost::starts_with(key, "HKEY_USERS")) {
-        PSID sid;
+  SQL regResults("SELECT * FROM registry WHERE (key LIKE \"" +
+                 osquery::join(kStartupRegKeys, "\" OR key LIKE \"") +
+                 "\") AND " + kDefaultRegExcludeSQL);
+  SQL statusResults("SELECT name, data FROM registry WHERE key LIKE \"" +
+                    kStartupStatusRegKeys + "\" AND " + kDefaultRegExcludeSQL);
+
+  std::for_each(
+      regResults.rows().begin(),
+      regResults.rows().end(),
+      [&](const auto& regResult) {
+        Row r;
         std::string username;
-        if (!ConvertStringSidToSidA(
-                osquery::split(regResult.at("key"), kRegSep)[1].c_str(),
-                &sid)) {
-          username = "unknown";
+        if (boost::starts_with(regResult.at("key"), "HKEY_LOCAL_MACHINE")) {
+          username = "local_machine";
         } else {
-          wchar_t accntName[UNLEN] = {0};
-          wchar_t domName[DNLEN] = {0};
-          unsigned long accntNameLen = UNLEN;
-          unsigned long domNameLen = DNLEN;
-          SID_NAME_USE eUse;
-          auto ret = LookupAccountSidW(nullptr,
-                                       sid,
-                                       accntName,
-                                       &accntNameLen,
-                                       domName,
-                                       &domNameLen,
-                                       &eUse);
-          username = ret != 0 ? wstringToString(accntName) : "unknown";
+          if (!getUsernameFromKey(regResult.at("key"), username).ok()) {
+            LOG(INFO) << "Failed to get username from sid";
+            username = "unknown";
+          }
         }
-      } else {
-        username = "system";
-      }
-      Row r;
-      r["username"] = "system";
-      r["path"] = regResult.at("data");
-      r["name"] = regResult.at("name");
-      r["registry_key"] = regResult.at("key");
-      r["status"] = getStartupStatus(regResult.at("name"));
-      results.push_back(r);
-    }
-  }
+        r["username"] = username;
+        r["name"] = regResult.at("name");
+        r["path"] = regResult.at("data");
+        r["registry_key"] = regResult.at("key");
+        r["status"] = "unknown";
+        for (const auto& status : statusResults.rows()) {
+          if (status.at("name") == regResult.at("name")) {
+            if (regex_match(status.at("data"), kStartupEnabledRegex)) {
+              r["status"] = "enabled";
+            } else {
+              r["status"] = "disabled";
+            }
+          }
+        }
+        results.push_back(r);
+      });
   return results;
 }
 }
