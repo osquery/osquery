@@ -111,8 +111,9 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
   DWORD buffSize = 0;
   DWORD buffUsed = 0;
   DWORD propCount = 0;
-  Status status = Status(0, "OK");
   LPWSTR xml = nullptr;
+  Status status;
+
   if (!EvtRender(nullptr,
                  evt,
                  EvtRenderEventXml,
@@ -123,7 +124,7 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
     if (ERROR_INSUFFICIENT_BUFFER == GetLastError()) {
       buffSize = buffUsed;
       xml = static_cast<LPWSTR>(malloc(buffSize));
-      if (xml != nullptr) {
+      if (xml) {
         EvtRender(nullptr,
                   evt,
                   EvtRenderEventXml,
@@ -132,22 +133,20 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
                   &buffUsed,
                   &propCount);
       } else {
-        status = Status(GetLastError(), "Event log buffer malloc failed");
+        status = Status(1, "Unable to reserve memory for event log buffer");
       }
-    } else {
-      status = Status(GetLastError(), "Event rendering failed");
     }
   }
 
-  if (xml != nullptr) {
-    if (GetLastError() == ERROR_SUCCESS) {
-      std::stringstream ss;
-      ss << wstringToString(xml);
-      read_xml(ss, propTree);
-    }
-    free(xml);
+  if (ERROR_SUCCESS == GetLastError()) {
+    std::stringstream ss;
+    ss << wstringToString(xml);
+    read_xml(ss, propTree);
+  } else {
+    status = Status(GetLastError(), "Event rendering failed");
   }
 
+  free(xml);
   return status;
 }
 
