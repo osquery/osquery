@@ -271,6 +271,7 @@ function Install-ThirdParty {
   #      Once our chocolatey packages are added to the official repository, installing the third-party
   #      dependencies will be as easy as Install-ChocoPackage '<package-name>'.
   $packages = @(
+    "aws-sdk-cpp.0.14.4",
     "boost-msvc14.1.63.0-r1",
     "bzip2.1.0.6",
     "doxygen.1.8.11",
