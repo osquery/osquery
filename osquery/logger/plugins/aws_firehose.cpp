@@ -55,10 +55,31 @@ Status FirehoseLoggerPlugin::logString(const std::string& s) {
   return forwarder_->logString(s);
 }
 
+Status FirehoseLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
+  return forwarder_->logStatus(log);
+}
+
+void FirehoseLoggerPlugin::init(const std::string& name,
+                                const std::vector<StatusLogLine>& log) {
+  google::ShutdownGoogleLogging();
+  google::InitGoogleLogging(name.c_str());
+  logStatus(log);
+}
+
 Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
                                   const std::string& log_type) {
   std::vector<Aws::Firehose::Model::Record> records;
-  for (const std::string& log : log_data) {
+  for (std::string& log : log_data) {
+    Status status = appendLogTypeToJson(log_type, log);
+    if (!status.ok()) {
+      LOG(ERROR)
+          << "Failed to append log_type key to status log JSON in Firehose";
+
+      // To achieve behavior parity with TLS logger plugin, skip non-JSON
+      // content
+      continue;
+    }
+
     if (log.size() + 1 > kFirehoseMaxLogBytes) {
       LOG(ERROR) << "Firehose log too big, discarding!";
     }

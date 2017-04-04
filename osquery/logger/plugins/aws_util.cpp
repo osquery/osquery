@@ -29,6 +29,7 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
+#include "osquery/core/json.h"
 #include "osquery/logger/plugins/aws_util.h"
 #include "osquery/remote/transports/tls.h"
 
@@ -355,5 +356,42 @@ Status getAWSRegion(std::string& region, bool sts) {
   region = kDefaultAWSRegion;
   VLOG(1) << "Using default AWS region: " << region;
   return Status(0);
+}
+
+Status appendLogTypeToJson(const std::string& log_type, std::string& log) {
+  if (log_type.empty()) {
+    return Status(1, "log_type is empty");
+  }
+
+  if (log.empty()) {
+    return Status(1, "original JSON is empty");
+  }
+
+  pt::ptree params;
+  try {
+    std::stringstream input;
+    input << log;
+    pt::read_json(input, params);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1,
+                  std::string("JSON deserialization exception: ") + e.what());
+  }
+
+  params.put<std::string>("log_type", log_type);
+
+  std::ostringstream output;
+  try {
+    pt::write_json(output, params, false);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1, std::string("JSON serialization exception: ") + e.what());
+  }
+
+  log = output.str();
+
+  // Get rid of newline
+  if (!log.empty()) {
+    log.pop_back();
+  }
+  return Status(0, "OK");
 }
 }
