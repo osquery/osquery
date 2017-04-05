@@ -5,7 +5,7 @@ schema([
     Column("username", TEXT, "The user associated with the startup item"),
     Column("path", TEXT, "The filesystem path to the executable."),
     Column("status", TEXT, "Startup status; either enabled or disabled."),
-    Column("registry_key", TEXT, "Registry key associated with the startup item"),
+    Column("startup_path", TEXT, "Path to the startup configuration."),
 ])
 implementation("startup@genStartup")
 examples([

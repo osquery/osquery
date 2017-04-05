@@ -28,63 +28,75 @@
 namespace osquery {
 namespace tables {
 
-const std::vector<std::string> kStartupRegKeys = {
-    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
-    "HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+const std::set<std::string> kStartupRegKeys = {
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run%",
+    "HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run%",
 };
-const std::vector<std::string> kStartupFolderDirectories = {
+const std::set<std::string> kStartupFolderDirectories = {
     "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
     "C:\\Users\\%\\AppData\\Roaming\\Microsoft\\Windows\\Start "
     "Menu\\Programs\\Startup"};
-const std::string kStartupStatusRegKeys =
+const std::set<std::string> kStartupStatusRegKeys = {
+    "HKEY_LOCAL_"
+    "MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupAp"
+    "proved\\%%",
     "HKEY_USERS\\%"
     "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved"
-    "\\%%";
+    "\\%%",
+};
 const auto kStartupEnabledRegex = boost::regex("0[0-9]0+");
 const std::string kDefaultRegExcludeSQL =
     "NOT type = \"subkey\" AND NOT name = \"" + kDefaultRegName + "\"";
+
+static inline QueryData buildRegistryQuery(const std::set<std::string>& keys) {
+  QueryData results;
+  for (const auto& key : keys) {
+    SQL res("SELECT * FROM registry WHERE key LIKE \"" + key + "\" AND " +
+            kDefaultRegExcludeSQL);
+    results.insert(results.end(), res.rows().begin(), res.rows().end());
+  }
+  return results;
+}
 
 QueryData genStartup(QueryContext& context) {
   QueryData results;
   std::string username;
   std::vector<std::string> keys;
 
-  SQL regResults("SELECT * FROM registry WHERE (key LIKE \"" +
-                 osquery::join(kStartupRegKeys, "\" OR key LIKE \"") +
-                 "\") AND " + kDefaultRegExcludeSQL);
-  SQL statusResults("SELECT name, data FROM registry WHERE key LIKE \"" +
-                    kStartupStatusRegKeys + "\" AND " + kDefaultRegExcludeSQL);
+  auto regResults = buildRegistryQuery(kStartupRegKeys);
+  auto statusResults = buildRegistryQuery(kStartupStatusRegKeys);
 
-  std::for_each(
-      regResults.rows().begin(),
-      regResults.rows().end(),
-      [&](const auto& regResult) {
-        Row r;
-        std::string username;
-        if (boost::starts_with(regResult.at("key"), "HKEY_LOCAL_MACHINE")) {
-          username = "local_machine";
+  for (const auto& regResult : regResults) {
+    Row r;
+    std::string username;
+    std::string status;
+
+    if (boost::starts_with(regResult.at("key"), "HKEY_LOCAL_MACHINE")) {
+      username = "SYSTEM";
+    } else {
+      if (!getUsernameFromKey(regResult.at("key"), username).ok()) {
+        LOG(INFO) << "Failed to get username from sid";
+        username = "unknown";
+      }
+    }
+    for (const auto& statusResult : statusResults) {
+      if (statusResult.at("name") == regResult.at("name")) {
+        if (regex_match(statusResult.at("data"), kStartupEnabledRegex)) {
+          status = "enabled";
         } else {
-          if (!getUsernameFromKey(regResult.at("key"), username).ok()) {
-            LOG(INFO) << "Failed to get username from sid";
-            username = "unknown";
-          }
+          status = "disabled";
         }
-        r["username"] = username;
-        r["name"] = regResult.at("name");
-        r["path"] = regResult.at("data");
-        r["registry_key"] = regResult.at("key");
-        r["status"] = "unknown";
-        for (const auto& status : statusResults.rows()) {
-          if (status.at("name") == regResult.at("name")) {
-            if (regex_match(status.at("data"), kStartupEnabledRegex)) {
-              r["status"] = "enabled";
-            } else {
-              r["status"] = "disabled";
-            }
-          }
-        }
-        results.push_back(r);
-      });
+        break;
+      }
+    }
+
+    r["username"] = std::move(username);
+    r["name"] = regResult.at("name");
+    r["path"] = regResult.at("data");
+    r["startup_path"] = regResult.at("key");
+    r["status"] = status.empty() ? "unknown" : std::move(status);
+    results.push_back(r);
+  }
   return results;
 }
 }

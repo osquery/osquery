@@ -7,13 +7,15 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-#include <stdlib.h>
 
 #define _WIN32_DCOM
 #define WIN32_LEAN_AND_MEAN
+
 #include <Windows.h>
+/// clang-format off
 #include <LM.h>
 #include <sddl.h>
+// clang-format on
 
 #include <iterator>
 #include <map>
@@ -95,8 +97,7 @@ Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
         rUsername = std::move(wstringToString(accntName));
       }
     }
-  }
-  else {
+  } else {
     status = Status(1, "Can not extrat username from non-HKEY_USERS key");
   }
   return status;
@@ -307,8 +308,6 @@ void queryKey(const std::string& keyPath, QueryData& results) {
         delete[](regLinkStr);
       }
       ZeroMemory(bpDataBuff, cbMaxValueData);
-    } else {
-      r["data"] = "";
     }
     results.push_back(r);
   }
