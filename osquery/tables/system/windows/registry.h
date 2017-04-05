@@ -56,9 +56,18 @@ inline void explodeRegistryPath(const std::string& path,
                                 std::string& rHive,
                                 std::string& rKey);
 
-
+/*
+ * @brief Given an HKEY_USERS key, extract the username associated with the key
+ *
+ * For example, the key HKEY_USERS\S-1-5-19\.. would produce 'LOCAL SERVICE'
+ *
+ * @param key The registry key, must start with HKEY_USERS and have a depth
+ * of at least 2
+ * @param rUsername A string that will be populated with the username if
+ * successful
+ * @return Failure if a username cannot be extracted from the key, otherwise
+ * success
+ */
 Status getUsernameFromKey(const std::string& key, std::string& rUsername);
-
 }
 }
-

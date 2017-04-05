@@ -72,35 +72,38 @@ const std::map<DWORD, std::string> kRegistryTypes = {
 };
 
 Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
-  Status status;
-
-  if (boost::starts_with(key, "HKEY_USERS")) {
-    PSID sid;
-    if (!ConvertStringSidToSidA(osquery::split(key, kRegSep)[1].c_str(),
-                                &sid)) {
-      status = Status(GetLastError(), "Could not convert string to sid");
-    } else {
-      wchar_t accntName[UNLEN] = {0};
-      wchar_t domName[DNLEN] = {0};
-      unsigned long accntNameLen = UNLEN;
-      unsigned long domNameLen = DNLEN;
-      SID_NAME_USE eUse;
-      if (!LookupAccountSidW(nullptr,
-                             sid,
-                             accntName,
-                             &accntNameLen,
-                             domName,
-                             &domNameLen,
-                             &eUse)) {
-        status = Status(GetLastError(), "Could not find sid");
-      } else {
-        rUsername = std::move(wstringToString(accntName));
-      }
-    }
-  } else {
-    status = Status(1, "Can not extrat username from non-HKEY_USERS key");
+  if (!boost::starts_with(key, "HKEY_USERS")) {
+    return Status(1, "Can not extract username from non-HKEY_USERS key");
   }
-  return status;
+
+  auto toks = osquery::split(key, kRegSep);
+  if (toks.size() < 2) {
+    return Status(
+        1, "Improperly-formatted HKEY_USERS key, cannot extract username");
+  }
+
+  PSID sid;
+  if (!ConvertStringSidToSidA(toks[1].c_str(), &sid)) {
+    return Status(GetLastError(), "Could not convert string to sid");
+  } else {
+    wchar_t accntName[UNLEN] = {0};
+    wchar_t domName[DNLEN] = {0};
+    unsigned long accntNameLen = UNLEN;
+    unsigned long domNameLen = DNLEN;
+    SID_NAME_USE eUse;
+    if (!LookupAccountSidW(nullptr,
+                           sid,
+                           accntName,
+                           &accntNameLen,
+                           domName,
+                           &domNameLen,
+                           &eUse)) {
+      return Status(GetLastError(), "Could not find sid");
+    } else {
+      rUsername = std::move(wstringToString(accntName));
+    }
+  }
+  return Status(0, "OK");
 }
 
 inline void explodeRegistryPath(const std::string& path,

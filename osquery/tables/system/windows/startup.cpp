@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
 #define _WIN32_DCOM
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -45,14 +46,13 @@ const std::set<std::string> kStartupStatusRegKeys = {
     "\\%%",
 };
 const auto kStartupEnabledRegex = boost::regex("0[0-9]0+");
-const std::string kDefaultRegExcludeSQL =
-    "NOT type = \"subkey\" AND NOT name = \"" + kDefaultRegName + "\"";
 
 static inline QueryData buildRegistryQuery(const std::set<std::string>& keys) {
   QueryData results;
   for (const auto& key : keys) {
-    SQL res("SELECT * FROM registry WHERE key LIKE \"" + key + "\" AND " +
-            kDefaultRegExcludeSQL);
+    SQL res("SELECT * FROM registry WHERE key LIKE \"" + key +
+            "\" AND NOT type = \"subkey\" AND NOT name = \"" + kDefaultRegName +
+            "\"");
     results.insert(results.end(), res.rows().begin(), res.rows().end());
   }
   return results;
@@ -60,7 +60,6 @@ static inline QueryData buildRegistryQuery(const std::set<std::string>& keys) {
 
 QueryData genStartup(QueryContext& context) {
   QueryData results;
-  std::string username;
   std::vector<std::string> keys;
 
   auto regResults = buildRegistryQuery(kStartupRegKeys);
@@ -68,33 +67,31 @@ QueryData genStartup(QueryContext& context) {
 
   for (const auto& regResult : regResults) {
     Row r;
-    std::string username;
-    std::string status;
 
     if (boost::starts_with(regResult.at("key"), "HKEY_LOCAL_MACHINE")) {
-      username = "SYSTEM";
+      r["username"] = "SYSTEM";
     } else {
-      if (!getUsernameFromKey(regResult.at("key"), username).ok()) {
+      std::string username;
+      if (getUsernameFromKey(regResult.at("key"), username).ok()) {
+        r["username"] = std::move(username);
         LOG(INFO) << "Failed to get username from sid";
-        username = "unknown";
+        r["username"] = "unknown";
       }
     }
     for (const auto& statusResult : statusResults) {
       if (statusResult.at("name") == regResult.at("name")) {
         if (regex_match(statusResult.at("data"), kStartupEnabledRegex)) {
-          status = "enabled";
+          r["status"] = "enabled";
         } else {
-          status = "disabled";
+          r["status"] = "disabled";
         }
         break;
       }
     }
 
-    r["username"] = std::move(username);
     r["name"] = regResult.at("name");
     r["path"] = regResult.at("data");
     r["startup_path"] = regResult.at("key");
-    r["status"] = status.empty() ? "unknown" : std::move(status);
     results.push_back(r);
   }
   return results;
