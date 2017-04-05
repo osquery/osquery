@@ -59,7 +59,7 @@ inline void explodeRegistryPath(const std::string& path,
 /*
  * @brief Given an HKEY_USERS key, extract the username associated with the key
  *
- * For example, the key HKEY_USERS\S-1-5-19\.. would produce 'LOCAL SERVICE'
+ * For example, the key HKEY_USERS\S-1-5-19\.. would produce 'LOCAL SERVICE'.
  *
  * @param key The registry key, must start with HKEY_USERS and have a depth
  * of at least 2

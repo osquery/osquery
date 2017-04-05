@@ -47,52 +47,42 @@ const std::set<std::string> kStartupStatusRegKeys = {
 };
 const auto kStartupEnabledRegex = boost::regex("0[0-9]0+");
 
-static inline QueryData buildRegistryQuery(const std::set<std::string>& keys) {
-  QueryData results;
-  for (const auto& key : keys) {
-    SQL res("SELECT * FROM registry WHERE key LIKE \"" + key +
-            "\" AND NOT type = \"subkey\" AND NOT name = \"" + kDefaultRegName +
-            "\"");
-    results.insert(results.end(), res.rows().begin(), res.rows().end());
-  }
-  return results;
-}
-
 QueryData genStartup(QueryContext& context) {
   QueryData results;
-  std::vector<std::string> keys;
 
-  auto regResults = buildRegistryQuery(kStartupRegKeys);
-  auto statusResults = buildRegistryQuery(kStartupStatusRegKeys);
+  std::string startupSubQuery =
+      "SELECT name,data,key FROM registry WHERE (key LIKE \"" +
+      boost::join(kStartupRegKeys, "\" OR key LIKE \"") +
+      "\") AND NOT (type = \"subkey\" OR name = \"" + kDefaultRegName + "\")";
+  std::string statusSubQuery =
+      "SELECT name,data AS status FROM registry WHERE key LIKE \"" +
+      boost::join(kStartupStatusRegKeys, "\" OR key LIKE \"") + "\"";
+  SQL startupResults("SELECT key,R1.name as name,data,status FROM (" +
+                     startupSubQuery + ") R1 LEFT JOIN (" + statusSubQuery +
+                     ") R2 ON R1.name = R2.name ");
 
-  for (const auto& regResult : regResults) {
+  for (const auto& startup : startupResults.rows()) {
     Row r;
 
-    if (boost::starts_with(regResult.at("key"), "HKEY_LOCAL_MACHINE")) {
+    if (boost::starts_with(startup.at("key"), "HKEY_LOCAL_MACHINE")) {
       r["username"] = "SYSTEM";
     } else {
       std::string username;
-      if (getUsernameFromKey(regResult.at("key"), username).ok()) {
+      if (getUsernameFromKey(startup.at("key"), username).ok()) {
         r["username"] = std::move(username);
       } else {
         LOG(INFO) << "Failed to get username from sid";
       }
     }
 
-    SQL status("SELECT * from registry where (key LIKE \"" +
-               boost::join(kStartupStatusRegKeys, "\" OR key LIKE \"") +
-               "\") and name = \"" + regResult.at("name") + "\"");
-    if (status.rows().size() > 0) {
-      if (regex_match(status.rows()[0].at("data"), kStartupEnabledRegex)) {
-        r["status"] = "enabled";
-      } else {
-        r["status"] = "disabled";
-      }
+    if (!startup.at("status").empty()) {
+      r["status"] = regex_match(startup.at("status"), kStartupEnabledRegex)
+                        ? "enabled"
+                        : "disabled";
     }
-
-    r["name"] = regResult.at("name");
-    r["path"] = regResult.at("data");
-    r["startup_path"] = regResult.at("key");
+    r["name"] = startup.at("name");
+    r["path"] = startup.at("data");
+    r["startup_path"] = startup.at("key");
     results.push_back(r);
   }
   return results;
