@@ -46,7 +46,7 @@ const std::set<std::string> kStartupStatusRegKeys = {
     "\\%%",
 };
 
-// Anything that isn't 0[0-9] followed by all 0s
+// Anything that isn't 0[0-9] followed by all 0s. e.g. 0300000016151d0d1faed201
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
 QueryData genStartup(QueryContext& context) {
