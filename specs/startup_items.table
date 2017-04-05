@@ -9,7 +9,7 @@ schema([
     Column("username", TEXT, "The user associated with the startup item"),
 ])
 attributes(cacheable=True)
-implementation("windows/startup_items,darwin/startup_items@genStartupItems")
+implementation("startup_items@genStartupItems")
 fuzz_paths([
     "/System/Library/StartupItems/",
     "/Library/StartupItems/",
