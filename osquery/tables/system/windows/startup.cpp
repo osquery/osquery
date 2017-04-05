@@ -34,9 +34,9 @@ const std::set<std::string> kStartupRegKeys = {
     "HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run%",
 };
 const std::set<std::string> kStartupFolderDirectories = {
-    "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+    "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\%%",
     "C:\\Users\\%\\AppData\\Roaming\\Microsoft\\Windows\\Start "
-    "Menu\\Programs\\Startup"};
+    "Menu\\Programs\\Startup\\%%"};
 const std::set<std::string> kStartupStatusRegKeys = {
     "HKEY_LOCAL_"
     "MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupAp"
@@ -46,7 +46,7 @@ const std::set<std::string> kStartupStatusRegKeys = {
     "\\%%",
 };
 
-// Anything that isn't 0[0-9] followed by all 0s. e.g. 0300000016151d0d1faed201
+// Starts with 0[0-9] but not followed by all 0s
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
 QueryData genStartup(QueryContext& context) {
@@ -56,18 +56,29 @@ QueryData genStartup(QueryContext& context) {
       "SELECT name,data,key FROM registry WHERE (key LIKE \"" +
       boost::join(kStartupRegKeys, "\" OR key LIKE \"") +
       "\") AND NOT (type = \"subkey\" OR name = \"" + kDefaultRegName + "\")";
+  std::string startupFolderSubQuery =
+      "SELECT filename,path,directory FROM file WHERE path LIKE \"" +
+      boost::join(kStartupFolderDirectories, "\" OR path LIKE \"") + "\"";
   std::string statusSubQuery =
       "SELECT name,data AS status FROM registry WHERE key LIKE \"" +
       boost::join(kStartupStatusRegKeys, "\" OR key LIKE \"") + "\"";
+
   SQL startupResults("SELECT key,R1.name as name,data,status FROM (" +
-                     startupSubQuery + ") R1 LEFT JOIN (" + statusSubQuery +
+                     startupSubQuery + " UNION " + startupFolderSubQuery +
+                     ") R1 LEFT JOIN (" + statusSubQuery +
                      ") R2 ON R1.name = R2.name ");
 
   for (const auto& startup : startupResults.rows()) {
     Row r;
 
-    if (boost::starts_with(startup.at("key"), "HKEY_LOCAL_MACHINE")) {
+    if (boost::starts_with(startup.at("key"), "HKEY_LOCAL_MACHINE") ||
+        boost::starts_with(startup.at("key"), "C:\\ProgramData")) {
       r["username"] = "SYSTEM";
+    } else if (boost::starts_with(startup.at("key"), "C:\\Users")) {
+      auto dirs = osquery::split(startup.at("key"), "\\");
+      if (dirs.size() > 2) {
+        r["username"] = dirs[2];
+      }
     } else {
       std::string username;
       if (getUsernameFromKey(startup.at("key"), username).ok()) {
