@@ -87,7 +87,7 @@ elseif(FREEBSD)
   ADD_OSQUERY_LINK_CORE("boost_thread")
   ADD_OSQUERY_LINK_CORE("boost_context")
 
-  ADD_OSQUERY_LINK_ADDITIONAL("rocksdb")
+  ADD_OSQUERY_LINK_ADDITIONAL("rocksdb-lite")
   ADD_OSQUERY_LINK_ADDITIONAL("boost_regex")
 endif()
 
