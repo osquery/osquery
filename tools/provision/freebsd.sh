@@ -28,7 +28,7 @@ function distro_main() {
   package augeas
 
   ports net-mgmt/lldpd
-  ports databases/rocksdb
+  ports databases/rocksdb-lite
   ports devel/linenoise-ng
   ports devel/cpp-netlib
 }
