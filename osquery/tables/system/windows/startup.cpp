@@ -45,7 +45,9 @@ const std::set<std::string> kStartupStatusRegKeys = {
     "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved"
     "\\%%",
 };
-const auto kStartupEnabledRegex = boost::regex("0[0-9]0+");
+
+// Anything that isn't 0[0-9] followed by all 0s
+const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
 QueryData genStartup(QueryContext& context) {
   QueryData results;
@@ -75,11 +77,9 @@ QueryData genStartup(QueryContext& context) {
       }
     }
 
-    if (!startup.at("status").empty()) {
-      r["status"] = regex_match(startup.at("status"), kStartupEnabledRegex)
-                        ? "enabled"
-                        : "disabled";
-    }
+    r["status"] = regex_match(startup.at("status"), kStartupDisabledRegex)
+                      ? "disabled"
+                      : "enabled";
     r["name"] = startup.at("name");
     r["path"] = startup.at("data");
     r["startup_path"] = startup.at("key");
