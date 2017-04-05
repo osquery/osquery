@@ -74,18 +74,19 @@ QueryData genStartup(QueryContext& context) {
       std::string username;
       if (getUsernameFromKey(regResult.at("key"), username).ok()) {
         r["username"] = std::move(username);
+      } else {
         LOG(INFO) << "Failed to get username from sid";
-        r["username"] = "unknown";
       }
     }
-    for (const auto& statusResult : statusResults) {
-      if (statusResult.at("name") == regResult.at("name")) {
-        if (regex_match(statusResult.at("data"), kStartupEnabledRegex)) {
-          r["status"] = "enabled";
-        } else {
-          r["status"] = "disabled";
-        }
-        break;
+
+    SQL status("SELECT * from registry where (key LIKE \"" +
+               boost::join(kStartupStatusRegKeys, "\" OR key LIKE \"") +
+               "\") and name = \"" + regResult.at("name") + "\"");
+    if (status.rows().size() > 0) {
+      if (regex_match(status.rows()[0].at("data"), kStartupEnabledRegex)) {
+        r["status"] = "enabled";
+      } else {
+        r["status"] = "disabled";
       }
     }
 
