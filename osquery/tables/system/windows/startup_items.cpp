@@ -49,7 +49,7 @@ const std::set<std::string> kStartupStatusRegKeys = {
 // Starts with 0[0-9] but not followed by all 0s
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
-QueryData genStartup(QueryContext& context) {
+QueryData genStartupItems(QueryContext& context) {
   QueryData results;
 
   std::string startupSubQuery =
@@ -93,7 +93,8 @@ QueryData genStartup(QueryContext& context) {
                       : "enabled";
     r["name"] = startup.at("name");
     r["path"] = startup.at("data");
-    r["startup_path"] = startup.at("key");
+    r["source"] = startup.at("key");
+    r["type"] = "Startup Item";
     results.push_back(r);
   }
   return results;
