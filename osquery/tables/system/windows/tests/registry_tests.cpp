@@ -50,23 +50,24 @@ TEST_F(RegistryTablesTest, test_explode_registry_path_normal) {
 }
 
 TEST_F(RegistryTablesTest, test_registry_or_clause) {
-  SQL results("SELECT * FROM registry WHERE key = \"" + kTestKey +
-              "\" OR key = \"" + kTestSpecificKey + "\"");
-  auto testKeyFound = false;
-  auto specificKeyFound = false;
-  EXPECT_TRUE(results.rows().size() > 0);
-  for (const auto& row : results.rows()) {
-    auto key = row.at("key");
-    if (boost::starts_with(key, kTestSpecificKey)) {
-      specificKeyFound = true;
-    } else if (boost::starts_with(key, kTestKey)) {
-      testKeyFound = true;
-    } else {
-      assert(false);
-    }
-  }
-  EXPECT_TRUE(testKeyFound);
-  EXPECT_TRUE(specificKeyFound);
+  SQL result1("SELECT * FROM registry WHERE key = \"" + kTestKey + "\"");
+  SQL result2("SELECT * FROM registry WHERE key = \"" + kTestSpecificKey +
+              "\"");
+  SQL combinedResults("SELECT * FROM registry WHERE key = \"" + kTestKey +
+                      "\" OR key = \"" + kTestSpecificKey + "\"");
+
+  EXPECT_TRUE(result1.rows().size() > 0);
+  EXPECT_TRUE(result2.rows().size() > 0);
+  EXPECT_TRUE(combinedResults.rows().size() ==
+              result1.rows().size() + result2.rows().size());
+  EXPECT_TRUE(std::includes(combinedResults.rows().begin(),
+                            combinedResults.rows().end(),
+                            result1.rows().begin(),
+                            result1.rows().end()));
+  EXPECT_TRUE(std::includes(combinedResults.rows().begin(),
+                            combinedResults.rows().end(),
+                            result2.rows().begin(),
+                            result2.rows().end()));
 }
 
 TEST_F(RegistryTablesTest, test_explode_registry_path_just_hive) {
