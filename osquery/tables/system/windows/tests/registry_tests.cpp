@@ -108,5 +108,24 @@ TEST_F(RegistryTablesTest, test_recursive_registry_globbing) {
         EXPECT_TRUE(std::count(key.begin(), key.end(), '\\') >= 6);
       });
 }
+
+TEST_F(RegistryTablesTest, test_get_username_from_key) {
+  Status status;
+  std::string username;
+  std::set<std::string> badKeys = {
+      "HKEY_USERS\\Some\\Key",
+      "HKEY_USERS\\",
+      "HKEY_USERS",
+      "HKEY_LOCAL_MACHINE\\Some\\Key",
+  };
+
+  status = getUsernameFromKey("HKEY_USERS\\S-1-5-19\\Some\\Key", username);
+  EXPECT_TRUE(status.ok());
+  EXPECT_TRUE(username == "LOCAL SERVICE");
+  for (const auto& key : badKeys) {
+    status = getUsernameFromKey(key, username);
+    EXPECT_FALSE(status.ok());
+  }
+}
 }
 }

@@ -5,6 +5,8 @@ schema([
     Column("path", TEXT, "Path of startup item"),
     Column("type", TEXT, "Startup Item or Login Item"),
     Column("source", TEXT, "Directory or plist containing startup item"),
+    Column("status", TEXT, "Startup status; either enabled or disabled"),
+    Column("username", TEXT, "The user associated with the startup item"),
 ])
 attributes(cacheable=True)
 implementation("startup_items@genStartupItems")

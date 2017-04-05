@@ -8,11 +8,14 @@
  *
  */
 
-#include <stdlib.h>
-
 #define _WIN32_DCOM
 #define WIN32_LEAN_AND_MEAN
+
 #include <Windows.h>
+/// clang-format off
+#include <LM.h>
+#include <sddl.h>
+// clang-format on
 
 #include <iterator>
 #include <map>
@@ -30,6 +33,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/windows/wmi.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
@@ -66,6 +70,41 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_FULL_RESOURCE_DESCRIPTOR, "REG_FULL_RESOURCE_DESCRIPTOR"},
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
 };
+
+Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
+  if (!boost::starts_with(key, "HKEY_USERS")) {
+    return Status(1, "Can not extract username from non-HKEY_USERS key");
+  }
+
+  auto toks = osquery::split(key, kRegSep);
+  if (toks.size() < 2) {
+    return Status(
+        1, "Improperly-formatted HKEY_USERS key, cannot extract username");
+  }
+
+  PSID sid;
+  if (!ConvertStringSidToSidA(toks[1].c_str(), &sid)) {
+    return Status(GetLastError(), "Could not convert string to sid");
+  } else {
+    wchar_t accntName[UNLEN] = {0};
+    wchar_t domName[DNLEN] = {0};
+    unsigned long accntNameLen = UNLEN;
+    unsigned long domNameLen = DNLEN;
+    SID_NAME_USE eUse;
+    if (!LookupAccountSidW(nullptr,
+                           sid,
+                           accntName,
+                           &accntNameLen,
+                           domName,
+                           &domNameLen,
+                           &eUse)) {
+      return Status(GetLastError(), "Could not find sid");
+    } else {
+      rUsername = std::move(wstringToString(accntName));
+    }
+  }
+  return Status(0, "OK");
+}
 
 inline void explodeRegistryPath(const std::string& path,
                                 std::string& rHive,
