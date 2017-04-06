@@ -53,6 +53,20 @@ FLAG(bool,
      "Only send status logs to secondary logger plugins");
 
 /**
+ * @brief This hidden flag is for testing status logging.
+ *
+ * When enabled, logs are pushed directly to logger plugin from Glog.
+ * Otherwise they are buffered and an async request for draining is sent
+ * for each log.
+ *
+ * Within the daemon, logs are drained every 3 seconds.
+ */
+HIDDEN_FLAG(bool,
+            logger_status_sync,
+            false,
+            "Always send status logs synchronously");
+
+/**
  * @brief Logger plugin registry.
  *
  * This creates an osquery registry for "logger" which may implement
@@ -435,7 +449,7 @@ void BufferedLogSink::send(google::LogSeverity severity,
 
   // The daemon will relay according to the schedule.
   if (enabled_ && kToolType != ToolType::DAEMON) {
-    relayStatusLogs();
+    relayStatusLogs(FLAGS_logger_status_sync);
   }
 }
 
@@ -454,6 +468,9 @@ void BufferedLogSink::WaitTillSent() {
 
   if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
     first.wait();
+  } else {
+    // Windows is locking by scheduling an async on the main thread.
+    first.wait_for(std::chrono::microseconds(100));
   }
 }
 
@@ -461,7 +478,7 @@ Status LoggerPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
   if (FLAGS_logger_secondary_status_only &&
       !BufferedLogSink::isPrimaryLogger(getName()) &&
-      (request.count("string") || request.count("snapsot"))) {
+      (request.count("string") || request.count("snapshot"))) {
     return Status(0, "Logging disabled to secondary plugins");
   }
 

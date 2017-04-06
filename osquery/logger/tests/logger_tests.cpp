@@ -20,6 +20,7 @@ DECLARE_int32(minloglevel);
 namespace osquery {
 
 DECLARE_bool(logger_secondary_status_only);
+DECLARE_bool(logger_status_sync);
 
 class LoggerTests : public testing::Test {
  public:
@@ -27,6 +28,7 @@ class LoggerTests : public testing::Test {
     // Backup the logging status, then disable.
     logging_status_ = FLAGS_disable_logging;
     FLAGS_disable_logging = false;
+    FLAGS_logger_status_sync = true;
 
     // Setup / initialize static members.
     log_lines.clear();
@@ -37,6 +39,7 @@ class LoggerTests : public testing::Test {
 
   void TearDown() override {
     FLAGS_disable_logging = logging_status_;
+    FLAGS_logger_status_sync = false;
   }
 
   // Track lines emitted to logString
@@ -377,6 +380,7 @@ TEST_F(LoggerTests, test_recursion) {
   LOG(WARNING) << "Log to the recursive logger";
   EXPECT_EQ(1U, plugin->statuses);
 
+  FLAGS_logger_status_sync = false;
   LOG(WARNING) << "recurse";
   if (isPlatform(PlatformType::TYPE_WINDOWS)) {
     for (size_t i = 0; i < 100; i++) {
