@@ -31,11 +31,11 @@ namespace tables {
 
 const std::set<std::string> kStartupRegKeys = {
     "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run%",
-    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run%",
-    "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run%",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run%",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run%",
     "HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run%",
-    "HKEY_USERS\\%\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run%",
-    "HKEY_USERS\\%\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run%",
+    "HKEY_USERS\\%\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run%",
+    "HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run%",
 };
 const std::set<std::string> kStartupFolderDirectories = {
     "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\%%",
@@ -57,15 +57,15 @@ QueryData genStartupItems(QueryContext& context) {
   QueryData results;
 
   std::string startupSubQuery =
-      "SELECT name,data,key FROM registry WHERE (key LIKE \"" +
-      boost::join(kStartupRegKeys, "\" OR key LIKE \"") +
-      "\") AND NOT (type = \"subkey\" OR name = \"" + kDefaultRegName + "\")";
+      "SELECT name,data,key FROM (select name,data,key,type from registry WHERE key LIKE \"" +
+      boost::join(kStartupRegKeys, "\" UNION SELECT name,data,key,type FROM registry WHERE key LIKE \"") +
+      "\") WHERE NOT (type = \"subkey\" OR name = \"" + kDefaultRegName + "\")";
   std::string startupFolderSubQuery =
       "SELECT filename,path,directory FROM file WHERE path LIKE \"" +
       boost::join(kStartupFolderDirectories, "\" OR path LIKE \"") + "\"";
   std::string statusSubQuery =
-      "SELECT name,data AS status FROM registry WHERE key LIKE \"" +
-      boost::join(kStartupStatusRegKeys, "\" OR key LIKE \"") + "\"";
+      "SELECT name,data AS status FROM (select name,data from registry WHERE key LIKE \"" +
+      boost::join(kStartupStatusRegKeys, "\" UNION SELECT name,data FROM registry WHERE key LIKE \"") + "\")";
 
   SQL startupResults("SELECT key,R1.name as name,data,status FROM (" +
                      startupSubQuery + " UNION " + startupFolderSubQuery +
