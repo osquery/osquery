@@ -23,22 +23,6 @@ std::string platformAsctime(const struct tm* timeptr) {
   return ::asctime(timeptr);
 }
 
-Status platformGmtime(const size_t epoch, struct tm* result) {
-  struct tm* tptr = nullptr;
-
-  if (result == nullptr) {
-    return Status(1, "result is NULL");
-  }
-
-  tptr = gmtime((time_t*)&epoch);
-  if (tptr == nullptr) {
-    return Status(1, "gmtime returned NULL");
-  }
-
-  memcpy(result, tptr, sizeof(*result));
-  return Status(0, "OK");
-}
-
 std::string platformStrerr(int errnum) {
   return ::strerror(errnum);
 }

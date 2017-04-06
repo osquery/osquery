@@ -320,7 +320,8 @@ size_t toUnixTime(const struct tm* tm_time);
 size_t getUnixTime();
 
 /**
- * @brief Converts a struct tm into a human-readable format.
+ * @brief Converts a struct tm into a human-readable format. This expected the
+ * struct tm to be already in UTC time/
  *
  * @param tm_time the time/date to convert to ASCII
  *
@@ -329,9 +330,10 @@ size_t getUnixTime();
 std::string toAsciiTime(const struct tm* tm_time);
 
 /**
- * @brief Converts a struct tm to ASCII time UTC
+ * @brief Converts a struct tm to ASCII time UTC by converting the tm_time to
+ * epoch and then running gmtime() on the new epoch
  *
- * @param tm_time the time/data to covert to UTC ASCII time
+ * @param tm_time the local time/date to covert to UTC ASCII time
  *
  * @return the data/time of tm_time in the format: "Wed Sep 21 10:27:52 2011"
  */

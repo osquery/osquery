@@ -229,10 +229,7 @@ std::string toAsciiTimeUTC(const struct tm* tm_time) {
     return "";
   }
 
-  if (!platformGmtime(epoch, &tptr).ok()) {
-    return "";
-  }
-
+  gmtime_r((time_t*)&epoch, &tptr);
   return toAsciiTime(&tptr);
 }
 
