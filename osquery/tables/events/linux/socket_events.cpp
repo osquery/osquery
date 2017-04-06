@@ -124,6 +124,7 @@ bool SocketUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
     return true;
   }
 
+  r["auid"] = fields.at("auid");
   r["pid"] = fields.at("pid");
   r["path"] = decodeAuditValue(fields.at("exe"));
   // TODO: This is a hex value.
@@ -162,11 +163,11 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
     return Status(0);
   }
 
-  auto fields = asm_.add(ec->auid, ec->type, ec->fields);
+  auto fields = asm_.add(ec->audit_id, ec->type, ec->fields);
   if (ec->syscall == AUDIT_SYSCALL_CONNECT) {
-    asm_.set(ec->auid, "action", "connect");
+    asm_.set(ec->audit_id, "action", "connect");
   } else if (ec->syscall == AUDIT_SYSCALL_BIND) {
-    asm_.set(ec->auid, "action", "bind");
+    asm_.set(ec->audit_id, "action", "bind");
   }
 
   if (fields.is_initialized()) {

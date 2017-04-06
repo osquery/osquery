@@ -493,7 +493,7 @@ void WatcherRunner::createExtension(const std::string& extension) {
                                        Flag::getValue("extensions_socket"),
                                        Flag::getValue("extensions_timeout"),
                                        Flag::getValue("extensions_interval"),
-                                       Flag::getValue("verbose"));
+                                       Flag::getValue("verbose") == "true");
   if (ext_process == nullptr) {
     // Unrecoverable error, cannot create an extension process.
     LOG(ERROR) << "Cannot create extension process: " << extension;

@@ -8,8 +8,8 @@
  *
  */
 
-#include <string>
 #include <cstring>
+#include <string>
 
 #include <zlib.h>
 
@@ -41,7 +41,7 @@ std::string compressString(const std::string& data) {
     char buffer[16384] = {0};
     while (ret == Z_OK) {
       zs.next_out = reinterpret_cast<Bytef*>(buffer);
-      zs.avail_out = sizeof(output);
+      zs.avail_out = sizeof(buffer);
 
       ret = deflate(&zs, Z_FINISH);
       if (output.size() < zs.total_out) {

@@ -48,6 +48,9 @@ const size_t KinesisLogForwarder::kKinesisMaxRecords = 500;
 // Max size of log + partition key is 1MB. Max size of partition key is 256B.
 const size_t KinesisLogForwarder::kKinesisMaxLogBytes = 1000000 - 256;
 
+const size_t KinesisLogForwarder::kKinesisMaxRetryCount = 100;
+const size_t KinesisLogForwarder::kKinesisInitialRetryDelay = 3000;
+
 Status KinesisLoggerPlugin::setUp() {
   initAwsSdk();
   forwarder_ = std::make_shared<KinesisLogForwarder>();
@@ -64,15 +67,43 @@ Status KinesisLoggerPlugin::logString(const std::string& s) {
   return forwarder_->logString(s);
 }
 
+Status KinesisLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
+  return forwarder_->logStatus(log);
+}
+
+void KinesisLoggerPlugin::init(const std::string& name,
+                               const std::vector<StatusLogLine>& log) {
+  google::ShutdownGoogleLogging();
+  google::InitGoogleLogging(name.c_str());
+  logStatus(log);
+}
+
 Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
                                  const std::string& log_type) {
-  size_t retry_count = 100;
-  size_t retry_delay = 3000;
+  size_t retry_count = kKinesisMaxRetryCount;
+  size_t retry_delay = kKinesisInitialRetryDelay;
   size_t original_data_size = log_data.size();
+
   // exit if we sent all the data
   while (log_data.size() > 0) {
     std::vector<Aws::Kinesis::Model::PutRecordsRequestEntry> entries;
-    for (const std::string& log : log_data) {
+    std::vector<size_t> valid_log_data_indices;
+
+    size_t log_data_index = 0;
+    for (std::string& log : log_data) {
+      if (retry_count == kKinesisMaxRetryCount) {
+        // On first send attempt, append log_type to the JSON log content
+        // Other send attempts will be already have log_type appended
+        Status status = appendLogTypeToJson(log_type, log);
+        if (!status.ok()) {
+          LOG(ERROR)
+              << "Failed to append log_type key to status log JSON in Kinesis";
+
+          log_data_index++;
+          continue;
+        }
+      }
+
       if (log.size() > kKinesisMaxLogBytes) {
         LOG(ERROR) << "Kinesis log too big, discarding!";
       }
@@ -90,6 +121,9 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
           .WithData(Aws::Utils::ByteBuffer((unsigned char*)log.c_str(),
                                            log.length()));
       entries.push_back(std::move(entry));
+      valid_log_data_indices.push_back(log_data_index);
+
+      log_data_index++;
     }
 
     Aws::Kinesis::Model::PutRecordsRequest request;
@@ -105,13 +139,14 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
     if (result.GetFailedRecordCount() != 0) {
       std::vector<std::string> resend;
       std::string error_msg = "";
-      int i = 0;
+      log_data_index = 0;
       for (const auto& record : result.GetRecords()) {
         if (!record.GetErrorMessage().empty()) {
-          resend.push_back(log_data[i]);
+          size_t valid_log_data_index = valid_log_data_indices[log_data_index];
+          resend.push_back(log_data[valid_log_data_index]);
           error_msg = record.GetErrorMessage();
         }
-        i++;
+        log_data_index++;
       }
       // exit if we have tried too many times
       // exit if all uploads fail right off the bat

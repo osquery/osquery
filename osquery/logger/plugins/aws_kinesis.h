@@ -30,6 +30,8 @@ class KinesisLogForwarder : public BufferedLogForwarder {
  private:
   static const size_t kKinesisMaxLogBytes;
   static const size_t kKinesisMaxRecords;
+  static const size_t kKinesisMaxRetryCount;
+  static const size_t kKinesisInitialRetryDelay;
 
  public:
   KinesisLogForwarder()
@@ -55,11 +57,18 @@ class KinesisLoggerPlugin : public LoggerPlugin {
 
   Status setUp() override;
 
+  bool usesLogStatus() override {
+    return true;
+  }
+
  private:
   void init(const std::string& name,
-            const std::vector<StatusLogLine>& log) override {}
+            const std::vector<StatusLogLine>& log) override;
 
   Status logString(const std::string& s) override;
+
+  /// Log a status (ERROR/WARNING/INFO) message.
+  Status logStatus(const std::vector<StatusLogLine>& log) override;
 
  private:
   std::shared_ptr<KinesisLogForwarder> forwarder_{nullptr};

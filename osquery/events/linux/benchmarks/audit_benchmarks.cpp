@@ -92,7 +92,7 @@ static void AUDIT_assembler(benchmark::State& state) {
   size_t i = 0;
   while (state.KeepRunning()) {
     const auto& ec = contexts[i++ % 6];
-    asmb.add(ec->auid, ec->type, ec->fields);
+    asmb.add(ec->audit_id, ec->type, ec->fields);
   }
 
   for (auto& r : replies) {

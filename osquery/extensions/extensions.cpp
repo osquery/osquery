@@ -273,7 +273,10 @@ void initShellSocket(const std::string& homedir) {
         (fs::path(homedir) / "shell.em").make_preferred().string();
   }
 
-  if (extensionPathActive(FLAGS_extensions_socket, false)) {
+  if (extensionPathActive(FLAGS_extensions_socket, false) ||
+      !socketExists(FLAGS_extensions_socket, true)) {
+    // If there is an existing shell using this socket, or the socket cannot
+    // be used (another user using the same path?)
     FLAGS_extensions_socket += std::to_string((uint16_t)rand());
   }
 }

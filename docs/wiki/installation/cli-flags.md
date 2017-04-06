@@ -206,6 +206,10 @@ It is common for TLS/HTTPS servers to enforce a maximum request body size. The d
 
 Use this only in emergency situations as size violations are dropped. It is extremely uncommon for this to occur, as the `--value_max` for each column would need to be drastically larger, or the offending table would have to implement several hundred columns.
 
+`--logger_min_status=0`
+
+The minimum level for status log recording. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. When using `--verbose` this value is ignored.
+
 `--distributed_tls_read_endpoint=""`
 
 The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for retrieving distributed queries when using the **tls** distributed plugin.

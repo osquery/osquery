@@ -8,11 +8,14 @@
  *
  */
 
-#include <stdlib.h>
-
 #define _WIN32_DCOM
 #define WIN32_LEAN_AND_MEAN
+
 #include <Windows.h>
+/// clang-format off
+#include <LM.h>
+#include <sddl.h>
+// clang-format on
 
 #include <iterator>
 #include <map>
@@ -21,12 +24,16 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/range/adaptor/map.hpp>
+#include <boost/range/algorithm.hpp>
 
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/windows/wmi.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
@@ -34,6 +41,9 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 namespace tables {
+
+const std::set<int> kRegistryStringTypes = {
+    REG_SZ, REG_MULTI_SZ, REG_EXPAND_SZ};
 
 const std::map<std::string, HKEY> kRegistryHives = {
     {"HKEY_CLASSES_ROOT", HKEY_CLASSES_ROOT},
@@ -61,11 +71,44 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
 };
 
-const std::string kRegSep = "\\";
+Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
+  if (!boost::starts_with(key, "HKEY_USERS")) {
+    return Status(1, "Can not extract username from non-HKEY_USERS key");
+  }
 
-void explodeRegistryPath(const std::string& path,
-                         std::string& rHive,
-                         std::string& rKey) {
+  auto toks = osquery::split(key, kRegSep);
+  if (toks.size() < 2) {
+    return Status(
+        1, "Improperly-formatted HKEY_USERS key, cannot extract username");
+  }
+
+  PSID sid;
+  if (!ConvertStringSidToSidA(toks[1].c_str(), &sid)) {
+    return Status(GetLastError(), "Could not convert string to sid");
+  } else {
+    wchar_t accntName[UNLEN] = {0};
+    wchar_t domName[DNLEN] = {0};
+    unsigned long accntNameLen = UNLEN;
+    unsigned long domNameLen = DNLEN;
+    SID_NAME_USE eUse;
+    if (!LookupAccountSidW(nullptr,
+                           sid,
+                           accntName,
+                           &accntNameLen,
+                           domName,
+                           &domNameLen,
+                           &eUse)) {
+      return Status(GetLastError(), "Could not find sid");
+    } else {
+      rUsername = std::move(wstringToString(accntName));
+    }
+  }
+  return Status(0, "OK");
+}
+
+inline void explodeRegistryPath(const std::string& path,
+                                std::string& rHive,
+                                std::string& rKey) {
   auto toks = osquery::split(path, kRegSep);
   rHive = toks.front();
   toks.erase(toks.begin());
@@ -151,14 +194,14 @@ void queryKey(const std::string& keyPath, QueryData& results) {
     return;
   }
 
-  BYTE* bpDataBuff = new BYTE[cbMaxValueData];
   DWORD cchValue = maxKeyLength;
   TCHAR achValue[maxValueName];
+  BYTE* bpDataBuff =
+      (cbMaxValueData == 0) ? nullptr : new BYTE[cbMaxValueData]();
 
   // Process registry values
   for (size_t i = 0, retCode = ERROR_SUCCESS; i < cValues; i++) {
     size_t cnt = 0;
-    ZeroMemory(bpDataBuff, cbMaxValueData);
     cchValue = maxValueName;
     achValue[0] = '\0';
 
@@ -170,18 +213,24 @@ void queryKey(const std::string& keyPath, QueryData& results) {
                            nullptr,
                            nullptr,
                            nullptr);
-
     if (retCode != ERROR_SUCCESS) {
       continue;
     }
 
     DWORD lpData = cbMaxValueData;
     DWORD lpType;
+
     retCode = RegQueryValueEx(
         hRegistryHandle, achValue, 0, &lpType, bpDataBuff, &lpData);
-
     if (retCode != ERROR_SUCCESS) {
       continue;
+    }
+
+    // It's possible for registry entries to have been inserted incorrectly
+    // resulting in non-null-terminated strings
+    if (bpDataBuff != nullptr && lpData != 0 &&
+        kRegistryStringTypes.find(lpType) != kRegistryStringTypes.end()) {
+      bpDataBuff[lpData - 1] = 0x00;
     }
 
     Row r;
@@ -195,104 +244,218 @@ void queryKey(const std::string& keyPath, QueryData& results) {
     }
     r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
 
-    bpDataBuff[cbMaxValueData - 1] = 0x00;
-
-    /// REG_LINK is a Unicode string, which in Windows is wchar_t
-    char* regLinkStr = nullptr;
-    if (lpType == REG_LINK) {
-      regLinkStr = new char[cbMaxValueData];
-      const size_t newSize = cbMaxValueData;
-      size_t convertedChars = 0;
-      wcstombs_s(&convertedChars,
-                 regLinkStr,
-                 newSize,
-                 (wchar_t*)bpDataBuff,
-                 _TRUNCATE);
-    }
-
-    BYTE* bpDataBuffTmp = bpDataBuff;
-    std::vector<std::string> multiSzStrs;
-    std::vector<char> regBinary;
-    std::string data;
-
-    switch (lpType) {
-    case REG_FULL_RESOURCE_DESCRIPTOR:
-    case REG_RESOURCE_LIST:
-    case REG_BINARY:
-      for (unsigned int i = 0; i < cbMaxValueData; i++) {
-        regBinary.push_back((char)bpDataBuff[i]);
+    if (bpDataBuff != nullptr) {
+      /// REG_LINK is a Unicode string, which in Windows is wchar_t
+      char* regLinkStr = nullptr;
+      if (lpType == REG_LINK) {
+        regLinkStr = new char[cbMaxValueData];
+        const size_t newSize = cbMaxValueData;
+        size_t convertedChars = 0;
+        wcstombs_s(&convertedChars,
+                   regLinkStr,
+                   newSize,
+                   (wchar_t*)bpDataBuff,
+                   _TRUNCATE);
       }
-      boost::algorithm::hex(
-          regBinary.begin(), regBinary.end(), std::back_inserter(data));
-      r["data"] = data;
-      break;
-    case REG_DWORD:
-      r["data"] = std::to_string(*((int*)bpDataBuff));
-      break;
-    case REG_DWORD_BIG_ENDIAN:
-      r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff)));
-      break;
-    case REG_EXPAND_SZ:
-      r["data"] = std::string((char*)bpDataBuff);
-      break;
-    case REG_LINK:
-      r["data"] = std::string(regLinkStr);
-      break;
-    case REG_MULTI_SZ:
-      while (*bpDataBuffTmp != 0x00) {
-        std::string s((char*)bpDataBuffTmp);
-        bpDataBuffTmp += s.size() + 1;
-        multiSzStrs.push_back(s);
+
+      BYTE* bpDataBuffTmp = bpDataBuff;
+      std::vector<std::string> multiSzStrs;
+      std::vector<char> regBinary;
+      std::string data;
+
+      switch (lpType) {
+      case REG_FULL_RESOURCE_DESCRIPTOR:
+      case REG_RESOURCE_LIST:
+      case REG_BINARY:
+        for (size_t i = 0; i < cbMaxValueData; i++) {
+          regBinary.push_back((char)bpDataBuff[i]);
+        }
+        boost::algorithm::hex(
+            regBinary.begin(), regBinary.end(), std::back_inserter(data));
+        r["data"] = data;
+        break;
+      case REG_DWORD:
+        r["data"] = std::to_string(*((int*)bpDataBuff));
+        break;
+      case REG_DWORD_BIG_ENDIAN:
+        r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff)));
+        break;
+      case REG_EXPAND_SZ:
+        r["data"] = std::string((char*)bpDataBuff);
+        break;
+      case REG_LINK:
+        r["data"] = std::string(regLinkStr);
+        break;
+      case REG_MULTI_SZ:
+        while (*bpDataBuffTmp != 0x00) {
+          std::string s((char*)bpDataBuffTmp);
+          bpDataBuffTmp += s.size() + 1;
+          multiSzStrs.push_back(s);
+        }
+        r["data"] = boost::algorithm::join(multiSzStrs, ",");
+        break;
+      case REG_NONE:
+        r["data"] = "(zero-length binary value)";
+        break;
+      case REG_QWORD:
+        r["data"] = std::to_string(*((unsigned long long*)bpDataBuff));
+        break;
+      case REG_SZ:
+        r["data"] = std::string((char*)bpDataBuff);
+        break;
+      default:
+        r["data"] = "";
+        break;
       }
-      r["data"] = boost::algorithm::join(multiSzStrs, ",");
-      break;
-    case REG_NONE:
-      r["data"] = std::string((char*)bpDataBuff);
-      break;
-    case REG_QWORD:
-      r["data"] = std::to_string(*((unsigned long long*)bpDataBuff));
-      break;
-    case REG_SZ:
-      r["data"] = std::string((char*)bpDataBuff);
-      break;
-    default:
-      r["data"] = "";
-      break;
+      if (regLinkStr != nullptr) {
+        delete[](regLinkStr);
+      }
+      ZeroMemory(bpDataBuff, cbMaxValueData);
     }
     results.push_back(r);
-    if (regLinkStr != nullptr) {
-      delete[](regLinkStr);
-    }
   }
-  delete[](bpDataBuff);
+  if (bpDataBuff != nullptr) {
+    delete[](bpDataBuff);
+  }
   RegCloseKey(hRegistryHandle);
-};
+}
 
-QueryData genRegistry(QueryContext& context) {
-  QueryData results;
-  std::set<std::string> rKeys;
-  auto shouldWarnLocalUsers = false;
-  /// By default, we display all HIVEs
-  if ((context.constraints["key"].exists(EQUALS) &&
-       context.constraints["key"].getAll(EQUALS).size() > 0)) {
-    rKeys = context.constraints["key"].getAll(EQUALS);
-    shouldWarnLocalUsers = true;
-  } else {
-    for (auto& h : kRegistryHives) {
-      rKeys.insert(h.first);
-    }
+static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
+  boost::copy(kRegistryHives | boost::adaptors::map_keys,
+              std::inserter(rKeys, rKeys.end()));
+}
+
+static inline void populateSubkeys(std::set<std::string>& rKeys,
+                                   bool replaceKeys = false) {
+  std::set<std::string> newKeys;
+  if (!replaceKeys) {
+    newKeys = rKeys;
   }
 
   for (const auto& key : rKeys) {
-    std::string hive;
-    std::string keyPath;
-    explodeRegistryPath(key, hive, keyPath);
-    if (shouldWarnLocalUsers && (hive == "HKEY_CURRENT_USER" ||
-                                 hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS")) {
+    QueryData regResults;
+    queryKey(key, regResults);
+    for (const auto& r : regResults) {
+      if (r.at("type") == "subkey") {
+        newKeys.insert(r.at("path"));
+      }
+    }
+  }
+  rKeys = std::move(newKeys);
+}
+
+static inline void appendSubkeyToKeys(const std::string& subkey,
+                                      std::set<std::string>& rKeys) {
+  std::set<std::string> newKeys{};
+  for (auto& key : rKeys) {
+    newKeys.insert(std::move(key) + kRegSep + subkey);
+  }
+  rKeys = std::move(newKeys);
+}
+
+static inline Status populateAllKeysRecursive(
+    std::set<std::string>& rKeys,
+    size_t currDepth = 1,
+    size_t maxDepth = kRegMaxRecursiveDepth) {
+  if (currDepth > maxDepth) {
+    return Status(1, "Max recursive depth reached");
+  }
+
+  auto size_pre = rKeys.size();
+  populateSubkeys(rKeys);
+  if (size_pre < rKeys.size()) {
+    auto status = populateAllKeysRecursive(rKeys, ++currDepth);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return Status(0, "OK");
+}
+
+Status expandRegistryGlobs(const std::string& pattern,
+                           std::set<std::string>& results) {
+  auto pathElems = osquery::split(pattern, kRegSep);
+  if (pathElems.size() == 0) {
+    return Status(0, "OK");
+  }
+
+  /*
+   * Pattern is '%%', grab everything.
+   * Note that if '%%' is present but not at the end of the pattern,
+   * then it is treated like a single glob.
+   */
+  if (boost::ends_with(pathElems[0], kSQLGlobRecursive) &&
+      pathElems.size() == 1) {
+    populateDefaultKeys(results);
+    return populateAllKeysRecursive(results);
+  }
+
+  // Special handling to insert default keys when glob present in first elem
+  if (pathElems[0].find(kSQLGlobWildcard) != std::string::npos) {
+    populateDefaultKeys(results);
+    pathElems.erase(pathElems.begin());
+  } else {
+    results.insert(pathElems[0]);
+    pathElems.erase(pathElems.begin());
+  }
+
+  for (auto& elem = pathElems.begin(); elem != pathElems.end(); ++elem) {
+    // We only care about  a recursive glob if it comes at the end of the
+    // pattern i.e. 'HKEY_LOCAL_MACHINE\SOFTWARE\%%'
+    if (boost::ends_with(*elem, kSQLGlobRecursive) &&
+        *elem == pathElems.back()) {
+      return populateAllKeysRecursive(results);
+    } else if ((*elem).find(kSQLGlobWildcard) != std::string::npos) {
+      populateSubkeys(results, true);
+    } else {
+      appendSubkeyToKeys(*elem, results);
+    }
+  }
+  return Status(0, "OK");
+}
+
+static inline void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
+  std::string hive, _;
+  for (const auto& key : rKeys) {
+    explodeRegistryPath(key, hive, _);
+    if (hive == "HKEY_CURRENT_USER" ||
+        hive == "HKEY_CURRENT_USER_LOCAL_SETTINGS") {
       LOG(WARNING) << "CURRENT_USER hives are not queryable by osqueryd; "
                       "query HKEY_USERS with the desired users SID instead";
-      shouldWarnLocalUsers = false;
+      break;
     }
+  }
+}
+
+QueryData genRegistry(QueryContext& context) {
+  QueryData results;
+  std::set<std::string> keys;
+
+  if (!(context.hasConstraint("key", EQUALS) ||
+        context.hasConstraint("key", LIKE))) {
+    // We default to display all HIVEs
+    expandRegistryGlobs(kSQLGlobWildcard, keys);
+  } else {
+    keys = context.constraints["key"].getAll(EQUALS);
+    auto status = context.expandConstraints(
+        "key",
+        LIKE,
+        keys,
+        ([&](const std::string& pattern, std::set<std::string>& out) {
+          std::set<std::string> resolvedKeys;
+          auto status = expandRegistryGlobs(pattern, resolvedKeys);
+          out.insert(resolvedKeys.begin(), resolvedKeys.end());
+          return status;
+        }));
+    if (!status.ok()) {
+      LOG(INFO) << "Failed to expand globs: " + status.getMessage();
+    }
+  }
+
+  maybeWarnLocalUsers(keys);
+
+  for (const auto& key : keys) {
     queryKey(key, results);
   }
   return results;

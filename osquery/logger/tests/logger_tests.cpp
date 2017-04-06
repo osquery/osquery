@@ -13,6 +13,8 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 
+DECLARE_int32(minloglevel);
+
 namespace osquery {
 
 DECLARE_bool(logger_secondary_status_only);
@@ -171,6 +173,19 @@ TEST_F(LoggerTests, test_logger_log_status) {
 
   // The second warning status will be sent to the logger plugin.
   EXPECT_EQ(1U, LoggerTests::statuses_logged);
+}
+
+TEST_F(LoggerTests, test_logger_status_level) {
+  FLAGS_minloglevel = 0;
+  // This will be printed to stdout.
+  LOG(INFO) << "Logger test is generating an info status";
+  EXPECT_EQ(1U, LoggerTests::statuses_logged);
+
+  FLAGS_minloglevel = 1;
+  LOG(INFO) << "Logger test is generating an info status";
+  EXPECT_EQ(1U, LoggerTests::statuses_logged);
+  LOG(WARNING) << "Logger test is generating a warning status";
+  EXPECT_EQ(2U, LoggerTests::statuses_logged);
 }
 
 TEST_F(LoggerTests, test_feature_request) {
