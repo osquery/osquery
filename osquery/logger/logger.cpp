@@ -13,6 +13,8 @@
 #endif
 
 #include <algorithm>
+#include <future>
+#include <queue>
 #include <thread>
 
 #include <boost/noncopyable.hpp>
@@ -94,48 +96,23 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
             const char* message,
             size_t message_len) override;
 
+  /// Pop from the aync sender queue and wait for one send to complete.
+  void WaitTillSent() override;
+
  public:
   /// Accessor/mutator to dump all of the buffered logs.
   static std::vector<StatusLogLine>& dump() {
     return instance().logs_;
   }
 
-  /// Set the forwarding mode of the buffering sink.
-  static void forward(bool forward = false) {
-    WriteLock lock(instance().forward_mutex_);
-    instance().forward_ = forward;
-  }
-
-  /// Turn off forwarding and lock the instance forwarding state.
-  /// Caller MUST make matching restoreForwardingAndUnlock call.
-  static bool haltForwardingAndLock() {
-    instance().forward_mutex_.lock();
-    bool current_state = instance().forward_;
-    instance().forward_ = false;
-    return current_state;
-  }
-
-  /// Restore forwarding state and unlock.
-  static void restoreForwardingAndUnlock(bool forward) {
-    instance().forward_ = forward;
-    instance().forward_mutex_.unlock();
-  }
-
   /// Remove the buffered log sink from Glog.
-  static void disable() {
-    if (instance().enabled_) {
-      instance().enabled_ = false;
-      google::RemoveLogSink(&instance());
-    }
-  }
+  static void disable();
 
   /// Add the buffered log sink to Glog.
-  static void enable() {
-    if (!instance().enabled_) {
-      instance().enabled_ = true;
-      google::AddLogSink(&instance());
-    }
-  }
+  static void enable();
+
+  /// Start the Buffered Sink, without enabling forwarding to loggers.
+  static void setUp();
 
   /**
    * @brief Add a logger plugin that should receive status updates.
@@ -149,6 +126,10 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
    */
   static void addPlugin(const std::string& name) {
     instance().sinks_.push_back(name);
+  }
+
+  static void resetPlugins() {
+    instance().sinks_.clear();
   }
 
   /// Retrieve the list of enabled plugins that should have logs forwarded.
@@ -187,12 +168,15 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   }
 
  public:
+  std::queue<std::future<void>> senders;
+
+ public:
   BufferedLogSink(BufferedLogSink const&) = delete;
   void operator=(BufferedLogSink const&) = delete;
 
  private:
   /// Create the log sink as buffering or forwarding.
-  BufferedLogSink() : forward_(false), enabled_(false) {}
+  BufferedLogSink() : enabled_(false) {}
 
   /// Remove the log sink.
   ~BufferedLogSink() {
@@ -203,11 +187,10 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Intermediate log storage until an osquery logger is initialized.
   std::vector<StatusLogLine> logs_;
 
-  /// Should the sending act in a forwarding mode.
-  bool forward_{false};
-
   /// Is the logger temporarily disabled.
-  bool enabled_{false};
+  std::atomic<bool> enabled_{false};
+
+  bool active_{false};
 
   /// Track multiple loggers that should receive sinks from the send forwarder.
   std::vector<std::string> sinks_;
@@ -218,13 +201,18 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Mutex for checking primary status.
   Mutex primary_mutex_;
 
-  /// Mutex to safely turn on/off forwarding
-  Mutex forward_mutex_;
+  /// Mutex protecting activation and enabling of the buffered status logger.
+  Mutex enable_mutex_;
 
  private:
   friend class LoggerDisabler;
-  friend class LoggerForwardingDisabler;
 };
+
+/// Mutex protecting accesses to buffered status logs.
+Mutex kBufferedLogSinkLogs;
+
+/// Mutex protecting queued status log futures.
+Mutex kBufferedLogSinkSenders;
 
 /// Scoped helper to perform logging actions without races.
 class LoggerDisabler : private boost::noncopyable {
@@ -251,15 +239,6 @@ class LoggerDisabler : private boost::noncopyable {
   /// Value of the BufferedLogSink's enabled status when constructed.
   bool enabled_;
 };
-
-/// Scoped helper to disable forwarding
-LoggerForwardingDisabler::LoggerForwardingDisabler() {
-  forward_state_ = BufferedLogSink::haltForwardingAndLock();
-}
-
-LoggerForwardingDisabler::~LoggerForwardingDisabler() {
-  BufferedLogSink::restoreForwardingAndUnlock(forward_state_);
-}
 
 static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
                                      PluginRequest& request) {
@@ -357,12 +336,7 @@ void initStatusLogger(const std::string& name) {
   setVerboseLevel();
   // Start the logging, and announce the daemon is starting.
   google::InitGoogleLogging(name.c_str());
-
-  // If logging is disabled then do not buffer intermediate logs.
-  if (!FLAGS_disable_logging) {
-    // Create an instance of the buffered log sink and do not forward logs yet.
-    BufferedLogSink::enable();
-  }
+  BufferedLogSink::setUp();
 }
 
 void initLogger(const std::string& name) {
@@ -373,17 +347,10 @@ void initLogger(const std::string& name) {
 
   // Stop the buffering sink and store the intermediate logs.
   BufferedLogSink::disable();
-  auto intermediate_logs = std::move(BufferedLogSink::dump());
-
-  // Start the custom status logging facilities, which may instruct Glog as is
-  // the case with filesystem logging.
-  PluginRequest init_request = {{"init", name}};
-  serializeIntermediateLog(intermediate_logs, init_request);
-  if (!init_request["log"].empty()) {
-    init_request["log"].pop_back();
-  }
+  BufferedLogSink::resetPlugins();
 
   bool forward = false;
+  PluginRequest init_request = {{"init", name}};
   PluginRequest features_request = {{"action", "features"}};
   auto logger_plugin = RegistryFactory::get().getActive("logger");
   // Allow multiple loggers, make sure each is accessible.
@@ -409,10 +376,45 @@ void initLogger(const std::string& name) {
   }
 
   if (forward) {
-    // Turn on buffered log forwarding only after all plugins have going through
-    // their initialization.
-    BufferedLogSink::forward(true);
+    // Begin forwarding after all plugins have been set up.
     BufferedLogSink::enable();
+    relayStatusLogs(true);
+  }
+}
+
+void BufferedLogSink::setUp() {
+  auto& self = instance();
+  WriteLock lock(self.enable_mutex_);
+
+  if (!self.active_) {
+    self.active_ = true;
+    google::AddLogSink(&self);
+  }
+}
+
+void BufferedLogSink::disable() {
+  auto& self = instance();
+  WriteLock lock(self.enable_mutex_);
+
+  if (self.enabled_) {
+    self.enabled_ = false;
+    if (self.active_) {
+      self.active_ = false;
+      google::RemoveLogSink(&self);
+    }
+  }
+}
+
+void BufferedLogSink::enable() {
+  auto& self = instance();
+  WriteLock lock(self.enable_mutex_);
+
+  if (!self.enabled_) {
+    self.enabled_ = true;
+    if (!self.active_) {
+      self.active_ = true;
+      google::AddLogSink(&self);
+    }
   }
 }
 
@@ -423,32 +425,34 @@ void BufferedLogSink::send(google::LogSeverity severity,
                            const struct ::tm* tm_time,
                            const char* message,
                            size_t message_len) {
-  // Either forward the log to an enabled logger or buffer until one exists.
-  if (forward_) {
-    auto logger_plugin = RegistryFactory::get().getActive("logger");
-    for (const auto& logger : osquery::split(logger_plugin, ",")) {
-      auto& enabled = BufferedLogSink::enabledPlugins();
-      if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
-        // May use the logs_ storage to buffer/delay sending logs.
-        logs_.push_back({(StatusLogSeverity)severity,
-                         std::string(base_filename),
-                         line,
-                         std::string(message, message_len)});
-        PluginRequest request = {{"status", "true"}};
-        serializeIntermediateLog(logs_, request);
-        if (!request["log"].empty()) {
-          request["log"].pop_back();
-        }
-        logs_.clear();
-        Registry::call("logger", logger, request);
-      }
-    }
-  } else {
+  {
+    WriteLock lock(kBufferedLogSinkLogs);
     logs_.push_back({(StatusLogSeverity)severity,
                      std::string(base_filename),
                      line,
                      std::string(message, message_len)});
   }
+
+  // The daemon will relay according to the schedule.
+  if (enabled_ && kToolType != ToolType::DAEMON) {
+    relayStatusLogs();
+  }
+}
+
+void BufferedLogSink::WaitTillSent() {
+  auto& self = instance();
+  std::future<void> first;
+
+  {
+    WriteLock lock(kBufferedLogSinkSenders);
+    if (self.senders.empty()) {
+      return;
+    }
+    first = std::move(self.senders.back());
+    self.senders.pop();
+  }
+
+  first.wait();
 }
 
 Status LoggerPlugin::call(const PluginRequest& request,
@@ -548,42 +552,56 @@ Status logSnapshotQuery(const QueryLogItem& item) {
   return Registry::call("logger", {{"snapshot", json}});
 }
 
-bool haltForwardingAndLock() {
-  return (BufferedLogSink::haltForwardingAndLock());
-}
-
-void restoreForwardingAndUnlock(bool forward) {
-  BufferedLogSink::restoreForwardingAndUnlock(forward);
-}
-
-void relayStatusLogs() {
+void relayStatusLogs(bool async) {
   if (FLAGS_disable_logging) {
     return;
   }
 
-  // Prevent our dumping and registry calling from producing additional logs.
-  LoggerDisabler disabler;
-
-  // Construct a status log plugin request.
-  PluginRequest request = {{"status", "true"}};
-  auto& status_logs = BufferedLogSink::dump();
-  if (status_logs.size() == 0) {
-    return;
-  }
-  serializeIntermediateLog(status_logs, request);
-  if (!request["log"].empty()) {
-    request["log"].pop_back();
+  {
+    ReadLock lock(kBufferedLogSinkLogs);
+    if (BufferedLogSink::dump().size() == 0) {
+      return;
+    }
   }
 
-  // Skip the registry's logic, and send directly to the core's logger.
-  PluginResponse response;
-  Registry::call("logger", request, response);
+  auto sender = ([]() {
+    // Construct a status log plugin request.
+    PluginRequest request = {{"status", "true"}};
 
-  // Flush the buffered status logs.
-  // If the logger called failed then the logger is experiencing a catastrophic
-  // failure, since it is missing from the registry. The logger plugin may
-  // return failure, but it should have buffered independently of the failure.
-  status_logs.clear();
+    {
+      WriteLock lock(kBufferedLogSinkLogs);
+      auto& status_logs = BufferedLogSink::dump();
+      serializeIntermediateLog(status_logs, request);
+      if (!request["log"].empty()) {
+        request["log"].pop_back();
+      }
+
+      // Flush the buffered status logs.
+      status_logs.clear();
+    }
+
+    auto logger_plugin = RegistryFactory::get().getActive("logger");
+    for (const auto& logger : osquery::split(logger_plugin, ",")) {
+      auto& enabled = BufferedLogSink::enabledPlugins();
+      if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
+        // Skip the registry's logic, and send directly to the core's logger.
+        PluginResponse response;
+        Registry::call("logger", request, response);
+      }
+    }
+  });
+
+  if (async) {
+    sender();
+  } else {
+    std::packaged_task<void()> task(std::move(sender));
+    auto result = task.get_future();
+    std::thread(std::move(task)).detach();
+
+    // Lock accesses to the sender queue.
+    WriteLock lock(kBufferedLogSinkSenders);
+    BufferedLogSink::instance().senders.push(std::move(result));
+  }
 }
 
 void systemLog(const std::string& line) {

@@ -318,31 +318,6 @@ Status logQueryLogItem(const QueryLogItem& item, const std::string& receiver);
 Status logSnapshotQuery(const QueryLogItem& item);
 
 /**
- * @brief Helper class to disable logger forwarding
- *
- * Sometimes, it is useful to turn off log forwarding and force status logs to
- * be buffered. One example is with handling of rocksdb status logs; if those
- * status logs are forwarded, it can cause a deadlock inside rocksdb, if the
- * logger plugin tries to call back into rocksdb.
- *
- * Creating an object of this class allows one to halt log forwarding and
- * leave the log sink in a locked/non-forwarding state. Any log requests in this
- * * state are guaranteed to be buffered. Callback loops can thus be avoided.
- *
- * The logger forwarding state is restored and unlocked as soon as the object
- * of this class goes out of scope.
- */
-class LoggerForwardingDisabler : private boost::noncopyable {
- public:
-  LoggerForwardingDisabler();
-  ~LoggerForwardingDisabler();
-
- private:
-  /// Value of the
-  bool forward_state_;
-};
-
-/**
  * @brief Sink a set of buffered status logs.
  *
  * When the osquery daemon uses a watcher/worker set, the watcher's status logs
@@ -355,7 +330,7 @@ class LoggerForwardingDisabler : private boost::noncopyable {
  * Extensions, the registry, configuration, and optional config/logger plugins
  * are all protected as a monitored worker.
  */
-void relayStatusLogs();
+void relayStatusLogs(bool async = false);
 
 /**
  * @brief Write a log line to the OS system log.

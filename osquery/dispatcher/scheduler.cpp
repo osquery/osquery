@@ -168,6 +168,11 @@ void SchedulerRunner::start() {
       resetDatabase();
     }
 
+    // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
+    if ((i % 3) == 0) {
+      relayStatusLogs(true);
+    }
+
     // Put the thread into an interruptible sleep without a config instance.
     pauseMilli(interval_ * 1000);
     if (interrupted()) {

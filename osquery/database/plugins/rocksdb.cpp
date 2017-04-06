@@ -146,7 +146,6 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
     // context of a RocksDB API call, turn log forwarding off to prevent the
     // logger from trying to make a call back into RocksDB and causing a
     // deadlock.
-    LoggerForwardingDisabler forwarding_disabler;
     LOG(INFO) << "RocksDB: " << log_line;
   }
 }
