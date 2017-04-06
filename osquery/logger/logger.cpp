@@ -452,14 +452,16 @@ void BufferedLogSink::WaitTillSent() {
     self.senders.pop();
   }
 
-  first.wait();
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    first.wait();
+  }
 }
 
 Status LoggerPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
   if (FLAGS_logger_secondary_status_only &&
       !BufferedLogSink::isPrimaryLogger(getName()) &&
-      (request.count("string") || request.count("snapshot"))) {
+      (request.count("string") || request.count("snapsot"))) {
     return Status(0, "Logging disabled to secondary plugins");
   }
 
