@@ -15,6 +15,7 @@
 #include <benchmark/benchmark.h>
 
 #include <osquery/dispatcher.h>
+#include <osquery/logger.h>
 
 #include "osquery/events/kernel.h"
 
@@ -27,7 +28,7 @@ static inline void producerThread(benchmark::State &state) {
   try {
     queue = std::unique_ptr<CQueue>(new CQueue(kKernelDevice, 8 * (1 << 20)));
   } catch (const CQueueException &e) {
-    // The device interface cannot be found or cannot be opened.
+    VLOG(1) << "Device interface cannot be found or opened: " << e.what();
   }
 
   osquery_event_t event;

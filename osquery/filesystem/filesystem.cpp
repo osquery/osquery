@@ -497,8 +497,9 @@ Status parseJSONContent(const std::string& content, pt::ptree& tree) {
     std::stringstream json_stream;
     json_stream << content;
     pt::read_json(json_stream, tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
-    return Status(1, "Could not parse JSON from file");
+  } catch (const pt::json_parser::json_parser_error& e) {
+    LOG(WARNING) << "Failed to parse JSON from file: " << e.what();
+    return Status(1, e.what());
   }
   return Status(0, "OK");
 }

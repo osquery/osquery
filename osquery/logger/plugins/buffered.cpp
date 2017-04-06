@@ -17,6 +17,7 @@
 #include <osquery/database.h>
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
 
@@ -207,7 +208,7 @@ Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log,
       pt::write_json(json_output, buffer, false);
       json = json_output.str();
     } catch (const pt::json_parser::json_parser_error& e) {
-      // The log could not be represented as JSON.
+      LOG(WARNING) << "Error converting to JSON: " << e.what();
       return Status(1, e.what());
     }
 

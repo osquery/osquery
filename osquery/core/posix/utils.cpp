@@ -11,6 +11,8 @@
 #include <string.h>
 #include <time.h>
 
+#include <osquery/logger.h>
+
 #include "osquery/core/utils.h"
 
 namespace osquery {
@@ -29,10 +31,12 @@ std::string platformStrerr(int errnum) {
 
 Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count) {
   if (dst == nullptr || src == nullptr || nelms == 0) {
+    LOG(WARNING) << "Failed to strncpy: invalid arguments";
     return Status(1, "Failed to strncpy: invalid arguments");
   }
 
   if (count > nelms) {
+    LOG(WARNING) << "Failed to strncpy: dst too small";
     return Status(1, "Failed to strncpy: dst too small");
   }
 

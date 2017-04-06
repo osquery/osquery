@@ -46,7 +46,8 @@ Status FilesystemConfigPlugin::genConfig(
   boost::system::error_code ec;
   if (!fs::is_regular_file(FLAGS_config_path, ec) ||
       ec.value() != errc::success) {
-    return Status(1, "config file does not exist: " + FLAGS_config_path);
+    LOG(WARNING) << "Config file does not exist: " << FLAGS_config_path;
+    return Status(1, FLAGS_config_path);
   }
 
   std::vector<std::string> conf_files;
@@ -101,7 +102,8 @@ Status FilesystemConfigPlugin::genPack(const std::string& name,
     pt::write_json(output, multi_pack, false);
     pack = output.str();
     if (pack.empty()) {
-      return Status(1, "Multi-pack content empty");
+      LOG(WARNING) << "Multi-pack content empty for value " << value;
+      return Status(1, value);
     }
 
     return Status(0);
@@ -109,7 +111,8 @@ Status FilesystemConfigPlugin::genPack(const std::string& name,
 
   boost::system::error_code ec;
   if (!fs::is_regular_file(value, ec) || ec.value() != errc::success) {
-    return Status(1, value + " is not a valid path");
+    LOG(WARNING) << "Invalid path for requested pack: " << value;
+    return Status(1, value);
   }
 
   return readFile(value, pack);

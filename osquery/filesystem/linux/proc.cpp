@@ -54,7 +54,9 @@ Status procDescriptors(const std::string& process,
       }
     }
   } catch (boost::filesystem::filesystem_error& e) {
-    return Status(1, "Cannot access descriptors for " + process);
+    LOG(WARNING) << "Cannot access descriptors for " << process << ": "
+                 << e.what();
+    return Status(1, e.what());
   }
 
   return Status(0, "OK");

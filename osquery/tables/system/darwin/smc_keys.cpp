@@ -17,6 +17,7 @@
 #include <boost/format.hpp>
 #include <boost/noncopyable.hpp>
 
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 namespace osquery {
@@ -402,6 +403,7 @@ float getConvertedValue(const std::string &smcType, const std::string &smcVal) {
   try {
     val = boost::algorithm::unhex(smcVal);
   } catch (const boost::algorithm::hex_decode_error &e) {
+    LOG(WARNING) << "Error converting hex string to decimal: " << e.what();
     return -1.0;
   }
 
@@ -671,6 +673,7 @@ std::string getFanName(const std::string &smcVal) {
   try {
     val = boost::algorithm::unhex(smcVal.substr(8, 24));
   } catch (const boost::algorithm::hex_decode_error &e) {
+    LOG(WARNING) << "Error converting from hex string: " << e.what();
     return "";
   }
 

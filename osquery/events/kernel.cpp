@@ -51,11 +51,13 @@ Status KernelEventPublisher::setUp() {
     queue_ = new CQueue(kKernelDevice, kKernelQueueSize);
   } catch (const CQueueException &e) {
     queue_ = nullptr;
+    LOG(WARNING) << "Error initializing kernel structures: " << e.what();
     return Status(1, e.what());
   }
 
   if (queue_ == nullptr) {
-    return Status(1, "Could not allocate CQueue object");
+    LOG(WARNING) << "Error allocating kernel structures";
+    return Status(1, "Error allocating kernel structures");
   }
 
   return Status(0, "OK");

@@ -291,7 +291,8 @@ static void deserializeIntermediateLog(const PluginRequest& request,
     std::stringstream input;
     input << request.at("log");
     pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
+  } catch (const pt::json_parser::json_parser_error& e) {
+    LOG(WARNING) << "Error deserializing log: " << e.what();
     return;
   }
 

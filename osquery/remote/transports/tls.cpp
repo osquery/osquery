@@ -177,8 +177,8 @@ Status TLSTransport::sendRequest() {
     response_status_ =
         serializer_->deserialize(response_body, response_params_);
   } catch (const std::exception& e) {
-    return Status((tlsFailure(e.what())) ? 2 : 1,
-                  std::string("Request error: ") + e.what());
+    LOG(WARNING) << "Request error: " << e.what();
+    return Status((tlsFailure(e.what())) ? 2 : 1, e.what());
   }
   return response_status_;
 }
@@ -222,8 +222,8 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
     response_status_ =
         serializer_->deserialize(response_body, response_params_);
   } catch (const std::exception& e) {
-    return Status((tlsFailure(e.what())) ? 2 : 1,
-                  std::string("Request error: ") + e.what());
+    LOG(WARNING) << "Request error: " << e.what();
+    return Status((tlsFailure(e.what())) ? 2 : 1, e.what());
   }
   return response_status_;
 }

@@ -188,7 +188,7 @@ void WatcherRunner::start() {
   do {
     if (use_worker_ && !watch(Watcher::getWorker())) {
       if (Watcher::fatesBound()) {
-        // A signal has interrupted the watcher.
+        VLOG(1) << "A signal has interrupted the watcher";
         break;
       }
       // The watcher failed, create a worker.
@@ -236,12 +236,12 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
   int process_status = 0;
   ProcessState result = child.checkStatus(process_status);
   if (Watcher::fatesBound()) {
-    // A signal was handled while the watcher was watching.
+    VLOG(1) << "A signal was handled while the watcher was watching";
     return false;
   }
 
   if (!child.isValid() || result == PROCESS_ERROR) {
-    // Worker does not exist or never existed.
+    VLOG(1) << "Worker does not exist or never existed";
     return false;
   } else if (result == PROCESS_STILL_ALIVE) {
     // If the inspect finds problems it will stop/restart the worker.
@@ -289,7 +289,8 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
     user_time = AS_LITERAL(BIGINT_LITERAL, r.at("user_time")) / change.iv;
     system_time = AS_LITERAL(BIGINT_LITERAL, r.at("system_time")) / change.iv;
     change.footprint = AS_LITERAL(BIGINT_LITERAL, r.at("resident_size"));
-  } catch (const std::exception& /* e */) {
+  } catch (const std::exception& e) {
+    VLOG(1) << "Failed to parse row or state: " << e.what();
     state.sustained_latency = 0;
   }
 
@@ -348,12 +349,13 @@ Status WatcherRunner::isWatcherHealthy(const PlatformProcess& watcher,
                                        PerformanceState& watcher_state) const {
   auto rows = getProcessRow(watcher.pid());
   if (rows.size() == 0) {
-    // Could not find worker process?
-    return Status(1, "Cannot find watcher process");
+    LOG(WARNING) << "Failed to find watcher process";
+    return Status(1, "Failed to find watcher process");
   }
 
   auto change = getChange(rows[0], watcher_state);
   if (exceededMemoryLimit(change)) {
+    LOG(WARNING) << "Memory limits exceeded";
     return Status(1, "Memory limits exceeded");
   }
 
@@ -367,8 +369,8 @@ QueryData WatcherRunner::getProcessRow(pid_t pid) const {
 Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
   auto rows = getProcessRow(child.pid());
   if (rows.size() == 0) {
-    // Could not find worker process?
-    return Status(1, "Cannot find worker process");
+    LOG(WARNING) << "Failed to find watcher process";
+    return Status(1, "Failed to find watcher process");
   }
 
   PerformanceChange change;
@@ -388,12 +390,14 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
   }
 
   if (exceededCyclesLimit(change)) {
+    LOG(WARNING) << "System performance limits exceeded";
     return Status(1, "System performance limits exceeded");
   }
   // Check if the private memory exceeds a memory limit.
   if (exceededMemoryLimit(change)) {
-    return Status(
-        1, "Memory limits exceeded: " + std::to_string(change.footprint));
+    LOG(WARNING) << "Memory limits exceeded: "
+                 << std::to_string(change.footprint);
+    return Status(1, "Memory limits exceeded");
   }
 
   // The worker is sane, no action needed.

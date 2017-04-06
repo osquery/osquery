@@ -131,6 +131,7 @@ void genLoginItems(const fs::path& homedir, QueryData& results) {
         results.push_back(r);
       }
     } catch (const pt::ptree_error& e) {
+      VLOG(2) << "Failed to retrieve plist entry: " << e.what();
       continue;
     }
   }

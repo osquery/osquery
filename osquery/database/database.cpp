@@ -69,6 +69,7 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
       tree.put<std::string>(i.first, i.second);
     }
   } catch (const std::exception& e) {
+    LOG(WARNING) << "Error serializing row: " << e.what();
     return Status(1, e.what());
   }
   return Status(0, "OK");
@@ -96,7 +97,7 @@ Status serializeRowJSON(const Row& r, std::string& json) {
   try {
     pt::write_json(output, tree, false);
   } catch (const pt::json_parser::json_parser_error& e) {
-    // The content could not be represented as JSON.
+    LOG(WARNING) << "Error serializing row as JSON: " << e.what();
     return Status(1, e.what());
   }
   json = output.str();
@@ -119,6 +120,7 @@ Status deserializeRowJSON(const std::string& json, Row& r) {
     input << json;
     pt::read_json(input, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
+    LOG(WARNING) << "Error deserializing row from JSON: " << e.what();
     return Status(1, e.what());
   }
   return deserializeRow(tree, r);
@@ -161,7 +163,7 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
   try {
     pt::write_json(output, tree, false);
   } catch (const pt::json_parser::json_parser_error& e) {
-    // The content could not be represented as JSON.
+    LOG(WARNING) << "Error serializing query data as JSON: " << e.what();
     return Status(1, e.what());
   }
   json = output.str();
@@ -187,6 +189,7 @@ Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
     input << json;
     pt::read_json(input, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
+    LOG(WARNING) << "Error deserializing query data from JSON: " << e.what();
     return Status(1, e.what());
   }
   return deserializeQueryData(tree, qd);
@@ -241,7 +244,7 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
   try {
     pt::write_json(output, tree, false);
   } catch (const pt::json_parser::json_parser_error& e) {
-    // The content could not be represented as JSON.
+    LOG(WARNING) << "Error serializing diff results as JSON: " << e.what();
     return Status(1, e.what());
   }
   json = output.str();
@@ -339,7 +342,7 @@ Status serializeQueryLogItemJSON(const QueryLogItem& i, std::string& json) {
   try {
     pt::write_json(output, tree, false);
   } catch (const pt::json_parser::json_parser_error& e) {
-    // The content could not be represented as JSON.
+    LOG(WARNING) << "Error serializing query log item as JSON: " << e.what();
     return Status(1, e.what());
   }
   json = output.str();
@@ -373,6 +376,8 @@ Status deserializeQueryLogItemJSON(const std::string& json,
     input << json;
     pt::read_json(input, tree);
   } catch (const pt::json_parser::json_parser_error& e) {
+    LOG(WARNING) << "Error deserializing query log item from JSON: "
+                 << e.what();
     return Status(1, e.what());
   }
   return deserializeQueryLogItem(tree, item);
@@ -427,6 +432,7 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
     try {
       pt::write_json(output, event.second, false);
     } catch (const pt::json_parser::json_parser_error& e) {
+      LOG(WARNING) << "Error serializing query log item as JSON: " << e.what();
       return Status(1, e.what());
     }
     items.push_back(output.str());

@@ -273,7 +273,8 @@ Status getAWSRegionFromProfile(std::string& region) {
         GetProfileDirectory();
     pt::ini_parser::read_ini(profile_dir + "/config", tree);
   } catch (const pt::ini_parser::ini_parser_error& e) {
-    return Status(1, std::string("Error reading profile file: ") + e.what());
+    LOG(ERROR) << "Error reading profile file: " << e.what();
+    return Status(1, e.what());
   }
 
   // Profile names are prefixed with "profile ", except for "default".

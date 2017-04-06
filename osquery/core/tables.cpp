@@ -43,7 +43,8 @@ Status TablePlugin::addExternal(const std::string& name,
     // Invalid table route info.
     // Tables must broadcast their column information, this is used while the
     // core is deciding if the extension's route is valid.
-    return Status(1, "Invalid route info");
+    LOG(WARNING) << "Invalid table route info";
+    return Status(1, "Invalid table route info");
   }
 
   // Use the SQL registry to attach the name/definition.
@@ -75,8 +76,8 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
   std::ostringstream output;
   try {
     pt::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
-    // The content could not be represented as JSON.
+  } catch (const pt::json_parser::json_parser_error& e) {
+    VLOG(1) << "Failed to serialize content as JSON: " << e.what();
   }
   request["context"] = output.str();
 }
@@ -93,7 +94,8 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
     std::stringstream input;
     input << request.at("context");
     pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
+  } catch (const pt::json_parser::json_parser_error& e) {
+    LOG(WARNING) << "Error deserializing content from JSON: " << e.what();
     return;
   }
 
@@ -109,6 +111,7 @@ Status TablePlugin::call(const PluginRequest& request,
   response.clear();
   // TablePlugin API calling requires an action.
   if (request.count("action") == 0) {
+    VLOG(1) << "Table plugins must include a request action";
     return Status(1, "Table plugins must include a request action");
   }
 
@@ -128,6 +131,7 @@ Status TablePlugin::call(const PluginRequest& request,
     // information such as name and type.
     response = routeInfo();
   } else {
+    LOG(WARNING) << "Unknown table plugin action: " << request.at("action");
     return Status(1, "Unknown table plugin action: " + request.at("action"));
   }
 
@@ -246,7 +250,7 @@ std::string columnDefinition(const PluginResponse& response, bool aliases) {
                column.count("target") && aliases) {
       const auto& target = column.at("target");
       if (column_types.count(target) == 0) {
-        // No type was defined for the alias target.
+        VLOG(1) << "No type was defined for the alias target";
         continue;
       }
       columns.push_back(make_tuple(

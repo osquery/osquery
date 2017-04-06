@@ -790,8 +790,9 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
   try {
     auto base_pub = std::dynamic_pointer_cast<EventPublisherPlugin>(pub);
     specialized_pub = std::static_pointer_cast<BaseEventPublisher>(base_pub);
-  } catch (const std::bad_cast& /* e */) {
-    return Status(1, "Incorrect plugin");
+  } catch (const std::bad_cast& e) {
+    LOG(WARNING) << "Error converting plugin to event publisher: " << e.what();
+    return Status(1, e.what());
   }
 
   if (specialized_pub == nullptr || specialized_pub.get() == nullptr) {
@@ -841,8 +842,9 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
   try {
     auto base_sub = std::dynamic_pointer_cast<EventSubscriberPlugin>(sub);
     specialized_sub = std::static_pointer_cast<BaseEventSubscriber>(base_sub);
-  } catch (const std::bad_cast& /* e */) {
-    return Status(1, "Incorrect plugin");
+  } catch (const std::bad_cast& e) {
+    LOG(WARNING) << "Error converting plugin to event publisher: " << e.what();
+    return Status(1, e.what());
   }
 
   if (specialized_sub == nullptr || specialized_sub.get() == nullptr) {
@@ -938,7 +940,8 @@ size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
   EventPublisherRef publisher;
   try {
     publisher = EventFactory::getInstance().getEventPublisher(type_id);
-  } catch (std::out_of_range& /* e */) {
+  } catch (std::out_of_range& e) {
+    VLOG(1) << "Failed to get event publisher reference: " << e.what();
     return 0;
   }
   if (publisher == nullptr) {

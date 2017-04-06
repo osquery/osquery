@@ -104,6 +104,8 @@ Status FilesystemLoggerPlugin::logStringToFile(const std::string& s,
                            FLAGS_logger_mode,
                            true);
   } catch (const std::exception& e) {
+    LOG(WARNING) << "Error writing to file " << log_path_.string() << "/"
+                 << filename << ": " << e.what();
     return Status(1, e.what());
   }
   return status;

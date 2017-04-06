@@ -38,14 +38,15 @@ Status getVerifyFlags(SecCSFlags& flags) {
   if (sFlags == 0) {
     auto qd = SQL::selectAllFrom("os_version");
     if (qd.size() != 1) {
-      return Status(-1, "Couldn't determine OS X version");
+      return Status(-1, "Error determining macOS version");
     }
 
     int minorVersion;
     try {
       minorVersion = lexical_cast<int>(qd.front().at("minor"));
     } catch (const bad_lexical_cast& e) {
-      return Status(-1, "Couldn't determine OS X version");
+      LOG(WARNING) << "Error determining macOS version: " << e.what();
+      return Status(-1, e.what());
     }
 
     sFlags = kSecCSStrictValidate | kSecCSCheckAllArchitectures;
@@ -55,7 +56,7 @@ Status getVerifyFlags(SecCSFlags& flags) {
   }
 
   flags = sFlags;
-  return Status(0, "ok");
+  return Status(0, "OK");
 }
 
 // Generate a signature for a single file.

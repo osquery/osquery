@@ -202,7 +202,7 @@ void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist) {
   getDatabaseValue(kPersistentSettings, kFailedQueries, content);
   auto blacklist_pairs = osquery::split(content, ":");
   if (blacklist_pairs.size() == 0 || blacklist_pairs.size() % 2 != 0) {
-    // Nothing in the blacklist, or malformed data.
+    VLOG(1) << "Failed to restore blacklist (no entries/malformed data)";
     return;
   }
 
@@ -265,7 +265,7 @@ void Config::addPack(const std::string& name,
             source + FLAGS_pack_delimiter + pack_name, pack_tree, true);
       }
     } catch (const std::exception& e) {
-      LOG(WARNING) << "Error adding pack: " << pack_name << ": " << e.what();
+      LOG(WARNING) << "Error adding pack " << pack_name << ": " << e.what();
     }
   });
 
@@ -380,6 +380,7 @@ Status Config::load() {
   valid_ = false;
   auto config_plugin = RegistryFactory::get().getActive("config");
   if (!RegistryFactory::get().exists("config", config_plugin)) {
+    LOG(WARNING) << "Missing config plugin: " << config_plugin;
     return Status(1, "Missing config plugin " + config_plugin);
   }
 
@@ -424,8 +425,9 @@ Status Config::updateSource(const std::string& source,
     std::stringstream json_stream;
     json_stream << clone;
     pt::read_json(json_stream, tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
-    return Status(1, "Error parsing the config JSON");
+  } catch (const pt::json_parser::json_parser_error& e) {
+    LOG(WARNING) << "Error parsing the config JSON: " << e.what();
+    return Status(1, e.what());
   }
 
   // extract the "schedule" key and store it as the main pack
@@ -443,7 +445,8 @@ Status Config::updateSource(const std::string& source,
     for (const std::pair<std::string, pt::ptree>& query : scheduled_queries) {
       auto query_name = query.second.get<std::string>("name", "");
       if (query_name.empty()) {
-        return Status(1, "Error getting name from legacy scheduled query");
+        LOG(WARNING) << "Error getting name from legacy scheduled query";
+        return Status(1, "Failed to get query name");
       }
       queries.add_child(query_name, query.second);
     }
@@ -481,6 +484,7 @@ Status Config::genPack(const std::string& name,
   Registry::call("config", request, response);
 
   if (response.size() == 0 || response[0].count(name) == 0) {
+    LOG(WARNING) << "Invalid plugin response";
     return Status(1, "Invalid plugin response");
   }
 
@@ -494,6 +498,7 @@ Status Config::genPack(const std::string& name,
     addPack(name, source, pack_tree);
   } catch (const pt::json_parser::json_parser_error& /* e */) {
     LOG(WARNING) << "Error parsing the pack JSON: " << name;
+    return Status(1, "Failed to parse pack");
   }
   return Status(0);
 }
@@ -619,6 +624,7 @@ void Config::purge() {
       last_executed = boost::lexical_cast<size_t>(content);
     } catch (const boost::bad_lexical_cast& /* e */) {
       // Erase the timestamp as is it potentially corrupt.
+      VLOG(1) << "Potentially corrupted timestamp erased: " << saved_query;
       deleteDatabaseValue(kPersistentSettings, "timestamp." + saved_query);
       continue;
     }
@@ -647,7 +653,8 @@ void Config::reset() {
     std::shared_ptr<ConfigParserPlugin> parser = nullptr;
     try {
       parser = std::dynamic_pointer_cast<ConfigParserPlugin>(plugin.second);
-    } catch (const std::bad_cast& /* e */) {
+    } catch (const std::bad_cast& e) {
+      VLOG(1) << "Error retrieving pointer: " << e.what();
       continue;
     }
     if (parser == nullptr || parser.get() == nullptr) {
@@ -739,7 +746,8 @@ void Config::hashSource(const std::string& source, const std::string& content) {
 
 Status Config::genHash(std::string& hash) {
   if (!valid_) {
-    return Status(1, "Current config is not valid");
+    LOG(WARNING) << "Current config is not valid";
+    return Status(1, "Invalid config");
   }
 
   WriteLock lock(config_hash_mutex_);
@@ -783,13 +791,15 @@ void Config::files(
 Status ConfigPlugin::genPack(const std::string& name,
                              const std::string& value,
                              std::string& pack) {
+  VLOG(1) << "Not implemented";
   return Status(1, "Not implemented");
 }
 
 Status ConfigPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
   if (request.count("action") == 0) {
-    return Status(1, "Config plugins require an action in PluginRequest");
+    LOG(WARNING) << "Config plugins require an action in PluginRequest";
+    return Status(1, "Config plugins missing action");
   }
 
   if (request.at("action") == "genConfig") {
@@ -799,7 +809,8 @@ Status ConfigPlugin::call(const PluginRequest& request,
     return stat;
   } else if (request.at("action") == "genPack") {
     if (request.count("name") == 0 || request.count("value") == 0) {
-      return Status(1, "Missing name or value");
+      LOG(WARNING) << "Missing request name or value";
+      return Status(1, "Missing name/value");
     }
     std::string pack;
     auto stat = genPack(request.at("name"), request.at("value"), pack);
@@ -807,11 +818,13 @@ Status ConfigPlugin::call(const PluginRequest& request,
     return stat;
   } else if (request.at("action") == "update") {
     if (request.count("source") == 0 || request.count("data") == 0) {
-      return Status(1, "Missing source or data");
+      LOG(WARNING) << "Missing request source or data";
+      return Status(1, "Missing source/data");
     }
     return Config::getInstance().update(
         {{request.at("source"), request.at("data")}});
   }
+  LOG(ERROR) << "Config plugin action unknown: " << request.at("action");
   return Status(1, "Config plugin action unknown: " + request.at("action"));
 }
 

@@ -113,6 +113,7 @@ void genSuidBinsFromPath(const std::string& path, QueryData& results) {
       try {
         ++it;
       } catch (fs::filesystem_error& e) {
+        LOG(WARNING) << "Cannot enumerate files in directory: " << subpath;
         break;
       }
     }

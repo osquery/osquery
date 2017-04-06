@@ -110,8 +110,9 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
                 input << item;
                 std::string().swap(item);
                 pt::read_json(input, child);
-              } catch (const pt::json_parser::json_parser_error& /* e */) {
+              } catch (const pt::json_parser::json_parser_error& e) {
                 // The log line entered was not valid JSON, skip it.
+                LOG(WARNING) << "Error reading JSON: " << e.what();
                 return;
               }
               children.push_back(std::make_pair("", std::move(child)));

@@ -108,7 +108,8 @@ Status Distributed::serializeResults(std::string& json) {
   try {
     pt::write_json(ss, results, false);
   } catch (const pt::ptree_error& e) {
-    return Status(1, "Error writing JSON: " + std::string(e.what()));
+    LOG(WARNING) << "Error serializing JSON: " << e.what();
+    return Status(1, e.what());
   }
   json = ss.str();
 
@@ -145,7 +146,8 @@ Status Distributed::flushCompleted() {
 
   auto distributed_plugin = RegistryFactory::get().getActive("distributed");
   if (!RegistryFactory::get().exists("distributed", distributed_plugin)) {
-    return Status(1, "Missing distributed plugin " + distributed_plugin);
+    LOG(WARNING) << "Missing distributed plugin: " << distributed_plugin;
+    return Status(1, "Missing distributed plugin: " + distributed_plugin);
   }
 
   std::string results;
@@ -197,6 +199,7 @@ Status Distributed::acceptWork(const std::string& work) {
     for (const auto& node : queries) {
       auto query = queries.get<std::string>(node.first, "");
       if (query.empty() || node.first.empty()) {
+        LOG(WARNING) << "Distributed query does not have complete attributes";
         return Status(1, "Distributed query does not have complete attributes");
       }
       if (queries_to_run.empty() || queries_to_run.count(node.first)) {
@@ -220,7 +223,8 @@ Status Distributed::acceptWork(const std::string& work) {
     }
 
   } catch (const pt::ptree_error& e) {
-    return Status(1, "Error parsing JSON: " + std::string(e.what()));
+    LOG(WARNING) << "Error parsing JSON: " << e.what();
+    return Status(1, e.what());
   }
 
   return Status(0, "OK");
@@ -259,7 +263,8 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
   try {
     pt::write_json(ss, tree, false);
   } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
+    LOG(WARNING) << "Error serializing query request as JSON: " << e.what();
+    return Status(1, e.what());
   }
   json = ss.str();
 
@@ -280,7 +285,8 @@ Status deserializeDistributedQueryRequestJSON(const std::string& json,
   try {
     pt::read_json(ss, tree);
   } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
+    LOG(WARNING) << "Error deserializing query request from JSON: " << e.what();
+    return Status(1, e.what());
   }
   return deserializeDistributedQueryRequest(tree, r);
 }
@@ -317,7 +323,8 @@ Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
   try {
     pt::write_json(ss, tree, false);
   } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
+    LOG(WARNING) << "Error serializing query result as JSON: " << e.what();
+    return Status(1, e.what());
   }
   json = ss.str();
 
@@ -352,7 +359,8 @@ Status deserializeDistributedQueryResultJSON(const std::string& json,
     std::stringstream ss(json);
     pt::read_json(ss, tree);
   } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
+    LOG(WARNING) << "Error deserializing query result from JSON: " << e.what();
+    return Status(1, e.what());
   }
   return deserializeDistributedQueryResult(tree, r);
 }

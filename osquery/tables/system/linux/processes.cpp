@@ -155,7 +155,8 @@ void genProcessMap(const std::string& pid, QueryData& results) {
         r["start"] = "0x" + addresses[0];
         r["end"] = "0x" + addresses[1];
       } else {
-        // Problem with the address format.
+        VLOG(1) << "Faulty address format: " << fields[0] << "(PID: " << pid
+                << ")";
         continue;
       }
     }
@@ -164,9 +165,10 @@ void genProcessMap(const std::string& pid, QueryData& results) {
     try {
       auto offset = std::stoll(fields[2], nullptr, 16);
       r["offset"] = (offset != 0) ? BIGINT(offset) : r["start"];
-
     } catch (const std::exception& e) {
       // Value was out of range or could not be interpreted as a hex long long.
+      VLOG(1) << "Error converting value to hex long long: " << fields[2]
+              << "(PID: " << pid << ")";
       r["offset"] = "-1";
     }
     r["device"] = fields[3];
@@ -240,6 +242,8 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
       this->start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
     } catch (const boost::bad_lexical_cast& e) {
       this->start_time = "-1";
+      VLOG(1) << "Failed to set stat start time. Stat state: " << this->state
+              << " (PID: " << pid << ")";
     }
   }
 

@@ -99,6 +99,7 @@ void parseSockAddr(const std::string& saddr, AuditFields& r) {
     try {
       r["socket"] = boost::algorithm::unhex(saddr.substr(begin, end - begin));
     } catch (const boost::algorithm::hex_decode_error& e) {
+      VLOG(1) << "Failed to decode address: " << e.what();
       r["socket"] = "unknown";
     }
   } else {

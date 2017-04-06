@@ -17,6 +17,8 @@
 #include <boost/archive/iterators/transform_width.hpp>
 #include <boost/uuid/sha1.hpp>
 
+#include <osquery/logger.h>
+
 #include "osquery/core/conversions.h"
 
 namespace bai = boost::archive::iterators;
@@ -46,6 +48,7 @@ std::string base64Decode(const std::string& encoded) {
   }
 
   if (size == 0) {
+    VLOG(1) << "Nothing to decode, empty input string";
     return "";
   }
 
@@ -60,6 +63,7 @@ std::string base64Encode(const std::string& unencoded) {
   std::stringstream os;
 
   if (unencoded.size() == 0) {
+    VLOG(1) << "Nothing to encode, empty input string";
     return std::string();
   }
 

@@ -130,8 +130,9 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
         auto client = EXManagerClient(path);
         client.get()->ping(status);
         return Status(0, "OK");
-      } catch (const std::exception& /* e */) {
+      } catch (const std::exception& e) {
         // Path might exist without a connected extension or extension manager.
+        VLOG(1) << "Error retrieving connected extension: " << e.what();
       }
     }
     // Only check active once if this check does not allow a timeout.
@@ -190,7 +191,8 @@ void ExtensionWatcher::watch() {
       auto client = EXManagerClient(path_);
       // Ping the extension manager until it goes down.
       client.get()->ping(status);
-    } catch (const std::exception& /* e */) {
+    } catch (const std::exception& e) {
+      VLOG(1) << "Error retrieving extension manager: " << e.what();
       core_sane = false;
     }
   } else {
@@ -234,7 +236,8 @@ void ExtensionManagerWatcher::watch() {
         auto client = EXClient(path);
         // Ping the extension until it goes down.
         client.get()->ping(status);
-      } catch (const std::exception& /* e */) {
+      } catch (const std::exception& e) {
+        VLOG(1) << "Error retrieving extension: " << e.what();
         failures_[uuid] += 1;
         continue;
       }
@@ -490,7 +493,8 @@ Status startExtension(const std::string& manager_path,
     // logger and config.
     client.get()->options(options);
   } catch (const std::exception& e) {
-    return Status(1, "Extension register failed: " + std::string(e.what()));
+    LOG(WARNING) << "Failed to register extension: " << e.what();
+    return Status(1, e.what());
   }
 
   // Now that the UUID is known, try to clean up stale socket paths.
@@ -532,7 +536,8 @@ Status queryExternal(const std::string& manager_path,
     auto client = EXManagerClient(manager_path);
     client.get()->query(response, query);
   } catch (const std::exception& e) {
-    return Status(1, "Extension call failed: " + std::string(e.what()));
+    LOG(WARNING) << "Failed to call extension: " << e.what();
+    return Status(1, e.what());
   }
 
   for (const auto& row : response.response) {
@@ -560,7 +565,8 @@ Status getQueryColumnsExternal(const std::string& manager_path,
     auto client = EXManagerClient(manager_path);
     client.get()->getQueryColumns(response, query);
   } catch (const std::exception& e) {
-    return Status(1, "Extension call failed: " + std::string(e.what()));
+    LOG(WARNING) << "Failed to call extension: " << e.what();
+    return Status(1, e.what());
   }
 
   // Translate response map: {string: string} to a vector: pair(name, type).
@@ -595,7 +601,8 @@ Status pingExtension(const std::string& path) {
     auto client = EXClient(path);
     client.get()->ping(ext_status);
   } catch (const std::exception& e) {
-    return Status(1, "Extension call failed: " + std::string(e.what()));
+    LOG(WARNING) << "Failed to call extension: " << e.what();
+    return Status(1, e.what());
   }
 
   return Status(ext_status.code, ext_status.message);
@@ -621,7 +628,8 @@ Status getExtensions(const std::string& manager_path,
     auto client = EXManagerClient(manager_path);
     client.get()->extensions(ext_list);
   } catch (const std::exception& e) {
-    return Status(1, "Extension call failed: " + std::string(e.what()));
+    LOG(WARNING) << "Failed to call extension: " << e.what();
+    return Status(1, e.what());
   }
 
   // Add the extension manager to the list called (core).
@@ -666,7 +674,8 @@ Status callExtension(const std::string& extension_path,
     auto client = EXClient(extension_path);
     client.get()->call(ext_response, registry, item, request);
   } catch (const std::exception& e) {
-    return Status(1, "Extension call failed: " + std::string(e.what()));
+    LOG(WARNING) << "Failed to call extension: " << e.what();
+    return Status(1, e.what());
   }
 
   // Convert from Thrift-internal list type to PluginResponse type.

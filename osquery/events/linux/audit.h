@@ -19,6 +19,7 @@
 #include <boost/algorithm/hex.hpp>
 
 #include <osquery/events.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 
@@ -154,6 +155,7 @@ inline std::string decodeAuditValue(const std::string& s) {
   try {
     return boost::algorithm::unhex(s);
   } catch (const boost::algorithm::hex_decode_error& e) {
+    VLOG(1) << "Failed to decode audit value: " << e.what();
     return s;
   }
 }
