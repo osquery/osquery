@@ -31,7 +31,11 @@ namespace tables {
 
 const std::set<std::string> kStartupRegKeys = {
     "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run%",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run%",
+    "HKEY_LOCAL_MACHINE\\Software\\Microsoft\Windows\\CurrentVersion\\Policies\\Explorer\\Run%",
     "HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run%",
+    "HKEY_USERS\\%\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run%",
+    "HKEY_USERS\\%\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run%",
 };
 const std::set<std::string> kStartupFolderDirectories = {
     "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\%%",
