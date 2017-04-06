@@ -402,5 +402,8 @@ TEST_F(LoggerTests, test_recursion) {
   relayStatusLogs(true);
   EXPECT_EQ(5U, plugin->statuses);
   kToolType = tool_type;
+
+  EXPECT_EQ(0U, queuedStatuses());
+  EXPECT_EQ(0U, queuedSenders());
 }
 }

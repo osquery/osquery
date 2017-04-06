@@ -332,6 +332,12 @@ Status logSnapshotQuery(const QueryLogItem& item);
  */
 void relayStatusLogs(bool async = false);
 
+/// Inspect the number of internal-buffered status log lines.
+size_t queuedStatuses();
+
+/// Inspect the number of active internal status log sender threads.
+size_t queuedSenders();
+
 /**
  * @brief Write a log line to the OS system log.
  *

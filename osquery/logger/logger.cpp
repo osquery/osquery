@@ -554,6 +554,16 @@ Status logSnapshotQuery(const QueryLogItem& item) {
   return Registry::call("logger", {{"snapshot", json}});
 }
 
+size_t queuedStatuses() {
+  ReadLock lock(kBufferedLogSinkLogs);
+  return BufferedLogSink::dump().size();
+}
+
+size_t queuedSenders() {
+  ReadLock lock(kBufferedLogSinkSenders);
+  return BufferedLogSink::instance().senders.size();
+}
+
 void relayStatusLogs(bool async) {
   if (FLAGS_disable_logging) {
     return;
