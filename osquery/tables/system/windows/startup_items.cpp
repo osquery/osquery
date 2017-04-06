@@ -56,6 +56,7 @@ const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 QueryData genStartupItems(QueryContext& context) {
   QueryData results;
 
+  // These are UNION instead of OR to workaround #3145
   std::string startupSubQuery =
       "SELECT name,data,key FROM (select name,data,key,type from registry WHERE key LIKE \"" +
       boost::join(kStartupRegKeys, "\" UNION SELECT name,data,key,type FROM registry WHERE key LIKE \"") +
