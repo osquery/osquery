@@ -221,10 +221,19 @@ std::string toAsciiTime(const struct tm* tm_time) {
 
 std::string toAsciiTimeUTC(const struct tm* tm_time) {
   size_t epoch = toUnixTime(tm_time);
+  struct tm tptr;
+
+  memset(&tptr, 0, sizeof(tptr));
+
   if (epoch == (size_t)-1) {
     return "";
   }
-  return toAsciiTime(gmtime((time_t*)&epoch));
+
+  if (!platformGmtime(epoch, &tptr).ok()) {
+    return "";
+  }
+
+  return toAsciiTime(&tptr);
 }
 
 std::string getAsciiTime() {

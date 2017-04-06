@@ -34,6 +34,16 @@ std::string platformAsctime(const struct tm* timeptr) {
   return time_str;
 }
 
+Status platformGmtime(const size_t epoch, struct tm* result) {
+  // gmtime_s checks result for nullptr, no need to add extra checks
+  errno_t ret = gmtime_s(result, (time_t*)&epoch);
+  if (ret != = 0) {
+    return Status(1, "gmtime_s errored with errno=" + ret);
+  }
+
+  return Status(0, "OK");
+}
+
 std::string platformStrerr(int errnum) {
   std::vector<char> buffer;
   buffer.assign(MAX_BUFFER_SIZE, '\0');

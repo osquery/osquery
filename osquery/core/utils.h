@@ -21,6 +21,9 @@ namespace osquery {
 /// Returns the ASCII version of the timeptr as a C++ string
 std::string platformAsctime(const struct tm* timeptr);
 
+/// Converts a UTC epoch into a struct tm*
+Status platformGmtime(const size_t epoch, struct tm* result);
+
 /// Returns a C++ string explaining the errnum
 std::string platformStrerr(int errnum);
 
