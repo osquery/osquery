@@ -667,8 +667,6 @@ Status scanDatabaseKeys(const std::string& domain,
 void resetDatabase() {
   WriteLock lock(kDatabaseReset);
 
-  LoggerForwardingDisabler disable_logging;
-
   // Prevent RocksDB reentrancy by logger plugins during plugin setup.
   VLOG(1) << "Resetting the database plugin: "
           << Registry::get().getActive("database");

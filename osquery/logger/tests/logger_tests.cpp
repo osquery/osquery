@@ -8,6 +8,8 @@
  *
  */
 
+#include <thread>
+
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
@@ -18,6 +20,7 @@ DECLARE_int32(minloglevel);
 namespace osquery {
 
 DECLARE_bool(logger_secondary_status_only);
+DECLARE_bool(logger_status_sync);
 
 class LoggerTests : public testing::Test {
  public:
@@ -25,6 +28,7 @@ class LoggerTests : public testing::Test {
     // Backup the logging status, then disable.
     logging_status_ = FLAGS_disable_logging;
     FLAGS_disable_logging = false;
+    FLAGS_logger_status_sync = true;
 
     // Setup / initialize static members.
     log_lines.clear();
@@ -35,6 +39,7 @@ class LoggerTests : public testing::Test {
 
   void TearDown() override {
     FLAGS_disable_logging = logging_status_;
+    FLAGS_logger_status_sync = false;
   }
 
   // Track lines emitted to logString
@@ -263,9 +268,13 @@ class SecondTestLoggerPlugin : public LoggerPlugin {
 
 TEST_F(LoggerTests, test_multiple_loggers) {
   auto& rf = RegistryFactory::get();
-  rf.registry("logger")->add("second_test",
-                             std::make_shared<SecondTestLoggerPlugin>());
+  auto second = std::make_shared<SecondTestLoggerPlugin>();
+  rf.registry("logger")->add("second_test", second);
   EXPECT_TRUE(rf.setActive("logger", "test,second_test").ok());
+
+  auto test_plugin = rf.registry("logger")->plugin("test");
+  auto test_logger = std::dynamic_pointer_cast<TestLoggerPlugin>(test_plugin);
+  test_logger->shouldLogStatus = false;
 
   // With two active loggers, the string should be added twice.
   logString("this is a test", "added");
@@ -300,6 +309,7 @@ TEST_F(LoggerTests, test_multiple_loggers) {
 
 TEST_F(LoggerTests, test_logger_scheduled_query) {
   RegistryFactory::get().setActive("logger", "test");
+  initLogger("scheduled_query");
 
   QueryLogItem item;
   item.name = "test_query";
@@ -320,5 +330,84 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
       "\"calendarTime\":\"no_time\",\"unixTime\":\"0\",\"columns\":{\"test_"
       "column\":\"test_value\"},\"action\":\"added\"}";
   EXPECT_EQ(LoggerTests::log_lines.back(), expected);
+}
+
+class RecursiveLoggerPlugin : public LoggerPlugin {
+ protected:
+  bool usesLogStatus() override {
+    return true;
+  }
+
+  Status logString(const std::string& s) override {
+    return Status(0, s);
+  }
+
+  void init(const std::string& name,
+            const std::vector<StatusLogLine>& log) override {
+    logStatus(log);
+  }
+
+  Status logStatus(const std::vector<StatusLogLine>& log) override {
+    for (const auto& item : log) {
+      if (item.message == "recurse") {
+        LOG(WARNING) << "Logging a status withing a status logger";
+      }
+      statuses++;
+    }
+    return Status(0, "OK");
+  }
+
+  Status logSnapshot(const std::string& s) override {
+    return Status(0, "OK");
+  }
+
+ public:
+  size_t statuses{0};
+};
+
+TEST_F(LoggerTests, test_recursion) {
+  // Stop the internal Glog facilities.
+  google::ShutdownGoogleLogging();
+
+  auto& rf = RegistryFactory::get();
+  auto plugin = std::make_shared<RecursiveLoggerPlugin>();
+  rf.registry("logger")->add("recurse", plugin);
+  EXPECT_TRUE(rf.exists("logger", "recurse"));
+  EXPECT_TRUE(rf.setActive("logger", "recurse").ok());
+
+  initStatusLogger("logger_test");
+  initLogger("logger_test");
+  LOG(WARNING) << "Log to the recursive logger";
+  EXPECT_EQ(1U, plugin->statuses);
+
+  FLAGS_logger_status_sync = false;
+  LOG(WARNING) << "recurse";
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    for (size_t i = 0; i < 100; i++) {
+      std::this_thread::sleep_for(std::chrono::microseconds(10));
+      if (plugin->statuses == 3U) {
+        break;
+      }
+    }
+  }
+  EXPECT_EQ(3U, plugin->statuses);
+
+  // Try again with the tool type as a daemon.
+  auto tool_type = kToolType;
+  kToolType = ToolType::DAEMON;
+  LOG(WARNING) << "recurse";
+
+  // The daemon calls the status relay within the scheduler.
+  EXPECT_EQ(3U, plugin->statuses);
+
+  // All of recursive log lines will sink during the next call.
+  relayStatusLogs(true);
+  EXPECT_EQ(4U, plugin->statuses);
+  relayStatusLogs(true);
+  EXPECT_EQ(5U, plugin->statuses);
+  kToolType = tool_type;
+
+  EXPECT_EQ(0U, queuedStatuses());
+  EXPECT_EQ(0U, queuedSenders());
 }
 }
