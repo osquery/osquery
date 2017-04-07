@@ -18,14 +18,6 @@
 
 namespace osquery {
 
-#ifdef WIN32
-static struct tm* localtime_r(const time_t* timep, struct tm* result) {
-  _localtime64_s(result, timep);
-  return result;
-}
-
-#endif
-
 class TimeTests : public testing::Test {};
 
 TEST_F(TimeTests, test_asciitime) {
