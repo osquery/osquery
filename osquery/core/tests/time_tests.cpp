@@ -45,6 +45,6 @@ TEST_F(TimeTests, test_asciitimeutc) {
   struct tm result;
   localtime_r((time_t*)&epoch, &result);
 
-  EXPECT_EQ(expected, toAsciiTime(&result));
+  EXPECT_EQ(expected, toAsciiTimeUTC(&result));
 }
 }
