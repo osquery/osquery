@@ -209,6 +209,8 @@ class TableState(Singleton):
                 self.has_column_aliases = True
         if len(all_options) > 0:
             self.has_options = True
+        if "event_subscriber" in self.attributes:
+            self.generator = True
         if "cacheable" in self.attributes:
             if len(set(all_options).intersection(NON_CACHEABLE)) > 0:
                 print(lightred("Table cannot be marked cacheable: %s" % (path)))

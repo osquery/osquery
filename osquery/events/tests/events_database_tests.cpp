@@ -23,6 +23,8 @@
 
 #include <osquery/logger.h>
 
+#include "osquery/tests/test_util.h"
+
 namespace osquery {
 
 DECLARE_uint64(events_expiry);
@@ -255,8 +257,7 @@ TEST_F(EventsDatabaseTests, test_gentable) {
   EXPECT_LE(16U, keys.size());
 
   // Perform a "select" equivalent.
-  QueryContext context;
-  auto results = sub->genTable(context);
+  auto results = genRows(sub.get());
 
   // Expect all non-expired results: 11, +
   EXPECT_EQ(9U, results.size());
@@ -266,10 +267,10 @@ TEST_F(EventsDatabaseTests, test_gentable) {
   // The optimize time will not be changed.
   ASSERT_EQ(0U, sub->optimize_time_);
 
-  results = sub->genTable(context);
+  results = genRows(sub.get());
   EXPECT_EQ(3U, results.size());
 
-  results = sub->genTable(context);
+  results = genRows(sub.get());
   EXPECT_EQ(3U, results.size());
 
   keys.clear();
@@ -291,9 +292,8 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   // Must also define an executing query.
   setDatabaseValue(kPersistentSettings, kExecutingQuery, "events_db_test");
 
-  QueryContext context;
   auto t = getUnixTime();
-  auto results = sub->genTable(context);
+  auto results = genRows(sub.get());
   EXPECT_EQ(10U, results.size());
   // Optimization will set the time NOW as the minimum event time.
   // Thus it is not possible to set event in past.
@@ -305,7 +305,8 @@ TEST_F(EventsDatabaseTests, test_optimize) {
   for (size_t i = t + 800; i < t + 800 + 10; ++i) {
     sub->testAdd(i);
   }
-  results = sub->genTable(context);
+
+  results = genRows(sub.get());
   EXPECT_EQ(10U, results.size());
 
   // The optimize time should have been written to the database.
@@ -332,8 +333,7 @@ TEST_F(EventsDatabaseTests, test_expire_check) {
     }
 
     // Since events tests are dependent, expect 257 + 3 events.
-    QueryContext context;
-    auto results = sub->genTable(context);
+    auto results = genRows(sub.get());
     if (x == 0) {
       // The first iteration is dependent on previous test state.
       continue;

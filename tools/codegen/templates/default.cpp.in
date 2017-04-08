@@ -29,7 +29,7 @@ osquery::QueryData {{function}}(QueryContext& context);
 {% else %}
 class {{class_name}} {
  public:
-  osquery::QueryData {{function}}(QueryContext& context);
+  void {{function}}(RowYield& yield, QueryContext& context);
 };
 {% endif %}\
 }
@@ -86,19 +86,19 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
   bool usesGenerator() const override { return true; }
 
   void generator(RowYield& yield, QueryContext& context) override {
-    tables::{{function}}(yield, context);
-  }
-{% else %}\
-  QueryData generate(QueryContext& context) override {
 {% if class_name != "" %}\
     if (EventFactory::exists(getName())) {
       auto subscriber = EventFactory::getEventSubscriber(getName());
-      return subscriber->{{function}}(context);
+      return subscriber->{{function}}(yield, context);
     } else {
       LOG(ERROR) << "Subscriber table missing: " << getName();
-      return QueryData();
     }
 {% else %}\
+    tables::{{function}}(yield, context);
+{% endif %}\
+  }
+{% else %}\
+  QueryData generate(QueryContext& context) override {
 {% if attributes.cacheable %}\
     if (isCached(kCacheStep)) {
       return getCache();
@@ -109,7 +109,6 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
     setCache(kCacheStep, kCacheInterval, results);
 {% endif %}
     return results;
-{% endif %}\
   }
 {% endif %}\
 

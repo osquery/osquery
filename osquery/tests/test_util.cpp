@@ -19,9 +19,6 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <osquery/core.h>
-#include <osquery/database.h>
-#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
@@ -416,6 +413,28 @@ QueryData getEtcProtocolsExpectedResults() {
   row3["comment"] = "transmission control protocol";
 
   return {row1, row2, row3};
+}
+
+QueryData genRows(EventSubscriberPlugin* sub) {
+  auto vtc = new VirtualTableContent();
+  QueryContext context(vtc);
+  RowGenerator::pull_type generator(std::bind(&EventSubscriberPlugin::genTable,
+                                              sub,
+                                              std::placeholders::_1,
+                                              std::move(context)));
+
+  QueryData results;
+  if (!generator) {
+    delete vtc;
+    return results;
+  }
+
+  while (generator) {
+    results.push_back(generator.get());
+    generator();
+  }
+  delete vtc;
+  return results;
 }
 
 void createMockFileStructure() {
