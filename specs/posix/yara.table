@@ -1,11 +1,15 @@
 table_name("yara")
 description("Track YARA matches for files or PIDs.")
 schema([
-    Column("path", TEXT, "The path scanned"),
-    Column("matches", TEXT, "List of YARA matches"),
+    Column("path", TEXT, "The path scanned",
+        index=True, required=True),
+    Column("matches", TEXT, "List of YARA matches",
+        index=True),
     Column("count", INTEGER, "Number of YARA matches"),
-    Column("sig_group", TEXT, "Signature group used"),
-    Column("sigfile", TEXT, "Signature file used"),
+    Column("sig_group", TEXT, "Signature group used",
+        index=True, additional=True),
+    Column("sigfile", TEXT, "Signature file used",
+        index=True, additional=True),
     Column("strings", TEXT, "Matching strings"),
     Column("tags", TEXT, "Matching tags"),
 ])
