@@ -12,6 +12,8 @@
 
 #include <thread>
 
+#include <boost/noncopyable.hpp>
+
 #include <osquery/dispatcher.h>
 #include <osquery/extensions.h>
 
@@ -103,7 +105,7 @@ class ExtensionHandler : virtual public ExtensionIf {
   explicit ExtensionHandler(RouteUUID uuid) : uuid_(uuid) {}
 
   /// Ping an Extension for status and metrics.
-  void ping(ExtensionStatus& _return);
+  void ping(ExtensionStatus& _return) override;
 
   /**
    * @brief The Thrift API used by Registry::call for an extension route.
@@ -116,10 +118,10 @@ class ExtensionHandler : virtual public ExtensionIf {
   void call(ExtensionResponse& _return,
             const std::string& registry,
             const std::string& item,
-            const ExtensionPluginRequest& request);
+            const ExtensionPluginRequest& request) override;
 
   /// Request an extension to shutdown.
-  void shutdown();
+  virtual void shutdown() override;
 
  protected:
   /// Transient UUID assigned to the extension after registering.
@@ -143,7 +145,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   ExtensionManagerHandler();
 
   /// Return a list of Route UUIDs and extension metadata.
-  void extensions(InternalExtensionList& _return);
+  void extensions(InternalExtensionList& _return) override;
 
   /**
    * @brief Return a map of osquery options (Flags, bootstrap CLI flags).
@@ -158,7 +160,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
    * of the current options. The best example is the `config_plugin` bootstrap
    * flag.
    */
-  void options(InternalOptionList& _return);
+  void options(InternalOptionList& _return) override;
 
   /**
    * @brief Request a Route UUID and advertise a set of Registry routes.
@@ -175,7 +177,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
    */
   void registerExtension(ExtensionStatus& _return,
                          const InternalExtensionInfo& info,
-                         const ExtensionRegistry& registry);
+                         const ExtensionRegistry& registry) override;
 
   /**
    * @brief Request an Extension removal and removal of Registry routes.
@@ -189,7 +191,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
    * @param uuid The assigned Route UUID to deregister.
    */
   void deregisterExtension(ExtensionStatus& _return,
-                           const ExtensionRouteUUID uuid);
+                           const ExtensionRouteUUID uuid) override;
 
   /**
    * @brief Execute an SQL statement in osquery core.
@@ -201,7 +203,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
    * @param _return The output Status and QueryData (as response).
    * @param sql The sql statement.
    */
-  void query(ExtensionResponse& _return, const std::string& sql);
+  void query(ExtensionResponse& _return, const std::string& sql) override;
 
   /**
    * @brief Get SQL column information for SQL statements in osquery core.
@@ -213,11 +215,12 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
    * @param _return The output Status and TableColumns (as response).
    * @param sql The sql statement.
    */
-  void getQueryColumns(ExtensionResponse& _return, const std::string& sql);
+  void getQueryColumns(ExtensionResponse& _return,
+                       const std::string& sql) override;
 
  protected:
   /// A shutdown request does not apply to ExtensionManagers.
-  void shutdown() {}
+  void shutdown() override {}
 
  private:
   /// Check if an extension exists by the name it registered.
@@ -297,7 +300,7 @@ class ExtensionRunnerCore : public InternalRunnable {
   void startServer(TProcessorRef processor);
 
   // The Dispatcher thread service stop point.
-  void stop();
+  void stop() override;
 
  protected:
   /// The UNIX domain socket used for requests from the ExtensionManager.
@@ -332,7 +335,7 @@ class ExtensionRunner : public ExtensionRunnerCore {
   }
 
  public:
-  void start();
+  void start() override;
 
   /// Access the UUID provided by the ExtensionManager.
   RouteUUID getUUID() {
@@ -358,11 +361,11 @@ class ExtensionManagerRunner : public ExtensionRunnerCore {
       : ExtensionRunnerCore(manager_path) {}
 
  public:
-  void start();
+  void start() override;
 };
 
 /// Internal accessor for extension clients.
-class EXInternal {
+class EXInternal : private boost::noncopyable {
  public:
   explicit EXInternal(const std::string& path)
       : socket_(new TPlatformSocket(path)),
