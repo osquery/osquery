@@ -392,8 +392,8 @@ std::set<fs::path> getHomeDirectories() {
   return results;
 }
 
-bool safePermissions(const std::string& dir,
-                     const std::string& path,
+bool safePermissions(const fs::path& dir,
+                     const fs::path& path,
                      bool executable) {
   if (!platformIsFileAccessible(path).ok()) {
     // Path was not real, had too may links, or could not be accessed.
@@ -414,7 +414,7 @@ bool safePermissions(const std::string& dir,
     return false;
   }
 
-  PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+  PlatformFile fd(path.string(), PF_OPEN_EXISTING | PF_READ);
   if (!fd.isValid()) {
     return false;
   }
