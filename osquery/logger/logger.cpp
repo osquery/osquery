@@ -24,6 +24,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
@@ -263,6 +264,9 @@ static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
     child.put("f", log_item.filename);
     child.put("i", log_item.line);
     child.put("m", log_item.message);
+    child.put("h", log_item.identifier);
+    child.put("c", log_item.calendar_time);
+    child.put("u", log_item.time);
     tree.push_back(std::make_pair("", child));
   }
 
@@ -294,6 +298,9 @@ static void deserializeIntermediateLog(const PluginRequest& request,
         item.second.get<std::string>("f", "<unknown>"),
         item.second.get<int>("i", 0),
         item.second.get<std::string>("m", ""),
+        item.second.get<std::string>("h", ""),
+        item.second.get<std::string>("c", ""),
+        item.second.get<size_t>("u", 0),
     });
   }
 }
@@ -444,7 +451,10 @@ void BufferedLogSink::send(google::LogSeverity severity,
     logs_.push_back({(StatusLogSeverity)severity,
                      std::string(base_filename),
                      line,
-                     std::string(message, message_len)});
+                     std::string(message, message_len),
+                     getHostIdentifier(),
+                     toAsciiTimeUTC(tm_time),
+                     toUnixTime(tm_time)});
   }
 
   // The daemon will relay according to the schedule.

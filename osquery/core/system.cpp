@@ -209,15 +209,45 @@ std::string getHostIdentifier() {
   return ident;
 }
 
+std::string toAsciiTime(const struct tm* tm_time) {
+  if (tm_time == nullptr) {
+    return "";
+  }
+
+  auto time_str = platformAsctime(tm_time);
+  boost::algorithm::trim(time_str);
+  return time_str + " UTC";
+}
+
+std::string toAsciiTimeUTC(const struct tm* tm_time) {
+  size_t epoch = toUnixTime(tm_time);
+  struct tm tptr;
+
+  memset(&tptr, 0, sizeof(tptr));
+
+  if (epoch == (size_t)-1) {
+    return "";
+  }
+
+  gmtime_r((time_t*)&epoch, &tptr);
+  return toAsciiTime(&tptr);
+}
+
 std::string getAsciiTime() {
   auto result = std::time(nullptr);
 
   struct tm now;
   gmtime_r(&result, &now);
 
-  auto time_str = platformAsctime(&now);
-  boost::algorithm::trim(time_str);
-  return time_str + " UTC";
+  return toAsciiTime(&now);
+}
+
+size_t toUnixTime(const struct tm* tm_time) {
+  struct tm result;
+  memset(&result, 0, sizeof(result));
+
+  memcpy(&result, tm_time, sizeof(result));
+  return mktime(&result);
 }
 
 size_t getUnixTime() {

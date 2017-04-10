@@ -52,6 +52,12 @@ struct StatusLogLine {
   int line;
   /// The string-formatted status message.
   std::string message;
+  /// The host identifier
+  std::string identifier;
+  /// The ASCII time stamp for when the status message was emitted
+  std::string calendar_time;
+  /// The UNIX time for when the status message was emitted
+  size_t time;
 };
 
 /**
