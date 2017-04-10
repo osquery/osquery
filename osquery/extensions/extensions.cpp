@@ -127,7 +127,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     if (socketExists(path)) {
       try {
         ExtensionStatus status;
-        auto client = EXManagerClient(path);
+        EXManagerClient client(path);
         client.get()->ping(status);
         return Status(0, "OK");
       } catch (const std::exception& /* e */) {
@@ -164,7 +164,7 @@ void ExtensionManagerWatcher::start() {
   for (const auto& uuid : uuids) {
     try {
       auto path = getExtensionSocket(uuid);
-      auto client = EXClient(path);
+      EXClient client(path);
       client.get()->shutdown();
     } catch (const std::exception& /* e */) {
       VLOG(1) << "Extension UUID " << uuid << " shutdown request failed";
@@ -187,7 +187,7 @@ void ExtensionWatcher::watch() {
   bool core_sane = true;
   if (socketExists(path_)) {
     try {
-      auto client = EXManagerClient(path_);
+      EXManagerClient client(path_);
       // Ping the extension manager until it goes down.
       client.get()->ping(status);
     } catch (const std::exception& /* e */) {
@@ -231,7 +231,7 @@ void ExtensionManagerWatcher::watch() {
     failures_[uuid] = 1;
     if (exists.ok()) {
       try {
-        auto client = EXClient(path);
+        EXClient client(path);
         // Ping the extension until it goes down.
         client.get()->ping(status);
       } catch (const std::exception& /* e */) {
@@ -478,7 +478,7 @@ Status startExtension(const std::string& manager_path,
   // Register the extension's registry broadcast with the manager.
   ExtensionStatus ext_status;
   try {
-    auto client = EXManagerClient(manager_path);
+    EXManagerClient client(manager_path);
     client.get()->registerExtension(ext_status, info, broadcast);
     // The main reason for a failed registry is a duplicate extension name
     // (the extension process is already running), or the extension broadcasts
@@ -529,7 +529,7 @@ Status queryExternal(const std::string& manager_path,
 
   ExtensionResponse response;
   try {
-    auto client = EXManagerClient(manager_path);
+    EXManagerClient client(manager_path);
     client.get()->query(response, query);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -557,7 +557,7 @@ Status getQueryColumnsExternal(const std::string& manager_path,
 
   ExtensionResponse response;
   try {
-    auto client = EXManagerClient(manager_path);
+    EXManagerClient client(manager_path);
     client.get()->getQueryColumns(response, query);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -592,7 +592,7 @@ Status pingExtension(const std::string& path) {
 
   ExtensionStatus ext_status;
   try {
-    auto client = EXClient(path);
+    EXClient client(path);
     client.get()->ping(ext_status);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -618,7 +618,7 @@ Status getExtensions(const std::string& manager_path,
 
   InternalExtensionList ext_list;
   try {
-    auto client = EXManagerClient(manager_path);
+    EXManagerClient client(manager_path);
     client.get()->extensions(ext_list);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -663,7 +663,7 @@ Status callExtension(const std::string& extension_path,
 
   ExtensionResponse ext_response;
   try {
-    auto client = EXClient(extension_path);
+    EXClient client(extension_path);
     client.get()->call(ext_response, registry, item, request);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
