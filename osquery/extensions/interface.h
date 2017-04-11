@@ -373,7 +373,11 @@ class EXInternal : private boost::noncopyable {
         protocol_(new TBinaryProtocol(transport_)) {}
 
   virtual ~EXInternal() {
-    transport_->close();
+    try {
+      transport_->close();
+    } catch (const std::exception& /* e */) {
+      // The transport/socket may have exited.
+    }
   }
 
  protected:
