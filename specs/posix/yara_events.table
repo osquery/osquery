@@ -7,9 +7,10 @@ schema([
     Column("transaction_id", BIGINT, "ID used during bulk update"),
     Column("matches", TEXT, "List of YARA matches"),
     Column("count", INTEGER, "Number of YARA matches"),
-    Column("time", BIGINT, "Time of the scan"),
     Column("strings", TEXT, "Matching strings"),
     Column("tags", TEXT, "Matching tags"),
+    Column("time", BIGINT, "Time of the scan"),
+    Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)
 implementation("yara@yara_events::genTable")

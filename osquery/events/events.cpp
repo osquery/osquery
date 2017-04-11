@@ -570,6 +570,7 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
   }
 
   r["time"] = std::to_string(event_time);
+  r["eid"] = eid;
   // Serialize and store the row data, for query-time retrieval.
   std::string data;
   auto status = serializeRowJSON(r, data);

@@ -19,6 +19,7 @@ schema([
     Column("hashed", INTEGER,
       "1 if the file was hashed, 0 if not, -1 if hashing failed"),
     Column("time", BIGINT, "Time of file event"),
+    Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)
 implementation("file_events@file_events::genTable")

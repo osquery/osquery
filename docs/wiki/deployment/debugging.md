@@ -10,18 +10,10 @@ This is pretty simple! Just append `--verbose` as a switch.
 
 ```
 $ osqueryi --verbose
-I0119 16:38:03.113173 1965629440 init.cpp:278] osquery initialized [version=1.6.3]
-I0119 16:38:03.113536 1965629440 extensions.cpp:177] Could not autoload modules: Failed reading: /etc/osquery/modules.load
-I0119 16:38:03.132020 1064960 interface.cpp:246] Extension manager service starting: /Users/reed/.osquery/shell.em
-I0119 16:38:03.132203 1965629440 db_handle.cpp:165] Opening RocksDB handle: /Users/reed/.osquery/shell.db
-I0119 16:38:03.141836 1965629440 events.cpp:555] Event publisher failed setup: kernel: Cannot access /dev/osquery
-W0119 16:38:03.142004 1965629440 events.cpp:757] Error registering subscriber: process_file_events: No kernel event publisher
-I0119 16:38:03.143363 5844992 events.cpp:498] Starting event publisher run loop: diskarbitration
-I0119 16:38:03.143702 6381568 events.cpp:498] Starting event publisher run loop: fsevents
-I0119 16:38:03.145011 6918144 events.cpp:498] Starting event publisher run loop: iokit
-I0119 16:38:03.149258 7454720 events.cpp:498] Starting event publisher run loop: scnetwork
-osquery - being built, with love, at Facebook
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+I0412 08:04:56.012428 3056837568 init.cpp:380] osquery initialized [version=2.4.0]
+I0412 08:04:56.013499 3056837568 extensions.cpp:308] Could not autoload modules: Failed reading: /var/osquery/modules.load
+I0412 08:04:56.014837 168243200 interface.cpp:317] Extension manager service starting: /Users/$USER/.osquery/shell.em
+I0412 08:04:56.015383 3056837568 init.cpp:615] Error reading config: config file does not exist: /var/osquery/osquery.conf
 Using a virtual database. Need help, type '.help'
 osquery>
 ```
@@ -33,33 +25,23 @@ To see the daemon's verbose messages you'll need to run it in the foreground, se
 The daemon has some restrictions that make verbose debugging difficult, let's walk through how to run it in the foreground.
 
 ```
-$ osqueryd --pidfile /tmp/osquery.pid --database_path /tmp/osquery.db
+$ osqueryd --ephemeral --database_path /tmp/osquery.db
 ```
 
-The `pidfile` and `database_path` must be overridden as the defaults are not writable/readable by a non-privileged user. Now we can append `--verbose`:
+The `ephemeral` flag tells the daemon that it may co-exist with other persistent daemons. The `database_path` must be overridden as the defaults are not writable/readable by a non-privileged user. Now we can append `--verbose`:
 
 ```
-$ osqueryd --pidfile /tmp/osquery.pid --database_path /tmp/osquery.db --verbose
-I0119 16:45:17.785065 1965629440 init.cpp:278] osquery initialized [version=1.6.4-13]
-I0119 16:45:17.816946 1965629440 system.cpp:183] Found stale process for osqueryd (22391) removing pidfile
-I0119 16:45:17.818084 1965629440 system.cpp:218] Writing osqueryd pid (22406) to /tmp/osquery.pid
-I0119 16:45:17.820576 1965629440 extensions.cpp:170] Could not autoload extensions: Failed reading: /etc/osquery/extensions.load
-I0119 16:45:17.823276 528384 watcher.cpp:371] osqueryd watcher (22406) executing worker (22407)
-I0119 16:45:17.840364 1965629440 init.cpp:276] osquery worker initialized [watcher=22406]
-I0119 16:45:17.841305 1965629440 extensions.cpp:177] Could not autoload modules: Failed reading: /etc/osquery/modules.load
-I0119 16:45:17.847304 1965629440 db_handle.cpp:165] Opening RocksDB handle: /tmp/osquery.db
-Could not create log file: Permission denied
-COULD NOT CREATE LOGFILE '20160119'!
-I0119 16:45:17.857830 1965629440 events.cpp:555] Event publisher failed setup: kernel: Cannot access /dev/osquery
-W0119 16:45:17.857889 1965629440 events.cpp:757] Error registering subscriber: process_file_events: No kernel event publisher
-I0119 16:45:17.857990 1965629440 daemon.cpp:39] Not starting the distributed query service: Distributed query service not enabled.
-I0119 16:45:17.858032 3211264 events.cpp:498] Starting event publisher run loop: diskarbitration
-I0119 16:45:17.858038 3747840 events.cpp:498] Starting event publisher run loop: fsevents
-I0119 16:45:17.858070 4284416 events.cpp:498] Starting event publisher run loop: iokit
-I0119 16:45:17.858481 4820992 events.cpp:498] Starting event publisher run loop: scnetwork
+$ osqueryd --ephemeral --database_path /tmp/osquery.db --verbose
+I0412 08:03:59.664191 3056837568 init.cpp:380] osquery initialized [version=2.4.0]
+I0412 08:03:59.666533 196194304 watcher.cpp:465] osqueryd watcher (35549) executing worker (35550)
+I0412 08:03:59.688765 3056837568 init.cpp:377] osquery worker initialized [watcher=35549]
+I0412 08:03:59.689954 3056837568 extensions.cpp:308] Could not autoload modules: Failed reading: /var/osquery/modules.load
+I0412 08:03:59.690062 3056837568 rocksdb.cpp:205] Opening RocksDB handle: /tmp/osquery.db
 ```
 
-There are errors from Glog about logging permissions, to silence them make a directory and override `--logger_path`. Also note the the daemon wants you to execute it as the user who owns the binary if you attempt to run as a superuser. It also resists running in a tmpfs or sticky-bit directory.
+There may be errors from Glog about logging permissions, to silence them make a directory and override `--logger_path`, or use `--disable_logger`.
+
+Also note the daemon expects to be owned by the superuser if executed as the superuser. It also resists running in a tmpfs or sticky-bit directory. For special testing and debugging cases use `--allow_unsafe`.
 
 If you are using a `--flagfile` to define additional command line switches then it should be readable by your user. In cases where the Remote API is used, an enroll secret or TLS client private key is needed. If these are read-restricted to the superuser you may need to also debug as the superuser.
 
@@ -150,3 +132,14 @@ Error registering subscriber: process_file_events: No kernel event publisher
 ```
 
 This is an informational message with mis-categorized severity. The message indicates that a requested companion kernel extension does not exist and the associated `process_file_events` subscriber on OS X cannot start. It is safe to ignore.
+
+### Testing event subscribers
+
+Each event subscriber, tables that end with `_events`, includes a `HIDDEN` column called `eid`. This is an internal incrementing ID assigned by osquery to every event row added to a subscriber table. Each table maintains its own counter. The `eid` can be used to check for drops and duplicates occurring via an optimization or indexing bug.
+
+Consider the query:
+```
+SELECT *, eid FROM file_events;
+```
+
+If this query is in your schedule then the first `eid` should be `000000001` or similar. Each time the query runs the following should hold: `count(0) == max(eid) - min(eid)` and `min(eid) + 1 == max(eid from last run)`.

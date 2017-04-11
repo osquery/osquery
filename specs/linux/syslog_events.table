@@ -7,6 +7,7 @@ schema([
     Column("facility", TEXT, "Syslog facility"),
     Column("tag", TEXT, "The syslog tag"),
     Column("message", TEXT, "The syslog message"),
+    Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)
 implementation("syslog_events@SyslogEventSubscriber::genTable")
