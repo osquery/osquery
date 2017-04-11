@@ -210,8 +210,22 @@ class INotifyEventPublisher
   /// Time in seconds of the last inotify restart.
   std::atomic<int> last_restart_{-1};
 
+  /**
+   * @brief Scratch space for reading INotify responses.
+   *
+   * We place this here, and include a mutex to do heap/lazy allocation of the
+   * near-3k buffer when the publisher loads. This reduces the need to stack
+   * allocate a local buffer every 200mils and also improves the eventless-case.
+   *
+   * Allocated during setUp, removed in tearDown, protected by scratch_mutex_.
+   */
+  char* scratch_{nullptr};
+
   /// Access to path and descriptor mappings.
   mutable Mutex path_mutex_;
+
+  /// Access the Inofity response scratch space.
+  mutable Mutex scratch_mutex_;
 
  public:
   friend class INotifyTests;
