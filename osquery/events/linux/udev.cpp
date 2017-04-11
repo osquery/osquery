@@ -8,6 +8,8 @@
  *
  */
 
+#include <poll.h>
+
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -58,7 +60,6 @@ void UdevEventPublisher::tearDown() {
 
 Status UdevEventPublisher::run() {
   int fd = 0;
-  fd_set set;
 
   {
     WriteLock lock(mutex_);
@@ -68,17 +69,17 @@ Status UdevEventPublisher::run() {
     fd = udev_monitor_get_fd(monitor_);
   }
 
-  FD_ZERO(&set);
-  FD_SET(fd, &set);
+  struct pollfd fds[1];
+  fds[0].fd = fd;
+  fds[0].events = POLLIN;
 
-  struct timeval timeout = {1, 0};
-  int selector = ::select(fd + 1, &set, nullptr, nullptr, &timeout);
+  int selector = ::poll(fds, 1, 1000);
   if (selector == -1) {
     LOG(ERROR) << "Could not read udev monitor";
     return Status(1, "udev monitor failed.");
   }
 
-  if (selector == 0 || !FD_ISSET(fd, &set)) {
+  if (selector == 0 || !(fds[0].revents & POLLIN)) {
     // Read timeout.
     return Status(0, "Finished");
   }
