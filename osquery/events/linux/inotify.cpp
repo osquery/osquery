@@ -12,6 +12,7 @@
 
 #include <fnmatch.h>
 #include <linux/limits.h>
+#include <poll.h>
 
 #include <boost/filesystem.hpp>
 
@@ -53,6 +54,12 @@ Status INotifyEventPublisher::setUp() {
   // If this does not work throw an exception.
   if (inotify_handle_ == -1) {
     return Status(1, "Could not start inotify: inotify_init failed");
+  }
+
+  WriteLock lock(scratch_mutex_);
+  scratch_ = (char*)malloc(kINotifyBufferSize);
+  if (scratch_ == nullptr) {
+    return Status(1, "Could not allocate scratch space");
   }
   return Status(0, "OK");
 }
@@ -117,6 +124,12 @@ void INotifyEventPublisher::tearDown() {
     ::close(inotify_handle_);
   }
   inotify_handle_ = -1;
+
+  WriteLock lock(scratch_mutex_);
+  if (scratch_ != nullptr) {
+    free(scratch_);
+    scratch_ = nullptr;
+  }
 }
 
 Status INotifyEventPublisher::restartMonitoring() {
@@ -146,15 +159,10 @@ Status INotifyEventPublisher::restartMonitoring() {
 }
 
 Status INotifyEventPublisher::run() {
-  // Get a while wrapper for free.
-  char buffer[kINotifyBufferSize];
-  fd_set set;
-
-  FD_ZERO(&set);
-  FD_SET(getHandle(), &set);
-
-  struct timeval timeout = {1, 0};
-  int selector = ::select(getHandle() + 1, &set, nullptr, nullptr, &timeout);
+  struct pollfd fds[1];
+  fds[0].fd = getHandle();
+  fds[0].events = POLLIN;
+  int selector = ::poll(fds, 1, 1000);
   if (selector == -1) {
     LOG(WARNING) << "Could not read inotify handle";
     return Status(1, "INotify handle failed");
@@ -164,12 +172,18 @@ Status INotifyEventPublisher::run() {
     // Read timeout.
     return Status(0, "Continue");
   }
-  ssize_t record_num = ::read(getHandle(), buffer, kINotifyBufferSize);
+
+  if (!(fds[0].revents & POLLIN)) {
+    return Status(0, "Invalid poll response");
+  }
+
+  WriteLock lock(scratch_mutex_);
+  ssize_t record_num = ::read(getHandle(), scratch_, kINotifyBufferSize);
   if (record_num == 0 || record_num == -1) {
     return Status(1, "INotify read failed");
   }
 
-  for (char* p = buffer; p < buffer + record_num;) {
+  for (char* p = scratch_; p < scratch_ + record_num;) {
     // Cast the inotify struct, make shared pointer, and append to contexts.
     auto event = reinterpret_cast<struct inotify_event*>(p);
     if (event->mask & IN_Q_OVERFLOW) {
