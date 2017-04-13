@@ -74,7 +74,13 @@ FLAG(string,
      host_identifier,
      "hostname",
      "Field used to identify the host running osquery (hostname, uuid, "
-     "instance, ephemeral)");
+     "instance, ephemeral, specified)");
+
+// Only used when host_identifier=specified
+FLAG(string,
+     specified_identifier,
+     "hostname",
+     "Field used to specify the host_identifier when set to \"specified\"");
 
 FLAG(bool, utc, true, "Convert all UNIX times to UTC");
 
@@ -188,6 +194,14 @@ Status getHostUUID(std::string& ident) {
   return status;
 }
 
+Status getSpecifiedUUID(std::string& ident) {
+  if (FLAGS_specified_identifier.empty()) {
+    return Status(1, "No specified identifier for host");
+  }
+  ident = FLAGS_specified_identifier;
+  return Status(0, "OK");
+}
+
 std::string getHostIdentifier() {
   static std::string ident;
 
@@ -198,6 +212,8 @@ std::string getHostIdentifier() {
       getInstanceUUID(ident);
     } else if (FLAGS_host_identifier == "ephemeral") {
       getEphemeralUUID(ident);
+    } else if (FLAGS_host_identifier == "specified") {
+      getSpecifiedUUID(ident);
     } else {
       // assuming the default of "hostname" as the machine identifier
       // intentionally not set to `ident` because the hostname may change
