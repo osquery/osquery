@@ -85,6 +85,7 @@ Status serializeRow(const Row& r, const ColumnNames& cols, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
+
 Status serializeRowJSON(const Row& r, std::string& json) {
   pt::ptree tree;
   auto status = serializeRow(r, tree);
@@ -692,5 +693,38 @@ void dumpDatabase() {
           stdout, "%s[%s]: %s\n", domain.c_str(), key.c_str(), value.c_str());
     }
   }
+}
+
+Status serializeRowRJ(const Row& r, const ColumnNames& cols, rapidjson::Document& d) {
+  try {
+    for (auto& c : cols) {
+      d.AddMember(
+        rapidjson::Value(c.c_str(), d.GetAllocator()).Move(),
+        rapidjson::Value(r.at(c).c_str(), d.GetAllocator()).Move(),
+        d.GetAllocator());
+    }
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
+
+Status serializeQueryDataRJ(const QueryData& q,
+                          const ColumnNames& cols,
+                          rapidjson::Document& d) {
+  for (const auto& r : q) {
+    rapidjson::Document serialized;
+    serialized.SetObject();
+    auto s = serializeRowRJ(r, cols, serialized);
+    if (!s.ok()) {
+      return s;
+    }
+    if (serialized.GetObject().MemberCount()){
+      d.PushBack(
+        rapidjson::Value(serialized, d.GetAllocator()).Move(), d.GetAllocator()
+      );
+    }
+  }
+  return Status(0, "OK");
 }
 }

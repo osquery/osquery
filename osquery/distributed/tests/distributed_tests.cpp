@@ -24,6 +24,8 @@
 #include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
+#include <rapidjson/prettywriter.h>
+
 namespace pt = boost::property_tree;
 
 DECLARE_string(distributed_tls_read_endpoint);
@@ -111,7 +113,7 @@ TEST_F(DistributedTests, test_serialize_distributed_query_result) {
   Row r1;
   r1["foo"] = "bar";
   r.results = {r1};
-
+  r.columns = {"foo"};
   pt::ptree tree;
   auto s = serializeDistributedQueryResult(r, tree);
   EXPECT_TRUE(s.ok());
@@ -125,6 +127,30 @@ TEST_F(DistributedTests, test_serialize_distributed_query_result) {
     }
   }
 }
+
+TEST_F(DistributedTests, test_serialize_distributed_query_result_rj) {
+  DistributedQueryResult r;
+  r.request.query = "foo";
+  r.request.id = "bar";
+
+  Row r1;
+  r1["foo"] = "bar";
+  r.results = {r1};
+  r.columns = {"foo"};
+  rapidjson::Document d;
+  d.SetObject();
+  auto s = serializeDistributedQueryResultRJ(r, d);
+  EXPECT_TRUE(s.ok());
+  EXPECT_TRUE(d.IsObject());
+  EXPECT_EQ(d["request"]["query"], "foo");
+  EXPECT_EQ(d["request"]["id"], "bar");
+  auto& results = d["results"];
+  EXPECT_TRUE(results.IsArray());
+  for (const auto& q : results.GetArray()) {
+      EXPECT_EQ(q["foo"], "bar");
+  }
+}
+
 
 TEST_F(DistributedTests, test_deserialize_distributed_query_result) {
   pt::ptree request;

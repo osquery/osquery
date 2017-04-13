@@ -17,10 +17,16 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -96,6 +102,7 @@ Status Distributed::serializeResults(std::string& json) {
     if (!s.ok()) {
       return s;
     }
+
     queries.add_child(result.request.id, qd);
     statuses.put(result.request.id, result.status.getCode());
   }
@@ -165,64 +172,65 @@ Status Distributed::flushCompleted() {
 }
 
 Status Distributed::acceptWork(const std::string& work) {
-  try {
-    pt::ptree tree;
-    {
-      std::stringstream ss(work);
-      pt::read_json(ss, tree);
-    }
-    std::set<std::string> queries_to_run;
-    // Check for and run discovery queries first
-    if (tree.count("discovery") > 0) {
-      auto& queries = tree.get_child("discovery");
+  rj::Document d;
+  rj::ParseResult pr = d.Parse(rj::StringRef(work.c_str()));
+  if (!pr) {
+    return Status(1, "Error Parsing JSON: " +
+      std::string(GetParseError_En(pr.Code()), pr.Offset()));
+  }
+  std::set<std::string> queries_to_run;
+  // Check for and run discovery queries first
+  if (d.HasMember("discovery")) {
+    const rj::Value& queries = d["discovery"];
+    for (const auto& query_entry : queries.GetObject()) {
+      auto name = std::string(query_entry.name.GetString());
+      auto query = std::string(query_entry.value.GetString());
 
-      for (const auto& node : queries) {
-        auto query = queries.get<std::string>(node.first, "");
-        if (query.empty() || node.first.empty()) {
-          return Status(
-              1,
-              "Distributed discovery query does not have complete attributes");
-        }
-        SQL sql(query);
-        if (!sql.getStatus().ok()) {
-          return Status(1, "Distributed discovery query has an SQL error");
-        }
-        if (sql.rows().size() > 0) {
-          queries_to_run.insert(node.first);
-        }
+      if (query.empty() || name.empty()) {
+        return Status(
+            1,
+            "Distributed discovery query does not have complete attributes");
+      }
+      SQL sql(query);
+      if (!sql.getStatus().ok()) {
+        return Status(1, "Distributed discovery query has an SQL error");
+      }
+      if (sql.rows().size() > 0) {
+        queries_to_run.insert(name);
       }
     }
-
-    auto& queries = tree.get_child("queries");
-    for (const auto& node : queries) {
-      auto query = queries.get<std::string>(node.first, "");
-      if (query.empty() || node.first.empty()) {
+  }
+  if (d.HasMember("queries")) {
+    const rj::Value& queries = d["queries"];
+    for (const auto& query_entry : queries.GetObject()) {
+      auto name = std::string(query_entry.name.GetString());
+      auto query = std::string(query_entry.value.GetString());
+      if (name.empty() || query.empty()) {
         return Status(1, "Distributed query does not have complete attributes");
       }
-      if (queries_to_run.empty() || queries_to_run.count(node.first)) {
-        setDatabaseValue(kQueries, kDistributedQueryPrefix + node.first, query);
+      if (queries_to_run.empty() || queries_to_run.count(name)) {
+        setDatabaseValue(
+          kQueries,
+          kDistributedQueryPrefix + name,
+          query);
       }
     }
-
-    if (tree.count("accelerate") > 0) {
-      auto new_time = tree.get<std::string>("accelerate", "");
-      unsigned long duration;
-      Status conversion = safeStrtoul(new_time, 10, duration);
-      if (conversion.ok()) {
-        LOG(INFO) << "Accelerating distributed query checkins for " << duration
-                  << " seconds";
-        setDatabaseValue(kPersistentSettings,
-                         "distributed_accelerate_checkins_expire",
-                         std::to_string(getUnixTime() + duration));
-      } else {
-        LOG(WARNING) << "Failed to Accelerate: Timeframe is not an integer";
-      }
-    }
-
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error parsing JSON: " + std::string(e.what()));
   }
 
+  if (d.HasMember("accelerate")) {
+    auto new_time = std::string(d["accelerate"].GetString());
+    unsigned long duration;
+    Status conversion = safeStrtoul(new_time, 10, duration);
+    if (conversion.ok()) {
+      LOG(INFO) << "Accelerating distributed query checkins for " << duration
+                << " seconds";
+      setDatabaseValue(kPersistentSettings,
+                       "distributed_accelerate_checkins_expire",
+                       std::to_string(getUnixTime() + duration));
+    } else {
+      LOG(WARNING) << "Failed to Accelerate: Timeframe is not an integer";
+    }
+  }
   return Status(0, "OK");
 }
 
@@ -244,6 +252,21 @@ Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
                                         pt::ptree& tree) {
   tree.put("query", r.query);
   tree.put("id", r.id);
+  return Status(0, "OK");
+}
+
+Status serializeDistributedQueryRequestRJ(const DistributedQueryRequest& r,
+                                        rj::Document& d) {
+  d.AddMember(
+    rapidjson::Value("query", d.GetAllocator()).Move(),
+    rapidjson::Value(r.query.c_str(), d.GetAllocator()).Move(),
+    d.GetAllocator());
+
+  d.AddMember(
+    rapidjson::Value("id", d.GetAllocator()).Move(),
+    rapidjson::Value(r.id.c_str(), d.GetAllocator()).Move(),
+    d.GetAllocator());
+
   return Status(0, "OK");
 }
 
@@ -302,6 +325,27 @@ Status serializeDistributedQueryResult(const DistributedQueryResult& r,
   tree.add_child("request", request);
   tree.add_child("results", results);
 
+  return Status(0, "OK");
+}
+
+Status serializeDistributedQueryResultRJ(const DistributedQueryResult& r,
+                                       rj::Document& d) {
+  rj::Document request;
+  request.SetObject();
+  auto s = serializeDistributedQueryRequestRJ(r.request, request);
+  if (!s.ok()) {
+    return s;
+  }
+
+  rj::Document results;
+  results.SetArray();
+  s = serializeQueryDataRJ(r.results, r.columns, results);
+  if (!s.ok()) {
+    return s;
+  }
+
+  d.AddMember("request", rapidjson::Value(request, d.GetAllocator()).Move(), d.GetAllocator());
+  d.AddMember("results", rapidjson::Value(results, d.GetAllocator()).Move(), d.GetAllocator());
   return Status(0, "OK");
 }
 

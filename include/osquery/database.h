@@ -20,6 +20,11 @@
 #include <osquery/registry.h>
 #include <osquery/status.h>
 
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+
 namespace osquery {
 
 /**
@@ -150,6 +155,10 @@ Status serializeQueryData(const QueryData& q,
 Status serializeQueryData(const QueryData& q,
                           const ColumnNames& cols,
                           boost::property_tree::ptree& tree);
+
+Status serializeQueryDataRJ(const QueryData& q,
+                            const ColumnNames& cols,
+                            rapidjson::Document& d);
 
 /**
  * @brief Serialize a QueryData object into a JSON string

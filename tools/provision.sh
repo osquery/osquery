@@ -65,6 +65,7 @@ function platform_linux_main() {
   brew_tool m4
   brew_tool autoconf
   brew_tool automake
+  brew_tool rapidjson
 
   # OpenSSL is needed for the final build.
   brew_tool osquery/osquery-local/libxml2
@@ -114,6 +115,7 @@ function platform_darwin_main() {
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
+  brew_tool rapidjson
 
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl

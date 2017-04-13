@@ -15,6 +15,7 @@
 
 #include "osquery/tests/test_util.h"
 #include "osquery/database/query.h"
+#include "osquery/core/json.h"
 
 namespace osquery {
 
@@ -63,7 +64,24 @@ static void DATABASE_serialize_column_order(benchmark::State& state) {
 BENCHMARK(DATABASE_serialize_column_order)
     ->ArgPair(1, 1)
     ->ArgPair(10, 10)
-    ->ArgPair(10, 100);
+    ->ArgPair(10, 100)
+    ->ArgPair(100, 100);
+
+static void DATABASE_serializeRJ_column_order(benchmark::State& state) {
+  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  auto cn = getExampleColumnNames(state.range_x());
+  while (state.KeepRunning()) {
+    rapidjson::Document d;
+    d.SetObject();
+    serializeQueryDataRJ(qd, cn, d);
+  }
+}
+
+BENCHMARK(DATABASE_serializeRJ_column_order)
+    ->ArgPair(1, 1)
+    ->ArgPair(10, 10)
+    ->ArgPair(10, 100)
+    ->ArgPair(100, 100);
 
 static void DATABASE_serialize_json(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range_x(), state.range_y());

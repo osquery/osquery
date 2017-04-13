@@ -103,7 +103,8 @@ struct DistributedQueryResult {
  */
 Status serializeDistributedQueryResult(const DistributedQueryResult& r,
                                        boost::property_tree::ptree& tree);
-
+Status serializeDistributedQueryResultRJ(const DistributedQueryResult& r,
+                                       rapidjson::Document& d);
 /**
  * @brief Serialize a DistributedQueryResult object into a JSON string
  *
