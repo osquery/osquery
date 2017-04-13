@@ -4,7 +4,7 @@ schema([
     Column("uid", BIGINT, "The local user that owns the plugin",
       additional=True),
     Column("name", TEXT, "Plugin display name"),
-    Column("identifier", TEXT, "Plugin identifier"),
+    Column("identifier", TEXT, "Plugin identifier", index=True),
     Column("version", TEXT, "Plugin short version"),
     Column("sdk", TEXT, "Build SDK used to compile plugin"),
     Column("description", TEXT, "Plugin description text"),

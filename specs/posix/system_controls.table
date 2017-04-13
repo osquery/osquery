@@ -2,7 +2,7 @@ table_name("system_controls")
 description("sysctl names, values, and settings information.")
 schema([
     Column("name", TEXT, "Full sysctl MIB name", index=True),
-    Column("oid", TEXT, "Control MIB"),
+    Column("oid", TEXT, "Control MIB", additional=True),
     Column("subsystem", TEXT, "Subsystem ID, control type"),
     Column("current_value", TEXT, "Value of setting"),
     Column("config_value", TEXT, "The MIB value set in /etc/sysctl.conf"),
