@@ -58,6 +58,7 @@ doxygen/latex
 *~
 \#*\#
 *.swp
+*.vscode
 
 # Ignored components
 /external/*

@@ -1,0 +1,18 @@
+table_name("scheduled_tasks")
+description("Lists all of the tasks in the Windows Task Scheduler")
+schema([
+  Column("name", TEXT, "Name of the scheduled task"),
+  Column("path", TEXT, "Path to the executable to be run"),
+  Column("enabled", INTEGER, "Whether or not the scheduled task is enabled"),
+  Column("state", TEXT, "State of the scheduled task"),
+  Column("hidden", INTEGER, "Whether or not the task is visible in the UI"),
+  Column("last_run_time", INTEGER, "Timestamp the task last ran"),
+  Column("next_run_time", INTEGER, "Timestamp the task is scheduled to run next"),
+  Column("last_run_message", TEXT, "Exit status message of the last task run"),
+  Column("last_run_code", TEXT, "Exit status code of the last task run"),
+])
+implementation("scheduled_tasks@genScheduledTasks")
+examples([
+  "select * from scheduled_tasks",
+  "select * from scheduled_tasks where hidden=1 and enabled=1",
+])
