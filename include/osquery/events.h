@@ -434,11 +434,12 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    *
    * This is used internally (for the most part) by EventSubscriber::genTable.
    *
+   * @param yield The Row yield method.
    * @param start Inclusive lower bound time limit.
    * @param stop Inclusive upper bound time limit.
    * @return Set of event rows matching time limits.
    */
-  virtual QueryData get(EventTime start, EventTime stop) final;
+  virtual void get(RowYield& yield, EventTime start, EventTime stop) final;
 
  private:
   /// Overload add for tests and allow them to override the event time.
@@ -575,9 +576,11 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * 'subscribing' and acting. The `genTable` static entrypoint is the
    * suggested method for table specs.
    *
+   * @param yield The Row yield method.
+   * @param ctx The query context (used for time windows).
    * @return The query-time table data, retrieved from a backing store.
    */
-  virtual QueryData genTable(QueryContext& context) USED_SYMBOL;
+  virtual void genTable(RowYield& yield, QueryContext& ctx) USED_SYMBOL;
 
   /// Number of Subscription%s this EventSubscriber has used.
   size_t numSubscriptions() const {

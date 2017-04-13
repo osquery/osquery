@@ -14,6 +14,8 @@
 #include <osquery/events.h>
 #include <osquery/tables.h>
 
+#include "osquery/tests/test_util.h"
+
 namespace osquery {
 
 class BenchmarkEventPublisher
@@ -74,7 +76,16 @@ class BenchmarkEventSubscriber
   }
 
   void benchmarkGet(int low, int high) {
-    auto results = get(low, high);
+    RowGenerator::pull_type generator(std::bind(
+        &EventSubscriberPlugin::get, this, std::placeholders::_1, low, high));
+    if (!generator) {
+      return;
+    }
+
+    while (generator) {
+      generator.get();
+      generator();
+    }
   }
 };
 
@@ -148,9 +159,8 @@ static void EVENTS_gentable(benchmark::State& state) {
     sub->benchmarkAdd(i++);
   }
 
-  QueryContext ctx;
   while (state.KeepRunning()) {
-    sub->genTable(ctx);
+    genRows(sub.get());
   }
 
   sub->clearRows();
@@ -164,13 +174,12 @@ BENCHMARK(EVENTS_gentable)
 static void EVENTS_add_and_gentable(benchmark::State& state) {
   auto sub = std::make_shared<BenchmarkEventSubscriber>();
 
-  QueryContext ctx;
   while (state.KeepRunning()) {
     for (int i = 0; i < state.range_y(); i++) {
       sub->benchmarkAdd(i++);
     }
 
-    sub->genTable(ctx);
+    genRows(sub.get());
   }
 
   sub->clearRows();
