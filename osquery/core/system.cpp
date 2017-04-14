@@ -205,7 +205,7 @@ Status getSpecifiedUUID(std::string& ident) {
 std::string getHostIdentifier() {
   static std::string ident;
 
-  Status result;
+  Status result(2);
   if (ident.size() == 0) {
     if (FLAGS_host_identifier == "uuid") {
       result = getHostUUID(ident);
@@ -215,15 +215,17 @@ std::string getHostIdentifier() {
       result = getEphemeralUUID(ident);
     } else if (FLAGS_host_identifier == "specified") {
       result = getSpecifiedUUID(ident);
-    } else {
+    }
+
+    if (!result.ok()) {
+      // TODO log result.getMessage() when getCode() == 1 once logging
+      //  deadlock is fixed
+
       // assuming the default of "hostname" as the machine identifier
       // intentionally not set to `ident` because the hostname may change
       // throughout the life of the process and we always want to be using the
       // most current hostname
       return osquery::getHostname();
-    }
-    if (!result.ok()) {
-      VLOG(1) << "Not ok host identifier: " << result.getMessage();
     }
   }
   return ident;
