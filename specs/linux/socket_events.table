@@ -16,6 +16,7 @@ schema([
     Column("socket", TEXT, "The local path (UNIX domain socket only)"),
     Column("time", BIGINT, "Time of execution in UNIX time"),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
+    Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)
 implementation("socket_events@socket_events::genTable")

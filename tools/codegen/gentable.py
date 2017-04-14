@@ -72,6 +72,7 @@ COLUMN_OPTIONS = {
     "additional": "ADDITIONAL",
     "required": "REQUIRED",
     "optimized": "OPTIMIZED",
+    "hidden": "HIDDEN",
 }
 
 # Column options that render tables uncacheable.

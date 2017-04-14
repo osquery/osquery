@@ -11,6 +11,7 @@ schema([
     Column("terminal", TEXT, "The network protocol ID"),
     Column("time", BIGINT, "Time of execution in UNIX time"),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
+    Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)
 implementation("user_events@user_events::genTable")

@@ -19,6 +19,7 @@ schema([
     Column("ctime", BIGINT, "Time of last status change"),
     Column("time", BIGINT, "Time of event in UNIX epoch time"),
     Column("uptime", BIGINT, "Time of event in system uptime"),
+    Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)
 implementation("process_file_events@process_file_events::genTable")
