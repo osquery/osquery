@@ -79,7 +79,7 @@ FLAG(string,
 // Only used when host_identifier=specified
 FLAG(string,
      specified_identifier,
-     "hostname",
+     "",
      "Field used to specify the host_identifier when set to \"specified\"");
 
 FLAG(bool, utc, true, "Convert all UNIX times to UTC");
@@ -205,21 +205,25 @@ Status getSpecifiedUUID(std::string& ident) {
 std::string getHostIdentifier() {
   static std::string ident;
 
+  Status result;
   if (ident.size() == 0) {
     if (FLAGS_host_identifier == "uuid") {
-      getHostUUID(ident);
+      result = getHostUUID(ident);
     } else if (FLAGS_host_identifier == "instance") {
-      getInstanceUUID(ident);
+      result = getInstanceUUID(ident);
     } else if (FLAGS_host_identifier == "ephemeral") {
-      getEphemeralUUID(ident);
+      result = getEphemeralUUID(ident);
     } else if (FLAGS_host_identifier == "specified") {
-      getSpecifiedUUID(ident);
+      result = getSpecifiedUUID(ident);
     } else {
       // assuming the default of "hostname" as the machine identifier
       // intentionally not set to `ident` because the hostname may change
       // throughout the life of the process and we always want to be using the
       // most current hostname
       return osquery::getHostname();
+    }
+    if (!result.ok()) {
+      VLOG(1) << "Not ok host identifier: " << result.getMessage();
     }
   }
   return ident;
