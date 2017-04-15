@@ -1,6 +1,5 @@
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\\osquery_utils.ps1"
 
-$packageName = 'osquery'
 $serviceName = 'osqueryd'
 $serviceDescription = 'osquery daemon service'
 $progData =  [System.Environment]::GetEnvironmentVariable('ProgramData')
@@ -9,7 +8,6 @@ $daemonFolder = Join-Path $targetFolder 'osqueryd'
 $logFolder = Join-Path $targetFolder 'log'
 $targetDaemonBin = Join-Path $targetFolder 'osqueryd.exe'
 $destDaemonBin = Join-Path $daemonFolder 'osqueryd.exe'
-$destClientBin = Join-Path $targetFolder 'osqueryi.exe'
 $packageParameters = $env:chocolateyPackageParameters
 $arguments = @{}
 
@@ -61,6 +59,11 @@ if ($installService -and (-not (Get-Service $serviceName -ErrorAction SilentlyCo
   # If the 'install' parameter is passed, we create a Windows service with
   # the flag file in the default location in \ProgramData\osquery\
   New-Service -Name $serviceName -BinaryPathName "$destDaemonBin --flagfile=\ProgramData\osquery\osquery.flags" -DisplayName $serviceName -Description $serviceDescription -StartupType Automatic
+
+  # If the osquery.flags file doesn't exist, we create a blank one.
+  if (-not (Test-Path "$targetFolder\osquery.flags")) {
+    Add-Content "$targetFolder\osquery.flags" $null
+  }
 }
 
 # Add osquery binary path to machines path for ease of use.
