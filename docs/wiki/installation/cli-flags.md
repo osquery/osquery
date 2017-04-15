@@ -289,9 +289,9 @@ Maximum number of events to buffer in the backing store while waiting for a quer
 
 **Windows Only**
 
-`--windows_event_channels="System,Application,Setup,Security"`
+`--windows_event_channels=System,Application,Setup,Security`
 
-List of Windows event log channels to subscribe to. By default the Windows event log publisher will subscribe to some of the more common major event log channels. However you can subscribe to additional channels using the `Log Name` field value in the Windows event viewer. For example, to subscribe to Windows Powershell script block logging one would first enable the feature and then subscribe to the channel with `--windows_event_channels="Microsoft-Windows-PowerShell/Operational"`
+List of Windows event log channels to subscribe to. By default the Windows event log publisher will subscribe to some of the more common major event log channels. However you can subscribe to additional channels using the `Log Name` field value in the Windows event viewer. Note the lack of quotes around the channel names. For example, to subscribe to Windows Powershell script block logging one would first enable the feature and then subscribe to the channel with `--windows_event_channels=Microsoft-Windows-PowerShell/Operational`
 
 ### Logging/results flags
 
