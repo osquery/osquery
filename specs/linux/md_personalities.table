@@ -1,0 +1,6 @@
+table_name("md_personalities")
+description("Software RAID setting supported by the kernal")
+schema([
+    Column("name", TEXT, "Name of personality supported by kernal"),
+])
+implementation("system/md_stat@genMDPersonalities")

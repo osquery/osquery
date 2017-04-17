@@ -1,0 +1,25 @@
+table_name("md_devices")
+description("Software RAID array settings")
+schema([
+    Column("device_name", TEXT, "md device name"),
+    Column("status", TEXT, "Current state of the array"),
+    Column("raid_level", TEXT, "Current raid level of the array"),
+    Column("usable_size", BIGINT, "Usable size of the array in blocks"),
+    Column("healthy_drives", TEXT,
+    "State representing the ratio of drive devices in use"),
+    Column("bitmap_on_mem", TEXT,
+        "Pages allocated in in-memory bitmap, if enabled"),
+    Column("bitmap_chunk_size", TEXT, "Bitmap chunk size"),
+    Column("bitmap_external_file", TEXT, "External referenced bitmap file"),
+    Column("recovery_progress", TEXT, "Progress of the recovery activity"),
+    Column("recovery_finish", TEXT, "Estimated duration of recovery activity"),
+    Column("recovery_speed", TEXT, "Speed of recovery activity"),
+    Column("resync_progress", TEXT, "Progress of the resync activity"),
+    Column("resync_finish", TEXT, "Estimated duration of resync activity"),
+    Column("resync_speed", TEXT, "Speed of resync activity"),
+    Column("check_array_progress", TEXT, "Progress of the resync activity"),
+    Column("check_array_finish", TEXT, "Estimated duration of resync activity"),
+    Column("check_array_speed", TEXT, "Speed of resync activity"),
+    Column("unused_devices", TEXT, "Unused devices"),
+])
+implementation("system/md_stat@genMDDevices")
