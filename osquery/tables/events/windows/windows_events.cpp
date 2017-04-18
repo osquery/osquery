@@ -8,6 +8,7 @@
  *
  */
 
+#include <boost/algorithm/string.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
@@ -27,11 +28,11 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 /*
-* @brief the Windows Event log channels to subscribe to
-*
-* By default we subscribe to all system channels. To subscribe to additional
-* channels specify them via this flag as a comma separated list.
-*/
+ * @brief the Windows Event log channels to subscribe to
+ *
+ * By default we subscribe to all system channels. To subscribe to additional
+ * channels specify them via this flag as a comma separated list.
+ */
 FLAG(string,
      windows_event_channels,
      "System,Application,Setup,Security",
@@ -42,7 +43,10 @@ class WindowsEventSubscriber
  public:
   Status init() override {
     auto wc = createSubscriptionContext();
-    for (const auto& chan : osquery::split(FLAGS_windows_event_channels, ",")) {
+    for (auto& chan : osquery::split(FLAGS_windows_event_channels, ",")) {
+      // We remove quotes if they exist
+      boost::erase_all(chan, "\"");
+      boost::erase_all(chan, "\'");
       wc->sources.insert(stringToWstring(chan));
     }
     subscribe(&WindowsEventSubscriber::Callback, wc);
