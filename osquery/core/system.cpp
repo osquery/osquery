@@ -218,8 +218,7 @@ std::string getHostIdentifier() {
     }
 
     if (!result.ok()) {
-      // TODO log result.getMessage() when getCode() == 1 once logging
-      //  deadlock is fixed
+      // https://github.com/facebook/osquery/issues/3174
 
       // assuming the default of "hostname" as the machine identifier
       // intentionally not set to `ident` because the hostname may change
