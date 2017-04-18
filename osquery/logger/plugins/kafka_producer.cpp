@@ -7,14 +7,16 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
+#include <unistd.h>
+
 #include <future>
 #include <memory>
-#include <unistd.h>
+
+#include <librdkafka/rdkafka.h>
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-
-#include <librdkafka/rdkafka.h>
 
 namespace osquery {
 
@@ -78,12 +80,21 @@ class KafkaProducerPlugin : public LoggerPlugin {
   KafkaProducerPlugin& operator=(KafkaProducerPlugin const&) = delete;
 
  private:
+  /// Smart pointer to the Kafka producer.
   std::unique_ptr<rd_kafka_t, std::function<void(rd_kafka_t*)>> producer_;
+
+  /// Smart pointer to the Kafka topic.
   std::unique_ptr<rd_kafka_topic_t, std::function<void(rd_kafka_topic_t*)>>
       topic_;
+
+  /// std::future object for background Kafka poll thread.
   std::future<void> futureTimer_;
+
+  /// Boolean representing whether the logger is running.
   bool running_;
-  std::string hostname_;
+
+  /// OS hostname and binary name interpolated as the Kafka message key.
+  std::string msgKey_;
 };
 
 REGISTER(KafkaProducerPlugin, "logger", "kafka_producer");
@@ -124,7 +135,7 @@ void KafkaProducerPlugin::init(const std::string& name,
     return;
   }
 
-  hostname_ = std::string(hostname) + "_" + name;
+  msgKey_ = std::string(hostname) + "_" + name;
 
   // Configure Kafka producer.
   char errstr[512];
@@ -206,8 +217,8 @@ Status KafkaProducerPlugin::logString(const std::string& payload) {
                        RD_KAFKA_MSG_F_COPY,
                        (char*)payload.c_str(),
                        payload.length(),
-                       hostname_.c_str(), // Optional key
-                       hostname_.length(), // key length
+                       msgKey_.c_str(), // Optional key
+                       msgKey_.length(), // key length
                        NULL) == -1) {
     rd_kafka_poll(producer_.get(), 0 /*non-blocking*/);
     LOG(ERROR) << "Failed to produce on Kafka topic " +

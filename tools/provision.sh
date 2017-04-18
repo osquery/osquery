@@ -146,7 +146,9 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/linenoise-ng
   brew_dependency osquery/osquery-local/augeas
   brew_dependency osquery/osquery-local/lldpd
-  brew_dependency osquery/osquery-local/librdkafka
+
+  # GCC Compiled dependencies
+  brew_tool osquery/osquery-local/librdkafka
 
   # POSIX-shared locally-managed tools.
   brew_dependency osquery/osquery-local/zzuf

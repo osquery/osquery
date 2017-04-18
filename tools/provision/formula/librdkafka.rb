@@ -1,4 +1,6 @@
-class Librdkafka < Formula
+require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
+
+class Librdkafka < AbstractOsqueryFormula
   desc "The Apache Kafka C/C++ library"
   homepage "https://github.com/edenhill/librdkafka"
   url "https://github.com/edenhill/librdkafka/archive/v0.9.4.tar.gz"
@@ -9,6 +11,7 @@ class Librdkafka < Formula
   depends_on "pkg-config" => :build
   depends_on "lzlib"
   depends_on "openssl"
+  depends_on "lz4" => :recommended
 
   def install
     args = [
