@@ -1,0 +1,7 @@
+table_name("time_machine_backups")
+description("Backups to drives using TimeMachine")
+schema([
+    Column("destination_id", TEXT, "Time Machine destination ID"),
+    Column("backup_date", TEXT, "Backup Date"),
+])
+implementation("time_machine_backups@genTimeMachineBackups")
