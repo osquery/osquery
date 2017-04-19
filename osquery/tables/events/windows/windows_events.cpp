@@ -66,7 +66,9 @@ void parseTree(const pt::ptree& tree, std::map<std::string, std::string>& res) {
     if (nodeName.empty()) {
       nodeName = node.first.empty() ? "DataElement" : node.first;
     }
-    res[nodeName] = node.second.data();
+    res[nodeName] = res[nodeName] == ""
+                        ? node.second.data()
+                        : res[nodeName] + "\r\n" + node.second.data();
     parseTree(node.second, res);
   }
 }
