@@ -576,11 +576,11 @@ void Initializer::start() const {
 
     for (size_t i = 1; i <= kDatabaseMaxRetryCount; i++) {
       auto ok = DatabasePlugin::initPlugin();
-      if(ok) {
+      if (ok) {
         break;
       }
 
-      if(i == kDatabaseMaxRetryCount) {
+      if (i == kDatabaseMaxRetryCount) {
         LOG(ERROR) << RLOG(1629) << binary_
                    << " initialize failed: Could not initialize database";
         auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
