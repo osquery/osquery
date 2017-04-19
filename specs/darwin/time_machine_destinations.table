@@ -1,0 +1,12 @@
+table_name("time_machine_destinations")
+description("Drives backed up to using Time Machine")
+schema([
+    Column("alias", TEXT, "Human readable name of drive"),
+    Column("destination_id", TEXT, "Time Machine destination ID"),
+    Column("consistency_scan_date", TEXT, "Consistency scan date"),
+    Column("root_volume_uuid", TEXT, "Root UUID of backup volume"),
+    Column("bytes_available", TEXT, "Bytes available on volume"),
+    Column("bytes_used", TEXT, "Bytes used on volume"),
+    Column("encryption", TEXT, "Last known encrypted state"),
+])
+implementation("time_machine_destinations@genTimeMachineDestinations")
