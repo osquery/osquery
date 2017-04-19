@@ -85,13 +85,13 @@ TEST_F(CarverTests, test_carve_files_locally) {
     carves.insert(fs::path(p));
   }
 
-  EXPECT_EQ(carves.size(), static_cast<const unsigned int>(2));
+  EXPECT_EQ(carves.size(), 2U);
   s = carve.compress(carves);
   EXPECT_TRUE(s.ok());
 
   auto tarPath = carveFSPath + "/" + kTestCarveNamePrefix + guid_ + ".tgz";
   PlatformFile tar(tarPath, PF_OPEN_EXISTING | PF_READ);
   EXPECT_TRUE(tar.isValid());
-  EXPECT_GT(tar.size(), static_cast<const unsigned int>(0));
+  EXPECT_GT(tar.size(), 0U);
 }
 }

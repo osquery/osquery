@@ -30,6 +30,8 @@ namespace osquery {
 
 DECLARE_bool(disable_carver);
 
+std::string generateNewUUID();
+
 namespace tables {
 
 /// Database domain where we store carve table entries
@@ -93,11 +95,11 @@ QueryData genCarves(QueryContext& context) {
 
   if (context.constraints["carve"].exists(EQUALS) && paths.size() > 0 &&
       !FLAGS_disable_carver) {
-    auto guid = boost::uuids::to_string(boost::uuids::random_generator()());
+    auto guid = generateNewUUID();
 
     pt::ptree tree;
     tree.put("carve_guid", guid);
-    tree.put("time", time(nullptr));
+    tree.put("time", getUnixTime());
     tree.put("status", "STARTING");
     tree.put("sha256", "");
     tree.put("size", -1);
