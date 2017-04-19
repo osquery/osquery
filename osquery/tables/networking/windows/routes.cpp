@@ -49,10 +49,13 @@ std::map<DWORD, IP_ADAPTER_INFO> getAdapterAddressMapping() {
   }
 
   while (pAdapterInfo != nullptr) {
-    auto adapter = *pAdapterInfo;
-    returnMapping.insert(std::make_pair(pAdapterInfo->Index, adapter));
+    const auto& adapter = *pAdapterInfo;
+    const auto& index = pAdapterInfo->Index;
+    returnMapping.insert(std::make_pair(index, adapter));
     pAdapterInfo = pAdapterInfo->Next;
   }
+
+  buffer.clear();
 
   return returnMapping;
 }
@@ -71,6 +74,8 @@ std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
     MIB_IPINTERFACE_ROW currentRow = interfaces->Table[i];
     returnMapping.insert(std::make_pair(currentRow.InterfaceIndex, currentRow));
   }
+
+  FreeMibTable(interfaces);
 
   return returnMapping;
 }
@@ -117,6 +122,7 @@ QueryData genRoutes(QueryContext& context) {
 
       InetNtop(addrFamily, (PVOID)&ipAddress, buffer.data(), buffer.size());
       r["destination"] = SQL_TEXT(buffer.data());
+      buffer.clear();
       InetNtop(addrFamily, (PVOID)&gateway, buffer.data(), buffer.size());
       r["gateway"] = SQL_TEXT(buffer.data());
 
