@@ -45,6 +45,10 @@ using PlatformPidType = pid_t;
 using ModuleHandle = void*;
 
 class Initializer : private boost::noncopyable {
+ private:
+  static const size_t kDatabaseMaxRetryCount;
+  static const size_t kDatabaseRetryDelay;
+
  public:
   /**
    * @brief Sets up various aspects of osquery execution state.
