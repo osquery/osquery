@@ -27,11 +27,11 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 /*
-* @brief the Windows Event log channels to subscribe to
-*
-* By default we subscribe to all system channels. To subscribe to additional
-* channels specify them via this flag as a comma separated list.
-*/
+ * @brief the Windows Event log channels to subscribe to
+ *
+ * By default we subscribe to all system channels. To subscribe to additional
+ * channels specify them via this flag as a comma separated list.
+ */
 FLAG(string,
      windows_event_channels,
      "System,Application,Setup,Security",
@@ -62,7 +62,9 @@ void parseTree(const pt::ptree& tree, std::map<std::string, std::string>& res) {
     if (nodeName.empty()) {
       nodeName = node.first.empty() ? "DataElement" : node.first;
     }
-    res[nodeName] = node.second.data();
+    res[nodeName] = res[nodeName] == ""
+                        ? node.second.data()
+                        : res[nodeName] + "\r\n" + node.second.data();
     parseTree(node.second, res);
   }
 }
