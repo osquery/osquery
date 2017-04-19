@@ -1,11 +1,14 @@
 table_name("device_file")
 description("Similar to the file table, but use TSK and allow block address access.")
 schema([
-    Column("device", TEXT, "Absolute file path to device node", required=True),
-    Column("partition", TEXT, "A partition number", required=True),
-    Column("path", TEXT, "A logical path within the device node", additional=True),
+    Column("device", TEXT, "Absolute file path to device node",
+        index=True, required=True),
+    Column("partition", TEXT, "A partition number",
+        index=True, required=True),
+    Column("path", TEXT, "A logical path within the device node",
+        additional=True),
     Column("filename", TEXT, "Name portion of file path"),
-    Column("inode", BIGINT, "Filesystem inode number"),
+    Column("inode", BIGINT, "Filesystem inode number", index=True),
     Column("uid", BIGINT, "Owning user ID"),
     Column("gid", BIGINT, "Owning group ID"),
     Column("mode", TEXT, "Permission bits"),

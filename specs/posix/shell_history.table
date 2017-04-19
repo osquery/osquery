@@ -7,7 +7,7 @@ schema([
     Column("history_file", TEXT, "Path to the .*_history for this user"),
     ForeignKey(column="uid", table="users"),
 ])
-attributes(user_data=True)
+attributes(user_data=True, no_pkey=True)
 implementation("shell_history@genShellHistory")
 fuzz_paths([
     "/home",

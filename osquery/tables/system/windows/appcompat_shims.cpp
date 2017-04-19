@@ -13,6 +13,7 @@
 #include <osquery/core.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/windows/registry.h"
 
 namespace osquery {
@@ -36,7 +37,7 @@ QueryData genShims(QueryContext& context) {
       "NT\\CurrentVersion\\AppCompatFlags\\InstalledSDB",
       sdbResults);
   for (const auto& rKey : sdbResults) {
-    if (rKey.at("type") != "subkey") {
+    if (rKey.count("type") == 0 || rKey.count("path") == 0) {
       continue;
     }
     QueryData regResults;
@@ -46,10 +47,16 @@ QueryData genShims(QueryContext& context) {
     if (start == std::string::npos) {
       continue;
     }
+    if (start > subkey.size()) {
+      continue;
+    }
     std::string sdbId = subkey.substr(start, subkey.length());
     // make sure it's a sane uninstall key
     queryKey(subkey, regResults);
     for (const auto& aKey : regResults) {
+      if (aKey.count("name") == 0 || aKey.count("data") == 0) {
+        continue;
+      }
       if (aKey.at("name") == "DatabaseDescription") {
         sdb.description = aKey.at("data");
       }
@@ -73,18 +80,15 @@ QueryData genShims(QueryContext& context) {
       "CurrentVersion\\AppCompatFlags\\Custom",
       shimResults);
   for (const auto& rKey : shimResults) {
+    if (rKey.count("type") == 0 || rKey.count("path") == 0 ||
+        rKey.at("type") != "subkey") {
+      continue;
+    }
+
     QueryData regResults;
-    if (rKey.at("type") != "subkey") {
-      continue;
-    }
     std::string subkey = rKey.at("path");
-    auto start = rKey.at("path").rfind("\\");
-    if (start == std::string::npos) {
-      continue;
-    }
-    std::string executable =
-        rKey.at("path").substr(start + 1, rKey.at("subkey").length());
-    // make sure it's a sane uninstall key
+    auto toks = split(rKey.at("path"), "\\");
+    auto executable = toks[toks.size() - 1];
     queryKey(subkey, regResults);
     for (const auto& aKey : regResults) {
       Row r;
@@ -107,5 +111,5 @@ QueryData genShims(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

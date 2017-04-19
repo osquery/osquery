@@ -113,7 +113,7 @@ static inline void setOptimizeData(EventTime time,
   setDatabaseValue(kEvents, "optimize_eid." + query_name, toIndex(eid));
 }
 
-QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
+void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
   // Stop is an unsigned (-1), our end of time equivalent.
   EventTime start = 0, stop = 0;
   if (context.constraints["time"].getAll().size() > 0) {
@@ -147,7 +147,7 @@ QueryData EventSubscriberPlugin::genTable(QueryContext& context) {
       queries_.insert(query_name);
     }
   }
-  return get(start, stop);
+  get(yield, start, stop);
 }
 
 void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
@@ -501,9 +501,9 @@ EventID EventSubscriberPlugin::getEventID() {
   return toIndex(last_eid_);
 }
 
-QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
-  QueryData results;
-
+void EventSubscriberPlugin::get(RowYield& yield,
+                                EventTime start,
+                                EventTime stop) {
   // Get the records for this time range.
   auto indexes = getIndexes(start, stop);
   auto records = getRecords(indexes);
@@ -536,7 +536,7 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
     status = deserializeRowJSON(data_value, r);
     data_value.clear();
     if (status.ok()) {
-      results.push_back(std::move(r));
+      yield(r);
     }
   }
 
@@ -557,8 +557,6 @@ QueryData EventSubscriberPlugin::get(EventTime start, EventTime stop) {
   if (FLAGS_events_optimize) {
     setOptimizeData(optimize_time_, optimize_eid_, dbNamespace());
   }
-
-  return results;
 }
 
 Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
@@ -570,6 +568,7 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
   }
 
   r["time"] = std::to_string(event_time);
+  r["eid"] = eid;
   // Serialize and store the row data, for query-time retrieval.
   std::string data;
   auto status = serializeRowJSON(r, data);

@@ -2,13 +2,13 @@ table_name("package_receipts", aliases=["packages"])
 description("OS X package receipt details.")
 schema([
     Column("package_id", TEXT, "Package domain identifier"),
-    Column("package_filename", TEXT, "Filename of original .pkg file"),
+    Column("package_filename", TEXT, "Filename of original .pkg file",
+      index=True),
     Column("version", TEXT, "Installed package version"),
     Column("location", TEXT, "Optional relative install path on volume"),
     Column("install_time", DOUBLE, "Timestamp of install time"),
     Column("installer_name", TEXT, "Name of installer process"),
-    Column("path", TEXT, "Path of receipt plist",
-      index=True, additional=True),
+    Column("path", TEXT, "Path of receipt plist", additional=True),
 ])
 implementation("packages@genPackageReceipts")
 examples([

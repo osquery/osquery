@@ -68,7 +68,35 @@ TEST_F(VirtualTableTests, test_tableplugin_options) {
   EXPECT_EQ(INTEGER(index_required), response[0]["op"]);
 
   std::string expected_statement =
-      "(`id` INTEGER PRIMARY KEY, `username` TEXT, `name` TEXT) WITHOUT ROWID";
+      "(`id` INTEGER, `username` TEXT, `name` TEXT, PRIMARY KEY (`id`)) "
+      "WITHOUT ROWID";
+  EXPECT_EQ(expected_statement, columnDefinition(response, true));
+}
+
+class moreOptionsTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("id", INTEGER_TYPE, ColumnOptions::INDEX),
+        std::make_tuple("username", TEXT_TYPE, ColumnOptions::ADDITIONAL),
+        std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_tableplugin_moreoptions);
+};
+
+TEST_F(VirtualTableTests, test_tableplugin_moreoptions) {
+  auto table = std::make_shared<moreOptionsTablePlugin>();
+
+  PluginResponse response;
+  PluginRequest request = {{"action", "columns"}};
+  EXPECT_TRUE(table->call(request, response).ok());
+
+  std::string expected_statement =
+      "(`id` INTEGER, `username` TEXT, `name` TEXT, PRIMARY KEY (`id`, "
+      "`username`)) WITHOUT ROWID";
   EXPECT_EQ(expected_statement, columnDefinition(response, true));
 }
 

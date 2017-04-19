@@ -5,7 +5,7 @@ schema([
     Column("gid", BIGINT, "Group ID (unsigned)"),
     Column("uid_signed", BIGINT, "User ID as int64 signed (Apple)"),
     Column("gid_signed", BIGINT, "Default group ID as int64 signed (Apple)"),
-    Column("username", TEXT, "Username"),
+    Column("username", TEXT, "Username", additional=True),
     Column("description", TEXT, "Optional user description"),
     Column("directory", TEXT, "User's home directory"),
     Column("shell", TEXT, "User's configured default shell"),

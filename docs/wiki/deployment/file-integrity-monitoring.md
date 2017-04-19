@@ -1,6 +1,6 @@
-As of osquery version 1.4.2, file integrity monitoring support was introduced for Linux (using inotify) and Darwin (using FSEvents) platforms.  This module reads a list of files/directories to monitor for changes from the osquery config and details changes and hashes to those selected files in the [`file_events`](https://osquery.io/docs/tables/#file_events) table.
+File integrity monitoring (FIM) is available for Linux and Darwin using inotify and FSEvents. The daemon reads a list of files/directories from the osquery configuration. The actions (and hashes when appropriate) to those selected files populate the [`file_events`](https://osquery.io/docs/tables/#file_events) table.
 
-To get started with FIM (file integrity monitoring), you must first identify which files and directories you wish to monitor. Then use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards "*\**" or SQL-style wildcards "*%*":
+To get started with FIM, you must first identify which files and directories you wish to monitor. Then use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards "*\**" or SQL-style wildcards "*%*":
 
 **Matching wildcard rules**
 
@@ -19,7 +19,7 @@ To get started with FIM (file integrity monitoring), you must first identify whi
 
 For example, you may want to monitor `/etc` along with other files on a Linux system. After you identify your target files and directories you wish to monitor, add them to a new section in the config *file_paths*.
 
-The two areas below that are relevant to FIM are the `file_events` and `file_paths` sections. The `file_events` query is scheduled to collect all of the FIM events that have occurred on any files within the paths specified within `file_paths` on a five minute interval.
+The two areas below that are relevant to FIM are the scheduled query against `file_events` and the added `file_paths` section. The `file_events` query is scheduled to collect all of the FIM events that have occurred on any files within the paths specified within `file_paths` on a five minute interval. At a high level this means events are buffered within osquery and sent to the configured _logger_ every five minutes.
 
 ## Example FIM Config
 
@@ -53,7 +53,7 @@ The two areas below that are relevant to FIM are the `file_events` and `file_pat
 
 ## Sample Event Output
 
-As file changes happen, events will appear in the [**file_events**](https://osquery.io/docs/tables/#file_events) table.  During a file change event, the md5, sha1, and sha256 for the file will be calculated if possible.  A sample event looks like this:
+As file changes happen, events will appear in the [**file_events**](https://osquery.io/docs/tables/#file_events) table.  During a file change event, the md5, sha1, and sha256 for the file will be calculated if possible. A sample event looks like this:
 
 ```json
 {

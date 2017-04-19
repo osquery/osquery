@@ -197,14 +197,20 @@ void TablePlugin::setCache(size_t step,
 
 std::string columnDefinition(const TableColumns& columns) {
   std::map<std::string, bool> epilog;
+  bool indexed = false;
+  std::vector<std::string> pkeys;
+
   std::string statement = "(";
   for (size_t i = 0; i < columns.size(); ++i) {
     const auto& column = columns.at(i);
     statement +=
-        "`" + std::get<0>(column) + "` " + columnTypeName(std::get<1>(column));
+        '`' + std::get<0>(column) + "` " + columnTypeName(std::get<1>(column));
     auto& options = std::get<2>(column);
-    if (options & ColumnOptions::INDEX) {
-      statement += " PRIMARY KEY";
+    if (options & (ColumnOptions::INDEX | ColumnOptions::ADDITIONAL)) {
+      if (options & ColumnOptions::INDEX) {
+        indexed = true;
+      }
+      pkeys.push_back(std::get<0>(column));
       epilog["WITHOUT ROWID"] = true;
     }
     if (options & ColumnOptions::HIDDEN) {
@@ -215,9 +221,29 @@ std::string columnDefinition(const TableColumns& columns) {
     }
   }
 
-  statement += ")";
+  // If there are only 'additional' columns (rare), do not attempt a pkey.
+  if (!indexed) {
+    epilog["WITHOUT ROWID"] = false;
+    pkeys.clear();
+  }
+
+  // Append the primary keys, if any were defined.
+  if (!pkeys.empty()) {
+    statement += ", PRIMARY KEY (";
+    for (auto pkey = pkeys.begin(); pkey != pkeys.end();) {
+      statement += '`' + std::move(*pkey) + '`';
+      if (++pkey != pkeys.end()) {
+        statement += ", ";
+      }
+    }
+    statement += ')';
+  }
+
+  statement += ')';
   for (auto& ei : epilog) {
-    statement += " " + std::move(ei.first);
+    if (ei.second) {
+      statement += ' ' + std::move(ei.first);
+    }
   }
   return statement;
 }

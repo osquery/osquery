@@ -18,8 +18,12 @@
 #include <vector>
 
 #ifdef WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #endif
 
 #ifndef WIN32
@@ -549,6 +553,7 @@ struct QueryContext : private only_movable {
   ~QueryContext() {
     if (!enable_cache_ && table_ != nullptr) {
       delete table_;
+      table_ = nullptr;
     }
   }
 
