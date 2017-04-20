@@ -10,47 +10,49 @@
 
 #include <ApplicationServices/ApplicationServices.h>
 #include <CoreGraphics/CoreGraphics.h>
+
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
-const std::map <CGEventMask, std::string> kEventMap =
+  
+const std::map <CGEventType, std::string> kEventMap =
 {
-  {CGEventMaskBit(kCGEventNull), "EventNull"},
-  {CGEventMaskBit(kCGEventLeftMouseDown), "LeftMouseDown"},
-  {CGEventMaskBit(kCGEventLeftMouseUp), "EventLeftMouseUp"},
-  {CGEventMaskBit(kCGEventRightMouseDown), "EventRightMouseDown"},
-  {CGEventMaskBit(kCGEventRightMouseUp), "EventRightMouseUp"},
-  {CGEventMaskBit(kCGEventMouseMoved), "EventMouseMoved"},
-  {CGEventMaskBit(kCGEventLeftMouseDragged), "EventLeftMouseDragged"},
-  {CGEventMaskBit(kCGEventKeyDown), "EventKeyDown"},
-  {CGEventMaskBit(kCGEventKeyUp), "EventKeyUp"},
-  {CGEventMaskBit(kCGEventFlagsChanged), "EventFlagsChanged"},
-  {CGEventMaskBit(kCGEventScrollWheel), "EventScrollWheel"},
-  {CGEventMaskBit(kCGEventTabletPointer), "EventTabletPointer"},
-  {CGEventMaskBit(kCGEventTabletPointer), "EventTabletPointer"},
-  {CGEventMaskBit(kCGEventOtherMouseDown), "EventOtherMouseDown"},
-  {CGEventMaskBit(kCGEventOtherMouseUp), "EventOtherMouseUp"},
-  {CGEventMaskBit(kCGEventOtherMouseDragged), "EventOtherMouseDragged"},
+  {kCGEventNull, "EventNull"},
+  {kCGEventLeftMouseDown, "LeftMouseDown"},
+  {kCGEventLeftMouseUp, "EventLeftMouseUp"},
+  {kCGEventRightMouseDown, "EventRightMouseDown"},
+  {kCGEventRightMouseUp, "EventRightMouseUp"},
+  {kCGEventMouseMoved, "EventMouseMoved"},
+  {kCGEventLeftMouseDragged, "EventLeftMouseDragged"},
+  {kCGEventKeyDown, "EventKeyDown"},
+  {kCGEventKeyUp, "EventKeyUp"},
+  {kCGEventFlagsChanged, "EventFlagsChanged"},
+  {kCGEventScrollWheel, "EventScrollWheel"},
+  {kCGEventTabletPointer, "EventTabletPointer"},
+  {kCGEventTabletPointer, "EventTabletPointer"},
+  {kCGEventOtherMouseDown, "EventOtherMouseDown"},
+  {kCGEventOtherMouseUp, "EventOtherMouseUp"},
+  {kCGEventOtherMouseDragged, "EventOtherMouseDragged"},
 };
 
-  QueryData genEventTaps(QueryContext & context) {
+  QueryData genEventTaps(QueryContext &context) {
     QueryData results;
     uint32_t tapCount = 0;
     CGError err;
-    err = CGGetEventTapList(NULL, NULL, & tapCount);
+    err = CGGetEventTapList(NULL, NULL, &tapCount);
     if(err != 0) {
       return results;
     }
     CGEventTapInformation taps[tapCount];
-    err = CGGetEventTapList(tapCount, taps, & tapCount);
+    err = CGGetEventTapList(tapCount, taps, &tapCount);
     if(err != 0) {
       return results;
     }
     for (size_t i = 0; i < tapCount; ++i) {
-      for (const auto & type: kEventMap) {
-        if ((taps[i].eventsOfInterest & type.first) == 0) {
+      for (const auto &type: kEventMap) {
+        if ((taps[i].eventsOfInterest & CGEventMaskBit(type.first)) == 0) {
           continue;
         }
         Row r;
