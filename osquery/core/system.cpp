@@ -411,7 +411,7 @@ bool DropPrivileges::dropTo(const std::string& user) {
 bool setThreadEffective(uid_t uid, gid_t gid) {
 #if defined(__APPLE__)
   return (pthread_setugid_np(uid, gid) == 0);
-#elif defined(LINUX)
+#elif defined(__linux__)
   return (syscall(SYS_setresgid, -1, gid, -1) == 0 &&
           syscall(SYS_setresuid, -1, uid, -1) == 0);
 #endif
