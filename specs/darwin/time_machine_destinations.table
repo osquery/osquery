@@ -1,12 +1,18 @@
 table_name("time_machine_destinations")
-description("Drives backed up to using Time Machine")
+description("Locations backed up to using Time Machine")
 schema([
     Column("alias", TEXT, "Human readable name of drive"),
     Column("destination_id", TEXT, "Time Machine destination ID"),
-    Column("consistency_scan_date", TEXT, "Consistency scan date"),
+    Column("consistency_scan_date", INTEGER, "Consistency scan date"),
     Column("root_volume_uuid", TEXT, "Root UUID of backup volume"),
-    Column("bytes_available", TEXT, "Bytes available on volume"),
-    Column("bytes_used", TEXT, "Bytes used on volume"),
+    Column("bytes_available", INTEGER, "Bytes available on volume"),
+    Column("bytes_used", INTEGER, "Bytes used on volume"),
     Column("encryption", TEXT, "Last known encrypted state"),
 ])
-implementation("time_machine_destinations@genTimeMachineDestinations")
+implementation("time_machine@genTimeMachineDestinations")
+examples([
+  "select alias, backup_date, td.destination_id, root_volume_uuid, encryption from time_machine_backups tb join time_machine_destinations td on (td.destination_id=tb.destination_id);",
+])
+fuzz_paths([
+    "/Library/Preferences/com.apple.TimeMachine.plist",
+])
