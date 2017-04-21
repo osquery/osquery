@@ -44,8 +44,8 @@ QueryData genEventTaps(QueryContext& context) {
   if (err != kCGErrorSuccess) {
     return results;
   }
-  CGEventTapInformation* taps =
-      static_cast<CGEventTapInformation*>(malloc(sizeof(CGEventTapInformation) * tapCount));
+  CGEventTapInformation* taps = static_cast<CGEventTapInformation*>(
+      malloc(sizeof(CGEventTapInformation) * tapCount));
   if (taps == nullptr) {
     return results;
   }
