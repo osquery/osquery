@@ -60,11 +60,11 @@ QueryData genEventTaps(QueryContext& context) {
         continue;
       }
       Row r;
-      r["enabled"] = std::to_string(taps[i].enabled);
-      r["event_tap_id"] = std::to_string(taps[i].eventTapID);
+      r["enabled"] = INTEGER(taps[i].enabled);
+      r["event_tap_id"] = INTEGER(taps[i].eventTapID);
       r["event_tapped"] = type.second;
-      r["process_being_tapped"] = std::to_string(taps[i].processBeingTapped);
-      r["tapping_process"] = std::to_string(taps[i].tappingProcess);
+      r["process_being_tapped"] = INTEGER(taps[i].processBeingTapped);
+      r["tapping_process"] = INTEGER(taps[i].tappingProcess);
       results.push_back(r);
     }
   }
