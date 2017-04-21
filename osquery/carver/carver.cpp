@@ -263,6 +263,9 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   startParams.put<std::string>("node_key", getNodeKey("tls"));
 
   auto status = startRequest.call(startParams);
+  if (!status.ok()) {
+    return status;
+  }
 
   // The call succeeded, store the session id for future posts
   boost::property_tree::ptree startRecv;
