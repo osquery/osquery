@@ -217,8 +217,8 @@ static std::thread::id kMainThreadId;
 
 const std::string kDefaultFlagfile = OSQUERY_HOME "/osquery.flags.default";
 
-const size_t Initializer::kDatabaseMaxRetryCount = 3;
-const size_t Initializer::kDatabaseRetryDelay = 5000;
+const size_t Initializer::kDatabaseMaxRetryCount = 25;
+const size_t Initializer::kDatabaseRetryDelay = 200;
 
 static inline void printUsage(const std::string& binary, ToolType tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -575,8 +575,7 @@ void Initializer::start() const {
     DatabasePlugin::setRequireWrite(tool_ == ToolType::DAEMON);
 
     for (size_t i = 1; i <= kDatabaseMaxRetryCount; i++) {
-      auto ok = DatabasePlugin::initPlugin();
-      if (ok) {
+      if (DatabasePlugin::initPlugin().ok()) {
         break;
       }
 
@@ -587,10 +586,6 @@ void Initializer::start() const {
         requestShutdown(retcode);
       }
 
-      LOG(WARNING) << RLOG(1629) << binary_
-                   << " initialize failed: Could not initialize database";
-      LOG(INFO) << "Waiting " << (kDatabaseRetryDelay / 1000)
-                << " seconds before attempting to re-initialize database...";
       sleepFor(kDatabaseRetryDelay);
     }
   }
