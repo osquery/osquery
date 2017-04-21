@@ -26,9 +26,8 @@ function distro_main() {
   package magic
   package sleuthkit
   package augeas
-
-  ports net-mgmt/lldpd
-  ports databases/rocksdb-lite
-  ports devel/linenoise-ng
-  ports devel/cpp-netlib
+  package lldpd
+  package rocksdb-lite
+  package linenoise-ng
+  package cpp-netlib
 }
