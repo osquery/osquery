@@ -284,7 +284,8 @@ function Install-ThirdParty {
     "cpp-netlib.0.12.0-r2",
     "linenoise-ng.1.0.0",
     "clang-format.3.9.0",
-    "zlib.1.2.8"
+    "zlib.1.2.8",
+    "libarchive.3.3.1-r1"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
   Remove-Item $tmpDir -Recurse -ErrorAction Ignore
@@ -322,7 +323,7 @@ function Install-ThirdParty {
       Write-Host " => Downloading $downloadUrl" -foregroundcolor DarkCyan
       Try {
         (New-Object net.webclient).DownloadFile($downloadUrl, $tmpFilePath)
-        Write-Host " => Done." -foregroundcolor DarkCyan
+        Write-Host " => Downloaded" -foregroundcolor DarkCyan
       } catch [Net.WebException] {
         Write-Host "[-] ERROR: Downloading $package failed. Check connection?" -foregroundcolor Red
         Exit -1
@@ -332,7 +333,7 @@ function Install-ThirdParty {
         Write-Host "[-] ERROR: Install of $package failed." -foregroundcolor Red
         Exit -1
       }
-      Write-Host "[+] Done." -foregroundcolor Green
+      Write-Host "[+] Done" -foregroundcolor Green
     }
   } Finally {
     Remove-Item $tmpDir -Recurse
