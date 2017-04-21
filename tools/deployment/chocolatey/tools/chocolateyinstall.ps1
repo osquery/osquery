@@ -54,16 +54,19 @@ Get-ChocolateyUnzip -FileFullPath $packagePath -Destination $targetFolder
 Move-Item -Force -Path $targetDaemonBin -Destination $destDaemonBin
 Set-DenyWriteAcl $daemonFolder 'Add'
 
-if ($installService -and (-not (Get-Service $serviceName -ErrorAction SilentlyContinue))) {
-  Write-Debug '[+] Installing osquery daemon service.'
-  # If the 'install' parameter is passed, we create a Windows service with
-  # the flag file in the default location in \ProgramData\osquery\
-  New-Service -Name $serviceName -BinaryPathName "$destDaemonBin --flagfile=\ProgramData\osquery\osquery.flags" -DisplayName $serviceName -Description $serviceDescription -StartupType Automatic
+if ($installService) {
+  if (-not (Get-Service $serviceName -ErrorAction SilentlyContinue)) {
+    Write-Debug '[+] Installing osquery daemon service.'
+    # If the 'install' parameter is passed, we create a Windows service with
+    # the flag file in the default location in \ProgramData\osquery\
+    New-Service -Name $serviceName -BinaryPathName "$destDaemonBin --flagfile=\ProgramData\osquery\osquery.flags" -DisplayName $serviceName -Description $serviceDescription -StartupType Automatic
 
-  # If the osquery.flags file doesn't exist, we create a blank one.
-  if (-not (Test-Path "$targetFolder\osquery.flags")) {
-    Add-Content "$targetFolder\osquery.flags" $null
+    # If the osquery.flags file doesn't exist, we create a blank one.
+    if (-not (Test-Path "$targetFolder\osquery.flags")) {
+      Add-Content "$targetFolder\osquery.flags" $null
+    }
   }
+  Start-Service $serviceName
 }
 
 # Add osquery binary path to machines path for ease of use.
