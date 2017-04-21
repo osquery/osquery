@@ -1,0 +1,10 @@
+table_name("event_taps")
+description("Returns information about installed event taps")
+schema([
+    Column("enabled", INTEGER, "Is the Event Tap enabled"),
+    Column("event_tap_id", INTEGER, "Unique ID for the Tap", index=True),
+    Column("event_tapped", TEXT, "The mask that identifies the set of events to be observed."),
+    Column("process_being_tapped", INTEGER, "The process ID of the target application"),
+    Column("tapping_process", INTEGER, "The process ID of the application that created the event tap."),
+])
+implementation("event_taps@genEventTaps")
