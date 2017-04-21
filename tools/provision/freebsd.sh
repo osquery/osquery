@@ -10,7 +10,7 @@
 function distro_main() {
   do_sudo pkg update
   do_sudo pkg upgrade -y
-  do_sudo portsnap update
+  do_sudo portsnap fetch update
 
   package gmake
   package cmake
