@@ -12,10 +12,12 @@
 function setup_brew() {
   if [[ "$2" == "linux" ]]; then
     BREW_REPO=$LINUXBREW_REPO
+    BREW_COMMIT=$LINUXBREW_BREW
     CORE_COMMIT=$LINUXBREW_CORE
     DUPES_COMMIT=$LINUXBREW_DUPES
   else
     BREW_REPO=$HOMEBREW_REPO
+    BREW_COMMIT=$HOMEBREW_BREW
     CORE_COMMIT=$HOMEBREW_CORE
     DUPES_COMMIT=$HOMEBREW_DUPES
   fi
@@ -29,6 +31,9 @@ function setup_brew() {
     log "checking for updates to brew"
     git pull > /dev/null
   fi
+
+  # Reset to a deterministic checkout of brew.
+  git reset --hard $BREW_COMMIT
 
   # Create a local cache directory
   mkdir -p "$DEPS/.cache"

@@ -84,7 +84,7 @@ endif()
 # TODO: These tables should be made Windows-compatible
 if(NOT WINDOWS)
   file(GLOB OSQUERY_POSIX_NETWORKING_TABLES "networking/posix/*.cpp")
-  file(GLOB OSQUERY_CROSS_FORENSIC_TABLES "forensic/*.cpp")
+  file(GLOB OSQUERY_POSIX_FORENSIC_TABLES "forensic/posix/*.cpp")
 
   file(GLOB OSQUERY_POSIX_APPLICATIONS_TABLES "applications/posix/*.cpp")
   file(GLOB OSQUERY_POSIX_SYSTEM_TABLES "system/posix/*.cpp")
@@ -93,7 +93,7 @@ if(NOT WINDOWS)
     ${OSQUERY_POSIX_APPLICATIONS_TABLES}
     ${OSQUERY_POSIX_NETWORKING_TABLES}
     ${OSQUERY_CROSS_EVENTS_TABLES}
-    ${OSQUERY_CROSS_FORENSIC_TABLES}
+    ${OSQUERY_POSIX_FORENSIC_TABLES}
     ${OSQUERY_POSIX_SYSTEM_TABLES}
   )
 
@@ -104,6 +104,11 @@ if(NOT WINDOWS)
   ADD_OSQUERY_LINK_ADDITIONAL("tsk")
   ADD_OSQUERY_LINK_ADDITIONAL("augeas fa xml2")
 endif()
+
+file(GLOB OSQUERY_CROSS_FORENSIC_TABLES "forensic/*.cpp")
+ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_forensic
+  ${OSQUERY_CROSS_FORENSIC_TABLES}
+)
 
 file(GLOB OSQUERY_CROSS_APPLICATIONS_TABLES "applications/*.cpp")
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_tables_applications

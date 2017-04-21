@@ -24,13 +24,13 @@
 #pragma warning(push, 3)
 
 /*
- * Suppressing warning C4005: 
+ * Suppressing warning C4005:
  * 'ASIO_ERROR_CATEGORY_NOEXCEPT': macro redefinition
  */
 #pragma warning(disable: 4005)
 
 /*
- * Suppressing warning C4244: 
+ * Suppressing warning C4244:
  * 'argument': conversion from '__int64' to 'long', possible loss of data
  */
 #pragma warning(disable: 4244)
@@ -128,7 +128,7 @@ class TLSTransport : public Transport {
 
   /**
    * @brief Class destructor
-  */
+   */
   virtual ~TLSTransport() {}
 
  public:
@@ -169,10 +169,10 @@ class TLSTransport : public Transport {
 
  protected:
   /**
-    * @brief Modify a request object with base modifications
-    *
-    * @param The request object, to be modified
-    */
+   * @brief Modify a request object with base modifications
+   *
+   * @param The request object, to be modified
+   */
   void decorateRequest(boost::network::http::client::request& r);
 
  protected:
