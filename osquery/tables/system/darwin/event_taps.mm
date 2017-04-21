@@ -46,6 +46,9 @@ QueryData genEventTaps(QueryContext& context) {
   }
   CGEventTapInformation* taps =
       (CGEventTapInformation*)malloc(sizeof(CGEventTapInformation) * tapCount);
+  if (taps == nullptr) {
+    return results;
+  }
   err = CGGetEventTapList(tapCount, taps, &tapCount);
   if (err != kCGErrorSuccess) {
     free(taps);
