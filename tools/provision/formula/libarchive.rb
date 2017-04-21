@@ -7,6 +7,12 @@ class Libarchive < AbstractOsqueryFormula
   sha256 "691c194ee132d1f0f7a42541f091db811bc2e56f7107e9121be2bc8c04f1060f"
   revision 1
 
+  bottle do
+    cellar :any_skip_relocation
+    sha256 "d7da800fa873e8f7534649b159643b362d118324fb96151732ec30777857863b" => :sierra
+    sha256 "4f1b4e3baf0e5303a6cf0f4a179b63ca1774e2306617f63243d018c35441a51e" => :x86_64_linux
+  end
+
   depends_on "xz" => :recommended
   depends_on "lz4" => :optional
   depends_on "lzop" => :optional
