@@ -34,7 +34,7 @@ class LoggerTests : public testing::Test {
     log_lines.clear();
     status_messages.clear();
     statuses_logged = 0;
-    last_status = {O_INFO, "", -1, "", "host", "cal_time", 0};
+    last_status = {O_INFO, "", 10, "", "cal_time", 0, "host"};
   }
 
   void TearDown() override {
@@ -173,11 +173,19 @@ TEST_F(LoggerTests, test_log_string) {
 }
 
 TEST_F(LoggerTests, test_logger_log_status) {
+  std::string warning = "Logger test is generating a warning status (2)";
+  auto now = getUnixTime();
   // This will be printed to stdout.
-  LOG(WARNING) << "Logger test is generating a warning status (2)";
+  LOG(WARNING) << warning;
 
   // The second warning status will be sent to the logger plugin.
   EXPECT_EQ(1U, LoggerTests::statuses_logged);
+
+  EXPECT_EQ(O_WARNING, LoggerTests::last_status.severity);
+  EXPECT_GT(LoggerTests::last_status.line, 0U);
+  EXPECT_EQ(warning, LoggerTests::last_status.message);
+  EXPECT_GE(now, LoggerTests::last_status.time);
+  EXPECT_EQ(getHostIdentifier(), LoggerTests::last_status.identifier);
 }
 
 TEST_F(LoggerTests, test_logger_status_level) {

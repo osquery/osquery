@@ -203,3 +203,28 @@ using RecursiveMutex = std::recursive_mutex;
 /// Helper alias for write locking a recursive mutex.
 using RecursiveLock = std::lock_guard<std::recursive_mutex>;
 }
+
+/**
+ * @brief An abstract similar to boost's noncopyable that defines moves.
+ *
+ * By defining protected move constructors we allow the children to assign
+ * their's as default.
+ */
+class only_movable {
+ protected:
+  /// Boilerplate self default constructor.
+  only_movable() {}
+
+  /// Boilerplate self destructor.
+  ~only_movable() {}
+
+  /// Important, existence of a move constructor.
+  only_movable(only_movable&&) {}
+
+ private:
+  /// Important, a private copy constructor prevents copying.
+  only_movable(const only_movable&);
+
+  /// Important, a private copy assignment constructor prevents copying.
+  only_movable& operator=(const only_movable&);
+};
