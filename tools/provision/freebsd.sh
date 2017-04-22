@@ -10,7 +10,10 @@
 function distro_main() {
   do_sudo pkg update
   do_sudo pkg upgrade -y
-  do_sudo portsnap fetch update
+
+  # Use it with caution -- unless the dependency is newly added
+  # and the pre-built package is not ready yet.
+  #do_sudo portsnap --interactive fetch update
 
   package gmake
   package cmake
