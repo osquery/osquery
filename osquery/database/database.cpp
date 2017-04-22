@@ -442,10 +442,10 @@ bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
   return true;
 }
 
-bool DatabasePlugin::initPlugin() {
+Status DatabasePlugin::initPlugin() {
   // Initialize the database plugin using the flag.
   auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
-  return RegistryFactory::get().setActive("database", plugin).ok();
+  return RegistryFactory::get().setActive("database", plugin);
 }
 
 void DatabasePlugin::shutdown() {

@@ -535,7 +535,7 @@ class DatabasePlugin : public Plugin {
    *
    * The database should setUp in preparation for accesses.
    */
-  static bool initPlugin();
+  static Status initPlugin();
 
   /// Allow shutdown before exit.
   static void shutdown();
