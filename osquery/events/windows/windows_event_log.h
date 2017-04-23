@@ -90,8 +90,8 @@ class WindowsEventLogEventPublisher
       EVT_SUBSCRIBE_NOTIFY_ACTION action, PVOID pContext, EVT_HANDLE hEvent);
 
   /// Helper function to convert an XML event blob into a property tree
-  static Status WindowsEventLogEventPublisher::parseEvent(
-      EVT_HANDLE evt, boost::property_tree::ptree& propTree);
+  static Status parseEvent(EVT_HANDLE evt,
+                           boost::property_tree::ptree& propTree);
 
  private:
   /// Ensures that all Windows event log subscriptions are removed
