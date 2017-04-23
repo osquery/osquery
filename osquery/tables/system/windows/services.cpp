@@ -87,7 +87,9 @@ static inline Status getService(const SC_HANDLE& scmHandle,
                                (LPBYTE)lpsd.get(),
                                cbBufSize,
                                &cbBufSize)) {
-    return Status(GetLastError(), "Failed to query service description");
+    // This can fail for unclear reasons
+    LOG(WARNING) << "Error querying description for service " +
+                        (std::string)svc.lpDisplayName;
   }
 
   result["name"] = SQL_TEXT(svc.lpServiceName);
