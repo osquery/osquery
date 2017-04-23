@@ -447,6 +447,10 @@ void BufferedLogSink::send(google::LogSeverity severity,
                            const struct ::tm* tm_time,
                            const char* message,
                            size_t message_len) {
+  if (FLAGS_disable_logging) {
+    return;
+  }
+
   // WARNING, be extremely careful when accessing data here.
   // This should not cause any persistent storage or logging actions.
   {
@@ -595,7 +599,10 @@ size_t queuedSenders() {
 }
 
 void relayStatusLogs(bool async) {
-  if (FLAGS_disable_logging || !DatabasePlugin::kDBHandleOptionAllowOpen) {
+  if (FLAGS_disable_logging || !DatabasePlugin::kDBInitialized) {
+    // The logger plugins may not be setUp if logging is disabled.
+    // If the database is not setUp, or is in a reset, status logs continue
+    // to buffer.
     return;
   }
 
