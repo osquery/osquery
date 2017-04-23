@@ -143,8 +143,8 @@ static inline Status getServices(QueryData& results) {
                   "Failed to connect to Service Connection Manager");
   }
 
-  DWORD bytesNeeded = 0;
-  DWORD serviceCount = 0;
+  DWORD bytesNeeded;
+  DWORD serviceCount;
   (void)EnumServicesStatusEx(scmHandle.get(),
                              SC_ENUM_PROCESS_INFO,
                              SERVICE_WIN32,
