@@ -63,6 +63,11 @@ static inline Status getService(const SC_HANDLE& scmHandle,
 
   DWORD cbBufSize;
   (void)QueryServiceConfig(svcHandle.get(), nullptr, 0, &cbBufSize);
+  auto err = GetLastError();
+  if (ERROR_INSUFFICIENT_BUFFER != err) {
+    return Status(err, "Failed to query size of service config buffer");
+  }
+
   std::unique_ptr<QUERY_SERVICE_CONFIG> lpsc(
       static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize)));
   if (lpsc == nullptr) {
@@ -76,20 +81,27 @@ static inline Status getService(const SC_HANDLE& scmHandle,
 
   (void)QueryServiceConfig2(
       svcHandle.get(), SERVICE_CONFIG_DESCRIPTION, nullptr, 0, &cbBufSize);
-  std::unique_ptr<SERVICE_DESCRIPTION> lpsd(
-      static_cast<LPSERVICE_DESCRIPTION>(malloc(cbBufSize)));
-  if (lpsd == nullptr) {
-    return Status(1, "Failed to malloc service description buffer");
-  }
-
-  if (0 == QueryServiceConfig2(svcHandle.get(),
-                               SERVICE_CONFIG_DESCRIPTION,
-                               (LPBYTE)lpsd.get(),
-                               cbBufSize,
-                               &cbBufSize)) {
-    // This can fail for unclear reasons
-    LOG(WARNING) << "Error querying description for service " +
-                        (std::string)svc.lpDisplayName;
+  err = GetLastError();
+  if (ERROR_INSUFFICIENT_BUFFER == err) {
+    std::unique_ptr<SERVICE_DESCRIPTION> lpsd(
+        static_cast<LPSERVICE_DESCRIPTION>(malloc(cbBufSize)));
+    if (lpsd == nullptr) {
+      return Status(1, "Failed to malloc service description buffer");
+    }
+    if (0 == QueryServiceConfig2(svcHandle.get(),
+                                 SERVICE_CONFIG_DESCRIPTION,
+                                 (LPBYTE)lpsd.get(),
+                                 cbBufSize,
+                                 &cbBufSize)) {
+      return Status(GetLastError(),
+                    "Failed to query size of service description buffer");
+    }
+    if (lpsd->lpDescription != nullptr) {
+      result["description"] = SQL_TEXT(lpsd->lpDescription);
+    }
+  } else if (ERROR_MUI_FILE_NOT_FOUND != err) {
+    // Bug in Windows 10 with CDPUserSvc_63718, just ignore description
+    return Status(err, "Failed to query service description");
   }
 
   result["name"] = SQL_TEXT(svc.lpServiceName);
@@ -103,10 +115,6 @@ static inline Status getService(const SC_HANDLE& scmHandle,
   result["start_type"] = SQL_TEXT(kSvcStartType[lpsc->dwStartType]);
   result["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
   result["user_account"] = SQL_TEXT(lpsc->lpServiceStartName);
-
-  if (lpsd->lpDescription != nullptr) {
-    result["description"] = SQL_TEXT(lpsd->lpDescription);
-  }
 
   if (kServiceType.count(lpsc->dwServiceType) > 0) {
     result["service_type"] = SQL_TEXT(kServiceType.at(lpsc->dwServiceType));
@@ -147,6 +155,11 @@ static inline Status getServices(QueryData& results) {
                              &serviceCount,
                              nullptr,
                              nullptr);
+  auto err = GetLastError();
+  if (ERROR_MORE_DATA != err) {
+    return Status(err, "Failed to query service list buffer size");
+  }
+
   std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[]> lpSvcBuf(
       static_cast<ENUM_SERVICE_STATUS_PROCESS*>(malloc(bytesNeeded)));
   if (lpSvcBuf == nullptr) {
