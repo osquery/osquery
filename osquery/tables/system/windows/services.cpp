@@ -42,14 +42,12 @@ const std::map<int, std::string> kServiceType = {
     {0x00000110, "OWN_PROCESS(Interactive)"},
     {0x00000120, "SHARE_PROCESS(Interactive)"}};
 
-typedef std::unique_ptr<SC_HANDLE__, std::function<void(SC_HANDLE)>>
-    svc_handle_t;
-
-void closeServiceHandle(SC_HANDLE sch) {
+auto closeServiceHandle = [](SC_HANDLE sch) {
   if (sch != nullptr) {
     CloseServiceHandle(sch);
   }
-}
+};
+typedef std::unique_ptr<SC_HANDLE__, decltype(closeServiceHandle)> svc_handle_t;
 
 static inline Status getService(const SC_HANDLE& scmHandle,
                                 const ENUM_SERVICE_STATUS_PROCESS& svc,
