@@ -163,6 +163,33 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(pathDoesntExist())
         daemon.kill()
 
+    def test_8_hostid_uuid(self):
+        # Test added to test using UUID as hostname ident for issue #3195
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "disable_extensions": True,
+            "disable_logging": False,
+            "logger_plugin": "stdout",
+            "host_identifier": "uuid",
+            "verbose": True,
+        })
+
+        self.assertTrue(daemon.isAlive())
+        daemon.kill()
+
+    def test_9_hostid_instance(self):
+        daemon = self._run_daemon({
+            "disable_watchdog": True,
+            "disable_extensions": True,
+            "disable_logging": False,
+            "logger_plugin": "stdout",
+            "host_identifier": "instance",
+            "verbose": True,
+        })
+
+        self.assertTrue(daemon.isAlive())
+        daemon.kill()
+
 
 if __name__ == '__main__':
     test_base.Tester().run()
