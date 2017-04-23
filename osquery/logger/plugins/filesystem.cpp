@@ -113,8 +113,9 @@ Status FilesystemLoggerPlugin::logStatus(
     const std::vector<StatusLogLine>& log) {
   for (const auto& item : log) {
     // Emit this intermediate log to the Glog filesystem logger.
-    google::LogMessage(
-        item.filename.c_str(), item.line, (google::LogSeverity)item.severity)
+    google::LogMessage(item.filename.c_str(),
+                       static_cast<int>(item.line),
+                       (google::LogSeverity)item.severity)
             .stream()
         << item.message;
   }

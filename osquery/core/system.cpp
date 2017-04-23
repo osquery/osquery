@@ -103,6 +103,7 @@ std::string getHostname() {
   static long max_hostname = sysconf(_SC_HOST_NAME_MAX);
   long size = (max_hostname > 255) ? max_hostname + 1 : 256;
 #endif
+
   char* hostname = (char*)malloc(size);
   std::string hostname_string;
   if (hostname != nullptr) {
@@ -154,7 +155,6 @@ std::string generateHostUUID() {
   }
 
   // Unable to get the hardware UUID, just return a new UUID
-  VLOG(1) << "Cannot retrieve platform UUID: generating an ephemeral UUID";
   return generateNewUUID();
 }
 
@@ -165,7 +165,6 @@ Status getInstanceUUID(std::string& ident) {
   if (ident.size() == 0) {
     // There was no UUID stored in the database, generate one and store it.
     ident = osquery::generateNewUUID();
-    VLOG(1) << "Using UUID " << ident << " as host identifier";
     return setDatabaseValue(kPersistentSettings, "instance_uuid_v1", ident);
   }
 
@@ -176,8 +175,6 @@ Status getEphemeralUUID(std::string& ident) {
   if (ident.size() == 0) {
     ident = osquery::generateNewUUID();
   }
-  VLOG(1) << "Using UUID " << ident << " as host identifier";
-
   return Status(0, "OK");
 }
 
@@ -187,10 +184,8 @@ Status getHostUUID(std::string& ident) {
   if (ident.size() == 0) {
     // There was no UUID stored in the database, generate one and store it.
     ident = osquery::generateHostUUID();
-    VLOG(1) << "Using UUID " << ident << " as host identifier";
     return setDatabaseValue(kPersistentSettings, "host_uuid_v3", ident);
   }
-
   return status;
 }
 
@@ -207,6 +202,7 @@ std::string getHostIdentifier() {
 
   Status result(2);
   if (ident.size() == 0) {
+    // The identifier has not been set yet.
     if (FLAGS_host_identifier == "uuid") {
       result = getHostUUID(ident);
     } else if (FLAGS_host_identifier == "instance") {
@@ -218,13 +214,13 @@ std::string getHostIdentifier() {
     }
 
     if (!result.ok()) {
-      // https://github.com/facebook/osquery/issues/3174
-
       // assuming the default of "hostname" as the machine identifier
       // intentionally not set to `ident` because the hostname may change
       // throughout the life of the process and we always want to be using the
       // most current hostname
       return osquery::getHostname();
+    } else {
+      VLOG(1) << "Using host identifier: " << ident;
     }
   }
   return ident;

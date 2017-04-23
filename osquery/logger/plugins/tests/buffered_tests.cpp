@@ -39,7 +39,7 @@ MATCHER_P(MatchesStatus, expected, "") {
     pt::read_json(json_in, actual);
     return expected.severity == actual.get<int>("severity") &&
            expected.filename == actual.get<std::string>("filename") &&
-           expected.line == actual.get<int>("line") &&
+           expected.line == actual.get<size_t>("line") &&
            expected.message == actual.get<std::string>("message");
   } catch (const std::exception& e) {
     return false;
