@@ -42,16 +42,13 @@ const std::map<int, std::string> kServiceType = {
     {0x00000110, "OWN_PROCESS(Interactive)"},
     {0x00000120, "SHARE_PROCESS(Interactive)"}};
 
-auto closeServiceHandle = [](SC_HANDLE sch) {
-  if (sch != nullptr) {
-    CloseServiceHandle(sch);
-  }
-};
-typedef std::unique_ptr<SC_HANDLE__, decltype(closeServiceHandle)> svc_handle_t;
+auto closeServiceHandle = [](SC_HANDLE sch) { CloseServiceHandle(sch); };
+using svc_handle_t = std::unique_ptr<SC_HANDLE__, decltype(closeServiceHandle)>;
 
 static inline Status getService(const SC_HANDLE& scmHandle,
                                 const ENUM_SERVICE_STATUS_PROCESS& svc,
-                                Row& result) {
+                                QueryData& results) {
+  Row r;
   svc_handle_t svcHandle(
       OpenService(scmHandle, svc.lpServiceName, SERVICE_QUERY_CONFIG),
       closeServiceHandle);
@@ -72,8 +69,9 @@ static inline Status getService(const SC_HANDLE& scmHandle,
     return Status(1, "Failed to malloc service config buffer");
   }
 
-  if (0 ==
-      QueryServiceConfig(svcHandle.get(), lpsc.get(), cbBufSize, &cbBufSize)) {
+  auto ret =
+      QueryServiceConfig(svcHandle.get(), lpsc.get(), cbBufSize, &cbBufSize);
+  if (ret == 0) {
     return Status(GetLastError(), "Failed to query service config");
   }
 
@@ -86,50 +84,51 @@ static inline Status getService(const SC_HANDLE& scmHandle,
     if (lpsd == nullptr) {
       return Status(1, "Failed to malloc service description buffer");
     }
-    if (0 == QueryServiceConfig2(svcHandle.get(),
-                                 SERVICE_CONFIG_DESCRIPTION,
-                                 (LPBYTE)lpsd.get(),
-                                 cbBufSize,
-                                 &cbBufSize)) {
+    ret = QueryServiceConfig2(svcHandle.get(),
+                              SERVICE_CONFIG_DESCRIPTION,
+                              (LPBYTE)lpsd.get(),
+                              cbBufSize,
+                              &cbBufSize);
+    if (ret == 0) {
       return Status(GetLastError(),
                     "Failed to query size of service description buffer");
     }
     if (lpsd->lpDescription != nullptr) {
-      result["description"] = SQL_TEXT(lpsd->lpDescription);
+      r["description"] = SQL_TEXT(lpsd->lpDescription);
     }
   } else if (ERROR_MUI_FILE_NOT_FOUND != err) {
     // Bug in Windows 10 with CDPUserSvc_63718, just ignore description
     return Status(err, "Failed to query service description");
   }
 
-  result["name"] = SQL_TEXT(svc.lpServiceName);
-  result["display_name"] = SQL_TEXT(svc.lpDisplayName);
-  result["status"] =
-      SQL_TEXT(kSvcStatus[svc.ServiceStatusProcess.dwCurrentState]);
-  result["pid"] = INTEGER(svc.ServiceStatusProcess.dwProcessId);
-  result["win32_exit_code"] = INTEGER(svc.ServiceStatusProcess.dwWin32ExitCode);
-  result["service_exit_code"] =
+  r["name"] = SQL_TEXT(svc.lpServiceName);
+  r["display_name"] = SQL_TEXT(svc.lpDisplayName);
+  r["status"] = SQL_TEXT(kSvcStatus[svc.ServiceStatusProcess.dwCurrentState]);
+  r["pid"] = INTEGER(svc.ServiceStatusProcess.dwProcessId);
+  r["win32_exit_code"] = INTEGER(svc.ServiceStatusProcess.dwWin32ExitCode);
+  r["service_exit_code"] =
       INTEGER(svc.ServiceStatusProcess.dwServiceSpecificExitCode);
-  result["start_type"] = SQL_TEXT(kSvcStartType[lpsc->dwStartType]);
-  result["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
-  result["user_account"] = SQL_TEXT(lpsc->lpServiceStartName);
+  r["start_type"] = SQL_TEXT(kSvcStartType[lpsc->dwStartType]);
+  r["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
+  r["user_account"] = SQL_TEXT(lpsc->lpServiceStartName);
 
   if (kServiceType.count(lpsc->dwServiceType) > 0) {
-    result["service_type"] = SQL_TEXT(kServiceType.at(lpsc->dwServiceType));
+    r["service_type"] = SQL_TEXT(kServiceType.at(lpsc->dwServiceType));
   } else {
-    result["service_type"] = SQL_TEXT("UNKNOWN");
+    r["service_type"] = SQL_TEXT("UNKNOWN");
   }
 
   QueryData regResults;
   queryKey("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\" +
-               result["name"] + "\\Parameters",
+               r["name"] + "\\Parameters",
            regResults);
   for (const auto& aKey : regResults) {
     if (aKey.at("name") == "ServiceDll") {
-      result["module_path"] = SQL_TEXT(aKey.at("data"));
+      r["module_path"] = SQL_TEXT(aKey.at("data"));
     }
   }
 
+  results.push_back(r);
   return Status();
 }
 
@@ -164,26 +163,25 @@ static inline Status getServices(QueryData& results) {
     return Status(1, "Failed to malloc service buffer");
   }
 
-  if (0 == EnumServicesStatusEx(scmHandle.get(),
-                                SC_ENUM_PROCESS_INFO,
-                                SERVICE_WIN32,
-                                SERVICE_STATE_ALL,
-                                (LPBYTE)lpSvcBuf.get(),
-                                bytesNeeded,
-                                &bytesNeeded,
-                                &serviceCount,
-                                nullptr,
-                                nullptr)) {
+  auto ret = EnumServicesStatusEx(scmHandle.get(),
+                                  SC_ENUM_PROCESS_INFO,
+                                  SERVICE_WIN32,
+                                  SERVICE_STATE_ALL,
+                                  (LPBYTE)lpSvcBuf.get(),
+                                  bytesNeeded,
+                                  &bytesNeeded,
+                                  &serviceCount,
+                                  nullptr,
+                                  nullptr);
+  if (ret == 0) {
     return Status(GetLastError(), "Failed to enumerate services");
   }
 
   for (size_t i = 0; i < serviceCount; i++) {
-    Row r;
-    auto s = getService(scmHandle.get(), lpSvcBuf[i], r);
+    auto s = getService(scmHandle.get(), lpSvcBuf[i], results);
     if (!s.ok()) {
       return s;
     }
-    results.push_back(r);
   }
 
   return Status();
