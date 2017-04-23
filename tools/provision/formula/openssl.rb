@@ -3,24 +3,23 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Openssl < AbstractOsqueryFormula
   desc "SSL/TLS cryptography library"
   homepage "https://openssl.org/"
-  url "https://www.openssl.org/source/openssl-1.0.2j.tar.gz"
-  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2j.tar.gz"
-  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2j.tar.gz"
-  sha256 "e7aff292be21c259c6af26469c7a9b3ba26e9abaaffd325e3dccc9785256c431"
-  revision 2
+  url "https://www.openssl.org/source/openssl-1.0.2k.tar.gz"
+  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2k.tar.gz"
+  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2k.tar.gz"
+  sha256 "6b3977c61f2aedf0f96367dcfb5c6e578cf37e7b8d913b4ecb6643c3cb88d8c0"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "8790ae4eec2f9cea04ebe72adcaecba9f73917c572de4b11b6c1cb65077b7769" => :sierra
-    sha256 "0cc84f31d6fdb950628e9e25048f79dbb438177914b244374d074a8458fb5a82" => :x86_64_linux
+    sha256 "164c30c25467b9763983703ddc29f89943d7efc2a35f2442969bef04f981635f" => :sierra
+    sha256 "da95cea777f63e7f777ec30a62c7b7a40b008df67a2a78e6424eb92695594f2f" => :x86_64_linux
   end
 
   resource "cacert" do
     # Update post_install when you update this resource.
     # homepage "http://curl.haxx.se/docs/caextract.html"
-    url "https://curl.haxx.se/ca/cacert-2016-11-02.pem"
-    sha256 "cc7c9e2d259e20b72634371b146faec98df150d18dd9da9ad6ef0b2deac2a9d3"
+    url "https://curl.haxx.se/ca/cacert-2017-01-18.pem"
+    sha256 "e62a07e61e5870effa81b430e1900778943c228bd7da1259dd6a955ee2262b47"
   end
 
   option "without-test", "Skip build-time tests (not recommended)"
@@ -46,6 +45,8 @@ class Openssl < AbstractOsqueryFormula
       "no-ssl2",
       "no-ssl3",
       "no-asm",
+      "no-shared",
+      "no-weak-ssl-ciphers",
       "zlib-dynamic",
       "enable-cms",
     ]
@@ -82,7 +83,7 @@ class Openssl < AbstractOsqueryFormula
 
   def post_install
     ENV.delete "LIBRARY_PATH"
-    (etc/"openssl").install resource("cacert").files("cacert-2016-11-02.pem" => "cert.pem")
+    (etc/"openssl").install resource("cacert").files("cacert-2017-01-18.pem" => "cert.pem")
   end
 
   def caveats; <<-EOS.undent
