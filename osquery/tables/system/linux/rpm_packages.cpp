@@ -12,6 +12,7 @@
 #include <rpm/rpmdb.h>
 #include <rpm/rpmfi.h>
 #include <rpm/rpmlib.h>
+#include <rpm/rpmlog.h>
 #include <rpm/rpmpgp.h>
 #include <rpm/rpmts.h>
 
@@ -74,6 +75,8 @@ class RpmEnvironmentManager : public boost::noncopyable {
     if (!config_.is_initialized()) {
       setEnvVar("RPM_CONFIGDIR", "/usr/lib/rpm");
     }
+
+    callback_ = rpmlogSetCallback(&RpmEnvironmentManager::Callback, nullptr);
   }
 
   ~RpmEnvironmentManager() {
@@ -81,17 +84,41 @@ class RpmEnvironmentManager : public boost::noncopyable {
     if (!config_.is_initialized()) {
       unsetEnvVar("RPM_CONFIGDIR");
     }
+
+    if (callback_ != nullptr) {
+      rpmlogSetCallback(callback_, nullptr);
+      callback_ = nullptr;
+    }
+  }
+
+  static int Callback(rpmlogRec rec, rpmlogCallbackData) {
+    static std::string last_message;
+
+    if (rpmlogRecMessage(rec) != nullptr) {
+      if (last_message != rpmlogRecMessage(rec)) {
+        last_message = rpmlogRecMessage(rec);
+        VLOG(1) << "RPM notice: " << last_message;
+      }
+    }
+    return 0;
   }
 
  private:
+  // Previous configuration directory.
   boost::optional<std::string> config_;
+
+  // Previous callback function.
+  rpmlogCallback callback_{nullptr};
 };
 
 QueryData genRpmPackages(QueryContext& context) {
   QueryData results;
 
   auto dropper = DropPrivileges::get();
-  dropper->dropTo("nobody");
+  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+    LOG(WARNING) << "Cannot drop privileges for rpm_packages";
+    return results;
+  }
 
   // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
   RpmEnvironmentManager env_manager;
@@ -99,7 +126,7 @@ QueryData genRpmPackages(QueryContext& context) {
   // The following implementation uses http://rpm.org/api/4.11.1/
   rpmInitCrypto();
   if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
-    TLOG << "Cannot read RPM configuration files.";
+    TLOG << "Cannot read RPM configuration files";
     return results;
   }
 
@@ -140,13 +167,16 @@ QueryData genRpmPackageFiles(QueryContext& context) {
   QueryData results;
 
   auto dropper = DropPrivileges::get();
-  dropper->dropTo("nobody");
+  if (!dropper->dropTo("nobody") && isUserAdmin()) {
+    LOG(WARNING) << "Cannot drop privileges for rpm_package_files";
+    return results;
+  }
 
   // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
   RpmEnvironmentManager env_manager;
 
   if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
-    TLOG << "Cannot read RPM configuration files.";
+    TLOG << "Cannot read RPM configuration files";
     return results;
   }
 
