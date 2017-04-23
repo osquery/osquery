@@ -101,7 +101,9 @@ $nupkg +=
   </files>
 </package>
 '@
+
   Copy-Item -Recurse -Force "$scriptPath\tools\deployment\chocolatey\" "$scriptPath\build\"
+  Copy-Item -Recurse -Force "$scriptPath\tools\provision\chocolatey\osquery_utils.ps1" "$scriptPath\build\"
   Copy-Item -Recurse -Force $packs "$scriptPath\build\packs-examples"
   $packsPath = "$scriptPath\build\packs-examples"
   New-Item -Force -ItemType Directory -Path "$scriptPath\build\chocolatey\tools\bin"
