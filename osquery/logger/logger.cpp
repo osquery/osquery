@@ -19,6 +19,7 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
@@ -594,7 +595,7 @@ size_t queuedSenders() {
 }
 
 void relayStatusLogs(bool async) {
-  if (FLAGS_disable_logging) {
+  if (FLAGS_disable_logging || !DatabasePlugin::kDBHandleOptionAllowOpen) {
     return;
   }
 
