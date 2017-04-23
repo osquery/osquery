@@ -10,7 +10,10 @@
 function distro_main() {
   do_sudo pkg update
   do_sudo pkg upgrade -y
-  do_sudo portsnap update
+
+  # Use it with caution -- unless the dependency is newly added
+  # and the pre-built package is not ready yet.
+  #do_sudo portsnap --interactive fetch update
 
   package gmake
   package cmake
@@ -26,9 +29,8 @@ function distro_main() {
   package magic
   package sleuthkit
   package augeas
-
-  ports net-mgmt/lldpd
-  ports databases/rocksdb-lite
-  ports devel/linenoise-ng
-  ports devel/cpp-netlib
+  package lldpd
+  package rocksdb-lite
+  package linenoise-ng
+  package cpp-netlib
 }
