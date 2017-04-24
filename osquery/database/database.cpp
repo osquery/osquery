@@ -444,7 +444,6 @@ bool addUniqueRowToQueryData(QueryData& q, const Row& r) {
 }
 
 Status DatabasePlugin::initPlugin() {
-  WriteLock lock(kDatabaseReset);
   // Initialize the database plugin using the flag.
   auto plugin = (FLAGS_disable_database) ? "ephemeral" : kInternalDatabase;
   auto status = RegistryFactory::get().setActive("database", plugin);
@@ -684,17 +683,22 @@ Status scanDatabaseKeys(const std::string& domain,
 }
 
 void resetDatabase() {
-  WriteLock lock(kDatabaseReset);
-  DatabasePlugin::kDBInitialized = false;
-  // Prevent RocksDB reentrancy by logger plugins during plugin setup.
-  VLOG(1) << "Resetting the database plugin: "
-          << Registry::get().getActive("database");
-  PluginRequest request = {{"action", "reset"}};
-  if (!Registry::call("database", request)) {
+  auto active = Registry::get().getActive("database");
+  Status status;
+
+  {
+    WriteLock lock(kDatabaseReset);
+    DatabasePlugin::kDBInitialized = false;
+    // Prevent RocksDB reentrancy by logger plugins during plugin setup.
+    VLOG(1) << "Resetting the database plugin: " << active;
+    PluginRequest request = {{"action", "reset"}};
+    status = Registry::call("database", request);
+  }
+
+  if (!status.ok()) {
     // The active database could not be reset, fallback to an ephemeral.
     Registry::get().setActive("database", "ephemeral");
-    LOG(WARNING) << "Unable to reset database plugin: "
-                 << Registry::get().getActive("database");
+    LOG(WARNING) << "Unable to reset database plugin: " << active;
   }
   DatabasePlugin::kDBInitialized = true;
 }
