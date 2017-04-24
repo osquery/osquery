@@ -277,7 +277,7 @@ function Install-ThirdParty {
     "doxygen.1.8.11",
     "gflags-dev.2.2.0",
     "glog.0.3.4",
-    "openssl.1.0.2-j",
+    "openssl.1.0.2-k",
     "rocksdb.5.1.4",
     "snappy-msvc.1.1.1.8",
     "thrift-dev.0.9.3",
