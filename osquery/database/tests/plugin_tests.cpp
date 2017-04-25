@@ -8,6 +8,8 @@
  *
  */
 
+#include <future>
+
 #include "osquery/database/tests/plugin_tests.h"
 
 namespace osquery {
@@ -38,6 +40,8 @@ void DatabasePluginTests::testPluginCheck() {
   EXPECT_TRUE(db_plugin->reset());
 }
 
+auto kTestReseter = ([]() { resetDatabase(); });
+
 void DatabasePluginTests::testReset() {
   RegistryFactory::get().setActive("database", getName());
   setDatabaseValue(kLogs, "reset", "1");
@@ -55,6 +59,19 @@ void DatabasePluginTests::testPut() {
   auto s = getPlugin()->put(kQueries, "test_put", "bar");
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.getMessage(), "OK");
+
+  s = setDatabaseValue(kQueries, "test_put", "");
+  EXPECT_TRUE(s.ok());
+
+  PluginRequest req = {{"action", "put"},
+                       {"domain", kQueries},
+                       {"key", "test_put"},
+                       {"value", "bar"}};
+  s = Registry::call("database", getName(), req);
+  EXPECT_TRUE(s.ok());
+
+  auto reset = std::async(std::launch::async, kTestReseter);
+  reset.get();
 }
 
 void DatabasePluginTests::testGet() {
@@ -65,6 +82,9 @@ void DatabasePluginTests::testGet() {
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.getMessage(), "OK");
   EXPECT_EQ(r, "bar");
+
+  auto reset = std::async(std::launch::async, kTestReseter);
+  reset.get();
 }
 
 void DatabasePluginTests::testDelete() {
