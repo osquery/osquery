@@ -34,7 +34,7 @@ namespace tables {
 
 typedef std::pair<int, std::string> RouteType;
 typedef std::map<int, std::string> InterfaceMap;
-typedef std::vector<struct sockaddr *> AddressMap;
+typedef std::vector<struct sockaddr*> AddressMap;
 
 const std::string kDefaultRoute = "0.0.0.0";
 
@@ -65,7 +65,7 @@ InterfaceMap genInterfaceMap() {
     if (if_addr->ifa_addr != nullptr &&
         if_addr->ifa_addr->sa_family == AF_LINK) {
       auto route_type = std::string(if_addr->ifa_name);
-      auto sdl = (struct sockaddr_dl *)if_addr->ifa_addr;
+      auto sdl = (struct sockaddr_dl*)if_addr->ifa_addr;
       ifmap.insert(it, std::make_pair(sdl->sdl_index, route_type));
     }
   }
@@ -117,7 +117,7 @@ Status genArp(const struct rt_msghdr* route,
   // The cache will always know the address.
   r["address"] = ipAsString(addr_map[RTAX_DST]);
 
-  auto sdl = (struct sockaddr_dl *)addr_map[RTA_DST];
+  auto sdl = (struct sockaddr_dl*)addr_map[RTA_DST];
   if (sdl->sdl_alen > 0) {
     r["mac"] = macAsString(LLADDR(sdl));
   } else {
@@ -134,7 +134,7 @@ Status genArp(const struct rt_msghdr* route,
   return Status(0, "OK");
 }
 
-void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
+void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData& results) {
   size_t table_size;
   int mib[] = {CTL_NET, PF_ROUTE, 0, AF_UNSPEC, NET_RT_FLAGS, type.first};
   if (sysctl(mib, sizeof(mib) / sizeof(int), nullptr, &table_size, nullptr, 0) <
@@ -143,7 +143,7 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
     return;
   }
 
-  auto table = (char *)malloc(table_size);
+  auto table = (char*)malloc(table_size);
   if (sysctl(mib, sizeof(mib) / sizeof(int), table, &table_size, nullptr, 0) <
       0) {
     free(table);
@@ -151,9 +151,9 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
   }
 
   size_t message_length = 0;
-  for (char *p = table; p < table + table_size; p += message_length) {
-    auto route = (struct rt_msghdr *)p;
-    auto sa = (struct sockaddr *)(route + 1);
+  for (char* p = table; p < table + table_size; p += message_length) {
+    auto route = (struct rt_msghdr*)p;
+    auto sa = (struct sockaddr*)(route + 1);
     message_length = route->rtm_msglen;
 
     // Populate route's sockaddr table (dest, gw, mask).
@@ -161,7 +161,7 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
     for (int i = 0; i < RTAX_MAX; i++) {
       if (route->rtm_addrs & (1 << i)) {
         addr_map.push_back(sa);
-        sa = (struct sockaddr *)((char *)sa + (sa->sa_len));
+        sa = (struct sockaddr*)((char*)sa + (sa->sa_len));
       } else {
         addr_map.push_back(nullptr);
       }
@@ -190,25 +190,25 @@ void genRouteTableType(RouteType type, InterfaceMap ifmap, QueryData &results) {
   free(table);
 }
 
-QueryData genArpCache(QueryContext &context) {
+QueryData genArpCache(QueryContext& context) {
   QueryData results;
   InterfaceMap ifmap;
 
   ifmap = genInterfaceMap();
-  for (const auto &arp_type : kArpTypes) {
+  for (const auto& arp_type : kArpTypes) {
     genRouteTableType(arp_type, ifmap, results);
   }
 
   return results;
 }
 
-QueryData genRoutes(QueryContext &context) {
+QueryData genRoutes(QueryContext& context) {
   QueryData results;
   InterfaceMap ifmap;
 
   // Need a map from index->name for each route entry.
   ifmap = genInterfaceMap();
-  for (const auto &route_type : kRouteTypes) {
+  for (const auto& route_type : kRouteTypes) {
     if (context.constraints["type"].notExistsOrMatches(route_type.second)) {
       genRouteTableType(route_type, ifmap, results);
     }

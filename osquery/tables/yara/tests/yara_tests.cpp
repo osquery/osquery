@@ -12,7 +12,7 @@
 
 #include <osquery/filesystem.h>
 
-#include "osquery/tables/other/yara_utils.h"
+#include "osquery/tables/yara/yara_utils.h"
 
 namespace osquery {
 
@@ -48,12 +48,8 @@ class YARATest : public testing::Test {
     r["count"] = "0";
     r["matches"] = "";
 
-    result = yr_rules_scan_file(rules,
-                                ls.c_str(),
-                                SCAN_FLAGS_FAST_MODE,
-                                YARACallback,
-                                (void*)&r,
-                                0);
+    result = yr_rules_scan_file(
+        rules, ls.c_str(), SCAN_FLAGS_FAST_MODE, YARACallback, (void*)&r, 0);
     EXPECT_TRUE(result == ERROR_SUCCESS);
 
     yr_rules_destroy(rules);
