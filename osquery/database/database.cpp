@@ -497,7 +497,13 @@ Status DatabasePlugin::call(const PluginRequest& request,
   auto domain = (request.count("domain") > 0) ? request.at("domain") : "";
   auto key = (request.count("key") > 0) ? request.at("key") : "";
 
+  if (request.at("action") == "reset") {
+    WriteLock lock(kDatabaseReset);
+    return this->reset();
+  }
+
   // Switch over the possible database plugin actions.
+  ReadLock lock(kDatabaseReset);
   if (request.at("action") == "get") {
     std::string value;
     auto status = this->get(domain, key, value);
@@ -529,8 +535,6 @@ Status DatabasePlugin::call(const PluginRequest& request,
       response.push_back({{"k", k}});
     }
     return status;
-  } else if (request.at("action") == "reset") {
-    return this->reset();
   }
 
   return Status(1, "Unknown database plugin action");
@@ -686,14 +690,11 @@ void resetDatabase() {
   auto active = Registry::get().getActive("database");
   Status status;
 
-  {
-    WriteLock lock(kDatabaseReset);
-    DatabasePlugin::kDBInitialized = false;
-    // Prevent RocksDB reentrancy by logger plugins during plugin setup.
-    VLOG(1) << "Resetting the database plugin: " << active;
-    PluginRequest request = {{"action", "reset"}};
-    status = Registry::call("database", request);
-  }
+  DatabasePlugin::kDBInitialized = false;
+  // Prevent RocksDB reentrancy by logger plugins during plugin setup.
+  VLOG(1) << "Resetting the database plugin: " << active;
+  PluginRequest request = {{"action", "reset"}};
+  status = Registry::call("database", request);
 
   if (!status.ok()) {
     // The active database could not be reset, fallback to an ephemeral.
