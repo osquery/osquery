@@ -8,14 +8,14 @@
  *
  */
 
-#include <string>
 #include <iomanip>
+#include <string>
 
 #include <ifaddrs.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <sys/socket.h>
+
 #include <arpa/inet.h>
 #include <net/if_dl.h>
 #include <net/route.h>
@@ -74,9 +74,9 @@ InterfaceMap genInterfaceMap() {
   return ifmap;
 }
 
-Status genRoute(const struct rt_msghdr *route,
-                const AddressMap &addr_map,
-                Row &r) {
+Status genRoute(const struct rt_msghdr* route,
+                const AddressMap& addr_map,
+                Row& r) {
   r["flags"] = INTEGER(route->rtm_flags);
   r["mtu"] = INTEGER(route->rtm_rmx.rmx_mtu);
 
@@ -107,9 +107,9 @@ Status genRoute(const struct rt_msghdr *route,
   return Status(0, "OK");
 }
 
-Status genArp(const struct rt_msghdr *route,
-              const AddressMap &addr_map,
-              Row &r) {
+Status genArp(const struct rt_msghdr* route,
+              const AddressMap& addr_map,
+              Row& r) {
   if (addr_map[RTAX_DST]->sa_family != AF_INET) {
     return Status(1, "Not in ARP cache");
   }
@@ -216,5 +216,5 @@ QueryData genRoutes(QueryContext &context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
