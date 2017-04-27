@@ -3,6 +3,7 @@ description("Applications and binaries set as user/login startup items.")
 schema([
     Column("name", TEXT, "Name of startup item"),
     Column("path", TEXT, "Path of startup item"),
+    Column("args", TEXT, "Arguments provided to startup executable"),
     Column("type", TEXT, "Startup Item or Login Item"),
     Column("source", TEXT, "Directory or plist containing startup item"),
     Column("status", TEXT, "Startup status; either enabled or disabled"),
