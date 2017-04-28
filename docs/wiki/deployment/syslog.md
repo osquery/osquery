@@ -26,6 +26,8 @@ select time, message from asl where facility = 'authpriv' and sender = 'sudo' an
 
 On Linux, the `syslog` table queries logs forwarded over a named pipe from a properly configured **rsyslogd**. This method was chosen to support the widest range of Linux flavors (in theory, anything running at least **rsyslogd** version 5, and tested with Ubuntu 12/14, CentOS 7.1, RHEL 7.2), and to ensure that existing syslog routines and configurations are not modified. As syslog is ingested into osquery, it is written into the backing store (RocksDB) and made available for querying.
 
+Alternatively you can also use **syslog-ng** to forward log messages to osquery. 
+
 Note: the Syslog ingestion is NOT recommended for hosts functioning as syslog aggregators. We have not tested ingestion for massive-throughput or lossless setups.
 
 ### Configuration
@@ -67,6 +69,41 @@ Note: **rsyslogd** will only check once, at startup, whether it can write to the
 #### Other configuration
 
 Configuration flags control the retention of syslog logs. `--syslog_events_expiry` (default 30 days) defines how long (in seconds) to keep logs. `--syslog_events_max` (default 100,000) sets a maximum number of logs to retain (oldest logs are deleted first if this number is surpassed).
+
+#### Configuring syslog-ng
+
+Configuring osquery to receive logs from syslog-ng is no different from rsyslog, so here only the syslog-ng part is shown. Add the following to your **syslog-ng** configuration files (usually located in `/etc/syslog-ng/syslog-ng.conf` or `/etc/syslog-ng/conf.d/`):
+```
+# Reformat log messages in a format that osquery accepts
+rewrite r_csv_message {
+  set("$MESSAGE", value("CSVMESSAGE") );
+  subst("\"","\"\"", value("CSVMESSAGE"), flags(global) );
+};
+
+template t_csv {
+template("\"${ISODATE}\",\"${HOST}\",\"${LEVEL_NUM}\",\"${FACILITY}\",\"${PROGRAM}\",\"${CSVMESSAGE}\"\n");
+ template_escape(no);
+};
+
+# Sends messages to osquery
+destination d_osquery {
+  pipe("/var/osquery/syslog_pipe" template(t_csv));
+};
+
+# Stores messages sent to osquery in a log file, useful for troubleshooting
+ destination d_osquery_copy {
+  file("/var/log/csv_osquery" template(t_csv));
+};
+
+# Log path to send incoming messages to osquery
+ log {
+ source(s_sys);
+ rewrite(r_csv_message);
+ destination(d_osquery);
+ # destination(d_osquery_copy);
+};
+```
+The rewrite is needed to make sure that quotation marks are escaped. The template re-formats the messages as expected by osquery. Binaries provided by the osquery project expect syslog messages in this pipe: you might need to change the location if you compiled osquery yourself. If you want to see what messages are sent to osquery you can uncomment the “d_osquery_copy” destination in the log path. The “s_sys” source refers to your local log messages and might be different on your system (this example is from CentOS).
 
 ### Usage
 
