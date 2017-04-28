@@ -47,10 +47,14 @@ int YARACallback(int message, void* message_data, void* user_data);
 class YARAConfigParserPlugin : public ConfigParserPlugin {
  public:
   /// Request a single "yara" top level key.
-  std::vector<std::string> keys() const override { return {"yara"}; }
+  std::vector<std::string> keys() const override {
+    return {"yara"};
+  }
 
   // Retrieve compiled rules.
-  std::map<std::string, YR_RULES*>& rules() { return rules_; }
+  std::map<std::string, YR_RULES*>& rules() {
+    return rules_;
+  }
 
   Status setUp() override;
 

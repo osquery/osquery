@@ -34,11 +34,12 @@ CANONICAL_PLATFORMS = {
     "specs": "All Platforms",
     "darwin": "Darwin (Apple OS X)",
     "linux": "Ubuntu, CentOS",
-    "centos": "CentOS",
-    "ubuntu": "Ubuntu",
     "utility": "Utility",
     "windows": "Microsoft Windows",
     "posix": "POSIX-compatible Plaforms",
+    "yara": "YARA",
+    "lldpd": "LLDPD",
+    "sleuthkit": "The Sleuth Kit"
 }
 
 TEMPLATE_API_DEFINITION = """

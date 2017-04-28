@@ -41,7 +41,7 @@ MATCHER_P(MatchesStatus, expected, "") {
            expected.filename == actual.get<std::string>("filename") &&
            expected.line == actual.get<size_t>("line") &&
            expected.message == actual.get<std::string>("message");
-  } catch (const std::exception& e) {
+  } catch (const std::exception& /* e */) {
     return false;
   }
 }
@@ -83,10 +83,12 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
 
 TEST_F(BufferedLogForwarderTests, test_index) {
   MockBufferedLogForwarder runner;
-  EXPECT_THAT(runner.genResultIndex(), ContainsRegex("mock_r_[0-9]+_1"));
-  EXPECT_THAT(runner.genStatusIndex(), ContainsRegex("mock_s_[0-9]+_2"));
-  EXPECT_THAT(runner.genResultIndex(), ContainsRegex("mock_r_[0-9]+_3"));
-  EXPECT_THAT(runner.genStatusIndex(), ContainsRegex("mock_s_[0-9]+_4"));
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    EXPECT_THAT(runner.genResultIndex(), ContainsRegex("mock_r_[0-9]+_1"));
+    EXPECT_THAT(runner.genStatusIndex(), ContainsRegex("mock_s_[0-9]+_2"));
+    EXPECT_THAT(runner.genResultIndex(), ContainsRegex("mock_r_[0-9]+_3"));
+    EXPECT_THAT(runner.genStatusIndex(), ContainsRegex("mock_s_[0-9]+_4"));
+  }
 
   EXPECT_TRUE(runner.isResultIndex(runner.genResultIndex()));
   EXPECT_FALSE(runner.isResultIndex(runner.genStatusIndex()));
