@@ -12,10 +12,10 @@
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/tables.h>
 #include <osquery/status.h>
+#include <osquery/tables.h>
 
-#include "osquery/tables/other/yara_utils.h"
+#include "osquery/tables/yara/yara_utils.h"
 
 #ifdef CONCAT
 #undef CONCAT
