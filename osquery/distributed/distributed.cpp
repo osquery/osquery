@@ -94,30 +94,35 @@ size_t Distributed::getCompletedCount() {
 }
 
 Status Distributed::serializeResults(std::string& json) {
-  pt::ptree queries;
-  pt::ptree statuses;
+  rapidjson::Document queries;
+  rapidjson::Document statuses;
+  queries.SetObject();
+  statuses.SetObject();
   for (const auto& result : results_) {
-    pt::ptree qd;
-    auto s = serializeQueryData(result.results, result.columns, qd);
+    rapidjson::Document qd;
+    qd.SetArray();
+    auto s = serializeQueryDataRJ(result.results, result.columns, qd);
     if (!s.ok()) {
       return s;
     }
-
-    queries.add_child(result.request.id, qd);
-    statuses.put(result.request.id, result.status.getCode());
+    rapidjson::Value qv = rapidjson::Value(result.request.id.c_str(), result.request.id.size(), queries.GetAllocator());
+    queries.AddMember(qv, qd, queries.GetAllocator());
+    statuses.AddMember(qv, result.status.getCode(), statuses.GetAllocator());
   }
 
-  pt::ptree results;
-  results.add_child("queries", queries);
-  results.add_child("statuses", statuses);
+  rapidjson::Document results;
+  results.AddMember("queries", queries, results.GetAllocator());
+  results.AddMember("statuses", statuses, results.GetAllocator());
 
-  std::stringstream ss;
+  rapidjson::StringBuffer sb;
   try {
-    pt::write_json(ss, results, false);
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    results.Accept(writer); 
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error writing JSON: " + std::string(e.what()));
   }
-  json = ss.str();
+  LOG(INFO) << "Serialization Successful!";
+  json = sb.GetString();
 
   return Status(0, "OK");
 }

@@ -52,6 +52,17 @@ static void DATABASE_serialize(benchmark::State& state) {
 
 BENCHMARK(DATABASE_serialize)->ArgPair(1, 1)->ArgPair(10, 10)->ArgPair(10, 100);
 
+static void DATABASE_serializeRJ(benchmark::State& state) {
+  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  while (state.KeepRunning()) {
+    rapidjson::Document d;
+    d.SetObject();
+    serializeQueryDataRJ(qd, d);
+  }
+}
+
+BENCHMARK(DATABASE_serializeRJ)->ArgPair(1, 1)->ArgPair(10, 10)->ArgPair(10, 100);
+
 static void DATABASE_serialize_column_order(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range_x(), state.range_y());
   auto cn = getExampleColumnNames(state.range_x());

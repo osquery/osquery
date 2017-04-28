@@ -694,6 +694,93 @@ void dumpDatabase() {
     }
   }
 }
+/*
+inline void addLegacyFieldsAndDecorationsRJ(const QueryLogItem& item,
+                                          rapidjson::Document& d) {
+  // Apply legacy fields.
+  d.AddMember(
+    rapidjson::Value("name", d.GetAllocator()).Move(),
+    rapidjson::Value(item.name.c_str(), d.GetAllocator()).Move(),
+    d.GetAllocator());
+
+  d.AddMember(
+    rapidjson::Value("hostIdentifier", d.GetAllocator()).Move(),
+    rapidjson::Value(tem.identifier.c_str(), d.GetAllocator()).Move(),
+    d.GetAllocator());
+
+  d.AddMember(
+    rapidjson::Value("calendarTime", d.GetAllocator()).Move(),
+    rapidjson::Value(item.calendar_time.c_str(), d.GetAllocator()).Move(),
+    d.GetAllocator());
+
+  d.AddMember(
+    rapidjson::Value("unixTime", d.GetAllocator()).Move(),
+    rapidjson::Value(item.time.c_str(), d.GetAllocator()).Move(),
+    d.GetAllocator());
+
+  // Append the decorations.
+  if (item.decorations.size() > 0) {
+    auto decorator_parent = std::ref(d);
+    if (!FLAGS_decorations_top_level) {
+      tree.add_child("decorations", pt::ptree());
+      decorator_parent = tree.get_child("decorations");
+    }
+    for (const auto& name : item.decorations) {
+      decorator_parent.get().put<std::string>(name.first, name.second);
+    }
+  }
+}
+
+Status serializeEventRJ(const QueryLogItem& item,
+                      const pt::ptree& event,
+                      rapidjson::Document& d) {
+  addLegacyFieldsAndDecorations(item, d);
+  pt::ptree columns;
+  for (auto& i : event) {
+    // Yield results as a "columns." map to avoid namespace collisions.
+    columns.put<std::string>(i.first, i.second.get_value<std::string>());
+  }
+
+  tree.add_child("columns", columns);
+  return Status(0, "OK");
+}
+
+
+Status serializeQueryLogItemAsEventsRJ(const QueryLogItem& i, rapidjson::Document& d) {
+  rapidjson::Document diff_results;
+  // Note, snapshot query results will bypass the "AsEvents" call, even when
+  // log_result_events is set. This is because the schedule will call an
+  // explicit ::logSnapshotQuery, which does not check for the result_events
+  // configuration.
+  auto status = serializeDiffResultsRJ(i.results, diff_results);
+  if (!status.ok()) {
+    return status;
+  }
+
+  for (auto& action : diff_results) {
+    for (auto& row : action.second) {
+      pt::ptree event;
+      serializeEvent(i, row.second, event);
+      event.put<std::string>("action", action.first);
+      tree.push_back(std::make_pair("", event));
+    }
+  }
+  return Status(0, "OK");
+}*/
+
+Status serializeRowRJ(const Row& r, rapidjson::Document& d) {
+  try {
+    for (auto& i : r) {
+      d.AddMember(
+        rapidjson::Value(i.first.c_str(), d.GetAllocator()).Move(),
+        rapidjson::Value(i.second.c_str(), d.GetAllocator()).Move(),
+        d.GetAllocator());
+    }
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
 
 Status serializeRowRJ(const Row& r, const ColumnNames& cols, rapidjson::Document& d) {
   try {
@@ -705,6 +792,22 @@ Status serializeRowRJ(const Row& r, const ColumnNames& cols, rapidjson::Document
     }
   } catch (const std::exception& e) {
     return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
+
+Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d) {
+  for (const auto& r : q) {
+    rapidjson::Document serialized;
+    auto s = serializeRowRJ(r, serialized);
+    if (!s.ok()) {
+      return s;
+    }
+    if (serialized.GetObject().MemberCount()){
+      d.PushBack(
+        rapidjson::Value(serialized, d.GetAllocator()).Move(), d.GetAllocator()
+      );
+    }
   }
   return Status(0, "OK");
 }
@@ -725,6 +828,34 @@ Status serializeQueryDataRJ(const QueryData& q,
       );
     }
   }
+  return Status(0, "OK");
+}
+
+Status serializeDiffResultsRJ(const DiffResults& d, rapidjson::Document& doc) {
+  // Serialize and add "removed" first.
+  // A property tree is somewhat ordered, this provides a loose contract to
+  // the logger plugins and their aggregations, allowing them to parse chunked
+  // lines. Note that the chunking is opaque to the database functions.
+  rapidjson::Document removed;
+  auto status = serializeQueryDataRJ(d.removed, removed);
+  if (!status.ok()) {
+    return status;
+  }
+
+  doc.AddMember(
+    rapidjson::Value("removed", doc.GetAllocator()).Move(),
+    rapidjson::Value(removed, doc.GetAllocator()).Move(),
+    doc.GetAllocator());
+
+  rapidjson::Document added;
+  status = serializeQueryDataRJ(d.added, added);
+  if (!status.ok()) {
+    return status;
+  }
+  doc.AddMember(
+        rapidjson::Value("added", doc.GetAllocator()).Move(),
+        rapidjson::Value(added, doc.GetAllocator()).Move(),
+        doc.GetAllocator());
   return Status(0, "OK");
 }
 }
