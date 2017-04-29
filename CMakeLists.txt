@@ -529,7 +529,7 @@ else()
   check_include_file_cxx("tr1/tuple" HAVE_TR1_TUPLE)
 endif()
 
-if("${HAVE_TR1_TUPLE}" STREQUAL "")
+if(FREEBSD OR "${HAVE_TR1_TUPLE}" STREQUAL "")
   set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=1")
 else()
   set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=0")
