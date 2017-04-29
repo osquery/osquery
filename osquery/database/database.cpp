@@ -36,13 +36,7 @@ FLAG(bool, disable_database, false, "Disable the persistent RocksDB storage");
 
 DECLARE_bool(decorations_top_level);
 
-#if defined(SKIP_ROCKSDB)
-#define DATABASE_PLUGIN "sqlite"
-#else
-#define DATABASE_PLUGIN "rocksdb"
-#endif
-const std::string kInternalDatabase = DATABASE_PLUGIN;
-
+const std::string kInternalDatabase = "rocksdb";
 const std::string kPersistentSettings = "configurations";
 const std::string kQueries = "queries";
 const std::string kEvents = "events";

@@ -143,8 +143,3 @@ if(NOT SKIP_LLDPD AND POSIX)
 
   ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
 endif()
-
-# Include magic after tables
-if(POSIX)
-  ADD_OSQUERY_LINK_ADDITIONAL("magic")
-endif()

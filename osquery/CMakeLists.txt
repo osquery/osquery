@@ -46,6 +46,47 @@ else()
   endif()
 endif()
 
+if(DEFINED ENV{SANITIZE})
+  if(DEFINED ENV{SANITIZE_THREAD})
+    ADD_OSQUERY_LINK_CORE(-fsanitize=thread)
+  else()
+    ADD_OSQUERY_LINK_CORE(-fsanitize=address -fsanitize=leak)
+  endif()
+  ADD_OSQUERY_LINK_CORE(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
+endif()
+
+# Construct a set of all object files, starting with third-party and all
+# of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
+set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
+
+# Add subdirectories
+add_subdirectory(config)
+add_subdirectory(core)
+add_subdirectory(database)
+add_subdirectory(devtools)
+add_subdirectory(dispatcher)
+add_subdirectory(distributed)
+add_subdirectory(events)
+add_subdirectory(extensions)
+add_subdirectory(filesystem)
+add_subdirectory(logger)
+add_subdirectory(registry)
+add_subdirectory(sql)
+add_subdirectory(remote)
+add_subdirectory(carver)
+
+# Add externals directory from parent
+add_subdirectory("${CMAKE_SOURCE_DIR}/external" "${CMAKE_BINARY_DIR}/external")
+
+if(NOT SKIP_TABLES)
+  add_subdirectory(tables)
+
+  # Amalgamate the utility tables needed to compile.
+  GENERATE_UTILITIES("${CMAKE_SOURCE_DIR}")
+  AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
+  ADD_OSQUERY_LIBRARY_CORE(osquery_amalgamation ${AMALGAMATION_UTILS})
+endif()
+
 if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("ws2_32.lib")
   ADD_OSQUERY_LINK_CORE("iphlpapi.lib")
@@ -114,6 +155,7 @@ if(POSIX)
   ADD_OSQUERY_LINK_ADDITIONAL("crypto")
   ADD_OSQUERY_LINK_ADDITIONAL("libpthread")
   ADD_OSQUERY_LINK_ADDITIONAL("linenoise")
+  ADD_OSQUERY_LINK_ADDITIONAL("magic")
 endif()
 
 if(APPLE)
@@ -157,47 +199,6 @@ if(LINUX)
   endif()
   # For Ubuntu/CentOS packages add the build SHA1.
   ADD_OSQUERY_LINK_CORE("-Wl,--build-id")
-endif()
-
-if(DEFINED ENV{SANITIZE})
-  if(DEFINED ENV{SANITIZE_THREAD})
-    ADD_OSQUERY_LINK_CORE(-fsanitize=thread)
-  else()
-    ADD_OSQUERY_LINK_CORE(-fsanitize=address -fsanitize=leak)
-  endif()
-  ADD_OSQUERY_LINK_CORE(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
-endif()
-
-# Construct a set of all object files, starting with third-party and all
-# of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
-set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
-
-# Add subdirectories
-add_subdirectory(config)
-add_subdirectory(core)
-add_subdirectory(database)
-add_subdirectory(devtools)
-add_subdirectory(dispatcher)
-add_subdirectory(distributed)
-add_subdirectory(events)
-add_subdirectory(extensions)
-add_subdirectory(filesystem)
-add_subdirectory(logger)
-add_subdirectory(registry)
-add_subdirectory(sql)
-add_subdirectory(remote)
-add_subdirectory(carver)
-
-# Add externals directory from parent
-add_subdirectory("${CMAKE_SOURCE_DIR}/external" "${CMAKE_BINARY_DIR}/external")
-
-if(NOT SKIP_TABLES)
-  add_subdirectory(tables)
-
-  # Amalgamate the utility tables needed to compile.
-  GENERATE_UTILITIES("${CMAKE_SOURCE_DIR}")
-  AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
-  ADD_OSQUERY_LIBRARY_CORE(osquery_amalgamation ${AMALGAMATION_UTILS})
 endif()
 
 # Bubble the subdirectory (component) sources and links for this build.

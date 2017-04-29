@@ -274,9 +274,6 @@ endif()
 
 # Feature environment variables (flags), their use is highly discouraged.
 # The recommended osquery build, and distributed packages, do not use these.
-if(DEFINED ENV{SKIP_ROCKSDB})
-  set(SKIP_ROCKSDB TRUE)
-endif()
 if(DEFINED ENV{SKIP_AWS})
   set(SKIP_AWS TRUE)
 endif()
