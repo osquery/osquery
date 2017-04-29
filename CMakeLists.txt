@@ -537,16 +537,18 @@ endif()
 
 set(GTEST_FLAGS
   ${GTEST_FLAGS}
-  "-I${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0/include"
-  "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/include"
-  "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/gtest/include"
+  "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googletest/include"
+  "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googlemock/include"
 )
 join("${GTEST_FLAGS}" " " GTEST_FLAGS)
+
+set(BUILD_GTEST TRUE)
+
+add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
 
 include(Thrift)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
-add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0")
 
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
