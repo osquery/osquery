@@ -163,8 +163,13 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
 std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
     const std::string& args) {
   std::shared_ptr<PlatformProcess> process;
+  std::string argv;
 
-  std::string argv = "/usr/local/osquery/bin/python " + args;
+  if (!isPlatform(PlatformType::TYPE_FREEBSD)) {
+    argv = "/usr/local/osquery/bin/python " + args;
+  } else {
+    argv = "/usr/local/bin/python " + args;
+  }
 
   int process_pid = ::fork();
   if (process_pid == 0) {
