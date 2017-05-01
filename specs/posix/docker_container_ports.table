@@ -1,0 +1,15 @@
+table_name("docker_container_ports")
+description("Docker container ports.")
+schema([
+    Column("id", TEXT, "Container ID", index=True),
+    Column("type", TEXT, "Protocol (tcp, udp)"),
+    Column("port", INTEGER, "Port inside the container"),
+    Column("host_ip", TEXT, "Host IP address on which public port is listening"),
+    Column("host_port", INTEGER, "Host port")
+])
+implementation("applications/docker@genContainerPorts")
+examples([
+  "select * from docker_container_ports",
+  "select * from docker_container_ports where id = '1234567890abcdef'",
+  "select * from docker_container_ports where id = '11b2399e1426d906e62a0c357650e363426d6c56dbe2f35cbaa9b452250e3355'"
+])

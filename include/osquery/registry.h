@@ -168,7 +168,7 @@ class RegistryInterface : private boost::noncopyable {
    * registry and which can downcast the input plugin.
    *
    * @param plugin_name An indexable name for the plugin.
-   * @param plugin A type-specific plugin reference.
+   * @param plugin_item A type-specific plugin reference.
    * @param internal true if this is internal to the osquery SDK.
    */
   virtual Status add(const std::string& plugin_name,
@@ -400,7 +400,7 @@ class RegistryType : public RegistryInterface {
    * If there is no plugin with an item_name identifier this will throw
    * and out_of_range exception.
    *
-   * @param item_name An identifier for this registry plugin.
+   * @param plugin_name An identifier for this registry plugin.
    * @return A std::shared_ptr of type RegistryType.
    */
   PluginRef plugin(const std::string& plugin_name) const override {

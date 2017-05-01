@@ -1,0 +1,14 @@
+table_name("docker_images")
+description("Docker images information.")
+schema([
+    Column("id", TEXT, "Image ID"),
+    Column("created", BIGINT, "Time of creation as UNIX time"),
+    Column("size_bytes", BIGINT, "Size of image in bytes"),
+    Column("tags", TEXT, "Comma-separated list of repository tags")
+])
+implementation("applications/docker@genImages")
+examples([
+  "select * from docker_images",
+  "select * from docker_images where id = '6a2f32de169d'",
+  "select * from docker_images where id = '6a2f32de169d14e6f8a84538eaa28f2629872d7d4f580a303b296c60db36fbd7'"
+])

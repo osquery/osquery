@@ -1,0 +1,21 @@
+table_name("docker_container_networks")
+description("Docker container networks.")
+schema([
+    Column("id", TEXT, "Container ID", index=True),
+    Column("name", TEXT, "Network name"),
+    Column("network_id", TEXT, "Network ID"),
+    Column("endpoint_id", TEXT, "Endpoint ID"),
+    Column("gateway", TEXT, "Gateway"),
+    Column("ip_address", TEXT, "IP address"),
+    Column("ip_prefix_len", INTEGER, "IP subnet prefix length"),
+    Column("ipv6_gateway", TEXT, "IPv6 gateway"),
+    Column("ipv6_address", TEXT, "IPv6 address"),
+    Column("ipv6_prefix_len", INTEGER, "IPv6 subnet prefix length"),
+    Column("mac_address", TEXT, "MAC address")
+])
+implementation("applications/docker@genContainerNetworks")
+examples([
+  "select * from docker_container_networks",
+  "select * from docker_container_networks where id = '1234567890abcdef'",
+  "select * from docker_container_networks where id = '11b2399e1426d906e62a0c357650e363426d6c56dbe2f35cbaa9b452250e3355'"
+])

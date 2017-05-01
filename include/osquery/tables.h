@@ -722,7 +722,7 @@ class TablePlugin : public Plugin {
    * virtual table APIs. In the best case this context include a limit or
    * constraints organized by each possible column.
    *
-   * @param request A query context filled in by SQLite's virtual table API.
+   * @param context A query context filled in by SQLite's virtual table API.
    * @return The result rows for this table, given the query context.
    */
   virtual QueryData generate(QueryContext& context) {
