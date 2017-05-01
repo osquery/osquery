@@ -8,6 +8,10 @@
  *
  */
 
+#ifndef WIN32
+#include <sys/wait.h>
+#endif
+
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>

@@ -49,7 +49,7 @@ TEST_F(FilePathsConfigParserPluginTests, test_get_files) {
       "config_files", "logs", "logs"};
   std::vector<std::string> categories;
   std::vector<std::string> expected_values = {
-      "/dev", "/dev/zero", "/dev/null", "/dev/random", "/dev/urandom"};
+      "/dev", "/dev/zero", "/dev/null", "/dev/random"};
   std::vector<std::string> values;
 
   Config::getInstance().update(config_data_);

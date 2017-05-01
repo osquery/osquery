@@ -274,9 +274,6 @@ endif()
 
 # Feature environment variables (flags), their use is highly discouraged.
 # The recommended osquery build, and distributed packages, do not use these.
-if(DEFINED ENV{SKIP_ROCKSDB})
-  set(SKIP_ROCKSDB TRUE)
-endif()
 if(DEFINED ENV{SKIP_AWS})
   set(SKIP_AWS TRUE)
 endif()
@@ -532,7 +529,7 @@ else()
   check_include_file_cxx("tr1/tuple" HAVE_TR1_TUPLE)
 endif()
 
-if("${HAVE_TR1_TUPLE}" STREQUAL "")
+if(FREEBSD OR "${HAVE_TR1_TUPLE}" STREQUAL "")
   set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=1")
 else()
   set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=0")
@@ -540,16 +537,18 @@ endif()
 
 set(GTEST_FLAGS
   ${GTEST_FLAGS}
-  "-I${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0/include"
-  "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/include"
-  "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/gtest/include"
+  "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googletest/include"
+  "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googlemock/include"
 )
 join("${GTEST_FLAGS}" " " GTEST_FLAGS)
+
+set(BUILD_GTEST TRUE)
+
+add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
 
 include(Thrift)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
-add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0")
 
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)
