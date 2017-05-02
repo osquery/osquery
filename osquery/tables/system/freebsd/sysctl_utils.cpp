@@ -11,7 +11,6 @@
 #include <stddef.h>
 
 #include <sys/types.h>
-
 #include <sys/sysctl.h>
 
 #include <osquery/filesystem.h>
@@ -33,7 +32,7 @@ const std::vector<std::string> kControlNames{
     "", "kern", "vm", "vfs", "net", "debug", "hw", "user"};
 
 const std::vector<std::string> kControlTypes{
-    "", "node", "int", "string", "opaque", "struct"};
+    "", "node", "int", "string", "s64", "opaque", "struct"};
 
 void genControlInfo(int* oid,
                     size_t oid_size,
@@ -92,6 +91,9 @@ void genControlInfo(int* oid,
       r["current_value"] = INTEGER(value);
     } else if (oid_type == CTLTYPE_STRING) {
       r["current_value"] = std::string(response);
+    } else if (oid_type == CTLTYPE_S64) {
+      long long value;
+      memcpy(&value, response, value_size);
     }
   }
 
