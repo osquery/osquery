@@ -29,7 +29,9 @@ function setup_brew() {
     git clone $BREW_REPO "$DEPS"
   else
     log "checking for updates to brew"
-    git pull > /dev/null
+    git fetch origin > /dev/null
+    git reset --hard origin/master > /dev/null
+    git clean -f
   fi
 
   # Reset to a deterministic checkout of brew.
@@ -80,9 +82,6 @@ function setup_brew() {
 
   # Fix for python linking.
   mkdir -p "$DEPS/lib/python2.7/site-packages"
-  if [[ "$BREW_TYPE" = "linux" ]]; then
-    sed -i "s/Formula\[rack\.basename\.to_s\]\.aliases/Formulary\.from_rack\(rack\)\.aliases/g" "$DEPS/Library/Homebrew/keg.rb"
-  fi
 }
 
 # json_element JSON STRUCT
