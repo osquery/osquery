@@ -770,11 +770,13 @@ Status serializeQueryLogItemAsEventsRJ(const QueryLogItem& i, rapidjson::Documen
 
 Status serializeRowRJ(const Row& r, rapidjson::Document& d) {
   try {
+    LOG(INFO) << "serializeRowRJ Enter";
     for (auto& i : r) {
       d.AddMember(
         rapidjson::Value(i.first.c_str(), d.GetAllocator()).Move(),
         rapidjson::Value(i.second.c_str(), d.GetAllocator()).Move(),
         d.GetAllocator());
+      LOG(INFO) << "Should have added member";
     }
   } catch (const std::exception& e) {
     return Status(1, e.what());
@@ -797,8 +799,10 @@ Status serializeRowRJ(const Row& r, const ColumnNames& cols, rapidjson::Document
 }
 
 Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d) {
+  LOG(INFO) << "serializeQueryDataRJ(2) Entry";
   for (const auto& r : q) {
     rapidjson::Document serialized;
+    serialized.SetObject();
     auto s = serializeRowRJ(r, serialized);
     if (!s.ok()) {
       return s;
@@ -815,6 +819,7 @@ Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d) {
 Status serializeQueryDataRJ(const QueryData& q,
                           const ColumnNames& cols,
                           rapidjson::Document& d) {
+  LOG(INFO) << "serializeQueryDataRJ(3) Entry";
   for (const auto& r : q) {
     rapidjson::Document serialized;
     serialized.SetObject();

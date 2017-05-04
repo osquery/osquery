@@ -94,10 +94,10 @@ size_t Distributed::getCompletedCount() {
 }
 
 Status Distributed::serializeResults(std::string& json) {
-  rapidjson::Document queries;
-  rapidjson::Document statuses;
-  queries.SetObject();
-  statuses.SetObject();
+  rapidjson::Document results;
+  results.SetObject();
+  rapidjson::Value queries(rapidjson::kObjectType);
+  rapidjson::Value statuses(rapidjson::kObjectType);
   for (const auto& result : results_) {
     rapidjson::Document qd;
     qd.SetArray();
@@ -105,12 +105,11 @@ Status Distributed::serializeResults(std::string& json) {
     if (!s.ok()) {
       return s;
     }
-    rapidjson::Value qv = rapidjson::Value(result.request.id.c_str(), result.request.id.size(), queries.GetAllocator());
-    queries.AddMember(qv, qd, queries.GetAllocator());
-    statuses.AddMember(qv, result.status.getCode(), statuses.GetAllocator());
+    // This is a deep copy of qd which is not ideal, if we can make this a move, that would be best
+    queries.AddMember(rapidjson::Value(result.request.id.c_str(), results.GetAllocator()).Move(), rapidjson::Value(qd, results.GetAllocator()), results.GetAllocator());
+    statuses.AddMember(rapidjson::Value(result.request.id.c_str(), results.GetAllocator()).Move(), rapidjson::Value(result.status.getCode()).Move(), results.GetAllocator());
   }
 
-  rapidjson::Document results;
   results.AddMember("queries", queries, results.GetAllocator());
   results.AddMember("statuses", statuses, results.GetAllocator());
 
@@ -121,9 +120,7 @@ Status Distributed::serializeResults(std::string& json) {
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error writing JSON: " + std::string(e.what()));
   }
-  LOG(INFO) << "Serialization Successful!";
   json = sb.GetString();
-
   return Status(0, "OK");
 }
 
