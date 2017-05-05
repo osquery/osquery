@@ -400,7 +400,7 @@ Status expandRegistryGlobs(const std::string& pattern,
     pathElems.erase(pathElems.begin());
   }
 
-  for (auto& elem = pathElems.begin(); elem != pathElems.end(); ++elem) {
+  for (auto&& elem = pathElems.begin(); elem != pathElems.end(); ++elem) {
     // We only care about  a recursive glob if it comes at the end of the
     // pattern i.e. 'HKEY_LOCAL_MACHINE\SOFTWARE\%%'
     if (boost::ends_with(*elem, kSQLGlobRecursive) &&
