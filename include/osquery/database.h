@@ -50,6 +50,9 @@ extern const std::string kQueries;
 /// The "domain" where event results are stored, queued for querytime retrieval.
 extern const std::string kEvents;
 
+/// The "domain" where the results of carve queries are stored.
+extern const std::string kCarves;
+
 /**
  * @brief The "domain" where buffered log results are stored.
  *

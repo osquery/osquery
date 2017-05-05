@@ -40,10 +40,11 @@ const std::string kInternalDatabase = "rocksdb";
 const std::string kPersistentSettings = "configurations";
 const std::string kQueries = "queries";
 const std::string kEvents = "events";
+const std::string kCarves = "carves";
 const std::string kLogs = "logs";
 
 const std::vector<std::string> kDomains = {
-    kPersistentSettings, kQueries, kEvents, kLogs};
+    kPersistentSettings, kQueries, kEvents, kLogs, kCarves};
 
 std::atomic<bool> DatabasePlugin::kDBAllowOpen(false);
 std::atomic<bool> DatabasePlugin::kDBRequireWrite(false);
