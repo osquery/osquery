@@ -1,0 +1,13 @@
+table_name("docker_volumes")
+description("Docker volumes information.")
+schema([
+    Column("name", TEXT, "Volume name", index=True),
+    Column("driver", TEXT, "Volume driver"),
+    Column("mount_point", TEXT, "Mount point"),
+    Column("type", TEXT, "Volume type")
+])
+implementation("applications/docker@genVolumes")
+examples([
+  "select * from docker_volumes",
+  "select * from docker_volumes where name = 'btrfs'"
+])

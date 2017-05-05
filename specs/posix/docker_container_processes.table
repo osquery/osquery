@@ -1,0 +1,34 @@
+table_name("docker_container_processes")
+description("Docker container processes.")
+schema([
+    Column("id", TEXT, "Container ID", index=True, required=True),
+    Column("pid", BIGINT, "Process ID"),
+    Column("name", TEXT, "The process path or shorthand argv[0]"),
+    Column("cmdline", TEXT, "Complete argv"),
+    Column("state", TEXT, "Process state"),
+    Column("uid", BIGINT, "User ID"),
+    Column("gid", BIGINT, "Group ID"),
+    Column("euid", BIGINT, "Effective user ID"),
+    Column("egid", BIGINT, "Effective group ID"),
+    Column("suid", BIGINT, "Saved user ID"),
+    Column("sgid", BIGINT, "Saved group ID"),
+    Column("wired_size", BIGINT, "Bytes of unpagable memory used by process"),
+    Column("resident_size", BIGINT, "Bytes of private memory used by process"),
+    Column("total_size", BIGINT, "Total virtual memory size",
+        aliases=["phys_footprint"]),
+    Column("start_time", BIGINT,
+        "Process start in seconds since boot (non-sleeping)"),
+    Column("parent", BIGINT, "Process parent's PID"),
+    Column("pgroup", BIGINT, "Process group"),
+    Column("threads", INTEGER, "Number of threads used by process"),
+    Column("nice", INTEGER, "Process nice level (-20 to 20, default 0)"),
+    Column("user", TEXT, "User name"),
+    Column("time", TEXT, "Cumulative CPU time. [DD-]HH:MM:SS format"),
+    Column("cpu", DOUBLE, "CPU utilization as percentage"),
+    Column("mem", DOUBLE, "Memory utilization as percentage")
+])
+implementation("applications/docker@genContainerProcesses")
+examples([
+  "select * from docker_container_processes where id = '1234567890abcdef'",
+  "select * from docker_container_processes where id = '11b2399e1426d906e62a0c357650e363426d6c56dbe2f35cbaa9b452250e3355'"
+])
