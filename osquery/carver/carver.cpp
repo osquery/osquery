@@ -108,7 +108,9 @@ void updateCarveValue(const std::string& guid,
   }
 }
 
-Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
+Carver::Carver(const std::set<std::string>& paths,
+               const std::string& guid,
+               const std::string& requestId) {
   status_ = Status(0, "Ok");
   for (const auto& p : paths) {
     carvePaths_.insert(fs::path(p));
@@ -120,6 +122,9 @@ Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
 
   // Generate a unique identifier for this carve
   carveGuid_ = guid;
+
+  // Stash the work ID to be POSTed with the carve initial request
+  requestId_ = requestId;
 
   // TODO: Adding in a manifest file of all carved files might be nice.
   carveDir_ =
@@ -260,6 +265,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   startParams.put<size_t>("block_size", FLAGS_carver_block_size);
   startParams.put<size_t>("carve_size", pFile.size());
   startParams.put<std::string>("carve_id", carveGuid_);
+  startParams.put<std::string>("request_id", requestId_);
   startParams.put<std::string>("node_key", getNodeKey("tls"));
 
   auto status = startRequest.call(startParams);
@@ -292,6 +298,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
     pt::ptree params;
     params.put<size_t>("block_id", i);
     params.put<std::string>("session_id", session_id);
+    params.put<std::string>("request_id", requestId_);
     params.put<std::string>(
         "data", base64Encode(std::string(block.begin(), block.end())));
 

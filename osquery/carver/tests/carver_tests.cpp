@@ -70,7 +70,8 @@ class CarverTests : public testing::Test {
 TEST_F(CarverTests, test_carve_files_locally) {
   auto guid_ = genGuid();
   auto paths_ = getCarvePaths();
-  Carver carve(getCarvePaths(), guid_);
+  std::string requestId = "";
+  Carver carve(getCarvePaths(), guid_, requestId);
 
   Status s;
   for (const auto& p : paths_) {
