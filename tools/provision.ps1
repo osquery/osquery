@@ -350,9 +350,10 @@ function Update-GitSubmodule {
     Write-Host "[-] ERROR: Git was not found on the system. Install git." -foregroundcolor Red
     Exit -1
   }
+  $repoRoot = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..'))
   $thirdPartyPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'third-party'))
   Write-Host " => Updating git submodules in $thirdPartyPath ..." -foregroundcolor Yellow
-  Push-Location $thirdPartyPath
+  Push-Location $repoRoot
   git submodule --quiet update --init
   Pop-Location
   Write-Host "[+] Submodules updated!" -foregroundcolor Yellow
