@@ -24,7 +24,9 @@ function Set-DenyWriteAcl {
     $propagationFlag = [System.Security.AccessControl.PropagationFlags]::None
     $permType = [System.Security.AccessControl.AccessControlType]::Deny
 
-    $permission = "everyone", "write", $inheritanceFlag, $propagationFlag, $permType
+    $worldSIDObj = New-Object System.Security.Principal.SecurityIdentifier ('S-1-1-0')
+    $worldUser = $worldSIDObj.Translate( [System.Security.Principal.NTAccount])
+    $permission = $worldUser.Value, "write", $inheritanceFlag, $propagationFlag, $permType
     $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule $permission
     # We only support adding or removing the ACL
     if ($action -ieq 'add') {
