@@ -25,7 +25,7 @@ const std::string kDefaultRegName = "(Default)";
 const size_t kRegMaxRecursiveDepth = 32;
 
 /// Microsoft helper function for getting the contents of a registry key
-void queryKey(const std::string& keyPath, QueryData& results);
+Status queryKey(const std::string& keyPath, QueryData& results);
 
 /*
  * @brief Expand a globbing pattern into a set of registry keys to

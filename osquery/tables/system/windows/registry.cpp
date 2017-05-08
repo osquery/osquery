@@ -42,6 +42,9 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
+auto closeRegHandle = [](HKEY handle) { RegCloseKey(handle); };
+using reg_handle_t = std::unique_ptr<HKEY__, decltype(closeRegHandle)>;
+
 const std::set<int> kRegistryStringTypes = {
     REG_SZ, REG_MULTI_SZ, REG_EXPAND_SZ};
 
@@ -116,114 +119,111 @@ inline void explodeRegistryPath(const std::string& path,
 }
 
 /// Microsoft helper function for getting the contents of a registry key
-void queryKey(const std::string& keyPath, QueryData& results) {
+Status queryKey(const std::string& keyPath, QueryData& results) {
   std::string hive;
   std::string key;
   explodeRegistryPath(keyPath, hive, key);
 
   if (kRegistryHives.count(hive) != 1) {
-    return;
+    return Status();
   }
 
-  HKEY hRegistryHandle;
-  auto ret = RegOpenKeyEx(kRegistryHives.at(hive),
-                          TEXT(key.c_str()),
-                          0,
-                          KEY_READ,
-                          &hRegistryHandle);
+  HKEY hkey;
+  auto ret = RegOpenKeyEx(
+      kRegistryHives.at(hive), TEXT(key.c_str()), 0, KEY_READ, &hkey);
+  reg_handle_t hRegistryHandle(hkey, closeRegHandle);
 
   if (ret != ERROR_SUCCESS) {
-    return;
+    return Status(GetLastError(), "Failed to open registry handle");
   }
 
   const DWORD maxKeyLength = 255;
   const DWORD maxValueName = 16383;
-  TCHAR achClass[MAX_PATH] = TEXT("");
-  DWORD cchClassName = MAX_PATH;
-  DWORD cSubKeys = 0;
-  DWORD cbMaxSubKey;
-  DWORD cchMaxClass;
+  DWORD cSubKeys;
   DWORD cValues;
   DWORD cchMaxValueName;
   DWORD cbMaxValueData;
-  DWORD cbSecurityDescriptor;
   DWORD retCode;
   FILETIME ftLastWriteTime;
-  retCode = RegQueryInfoKey(hRegistryHandle,
-                            achClass,
-                            &cchClassName,
+  retCode = RegQueryInfoKey(hRegistryHandle.get(),
+                            nullptr,
+                            nullptr,
                             nullptr,
                             &cSubKeys,
-                            &cbMaxSubKey,
-                            &cchMaxClass,
+                            nullptr,
+                            nullptr,
                             &cValues,
                             &cchMaxValueName,
                             &cbMaxValueData,
-                            &cbSecurityDescriptor,
+                            nullptr,
                             &ftLastWriteTime);
 
-  TCHAR achKey[maxKeyLength];
+  auto achKey = std::make_unique<TCHAR[]>(maxKeyLength);
   DWORD cbName;
 
   // Process registry subkeys
   if (cSubKeys > 0) {
     for (DWORD i = 0; i < cSubKeys; i++) {
       cbName = maxKeyLength;
-      retCode = RegEnumKeyEx(hRegistryHandle,
+      retCode = RegEnumKeyEx(hRegistryHandle.get(),
                              i,
-                             achKey,
+                             achKey.get(),
                              &cbName,
                              nullptr,
                              nullptr,
                              nullptr,
                              &ftLastWriteTime);
       if (retCode != ERROR_SUCCESS) {
-        continue;
+        return Status(GetLastError(), "Failed to enumerate registry key");
       }
+
       Row r;
       r["key"] = keyPath;
       r["type"] = "subkey";
-      r["name"] = achKey;
-      r["path"] = keyPath + kRegSep + achKey;
+      r["name"] = achKey.get();
+      r["path"] = keyPath + kRegSep + achKey.get();
       r["mtime"] = std::to_string(osquery::filetimeToUnixtime(ftLastWriteTime));
       results.push_back(r);
     }
   }
 
   if (cValues <= 0) {
-    return;
+    return Status();
   }
 
   DWORD cchValue = maxKeyLength;
-  TCHAR achValue[maxValueName];
-  BYTE* bpDataBuff =
-      (cbMaxValueData == 0) ? nullptr : new BYTE[cbMaxValueData]();
+  auto achValue = std::make_unique<TCHAR[]>(maxValueName);
+  auto bpDataBuff = std::make_unique<BYTE[]>(cbMaxValueData);
 
   // Process registry values
-  for (size_t i = 0, retCode = ERROR_SUCCESS; i < cValues; i++) {
+  for (size_t i = 0; i < cValues; i++) {
     size_t cnt = 0;
     cchValue = maxValueName;
     achValue[0] = '\0';
 
-    retCode = RegEnumValue(hRegistryHandle,
+    retCode = RegEnumValue(hRegistryHandle.get(),
                            static_cast<DWORD>(i),
-                           achValue,
+                           achValue.get(),
                            &cchValue,
                            nullptr,
                            nullptr,
                            nullptr,
                            nullptr);
     if (retCode != ERROR_SUCCESS) {
-      continue;
+      return Status(GetLastError(), "Failed to enumerate registry values");
     }
 
     DWORD lpData = cbMaxValueData;
     DWORD lpType;
 
-    retCode = RegQueryValueEx(
-        hRegistryHandle, achValue, 0, &lpType, bpDataBuff, &lpData);
+    retCode = RegQueryValueEx(hRegistryHandle.get(),
+                              achValue.get(),
+                              nullptr,
+                              &lpType,
+                              bpDataBuff.get(),
+                              &lpData);
     if (retCode != ERROR_SUCCESS) {
-      continue;
+      return Status(GetLastError(), "Failed to query registry value");
     }
 
     // It's possible for registry entries to have been inserted incorrectly
@@ -235,8 +235,8 @@ void queryKey(const std::string& keyPath, QueryData& results) {
 
     Row r;
     r["key"] = keyPath;
-    r["name"] = ((achValue[0] == '\0') ? "(Default)" : achValue);
-    r["path"] = keyPath + kRegSep + achValue;
+    r["name"] = ((achValue[0] == '\0') ? "(Default)" : achValue.get());
+    r["path"] = keyPath + kRegSep + achValue.get();
     if (kRegistryTypes.count(lpType) > 0) {
       r["type"] = kRegistryTypes.at(lpType);
     } else {
@@ -248,20 +248,20 @@ void queryKey(const std::string& keyPath, QueryData& results) {
       /// REG_LINK is a Unicode string, which in Windows is wchar_t
       char* regLinkStr = nullptr;
       if (lpType == REG_LINK) {
-        regLinkStr = new char[cbMaxValueData];
+        auto regLinkStr = std::make_unique<char[]>(cbMaxValueData);
         const size_t newSize = cbMaxValueData;
         size_t convertedChars = 0;
         wcstombs_s(&convertedChars,
-                   regLinkStr,
+                   regLinkStr.get(),
                    newSize,
-                   (wchar_t*)bpDataBuff,
+                   (wchar_t*)bpDataBuff.get(),
                    _TRUNCATE);
       }
 
-      BYTE* bpDataBuffTmp = bpDataBuff;
-      std::vector<std::string> multiSzStrs;
       std::vector<char> regBinary;
       std::string data;
+      std::vector<std::string> multiSzStrs;
+      auto p = bpDataBuff.get();
 
       switch (lpType) {
       case REG_FULL_RESOURCE_DESCRIPTOR:
@@ -275,21 +275,21 @@ void queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = data;
         break;
       case REG_DWORD:
-        r["data"] = std::to_string(*((int*)bpDataBuff));
+        r["data"] = std::to_string(*((int*)bpDataBuff.get()));
         break;
       case REG_DWORD_BIG_ENDIAN:
-        r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff)));
+        r["data"] = std::to_string(_byteswap_ulong(*((int*)bpDataBuff.get())));
         break;
       case REG_EXPAND_SZ:
-        r["data"] = std::string((char*)bpDataBuff);
+        r["data"] = std::string((char*)bpDataBuff.get());
         break;
       case REG_LINK:
         r["data"] = std::string(regLinkStr);
         break;
       case REG_MULTI_SZ:
-        while (*bpDataBuffTmp != 0x00) {
-          std::string s((char*)bpDataBuffTmp);
-          bpDataBuffTmp += s.size() + 1;
+        while (*p != 0x00) {
+          std::string s((char*)p);
+          p += s.size() + 1;
           multiSzStrs.push_back(s);
         }
         r["data"] = boost::algorithm::join(multiSzStrs, ",");
@@ -298,26 +298,20 @@ void queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = "(zero-length binary value)";
         break;
       case REG_QWORD:
-        r["data"] = std::to_string(*((unsigned long long*)bpDataBuff));
+        r["data"] = std::to_string(*((unsigned long long*)bpDataBuff.get()));
         break;
       case REG_SZ:
-        r["data"] = std::string((char*)bpDataBuff);
+        r["data"] = std::string((char*)bpDataBuff.get());
         break;
       default:
         r["data"] = "";
         break;
       }
-      if (regLinkStr != nullptr) {
-        delete[](regLinkStr);
-      }
-      ZeroMemory(bpDataBuff, cbMaxValueData);
+      ZeroMemory(bpDataBuff.get(), cbMaxValueData);
     }
     results.push_back(r);
   }
-  if (bpDataBuff != nullptr) {
-    delete[](bpDataBuff);
-  }
-  RegCloseKey(hRegistryHandle);
+  return Status();
 }
 
 static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
@@ -325,8 +319,8 @@ static inline void populateDefaultKeys(std::set<std::string>& rKeys) {
               std::inserter(rKeys, rKeys.end()));
 }
 
-static inline void populateSubkeys(std::set<std::string>& rKeys,
-                                   bool replaceKeys = false) {
+static inline Status populateSubkeys(std::set<std::string>& rKeys,
+                                     bool replaceKeys = false) {
   std::set<std::string> newKeys;
   if (!replaceKeys) {
     newKeys = rKeys;
@@ -334,7 +328,10 @@ static inline void populateSubkeys(std::set<std::string>& rKeys,
 
   for (const auto& key : rKeys) {
     QueryData regResults;
-    queryKey(key, regResults);
+    auto ret = queryKey(key, regResults);
+    if (!ret.ok()) {
+      return ret;
+    }
     for (const auto& r : regResults) {
       if (r.at("type") == "subkey") {
         newKeys.insert(r.at("path"));
@@ -342,6 +339,7 @@ static inline void populateSubkeys(std::set<std::string>& rKeys,
     }
   }
   rKeys = std::move(newKeys);
+  return Status();
 }
 
 static inline void appendSubkeyToKeys(const std::string& subkey,
@@ -362,7 +360,10 @@ static inline Status populateAllKeysRecursive(
   }
 
   auto size_pre = rKeys.size();
-  populateSubkeys(rKeys);
+  auto ret = populateSubkeys(rKeys);
+  if (!ret.ok()) {
+    return ret;
+  }
   if (size_pre < rKeys.size()) {
     auto status = populateAllKeysRecursive(rKeys, ++currDepth);
     if (!status.ok()) {
@@ -370,14 +371,14 @@ static inline Status populateAllKeysRecursive(
     }
   }
 
-  return Status(0, "OK");
+  return Status();
 }
 
 Status expandRegistryGlobs(const std::string& pattern,
                            std::set<std::string>& results) {
   auto pathElems = osquery::split(pattern, kRegSep);
   if (pathElems.size() == 0) {
-    return Status(0, "OK");
+    return Status();
   }
 
   /*
@@ -407,12 +408,15 @@ Status expandRegistryGlobs(const std::string& pattern,
         *elem == pathElems.back()) {
       return populateAllKeysRecursive(results);
     } else if ((*elem).find(kSQLGlobWildcard) != std::string::npos) {
-      populateSubkeys(results, true);
+      auto ret = populateSubkeys(results, true);
+      if (!ret.ok()) {
+        return ret;
+      }
     } else {
       appendSubkeyToKeys(*elem, results);
     }
   }
-  return Status(0, "OK");
+  return Status();
 }
 
 static inline void maybeWarnLocalUsers(const std::set<std::string>& rKeys) {
@@ -460,5 +464,5 @@ QueryData genRegistry(QueryContext& context) {
   }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

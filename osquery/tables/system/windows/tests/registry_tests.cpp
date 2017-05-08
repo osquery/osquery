@@ -29,13 +29,15 @@ const std::string kInvalidTestKey = "HKEY_LOCAL_MACHINE\\PATH\\to\\madeup\\key";
 
 TEST_F(RegistryTablesTest, test_registry_existing_key) {
   QueryData results;
-  queryKey(kTestKey, results);
+  auto ret = queryKey(kTestKey, results);
+  EXPECT_TRUE(ret.ok());
   EXPECT_TRUE(results.size() > 0);
 }
 
 TEST_F(RegistryTablesTest, test_registry_non_existing_key) {
   QueryData results;
-  queryKey(kInvalidTestKey, results);
+  auto ret = queryKey(kInvalidTestKey, results);
+  EXPECT_TRUE(ret.ok());
   EXPECT_TRUE(results.size() == 0);
 }
 
