@@ -18,7 +18,6 @@ class Librdkafka < AbstractOsqueryFormula
       "--disable-dependency-tracking",
       "--prefix=#{prefix}",
       "--enable-static",
-      "--disable-ssl",
     ]
     system "./configure", *args
     system "make"
