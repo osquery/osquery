@@ -192,12 +192,12 @@ Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
 }
 
 Status deserializeQueryDataRJ(const rapidjson::Value& v, QueryData& qd) {
-  if (!v.IsObject()){
-    return Status(1, "Not an object");
+  if (!v.IsArray()){
+    return Status(1, "Not an array");
   }
-  for (const auto& i : v.GetObject()) {
+  for (const auto& i : v.GetArray()) {
     Row r;
-    auto status = deserializeRowRJ(i.value, r);
+    auto status = deserializeRowRJ(i, r);
     if (!status.ok()) {
       return status;
     }

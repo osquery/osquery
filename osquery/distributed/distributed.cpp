@@ -25,7 +25,6 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
-namespace pt = boost::property_tree;
 namespace rj = rapidjson;
 
 namespace osquery {
@@ -116,12 +115,8 @@ Status Distributed::serializeResults(std::string& json) {
   results.AddMember("statuses", statuses, results.GetAllocator());
 
   rj::StringBuffer sb;
-  try {
-    rj::Writer<rj::StringBuffer> writer(sb);
-    results.Accept(writer); 
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error writing JSON: " + std::string(e.what()));
-  }
+  rj::Writer<rj::StringBuffer> writer(sb);
+  results.Accept(writer); 
   json = sb.GetString();
   return Status(0, "OK");
 }
@@ -287,12 +282,8 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
   }
 
   rj::StringBuffer sb;
-  try {
-    rj::Writer<rj::StringBuffer> writer(sb);
-    d.Accept(writer); 
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error writing JSON: " + std::string(e.what()));
-  }
+  rj::Writer<rj::StringBuffer> writer(sb);
+  d.Accept(writer); 
   json = sb.GetString();
 
   return Status(0, "OK");
@@ -348,12 +339,8 @@ Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
   }
 
   rj::StringBuffer sb;
-  try {
-    rj::Writer<rj::StringBuffer> writer(sb);
-    d.Accept(writer); 
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error writing JSON: " + std::string(e.what()));
-  }
+  rj::Writer<rj::StringBuffer> writer(sb);
+  d.Accept(writer); 
   json = sb.GetString();
 
   return Status(0, "OK");
@@ -369,7 +356,7 @@ Status deserializeDistributedQueryResult(const rj::Document& d,
   }
 
   QueryData results;
-  s = deserializeQueryDataRJ(d["request"], results);
+  s = deserializeQueryDataRJ(d["results"], results);
   if (!s.ok()) {
     return s;
   }

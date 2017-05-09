@@ -171,23 +171,13 @@ TEST_F(DistributedTests, test_deserialize_distributed_query_result) {
   query_result.AddMember("request", rapidjson::Value(request, query_result.GetAllocator()), query_result.GetAllocator());
   query_result.AddMember("results", rapidjson::Value(results, query_result.GetAllocator()), query_result.GetAllocator());
 
-  rapidjson::StringBuffer sb;
-  try {
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-    query_result.Accept(writer); 
-  } catch (const pt::ptree_error& e) {
-  }
-  std::cout << sb.GetString();
-
   DistributedQueryResult r;
   auto s = deserializeDistributedQueryResult(query_result, r);
-  EXPECT_TRUE(s.ok());
-  std::cout << s.getMessage() << "\n";
-  //EXPECT_EQ(r.request.id, "foo");
-  //EXPECT_EQ(r.request.query, "bar");
-  //EXPECT_EQ(r.results[0]["foo"], "bar");
+  EXPECT_EQ(r.request.id, "foo");
+  EXPECT_EQ(r.request.query, "bar");
+  EXPECT_EQ(r.results[0]["foo"], "bar");
 }
-/*
+
 TEST_F(DistributedTests, test_deserialize_distributed_query_result_json) {
   auto json =
       "{"
@@ -224,5 +214,5 @@ TEST_F(DistributedTests, test_workflow) {
 
   EXPECT_EQ(dist.getPendingQueryCount(), 0U);
   EXPECT_EQ(dist.results_.size(), 0U);
-}*/
+}
 }
