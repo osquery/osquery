@@ -829,7 +829,6 @@ Status serializeRowRJ(const Row& r, const ColumnNames& cols, rapidjson::Document
 }
 
 Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d) {
-  LOG(INFO) << "serializeQueryDataRJ(2) Entry";
   for (const auto& r : q) {
     rapidjson::Document serialized;
     serialized.SetObject();
@@ -849,7 +848,6 @@ Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d) {
 Status serializeQueryDataRJ(const QueryData& q,
                           const ColumnNames& cols,
                           rapidjson::Document& d) {
-  LOG(INFO) << "serializeQueryDataRJ(3) Entry";
   for (const auto& r : q) {
     rapidjson::Document serialized;
     serialized.SetObject();

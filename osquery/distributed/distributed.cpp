@@ -94,28 +94,28 @@ size_t Distributed::getCompletedCount() {
 }
 
 Status Distributed::serializeResults(std::string& json) {
-  rapidjson::Document results;
+  rj::Document results;
   results.SetObject();
-  rapidjson::Value queries(rapidjson::kObjectType);
-  rapidjson::Value statuses(rapidjson::kObjectType);
+  rj::Value queries(rj::kObjectType);
+  rj::Value statuses(rj::kObjectType);
   for (const auto& result : results_) {
-    rapidjson::Document qd;
+    rj::Document qd;
     qd.SetArray();
     auto s = serializeQueryDataRJ(result.results, result.columns, qd);
     if (!s.ok()) {
       return s;
     }
     // This is a deep copy of qd which is not ideal, if we can make this a move, that would be best
-    queries.AddMember(rapidjson::Value(result.request.id.c_str(), results.GetAllocator()).Move(), rapidjson::Value(qd, results.GetAllocator()), results.GetAllocator());
-    statuses.AddMember(rapidjson::Value(result.request.id.c_str(), results.GetAllocator()).Move(), rapidjson::Value(result.status.getCode()).Move(), results.GetAllocator());
+    queries.AddMember(rj::Value(result.request.id.c_str(), results.GetAllocator()).Move(), rj::Value(qd, results.GetAllocator()), results.GetAllocator());
+    statuses.AddMember(rj::Value(result.request.id.c_str(), results.GetAllocator()).Move(), rj::Value(result.status.getCode()).Move(), results.GetAllocator());
   }
 
   results.AddMember("queries", queries, results.GetAllocator());
   results.AddMember("statuses", statuses, results.GetAllocator());
 
-  rapidjson::StringBuffer sb;
+  rj::StringBuffer sb;
   try {
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    rj::Writer<rj::StringBuffer> writer(sb);
     results.Accept(writer); 
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error writing JSON: " + std::string(e.what()));
@@ -251,57 +251,31 @@ DistributedQueryRequest Distributed::popRequest() {
 }
 
 Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
-                                        pt::ptree& tree) {
-  tree.put("query", r.query);
-  tree.put("id", r.id);
-  return Status(0, "OK");
-}
-
-Status serializeDistributedQueryRequestRJ(const DistributedQueryRequest& r,
                                         rj::Document& d) {
   d.AddMember(
-    rapidjson::Value("query", d.GetAllocator()).Move(),
-    rapidjson::Value(r.query.c_str(), d.GetAllocator()).Move(),
+    rj::Value("query", d.GetAllocator()).Move(),
+    rj::Value(r.query.c_str(), d.GetAllocator()),
     d.GetAllocator());
 
   d.AddMember(
-    rapidjson::Value("id", d.GetAllocator()).Move(),
-    rapidjson::Value(r.id.c_str(), d.GetAllocator()).Move(),
+    rj::Value("id", d.GetAllocator()).Move(),
+    rj::Value(r.id.c_str(), d.GetAllocator()),
     d.GetAllocator());
-
+  
   return Status(0, "OK");
 }
 
 Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
                                             std::string& json) {
-  pt::ptree tree;
-  auto s = serializeDistributedQueryRequest(r, tree);
+  rj::Document d;
+  auto s = serializeDistributedQueryRequest(r, d);
   if (!s.ok()) {
     return s;
   }
 
-  std::stringstream ss;
+  rj::StringBuffer sb;
   try {
-    pt::write_json(ss, tree, false);
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
-  }
-  json = ss.str();
-
-  return Status(0, "OK");
-}
-
-Status serializeDistributedQueryRequestJSONRJ(const DistributedQueryRequest& r,
-                                            std::string& json) {
-  rapidjson::Document d;
-  auto s = serializeDistributedQueryRequestRJ(r, d);
-  if (!s.ok()) {
-    return s;
-  }
-
-  rapidjson::StringBuffer sb;
-  try {
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    rj::Writer<rj::StringBuffer> writer(sb);
     d.Accept(writer); 
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error writing JSON: " + std::string(e.what()));
@@ -311,66 +285,31 @@ Status serializeDistributedQueryRequestJSONRJ(const DistributedQueryRequest& r,
   return Status(0, "OK");
 }
 
-Status deserializeDistributedQueryRequest(const pt::ptree& tree,
+Status deserializeDistributedQueryRequest(const rj::Value& d,
                                           DistributedQueryRequest& r) {
-  r.query = tree.get<std::string>("query", "");
-  r.id = tree.get<std::string>("id", "");
-  return Status(0, "OK");
-}
-
-Status deserializeDistributedQueryRequestRJ(const rapidjson::Value& d,
-                                          DistributedQueryRequest& r) {
-  r.query = d["query"].GetString();
-  r.id = d["id"].GetString();
+  if (!(d.HasMember("query") && d.HasMember("id") &&
+      d["query"].IsString() && d["id"].IsString())) {
+    return Status(1, "Malformed distributed query request");
+  }
+  r.query = std::string(d["query"].GetString());
+  r.id = std::string(d["id"].GetString());
   return Status(0, "OK");
 }
 
 Status deserializeDistributedQueryRequestJSON(const std::string& json,
                                               DistributedQueryRequest& r) {
-  std::stringstream ss(json);
-  pt::ptree tree;
-  try {
-    pt::read_json(ss, tree);
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
-  }
-  return deserializeDistributedQueryRequest(tree, r);
-}
-
-Status deserializeDistributedQueryRequestJSONRJ(const std::string& json,
-                                              DistributedQueryRequest& r) {
-  rapidjson::Document d;
+  rj::Document d;
   if (d.Parse(json.c_str()).HasParseError()){
     return Status(1, "Error serializing JSON");
   }
-  return deserializeDistributedQueryRequestRJ(d, r);
+  return deserializeDistributedQueryRequest(d, r);
 }
 
 Status serializeDistributedQueryResult(const DistributedQueryResult& r,
-                                       pt::ptree& tree) {
-  pt::ptree request;
-  auto s = serializeDistributedQueryRequest(r.request, request);
-  if (!s.ok()) {
-    return s;
-  }
-
-  pt::ptree results;
-  s = serializeQueryData(r.results, r.columns, results);
-  if (!s.ok()) {
-    return s;
-  }
-
-  tree.add_child("request", request);
-  tree.add_child("results", results);
-
-  return Status(0, "OK");
-}
-
-Status serializeDistributedQueryResultRJ(const DistributedQueryResult& r,
                                        rj::Document& d) {
   rj::Document request;
   request.SetObject();
-  auto s = serializeDistributedQueryRequestRJ(r.request, request);
+  auto s = serializeDistributedQueryRequest(r.request, request);
   if (!s.ok()) {
     return s;
   }
@@ -382,41 +321,22 @@ Status serializeDistributedQueryResultRJ(const DistributedQueryResult& r,
     return s;
   }
 
-  d.AddMember("request", rapidjson::Value(request, d.GetAllocator()).Move(), d.GetAllocator());
-  d.AddMember("results", rapidjson::Value(results, d.GetAllocator()).Move(), d.GetAllocator());
+  d.AddMember("request", rj::Value(request, d.GetAllocator()).Move(), d.GetAllocator());
+  d.AddMember("results", rj::Value(results, d.GetAllocator()).Move(), d.GetAllocator());
   return Status(0, "OK");
 }
 
 Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
                                            std::string& json) {
-  pt::ptree tree;
-  auto s = serializeDistributedQueryResult(r, tree);
+  rj::Document d;
+  auto s = serializeDistributedQueryResult(r, d);
   if (!s.ok()) {
     return s;
   }
 
-  std::stringstream ss;
+  rj::StringBuffer sb;
   try {
-    pt::write_json(ss, tree, false);
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
-  }
-  json = ss.str();
-
-  return Status(0, "OK");
-}
-
-Status serializeDistributedQueryResultJSONRJ(const DistributedQueryResult& r,
-                                           std::string& json) {
-  rapidjson::Document d;
-  auto s = serializeDistributedQueryResultRJ(r, d);
-  if (!s.ok()) {
-    return s;
-  }
-
-  rapidjson::StringBuffer sb;
-  try {
-    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    rj::Writer<rj::StringBuffer> writer(sb);
     d.Accept(writer); 
   } catch (const pt::ptree_error& e) {
     return Status(1, "Error writing JSON: " + std::string(e.what()));
@@ -426,32 +346,11 @@ Status serializeDistributedQueryResultJSONRJ(const DistributedQueryResult& r,
   return Status(0, "OK");
 }
 
-Status deserializeDistributedQueryResult(const pt::ptree& tree,
+Status deserializeDistributedQueryResult(const rj::Document& d,
                                          DistributedQueryResult& r) {
   DistributedQueryRequest request;
   auto s =
-      deserializeDistributedQueryRequest(tree.get_child("request"), request);
-  if (!s.ok()) {
-    return s;
-  }
-
-  QueryData results;
-  s = deserializeQueryData(tree.get_child("results"), results);
-  if (!s.ok()) {
-    return s;
-  }
-
-  r.request = request;
-  r.results = results;
-
-  return Status(0, "OK");
-}
-
-Status deserializeDistributedQueryResultRJ(const rapidjson::Document& d,
-                                         DistributedQueryResult& r) {
-  DistributedQueryRequest request;
-  auto s =
-      deserializeDistributedQueryRequestRJ(d["request"], request);
+      deserializeDistributedQueryRequest(d["request"], request);
   if (!s.ok()) {
     return s;
   }
@@ -470,22 +369,10 @@ Status deserializeDistributedQueryResultRJ(const rapidjson::Document& d,
 
 Status deserializeDistributedQueryResultJSON(const std::string& json,
                                              DistributedQueryResult& r) {
-  pt::ptree tree;
-  try {
-    std::stringstream ss(json);
-    pt::read_json(ss, tree);
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error serializing JSON: " + std::string(e.what()));
-  }
-  return deserializeDistributedQueryResult(tree, r);
-}
-
-Status deserializeDistributedQueryResultJSONRJ(const std::string& json,
-                                             DistributedQueryResult& r) {
-  rapidjson::Document d;
+  rj::Document d;
   if (d.Parse(json.c_str()).HasParseError()){
     return Status(1, "Error serializing JSON");
   }
-  return deserializeDistributedQueryResultRJ(d, r);
+  return deserializeDistributedQueryResult(d, r);
 }
 }
