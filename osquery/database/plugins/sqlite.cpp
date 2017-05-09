@@ -89,8 +89,8 @@ class SQLiteDatabasePlugin : public DatabasePlugin {
 REGISTER_INTERNAL(SQLiteDatabasePlugin, "database", "sqlite");
 
 Status SQLiteDatabasePlugin::setUp() {
-  if (!DatabasePlugin::kDBHandleOptionAllowOpen) {
-    LOG(WARNING) << RLOG(1629) << "Not allowed to create DBHandle instance";
+  if (!DatabasePlugin::kDBAllowOpen) {
+    LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
   }
 
   // Consume the current settings.
@@ -101,7 +101,7 @@ Status SQLiteDatabasePlugin::setUp() {
     return Status(1, "Cannot read database path: " + path_);
   }
 
-  if (!DatabasePlugin::kCheckingDB) {
+  if (!DatabasePlugin::kDBChecking) {
     VLOG(1) << "Opening database handle: " << path_;
   }
 
@@ -116,13 +116,13 @@ Status SQLiteDatabasePlugin::setUp() {
       nullptr);
 
   if (result != SQLITE_OK || db_ == nullptr) {
-    if (DatabasePlugin::kDBHandleOptionRequireWrite) {
+    if (DatabasePlugin::kDBRequireWrite) {
       close();
       // A failed open in R/W mode is a runtime error.
       return Status(1, "Cannot open database: " + std::to_string(result));
     }
 
-    if (!DatabasePlugin::kCheckingDB) {
+    if (!DatabasePlugin::kDBChecking) {
       VLOG(1) << "Opening database failed: Continuing with read-only support";
     }
 

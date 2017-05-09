@@ -1,12 +1,12 @@
 /*
-*  Copyright (c) 2014-present, Facebook, Inc.
-*  All rights reserved.
-*
-*  This source code is licensed under the BSD-style license found in the
-*  LICENSE file in the root directory of this source tree. An additional grant
-*  of patent rights can be found in the PATENTS file in the same directory.
-*
-*/
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -42,34 +42,63 @@ const std::map<int, std::string> kServiceType = {
     {0x00000110, "OWN_PROCESS(Interactive)"},
     {0x00000120, "SHARE_PROCESS(Interactive)"}};
 
-bool QuerySvcInfo(const SC_HANDLE& schScManager,
-                  ENUM_SERVICE_STATUS_PROCESS& svc,
-                  Row& r) {
-  DWORD cbBufSize = 0;
+auto closeServiceHandle = [](SC_HANDLE sch) { CloseServiceHandle(sch); };
+using svc_handle_t = std::unique_ptr<SC_HANDLE__, decltype(closeServiceHandle)>;
 
-  auto schService =
-      OpenService(schScManager, svc.lpServiceName, SERVICE_QUERY_CONFIG);
-
-  if (schService == nullptr) {
-    TLOG << "OpenService failed (" << GetLastError() << ")";
-    return FALSE;
+static inline Status getService(const SC_HANDLE& scmHandle,
+                                const ENUM_SERVICE_STATUS_PROCESS& svc,
+                                QueryData& results) {
+  Row r;
+  svc_handle_t svcHandle(
+      OpenService(scmHandle, svc.lpServiceName, SERVICE_QUERY_CONFIG),
+      closeServiceHandle);
+  if (svcHandle == nullptr) {
+    return Status(GetLastError(), "Failed to open service handle");
   }
 
-  QueryServiceConfig(schService, nullptr, 0, &cbBufSize);
-  auto lpsc = (LPQUERY_SERVICE_CONFIG)malloc(cbBufSize);
-  if (!QueryServiceConfig(schService, lpsc, cbBufSize, &cbBufSize)) {
-    TLOG << "QueryServiceConfig failed (" << GetLastError() << ")";
+  DWORD cbBufSize;
+  (void)QueryServiceConfig(svcHandle.get(), nullptr, 0, &cbBufSize);
+  auto err = GetLastError();
+  if (ERROR_INSUFFICIENT_BUFFER != err) {
+    return Status(err, "Failed to query size of service config buffer");
   }
 
-  QueryServiceConfig2(
-      schService, SERVICE_CONFIG_DESCRIPTION, nullptr, 0, &cbBufSize);
-  auto lpsd = (LPSERVICE_DESCRIPTION)malloc(cbBufSize);
-  if (!QueryServiceConfig2(schService,
-                           SERVICE_CONFIG_DESCRIPTION,
-                           (LPBYTE)lpsd,
-                           cbBufSize,
-                           &cbBufSize)) {
-    TLOG << "QueryServiceConfig2 failed (" << GetLastError() << ")";
+  std::unique_ptr<QUERY_SERVICE_CONFIG> lpsc(
+      static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize)));
+  if (lpsc == nullptr) {
+    return Status(1, "Failed to malloc service config buffer");
+  }
+
+  auto ret =
+      QueryServiceConfig(svcHandle.get(), lpsc.get(), cbBufSize, &cbBufSize);
+  if (ret == 0) {
+    return Status(GetLastError(), "Failed to query service config");
+  }
+
+  (void)QueryServiceConfig2(
+      svcHandle.get(), SERVICE_CONFIG_DESCRIPTION, nullptr, 0, &cbBufSize);
+  err = GetLastError();
+  if (ERROR_INSUFFICIENT_BUFFER == err) {
+    std::unique_ptr<SERVICE_DESCRIPTION> lpsd(
+        static_cast<LPSERVICE_DESCRIPTION>(malloc(cbBufSize)));
+    if (lpsd == nullptr) {
+      return Status(1, "Failed to malloc service description buffer");
+    }
+    ret = QueryServiceConfig2(svcHandle.get(),
+                              SERVICE_CONFIG_DESCRIPTION,
+                              (LPBYTE)lpsd.get(),
+                              cbBufSize,
+                              &cbBufSize);
+    if (ret == 0) {
+      return Status(GetLastError(),
+                    "Failed to query size of service description buffer");
+    }
+    if (lpsd->lpDescription != nullptr) {
+      r["description"] = SQL_TEXT(lpsd->lpDescription);
+    }
+  } else if (ERROR_MUI_FILE_NOT_FOUND != err) {
+    // Bug in Windows 10 with CDPUserSvc_63718, just ignore description
+    return Status(err, "Failed to query service description");
   }
 
   r["name"] = SQL_TEXT(svc.lpServiceName);
@@ -82,10 +111,6 @@ bool QuerySvcInfo(const SC_HANDLE& schScManager,
   r["start_type"] = SQL_TEXT(kSvcStartType[lpsc->dwStartType]);
   r["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
   r["user_account"] = SQL_TEXT(lpsc->lpServiceStartName);
-
-  if (lpsd->lpDescription != nullptr) {
-    r["description"] = SQL_TEXT(lpsd->lpDescription);
-  }
 
   if (kServiceType.count(lpsc->dwServiceType) > 0) {
     r["service_type"] = SQL_TEXT(kServiceType.at(lpsc->dwServiceType));
@@ -103,25 +128,21 @@ bool QuerySvcInfo(const SC_HANDLE& schScManager,
     }
   }
 
-  free(lpsc);
-  free(lpsd);
-  CloseServiceHandle(schService);
-  return TRUE;
+  results.push_back(r);
+  return Status();
 }
 
-QueryData genServices(QueryContext& context) {
-  void* buf = nullptr;
-  DWORD bytesNeeded = 0;
-  DWORD serviceCount = 0;
-  QueryData results;
-
-  auto schScManager = OpenSCManager(nullptr, nullptr, GENERIC_READ);
-  if (schScManager == nullptr) {
-    TLOG << "EnumServiceStatusEx failed (" << GetLastError() << ")";
-    return {};
+static inline Status getServices(QueryData& results) {
+  svc_handle_t scmHandle(OpenSCManager(nullptr, nullptr, GENERIC_READ),
+                         closeServiceHandle);
+  if (scmHandle == nullptr) {
+    return Status(GetLastError(),
+                  "Failed to connect to Service Connection Manager");
   }
 
-  (void)EnumServicesStatusEx(schScManager,
+  DWORD bytesNeeded;
+  DWORD serviceCount;
+  (void)EnumServicesStatusEx(scmHandle.get(),
                              SC_ENUM_PROCESS_INFO,
                              SERVICE_WIN32,
                              SERVICE_STATE_ALL,
@@ -131,32 +152,50 @@ QueryData genServices(QueryContext& context) {
                              &serviceCount,
                              nullptr,
                              nullptr);
-
-  buf = malloc(bytesNeeded);
-  if (EnumServicesStatusEx(schScManager,
-                           SC_ENUM_PROCESS_INFO,
-                           SERVICE_WIN32,
-                           SERVICE_STATE_ALL,
-                           (LPBYTE)buf,
-                           bytesNeeded,
-                           &bytesNeeded,
-                           &serviceCount,
-                           nullptr,
-                           nullptr)) {
-    ENUM_SERVICE_STATUS_PROCESS* services = (ENUM_SERVICE_STATUS_PROCESS*)buf;
-    for (DWORD i = 0; i < serviceCount; ++i) {
-      Row r;
-      if (QuerySvcInfo(schScManager, services[i], r)) {
-        results.push_back(r);
-      }
-    }
-  } else {
-    TLOG << "EnumServiceStatusEx failed (" << GetLastError() << ")";
+  auto err = GetLastError();
+  if (ERROR_MORE_DATA != err) {
+    return Status(err, "Failed to query service list buffer size");
   }
 
-  free(buf);
-  CloseServiceHandle(schScManager);
+  std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[]> lpSvcBuf(
+      static_cast<ENUM_SERVICE_STATUS_PROCESS*>(malloc(bytesNeeded)));
+  if (lpSvcBuf == nullptr) {
+    return Status(1, "Failed to malloc service buffer");
+  }
+
+  auto ret = EnumServicesStatusEx(scmHandle.get(),
+                                  SC_ENUM_PROCESS_INFO,
+                                  SERVICE_WIN32,
+                                  SERVICE_STATE_ALL,
+                                  (LPBYTE)lpSvcBuf.get(),
+                                  bytesNeeded,
+                                  &bytesNeeded,
+                                  &serviceCount,
+                                  nullptr,
+                                  nullptr);
+  if (ret == 0) {
+    return Status(GetLastError(), "Failed to enumerate services");
+  }
+
+  for (size_t i = 0; i < serviceCount; i++) {
+    auto s = getService(scmHandle.get(), lpSvcBuf[i], results);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+
+  return Status();
+}
+
+QueryData genServices(QueryContext& context) {
+  QueryData results;
+  auto status = getServices(results);
+  if (!status.ok()) {
+    // Prefer no results to incomplete results
+    LOG(WARNING) << status.getMessage();
+    results = QueryData();
+  }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

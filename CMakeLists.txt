@@ -1,3 +1,10 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under the BSD-style license found in the
+#  LICENSE file in the root directory of this source tree. An additional grant
+#  of patent rights can be found in the PATENTS file in the same directory.
+
 cmake_minimum_required(VERSION 2.8.12)
 string(ASCII 27 ESC)
 macro(WARNING_LOG MESSAGE)
@@ -50,30 +57,6 @@ if(CCACHE_EXECUTABLE)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_EXECUTABLE}")
 endif()
 
-if(NOT WIN32)
-  add_compile_options(
-    -Qunused-arguments
-    -Wstrict-aliasing
-    -Wno-missing-field-initializers
-    -Wno-unused-local-typedef
-    -Wno-deprecated-register
-    -Wno-unknown-warning-option
-    -Wnon-virtual-dtor
-    -Wchar-subscripts
-    -Wpointer-arith
-    -Woverloaded-virtual
-    -Wformat
-    -Wformat-security
-    -Werror=format-security
-    -Wabi-tag
-    -fpermissive
-    -fstack-protector-all
-    -pipe
-    -fdata-sections
-    -ffunction-sections
-  )
-endif()
-
 # osquery additional compiler flags added by CMake.
 set(C_COMPILE_FLAGS "")
 set(CXX_COMPILE_FLAGS "")
@@ -123,6 +106,7 @@ if(APPLE)
   # Special compile flags for Objective-C++
   set(OBJCXX_COMPILE_FLAGS
     "-x objective-c++ -fobjc-arc -Wno-c++11-extensions")
+  set(POSIX TRUE)
 elseif(WIN32)
   # Windows
   # C++11 features should be on by default in 2012 and beyond.
@@ -143,6 +127,31 @@ else()
     set(LINUX TRUE)
     set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libstdc++")
   endif()
+  set(POSIX TRUE)
+endif()
+
+if(POSIX)
+  add_compile_options(
+    -Qunused-arguments
+    -Wstrict-aliasing
+    -Wno-missing-field-initializers
+    -Wno-unused-local-typedef
+    -Wno-deprecated-register
+    -Wno-unknown-warning-option
+    -Wnon-virtual-dtor
+    -Wchar-subscripts
+    -Wpointer-arith
+    -Woverloaded-virtual
+    -Wformat
+    -Wformat-security
+    -Werror=format-security
+    -Wabi-tag
+    -fpermissive
+    -fstack-protector-all
+    -pipe
+    -fdata-sections
+    -ffunction-sections
+  )
 endif()
 
 if(LINUX AND CMAKE_CXX_COMPILER MATCHES "clang")
@@ -207,7 +216,7 @@ else()
   #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
 
   # Visual Studio does not support generation of PIC code
-  if(NOT WINDOWS)
+  if(POSIX)
     # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
     # To be safe, only include them when building 'release' outputs.
     add_compile_options(
@@ -263,6 +272,32 @@ else()
   set(OSQUERY_BUILD_RELEASE FALSE)
 endif()
 
+# Feature environment variables (flags), their use is highly discouraged.
+# The recommended osquery build, and distributed packages, do not use these.
+if(DEFINED ENV{SKIP_AWS})
+  set(SKIP_AWS TRUE)
+endif()
+if(DEFINED ENV{SKIP_TSK})
+  set(SKIP_TSK TRUE)
+endif()
+if(DEFINED ENV{SKIP_LLDPD})
+  set(SKIP_LLDPD TRUE)
+endif()
+if(DEFINED ENV{SKIP_YARA})
+  set(SKIP_YARA TRUE)
+endif()
+
+# Similar to the feature skips, there are default-build skips.
+if(DEFINED ENV{SKIP_TESTS})
+  set(SKIP_TESTS TRUE)
+endif()
+if(DEFINED ENV{SKIP_BENCHMARKS})
+  set(SKIP_BENCHMARKS TRUE)
+endif()
+if(DEFINED ENV{SKIP_TABLES})
+  set(SKIP_TABLES TRUE)
+endif()
+
 # Finished setting compiler/compiler flags.
 project(OSQUERY)
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
@@ -292,10 +327,9 @@ elseif(NOT FREEBSD)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto")
   endif()
-
 endif()
 
-if(NOT IS_DIRECTORY ${CMAKE_SOURCE_DIR}/third-party/sqlite3)
+if(NOT IS_DIRECTORY "${CMAKE_SOURCE_DIR}/third-party/sqlite3")
   WARNING_LOG("Cannot find git submodule third-party/sqlite3 directory")
   WARNING_LOG("Please run: make deps or git submodule update --init")
   message(FATAL_ERROR "No sqlite3 directory")
@@ -360,49 +394,27 @@ endif()
 if(APPLE)
   LOG_PLATFORM("OS X")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "debian")
-  set(DEBIAN_BASED TRUE)
   LOG_PLATFORM("Debian")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "ubuntu")
-  set(DEBIAN_BASED TRUE)
   LOG_PLATFORM("Ubuntu")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "centos")
-  set(REDHAT_BASED TRUE)
   LOG_PLATFORM("CentOS")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "scientific")
-  set(REDHAT_BASED TRUE)
   LOG_PLATFORM("Scientific Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "rhel")
-  set(REDHAT_BASED TRUE)
   LOG_PLATFORM("RHEL")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "amazon")
-  set(REDHAT_BASED TRUE)
   LOG_PLATFORM("Amazon Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "oracle")
-  set(REDHAT_BASED TRUE)
   LOG_PLATFORM("Oracle Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "gentoo")
-  set(GENTOO_BASED TRUE)
   LOG_PLATFORM("Gentoo Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "funtoo")
-  set(GENTOO_BASED TRUE)
   LOG_PLATFORM("Funtoo Linux")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "freebsd")
   LOG_PLATFORM("FreeBSD")
 elseif(OSQUERY_BUILD_PLATFORM STREQUAL "windows")
   LOG_PLATFORM("Windows")
-endif()
-
-if("${OSQUERY_BUILD_DISTRO}" MATCHES "^(centos|rhel|scientific|oracle)7$")
-  # Useful for libudev version detection.
-  set(SYSTEMD TRUE)
-endif()
-
-if(REDHAT_BASED)
-  add_definitions(-DREDHAT_BASED=1)
-elseif(DEBIAN_BASED)
-  add_definitions(-DDEBIAN_BASED=1)
-elseif(GENTOO_BASED)
-  add_definitions(-DGENTOO_BASED=1)
 endif()
 
 # Add sysroot overrides for each platform/distro.
@@ -413,7 +425,7 @@ elseif(LINUX)
   include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
 endif()
 
-if(NOT WINDOWS)
+if(POSIX)
   include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   include_directories(SYSTEM "${BUILD_DEPS}/include")
   include_directories("${BUILD_DEPS}/include/openssl")
@@ -495,7 +507,7 @@ else()
   check_include_file_cxx("tr1/tuple" HAVE_TR1_TUPLE)
 endif()
 
-if("${HAVE_TR1_TUPLE}" STREQUAL "")
+if(FREEBSD OR "${HAVE_TR1_TUPLE}" STREQUAL "")
   set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=1")
 else()
   set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=0")
@@ -503,16 +515,18 @@ endif()
 
 set(GTEST_FLAGS
   ${GTEST_FLAGS}
-  "-I${CMAKE_SOURCE_DIR}/third-party/gtest-1.7.0/include"
-  "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/include"
-  "-I${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0/gtest/include"
+  "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googletest/include"
+  "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googlemock/include"
 )
 join("${GTEST_FLAGS}" " " GTEST_FLAGS)
+
+set(BUILD_GTEST TRUE)
+
+add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
 
 include(Thrift)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
-add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/gmock-1.7.0")
 
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)

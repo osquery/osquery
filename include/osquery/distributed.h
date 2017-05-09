@@ -229,6 +229,9 @@ class Distributed {
   /// Process and execute queued queries
   Status runQueries();
 
+  // Getter for ID of currently executing request
+  static std::string getCurrentRequestId();
+
  protected:
   /**
    * @brief Process several queries from a distributed plugin
@@ -260,8 +263,13 @@ class Distributed {
    */
   Status flushCompleted();
 
- protected:
+  // Setter for ID of currently executing request
+  static void setCurrentRequestId(const std::string& cReqId);
+
   std::vector<DistributedQueryResult> results_;
+
+  // ID of the currently executing query
+  static std::string currentRequestId_;
 
  private:
   friend class DistributedTests;

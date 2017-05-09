@@ -44,6 +44,7 @@ QueryData genWifiScan(QueryContext& context) {
       r["noise"] = INTEGER([network noiseMeasurement]);
       CWChannel* cwc = [network wlanChannel];
       if (cwc != nil) {
+        r["channel"] = INTEGER(getChannelNumber(cwc));
         r["channel_width"] = INTEGER(getChannelWidth(cwc));
         r["channel_band"] = INTEGER(getChannelBand(cwc));
       }

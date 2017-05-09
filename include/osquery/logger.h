@@ -22,6 +22,7 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -44,20 +45,32 @@ enum StatusLogSeverity {
 /// An intermediate status log line.
 struct StatusLogLine {
  public:
-  /// An integer severity level mimicing Glog's.
+  /// An integer severity level mimicking Glog's.
   StatusLogSeverity severity;
+
   /// The name of the file emitting the status log.
   std::string filename;
+
   /// The line of the file emitting the status log.
-  int line;
+  size_t line;
+
   /// The string-formatted status message.
   std::string message;
-  /// The host identifier
-  std::string identifier;
+
   /// The ASCII time stamp for when the status message was emitted
   std::string calendar_time;
+
   /// The UNIX time for when the status message was emitted
   size_t time;
+
+  /**
+   * @brief The host identifier at the time when logs are flushed.
+   *
+   * There is occasionally a delay between logging a status and decorating
+   * with the host identifier. In most cases the identifier is static so this
+   * does not matter. In some cases the host identifier causes database lookups.
+   */
+  std::string identifier;
 };
 
 /**

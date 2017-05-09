@@ -14,6 +14,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
+#include <boost/tokenizer.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -56,6 +57,26 @@ const std::set<std::string> kStartupStatusRegKeys = {
 
 // Starts with 0[0-9] but not followed by all 0s
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
+
+static inline void parseStartupPath(const std::string& path, Row& r) {
+  if (path.find('\"') == std::string::npos) {
+    r["path"] = path;
+  } else {
+    boost::tokenizer<boost::escaped_list_separator<TCHAR>> tokens(
+        path,
+        boost::escaped_list_separator<TCHAR>(
+            std::string(""), std::string(" "), std::string("\"\'")));
+    for (auto& tok = tokens.begin(); tok != tokens.end(); ++tok) {
+      if (tok == tokens.begin()) {
+        r["path"] = *tok;
+      } else if (r.count("args") == 0) {
+        r["args"] = *tok;
+      } else {
+        r["args"].append(" " + *tok);
+      }
+    }
+  }
+}
 
 QueryData genStartupItems(QueryContext& context) {
   QueryData results;
@@ -103,16 +124,17 @@ QueryData genStartupItems(QueryContext& context) {
       }
     }
 
+    parseStartupPath(startup.at("data"), r);
+
     r["status"] = regex_match(startup.at("status"), kStartupDisabledRegex)
                       ? "disabled"
                       : "enabled";
     r["name"] = startup.at("name");
-    r["path"] = startup.at("data");
     r["source"] = startup.at("key");
     r["type"] = "Startup Item";
     results.push_back(r);
   }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

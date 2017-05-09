@@ -15,8 +15,6 @@ elseif(WINDOWS)
   file(GLOB OSQUERY_EVENTS_WINDOWS "windows/*.cpp")
   ADD_OSQUERY_LIBRARY(FALSE osquery_events_windows ${OSQUERY_EVENTS_WINDOWS})
 else()
-  # See the root CMakeLists for SYSTEMD detection.
-  # The udev library link is not available without systemd-devel.
   ADD_OSQUERY_LINK_ADDITIONAL("udev")
   ADD_OSQUERY_LINK_ADDITIONAL("audit")
 

@@ -14,7 +14,7 @@
 #include <osquery/config.h>
 #include <osquery/logger.h>
 
-#include "osquery/tables/other/yara_utils.h"
+#include "osquery/tables/yara/yara_utils.h"
 
 namespace osquery {
 
@@ -22,10 +22,10 @@ namespace osquery {
  * The callback used when there are compilation problems in the rules.
  */
 void YARACompilerCallback(int error_level,
-                          const char *file_name,
+                          const char* file_name,
                           int line_number,
-                          const char *message,
-                          void *user_data) {
+                          const char* message,
+                          void* user_data) {
   if (error_level == YARA_ERROR_LEVEL_ERROR) {
     VLOG(1) << file_name << "(" << line_number << "): error: " << message;
   } else {
@@ -36,8 +36,8 @@ void YARACompilerCallback(int error_level,
 /**
  * Compile a single rule file and load it into rule pointer.
  */
-Status compileSingleFile(const std::string &file, YR_RULES **rules) {
-  YR_COMPILER *compiler = nullptr;
+Status compileSingleFile(const std::string& file, YR_RULES** rules) {
+  YR_COMPILER* compiler = nullptr;
   int result = yr_compiler_create(&compiler);
   if (result != ERROR_SUCCESS) {
     VLOG(1) << "Could not create compiler: " + std::to_string(result);
@@ -47,7 +47,7 @@ Status compileSingleFile(const std::string &file, YR_RULES **rules) {
   yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
 
   bool compiled = false;
-  YR_RULES *tmp_rules;
+  YR_RULES* tmp_rules;
   VLOG(1) << "Loading " << file;
 
   // First attempt to load the file, in case it is saved (pre-compiled)
@@ -64,7 +64,7 @@ Status compileSingleFile(const std::string &file, YR_RULES **rules) {
   } else {
     compiled = true;
     // Try to compile the rules.
-    FILE *rule_file = fopen(file.c_str(), "r");
+    FILE* rule_file = fopen(file.c_str(), "r");
 
     if (rule_file == nullptr) {
       yr_compiler_destroy(compiler);
@@ -106,10 +106,10 @@ Status compileSingleFile(const std::string &file, YR_RULES **rules) {
  * Given a vector of strings, attempt to compile them and store the result
  * in the map under the given category.
  */
-Status handleRuleFiles(const std::string &category,
-                       const pt::ptree &rule_files,
-                       std::map<std::string, YR_RULES *> &rules) {
-  YR_COMPILER *compiler = nullptr;
+Status handleRuleFiles(const std::string& category,
+                       const pt::ptree& rule_files,
+                       std::map<std::string, YR_RULES*>& rules) {
+  YR_COMPILER* compiler = nullptr;
   int result = yr_compiler_create(&compiler);
   if (result != ERROR_SUCCESS) {
     VLOG(1) << "Could not create compiler: error " + std::to_string(result);
@@ -119,8 +119,8 @@ Status handleRuleFiles(const std::string &category,
   yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
 
   bool compiled = false;
-  for (const auto &item : rule_files) {
-    YR_RULES *tmp_rules = nullptr;
+  for (const auto& item : rule_files) {
+    YR_RULES* tmp_rules = nullptr;
     auto rule = item.second.get("", "");
     if (rule[0] != '/') {
       rule = std::string("/etc/osquery/yara/") + rule;
@@ -155,7 +155,7 @@ Status handleRuleFiles(const std::string &category,
     } else {
       compiled = true;
       // Try to compile the rules.
-      FILE *rule_file = fopen(rule.c_str(), "r");
+      FILE* rule_file = fopen(rule.c_str(), "r");
 
       if (rule_file == nullptr) {
         yr_compiler_destroy(compiler);
@@ -198,10 +198,10 @@ Status handleRuleFiles(const std::string &category,
  * This is the YARA callback. Used to store matching rules in the row which is
  * passed in as user_data.
  */
-int YARACallback(int message, void *message_data, void *user_data) {
+int YARACallback(int message, void* message_data, void* user_data) {
   if (message == CALLBACK_MSG_RULE_MATCHING) {
-    Row *r = (Row *)user_data;
-    YR_RULE *rule = (YR_RULE *)message_data;
+    Row* r = (Row*)user_data;
+    YR_RULE* rule = (YR_RULE*)message_data;
 
     if ((*r)["matches"].length() > 0) {
       (*r)["matches"] += "," + std::string(rule->identifier);
@@ -209,9 +209,9 @@ int YARACallback(int message, void *message_data, void *user_data) {
       (*r)["matches"] = std::string(rule->identifier);
     }
 
-    YR_STRING *string = nullptr;
+    YR_STRING* string = nullptr;
     yr_rule_strings_foreach(rule, string) {
-      YR_MATCH *match = nullptr;
+      YR_MATCH* match = nullptr;
       yr_string_matches_foreach(string, match) {
         if ((*r)["strings"].length() > 0) {
           (*r)["strings"] += "," + std::string(string->identifier);
@@ -225,7 +225,7 @@ int YARACallback(int message, void *message_data, void *user_data) {
       }
     }
 
-    const char *tag = nullptr;
+    const char* tag = nullptr;
     yr_rule_tags_foreach(rule, tag) {
       if ((*r)["tags"].length() > 0) {
         (*r)["tags"] += "," + std::string(tag);
@@ -250,16 +250,16 @@ Status YARAConfigParserPlugin::setUp() {
   return Status(0, "OK");
 }
 
-Status YARAConfigParserPlugin::update(const std::string &source,
-                                      const ParserConfig &config) {
+Status YARAConfigParserPlugin::update(const std::string& source,
+                                      const ParserConfig& config) {
   // The YARA config parser requested the "yara" top-level key in the config.
-  const auto &yara_config = config.at("yara");
+  const auto& yara_config = config.at("yara");
 
   // Look for a "signatures" key with the group/file content.
   if (yara_config.count("signatures") > 0) {
-    const auto &signatures = yara_config.get_child("signatures");
+    const auto& signatures = yara_config.get_child("signatures");
     data_.add_child("signatures", signatures);
-    for (const auto &element : signatures) {
+    for (const auto& element : signatures) {
       VLOG(1) << "Compiling YARA signature group: " << element.first;
       auto status = handleRuleFiles(element.first, element.second, rules_);
       if (!status.ok()) {
@@ -272,7 +272,7 @@ Status YARAConfigParserPlugin::update(const std::string &source,
   // The "file_paths" set maps the rule groups to the "file_paths" top level
   // configuration key. That similar key keeps the groups of file paths.
   if (yara_config.count("file_paths") > 0) {
-    const auto &file_paths = yara_config.get_child("file_paths");
+    const auto& file_paths = yara_config.get_child("file_paths");
     data_.add_child("file_paths", file_paths);
   }
   return Status(0, "OK");

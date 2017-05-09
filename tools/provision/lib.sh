@@ -12,10 +12,12 @@
 function setup_brew() {
   if [[ "$2" == "linux" ]]; then
     BREW_REPO=$LINUXBREW_REPO
+    BREW_COMMIT=$LINUXBREW_BREW
     CORE_COMMIT=$LINUXBREW_CORE
     DUPES_COMMIT=$LINUXBREW_DUPES
   else
     BREW_REPO=$HOMEBREW_REPO
+    BREW_COMMIT=$HOMEBREW_BREW
     CORE_COMMIT=$HOMEBREW_CORE
     DUPES_COMMIT=$HOMEBREW_DUPES
   fi
@@ -27,8 +29,13 @@ function setup_brew() {
     git clone $BREW_REPO "$DEPS"
   else
     log "checking for updates to brew"
-    git pull > /dev/null
+    git fetch origin > /dev/null
+    git reset --hard origin/master > /dev/null
+    git clean -f
   fi
+
+  # Reset to a deterministic checkout of brew.
+  git reset --hard $BREW_COMMIT
 
   # Create a local cache directory
   mkdir -p "$DEPS/.cache"
@@ -75,9 +82,6 @@ function setup_brew() {
 
   # Fix for python linking.
   mkdir -p "$DEPS/lib/python2.7/site-packages"
-  if [[ "$BREW_TYPE" = "linux" ]]; then
-    sed -i "s/Formula\[rack\.basename\.to_s\]\.aliases/Formulary\.from_rack\(rack\)\.aliases/g" "$DEPS/Library/Homebrew/keg.rb"
-  fi
 }
 
 # json_element JSON STRUCT

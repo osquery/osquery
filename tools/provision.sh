@@ -23,6 +23,9 @@ HOMEBREW_CORE="0e6f293450cf9b54e324e92ea0b0475fd4e0d929"
 LINUXBREW_CORE="600e1460c79b9cf6945e87cb5374b9202db1f6a9"
 HOMEBREW_DUPES="00df450f28f23aa1013564889d11440ab80b36a5"
 LINUXBREW_DUPES="83cad3d474e6d245cd543521061bba976529e5df"
+HOMEBREW_BREW="2be7999878702554f1e1b5f4118978e670e6156c"
+LINUXBREW_BREW="b3d07003e7c6e389fef1855564fef5954e20aea1"
+
 
 source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/provision/lib.sh"
@@ -126,6 +129,9 @@ function platform_darwin_main() {
 }
 
  function platform_posix_main() {
+  # libarchive for file carving
+  brew_dependency osquery/osquery-local/libarchive
+
   # List of LLVM-compiled dependencies.
   brew_dependency osquery/osquery-local/lz4
   brew_dependency osquery/osquery-local/libmagic

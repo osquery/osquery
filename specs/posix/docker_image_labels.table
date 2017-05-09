@@ -1,0 +1,13 @@
+table_name("docker_image_labels")
+description("Docker image labels.")
+schema([
+    Column("id", TEXT, "Image ID", index=True),
+    Column("key", TEXT, "Label key"),
+    Column("value", TEXT, "Optional label value")
+])
+implementation("applications/docker@genImageLabels")
+examples([
+  "select * from docker_image_labels",
+  "select * from docker_image_labels where id = '1234567890abcdef'",
+  "select * from docker_image_labels where id = '11b2399e1426d906e62a0c357650e363426d6c56dbe2f35cbaa9b452250e3355'"
+])

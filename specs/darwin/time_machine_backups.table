@@ -1,0 +1,13 @@
+table_name("time_machine_backups")
+description("Backups to drives using TimeMachine")
+schema([
+    Column("destination_id", TEXT, "Time Machine destination ID"),
+    Column("backup_date", INTEGER, "Backup Date"),
+])
+implementation("time_machine@genTimeMachineBackups")
+examples([
+  "select alias, backup_date, td.destination_id, root_volume_uuid, encryption from time_machine_backups tb join time_machine_destinations td on (td.destination_id=tb.destination_id);",
+])
+fuzz_paths([
+    "/Library/Preferences/com.apple.TimeMachine.plist",
+])

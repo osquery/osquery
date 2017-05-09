@@ -11,8 +11,8 @@
 #include <map>
 #include <set>
 
-#include <boost/noncopyable.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/noncopyable.hpp>
 
 #include <tsk/libtsk.h>
 
@@ -29,9 +29,12 @@ namespace osquery {
 namespace tables {
 
 const std::map<TSK_FS_META_TYPE_ENUM, std::string> kTSKTypeNames{
-    {TSK_FS_META_TYPE_REG, "regular"},   {TSK_FS_META_TYPE_DIR, "directory"},
-    {TSK_FS_META_TYPE_LNK, "symlink"},   {TSK_FS_META_TYPE_BLK, "block"},
-    {TSK_FS_META_TYPE_CHR, "character"}, {TSK_FS_META_TYPE_FIFO, "fifo"},
+    {TSK_FS_META_TYPE_REG, "regular"},
+    {TSK_FS_META_TYPE_DIR, "directory"},
+    {TSK_FS_META_TYPE_LNK, "symlink"},
+    {TSK_FS_META_TYPE_BLK, "block"},
+    {TSK_FS_META_TYPE_CHR, "character"},
+    {TSK_FS_META_TYPE_FIFO, "fifo"},
     {TSK_FS_META_TYPE_SOCK, "socket"},
 };
 
@@ -78,7 +81,9 @@ class DeviceHelper : private boost::noncopyable {
                     QueryData& results);
 
   /// Volume accessor, used for computing offsets using block/sector size.
-  const std::shared_ptr<TskVsInfo>& getVolume() { return volume_; }
+  const std::shared_ptr<TskVsInfo>& getVolume() {
+    return volume_;
+  }
 
   /// Reset stack counting for directory iteration.
   void resetStack() {

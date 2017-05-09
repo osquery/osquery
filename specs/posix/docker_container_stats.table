@@ -1,0 +1,33 @@
+table_name("docker_container_stats")
+description("Docker container statistics. Queries on this table take at least one second.")
+schema([
+    Column("id", TEXT, "Container ID", index=True, required=True),
+    Column("name", TEXT, "Container name"),
+    Column("pids", INTEGER, "Number of processes"),
+    Column("read", BIGINT, "UNIX time when stats were read"),
+    Column("preread", BIGINT, "UNIX time when stats were last read"),
+    Column("interval", BIGINT, "Difference between read and preread in nano-seconds"),
+    Column("disk_read", BIGINT, "Total disk read bytes"),
+    Column("disk_write", BIGINT, "Total disk write bytes"),
+    Column("num_procs", INTEGER, "Number of processors"),
+    Column("cpu_total_usage", BIGINT, "Total CPU usage"),
+    Column("cpu_kernelmode_usage", BIGINT, "CPU kernel mode usage"),
+    Column("cpu_usermode_usage", BIGINT, "CPU user mode usage"),
+    Column("system_cpu_usage", BIGINT, "CPU system usage"),
+    Column("online_cpus", INTEGER, "Online CPUs"),
+    Column("pre_cpu_total_usage", BIGINT, "Last read total CPU usage"),
+    Column("pre_cpu_kernelmode_usage", BIGINT, "Last read CPU kernel mode usage"),
+    Column("pre_cpu_usermode_usage", BIGINT, "Last read CPU user mode usage"),
+    Column("pre_system_cpu_usage", BIGINT, "Last read CPU system usage"),
+    Column("pre_online_cpus", INTEGER, "Last read online CPUs"),
+    Column("memory_usage", BIGINT, "Memory usage"),
+    Column("memory_max_usage", BIGINT, "Memory maximum usage"),
+    Column("memory_limit", BIGINT, "Memory limit"),
+    Column("network_rx_bytes", BIGINT, "Total network bytes read"),
+    Column("network_tx_bytes", BIGINT, "Total network bytes transmitted")
+])
+implementation("applications/docker@genContainerStats")
+examples([
+  "select * from docker_container_stats where id = 'de8cfdc74c850967'",
+  "select * from docker_container_stats where id = 'de8cfdc74c850967fd3832e128f4d12e2d5476a4aea282734bfb7e57f66fce2f'"
+])

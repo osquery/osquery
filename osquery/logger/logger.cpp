@@ -19,6 +19,7 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
@@ -296,11 +297,11 @@ static void deserializeIntermediateLog(const PluginRequest& request,
     log.push_back({
         (StatusLogSeverity)item.second.get<int>("s", O_INFO),
         item.second.get<std::string>("f", "<unknown>"),
-        item.second.get<int>("i", 0),
+        item.second.get<size_t>("i", 0),
         item.second.get<std::string>("m", ""),
-        item.second.get<std::string>("h", ""),
         item.second.get<std::string>("c", ""),
         item.second.get<size_t>("u", 0),
+        item.second.get<std::string>("h", ""),
     });
   }
 }
@@ -446,15 +447,21 @@ void BufferedLogSink::send(google::LogSeverity severity,
                            const struct ::tm* tm_time,
                            const char* message,
                            size_t message_len) {
+  if (FLAGS_disable_logging) {
+    return;
+  }
+
+  // WARNING, be extremely careful when accessing data here.
+  // This should not cause any persistent storage or logging actions.
   {
     WriteLock lock(kBufferedLogSinkLogs);
     logs_.push_back({(StatusLogSeverity)severity,
                      std::string(base_filename),
-                     line,
+                     static_cast<size_t>(line),
                      std::string(message, message_len),
-                     getHostIdentifier(),
                      toAsciiTimeUTC(tm_time),
-                     toUnixTime(tm_time)});
+                     toUnixTime(tm_time),
+                     std::string()});
   }
 
   // The daemon will relay according to the schedule.
@@ -592,7 +599,10 @@ size_t queuedSenders() {
 }
 
 void relayStatusLogs(bool async) {
-  if (FLAGS_disable_logging) {
+  if (FLAGS_disable_logging || !DatabasePlugin::kDBInitialized) {
+    // The logger plugins may not be setUp if logging is disabled.
+    // If the database is not setUp, or is in a reset, status logs continue
+    // to buffer.
     return;
   }
 
@@ -604,12 +614,18 @@ void relayStatusLogs(bool async) {
   }
 
   auto sender = ([]() {
+    auto identifier = getHostIdentifier();
+
     // Construct a status log plugin request.
     PluginRequest request = {{"status", "true"}};
-
     {
       WriteLock lock(kBufferedLogSinkLogs);
       auto& status_logs = BufferedLogSink::dump();
+      for (auto& log : status_logs) {
+        // Copy the host identifier into each status log.
+        log.identifier = identifier;
+      }
+
       serializeIntermediateLog(status_logs, request);
       if (!request["log"].empty()) {
         request["log"].pop_back();

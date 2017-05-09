@@ -1,29 +1,58 @@
-file(GLOB OSQUERY_LOGGER "*.cpp")
-ADD_OSQUERY_LIBRARY(TRUE osquery_logger ${OSQUERY_LOGGER})
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under the BSD-style license found in the
+#  LICENSE file in the root directory of this source tree. An additional grant
+#  of patent rights can be found in the PATENTS file in the same directory.
 
-if(WINDOWS OR FREEBSD)
-  set(OSQUERY_LOGGER_PLUGINS
-    "plugins/buffered.cpp"
-    "plugins/filesystem.cpp"
-    "plugins/tls.cpp"
-    "plugins/stdout.cpp"
+file(GLOB OSQUERY_LOGGER "*.cpp")
+ADD_OSQUERY_LIBRARY_CORE(osquery_logger ${OSQUERY_LOGGER})
+
+file(GLOB OSQUERY_LOGGER_TESTS "tests/*.cpp")
+ADD_OSQUERY_TEST_CORE(${OSQUERY_LOGGER_TESTS})
+
+set(OSQUERY_LOGGER_PLUGINS
+  "plugins/buffered.cpp"
+  "plugins/filesystem.cpp"
+  "plugins/tls.cpp"
+  "plugins/stdout.cpp"
+)
+
+ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_logger_plugins ${OSQUERY_LOGGER_PLUGINS})
+
+set(OSQUERY_LOGGER_PLUGIN_TESTS
+  "logger/plugins/tests/filesystem_logger_tests.cpp"
+  "logger/plugins/tests/buffered_tests.cpp"
+  "logger/plugins/tests/tls_logger_tests.cpp"
+)
+
+# Keep the logger testing in the additional to test filesystem logging.
+# There is a significant difference between the Glog-backed filesystem plugin
+# and others, which use a Glog sink. They must be tested in tandem.
+ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_LOGGER_PLUGIN_TESTS})
+
+if(NOT SKIP_AWS AND NOT WINDOWS)
+  set(OSQUERY_LOGGER_AWS_PLUGINS
+    "plugins/aws_firehose.cpp"
+    "plugins/aws_kinesis.cpp"
+    "plugins/aws_util.cpp"
   )
-  file(GLOB OSQUERY_LOGGER_PLUGIN_TESTS "plugins/tests/filesystem_logger_tests.cpp")
-else()
-  file(GLOB OSQUERY_LOGGER_PLUGINS "plugins/*.cpp")
-  file(GLOB OSQUERY_LOGGER_PLUGIN_TESTS "plugins/tests/*.cpp")
+
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(
+    osquery_logger_aws_plugins
+    ${OSQUERY_LOGGER_AWS_PLUGINS}
+  )
+
+  set(OSQUERY_LOGGER_AWS_PLUGIN_TESTS
+    "logger/plugins/tests/aws_firehose_tests.cpp"
+    "logger/plugins/tests/aws_kinesis_tests.cpp"
+    "logger/plugins/tests/aws_util_tests.cpp"
+  )
+
+  ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_LOGGER_AWS_PLUGIN_TESTS})
+
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-kinesis")
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-firehose")
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-sts")
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-core")
 endif()
-
-ADD_OSQUERY_LIBRARY(FALSE osquery_logger_plugins ${OSQUERY_LOGGER_PLUGINS})
-
-file(GLOB OSQUERY_LOGGER_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(TRUE ${OSQUERY_LOGGER_TESTS})
-
-# Keep the logger testing in the additional to test filesystem logging.
-# There is a significant difference between the Glog-backed filesystem plugin
-# and other, which use a Glog sink. They must be tested in tandem.
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_LOGGER_PLUGIN_TESTS})

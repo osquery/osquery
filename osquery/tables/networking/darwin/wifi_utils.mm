@@ -61,6 +61,10 @@ std::string getSecurityName(const CWSecurity cw) {
   }
 }
 
+int getChannelNumber(const CWChannel* cwc) {
+  return (int)[cwc channelNumber];
+}
+
 int getChannelWidth(const CWChannel* cwc) {
   switch ([cwc channelWidth]) {
   case kCWChannelWidth20MHz:

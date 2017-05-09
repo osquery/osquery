@@ -21,6 +21,9 @@ std::string extractSsid(const CFDataRef& data);
 /// Change a constant into a string representing the network encryption type
 std::string getSecurityName(const CWSecurity cw);
 
+/// Change a constant into the channel number
+int getChannelNumber(const CWChannel* cwc);
+
 /// Change a constant into the channel width
 int getChannelWidth(const CWChannel* cwc);
 
