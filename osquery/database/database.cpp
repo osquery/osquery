@@ -113,6 +113,20 @@ Status deserializeRow(const pt::ptree& tree, Row& r) {
   return Status(0, "OK");
 }
 
+Status deserializeRowRJ(const rapidjson::Value& v, Row& r) {
+  if (!v.IsObject()){
+    return Status(1, "Row not an object");
+  }
+  for (const auto& i : v.GetObject()) {
+    std::string name(i.name.GetString());
+    std::string value(i.value.GetString());
+    if (name.length() > 0) {
+      r[name] = value;
+    }
+  }
+  return Status(0, "OK");
+}
+
 Status deserializeRowJSON(const std::string& json, Row& r) {
   pt::ptree tree;
   try {
@@ -180,6 +194,22 @@ Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
   }
   return Status(0, "OK");
 }
+
+Status deserializeQueryDataRJ(const rapidjson::Value& v, QueryData& qd) {
+  if (!v.IsObject()){
+    return Status(1, "Not an object");
+  }
+  for (const auto& i : v.GetObject()) {
+    Row r;
+    auto status = deserializeRowRJ(i.value, r);
+    if (!status.ok()) {
+      return status;
+    }
+    qd.push_back(r);
+  }
+  return Status(0, "OK");
+}
+
 
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
   pt::ptree tree;

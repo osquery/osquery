@@ -114,6 +114,8 @@ Status serializeRowJSON(const Row& r, std::string& json);
  */
 Status deserializeRow(const boost::property_tree::ptree& tree, Row& r);
 
+Status deserializeRowRJ(const rapidjson::Value& v, Row& r);
+
 /**
  * @brief Deserialize a Row object from a JSON string
  *
@@ -175,6 +177,10 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json);
 
 /// Inverse of serializeQueryData, convert property tree to QueryData.
 Status deserializeQueryData(const boost::property_tree::ptree& tree,
+                            QueryData& qd);
+
+/// Inverse of serializeQueryData, convert property tree to QueryData.
+Status deserializeQueryDataRJ(const rapidjson::Value& v,
                             QueryData& qd);
 
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryData.

@@ -291,10 +291,37 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
   return Status(0, "OK");
 }
 
+Status serializeDistributedQueryRequestJSONRJ(const DistributedQueryRequest& r,
+                                            std::string& json) {
+  rapidjson::Document d;
+  auto s = serializeDistributedQueryRequestRJ(r, d);
+  if (!s.ok()) {
+    return s;
+  }
+
+  rapidjson::StringBuffer sb;
+  try {
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    d.Accept(writer); 
+  } catch (const pt::ptree_error& e) {
+    return Status(1, "Error writing JSON: " + std::string(e.what()));
+  }
+  json = sb.GetString();
+
+  return Status(0, "OK");
+}
+
 Status deserializeDistributedQueryRequest(const pt::ptree& tree,
                                           DistributedQueryRequest& r) {
   r.query = tree.get<std::string>("query", "");
   r.id = tree.get<std::string>("id", "");
+  return Status(0, "OK");
+}
+
+Status deserializeDistributedQueryRequestRJ(const rapidjson::Value& d,
+                                          DistributedQueryRequest& r) {
+  r.query = d["query"].GetString();
+  r.id = d["id"].GetString();
   return Status(0, "OK");
 }
 
@@ -308,6 +335,15 @@ Status deserializeDistributedQueryRequestJSON(const std::string& json,
     return Status(1, "Error serializing JSON: " + std::string(e.what()));
   }
   return deserializeDistributedQueryRequest(tree, r);
+}
+
+Status deserializeDistributedQueryRequestJSONRJ(const std::string& json,
+                                              DistributedQueryRequest& r) {
+  rapidjson::Document d;
+  if (d.Parse(json.c_str()).HasParseError()){
+    return Status(1, "Error serializing JSON");
+  }
+  return deserializeDistributedQueryRequestRJ(d, r);
 }
 
 Status serializeDistributedQueryResult(const DistributedQueryResult& r,
@@ -370,6 +406,26 @@ Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
   return Status(0, "OK");
 }
 
+Status serializeDistributedQueryResultJSONRJ(const DistributedQueryResult& r,
+                                           std::string& json) {
+  rapidjson::Document d;
+  auto s = serializeDistributedQueryResultRJ(r, d);
+  if (!s.ok()) {
+    return s;
+  }
+
+  rapidjson::StringBuffer sb;
+  try {
+    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    d.Accept(writer); 
+  } catch (const pt::ptree_error& e) {
+    return Status(1, "Error writing JSON: " + std::string(e.what()));
+  }
+  json = sb.GetString();
+
+  return Status(0, "OK");
+}
+
 Status deserializeDistributedQueryResult(const pt::ptree& tree,
                                          DistributedQueryResult& r) {
   DistributedQueryRequest request;
@@ -391,6 +447,27 @@ Status deserializeDistributedQueryResult(const pt::ptree& tree,
   return Status(0, "OK");
 }
 
+Status deserializeDistributedQueryResultRJ(const rapidjson::Document& d,
+                                         DistributedQueryResult& r) {
+  DistributedQueryRequest request;
+  auto s =
+      deserializeDistributedQueryRequestRJ(d["request"], request);
+  if (!s.ok()) {
+    return s;
+  }
+
+  QueryData results;
+  s = deserializeQueryDataRJ(d["request"], results);
+  if (!s.ok()) {
+    return s;
+  }
+
+  r.request = request;
+  r.results = results;
+
+  return Status(0, "OK");
+}
+
 Status deserializeDistributedQueryResultJSON(const std::string& json,
                                              DistributedQueryResult& r) {
   pt::ptree tree;
@@ -401,5 +478,14 @@ Status deserializeDistributedQueryResultJSON(const std::string& json,
     return Status(1, "Error serializing JSON: " + std::string(e.what()));
   }
   return deserializeDistributedQueryResult(tree, r);
+}
+
+Status deserializeDistributedQueryResultJSONRJ(const std::string& json,
+                                             DistributedQueryResult& r) {
+  rapidjson::Document d;
+  if (d.Parse(json.c_str()).HasParseError()){
+    return Status(1, "Error serializing JSON");
+  }
+  return deserializeDistributedQueryResultRJ(d, r);
 }
 }
