@@ -442,8 +442,7 @@ QueryData genRegistry(QueryContext& context) {
         context.hasConstraint("path", LIKE))) {
     // We default to display all HIVEs
     expandRegistryGlobs(kSQLGlobWildcard, keys);
-  }
-  else {
+  } else {
     if (context.hasConstraint("key", EQUALS)) {
       keys = context.constraints["key"].getAll(EQUALS);
     }
@@ -463,7 +462,7 @@ QueryData genRegistry(QueryContext& context) {
     if (context.hasConstraint("path", LIKE)) {
       for (const auto& path : context.constraints["path"].getAll(LIKE)) {
         auto status = expandRegistryGlobs(
-          path.substr(0, path.find_last_of(kRegSep)), keys);
+            path.substr(0, path.find_last_of(kRegSep)), keys);
         if (!status.ok()) {
           LOG(INFO) << "Failed to expand globs: " + status.getMessage();
         }
@@ -471,12 +470,12 @@ QueryData genRegistry(QueryContext& context) {
     }
   }
 
-    maybeWarnLocalUsers(keys);
+  maybeWarnLocalUsers(keys);
 
-    for (const auto& key : keys) {
-      queryKey(key, results);
-    }
-    return results;
+  for (const auto& key : keys) {
+    queryKey(key, results);
   }
+  return results;
+}
 } // namespace tables
-} // namespace tables
+} // namespace osquery
