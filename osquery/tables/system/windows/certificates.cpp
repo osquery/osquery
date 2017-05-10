@@ -12,19 +12,31 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <wincrypt.h>
+#include <Wintrust.h>
 
 #include <boost/algorithm/hex.hpp>
 
 #include <osquery/database.h>
-#include <osquery/filesystem/fileops.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
+#include "osquery/filesystem/fileops.h"
+#include <boost/functional/hash/hash.hpp>
 
 namespace osquery {
 namespace tables {
 
 #define CERT_ENCODING (PKCS_7_ASN_ENCODING | X509_ASN_ENCODING)
+
+  const std::map<unsigned long, std::string> kKeyUsages = {
+    { CERT_DATA_ENCIPHERMENT_KEY_USAGE, "CERT_DATA_ENCIPHERMENT_KEY_USAGE" },
+    {CERT_DIGITAL_SIGNATURE_KEY_USAGE, "CERT_DIGITAL_SIGNATURE_KEY_USAGE"},
+    {CERT_KEY_AGREEMENT_KEY_USAGE, "CERT_KEY_AGREEMENT_KEY_USAGE"},
+    {CERT_KEY_CERT_SIGN_KEY_USAGE, "CERT_KEY_CERT_SIGN_KEY_USAGE"},
+    {CERT_KEY_ENCIPHERMENT_KEY_USAGE, "CERT_KEY_ENCIPHERMENT_KEY_USAGE"},
+    {CERT_NON_REPUDIATION_KEY_USAGE, "CERT_NON_REPUDIATION_KEY_USAGE"},
+    {CERT_OFFLINE_CRL_SIGN_KEY_USAGE, "CERT_OFFLINE_CRL_SIGN_KEY_USAGE"} };
 
 struct certStoreLocation {
   unsigned long storeId;
@@ -42,6 +54,82 @@ typedef struct _ENUM_ARG {
 
 typedef std::vector<certStoreLocation> storeLocationsContainer;
 typedef std::vector<ENUM_ARG> storeContainer;
+
+std::string cryptOIDToString(const char* objId) {
+  if(objId == nullptr) {
+    return "";
+  }
+  auto objKeyId = (void*)objId;
+  auto oidInfo = CryptFindOIDInfo(CRYPT_OID_INFO_OID_KEY, objKeyId, 0);
+  return oidInfo == nullptr ? "" : wstringToString(oidInfo->pwszName);
+}
+
+/*
+std::string getKeyUsage(CERT_INFO& certInfo) {
+  // As per the MSDN, key usage occupies 1 or 2 bytes of data. We
+  // get 4 to cast the value as an INT and OR the usage out of the buff
+  unsigned long keyUsageBytes = 4;
+  auto keyUsageBuff = static_cast<BYTE*>(malloc(keyUsageBytes));
+  auto ret = CertGetIntendedKeyUsage(CERT_ENCODING, &certInfo, keyUsageBuff, keyUsageBytes);
+  // The cert has no intended usage
+  if(ret == 0) {
+    return "";
+  }
+  std::vector<std::string> usages;
+  auto usage = static_cast<size_t>(*keyUsageBuff);
+  for(const auto& kv : kKeyUsages) {
+    if(usage & kv.first) {
+      usages.push_back(kv.second);
+    }
+  }
+  free(keyUsageBuff);
+  return join(usages, ",");
+}
+*/
+
+void getCertCtxProp(PCCERT_CONTEXT certContext, unsigned long propId, std::vector<char>& dataBuff) {
+  unsigned long dataBuffLen = 0;
+  auto ret = CertGetCertificateContextProperty(certContext, propId, nullptr, &dataBuffLen);
+  if(ret == 0) {
+    VLOG(1) << "Failed to get size of certificate property struct " << propId << " with: " << GetLastError();
+    return;
+  }
+  dataBuff.resize(dataBuffLen);
+  dataBuff.clear();
+  ret = CertGetCertificateContextProperty(
+    certContext, propId, dataBuff.data(), &dataBuffLen);
+  if (ret == 0) {
+    VLOG(1) << "Failed to get certificate property struct " << propId << " with: " << GetLastError();
+  }
+}
+
+std::string getKeyExtendedUsage(PCCERT_CONTEXT certContext) {
+  unsigned long certUsageSize;
+  PCERT_ENHKEY_USAGE certUsage = nullptr;
+  auto ret = CertGetEnhancedKeyUsage(certContext, 0, certUsage, &certUsageSize);
+  if(ret == 0) {
+    VLOG(1) << "Failed to get size of cert usage structure: " << GetLastError();
+    return "";
+  }
+  certUsage = static_cast<PCERT_ENHKEY_USAGE>(malloc(certUsageSize));
+  ret = CertGetEnhancedKeyUsage(certContext, 0, certUsage, &certUsageSize);
+  if(ret == 0) {
+    free(certUsage);
+    VLOG(1) << "Failed to get cert usage: " << GetLastError();
+    return "";
+  }
+
+  std::vector<std::string> usages;
+  for(unsigned int i = 0; i < certUsage->cUsageIdentifier; i++) {
+    auto use = cryptOIDToString(certUsage->rgpszUsageIdentifier[i]);
+    if(use != "") {
+      usages.push_back(use);
+    }
+  }
+
+  return join(usages, ",");
+
+}
 
 void enumerateCertStore(const HCERTSTORE& certStore, QueryData& results) {
   PCCERT_CONTEXT certContext = nullptr;
@@ -62,22 +150,16 @@ void enumerateCertStore(const HCERTSTORE& certStore, QueryData& results) {
                                  certName.data(),
                                  static_cast<unsigned long>(certName.size()));
     r["common_name"] = certName.data();
-    unsigned long propId = 0;
-    // propId = CertEnumCertificateContextProperties(certContext, propId);
+    VLOG(1) << "Cert common name: " << certName.data();
 
-    unsigned long dataBuffLen = 0;
-
-    auto certPropRet = CertGetCertificateContextProperty(
-        certContext, CERT_HASH_PROP_ID, nullptr, &dataBuffLen);
-    std::vector<char> dataBuff(dataBuffLen, 0x0);
-    ret = CertGetCertificateContextProperty(
-        certContext, CERT_HASH_PROP_ID, dataBuff.data(), &dataBuffLen);
-
+    std::vector<char> certHashbuff;
+    getCertCtxProp(certContext, CERT_HASH_PROP_ID, certHashbuff);
     std::stringstream hexSha1;
     try {
-      boost::algorithm::hex(dataBuff.data(),
+      boost::algorithm::hex(certHashbuff.data(),
                             std::ostream_iterator<char>{hexSha1, ""});
-    } catch (std::exception /* e */) { }
+    } catch (std::exception /* e */) {
+    }
     r["sha1"] = hexSha1.str();
 
     auto subjSize = CertNameToStr(certContext->dwCertEncodingType,
@@ -112,7 +194,7 @@ void enumerateCertStore(const HCERTSTORE& certStore, QueryData& results) {
 
     r["ca"] = INTEGER(-1);
 
-    r["self_signed"] = INTEGER(-1);
+    r["self_signed"] = WTHelperCertIsSelfSigned(CERT_ENCODING, certContext->pCertInfo) ? INTEGER(1) : INTEGER(0);
 
     r["not_valid_before"] =
         std::to_string(filetimeToUnixtime(certContext->pCertInfo->NotBefore));
@@ -120,12 +202,37 @@ void enumerateCertStore(const HCERTSTORE& certStore, QueryData& results) {
     r["not_valid_after"] =
         std::to_string(filetimeToUnixtime(certContext->pCertInfo->NotAfter));
 
-    r["signing_algorithm"] = "";
+    r["signing_algorithm"] = cryptOIDToString(certContext->pCertInfo->SignatureAlgorithm.pszObjId);
 
     r["key_algorithm"] =
-        certContext->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId;
+      cryptOIDToString(certContext->pCertInfo->SubjectPublicKeyInfo.Algorithm.pszObjId);
 
-    r["key_usage"] = "";
+    std::vector<std::string> usage;
+    std::vector<char> keyUsageBuff;
+    getCertCtxProp(certContext, CERT_CTL_USAGE_PROP_ID, keyUsageBuff);
+    auto usageCtlStruct = keyUsageBuff.data() == nullptr ? nullptr : PCTL_USAGE(keyUsageBuff.data());
+    if(usageCtlStruct != nullptr) {
+      for (unsigned long i = 0; i < usageCtlStruct->cUsageIdentifier; i++) {
+        auto use = cryptOIDToString(usageCtlStruct->rgpszUsageIdentifier[i]);
+        if (use != "") {
+          usage.push_back(use);
+        }
+      }
+    }
+
+
+    std::vector<char> enhKeyUsage;
+    getCertCtxProp(certContext, CERT_ENHKEY_USAGE_PROP_ID, enhKeyUsage);
+    auto enhUsageCtlStruct = enhKeyUsage.data() == nullptr ? nullptr : PCERT_ENHKEY_USAGE(enhKeyUsage.data());
+    if(enhUsageCtlStruct != nullptr) {
+      for (unsigned long i = 0; i < enhUsageCtlStruct->cUsageIdentifier; i++) {
+        auto use = cryptOIDToString(enhUsageCtlStruct->rgpszUsageIdentifier[i]);
+        if (use != "") {
+          usage.push_back(use);
+        }
+      }
+    }
+    r["key_usage"] = usage.size() > 0 ? join(usage, ",") : "";
 
     r["key_strength"] = INTEGER(certContext->cbCertEncoded);
 
