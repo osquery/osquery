@@ -75,7 +75,7 @@ osquery> .mode line
 osquery> SELECT * FROM osquery_info;
            pid = 3811
        version = 1.7.4
-   config_hash = 
+   config_hash =
   config_valid = 0
     extensions = active
 build_platform = darwin
@@ -191,13 +191,16 @@ The following trig functions: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`
 
 String parsing functions are always helpful, some help within subqueries so they make sense as local-additions:
 
-- `split(COLUMN, TOKENS, INDEX)`: split `COLUMN` using any character token from `TOKENS` and return the `INDEX` result. If an `INDEX` result does not exist, a `NULL` type is returned. 
+- `split(COLUMN, TOKENS, INDEX)`: split `COLUMN` using any character token from `TOKENS` and return the `INDEX` result. If an `INDEX` result does not exist, a `NULL` type is returned.
 - `regex_split(COLUMN, PATTERN, INDEX)`: similar to split, but instead of `TOKENS`, apply the POSIX regex `PATTERN` (as interpreted by boost::regex).
 - `inet_aton(IPv4_STRING)`: return the integer representation of an IPv4 string.
+
+**Hashing functions**
+
+We have added `sha1`, `sha256`, and `md5` functions that take a single argument and return the hashed value.
 
 ### Table and column name deprecations
 
 Over time it may makes sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.
 
 The tools makes an effort to mark deprecated tables and create 'clone' `VIEW`s so previously scheduled queries continue to work. Similarly for old column names, the column will be marked `HIDDEN` and only returned if explicitly selected. This does not make queries using `*` future-proof, as they will begin using the new column names when the client is updated. All of these changes are considered osquery API changes and marked as such in [release notes](https://github.com/facebook/osquery/releases) on Github.
-
