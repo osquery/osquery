@@ -126,6 +126,20 @@ class OsqueryiTest(unittest.TestCase):
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
+    def test_config_check_example_osx(self):
+        '''Test that the OS X example config passes'''
+        example_path = "deployment/osquery.example.osx.conf"
+        proc = test_base.TimeoutRunner([
+                self.binary,
+                "--config_check",
+                "--config_path=%s/../%s" % (test_base.SCRIPT_DIR, example_path)
+            ],
+            SHELL_TIMEOUT)
+        self.assertEqual(proc.stdout, "")
+        print (proc.stdout)
+        print (proc.stderr)
+        self.assertEqual(proc.proc.poll(), 0)
+
     def test_meta_commands(self):
         '''Test the supported meta shell/help/info commands'''
         commands = [

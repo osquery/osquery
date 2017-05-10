@@ -320,7 +320,11 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
     DESTINATION bin COMPONENT main)
 
   # make install (config files)
-  install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf"
+  if(APPLE)
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.osx.conf"
+  else()
+    install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osquery.example.conf"
+  endif()
     DESTINATION "${CMAKE_INSTALL_PREFIX}/share/osquery/" COMPONENT main)
   install(DIRECTORY DESTINATION "${CMAKE_INSTALL_PREFIX}/var/osquery")
 

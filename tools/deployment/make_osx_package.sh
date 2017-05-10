@@ -44,7 +44,7 @@ NEWSYSLOG_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.conf"
 NEWSYSLOG_DST="/private/var/osquery/$LD_IDENTIFIER.conf"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/private/var/osquery/packs/"
-OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
+OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.osx.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/private/var/osquery/osquery.example.conf"
 OSQUERY_CONFIG_SRC=""
 OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
@@ -113,8 +113,8 @@ function usage() {
     -a start the daemon when the package is installed
     -x force the daemon to start fresh, removing any results previously stored in the database
   This will generate an OSX package with:
-  (1) An example config /var/osquery/osquery.example.config
-  (2) An optional config /var/osquery/osquery.config if [-c] is used
+  (1) An example config /var/osquery/osquery.example.conf
+  (2) An optional config /var/osquery/osquery.conf if [-c] is used
   (3) A LaunchDaemon plist /var/osquery/com.facebook.osqueryd.plist
   (4) A default TLS certificate bundle (provided by cURL)
   (5) The osquery toolset /usr/local/bin/osquery*
