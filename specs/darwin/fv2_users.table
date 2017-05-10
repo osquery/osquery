@@ -1,0 +1,9 @@
+table_name("fv2_users")
+description("Returns FV2 Users")
+schema([
+    Column("user", TEXT, "FV2 User", index=True),
+])
+implementation("system/darwin/fv2_users@genFV2Users")
+examples([
+  "select * from fv2_users;",
+])
