@@ -112,6 +112,7 @@ function usage() {
     -o PATH override the output path.
     -a start the daemon when the package is installed
     -x force the daemon to start fresh, removing any results previously stored in the database
+ 	-d PATH embed an osqueryd flag config.
   This will generate an OSX package with:
   (1) An example config /var/osquery/osquery.example.config
   (2) An optional config /var/osquery/osquery.config if [-c] is used
@@ -119,7 +120,7 @@ function usage() {
   (4) A default TLS certificate bundle (provided by cURL)
   (5) The osquery toolset /usr/local/bin/osquery*
 
-  To enable osqueryd to run at boot using Launchd, pass the -a flag.
+  To enable osqueryd to run at boot using Launchd, pass the -a flag to attach a daemon config flag pass the -d.
   If the LaunchDaemon was previously installed a newer version of this package
   will reload (unload/load) the daemon."
 }
@@ -143,6 +144,8 @@ function parse_args() {
                               ;;
       -x | --clean )          CLEAN=true
                               ;;
+	  -d | --daemon )		  DAEMON=$1
+	  						  ;;
       -h | --help )           usage
                               ;;
       * )                     usage
@@ -198,6 +201,10 @@ function main() {
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_CONFIG_DST
   fi
 
+  if [[ "$DAEMON" != "" ]]; then
+    cp $DAEMON $FLAGFILE_DST
+  fi
+  
   # Move configurations into the packaging root.
   log "copying osquery configurations"
   mkdir -p `dirname $INSTALL_PREFIX$LAUNCHD_DST`
