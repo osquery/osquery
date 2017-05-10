@@ -1,0 +1,11 @@
+table_name("install_history")
+description("OS X package install history.")
+schema([
+    Column("date", INTEGER, "Label date as UNIX timestamp"),
+    Column("display_name", TEXT, "Label displayName"),
+    Column("display_version", TEXT, "Label displayVersion"),
+    Column("process_name", TEXT, "Label processName"),
+    Column("package_identifier", TEXT, "Label packageIdentifiers"),
+    Column("content_type", TEXT, "Label contentType"),
+])
+implementation("install_history@genInstallHistory")
