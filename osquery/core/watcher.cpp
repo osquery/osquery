@@ -197,7 +197,8 @@ void WatcherRunner::start() {
 
     // Loop over every managed extension and check sanity.
     for (const auto& extension : Watcher::extensions()) {
-      if (!isChildSane(*extension.second)) {
+      auto s = isChildSane(*extension.second);
+      if (!s.ok()) {
         // The extension manager also watches for extension-related failures.
         // The watchdog is more general, but may find failed extensions first.
         createExtension(extension.first);
@@ -361,7 +362,12 @@ Status WatcherRunner::isWatcherHealthy(const PlatformProcess& watcher,
 }
 
 QueryData WatcherRunner::getProcessRow(pid_t pid) const {
-  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(pid));
+  // On Windows, pid_t = DWORD, which is unsigned. However invalidity
+  // of processes is denoted by a pid_t of -1. We check for this
+  // by comparing the max value of DWORD, or ULONG_MAX
+  int p =
+      (isPlatform(PlatformType::TYPE_WINDOWS) && pid == ULONG_MAX) ? -1 : pid;
+  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(p));
 }
 
 Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
@@ -547,4 +553,4 @@ size_t getWorkerLimit(WatchdogLimitType name) {
   }
   return kWatchdogLimits.at(name).normal;
 }
-}
+} // namespace osquery

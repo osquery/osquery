@@ -751,4 +751,4 @@ Status startExtensionManager(const std::string& manager_path) {
 
   return Status(0, "OK");
 }
-}
+} // namespace osquery
