@@ -11,4 +11,6 @@ schema([
 implementation("system/windows/registry@genRegistry")
 examples([
   "select * from registry",
+  "select * from registry where key like 'HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run%'",
+  "select * from registry where path = 'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run'",
 ])
