@@ -38,6 +38,7 @@ else()
     -Wno-zero-length-array
     -Wno-unused-parameter
     -Wno-gnu-case-range
+    -fpermissive
   )
   if(NOT FREEBSD)
     add_compile_options(
