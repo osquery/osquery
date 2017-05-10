@@ -1,0 +1,302 @@
+// !$*UTF8*$!
+{
+  archiveVersion = 1;
+  classes = {
+  };
+  objectVersion = 46;
+  objects = {
+
+/* Begin PBXBuildFile section */
+    A744FD751B2B8694009A5085 /* driver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A744FD711B2B8694009A5085 /* driver.cpp */; };
+    A744FD761B2B8694009A5085 /* driver.h in Headers */ = {isa = PBXBuildFile; fileRef = A744FD721B2B8694009A5085 /* driver.h */; };
+    A744FD771B2B8694009A5085 /* user_client.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A744FD731B2B8694009A5085 /* user_client.cpp */; };
+    A744FD781B2B8694009A5085 /* user_client.h in Headers */ = {isa = PBXBuildFile; fileRef = A744FD741B2B8694009A5085 /* user_client.h */; };
+    A744FD7A1B2B86AB009A5085 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A744FD791B2B86AB009A5085 /* Info.plist */; };
+    A744FD7E1B2B8C80009A5085 /* logging.h in Headers */ = {isa = PBXBuildFile; fileRef = A744FD7C1B2B8C80009A5085 /* logging.h */; };
+    A744FD7F1B2B8C80009A5085 /* public.h in Headers */ = {isa = PBXBuildFile; fileRef = A744FD7D1B2B8C80009A5085 /* public.h */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+    A744FD371B2B8011009A5085 /* osquery.iokit.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = osquery.iokit.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+    A744FD711B2B8694009A5085 /* driver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = driver.cpp; path = ../../../darwin/iokit/driver.cpp; sourceTree = "<group>"; };
+    A744FD721B2B8694009A5085 /* driver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = driver.h; path = ../../../darwin/iokit/driver.h; sourceTree = "<group>"; };
+    A744FD731B2B8694009A5085 /* user_client.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = user_client.cpp; path = ../../../darwin/iokit/user_client.cpp; sourceTree = "<group>"; };
+    A744FD741B2B8694009A5085 /* user_client.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = user_client.h; path = ../../../darwin/iokit/user_client.h; sourceTree = "<group>"; };
+    A744FD791B2B86AB009A5085 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../resources/plists/iokit/Info.plist; sourceTree = "<group>"; };
+    A744FD7C1B2B8C80009A5085 /* logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = logging.h; path = ../../../darwin/iokit/logging.h; sourceTree = "<group>"; };
+    A744FD7D1B2B8C80009A5085 /* public.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = public.h; path = ../../../darwin/iokit/public.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+    A744FD331B2B8011009A5085 /* Frameworks */ = {
+      isa = PBXFrameworksBuildPhase;
+      buildActionMask = 2147483647;
+      files = (
+      );
+      runOnlyForDeploymentPostprocessing = 0;
+    };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+    A744FD2D1B2B8011009A5085 = {
+      isa = PBXGroup;
+      children = (
+        A744FD701B2B8669009A5085 /* iokit */,
+        A744FD381B2B8011009A5085 /* Products */,
+      );
+      sourceTree = "<group>";
+    };
+    A744FD381B2B8011009A5085 /* Products */ = {
+      isa = PBXGroup;
+      children = (
+        A744FD371B2B8011009A5085 /* osquery.iokit.kext */,
+      );
+      name = Products;
+      sourceTree = "<group>";
+    };
+    A744FD701B2B8669009A5085 /* iokit */ = {
+      isa = PBXGroup;
+      children = (
+        A744FD7B1B2B86BE009A5085 /* resources */,
+        A744FD7D1B2B8C80009A5085 /* public.h */,
+        A744FD7C1B2B8C80009A5085 /* logging.h */,
+        A744FD711B2B8694009A5085 /* driver.cpp */,
+        A744FD721B2B8694009A5085 /* driver.h */,
+        A744FD731B2B8694009A5085 /* user_client.cpp */,
+        A744FD741B2B8694009A5085 /* user_client.h */,
+      );
+      name = iokit;
+      sourceTree = "<group>";
+    };
+    A744FD7B1B2B86BE009A5085 /* resources */ = {
+      isa = PBXGroup;
+      children = (
+        A744FD791B2B86AB009A5085 /* Info.plist */,
+      );
+      name = resources;
+      sourceTree = "<group>";
+    };
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+    A744FD341B2B8011009A5085 /* Headers */ = {
+      isa = PBXHeadersBuildPhase;
+      buildActionMask = 2147483647;
+      files = (
+        A744FD781B2B8694009A5085 /* user_client.h in Headers */,
+        A744FD7F1B2B8C80009A5085 /* public.h in Headers */,
+        A744FD7E1B2B8C80009A5085 /* logging.h in Headers */,
+        A744FD761B2B8694009A5085 /* driver.h in Headers */,
+      );
+      runOnlyForDeploymentPostprocessing = 0;
+    };
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+    A744FD361B2B8011009A5085 /* iokit.kext */ = {
+      isa = PBXNativeTarget;
+      buildConfigurationList = A744FD421B2B8011009A5085 /* Build configuration list for PBXNativeTarget "iokit.kext" */;
+      buildPhases = (
+        A744FD321B2B8011009A5085 /* Sources */,
+        A744FD331B2B8011009A5085 /* Frameworks */,
+        A744FD341B2B8011009A5085 /* Headers */,
+        A744FD351B2B8011009A5085 /* Resources */,
+      );
+      buildRules = (
+      );
+      dependencies = (
+      );
+      name = iokit.kext;
+      productName = osquery;
+      productReference = A744FD371B2B8011009A5085 /* osquery.iokit.kext */;
+      productType = "com.apple.product-type.kernel-extension";
+    };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+    A744FD2E1B2B8011009A5085 /* Project object */ = {
+      isa = PBXProject;
+      attributes = {
+        LastUpgradeCheck = 0610;
+        TargetAttributes = {
+          A744FD361B2B8011009A5085 = {
+            CreatedOnToolsVersion = 6.1.1;
+          };
+        };
+      };
+      buildConfigurationList = A744FD311B2B8011009A5085 /* Build configuration list for PBXProject "osquery" */;
+      compatibilityVersion = "Xcode 3.2";
+      developmentRegion = English;
+      hasScannedForEncodings = 0;
+      knownRegions = (
+        en,
+      );
+      mainGroup = A744FD2D1B2B8011009A5085;
+      productRefGroup = A744FD381B2B8011009A5085 /* Products */;
+      projectDirPath = "";
+      projectRoot = "";
+      targets = (
+        A744FD361B2B8011009A5085 /* iokit.kext */,
+      );
+    };
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+    A744FD351B2B8011009A5085 /* Resources */ = {
+      isa = PBXResourcesBuildPhase;
+      buildActionMask = 2147483647;
+      files = (
+        A744FD7A1B2B86AB009A5085 /* Info.plist in Resources */,
+      );
+      runOnlyForDeploymentPostprocessing = 0;
+    };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+    A744FD321B2B8011009A5085 /* Sources */ = {
+      isa = PBXSourcesBuildPhase;
+      buildActionMask = 2147483647;
+      files = (
+        A744FD751B2B8694009A5085 /* driver.cpp in Sources */,
+        A744FD771B2B8694009A5085 /* user_client.cpp in Sources */,
+      );
+      runOnlyForDeploymentPostprocessing = 0;
+    };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+    A744FD401B2B8011009A5085 /* Debug */ = {
+      isa = XCBuildConfiguration;
+      buildSettings = {
+        ALWAYS_SEARCH_USER_PATHS = NO;
+        CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+        CLANG_CXX_LIBRARY = "libc++";
+        CLANG_ENABLE_MODULES = YES;
+        CLANG_ENABLE_OBJC_ARC = YES;
+        CLANG_WARN_BOOL_CONVERSION = YES;
+        CLANG_WARN_CONSTANT_CONVERSION = YES;
+        CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+        CLANG_WARN_EMPTY_BODY = YES;
+        CLANG_WARN_ENUM_CONVERSION = YES;
+        CLANG_WARN_INT_CONVERSION = YES;
+        CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+        CLANG_WARN_UNREACHABLE_CODE = YES;
+        CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+        COPY_PHASE_STRIP = NO;
+        ENABLE_STRICT_OBJC_MSGSEND = YES;
+        GCC_C_LANGUAGE_STANDARD = gnu99;
+        GCC_DYNAMIC_NO_PIC = NO;
+        GCC_OPTIMIZATION_LEVEL = 0;
+        GCC_PREPROCESSOR_DEFINITIONS = (
+          "DEBUG=1",
+          "$(inherited)",
+        );
+        GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+        GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+        GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+        GCC_WARN_UNDECLARED_SELECTOR = YES;
+        GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+        GCC_WARN_UNUSED_FUNCTION = YES;
+        GCC_WARN_UNUSED_VARIABLE = YES;
+        HEADER_SEARCH_PATHS = (
+          "$(inherited)",
+          /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+          ../../../../,
+        );
+        MACOSX_DEPLOYMENT_TARGET = 10.10;
+        MTL_ENABLE_DEBUG_INFO = YES;
+        ONLY_ACTIVE_ARCH = YES;
+        SDKROOT = macosx;
+      };
+      name = Debug;
+    };
+    A744FD411B2B8011009A5085 /* Release */ = {
+      isa = XCBuildConfiguration;
+      buildSettings = {
+        ALWAYS_SEARCH_USER_PATHS = NO;
+        CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+        CLANG_CXX_LIBRARY = "libc++";
+        CLANG_ENABLE_MODULES = YES;
+        CLANG_ENABLE_OBJC_ARC = YES;
+        CLANG_WARN_BOOL_CONVERSION = YES;
+        CLANG_WARN_CONSTANT_CONVERSION = YES;
+        CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+        CLANG_WARN_EMPTY_BODY = YES;
+        CLANG_WARN_ENUM_CONVERSION = YES;
+        CLANG_WARN_INT_CONVERSION = YES;
+        CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+        CLANG_WARN_UNREACHABLE_CODE = YES;
+        CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+        COPY_PHASE_STRIP = YES;
+        DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+        ENABLE_NS_ASSERTIONS = NO;
+        ENABLE_STRICT_OBJC_MSGSEND = YES;
+        GCC_C_LANGUAGE_STANDARD = gnu99;
+        GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+        GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+        GCC_WARN_UNDECLARED_SELECTOR = YES;
+        GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+        GCC_WARN_UNUSED_FUNCTION = YES;
+        GCC_WARN_UNUSED_VARIABLE = YES;
+        HEADER_SEARCH_PATHS = (
+          "$(inherited)",
+          /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+          ../../../../,
+        );
+        MACOSX_DEPLOYMENT_TARGET = 10.10;
+        MTL_ENABLE_DEBUG_INFO = NO;
+        SDKROOT = macosx;
+      };
+      name = Release;
+    };
+    A744FD431B2B8011009A5085 /* Debug */ = {
+      isa = XCBuildConfiguration;
+      buildSettings = {
+        COMBINE_HIDPI_IMAGES = YES;
+        CURRENT_PROJECT_VERSION = 1.0.0d1;
+        INFOPLIST_FILE = ../resources/plists/iokit/Info.plist;
+        MODULE_NAME = com.facebook.osquery;
+        MODULE_VERSION = 1.0.0d1;
+        PRODUCT_NAME = osquery;
+        WRAPPER_EXTENSION = iokit.kext;
+      };
+      name = Debug;
+    };
+    A744FD441B2B8011009A5085 /* Release */ = {
+      isa = XCBuildConfiguration;
+      buildSettings = {
+        COMBINE_HIDPI_IMAGES = YES;
+        CURRENT_PROJECT_VERSION = 1.0.0d1;
+        INFOPLIST_FILE = ../resources/plists/iokit/Info.plist;
+        MODULE_NAME = com.facebook.osquery;
+        MODULE_VERSION = 1.0.0d1;
+        PRODUCT_NAME = osquery;
+        WRAPPER_EXTENSION = iokit.kext;
+      };
+      name = Release;
+    };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+    A744FD311B2B8011009A5085 /* Build configuration list for PBXProject "osquery" */ = {
+      isa = XCConfigurationList;
+      buildConfigurations = (
+        A744FD401B2B8011009A5085 /* Debug */,
+        A744FD411B2B8011009A5085 /* Release */,
+      );
+      defaultConfigurationIsVisible = 0;
+      defaultConfigurationName = Release;
+    };
+    A744FD421B2B8011009A5085 /* Build configuration list for PBXNativeTarget "iokit.kext" */ = {
+      isa = XCConfigurationList;
+      buildConfigurations = (
+        A744FD431B2B8011009A5085 /* Debug */,
+        A744FD441B2B8011009A5085 /* Release */,
+      );
+      defaultConfigurationIsVisible = 0;
+      defaultConfigurationName = Release;
+    };
+/* End XCConfigurationList section */
+  };
+  rootObject = A744FD2E1B2B8011009A5085 /* Project object */;
+}
