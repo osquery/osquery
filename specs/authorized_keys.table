@@ -1,0 +1,10 @@
+table_name("authorized_keys")
+description("A line-delimited authorized_keys table of per-user")
+schema([
+    Column("username", TEXT, "authorized_keys of owner",
+      additional=True),
+    Column("key", TEXT, "Unparsed authorized_keys line"),
+    Column("key_file", TEXT, "Path to the authorized_keys for this user"),
+    ForeignKey(column="username", table="users"),
+])
+implementation("authorized_keys@getAuthorizedKeys")
