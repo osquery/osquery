@@ -437,32 +437,46 @@ QueryData genRegistry(QueryContext& context) {
   std::set<std::string> keys;
 
   if (!(context.hasConstraint("key", EQUALS) ||
-        context.hasConstraint("key", LIKE))) {
+        context.hasConstraint("key", LIKE) ||
+        context.hasConstraint("path", EQUALS) ||
+        context.hasConstraint("path", LIKE))) {
     // We default to display all HIVEs
     expandRegistryGlobs(kSQLGlobWildcard, keys);
-  } else {
-    keys = context.constraints["key"].getAll(EQUALS);
-    auto status = context.expandConstraints(
-        "key",
-        LIKE,
-        keys,
-        ([&](const std::string& pattern, std::set<std::string>& out) {
-          std::set<std::string> resolvedKeys;
-          auto status = expandRegistryGlobs(pattern, resolvedKeys);
-          out.insert(resolvedKeys.begin(), resolvedKeys.end());
-          return status;
-        }));
-    if (!status.ok()) {
-      LOG(INFO) << "Failed to expand globs: " + status.getMessage();
+  }
+  else {
+    if (context.hasConstraint("key", EQUALS)) {
+      keys = context.constraints["key"].getAll(EQUALS);
+    }
+    if (context.hasConstraint("key", LIKE)) {
+      for (const auto& key : context.constraints["key"].getAll(LIKE)) {
+        auto status = expandRegistryGlobs(key, keys);
+        if (!status.ok()) {
+          LOG(INFO) << "Failed to expand globs: " + status.getMessage();
+        }
+      }
+    }
+    if (context.hasConstraint("path", EQUALS)) {
+      for (const auto& path : context.constraints["path"].getAll(EQUALS)) {
+        keys.insert(path.substr(0, path.find_last_of(kRegSep)));
+      }
+    }
+    if (context.hasConstraint("path", LIKE)) {
+      for (const auto& path : context.constraints["path"].getAll(LIKE)) {
+        auto status = expandRegistryGlobs(
+          path.substr(0, path.find_last_of(kRegSep)), keys);
+        if (!status.ok()) {
+          LOG(INFO) << "Failed to expand globs: " + status.getMessage();
+        }
+      }
     }
   }
 
-  maybeWarnLocalUsers(keys);
+    maybeWarnLocalUsers(keys);
 
-  for (const auto& key : keys) {
-    queryKey(key, results);
+    for (const auto& key : keys) {
+      queryKey(key, results);
+    }
+    return results;
   }
-  return results;
-}
 } // namespace tables
-} // namespace osquery
+} // namespace tables

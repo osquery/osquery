@@ -89,14 +89,23 @@ TEST_F(RegistryTablesTest, test_explode_registry_path_just_hive) {
 
 TEST_F(RegistryTablesTest, test_basic_registry_globbing) {
   auto testKey = kTestKey + "\\Micro%\\%";
-  SQL results("select * from registry where key like \"" + testKey + "\"");
-  EXPECT_TRUE(results.rows().size() > 1);
+  SQL keyResults("select * from registry where key like \"" + testKey + "\"");
+  SQL pathResults("select * from registry where path like \"" + testKey + "\"");
+  EXPECT_TRUE(keyResults.rows().size() > 1);
+  EXPECT_TRUE(pathResults.rows().size() > 1);
   std::for_each(
-      results.rows().begin(), results.rows().end(), [&](const auto& row) {
+      keyResults.rows().begin(), keyResults.rows().end(), [&](const auto& row) {
         auto key = row.at("key");
         EXPECT_TRUE(boost::starts_with(key, kTestKey + "\\Micro"));
         EXPECT_TRUE(std::count(key.begin(), key.end(), '\\') == 3);
       });
+  std::for_each(pathResults.rows().begin(),
+                pathResults.rows().end(),
+                [&](const auto& row) {
+                  auto key = row.at("path");
+                  EXPECT_TRUE(boost::starts_with(key, kTestKey + "\\Micro"));
+                  EXPECT_TRUE(std::count(key.begin(), key.end(), '\\') == 3);
+                });
 }
 
 TEST_F(RegistryTablesTest, test_recursive_registry_globbing) {
@@ -129,5 +138,5 @@ TEST_F(RegistryTablesTest, test_get_username_from_key) {
     EXPECT_FALSE(status.ok());
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery
