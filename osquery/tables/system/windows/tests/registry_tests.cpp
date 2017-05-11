@@ -111,6 +111,33 @@ TEST_F(RegistryTablesTest, test_recursive_registry_globbing) {
       });
 }
 
+TEST_F(RegistryTablesTest, test_registry_path_query_no_separators) {
+  std::string testPath = "HKEY_LOCAL_MACHINE";
+  SQL results("select * from registry where path like \"" + testPath + "%\"");
+  EXPECT_TRUE(results.rows().size() > 1);
+  std::for_each(
+      results.rows().begin(), results.rows().end(), [&](const auto& row) {
+        auto path = row.at("path");
+        EXPECT_TRUE(boost::starts_with(path, testPath));
+        EXPECT_TRUE(std::count(path.begin(), path.end(), '\\') == 1);
+      });
+}
+
+TEST_F(RegistryTablesTest, test_registry_path_query_matches_key_data) {
+  SQL keyResults("select * from registry where key = \"" + kTestKey + "\"");
+  SQL pathResults("select * from registry where path like \"" + kTestKey +
+                  kRegSep + "%\"");
+  EXPECT_TRUE(keyResults.rows().size() > 1);
+  EXPECT_TRUE(pathResults.rows().size() == keyResults.rows().size());
+  std::for_each(
+      keyResults.rows().begin(), keyResults.rows().end(), [&](const auto& row) {
+        SQL results("select * from registry where path = \"" + row.at("path") +
+                    "\"");
+        EXPECT_TRUE(results.rows().size() == 1);
+        EXPECT_TRUE(row == results.rows()[0]);
+      });
+}
+
 TEST_F(RegistryTablesTest, test_get_username_from_key) {
   Status status;
   std::string username;
@@ -129,5 +156,5 @@ TEST_F(RegistryTablesTest, test_get_username_from_key) {
     EXPECT_FALSE(status.ok());
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery
