@@ -143,10 +143,10 @@ class Initializer : private boost::noncopyable {
   static void platformSetup();
 
   /**
-  * @brief Before ending, tear down any platform specific setup
-  *
-  * On windows, we require the COM libraries be initialized just once
-  */
+   * @brief Before ending, tear down any platform specific setup
+   *
+   * On windows, we require the COM libraries be initialized just once
+   */
   static void platformTeardown();
 
  public:
@@ -358,10 +358,10 @@ std::string getAsciiTime();
 Status createPidFile();
 
 /**
-* @brief Getter for determining Admin status
-*
-* @return A bool indicating if the current process is running as admin
-*/
+ * @brief Getter for determining Admin status
+ *
+ * @return A bool indicating if the current process is running as admin
+ */
 bool isUserAdmin();
 
 #ifdef WIN32
@@ -371,4 +371,4 @@ struct tm* gmtime_r(time_t* t, struct tm* result);
 
 struct tm* localtime_r(time_t* t, struct tm* result);
 #endif
-}
+} // namespace osquery
