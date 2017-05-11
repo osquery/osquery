@@ -242,14 +242,6 @@ inline size_t utf8StringSize(const std::string& str) {
  */
 std::string getBufferSHA1(const char* buffer, size_t size);
 
-/*
- * @brief Take a hex string and return its byte representation
- *
- * @param str A hex string to be converted
- * @return A vector of chars containing the byte values from the string
- */
-std::vector<unsigned char> hexStringToBuffer(const std::string str);
-
 #ifdef DARWIN
 /**
  * @brief Convert a CFStringRef to a std::string.

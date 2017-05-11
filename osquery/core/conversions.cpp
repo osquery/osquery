@@ -144,15 +144,4 @@ std::string getBufferSHA1(const char* buffer, size_t size) {
   }
   return result.str();
 }
-
-std::vector<unsigned char> hexStringToBuffer(const std::string str) {
-  std::vector<unsigned char> ret;
-  if (str.length() % 2 != 0) {
-    return ret;
-  }
-  for (size_t i = 0; i < str.length(); i += 2) {
-    ret.push_back((charToInt(str[i]) << 4) + charToInt(str[i + 1]));
-  }
-  return ret;
-}
 }

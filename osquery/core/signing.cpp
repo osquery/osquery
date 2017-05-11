@@ -10,6 +10,7 @@
 #include <openssl/ecdsa.h>
 #include <openssl/pem.h>
 
+#include <boost/algorithm/hex.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
@@ -34,31 +35,31 @@ Status verifySignature(const std::string& b64Pub,
   // Erase key the header
   pub_key.erase(0, 23);
 
-  EC_KEY* key;
-  key = EC_KEY_new_by_curve_name(NID_secp256k1);
-  const unsigned char* pub_bytes_ref = (unsigned char*)pub_key.c_str();
+  auto key = EC_KEY_new_by_curve_name(NID_secp256k1);
+  auto pub_bytes_ref = reinterpret_cast<const unsigned char*>(pub_key.data());
   o2i_ECPublicKey(&key, &pub_bytes_ref, (long)pub_key.size());
 
   // Check that we can load the public key
-  if (EC_KEY_check_key(key) == 1) {
-    const unsigned char* sig_ref = (unsigned char*)sig.c_str();
-    // Load the signature
-    ECDSA_SIG* signature = d2i_ECDSA_SIG(NULL, &sig_ref, (long)sig.size());
-    // Take the SHA256 of our message
-    std::string h256 =
-        hashFromBuffer(HASH_TYPE_SHA256, message.c_str(), message.size());
-    // Convert it to a byte vector
-    std::vector<unsigned char> byte_digest = hexStringToBuffer(h256);
-    // Check that it matches
-    if (ECDSA_do_verify(
-            byte_digest.data(), (long)byte_digest.size(), signature, key) !=
-        1) {
-      ret = Status(1, "Verification Failed");
-    }
-    ECDSA_SIG_free(signature);
-  } else {
-    ret = Status(1, "Unable to create public key");
+  if (EC_KEY_check_key(key) != 1) {
+    EC_KEY_free(key);
+    return Status(1, "Unable to create public key");
   }
+  const unsigned char* sig_ref = (unsigned char*)sig.c_str();
+  // Load the signature
+  ECDSA_SIG* signature =
+      d2i_ECDSA_SIG(nullptr, &sig_ref, static_cast<long>(sig.size()));
+  // Take the SHA256 of our message
+  std::string h256 =
+      hashFromBuffer(HASH_TYPE_SHA256, message.c_str(), message.size());
+  // Convert it to a byte vector
+  std::vector<unsigned char> byte_digest;
+  boost::algorithm::unhex(h256, std::back_inserter(byte_digest));
+  // Check that it matches
+  if (ECDSA_do_verify(
+          byte_digest.data(), (long)byte_digest.size(), signature, key) != 1) {
+    ret = Status(1, "Verification Failed");
+  }
+  ECDSA_SIG_free(signature);
   // Garbage collection
   EC_KEY_free(key);
   return ret;
@@ -66,7 +67,9 @@ Status verifySignature(const std::string& b64Pub,
 Status verifyStrictSignature(const std::string& b64Sig,
                              const std::string& message) {
   std::string strict_mode_key;
-  getDatabaseValue(kPersistentSettings, "strict_mode_pub_key", strict_mode_key);
+  getDatabaseValue(kPersistentSettings,
+                   kStrictMode + "." + kStrictModePublicKey,
+                   strict_mode_key);
   if (strict_mode_key.empty()) {
     return Status(0, "No strict mode key");
   }
@@ -79,13 +82,17 @@ Status verifyQuerySignature(const std::string& b64Sig,
   std::string uuid_signing;
   std::string query_counter;
   std::string counter_mode;
-  getDatabaseValue(kPersistentSettings, "strict_mode_pub_key", strict_mode_key);
+  getDatabaseValue(kPersistentSettings,
+                   kStrictMode + "." + kStrictModePublicKey,
+                   strict_mode_key);
+  getDatabaseValue(kPersistentSettings,
+                   kStrictMode + "." + kStrictModeUUIDSigning,
+                   uuid_signing);
   getDatabaseValue(
-      kPersistentSettings, "strict_mode_uuid_signing", uuid_signing);
-  getDatabaseValue(
-      kPersistentSettings, "strict_mode_query_counter", query_counter);
-  getDatabaseValue(
-      kPersistentSettings, "strict_mode_counter_mode", counter_mode);
+      kPersistentSettings, kStrictMode + ".query_counter", query_counter);
+  getDatabaseValue(kPersistentSettings,
+                   kStrictMode + "." + kStrictModeCounterMode,
+                   counter_mode);
   if (strict_mode_key.empty()) {
     return Status(0, "No strict mode key");
   }
@@ -108,7 +115,7 @@ Status verifyQuerySignature(const std::string& b64Sig,
     safeStrtoul(query_counter, 10, counter);
     ++counter;
     setDatabaseValue(kPersistentSettings,
-                     "strict_mode_query_counter",
+                     kStrictMode + ".query_counter",
                      std::to_string(counter));
   }
   return s;
@@ -119,7 +126,9 @@ bool doesQueryRequireSignature(const std::string& query) {
   std::vector<std::string> tables;
   {
     std::string db_protect;
-    getDatabaseValue(kPersistentSettings, "strict_mode_tables", db_protect);
+    getDatabaseValue(kPersistentSettings,
+                     kStrictMode + "." + kStrictModeProtectedTables,
+                     db_protect);
     std::vector<std::string> protect_vec = split(db_protect, ",");
     for (const auto& table : protect_vec) {
       protected_tables.insert(table);

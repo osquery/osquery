@@ -428,6 +428,7 @@ Status Config::updateSource(const std::string& source,
     return Status(1, "Error parsing the config JSON");
   }
 
+  // extract the "schedule" key and store it as the main pack
   auto& rf = RegistryFactory::get();
   if (tree.count("schedule") > 0 && !rf.external()) {
     auto& schedule = tree.get_child("schedule");

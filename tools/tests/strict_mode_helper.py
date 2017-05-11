@@ -21,7 +21,7 @@ import os
 import random
 import ssl
 import string
-import sys
+import sys 
 import thread
 import threading
 
@@ -59,8 +59,6 @@ if __name__ == '__main__':
 
 	if len(ARGS.ptables):
 		# Table lists always end in a comma unless there are no tables
-		if ARGS.ptables[-1] != ',':
-			ARGS.ptables += ','
 		print(base64.standard_b64encode(sk.sign(ARGS.ptables, hashfunc=hashlib.sha256, sigencode=ecdsa.util.sigencode_der)))
 	elif len(ARGS.sign):
 		print(base64.standard_b64encode(sk.sign(ARGS.sign, hashfunc=hashlib.sha256, sigencode=ecdsa.util.sigencode_der)))
