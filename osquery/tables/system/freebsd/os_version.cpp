@@ -10,24 +10,51 @@
 
 #include <unistd.h>
 
-#include <boost/algorithm/string.hpp>
+#include <map>
+#include <string>
 
+#include <boost/algorithm/string/find.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/regex.hpp>
+#include <boost/xpressive/xpressive.hpp>
+
+#include <osquery/core/conversions.h>
 #include <osquery/filesystem.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
+namespace xp = boost::xpressive;
+
 namespace osquery {
 namespace tables {
 
 QueryData genOSVersion(QueryContext& context) {
+  static const std::string kSysctlName = "kern.osrelease";
+
+  auto result =
+      SQL::selectAllFrom("system_controls", "name", EQUALS, kSysctlName);
+
   Row r;
 
-  r["major"] = "10";
-  r["minor"] = "2";
-  r["patch"] = "";
-  r["name"] = "";
-  r["build"] = "RELEASE";
+  r["name"] = "FreeBSD";
+
+  // TODO: Patchlevel isn't matched for some reason
+  auto rx = xp::sregex::compile(
+      "(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)-(?P<build>\\w+)-?(?P<patch>\\w+)"
+      "?");
+
+  xp::smatch matches;
+  for (auto& line : osquery::split(result[0]["current_value"], "\n")) {
+    if (xp::regex_search(line, matches, rx)) {
+      r["major"] = INTEGER(matches["major"]);
+      r["minor"] = INTEGER(matches["minor"]);
+      r["build"] = matches["build"];
+      r["patch"] = matches["patch"];
+      break;
+    }
+  }
+
   return {r};
 }
 
@@ -47,7 +74,6 @@ QueryData genSystemInfo(QueryContext& context) {
     }
   }
 
-  // Can parse /proc/cpuinfo or /proc/meminfo for this data.
   static long cores = sysconf(_SC_NPROCESSORS_CONF);
   if (cores > 0) {
     r["cpu_logical_cores"] = INTEGER(cores);
