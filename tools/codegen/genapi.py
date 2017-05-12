@@ -34,9 +34,10 @@ CANONICAL_PLATFORMS = {
     "specs": "All Platforms",
     "darwin": "Darwin (Apple OS X)",
     "linux": "Ubuntu, CentOS",
-    "utility": "Utility",
-    "windows": "Microsoft Windows",
+    "freebsd": "FreeBSD",
     "posix": "POSIX-compatible Plaforms",
+    "windows": "Microsoft Windows",
+    "utility": "Utility",
     "yara": "YARA",
     "lldpd": "LLDPD",
     "sleuthkit": "The Sleuth Kit"
