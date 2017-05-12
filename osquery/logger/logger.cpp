@@ -641,7 +641,7 @@ void relayStatusLogs(bool async) {
       if (std::find(enabled.begin(), enabled.end(), logger) != enabled.end()) {
         // Skip the registry's logic, and send directly to the core's logger.
         PluginResponse response;
-        Registry::call("logger", request, response);
+        Registry::call("logger", logger, request, response);
       }
     }
   });
