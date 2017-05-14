@@ -6,13 +6,14 @@ class Gcc < AbstractOsqueryFormula
   url "https://ftp.heanet.ie/mirrors/gnu/gcc/gcc-5.3.0/gcc-5.3.0.tar.bz2"
   mirror "https://ftp.gnu.org/gnu/gcc/gcc-5.3.0/gcc-5.3.0.tar.bz2"
   sha256 "b84f5592e9218b73dbae612b5253035a7b34a9a1f7688d2e1bfaaf7267d5c4db"
+  revision 1
 
   head "svn://gcc.gnu.org/svn/gcc/trunk"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "3939412ec49db0384b51087ce40e3e5a9893aca41e83cd1245feaff6fa5e23d0" => :x86_64_linux
+    sha256 "d7c052f743e13ce26def4a1eb084cc4f915a39b54e9dfa09f23e7bd8a95d794b" => :x86_64_linux
   end
 
   option "with-java", "Build the gcj compiler"
@@ -189,7 +190,7 @@ class Gcc < AbstractOsqueryFormula
     libgcc = lib/"gcc/x86_64-unknown-linux-gnu"/version
     specs.write specs_string + <<-EOS.undent
       *cpp_unique_options:
-      + -isystem #{legacy_prefix}/include -isystem #{default_prefix}/include
+      + -isystem #{legacy_prefix}/include
 
       *link_libgcc:
       #{glibc.installed? ? "-nostdlib -L#{libgcc}" : "+"} -L#{legacy_prefix}/lib -L#{default_prefix}/lib -lrt -lpthread

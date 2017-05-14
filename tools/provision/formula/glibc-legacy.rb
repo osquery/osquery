@@ -18,10 +18,10 @@ class GlibcLegacy < AbstractOsqueryFormula
   patch :DATA
 
   # binutils 2.20 or later is required
-  depends_on "binutils" => [:build, :recommended]
+  depends_on "binutils"
 
   # Linux kernel headers 2.6.19 or later are required
-  depends_on "linux-headers" => [:build, :recommended]
+  depends_on "linux-headers"
 
   # This package is provided for legacy headers and linking to maintain ABI
   # compatibility for the deploy-targets.
@@ -47,8 +47,8 @@ class GlibcLegacy < AbstractOsqueryFormula
         "--without-selinux",
         "--disable-sanity-checks",
       ] # Fix error: selinux/selinux.h: No such file or directory
-      args << "--with-binutils=#{Formula["binutils"].bin}" if build.with? "binutils" or true
-      args << "--with-headers=#{Formula["linux-headers"].include}" if build.with? "linux-headers" or true
+      args << "--with-binutils=#{Formula["binutils"].bin}"
+      args << "--with-headers=#{Formula["linux-headers"].include}"
       system "../configure", *args
 
       system "make" # Fix No rule to make target libdl.so.2 needed by sprof
