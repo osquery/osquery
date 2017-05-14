@@ -96,8 +96,7 @@ Status TLSLogForwarder::send(std::vector<std::string>& log_data,
     // Read each logged line into JSON and populate a list of lines.
     // The result list will use the 'data' key.
     pt::ptree children;
-    iterate(log_data,
-            ([&children](std::string& item) {
+    iterate(log_data, ([&children](std::string& item) {
               // Enforce a max log line size for TLS logging.
               if (item.size() > FLAGS_logger_tls_max) {
                 LOG(WARNING) << "Line exceeds TLS logger max: " << item.size();

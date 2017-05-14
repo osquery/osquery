@@ -135,6 +135,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/libmagic
   brew_dependency osquery/osquery-local/pcre
   brew_dependency osquery/osquery-local/boost
+  brew_dependency osquery/osquery-local/asio
   brew_dependency osquery/osquery-local/cpp-netlib
   brew_dependency osquery/osquery-local/google-benchmark
   brew_dependency osquery/osquery-local/snappy

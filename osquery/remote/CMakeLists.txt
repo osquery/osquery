@@ -6,7 +6,7 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_remote
 )
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
-  enroll/plugins/tls.cpp
+  enroll/plugins/tls_enroll.cpp
 )
 
 file(GLOB OSQUERY_ENROLLMENT_PLUGIN_TESTS "enrollment/plugins/tests/*.cpp")
