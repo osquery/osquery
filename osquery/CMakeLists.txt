@@ -197,6 +197,9 @@ if(LINUX)
   endif()
   # For Ubuntu/CentOS packages add the build SHA1.
   ADD_OSQUERY_LINK_CORE("-Wl,--build-id")
+  if (CMAKE_CXX_COMPILER MATCHES "clang")
+    ADD_OSQUERY_LINK_CORE("-fuse-ld=lld")
+  endif()
 endif()
 
 # Bubble the subdirectory (component) sources and links for this build.
