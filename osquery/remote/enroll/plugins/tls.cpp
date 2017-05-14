@@ -12,12 +12,19 @@
 #include <osquery/filesystem.h>
 #include <osquery/system.h>
 
+#include <osquery/sql.h>
+
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/transports/tls.h"
 
 // Ordering is messed up because of tls.h
+#include "osquery/core/conversions.h"
 #include "osquery/core/process.h"
+
+#include "tls.h"
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -29,6 +36,15 @@ CLI_FLAG(string,
          enroll_tls_endpoint,
          "",
          "TLS/HTTPS endpoint for client enrollment");
+
+/// Additional metadata to send with enrollment request
+CLI_FLAG(string,
+         enroll_tls_metadata,
+         "",
+         "Semicolon separated list of query specs whose results will be sent\n"
+         "as part of enroll request. Each query spec is in the form "
+         "\"Name:SQL Query\".\n"
+         "Metadata will be returned in arrays named \"Name\"");
 
 /// Undocumented feature for TLS access token passing.
 HIDDEN_FLAG(bool,
@@ -43,16 +59,6 @@ HIDDEN_FLAG(string,
             "Override the TLS enroll secret key name");
 
 DECLARE_uint64(config_tls_max_attempts);
-
-class TLSEnrollPlugin : public EnrollPlugin {
- private:
-  /// Enroll called, return cached key or if no key cached, call requestKey.
-  std::string enroll() override;
-
- private:
-  /// Request an enrollment key response from the TLS endpoint.
-  Status requestKey(const std::string& uri, std::string& node_key);
-};
 
 REGISTER(TLSEnrollPlugin, "enroll", "tls");
 
@@ -80,12 +86,57 @@ std::string TLSEnrollPlugin::enroll() {
   return node_key;
 }
 
+void getEnrollMetadata(pt::ptree& params) {
+  // If no enroll metadata was specified on command line, return
+  if (FLAGS_enroll_tls_metadata.length() == 0) {
+    return;
+  }
+
+  // enroll metadata query specs are specified as a single string of the format
+  // "<name>:<query>;<name>:<query>"
+  auto metadata_query_specs = split(FLAGS_enroll_tls_metadata, ";");
+
+  for (auto& metadata_query_spec : metadata_query_specs) {
+    if (metadata_query_spec.length() == 0) {
+      // looks like an extra semi-colon, or a semi-colon at the end of the last
+      // query-spec. Ignore
+      continue;
+    }
+    // split the query-spec into its name and query components
+    auto metadata_name_query = split(metadata_query_spec, ":");
+    if (metadata_name_query.size() == 2 &&
+        metadata_name_query[0].length() > 0 && // Query Name
+        metadata_name_query[1].length() > 0) { // The actual SQL query
+
+      auto sql_table = SQL(metadata_name_query[1]);
+
+      if (sql_table.ok() && sql_table.rows().size() > 0) {
+        pt::ptree query_tree;
+        auto status = serializeQueryData(sql_table.rows(), query_tree);
+        params.put_child(metadata_name_query[0], query_tree);
+      } else {
+        LOG(WARNING) << "Enroll metadata Query failed or returned 0 rows:\n"
+                     << "Query: [" << metadata_name_query[1] << "]\n"
+                     << "Status: " << sql_table.getMessageString();
+      }
+
+    } else {
+      LOG(WARNING) << "Invalid enroll metadata query spec: ["
+                   << metadata_query_spec << "]";
+    }
+  }
+}
+
 Status TLSEnrollPlugin::requestKey(const std::string& uri,
                                    std::string& node_key) {
   // Read the optional enrollment secret data (sent with an enrollment request).
-  boost::property_tree::ptree params;
+  pt::ptree params;
   params.put<std::string>(FLAGS_tls_enroll_override, getEnrollSecret());
   params.put<std::string>("host_identifier", getHostIdentifier());
+
+  // Add any additional query results specified on the command line via
+  // enroll_tls_metadata option
+  getEnrollMetadata(params);
 
   auto request = Request<TLSTransport, JSONSerializer>(uri);
   request.setOption("hostname", FLAGS_tls_hostname);
