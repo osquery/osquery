@@ -5,11 +5,12 @@ class Bzip2 < AbstractOsqueryFormula
   homepage "http://www.bzip.org/"
   url "http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz"
   sha256 "a2848f34fcd5d6cf47def00461fcb528a0484d8edef8208d6d2e2909dc61d9cd"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "ecc8f2e8470443d5606a38acca9dea980fb3bba906b648db1744768732296b63" => :x86_64_linux
+    sha256 "414ad26300c70af4b99b9e09be497689e09fc5cc93f546bb6ae04ab780be6886" => :x86_64_linux
   end
 
   keg_only :provided_by_osx

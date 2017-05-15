@@ -5,11 +5,12 @@ class Libdevmapper < AbstractOsqueryFormula
   homepage "https://www.sourceware.org/dm/"
   url "https://osquery-packages.s3.amazonaws.com/deps/LVM2.2.02.145.tar.gz"
   sha256 "98b7c4c07c485a462c6a86e1a5265757133ceea36289ead8a419af29ef39560b"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "e1041607e866c145ee82c3a5babc2df4942b3ac1ba905c7bc135d98a6256dbf4" => :x86_64_linux
+    sha256 "5a9df0067c5e4a5771bb65b1d380f1f27bd072773116838c2bd93025818053e8" => :x86_64_linux
   end
 
   def install
@@ -19,6 +20,8 @@ class Libdevmapper < AbstractOsqueryFormula
     args = [
       "--with-lvm1=none",
       "--disable-selinux",
+      "--disable-shared",
+      "--disable-readline",
       "--enable-static_link",
     ]
 
@@ -27,5 +30,8 @@ class Libdevmapper < AbstractOsqueryFormula
     cd "libdm" do
       system "make", "install"
     end
+
+    # Configure still installs the shared object library.
+    rm_rf lib/"libdevmapper.so"
   end
 end

@@ -5,13 +5,13 @@ class Snappy < AbstractOsqueryFormula
   homepage "https://code.google.com/p/snappy/"
   url "https://github.com/google/snappy/releases/download/1.1.3/snappy-1.1.3.tar.gz"
   sha256 "2f1e82adf0868c9e26a5a7a3115111b6da7e432ddbac268a7ca2fae2a247eef3"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "dc1023c5e85eda474df62e735d68c97656efa92974b28531737c5cddba511316" => :sierra
-    sha256 "bfb084be2ab8d6d302504b306be9dcc753be9543aecbc0f695b6908b32efb2ee" => :el_capitan
-    sha256 "d376883230a45dc1cc7f58fdaa5e5b06b913b0b7dd38d1ab55513bcbff795c1b" => :x86_64_linux
+    sha256 "ab880558e095b6015b86bba48b78c0c937f8a906fcb6e13df0a2875d0aaee82e" => :sierra
+    sha256 "556e3a859d8820966af0964aa974ef7c10aafa2d68c06ba8b33039560bb92c88" => :x86_64_linux
   end
 
   head do
@@ -31,7 +31,9 @@ class Snappy < AbstractOsqueryFormula
 
     system "./autogen.sh" if build.head?
     system "./configure", "--disable-dependency-tracking",
-                          "--prefix=#{prefix}"
+                          "--prefix=#{prefix}",
+                          "--disable-shared",
+                          "--enable-static"
     system "make", "install"
   end
 

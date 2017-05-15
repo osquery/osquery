@@ -6,13 +6,13 @@ class CppNetlib < AbstractOsqueryFormula
   url "https://github.com/cpp-netlib/cpp-netlib/archive/cpp-netlib-0.12.0-final.tar.gz"
   version "0.12.0"
   sha256 "d66e264240bf607d51b8d0e743a1fa9d592d96183d27e2abdaf68b0a87e64560"
-  revision 7
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "dde06a76f9fd7ace5f1686056d821e1856f273611f9adff8a5d40e6c5272e33c" => :sierra
-    sha256 "79e2556904cd25fa16c3781de7087dd4ab31e89c3c833a6f6d40e3843808057e" => :x86_64_linux
+    sha256 "e0ece0b7e7dd44295e0d7848bc2f73f5fdd52a2cdf476703acb2f8fc06db9854" => :sierra
+    sha256 "e51c47b4c13d4f5439bdc79aa179befd5f5c2e345b4644bd6b57d32d92dbf1f8" => :x86_64_linux
   end
 
   patch :DATA
@@ -24,6 +24,7 @@ class CppNetlib < AbstractOsqueryFormula
 
   def install
     ENV.cxx11
+    ENV.append "CPPFLAGS", "-Wno-deprecated-declarations" if OS.mac?
 
     args = [
       "-DCPP-NETLIB_BUILD_TESTS=OFF",

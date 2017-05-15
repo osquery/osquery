@@ -7,12 +7,13 @@ class Openssl < AbstractOsqueryFormula
   mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2k.tar.gz"
   mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2k.tar.gz"
   sha256 "6b3977c61f2aedf0f96367dcfb5c6e578cf37e7b8d913b4ecb6643c3cb88d8c0"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "164c30c25467b9763983703ddc29f89943d7efc2a35f2442969bef04f981635f" => :sierra
-    sha256 "da95cea777f63e7f777ec30a62c7b7a40b008df67a2a78e6424eb92695594f2f" => :x86_64_linux
+    sha256 "967beaed429296f369d02fdc93dcef4af2cdc5dfa44e18173cde349f4f8e87bd" => :sierra
+    sha256 "e37e82ba5a5e96cfc7f902aa3a2b1a52b96c5579397e6aabd960666b03be0b95" => :x86_64_linux
   end
 
   resource "cacert" do

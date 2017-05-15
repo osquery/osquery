@@ -20,19 +20,19 @@ LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
 HOMEBREW_CORE="0e6f293450cf9b54e324e92ea0b0475fd4e0d929"
-LINUXBREW_CORE="600e1460c79b9cf6945e87cb5374b9202db1f6a9"
+LINUXBREW_CORE="501c656e81770ff64f12131a20535795e9229e44"
 HOMEBREW_DUPES="00df450f28f23aa1013564889d11440ab80b36a5"
-LINUXBREW_DUPES="83cad3d474e6d245cd543521061bba976529e5df"
+LINUXBREW_DUPES="c0012f1a2f8ef3bce5a623cc3f75ab79110bbc9b"
 HOMEBREW_BREW="2be7999878702554f1e1b5f4118978e670e6156c"
-LINUXBREW_BREW="b3d07003e7c6e389fef1855564fef5954e20aea1"
+LINUXBREW_BREW="1d16368a177807663e1b3146d71fcd69e2061e27"
 
+# If the world needs to be rebuilt, increase the version
+DEPS_VERSION="3"
 
 source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/provision/lib.sh"
 
 function platform_linux_main() {
-  brew_uninstall bison
-
   # GCC 5x bootstrapping.
   brew_tool patchelf
   brew_tool zlib
@@ -48,13 +48,14 @@ function platform_linux_main() {
   brew_tool osquery/osquery-local/glibc
 
   # Build a bottle for a legacy glibc.
+  brew_clean osquery/osquery-local/curl
   brew_tool osquery/osquery-local/glibc-legacy
+  brew_tool osquery/osquery-local/zlib-legacy
 
   # GCC 5x.
   brew_tool osquery/osquery-local/gcc
 
   # Need LZMA for final builds.
-  brew_tool osquery/osquery-local/zlib-legacy
   brew_tool osquery/osquery-local/xz
   brew_tool osquery/osquery-local/ncurses
   brew_tool osquery/osquery-local/bzip2
@@ -103,7 +104,6 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
   brew_dependency osquery/osquery-local/librpm
-  brew_dependency osquery/osquery-local/lldpd
 }
 
 function platform_darwin_main() {
@@ -205,6 +205,8 @@ function main() {
     DEPS_DIR="/usr/local/osquery"
   fi
 
+  deps_version $DEPS_DIR $DEPS_VERSION
+
   if [[ "$ACTION" = "clean" ]]; then
     do_sudo rm -rf "$DEPS_DIR"
     return
@@ -246,7 +248,7 @@ function main() {
   export PATH="$DEPS_DIR/bin:$PATH"
 
   if [[ ! "$BREW_TYPE" = "freebsd" ]]; then
-    setup_brew "$DEPS_DIR" "$BREW_TYPE"
+    setup_brew "$DEPS_DIR" "$BREW_TYPE" "$ACTION"
   fi
 
   if [[ "$ACTION" = "bottle" ]]; then
@@ -279,6 +281,8 @@ function main() {
 
   # Additional compilations may occur for Python and Ruby
   export LIBRARY_PATH="$DEPS_DIR/legacy/lib:$DEPS_DIR/lib:$LIBRARY_PATH"
+  set_cc clang
+  set_cxx clang++
 
   # Pip may have just been installed.
   log "upgrading pip and installing python dependencies"
