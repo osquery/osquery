@@ -23,34 +23,46 @@ namespace tables {
  * @brief Map osquery ConstraintOperator to the corresponding ASL op code
  */
 const std::map<ConstraintOperator, uint32_t> kSupportedAslOps = {
-  {EQUALS, ASL_QUERY_OP_EQUAL},
-  {GREATER_THAN, ASL_QUERY_OP_GREATER},
-  {GREATER_THAN_OR_EQUALS, ASL_QUERY_OP_GREATER_EQUAL},
-  {LESS_THAN, ASL_QUERY_OP_LESS},
-  {LESS_THAN_OR_EQUALS, ASL_QUERY_OP_LESS_EQUAL},
-  {LIKE, ASL_QUERY_OP_EQUAL | ASL_QUERY_OP_REGEX | ASL_QUERY_OP_CASEFOLD}};
+    {EQUALS, ASL_QUERY_OP_EQUAL},
+    {GREATER_THAN, ASL_QUERY_OP_GREATER},
+    {GREATER_THAN_OR_EQUALS, ASL_QUERY_OP_GREATER_EQUAL},
+    {LESS_THAN, ASL_QUERY_OP_LESS},
+    {LESS_THAN_OR_EQUALS, ASL_QUERY_OP_LESS_EQUAL},
+    {LIKE, ASL_QUERY_OP_EQUAL | ASL_QUERY_OP_REGEX | ASL_QUERY_OP_CASEFOLD}};
 
 /**
  * @brief Map ASL keys to the corresponding osquery column name
  */
 const std::map<std::string, std::string> kAslKeyToColumnMap = {
-    {"Time", "time"},         {"TimeNanoSec", "time_nano_sec"},
-    {"Host", "host"},         {"Sender", "sender"},
-    {"Facility", "facility"}, {"PID", "pid"},
-    {"UID", "uid"},           {"GID", "gid"},
-    {"Level", "level"},       {"Message", "message"},
-    {"RefPID", "ref_pid"},    {"RefProc", "ref_proc"}};
+    {"Time", "time"},
+    {"TimeNanoSec", "time_nano_sec"},
+    {"Host", "host"},
+    {"Sender", "sender"},
+    {"Facility", "facility"},
+    {"PID", "pid"},
+    {"UID", "uid"},
+    {"GID", "gid"},
+    {"Level", "level"},
+    {"Message", "message"},
+    {"RefPID", "ref_pid"},
+    {"RefProc", "ref_proc"}};
 
 /**
  * @brief Map osquery column names to the corresponding ASL keys
  */
 const std::map<std::string, std::string> kColumnToAslKeyMap = {
-    {"time", "Time"},         {"time_nano_sec", "TimeNanoSec"},
-    {"host", "Host"},         {"sender", "Sender"},
-    {"facility", "Facility"}, {"pid", "PID"},
-    {"uid", "UID"},           {"gid", "GID"},
-    {"level", "Level"},       {"message", "Message"},
-    {"ref_pid", "RefPID"},    {"ref_proc", "RefProc"}};
+    {"time", "Time"},
+    {"time_nano_sec", "TimeNanoSec"},
+    {"host", "Host"},
+    {"sender", "Sender"},
+    {"facility", "Facility"},
+    {"pid", "PID"},
+    {"uid", "UID"},
+    {"gid", "GID"},
+    {"level", "Level"},
+    {"message", "Message"},
+    {"ref_pid", "RefPID"},
+    {"ref_proc", "RefProc"}};
 
 /**
  * @brief Column name for the extra column.
@@ -75,6 +87,10 @@ static inline bool isNumeric(ColumnType coltype) {
     return false;
   }
 }
+
+// macOS ASL is deprecated in 10.12
+_Pragma("clang diagnostic push");
+_Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"");
 
 void addQueryOp(aslmsg& query,
                 const std::string& key,
@@ -117,7 +133,11 @@ aslmsg createAslQuery(const QueryContext& context) {
     const std::string& key = it.first;
     ColumnType col_type = it.second.affinity;
     for (const auto& constraint : it.second.getAll()) {
-      addQueryOp(query, key, constraint.expr, static_cast<ConstraintOperator>(constraint.op), col_type);
+      addQueryOp(query,
+                 key,
+                 constraint.expr,
+                 static_cast<ConstraintOperator>(constraint.op),
+                 col_type);
     }
   }
   return query;
@@ -159,5 +179,7 @@ std::string convertLikeRegex(const std::string& like_str) {
   ba::replace_all(res, "_", ".");
   return res;
 }
+
+_Pragma("clang diagnostic pop");
 }
 }

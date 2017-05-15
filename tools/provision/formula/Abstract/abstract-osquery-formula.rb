@@ -15,8 +15,21 @@ def default_prefix
   Pathname.new(ENV["HOMEBREW_PREFIX"])
 end
 
+def glib_prefix
+  Pathname.new(Formula["osquery/osquery-local/glibc-legacy"].prefix)
+end
+
 class AbstractOsqueryFormula < Formula
   protected
+
+  class << self
+    def set_legacy
+      Object.const_set(
+        "HOMEBREW_PREFIX",
+        legacy_prefix
+      )
+    end
+  end
 
   def initialize(*)
     super
@@ -31,15 +44,6 @@ class AbstractOsqueryFormula < Formula
     @setup = ENV.has_key?('ABSTRACT_OSQUERY_FORMULA')
     ENV['ABSTRACT_OSQUERY_FORMULA'] = '1'
     return @setup
-  end
-
-  class << self
-    def set_legacy
-      Object.const_set(
-        "HOMEBREW_PREFIX",
-        legacy_prefix
-      )
-    end
   end
 
   def osquery_cmake_args
@@ -103,7 +107,9 @@ class AbstractOsqueryFormula < Formula
       prepend_path "LD_LIBRARY_PATH", prefix
 
       # Set the dynamic linker and library search path.
-      prepend "CFLAGS", "-isystem#{default_prefix}/include"
+      if !["gcc"].include?(self.name)
+        prepend "CFLAGS", "-isystem#{default_prefix}/include"
+      end
 
       # clang wants -L in the CFLAGS.
       # Several projects do not want this: pcre, RocksDB
@@ -112,7 +118,9 @@ class AbstractOsqueryFormula < Formula
       prepend "CFLAGS", "-L#{legacy_prefix}/lib"
 
       # cmake wants this to have -I
-      prepend "CXXFLAGS", "-I#{default_prefix}/include"
+      if !["gcc"].include?(self.name)
+        prepend "CXXFLAGS", "-I#{default_prefix}/include"
+      end
       prepend "CXXFLAGS", "-I#{legacy_prefix}/include"
 
       # This used to be in the GCC/not-GCC logic, pulling out to compile GCC
@@ -120,11 +128,11 @@ class AbstractOsqueryFormula < Formula
       prepend "CFLAGS", "-isystem#{legacy_prefix}/include"
       prepend "CXXFLAGS", "-isystem#{legacy_prefix}/include"
 
-      append "LDFLAGS", "-Wl,--dynamic-linker=#{legacy_prefix}/lib/ld-linux-x86-64.so.2"
-      append "LDFLAGS", "-Wl,-rpath,#{legacy_prefix}/lib"
-
-      # Add a runtime search path for the legacy C implementation.
-      append "LDFLAGS", "-Wl,-rpath,#{default_prefix}/lib"
+      if !["util-linux"].include?(self.name)
+        append "LDFLAGS", "-Wl,--dynamic-linker=#{legacy_prefix}/lib/ld-linux-x86-64.so.2"
+        append "LDFLAGS", "-Wl,-rpath,#{legacy_prefix}/lib"
+        append "LDFLAGS", "-Wl,-rpath,#{default_prefix}/lib"
+      end
 
       # Adding this one line to help gcc too.
       if !["openssl"].include?(self.name)
@@ -137,14 +145,14 @@ class AbstractOsqueryFormula < Formula
       prepend_path "LIBRARY_PATH", legacy_prefix/"lib"
 
       # This is already set to the PREFIX
-      prepend_path "LD_RUN_PATH", default_prefix/"lib"
+      if !["gcc"].include?(self.name)
+        prepend_path "LD_RUN_PATH", default_prefix/"lib"
 
-      # Set the search path for header files.
-      prepend_path "CPATH", default_prefix/"include"
-
-      if [ENV["CC"]].include?("#{default_prefix}/bin/clang")
-        append "LDFLAGS", "-lrt -lpthread -ldl"
+        # Set the search path for header files.
+        prepend_path "CPATH", default_prefix/"include"
       end
+
+      append "LDFLAGS", "-lrt -lpthread -ldl"
     end
 
     if !OS.linux?

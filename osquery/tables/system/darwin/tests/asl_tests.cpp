@@ -29,6 +29,10 @@ namespace tables {
 
 class AslTests : public testing::Test {};
 
+// macOS ASL is deprecated in 10.12
+_Pragma("clang diagnostic push");
+_Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"");
+
 #ifndef OLD_ASL_API
 TEST_F(AslTests, test_add_query_op) {
   aslmsg query = asl_new(ASL_TYPE_QUERY);
@@ -193,5 +197,7 @@ TEST_F(AslTests, test_actual_query) {
   ASSERT_EQ("osquery_test", results.rows()[0].at("sender"));
   ASSERT_EQ("user", results.rows()[0].at("facility"));
 }
+
+_Pragma("clang diagnostic pop");
 }
 }

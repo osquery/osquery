@@ -126,7 +126,7 @@ sysprep: .setup
 	@SKIP_DISTRO_MAIN=0 ./tools/provision.sh build $(BUILD_DIR)
 
 build_deps: .setup
-	@OSQUERY_BUILD_DEPS=1 SKIP_DISTRO_MAIN=0 make deps
+	@OSQUERY_BUILD_DEPS=1 SKIP_DISTRO_MAIN=1 make deps
 
 clean: .setup
 	@cd build/$(BUILD_DIR) && $(CMAKE) && \

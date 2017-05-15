@@ -5,7 +5,7 @@ class Libaptpkg < AbstractOsqueryFormula
   homepage "https://apt.alioth.debian.org/python-apt-doc/library/apt_pkg.html"
   url "https://github.com/Debian/apt/archive/1.3.1.tar.gz"
   sha256 "a91a5e96417aad33f236234730b2a0bed3a028d6fc01c57d060b7d92746bf65a"
-  revision 1
+  revision 2
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"

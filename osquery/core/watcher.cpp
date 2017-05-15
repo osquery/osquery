@@ -362,12 +362,14 @@ Status WatcherRunner::isWatcherHealthy(const PlatformProcess& watcher,
 }
 
 QueryData WatcherRunner::getProcessRow(pid_t pid) const {
+#ifdef WIN32
+  pid = (pid == ULONG_MAX) ? -1 : pid;
+#endif
+
   // On Windows, pid_t = DWORD, which is unsigned. However invalidity
   // of processes is denoted by a pid_t of -1. We check for this
   // by comparing the max value of DWORD, or ULONG_MAX
-  int p =
-      (isPlatform(PlatformType::TYPE_WINDOWS) && pid == ULONG_MAX) ? -1 : pid;
-  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(p));
+  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(pid));
 }
 
 Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
