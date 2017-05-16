@@ -38,6 +38,8 @@ QueryData genOSVersion(QueryContext& context) {
   Row r;
 
   r["name"] = "FreeBSD";
+  r["platform"] = "freebsd";
+  r["version"] = result[0]["current_value"];
 
   // TODO: Patchlevel isn't matched for some reason
   auto rx = xp::sregex::compile(
