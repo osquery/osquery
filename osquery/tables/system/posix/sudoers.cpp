@@ -21,7 +21,11 @@
 namespace osquery {
 namespace tables {
 
+#if !defined(FREEBSD)
 const std::string kSudoFile = "/etc/sudoers";
+#else
+const std::string kSudoFile = "/usr/local/etc/sudoers";
+#endif
 
 QueryData genSudoers(QueryContext& context) {
   QueryData results;
