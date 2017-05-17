@@ -13,10 +13,12 @@
 #include <atomic>
 #include <future>
 #include <memory>
+#include <mutex>
 
 #include <librdkafka/rdkafka.h>
 
 #include <osquery/config.h>
+#include <osquery/core.h>
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -42,6 +44,8 @@ FLAG(string,
      "have received before considering a request complete.  Valid values are "
      "'0', '1', and 'all'");
 
+const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
+
 void delKafkaHandle(rd_kafka_t* k) {
   rd_kafka_destroy(k);
 };
@@ -52,7 +56,7 @@ void delKafkaTopic(rd_kafka_topic_t* kt) {
 
 class KafkaBgPoller;
 
-class KafkaProducerPlugin : public LoggerPlugin {
+class KafkaProducerPlugin final : public LoggerPlugin, public InternalRunnable {
   friend class KafkaBgPoller;
 
  public:
@@ -74,15 +78,22 @@ class KafkaProducerPlugin : public LoggerPlugin {
             const std::vector<StatusLogLine>& log) override;
 
   /**
+   * @brief InternalRunnable entry point that waits and polls Kafka
+   *
+   * If interrupted, invokes shutdown method
+   */
+  void start() override;
+
+  /**
    * @brief Flushes final messages.
    *
    * Checks if Kafka producer is running and if so, flushes remaining messages
    * to the brokers waiting a max of 3 seconds.
    */
-  void stop();
+  void stop() override;
 
-  KafkaProducerPlugin() : running_(true) {}
-  ~KafkaProducerPlugin();
+  KafkaProducerPlugin() : running_(false) {}
+  ~KafkaProducerPlugin() {}
 
   KafkaProducerPlugin(KafkaProducerPlugin const&) = delete;
   KafkaProducerPlugin& operator=(KafkaProducerPlugin const&) = delete;
@@ -116,11 +127,16 @@ class KafkaProducerPlugin : public LoggerPlugin {
   /// OS hostname and binary name interpolated as the Kafka message key.
   std::string msgKey_;
 
-  // Mutex for managing access to the producer_ pointer.
+  /// Mutex for managing access to the producer_ pointer.
   Mutex producerMutex_;
+
+  /// Flag to ensure shutdown method is called only once
+  static std::once_flag shutdownFlag_;
 };
 
 REGISTER(KafkaProducerPlugin, "logger", "kafka_producer");
+
+std::once_flag KafkaProducerPlugin::shutdownFlag_;
 
 /**
  * @brief callback for status of message delivery
@@ -137,10 +153,6 @@ void onMsgDelivery(rd_kafka_t* rk,
   }
 }
 
-KafkaProducerPlugin::~KafkaProducerPlugin() {
-  stop();
-}
-
 void KafkaProducerPlugin::flushMessages() {
   WriteLock lock(producerMutex_);
   rd_kafka_flush(producer_.get(), 3 * 1000);
@@ -151,12 +163,24 @@ void KafkaProducerPlugin::pollKafka() {
   rd_kafka_poll(producer_.get(), 0 /*non-blocking*/);
 }
 
-void KafkaProducerPlugin::stop() {
-  if (running_.load()) {
-    running_.store(false);
-    // wait for max 3 seconds
-    flushMessages();
+void KafkaProducerPlugin::start() {
+  while (!interrupted()) {
+    pauseMilli(kKafkaPollDuration);
+    if (interrupted()) {
+      return;
+    }
+
+    pollKafka();
   }
+}
+
+void KafkaProducerPlugin::stop() {
+  std::call_once(shutdownFlag_, [this]() {
+    if (running_.load()) {
+      running_.store(false);
+      flushMessages();
+    }
+  });
 }
 
 void KafkaProducerPlugin::init(const std::string& name,
@@ -227,12 +251,8 @@ void KafkaProducerPlugin::init(const std::string& name,
   // Start bg loop for polling to ensure onMsgDelivery callback is invoked even
   // at times were no messages are produced
   // (http://docs.confluent.io/2.0.0/clients/producer.html#asynchronous-writes)
-  futureTimer_ = std::async(std::launch::async, [this]() {
-    while (running_.load()) {
-      std::this_thread::sleep_for(std::chrono::seconds(5));
-      pollKafka();
-    }
-  });
+  running_.store(true);
+  futureTimer_ = std::async(std::launch::async, [this]() { start(); });
 }
 
 Status KafkaProducerPlugin::logString(const std::string& payload) {
@@ -262,4 +282,4 @@ Status KafkaProducerPlugin::logString(const std::string& payload) {
   pollKafka();
   return Status(0, "OK");
 }
-}
+} // namespace osquery
