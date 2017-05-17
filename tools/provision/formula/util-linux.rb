@@ -14,6 +14,7 @@ class UtilLinux < AbstractOsqueryFormula
   end
 
   def install
+    system "./autogen.sh"
     system "./configure",
       "--disable-debug",
       "--disable-dependency-tracking",

@@ -174,6 +174,12 @@ Vagrant.configure("2") do |config|
         build.vm.provision "shell",
           inline: "pkg install -y gmake"
       end
+      if name.start_with?('ubuntu')
+        build.vm.provision 'bootstrap', type: 'shell' do |s|
+          s.inline = 'sudo apt-get update;'\
+                     'sudo apt-get install --yes git;'
+        end
+      end
     end
   end
 end

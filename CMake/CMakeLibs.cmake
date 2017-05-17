@@ -264,10 +264,9 @@ macro(ADD_OSQUERY_MODULE TARGET)
     # This could implement a similar LINK_MODULE for gcc, libc, and libstdc++.
     # However it is only provided as an example for unit testing.
     target_link_libraries(${TARGET} "-static-libstdc++")
-  endif()
-  if(NOT WINDOWS AND CMAKE_CXX_COMPILER MATCHES "clang")
-    #enable LTO builds of modules when building with clang on Unix
-    target_link_libraries(${TARGET} "-flto")
+    if(CMAKE_CXX_COMPILER MATCHES "clang")
+      target_link_libraries(${TARGET} "-fuse-ld=lld")
+    endif()
   endif()
   set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
   set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME ${TARGET})
@@ -422,6 +421,7 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
   )
 
   set(${OUTPUT} ${AMALGAMATION_FILE_GEN})
+  set_property(GLOBAL PROPERTY AMALGAMATE_TARGETS "")
 endmacro(AMALGAMATE)
 
 function(JOIN VALUES GLUE OUTPUT)

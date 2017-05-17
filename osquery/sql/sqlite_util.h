@@ -356,4 +356,9 @@ void registerMathExtensions(sqlite3* db);
  * @brief Register string-related 'custom' functions.
  */
 void registerStringExtensions(sqlite3* db);
+
+/**
+ * @brief Register hashing-related 'custom' functions.
+ */
+void registerHashingExtensions(sqlite3* db);
 }

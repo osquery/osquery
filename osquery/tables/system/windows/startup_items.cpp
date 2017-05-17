@@ -66,7 +66,7 @@ static inline void parseStartupPath(const std::string& path, Row& r) {
         path,
         boost::escaped_list_separator<TCHAR>(
             std::string(""), std::string(" "), std::string("\"\'")));
-    for (auto& tok = tokens.begin(); tok != tokens.end(); ++tok) {
+    for (auto&& tok = tokens.begin(); tok != tokens.end(); ++tok) {
       if (tok == tokens.begin()) {
         r["path"] = *tok;
       } else if (r.count("args") == 0) {

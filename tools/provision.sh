@@ -211,6 +211,7 @@ function main() {
     do_sudo rm -rf "$DEPS_DIR"
     return
   fi
+  export DEPS_DIR=$DEPS_DIR
 
   # Setup the local ./build/DISTRO cmake build directory.
   if [[ ! -z "$SUDO_USER" ]]; then

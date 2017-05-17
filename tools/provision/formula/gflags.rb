@@ -5,6 +5,7 @@ class Gflags < AbstractOsqueryFormula
   homepage "https://gflags.github.io/gflags/"
   url "https://github.com/gflags/gflags/archive/v2.2.0.tar.gz"
   sha256 "466c36c6508a451734e4f4d76825cf9cd9b8716d2b70ef36479ae40f08271f88"
+  revision 1
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"

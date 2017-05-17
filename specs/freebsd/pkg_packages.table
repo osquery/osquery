@@ -1,0 +1,10 @@
+table_name("pkg_packages")
+description("pkgng packages that are currently installed on the host system.")
+schema([
+    Column("name", TEXT, "Package name"),
+    Column("version", TEXT, "Package version"),
+    Column("flatsize", BIGINT, "Package size in bytes"),
+    Column("arch", TEXT, "Architecture(s) supported"),
+])
+attributes(cacheable=True)
+implementation("@genPkgPackages")
