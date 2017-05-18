@@ -70,6 +70,20 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
+Status serializeRowRJ(const Row& r, rapidjson::Document& d) {
+  try {
+    for (auto& i : r) {
+      d.AddMember(
+        rapidjson::Value(i.first.c_str(), d.GetAllocator()).Move(),
+        rapidjson::Value(i.second.c_str(), d.GetAllocator()).Move(),
+        d.GetAllocator());
+    }
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
+
 Status serializeRow(const Row& r, const ColumnNames& cols, pt::ptree& tree) {
   try {
     for (auto& c : cols) {
@@ -81,6 +95,19 @@ Status serializeRow(const Row& r, const ColumnNames& cols, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
+Status serializeRowRJ(const Row& r, const ColumnNames& cols, rapidjson::Document& d) {
+  try {
+    for (auto& c : cols) {
+      d.AddMember(
+        rapidjson::Value(c.c_str(), d.GetAllocator()).Move(),
+        rapidjson::Value(r.at(c).c_str(), d.GetAllocator()).Move(),
+        d.GetAllocator());
+    }
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
 
 Status serializeRowJSON(const Row& r, std::string& json) {
   pt::ptree tree;
@@ -97,6 +124,20 @@ Status serializeRowJSON(const Row& r, std::string& json) {
     return Status(1, e.what());
   }
   json = output.str();
+  return Status(0, "OK");
+}
+
+Status serializeRowJSONRJ(const Row& r, std::string& json) {
+  rapidjson::Document d(rapidjson::kObjectType);
+  auto status = serializeRowRJ(r, d);
+  if (!status.ok()) {
+    return status;
+  }
+
+  rapidjson::StringBuffer sb;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+  d.Accept(writer); 
+  json = sb.GetString();
   return Status(0, "OK");
 }
 
@@ -133,6 +174,14 @@ Status deserializeRowJSON(const std::string& json, Row& r) {
     return Status(1, e.what());
   }
   return deserializeRow(tree, r);
+}
+
+Status deserializeRowJSONRJ(const std::string& json, Row& r) {
+  rapidjson::Document d;
+  if (d.Parse(json.c_str()).HasParseError()){
+    return Status(1, "Error serializing JSON");
+  }
+  return deserializeRowRJ(d, r);
 }
 
 Status serializeQueryData(const QueryData& q, pt::ptree& tree) {
@@ -176,6 +225,21 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
     return Status(1, e.what());
   }
   json = output.str();
+  return Status(0, "OK");
+}
+
+Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json) {
+  rapidjson::Document d;
+  d.SetArray();
+  auto status = serializeQueryDataRJ(q, d);
+  if (!status.ok()) {
+    return status;
+  }
+
+  rapidjson::StringBuffer sb;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+  d.Accept(writer); 
+  json = sb.GetString();
   return Status(0, "OK");
 }
 
@@ -746,111 +810,11 @@ void dumpDatabase() {
     }
   }
 }
-/*
-inline void addLegacyFieldsAndDecorationsRJ(const QueryLogItem& item,
-                                          rapidjson::Document& d) {
-  // Apply legacy fields.
-  d.AddMember(
-    rapidjson::Value("name", d.GetAllocator()).Move(),
-    rapidjson::Value(item.name.c_str(), d.GetAllocator()).Move(),
-    d.GetAllocator());
-
-  d.AddMember(
-    rapidjson::Value("hostIdentifier", d.GetAllocator()).Move(),
-    rapidjson::Value(tem.identifier.c_str(), d.GetAllocator()).Move(),
-    d.GetAllocator());
-
-  d.AddMember(
-    rapidjson::Value("calendarTime", d.GetAllocator()).Move(),
-    rapidjson::Value(item.calendar_time.c_str(), d.GetAllocator()).Move(),
-    d.GetAllocator());
-
-  d.AddMember(
-    rapidjson::Value("unixTime", d.GetAllocator()).Move(),
-    rapidjson::Value(item.time.c_str(), d.GetAllocator()).Move(),
-    d.GetAllocator());
-
-  // Append the decorations.
-  if (item.decorations.size() > 0) {
-    auto decorator_parent = std::ref(d);
-    if (!FLAGS_decorations_top_level) {
-      tree.add_child("decorations", pt::ptree());
-      decorator_parent = tree.get_child("decorations");
-    }
-    for (const auto& name : item.decorations) {
-      decorator_parent.get().put<std::string>(name.first, name.second);
-    }
-  }
-}
-
-Status serializeEventRJ(const QueryLogItem& item,
-                      const pt::ptree& event,
-                      rapidjson::Document& d) {
-  addLegacyFieldsAndDecorations(item, d);
-  pt::ptree columns;
-  for (auto& i : event) {
-    // Yield results as a "columns." map to avoid namespace collisions.
-    columns.put<std::string>(i.first, i.second.get_value<std::string>());
-  }
-
-  tree.add_child("columns", columns);
-  return Status(0, "OK");
-}
-
-
-Status serializeQueryLogItemAsEventsRJ(const QueryLogItem& i, rapidjson::Document& d) {
-  rapidjson::Document diff_results;
-  // Note, snapshot query results will bypass the "AsEvents" call, even when
-  // log_result_events is set. This is because the schedule will call an
-  // explicit ::logSnapshotQuery, which does not check for the result_events
-  // configuration.
-  auto status = serializeDiffResultsRJ(i.results, diff_results);
-  if (!status.ok()) {
-    return status;
-  }
-
-  for (auto& action : diff_results) {
-    for (auto& row : action.second) {
-      pt::ptree event;
-      serializeEvent(i, row.second, event);
-      event.put<std::string>("action", action.first);
-      tree.push_back(std::make_pair("", event));
-    }
-  }
-  return Status(0, "OK");
-}*/
-
-Status serializeRowRJ(const Row& r, rapidjson::Document& d) {
-  try {
-    LOG(INFO) << "serializeRowRJ Enter";
-    for (auto& i : r) {
-      d.AddMember(
-        rapidjson::Value(i.first.c_str(), d.GetAllocator()).Move(),
-        rapidjson::Value(i.second.c_str(), d.GetAllocator()).Move(),
-        d.GetAllocator());
-      LOG(INFO) << "Should have added member";
-    }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
-  return Status(0, "OK");
-}
-
-Status serializeRowRJ(const Row& r, const ColumnNames& cols, rapidjson::Document& d) {
-  try {
-    for (auto& c : cols) {
-      d.AddMember(
-        rapidjson::Value(c.c_str(), d.GetAllocator()).Move(),
-        rapidjson::Value(r.at(c).c_str(), d.GetAllocator()).Move(),
-        d.GetAllocator());
-    }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
-  return Status(0, "OK");
-}
 
 Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d) {
+  if (!d.IsArray()) {
+    return Status(1, "Document is not an array");
+  }
   for (const auto& r : q) {
     rapidjson::Document serialized;
     serialized.SetObject();

@@ -332,7 +332,7 @@ TEST_F(FileOpsTests, test_large_read_write) {
 
   const std::string expected(20000000, 'A');
   const ssize_t expected_len = expected.size();
-  ASSERT_EQ(strlen(expected.data()), 20000000U);
+  ASSERT_EQ(strnlen(expected.data(), 20000001), 20000000U);
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
@@ -347,7 +347,7 @@ TEST_F(FileOpsTests, test_large_read_write) {
     EXPECT_TRUE(fd.isValid());
     auto read_len = fd.read(buffer.data(), expected_len);
     EXPECT_EQ(expected_len, read_len);
-    EXPECT_EQ(expected, std::string(buffer.data()));
+    EXPECT_EQ(expected, std::string(buffer.data(), buffer.size()));
   }
 }
 

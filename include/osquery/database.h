@@ -96,6 +96,7 @@ using ColumnNames = std::vector<std::string>;
  * @return Status indicating the success or failure of the operation
  */
 Status serializeRow(const Row& r, boost::property_tree::ptree& tree);
+Status serializeRowRJ(const Row& r, rapidjson::Document& d);
 
 /**
  * @brief Serialize a Row object into a JSON string
@@ -106,6 +107,7 @@ Status serializeRow(const Row& r, boost::property_tree::ptree& tree);
  * @return Status indicating the success or failure of the operation
  */
 Status serializeRowJSON(const Row& r, std::string& json);
+Status serializeRowJSONRJ(const Row& r, std::string& json);
 
 /**
  * @brief Deserialize a Row object from a property tree
@@ -128,6 +130,7 @@ Status deserializeRowRJ(const rapidjson::Value& v, Row& r);
  * @return Status indicating the success or failure of the operation
  */
 Status deserializeRowJSON(const std::string& json, Row& r);
+Status deserializeRowJSONRJ(const std::string& json, Row& r);
 
 /**
  * @brief The result set returned from a osquery SQL query
@@ -177,6 +180,8 @@ Status serializeQueryDataRJ(const QueryData& q,
  * @return Status indicating the success or failure of the operation
  */
 Status serializeQueryDataJSON(const QueryData& q, std::string& json);
+
+Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json);
 
 /// Inverse of serializeQueryData, convert property tree to QueryData.
 Status deserializeQueryData(const boost::property_tree::ptree& tree,

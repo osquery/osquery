@@ -56,7 +56,7 @@ static void DATABASE_serializeRJ(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range_x(), state.range_y());
   while (state.KeepRunning()) {
     rapidjson::Document d;
-    d.SetObject();
+    d.SetArray();
     serializeQueryDataRJ(qd, d);
   }
 }
@@ -83,7 +83,7 @@ static void DATABASE_serializeRJ_column_order(benchmark::State& state) {
   auto cn = getExampleColumnNames(state.range_x());
   while (state.KeepRunning()) {
     rapidjson::Document d;
-    d.SetObject();
+    d.SetArray();
     serializeQueryDataRJ(qd, cn, d);
   }
 }
@@ -106,6 +106,20 @@ BENCHMARK(DATABASE_serialize_json)
     ->ArgPair(1, 1)
     ->ArgPair(10, 10)
     ->ArgPair(10, 100);
+
+static void DATABASE_serializeRJ_json(benchmark::State& state) {
+  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  while (state.KeepRunning()) {
+    std::string content;
+    serializeQueryDataJSONRJ(qd, content);
+  }
+}
+
+BENCHMARK(DATABASE_serializeRJ_json)
+    ->ArgPair(1, 1)
+    ->ArgPair(10, 10)
+    ->ArgPair(10, 100);
+
 
 static void DATABASE_diff(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range_x(), state.range_y());
