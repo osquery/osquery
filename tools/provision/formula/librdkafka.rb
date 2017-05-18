@@ -13,7 +13,9 @@ class Librdkafka < AbstractOsqueryFormula
   depends_on "lz4" => :recommended
 
   def install
-    ENV.append "LIBS", "-lpthread -lz -lz -lssl -lssl -lcrypto -lcrypto  -lrt"
+    if OS.linux?
+      ENV.append "LIBS", "-lpthread -lz -lz -lssl -lssl -lcrypto -lcrypto  -lrt"
+    end
     system "./configure", "--disable-dependency-tracking",
                           "--prefix=#{prefix}"
     system "make"

@@ -63,9 +63,10 @@ if(NOT SKIP_AWS)
 endif()
 
 if(NOT WINDOWS)
-  if(APPLE)
-    ADD_OSQUERY_LINK_ADDITIONAL("${BUILD_DEPS}/lib/librdkafka.dylib")
-  else()
+    if(APPLE)
+      # Needed for rdkafka
+      ADD_OSQUERY_LINK_ADDITIONAL("libsasl2.dylib")
+    endif()
+
     ADD_OSQUERY_LINK_ADDITIONAL("rdkafka")
-  endif()
 endif()
