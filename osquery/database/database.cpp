@@ -459,9 +459,15 @@ void DatabasePlugin::shutdown() {
 }
 
 Status DatabasePlugin::reset() {
-  // Keep this simple, scope the critical section to the broader methods.
+  WriteLock lock(kDatabaseReset);
+  DatabasePlugin::kDBInitialized = false;
   tearDown();
-  return setUp();
+  Status status = setUp();
+  if (status.ok()) {
+    DatabasePlugin::kDBInitialized = true;
+  }
+
+  return status;
 }
 
 bool DatabasePlugin::checkDB() {
@@ -488,14 +494,13 @@ Status DatabasePlugin::call(const PluginRequest& request,
     return Status(1, "Database plugin must include a request action");
   }
 
+  if (request.at("action") == "reset") {
+    return this->reset();
+  }
+
   // Get a domain/key, which are used for most database plugin actions.
   auto domain = (request.count("domain") > 0) ? request.at("domain") : "";
   auto key = (request.count("key") > 0) ? request.at("key") : "";
-
-  if (request.at("action") == "reset") {
-    WriteLock lock(kDatabaseReset);
-    return this->reset();
-  }
 
   // Switch over the possible database plugin actions.
   ReadLock lock(kDatabaseReset);
@@ -568,7 +573,7 @@ Status getDatabaseValue(const std::string& domain,
     }
     return status;
   } else if (!DatabasePlugin::kDBInitialized) {
-    throw std::runtime_error("Cannot get database values");
+    throw std::runtime_error("Cannot get database value");
   } else {
     auto plugin = getDatabasePlugin();
     return plugin->get(domain, key, value);
@@ -590,7 +595,7 @@ Status setDatabaseValue(const std::string& domain,
         {"action", "put"}, {"domain", domain}, {"key", key}, {"value", value}};
     return Registry::call("database", request);
   } else if (!DatabasePlugin::kDBInitialized) {
-    throw std::runtime_error("Cannot get database values");
+    throw std::runtime_error("Cannot set database value");
   } else {
     auto plugin = getDatabasePlugin();
     return plugin->put(domain, key, value);
@@ -610,7 +615,7 @@ Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
         {"action", "remove"}, {"domain", domain}, {"key", key}};
     return Registry::call("database", request);
   } else if (!DatabasePlugin::kDBInitialized) {
-    throw std::runtime_error("Cannot get database values");
+    throw std::runtime_error("Cannot delete database value");
   } else {
     auto plugin = getDatabasePlugin();
     return plugin->remove(domain, key);
@@ -634,7 +639,7 @@ Status deleteDatabaseRange(const std::string& domain,
                              {"key_high", high}};
     return Registry::call("database", request);
   } else if (!DatabasePlugin::kDBInitialized) {
-    throw std::runtime_error("Cannot get database values");
+    throw std::runtime_error("Cannot delete database range");
   } else {
     auto plugin = getDatabasePlugin();
     return plugin->removeRange(domain, low, high);
@@ -674,7 +679,7 @@ Status scanDatabaseKeys(const std::string& domain,
     }
     return status;
   } else if (!DatabasePlugin::kDBInitialized) {
-    throw std::runtime_error("Cannot get database values");
+    throw std::runtime_error("Cannot scan database keys");
   } else {
     auto plugin = getDatabasePlugin();
     return plugin->scan(domain, keys, prefix, max);
@@ -685,7 +690,6 @@ void resetDatabase() {
   auto active = Registry::get().getActive("database");
   Status status;
 
-  DatabasePlugin::kDBInitialized = false;
   // Prevent RocksDB reentrancy by logger plugins during plugin setup.
   VLOG(1) << "Resetting the database plugin: " << active;
   PluginRequest request = {{"action", "reset"}};
@@ -694,9 +698,9 @@ void resetDatabase() {
   if (!status.ok()) {
     // The active database could not be reset, fallback to an ephemeral.
     Registry::get().setActive("database", "ephemeral");
+    DatabasePlugin::kDBInitialized = true;
     LOG(WARNING) << "Unable to reset database plugin: " << active;
   }
-  DatabasePlugin::kDBInitialized = true;
 }
 
 void dumpDatabase() {
