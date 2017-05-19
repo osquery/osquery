@@ -99,7 +99,8 @@ QueryData genInterfaceAddresses(QueryContext& context) {
   auto it = 0;
   size_t ret;
   auto family = AF_UNSPEC;
-  auto flags = GAA_FLAG_INCLUDE_PREFIX;
+  auto flags =
+      GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST;
 
   ip_addr_info_t adapterAddrs(nullptr, freeMem);
   do {
@@ -122,19 +123,19 @@ QueryData genInterfaceAddresses(QueryContext& context) {
       Row r;
       r["interface"] = std::string(name.begin(), name.end());
       if (ipaddr->Address.lpSockaddr->sa_family == AF_INET) {
-        auto addrBuff = std::make_unique<char[]>(INET_ADDRSTRLEN);
+        char addrBuff[INET_ADDRSTRLEN] = { 0 };
         inet_ntop(AF_INET,
                   &((sockaddr_in*)ipaddr->Address.lpSockaddr)->sin_addr,
-                  addrBuff.get(),
+                  addrBuff,
                   INET_ADDRSTRLEN);
-        r["address"] = addrBuff.get();
+        r["address"] = addrBuff;
       } else if (ipaddr->Address.lpSockaddr->sa_family == AF_INET6) {
-        auto addrBuf = std::make_unique<char[]>(INET6_ADDRSTRLEN);
+        char addrBuf[INET6_ADDRSTRLEN] = { 0 };
         inet_ntop(AF_INET6,
                   &((sockaddr_in6*)ipaddr->Address.lpSockaddr)->sin6_addr,
-                  addrBuf.get(),
+                  addrBuf,
                   INET6_ADDRSTRLEN);
-        r["address"] = addrBuf.get();
+        r["address"] = addrBuf;
       }
       results.emplace_back(r);
       ipaddr = ipaddr->Next;
