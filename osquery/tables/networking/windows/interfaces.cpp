@@ -10,6 +10,12 @@
 
 #include <string>
 
+// clang-format off
+#include <winsock2.h>
+#include <Ws2tcpip.h>
+#include <iphlpapi.h>
+// clang-format on
+
 #include <boost/algorithm/string/join.hpp>
 
 #include <osquery/core.h>
@@ -20,6 +26,9 @@
 
 namespace osquery {
 namespace tables {
+
+auto kMaxBufferAllocRetries = 3;
+auto kWorkingBufferSize = 15000;
 
 QueryData genInterfaceDetails(QueryContext& context) {
   QueryData results_data;
@@ -80,32 +89,59 @@ QueryData genInterfaceDetails(QueryContext& context) {
 }
 
 QueryData genInterfaceAddresses(QueryContext& context) {
-  QueryData results_data;
-  WmiRequest request(
-      "SELECT * FROM win32_networkadapterconfiguration where IPEnabled=TRUE");
-  if (request.getStatus().ok()) {
-    std::vector<WmiResultItem>& results = request.results();
-    for (const auto& result : results) {
-      Row r;
-      long lPlaceHolder;
-      std::vector<std::string> vPlaceHolderIps;
-      std::vector<std::string> vPlaceHolderSubnets;
+  auto freeMem = [](auto ptr) { free(ptr); };
+  using ip_addr_info_t =
+      std::unique_ptr<IP_ADAPTER_ADDRESSES, decltype(freeMem)>;
 
-      result.GetLong("InterfaceIndex", lPlaceHolder);
-      r["interface"] = SQL_TEXT(lPlaceHolder);
-      result.GetVectorOfStrings("IPAddress", vPlaceHolderIps);
-      result.GetVectorOfStrings("IPSubnet", vPlaceHolderSubnets);
-      for (size_t i = 0; i < vPlaceHolderIps.size(); i++) {
-        r["address"] = SQL_TEXT(vPlaceHolderIps.at(i));
-        if (vPlaceHolderSubnets.size() > i) {
-          r["mask"] = SQL_TEXT(vPlaceHolderSubnets.at(i));
-        }
-        results_data.push_back(r);
-      }
-    }
+  QueryData results;
+
+  DWORD bufLen = kWorkingBufferSize;
+  auto it = 0;
+  size_t ret;
+  auto family = AF_UNSPEC;
+  auto flags = GAA_FLAG_INCLUDE_PREFIX;
+
+  ip_addr_info_t adapterAddrs(nullptr, freeMem);
+  do {
+    adapterAddrs.reset(static_cast<PIP_ADAPTER_ADDRESSES>(malloc(bufLen)));
+    ret = GetAdaptersAddresses(
+        family, flags, nullptr, adapterAddrs.get(), &bufLen);
+    it++;
+  } while (ret == ERROR_BUFFER_OVERFLOW && it < kMaxBufferAllocRetries);
+
+  if (ret != NO_ERROR) {
+    return results;
   }
 
-  return results_data;
+  const IP_ADAPTER_ADDRESSES* currAddrs = adapterAddrs.get();
+  while (currAddrs != nullptr) {
+    const std::wstring name(currAddrs->FriendlyName);
+    const IP_ADAPTER_UNICAST_ADDRESS* ipaddr =
+        adapterAddrs->FirstUnicastAddress;
+    while (ipaddr != nullptr) {
+      Row r;
+      r["interface"] = std::string(name.begin(), name.end());
+      if (ipaddr->Address.lpSockaddr->sa_family == AF_INET) {
+        auto addrBuff = std::make_unique<char[]>(INET_ADDRSTRLEN);
+        inet_ntop(AF_INET,
+                  &((sockaddr_in*)ipaddr->Address.lpSockaddr)->sin_addr,
+                  addrBuff.get(),
+                  INET_ADDRSTRLEN);
+        r["address"] = addrBuff.get();
+      } else if (ipaddr->Address.lpSockaddr->sa_family == AF_INET6) {
+        auto addrBuf = std::make_unique<char[]>(INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6,
+                  &((sockaddr_in6*)ipaddr->Address.lpSockaddr)->sin6_addr,
+                  addrBuf.get(),
+                  INET6_ADDRSTRLEN);
+        r["address"] = addrBuf.get();
+      }
+      results.emplace_back(r);
+      ipaddr = ipaddr->Next;
+    }
+    currAddrs = currAddrs->Next;
+  }
+  return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

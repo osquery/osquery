@@ -45,15 +45,13 @@ const std::map<int, std::string> kServiceType = {
 auto closeServiceHandle = [](SC_HANDLE sch) { CloseServiceHandle(sch); };
 using svc_handle_t = std::unique_ptr<SC_HANDLE__, decltype(closeServiceHandle)>;
 
-auto freeMem = [](auto ptr) { free(ptr); };
-using svc_descr_t = std::unique_ptr<SERVICE_DESCRIPTION, decltype(freeMem)>;
-using svc_query_t = std::unique_ptr<QUERY_SERVICE_CONFIG, decltype(freeMem)>;
-using enum_svc_status_t =
-    std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[], decltype(freeMem)>;
-
 static inline Status getService(const SC_HANDLE& scmHandle,
                                 const ENUM_SERVICE_STATUS_PROCESS& svc,
                                 QueryData& results) {
+  auto freeMem = [](auto ptr) { free(ptr); };
+  using svc_descr_t = std::unique_ptr<SERVICE_DESCRIPTION, decltype(freeMem)>;
+  using svc_query_t = std::unique_ptr<QUERY_SERVICE_CONFIG, decltype(freeMem)>;
+
   Row r;
   svc_handle_t svcHandle(
       OpenService(scmHandle, svc.lpServiceName, SERVICE_QUERY_CONFIG),
@@ -139,6 +137,11 @@ static inline Status getService(const SC_HANDLE& scmHandle,
 }
 
 static inline Status getServices(QueryData& results) {
+  auto freeMem = [](auto ptr) { free(ptr); };
+  using svc_descr_t = std::unique_ptr<SERVICE_DESCRIPTION, decltype(freeMem)>;
+  using enum_svc_status_t =
+      std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[], decltype(freeMem)>;
+
   svc_handle_t scmHandle(OpenSCManager(nullptr, nullptr, GENERIC_READ),
                          closeServiceHandle);
   if (scmHandle == nullptr) {
