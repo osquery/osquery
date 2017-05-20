@@ -30,7 +30,7 @@ else
 endif
 
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
-CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/lib" cmake ../../
+CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib" cmake ../../
 CTEST := $(PATH_SET) ctest ../../
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"
@@ -126,7 +126,7 @@ sysprep: .setup
 	@SKIP_DISTRO_MAIN=0 ./tools/provision.sh build $(BUILD_DIR)
 
 build_deps: .setup
-	@OSQUERY_BUILD_DEPS=1 SKIP_DISTRO_MAIN=0 make deps
+	@OSQUERY_BUILD_DEPS=1 SKIP_DISTRO_MAIN=1 make deps
 
 clean: .setup
 	@cd build/$(BUILD_DIR) && $(CMAKE) && \

@@ -13,7 +13,11 @@
 namespace osquery {
 namespace tables {
 
-QueryData genAsl(QueryContext &context) {
+// macOS ASL is deprecated in 10.12
+_Pragma("clang diagnostic push");
+_Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"");
+
+QueryData genAsl(QueryContext& context) {
   QueryData results;
 
   aslmsg query = createAslQuery(context);
@@ -30,5 +34,7 @@ QueryData genAsl(QueryContext &context) {
 
   return results;
 }
+
+_Pragma("clang diagnostic pop");
 }
 }

@@ -146,7 +146,7 @@ function brew_internal() {
 
   # Configure additional arguments if installing from a local formula.
   POSTINSTALL=0
-  ARGS="$ARGS --ignore-dependencies --env=inherit"
+  ARGS="$ARGS --ignore-dependencies --env=std"
   if [[ "$FORMULA" == *"osquery"* ]]; then
     if [[ -z "$OSQUERY_BUILD_DEPS" ]]; then
       ARGS="$ARGS --force-bottle"
