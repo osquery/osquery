@@ -104,6 +104,9 @@ QueryData genInterfaceAddresses(QueryContext& context) {
   // added/removed), so shenanigans are required
   do {
     adapters.reset(static_cast<PIP_ADAPTER_ADDRESSES>(malloc(buffSize)));
+    if (adapters == nullptr) {
+      return results;
+    }
     alloc_result = GetAdaptersAddresses(
         addrFamily, addrFlags, nullptr, adapters.get(), &buffSize);
     alloc_attempts++;
@@ -144,8 +147,8 @@ QueryData genInterfaceAddresses(QueryContext& context) {
         ConvertLengthToIpv4Mask(ipaddr->OnLinkPrefixLength, &mask);
         in_addr maskAddr;
         maskAddr.s_addr = mask;
-        char addrBuff[INET_ADDRSTRLEN];
 
+        char addrBuff[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &maskAddr, addrBuff, INET_ADDRSTRLEN);
         r["mask"] = addrBuff;
 
@@ -160,9 +163,11 @@ QueryData genInterfaceAddresses(QueryContext& context) {
         memset(&netmask, 0x0, sizeof(netmask));
         for (long i = ipaddr->OnLinkPrefixLength, j = 0; i > 0; i -= 8, ++j)
           netmask.s6_addr[j] = i >= 8 ? 0xff : (ULONG)((0xffU << (8 - i)));
-        char addrBuff[INET6_ADDRSTRLEN] = {0};
+
+        char addrBuff[INET6_ADDRSTRLEN];
         inet_ntop(AF_INET6, &netmask, addrBuff, INET6_ADDRSTRLEN);
         r["mask"] = addrBuff;
+
         inet_ntop(AF_INET6,
                   &reinterpret_cast<sockaddr_in6*>(ipaddr->Address.lpSockaddr)
                        ->sin6_addr,
