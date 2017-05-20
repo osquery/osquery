@@ -89,58 +89,91 @@ QueryData genInterfaceDetails(QueryContext& context) {
 }
 
 QueryData genInterfaceAddresses(QueryContext& context) {
-  auto freeMem = [](auto ptr) { free(ptr); };
-  using ip_addr_info_t =
-      std::unique_ptr<IP_ADAPTER_ADDRESSES, decltype(freeMem)>;
-
   QueryData results;
-
-  DWORD bufLen = kWorkingBufferSize;
-  auto it = 0;
-  size_t ret;
-  auto family = AF_UNSPEC;
-  auto flags =
+  DWORD buffSize = kWorkingBufferSize;
+  auto alloc_attempts = 0;
+  size_t alloc_result;
+  const auto addrFamily = AF_UNSPEC;
+  const auto addrFlags =
       GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST;
+  const auto freeMem = [](auto ptr) { free(ptr); };
+  std::unique_ptr<IP_ADAPTER_ADDRESSES, decltype(freeMem)> adapters(nullptr,
+                                                                    freeMem);
 
-  ip_addr_info_t adapterAddrs(nullptr, freeMem);
+  // Buffer size can change between the query and malloc (if adapters are
+  // added/removed), so shenanigans are required
   do {
-    adapterAddrs.reset(static_cast<PIP_ADAPTER_ADDRESSES>(malloc(bufLen)));
-    ret = GetAdaptersAddresses(
-        family, flags, nullptr, adapterAddrs.get(), &bufLen);
-    it++;
-  } while (ret == ERROR_BUFFER_OVERFLOW && it < kMaxBufferAllocRetries);
-
-  if (ret != NO_ERROR) {
+    adapters.reset(static_cast<PIP_ADAPTER_ADDRESSES>(malloc(buffSize)));
+    alloc_result = GetAdaptersAddresses(
+        addrFamily, addrFlags, nullptr, adapters.get(), &buffSize);
+    alloc_attempts++;
+  } while (alloc_result == ERROR_BUFFER_OVERFLOW &&
+           alloc_attempts < kMaxBufferAllocRetries);
+  if (alloc_result != NO_ERROR) {
     return results;
   }
 
-  const IP_ADAPTER_ADDRESSES* currAddrs = adapterAddrs.get();
-  while (currAddrs != nullptr) {
-    const std::wstring name(currAddrs->FriendlyName);
-    const IP_ADAPTER_UNICAST_ADDRESS* ipaddr =
-        adapterAddrs->FirstUnicastAddress;
+  const IP_ADAPTER_ADDRESSES* currAdapter = adapters.get();
+  while (currAdapter != nullptr) {
+    std::wstring wsAdapterName = std::wstring(currAdapter->FriendlyName);
+    std::string adapterName =
+        std::string(wsAdapterName.begin(), wsAdapterName.end());
+
+    const IP_ADAPTER_UNICAST_ADDRESS* ipaddr = currAdapter->FirstUnicastAddress;
     while (ipaddr != nullptr) {
       Row r;
-      r["interface"] = std::string(name.begin(), name.end());
+      r["interface"] = adapterName;
+
+      switch (ipaddr->SuffixOrigin) {
+      case IpSuffixOriginManual:
+        r["type"] = "manual";
+        break;
+      case IpSuffixOriginDhcp:
+        r["type"] = "dhcp";
+        break;
+      case IpSuffixOriginLinkLayerAddress:
+      case IpSuffixOriginRandom:
+        r["type"] = "auto";
+        break;
+      default:
+        r["type"] = "unknown";
+      }
+
       if (ipaddr->Address.lpSockaddr->sa_family == AF_INET) {
-        char addrBuff[INET_ADDRSTRLEN] = { 0 };
+        ULONG mask;
+        ConvertLengthToIpv4Mask(ipaddr->OnLinkPrefixLength, &mask);
+        in_addr maskAddr;
+        maskAddr.s_addr = mask;
+        char addrBuff[INET_ADDRSTRLEN];
+
+        inet_ntop(AF_INET, &maskAddr, addrBuff, INET_ADDRSTRLEN);
+        r["mask"] = addrBuff;
+
         inet_ntop(AF_INET,
-                  &((sockaddr_in*)ipaddr->Address.lpSockaddr)->sin_addr,
+                  &reinterpret_cast<sockaddr_in*>(ipaddr->Address.lpSockaddr)
+                       ->sin_addr,
                   addrBuff,
                   INET_ADDRSTRLEN);
         r["address"] = addrBuff;
       } else if (ipaddr->Address.lpSockaddr->sa_family == AF_INET6) {
-        char addrBuf[INET6_ADDRSTRLEN] = { 0 };
+        in6_addr netmask;
+        memset(&netmask, 0x0, sizeof(netmask));
+        for (long i = ipaddr->OnLinkPrefixLength, j = 0; i > 0; i -= 8, ++j)
+          netmask.s6_addr[j] = i >= 8 ? 0xff : (ULONG)((0xffU << (8 - i)));
+        char addrBuff[INET6_ADDRSTRLEN] = {0};
+        inet_ntop(AF_INET6, &netmask, addrBuff, INET6_ADDRSTRLEN);
+        r["mask"] = addrBuff;
         inet_ntop(AF_INET6,
-                  &((sockaddr_in6*)ipaddr->Address.lpSockaddr)->sin6_addr,
-                  addrBuf,
+                  &reinterpret_cast<sockaddr_in6*>(ipaddr->Address.lpSockaddr)
+                       ->sin6_addr,
+                  addrBuff,
                   INET6_ADDRSTRLEN);
-        r["address"] = addrBuf;
+        r["address"] = addrBuff;
       }
       results.emplace_back(r);
       ipaddr = ipaddr->Next;
     }
-    currAddrs = currAddrs->Next;
+    currAdapter = currAdapter->Next;
   }
   return results;
 }
