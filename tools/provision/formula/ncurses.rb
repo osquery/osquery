@@ -6,12 +6,12 @@ class Ncurses < AbstractOsqueryFormula
   url "http://ftpmirror.gnu.org/ncurses/ncurses-6.0.tar.gz"
   mirror "https://ftp.gnu.org/gnu/ncurses/ncurses-6.0.tar.gz"
   sha256 "f551c24b30ce8bfb6e96d9f59b42fbea30fa3a6123384172f9e7284bcf647260"
-  revision 1
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "becfd6ba8da926e0981aad5d29929eb51f45d351070eaa62270510067e8cfa80" => :x86_64_linux
+    sha256 "a94d47a827c849b48bb3850d8422ea1d5d7d17be17fa799367e310f93cc11ea8" => :x86_64_linux
   end
 
   keg_only :provided_by_osx

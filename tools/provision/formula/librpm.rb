@@ -6,11 +6,12 @@ class Librpm < AbstractOsqueryFormula
   url "https://github.com/rpm-software-management/rpm/releases/download/rpm-4.13.0-release/rpm-4.13.0.tar.bz2"
   sha256 "221166b61584721a8ca979d7d8576078a5dadaf09a44208f69cc1b353240ba1b"
   version "4.13.0"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "37824eb9fb907943a05421425675f74ca87436bfef18167eb28185be82c9a508" => :x86_64_linux
+    sha256 "453653f8bc22c6d48117fa43d8db80d426d13bf4d7e0d2d7c8da0abc965662a7" => :x86_64_linux
   end
 
   depends_on "berkeley-db"

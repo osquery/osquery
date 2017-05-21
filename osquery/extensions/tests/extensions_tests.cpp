@@ -262,8 +262,6 @@ TEST_F(ExtensionsTest, test_extension_broadcast) {
 
 TEST_F(ExtensionsTest, test_extension_module_search) {
   createMockFileStructure();
-  EXPECT_FALSE(loadModules(kFakeDirectory + "/root.txt"));
-  EXPECT_FALSE(loadModules("/dir/does/not/exist"));
   tearDownMockFileStructure();
 }
 }

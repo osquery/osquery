@@ -37,18 +37,14 @@ const size_t kExtensionInitializeLatency = 20;
 
 enum class ExtendableType {
   EXTENSION = 1,
-  MODULE = 2,
 };
 
 using ExtendableTypeSet = std::map<ExtendableType, std::string>;
 
 const std::map<PlatformType, ExtendableTypeSet> kFileExtensions{
-    {PlatformType::TYPE_WINDOWS,
-     {{ExtendableType::EXTENSION, ".exe"}, {ExtendableType::MODULE, ".dll"}}},
-    {PlatformType::TYPE_LINUX,
-     {{ExtendableType::EXTENSION, ".ext"}, {ExtendableType::MODULE, ".so"}}},
-    {PlatformType::TYPE_OSX,
-     {{ExtendableType::EXTENSION, ".ext"}, {ExtendableType::MODULE, ".dylib"}}},
+    {PlatformType::TYPE_WINDOWS, {{ExtendableType::EXTENSION, ".exe"}}},
+    {PlatformType::TYPE_LINUX, {{ExtendableType::EXTENSION, ".ext"}}},
+    {PlatformType::TYPE_OSX, {{ExtendableType::EXTENSION, ".ext"}}},
 };
 
 CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
@@ -72,11 +68,6 @@ CLI_FLAG(string,
          extensions_interval,
          "3",
          "Seconds delay between connectivity checks");
-
-CLI_FLAG(string,
-         modules_autoload,
-         OSQUERY_HOME "/modules.load",
-         "Optional path to a list of autoloaded registry modules");
 
 SHELL_FLAG(string, extension, "", "Path to a single extension to autoload");
 
@@ -296,19 +287,6 @@ void loadExtensions() {
   }
 }
 
-void loadModules() {
-  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    VLOG(1) << "Windows does not support loadable modules";
-    return;
-  }
-
-  auto status =
-      loadModules(fs::path(FLAGS_modules_autoload).make_preferred().string());
-  if (!status.ok()) {
-    VLOG(1) << "Could not autoload modules: " << status.what();
-  }
-}
-
 static bool isFileSafe(std::string& path, ExtendableType type) {
   boost::trim(path);
   // A 'type name' may be used in verbose log output.
@@ -389,40 +367,6 @@ Status loadExtensions(const std::string& loadfile) {
     Watcher::addExtensionPath(binary);
   }
   return Status(0, "OK");
-}
-
-Status loadModules(const std::string& loadfile) {
-  std::string autoload_paths;
-  if (!readFile(loadfile, autoload_paths).ok()) {
-    return Status(1, "Failed reading: " + loadfile);
-  }
-
-  bool all_loaded = true;
-  std::set<std::string> autoload_objects;
-  for (auto& path : osquery::split(autoload_paths, "\n")) {
-    if (isDirectory(path)) {
-      std::vector<std::string> paths;
-      listFilesInDirectory(path, paths, true);
-      for (auto& embedded_path : paths) {
-        if (isFileSafe(embedded_path, ExtendableType::MODULE)) {
-          autoload_objects.insert(std::move(embedded_path));
-        } else {
-          all_loaded = false;
-        }
-      }
-    } else if (isFileSafe(path, ExtendableType::MODULE)) {
-      autoload_objects.insert(path);
-    } else {
-      all_loaded = false;
-    }
-  }
-
-  for (const auto& object : autoload_objects) {
-    RegistryModuleLoader loader(object);
-    loader.init();
-  }
-  // Return an aggregate failure if any load fails (invalid search path).
-  return Status((all_loaded) ? 0 : 1);
 }
 
 Status startExtension(const std::string& name, const std::string& version) {

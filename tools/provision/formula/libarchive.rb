@@ -5,13 +5,13 @@ class Libarchive < AbstractOsqueryFormula
   homepage "http://www.libarchive.org"
   url "http://www.libarchive.org/downloads/libarchive-3.2.2.tar.gz"
   sha256 "691c194ee132d1f0f7a42541f091db811bc2e56f7107e9121be2bc8c04f1060f"
-  revision 1
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "d7da800fa873e8f7534649b159643b362d118324fb96151732ec30777857863b" => :sierra
-    sha256 "4f1b4e3baf0e5303a6cf0f4a179b63ca1774e2306617f63243d018c35441a51e" => :x86_64_linux
+    sha256 "dc82cff7fdb4932a2025efe6ee914d2a20e63e41ce44831cb0a413e3ab4c9818" => :sierra
+    sha256 "e8fcc61d81feeca6b63ece2e61e5d4bf812c183265bcf3918eaf10216f608e52" => :x86_64_linux
   end
 
   depends_on "xz" => :recommended
