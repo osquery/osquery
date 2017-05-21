@@ -82,7 +82,7 @@ function setup_brew() {
     rm -f "$DEPS/legacy"
     mkdir -p "$DEPS/legacy"
   elif [[ ! -d "$DEPS/legacy" ]]; then
-    mkdir -p "$DEPS/legacy"
+    mkdir -p "$DEPS/legacy/lib"
   fi
 
   # Fix for python linking.
@@ -298,8 +298,6 @@ function deps_version() {
       do_sudo rm -rf "$DEPS_DIR/*"
     fi
   fi
-
-  echo -n $VERSION > $DEPS_DIR/DEPS_VERSION
 }
 
 function package() {

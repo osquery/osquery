@@ -249,6 +249,7 @@ function main() {
 
   if [[ ! "$BREW_TYPE" = "freebsd" ]]; then
     setup_brew "$DEPS_DIR" "$BREW_TYPE" "$ACTION"
+    echo -n $DEPS_VERSION > $DEPS_DIR/DEPS_VERSION
   fi
 
   if [[ "$ACTION" = "bottle" ]]; then
