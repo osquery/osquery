@@ -31,7 +31,7 @@ static const int kKernelEventsIterate = 10;
 REGISTER(KernelEventPublisher, "event_publisher", "kernel");
 
 Status KernelEventPublisher::setUp() {
-  // A daemon should attempt to autoload kernel extensions/modules.
+  // A daemon should attempt to autoload kernel extensions.
   if (kToolType == ToolType::DAEMON) {
     loadKernelExtension();
   }

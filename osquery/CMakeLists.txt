@@ -402,7 +402,4 @@ if(NOT SKIP_TESTS)
 
   # Build the example extension with the SDK.
   ADD_OSQUERY_EXTENSION(example_extension examples/example_extension.cpp)
-
-  # Build the example extension module with the SDK.
-  ADD_OSQUERY_MODULE(modexample examples/example_module.cpp)
 endif()
