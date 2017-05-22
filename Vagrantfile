@@ -2,6 +2,9 @@ targets = {
   "debian7" => {
     "box" => "bento/debian-7.9"
   },
+  "macos10.12" => {
+    "box" => "jhcook/macos-sierra"
+  },
   "debian8" => {
     "box" => "bento/debian-8.2"
   },
@@ -162,6 +165,18 @@ Vagrant.configure("2") do |config|
             ".git/modules/third-party/objects"
           ]
       end
+
+      if name == 'macos10.12'
+        config.vm.provision "shell",
+          inline: "dseditgroup -o create vagrant"
+        build.vm.synced_folder ".", "/vagrant", type: "rsync",
+          rsync__exclude: [
+            "build",
+            ".git/objects",
+            ".git/modules/third-party/objects"
+          ]
+      end
+
       if name == 'freebsd10'
         # configure the NICs
         build.vm.provider :virtualbox do |vb|
@@ -173,6 +188,12 @@ Vagrant.configure("2") do |config|
         build.vm.synced_folder ".", "/vagrant", type: "nfs"
         build.vm.provision "shell",
           inline: "pkg install -y gmake"
+      end
+      if name.start_with?('ubuntu')
+        build.vm.provision 'bootstrap', type: 'shell' do |s|
+          s.inline = 'sudo apt-get update;'\
+                     'sudo apt-get install --yes git;'
+        end
       end
     end
   end

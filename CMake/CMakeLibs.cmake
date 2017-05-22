@@ -1,8 +1,9 @@
-# -*- mode: cmake; -*-
-# - osquery macro definitions
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
 #
-# Remove boilerplate code for linking the osquery core dependent libs
-# compiling and handling static or dynamic (run time load) libs.
+#  This source code is licensed under the BSD-style license found in the
+#  LICENSE file in the root directory of this source tree. An additional grant
+#  of patent rights can be found in the PATENTS file in the same directory.
 
 # osquery-specific helper macros
 macro(LOG_PLATFORM NAME)
@@ -162,7 +163,7 @@ endmacro(ADD_OSQUERY_TEST_ADDITIONAL)
 
 # Core/non core test names and sources macros.
 macro(ADD_OSQUERY_TEST IS_CORE)
-  if(NOT DEFINED ENV{SKIP_TESTS} AND (${IS_CORE} OR NOT OSQUERY_BUILD_SDK_ONLY))
+  if(NOT SKIP_TESTS AND (${IS_CORE} OR NOT OSQUERY_BUILD_SDK_ONLY))
     if(${IS_CORE})
       list(APPEND OSQUERY_TESTS ${ARGN})
       set(OSQUERY_TESTS ${OSQUERY_TESTS} PARENT_SCOPE)
@@ -174,7 +175,7 @@ macro(ADD_OSQUERY_TEST IS_CORE)
 endmacro(ADD_OSQUERY_TEST)
 
 macro(ADD_OSQUERY_TABLE_TEST)
-  if(NOT DEFINED ENV{SKIP_TESTS} AND NOT OSQUERY_BUILD_SDK_ONLY)
+  if(NOT SKIP_TESTS AND NOT OSQUERY_BUILD_SDK_ONLY)
     list(APPEND OSQUERY_TABLES_TESTS ${ARGN})
     set(OSQUERY_TABLES_TESTS ${OSQUERY_TABLES_TESTS} PARENT_SCOPE)
   endif()
@@ -182,7 +183,7 @@ endmacro(ADD_OSQUERY_TABLE_TEST)
 
 # Add kernel test macro.
 macro(ADD_OSQUERY_KERNEL_TEST)
-  if(NOT DEFINED ENV{SKIP_TESTS})
+  if(NOT SKIP_TESTS)
     list(APPEND OSQUERY_KERNEL_TESTS ${ARGN})
     set(OSQUERY_KERNEL_TESTS ${OSQUERY_KERNEL_TESTS} PARENT_SCOPE)
   endif()
@@ -190,7 +191,7 @@ endmacro(ADD_OSQUERY_KERNEL_TEST)
 
 # Add benchmark macro.
 macro(ADD_OSQUERY_BENCHMARK)
-  if(NOT DEFINED ENV{SKIP_TESTS})
+  if(NOT SKIP_TESTS)
     list(APPEND OSQUERY_BENCHMARKS ${ARGN})
     set(OSQUERY_BENCHMARKS ${OSQUERY_BENCHMARKS} PARENT_SCOPE)
   endif()
@@ -198,7 +199,7 @@ endmacro(ADD_OSQUERY_BENCHMARK)
 
 # Add kernel benchmark macro.
 macro(ADD_OSQUERY_KERNEL_BENCHMARK)
-  if(NOT DEFINED ENV{SKIP_TESTS})
+  if(NOT SKIP_TESTS)
     list(APPEND OSQUERY_KERNEL_BENCHMARKS ${ARGN})
     set(OSQUERY_KERNEL_BENCHMARKS ${OSQUERY_KERNEL_BENCHMARKS} PARENT_SCOPE)
   endif()
@@ -217,6 +218,14 @@ endmacro(ADD_OSQUERY_LIBRARY_ADDITIONAL)
 # Core/non core lists of target source files.
 macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
   if(${IS_CORE} OR NOT OSQUERY_BUILD_SDK_ONLY)
+    foreach(SOURCE_FILE ${ARGN})
+      set(EXT_POSITION -1)
+      string(FIND "${SOURCE_FILE}" ".mm" EXT_POSITION)
+      if(EXT_POSITION GREATER 0)
+        SET_SOURCE_FILES_PROPERTIES("${SOURCE_FILE}"
+          PROPERTIES COMPILE_FLAGS ${OBJCXX_COMPILE_FLAGS})
+      endif()
+    endforeach()
     add_library(${TARGET} OBJECT ${ARGN})
     add_dependencies(${TARGET} osquery_extensions)
     # TODO(#1985): For Windows, ignore the -static compiler flag
@@ -235,37 +244,6 @@ macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
   endif()
 endmacro(ADD_OSQUERY_LIBRARY TARGET)
 
-# Add sources to libosquery.a (the core library)
-macro(ADD_OSQUERY_OBJCXX_LIBRARY_CORE TARGET)
-  ADD_OSQUERY_OBJCXX_LIBRARY(TRUE ${TARGET} ${ARGN})
-endmacro(ADD_OSQUERY_OBJCXX_LIBRARY_CORE)
-
-# Add sources to libosquery_additional.a (the non-sdk library)
-macro(ADD_OSQUERY_OBJCXX_LIBRARY_ADDITIONAL TARGET)
-  ADD_OSQUERY_OBJCXX_LIBRARY(FALSE ${TARGET} ${ARGN})
-endmacro(ADD_OSQUERY_OBJCXX_LIBRARY_ADDITIONAL)
-
-# Core/non core lists of target source files compiled as ObjC++.
-macro(ADD_OSQUERY_OBJCXX_LIBRARY IS_CORE TARGET)
-  if(${IS_CORE} OR NOT OSQUERY_BUILD_SDK_ONLY)
-    add_library(${TARGET} OBJECT ${ARGN})
-    add_dependencies(${TARGET} osquery_extensions)
-    # TODO(#1985): For Windows, ignore the -static compiler flag
-    if(WINDOWS)
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS} /EHsc")
-    else()
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} ${OBJCXX_COMPILE_FLAGS}")
-    endif()
-    if(${IS_CORE})
-      list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
-      set(OSQUERY_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)
-    else()
-      list(APPEND OSQUERY_ADDITIONAL_SOURCES $<TARGET_OBJECTS:${TARGET}>)
-      set(OSQUERY_ADDITIONAL_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)
-    endif()
-  endif()
-endmacro(ADD_OSQUERY_OBJCXX_LIBRARY TARGET)
-
 macro(ADD_OSQUERY_EXTENSION TARGET)
   add_executable(${TARGET} ${ARGN})
   TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery)
@@ -273,40 +251,18 @@ macro(ADD_OSQUERY_EXTENSION TARGET)
   set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "${TARGET}.ext")
 endmacro(ADD_OSQUERY_EXTENSION)
 
-macro(ADD_OSQUERY_MODULE TARGET)
-  add_library(${TARGET} SHARED ${ARGN})
-  if(NOT FREEBSD AND NOT WINDOWS)
-    target_link_libraries(${TARGET} dl)
-  endif()
-
-  add_dependencies(${TARGET} libosquery)
-  if(APPLE)
-    target_link_libraries(${TARGET} "-undefined dynamic_lookup")
-  elseif(LINUX)
-    # This could implement a similar LINK_MODULE for gcc, libc, and libstdc++.
-    # However it is only provided as an example for unit testing.
-    target_link_libraries(${TARGET} "-static-libstdc++")
-  endif()
-  if(NOT WINDOWS AND CMAKE_CXX_COMPILER MATCHES "clang")
-    #enable LTO builds of modules when building with clang on Unix
-    target_link_libraries(${TARGET} "-flto")
-  endif()
-  set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
-  set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME ${TARGET})
-endmacro(ADD_OSQUERY_MODULE)
-
 # Helper to abstract OS/Compiler whole linking.
 if(WINDOWS)
-macro(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
-  target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}$<TARGET_FILE_NAME:${OSQUERY_LIB}>")
-  target_link_libraries(${TARGET} ${OSQUERY_LIB})
-endmacro(TARGET_OSQUERY_LINK_WHOLE)
+  macro(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
+    target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}$<TARGET_FILE_NAME:${OSQUERY_LIB}>")
+    target_link_libraries(${TARGET} ${OSQUERY_LIB})
+  endmacro(TARGET_OSQUERY_LINK_WHOLE)
 else()
-macro(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
-  target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}")
-  target_link_libraries(${TARGET} ${OSQUERY_LIB})
-  target_link_libraries(${TARGET} "${OS_WHOLELINK_POST}")
-endmacro(TARGET_OSQUERY_LINK_WHOLE)
+  macro(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
+    target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}")
+    target_link_libraries(${TARGET} ${OSQUERY_LIB})
+    target_link_libraries(${TARGET} "${OS_WHOLELINK_POST}")
+  endmacro(TARGET_OSQUERY_LINK_WHOLE)
 endif()
 
 set(GLOBAL PROPERTY AMALGAMATE_TARGETS "")
@@ -333,17 +289,21 @@ macro(GENERATE_TABLES TABLES_PATH)
     list(APPEND TABLE_CATEGORIES "freebsd" "posix")
   elseif(LINUX)
     list(APPEND TABLE_CATEGORIES "linux" "posix")
-    if(REDHAT_BASED)
-      list(APPEND TABLE_CATEGORIES "centos")
-    elseif(DEBIAN_BASED)
-      list(APPEND TABLE_CATEGORIES "ubuntu")
-    elseif(GENTOO_BASED)
-      list(APPEND TABLE_CATEGORIES "gentoo")
-    endif()
   elseif(WINDOWS)
     list(APPEND TABLE_CATEGORIES "windows")
   else()
     message( FATAL_ERROR "Unknown platform detected, cannot generate tables")
+  endif()
+
+  # Features optionally disabled.
+  if(NOT SKIP_LLDPD AND NOT WINDOWS)
+    list(APPEND TABLE_CATEGORIES "lldpd")
+  endif()
+  if(NOT SKIP_YARA AND NOT WINDOWS)
+    list(APPEND TABLE_CATEGORIES "yara")
+  endif()
+  if(NOT SKIP_TSK AND NOT WINDOWS)
+    list(APPEND TABLE_CATEGORIES "sleuthkit")
   endif()
 
   file(GLOB TABLE_FILES "${TABLES_SPECS}/*.table")
@@ -440,6 +400,7 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
   )
 
   set(${OUTPUT} ${AMALGAMATION_FILE_GEN})
+  set_property(GLOBAL PROPERTY AMALGAMATE_TARGETS "")
 endmacro(AMALGAMATE)
 
 function(JOIN VALUES GLUE OUTPUT)

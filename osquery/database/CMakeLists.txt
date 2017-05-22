@@ -1,31 +1,30 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under the BSD-style license found in the
+#  LICENSE file in the root directory of this source tree. An additional grant
+#  of patent rights can be found in the PATENTS file in the same directory.
+
 ADD_OSQUERY_LIBRARY(TRUE osquery_database
   database.cpp
   query.cpp
-
-  # Add 'core' plugins that do not required additional libraries.
   plugins/ephemeral.cpp
 )
+
+# Optionally (but by default), add the RocksDB database plugin.
+add_definitions(-DROCKSDB_LITE=1)
 
 # Begin with just the SQLite database plugin.
 set(OSQUERY_DATABASE_PLUGINS
   plugins/sqlite.cpp
+  plugins/rocksdb.cpp
 )
 
 set(OSQUERY_DATABASE_PLUGIN_TESTS
   database/tests/plugin_tests.cpp
   database/plugins/tests/sqlite_tests.cpp
+  database/plugins/tests/rocksdb_tests.cpp
 )
-
-# Optionally (but by default), add the RocksDB database plugin.
-if(NOT DEFINED ENV{SKIP_ROCKSDB})
-  add_definitions(-DROCKSDB_LITE=1)
-  set(OSQUERY_DATABASE_PLUGINS ${OSQUERY_DATABASE_PLUGINS}
-    plugins/rocksdb.cpp)
-  set(OSQUERY_DATABASE_PLUGIN_TESTS ${OSQUERY_DATABASE_PLUGIN_TESTS}
-    database/plugins/tests/rocksdb_tests.cpp)
-else()
-  add_definitions(-DSKIP_ROCKSDB)
-endif()
 
 # Plugins (which do not include the shim/ephemeral) are 'additional'.
 ADD_OSQUERY_LIBRARY(FALSE osquery_database_plugins ${OSQUERY_DATABASE_PLUGINS})

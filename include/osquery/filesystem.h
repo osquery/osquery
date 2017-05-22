@@ -37,6 +37,7 @@ inline GlobLimits operator|(GlobLimits a, GlobLimits b) {
 
 /// Globbing wildcard character.
 const std::string kSQLGlobWildcard{"%"};
+
 /// Globbing wildcard recursive character (double wildcard).
 const std::string kSQLGlobRecursive{kSQLGlobWildcard + kSQLGlobWildcard};
 
@@ -233,8 +234,8 @@ std::set<boost::filesystem::path> getHomeDirectories();
  *
  * @return true if the file is 'safe' else false.
  */
-bool safePermissions(const std::string& dir,
-                     const std::string& path,
+bool safePermissions(const boost::filesystem::path& dir,
+                     const boost::filesystem::path& path,
                      bool executable = false);
 
 /**

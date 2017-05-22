@@ -3,7 +3,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_distributed
 )
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_distributed_plugins
-  plugins/tls.cpp
+  plugins/tls_distributed.cpp
 )
 
 file(GLOB OSQUERY_DISTRIBUTED_TESTS "tests/*.cpp")

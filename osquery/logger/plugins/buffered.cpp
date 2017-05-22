@@ -191,6 +191,9 @@ Status BufferedLogForwarder::logStatus(const std::vector<StatusLogLine>& log,
   for (const auto& item : log) {
     // Convert the StatusLogLine into ptree format, to convert to JSON.
     pt::ptree buffer;
+    buffer.put("hostIdentifier", item.identifier);
+    buffer.put("calendarTime", item.calendar_time);
+    buffer.put("unixTime", item.time);
     buffer.put("severity", (google::LogSeverity)item.severity);
     buffer.put("filename", item.filename);
     buffer.put("line", item.line);

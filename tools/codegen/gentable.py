@@ -72,6 +72,7 @@ COLUMN_OPTIONS = {
     "additional": "ADDITIONAL",
     "required": "REQUIRED",
     "optimized": "OPTIMIZED",
+    "hidden": "HIDDEN",
 }
 
 # Column options that render tables uncacheable.
@@ -204,11 +205,17 @@ class TableState(Singleton):
                 if option in COLUMN_OPTIONS:
                     column_options.append("ColumnOptions::" + COLUMN_OPTIONS[option])
                     all_options.append(COLUMN_OPTIONS[option])
+                else:
+                    print(yellow(
+                        "Table %s column %s contains an unknown option: %s" % (
+                            self.table_name, column.name, option)))
             column.options_set = " | ".join(column_options)
             if len(column.aliases) > 0:
                 self.has_column_aliases = True
         if len(all_options) > 0:
             self.has_options = True
+        if "event_subscriber" in self.attributes:
+            self.generator = True
         if "cacheable" in self.attributes:
             if len(set(all_options).intersection(NON_CACHEABLE)) > 0:
                 print(lightred("Table cannot be marked cacheable: %s" % (path)))
@@ -227,6 +234,13 @@ class TableState(Singleton):
                 print(lightred(("Cannot use column name: %s in table: %s "
                                 "(the column name is reserved)" % (
                                     column.name, self.table_name))))
+                exit(1)
+
+        if "ADDITIONAL" in all_options and "INDEX" not in all_options:
+            if "no_pkey" not in self.attributes:
+                print(lightred(
+                    "Table cannot have 'additional' columns without an index: %s" %(
+                    path)))
                 exit(1)
 
         path_bits = path.split("/")
@@ -255,7 +269,7 @@ class TableState(Singleton):
             has_options=self.has_options,
             has_column_aliases=self.has_column_aliases,
             generator=self.generator,
-            attribute_set=[TABLE_ATTRIBUTES[attr] for attr in self.attributes],
+            attribute_set=[TABLE_ATTRIBUTES[attr] for attr in self.attributes if attr in TABLE_ATTRIBUTES],
         )
 
         with open(path, "w+") as file_h:

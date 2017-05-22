@@ -26,8 +26,11 @@ function Main() {
     Write-Host "[-] This script must be run from the osquery repo root!" -ForegroundColor Red
     exit
   }
-  & '.\tools\make-win64-binaries.bat'
-
+  # Binaries might not be built, let's try to build them quick :)
+  if (-not (Test-Path (Join-Path (Get-Location).Path 'build\windows10\osquery\Release'))) {
+    & '.\tools\make-win64-binaries.bat'
+  }
+  
   # Listing of artifacts bundled with osquery
   $scriptPath = Get-Location
   $chocoPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
@@ -36,12 +39,12 @@ function Main() {
     Write-Host "[*] Did not find openssl certs.pem" -ForegroundColor Yellow
   }
 
-  $conf = Join-Path $scriptPath '.\tools\deployment\osquery.example.conf'
+  $conf = Join-Path $scriptPath 'tools\deployment\osquery.example.conf'
   if (-not (Test-Path $conf)) {
     Write-Host "[*] Did not find example configuration" -ForegroundColor Yellow
   }
 
-  $packs = Join-Path $scriptPath '.\packs'
+  $packs = Join-Path $scriptPath 'packs'
   if (-not (Test-Path $packs)) {
     Write-Host "[*] Did not find example packs" -ForegroundColor Yellow
   }
@@ -101,33 +104,30 @@ $nupkg +=
   </files>
 </package>
 '@
-  Copy-Item -Recurse -Force "$scriptPath\tools\deployment\chocolatey\" "$scriptPath\build\"
-  Copy-Item -Recurse -Force $packs "$scriptPath\build\packs-examples"
-  $packsPath = "$scriptPath\build\packs-examples"
-  New-Item -Force -ItemType Directory -Path "$scriptPath\build\chocolatey\tools\bin"
+
+  $chocoBuildPath = "$scriptPath\build\chocolatey"
+  $osqueryChocoPath = "$chocoBuildPath\osquery"
+  New-Item -Force -ItemType Directory -Path "$osqueryChocoPath\tools\bin"
+  Copy-Item -Recurse -Force "$scriptPath\tools\deployment\chocolatey\tools" "$osqueryChocoPath"
+  Copy-Item -Recurse -Force "$scriptPath\tools\provision\chocolatey\osquery_utils.ps1" "$osqueryChocoPath\tools\osquery_utils.ps1"
+
   $buildDir = "$scriptPath\build\windows10\osquery\Release\"
   $clientPath = Join-Path $buildDir 'osqueryi.exe'
   $daemonPath = Join-Path $buildDir 'osqueryd.exe'
-  $manageScriptPath = "$scriptPath\tools\manage-osqueryd.ps1"
-  $nupkg | Out-File -Encoding "UTF8" "$scriptPath\build\chocolatey\osquery.nuspec"
+  $mgmtScript = "$scriptPath\tools\manage-osqueryd.ps1"
+  $nupkg | Out-File -Encoding "UTF8" "$osqueryChocoPath\osquery.nuspec"
   if (-not ((Test-Path $clientPath) -or (Test-Path $daemonPath))) {
     Write-Host '[-] Unable to find osquery binaries!  Check the results of the build scripts!' -ForegroundColor Red
     exit
   }
 
   # This bundles up all of the files we distribute.
-  # Issue #2962 - This is where we can bundle additional deploy artifacts.
-
-  7z a "$scriptPath\build\chocolatey\tools\bin\osquery.zip" $clientPath $daemonPath $certs $conf $packsPath $manageScriptPath
+  7z a "$osqueryChocoPath\tools\bin\osquery.zip" $clientPath $daemonPath $certs $conf $packs $mgmtScript
   Write-Debug "[+] Creating the chocolatey package for osquery $version"
-  Set-Location "$scriptPath\build\chocolatey\"
+  Set-Location "$osqueryChocoPath"
   choco pack
 
   Write-Host "[+] Chocolatey Package has been created. Run 'choco push' to push the package to Chocolatey" -ForegroundColor Green
-
-  # TODO: Consider putting this into another powershell script 'push-chocolatey-package.ps1'
-  #Write-Debug "[+] Pushing osquery-$version.nupkg to chocolatey"
-  #choco push
 }
 
 $null = Main

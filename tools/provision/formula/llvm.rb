@@ -22,76 +22,89 @@ end
 class Llvm < AbstractOsqueryFormula
   desc "Next-gen compiler infrastructure"
   homepage "http://llvm.org/"
-  revision 2
+  revision 100
 
   stable do
-    url "http://llvm.org/releases/3.8.1/llvm-3.8.1.src.tar.xz"
-    sha256 "6e82ce4adb54ff3afc18053d6981b6aed1406751b8742582ed50f04b5ab475f9"
+    url "http://releases.llvm.org/4.0.0/llvm-4.0.0.src.tar.xz"
+    sha256 "8d10511df96e73b8ff9e7abbfb4d4d432edbdbe965f1f4f07afaf370b8a533be"
 
     resource "clang" do
-      url "http://llvm.org/releases/3.8.1/cfe-3.8.1.src.tar.xz"
-      sha256 "4cd3836dfb4b88b597e075341cae86d61c63ce3963e45c7fe6a8bf59bb382cdf"
+      url "http://releases.llvm.org/4.0.0/cfe-4.0.0.src.tar.xz"
+      sha256 "cea5f88ebddb30e296ca89130c83b9d46c2d833685e2912303c828054c4dc98a"
     end
 
     resource "clang-extra-tools" do
-      url "http://llvm.org/releases/3.8.1/clang-tools-extra-3.8.1.src.tar.xz"
-      sha256 "664a5c60220de9c290bf2a5b03d902ab731a4f95fe73a00856175ead494ec396"
+      url "http://releases.llvm.org/4.0.0/clang-tools-extra-4.0.0.src.tar.xz"
+      sha256 "41b7d37eb128fd362ab3431be5244cf50325bb3bb153895735c5bacede647c99"
     end
 
     resource "compiler-rt" do
-      url "http://llvm.org/releases/3.8.1/compiler-rt-3.8.1.src.tar.xz"
-      sha256 "0df011dae14d8700499dfc961602ee0a9572fef926202ade5dcdfe7858411e5c"
+      url "http://releases.llvm.org/4.0.0/compiler-rt-4.0.0.src.tar.xz"
+      sha256 "d3f25b23bef24c305137e6b44f7e81c51bbec764c119e01512a9bd2330be3115"
+    end
+
+    # Only required to build & run Compiler-RT tests on macOS, optional otherwise.
+    # https://clang.llvm.org/get_started.html
+    resource "libcxx" do
+      url "http://releases.llvm.org/4.0.0/libcxx-4.0.0.src.tar.xz"
+      sha256 "4f4d33c4ad69bf9e360eebe6b29b7b19486948b1a41decf89d4adec12473cf96"
+    end
+
+    resource "libcxxabi" do
+      url "http://llvm.org/releases/4.0.0/libcxxabi-4.0.0.src.tar.xz"
+      sha256 "dca9cb619662ad2d3a0d685c4366078345247218c3702dd35bcaaa23f63481d8"
+    end
+
+    resource "libunwind" do
+      url "http://releases.llvm.org/4.0.0/libunwind-4.0.0.src.tar.xz"
+      sha256 "0755efa9f969373d4d543123bbed4b3f9a835f6302875c1379c5745857725973"
+    end
+
+    resource "lld" do
+      url "http://releases.llvm.org/4.0.0/lld-4.0.0.src.tar.xz"
+      sha256 "33e06457b9ce0563c89b11ccc7ccabf9cff71b83571985a5bf8684c9150e7502"
+    end
+
+    resource "lldb" do
+      url "http://releases.llvm.org/4.0.0/lldb-4.0.0.src.tar.xz"
+      sha256 "2dbd8f05c662c1c9f11270fc9d0c63b419ddc988095e0ad107ed911cf882033d"
+    end
+
+    resource "openmp" do
+      url "http://releases.llvm.org/4.0.0/openmp-4.0.0.src.tar.xz"
+      sha256 "db55d85a7bb289804dc42fc5c8e35ca24dfc3885782261b675a194fd7e206e26"
     end
 
     resource "polly" do
-      url "http://llvm.org/releases/3.8.1/polly-3.8.1.src.tar.xz"
-      sha256 "453c27e1581614bb3b6351bf5a2da2939563ea9d1de99c420f85ca8d87b928a2"
+      url "http://releases.llvm.org/4.0.0/polly-4.0.0.src.tar.xz"
+      sha256 "27a5dbf95e8aa9e0bbe3d6c5d1e83c92414d734357aa0d6c16020a65dc4dcd97"
     end
   end
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "413eb81e07ea61bc3dc99ecb95fa4fce9cd087080259b342a0b3f7f1fe4808c8" => :x86_64_linux
-  end
-
-  head do
-    url "http://llvm.org/git/llvm.git"
-
-    resource "clang" do
-      url "http://llvm.org/git/clang.git"
-    end
-
-    resource "clang-extra-tools" do
-      url "http://llvm.org/git/clang-tools-extra.git"
-    end
-
-    resource "compiler-rt" do
-      url "http://llvm.org/git/compiler-rt.git"
-    end
-
-    resource "polly" do
-      url "http://llvm.org/git/polly.git"
-    end
+    sha256 "1530776b4dc1a0a18d9eb701a146394d18cd219334159a81c808cce476defb4d" => :x86_64_linux
   end
 
   keg_only :provided_by_osx
 
-  option :universal
-  option "without-clang", "Build the Clang compiler and support libraries"
-  option "without-clang-extra-tools", "Build extra tools for Clang"
-  option "without-compiler-rt", "Build Clang runtime support libraries for code sanitizers, builtins, and profiling"
-  option "without-rtti", "Build with C++ RTTI"
-  option "without-utils", "Install utility binaries"
-  option "without-polly", "Do not build Polly optimizer"
-
-  deprecated_option "rtti" => "with-rtti"
+  option "without-compiler-rt", "Do not build Clang runtime support libraries for code sanitizers, builtins, and profiling"
+  option "with-libcxx", "Build libc++ standard library"
+  option "with-toolchain", "Build with Toolchain to facilitate overriding system compiler"
+  option "with-lldb", "Build LLDB debugger"
+  option "with-python", "Build bindings against custom Python"
+  option "with-shared-libs", "Build shared instead of static libraries"
+  option "without-libffi", "Do not use libffi to call external functions"
 
   depends_on "binutils" if build.with? "clang"
+  depends_on "cmake" => :build
 
-  # Apple's libstdc++ is too old to build LLVM
-  fails_with :gcc
-  fails_with :llvm
+  needs :cxx11
+
+  def build_libcxx?
+    build.with?("libcxx")
+  end
 
   def install
     # Added to gcc's specs, but also needed here.
@@ -100,9 +113,20 @@ class Llvm < AbstractOsqueryFormula
     # Apple's libstdc++ is too old to build LLVM
     ENV.libcxx if ENV.compiler == :clang
 
-    (buildpath/"tools/clang").install resource("clang") if build.with? "clang"
+    (buildpath/"tools/clang").install resource("clang")
+
+    # Add glibc to the list of library directories so that we won't have to do -L<path-to-glibc>/lib
+    inreplace buildpath/"tools/clang/lib/Driver/ToolChains.cpp",
+      "// Add the multilib suffixed paths where they are available.",
+      "addPathIfExists(D, \"#{HOMEBREW_PREFIX}/opt/glibc/lib\", Paths);\n\n  // Add the multilib suffixed paths where they are available."
+
     (buildpath/"tools/clang/tools/extra").install resource("clang-extra-tools")
-    (buildpath/"tools/polly").install resource("polly") if build.with? "polly"
+    (buildpath/"projects/openmp").install resource("openmp")
+    (buildpath/"projects/libcxx").install resource("libcxx") if build_libcxx?
+    (buildpath/"projects/libcxxabi").install resource("libcxxabi") if build_libcxx?
+    (buildpath/"projects/libunwind").install resource("libunwind")
+    (buildpath/"tools/lld").install resource("lld")
+    (buildpath/"tools/polly").install resource("polly")
 
     if build.with? "compiler-rt"
       (buildpath/"projects/compiler-rt").install resource("compiler-rt")
@@ -116,38 +140,44 @@ class Llvm < AbstractOsqueryFormula
     end
 
     args = %w[
-      -DLLVM_OPTIMIZED_TABLEGEN=On
-      -DLLVM_BUILD_LLVM_DYLIB=On
+      -DLLVM_OPTIMIZED_TABLEGEN=ON
+      -DLLVM_INCLUDE_DOCS=OFF
+      -DLLVM_ENABLE_RTTI=ON
+      -DLLVM_ENABLE_EH=ON
+      -DLLVM_INSTALL_UTILS=ON
+      -DWITH_POLLY=ON
+      -DLINK_POLLY_INTO_TOOLS=ON
+      -DLLVM_TARGETS_TO_BUILD=all
     ]
+
+    # osquery added a link for pthread
+    args << "-DLIBOMP_LIBFLAGS=-lpthread" # Fails to link libgomp
+
+    args << "-DLIBOMP_ARCH=x86_64"
+    args << "-DLLVM_BUILD_EXTERNAL_COMPILER_RT=ON" if build.with? "compiler-rt"
+    args << "-DLLVM_BUILD_LLVM_DYLIB=ON"
 
     if build.with? "rtti"
       args << "-DLLVM_ENABLE_RTTI=ON"
       args << "-DLLVM_ENABLE_EH=ON"
     end
 
-    if build.with? "clang"
-      # build the LLVMGold plugin
-      binutils = Formula["binutils"].prefix/"include"
-      args << "-DLLVM_BINUTILS_INCDIR=#{binutils}"
-    end
+    args << "-DLLVM_ENABLE_LIBCXX=ON" if build_libcxx?
+    args << "-DLLVM_ENABLE_LIBCXXABI=ON" if build_libcxx? && !OS.mac?
 
-    args << "-DLLVM_BUILD_EXTERNAL_COMPILER_RT=ON" if build.with? "compiler-rt"
-    args << "-DLLVM_INSTALL_UTILS=On" if build.with? "utils"
-    args << "-DGCC_INSTALL_PREFIX=#{Formula["gcc"].prefix}"
+    # Enable llvm gold plugin for LTO
+    args << "-DLLVM_BINUTILS_INCDIR=#{Formula["binutils"].opt_include}"
 
-    if build.universal?
-      ENV.permit_arch_flags
-      args << "-DCMAKE_OSX_ARCHITECTURES=#{Hardware::CPU.universal_archs.as_cmake_arch_flags}"
-    end
-
-    if build.with? "polly"
-      args << "-DWITH_POLLY=ON"
-      args << "-DLINK_POLLY_INTO_TOOLS=ON"
-    end
+    gccpref = Formula["gcc"].opt_prefix.to_s
+    args << "-DGCC_INSTALL_PREFIX=#{gccpref}"
+    args << "-DCMAKE_C_COMPILER=#{gccpref}/bin/gcc"
+    args << "-DCMAKE_CXX_COMPILER=#{gccpref}/bin/g++"
+    args << "-DCMAKE_CXX_LINK_FLAGS=-L#{gccpref}/lib64 -Wl,-rpath,#{gccpref}/lib64"
+    args << "-DCLANG_DEFAULT_CXX_STDLIB=#{build.with?("libcxx") ? "libc++" : "libstdc++"}"
 
     mktemp do
       system "cmake", "-G", "Unix Makefiles", buildpath, *(std_cmake_args + args)
-      system "make"
+      system "make", "-j#{ENV.make_jobs}"
       system "make", "install"
     end
 
@@ -159,22 +189,17 @@ class Llvm < AbstractOsqueryFormula
     # install llvm python bindings
     (lib/"python2.7/site-packages").install buildpath/"bindings/python/llvm"
     (lib/"python2.7/site-packages").install buildpath/"tools/clang/bindings/python/clang"
+
+    rm [lib/"libgomp.so", lib/"libunwind.so"]
   end
 
   def caveats
-    s = <<-EOS.undent
-      LLVM executables are installed in #{opt_bin}.
-      Extra tools are installed in #{opt_share}/llvm.
-    EOS
-
-    if build.with? "libcxx"
-      s += <<-EOS.undent
+    if build_libcxx?
+      <<-EOS.undent
         To use the bundled libc++ please add the following LDFLAGS:
-          LDFLAGS="-L#{opt_lib} -lc++abi"
+          LDFLAGS="-L#{opt_lib} -Wl,-rpath,#{opt_lib}"
       EOS
     end
-
-    s
   end
 
   test do
@@ -183,11 +208,10 @@ class Llvm < AbstractOsqueryFormula
     if build.with? "clang"
       (testpath/"test.cpp").write <<-EOS.undent
         #include <iostream>
-        using namespace std;
 
         int main()
         {
-          cout << "Hello World!" << endl;
+          std::cout << "Hello World!" << std::endl;
           return 0;
         }
       EOS

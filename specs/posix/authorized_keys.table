@@ -4,8 +4,8 @@ schema([
     Column("uid", BIGINT, "The local owner of authorized_keys file",
       additional=True),
     Column("algorithm",TEXT,"algorithim of key"),
-    Column("key", TEXT, "parsed authorized keys line"),
-    Column("key_file", TEXT, "Path to the authorized_keys file"),
+    Column("key", TEXT, "parsed authorized keys line", index=True),
+    Column("key_file", TEXT, "Path to the authorized_keys file", index=True),
     ForeignKey(column="uid", table="users"),
 ])
 attributes(user_data=True)

@@ -1,10 +1,10 @@
 table_name("augeas", aliases=["configurations"])
 description("Configuration files parsed by augeas.")
 schema([
-    Column("node", TEXT, "The node path of the configuration item"),
+    Column("node", TEXT, "The node path of the configuration item", index=True),
     Column("value", TEXT, "The value of the configuration item"),
     Column("label", TEXT, "The label of the configuration item"),
-    Column("path", TEXT, "The path to the configuration file")
+    Column("path", TEXT, "The path to the configuration file", additional=True)
 ])
 implementation("other/augeas@genAugeas")
 examples([

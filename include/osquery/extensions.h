@@ -134,7 +134,7 @@ Status loadModuleFile(const std::string& path);
  * chance the path is 'overloaded' by multiple shells, use this method to
  * determine a unique user-local path.
  *
- * @param Path to user's home directory.
+ * @param home to user's home directory.
  */
 void initShellSocket(const std::string& home);
 

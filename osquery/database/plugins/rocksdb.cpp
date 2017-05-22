@@ -146,13 +146,12 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
     // context of a RocksDB API call, turn log forwarding off to prevent the
     // logger from trying to make a call back into RocksDB and causing a
     // deadlock.
-    LoggerForwardingDisabler forwarding_disabler;
     LOG(INFO) << "RocksDB: " << log_line;
   }
 }
 
 Status RocksDBDatabasePlugin::setUp() {
-  if (!kDBHandleOptionAllowOpen) {
+  if (!DatabasePlugin::kDBAllowOpen) {
     LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
   }
 
@@ -202,7 +201,7 @@ Status RocksDBDatabasePlugin::setUp() {
     return Status(1, "Cannot read RocksDB path: " + path_);
   }
 
-  if (!DatabasePlugin::kCheckingDB) {
+  if (!DatabasePlugin::kDBChecking) {
     VLOG(1) << "Opening RocksDB handle: " << path_;
   }
 
@@ -222,12 +221,12 @@ Status RocksDBDatabasePlugin::setUp() {
   if (!s.ok() || db_ == nullptr) {
     LOG(INFO) << "Rocksdb open failed (" << s.code() << ":" << s.subcode()
               << ") " << s.ToString();
-    if (kDBHandleOptionRequireWrite) {
+    if (kDBRequireWrite) {
       // A failed open in R/W mode is a runtime error.
       return Status(1, s.ToString());
     }
 
-    if (!DatabasePlugin::kCheckingDB) {
+    if (!DatabasePlugin::kDBChecking) {
       LOG(INFO) << "Opening RocksDB failed: Continuing with read-only support";
     }
 #if !defined(ROCKSDB_LITE)

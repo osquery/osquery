@@ -14,6 +14,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
+#include <boost/tokenizer.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -31,7 +32,15 @@ namespace tables {
 
 const std::set<std::string> kStartupRegKeys = {
     "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run%",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows"
+    "\\CurrentVersion\\Run%",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"
+    "\\Policies\\Explorer\\Run%",
     "HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run%",
+    "HKEY_USERS\\%\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows"
+    "\\CurrentVersion\\Run%",
+    "HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"
+    "\\Policies\\Explorer\\Run%",
 };
 const std::set<std::string> kStartupFolderDirectories = {
     "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\%%",
@@ -49,19 +58,46 @@ const std::set<std::string> kStartupStatusRegKeys = {
 // Starts with 0[0-9] but not followed by all 0s
 const auto kStartupDisabledRegex = boost::regex("^0[0-9](?!0+$).*$");
 
+static inline void parseStartupPath(const std::string& path, Row& r) {
+  if (path.find('\"') == std::string::npos) {
+    r["path"] = path;
+  } else {
+    boost::tokenizer<boost::escaped_list_separator<TCHAR>> tokens(
+        path,
+        boost::escaped_list_separator<TCHAR>(
+            std::string(""), std::string(" "), std::string("\"\'")));
+    for (auto&& tok = tokens.begin(); tok != tokens.end(); ++tok) {
+      if (tok == tokens.begin()) {
+        r["path"] = *tok;
+      } else if (r.count("args") == 0) {
+        r["args"] = *tok;
+      } else {
+        r["args"].append(" " + *tok);
+      }
+    }
+  }
+}
+
 QueryData genStartupItems(QueryContext& context) {
   QueryData results;
 
+  // These are UNION instead of OR to workaround #3145
   std::string startupSubQuery =
-      "SELECT name,data,key FROM registry WHERE (key LIKE \"" +
-      boost::join(kStartupRegKeys, "\" OR key LIKE \"") +
-      "\") AND NOT (type = \"subkey\" OR name = \"" + kDefaultRegName + "\")";
+      "SELECT name,data,key FROM (select name,data,key,type from registry "
+      "WHERE key LIKE \"" +
+      boost::join(kStartupRegKeys,
+                  "\" UNION SELECT name,data,key,type FROM registry WHERE key "
+                  "LIKE \"") +
+      "\") WHERE NOT (type = \"subkey\" OR name = \"" + kDefaultRegName + "\")";
   std::string startupFolderSubQuery =
       "SELECT filename,path,directory FROM file WHERE path LIKE \"" +
       boost::join(kStartupFolderDirectories, "\" OR path LIKE \"") + "\"";
   std::string statusSubQuery =
-      "SELECT name,data AS status FROM registry WHERE key LIKE \"" +
-      boost::join(kStartupStatusRegKeys, "\" OR key LIKE \"") + "\"";
+      "SELECT name,data AS status FROM (select name,data from registry WHERE "
+      "key LIKE \"" +
+      boost::join(kStartupStatusRegKeys,
+                  "\" UNION SELECT name,data FROM registry WHERE key LIKE \"") +
+      "\")";
 
   SQL startupResults("SELECT key,R1.name as name,data,status FROM (" +
                      startupSubQuery + " UNION " + startupFolderSubQuery +
@@ -88,16 +124,17 @@ QueryData genStartupItems(QueryContext& context) {
       }
     }
 
+    parseStartupPath(startup.at("data"), r);
+
     r["status"] = regex_match(startup.at("status"), kStartupDisabledRegex)
                       ? "disabled"
                       : "enabled";
     r["name"] = startup.at("name");
-    r["path"] = startup.at("data");
     r["source"] = startup.at("key");
     r["type"] = "Startup Item";
     results.push_back(r);
   }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

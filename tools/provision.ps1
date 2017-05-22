@@ -271,20 +271,21 @@ function Install-ThirdParty {
   #      Once our chocolatey packages are added to the official repository, installing the third-party
   #      dependencies will be as easy as Install-ChocoPackage '<package-name>'.
   $packages = @(
-    "aws-sdk-cpp.0.14.4",
+    "aws-sdk-cpp.1.0.107-r1",
     "boost-msvc14.1.63.0-r1",
     "bzip2.1.0.6",
     "doxygen.1.8.11",
     "gflags-dev.2.2.0",
     "glog.0.3.4",
-    "openssl.1.0.2-j",
+    "openssl.1.0.2-k",
     "rocksdb.5.1.4",
     "snappy-msvc.1.1.1.8",
-    "thrift-dev.0.9.3",
+    "thrift-dev.0.10.0-r1",
     "cpp-netlib.0.12.0-r2",
     "linenoise-ng.1.0.0",
     "clang-format.3.9.0",
-    "zlib.1.2.8"
+    "zlib.1.2.8",
+    "libarchive.3.3.1-r1"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
   Remove-Item $tmpDir -Recurse -ErrorAction Ignore
@@ -322,7 +323,7 @@ function Install-ThirdParty {
       Write-Host " => Downloading $downloadUrl" -foregroundcolor DarkCyan
       Try {
         (New-Object net.webclient).DownloadFile($downloadUrl, $tmpFilePath)
-        Write-Host " => Done." -foregroundcolor DarkCyan
+        Write-Host " => Downloaded" -foregroundcolor DarkCyan
       } catch [Net.WebException] {
         Write-Host "[-] ERROR: Downloading $package failed. Check connection?" -foregroundcolor Red
         Exit -1
@@ -332,7 +333,7 @@ function Install-ThirdParty {
         Write-Host "[-] ERROR: Install of $package failed." -foregroundcolor Red
         Exit -1
       }
-      Write-Host "[+] Done." -foregroundcolor Green
+      Write-Host "[+] Done" -foregroundcolor Green
     }
   } Finally {
     Remove-Item $tmpDir -Recurse
@@ -349,9 +350,10 @@ function Update-GitSubmodule {
     Write-Host "[-] ERROR: Git was not found on the system. Install git." -foregroundcolor Red
     Exit -1
   }
+  $repoRoot = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..'))
   $thirdPartyPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'third-party'))
   Write-Host " => Updating git submodules in $thirdPartyPath ..." -foregroundcolor Yellow
-  Push-Location $thirdPartyPath
+  Push-Location $repoRoot
   git submodule --quiet update --init
   Pop-Location
   Write-Host "[+] Submodules updated!" -foregroundcolor Yellow

@@ -1,0 +1,41 @@
+table_name("docker_info")
+description("Docker system information.")
+schema([
+    Column("id", TEXT, "Docker system ID"),
+    Column("containers", INTEGER, "Total number of containers"),
+    Column("containers_running", INTEGER, "Number of containers currently running"),
+    Column("containers_paused", INTEGER, "Number of containers in paused state"),
+    Column("containers_stopped", INTEGER, "Number of containers in stopped state"),
+    Column("images", INTEGER, "Number of images"),
+    Column("storage_driver", TEXT, "Storage driver"),
+    Column("memory_limit", INTEGER, "1 if memory limit support is enabled. 0 otherwise"),
+    Column("swap_limit", INTEGER, "1 if swap limit support is enabled. 0 otherwise"),
+    Column("kernel_memory", INTEGER, "1 if kernel memory limit support is enabled. 0 otherwise"),
+    Column("cpu_cfs_period", INTEGER, "1 if CPU Completely Fair Scheduler (CFS) period support is enabled. 0 otherwise"),
+    Column("cpu_cfs_quota", INTEGER, "1 if CPU Completely Fair Scheduler (CFS) quota support is enabled. 0 otherwise"),
+    Column("cpu_shares", INTEGER, "1 if CPU share weighting support is enabled. 0 otherwise"),
+    Column("cpu_set", INTEGER, "1 if CPU set selection support is enabled. 0 otherwise"),
+    Column("ipv4_forwarding", INTEGER, "1 if IPv4 forwarding is enabled. 0 otherwise"),
+    Column("bridge_nf_iptables", INTEGER, "1 if bridge netfilter iptables is enabled. 0 otherwise"),
+    Column("bridge_nf_ip6tables", INTEGER, "1 if bridge netfilter ip6tables is enabled. 0 otherwise"),
+    Column("oom_kill_disable", INTEGER, "1 if Out-of-memory kill is disabled. 0 otherwise"),
+    Column("logging_driver", TEXT, "Logging driver"),
+    Column("cgroup_driver", TEXT, "Control groups driver"),
+    Column("kernel_version", TEXT, "Kernel version"),
+    Column("os", TEXT, "Operating system"),
+    Column("os_type", TEXT, "Operating system type"),
+    Column("architecture", TEXT, "Hardware architecture"),
+    Column("cpus", INTEGER, "Number of CPUs"),
+    Column("memory", BIGINT, "Total memory"),
+    Column("http_proxy", TEXT, "HTTP proxy"),
+    Column("https_proxy", TEXT, "HTTPS proxy"),
+    Column("no_proxy", TEXT, "Comma-separated list of domain extensions proxy should not be used for"),
+    Column("name", TEXT, "Name of the docker host"),
+    Column("server_version", TEXT, "Server version"),
+    Column("root_dir", TEXT, "Docker root directory")
+])
+attributes(cacheable=True)
+implementation("applications/docker@genInfo")
+examples([
+  "select * from docker_info"
+])

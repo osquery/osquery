@@ -15,6 +15,12 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#ifdef __APPLE__
+#define LENSES_PATH "/private/var/osquery/lenses"
+#else
+#define LENSES_PATH "/usr/share/osquery/lenses"
+#endif
+
 namespace osquery {
 namespace tables {
 
@@ -141,7 +147,8 @@ void matchAugeasPattern(augeas* aug,
 }
 
 QueryData genAugeas(QueryContext& context) {
-  augeas* aug = aug_init(nullptr, nullptr, AUG_NO_ERR_CLOSE | AUG_ENABLE_SPAN);
+  augeas* aug =
+      aug_init(nullptr, LENSES_PATH, AUG_NO_ERR_CLOSE | AUG_ENABLE_SPAN);
 
   // Handle initialization errors.
   if (aug == nullptr) {

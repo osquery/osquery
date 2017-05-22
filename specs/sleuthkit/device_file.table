@@ -1,0 +1,23 @@
+table_name("device_file")
+description("Similar to the file table, but use TSK and allow block address access.")
+schema([
+    Column("device", TEXT, "Absolute file path to device node",
+        index=True, required=True),
+    Column("partition", TEXT, "A partition number",
+        index=True, required=True),
+    Column("path", TEXT, "A logical path within the device node",
+        additional=True),
+    Column("filename", TEXT, "Name portion of file path"),
+    Column("inode", BIGINT, "Filesystem inode number", index=True),
+    Column("uid", BIGINT, "Owning user ID"),
+    Column("gid", BIGINT, "Owning group ID"),
+    Column("mode", TEXT, "Permission bits"),
+    Column("size", BIGINT, "Size of file in bytes"),
+    Column("block_size", INTEGER, "Block size of filesystem"),
+    Column("atime", BIGINT, "Last access time"),
+    Column("mtime", BIGINT, "Last modification time"),
+    Column("ctime", BIGINT, "Creation time"),
+    Column("hard_links", INTEGER, "Number of hard links"),
+    Column("type", TEXT, "File status"),
+])
+implementation("forensic/sleuthkit@genDeviceFile")

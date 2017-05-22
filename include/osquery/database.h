@@ -50,6 +50,9 @@ extern const std::string kQueries;
 /// The "domain" where event results are stored, queued for querytime retrieval.
 extern const std::string kEvents;
 
+/// The "domain" where the results of carve queries are stored.
+extern const std::string kCarves;
+
 /**
  * @brief The "domain" where buffered log results are stored.
  *
@@ -507,23 +510,26 @@ class DatabasePlugin : public Plugin {
 
   /// Require all DBHandle accesses to open a read and write handle.
   static void setRequireWrite(bool rw) {
-    kDBHandleOptionRequireWrite = rw;
+    kDBRequireWrite = rw;
   }
 
   /// Allow DBHandle creations.
   static void setAllowOpen(bool ao) {
-    kDBHandleOptionAllowOpen = ao;
+    kDBAllowOpen = ao;
   }
 
  public:
   /// Control availability of the RocksDB handle (default false).
-  static bool kDBHandleOptionAllowOpen;
+  static std::atomic<bool> kDBAllowOpen;
 
   /// The database must be opened in a R/W mode (default false).
-  static bool kDBHandleOptionRequireWrite;
+  static std::atomic<bool> kDBRequireWrite;
 
-  /// A queryable mutex around database sanity checking.
-  static std::atomic<bool> kCheckingDB;
+  /// An internal mutex around database sanity checking.
+  static std::atomic<bool> kDBChecking;
+
+  /// An internal status protecting database access.
+  static std::atomic<bool> kDBInitialized;
 
  public:
   /**
@@ -535,7 +541,7 @@ class DatabasePlugin : public Plugin {
    *
    * The database should setUp in preparation for accesses.
    */
-  static bool initPlugin();
+  static Status initPlugin();
 
   /// Allow shutdown before exit.
   static void shutdown();

@@ -18,8 +18,12 @@
 #include <vector>
 
 #ifdef WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #endif
 
 #ifndef WIN32
@@ -52,31 +56,6 @@
   } while (0)
 
 namespace osquery {
-
-/**
- * @brief An abstract similar to boost's noncopyable that defines moves.
- *
- * By defining protected move constructors we allow the children to assign
- * their's as default.
- */
-class only_movable {
- protected:
-  /// Boilerplate self default constructor.
-  only_movable() {}
-
-  /// Boilerplate self destructor.
-  ~only_movable() {}
-
-  /// Important, existance of a move constructor.
-  only_movable(only_movable&&) {}
-
- private:
-  /// Important, a private copy constructor prevents copying.
-  only_movable(const only_movable&);
-
-  /// Important, a private copy assignment constructor prevents copying.
-  only_movable& operator=(const only_movable&);
-};
 
 /**
  * @brief osquery does not yet use a NULL type.
@@ -549,6 +528,7 @@ struct QueryContext : private only_movable {
   ~QueryContext() {
     if (!enable_cache_ && table_ != nullptr) {
       delete table_;
+      table_ = nullptr;
     }
   }
 
@@ -742,7 +722,7 @@ class TablePlugin : public Plugin {
    * virtual table APIs. In the best case this context include a limit or
    * constraints organized by each possible column.
    *
-   * @param request A query context filled in by SQLite's virtual table API.
+   * @param context A query context filled in by SQLite's virtual table API.
    * @return The result rows for this table, given the query context.
    */
   virtual QueryData generate(QueryContext& context) {

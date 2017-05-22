@@ -37,18 +37,14 @@ const size_t kExtensionInitializeLatency = 20;
 
 enum class ExtendableType {
   EXTENSION = 1,
-  MODULE = 2,
 };
 
 using ExtendableTypeSet = std::map<ExtendableType, std::string>;
 
 const std::map<PlatformType, ExtendableTypeSet> kFileExtensions{
-    {PlatformType::TYPE_WINDOWS,
-     {{ExtendableType::EXTENSION, ".exe"}, {ExtendableType::MODULE, ".dll"}}},
-    {PlatformType::TYPE_LINUX,
-     {{ExtendableType::EXTENSION, ".ext"}, {ExtendableType::MODULE, ".so"}}},
-    {PlatformType::TYPE_OSX,
-     {{ExtendableType::EXTENSION, ".ext"}, {ExtendableType::MODULE, ".dylib"}}},
+    {PlatformType::TYPE_WINDOWS, {{ExtendableType::EXTENSION, ".exe"}}},
+    {PlatformType::TYPE_LINUX, {{ExtendableType::EXTENSION, ".ext"}}},
+    {PlatformType::TYPE_OSX, {{ExtendableType::EXTENSION, ".ext"}}},
 };
 
 CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
@@ -72,11 +68,6 @@ CLI_FLAG(string,
          extensions_interval,
          "3",
          "Seconds delay between connectivity checks");
-
-CLI_FLAG(string,
-         modules_autoload,
-         OSQUERY_HOME "/modules.load",
-         "Optional path to a list of autoloaded registry modules");
 
 SHELL_FLAG(string, extension, "", "Path to a single extension to autoload");
 
@@ -127,7 +118,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     if (socketExists(path)) {
       try {
         ExtensionStatus status;
-        auto client = EXManagerClient(path);
+        EXManagerClient client(path);
         client.get()->ping(status);
         return Status(0, "OK");
       } catch (const std::exception& /* e */) {
@@ -164,7 +155,7 @@ void ExtensionManagerWatcher::start() {
   for (const auto& uuid : uuids) {
     try {
       auto path = getExtensionSocket(uuid);
-      auto client = EXClient(path);
+      EXClient client(path);
       client.get()->shutdown();
     } catch (const std::exception& /* e */) {
       VLOG(1) << "Extension UUID " << uuid << " shutdown request failed";
@@ -187,7 +178,7 @@ void ExtensionWatcher::watch() {
   bool core_sane = true;
   if (socketExists(path_)) {
     try {
-      auto client = EXManagerClient(path_);
+      EXManagerClient client(path_);
       // Ping the extension manager until it goes down.
       client.get()->ping(status);
     } catch (const std::exception& /* e */) {
@@ -231,7 +222,7 @@ void ExtensionManagerWatcher::watch() {
     failures_[uuid] = 1;
     if (exists.ok()) {
       try {
-        auto client = EXClient(path);
+        EXClient client(path);
         // Ping the extension until it goes down.
         client.get()->ping(status);
       } catch (const std::exception& /* e */) {
@@ -293,19 +284,6 @@ void loadExtensions() {
       fs::path(FLAGS_extensions_autoload).make_preferred().string());
   if (!status.ok()) {
     VLOG(1) << "Could not autoload extensions: " << status.what();
-  }
-}
-
-void loadModules() {
-  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    VLOG(1) << "Windows does not support loadable modules";
-    return;
-  }
-
-  auto status =
-      loadModules(fs::path(FLAGS_modules_autoload).make_preferred().string());
-  if (!status.ok()) {
-    VLOG(1) << "Could not autoload modules: " << status.what();
   }
 }
 
@@ -391,40 +369,6 @@ Status loadExtensions(const std::string& loadfile) {
   return Status(0, "OK");
 }
 
-Status loadModules(const std::string& loadfile) {
-  std::string autoload_paths;
-  if (!readFile(loadfile, autoload_paths).ok()) {
-    return Status(1, "Failed reading: " + loadfile);
-  }
-
-  bool all_loaded = true;
-  std::set<std::string> autoload_objects;
-  for (auto& path : osquery::split(autoload_paths, "\n")) {
-    if (isDirectory(path)) {
-      std::vector<std::string> paths;
-      listFilesInDirectory(path, paths, true);
-      for (auto& embedded_path : paths) {
-        if (isFileSafe(embedded_path, ExtendableType::MODULE)) {
-          autoload_objects.insert(std::move(embedded_path));
-        } else {
-          all_loaded = false;
-        }
-      }
-    } else if (isFileSafe(path, ExtendableType::MODULE)) {
-      autoload_objects.insert(path);
-    } else {
-      all_loaded = false;
-    }
-  }
-
-  for (const auto& object : autoload_objects) {
-    RegistryModuleLoader loader(object);
-    loader.init();
-  }
-  // Return an aggregate failure if any load fails (invalid search path).
-  return Status((all_loaded) ? 0 : 1);
-}
-
 Status startExtension(const std::string& name, const std::string& version) {
   return startExtension(name, version, "0.0.0");
 }
@@ -478,7 +422,7 @@ Status startExtension(const std::string& manager_path,
   // Register the extension's registry broadcast with the manager.
   ExtensionStatus ext_status;
   try {
-    auto client = EXManagerClient(manager_path);
+    EXManagerClient client(manager_path);
     client.get()->registerExtension(ext_status, info, broadcast);
     // The main reason for a failed registry is a duplicate extension name
     // (the extension process is already running), or the extension broadcasts
@@ -529,7 +473,7 @@ Status queryExternal(const std::string& manager_path,
 
   ExtensionResponse response;
   try {
-    auto client = EXManagerClient(manager_path);
+    EXManagerClient client(manager_path);
     client.get()->query(response, query);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -557,7 +501,7 @@ Status getQueryColumnsExternal(const std::string& manager_path,
 
   ExtensionResponse response;
   try {
-    auto client = EXManagerClient(manager_path);
+    EXManagerClient client(manager_path);
     client.get()->getQueryColumns(response, query);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -592,7 +536,7 @@ Status pingExtension(const std::string& path) {
 
   ExtensionStatus ext_status;
   try {
-    auto client = EXClient(path);
+    EXClient client(path);
     client.get()->ping(ext_status);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -618,7 +562,7 @@ Status getExtensions(const std::string& manager_path,
 
   InternalExtensionList ext_list;
   try {
-    auto client = EXManagerClient(manager_path);
+    EXManagerClient client(manager_path);
     client.get()->extensions(ext_list);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -663,7 +607,7 @@ Status callExtension(const std::string& extension_path,
 
   ExtensionResponse ext_response;
   try {
-    auto client = EXClient(extension_path);
+    EXClient client(extension_path);
     client.get()->call(ext_response, registry, item, request);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
@@ -751,4 +695,4 @@ Status startExtensionManager(const std::string& manager_path) {
 
   return Status(0, "OK");
 }
-}
+} // namespace osquery

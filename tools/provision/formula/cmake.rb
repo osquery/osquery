@@ -5,15 +5,15 @@ class Cmake < AbstractOsqueryFormula
   homepage "https://www.cmake.org/"
   url "https://cmake.org/files/v3.6/cmake-3.6.1.tar.gz"
   sha256 "28ee98ec40427d41a45673847db7a905b59ce9243bb866eaf59dce0f58aaef11"
-  revision 1
+  revision 100
 
   head "https://cmake.org/cmake.git"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "fe99aacec6c0432b38e35faf80a6e623ee1c577414ee04a43f709cbcd5d62483" => :sierra
-    sha256 "ccde06cd84d82e0835724599ceed6564c49d3054a787444ea540571ed15bac44" => :x86_64_linux
+    sha256 "a672cdd3a43a8917ac0311799384f57a6877ad67c9fed8755a011d1688fafbb2" => :sierra
+    sha256 "d8a743cf235812a0f99f0db59af3deeb856b10e14be194fc6001b9c5883e5022" => :x86_64_linux
   end
 
   option "without-docs", "Don't build man pages"
@@ -53,7 +53,7 @@ class Cmake < AbstractOsqueryFormula
 
     ENV.append "CXXFLAGS", "-L#{legacy_prefix}/lib"
     ENV.append "CXXFLAGS", "-L#{default_prefix}/lib"
-    ENV.append "CXXFLAGS", "-lrt -lpthread"
+    ENV.append "CXXFLAGS", "-lrt -lpthread" if OS.linux?
 
     system "./bootstrap", *args
     system "make"

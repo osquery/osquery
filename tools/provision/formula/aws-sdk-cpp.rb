@@ -3,23 +3,21 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class AwsSdkCpp < AbstractOsqueryFormula
   desc "AWS SDK for C++"
   homepage "https://github.com/aws/aws-sdk-cpp"
-  url "https://github.com/aws/aws-sdk-cpp/archive/0.14.4.tar.gz"
-  sha256 "2e935275c6f7eb25e7d850b354344c92cacb7c193b708ec64ffce10ec6afa7f4"
+  url "https://github.com/aws/aws-sdk-cpp/archive/1.0.107.tar.gz"
+  sha256 "0560918ef2a4b660e49981378af42d999b91482a31e720be2d9c427f21ac8ad0"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "0b9d7b11f5c6e7cf7de5b20c5cc19bb2e4f844df4afa00a535d648b99ef3a747" => :sierra
-    sha256 "4a46a467ea1a8e1bd4c10b42dfe30055f6d3eb0bddee4f64c108a7ca780915ce" => :el_capitan
-    sha256 "99c11985fc79446a442055eae1c1eecdf14d33434f40df91bd99f97c0b7dadce" => :x86_64_linux
+    sha256 "9a95d4a25ef8e355af1b84eb5b4b798b9889cfe1a17811c774f1ec3b43cca5fe" => :sierra
+    sha256 "215135c775dc386c8ba52198587c7303b113710ae4b965c32332b98e3387c870" => :x86_64_linux
   end
 
   depends_on "cmake" => :build
 
   def install
     ENV.cxx11
-
-    inreplace "CMakeLists.txt", "${CMAKE_CXX_FLAGS_RELEASE} -s", "${CMAKE_CXX_FLAGS_RELEASE}"
 
     args = osquery_cmake_args
     args << "-DSTATIC_LINKING=1"

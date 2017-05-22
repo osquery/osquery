@@ -8,6 +8,8 @@
  *
  */
 
+#include <poll.h>
+
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/filesystem.hpp>
@@ -44,8 +46,6 @@ enum AuditStatus {
   AUDIT_ENABLED = 1,
   AUDIT_IMMUTABLE = 2,
 };
-
-static const int kAuditMTimeout = 4000;
 
 void AuditAssembler::start(size_t capacity,
                            std::vector<size_t> types,
@@ -424,17 +424,17 @@ static inline bool safe_audit_get_reply(int fd, struct audit_reply* rep) {
     return -EBADF;
   }
 
-  struct timeval timeout = {0, kAuditMTimeout};
+  struct pollfd fds[1];
+  fds[0].fd = fd;
+  fds[0].events = POLLIN;
 
-  fd_set readSet;
-  FD_ZERO(&readSet);
-  FD_SET(fd, &readSet);
-
-  if (select(fd + 1, &readSet, nullptr, nullptr, &timeout) < 0) {
+  if (::poll(fds, 1, 4) <= 0) {
+    // Error or read timeout.
     return -1;
   }
 
-  if (!FD_ISSET(fd, &readSet)) {
+  if (!(fds[0].revents & POLLIN)) {
+    // No input data.
     return -1;
   }
 

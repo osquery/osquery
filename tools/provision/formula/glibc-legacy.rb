@@ -5,11 +5,12 @@ class GlibcLegacy < AbstractOsqueryFormula
   homepage "https://www.gnu.org/software/libc"
   url "ftp.gnu.org/gnu/glibc/glibc-2.13.tar.bz2"
   sha256 "0173c92a0545e6d99a46a4fbed2da00ba26556f5c6198e2f9f1631ed5318dbb2"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "57535af3eadc4fe7158f2f2a1f721b113d88ffd825ace3ccbc96f95600657f17" => :x86_64_linux
+    sha256 "e0b0abbaab4e0383cb1e93cb1dbeb5d1a0359eed7811bfcb681d9af42490b8da" => :x86_64_linux
   end
 
   # Must apply patches to allow compiling with newer versions of GCC/gmake.
@@ -18,10 +19,10 @@ class GlibcLegacy < AbstractOsqueryFormula
   patch :DATA
 
   # binutils 2.20 or later is required
-  depends_on "binutils" => [:build, :recommended]
+  depends_on "binutils"
 
   # Linux kernel headers 2.6.19 or later are required
-  depends_on "linux-headers" => [:build, :recommended]
+  depends_on "linux-headers"
 
   # This package is provided for legacy headers and linking to maintain ABI
   # compatibility for the deploy-targets.
@@ -47,8 +48,8 @@ class GlibcLegacy < AbstractOsqueryFormula
         "--without-selinux",
         "--disable-sanity-checks",
       ] # Fix error: selinux/selinux.h: No such file or directory
-      args << "--with-binutils=#{Formula["binutils"].bin}" if build.with? "binutils" or true
-      args << "--with-headers=#{Formula["linux-headers"].include}" if build.with? "linux-headers" or true
+      args << "--with-binutils=#{Formula["binutils"].bin}"
+      args << "--with-headers=#{Formula["linux-headers"].include}"
       system "../configure", *args
 
       system "make" # Fix No rule to make target libdl.so.2 needed by sprof

@@ -8,6 +8,7 @@ schema([
     Column("country_code", TEXT, "The country code (ISO/IEC 3166-1:1997) for the network"),
     Column("rssi", INTEGER, "The current received signal strength indication (dbm)"),
     Column("noise", INTEGER, "The current noise measurement (dBm)"),
+    Column("channel", INTEGER, "Channel number"),
     Column("channel_width", INTEGER, "Channel width"),
     Column("channel_band", INTEGER, "Channel band"),
 ])

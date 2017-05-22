@@ -22,6 +22,7 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -44,14 +45,32 @@ enum StatusLogSeverity {
 /// An intermediate status log line.
 struct StatusLogLine {
  public:
-  /// An integer severity level mimicing Glog's.
+  /// An integer severity level mimicking Glog's.
   StatusLogSeverity severity;
+
   /// The name of the file emitting the status log.
   std::string filename;
+
   /// The line of the file emitting the status log.
-  int line;
+  size_t line;
+
   /// The string-formatted status message.
   std::string message;
+
+  /// The ASCII time stamp for when the status message was emitted
+  std::string calendar_time;
+
+  /// The UNIX time for when the status message was emitted
+  size_t time;
+
+  /**
+   * @brief The host identifier at the time when logs are flushed.
+   *
+   * There is occasionally a delay between logging a status and decorating
+   * with the host identifier. In most cases the identifier is static so this
+   * does not matter. In some cases the host identifier causes database lookups.
+   */
+  std::string identifier;
 };
 
 /**
@@ -318,31 +337,6 @@ Status logQueryLogItem(const QueryLogItem& item, const std::string& receiver);
 Status logSnapshotQuery(const QueryLogItem& item);
 
 /**
- * @brief Helper class to disable logger forwarding
- *
- * Sometimes, it is useful to turn off log forwarding and force status logs to
- * be buffered. One example is with handling of rocksdb status logs; if those
- * status logs are forwarded, it can cause a deadlock inside rocksdb, if the
- * logger plugin tries to call back into rocksdb.
- *
- * Creating an object of this class allows one to halt log forwarding and
- * leave the log sink in a locked/non-forwarding state. Any log requests in this
- * * state are guaranteed to be buffered. Callback loops can thus be avoided.
- *
- * The logger forwarding state is restored and unlocked as soon as the object
- * of this class goes out of scope.
- */
-class LoggerForwardingDisabler : private boost::noncopyable {
- public:
-  LoggerForwardingDisabler();
-  ~LoggerForwardingDisabler();
-
- private:
-  /// Value of the
-  bool forward_state_;
-};
-
-/**
  * @brief Sink a set of buffered status logs.
  *
  * When the osquery daemon uses a watcher/worker set, the watcher's status logs
@@ -355,7 +349,13 @@ class LoggerForwardingDisabler : private boost::noncopyable {
  * Extensions, the registry, configuration, and optional config/logger plugins
  * are all protected as a monitored worker.
  */
-void relayStatusLogs();
+void relayStatusLogs(bool async = false);
+
+/// Inspect the number of internal-buffered status log lines.
+size_t queuedStatuses();
+
+/// Inspect the number of active internal status log sender threads.
+size_t queuedSenders();
 
 /**
  * @brief Write a log line to the OS system log.

@@ -221,6 +221,7 @@ static inline void openOptimized(sqlite3*& db) {
 #if !defined(FREEBSD)
   registerStringExtensions(db);
 #endif
+  registerHashingExtensions(db);
 }
 
 void SQLiteDBInstance::init() {

@@ -19,6 +19,7 @@
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/database.h>
+#include <osquery/events.h>
 #include <osquery/filesystem.h>
 
 namespace pt = boost::property_tree;
@@ -150,6 +151,9 @@ struct SplitStringTestData {
 
 // generate a set of test data to test osquery::splitString
 std::vector<SplitStringTestData> generateSplitStringTestData();
+
+// Helper function to generate all rows from a generator-based table.
+QueryData genRows(EventSubscriberPlugin* sub);
 
 // generate a small directory structure for testing
 void createMockFileStructure();

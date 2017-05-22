@@ -5,13 +5,13 @@ class Glog < AbstractOsqueryFormula
   homepage "https://github.com/google/glog"
   url "https://github.com/google/glog/archive/v0.3.4.tar.gz"
   sha256 "ce99d58dce74458f7656a68935d7a0c048fa7b4626566a71b7f4e545920ceb10"
-  revision 1
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "c8335cd60ca536ebcb1aade89304e46c7080d97c5a3a17d9ca17410390c8676c" => :sierra
-    sha256 "225f2fbef6add3fa2168c811feed4106fcb74cf4cee51759ef2149645881f534" => :x86_64_linux
+    sha256 "0188828615cf46f9c05e0ba5464613c9811eeba0486fe21c509ec62cb96bb02d" => :sierra
+    sha256 "448d73a90d5bdf68bf1de09f8848e326383ddbc112d9a2b72c20fa7b32239994" => :x86_64_linux
   end
 
   depends_on "gflags"
@@ -20,7 +20,9 @@ class Glog < AbstractOsqueryFormula
     ENV.cxx11
 
     system "./configure", "--disable-dependency-tracking",
-                          "--prefix=#{prefix}"
+                          "--prefix=#{prefix}",
+                          "--disable-shared",
+                          "--enable-static"
     system "make", "install"
   end
 end

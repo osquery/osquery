@@ -45,6 +45,10 @@ using PlatformPidType = pid_t;
 using ModuleHandle = void*;
 
 class Initializer : private boost::noncopyable {
+ private:
+  static const size_t kDatabaseMaxRetryCount;
+  static const size_t kDatabaseRetryDelay;
+
  public:
   /**
    * @brief Sets up various aspects of osquery execution state.
@@ -139,10 +143,10 @@ class Initializer : private boost::noncopyable {
   static void platformSetup();
 
   /**
-  * @brief Before ending, tear down any platform specific setup
-  *
-  * On windows, we require the COM libraries be initialized just once
-  */
+   * @brief Before ending, tear down any platform specific setup
+   *
+   * On windows, we require the COM libraries be initialized just once
+   */
   static void platformTeardown();
 
  public:
@@ -304,11 +308,40 @@ std::string generateHostUUID();
 std::string getHostIdentifier();
 
 /**
+ * @brief Converts struct tm to a size_t
+ *
+ * @param tm_time the time/date to convert to UNIX epoch time
+ *
+ * @return an int representing the UNIX epoch time of the struct tm
+ */
+size_t toUnixTime(const struct tm* tm_time);
+
+/**
  * @brief Getter for the current UNIX time.
  *
  * @return an int representing the amount of seconds since the UNIX epoch
  */
 size_t getUnixTime();
+
+/**
+ * @brief Converts a struct tm into a human-readable format. This expected the
+ * struct tm to be already in UTC time/
+ *
+ * @param tm_time the time/date to convert to ASCII
+ *
+ * @return the data/time of tm_time in the format: "Wed Sep 21 10:27:52 2011"
+ */
+std::string toAsciiTime(const struct tm* tm_time);
+
+/**
+ * @brief Converts a struct tm to ASCII time UTC by converting the tm_time to
+ * epoch and then running gmtime() on the new epoch
+ *
+ * @param tm_time the local time/date to covert to UTC ASCII time
+ *
+ * @return the data/time of tm_time in the format: "Wed Sep 21 10:27:52 2011"
+ */
+std::string toAsciiTimeUTC(const struct tm* tm_time);
 
 /**
  * @brief Getter for the current time, in a human-readable format.
@@ -325,10 +358,10 @@ std::string getAsciiTime();
 Status createPidFile();
 
 /**
-* @brief Getter for determining Admin status
-*
-* @return A bool indicating if the current process is running as admin
-*/
+ * @brief Getter for determining Admin status
+ *
+ * @return A bool indicating if the current process is running as admin
+ */
 bool isUserAdmin();
 
 #ifdef WIN32
@@ -338,4 +371,4 @@ struct tm* gmtime_r(time_t* t, struct tm* result);
 
 struct tm* localtime_r(time_t* t, struct tm* result);
 #endif
-}
+} // namespace osquery

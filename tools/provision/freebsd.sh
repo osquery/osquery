@@ -10,25 +10,36 @@
 function distro_main() {
   do_sudo pkg update
   do_sudo pkg upgrade -y
-  do_sudo portsnap update
 
+  # Use it with caution -- unless the dependency is newly added
+  # and the pre-built package is not ready yet.
+  # do_sudo portsnap --interactive fetch update
+
+  # Build requirements.
   package gmake
   package cmake
   package git
   package python
   package py27-pip
+
+  # Core development requirements.
   package glog
   package snappy
   package thrift
   package thrift-cpp
-  package yara
   package boost-libs
   package magic
-  package sleuthkit
+  package rocksdb-lite
+  package asio
+  package cpp-netlib
+  package linenoise-ng
+
+  # Non-optional features.
   package augeas
 
-  ports net-mgmt/lldpd
-  ports databases/rocksdb-lite
-  ports devel/linenoise-ng
-  ports devel/cpp-netlib
+  # Optional features.
+  package sleuthkit
+  package yara
+  package aws-sdk-cpp
+  package lldpd
 }

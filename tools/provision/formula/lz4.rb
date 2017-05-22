@@ -7,13 +7,13 @@ class Lz4 < AbstractOsqueryFormula
   version "r131"
   sha256 "9d4d00614d6b9dec3114b33d1224b6262b99ace24434c53487a0c8fd0b18cfed"
   head "https://github.com/Cyan4973/lz4.git"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "893b7bd9c8e2c6bc7b3f7f6e8833cbf26a027ee750ad7970ed0b932272a05c45" => :sierra
-    sha256 "3e76610faa04e0ba81a8b58de3421be77f7e226db6d78bab88eac0df82a947bf" => :el_capitan
-    sha256 "684e6c315fa4a4ada277771559f5504c57363d5192c9252bffc6085dee9e04ec" => :x86_64_linux
+    sha256 "3d5b83d360ed5fcdcf04b98d6b54b77c3ac3a29b0a8b004789cd59b6301db210" => :sierra
+    sha256 "5d109b6dce79439b7736838e6034cafdf2526e8e31f3d3fe23e609dd6b7bcdef" => :x86_64_linux
   end
 
   def install

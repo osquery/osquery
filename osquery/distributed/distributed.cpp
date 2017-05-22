@@ -35,6 +35,8 @@ FLAG(bool,
 
 const std::string kDistributedQueryPrefix{"distributed."};
 
+std::string Distributed::currentRequestId_{""};
+
 Status DistributedPlugin::call(const PluginRequest& request,
                                PluginResponse& response) {
   if (request.count("action") == 0) {
@@ -124,6 +126,9 @@ Status Distributed::runQueries() {
     auto request = popRequest();
     LOG(INFO) << "Executing distributed query: " << request.id << ": "
               << request.query;
+
+    // Keep track of the currently executing request
+    Distributed::setCurrentRequestId(request.id);
 
     SQL sql(request.query);
     if (!sql.getStatus().ok()) {
@@ -238,6 +243,14 @@ DistributedQueryRequest Distributed::popRequest() {
   getDatabaseValue(kQueries, next, request.query);
   deleteDatabaseValue(kQueries, next);
   return request;
+}
+
+std::string Distributed::getCurrentRequestId() {
+  return currentRequestId_;
+}
+
+void Distributed::setCurrentRequestId(const std::string& cReqId) {
+  currentRequestId_ = cReqId;
 }
 
 Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,

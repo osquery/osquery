@@ -16,6 +16,7 @@ schema([
     Column("filesystem", TEXT, "Filesystem if available"),
     Column("checksum", TEXT, "UDIF Master checksum if available (CRC32)"),
     Column("time", BIGINT, "Time of appearance/disappearance in UNIX time"),
+    Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)
 implementation("events/darwin/disk_events@disk_events::genTable")

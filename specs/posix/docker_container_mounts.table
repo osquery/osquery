@@ -1,0 +1,19 @@
+table_name("docker_container_mounts")
+description("Docker container mounts.")
+schema([
+    Column("id", TEXT, "Container ID", index=True),
+    Column("type", TEXT, "Type of mount (bind, volume)"),
+    Column("name", TEXT, "Optional mount name"),
+    Column("source", TEXT, "Source path on host"),
+    Column("destination", TEXT, "Destination path inside container"),
+    Column("driver", TEXT, "Driver providing the mount"),
+    Column("mode", TEXT, "Mount options (rw, ro)"),
+    Column("rw", INTEGER, "1 if read/write. 0 otherwise"),
+    Column("propagation", TEXT, "Mount propagation")
+])
+implementation("applications/docker@genContainerMounts")
+examples([
+  "select * from docker_container_mounts",
+  "select * from docker_container_mounts where id = '1234567890abcdef'",
+  "select * from docker_container_mounts where id = '11b2399e1426d906e62a0c357650e363426d6c56dbe2f35cbaa9b452250e3355'"
+])

@@ -1,12 +1,12 @@
 /*
-*  Copyright (c) 2014-present, Facebook, Inc.
-*  All rights reserved.
-*
-*  This source code is licensed under the BSD-style license found in the
-*  LICENSE file in the root directory of this source tree. An additional grant
-*  of patent rights can be found in the PATENTS file in the same directory.
-*
-*/
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #define _WIN32_DCOM
 #define WIN32_LEAN_AND_MEAN
@@ -41,17 +41,17 @@ int getUidFromSid(PSID sid) {
   unsigned long domNameSize = 1;
 
   // LookupAccountSid first gets the size of the username buff required.
-  LookupAccountSid(
+  LookupAccountSidW(
       nullptr, sid, nullptr, &unameSize, nullptr, &domNameSize, &eUse);
-  std::vector<char> uname(unameSize);
-  std::vector<char> domName(domNameSize);
-  auto ret = LookupAccountSid(nullptr,
-                              sid,
-                              uname.data(),
-                              &unameSize,
-                              domName.data(),
-                              &domNameSize,
-                              &eUse);
+  std::vector<wchar_t> uname(unameSize);
+  std::vector<wchar_t> domName(domNameSize);
+  auto ret = LookupAccountSidW(nullptr,
+                               sid,
+                               uname.data(),
+                               &unameSize,
+                               domName.data(),
+                               &domNameSize,
+                               &eUse);
 
   if (ret == 0) {
     return -1;
@@ -59,8 +59,7 @@ int getUidFromSid(PSID sid) {
   // USER_INFO_3 struct contains the RID (uid) of our user
   unsigned long userInfoLevel = 3;
   unsigned char* userBuff = nullptr;
-  auto wideUserName = stringToWstring(uname.data());
-  ret = NetUserGetInfo(nullptr, wideUserName.c_str(), userInfoLevel, &userBuff);
+  ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
 
   if (ret != NERR_Success || userBuff == nullptr) {
     return -1;
@@ -76,17 +75,17 @@ int getGidFromSid(PSID sid) {
   unsigned long domNameSize = 1;
 
   // LookupAccountSid first gets the size of the username buff required.
-  LookupAccountSid(
+  LookupAccountSidW(
       nullptr, sid, nullptr, &unameSize, nullptr, &domNameSize, &eUse);
-  std::vector<char> uname(unameSize);
-  std::vector<char> domName(domNameSize);
-  auto ret = LookupAccountSid(nullptr,
-                              sid,
-                              uname.data(),
-                              &unameSize,
-                              domName.data(),
-                              &domNameSize,
-                              &eUse);
+  std::vector<wchar_t> uname(unameSize);
+  std::vector<wchar_t> domName(domNameSize);
+  auto ret = LookupAccountSidW(nullptr,
+                               sid,
+                               uname.data(),
+                               &unameSize,
+                               domName.data(),
+                               &domNameSize,
+                               &eUse);
 
   if (ret == 0) {
     return -1;
@@ -94,8 +93,7 @@ int getGidFromSid(PSID sid) {
   // USER_INFO_3 struct contains the RID (uid) of our user
   unsigned long userInfoLevel = 3;
   unsigned char* userBuff = nullptr;
-  auto wideUserName = stringToWstring(uname.data());
-  ret = NetUserGetInfo(nullptr, wideUserName.c_str(), userInfoLevel, &userBuff);
+  ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
 
   if (ret != NERR_Success || userBuff == nullptr) {
     return -1;

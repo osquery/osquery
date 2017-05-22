@@ -14,6 +14,7 @@
 
 #include <osquery/logger.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
@@ -73,6 +74,68 @@ TEST_F(FilesystemLoggerTests, test_log_string) {
   std::string content;
   EXPECT_TRUE(readFile(results_path_, content));
   EXPECT_EQ(content, "{\"json\": true}\n");
+}
+
+class FilesystemTestLoggerPlugin : public LoggerPlugin {
+ public:
+  Status logString(const std::string& s) override {
+    return Status(0);
+  }
+
+  Status logStatus(const std::vector<StatusLogLine>& log) override {
+    return Status(0, "OK");
+  }
+
+  bool usesLogStatus() override {
+    return true;
+  }
+
+ protected:
+  void init(const std::string& binary_name,
+            const std::vector<StatusLogLine>& log) override {}
+};
+
+TEST_F(FilesystemLoggerTests, test_log_status) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    // Cannot test status deterministically on windows.
+    return;
+  }
+
+  initStatusLogger("osqueryd");
+  initLogger("osqueryd");
+
+  LOG(WARNING) << "Filesystem logger test is generating a warning status (1/3)";
+
+  auto status_path = fs::path(FLAGS_logger_path) / "osqueryd.INFO";
+  EXPECT_TRUE(osquery::pathExists(status_path));
+
+  std::string content;
+  EXPECT_TRUE(readFile(status_path, content));
+  auto lines = osquery::split(content, "\n").size();
+  EXPECT_EQ(4U, lines);
+
+  LOG(WARNING) << "Filesystem logger test is generating a warning status (2/3)";
+  content.clear();
+  readFile(status_path, content);
+  lines = osquery::split(content, "\n").size();
+  EXPECT_EQ(5U, lines);
+
+  auto& rf = RegistryFactory::get();
+  auto filesystem_test = std::make_shared<FilesystemTestLoggerPlugin>();
+  rf.registry("logger")->add("filesystem_test", filesystem_test);
+  EXPECT_TRUE(rf.setActive("logger", "filesystem,filesystem_test").ok());
+
+  LOG(WARNING) << "Filesystem logger test is generating a warning status (3/3)";
+  content.clear();
+  readFile(status_path, content);
+  lines = osquery::split(content, "\n").size();
+  EXPECT_EQ(6U, lines);
+
+  relayStatusLogs(true);
+  content.clear();
+  readFile(status_path, content);
+  lines = osquery::split(content, "\n").size();
+  EXPECT_EQ(6U, lines);
 }
 
 TEST_F(FilesystemLoggerTests, test_log_snapshot) {
