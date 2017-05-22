@@ -35,6 +35,8 @@ Include line-delimited switches to be interpreted and used as CLI-flags:
 
 If no `--flagfile` is provided, osquery will try to find and use a "default" flagfile at `/etc/osquery/osquery.flags.default`. Both the shell and daemon will discover and use the defaults.
 
+**Note:** Flags in a `flagfile` should not be wrapped in quotes, shell-macro/variable expansion is not applied!
+
 ### Configuration control flags
 
 `--config_plugin="filesystem"`
@@ -394,7 +396,7 @@ There are several flags that control the shell's output format: `--json`, `--lis
 
 `--planner=false`
 
-When prototyping new queries the planner enables verbose decisions made by the SQLites virtual table API module. This module is implemented by osquery code so it is very helpful to learn what predicate constraints are selected and what full table scans are required for JOINs and nested queries.
+When prototyping new queries the planner enables verbose decisions made by the SQLite virtual table API. This is customized by osquery code so it is very helpful to learn what predicate constraints are selected and what full table scans are required for JOINs and nested queries.
 
 `--header=true`
 
