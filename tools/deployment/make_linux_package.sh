@@ -14,6 +14,7 @@ SOURCE_DIR="$SCRIPT_DIR/../.."
 BUILD_DIR=${BUILD_DIR:="$SOURCE_DIR/build/linux"}
 
 export PATH="/usr/local/osquery/bin:/usr/local/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/osquery/lib:${LD_LIBRARY_PATH}"
 source "$SOURCE_DIR/tools/lib.sh"
 
 PACKAGE_VERSION=`git describe --tags HEAD || echo 'unknown-version'`
