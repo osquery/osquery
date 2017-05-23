@@ -136,7 +136,7 @@ Carver::Carver(const std::set<std::string>& paths,
   }
 
   // Store the path to our archive for later exfiltration
-  archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tgz");
+  archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tar");
 
   // Update the DB to reflect that the carve is pending.
   updateCarveValue(carveGuid_, "status", "PENDING");
@@ -214,7 +214,8 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
   if (arch == nullptr) {
     return Status(1, "Failed to create tar archive");
   }
-  archive_write_set_format_zip(arch);
+  // Zipping doesn't seem to be working currently
+  // archive_write_set_format_zip(arch);
   archive_write_set_format_pax_restricted(arch);
   auto ret = archive_write_open_filename(arch, archivePath_.string().c_str());
   if (ret == ARCHIVE_FATAL) {
@@ -225,10 +226,13 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
     PlatformFile pFile(f.string(), PF_OPEN_EXISTING | PF_READ);
 
     auto entry = archive_entry_new();
-    archive_entry_set_pathname(entry, f.string().c_str());
+    archive_entry_set_pathname(entry, f.leaf().string().c_str());
     archive_entry_set_size(entry, pFile.size());
     archive_entry_set_filetype(entry, AE_IFREG);
     archive_entry_set_perm(entry, 0644);
+    // archive_entry_set_atime();
+    // archive_entry_set_ctime();
+    // archive_entry_set_mtime();
     archive_write_header(arch, entry);
 
     // TODO: Chunking or a max file size.
@@ -314,4 +318,4 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   updateCarveValue(carveGuid_, "status", "SUCCESS");
   return Status(0, "Ok");
 };
-}
+} // namespace osquery
