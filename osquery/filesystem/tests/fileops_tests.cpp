@@ -347,7 +347,7 @@ TEST_F(FileOpsTests, test_large_read_write) {
     EXPECT_TRUE(fd.isValid());
     auto read_len = fd.read(buffer.data(), expected_len);
     EXPECT_EQ(expected_len, read_len);
-    EXPECT_EQ(expected, std::string(buffer.data()));
+    EXPECT_EQ(expected, std::string(buffer.data(), buffer.size())); 
   }
 }
 
