@@ -148,7 +148,7 @@ QueryData genInterfaceAddresses(QueryContext& context) {
         in_addr maskAddr;
         maskAddr.s_addr = mask;
 
-        char addrBuff[INET_ADDRSTRLEN];
+        char addrBuff[INET_ADDRSTRLEN] = {0};
         inet_ntop(AF_INET, &maskAddr, addrBuff, INET_ADDRSTRLEN);
         r["mask"] = addrBuff;
 
@@ -164,7 +164,7 @@ QueryData genInterfaceAddresses(QueryContext& context) {
         for (long i = ipaddr->OnLinkPrefixLength, j = 0; i > 0; i -= 8, ++j)
           netmask.s6_addr[j] = i >= 8 ? 0xff : (ULONG)((0xffU << (8 - i)));
 
-        char addrBuff[INET6_ADDRSTRLEN];
+        char addrBuff[INET6_ADDRSTRLEN] = {0};
         inet_ntop(AF_INET6, &netmask, addrBuff, INET6_ADDRSTRLEN);
         r["mask"] = addrBuff;
 
