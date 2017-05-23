@@ -6,12 +6,12 @@ class Libgcrypt < AbstractOsqueryFormula
   url "https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.6.5.tar.bz2"
   mirror "https://www.mirrorservice.org/sites/ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.5.tar.bz2"
   sha256 "f49ebc5842d455ae7019def33eb5a014a0f07a2a8353dc3aa50a76fd1dafa924"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "cbc6f0f88683ffc2aa525e6067dd392d783cc13f764c79f28d835668b2470a8e" => :x86_64_linux
+    sha256 "d33dac41ffc0fadad593ecafdd6bbd275826b3abfbefadfedfd76b5db1853d24" => :x86_64_linux
   end
 
   depends_on "libgpg-error"

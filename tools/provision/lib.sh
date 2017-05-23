@@ -268,7 +268,13 @@ function brew_bottle() {
   fi
 
   log "installing $HASH into $FORMULA_FILE"
-  sed -i '' "s/sha256 \"\\(.*\\)\" => :${SUFFIX}/sha256 \"${HASH}\" => :${SUFFIX}/g" $FORMULA_FILE
+  if [[ "$BREW_TYPE" = "linux" ]]; then
+    SED="sed -i "
+  else
+    SED="sed -i '' "
+  fi
+
+  $SED "s/sha256 \"\\(.*\\)\" => :${SUFFIX}/sha256 \"${HASH}\" => :${SUFFIX}/g" $FORMULA_FILE
 }
 
 function brew_postinstall() {

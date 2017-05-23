@@ -5,12 +5,12 @@ class Beecrypt < AbstractOsqueryFormula
   homepage "http://beecrypt.sourceforge.net"
   url "https://downloads.sourceforge.net/project/beecrypt/beecrypt/4.2.1/beecrypt-4.2.1.tar.gz"
   sha256 "286f1f56080d1a6b1d024003a5fa2158f4ff82cae0c6829d3c476a4b5898c55d"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "e136da012489c08903644f0654c93872cab3914468bebc2642f45cde66b09920" => :x86_64_linux
+    sha256 "20f9a37cd35bc4adf05f0e68bd5c430b3c010903cdc05f50bfc89d9216e9a797" => :x86_64_linux
   end
 
   depends_on "libtool" => :build
@@ -26,6 +26,8 @@ class Beecrypt < AbstractOsqueryFormula
       "--without-python",
       "--without-cplusplus",
       "--with-arch=x86_64",
+      "--disable-shared",
+      "--enable-static"
     ]
 
     system "./autogen.sh"

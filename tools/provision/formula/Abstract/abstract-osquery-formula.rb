@@ -130,37 +130,29 @@ class AbstractOsqueryFormula < Formula
       end
 
       # Adding this one line to help gcc too.
-      if !["openssl"].include?(self.name) # JUST REMOVED
+      if !["openssl"].include?(self.name)
         append "LDFLAGS", "-L#{default_prefix}/lib"
         # We want the legacy path to be the last thing prepended.
         prepend "LDFLAGS", "-L#{legacy_prefix}/lib" if OS.linux?
-      end # JUST REMOVED
-
-      if OS.linux?
-        # Only Linux uses the Legacy prefix concept for glibc/zlib.
-        prepend "CFLAGS", "-L#{legacy_prefix}/lib" if OS.linux?
-        prepend "CXXFLAGS", "-I#{legacy_prefix}/include" if OS.linux?
-
-        # This used to be in the GCC/not-GCC logic, pulling out to compile GCC
-        # Using the system compilers with legacy runtime.
-        prepend "CFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
-        prepend "CXXFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
-
-        if !["util-linux"].include?(self.name) and ENV["CC"].to_s.include?("gcc")
-          append "LDFLAGS", "-Wl,--dynamic-linker=#{legacy_prefix}/lib/ld-linux-x86-64.so.2"
-          append "LDFLAGS", "-Wl,-rpath,#{legacy_prefix}/lib"
-          append "LDFLAGS", "-Wl,-rpath,#{default_prefix}/lib"
-        end
-
-        prepend_path "LIBRARY_PATH", legacy_prefix/"lib" if OS.linux?
-        append "LDFLAGS", "-lrt -lpthread -ldl" if OS.linux?
       end
+
+      # Only Linux uses the Legacy prefix concept for glibc/zlib.
+      prepend "CFLAGS", "-L#{legacy_prefix}/lib" if OS.linux?
+      prepend "CXXFLAGS", "-I#{legacy_prefix}/include" if OS.linux?
+
+      # This used to be in the GCC/not-GCC logic, pulling out to compile GCC
+      # Using the system compilers with legacy runtime.
+      prepend "CFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
+      prepend "CXXFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
+
+      prepend_path "LIBRARY_PATH", legacy_prefix/"lib" if OS.linux?
+
+      append "LDFLAGS", "-Wl,-rpath,#{default_prefix}/lib"
+      append "LDFLAGS", "-lrt -lpthread -ldl -lz" if OS.linux?
     end
 
-    if !OS.linux?
-      prepend_path "PATH", default_prefix/"bin"
-      prepend_path "PYTHONPATH", default_prefix/"lib/python2.7/site-packages"
-    end
+    prepend_path "PATH", default_prefix/"bin" if OS.mac?
+    prepend_path "PYTHONPATH", default_prefix/"lib/python2.7/site-packages" if OS.mac?
 
     # Everyone receives:
     append "CFLAGS", "-fPIC -DNDEBUG -Os -march=core2"
@@ -174,7 +166,6 @@ class AbstractOsqueryFormula < Formula
 
       append "LDFLAGS", "-fuse-ld=lld" if OS.linux?
     end
-
 
     prepend_path "PKG_CONFIG_PATH", legacy_prefix/"lib/pkgconfig"
 

@@ -5,13 +5,13 @@ class Snappy < AbstractOsqueryFormula
   homepage "https://code.google.com/p/snappy/"
   url "https://github.com/google/snappy/releases/download/1.1.3/snappy-1.1.3.tar.gz"
   sha256 "2f1e82adf0868c9e26a5a7a3115111b6da7e432ddbac268a7ca2fae2a247eef3"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "ab880558e095b6015b86bba48b78c0c937f8a906fcb6e13df0a2875d0aaee82e" => :sierra
-    sha256 "556e3a859d8820966af0964aa974ef7c10aafa2d68c06ba8b33039560bb92c88" => :x86_64_linux
+    sha256 "a89983227587358ca9c9d1ecfd8946dfd89beaa9deadbee08ed84353ac5912d5" => :sierra
+    sha256 "f55c339fa79bc39c209c2f71847cfb8c553e571267c0b82cfbe834d273afb53f" => :x86_64_linux
   end
 
   head do
