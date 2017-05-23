@@ -411,6 +411,24 @@ Example:
 }
 ```
 
+### Views
+
+Views are saved queries expressed as tables. Large subqueries or complex joining logic can often be moved into views allowing you to make your queries more concise.
+
+
+Example:
+```json
+{
+  "views": {
+    "kernel_hashses" : "select hash.path as kernel_binary, version, hash.sha256 as sha256, hash.sha1 as sha1, hash.md5 as md5 from (select path || '/Contents/MacOS/' as directory, name, version from kernel_extensions) join hash using (directory)"
+  }
+}
+```
+
+```SQL
+select * from kernel_hashes where kernel_binary not like "%apple%"
+```
+
 ### Decorator queries
 
 Decorator queries exist in osquery versions 1.7.3+ and are used to add additional "decorations" to results and snapshot logs. There are three types of decorator queries based on when and how you want the decoration data.
