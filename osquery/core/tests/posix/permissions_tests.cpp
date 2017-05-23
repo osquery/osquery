@@ -92,7 +92,7 @@ TEST_F(PermissionsTests, test_path_drop) {
     EXPECT_EQ(dropper->to_user_, nobody->pw_uid);
 
     // Even though this is possible and may make sense, it is confusing!
-    EXPECT_FALSE(dropper->dropTo(getuid(), getgid()));
+    EXPECT_TRUE(dropper->dropTo(getuid(), getgid()));
 
     // Make sure the dropper worked!
     EXPECT_EQ(geteuid(), nobody->pw_uid);
