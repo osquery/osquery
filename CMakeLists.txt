@@ -151,6 +151,8 @@ if(POSIX)
     -pipe
     -fdata-sections
     -ffunction-sections
+    -fvisibility=hidden
+    -fvisibility-inlines-hidden
   )
 endif()
 

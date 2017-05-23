@@ -49,11 +49,6 @@ std::string kTestDataPath = "../../../../tools/tests/";
 
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
-
-#ifndef WIN32
-DECLARE_string(modules_autoload);
-#endif
-
 DECLARE_string(extensions_autoload);
 DECLARE_string(enroll_tls_endpoint);
 DECLARE_bool(disable_logging);
@@ -90,10 +85,6 @@ void initTesting() {
   FLAGS_database_path = kTestWorkingDirectory + "unittests.db";
   FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
   FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
-
-#ifndef WIN32
-  FLAGS_modules_autoload = kTestWorkingDirectory + "unittests-mod.load";
-#endif
 
   FLAGS_disable_logging = true;
   FLAGS_disable_database = true;

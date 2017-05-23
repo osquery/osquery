@@ -3,8 +3,8 @@ description("Machine's temperature sensors.")
 schema([
     Column("key", TEXT, "The SMC key on OS X", index=True),
     Column("name", TEXT, "Name of temperature source"),
-    Column("celsius", TEXT, "Temperature in Celsius"),
-    Column("fahrenheit", TEXT, "Temperature in Fahrenheit"),
+    Column("celsius", DOUBLE, "Temperature in Celsius"),
+    Column("fahrenheit", DOUBLE, "Temperature in Fahrenheit"),
     ForeignKey(column="key", table="smc_keys"),
 ])
 implementation("smc_keys@genTemperatureSensors")

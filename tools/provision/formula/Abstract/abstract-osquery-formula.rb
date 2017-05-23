@@ -47,9 +47,12 @@ class AbstractOsqueryFormula < Formula
   end
 
   def osquery_cmake_args
+    includes = "#{default_prefix}/include"
+    includes = "#{legacy_prefix}/include:#{includes}" if OS.linux?
+
     std_cmake_args + [
       "-DCMAKE_LIBRARY_PATH=#{ENV["LIBRARY_PATH"]}",
-      "-DCMAKE_INCLUDE_PATH=#{legacy_prefix}/include:#{default_prefix}/include",
+      "-DCMAKE_INCLUDE_PATH=#{includes}",
     ]
   end
 
@@ -100,59 +103,58 @@ class AbstractOsqueryFormula < Formula
     reset "CPATH"
     reset "LIBRARY_PATH"
 
-    if OS.linux? && !["glibc", "glibc-legacy"].include?(self.name)
+    if !["glibc", "glibc-legacy"].include?(self.name)
       # The modern runtime is not brew-linked.
 
       prepend_path "LD_LIBRARY_PATH", lib
       prepend_path "LD_LIBRARY_PATH", prefix
-
-      # Set the dynamic linker and library search path.
-      if !["gcc"].include?(self.name)
-        prepend "CFLAGS", "-isystem#{default_prefix}/include"
-      end
+      prepend_path "LIBRARY_PATH", default_prefix/"lib"
 
       # clang wants -L in the CFLAGS.
       # Several projects do not want this: pcre, RocksDB
       # These used to belong to !gcc but -lz wants the system libz.
       prepend "CFLAGS", "-L#{default_prefix}/lib"
-      prepend "CFLAGS", "-L#{legacy_prefix}/lib"
-
-      # cmake wants this to have -I
-      if !["gcc"].include?(self.name)
-        prepend "CXXFLAGS", "-I#{default_prefix}/include"
-      end
-      prepend "CXXFLAGS", "-I#{legacy_prefix}/include"
-
-      # This used to be in the GCC/not-GCC logic, pulling out to compile GCC
-      # Using the system compilers with legacy runtime.
-      prepend "CFLAGS", "-isystem#{legacy_prefix}/include"
-      prepend "CXXFLAGS", "-isystem#{legacy_prefix}/include"
-
-      if !["util-linux"].include?(self.name)
-        append "LDFLAGS", "-Wl,--dynamic-linker=#{legacy_prefix}/lib/ld-linux-x86-64.so.2"
-        append "LDFLAGS", "-Wl,-rpath,#{legacy_prefix}/lib"
-        append "LDFLAGS", "-Wl,-rpath,#{default_prefix}/lib"
-      end
-
-      # Adding this one line to help gcc too.
-      if !["openssl"].include?(self.name)
-        append "LDFLAGS", "-L#{default_prefix}/lib"
-        # We want the legacy path to be the last thing prepended.
-        prepend "LDFLAGS", "-L#{legacy_prefix}/lib"
-      end
-
-      prepend_path "LIBRARY_PATH", default_prefix/"lib"
-      prepend_path "LIBRARY_PATH", legacy_prefix/"lib"
 
       # This is already set to the PREFIX
       if !["gcc"].include?(self.name)
+        # Set the dynamic linker and library search path.
+        prepend "CFLAGS", "-isystem#{default_prefix}/include"
+
+        # cmake wants this to have -I
+        prepend "CXXFLAGS", "-I#{default_prefix}/include"
+
         prepend_path "LD_RUN_PATH", default_prefix/"lib"
 
         # Set the search path for header files.
         prepend_path "CPATH", default_prefix/"include"
       end
 
-      append "LDFLAGS", "-lrt -lpthread -ldl"
+      # Adding this one line to help gcc too.
+      if !["openssl"].include?(self.name) # JUST REMOVED
+        append "LDFLAGS", "-L#{default_prefix}/lib"
+        # We want the legacy path to be the last thing prepended.
+        prepend "LDFLAGS", "-L#{legacy_prefix}/lib" if OS.linux?
+      end # JUST REMOVED
+
+      if OS.linux?
+        # Only Linux uses the Legacy prefix concept for glibc/zlib.
+        prepend "CFLAGS", "-L#{legacy_prefix}/lib" if OS.linux?
+        prepend "CXXFLAGS", "-I#{legacy_prefix}/include" if OS.linux?
+
+        # This used to be in the GCC/not-GCC logic, pulling out to compile GCC
+        # Using the system compilers with legacy runtime.
+        prepend "CFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
+        prepend "CXXFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
+
+        if !["util-linux"].include?(self.name) and ENV["CC"].to_s.include?("gcc")
+          append "LDFLAGS", "-Wl,--dynamic-linker=#{legacy_prefix}/lib/ld-linux-x86-64.so.2"
+          append "LDFLAGS", "-Wl,-rpath,#{legacy_prefix}/lib"
+          append "LDFLAGS", "-Wl,-rpath,#{default_prefix}/lib"
+        end
+
+        prepend_path "LIBRARY_PATH", legacy_prefix/"lib" if OS.linux?
+        append "LDFLAGS", "-lrt -lpthread -ldl" if OS.linux?
+      end
     end
 
     if !OS.linux?
@@ -163,6 +165,16 @@ class AbstractOsqueryFormula < Formula
     # Everyone receives:
     append "CFLAGS", "-fPIC -DNDEBUG -Os -march=core2"
     append "CXXFLAGS", "-fPIC -DNDEBUG -Os -march=core2"
+
+    if ENV["CC"].to_s.include?("clang") and !["librpm", "python"].include?(self.name)
+      append "CFLAGS", "-fvisibility=hidden -fvisibility-inlines-hidden"
+      append "CXXFLAGS", "-fvisibility=hidden -fvisibility-inlines-hidden"
+      append "CFLAGS", "-Wno-unused-command-line-argument"
+      append "CXXFLAGS", "-Wno-unused-command-line-argument"
+
+      append "LDFLAGS", "-fuse-ld=lld" if OS.linux?
+    end
+
 
     prepend_path "PKG_CONFIG_PATH", legacy_prefix/"lib/pkgconfig"
 

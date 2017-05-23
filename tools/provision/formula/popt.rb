@@ -5,12 +5,12 @@ class Popt < AbstractOsqueryFormula
   homepage "http://rpm5.org"
   url "http://rpm5.org/files/popt/popt-1.16.tar.gz"
   sha256 "e728ed296fe9f069a0e005003c3d6b2dde3d9cad453422a10d6558616d304cc8"
-  revision 1
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "17e701881a808c8b5de4fcce727a101addaa07db2a673accb1387c7def606fb9" => :x86_64_linux
+    sha256 "eec1f72feea34c0b5a20fdbebe33fc119b903c041642c847a9e3653337ef0d06" => :x86_64_linux
   end
 
   option :universal

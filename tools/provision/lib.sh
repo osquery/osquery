@@ -10,7 +10,11 @@
 # 1: Path to install brew into
 # 2: Linux or Darwin
 function setup_brew() {
-  if [[ "$2" == "linux" ]]; then
+  DEPS="$1"
+  BREW_TYPE="$2"
+  ACTION="$3"
+
+  if [[ "$BREW_TYPE" == "linux" ]]; then
     BREW_REPO=$LINUXBREW_REPO
     BREW_COMMIT=$LINUXBREW_BREW
     CORE_COMMIT=$LINUXBREW_CORE
@@ -23,11 +27,10 @@ function setup_brew() {
   fi
 
   # Checkout new brew in local deps dir
-  DEPS="$1"
   if [[ ! -d "$DEPS/.git" ]]; then
     log "setting up new brew in $DEPS"
     git clone $BREW_REPO "$DEPS"
-  else
+  elif [[ ! "$ACTION" = "bottle" ]]; then
     log "checking for updates to brew"
     git fetch origin > /dev/null
     git reset --hard origin/master > /dev/null
@@ -60,16 +63,18 @@ function setup_brew() {
   TAPS="$DEPS/Library/Taps/"
 
   # Grab full clone to perform a pin
-  log "installing and updating Homebrew core"
-  $BREW tap homebrew/core --full
-  (cd $TAPS/homebrew/homebrew-core && git pull > /dev/null && \
-      git reset --hard $CORE_COMMIT)
+  if [[ ! "$ACTION" = "bottle" ]]; then
+    log "installing and updating Homebrew core"
+    $BREW tap homebrew/core --full
+    (cd $TAPS/homebrew/homebrew-core && git pull > /dev/null && \
+        git reset --hard $CORE_COMMIT)
 
-  # Need dupes for upzip.
-  log "installing and updating Homebrew dupes"
-  $BREW tap homebrew/dupes --full
-  (cd $TAPS/homebrew/homebrew-dupes && git pull > /dev/null && \
-      git reset --hard $DUPES_COMMIT)
+    # Need dupes for upzip.
+    log "installing and updating Homebrew dupes"
+    $BREW tap homebrew/dupes --full
+    (cd $TAPS/homebrew/homebrew-dupes && git pull > /dev/null && \
+        git reset --hard $DUPES_COMMIT)
+  fi
 
   # Create a 'legacy' mirror.
   if [[ -L "$DEPS/legacy" ]]; then
@@ -77,7 +82,7 @@ function setup_brew() {
     rm -f "$DEPS/legacy"
     mkdir -p "$DEPS/legacy"
   elif [[ ! -d "$DEPS/legacy" ]]; then
-    mkdir -p "$DEPS/legacy"
+    mkdir -p "$DEPS/legacy/lib"
   fi
 
   # Fix for python linking.
@@ -186,16 +191,19 @@ function brew_internal() {
   if [[ ! -z "$OSQUERY_BUILD_BOTTLES" && "$FORMULA" == *"osquery"* ]]; then
     $BREW bottle --skip-relocation "${FORMULA}"
   elif [[ "$TYPE" = "clean" ]]; then
-    if [[ ! "${INSTALLED}" = "${STABLE}" && ! "${INSTALLED}" = "NAN" ]]; then
+    if [[ "${STABLE}" = "NAN_NAN" ]]; then
+      log "brew cleaning older or forward-dependent version of $TOOL: ${INSTALLED}"
+      $BREW uninstall --ignore-dependencies "${FORMULA}"
+    elif [[ ! "${INSTALLED}" = "${STABLE}" && ! "${INSTALLED}" = "NAN" ]]; then
       log "brew cleaning older version of $TOOL: ${INSTALLED}"
-      $BREW remove --force "${FORMULA}"
+      $BREW uninstall --ignore-dependencies "${FORMULA}"
     fi
   elif [[ "${INSTALLED}" = "NAN" || "${INSTALLED}" = "None" ]]; then
     log "brew package $TOOL installing new version: ${STABLE}"
     $BREW install $ARGS "${FORMULA}"
   elif [[ ! "${INSTALLED}" = "${STABLE}" || "${FROM_BOTTLE}" = "true" ]]; then
     log "brew package $TOOL upgrading to new version: ${STABLE}"
-    $BREW remove --force "${FORMULA}"
+    $BREW uninstall --ignore-dependencies "${FORMULA}"
     $BREW install $ARGS "${FORMULA}"
   else
     log "brew package $TOOL is already installed: ${STABLE}"
@@ -237,14 +245,58 @@ function brew_clean() {
 }
 
 function brew_bottle() {
-  TOOL=$1
-  $BREW bottle --skip-relocation "${TOOL}"
+  FORMULA=$1
+  $BREW bottle --skip-relocation "${FORMULA}"
+
+  INFO=`$BREW info --json=v1 "${FORMULA}"`
+  INSTALLED=$(json_element "${INFO}" 'obj[0]["installed"][0]["version"]')
+
+  ARIN=(${FORMULA//// })
+  TOOL=${ARIN[2]}
+
+  FORMULA_FILE=${FORMULA_DIR}/${TOOL}.rb
+  if [[ ! -f "$FORMULA_FILE" ]]; then
+    log "[!] cannot install bottle hash into $FORMULA_FILE"
+    return
+  fi
+
+  HASH=$(shasum -a 256 $DEPS_DIR/${TOOL}-${INSTALLED}* | awk '{print $1}')
+  if [[ "$BREW_TYPE" = "linux" ]]; then
+    SUFFIX="x86_64_linux"
+  else
+    SUFFIX="sierra"
+  fi
+
+  log "installing $HASH into $FORMULA_FILE"
+  sed -i '' "s/sha256 \"\\(.*\\)\" => :${SUFFIX}/sha256 \"${HASH}\" => :${SUFFIX}/g" $FORMULA_FILE
 }
 
 function brew_postinstall() {
   TOOL=$1
   if [[ ! -z "$OSQUERY_BUILD_DEPS" ]]; then
     $BREW postinstall "${TOOL}"
+  fi
+}
+
+function deps_version() {
+  DEPS_DIR=$1
+  VERSION=$2
+  CURRENT="0"
+  if [[ -f "$DEPS_DIR/DEPS_VERSION" ]]; then
+    CURRENT=$(cat $DEPS_DIR/DEPS_VERSION || echo -n '0')
+  fi
+
+  if [[ "$VERSION" != "$CURRENT" && ! "$CURRENT" = "0" ]]; then
+    log "dependency version changed removing existing dependencies"
+    do_sudo rm -rf "$DEPS_DIR/*"
+  fi
+
+  if [[ -d "$DEPS_DIR/Cellar" ]]; then
+    INSTALLED_COUNT=$(ls -l $DEPS_DIR/Cellar| grep -v ^l | wc -l)
+    if [[ "$CURRENT" = "0" && ! $INSTALLED_COUNT = "0" ]]; then
+      log "dependencies are unversioned removing existing dependencies"
+      do_sudo rm -rf "$DEPS_DIR/*"
+    fi
   fi
 }
 
