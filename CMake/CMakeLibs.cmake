@@ -251,27 +251,6 @@ macro(ADD_OSQUERY_EXTENSION TARGET)
   set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "${TARGET}.ext")
 endmacro(ADD_OSQUERY_EXTENSION)
 
-macro(ADD_OSQUERY_MODULE TARGET)
-  add_library(${TARGET} SHARED ${ARGN})
-  if(NOT FREEBSD AND NOT WINDOWS)
-    target_link_libraries(${TARGET} dl)
-  endif()
-
-  add_dependencies(${TARGET} libosquery)
-  if(APPLE)
-    target_link_libraries(${TARGET} "-undefined dynamic_lookup")
-  elseif(LINUX)
-    # This could implement a similar LINK_MODULE for gcc, libc, and libstdc++.
-    # However it is only provided as an example for unit testing.
-    target_link_libraries(${TARGET} "-static-libstdc++")
-    if(CMAKE_CXX_COMPILER MATCHES "clang")
-      target_link_libraries(${TARGET} "-fuse-ld=lld")
-    endif()
-  endif()
-  set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
-  set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME ${TARGET})
-endmacro(ADD_OSQUERY_MODULE)
-
 # Helper to abstract OS/Compiler whole linking.
 if(WINDOWS)
   macro(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)

@@ -41,9 +41,8 @@ QueryData genOSVersion(QueryContext& context) {
   r["platform"] = "freebsd";
   r["version"] = result[0]["current_value"];
 
-  // TODO: Patchlevel isn't matched for some reason
   auto rx = xp::sregex::compile(
-      "(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)-(?P<build>\\w+)-?(?P<patch>\\w+)"
+      "(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)-(?P<build>\\w+)-?p?(?P<patch>[0-9]+)"
       "?");
 
   xp::smatch matches;

@@ -6,13 +6,13 @@ class Libxml2 < AbstractOsqueryFormula
   url "http://xmlsoft.org/sources/libxml2-2.9.4.tar.gz"
   mirror "ftp://xmlsoft.org/libxml2/libxml2-2.9.4.tar.gz"
   sha256 "ffb911191e509b966deb55de705387f14156e1a56b21824357cdf0053233633c"
-  revision 1
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "ad126db38749740bb13423e32d716f70208729d1b4d32f4285ad078b65ed70cf" => :sierra
-    sha256 "92cbb6676f6788431da1b915781c4e44e3194fb286818e04dcfa428aa8879620" => :x86_64_linux
+    sha256 "047b1b45a9b4605d00121b27c4da164b348b331f4439a9bc42cc280f3a3c2fb6" => :sierra
+    sha256 "762ce429cf0f372111f00816a05b78ccc9389c010d79a8a6561fa299aca7ecbb" => :x86_64_linux
   end
 
   option :universal
@@ -31,6 +31,8 @@ class Libxml2 < AbstractOsqueryFormula
                           "--prefix=#{prefix}",
                           "--without-python",
                           "--without-lzma",
+                          "--enable-static",
+                          "--disable-shared",
                           *args
     system "make"
     ENV.deparallelize

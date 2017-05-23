@@ -5,13 +5,15 @@ class Libaptpkg < AbstractOsqueryFormula
   homepage "https://apt.alioth.debian.org/python-apt-doc/library/apt_pkg.html"
   url "https://github.com/Debian/apt/archive/1.3.1.tar.gz"
   sha256 "a91a5e96417aad33f236234730b2a0bed3a028d6fc01c57d060b7d92746bf65a"
-  revision 2
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "02889c22f073c2e99f09a52f765b9d9afaeee7500fdab09bc7d1e1cfaaeb43e2" => :x86_64_linux
+    sha256 "cdecad1ae6bb89192a7df50c1f818f71696621239905eabc3ea2aeadddd0437e" => :x86_64_linux
   end
+
+  depends_on "lz4"
 
   patch :DATA
 

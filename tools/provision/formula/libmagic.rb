@@ -5,12 +5,13 @@ class Libmagic < AbstractOsqueryFormula
   homepage "https://www.darwinsys.com/file/"
   url "https://fossies.org/linux/misc/file-5.29.tar.gz"
   sha256 "ea661277cd39bf8f063d3a83ee875432cc3680494169f952787e002bdd3884c0"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "ccd48e50e008e3def7f9b57dcc3f2c6686077bbe097df35ed70f718f6b5bd96b" => :sierra
-    sha256 "eb2fe5ed3c272eeb44d7b8f8a2e7d759a8f22ca35037deef848243e794079530" => :x86_64_linux
+    sha256 "9f8ab6e8dd6959cdaacf06c08e25dcc4991a90cdba2616c7c83470411c11c381" => :sierra
+    sha256 "9fef726c4275e2d1910a6ef534edd51f2cfc0b9b1c7a14784c6e3c9f8690a5dc" => :x86_64_linux
   end
 
   depends_on :python => :optional

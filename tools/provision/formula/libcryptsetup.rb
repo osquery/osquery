@@ -4,11 +4,12 @@ class Libcryptsetup < AbstractOsqueryFormula
   desc "Open source disk encryption libraries"
   homepage "https://gitlab.com/cryptsetup/cryptsetup"
   url "https://osquery-packages.s3.amazonaws.com/deps/cryptsetup-1.6.7.tar.gz"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "bda28ef2d1411924f8e8e3366211bb1254c7fed2c56e36246ba814b0b441bb3d" => :x86_64_linux
+    sha256 "5acc82258d7ca40af7d822e03e561a57880879d15b8d8e9887213873206e5455" => :x86_64_linux
   end
 
   def install
