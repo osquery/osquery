@@ -76,6 +76,13 @@ stored in RocksDB. On subsequent runs, only result-set-difference (changes) are 
 Scheduled queries can also set: `"removed":false` and `"snapshot":true`. See
 the next section on [logging](../deployment/logging.md), and the below configuration specification to learn how query options affect the output.
 
+**Note** that the `interval` time in seconds is how many seconds the _daemon_
+itself has been running before the scheduled query will be executed. If the
+system is suspended or put to sleep the progression of time "freezes" and
+resumes when the system comes back online. For example a scheduled query with
+an interval of `84600`, or 24 hours, running on a laptop system could take
+a few days before the query executes if the system is suspended at night.
+
 ## Query Packs
 
 Configuration supports sets, called packs, of queries that help define your
