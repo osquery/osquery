@@ -415,7 +415,6 @@ Example:
 
 Views are saved queries expressed as tables. Large subqueries or complex joining logic can often be moved into views allowing you to make your queries more concise.
 
-
 Example:
 ```json
 {

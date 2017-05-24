@@ -76,7 +76,8 @@ extern const char* kExpectedExtensionArgs[];
 extern const size_t kExpectedExtensionArgsCount;
 
 // Get an example generate config with one static source name to JSON content.
-std::map<std::string, std::string> getTestConfigMap();
+std::map<std::string, std::string> getTestConfigMap(
+    std::string file = "test_parse_items.conf");
 
 pt::ptree getExamplePacksConfig();
 pt::ptree getUnrestrictedPack();

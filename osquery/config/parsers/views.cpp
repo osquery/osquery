@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#include <set>
 
 #include <osquery/config.h>
 #include <osquery/database.h>
@@ -33,7 +34,7 @@ class ViewsConfigParserPlugin : public ConfigParserPlugin {
   Status update(const std::string& source, const ParserConfig& config) override;
 
  private:
-  const std::string kConfigViews = "config_views";
+  const std::string kConfigViews = "config_views.";
 };
 
 Status ViewsConfigParserPlugin::setUp() {
@@ -43,37 +44,47 @@ Status ViewsConfigParserPlugin::setUp() {
 
 Status ViewsConfigParserPlugin::update(const std::string& source,
                                        const ParserConfig& config) {
-  // Drop previous config views (if any)
-  std::string old_views;
-  getDatabaseValue(kQueries, kConfigViews, old_views);
-  for (const auto& v : osquery::split(old_views, ",")) {
-    QueryData r;
-    auto s = osquery::query("DROP VIEW " + v, r);
-  }
-
   if (config.count("views") > 0) {
     data_ = pt::ptree();
     data_.put_child("views", config.at("views"));
   }
   const auto& views = data_.get_child("views");
   std::vector<std::string> created_views;
+  std::set<std::string> erase_views;
+  {
+    std::vector<std::string> old_views_vec;
+    scanDatabaseKeys(kQueries, old_views_vec, kConfigViews);
+    for (const auto& view : old_views_vec) {
+      erase_views.insert(view.substr(kConfigViews.size()));
+    }
+  }
+  QueryData r;
   for (const auto& view : views) {
+    std::string name = view.first;
     std::string query = views.get<std::string>(view.first, "");
     if (query.empty()) {
       continue;
     }
-    QueryData results;
-    auto s =
-        osquery::query("CREATE VIEW " + view.first + " AS " + query, results);
+    std::string old_query = "";
+    getDatabaseValue(kQueries, kConfigViews + name, old_query);
+    erase_views.erase(name);
+    if (old_query == query) {
+      continue;
+    }
+
+    // View has been updated
+    osquery::query("DROP VIEW " + name, r);
+    auto s = osquery::query("CREATE VIEW " + name + " AS " + query, r);
     if (s.ok()) {
-      LOG(INFO) << "Created view: " << view.first;
-      created_views.push_back(view.first);
+      setDatabaseValue(kQueries, kConfigViews + name, query);
     } else {
-      LOG(INFO) << "Error creating view (" << view.first
-                << "): " << s.getMessage();
+      LOG(INFO) << "Error creating view (" << name << "): " << s.getMessage();
     }
   }
-  setDatabaseValue(kQueries, kConfigViews, osquery::join(created_views, ","));
+  for (const auto& old_view : erase_views) {
+    osquery::query("DROP VIEW " + old_view, r);
+    deleteDatabaseValue(kQueries, kConfigViews + old_view);
+  }
   return Status(0, "OK");
 }
 
