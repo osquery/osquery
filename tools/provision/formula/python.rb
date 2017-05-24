@@ -6,13 +6,13 @@ class Python < AbstractOsqueryFormula
   url "https://www.python.org/ftp/python/2.7.12/Python-2.7.12.tar.xz"
   sha256 "d7837121dd5652a05fef807c361909d255d173280c4e1a4ded94d73d80a1f978"
   head "https://hg.python.org/cpython", :using => :hg, :branch => "2.7"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "2895581daeec574c385abeca58aff5e37baed1f7c68ab6fc6ad731f2046bf2fe" => :sierra
-    sha256 "a5420996c1a69dd7a556da351c5df300b3b08ac2c35d934f242ea22e41c24a4b" => :x86_64_linux
+    sha256 "a43f382991e2636cd1fc01619b5790898e1e40e89da94d5997cc80a0775d8a54" => :sierra
+    sha256 "8245288b9906228f925215162ecba6925d23c7bf544e919ce3152d90398f738c" => :x86_64_linux
   end
 
   option :universal

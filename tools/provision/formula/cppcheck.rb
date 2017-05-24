@@ -6,13 +6,13 @@ class Cppcheck < AbstractOsqueryFormula
   url "https://github.com/danmar/cppcheck/archive/1.75.tar.gz"
   sha256 "d3732dba3fb4dee075009e2422cd9b48bbd095249994ec60550aee43026030e5"
   head "https://github.com/danmar/cppcheck.git"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "b7dc822bd2b697914325e56fae1a5a6bf6d4a3ef38c678e58942f37cd7b5ec46" => :sierra
-    sha256 "46fcfe80187918d6dfdcbd5dfc5fac51b94e26fe8709fdc5b623c2810911defd" => :x86_64_linux
+    sha256 "f2a840d08824c49920678b68dd80b90e8b2fb542cc798c546600aa7e4997b018" => :sierra
+    sha256 "c90661a8669334718bab86d6768933dfed61c1d3f5c1c0fc16bfd679ac6dd7c3" => :x86_64_linux
   end
 
   option "without-rules", "Build without rules (no pcre dependency)"
@@ -24,6 +24,7 @@ class Cppcheck < AbstractOsqueryFormula
     args = []
     args << "-DHAVE_RULES=ON" if build.with? "rules"
 
+    rm_rf "build"
     mkdir "build" do
       args += osquery_cmake_args
       system "cmake", "..", *args

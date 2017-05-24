@@ -4,13 +4,13 @@ class Yara < AbstractOsqueryFormula
   desc "Malware identification and classification tool"
   homepage "https://github.com/VirusTotal/yara/"
   head "https://github.com/VirusTotal/yara.git"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "68e6811d60260a9a50ca03d0e465856ce4b1d7941178e1173b12f2d1615b6766" => :sierra
-    sha256 "86789b8d8cd613517c25d375d1b76e5ee0ac7ae6583a162efe4a6fdbc29897d6" => :x86_64_linux
+    sha256 "645665d4b083262f89895e2ba17702e40e5022dfcad2ef6b7599962a6232aaea" => :sierra
+    sha256 "dfab5e0b5061d3075a0d20ac7a9455196da4606233e8dca89206b8a23af15e64" => :x86_64_linux
   end
 
   stable do

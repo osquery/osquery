@@ -5,13 +5,13 @@ class Glog < AbstractOsqueryFormula
   homepage "https://github.com/google/glog"
   url "https://github.com/google/glog/archive/v0.3.4.tar.gz"
   sha256 "ce99d58dce74458f7656a68935d7a0c048fa7b4626566a71b7f4e545920ceb10"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "0188828615cf46f9c05e0ba5464613c9811eeba0486fe21c509ec62cb96bb02d" => :sierra
-    sha256 "448d73a90d5bdf68bf1de09f8848e326383ddbc112d9a2b72c20fa7b32239994" => :x86_64_linux
+    sha256 "020ea9bbbc0437cbe4aae54ace88c7ab0e7961602fd61e51ddd20d3d1e58710a" => :sierra
+    sha256 "b8e1f109493fd0c8ee7deb79da248fd94eca533822c26a6e0bce1c0f69aa9400" => :x86_64_linux
   end
 
   depends_on "gflags"
