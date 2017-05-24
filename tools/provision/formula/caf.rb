@@ -70,3 +70,19 @@ index 9a20c5e..6ee9cb2 100644
    set(CMAKE_BUILD_TYPE RelWithDebInfo)
 --
 2.7.4
+diff --git a/libcaf_core/caf/actor.hpp b/libcaf_core/caf/actor.hpp
+index 0561434..8397d7f 100644
+--- a/libcaf_core/caf/actor.hpp
++++ b/libcaf_core/caf/actor.hpp
+@@ -170,6 +170,8 @@ private:
+ 
+   actor(abstract_actor*);
+ 
++public:
++
+   abstract_actor_ptr ptr_;
+ };
+ 
+-- 
+2.7.4
+
