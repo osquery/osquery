@@ -192,7 +192,7 @@ QueryData genDrivers(QueryContext& context) {
                        nullptr,
                        nullptr);
 
-  std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[], decltype(freePtr)> services(
+  enum_svc_status_t services(
       static_cast<ENUM_SERVICE_STATUS_PROCESS*>(malloc(bytesNeeded)), freePtr);
   if (services == nullptr) {
     return results;
