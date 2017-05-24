@@ -8,6 +8,8 @@ schema([
     Column("path", TEXT, "Path to Driver module"),
     Column("type", TEXT, "Driver Type: KERNEL, FILE_SYSTEM"),
     Column("inf", TEXT, "INF File: Associated inf file"),
+    Column("major_version", TEXT, "Driver major version"),
+    Column("minor_version", TEXT, "Driver minor version"),
 ])
 implementation("system/windows/Drivers@genDrivers")
 examples([

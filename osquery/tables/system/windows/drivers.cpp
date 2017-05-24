@@ -1,12 +1,12 @@
 /*
-*  Copyright (c) 2014-present, Facebook, Inc.
-*  All rights reserved.
-*
-*  This source code is licensed under the BSD-style license found in the
-*  LICENSE file in the root directory of this source tree. An additional grant
-*  of patent rights can be found in the PATENTS file in the same directory.
-*
-*/
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -19,6 +19,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/tables/system/windows/registry.h"
+#include "osquery/tables/system/windows/services.h"
 
 namespace osquery {
 namespace tables {
@@ -46,17 +47,24 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
   Row r;
   DWORD cbBufSize = 0;
 
-  auto schService =
-      OpenService(schScManager, svc.lpServiceName, SERVICE_QUERY_CONFIG);
+  svc_handle_t schService(
+      OpenService(schScManager, svc.lpServiceName, SERVICE_QUERY_CONFIG),
+      closeServiceHandle);
 
   if (schService == nullptr) {
     TLOG << "OpenService failed (" << GetLastError() << ")";
     return;
   }
 
-  QueryServiceConfig(schService, nullptr, 0, &cbBufSize);
-  auto lpsc = static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize));
-  if (QueryServiceConfig(schService, lpsc, cbBufSize, &cbBufSize) != 0) {
+  (void)QueryServiceConfig(schService.get(), nullptr, 0, &cbBufSize);
+  svc_query_t lpsc(static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize)),
+                   freePtr);
+  if (lpsc == nullptr) {
+    TLOG << "Failed to query service config (" << GetLastError() << ")";
+    return;
+  }
+  if (QueryServiceConfig(schService.get(), lpsc.get(), cbBufSize, &cbBufSize) !=
+      0) {
     TLOG << "QueryServiceConfig failed (" << GetLastError() << ")";
   }
 
@@ -87,13 +95,17 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
     if (aKey.at("name") == "Owners") {
       r["inf"] = SQL_TEXT(aKey.at("data"));
     }
+    if (aKey.at("name") == "DriverMajorVersion") {
+      r["major_version"] = SQL_TEXT(aKey.at("data"));
+    }
+    if (aKey.at("name") == "DriverMinorVersion") {
+      r["minor_version"] = SQL_TEXT(aKey.at("data"));
+    }
   }
 
   // Remove the driver from loadedDrivers list to avoid duplicates
   loadedDrivers.erase(svc.lpServiceName);
   results.push_back(r);
-  free(lpsc);
-  CloseServiceHandle(schService);
 }
 
 void enumLoadedDrivers(std::map<std::string, std::string>& loadedDrivers) {
@@ -101,7 +113,8 @@ void enumLoadedDrivers(std::map<std::string, std::string>& loadedDrivers) {
   int driversCount = 0;
 
   auto ret = EnumDeviceDrivers(nullptr, 0, &bytesNeeded);
-  auto drvBaseAddr = static_cast<LPVOID*>(malloc(bytesNeeded));
+  std::unique_ptr<LPVOID[], decltype(freePtr)> drvBaseAddr(
+      static_cast<LPVOID*>(malloc(bytesNeeded)), freePtr);
 
   if (drvBaseAddr == nullptr) {
     TLOG << "enumLoadedDrivers failed to allocate required memory ("
@@ -109,40 +122,44 @@ void enumLoadedDrivers(std::map<std::string, std::string>& loadedDrivers) {
     return;
   }
 
-  ret = EnumDeviceDrivers(drvBaseAddr, bytesNeeded, &bytesNeeded);
+  ret = EnumDeviceDrivers(drvBaseAddr.get(), bytesNeeded, &bytesNeeded);
 
   driversCount = bytesNeeded / sizeof(drvBaseAddr[0]);
 
   if (ret && (driversCount > 0)) {
-    auto driverPath = static_cast<LPSTR>(malloc(MAX_PATH + 1));
-    auto driverName = static_cast<LPSTR>(malloc(MAX_PATH + 1));
+    std::unique_ptr<CHAR, decltype(freePtr)> driverPath(
+        static_cast<LPSTR>(malloc(MAX_PATH + 1)), freePtr);
+    std::unique_ptr<CHAR, decltype(freePtr)> driverName(
+        static_cast<LPSTR>(malloc(MAX_PATH + 1)), freePtr);
 
-    ZeroMemory(driverPath, MAX_PATH + 1);
-    ZeroMemory(driverName, MAX_PATH + 1);
+    if (driverPath == nullptr || driverName == nullptr) {
+      TLOG << "Failed to allocate memory for driver details (" << (MAX_PATH + 1)
+           << ")";
+      return;
+    }
+
+    ZeroMemory(driverPath.get(), MAX_PATH + 1);
+    ZeroMemory(driverName.get(), MAX_PATH + 1);
 
     for (size_t i = 0; i < driversCount; i++) {
-      if (GetDeviceDriverBaseName(drvBaseAddr[i], driverName, MAX_PATH) != 0) {
-        if (GetDeviceDriverFileName(drvBaseAddr[i], driverPath, MAX_PATH) !=
-            0) {
+      if (GetDeviceDriverBaseName(drvBaseAddr[i], driverName.get(), MAX_PATH) !=
+          0) {
+        if (GetDeviceDriverFileName(
+                drvBaseAddr[i], driverPath.get(), MAX_PATH) != 0) {
           // Removing file extension
-          auto fileExtension = strrchr(driverName, '.');
+          auto fileExtension = strrchr(driverName.get(), '.');
           *fileExtension = '\0';
-          loadedDrivers[driverName] = driverPath;
+          loadedDrivers[driverName.get()] = driverPath.get();
         } else {
-          loadedDrivers[driverName] = "";
+          loadedDrivers[driverName.get()] = "";
         }
       } else {
         TLOG << "GetDeviceDriverFileName failed (" << GetLastError() << ")";
       }
     }
-
-    free(driverPath);
-    free(driverName);
   } else {
     TLOG << "EnumDeviceDrivers failed; array size needed is" << bytesNeeded;
   }
-
-  free(drvBaseAddr);
 }
 
 QueryData genDrivers(QueryContext& context) {
@@ -154,13 +171,14 @@ QueryData genDrivers(QueryContext& context) {
   // Get All Loaded Drivers including ones managed by SCM
   enumLoadedDrivers(loadedDrivers);
 
-  auto schScManager = OpenSCManager(nullptr, nullptr, GENERIC_READ);
+  svc_handle_t schScManager(OpenSCManager(nullptr, nullptr, GENERIC_READ),
+                            closeServiceHandle);
   if (schScManager == nullptr) {
     TLOG << "EnumServiceStatusEx failed (" << GetLastError() << ")";
     return {};
   }
 
-  EnumServicesStatusEx(schScManager,
+  EnumServicesStatusEx(schScManager.get(),
                        SC_ENUM_PROCESS_INFO,
                        SERVICE_DRIVER,
                        SERVICE_STATE_ALL,
@@ -171,27 +189,27 @@ QueryData genDrivers(QueryContext& context) {
                        nullptr,
                        nullptr);
 
-  auto buf = static_cast<PVOID>(malloc(bytesNeeded));
-  if (EnumServicesStatusEx(schScManager,
+  std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[], decltype(freePtr)> services(
+      static_cast<ENUM_SERVICE_STATUS_PROCESS*>(malloc(bytesNeeded)), freePtr);
+  if (services == nullptr) {
+    return results;
+  }
+  if (EnumServicesStatusEx(schScManager.get(),
                            SC_ENUM_PROCESS_INFO,
                            SERVICE_DRIVER,
                            SERVICE_STATE_ALL,
-                           (LPBYTE)buf,
+                           (LPBYTE)services.get(),
                            bytesNeeded,
                            &bytesNeeded,
                            &serviceCount,
                            nullptr,
                            nullptr) != 0) {
-    auto services = static_cast<ENUM_SERVICE_STATUS_PROCESS*>(buf);
     for (DWORD i = 0; i < serviceCount; ++i) {
-      queryDrvInfo(schScManager, services[i], loadedDrivers, results);
+      queryDrvInfo(schScManager.get(), services[i], loadedDrivers, results);
     }
   } else {
     TLOG << "EnumServiceStatusEx failed (" << GetLastError() << ")";
   }
-
-  free(buf);
-  CloseServiceHandle(schScManager);
 
   for (const auto& element : loadedDrivers) {
     Row r;
@@ -203,5 +221,5 @@ QueryData genDrivers(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
