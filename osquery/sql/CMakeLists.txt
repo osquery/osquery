@@ -7,6 +7,7 @@ if(FREEBSD)
     sqlite_util.cpp
     sqlite_math.cpp
     sqlite_hashing.cpp
+    sqlite_encoding.cpp
     virtual_table.cpp
   )
 else()
@@ -15,6 +16,7 @@ else()
     sqlite_math.cpp
     sqlite_string.cpp
     sqlite_hashing.cpp
+    sqlite_encoding.cpp
     virtual_table.cpp
   )
 endif()
