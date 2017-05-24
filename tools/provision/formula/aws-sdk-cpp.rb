@@ -5,13 +5,13 @@ class AwsSdkCpp < AbstractOsqueryFormula
   homepage "https://github.com/aws/aws-sdk-cpp"
   url "https://github.com/aws/aws-sdk-cpp/archive/1.0.107.tar.gz"
   sha256 "0560918ef2a4b660e49981378af42d999b91482a31e720be2d9c427f21ac8ad0"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "9a95d4a25ef8e355af1b84eb5b4b798b9889cfe1a17811c774f1ec3b43cca5fe" => :sierra
-    sha256 "215135c775dc386c8ba52198587c7303b113710ae4b965c32332b98e3387c870" => :x86_64_linux
+    sha256 "ab2ad08c23fd765b02f1e961389b250f60e022e8d5ce94e822a998887e27286c" => :sierra
+    sha256 "0b2995f4546df02bcbebb8ea47f2cc276ecd1bcb0cb60787be02ff9a2748734b" => :x86_64_linux
   end
 
   depends_on "cmake" => :build

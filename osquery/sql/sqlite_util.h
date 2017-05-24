@@ -363,7 +363,12 @@ void registerStringExtensions(sqlite3* db);
 void registerHashingExtensions(sqlite3* db);
 
 /**
- * @brief Register hashing-related 'custom' functions.
+ * @brief Register osquery operation 'custom' functions.
  */
 void registerOperationExtensions(sqlite3* db);
+
+/**
+ * @brief Register encoding-related 'custom' functions.
+ */
+void registerEncodingExtensions(sqlite3* db);
 }

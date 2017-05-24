@@ -46,16 +46,4 @@ $ cat /etc/osquery/osquery.flags
 --logger_plugin=scribe
 ```
 
-## Modules
-
-The osquery extensions concept builds on the platform's concept of a "registry" of plugin types and plugins therein. The registry maintains a lookup of each plugin and its origin, internal or a transient UUID assigned to an extension. osquery supports extensions as dynamic loadable objects too. 
-
-The CLI flag(s):
-
-```sh
---modules_autoload=/etc/osquery/modules.load
-```
-
-work the same as extensions, each path is evaluated for safe permission and ownership, and `dlopen`ed when an osquery process starts. There is example code for writing a loaded module in the [`osquery/examples`](https://github.com/facebook/osquery/tree/master/osquery/examples) folder. If you are building extensions using the osquery build process a module may be a better option.
-
 

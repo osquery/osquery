@@ -223,6 +223,7 @@ static inline void openOptimized(sqlite3*& db) {
 #endif
   registerHashingExtensions(db);
   registerOperationExtensions(db);
+  registerEncodingExtensions(db);
 }
 
 void SQLiteDBInstance::init() {

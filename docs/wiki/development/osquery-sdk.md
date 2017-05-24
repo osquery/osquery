@@ -125,8 +125,8 @@ $ ./build/darwin/osquery/osqueryi --extension ./build/darwin/osquery/example_ext
 
 Your "external" extension, in the sense that the code is developed and contained somewhere external from the osquery repository, can be built semi-automatically.
 
-1. Symlink your external extension directory (modules work too) into `./external`.
-2. Make sure the symlink contains either `extension_` or `module_` as a prefix.
+1. Symlink your external extension directory into `./external`.
+2. Make sure the symlink contains `extension_` as a prefix.
 3. Run `make externals`.
 
 This will find and compile all `.*\.{cpp,c,mm}` files within your external directory. If you need something more complicated add a `CMakeLists.txt` to your directory and add your targets to the `externals` target.
