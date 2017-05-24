@@ -1,5 +1,5 @@
 table_name("extended_attributes")
-description("Get the extended attributes for files (similar to Windows ADS)")
+description("Get the extended attributes for files (similar to Windows ADS).")
 schema([
     Column("path", TEXT, "Absolute file path", required=True),
     Column("directory", TEXT, "Directory of file(s)", required=True),

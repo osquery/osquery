@@ -1,5 +1,5 @@
 table_name("carbon_black_info", aliases=["cb_info"])
-description("Returns info about a Carbon Black sensor install")
+description("Returns info about a Carbon Black sensor install.")
 schema([
     Column("sensor_id", INTEGER, "Sensor ID of the Carbon Black sensor"),
     Column("config_name", TEXT, "Sensor group"),

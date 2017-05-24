@@ -1,5 +1,5 @@
 table_name("crashes")
-description("Application and System Crash Logs")
+description("Application and System Crash Logs.")
 schema([
     Column("type", TEXT, "Type of crash log"),
     Column("pid", BIGINT, "Process (or thread) ID of the crashed process",

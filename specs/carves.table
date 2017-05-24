@@ -1,5 +1,5 @@
 table_name("carves")
-description("Forensic Memory Carves")
+description("Forensic File Carves.")
 schema([
     Column("time", BIGINT, "Time at which the carve was kicked off"),
     Column("sha256", TEXT, "A SHA256 sum of the carved archive"),
@@ -13,5 +13,5 @@ attributes(user_data=True)
 implementation("forensic/carves@genCarves")
 examples([
   "select * from carves where status like '%FAIL%'",
-  "select * from carves where path like '/Users/%/Downloads/% and carve=1'",
+  "select * from carves where path like '/Users/%/Downloads/%' and carve=1",
 ])

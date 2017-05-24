@@ -1,5 +1,5 @@
 table_name("wifi_survey")
-description("Scan for nearby WiFi networks")
+description("Scan for nearby WiFi networks.")
 schema([
     Column("interface", TEXT, "Name of the interface"),
     Column("ssid", TEXT, "SSID octets of the network"),
