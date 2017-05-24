@@ -5,12 +5,13 @@ class Gflags < AbstractOsqueryFormula
   homepage "https://gflags.github.io/gflags/"
   url "https://github.com/gflags/gflags/archive/v2.2.0.tar.gz"
   sha256 "466c36c6508a451734e4f4d76825cf9cd9b8716d2b70ef36479ae40f08271f88"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "b1f631a81f19deb2f9d09050e4ca59c2d7b0ed389a5fb1ce178bae1d1325de00" => :sierra
-    sha256 "2ef16484fd377d1e0ade7c4261cf8c9099cb12350ca7145862aa61f32b4ce67f" => :x86_64_linux
+    sha256 "d5528bd0004861e969d6a5097042bc6437dd99c2b86f0176e158e93d218ecd0a" => :sierra
+    sha256 "3791fb55f49adafab0fd15a32060f0dd70609e021a2447f6cd0444406c744929" => :x86_64_linux
   end
 
   depends_on "cmake" => :build

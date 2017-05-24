@@ -55,18 +55,6 @@ using AddExternalCallback =
 
 using RemoveExternalCallback = std::function<void(const std::string&)>;
 
-/// When a module is being initialized its information is kept in a transient
-/// RegistryFactory lookup location.
-struct ModuleInfo {
-  std::string path;
-  std::string name;
-  std::string version;
-  std::string sdk_version;
-};
-
-/// The call-in prototype for Registry modules.
-using ModuleInitalizer = void (*)(void);
-
 /// The registry includes a single optimization for table generation.
 struct QueryContext;
 
@@ -168,7 +156,7 @@ class RegistryInterface : private boost::noncopyable {
    * registry and which can downcast the input plugin.
    *
    * @param plugin_name An indexable name for the plugin.
-   * @param plugin A type-specific plugin reference.
+   * @param plugin_item A type-specific plugin reference.
    * @param internal true if this is internal to the osquery SDK.
    */
   virtual Status add(const std::string& plugin_name,
@@ -314,7 +302,7 @@ class RegistryInterface : private boost::noncopyable {
   /**
    * @brief The implementation adder will call addPlugin.
    *
-   * Once a downcast is completed the work for adding internal/external/module
+   * Once a downcast is completed the work for adding internal/external
    * indexes is provided here.
    */
   Status addPlugin(const std::string& plugin_name,
@@ -358,9 +346,6 @@ class RegistryInterface : private boost::noncopyable {
   /// be directed to the 'active' plugin.
   std::string active_;
 
-  /// If a module was initialized/declared then store lookup information.
-  std::map<std::string, RouteUUID> modules_;
-
  private:
   friend class RegistryFactory;
 };
@@ -400,7 +385,7 @@ class RegistryType : public RegistryInterface {
    * If there is no plugin with an item_name identifier this will throw
    * and out_of_range exception.
    *
-   * @param item_name An identifier for this registry plugin.
+   * @param plugin_name An identifier for this registry plugin.
    * @return A std::shared_ptr of type RegistryType.
    */
   PluginRef plugin(const std::string& plugin_name) const override {
@@ -432,42 +417,6 @@ class RegistryType : public RegistryInterface {
 
 /// Helper definitions for a shared pointer to the basic Registry type.
 using RegistryInterfaceRef = std::shared_ptr<RegistryInterface>;
-
-/**
- * @brief A workflow manager for opening a module path and appending to the
- * core registry.
- *
- * osquery Registry modules are part of the extensions API, in that they use
- * the osquery SDK to expose additional features to the osquery core. Modules
- * do not require the Thrift interface and may be compiled as shared objects
- * and loaded late at run time once the core and internal registry has been
- * initialized and setUp.
- *
- * A ModuleLoader interprets search paths, dynamically loads the modules,
- * maintains identification within the RegistryFactory and any registries
- * the module adds items into.
- */
-class RegistryModuleLoader : private boost::noncopyable {
- public:
-  /// Unlock the registry, open, construct, and allow the module to declare.
-  explicit RegistryModuleLoader(const std::string& path);
-
-  /// Clear module information, 'lock' the registry.
-  ~RegistryModuleLoader();
-
-  /// Keep the symbol resolution/calling out of construction.
-  void init();
-
- private:
-  /// Keep the handle for symbol resolution/calling.
-  ModuleHandle handle_{nullptr};
-
-  /// Keep the path for debugging/logging.
-  std::string path_;
-
- private:
-  FRIEND_TEST(RegistryTests, test_registry_modules);
-};
 
 class RegistryFactory : private boost::noncopyable {
  public:
@@ -598,15 +547,6 @@ class RegistryFactory : private boost::noncopyable {
     return allow_duplicates_;
   }
 
-  /// Declare a module for initialization and subsequent registration attempts
-  void declareModule(const std::string& name,
-                     const std::string& version,
-                     const std::string& min_sdk_version,
-                     const std::string& sdk_version);
-
-  /// Access module metadata.
-  std::map<RouteUUID, ModuleInfo> getModules() const;
-
   /// Set the registry external (such that internal events are forwarded).
   /// Once set external, it should not be unset.
   void setExternal() {
@@ -619,18 +559,6 @@ class RegistryFactory : private boost::noncopyable {
   }
 
  private:
-  /// Access the current initializing module UUID.
-  RouteUUID getModule();
-
-  /// Check if the registry is allowing module registrations.
-  bool usingModule();
-
-  /// Initialize a module for lookup, resolution, and its registrations.
-  void initModule(const std::string& path);
-
-  /// Finish module registration.
-  void shutdownModule();
-
   /// Check if the registries are locked.
   bool locked() {
     return locked_;
@@ -643,10 +571,7 @@ class RegistryFactory : private boost::noncopyable {
 
  protected:
   RegistryFactory()
-      : allow_duplicates_(false),
-        locked_(false),
-        module_uuid_(0),
-        external_(false) {}
+      : allow_duplicates_(false), locked_(false), external_(false) {}
   virtual ~RegistryFactory() {}
 
  private:
@@ -669,18 +594,6 @@ class RegistryFactory : private boost::noncopyable {
    */
   std::set<RouteUUID> extensions_;
 
-  /**
-   * @brief The registry tracks loaded extension module metadata/info.
-   *
-   * Each extension module is assigned a transient RouteUUID for identification
-   * those route IDs are passed to each registry to identify which plugin
-   * items belong to modules, similarly to extensions.
-   */
-  std::map<RouteUUID, ModuleInfo> modules_;
-
-  /// During module initialization store the current-working module ID.
-  RouteUUID module_uuid_{0};
-
   /// Calling startExtension should declare the registry external.
   /// This will cause extension-internal events to forward to osquery core.
   bool external_{false};
@@ -690,8 +603,6 @@ class RegistryFactory : private boost::noncopyable {
 
  private:
   friend class RegistryInterface;
-  friend class RegistryModuleLoader;
-  FRIEND_TEST(RegistryTests, test_registry_modules);
 };
 
 /**

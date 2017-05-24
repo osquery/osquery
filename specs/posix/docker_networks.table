@@ -1,0 +1,17 @@
+table_name("docker_networks")
+description("Docker networks information.")
+schema([
+    Column("id", TEXT, "Network ID", index=True),
+    Column("name", TEXT, "Network name"),
+    Column("driver", TEXT, "Network driver"),
+    Column("created", BIGINT, "Time of creation as UNIX time"),
+    Column("enable_ipv6", INTEGER, "1 if IPv6 is enabled on this network. 0 otherwise"),
+    Column("subnet", TEXT, "Network subnet"),
+    Column("gateway", TEXT, "Network gateway")
+])
+implementation("applications/docker@genNetworks")
+examples([
+  "select * from docker_networks",
+  "select * from docker_networks where id = 'cfd2ffd49439'",
+  "select * from docker_networks where id = 'cfd2ffd494395b75d77539761df40cde06a2b6b497e0c9c1adc6c5a79539bfad'"
+])

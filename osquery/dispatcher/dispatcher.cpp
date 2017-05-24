@@ -155,4 +155,4 @@ void Dispatcher::stopServices() {
     DLOG(INFO) << "Service: " << service.get() << " has been interrupted";
   }
 }
-}
+} // namespace osquery

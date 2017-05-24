@@ -48,6 +48,10 @@ using svc_handle_t = std::unique_ptr<SC_HANDLE__, decltype(closeServiceHandle)>;
 static inline Status getService(const SC_HANDLE& scmHandle,
                                 const ENUM_SERVICE_STATUS_PROCESS& svc,
                                 QueryData& results) {
+  auto freeMem = [](auto ptr) { free(ptr); };
+  using svc_descr_t = std::unique_ptr<SERVICE_DESCRIPTION, decltype(freeMem)>;
+  using svc_query_t = std::unique_ptr<QUERY_SERVICE_CONFIG, decltype(freeMem)>;
+
   Row r;
   svc_handle_t svcHandle(
       OpenService(scmHandle, svc.lpServiceName, SERVICE_QUERY_CONFIG),
@@ -63,8 +67,8 @@ static inline Status getService(const SC_HANDLE& scmHandle,
     return Status(err, "Failed to query size of service config buffer");
   }
 
-  std::unique_ptr<QUERY_SERVICE_CONFIG> lpsc(
-      static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize)));
+  svc_query_t lpsc(static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize)),
+                   freeMem);
   if (lpsc == nullptr) {
     return Status(1, "Failed to malloc service config buffer");
   }
@@ -79,8 +83,8 @@ static inline Status getService(const SC_HANDLE& scmHandle,
       svcHandle.get(), SERVICE_CONFIG_DESCRIPTION, nullptr, 0, &cbBufSize);
   err = GetLastError();
   if (ERROR_INSUFFICIENT_BUFFER == err) {
-    std::unique_ptr<SERVICE_DESCRIPTION> lpsd(
-        static_cast<LPSERVICE_DESCRIPTION>(malloc(cbBufSize)));
+    svc_descr_t lpsd(static_cast<LPSERVICE_DESCRIPTION>(malloc(cbBufSize)),
+                     freeMem);
     if (lpsd == nullptr) {
       return Status(1, "Failed to malloc service description buffer");
     }
@@ -133,6 +137,11 @@ static inline Status getService(const SC_HANDLE& scmHandle,
 }
 
 static inline Status getServices(QueryData& results) {
+  auto freeMem = [](auto ptr) { free(ptr); };
+  using svc_descr_t = std::unique_ptr<SERVICE_DESCRIPTION, decltype(freeMem)>;
+  using enum_svc_status_t =
+      std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[], decltype(freeMem)>;
+
   svc_handle_t scmHandle(OpenSCManager(nullptr, nullptr, GENERIC_READ),
                          closeServiceHandle);
   if (scmHandle == nullptr) {
@@ -157,8 +166,8 @@ static inline Status getServices(QueryData& results) {
     return Status(err, "Failed to query service list buffer size");
   }
 
-  std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[]> lpSvcBuf(
-      static_cast<ENUM_SERVICE_STATUS_PROCESS*>(malloc(bytesNeeded)));
+  enum_svc_status_t lpSvcBuf(
+      static_cast<ENUM_SERVICE_STATUS_PROCESS*>(malloc(bytesNeeded)), freeMem);
   if (lpSvcBuf == nullptr) {
     return Status(1, "Failed to malloc service buffer");
   }

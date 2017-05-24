@@ -108,7 +108,9 @@ void updateCarveValue(const std::string& guid,
   }
 }
 
-Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
+Carver::Carver(const std::set<std::string>& paths,
+               const std::string& guid,
+               const std::string& requestId) {
   status_ = Status(0, "Ok");
   for (const auto& p : paths) {
     carvePaths_.insert(fs::path(p));
@@ -121,6 +123,9 @@ Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
   // Generate a unique identifier for this carve
   carveGuid_ = guid;
 
+  // Stash the work ID to be POSTed with the carve initial request
+  requestId_ = requestId;
+
   // TODO: Adding in a manifest file of all carved files might be nice.
   carveDir_ =
       fs::temp_directory_path() / fs::path(kCarvePathPrefix + carveGuid_);
@@ -131,7 +136,7 @@ Carver::Carver(const std::set<std::string>& paths, const std::string& guid) {
   }
 
   // Store the path to our archive for later exfiltration
-  archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tgz");
+  archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tar");
 
   // Update the DB to reflect that the carve is pending.
   updateCarveValue(carveGuid_, "status", "PENDING");
@@ -209,7 +214,8 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
   if (arch == nullptr) {
     return Status(1, "Failed to create tar archive");
   }
-  archive_write_set_format_zip(arch);
+  // Zipping doesn't seem to be working currently
+  // archive_write_set_format_zip(arch);
   archive_write_set_format_pax_restricted(arch);
   auto ret = archive_write_open_filename(arch, archivePath_.string().c_str());
   if (ret == ARCHIVE_FATAL) {
@@ -220,10 +226,13 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
     PlatformFile pFile(f.string(), PF_OPEN_EXISTING | PF_READ);
 
     auto entry = archive_entry_new();
-    archive_entry_set_pathname(entry, f.string().c_str());
+    archive_entry_set_pathname(entry, f.leaf().string().c_str());
     archive_entry_set_size(entry, pFile.size());
     archive_entry_set_filetype(entry, AE_IFREG);
     archive_entry_set_perm(entry, 0644);
+    // archive_entry_set_atime();
+    // archive_entry_set_ctime();
+    // archive_entry_set_mtime();
     archive_write_header(arch, entry);
 
     // TODO: Chunking or a max file size.
@@ -260,6 +269,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   startParams.put<size_t>("block_size", FLAGS_carver_block_size);
   startParams.put<size_t>("carve_size", pFile.size());
   startParams.put<std::string>("carve_id", carveGuid_);
+  startParams.put<std::string>("request_id", requestId_);
   startParams.put<std::string>("node_key", getNodeKey("tls"));
 
   auto status = startRequest.call(startParams);
@@ -292,6 +302,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
     pt::ptree params;
     params.put<size_t>("block_id", i);
     params.put<std::string>("session_id", session_id);
+    params.put<std::string>("request_id", requestId_);
     params.put<std::string>(
         "data", base64Encode(std::string(block.begin(), block.end())));
 
@@ -307,4 +318,4 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   updateCarveValue(carveGuid_, "status", "SUCCESS");
   return Status(0, "Ok");
 };
-}
+} // namespace osquery

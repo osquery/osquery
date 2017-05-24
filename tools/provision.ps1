@@ -280,7 +280,7 @@ function Install-ThirdParty {
     "openssl.1.0.2-k",
     "rocksdb.5.1.4",
     "snappy-msvc.1.1.1.8",
-    "thrift-dev.0.9.3",
+    "thrift-dev.0.10.0-r1",
     "cpp-netlib.0.12.0-r2",
     "linenoise-ng.1.0.0",
     "clang-format.3.9.0",
@@ -350,9 +350,10 @@ function Update-GitSubmodule {
     Write-Host "[-] ERROR: Git was not found on the system. Install git." -foregroundcolor Red
     Exit -1
   }
+  $repoRoot = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..'))
   $thirdPartyPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'third-party'))
   Write-Host " => Updating git submodules in $thirdPartyPath ..." -foregroundcolor Yellow
-  Push-Location $thirdPartyPath
+  Push-Location $repoRoot
   git submodule --quiet update --init
   Pop-Location
   Write-Host "[+] Submodules updated!" -foregroundcolor Yellow

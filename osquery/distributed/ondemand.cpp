@@ -32,6 +32,8 @@ FLAG(bool,
      true,
      "Disable distributed queries (default true)");
 
+std::string Distributed::currentRequestId_{""};
+
 Status DistributedPlugin::call(const PluginRequest& request,
                                PluginResponse& response) {
   if (request.count("action") == 0) {
@@ -52,6 +54,14 @@ Status DistributedPlugin::call(const PluginRequest& request,
 
   return Status(1,
                 "Distributed plugin action unknown: " + request.at("action"));
+}
+
+std::string Distributed::getCurrentRequestId() {
+  return currentRequestId_;
+}
+
+void Distributed::setCurrentRequestId(const std::string& cReqId) {
+  currentRequestId_ = cReqId;
 }
 
 Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,

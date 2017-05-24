@@ -17,7 +17,9 @@ namespace osquery {
 
 class Carver : public InternalRunnable {
  public:
-  Carver(const std::set<std::string>& paths, const std::string& guid);
+  Carver(const std::set<std::string>& paths,
+         const std::string& guid,
+         const std::string& requestId);
 
   ~Carver();
 
@@ -98,6 +100,14 @@ class Carver : public InternalRunnable {
    * session key for exfiltration.
    */
   std::string carveGuid_;
+
+  /**
+   * @brief the distributed work ID of a carve
+   *
+   * This value should be used by the TLS endpoints where carve data is
+   * aggregated, to tie together a distributed query with the carve data
+   */
+  std::string requestId_;
 
   /*
    * @brief the uri used to begin POSTing carve data

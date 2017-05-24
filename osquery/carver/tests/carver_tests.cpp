@@ -70,7 +70,8 @@ class CarverTests : public testing::Test {
 TEST_F(CarverTests, test_carve_files_locally) {
   auto guid_ = genGuid();
   auto paths_ = getCarvePaths();
-  Carver carve(getCarvePaths(), guid_);
+  std::string requestId = "";
+  Carver carve(getCarvePaths(), guid_, requestId);
 
   Status s;
   for (const auto& p : paths_) {
@@ -89,7 +90,7 @@ TEST_F(CarverTests, test_carve_files_locally) {
   s = carve.compress(carves);
   EXPECT_TRUE(s.ok());
 
-  auto tarPath = carveFSPath + "/" + kTestCarveNamePrefix + guid_ + ".tgz";
+  auto tarPath = carveFSPath + "/" + kTestCarveNamePrefix + guid_ + ".tar";
   PlatformFile tar(tarPath, PF_OPEN_EXISTING | PF_READ);
   EXPECT_TRUE(tar.isValid());
   EXPECT_GT(tar.size(), 0U);

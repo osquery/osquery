@@ -229,7 +229,7 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
   }
   return false;
 }
-}
+} // namespace extensions
 
 ExtensionRunnerCore::~ExtensionRunnerCore() {
   remove(path_);
@@ -322,4 +322,4 @@ void ExtensionManagerRunner::start() {
                  << path_ << ") (" << e.what() << ")";
   }
 }
-}
+} // namespace osquery

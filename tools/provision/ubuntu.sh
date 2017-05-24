@@ -16,7 +16,14 @@ function distro_main() {
   package autopoint
   package g++
   package ruby
+  package ruby-dev
   package curl
   package bison
   package flex
+  package bsdtar
+  package doxygen
+  package realpath
+
+  GEM=`which gem`
+  do_sudo $GEM install fpm 
 }

@@ -27,28 +27,12 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/core/utils.h"
 #include "osquery/core/windows/wmi.h"
 
 namespace osquery {
 int getUidFromSid(PSID sid);
 int getGidFromSid(PSID sid);
 namespace tables {
-
-std::set<long> getSelectedPids(const QueryContext& context) {
-  std::set<long> pidlist;
-  if (context.constraints.count("pid") > 0 &&
-      context.constraints.at("pid").exists(EQUALS)) {
-    for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
-      if (pid > 0) {
-        pidlist.insert(pid);
-      }
-    }
-  }
-
-  /// If there are no constraints, pidlist will be an empty set
-  return pidlist;
-}
 
 void genProcess(const WmiResultItem& result, QueryData& results_data) {
   Row r;
@@ -157,7 +141,20 @@ QueryData genProcesses(QueryContext& context) {
 
   std::string query = "SELECT * FROM Win32_Process";
 
-  auto pidlist = getSelectedPids(context);
+  std::set<long> pidlist;
+  if (context.constraints.count("pid") > 0 &&
+      context.constraints.at("pid").exists(EQUALS)) {
+    for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
+      if (pid > 0) {
+        pidlist.insert(pid);
+      }
+    }
+    // None of the constraints returned valid pids, bail out early
+    if (pidlist.size() == 0) {
+      return results;
+    }
+  }
+
   if (pidlist.size() > 0) {
     std::vector<std::string> constraints;
     for (const auto& pid : pidlist) {

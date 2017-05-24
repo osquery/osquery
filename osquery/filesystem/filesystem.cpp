@@ -124,7 +124,11 @@ Status readFile(const fs::path& path,
   if (dry_run) {
     // The caller is only interested in performing file read checks.
     boost::system::error_code ec;
-    return Status(0, fs::canonical(path, ec).string());
+    try {
+      return Status(0, fs::canonical(path, ec).string());
+    } catch (const boost::filesystem::filesystem_error& err) {
+      return Status(1, err.what());
+    }
   }
 
   PlatformTime times;
@@ -502,4 +506,4 @@ Status parseJSONContent(const std::string& content, pt::ptree& tree) {
   }
   return Status(0, "OK");
 }
-}
+} // namespace osquery

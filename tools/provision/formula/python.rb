@@ -6,13 +6,13 @@ class Python < AbstractOsqueryFormula
   url "https://www.python.org/ftp/python/2.7.12/Python-2.7.12.tar.xz"
   sha256 "d7837121dd5652a05fef807c361909d255d173280c4e1a4ded94d73d80a1f978"
   head "https://hg.python.org/cpython", :using => :hg, :branch => "2.7"
-  revision 1
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "1265af027b94fa87f2323de0dea0a820f415ea1d4adc73b70d3de85defa0c61c" => :sierra
-    sha256 "0be76c72908afd57aed0a2754a6970798814b460cb110eebbe11e2142aaa4a0b" => :x86_64_linux
+    sha256 "2895581daeec574c385abeca58aff5e37baed1f7c68ab6fc6ad731f2046bf2fe" => :sierra
+    sha256 "a5420996c1a69dd7a556da351c5df300b3b08ac2c35d934f242ea22e41c24a4b" => :x86_64_linux
   end
 
   option :universal
@@ -110,6 +110,8 @@ class Python < AbstractOsqueryFormula
       --datadir=#{share}
       #{OS.mac? ? "--enable-framework=#{frameworks}" : "--enable-shared"}
       --without-ensurepip
+      --disable-shared
+      --enable-static
     ]
 
     args << "--without-gcc" if ENV.compiler == :clang

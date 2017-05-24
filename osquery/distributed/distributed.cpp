@@ -27,6 +27,7 @@ namespace osquery {
 
 const std::string kDistributedQueryPrefix{"distributed."};
 
+
 Status Distributed::pullUpdates() {
   auto distributed_plugin = RegistryFactory::get().getActive("distributed");
   if (!RegistryFactory::get().exists("distributed", distributed_plugin)) {
@@ -94,6 +95,9 @@ Status Distributed::runQueries() {
     auto request = popRequest();
     LOG(INFO) << "Executing distributed query: " << request.id << ": "
               << request.query;
+
+    // Keep track of the currently executing request
+    Distributed::setCurrentRequestId(request.id);
 
     SQL sql(request.query);
     if (!sql.getStatus().ok()) {

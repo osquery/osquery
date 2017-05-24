@@ -71,7 +71,8 @@ bool PlatformProcess::operator!=(const PlatformProcess& process) const {
 }
 
 int PlatformProcess::pid() const {
-  return static_cast<int>(::GetProcessId(id_));
+  auto pid = (id_ == INVALID_HANDLE_VALUE) ? -1 : GetProcessId(id_);
+  return static_cast<int>(pid);
 }
 
 bool PlatformProcess::kill() const {
@@ -338,4 +339,4 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
 
   return process;
 }
-}
+} // namespace osquery

@@ -13,8 +13,8 @@ ADD_OSQUERY_TEST_CORE(${OSQUERY_LOGGER_TESTS})
 
 set(OSQUERY_LOGGER_PLUGINS
   "plugins/buffered.cpp"
-  "plugins/filesystem.cpp"
-  "plugins/tls.cpp"
+  "plugins/filesystem_logger.cpp"
+  "plugins/tls_logger.cpp"
   "plugins/stdout.cpp"
 )
 

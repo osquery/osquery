@@ -542,7 +542,7 @@ class ConfigRefreshRunner : public InternalRunnable {
  * as it is a single event. But some configuration plugins may update running
  * configurations.
  *
- * @parms json A mutable input/output string that will contain stripped JSON.
+ * @param json A mutable input/output string that will contain stripped JSON.
  */
 void stripConfigComments(std::string& json);
 }

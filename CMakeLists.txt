@@ -151,6 +151,8 @@ if(POSIX)
     -pipe
     -fdata-sections
     -ffunction-sections
+    -fvisibility=hidden
+    -fvisibility-inlines-hidden
   )
 endif()
 
@@ -227,7 +229,7 @@ else()
     )
     if (CMAKE_CXX_COMPILER MATCHES "clang" AND NOT FREEBSD)
       # Only enale LTO builds when using clang on Unix, for now
-      add_compile_options(-flto)
+      add_compile_options(-flto=thin)
     endif()
   endif()
 endif()
@@ -324,8 +326,8 @@ if(WINDOWS)
 elseif(NOT FREEBSD)
   if (CMAKE_CXX_COMPILER MATCHES "clang")
     # Clang on Unix uses LTO; we also need to pass -flto when linking
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto=thin")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto=thin")
   endif()
 endif()
 

@@ -17,6 +17,7 @@
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/dispatcher.h>
+#include <osquery/distributed.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -116,7 +117,8 @@ QueryData genCarves(QueryContext& context) {
       LOG(WARNING) << "Error inserting new carve entry into the database: "
                    << s.getMessage();
     } else {
-      Dispatcher::addService(std::make_shared<Carver>(paths, guid));
+      auto requestId = Distributed::getCurrentRequestId();
+      Dispatcher::addService(std::make_shared<Carver>(paths, guid, requestId));
     }
   }
   enumerateCarves(results);

@@ -177,6 +177,7 @@ endif()
 if(APPLE)
   ADD_OSQUERY_LINK_CORE("-Wl,-dead_strip")
   ADD_OSQUERY_LINK_CORE("-mmacosx-version-min=${OSX_VERSION_MIN}")
+  ADD_OSQUERY_LINK_CORE("-Wl,-cache_path_lto,${CMAKE_BINARY_DIR}/ltocache")
 elseif(LINUX OR FREEBSD)
   ADD_OSQUERY_LINK_CORE("-Wl,-zrelro -Wl,-znow")
   if(NOT DEFINED ENV{SANITIZE} AND NOT DEFINED ENV{DEBUG})
@@ -196,6 +197,9 @@ if(LINUX)
   endif()
   # For Ubuntu/CentOS packages add the build SHA1.
   ADD_OSQUERY_LINK_CORE("-Wl,--build-id")
+  if (CMAKE_CXX_COMPILER MATCHES "clang")
+    ADD_OSQUERY_LINK_CORE("-fuse-ld=lld")
+  endif()
 endif()
 
 # Bubble the subdirectory (component) sources and links for this build.
@@ -398,7 +402,4 @@ if(NOT SKIP_TESTS)
 
   # Build the example extension with the SDK.
   ADD_OSQUERY_EXTENSION(example_extension examples/example_extension.cpp)
-
-  # Build the example extension module with the SDK.
-  ADD_OSQUERY_MODULE(modexample examples/example_module.cpp)
 endif()

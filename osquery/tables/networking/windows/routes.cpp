@@ -123,8 +123,6 @@ QueryData genRoutes(QueryContext& context) {
       InetNtop(addrFamily, (PVOID)&ipAddress, buffer.data(), buffer.size());
       r["destination"] = SQL_TEXT(buffer.data());
       buffer.clear();
-      InetNtop(addrFamily, (PVOID)&gateway, buffer.data(), buffer.size());
-      r["gateway"] = SQL_TEXT(buffer.data());
 
       // The software loopback is not returned by GetAdaptersInfo, so any
       // lookups into that index must be skipped and default values set.
@@ -133,6 +131,7 @@ QueryData genRoutes(QueryContext& context) {
         try {
           actualAdapter = adapters.at(currentRow.InterfaceIndex);
           interfaceIpAddress = actualAdapter.IpAddressList.IpAddress.String;
+          r["gateway"] = SQL_TEXT(actualAdapter.GatewayList.IpAddress.String);
           r["mtu"] = INTEGER(actualInterface.NlMtu);
         } catch (const std::out_of_range& oor) {
           LOG(ERROR) << "Error looking up interface "
@@ -141,7 +140,10 @@ QueryData genRoutes(QueryContext& context) {
         }
       } else {
         interfaceIpAddress = "127.0.0.1";
+        InetNtop(addrFamily, (PVOID)&gateway, buffer.data(), buffer.size());
+        r["gateway"] = SQL_TEXT(buffer.data());
         r["mtu"] = UNSIGNED_BIGINT(0xFFFFFFFF);
+        buffer.clear();
       }
       r["type"] = currentRow.Loopback ? "local" : "remote";
     }

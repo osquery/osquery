@@ -193,18 +193,6 @@ QueryData genOsqueryExtensions(QueryContext& context) {
     }
   }
 
-  auto modules = RegistryFactory::get().getModules();
-  for (const auto& module : modules) {
-    Row r;
-    r["uuid"] = SQL_TEXT(module.first);
-    r["name"] = module.second.name;
-    r["version"] = module.second.version;
-    r["sdk_version"] = module.second.sdk_version;
-    r["path"] = module.second.path;
-    r["type"] = "module";
-    results.push_back(r);
-  }
-
   return results;
 }
 
