@@ -135,10 +135,6 @@ osqueryd may depend on a config plugin from an extension. If the requested confi
 Seconds delay between extension connectivity checks.
 Extensions are loaded as processes. They are expected to start a thrift service thread. The osqueryd process will continue to check this API. If an extension process is incorrectly stopped, osqueryd will detect the connectivity failure and unregister the extension.
 
-`--modules_autoload=/etc/osquery/modules.load`
-
-Optional path to a list of autoloaded library module-based extensions. Modules are similar to extensions but are loaded as shared libraries. They are less flexible and should be built using the same GCC runtime and developer dependency library versions as osqueryd. See the extensions [deployment](../deployment/extensions.md) page for more details on extension module autoloading.
-
 `--extensions_require=custom1,custom1`
 
 Optional comma-delimited set of extension names to require before **osqueryi** or **osqueryd** will start. The tool will fail if the extension has not started according to the interval and timeout.
