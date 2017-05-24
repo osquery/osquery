@@ -95,12 +95,15 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
     if (aKey.at("name") == "Owners") {
       r["inf"] = SQL_TEXT(aKey.at("data"));
     }
+    std::string major_version = "0";
+    std::string minor_version = "0";
     if (aKey.at("name") == "DriverMajorVersion") {
-      r["major_version"] = SQL_TEXT(aKey.at("data"));
+      major_version = SQL_TEXT(aKey.at("data"));
     }
     if (aKey.at("name") == "DriverMinorVersion") {
-      r["minor_version"] = SQL_TEXT(aKey.at("data"));
+      minor_version = SQL_TEXT(aKey.at("data"));
     }
+    r["version"] = major_version + "." + minor_version;
   }
 
   // Remove the driver from loadedDrivers list to avoid duplicates
