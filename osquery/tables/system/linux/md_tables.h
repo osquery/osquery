@@ -67,7 +67,7 @@ class MDInterface {
    *
    * @return bool indicating success of system call
    */
-  virtual bool getDiskInfo(std::string arrayName,
+  virtual bool getDiskInfo(const std::string& arrayName,
                            mdu_disk_info_t& diskInfo) = 0;
 
   /**
@@ -78,7 +78,8 @@ class MDInterface {
    *
    * @return bool indicating success of system call
    */
-  virtual bool getArrayInfo(std::string name, mdu_array_info_t& array) = 0;
+  virtual bool getArrayInfo(const std::string& name,
+                            mdu_array_info_t& array) = 0;
 
   /**
    * @brief Parse mdstat text blob into MDStat struct
@@ -91,7 +92,8 @@ class MDInterface {
    * and moves on.
    *
    */
-  virtual void parseMDStat(std::vector<std::string> lines, MDStat& result) = 0;
+  virtual void parseMDStat(const std::vector<std::string>& lines,
+                           MDStat& result) = 0;
 
   /**
    * @brief gets the path to device driver by short name
@@ -99,7 +101,7 @@ class MDInterface {
    * @param name name of the device, ie. `md0`
    *
    */
-  virtual std::string getPathByDevName(std::string name) = 0;
+  virtual std::string getPathByDevName(const std::string& name) = 0;
 
   /**
    * @brief gets the device name by its major and minor number
@@ -116,7 +118,7 @@ class MDInterface {
    * @param name name of the array device
    *
    */
-  virtual std::string getSuperblkVersion(std::string arrayName) = 0;
+  virtual std::string getSuperblkVersion(const std::string& arrayName) = 0;
 
  public:
   virtual ~MDInterface() {}
@@ -132,7 +134,8 @@ class MD : public MDInterface {
    *
    * @return bool indicating success of system call
    */
-  bool getDiskInfo(std::string arrayName, mdu_disk_info_t& diskInfo) override;
+  bool getDiskInfo(const std::string& arrayName,
+                   mdu_disk_info_t& diskInfo) override;
 
   /**
    * @brief request array information from MD drivers
@@ -142,7 +145,7 @@ class MD : public MDInterface {
    *
    * @return bool indicating success of system call
    */
-  bool getArrayInfo(std::string name, mdu_array_info_t& array) override;
+  bool getArrayInfo(const std::string& name, mdu_array_info_t& array) override;
 
   /**
    * @brief Parse mdstat text blob into MDStat struct
@@ -155,7 +158,8 @@ class MD : public MDInterface {
    * and moves on.
    *
    */
-  void parseMDStat(std::vector<std::string> lines, MDStat& result) override;
+  void parseMDStat(const std::vector<std::string>& lines,
+                   MDStat& result) override;
 
   /**
    * @brief gets the path to device driver by short name
@@ -163,7 +167,7 @@ class MD : public MDInterface {
    * @param name name of the device, ie. `md0`
    *
    */
-  std::string getPathByDevName(std::string name) override;
+  std::string getPathByDevName(const std::string& name) override;
 
   /**
    * @brief gets the device name by its major and minor number
@@ -180,7 +184,7 @@ class MD : public MDInterface {
    * @param name name of the array device
    *
    */
-  std::string getSuperblkVersion(std::string arrayName) override;
+  std::string getSuperblkVersion(const std::string& arrayName) override;
 };
 
 /**
@@ -190,7 +194,9 @@ class MD : public MDInterface {
  * @param data QueryData to be filed out
  *
  */
-void getDrivesForArray(std::string arrayName, MDInterface& md, QueryData& data);
+void getDrivesForArray(const std::string& arrayName,
+                       MDInterface& md,
+                       QueryData& data);
 
 } // namespace tables
 } // namespace osquery

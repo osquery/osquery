@@ -23,12 +23,12 @@ namespace tables {
 
 class MockMD : public MDInterface {
  public:
-  MOCK_METHOD2(getDiskInfo, bool(std::string, mdu_disk_info_t&));
-  MOCK_METHOD2(getArrayInfo, bool(std::string, mdu_array_info_t&));
-  MOCK_METHOD2(parseMDStat, void(std::vector<std::string>, MDStat&));
-  MOCK_METHOD1(getPathByDevName, std::string(std::string));
+  MOCK_METHOD2(getDiskInfo, bool(const std::string&, mdu_disk_info_t&));
+  MOCK_METHOD2(getArrayInfo, bool(const std::string&, mdu_array_info_t&));
+  MOCK_METHOD2(parseMDStat, void(const std::vector<std::string>&, MDStat&));
+  MOCK_METHOD1(getPathByDevName, std::string(const std::string&));
   MOCK_METHOD2(getDevName, std::string(int, int));
-  MOCK_METHOD1(getSuperblkVersion, std::string(std::string));
+  MOCK_METHOD1(getSuperblkVersion, std::string(const std::string&));
 };
 
 class GetDrivesForArrayTest : public ::testing::Test {};
@@ -498,13 +498,13 @@ TEST_F(GetDrivesForArrayTest, scattered_faulty_and_removed) {
           {"md_device_name", arrayName},
           {"drive_name", blkDevicePrefix + "9"},
           {"state", "faulty"},
-          {"slot", "2"},
+          {"slot", "0"},
       },
       {
           {"md_device_name", arrayName},
           {"drive_name", blkDevicePrefix + "17"},
           {"state", "faulty"},
-          {"slot", "0"},
+          {"slot", "2"},
       },
       {
           {"md_device_name", arrayName},
@@ -676,8 +676,10 @@ TEST_F(ParseMDStatTest, 2_devices_1_missing_each) {
       "[raid5] [raid4]",
       "md1 : active raid10 sde2[4] sdd2[3] sdc2[6] sdb2[7] sda2[0]",
       "4687296000 blocks super 1.2 512K chunks 2 near-copies [6/5] [UUUUU_]",
+      "",
       "md0 : active raid1 sde1[4] sdf1[5] sdd1[3] sdb1[1] sda1[0]",
       "248640 blocks super 1.2 [6/5] [UU_UUU]",
+      "",
       "unused devices: <none>",
   };
 
@@ -743,8 +745,10 @@ TEST_F(ParseMDStatTest, 2_devices_1_recovery) {
       "4687296000 blocks super 1.2 512K chunks 2 near-copies [6/5] [UUUUU_]",
       "[>....................]  recovery =  0.0% (1021056/1562432000) "
       "finish=127.4min speed=204211K/sec",
+      "",
       "md0 : active raid1 sde1[4] sdf1[5] sdd1[3] sdb1[1] sda1[0]",
       "248640 blocks super 1.2 [6/5] [UU_UUU]",
+      "",
       "unused devices: <none>",
   };
 
@@ -815,8 +819,10 @@ TEST_F(ParseMDStatTest, 2_devices_2_actions) {
       "finish=127.4min speed=204211K/sec",
       "[======>..............]  check = 34.1% (716160/2095040) finish=0.0min "
       "speed=238720K/sec",
+      "",
       "md0 : active raid1 sde1[4] sdf1[5] sdd1[3] sdb1[1] sda1[0]",
       "248640 blocks super 1.2 [6/5] [UU_UUU]",
+      "",
       "unused devices: <none>",
   };
 
@@ -888,9 +894,11 @@ TEST_F(ParseMDStatTest, 2_devices_1_recovery_1_delay) {
       "4687296000 blocks super 1.2 512K chunks 2 near-copies [6/5] [UUUUU_]",
       "[>....................]  recovery =  0.0% (1021056/1562432000) "
       "finish=127.4min speed=204211K/sec",
+      "",
       "md0 : active raid1 sde1[4] sdf1[5] sdd1[3] sdb1[1] sda1[0]",
       "248640 blocks super 1.2 [6/5] [UU_UUU]",
       "resync=DELAYED",
+      "",
       "unused devices: <none>",
   };
 
@@ -961,8 +969,10 @@ TEST_F(ParseMDStatTest, 2_devices_1_recovery_bitmap) {
       "bitmap: 0/234 pages [0KB], 512KB chunk",
       "[>....................]  recovery =  0.0% (1021056/1562432000) "
       "finish=127.4min speed=204211K/sec",
+      "",
       "md0 : active raid1 sde1[4] sdf1[5] sdd1[3] sdb1[1] sda1[0]",
       "248640 blocks super 1.2 [6/5] [UU_UUU]",
+      "",
       "unused devices: <none>",
   };
 
@@ -1033,8 +1043,10 @@ TEST_F(ParseMDStatTest, 2_devices_1_recovery_bitmap_file) {
       "4687296000 blocks super 1.2 512K chunks 2 near-copies [6/5] [UUUUU_]",
       "bitmap: 5/113 pages [20KB], 8192KB chunk, file: "
       "/WIBS/<node>:md0/WIB_<node>:md0",
+      "",
       "md0 : active raid1 sde1[4] sdf1[5] sdd1[3] sdb1[1] sda1[0]",
       "248640 blocks super 1.2 [6/5] [UU_UUU]",
+      "",
       "unused devices: <none>",
   };
 

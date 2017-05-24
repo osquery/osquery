@@ -19,10 +19,12 @@
 
 #include <fstream>
 #include <memory>
+#include <numeric>
 
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core/conversions.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
 #include "osquery/events/linux/udev.h"
@@ -37,10 +39,9 @@ std::string kMDStatPath = "/proc/mdstat";
  * @brief Removes prefixing and suffixing character from each string in vector
  *
  * @param strs reference to vector of target strings
- * @param c character to remove
  *
  */
-void trimStrs(std::vector<std::string>& strs) {
+static inline void trimStrs(std::vector<std::string>& strs) {
   for (auto& s : strs) {
     boost::algorithm::trim(s);
   }
@@ -54,21 +55,20 @@ void trimStrs(std::vector<std::string>& strs) {
  * Trims all white space in lines and ignores empty lines (i.e. only spaces,
  * tabs, etc.)
  */
-inline void getLines(std::vector<std::string>& lines) {
-  std::ifstream handle(kMDStatPath);
-
-  std::string line;
-  if (handle.is_open()) {
-    while (getline(handle, line)) {
-      boost::algorithm::trim(line);
-
-      if (line.find_first_not_of("\t\r\v ") != std::string::npos) {
-        lines.push_back(line);
-      }
-    }
-
-    handle.close();
+static inline void getLines(std::vector<std::string>& lines) {
+  Status status(pathExists(kMDStatPath));
+  if (status.getCode() != 0) {
+    return;
   }
+
+  std::string content("");
+  status = readFile(kMDStatPath, content);
+  if (status.getCode() != 0) {
+    return;
+  }
+
+  lines = split(content, "\n");
+  trimStrs(lines);
 }
 
 /**
@@ -79,8 +79,8 @@ inline void getLines(std::vector<std::string>& lines) {
  * device loop, false to keep walking
  *
  */
-void walkUdevDevices(std::string systemName,
-                     std::function<bool(udev_device* const&)> f) {
+void walkUdevDevices(const std::string& systemName,
+                     const std::function<bool(udev_device* const&)>& f) {
   auto delUdev = [](udev* u) { udev_unref(u); };
   std::unique_ptr<udev, decltype(delUdev)> handle(udev_new(), delUdev);
   if (handle.get() == nullptr) {
@@ -112,14 +112,14 @@ void walkUdevDevices(std::string systemName,
       LOG(ERROR) << "Could not get udev device handle\n";
       continue;
     }
-    if (f(device.get())) {
+    if (f(device.get()) == true) {
       break;
     }
   }
 }
 
-std::string MD::getPathByDevName(std::string name) {
-  std::string devPath;
+std::string MD::getPathByDevName(const std::string& name) {
+  std::string devPath("");
 
   walkUdevDevices("block", [&](udev_device* const& device) {
     const char* devName = udev_device_get_property_value(device, "DEVNAME");
@@ -157,8 +157,8 @@ std::string MD::getDevName(int major, int minor) {
   return devName;
 }
 
-std::string MD::getSuperblkVersion(std::string arrayName) {
-  std::string version;
+std::string MD::getSuperblkVersion(const std::string& arrayName) {
+  std::string version("");
 
   walkUdevDevices("block", [&](udev_device* const& device) {
     const char* devName = udev_device_get_property_value(device, "DEVNAME");
@@ -188,42 +188,43 @@ std::string getDiskStateStr(int state) {
   if (state == 0)
     return "recovering";
 
-  std::string s;
+  std::string s("");
 
-  if ((1 << MD_DISK_FAULTY) & state)
-    s += "faulty ";
-
-  if ((1 << MD_DISK_ACTIVE) & state)
-    s += "active ";
-
-  if ((1 << MD_DISK_SYNC) & state)
-    s += "sync ";
-
-  if ((1 << MD_DISK_REMOVED) & state)
-    s += "removed ";
-
-  if ((1 << MD_DISK_WRITEMOSTLY) & state)
-    s += "writemostly ";
-
+  std::map<int, std::string> possibleStates = {
+#ifdef MD_DISK_FAULTY
+      {MD_DISK_FAULTY, "faulty "},
+#endif
+#ifdef MD_DISK_ACTIVE
+      {MD_DISK_ACTIVE, "active "},
+#endif
+#ifdef MD_DISK_SYNC
+      {MD_DISK_SYNC, "sync "},
+#endif
+#ifdef MD_DISK_REMOVED
+      {MD_DISK_REMOVED, "removed "},
+#endif
+#ifdef MD_DISK_WRITEMOSTLY
+      {MD_DISK_WRITEMOSTLY, "writemostly "},
+#endif
 #ifdef MD_DISK_FAILFAST
-  if ((1 << MD_DISK_FAILFAST) & state)
-    s += "failfast ";
+      {MD_DISK_FAILFAST, "failfast "},
 #endif
-
 #ifdef MD_DISK_JOURNAL
-  if ((1 << MD_DISK_JOURNAL) & state)
-    s += "journal ";
+      {MD_DISK_JOURNAL, "journal "},
 #endif
-
 #ifdef MD_DISK_CANDIDATE
-  if ((1 << MD_DISK_CANDIDATE) & state)
-    s += "spare ";
+      {MD_DISK_CANDIDATE, "spare "},
 #endif
-
 #ifdef MD_DISK_CLUSTER_ADD
-  if ((1 << MD_DISK_CLUSTER_ADD) & 1)
-    s += "clusteradd ";
+      {MD_DISK_CLUSTER_ADD, "clusteradd "},
 #endif
+  };
+
+  for (auto const& ps : possibleStates) {
+    if ((1 << ps.first) & state) {
+      s += ps.second;
+    }
+  }
 
   boost::algorithm::trim(s);
   return s;
@@ -240,57 +241,52 @@ std::string getSuperBlkStateStr(int state) {
   if (state == 0)
     return "unknown";
 
-  std::string s;
+  std::string s("");
 
+  std::map<int, std::string> possibleStates = {
 #ifdef MD_SB_CLEAN
-  if ((1 << MD_SB_CLEAN) & state)
-    s += "clean ";
+      {MD_SB_CLEAN, "clean "},
 #endif
-
 #ifdef MD_SB_ERRORS
-  if ((1 << MD_SB_ERRORS) & state)
-    s += "errors ";
+      {MD_SB_ERRORS, "errors "},
 #endif
-
 #ifdef MD_SB_BBM_ERRORS
-  if ((1 << MD_SB_BBM_ERRORS) & state)
-    s += "bbm_errors ";
+      {MD_SB_BBM_ERRORS, "bbm_errors "},
 #endif
-
 #ifdef MD_SB_BLOCK_CONTAINER_RESHAPE
-  if ((1 << MD_SB_BLOCK_CONTAINER_RESHAPE) & 1)
-    s += "container_reshape ";
+      {MD_SB_BLOCK_CONTAINER_RESHAPE, "container_reshape "},
 #endif
-
 #ifdef MD_SB_BLOCK_VOLUME
-  if ((1 << MD_SB_BLOCK_VOLUME) & 1)
-    s += "block_activation ";
+      {MD_SB_BLOCK_VOLUME, "block_activation "},
 #endif
-
 #ifdef MD_SB_CLUSTERED
-  if ((1 << MD_SB_CLUSTERED) & 1)
-    s += "clustered ";
+      {MD_SB_CLUSTERED, "clustered "},
 #endif
-
 #ifdef MD_SB_BITMAP_PRESENT
-  if ((1 << MD_SB_BITMAP_PRESENT) & 1)
-    s += "bitmap_present ";
+      {MD_SB_BITMAP_PRESENT, "bitmap_present "},
 #endif
+  };
+
+  for (auto const& ps : possibleStates) {
+    if ((1 << ps.first) & state) {
+      s += ps.second;
+    }
+  }
 
   boost::algorithm::trim(s);
   return s;
 }
 
 // For use with unique_ptr of file close as a hacky way of preventing fd leaks
-auto fClose = [](int* fd) { close(*fd); };
+auto const kFClose = [](int* fd) { close(*fd); };
 
-bool MD::getDiskInfo(std::string arrayName, mdu_disk_info_t& diskInfo) {
+bool MD::getDiskInfo(const std::string& arrayName, mdu_disk_info_t& diskInfo) {
   std::map<std::string, std::string> results;
-  int fd;
+  int fd = 0;
 
-  std::unique_ptr<int, decltype(fClose)> _(
-      &(fd = open(arrayName.c_str(), O_RDONLY)), fClose);
-  int status = ioctl(fd, GET_DISK_INFO, &diskInfo);
+  std::unique_ptr<int, decltype(kFClose)> _(
+      &(fd = open(arrayName.c_str(), O_RDONLY)), kFClose);
+  auto status = ioctl(fd, GET_DISK_INFO, &diskInfo);
 
   if (status == -1) {
     LOG(WARNING) << "Call to ioctl 'GET_DISK_INFO' " << arrayName
@@ -301,13 +297,13 @@ bool MD::getDiskInfo(std::string arrayName, mdu_disk_info_t& diskInfo) {
   return true;
 }
 
-bool MD::getArrayInfo(std::string name, mdu_array_info_t& array) {
+bool MD::getArrayInfo(const std::string& name, mdu_array_info_t& array) {
   std::map<std::string, std::string> results;
-  int fd;
+  int fd = 0;
 
-  std::unique_ptr<int, decltype(fClose)> _(&(fd = open(name.c_str(), O_RDONLY)),
-                                           fClose);
-  int status = ioctl(fd, GET_ARRAY_INFO, &array);
+  std::unique_ptr<int, decltype(kFClose)> _(
+      &(fd = open(name.c_str(), O_RDONLY)), kFClose);
+  auto status = ioctl(fd, GET_ARRAY_INFO, &array);
 
   if (status == -1) {
     LOG(ERROR) << "Call to ioctl 'GET_ARRAY_INFO' for " << name
@@ -318,19 +314,21 @@ bool MD::getArrayInfo(std::string name, mdu_array_info_t& array) {
   return true;
 }
 
-inline void parseMDPersonalities(std::string& line,
+inline void parseMDPersonalities(const std::string& line,
                                  std::vector<std::string>& result) {
-  std::vector<std::string> enabledPersonalities = split(line, " ");
+  auto enabledPersonalities(split(line, " "));
   for (auto& p : enabledPersonalities) {
     boost::algorithm::trim(p);
-    result.push_back(p.substr(1, p.length() - 2));
+    if (p.length() > 2) {
+      result.push_back(p.substr(1, p.length() - 2));
+    }
   }
 }
 
-void parseMDAction(std::string& line, MDAction& result) {
+void parseMDAction(const std::string& line, MDAction& result) {
   /* Make assumption that recovery/resync format is [d+]% ([d+]/[d+])
    * finish=<duration> speed=<rate> */
-  std::vector<std::string> pieces(split(line, " "));
+  auto pieces(split(line, " "));
   if (pieces.size() != 4) {
     LOG(WARNING) << "Unexpected recovery/resync line format: " << line;
     return;
@@ -339,7 +337,7 @@ void parseMDAction(std::string& line, MDAction& result) {
 
   result.progress = pieces[0] + " " + pieces[1];
 
-  std::size_t start = pieces[2].find_first_not_of("finish=");
+  auto start = pieces[2].find_first_not_of("finish=");
   if (start != std::string::npos) {
     result.finish = pieces[2].substr(start);
 
@@ -356,8 +354,8 @@ void parseMDAction(std::string& line, MDAction& result) {
   }
 }
 
-void parseMDBitmap(std::string& line, MDBitmap& result) {
-  std::vector<std::string> bitmapInfos(split(line, ","));
+void parseMDBitmap(const std::string& line, MDBitmap& result) {
+  auto bitmapInfos(split(line, ","));
   if (bitmapInfos.size() < 2) {
     LOG(WARNING) << "Unexpected bitmap line structure: " << line;
 
@@ -366,21 +364,22 @@ void parseMDBitmap(std::string& line, MDBitmap& result) {
     result.onMem = bitmapInfos[0];
     result.chunkSize = bitmapInfos[1];
 
-    std::size_t pos;
-    if (bitmapInfos.size() > 2 &&
-        (pos = bitmapInfos[2].find("file:")) != std::string::npos) {
-      result.externalFile = bitmapInfos[2].substr(pos + sizeof("file:") - 1);
-      boost::algorithm::trim(result.externalFile);
+    if (bitmapInfos.size() > 2) {
+      auto pos = bitmapInfos[2].find("file:");
+      if (pos != std::string::npos) {
+        result.externalFile = bitmapInfos[2].substr(pos + sizeof("file:") - 1);
+        boost::algorithm::trim(result.externalFile);
+      }
     }
   }
 }
 
-MDDrive parseMDDrive(std::string& name) {
+MDDrive parseMDDrive(const std::string& name) {
   MDDrive drive;
   drive.name = name;
 
-  std::size_t start = name.find('[');
-  std::size_t end = name.find(']');
+  auto start = name.find('[');
+  auto end = name.find(']');
   if (start == std::string::npos || end == std::string::npos) {
     LOG(WARNING) << "Unexpected drive name format: " << name;
     return drive;
@@ -391,11 +390,11 @@ MDDrive parseMDDrive(std::string& name) {
   return drive;
 }
 
-void MD::parseMDStat(std::vector<std::string> lines, MDStat& result) {
+void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
   // Will be used to determine starting point of lines to work on.
   size_t n = 0;
 
-  if (lines.size() < 1) {
+  if (lines.empty()) {
     return;
   }
 
@@ -411,25 +410,29 @@ void MD::parseMDStat(std::vector<std::string> lines, MDStat& result) {
   }
 
   while (n < lines.size()) {
+    if (lines[n].find_first_not_of("\t\r\v ") == std::string::npos) {
+      n += 1;
+      continue;
+    }
     // Work off of first 2 character instead of just the first to be safe.
     std::string firstTwo = lines[n].substr(0, 2);
     if (firstTwo == "md") {
-      std::vector<std::string> mdline = split(lines[n], ":", 1);
+      auto mdline(split(lines[n], ":", 1));
       if (mdline.size() < 2) {
         LOG(WARNING) << "Unexpected md device line structure: " << lines[n];
         continue;
       }
 
       MDDevice mdd;
-      mdd.name = mdline[0];
+      mdd.name = std::move(mdline[0]);
       boost::algorithm::trim(mdd.name);
 
-      std::vector<std::string> settings = split(mdline[1], " ");
+      auto settings(split(mdline[1], " "));
       trimStrs(settings);
       // First 2 of settings are always status and RAID level
       if (settings.size() >= 2) {
-        mdd.status = settings[0];
-        mdd.raidLevel = settings[1];
+        mdd.status = std::move(settings[0]);
+        mdd.raidLevel = std::move(settings[1]);
 
         for (size_t i = 2; i < settings.size(); i++) {
           mdd.drives.push_back(parseMDDrive(settings[i]));
@@ -437,16 +440,25 @@ void MD::parseMDStat(std::vector<std::string> lines, MDStat& result) {
       }
 
       /* Next line is device config and settings.  We handle here instead of
-       * later b/c pieces are need for both md_drives and md_devices table */
-      std::vector<std::string> configline = split(lines[n + 1]);
+       * later b/c pieces are need for both md_drives and md_devices table.  For
+       * safety, we check if we at the end of the file. */
+      if (n >= lines.size() - 1) {
+        continue;
+      }
+      auto configline(split(lines[n + 1]));
+
       if (configline.size() < 4) {
         LOG(WARNING) << "Unexpected md device config: " << lines[n + 1];
 
       } else {
         trimStrs(configline);
-        // mdd.usableSize = configline[0] + " " + configline[1];
+
         if (configline[1] == "blocks") {
-          mdd.usableSize = std::stoll(configline[0]);
+          Status status = safeStrtol(configline[0], 10, mdd.usableSize);
+          if (!status.ok()) {
+            LOG(WARNING) << "Could not parse usable size of " << mdd.name;
+          }
+
         } else {
           LOG(WARNING) << "Did not find size in mdstat for " << mdd.name;
         }
@@ -466,7 +478,7 @@ void MD::parseMDStat(std::vector<std::string> lines, MDStat& result) {
 
       // Handle potential bitmap, recovery, and resync lines
       std::size_t pos;
-      while (true) {
+      while (n < lines.size() - 1) {
         if ((pos = lines[n + 1].find("recovery =")) != std::string::npos) {
           std::string recovery(
               lines[n + 1].substr(pos + sizeof("recovery =") - 1));
@@ -534,7 +546,7 @@ void MD::parseMDStat(std::vector<std::string> lines, MDStat& result) {
   }
 }
 
-void getDrivesForArray(std::string arrayName,
+void getDrivesForArray(const std::string& arrayName,
                        MDInterface& md,
                        QueryData& data) {
   std::string path(md.getPathByDevName(arrayName));
@@ -548,7 +560,18 @@ void getDrivesForArray(std::string arrayName,
     return;
   }
 
-  QueryData temp;
+  /* Create a vector of with all expected slot positions.  As we work through
+   * the RAID disks, we remove discovered slots */
+  std::vector<size_t> missingSlots(array.raid_disks);
+  std::iota(missingSlots.begin(), missingSlots.end(), 0);
+
+  /* Keep track of index in QueryData that have removed slots since we can't
+   * make safe assumptions about it's original slot position if disk_number >=
+   * total_disk and we're unable to deteremine total number of missing slots
+   * until we walk thru all MD_SB_DISKS */
+  std::vector<size_t> removedSlots;
+
+  size_t qdPos = data.size();
   for (size_t i = 0; i < MD_SB_DISKS; i++) {
     mdu_disk_info_t disk;
     disk.number = i;
@@ -561,61 +584,52 @@ void getDrivesForArray(std::string arrayName,
       r["md_device_name"] = arrayName;
       r["drive_name"] = md.getDevName(disk.major, disk.minor);
       r["state"] = getDiskStateStr(disk.state);
-      r["slot"] = INTEGER(disk.raid_disk);
 
-      /* We have to check here b/c otherwise we have no idea if the slot has
-       * been recovered.  We assume that if the disk number is less than the
-       * total disk count of the array, that the original slot position;  If the
-       * number is greater than the disk count, then it's not safe to make that
-       * assumption, and we lose precision on the missing slot resolution in the
-       * below block. */
-      if (disk.raid_disk < 0 && disk.number < array.raid_disks) {
+      if (disk.raid_disk >= 0) {
+        r["slot"] = INTEGER(disk.raid_disk);
+        missingSlots.erase(
+            std::remove(
+                missingSlots.begin(), missingSlots.end(), disk.raid_disk),
+            missingSlots.end());
+
+        /* We assume that if the disk number is less than the total disk count
+         * of the array, then it assumes its original slot position;  If the
+         * number is greater than the disk count, then it's not safe to make
+         * that assumption. We do this check here b/c if a recovery is targeted
+         * for the same slot, we potentially miss identifying the original slot
+         * position of the bad disk. */
+      } else if (disk.raid_disk < 0 && disk.number < array.raid_disks) {
         r["slot"] = std::to_string(disk.number);
-      }
+        missingSlots.erase(
+            std::remove(missingSlots.begin(), missingSlots.end(), disk.number),
+            missingSlots.end());
 
-      temp.push_back(r);
-    }
-  }
-
-  // Find removed disks if number of rows don't match with array raid disks
-  for (int slot = 0; slot < array.raid_disks; slot++) {
-    bool found = false;
-    int softRemoved = -1;
-
-    for (size_t i = 0; i < temp.size(); i++) {
-      if (std::stoi(temp[i]["slot"]) == slot) {
-        found = true;
-
-      } else if (std::stoi(temp[i]["slot"]) < 0) {
-        /* Becase we iterate to the end, the softRemoved value will be the last
-         * disk that is marked faulty.  We have to walk over the entire vector,
-         * because a missing slot can show up at a later number. */
-        softRemoved = i;
-      }
-    }
-
-    /* All missing slots must be resolved.  It's feasible duplicate slots per
-     * array b/c a slot can be in a faulty state on one drive prior to becoming
-     * active/recovering on another as long as it has not been removed from the
-     * array.  However, if the  */
-    if (!found) {
-      if (softRemoved > -1) {
-        temp[softRemoved]["slot"] = std::to_string(slot);
-
+        /* Mark QueryData position as a removedSlot to handle later*/
       } else {
-        Row r;
-        r["md_device_name"] = arrayName;
-        r["drive_name"] = "unknown";
-        r["state"] = "removed";
-        r["slot"] = std::to_string(slot);
-        temp.push_back(r);
-        continue;
+        removedSlots.push_back(qdPos);
       }
+
+      qdPos++;
+      data.push_back(r);
     }
   }
 
-  data.reserve(data.size() + temp.size());
-  data.insert(data.end(), temp.begin(), temp.end());
+  /* Handle all missing slots.  See `scattered_faulty_and_removed` unit test in
+   * `./tests/md_tables_tests.cpp`*/
+  for (const auto& slot : missingSlots) {
+    if (!removedSlots.empty()) {
+      data[removedSlots[0]]["slot"] = INTEGER(slot);
+      removedSlots.erase(removedSlots.begin());
+
+    } else {
+      Row r;
+      r["md_device_name"] = arrayName;
+      r["drive_name"] = "unknown";
+      r["state"] = "removed";
+      r["slot"] = std::to_string(slot);
+      data.push_back(r);
+    }
+  }
 }
 
 QueryData genMDDrives(QueryContext& context) {
@@ -627,7 +641,7 @@ QueryData genMDDrives(QueryContext& context) {
 
   md.parseMDStat(lines, mds);
 
-  for (auto& device : mds.devices) {
+  for (const auto& device : mds.devices) {
     getDrivesForArray(device.name, md, results);
   }
 
@@ -643,7 +657,7 @@ QueryData genMDDevices(QueryContext& context) {
   getLines(lines);
 
   md.parseMDStat(lines, mds);
-  for (auto& device : mds.devices) {
+  for (const auto& device : mds.devices) {
     std::string path(md.getPathByDevName(device.name));
     if (path == "") {
       LOG(ERROR) << "Could not get file path for " << device.name;
@@ -651,7 +665,7 @@ QueryData genMDDevices(QueryContext& context) {
     }
 
     mdu_array_info_t array;
-    if (!md.getArrayInfo(path, array)) {
+    if (md.getArrayInfo(path, array) != true) {
       return results;
     }
 
@@ -721,7 +735,7 @@ QueryData genMDPersonalities(QueryContext& context) {
 
   md.parseMDStat(lines, mds);
 
-  for (auto& name : mds.personalities) {
+  for (const auto& name : mds.personalities) {
     Row r = {{"name", name}};
 
     results.push_back(r);
