@@ -13,6 +13,7 @@
 #include <csignal>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -371,4 +372,11 @@ struct tm* gmtime_r(time_t* t, struct tm* result);
 
 struct tm* localtime_r(time_t* t, struct tm* result);
 #endif
+
+/**
+ * @brief Start a file carve of the given paths
+ *
+ * @return A status returning if the carves were started successfully
+ */
+Status carvePaths(const std::set<std::string>& paths);
 } // namespace osquery

@@ -35,12 +35,6 @@ std::string generateNewUUID();
 
 namespace tables {
 
-/// Database domain where we store carve table entries
-const std::string kCarveDbDomain = "carves";
-
-/// Database prefix used to directly access and manipulate our carver entries
-const std::string kCarverDBPrefix = "carves.";
-
 void enumerateCarves(QueryData& results) {
   std::vector<std::string> carves;
   scanDatabaseKeys(kCarveDbDomain, carves, kCarverDBPrefix);
@@ -96,30 +90,7 @@ QueryData genCarves(QueryContext& context) {
 
   if (context.constraints["carve"].exists(EQUALS) && paths.size() > 0 &&
       !FLAGS_disable_carver) {
-    auto guid = generateNewUUID();
-
-    pt::ptree tree;
-    tree.put("carve_guid", guid);
-    tree.put("time", getUnixTime());
-    tree.put("status", "STARTING");
-    tree.put("sha256", "");
-    tree.put("size", -1);
-    if (paths.size() > 1) {
-      tree.put("path", boost::algorithm::join(paths, ","));
-    } else {
-      tree.put("path", *(paths.begin()));
-    }
-
-    std::ostringstream os;
-    pt::write_json(os, tree, false);
-    auto s = setDatabaseValue(kCarveDbDomain, kCarverDBPrefix + guid, os.str());
-    if (!s.ok()) {
-      LOG(WARNING) << "Error inserting new carve entry into the database: "
-                   << s.getMessage();
-    } else {
-      auto requestId = Distributed::getCurrentRequestId();
-      Dispatcher::addService(std::make_shared<Carver>(paths, guid, requestId));
-    }
+    carvePaths(paths);
   }
   enumerateCarves(results);
 
