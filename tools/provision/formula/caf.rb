@@ -4,8 +4,8 @@ class Caf < AbstractOsqueryFormula
   desc "Implementation of the Actor Model for C++"
   homepage "https://actor-framework.org/"
   url "https://github.com/actor-framework/actor-framework.git",
-        :revision => "09d32c7267acd7552b722d918107863592e91d53"
-  sha256 "afc4bc928ecd7d017768e5c85b7300196aa5b70ef11d97e11b21a1ae28ce9d3f"
+        :revision => "9c3822a6e09bb08675f103375a6a643170a36754"
+  #sha256 "afc4bc928ecd7d017768e5c85b7300196aa5b70ef11d97e11b21a1ae28ce9d3f"
   #head "https://github.com/actor-framework/actor-framework.git",
   #  :branch => "develop"
   version "0.14.5"
@@ -69,20 +69,5 @@ index 9a20c5e..6ee9cb2 100644
  if(NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE RelWithDebInfo)
 --
-2.7.4
-diff --git a/libcaf_core/caf/actor.hpp b/libcaf_core/caf/actor.hpp
-index 0561434..8397d7f 100644
---- a/libcaf_core/caf/actor.hpp
-+++ b/libcaf_core/caf/actor.hpp
-@@ -170,6 +170,8 @@ private:
- 
-   actor(abstract_actor*);
- 
-+public:
-+
-   abstract_actor_ptr ptr_;
- };
- 
--- 
 2.7.4
 
