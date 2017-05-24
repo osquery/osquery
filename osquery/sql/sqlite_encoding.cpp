@@ -16,10 +16,16 @@
 
 namespace osquery {
 
+enum B64Type {
+  B64_ENCODE_CONDITIONAL = 1,
+  B64_ENCODE = 2,
+  B64_DECODE = 4,
+};
+
 static void b64SqliteValue(sqlite3_context* ctx,
                            int argc,
                            sqlite3_value** argv,
-                           bool encode) {
+                           unsigned int encode) {
   if (argc == 0) {
     return;
   }
@@ -31,28 +37,46 @@ static void b64SqliteValue(sqlite3_context* ctx,
 
   std::string input((char*)sqlite3_value_text(argv[0]));
   std::string result;
-  if (encode) {
-    result = base64Encode(input);
-  } else {
+  if (encode & B64_ENCODE) {
+    if ((encode & B64_ENCODE_CONDITIONAL) && !isPrintable(input)) {
+      result = base64Encode(input);
+    } else {
+      result = input;
+    }
+  } else if (encode & B64_DECODE) {
     result = base64Decode(input);
   }
   sqlite3_result_text(
       ctx, result.c_str(), static_cast<int>(result.size()), SQLITE_TRANSIENT);
 }
 
+static void sqliteB64ConditionalEncFunc(sqlite3_context* context,
+                                        int argc,
+                                        sqlite3_value** argv) {
+  b64SqliteValue(context, argc, argv, B64_ENCODE | B64_ENCODE_CONDITIONAL);
+}
+
 static void sqliteB64EncFunc(sqlite3_context* context,
                              int argc,
                              sqlite3_value** argv) {
-  b64SqliteValue(context, argc, argv, true);
+  b64SqliteValue(context, argc, argv, B64_ENCODE);
 }
 
 static void sqliteB64DecFunc(sqlite3_context* context,
                              int argc,
                              sqlite3_value** argv) {
-  b64SqliteValue(context, argc, argv, false);
+  b64SqliteValue(context, argc, argv, B64_DECODE);
 }
 
 void registerEncodingExtensions(sqlite3* db) {
+  sqlite3_create_function(db,
+                          "conditional_base64",
+                          1,
+                          SQLITE_UTF8,
+                          nullptr,
+                          sqliteB64ConditionalEncFunc,
+                          nullptr,
+                          nullptr);
   sqlite3_create_function(db,
                           "base64",
                           1,
