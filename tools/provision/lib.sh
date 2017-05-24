@@ -18,12 +18,10 @@ function setup_brew() {
     BREW_REPO=$LINUXBREW_REPO
     BREW_COMMIT=$LINUXBREW_BREW
     CORE_COMMIT=$LINUXBREW_CORE
-    DUPES_COMMIT=$LINUXBREW_DUPES
   else
     BREW_REPO=$HOMEBREW_REPO
     BREW_COMMIT=$HOMEBREW_BREW
     CORE_COMMIT=$HOMEBREW_CORE
-    DUPES_COMMIT=$HOMEBREW_DUPES
   fi
 
   # Checkout new brew in local deps dir
@@ -68,12 +66,6 @@ function setup_brew() {
     $BREW tap homebrew/core --full
     (cd $TAPS/homebrew/homebrew-core && git pull > /dev/null && \
         git reset --hard $CORE_COMMIT)
-
-    # Need dupes for upzip.
-    log "installing and updating Homebrew dupes"
-    $BREW tap homebrew/dupes --full
-    (cd $TAPS/homebrew/homebrew-dupes && git pull > /dev/null && \
-        git reset --hard $DUPES_COMMIT)
   fi
 
   # Create a 'legacy' mirror.
