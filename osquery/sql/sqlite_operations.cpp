@@ -20,9 +20,9 @@
 
 namespace osquery {
 
-static void carveSqliteValue(sqlite3_context* ctx,
-                             int argc,
-                             sqlite3_value** argv) {
+std::set<std::string> paths = {};
+
+static void addCarveFile(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
   if (argc == 0) {
     return;
   }
@@ -32,17 +32,28 @@ static void carveSqliteValue(sqlite3_context* ctx,
     return;
   }
 
-  // Parse and verify the split input parameters.
   std::string path((char*)sqlite3_value_text(argv[0]));
-  std::set<std::string> paths = {path};
+  paths.insert(path);
 
-  carvePaths(paths);
   sqlite3_result_text(
       ctx, path.c_str(), static_cast<int>(path.size()), SQLITE_TRANSIENT);
 }
 
+static void executeCarve(sqlite3_context* ctx) {
+  carvePaths(paths);
+  paths.clear();
+
+  sqlite3_result_text(ctx, "Carve Started", 13, SQLITE_TRANSIENT);
+}
+
 void registerOperationExtensions(sqlite3* db) {
-  sqlite3_create_function(
-      db, "carve", 1, SQLITE_UTF8, nullptr, carveSqliteValue, nullptr, nullptr);
+  sqlite3_create_function(db,
+                          "carve",
+                          1,
+                          SQLITE_UTF8,
+                          nullptr,
+                          nullptr,
+                          addCarveFile,
+                          executeCarve);
 }
 }
