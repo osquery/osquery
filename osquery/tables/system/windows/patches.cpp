@@ -8,11 +8,8 @@
  *
  */
 
-#include <osquery/sql.h>
-#include <osquery/system.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
 namespace osquery {
@@ -22,7 +19,7 @@ QueryData genInstalledPatches(QueryContext& context) {
   QueryData results;
 
   WmiRequest wmiSystemReq("select * from Win32_QuickFixEngineering");
-  std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
+  auto& wmiResults = wmiSystemReq.results();
 
   if (wmiResults.size() != 0) {
     Row r;
@@ -43,5 +40,5 @@ QueryData genInstalledPatches(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
