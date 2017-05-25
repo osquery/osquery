@@ -1,0 +1,9 @@
+table_name("kernel_modules")
+description("Loaded FreeBSD kernel modules.")
+schema([
+    Column("name", TEXT, "Module name"),
+    Column("size", INTEGER, "Size of module content"),
+    Column("refs", INTEGER, "Module reverse dependencies"),
+    Column("address", TEXT, "Kernel module address"),
+])
+implementation("kernel_modules@genKernelModules")
