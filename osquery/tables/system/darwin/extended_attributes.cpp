@@ -99,7 +99,9 @@ void setRow(QueryData &results,
   r["path"] = path;
   r["directory"] = boost::filesystem::path(path).parent_path().string();
   r["key"] = key;
-  r["value"] = value;
+  auto value_printable = isPrintable(value);
+  r["value"] = (value_printable) ? value : base64Encode(value);
+  r["base64"] = (value_printable) ? INTEGER(0) : INTEGER(1);
   results.push_back(r);
 }
 
