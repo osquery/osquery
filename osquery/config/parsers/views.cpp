@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
 #include <set>
 
 #include <osquery/config.h>
@@ -49,6 +50,9 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
     data_.put_child("views", config.at("views"));
   }
   const auto& views = data_.get_child("views");
+
+  // We use a restricted scope below to change the data structure from
+  // an array to a set. This lets us do deletes much more efficiently
   std::vector<std::string> created_views;
   std::set<std::string> erase_views;
   {
@@ -60,7 +64,7 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
   }
   QueryData r;
   for (const auto& view : views) {
-    std::string name = view.first;
+    const auto& name = view.first;
     std::string query = views.get<std::string>(view.first, "");
     if (query.empty()) {
       continue;
@@ -81,6 +85,8 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
       LOG(INFO) << "Error creating view (" << name << "): " << s.getMessage();
     }
   }
+  // Any views left are views that don't exist in the new configuration file
+  // so we tear them down and remove them from the database.
   for (const auto& old_view : erase_views) {
     osquery::query("DROP VIEW " + old_view, r);
     deleteDatabaseValue(kQueries, kConfigViews + old_view);
