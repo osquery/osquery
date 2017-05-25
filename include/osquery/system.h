@@ -13,7 +13,6 @@
 #include <csignal>
 #include <memory>
 #include <mutex>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -272,6 +271,13 @@ class DropPrivileges : private boost::noncopyable {
 std::string getHostname();
 
 /**
+ * @brief Generate a new generic UUID
+ *
+ * @return a string containing a random UUID
+ */
+std::string generateNewUUID();
+
+/**
  * @brief Getter for an instance uuid
  *
  * @return ok on success and ident is set to the instance uuid, otherwise
@@ -372,11 +378,4 @@ struct tm* gmtime_r(time_t* t, struct tm* result);
 
 struct tm* localtime_r(time_t* t, struct tm* result);
 #endif
-
-/**
- * @brief Start a file carve of the given paths
- *
- * @return A status returning if the carves were started successfully
- */
-Status carvePaths(const std::set<std::string>& paths);
 } // namespace osquery

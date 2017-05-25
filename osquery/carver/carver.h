@@ -139,4 +139,10 @@ class Carver : public InternalRunnable {
   friend class CarverTests;
   FRIEND_TEST(CarverTests, test_carve_files_locally);
 };
-}
+/**
+ * @brief Start a file carve of the given paths
+ *
+ * @return A status returning if the carves were started successfully
+ */
+Status carvePaths(const std::set<std::string>& paths);
+} // namespace osquery

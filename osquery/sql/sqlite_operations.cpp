@@ -12,8 +12,7 @@
 #include <set>
 #include <string>
 
-#include <osquery/system.h>
-
+#include "osquery/carver/carver.h"
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/hash.h"
 

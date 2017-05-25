@@ -30,7 +30,6 @@
 #include <ctime>
 #include <sstream>
 
-#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
@@ -41,7 +40,6 @@
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/dispatcher.h>
-#include <osquery/distributed.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -477,29 +475,4 @@ DropPrivileges::~DropPrivileges() {
   }
 }
 #endif
-
-Status carvePaths(const std::set<std::string>& paths) {
-  auto guid = generateNewUUID();
-  pt::ptree tree;
-  tree.put("carve_guid", guid);
-  tree.put("time", getUnixTime());
-  tree.put("status", "STARTING");
-  tree.put("sha256", "");
-  tree.put("size", -1);
-  if (paths.size() > 1) {
-    tree.put("path", boost::algorithm::join(paths, ","));
-  } else {
-    tree.put("path", *(paths.begin()));
-  }
-  std::ostringstream os;
-  pt::write_json(os, tree, false);
-  auto s = setDatabaseValue(kCarveDbDomain, kCarverDBPrefix + guid, os.str());
-  if (!s.ok()) {
-    return s;
-  } else {
-    auto requestId = Distributed::getCurrentRequestId();
-    Dispatcher::addService(std::make_shared<Carver>(paths, guid, requestId));
-  }
-  return s;
-}
 }
