@@ -40,7 +40,6 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   long pid;
   long lPlaceHolder;
   std::string sPlaceHolder;
-  HANDLE hProcess = nullptr;
 
   /// Store current process pid for more efficient API use.
   auto currentPid = GetCurrentProcessId();
@@ -50,6 +49,7 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
 
   long uid = -1;
   long gid = -1;
+  HANDLE hProcess = nullptr;
   if (pid == currentPid) {
     hProcess = GetCurrentProcess();
   } else {
@@ -127,7 +127,6 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
 
   if (hProcess != nullptr) {
     CloseHandle(hProcess);
-    hProcess = nullptr;
   }
   if (tok != nullptr) {
     CloseHandle(tok);
@@ -177,5 +176,5 @@ QueryData genProcesses(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
