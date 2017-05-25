@@ -16,7 +16,7 @@
 
 namespace osquery {
 
-enum B64Type {
+enum class B64Type {
   B64_ENCODE_CONDITIONAL = 1,
   B64_ENCODE = 2,
   B64_DECODE = 3,
@@ -37,15 +37,15 @@ static void b64SqliteValue(sqlite3_context* ctx,
   std::string input((char*)sqlite3_value_text(argv[0]));
   std::string result;
   switch (encode) {
-  case B64_ENCODE_CONDITIONAL:
+  case B64Type::B64_ENCODE_CONDITIONAL:
     if (isPrintable(input)) {
       result = input;
       break;
     }
-  case B64_ENCODE:
+  case B64Type::B64_ENCODE:
     result = base64Encode(input);
     break;
-  case B64_DECODE:
+  case B64Type::B64_DECODE:
     result = base64Decode(input);
     break;
   }
@@ -56,19 +56,19 @@ static void b64SqliteValue(sqlite3_context* ctx,
 static void sqliteB64ConditionalEncFunc(sqlite3_context* context,
                                         int argc,
                                         sqlite3_value** argv) {
-  b64SqliteValue(context, argc, argv, B64_ENCODE_CONDITIONAL);
+  b64SqliteValue(context, argc, argv, B64Type::B64_ENCODE_CONDITIONAL);
 }
 
 static void sqliteB64EncFunc(sqlite3_context* context,
                              int argc,
                              sqlite3_value** argv) {
-  b64SqliteValue(context, argc, argv, B64_ENCODE);
+  b64SqliteValue(context, argc, argv, B64Type::B64_ENCODE);
 }
 
 static void sqliteB64DecFunc(sqlite3_context* context,
                              int argc,
                              sqlite3_value** argv) {
-  b64SqliteValue(context, argc, argv, B64_DECODE);
+  b64SqliteValue(context, argc, argv, B64Type::B64_DECODE);
 }
 
 void registerEncodingExtensions(sqlite3* db) {
