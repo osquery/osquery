@@ -103,9 +103,9 @@ void shutdownTesting() {
   Initializer::platformTeardown();
 }
 
-std::map<std::string, std::string> getTestConfigMap() {
+std::map<std::string, std::string> getTestConfigMap(const std::string& file) {
   std::string content;
-  readFile(fs::path(kTestDataPath) / "test_parse_items.conf", content);
+  readFile(fs::path(kTestDataPath) / file, content);
   std::map<std::string, std::string> config;
   config["awesome"] = content;
   return config;
