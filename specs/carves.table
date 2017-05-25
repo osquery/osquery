@@ -1,5 +1,5 @@
 table_name("carves")
-description("Forensic File Carves.")
+description("Forensic Carves.")
 schema([
     Column("time", BIGINT, "Time at which the carve was kicked off"),
     Column("sha256", TEXT, "A SHA256 sum of the carved archive"),

@@ -1,5 +1,5 @@
 table_name("scheduled_tasks")
-description("Lists all of the tasks in the Windows Task Scheduler.")
+description("Lists all of the tasks in the Windows task scheduler.")
 schema([
   Column("name", TEXT, "Name of the scheduled task"),
   Column("path", TEXT, "Path to the executable to be run"),
