@@ -199,6 +199,13 @@ String parsing functions are always helpful, some help within subqueries so they
 
 We have added `sha1`, `sha256`, and `md5` functions that take a single argument and return the hashed value.
 
+**Encoding functions**
+
+There are also encoding functions available to you to process query results.
+- base64: base64 encode a string.
+- unbase64: Decode a base64 encoded string. If the string is not valid base64 an empty string is returned.
+- conditional_base64: Encode a string if and only if the string contains non-ascii characters. 
+
 ### Table and column name deprecations
 
 Over time it may makes sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.
