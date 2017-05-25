@@ -1,5 +1,5 @@
 table_name("kernel_panics")
-description("Kernel Panics")
+description("System kernel panic logs.")
 schema([
     Column("path", TEXT, "Location of log file"),
     Column("time", TEXT, "Formatted time of the event"),

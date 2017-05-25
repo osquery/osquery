@@ -1,5 +1,5 @@
 table_name("app_schemes")
-description("OS X application schemes and handlers (e.g., http, file, mailto.")
+description("OS X application schemes and handlers (e.g., http, file, mailto).")
 schema([
     Column("scheme", TEXT, "Name of the scheme/protocol"),
     Column("handler", TEXT, "Application label for the handler"),

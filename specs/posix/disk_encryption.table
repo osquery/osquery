@@ -1,5 +1,5 @@
 table_name("disk_encryption")
-description("Disk Encryption")
+description("Disk encryption status and information.")
 schema([
     Column("name", TEXT, "Disk name"),
     Column("uuid", TEXT, "Disk Universally Unique Identifier"),

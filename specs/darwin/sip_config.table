@@ -1,5 +1,5 @@
 table_name("sip_config")
-description("Apple's System Integrity Protection (rootless) status")
+description("Apple's System Integrity Protection (rootless) status.")
 schema([
     Column("config_flag", TEXT, "The System Integrity Protection config flag"),
     Column("enabled", INTEGER, "1 if this configuration is enabled, otherwise 0"),
