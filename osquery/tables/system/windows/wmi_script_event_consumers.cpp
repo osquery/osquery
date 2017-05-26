@@ -23,7 +23,10 @@ QueryData genScriptConsumers(QueryContext& context) {
   std::stringstream ss;
   ss << "SELECT * FROM ActiveScriptEventConsumer";
 
-  WmiRequest request(ss.str(), static_cast<BSTR>(L"ROOT\\Subscription"));
+  BSTR bstr = ::SysAllocString(L"ROOT\\Subscription");
+  WmiRequest request(ss.str(), bstr);
+  ::SysFreeString(bstr);
+
   if (request.getStatus().ok()) {
     auto& results = request.results();
     for (const auto& result : results) {
