@@ -11,9 +11,11 @@
 #include <fstream>
 #include <iomanip>
 
+// clang-format off
 #include <sys/param.h>
 #include <sys/linker.h>
 #include <sys/module.h>
+// clang-format on
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
