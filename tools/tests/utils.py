@@ -77,7 +77,7 @@ def platform():
 
 def queries_from_config(config_path):
     config = {}
-    rmcomment = re.compile('\/\*[\*A-Za-z0-9\n\s\.\{\}\'\/\\\:]+\*/|//.*')
+    rmcomment = re.compile('\/\*[\*A-Za-z0-9\n\s\.\{\}\'\/\\\:]+\*\/|\(.*\)|\/\/.*|\x5c\x5c\x0a')
     try:
         with open(config_path, "r") as fh:
             configcontent = fh.read()
@@ -98,6 +98,8 @@ def queries_from_config(config_path):
             with open(values) as fp:
                 packfile = fp.read()
                 packcontent = rmcomment.sub('',packfile)
+                print(packcontent)
+                print(values)
                 packqueries = json.loads(packcontent)
                 for queryname,query in packqueries["queries"].iteritems():
                     queries["pack_"+queryname] = query["query"]
