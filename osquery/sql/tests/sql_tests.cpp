@@ -109,26 +109,26 @@ TEST_F(SQLTests, test_sql_escape) {
 
 TEST_F(SQLTests, test_sql_base64_encode) {
   QueryData d;
-  query("select base64('test') as test;", d);
+  query("select to_base64('test') as test;", d);
   EXPECT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test"], "dGVzdA==");
 }
 
 TEST_F(SQLTests, test_sql_base64_decode) {
   QueryData d;
-  query("select unbase64('dGVzdA==') as test;", d);
+  query("select from_base64('dGVzdA==') as test;", d);
   EXPECT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test"], "test");
 }
 
 TEST_F(SQLTests, test_sql_base64_conditional_encode) {
   QueryData d;
-  query("select conditional_base64('test') as test;", d);
+  query("select conditional_to_base64('test') as test;", d);
   EXPECT_EQ(d.size(), 1U);
   EXPECT_EQ(d[0]["test"], "test");
 
   QueryData d2;
-  query("select conditional_base64('悪因悪果') as test;", d2);
+  query("select conditional_to_base64('悪因悪果') as test;", d2);
   EXPECT_EQ(d2.size(), 1U);
   EXPECT_EQ(d2[0]["test"], "5oKq5Zug5oKq5p6c");
 }
