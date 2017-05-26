@@ -103,6 +103,12 @@
 #define OSQUERY_SOCKET "\\\\.\\pipe\\"
 #define OSQUERY_LOG_HOME OSQUERY_HOME "\\log\\"
 #define OSQUERY_CERTS_HOME OSQUERY_HOME "\\certs\\"
+#elif defined(FREEBSD)
+#define OSQUERY_HOME "/var/db/osquery"
+#define OSQUERY_DB_HOME OSQUERY_HOME
+#define OSQUERY_SOCKET "/var/run/"
+#define OSQUERY_LOG_HOME "/var/log/osquery/"
+#define OSQUERY_CERTS_HOME "/etc/ssl/"
 #else
 #define OSQUERY_HOME "/var/osquery"
 #define OSQUERY_DB_HOME OSQUERY_HOME
