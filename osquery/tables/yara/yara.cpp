@@ -107,7 +107,7 @@ QueryData genYara(QueryContext& context) {
     // Check if this "ad-hoc" signature file has not been used/compiled.
     if (rules.count(file) == 0) {
       // If this is a relative path append the default yara search path.
-      auto path = (file[0] != '/') ? std::string("/etc/osquery/yara/") : "";
+      auto path = (file[0] != '/') ? kYARAHome : "";
       path += file;
 
       YR_RULES* tmp_rules = nullptr;
