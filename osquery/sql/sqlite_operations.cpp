@@ -8,7 +8,6 @@
  *
  */
 
-#include <functional>
 #include <set>
 #include <string>
 
@@ -17,7 +16,6 @@
 
 #include "osquery/carver/carver.h"
 #include "osquery/core/conversions.h"
-#include "osquery/tables/system/hash.h"
 
 #include <sqlite3.h>
 

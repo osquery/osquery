@@ -316,17 +316,20 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
 
 Status carvePaths(const std::set<std::string>& paths) {
   auto guid = generateNewUUID();
+
   pt::ptree tree;
   tree.put("carve_guid", guid);
   tree.put("time", getUnixTime());
   tree.put("status", "STARTING");
   tree.put("sha256", "");
   tree.put("size", -1);
+
   if (paths.size() > 1) {
     tree.put("path", boost::algorithm::join(paths, ","));
   } else {
     tree.put("path", *(paths.begin()));
   }
+
   std::ostringstream os;
   pt::write_json(os, tree, false);
   auto s = setDatabaseValue(kCarveDbDomain, kCarverDBPrefix + guid, os.str());
