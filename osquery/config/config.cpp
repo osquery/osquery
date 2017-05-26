@@ -486,14 +486,19 @@ Status Config::genPack(const std::string& name,
 
   try {
     auto clone = response[0][name];
+    if (clone == "") {
+      LOG(WARNING) << "Error reading the query pack named: " << name;
+      return Status(0);
+    }
     stripConfigComments(clone);
     pt::ptree pack_tree;
     std::stringstream pack_stream;
     pack_stream << clone;
     pt::read_json(pack_stream, pack_tree);
     addPack(name, source, pack_tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
-    LOG(WARNING) << "Error parsing the pack JSON: " << name;
+  } catch (const pt::json_parser::json_parser_error& e) {
+    LOG(WARNING) << "Error parsing the \"" << name
+                 << "\" pack JSON: " << e.what();
   }
   return Status(0);
 }
