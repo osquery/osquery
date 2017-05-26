@@ -15,6 +15,18 @@
 
 namespace osquery {
 
+/// Database domain where we store carve table entries
+const std::string kCarveDbDomain = "carves";
+
+/// Prefix used for the temp FS where carved files are stored
+const std::string kCarvePathPrefix = "osquery_carve_";
+
+/// Prefix applied to the file carve tar archive.
+const std::string kCarveNamePrefix = "carve_";
+
+/// Database prefix used to directly access and manipulate our carver entries
+const std::string kCarverDBPrefix = "carves.";
+
 class Carver : public InternalRunnable {
  public:
   Carver(const std::set<std::string>& paths,
@@ -127,4 +139,10 @@ class Carver : public InternalRunnable {
   friend class CarverTests;
   FRIEND_TEST(CarverTests, test_carve_files_locally);
 };
-}
+/**
+ * @brief Start a file carve of the given paths
+ *
+ * @return A status returning if the carves were started successfully
+ */
+Status carvePaths(const std::set<std::string>& paths);
+} // namespace osquery

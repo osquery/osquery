@@ -222,6 +222,7 @@ static inline void openOptimized(sqlite3*& db) {
   registerStringExtensions(db);
 #endif
   registerHashingExtensions(db);
+  registerOperationExtensions(db);
   registerEncodingExtensions(db);
 }
 
