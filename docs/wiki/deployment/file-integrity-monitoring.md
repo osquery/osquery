@@ -21,6 +21,8 @@ For example, you may want to monitor `/etc` along with other files on a Linux sy
 
 The two areas below that are relevant to FIM are the scheduled query against `file_events` and the added `file_paths` section. The `file_events` query is scheduled to collect all of the FIM events that have occurred on any files within the paths specified within `file_paths` on a five minute interval. At a high level this means events are buffered within osquery and sent to the configured _logger_ every five minutes.
 
+**Note:** You cannot match recursively inside a path. For example `/Users/%%/Configuration.conf` is not a valid wildcard.
+
 ## Example FIM Config
 
 ```json
