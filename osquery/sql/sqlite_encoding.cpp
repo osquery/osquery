@@ -73,7 +73,7 @@ static void sqliteB64DecFunc(sqlite3_context* context,
 
 void registerEncodingExtensions(sqlite3* db) {
   sqlite3_create_function(db,
-                          "conditional_base64",
+                          "conditional_to_base64",
                           1,
                           SQLITE_UTF8,
                           nullptr,
@@ -81,7 +81,7 @@ void registerEncodingExtensions(sqlite3* db) {
                           nullptr,
                           nullptr);
   sqlite3_create_function(db,
-                          "base64",
+                          "to_base64",
                           1,
                           SQLITE_UTF8,
                           nullptr,
@@ -89,7 +89,7 @@ void registerEncodingExtensions(sqlite3* db) {
                           nullptr,
                           nullptr);
   sqlite3_create_function(db,
-                          "unbase64",
+                          "from_base64",
                           1,
                           SQLITE_UTF8,
                           nullptr,
