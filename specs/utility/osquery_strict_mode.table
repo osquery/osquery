@@ -1,5 +1,5 @@
 table_name("osquery_strict_mode")
-description("Information on the current status osquery strict mode")
+description("Information on the current status of osquery strict mode.")
 schema([
     Column("enabled", TEXT, "Is osquery running in strict mode"),
     Column("public_key", TEXT, "The public key used to verify signatures"),
