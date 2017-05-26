@@ -270,6 +270,8 @@ If a flag value is specified on the CLI as a switch, or specified in the Gflags 
 
 There are LOTs of CLI flags that CANNOT be set with the `options` key. These flags determine the start and initialization of osquery and configuration loading usually depends on these CLI-only flags. Refer to the `--help` list to determine the appropriateness of options.
 
+It is possible to set "custom" options that do not exist as flags. These will not do anything without adding appropriate code. Options using the prefix `custom_` can be accessed via `osquery::Flag::updateValue("custom_NAME", value)` and `osquery::Flag::getValue("custom_NAME");`.
+
 ### Schedule
 
 The `schedule` key defines a map of scheduled query names to the query details. You will see mention of the schedule throughout osquery's documentation. It is the focal point of osqueryd's capabilities.

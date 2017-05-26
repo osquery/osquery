@@ -21,7 +21,9 @@ namespace osquery {
  */
 class OptionsConfigParserPlugin : public ConfigParserPlugin {
  public:
-  std::vector<std::string> keys() const override { return {"options"}; }
+  std::vector<std::string> keys() const override {
+    return {"options"};
+  }
 
   Status setUp() override;
 
@@ -47,9 +49,9 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
       continue;
     }
 
-    if (Flag::getType(option.first).empty()) {
+    bool is_custom = option.first.find("custom_") == 0;
+    if (!is_custom && Flag::getType(option.first).empty()) {
       LOG(WARNING) << "Cannot set unknown or invalid flag: " << option.first;
-      return Status(1, "Unknown flag");
     }
 
     Flag::updateValue(option.first, value);
