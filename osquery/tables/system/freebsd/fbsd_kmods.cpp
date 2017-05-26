@@ -26,7 +26,7 @@
 namespace osquery {
 namespace tables {
 
-QueryData genKernelModules(QueryContext& context) {
+QueryData genFbsdKernelModules(QueryContext& context) {
   QueryData results;
 
   int fileid;
