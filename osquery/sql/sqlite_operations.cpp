@@ -12,6 +12,9 @@
 #include <set>
 #include <string>
 
+#include <osquery/flags.h>
+#include <osquery/logger.h>
+
 #include "osquery/carver/carver.h"
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/hash.h"
@@ -21,6 +24,8 @@
 namespace osquery {
 
 std::set<std::string> paths = {};
+
+DECLARE_bool(carver_disable_function);
 
 static void addCarveFile(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
   if (argc == 0) {
@@ -40,9 +45,12 @@ static void addCarveFile(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
 }
 
 static void executeCarve(sqlite3_context* ctx) {
-  carvePaths(paths);
+  if (!FLAGS_carver_disable_function) {
+    carvePaths(paths);
+  } else {
+    LOG(WARNING) << "Carver as a function disabled; nothing carved";
+  }
   paths.clear();
-
   sqlite3_result_text(ctx, "Carve Started", 13, SQLITE_TRANSIENT);
 }
 

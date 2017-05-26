@@ -68,6 +68,11 @@ CLI_FLAG(bool,
          true,
          "Disable the osquery file carver (default true)");
 
+CLI_FLAG(bool,
+         carver_disable_function,
+         FLAGS_disable_carver,
+         "Disable the osquery file carver function (default true)");
+
 /// Helper function to update values related to a carve
 void updateCarveValue(const std::string& guid,
                       const std::string& key,
