@@ -10,6 +10,7 @@
 
 #include <fstream>
 #include <iomanip>
+
 #include <sys/param.h>
 #include <sys/linker.h>
 #include <sys/module.h>
@@ -32,7 +33,7 @@ QueryData genKernelModules(QueryContext& context) {
     struct kld_file_stat stat;
     stat.version = sizeof(struct kld_file_stat);
     if (kldstat(fileid, &stat) < 0) {
-      VLOG(1) << "Cannot stat module";
+      LOG(ERROR) << "Cannot stat module";
       return {};
     }
     std::ostringstream oss;
