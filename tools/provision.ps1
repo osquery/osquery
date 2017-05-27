@@ -385,6 +385,7 @@ function Main {
   $chocoPath = $oldPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
   if (Test-Path (Join-Path $chocoPath 'lib\winflexbison\tools\')) {
     Copy-Item (Join-Path $chocoPath 'lib\winflexbison\tools\win_bison.exe') (Join-Path $chocoPath 'bin\bison.exe')
+    Copy-Item -Recurse (Join-Path $chocoPath 'lib\winflexbison\tools\data') (Join-Path $chocoPath 'bin\data')
     Copy-Item (Join-Path $chocoPath 'lib\winflexbison\tools\win_flex.exe') (Join-Path $chocoPath 'bin\flex.exe')
   }
   $out = Install-ChocoPackage 'cppcheck'
