@@ -30,7 +30,7 @@ else
 endif
 
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
-CMAKE := $(PATH_SET) CXXFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib" cmake ../../
+CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib" cmake ../../
 CTEST := $(PATH_SET) ctest ../../
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"
@@ -72,6 +72,10 @@ test_debug: .setup
 
 analyze: .setup
 	@cd build/$(BUILD_DIR) && ANALYZE=True $(CMAKE) && \
+		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
+
+tidy: .setup
+	@cd build/$(BUILD_DIR) && TIDY=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 sanitize: .setup
