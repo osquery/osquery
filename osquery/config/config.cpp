@@ -743,11 +743,11 @@ void Config::hashSource(const std::string& source, const std::string& content) {
 }
 
 Status Config::genHash(std::string& hash) {
+  WriteLock lock(config_hash_mutex_);
   if (!valid_) {
     return Status(1, "Current config is not valid");
   }
 
-  WriteLock lock(config_hash_mutex_);
   std::vector<char> buffer;
   buffer.reserve(hash_.size() * 32);
   auto add = [&buffer](const std::string& text) {

@@ -118,5 +118,5 @@ TEST_F(FileEventsTableTests, test_configure_subscriptions) {
     EXPECT_EQ(row2.at("subscriptions"), "0");
   }
 }
-#endif
+#endif /* WIN32 */
 }
