@@ -39,7 +39,6 @@
 
 #include <osquery/core.h>
 #include <osquery/database.h>
-#include <osquery/dispatcher.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -49,14 +48,11 @@
 #ifdef WIN32
 #include "osquery/core/windows/wmi.h"
 #endif
-#include "osquery/carver/carver.h"
 #include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
 #include "osquery/core/process.h"
 #include "osquery/core/utils.h"
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 
