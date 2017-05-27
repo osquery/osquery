@@ -228,7 +228,7 @@ else()
       -fpic
     )
     if (CMAKE_CXX_COMPILER MATCHES "clang" AND NOT FREEBSD)
-      # Only enale LTO builds when using clang on Unix, for now
+      # Only enable LTO builds when using clang on Unix, for now
       add_compile_options(-flto=thin)
     endif()
   endif()
@@ -305,6 +305,27 @@ project(OSQUERY)
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 include(CMakeLibs)
+
+find_program(CLANG_TIDY NAMES "clang-tidy" ENV PATH)
+if(DEFINED ENV{TIDY} AND CLANG_TIDY)
+  message(STATUS "clang-tidy found: ${CLANG_TIDY}")
+  set(TIDY_CHECKS
+    "*"
+    "-cert-err58-cpp"
+    "-cppcoreguidelines-pro-bounds-array-to-pointer-decay"
+    "-readability-else-after-return"
+    "-cppcoreguidelines-pro-type-union-access"
+    "-modernize-use-bool-literals"
+    "-modernize-use-emplace"
+    "-google-runtime-references"
+  )
+  JOIN("${TIDY_CHECKS}" "," TIDY_CHECKS)
+  set(DO_CLANG_TIDY "${CLANG_TIDY}"
+    "-checks=${TIDY_CHECKS}"
+    "-p=${CMAKE_BINARY_DIR}"
+    "-fix"
+  )
+endif()
 
 if(WINDOWS)
   foreach(flag_var
