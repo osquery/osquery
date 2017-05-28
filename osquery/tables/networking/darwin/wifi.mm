@@ -140,13 +140,17 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
     }
   } else if (CFGetTypeID(networks) == CFDictionaryGetTypeID()) {
     auto count = CFDictionaryGetCount((CFDictionaryRef)networks);
-    const void* keys[count];
-    const void* values[count];
-    CFDictionaryGetKeysAndValues((CFDictionaryRef)networks, keys, values);
+    auto keys = static_cast<const void **>(malloc(sizeof(void *) * count));
+    auto values = static_cast<const void **>(malloc(sizeof(void *) * count));
 
-    for (CFIndex i = 0; i < count; i++) {
-      parseNetworks((CFDictionaryRef)values[i], results);
+    if (keys != nullptr && values != nullptr) {
+      CFDictionaryGetKeysAndValues((CFDictionaryRef)networks, keys, values);
+      for (CFIndex i = 0; i < count; i++) {
+        parseNetworks((CFDictionaryRef)values[i], results);
+      }
     }
+    free(keys);
+    free(values);
   }
   return results;
 }
