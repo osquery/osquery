@@ -204,7 +204,8 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
   case kSecGenericPasswordItemClass:
     item_id = CSSM_DL_DB_RECORD_GENERIC_PASSWORD;
     break;
-  case 'ashp':
+  // ashp case
+  case 0x61736870:
     item_id = CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD;
     break;
   default:
