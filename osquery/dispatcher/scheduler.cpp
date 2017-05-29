@@ -47,7 +47,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   auto pid = std::to_string(PlatformProcess::getCurrentProcess()->pid());
   auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
   auto t0 = getUnixTime();
-  Config::getInstance().recordQueryStart(name);
+  Config::get().recordQueryStart(name);
   SQLInternal sql(query.query);
   // Snapshot the performance after, and compare.
   auto t1 = getUnixTime();
@@ -63,8 +63,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
       }
     }
     // Always called while processes table is working.
-    Config::getInstance().recordQueryPerformance(
-        name, t1 - t0, size, r0[0], r1[0]);
+    Config::get().recordQueryPerformance(name, t1 - t0, size, r0[0], r1[0]);
   }
   return sql;
 }
@@ -149,7 +148,7 @@ void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
-    Config::getInstance().scheduledQueries(
+    Config::get().scheduledQueries(
         ([&i](const std::string& name, const ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
             TablePlugin::kCacheInterval = query.splayed_interval;

@@ -667,7 +667,7 @@ void EventFactory::configUpdate() {
   // Scan the schedule for queries that touch "_events" tables.
   // We will count the queries
   std::map<std::string, SubscriberExpirationDetails> subscriber_details;
-  Config::getInstance().scheduledQueries([&subscriber_details](
+  Config::get().scheduledQueries([&subscriber_details](
       const std::string& name, const ScheduledQuery& query) {
     std::vector<std::string> tables;
     // Convert query string into a list of virtual tables effected.
@@ -856,7 +856,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
     return Status(1, "Subscribers must have set a name");
   }
 
-  auto plugin = Config::getInstance().getParser("events");
+  auto plugin = Config::get().getParser("events");
   if (plugin != nullptr && plugin.get() != nullptr) {
     const auto& data = plugin->getData();
     // First perform explicit enabling.

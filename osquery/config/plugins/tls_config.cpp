@@ -155,7 +155,7 @@ void TLSConfigRefreshRunner::start() {
       // The config instance knows the TLS plugin is selected.
       std::map<std::string, std::string> config;
       if (config_plugin->genConfig(config)) {
-        Config::getInstance().update(config);
+        Config::get().update(config);
       }
     }
   }

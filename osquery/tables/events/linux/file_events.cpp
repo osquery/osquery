@@ -62,8 +62,8 @@ void FileEventSubscriber::configure() {
 
   auto parser = Config::getParser("file_paths");
   auto& accesses = parser->getData().get_child("file_accesses");
-  Config::getInstance().files([this, &accesses](
-      const std::string& category, const std::vector<std::string>& files) {
+  Config::get().files([this, &accesses](const std::string& category,
+                                        const std::vector<std::string>& files) {
     for (const auto& file : files) {
       VLOG(1) << "Added file event listener to: " << file;
       auto sc = createSubscriptionContext();

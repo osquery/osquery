@@ -75,7 +75,7 @@ Status ProcessEventSubscriber::Callback(
     bool use_whitelist = false;
     pt::ptree whitelist;
 
-    auto plugin = Config::getInstance().getParser("events");
+    auto plugin = Config::get().getParser("events");
     if (plugin == nullptr || plugin.get() == nullptr) {
       LOG(ERROR) << "Could not load events config parser";
     } else {

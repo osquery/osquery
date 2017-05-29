@@ -37,7 +37,7 @@ extern const std::string kExecutingQuery;
  * @brief The programmatic representation of osquery's configuration
  *
  * @code{.cpp}
- *   auto c = Config::getInstance();
+ *   auto c = Config::get();
  *   // use methods in osquery::Config on `c`
  * @endcode
  */
@@ -46,10 +46,9 @@ class Config : private boost::noncopyable {
   Config();
 
  public:
-  /// Get a singleton instance of the Config class
-  static Config& getInstance() {
-    static Config cfg;
-    return cfg;
+  static Config& get() {
+    static Config instance;
+    return instance;
   };
 
   /**
@@ -163,7 +162,7 @@ class Config : private boost::noncopyable {
    *
    * @code{.cpp}
    *   std::map<std::string, ScheduledQuery> queries;
-   *   Config::getInstance().scheduledQueries(
+   *   Config::get().scheduledQueries(
    *      ([&queries](const std::string& name, const ScheduledQuery& query) {
    *        queries[name] = query;
    *      }));
@@ -182,7 +181,7 @@ class Config : private boost::noncopyable {
    *
    * @code{.cpp}
    *   std::map<std::string, std::vector<std::string>> file_map;
-   *   Config::getInstance().files(
+   *   Config::get().files(
    *      ([&file_map](const std::string& category,
    *                   const std::vector<std::string>& files) {
    *        file_map[category] = files;
@@ -202,7 +201,7 @@ class Config : private boost::noncopyable {
    * QueryPerformance struct, if it exists.
    *
    * @code{.cpp}
-   *   Config::getInstance().getPerformanceStats(
+   *   Config::get().getPerformanceStats(
    *     "my_awesome_query",
    *     [](const QueryPerformance& query) {
    *       // use "query" here

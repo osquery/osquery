@@ -103,13 +103,13 @@ TEST_F(TLSConfigTests, test_runner_and_scheduler) {
   Registry::get().setActive("config", "tls");
 
   // Seed our instance config with a schedule.
-  Config::getInstance().load();
+  Config::get().load();
 
   // Start a scheduler runner for 3 seconds.
   auto t = static_cast<unsigned long int>(getUnixTime());
   Dispatcher::addService(std::make_shared<SchedulerRunner>(t + 1, 1));
   // Reload our instance config.
-  Config::getInstance().load();
+  Config::get().load();
   Dispatcher::joinServices();
 }
 
