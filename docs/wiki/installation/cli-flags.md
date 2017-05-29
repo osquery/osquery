@@ -97,6 +97,10 @@ If this value is non-0 the watchdog level (`--watchdog_level`) for maximum susta
 
 Attempt to convert all UNIX calendar times to UTC.
 
+`--table_delay=0`
+
+Add a microsecond delay between multiple table calls (when a table is used in a JOIN). A `200` microsecond delay will trade about 20% additional time for a reduced 5% CPU utilization.
+
 **Windows Only**
 
 Windows builds include a `--install` and `--uninstall` that will create a Windows service using the `osqueryd.exe` binary and preserve an optional `--flagfile` if provided.

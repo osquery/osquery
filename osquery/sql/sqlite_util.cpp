@@ -236,6 +236,10 @@ void SQLiteDBInstance::addAffectedTable(VirtualTableContent* table) {
   affected_tables_.insert(std::make_pair(table->name, table));
 }
 
+bool SQLiteDBInstance::tableCalled(VirtualTableContent* table) {
+  return (affected_tables_.count(table->name) > 0);
+}
+
 TableAttributes SQLiteDBInstance::getAttributes() const {
   const SQLiteDBInstance* rdbc = this;
   if (isPrimary() && !managed_) {
