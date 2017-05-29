@@ -43,14 +43,11 @@ FLAG(bool,
 
 // Access this flag through EventSubscriberPlugin::getEventsExpiry to allow for
 // overriding in subclasses
-FLAG(uint64,
-     events_expiry,
-     86000,
-     "Timeout to expire event subscriber results");
+FLAG(uint64, events_expiry, 3600, "Timeout to expire event subscriber results");
 
 // Access this flag through EventSubscriberPlugin::getEventsMax to allow for
 // overriding in subclasses
-FLAG(uint64, events_max, 1000, "Maximum number of events per type to buffer");
+FLAG(uint64, events_max, 50000, "Maximum number of events per type to buffer");
 
 static inline EventTime timeFromRecord(const std::string& record) {
   // Convert a stored index "as string bytes" to a time value.
