@@ -43,8 +43,8 @@ void ProcessFileEventSubscriber::configure() {
   // There may be a better way to find the set intersection/difference.
   removeSubscriptions();
 
-  Config::getInstance().files([this](const std::string &category,
-                                     const std::vector<std::string> &files) {
+  Config::get().files([this](const std::string& category,
+                             const std::vector<std::string>& files) {
     for (const auto &file : files) {
       auto sc = createSubscriptionContext();
       sc->event_type = OSQUERY_FILE_EVENT;

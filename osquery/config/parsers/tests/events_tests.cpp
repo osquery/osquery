@@ -22,7 +22,7 @@ class EventsConfigParserPluginTests : public testing::Test {};
 
 TEST_F(EventsConfigParserPluginTests, test_get_event) {
   // Reset the schedule in case other tests were modifying.
-  auto& c = Config::getInstance();
+  auto& c = Config::get();
   c.reset();
 
   // Generate content to update/add to the config.
@@ -38,7 +38,7 @@ TEST_F(EventsConfigParserPluginTests, test_get_event) {
   EXPECT_EQ(s.toString(), "OK");
 
   // Retrieve a basic events parser.
-  auto plugin = Config::getInstance().getParser("events");
+  auto plugin = Config::get().getParser("events");
   EXPECT_TRUE(plugin != nullptr);
   const auto& data = plugin->getData();
 

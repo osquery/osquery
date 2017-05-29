@@ -451,12 +451,12 @@ TEST_F(EventsTests, test_event_subscriber_configure) {
   // Assure we start from a base state.
   EXPECT_EQ(sub->timesConfigured, 0U);
   // Force the config into a loaded state.
-  Config::getInstance().loaded_ = true;
-  Config::getInstance().update({{"data", "{}"}});
+  Config::get().loaded_ = true;
+  Config::get().update({{"data", "{}"}});
   EXPECT_EQ(sub->timesConfigured, 1U);
 
   // Now update the config to contain sets of scheduled queries.
-  Config::getInstance().update(
+  Config::get().update(
       {{"data",
         "{\"schedule\": {\"1\": {\"query\": \"select * from fake_events\", "
         "\"interval\": 10}, \"2\":{\"query\": \"select * from time, "
@@ -471,7 +471,7 @@ TEST_F(EventsTests, test_event_subscriber_configure) {
   rf.registry("event_subscriber")->remove(sub->getName());
 
   // Final check to make sure updates are not effecting this subscriber.
-  Config::getInstance().update({{"data", "{}"}});
+  Config::get().update({{"data", "{}"}});
   EXPECT_EQ(sub->timesConfigured, 2U);
 }
 

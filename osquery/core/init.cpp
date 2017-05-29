@@ -600,7 +600,7 @@ void Initializer::start() const {
 
   if (FLAGS_config_check) {
     // The initiator requested an initialization and config check.
-    auto s = Config::getInstance().load();
+    auto s = Config::get().load();
     if (!s.ok()) {
       std::cerr << "Error reading config: " << s.toString() << "\n";
     }
@@ -615,7 +615,7 @@ void Initializer::start() const {
   }
 
   // Load the osquery config using the default/active config plugin.
-  auto s = Config::getInstance().load();
+  auto s = Config::get().load();
   if (!s.ok()) {
     auto message = "Error reading config: " + s.toString();
     if (tool_ == ToolType::DAEMON) {

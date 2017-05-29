@@ -137,8 +137,7 @@ class Schedule : private boost::noncopyable {
   void remove(const std::string& pack, const std::string& source) {
     packs_.remove_if([pack, source](PackRef& p) {
       if (p->getName() == pack && (p->getSource() == source || source == "")) {
-        Config::getInstance().removeFiles(source + FLAGS_pack_delimiter +
-                                          p->getName());
+        Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
         return true;
       }
       return false;
@@ -149,8 +148,7 @@ class Schedule : private boost::noncopyable {
   void removeAll(const std::string& source) {
     packs_.remove_if(([source](PackRef& p) {
       if (p->getSource() == source) {
-        Config::getInstance().removeFiles(source + FLAGS_pack_delimiter +
-                                          p->getName());
+        Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
         return true;
       }
       return false;
@@ -814,8 +812,7 @@ Status ConfigPlugin::call(const PluginRequest& request,
     if (request.count("source") == 0 || request.count("data") == 0) {
       return Status(1, "Missing source or data");
     }
-    return Config::getInstance().update(
-        {{request.at("source"), request.at("data")}});
+    return Config::get().update({{request.at("source"), request.at("data")}});
   }
   return Status(1, "Config plugin action unknown: " + request.at("action"));
 }
@@ -839,7 +836,7 @@ void ConfigRefreshRunner::start() {
     }
 
     VLOG(1) << "Refreshing configuration state";
-    Config::getInstance().refresh();
+    Config::get().refresh();
   }
 }
 }

@@ -37,7 +37,7 @@ extern void stripConfigComments(std::string& json);
 class ConfigTests : public testing::Test {
  public:
   ConfigTests() {
-    Config::getInstance().reset();
+    Config::get().reset();
   }
 
  protected:
@@ -51,13 +51,13 @@ class ConfigTests : public testing::Test {
 
  protected:
   Status load() {
-    return Config::getInstance().load();
+    return Config::get().load();
   }
   void setLoaded() {
-    Config::getInstance().loaded_ = true;
+    Config::get().loaded_ = true;
   }
   Config& get() {
-    return Config::getInstance();
+    return Config::get();
   }
 };
 
