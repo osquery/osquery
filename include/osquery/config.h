@@ -144,8 +144,9 @@ class Config : private boost::noncopyable {
    *
    * @param source is the place where the config content came from
    * @param content is the content of the config data for a given source
+   * @return false if the source did not change, otherwise true
    */
-  void hashSource(const std::string& source, const std::string& content);
+  bool hashSource(const std::string& source, const std::string& content);
 
   /// Whether or not the last loaded config was valid.
   bool isValid() const {

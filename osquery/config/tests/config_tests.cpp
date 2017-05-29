@@ -347,6 +347,26 @@ TEST_F(ConfigTests, test_plugin_reconfigure) {
   auto placebo = std::static_pointer_cast<PlaceboConfigParserPlugin>(
       rf.plugin("config_parser", "placebo"));
   EXPECT_EQ(placebo->configures, 1U);
+
+  // Updating with the same content does not reconfigure parsers.
+  get().update({{"data", "{}"}});
+  EXPECT_EQ(placebo->configures, 1U);
+
+  // Updating with different content will reconfigure.
+  get().update({{"data", "{\"options\":{}}"}});
+  EXPECT_EQ(placebo->configures, 2U);
+  get().update({{"data", "{\"options\":{}}"}});
+  EXPECT_EQ(placebo->configures, 2U);
+
+  // Updating with a new source will reconfigure.
+  get().update({{"data", "{\"options\":{}}"}, {"data1", "{}"}});
+  EXPECT_EQ(placebo->configures, 3U);
+  // Updating and not including a source is handled by the config plugin.
+  // The config will expect the other source to update asynchronously and does
+  // not consider the missing key as a delete request.
+  get().update({{"data", "{\"options\":{}}"}});
+  EXPECT_EQ(placebo->configures, 3U);
+
   rf.registry("config_parser")->remove("placebo");
 }
 
