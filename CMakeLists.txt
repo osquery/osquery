@@ -145,6 +145,7 @@ if(POSIX)
     -Wformat
     -Wformat-security
     -Werror=format-security
+    -Werror=shadow
     -Wabi-tag
     -fpermissive
     -fstack-protector-all
