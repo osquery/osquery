@@ -21,6 +21,10 @@
 
 #include "osquery/core/process.h"
 
+#ifndef NSIG
+#define NSIG 32
+#endif
+
 extern char** environ;
 
 namespace osquery {
@@ -123,6 +127,15 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     return std::shared_ptr<PlatformProcess>();
   } else if (ext_pid == 0) {
     setEnvVar("OSQUERY_EXTENSION", std::to_string(::getpid()).c_str());
+
+    struct sigaction sig_action;
+    sig_action.sa_handler = SIG_DFL;
+    sig_action.sa_flags = 0;
+    sigemptyset(&sig_action.sa_mask);
+
+    for (auto i = NSIG; i >= 0; i--) {
+      sigaction(i, &sig_action, nullptr);
+    }
 
     std::vector<const char*> arguments;
     arguments.push_back(exec_path.c_str());
