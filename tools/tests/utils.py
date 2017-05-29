@@ -77,7 +77,7 @@ def platform():
 
 def queries_from_config(config_path):
     config = {}
-    rmcomment = re.compile('\/\*[\*A-Za-z0-9\n\s\.\{\}\'\/\\\:]+\*/|//.*')
+    rmcomment = re.compile('\/\*[\*A-Za-z0-9\n\s\.\{\}\'\/\\\:]+\*\/|\s+\/\/.*|^\/\/.*|\x5c\x5c\x0a')
     try:
         with open(config_path, "r") as fh:
             configcontent = fh.read()
