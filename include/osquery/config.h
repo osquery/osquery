@@ -26,12 +26,47 @@
 
 namespace osquery {
 
+class Config;
 class Pack;
 class Schedule;
 class ConfigParserPlugin;
 
 /// The name of the executing query within the single-threaded schedule.
 extern const std::string kExecutingQuery;
+
+/**
+ * @brief A thread that periodically reloads configuration state.
+ *
+ * This refresh runner thread can refresh any configuration plugin.
+ * It may accelerate the time between checks if the configuration fails to load.
+ * For configurations pulled from the network this assures that configuration
+ * is fresh when re-attaching.
+ */
+class ConfigRefreshRunner : public InternalRunnable {
+ public:
+  /// A simple wait/interruptible lock.
+  void start();
+
+ private:
+  /// Allow the configuration to update the refresh rate.
+  void refresh(size_t refresh) {
+    refresh_ = refresh;
+  }
+
+  /// Inspect the current refresh rate.
+  size_t refresh() {
+    return refresh_;
+  }
+
+ private:
+  /// The current refresh rate in seconds.
+  std::atomic<size_t> refresh_{0};
+  std::atomic<size_t> mod_{1000};
+
+ private:
+  friend class Config;
+  FRIEND_TEST(ConfigTests, test_config_refresh);
+};
 
 /**
  * @brief The programmatic representation of osquery's configuration
@@ -316,14 +351,23 @@ class Config : private boost::noncopyable {
   /// Check if the config received valid/parsable content from a config plugin.
   bool valid_{false};
 
-  /// Check if the config is updating sources in response to an async update
-  /// or the initialization load step.
+  /**
+   * @brief Check if the configuration has attempted a load.
+   *
+   * Check if the config is updating sources in response to an async update
+   * or the initialization load step.
+   */
   bool loaded_{false};
 
+  /// Try if the configuration has started an auto-refresh thread.
   bool started_thread_{false};
 
   /// A UNIX timestamp recorded when the config started.
   size_t start_time_{0};
+
+ private:
+  /// Hold a reference to the refresh runner to update the acceleration.
+  std::shared_ptr<ConfigRefreshRunner> refresh_runner_{nullptr};
 
  private:
   friend class Initializer;
@@ -335,6 +379,7 @@ class Config : private boost::noncopyable {
   friend class FileEventsTableTests;
   friend class DecoratorsConfigParserPluginTests;
   friend class SchedulerTests;
+  FRIEND_TEST(ConfigTests, test_config_refresh);
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_add_view);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_swap_view);
@@ -528,13 +573,6 @@ class ConfigParserPlugin : public Plugin {
 
  private:
   friend class Config;
-};
-
-// A thread that periodically reloads configuration state
-class ConfigRefreshRunner : public InternalRunnable {
- public:
-  /// A simple wait/interruptible lock.
-  void start();
 };
 
 /**

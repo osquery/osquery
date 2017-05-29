@@ -20,7 +20,7 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
-#include "osquery/config/plugins/tls.h"
+#include "osquery/config/plugins/tls_config.h"
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 #include "osquery/dispatcher/scheduler.h"

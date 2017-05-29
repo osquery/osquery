@@ -65,6 +65,16 @@ CLI_FLAG(uint64,
          config_refresh,
          0,
          "Optional interval in seconds to re-read configuration");
+FLAG_ALIAS(google::uint64, config_tls_refresh, config_refresh);
+
+/// How long to wait when config update fails
+CLI_FLAG(uint64,
+         config_accelerated_refresh,
+         300,
+         "Interval to wait if reading a configuration fails");
+FLAG_ALIAS(google::uint64,
+           config_tls_accelerated_refresh,
+           config_accelerated_refresh);
 
 DECLARE_string(config_plugin);
 DECLARE_string(pack_delimiter);
@@ -248,7 +258,8 @@ Schedule::Schedule() {
 Config::Config()
     : schedule_(std::make_shared<Schedule>()),
       valid_(false),
-      start_time_(std::time(nullptr)) {}
+      start_time_(std::time(nullptr)),
+      refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
 
 void Config::addPack(const std::string& name,
                      const std::string& source,
@@ -339,8 +350,16 @@ Status Config::refresh() {
   PluginResponse response;
   auto status = Registry::call("config", {{"action", "genConfig"}}, response);
   if (!status.ok()) {
+    if (refresh_runner_->refresh() == FLAGS_config_refresh) {
+      VLOG(1) << "Using accelerated configuration delay";
+      refresh_runner_->refresh(FLAGS_config_accelerated_refresh);
+    }
+
     loaded_ = true;
     return status;
+  } else if (refresh_runner_->refresh() != FLAGS_config_refresh) {
+    VLOG(1) << "Normal configuration delay restored";
+    refresh_runner_->refresh(FLAGS_config_refresh);
   }
 
   // if there was a response, parse it and update internal state
@@ -365,7 +384,7 @@ Status Config::refresh() {
      * configuration.
      */
     if (!started_thread_ && FLAGS_config_refresh >= 1) {
-      Dispatcher::addService(std::make_shared<ConfigRefreshRunner>());
+      Dispatcher::addService(refresh_runner_);
       started_thread_ = true;
     }
   }
@@ -381,6 +400,8 @@ Status Config::load() {
     return Status(1, "Missing config plugin " + config_plugin);
   }
 
+  // Set the initial and optional refresh value.
+  refresh_runner_->refresh(FLAGS_config_refresh);
   return refresh();
 }
 
@@ -768,7 +789,7 @@ const std::shared_ptr<ConfigParserPlugin> Config::getParser(
   }
 
   auto plugin = RegistryFactory::get().plugin("config_parser", parser);
-  // This is an error, need to check for existance (and not nullptr).
+  // This is an error, need to check for existence (and not nullptr).
   return std::dynamic_pointer_cast<ConfigParserPlugin>(plugin);
 }
 
@@ -828,7 +849,7 @@ void ConfigRefreshRunner::start() {
   while (!interrupted()) {
     // Cool off and time wait the configured period.
     // Apply this interruption initially as at t=0 the config was read.
-    pauseMilli(FLAGS_config_refresh * 1000);
+    pauseMilli(refresh_ * mod_);
     // Since the pause occurs before the logic, we need to check for an
     // interruption request.
     if (interrupted()) {

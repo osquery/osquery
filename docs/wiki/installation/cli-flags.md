@@ -51,6 +51,14 @@ The **filesystem** config plugin's path to a JSON file.
 On OS X the default path is **/var/osquery/osquery.conf**.
 If you want to read from multiple configuration paths create a directory: **/etc/osquery/osquery.conf.d/**. All files within that optional directory will be read and merged in lexical order.
 
+`--config_refresh=0`
+
+An optional configuration refresh interval in seconds. By default a configuration is fetched only at osquery load. If the configuration should be auto-updated set a "refresh" time to a value in seconds greater than 0. If the configuration endpoint cannot be reached during runtime, the normal retry approach is applied (e.g., the **tls** config plugin will retry 3 times).
+
+`--config_accelerated_refresh=300`
+
+If a configuration refresh is used (`config_refresh > 0`) and the refresh attempt fails, the accelerated refresh will be used. This allows plugins like **tls** to fetch fresh data after having been offline for a while.
+
 `--config_check=false`
 
 Check the format of an osquery config and exit. Arbitrary config plugins may be used. osquery will return a non-0 exit if the parsing failed.
@@ -176,11 +184,6 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. A very s
 `--config_tls_endpoint=""`
 
 The **tls** endpoint path, e.g.: **/api/v1/config** when using the **tls** config plugin. See the other **tls_** related CLI flags.
-
-`--config_tls_refresh=0`
-
-The configuration **tls** endpoint refresh interval. By default a configuration is fetched only at osquery load. If the configuration should be auto-updated set a "refresh" time to a value in seconds. This option enforces a minimum of 10 seconds. If the configuration endpoint cannot be reached during run, during an attempted refresh, the normal retry approach is applied.
-
 
 `--config_tls_max_attempts=3`
 
