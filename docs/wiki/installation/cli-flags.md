@@ -220,16 +220,6 @@ The URI path which will be used, in conjunction with `--tls_hostname`, to create
 
 The total number of attempts that will be made to the remote distributed query server if a request fails when using the **tls** distributed plugin.
 
-## Runtime flags
-
-`--read_max=52428800` (50MB)
-
-Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
-
-`--read_user_max=10485760` (10MB)
-
-Maximum non-super user read size. Similar to `--read_max` but applied to user-controlled (owned) files.
-
 ### osquery daemon runtime control flags
 
 `--schedule_splay_percent=10`
@@ -266,6 +256,10 @@ Limit the schedule, 0 for no limit. Optionally limit the `osqueryd`'s life by ad
 `--disable_tables=table_name1,table_name2`
 
 Comma-delimited list of table names to be disabled. This allows osquery to be launched without certain tables.
+
+`--read_max=52428800` (50MB)
+
+Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
 
 ### osquery events control flags
 
