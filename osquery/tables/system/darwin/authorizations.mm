@@ -131,11 +131,13 @@ QueryData genAuthorizations(QueryContext &context) {
       }
 
       CFIndex count = CFDictionaryGetCount(rightSet);
-      const void *keys[count];
-      const void *values[count];
+      auto keys = static_cast<const void **>(malloc(sizeof(void *) * count));
+      auto values = static_cast<const void **>(malloc(sizeof(void *) * count));
       CFDictionaryGetKeysAndValues(rightSet, keys, values);
       if ((const void *)keys == nullptr || (const void *)values == nullptr) {
         CFRelease(rightSet);
+        free(keys);
+        free(values);
         continue;
       }
 
@@ -159,10 +161,11 @@ QueryData genAuthorizations(QueryContext &context) {
       }
 
       results.push_back(r);
-
       if (rightSet != nullptr) {
         CFRelease(rightSet);
       }
+      free(keys);
+      free(values);
     }
 
     return results;

@@ -37,8 +37,10 @@ TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
   QueryData results;
   auto count = CFDictionaryGetCount(networks);
   ASSERT_EQ((long)count, 2);
-  const void* keys[count];
-  const void* values[count];
+  auto keys = static_cast<const void **>(malloc(sizeof(void *) * count));
+  auto values = static_cast<const void **>(malloc(sizeof(void *) * count));
+  ASSERT_NE(keys, nullptr);
+  ASSERT_NE(values, nullptr);
   CFDictionaryGetKeysAndValues(networks, keys, values);
 
   for (CFIndex i = 0; i < count; i++) {
@@ -80,6 +82,8 @@ TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
   for (const auto& column : expected2) {
     EXPECT_EQ(results.back()[column.first], column.second);
   }
+  free(keys);
+  free(values);
 }
 
 TEST_F(WifiNetworksTest, test_parse_legacy_wifi_networks) {

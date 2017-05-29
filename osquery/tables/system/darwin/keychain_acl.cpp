@@ -68,10 +68,12 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
   OSStatus os_status;
 
   uint32 acl_tag_size = 64;
-  CSSM_ACL_AUTHORIZATION_TAG tags[acl_tag_size];
+  CSSM_ACL_AUTHORIZATION_TAG* tags = static_cast<CSSM_ACL_AUTHORIZATION_TAG*>(
+      malloc(sizeof(CSSM_ACL_AUTHORIZATION_TAG) * acl_tag_size));
   OSQUERY_USE_DEPRECATED(
       os_status = SecACLGetAuthorizations(acl, tags, &acl_tag_size););
   if (os_status != noErr) {
+    free(tags);
     return Status(os_status, "Could not get ACL authorizations");
   }
 
@@ -81,7 +83,7 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
       acl_data.authorizations.push_back(kACLAuthorizationTags.at(tag));
     }
   }
-
+  free(tags);
   CFStringRef description = nullptr;
   CSSM_ACL_KEYCHAIN_PROMPT_SELECTOR prompt_selector = {};
   CFArrayRef application_list = nullptr;
