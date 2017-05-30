@@ -70,7 +70,7 @@ Status BroLoggerPlugin::logString(const std::string& s) {
   } else {
     return Status(1, "Failed to deserialize QueryLogItem");
   }
-  return BrokerManager::getInstance().logQueryLogItemToBro(item);
+  return BrokerManager::get().logQueryLogItemToBro(item);
 }
 
 Status BroLoggerPlugin::logSnapshot(const std::string& s) {

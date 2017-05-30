@@ -12,6 +12,7 @@ file(GLOB OSQUERY_LOGGER_TESTS "tests/*.cpp")
 ADD_OSQUERY_TEST_CORE(${OSQUERY_LOGGER_TESTS})
 
 set(OSQUERY_LOGGER_PLUGINS
+  "plugins/bro.cpp"
   "plugins/buffered.cpp"
   "plugins/filesystem_logger.cpp"
   "plugins/tls_logger.cpp"
