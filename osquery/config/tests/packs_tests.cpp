@@ -95,6 +95,18 @@ TEST_F(PacksTests, test_check_platform) {
 
   fpack.platform_ = "bad_value";
   EXPECT_FALSE(fpack.checkPlatform());
+
+  fpack.platform_ = "posix";
+  if (isPlatform(PlatformType::TYPE_POSIX) ||
+      isPlatform(PlatformType::TYPE_LINUX) ||
+      isPlatform(PlatformType::TYPE_OSX) ||
+      isPlatform(PlatformType::TYPE_FREEBSD)) {
+    EXPECT_TRUE(fpack.checkPlatform());
+  }
+
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    EXPECT_FALSE(fpack.checkPlatform());
+  }
 }
 
 TEST_F(PacksTests, test_check_version) {
