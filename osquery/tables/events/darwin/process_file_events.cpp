@@ -54,7 +54,7 @@ void ProcessFileEventSubscriber::configure() {
               OSQUERY_FILE_ACTION_CLOSE_MODIFIED)};
       auto path = file;
       replaceGlobWildcards(path);
-      path = path.substr(0, path.find("*"));
+      path = path.substr(0, path.find('*'));
       strncpy(sub.path, path.c_str(), MAXPATHLEN);
       sc->category = category;
       VLOG(1) << "Added process file event listener to: " << path;

@@ -140,7 +140,7 @@ QueryData genKernelInfo(QueryContext& context) {
       auto signature = stringFromCFString((CFStringRef)property);
       CFRelease(property);
 
-      r["version"] = signature.substr(22, signature.find(":") - 22);
+      r["version"] = signature.substr(22, signature.find(':') - 22);
     }
   }
 

@@ -620,8 +620,8 @@ long diffNanos(const std::string& iso1, const std::string& iso2) {
     return 0L;
   }
 
-  std::size_t pos1 = iso1.find(".");
-  std::size_t pos2 = iso2.find(".");
+  std::size_t pos1 = iso1.find('.');
+  std::size_t pos2 = iso2.find('.');
   if (pos1 == std::string::npos || pos2 == std::string::npos) {
     VLOG(1) << "Failed to parse dates: " << iso1 << " and " << iso2;
     return 0L;
