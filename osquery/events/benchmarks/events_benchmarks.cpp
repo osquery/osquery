@@ -91,7 +91,7 @@ class BenchmarkEventSubscriber
 
 static void EVENTS_subscribe_fire(benchmark::State& state) {
   // Setup the event config parser plugin.
-  auto plugin = Config::getInstance().getParser("events");
+  auto plugin = Config::get().getParser("events");
   plugin->setUp();
 
   // Register a publisher.

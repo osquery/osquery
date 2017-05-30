@@ -121,7 +121,7 @@ static inline bool hasWorkerVariable() {
 volatile std::sig_atomic_t kHandledSignal{0};
 
 static inline bool isWatcher() {
-  return (osquery::Watcher::getWorker().isValid());
+  return (osquery::Watcher::get().getWorker().isValid());
 }
 
 void signalHandler(int num) {
@@ -155,7 +155,7 @@ void signalHandler(int num) {
       // The watcher waits for the worker to die.
       if (isWatcher()) {
         // Bind the fate of the worker to this watcher.
-        osquery::Watcher::bindFates();
+        osquery::Watcher::get().bindFates();
       } else {
         // Otherwise the worker or non-watched process joins.
         // Stop thrift services/clients/and their thread pools.
@@ -465,7 +465,7 @@ void Initializer::initWatcher() const {
 
   // Add a watcher service thread to start/watch an optional worker and list
   // of optional extensions from the autoload paths.
-  if (Watcher::hasManagedExtensions() || !FLAGS_disable_watchdog) {
+  if (Watcher::get().hasManagedExtensions() || !FLAGS_disable_watchdog) {
     Dispatcher::addService(std::make_shared<WatcherRunner>(
         *argc_, *argv_, !FLAGS_disable_watchdog));
   }
@@ -483,8 +483,8 @@ void Initializer::waitForWatcher() const {
     auto retcode = 0;
     if (kHandledSignal > 0) {
       retcode = 128 + kHandledSignal;
-    } else if (Watcher::getWorkerStatus() >= 0) {
-      retcode = Watcher::getWorkerStatus();
+    } else if (Watcher::get().getWorkerStatus() >= 0) {
+      retcode = Watcher::get().getWorkerStatus();
     } else {
       retcode = EXIT_FAILURE;
     }
@@ -540,7 +540,7 @@ void Initializer::initActivePlugin(const std::string& type,
       return rs;
     }
 
-    if (!Watcher::hasManagedExtensions()) {
+    if (!Watcher::get().hasManagedExtensions()) {
       // The plugin must be local, and is not active, problem.
       stop = true;
     }
@@ -559,7 +559,7 @@ void Initializer::start() const {
   // If the shell or daemon does not need extensions and it will exit quickly,
   // prefer to disable the extension manager.
   if ((FLAGS_config_check || FLAGS_config_dump) &&
-      !Watcher::hasManagedExtensions()) {
+      !Watcher::get().hasManagedExtensions()) {
     FLAGS_disable_extensions = true;
   }
 
@@ -600,7 +600,7 @@ void Initializer::start() const {
 
   if (FLAGS_config_check) {
     // The initiator requested an initialization and config check.
-    auto s = Config::getInstance().load();
+    auto s = Config::get().load();
     if (!s.ok()) {
       std::cerr << "Error reading config: " << s.toString() << "\n";
     }
@@ -615,7 +615,7 @@ void Initializer::start() const {
   }
 
   // Load the osquery config using the default/active config plugin.
-  auto s = Config::getInstance().load();
+  auto s = Config::get().load();
   if (!s.ok()) {
     auto message = "Error reading config: " + s.toString();
     if (tool_ == ToolType::DAEMON) {

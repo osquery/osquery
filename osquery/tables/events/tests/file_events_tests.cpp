@@ -30,7 +30,7 @@ class FileEventSubscriber;
 class FileEventsTableTests : public testing::Test {
  public:
   void SetUp() override {
-    Config::getInstance().reset();
+    Config::get().reset();
 
     // Promote registry access exceptions when testing tables and SQL.
     exceptions_ = FLAGS_registry_exceptions;
@@ -46,7 +46,7 @@ class FileEventsTableTests : public testing::Test {
 
  protected:
   Status load() {
-    return Config::getInstance().load();
+    return Config::get().load();
   }
 
  private:
@@ -110,7 +110,7 @@ TEST_F(FileEventsTableTests, test_configure_subscriptions) {
   }
 
   // The most important part, make sure a reconfigure removes the subscriptions.
-  Config::getInstance().update({{"data", "{}"}});
+  Config::get().update({{"data", "{}"}});
 
   {
     SQL results(q);
@@ -118,5 +118,5 @@ TEST_F(FileEventsTableTests, test_configure_subscriptions) {
     EXPECT_EQ(row2.at("subscriptions"), "0");
   }
 }
-#endif
+#endif /* WIN32 */
 }

@@ -16,7 +16,7 @@
 #include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
-#include "osquery/logger/plugins/tls.h"
+#include "osquery/logger/plugins/tls_logger.h"
 
 namespace pt = boost::property_tree;
 

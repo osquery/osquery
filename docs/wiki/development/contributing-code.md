@@ -13,3 +13,13 @@ The format style used by osquery is defined by the configurations of osquery's [
 If you would really like a style guide to follow or refer to, please use the [LLVM Coding Standards](http://llvm.org/docs/CodingStandards.html).
 
 Keep in mind, osquery's style configurations are slightly different than vanilla LLVM coding standards, so be sure to still run `make format` before submitting any code.
+
+## Linting
+
+osquery has some basic linting for documentation that gets rendered on the [osquery tables](https://osquery.io/docs/tables/) page. Breaking these linting rules will cause table generation to fail and all builds will break.
+
+**Active Linting Rules**
+- Table descriptions must end in a period: Try to make table descriptions full sentences.
+
+**Upcoming Linting Rules**
+- Table specs must have examples: Give one or two examples of how your table could be used. Generally one simple and a complex one but if your table just needs a `select * from [table]`, that's also fine.

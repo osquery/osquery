@@ -6,13 +6,13 @@ class Boost < AbstractOsqueryFormula
   url "https://downloads.sourceforge.net/project/boost/boost/1.63.0/boost_1_63_0.tar.bz2"
   sha256 "beae2529f759f6b3bf3f4969a19c2e9d6f0c503edcb2de4a61d1428519fcb3b0"
   head "https://github.com/boostorg/boost.git"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "020e6555fc57668533e8f5f2105bc70622eb6df121fd08968ee02ce55bb64d61" => :sierra
-    sha256 "6a5c696f4dc9739f3e511434a4c742c934e35811181c9d3a598f4d4ce27e1c12" => :x86_64_linux
+    sha256 "4c0c142976220ce6c5aafe451e5a92905e68468ab0bfd937c1396aa200efea40" => :sierra
+    sha256 "cbf4d81d465ab3453f9e0bb1d13babf74cf1a625782a5d1e4629a65864df42e0" => :x86_64_linux
   end
 
   env :userpaths

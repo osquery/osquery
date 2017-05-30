@@ -11,9 +11,9 @@
 #include <osquery/tables.h>
 
 #if defined(__APPLE__)
-#include <time.h>
 #include <errno.h>
 #include <sys/sysctl.h>
+#include <time.h>
 #elif defined(__linux__)
 #include <sys/sysinfo.h>
 #elif defined(WIN32)
@@ -46,7 +46,7 @@ long getUptime() {
 
   return sys_info.uptime;
 #elif defined(WIN32)
-  return (long)GetTickCount64() / 1000;
+  return static_cast<long>(GetTickCount64()) / 1000;
 #endif
 
   return -1;
@@ -68,5 +68,5 @@ QueryData genUptime(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

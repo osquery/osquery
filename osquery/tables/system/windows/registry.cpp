@@ -157,7 +157,9 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                             &cbMaxValueData,
                             nullptr,
                             &ftLastWriteTime);
-
+  if (retCode != ERROR_SUCCESS) {
+    return Status(GetLastError(), "Failed to query registry info for key");
+  }
   auto achKey = std::make_unique<TCHAR[]>(maxKeyLength);
   DWORD cbName;
 
@@ -197,7 +199,6 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
 
   // Process registry values
   for (size_t i = 0; i < cValues; i++) {
-    size_t cnt = 0;
     cchValue = maxValueName;
     achValue[0] = '\0';
 
@@ -246,9 +247,8 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
 
     if (bpDataBuff != nullptr) {
       /// REG_LINK is a Unicode string, which in Windows is wchar_t
-      char* regLinkStr = nullptr;
+      auto regLinkStr = std::make_unique<char[]>(cbMaxValueData);
       if (lpType == REG_LINK) {
-        auto regLinkStr = std::make_unique<char[]>(cbMaxValueData);
         const size_t newSize = cbMaxValueData;
         size_t convertedChars = 0;
         wcstombs_s(&convertedChars,
@@ -267,8 +267,8 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       case REG_FULL_RESOURCE_DESCRIPTOR:
       case REG_RESOURCE_LIST:
       case REG_BINARY:
-        for (size_t i = 0; i < cbMaxValueData; i++) {
-          regBinary.push_back((char)bpDataBuff[i]);
+        for (size_t j = 0; j < cbMaxValueData; j++) {
+          regBinary.push_back((char)bpDataBuff[j]);
         }
         boost::algorithm::hex(
             regBinary.begin(), regBinary.end(), std::back_inserter(data));
@@ -284,7 +284,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = std::string((char*)bpDataBuff.get());
         break;
       case REG_LINK:
-        r["data"] = std::string(regLinkStr);
+        r["data"] = std::string(regLinkStr.get());
         break;
       case REG_MULTI_SZ:
         while (*p != 0x00) {

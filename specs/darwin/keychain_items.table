@@ -1,5 +1,5 @@
 table_name("keychain_items")
-description("Generic details about keychain items")
+description("Generic details about keychain items.")
 schema([
     Column("label", TEXT, "Generic item name"),
     Column("description", TEXT, "Optional item description"),

@@ -26,6 +26,7 @@
 
 namespace osquery {
 
+class Config;
 class Pack;
 class Schedule;
 class ConfigParserPlugin;
@@ -34,10 +35,44 @@ class ConfigParserPlugin;
 extern const std::string kExecutingQuery;
 
 /**
+ * @brief A thread that periodically reloads configuration state.
+ *
+ * This refresh runner thread can refresh any configuration plugin.
+ * It may accelerate the time between checks if the configuration fails to load.
+ * For configurations pulled from the network this assures that configuration
+ * is fresh when re-attaching.
+ */
+class ConfigRefreshRunner : public InternalRunnable {
+ public:
+  /// A simple wait/interruptible lock.
+  void start();
+
+ private:
+  /// Allow the configuration to update the refresh rate.
+  void refresh(size_t refresh) {
+    refresh_ = refresh;
+  }
+
+  /// Inspect the current refresh rate.
+  size_t refresh() {
+    return refresh_;
+  }
+
+ private:
+  /// The current refresh rate in seconds.
+  std::atomic<size_t> refresh_{0};
+  std::atomic<size_t> mod_{1000};
+
+ private:
+  friend class Config;
+  FRIEND_TEST(ConfigTests, test_config_refresh);
+};
+
+/**
  * @brief The programmatic representation of osquery's configuration
  *
  * @code{.cpp}
- *   auto c = Config::getInstance();
+ *   auto c = Config::get();
  *   // use methods in osquery::Config on `c`
  * @endcode
  */
@@ -46,10 +81,9 @@ class Config : private boost::noncopyable {
   Config();
 
  public:
-  /// Get a singleton instance of the Config class
-  static Config& getInstance() {
-    static Config cfg;
-    return cfg;
+  static Config& get() {
+    static Config instance;
+    return instance;
   };
 
   /**
@@ -163,7 +197,7 @@ class Config : private boost::noncopyable {
    *
    * @code{.cpp}
    *   std::map<std::string, ScheduledQuery> queries;
-   *   Config::getInstance().scheduledQueries(
+   *   Config::get().scheduledQueries(
    *      ([&queries](const std::string& name, const ScheduledQuery& query) {
    *        queries[name] = query;
    *      }));
@@ -182,7 +216,7 @@ class Config : private boost::noncopyable {
    *
    * @code{.cpp}
    *   std::map<std::string, std::vector<std::string>> file_map;
-   *   Config::getInstance().files(
+   *   Config::get().files(
    *      ([&file_map](const std::string& category,
    *                   const std::vector<std::string>& files) {
    *        file_map[category] = files;
@@ -202,7 +236,7 @@ class Config : private boost::noncopyable {
    * QueryPerformance struct, if it exists.
    *
    * @code{.cpp}
-   *   Config::getInstance().getPerformanceStats(
+   *   Config::get().getPerformanceStats(
    *     "my_awesome_query",
    *     [](const QueryPerformance& query) {
    *       // use "query" here
@@ -317,14 +351,23 @@ class Config : private boost::noncopyable {
   /// Check if the config received valid/parsable content from a config plugin.
   bool valid_{false};
 
-  /// Check if the config is updating sources in response to an async update
-  /// or the initialization load step.
+  /**
+   * @brief Check if the configuration has attempted a load.
+   *
+   * Check if the config is updating sources in response to an async update
+   * or the initialization load step.
+   */
   bool loaded_{false};
 
+  /// Try if the configuration has started an auto-refresh thread.
   bool started_thread_{false};
 
   /// A UNIX timestamp recorded when the config started.
   size_t start_time_{0};
+
+ private:
+  /// Hold a reference to the refresh runner to update the acceleration.
+  std::shared_ptr<ConfigRefreshRunner> refresh_runner_{nullptr};
 
  private:
   friend class Initializer;
@@ -336,7 +379,12 @@ class Config : private boost::noncopyable {
   friend class FileEventsTableTests;
   friend class DecoratorsConfigParserPluginTests;
   friend class SchedulerTests;
+  FRIEND_TEST(ConfigTests, test_config_refresh);
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
+  FRIEND_TEST(ViewsConfigParserPluginTests, test_add_view);
+  FRIEND_TEST(ViewsConfigParserPluginTests, test_swap_view);
+  FRIEND_TEST(ViewsConfigParserPluginTests, test_update_view);
+  FRIEND_TEST(OptionsConfigParserPluginTests, test_unknown_option);
   FRIEND_TEST(EventsConfigParserPluginTests, test_get_event);
   FRIEND_TEST(PacksTests, test_discovery_cache);
   FRIEND_TEST(PacksTests, test_multi_pack);
@@ -525,13 +573,6 @@ class ConfigParserPlugin : public Plugin {
 
  private:
   friend class Config;
-};
-
-// A thread that periodically reloads configuration state
-class ConfigRefreshRunner : public InternalRunnable {
- public:
-  /// A simple wait/interruptible lock.
-  void start();
 };
 
 /**

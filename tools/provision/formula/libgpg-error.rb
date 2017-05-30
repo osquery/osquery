@@ -6,12 +6,12 @@ class LibgpgError < AbstractOsqueryFormula
   url "https://gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.24.tar.bz2"
   mirror "https://www.mirrorservice.org/sites/ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.24.tar.bz2"
   sha256 "9268e1cc487de5e6e4460fca612a06e4f383072ac43ae90603e5e46783d3e540"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "f17cb734505fbc59b1ce310406020b6217e58c5bdb521112e7ff680b6afde0b7" => :x86_64_linux
+    sha256 "1c397f85d9117da00482daccb758136c2e672fd8f2b6ac24aa68595766a799dd" => :x86_64_linux
   end
 
   option :universal

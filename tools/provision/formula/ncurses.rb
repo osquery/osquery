@@ -6,12 +6,12 @@ class Ncurses < AbstractOsqueryFormula
   url "http://ftpmirror.gnu.org/ncurses/ncurses-6.0.tar.gz"
   mirror "https://ftp.gnu.org/gnu/ncurses/ncurses-6.0.tar.gz"
   sha256 "f551c24b30ce8bfb6e96d9f59b42fbea30fa3a6123384172f9e7284bcf647260"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "a94d47a827c849b48bb3850d8422ea1d5d7d17be17fa799367e310f93cc11ea8" => :x86_64_linux
+    sha256 "7647385400bdf6a04d8deab9892e0a6ebbb518a84453d587dce2048c9aab84d3" => :x86_64_linux
   end
 
   keg_only :provided_by_osx
@@ -47,7 +47,9 @@ class Ncurses < AbstractOsqueryFormula
                           "--mandir=#{man}",
                           "--with-manpage-format=normal",
                           "--with-shared",
-                          "--with-gpm=no"
+                          "--with-gpm=no",
+                          "--without-shared",
+                          "--with-static"
     system "make", "install"
     make_libncurses_symlinks
 
@@ -59,25 +61,12 @@ class Ncurses < AbstractOsqueryFormula
     major = version.to_s.split(".")[0]
 
     %w[form menu ncurses panel].each do |name|
-      if OS.mac?
-        lib.install_symlink "lib#{name}w.#{major}.dylib" => "lib#{name}.dylib"
-        lib.install_symlink "lib#{name}w.#{major}.dylib" => "lib#{name}.#{major}.dylib"
-      else
-        lib.install_symlink "lib#{name}w.so.#{major}" => "lib#{name}.so"
-        lib.install_symlink "lib#{name}w.so.#{major}" => "lib#{name}.so.#{major}"
-      end
       lib.install_symlink "lib#{name}w.a" => "lib#{name}.a"
       lib.install_symlink "lib#{name}w_g.a" => "lib#{name}_g.a"
     end
 
     lib.install_symlink "libncurses++w.a" => "libncurses++.a"
     lib.install_symlink "libncurses.a" => "libcurses.a"
-    if OS.mac?
-      lib.install_symlink "libncurses.dylib" => "libcurses.dylib"
-    else
-      lib.install_symlink "libncurses.so" => "libcurses.so"
-      lib.install_symlink "libncurses.so" => "libtinfo.so"
-    end
 
     (lib/"pkgconfig").install_symlink "ncursesw.pc" => "ncurses.pc"
 

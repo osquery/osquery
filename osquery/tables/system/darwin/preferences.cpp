@@ -139,8 +139,8 @@ void genOSXDomainPrefs(const CFStringRef& domain, QueryData& results) {
 
     // Interesting results/behavior from Microsoft products.
     r["key"] = stringFromCFString(key);
-    if (r.at("key").find(">") != std::string::npos ||
-        r.at("key").find("<") != std::string::npos || r.at("key").size() == 0) {
+    if (r.at("key").find('>') != std::string::npos ||
+        r.at("key").find('<') != std::string::npos || r.at("key").size() == 0) {
       continue;
     }
 

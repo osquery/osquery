@@ -15,11 +15,17 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
+#include "osquery/core/process.h"
 #include "osquery/sql/virtual_table.h"
 
 namespace osquery {
 
 FLAG(bool, enable_foreign, false, "Enable no-op foreign virtual tables");
+
+FLAG(uint64,
+     table_delay,
+     0,
+     "Add an optional microsecond delay between table scans");
 
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
@@ -418,6 +424,10 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   BaseCursor* pCur = (BaseCursor*)pVtabCursor;
   auto* pVtab = (VirtualTable*)pVtabCursor->pVtab;
   auto* content = pVtab->content;
+  if (FLAGS_table_delay > 0 && pVtab->instance->tableCalled(content)) {
+    // Apply an optional sleep between table calls.
+    sleepFor(FLAGS_table_delay);
+  }
   pVtab->instance->addAffectedTable(content);
 
   pCur->row = 0;

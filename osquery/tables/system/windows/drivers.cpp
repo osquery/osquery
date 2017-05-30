@@ -1,12 +1,12 @@
 /*
-*  Copyright (c) 2014-present, Facebook, Inc.
-*  All rights reserved.
-*
-*  This source code is licensed under the BSD-style license found in the
-*  LICENSE file in the root directory of this source tree. An additional grant
-*  of patent rights can be found in the PATENTS file in the same directory.
-*
-*/
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -44,8 +44,7 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
                   std::map<std::string, std::string>& loadedDrivers,
                   QueryData& results) {
   Row r;
-  DWORD cbBufSize = 0;
-
+  unsigned long cbBufSize = 0;
   auto schService =
       OpenService(schScManager, svc.lpServiceName, SERVICE_QUERY_CONFIG);
 
@@ -54,16 +53,17 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
     return;
   }
 
-  QueryServiceConfig(schService, nullptr, 0, &cbBufSize);
-  auto lpsc = static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize));
-  if (QueryServiceConfig(schService, lpsc, cbBufSize, &cbBufSize) != 0) {
-    TLOG << "QueryServiceConfig failed (" << GetLastError() << ")";
-  }
-
   r["name"] = SQL_TEXT(svc.lpServiceName);
   r["display_name"] = SQL_TEXT(svc.lpDisplayName);
   r["status"] = SQL_TEXT(kDrvStatus[svc.ServiceStatusProcess.dwCurrentState]);
-  r["start_type"] = SQL_TEXT(kDrvStartType[lpsc->dwStartType]);
+
+  QueryServiceConfig(schService, nullptr, 0, &cbBufSize);
+  auto lpsc = static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize));
+  auto ret = QueryServiceConfig(schService, lpsc, cbBufSize, &cbBufSize);
+  if (ret == 0) {
+    TLOG << "QueryServiceConfig failed (" << GetLastError() << ")";
+  }
+  r["start_type"] = ret == 0 ? "" : SQL_TEXT(kDrvStartType[lpsc->dwStartType]);
 
   // If SCM can't get 'path' of the driver then use the path
   // available in loadedDrivers list
@@ -97,22 +97,19 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
 }
 
 void enumLoadedDrivers(std::map<std::string, std::string>& loadedDrivers) {
-  DWORD bytesNeeded = 0;
-  int driversCount = 0;
+  unsigned long bytesNeeded = 0;
+  auto driversCount = 0;
 
-  auto ret = EnumDeviceDrivers(nullptr, 0, &bytesNeeded);
+  EnumDeviceDrivers(nullptr, 0, &bytesNeeded);
   auto drvBaseAddr = static_cast<LPVOID*>(malloc(bytesNeeded));
-
   if (drvBaseAddr == nullptr) {
     TLOG << "enumLoadedDrivers failed to allocate required memory ("
          << bytesNeeded << ")";
     return;
   }
 
-  ret = EnumDeviceDrivers(drvBaseAddr, bytesNeeded, &bytesNeeded);
-
+  auto ret = EnumDeviceDrivers(drvBaseAddr, bytesNeeded, &bytesNeeded);
   driversCount = bytesNeeded / sizeof(drvBaseAddr[0]);
-
   if (ret && (driversCount > 0)) {
     auto driverPath = static_cast<LPSTR>(malloc(MAX_PATH + 1));
     auto driverName = static_cast<LPSTR>(malloc(MAX_PATH + 1));
@@ -203,5 +200,5 @@ QueryData genDrivers(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

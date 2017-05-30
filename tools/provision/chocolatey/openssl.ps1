@@ -6,6 +6,10 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 # Update-able metadata
+#
+# $version - The version of the software package to build
+# $chocoVersion - The chocolatey package version, used for incremental bumps
+#                 without changing the version of the software package
 $version = '1_0_2k'
 $chocoVersion = '1.0.2-k'
 $packageName = 'openssl'

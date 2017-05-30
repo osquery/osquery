@@ -271,6 +271,13 @@ class DropPrivileges : private boost::noncopyable {
 std::string getHostname();
 
 /**
+ * @brief Generate a new generic UUID
+ *
+ * @return a string containing a random UUID
+ */
+std::string generateNewUUID();
+
+/**
  * @brief Getter for an instance uuid
  *
  * @return ok on success and ident is set to the instance uuid, otherwise

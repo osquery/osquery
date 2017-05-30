@@ -1,5 +1,5 @@
 table_name("event_taps")
-description("Returns information about installed event taps")
+description("Returns information about installed event taps.")
 schema([
     Column("enabled", INTEGER, "Is the Event Tap enabled"),
     Column("event_tap_id", INTEGER, "Unique ID for the Tap", index=True),

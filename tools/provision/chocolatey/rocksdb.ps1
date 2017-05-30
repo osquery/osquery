@@ -6,7 +6,12 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 # Update-able metadata
+#
+# $version - The version of the software package to build
+# $chocoVersion - The chocolatey package version, used for incremental bumps
+#                 without changing the version of the software package
 $version = '5.1.4'
+$chocoVersion = '5.1.4-r1'
 $packageName = "rocksdb"
 $projectSource = 'https://github.com/facebook/rocksdb/'
 $packageSourceUrl = 'https://github.com/facebook/rocksdb/'
@@ -73,7 +78,7 @@ $includeDir = New-Item -ItemType Directory -Path 'local\include'
 $libDir = New-Item -ItemType Directory -Path 'local\lib'
 $srcDir = New-Item -ItemType Directory -Path 'local\src'
 
-Write-NuSpec $packageName $version $authors $owners $projectSource $packageSourceUrl $copyright $license
+Write-NuSpec $packageName $chocoVersion $authors $owners $projectSource $packageSourceUrl $copyright $license
 
 # Rename the Debug libraries to end with a `_dbg.lib`
 foreach ($lib in Get-ChildItem "$buildDir\Debug\") {
@@ -88,9 +93,9 @@ Copy-Item $buildScript $srcDir
 choco pack
 
 Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" -foregroundcolor DarkGreen
-if (Test-Path "$packageName.$version.nupkg") {
-  Write-Host "[+] Finished building $packageName v$version." -foregroundcolor Green
+if (Test-Path "$packageName.$chocoVersion.nupkg") {
+  Write-Host "[+] Finished building $packageName v$chocoVersion." -foregroundcolor Green
 }
 else {
-  Write-Host "[-] Failed to build $packageName v$version." -foregroundcolor Red
+  Write-Host "[-] Failed to build $packageName v$chocoVersion." -foregroundcolor Red
 }

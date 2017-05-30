@@ -30,7 +30,7 @@ class DecoratorsConfigParserPluginTests : public testing::Test {
 
     // Construct a config map, the typical output from `Config::genConfig`.
     config_data_["awesome"] = content_;
-    Config::getInstance().reset();
+    Config::get().reset();
     clearDecorations("awesome");
 
     // Backup the current decorator status.
@@ -39,7 +39,7 @@ class DecoratorsConfigParserPluginTests : public testing::Test {
   }
 
   void TearDown() override {
-    Config::getInstance().reset();
+    Config::get().reset();
     FLAGS_disable_decorators = decorator_status_;
   }
 
@@ -51,7 +51,7 @@ class DecoratorsConfigParserPluginTests : public testing::Test {
 
 TEST_F(DecoratorsConfigParserPluginTests, test_decorators_list) {
   // Assume the decorators are disabled.
-  Config::getInstance().update(config_data_);
+  Config::get().update(config_data_);
   auto parser = Config::getParser("decorators");
   EXPECT_NE(parser, nullptr);
 
@@ -65,7 +65,7 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load) {
   // Re-enable the decorators, then update the config.
   // The 'load' decorator set should run every time the config is updated.
   FLAGS_disable_decorators = false;
-  Config::getInstance().update(config_data_);
+  Config::get().update(config_data_);
 
   QueryLogItem item;
   getDecorations(item.decorations);
@@ -76,7 +76,7 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load) {
 TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_interval) {
   // Prevent loads from executing.
   FLAGS_disable_decorators = true;
-  Config::getInstance().update(config_data_);
+  Config::get().update(config_data_);
 
   // Mimic the schedule's execution.
   FLAGS_disable_decorators = false;
@@ -110,7 +110,7 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load_top_level) {
   FLAGS_disable_decorators = false;
   // enable top level decorations for the test
   FLAGS_decorations_top_level = true;
-  Config::getInstance().update(config_data_);
+  Config::get().update(config_data_);
 
   // make sure decorations object still exists
   QueryLogItem item;

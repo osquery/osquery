@@ -98,8 +98,8 @@ void YARAEventSubscriber::configure() {
   // But the subscriber must duplicate the set of subscriptions such that the
   // publisher's 'fire'-matching logic routes related events to our callback.
   std::map<std::string, std::vector<std::string>> file_map;
-  Config::getInstance().files([&file_map](
-      const std::string& category, const std::vector<std::string>& files) {
+  Config::get().files([&file_map](const std::string& category,
+                                  const std::vector<std::string>& files) {
     file_map[category] = files;
   });
 

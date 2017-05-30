@@ -150,14 +150,14 @@ QueryData genPlatformInfo(QueryContext& context) {
     std::vector<std::string> info_lines;
     iter_split(info_lines, info, boost::algorithm::first_finder("%0a"));
     for (const auto& line : info_lines) {
-      std::vector<std::string> details;
-      iter_split(details, line, boost::algorithm::first_finder(": "));
-      if (details.size() > 1) {
-        boost::trim(details[1]);
-        if (details[0].find("Revision") != std::string::npos) {
-          r["revision"] = details[1];
+      std::vector<std::string> details_vec;
+      iter_split(details_vec, line, boost::algorithm::first_finder(": "));
+      if (details_vec.size() > 1) {
+        boost::trim(details_vec[1]);
+        if (details_vec[0].find("Revision") != std::string::npos) {
+          r["revision"] = details_vec[1];
         }
-        extra_items.push_back(details[1]);
+        extra_items.push_back(details_vec[1]);
       }
     }
     r["extra"] = osquery::join(extra_items, "; ");

@@ -1,5 +1,5 @@
 table_name("time_machine_destinations")
-description("Locations backed up to using Time Machine")
+description("Locations backed up to using Time Machine.")
 schema([
     Column("alias", TEXT, "Human readable name of drive"),
     Column("destination_id", TEXT, "Time Machine destination ID"),

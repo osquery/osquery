@@ -186,7 +186,6 @@ class LoggerPlugin : public Plugin {
     return process_name_;
   }
 
- protected:
   /** @brief Virtual method which should implement custom logging.
    *
    *  LoggerPlugin::logString should be implemented by a subclass of
@@ -196,27 +195,6 @@ class LoggerPlugin : public Plugin {
    *  failure of the operation.
    */
   virtual Status logString(const std::string& s) = 0;
-
-  /**
-   * @brief Initialize the logger with the name of the binary and any status
-   * logs generated between program launch and logger start.
-   *
-   * The logger initialization is called once CLI flags have been parsed, the
-   * registry items are constructed, extension routes broadcasted and extension
-   * plugins discovered (as a logger may be an extension plugin) and the config
-   * has been loaded (which may include additional CLI flag-options).
-   *
-   * All of these actions may have generated VERBOSE, INFO, WARNING, or ERROR
-   * logs. The internal logging facility, Glog, collects these intermediate
-   * status logs and a customized log sink buffers them until the active
-   * osquery logger's `init` method is called.
-   *
-   * @param binary_name The string name of the process (argv[0]).
-   * @param log The set of status (INFO, WARNING, ERROR) logs generated before
-   * the logger's `init` method was called.
-   */
-  virtual void init(const std::string& binary_name,
-                    const std::vector<StatusLogLine>& log) = 0;
 
   /**
    * @brief See the usesLogStatus method, log a Glog status.
@@ -251,6 +229,28 @@ class LoggerPlugin : public Plugin {
   virtual Status logEvent(const std::string& s) {
     return Status(1, "Not enabled");
   }
+
+ protected:
+  /**
+   * @brief Initialize the logger with the name of the binary and any status
+   * logs generated between program launch and logger start.
+   *
+   * The logger initialization is called once CLI flags have been parsed, the
+   * registry items are constructed, extension routes broadcasted and extension
+   * plugins discovered (as a logger may be an extension plugin) and the config
+   * has been loaded (which may include additional CLI flag-options).
+   *
+   * All of these actions may have generated VERBOSE, INFO, WARNING, or ERROR
+   * logs. The internal logging facility, Glog, collects these intermediate
+   * status logs and a customized log sink buffers them until the active
+   * osquery logger's `init` method is called.
+   *
+   * @param binary_name The string name of the process (argv[0]).
+   * @param log The set of status (INFO, WARNING, ERROR) logs generated before
+   * the logger's `init` method was called.
+   */
+  virtual void init(const std::string& binary_name,
+                    const std::vector<StatusLogLine>& log) = 0;
 
  private:
   std::string process_name_;

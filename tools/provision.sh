@@ -19,15 +19,13 @@ LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
 
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
-HOMEBREW_CORE="0e6f293450cf9b54e324e92ea0b0475fd4e0d929"
+HOMEBREW_CORE="4e686a0a2a23d4075077eed5a1250fc020ab1864"
 LINUXBREW_CORE="501c656e81770ff64f12131a20535795e9229e44"
-HOMEBREW_DUPES="00df450f28f23aa1013564889d11440ab80b36a5"
-LINUXBREW_DUPES="c0012f1a2f8ef3bce5a623cc3f75ab79110bbc9b"
-HOMEBREW_BREW="2be7999878702554f1e1b5f4118978e670e6156c"
+HOMEBREW_BREW="ea8be174f6009bc9bdec67b13ca501b5b83fc4b8"
 LINUXBREW_BREW="1d16368a177807663e1b3146d71fcd69e2061e27"
 
 # If the world needs to be rebuilt, increase the version
-DEPS_VERSION="3"
+DEPS_VERSION="4"
 
 source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/provision/lib.sh"
@@ -48,7 +46,6 @@ function platform_linux_main() {
   brew_tool osquery/osquery-local/glibc
 
   # Build a bottle for a legacy glibc.
-  brew_clean osquery/osquery-local/curl
   brew_tool osquery/osquery-local/glibc-legacy
   brew_tool osquery/osquery-local/zlib-legacy
 
@@ -72,7 +69,6 @@ function platform_linux_main() {
 
   # OpenSSL is needed for the final build.
   brew_tool osquery/osquery-local/libxml2
-  brew_clean osquery/osquery-local/curl
   brew_tool osquery/osquery-local/openssl
 
   # Curl and Python are needed for LLVM mostly.
@@ -300,7 +296,7 @@ function main() {
   if [[ $OS = "freebsd" ]]; then
     PIP="sudo $PIP"
   fi
-  $PIP install -I -r requirements.txt
+  $PIP install --no-cache-dir -I -r requirements.txt
 
   log "running auxiliary initialization"
   initialize $OS
