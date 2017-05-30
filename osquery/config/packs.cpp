@@ -256,6 +256,11 @@ bool Pack::checkPlatform(const std::string& platform) const {
     return true;
   }
 
+  auto posix_type = (platform.find("posix") != std::string::npos);
+  if (posix_type && isPlatform(PlatformType::TYPE_POSIX)) {
+    return true;
+  }
+
   return (platform.find(kSDKPlatform) != std::string::npos);
 }
 
