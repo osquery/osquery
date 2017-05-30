@@ -139,7 +139,7 @@ static void ip4StringToDecimalFunc(sqlite3_context* context,
 
   struct sockaddr sa;
   std::string address((char*)sqlite3_value_text(argv[0]));
-  if (address.find(":") != std::string::npos) {
+  if (address.find(':') != std::string::npos) {
     // Assume this is an IPv6 address.
     sqlite3_result_null(context);
   } else {

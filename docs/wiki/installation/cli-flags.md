@@ -35,6 +35,8 @@ Include line-delimited switches to be interpreted and used as CLI-flags:
 
 If no `--flagfile` is provided, osquery will try to find and use a "default" flagfile at `/etc/osquery/osquery.flags.default`. Both the shell and daemon will discover and use the defaults.
 
+**Note:** Flags in a `flagfile` should not be wrapped in quotes, shell-macro/variable expansion is not applied!
+
 ### Configuration control flags
 
 `--config_plugin="filesystem"`
@@ -48,6 +50,14 @@ Built-in options include: **filesystem**, **tls**
 The **filesystem** config plugin's path to a JSON file.
 On OS X the default path is **/var/osquery/osquery.conf**.
 If you want to read from multiple configuration paths create a directory: **/etc/osquery/osquery.conf.d/**. All files within that optional directory will be read and merged in lexical order.
+
+`--config_refresh=0`
+
+An optional configuration refresh interval in seconds. By default a configuration is fetched only at osquery load. If the configuration should be auto-updated set a "refresh" time to a value in seconds greater than 0. If the configuration endpoint cannot be reached during runtime, the normal retry approach is applied (e.g., the **tls** config plugin will retry 3 times).
+
+`--config_accelerated_refresh=300`
+
+If a configuration refresh is used (`config_refresh > 0`) and the refresh attempt fails, the accelerated refresh will be used. This allows plugins like **tls** to fetch fresh data after having been offline for a while.
 
 `--config_check=false`
 
@@ -94,6 +104,10 @@ If this value is non-0 the watchdog level (`--watchdog_level`) for maximum susta
 `--utc=true`
 
 Attempt to convert all UNIX calendar times to UTC.
+
+`--table_delay=0`
+
+Add a microsecond delay between multiple table calls (when a table is used in a JOIN). A `200` microsecond delay will trade about 20% additional time for a reduced 5% CPU utilization.
 
 **Windows Only**
 
@@ -171,11 +185,6 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. A very s
 
 The **tls** endpoint path, e.g.: **/api/v1/config** when using the **tls** config plugin. See the other **tls_** related CLI flags.
 
-`--config_tls_refresh=0`
-
-The configuration **tls** endpoint refresh interval. By default a configuration is fetched only at osquery load. If the configuration should be auto-updated set a "refresh" time to a value in seconds. This option enforces a minimum of 10 seconds. If the configuration endpoint cannot be reached during run, during an attempted refresh, the normal retry approach is applied.
-
-
 `--config_tls_max_attempts=3`
 
 The total number of attempts that will be made to the remote config server if a request fails.
@@ -218,16 +227,6 @@ The URI path which will be used, in conjunction with `--tls_hostname`, to create
 
 The total number of attempts that will be made to the remote distributed query server if a request fails when using the **tls** distributed plugin.
 
-## Runtime flags
-
-`--read_max=52428800` (50MB)
-
-Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
-
-`--read_user_max=10485760` (10MB)
-
-Maximum non-super user read size. Similar to `--read_max` but applied to user-controlled (owned) files.
-
 ### osquery daemon runtime control flags
 
 `--schedule_splay_percent=10`
@@ -265,13 +264,17 @@ Limit the schedule, 0 for no limit. Optionally limit the `osqueryd`'s life by ad
 
 Comma-delimited list of table names to be disabled. This allows osquery to be launched without certain tables.
 
+`--read_max=52428800` (50MB)
+
+Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
+
 ### osquery events control flags
 
 `--disable_events=false`
 
 Disable osquery Operating System [eventing publish subscribe](../development/pubsub-framework.md) APIs. This will implicitly disable several tables that report based on logged events.
 
-`--events_expiry=86000`
+`--events_expiry=3600`
 
 Timeout to expire [eventing publish subscribe](../development/pubsub-framework.md) results from the backing-store. This expiration is only applied when results are queried. For example, if `--events_expiry=1` then events will only practically exist for a single select from the subscriber. If no select occurs then events will be saved in the backing store indefinitely.
 
@@ -279,9 +282,9 @@ Timeout to expire [eventing publish subscribe](../development/pubsub-framework.m
 
 Since event rows are only "added" it does not make sense to emit "removed" results. An optimization can occur within the osquery daemon's query schedule. Every time the select query runs on a subscriber the current time is saved. Subsequent selects will use the previously saved time as the lower bound. This optimization is removed if any constraints on the "time" column are included.
 
-`--events_max=1000`
+`--events_max=50000`
 
-Maximum number of events to buffer in the backing store while waiting for a query to 'drain' or trigger an expiration. If the expiration (`events_expiry`) is set to 1 day, this max value indicates that only 1000 events will be stored before dropping each day. In this case the limiting time is almost always the scheduled query. If a scheduled query that select from events-based tables occurs sooner than the expiration time that interval becomes the limit.
+Maximum number of events to buffer in the backing store while waiting for a query to 'drain' or trigger an expiration. If the expiration (`events_expiry`) is set to 1 hour, this max value indicates that only 50000 events will be stored before dropping each hour. In this case the limiting time is almost always the scheduled query. If a scheduled query that select from events-based tables occurs sooner than the expiration time that interval becomes the limit.
 
 **Windows Only**
 
@@ -394,7 +397,7 @@ There are several flags that control the shell's output format: `--json`, `--lis
 
 `--planner=false`
 
-When prototyping new queries the planner enables verbose decisions made by the SQLites virtual table API module. This module is implemented by osquery code so it is very helpful to learn what predicate constraints are selected and what full table scans are required for JOINs and nested queries.
+When prototyping new queries the planner enables verbose decisions made by the SQLite virtual table API. This is customized by osquery code so it is very helpful to learn what predicate constraints are selected and what full table scans are required for JOINs and nested queries.
 
 `--header=true`
 

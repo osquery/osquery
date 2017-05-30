@@ -1,5 +1,5 @@
 table_name("drivers")
-description("Lists all installed and loaded Windows Drivers and their relevant data")
+description("Windows system drivers and their relevant data.")
 schema([
     Column("name", TEXT, "Driver name"),
     Column("display_name", TEXT, "Driver Display name"),

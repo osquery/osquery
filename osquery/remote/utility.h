@@ -56,7 +56,7 @@ class TLSRequestHelper : private boost::noncopyable {
 
     // Some APIs may require persistent identification.
     if (FLAGS_tls_secret_always) {
-      uri += ((uri.find("?") != std::string::npos) ? "&" : "?") +
+      uri += ((uri.find('?') != std::string::npos) ? "&" : "?") +
              FLAGS_tls_enroll_override + "=" + getEnrollSecret();
     }
     return uri;

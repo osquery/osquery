@@ -85,7 +85,7 @@ QueryData genOsqueryEvents(QueryContext& context) {
 QueryData genOsqueryPacks(QueryContext& context) {
   QueryData results;
 
-  Config::getInstance().packs([&results](std::shared_ptr<Pack>& pack) {
+  Config::get().packs([&results](std::shared_ptr<Pack>& pack) {
     Row r;
     r["name"] = pack->getName();
     r["version"] = pack->getVersion();
@@ -203,14 +203,14 @@ QueryData genOsqueryInfo(QueryContext& context) {
   r["version"] = kVersion;
 
   std::string hash_string;
-  auto s = Config::getInstance().genHash(hash_string);
+  auto s = Config::get().genHash(hash_string);
   r["config_hash"] = (s.ok()) ? hash_string : "";
-  r["config_valid"] = Config::getInstance().isValid() ? INTEGER(1) : INTEGER(0);
+  r["config_valid"] = Config::get().isValid() ? INTEGER(1) : INTEGER(0);
   r["extensions"] =
       (pingExtension(FLAGS_extensions_socket).ok()) ? "active" : "inactive";
   r["build_platform"] = STR(OSQUERY_BUILD_PLATFORM);
   r["build_distro"] = STR(OSQUERY_BUILD_DISTRO);
-  r["start_time"] = INTEGER(Config::getInstance().getStartTime());
+  r["start_time"] = INTEGER(Config::get().getStartTime());
   if (Initializer::isWorker()) {
     r["watcher"] = INTEGER(PlatformProcess::getLauncherProcess()->pid());
   } else {
@@ -230,35 +230,34 @@ QueryData genOsqueryInfo(QueryContext& context) {
 QueryData genOsquerySchedule(QueryContext& context) {
   QueryData results;
 
-  Config::getInstance().scheduledQueries(
-      [&results](const std::string& name, const ScheduledQuery& query) {
-        Row r;
-        r["name"] = SQL_TEXT(name);
-        r["query"] = SQL_TEXT(query.query);
-        r["interval"] = INTEGER(query.interval);
-        // Set default (0) values for each query if it has not yet executed.
-        r["executions"] = "0";
-        r["output_size"] = "0";
-        r["wall_time"] = "0";
-        r["user_time"] = "0";
-        r["system_time"] = "0";
-        r["average_memory"] = "0";
-        r["last_executed"] = "0";
+  Config::get().scheduledQueries([&results](const std::string& name,
+                                            const ScheduledQuery& query) {
+    Row r;
+    r["name"] = SQL_TEXT(name);
+    r["query"] = SQL_TEXT(query.query);
+    r["interval"] = INTEGER(query.interval);
+    // Set default (0) values for each query if it has not yet executed.
+    r["executions"] = "0";
+    r["output_size"] = "0";
+    r["wall_time"] = "0";
+    r["user_time"] = "0";
+    r["system_time"] = "0";
+    r["average_memory"] = "0";
+    r["last_executed"] = "0";
 
-        // Report optional performance information.
-        Config::getInstance().getPerformanceStats(
-            name, [&r](const QueryPerformance& perf) {
-              r["executions"] = BIGINT(perf.executions);
-              r["last_executed"] = BIGINT(perf.last_executed);
-              r["output_size"] = BIGINT(perf.output_size);
-              r["wall_time"] = BIGINT(perf.wall_time);
-              r["user_time"] = BIGINT(perf.user_time);
-              r["system_time"] = BIGINT(perf.system_time);
-              r["average_memory"] = BIGINT(perf.average_memory);
-            });
+    // Report optional performance information.
+    Config::get().getPerformanceStats(name, [&r](const QueryPerformance& perf) {
+      r["executions"] = BIGINT(perf.executions);
+      r["last_executed"] = BIGINT(perf.last_executed);
+      r["output_size"] = BIGINT(perf.output_size);
+      r["wall_time"] = BIGINT(perf.wall_time);
+      r["user_time"] = BIGINT(perf.user_time);
+      r["system_time"] = BIGINT(perf.system_time);
+      r["average_memory"] = BIGINT(perf.average_memory);
+    });
 
-        results.push_back(r);
-      });
+    results.push_back(r);
+  });
   return results;
 }
 }

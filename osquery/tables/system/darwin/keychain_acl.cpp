@@ -68,9 +68,9 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
   OSStatus os_status;
 
   uint32 acl_tag_size = 64;
-  CSSM_ACL_AUTHORIZATION_TAG tags[acl_tag_size];
+  std::vector<CSSM_ACL_AUTHORIZATION_TAG> tags(acl_tag_size);
   OSQUERY_USE_DEPRECATED(
-      os_status = SecACLGetAuthorizations(acl, tags, &acl_tag_size););
+      os_status = SecACLGetAuthorizations(acl, tags.data(), &acl_tag_size););
   if (os_status != noErr) {
     return Status(os_status, "Could not get ACL authorizations");
   }
@@ -81,7 +81,6 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
       acl_data.authorizations.push_back(kACLAuthorizationTags.at(tag));
     }
   }
-
   CFStringRef description = nullptr;
   CSSM_ACL_KEYCHAIN_PROMPT_SELECTOR prompt_selector = {};
   CFArrayRef application_list = nullptr;
@@ -204,7 +203,8 @@ Status genKeychainACLAppsForEntry(SecKeychainRef keychain,
   case kSecGenericPasswordItemClass:
     item_id = CSSM_DL_DB_RECORD_GENERIC_PASSWORD;
     break;
-  case 'ashp':
+  // ashp case
+  case 0x61736870:
     item_id = CSSM_DL_DB_RECORD_APPLESHARE_PASSWORD;
     break;
   default:

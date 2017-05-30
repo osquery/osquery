@@ -67,11 +67,7 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
       0) {
     TLOG << "QueryServiceConfig failed (" << GetLastError() << ")";
   }
-
-  r["name"] = SQL_TEXT(svc.lpServiceName);
-  r["display_name"] = SQL_TEXT(svc.lpDisplayName);
-  r["status"] = SQL_TEXT(kDrvStatus[svc.ServiceStatusProcess.dwCurrentState]);
-  r["start_type"] = SQL_TEXT(kDrvStartType[lpsc->dwStartType]);
+  r["start_type"] = ret == 0 ? "" : SQL_TEXT(kDrvStartType[lpsc->dwStartType]);
 
   // If SCM can't get 'path' of the driver then use the path
   // available in loadedDrivers list
@@ -112,13 +108,12 @@ void queryDrvInfo(const SC_HANDLE& schScManager,
 }
 
 void enumLoadedDrivers(std::map<std::string, std::string>& loadedDrivers) {
-  DWORD bytesNeeded = 0;
-  int driversCount = 0;
+  unsigned long bytesNeeded = 0;
+  auto driversCount = 0;
 
   auto ret = EnumDeviceDrivers(nullptr, 0, &bytesNeeded);
   std::unique_ptr<LPVOID[], decltype(freePtr)> drvBaseAddr(
       static_cast<LPVOID*>(malloc(bytesNeeded)), freePtr);
-
   if (drvBaseAddr == nullptr) {
     TLOG << "enumLoadedDrivers failed to allocate required memory ("
          << bytesNeeded << ")";
@@ -128,7 +123,6 @@ void enumLoadedDrivers(std::map<std::string, std::string>& loadedDrivers) {
   ret = EnumDeviceDrivers(drvBaseAddr.get(), bytesNeeded, &bytesNeeded);
 
   driversCount = bytesNeeded / sizeof(drvBaseAddr[0]);
-
   if (ret && (driversCount > 0)) {
     std::unique_ptr<CHAR, decltype(freePtr)> driverPath(
         static_cast<LPSTR>(malloc(MAX_PATH + 1)), freePtr);

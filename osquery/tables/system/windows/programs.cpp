@@ -8,16 +8,12 @@
  *
  */
 
-#include <string>
-
 #include <boost/regex.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/core/windows/wmi.h"
 #include "osquery/tables/system/windows/registry.h"
 
 namespace osquery {
@@ -75,5 +71,5 @@ QueryData genPrograms(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

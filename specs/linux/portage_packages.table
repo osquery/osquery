@@ -1,5 +1,5 @@
 table_name("portage_packages")
-description("Current list of installed packages")
+description("List of currently installed packages.")
 schema([
     Column("package", TEXT, "Package name"),
     Column("version", TEXT, "The version which are affected by the use flags, empty means all"),

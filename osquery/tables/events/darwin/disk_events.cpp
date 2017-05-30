@@ -41,7 +41,7 @@ Status DiskEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["action"] = ec->action;
   r["path"] = ec->path;
   r["name"] = ec->name;
-  r["bsd_name"] = "/dev/" + ec->bsd_name;
+  r["device"] = ec->device;
   r["uuid"] = ec->uuid;
   r["size"] = ec->size;
   r["ejectable"] = ec->ejectable;

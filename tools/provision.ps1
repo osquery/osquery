@@ -6,10 +6,10 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 # Turn on support for Powershell Cmdlet Bindings
-[CmdletBinding(SupportsShouldProcess=$true)]
+[CmdletBinding(SupportsShouldProcess = $true)]
 
 # We make heavy use of Write-Host, because colors are awesome. #dealwithit.
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope="Function", Target="*")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope = "Function", Target = "*")]
 param()
 
 # URL of where our pre-compiled third-party dependenices are archived
@@ -29,7 +29,7 @@ function Test-RebootPending {
   try {
     $util = [wmiclass]"\\.\root\ccm\clientsdk:CCM_ClientUtilities"
     $status = $util.DetermineIfRebootPending()
-    if(($null -ne $status) -and $status.RebootPending){
+    if (($null -ne $status) -and $status.RebootPending) {
       $ccm = $true
     }
   } catch {
@@ -42,7 +42,7 @@ function Test-RebootPending {
 # string does not exist, this function adds it. If it does exist this function
 # does nothing.
 function Add-ToPath {
-  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
   param(
     [string] $appendPath = ''
   )
@@ -67,7 +67,7 @@ function Add-ToPath {
 # Searchs the system path for a specified directory, and if exists, deletes
 # the value from the system path.
 function Remove-FromPath {
-  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
   param(
     [string] $removePath = ''
   )
@@ -92,10 +92,10 @@ function Remove-FromPath {
 #  * The package is installed and the user supplies no version
 #  * The package is installed and the version matches the user supplied version
 function Test-ChocoPackageInstalled {
-param(
-  [string] $packageName = '',
-  [string] $packageVersion = ''
-)
+  param(
+    [string] $packageName = '',
+    [string] $packageVersion = ''
+  )
   $out = choco list -lr
 
   # Parse through the locally installed chocolatey packages and look
@@ -114,7 +114,7 @@ param(
 
 # Installs the Powershell Analzyer: https://github.com/PowerShell/PSScriptAnalyzer
 function Install-PowershellLinter {
-  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
   param()
   if (-not $PSCmdlet.ShouldProcess('PSScriptAnalyzer')) {
     Exit -1
@@ -132,7 +132,8 @@ function Install-PowershellLinter {
     Write-Host " => NuGet provider either not installed or out of date. Installing..." -foregroundcolor Cyan
     Install-PackageProvider -Name NuGet -Force
     Write-Host "[+] NuGet package provider installed!" -foregroundcolor Green
-  } else {
+  }
+  else {
     Write-Host "[*] NuGet provider already installed." -foregroundcolor Green
   }
 
@@ -148,14 +149,15 @@ function Install-PowershellLinter {
     Write-Host " => PSScriptAnalyzer either not installed or out of date. Installing..." -foregroundcolor Cyan
     Install-Module -Name PSScriptAnalyzer -Force
     Write-Host "[+] PSScriptAnalyzer installed!" -foregroundcolor Green
-  } else {
+  }
+  else {
     Write-Host "[*] PSScriptAnalyzer already installed." -foregroundcolor Green
   }
 }
 
 # Attempts to install chocolatey if not already
 function Install-Chocolatey {
-  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
   [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingInvokeExpression", "")]
   param()
   if (-not $PSCmdlet.ShouldProcess('Chocolatey')) {
@@ -165,14 +167,16 @@ function Install-Chocolatey {
   if ($null -eq (Get-Command 'choco.exe' -ErrorAction SilentlyContinue)) {
     if (Test-Path "$env:ALLUSERSPROFILE\chocolatey\bin") {
       Write-Host "[-] WARN: Chocolatey appears to be installed, but cannot be found in the system path!" -foregroundcolor Yellow
-    } else {
+    }
+    else {
       Write-Host " => Did not find. Installing chocolatey..." -foregroundcolor Cyan
       Invoke-Expression ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
     }
     Write-Host " => Adding chocolatey to path."
-    $chocoPath = $env:ALLUSERSPROFILE+'\chocolatey\bin'
+    $chocoPath = $env:ALLUSERSPROFILE + '\chocolatey\bin'
     Add-ToPath $chocoPath
-  } else {
+  }
+  else {
     Write-Host "[*] Chocolatey is already installed." -foregroundcolor Green
   }
 }
@@ -180,7 +184,7 @@ function Install-Chocolatey {
 # Attempts to install a chocolatey package of a specific version if
 # not already there.
 function Install-ChocoPackage {
-  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
   param(
     [string] $packageName = '',
     [string] $packageVersion = '',
@@ -204,10 +208,10 @@ function Install-ChocoPackage {
     choco ${args}
     # Visual studio will occasionally exit with one of the following codes,
     # indicating a system reboot is needed before continuing.
-    if (@(3010,2147781575,-2147185721,-2147205120) -Contains $LastExitCode){
+    if (@(3010, 2147781575, -2147185721, -2147205120) -Contains $LastExitCode) {
       $LastExitCode = 0
     }
-    if (1638 -eq $LastExitCode){
+    if (1638 -eq $LastExitCode) {
       $LastExitCode = 0
       Write-Host "[*] WARN: A version of $packageName already exists, skipping" -foregroundcolor Yellow
     }
@@ -216,13 +220,14 @@ function Install-ChocoPackage {
       Exit -1
     }
     Write-Host "[+] Done." -foregroundcolor Green
-  } else {
+  }
+  else {
     Write-Host "[*] $packageName $packageVersion already installed." -foregroundcolor Green
   }
 }
 
 function Install-PipPackage {
-  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
   param()
   if (-not $PSCmdlet.ShouldProcess('Pip required modules')) {
     Exit -1
@@ -257,7 +262,7 @@ function Install-PipPackage {
 }
 
 function Install-ThirdParty {
-  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Medium")]
+  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
   param()
   if (-not $PSCmdlet.ShouldProcess('Thirdparty Chocolatey Libraries')) {
     Exit -1
@@ -315,7 +320,8 @@ function Install-ThirdParty {
       if ($oldVersionInstalled) {
         Write-Host " => An old version of $packageName is installed. Forcing re-installation" -foregroundcolor Cyan
         $chocoForce = "-f"
-      } else {
+      }
+      else {
         Write-Host " => Did not find. Installing $packageName $packageVersion" -foregroundcolor Cyan
       }
       $downloadUrl = "$THIRD_PARTY_ARCHIVE_URL/$package.nupkg"
@@ -341,7 +347,7 @@ function Install-ThirdParty {
 }
 
 function Update-GitSubmodule {
-  [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact="Low")]
+  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Low")]
   param()
   if (-not $PSCmdlet.ShouldProcess('Git Submodules')) {
     Exit -1
@@ -374,6 +380,14 @@ function Main {
 
   Write-Host "[+] Success!" -foregroundcolor Green
   $out = Install-Chocolatey
+  $out = Install-ChocoPackage 'winflexbison'
+  # Get flex and bison into our path for use
+  $chocoPath = $oldPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
+  if (Test-Path (Join-Path $chocoPath 'lib\winflexbison\tools\')) {
+    Copy-Item (Join-Path $chocoPath 'lib\winflexbison\tools\win_bison.exe') (Join-Path $chocoPath 'bin\bison.exe')
+    Copy-Item -Recurse (Join-Path $chocoPath 'lib\winflexbison\tools\data') (Join-Path $chocoPath 'bin\data')
+    Copy-Item (Join-Path $chocoPath 'lib\winflexbison\tools\win_flex.exe') (Join-Path $chocoPath 'bin\flex.exe')
+  }
   $out = Install-ChocoPackage 'cppcheck'
   $out = Install-ChocoPackage '7zip.commandline'
   $out = Install-ChocoPackage 'cmake.portable' '3.6.1'
@@ -385,12 +399,13 @@ function Main {
   $out = Update-GitSubmodule
   if (Test-Path env:OSQUERY_BUILD_HOST) {
     $out = Install-ChocoPackage 'visualcppbuildtools'
-  } else {
+  }
+  else {
     $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
     $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
     $out = Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
 
-    if(Test-RebootPending -eq $true) {
+    if (Test-RebootPending -eq $true) {
       Write-Host "[*] Windows requires a reboot to complete installing Visual Studio." -foregroundcolor yellow
       Write-Host "[*] Please reboot your system and re-run this provisioning script." -foregroundcolor yellow
       Exit 0
@@ -398,11 +413,17 @@ function Main {
 
     if ($PSVersionTable.PSVersion.Major -lt 5 -and $PSVersionTable.PSVersion.Minor -lt 1 ) {
       Write-Host "[*] Powershell version is < 5.1. Skipping Powershell Linter Installation." -foregroundcolor yellow
-    } else {
+    }
+    else {
       $out = Install-PowershellLinter
     }
   }
   $out = Install-ThirdParty
+  # Lastly, grab the thrift compiler binary and drop it into a folder in our path
+  if (Test-Path (Join-Path $chocoPath 'lib\thrift-dev\bin\')) {
+    Copy-Item (Join-Path $chocoPath 'lib\thrift-dev\bin\thrift.exe') (Join-Path $chocoPath 'bin\thrift.exe')
+    Copy-Item (Join-Path $chocoPath 'lib\thrift-dev\bin\thrift-bootstrap.exe') (Join-Path $chocoPath 'bin\thrift-bootstrap.exe')
+  }
   Write-Host "[+] Done." -foregroundcolor Yellow
 }
 

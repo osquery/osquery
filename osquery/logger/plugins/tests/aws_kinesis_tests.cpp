@@ -44,7 +44,9 @@ class MockKinesisClient : public Aws::Kinesis::KinesisClient {
 
 class KinesisTests : public testing::Test {
  public:
-  void SetUp() override { initAwsSdk(); }
+  void SetUp() override {
+    initAwsSdk();
+  }
 };
 
 TEST_F(KinesisTests, test_send) {

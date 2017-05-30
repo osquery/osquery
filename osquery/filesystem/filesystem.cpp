@@ -39,7 +39,6 @@ namespace errc = boost::system::errc;
 namespace osquery {
 
 FLAG(uint64, read_max, 50 * 1024 * 1024, "Maximum file read size");
-FLAG(uint64, read_user_max, 10 * 1024 * 1024, "Maximum non-su read size");
 
 /// See reference #1382 for reasons why someone would allow unsafe.
 HIDDEN_FLAG(bool, allow_unsafe, false, "Allow unsafe executable permissions");
@@ -109,15 +108,14 @@ Status readFile(const fs::path& path,
   }
 
   // Apply the max byte-read based on file/link target ownership.
-  off_t read_max =
-      static_cast<off_t>((handle.fd->isOwnerRoot().ok())
-                             ? FLAGS_read_max
-                             : std::min(FLAGS_read_max, FLAGS_read_user_max));
+  auto read_max = static_cast<off_t>(FLAGS_read_max);
   if (file_size > read_max) {
-    LOG(WARNING) << "Cannot read file that exceeds size limit: "
-                 << path.string();
-    VLOG(1) << "Cannot read " << path.string()
-            << " size exceeds limit: " << file_size << " > " << read_max;
+    if (!dry_run) {
+      LOG(WARNING) << "Cannot read file that exceeds size limit: "
+                   << path.string();
+      VLOG(1) << "Cannot read " << path.string()
+              << " size exceeds limit: " << file_size << " > " << read_max;
+    }
     return Status(1, "File exceeds read limits");
   }
 
@@ -302,7 +300,7 @@ Status resolveFilePattern(const fs::path& fs_path,
 
 inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
   // Replace SQL-wildcard '%' with globbing wildcard '*'.
-  if (pattern.find("%") != std::string::npos) {
+  if (pattern.find('%') != std::string::npos) {
     boost::replace_all(pattern, "%", "*");
   }
 

@@ -200,7 +200,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   // backing memory as modifiable.
   for (size_t i = 0; i < argc; i++) {
     std::string component(argv[i]);
-    if (component.find(" ") != std::string::npos) {
+    if (component.find(' ') != std::string::npos) {
       boost::replace_all(component, "\"", "\\\"");
       argv_stream << "\"" << component << "\" ";
     } else {
