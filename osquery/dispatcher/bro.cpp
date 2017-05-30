@@ -136,15 +136,15 @@ inline void processMessage(broker::message& msg,
   std::map<std::string, std::string> config_schedule;
   config_schedule["bro"] = qm.getQueryConfigString();
   VLOG(1) << "Applying new schedule: " << config_schedule["bro"];
-  Config::getInstance().update(config_schedule);
+  Config::get().update(config_schedule);
 }
 
 void BroRunner::start() {
   // Setup Broker Endpoint
   LOG(INFO) << "Starting the Bro Runner";
   broker::init();
-  BrokerManager& bm = BrokerManager::getInstance();
-  QueryManager& qm = QueryManager::getInstance();
+  BrokerManager& bm = BrokerManager::get();
+  QueryManager& qm = QueryManager::get();
 
   // Set Broker UID
   std::string ident;

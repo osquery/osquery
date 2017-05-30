@@ -153,7 +153,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   std::string query = "";
   std::string qType = "";
   auto status_find =
-      QueryManager::getInstance().findQueryAndType(queryID, qType, query);
+      QueryManager::get().findQueryAndType(queryID, qType, query);
   if (!status_find.ok()) {
     return status_find;
   }
@@ -186,8 +186,8 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
 
   // Common message fields
   const auto& uid = getNodeID();
-  const auto& topic = QueryManager::getInstance().getEventTopic(queryID);
-  const auto& event_name = QueryManager::getInstance().getEventName(queryID);
+  const auto& topic = QueryManager::get().getEventTopic(queryID);
+  const auto& event_name = QueryManager::get().getEventName(queryID);
   VLOG(1) << "Creating " << rows.size() << " messages with event name '"
           << event_name << "'";
 
@@ -206,7 +206,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
          broker::record::field(
              broker::data(broker::enum_value{"osquery::" + trigger})),
          broker::record::field(broker::data(
-             QueryManager::getInstance().getEventCookie(queryID)))});
+             QueryManager::get().getEventCookie(queryID)))});
     msg.push_back(broker::data(result_info));
 
     // Format each column
@@ -269,7 +269,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
 
   // Delete one-time query information
   if (qType == "ONETIME") {
-    QueryManager::getInstance().removeQueryEntry(query);
+    QueryManager::get().removeQueryEntry(query);
   }
 
   return Status(0, "OK");

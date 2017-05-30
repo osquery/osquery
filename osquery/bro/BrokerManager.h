@@ -31,7 +31,7 @@ class BrokerManager : private boost::noncopyable {
 
  public:
   /// Get a singleton instance of the BrokerManager class;
-  static BrokerManager& getInstance() {
+  static BrokerManager& get() {
     static BrokerManager bm;
     return bm;
   }

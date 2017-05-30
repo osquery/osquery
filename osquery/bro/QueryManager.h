@@ -41,7 +41,7 @@ class QueryManager : private boost::noncopyable {
 
  public:
   /// Get a singleton instance of the QueryManager class
-  static QueryManager& getInstance() {
+  static QueryManager& get() {
     static QueryManager qm;
     return qm;
   };
