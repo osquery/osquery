@@ -21,13 +21,14 @@ using namespace testing;
 
 namespace osquery {
 
+DECLARE_uint64(watchdog_delay);
+
 class WatcherTests : public testing::Test {};
 
 /**
  * @brief Begin with a mock watcher runner.
  *
- * The Watcher class implements a small static state and provides several 'free'
- * static methods for state manipulation.
+ * The Watcher class implements a small static state.
  *
  * The WatcherRunner class implements the state machine of a watchdog process
  * as a Runnable, in a dedicated thread. We begin testing by exercising parts
@@ -79,6 +80,7 @@ class FakePlatformProcess : public PlatformProcess {
  private:
   FRIEND_TEST(WatcherTests, test_watcherrunner_watch);
   FRIEND_TEST(WatcherTests, test_watcherrunner_stop);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
 };
 
 TEST_F(WatcherTests, test_watcherrunner_watch) {
@@ -153,7 +155,7 @@ TEST_F(WatcherTests, test_watcherrunner_loop) {
   EXPECT_CALL(runner, watch(_)).WillOnce(Return(true));
   // Since the watch method is configured to return true, no worker is created.
   EXPECT_CALL(runner, createWorker()).Times(0);
-  // The single-loop must check if itself is health.
+  // The single-loop must check if itself is healthy.
   EXPECT_CALL(runner, isWatcherHealthy(_, _)).WillOnce(Return(Status(0)));
 
   runner.start();
@@ -201,9 +203,13 @@ class FakeWatcherRunner : public WatcherRunner {
   }
 
   /// The tests do not have access to the processes table.
-  QueryData getProcessRow(pid_t pid) const override {
+  QueryData getProcessRow(pid_t pid) const {
     return qd_;
   }
+
+ private:
+  /// If a worker/extension has otherwise gone insane, stop it.
+  void stopChild(const PlatformProcess& child) const {}
 
  private:
   QueryData qd_;
@@ -260,5 +266,42 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
   runner.setProcessRow({r});
   runner.isWatcherHealthy(*test_process, state);
   EXPECT_EQ(2U, state.sustained_latency);
+}
+
+TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
+  FakeWatcherRunner runner(0, nullptr, true);
+
+  auto test_process = PlatformProcess::getCurrentProcess();
+  auto fake_test_process = FakePlatformProcess(test_process->nativeHandle());
+  fake_test_process.setStatus(PROCESS_STILL_ALIVE, 0);
+
+  // Set up a fake test process and place it into an unhealthy state.
+  Row r;
+  r["parent"] = INTEGER(test_process->nativeHandle());
+  r["user_time"] = INTEGER(100);
+  r["system_time"] = INTEGER(100);
+  r["resident_size"] = INTEGER(100);
+  runner.setProcessRow({r});
+
+  // Check the fake process sanity, which records the state at t=0.
+  EXPECT_TRUE(runner.isChildSane(fake_test_process));
+
+  // Update the fake process resident memory, make it unhealthy.
+  r["resident_size"] = INTEGER(1024 * 1024 * 1024);
+  runner.setProcessRow({r});
+
+  // Set the watchdog to delay 1000s.
+  auto delay = FLAGS_watchdog_delay;
+  FLAGS_watchdog_delay = 1000;
+  // Trigger our expectations, the watch method will return true.
+  // This will NOT call stopChild as the delay has not passed.
+  EXPECT_TRUE(runner.watch(fake_test_process));
+
+  // Now set the watchdog to no delay.
+  FLAGS_watchdog_delay = 0;
+  // This will call stopChild as there is no delay and the child is unhealthy.
+  EXPECT_FALSE(runner.watch(fake_test_process));
+
+  FLAGS_watchdog_delay = delay;
 }
 }

@@ -155,6 +155,12 @@ if(POSIX)
     -fvisibility=hidden
     -fvisibility-inlines-hidden
   )
+elseif(WINDOWS)
+  add_compile_options(
+    /EHsc
+    /W3
+    /guard:cf
+  )
 endif()
 
 if(LINUX AND CMAKE_CXX_COMPILER MATCHES "clang")
@@ -212,7 +218,7 @@ elseif(DEFINED ENV{SANITIZE})
 else()
   set(DEBUG FALSE)
   if(WINDOWS)
-    add_compile_options(/Ot)
+    add_compile_options(/Ot /WX)
   else()
     add_compile_options(-Os)
   endif()
@@ -409,6 +415,9 @@ add_definitions(
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
 )
+
+# Remove console output (not handled by logged).
+add_definitions(-DTHRIFT_SQUELCH_CONSOLE_OUTPUT=1)
 
 if(DEFINED ENV{SQLITE_DEBUG})
   add_definitions(

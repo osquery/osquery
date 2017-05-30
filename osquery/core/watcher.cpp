@@ -19,6 +19,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -26,8 +27,6 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
-
-extern char** environ;
 
 namespace fs = boost::filesystem;
 
@@ -77,6 +76,11 @@ CLI_FLAG(uint64,
          watchdog_utilization_limit,
          0,
          "Override watchdog profile CPU utilization limit");
+
+CLI_FLAG(uint64,
+         watchdog_delay,
+         60,
+         "Initial delay in seconds before watchdog starts");
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
@@ -231,6 +235,10 @@ void WatcherRunner::start() {
   } while (!interrupted() && ok());
 }
 
+size_t WatcherRunner::delayedTime() const {
+  return Config::get().getStartTime() + FLAGS_watchdog_delay;
+}
+
 bool WatcherRunner::watch(const PlatformProcess& child) const {
   int process_status = 0;
   ProcessState result = child.checkStatus(process_status);
@@ -245,7 +253,8 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
   } else if (result == PROCESS_STILL_ALIVE) {
     // If the inspect finds problems it will stop/restart the worker.
     auto status = isChildSane(child);
-    if (!status.ok()) {
+    // A delayed watchdog does not stop the worker process.
+    if (!status.ok() && getUnixTime() >= delayedTime()) {
       LOG(WARNING) << "osqueryd worker (" << child.pid()
                    << "): " << status.getMessage();
       stopChild(child);

@@ -101,6 +101,10 @@ If this value is non-0 the watchdog level (`--watchdog_level`) for maximum memor
 
 If this value is non-0 the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 90% of a thread for more than 6 seconds of wall time.
 
+`--watchdog_delay=60`
+
+A delay in seconds before the watchdog process starts enforcing memory and CPU utilization limits. The default value `60s` allows the daemon to perform resource intense actions, such as forwarding logs, at startup.
+
 `--utc=true`
 
 Attempt to convert all UNIX calendar times to UTC.
