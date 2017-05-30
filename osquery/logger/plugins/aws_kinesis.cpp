@@ -120,7 +120,7 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
       entry.WithPartitionKey(record_partition_key)
           .WithData(Aws::Utils::ByteBuffer((unsigned char*)log.c_str(),
                                            log.length()));
-      entries.push_back(std::move(entry));
+      entries.emplace_back(std::move(entry));
       valid_log_data_indices.push_back(log_data_index);
 
       log_data_index++;

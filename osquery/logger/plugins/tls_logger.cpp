@@ -19,7 +19,7 @@
 
 #include "osquery/config/parsers/decorators.h"
 #include "osquery/core/json.h"
-#include "osquery/logger/plugins/tls.h"
+#include "osquery/logger/plugins/tls_logger.h"
 
 namespace pt = boost::property_tree;
 
