@@ -489,12 +489,6 @@ void BufferedLogSink::WaitTillSent() {
 
 Status LoggerPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
-  if (FLAGS_logger_secondary_status_only &&
-      !BufferedLogSink::get().isPrimaryLogger(getName()) &&
-      (request.count("string") || request.count("snapshot"))) {
-    return Status(0, "Logging disabled to secondary plugins");
-  }
-
   QueryLogItem item;
   std::vector<StatusLogLine> intermediate_logs;
   if (request.count("string") > 0) {
@@ -533,8 +527,23 @@ Status logString(const std::string& message,
     return Status(0, "Logging disabled");
   }
 
-  return Registry::call(
-      "logger", receiver, {{"string", message}, {"category", category}});
+  Status status;
+  for (const auto& logger : osquery::split(receiver, ",")) {
+    if (FLAGS_logger_secondary_status_only &&
+        !BufferedLogSink::get().isPrimaryLogger(logger)) {
+      continue;
+    }
+
+    if (Registry::get().exists("logger", logger, true)) {
+      auto plugin = Registry::get().plugin("logger", logger);
+      auto logger_plugin = std::dynamic_pointer_cast<LoggerPlugin>(plugin);
+      status = logger_plugin->logString(message);
+    } else {
+      status = Registry::call(
+          "logger", logger, {{"string", message}, {"category", category}});
+    }
+  }
+  return status;
 }
 
 Status logQueryLogItem(const QueryLogItem& results) {
@@ -581,7 +590,24 @@ Status logSnapshotQuery(const QueryLogItem& item) {
   if (!json.empty() && json.back() == '\n') {
     json.pop_back();
   }
-  return Registry::call("logger", {{"snapshot", json}});
+
+  Status status;
+  auto receiver = RegistryFactory::get().getActive("logger");
+  for (const auto& logger : osquery::split(receiver, ",")) {
+    if (FLAGS_logger_secondary_status_only &&
+        !BufferedLogSink::get().isPrimaryLogger(logger)) {
+      continue;
+    }
+
+    if (Registry::get().exists("logger", logger, true)) {
+      auto plugin = Registry::get().plugin("logger", logger);
+      auto logger_plugin = std::dynamic_pointer_cast<LoggerPlugin>(plugin);
+      status = logger_plugin->logSnapshot(json);
+    } else {
+      status = Registry::call("logger", logger, {{"snapshot", json}});
+    }
+  }
+  return status;
 }
 
 size_t queuedStatuses() {
