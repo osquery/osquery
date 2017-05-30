@@ -8,6 +8,10 @@
  *
  */
 
+#ifndef WIN32
+#include <pwd.h>
+#endif
+
 #include <algorithm>
 #include <fstream>
 
@@ -98,14 +102,34 @@ TEST_F(FilesystemTests, test_write_file) {
 
   EXPECT_TRUE(writeTextFile(test_file, content, (int)0400, true));
   ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_FALSE(isWritable(test_file).ok());
   ASSERT_TRUE(isReadable(test_file).ok());
+  {
+#ifndef WIN32
+    auto dropper = DropPrivileges::get();
+    if (getuid() == 0) {
+      auto nobody = getpwnam("nobody");
+      EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
+      EXPECT_EQ(getuid(), nobody->pw_uid);
+    }
+#endif
+    ASSERT_FALSE(isWritable(test_file).ok());
+  }
   ASSERT_TRUE(osquery::remove(test_file).ok());
 
   EXPECT_TRUE(writeTextFile(test_file, content, (int)0000, true));
   ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_FALSE(isWritable(test_file).ok());
-  ASSERT_FALSE(isReadable(test_file).ok());
+  {
+#ifndef WIN32
+    auto dropper = DropPrivileges::get();
+    if (getuid() == 0) {
+      auto nobody = getpwnam("nobody");
+      EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
+      EXPECT_EQ(getuid(), nobody->pw_uid);
+    }
+#endif
+    ASSERT_FALSE(isReadable(test_file).ok());
+    ASSERT_FALSE(isWritable(test_file).ok());
+  }
   ASSERT_TRUE(osquery::remove(test_file).ok());
 }
 

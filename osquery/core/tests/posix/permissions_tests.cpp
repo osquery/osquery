@@ -9,7 +9,9 @@
  */
 
 #include <poll.h>
+#ifndef WIN32
 #include <pwd.h>
+#endif
 
 #include <gtest/gtest.h>
 
@@ -91,13 +93,13 @@ TEST_F(PermissionsTests, test_path_drop) {
     EXPECT_TRUE(dropper->dropped_);
     EXPECT_EQ(dropper->to_user_, nobody->pw_uid);
 
+    // Dropping "up" to root should fail.
     // Even though this is possible and may make sense, it is confusing!
-    EXPECT_FALSE(dropper->dropTo(getuid(), getgid()));
+    EXPECT_FALSE(dropper->dropTo(0, 0));
 
     // Make sure the dropper worked!
     EXPECT_EQ(geteuid(), nobody->pw_uid);
   }
-
   // Now that the dropper is gone, the effective user/group should be restored.
   EXPECT_EQ(geteuid(), getuid());
   EXPECT_EQ(getegid(), getgid());

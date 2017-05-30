@@ -7,6 +7,9 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#ifndef WIN32
+#include <pwd.h>
+#endif
 
 #include <gtest/gtest.h>
 
@@ -386,6 +389,14 @@ TEST_F(FileOpsTests, test_chmod_no_exec) {
 TEST_F(FileOpsTests, test_chmod_no_read) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
+#ifndef WIN32
+  auto dropper = DropPrivileges::get();
+  if (getuid() == 0) {
+    auto nobody = getpwnam("nobody");
+    EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
+    EXPECT_EQ(getuid(), nobody->pw_uid);
+  }
+#endif
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
@@ -409,6 +420,14 @@ TEST_F(FileOpsTests, test_chmod_no_read) {
 TEST_F(FileOpsTests, test_chmod_no_write) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
+#ifndef WIN32
+  auto dropper = DropPrivileges::get();
+  if (getuid() == 0) {
+    auto nobody = getpwnam("nobody");
+    EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
+    EXPECT_EQ(getuid(), nobody->pw_uid);
+  }
+#endif
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
@@ -435,6 +454,15 @@ TEST_F(FileOpsTests, test_access) {
 
   TempFile tmp_file;
   std::string path = tmp_file.path();
+
+#ifndef WIN32
+  auto dropper = DropPrivileges::get();
+  if (getuid() == 0) {
+    auto nobody = getpwnam("nobody");
+    EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
+    EXPECT_EQ(getuid(), nobody->pw_uid);
+  }
+#endif
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
@@ -692,6 +720,15 @@ TEST_F(FileOpsTests, test_glob) {
 TEST_F(FileOpsTests, test_zero_permissions_file) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
+
+#ifndef WIN32
+  auto dropper = DropPrivileges::get();
+  if (getuid() == 0) {
+    auto nobody = getpwnam("nobody");
+    EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
+    EXPECT_EQ(getuid(), nobody->pw_uid);
+  }
+#endif
 
   const std::string expected_str = "0_permissions";
   const ssize_t expected_len = expected_str.size();
