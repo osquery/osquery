@@ -162,24 +162,18 @@ void genOpenDescriptors(int pid, descriptor_type type, QueryData& results) {
   }
 
   // Allocate structs for each descriptor.
-  proc_fdinfo* fds = static_cast<proc_fdinfo*>(
-      malloc(sizeof(proc_fdinfo) * (bufsize / PROC_PIDLISTFD_SIZE)));
-  if (fds == nullptr) {
-    return;
-  }
-  // proc_fdinfo fds[bufsize / PROC_PIDLISTFD_SIZE];
-  proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fds, bufsize);
+  std::vector<proc_fdinfo> fds(bufsize / PROC_PIDLISTFD_SIZE);
+  proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fds.data(), bufsize);
 
-  for (size_t i = 0; i < bufsize / PROC_PIDLISTFD_SIZE; ++i) {
+  for (auto fd_info : fds) {
     if (type == DESCRIPTORS_TYPE_VNODE &&
-        fds[i].proc_fdtype == PROX_FDTYPE_VNODE) {
-      genFileDescriptor(pid, fds[i].proc_fd, results);
+        fd_info.proc_fdtype == PROX_FDTYPE_VNODE) {
+      genFileDescriptor(pid, fd_info.proc_fd, results);
     } else if (type == DESCRIPTORS_TYPE_SOCKET &&
-               fds[i].proc_fdtype == PROX_FDTYPE_SOCKET) {
-      genSocketDescriptor(pid, fds[i].proc_fd, results);
+               fd_info.proc_fdtype == PROX_FDTYPE_SOCKET) {
+      genSocketDescriptor(pid, fd_info.proc_fd, results);
     }
   }
-  free(fds);
 }
 
 QueryData genOpenSockets(QueryContext& context) {
