@@ -8,7 +8,7 @@ class Caf < AbstractOsqueryFormula
   #sha256 "afc4bc928ecd7d017768e5c85b7300196aa5b70ef11d97e11b21a1ae28ce9d3f"
   #head "https://github.com/actor-framework/actor-framework.git",
   #  :branch => "develop"
-  version "0.14.5"
+  version "0.14.6"
 
   needs :cxx11
 
