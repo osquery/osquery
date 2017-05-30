@@ -221,8 +221,8 @@ std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
     std::sort(indexes.begin(),
               indexes.end(),
               [](const std::string& left, const std::string& right) {
-                auto n1 = timeFromRecord(left.substr(left.find(".") + 1));
-                auto n2 = timeFromRecord(right.substr(right.find(".") + 1));
+                auto n1 = timeFromRecord(left.substr(left.find('.') + 1));
+                auto n2 = timeFromRecord(right.substr(right.find('.') + 1));
                 return n1 < n2;
               });
   }

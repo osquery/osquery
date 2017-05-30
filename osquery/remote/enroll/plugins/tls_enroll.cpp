@@ -60,7 +60,7 @@ std::string TLSEnrollPlugin::enroll() {
   // If no node secret has been negotiated, try a TLS request.
   auto uri = "https://" + FLAGS_tls_hostname + FLAGS_enroll_tls_endpoint;
   if (FLAGS_tls_secret_always) {
-    uri += ((uri.find("?") != std::string::npos) ? "&" : "?") +
+    uri += ((uri.find('?') != std::string::npos) ? "&" : "?") +
            FLAGS_tls_enroll_override + "=" + getEnrollSecret();
   }
 

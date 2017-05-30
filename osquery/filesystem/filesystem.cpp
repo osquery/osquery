@@ -300,7 +300,7 @@ Status resolveFilePattern(const fs::path& fs_path,
 
 inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
   // Replace SQL-wildcard '%' with globbing wildcard '*'.
-  if (pattern.find("%") != std::string::npos) {
+  if (pattern.find('%') != std::string::npos) {
     boost::replace_all(pattern, "%", "*");
   }
 
