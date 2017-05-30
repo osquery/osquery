@@ -61,7 +61,7 @@ void BufferedLogForwarder::check() {
             std::string value;
             auto& target = isResultIndex(index) ? results : statuses;
             if (getDatabaseValue(kLogs, index, value)) {
-              target.push_back(std::move(value));
+              target.emplace_back(std::move(value));
             }
           }));
 

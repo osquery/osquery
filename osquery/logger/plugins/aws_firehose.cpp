@@ -91,7 +91,7 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
     // processing. See http://goo.gl/Pz6XOj
     buffer[log.length()] = '\n';
     record.SetData(buffer);
-    records.push_back(std::move(record));
+    records.emplace_back(std::move(record));
   }
 
   Aws::Firehose::Model::PutRecordBatchRequest request;
@@ -113,7 +113,7 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
   }
 
   VLOG(1) << "Successfully sent " << result.GetRequestResponses().size()
-          << " logs to Firehose.";
+          << " logs to Firehose";
   return Status(0);
 }
 
