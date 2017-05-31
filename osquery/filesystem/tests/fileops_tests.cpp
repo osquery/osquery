@@ -389,14 +389,6 @@ TEST_F(FileOpsTests, test_chmod_no_exec) {
 TEST_F(FileOpsTests, test_chmod_no_read) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
-#ifndef WIN32
-  auto dropper = DropPrivileges::get();
-  if (getuid() == 0) {
-    auto nobody = getpwnam("nobody");
-    EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
-    EXPECT_EQ(getuid(), nobody->pw_uid);
-  }
-#endif
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
@@ -407,8 +399,8 @@ TEST_F(FileOpsTests, test_chmod_no_read) {
   EXPECT_TRUE(platformChmod(path, S_IWUSR | S_IWOTH));
 
   {
-    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_FALSE(fd.isValid());
+    AS_NOBODY(PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+              EXPECT_FALSE(fd.isValid()););
   }
 
   {
@@ -420,14 +412,6 @@ TEST_F(FileOpsTests, test_chmod_no_read) {
 TEST_F(FileOpsTests, test_chmod_no_write) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
-#ifndef WIN32
-  auto dropper = DropPrivileges::get();
-  if (getuid() == 0) {
-    auto nobody = getpwnam("nobody");
-    EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
-    EXPECT_EQ(getuid(), nobody->pw_uid);
-  }
-#endif
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
@@ -443,8 +427,8 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
   }
 
   {
-    PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
-    EXPECT_FALSE(fd.isValid());
+    AS_NOBODY(PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
+              EXPECT_FALSE(fd.isValid()););
   }
 }
 
@@ -454,15 +438,6 @@ TEST_F(FileOpsTests, test_access) {
 
   TempFile tmp_file;
   std::string path = tmp_file.path();
-
-#ifndef WIN32
-  auto dropper = DropPrivileges::get();
-  if (getuid() == 0) {
-    auto nobody = getpwnam("nobody");
-    EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
-    EXPECT_EQ(getuid(), nobody->pw_uid);
-  }
-#endif
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
@@ -482,62 +457,62 @@ TEST_F(FileOpsTests, test_access) {
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IWUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
   EXPECT_EQ(0, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK)));
   EXPECT_EQ(0, platformAccess(path, R_OK));
   EXPECT_EQ(0, platformAccess(path, W_OK));
-  EXPECT_EQ(-1, platformAccess(path, X_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, X_OK)));
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IXUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK)));
   EXPECT_EQ(0, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK)));
   EXPECT_EQ(0, platformAccess(path, R_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK)));
   EXPECT_EQ(0, platformAccess(path, X_OK));
 
   EXPECT_TRUE(platformChmod(path, S_IWUSR | S_IXUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK)));
   EXPECT_EQ(0, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK)));
   EXPECT_EQ(0, platformAccess(path, W_OK));
   EXPECT_EQ(0, platformAccess(path, X_OK));
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK)));
   EXPECT_EQ(0, platformAccess(path, R_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK));
-  EXPECT_EQ(-1, platformAccess(path, X_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, X_OK)));
 
   EXPECT_TRUE(platformChmod(path, S_IWUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK)));
   EXPECT_EQ(0, platformAccess(path, W_OK));
-  EXPECT_EQ(-1, platformAccess(path, X_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, X_OK)));
 
   EXPECT_TRUE(platformChmod(path, S_IXUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK)));
+  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK)));
   EXPECT_EQ(0, platformAccess(path, X_OK));
 
   // Reset permissions
@@ -721,15 +696,6 @@ TEST_F(FileOpsTests, test_zero_permissions_file) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
 
-#ifndef WIN32
-  auto dropper = DropPrivileges::get();
-  if (getuid() == 0) {
-    auto nobody = getpwnam("nobody");
-    EXPECT_TRUE(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));
-    EXPECT_EQ(getuid(), nobody->pw_uid);
-  }
-#endif
-
   const std::string expected_str = "0_permissions";
   const ssize_t expected_len = expected_str.size();
 
@@ -747,8 +713,8 @@ TEST_F(FileOpsTests, test_zero_permissions_file) {
 
   auto modes = {R_OK, W_OK, X_OK};
   for (auto& mode : modes) {
-    EXPECT_EQ(-1, platformAccess(path, mode));
+    AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, mode)));
   }
-  EXPECT_EQ(boost::none, platformFopen(path, "r"));
+  AS_NOBODY(EXPECT_EQ(boost::none, platformFopen(path, "r")));
 }
 }

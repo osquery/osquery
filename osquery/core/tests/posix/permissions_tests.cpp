@@ -100,6 +100,7 @@ TEST_F(PermissionsTests, test_path_drop) {
     // Make sure the dropper worked!
     EXPECT_EQ(geteuid(), nobody->pw_uid);
   }
+
   // Now that the dropper is gone, the effective user/group should be restored.
   EXPECT_EQ(geteuid(), getuid());
   EXPECT_EQ(getegid(), getgid());

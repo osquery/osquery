@@ -8,6 +8,10 @@
  *
  */
 
+#ifndef WIN32
+#include <pwd.h>
+#endif
+
 #include <chrono>
 #include <deque>
 #include <random>
