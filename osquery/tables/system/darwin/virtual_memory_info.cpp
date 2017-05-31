@@ -8,18 +8,17 @@
  *
  */
 
+#include <mach/mach.h>
+
 #include <osquery/core.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 
-#include <mach/mach.h>
-
 namespace osquery {
 namespace tables {
 
-QueryData genVMemoryInfo(QueryContext& context) {
-  QueryData results;
+QueryData genVirtualMemoryInfo(QueryContext& context) {
   Row r;
 
   vm_statistics64 vmemorystats;
@@ -28,8 +27,11 @@ QueryData genVMemoryInfo(QueryContext& context) {
 
   mach_msg_type_number_t vmcount = HOST_VM_INFO64_COUNT;
 
-  kern_return_t ret = host_statistics64(
-      host, HOST_VM_INFO64, (host_info64_t)&vmemorystats, &vmcount);
+  kern_return_t ret =
+      host_statistics64(host,
+                        HOST_VM_INFO64,
+                        reinterpret_cast<host_info64_t>(&vmemorystats),
+                        &vmcount);
 
   if (ret == KERN_SUCCESS) {
     r["free"] =
@@ -42,24 +44,22 @@ QueryData genVMemoryInfo(QueryContext& context) {
     r["purgeable"] = BIGINT(vmemorystats.purgeable_count);
     r["faults"] = BIGINT(vmemorystats.faults);
     r["copy"] = BIGINT(vmemorystats.cow_faults);
-    r["0fill"] = BIGINT(vmemorystats.zero_fill_count);
+    r["zero_fill"] = BIGINT(vmemorystats.zero_fill_count);
     r["reactivated"] = BIGINT(vmemorystats.reactivations);
     r["purged"] = BIGINT(vmemorystats.purges);
-    r["file-backed"] = BIGINT(vmemorystats.external_page_count);
+    r["file_backed"] = BIGINT(vmemorystats.external_page_count);
     r["anonymous"] = BIGINT(vmemorystats.internal_page_count);
     r["uncompressed"] =
         BIGINT(vmemorystats.total_uncompressed_pages_in_compressor);
     r["compressor"] = BIGINT(vmemorystats.compressor_page_count);
     r["decompressed"] = BIGINT(vmemorystats.decompressions);
     r["compressed"] = BIGINT(vmemorystats.compressions);
-    r["pageins"] = BIGINT(vmemorystats.pageins);
-    r["pageouts"] = BIGINT(vmemorystats.pageouts);
-    r["swapins"] = BIGINT(vmemorystats.swapins);
-    r["swapouts"] = BIGINT(vmemorystats.swapouts);
-
-    results.push_back(r);
+    r["page_ins"] = BIGINT(vmemorystats.pageins);
+    r["page_outs"] = BIGINT(vmemorystats.pageouts);
+    r["swap_ins"] = BIGINT(vmemorystats.swapins);
+    r["swap_outs"] = BIGINT(vmemorystats.swapouts);
   }
-  return results;
+  return {r};
 }
 } // namespace tables
 } // namespace osquery

@@ -1,4 +1,4 @@
-table_name("vmemory_info")
+table_name("virtual_memory_info")
 description("Darwin Virtual Memory statistics.")
 schema([
     Column("free", BIGINT, "Total number of free pages."),
@@ -10,21 +10,21 @@ schema([
     Column("purgeable", BIGINT, "Total number of purgeable pages."),
     Column("faults", BIGINT, "Total number of calls to vm_faults."),
     Column("copy", BIGINT, "Total number of copy-on-write pages."),
-    Column("0fill", BIGINT, "Total number of zero filled pages."),
+    Column("zero_fill", BIGINT, "Total number of zero filled pages."),
     Column("reactivated", BIGINT, "Total number of reactivated pages."),
     Column("purged", BIGINT, "Total number of purged pages."),
-    Column("file-backed", BIGINT, "Total number of file backed pages."),
+    Column("file_backed", BIGINT, "Total number of file backed pages."),
     Column("anonymous", BIGINT, "Total number of anonymous pages."),
     Column("uncompressed", BIGINT, "Total number of uncompressed pages."),
     Column("compressor", BIGINT, "The number of pages used to store compressed VM pages."),
     Column("decompressed", BIGINT, "The total number of pages that have been decompressed by the VM compressor."),
     Column("compressed", BIGINT, "The total number of pages that have been compressed by the VM compressor."),
-    Column("pageins", BIGINT, "The total number of requests for pages from a pager."),
-    Column("pageouts", BIGINT, "Total number of pages paged out."),
-    Column("swapins", BIGINT, "The total number of compressed pages that have been swapped out to disk."),
-    Column("swapouts", BIGINT, "The total number of compressed pages that have been swapped back in from disk."),
+    Column("page_ins", BIGINT, "The total number of requests for pages from a pager."),
+    Column("page_outs", BIGINT, "Total number of pages paged out."),
+    Column("swap_ins", BIGINT, "The total number of compressed pages that have been swapped out to disk."),
+    Column("swap_outs", BIGINT, "The total number of compressed pages that have been swapped back in from disk."),
 ])
-implementation("system/darwin/vmemory_info@genVMemoryInfo")
+implementation("system/darwin/virtual_memory_info@genVirtualMemoryInfo")
 examples([
-  "select * from vmemory_info;",
+  "select * from virtual_memory_info;",
 ])
