@@ -11,7 +11,6 @@
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/logger.h>
 
 #include "osquery/bro/BrokerManager.h"
 

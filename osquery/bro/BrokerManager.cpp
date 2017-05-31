@@ -205,8 +205,8 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
         {broker::record::field(broker::data(uid)),
          broker::record::field(
              broker::data(broker::enum_value{"osquery::" + trigger})),
-         broker::record::field(broker::data(
-             QueryManager::get().getEventCookie(queryID)))});
+         broker::record::field(
+             broker::data(QueryManager::get().getEventCookie(queryID)))});
     msg.push_back(broker::data(result_info));
 
     // Format each column
