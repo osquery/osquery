@@ -3,11 +3,9 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Caf < AbstractOsqueryFormula
   desc "Implementation of the Actor Model for C++"
   homepage "https://actor-framework.org/"
-  url "https://github.com/actor-framework/actor-framework.git",
-        :revision => "9c3822a6e09bb08675f103375a6a643170a36754"
-  #sha256 "afc4bc928ecd7d017768e5c85b7300196aa5b70ef11d97e11b21a1ae28ce9d3f"
-  #head "https://github.com/actor-framework/actor-framework.git",
-  #  :branch => "develop"
+  url "https://github.com/actor-framework/actor-framework/archive/0.14.6.tar.gz"
+  sha256 "cbc2033896fe41e42604de2f74673971718a40684996650157484485755f7720"
+  head "https://github.com/actor-framework/actor-framework.git"
   version "0.14.6"
 
   needs :cxx11
@@ -15,6 +13,7 @@ class Caf < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
+    sha256 "2d05785188e917f1a7c55b01bf2319c9d121b3f89462ea403dc69b9b166c2484" => :x86_64_linux
   end
 
   depends_on "cmake" => :build
