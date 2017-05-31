@@ -127,6 +127,26 @@ TEST_F(PermissionsTests, test_nobody_drop) {
   EXPECT_EQ(getegid(), getgid());
 }
 
+TEST_F(PermissionsTests, test_functional_drop) {
+  if (getuid() != 0) {
+    LOG(WARNING) << "Not root, skipping (explicit) deprivilege testing";
+    return;
+  }
+  std::string path(kTestWorkingDirectory + "fstests-file2");
+
+  {
+    PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE);
+    EXPECT_TRUE(fd.isValid());
+    fd.write("somedata", 8);
+    ASSERT_TRUE(platformChmod(path, (int)0400));
+  }
+  {
+    AS_NOBODY(PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+              EXPECT_FALSE(fd.isValid()););
+  }
+  fs::remove(path);
+}
+
 std::string kMultiThreadPermissionPath;
 
 class PermissionsRunnable : public InternalRunnable {

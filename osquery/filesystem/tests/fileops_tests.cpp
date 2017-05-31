@@ -16,6 +16,7 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/core.h>
+#include <osquery/logger.h>
 
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tests/test_util.h"
@@ -433,6 +434,10 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
 }
 
 TEST_F(FileOpsTests, test_access) {
+  if (getuid() == 0) {
+    LOG(WARNING) << "Access always succeeds as root; skipping";
+    return;
+  }
   const int all_access = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP |
                          S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
 
@@ -457,62 +462,62 @@ TEST_F(FileOpsTests, test_access) {
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IWUSR));
 
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
   EXPECT_EQ(0, platformAccess(path, R_OK | W_OK));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK)));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
   EXPECT_EQ(0, platformAccess(path, R_OK));
   EXPECT_EQ(0, platformAccess(path, W_OK));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, X_OK)));
+  EXPECT_EQ(-1, platformAccess(path, X_OK));
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IXUSR));
 
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK)));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
   EXPECT_EQ(0, platformAccess(path, R_OK | X_OK));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK)));
+  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
   EXPECT_EQ(0, platformAccess(path, R_OK));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK)));
+  EXPECT_EQ(-1, platformAccess(path, W_OK));
   EXPECT_EQ(0, platformAccess(path, X_OK));
 
   EXPECT_TRUE(platformChmod(path, S_IWUSR | S_IXUSR));
 
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK)));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
   EXPECT_EQ(0, platformAccess(path, W_OK | X_OK));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK)));
+  EXPECT_EQ(-1, platformAccess(path, R_OK));
   EXPECT_EQ(0, platformAccess(path, W_OK));
   EXPECT_EQ(0, platformAccess(path, X_OK));
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR));
 
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK)));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
   EXPECT_EQ(0, platformAccess(path, R_OK));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, X_OK)));
+  EXPECT_EQ(-1, platformAccess(path, W_OK));
+  EXPECT_EQ(-1, platformAccess(path, X_OK));
 
   EXPECT_TRUE(platformChmod(path, S_IWUSR));
 
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK)));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK));
   EXPECT_EQ(0, platformAccess(path, W_OK));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, X_OK)));
+  EXPECT_EQ(-1, platformAccess(path, X_OK));
 
   EXPECT_TRUE(platformChmod(path, S_IXUSR));
 
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, R_OK)));
-  AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, W_OK)));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+  EXPECT_EQ(-1, platformAccess(path, R_OK));
+  EXPECT_EQ(-1, platformAccess(path, W_OK));
   EXPECT_EQ(0, platformAccess(path, X_OK));
 
   // Reset permissions
@@ -693,6 +698,10 @@ TEST_F(FileOpsTests, test_glob) {
 }
 
 TEST_F(FileOpsTests, test_zero_permissions_file) {
+  if (getuid() == 0) {
+    LOG(WARNING) << "Access always succeeds as root; skipping";
+    return;
+  }
   TempFile tmp_file;
   std::string path = tmp_file.path();
 
@@ -713,8 +722,8 @@ TEST_F(FileOpsTests, test_zero_permissions_file) {
 
   auto modes = {R_OK, W_OK, X_OK};
   for (auto& mode : modes) {
-    AS_NOBODY(EXPECT_EQ(-1, platformAccess(path, mode)));
+    EXPECT_EQ(-1, platformAccess(path, mode));
   }
-  AS_NOBODY(EXPECT_EQ(boost::none, platformFopen(path, "r")));
+  EXPECT_EQ(boost::none, platformFopen(path, "r"));
 }
 }

@@ -27,6 +27,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
+#include "osquery/filesystem/fileops.h"
 #include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
@@ -94,22 +95,23 @@ TEST_F(FilesystemTests, test_read_file) {
 TEST_F(FilesystemTests, test_write_file) {
   fs::path test_file(kTestWorkingDirectory + "fstests-file2");
   std::string content(2048, 'A');
-
   EXPECT_TRUE(writeTextFile(test_file, content).ok());
   ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_TRUE(isWritable(test_file).ok());
+  ASSERT_TRUE(isWritable(test_file, true).ok());
   ASSERT_TRUE(osquery::remove(test_file).ok());
 
   EXPECT_TRUE(writeTextFile(test_file, content, (int)0400, true));
+  ASSERT_TRUE(platformChmod(test_file.string(), (int)0400));
+
   ASSERT_TRUE(pathExists(test_file).ok());
   ASSERT_TRUE(isReadable(test_file).ok());
-  AS_NOBODY(ASSERT_FALSE(isWritable(test_file).ok()));
+  AS_NOBODY(ASSERT_FALSE(isWritable(test_file, true).ok()));
   ASSERT_TRUE(osquery::remove(test_file).ok());
 
   EXPECT_TRUE(writeTextFile(test_file, content, (int)0000, true));
   ASSERT_TRUE(pathExists(test_file).ok());
-  AS_NOBODY(ASSERT_FALSE(isReadable(test_file).ok()));
-  AS_NOBODY(ASSERT_FALSE(isWritable(test_file).ok()));
+  AS_NOBODY(ASSERT_FALSE(isReadable(test_file, true).ok()));
+  AS_NOBODY(ASSERT_FALSE(isWritable(test_file, true).ok()));
   ASSERT_TRUE(osquery::remove(test_file).ok());
 }
 

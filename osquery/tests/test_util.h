@@ -26,19 +26,13 @@
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
 
-#ifndef AS_NOBODY
-#ifndef WIN32
 #define AS_NOBODY(code)                                                        \
   {                                                                            \
     auto dropper = DropPrivileges::get();                                      \
     auto nobody = getpwnam("nobody");                                          \
-    assert(dropper->dropTo(nobody->pw_uid, nobody->pw_gid));                   \
+    dropper->dropTo(nobody->pw_uid, nobody->pw_gid);                           \
     code;                                                                      \
   }
-#endif
-#else
-#define AS_NOBODY(code) code;
-#endif
 
 namespace pt = boost::property_tree;
 

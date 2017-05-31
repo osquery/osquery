@@ -7,7 +7,6 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -439,7 +438,6 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
     (void)setegid(getgid());
     return false;
   }
-
   // Privileges are now dropped to the requested user/group.
   to_user_ = uid;
   to_group_ = gid;
