@@ -1,0 +1,30 @@
+table_name("vmemory_info")
+description("Darwin Virtual Memory statistics.")
+schema([
+    Column("free", BIGINT, "Total number of free pages."),
+    Column("active", BIGINT, "Total number of active pages."),
+    Column("inactive", BIGINT, "Total number of inactive pages."),
+    Column("speculative", BIGINT, "Total number of speculative pages."),
+    Column("throttled", BIGINT, "Total number of throttled pages."),
+    Column("wired", BIGINT, "Total number of wired down pages."),
+    Column("purgeable", BIGINT, "Total number of purgeable pages."),
+    Column("faults", BIGINT, "Total number of calls to vm_faults."),
+    Column("copy", BIGINT, "Total number of copy-on-write pages."),
+    Column("0fill", BIGINT, "Total number of zero filled pages."),
+    Column("reactivated", BIGINT, "Total number of reactivated pages."),
+    Column("purged", BIGINT, "Total number of purged pages."),
+    Column("file-backed", BIGINT, "Total number of file backed pages."),
+    Column("anonymous", BIGINT, "Total number of anonymous pages."),
+    Column("uncompressed", BIGINT, "Total number of uncompressed pages."),
+    Column("compressor", BIGINT, "The number of pages used to store compressed VM pages."),
+    Column("decompressed", BIGINT, "The total number of pages that have been decompressed by the VM compressor."),
+    Column("compressed", BIGINT, "The total number of pages that have been compressed by the VM compressor."),
+    Column("pageins", BIGINT, "The total number of requests for pages from a pager."),
+    Column("pageouts", BIGINT, "Total number of pages paged out."),
+    Column("swapins", BIGINT, "The total number of compressed pages that have been swapped out to disk."),
+    Column("swapouts", BIGINT, "The total number of compressed pages that have been swapped back in from disk."),
+])
+implementation("system/darwin/vmemory_info@genVMemoryInfo")
+examples([
+  "select * from vmemory_info;",
+])
