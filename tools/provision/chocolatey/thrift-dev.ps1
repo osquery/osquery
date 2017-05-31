@@ -11,7 +11,7 @@
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
 $version = '0.10.0'
-$chocoVersion = '0.10.0-r1'
+$chocoVersion = '0.10.0-r2'
 $packageName = 'thrift-dev'
 $projectSource = 'https://github.com/apache/thrift'
 $packageSourceUrl = 'https://github.com/apache/thrift'
@@ -53,15 +53,51 @@ Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
 $sourceDir = "thrift-$version"
 Set-Location $sourceDir
 
-# Set the cmake logic to generate a static build for us
-Add-Content -NoNewline -Path 'lib\cpp\CMakeLists.txt' -Value "`nset(CMAKE_CXX_FLAGS_RELEASE `"`${CMAKE_CXX_FLAGS_RELEASE} /MT`")`nset(CMAKE_CXX_FLAGS_DEBUG `"`${CMAKE_CXX_FLAGS_DEBUG} /MTd`")"
-Add-Content -NoNewline -Path 'compiler\cpp\CMakeLists.txt' -Value "`nset(CMAKE_CXX_FLAGS_RELEASE `"`${CMAKE_CXX_FLAGS_RELEASE} /MT`")`nset(CMAKE_CXX_FLAGS_DEBUG `"`${CMAKE_CXX_FLAGS_DEBUG} /MTd`")"
+# Thrift-dev requires this patch on windows, as our communications with the
+# thrift named pipe server happen to quickly, and we get loads of verbosity
+# this turns off said verbosity, as it's only concerned with our status
+# pings, and not the actual result flow of extensions itself.
+<#
+From 9fd916be17f221660e7af28ae3bfd47d0b846a46 Mon Sep 17 00:00:00 2001
+From: Nick Anderson <thor@fb.com>
+Date: Tue, 30 May 2017 16:21:46 -0700
+Subject: [PATCH 1/1] Patching out GLE ERROR_BROKEN_PIPE verbosity
+
+---
+ lib/cpp/src/thrift/windows/OverlappedSubmissionThread.cpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/lib/cpp/src/thrift/windows/OverlappedSubmissionThread.cpp b/lib/cpp/src/thrift/windows/OverlappedSubmissionThread.cpp
+index 5ac6fe00..0efdfbd2 100644
+--- a/lib/cpp/src/thrift/windows/OverlappedSubmissionThread.cpp
++++ b/lib/cpp/src/thrift/windows/OverlappedSubmissionThread.cpp
+@@ -52,8 +52,10 @@ uint32_t TOverlappedWorkItem::overlappedResults(bool signal_failure) {
+   BOOL result = ::GetOverlappedResult(h, &overlap, &bytes, TRUE);
+   if (signal_failure && !result) // get overlapped error case
+   {
+-    GlobalOutput.perror("TPipe ::GetOverlappedResult errored GLE=", ::GetLastError());
+-    throw TTransportException(TTransportException::UNKNOWN, "TPipe: GetOverlappedResult failed");
++    if(!::GetLastError() == ERROR_BROKEN_PIPE){
++      GlobalOutput.perror("TPipe ::GetOverlappedResult errored GLE=", ::GetLastError());
++      throw TTransportException(TTransportException::UNKNOWN, "TPipe: GetOverlappedResult failed");
++    }
+   }
+   return bytes;
+ }
+--
+2.12.0.windows.1
+#>
 
 # Build the libraries
 $buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'
 Set-Location $buildDir
 
-cmake -G 'Visual Studio 14 2015 Win64' -DBUILD_COMPILER=ON -DWITH_SHARED_LIB=off -DWITH_ZLIB=ON -DZLIB_INCLUDE_DIR=C:\ProgramData/chocolatey/lib/zlib/local/include -DZLIB_LIBRARY=C:/ProgramData/chocolatey/lib/zlib/local/lib/zlibstatic.lib -DWITH_OPENSSL=ON -DOPENSSL_INCLUDE_DIR=C:/ProgramData/chocolatey/lib/openssl/local/include -DOPENSSL_ROOT_DIR=C:/ProgramData/chocolatey/lib/openssl/local -DBOOST_LIBRARYDIR=C:/ProgramData/chocolatey/lib/boost-msvc14/local/lib64-msvc-14.0 -DBOOST_ROOT=C:/ProgramData/chocolatey/lib/boost-msvc14/local ../
+# Patches are applied in this section before build
+# Windows TPipe implementations are _very_ noisy, so we squelch the output
+Add-Content -NoNewline -Path "$buildDir\..\lib\cpp\CMakeLists.txt" -Value "`nadd_definitions(-DTHRIFT_SQUELCH_CONSOLE_OUTPUT=1)"
+
+# Generate the solution files
+cmake -G 'Visual Studio 14 2015 Win64' -DBUILD_COMPILER=ON -DWITH_SHARED_LIB=OFF -DBUILD_TESTING=OFF -DBUILD_TUTORIALS=OFF -DWITH_ZLIB=ON -DZLIB_INCLUDE_DIR=C:\ProgramData/chocolatey/lib/zlib/local/include -DZLIB_LIBRARY=C:/ProgramData/chocolatey/lib/zlib/local/lib/zlibstatic.lib -DWITH_OPENSSL=ON -DOPENSSL_INCLUDE_DIR=C:/ProgramData/chocolatey/lib/openssl/local/include -DOPENSSL_ROOT_DIR=C:/ProgramData/chocolatey/lib/openssl/local -DBOOST_LIBRARYDIR=C:/ProgramData/chocolatey/lib/boost-msvc14/local/lib64-msvc-14.0 -DBOOST_ROOT=C:/ProgramData/chocolatey/lib/boost-msvc14/local -DWITH_STDTHREADS=ON -DWITH_MT=ON ../
 
 # Build the libraries
 msbuild 'Apache Thrift.sln' /p:Configuration=Release /m /t:thrift_static /v:m
