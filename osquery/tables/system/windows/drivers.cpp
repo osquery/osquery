@@ -9,213 +9,128 @@
  */
 
 #define WIN32_LEAN_AND_MEAN
+// clang-format off
 #include <Windows.h>
 #include <Winsvc.h>
 #include <psapi.h>
+#include <initguid.h>
+// clang-format on
+#include <Devpkey.h>
+#include <Devpropdef.h>
+#include <SetupAPI.h>
+
 #include <string>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 #include "osquery/tables/system/windows/services.h"
 
 namespace osquery {
 namespace tables {
 
-const std::string kDrvStartType[] = {
-    "BOOT_START", "SYSTEM_START", "AUTO_START", "DEMAND_START", "DISABLED"};
-
-const std::string kDrvStatus[] = {"UNKNOWN",
-                                  "STOPPED",
-                                  "START_PENDING",
-                                  "STOP_PENDING",
-                                  "RUNNING",
-                                  "CONTINUE_PENDING",
-                                  "PAUSE_PENDING",
-                                  "PAUSED"};
-
-const std::map<int, std::string> kDriverType = {
-    {0x00000001, "KERNEL"}, {0x00000002, "FILE_SYSTEM"},
-};
-
-void queryDrvInfo(const SC_HANDLE& schScManager,
-                  ENUM_SERVICE_STATUS_PROCESS& svc,
-                  std::map<std::string, std::string>& loadedDrivers,
-                  QueryData& results) {
-  Row r;
-  DWORD cbBufSize = 0;
-
-  svc_handle_t schService(
-      OpenService(schScManager, svc.lpServiceName, SERVICE_QUERY_CONFIG),
-      closeServiceHandle);
-
-  if (schService == nullptr) {
-    TLOG << "OpenService failed (" << GetLastError() << ")";
-    return;
-  }
-
-  (void)QueryServiceConfig(schService.get(), nullptr, 0, &cbBufSize);
-  svc_query_t lpsc(static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize)),
-                   freePtr);
-  if (lpsc == nullptr) {
-    TLOG << "Failed to query service config (" << GetLastError() << ")";
-    return;
-  }
-  if (QueryServiceConfig(schService.get(), lpsc.get(), cbBufSize, &cbBufSize) !=
-      0) {
-    TLOG << "QueryServiceConfig failed (" << GetLastError() << ")";
-  }
-  r["start_type"] = ret == 0 ? "" : SQL_TEXT(kDrvStartType[lpsc->dwStartType]);
-
-  // If SCM can't get 'path' of the driver then use the path
-  // available in loadedDrivers list
-  if (strlen(lpsc->lpBinaryPathName) <= 0) {
-    r["path"] = loadedDrivers[svc.lpServiceName];
-  } else {
-    r["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
-  }
-
-  if (kDriverType.count(lpsc->dwServiceType) > 0) {
-    r["type"] = SQL_TEXT(kDriverType.at(lpsc->dwServiceType));
-  } else {
-    r["type"] = SQL_TEXT("UNKNOWN");
-  }
-
-  QueryData regResults;
-  queryKey(
-      "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\" + r["name"],
-      regResults);
-  for (const auto& aKey : regResults) {
-    if (aKey.at("name") == "Owners") {
-      r["inf"] = SQL_TEXT(aKey.at("data"));
-    }
-    std::string major_version = "0";
-    std::string minor_version = "0";
-    if (aKey.at("name") == "DriverMajorVersion") {
-      major_version = SQL_TEXT(aKey.at("data"));
-    }
-    if (aKey.at("name") == "DriverMinorVersion") {
-      minor_version = SQL_TEXT(aKey.at("data"));
-    }
-    r["version"] = major_version + "." + minor_version;
-  }
-
-  // Remove the driver from loadedDrivers list to avoid duplicates
-  loadedDrivers.erase(svc.lpServiceName);
-  results.push_back(r);
-}
-
-void enumLoadedDrivers(std::map<std::string, std::string>& loadedDrivers) {
-  unsigned long bytesNeeded = 0;
-  auto driversCount = 0;
-
-  auto ret = EnumDeviceDrivers(nullptr, 0, &bytesNeeded);
-  std::unique_ptr<LPVOID[], decltype(freePtr)> drvBaseAddr(
-      static_cast<LPVOID*>(malloc(bytesNeeded)), freePtr);
-  if (drvBaseAddr == nullptr) {
-    TLOG << "enumLoadedDrivers failed to allocate required memory ("
-         << bytesNeeded << ")";
-    return;
-  }
-
-  ret = EnumDeviceDrivers(drvBaseAddr.get(), bytesNeeded, &bytesNeeded);
-
-  driversCount = bytesNeeded / sizeof(drvBaseAddr[0]);
-  if (ret && (driversCount > 0)) {
-    std::unique_ptr<CHAR, decltype(freePtr)> driverPath(
-        static_cast<LPSTR>(malloc(MAX_PATH + 1)), freePtr);
-    std::unique_ptr<CHAR, decltype(freePtr)> driverName(
-        static_cast<LPSTR>(malloc(MAX_PATH + 1)), freePtr);
-
-    if (driverPath == nullptr || driverName == nullptr) {
-      TLOG << "Failed to allocate memory for driver details (" << (MAX_PATH + 1)
-           << ")";
-      return;
-    }
-
-    ZeroMemory(driverPath.get(), MAX_PATH + 1);
-    ZeroMemory(driverName.get(), MAX_PATH + 1);
-
-    for (size_t i = 0; i < driversCount; i++) {
-      if (GetDeviceDriverBaseName(drvBaseAddr[i], driverName.get(), MAX_PATH) !=
-          0) {
-        if (GetDeviceDriverFileName(
-                drvBaseAddr[i], driverPath.get(), MAX_PATH) != 0) {
-          // Removing file extension
-          auto fileExtension = strrchr(driverName.get(), '.');
-          *fileExtension = '\0';
-          loadedDrivers[driverName.get()] = driverPath.get();
-        } else {
-          loadedDrivers[driverName.get()] = "";
-        }
-      } else {
-        TLOG << "GetDeviceDriverFileName failed (" << GetLastError() << ")";
-      }
-    }
-  } else {
-    TLOG << "EnumDeviceDrivers failed; array size needed is" << bytesNeeded;
-  }
-}
-
+const std::map<std::string, DEVPROPKEY> kDeviceProps = {
+    {"name", DEVPKEY_NAME},
+    {"description", DEVPKEY_Device_DriverDesc},
+    {"service", DEVPKEY_Device_Service},
+    {"version", DEVPKEY_Device_DriverVersion},
+    {"inf", DEVPKEY_Device_DriverInfPath},
+    {"class", DEVPKEY_Device_Class},
+    {"status", DEVPKEY_Device_DevNodeStatus},
+    {"key", DEVPKEY_Device_Driver},
+    {"provider", DEVPKEY_Device_DriverProvider},
+    {"install_date", DEVPKEY_Device_DriverDate }};
 QueryData genDrivers(QueryContext& context) {
-  DWORD bytesNeeded = 0;
-  DWORD serviceCount = 0;
-  std::map<std::string, std::string> loadedDrivers;
   QueryData results;
 
-  // Get All Loaded Drivers including ones managed by SCM
-  enumLoadedDrivers(loadedDrivers);
-
-  svc_handle_t schScManager(OpenSCManager(nullptr, nullptr, GENERIC_READ),
-                            closeServiceHandle);
-  if (schScManager == nullptr) {
-    TLOG << "EnumServiceStatusEx failed (" << GetLastError() << ")";
-    return {};
-  }
-
-  EnumServicesStatusEx(schScManager.get(),
-                       SC_ENUM_PROCESS_INFO,
-                       SERVICE_DRIVER,
-                       SERVICE_STATE_ALL,
-                       nullptr,
-                       0,
-                       &bytesNeeded,
-                       &serviceCount,
-                       nullptr,
-                       nullptr);
-
-  enum_svc_status_t services(
-      static_cast<ENUM_SERVICE_STATUS_PROCESS*>(malloc(bytesNeeded)), freePtr);
-  if (services == nullptr) {
+  auto closeInfoSet = [](auto infoSet) {
+    SetupDiDestroyDeviceInfoList(infoSet);
+  };
+  std::unique_ptr<void, decltype(closeInfoSet)> devInfoSet(
+      SetupDiGetClassDevs(NULL, NULL, NULL, DIGCF_ALLCLASSES), closeInfoSet);
+  if (devInfoSet.get() == INVALID_HANDLE_VALUE) {
+    TLOG << "Error getting device handle. Error code " + GetLastError();
     return results;
   }
-  if (EnumServicesStatusEx(schScManager.get(),
-                           SC_ENUM_PROCESS_INFO,
-                           SERVICE_DRIVER,
-                           SERVICE_STATE_ALL,
-                           (LPBYTE)services.get(),
-                           bytesNeeded,
-                           &bytesNeeded,
-                           &serviceCount,
-                           nullptr,
-                           nullptr) != 0) {
-    for (DWORD i = 0; i < serviceCount; ++i) {
-      queryDrvInfo(schScManager.get(), services[i], loadedDrivers, results);
-    }
-  } else {
-    TLOG << "EnumServiceStatusEx failed (" << GetLastError() << ")";
-  }
 
-  for (const auto& element : loadedDrivers) {
+  DWORD devIndex = 0;
+  SP_DEVINFO_DATA devInfo;
+  devInfo.cbSize = sizeof(SP_DEVINFO_DATA);
+  while (TRUE == SetupDiEnumDeviceInfo(devInfoSet.get(), devIndex, &devInfo)) {
     Row r;
-    r["name"] = element.first;
-    r["path"] = element.second;
-    r["status"] = SQL_TEXT(kDrvStatus[4]);
-    results.push_back(r);
+    for (const auto& elem : kDeviceProps) {
+      DWORD buffSize;
+      DEVPROPTYPE devPropType;
+      auto ret = SetupDiGetDevicePropertyW(devInfoSet.get(),
+                                           &devInfo,
+                                           &elem.second,
+                                           &devPropType,
+                                           nullptr,
+                                           0,
+                                           &buffSize,
+                                           0);
+      auto err = GetLastError();
+      if (err != ERROR_INSUFFICIENT_BUFFER) {
+        if (err != ERROR_NOT_FOUND) {
+          LOG(WARNING)
+              << "Error getting buffer size for device property. Error code: " +
+                     err;
+        }
+        continue;
+      }
+
+      std::unique_ptr<BYTE, decltype(freePtr)> drvBuff(
+          static_cast<PBYTE>(malloc(buffSize)), freePtr);
+      if (drvBuff == nullptr) {
+        LOG(WARNING) << "Failed to malloc for driver info buffer.";
+        continue;
+      }
+
+      ret = SetupDiGetDevicePropertyW(devInfoSet.get(),
+                                      &devInfo,
+                                      &elem.second,
+                                      &devPropType,
+                                      drvBuff.get(),
+                                      buffSize,
+                                      nullptr,
+                                      0);
+      if (ret == FALSE) {
+        TLOG << "Error retrieving device property. Error code: " +
+                    GetLastError();
+        continue;
+      }
+
+      if (devPropType == DEVPROP_TYPE_UINT32) {
+        auto val = std::to_string(*(PUINT32)drvBuff.get());
+        if (!val.empty()) {
+          r[elem.first] = val;
+        }
+      } else if (devPropType == DEVPROP_TYPE_INT32) {
+        r[elem.first] = std::to_string(*(PINT32)drvBuff.get());
+      } else if (devPropType == DEVPROP_TYPE_STRING) {
+        std::wstring name((PWCHAR)drvBuff.get());
+        r[elem.first] = std::string(name.begin(), name.end());
+      } else if (devPropType == DEVPROP_TYPE_FILETIME) {
+        r[elem.first] = std::to_string(
+            osquery::filetimeToUnixtime(*(PFILETIME)drvBuff.get()));
+      } else {
+        LOG(WARNING) << "Unhandled device property type: " + devPropType;
+        continue;
+      }
+    }
+    results.emplace_back(r);
+    devIndex++;
   }
 
+  auto err = GetLastError();
+  if (err != ERROR_NO_MORE_ITEMS) {
+    LOG(WARNING) << "Error enumerating devices, results may be incomplete. "
+                    "Error code: " +
+                        err;
+  }
   return results;
 }
 } // namespace tables
