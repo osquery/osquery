@@ -26,10 +26,11 @@
 #include <osquery/tables.h>
 
 #include "osquery/filesystem/fileops.h"
-#include "osquery/tables/system/windows/services.h"
 
 namespace osquery {
 namespace tables {
+
+const auto freePtr = [](auto ptr) { free(ptr); };
 
 const std::map<std::string, DEVPROPKEY> kDeviceProps = {
     {"name", DEVPKEY_NAME},

@@ -19,10 +19,18 @@
 #include <osquery/tables.h>
 
 #include "osquery/tables/system/windows/registry.h"
-#include "osquery/tables/system/windows/services.h"
 
 namespace osquery {
 namespace tables {
+
+const auto freePtr = [](auto ptr) { free(ptr); };
+const auto closeServiceHandle = [](SC_HANDLE sch) { CloseServiceHandle(sch); };
+
+using svc_descr_t = std::unique_ptr<SERVICE_DESCRIPTION, decltype(freePtr)>;
+using svc_handle_t = std::unique_ptr<SC_HANDLE__, decltype(closeServiceHandle)>;
+using svc_query_t = std::unique_ptr<QUERY_SERVICE_CONFIG, decltype(freePtr)>;
+using enum_svc_status_t =
+    std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[], decltype(freePtr)>;
 
 const std::string kSvcStartType[] = {
     "BOOT_START", "SYSTEM_START", "AUTO_START", "DEMAND_START", "DISABLED"};
