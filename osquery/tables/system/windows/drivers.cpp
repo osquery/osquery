@@ -211,8 +211,9 @@ QueryData genDrivers(QueryContext& context) {
       if (sql.rows().size() == 1) {
         auto path = sql.rows().at(0).at("data");
         if (!path.empty()) {
-          r["image"] = systemRoot + boost::regex_replace(
-                                        path, boost::regex("^.*[Ss]ystem32"), "");
+          r["image"] =
+              systemRoot +
+              boost::regex_replace(path, boost::regex("^.*[Ss]ystem32"), "");
         }
       }
     }
