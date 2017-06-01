@@ -19,6 +19,55 @@
 
 namespace osquery {
 
+Status QueryManager::reset() {
+  // Reset next QueryID
+  nextUID_ = 1;
+
+  std::vector<std::string> queryIDs = getQueryIDs();
+
+  // Collect query strings
+  std::vector<std::string> queries;
+  for (const auto& id : scheduleQueries_) {
+    queries.push_back(std::get<1>(id.second));
+  }
+  for (const auto& id : oneTimeQueries_) {
+    queries.push_back(std::get<1>(id.second));
+  }
+
+  for (const auto& queryID : queryIDs) {
+    std::string query;
+    std::string qType;
+    findQueryAndType(queryID, qType, query);
+    removeQueryEntry(query);
+  }
+
+  if (nextUID_ != 1) {
+    return Status(1, "nextUID is not 1");
+  }
+
+  if (scheduleQueries_.size() != 0) {
+    return Status(1, "scheduleQueries is not empty");
+  }
+
+  if (oneTimeQueries_.size() != 0) {
+    return Status(1, "oneTimeQueries is not empty");
+  }
+
+  if (eventCookies_.size() != 0) {
+    return Status(1, "eventCookies is not empty");
+  }
+
+  if (eventNames_.size() != 0) {
+    return Status(1, "eventNames is not empty");
+  }
+
+  if (eventTopics_.size() != 0) {
+    return Status(1, "eventTopics is not empty");
+  }
+
+  return Status(0, "OK");
+}
+
 std::string QueryManager::addOneTimeQueryEntry(const SubscriptionRequest& qr) {
   const auto queryID = std::to_string(nextUID_++);
   auto status = addQueryEntry(queryID, qr, "ONETIME");
@@ -163,5 +212,18 @@ std::string QueryManager::getEventName(const std::string& queryID) {
 
 std::string QueryManager::getEventTopic(const std::string& queryID) {
   return eventTopics_.at(queryID);
+}
+
+std::vector<std::string> QueryManager::getQueryIDs() {
+  // Collect queryIDs
+  std::vector<std::string> queryIDs;
+  for (const auto& id : scheduleQueries_) {
+    queryIDs.push_back(id.first);
+  }
+  for (const auto& id : oneTimeQueries_) {
+    queryIDs.push_back(id.first);
+  }
+
+  return queryIDs;
 }
 }

@@ -46,6 +46,8 @@ class QueryManager : private boost::noncopyable {
     return qm;
   };
 
+  Status reset();
+
   std::string addOneTimeQueryEntry(const SubscriptionRequest& qr);
 
   Status addScheduleQueryEntry(const SubscriptionRequest& qr);
@@ -70,11 +72,13 @@ class QueryManager : private boost::noncopyable {
 
   std::string getEventTopic(const std::string& queryID);
 
+  std::vector<std::string> getQueryIDs();
+
  private:
   // Next unique QueryID
   int nextUID_ = 1;
 
-  // Collection of SQL Subscription queries, Key: QueryID
+  // Collection of SQL Schedule Subscription queries, Key: QueryID
   std::map<std::string, ScheduleQueryEntry> scheduleQueries_;
   // Collection of SQL One-Time Subscription queries, Key: QueryID
   std::map<std::string, OneTimeQueryEntry> oneTimeQueries_;
