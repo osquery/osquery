@@ -434,10 +434,12 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
 }
 
 TEST_F(FileOpsTests, test_access) {
+#ifndef WIN32
   if (getuid() == 0) {
     LOG(WARNING) << "Access always succeeds as root; skipping";
     return;
   }
+#endif
   const int all_access = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP |
                          S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
 
@@ -698,10 +700,12 @@ TEST_F(FileOpsTests, test_glob) {
 }
 
 TEST_F(FileOpsTests, test_zero_permissions_file) {
+#ifndef WIN32
   if (getuid() == 0) {
     LOG(WARNING) << "Access always succeeds as root; skipping";
     return;
   }
+#endif
   TempFile tmp_file;
   std::string path = tmp_file.path();
 
