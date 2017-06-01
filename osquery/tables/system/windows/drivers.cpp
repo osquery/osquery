@@ -12,7 +12,6 @@
 // clang-format off
 #include <Windows.h>
 #include <Winsvc.h>
-#include <psapi.h>
 #include <initguid.h>
 // clang-format on
 #include <cfgmgr32.h>
@@ -27,7 +26,6 @@
 #include <osquery/tables.h>
 
 #include "osquery/filesystem/fileops.h"
-#include "osquery/tables/system/windows/registry.h"
 #include "osquery/tables/system/windows/services.h"
 
 namespace osquery {
@@ -41,8 +39,10 @@ const std::map<std::string, DEVPROPKEY> kDeviceProps = {
     {"class", DEVPKEY_Device_Class},
     {"provider", DEVPKEY_Device_DriverProvider},
     {"install_date", DEVPKEY_Device_DriverDate}};
+
 QueryData genDrivers(QueryContext& context) {
   QueryData results;
+
   auto closeInfoSet = [](auto infoSet) {
     SetupDiDestroyDeviceInfoList(infoSet);
   };
@@ -68,20 +68,24 @@ QueryData genDrivers(QueryContext& context) {
   DWORD devIndex = 0;
   SP_DEVINFO_DATA devInfo;
   devInfo.cbSize = sizeof(SP_DEVINFO_DATA);
-
   SP_DEVINSTALL_PARAMS installParams;
   ZeroMemory(&installParams, sizeof(SP_DEVINSTALL_PARAMS));
   installParams.cbSize = sizeof(SP_DEVINSTALL_PARAMS);
   installParams.FlagsEx |=
       DI_FLAGSEX_ALLOWEXCLUDEDDRVS | DI_FLAGSEX_INSTALLEDDRIVER;
+
   while (TRUE == SetupDiEnumDeviceInfo(devInfoSet.get(), devIndex, &devInfo)) {
     if (SetupDiSetDeviceInstallParams(
             devInfoSet.get(), &devInfo, &installParams) == FALSE) {
       LOG(WARNING) << "Failed to set device install params. Error code: " +
                           std::to_string(GetLastError());
+    }
+
+    auto devId = std::make_unique<TCHAR[]>(MAX_DEVICE_ID_LEN);
+    if (devId == nullptr) {
+      LOG(WARNING) << "Failed to malloc for device ID.";
       return results;
     }
-    auto devId = std::make_unique<TCHAR[]>(MAX_DEVICE_ID_LEN);
     if (CM_Get_Device_ID(devInfo.DevInst, devId.get(), MAX_DEVICE_ID_LEN, 0) !=
         CR_SUCCESS) {
       LOG(WARNING) << "Failed to get device ID. Error code: " +
@@ -175,10 +179,7 @@ QueryData genDrivers(QueryContext& context) {
       }
 
       if (devPropType == DEVPROP_TYPE_UINT32) {
-        auto val = std::to_string(*(PUINT32)drvBuff.get());
-        if (!val.empty()) {
-          r[elem.first] = val;
-        }
+        r[elem.first] = std::to_string(*(PUINT32)drvBuff.get());
       } else if (devPropType == DEVPROP_TYPE_INT32) {
         r[elem.first] = std::to_string(*(PINT32)drvBuff.get());
       } else if (devPropType == DEVPROP_TYPE_STRING) {
