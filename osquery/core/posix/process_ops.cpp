@@ -89,9 +89,10 @@ int platformGetPid() {
 }
 
 int platformGetTid() {
-#if !defined(FREEBSD)
+#if defined(__APPLE__) || defined(FREEBSD)
+  return std::hash<std::thread::id>()(std::this_thread::get_id());
+#else
   return (int)syscall(SYS_gettid);
 #endif
-  return 0;
 }
 }

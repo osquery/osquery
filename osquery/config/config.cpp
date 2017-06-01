@@ -92,6 +92,7 @@ const std::string kFailedQueries{"failed_queries"};
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
 Mutex config_valid_mutex_;
+Mutex config_refresh_mutex_;
 
 /// Several config methods require enumeration via predicate lambdas.
 RecursiveMutex config_schedule_mutex_;
@@ -349,8 +350,11 @@ void Config::packs(std::function<void(PackRef& pack)> predicate) {
 Status Config::refresh() {
   PluginResponse response;
   auto status = Registry::call("config", {{"action", "genConfig"}}, response);
+
+  WriteLock lock(config_refresh_mutex_);
   if (!status.ok()) {
-    if (refresh_runner_->refresh() == FLAGS_config_refresh) {
+    if (FLAGS_config_refresh > 0 &&
+        refresh_runner_->refresh() == FLAGS_config_refresh) {
       VLOG(1) << "Using accelerated configuration delay";
       refresh_runner_->refresh(FLAGS_config_accelerated_refresh);
     }
@@ -375,6 +379,7 @@ Status Config::refresh() {
       }
       // Don't force because the config plugin may have started services.
       Initializer::requestShutdown();
+      return Status();
     }
     status = update(response[0]);
 
@@ -425,7 +430,11 @@ void stripConfigComments(std::string& json) {
 Status Config::updateSource(const std::string& source,
                             const std::string& json) {
   // Compute a 'synthesized' hash using the content before it is parsed.
-  hashSource(source, json);
+  if (!hashSource(source, json)) {
+    // This source did not change, the returned status allows the caller to
+    // choose to reconfigure if any sources had changed.
+    return Status(2);
+  }
 
   {
     RecursiveLock lock(config_schedule_mutex_);
@@ -578,14 +587,22 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   // Before this occurs, take an opportunity to purge stale state.
   purge();
 
+  bool needs_reconfigure = false;
   for (const auto& source : config) {
     auto status = updateSource(source.first, source.second);
+    if (status.getCode() == 2) {
+      continue;
+    }
+
     if (!status.ok()) {
       return status;
     }
+    // If a source was updated and the content has changed, then the registry
+    // should be reconfigured. File watches may have changed, etc.
+    needs_reconfigure = true;
   }
 
-  if (loaded_) {
+  if (loaded_ && needs_reconfigure) {
     // The config has since been loaded.
     // This update call is most likely a response to an async update request
     // from a config plugin. This request should request all plugins to update.
@@ -756,9 +773,15 @@ void Config::getPerformanceStats(
   }
 }
 
-void Config::hashSource(const std::string& source, const std::string& content) {
+bool Config::hashSource(const std::string& source, const std::string& content) {
+  auto new_hash = getBufferSHA1(content.c_str(), content.size());
+
   WriteLock wlock(config_hash_mutex_);
-  hash_[source] = getBufferSHA1(content.c_str(), content.size());
+  if (hash_[source] == new_hash) {
+    return false;
+  }
+  hash_[source] = new_hash;
+  return true;
 }
 
 Status Config::genHash(std::string& hash) {
