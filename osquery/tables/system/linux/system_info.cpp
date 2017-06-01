@@ -25,6 +25,7 @@ QueryData genSystemInfo(QueryContext& context) {
   Row r;
   r["hostname"] = osquery::getHostname();
   r["computer_name"] = r["hostname"];
+  r["local_host_name"] = r["hostname"];
 
   std::string uuid;
   r["uuid"] = (osquery::getHostUUID(uuid)) ? uuid : "";
