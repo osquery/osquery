@@ -15,6 +15,7 @@
 #include <psapi.h>
 #include <initguid.h>
 // clang-format on
+#include <cfgmgr32.h>
 #include <Devpkey.h>
 #include <Devpropdef.h>
 #include <SetupAPI.h>
@@ -37,33 +38,103 @@ const std::map<std::string, DEVPROPKEY> kDeviceProps = {
     {"description", DEVPKEY_Device_DriverDesc},
     {"service", DEVPKEY_Device_Service},
     {"version", DEVPKEY_Device_DriverVersion},
-    {"inf", DEVPKEY_Device_DriverInfPath},
     {"class", DEVPKEY_Device_Class},
-    {"status", DEVPKEY_Device_DevNodeStatus},
-    {"key", DEVPKEY_Device_Driver},
     {"provider", DEVPKEY_Device_DriverProvider},
-    {"install_date", DEVPKEY_Device_DriverDate }};
+    {"install_date", DEVPKEY_Device_DriverDate}};
 QueryData genDrivers(QueryContext& context) {
   QueryData results;
-
   auto closeInfoSet = [](auto infoSet) {
     SetupDiDestroyDeviceInfoList(infoSet);
   };
   std::unique_ptr<void, decltype(closeInfoSet)> devInfoSet(
-      SetupDiGetClassDevs(NULL, NULL, NULL, DIGCF_ALLCLASSES), closeInfoSet);
+      SetupDiGetClassDevs(
+          nullptr, nullptr, nullptr, DIGCF_ALLCLASSES | DIGCF_PRESENT),
+      closeInfoSet);
   if (devInfoSet.get() == INVALID_HANDLE_VALUE) {
-    TLOG << "Error getting device handle. Error code " + GetLastError();
+    LOG(WARNING) << "Error getting device handle. Error code: " +
+                        std::to_string(GetLastError());
+    return results;
+  }
+
+  SP_DEVINFO_LIST_DETAIL_DATA devInfoDetail;
+  devInfoDetail.cbSize = sizeof(SP_DEVINFO_LIST_DETAIL_DATA);
+  if (SetupDiGetDeviceInfoListDetail(devInfoSet.get(), &devInfoDetail) ==
+      FALSE) {
+    LOG(WARNING) << "Failed to get device info details. Error code: " +
+                        std::to_string(GetLastError());
     return results;
   }
 
   DWORD devIndex = 0;
   SP_DEVINFO_DATA devInfo;
   devInfo.cbSize = sizeof(SP_DEVINFO_DATA);
+
+  SP_DEVINSTALL_PARAMS installParams;
+  ZeroMemory(&installParams, sizeof(SP_DEVINSTALL_PARAMS));
+  installParams.cbSize = sizeof(SP_DEVINSTALL_PARAMS);
+  installParams.FlagsEx |=
+      DI_FLAGSEX_ALLOWEXCLUDEDDRVS | DI_FLAGSEX_INSTALLEDDRIVER;
   while (TRUE == SetupDiEnumDeviceInfo(devInfoSet.get(), devIndex, &devInfo)) {
+    if (SetupDiSetDeviceInstallParams(
+            devInfoSet.get(), &devInfo, &installParams) == FALSE) {
+      LOG(WARNING) << "Failed to set device install params. Error code: " +
+                          std::to_string(GetLastError());
+      return results;
+    }
+    auto devId = std::make_unique<TCHAR[]>(MAX_DEVICE_ID_LEN);
+    if (CM_Get_Device_ID(devInfo.DevInst, devId.get(), MAX_DEVICE_ID_LEN, 0) !=
+        CR_SUCCESS) {
+      LOG(WARNING) << "Failed to get device ID. Error code: " +
+                          std::to_string(GetLastError());
+      return results;
+    }
+
+    SP_DRVINFO_DATA drvInfo;
+    drvInfo.cbSize = sizeof(SP_DRVINFO_DATA);
+    SP_DRVINFO_DETAIL_DATA drvInfoDetail;
+    drvInfoDetail.cbSize = sizeof(SP_DRVINFO_DETAIL_DATA);
+    if (SetupDiBuildDriverInfoList(
+            devInfoSet.get(), &devInfo, SPDIT_CLASSDRIVER) == FALSE) {
+      LOG(WARNING) << "Failed to build driver info list. Error code: " +
+                          std::to_string(GetLastError());
+      return results;
+    }
+
+    if (SetupDiEnumDriverInfo(
+            devInfoSet.get(), &devInfo, SPDIT_CLASSDRIVER, 0, &drvInfo) ==
+        FALSE) {
+      auto err = GetLastError();
+      if (err == ERROR_NO_MORE_ITEMS) {
+        devIndex++;
+        continue;
+      } else {
+        LOG(WARNING) << "Failed to enumerate driver info. Error code: " +
+                            std::to_string(GetLastError());
+        return results;
+      }
+    }
+    if (SetupDiGetDriverInfoDetail(devInfoSet.get(),
+                                   &devInfo,
+                                   &drvInfo,
+                                   &drvInfoDetail,
+                                   sizeof(SP_DRVINFO_DETAIL_DATA),
+                                   nullptr) == FALSE) {
+      auto err = GetLastError();
+      if (err != ERROR_INSUFFICIENT_BUFFER) {
+        LOG(WARNING)
+            << "Failed to enumerate driver detailed info. Error code: " +
+                   std::to_string(GetLastError());
+        return results;
+      }
+    }
+
     Row r;
+    r["device_id"] = devId.get();
+    r["inf"] = drvInfoDetail.InfFileName;
     for (const auto& elem : kDeviceProps) {
       DWORD buffSize;
-      DEVPROPTYPE devPropType;
+      DEVPROPTYPE
+      devPropType;
       auto ret = SetupDiGetDevicePropertyW(devInfoSet.get(),
                                            &devInfo,
                                            &elem.second,
@@ -77,7 +148,7 @@ QueryData genDrivers(QueryContext& context) {
         if (err != ERROR_NOT_FOUND) {
           LOG(WARNING)
               << "Error getting buffer size for device property. Error code: " +
-                     err;
+                     std::to_string(err);
         }
         continue;
       }
@@ -99,7 +170,7 @@ QueryData genDrivers(QueryContext& context) {
                                       0);
       if (ret == FALSE) {
         TLOG << "Error retrieving device property. Error code: " +
-                    GetLastError();
+                    std::to_string(GetLastError());
         continue;
       }
 
@@ -122,14 +193,15 @@ QueryData genDrivers(QueryContext& context) {
       }
     }
     results.emplace_back(r);
+    ZeroMemory(&devInfo, sizeof(SP_DEVINFO_DATA));
+    devInfo.cbSize = sizeof(SP_DEVINFO_DATA);
     devIndex++;
   }
-
   auto err = GetLastError();
   if (err != ERROR_NO_MORE_ITEMS) {
     LOG(WARNING) << "Error enumerating devices, results may be incomplete. "
                     "Error code: " +
-                        err;
+                        std::to_string(err);
   }
   return results;
 }

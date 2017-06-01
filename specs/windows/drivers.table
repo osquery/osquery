@@ -1,14 +1,13 @@
 table_name("drivers")
 description("Windows system drivers and their relevant data.")
 schema([
+    Column("device_id", TEXT, "Driver device ID", index=True),
     Column("name", TEXT, "Driver name"),
     Column("description", TEXT, "Driver description"),
     Column("service", TEXT, "Driver service name"),
     Column("version", TEXT, "Driver version"),
     Column("inf", TEXT, "INF File: Associated inf file"),
     Column("class", TEXT, "Driver class name"),
-    Column("status", INTEGER, "Device node status, as defined by bitwise OR of DN_* items in Cfg.h"),
-    Column("key", TEXT, "Registry key for driver"),
     Column("provider", TEXT, "Driver provider"),
     Column("install_date", BIGINT, "Date of last install")
 ])
