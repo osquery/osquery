@@ -8,8 +8,7 @@
  *
  */
 
-#include <poll.h>
-#include <unistd.h>
+#include <sys/select.h>
 
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
@@ -146,16 +145,31 @@ Status BrokerManager::peerEndpoint(const std::string& ip, int port) {
   ep_->peer(ip, port);
 
   // Wait for message
-  pollfd pfd{ep_->outgoing_connection_status().fd(), POLLIN, 0};
-  poll(&pfd, 1, 2000);
-  auto conn_status = ep_->outgoing_connection_status().want_pop();
+  fd_set fds;
+  FD_ZERO(&fds);
+  int fd = ep_->outgoing_connection_status().fd();
+  FD_SET(fd, &fds);
 
-  if (conn_status.size() == 0) {
+  struct timeval tv;
+  tv.tv_sec = 2;
+  tv.tv_usec = 0;
+
+  int select_code = select(fd + 1, &fds, nullptr, nullptr, &tv);
+  if (select_code < 0) {
+    return Status(6, "Select error returned connecting to bro endpoint");
+  }
+
+  if (select_code == 0) {
     return Status(3, "Connecting to bro endpoint timed out");
   }
 
+  auto conn_status = ep_->outgoing_connection_status().want_pop();
+  if (conn_status.size() == 0) {
+    return Status(7, "Connecting to bro endpoint timed out");
+  }
+
   if (conn_status.size() > 1) {
-    return Status(4, "Received multiple connection accepts");
+    return Status(5, "Received multiple connection accepts");
   }
 
   // conn_status.size() == 1

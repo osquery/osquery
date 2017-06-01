@@ -8,7 +8,7 @@
  *
  */
 
-#include <poll.h>
+#include <sys/select.h>
 
 #include <gtest/gtest.h>
 
@@ -82,8 +82,14 @@ TEST_F(BrokerManagerTests, test_establishconnection) {
   EXPECT_TRUE(s_peer.ok());
 
   // Wait for message
-  pollfd pfd{test_queue.fd(), POLLIN, 0};
-  poll(&pfd, 1, 2000);
+  fd_set fds;
+  struct timeval tv;
+  tv.tv_sec = 2;
+  tv.tv_usec = 0;
+  FD_ZERO(&fds);
+  FD_SET(test_queue.fd(), &fds);
+  int select_code = select(test_queue.fd() + 1, &fds, nullptr, nullptr, &tv);
+  EXPECT_TRUE(select_code >= 0);
   auto msgs = test_queue.want_pop();
 
   // Exactly one message expected
@@ -134,7 +140,17 @@ TEST_F(BrokerManagerTests, test_addandremovegroups) {
   EXPECT_TRUE(get().getTopics().size() == 2);
   EXPECT_EQ(get().createEndpoint("should_not_work").getCode(), 1);
 
+  std::shared_ptr<broker::message_queue> mq1 =
+      get().getMessageQueue(get().TOPIC_PRE_GROUPS + "test1");
+  std::shared_ptr<broker::message_queue> mq2 =
+      get().getMessageQueue(get().TOPIC_PRE_GROUPS + "test2");
+
   // Receive on both groups
+  fd_set fds;
+  struct timeval tv;
+  tv.tv_sec = 2;
+  tv.tv_usec = 0;
+  int select_code;
   // Create and send Messages
   broker::message test_msg1 = broker::message{broker::data("message1")};
   broker::message test_msg2 = broker::message{broker::data("message2")};
@@ -142,17 +158,19 @@ TEST_F(BrokerManagerTests, test_addandremovegroups) {
       get().sendEvent(get().TOPIC_PRE_GROUPS + "test1", test_msg1).ok());
   EXPECT_TRUE(
       get().sendEvent(get().TOPIC_PRE_GROUPS + "test2", test_msg2).ok());
+
   // Receive Messages
-  pollfd pfd1{
-      get().getMessageQueue(get().TOPIC_PRE_GROUPS + "test1")->fd(), POLLIN, 0};
-  pollfd pfd2{
-      get().getMessageQueue(get().TOPIC_PRE_GROUPS + "test2")->fd(), POLLIN, 0};
-  poll(&pfd1, 1, 2000);
-  poll(&pfd2, 1, 2000);
-  auto msgs1 =
-      get().getMessageQueue(get().TOPIC_PRE_GROUPS + "test1")->want_pop();
-  auto msgs2 =
-      get().getMessageQueue(get().TOPIC_PRE_GROUPS + "test2")->want_pop();
+  FD_ZERO(&fds);
+  FD_SET(mq1->fd(), &fds);
+  select_code = select(mq1->fd() + 1, &fds, nullptr, nullptr, &tv);
+  EXPECT_TRUE(select_code >= 0);
+  FD_ZERO(&fds);
+  FD_SET(mq2->fd(), &fds);
+  select_code = select(mq2->fd() + 1, &fds, nullptr, nullptr, &tv);
+  EXPECT_TRUE(select_code >= 0);
+  auto msgs1 = mq1->want_pop();
+  auto msgs2 = mq2->want_pop();
+
   // Exactly one message expected per group
   EXPECT_TRUE(msgs1.size() == 1);
   EXPECT_TRUE(msgs2.size() == 1);
@@ -181,12 +199,14 @@ TEST_F(BrokerManagerTests, test_addandremovegroups) {
       get().sendEvent(get().TOPIC_PRE_GROUPS + "test1", test_msg3).ok());
   EXPECT_TRUE(
       get().sendEvent(get().TOPIC_PRE_GROUPS + "test2", test_msg4).ok());
+
   // Receive Messages
-  pollfd pfd3{
-      get().getMessageQueue(get().TOPIC_PRE_GROUPS + "test1")->fd(), POLLIN, 0};
-  poll(&pfd3, 1, 2000);
-  auto msgs3 =
-      get().getMessageQueue(get().TOPIC_PRE_GROUPS + "test1")->want_pop();
+  FD_ZERO(&fds);
+  FD_SET(mq1->fd(), &fds);
+  select_code = select(mq1->fd() + 1, &fds, nullptr, nullptr, &tv);
+  EXPECT_TRUE(select_code >= 0);
+  auto conn_status = ep_->outgoing_connection_status().want_pop();
+  auto msgs3 = mq1->want_pop();
   // Exactly one message expected per group
   EXPECT_TRUE(msgs3.size() == 1);
   auto msg3 = msgs3.front();
