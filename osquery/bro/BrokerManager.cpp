@@ -25,24 +25,24 @@
 namespace osquery {
 
 Status BrokerManager::reset() {
-    // Reset Node ID
-    nodeID_ = "";
+  // Reset Node ID
+  nodeID_ = "";
 
-    // Unsubscribe from all groups
-    std::vector<std::string> cp_groups(groups_);
-    for (const auto& g: cp_groups) {
-        Status s = removeGroup(g);
-        if (not s.ok()) {
-            return s;
-        }
+  // Unsubscribe from all groups
+  std::vector<std::string> cp_groups(groups_);
+  for (const auto& g : cp_groups) {
+    Status s = removeGroup(g);
+    if (not s.ok()) {
+      return s;
     }
+  }
 
-    // Reset the broker endpoint
-    if (ep_ != nullptr) {
-        ep_ = nullptr;
-    }
+  // Reset the broker endpoint
+  if (ep_ != nullptr) {
+    ep_ = nullptr;
+  }
 
-    return Status(0, "OK");
+  return Status(0, "OK");
 }
 
 Status BrokerManager::setNodeID(const std::string& uid) {
@@ -62,11 +62,11 @@ std::string BrokerManager::getNodeID() {
 
 Status BrokerManager::addGroup(const std::string& group) {
   Status s_mq = createMessageQueue(TOPIC_PRE_GROUPS + group);
-    if (not s_mq.ok()) {
-        return s_mq;
-    }
-    groups_.push_back(group);
-    return Status(0, "OK");
+  if (not s_mq.ok()) {
+    return s_mq;
+  }
+  groups_.push_back(group);
+  return Status(0, "OK");
 }
 
 Status BrokerManager::removeGroup(const std::string& group) {
@@ -106,9 +106,9 @@ Status BrokerManager::createMessageQueue(const std::string& topic) {
   }
 
   if (ep_ != nullptr) {
-      VLOG(1) << "Creating message queue: " << topic;
-      messageQueues_[topic] =
-              std::make_shared<broker::message_queue>(topic, *(ep_));
+    VLOG(1) << "Creating message queue: " << topic;
+    messageQueues_[topic] =
+        std::make_shared<broker::message_queue>(topic, *(ep_));
   }
 
   return Status(0, "OK");
@@ -145,26 +145,27 @@ Status BrokerManager::peerEndpoint(const std::string& ip, int port) {
 
   ep_->peer(ip, port);
 
-    // Wait for message
-    pollfd pfd{ep_->outgoing_connection_status().fd(), POLLIN, 0};
-    poll(&pfd, 1, 2000);
-    auto conn_status = ep_->outgoing_connection_status().want_pop();
+  // Wait for message
+  pollfd pfd{ep_->outgoing_connection_status().fd(), POLLIN, 0};
+  poll(&pfd, 1, 2000);
+  auto conn_status = ep_->outgoing_connection_status().want_pop();
 
-    if (conn_status.size() == 0) {
-        return Status(3, "Connecting to bro endpoint timed out");
-    }
+  if (conn_status.size() == 0) {
+    return Status(3, "Connecting to bro endpoint timed out");
+  }
 
-    if (conn_status.size() > 1) {
-        return Status(4, "Received multiple connection accepts");
-    }
+  if (conn_status.size() > 1) {
+    return Status(4, "Received multiple connection accepts");
+  }
 
-    // conn_status.size() == 1
-    if (conn_status.front().status != broker::outgoing_connection_status::tag::established) {
-        return Status(2, "Failed to connect to bro endpoint");
-    }
+  // conn_status.size() == 1
+  if (conn_status.front().status !=
+      broker::outgoing_connection_status::tag::established) {
+    return Status(2, "Failed to connect to bro endpoint");
+  }
 
   // Join the groups that have been added before connecting
-  for (const auto& g: groups_) {
+  for (const auto& g : groups_) {
     Status s_mq = createMessageQueue(TOPIC_PRE_GROUPS + g);
     if (not s_mq.ok()) {
       return s_mq;
