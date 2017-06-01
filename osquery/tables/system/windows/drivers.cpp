@@ -20,8 +20,11 @@
 #include <SetupAPI.h>
 
 #include <string>
+#include <boost/regex.hpp>
 
 #include <osquery/core.h>
+
+#include <osquery/sql.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -31,18 +34,15 @@ namespace osquery {
 namespace tables {
 
 const auto freePtr = [](auto ptr) { free(ptr); };
-
-const std::map<std::string, DEVPROPKEY> kDeviceProps = {
-    {"name", DEVPKEY_NAME},
-    {"description", DEVPKEY_Device_DriverDesc},
-    {"service", DEVPKEY_Device_Service},
-    {"version", DEVPKEY_Device_DriverVersion},
-    {"class", DEVPKEY_Device_Class},
-    {"provider", DEVPKEY_Device_DriverProvider},
-    {"install_date", DEVPKEY_Device_DriverDate}};
+static inline void logWarn(const std::string& msg,
+                           const DWORD& code = GetLastError()) {
+  LOG(WARNING) << msg + " Error code: " + std::to_string(code);
+}
 
 QueryData genDrivers(QueryContext& context) {
   QueryData results;
+  CHAR systemRoot[MAX_PATH];
+  GetSystemDirectory(systemRoot, MAX_PATH);
 
   auto closeInfoSet = [](auto infoSet) {
     SetupDiDestroyDeviceInfoList(infoSet);
@@ -52,8 +52,7 @@ QueryData genDrivers(QueryContext& context) {
           nullptr, nullptr, nullptr, DIGCF_ALLCLASSES | DIGCF_PRESENT),
       closeInfoSet);
   if (devInfoSet.get() == INVALID_HANDLE_VALUE) {
-    LOG(WARNING) << "Error getting device handle. Error code: " +
-                        std::to_string(GetLastError());
+    logWarn("Error getting device handle.");
     return results;
   }
 
@@ -61,8 +60,7 @@ QueryData genDrivers(QueryContext& context) {
   devInfoDetail.cbSize = sizeof(SP_DEVINFO_LIST_DETAIL_DATA);
   if (SetupDiGetDeviceInfoListDetail(devInfoSet.get(), &devInfoDetail) ==
       FALSE) {
-    LOG(WARNING) << "Failed to get device info details. Error code: " +
-                        std::to_string(GetLastError());
+    logWarn("Failed to get device info details.");
     return results;
   }
 
@@ -78,20 +76,17 @@ QueryData genDrivers(QueryContext& context) {
   while (TRUE == SetupDiEnumDeviceInfo(devInfoSet.get(), devIndex, &devInfo)) {
     if (SetupDiSetDeviceInstallParams(
             devInfoSet.get(), &devInfo, &installParams) == FALSE) {
-      LOG(WARNING) << "Failed to set device install params. Error code: " +
-                          std::to_string(GetLastError());
+      logWarn(
+          "Failed to set device install params, driver listing may take longer "
+          "than usual.");
     }
 
-    auto devId = std::make_unique<TCHAR[]>(MAX_DEVICE_ID_LEN);
-    if (devId == nullptr) {
-      LOG(WARNING) << "Failed to malloc for device ID.";
-      return results;
-    }
-    if (CM_Get_Device_ID(devInfo.DevInst, devId.get(), MAX_DEVICE_ID_LEN, 0) !=
+    char devId[MAX_DEVICE_ID_LEN];
+    if (CM_Get_Device_ID(devInfo.DevInst, devId, MAX_DEVICE_ID_LEN, 0) !=
         CR_SUCCESS) {
-      LOG(WARNING) << "Failed to get device ID. Error code: " +
-                          std::to_string(GetLastError());
-      return results;
+      logWarn("Failed to get device ID.");
+      devIndex++;
+      continue;
     }
 
     SP_DRVINFO_DATA drvInfo;
@@ -100,9 +95,9 @@ QueryData genDrivers(QueryContext& context) {
     drvInfoDetail.cbSize = sizeof(SP_DRVINFO_DETAIL_DATA);
     if (SetupDiBuildDriverInfoList(
             devInfoSet.get(), &devInfo, SPDIT_CLASSDRIVER) == FALSE) {
-      LOG(WARNING) << "Failed to build driver info list. Error code: " +
-                          std::to_string(GetLastError());
-      return results;
+      logWarn("Failed to build driver info list.");
+      devIndex++;
+      continue;
     }
 
     if (SetupDiEnumDriverInfo(
@@ -113,9 +108,9 @@ QueryData genDrivers(QueryContext& context) {
         devIndex++;
         continue;
       } else {
-        LOG(WARNING) << "Failed to enumerate driver info. Error code: " +
-                            std::to_string(GetLastError());
-        return results;
+        logWarn("Failed to enumerate driver info/", err);
+        devIndex++;
+        continue;
       }
     }
     if (SetupDiGetDriverInfoDetail(devInfoSet.get(),
@@ -126,20 +121,34 @@ QueryData genDrivers(QueryContext& context) {
                                    nullptr) == FALSE) {
       auto err = GetLastError();
       if (err != ERROR_INSUFFICIENT_BUFFER) {
-        LOG(WARNING)
-            << "Failed to enumerate driver detailed info. Error code: " +
-                   std::to_string(GetLastError());
-        return results;
+        logWarn("Failed to enumerate driver detailed info.", err);
+        devIndex++;
+        continue;
       }
     }
 
     Row r;
-    r["device_id"] = devId.get();
+    r["device_id"] = devId;
     r["inf"] = drvInfoDetail.InfFileName;
-    for (const auto& elem : kDeviceProps) {
+    r["provider"] = drvInfo.ProviderName;
+    r["manufacturer"] = drvInfo.MfgName;
+    r["date"] = std::to_string(osquery::filetimeToUnixtime(drvInfo.DriverDate));
+    r["description"] = drvInfo.Description;
+    ULARGE_INTEGER version;
+    version.QuadPart = drvInfo.DriverVersion;
+    r["version"] = std::to_string(HIWORD(version.HighPart)) + "." +
+                   std::to_string(HIWORD(version.LowPart)) + "." +
+                   std::to_string(LOWORD(version.HighPart)) + "." +
+                   std::to_string(LOWORD(version.LowPart));
+
+    const std::map<std::string, DEVPROPKEY> props = {
+        {"device_name", DEVPKEY_NAME},
+        {"service", DEVPKEY_Device_Service},
+        {"driver_key", DEVPKEY_Device_Driver},
+        {"class", DEVPKEY_Device_Class}};
+    for (const auto& elem : props) {
       DWORD buffSize;
-      DEVPROPTYPE
-      devPropType;
+      DEVPROPTYPE devPropType;
       auto ret = SetupDiGetDevicePropertyW(devInfoSet.get(),
                                            &devInfo,
                                            &elem.second,
@@ -151,9 +160,7 @@ QueryData genDrivers(QueryContext& context) {
       auto err = GetLastError();
       if (err != ERROR_INSUFFICIENT_BUFFER) {
         if (err != ERROR_NOT_FOUND) {
-          LOG(WARNING)
-              << "Error getting buffer size for device property. Error code: " +
-                     std::to_string(err);
+          logWarn("Error getting buffer size for device property.", err);
         }
         continue;
       }
@@ -174,8 +181,7 @@ QueryData genDrivers(QueryContext& context) {
                                       nullptr,
                                       0);
       if (ret == FALSE) {
-        TLOG << "Error retrieving device property. Error code: " +
-                    std::to_string(GetLastError());
+        logWarn("Error retrieving device property.");
         continue;
       }
 
@@ -194,6 +200,23 @@ QueryData genDrivers(QueryContext& context) {
         continue;
       }
     }
+    r["driver_key"].insert(
+        0, "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Class\\");
+    if (!r["service"].empty()) {
+      r["service_key"] =
+          "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\" +
+          r["service"];
+      SQL sql("SELECT data FROM registry WHERE path = '" + r["service_key"] +
+              "\\ImagePath'");
+      if (sql.rows().size() == 1) {
+        auto path = sql.rows().at(0).at("data");
+        if (!path.empty()) {
+          r["image"] = systemRoot + boost::regex_replace(
+                                        path, boost::regex("^.*[Ss]ystem32"), "");
+        }
+      }
+    }
+
     results.emplace_back(r);
     ZeroMemory(&devInfo, sizeof(SP_DEVINFO_DATA));
     devInfo.cbSize = sizeof(SP_DEVINFO_DATA);
@@ -201,9 +224,7 @@ QueryData genDrivers(QueryContext& context) {
   }
   auto err = GetLastError();
   if (err != ERROR_NO_MORE_ITEMS) {
-    LOG(WARNING) << "Error enumerating devices, results may be incomplete. "
-                    "Error code: " +
-                        std::to_string(err);
+    logWarn("Error enumerating devices, results may be incomplete.");
   }
   return results;
 }
