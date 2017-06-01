@@ -183,11 +183,10 @@ void BroRunner::start() {
   // Wait for any requests
   while (!interrupted()) {
     fd_set fds;
-    std::vector<std::string> topics;
 
     // Retrieve info about each message queue
     FD_ZERO(&fds);
-    bm.getTopics(topics); // List of subscribed topics
+    std::vector<std::string> topics = bm.getTopics(); // List of subscribed topics
     int sMax = 0;
     for (const auto& topic : topics) {
       int sock = bm.getMessageQueue(topic)->fd();

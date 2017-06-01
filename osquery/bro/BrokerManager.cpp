@@ -8,6 +8,9 @@
  *
  */
 
+#include <poll.h>
+#include <unistd.h>
+
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
 #include <broker/message_queue.hh>
@@ -20,6 +23,27 @@
 #include "osquery/bro/utils.h"
 
 namespace osquery {
+
+Status BrokerManager::reset() {
+    // Reset Node ID
+    nodeID_ = "";
+
+    // Unsubscribe from all groups
+    std::vector<std::string> cp_groups(groups_);
+    for (const auto& g: cp_groups) {
+        Status s = removeGroup(g);
+        if (not s.ok()) {
+            return s;
+        }
+    }
+
+    // Reset the broker endpoint
+    if (ep_ != nullptr) {
+        ep_ = nullptr;
+    }
+
+    return Status(0, "OK");
+}
 
 Status BrokerManager::setNodeID(const std::string& uid) {
   if (!nodeID_.empty()) {
@@ -37,8 +61,12 @@ std::string BrokerManager::getNodeID() {
 }
 
 Status BrokerManager::addGroup(const std::string& group) {
-  groups_.push_back(group);
-  return createMessageQueue(TOPIC_PRE_GROUPS + group);
+  Status s_mq = createMessageQueue(TOPIC_PRE_GROUPS + group);
+    if (not s_mq.ok()) {
+        return s_mq;
+    }
+    groups_.push_back(group);
+    return Status(0, "OK");
 }
 
 Status BrokerManager::removeGroup(const std::string& group) {
@@ -77,9 +105,12 @@ Status BrokerManager::createMessageQueue(const std::string& topic) {
     return Status(1, "Message queue exists for topic '" + topic + "'");
   }
 
-  VLOG(1) << "Creating message queue: " << topic;
-  messageQueues_[topic] =
-      std::make_shared<broker::message_queue>(topic, *(ep_));
+  if (ep_ != nullptr) {
+      VLOG(1) << "Creating message queue: " << topic;
+      messageQueues_[topic] =
+              std::make_shared<broker::message_queue>(topic, *(ep_));
+  }
+
   return Status(0, "OK");
 }
 
@@ -98,12 +129,12 @@ std::shared_ptr<broker::message_queue> BrokerManager::getMessageQueue(
   return messageQueues_.at(topic);
 }
 
-Status BrokerManager::getTopics(std::vector<std::string>& topics) {
-  topics.clear();
+std::vector<std::string> BrokerManager::getTopics() {
+  std::vector<std::string> topics;
   for (const auto& mq : messageQueues_) {
     topics.push_back(mq.first);
   }
-  return Status(0, "OK");
+  return topics;
 }
 
 Status BrokerManager::peerEndpoint(const std::string& ip, int port) {
@@ -113,9 +144,31 @@ Status BrokerManager::peerEndpoint(const std::string& ip, int port) {
   }
 
   ep_->peer(ip, port);
-  auto cs = ep_->outgoing_connection_status().need_pop().front();
-  if (cs.status != broker::outgoing_connection_status::tag::established) {
-    return Status(1, "Failed to connect to bro endpoint");
+
+    // Wait for message
+    pollfd pfd{ep_->outgoing_connection_status().fd(), POLLIN, 0};
+    poll(&pfd, 1, 2000);
+    auto conn_status = ep_->outgoing_connection_status().want_pop();
+
+    if (conn_status.size() == 0) {
+        return Status(3, "Connecting to bro endpoint timed out");
+    }
+
+    if (conn_status.size() > 1) {
+        return Status(4, "Received multiple connection accepts");
+    }
+
+    // conn_status.size() == 1
+    if (conn_status.front().status != broker::outgoing_connection_status::tag::established) {
+        return Status(2, "Failed to connect to bro endpoint");
+    }
+
+  // Join the groups that have been added before connecting
+  for (const auto& g: groups_) {
+    Status s_mq = createMessageQueue(TOPIC_PRE_GROUPS + g);
+    if (not s_mq.ok()) {
+      return s_mq;
+    }
   }
 
   // Announce this endpoint to be a bro-osquery extension
@@ -128,7 +181,7 @@ Status BrokerManager::peerEndpoint(const std::string& ip, int port) {
   broker::vector addr_list;
   SQL sql("SELECT address from interface_addresses");
   if (!sql.ok()) {
-    return Status(1, "Failed to retrieve interface addresses");
+    return Status(4, "Failed to retrieve interface addresses");
   }
   for (const auto& row : sql.rows()) {
     const auto& if_mac = row.at("address");

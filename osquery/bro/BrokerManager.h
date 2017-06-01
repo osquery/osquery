@@ -52,6 +52,8 @@ class BrokerManager : private boost::noncopyable {
   const std::string EVENT_HOST_SUBSCRIBE = "osquery::host_subscribe";
   const std::string EVENT_HOST_UNSUBSCRIBE = "osquery::host_unsubscribe";
 
+  Status reset();
+
   Status setNodeID(const std::string& uid);
 
   std::string getNodeID();
@@ -71,7 +73,7 @@ class BrokerManager : private boost::noncopyable {
   std::shared_ptr<broker::message_queue> getMessageQueue(
       const std::string& topic);
 
-  Status getTopics(std::vector<std::string>& topics);
+  std::vector<std::string> getTopics();
 
   Status peerEndpoint(const std::string& ip, int port);
 
