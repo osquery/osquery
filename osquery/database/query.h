@@ -51,6 +51,16 @@ class Query {
   Status getPreviousQueryResults(QueryData& results);
 
   /**
+   * @brief Get the epoch associated with the previous query results
+   *
+   * This method retrieves the epoch associated with the results data that was
+   * was stored in rocksdb
+   *
+   * @return the epoch associated with the previous query results.
+   */
+  uint64_t getPreviousEpoch();
+
+  /**
    * @brief Get the names of all historical queries.
    *
    * If you'd like to perform some database maintenance, getStoredQueryNames()
@@ -82,11 +92,11 @@ class Query {
    * to the database using addNewResults.
    *
    * @param qd the QueryData object, which has the results of the query.
-   * @param unix_time the time that the query was executed.
+   * @param epoch the epoch associatted with QueryData
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(const QueryData& qd);
+  Status addNewResults(const QueryData& qd, const uint64_t epoch);
 
   /**
    * @brief Add a new set of results to the persistent storage and get back
@@ -97,11 +107,13 @@ class Query {
    * indicating what rows in the query's results have changed.
    *
    * @param qd the QueryData object containing query results to store.
+   * @param epoch the epoch associated with QueryData
    * @param dr an output to a DiffResults object populated based on last run.
    *
    * @return the success or failure of the operation.
    */
   Status addNewResults(const QueryData& qd,
+                       const uint64_t epoch,
                        DiffResults& dr,
                        bool calculate_diff = true);
 

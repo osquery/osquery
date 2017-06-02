@@ -34,7 +34,8 @@ Using the [log aggregation guide](log-aggregation.md), you will receive log line
     },
     "hostname":  "ted-osx.local",
     "calendarTime":  "Fri Nov  7 09:42:42 2014",
-    "unixTime":  1415382685
+    "unixTime":  1415382685,
+    "epoch": 314159265
 }
 ```
 
