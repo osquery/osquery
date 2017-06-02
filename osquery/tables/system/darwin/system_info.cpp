@@ -67,10 +67,10 @@ QueryData genSystemInfo(QueryContext &context) {
 
   auto lhn = SCDynamicStoreCopyLocalHostName(nullptr);
   if (lhn != nullptr) {
-    r["local_host_name"] = stringFromCFString(lhn);
+    r["local_hostname"] = stringFromCFString(lhn);
     CFRelease(lhn);
   } else {
-    r["local_host_name"] = r["hostname"];
+    r["local_hostname"] = r["hostname"];
   }
 
   // The UUID for Apple devices is a device identifier.

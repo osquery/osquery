@@ -14,6 +14,6 @@ schema([
     Column("hardware_version", TEXT, "Hardware or board version"),
     Column("hardware_serial", TEXT, "Device or board serial number"),
     Column("computer_name", TEXT, "Friendly computer name (optional)"),
-    Column("local_host_name", TEXT, "Local hostname (optional)"),
+    Column("local_hostname", TEXT, "Local hostname (optional)"),
 ])
 implementation("system/system_info@genSystemInfo")
