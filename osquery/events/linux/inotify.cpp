@@ -125,6 +125,18 @@ void INotifyEventPublisher::tearDown() {
   }
   inotify_handle_ = -1;
 
+  auto descriptors = descriptors_;
+  for (const auto& desc : descriptors) {
+    removeMonitor(desc, false);
+  }
+
+  {
+    // Then remove all path/descriptor mappings.
+    WriteLock lock(path_mutex_);
+    path_descriptors_.clear();
+    descriptor_paths_.clear();
+  }
+
   WriteLock lock(scratch_mutex_);
   if (scratch_ != nullptr) {
     free(scratch_);
@@ -136,22 +148,10 @@ Status INotifyEventPublisher::restartMonitoring() {
   if (last_restart_ != 0 && getUnixTime() - last_restart_ < 10) {
     return Status(1, "Overflow");
   }
-
   last_restart_ = getUnixTime();
-  VLOG(1) << "inotify was overflown, attempting to restart handle";
 
-  // Create a copy of the descriptors, then remove each.
-  auto descriptors = descriptors_;
-  for (const auto& desc : descriptors) {
-    removeMonitor(desc, true);
-  }
-
-  {
-    // Then remove all path/descriptor mappings.
-    WriteLock lock(path_mutex_);
-    path_descriptors_.clear();
-    descriptor_paths_.clear();
-  }
+  tearDown();
+  setUp();
 
   // Reconfigure ourself, the subscribers will not reconfigure.
   configure();
@@ -163,9 +163,9 @@ Status INotifyEventPublisher::run() {
   fds[0].fd = getHandle();
   fds[0].events = POLLIN;
   int selector = ::poll(fds, 1, 1000);
-  if (selector == -1) {
+  if (selector == -1 && errno != EINTR && errno != EAGAIN) {
     LOG(WARNING) << "Could not read inotify handle";
-    return Status(1, "INotify handle failed");
+    return restartMonitoring();
   }
 
   if (selector == 0) {
@@ -188,10 +188,7 @@ Status INotifyEventPublisher::run() {
     auto event = reinterpret_cast<struct inotify_event*>(p);
     if (event->mask & IN_Q_OVERFLOW) {
       // The inotify queue was overflown (remove all paths).
-      Status stat = restartMonitoring();
-      if (!stat.ok()) {
-        return stat;
-      }
+      return restartMonitoring();
     }
 
     if (event->mask & IN_IGNORED) {
@@ -261,19 +258,20 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
     }
   } else if (ec->path == sc->path) {
     return true;
-  } else if (fnmatch((sc->path + "*").c_str(),
-                     ec->path.c_str(),
-                     FNM_PATHNAME | FNM_CASEFOLD |
-                         ((sc->recursive_match) ? FNM_LEADING_DIR : 0)) != 0) {
-    // Only apply a leading-dir match if this is a recursive watch with a
-    // match requirement (an inline wildcard with ending recursive wildcard).
-    return false;
+  } else {
+    auto flags = FNM_PATHNAME | FNM_CASEFOLD |
+                 ((sc->recursive_match) ? FNM_LEADING_DIR : 0);
+    if (fnmatch((sc->path + "*").c_str(), ec->path.c_str(), flags) != 0) {
+      // Only apply a leading-dir match if this is a recursive watch with a
+      // match requirement (and inline wildcard with ending recursive wildcard).
+      return false;
+    }
   }
 
   // inotify will not monitor recursively, new directories need watches.
   if (sc->recursive && ec->action == "CREATED" && isDirectory(ec->path)) {
-    const_cast<INotifyEventPublisher*>(this)
-        ->addMonitor(ec->path + '/', sc->mask, true);
+    const_cast<INotifyEventPublisher*>(this)->addMonitor(
+        ec->path + '/', sc->mask, true);
   }
 
   return true;

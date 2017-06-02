@@ -409,9 +409,9 @@ static inline bool adjust_reply(struct audit_reply* rep, int len) {
   case AUDIT_USER:
   case AUDIT_LOGIN:
   case AUDIT_KERNEL:
-  case AUDIT_FIRST_USER_MSG... AUDIT_LAST_USER_MSG:
-  case AUDIT_FIRST_USER_MSG2... AUDIT_LAST_USER_MSG2:
-  case AUDIT_FIRST_EVENT... AUDIT_INTEGRITY_LAST_MSG:
+  case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
+  case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
+  case AUDIT_FIRST_EVENT ... AUDIT_INTEGRITY_LAST_MSG:
     rep->message = static_cast<char*>(NLMSG_DATA(rep->nlh));
   default:
     break;
@@ -419,7 +419,7 @@ static inline bool adjust_reply(struct audit_reply* rep, int len) {
   return true;
 }
 
-static inline bool safe_audit_get_reply(int fd, struct audit_reply* rep) {
+static inline int safe_audit_get_reply(int fd, struct audit_reply* rep) {
   if (fd < 0) {
     return -EBADF;
   }
@@ -429,8 +429,7 @@ static inline bool safe_audit_get_reply(int fd, struct audit_reply* rep) {
   fds[0].events = POLLIN;
 
   if (::poll(fds, 1, 4) <= 0) {
-    // Error or read timeout.
-    return -1;
+    return (errno == EINTR || errno == EAGAIN) ? 0 : -errno;
   }
 
   if (!(fds[0].revents & POLLIN)) {
@@ -493,14 +492,14 @@ Status AuditEventPublisher::run() {
         memcpy(&status_, reply_.status, sizeof(struct audit_status));
       }
       break;
-    case AUDIT_FIRST_USER_MSG... AUDIT_LAST_USER_MSG:
+    case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
       handle_reply = true;
       break;
     case (AUDIT_GET + 1)...(AUDIT_LIST_RULES - 1):
     case (AUDIT_LIST_RULES + 1)...(AUDIT_FIRST_USER_MSG - 1):
       // Not interested in handling meta-commands and actions.
       break;
-    case AUDIT_DAEMON_START... AUDIT_DAEMON_CONFIG: // 1200 - 1203
+    case AUDIT_DAEMON_START ... AUDIT_DAEMON_CONFIG: // 1200 - 1203
     case AUDIT_CONFIG_CHANGE:
       handleAuditConfigChange(reply_);
       break;
@@ -530,7 +529,7 @@ Status AuditEventPublisher::run() {
   });
 
   // Reset the reply data.
-  bool result = false;
+  int result = 0;
   do {
     // Request a reply in a non-blocking mode.
     // This allows the publisher's run loop to periodically request an audit
@@ -539,10 +538,10 @@ Status AuditEventPublisher::run() {
     // This non-blocking also allows faster receipt of multi-message events.
     result = safe_audit_get_reply(handle_, &reply_);
 
-    if (result) {
+    if (result > 0) {
       inspectReply();
     }
-  } while (result && !isEnding());
+  } while (result > 0 && !isEnding());
 
   if (static_cast<pid_t>(status_.pid) != getpid()) {
     if (control_ && status_.pid != 0) {

@@ -74,7 +74,7 @@ Status UdevEventPublisher::run() {
   fds[0].events = POLLIN;
 
   int selector = ::poll(fds, 1, 1000);
-  if (selector == -1) {
+  if (selector == -1 && errno != EINTR && errno != EAGAIN) {
     LOG(ERROR) << "Could not read udev monitor";
     return Status(1, "udev monitor failed.");
   }
