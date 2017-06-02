@@ -7,16 +7,16 @@ ADD_OSQUERY_TEST(TRUE
 )
 
 # The following dispatcher ("runner") implementations are additional.
-SET(osquery_dispatcher_runners_list
+SET(OSQUERY_DISPATCHER_RUNNERS
   scheduler.cpp
   distributed.cpp
 )
 if(NOT WINDOWS)
-  list(APPEND osquery_dispatcher_runners_list bro.cpp)
+  list(APPEND OSQUERY_DISPATCHER_RUNNERS bro.cpp)
 endif()
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_dispatcher_runners
-  ${osquery_dispatcher_runners_list}
+  ${OSQUERY_DISPATCHER_RUNNERS}
 )
 
 
