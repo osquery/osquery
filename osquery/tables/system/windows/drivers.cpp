@@ -61,8 +61,8 @@ Status getDeviceList(const device_infoset_t& infoset,
     devInfo.cbSize = sizeof(SP_DEVINFO_DATA);
     devicesLeft = SetupDiEnumDeviceInfo(infoset.get(), i, &devInfo);
     if (devicesLeft == TRUE) {
-      rDevices.push_back(devInfo);
       SetupDiSetDeviceInstallParams(infoset.get(), &devInfo, &installParams);
+      rDevices.push_back(devInfo);
     }
     i++;
   } while (devicesLeft == TRUE);
@@ -102,6 +102,8 @@ Status getDeviceDriverInfo(const device_infoset_t& infoset,
                                    nullptr);
   if (ret == FALSE) {
     auto err = GetLastError();
+    // It's common to get INSUFFICIENT_BUFFER for some variable length fields in
+    // SP_DRVINFO_DETAIL_DATA, but we don't care about this info so ignore it
     if (err != ERROR_INSUFFICIENT_BUFFER) {
       return Status(err, "Error getting detailed driver info");
     }
