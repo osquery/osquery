@@ -159,8 +159,7 @@ class TLSRequestHelper : private boost::noncopyable {
    * @brief Send a TLS request
    *
    * @param uri is the URI to send the request to
-   * @param params is a ptree of the params to send to the server. This isn't
-   * const because it will be modified to include node_key.
+   * @param output is a ptree of the output from the server
    *
    * @return a Status object indicating the success or failure of the operation
    */
