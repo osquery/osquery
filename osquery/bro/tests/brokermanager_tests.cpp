@@ -8,7 +8,11 @@
  *
  */
 
+#ifdef WIN32
+#include <windows.h>
+#else
 #include <sys/select.h>
+#endif
 
 #include <gtest/gtest.h>
 

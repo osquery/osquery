@@ -7,8 +7,11 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
+#ifdef WIN32
+#include <windows.h>
+#else
 #include <sys/select.h>
+#endif
 
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>

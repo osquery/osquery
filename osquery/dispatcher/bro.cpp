@@ -9,7 +9,11 @@
  */
 
 #include <iostream>
+#ifdef WIN32
+#include <windows.h>
+#else
 #include <sys/select.h>
+#endif
 
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
