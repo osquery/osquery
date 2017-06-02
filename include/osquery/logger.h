@@ -367,4 +367,4 @@ size_t queuedSenders();
  * Linux/Darwin: this uses syslog's LOG_NOTICE.
  */
 void systemLog(const std::string& line);
-}
+} // namespace osquery
