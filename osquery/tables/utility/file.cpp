@@ -39,25 +39,34 @@ void genFileInfo(const fs::path& path,
                  QueryData& results) {
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
-#if !defined(WIN32)
-  // On POSIX systems, first check the link state.
-  struct stat link_stat;
-  if (lstat(path.string().c_str(), &link_stat) < 0) {
-    // Path was not real, had too may links, or could not be accessed.
-    return;
-  }
-#endif
-
-  struct stat file_stat;
-  if (stat(path.string().c_str(), &file_stat)) {
-    // Path was not real, had too may links, or could not be accessed.
-    return;
-  }
 
   Row r;
   r["path"] = path.string();
   r["filename"] = path.filename().string();
   r["directory"] = parent.string();
+  r["symlink"] = "0";
+
+  struct stat file_stat;
+  struct stat link_stat;
+#if !defined(WIN32)
+  // On POSIX systems, first check the link state.
+  if (lstat(path.string().c_str(), &link_stat) < 0) {
+    // Path was not real, had too may links, or could not be accessed.
+    return;
+  }
+  if ((link_stat.st_mode & S_IFLNK) != 0) {
+    r["symlink"] = "1";
+  }
+#endif
+
+  if (stat(path.string().c_str(), &file_stat)) {
+// Path was not real, had too may links, or could not be accessed.
+#if !defined(WIN32)
+    file_stat = link_stat;
+#else
+    return;
+#endif
+  }
 
   r["inode"] = BIGINT(file_stat.st_ino);
   r["uid"] = BIGINT(file_stat.st_uid);
