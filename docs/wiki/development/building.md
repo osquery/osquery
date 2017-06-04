@@ -25,8 +25,8 @@ The complete installation/build steps are as follows:
 
 ```sh
 $ git clone https://github.com/facebook/osquery.git
-$ # make sysprep
 $ cd osquery
+$ # make sysprep
 $ make deps
 $ make
 ```
