@@ -1,6 +1,6 @@
 `osqueryd` is the host monitoring daemon that allows you to **schedule** queries and record OS state changes. The daemon aggregates query results over time and generates logs, which indicate state change according to each query. The daemon also uses OS eventing APIs to record monitored file and directory changes, hardware events, network events, and more.
 
-The installation and deployment guides are mostly focused on the osquery daemon life cycle. On Linux the daemon starts as an SystemV initscript; on OS X as a launch daemon. The service is highly configurable and extendable.
+The installation and deployment guides are mostly focused on the osquery daemon life cycle. On Linux the daemon starts as an SystemV initscript; on macOS as a launch daemon. The service is highly configurable and extendable.
 
 ## Configuration and query schedule
 
@@ -9,7 +9,7 @@ The primary daemon feature is executing a query schedule. This schedule is defin
 ```json
 {
   "usb_devices": {
-    "query": "select vendor, model from usb_devices",
+    "query": "SELECT vendor, model FROM usb_devices;",
     "interval": 60
   }
 }
@@ -19,7 +19,7 @@ This simple **usb_devices** query will run approximately every 60 seconds on the
 
 ## Logging and reporting
 
-Each query represents a monitored view of your operating system. The first time a scheduled query runs it logs every row in the resulting table with the "added" action. In this example, on an OS X laptop, after the first 60 seconds it would log:
+Each query represents a monitored view of your operating system. The first time a scheduled query runs it logs every row in the resulting table with the "added" action. In this example, on a macOS laptop, after the first 60 seconds it would log:
 
 ```json
 [

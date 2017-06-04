@@ -2,7 +2,7 @@ Here are some debugging tips and tricks related to the daemon and shell from a d
 
 Almost every situation requiring debugging should ultimately be solved with bug fixes or better documentation. In these cases the documentation usually surfaces in the form of verbose messages in the tools.
 
-Please feel encouraged to add additional messages in the code, or create Github issues documenting your experience and suggestions for documentation or code improvements.
+Please feel encouraged to add additional messages in the code, or create GitHub issues documenting your experience and suggestions for documentation or code improvements.
 
 ### Running the shell or daemon in verbose mode
 
@@ -129,7 +129,7 @@ If you see:
 Error registering subscriber: process_file_events: No kernel event publisher
 ```
 
-This is an informational message with mis-categorized severity. The message indicates that a requested companion kernel extension does not exist and the associated `process_file_events` subscriber on OS X cannot start. It is safe to ignore.
+This is an informational message with mis-categorized severity. The message indicates that a requested companion kernel extension does not exist and the associated `process_file_events` subscriber on macOS cannot start. It is safe to ignore.
 
 ### Testing event subscribers
 

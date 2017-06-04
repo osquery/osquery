@@ -2,8 +2,7 @@ All osquery development occurs in feature branches and all contributions occur v
 
 ## Contributor License Agreement ("CLA")
 
-In order to accept your pull request, we need you to submit a CLA. You only need
-to do this once to work on any of Facebook's open source projects.
+In order to accept your pull request, we need you to submit a CLA. You only need to do this once to work on any of Facebook's open source projects.
 
 Complete your CLA here: <https://code.facebook.com/cla>
 
@@ -27,7 +26,7 @@ origin  git@gitHub.com:facebook/osquery.git (push)
 Now, use the GitHub UI to fork osquery to your personal GitHub organization. Then, add the remote URL of your fork to git's local remotes:
 
 ```
-$ git remote add marpaia git@github.com:marpaia/osquery.git
+$ git remote add $USER git@github.com:$USER/osquery.git
 ```
 
 Now, your "remote" should be set up as follows:
@@ -51,7 +50,7 @@ Write your code and when you're ready to put up a Pull Request, push your local 
 ```
 $ git add .
 $ git commit -m "my awesome feature!"
-$ git push -u marpaia my-feature
+$ git push -u $USER my-feature
 ```
 
 Visit https://github.com/facebook/osquery and use the web UI to create a Pull Request. Once your pull request has gone through sufficient review and iteration, please squash all of your commits into one commit.
@@ -64,71 +63,11 @@ In most cases your PR should represent a single body of work. It is fine to chan
 
 Pull requests will often need revision, most likely after the required code review from the friendly core development team. :D
 
-Our preference is to minimize the number of commits in a pull request and represent each body of change as a single, concise, commit. To do this we ask you to [squash](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History) your git commits before we merge changes. There are two basic workflows for squashing, let's run through examples of each.
-
-**You create a pull request with several commits**
-
-If you open a pull request from a branch with 'stacked commits' the request will ask us to merge the lot of them into our master. That is no fun, and we will promptly ask you to squash! If you have 5 commits in the pull request you can squash these into 1 using:
-
-```
-$ git rebase -i HEAD~5
-```
-
-This tells git to perform an interactive rebase onto the `HEAD-5` commit. The interactive part means your favorite editor will prompt you for actions. To turn 5 commits into 1 we'll `pick` the first, then `squash` the remaining, in this case 4. The 'squashed' 4 will be squashed into the commit we 'pick'. Within the interactive editor, change the last 4 'picks' to an `s`, shorthand for squash.
-
-For example here are my 5 commits while editing this guide:
-
-```
-pick dc849a9 Update contributing with squash instructions
-pick 8b1fa6b Minor change to contributing
-pick 45baf1a Delete whitespace in contributing
-pick bded8d7 Delete more whitespace
-pick ab49a55 Fix small mistake
-```
-
-I can squash these into a single commit by updating and saving:
-
-```
-pick dc849a9 Update contributing with squash instructions
-s 8b1fa6b Minor change to contributing
-s 45baf1a Delete whitespace in contributing
-s bded8d7 Delete more whitespace
-s ab49a55 Fix small mistake
-```
-
-The next prompt allows us to amend the commit message:
-
-```
-# This is a combination of 5 commits.
-# The first commit's message is:
-Update contributing with squash instructions
-# This is the 2nd commit message:
-Minor change to contributing
-# This is the 3rd commit message:
-Delete whitespace in contributing
-# This is the 4th commit message:
-Delete more whitespace
-# This is the 5th commit message:
-Fix small mistake
-```
-
-I will remove everything except for the first line, as that is the thesis for all 5 commits, and save:
-
-```
-# This is a combination of 5 commits.
-# The first commit's message is:
-Update contributing with squash instructions
-```
-
-When you save you can verify your 5 commits are now 1 by inspecting the `git log`. To update your pull request you'll need to force-push since you just rewrote your local history:
-
-```
-$ git push -f
-```
+Please feel free to add several commits to your Pull Request. When it comes time to merge into **master** all commits in a Pull Request will be squashed using GitHub's tooling into a single commit. The development team will usually choose to remove the commit body and keep the GitHub-appended `(#PR)` number in the commit title.
 
 **You make updates to your pull request**
 
-If the pull request needs changes, or you decide to update the content, please 'amend' your previous commit:
+If the pull request needs changes, or you decide to update the content, consider 'amending' your previous commit:
 
 ```
 $ git commit --amend

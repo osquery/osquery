@@ -601,7 +601,7 @@ endif()
 # make format-all
 find_program(CLANGFORMAT_EXECUTABLE "clang-format" ENV PATH)
 add_custom_target(
-  format-all
+  format_all
   find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \)
     -exec "${CLANGFORMAT_EXECUTABLE}" -i {} +
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
