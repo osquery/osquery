@@ -23,6 +23,15 @@
 namespace osquery {
 namespace tables {
 
+const auto freePtr = [](auto ptr) { free(ptr); };
+const auto closeServiceHandle = [](SC_HANDLE sch) { CloseServiceHandle(sch); };
+
+using svc_descr_t = std::unique_ptr<SERVICE_DESCRIPTION, decltype(freePtr)>;
+using svc_handle_t = std::unique_ptr<SC_HANDLE__, decltype(closeServiceHandle)>;
+using svc_query_t = std::unique_ptr<QUERY_SERVICE_CONFIG, decltype(freePtr)>;
+using enum_svc_status_t =
+    std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[], decltype(freePtr)>;
+
 const std::string kSvcStartType[] = {
     "BOOT_START", "SYSTEM_START", "AUTO_START", "DEMAND_START", "DISABLED"};
 
@@ -42,16 +51,9 @@ const std::map<int, std::string> kServiceType = {
     {0x00000110, "OWN_PROCESS(Interactive)"},
     {0x00000120, "SHARE_PROCESS(Interactive)"}};
 
-auto closeServiceHandle = [](SC_HANDLE sch) { CloseServiceHandle(sch); };
-using svc_handle_t = std::unique_ptr<SC_HANDLE__, decltype(closeServiceHandle)>;
-
 static inline Status getService(const SC_HANDLE& scmHandle,
                                 const ENUM_SERVICE_STATUS_PROCESS& svc,
                                 QueryData& results) {
-  auto freeMem = [](auto ptr) { free(ptr); };
-  using svc_descr_t = std::unique_ptr<SERVICE_DESCRIPTION, decltype(freeMem)>;
-  using svc_query_t = std::unique_ptr<QUERY_SERVICE_CONFIG, decltype(freeMem)>;
-
   Row r;
   svc_handle_t svcHandle(
       OpenService(scmHandle, svc.lpServiceName, SERVICE_QUERY_CONFIG),
@@ -68,7 +70,7 @@ static inline Status getService(const SC_HANDLE& scmHandle,
   }
 
   svc_query_t lpsc(static_cast<LPQUERY_SERVICE_CONFIG>(malloc(cbBufSize)),
-                   freeMem);
+                   freePtr);
   if (lpsc == nullptr) {
     return Status(1, "Failed to malloc service config buffer");
   }
@@ -84,7 +86,7 @@ static inline Status getService(const SC_HANDLE& scmHandle,
   err = GetLastError();
   if (ERROR_INSUFFICIENT_BUFFER == err) {
     svc_descr_t lpsd(static_cast<LPSERVICE_DESCRIPTION>(malloc(cbBufSize)),
-                     freeMem);
+                     freePtr);
     if (lpsd == nullptr) {
       return Status(1, "Failed to malloc service description buffer");
     }
@@ -137,11 +139,6 @@ static inline Status getService(const SC_HANDLE& scmHandle,
 }
 
 static inline Status getServices(QueryData& results) {
-  auto freeMem = [](auto ptr) { free(ptr); };
-  using svc_descr_t = std::unique_ptr<SERVICE_DESCRIPTION, decltype(freeMem)>;
-  using enum_svc_status_t =
-      std::unique_ptr<ENUM_SERVICE_STATUS_PROCESS[], decltype(freeMem)>;
-
   svc_handle_t scmHandle(OpenSCManager(nullptr, nullptr, GENERIC_READ),
                          closeServiceHandle);
   if (scmHandle == nullptr) {
@@ -167,7 +164,7 @@ static inline Status getServices(QueryData& results) {
   }
 
   enum_svc_status_t lpSvcBuf(
-      static_cast<ENUM_SERVICE_STATUS_PROCESS*>(malloc(bytesNeeded)), freeMem);
+      static_cast<ENUM_SERVICE_STATUS_PROCESS*>(malloc(bytesNeeded)), freePtr);
   if (lpSvcBuf == nullptr) {
     return Status(1, "Failed to malloc service buffer");
   }
