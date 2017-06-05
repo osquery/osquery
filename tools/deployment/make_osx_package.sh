@@ -22,6 +22,8 @@ else
   BUILD_DIR="${BUILD_DIR}darwin$BUILD_VERSION"
 fi
 
+OSQUERY_DEPS="${OSQUERY_DEPS:-/usr/local/osquery}"
+
 export PATH="$PATH:/usr/local/bin"
 source "$SOURCE_DIR/tools/lib.sh"
 distro "darwin" BUILD_VERSION
@@ -44,8 +46,8 @@ NEWSYSLOG_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.conf"
 NEWSYSLOG_DST="/private/var/osquery/$LD_IDENTIFIER.conf"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/private/var/osquery/packs/"
-LENSES_LICENSE="/usr/local/osquery/Cellar/augeas/*/COPYING"
-LENSES_SRC="/usr/local/osquery/share/augeas/lenses/dist"
+LENSES_LICENSE="${OSQUERY_DEPS}/Cellar/augeas/*/COPYING"
+LENSES_SRC="${OSQUERY_DEPS}/share/augeas/lenses/dist"
 LENSES_DST="/private/var/osquery/lenses/"
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/private/var/osquery/osquery.example.conf"
@@ -53,7 +55,7 @@ OSQUERY_CONFIG_SRC=""
 OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
 OSQUERY_DB_LOCATION="/private/var/osquery/osquery.db/"
 OSQUERY_LOG_DIR="/private/var/log/osquery/"
-OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="/usr/local/osquery/etc/openssl/cert.pem"
+OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="${OSQUERY_DEPS}/etc/openssl/cert.pem"
 OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST="/private/var/osquery/certs/certs.pem"
 TLS_CERT_CHAIN_DST="/private/var/osquery/tls-server-certs.pem"
 FLAGFILE_DST="/private/var/osquery/osquery.flags"
