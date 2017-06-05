@@ -8,10 +8,18 @@
  *
  */
 
-#include <boost/regex.hpp>
 #include <string>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <initguid.h>
+
+#include <Devpkey.h>
+#include <cfgmgr32.h>
+
+#include <boost/regex.hpp>
 #include <osquery/logger.h>
+
 #include <osquery/sql.h>
 
 #include "osquery/filesystem/fileops.h"
@@ -61,6 +69,8 @@ Status getDeviceList(const device_infoset_t& infoset,
     devInfo.cbSize = sizeof(SP_DEVINFO_DATA);
     devicesLeft = SetupDiEnumDeviceInfo(infoset.get(), i, &devInfo);
     if (devicesLeft == TRUE) {
+      // Set install params to make any subsequent driver enumerations on this
+      // device more efficient
       SetupDiSetDeviceInstallParams(infoset.get(), &devInfo, &installParams);
       rDevices.push_back(devInfo);
     }
@@ -199,7 +209,7 @@ QueryData genDrivers(QueryContext& context) {
     char devId[MAX_DEVICE_ID_LEN] = {0};
     if (CM_Get_Device_ID(device.DevInst, devId, MAX_DEVICE_ID_LEN, 0) !=
         CR_SUCCESS) {
-      win32LogWARNING("Failed to get device ID.");
+      win32LogWARNING("Failed to get device ID");
       return QueryData();
     }
 
