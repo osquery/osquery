@@ -9,7 +9,7 @@ ADD_OSQUERY_TEST(TRUE
 # The following dispatcher ("runner") implementations are additional.
 ADD_OSQUERY_LIBRARY(FALSE osquery_dispatcher_runners
   scheduler.cpp
-  distributed.cpp
+  distributed_runner.cpp
 )
 
 ADD_OSQUERY_TEST(FALSE
