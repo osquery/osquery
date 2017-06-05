@@ -24,7 +24,6 @@ fi
 
 OSQUERY_DEPS="${OSQUERY_DEPS:-/usr/local/osquery}"
 
-export PATH="$PATH:/usr/local/bin"
 source "$SOURCE_DIR/tools/lib.sh"
 distro "darwin" BUILD_VERSION
 
