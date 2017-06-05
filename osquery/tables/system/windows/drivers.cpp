@@ -18,8 +18,8 @@
 #include <cfgmgr32.h>
 
 #include <boost/regex.hpp>
-#include <osquery/logger.h>
 
+#include <osquery/logger.h>
 #include <osquery/sql.h>
 
 #include "osquery/filesystem/fileops.h"
