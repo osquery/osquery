@@ -285,7 +285,8 @@ function Install-ThirdParty {
     "linenoise-ng.1.0.0",
     "clang-format.3.9.0",
     "zlib.1.2.8",
-    "libarchive.3.3.1-r1"
+    "libarchive.3.3.1-r1",
+    "rapidjson.1.1.0"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
   Remove-Item $tmpDir -Recurse -ErrorAction Ignore
