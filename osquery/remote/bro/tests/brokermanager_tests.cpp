@@ -23,7 +23,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include "osquery/bro/BrokerManager.h"
+#include "osquery/remote/bro/BrokerManager.h"
 
 DECLARE_string(bro_ip);
 DECLARE_uint64(bro_port);

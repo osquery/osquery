@@ -11,9 +11,6 @@ SET(OSQUERY_DISPATCHER_RUNNERS
   scheduler.cpp
   distributed.cpp
 )
-if(NOT WINDOWS)
-  list(APPEND OSQUERY_DISPATCHER_RUNNERS bro.cpp)
-endif()
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_dispatcher_runners
   ${OSQUERY_DISPATCHER_RUNNERS}

@@ -66,9 +66,6 @@ endif()
 set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
 
 # Add subdirectories
-if(NOT WINDOWS)
-add_subdirectory(bro)
-endif()
 add_subdirectory(config)
 add_subdirectory(core)
 add_subdirectory(database)

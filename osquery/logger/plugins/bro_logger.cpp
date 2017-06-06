@@ -12,7 +12,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include "osquery/bro/BrokerManager.h"
+#include "osquery/remote/bro/BrokerManager.h"
 
 namespace fs = boost::filesystem;
 

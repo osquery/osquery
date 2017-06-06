@@ -1,9 +1,17 @@
-ADD_OSQUERY_LIBRARY(FALSE osquery_remote
-  enroll/enroll.cpp
-  serializers/json.cpp
-  transports/tls.cpp
-  remote.cpp
+set(OSQUERY_REMOTE
+  "enroll/enroll.cpp"
+  "serializers/json.cpp"
+  "transports/tls.cpp"
+  "remote.cpp"
 )
+
+if(NOT WINDOWS)
+    LIST(APPEND OSQUERY_REMOTE "bro/BrokerManager.cpp")
+    LIST(APPEND OSQUERY_REMOTE "bro/QueryManager.cpp")
+    LIST(APPEND OSQUERY_REMOTE "bro/utils.cpp")
+endif()
+
+ADD_OSQUERY_LIBRARY(FALSE osquery_remote ${OSQUERY_REMOTE})
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
   enroll/plugins/tls_enroll.cpp

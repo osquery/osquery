@@ -18,7 +18,7 @@ set(OSQUERY_LOGGER_PLUGINS
   "plugins/stdout.cpp"
 )
 if(NOT WINDOWS)
-  LIST(APPEND OSQUERY_LOGGER_PLUGINS "plugins/bro.cpp")
+  LIST(APPEND OSQUERY_LOGGER_PLUGINS "plugins/bro_logger.cpp")
 endif()
 
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_logger_plugins ${OSQUERY_LOGGER_PLUGINS})

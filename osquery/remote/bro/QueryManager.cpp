@@ -15,7 +15,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include "osquery/bro/QueryManager.h"
+#include "osquery/remote/bro/QueryManager.h"
 
 namespace osquery {
 

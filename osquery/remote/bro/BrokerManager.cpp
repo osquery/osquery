@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
 #ifdef WIN32
 #include <windows.h>
 #else
@@ -21,8 +22,8 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
-#include "osquery/bro/BrokerManager.h"
-#include "osquery/bro/utils.h"
+#include "osquery/remote/bro/BrokerManager.h"
+#include "osquery/remote/bro/utils.h"
 
 namespace osquery {
 
@@ -33,10 +34,11 @@ Status BrokerManager::reset() {
   // Unsubscribe from all groups
   std::vector<std::string> cp_groups(groups_);
   for (const auto& g : cp_groups) {
+    /**
     Status s = removeGroup(g);
     if (not s.ok()) {
       return s;
-    }
+    }**/
   }
 
   // Reset the broker endpoint

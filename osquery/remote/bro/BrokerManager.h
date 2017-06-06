@@ -30,11 +30,14 @@ class BrokerManager : private boost::noncopyable {
   BrokerManager() {}
 
  public:
+
   /// Get a singleton instance of the BrokerManager class;
   static BrokerManager& get() {
     static BrokerManager bm;
     return bm;
   }
+
+
 
   // Topic Prefix
   const std::string TOPIC_PREFIX = "/bro/osquery/";
