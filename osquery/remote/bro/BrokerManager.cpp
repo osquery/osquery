@@ -34,11 +34,10 @@ Status BrokerManager::reset() {
   // Unsubscribe from all groups
   std::vector<std::string> cp_groups(groups_);
   for (const auto& g : cp_groups) {
-    /**
     Status s = removeGroup(g);
     if (not s.ok()) {
       return s;
-    }**/
+    }
   }
 
   // Reset the broker endpoint

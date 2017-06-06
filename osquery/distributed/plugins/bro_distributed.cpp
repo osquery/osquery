@@ -44,8 +44,6 @@ FLAG(uint64, bro_port, 9999, "Port of bro (default 9999)")
 
 FLAG(string, bro_groups, "{}", "List of groups (default {})")
 
-FLAG(bool, disable_bro, true, "Disable bro (default true)");
-
 class BRODistributedPlugin : public DistributedPlugin {
  public:
   Status setUp() override;

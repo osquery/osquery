@@ -47,10 +47,12 @@ class BroLoggerPlugin : public LoggerPlugin {
 REGISTER(BroLoggerPlugin, "logger", "bro");
 
 Status BroLoggerPlugin::setUp() {
-  if (FLAGS_disable_bro) {
+  // auto distributed_plugin = RegistryFactory::get().getActive("distributed");
+  if (RegistryFactory::get().exists("distributed", "bro")) {
     return Status(1,
-                  "The bro service is disabled. Please set disable_bro to "
-                  "false to use the Bro logger plugin!");
+                  "The distributed bro service is disabled. Please set "
+                  "'--disable-distributed=false' and '--distributed=bro' to "
+                  "use the Bro logger plugin!");
   }
 
   if (FLAGS_logger_event_type) {

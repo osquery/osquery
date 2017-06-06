@@ -13,7 +13,6 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
-#include "osquery/dispatcher/bro.h"
 #include "osquery/dispatcher/distributed.h"
 #include "osquery/dispatcher/scheduler.h"
 
