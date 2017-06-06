@@ -45,40 +45,97 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
+<<<<<<< HEAD
 # Retrieve the source
 Invoke-WebRequest $url -OutFile "rocksdb-$version.zip"
+=======
+# Retreive the source
+$zipfile = "rocksdb-$version.zip"
+if (-not (Test-Path $zipfile)) {
+  Invoke-WebRequest $url -OutFile $zipfile
+}
+>>>>>>> Updating chocolatey powershell build scripts
 
 # Extract the source
-7z x "rocksdb-$version.zip"
-$sourceDir = "rocksdb-$version"
+$sourceDir = Join-Path $(Get-Location) "rocksdb-$version"
+if (-not (Test-Path $sourceDir)) {
+  $7z = (Get-Command '7z').Source
+  $7zargs = "x $packageName-$version.zip"
+  Start-OsqueryProcess $7z $7zargs
+}
 Set-Location $sourceDir
 
 # Set the cmake logic to generate a static build for us
-Add-Content -NoNewline -Path CMakeLists.txt -Value "`nset(CMAKE_CXX_FLAGS_RELEASE `"`${CMAKE_CXX_FLAGS_RELEASE} /MT`")`nset(CMAKE_CXX_FLAGS_DEBUG `"`${CMAKE_CXX_FLAGS_DEBUG} /MTd`")"
+$staticArgs = "`nset(CMAKE_CXX_FLAGS_RELEASE " +
+              "`"`${CMAKE_CXX_FLAGS_RELEASE} /MT`")" +
+              "`nset(CMAKE_CXX_FLAGS_DEBUG " +
+              "`"`${CMAKE_CXX_FLAGS_DEBUG} /MTd`")"
+Add-Content `
+  -NoNewline `
+  -Path CMakeLists.txt `
+  -Value $staticArgs
 
 # Build the libraries
 $buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'
 Set-Location $buildDir
 
-# Currently an issue with RocksDB's CMakeLists.txt and noisy powershell profiles,
-# we backup the users profile, file, and then restore it after CMake has run.
+# Currently an issue with RocksDB's CMakeLists.txt and noisy powershell
+# profiles, we backup the users profile, file, and then restore it
+# after CMake has run.
+
 # Generate the .sln
 Move-Item -Force $PROFILE "$PROFILE.bak"
-cmake -DROCKSDB_LITE=1 ..\..\ -G 'Visual Studio 14 2015 Win64'
+$cmake = (Get-Command 'cmake').Source
+$cmakeArgs = @(
+  '-G "Visual Studio 14 2015 Win64"',
+  '-DROCKSDB_LITE=1',
+  '../'
+)
+Start-OsqueryProcess $cmake $cmakeArgs
 Move-Item -Force "$PROFILE.bak" $PROFILE
 
 # Build the libraries
-msbuild rocksdb.sln /p:Configuration=Release /m /t:rocksdblib /v:m
-msbuild rocksdb.sln /p:Configuration=Debug /m /t:rocksdblib /v:m
+$msbuild = (Get-Command 'msbuild').Source
+$msbuildArgs = @(
+  'rocksdb.sln',
+  '/p:Configuration=Release',
+  '/t:rocksdblib',
+  '/m',
+  '/v:m'
+)
+Start-OsqueryProcess $msbuild $msbuildArgs
+
+$msbuildArgs = @(
+  'rocksdb.sln',
+  '/p:Configuration=Debug',
+  '/t:rocksdblib',
+  '/m',
+  '/v:m'
+)
+Start-OsqueryProcess $msbuild $msbuildArgs
+
+# If the build path exists, purge it for a clean packaging
+$chocoDir = Join-Path $(Get-Location) 'osquery-choco'
+if (Test-Path $chocoDir) {
+  Remove-Item -Force -Recurse $chocoDir
+}
 
 # Construct the Chocolatey Package
-$chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
+New-Item -ItemType Directory -Path 'osquery-choco'
 Set-Location $chocoDir
 $includeDir = New-Item -ItemType Directory -Path 'local\include'
 $libDir = New-Item -ItemType Directory -Path 'local\lib'
 $srcDir = New-Item -ItemType Directory -Path 'local\src'
 
-Write-NuSpec $packageName $chocoVersion $authors $owners $projectSource $packageSourceUrl $copyright $license
+Write-NuSpec `
+  $packageName `
+  $chocoVersion `
+  $authors `
+  $owners `
+  $projectSource `
+  $packageSourceUrl `
+  $copyright `
+  $license
 
 # Rename the Debug libraries to end with a `_dbg.lib`
 foreach ($lib in Get-ChildItem "$buildDir\Debug\") {
@@ -92,10 +149,15 @@ Copy-Item -Recurse "$buildDir\..\include\rocksdb" $includeDir
 Copy-Item $buildScript $srcDir
 choco pack
 
-Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" -foregroundcolor DarkGreen
+Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" `
+  -ForegroundColor DarkGreen
 if (Test-Path "$packageName.$chocoVersion.nupkg") {
-  Write-Host "[+] Finished building $packageName v$chocoVersion." -foregroundcolor Green
+  Write-Host `
+    "[+] Finished building $packageName v$chocoVersion." `
+    -ForegroundColor Green
 }
 else {
-  Write-Host "[-] Failed to build $packageName v$chocoVersion." -foregroundcolor Red
+  Write-Host `
+    "[-] Failed to build $packageName v$chocoVersion." `
+    -ForegroundColor Red
 }

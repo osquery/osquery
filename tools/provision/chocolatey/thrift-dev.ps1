@@ -11,7 +11,7 @@
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
 $version = '0.10.0'
-$chocoVersion = '0.10.0-r2'
+$chocoVersion = '0.10.0-r3'
 $packageName = 'thrift-dev'
 $projectSource = 'https://github.com/apache/thrift'
 $packageSourceUrl = 'https://github.com/apache/thrift'
@@ -45,48 +45,19 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retrieve the source
-Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
+# Retreive the source
+if (-not (Test-Path "$packageName-$version.zip")) {
+  Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
+}
 
 # Extract the source
-7z x "$packageName-$version.zip"
-$sourceDir = "thrift-$version"
+$sourceDir = Join-Path $(Get-Location) "thrift-$version"
+if (-not (Test-Path $sourceDir)) {
+  $7z = (Get-Command '7z').Source
+  $7zargs = "x $packageName-$version.zip"
+  Start-OsqueryProcess $7z $7zargs
+}
 Set-Location $sourceDir
-
-# Thrift-dev requires this patch on windows, as our communications with the
-# thrift named pipe server happen to quickly, and we get loads of verbosity
-# this turns off said verbosity, as it's only concerned with our status
-# pings, and not the actual result flow of extensions itself.
-<#
-From 9fd916be17f221660e7af28ae3bfd47d0b846a46 Mon Sep 17 00:00:00 2001
-From: Nick Anderson <thor@fb.com>
-Date: Tue, 30 May 2017 16:21:46 -0700
-Subject: [PATCH 1/1] Patching out GLE ERROR_BROKEN_PIPE verbosity
-
----
- lib/cpp/src/thrift/windows/OverlappedSubmissionThread.cpp | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
-
-diff --git a/lib/cpp/src/thrift/windows/OverlappedSubmissionThread.cpp b/lib/cpp/src/thrift/windows/OverlappedSubmissionThread.cpp
-index 5ac6fe00..0efdfbd2 100644
---- a/lib/cpp/src/thrift/windows/OverlappedSubmissionThread.cpp
-+++ b/lib/cpp/src/thrift/windows/OverlappedSubmissionThread.cpp
-@@ -52,8 +52,10 @@ uint32_t TOverlappedWorkItem::overlappedResults(bool signal_failure) {
-   BOOL result = ::GetOverlappedResult(h, &overlap, &bytes, TRUE);
-   if (signal_failure && !result) // get overlapped error case
-   {
--    GlobalOutput.perror("TPipe ::GetOverlappedResult errored GLE=", ::GetLastError());
--    throw TTransportException(TTransportException::UNKNOWN, "TPipe: GetOverlappedResult failed");
-+    if(!::GetLastError() == ERROR_BROKEN_PIPE){
-+      GlobalOutput.perror("TPipe ::GetOverlappedResult errored GLE=", ::GetLastError());
-+      throw TTransportException(TTransportException::UNKNOWN, "TPipe: GetOverlappedResult failed");
-+    }
-   }
-   return bytes;
- }
---
-2.12.0.windows.1
-#>
 
 # Build the libraries
 $buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'
@@ -94,34 +65,103 @@ Set-Location $buildDir
 
 # Patches are applied in this section before build
 # Windows TPipe implementations are _very_ noisy, so we squelch the output
-Add-Content -NoNewline -Path "$buildDir\..\lib\cpp\CMakeLists.txt" -Value "`nadd_definitions(-DTHRIFT_SQUELCH_CONSOLE_OUTPUT=1)"
+Add-Content `
+  -NoNewline `
+  -Path "$buildDir\..\lib\cpp\CMakeLists.txt" `
+  -Value "`nadd_definitions(-DTHRIFT_SQUELCH_CONSOLE_OUTPUT=1)"
 
 # Generate the solution files
-cmake -G 'Visual Studio 14 2015 Win64' -DBUILD_COMPILER=ON -DWITH_SHARED_LIB=OFF -DBUILD_TESTING=OFF -DBUILD_TUTORIALS=OFF -DWITH_ZLIB=ON -DZLIB_INCLUDE_DIR=C:\ProgramData/chocolatey/lib/zlib/local/include -DZLIB_LIBRARY=C:/ProgramData/chocolatey/lib/zlib/local/lib/zlibstatic.lib -DWITH_OPENSSL=ON -DOPENSSL_INCLUDE_DIR=C:/ProgramData/chocolatey/lib/openssl/local/include -DOPENSSL_ROOT_DIR=C:/ProgramData/chocolatey/lib/openssl/local -DBOOST_LIBRARYDIR=C:/ProgramData/chocolatey/lib/boost-msvc14/local/lib64-msvc-14.0 -DBOOST_ROOT=C:/ProgramData/chocolatey/lib/boost-msvc14/local -DWITH_STDTHREADS=ON -DWITH_MT=ON ../
+$cmake = (Get-Command 'cmake').Source
+$cmakeArgs = @(
+  '-G "Visual Studio 14 2015 Win64"',
+  '-DBUILD_COMPILER=ON',
+  '-DWITH_SHARED_LIB=OFF',
+  '-DBUILD_TESTING=OFF',
+  '-DBUILD_TUTORIALS=OFF',
+  '-DWITH_ZLIB=ON',
+  '-DZLIB_INCLUDE_DIR=C:/ProgramData/chocolatey/lib/zlib/local/include',
+  '-DZLIB_LIBRARY=C:/ProgramData/chocolatey/lib/zlib/local/lib/zlibstatic.lib',
+  '-DWITH_OPENSSL=ON',
+  '-DOPENSSL_INCLUDE_DIR=C:/ProgramData/chocolatey/lib/openssl/local/include',
+  '-DOPENSSL_ROOT_DIR=C:/ProgramData/chocolatey/lib/openssl/local',
+  '-DBOOST_LIBRARYDIR=C:/ProgramData/chocolatey/lib/boost-msvc14/local/lib',
+  '-DBOOST_ROOT=C:/ProgramData/chocolatey/lib/boost-msvc14/local',
+  '-DWITH_STDTHREADS=ON',
+  '-DWITH_MT=ON',
+  '../'
+)
+Start-OsqueryProcess $cmake $cmakeArgs
 
 # Build the libraries
-msbuild 'Apache Thrift.sln' /p:Configuration=Release /m /t:thrift_static /v:m
-msbuild 'Apache Thrift.sln' /p:Configuration=Release /m /t:thriftz_static /v:m
-msbuild 'Apache Thrift.sln' /p:Configuration=Debug /m /t:thrift_static /v:m
-msbuild 'Apache Thrift.sln' /p:Configuration=Debug /m /t:thriftz_static /v:m
-msbuild 'Apache Thrift.sln' /p:Configuration=Release /m /t:thrift-compiler /v:m
+$msbuild = (Get-Command 'msbuild').Source
+$sln = 'Apache Thrift.sln'
+$targets = @(
+  'thrift_static',
+  'thriftz_static'
+)
+foreach ($target in $targets) {
+  $msbuildArgs = @(
+    `"$sln`",
+    "/p:Configuration=Release",
+    "/t:$target",
+    '/m',
+    '/v:m'
+  )
+  Start-OsqueryProcess $msbuild $msbuildArgs
+
+  # Bundle debug libs for troubleshooting
+  $msbuildArgs = @(
+    "`"$sln`"",
+    "/p:Configuration=Debug",
+    "/t:$target",
+    '/m',
+    '/v:m'
+  )
+  Start-OsqueryProcess $msbuild $msbuildArgs
+}
+
+# Lastly build the Thrift Compiler
+$msbuildArgs = @(
+  `"$sln`",
+  '/p:Configuration=Release',
+  '/t:thrift-compiler',
+  '/m',
+  '/v:m'
+)
+Start-OsqueryProcess $msbuild $msbuildArgs
+
+# If the build path exists, purge it for a clean packaging
+$chocoDir = Join-Path $(Get-Location) 'osquery-choco'
+if (Test-Path $chocoDir) {
+  Remove-Item -Force -Recurse $chocoDir
+}
 
 # Construct the Chocolatey Package
-$chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
+New-Item -ItemType Directory -Path $chocoDir
 Set-Location $chocoDir
 $includeDir = New-Item -ItemType Directory -Path 'local\include'
 $libDir = New-Item -ItemType Directory -Path 'local\lib'
 $binDir = New-Item -ItemType Directory -Path 'local\bin'
 $srcDir = New-Item -ItemType Directory -Path 'local\src'
 
-Write-NuSpec $packageName $chocoVersion $authors $owners $projectSource $packageSourceUrl $copyright $license
+Write-NuSpec `
+  $packageName `
+  $chocoVersion `
+  $authors `
+  $owners `
+  $projectSource `
+  $packageSourceUrl `
+  $copyright `
+  $license
 
 # Rename the Debug libraries to end with a `_dbg.lib`
 foreach ($lib in Get-ChildItem "$buildDir\lib\Debug\") {
   $toks = $lib.Name.split('.')
   $newLibName = $toks[0..$($toks.count - 2)] -join '.'
   $suffix = $toks[$($toks.count - 1)]
-  Copy-Item -Path $lib.Fullname -Destination "$libDir\$newLibName`_dbg.$suffix"
+  Copy-Item `
+    -Path $lib.Fullname `
+    -Destination "$libDir\$newLibName`_dbg.$suffix"
 }
 Copy-Item "$buildDir\lib\Release\*" $libDir
 Copy-Item "$buildDir\bin\Release\*" $binDir
@@ -129,10 +169,15 @@ Copy-Item -Recurse "$buildDir\..\lib\cpp\src\thrift" $includeDir
 Copy-Item $buildScript $srcDir
 choco pack
 
-Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" -foregroundcolor DarkGreen
+Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" `
+  -ForegroundColor DarkGreen
 if (Test-Path "$packageName.$chocoVersion.nupkg") {
-  Write-Host "[+] Finished building $packageName v$chocoVersion." -foregroundcolor Green
+  Write-Host `
+    "[+] Finished building $packageName v$chocoVersion." `
+    -ForegroundColor Green
 }
 else {
-  Write-Host "[-] Failed to build $packageName v$chocoVersion." -foregroundcolor Red
+  Write-Host `
+    "[-] Failed to build $packageName v$chocoVersion." `
+    -ForegroundColor Red
 }

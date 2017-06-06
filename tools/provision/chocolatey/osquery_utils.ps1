@@ -110,3 +110,16 @@ function Get-OsqueryBuildPath {
   }
   return $ret
 }
+
+# A helper function for starting and waiting on processes in powershell
+function Start-OsqueryProcess {
+  param(
+    [string] $binaryPath = '',
+    [array] $buildArgs = @()
+  )
+  Start-Process `
+    -FilePath $binaryPath `
+    -ArgumentList $buildArgs `
+    -NoNewWindow `
+    -Wait | Wait-Process
+}

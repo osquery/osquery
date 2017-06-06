@@ -23,7 +23,8 @@ $url = "https://github.com/openssl/openssl/archive/OpenSSL_$version.zip"
 
 # Public Cert bundle we bring alonge with openssl libs
 $curlCerts = "https://curl.haxx.se/ca/cacert-2016-11-02.pem"
-$curlCertsShaSum = "cc7c9e2d259e20b72634371b146faec98df150d18dd9da9ad6ef0b2deac2a9d3"
+$curlCertsShaSum = 
+  "cc7c9e2d259e20b72634371b146faec98df150d18dd9da9ad6ef0b2deac2a9d3"
 
 # Invoke our utilities file
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
@@ -31,19 +32,33 @@ $curlCertsShaSum = "cc7c9e2d259e20b72634371b146faec98df150d18dd9da9ad6ef0b2deac2
 # Invoke the MSVC developer tools/env
 Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
 
-if (-not (Test-Path "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt")) {
-  Write-Host "[-] NOTE: The Universal C Run Time was not found in the system program files. Ensure that the Windows SDK is installed." -foregroundcolor Yellow
+if (-not
+     (
+       Test-Path `
+       "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt"
+     )
+   ) {
+  $msg =  "[-] NOTE: The Universal C Run Time was not found in the " +
+          "system program files. Ensure that the Windows SDK is " +
+          "installed."
+  Write-Host $msg -ForegroundColor Yellow
 }
 
 # Check that Perl is installed
 if (-not (Get-Command 'perl' -ErrorAction SilentlyContinue)) {
-  Write-Host "[-] This build requires perl which was not found. Please install perl from http://www.activestate.com/activeperl/downloads and add to the SYSTEM path before continuing" -foregroundcolor Red
+  $msg = "[-] This build requires perl which was not found. Please install " +
+         "perl from http://www.activestate.com/activeperl/downloads and add " +
+         "to the SYSTEM path before continuing" 
+  Write-Host $msg -ForegroundColor Red
   exit
 }
 
 # Check that NASM is installed
 if (-not (Get-Command nmake -ErrorAction SilentlyContinue)) {
-  Write-Host "[-] This build requires NASM which was not found. Please install from http://www.nasm.us/pub/nasm/releasebuilds/ and add to the SYSTEM path before continuing" -foregroundcolor Red
+  $msg = "[-] This build requires NASM which was not found. Please " +
+         "install from http://www.nasm.us/pub/nasm/releasebuilds/ and " +
+         "add to the SYSTEM path before continuing"
+  Write-Host $msg -ForegroundColor Red
   exit
 }
 
@@ -56,20 +71,29 @@ $buildScript = $MyInvocation.MyCommand.Definition
 # Create the choco build dir if needed
 $buildPath = Get-OsqueryBuildPath
 if ($buildPath -eq '') {
-  Write-Host '[-] Failed to find source root' -foregroundcolor red
+  Write-Host '[-] Failed to find source root' -ForegroundColor red
   exit
 }
+
 $chocoBuildPath = "$buildPath\chocolatey\$packageName"
 if (-not (Test-Path "$chocoBuildPath")) {
   New-Item -Force -ItemType Directory -Path "$chocoBuildPath"
 }
 Set-Location $chocoBuildPath
 
+<<<<<<< HEAD
 # Retrieve the source
 Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
+=======
+# Retreive the source
+$zipFile = Join-Path $(Get-Location) "$packageName-$version.zip"
+if (-not (Test-Path $zipFile)) {
+  Invoke-WebRequest $url -OutFile "$zipFile"
+}
+>>>>>>> Updating chocolatey powershell build scripts
 
 # Extract the source
-7z x "$packageName-$version.zip"
+7z x $zipFile
 $sourceDir = "$packageName-OpenSSL_$version"
 Set-Location $sourceDir
 
