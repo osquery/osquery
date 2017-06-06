@@ -76,7 +76,10 @@ Status BRODistributedPlugin::setUp() {
 
   // Set Broker groups and subscribe to group topics
   std::vector<std::string> bro_groups;
-  parseBrokerGroups(FLAGS_bro_groups, bro_groups);
+  Status s_groups = parseBrokerGroups(FLAGS_bro_groups, bro_groups);
+  if (!s_groups.ok()) {
+    return s_groups;
+  }
   for (const auto& g : bro_groups) {
     bm.addGroup(g);
   }
@@ -169,7 +172,6 @@ inline Status processMessage(const broker::message& msg,
 
 Status BRODistributedPlugin::getQueries(std::string& json) {
   BrokerManager& bm = BrokerManager::get();
-  QueryManager& qm = QueryManager::get();
 
   // Collect file descriptors of the broker message queues
   // TODO: Include the outgoing_message_queue to detect connection failures
