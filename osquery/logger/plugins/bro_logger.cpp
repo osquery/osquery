@@ -18,8 +18,9 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-DECLARE_bool(disable_bro);
 DECLARE_bool(logger_event_type);
+DECLARE_bool(disable_distributed);
+DECLARE_string(distributed_plugin);
 
 class BroLoggerPlugin : public LoggerPlugin {
  public:
@@ -47,12 +48,26 @@ class BroLoggerPlugin : public LoggerPlugin {
 REGISTER(BroLoggerPlugin, "logger", "bro");
 
 Status BroLoggerPlugin::setUp() {
+  /**
   // auto distributed_plugin = RegistryFactory::get().getActive("distributed");
   if (RegistryFactory::get().exists("distributed", "bro")) {
     return Status(1,
                   "The distributed bro service is disabled. Please set "
-                  "'--disable-distributed=false' and '--distributed=bro' to "
+                  "'--disable_distributed=false' and '--distributed_plugin=bro'
+ to "
                   "use the Bro logger plugin!");
+  }
+ **/
+  if (FLAGS_disable_distributed) {
+    return Status(1,
+                  "The distributed service is disabled. Please set "
+                  "'--disable-distributed=false'!");
+  }
+
+  if (FLAGS_distributed_plugin != "bro") {
+    return Status(1,
+                  "The distributed bro service is disabled. Please set "
+                  "'--distributed_plugin=bro'!");
   }
 
   if (FLAGS_logger_event_type) {

@@ -51,10 +51,6 @@ class BRODistributedPlugin : public DistributedPlugin {
   Status getQueries(std::string& json) override;
 
   Status writeResults(const std::string& json) override;
-
- protected:
-  std::string read_uri_;
-  std::string write_uri_;
 };
 
 REGISTER(BRODistributedPlugin, "distributed", "bro");
@@ -96,7 +92,7 @@ Status BRODistributedPlugin::setUp() {
 
 inline Status processMessage(const broker::message& msg,
                              const std::string& topic,
-                             std::vector<DistributedQueryRequest> oT_queries) {
+                             std::vector<DistributedQueryRequest>& oT_queries) {
   BrokerManager& bm = BrokerManager::get();
   QueryManager& qm = QueryManager::get();
 
@@ -219,10 +215,18 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   // Serialize the distributed query requests
   pt::ptree request_queries;
   for (const auto& ot_query : oT_queries) {
+    VLOG(1) << "Received DistributedQueryRequest '" << ot_query.query
+            << "' (ID: " << ot_query.id << ")";
     request_queries.put<std::string>(ot_query.id, ot_query.query);
   }
   pt::ptree request;
   request.add_child("queries", request_queries);
+
+  pt::ptree params;
+  Status s_serial = JSONSerializer{}.serialize(request, json);
+  if (!s_serial.ok()) {
+    return s_serial;
+  }
 
   return Status(0, "OK");
 }
@@ -241,7 +245,7 @@ Status BRODistributedPlugin::writeResults(const std::string& json) {
   for (const auto& query_params : params.get_child("queries")) {
     // Get the query ID
     std::string queryID = query_params.first;
-    VLOG(1) << "Writing results for query with ID '" << queryID << "'";
+    VLOG(1) << "Writing results for onetime query with ID '" << queryID << "'";
 
     // Get the query data
     QueryData results;
@@ -258,8 +262,6 @@ Status BRODistributedPlugin::writeResults(const std::string& json) {
       qm.removeQueryEntry(query);
       return Status(0, "OK");
     }
-
-    // TODO: when is the query removed from the QueryManager?
 
     // Assemble a response item (as snapshot)
     QueryLogItem item;
