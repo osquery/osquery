@@ -1,13 +1,19 @@
 table_name("drivers")
-description("Windows system drivers and their relevant data.")
+description("Details for in-use Windows device drivers. This does not display installed but unused drivers.")
 schema([
-    Column("name", TEXT, "Driver name"),
-    Column("display_name", TEXT, "Driver Display name"),
-    Column("status", TEXT, "Driver Current status: STOPPED, START_PENDING, STOP_PENDING, RUNNING, CONTINUE_PENDING, PAUSE_PENDING, PAUSED"),
-    Column("start_type", TEXT, "Driver start type: BOOT_START, SYSTEM_START, AUTO_START, DEMAND_START, DISABLED"),
-    Column("path", TEXT, "Path to Driver module"),
-    Column("type", TEXT, "Driver Type: KERNEL, FILE_SYSTEM"),
-    Column("inf", TEXT, "INF File: Associated inf file"),
+    Column("device_id", TEXT, "Device ID", index=True),
+    Column("device_name", TEXT, "Device name"),
+    Column("image", TEXT, "Path to driver image file"),
+    Column("description", TEXT, "Driver description"),
+    Column("service", TEXT, "Driver service name, if one exists"),
+    Column("service_key", TEXT, "Driver service registry key"),
+    Column("version", TEXT, "Driver version"),
+    Column("inf", TEXT, "Associated inf file"),
+    Column("class", TEXT, "Device/driver class name"),
+    Column("provider", TEXT, "Driver provider"),
+    Column("manufacturer", TEXT, "Device manufacturer"),
+    Column("driver_key", TEXT, "Driver key"),
+    Column("date", BIGINT, "Driver date")
 ])
 implementation("system/windows/Drivers@genDrivers")
 examples([
