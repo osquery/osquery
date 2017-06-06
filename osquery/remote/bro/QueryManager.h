@@ -90,5 +90,9 @@ class QueryManager : private boost::noncopyable {
   std::map<std::string, std::string> eventNames_;
   //  Key: QueryID, Value: Topic to use for the response
   std::map<std::string, std::string> eventTopics_;
+
+ private:
+  friend class QueryManagerTests;
+  FRIEND_TEST(QueryManagerTests, test_reset);
 };
 }

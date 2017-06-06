@@ -30,14 +30,11 @@ class BrokerManager : private boost::noncopyable {
   BrokerManager() {}
 
  public:
-
   /// Get a singleton instance of the BrokerManager class;
   static BrokerManager& get() {
     static BrokerManager bm;
     return bm;
   }
-
-
 
   // Topic Prefix
   const std::string TOPIC_PREFIX = "/bro/osquery/";
@@ -94,5 +91,9 @@ class BrokerManager : private boost::noncopyable {
 
   //  Key: topic_Name, Value: message_queue
   std::map<std::string, std::shared_ptr<broker::message_queue>> messageQueues_;
+
+ private:
+  friend class QueryManagerTests;
+  FRIEND_TEST(QueryManagerTests, test_reset);
 };
 }

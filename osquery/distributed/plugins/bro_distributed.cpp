@@ -96,7 +96,9 @@ Status BRODistributedPlugin::setUp() {
   return status_broker;
 }
 
-inline Status processMessage(const broker::message& msg, const std::string& topic, std::vector<DistributedQueryRequest> oT_queries) {
+inline Status processMessage(const broker::message& msg,
+                             const std::string& topic,
+                             std::vector<DistributedQueryRequest> oT_queries) {
   BrokerManager& bm = BrokerManager::get();
   QueryManager& qm = QueryManager::get();
 
@@ -179,8 +181,7 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   // TODO: Include the outgoing_message_queue to detect connection failures
   fd_set fds;
   FD_ZERO(&fds);
-  std::vector<std::string> topics =
-          bm.getTopics(); // List of subscribed topics
+  std::vector<std::string> topics = bm.getTopics(); // List of subscribed topics
   int sMax = 0;
   // Retrieve info about each message queue
   for (const auto& topic : topics) {
@@ -194,7 +195,8 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   int select_code = select(sMax + 1, &fds, nullptr, nullptr, nullptr);
   // Select interrupted for another reason than incoming message or timeout
   if (select_code < 0) {
-    return Status(5, "Select returned the error code: " + std::to_string(select_code));
+    return Status(
+        5, "Select returned the error code: " + std::to_string(select_code));
   }
 
   // Collect OneTime Queries
@@ -206,21 +208,19 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
     if (FD_ISSET(queue->fd(), &fds)) {
       // Process each message on this socket
       for (const auto& msg : queue->want_pop()) {
-
         // Directly updates the daemon schedule if requested
         // Returns one time queries otherwise
         Status s_msg = processMessage(msg, topic, oT_queries);
         if (!s_msg.ok()) {
           return s_msg;
         }
-
       }
     }
   }
 
   // Serialize the distributed query requests
   pt::ptree request_queries;
-  for (const auto& ot_query: oT_queries) {
+  for (const auto& ot_query : oT_queries) {
     request_queries.put<std::string>(ot_query.id, ot_query.query);
   }
   pt::ptree request;
@@ -230,7 +230,7 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
 }
 
 Status BRODistributedPlugin::writeResults(const std::string& json) {
-  QueryManager &qm = QueryManager::get();
+  QueryManager& qm = QueryManager::get();
 
   // Put query results into a pt
   pt::ptree params;
@@ -240,7 +240,7 @@ Status BRODistributedPlugin::writeResults(const std::string& json) {
   }
 
   // For each query
-  for (const auto& query_params: params.get_child("queries")) {
+  for (const auto& query_params : params.get_child("queries")) {
     // Get the query ID
     std::string queryID = query_params.first;
     VLOG(1) << "Writing results for query with ID '" << queryID << "'";
@@ -261,7 +261,7 @@ Status BRODistributedPlugin::writeResults(const std::string& json) {
       return Status(0, "OK");
     }
 
-    //TODO: when is the query removed from the QueryManager?
+    // TODO: when is the query removed from the QueryManager?
 
     // Assemble a response item (as snapshot)
     QueryLogItem item;
@@ -276,8 +276,7 @@ Status BRODistributedPlugin::writeResults(const std::string& json) {
     std::string item_name = "bro";
     std::string json_str;
     serializeQueryLogItemJSON(item, json_str);
-    PluginRequest request = {{"snapshot", json_str},
-                             {"category", "event"}};
+    PluginRequest request = {{"snapshot", json_str}, {"category", "event"}};
     auto status_call = Registry::call(registry_name, item_name, request);
     if (!status_call.ok()) {
       return status_call;

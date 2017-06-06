@@ -22,17 +22,17 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
-#include "osquery/remote/bro/utils.h"
 #include "osquery/core/json.h"
+#include "osquery/remote/bro/utils.h"
 
 namespace pt = boost::property_tree;
 
 namespace osquery {
 
-Status createSubscriptionRequest(const std::string &rType,
-                                 const broker::message &msg,
-                                 const std::string &incoming_topic,
-                                 SubscriptionRequest &sr) {
+Status createSubscriptionRequest(const std::string& rType,
+                                 const broker::message& msg,
+                                 const std::string& incoming_topic,
+                                 SubscriptionRequest& sr) {
   // Check number of fields
   unsigned long numFields;
   if (rType == "EXECUTE") {
@@ -46,8 +46,8 @@ Status createSubscriptionRequest(const std::string &rType,
   if (msg.size() != numFields) {
     return Status(1,
                   std::to_string(msg.size()) + " instead of " +
-                  std::to_string(numFields) + " fields in '" + rType +
-                  "' message '" + broker::to_string(msg[0]));
+                      std::to_string(numFields) + " fields in '" + rType +
+                      "' message '" + broker::to_string(msg[0]));
   }
 
   // Query String
@@ -74,7 +74,7 @@ Status createSubscriptionRequest(const std::string &rType,
     sr.response_topic = incoming_topic;
     LOG(WARNING) << "No response topic given for event '" << sr.response_event
                  << "' reporting back to "
-                         "incoming topic '"
+                    "incoming topic '"
                  << incoming_topic << "'";
   } else {
     sr.response_topic = *broker::get<std::string>(msg[4]);
@@ -112,7 +112,7 @@ Status createSubscriptionRequest(const std::string &rType,
   // SUBSCRIBE or UNSUBSCRIBE
   if (sr.snapshot) {
     LOG(WARNING)
-            << "Only possible to query ADD and/or REMOVE for scheduled queries";
+        << "Only possible to query ADD and/or REMOVE for scheduled queries";
   }
 
   // Interval
@@ -124,8 +124,8 @@ Status createSubscriptionRequest(const std::string &rType,
   return Status(0, "OK");
 }
 
-Status parseBrokerGroups(const std::string &json_groups,
-                         std::vector<std::string> &groups) {
+Status parseBrokerGroups(const std::string& json_groups,
+                         std::vector<std::string>& groups) {
   pt::ptree groups_tree;
   try {
     // TODO: Sanitize Input
@@ -136,21 +136,21 @@ Status parseBrokerGroups(const std::string &json_groups,
     pt::read_json(json_stream, groups_tree);
 
     if (groups_tree.count("groups") >= 1) {
-      auto &pt_groups = groups_tree.get_child("groups");
-      for (const auto &ptg : pt_groups) {
+      auto& pt_groups = groups_tree.get_child("groups");
+      for (const auto& ptg : pt_groups) {
         std::string ptg_value = pt_groups.get<std::string>(ptg.first, "");
         if (!ptg_value.empty()) {
           groups.push_back(ptg_value);
         }
       }
     }
-  } catch (const pt::json_parser::json_parser_error & /* e */) {
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
     return Status(1, "Error parsing the bro groups");
   }
   return Status(0, "OK");
 }
 
-Status printQueryLogItem(const QueryLogItem &item) {
+Status printQueryLogItem(const QueryLogItem& item) {
   VLOG(1) << "Parsed query result" << std::endl;
   VLOG(1) << "\tDiffResults: " << std::endl;
   printDiffResults(item.results);
@@ -165,25 +165,25 @@ Status printQueryLogItem(const QueryLogItem &item) {
   return Status(0, "OK");
 }
 
-void printDiffResults(const DiffResults &results) {
+void printDiffResults(const DiffResults& results) {
   VLOG(1) << "\t\tadded: ";
   printQueryData(results.added);
   VLOG(1) << "\t\tremoved: ";
   printQueryData(results.removed);
 }
 
-void printQueryData(const QueryData &data) {
-  for (const Row &r : data) {
-    for (const auto &pair : r) {
+void printQueryData(const QueryData& data) {
+  for (const Row& r : data) {
+    for (const auto& pair : r) {
       VLOG(1) << "\t\t\t<" << pair.first << ", " << pair.second << "> ";
     }
     VLOG(1) << std::endl;
   }
 }
 
-void printDecorations(const std::map<std::string, std::string> &deco) {
+void printDecorations(const std::map<std::string, std::string>& deco) {
   /** std::map<std::string, std::string> decorations **/
-  for (const auto &pair : deco) {
+  for (const auto& pair : deco) {
     VLOG(1) << "\t\t\t<" << pair.first << ", " << pair.second << "> ";
   }
 }

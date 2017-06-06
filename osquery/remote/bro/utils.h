@@ -22,20 +22,19 @@
 
 namespace osquery {
 
-Status createSubscriptionRequest(const std::string &rType,
-                                 const broker::message &msg,
-                                 const std::string &incoming_topic,
-                                 SubscriptionRequest &sr);
+Status createSubscriptionRequest(const std::string& rType,
+                                 const broker::message& msg,
+                                 const std::string& incoming_topic,
+                                 SubscriptionRequest& sr);
 
-Status parseBrokerGroups(const std::string &json_groups,
-                         std::vector<std::string> &groups);
+Status parseBrokerGroups(const std::string& json_groups,
+                         std::vector<std::string>& groups);
 
-Status printQueryLogItem(const QueryLogItem &item);
+Status printQueryLogItem(const QueryLogItem& item);
 
-void printDiffResults(const DiffResults &results);
+void printDiffResults(const DiffResults& results);
 
-void printQueryData(const QueryData &data);
+void printQueryData(const QueryData& data);
 
-void printDecorations(const std::map<std::string, std::string> &deco);
-
+void printDecorations(const std::map<std::string, std::string>& deco);
 }
