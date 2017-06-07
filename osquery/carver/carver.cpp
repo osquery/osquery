@@ -21,6 +21,8 @@
 #include <archive.h>
 #include <archive_entry.h>
 
+#include <zstd.h>
+
 #include <osquery/distributed.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
@@ -132,6 +134,7 @@ Carver::Carver(const std::set<std::string>& paths,
 
   // Store the path to our archive for later exfiltration
   archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tar");
+  compressPath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".zst");
 
   // Update the DB to reflect that the carve is pending.
   updateCarveValue(carveGuid_, "status", "PENDING");
@@ -164,14 +167,28 @@ void Carver::start() {
     carvedFiles.insert(fs::path(p));
   }
 
-  auto s = compress(carvedFiles);
+  auto s = archive(carvedFiles, archivePath_);
   if (!s.ok()) {
     VLOG(1) << "Failed to create carve archive: " << s.getMessage();
     updateCarveValue(carveGuid_, "status", "ARCHIVE FAILED");
     return;
   }
 
-  s = postCarve(archivePath_);
+  s = compress(archivePath_, compressPath_);
+  if (!s.ok()) {
+    VLOG(1) << "Failed to compress carve archive: " << s.getMessage();
+    updateCarveValue(carveGuid_, "status", "COMPRESS FAILED");
+    return;
+  }
+
+  PlatformFile compressed(compressPath_.string(), PF_OPEN_EXISTING | PF_READ);
+  updateCarveValue(carveGuid_, "size", std::to_string(compressed.size()));
+  updateCarveValue(
+      carveGuid_,
+      "sha256",
+      hashFromFile(HashType::HASH_TYPE_SHA256, compressPath_.string()));
+
+  s = postCarve(compressPath_);
   if (!s.ok()) {
     VLOG(1) << "Failed to post carve: " << s.getMessage();
     updateCarveValue(carveGuid_, "status", "DATA POST FAILED");
@@ -204,15 +221,66 @@ Status Carver::carve(const boost::filesystem::path& path) {
   return Status(0, "Ok");
 };
 
-Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
+Status compress(const boost::filesystem::path& in,
+                const boost::filesystem::path& out) {
+  PlatformFile archFile(in.string(), PF_OPEN_EXISTING | PF_READ);
+  PlatformFile archCompress(out.string(), PF_CREATE_NEW | PF_WRITE);
+  ZSTD_CStream* const cstream = ZSTD_createCStream();
+  if (cstream == NULL) {
+    return Status(1, "Couldn't create compression stream");
+  }
+
+  size_t const initResult = ZSTD_initCStream(cstream, 1);
+  if (ZSTD_isError(initResult)) {
+    return Status(1, "Couldn't initialize compression stream");
+  }
+
+  size_t const buffInSize = ZSTD_CStreamInSize();
+  size_t const buffOutSize = ZSTD_CStreamOutSize();
+  std::vector<void*> buffIn(buffInSize);
+  std::vector<void*> buffOut(buffOutSize);
+  size_t read, toRead = buffInSize;
+
+  while ((read = archFile.read(buffIn.data(), toRead))) {
+    ZSTD_inBuffer input = {buffIn.data(), read, 0};
+    while (input.pos < input.size) {
+      ZSTD_outBuffer output = {buffOut.data(), buffOutSize, 0};
+      toRead = ZSTD_compressStream(cstream, &output, &input);
+      if (ZSTD_isError(toRead)) {
+        return Status(1,
+                      "ZSTD_compressStream() error : " +
+                          std::string(ZSTD_getErrorName(toRead)));
+      }
+      if (toRead > buffInSize) {
+        toRead = buffInSize;
+      }
+      archCompress.seek(0, PF_SEEK_END);
+      archCompress.write(buffOut.data(), output.pos);
+    }
+  }
+
+  ZSTD_outBuffer output = {buffOut.data(), buffOutSize, 0};
+  size_t const remainingToFlush = ZSTD_endStream(cstream, &output);
+
+  if (remainingToFlush) {
+    return Status(1, "Couldn't fully flush compressed file");
+  }
+
+  archCompress.seek(0, PF_SEEK_END);
+  archCompress.write(buffOut.data(), output.pos);
+  ZSTD_freeCStream(cstream);
+
+  return Status(0);
+}
+
+Status archive(const std::set<boost::filesystem::path>& paths,
+               const boost::filesystem::path& out) {
   auto arch = archive_write_new();
   if (arch == nullptr) {
     return Status(1, "Failed to create tar archive");
   }
-  // Zipping doesn't seem to be working currently
-  // archive_write_set_format_zip(arch);
   archive_write_set_format_pax_restricted(arch);
-  auto ret = archive_write_open_filename(arch, archivePath_.string().c_str());
+  auto ret = archive_write_open_filename(arch, out.c_str());
   if (ret == ARCHIVE_FATAL) {
     archive_write_free(arch);
     return Status(1, "Failed to open tar archive for writing");
@@ -225,9 +293,6 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
     archive_entry_set_size(entry, pFile.size());
     archive_entry_set_filetype(entry, AE_IFREG);
     archive_entry_set_perm(entry, 0644);
-    // archive_entry_set_atime();
-    // archive_entry_set_ctime();
-    // archive_entry_set_mtime();
     archive_write_header(arch, entry);
 
     // TODO: Chunking or a max file size.
@@ -239,13 +304,6 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
     archive_entry_free(entry);
   }
   archive_write_free(arch);
-
-  PlatformFile archFile(archivePath_.string(), PF_OPEN_EXISTING | PF_READ);
-  updateCarveValue(carveGuid_, "size", std::to_string(archFile.size()));
-  updateCarveValue(
-      carveGuid_,
-      "sha256",
-      hashFromFile(HashType::HASH_TYPE_SHA256, archivePath_.string()));
 
   return Status(0, "Ok");
 };

@@ -52,13 +52,6 @@ class Carver : public InternalRunnable {
    * users tmp directory
    */
   Status carve(const boost::filesystem::path& path);
-  /*
-   * @brief A helper function to compress files in a specified directory
-   *
-   * Given a set of paths we bundle these into a tar archive. This file
-   * will be a tgz, however currently no compression is performed.
-   */
-  Status compress(const std::set<boost::filesystem::path>& path);
 
   /*
    * @brief Helper function to POST a carve to the graph endpoint.
@@ -105,6 +98,14 @@ class Carver : public InternalRunnable {
   boost::filesystem::path archivePath_;
 
   /*
+   * @brief a helper variable for keeping track of the compressed tar.
+   *
+   * This variable is the absolute location of the tar archive created from
+   * zstd of the archive.
+   */
+  boost::filesystem::path compressPath_;
+
+  /*
    * @brief a unique ID identifying the 'carve'
    *
    * This unique generated GUID is used to identify the carve session from
@@ -145,4 +146,22 @@ class Carver : public InternalRunnable {
  * @return A status returning if the carves were started successfully
  */
 Status carvePaths(const std::set<std::string>& paths);
+
+/*
+ * @brief A helper function to archive files specified for carving
+ *
+ * Given a set of paths we bundle these into a tar archive.
+ */
+Status archive(const std::set<boost::filesystem::path>& path,
+               const boost::filesystem::path& out);
+
+/*
+ * @brief Given a path, compress it with zstd and save to out.
+ *
+ * @param in The file to compress
+ * @param out The file to write the compressed version of in to
+ * @return A status containing the success or failure of the compress operation
+ */
+Status compress(const boost::filesystem::path& in,
+                const boost::filesystem::path& out);
 } // namespace osquery

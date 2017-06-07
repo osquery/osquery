@@ -125,6 +125,7 @@ function platform_darwin_main() {
  function platform_posix_main() {
   # libarchive for file carving
   brew_dependency osquery/osquery-local/libarchive
+  brew_dependency osquery/osquery-local/zstd
 
   # List of LLVM-compiled dependencies.
   brew_dependency osquery/osquery-local/lz4

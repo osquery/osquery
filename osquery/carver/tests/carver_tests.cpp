@@ -87,7 +87,8 @@ TEST_F(CarverTests, test_carve_files_locally) {
   }
 
   EXPECT_EQ(carves.size(), 2U);
-  s = carve.compress(carves);
+  s = archive(carves,
+              carveFSPath + "/" + kTestCarveNamePrefix + guid_ + ".tar");
   EXPECT_TRUE(s.ok());
 
   auto tarPath = carveFSPath + "/" + kTestCarveNamePrefix + guid_ + ".tar";

@@ -4,6 +4,7 @@ ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_carver
 
 if(NOT WINDOWS)
   ADD_OSQUERY_LINK_ADDITIONAL("archive")
+  ADD_OSQUERY_LINK_ADDITIONAL("zstd")
 else()
   ADD_OSQUERY_LINK_ADDITIONAL("archive_static")
 endif()

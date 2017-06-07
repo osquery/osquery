@@ -65,7 +65,7 @@ EXAMPLE_DISTRIBUTED_ACCELERATE = {
 
 EXAMPLE_CARVE = {
     "queries": {
-        "test_carve" : "select * from forensic_carve where path='/tmp/afile.txt' and carve = 1"
+        "test_carve" : "select * from carves where path='/tmp/rook.stl' and carve = 1"
     }
 }
 
@@ -236,7 +236,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # Do we still need more blocks
         if len(FILE_CARVE_MAP[request['session_id']]['blocks_received']) < FILE_CARVE_MAP[request['session_id']]['block_count']:
             return
-        f = open(FILE_CARVE_DIR+FILE_CARVE_MAP[request['session_id']]['carve_guid']+'.tar', 'wb')
+        f = open(FILE_CARVE_DIR+FILE_CARVE_MAP[request['session_id']]['carve_guid']+'.zst', 'wb')
         for x in range(0, FILE_CARVE_MAP[request['session_id']]['block_count']):
             f.write(base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]['blocks_received'][x]))
         f.close()
