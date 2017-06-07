@@ -118,7 +118,7 @@ void Watcher::removeExtensionPath(const std::string& extension) {
 }
 
 PerformanceState& Watcher::getState(const PlatformProcess& child) {
-  if (worker_.get() != nullptr && child == *(worker_.get())) {
+  if (child == getWorker()) {
     return state_;
   } else {
     return extension_states_[getExtensionPath(child)];
@@ -136,8 +136,8 @@ void Watcher::setExtension(const std::string& extension,
 }
 
 void Watcher::reset(const PlatformProcess& child) {
-  if (worker_.get() != nullptr && child == *(worker_.get())) {
-    worker_ = 0;
+  if (child == getWorker()) {
+    worker_ = std::make_shared<PlatformProcess>();
     resetWorkerCounters(0);
     return;
   }
