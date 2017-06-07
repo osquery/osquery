@@ -102,7 +102,7 @@ Vagrant.configure("2") do |config|
     if ENV['OSQUERY_BUILD_CPUS']
       v.cpus = ENV['OSQUERY_BUILD_CPUS'].to_i
     else
-      v.cpus = 2
+      v.cpus = 4
     end
     v.memory = 4096
   end
