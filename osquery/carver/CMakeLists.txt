@@ -1,5 +1,6 @@
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_carver
   carver.cpp
+  carver_utils.cpp
 )
 
 if(NOT WINDOWS)

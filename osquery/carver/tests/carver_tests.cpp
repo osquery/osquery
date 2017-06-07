@@ -21,6 +21,7 @@
 #include "osquery/carver/carver.h"
 #include "osquery/core/json.h"
 #include "osquery/filesystem/fileops.h"
+#include "osquery/tables/system/hash.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
@@ -95,5 +96,24 @@ TEST_F(CarverTests, test_carve_files_locally) {
   PlatformFile tar(tarPath, PF_OPEN_EXISTING | PF_READ);
   EXPECT_TRUE(tar.isValid());
   EXPECT_GT(tar.size(), 0U);
+}
+
+TEST_F(CarverTests, test_compression) {
+  auto s = osquery::compress(
+      kTestDataPath + "test.config",
+      fs::temp_directory_path() / fs::path("test.config.zst"));
+  EXPECT_TRUE(s.ok());
+}
+
+TEST_F(CarverTests, test_decompression) {
+  auto s = osquery::decompress(
+      fs::temp_directory_path() / fs::path("test.config.zst"),
+      fs::temp_directory_path() / fs::path("test.config"));
+  EXPECT_TRUE(s.ok());
+  EXPECT_TRUE(
+      hashFromFile(
+          HashType::HASH_TYPE_SHA256,
+          (fs::temp_directory_path() / fs::path("test.config")).string()) ==
+      hashFromFile(HashType::HASH_TYPE_SHA256, kTestDataPath + "test.config"));
 }
 }

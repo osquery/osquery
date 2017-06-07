@@ -160,8 +160,18 @@ Status archive(const std::set<boost::filesystem::path>& path,
  *
  * @param in The file to compress
  * @param out The file to write the compressed version of in to
- * @return A status containing the success or failure of the compress operation
+ * @return A status containing the success or failure of the operation
  */
 Status compress(const boost::filesystem::path& in,
                 const boost::filesystem::path& out);
+
+/*
+ * @brief Given a path, decompress it with zstd and save to out.
+ *
+ * @param in The file to decompress
+ * @param out The file to write the decompressed file to
+ * @return A status containing the success or failure of the operation
+ */
+Status decompress(const boost::filesystem::path& in,
+                  const boost::filesystem::path& out);
 } // namespace osquery
