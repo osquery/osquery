@@ -194,10 +194,10 @@ class FakeWatcherRunner : public WatcherRunner {
       : WatcherRunner(argc, argv, use_worker) {}
 
   /**
-  * @brief What the runner's internals will use as process state.
-  *
-  * Internal calls to getProcessRow will return this structure.
-  */
+   * @brief What the runner's internals will use as process state.
+   *
+   * Internal calls to getProcessRow will return this structure.
+   */
   void setProcessRow(QueryData qd) {
     qd_ = std::move(qd);
   }
@@ -277,7 +277,9 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
 
   // Set up a fake test process and place it into an unhealthy state.
   Row r;
-  r["parent"] = INTEGER(test_process->nativeHandle());
+  r["parent"] = isPlatform(PlatformType::TYPE_WINDOWS)
+                    ? INTEGER(test_process->pid())
+                    : INTEGER(test_process->nativeHandle());
   r["user_time"] = INTEGER(100);
   r["system_time"] = INTEGER(100);
   r["resident_size"] = INTEGER(100);
@@ -295,13 +297,13 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
   FLAGS_watchdog_delay = 1000;
   // Trigger our expectations, the watch method will return true.
   // This will NOT call stopChild as the delay has not passed.
-  // EXPECT_TRUE(runner.watch(fake_test_process));
+  EXPECT_TRUE(runner.watch(fake_test_process));
 
   // Now set the watchdog to no delay.
   FLAGS_watchdog_delay = 0;
   // This will call stopChild as there is no delay and the child is unhealthy.
-  // EXPECT_FALSE(runner.watch(fake_test_process));
+  EXPECT_FALSE(runner.watch(fake_test_process));
 
   FLAGS_watchdog_delay = delay;
 }
-}
+} // namespace osquery
