@@ -51,6 +51,9 @@ class BRODistributedPlugin : public DistributedPlugin {
   Status getQueries(std::string& json) override;
 
   Status writeResults(const std::string& json) override;
+
+ private:
+  std::vector<std::string> startup_groups_;
 };
 
 REGISTER(BRODistributedPlugin, "distributed", "bro");
@@ -61,36 +64,40 @@ Status BRODistributedPlugin::setUp() {
   broker::init();
   BrokerManager& bm = BrokerManager::get();
 
-  // Set Broker UID
-  std::string ident;
-  auto status_huuid = getHostUUID(ident);
-  if (status_huuid.ok()) {
-    bm.setNodeID(ident);
-  }
-  const auto& uid = bm.getNodeID();
-
   // Subscribe to all and individual topic
-  bm.createEndpoint(uid);
-  bm.createMessageQueue(bm.TOPIC_ALL);
-  bm.createMessageQueue(bm.TOPIC_PRE_INDIVIDUALS + uid);
+  Status s_mq_all = bm.createMessageQueue(bm.TOPIC_ALL);
+  if (!s_mq_all.ok()) {
+    return s_mq_all;
+  }
+  Status s_mq_indi =
+      bm.createMessageQueue(bm.TOPIC_PRE_INDIVIDUALS + bm.getNodeID());
+  if (!s_mq_indi.ok()) {
+    return s_mq_indi;
+  }
 
   // Set Broker groups and subscribe to group topics
-  std::vector<std::string> bro_groups;
-  Status s_groups = parseBrokerGroups(FLAGS_bro_groups, bro_groups);
+  Status s_groups = parseBrokerGroups(FLAGS_bro_groups, startup_groups_);
   if (!s_groups.ok()) {
     return s_groups;
   }
-  for (const auto& g : bro_groups) {
+  for (const auto& g : startup_groups_) {
     bm.addGroup(g);
   }
 
-  // Connect to Bro and send announce message
+  // Connect to Bro
   auto status_broker = bm.peerEndpoint(FLAGS_bro_ip, FLAGS_bro_port);
-  if (status_broker.ok()) {
-    VLOG(1) << "Broker connection established";
+  if (!status_broker.ok()) {
+    return status_broker;
+  }
+  VLOG(1) << "Broker connection established";
+
+  // Send announce message
+  auto status_announce = bm.announce();
+  if (!status_announce.ok()) {
+    return status_announce;
   }
 
-  return status_broker;
+  return Status(0, "OK");
 }
 
 inline Status processMessage(const broker::message& msg,
@@ -174,7 +181,6 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   BrokerManager& bm = BrokerManager::get();
 
   // Collect file descriptors of the broker message queues
-  // TODO: Include the outgoing_message_queue to detect connection failures
   fd_set fds;
   FD_ZERO(&fds);
   std::vector<std::string> topics = bm.getTopics(); // List of subscribed topics
@@ -187,6 +193,10 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
     }
     FD_SET(sock, &fds); // each topic -> message_queue -> fd
   }
+  // Append the connection status file descriptor to detect connection failures
+  FD_SET(bm.getOutgoingConnectionFD(), &fds);
+  sMax = std::max(sMax, bm.getOutgoingConnectionFD());
+
   // Wait for incoming message
   int select_code = select(sMax + 1, &fds, nullptr, nullptr, nullptr);
   // Select interrupted for another reason than incoming message or timeout
@@ -208,6 +218,7 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
         // Returns one time queries otherwise
         Status s_msg = processMessage(msg, topic, oT_queries);
         if (!s_msg.ok()) {
+          LOG(ERROR) << s_msg.getMessage();
           return s_msg;
         }
       }
@@ -227,7 +238,42 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   pt::ptree params;
   Status s_serial = JSONSerializer{}.serialize(request, json);
   if (!s_serial.ok()) {
+    LOG(ERROR) << s_serial.getMessage();
     return s_serial;
+  }
+
+  // Check for connection failure - wait until connection is repaired
+  if (FD_ISSET(bm.getOutgoingConnectionFD(), &fds)) {
+    LOG(WARNING) << "Broker connection disconnected";
+    // Connection was/is lost - Retrieve the latest connection status
+    Status s_status = bm.getOutgoingConnectionStatusChange(true);
+
+    // Reset config/schedule
+    std::map<std::string, std::string> config_schedule;
+    config_schedule["bro"] = "";
+    VLOG(1) << "Reset config schedule";
+    Config::get().update(config_schedule);
+
+    QueryManager::get().reset();
+    BrokerManager::get().reset();
+
+    // Set Startup groups and subscribe to group topics
+    for (const auto& g : startup_groups_) {
+      bm.addGroup(g);
+    }
+
+    // Wait for connection to be re-established
+    while (s_status.getCode() != 0) {
+      LOG(WARNING) << "Trying to re-establish broker connection...";
+      s_status = bm.getOutgoingConnectionStatusChange(true);
+    }
+
+    // Send announce message
+    auto status_announce = bm.announce();
+    if (!status_announce.ok()) {
+      LOG(ERROR) << status_announce.getMessage();
+      return status_announce;
+    }
   }
 
   return Status(0, "OK");

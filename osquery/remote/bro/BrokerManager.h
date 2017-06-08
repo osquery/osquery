@@ -27,7 +27,22 @@ namespace osquery {
 
 class BrokerManager : private boost::noncopyable {
  private:
-  BrokerManager() {}
+  BrokerManager() {
+    // Set Broker UID
+    std::string ident;
+    auto status_huuid = getHostUUID(ident);
+    if (status_huuid.ok()) {
+      setNodeID(ident);
+    }
+    const auto& uid = getNodeID();
+
+    // Create Broker endpoint
+    Status s_ep = createEndpoint(uid);
+    if (!s_ep.ok()) {
+      LOG(ERROR) << "Failed to create broker endpoint";
+      throw std::runtime_error{"Broker endpoint cannot be created"};
+    }
+  }
 
  public:
   /// Get a singleton instance of the BrokerManager class;
@@ -52,9 +67,15 @@ class BrokerManager : private boost::noncopyable {
   const std::string EVENT_HOST_SUBSCRIBE = "osquery::host_subscribe";
   const std::string EVENT_HOST_UNSUBSCRIBE = "osquery::host_unsubscribe";
 
-  Status reset();
-
+ private:
   Status setNodeID(const std::string& uid);
+
+  Status createEndpoint(const std::string& ep_name);
+
+  Status unpeer();
+
+ public:
+  Status reset(bool groups_only = true);
 
   std::string getNodeID();
 
@@ -63,8 +84,6 @@ class BrokerManager : private boost::noncopyable {
   Status removeGroup(const std::string& group);
 
   std::vector<std::string> getGroups();
-
-  Status createEndpoint(const std::string& ep_name);
 
   Status createMessageQueue(const std::string& topic);
 
@@ -75,13 +94,26 @@ class BrokerManager : private boost::noncopyable {
 
   std::vector<std::string> getTopics();
 
-  Status peerEndpoint(const std::string& ip, int port);
+  Status peerEndpoint(const std::string& ip, int port, int timeout = -1);
+
+  Status getOutgoingConnectionStatusChange(bool block = false);
+
+  // Status getIncomingConnectionStatus();
+
+  // Status joinExistingGroups();
+
+  Status announce();
+
+  int getOutgoingConnectionFD();
 
   Status logQueryLogItemToBro(const QueryLogItem& qli);
 
   Status sendEvent(const std::string& topic, const broker::message& msg);
 
  private:
+  // The peering to identify the broker remote endpoint
+  std::unique_ptr<broker::peering> p_ = nullptr;
+
   // The ID identifying the node (private channel)
   std::string nodeID_ = "";
   // The groups of the node
@@ -93,7 +125,7 @@ class BrokerManager : private boost::noncopyable {
   std::map<std::string, std::shared_ptr<broker::message_queue>> messageQueues_;
 
  private:
-  friend class QueryManagerTests;
-  FRIEND_TEST(QueryManagerTests, test_reset);
+  friend class BrokerManagerTests;
+  FRIEND_TEST(BrokerManagerTests, test_reset);
 };
 }
