@@ -235,6 +235,15 @@ function main() {
     fi
   fi
 
+  # Copy extra files to the install prefix so that they get packaged too.
+  # To use, define the variable `OSQUERY_PKG_INCLUDE_DIRS` as a (bash) array
+  # containing directories to include in the built package.
+  # NOTE: Files will be overwritten.
+  for include_dir in ${OSQUERY_PKG_INCLUDE_DIRS[*]}; do
+    log "adding $include_dir in the package prefix to be included in the package"
+    cp -fR $include_dir/* $INSTALL_PREFIX/
+  done
+
   log "creating package"
   pkgbuild --root $INSTALL_PREFIX       \
            --scripts $SCRIPT_ROOT       \
