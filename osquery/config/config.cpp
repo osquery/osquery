@@ -259,7 +259,7 @@ Schedule::Schedule() {
 Config::Config()
     : schedule_(std::make_shared<Schedule>()),
       valid_(false),
-      start_time_(std::time(nullptr)),
+      start_time_(getUnixTime()),
       refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
 
 void Config::addPack(const std::string& name,
@@ -681,7 +681,7 @@ void Config::reset() {
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
   loaded_ = false;
-  start_time_ = 0;
+  start_time_ = getUnixTime();
 
   // Also request each parse to reset state.
   for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {
