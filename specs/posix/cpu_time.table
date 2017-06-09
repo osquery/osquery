@@ -13,7 +13,7 @@ schema([
     Column("guest", BIGINT, "Time spent running a virtual CPU for a guest OS under the control of the Linux kernel"),
     Column("guest_nice", BIGINT, "Time spent running a niced guest "),
 ])
-implementation("linux/cpu_time@genCpuTime")
+implementation("cpu_time@genCpuTime")
 fuzz_paths([
     "/proc/stat",
 ])
