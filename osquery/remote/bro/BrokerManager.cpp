@@ -328,75 +328,75 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   for (const auto& element : rows) {
     try {
       // Get row and trigger
-      const auto &row = std::get<0>(element);
-      const auto &trigger = std::get<1>(element);
+      const auto& row = std::get<0>(element);
+      const auto& trigger = std::get<1>(element);
 
       // Set event name, uid and trigger
       broker::message msg;
       msg.push_back(event_name);
       broker::record result_info(
-              {broker::record::field(broker::data(uid)),
-               broker::record::field(
-                       broker::data(broker::enum_value{"osquery::" + trigger})),
-               broker::record::field(
-                       broker::data(QueryManager::get().getEventCookie(queryID)))});
+          {broker::record::field(broker::data(uid)),
+           broker::record::field(
+               broker::data(broker::enum_value{"osquery::" + trigger})),
+           broker::record::field(
+               broker::data(QueryManager::get().getEventCookie(queryID)))});
       msg.push_back(broker::data(result_info));
 
       // Format each column
-      for (const auto &t : columns) {
-        const auto &colName = std::get<0>(t);
+      for (const auto& t : columns) {
+        const auto& colName = std::get<0>(t);
         if (row.count(colName) != 1) {
-          LOG(ERROR) << "Column '" << colName << "' not present in results for '"
-                     << event_name << "'";
+          LOG(ERROR) << "Column '" << colName
+                     << "' not present in results for '" << event_name << "'";
           parse_err = true;
           break;
         }
-        const auto &value = row.at(colName);
+        const auto& value = row.at(colName);
 
         switch (columnTypes.at(colName)) {
-          case ColumnType::UNKNOWN_TYPE: {
-            LOG(WARNING) << "Sending unknown column type for column '" + colName +
-                            "' as string";
-            msg.push_back(broker::data(value));
-            break;
-          }
-          case ColumnType::TEXT_TYPE: {
-            msg.push_back(broker::data(AS_LITERAL(TEXT_LITERAL, value)));
-            break;
-          }
-          case ColumnType::INTEGER_TYPE: {
-            msg.push_back(broker::data(AS_LITERAL(INTEGER_LITERAL, value)));
-            break;
-          }
-          case ColumnType::BIGINT_TYPE: {
-            msg.push_back(broker::data(AS_LITERAL(BIGINT_LITERAL, value)));
-            break;
-          }
-          case ColumnType::UNSIGNED_BIGINT_TYPE: {
-            msg.push_back(broker::data(AS_LITERAL(UNSIGNED_BIGINT_LITERAL, value)));
-            break;
-          }
-          case ColumnType::DOUBLE_TYPE: {
-            msg.push_back(broker::data(AS_LITERAL(DOUBLE_LITERAL, value)));
-            break;
-          }
-          case ColumnType::BLOB_TYPE: {
-            LOG(WARNING) << "Sending blob column type for column '" + colName +
-                            "' as string";
-            msg.push_back(broker::data(value));
-            break;
-          }
-          default: {
-            LOG(WARNING) << "Unknown ColumnType for column '" + colName + "'";
-            continue;
-          }
+        case ColumnType::UNKNOWN_TYPE: {
+          LOG(WARNING) << "Sending unknown column type for column '" + colName +
+                              "' as string";
+          msg.push_back(broker::data(value));
+          break;
+        }
+        case ColumnType::TEXT_TYPE: {
+          msg.push_back(broker::data(AS_LITERAL(TEXT_LITERAL, value)));
+          break;
+        }
+        case ColumnType::INTEGER_TYPE: {
+          msg.push_back(broker::data(AS_LITERAL(INTEGER_LITERAL, value)));
+          break;
+        }
+        case ColumnType::BIGINT_TYPE: {
+          msg.push_back(broker::data(AS_LITERAL(BIGINT_LITERAL, value)));
+          break;
+        }
+        case ColumnType::UNSIGNED_BIGINT_TYPE: {
+          msg.push_back(
+              broker::data(AS_LITERAL(UNSIGNED_BIGINT_LITERAL, value)));
+          break;
+        }
+        case ColumnType::DOUBLE_TYPE: {
+          msg.push_back(broker::data(AS_LITERAL(DOUBLE_LITERAL, value)));
+          break;
+        }
+        case ColumnType::BLOB_TYPE: {
+          LOG(WARNING) << "Sending blob column type for column '" + colName +
+                              "' as string";
+          msg.push_back(broker::data(value));
+          break;
+        }
+        default: {
+          LOG(WARNING) << "Unknown ColumnType for column '" + colName + "'";
+          continue;
+        }
         }
       }
 
       // Send event message
       sendEvent(topic, msg);
-    }
-    catch(const boost::bad_lexical_cast & e) {
+    } catch (const boost::bad_lexical_cast& e) {
       LOG(ERROR) << "Unable to parse result as message because " << e.what();
     }
   }
