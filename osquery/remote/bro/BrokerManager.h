@@ -98,10 +98,6 @@ class BrokerManager : private boost::noncopyable {
 
   Status getOutgoingConnectionStatusChange(bool block = false);
 
-  // Status getIncomingConnectionStatus();
-
-  // Status joinExistingGroups();
-
   Status announce();
 
   int getOutgoingConnectionFD();

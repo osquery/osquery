@@ -14,6 +14,8 @@
 #include <sys/select.h>
 #endif
 
+#include <boost/lexical_cast.hpp>
+
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
 #include <broker/message_queue.hh>
@@ -236,19 +238,6 @@ Status BrokerManager::getOutgoingConnectionStatusChange(bool block) {
 
   return Status(9, "Unknown connection Status");
 }
-/**
-Status BrokerManager::joinExistingGroups() {
-
-  // Join the groups that have been added before connecting
-  for (const auto &g : groups_) {
-    Status s_mq = createMessageQueue(TOPIC_PRE_GROUPS + g);
-    if (not s_mq.ok()) {
-      return s_mq;
-    }
-  }
-  return Status(0, "OK");
-}
-**/
 
 Status BrokerManager::announce() {
   // Announce this endpoint to be a bro-osquery extension
@@ -337,73 +326,79 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   // Create message for each row
   bool parse_err = false;
   for (const auto& element : rows) {
-    // Get row and trigger
-    const auto& row = std::get<0>(element);
-    const auto& trigger = std::get<1>(element);
+    try {
+      // Get row and trigger
+      const auto &row = std::get<0>(element);
+      const auto &trigger = std::get<1>(element);
 
-    // Set event name, uid and trigger
-    broker::message msg;
-    msg.push_back(event_name);
-    broker::record result_info(
-        {broker::record::field(broker::data(uid)),
-         broker::record::field(
-             broker::data(broker::enum_value{"osquery::" + trigger})),
-         broker::record::field(
-             broker::data(QueryManager::get().getEventCookie(queryID)))});
-    msg.push_back(broker::data(result_info));
+      // Set event name, uid and trigger
+      broker::message msg;
+      msg.push_back(event_name);
+      broker::record result_info(
+              {broker::record::field(broker::data(uid)),
+               broker::record::field(
+                       broker::data(broker::enum_value{"osquery::" + trigger})),
+               broker::record::field(
+                       broker::data(QueryManager::get().getEventCookie(queryID)))});
+      msg.push_back(broker::data(result_info));
 
-    // Format each column
-    for (const auto& t : columns) {
-      const auto& colName = std::get<0>(t);
-      if (row.count(colName) != 1) {
-        LOG(ERROR) << "Column '" << colName << "' not present in results for '"
-                   << event_name << "'";
-        parse_err = true;
-        break;
-      }
-      const auto& value = row.at(colName);
-      switch (columnTypes.at(colName)) {
-      case ColumnType::UNKNOWN_TYPE: {
-        LOG(WARNING) << "Sending unknown column type for column '" + colName +
+      // Format each column
+      for (const auto &t : columns) {
+        const auto &colName = std::get<0>(t);
+        if (row.count(colName) != 1) {
+          LOG(ERROR) << "Column '" << colName << "' not present in results for '"
+                     << event_name << "'";
+          parse_err = true;
+          break;
+        }
+        const auto &value = row.at(colName);
+
+        switch (columnTypes.at(colName)) {
+          case ColumnType::UNKNOWN_TYPE: {
+            LOG(WARNING) << "Sending unknown column type for column '" + colName +
                             "' as string";
-        msg.push_back(broker::data(value));
-        break;
-      }
-      case ColumnType::TEXT_TYPE: {
-        msg.push_back(broker::data(AS_LITERAL(TEXT_LITERAL, value)));
-        break;
-      }
-      case ColumnType::INTEGER_TYPE: {
-        msg.push_back(broker::data(AS_LITERAL(INTEGER_LITERAL, value)));
-        break;
-      }
-      case ColumnType::BIGINT_TYPE: {
-        msg.push_back(broker::data(AS_LITERAL(BIGINT_LITERAL, value)));
-        break;
-      }
-      case ColumnType::UNSIGNED_BIGINT_TYPE: {
-        msg.push_back(broker::data(AS_LITERAL(UNSIGNED_BIGINT_LITERAL, value)));
-        break;
-      }
-      case ColumnType::DOUBLE_TYPE: {
-        msg.push_back(broker::data(AS_LITERAL(DOUBLE_LITERAL, value)));
-        break;
-      }
-      case ColumnType::BLOB_TYPE: {
-        LOG(WARNING) << "Sending blob column type for column '" + colName +
+            msg.push_back(broker::data(value));
+            break;
+          }
+          case ColumnType::TEXT_TYPE: {
+            msg.push_back(broker::data(AS_LITERAL(TEXT_LITERAL, value)));
+            break;
+          }
+          case ColumnType::INTEGER_TYPE: {
+            msg.push_back(broker::data(AS_LITERAL(INTEGER_LITERAL, value)));
+            break;
+          }
+          case ColumnType::BIGINT_TYPE: {
+            msg.push_back(broker::data(AS_LITERAL(BIGINT_LITERAL, value)));
+            break;
+          }
+          case ColumnType::UNSIGNED_BIGINT_TYPE: {
+            msg.push_back(broker::data(AS_LITERAL(UNSIGNED_BIGINT_LITERAL, value)));
+            break;
+          }
+          case ColumnType::DOUBLE_TYPE: {
+            msg.push_back(broker::data(AS_LITERAL(DOUBLE_LITERAL, value)));
+            break;
+          }
+          case ColumnType::BLOB_TYPE: {
+            LOG(WARNING) << "Sending blob column type for column '" + colName +
                             "' as string";
-        msg.push_back(broker::data(value));
-        break;
+            msg.push_back(broker::data(value));
+            break;
+          }
+          default: {
+            LOG(WARNING) << "Unknown ColumnType for column '" + colName + "'";
+            continue;
+          }
+        }
       }
-      default: {
-        LOG(WARNING) << "Unknown ColumnType for column '" + colName + "'";
-        continue;
-      }
-      }
+
+      // Send event message
+      sendEvent(topic, msg);
     }
-
-    // Send event message
-    sendEvent(topic, msg);
+    catch(const boost::bad_lexical_cast & e) {
+      LOG(ERROR) << "Unable to parse result as message because " << e.what();
+    }
   }
 
   if (parse_err) {
