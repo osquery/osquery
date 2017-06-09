@@ -26,13 +26,7 @@ set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
 
 # Add all and extra for osquery code.
-if(WINDOWS)
-  add_compile_options(/W3 /guard:cf)
-  add_definitions(-DTHRIFT_SQUELCH_CONSOLE_OUTPUT=1)
-  if(NOT DEFINED ENV{DEBUG})
-    add_compile_options(/WX)
-  endif()
-else()
+if(POSIX)
   add_compile_options(
     -Wall
     -Wextra

@@ -36,7 +36,7 @@ As the above directory listing reveals, *osqueryd.INFO* is a symlink to the most
 The results of your scheduled queries are logged to the "results log". These are differential changes between the last (most recent) query execution and the current execution. Each log line is a JSON string that indicates what data has been added/removed by which query. There are two format options, *single*, or event, and *batched*. Some queries do not make sense to log "removed" events like:
 
 ```sql
-SELECT i.*, p.resident_size, p.user_time, p.system_time, t.minutes as c
+SELECT i.*, p.resident_size, p.user_time, p.system_time, t.minutes AS c
   FROM osquery_info i, processes p, time t
   WHERE p.pid = i.pid;
 ```
@@ -47,7 +47,7 @@ By adding an outer join of `time` and using `time.minutes` as a counter this que
 {
   "schedule": {
     "osquery_monitor": {
-      "query": "SELECT ... t.minutes as c FROM time t WHERE ...",
+      "query": "SELECT ... t.minutes AS c FROM time t WHERE ...",
       "interval": 60,
       "removed": false
     }
@@ -66,7 +66,7 @@ To schedule a snapshot query, use:
 {
   "schedule": {
     "mounts": {
-      "query": "select * from mounts",
+      "query": "SELECT * FROM mounts;",
       "interval": 3600,
       "snapshot": true
     }

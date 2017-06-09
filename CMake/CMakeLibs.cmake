@@ -231,12 +231,7 @@ macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
     endforeach()
     add_library(${TARGET} OBJECT ${ARGN})
     add_dependencies(${TARGET} osquery_extensions)
-    # TODO(#1985): For Windows, ignore the -static compiler flag
-    if(WINDOWS)
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} /EHsc")
-    else()
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}") # -static
-    endif()
+    SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}")
     if(${IS_CORE})
       list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
       set(OSQUERY_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)
