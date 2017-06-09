@@ -12,18 +12,14 @@ class Zstd < Formula
   #  sha256 "70cd43a12ae9a638221725bb3ca770d8080ed437c3f9f34a8789e44642e40e65" => :el_capitan
   #  sha256 "2d0e998725164b7cee9197f5cf5d254370250528adfb1b0328b65683fd2a1ce5" => :yosemite
   #end
-
   #option "without-pzstd", "Build without parallel (de-)compression tool"
 
   depends_on "cmake" => :build
 
   def install
-    system "make", "install", "PREFIX=#{prefix}/"
+    ENV.append_to_cflags(" -fPIC")
 
-    if build.with? "pzstd"
-      system "make", "-C", "contrib/pzstd", "googletest"
-      system "make", "-C", "contrib/pzstd", "PREFIX=#{prefix}"
-      bin.install "contrib/pzstd/pzstd"
-    end
+    system "make", "lib"
+    system "make", "install", "PREFIX=#{prefix}/"
   end
 end
