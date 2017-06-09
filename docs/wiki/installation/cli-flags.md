@@ -1,7 +1,7 @@
 The osquery shell and daemon use optional command line (CLI) flags to control
 initialization, disable/enable features, and select plugins. These flags are powered by Google Flags and are somewhat complicated. Understanding how flags work in osquery will help with stability and greatly reduce issue debugging time.
 
-Most flags apply to both tools, `osqueryi` and `osqueryd`. The shell contains a few more to help with printing and other helpful one-off modes of operation. Expect Linux / OS X / and Windows to include platform specific flags too. Most platform specific flags will control the OS API and library integrations used by osquery. Warning, this list is still not the 'complete set' of flags. Refer to the techniques below for obtaining ground truth and check other components of this Wiki.
+Most flags apply to both tools, `osqueryi` and `osqueryd`. The shell contains a few more to help with printing and other helpful one-off modes of operation. Expect Linux / macOS / and Windows to include platform specific flags too. Most platform specific flags will control the OS API and library integrations used by osquery. Warning, this list is still not the 'complete set' of flags. Refer to the techniques below for obtaining ground truth and check other components of this Wiki.
 
 Flags that do not control startup settings may be included as "options" within [configuration](../deployment/configuration.md). Essentially, any flag needed to help osquery determine and discovery a configuration must be supplied via command line arguments. Google Flags enhances this to allow flags to be set within environment variables or via a "master" flag file.
 
@@ -9,20 +9,20 @@ To see a full list of flags for your osquery version use `--help` or select from
 
 ```
 $ osqueryi
-osquery> select * from osquery_flags;
+osquery> SELECT * FROM osquery_flags;
 ```
 
 To see the flags that have been updated by your configuration, a flag file, or by the shell try:
 
 ```
-osquery> select * from osquery_flags where default_value <> value;
+osquery> SELECT * FROM osquery_flags WHERE default_value <> value;
 ```
 
-## Command line only flags
+### Flagfile
 
-A special flag, part of Google Flags, can be used to read additional flags from a line-delimited file. On OS X and Linux this `--flagfile` is the recommended way to add/remove the following CLI-only initialization flags.
+A special flag, part of Google Flags, can be used to read additional flags from a line-delimited file. On macOS and Linux this `--flagfile` is the recommended way to add/remove the following CLI-only initialization flags.
 
-`--flagfile="/etc/osquery/osquery.flags"`
+`--flagfile /etc/osquery/osquery.flags`
 
 Include line-delimited switches to be interpreted and used as CLI-flags:
 
@@ -35,7 +35,7 @@ Include line-delimited switches to be interpreted and used as CLI-flags:
 
 If no `--flagfile` is provided, osquery will try to find and use a "default" flagfile at `/etc/osquery/osquery.flags.default`. Both the shell and daemon will discover and use the defaults.
 
-**Note:** Flags in a `flagfile` should not be wrapped in quotes, shell-macro/variable expansion is not applied!
+> NOTICE: Flags in a `flagfile` should not be wrapped in quotes, shell-macro/variable expansion is not applied!
 
 ### Configuration control flags
 
@@ -48,7 +48,7 @@ Built-in options include: **filesystem**, **tls**
 `--config_path="/etc/osquery/osquery.conf"`
 
 The **filesystem** config plugin's path to a JSON file.
-On OS X the default path is **/var/osquery/osquery.conf**.
+On macOS the default path is **/var/osquery/osquery.conf**.
 If you want to read from multiple configuration paths create a directory: **/etc/osquery/osquery.conf.d/**. All files within that optional directory will be read and merged in lexical order.
 
 `--config_refresh=0`
@@ -67,7 +67,7 @@ Check the format of an osquery config and exit. Arbitrary config plugins may be 
 
 Request that the configuration JSON be printed to standard out before it is updated. In this case "updated" means applied to the active config. When osquery starts it performs an initial update from the config plugin. To quickly debug the content retrieved by custom config plugins use this in tandem with `--config_check`.
 
-### osquery daemon control flags
+### Daemon control flags
 
 `--force=false`
 
@@ -157,7 +157,7 @@ Extensions are loaded as processes. They are expected to start a thrift service 
 
 Optional comma-delimited set of extension names to require before **osqueryi** or **osqueryd** will start. The tool will fail if the extension has not started according to the interval and timeout.
 
-### Remote settings (optional for config/logger/distributed) flags
+### Remote settings flags (optional)
 
 When using non-default [remote](../deployment/remote.md) plugins such as the **tls** config, logger and distributed plugins, there are process-wide settings applied to every plugin.
 
@@ -231,7 +231,7 @@ The URI path which will be used, in conjunction with `--tls_hostname`, to create
 
 The total number of attempts that will be made to the remote distributed query server if a request fails when using the **tls** distributed plugin.
 
-### osquery daemon runtime control flags
+### Daemon runtime control flags
 
 `--schedule_splay_percent=10`
 
@@ -272,7 +272,7 @@ Comma-delimited list of table names to be disabled. This allows osquery to be la
 
 Maximum file read size. The daemon or shell will first 'stat' each file before reading. If the reported size is greater than `read_max` a "file too large" error will be returned.
 
-### osquery events control flags
+### Events control flags
 
 `--disable_events=false`
 
@@ -363,7 +363,7 @@ This is default `true` and will also send log messages in GLog format to the pro
 
 This controls the types of logs sent to the process's `stderr`. It does NOT limit or control the types sent to the logger plugin. The default value 2 is `ERROR`, set this to `0` for all non-verbose types. If the `--verbose` flag is set this value is overridden to `0`.
 
-## Distributed query service flags
+### Distributed query service flags
 
 `--distributed_plugin=tls`
 
@@ -377,7 +377,7 @@ Disable distributed queries functionality. By default, this is set to `true` (th
 
 In seconds, the amount of time that osqueryd will wait between periodically checking in with a distributed query server to see if there are any queries to execute.
 
-## Syslog consumption
+### Syslog consumption
 
 There is a `syslog` virtual table that uses Events and a **rsyslog** configuration to capture results *from* syslog. Please see the [Syslog Consumption](../deployment/syslog.md) deployment page for more information.
 
@@ -393,7 +393,7 @@ Path to the named pipe used for forwarding **rsyslog** events.
 
 Maximum number of logs to ingest per run (~200ms between runs). Use this as a fail-safe to prevent osquery from becoming overloaded when syslog is spammed.
 
-## Shell-only flags
+### Shell-only flags
 
 Most of the shell flags are self-explanatory and are adapted from the SQLite shell. Refer to the shell's ".help" command for details and explanations.
 

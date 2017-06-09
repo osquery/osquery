@@ -16,7 +16,7 @@ $ make packages
 
 This will use CMake and *fpm*, installed as an osquery build dependency, to generate an `osquery-VERSION.{rpm/deb}` and optionally debug and devel packages.
 
-## OS X
+## OS X / macOS
 
 In your cloned osquery repository, once you have [built the code](../development/building.md) (hopefully a tagged release):
 
@@ -24,14 +24,13 @@ In your cloned osquery repository, once you have [built the code](../development
 $ make packages
 ```
 
-OS X deployment is a bit more complicated and customizable compared to Linux.
-We include some help and guidance for a more esoteric script `make_osx_package.sh`:
+The macOS deployment is a bit more complicated and customizable compared to Linux. We include some help and guidance for a more esoteric script `make_osx_package.sh`:
 
 ```sh
 $ ./tools/deployment/make_osx_package.sh -h
 ```
 
-This tool will build an OS X package with:
+This tool will build an OS X/macOS package with:
 
 - the **osqueryi** and **osqueryd** binaries
 - the [LaunchDaemon](https://github.com/facebook/osquery/blob/master/tools/deployment/com.facebook.osqueryd.plist) that is responsible for osqueryd
