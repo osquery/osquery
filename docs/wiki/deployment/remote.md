@@ -16,8 +16,6 @@ The initial step is called an "enroll step" and in the case of **tls** plugins, 
 
 The validity of a **node_key** is determined and implemented in the TLS server. The node only manages to ask for the content during enroll, and posts the content during subsequent requests.
 
-With osquery version 1.7.0, OS X clients **MUST** use a `--tls_server_certs` bundle since osquery is built using LibreSSL and no default certificate bundle is available on OS X.
-
 ### Simple shared secret enrollment
 
 A deployment key, called an enrollment shared secret, is the simplest **tls** plugin enrollment authentication method. A protected shared secret is written to disk and osquery reads then posts the content to `--enroll_tls_endpoint` once during enrollment. The TLS server may implement an enrollment request approval process that requires manual intervention/approval for each new enrollment request.
@@ -112,9 +110,9 @@ The read request sends the enrollment **node_key** for identification. The distr
 ```json
 {
   "queries": {
-    "id1": "select * from osquery_info;",
-    "id2": "select * from osquery_schedule;",
-    "id3": "select * from does_not_exist;"
+    "id1": "SELECT * FROM osquery_info;",
+    "id2": "SELECT * FROM osquery_schedule;",
+    "id3": "SELECT * FROM does_not_exist;"
   },
   "node_invalid": false // Optional, return true to indicate re-enrollment.
 }
@@ -172,9 +170,9 @@ The TLS client does not handle HTTP errors, if the service returns a bad request
 
 We include a very basic example python TLS/HTTPS server: [./tools/tests/test_http_server.py](https://github.com/facebook/osquery/blob/master/tools/tests/test_http_server.py). And a set of unit/integration tests: [./osquery/remote/transports/tests/tls_transports_tests.cpp](https://github.com/facebook/osquery/blob/master/osquery/remote/transports/tests/tls_transports_tests.cpp) for a reference server implementation.
 
-The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use boost's ASIO header-libraries through the [cpp-netlib](http://cpp-netlib.org/) HTTPS library. OpenSSL is very outdated on OS X (deprecated since OS X 10.7), so a Homebrew-provided Libressl is statically linked into the osquery tools.
+The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use boost's ASIO header-libraries through the [cpp-netlib](http://cpp-netlib.org/) HTTPS library.
 
-On OS X, Linux, and FreeBSD the TLS client prefers the TLS 1.2 protocol, but includes TLS 1.1/1.0 as well as the following cipher suites:
+On macOS, Linux, and FreeBSD the TLS client prefers the TLS 1.2 protocol, but includes TLS 1.1/1.0 as well as the following cipher suites:
 
 ```
 ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:\
@@ -230,9 +228,7 @@ This starts a HTTPS server bound to port 8080 using some fake CA/server cert and
 We will use an **osqueryd** client and set the required TLS settings. When enforcing TLS server authentication, note that the example server is using a toy certificate with the subject: `C=US, ST=California, O=osquery-testing, CN=localhost`:
 
 ```
-$ osqueryd --verbose \
-    --pidfile /tmp/osqueryd.pid \
-    --database_path /tmp/osquery.db/ \
+$ osqueryd --verbose --ephemeral --disable_database \
     --tls_hostname localhost:8080 \
     --tls_server_certs ./tools/tests/test_server_ca.pem \
     --config_plugin tls \
@@ -243,16 +239,14 @@ $ osqueryd --verbose \
     --enroll_secret_path ./tools/tests/test_enroll_secret.txt
 ```
 
-There is a LOT of command line switches here! The basics notes are (1) set a temporary pidfile and database for this **osqueryd**; (2) set the TLS hostname and port, note that no <i>https://</i> is used, as well as the explicit set of certificates to expect; (3) set the plugin options for the config and logger; (4) set the plugin options for enrollment. Turning <i>verbose</i> mode on helps describe the expected behavior.
+There are a LOT of command line switches here! The basics notes are (1) set the TLS hostname and port, note that no <i>https://</i> is used, as well as the explicit set of certificates to expect; (2) set the plugin options for the config and logger; (3) set the plugin options for enrollment. Turning <i>verbose</i> mode on helps describe the expected behavior.
 
 ```
 I1015 10:36:06.894544 2032685056 init.cpp:263] osquery initialized [version=1.5.3]
-I1015 10:36:06.924180 2032685056 system.cpp:207] Writing osqueryd pid (19651) to /tmp/osqueryd.pid
-I1015 10:36:06.925974 2032685056 db_handle.cpp:124] Opening RocksDB handle: /tmp/osquery.db/
 I1015 10:36:06.935755 2032685056 tls.cpp:68] TLSEnrollPlugin requesting a node enroll key from: https://localhost:8080/enroll
 I1015 10:36:06.936123 2032685056 tls.cpp:196] TLS/HTTPS POST request to URI: https://localhost:8080/enroll
 I1015 10:36:06.947465 2032685056 tls.cpp:196] TLS/HTTPS POST request to URI: https://localhost:8080/config
-I1015 10:36:10.288635 3825664 scheduler.cpp:56] Executing query: select * from processes
+I1015 10:36:10.288635 3825664 scheduler.cpp:56] Executing query: SELECT * FROM processes;
 I1015 10:36:10.366140 3825664 scheduler.cpp:101] Found results for query (tls_proc) for host: YOURHOSTNAME.local
 I1015 10:36:11.019227 528384 tls.cpp:196] TLS/HTTPS POST request to URI: https://localhost:8080/logger
 [...]

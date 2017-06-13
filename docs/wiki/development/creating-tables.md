@@ -49,12 +49,14 @@ You might wonder "this syntax looks similar to Python?". Well, it is! The build 
 You may be wondering how osquery handles cross-platform support while still allowing operating-system specific tables. The osquery build process takes care of this by only generating the relevant code based on a directory structure convention.
 
 - Cross-platform: [specs/](https://github.com/facebook/osquery/tree/master/specs/)
-- Mac OS X: [specs/darwin/](https://github.com/facebook/osquery/tree/master/specs/darwin)
+- MacOS: [specs/darwin/](https://github.com/facebook/osquery/tree/master/specs/darwin)
 - General Linux: [specs/linux/](https://github.com/facebook/osquery/tree/master/specs/linux)
-- Ubuntu: [specs/ubuntu/](https://github.com/facebook/osquery/tree/master/specs/ubuntu)
-- CentOS: [specs/centos/](https://github.com/facebook/osquery/tree/master/specs/centos)
+- Windows: [specs/windows/](https://github.com/facebook/osquery/tree/master/specs/windows)
+- POSIX: [specs/posix/](https://github.com/facebook/osquery/tree/master/specs/posix)
+- FreeBSD: [specs/freebsd/](https://github.com/facebook/osquery/tree/master/specs/freebsd)
+- You get the picture ;)
 
-Note: the CMake build provides custom defines for each platform and platform version.
+> NOTICE: the CMake build provides custom defines for each platform and platform version.
 
 **Creating your implementation**
 

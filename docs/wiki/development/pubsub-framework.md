@@ -1,10 +1,10 @@
 Most of osquery's virtual tables are generated when an SQL statement requests data. For example, the [time](https://github.com/facebook/osquery/blob/master/osquery/tables/utility/time.cpp) gets the current time and returns it as a single row. So whenever a call selects data from time, e.g., `SELECT * FROM time;` the current time of the call will return.
 
-From an operating systems perspective, query-time synchronous data retrieval is lossy. Consider the [processes](https://github.com/facebook/osquery/blob/master/osquery/tables/system/linux/processes.cpp) table: if a process like `ps` runs for a fraction of a moment there's no way `SELECT * from processes;` will ever include the details.
+From an operating systems perspective, query-time synchronous data retrieval is lossy. Consider the [processes](https://github.com/facebook/osquery/blob/master/osquery/tables/system/linux/processes.cpp) table: if a process like `ps` runs for a fraction of a moment there's no way `SELECT * FROM processes;` will ever include the details.
 
 To solve for this osquery exposes a [pubsub framework](https://github.com/facebook/osquery/tree/master/osquery/events) for aggregating operating system information asynchronously at event time, storing related event details in the osquery backing store, and performing a lookup to report stored rows query time. This reporting pipeline is much more complicated than typical query-time virtual table generation. The time of event, storage history, and applicable (final) virtual table data information must be carefully considered. As events occur, the rows returned by a query will compound, as such selecting from an event-based virtual table generator should always include a time range.
 
-If no time range is provided, as in: `SELECT * FROM process_events`, it is assumed you want to scan from `t=[0, now)`. Otherwise, all of the `*_events` tables must have a `time` column, this is used to optimize searching: `SELECT * FROM process_events WHERE time > NOW() - 300`.
+If no time range is provided, as in: `SELECT * FROM process_events;`, it is assumed you want to scan from `t=[0, now)`. Otherwise, all of the `*_events` tables must have a `time` column, this is used to optimize searching: `SELECT * FROM process_events WHERE time > NOW() - 300;`.
 
 ## Query and table usage
 

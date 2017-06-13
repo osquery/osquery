@@ -307,6 +307,9 @@ class WatcherRunner : public InternalRunnable {
   /// If a worker/extension has otherwise gone insane, stop it.
   virtual void stopChild(const PlatformProcess& child) const;
 
+  /// Return the time the watchdog is delayed until (from start of watcher).
+  size_t delayedTime() const;
+
  private:
   /// For testing only, ask the WatcherRunner to run a start loop once.
   void runOnce() {
@@ -336,6 +339,7 @@ class WatcherRunner : public InternalRunnable {
   FRIEND_TEST(WatcherTests, test_watcherrunner_loop_failure);
   FRIEND_TEST(WatcherTests, test_watcherrunner_loop_disabled);
   FRIEND_TEST(WatcherTests, test_watcherrunner_watcherhealth);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
 };
 
 /// The WatcherWatcher is spawned within the worker and watches the watcher.

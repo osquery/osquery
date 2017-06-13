@@ -60,4 +60,4 @@ Similarly for Kinesis Firehose delivery streams, the stream name must be specifi
 }
 ```
 
-**Note**: Kinesis services have a maximum 1MB record size. Result logs bigger than this will not be forwarded by `osqueryd` as they will be rejected by the Kinesis services.
+**Note**: Kinesis services have a maximum 1MB record size. Result logs bigger than this will not be forwarded by **osqueryd** as they will be rejected by the Kinesis services.

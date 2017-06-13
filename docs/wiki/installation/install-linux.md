@@ -1,12 +1,6 @@
-Distro-specific packages are built for each supported operating system.
-These packages contain the osquery daemon, shell, example configuration and startup scripts. Note that the `/etc/init.d/osqueryd` script does not automatically start the daemon until a configuration file is created*.
+A 'universal' Linux package can be created for each package distribution system. These packages contain the osquery daemon, shell, example configuration and startup scripts. Note that the `/etc/init.d/osqueryd` script does not automatically start the daemon until a configuration file is created*.
 
-Supported distributions for package installs are:
-
-- Ubuntu Xenial 16.04 LTS, Trusty 14.04 LTS, Precise 12.04 LTS
-- CentOS 6.6, 7.1
-
-Each osquery tag (release) is published to **yum** and **apt** repositories for our supported operating systems: [https://osquery.io/downloads](http://osquery.io/downloads/).
+Each osquery tag (stable release) is published to **yum** and **apt** repositories for our supported operating systems: [https://osquery.io/downloads](http://osquery.io/downloads/).
 
 The default packages create the following structure:
 
@@ -23,38 +17,25 @@ The default packages create the following structure:
 
 ## yum-based Distros
 
-We publish two packages, osquery and osquery-latest**, in a yum repository for CentOS/RHEL 6.3-6.6 and 7.0-7.1 built from our Jenkins build hosts. You may install the "auto-repo-add" RPM or add the repository target:
-
-**CentOS/RHEL 7.0**
+You may install the "auto-repo-add" RPM or add the repository target. These RPMs should work on any x86-64 Linux with a base install from 2011 forward:
 
 ```sh
 $ sudo rpm -ivh https://osquery-packages.s3.amazonaws.com/centos7/noarch/osquery-s3-centos7-repo-1-0.0.noarch.rpm
 $ sudo yum install osquery
 ```
 
-**CentOS/RHEL 6.6**
-
-```sh
-$ sudo rpm -ivh https://osquery-packages.s3.amazonaws.com/centos6/noarch/osquery-s3-centos6-repo-1-0.0.noarch.rpm
-$ sudo yum install osquery
-```
-
 ## dpkg-based Distros
 
-We publish the same two packages, osquery and osquery-latest, in an apt repository for Ubuntu 16.04 (xenial), 14.04 (trusty), 12.04 (precise):
-
-Replace `DISTRO` with `xenial`, `trusty`, or `precise`
+Similar to the **yum-based** distributions, the **dpkg-based** DEB packages should work on any x86-64 Linux since 2011:
 
 ```sh
 $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1484120AC4E9F8A1A577AEEE97A80C63C9D8B80B
-$ sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/DISTRO DISTRO main"
+$ sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/xenial xenial main"
 $ sudo apt-get update
 $ sudo apt-get install osquery
 ```
 
 \* You may also set a different config plugin using a [**flagfile**](../installation/cli-flags.md).<br />
-\** We do not recommend using the latest/unstable package as it is built
-from our master branch and does not guarantee safety.
 
 ## Running osquery
 
@@ -64,8 +45,8 @@ After exploring the rest of the documentation you should understand the basics o
 
 ```
 sudo cp /usr/share/osquery/osquery.example.conf /etc/osquery/osquery.conf
-sudo service osqueryd start
-sudo service osqueryd status
+# sudo service osqueryd start
+sudo systemctl start osqueryd
 ```
 
-Note: The interactive shell and daemon do NOT communicate!
+> NOTICE: The interactive shell and daemon do NOT communicate!

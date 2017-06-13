@@ -19,6 +19,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -26,8 +27,6 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
-
-extern char** environ;
 
 namespace fs = boost::filesystem;
 
@@ -78,6 +77,11 @@ CLI_FLAG(uint64,
          0,
          "Override watchdog profile CPU utilization limit");
 
+CLI_FLAG(uint64,
+         watchdog_delay,
+         60,
+         "Initial delay in seconds before watchdog starts");
+
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
 void Watcher::resetWorkerCounters(size_t respawn_time) {
@@ -114,7 +118,7 @@ void Watcher::removeExtensionPath(const std::string& extension) {
 }
 
 PerformanceState& Watcher::getState(const PlatformProcess& child) {
-  if (child == *worker_) {
+  if (child == getWorker()) {
     return state_;
   } else {
     return extension_states_[getExtensionPath(child)];
@@ -132,8 +136,8 @@ void Watcher::setExtension(const std::string& extension,
 }
 
 void Watcher::reset(const PlatformProcess& child) {
-  if (child == *worker_) {
-    worker_ = 0;
+  if (child == getWorker()) {
+    worker_ = std::make_shared<PlatformProcess>();
     resetWorkerCounters(0);
     return;
   }
@@ -231,6 +235,10 @@ void WatcherRunner::start() {
   } while (!interrupted() && ok());
 }
 
+size_t WatcherRunner::delayedTime() const {
+  return Config::get().getStartTime() + FLAGS_watchdog_delay;
+}
+
 bool WatcherRunner::watch(const PlatformProcess& child) const {
   int process_status = 0;
   ProcessState result = child.checkStatus(process_status);
@@ -245,7 +253,8 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
   } else if (result == PROCESS_STILL_ALIVE) {
     // If the inspect finds problems it will stop/restart the worker.
     auto status = isChildSane(child);
-    if (!status.ok()) {
+    // A delayed watchdog does not stop the worker process.
+    if (!status.ok() && getUnixTime() >= delayedTime()) {
       LOG(WARNING) << "osqueryd worker (" << child.pid()
                    << "): " << status.getMessage();
       stopChild(child);
@@ -360,14 +369,16 @@ Status WatcherRunner::isWatcherHealthy(const PlatformProcess& watcher,
 }
 
 QueryData WatcherRunner::getProcessRow(pid_t pid) const {
-#ifdef WIN32
-  pid = (pid == ULONG_MAX) ? -1 : pid;
-#endif
-
   // On Windows, pid_t = DWORD, which is unsigned. However invalidity
   // of processes is denoted by a pid_t of -1. We check for this
-  // by comparing the max value of DWORD, or ULONG_MAX
-  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(pid));
+  // by comparing the max value of DWORD, or ULONG_MAX, and then casting
+  // our query back to an int value, as ULONG_MAX causes boost exceptions
+  // as it's out of the range of an int.
+  int p = pid;
+#ifdef WIN32
+  p = (pid == ULONG_MAX) ? -1 : pid;
+#endif
+  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(p));
 }
 
 Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
