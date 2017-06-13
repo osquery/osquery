@@ -145,7 +145,6 @@ if(POSIX)
     -Wformat
     -Wformat-security
     -Werror=format-security
-    -Werror=shadow
     -Wabi-tag
     -fpermissive
     -fstack-protector-all
@@ -155,6 +154,11 @@ if(POSIX)
     -fvisibility=hidden
     -fvisibility-inlines-hidden
   )
+  if(NOT FREEBSD)
+    add_compile_options(
+      -Werror=shadow
+    )
+  endif()
 elseif(WINDOWS)
   add_compile_options(
     /EHsc
