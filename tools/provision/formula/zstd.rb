@@ -5,6 +5,7 @@ class Zstd < Formula
   homepage "http://zstd.net/"
   url "https://github.com/facebook/zstd/archive/v1.2.0.tar.gz"
   sha256 "4a7e4593a3638276ca7f2a09dc4f38e674d8317bbea51626393ca73fc047cbfb"
+  revision 101
 
   #bottle do
   #  cellar :any
