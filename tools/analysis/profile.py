@@ -330,7 +330,7 @@ if __name__ == "__main__":
     if not args.force and not os.path.exists(args.shell):
         print("Cannot find --shell: %s" % (args.shell))
         exit(1)
-    if args.tables is None and not os.path.exists(args.tables):
+    if args.config is None and not os.path.exists(args.tables):
         print("Cannot find --tables: %s" % (args.tables))
         exit(1)
 
