@@ -154,9 +154,10 @@ class Config : private boost::noncopyable {
   }
 
   /// Get start time of config.
-  size_t getStartTime() const {
-    return start_time_;
-  }
+  static size_t getStartTime();
+
+  /// Set the start time if the config.
+  static void setStartTime(size_t st);
 
   /**
    * @brief Add a pack to the osquery schedule
@@ -362,9 +363,6 @@ class Config : private boost::noncopyable {
 
   /// Try if the configuration has started an auto-refresh thread.
   bool started_thread_{false};
-
-  /// A UNIX timestamp recorded when the config started.
-  size_t start_time_{0};
 
  private:
   /// Hold a reference to the refresh runner to update the acceleration.

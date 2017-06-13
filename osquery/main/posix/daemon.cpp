@@ -9,12 +9,7 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
 #include <osquery/system.h>
-
-#include "osquery/dispatcher/distributed.h"
-#include "osquery/dispatcher/scheduler.h"
 
 const std::string kWatcherWorkerName = "osqueryd: worker";
 
@@ -30,16 +25,7 @@ int main(int argc, char* argv[]) {
   runner.initWorkerWatcher(kWatcherWorkerName);
 
   // Start osquery work.
-  runner.start();
-
-  // Conditionally begin the distributed query service
-  auto s = osquery::startDistributed();
-  if (!s.ok()) {
-    VLOG(1) << "Not starting the distributed query service: " << s.toString();
-  }
-
-  // Begin the schedule runloop.
-  osquery::startScheduler();
+  runner.runDaemon();
 
   // Finally wait for a signal / interrupt to shutdown.
   runner.waitForShutdown();
