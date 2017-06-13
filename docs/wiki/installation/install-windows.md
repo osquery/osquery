@@ -1,12 +1,12 @@
-As of osquery 1.8.2+ the Windows builds are feature-complete but provide a limited set of tables compared to OS X and Linux.
+As of osquery 1.8.2+ the Windows builds are feature-complete but provide a limited set of tables compared to macOS and Linux.
 
 ## Chocolatey
 
-Each osquery tag (release) is published to **chocolatey** for our supported versions: [https://chocolatey.org/packages/osquery/](https://chocolatey.org/packages/osquery/)
+Each osquery tag (stable release) is published to **chocolatey** for our supported versions: [https://chocolatey.org/packages/osquery/](https://chocolatey.org/packages/osquery/)
 
 ## Installing osquery
 
-By default Chocolatey will install the binaries, example packs, example configuration, and an openssl certs bundle to `C:\ProgramData\osquery` and nothing more. You can pass Chocolatey the `--params='/InstallService'` flag or make use of osquery's `--install` flag with `C:\ProgramData\osquery\osqueryd\osqueryd.exe --install` to install a Windows system service for the **osqueryd** daemon.
+By default Chocolatey will install the binaries, example packs, example configuration, and an OpenSSL certificate bundle to `C:\ProgramData\osquery` and nothing more. You can pass Chocolatey the `--params='/InstallService'` flag or make use of osquery's `--install` flag with `C:\ProgramData\osquery\osqueryd\osqueryd.exe --install` to install a Windows system service for the **osqueryd** daemon.
 
 ## Running osquery
 

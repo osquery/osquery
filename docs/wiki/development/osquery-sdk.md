@@ -72,7 +72,7 @@ The **osqueryi** shell also allows a quick and easy command-line autoload using 
 To load the example extension in the shell try:
 ```
 $ ./build/darwin/osquery/osqueryi
-osquery> select path from osquery_extensions;
+osquery> SELECT path FROM osquery_extensions;
 +-------------------------------------+
 | path                                |
 +-------------------------------------+
@@ -87,7 +87,7 @@ Here we have started a shell process, inspected the UNIX domain socket path used
 ```
 $ ./build/darwin/osquery/example_extension.ext --help
 osquery 1.7.0, your OS as a high-performance relational database
-Usage: osqueryi [OPTION]...
+Usage: example_extension.ext [OPTION]...
 
 osquery extension command line flags:
 
@@ -105,7 +105,7 @@ Before executing the extension we've inspected the potential CLI flags, which ar
 [2] 98795
 $ fg
 [1]  - 98777 continued  ./build/darwin/osquery/osqueryi
-osquery> select * from example;
+osquery> SELECT * FROM example;
 +--------------+-----------------+
 | example_text | example_integer |
 +--------------+-----------------+

@@ -145,7 +145,6 @@ if(POSIX)
     -Wformat
     -Wformat-security
     -Werror=format-security
-    -Werror=shadow
     -Wabi-tag
     -fpermissive
     -fstack-protector-all
@@ -154,6 +153,17 @@ if(POSIX)
     -ffunction-sections
     -fvisibility=hidden
     -fvisibility-inlines-hidden
+  )
+  if(NOT FREEBSD)
+    add_compile_options(
+      -Werror=shadow
+    )
+  endif()
+elseif(WINDOWS)
+  add_compile_options(
+    /EHsc
+    /W3
+    /guard:cf
   )
 endif()
 
@@ -212,7 +222,7 @@ elseif(DEFINED ENV{SANITIZE})
 else()
   set(DEBUG FALSE)
   if(WINDOWS)
-    add_compile_options(/Ot)
+    add_compile_options(/Ot /WX)
   else()
     add_compile_options(-Os)
   endif()
@@ -410,6 +420,9 @@ add_definitions(
   -DBOOST_NETWORK_ENABLE_HTTPS
 )
 
+# Remove console output (not handled by logged).
+add_definitions(-DTHRIFT_SQUELCH_CONSOLE_OUTPUT=1)
+
 if(DEFINED ENV{SQLITE_DEBUG})
   add_definitions(
     -DSQLITE_DEBUG=1
@@ -601,7 +614,7 @@ endif()
 # make format-all
 find_program(CLANGFORMAT_EXECUTABLE "clang-format" ENV PATH)
 add_custom_target(
-  format-all
+  format_all
   find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \)
     -exec "${CLANGFORMAT_EXECUTABLE}" -i {} +
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

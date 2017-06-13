@@ -111,6 +111,9 @@ check:
 	@$(PATH_SET) cppcheck --quiet --enable=warning --error-exitcode=1 \
 		-I ./include ./osquery
 
+audit:
+	@tools/audit.sh
+
 debug_build:
 	cd build/debug_$(BUILD_DIR) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
