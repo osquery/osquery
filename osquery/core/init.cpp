@@ -640,7 +640,7 @@ void Initializer::start() const {
     if (tool_ == ToolType::DAEMON) {
       LOG(WARNING) << message;
     } else {
-      LOG(INFO) << message;
+      VLOG(1) << message;
     }
   }
 
