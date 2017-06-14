@@ -41,8 +41,6 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
-#include "osquery/dispatcher/distributed.h"
-#include "osquery/dispatcher/scheduler.h"
 
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <sys/resource.h>
@@ -505,24 +503,6 @@ void Initializer::waitForWatcher() const {
     }
     requestShutdown(retcode);
   }
-}
-
-void Initializer::runDaemon() const {
-  if (!FLAGS_disable_watchdog && !isWorker()) {
-    return;
-  }
-
-  // Finish the Initializer's setup.
-  start();
-
-  // Conditionally begin the distributed query service
-  auto s = osquery::startDistributed();
-  if (!s.ok()) {
-    VLOG(1) << "Not starting the distributed query service: " << s.toString();
-  }
-
-  // Begin the schedule runloop.
-  osquery::startScheduler();
 }
 
 void Initializer::initWorker(const std::string& name) const {

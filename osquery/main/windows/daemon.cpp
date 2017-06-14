@@ -20,6 +20,8 @@
 #include <osquery/system.h>
 
 #include "osquery/core/watcher.h"
+#include "osquery/dispatcher/distributed.h"
+#include "osquery/dispatcher/scheduler.h"
 
 DECLARE_string(flagfile);
 
@@ -328,7 +330,16 @@ void daemonEntry(int argc, char* argv[]) {
   }
 
   // Start osquery work.
-  runner.runDaemon();
+  runner.start();
+
+  // Conditionally begin the distributed query service.
+  auto s = osquery::startDistributed();
+  if (!s.ok()) {
+    VLOG(1) << "Not starting the distributed query service: " << s.toString();
+  }
+
+  // Begin the schedule runloop.
+  osquery::startScheduler();
 
   // kStopEvent is nullptr if not run from the service control manager
   if (kStopEvent != nullptr) {

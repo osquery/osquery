@@ -170,9 +170,6 @@ class Initializer : private boost::noncopyable {
   /// This pauses the watchdog process until the watcher thread stops.
   void waitForWatcher() const;
 
-  /// Run the daemon: distributed, and scheduler.
-  void runDaemon() const;
-
  private:
   /// Set and wait for an active plugin optionally broadcasted.
   void initActivePlugin(const std::string& type, const std::string& name) const;
