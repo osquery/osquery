@@ -89,6 +89,9 @@ DECLARE_string(pack_delimiter);
 const std::string kExecutingQuery{"executing_query"};
 const std::string kFailedQueries{"failed_queries"};
 
+/// The time osquery was started.
+std::atomic<size_t> kStartTime;
+
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
 Mutex config_valid_mutex_;
@@ -259,7 +262,6 @@ Schedule::Schedule() {
 Config::Config()
     : schedule_(std::make_shared<Schedule>()),
       valid_(false),
-      start_time_(getUnixTime()),
       refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
 
 void Config::addPack(const std::string& name,
@@ -289,6 +291,14 @@ void Config::addPack(const std::string& name,
   } else {
     addSinglePack(name, tree);
   }
+}
+
+size_t Config::getStartTime() {
+  return kStartTime;
+}
+
+void Config::setStartTime(size_t st) {
+  kStartTime = st;
 }
 
 void Config::removePack(const std::string& pack) {
@@ -675,13 +685,14 @@ void Config::purge() {
 }
 
 void Config::reset() {
+  setStartTime(getUnixTime());
+
   schedule_ = std::make_shared<Schedule>();
   std::map<std::string, QueryPerformance>().swap(performance_);
   std::map<std::string, FileCategories>().swap(files_);
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
   loaded_ = false;
-  start_time_ = getUnixTime();
 
   // Also request each parse to reset state.
   for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {

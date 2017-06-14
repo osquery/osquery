@@ -275,6 +275,8 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       binary_((tool == ToolType::DAEMON) ? "osqueryd" : "osqueryi") {
   std::srand(static_cast<unsigned int>(
       chrono_clock::now().time_since_epoch().count()));
+  // The config holds the initialization time for easy access.
+  Config::setStartTime(getUnixTime());
 
   // Initialize registries and plugins
   registryAndPluginInit();
@@ -306,6 +308,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
                {"Stderr log level threshold", false, false, true, false});
 
   // osquery implements a custom help/usage output.
+  bool default_flags = true;
   for (int i = 1; i < *argc_; i++) {
     auto help = std::string((*argv_)[i]);
     if ((help == "--help" || help == "-help" || help == "--h" ||
@@ -313,6 +316,9 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
         tool != ToolType::TEST) {
       printUsage(binary_, tool_);
       shutdown();
+    }
+    if (help.find("--flagfile") == 0) {
+      default_flags = false;
     }
   }
 
@@ -324,11 +330,12 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     FLAGS_disable_events = true;
   }
 
-  bool default_flags = false;
-  if (FLAGS_flagfile.empty() && isReadable(kDefaultFlagfile)) {
+  if (default_flags && isReadable(kDefaultFlagfile)) {
     // No flagfile was set (daemons and services always set a flagfile).
-    default_flags = true;
     FLAGS_flagfile = kDefaultFlagfile;
+  } else {
+    // No flagfile was set, but no default flags exist.
+    default_flags = false;
   }
 
   // Set version string from CMake build
@@ -459,6 +466,12 @@ void Initializer::initShell() const {
 }
 
 void Initializer::initWatcher() const {
+  // The watcher should not log into or use a persistent database.
+  FLAGS_disable_database = true;
+  FLAGS_disable_logging = true;
+  DatabasePlugin::setAllowOpen(true);
+  DatabasePlugin::initPlugin();
+
   // The watcher takes a list of paths to autoload extensions from.
   // The loadExtensions call will populate the watcher's list of extensions.
   osquery::loadExtensions();
@@ -590,7 +603,13 @@ void Initializer::start() const {
   // Bind to an extensions socket and wait for registry additions.
   // After starting the extension manager, osquery MUST shutdown using the
   // internal 'shutdown' method.
-  osquery::startExtensionManager();
+  auto s = osquery::startExtensionManager();
+  if (!s.ok()) {
+    auto severity = (Watcher::get().hasManagedExtensions()) ? google::GLOG_ERROR
+                                                            : google::GLOG_INFO;
+    google::LogMessage(__FILE__, __LINE__, severity).stream()
+        << "Cannot start extension manager: " + s.getMessage();
+  }
 
   // Then set the config plugin, which uses a single/active plugin.
   initActivePlugin("config", FLAGS_config_plugin);
@@ -600,7 +619,7 @@ void Initializer::start() const {
 
   if (FLAGS_config_check) {
     // The initiator requested an initialization and config check.
-    auto s = Config::get().load();
+    s = Config::get().load();
     if (!s.ok()) {
       std::cerr << "Error reading config: " << s.toString() << "\n";
     }
@@ -615,7 +634,7 @@ void Initializer::start() const {
   }
 
   // Load the osquery config using the default/active config plugin.
-  auto s = Config::get().load();
+  s = Config::get().load();
   if (!s.ok()) {
     auto message = "Error reading config: " + s.toString();
     if (tool_ == ToolType::DAEMON) {
