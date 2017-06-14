@@ -57,6 +57,8 @@ DECLARE_bool(disable_database);
 typedef std::chrono::high_resolution_clock chrono_clock;
 
 void initTesting() {
+  Config::setStartTime(getUnixTime());
+
   osquery::kToolType = ToolType::TEST;
 
   registryAndPluginInit();
