@@ -28,22 +28,38 @@ import time
 import threading
 import unittest
 import utils
-import pexpect
-import timeout_decorator
-from pexpect import popen_spawn
+
+# TODO: Find an implementation that will work for Windows, for now, disable.
+# https://goo.gl/T4AgV5
+if os.name == 'nt':
+    # We redefine timeout_decorator on windows
+    class timeout_decorator:
+        @staticmethod
+        def timeout(*args, **kwargs):
+            return lambda f: f # return a no-op decorator
+else:
+    import timeout_decorator
+
+# As there's no good pexpect implementation on Windows, we roll our own
+if os.name == 'nt':
+    from winexpect import REPLWrapper, WinExpectSpawn
+else:
+    import pexpect
+
 
 # While this path can be variable, in practice is lives statically.
 OSQUERY_DEPENDENCIES = os.getenv('OSQUERY_DEPS', "/usr/local/osquery")
 sys.path = [OSQUERY_DEPENDENCIES + "/lib/python2.7/site-packages"] + sys.path
 
-try:
-    from pexpect.replwrap import REPLWrapper
-except ImportError as e:
-    print("Could not import pexpect.replwrap: %s" % (str(e)))
-    print("  Need pexpect version 3.3, installed version: %s" % (
-        str(pexpect.__version__)))
-    print("  pexpect location: %s" % (str(pexpect.__file__)))
-    exit(1)
+if os.name != 'nt':
+    try:
+        from pexpect.replwrap import REPLWrapper
+    except ImportError as e:
+        print("Could not import pexpect.replwrap: %s" % (str(e)))
+        print("  Need pexpect version 3.3, installed version: %s" % (
+            str(pexpect.__version__)))
+        print("  pexpect location: %s" % (str(pexpect.__file__)))
+        exit(1)
 
 try:
     import argparse
@@ -68,15 +84,15 @@ def getUserId():
 
 '''Defaults that should be used in integration tests.'''
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-CONFIG_DIR = os.path.join(tempfile.gettempdir(), "osquery-tests-python%s" % (getUserId()))
+CONFIG_DIR = os.path.join(tempfile.gettempdir(), "osquery-tests-python-%s" % (getUserId()))
 CONFIG_NAME = os.path.join(CONFIG_DIR, "tests")
 DEFAULT_CONFIG = {
     "options": {
-        "flagfile": "/dev/null",
+        "flagfile": "/dev/null" if os.name == "posix" else "",
         "database_path": "%s.db" % CONFIG_NAME,
         "pidfile": "%s.pid" % CONFIG_NAME,
         "config_path": "%s.conf" % CONFIG_NAME,
-        "extensions_autoload": "/dev/null",
+        "extensions_autoload": "/dev/null" if os.name == "posix" else "",
         "extensions_socket": "%s.em" % (CONFIG_NAME if os.name == "posix" else "\\\\.\\pipe\\tests"),
         "extensions_interval": "1",
         "extensions_timeout": "0",
@@ -93,8 +109,6 @@ CONFIG = None
 '''Expect ARGS to contain the argparsed namespace.'''
 ARGS = None
 
-#if os.name == "nt":
-#    import wexpect
 
 class OsqueryUnknownException(Exception):
     '''Exception thrown for unknown output from the shell'''
@@ -120,9 +134,9 @@ class OsqueryWrapper(REPLWrapper):
         options["database_path"] += str(random.randint(1000, 9999))
         command = command + " " + " ".join(["--%s=%s" % (k, v) for
                                             k, v in options.iteritems()])
+        print(command)
         if os.name == "nt":
-            argv = shlex.split(command, posix=False)
-            proc = pexpect.popen_spawn.PopenSpawn(argv, env=env)
+            proc = WinExpectSpawn(command, env=env)
         else:
             proc = pexpect.spawn(command, env=env)
 
@@ -158,6 +172,7 @@ class OsqueryWrapper(REPLWrapper):
                 break
         for l in range(noise):
             result_lines.pop(0)
+        print(result_lines)
 
         try:
             header = result_lines[1]

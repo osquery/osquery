@@ -15,7 +15,9 @@ from __future__ import print_function
 
 import os
 import random
+import sys
 import unittest
+import utils
 
 # osquery-specific testing utils
 import test_base
