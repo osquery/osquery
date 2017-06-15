@@ -73,7 +73,9 @@ add_subdirectory(logger)
 add_subdirectory(registry)
 add_subdirectory(sql)
 add_subdirectory(remote)
-add_subdirectory(carver)
+if(NOT SKIP_CARVER)
+  add_subdirectory(carver)
+endif()
 
 # Add externals directory from parent
 add_subdirectory("${CMAKE_SOURCE_DIR}/external" "${CMAKE_BINARY_DIR}/external")

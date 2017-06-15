@@ -9,10 +9,13 @@
 set(TABLE_CATEGORIES
   "applications"
   "events"
-  "forensic"
   "networking"
   "system"
 )
+
+if(NOT SKIP_CARVER)
+  list(APPEND TABLE_CATEGORIES "forensic")
+endif()
 
 # Apple/Darwin specific and applicable tables.
 if(APPLE)
