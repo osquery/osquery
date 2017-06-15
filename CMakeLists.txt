@@ -301,6 +301,13 @@ endif()
 if(DEFINED ENV{SKIP_YARA})
   set(SKIP_YARA TRUE)
 endif()
+if(DEFINED ENV{SKIP_CARVER})
+  set(SKIP_CARVER TRUE)
+  # To remove references to carve functionality in sqlite helper functions
+  add_definitions(
+    -DSKIP_CARVER=1
+  )
+endif()
 
 # Similar to the feature skips, there are default-build skips.
 if(DEFINED ENV{SKIP_TESTS})
