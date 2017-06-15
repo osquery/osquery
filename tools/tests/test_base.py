@@ -86,6 +86,7 @@ def getUserId():
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 CONFIG_DIR = os.path.join(tempfile.gettempdir(), "osquery-tests-python-%s" % (getUserId()))
 CONFIG_NAME = os.path.join(CONFIG_DIR, "tests")
+# TODO: can we use  os.devnull on widnows?
 DEFAULT_CONFIG = {
     "options": {
         "flagfile": "/dev/null" if os.name == "posix" else "",
@@ -134,7 +135,6 @@ class OsqueryWrapper(REPLWrapper):
         options["database_path"] += str(random.randint(1000, 9999))
         command = command + " " + " ".join(["--%s=%s" % (k, v) for
                                             k, v in options.iteritems()])
-        print(command)
         if os.name == "nt":
             proc = WinExpectSpawn(command, env=env)
         else:
@@ -172,7 +172,6 @@ class OsqueryWrapper(REPLWrapper):
                 break
         for l in range(noise):
             result_lines.pop(0)
-        print(result_lines)
 
         try:
             header = result_lines[1]

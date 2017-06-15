@@ -19,6 +19,8 @@ import sys
 import unittest
 import utils
 
+from active_state_winexpect import Popen
+
 # osquery-specific testing utils
 import test_base
 
@@ -214,7 +216,7 @@ class OsqueryiTest(unittest.TestCase):
     @test_base.flaky
     def test_foreign_tables(self):
         '''Requires the --enable_foreign flag to add at least one table.'''
-        self.osqueryi.run_command(' ')
+        ret = self.osqueryi.run_command(' ')
 
         query = 'SELECT count(1) c FROM osquery_registry;'
         result = self.osqueryi.run_query(query)
