@@ -126,7 +126,7 @@ Status archive(const std::set<boost::filesystem::path>& paths,
     return Status(1, "Failed to create tar archive");
   }
   archive_write_set_format_pax_restricted(arch);
-  auto ret = archive_write_open_filename(arch, out.c_str());
+  auto ret = archive_write_open_filename(arch, out.string().c_str());
   if (ret == ARCHIVE_FATAL) {
     archive_write_free(arch);
     return Status(1, "Failed to open tar archive for writing");

@@ -46,8 +46,11 @@ Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
 
 # Extract the source
 7z x "$packageName-$version.zip"
-$sourceDir = "$packageName-$version"
+$sourceDir = "$packageName-$version/build"
 Set-Location $sourceDir
+.\VS_scripts\build.generic.cmd VS2015 x64 Release v140
+
+Set-Location '..'
 
 # Construct the Chocolatey Package
 $chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
@@ -57,17 +60,11 @@ $libDir = New-Item -ItemType Directory -Path 'local\lib'
 $srcDir = New-Item -ItemType Directory -Path 'local\src'
 
 Write-NuSpec $packageName $chocoVersion $authors $owners $projectSource $packageSourceUrl $copyright $license
-
-# Rename the Debug libraries to end with a `_dbg.lib`
-#foreach ($lib in Get-ChildItem "$buildDir\libs\network\src\Debug\") {
-#  $toks = $lib.Name.split('.')
-#  $newLibName = $toks[0..$($toks.count - 2)] -join '.'
-#  $suffix = $toks[$($toks.count - 1)]
-#  Copy-Item -Path $lib.Fullname -Destination "$libDir\$newLibName`_dbg.$suffix"
-#}
-Copy-Item "$sourceDir\static\*" $libDir
-Copy-Item -Recurse "$sourceDir\include\*" $includeDir
+Set-Location '..'
+Copy-Item "build\VS_scripts\bin\Release\x64\libzstd.lib" $libDir
+Copy-Item -Recurse "lib\zstd.h" $includeDir
 Copy-Item $buildScript $srcDir
+Set-Location 'osquery-choco'
 choco pack
 
 Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" -foregroundcolor DarkGreen
