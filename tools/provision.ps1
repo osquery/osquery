@@ -291,7 +291,7 @@ function Install-ThirdParty {
     "clang-format.3.9.0",
     "zlib.1.2.8",
     "libarchive.3.3.1-r1",
-    "zstd.1.2.0-r1"
+    "zstd.1.2.0-r2"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
   Remove-Item $tmpDir -Recurse -ErrorAction Ignore

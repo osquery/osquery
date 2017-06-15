@@ -7,7 +7,7 @@
 
 # Update-able metadata
 $version = '1.2.0'
-$chocoVersion = '1.2.0-r1'
+$chocoVersion = '1.2.0-r2'
 $packageName = 'zstd'
 $projectSource = 'https://github.com/facebook/zstd'
 $packageSourceUrl = 'https://github.com/facebook/zstd'
@@ -42,15 +42,28 @@ if (-not (Test-Path "$chocoBuildPath")) {
 Set-Location $chocoBuildPath
 
 # Retreive the source
-Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
+$zipFile = "$packageName-$version.zip"
+if(-not (Test-Path $zipFile)) {
+  Invoke-WebRequest $url -OutFile $zipFile
+}
 
 # Extract the source
-7z x "$packageName-$version.zip"
-$sourceDir = "$packageName-$version/build"
+$sourceDir = Join-Path $(Get-Location) "$packageName-$version"
+if (-not (Test-Path $sourceDir)) {
+  $7z = (Get-Command '7z').Source
+  $arg = "x $zipFile"
+  Start-Process -FilePath $7z -ArgumentList $arg -NoNewWindow -Wait
+}
 Set-Location $sourceDir
-.\VS_scripts\build.generic.cmd VS2015 x64 Release v140
 
-Set-Location '..'
+$args = @(
+  'VS2015',
+  'x64',
+  'Release',
+  'v140'
+)
+$cmd = Join-Path $(Get-Location) 'build\VS_scripts\build.generic.cmd'
+Start-Process -FilePath $cmd -ArgumentList $args -NoNewWindow -Wait
 
 # Construct the Chocolatey Package
 $chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
@@ -59,18 +72,32 @@ $includeDir = New-Item -ItemType Directory -Path 'local\include'
 $libDir = New-Item -ItemType Directory -Path 'local\lib'
 $srcDir = New-Item -ItemType Directory -Path 'local\src'
 
-Write-NuSpec $packageName $chocoVersion $authors $owners $projectSource $packageSourceUrl $copyright $license
-Set-Location '..'
-Copy-Item "build\VS_scripts\bin\Release\x64\libzstd.lib" $libDir
+Write-NuSpec `
+  $packageName `
+  $chocoVersion `
+  $authors `
+  $owners `
+  $projectSource `
+  $packageSourceUrl `
+  $copyright `
+  $license
+
+Set-Location $sourceDir
+Copy-Item "build\VS_scripts\bin\Release\x64\libzstd_static.lib" $libDir
 Copy-Item -Recurse "lib\zstd.h" $includeDir
 Copy-Item $buildScript $srcDir
 Set-Location 'osquery-choco'
 choco pack
 
-Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" -foregroundcolor DarkGreen
+Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" `
+  -ForegroundColor DarkGreen
 if (Test-Path "$packageName.$chocoVersion.nupkg") {
-  Write-Host "[+] Finished building $packageName v$chocoVersion." -foregroundcolor Green
+  Write-Host `
+    "[+] Finished building $packageName v$chocoVersion." `
+    -ForegroundColor Green
 }
 else {
-  Write-Host "[-] Failed to build $packageName v$chocoVersion." -foregroundcolor Red
+  Write-Host `
+    "[-] Failed to build $packageName v$chocoVersion." `
+    -ForegroundColor Red
 }
