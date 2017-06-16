@@ -6,14 +6,14 @@ class Gcc < AbstractOsqueryFormula
   url "https://ftp.heanet.ie/mirrors/gnu/gcc/gcc-5.3.0/gcc-5.3.0.tar.bz2"
   mirror "https://ftp.gnu.org/gnu/gcc/gcc-5.3.0/gcc-5.3.0.tar.bz2"
   sha256 "b84f5592e9218b73dbae612b5253035a7b34a9a1f7688d2e1bfaaf7267d5c4db"
-  revision 100
+  revision 101
 
   head "svn://gcc.gnu.org/svn/gcc/trunk"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "e70c492633709bc1405cb89ad99f55e0228371ba7614bcffa0a13d52555ba66f" => :x86_64_linux
+    sha256 "648bf905127b7984c91bc9a8099d08702545c7630d3de86f8e595cae929c8797" => :x86_64_linux
   end
 
   option "with-java", "Build the gcj compiler"
@@ -106,7 +106,7 @@ class Gcc < AbstractOsqueryFormula
     inreplace "libitm/method-serial.cc", "assert (ok);", "(void) ok;"
 
     ENV.delete "LDFLAGS"
-    ENV.delete "LD_LIBRARY_PATH"
+    # ENV.delete "LD_LIBRARY_PATH"
 
     # osquery: speed up the build by skipping the bootstrap.
     args << "--disable-bootstrap"

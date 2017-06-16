@@ -154,6 +154,17 @@ if(POSIX)
     -fvisibility=hidden
     -fvisibility-inlines-hidden
   )
+  if(NOT FREEBSD)
+    add_compile_options(
+      -Werror=shadow
+    )
+  endif()
+elseif(WINDOWS)
+  add_compile_options(
+    /EHsc
+    /W3
+    /guard:cf
+  )
 endif()
 
 if(LINUX AND CMAKE_CXX_COMPILER MATCHES "clang")
@@ -199,6 +210,8 @@ elseif(DEFINED ENV{SANITIZE})
   )
   if (DEFINED ENV{SANITIZE_THREAD})
     add_compile_options(-fsanitize=thread)
+  elseif(DEFINED ENV{SANITIZE_UNDEFINED})
+    add_compile_options(-fsanitize=undefined)
   else()
     add_compile_options(-fsanitize=address)
     if(LINUX)
@@ -209,7 +222,7 @@ elseif(DEFINED ENV{SANITIZE})
 else()
   set(DEBUG FALSE)
   if(WINDOWS)
-    add_compile_options(/Ot)
+    add_compile_options(/Ot /WX)
   else()
     add_compile_options(-Os)
   endif()
@@ -228,7 +241,7 @@ else()
       -fpic
     )
     if (CMAKE_CXX_COMPILER MATCHES "clang" AND NOT FREEBSD)
-      # Only enale LTO builds when using clang on Unix, for now
+      # Only enable LTO builds when using clang on Unix, for now
       add_compile_options(-flto=thin)
     endif()
   endif()
@@ -288,6 +301,13 @@ endif()
 if(DEFINED ENV{SKIP_YARA})
   set(SKIP_YARA TRUE)
 endif()
+if(DEFINED ENV{SKIP_CARVER})
+  set(SKIP_CARVER TRUE)
+  # To remove references to carve functionality in sqlite helper functions
+  add_definitions(
+    -DSKIP_CARVER=1
+  )
+endif()
 
 # Similar to the feature skips, there are default-build skips.
 if(DEFINED ENV{SKIP_TESTS})
@@ -305,6 +325,27 @@ project(OSQUERY)
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 include(CMakeLibs)
+
+find_program(CLANG_TIDY NAMES "clang-tidy" ENV PATH)
+if(DEFINED ENV{TIDY} AND CLANG_TIDY)
+  message(STATUS "clang-tidy found: ${CLANG_TIDY}")
+  set(TIDY_CHECKS
+    "*"
+    "-cert-err58-cpp"
+    "-cppcoreguidelines-pro-bounds-array-to-pointer-decay"
+    "-readability-else-after-return"
+    "-cppcoreguidelines-pro-type-union-access"
+    "-modernize-use-bool-literals"
+    "-modernize-use-emplace"
+    "-google-runtime-references"
+  )
+  JOIN("${TIDY_CHECKS}" "," TIDY_CHECKS)
+  set(DO_CLANG_TIDY "${CLANG_TIDY}"
+    "-checks=${TIDY_CHECKS}"
+    "-p=${CMAKE_BINARY_DIR}"
+    "-fix"
+  )
+endif()
 
 if(WINDOWS)
   foreach(flag_var
@@ -385,6 +426,9 @@ add_definitions(
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
 )
+
+# Remove console output (not handled by logged).
+add_definitions(-DTHRIFT_SQUELCH_CONSOLE_OUTPUT=1)
 
 if(DEFINED ENV{SQLITE_DEBUG})
   add_definitions(
@@ -577,7 +621,7 @@ endif()
 # make format-all
 find_program(CLANGFORMAT_EXECUTABLE "clang-format" ENV PATH)
 add_custom_target(
-  format-all
+  format_all
   find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \)
     -exec "${CLANGFORMAT_EXECUTABLE}" -i {} +
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

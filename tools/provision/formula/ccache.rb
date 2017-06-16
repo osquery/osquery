@@ -5,13 +5,13 @@ class Ccache < AbstractOsqueryFormula
   homepage "https://ccache.samba.org/"
   url "https://www.samba.org/ftp/ccache/ccache-3.3.1.tar.xz"
   sha256 "c6d87a49cc6d7639636d289ed9a5f560bc2acf7ab698fe8ee14e9c9f15ba41c6"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "4450907041a0156aacca7107a12a68302360e1d2b582dfa5daf0c1b2209eb11f" => :sierra
-    sha256 "32989e164299924d7feee3b04cc60f219197345a034ae5f969c0d807c4678b95" => :x86_64_linux
+    sha256 "47a4531aa257f9c6f0918cdd81d871cf6254be3bf72f6f89b1491f64b24aa1ae" => :sierra
+    sha256 "79632ac11d2f48809d9f1a1b5bf5c6698b904f1f0debf34769170a19f039ba79" => :x86_64_linux
   end
 
   head do

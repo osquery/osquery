@@ -9,10 +9,13 @@
 set(TABLE_CATEGORIES
   "applications"
   "events"
-  "forensic"
   "networking"
   "system"
 )
+
+if(NOT SKIP_CARVER)
+  list(APPEND TABLE_CATEGORIES "forensic")
+endif()
 
 # Apple/Darwin specific and applicable tables.
 if(APPLE)
@@ -48,9 +51,10 @@ if(WINDOWS)
 
   # Additional Windows libraries
   ADD_OSQUERY_LINK_ADDITIONAL("Advapi32.lib")
-  ADD_OSQUERY_LINK_ADDITIONAL("version.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("Iphlpapi.lib")
+  ADD_OSQUERY_LINK_ADDITIONAL("SetupAPI.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("Ws2_32.lib")
+  ADD_OSQUERY_LINK_ADDITIONAL("version.lib")
 endif()
 
 # Linux specific and applicable tables.

@@ -2,7 +2,7 @@ Here are some debugging tips and tricks related to the daemon and shell from a d
 
 Almost every situation requiring debugging should ultimately be solved with bug fixes or better documentation. In these cases the documentation usually surfaces in the form of verbose messages in the tools.
 
-Please feel encouraged to add additional messages in the code, or create Github issues documenting your experience and suggestions for documentation or code improvements.
+Please feel encouraged to add additional messages in the code, or create GitHub issues documenting your experience and suggestions for documentation or code improvements.
 
 ### Running the shell or daemon in verbose mode
 
@@ -11,7 +11,6 @@ This is pretty simple! Just append `--verbose` as a switch.
 ```
 $ osqueryi --verbose
 I0412 08:04:56.012428 3056837568 init.cpp:380] osquery initialized [version=2.4.0]
-I0412 08:04:56.013499 3056837568 extensions.cpp:308] Could not autoload modules: Failed reading: /var/osquery/modules.load
 I0412 08:04:56.014837 168243200 interface.cpp:317] Extension manager service starting: /Users/$USER/.osquery/shell.em
 I0412 08:04:56.015383 3056837568 init.cpp:615] Error reading config: config file does not exist: /var/osquery/osquery.conf
 Using a virtual database. Need help, type '.help'
@@ -35,7 +34,6 @@ $ osqueryd --ephemeral --database_path /tmp/osquery.db --verbose
 I0412 08:03:59.664191 3056837568 init.cpp:380] osquery initialized [version=2.4.0]
 I0412 08:03:59.666533 196194304 watcher.cpp:465] osqueryd watcher (35549) executing worker (35550)
 I0412 08:03:59.688765 3056837568 init.cpp:377] osquery worker initialized [watcher=35549]
-I0412 08:03:59.689954 3056837568 extensions.cpp:308] Could not autoload modules: Failed reading: /var/osquery/modules.load
 I0412 08:03:59.690062 3056837568 rocksdb.cpp:205] Opening RocksDB handle: /tmp/osquery.db
 ```
 
@@ -131,7 +129,7 @@ If you see:
 Error registering subscriber: process_file_events: No kernel event publisher
 ```
 
-This is an informational message with mis-categorized severity. The message indicates that a requested companion kernel extension does not exist and the associated `process_file_events` subscriber on OS X cannot start. It is safe to ignore.
+This is an informational message with mis-categorized severity. The message indicates that a requested companion kernel extension does not exist and the associated `process_file_events` subscriber on macOS cannot start. It is safe to ignore.
 
 ### Testing event subscribers
 

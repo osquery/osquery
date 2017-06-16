@@ -43,6 +43,9 @@ macro(SET_OSQUERY_COMPILE TARGET)
   list(LENGTH OPTIONAL_FLAGS NUM_OPTIONAL_FLAGS)
   if(${NUM_OPTIONAL_FLAGS} GREATER 0)
     set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${OPTIONAL_FLAGS}")
+    if(DO_CLANG_TIDY AND NOT "${TARGET}" STREQUAL "osquery_extensions")
+      set_target_properties(${TARGET} PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
+    endif()
   endif()
 endmacro(SET_OSQUERY_COMPILE)
 
@@ -125,10 +128,27 @@ macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
         endif()
         if(NOT ${ITEM_SYSTEM})
           find_library("${ITEM}_library"
-            NAMES "${ITEM}.lib" "lib${ITEM}.lib" "lib${ITEM}.a" "${ITEM}" HINTS ${LINK_PATHS_RELATIVE})
+            NAMES
+              "${ITEM}.lib"
+              "lib${ITEM}.lib"
+              "lib${ITEM}-mt.a"
+              "lib${ITEM}.a"
+              "${ITEM}"
+            HINTS ${LINK_PATHS_RELATIVE})
         else()
           find_library("${ITEM}_library"
-            NAMES "${ITEM}.lib" "lib${ITEM}.lib" "lib${ITEM}.so" "lib${ITEM}.dylib" "${ITEM}.so" "${ITEM}.dylib" "${ITEM}"
+            NAMES
+              "${ITEM}.lib"
+              "lib${ITEM}.lib"
+              "lib${ITEM}-mt.so"
+              "lib${ITEM}.so"
+              "lib${ITEM}-mt.dylib"
+              "lib${ITEM}.dylib"
+              "${ITEM}-mt.so"
+              "${ITEM}.so"
+              "${ITEM}-mt.dylib"
+              "${ITEM}.dylib"
+              "${ITEM}"
             HINTS ${LINK_PATHS_SYSTEM})
         endif()
         LOG_LIBRARY(${ITEM} "${${ITEM}_library}")
@@ -228,12 +248,7 @@ macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
     endforeach()
     add_library(${TARGET} OBJECT ${ARGN})
     add_dependencies(${TARGET} osquery_extensions)
-    # TODO(#1985): For Windows, ignore the -static compiler flag
-    if(WINDOWS)
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} /EHsc")
-    else()
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}") # -static
-    endif()
+    SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}")
     if(${IS_CORE})
       list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
       set(OSQUERY_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)

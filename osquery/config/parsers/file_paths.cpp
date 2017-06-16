@@ -66,7 +66,7 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
     }
   }
 
-  Config::getInstance().removeFiles(source);
+  Config::get().removeFiles(source);
   for (const auto& category : data_.get_child("file_paths")) {
     for (const auto& path : category.second) {
       auto pattern = path.second.get_value<std::string>("");
@@ -74,7 +74,7 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
         continue;
       }
       replaceGlobWildcards(pattern);
-      Config::getInstance().addFile(source, category.first, pattern);
+      Config::get().addFile(source, category.first, pattern);
     }
   }
 

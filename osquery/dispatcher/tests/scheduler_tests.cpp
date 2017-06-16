@@ -26,12 +26,12 @@ class SchedulerTests : public testing::Test {
   void SetUp() override {
     logging_ = FLAGS_disable_logging;
     FLAGS_disable_logging = true;
-    Config::getInstance().reset();
+    Config::get().reset();
   }
 
   void TearDown() override {
     FLAGS_disable_logging = logging_;
-    Config::getInstance().reset();
+    Config::get().reset();
   }
 
  private:
@@ -56,7 +56,7 @@ TEST_F(SchedulerTests, test_monitor) {
 
   // Ask the config instance for the monitored performance.
   QueryPerformance perf;
-  Config::getInstance().getPerformanceStats(
+  Config::get().getPerformanceStats(
       name, ([&perf](const QueryPerformance& r) { perf = r; }));
   // Make sure it was recorded query ran.
   // There is no pack for this query within the config, that is fine as these
@@ -89,7 +89,7 @@ TEST_F(SchedulerTests, test_config_results_purge) {
   // We do not need "THE" config instance.
   // We only need to trigger a 'purge' event, this occurs when configuration
   // content is updated by a plugin or on load.
-  Config::getInstance().purge();
+  Config::get().purge();
 
   // Nothing should have been purged.
   {
@@ -116,7 +116,7 @@ TEST_F(SchedulerTests, test_config_results_purge) {
       kPersistentSettings, "timestamp.test_query", std::to_string(query_time));
 
   // Trigger another purge.
-  Config::getInstance().purge();
+  Config::get().purge();
   // Now ALL 'test_query' related storage will have been purged.
   {
     std::string content;
@@ -159,7 +159,7 @@ TEST_F(SchedulerTests, test_scheduler) {
       "}"
       "}"
       "}";
-  Config::getInstance().update({{"data", config}});
+  Config::get().update({{"data", config}});
 
   // Run the scheduler for 1 second with a second interval.
   SchedulerRunner runner(static_cast<unsigned long int>(now + 1), 1);

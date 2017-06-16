@@ -22,7 +22,8 @@ else
   BUILD_DIR="${BUILD_DIR}darwin$BUILD_VERSION"
 fi
 
-export PATH="$PATH:/usr/local/bin"
+OSQUERY_DEPS="${OSQUERY_DEPS:-/usr/local/osquery}"
+
 source "$SOURCE_DIR/tools/lib.sh"
 distro "darwin" BUILD_VERSION
 
@@ -44,8 +45,8 @@ NEWSYSLOG_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.conf"
 NEWSYSLOG_DST="/private/var/osquery/$LD_IDENTIFIER.conf"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/private/var/osquery/packs/"
-LENSES_LICENSE="/usr/local/osquery/Cellar/augeas/*/COPYING"
-LENSES_SRC="/usr/local/osquery/share/augeas/lenses/dist"
+LENSES_LICENSE="${OSQUERY_DEPS}/Cellar/augeas/*/COPYING"
+LENSES_SRC="${OSQUERY_DEPS}/share/augeas/lenses/dist"
 LENSES_DST="/private/var/osquery/lenses/"
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/private/var/osquery/osquery.example.conf"
@@ -53,10 +54,11 @@ OSQUERY_CONFIG_SRC=""
 OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
 OSQUERY_DB_LOCATION="/private/var/osquery/osquery.db/"
 OSQUERY_LOG_DIR="/private/var/log/osquery/"
-OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="/usr/local/osquery/etc/openssl/cert.pem"
+OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="${OSQUERY_DEPS}/etc/openssl/cert.pem"
 OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST="/private/var/osquery/certs/certs.pem"
 TLS_CERT_CHAIN_DST="/private/var/osquery/tls-server-certs.pem"
 FLAGFILE_DST="/private/var/osquery/osquery.flags"
+OSQUERY_PKG_INCLUDE_DIRS=()
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX="$WORKING_DIR/prefix"
@@ -138,6 +140,9 @@ function parse_args() {
                               ;;
       -t | --cert-chain )     shift
                               TLS_CERT_CHAIN_SRC=$1
+                              ;;
+      -i | --include-dir )    shift
+                              OSQUERY_PKG_INCLUDE_DIRS[${#OSQUERY_PKG_INCLUDE_DIRS}]=$1
                               ;;
       -o | --output )         shift
                               OUTPUT_PKG_PATH=$1
@@ -234,6 +239,13 @@ function main() {
         echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
     fi
   fi
+
+  # Copy extra files to the install prefix so that they get packaged too.
+  # NOTE: Files will be overwritten.
+  for include_dir in ${OSQUERY_PKG_INCLUDE_DIRS[*]}; do
+    log "adding $include_dir in the package prefix to be included in the package"
+    cp -fR $include_dir/* $INSTALL_PREFIX/
+  done
 
   log "creating package"
   pkgbuild --root $INSTALL_PREFIX       \

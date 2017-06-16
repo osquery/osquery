@@ -56,7 +56,9 @@ class TLSLoggerPlugin : public LoggerPlugin {
   /// Setup node key and worker thread for sending logs.
   Status setUp() override;
 
-  bool usesLogStatus() override { return true; }
+  bool usesLogStatus() override {
+    return true;
+  }
 
  protected:
   /// Log a result string. This is the basic catch-all for snapshots and events.

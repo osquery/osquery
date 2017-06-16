@@ -1,5 +1,5 @@
 table_name("wmi_cli_event_consumers")
-description("WMI CommandLineEventConsumer, which can be used for persistance on Windows. https://www.blackhat.com/docs/us-15/materials/us-15-Graeber-Abusing-Windows-Management-Instrumentation-WMI-To-Build-A-Persistent%20Asynchronous-And-Fileless-Backdoor-wp.pdf")
+description("WMI CommandLineEventConsumer, which can be used for persistance on Windows. See https://www.blackhat.com/docs/us-15/materials/us-15-Graeber-Abusing-Windows-Management-Instrumentation-WMI-To-Build-A-Persistent%20Asynchronous-And-Fileless-Backdoor-wp.pdf for more details.")
 schema([
     Column("name", TEXT, "Unique name of a consumer."),
     Column("command_line_template", TEXT, "Standard string template that specifies the process to be started. This property can be NULL, and the ExecutablePath property is used as the command line."),

@@ -131,10 +131,10 @@ QueryData genAuthorizations(QueryContext &context) {
       }
 
       CFIndex count = CFDictionaryGetCount(rightSet);
-      const void *keys[count];
-      const void *values[count];
-      CFDictionaryGetKeysAndValues(rightSet, keys, values);
-      if ((const void *)keys == nullptr || (const void *)values == nullptr) {
+      std::vector<const void *> keys(count);
+      std::vector<const void *> values(count);
+      CFDictionaryGetKeysAndValues(rightSet, keys.data(), values.data());
+      if (keys.data() == nullptr || values.data() == nullptr) {
         CFRelease(rightSet);
         continue;
       }
@@ -159,7 +159,6 @@ QueryData genAuthorizations(QueryContext &context) {
       }
 
       results.push_back(r);
-
       if (rightSet != nullptr) {
         CFRelease(rightSet);
       }

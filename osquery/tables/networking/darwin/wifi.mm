@@ -140,10 +140,10 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
     }
   } else if (CFGetTypeID(networks) == CFDictionaryGetTypeID()) {
     auto count = CFDictionaryGetCount((CFDictionaryRef)networks);
-    const void* keys[count];
-    const void* values[count];
-    CFDictionaryGetKeysAndValues((CFDictionaryRef)networks, keys, values);
-
+    std::vector<const void *> keys(count);
+    std::vector<const void *> values(count);
+    CFDictionaryGetKeysAndValues((CFDictionaryRef)networks, keys.data(),
+                                 values.data());
     for (CFIndex i = 0; i < count; i++) {
       parseNetworks((CFDictionaryRef)values[i], results);
     }

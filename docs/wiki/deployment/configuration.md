@@ -1,6 +1,6 @@
 An osquery deployment consists of:
 
-* Installing the tools for [Windows](../installation/install-windows.md), [OS X](../installation/install-osx.md), or [Linux](../installation/install-linux.md)
+* Installing the tools for [Windows](../installation/install-windows.md), [macOS](../installation/install-osx.md), or [Linux](../installation/install-linux.md)
 * Reviewing the [osqueryd](../introduction/using-osqueryd.md) introduction
 * Configuring and starting the **osqueryd** service (this page)
 * Managing and [collecting](log-aggregation.md) the query results
@@ -26,12 +26,12 @@ flags](../installation/cli-flags.md) overview for a complete list of these
 parameters.
 
 The default config plugin, **filesystem**, reads from a file and optional
-directory ".d" based on the filename. The included init scripts set the default
+directory ".d" based on the filename. The included initscripts set the default
 config path as follows:
 
 * Windows: **C:\ProgramData\osquery\osquery.conf**
 * Linux: **/etc/osquery/osquery.conf** and **/etc/osquery/osquery.conf.d/**
-* Mac OS X: **/var/osquery/osquery.conf** and **/var/osquery/osquery.conf.d/**
+* MacOS: **/var/osquery/osquery.conf** and **/var/osquery/osquery.conf.d/**
 
 You may override the **filesystem** plugin's path using
 `--config_path=/path/to/osquery.conf`. You may also use the ".d/" directory
@@ -46,7 +46,7 @@ Here is an example config that includes options and the query schedule:
     "schedule_splay_percent": 10
   },
   "schedule": {
-    "macosx_kextstat": {
+    "macos_kextstat": {
       "query": "SELECT * FROM kernel_extensions;",
       "interval": 10
     },
@@ -58,13 +58,13 @@ Here is an example config that includes options and the query schedule:
 }
 ```
 
-This config tells osqueryd to schedule two queries, **macosx_kextstat** and
+This config tells osqueryd to schedule two queries, **macos_kextstat** and
 **foobar**:
 
 * the schedule keys must be unique
 * the `interval` specifies query frequency (in seconds)
 
-The first query will log changes to the OS X host's kernel extensions,
+The first query will log changes to the macOS host's kernel extensions,
 with a query interval of 10 seconds. Consider using osquery's [performance
 tooling](performance-safety.md) to understand the performance impact for each
 query.
@@ -75,6 +75,13 @@ stored in RocksDB. On subsequent runs, only result-set-difference (changes) are 
 
 Scheduled queries can also set: `"removed":false` and `"snapshot":true`. See
 the next section on [logging](../deployment/logging.md), and the below configuration specification to learn how query options affect the output.
+
+> NOTICE: that the `interval` time in seconds is how many seconds the _daemon_
+itself has been running before the scheduled query will be executed. If the
+system is suspended or put to sleep the progression of time "freezes" and
+resumes when the system comes back online. For example a scheduled query with
+an interval of `84600`, or 24 hours, running on a laptop system could take
+a few days before the query executes if the system is suspended at night.
 
 ## Query Packs
 
@@ -95,13 +102,13 @@ consist of pack name to pack content JSON data structures.
   "packs": {
     "internal_stuff": {
       "discovery": [
-        "select pid from processes where name = 'ldap';"
+        "SELECT pid FROM processes WHERE name = 'ldap';"
       ],
       "platform": "linux",
       "version": "1.5.2",
       "queries": {
         "active_directory": {
-          "query": "select * from ad_config;",
+          "query": "SELECT * FROM ad_config;",
           "interval": "1200",
           "description": "Check each user's active directory cached settings."
         }
@@ -111,7 +118,7 @@ consist of pack name to pack content JSON data structures.
       "shard": "10",
       "queries": {
         "suid_bins": {
-          "query": "select * from suid_bins;",
+          "query": "SELECT * FROM suid_bins;",
           "interval": "3600"
         }
       }
@@ -181,8 +188,8 @@ Discovery queries look like:
 ```json
 {
   "discovery": [
-    "select pid from processes where name = 'foobar';",
-    "select count(*) from users where username like 'www%';"
+    "SELECT pid FROM processes WHERE name = 'foobar';",
+    "SELECT count(*) FROM users WHERE username like 'www%';"
   ],
   "queries": {}
 }
@@ -270,6 +277,8 @@ If a flag value is specified on the CLI as a switch, or specified in the Gflags 
 
 There are LOTs of CLI flags that CANNOT be set with the `options` key. These flags determine the start and initialization of osquery and configuration loading usually depends on these CLI-only flags. Refer to the `--help` list to determine the appropriateness of options.
 
+It is possible to set "custom" options that do not exist as flags. These will not do anything without adding appropriate code. Options using the prefix `custom_` can be accessed via `osquery::Flag::updateValue("custom_NAME", value)` and `osquery::Flag::getValue("custom_NAME");`.
+
 ### Schedule
 
 The `schedule` key defines a map of scheduled query names to the query details. You will see mention of the schedule throughout osquery's documentation. It is the focal point of osqueryd's capabilities.
@@ -279,7 +288,7 @@ Example:
 {
   "schedule": {
     "users_browser_plugins": {
-      "query": "SELECT * FROM users JOIN browser_plugins USING (uid)",
+      "query": "SELECT * FROM users JOIN browser_plugins USING (uid);",
       "interval": 60
     },
     "hashes_of_bin": {
@@ -306,9 +315,10 @@ The basic scheduled query specification includes:
 * `shard`: restrict this query to a percentage (1-100) of target hosts
 
 The `platform` key can be:
-* `darwin` for OS X hosts
+* `darwin` for MacOS hosts
 * `freebsd` for FreeBSD hosts
 * `linux` for any RedHat or Debian-based hosts
+* `posix` for `linux`, `freebsd`, and `linux` hosts
 * `windows` for any Windows desktop or server hosts
 * `any` or `all` for all, alternatively no platform key selects all
 
@@ -333,7 +343,7 @@ The above section on packs almost covers all you need to know about query packs.
       "version": "1.7.0",
       "platform": "linux",
       "discovery": [
-        "SELECT * FROM processes WHERE name = 'osqueryi'"
+        "SELECT * FROM processes WHERE name = 'osqueryi';"
       ]
     }
   }
@@ -411,6 +421,23 @@ Example:
 }
 ```
 
+### Views
+
+Views are saved queries expressed as tables. Large subqueries or complex joining logic can often be moved into views allowing you to make your queries more concise.
+
+Example:
+```json
+{
+  "views": {
+    "kernel_hashses" : "SELECT hash.path AS kernel_binary, version, hash.sha256 AS sha256, hash.sha1 AS sha1, hash.md5 AS md5 FROM (SELECT path || '/Contents/MacOS/' AS directory, name, version FROM kernel_extensions) JOIN hash USING (directory);"
+  }
+}
+```
+
+```SQL
+SELECT * FROM kernel_hashes WHERE kernel_binary NOT LIKE "%apple%";
+```
+
 ### Decorator queries
 
 Decorator queries exist in osquery versions 1.7.3+ and are used to add additional "decorations" to results and snapshot logs. There are three types of decorator queries based on when and how you want the decoration data.
@@ -419,8 +446,8 @@ Decorator queries exist in osquery versions 1.7.3+ and are used to add additiona
 {
   "decorators": {
     "load": [
-      "SELECT version FROM osquery_info",
-      "SELECT uuid AS host_uuid FROM system_info"
+      "SELECT version FROM osquery_info;",
+      "SELECT uuid AS host_uuid FROM system_info;"
     ],
     "always": [
       "SELECT user AS username FROM logged_in_users WHERE user <> '' ORDER BY time LIMIT 1;"
@@ -457,12 +484,12 @@ Example configuration:
 {
   "decorators": {
     "load": [
-      "SELECT 'collision' as name",
-      "SELECT 'collision' as hostIdentifier",
-      "SELECT 'collision' as calendarTime",
-      "SELECT 'collision' as unixTime",
-      "SELECT 'collision' as columns",
-      "SELECT 'collision' as action"
+      "SELECT 'collision' AS name;",
+      "SELECT 'collision' AS hostIdentifier;",
+      "SELECT 'collision' AS calendarTime;",
+      "SELECT 'collision' AS unixTime;",
+      "SELECT 'collision' AS columns;",
+      "SELECT 'collision' AS action;"
     ]
   }
 }
@@ -489,18 +516,18 @@ The `interval` type uses a map of interval 'periods' as keys, and the set of dec
 
 ## Chef Configuration
 
-Here are example chef cookbook recipes and files for OS X and Linux
+Here are example chef cookbook recipes and files for macOS and Linux
 deployments.  Consider improving the recipes using node attributes to further
 control what nodes and clients enable osquery. It helps to create a canary or a
 testing set that implements a separate "testing" configuration. These recipes
-assume you are deploying the OS X package or the Linux package separately.
+assume you are deploying the macOS package or the Linux package separately.
 
-### Chef OS X
+### Chef OS X / macOS
 
 Consider the default recipe:
 
 ```ruby
-# Domain used by the OS X LaunchDaemon.
+# Domain used by the macOS LaunchDaemon.
 domain = 'com.facebook.osquery.osqueryd'
 config_path = '/var/osquery/osquery.conf'
 pid_path = '/var/osquery/osquery.pid'
@@ -621,8 +648,8 @@ service service_name do
 end
 ```
 
-And the same configuration file from the OS X example is appropriate.
+And the same configuration file from the macOS example is appropriate.
 
 ## osqueryctl helper
 
-To test a deploy or configuration we include a short helper script called **osqueryctl**. There are several actions including "start", "stop", and "config-check" that apply to both OS X and Linux.
+To test a deploy or configuration we include a short helper script called **osqueryctl**. There are several actions including "start", "stop", and "config-check" that apply to both macOS and Linux.

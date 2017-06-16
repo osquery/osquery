@@ -1,5 +1,5 @@
 table_name("wmi_event_filters")
-description("Lists WMI event filters")
+description("Lists WMI event filters.")
 schema([
     Column("name", TEXT, "Unique identifier of an event filter."),
     Column("query", TEXT, "Windows Management Instrumentation Query Language (WQL) event query that specifies the set of events for consumer notification, and the specific conditions for notification."),

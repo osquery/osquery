@@ -43,14 +43,11 @@ FLAG(bool,
 
 // Access this flag through EventSubscriberPlugin::getEventsExpiry to allow for
 // overriding in subclasses
-FLAG(uint64,
-     events_expiry,
-     86000,
-     "Timeout to expire event subscriber results");
+FLAG(uint64, events_expiry, 3600, "Timeout to expire event subscriber results");
 
 // Access this flag through EventSubscriberPlugin::getEventsMax to allow for
 // overriding in subclasses
-FLAG(uint64, events_max, 1000, "Maximum number of events per type to buffer");
+FLAG(uint64, events_max, 50000, "Maximum number of events per type to buffer");
 
 static inline EventTime timeFromRecord(const std::string& record) {
   // Convert a stored index "as string bytes" to a time value.
@@ -224,8 +221,8 @@ std::vector<std::string> EventSubscriberPlugin::getIndexes(EventTime start,
     std::sort(indexes.begin(),
               indexes.end(),
               [](const std::string& left, const std::string& right) {
-                auto n1 = timeFromRecord(left.substr(left.find(".") + 1));
-                auto n2 = timeFromRecord(right.substr(right.find(".") + 1));
+                auto n1 = timeFromRecord(left.substr(left.find('.') + 1));
+                auto n2 = timeFromRecord(right.substr(right.find('.') + 1));
                 return n1 < n2;
               });
   }
@@ -667,7 +664,7 @@ void EventFactory::configUpdate() {
   // Scan the schedule for queries that touch "_events" tables.
   // We will count the queries
   std::map<std::string, SubscriberExpirationDetails> subscriber_details;
-  Config::getInstance().scheduledQueries([&subscriber_details](
+  Config::get().scheduledQueries([&subscriber_details](
       const std::string& name, const ScheduledQuery& query) {
     std::vector<std::string> tables;
     // Convert query string into a list of virtual tables effected.
@@ -856,7 +853,7 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
     return Status(1, "Subscribers must have set a name");
   }
 
-  auto plugin = Config::getInstance().getParser("events");
+  auto plugin = Config::get().getParser("events");
   if (plugin != nullptr && plugin.get() != nullptr) {
     const auto& data = plugin->getData();
     // First perform explicit enabling.

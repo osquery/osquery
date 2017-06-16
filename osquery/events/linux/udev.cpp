@@ -74,7 +74,7 @@ Status UdevEventPublisher::run() {
   fds[0].events = POLLIN;
 
   int selector = ::poll(fds, 1, 1000);
-  if (selector == -1) {
+  if (selector == -1 && errno != EINTR && errno != EAGAIN) {
     LOG(ERROR) << "Could not read udev monitor";
     return Status(1, "udev monitor failed.");
   }
@@ -84,16 +84,19 @@ Status UdevEventPublisher::run() {
     return Status(0, "Finished");
   }
 
-  struct udev_device* device = udev_monitor_receive_device(monitor_);
-  if (device == nullptr) {
-    LOG(ERROR) << "udev monitor returned invalid device";
-    return Status(1, "udev monitor failed.");
+  {
+    WriteLock lock(mutex_);
+    struct udev_device* device = udev_monitor_receive_device(monitor_);
+    if (device == nullptr) {
+      LOG(ERROR) << "udev monitor returned invalid device";
+      return Status(1, "udev monitor failed.");
+    }
+
+    auto ec = createEventContextFrom(device);
+    fire(ec);
+
+    udev_device_unref(device);
   }
-
-  auto ec = createEventContextFrom(device);
-  fire(ec);
-
-  udev_device_unref(device);
 
   pauseMilli(kUdevMLatency);
   return Status(0, "OK");

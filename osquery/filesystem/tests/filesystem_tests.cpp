@@ -31,7 +31,6 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 DECLARE_uint64(read_max);
-DECLARE_uint64(read_user_max);
 
 class FilesystemTests : public testing::Test {
  protected:
@@ -137,29 +136,20 @@ TEST_F(FilesystemTests, test_readwrite_file) {
 
 TEST_F(FilesystemTests, test_read_limit) {
   auto max = FLAGS_read_max;
-  auto user_max = FLAGS_read_user_max;
   FLAGS_read_max = 3;
   std::string content;
   auto status = readFile(kFakeDirectory + "/root.txt", content);
   EXPECT_FALSE(status.ok());
   FLAGS_read_max = max;
 
-  if (!isUserAdmin()) {
-    content.erase();
-    FLAGS_read_user_max = 2;
-    status = readFile(kFakeDirectory + "/root.txt", content);
-    EXPECT_FALSE(status.ok());
-    FLAGS_read_user_max = user_max;
+  // Make sure non-link files are still readable.
+  content.erase();
+  status = readFile(kFakeDirectory + "/root.txt", content);
+  EXPECT_TRUE(status.ok());
 
-    // Make sure non-link files are still readable.
-    content.erase();
-    status = readFile(kFakeDirectory + "/root.txt", content);
-    EXPECT_TRUE(status.ok());
-
-    // Any the links are readable too.
-    status = readFile(kFakeDirectory + "/root2.txt", content);
-    EXPECT_TRUE(status.ok());
-  }
+  // Any the links are readable too.
+  status = readFile(kFakeDirectory + "/root2.txt", content);
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(FilesystemTests, test_list_files_missing_directory) {

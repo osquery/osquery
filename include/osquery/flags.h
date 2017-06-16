@@ -154,6 +154,9 @@ class Flag : private boost::noncopyable {
 
   /// A container for hidden or aliased (legacy, compatibility) flags.
   std::map<std::string, FlagDetail> aliases_;
+
+  /// Configurations may set "custom_" flags.
+  std::map<std::string, std::string> custom_;
 };
 
 /**

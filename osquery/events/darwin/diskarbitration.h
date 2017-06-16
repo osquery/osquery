@@ -34,7 +34,7 @@ struct DiskArbitrationEventContext : public EventContext {
   std::string path;
   std::string device_path;
   std::string name;
-  std::string bsd_name;
+  std::string device;
   std::string uuid;
   std::string size;
   std::string ejectable;
@@ -63,28 +63,28 @@ class DiskArbitrationEventPublisher
 
   void tearDown() override;
 
-  bool shouldFire(const DiskArbitrationSubscriptionContextRef &sc,
-                  const DiskArbitrationEventContextRef &ec) const override;
+  bool shouldFire(const DiskArbitrationSubscriptionContextRef& sc,
+                  const DiskArbitrationEventContextRef& ec) const override;
 
   Status run() override;
 
-  static void DiskAppearedCallback(DADiskRef disk, void *context);
+  static void DiskAppearedCallback(DADiskRef disk, void* context);
 
-  static void DiskDisappearedCallback(DADiskRef disk, void *context);
+  static void DiskDisappearedCallback(DADiskRef disk, void* context);
 
  private:
   void restart();
 
   void stop() override;
 
-  static std::string getProperty(const CFStringRef &property,
-                                 const CFDictionaryRef &dict);
+  static std::string getProperty(const CFStringRef& property,
+                                 const CFDictionaryRef& dict);
 
-  static std::string extractUdifChecksum(const std::string &path);
+  static std::string extractUdifChecksum(const std::string& path);
 
-  static void fire(const std::string &action,
-                   const DiskArbitrationEventContextRef &ec,
-                   const CFDictionaryRef &dict);
+  static void fire(const std::string& action,
+                   const DiskArbitrationEventContextRef& ec,
+                   const CFDictionaryRef& dict);
 
  private:
   /// Disk arbitration session.

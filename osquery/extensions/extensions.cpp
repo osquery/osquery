@@ -337,7 +337,7 @@ Status loadExtensions(const std::string& loadfile) {
   if (!FLAGS_extension.empty()) {
     // This is a shell-only development flag for quickly loading/using a single
     // extension. It bypasses the safety check.
-    Watcher::addExtensionPath(FLAGS_extension);
+    Watcher::get().addExtensionPath(FLAGS_extension);
   }
 
   std::string autoload_paths;
@@ -364,7 +364,7 @@ Status loadExtensions(const std::string& loadfile) {
   for (const auto& binary : autoload_binaries) {
     // After the path is sanitized the watcher becomes responsible for
     // forking and executing the extension binary.
-    Watcher::addExtensionPath(binary);
+    Watcher::get().addExtensionPath(binary);
   }
   return Status(0, "OK");
 }

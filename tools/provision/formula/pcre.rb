@@ -6,13 +6,13 @@ class Pcre < AbstractOsqueryFormula
   url "https://ftp.pcre.org/pub/pcre/pcre-8.40.tar.gz"
   mirror "https://www.mirrorservice.org/sites/downloads.sourceforge.net/p/pc/pcre/pcre/8.40/pcre-8.40.tar.bz2"
   sha256 "1d75ce90ea3f81ee080cdc04e68c9c25a9fb984861a0618be7bbf676b18eda3e"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "53bbde521b2f44ac2ef57fe2595acfce941aafe02d289937b16cdda7a4caa057" => :sierra
-    sha256 "3738d56da99d3d05d54d35253c32b3183922d437083fecb33f96eee0515ad62d" => :x86_64_linux
+    sha256 "ac3137371bd766d83c3a99c165c8c2b0d5dc249b097650f4006c0ca63fc033d6" => :sierra
+    sha256 "65248970cef381a2b511c68004ae5344713bd4fa5fd22c70d06f789efd33586c" => :x86_64_linux
   end
 
   head do

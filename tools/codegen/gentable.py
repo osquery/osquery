@@ -337,6 +337,9 @@ def schema(schema_list):
 
 
 def description(text):
+    if text[-1:] != '.':
+        print(lightred("Table description must end with a period!"))
+        exit(1)
     table.description = text
 
 

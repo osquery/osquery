@@ -29,7 +29,7 @@ osquery>
 The shell accepts a single positional argument and one of the several output modes. If you want to output JSON or CSV values, try:
 
 ```
-$ osqueryi --json "select * from routes where destination = '::1'"
+$ osqueryi --json "SELECT * FROM routes WHERE destination = '::1'"
 [
   {"destination":"::1","flags":"2098181","gateway":"::1","interface":"","metric":"0","mtu":"16384","netmask":"128","source":"","type":"local"}
 ]
@@ -38,7 +38,7 @@ $ osqueryi --json "select * from routes where destination = '::1'"
 You may also pipe a query as *stdin*. The input will be executed on the **osqueryi** shell and must be well-formed SQL or **osqueryi** meta-commands. Note the added ';' to the query when using *stdin*:
 
 ```
-$ echo "select * from routes where destination = '::1';" | osqueryi --json
+$ echo "SELECT * FROM routes WHERE destination = '::1';" | osqueryi --json
 ```
 
 ## Getting help
@@ -83,7 +83,6 @@ CREATE VIRTUAL TABLE routes USING routes(
 );
 
 osquery> PRAGMA table_info(routes);
-
 +-----+-------------+---------+---------+------------+----+
 | cid | name        | type    | notnull | dflt_value | pk |
 +-----+-------------+---------+---------+------------+----+
@@ -105,6 +104,6 @@ $
 The shell does not keep much state or connect to the **osqueryd** daemon.
 If you would like to run queries and log changes to the output or log operating system events, consider deploying a query **schedule** using [osqueryd](using-osqueryd.md).
 
-**Note:** Event publishers are not started by default. To enable event-based tables, use the flag `--disable_events=false`.
+ > Note: Event publishers are not started by default. To enable event-based tables, use the flag `--disable_events=false`.
 
 **osqueryi** uses an in-memory database by default. To connect to an existing events database, use the flag `--database_path=/var/osquery/osquery.db` (only one process may attach to the database; see [Checking the database sanity](../deployment/debugging.md#checking-the-database-sanity)).

@@ -5,12 +5,12 @@ class Libdevmapper < AbstractOsqueryFormula
   homepage "https://www.sourceware.org/dm/"
   url "https://osquery-packages.s3.amazonaws.com/deps/LVM2.2.02.145.tar.gz"
   sha256 "98b7c4c07c485a462c6a86e1a5265757133ceea36289ead8a419af29ef39560b"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "5a9df0067c5e4a5771bb65b1d380f1f27bd072773116838c2bd93025818053e8" => :x86_64_linux
+    sha256 "4e8e6f91ccf203bc96151700b6ce2a15a9ef056af2cfe1c791a37de296c6e596" => :x86_64_linux
   end
 
   def install

@@ -1,5 +1,5 @@
 table_name("memory_info")
-description("Main memory information, in bytes")
+description("Main memory information in bytes.")
 schema([
     Column("memory_total",  BIGINT, "Total amount of physical RAM, in bytes"),
     Column("memory_free", BIGINT, "The amount of physical RAM, in bytes, left unused by the system"),

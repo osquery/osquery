@@ -221,7 +221,11 @@ static inline void openOptimized(sqlite3*& db) {
 #if !defined(FREEBSD)
   registerStringExtensions(db);
 #endif
+#if !defined(SKIP_CARVER)
+  registerOperationExtensions(db);
+#endif
   registerHashingExtensions(db);
+  registerEncodingExtensions(db);
 }
 
 void SQLiteDBInstance::init() {
@@ -232,6 +236,10 @@ void SQLiteDBInstance::init() {
 void SQLiteDBInstance::addAffectedTable(VirtualTableContent* table) {
   // An xFilter/scan was requested for this virtual table.
   affected_tables_.insert(std::make_pair(table->name, table));
+}
+
+bool SQLiteDBInstance::tableCalled(VirtualTableContent* table) {
+  return (affected_tables_.count(table->name) > 0);
 }
 
 TableAttributes SQLiteDBInstance::getAttributes() const {

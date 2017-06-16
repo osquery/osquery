@@ -5,12 +5,12 @@ class BerkeleyDb < AbstractOsqueryFormula
   homepage "https://www.oracle.com/technology/products/berkeley-db/index.html"
   url "http://download.oracle.com/berkeley-db/db-6.1.26.tar.gz"
   sha256 "dd1417af5443f326ee3998e40986c3c60e2a7cfb5bfa25177ef7cadb2afb13a6"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "b402268eb6aee48c1c25385ca1152e226ec811936fd451400f4de3cdf1da27f0" => :x86_64_linux
+    sha256 "918bc7f64a50a3f8a397739e0476f801ef1fa8d734e9a1045975f1c75099c2b9" => :x86_64_linux
   end
 
   option "with-java", "Compile with Java support."
@@ -29,6 +29,8 @@ class BerkeleyDb < AbstractOsqueryFormula
       --mandir=#{man}
       --enable-cxx
       --enable-compat185
+      --disable-shared
+      --enable-static
     ]
     args << "--enable-java" if build.with? "java"
     args << "--enable-sql" if build.with? "sql"

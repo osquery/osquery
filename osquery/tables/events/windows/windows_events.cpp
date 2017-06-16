@@ -68,7 +68,7 @@ void parseTree(const pt::ptree& tree, std::map<std::string, std::string>& res) {
     }
     res[nodeName] = res[nodeName] == ""
                         ? node.second.data()
-                        : res[nodeName] + "\r\n" + node.second.data();
+                        : res[nodeName] + "," + node.second.data();
     parseTree(node.second, res);
   }
 }
@@ -114,7 +114,7 @@ Status WindowsEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   }
 
   std::stringstream ss;
-  boost::property_tree::write_json(ss, jsonOut);
+  boost::property_tree::write_json(ss, jsonOut, false);
   r["data"] = ss.str();
 
   add(r);

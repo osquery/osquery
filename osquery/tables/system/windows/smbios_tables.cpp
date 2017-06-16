@@ -8,7 +8,6 @@
  *
  */
 
-#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/windows/wmi.h"
@@ -44,5 +43,5 @@ QueryData genPlatformInfo(QueryContext& context) {
   results.push_back(r);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
