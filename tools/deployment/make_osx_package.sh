@@ -58,6 +58,7 @@ OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="${OSQUERY_DEPS}/etc/openssl/cert.pem"
 OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST="/private/var/osquery/certs/certs.pem"
 TLS_CERT_CHAIN_DST="/private/var/osquery/tls-server-certs.pem"
 FLAGFILE_DST="/private/var/osquery/osquery.flags"
+OSQUERY_PKG_INCLUDE_DIRS=()
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX="$WORKING_DIR/prefix"
@@ -139,6 +140,9 @@ function parse_args() {
                               ;;
       -t | --cert-chain )     shift
                               TLS_CERT_CHAIN_SRC=$1
+                              ;;
+      -i | --include-dir )    shift
+                              OSQUERY_PKG_INCLUDE_DIRS[${#OSQUERY_PKG_INCLUDE_DIRS}]=$1
                               ;;
       -o | --output )         shift
                               OUTPUT_PKG_PATH=$1
@@ -235,6 +239,13 @@ function main() {
         echo "$POSTINSTALL_AUTOSTART_TEXT" >> $POSTINSTALL
     fi
   fi
+
+  # Copy extra files to the install prefix so that they get packaged too.
+  # NOTE: Files will be overwritten.
+  for include_dir in ${OSQUERY_PKG_INCLUDE_DIRS[*]}; do
+    log "adding $include_dir in the package prefix to be included in the package"
+    cp -fR $include_dir/* $INSTALL_PREFIX/
+  done
 
   log "creating package"
   pkgbuild --root $INSTALL_PREFIX       \
