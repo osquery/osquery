@@ -56,15 +56,11 @@ if (-not (Test-Path $sourceDir)) {
 }
 Set-Location $sourceDir
 
-#$args = @(
-#  'VS2015',
-#  'x64',
-#  'Release',
-#  'v140'
-#)
-#$cmd = Join-Path $(Get-Location) 'build\VS_scripts\build.generic.cmd'
-#Start-Process -FilePath $cmd -ArgumentList $args -NoNewWindow -Wait
-msbuild "build\VS2010\zstd.sln" /verbosity:minimal /nologo /t:Clean,libzstd /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset=v140 /p:AssemblerOutput=NoListing
+$vcxprojLocation = 'build\VS2010\libzstd\libzstd.vcxproj'
+# Patch the AssemblerOutput out of the project
+(Get-Content $vcxprojLocation).replace('<AssemblerOutput>All</AssemblerOutput>', '<AssemblerOutput>NoListing</AssemblerOutput>') | Set-Content $vcxprojLocation
+msbuild "build\VS2010\zstd.sln" /verbosity:minimal /nologo /t:Clean,libzstd /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset=v140
+ 
 
 # Construct the Chocolatey Package
 $chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
