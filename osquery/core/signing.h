@@ -12,13 +12,12 @@
 
 namespace osquery {
 
-const std::string kStrictMode = "strict_mode";
-const std::string kStrictModePublicKey = "public_key";
-const std::string kStrictModeProtectedTables = "protected_tables";
-const std::string kStrictModeProtectedTablesSignature =
-    "protected_tables_signature";
-const std::string kStrictModeUUIDSigning = "uuid_signing";
-const std::string kStrictModeCounterMode = "counter_mode";
+extern const std::string kStrictMode;
+extern const std::string kStrictModePublicKey;
+extern const std::string kStrictModeProtectedTables;
+extern const std::string kStrictModeProtectedTablesSignature;
+extern const std::string kStrictModeUUIDSigning;
+extern const std::string kStrictModeCounterMode;
 
 /*
  * @brief Verify a signature for a message with a given key

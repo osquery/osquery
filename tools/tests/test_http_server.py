@@ -21,7 +21,7 @@ import ssl
 import string
 import sys
 import thread
-import threading 
+import threading
 
 # Create a simple TLS/HTTP server.
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -226,7 +226,13 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
                     sign_str += "\n"+HOST_UUID
                 if COUNTER_MODE:
                     sign_str += "\n"+str(QUERY_COUNTER)
-                sig = base64.standard_b64encode(SIGNING_KEY.sign(sign_str, hashfunc=hashlib.sha256, sigencode=ecdsa.util.sigencode_der))
+                sig = base64.standard_b64encode(
+                    SIGNING_KEY.sign(
+                        sign_str,
+                        hashfunc=hashlib.sha256,
+                        sigencode=ecdsa.util.sigencode_der
+                        )
+                    )
                 signed_distributed['signatures'][query] = sig
                 QUERY_COUNTER += 1
             self._reply(signed_distributed)

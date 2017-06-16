@@ -25,6 +25,14 @@
 
 namespace osquery {
 
+const std::string kStrictMode = "strict_mode";
+const std::string kStrictModePublicKey = "public_key";
+const std::string kStrictModeProtectedTables = "protected_tables";
+const std::string kStrictModeProtectedTablesSignature =
+    "protected_tables_signature";
+const std::string kStrictModeUUIDSigning = "uuid_signing";
+const std::string kStrictModeCounterMode = "counter_mode";
+
 Status verifySignature(const std::string& b64Pub,
                        const std::string& b64Sig,
                        const std::string& message) {

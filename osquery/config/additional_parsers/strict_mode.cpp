@@ -8,18 +8,13 @@
  *
  */
 
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-
 #include <openssl/ecdsa.h>
 #include <openssl/pem.h>
 
 #include <osquery/config.h>
-#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
 #include "osquery/core/signing.h"
-#include "osquery/tables/system/hash.h"
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
@@ -116,25 +111,25 @@ Status StrictModeConfigParserPlugin::update(const std::string& source,
                      old_counter_mode);
 
     if (old_key != b64Pub) {
-      LOG(WARNING) << "Strict mode key changed!";
+      LOG(WARNING) << "Strict mode key changed";
       setDatabaseValue(kPersistentSettings,
                        kStrictMode + "." + kStrictModePublicKey,
                        b64Pub);
     }
     if (old_uuid_signing != uuid_signing) {
-      LOG(WARNING) << "Strict mode uuid_signing requirement changed!";
+      LOG(WARNING) << "Strict mode uuid_signing requirement changed";
       setDatabaseValue(kPersistentSettings,
                        kStrictMode + "." + kStrictModeUUIDSigning,
                        uuid_signing);
     }
     if (old_protected_tables != protected_tables) {
-      LOG(WARNING) << "Strict mode protected tables changed!";
+      LOG(WARNING) << "Strict mode protected tables changed";
       setDatabaseValue(kPersistentSettings,
                        kStrictMode + "." + kStrictModeProtectedTables,
                        protected_tables);
     }
     if (old_counter_mode != counter_mode) {
-      LOG(WARNING) << "Strict mode counter requirement changed!";
+      LOG(WARNING) << "Strict mode counter requirement changed";
       setDatabaseValue(kPersistentSettings,
                        kStrictMode + "." + kStrictModeCounterMode,
                        counter_mode);
