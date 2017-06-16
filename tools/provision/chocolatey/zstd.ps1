@@ -7,7 +7,7 @@
 
 # Update-able metadata
 $version = '1.2.0'
-$chocoVersion = '1.2.0-r2'
+$chocoVersion = '1.2.0-r3'
 $packageName = 'zstd'
 $projectSource = 'https://github.com/facebook/zstd'
 $packageSourceUrl = 'https://github.com/facebook/zstd'
@@ -56,14 +56,15 @@ if (-not (Test-Path $sourceDir)) {
 }
 Set-Location $sourceDir
 
-$args = @(
-  'VS2015',
-  'x64',
-  'Release',
-  'v140'
-)
-$cmd = Join-Path $(Get-Location) 'build\VS_scripts\build.generic.cmd'
-Start-Process -FilePath $cmd -ArgumentList $args -NoNewWindow -Wait
+#$args = @(
+#  'VS2015',
+#  'x64',
+#  'Release',
+#  'v140'
+#)
+#$cmd = Join-Path $(Get-Location) 'build\VS_scripts\build.generic.cmd'
+#Start-Process -FilePath $cmd -ArgumentList $args -NoNewWindow -Wait
+msbuild "build\VS2010\zstd.sln" /verbosity:minimal /nologo /t:Clean,libzstd /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset=v140 /p:AssemblerOutput=NoListing
 
 # Construct the Chocolatey Package
 $chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
@@ -83,7 +84,7 @@ Write-NuSpec `
   $license
 
 Set-Location $sourceDir
-Copy-Item "build\VS_scripts\bin\Release\x64\libzstd_static.lib" $libDir
+Copy-Item "build\VS2010\bin\x64_Release\libzstd_static.lib" $libDir
 Copy-Item -Recurse "lib\zstd.h" $includeDir
 Copy-Item $buildScript $srcDir
 Set-Location 'osquery-choco'
