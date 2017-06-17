@@ -93,15 +93,15 @@ void matchAugeasPattern(augeas* aug,
                         bool use_path = false) {
   // The caller may supply an Augeas PATH/NODE expression or filesystem path.
   // Below we formulate a Augeas pattern from a path if needed.
-  char** matches = nullptr;
-  int len = aug_match(
+  struct aug_node** nodes = nullptr;
+  int len = aug_get_nodes(
       aug,
       (use_path ? ("/files/" + pattern + "|/files" + pattern + "//*").c_str()
                 : pattern.c_str()),
-      &matches);
+      &nodes);
 
   // Handle matching errors.
-  if (matches == nullptr) {
+  if (nodes == nullptr) {
     return;
   } else if (len < 0) {
     reportAugeasError(aug);
@@ -110,40 +110,24 @@ void matchAugeasPattern(augeas* aug,
 
   // Emit a row for each match.
   for (size_t i = 0; i < static_cast<size_t>(len); i++) {
-    if (matches[i] == nullptr) {
+    if (nodes[i] == nullptr) {
       continue;
     }
 
-    // The caller is responsible for the matching memory.
-    std::string node(matches[i]);
-    free(matches[i]);
-
     Row r;
-    const char* value = nullptr;
-    int result = aug_get(aug, node.c_str(), &value);
-    if (result == 1) {
-      r["node"] = node;
-
-      if (value != nullptr) {
-        r["value"] = value;
-      }
-
-      if (!use_path) {
-        r["path"] = getSpanInfo(aug, node, context);
-      } else {
+    r["node"] = std::string(nodes[i]->path);
+    r["value"] = std::string(nodes[i]->value);
+    r["label"] = std::string(nodes[i]->label);
+    if (!use_path) {
+        r["path"] = getSpanInfo(aug, r["node"].c_str(), context);
+    } else {
         r["path"] = pattern;
-      }
-
-      r["label"] = getLabelInfo(aug, node, context);
-
-      results.push_back(r);
-    } else if (result < 1) {
-      reportAugeasError(aug);
     }
+    free(nodes[i]);
   }
 
-  // aug_match() allocates the matches array and expects the caller to free it.
-  free(matches);
+  // aug_get_nodes() allocates the matches array and expects the caller to free it.
+  free(nodes);
 }
 
 QueryData genAugeas(QueryContext& context) {
