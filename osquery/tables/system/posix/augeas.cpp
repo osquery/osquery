@@ -30,37 +30,20 @@ void reportAugeasError(augeas* aug) {
           << error_message;
 }
 
-std::string getSpanInfo(augeas* aug,
-                        const std::string& node,
-                        QueryContext& context) {
+std::string getSource(augeas* aug,
+                      const std::string& node,
+                      QueryContext& context) {
   const auto& index = context.getCache(node);
   if (index.count("filename")) {
     return index.at("filename");
   }
 
   char* filename = nullptr;
-  // Unused for now.
-  unsigned int label_start = 0;
-  unsigned int label_end = 0;
-  unsigned int value_start = 0;
-  unsigned int value_end = 0;
-  unsigned int span_start = 0;
-  unsigned int span_end = 0;
 
-  int result = aug_span(aug,
-                        node.c_str(),
-                        &filename,
-                        &label_start,
-                        &label_end,
-                        &value_start,
-                        &value_end,
-                        &span_start,
-                        &span_end);
+  int result = aug_source(aug, node.c_str(), &filename);
 
   if (result == 0 && filename != nullptr) {
     context.setCache(node, "filename", filename);
-    // aug_span() allocates the filename and expects the caller to free it.
-    free(filename);
     return context.getCache(node).at("filename");
   } else {
     return "";
@@ -129,7 +112,7 @@ void matchAugeasPattern(augeas* aug,
       }
 
       if (!use_path) {
-        r["path"] = getSpanInfo(aug, node, context);
+        r["path"] = getSource(aug, node, context);
       } else {
         r["path"] = pattern;
       }
@@ -147,8 +130,7 @@ void matchAugeasPattern(augeas* aug,
 }
 
 QueryData genAugeas(QueryContext& context) {
-  augeas* aug =
-      aug_init(nullptr, LENSES_PATH, AUG_NO_ERR_CLOSE | AUG_ENABLE_SPAN);
+  augeas* aug = aug_init(nullptr, LENSES_PATH, AUG_NO_ERR_CLOSE);
 
   // Handle initialization errors.
   if (aug == nullptr) {
