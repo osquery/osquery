@@ -16,11 +16,11 @@ DISTRO := $(shell . ./tools/lib.sh; _platform)
 DISTRO_VERSION := $(shell . ./tools/lib.sh; _distro $(DISTRO))
 DARWIN_BUILD := 10.12
 ifeq ($(DISTRO),darwin)
-	BUILD_DIR = darwin$(DISTRO_VERSION)
+	BUILD_NAME = darwin$(DISTRO_VERSION)
 else ifeq ($(DISTRO),freebsd)
-	BUILD_DIR = freebsd$(DISTRO_VERSION)
+	BUILD_NAME = freebsd$(DISTRO_VERSION)
 else
-	BUILD_DIR = $(DISTRO_VERSION)
+	BUILD_NAME = $(DISTRO_VERSION)
 endif
 
 ifneq ($(OSQUERY_DEPS),)
@@ -29,9 +29,41 @@ else
 	DEPS_DIR = /usr/local/osquery
 endif
 
+# This is a hack to support Vagrant and VirtualBox shared folder.
+# LLVM/LLD will use mmap with MAP_SHARED, which is not supported.
+ifeq ($(PLATFORM),Linux)
+	FS_TYPE = $(shell stat --file-system --format=%T $(SOURCE_DIR) 2>&1)
+else
+	FS_TYPE = unknown
+endif
+ifeq ($(FS_TYPE),nfs)
+	BUILD_NAME = shared
+endif
+
+
+ifeq ($(FS_TYPE),nfs)
+	SHARED_DIR = $(shell stat build/shared 2>/dev/null >/dev/null || echo 0)
+ifeq ($(SHARED_DIR),0)
+	DIR = $(shell ln -sf $(shell mktemp -d) build/shared)
+endif
+	DEBUG_SHARED_DIR = $(shell stat build/debug_shared 2>/dev/null >/dev/null || echo 0)
+ifeq ($(DEBUG_SHARED_DIR),0)
+	DEBUG_DIR = $(shell ln -sf $(shell mktemp -d) build/debug_shared)
+endif
+	BUILD_DIR = $(shell realpath build/$(BUILD_NAME))$(DIR)
+	DEBUG_BUILD_DIR = $(shell realpath build/debug_$(BUILD_NAME))$(DEBUG_DIR)
+ifneq (build/$(BUILD_NAME),$(BUILD_DIR))
+	LINK = " \-\> $(BUILD_DIR), $(DEBUG_BUILD_DIR)"
+endif
+else
+	BUILD_DIR := build/$(BUILD_NAME)
+	DEBUG_BUILD_DIR := build/debug_$(BUILD_NAME)
+endif
+
+
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
-CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib" cmake ../../
-CTEST := $(PATH_SET) ctest ../../
+CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib" cmake $(SOURCE_DIR)/
+CTEST := $(PATH_SET) ctest $(SOURCE_DIR)/
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"
 
@@ -41,8 +73,46 @@ DEFINES := CTEST_OUTPUT_ON_FAILURE=1 \
 	suppressions=${ANALYSIS}/lsan.supp" \
 	ASAN_OPTIONS="suppressions=${ANALYSIS}/asan.supp" \
 	TSAN_OPTIONS="suppressions=${ANALYSIS}/tsan.supp,second_deadlock_stack=1"
+ifeq ($@,Makefile)
+	TARGET = ""
+else
+	TARGET = $@
+endif
 
-.PHONY: docs build
+.setup:
+ifneq ($(MAKECMDGOALS),deps)
+ifeq ($(GIT_EXISTS),)
+	@echo "Problem: cannot find 'git'"
+	@false
+endif
+endif
+ifeq ($(BASH_EXISTS),)
+	@echo "Problem: cannot find 'bash'"
+	@false
+endif
+
+ifeq ($(DISTRO),darwin)
+ifneq ($(DISTRO_VERSION),$(DARWIN_BUILD))
+	@echo "-- Warning! The only Apple OS supported for building is $(DARWIN_BUILD)"
+	@echo "-- Note: Installing and running osquery is supported on versions 10.9+"
+endif
+endif
+
+ifeq ($(FS_TYPE),nfs)
+	@echo "-- Requested build on shared (NFS) folder [Issue #3414]: using a temporary build directory"
+	@echo "-- Build directories: $(SOURCE_DIR)/build/{debug_}$(BUILD_NAME)$(LINK)"
+endif
+
+	@mkdir -p build/docs
+ifeq ($(PLATFORM),Linux)
+	@ln -snf $(BUILD_NAME) build/linux
+	@ln -snf debug_$(BUILD_NAME) build/debug_linux
+endif
+ifeq ($(PLATFORM),Darwin)
+	@ln -sfn $(BUILD_NAME) build/darwin
+	@ln -sfn debug_$(BUILD_NAME) build/debug_darwin
+endif
+	@export PYTHONPATH="$DEPS_DIR/lib/python2.7/site-packages"
 
 all: .setup
 ifeq ($(wildcard $(DEPS_DIR)/.*),)
@@ -50,7 +120,13 @@ ifeq ($(wildcard $(DEPS_DIR)/.*),)
 	@echo "-- Have you run: make deps?"
 	@false
 endif
-	@cd build/$(BUILD_DIR) && $(CMAKE) && \
+	@if [ ! -d $(BUILD_DIR) ]; then \
+		echo "The build directory cannot be used: $(BUILD_DIR)"; \
+		echo "Consider: make distclean"; \
+		false; \
+	fi
+
+	@cd $(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 docs: .setup
@@ -63,23 +139,23 @@ format_master:
 	@$(PATH_SET) $(FORMAT_COMMAND)
 
 debug: .setup
-	@cd build/debug_$(BUILD_DIR) && DEBUG=True $(CMAKE) && \
+	@cd $(DEBUG_BUILD_DIR) && DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug: .setup
-	@cd build/debug_$(BUILD_DIR) && DEBUG=True $(CMAKE) && \
+	@cd $(DEBUG_BUILD_DIR) && DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 analyze: .setup
-	@cd build/$(BUILD_DIR) && ANALYZE=True $(CMAKE) && \
+	@cd $(BUILD_DIR) && ANALYZE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 tidy: .setup
-	@cd build/$(BUILD_DIR) && TIDY=True $(CMAKE) && \
+	@cd $(BUILD_DIR) && TIDY=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 sanitize: .setup
-	@cd build/$(BUILD_DIR) && SANITIZE=True $(CMAKE) && \
+	@cd $(BUILD_DIR) && SANITIZE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 fuzz: .setup
@@ -87,19 +163,19 @@ fuzz: .setup
 	@$(PATH_SET) python tools/analysis/fuzz.py
 
 sdk: .setup
-	@cd build/$(BUILD_DIR) && SDK=True $(CMAKE) && \
+	@cd $(BUILD_DIR) && SDK=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_sdk: .setup
-	@cd build/$(BUILD_DIR) && SDK=True $(CMAKE) && \
+	@cd $(BUILD_DIR) && SDK=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 debug_sdk: .setup
-	@cd build/debug_$(BUILD_DIR) && SDK=True DEBUG=True $(CMAKE) && \
+	@cd $(DEBUG_BUILD_DIR) && SDK=True DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_debug_sdk: .setup
-	@cd build/debug_$(BUILD_DIR) && SDK=True DEBUG=True $(CMAKE) && \
+	@cd $(DEBUG_BUILD_DIR) && SDK=True DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 check:
@@ -115,104 +191,77 @@ audit:
 	@tools/audit.sh
 
 debug_build:
-	cd build/debug_$(BUILD_DIR) && \
+	cd $(DEBUG_BUILD_DIR) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
 
 test_build:
-	cd build/$(BUILD_DIR) && \
+	cd $(BUILD_DIR) && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 test_debug_build:
-	cd build/debug_$(BUILD_DIR) && \
+	cd $(DEBUG_BUILD_DIR) && \
 		$(DEFINES) $(MAKE) test --no-print-directory $(MAKEFLAGS)
 
 deps: .setup
-	./tools/provision.sh build $(BUILD_DIR)
+	./tools/provision.sh build $(BUILD_NAME)
 
 sysprep: .setup
-	@SKIP_DISTRO_MAIN=0 ./tools/provision.sh build $(BUILD_DIR)
+	@SKIP_DISTRO_MAIN=0 ./tools/provision.sh build $(BUILD_NAME)
 
 build_deps: .setup
 	@OSQUERY_BUILD_DEPS=1 SKIP_DISTRO_MAIN=1 make deps
 
 clean: .setup
-	@cd build/$(BUILD_DIR) && $(CMAKE) && \
+	@cd $(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) clean --no-print-directory $(MAKEFLAGS)
 
 strip: .setup
-	cd build/$(BUILD_DIR) && find ./osquery -executable -type f | xargs strip
+	cd $(BUILD_DIR) && find ./osquery -executable -type f | xargs strip
 
 distclean:
-	rm -rf .sources build/$(BUILD_DIR) build/debug_$(BUILD_DIR) build/docs build/wiki
+	rm -rf .sources $(BUILD_DIR) $(DEBUG_BUILD_DIR) build/docs build/wiki
 ifeq ($(PLATFORM),Linux)
 	rm -rf build/linux build/debug_linux
 endif
 ifeq ($(PLATFORM),Darwin)
 	rm -rf build/darwin build/debug_darwin
 endif
+ifeq ($(FS_TYPE),nfs)
+	rm -rf build/shared build/debug_shared
+endif
 
 depsclean:
-	./tools/provision.sh clean $(BUILD_DIR)
-
-.setup:
-ifneq ($(MAKECMDGOALS),deps)
-ifeq ($(GIT_EXISTS),)
-	@echo "Problem: cannot find 'git'"
-	@false
-endif
-endif
-ifeq ($(BASH_EXISTS),)
-	@echo "Problem: cannot find 'bash'"
-	@false
-endif
-
-ifeq ($(DISTRO),unknown_version)
-	@echo Unknown, non-Redhat, non-Ubuntu based Linux distro
-	@false
-endif
-ifeq ($(DISTRO),darwin)
-ifneq ($(DISTRO_VERSION),$(DARWIN_BUILD))
-	@echo "-- Warning! The only Apple OS supported for building is $(DARWIN_BUILD)"
-	@echo "-- Note: Installing and running osquery is supported on versions 10.9+"
-endif
-endif
-	@mkdir -p build/docs
-	@mkdir -p build/$(BUILD_DIR)
-	@mkdir -p build/debug_$(BUILD_DIR)
-ifeq ($(PLATFORM),Linux)
-	@ln -snf $(BUILD_DIR) build/linux
-	@ln -snf debug_$(BUILD_DIR) build/debug_linux
-endif
-ifeq ($(PLATFORM),Darwin)
-	@ln -sfn $(BUILD_DIR) build/darwin
-	@ln -sfn debug_$(BUILD_DIR) build/debug_darwin
-endif
-	@export PYTHONPATH="$DEPS_DIR/lib/python2.7/site-packages"
+	./tools/provision.sh clean $(BUILD_NAME)
 
 package: .setup
 	# Alias for packages (do not use CPack)
-	@cd build/$(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
+	@cd $(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) packages/fast --no-print-directory $(MAKEFLAGS)
 
 debug_package: .setup
-	@cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True $(CMAKE) && \
+	@cd $(DEBUG_BUILD_DIR) && DEBUG=True PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
 packages: .setup
-	@cd build/$(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
+	@cd $(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) packages/fast --no-print-directory $(MAKEFLAGS)
 
 debug_packages: .setup
-	@cd build/debug_$(BUILD_DIR) && DEBUG=True PACKAGE=True $(CMAKE) && \
+	@cd $(DEBUG_BUILD_DIR) && DEBUG=True PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) packages --no-print-directory $(MAKEFLAGS)
 
 sync: .setup
-	@cd build/$(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
+	@cd $(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) sync --no-print-directory $(MAKEFLAGS)
 
 test:
-	@cd build/$(BUILD_DIR) && $(DEFINES) $(CTEST)
+	@cd $(BUILD_DIR) && $(DEFINES) $(CTEST)
 
-%::
-	@cd build/$(BUILD_DIR) && $(CMAKE) && \
-		$(DEFINES) $(MAKE) --no-print-directory $@
+.DEFAULT: .setup
+	@if [ ! -d $(BUILD_DIR) ]; then \
+		echo "The build directory cannot be used: $(BUILD_DIR)"; \
+		echo "Consider: make distclean"; \
+		false; \
+	fi
+	@cd $(BUILD_DIR) && $(CMAKE) && \
+		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS) $(MAKECMDGOALS)
