@@ -36,12 +36,9 @@ ifeq ($(PLATFORM),Linux)
 else
 	FS_TYPE = unknown
 endif
+
 ifeq ($(FS_TYPE),nfs)
 	BUILD_NAME = shared
-endif
-
-
-ifeq ($(FS_TYPE),nfs)
 	SHARED_DIR = $(shell stat build/shared 2>/dev/null >/dev/null || echo 0)
 ifeq ($(SHARED_DIR),0)
 	DIR = $(shell ln -sf $(shell mktemp -d) build/shared)
@@ -73,11 +70,7 @@ DEFINES := CTEST_OUTPUT_ON_FAILURE=1 \
 	suppressions=${ANALYSIS}/lsan.supp" \
 	ASAN_OPTIONS="suppressions=${ANALYSIS}/asan.supp" \
 	TSAN_OPTIONS="suppressions=${ANALYSIS}/tsan.supp,second_deadlock_stack=1"
-ifeq ($@,Makefile)
-	TARGET = ""
-else
-	TARGET = $@
-endif
+
 
 .setup:
 ifneq ($(MAKECMDGOALS),deps)
@@ -117,6 +110,9 @@ ifeq ($(PLATFORM),Darwin)
 endif
 	@export PYTHONPATH="$DEPS_DIR/lib/python2.7/site-packages"
 
+	@ln -snf $(SOURCE_DIR)/tools/tests $(BUILD_DIR)/test_data
+	@ln -snf $(SOURCE_DIR)/tools/tests $(DEBUG_BUILD_DIR)/test_data
+
 all: .setup
 ifeq ($(wildcard $(DEPS_DIR)/.*),)
 	@echo "-- Warning! Cannot find dependencies install directory: $(DEPS_DIR)"
@@ -125,12 +121,14 @@ ifeq ($(wildcard $(DEPS_DIR)/.*),)
 endif
 	@if [ ! -d $(BUILD_DIR) ]; then \
 		echo "The build directory cannot be used: $(BUILD_DIR)"; \
-		echo "Consider: make distclean"; \
+		echo "Consider: make distclean; make"; \
 		false; \
 	fi
 
 	@cd $(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
+
+setup: .setup
 
 docs: .setup
 	@mkdir -p docs
@@ -190,7 +188,7 @@ check:
 	@$(PATH_SET) cppcheck --quiet --enable=warning --error-exitcode=1 \
 		-I ./include ./osquery
 
-audit:
+audit: .setup
 	@tools/audit.sh
 
 debug_build:
@@ -257,13 +255,13 @@ sync: .setup
 	@cd $(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) sync --no-print-directory $(MAKEFLAGS)
 
-test:
-	@cd $(BUILD_DIR) && $(DEFINES) $(CTEST)
+test: .setup
+	@cd build/$(BUILD_NAME) && $(DEFINES) $(CTEST)
 
 .DEFAULT: .setup
 	@if [ ! -d $(BUILD_DIR) ]; then \
 		echo "The build directory cannot be used: $(BUILD_DIR)"; \
-		echo "Consider: make distclean"; \
+		echo "Consider: make distclean; make"; \
 		false; \
 	fi
 	@cd $(BUILD_DIR) && $(CMAKE) && \
