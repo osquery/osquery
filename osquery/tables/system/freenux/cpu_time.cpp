@@ -20,8 +20,7 @@ namespace tables {
 
 const std::string kProcStat = "/proc/stat";
 
-std::vector<std::string> procFromFile(const std::string &path) {
-
+std::vector<std::string> procFromFile(const std::string& path) {
   if (!isReadable(path).ok()) {
     return {};
   }
@@ -33,7 +32,7 @@ std::vector<std::string> procFromFile(const std::string &path) {
 
   auto lines = split(content, "\n");
   std::vector<std::string> proc_lines;
-  for (auto &line : lines) {
+  for (auto& line : lines) {
     boost::trim(line);
     if (boost::starts_with(line, "cpu")) {
       proc_lines.push_back(line);
@@ -49,8 +48,7 @@ std::vector<std::string> procFromFile(const std::string &path) {
   return proc_lines;
 }
 
-static void genCpuTimeLine(const std::string &line, QueryData &results) {
-
+static void genCpuTimeLine(const std::string& line, QueryData& results) {
   auto words = osquery::split(line, " ");
   auto num_words = words.size();
 
@@ -81,11 +79,11 @@ static void genCpuTimeLine(const std::string &line, QueryData &results) {
   results.push_back(r);
 }
 
-QueryData genCpuTime(QueryContext &context) {
+QueryData genCpuTime(QueryContext& context) {
   QueryData results;
 
   auto proc_lines = procFromFile(kProcStat);
-  for (const auto &line : proc_lines) {
+  for (const auto& line : proc_lines) {
     genCpuTimeLine(line, results);
   }
 
