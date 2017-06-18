@@ -47,9 +47,9 @@ void genFileInfo(const fs::path& path,
   r["symlink"] = "0";
 
   struct stat file_stat;
-  struct stat link_stat;
 #if !defined(WIN32)
   // On POSIX systems, first check the link state.
+  struct stat link_stat;
   if (lstat(path.string().c_str(), &link_stat) < 0) {
     // Path was not real, had too may links, or could not be accessed.
     return;
@@ -60,7 +60,6 @@ void genFileInfo(const fs::path& path,
 #endif
 
   if (stat(path.string().c_str(), &file_stat)) {
-// Path was not real, had too may links, or could not be accessed.
 #if !defined(WIN32)
     file_stat = link_stat;
 #else
