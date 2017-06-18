@@ -101,6 +101,9 @@ endif
 ifeq ($(FS_TYPE),nfs)
 	@echo "-- Requested build on shared (NFS) folder [Issue #3414]: using a temporary build directory"
 	@echo "-- Build directories: $(SOURCE_DIR)/build/{debug_}$(BUILD_NAME)$(LINK)"
+else
+	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(DEBUG_BUILD_DIR)
 endif
 
 	@mkdir -p build/docs
