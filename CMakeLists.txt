@@ -151,12 +151,12 @@ if(POSIX)
     -pipe
     -fdata-sections
     -ffunction-sections
-    -fvisibility=hidden
-    -fvisibility-inlines-hidden
   )
   if(NOT FREEBSD)
     add_compile_options(
       -Werror=shadow
+      -fvisibility=hidden
+      -fvisibility-inlines-hidden
     )
   endif()
 elseif(WINDOWS)
