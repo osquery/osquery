@@ -29,7 +29,7 @@ namespace osquery {
 namespace tables {
 
 // Maximum number of files per RPM.
-#define MAX_RPM_FILES 2048
+#define MAX_RPM_FILES (64 * 1024)
 
 /**
  * @brief Return a string representation of the RPM tag type.
@@ -163,13 +163,11 @@ QueryData genRpmPackages(QueryContext& context) {
   return results;
 }
 
-QueryData genRpmPackageFiles(QueryContext& context) {
-  QueryData results;
-
+void genRpmPackageFiles(RowYield& yield, QueryContext& context) {
   auto dropper = DropPrivileges::get();
   if (!dropper->dropTo("nobody") && isUserAdmin()) {
     LOG(WARNING) << "Cannot drop privileges for rpm_package_files";
-    return results;
+    return;
   }
 
   // Isolate RPM/package inspection to the canonical: /usr/lib/rpm.
@@ -177,7 +175,7 @@ QueryData genRpmPackageFiles(QueryContext& context) {
 
   if (rpmReadConfigFiles(nullptr, nullptr) != 0) {
     TLOG << "Cannot read RPM configuration files";
-    return results;
+    return;
   }
 
   rpmts ts = rpmtsCreate();
@@ -193,9 +191,16 @@ QueryData genRpmPackageFiles(QueryContext& context) {
   while ((header = rpmdbNextIterator(matches)) != nullptr) {
     rpmtd td = rpmtdNew();
     rpmfi fi = rpmfiNew(ts, header, RPMTAG_BASENAMES, RPMFI_NOHEADER);
+    std::string package_name = getRpmAttribute(header, RPMTAG_NAME, td);
+
     auto file_count = rpmfiFC(fi);
-    if (file_count <= 0 || file_count > MAX_RPM_FILES) {
-      // This package contains no or too many files.
+    if (file_count <= 0) {
+      VLOG(1) << "RPM package " << package_name << " contains 0 files";
+      rpmfiFree(fi);
+      continue;
+    } else if (file_count > MAX_RPM_FILES) {
+      VLOG(1) << "RPM package " << package_name << " contains over "
+              << MAX_RPM_FILES << " files";
       rpmfiFree(fi);
       continue;
     }
@@ -203,8 +208,8 @@ QueryData genRpmPackageFiles(QueryContext& context) {
     // Iterate over every file in this package.
     for (size_t i = 0; rpmfiNext(fi) >= 0 && i < file_count; i++) {
       Row r;
-      r["package"] = getRpmAttribute(header, RPMTAG_NAME, td);
       auto path = rpmfiFN(fi);
+      r["package"] = package_name;
       r["path"] = (path != nullptr) ? path : "";
       auto username = rpmfiFUser(fi);
       r["username"] = (username != nullptr) ? username : "";
@@ -219,7 +224,7 @@ QueryData genRpmPackageFiles(QueryContext& context) {
         r["sha256"] = (digest != nullptr) ? digest : "";
       }
 
-      results.push_back(r);
+      yield(r);
     }
 
     rpmfiFree(fi);
@@ -229,8 +234,6 @@ QueryData genRpmPackageFiles(QueryContext& context) {
   rpmdbFreeIterator(matches);
   rpmtsFree(ts);
   rpmFreeRpmrc();
-
-  return results;
 }
 }
 }

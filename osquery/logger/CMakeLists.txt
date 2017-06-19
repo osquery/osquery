@@ -21,6 +21,11 @@ if(NOT WINDOWS)
   LIST(APPEND OSQUERY_LOGGER_PLUGINS "plugins/bro_logger.cpp")
 endif()
 
+if(LINUX)
+  list(APPEND OSQUERY_LOGGER_PLUGINS "plugins/syslog_logger.cpp")
+  ADD_OSQUERY_TEST_ADDITIONAL("logger/plugins/tests/syslog_logger_tests.cpp")
+endif()
+
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_logger_plugins ${OSQUERY_LOGGER_PLUGINS})
 
 set(OSQUERY_LOGGER_PLUGIN_TESTS

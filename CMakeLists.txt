@@ -145,16 +145,20 @@ if(POSIX)
     -Wformat
     -Wformat-security
     -Werror=format-security
-    -Werror=shadow
     -Wabi-tag
     -fpermissive
     -fstack-protector-all
     -pipe
     -fdata-sections
     -ffunction-sections
-    -fvisibility=hidden
-    -fvisibility-inlines-hidden
   )
+  if(NOT FREEBSD)
+    add_compile_options(
+      -Werror=shadow
+      -fvisibility=hidden
+      -fvisibility-inlines-hidden
+    )
+  endif()
 elseif(WINDOWS)
   add_compile_options(
     /EHsc
@@ -296,6 +300,13 @@ if(DEFINED ENV{SKIP_LLDPD})
 endif()
 if(DEFINED ENV{SKIP_YARA})
   set(SKIP_YARA TRUE)
+endif()
+if(DEFINED ENV{SKIP_CARVER})
+  set(SKIP_CARVER TRUE)
+  # To remove references to carve functionality in sqlite helper functions
+  add_definitions(
+    -DSKIP_CARVER=1
+  )
 endif()
 
 # Similar to the feature skips, there are default-build skips.

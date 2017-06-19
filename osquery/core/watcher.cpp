@@ -236,7 +236,7 @@ void WatcherRunner::start() {
 }
 
 size_t WatcherRunner::delayedTime() const {
-  return Config::get().getStartTime() + FLAGS_watchdog_delay;
+  return Config::getStartTime() + FLAGS_watchdog_delay;
 }
 
 bool WatcherRunner::watch(const PlatformProcess& child) const {
@@ -369,14 +369,16 @@ Status WatcherRunner::isWatcherHealthy(const PlatformProcess& watcher,
 }
 
 QueryData WatcherRunner::getProcessRow(pid_t pid) const {
-#ifdef WIN32
-  pid = (pid == ULONG_MAX) ? -1 : pid;
-#endif
-
   // On Windows, pid_t = DWORD, which is unsigned. However invalidity
   // of processes is denoted by a pid_t of -1. We check for this
-  // by comparing the max value of DWORD, or ULONG_MAX
-  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(pid));
+  // by comparing the max value of DWORD, or ULONG_MAX, and then casting
+  // our query back to an int value, as ULONG_MAX causes boost exceptions
+  // as it's out of the range of an int.
+  int p = pid;
+#ifdef WIN32
+  p = (pid == ULONG_MAX) ? -1 : pid;
+#endif
+  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(p));
 }
 
 Status WatcherRunner::isChildSane(const PlatformProcess& child) const {

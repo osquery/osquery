@@ -8,6 +8,8 @@
  *
  */
 
+#include <chrono>
+#include <stdlib.h>
 #include <string>
 
 #include <osquery/core.h>
@@ -18,6 +20,8 @@
 #include "osquery/extensions/interface.h"
 
 using namespace osquery::extensions;
+
+using chrono_clock = std::chrono::high_resolution_clock;
 
 namespace osquery {
 namespace extensions {
@@ -126,8 +130,13 @@ void ExtensionManagerHandler::registerExtension(
     }
   }
 
+  // srand must be called in the active thread on Windows due to thread saftey
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    std::srand(static_cast<unsigned int>(
+        chrono_clock::now().time_since_epoch().count()));
+  }
   // Every call to registerExtension is assigned a new RouteUUID.
-  RouteUUID uuid = (uint16_t)rand();
+  RouteUUID uuid = static_cast<uint16_t>(rand());
   VLOG(1) << "Registering extension (" << info.name << ", " << uuid
           << ", version=" << info.version << ", sdk=" << info.sdk_version
           << ")";

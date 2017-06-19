@@ -21,7 +21,11 @@
 
 namespace osquery {
 
-std::set<std::string> paths = {};
+/// Global set of requested carve paths.
+static std::set<std::string> kFunctionCarvePaths;
+
+/// Mutex to protect access to carve paths.
+Mutex kFunctionCarveMutex;
 
 DECLARE_bool(carver_disable_function);
 
@@ -35,20 +39,22 @@ static void addCarveFile(sqlite3_context* ctx, int argc, sqlite3_value** argv) {
     return;
   }
 
-  std::string path((char*)sqlite3_value_text(argv[0]));
-  paths.insert(path);
+  WriteLock lock(kFunctionCarveMutex);
+  std::string path((const char*)sqlite3_value_text(argv[0]));
+  kFunctionCarvePaths.insert(path);
 
   sqlite3_result_text(
       ctx, path.c_str(), static_cast<int>(path.size()), SQLITE_TRANSIENT);
 }
 
 static void executeCarve(sqlite3_context* ctx) {
+  WriteLock lock(kFunctionCarveMutex);
   if (!FLAGS_carver_disable_function) {
-    carvePaths(paths);
+    carvePaths(kFunctionCarvePaths);
   } else {
-    LOG(WARNING) << "Carver as a function disabled; nothing carved";
+    LOG(WARNING) << "Carver as a function is disabled";
   }
-  paths.clear();
+  kFunctionCarvePaths.clear();
   sqlite3_result_text(ctx, "Carve Started", 13, SQLITE_TRANSIENT);
 }
 

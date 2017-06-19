@@ -210,7 +210,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
       (pingExtension(FLAGS_extensions_socket).ok()) ? "active" : "inactive";
   r["build_platform"] = STR(OSQUERY_BUILD_PLATFORM);
   r["build_distro"] = STR(OSQUERY_BUILD_DISTRO);
-  r["start_time"] = INTEGER(Config::get().getStartTime());
+  r["start_time"] = INTEGER(Config::getStartTime());
   if (Initializer::isWorker()) {
     r["watcher"] = INTEGER(PlatformProcess::getLauncherProcess()->pid());
   } else {

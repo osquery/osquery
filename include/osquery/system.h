@@ -167,6 +167,7 @@ class Initializer : private boost::noncopyable {
   /// Initialize the osquery watcher, optionally spawn a worker.
   void initWatcher() const;
 
+  /// This pauses the watchdog process until the watcher thread stops.
   void waitForWatcher() const;
 
  private:
