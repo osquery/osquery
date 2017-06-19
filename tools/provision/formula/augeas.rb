@@ -6,7 +6,7 @@ class Augeas < AbstractOsqueryFormula
   url "https://github.com/thedrow/augeas.git",
     :branch => "aug_get_multi"
   version "1.8.0"
-  revision 103
+  revision 104
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"

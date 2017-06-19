@@ -93,15 +93,15 @@ void matchAugeasPattern(augeas* aug,
                         bool use_path = false) {
   // The caller may supply an Augeas PATH/NODE expression or filesystem path.
   // Below we formulate a Augeas pattern from a path if needed.
-  struct aug_node** nodes = nullptr;
+  struct aug_node* node = (aug_node*)malloc(sizeof(aug_node));
   int len = aug_get_nodes(
       aug,
       (use_path ? ("/files/" + pattern + "|/files" + pattern + "//*").c_str()
                 : pattern.c_str()),
-      &nodes);
+      node);
 
   // Handle matching errors.
-  if (nodes == nullptr) {
+  if (node == nullptr) {
     return;
   } else if (len < 0) {
     reportAugeasError(aug);
@@ -109,25 +109,22 @@ void matchAugeasPattern(augeas* aug,
   }
 
   // Emit a row for each match.
-  for (size_t i = 0; i < static_cast<size_t>(len); i++) {
-    if (nodes[i] == nullptr) {
-      continue;
-    }
+  for (aug_node *current_node = node; current_node != nullptr; current_node = current_node->next) {
 
     Row r;
-    r["node"] = std::string(nodes[i]->path);
-    r["value"] = std::string(nodes[i]->value);
-    r["label"] = std::string(nodes[i]->label);
-    if (!use_path) {
-        r["path"] = getSpanInfo(aug, r["node"].c_str(), context);
-    } else {
-        r["path"] = pattern;
+    r["node"] = std::string(node->path);
+    r["value"] = std::string(node->value);
+    r["label"] = std::string(node->label);
+    if (node->filename != nullptr) {
+      r["path"] = std::string(node->filename);
     }
-    free(nodes[i]);
+    else {
+      r["path"] = "";
+    }
   }
 
-  // aug_get_nodes() allocates the matches array and expects the caller to free it.
-  free(nodes);
+  // aug_get_nodes() allocates the matches linked list and expects the caller to free it.
+  aug_free_nodes(node);
 }
 
 QueryData genAugeas(QueryContext& context) {
