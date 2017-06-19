@@ -19,7 +19,6 @@
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
-#include <osquery/distributed.h>
 
 #include "osquery/core/json.h"
 #include "osquery/remote/serializers/json.h"
