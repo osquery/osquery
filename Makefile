@@ -39,11 +39,11 @@ endif
 
 ifeq ($(FS_TYPE),nfs)
 	BUILD_NAME = shared
-	SHARED_DIR = $(shell stat build/shared 2>/dev/null >/dev/null || echo 0)
+	SHARED_DIR = $(shell stat -L build/shared 2>/dev/null >/dev/null || echo 0)
 ifeq ($(SHARED_DIR),0)
 	DIR = $(shell ln -sf $(shell mktemp -d) build/shared)
 endif
-	DEBUG_SHARED_DIR = $(shell stat build/debug_shared 2>/dev/null >/dev/null || echo 0)
+	DEBUG_SHARED_DIR = $(shell stat -L build/debug_shared 2>/dev/null >/dev/null || echo 0)
 ifeq ($(DEBUG_SHARED_DIR),0)
 	DEBUG_DIR = $(shell ln -sf $(shell mktemp -d) build/debug_shared)
 endif
@@ -259,6 +259,7 @@ test: .setup
 	@cd build/$(BUILD_NAME) && $(DEFINES) $(CTEST)
 
 .DEFAULT: .setup
+	@$(MAKE) --no-print-directory $(MAKEFLAGS) setup
 	@if [ ! -d $(BUILD_DIR) ]; then \
 		echo "The build directory cannot be used: $(BUILD_DIR)"; \
 		echo "Consider: make distclean; make"; \
