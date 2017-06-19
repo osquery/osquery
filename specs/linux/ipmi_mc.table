@@ -1,0 +1,31 @@
+table_name("ipmi_mc")
+description("IPMI Management Controller information.")
+schema([
+    Column("name", TEXT, "Name of the MC"),
+    Column("device_id", INTEGER, "Device ID of the MC"),
+    Column("device_revision", INTEGER, "Device revision of the MC"),
+    Column("device_available", INTEGER,
+      "Boolean value indicating whether MC device is available"),
+    Column("firmware_major_version", INTEGER,
+      "Firmware major version of the MC"),
+    Column("firmware_minor_version", INTEGER,
+      "Firmware minor version of the MC"),
+    Column("ipmi_major_version", INTEGER, "IPMI major version of the MC"),
+    Column("ipmi_minor_version", INTEGER, "IPMI minor version of the MC"),
+    Column("iana_manufacturer_id", INTEGER, "IANA manufacturer ID of the MC"),
+    Column("product_id", INTEGER, "Product ID of the MC"),
+    Column("provides_device_sdrs", INTEGER,
+      "Boolean value indicating whether MC provides device SDRs"),
+    Column("chassis_support", INTEGER, "Chassis support of MC"),
+    Column("bridge_support", INTEGER, "Bridge support of MC"),
+    Column("ipmb_event_generator_support", INTEGER, "IPMB event generator support of MC"),
+    Column("ipmb_event_reciever_support", INTEGER, "IPMB event receiver support of MC"),
+    Column("fru_inventory_support", INTEGER, "FRU inventory support of MC"),
+    Column("sel_device_support", INTEGER, "SEL device support of MC"),
+    Column("sdr_respository_support", INTEGER, "SDR repo support of MC"),
+    Column("sensor_device_support", INTEGER, "Sensor device support of MC"),
+    Column("is_active", INTEGER,
+      "Boolean value indicating whether MC is active"),
+    Column("guid", TEXT, "GUID of MC, if available"),
+])
+implementation("linux/ipmi@genIPMIMCs")

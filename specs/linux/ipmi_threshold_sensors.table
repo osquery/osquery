@@ -1,0 +1,12 @@
+table_name("ipmi_threshold_sensors")
+description("IPMI readings for threshold sensors.")
+schema([
+    Column("mc_name", TEXT, "Name of MC sensor belongs to"),
+    Column("mc_id", INTEGER, "ID of MC sensor belongs to"),
+    Column("name", TEXT, "Name of threshold sensor"),
+    Column("value", TEXT, "Value read from sensor"),
+    Column("sensor_type", TEXT, "Name of sensor type"),
+    Column("threshold_out_of_range", INTEGER,
+      "Boolean value indicating whether reading is out-of-range of threshold"),
+])
+implementation("linux/ipmi@genIPMIThresholdSensors")
