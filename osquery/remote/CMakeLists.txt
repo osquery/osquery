@@ -6,8 +6,8 @@ set(OSQUERY_REMOTE
 )
 
 if(NOT WINDOWS)
-  LIST(APPEND OSQUERY_REMOTE "bro/BrokerManager.cpp")
-  LIST(APPEND OSQUERY_REMOTE "bro/QueryManager.cpp")
+  LIST(APPEND OSQUERY_REMOTE "bro/broker_manager.cpp")
+  LIST(APPEND OSQUERY_REMOTE "bro/query_manager.cpp")
   LIST(APPEND OSQUERY_REMOTE "bro/utils.cpp")
 endif()
 

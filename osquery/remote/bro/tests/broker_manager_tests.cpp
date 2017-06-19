@@ -8,11 +8,7 @@
  *
  */
 
-#ifdef WIN32
-#include <windows.h>
-#else
-#include <sys/select.h>
-#endif
+#include <poll.h>
 
 #include <gtest/gtest.h>
 
@@ -23,7 +19,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include "osquery/remote/bro/BrokerManager.h"
+#include "osquery/remote/bro/broker_manager.h"
 
 DECLARE_string(bro_ip);
 DECLARE_uint64(bro_port);
@@ -61,14 +57,9 @@ class BrokerManagerTests : public testing::Test {
 };
 
 void waitForMessage(int fd) {
-  fd_set fds;
-  struct timeval tv;
-  tv.tv_sec = 2;
-  tv.tv_usec = 0;
-  FD_ZERO(&fds);
-  FD_SET(fd, &fds);
-  int select_code = select(fd + 1, &fds, nullptr, nullptr, &tv);
-  EXPECT_TRUE(select_code >= 0);
+  pollfd pfd{fd, POLLIN, 0};
+  int poll_code = poll(&pfd, 1, 2);
+  EXPECT_TRUE(poll_code >= 0);
 }
 
 TEST_F(BrokerManagerTests, test_failestablishconnection) {

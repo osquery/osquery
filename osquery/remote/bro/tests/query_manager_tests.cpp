@@ -15,7 +15,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include "osquery/remote/bro/QueryManager.h"
+#include "osquery/remote/bro/query_manager.h"
 
 DECLARE_string(bro_ip);
 DECLARE_uint64(bro_port);

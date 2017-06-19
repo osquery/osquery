@@ -8,11 +8,7 @@
  *
  */
 
-#ifdef WIN32
-#include <windows.h>
-#else
-#include <sys/select.h>
-#endif
+#include <poll.h>
 
 #include <boost/lexical_cast.hpp>
 
@@ -24,7 +20,7 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
-#include "osquery/remote/bro/BrokerManager.h"
+#include "osquery/remote/bro/broker_manager.h"
 #include "osquery/remote/bro/utils.h"
 
 namespace osquery {
@@ -72,9 +68,9 @@ std::string BrokerManager::getNodeID() {
 }
 
 Status BrokerManager::addGroup(const std::string& group) {
-  Status s_mq = createMessageQueue(TOPIC_PRE_GROUPS + group);
-  if (not s_mq.ok()) {
-    return s_mq;
+  Status s = createMessageQueue(TOPIC_PRE_GROUPS + group);
+  if (not s.ok()) {
+    return s;
   }
   groups_.push_back(group);
   return Status(0, "OK");
@@ -113,7 +109,7 @@ Status BrokerManager::createEndpoint(const std::string& ep_name) {
 
 Status BrokerManager::createMessageQueue(const std::string& topic) {
   if (ep_ == nullptr) {
-    return Status(2, "Broker Endpoint does not exist");
+    return Status(1, "Broker Endpoint does not exist");
   }
 
   if (messageQueues_.count(topic) != 0) {
@@ -159,37 +155,35 @@ Status BrokerManager::peerEndpoint(const std::string& ip,
   }
 
   if (p_ != nullptr) {
-    return Status(2, "Broker conenction already established");
+    return Status(1, "Broker conenction already established");
   }
 
   p_ = std::make_unique<broker::peering>(ep_->peer(ip, port));
 
   // Wait for message
-  fd_set fds;
-  FD_ZERO(&fds);
-  int fd = ep_->outgoing_connection_status().fd();
-  FD_SET(fd, &fds);
-
-  struct timeval tv;
-  tv.tv_sec = timeout;
-  tv.tv_usec = 0;
-
-  int select_code;
-  if (timeout >= 0) {
-    select_code = select(fd + 1, &fds, nullptr, nullptr, &tv);
-  } else {
-    select_code = select(fd + 1, &fds, nullptr, nullptr, nullptr);
+  pollfd pfd{ep_->outgoing_connection_status().fd(), POLLIN, 0};
+  int poll_code = poll(&pfd, 1, timeout);
+  if (poll_code < 0) {
+    return Status(1, "poll error returned connecting to bro endpoint");
   }
 
-  if (select_code < 0) {
-    return Status(6, "Select error returned connecting to bro endpoint");
+  if (poll_code == 0) {
+    return Status(1, "Connecting to bro endpoint timed out");
   }
 
-  if (select_code == 0) {
-    return Status(3, "Connecting to bro endpoint timed out");
+  broker::outgoing_connection_status::tag status;
+  Status s = getOutgoingConnectionStatusChange(status, false);
+  if (!s.ok()) {
+    return s;
+  }
+  if (status == broker::outgoing_connection_status::tag::incompatible) {
+    return Status(1, "Cannot peer because broker versions are incompatible");
+  }
+  if (status == broker::outgoing_connection_status::tag::disconnected) {
+    return Status(1, "Cannot peer because broker connection was disconnected");
   }
 
-  return getOutgoingConnectionStatusChange(false);
+  return Status(0, "OK");
 }
 
 Status BrokerManager::unpeer() {
@@ -198,8 +192,10 @@ Status BrokerManager::unpeer() {
 
     p_ = nullptr;
 
-    Status s_disconn = getOutgoingConnectionStatusChange(false);
-    if (s_disconn.getCode() != 1) {
+    broker::outgoing_connection_status::tag status;
+    Status s = getOutgoingConnectionStatusChange(status, false);
+    if (s.getCode() == 1 or
+        status != broker::outgoing_connection_status::tag::disconnected) {
       return Status(1, "Unable to disconnect broker connection");
     }
   }
@@ -207,7 +203,8 @@ Status BrokerManager::unpeer() {
   return Status(0, "OK");
 }
 
-Status BrokerManager::getOutgoingConnectionStatusChange(bool block) {
+Status BrokerManager::getOutgoingConnectionStatusChange(
+    broker::outgoing_connection_status::tag& status, bool block) {
   std::deque<broker::outgoing_connection_status> conn_status;
   if (block) {
     conn_status = ep_->outgoing_connection_status().need_pop();
@@ -215,7 +212,7 @@ Status BrokerManager::getOutgoingConnectionStatusChange(bool block) {
     conn_status = ep_->outgoing_connection_status().want_pop();
   }
   if (conn_status.size() < 1) {
-    return Status(7, "Connecting to bro endpoint timed out");
+    return Status(1, "Connecting to bro endpoint timed out");
   }
 
   if (conn_status.size() > 1) {
@@ -223,20 +220,8 @@ Status BrokerManager::getOutgoingConnectionStatusChange(bool block) {
   }
 
   // conn_status.size() == 1
-  auto last_status = conn_status.back().status;
-  if (last_status == broker::outgoing_connection_status::tag::established) {
-    return Status(0, "OK");
-  }
-
-  if (last_status == broker::outgoing_connection_status::tag::disconnected) {
-    return Status(1, "Broker connection is disconnected");
-  }
-
-  if (last_status == broker::outgoing_connection_status::tag::incompatible) {
-    return Status(2, "Broker endpoint is incompatible");
-  }
-
-  return Status(9, "Unknown connection Status");
+  status = conn_status.back().status;
+  return Status(0, "OK");
 }
 
 Status BrokerManager::announce() {
@@ -250,7 +235,7 @@ Status BrokerManager::announce() {
   broker::vector addr_list;
   SQL sql("SELECT address from interface_addresses");
   if (!sql.ok()) {
-    return Status(4, "Failed to retrieve interface addresses");
+    return Status(1, "Failed to retrieve interface addresses");
   }
   for (const auto& row : sql.rows()) {
     const auto& if_mac = row.at("address");
@@ -263,9 +248,9 @@ Status BrokerManager::announce() {
                                                 broker::data(getNodeID()),
                                                 broker::data(group_list),
                                                 broker::data(addr_list)};
-  Status s_send = sendEvent(TOPIC_ANNOUNCE, announceMsg);
-  if (!s_send.ok()) {
-    return s_send;
+  Status s = sendEvent(TOPIC_ANNOUNCE, announceMsg);
+  if (!s.ok()) {
+    return s;
   }
 
   return Status(0, "OK");
@@ -326,33 +311,33 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
   // Create message for each row
   bool parse_err = false;
   for (const auto& element : rows) {
-    try {
-      // Get row and trigger
-      const auto& row = std::get<0>(element);
-      const auto& trigger = std::get<1>(element);
+    // Get row and trigger
+    const auto& row = std::get<0>(element);
+    const auto& trigger = std::get<1>(element);
 
-      // Set event name, uid and trigger
-      broker::message msg;
-      msg.push_back(event_name);
-      broker::record result_info(
-          {broker::record::field(broker::data(uid)),
-           broker::record::field(
-               broker::data(broker::enum_value{"osquery::" + trigger})),
-           broker::record::field(
-               broker::data(QueryManager::get().getEventCookie(queryID)))});
-      msg.push_back(broker::data(result_info));
+    // Set event name, uid and trigger
+    broker::message msg;
+    msg.push_back(event_name);
+    broker::record result_info(
+        {broker::record::field(broker::data(uid)),
+         broker::record::field(
+             broker::data(broker::enum_value{"osquery::" + trigger})),
+         broker::record::field(
+             broker::data(QueryManager::get().getEventCookie(queryID)))});
+    msg.push_back(broker::data(result_info));
 
-      // Format each column
-      for (const auto& t : columns) {
-        const auto& colName = std::get<0>(t);
-        if (row.count(colName) != 1) {
-          LOG(ERROR) << "Column '" << colName
-                     << "' not present in results for '" << event_name << "'";
-          parse_err = true;
-          break;
-        }
-        const auto& value = row.at(colName);
+    // Format each column
+    for (const auto& t : columns) {
+      const auto& colName = std::get<0>(t);
+      if (row.count(colName) != 1) {
+        LOG(ERROR) << "Column '" << colName << "' not present in results for '"
+                   << event_name << "'";
+        parse_err = true;
+        break;
+      }
+      const auto& value = row.at(colName);
 
+      try {
         switch (columnTypes.at(colName)) {
         case ColumnType::UNKNOWN_TYPE: {
           LOG(WARNING) << "Sending unknown column type for column '" + colName +
@@ -392,13 +377,17 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
           continue;
         }
         }
+      } catch (const boost::bad_lexical_cast& e) {
+        LOG(ERROR) << "Skip result for query ID '" << queryID
+                   << "' because value '" << value << "' (Column: " << colName
+                   << ") cannot be parsed as '"
+                   << kColumnTypeNames.at(columnTypes.at(colName)) << '"';
+        break;
       }
-
-      // Send event message
-      sendEvent(topic, msg);
-    } catch (const boost::bad_lexical_cast& e) {
-      LOG(ERROR) << "Unable to parse result as message because " << e.what();
     }
+
+    // Send event message
+    sendEvent(topic, msg);
   }
 
   if (parse_err) {

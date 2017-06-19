@@ -15,13 +15,13 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include "osquery/remote/bro/QueryManager.h"
+#include "osquery/remote/bro/query_manager.h"
 
 namespace osquery {
 
 Status QueryManager::reset() {
   // Reset next QueryID
-  nextUID_ = 1;
+  // nextUID_ = 1;
 
   std::vector<std::string> queryIDs = getQueryIDs();
 
@@ -39,30 +39,6 @@ Status QueryManager::reset() {
     std::string qType;
     findQueryAndType(queryID, qType, query);
     removeQueryEntry(query);
-  }
-
-  if (nextUID_ != 1) {
-    return Status(1, "nextUID is not 1");
-  }
-
-  if (scheduleQueries_.size() != 0) {
-    return Status(1, "scheduleQueries is not empty");
-  }
-
-  if (oneTimeQueries_.size() != 0) {
-    return Status(1, "oneTimeQueries is not empty");
-  }
-
-  if (eventCookies_.size() != 0) {
-    return Status(1, "eventCookies is not empty");
-  }
-
-  if (eventNames_.size() != 0) {
-    return Status(1, "eventNames is not empty");
-  }
-
-  if (eventTopics_.size() != 0) {
-    return Status(1, "eventTopics is not empty");
   }
 
   return Status(0, "OK");

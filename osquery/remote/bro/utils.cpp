@@ -104,7 +104,7 @@ Status createSubscriptionRequest(const std::string& rType,
 
   // If one-time query
   if (rType == "EXECUTE") {
-    if (sr.added or sr.removed or !sr.snapshot) {
+    if (sr.added || sr.removed || !sr.snapshot) {
       LOG(WARNING) << "Only possible to query SNAPSHOT for one-time queries";
     }
     return Status(0, "OK");

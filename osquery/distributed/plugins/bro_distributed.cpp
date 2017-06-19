@@ -7,14 +7,9 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
-// clang-format off
-// This must be here to prevent a WinSock.h exists error
-#include "osquery/remote/transports/tls.h"
-// clang-format on
-
-#include <vector>
+#include <poll.h>
 #include <sstream>
+#include <vector>
 
 #include <boost/property_tree/ptree.hpp>
 
@@ -30,8 +25,8 @@
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"
 
-#include "osquery/remote/bro/BrokerManager.h"
-#include "osquery/remote/bro/QueryManager.h"
+#include "osquery/remote/bro/broker_manager.h"
+#include "osquery/remote/bro/query_manager.h"
 #include "osquery/remote/bro/utils.h"
 
 namespace pt = boost::property_tree;
@@ -65,36 +60,35 @@ Status BRODistributedPlugin::setUp() {
   BrokerManager& bm = BrokerManager::get();
 
   // Subscribe to all and individual topic
-  Status s_mq_all = bm.createMessageQueue(bm.TOPIC_ALL);
-  if (!s_mq_all.ok()) {
-    return s_mq_all;
+  auto s = bm.createMessageQueue(bm.TOPIC_ALL);
+  if (!s.ok()) {
+    return s;
   }
-  Status s_mq_indi =
-      bm.createMessageQueue(bm.TOPIC_PRE_INDIVIDUALS + bm.getNodeID());
-  if (!s_mq_indi.ok()) {
-    return s_mq_indi;
+  s = bm.createMessageQueue(bm.TOPIC_PRE_INDIVIDUALS + bm.getNodeID());
+  if (!s.ok()) {
+    return s;
   }
 
   // Set Broker groups and subscribe to group topics
-  Status s_groups = parseBrokerGroups(FLAGS_bro_groups, startup_groups_);
-  if (!s_groups.ok()) {
-    return s_groups;
+  s = parseBrokerGroups(FLAGS_bro_groups, startup_groups_);
+  if (!s.ok()) {
+    return s;
   }
   for (const auto& g : startup_groups_) {
     bm.addGroup(g);
   }
 
   // Connect to Bro
-  auto status_broker = bm.peerEndpoint(FLAGS_bro_ip, FLAGS_bro_port);
-  if (!status_broker.ok()) {
-    return status_broker;
+  s = bm.peerEndpoint(FLAGS_bro_ip, FLAGS_bro_port);
+  if (!s.ok()) {
+    return s;
   }
   VLOG(1) << "Broker connection established";
 
   // Send announce message
-  auto status_announce = bm.announce();
-  if (!status_announce.ok()) {
-    return status_announce;
+  s = bm.announce();
+  if (!s.ok()) {
+    return s;
   }
 
   return Status(0, "OK");
@@ -107,8 +101,8 @@ inline Status processMessage(const broker::message& msg,
   QueryManager& qm = QueryManager::get();
 
   // Check Event Type
-  if (msg.size() < 1 or !broker::is<std::string>(msg[0])) {
-    return Status(3, "No or invalid event name when processing message");
+  if (msg.size() < 1 || !broker::is<std::string>(msg[0])) {
+    return Status(1, "No or invalid event name when processing message");
   }
   std::string eventName = *broker::get<std::string>(msg[0]);
   LOG(INFO) << "Received event '" << eventName << "' on topic '" << topic
@@ -121,7 +115,7 @@ inline Status processMessage(const broker::message& msg,
     createSubscriptionRequest("EXECUTE", msg, topic, sr);
     std::string newQID = qm.addOneTimeQueryEntry(sr);
     if (newQID.empty()) {
-      return Status(8, "Unable to add Broker Query Entry");
+      return Status(1, "Unable to add Broker Query Entry");
     }
     DistributedQueryRequest dqr;
     dqr.id = newQID;
@@ -162,16 +156,15 @@ inline Status processMessage(const broker::message& msg,
       return s_unsub;
     }
 
-  } else if (eventName == "osquery::host_test") {
   } else {
     // Unkown Message
-    return Status(7, "Unknown event name '" + eventName + "'");
+    return Status(1, "Unknown event name '" + eventName + "'");
   }
 
   // Apply to new config/schedule
   std::map<std::string, std::string> config_schedule;
   config_schedule["bro"] = qm.getQueryConfigString();
-  VLOG(1) << "Applying new schedule: " << config_schedule["bro"];
+  VLOG(1) << "Applying new schedule by bro_distributed";
   Config::get().update(config_schedule);
 
   return Status(0, "OK");
@@ -179,48 +172,55 @@ inline Status processMessage(const broker::message& msg,
 
 Status BRODistributedPlugin::getQueries(std::string& json) {
   BrokerManager& bm = BrokerManager::get();
+  Status s;
 
   // Collect file descriptors of the broker message queues
-  fd_set fds;
-  FD_ZERO(&fds);
   std::vector<std::string> topics = bm.getTopics(); // List of subscribed topics
-  int sMax = 0;
   // Retrieve info about each message queue
-  for (const auto& topic : topics) {
-    int sock = bm.getMessageQueue(topic)->fd();
-    if (sock > sMax) {
-      sMax = sock;
-    }
-    FD_SET(sock, &fds); // each topic -> message_queue -> fd
+  // TODO is this smart pointer? Should be safe for unique_ptr
+  // https://stackoverflow.com/questions/6713484/smart-pointers-and-arrays
+  // https://stackoverflow.com/questions/13061979/shared-ptr-to-an-array-should-it-be-used
+  std::unique_ptr<pollfd[]> fds(new pollfd[topics.size() + 1]);
+  for (unsigned long i = 0; i < topics.size(); i++) {
+    fds[i] =
+        pollfd{bm.getMessageQueue(topics.at(i))->fd(), POLLIN | POLLERR, 0};
   }
   // Append the connection status file descriptor to detect connection failures
-  FD_SET(bm.getOutgoingConnectionFD(), &fds);
-  sMax = std::max(sMax, bm.getOutgoingConnectionFD());
+  fds[topics.size()] =
+      pollfd{bm.getOutgoingConnectionFD(), POLLIN | POLLERR, 0};
+  assert(bm.getOutgoingConnectionFD() > 0);
 
   // Wait for incoming message
-  int select_code = select(sMax + 1, &fds, nullptr, nullptr, nullptr);
-  // Select interrupted for another reason than incoming message or timeout
-  if (select_code < 0) {
-    return Status(
-        5, "Select returned the error code: " + std::to_string(select_code));
-  }
+  // TODO is this allowed?
+  poll(fds.get(), topics.size() + 1, -1);
 
   // Collect OneTime Queries
   std::vector<DistributedQueryRequest> oT_queries;
 
   // Check for the socket where a message arrived on
-  for (const auto& topic : topics) {
+  for (unsigned long i = 0; i < topics.size(); i++) {
+    if (fds[i].revents == 0) {
+      // Nothing to do for this socket
+      continue;
+    }
+    const auto& topic = topics.at(i);
+
+    if ((fds[i].revents & POLLERR) == POLLERR) {
+      // Error on this socket
+      LOG(ERROR) << "Poll error on fd of queue for topic '" << topic << "'";
+      continue;
+    }
+
+    // fds[i].revents == POLLIN
     std::shared_ptr<broker::message_queue> queue = bm.getMessageQueue(topic);
-    if (FD_ISSET(queue->fd(), &fds)) {
-      // Process each message on this socket
-      for (const auto& msg : queue->want_pop()) {
-        // Directly updates the daemon schedule if requested
-        // Returns one time queries otherwise
-        Status s_msg = processMessage(msg, topic, oT_queries);
-        if (!s_msg.ok()) {
-          LOG(ERROR) << s_msg.getMessage();
-          return s_msg;
-        }
+    // Process each message on this socket
+    for (const auto& msg : queue->want_pop()) {
+      // Directly updates the daemon schedule if requested
+      // Returns one time queries otherwise
+      s = processMessage(msg, topic, oT_queries);
+      if (!s.ok()) {
+        LOG(ERROR) << s.getMessage();
+        continue;
       }
     }
   }
@@ -236,17 +236,22 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   request.add_child("queries", request_queries);
 
   pt::ptree params;
-  Status s_serial = JSONSerializer{}.serialize(request, json);
-  if (!s_serial.ok()) {
-    LOG(ERROR) << s_serial.getMessage();
-    return s_serial;
+  s = JSONSerializer{}.serialize(request, json);
+  if (!s.ok()) {
+    LOG(ERROR) << s.getMessage();
+    return s;
   }
 
   // Check for connection failure - wait until connection is repaired
-  if (FD_ISSET(bm.getOutgoingConnectionFD(), &fds)) {
+  if ((fds[topics.size()].revents & POLLERR) == POLLERR) {
+    LOG(ERROR) << "Poll error on the broker connection fd";
+  }
+
+  if (fds[topics.size()].revents != 0) {
     LOG(WARNING) << "Broker connection disconnected";
     // Connection was/is lost - Retrieve the latest connection status
-    Status s_status = bm.getOutgoingConnectionStatusChange(true);
+    broker::outgoing_connection_status::tag conn_status;
+    s = bm.getOutgoingConnectionStatusChange(conn_status, true);
 
     // Reset config/schedule
     std::map<std::string, std::string> config_schedule;
@@ -263,16 +268,18 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
     }
 
     // Wait for connection to be re-established
-    while (s_status.getCode() != 0) {
+    while (!s.ok() &&
+           conn_status !=
+               broker::outgoing_connection_status::tag::established) {
       LOG(WARNING) << "Trying to re-establish broker connection...";
-      s_status = bm.getOutgoingConnectionStatusChange(true);
+      s = bm.getOutgoingConnectionStatusChange(conn_status, true);
     }
 
     // Send announce message
-    auto status_announce = bm.announce();
-    if (!status_announce.ok()) {
-      LOG(ERROR) << status_announce.getMessage();
-      return status_announce;
+    s = bm.announce();
+    if (!s.ok()) {
+      LOG(ERROR) << s.getMessage();
+      return s;
     }
   }
 
@@ -284,9 +291,9 @@ Status BRODistributedPlugin::writeResults(const std::string& json) {
 
   // Put query results into a pt
   pt::ptree params;
-  Status s_deserial = JSONSerializer{}.deserialize(json, params);
-  if (!s_deserial.ok()) {
-    return s_deserial;
+  Status s = JSONSerializer{}.deserialize(json, params);
+  if (!s.ok()) {
+    return s;
   }
 
   // For each query
@@ -325,9 +332,9 @@ Status BRODistributedPlugin::writeResults(const std::string& json) {
     std::string json_str;
     serializeQueryLogItemJSON(item, json_str);
     PluginRequest request = {{"snapshot", json_str}, {"category", "event"}};
-    auto status_call = Registry::call(registry_name, item_name, request);
-    if (!status_call.ok()) {
-      return status_call;
+    s = Registry::call(registry_name, item_name, request);
+    if (!s.ok()) {
+      return s;
     }
   }
 

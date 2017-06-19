@@ -96,7 +96,8 @@ class BrokerManager : private boost::noncopyable {
 
   Status peerEndpoint(const std::string& ip, int port, int timeout = -1);
 
-  Status getOutgoingConnectionStatusChange(bool block = false);
+  Status getOutgoingConnectionStatusChange(
+      broker::outgoing_connection_status::tag& status, bool block = false);
 
   Status announce();
 

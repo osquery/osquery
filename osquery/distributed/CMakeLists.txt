@@ -7,7 +7,7 @@ SET(OSQUERY_DISTRIBUTED_PLUGINS
 )
 
 if(NOT WINDOWS)
-    LIST(APPEND OSQUERY_DISTRIBUTED_PLUGINS "plugins/bro_distributed.cpp")
+  LIST(APPEND OSQUERY_DISTRIBUTED_PLUGINS "plugins/bro_distributed.cpp")
 endif()
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_distributed_plugins ${OSQUERY_DISTRIBUTED_PLUGINS})
