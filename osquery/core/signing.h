@@ -58,4 +58,5 @@ Status verifyQuerySignature(const std::string& b64Sig,
  * @return True if any table is protected, false otherwise
  */
 bool doesQueryRequireSignature(const std::string& query);
+
 }

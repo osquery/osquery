@@ -23,6 +23,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/process.h"
+#include "osquery/core/signing.h"
 
 namespace osquery {
 
@@ -30,6 +31,14 @@ DECLARE_bool(disable_logging);
 DECLARE_bool(disable_events);
 
 namespace tables {
+
+const std::string kStrictMode;
+const std::string kStrictModePublicKey;
+const std::string kStrictModeProtectedTables;
+const std::string kStrictModeProtectedTablesSignature;
+const std::string kStrictModeUUIDSigning;
+const std::string kStrictModeCounterMode;
+
 
 QueryData genOsqueryEvents(QueryContext& context) {
   QueryData results;
@@ -269,14 +278,14 @@ QueryData genOsqueryStrictMode(QueryContext& context) {
   std::string query_counter;
   std::string counter_mode;
   std::string enabled;
-  getDatabaseValue(kPersistentSettings, "strict_mode_enabled", enabled);
-  getDatabaseValue(kPersistentSettings, "strict_mode_pub_key", strict_mode_key);
+  getDatabaseValue(kPersistentSettings, kStrictMode + ".enabled", enabled);
+  getDatabaseValue(kPersistentSettings, kStrictMode + "." + kStrictModePublicKey, strict_mode_key);
   getDatabaseValue(
-      kPersistentSettings, "strict_mode_uuid_signing", uuid_signing);
+      kPersistentSettings, kStrictMode + "." + kStrictModeUUIDSigning, uuid_signing);
   getDatabaseValue(
-      kPersistentSettings, "strict_mode_query_counter", query_counter);
+      kPersistentSettings, kStrictMode + ".query_counter", query_counter);
   getDatabaseValue(
-      kPersistentSettings, "strict_mode_counter_mode", counter_mode);
+      kPersistentSettings, kStrictMode + "." + kStrictModeCounterMode, counter_mode);
   unsigned long counter;
   safeStrtoul(query_counter, 10, counter);
   Row r;
