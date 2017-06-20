@@ -1,5 +1,5 @@
 table_name("md_devices")
-description("Software RAID array settings")
+description("Software RAID array settings.")
 schema([
     Column("device_name", TEXT, "md device name"),
     Column("status", TEXT, "Current state of the array"),

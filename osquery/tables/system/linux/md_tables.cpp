@@ -80,7 +80,7 @@ static inline void getLines(std::vector<std::string>& lines) {
  *
  */
 void walkUdevDevices(const std::string& systemName,
-                     const std::function<bool(udev_device* const&)>& f) {
+                     std::function<bool(udev_device* const&)> f) {
   auto delUdev = [](udev* u) { udev_unref(u); };
   std::unique_ptr<udev, decltype(delUdev)> handle(udev_new(), delUdev);
   if (handle.get() == nullptr) {
@@ -374,6 +374,36 @@ void parseMDBitmap(const std::string& line, MDBitmap& result) {
   }
 }
 
+/*
+ * @brief Handles checkArrays, resyncs, reshapes, bitmap lines of mdstat
+ *
+ * @param lines mdstat file represented as vector of lines
+ * @param n ref to current line number; works on line n + 1
+ * @param searchTerm search term to determine line should be handled
+ * @param handleFunc function to execute when search term is found and line is
+ * extracted
+ *
+ * @return bool indicating whether a line for the searchTerm was found in the
+ * line n + 1 and handleFunc was executed, increments param n to n + 1
+ */
+static inline bool handleMDStatuses(
+    const std::vector<std::string>& lines,
+    size_t& n,
+    const std::string& searchTerm,
+    std::function<void(const std::string& line)> handleFunc) {
+  std::size_t pos = lines[n + 1].find(searchTerm);
+  if (pos != std::string::npos) {
+    std::string line(lines[n + 1].substr(pos + searchTerm.length()));
+    boost::algorithm::trim(line);
+    handleFunc(line);
+    // Add an extra line for next iteration if so..
+    n += 1;
+    return true;
+  }
+
+  return false;
+}
+
 MDDrive parseMDDrive(const std::string& name) {
   MDDrive drive;
   drive.name = name;
@@ -477,58 +507,52 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
       n += 1;
 
       // Handle potential bitmap, recovery, and resync lines
-      std::size_t pos;
       while (n < lines.size() - 1) {
-        if ((pos = lines[n + 1].find("recovery =")) != std::string::npos) {
-          std::string recovery(
-              lines[n + 1].substr(pos + sizeof("recovery =") - 1));
-          boost::algorithm::trim(recovery);
-          parseMDAction(recovery, mdd.recovery);
-          // Add an extra line for next iteration if so..
-          n += 1;
-
-        } else if ((pos = lines[n + 1].find("resync =")) != std::string::npos) {
-          std::string resync(lines[n + 1].substr(pos + sizeof("resync =") - 1));
-          boost::algorithm::trim(resync);
-          parseMDAction(resync, mdd.resync);
-          // Add an extra line for next iteration if so..
-          n += 1;
-
-        } else if ((pos = lines[n + 1].find("resync=")) != std::string::npos) {
-          // If in this format, it's generally signaling a progress delay
-          mdd.resync.progress =
-              lines[n + 1].substr(pos + sizeof("resync=") - 1);
-          boost::algorithm::trim(mdd.resync.progress);
-          // Add an extra line for next iteration if so..
-          n += 1;
-
-        } else if ((pos = lines[n + 1].find("reshape =")) !=
-                   std::string::npos) {
-          std::string reshape(
-              lines[n + 1].substr(pos + sizeof("reshape =") - 1));
-          boost::algorithm::trim(reshape);
-          parseMDAction(reshape, mdd.reshape);
-          // Add an extra line for next iteration if so..
-          n += 1;
-
-        } else if ((pos = lines[n + 1].find("check =")) != std::string::npos) {
-          std::string checkArray(
-              lines[n + 1].substr(pos + sizeof("check =") - 1));
-          boost::algorithm::trim(checkArray);
-          parseMDAction(checkArray, mdd.checkArray);
-          // Add an extra line for next iteration if so..
-          n += 1;
-
-        } else if ((pos = lines[n + 1].find("bitmap:")) != std::string::npos) {
-          std::string bitmap(lines[n + 1].substr(pos + sizeof("bitmap:") - 1));
-          boost::algorithm::trim(bitmap);
-          parseMDBitmap(bitmap, mdd.bitmap);
-          // Add an extra line for next iteration if so..
-          n += 1;
-          // If none of above, then we can break out of loop
-        } else {
-          break;
+        if (handleMDStatuses(
+                lines, n, "recovery =", [&mdd](const std::string& line) {
+                  parseMDAction(line, mdd.recovery);
+                })) {
+          continue;
         }
+
+        if (handleMDStatuses(
+                lines, n, "resync =", [&mdd](const std::string& line) {
+                  parseMDAction(line, mdd.resync);
+                })) {
+          continue;
+        }
+
+        // If in this format, it's generally signaling a progress delay
+        if (handleMDStatuses(
+                lines, n, "resync=", [&mdd](const std::string& line) {
+                  mdd.resync.progress = line;
+                })) {
+          continue;
+        }
+
+        if (handleMDStatuses(
+                lines, n, "reshape =", [&mdd](const std::string& line) {
+                  parseMDAction(line, mdd.reshape);
+                })) {
+          continue;
+        }
+
+        if (handleMDStatuses(
+                lines, n, "check =", [&mdd](const std::string& line) {
+                  parseMDAction(line, mdd.checkArray);
+                })) {
+          continue;
+        }
+
+        if (handleMDStatuses(
+                lines, n, "bitmap:", [&mdd](const std::string& line) {
+                  parseMDBitmap(line, mdd.bitmap);
+                })) {
+          continue;
+        }
+
+        // If none of above, then we can break out of loop
+        break;
       }
 
       result.devices.push_back(mdd);

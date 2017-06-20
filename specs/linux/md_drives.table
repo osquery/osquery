@@ -1,5 +1,5 @@
 table_name("md_drives")
-description("Drive devices used for Software RAID")
+description("Drive devices used for Software RAID.")
 schema([
     Column("md_device_name", TEXT, "md device name"),
     Column("drive_name", TEXT, "Drive device name"),

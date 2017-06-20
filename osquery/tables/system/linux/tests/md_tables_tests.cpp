@@ -806,6 +806,7 @@ TEST_F(ParseMDStatTest, 2_devices_1_recovery) {
   MD md;
   MDStat got;
   md.parseMDStat(lines, got);
+
   EXPECT_TRUE(got == expected);
 };
 
