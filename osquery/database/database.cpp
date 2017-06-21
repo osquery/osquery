@@ -446,7 +446,6 @@ Status DatabasePlugin::initPlugin() {
     // If the database did not setUp override the active plugin.
     RegistryFactory::get().setActive("database", "ephemeral");
   }
-
   kDBInitialized = true;
   return status;
 }

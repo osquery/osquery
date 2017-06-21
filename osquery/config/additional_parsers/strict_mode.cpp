@@ -91,54 +91,58 @@ Status StrictModeConfigParserPlugin::update(const std::string& source,
     // Pull out all the previous values and notify through logs if the values
     // have changed
     std::string old_key;
-    std::string old_uuid_signing;
-    std::string old_counter_mode;
-    std::string old_protected_tables;
-    std::string query_counter;
     getDatabaseValue(
         kPersistentSettings, kStrictMode + "." + kStrictModePublicKey, old_key);
-    getDatabaseValue(kPersistentSettings,
-                     kStrictMode + "." + kStrictModeUUIDSigning,
-                     old_uuid_signing);
-    getDatabaseValue(kPersistentSettings,
-                     kStrictMode + "." + kStrictModeProtectedTables,
-                     old_protected_tables);
-    getDatabaseValue(kPersistentSettings,
-                     kStrictMode + "." + kStrictModeUUIDSigning,
-                     query_counter);
-    getDatabaseValue(kPersistentSettings,
-                     kStrictMode + "." + kStrictModeCounterMode,
-                     old_counter_mode);
-
     if (old_key != b64Pub) {
       LOG(WARNING) << "Strict mode key changed";
       setDatabaseValue(kPersistentSettings,
                        kStrictMode + "." + kStrictModePublicKey,
                        b64Pub);
     }
+
+    std::string old_uuid_signing;
+    getDatabaseValue(kPersistentSettings,
+                     kStrictMode + "." + kStrictModeUUIDSigning,
+                     old_uuid_signing);
     if (old_uuid_signing != uuid_signing) {
       LOG(WARNING) << "Strict mode uuid_signing requirement changed";
       setDatabaseValue(kPersistentSettings,
                        kStrictMode + "." + kStrictModeUUIDSigning,
                        uuid_signing);
     }
-    if (old_protected_tables != protected_tables) {
-      LOG(WARNING) << "Strict mode protected tables changed";
-      setDatabaseValue(kPersistentSettings,
-                       kStrictMode + "." + kStrictModeProtectedTables,
-                       protected_tables);
-    }
+
+    std::string old_counter_mode;
+    getDatabaseValue(kPersistentSettings,
+                     kStrictMode + "." + kStrictModeUUIDSigning,
+                     old_uuid_signing);
     if (old_counter_mode != counter_mode) {
       LOG(WARNING) << "Strict mode counter requirement changed";
       setDatabaseValue(kPersistentSettings,
                        kStrictMode + "." + kStrictModeCounterMode,
                        counter_mode);
     }
+
+    std::string old_protected_tables;
+    getDatabaseValue(kPersistentSettings,
+                     kStrictMode + "." + kStrictModeProtectedTables,
+                     old_protected_tables);
+    if (old_protected_tables != protected_tables) {
+      LOG(WARNING) << "Strict mode protected tables changed";
+      setDatabaseValue(kPersistentSettings,
+                       kStrictMode + "." + kStrictModeProtectedTables,
+                       protected_tables);
+    }
+
+    std::string query_counter;
+    getDatabaseValue(kPersistentSettings,
+                     kStrictMode + "." + kStrictModeUUIDSigning,
+                     query_counter);
     if (query_counter == "") {
       LOG(WARNING) << "Strict mode no query count, reset to 0";
       setDatabaseValue(
           kPersistentSettings, kStrictMode + ".query_counter", "0");
     }
+
     setDatabaseValue(kPersistentSettings, kStrictMode + ".enabled", "1");
     LOG(INFO) << "Strict mode enabled";
   }

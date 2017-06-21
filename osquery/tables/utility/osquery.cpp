@@ -32,14 +32,6 @@ DECLARE_bool(disable_events);
 
 namespace tables {
 
-const std::string kStrictMode;
-const std::string kStrictModePublicKey;
-const std::string kStrictModeProtectedTables;
-const std::string kStrictModeProtectedTablesSignature;
-const std::string kStrictModeUUIDSigning;
-const std::string kStrictModeCounterMode;
-
-
 QueryData genOsqueryEvents(QueryContext& context) {
   QueryData results;
 
@@ -273,19 +265,24 @@ QueryData genOsquerySchedule(QueryContext& context) {
 
 QueryData genOsqueryStrictMode(QueryContext& context) {
   QueryData results;
-  std::string strict_mode_key;
-  std::string uuid_signing;
-  std::string query_counter;
-  std::string counter_mode;
+
   std::string enabled;
   getDatabaseValue(kPersistentSettings, kStrictMode + ".enabled", enabled);
-  getDatabaseValue(kPersistentSettings, kStrictMode + "." + kStrictModePublicKey, strict_mode_key);
-  getDatabaseValue(
-      kPersistentSettings, kStrictMode + "." + kStrictModeUUIDSigning, uuid_signing);
+  std::string strict_mode_key;
+  getDatabaseValue(kPersistentSettings,
+                   kStrictMode + "." + kStrictModePublicKey,
+                   strict_mode_key);
+  std::string uuid_signing;
+  getDatabaseValue(kPersistentSettings,
+                   kStrictMode + "." + kStrictModeUUIDSigning,
+                   uuid_signing);
+  std::string query_counter;
   getDatabaseValue(
       kPersistentSettings, kStrictMode + ".query_counter", query_counter);
-  getDatabaseValue(
-      kPersistentSettings, kStrictMode + "." + kStrictModeCounterMode, counter_mode);
+  std::string counter_mode;
+  getDatabaseValue(kPersistentSettings,
+                   kStrictMode + "." + kStrictModeCounterMode,
+                   counter_mode);
   unsigned long counter;
   safeStrtoul(query_counter, 10, counter);
   Row r;

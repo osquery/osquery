@@ -12,12 +12,19 @@
 
 namespace osquery {
 
-extern const std::string kStrictMode;
-extern const std::string kStrictModePublicKey;
-extern const std::string kStrictModeProtectedTables;
-extern const std::string kStrictModeProtectedTablesSignature;
-extern const std::string kStrictModeUUIDSigning;
-extern const std::string kStrictModeCounterMode;
+/// Master strict mode key
+const std::string kStrictMode = "strict_mode";
+/// JSON/DB key for public key
+const std::string kStrictModePublicKey = "public_key";
+/// JSON/DB key for protected tables
+const std::string kStrictModeProtectedTables = "protected_tables";
+/// JSON/DB key for protected tables signature
+const std::string kStrictModeProtectedTablesSignature =
+    "protected_tables_signature";
+/// JSON/DB key for UUID signing
+const std::string kStrictModeUUIDSigning = "uuid_signing";
+/// JSON/DB key for counter mode
+const std::string kStrictModeCounterMode = "counter_mode";
 
 /*
  * @brief Verify a signature for a message with a given key
@@ -58,5 +65,4 @@ Status verifyQuerySignature(const std::string& b64Sig,
  * @return True if any table is protected, false otherwise
  */
 bool doesQueryRequireSignature(const std::string& query);
-
 }

@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
 #include <openssl/ecdsa.h>
 #include <openssl/pem.h>
 
@@ -19,19 +20,10 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/signing.h"
 #include "osquery/tables/system/hash.h"
 
-#include "osquery/core/signing.h"
-
 namespace osquery {
-
-const std::string kStrictMode = "strict_mode";
-const std::string kStrictModePublicKey = "public_key";
-const std::string kStrictModeProtectedTables = "protected_tables";
-const std::string kStrictModeProtectedTablesSignature =
-    "protected_tables_signature";
-const std::string kStrictModeUUIDSigning = "uuid_signing";
-const std::string kStrictModeCounterMode = "counter_mode";
 
 Status verifySignature(const std::string& b64Pub,
                        const std::string& b64Sig,
@@ -45,14 +37,14 @@ Status verifySignature(const std::string& b64Pub,
 
   auto key = EC_KEY_new_by_curve_name(NID_secp256k1);
   auto pub_bytes_ref = reinterpret_cast<const unsigned char*>(pub_key.data());
-  o2i_ECPublicKey(&key, &pub_bytes_ref, (long)pub_key.size());
+  o2i_ECPublicKey(&key, &pub_bytes_ref, static_cast<long>(pub_key.size()));
 
   // Check that we can load the public key
   if (EC_KEY_check_key(key) != 1) {
     EC_KEY_free(key);
     return Status(1, "Unable to create public key");
   }
-  const unsigned char* sig_ref = (unsigned char*)sig.c_str();
+  auto* sig_ref = reinterpret_cast<const unsigned char*>(sig.data());
   // Load the signature
   ECDSA_SIG* signature =
       d2i_ECDSA_SIG(nullptr, &sig_ref, static_cast<long>(sig.size()));
@@ -72,6 +64,7 @@ Status verifySignature(const std::string& b64Pub,
   EC_KEY_free(key);
   return ret;
 }
+
 Status verifyStrictSignature(const std::string& b64Sig,
                              const std::string& message) {
   std::string strict_mode_key;
@@ -87,17 +80,17 @@ Status verifyStrictSignature(const std::string& b64Sig,
 Status verifyQuerySignature(const std::string& b64Sig,
                             const std::string& query) {
   std::string strict_mode_key;
-  std::string uuid_signing;
-  std::string query_counter;
-  std::string counter_mode;
   getDatabaseValue(kPersistentSettings,
                    kStrictMode + "." + kStrictModePublicKey,
                    strict_mode_key);
+  std::string uuid_signing;
   getDatabaseValue(kPersistentSettings,
                    kStrictMode + "." + kStrictModeUUIDSigning,
                    uuid_signing);
+  std::string query_counter;
   getDatabaseValue(
       kPersistentSettings, kStrictMode + ".query_counter", query_counter);
+  std::string counter_mode;
   getDatabaseValue(kPersistentSettings,
                    kStrictMode + "." + kStrictModeCounterMode,
                    counter_mode);
@@ -110,10 +103,10 @@ Status verifyQuerySignature(const std::string& b64Sig,
   if (uuid_signing == "true") {
     std::string uuid;
     osquery::getHostUUID(uuid);
-    secure_query += "\n" + uuid;
+    secure_query += '\n' + uuid;
   }
   if (counter_mode == "true") {
-    secure_query += "\n" + query_counter;
+    secure_query += '\n' + query_counter;
   }
   s = verifySignature(strict_mode_key, b64Sig, secure_query);
 
@@ -131,7 +124,6 @@ Status verifyQuerySignature(const std::string& b64Sig,
 
 bool doesQueryRequireSignature(const std::string& query) {
   std::set<std::string> protected_tables;
-  std::vector<std::string> tables;
   {
     std::string db_protect;
     getDatabaseValue(kPersistentSettings,
@@ -142,10 +134,10 @@ bool doesQueryRequireSignature(const std::string& query) {
       protected_tables.insert(table);
     }
   }
-  Status s = getQueryTables(query, tables);
+  std::vector<std::string> tables;
   // If for some reason we can't determine these tables, fail closed and
   // require a signature
-  if (!s.ok()) {
+  if (!getQueryTables(query, tables).ok()) {
     return true;
   }
   for (const auto& table : tables) {
