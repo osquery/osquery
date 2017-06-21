@@ -7,6 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
@@ -33,7 +34,7 @@
 namespace osquery {
 namespace tables {
 
-std::string kMDStatPath = "/proc/mdstat";
+const std::string kMDStatPath = "/proc/mdstat";
 
 /**
  * @brief Removes prefixing and suffixing character from each string in vector
@@ -56,14 +57,12 @@ static inline void trimStrs(std::vector<std::string>& strs) {
  * tabs, etc.)
  */
 static inline void getLines(std::vector<std::string>& lines) {
-  Status status(pathExists(kMDStatPath));
-  if (status.getCode() != 0) {
+  if (!pathExists(kMDStatPath).ok()) {
     return;
   }
 
-  std::string content("");
-  status = readFile(kMDStatPath, content);
-  if (status.getCode() != 0) {
+  std::string content;
+  if (!readFile(kMDStatPath, content).ok()) {
     return;
   }
 
@@ -84,7 +83,7 @@ void walkUdevDevices(const std::string& systemName,
   auto delUdev = [](udev* u) { udev_unref(u); };
   std::unique_ptr<udev, decltype(delUdev)> handle(udev_new(), delUdev);
   if (handle.get() == nullptr) {
-    LOG(ERROR) << "Could not get udev handle\n";
+    LOG(ERROR) << "Could not get udev handle";
     return;
   }
 
@@ -92,7 +91,7 @@ void walkUdevDevices(const std::string& systemName,
   std::unique_ptr<udev_enumerate, decltype(delUdevEnum)> udevEnum(
       udev_enumerate_new(handle.get()), delUdevEnum);
   if (udevEnum.get() == nullptr) {
-    LOG(ERROR) << "Could not get enumerate handle\n";
+    LOG(ERROR) << "Could not get enumerate handle";
     return;
   }
 
@@ -109,7 +108,7 @@ void walkUdevDevices(const std::string& systemName,
     std::unique_ptr<udev_device, decltype(delUdevDevice)> device(
         udev_device_new_from_syspath(handle.get(), path), delUdevDevice);
     if (device.get() == nullptr) {
-      LOG(ERROR) << "Could not get udev device handle\n";
+      LOG(ERROR) << "Could not get udev device handle";
       continue;
     }
     if (f(device.get()) == true) {
@@ -119,12 +118,13 @@ void walkUdevDevices(const std::string& systemName,
 }
 
 std::string MD::getPathByDevName(const std::string& name) {
-  std::string devPath("");
+  std::string devPath;
 
   walkUdevDevices("block", [&](udev_device* const& device) {
     const char* devName = udev_device_get_property_value(device, "DEVNAME");
 
-    if (strcmp(name.c_str(), &devName[strlen(devName) - name.length()]) == 0) {
+    if (name.compare(
+            strlen(devName) - name.length(), std::string::npos, devName) == 0) {
       devPath = devName;
       if (devPath.find('/') != 0) {
         devPath = "/dev/" + devPath;
@@ -158,13 +158,14 @@ std::string MD::getDevName(int major, int minor) {
 }
 
 std::string MD::getSuperblkVersion(const std::string& arrayName) {
-  std::string version("");
+  std::string version;
 
   walkUdevDevices("block", [&](udev_device* const& device) {
     const char* devName = udev_device_get_property_value(device, "DEVNAME");
 
-    if (strcmp(arrayName.c_str(),
-               &devName[strlen(devName) - arrayName.length()]) == 0) {
+    if (arrayName.compare(strlen(devName) - arrayName.length(),
+                          std::string::npos,
+                          devName) == 0) {
       version = udev_device_get_property_value(device, "MD_METADATA");
       return true;
     }
@@ -185,10 +186,11 @@ std::string MD::getSuperblkVersion(const std::string& arrayName) {
 std::string getDiskStateStr(int state) {
   // If state is 0, which is undefined, we assume recoverying, as this is all
   // have seen in the wild
-  if (state == 0)
+  if (state == 0) {
     return "recovering";
+  }
 
-  std::string s("");
+  std::string s;
 
   std::map<int, std::string> possibleStates = {
 #ifdef MD_DISK_FAULTY
@@ -238,10 +240,11 @@ std::string getDiskStateStr(int state) {
  * @return stringified state
  */
 std::string getSuperBlkStateStr(int state) {
-  if (state == 0)
+  if (state == 0) {
     return "unknown";
+  }
 
-  std::string s("");
+  std::string s;
 
   std::map<int, std::string> possibleStates = {
 #ifdef MD_SB_CLEAN
@@ -335,7 +338,7 @@ void parseMDAction(const std::string& line, MDAction& result) {
   }
   trimStrs(pieces);
 
-  result.progress = pieces[0] + " " + pieces[1];
+  result.progress = pieces[0] + ' ' + pieces[1];
 
   auto start = pieces[2].find_first_not_of("finish=");
   if (start != std::string::npos) {
@@ -450,6 +453,7 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
       auto mdline(split(lines[n], ":", 1));
       if (mdline.size() < 2) {
         LOG(WARNING) << "Unexpected md device line structure: " << lines[n];
+        n += 1;
         continue;
       }
 
@@ -474,6 +478,7 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
        * safety, we check if we at the end of the file. */
       if (n >= lines.size() - 1) {
         continue;
+        n += 1;
       }
       auto configline(split(lines[n + 1]));
 
@@ -574,7 +579,7 @@ void getDrivesForArray(const std::string& arrayName,
                        MDInterface& md,
                        QueryData& data) {
   std::string path(md.getPathByDevName(arrayName));
-  if (path == "") {
+  if (path.empty()) {
     LOG(ERROR) << "Could not get file path for " << arrayName;
     return;
   }
@@ -683,13 +688,13 @@ QueryData genMDDevices(QueryContext& context) {
   md.parseMDStat(lines, mds);
   for (const auto& device : mds.devices) {
     std::string path(md.getPathByDevName(device.name));
-    if (path == "") {
+    if (path.empty()) {
       LOG(ERROR) << "Could not get file path for " << device.name;
       return results;
     }
 
     mdu_array_info_t array;
-    if (md.getArrayInfo(path, array) != true) {
+    if (!md.getArrayInfo(path, array)) {
       return results;
     }
 
@@ -710,31 +715,31 @@ QueryData genMDDevices(QueryContext& context) {
     r["superblock_version"] = md.getSuperblkVersion(device.name);
     r["superblock_update_time"] = BIGINT(array.utime);
 
-    if (device.recovery.progress != "") {
+    if (!device.recovery.progress.empty()) {
       r["recovery_progress"] = device.recovery.progress;
       r["recovery_finish"] = device.recovery.finish;
       r["recovery_speed"] = device.recovery.speed;
     }
 
-    if (device.resync.progress != "") {
+    if (!device.resync.progress.empty()) {
       r["resync_progress"] = device.resync.progress;
       r["resync_finish"] = device.resync.finish;
       r["resync_speed"] = device.resync.speed;
     }
 
-    if (device.reshape.progress != "") {
+    if (!device.reshape.progress.empty()) {
       r["reshape_progress"] = device.reshape.progress;
       r["reshape_finish"] = device.reshape.finish;
       r["reshape_speed"] = device.reshape.speed;
     }
 
-    if (device.checkArray.progress != "") {
+    if (!device.checkArray.progress.empty()) {
       r["check_array_progress"] = device.checkArray.progress;
       r["check_array_finish"] = device.checkArray.finish;
       r["check_array_speed"] = device.checkArray.speed;
     }
 
-    if (device.bitmap.onMem != "") {
+    if (!device.bitmap.onMem.empty()) {
       r["bitmap_on_mem"] = device.bitmap.onMem;
       r["bitmap_chunk_size"] = device.bitmap.chunkSize;
       r["bitmap_external_file"] = device.bitmap.externalFile;

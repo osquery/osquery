@@ -13,7 +13,7 @@
 
 #include <linux/raid/md_u.h>
 
-#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
