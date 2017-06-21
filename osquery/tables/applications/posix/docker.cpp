@@ -544,6 +544,11 @@ QueryData genContainerProcesses(QueryContext& context) {
           vector.push_back(v.second.data());
         }
 
+        // On OS X, ps_args are not being honored. Check number of columns
+        if (vector.size() != 21) {
+          continue;
+        }
+
         Row r;
         r["id"] = id;
         r["pid"] = BIGINT(vector.at(0));
