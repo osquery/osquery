@@ -3,10 +3,9 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Broker < AbstractOsqueryFormula
   desc "Broker Communication Library"
   homepage "https://github.com/bro/broker"
-  url "https://github.com/bro/broker.git",
-	  :tag => "v0.6" # Need git url for recursive clone
-  #url "https://github.com/bro/broker/archive/v0.6.tar.gz"
-  #sha256 "0b9e5c36c3f9b591b613c53995691ae750b81480325c409379b467eb8cd74bd9"
+  url "https://github.com/bro/broker.git", # Need git url for recursive clone
+      :revision => "68a36ed81480ba935268bcaf7b6f2249d23436da"
+	  #:tag => "v0.6"
   head "https://github.com/bro/broker.git"
   version "0.6"
 
