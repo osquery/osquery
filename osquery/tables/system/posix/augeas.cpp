@@ -15,13 +15,25 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+namespace osquery {
+
+/**
+ * @brief Augeas lenses path.
+ *
+ * Directory that contains augeus lenses.
+ */
 #ifdef __APPLE__
-#define LENSES_PATH "/private/var/osquery/lenses"
+FLAG(string,
+     augeas_lenses,
+     "/private/var/osquery/lenses",
+     "Directory that contains augeas lenses files");
 #else
-#define LENSES_PATH "/usr/share/osquery/lenses"
+FLAG(string,
+     augeas_lenses,
+     "/usr/share/osquery/lenses",
+     "Directory that contains augeas lenses files");
 #endif
 
-namespace osquery {
 namespace tables {
 
 void reportAugeasError(augeas* aug) {
@@ -147,8 +159,8 @@ void matchAugeasPattern(augeas* aug,
 }
 
 QueryData genAugeas(QueryContext& context) {
-  augeas* aug =
-      aug_init(nullptr, LENSES_PATH, AUG_NO_ERR_CLOSE | AUG_ENABLE_SPAN);
+  augeas* aug = aug_init(
+      nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_ENABLE_SPAN);
 
   // Handle initialization errors.
   if (aug == nullptr) {

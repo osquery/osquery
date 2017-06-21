@@ -393,6 +393,12 @@ Path to the named pipe used for forwarding **rsyslog** events.
 
 Maximum number of logs to ingest per run (~200ms between runs). Use this as a fail-safe to prevent osquery from becoming overloaded when syslog is spammed.
 
+### Augeas
+
+`--augeas_lenses=/usr/share/osquery/lenses`
+
+Augeas lenses are bundled with osquery distributions. On Linux they are installed in /usr/share/osquery/lenses. On macOS lenses are installed in /private/var/osquery/lenses directory. Specify the path to the directory containing custom or different version lenses files.
+
 ### Shell-only flags
 
 Most of the shell flags are self-explanatory and are adapted from the SQLite shell. Refer to the shell's ".help" command for details and explanations.
