@@ -20,8 +20,8 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
+#include "osquery/remote/bro/bro_utils.h"
 #include "osquery/remote/bro/broker_manager.h"
-#include "osquery/remote/bro/utils.h"
 
 namespace osquery {
 

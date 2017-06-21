@@ -24,9 +24,9 @@
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"
 
+#include "osquery/remote/bro/bro_utils.h"
 #include "osquery/remote/bro/broker_manager.h"
 #include "osquery/remote/bro/query_manager.h"
-#include "osquery/remote/bro/utils.h"
 
 namespace pt = boost::property_tree;
 

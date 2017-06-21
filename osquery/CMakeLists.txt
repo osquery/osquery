@@ -129,7 +129,7 @@ else()
   ADD_OSQUERY_LINK_CORE("lz4")
 endif()
 
-if(NOT WINDOWS)
+if(NOT SKIP_BRO)
   ADD_OSQUERY_LINK_CORE("broker")
   ADD_OSQUERY_LINK_CORE("caf_core_static")
   ADD_OSQUERY_LINK_CORE("caf_io_static")

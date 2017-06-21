@@ -308,6 +308,10 @@ if(DEFINED ENV{SKIP_CARVER})
     -DSKIP_CARVER=1
   )
 endif()
+if(DEFINED ENV{SKIP_BRO} OR WINDOWS OR FREEBSD)
+  # Bro integration does not work on Windows or FreeBSD.
+  set(SKIP_BRO TRUE)
+endif()
 
 # Similar to the feature skips, there are default-build skips.
 if(DEFINED ENV{SKIP_TESTS})
