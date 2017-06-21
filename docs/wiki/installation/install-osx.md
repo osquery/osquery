@@ -13,6 +13,7 @@ The default package creates the following structure:
 /private/var/osquery/com.facebook.osqueryd.plist
 /private/var/osquery/osquery.example.conf
 /private/var/log/osquery/
+/private/var/osquery/lenses/{*}.aug
 /private/var/osquery/packs/{*}.conf
 /usr/local/lib/osquery/
 /usr/local/bin/osqueryctl
