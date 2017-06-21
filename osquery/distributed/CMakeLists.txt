@@ -6,7 +6,7 @@ SET(OSQUERY_DISTRIBUTED_PLUGINS
   plugins/tls_distributed.cpp
 )
 
-if(NOT WINDOWS)
+if(NOT SKIP_BRO)
   LIST(APPEND OSQUERY_DISTRIBUTED_PLUGINS "plugins/bro_distributed.cpp")
 endif()
 

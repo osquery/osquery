@@ -17,7 +17,7 @@ set(OSQUERY_LOGGER_PLUGINS
   "plugins/tls_logger.cpp"
   "plugins/stdout.cpp"
 )
-if(NOT WINDOWS)
+if(NOT SKIP_BRO)
   LIST(APPEND OSQUERY_LOGGER_PLUGINS "plugins/bro_logger.cpp")
 endif()
 

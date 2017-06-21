@@ -26,7 +26,7 @@
 
 #include "osquery/remote/bro/broker_manager.h"
 #include "osquery/remote/bro/query_manager.h"
-#include "osquery/remote/bro/utils.h"
+#include "osquery/remote/bro/bro_utils.h"
 
 namespace pt = boost::property_tree;
 
