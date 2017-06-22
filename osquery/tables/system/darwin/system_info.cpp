@@ -65,6 +65,14 @@ QueryData genSystemInfo(QueryContext &context) {
     r["computer_name"] = r["hostname"];
   }
 
+  auto lhn = SCDynamicStoreCopyLocalHostName(nullptr);
+  if (lhn != nullptr) {
+    r["local_hostname"] = stringFromCFString(lhn);
+    CFRelease(lhn);
+  } else {
+    r["local_hostname"] = r["hostname"];
+  }
+
   // The UUID for Apple devices is a device identifier.
   std::string uuid;
   r["uuid"] = (osquery::getHostUUID(uuid)) ? uuid : "";

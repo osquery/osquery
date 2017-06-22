@@ -1,5 +1,5 @@
 table_name("services")
-description("Lists all installed Windows Services and its relevant data")
+description("Lists all installed Windows services and their relevant data.")
 schema([
     Column("name", TEXT, "Service name"),
     Column("service_type", TEXT, "Service Type: OWN_PROCESS, SHARE_PROCESS and maybe Interactive (can interact with the desktop)"),

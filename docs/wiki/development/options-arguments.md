@@ -22,4 +22,4 @@ If you are declaring a flag before defining it, no change is needed. Use `DECLAR
 
 This will allow osquery callers to show pretty displays when `-h, --help` is used.
 
-Note: restrict your default values to code literals. It does not help to abstract the default variable into a constant then use it singularly in the macro.
+> NOTICE: restrict your default values to code literals. It does not help to abstract the default variable into a constant then use it singularly in the macro.

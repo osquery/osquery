@@ -340,6 +340,10 @@ if __name__ == "__main__":
             print("Cannot find --config: %s" % (args.config))
             exit(1)
         queries = utils.queries_from_config(args.config)
+        # Search queries in subdirectory ".d" based on the config filename
+        if os.path.isdir(args.config + ".d"):
+            for config_file in os.listdir(args.config + ".d"):
+                queries.update(utils.queries_from_config(os.path.join(args.config + ".d", config_file)))
     elif args.query is not None:
         queries["manual"] = args.query
     elif args.force:

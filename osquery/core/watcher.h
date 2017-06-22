@@ -96,76 +96,76 @@ struct PerformanceState {
 class Watcher : private boost::noncopyable {
  public:
   /// Instance accessor
-  static Watcher& instance() {
+  static Watcher& get() {
     static Watcher instance;
     return instance;
   }
 
   /// Reset counters after a worker exits.
-  static void resetWorkerCounters(size_t respawn_time);
+  void resetWorkerCounters(size_t respawn_time);
 
   /// Reset counters for an extension path.
-  static void resetExtensionCounters(const std::string& extension,
-                                     size_t respawn_time);
+  void resetExtensionCounters(const std::string& extension,
+                              size_t respawn_time);
 
   /// Lock access to extensions.
-  static void lock() {
-    instance().lock_.lock();
+  void lock() {
+    get().lock_.lock();
   }
 
   /// Unlock access to extensions.
-  static void unlock() {
-    instance().lock_.unlock();
+  void unlock() {
+    get().lock_.unlock();
   }
 
   /// Accessor for autoloadable extension paths.
-  static const ExtensionMap& extensions() {
-    return instance().extensions_;
+  const ExtensionMap& extensions() const {
+    return extensions_;
   }
 
   /// Lookup extension path from pid.
-  static std::string getExtensionPath(const PlatformProcess& child);
+  std::string getExtensionPath(const PlatformProcess& child);
 
   /// Remove an autoloadable extension path.
-  static void removeExtensionPath(const std::string& extension);
+  void removeExtensionPath(const std::string& extension);
 
   /// Add extensions autoloadable paths.
-  static void addExtensionPath(const std::string& path);
+  void addExtensionPath(const std::string& path);
 
   /// Get state information for a worker or extension child.
-  static PerformanceState& getState(const PlatformProcess& child);
-  static PerformanceState& getState(const std::string& extension);
+  PerformanceState& getState(const PlatformProcess& child);
+  PerformanceState& getState(const std::string& extension);
 
   /// Accessor for the worker process.
-  static PlatformProcess& getWorker() {
-    return *instance().worker_;
+  PlatformProcess& getWorker() {
+    return *worker_;
   }
 
   /// Setter for worker process.
-  static void setWorker(const std::shared_ptr<PlatformProcess>& child) {
-    instance().worker_ = child;
+  void setWorker(const std::shared_ptr<PlatformProcess>& child) {
+    worker_ = child;
   }
 
   /// Setter for an extension process.
-  static void setExtension(const std::string& extension,
-                           const std::shared_ptr<PlatformProcess>& child);
+  void setExtension(const std::string& extension,
+                    const std::shared_ptr<PlatformProcess>& child);
 
   /// Reset pid and performance counters for a worker or extension process.
-  static void reset(const PlatformProcess& child);
+  void reset(const PlatformProcess& child);
 
   /// Count the number of worker restarts.
-  static size_t workerRestartCount() {
-    return instance().worker_restarts_;
+  size_t workerRestartCount() const {
+    return worker_restarts_;
   }
 
   /// Become responsible for the worker's fate, but do not guarantee its safety.
-  static void bindFates() {
-    instance().restart_worker_ = false;
+  void bindFates() {
+    restart_worker_ = false;
   }
 
   /// Check if the worker and watcher's fates are bound.
-  static bool fatesBound() {
-    return !instance().restart_worker_;
+  bool fatesBound() const {
+    return !restart_worker_;
   }
 
   /**
@@ -175,11 +175,11 @@ class Watcher : private boost::noncopyable {
    * broadcast from potentially-loaded extensions. If no extensions are loaded
    * and an active (selected at command line) plugin is missing, fail quickly.
    */
-  static bool hasManagedExtensions();
+  bool hasManagedExtensions() const;
 
   /// Check the status of the last worker.
-  static int getWorkerStatus() {
-    return instance().worker_status_;
+  int getWorkerStatus() const {
+    return worker_status_;
   }
 
  private:
@@ -195,8 +195,8 @@ class Watcher : private boost::noncopyable {
 
  private:
   /// Inform the watcher that the worker restarted without cause.
-  static void workerRestarted() {
-    instance().worker_restarts_++;
+  void workerRestarted() {
+    worker_restarts_++;
   }
 
  private:
@@ -243,16 +243,16 @@ class Watcher : private boost::noncopyable {
  * extensions or autoloadable extension paths a Watcher may be monitoring.
  * A signal or WatcherRunner thread may stop or start extensions.
  */
-class WatcherLocker {
+class WatcherExtensionsLocker {
  public:
   /// Construct and gain watcher lock.
-  WatcherLocker() {
-    Watcher::lock();
+  WatcherExtensionsLocker() {
+    Watcher::get().lock();
   }
 
   /// Destruct and release watcher lock.
-  ~WatcherLocker() {
-    Watcher::unlock();
+  ~WatcherExtensionsLocker() {
+    Watcher::get().unlock();
   }
 };
 
@@ -282,7 +282,7 @@ class WatcherRunner : public InternalRunnable {
   void start();
 
   /// Boilerplate function to sleep for some configured latency
-  bool ok();
+  bool ok() const;
 
   /// Begin the worker-watcher process.
   virtual bool watch(const PlatformProcess& child) const;
@@ -306,6 +306,9 @@ class WatcherRunner : public InternalRunnable {
 
   /// If a worker/extension has otherwise gone insane, stop it.
   virtual void stopChild(const PlatformProcess& child) const;
+
+  /// Return the time the watchdog is delayed until (from start of watcher).
+  size_t delayedTime() const;
 
  private:
   /// For testing only, ask the WatcherRunner to run a start loop once.
@@ -336,6 +339,7 @@ class WatcherRunner : public InternalRunnable {
   FRIEND_TEST(WatcherTests, test_watcherrunner_loop_failure);
   FRIEND_TEST(WatcherTests, test_watcherrunner_loop_disabled);
   FRIEND_TEST(WatcherTests, test_watcherrunner_watcherhealth);
+  FRIEND_TEST(WatcherTests, test_watcherrunner_unhealthy_delay);
 };
 
 /// The WatcherWatcher is spawned within the worker and watches the watcher.

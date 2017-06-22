@@ -1,0 +1,9 @@
+table_name("md_drives")
+description("Drive devices used for Software RAID.")
+schema([
+    Column("md_device_name", TEXT, "md device name"),
+    Column("drive_name", TEXT, "Drive device name"),
+    Column("slot", INTEGER, "Slot position of disk"),
+    Column("state", TEXT, "State of the drive"),
+])
+implementation("system/md_stat@genMDDrives")

@@ -162,8 +162,8 @@ void genOpenDescriptors(int pid, descriptor_type type, QueryData& results) {
   }
 
   // Allocate structs for each descriptor.
-  proc_fdinfo fds[bufsize / PROC_PIDLISTFD_SIZE];
-  proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fds, bufsize);
+  std::vector<proc_fdinfo> fds(bufsize / PROC_PIDLISTFD_SIZE);
+  proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fds.data(), bufsize);
 
   for (auto fd_info : fds) {
     if (type == DESCRIPTORS_TYPE_VNODE &&

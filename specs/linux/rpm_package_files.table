@@ -9,4 +9,4 @@ schema([
     Column("size", BIGINT, "Expected file size in bytes from RPM info DB"),
     Column("sha256", TEXT, "SHA256 file digest from RPM info DB"),
 ])
-implementation("@genRpmPackageFiles")
+implementation("@genRpmPackageFiles", generator=True)

@@ -75,8 +75,9 @@ std::set<int> getProcList(const QueryContext& context) {
   }
 
   // Use twice the number of PIDs returned to handle races.
-  pid_t pids[2 * bufsize / sizeof(pid_t)];
-  bufsize = proc_listpids(PROC_ALL_PIDS, 0, pids, sizeof(pids));
+  std::vector<pid_t> pids(2 * bufsize);
+
+  bufsize = proc_listpids(PROC_ALL_PIDS, 0, pids.data(), 2 * bufsize);
   if (bufsize <= 0) {
     VLOG(1) << "An error occurred retrieving the process list";
     return pidlist;
@@ -91,7 +92,6 @@ std::set<int> getProcList(const QueryContext& context) {
     }
     pidlist.insert(pids[i]);
   }
-
   return pidlist;
 }
 
@@ -183,16 +183,16 @@ struct proc_args {
 
 proc_args getProcRawArgs(int pid, size_t argmax) {
   proc_args args;
-  char procargs[argmax];
+  std::vector<char> procargs(argmax);
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
-  if (sysctl(mib, 3, &procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
+  if (sysctl(mib, 3, procargs.data(), &argmax, nullptr, 0) == -1 ||
+      argmax == 0) {
     return args;
   }
 
   // The number of arguments is an integer in front of the result buffer.
   int nargs = 0;
-  memcpy(&nargs, procargs, sizeof(nargs));
-
+  memcpy(&nargs, procargs.data(), sizeof(nargs));
   // Walk the \0-tokenized list of arguments until reaching the returned 'max'
   // number of arguments or the number appended to the front.
   const char* current_arg = &procargs[0] + sizeof(nargs);
@@ -221,7 +221,6 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
     }
     current_arg += string_arg.size() + 1;
   }
-
   return args;
 }
 

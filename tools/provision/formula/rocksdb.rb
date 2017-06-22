@@ -5,13 +5,13 @@ class Rocksdb < AbstractOsqueryFormula
   homepage "http://rocksdb.org"
   url "https://github.com/facebook/rocksdb/archive/v5.1.4.tar.gz"
   sha256 "3ee7e791d12d5359d0cf61c8c22713811dfda024afdd724cdf66ca022992be35"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "6cb5e835f90636c17cb12ab517919b589ec32c1e0cc663646c271f8292770dfc" => :sierra
-    sha256 "014104b40dd17fa89c4d62762da48489b043d2c5dcfcd35578dd45c9dd3c1880" => :x86_64_linux
+    sha256 "18a52b1e96c93b9a99cc33ad9a2eb0b6db0ecd864f25f24684bb6117a44f00f2" => :sierra
+    sha256 "5754ea9999e374273ab7d766e5bc0dae5ee43e544f3d93b4402cc57112dffbf6" => :x86_64_linux
   end
 
   needs :cxx11

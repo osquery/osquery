@@ -167,6 +167,7 @@ class Initializer : private boost::noncopyable {
   /// Initialize the osquery watcher, optionally spawn a worker.
   void initWatcher() const;
 
+  /// This pauses the watchdog process until the watcher thread stops.
   void waitForWatcher() const;
 
  private:
@@ -269,6 +270,13 @@ class DropPrivileges : private boost::noncopyable {
  * @return a string representing the host's current hostname
  */
 std::string getHostname();
+
+/**
+ * @brief Generate a new generic UUID
+ *
+ * @return a string containing a random UUID
+ */
+std::string generateNewUUID();
 
 /**
  * @brief Getter for an instance uuid

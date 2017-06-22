@@ -49,12 +49,38 @@ You might wonder "this syntax looks similar to Python?". Well, it is! The build 
 You may be wondering how osquery handles cross-platform support while still allowing operating-system specific tables. The osquery build process takes care of this by only generating the relevant code based on a directory structure convention.
 
 - Cross-platform: [specs/](https://github.com/facebook/osquery/tree/master/specs/)
-- Mac OS X: [specs/darwin/](https://github.com/facebook/osquery/tree/master/specs/darwin)
+- MacOS: [specs/darwin/](https://github.com/facebook/osquery/tree/master/specs/darwin)
 - General Linux: [specs/linux/](https://github.com/facebook/osquery/tree/master/specs/linux)
-- Ubuntu: [specs/ubuntu/](https://github.com/facebook/osquery/tree/master/specs/ubuntu)
-- CentOS: [specs/centos/](https://github.com/facebook/osquery/tree/master/specs/centos)
+- Windows: [specs/windows/](https://github.com/facebook/osquery/tree/master/specs/windows)
+- POSIX: [specs/posix/](https://github.com/facebook/osquery/tree/master/specs/posix)
+- FreeBSD: [specs/freebsd/](https://github.com/facebook/osquery/tree/master/specs/freebsd)
+- You get the picture ;)
 
-Note: the CMake build provides custom defines for each platform and platform version.
+> NOTICE: the CMake build provides custom defines for each platform and platform version.
+
+**Specfile nuances**
+
+Each column in a **specfile** may have keyword arguments that effect how the SQLite behaves. If you require a column to be present in the `WHERE` predicate, like a `path` in the `file` table, then it must be reflected in the spec.
+
+- **required=True**: This will create a warning if the table is used and the column does not appear in the predicate.
+- **index=True**: This sets the `PRIMARY KEY` for the table, which helps the SQLite optimizer remove potential duplicates from complex `JOIN`s. If multiple columns have `index=True` then a primary key is created as the set of columns.
+- **additional=True**: This is weird, but use **additional** if the presence of the column in the predicate would somehow alter the logic in the table generator. This tells SQLite not to optimize out any use of this column in the predicate.
+- **hidden=True**: Sets the `HIDDEN` attribute for the column, so a `SELECT * FROM` will not include this column.
+
+The table may also set `attributes`:
+```python
+attributes(user_data=True)
+```
+
+There are several attributes that help with table documentation and optimization. These are keyword arguments in the `attributes` optional method.
+
+- **event_subscriber=True**: Indicates that the table is an abstraction on top of an event subscriber. The specfile for your subscriber must set this attribute.
+- **user_data=True**: This tells the caller that they should provide a `uid` in the query predicate. By default the table will inspect the current user's content, but may be asked to include results from others.
+- **cacheable=True**: The results from the table can be cached within the query schedule. If this table generates a lot of data it is best to cache the results so that queries needing access in the schedule with a shorter interval can simply copy the already generated structures.
+- **utility=True**: This table will be included in the osquery SDK, it is considered a core/non-platform specific utility.
+- **kernel_required=True**: This is rare, but tells the caller that results are only available if the osquery kernel extension is running.
+
+Specs may also include an **extended_schema** for a specific platform. They are the same as **schema** but the first argument is a function returning a bool. If true the columns are added and not marked hidden, otherwise they are all appended with `hidden=True`. This allows tables to keep a consistent set of columns and types while providing a good user experience for default selects.
 
 **Creating your implementation**
 

@@ -27,7 +27,9 @@ FLAG(bool,
 
 class SyslogLoggerPlugin : public LoggerPlugin {
  public:
-  bool usesLogStatus() override { return true; }
+  bool usesLogStatus() override {
+    return true;
+  }
 
  protected:
   Status logString(const std::string& s) override;

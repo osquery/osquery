@@ -111,7 +111,7 @@ function build_target() {
   threads THREADS
 
   # Clean previous build artifacts.
-  $MAKE clean
+  $MAKE distclean
 
   # Build osquery.
   if [[ -z "$RUN_TARGET" ]]; then

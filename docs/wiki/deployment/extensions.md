@@ -12,7 +12,7 @@ The following [CLI flags](../installation/cli-flags.md) control extension auto-l
 --extensions_interval=3
 ```
 
-`extensions_autoload` points to a line-delimited set of paths to executables. When osquery launches, each path is evaluated for "safe permissions" and executed as a monitored child process. Each executable receives 3 argument switches: `socket`, `timeout`, `interval`. An extension process may use these to find the osquery process's Thrift socket, as well as hints on retry/backoff configuration if any latency or errors occur.
+`extensions_autoload` points to a line-delimited set of paths to executables. When osquery launches, each path is evaluated for "safe permissions" and executed as a monitored child process. Each executable receives 3 argument switches: `socket`, `timeout`, `interval`. An extension process may use these to find the osquery process's Thrift socket, as well as hints on retry/backoff configuration if any latency or errors occur. If the `--verbose` flag is passed to osqueryd, the flag will also be received by the executable.
 
 The simplest `extensions.load` file contains a single extension path:
 ```sh
@@ -45,17 +45,5 @@ $ cat /etc/osquery/osquery.flags
 --config_plugin=custom_plugin
 --logger_plugin=scribe
 ```
-
-## Modules
-
-The osquery extensions concept builds on the platform's concept of a "registry" of plugin types and plugins therein. The registry maintains a lookup of each plugin and its origin, internal or a transient UUID assigned to an extension. osquery supports extensions as dynamic loadable objects too. 
-
-The CLI flag(s):
-
-```sh
---modules_autoload=/etc/osquery/modules.load
-```
-
-work the same as extensions, each path is evaluated for safe permission and ownership, and `dlopen`ed when an osquery process starts. There is example code for writing a loaded module in the [`osquery/examples`](https://github.com/facebook/osquery/tree/master/osquery/examples) folder. If you are building extensions using the osquery build process a module may be a better option.
 
 

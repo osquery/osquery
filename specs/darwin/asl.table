@@ -1,5 +1,5 @@
 table_name("asl")
-description("Queries the Apple System Log data structure for system events")
+description("Queries the Apple System Log data structure for system events.")
 
 # Columns pulled from asl.h
 # Descriptions mostly as retrieved from asl.h, some with clarifications

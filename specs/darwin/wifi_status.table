@@ -1,5 +1,5 @@
 table_name("wifi_status")
-description("OS X current WiFi status")
+description("OS X current WiFi status.")
 schema([
     Column("interface", TEXT, "Name of the interface"),
     Column("ssid", TEXT, "SSID octets of the network"),

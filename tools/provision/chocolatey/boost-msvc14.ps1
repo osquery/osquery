@@ -8,7 +8,12 @@
 # For more information -
 # https://studiofreya.com/2016/09/29/how-to-build-boost-1-62-with-visual-studio-2015/
 # Update-able metadata
+#
+# $version - The version of the software package to build
+# $chocoVersion - The chocolatey package version, used for incremental bumps
+#                 without changing the version of the software package
 $version = '1.63.0'
+$chocoVersion = '1.63.0'
 $packageName = 'boost-msvc14'
 $projectSource = 'http://www.boost.org/users/history/version_1_63_0.html'
 $packageSourceUrl = 'http://www.boost.org/users/history/version_1_63_0.html'
@@ -64,7 +69,7 @@ $includeDir = New-Item -ItemType Directory -Path 'local\include'
 $libDir = New-Item -ItemType Directory -Path 'local\lib'
 $srcDir = New-Item -ItemType Directory -Path 'local\src'
 
-Write-NuSpec $packageName $version $authors $owners $projectSource $packageSourceUrl $copyright $license
+Write-NuSpec $packageName $chocoVersion $authors $owners $projectSource $packageSourceUrl $copyright $license
 
 Copy-Item "$sourceDir\stage\x64\lib\*" $libDir
 Copy-Item -Recurse "$sourceDir\boost" $includeDir
@@ -72,9 +77,9 @@ Copy-Item $buildScript $srcDir
 choco pack
 
 Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" -foregroundcolor DarkGreen
-if (Test-Path "$packageName.$version.nupkg") {
-  Write-Host "[+] Finished building $packageName v$version." -foregroundcolor Green
+if (Test-Path "$packageName.$chocoVersion.nupkg") {
+  Write-Host "[+] Finished building $packageName v$chocoVersion." -foregroundcolor Green
 }
 else {
-  Write-Host "[-] Failed to build $packageName v$version." -foregroundcolor Red
+  Write-Host "[-] Failed to build $packageName v$chocoVersion." -foregroundcolor Red
 }

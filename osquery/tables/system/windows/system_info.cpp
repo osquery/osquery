@@ -24,6 +24,7 @@ QueryData genSystemInfo(QueryContext& context) {
   Row r;
   r["hostname"] = osquery::getHostname();
   r["computer_name"] = r["hostname"];
+  r["local_hostname"] = r["hostname"];
   getHostUUID(r["uuid"]);
 
   auto qd = SQL::selectAllFrom("cpuid");

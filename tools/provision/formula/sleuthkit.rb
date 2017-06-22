@@ -6,13 +6,13 @@ class Sleuthkit < AbstractOsqueryFormula
   url "https://github.com/sleuthkit/sleuthkit/archive/sleuthkit-4.3.0.tar.gz"
   sha256 "64a57a44955e91300e1ae69b34e8702afda0fb5bd72e2116429875c9f5f28980"
   head "https://github.com/sleuthkit/sleuthkit.git"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "6fcccb0afc71188b5703ed8129f361ba58fc2b277c1b916dd8ac028ebd9144f3" => :sierra
-    sha256 "d454fdb7bd7d4fa2870733f324d9f2e34eddf3ef471cbb3a2a2bc2ce504eb9ec" => :x86_64_linux
+    sha256 "bca72113e70b3d62b2f3e8b474ad3d10929f86b714d5164fbfc6d2345483db7f" => :sierra
+    sha256 "bd20cce6970fb7557b5db04c923ae0e3fe4f8e8e7a2eb3877867bcbf7e3c3277" => :x86_64_linux
   end
 
   conflicts_with "irods", :because => "both install `ils`"

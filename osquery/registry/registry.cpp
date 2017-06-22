@@ -395,7 +395,7 @@ Status RegistryFactory::call(const std::string& registry_name,
                              PluginResponse& response) {
   // Forward factory call to the registry.
   try {
-    if (item_name.find(",") != std::string::npos) {
+    if (item_name.find(',') != std::string::npos) {
       // Call is multiplexing plugins (usually for multiple loggers).
       for (const auto& item : osquery::split(item_name, ",")) {
         get().registry(registry_name)->call(item, request, response);

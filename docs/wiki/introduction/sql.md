@@ -14,14 +14,13 @@ The osquery SQL language is a superset of SQLite's, please read [SQL as understo
 
 > NOTICE: Several tables, `file` for example, require a predicate for one of the columns, and **will not work without it**. See [Tables with arguments](#tables-with-arguments) for more information.
 
-Before diving into the osquery SQL customizations, please familiarize yourself with the osquery [development shell](../introduction/using-osqueryi.md). This shell is designed for ad-hoc exploration of your OS and SQL query prototyping. Then fire up `osqueryi` as your user or as a superuser and try some of the concepts below.
+Before diving into the osquery SQL customizations, please familiarize yourself with the osquery [development shell](../introduction/using-osqueryi.md). This shell is designed for ad-hoc exploration of your OS and SQL query prototyping. Then fire up `osqueryi` as your user or as a superuser and try some of the concepts below. Know that this 'shell' does not connect to anything, it is completely standalone.
 
 ### Shell help
 
 Within the shell, try: `.help`
 ```
 $ osqueryi
-osquery - being built, with love, at Facebook
 Using a virtual database. Need help, type '.help'
 osquery> .help
 Welcome to the osquery shell. Please explore your OS!
@@ -49,7 +48,7 @@ This [complete schema](https://osquery.io/docs/tables/) for all supported platfo
 
 ### Your first query
 
-On OS X (or Linux), select 1 process's pid, name, and path. Then change the display mode and issue the same query:
+On macOS (or Linux), select 1 process's pid, name, and path. Then change the display mode and issue the same query:
 ```
 osquery> SELECT pid, name, path FROM processes LIMIT 1;
 +-----+---------+---------------+
@@ -73,14 +72,17 @@ Then let's look at a "meta" table that provides details to osquery about osquery
 ```
 osquery> .mode line
 osquery> SELECT * FROM osquery_info;
-           pid = 3811
-       version = 1.7.4
-   config_hash =
+           pid = 15982
+          uuid = 4892E1C6-F800-5F8E-92B1-BC2216C29D4F
+   instance_id = 94c004b0-49e5-4ece-93e6-96c1939c0f83
+       version = 2.4.6
+   config_hash = 
   config_valid = 0
     extensions = active
 build_platform = darwin
-  build_distro = 10.11
-    start_time = 1464730373
+  build_distro = 10.12
+    start_time = 1496552549
+       watcher = -1
 ```
 
 This will always show the current PID of the running osquery process, shell or otherwise.
@@ -88,7 +90,7 @@ This will always show the current PID of the running osquery process, shell or o
 Let's use this to demonstrate `JOIN`ing:
 ```
 osquery> SELECT pid, name, path FROM osquery_info JOIN processes USING (pid);
-  pid = 3811
+  pid = 15982
  name = osqueryi
  path = /usr/local/bin/osqueryi
 ```
@@ -100,22 +102,22 @@ osquery> SELECT p.pid, name, p.path as process_path, pf.path as open_path
     ...>   JOIN processes p ON p.pid = i.pid
     ...>   JOIN process_open_files pf ON pf.pid = p.pid
     ...>   WHERE pf.path LIKE '/dev/%';
-         pid = 3811
+         pid = 15982
         name = osqueryi
 process_path = /usr/local/bin/osqueryi
    open_path = /dev/ttys000
 
-         pid = 3811
+         pid = 15982
         name = osqueryi
 process_path = /usr/local/bin/osqueryi
    open_path = /dev/ttys000
 
-         pid = 3811
+         pid = 15982
         name = osqueryi
 process_path = /usr/local/bin/osqueryi
    open_path = /dev/ttys000
 
-         pid = 3811
+         pid = 15982
         name = osqueryi
 process_path = /usr/local/bin/osqueryi
    open_path = /dev/null
@@ -199,8 +201,15 @@ String parsing functions are always helpful, some help within subqueries so they
 
 We have added `sha1`, `sha256`, and `md5` functions that take a single argument and return the hashed value.
 
+**Encoding functions**
+
+There are also encoding functions available to you to process query results.
+- `base64`: base64 encode a string.
+- `unbase64`: Decode a base64 encoded string. If the string is not valid base64 an empty string is returned.
+- `conditional_base64`: Encode a string if and only if the string contains non-ASCII characters. 
+
 ### Table and column name deprecations
 
 Over time it may makes sense to rename tables and columns. osquery tries to apply plurals to table names and achieve the easiest foreign key JOIN syntax. This often means slightly skewing concept attributes or biasing towards diction used by POSIX.
 
-The tools makes an effort to mark deprecated tables and create 'clone' `VIEW`s so previously scheduled queries continue to work. Similarly for old column names, the column will be marked `HIDDEN` and only returned if explicitly selected. This does not make queries using `*` future-proof, as they will begin using the new column names when the client is updated. All of these changes are considered osquery API changes and marked as such in [release notes](https://github.com/facebook/osquery/releases) on Github.
+The tools makes an effort to mark deprecated tables and create 'clone' `VIEW`s so previously scheduled queries continue to work. Similarly for old column names, the column will be marked `HIDDEN` and only returned if explicitly selected. This does not make queries using `*` future-proof, as they will begin using the new column names when the client is updated. All of these changes are considered osquery API changes and marked as such in [release notes](https://github.com/facebook/osquery/releases) on GitHub.

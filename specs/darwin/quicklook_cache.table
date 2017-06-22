@@ -1,5 +1,5 @@
 table_name("quicklook_cache")
-description("Files and thumbnails within OS X's Quicklook Cache")
+description("Files and thumbnails within OS X's Quicklook Cache.")
 schema([
     Column("path", TEXT, "Path of file"),
     Column("rowid", INTEGER, "Quicklook file rowid key"),

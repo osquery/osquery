@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <vector>
-
 #include <osquery/config.h>
 #include <osquery/dispatcher.h>
 
@@ -24,7 +22,6 @@ class TLSConfigPlugin : public ConfigPlugin,
  public:
   Status setUp() override;
   Status genConfig(std::map<std::string, std::string>& config) override;
-  static std::atomic<size_t> kCurrentDelay;
 
  protected:
   /// Calculate the URL once and cache the result.
@@ -32,14 +29,5 @@ class TLSConfigPlugin : public ConfigPlugin,
 
  private:
   friend class TLSConfigTests;
-
-  void updateDelayPeriod(bool success);
-  bool started_thread_{false};
-};
-
-class TLSConfigRefreshRunner : public InternalRunnable {
- public:
-  /// A simple wait/interruptible lock.
-  void start();
 };
 }

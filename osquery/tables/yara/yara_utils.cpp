@@ -123,7 +123,7 @@ Status handleRuleFiles(const std::string& category,
     YR_RULES* tmp_rules = nullptr;
     auto rule = item.second.get("", "");
     if (rule[0] != '/') {
-      rule = std::string("/etc/osquery/yara/") + rule;
+      rule = kYARAHome + rule;
     }
 
     // First attempt to load the file, in case it is saved (pre-compiled)

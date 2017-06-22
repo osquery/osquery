@@ -21,9 +21,11 @@
 #include <archive.h>
 #include <archive_entry.h>
 
+#include <osquery/distributed.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/carver/carver.h"
 #include "osquery/core/conversions.h"
@@ -66,17 +68,10 @@ CLI_FLAG(bool,
          true,
          "Disable the osquery file carver (default true)");
 
-/// Database domain where we store carve table entries
-const std::string kCarveDbDomain = "carves";
-
-/// Prefix used for the temp FS where carved files are stored
-const std::string kCarvePathPrefix = "osquery_carve_";
-
-/// Prefix applied to the file carve tar archive.
-const std::string kCarveNamePrefix = "carve_";
-
-/// Database prefix used to directly access and manipulate our carver entries
-const std::string kCarverDBPrefix = "carves.";
+CLI_FLAG(bool,
+         carver_disable_function,
+         FLAGS_disable_carver,
+         "Disable the osquery file carver function (default true)");
 
 /// Helper function to update values related to a carve
 void updateCarveValue(const std::string& guid,
@@ -136,7 +131,7 @@ Carver::Carver(const std::set<std::string>& paths,
   }
 
   // Store the path to our archive for later exfiltration
-  archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tgz");
+  archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tar");
 
   // Update the DB to reflect that the carve is pending.
   updateCarveValue(carveGuid_, "status", "PENDING");
@@ -214,7 +209,8 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
   if (arch == nullptr) {
     return Status(1, "Failed to create tar archive");
   }
-  archive_write_set_format_zip(arch);
+  // Zipping doesn't seem to be working currently
+  // archive_write_set_format_zip(arch);
   archive_write_set_format_pax_restricted(arch);
   auto ret = archive_write_open_filename(arch, archivePath_.string().c_str());
   if (ret == ARCHIVE_FATAL) {
@@ -225,10 +221,13 @@ Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
     PlatformFile pFile(f.string(), PF_OPEN_EXISTING | PF_READ);
 
     auto entry = archive_entry_new();
-    archive_entry_set_pathname(entry, f.string().c_str());
+    archive_entry_set_pathname(entry, f.leaf().string().c_str());
     archive_entry_set_size(entry, pFile.size());
     archive_entry_set_filetype(entry, AE_IFREG);
     archive_entry_set_perm(entry, 0644);
+    // archive_entry_set_atime();
+    // archive_entry_set_ctime();
+    // archive_entry_set_mtime();
     archive_write_header(arch, entry);
 
     // TODO: Chunking or a max file size.
@@ -314,4 +313,32 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   updateCarveValue(carveGuid_, "status", "SUCCESS");
   return Status(0, "Ok");
 };
+
+Status carvePaths(const std::set<std::string>& paths) {
+  auto guid = generateNewUUID();
+
+  pt::ptree tree;
+  tree.put("carve_guid", guid);
+  tree.put("time", getUnixTime());
+  tree.put("status", "STARTING");
+  tree.put("sha256", "");
+  tree.put("size", -1);
+
+  if (paths.size() > 1) {
+    tree.put("path", boost::algorithm::join(paths, ","));
+  } else {
+    tree.put("path", *(paths.begin()));
+  }
+
+  std::ostringstream os;
+  pt::write_json(os, tree, false);
+  auto s = setDatabaseValue(kCarveDbDomain, kCarverDBPrefix + guid, os.str());
+  if (!s.ok()) {
+    return s;
+  } else {
+    auto requestId = Distributed::getCurrentRequestId();
+    Dispatcher::addService(std::make_shared<Carver>(paths, guid, requestId));
+  }
+  return s;
 }
+} // namespace osquery

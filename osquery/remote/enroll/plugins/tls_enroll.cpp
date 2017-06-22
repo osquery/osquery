@@ -60,7 +60,7 @@ std::string TLSEnrollPlugin::enroll() {
   // If no node secret has been negotiated, try a TLS request.
   auto uri = "https://" + FLAGS_tls_hostname + FLAGS_enroll_tls_endpoint;
   if (FLAGS_tls_secret_always) {
-    uri += ((uri.find("?") != std::string::npos) ? "&" : "?") +
+    uri += ((uri.find('?') != std::string::npos) ? "&" : "?") +
            FLAGS_tls_enroll_override + "=" + getEnrollSecret();
   }
 
@@ -86,6 +86,8 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   boost::property_tree::ptree params;
   params.put<std::string>(FLAGS_tls_enroll_override, getEnrollSecret());
   params.put<std::string>("host_identifier", getHostIdentifier());
+  params.put<std::string>("platform_type",
+      boost::lexical_cast<std::string>(static_cast<uint64_t>(kPlatformType)));
 
   auto request = Request<TLSTransport, JSONSerializer>(uri);
   request.setOption("hostname", FLAGS_tls_hostname);

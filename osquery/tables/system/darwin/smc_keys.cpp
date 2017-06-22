@@ -710,21 +710,21 @@ QueryData genFanSpeedSensors(QueryContext &context) {
       std::stringstream key;
       key << boost::format(smcFanSpeedKey.first) % fanIdx;
 
-      QueryData key_data;
-      genSMCKey(key.str(), smc, key_data);
-      if (key_data.empty()) {
+      QueryData fan_data;
+      genSMCKey(key.str(), smc, fan_data);
+      if (fan_data.empty()) {
         continue;
       }
 
-      auto &smcRow = key_data.back();
-      if (smcRow["value"].empty()) {
+      auto& fdb = fan_data.back();
+      if (fdb["value"].empty()) {
         continue;
       }
 
       if (smcFanSpeedKey.second == "name") {
-        r[smcFanSpeedKey.second] = getFanName(smcRow["value"]);
+        r[smcFanSpeedKey.second] = getFanName(fdb["value"]);
       } else {
-        float fanSpeed = getConvertedValue(smcRow["type"], smcRow["value"]);
+        float fanSpeed = getConvertedValue(fdb["type"], fdb["value"]);
         r[smcFanSpeedKey.second] = INTEGER(fanSpeed);
       }
     }

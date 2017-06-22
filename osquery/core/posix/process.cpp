@@ -21,6 +21,10 @@
 
 #include "osquery/core/process.h"
 
+#ifndef NSIG
+#define NSIG 32
+#endif
+
 extern char** environ;
 
 namespace osquery {
@@ -124,6 +128,15 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   } else if (ext_pid == 0) {
     setEnvVar("OSQUERY_EXTENSION", std::to_string(::getpid()).c_str());
 
+    struct sigaction sig_action;
+    sig_action.sa_handler = SIG_DFL;
+    sig_action.sa_flags = 0;
+    sigemptyset(&sig_action.sa_mask);
+
+    for (auto i = NSIG; i >= 0; i--) {
+      sigaction(i, &sig_action, nullptr);
+    }
+
     std::vector<const char*> arguments;
     arguments.push_back(exec_path.c_str());
 
@@ -164,12 +177,20 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
     const std::string& args) {
   std::shared_ptr<PlatformProcess> process;
   std::string argv;
+  std::string osquery_path;
 
-  if (!isPlatform(PlatformType::TYPE_FREEBSD)) {
-    argv = "/usr/local/osquery/bin/python " + args;
+  boost::optional<std::string> osquery_path_option = getEnvVar("OSQUERY_DEPS");
+  if (osquery_path_option) {
+    osquery_path = *osquery_path_option;
   } else {
-    argv = "/usr/local/bin/python " + args;
+    if (!isPlatform(PlatformType::TYPE_FREEBSD)) {
+      osquery_path = "/usr/local/osquery";
+    } else {
+      osquery_path = "/usr/local";
+    }
   }
+
+  argv = osquery_path + "/bin/python " + args;
 
   int process_pid = ::fork();
   if (process_pid == 0) {

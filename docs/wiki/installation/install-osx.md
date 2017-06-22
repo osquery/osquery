@@ -1,10 +1,10 @@
-Continuous integration currently tests stable release versions of osquery against macOS 10.12 (as listed under the _Build_status_ column on the project [README](https://github.com/facebook/osquery/blob/master/README.md)). There are no reported issues which block expected core functionality on 10.11, however 10.10 and previous OS X versions do not work.
+Continuous integration currently tests stable release versions of osquery against macOS 10.12 (as listed under the _Build_status_ column on the project [README](https://github.com/facebook/osquery/blob/master/README.md)). There are no reported issues which block expected core functionality on 10.11, however 10.9 and previous macOS versions do not work.
 
 ## Package Installation
 
-If you plan to manage an enterprise osquery deployment, the easiest installation method is an OS X package installer. You will have to manage and deploy updates.
+If you plan to manage an enterprise osquery deployment, the easiest installation method is a macOS package installer. You will have to manage and deploy updates.
 
-Each osquery tag (release) builds an OS X package:
+Each osquery tag (release) builds a macOS package:
 [osquery.io/downloads](https://osquery.io/downloads/). There are no package or library dependencies.
 
 The default package creates the following structure:
@@ -13,6 +13,7 @@ The default package creates the following structure:
 /private/var/osquery/com.facebook.osqueryd.plist
 /private/var/osquery/osquery.example.conf
 /private/var/log/osquery/
+/private/var/osquery/lenses/{*}.aug
 /private/var/osquery/packs/{*}.conf
 /usr/local/lib/osquery/
 /usr/local/bin/osqueryctl
@@ -47,4 +48,4 @@ $ sudo cp /var/osquery/com.facebook.osqueryd.plist /Library/LaunchDaemons/
 $ sudo launchctl load /Library/LaunchDaemons/com.facebook.osqueryd.plist
 ```
 
-Note: The interactive shell and daemon do NOT communicate!
+> NOTICE: The interactive shell and daemon do NOT communicate!

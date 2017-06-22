@@ -65,6 +65,16 @@ CLI_FLAG(uint64,
          config_refresh,
          0,
          "Optional interval in seconds to re-read configuration");
+FLAG_ALIAS(google::uint64, config_tls_refresh, config_refresh);
+
+/// How long to wait when config update fails
+CLI_FLAG(uint64,
+         config_accelerated_refresh,
+         300,
+         "Interval to wait if reading a configuration fails");
+FLAG_ALIAS(google::uint64,
+           config_tls_accelerated_refresh,
+           config_accelerated_refresh);
 
 DECLARE_string(config_plugin);
 DECLARE_string(pack_delimiter);
@@ -79,9 +89,13 @@ DECLARE_string(pack_delimiter);
 const std::string kExecutingQuery{"executing_query"};
 const std::string kFailedQueries{"failed_queries"};
 
+/// The time osquery was started.
+std::atomic<size_t> kStartTime;
+
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
 Mutex config_valid_mutex_;
+Mutex config_refresh_mutex_;
 
 /// Several config methods require enumeration via predicate lambdas.
 RecursiveMutex config_schedule_mutex_;
@@ -137,8 +151,7 @@ class Schedule : private boost::noncopyable {
   void remove(const std::string& pack, const std::string& source) {
     packs_.remove_if([pack, source](PackRef& p) {
       if (p->getName() == pack && (p->getSource() == source || source == "")) {
-        Config::getInstance().removeFiles(source + FLAGS_pack_delimiter +
-                                          p->getName());
+        Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
         return true;
       }
       return false;
@@ -149,8 +162,7 @@ class Schedule : private boost::noncopyable {
   void removeAll(const std::string& source) {
     packs_.remove_if(([source](PackRef& p) {
       if (p->getSource() == source) {
-        Config::getInstance().removeFiles(source + FLAGS_pack_delimiter +
-                                          p->getName());
+        Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
         return true;
       }
       return false;
@@ -250,7 +262,7 @@ Schedule::Schedule() {
 Config::Config()
     : schedule_(std::make_shared<Schedule>()),
       valid_(false),
-      start_time_(std::time(nullptr)) {}
+      refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
 
 void Config::addPack(const std::string& name,
                      const std::string& source,
@@ -279,6 +291,14 @@ void Config::addPack(const std::string& name,
   } else {
     addSinglePack(name, tree);
   }
+}
+
+size_t Config::getStartTime() {
+  return kStartTime;
+}
+
+void Config::setStartTime(size_t st) {
+  kStartTime = st;
 }
 
 void Config::removePack(const std::string& pack) {
@@ -340,9 +360,20 @@ void Config::packs(std::function<void(PackRef& pack)> predicate) {
 Status Config::refresh() {
   PluginResponse response;
   auto status = Registry::call("config", {{"action", "genConfig"}}, response);
+
+  WriteLock lock(config_refresh_mutex_);
   if (!status.ok()) {
+    if (FLAGS_config_refresh > 0 &&
+        refresh_runner_->refresh() == FLAGS_config_refresh) {
+      VLOG(1) << "Using accelerated configuration delay";
+      refresh_runner_->refresh(FLAGS_config_accelerated_refresh);
+    }
+
     loaded_ = true;
     return status;
+  } else if (refresh_runner_->refresh() != FLAGS_config_refresh) {
+    VLOG(1) << "Normal configuration delay restored";
+    refresh_runner_->refresh(FLAGS_config_refresh);
   }
 
   // if there was a response, parse it and update internal state
@@ -358,6 +389,7 @@ Status Config::refresh() {
       }
       // Don't force because the config plugin may have started services.
       Initializer::requestShutdown();
+      return Status();
     }
     status = update(response[0]);
 
@@ -367,7 +399,7 @@ Status Config::refresh() {
      * configuration.
      */
     if (!started_thread_ && FLAGS_config_refresh >= 1) {
-      Dispatcher::addService(std::make_shared<ConfigRefreshRunner>());
+      Dispatcher::addService(refresh_runner_);
       started_thread_ = true;
     }
   }
@@ -383,6 +415,8 @@ Status Config::load() {
     return Status(1, "Missing config plugin " + config_plugin);
   }
 
+  // Set the initial and optional refresh value.
+  refresh_runner_->refresh(FLAGS_config_refresh);
   return refresh();
 }
 
@@ -406,7 +440,11 @@ void stripConfigComments(std::string& json) {
 Status Config::updateSource(const std::string& source,
                             const std::string& json) {
   // Compute a 'synthesized' hash using the content before it is parsed.
-  hashSource(source, json);
+  if (!hashSource(source, json)) {
+    // This source did not change, the returned status allows the caller to
+    // choose to reconfigure if any sources had changed.
+    return Status(2);
+  }
 
   {
     RecursiveLock lock(config_schedule_mutex_);
@@ -486,14 +524,19 @@ Status Config::genPack(const std::string& name,
 
   try {
     auto clone = response[0][name];
+    if (clone == "") {
+      LOG(WARNING) << "Error reading the query pack named: " << name;
+      return Status(0);
+    }
     stripConfigComments(clone);
     pt::ptree pack_tree;
     std::stringstream pack_stream;
     pack_stream << clone;
     pt::read_json(pack_stream, pack_tree);
     addPack(name, source, pack_tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
-    LOG(WARNING) << "Error parsing the pack JSON: " << name;
+  } catch (const pt::json_parser::json_parser_error& e) {
+    LOG(WARNING) << "Error parsing the \"" << name
+                 << "\" pack JSON: " << e.what();
   }
   return Status(0);
 }
@@ -554,14 +597,22 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   // Before this occurs, take an opportunity to purge stale state.
   purge();
 
+  bool needs_reconfigure = false;
   for (const auto& source : config) {
     auto status = updateSource(source.first, source.second);
+    if (status.getCode() == 2) {
+      continue;
+    }
+
     if (!status.ok()) {
       return status;
     }
+    // If a source was updated and the content has changed, then the registry
+    // should be reconfigured. File watches may have changed, etc.
+    needs_reconfigure = true;
   }
 
-  if (loaded_) {
+  if (loaded_ && needs_reconfigure) {
     // The config has since been loaded.
     // This update call is most likely a response to an async update request
     // from a config plugin. This request should request all plugins to update.
@@ -634,13 +685,14 @@ void Config::purge() {
 }
 
 void Config::reset() {
+  setStartTime(getUnixTime());
+
   schedule_ = std::make_shared<Schedule>();
   std::map<std::string, QueryPerformance>().swap(performance_);
   std::map<std::string, FileCategories>().swap(files_);
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
   loaded_ = false;
-  start_time_ = 0;
 
   // Also request each parse to reset state.
   for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {
@@ -732,17 +784,23 @@ void Config::getPerformanceStats(
   }
 }
 
-void Config::hashSource(const std::string& source, const std::string& content) {
+bool Config::hashSource(const std::string& source, const std::string& content) {
+  auto new_hash = getBufferSHA1(content.c_str(), content.size());
+
   WriteLock wlock(config_hash_mutex_);
-  hash_[source] = getBufferSHA1(content.c_str(), content.size());
+  if (hash_[source] == new_hash) {
+    return false;
+  }
+  hash_[source] = new_hash;
+  return true;
 }
 
 Status Config::genHash(std::string& hash) {
+  WriteLock lock(config_hash_mutex_);
   if (!valid_) {
     return Status(1, "Current config is not valid");
   }
 
-  WriteLock lock(config_hash_mutex_);
   std::vector<char> buffer;
   buffer.reserve(hash_.size() * 32);
   auto add = [&buffer](const std::string& text) {
@@ -765,7 +823,7 @@ const std::shared_ptr<ConfigParserPlugin> Config::getParser(
   }
 
   auto plugin = RegistryFactory::get().plugin("config_parser", parser);
-  // This is an error, need to check for existance (and not nullptr).
+  // This is an error, need to check for existence (and not nullptr).
   return std::dynamic_pointer_cast<ConfigParserPlugin>(plugin);
 }
 
@@ -809,8 +867,7 @@ Status ConfigPlugin::call(const PluginRequest& request,
     if (request.count("source") == 0 || request.count("data") == 0) {
       return Status(1, "Missing source or data");
     }
-    return Config::getInstance().update(
-        {{request.at("source"), request.at("data")}});
+    return Config::get().update({{request.at("source"), request.at("data")}});
   }
   return Status(1, "Config plugin action unknown: " + request.at("action"));
 }
@@ -826,7 +883,7 @@ void ConfigRefreshRunner::start() {
   while (!interrupted()) {
     // Cool off and time wait the configured period.
     // Apply this interruption initially as at t=0 the config was read.
-    pauseMilli(FLAGS_config_refresh * 1000);
+    pauseMilli(refresh_ * mod_);
     // Since the pause occurs before the logic, we need to check for an
     // interruption request.
     if (interrupted()) {
@@ -834,7 +891,7 @@ void ConfigRefreshRunner::start() {
     }
 
     VLOG(1) << "Refreshing configuration state";
-    Config::getInstance().refresh();
+    Config::get().refresh();
   }
 }
 }

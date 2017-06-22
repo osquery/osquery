@@ -77,7 +77,7 @@ def platform():
 
 def queries_from_config(config_path):
     config = {}
-    rmcomment = re.compile('\/\*[\*A-Za-z0-9\n\s\.\{\}\'\/\\\:]+\*/|//.*')
+    rmcomment = re.compile('\/\*[\*A-Za-z0-9\n\s\.\{\}\'\/\\\:]+\*\/|\s+\/\/.*|^\/\/.*|\x5c\x5c\x0a')
     try:
         with open(config_path, "r") as fh:
             configcontent = fh.read()
@@ -95,18 +95,18 @@ def queries_from_config(config_path):
             queries[name] = details["query"]
     if "packs" in config:
         for keys,values in config["packs"].iteritems():
-            with open(values) as fp:
-                packfile = fp.read()
-                packcontent = rmcomment.sub('',packfile)
-                packqueries = json.loads(packcontent)
-                for queryname,query in packqueries["queries"].iteritems():
-                    queries["pack_"+queryname] = query["query"]
+            # Check if it is an internal pack definition
+            if type(values) is dict:
+                for queryname, query in values["queries"].iteritems():
+                    queries["pack_" + queryname] = query["query"]
+            else:
+                with open(values) as fp:
+                    packfile = fp.read()
+                    packcontent = rmcomment.sub('', packfile)
+                    packqueries = json.loads(packcontent)
+                    for queryname, query in packqueries["queries"].iteritems():
+                        queries["pack_" + queryname] = query["query"]
 
-
-        pass
-    if len(queries) == 0:
-        print("Could not find a schedule/queries in config: %s" % config_path)
-        exit(0)
     return queries
 
 
