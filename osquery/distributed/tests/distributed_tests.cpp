@@ -26,6 +26,8 @@
 
 #include <rapidjson/prettywriter.h>
 
+#undef GetObject
+
 namespace pt = boost::property_tree;
 
 DECLARE_string(distributed_tls_read_endpoint);

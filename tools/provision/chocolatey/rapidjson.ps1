@@ -70,8 +70,11 @@ if (Test-Path $chocoDir) {
 # Construct the Chocolatey Package
 New-Item -ItemType Directory -Path $chocoDir
 Set-Location $chocoDir
-$includeDir = New-Item -ItemType Directory -Path 'local\include'
-$srcDir = New-Item -ItemType Directory -Path 'local\src'
+$includeDir = New-Item -ItemType Directory -Path '.\local\include'
+$srcDir = New-Item -ItemType Directory -Path '.\local\src'
+
+Copy-Item -Recurse "$sourceDir\include\rapidjson" $includeDir
+Copy-Item $buildScript $srcDir
 
 Write-NuSpec `
   $packageName `
@@ -83,8 +86,6 @@ Write-NuSpec `
   $copyright `
   $license
 
-Copy-Item -Recurse "$buildDir\..\include\rapidjson" $includeDir
-Copy-Item $buildScript $srcDir
 choco pack
 
 Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" `

@@ -25,6 +25,8 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
+#undef GetObject
+
 namespace rj = rapidjson;
 
 namespace osquery {
