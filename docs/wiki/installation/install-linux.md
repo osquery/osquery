@@ -7,6 +7,7 @@ The default packages create the following structure:
 ```sh
 /etc/osquery/
 /usr/share/osquery/osquery.example.conf
+/usr/share/osquery/lenses/{*}.aug
 /usr/share/osquery/packs/{*}.conf
 /var/log/osquery/
 /usr/lib/osquery/
