@@ -16,7 +16,6 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_core
   tables.cpp
   flags.cpp
   watcher.cpp
-  json.cpp
 )
 
 file(GLOB OSQUERY_CORE_TESTS "tests/*.cpp")

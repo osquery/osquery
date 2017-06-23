@@ -13,9 +13,9 @@
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
 
-#include "osquery/tests/test_util.h"
-#include "osquery/database/query.h"
 #include "osquery/core/json.h"
+#include "osquery/database/query.h"
+#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
@@ -61,7 +61,10 @@ static void DATABASE_serializeRJ(benchmark::State& state) {
   }
 }
 
-BENCHMARK(DATABASE_serializeRJ)->ArgPair(1, 1)->ArgPair(10, 10)->ArgPair(10, 100);
+BENCHMARK(DATABASE_serializeRJ)
+    ->ArgPair(1, 1)
+    ->ArgPair(10, 10)
+    ->ArgPair(10, 100);
 
 static void DATABASE_serialize_column_order(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range_x(), state.range_y());
@@ -119,7 +122,6 @@ BENCHMARK(DATABASE_serializeRJ_json)
     ->ArgPair(1, 1)
     ->ArgPair(10, 10)
     ->ArgPair(10, 100);
-
 
 static void DATABASE_diff(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range_x(), state.range_y());

@@ -89,15 +89,13 @@ TEST_F(DistributedTests, test_serialize_distributed_query_request) {
 
 TEST_F(DistributedTests, test_deserialize_distributed_query_request) {
   rapidjson::Document d(rapidjson::kObjectType);
-  d.AddMember(
-    rapidjson::Value("query", d.GetAllocator()).Move(),
-    rapidjson::Value("foo", d.GetAllocator()),
-    d.GetAllocator());
+  d.AddMember(rapidjson::Value("query", d.GetAllocator()).Move(),
+              rapidjson::Value("foo", d.GetAllocator()),
+              d.GetAllocator());
 
-  d.AddMember(
-    rapidjson::Value("id", d.GetAllocator()).Move(),
-    rapidjson::Value("bar", d.GetAllocator()).Move(),
-    d.GetAllocator());
+  d.AddMember(rapidjson::Value("id", d.GetAllocator()).Move(),
+              rapidjson::Value("bar", d.GetAllocator()).Move(),
+              d.GetAllocator());
 
   DistributedQueryRequest r;
   auto s = deserializeDistributedQueryRequest(d, r);
@@ -151,27 +149,27 @@ TEST_F(DistributedTests, test_deserialize_distributed_query_result) {
   rapidjson::Document results(rapidjson::kArrayType);
 
   request.AddMember(
-    rapidjson::Value("query", query_result.GetAllocator()).Move(),
-    rapidjson::Value("bar", query_result.GetAllocator()),
-    query_result.GetAllocator());
+      rapidjson::Value("query", query_result.GetAllocator()).Move(),
+      rapidjson::Value("bar", query_result.GetAllocator()),
+      query_result.GetAllocator());
 
-  request.AddMember(
-    rapidjson::Value("id", query_result.GetAllocator()).Move(),
-    rapidjson::Value("foo", query_result.GetAllocator()).Move(),
-    query_result.GetAllocator());
+  request.AddMember(rapidjson::Value("id", query_result.GetAllocator()).Move(),
+                    rapidjson::Value("foo", query_result.GetAllocator()).Move(),
+                    query_result.GetAllocator());
 
-  
-  row.AddMember(
-    rapidjson::Value("foo", query_result.GetAllocator()).Move(),
-    rapidjson::Value("bar", query_result.GetAllocator()).Move(),
-    query_result.GetAllocator());
+  row.AddMember(rapidjson::Value("foo", query_result.GetAllocator()).Move(),
+                rapidjson::Value("bar", query_result.GetAllocator()).Move(),
+                query_result.GetAllocator());
 
-  results.PushBack(
-    rapidjson::Value(row, request.GetAllocator()).Move(), request.GetAllocator()
-  );
-  
-  query_result.AddMember("request", rapidjson::Value(request, query_result.GetAllocator()), query_result.GetAllocator());
-  query_result.AddMember("results", rapidjson::Value(results, query_result.GetAllocator()), query_result.GetAllocator());
+  results.PushBack(rapidjson::Value(row, request.GetAllocator()).Move(),
+                   request.GetAllocator());
+
+  query_result.AddMember("request",
+                         rapidjson::Value(request, query_result.GetAllocator()),
+                         query_result.GetAllocator());
+  query_result.AddMember("results",
+                         rapidjson::Value(results, query_result.GetAllocator()),
+                         query_result.GetAllocator());
 
   DistributedQueryResult r;
   auto s = deserializeDistributedQueryResult(query_result, r);

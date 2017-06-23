@@ -151,8 +151,7 @@ using QueryData = std::vector<Row>;
 Status serializeQueryData(const QueryData& q,
                           boost::property_tree::ptree& tree);
 
-Status serializeQueryDataRJ(const QueryData& q,
-                          rapidjson::Document& d);
+Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d);
 
 /**
  * @brief Serialize a QueryData object into a property tree
@@ -188,8 +187,7 @@ Status deserializeQueryData(const boost::property_tree::ptree& tree,
                             QueryData& qd);
 
 /// Inverse of serializeQueryData, convert property tree to QueryData.
-Status deserializeQueryDataRJ(const rapidjson::Value& v,
-                            QueryData& qd);
+Status deserializeQueryDataRJ(const rapidjson::Value& v, QueryData& qd);
 
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryData.
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd);

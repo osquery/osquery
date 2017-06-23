@@ -108,9 +108,16 @@ Status Distributed::serializeResults(std::string& json) {
     if (!s.ok()) {
       return s;
     }
-    // This is a deep copy of qd which is not ideal, if we can make this a move, that would be best
-    queries.AddMember(rj::Value(result.request.id.c_str(), results.GetAllocator()).Move(), rj::Value(qd, results.GetAllocator()), results.GetAllocator());
-    statuses.AddMember(rj::Value(result.request.id.c_str(), results.GetAllocator()).Move(), rj::Value(result.status.getCode()).Move(), results.GetAllocator());
+    // This is a deep copy of qd which is not ideal, if we can make this a
+    // move, that would be best
+    queries.AddMember(
+        rj::Value(result.request.id.c_str(), results.GetAllocator()).Move(),
+        rj::Value(qd, results.GetAllocator()),
+        results.GetAllocator());
+    statuses.AddMember(
+        rj::Value(result.request.id.c_str(), results.GetAllocator()).Move(),
+        rj::Value(result.status.getCode()).Move(),
+        results.GetAllocator());
   }
 
   results.AddMember("queries", queries, results.GetAllocator());
@@ -118,7 +125,7 @@ Status Distributed::serializeResults(std::string& json) {
 
   rj::StringBuffer sb;
   rj::Writer<rj::StringBuffer> writer(sb);
-  results.Accept(writer); 
+  results.Accept(writer);
   json = sb.GetString();
   return Status(0, "OK");
 }
@@ -179,8 +186,9 @@ Status Distributed::acceptWork(const std::string& work) {
   rj::Document d;
   rj::ParseResult pr = d.Parse(rj::StringRef(work.c_str()));
   if (!pr) {
-    return Status(1, "Error Parsing JSON: " +
-      std::string(GetParseError_En(pr.Code()), pr.Offset()));
+    return Status(1,
+                  "Error Parsing JSON: " +
+                      std::string(GetParseError_En(pr.Code()), pr.Offset()));
   }
   std::set<std::string> queries_to_run;
   // Check for and run discovery queries first
@@ -192,8 +200,7 @@ Status Distributed::acceptWork(const std::string& work) {
 
       if (query.empty() || name.empty()) {
         return Status(
-            1,
-            "Distributed discovery query does not have complete attributes");
+            1, "Distributed discovery query does not have complete attributes");
       }
       SQL sql(query);
       if (!sql.getStatus().ok()) {
@@ -213,10 +220,7 @@ Status Distributed::acceptWork(const std::string& work) {
         return Status(1, "Distributed query does not have complete attributes");
       }
       if (queries_to_run.empty() || queries_to_run.count(name)) {
-        setDatabaseValue(
-          kQueries,
-          kDistributedQueryPrefix + name,
-          query);
+        setDatabaseValue(kQueries, kDistributedQueryPrefix + name, query);
       }
     }
   }
@@ -262,16 +266,14 @@ void Distributed::setCurrentRequestId(const std::string& cReqId) {
 
 Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
                                         rj::Document& d) {
-  d.AddMember(
-    rj::Value("query", d.GetAllocator()).Move(),
-    rj::Value(r.query.c_str(), d.GetAllocator()),
-    d.GetAllocator());
+  d.AddMember(rj::Value("query", d.GetAllocator()).Move(),
+              rj::Value(r.query.c_str(), d.GetAllocator()),
+              d.GetAllocator());
 
-  d.AddMember(
-    rj::Value("id", d.GetAllocator()).Move(),
-    rj::Value(r.id.c_str(), d.GetAllocator()),
-    d.GetAllocator());
-  
+  d.AddMember(rj::Value("id", d.GetAllocator()).Move(),
+              rj::Value(r.id.c_str(), d.GetAllocator()),
+              d.GetAllocator());
+
   return Status(0, "OK");
 }
 
@@ -285,7 +287,7 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
 
   rj::StringBuffer sb;
   rj::Writer<rj::StringBuffer> writer(sb);
-  d.Accept(writer); 
+  d.Accept(writer);
   json = sb.GetString();
 
   return Status(0, "OK");
@@ -293,8 +295,8 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
 
 Status deserializeDistributedQueryRequest(const rj::Value& d,
                                           DistributedQueryRequest& r) {
-  if (!(d.HasMember("query") && d.HasMember("id") &&
-      d["query"].IsString() && d["id"].IsString())) {
+  if (!(d.HasMember("query") && d.HasMember("id") && d["query"].IsString() &&
+        d["id"].IsString())) {
     return Status(1, "Malformed distributed query request");
   }
   r.query = std::string(d["query"].GetString());
@@ -305,7 +307,7 @@ Status deserializeDistributedQueryRequest(const rj::Value& d,
 Status deserializeDistributedQueryRequestJSON(const std::string& json,
                                               DistributedQueryRequest& r) {
   rj::Document d;
-  if (d.Parse(json.c_str()).HasParseError()){
+  if (d.Parse(json.c_str()).HasParseError()) {
     return Status(1, "Error serializing JSON");
   }
   return deserializeDistributedQueryRequest(d, r);
@@ -327,8 +329,10 @@ Status serializeDistributedQueryResult(const DistributedQueryResult& r,
     return s;
   }
 
-  d.AddMember("request", rj::Value(request, d.GetAllocator()).Move(), d.GetAllocator());
-  d.AddMember("results", rj::Value(results, d.GetAllocator()).Move(), d.GetAllocator());
+  d.AddMember(
+      "request", rj::Value(request, d.GetAllocator()).Move(), d.GetAllocator());
+  d.AddMember(
+      "results", rj::Value(results, d.GetAllocator()).Move(), d.GetAllocator());
   return Status(0, "OK");
 }
 
@@ -342,7 +346,7 @@ Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
 
   rj::StringBuffer sb;
   rj::Writer<rj::StringBuffer> writer(sb);
-  d.Accept(writer); 
+  d.Accept(writer);
   json = sb.GetString();
 
   return Status(0, "OK");
@@ -351,8 +355,7 @@ Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
 Status deserializeDistributedQueryResult(const rj::Document& d,
                                          DistributedQueryResult& r) {
   DistributedQueryRequest request;
-  auto s =
-      deserializeDistributedQueryRequest(d["request"], request);
+  auto s = deserializeDistributedQueryRequest(d["request"], request);
   if (!s.ok()) {
     return s;
   }
@@ -372,7 +375,7 @@ Status deserializeDistributedQueryResult(const rj::Document& d,
 Status deserializeDistributedQueryResultJSON(const std::string& json,
                                              DistributedQueryResult& r) {
   rj::Document d;
-  if (d.Parse(json.c_str()).HasParseError()){
+  if (d.Parse(json.c_str()).HasParseError()) {
     return Status(1, "Error serializing JSON");
   }
   return deserializeDistributedQueryResult(d, r);

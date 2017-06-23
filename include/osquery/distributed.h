@@ -61,8 +61,8 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
  *
  * @return Status indicating the success or failure of the operation
  */
-Status deserializeDistributedQueryRequest(
-    const rapidjson::Value& d, DistributedQueryRequest& r);
+Status deserializeDistributedQueryRequest(const rapidjson::Value& d,
+                                          DistributedQueryRequest& r);
 
 /**
  * @brief Deserialize a DistributedQueryRequest object from a JSON string
@@ -122,8 +122,8 @@ Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
  *
  * @return Status indicating the success or failure of the operation
  */
-Status deserializeDistributedQueryResult(
-    const rapidjson::Document& d, DistributedQueryResult& r);
+Status deserializeDistributedQueryResult(const rapidjson::Document& d,
+                                         DistributedQueryResult& r);
 
 /**
  * @brief Deserialize a DistributedQueryResult object from a JSON string

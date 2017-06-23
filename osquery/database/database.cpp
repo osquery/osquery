@@ -73,10 +73,9 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
 Status serializeRowRJ(const Row& r, rapidjson::Document& d) {
   try {
     for (auto& i : r) {
-      d.AddMember(
-        rapidjson::Value(i.first.c_str(), d.GetAllocator()).Move(),
-        rapidjson::Value(i.second.c_str(), d.GetAllocator()).Move(),
-        d.GetAllocator());
+      d.AddMember(rapidjson::Value(i.first.c_str(), d.GetAllocator()).Move(),
+                  rapidjson::Value(i.second.c_str(), d.GetAllocator()).Move(),
+                  d.GetAllocator());
     }
   } catch (const std::exception& e) {
     return Status(1, e.what());
@@ -95,13 +94,14 @@ Status serializeRow(const Row& r, const ColumnNames& cols, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
-Status serializeRowRJ(const Row& r, const ColumnNames& cols, rapidjson::Document& d) {
+Status serializeRowRJ(const Row& r,
+                      const ColumnNames& cols,
+                      rapidjson::Document& d) {
   try {
     for (auto& c : cols) {
-      d.AddMember(
-        rapidjson::Value(c.c_str(), d.GetAllocator()).Move(),
-        rapidjson::Value(r.at(c).c_str(), d.GetAllocator()).Move(),
-        d.GetAllocator());
+      d.AddMember(rapidjson::Value(c.c_str(), d.GetAllocator()).Move(),
+                  rapidjson::Value(r.at(c).c_str(), d.GetAllocator()).Move(),
+                  d.GetAllocator());
     }
   } catch (const std::exception& e) {
     return Status(1, e.what());
@@ -136,7 +136,7 @@ Status serializeRowJSONRJ(const Row& r, std::string& json) {
 
   rapidjson::StringBuffer sb;
   rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-  d.Accept(writer); 
+  d.Accept(writer);
   json = sb.GetString();
   return Status(0, "OK");
 }
@@ -151,7 +151,7 @@ Status deserializeRow(const pt::ptree& tree, Row& r) {
 }
 
 Status deserializeRowRJ(const rapidjson::Value& v, Row& r) {
-  if (!v.IsObject()){
+  if (!v.IsObject()) {
     return Status(1, "Row not an object");
   }
   for (const auto& i : v.GetObject()) {
@@ -178,7 +178,7 @@ Status deserializeRowJSON(const std::string& json, Row& r) {
 
 Status deserializeRowJSONRJ(const std::string& json, Row& r) {
   rapidjson::Document d;
-  if (d.Parse(json.c_str()).HasParseError()){
+  if (d.Parse(json.c_str()).HasParseError()) {
     return Status(1, "Error serializing JSON");
   }
   return deserializeRowRJ(d, r);
@@ -238,7 +238,7 @@ Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json) {
 
   rapidjson::StringBuffer sb;
   rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
-  d.Accept(writer); 
+  d.Accept(writer);
   json = sb.GetString();
   return Status(0, "OK");
 }
@@ -256,7 +256,7 @@ Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
 }
 
 Status deserializeQueryDataRJ(const rapidjson::Value& v, QueryData& qd) {
-  if (!v.IsArray()){
+  if (!v.IsArray()) {
     return Status(1, "Not an array");
   }
   for (const auto& i : v.GetArray()) {
@@ -269,7 +269,6 @@ Status deserializeQueryDataRJ(const rapidjson::Value& v, QueryData& qd) {
   }
   return Status(0, "OK");
 }
-
 
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
   pt::ptree tree;
@@ -830,18 +829,17 @@ Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d) {
     if (!s.ok()) {
       return s;
     }
-    if (serialized.GetObject().MemberCount()){
-      d.PushBack(
-        rapidjson::Value(serialized, d.GetAllocator()).Move(), d.GetAllocator()
-      );
+    if (serialized.GetObject().MemberCount()) {
+      d.PushBack(rapidjson::Value(serialized, d.GetAllocator()).Move(),
+                 d.GetAllocator());
     }
   }
   return Status(0, "OK");
 }
 
 Status serializeQueryDataRJ(const QueryData& q,
-                          const ColumnNames& cols,
-                          rapidjson::Document& d) {
+                            const ColumnNames& cols,
+                            rapidjson::Document& d) {
   for (const auto& r : q) {
     rapidjson::Document serialized;
     serialized.SetObject();
@@ -849,10 +847,9 @@ Status serializeQueryDataRJ(const QueryData& q,
     if (!s.ok()) {
       return s;
     }
-    if (serialized.GetObject().MemberCount()){
-      d.PushBack(
-        rapidjson::Value(serialized, d.GetAllocator()).Move(), d.GetAllocator()
-      );
+    if (serialized.GetObject().MemberCount()) {
+      d.PushBack(rapidjson::Value(serialized, d.GetAllocator()).Move(),
+                 d.GetAllocator());
     }
   }
   return Status(0, "OK");
@@ -869,20 +866,18 @@ Status serializeDiffResultsRJ(const DiffResults& d, rapidjson::Document& doc) {
     return status;
   }
 
-  doc.AddMember(
-    rapidjson::Value("removed", doc.GetAllocator()).Move(),
-    rapidjson::Value(removed, doc.GetAllocator()).Move(),
-    doc.GetAllocator());
+  doc.AddMember(rapidjson::Value("removed", doc.GetAllocator()).Move(),
+                rapidjson::Value(removed, doc.GetAllocator()).Move(),
+                doc.GetAllocator());
 
   rapidjson::Document added;
   status = serializeQueryDataRJ(d.added, added);
   if (!status.ok()) {
     return status;
   }
-  doc.AddMember(
-        rapidjson::Value("added", doc.GetAllocator()).Move(),
-        rapidjson::Value(added, doc.GetAllocator()).Move(),
-        doc.GetAllocator());
+  doc.AddMember(rapidjson::Value("added", doc.GetAllocator()).Move(),
+                rapidjson::Value(added, doc.GetAllocator()).Move(),
+                doc.GetAllocator());
   return Status(0, "OK");
 }
 }
