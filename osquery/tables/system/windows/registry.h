@@ -24,8 +24,27 @@ const std::string kDefaultRegName = "(Default)";
 // Maximum recursive depth with searching the registry
 const size_t kRegMaxRecursiveDepth = 32;
 
-/// Microsoft helper function for getting the contents of a registry key
+// Microsoft helper function for getting the contents of a registry key
 Status queryKey(const std::string& keyPath, QueryData& results);
+
+/*
+ * @brief Get the executables associated with a Class ID
+ *
+ * This will return any executables (.dll, .exe, etc) associated with
+ * the class ID in the registry. This includes the InProcServer32,
+ * LocalServer32 and InProcHandler32 keys as well as the 16-bit versions.
+ *
+ * If the class exists in multiple locations (e.g. HKEY_USERS
+ * and HKEY_LOCAL_MACHINE) then all entries will be returned.
+ *
+ * @param clsId The Class ID, e.g. "{0000002F-0000-0000-C000-000000000046}"
+ * @param results Will be populated with a list of paths to executables
+ * associated with the class.
+ * @return Failure if there was a failure querying the registry or the
+ * clsId doesn't exist on the system, otherwise success
+ */
+Status getClassExecutables(const std::string& clsId,
+                           std::vector<std::string>& results);
 
 /*
  * @brief Expand a globbing pattern into a set of registry keys to
@@ -69,5 +88,5 @@ inline void explodeRegistryPath(const std::string& path,
  * success
  */
 Status getUsernameFromKey(const std::string& key, std::string& rUsername);
-}
-}
+} // namespace tables
+} // namespace osquery
