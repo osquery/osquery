@@ -23,6 +23,7 @@
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm.hpp>
@@ -30,6 +31,7 @@
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -73,6 +75,39 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_FULL_RESOURCE_DESCRIPTOR, "REG_FULL_RESOURCE_DESCRIPTOR"},
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
 };
+
+const std::vector<std::string> kClassKeys = {
+    "HKEY_USERS\\%\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\InProcServer%",
+    "HKEY_USERS\\%\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\InProcHandler%",
+    "HKEY_USERS\\%\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\LocalServer%",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\InProcServer%",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\InProcHandler%",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\LocalServer%"};
+
+Status getClassExecutables(const std::string& clsId,
+                           std::vector<std::string>& results) {
+  std::vector<std::string> resolvedKeys;
+  for (auto key : kClassKeys) {
+    boost::replace_first(key, "{CLSID}", clsId);
+    resolvedKeys.push_back(key);
+  }
+
+  SQL sql("SELECT name,data FROM registry WHERE key LIKE '" +
+          boost::join(resolvedKeys, "' OR key LIKE '") + "'");
+  if (!sql.ok()) {
+    return sql.getStatus();
+  }
+  if (sql.rows().empty()) {
+    return Status(1, "CLSID " + clsId + " not found");
+  }
+
+  for (const auto& r : sql.rows()) {
+    if (r.at("name") == kDefaultRegName) {
+      results.push_back(r.at("data"));
+    }
+  }
+  return Status();
+}
 
 Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
   if (!boost::starts_with(key, "HKEY_USERS")) {
