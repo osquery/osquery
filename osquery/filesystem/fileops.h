@@ -141,10 +141,18 @@ struct AsyncEvent {
  * @param rLongPath will be populated with the long path
  *
  * @return Success if successful, otherwise failure
-*/
+ */
 Status windowsShortPathToLongPath(const std::string& shortPath,
                                   std::string& rLongPath);
 
+/*
+ * @brief Get the product version associated with a file
+ *
+ * @param path: Full path to the file
+ * @param rVersion: String representing the product version, e.g. "16.0.8201.0"
+ *
+ * @return Success if the version could be retrieved, otherwise failure
+ */
 Status windowsGetFileVersion(const std::string& path, std::string& rVersion);
 #endif
 
