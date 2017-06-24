@@ -10,6 +10,7 @@
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/events/kernel.h"
 
@@ -32,7 +33,7 @@ REGISTER(KernelEventPublisher, "event_publisher", "kernel");
 
 Status KernelEventPublisher::setUp() {
   // A daemon should attempt to autoload kernel extensions.
-  if (kToolType == ToolType::DAEMON) {
+  if (Initializer::isDaemon()) {
     loadKernelExtension();
   }
 
@@ -92,7 +93,7 @@ Status KernelEventPublisher::run() {
     int drops = 0;
     WriteLock lock(mutex_);
     if ((drops = queue_->kernelSync(OSQUERY_OPTIONS_NO_BLOCK)) > 0 &&
-        kToolType == ToolType::DAEMON) {
+        Initializer::isDaemon()) {
       LOG(WARNING) << "Dropping " << drops << " kernel events";
     }
   } catch (const CQueueException &e) {
