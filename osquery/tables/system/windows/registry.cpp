@@ -77,19 +77,44 @@ const std::map<DWORD, std::string> kRegistryTypes = {
 };
 
 const std::vector<std::string> kClassKeys = {
-    "HKEY_USERS\\%\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\InProcServer%",
-    "HKEY_USERS\\%\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\InProcHandler%",
-    "HKEY_USERS\\%\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\LocalServer%",
-    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\InProcServer%",
-    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\InProcHandler%",
-    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID\\{CLSID}\\LocalServer%"};
+    "HKEY_USERS\\%\\SOFTWARE\\Classes\\CLSID",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID"};
 
-Status getClassExecutables(const std::string& clsId,
+const std::vector<std::string> kClassExecSubKeys = {
+    "InProcServer%", "InProcHandler%", "LocalServer%"};
+
+Status getClassName(const std::string& clsId, std::string& rClsName) {
+  std::vector<std::string> keys;
+  for (const auto& key : kClassExecSubKeys) {
+    keys.push_back(key + kRegSep + clsId);
+  }
+
+  SQL sql("SELECT data FROM registry WHERE name = '" + kDefaultRegName +
+          "' AND (" + "key = '" + boost::join(keys, "' OR key = '") + "')");
+  if (!sql.ok()) {
+    return sql.getStatus();
+  }
+  if (sql.rows.empty()) {
+    return Status(1, "ClsId not found in registry");
+  }
+
+  for (const auto& row : sql.rows()) {
+    if (!row.at("data").empty()) {
+      rClsName = row.at("data");
+      return Status();
+    }
+  }
+
+  return Status(1, "No class name present in registry");
+}
+
+Status getClassexecutables(const std::string& clsId,
                            std::vector<std::string>& results) {
   std::vector<std::string> resolvedKeys;
   for (auto key : kClassKeys) {
-    boost::replace_first(key, "{CLSID}", clsId);
-    resolvedKeys.push_back(key);
+    for (const auto& subkey : kClassExecSubKeys) {
+      resolvedKeys.push_back(key + kRegSep + clsId + kRegSep + subkey);
+    }
   }
 
   SQL sql("SELECT name,data FROM registry WHERE key LIKE '" +
@@ -98,7 +123,7 @@ Status getClassExecutables(const std::string& clsId,
     return sql.getStatus();
   }
   if (sql.rows().empty()) {
-    return Status(1, "CLSID " + clsId + " not found");
+    return Status(1, "ClsId not found in registry");
   }
 
   for (const auto& r : sql.rows()) {

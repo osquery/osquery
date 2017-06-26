@@ -100,12 +100,12 @@ class WindowsFindFiles {
 
 Status windowsShortPathToLongPath(const std::string& shortPath,
                                   std::string& rLongPath) {
-  std::array<TCHAR, MAX_PATH> longPath = {0};
+  TCHAR longPath[MAX_PATH];
   auto ret = GetLongPathName(shortPath.c_str(), longPath, MAX_PATH);
   if (ret == 0) {
     return Status(GetLastError(), "Failed to convert short path to long path");
   }
-  rLongPath = std::move(longPath);
+  rLongPath = std::string(longPath);
   return Status();
 }
 

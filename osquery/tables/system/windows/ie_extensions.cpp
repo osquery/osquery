@@ -52,8 +52,17 @@ static inline Status getBHOs(QueryData& results) {
       LOG(WARNING) << "Failed to get class executables: " + ret.getMessage();
       return ret;
     }
+
+    std::string clsName;
+    ret = getClassName(cls.at("name"), clsName);
+    if (!ret.ok()) {
+      LOG(WARNING) << "Failed to get class name: " + ret.getMessage();
+      return ret;
+    }
+
     for (const auto& exec : executables) {
       Row r;
+      r["name"] = std::move(clsName);
 
       std::string fullPath;
       ret = windowsShortPathToLongPath(exec, fullPath);

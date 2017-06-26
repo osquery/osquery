@@ -28,6 +28,16 @@ const size_t kRegMaxRecursiveDepth = 32;
 Status queryKey(const std::string& keyPath, QueryData& results);
 
 /*
+ * @brief Get the name of a class from it's Class ID
+ *
+ * @param clsId the class ID, e.g. "{0000002F-0000-0000-C000-000000000046}"
+ * @param rClsName Will be populated with the class name if successful
+ * @return Failure if could not find  the class name in the registry, or
+ * if one does not exist
+ */
+Status getClassName(const std::string& clsId, std::string& rClsName);
+
+/*
  * @brief Get the executables associated with a Class ID
  *
  * This will return any executables (.dll, .exe, etc) associated with
