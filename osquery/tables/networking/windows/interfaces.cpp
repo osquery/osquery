@@ -30,62 +30,126 @@ namespace tables {
 auto kMaxBufferAllocRetries = 3;
 auto kWorkingBufferSize = 15000;
 
+void genInterfaceDetail(const WmiResultItem& adapter, QueryData& results) {
+  Row r;
+  long lPlaceHolder;
+  bool bPlaceHolder;
+  std::vector<std::string> vPlaceHolder;
+  unsigned __int64 ulPlaceHolder;
+
+  r["interface"] = INTEGER(lPlaceHolder);
+  adapter.GetString("MACAddress", r["mac"]);
+  adapter.GetString("AdapterType", r["type"]);
+
+  adapter.GetString("Description", r["description"]);
+  adapter.GetLong("InterfaceIndex", lPlaceHolder);
+  adapter.GetString("Manufacturer", r["manufacturer"]);
+  adapter.GetString("NetConnectionID", r["connection_id"]);
+  adapter.GetLong("NetConnectionStatus", lPlaceHolder);
+  r["connection_status"] = INTEGER(lPlaceHolder);
+  adapter.GetBool("NetEnabled", bPlaceHolder);
+  r["enabled"] = INTEGER(bPlaceHolder);
+  adapter.GetBool("PhysicalAdapter", bPlaceHolder);
+  r["physical_adapter"] = INTEGER(bPlaceHolder);
+  adapter.GetUnsignedLongLong("Speed", ulPlaceHolder);
+  r["speed"] = INTEGER(ulPlaceHolder);
+
+  std::string query =
+      "SELECT * FROM win32_networkadapterconfiguration WHERE "
+      "InterfaceIndex = " +
+      r["interface"];
+
+  WmiRequest irequest(query);
+  if (irequest.getStatus().ok()) {
+    auto& iresults = irequest.results();
+    iresults[0].GetLong("MTU", lPlaceHolder);
+    r["mtu"] = INTEGER(lPlaceHolder);
+
+    iresults[0].GetBool("DHCPEnabled", bPlaceHolder);
+    r["dhcp_enabled"] = INTEGER(bPlaceHolder);
+    iresults[0].GetString("DHCPLeaseExpires", r["dhcp_lease_expires"]);
+    iresults[0].GetString("DHCPLeaseObtained", r["dhcp_lease_obtained"]);
+    iresults[0].GetString("DHCPServer", r["dhcp_server"]);
+    iresults[0].GetString("DNSDomain", r["dns_domain"]);
+    iresults[0].GetVectorOfStrings("DNSDomainSuffixSearchOrder", vPlaceHolder);
+    r["dns_domain_suffix_search_order"] =
+        SQL_TEXT(boost::algorithm::join(vPlaceHolder, ", "));
+    iresults[0].GetString("DNSHostName", r["dns_host_name"]);
+    iresults[0].GetVectorOfStrings("DNSServerSearchOrder", vPlaceHolder);
+    r["dns_server_search_order"] =
+        SQL_TEXT(boost::algorithm::join(vPlaceHolder, ", "));
+  }
+  results.push_back(r);
+}
+
 QueryData genInterfaceDetails(QueryContext& context) {
-  QueryData results_data;
+  QueryData results;
   WmiRequest request("SELECT * FROM Win32_NetworkAdapter");
   if (request.getStatus().ok()) {
-    std::vector<WmiResultItem>& results = request.results();
-    for (const auto& result : results) {
-      Row r;
-      long lPlaceHolder;
-      bool bPlaceHolder;
-      std::vector<std::string> vPlaceHolder;
-      unsigned __int64 ulPlaceHolder;
-
-      result.GetString("AdapterType", r["type"]);
-      result.GetString("Description", r["description"]);
-      result.GetLong("InterfaceIndex", lPlaceHolder);
-      r["interface"] = INTEGER(lPlaceHolder);
-      result.GetString("MACAddress", r["mac"]);
-      result.GetString("Manufacturer", r["manufacturer"]);
-      result.GetString("NetConnectionID", r["connection_id"]);
-      result.GetLong("NetConnectionStatus", lPlaceHolder);
-      r["connection_status"] = INTEGER(lPlaceHolder);
-      result.GetBool("NetEnabled", bPlaceHolder);
-      r["enabled"] = INTEGER(bPlaceHolder);
-      result.GetBool("PhysicalAdapter", bPlaceHolder);
-      r["physical_adapter"] = INTEGER(bPlaceHolder);
-      result.GetUnsignedLongLong("Speed", ulPlaceHolder);
-      r["speed"] = INTEGER(ulPlaceHolder);
-
-      std::string query =
-          "SELECT * FROM win32_networkadapterconfiguration WHERE "
-          "InterfaceIndex = " +
-          r["interface"];
-
-      WmiRequest irequest(query);
-      if (irequest.getStatus().ok()) {
-        std::vector<WmiResultItem>& iresults = irequest.results();
-
-        iresults[0].GetBool("DHCPEnabled", bPlaceHolder);
-        r["dhcp_enabled"] = INTEGER(bPlaceHolder);
-        iresults[0].GetString("DHCPLeaseExpires", r["dhcp_lease_expires"]);
-        iresults[0].GetString("DHCPLeaseObtained", r["dhcp_lease_obtained"]);
-        iresults[0].GetString("DHCPServer", r["dhcp_server"]);
-        iresults[0].GetString("DNSDomain", r["dns_domain"]);
-        iresults[0].GetVectorOfStrings("DNSDomainSuffixSearchOrder",
-                                       vPlaceHolder);
-        r["dns_domain_suffix_search_order"] =
-            SQL_TEXT(boost::algorithm::join(vPlaceHolder, ", "));
-        iresults[0].GetString("DNSHostName", r["dns_host_name"]);
-        iresults[0].GetVectorOfStrings("DNSServerSearchOrder", vPlaceHolder);
-        r["dns_server_search_order"] =
-            SQL_TEXT(boost::algorithm::join(vPlaceHolder, ", "));
-      }
-      results_data.push_back(r);
+    auto& wmi_results = request.results();
+    for (const auto& adapter : wmi_results) {
+      genInterfaceDetail(adapter, results);
     }
   }
-  return results_data;
+  return results;
+}
+
+void genInterfaceAddress(const std::string& name,
+                         const IP_ADAPTER_UNICAST_ADDRESS* ipaddr,
+                         QueryData& results) {
+  Row r;
+  r["interface"] = name;
+
+  switch (ipaddr->SuffixOrigin) {
+  case IpSuffixOriginManual:
+    r["type"] = "manual";
+    break;
+  case IpSuffixOriginDhcp:
+    r["type"] = "dhcp";
+    break;
+  case IpSuffixOriginLinkLayerAddress:
+  case IpSuffixOriginRandom:
+    r["type"] = "auto";
+    break;
+  default:
+    r["type"] = "unknown";
+  }
+
+  if (ipaddr->Address.lpSockaddr->sa_family == AF_INET) {
+    ULONG mask;
+    ConvertLengthToIpv4Mask(ipaddr->OnLinkPrefixLength, &mask);
+    in_addr maskAddr;
+    maskAddr.s_addr = mask;
+
+    char addrBuff[INET_ADDRSTRLEN] = {0};
+    inet_ntop(AF_INET, &maskAddr, addrBuff, INET_ADDRSTRLEN);
+    r["mask"] = addrBuff;
+
+    inet_ntop(
+        AF_INET,
+        &reinterpret_cast<sockaddr_in*>(ipaddr->Address.lpSockaddr)->sin_addr,
+        addrBuff,
+        INET_ADDRSTRLEN);
+    r["address"] = addrBuff;
+  } else if (ipaddr->Address.lpSockaddr->sa_family == AF_INET6) {
+    in6_addr netmask;
+    memset(&netmask, 0x0, sizeof(netmask));
+    for (long i = ipaddr->OnLinkPrefixLength, j = 0; i > 0; i -= 8, ++j) {
+      netmask.s6_addr[j] = i >= 8 ? 0xff : (ULONG)((0xffU << (8 - i)));
+    }
+
+    char addrBuff[INET6_ADDRSTRLEN] = {0};
+    inet_ntop(AF_INET6, &netmask, addrBuff, INET6_ADDRSTRLEN);
+    r["mask"] = addrBuff;
+
+    inet_ntop(
+        AF_INET6,
+        &reinterpret_cast<sockaddr_in6*>(ipaddr->Address.lpSockaddr)->sin6_addr,
+        addrBuff,
+        INET6_ADDRSTRLEN);
+    r["address"] = addrBuff;
+  }
+  results.emplace_back(r);
 }
 
 QueryData genInterfaceAddresses(QueryContext& context) {
@@ -119,63 +183,11 @@ QueryData genInterfaceAddresses(QueryContext& context) {
   const IP_ADAPTER_ADDRESSES* currAdapter = adapters.get();
   while (currAdapter != nullptr) {
     std::wstring wsAdapterName = std::wstring(currAdapter->FriendlyName);
-    std::string adapterName =
-        std::string(wsAdapterName.begin(), wsAdapterName.end());
+    auto adapterName = std::string(wsAdapterName.begin(), wsAdapterName.end());
 
     const IP_ADAPTER_UNICAST_ADDRESS* ipaddr = currAdapter->FirstUnicastAddress;
     while (ipaddr != nullptr) {
-      Row r;
-      r["interface"] = adapterName;
-
-      switch (ipaddr->SuffixOrigin) {
-      case IpSuffixOriginManual:
-        r["type"] = "manual";
-        break;
-      case IpSuffixOriginDhcp:
-        r["type"] = "dhcp";
-        break;
-      case IpSuffixOriginLinkLayerAddress:
-      case IpSuffixOriginRandom:
-        r["type"] = "auto";
-        break;
-      default:
-        r["type"] = "unknown";
-      }
-
-      if (ipaddr->Address.lpSockaddr->sa_family == AF_INET) {
-        ULONG mask;
-        ConvertLengthToIpv4Mask(ipaddr->OnLinkPrefixLength, &mask);
-        in_addr maskAddr;
-        maskAddr.s_addr = mask;
-
-        char addrBuff[INET_ADDRSTRLEN] = {0};
-        inet_ntop(AF_INET, &maskAddr, addrBuff, INET_ADDRSTRLEN);
-        r["mask"] = addrBuff;
-
-        inet_ntop(AF_INET,
-                  &reinterpret_cast<sockaddr_in*>(ipaddr->Address.lpSockaddr)
-                       ->sin_addr,
-                  addrBuff,
-                  INET_ADDRSTRLEN);
-        r["address"] = addrBuff;
-      } else if (ipaddr->Address.lpSockaddr->sa_family == AF_INET6) {
-        in6_addr netmask;
-        memset(&netmask, 0x0, sizeof(netmask));
-        for (long i = ipaddr->OnLinkPrefixLength, j = 0; i > 0; i -= 8, ++j)
-          netmask.s6_addr[j] = i >= 8 ? 0xff : (ULONG)((0xffU << (8 - i)));
-
-        char addrBuff[INET6_ADDRSTRLEN] = {0};
-        inet_ntop(AF_INET6, &netmask, addrBuff, INET6_ADDRSTRLEN);
-        r["mask"] = addrBuff;
-
-        inet_ntop(AF_INET6,
-                  &reinterpret_cast<sockaddr_in6*>(ipaddr->Address.lpSockaddr)
-                       ->sin6_addr,
-                  addrBuff,
-                  INET6_ADDRSTRLEN);
-        r["address"] = addrBuff;
-      }
-      results.emplace_back(r);
+      genInterfaceAddress(adapterName, ipaddr, results);
       ipaddr = ipaddr->Next;
     }
     currAdapter = currAdapter->Next;

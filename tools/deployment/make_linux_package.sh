@@ -237,6 +237,7 @@ function main() {
   # Generate debug packages for Linux or CentOS
   BUILD_DEBUG_PKG=false
   if [[ $PACKAGE_TYPE = "deb" ]]; then
+    BUILD_DEBUG_PKG=true
     PACKAGE_DEBUG_NAME="$PACKAGE_NAME-dbg"
     PACKAGE_DEBUG_DEPENDENCIES="osquery (= $PACKAGE_VERSION-$PACKAGE_ITERATION)"
 
@@ -246,6 +247,7 @@ function main() {
     cp "$BUILD_DIR/osquery/osqueryi" $BINARY_DEBUG_DIR
     cp "$BUILD_DIR/osquery/osqueryd" $BINARY_DEBUG_DIR
   elif [[ $PACKAGE_TYPE = "rpm" ]]; then
+    BUILD_DEBUG_PKG=true
     PACKAGE_DEBUG_NAME="$PACKAGE_NAME-debuginfo"
     PACKAGE_DEBUG_DEPENDENCIES="osquery = $PACKAGE_VERSION"
 
@@ -280,7 +282,7 @@ function main() {
 
   PACKAGE_DEBUG_DEPENDENCIES=`echo "$PACKAGE_DEBUG_DEPENDENCIES"|tr '-' '_'`
   OUTPUT_DEBUG_PKG_PATH=`realpath "$BUILD_DIR"`/$PACKAGE_DEBUG_NAME$(get_pkg_suffix)
-  if [[ ! -z "$DEBUG" ]]; then
+  if [[ "$BUILD_DEBUG_PKG" = "true" ]]; then
     rm -f $OUTPUT_DEBUG_PKG_PATH
     CMD="$FPM -s dir -t $PACKAGE_TYPE            \
       -n $PACKAGE_DEBUG_NAME -v $PACKAGE_VERSION \
