@@ -85,7 +85,7 @@ const std::vector<std::string> kClassExecSubKeys = {
 
 Status getClassName(const std::string& clsId, std::string& rClsName) {
   std::vector<std::string> keys;
-  for (const auto& key : kClassExecSubKeys) {
+  for (const auto& key : kClassKeys) {
     keys.push_back(key + kRegSep + clsId);
   }
 
@@ -94,7 +94,7 @@ Status getClassName(const std::string& clsId, std::string& rClsName) {
   if (!sql.ok()) {
     return sql.getStatus();
   }
-  if (sql.rows.empty()) {
+  if (sql.rows().empty()) {
     return Status(1, "ClsId not found in registry");
   }
 
@@ -108,7 +108,7 @@ Status getClassName(const std::string& clsId, std::string& rClsName) {
   return Status(1, "No class name present in registry");
 }
 
-Status getClassexecutables(const std::string& clsId,
+Status getClassExecutables(const std::string& clsId,
                            std::vector<std::string>& results) {
   std::vector<std::string> resolvedKeys;
   for (auto key : kClassKeys) {
