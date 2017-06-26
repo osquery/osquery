@@ -54,15 +54,17 @@ static inline Status getBHOs(QueryData& results) {
     }
     for (const auto& exec : executables) {
       Row r;
+
       std::string fullPath;
-      std::string version;
       ret = windowsShortPathToLongPath(exec, fullPath);
       if (ret.ok()) {
-        r["path"] = fullPath;
+        r["path"] = std::move(fullPath);
       }
+
+      std::string version;
       ret = windowsGetFileVersion(exec, version);
       if (ret.ok()) {
-        r["version"] = version;
+        r["version"] = std::move(version);
       }
 
       r["registry_path"] = cls.at("path");
