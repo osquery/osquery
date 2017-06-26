@@ -1,5 +1,5 @@
 table_name("ie_extensions")
-description("Internet Explorer browser extensions.")
+description("Internet Explorer browser extensions")
 schema([
     Column("name", TEXT, "Extension display name"),
     Column("registry_path", TEXT, "Extension identifier", index=True),
