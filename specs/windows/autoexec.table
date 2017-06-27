@@ -5,6 +5,7 @@ description("Aggregate of executables that will automatically "
 	    "startup_items and more.")
 schema([
     Column("path", TEXT, "Path to the executable", index=True),
-    Column("name", TEXT, "Name of the program")
+    Column("name", TEXT, "Name of the program"),
+    Column("source", TEXT, "Source table of the autoexec item")
 ])
 implementation("autoexec@genAutoexec")

@@ -27,6 +27,7 @@ const std::map<std::string, std::map<std::string, std::string>>
         {"startup_items", {{"name", "name"}, {"path", "path"}}},
         {"services", {{"module_path", "path"}, {"name", "name"}}},
         {"scheduled_tasks", {{"name", "name"}, {"path", "path"}}},
+        {"ie_extensions", {{"name", "name"}, {"path", "path"}}},
         {"drivers", {{"description", "name"}, {"image", "path"}}}};
 
 QueryData genAutoexec(QueryContext& context) {
@@ -37,7 +38,8 @@ QueryData genAutoexec(QueryContext& context) {
     for (const auto& col : table.second) {
       sql_cols.push_back(col.first + " AS " + col.second);
     }
-    SQL sql("SELECT " + boost::join(sql_cols, ", ") + " FROM " + table.first);
+    SQL sql("SELECT '" + table.first + "' as source, " +
+            boost::join(sql_cols, ", ") + " FROM " + table.first);
     if (!sql.ok()) {
       LOG(WARNING) << sql.getStatus().getMessage();
     }
