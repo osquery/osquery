@@ -13,12 +13,15 @@
 #include <gtest/gtest.h>
 
 #include <osquery/events.h>
+#include <osquery/flags.h>
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/audit.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
+
+DECLARE_bool(audit_allow_unix);
 
 /// Internal audit publisher testable methods.
 extern bool handleAuditReply(const struct audit_reply& reply,
@@ -170,6 +173,8 @@ TEST_F(AuditTests, test_parse_sock_addr) {
   EXPECT_EQ(r3["remote_address"], "fe80:0000:0000:0000:0225:22ff:feb0:3684");
   EXPECT_EQ(r3["remote_port"], "8081");
 
+  auto socket_flag = FLAGS_audit_allow_unix;
+  FLAGS_audit_allow_unix = true;
   Row r4;
   std::string msg3 = "01002F746D702F6F7371756572792E656D0000";
   parseSockAddr(msg3, r4);
@@ -179,5 +184,6 @@ TEST_F(AuditTests, test_parse_sock_addr) {
   msg3 = "0100002F746D702F6F7371756572792E656D";
   parseSockAddr(msg3, r4);
   EXPECT_EQ(r4["socket"], "/tmp/osquery.em");
+  FLAGS_audit_allow_unix = socket_flag;
 }
 }
