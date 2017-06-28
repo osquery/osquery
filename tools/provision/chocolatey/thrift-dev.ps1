@@ -20,9 +20,13 @@ $owners = 'thrift-dev'
 $copyright = 'https://github.com/apache/thrift/blob/master/LICENSE'
 $license = 'https://github.com/apache/thrift/blob/master/LICENSE'
 $url = "https://github.com/apache/thrift/archive/$version.zip"
+$parentPath = $(Split-Path -Parent $MyInvocation.MyCommand.Definition)
+$patchfiles = @(
+  Join-Path $parentPath "patches/thrift-dev.patch"
+)
 
 # Invoke our utilities file
-. "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
+. $(Join-Path $parentPath "osquery_utils.ps1")
 
 # Invoke the MSVC developer tools/env
 Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
@@ -59,6 +63,27 @@ if (-not (Test-Path $sourceDir)) {
 }
 Set-Location $sourceDir
 
+<<<<<<< HEAD
+=======
+# Thrift-dev requires this patch on windows, as our communications with the
+# thrift named pipe server happen to quickly, and we get loads of verbosity
+# this turns off said verbosity, as it's only concerned with our status
+# pings, and not the actual result flow of extensions itself.
+$git = (Get-Command 'git').Source
+# Applying patches on Windows wasn't working until we were in an active repo
+Start-OsqueryProcess $git 'init'
+foreach ($patch in $patchfiles) {
+  $patchArgs = @(
+    'apply',
+    '--ignore-space-change',
+    '--ignore-whitespace',
+    '--whitespace=nowarn',
+    "`"$patch`""
+  )
+  Start-OsqueryProcess $git $patchArgs
+}
+
+>>>>>>> Adding git patch logic to thrift-dev choco package
 # Build the libraries
 $buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'
 Set-Location $buildDir
@@ -101,7 +126,7 @@ $targets = @(
 )
 foreach ($target in $targets) {
   $msbuildArgs = @(
-    `"$sln`",
+    "`"$sln`"",
     "/p:Configuration=Release",
     "/t:$target",
     '/m',
@@ -122,7 +147,7 @@ foreach ($target in $targets) {
 
 # Lastly build the Thrift Compiler
 $msbuildArgs = @(
-  `"$sln`",
+  "`"$sln`"",
   '/p:Configuration=Release',
   '/t:thrift-compiler',
   '/m',

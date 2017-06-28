@@ -117,9 +117,10 @@ function Start-OsqueryProcess {
     [string] $binaryPath = '',
     [array] $buildArgs = @()
   )
-  Start-Process `
-    -FilePath $binaryPath `
-    -ArgumentList $buildArgs `
-    -NoNewWindow `
-    -Wait | Wait-Process
+  $out = Start-Process `
+          -FilePath $binaryPath `
+          -ArgumentList $buildArgs `
+          -NoNewWindow `
+          -Wait | Wait-Process
+  return $out
 }
