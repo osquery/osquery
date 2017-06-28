@@ -467,7 +467,9 @@ void Initializer::initShell() const {
 
 void Initializer::initWatcher() const {
   // The watcher should not log into or use a persistent database.
-  FLAGS_disable_database = true;
+  if (kToolType != ToolType::SHELL){
+    FLAGS_disable_database = true;
+  }
   FLAGS_disable_logging = true;
   DatabasePlugin::setAllowOpen(true);
   DatabasePlugin::initPlugin();
