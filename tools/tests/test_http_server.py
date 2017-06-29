@@ -240,7 +240,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         for x in range(0, FILE_CARVE_MAP[request['session_id']]['block_count']):
             f.write(base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]['blocks_received'][x]))
         f.close()
-        debug("File successfully carved to: %s" % FILE_CARVE_DIR+FILE_CARVE_MAP[request['session_id']]['carve_guid']+'.tar')
+        debug("File successfully carved to: %s" % FILE_CARVE_DIR+FILE_CARVE_MAP[request['session_id']]['carve_guid']+'.zst')
         FILE_CARVE_MAP[request['session_id']] = {}
 
 

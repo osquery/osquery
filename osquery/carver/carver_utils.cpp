@@ -29,10 +29,10 @@ namespace osquery {
 
 Status compress(const boost::filesystem::path& in,
                 const boost::filesystem::path& out) {
-  PlatformFile archFile(in.string(), PF_OPEN_EXISTING | PF_READ);
-  PlatformFile archCompress(out.string(), PF_CREATE_NEW | PF_WRITE);
+  PlatformFile inFile(in.string(), PF_OPEN_EXISTING | PF_READ);
+  PlatformFile outFile(out.string(), PF_CREATE_NEW | PF_WRITE);
   ZSTD_CStream* const cstream = ZSTD_createCStream();
-  if (cstream == NULL) {
+  if (cstream == nullptr) {
     return Status(1, "Couldn't create compression stream");
   }
 
@@ -45,9 +45,15 @@ Status compress(const boost::filesystem::path& in,
   size_t const buffOutSize = ZSTD_CStreamOutSize();
   std::vector<void*> buffIn(buffInSize);
   std::vector<void*> buffOut(buffOutSize);
-  size_t read, toRead = buffInSize;
+  auto read = buffInSize;
+  auto toRead = buffInSize;
 
-  while ((read = archFile.read(buffIn.data(), toRead))) {
+  while (true) {
+    read = inFile.read(buffIn.data(), toRead);
+    if (read == 0) {
+      break;
+    }
+
     ZSTD_inBuffer input = {buffIn.data(), read, 0};
     while (input.pos < input.size) {
       ZSTD_outBuffer output = {buffOut.data(), buffOutSize, 0};
@@ -60,8 +66,8 @@ Status compress(const boost::filesystem::path& in,
       if (toRead > buffInSize) {
         toRead = buffInSize;
       }
-      archCompress.seek(0, PF_SEEK_END);
-      archCompress.write(buffOut.data(), output.pos);
+      outFile.seek(0, PF_SEEK_END);
+      outFile.write(buffOut.data(), output.pos);
     }
   }
 
@@ -72,8 +78,8 @@ Status compress(const boost::filesystem::path& in,
     return Status(1, "Couldn't fully flush compressed file");
   }
 
-  archCompress.seek(0, PF_SEEK_END);
-  archCompress.write(buffOut.data(), output.pos);
+  outFile.seek(0, PF_SEEK_END);
+  outFile.write(buffOut.data(), output.pos);
   ZSTD_freeCStream(cstream);
 
   return Status(0);
@@ -99,8 +105,13 @@ Status decompress(const boost::filesystem::path& in,
                   "ZSTD_initDStream() error : " +
                       std::string(ZSTD_getErrorName(initResult)));
   }
-  size_t read, toRead = initResult;
-  while ((read = inFile.read(buffIn.data(), toRead))) {
+  auto read = initResult;
+  auto toRead = initResult;
+  while (true) {
+    read = inFile.read(buffIn.data(), toRead);
+    if (read == 0) {
+      break;
+    }
     ZSTD_inBuffer input = {buffIn.data(), read, 0};
     while (input.pos < input.size) {
       ZSTD_outBuffer output = {buffOut.data(), buffOutSize, 0};
