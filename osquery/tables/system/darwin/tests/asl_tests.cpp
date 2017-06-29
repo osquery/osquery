@@ -19,6 +19,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/sql.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/darwin/asl_utils.h"
 #include "osquery/tests/test_util.h"
 
@@ -173,8 +174,10 @@ TEST_F(AslTests, test_convert_like_regex) {
 
 TEST_F(AslTests, test_actual_query) {
   auto version = SQL::selectAllFrom("os_version");
-  if (version[0]["minor"] == "12") {
-    // MacOS Sierra does not support ASL.
+  unsigned long minor_version;
+  auto s = safeStrtoul(version[0]["minor"], 10, minor_version);
+  if (minor_version >= 12) {
+    // macOS Sierra and above do not support ASL.
     return;
   }
 
