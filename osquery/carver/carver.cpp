@@ -132,7 +132,8 @@ Carver::Carver(const std::set<std::string>& paths,
 
   // Store the path to our archive for later exfiltration
   archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tar");
-  compressPath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".zst");
+  compressPath_ =
+      carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tar.zst");
 
   // Update the DB to reflect that the carve is pending.
   updateCarveValue(carveGuid_, "status", "PENDING");
