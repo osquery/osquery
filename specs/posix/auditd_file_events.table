@@ -1,0 +1,23 @@
+table_name("auditd_file_events")
+description("Track time/action changes to files specified in configuration data (auditd variant).")
+
+# events are received in the orders they appear
+schema([
+    # parameters received in the AUDIT_SYSCALL event
+    Column("operation", BIGINT, "Operation type; either open, close, write or read"),
+    Column("pid", BIGINT, "Process ID"),
+    Column("ppid", BIGINT, "Parent process ID"),
+
+    # parameters received in the AUDIT_CWD event
+    Column("cwd", TEXT, "The current working directory of the process"),
+
+    # parameters received in the AUDIT_PATH event (the canonical path is calculated)
+    Column("inode", BIGINT, "Filesystem inode number"),
+    Column("name", TEXT, "The path associated with the event"),
+    Column("canonical_path", TEXT, "The canonical path associated with the event"),
+
+    Column("time", BIGINT, "Time of file event"),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("auditd_file_events@auditd_file_events::genTable")
