@@ -41,7 +41,7 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retreive the source
+# Retrieve the source
 $zipFile = "$packageName-$version.zip"
 if(-not (Test-Path $zipFile)) {
   Invoke-WebRequest $url -OutFile $zipFile
@@ -61,7 +61,6 @@ $vcxprojLocation = 'build\VS2010\libzstd\libzstd.vcxproj'
 (Get-Content $vcxprojLocation).replace('<AssemblerOutput>All</AssemblerOutput>', '<AssemblerOutput>NoListing</AssemblerOutput>') | Set-Content $vcxprojLocation
 msbuild "build\VS2010\zstd.sln" /verbosity:minimal /nologo /t:Clean,libzstd /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset=v140
  
-
 # Construct the Chocolatey Package
 $chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
 Set-Location $chocoDir

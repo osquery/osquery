@@ -20,12 +20,15 @@
 #include <archive_entry.h>
 #include <zstd.h>
 
+#include <osquery/flags.h>
 #include <osquery/system.h>
 
 #include "osquery/carver/carver.h"
 #include "osquery/filesystem/fileops.h"
 
 namespace osquery {
+
+DECLARE_uint32(carver_block_size);
 
 Status compress(const boost::filesystem::path& in,
                 const boost::filesystem::path& out) {
@@ -151,17 +154,21 @@ Status archive(const std::set<boost::filesystem::path>& paths,
     archive_entry_set_filetype(entry, AE_IFREG);
     archive_entry_set_perm(entry, 0644);
     archive_write_header(arch, entry);
-
-    // TODO: Chunking or a max file size.
-    std::ifstream in(f.string(), std::ios::binary);
-    std::stringstream buffer;
-    buffer << in.rdbuf();
-    archive_write_data(arch, buffer.str().c_str(), buffer.str().size());
-    in.close();
+    auto blkCount =
+        static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
+                                 static_cast<double>(FLAGS_carver_block_size)));
+    for (size_t i = 0; i < blkCount; i++) {
+      std::vector<char> block(FLAGS_carver_block_size, 0);
+      auto r = pFile.read(block.data(), FLAGS_carver_block_size);
+      if (r != FLAGS_carver_block_size && r > 0) {
+        // resize the buffer to size we read as last block is likely smaller
+        block.resize(r);
+      }
+      archive_write_data(arch, block.data(), block.size());
+    }
     archive_entry_free(entry);
   }
   archive_write_free(arch);
-
   return Status(0, "Ok");
 };
 } // namespace osquery

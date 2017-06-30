@@ -23,6 +23,7 @@ file(GLOB OS_FILEOPS_SOURCE "${PROCESS_FAMILY}/*.cpp")
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem
   filesystem.cpp
+  file_compression.cpp
   ${OS_FILEOPS_SOURCE}
 )
 
