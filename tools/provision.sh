@@ -106,10 +106,11 @@ function platform_darwin_main() {
   brew_tool xz
   brew_tool readline
   brew_tool sqlite
-  brew_tool makedepend
-  brew_tool clang-format
   brew_tool pkg-config
-  brew_tool bison
+  brew_tool makedepend
+  brew_tool ninja
+  brew_tool osquery/osquery-local/cmake --without-docs
+  brew_tool clang-format
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
@@ -117,7 +118,6 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl
   brew_tool osquery/osquery-local/python
-  brew_tool osquery/osquery-local/cmake --without-docs
 
   platform_posix_main
 }
@@ -136,6 +136,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/google-benchmark
   brew_dependency osquery/osquery-local/snappy
   brew_dependency osquery/osquery-local/sleuthkit
+  brew_dependency osquery/osquery-local/bison
   brew_dependency osquery/osquery-local/thrift
   brew_dependency osquery/osquery-local/rocksdb
   brew_dependency osquery/osquery-local/gflags
