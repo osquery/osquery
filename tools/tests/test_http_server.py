@@ -201,7 +201,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         if "node_key" not in request or request["node_key"] not in NODE_KEYS:
             self._reply(FAILED_ENROLL_RESPONSE)
             return
-        self._reply(EXAMPLE_CARVE)
+        self._reply(EXAMPLE_DISTRIBUTED)
 
     def distributed_write(self, request):
         '''A basic distributed write endpoint'''
