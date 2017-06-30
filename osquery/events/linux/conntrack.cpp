@@ -25,7 +25,6 @@
 
 #include "osquery/events/linux/conntrack.h"
 
-
 namespace osquery {
 
 /// The conntrack subsystem may have a performance impact on the system.
@@ -41,16 +40,18 @@ Status ConntrackEventPublisher::setUp() {
     return Status(1, "Publisher disabled via configuration");
   }
 
-  nl_ = std::shared_ptr<struct mnl_socket>(mnl_socket_open(NETLINK_NETFILTER), mnl_socket_close);
+  nl_ = std::shared_ptr<struct mnl_socket>(mnl_socket_open(NETLINK_NETFILTER),
+                                           mnl_socket_close);
   if (nl_ == nullptr) {
     return Status(1, "Could not open conntrack subsystem");
   }
 
-  //TODO: How to test if kernel modules have been loaded?
+  // TODO: How to test if kernel modules have been loaded?
 
-  //TODO: Filter on event types? Move to configure() and select based on subscriber?
-  if (mnl_socket_bind(nl_.get(), NF_NETLINK_CONNTRACK_NEW |
-                          NF_NETLINK_CONNTRACK_UPDATE |
+  // TODO: Filter on event types? Move to configure() and select based on
+  // subscriber?
+  if (mnl_socket_bind(nl_.get(),
+                      NF_NETLINK_CONNTRACK_NEW | NF_NETLINK_CONNTRACK_UPDATE |
                           NF_NETLINK_CONNTRACK_DESTROY,
                       MNL_SOCKET_AUTOPID) < 0) {
     return Status(1, "Could not subscribe to updates from conntrack subsystem");
@@ -58,30 +59,29 @@ Status ConntrackEventPublisher::setUp() {
 
   return Status(0, "OK");
 }
- /**
-  * @brief Process the netlink message as conntrack message.
-  *
-  * @param nlh the message received from conntrack subsystem
-  * @param data the ConntrackEventContext to return the parsed struct
-  * @return netlink success code
-  */
-static int data_cb(const struct nlmsghdr *nlh, void *data)
-{
-  ConntrackEventContext *ec = reinterpret_cast<ConntrackEventContext *>(data);
-  struct nf_conntrack *ct = ec->event.get();
+/**
+ * @brief Process the netlink message as conntrack message.
+ *
+ * @param nlh the message received from conntrack subsystem
+ * @param data the ConntrackEventContext to return the parsed struct
+ * @return netlink success code
+ */
+static int data_cb(const struct nlmsghdr* nlh, void* data) {
+  ConntrackEventContext* ec = reinterpret_cast<ConntrackEventContext*>(data);
+  struct nf_conntrack* ct = ec->event.get();
   enum nf_conntrack_msg_type type = NFCT_T_UNKNOWN;
   char buf[4096];
 
-  switch(nlh->nlmsg_type & 0xFF) {
-    case IPCTNL_MSG_CT_NEW:
-      if (nlh->nlmsg_flags & (NLM_F_CREATE|NLM_F_EXCL))
-        type = NFCT_T_NEW;
-      else
-        type = NFCT_T_UPDATE;
-      break;
-    case IPCTNL_MSG_CT_DELETE:
-      type = NFCT_T_DESTROY;
-      break;
+  switch (nlh->nlmsg_type & 0xFF) {
+  case IPCTNL_MSG_CT_NEW:
+    if (nlh->nlmsg_flags & (NLM_F_CREATE | NLM_F_EXCL))
+      type = NFCT_T_NEW;
+    else
+      type = NFCT_T_UPDATE;
+    break;
+  case IPCTNL_MSG_CT_DELETE:
+    type = NFCT_T_DESTROY;
+    break;
   }
   ec->type = type;
 
@@ -119,7 +119,7 @@ Status ConntrackEventPublisher::run() {
 }
 
 ConntrackEventContextRef ConntrackEventPublisher::createEventContextFrom(
-        std::shared_ptr<struct nf_conntrack> event) const {
+    std::shared_ptr<struct nf_conntrack> event) const {
   auto ec = createEventContext();
   ec->event = event;
 

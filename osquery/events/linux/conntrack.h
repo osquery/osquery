@@ -31,7 +31,7 @@ namespace osquery {
  *
  */
 struct ConntrackSubscriptionContext : public SubscriptionContext {
-  //TODO: Any subscription specific parameters? E.g. event types?
+  // TODO: Any subscription specific parameters? E.g. event types?
 };
 
 /**
@@ -40,25 +40,29 @@ struct ConntrackSubscriptionContext : public SubscriptionContext {
 struct ConntrackEventContext : public EventContext {
   /// The nf_conntrack structure if the EventSubscriber want to interact.
   std::shared_ptr<struct nf_conntrack> event{nullptr};
-  /// A nf_conntrack_msg_type action representing the event type (NEW, UPDATE, DESTROY).
+  /// A nf_conntrack_msg_type action representing the event type (NEW, UPDATE,
+  /// DESTROY).
   enum nf_conntrack_msg_type type;
 };
 
-using ConntrackSubscriptionContextRef = std::shared_ptr<ConntrackSubscriptionContext>;
+using ConntrackSubscriptionContextRef =
+    std::shared_ptr<ConntrackSubscriptionContext>;
 using ConntrackEventContextRef = std::shared_ptr<ConntrackEventContext>;
 
 /**
  * @brief A Linux `conntrack` EventPublisher.
  *
- * This EventPublisher is retrieving its data from the netlink subsystem over netlink.
+ * This EventPublisher is retrieving its data from the netlink subsystem over
+ * netlink.
  * Conntrack tracks the connection status of network flows.
  */
 class ConntrackEventPublisher
-    : public EventPublisher<ConntrackSubscriptionContext, ConntrackEventContext> {
+    : public EventPublisher<ConntrackSubscriptionContext,
+                            ConntrackEventContext> {
   DECLARE_PUBLISHER("conntrack");
 
  public:
-  virtual ~ConntrackEventPublisher() {};
+  virtual ~ConntrackEventPublisher(){};
 
   /**
    *  @brief Creates initial connection to netfilter over netlink.
@@ -66,18 +70,18 @@ class ConntrackEventPublisher
   Status setUp() override;
 
   /// The configuration finished loading or was updated.
-  void configure() override {};
+  void configure() override{};
 
   /// Release what initially was set up.
-  void tearDown() override {};
+  void tearDown() override{};
 
   /// The calling for beginning the thread's run loop.
   Status run() override;
 
-private:
+ private:
   /// Helper/specialized event context creation.
   ConntrackEventContextRef createEventContextFrom(
-          std::shared_ptr<struct nf_conntrack> event) const;
+      std::shared_ptr<struct nf_conntrack> event) const;
 
   /// The netlink socket from netlink_mnl
   std::shared_ptr<struct mnl_socket> nl_{nullptr};

@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <string>
 #include <map>
+#include <string>
 
 #include <ifaddrs.h>
 #include <arpa/inet.h>
@@ -38,13 +38,12 @@ int netmaskFromIP(const struct sockaddr *in);
 // Linux proc protocol define to net stats file name.
 extern const std::map<int, std::string> kLinuxProtocolNames;
 // A map of socket handles (inodes) to their pid and file descriptor.
-typedef std::map<std::string, std::pair<std::string, std::string> > InodeMap;
-std::string addressFromHex(const std::string &encoded_address, int family);
-unsigned short portFromHex(const std::string &encoded_port);
-void genSocketsFromProc(const InodeMap &inodes,
+typedef std::map<std::string, std::pair<std::string, std::string>> InodeMap;
+std::string addressFromHex(const std::string& encoded_address, int family);
+unsigned short portFromHex(const std::string& encoded_port);
+void genSocketsFromProc(const InodeMap& inodes,
                         int protocol,
                         int family,
-                        QueryData &results);
+                        QueryData& results);
 }
 }
-
