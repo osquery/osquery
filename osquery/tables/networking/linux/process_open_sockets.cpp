@@ -14,6 +14,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
+#include "osquery/tables/networking/utils.h"
 #include "osquery/core/conversions.h"
 
 namespace osquery {
@@ -27,9 +28,6 @@ const std::map<int, std::string> kLinuxProtocolNames = {
     {IPPROTO_UDPLITE, "udplite"},
     {IPPROTO_RAW, "raw"},
 };
-
-// A map of socket handles (inodes) to their pid and file descriptor.
-typedef std::map<std::string, std::pair<std::string, std::string> > InodeMap;
 
 std::string addressFromHex(const std::string &encoded_address, int family) {
   char addr_buffer[INET6_ADDRSTRLEN] = {0};

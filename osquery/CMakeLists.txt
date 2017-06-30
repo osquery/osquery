@@ -146,6 +146,12 @@ if(POSIX)
   ADD_OSQUERY_LINK_ADDITIONAL("boost_regex")
 endif()
 
+if(LINUX)
+  ADD_OSQUERY_LINK_CORE("nfnetlink")
+  ADD_OSQUERY_LINK_CORE("mnl")
+  ADD_OSQUERY_LINK_CORE("netfilter_conntrack")
+endif()
+
 if(LINUX OR FREEBSD)
   ADD_OSQUERY_LINK_CORE("librt")
   ADD_OSQUERY_LINK_CORE("libc")
