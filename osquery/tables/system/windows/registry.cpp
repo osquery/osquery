@@ -23,6 +23,7 @@
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm.hpp>
@@ -30,6 +31,7 @@
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -73,6 +75,64 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_FULL_RESOURCE_DESCRIPTOR, "REG_FULL_RESOURCE_DESCRIPTOR"},
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
 };
+
+const std::vector<std::string> kClassKeys = {
+    "HKEY_USERS\\%\\SOFTWARE\\Classes\\CLSID",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID"};
+
+const std::vector<std::string> kClassExecSubKeys = {
+    "InProcServer%", "InProcHandler%", "LocalServer%"};
+
+Status getClassName(const std::string& clsId, std::string& rClsName) {
+  std::vector<std::string> keys;
+  for (const auto& key : kClassKeys) {
+    keys.push_back(key + kRegSep + clsId);
+  }
+
+  SQL sql("SELECT data FROM registry WHERE name = '" + kDefaultRegName +
+          "' AND (" + "key = '" + boost::join(keys, "' OR key = '") + "')");
+  if (!sql.ok()) {
+    return sql.getStatus();
+  }
+  if (sql.rows().empty()) {
+    return Status(1, "ClsId not found in registry");
+  }
+
+  for (const auto& row : sql.rows()) {
+    if (!row.at("data").empty()) {
+      rClsName = row.at("data");
+      return Status();
+    }
+  }
+
+  return Status(1, "No class name present in registry");
+}
+
+Status getClassExecutables(const std::string& clsId,
+                           std::vector<std::string>& results) {
+  std::vector<std::string> resolvedKeys;
+  for (auto key : kClassKeys) {
+    for (const auto& subkey : kClassExecSubKeys) {
+      resolvedKeys.push_back(key + kRegSep + clsId + kRegSep + subkey);
+    }
+  }
+
+  SQL sql("SELECT name,data FROM registry WHERE key LIKE '" +
+          boost::join(resolvedKeys, "' OR key LIKE '") + "'");
+  if (!sql.ok()) {
+    return sql.getStatus();
+  }
+  if (sql.rows().empty()) {
+    return Status(1, "ClsId not found in registry");
+  }
+
+  for (const auto& r : sql.rows()) {
+    if (r.at("name") == kDefaultRegName) {
+      results.push_back(r.at("data"));
+    }
+  }
+  return Status();
+}
 
 Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
   if (!boost::starts_with(key, "HKEY_USERS")) {

@@ -467,10 +467,12 @@ void Initializer::initShell() const {
 
 void Initializer::initWatcher() const {
   // The watcher should not log into or use a persistent database.
-  FLAGS_disable_database = true;
-  FLAGS_disable_logging = true;
-  DatabasePlugin::setAllowOpen(true);
-  DatabasePlugin::initPlugin();
+  if (!FLAGS_disable_watchdog && !isWorker()) {
+    FLAGS_disable_database = true;
+    FLAGS_disable_logging = true;
+    DatabasePlugin::setAllowOpen(true);
+    DatabasePlugin::initPlugin();
+  }
 
   // The watcher takes a list of paths to autoload extensions from.
   // The loadExtensions call will populate the watcher's list of extensions.
