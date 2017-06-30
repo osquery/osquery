@@ -89,7 +89,6 @@ void genBrowserPlugin(const std::string& uid,
 
 QueryData genBrowserPlugins(QueryContext& context) {
   QueryData results;
-  std::vector<std::string> bundles;
 
   // Lambda to walk through each browser plugin and process the plist file.
   auto enum_browser_plugins = [&results](const fs::path& path,

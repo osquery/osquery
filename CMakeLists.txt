@@ -151,12 +151,12 @@ if(POSIX)
     -pipe
     -fdata-sections
     -ffunction-sections
-    -fvisibility=hidden
-    -fvisibility-inlines-hidden
   )
   if(NOT FREEBSD)
     add_compile_options(
       -Werror=shadow
+      -fvisibility=hidden
+      -fvisibility-inlines-hidden
     )
   endif()
 elseif(WINDOWS)
@@ -300,6 +300,13 @@ if(DEFINED ENV{SKIP_LLDPD})
 endif()
 if(DEFINED ENV{SKIP_YARA})
   set(SKIP_YARA TRUE)
+endif()
+if(DEFINED ENV{SKIP_CARVER})
+  set(SKIP_CARVER TRUE)
+  # To remove references to carve functionality in sqlite helper functions
+  add_definitions(
+    -DSKIP_CARVER=1
+  )
 endif()
 
 # Similar to the feature skips, there are default-build skips.
@@ -482,8 +489,8 @@ if(WINDOWS)
   set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static gtest/gmock library" FORCE)
 
   file(GLOB INCLUDE_DIRS LIST_DIRECTORIES true "${WINDOWS_DEP_DIR}/*/*/include")
-  include_directories(${INCLUDE_DIRS})
-  include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local")
+  include_directories(SYSTEM ${INCLUDE_DIRS})
+  include_directories(SYSTEM "${WINDOWS_DEP_DIR}/boost-msvc14/local")
 
   ## TODO(FIXME): temporary for now
   include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")

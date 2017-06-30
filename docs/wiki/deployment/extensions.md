@@ -12,7 +12,7 @@ The following [CLI flags](../installation/cli-flags.md) control extension auto-l
 --extensions_interval=3
 ```
 
-`extensions_autoload` points to a line-delimited set of paths to executables. When osquery launches, each path is evaluated for "safe permissions" and executed as a monitored child process. Each executable receives 3 argument switches: `socket`, `timeout`, `interval`. An extension process may use these to find the osquery process's Thrift socket, as well as hints on retry/backoff configuration if any latency or errors occur.
+`extensions_autoload` points to a line-delimited set of paths to executables. When osquery launches, each path is evaluated for "safe permissions" and executed as a monitored child process. Each executable receives 3 argument switches: `socket`, `timeout`, `interval`. An extension process may use these to find the osquery process's Thrift socket, as well as hints on retry/backoff configuration if any latency or errors occur. If the `--verbose` flag is passed to osqueryd, the flag will also be received by the executable.
 
 The simplest `extensions.load` file contains a single extension path:
 ```sh

@@ -308,15 +308,12 @@ void daemonEntry(int argc, char* argv[]) {
     return;
   }
 
-  if (!runner.isWorker()) {
-    runner.initDaemon();
-  }
-
   // When a watchdog is used, the current daemon will fork/exec into a worker.
   // In either case the watcher may start optionally loaded extensions.
   if (runner.isWorker()) {
     runner.initWorker(kWatcherWorkerName);
   } else {
+    runner.initDaemon();
     runner.initWatcher();
 
     // The event only gets initialized in the entry point of the service. Child
@@ -335,7 +332,7 @@ void daemonEntry(int argc, char* argv[]) {
   // Start osquery work.
   runner.start();
 
-  // Conditionally begin the distributed query service
+  // Conditionally begin the distributed query service.
   auto s = osquery::startDistributed();
   if (!s.ok()) {
     VLOG(1) << "Not starting the distributed query service: " << s.toString();

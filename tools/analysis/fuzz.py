@@ -31,7 +31,8 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)) + "/../codegen/")
 import utils
 from gentable import \
   table_name, schema, description, examples, attributes, implementation, \
-  fuzz_paths, \
+  extended_schema, fuzz_paths, \
+  WINDOWS, LINUX, POSIX, DARWIN, FREEBSD, \
   Column, ForeignKey, table as TableState, TableState as _TableState, \
   TEXT, DATE, DATETIME, INTEGER, BIGINT, UNSIGNED_BIGINT, DOUBLE, BLOB
 

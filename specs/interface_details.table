@@ -6,6 +6,7 @@ schema([
     Column("type", INTEGER, "Interface type (includes virtual)"),
     Column("mtu", INTEGER, "Network MTU"),
     Column("metric", INTEGER, "Metric based on the speed of the interface"),
+    Column("flags", INTEGER, "Flags (netdevice) for the device"),
     Column("ipackets", BIGINT, "Input packets"),
     Column("opackets", BIGINT, "Output packets"),
     Column("ibytes", BIGINT, "Input bytes"),
@@ -15,6 +16,8 @@ schema([
     Column("idrops", BIGINT, "Input drops"),
     Column("odrops", BIGINT, "Output drops"),
     Column("last_change", BIGINT, "Time of last device modification (optional)"),
+])
+extended_schema(WINDOWS, [
     Column("description", TEXT, "Short description of the object—a one-line string."),
     Column("manufacturer", TEXT, "Name of the network adapter's manufacturer."),
     Column("connection_id", TEXT, "Name of the network connection as it appears in the Network Connections Control Panel program."),
@@ -33,3 +36,8 @@ schema([
 ])
 attributes(cacheable=True)
 implementation("interfaces@genInterfaceDetails")
+examples([
+    "select interface, mac, type, idrops as input_drops from interface_details;",
+    "select interface, mac, type, flags, (1<<8) as promisc_flag from interface_details where (flags & promisc_flag) > 0;",
+    "select interface, mac, type, flags, (1<<3) as loopback_flag from interface_details where (flags & loopback_flag) > 0;",
+])

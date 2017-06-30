@@ -13,7 +13,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SOURCE_DIR="$SCRIPT_DIR/../.."
 BUILD_DIR=${BUILD_DIR:="$SOURCE_DIR/build/linux"}
 
-export PATH="/usr/local/osquery/bin:/usr/local/bin:$PATH"
+OSQUERY_DEPS="${OSQUERY_DEPS:-/usr/local/osquery}"
+
+export PATH="${OSQUERY_DEPS}/bin:$PATH"
 source "$SOURCE_DIR/tools/lib.sh"
 
 PACKAGE_VERSION=`git describe --tags HEAD || echo 'unknown-version'`
@@ -37,14 +39,14 @@ SYSTEMD_SYSCONFIG_DST_DEB="/etc/default/osqueryd"
 CTL_SRC="$SCRIPT_DIR/osqueryctl"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/usr/share/osquery/packs/"
-LENSES_LICENSE="/usr/local/osquery/Cellar/augeas/*/COPYING"
-LENSES_SRC="/usr/local/osquery/share/augeas/lenses/dist"
+LENSES_LICENSE="${OSQUERY_DEPS}/Cellar/augeas/*/COPYING"
+LENSES_SRC="${OSQUERY_DEPS}/share/augeas/lenses/dist"
 LENSES_DST="/usr/share/osquery/lenses/"
 OSQUERY_POSTINSTALL=${OSQUERY_POSTINSTALL:-""}
 OSQUERY_PREUNINSTALL=${OSQUERY_PREUNINSTALL:-""}
 OSQUERY_CONFIG_SRC=${OSQUERY_CONFIG_SRC:-""}
 OSQUERY_TLS_CERT_CHAIN_SRC=${OSQUERY_TLS_CERT_CHAIN_SRC:-""}
-OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="/usr/local/osquery/etc/openssl/cert.pem"
+OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="${OSQUERY_DEPS}/etc/openssl/cert.pem"
 OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST="/usr/share/osquery/certs/certs.pem"
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/usr/share/osquery/osquery.example.conf"
@@ -235,6 +237,7 @@ function main() {
   # Generate debug packages for Linux or CentOS
   BUILD_DEBUG_PKG=false
   if [[ $PACKAGE_TYPE = "deb" ]]; then
+    BUILD_DEBUG_PKG=true
     PACKAGE_DEBUG_NAME="$PACKAGE_NAME-dbg"
     PACKAGE_DEBUG_DEPENDENCIES="osquery (= $PACKAGE_VERSION-$PACKAGE_ITERATION)"
 
@@ -244,6 +247,7 @@ function main() {
     cp "$BUILD_DIR/osquery/osqueryi" $BINARY_DEBUG_DIR
     cp "$BUILD_DIR/osquery/osqueryd" $BINARY_DEBUG_DIR
   elif [[ $PACKAGE_TYPE = "rpm" ]]; then
+    BUILD_DEBUG_PKG=true
     PACKAGE_DEBUG_NAME="$PACKAGE_NAME-debuginfo"
     PACKAGE_DEBUG_DEPENDENCIES="osquery = $PACKAGE_VERSION"
 
@@ -278,7 +282,7 @@ function main() {
 
   PACKAGE_DEBUG_DEPENDENCIES=`echo "$PACKAGE_DEBUG_DEPENDENCIES"|tr '-' '_'`
   OUTPUT_DEBUG_PKG_PATH=`realpath "$BUILD_DIR"`/$PACKAGE_DEBUG_NAME$(get_pkg_suffix)
-  if [[ ! -z "$DEBUG" ]]; then
+  if [[ "$BUILD_DEBUG_PKG" = "true" ]]; then
     rm -f $OUTPUT_DEBUG_PKG_PATH
     CMD="$FPM -s dir -t $PACKAGE_TYPE            \
       -n $PACKAGE_DEBUG_NAME -v $PACKAGE_VERSION \

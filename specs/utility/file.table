@@ -16,6 +16,7 @@ schema([
     Column("ctime", BIGINT, "Last status change time"),
     Column("btime", BIGINT, "(B)irth or (cr)eate time"),
     Column("hard_links", INTEGER, "Number of hard links"),
+    Column("symlink", INTEGER, "1 if the path is a symlink, otherwise 0"),
     Column("type", TEXT, "File status"),
 ])
 attributes(utility=True)

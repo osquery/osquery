@@ -9,10 +9,13 @@
 set(TABLE_CATEGORIES
   "applications"
   "events"
-  "forensic"
   "networking"
   "system"
 )
+
+if(NOT SKIP_CARVER)
+  list(APPEND TABLE_CATEGORIES "forensic")
+endif()
 
 # Apple/Darwin specific and applicable tables.
 if(APPLE)
@@ -73,35 +76,46 @@ if(POSIX)
 endif()
 
 # For each general category, add the C++ files in the base.
-foreach(CAT ${TABLE_CATEGORIES})
-  file(GLOB OSQUERY_${CAT}_TABLES
-    "${CAT}/*.[cpm]*"
-    "${CAT}/${TABLE_PLATFORM}/*.[cpm]*"
+foreach(CATEGORY ${TABLE_CATEGORIES})
+  file(GLOB OSQUERY_${CATEGORY}_TABLES
+    "${CATEGORY}/*.[cpm]*"
+    "${CATEGORY}/${TABLE_PLATFORM}/*.[cpm]*"
   )
-  if(OSQUERY_${CAT}_TABLES)
+  if(OSQUERY_${CATEGORY}_TABLES)
     ADD_OSQUERY_LIBRARY_ADDITIONAL(
-      osquery_${CAT}_tables
-      ${OSQUERY_${CAT}_TABLES}
+      osquery_${CATEGORY}_tables
+      ${OSQUERY_${CATEGORY}_TABLES}
     )
   endif()
 
   # POSIX tables.
   if(POSIX)
-    file(GLOB OSQUERY_${CAT}_POSIX_TABLES "${CAT}/posix/*.[cpm]*")
-    if(OSQUERY_${CAT}_POSIX_TABLES)
+    file(GLOB OSQUERY_${CATEGORY}_POSIX_TABLES "${CATEGORY}/posix/*.[cpm]*")
+    if(OSQUERY_${CATEGORY}_POSIX_TABLES)
       ADD_OSQUERY_LIBRARY_ADDITIONAL(
-        osquery_${CAT}_posix_tables
-        ${OSQUERY_${CAT}_POSIX_TABLES}
+        osquery_${CATEGORY}_posix_tables
+        ${OSQUERY_${CATEGORY}_POSIX_TABLES}
+      )
+    endif()
+  endif()
+
+  # Table implementations shared by FreeBSD and Linux
+  if(FREEBSD OR LINUX)
+    file(GLOB OSQUERY_${CATEGORY}_FREENUX_TABLES "${CATEGORY}/freenux/*.[cpm]*")
+    if(OSQUERY_${CATEGORY}_FREENUX_TABLES)
+      ADD_OSQUERY_LIBRARY_ADDITIONAL(
+        osquery_${CATEGORY}_freenux_tables
+        ${OSQUERY_${CATEGORY}_FREENUX_TABLES}
       )
     endif()
   endif()
 
   # Add the table tests.
-  file(GLOB OSQUERY_${CAT}_TABLES_TESTS
-    "${CAT}/tests/*.[cpm]*"
-    "${CAT}/${TABLE_PLATFORM}/tests/*.[cpm]*"
+  file(GLOB OSQUERY_${CATEGORY}_TABLES_TESTS
+    "${CATEGORY}/tests/*.[cpm]*"
+    "${CATEGORY}/${TABLE_PLATFORM}/tests/*.[cpm]*"
   )
-  ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CAT}_TABLES_TESTS})
+  ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CATEGORY}_TABLES_TESTS})
 endforeach()
 
 file(GLOB OSQUERY_UTILITY_TABLES "utility/*.cpp")

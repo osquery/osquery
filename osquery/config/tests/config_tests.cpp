@@ -206,9 +206,11 @@ TEST_F(ConfigTests, test_pack_restrictions) {
 
   get().packs(([&results](std::shared_ptr<Pack>& pack) {
     if (results[pack->getName()]) {
-      EXPECT_TRUE(pack->shouldPackExecute());
+      EXPECT_TRUE(pack->shouldPackExecute())
+          << "Pack " << pack->getName() << " should have executed";
     } else {
-      EXPECT_FALSE(pack->shouldPackExecute());
+      EXPECT_FALSE(pack->shouldPackExecute())
+          << "Pack " << pack->getName() << " should not have executed";
     }
   }));
 }
@@ -260,7 +262,11 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
       ([&queries](const std::string&, const ScheduledQuery& query) {
         queries.push_back(query);
       }));
-  EXPECT_EQ(queries.size(), getUnrestrictedPack().get_child("queries").size());
+
+  auto expected_size = getUnrestrictedPack().get_child("queries").size();
+  EXPECT_EQ(queries.size(), expected_size)
+      << "The number of queries in the schedule (" << queries.size()
+      << ") should equal " << expected_size;
 }
 
 class TestConfigParserPlugin : public ConfigParserPlugin {

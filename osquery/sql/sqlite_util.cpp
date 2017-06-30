@@ -221,8 +221,10 @@ static inline void openOptimized(sqlite3*& db) {
 #if !defined(FREEBSD)
   registerStringExtensions(db);
 #endif
-  registerHashingExtensions(db);
+#if !defined(SKIP_CARVER)
   registerOperationExtensions(db);
+#endif
+  registerHashingExtensions(db);
   registerEncodingExtensions(db);
 }
 

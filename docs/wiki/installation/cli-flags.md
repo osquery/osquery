@@ -393,6 +393,18 @@ Path to the named pipe used for forwarding **rsyslog** events.
 
 Maximum number of logs to ingest per run (~200ms between runs). Use this as a fail-safe to prevent osquery from becoming overloaded when syslog is spammed.
 
+### Augeas flags
+
+`--augeas_lenses=/usr/share/osquery/lenses`
+
+Augeas lenses are bundled with osquery distributions. On Linux they are installed in /usr/share/osquery/lenses. On macOS lenses are installed in /private/var/osquery/lenses directory. Specify the path to the directory containing custom or different version lenses files.
+
+### Docker flags
+
+`--docker_socket=/var/run/docker.sock`
+
+Docker information for containers, networks, volumes, images etc is available in different tables. osquery uses docker's UNIX domain socket to invoke docker API calls. Provide the path to docker's domain socket file. User running osqueryd / osqueryi should have permission to read the socket file.
+
 ### Shell-only flags
 
 Most of the shell flags are self-explanatory and are adapted from the SQLite shell. Refer to the shell's ".help" command for details and explanations.

@@ -73,6 +73,8 @@ CLI_FLAG(bool,
          true,
          "Compress archives before they are uploaded (default true)");
 
+DECLARE_uint64(read_max);
+
 /// Helper function to update values related to a carve
 void updateCarveValue(const std::string& guid,
                       const std::string& key,
@@ -149,15 +151,16 @@ void Carver::start() {
     LOG(WARNING) << "Carver has not been properly constructed";
     return;
   }
-
   for (const auto& p : carvePaths_) {
-    if (!fs::exists(p)) {
-      VLOG(1) << "File does not exist on disk: " << p;
-    } else {
-      Status s = carve(p);
-      if (!s.ok()) {
-        VLOG(1) << "Failed to carve file: " << p;
-      }
+    // Ensure the file is a flat file on disk before carving
+    PlatformFile pFile(p.string(), PF_OPEN_EXISTING | PF_READ);
+    if (!pFile.isValid() || isDirectory(p)) {
+      VLOG(1) << "File does not exist on disk or is subdirectory: " << p;
+      continue;
+    }
+    Status s = carve(p);
+    if (!s.ok()) {
+      VLOG(1) << "Failed to carve file " << p << " " << s.getMessage();
     }
   }
 
@@ -225,6 +228,61 @@ Status Carver::carve(const boost::filesystem::path& path) {
   return Status(0, "Ok");
 };
 
+Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
+  auto arch = archive_write_new();
+  if (arch == nullptr) {
+    return Status(1, "Failed to create tar archive");
+  }
+  // Zipping doesn't seem to be working currently
+  // archive_write_set_format_zip(arch);
+  archive_write_set_format_pax_restricted(arch);
+  auto ret = archive_write_open_filename(arch, archivePath_.string().c_str());
+  if (ret == ARCHIVE_FATAL) {
+    archive_write_free(arch);
+    return Status(1, "Failed to open tar archive for writing");
+  }
+  for (const auto& f : paths) {
+    PlatformFile pFile(f.string(), PF_OPEN_EXISTING | PF_READ);
+
+    auto entry = archive_entry_new();
+    archive_entry_set_pathname(entry, f.leaf().string().c_str());
+    archive_entry_set_size(entry, pFile.size());
+    archive_entry_set_filetype(entry, AE_IFREG);
+    archive_entry_set_perm(entry, 0644);
+    // archive_entry_set_atime();
+    // archive_entry_set_ctime();
+    // archive_entry_set_mtime();
+    archive_write_header(arch, entry);
+    auto blkCount =
+        static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
+                                 static_cast<double>(FLAGS_carver_block_size)));
+    for (size_t i = 0; i < blkCount; i++) {
+      std::vector<char> block(FLAGS_carver_block_size, 0);
+      auto r = pFile.read(block.data(), FLAGS_carver_block_size);
+      if (r != FLAGS_carver_block_size && r > 0) {
+        // resize the buffer to size we read as last block is likely smaller
+        block.resize(r);
+      }
+      archive_write_data(arch, block.data(), block.size());
+    }
+    archive_entry_free(entry);
+  }
+  archive_write_free(arch);
+
+  PlatformFile archFile(archivePath_.string(), PF_OPEN_EXISTING | PF_READ);
+  updateCarveValue(carveGuid_, "size", std::to_string(archFile.size()));
+
+  std::string arcHash =
+      (archFile.size() > FLAGS_read_max)
+          ? "-1"
+          : hashFromFile(HashType::HASH_TYPE_SHA256, archivePath_.string());
+  if (arcHash == "-1") {
+    VLOG(1)
+        << "Archive file size exceeds read max, skipping integrity computation";
+  }
+  updateCarveValue(carveGuid_, "sha256", arcHash);
+  return Status(0, "Ok");
+};
 
 Status Carver::postCarve(const boost::filesystem::path& path) {
   auto startRequest = Request<TLSTransport, JSONSerializer>(startUri_);
