@@ -22,6 +22,8 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
+#include <iostream>
+
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/audit.h"
 
@@ -684,18 +686,23 @@ bool AuditEventPublisher::shouldFire(const AuditSubscriptionContextRef& sc,
     return true;
   }
 
-  // If this subscription (with set of rules) explicitly requested the audit
-  // reply type.
-  for (const auto& type : sc->types) {
-    if (type != 0 && ec->type == type) {
-      return true;
-    }
-  }
+  for (const auto& audit_event_type : sc->types) {
+	// Skip invalid audit event types
+	if (audit_event_type == 0)
+      continue;
 
-  // Otherwise, if the set of rules included a syscall, match on that number.
-  for (const auto& rule : sc->rules) {
-    if (rule.syscall != 0 && ec->syscall == rule.syscall) {
+	// Skip audit events that do not match the requested type
+	if (audit_event_type != ec->type)
+	  continue;
+
+	// No further filtering needed for events that are not syscalls
+    if (audit_event_type != AUDIT_SYSCALL)
       return true;
+
+    // We received a syscall event; we have to capture it only if the rule set contains it
+    for (const auto& rule : sc->rules) {
+	  if (rule.syscall == ec->syscall)
+	    return true;
     }
   }
 
