@@ -50,6 +50,12 @@ build/
 .idea/dictionaries
 .idea/codeStyleSettings.xml
 
+# QtCreator files
+osquery.config
+osquery.creator
+osquery.files
+osquery.includes
+
 # Doxygen Documentation
 doxygen/html
 doxygen/latex
