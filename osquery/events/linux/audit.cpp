@@ -8,6 +8,8 @@
  *
  */
 
+#define TRACELINE std::cout << __func__ << "@" << __LINE__ << std::endl;
+
 #include <poll.h>
 
 #include <queue>
@@ -23,6 +25,7 @@
 #include <osquery/logger.h>
 
 #include <iostream>
+#include <chrono>
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/audit.h"
@@ -188,6 +191,35 @@ bool AuditAssembler::complete(AuditId id) {
   return true;
 }
 
+Status AuditEventReader(EventReaderTaskData &task_data) noexcept {
+  struct sockaddr_nl nladdr;
+  socklen_t nladdrlen = sizeof(nladdr);
+
+  while (!task_data.terminate) {
+    audit_reply reply = {};
+    int len = recvfrom(task_data.audit_handle, &reply.msg, sizeof(reply.msg), 0,
+                      reinterpret_cast<struct sockaddr *>(&nladdr), &nladdrlen);
+    if (len < 0) {
+      return Status(1, "Failed to receive data from the audit netlink");
+    }
+
+    if (nladdrlen != sizeof(nladdr)) {
+      return Status(1, "Protocol error");
+    }
+
+    if (nladdr.nl_pid) {
+      return Status(1, "Invalid netlink endpoint");
+    }
+
+    {
+      std::lock_guard<std::mutex> mutex_locker(task_data.queue_mutex);
+      task_data.audit_reply_queue.push_back(std::make_pair(reply, len));
+    }
+  }
+
+  return Status(0, "OK");
+}
+
 Status AuditEventPublisher::setUp() {
   if (FLAGS_disable_audit) {
     return Status(1, "Publisher disabled via configuration");
@@ -197,6 +229,23 @@ Status AuditEventPublisher::setUp() {
   if (handle_ <= 0) {
     // Could not open the audit subsystem.
     return Status(1, "Could not open audit subsystem");
+  }
+
+  /// \todo use a single handle variable instead of duplicating it!
+  /// \todo this is vital because we may lose control of the auditd service!
+  event_reader_task_data_.audit_handle = handle_;
+  event_reader_task_data_.terminate = false;
+
+  // Initialize the event reader thread
+  {
+    std::packaged_task<Status (EventReaderTaskData &)> event_reader_task(AuditEventReader);
+    event_reader_result_ = event_reader_task.get_future().share();
+  
+    try {
+      event_reader_thread_.reset(new std::thread(std::move(event_reader_task), std::ref(event_reader_task_data_)));
+    } catch (const std::bad_alloc &) {
+      return Status(1, "Memory allocation error");
+    }
   }
 
   // The setup can try to enable auditing.
@@ -242,9 +291,6 @@ Status AuditEventPublisher::setUp() {
 void AuditEventPublisher::configure() {
   // Able to issue libaudit API calls.
   struct AuditRuleInternal rule;
-
-  // Before reply data is ever filled in, assure an empty message.
-  memset(&reply_, 0, sizeof(struct audit_reply));
 
   if (handle_ <= 0 || FLAGS_disable_audit || immutable_) {
     // No configuration or rule manipulation needed.
@@ -305,6 +351,13 @@ void AuditEventPublisher::tearDown() {
   if (handle_ <= 0) {
     return;
   }
+
+  /// \todo maybe the join can be removed by waiting on the get?
+  event_reader_thread_->join();
+
+  /// \todo what to do here?
+  Status event_reader_status = event_reader_result_.get();
+  static_cast<void>(event_reader_status);
 
   // The configure step will store successful rule adds.
   // Each of these rules has been added by the publisher and should be remove
@@ -478,103 +531,8 @@ static inline bool adjust_reply(struct audit_reply* rep, int len) {
   return true;
 }
 
-static inline int safe_audit_get_reply(int fd, struct audit_reply* rep) {
-  if (fd < 0) {
-    return -EBADF;
-  }
-
-  struct pollfd fds[1];
-  fds[0].fd = fd;
-  fds[0].events = POLLIN;
-
-  if (::poll(fds, 1, 4) <= 0) {
-    return (errno == EINTR || errno == EAGAIN) ? 0 : -errno;
-  }
-
-  if (!(fds[0].revents & POLLIN)) {
-    // No input data.
-    return -1;
-  }
-
-  struct sockaddr_nl nladdr;
-  socklen_t nladdrlen = sizeof(nladdr);
-
-  int len = recvfrom(fd,
-                     &rep->msg,
-                     sizeof(rep->msg),
-                     0,
-                     (struct sockaddr*)&nladdr,
-                     &nladdrlen);
-  if (len < 0) {
-    return -errno;
-  }
-
-  if (nladdrlen != sizeof(nladdr)) {
-    return -EPROTO;
-  }
-
-  if (nladdr.nl_pid) {
-    return -EINVAL;
-  }
-
-  if (!adjust_reply(rep, len)) {
-    return -errno;
-  }
-  return len;
-}
-
-void AuditConsumer::push(AuditEventContextRef& reply) {
-  auto& self = get();
-  WriteLock lock(self.mutex_);
-
-  if (self.queue_.size() > FLAGS_audit_queue_size) {
-    // The userland queue is filled, drop.
-    return;
-  }
-  self.queue_.push(reply);
-}
-
-AuditEventContextRef& AuditConsumer::peek() {
-  ReadLock lock(get().mutex_);
-
-  return get().queue_.front();
-}
-
-void AuditConsumer::pop() {
-  auto& self = get();
-  WriteLock lock(self.mutex_);
-
-  self.queue_.pop();
-
-  if (self.queue_.size() > self.max_size_) {
-    self.max_size_ = self.queue_.size();
-  } else if (self.queue_.empty() && self.max_size_ > 100) {
-    std::queue<AuditEventContextRef> empty;
-    std::swap(empty, self.queue_);
-    self.max_size_ = 0;
-  }
-}
-
-size_t AuditConsumer::size() const {
-  ReadLock lock(get().mutex_);
-
-  return get().queue_.size();
-}
-
-void AuditConsumerRunner::start() {
-  while (!interrupted()) {
-    size_t events = AuditConsumer::get().size();
-    for (size_t i = 0; i < events; i++) {
-      // Build the event context from the reply type and parse the message.
-      publisher_->fire(AuditConsumer::get().peek());
-      AuditConsumer::get().pop();
-    }
-
-    if (!interrupted() && events == 0) {
-      // Only pause if there were no events to process.
-      pauseMilli(1000);
-    }
-  }
+/// \todo move this back into the header file
+AuditEventPublisher::AuditEventPublisher() : EventPublisher() {
 }
 
 Status AuditEventPublisher::run() {
@@ -584,10 +542,33 @@ Status AuditEventPublisher::run() {
     audit_request_status(handle_);
   }
 
-  auto inspectReply = ([this]() {
+  /// \todo do this only once? and exit? or finish the queue?
+  if (isEnding()) {
+    event_reader_task_data_.terminate = true;
+  }
+
+  std::vector<AuditReplyDescriptor> event_list;
+
+  {
+    std::lock_guard<std::mutex> mutex_locker(event_reader_task_data_.queue_mutex);
+
+    event_list = event_reader_task_data_.audit_reply_queue;
+    event_reader_task_data_.audit_reply_queue.clear();
+  }
+
+  for (const auto &audit_reply_descriptor : event_list) {
+    audit_reply current_message = audit_reply_descriptor.first;
+    std::size_t current_message_size = audit_reply_descriptor.second;
+
+    /// \todo should we print an error here?
+    // Adjust the reply in this thread so that we do not slow down the event reader
+    if (!adjust_reply(&current_message, current_message_size)) {
+      continue;
+    }
+
     bool handle_reply = false;
 
-    switch (reply_.type) {
+    switch (current_message.type) {
     case NLMSG_NOOP:
     case NLMSG_DONE:
     case NLMSG_ERROR:
@@ -601,8 +582,8 @@ Status AuditEventPublisher::run() {
       break;
     case AUDIT_GET:
       // Make a copy of the status reply and store as the most-recent.
-      if (reply_.status != nullptr) {
-        memcpy(&status_, reply_.status, sizeof(struct audit_status));
+      if (current_message.status != nullptr) {
+        memcpy(&status_, current_message.status, sizeof(struct audit_status));
       }
       break;
     case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
@@ -614,7 +595,7 @@ Status AuditEventPublisher::run() {
       break;
     case AUDIT_DAEMON_START ... AUDIT_DAEMON_CONFIG: // 1200 - 1203
     case AUDIT_CONFIG_CHANGE:
-      handleAuditConfigChange(reply_);
+      handleAuditConfigChange(current_message);
       break;
     case AUDIT_SYSCALL: // 1300
       // A monitored syscall was issued, most likely part of a multi-record.
@@ -638,28 +619,16 @@ Status AuditEventPublisher::run() {
     // Replies are 'handled' as potential events for several audit types.
     if (handle_reply) {
       auto ec = createEventContext();
-      if (handleAuditReply(reply_, ec)) {
-        AuditConsumer::get().push(ec);
+      // Build the event context from the reply type and parse the message.
+      if (handleAuditReply(current_message, ec)) {
+        fire(ec);
       }
     }
-  });
+  }
 
-  // Reset the reply data.
-  int result = 0;
-  do {
-    // Request a reply in a non-blocking mode.
-    // This allows the publisher's run loop to periodically request an audit
-    // status update. These updates can check for other processes attempting to
-    // gain control over the audit sink.
-    // This non-blocking also allows faster receipt of multi-message events.
-    result = safe_audit_get_reply(handle_, &reply_);
+  return Status(0, "OK");
 
-    if (result > 0) {
-      inspectReply();
-    }
-  } while (result > 0 && !isEnding());
-
-  if (static_cast<pid_t>(status_.pid) != getpid()) {
+  /*if (static_cast<pid_t>(status_.pid) != getpid()) {
     if (control_ && status_.pid != 0) {
       VLOG(1) << "Audit control lost to pid: " << status_.pid;
       // This process has lost control of audit.
@@ -675,7 +644,7 @@ Status AuditEventPublisher::run() {
   }
 
   // Only apply a cool down if the reply request failed.
-  return Status(0, "OK");
+  return Status(0, "OK");*/
 }
 
 bool AuditEventPublisher::shouldFire(const AuditSubscriptionContextRef& sc,
@@ -687,23 +656,24 @@ bool AuditEventPublisher::shouldFire(const AuditSubscriptionContextRef& sc,
   }
 
   for (const auto& audit_event_type : sc->types) {
-	// Skip invalid audit event types
-	if (audit_event_type == 0)
+    // Skip invalid audit event types
+    if (audit_event_type == 0)
+        continue;
+
+    // Skip audit events that do not match the requested type
+    if (audit_event_type != ec->type)
       continue;
 
-	// Skip audit events that do not match the requested type
-	if (audit_event_type != ec->type)
-	  continue;
-
-	// No further filtering needed for events that are not syscalls
-    if (audit_event_type != AUDIT_SYSCALL)
+	  // No further filtering needed for events that are not syscalls
+    if (audit_event_type != AUDIT_SYSCALL) {
       return true;
+    }
 
     // We received a syscall event; we have to capture it only if the rule set contains it
     for (const auto& rule : sc->rules) {
-	  if (rule.syscall == ec->syscall)
-	    return true;
-    }
+      if (rule.syscall == ec->syscall)
+        return true;
+      }
   }
 
   return false;
