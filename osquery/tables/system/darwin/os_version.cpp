@@ -27,8 +27,7 @@ QueryData genOSVersion(QueryContext& context) {
   r["platform_like"] = "darwin";
 
   // The version path plist is parsed by the OS X tool: sw_vers.
-  auto sw_vers =
-      SQL::selectAllFrom("preferences", "path", EQUALS, kVersionPath);
+  auto sw_vers = SQL::selectAllFrom("plist", "path", EQUALS, kVersionPath);
   if (sw_vers.empty()) {
     return {r};
   }

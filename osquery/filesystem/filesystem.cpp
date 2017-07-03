@@ -309,8 +309,12 @@ inline void replaceGlobWildcards(std::string& pattern, GlobLimits limits) {
                                (pattern.size() > 3 && pattern[1] != ':' &&
                                 pattern[2] != '\\' && pattern[2] != '/'))) &&
       pattern[0] != '~') {
-    boost::system::error_code ec;
-    pattern = (fs::current_path(ec) / pattern).make_preferred().string();
+    try {
+      boost::system::error_code ec;
+      pattern = (fs::current_path(ec) / pattern).make_preferred().string();
+    } catch (const fs::filesystem_error& /* e */) {
+      // There is a bug in versions of current_path that still throw.
+    }
   }
 
   auto base =

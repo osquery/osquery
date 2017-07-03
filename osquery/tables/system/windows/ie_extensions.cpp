@@ -37,11 +37,18 @@ const std::vector<std::string> kIEBrowserHelperKeys = {
     "MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explor"
     "er\\Browser "
     "Helper Objects",
+    "HKEY_USERS\\%"
+    "\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Browser "
+    "Helper Objects",
+    "HKEY_USERS\\%"
+    "\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Explor"
+    "er\\Browser Helper Objects",
+    "HKEY_USERS\\%\\SOFTWARE\\Microsoft\\Internet Explorer\\URLSearchHooks",
 };
 
 static inline Status getBHOs(QueryData& results) {
-  SQL sql("SELECT name,path FROM registry WHERE type = 'subkey' AND (key = '" +
-          boost::join(kIEBrowserHelperKeys, "' OR key = '") + "')");
+  SQL sql("SELECT name,path FROM registry WHERE key LIKE '" +
+          boost::join(kIEBrowserHelperKeys, "' OR key LIKE '") + "'");
   if (!sql.ok()) {
     return sql.getStatus();
   }
@@ -50,7 +57,7 @@ static inline Status getBHOs(QueryData& results) {
     auto ret = getClassExecutables(cls.at("name"), executables);
     if (!ret.ok()) {
       LOG(WARNING) << "Failed to get class executables: " + ret.getMessage();
-      return ret;
+      continue;
     }
 
     std::string clsName;

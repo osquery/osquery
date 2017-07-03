@@ -272,7 +272,7 @@ QueryData genPackageBOM(QueryContext& context) {
 }
 
 void genPackageReceipt(const std::string& path, QueryData& results) {
-  auto receipt = SQL::selectAllFrom("preferences", "path", EQUALS, path);
+  auto receipt = SQL::selectAllFrom("plist", "path", EQUALS, path);
   if (receipt.size() == 0) {
     // Fail if the file could not be plist-parsed.
     return;
