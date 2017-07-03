@@ -3,13 +3,14 @@ description("OS X defaults and managed preferences.")
 schema([
     Column("domain", TEXT, "Application ID usually in com.name.product format",
       index=True),
-    Column("key", TEXT, "Preference top-level key"),
-    Column("subkey", TEXT, "Intemediate key path, includes lists/dicts"),
+    Column("key", TEXT, "Preference top-level key", index=True),
+    Column("subkey", TEXT, "Intemediate key path, includes lists/dicts", index=True),
     Column("value", TEXT, "String value of most CF types"),
     Column("forced", INTEGER, "1 if the value is forced/managed, else 0"),
     Column("username", TEXT, "(optional) read preferences for a specific user",
       additional=True),
 ])
+attributes(user_data=True)
 implementation("system/darwin/preferences@genOSXDefaultPreferences")
 examples([
   "select * from preferences where domain = 'loginwindow'",
