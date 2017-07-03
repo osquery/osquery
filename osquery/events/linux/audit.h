@@ -12,13 +12,13 @@
 
 #include <libaudit.h>
 
+#include <atomic>
+#include <future>
 #include <map>
 #include <set>
-#include <vector>
-#include <future>
 #include <thread>
-#include <atomic>
 #include <utility>
+#include <vector>
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -32,13 +32,35 @@ namespace osquery {
 
 typedef std::pair<audit_reply, std::size_t> AuditReplyDescriptor;
 
-struct EventReaderTaskData final {
-  std::atomic<bool> terminate;
+/**
+ * @brief This is the context data used by the thread that receives the audit
+ * events.
+ */
 
-  int audit_handle;
+struct EventReaderTaskContext final {
+  /// The ::tearDown method of the publisher sets this to true when terminating.
+  std::atomic<bool> terminate{false};
 
-  std::vector<AuditReplyDescriptor> audit_reply_queue;
-  std::mutex queue_mutex;
+  /// The file descriptor to the auditd netlink.
+  int audit_handle{0};
+
+  /// The primary event queue. We have two because we swap them to avoid a
+  /// potentially slow copy.
+  std::vector<AuditReplyDescriptor> primary_audit_queue;
+
+  /// The secondary event queue; see primary_audit_queue.
+  std::vector<AuditReplyDescriptor> secondary_audit_queue;
+
+  /// This is the mutex that controls access to this structure.
+  std::mutex context_mutex;
+
+  /// The active audit queue is where new audit event are stored. It will either
+  /// point to the primary or secondary event queue.
+  std::vector<AuditReplyDescriptor>* active_audit_queue{nullptr};
+
+  /// The passive audit queue is where audit events are taken for processing. It
+  /// will either point to the primary or secondary event queue.
+  std::vector<AuditReplyDescriptor>* passive_audit_queue{nullptr};
 };
 
 /**
@@ -313,7 +335,7 @@ class AuditEventPublisher
   std::vector<struct AuditRuleInternal> transient_rules_;
 
   /// Event reader task data
-  EventReaderTaskData event_reader_task_data_;
+  EventReaderTaskContext event_reader_task_context_;
 
   /// Event reader task
   boost::scoped_ptr<std::thread> event_reader_thread_;

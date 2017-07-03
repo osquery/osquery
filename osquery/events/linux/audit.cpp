@@ -22,8 +22,6 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include <chrono>
-
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/audit.h"
 
@@ -189,10 +187,11 @@ bool AuditAssembler::complete(AuditId id) {
   return true;
 }
 
-Status AuditEventReader(EventReaderTaskData& task_data) noexcept {
+Status AuditEventReader(EventReaderTaskContext& task_data) noexcept {
   struct sockaddr_nl nladdr;
   socklen_t nladdrlen = sizeof(nladdr);
 
+  /// \todo Attempt to read more than one message at a time
   while (!task_data.terminate) {
     audit_reply reply = {};
     int len = recvfrom(task_data.audit_handle,
@@ -201,6 +200,8 @@ Status AuditEventReader(EventReaderTaskData& task_data) noexcept {
                        0,
                        reinterpret_cast<struct sockaddr*>(&nladdr),
                        &nladdrlen);
+
+    /// \todo Handle the following errors!
     if (len < 0) {
       return Status(1, "Failed to receive data from the audit netlink");
     }
@@ -214,8 +215,8 @@ Status AuditEventReader(EventReaderTaskData& task_data) noexcept {
     }
 
     {
-      std::lock_guard<std::mutex> mutex_locker(task_data.queue_mutex);
-      task_data.audit_reply_queue.push_back(std::make_pair(reply, len));
+      std::lock_guard<std::mutex> mutex_locker(task_data.context_mutex);
+      task_data.active_audit_queue->push_back(std::make_pair(reply, len));
     }
   }
 
@@ -235,20 +236,30 @@ Status AuditEventPublisher::setUp() {
 
   /// \todo use a single handle variable instead of duplicating it!
   /// \todo this is vital because we may lose control of the auditd service!
-  event_reader_task_data_.audit_handle = handle_;
-  event_reader_task_data_.terminate = false;
+  event_reader_task_context_.audit_handle = handle_;
+  event_reader_task_context_.terminate = false;
+
+  // Initialize the queue pointers; the active queue is where we are going to
+  // write; the passive queue is where others are going to read from. We are
+  // going to swap these pointers each time we are ready to start processing
+  // new events.
+  event_reader_task_context_.active_audit_queue =
+      &event_reader_task_context_.primary_audit_queue;
+
+  event_reader_task_context_.passive_audit_queue =
+      &event_reader_task_context_.secondary_audit_queue;
 
   // Initialize the event reader thread
   {
-    std::packaged_task<Status(EventReaderTaskData&)> event_reader_task(
+    std::packaged_task<Status(EventReaderTaskContext&)> event_reader_task(
         AuditEventReader);
     event_reader_result_ = event_reader_task.get_future().share();
 
     try {
       event_reader_thread_.reset(new std::thread(
-          std::move(event_reader_task), std::ref(event_reader_task_data_)));
+          std::move(event_reader_task), std::ref(event_reader_task_context_)));
     } catch (const std::bad_alloc&) {
-      return Status(1, "Memory allocation error");
+      return Status(1, "Failed to create the audit event reader thread");
     }
   }
 
@@ -548,20 +559,19 @@ Status AuditEventPublisher::run() {
 
   /// \todo do this only once? and exit? or finish the queue?
   if (isEnding()) {
-    event_reader_task_data_.terminate = true;
+    event_reader_task_context_.terminate = true;
   }
-
-  std::vector<AuditReplyDescriptor> event_list;
 
   {
     std::lock_guard<std::mutex> mutex_locker(
-        event_reader_task_data_.queue_mutex);
+        event_reader_task_context_.context_mutex);
 
-    event_list = event_reader_task_data_.audit_reply_queue;
-    event_reader_task_data_.audit_reply_queue.clear();
+    std::swap(event_reader_task_context_.active_audit_queue,
+              event_reader_task_context_.passive_audit_queue);
   }
 
-  for (const auto& audit_reply_descriptor : event_list) {
+  for (const auto& audit_reply_descriptor :
+       *event_reader_task_context_.passive_audit_queue) {
     audit_reply current_message = audit_reply_descriptor.first;
     std::size_t current_message_size = audit_reply_descriptor.second;
 
@@ -632,6 +642,7 @@ Status AuditEventPublisher::run() {
     }
   }
 
+  event_reader_task_context_.passive_audit_queue->clear();
   return Status(0, "OK");
 
   /*if (static_cast<pid_t>(status_.pid) != getpid()) {
