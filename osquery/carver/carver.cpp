@@ -188,18 +188,18 @@ void Carver::start() {
     upload = archivePath_;
   }
 
-  PlatformFile archFile(archivePath_.string(), PF_OPEN_EXISTING | PF_READ);
-  updateCarveValue(carveGuid_, "size", std::to_string(archFile.size()));
+  PlatformFile uploadFile(upload.string(), PF_OPEN_EXISTING | PF_READ);
+  updateCarveValue(carveGuid_, "size", std::to_string(uploadFile.size()));
 
-  std::string arcHash =
-      (archFile.size() > FLAGS_read_max)
+  std::string uploadHash =
+      (uploadFile.size() > FLAGS_read_max)
           ? "-1"
-          : hashFromFile(HashType::HASH_TYPE_SHA256, archivePath_.string());
-  if (arcHash == "-1") {
+          : hashFromFile(HashType::HASH_TYPE_SHA256, upload.string());
+  if (uploadHash == "-1") {
     VLOG(1)
         << "Archive file size exceeds read max, skipping integrity computation";
   }
-  updateCarveValue(carveGuid_, "sha256", arcHash);
+  updateCarveValue(carveGuid_, "sha256", uploadHash);
 
   s = postCarve(upload);
   if (!s.ok()) {
