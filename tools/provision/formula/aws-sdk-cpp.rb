@@ -5,7 +5,7 @@ class AwsSdkCpp < AbstractOsqueryFormula
   homepage "https://github.com/aws/aws-sdk-cpp"
   url "https://github.com/aws/aws-sdk-cpp/archive/1.1.5.tar.gz"
   sha256 "fc16f2fb45254acb2fcbabe13a97daceb1d920a6ac684ef5c601871a29dcb0cf"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -31,6 +31,14 @@ class AwsSdkCpp < AbstractOsqueryFormula
       system "cmake", "..", *args
       system "make"
       system "make", "install"
+    end
+
+    # Move lib64/* to lib/ on Linuxbrew
+    lib64 = Pathname.new "#{lib}64"
+    if lib64.directory?
+      mkdir_p lib
+      system "mv #{lib64}/* #{lib}/"
+      rmdir lib64
     end
   end
 
