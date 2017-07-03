@@ -11,7 +11,7 @@ class AwsSdkCpp < AbstractOsqueryFormula
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "ab2ad08c23fd765b02f1e961389b250f60e022e8d5ce94e822a998887e27286c" => :sierra
-    sha256 "0b2995f4546df02bcbebb8ea47f2cc276ecd1bcb0cb60787be02ff9a2748734b" => :x86_64_linux
+    sha256 "aa9b708a93f65447f79a80d04eb7edd496e63a8350a19ee2e585a3b8c69a0f1f" => :x86_64_linux
   end
 
   depends_on "cmake" => :build
