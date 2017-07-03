@@ -24,8 +24,8 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/audit.h"
@@ -188,17 +188,22 @@ bool AuditAssembler::complete(AuditId id) {
       return false;
     }
   }
+
   return true;
 }
 
-Status AuditEventReader(EventReaderTaskData &task_data) noexcept {
+Status AuditEventReader(EventReaderTaskData& task_data) noexcept {
   struct sockaddr_nl nladdr;
   socklen_t nladdrlen = sizeof(nladdr);
 
   while (!task_data.terminate) {
     audit_reply reply = {};
-    int len = recvfrom(task_data.audit_handle, &reply.msg, sizeof(reply.msg), 0,
-                      reinterpret_cast<struct sockaddr *>(&nladdr), &nladdrlen);
+    int len = recvfrom(task_data.audit_handle,
+                       &reply.msg,
+                       sizeof(reply.msg),
+                       0,
+                       reinterpret_cast<struct sockaddr*>(&nladdr),
+                       &nladdrlen);
     if (len < 0) {
       return Status(1, "Failed to receive data from the audit netlink");
     }
@@ -238,12 +243,14 @@ Status AuditEventPublisher::setUp() {
 
   // Initialize the event reader thread
   {
-    std::packaged_task<Status (EventReaderTaskData &)> event_reader_task(AuditEventReader);
+    std::packaged_task<Status(EventReaderTaskData&)> event_reader_task(
+        AuditEventReader);
     event_reader_result_ = event_reader_task.get_future().share();
-  
+
     try {
-      event_reader_thread_.reset(new std::thread(std::move(event_reader_task), std::ref(event_reader_task_data_)));
-    } catch (const std::bad_alloc &) {
+      event_reader_thread_.reset(new std::thread(
+          std::move(event_reader_task), std::ref(event_reader_task_data_)));
+    } catch (const std::bad_alloc&) {
       return Status(1, "Memory allocation error");
     }
   }
@@ -326,7 +333,8 @@ void AuditEventPublisher::configure() {
       if (rc < 0) {
         // Problem adding rule. If errno == EEXIST then fine.
         LOG(WARNING) << "Cannot add audit rule: syscall=" << scr.syscall
-                     << " filter='" << scr.filter << "': error " << rc;
+                     << " filter='" << scr.filter << "': error " << rc
+                     << " description='" << strerror(-rc) << "'";
       }
 
       // Note: all rules are considered transient if added by subscribers.
@@ -532,8 +540,7 @@ static inline bool adjust_reply(struct audit_reply* rep, int len) {
 }
 
 /// \todo move this back into the header file
-AuditEventPublisher::AuditEventPublisher() : EventPublisher() {
-}
+AuditEventPublisher::AuditEventPublisher() : EventPublisher() {}
 
 Status AuditEventPublisher::run() {
   if (!FLAGS_disable_audit && (count_ == 0 || count_++ % 10 == 0)) {
@@ -550,18 +557,20 @@ Status AuditEventPublisher::run() {
   std::vector<AuditReplyDescriptor> event_list;
 
   {
-    std::lock_guard<std::mutex> mutex_locker(event_reader_task_data_.queue_mutex);
+    std::lock_guard<std::mutex> mutex_locker(
+        event_reader_task_data_.queue_mutex);
 
     event_list = event_reader_task_data_.audit_reply_queue;
     event_reader_task_data_.audit_reply_queue.clear();
   }
 
-  for (const auto &audit_reply_descriptor : event_list) {
+  for (const auto& audit_reply_descriptor : event_list) {
     audit_reply current_message = audit_reply_descriptor.first;
     std::size_t current_message_size = audit_reply_descriptor.second;
 
     /// \todo should we print an error here?
-    // Adjust the reply in this thread so that we do not slow down the event reader
+    // Adjust the reply in this thread so that we do not slow down the event
+    // reader
     if (!adjust_reply(&current_message, current_message_size)) {
       continue;
     }
@@ -658,22 +667,23 @@ bool AuditEventPublisher::shouldFire(const AuditSubscriptionContextRef& sc,
   for (const auto& audit_event_type : sc->types) {
     // Skip invalid audit event types
     if (audit_event_type == 0)
-        continue;
+      continue;
 
     // Skip audit events that do not match the requested type
     if (audit_event_type != ec->type)
       continue;
 
-	  // No further filtering needed for events that are not syscalls
+    // No further filtering needed for events that are not syscalls
     if (audit_event_type != AUDIT_SYSCALL) {
       return true;
     }
 
-    // We received a syscall event; we have to capture it only if the rule set contains it
+    // We received a syscall event; we have to capture it only if the rule set
+    // contains it
     for (const auto& rule : sc->rules) {
       if (rule.syscall == ec->syscall)
         return true;
-      }
+    }
   }
 
   return false;
