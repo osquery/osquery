@@ -309,7 +309,6 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
           << event_name << "'";
 
   // Create message for each row
-  bool parse_err = false;
   for (const auto& element : rows) {
     // Get row and trigger
     const auto& row = std::get<0>(element);
@@ -332,7 +331,6 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
       if (row.count(colName) != 1) {
         LOG(ERROR) << "Column '" << colName << "' not present in results for '"
                    << event_name << "'";
-        parse_err = true;
         break;
       }
       const auto& value = row.at(colName);
@@ -388,10 +386,6 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
 
     // Send event message
     sendEvent(topic, msg);
-  }
-
-  if (parse_err) {
-    printQueryLogItem(qli);
   }
 
   // Delete one-time query information

@@ -38,12 +38,59 @@ FLAG(uint64, bro_port, 9999, "Port of bro (default 9999)")
 
 FLAG(string, bro_groups, "{}", "List of groups (default {})")
 
+/**
+ * @brief Distributed Plugin for the communication with Bro via broker
+ *
+ * This DistributedPlugin is the main entry point for the communication with
+ * Bro. It implements a server-"loop" to wait for any incoming messages via
+ * broker. It utilizes the BrokerManager and QueryManager to keep state about
+ * broker connections and query requests, respectively.
+ *
+ */
 class BRODistributedPlugin : public DistributedPlugin {
  public:
+  /**
+   * @brief Setup of the plugin and preparation of the BrokerManager
+   *
+   * Initialization of the BrokerManager by connecting to the remote broker
+   * endpoint, joining predefined groups and subscribing to predefined topics,
+   * and announcing this osquery host.
+   *
+   * @return
+   */
   Status setUp() override;
 
+  /**
+   * @brief Implementation of the main server-"loop" to process incoming
+   * messages
+   *
+   * This base method was originally designed to retrieve the latest remote
+   * configuration from server. However, the communication pattern with Bro is
+   * not request-response-based but event-based. Thus, this method
+   * implementation blocks until the next broker message is available to be
+   * read. After return, this method is meant to be immediately be called again
+   * to wait and process the next message.
+   *
+   * This method can be thought of the main-loop for receiving messages.
+   * Incoming messages are parsed and the respective functions are called. There
+   * are mainly three actions available:
+   *   1) Schedule Subscription: registers a new query that is pushed to the
+   * osqueryd daemon for query schedule
+   *   2) Schedule Unsibscription: unregister a previously subscribed schedule
+   * query and remove it from osquery daemon
+   *   3) One-Time Execution: make the parent execute an one-time query
+   *
+   * @param json the one-time queries to be executed by the "parent"
+   * @return
+   */
   Status getQueries(std::string& json) override;
 
+  /**
+   * @brief Write the results of the one-time queries via the bro logger plugin
+   *
+   * @param json the results of the one-time queries
+   * @return
+   */
   Status writeResults(const std::string& json) override;
 
  private:
@@ -93,11 +140,33 @@ Status BRODistributedPlugin::setUp() {
   return Status(0, "OK");
 }
 
+/**
+ * @brief process a broker message that was received on the main-server-loop
+ *
+ * The messages actions depends on its message type.
+ *
+ *  EVENT_HOST_JOIN: Makes the osquery host to join a group (subscribe to broker
+ * topic) utilizing BrokerManager
+ *  EVENT_HOST_LEAVE: Makes the osquery host to leave a group (unsubscribe from
+ * broker topic) utilizing BrokerManager
+ *  EVENT_HOST_EXECUTE: add the query to the vector oT_queries and keep track
+ * utilizing QueryManager
+ *  EVENT_HOST_SUBSCRIBE: add the query to schedule of osquery daemon utilizing
+ * the QueryManager
+ *  EVENT_HOST_UNSUBSCRIBE: remove the query from schedule of osquery daemon
+ * utilizing the QueryManager
+ *
+ * @param msg the broker message
+ * @param topic the topic where the broker message was received on
+ * @param oT_queries a vector to append one-time queries to
+ * @return
+ */
 inline Status processMessage(const broker::message& msg,
                              const std::string& topic,
                              std::vector<DistributedQueryRequest>& oT_queries) {
   BrokerManager& bm = BrokerManager::get();
   QueryManager& qm = QueryManager::get();
+  Status s;
 
   // Check Event Type
   if (msg.size() < 1 || !broker::is<std::string>(msg[0])) {
@@ -111,7 +180,7 @@ inline Status processMessage(const broker::message& msg,
   if (eventName == bm.EVENT_HOST_EXECUTE) {
     // One-Time Query Execution
     SubscriptionRequest sr;
-    createSubscriptionRequest("EXECUTE", msg, topic, sr);
+    createSubscriptionRequest(EXECUTE, msg, topic, sr);
     std::string newQID = qm.addOneTimeQueryEntry(sr);
     if (newQID.empty()) {
       return Status(1, "Unable to add Broker Query Entry");
@@ -136,23 +205,23 @@ inline Status processMessage(const broker::message& msg,
   } else if (eventName == bm.EVENT_HOST_SUBSCRIBE) {
     // New SQL Query Request
     SubscriptionRequest sr;
-    createSubscriptionRequest("SUBSCRIBE", msg, topic, sr);
-    Status s_sub = qm.addScheduleQueryEntry(sr);
-    if (!s_sub.ok()) {
-      return s_sub;
+    createSubscriptionRequest(SUBSCRIBE, msg, topic, sr);
+    s = qm.addScheduleQueryEntry(sr);
+    if (!s.ok()) {
+      return s;
     }
 
     // osquery::host_unsubscribe
   } else if (eventName == bm.EVENT_HOST_UNSUBSCRIBE) {
     // SQL Query Cancel
     SubscriptionRequest sr;
-    createSubscriptionRequest("UNSUBSCRIBE", msg, topic, sr);
-    // TODO: find an UNIQUE identifier (currently the exact sql string)
+    createSubscriptionRequest(UNSUBSCRIBE, msg, topic, sr);
     std::string query = sr.query;
 
-    Status s_unsub = qm.removeQueryEntry(query);
-    if (!s_unsub.ok()) {
-      return s_unsub;
+    // Use the exact sql string as UNIQUE identifier for identifying a query
+    s = qm.removeQueryEntry(query);
+    if (!s.ok()) {
+      return s;
     }
 
   } else {
@@ -174,11 +243,8 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   Status s;
 
   // Collect file descriptors of the broker message queues
-  std::vector<std::string> topics = bm.getTopics(); // List of subscribed topics
-  // Retrieve info about each message queue
-  // TODO is this smart pointer? Should be safe for unique_ptr
-  // https://stackoverflow.com/questions/6713484/smart-pointers-and-arrays
-  // https://stackoverflow.com/questions/13061979/shared-ptr-to-an-array-should-it-be-used
+  std::vector<std::string> topics = bm.getTopics();
+  // Retrieve info about each message queue and the file descriptor
   std::unique_ptr<pollfd[]> fds(new pollfd[topics.size() + 1]);
   for (unsigned long i = 0; i < topics.size(); i++) {
     fds[i] =
@@ -190,7 +256,6 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   assert(bm.getOutgoingConnectionFD() > 0);
 
   // Wait for incoming message
-  // TODO is this allowed?
   poll(fds.get(), topics.size() + 1, -1);
 
   // Collect OneTime Queries
@@ -206,7 +271,7 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
 
     if ((fds[i].revents & POLLERR) == POLLERR) {
       // Error on this socket
-      LOG(ERROR) << "Poll error on fd of queue for topic '" << topic << "'";
+      LOG(WARNING) << "Poll error on fd of queue for topic '" << topic << "'";
       continue;
     }
 
@@ -227,8 +292,8 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   // Serialize the distributed query requests
   pt::ptree request_queries;
   for (const auto& ot_query : oT_queries) {
-    VLOG(1) << "Received DistributedQueryRequest '" << ot_query.query
-            << "' (ID: " << ot_query.id << ")";
+    VLOG(1) << "Received DistributedQueryRequest for one-time query '"
+            << ot_query.query << "' (ID: " << ot_query.id << ")";
     request_queries.put<std::string>(ot_query.id, ot_query.query);
   }
   pt::ptree request;

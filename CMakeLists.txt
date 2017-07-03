@@ -242,7 +242,7 @@ else()
     )
     if (CMAKE_CXX_COMPILER MATCHES "clang" AND NOT FREEBSD)
       # Only enable LTO builds when using clang on Unix, for now
-      #add_compile_options(-flto=thin)
+      add_compile_options(-flto=thin)
     endif()
   endif()
 endif()

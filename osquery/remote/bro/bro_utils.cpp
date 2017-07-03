@@ -29,25 +29,28 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-Status createSubscriptionRequest(const std::string& rType,
+Status createSubscriptionRequest(const BrokerRequestType& rType,
                                  const broker::message& msg,
                                  const std::string& incoming_topic,
                                  SubscriptionRequest& sr) {
   // Check number of fields
   unsigned long numFields;
-  if (rType == "EXECUTE") {
+  if (rType == EXECUTE) {
     numFields = 6;
-  } else if (rType == "SUBSCRIBE" || rType == "UNSUBSCRIBE") {
+  } else if (rType == SUBSCRIBE || rType == UNSUBSCRIBE) {
     numFields = 7;
   } else {
-    return Status(1, "Unknown Request Type '" + rType + "'");
+    return Status(1,
+                  "Unknown Subscription Request Type '" +
+                      kBrokerRequestTypeNames.at(rType) + "'");
   }
 
   if (msg.size() != numFields) {
     return Status(1,
                   std::to_string(msg.size()) + " instead of " +
-                      std::to_string(numFields) + " fields in '" + rType +
-                      "' message '" + broker::to_string(msg[0]));
+                      std::to_string(numFields) + " fields in '" +
+                      kBrokerRequestTypeNames.at(rType) + "' message '" +
+                      broker::to_string(msg[0]));
   }
 
   // Query String
@@ -103,7 +106,7 @@ Status createSubscriptionRequest(const std::string& rType,
   }
 
   // If one-time query
-  if (rType == "EXECUTE") {
+  if (rType == EXECUTE) {
     if (sr.added || sr.removed || !sr.snapshot) {
       LOG(WARNING) << "Only possible to query SNAPSHOT for one-time queries";
     }
@@ -128,7 +131,6 @@ Status parseBrokerGroups(const std::string& json_groups,
                          std::vector<std::string>& groups) {
   pt::ptree groups_tree;
   try {
-    // TODO: Sanitize Input
     auto clone = "{\"groups\":" + json_groups + "}";
     stripConfigComments(clone);
     std::stringstream json_stream;
@@ -148,43 +150,5 @@ Status parseBrokerGroups(const std::string& json_groups,
     return Status(1, "Error parsing the bro groups");
   }
   return Status(0, "OK");
-}
-
-Status printQueryLogItem(const QueryLogItem& item) {
-  VLOG(1) << "Parsed query result" << std::endl;
-  VLOG(1) << "\tDiffResults: " << std::endl;
-  printDiffResults(item.results);
-  VLOG(1) << "\tQueryData: " << std::endl;
-  printQueryData(item.snapshot_results);
-  VLOG(1) << "\tname: " << item.name;
-  VLOG(1) << "\tidentifier: " << item.identifier;
-  VLOG(1) << "\ttime: " << std::to_string(item.time);
-  VLOG(1) << "\tcalendar_time: " << item.calendar_time;
-  VLOG(1) << "\tdecorations: " << std::endl;
-  printDecorations(item.decorations);
-  return Status(0, "OK");
-}
-
-void printDiffResults(const DiffResults& results) {
-  VLOG(1) << "\t\tadded: ";
-  printQueryData(results.added);
-  VLOG(1) << "\t\tremoved: ";
-  printQueryData(results.removed);
-}
-
-void printQueryData(const QueryData& data) {
-  for (const Row& r : data) {
-    for (const auto& pair : r) {
-      VLOG(1) << "\t\t\t<" << pair.first << ", " << pair.second << "> ";
-    }
-    VLOG(1) << std::endl;
-  }
-}
-
-void printDecorations(const std::map<std::string, std::string>& deco) {
-  /** std::map<std::string, std::string> decorations **/
-  for (const auto& pair : deco) {
-    VLOG(1) << "\t\t\t<" << pair.first << ", " << pair.second << "> ";
-  }
 }
 }

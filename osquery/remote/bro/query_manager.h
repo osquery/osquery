@@ -19,11 +19,29 @@
 
 namespace osquery {
 
-// ID, query, interval, added, removed, snapshot
+/**
+ * @brief Internal definition of a query for scheduling
+ *
+ * The fields correspond to ID, query, interval, added, removed, snapshot. This
+ * representation is used to keep track of active schedule subscriptions.
+ */
 typedef std::tuple<std::string, std::string, int, bool, bool, bool>
     ScheduleQueryEntry;
+/**
+ * @brief Internal definition of a query for one-time execution
+ *
+ * The fields correspond to ID, query. This representation is used to keep track
+ * of active one-time query executions.
+ */
 typedef std::tuple<std::string, std::string> OneTimeQueryEntry;
 
+/**
+ * @brief Internal definition of a subscription request
+ *
+ * A subscription request is a common data structure to describe the incoming
+ * query request and to hold its parameters. This definition is valid for all
+ * request types in BrokerRequestType.
+ */
 struct SubscriptionRequest {
   std::string query; // The requested SQL query
   std::string response_event; // The event name for the response event
@@ -35,8 +53,19 @@ struct SubscriptionRequest {
   bool snapshot = false;
 };
 
+/**
+ * @brief Manager class for queries that are received via broker.
+ *
+ * The QueryManager is a singleton to keep track of queries that are requested
+ * via broker.
+ */
 class QueryManager : private boost::noncopyable {
  private:
+  /**
+   * @brief The private constructor of the class.
+   *
+   * Nothing to do here.
+   */
   QueryManager() {}
 
  public:
@@ -46,32 +75,71 @@ class QueryManager : private boost::noncopyable {
     return qm;
   };
 
+  /**
+   * @brief Reset the QueryManager to its initial state.
+   *
+   * This makes the BrokerManager to remove all schedule and one-time queries
+   * from tracking
+   */
   Status reset();
 
+  /**
+   * @brief Add a one-time query to tracking
+   *
+   * @param qr the subscription request for this one-time query
+   * @return the unique queryID assigned this query
+   */
   std::string addOneTimeQueryEntry(const SubscriptionRequest& qr);
 
+  /**
+   * @brief Add a schedule query to tracking
+   *
+   * @param qr the subscription request for this schedule query
+   * @return
+   */
   Status addScheduleQueryEntry(const SubscriptionRequest& qr);
 
+  /**
+   * @brief Add a query to tracking with fixed properties
+   *
+   * @param queryID the queryID to use for this query
+   * @param qr the subscription request for this query
+   * @param qtype the type of the query ("SCHEDULE" or "ONETIME")
+   * @return
+   */
   Status addQueryEntry(const std::string& queryID,
                        const SubscriptionRequest& qr,
                        const std::string& qtype);
 
+  /// Find the queryID for a query that is tracked given by the query string
   std::string findIDForQuery(const std::string& query);
 
+  /// Find the query string and the query type for a query that is tracked given
+  /// by the queryID
   Status findQueryAndType(const std::string& queryID,
                           std::string& qtype,
                           std::string& query);
 
+  /// Remove a query from tracking given by the query string
   Status removeQueryEntry(const std::string& query);
 
+  /// Generate configuration data for the query schedule (osqueryd) from the
+  /// broker query tracking
   std::string getQueryConfigString();
 
+  /// Get the cookie the was given in the subscription request of a query given
+  /// by the queryID
   std::string getEventCookie(const std::string& queryID);
 
+  /// Get the response event name the was given in the subscription request of a
+  /// query given by the queryID
   std::string getEventName(const std::string& queryID);
 
+  /// Get the response event topic the was given in the subscription request of
+  /// a query given by the queryID
   std::string getEventTopic(const std::string& queryID);
 
+  /// Get a vector of all currently tracked queryIDs
   std::vector<std::string> getQueryIDs();
 
  private:
@@ -93,6 +161,7 @@ class QueryManager : private boost::noncopyable {
 
  private:
   friend class QueryManagerTests;
+
   FRIEND_TEST(QueryManagerTests, test_reset);
 };
 }
