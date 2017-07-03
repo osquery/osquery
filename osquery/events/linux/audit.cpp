@@ -8,8 +8,6 @@
  *
  */
 
-#define TRACELINE std::cout << __func__ << "@" << __LINE__ << std::endl;
-
 #include <poll.h>
 
 #include <queue>
@@ -25,7 +23,6 @@
 #include <osquery/logger.h>
 
 #include <chrono>
-#include <iostream>
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/audit.h"

@@ -4,7 +4,7 @@ description("Track time/action changes to files specified in configuration data 
 # events are received in the orders they appear
 schema([
     # parameters received in the AUDIT_SYSCALL event
-    Column("operation", BIGINT, "Operation type; either open, close, write or read"),
+    Column("operation", TEXT, "Operation type; either open, close, write or read"),
     Column("pid", BIGINT, "Process ID"),
     Column("ppid", BIGINT, "Parent process ID"),
 
