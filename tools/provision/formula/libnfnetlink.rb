@@ -14,7 +14,7 @@ class Libnfnetlink < AbstractOsqueryFormula
 
 
   def install
-    args = %W[--prefix=#{prefix} --enable-static]
+    args = %W[--prefix=#{prefix} --enable-static --disable-shared]
 
     system "./configure", *args
     system "make"
