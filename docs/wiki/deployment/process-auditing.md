@@ -20,11 +20,15 @@ How does this work? Let's walk through 3 configuration options. These can be set
 
 On Linux a companion table `user_events` is included that provides several authentication-based events. If you are enabling process auditing it should be trivial to also include this table.
 
+If you would like to debug the audit logging use the hidden flag `--audit_debug`. This will print all of the RAW audit lines to osquery's stdout.
+
 #### Linux socket auditing
 
 Another audit-based table is provided on Linux: `socket_events`. This table reports events for the syscalls `bind` and `connect`. This table is not enabled with process events by default because it introduces considerable added load on the system.
 
 Use `--audit_allow_sockets` to enable the associated event subscriber.
+
+If you would like to log UNIX domain sockets use the hidden flag: `--audit_allow_unix`. This will put considerable strain on the system as many default actions use domain sockets. You will also need to explicitly select the `socket` column from the `socket_events` table.
 
 ## macOS process auditing
 
