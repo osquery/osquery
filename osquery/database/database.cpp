@@ -18,6 +18,7 @@
 #include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -70,11 +71,11 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
-Status serializeRowRJ(const Row& r, rapidjson::Document& d) {
+Status serializeRowRJ(const Row& r, rj::Document& d) {
   try {
     for (auto& i : r) {
-      d.AddMember(rapidjson::Value(i.first.c_str(), d.GetAllocator()).Move(),
-                  rapidjson::Value(i.second.c_str(), d.GetAllocator()).Move(),
+      d.AddMember(rj::Value(i.first.c_str(), d.GetAllocator()).Move(),
+                  rj::Value(i.second.c_str(), d.GetAllocator()).Move(),
                   d.GetAllocator());
     }
   } catch (const std::exception& e) {
@@ -94,13 +95,11 @@ Status serializeRow(const Row& r, const ColumnNames& cols, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
-Status serializeRowRJ(const Row& r,
-                      const ColumnNames& cols,
-                      rapidjson::Document& d) {
+Status serializeRowRJ(const Row& r, const ColumnNames& cols, rj::Document& d) {
   try {
     for (auto& c : cols) {
-      d.AddMember(rapidjson::Value(c.c_str(), d.GetAllocator()).Move(),
-                  rapidjson::Value(r.at(c).c_str(), d.GetAllocator()).Move(),
+      d.AddMember(rj::Value(c.c_str(), d.GetAllocator()).Move(),
+                  rj::Value(r.at(c).c_str(), d.GetAllocator()).Move(),
                   d.GetAllocator());
     }
   } catch (const std::exception& e) {
@@ -128,14 +127,14 @@ Status serializeRowJSON(const Row& r, std::string& json) {
 }
 
 Status serializeRowJSONRJ(const Row& r, std::string& json) {
-  rapidjson::Document d(rapidjson::kObjectType);
+  rj::Document d(rj::kObjectType);
   auto status = serializeRowRJ(r, d);
   if (!status.ok()) {
     return status;
   }
 
-  rapidjson::StringBuffer sb;
-  rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+  rj::StringBuffer sb;
+  rj::Writer<rj::StringBuffer> writer(sb);
   d.Accept(writer);
   json = sb.GetString();
   return Status(0, "OK");
@@ -150,7 +149,7 @@ Status deserializeRow(const pt::ptree& tree, Row& r) {
   return Status(0, "OK");
 }
 
-Status deserializeRowRJ(const rapidjson::Value& v, Row& r) {
+Status deserializeRowRJ(const rj::Value& v, Row& r) {
   if (!v.IsObject()) {
     return Status(1, "Row not an object");
   }
@@ -177,7 +176,7 @@ Status deserializeRowJSON(const std::string& json, Row& r) {
 }
 
 Status deserializeRowJSONRJ(const std::string& json, Row& r) {
-  rapidjson::Document d;
+  rj::Document d;
   if (d.Parse(json.c_str()).HasParseError()) {
     return Status(1, "Error serializing JSON");
   }
@@ -229,15 +228,15 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
 }
 
 Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json) {
-  rapidjson::Document d;
+  rj::Document d;
   d.SetArray();
   auto status = serializeQueryDataRJ(q, d);
   if (!status.ok()) {
     return status;
   }
 
-  rapidjson::StringBuffer sb;
-  rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+  rj::StringBuffer sb;
+  rj::Writer<rj::StringBuffer> writer(sb);
   d.Accept(writer);
   json = sb.GetString();
   return Status(0, "OK");
@@ -255,7 +254,7 @@ Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
   return Status(0, "OK");
 }
 
-Status deserializeQueryDataRJ(const rapidjson::Value& v, QueryData& qd) {
+Status deserializeQueryDataRJ(const rj::Value& v, QueryData& qd) {
   if (!v.IsArray()) {
     return Status(1, "Not an array");
   }
@@ -818,19 +817,19 @@ void dumpDatabase() {
   }
 }
 
-Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d) {
+Status serializeQueryDataRJ(const QueryData& q, rj::Document& d) {
   if (!d.IsArray()) {
     return Status(1, "Document is not an array");
   }
   for (const auto& r : q) {
-    rapidjson::Document serialized;
+    rj::Document serialized;
     serialized.SetObject();
     auto s = serializeRowRJ(r, serialized);
     if (!s.ok()) {
       return s;
     }
     if (serialized.GetObject().MemberCount()) {
-      d.PushBack(rapidjson::Value(serialized, d.GetAllocator()).Move(),
+      d.PushBack(rj::Value(serialized, d.GetAllocator()).Move(),
                  d.GetAllocator());
     }
   }
@@ -839,44 +838,44 @@ Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d) {
 
 Status serializeQueryDataRJ(const QueryData& q,
                             const ColumnNames& cols,
-                            rapidjson::Document& d) {
+                            rj::Document& d) {
   for (const auto& r : q) {
-    rapidjson::Document serialized;
+    rj::Document serialized;
     serialized.SetObject();
     auto s = serializeRowRJ(r, cols, serialized);
     if (!s.ok()) {
       return s;
     }
     if (serialized.GetObject().MemberCount()) {
-      d.PushBack(rapidjson::Value(serialized, d.GetAllocator()).Move(),
+      d.PushBack(rj::Value(serialized, d.GetAllocator()).Move(),
                  d.GetAllocator());
     }
   }
   return Status(0, "OK");
 }
 
-Status serializeDiffResultsRJ(const DiffResults& d, rapidjson::Document& doc) {
+Status serializeDiffResultsRJ(const DiffResults& d, rj::Document& doc) {
   // Serialize and add "removed" first.
   // A property tree is somewhat ordered, this provides a loose contract to
   // the logger plugins and their aggregations, allowing them to parse chunked
   // lines. Note that the chunking is opaque to the database functions.
-  rapidjson::Document removed;
+  rj::Document removed;
   auto status = serializeQueryDataRJ(d.removed, removed);
   if (!status.ok()) {
     return status;
   }
 
-  doc.AddMember(rapidjson::Value("removed", doc.GetAllocator()).Move(),
-                rapidjson::Value(removed, doc.GetAllocator()).Move(),
+  doc.AddMember(rj::Value("removed", doc.GetAllocator()).Move(),
+                rj::Value(removed, doc.GetAllocator()).Move(),
                 doc.GetAllocator());
 
-  rapidjson::Document added;
+  rj::Document added;
   status = serializeQueryDataRJ(d.added, added);
   if (!status.ok()) {
     return status;
   }
-  doc.AddMember(rapidjson::Value("added", doc.GetAllocator()).Move(),
-                rapidjson::Value(added, doc.GetAllocator()).Move(),
+  doc.AddMember(rj::Value("added", doc.GetAllocator()).Move(),
+                rj::Value(added, doc.GetAllocator()).Move(),
                 doc.GetAllocator());
   return Status(0, "OK");
 }
