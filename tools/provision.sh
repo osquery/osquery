@@ -195,7 +195,7 @@ function main() {
 
   # Setup the osquery dependency directory.
   # One can use a non-build location using OSQUERY_DEPS=/path/to/deps
-  if [[ -e "$OSQUERY_DEPS" ]]; then
+  if [[ ! -z "$OSQUERY_DEPS" ]]; then
     DEPS_DIR="$OSQUERY_DEPS"
   else
     DEPS_DIR="/usr/local/osquery"
