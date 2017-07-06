@@ -25,6 +25,8 @@
 
 #include <osquery/events.h>
 
+#include "osquery/events/linux/auditnetlink.h"
+
 namespace osquery {
 
 #define AUDIT_TYPE_SYSCALL 1300
@@ -287,66 +289,19 @@ class AuditEventPublisher
   Status run() override;
 
  public:
-  AuditEventPublisher();
+  AuditEventPublisher() : EventPublisher() {}
 
   virtual ~AuditEventPublisher() {
     tearDown();
   }
 
  private:
-  /// Maintain a list of audit rule data for displaying or deleting.
-  void handleListRules();
-
   /// Apply normal subscription to event matching logic.
   bool shouldFire(const AuditSubscriptionContextRef& mc,
                   const AuditEventContextRef& ec) const override;
 
  private:
-  /// Audit subsystem (netlink) socket descriptor.
-  int handle_{0};
-
-  /// Audit subsystem is in an immutable state.
-  bool immutable_{false};
-
-  /**
-   * @brief The last (most current) status reply.
-   *
-   * This contains the: pid, enabled, rate_limit, backlog_limit, lost, and
-   * failure booleans and counts.
-   */
-  struct audit_status status_ {};
-
-  /**
-   * @brief A counter of non-blocking netlink reads that contained no data.
-   *
-   * After several iterations of no data, the audit run loop will request a
-   * status. It is possible another user land daemon requested control of the
-   * audit subsystem. The kernel thread will only emit to a single handle.
-   */
-  size_t count_{0};
-
-  /// Is this process in control of the audit subsystem.
-  bool control_{false};
-
-  /// The last (most recent) audit reply.
-  struct audit_reply reply_ {};
-
-  /// Track all rule data added by the publisher.
-  std::vector<struct AuditRuleInternal> transient_rules_;
-
-  /// Event reader task data
-  EventReaderTaskContext event_reader_task_context_;
-
-  /// Event reader task
-  boost::scoped_ptr<std::thread> event_reader_thread_;
-
-  /// Event reader result
-  std::shared_future<Status> event_reader_result_;
+  /// Audit netlink subscription handle
+  NetlinkSubscriptionHandle audit_netlink_subscription_;
 };
-
-/**
- * @brief Populate an event context from a single audit reply.
- */
-bool handleAuditReply(const struct audit_reply& reply,
-                      AuditEventContextRef& ec);
 }
