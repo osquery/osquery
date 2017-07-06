@@ -70,7 +70,6 @@ static int data_cb(const struct nlmsghdr* nlh, void* data) {
   ConntrackEventContext* ec = reinterpret_cast<ConntrackEventContext*>(data);
   struct nf_conntrack* ct = ec->event.get();
   enum nf_conntrack_msg_type type = NFCT_T_UNKNOWN;
-  char buf[4096];
 
   switch (nlh->nlmsg_type & 0xFF) {
   case IPCTNL_MSG_CT_NEW:
@@ -90,6 +89,7 @@ static int data_cb(const struct nlmsghdr* nlh, void* data) {
 
   nfct_nlmsg_parse(nlh, ct);
   /**
+  char buf[4096];
   nfct_snprintf(buf, sizeof(buf), ct,
                 type, NFCT_O_DEFAULT, 0);
   printf("%s\n", buf);
@@ -101,7 +101,7 @@ static int data_cb(const struct nlmsghdr* nlh, void* data) {
 Status ConntrackEventPublisher::run() {
   // Receive from netlink socket
   char buf[MNL_SOCKET_BUFFER_SIZE];
-  int ret = mnl_socket_recvfrom(nl_.get(), buf, sizeof(buf));
+  long int ret = mnl_socket_recvfrom(nl_.get(), buf, sizeof(buf));
   if (ret == -1) {
     return Status(1, "Could not receive from mnl_socket");
   }

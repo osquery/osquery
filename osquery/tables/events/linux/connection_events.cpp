@@ -297,14 +297,14 @@ Row getNLDiagMessage(const struct inet_diag_msg* diag_msg,
 
   switch (diag_msg->idiag_family) {
   case AF_INET: {
-    if (!memcmp((struct in_addr*)&(diag_msg->id.idiag_src),
-                ((struct sockaddr_in*)&local_addr)->sin_addr),
-        sizeof(in_addr)) {
+    if (!memcmp((char*)(struct in_addr*)&(diag_msg->id.idiag_src),
+                (char*)&((struct sockaddr_in*)&local_addr)->sin_addr,
+                sizeof(in_addr))) {
       return row;
     }
-    if (!memcmp((struct in_addr*)&(diag_msg->id.idiag_dst),
-                ((struct sockaddr_in*)&remote_addr)->sin_addr),
-        sizeof(in_addr)) {
+    if (!memcmp((char*)(struct in_addr*)&(diag_msg->id.idiag_dst),
+                (char*)&((struct sockaddr_in*)&remote_addr)->sin_addr,
+                sizeof(in_addr))) {
       return row;
     }
     if (diag_msg->id.idiag_sport !=
@@ -317,14 +317,14 @@ Row getNLDiagMessage(const struct inet_diag_msg* diag_msg,
     }
   } break;
   case AF_INET6: {
-    if (!memcmp((struct in6_addr*)&(diag_msg->id.idiag_src),
-                ((struct sockaddr_in6*)&local_addr)->sin6_addr),
-        sizeof(in6_addr)) {
+    if (!memcmp((char*)(struct in6_addr*)&(diag_msg->id.idiag_src),
+                (char*)&((struct sockaddr_in6*)&local_addr)->sin6_addr,
+                sizeof(in6_addr))) {
       return row;
     }
-    if (!memcmp((struct in6_addr*)&(diag_msg->id.idiag_dst),
-                ((struct sockaddr_in6*)&remote_addr)->sin6_addr),
-        sizeof(in6_addr)) {
+    if (!memcmp((char*)(struct in6_addr*)&(diag_msg->id.idiag_dst),
+                (char*)&((struct sockaddr_in6*)&remote_addr)->sin6_addr,
+                sizeof(in6_addr))) {
       return row;
     }
     if (diag_msg->id.idiag_sport !=
@@ -379,7 +379,7 @@ Status getSocketForConnection(int protocol,
 
   // recieve netlink messages
   uint8_t recv_buf[SOCKET_BUFFER_SIZE];
-  int numbytes = recv(nl_sock, recv_buf, sizeof(recv_buf), 0);
+  long int numbytes = recv(nl_sock, recv_buf, sizeof(recv_buf), 0);
   if (numbytes <= 0) {
     close(nl_sock);
     return Status(1, "NETLINK receive failed");
