@@ -7,6 +7,7 @@ schema([
     Column("protocol", INTEGER, "The transport layer protocol number of the event"),
     Column("orig_port", INTEGER, "The local port associated with the event"),
     Column("resp_port", INTEGER, "The remote port associated with the event"),
+    Column("direction", TEXT, "The direction of the connection (IN or OUT)"),
     Column("uid", BIGINT, "User ID"),
     Column("inode", TEXT, "The inode for the process socket"),
     Column("fd", TEXT, "The file description for the process socket"),
