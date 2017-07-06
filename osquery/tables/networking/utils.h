@@ -45,5 +45,23 @@ void genSocketsFromProc(const InodeMap& inodes,
                         int protocol,
                         int family,
                         QueryData& results);
+
+// heavily influenced by github.com/kristrev/inet-diag-example
+enum {
+  TCP_ESTABLISHED = 1,
+  TCP_SYN_SENT,
+  TCP_SYN_RECV,
+  TCP_FIN_WAIT1,
+  TCP_FIN_WAIT2,
+  TCP_TIME_WAIT,
+  TCP_CLOSE,
+  TCP_CLOSE_WAIT,
+  TCP_LAST_ACK,
+  TCP_LISTEN,
+  TCP_CLOSING
+};
+
+#define TCPF_ALL 0xFFF
+#define SOCKET_BUFFER_SIZE (getpagesize() < 8192L ? getpagesize() : 8192L)
 }
 }
