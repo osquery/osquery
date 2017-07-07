@@ -88,9 +88,9 @@ struct INotifySubscriptionContext : public SubscriptionContext {
   friend class INotifyEventPublisher;
 };
 
-///Overloaded '==' operator, to check if two inotify subscriptions are same.
-inline bool operator ==(const INotifySubscriptionContext& lsc,
-                        const INotifySubscriptionContext& rsc) {
+/// Overloaded '==' operator, to check if two inotify subscriptions are same.
+inline bool operator==(const INotifySubscriptionContext& lsc,
+                       const INotifySubscriptionContext& rsc) {
   return ((lsc.category == rsc.category) && (lsc.opath == rsc.opath));
 }
 
@@ -136,8 +136,8 @@ class INotifyEventPublisher
 
  public:
   //@param unit_test publisher is instantiated for unit test.
-  INotifyEventPublisher(bool unit_test = false): inotify_sanity_check(unit_test) {
-  }
+  INotifyEventPublisher(bool unit_test = false)
+      : inotify_sanity_check(unit_test) {}
 
   virtual ~INotifyEventPublisher() {
     tearDown();
@@ -158,7 +158,7 @@ class INotifyEventPublisher
   /// Mark for delete, subscriptions.
   void removeSubscriptions(const std::string& subscriber) override;
 
-  ///Only add the subscription, if it not already part of subscription list.
+  /// Only add the subscription, if it not already part of subscription list.
   Status addSubscription(const SubscriptionRef& subscription) override;
 
  private:
@@ -171,7 +171,7 @@ class INotifyEventPublisher
     return inotify_handle_ > 0;
   }
 
-  /// Check all added Subscription%s for a path. 
+  /// Check all added Subscription%s for a path.
   /// Used for sanity check from unit test(s).
   bool isPathMonitored(const std::string& path) const;
 
@@ -221,7 +221,7 @@ class INotifyEventPublisher
   /// If we overflow, try to read more events from OS at time.
   void handleOverflow();
 
-  /// Map of watched path string to inotify watch file descriptor. 
+  /// Map of watched path string to inotify watch file descriptor.
   /// Used for sanity check from unit test(s).
   PathDescriptorMap path_descriptors_;
 
@@ -234,10 +234,10 @@ class INotifyEventPublisher
   /// Time in seconds of the last inotify overflow.
   std::atomic<int> last_overflow_{-1};
 
-  ///Tracks how many events to be received from OS.
-  std::atomic<int> inotify_events_{16};
+  /// Tracks how many events to be received from OS.
+  size_t inotify_events_{16};
 
-  ///Enable for sanity check from unit test(s).
+  /// Enable for sanity check from unit test(s).
   bool inotify_sanity_check{false};
 
   /**

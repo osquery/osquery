@@ -26,12 +26,11 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-//static const int kINotifyMLatency = 200;
-static const int kINotifyMaxEvents = 512;
-static const uint32_t kINotifyEventSize = sizeof(struct inotify_event)
-                                        + (NAME_MAX + 1);
-static const uint32_t kINotifyBufferSize = (kINotifyMaxEvents *
-                                                      kINotifyEventSize);
+static const size_t kINotifyMaxEvents = 512;
+static const size_t kINotifyEventSize =
+    sizeof(struct inotify_event) + (NAME_MAX + 1);
+static const size_t kINotifyBufferSize =
+    (kINotifyMaxEvents * kINotifyEventSize);
 
 std::map<int, std::string> kMaskActions = {
     {IN_ACCESS, "ACCESSED"},
@@ -113,18 +112,17 @@ void INotifyEventPublisher::configure() {
   SubscriptionVector delete_subscriptions;
   {
     WriteLock lock(subscription_lock_);
-    auto end =
-    std::remove_if(subscriptions_.begin(),
-                   subscriptions_.end(),
-                 [&delete_subscriptions](const SubscriptionRef& subscription) {
-                   auto inotify_sc =
-                                getSubscriptionContext(subscription->context);
-                   if (inotify_sc->mark_for_deletion == true) {
-                     delete_subscriptions.push_back(subscription);
-                     return true;
-                   }
-                   return false;
-                 });
+    auto end = std::remove_if(
+        subscriptions_.begin(),
+        subscriptions_.end(),
+        [&delete_subscriptions](const SubscriptionRef& subscription) {
+          auto inotify_sc = getSubscriptionContext(subscription->context);
+          if (inotify_sc->mark_for_deletion == true) {
+            delete_subscriptions.push_back(subscription);
+            return true;
+          }
+          return false;
+        });
     subscriptions_.erase(end, subscriptions_.end());
   }
 
@@ -166,13 +164,13 @@ void INotifyEventPublisher::tearDown() {
 
 void INotifyEventPublisher::handleOverflow() {
   if (inotify_events_ < kINotifyMaxEvents) {
-    VLOG(1) << "inotify was overflown, increasing scratch buffer.";
+    VLOG(1) << "inotify was overflown: increasing scratch buffer";
     // Exponential increment.
     inotify_events_ = inotify_events_ * 2;
   } else if (last_overflow_ != -1 && getUnixTime() - last_overflow_ < 60) {
     return;
   } else {
-    VLOG(1) << "inotify was overflown, continuing...";
+    VLOG(1) << "inotify was overflown";
     last_overflow_ = getUnixTime();
   }
 }
@@ -200,8 +198,8 @@ Status INotifyEventPublisher::run() {
   }
 
   WriteLock lock(scratch_mutex_);
-  ssize_t record_num = ::read(getHandle(), scratch_, 
-                                         inotify_events_ * kINotifyEventSize);
+  ssize_t record_num =
+      ::read(getHandle(), scratch_, inotify_events_ * kINotifyEventSize);
   if (record_num == 0 || record_num == -1) {
     return Status(1, "INotify read failed");
   }
@@ -231,7 +229,6 @@ Status INotifyEventPublisher::run() {
     p += (sizeof(struct inotify_event)) + event->len;
   }
 
-  //pauseMilli(kINotifyMLatency);
   return Status(0, "OK");
 }
 
@@ -292,10 +289,11 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
 
   // inotify will not monitor recursively, new directories need watches.
   if (sc->recursive && ec->action == "CREATED" && isDirectory(ec->path)) {
-    const_cast<INotifyEventPublisher*>(this)
-        ->addMonitor(ec->path + '/',
-                     const_cast<INotifySubscriptionContextRef&>(sc),
-                     sc->mask, true);
+    const_cast<INotifyEventPublisher*>(this)->addMonitor(
+        ec->path + '/',
+        const_cast<INotifySubscriptionContextRef&>(sc),
+        sc->mask,
+        true);
   }
 
   return true;
@@ -383,30 +381,29 @@ bool INotifyEventPublisher::removeMonitor(int watch,
 
 void INotifyEventPublisher::removeSubscriptions(const std::string& subscriber) {
   WriteLock lock(subscription_lock_);
-  std::for_each(
-             subscriptions_.begin(),
-             subscriptions_.end(),
-             [&subscriber](const SubscriptionRef& sub) {
-               if (sub->subscriber_name == subscriber) {
-                 getSubscriptionContext(sub->context)->mark_for_deletion = true;
-               }
-             });
-
+  std::for_each(subscriptions_.begin(),
+                subscriptions_.end(),
+                [&subscriber](const SubscriptionRef& sub) {
+                  if (sub->subscriber_name == subscriber) {
+                    getSubscriptionContext(sub->context)->mark_for_deletion =
+                        true;
+                  }
+                });
 }
 
 Status INotifyEventPublisher::addSubscription(
     const SubscriptionRef& subscription) {
   WriteLock lock(subscription_lock_);
   auto received_inotify_sc = getSubscriptionContext(subscription->context);
-  for (auto& sub: subscriptions_) {
+  for (auto& sub : subscriptions_) {
     auto inotify_sc = getSubscriptionContext(sub->context);
     if (*received_inotify_sc == *inotify_sc) {
       if (inotify_sc->mark_for_deletion) {
         inotify_sc->mark_for_deletion = false;
         return Status(0);
       }
-      //Returing non zero signals EventSubscriber::subscribe
-      //dont bumpup subscription_count_.
+      // Returing non zero signals EventSubscriber::subscribe
+      // dont bumpup subscription_count_.
       return Status(1);
     }
   }

@@ -1072,8 +1072,8 @@ class EventSubscriber : public EventSubscriberPlugin {
       // EventSubscriber and a single parameter placeholder (the EventContext).
       auto cb = std::bind(base_entry, sub, _1, _2);
       // Add a subscription using the callable and SubscriptionContext.
-      Status stat = EventFactory::addSubscription(sub->getType(),
-                                                    sub->getName(), sc, cb);
+      Status stat =
+          EventFactory::addSubscription(sub->getType(), sub->getName(), sc, cb);
       if (stat.ok()) {
         subscription_count_++;
       }
