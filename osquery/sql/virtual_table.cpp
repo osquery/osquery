@@ -504,7 +504,8 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
         required_satisfied = true;
       }
 
-      if (!user_based_satisfied && constraint.first == "uid") {
+      if (!user_based_satisfied &&
+          (constraint.first == "uid" || constraint.first == "username")) {
         // UID was required and exists in the constraints.
         user_based_satisfied = true;
       }

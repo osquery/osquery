@@ -74,6 +74,7 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
     r["interface"] = "";
   }
   r["mac"] = macAsString(addr);
+  r["flags"] = INTEGER(addr->ifa_flags);
 
   if (addr->ifa_data != nullptr && addr->ifa_name != nullptr) {
 #ifdef __linux__

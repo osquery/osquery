@@ -130,6 +130,29 @@ struct AsyncEvent {
   bool is_active_{false};
 };
 
+/*
+ * @brief Converts a Windows short path to a full path
+ *
+ * This takes an 8.3 format path (i.e. C:\PROGRA~2\1PASSW~1\x64\AGILE1~1.DLL)
+ * and converts to a full path
+ *
+ * @param shortPath the short path
+ * @param rLongPath will be populated with the long path
+ *
+ * @return Success if successful, otherwise failure
+ */
+Status windowsShortPathToLongPath(const std::string& shortPath,
+                                  std::string& rLongPath);
+
+/*
+ * @brief Get the product version associated with a file
+ *
+ * @param path: Full path to the file
+ * @param rVersion: String representing the product version, e.g. "16.0.8201.0"
+ *
+ * @return Success if the version could be retrieved, otherwise failure
+ */
+Status windowsGetFileVersion(const std::string& path, std::string& rVersion);
 #endif
 
 /**
@@ -258,7 +281,7 @@ boost::optional<std::string> getHomeDirectory();
  * have to be more creative with the ACL order which presents some problems for
  * when attempting to modify permissions via File Explorer (complains of a
  * mis-ordered ACL and offers to rectify the problem).
-  */
+ */
 bool platformChmod(const std::string& path, mode_t perms);
 
 /**
@@ -318,15 +341,15 @@ boost::optional<FILE*> platformFopen(const std::string& filename,
 Status socketExists(const fs::path& path, bool remove_socket = false);
 
 /**
-* @brief Returns the OS root system directory.
-*
-* Some applications store configuration and application data inside of the
-* Windows directory. This function retrieves the path to the current
-* configurations Windows location.
-*
-* On POSIX systems this returns "/".
-*
-* @return an instance of fs::path, containing the OS root location.
-*/
+ * @brief Returns the OS root system directory.
+ *
+ * Some applications store configuration and application data inside of the
+ * Windows directory. This function retrieves the path to the current
+ * configurations Windows location.
+ *
+ * On POSIX systems this returns "/".
+ *
+ * @return an instance of fs::path, containing the OS root location.
+ */
 boost::filesystem::path getSystemRoot();
 }

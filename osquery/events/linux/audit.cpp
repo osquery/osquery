@@ -39,6 +39,8 @@ FLAG(bool,
      false,
      "Allow the audit publisher to change auditing configuration");
 
+HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
+
 REGISTER(AuditEventPublisher, "event_publisher", "audit");
 
 enum AuditStatus {
@@ -353,6 +355,14 @@ bool handleAuditReply(const struct audit_reply& reply,
   // Last step, if there was no trailing tokenizer.
   if (!key.empty()) {
     ec->fields.emplace(std::make_pair(std::move(key), std::move(value)));
+  }
+
+  if (FLAGS_audit_debug) {
+    fprintf(stdout, "%zu: (%d) ", ec->audit_id, ec->type);
+    for (const auto& f : ec->fields) {
+      fprintf(stdout, "%s=%s ", f.first.c_str(), f.second.c_str());
+    }
+    fprintf(stdout, "\n");
   }
 
   if (ec->type >= AUDIT_FIRST_USER_MSG && ec->type <= AUDIT_LAST_USER_MSG) {

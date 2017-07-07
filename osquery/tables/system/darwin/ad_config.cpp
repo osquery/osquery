@@ -20,7 +20,7 @@ const std::string kADConfigPath =
     "Configurations/Active Directory/";
 
 void genADConfig(const std::string& path, QueryData& results) {
-  auto config = SQL::selectAllFrom("preferences", "path", EQUALS, path);
+  auto config = SQL::selectAllFrom("plist", "path", EQUALS, path);
   if (config.size() == 0) {
     // Fail if the file could not be plist-parsed.
     return;
