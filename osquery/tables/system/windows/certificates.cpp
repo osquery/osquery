@@ -28,7 +28,8 @@ namespace osquery {
 namespace tables {
 
 #define CERT_ENCODING (PKCS_7_ASN_ENCODING | X509_ASN_ENCODING)
-
+  
+  const size_t keyUsageSize = 4;
   const std::map<unsigned long, std::string> kKeyUsages = {
     { CERT_DATA_ENCIPHERMENT_KEY_USAGE, "CERT_DATA_ENCIPHERMENT_KEY_USAGE" },
     {CERT_DIGITAL_SIGNATURE_KEY_USAGE, "CERT_DIGITAL_SIGNATURE_KEY_USAGE"},
@@ -50,6 +51,7 @@ typedef struct _ENUM_ARG {
   const void* pvStoreLocationPara;
   HKEY hKeyBase;
   QueryData* results;
+  std::set<std::string>* processed;
 } ENUM_ARG, *PENUM_ARG;
 
 typedef std::vector<certStoreLocation> storeLocationsContainer;
@@ -59,39 +61,35 @@ std::string cryptOIDToString(const char* objId) {
   if(objId == nullptr) {
     return "";
   }
-  auto objKeyId = (void*)objId;
+  auto objKeyId = const_cast<char*>(objId);
   auto oidInfo = CryptFindOIDInfo(CRYPT_OID_INFO_OID_KEY, objKeyId, 0);
   return oidInfo == nullptr ? "" : wstringToString(oidInfo->pwszName);
 }
 
-/*
-std::string getKeyUsage(CERT_INFO& certInfo) {
-  // As per the MSDN, key usage occupies 1 or 2 bytes of data. We
-  // get 4 to cast the value as an INT and OR the usage out of the buff
-  unsigned long keyUsageBytes = 4;
-  auto keyUsageBuff = static_cast<BYTE*>(malloc(keyUsageBytes));
-  auto ret = CertGetIntendedKeyUsage(CERT_ENCODING, &certInfo, keyUsageBuff, keyUsageBytes);
+// As per the MSDN, key usage occupies 1 or 2 bytes of data. We
+// get 4 to cast the value as an INT and OR the usage out of the buff
+std::string getKeyUsage(const PCERT_INFO& certInfo) {
+  BYTE keyUsageBuff[keyUsageSize];
+  auto ret = CertGetIntendedKeyUsage(CERT_ENCODING, certInfo, keyUsageBuff, keyUsageSize);
   // The cert has no intended usage
   if(ret == 0) {
     return "";
   }
   std::vector<std::string> usages;
-  auto usage = static_cast<size_t>(*keyUsageBuff);
+  auto usage = reinterpret_cast<size_t>(keyUsageBuff);
   for(const auto& kv : kKeyUsages) {
     if(usage & kv.first) {
       usages.push_back(kv.second);
     }
   }
-  free(keyUsageBuff);
   return join(usages, ",");
 }
-*/
 
-void getCertCtxProp(PCCERT_CONTEXT certContext, unsigned long propId, std::vector<char>& dataBuff) {
+void getCertCtxProp(const PCCERT_CONTEXT& certContext, unsigned long propId, std::vector<char>& dataBuff) {
   unsigned long dataBuffLen = 0;
   auto ret = CertGetCertificateContextProperty(certContext, propId, nullptr, &dataBuffLen);
   if(ret == 0) {
-    VLOG(1) << "Failed to get size of certificate property struct " << propId << " with: " << GetLastError();
+    VLOG(1) << "Failed to get certificate property struct " << propId << " with: " << GetLastError();
     return;
   }
   dataBuff.resize(dataBuffLen);
@@ -128,10 +126,9 @@ std::string getKeyExtendedUsage(PCCERT_CONTEXT certContext) {
   }
 
   return join(usages, ",");
-
 }
 
-void enumerateCertStore(const HCERTSTORE& certStore, QueryData& results) {
+void enumerateCertStore(const HCERTSTORE& certStore, QueryData& results, std::set<std::string>& processedCerts) {
   PCCERT_CONTEXT certContext = nullptr;
   certContext = CertEnumCertificatesInStore(certStore, certContext);
   if (certContext == nullptr) {
@@ -142,6 +139,23 @@ void enumerateCertStore(const HCERTSTORE& certStore, QueryData& results) {
 
   while (certContext != nullptr) {
     Row r;
+
+    std::vector<char> certHashbuff;
+    getCertCtxProp(certContext, CERT_HASH_PROP_ID, certHashbuff);
+    std::stringstream hexSha1;
+    try {
+      boost::algorithm::hex(certHashbuff.data(),
+        std::ostream_iterator<char>{hexSha1, ""});
+    }
+    catch (std::exception /* e */) {
+    }
+    if(processedCerts.find(hexSha1.str()) != processedCerts.end()) {
+      certContext = CertEnumCertificatesInStore(certStore, certContext);
+      continue;
+    }
+    processedCerts.insert(hexSha1.str());
+    r["sha1"] = hexSha1.str();
+    
     std::vector<char> certName(256, 0x0);
     auto ret = CertGetNameString(certContext,
                                  CERT_NAME_SIMPLE_DISPLAY_TYPE,
@@ -150,17 +164,6 @@ void enumerateCertStore(const HCERTSTORE& certStore, QueryData& results) {
                                  certName.data(),
                                  static_cast<unsigned long>(certName.size()));
     r["common_name"] = certName.data();
-    VLOG(1) << "Cert common name: " << certName.data();
-
-    std::vector<char> certHashbuff;
-    getCertCtxProp(certContext, CERT_HASH_PROP_ID, certHashbuff);
-    std::stringstream hexSha1;
-    try {
-      boost::algorithm::hex(certHashbuff.data(),
-                            std::ostream_iterator<char>{hexSha1, ""});
-    } catch (std::exception /* e */) {
-    }
-    r["sha1"] = hexSha1.str();
 
     auto subjSize = CertNameToStr(certContext->dwCertEncodingType,
                                   &(certContext->pCertInfo->Subject),
@@ -209,30 +212,9 @@ void enumerateCertStore(const HCERTSTORE& certStore, QueryData& results) {
 
     std::vector<std::string> usage;
     std::vector<char> keyUsageBuff;
-    getCertCtxProp(certContext, CERT_CTL_USAGE_PROP_ID, keyUsageBuff);
-    auto usageCtlStruct = keyUsageBuff.data() == nullptr ? nullptr : PCTL_USAGE(keyUsageBuff.data());
-    if(usageCtlStruct != nullptr) {
-      for (unsigned long i = 0; i < usageCtlStruct->cUsageIdentifier; i++) {
-        auto use = cryptOIDToString(usageCtlStruct->rgpszUsageIdentifier[i]);
-        if (use != "") {
-          usage.push_back(use);
-        }
-      }
-    }
-
-
-    std::vector<char> enhKeyUsage;
-    getCertCtxProp(certContext, CERT_ENHKEY_USAGE_PROP_ID, enhKeyUsage);
-    auto enhUsageCtlStruct = enhKeyUsage.data() == nullptr ? nullptr : PCERT_ENHKEY_USAGE(enhKeyUsage.data());
-    if(enhUsageCtlStruct != nullptr) {
-      for (unsigned long i = 0; i < enhUsageCtlStruct->cUsageIdentifier; i++) {
-        auto use = cryptOIDToString(enhUsageCtlStruct->rgpszUsageIdentifier[i]);
-        if (use != "") {
-          usage.push_back(use);
-        }
-      }
-    }
-    r["key_usage"] = usage.size() > 0 ? join(usage, ",") : "";
+    
+    auto usages = getKeyUsage(certContext->pCertInfo);
+    r["key_usage"] = usages;
 
     r["key_strength"] = INTEGER(certContext->cbCertEncoded);
 
@@ -253,8 +235,7 @@ void enumerateCertStore(const HCERTSTORE& certStore, QueryData& results) {
       try {
         boost::algorithm::hex(certContext->pCertInfo->IssuerUniqueId.pbData,
                               std::ostream_iterator<char>{issuerId, ""});
-      } catch (std::exception /* e */) {
-      }
+      } catch (std::exception /* e */) { }
       r["authority_key_id"] = issuerId.str();
     } else {
       r["authority_key_id"] = "";
@@ -273,7 +254,7 @@ BOOL WINAPI certEnumSystemStoreCallback(const void* systemStore,
                                         PCERT_SYSTEM_STORE_INFO storeInfo,
                                         void* reserved,
                                         void* arg) {
-  ENUM_ARG& storeArg = *static_cast<ENUM_ARG*>(arg);
+  auto storeArg = *static_cast<ENUM_ARG*>(arg);
 
   auto certStoreName = wstringToString(static_cast<LPCWSTR>(systemStore));
   auto certHandle = CertOpenSystemStore(0x0, certStoreName.c_str());
@@ -282,7 +263,7 @@ BOOL WINAPI certEnumSystemStoreCallback(const void* systemStore,
             << GetLastError();
     return FALSE;
   }
-  enumerateCertStore(certHandle, *(storeArg.results));
+  enumerateCertStore(certHandle, *(storeArg.results), *(storeArg.processed));
 
   auto ret = CertCloseStore(certHandle, 0x0);
   if (ret != TRUE) {
@@ -298,12 +279,12 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
                                                  unsigned long flags,
                                                  void* reserved,
                                                  void* arg) {
-  PENUM_ARG enumArg = static_cast<PENUM_ARG>(arg);
+  auto enumArg = static_cast<PENUM_ARG>(arg);
 
   flags &= CERT_SYSTEM_STORE_MASK;
   flags |= enumArg->dwFlags & ~CERT_SYSTEM_STORE_LOCATION_MASK;
   auto ret = CertEnumSystemStore(flags,
-                                 (void*)enumArg->pvStoreLocationPara,
+                                 const_cast<void*>(enumArg->pvStoreLocationPara),
                                  enumArg,
                                  certEnumSystemStoreCallback);
 
@@ -317,6 +298,7 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
 
 QueryData genCerts(QueryContext& context) {
   QueryData results;
+  std::set<std::string> processedCerts;
 
   storeLocationsContainer certStoreLocations;
   unsigned long flags = 0;
@@ -332,6 +314,7 @@ QueryData genCerts(QueryContext& context) {
   enumArg.pvStoreLocationPara = storeLocationPara;
   enumArg.fAll = TRUE;
   enumArg.results = &results;
+  enumArg.processed = &processedCerts;
 
   flags &= ~CERT_SYSTEM_STORE_LOCATION_MASK;
   flags |= (locationId << CERT_SYSTEM_STORE_LOCATION_SHIFT) &
