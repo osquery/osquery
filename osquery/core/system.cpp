@@ -61,7 +61,7 @@ DECLARE_uint64(alarm_timeout);
 /// The path to the pidfile for osqueryd
 CLI_FLAG(string,
          pidfile,
-         OSQUERY_DB_HOME "/osqueryd.pidfile",
+         OSQUERY_PIDFILE "osqueryd.pidfile",
          "Path to the daemon pidfile mutex");
 
 /// Should the daemon force unload previously-running osqueryd daemons.
