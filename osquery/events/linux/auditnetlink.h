@@ -27,8 +27,8 @@ struct AuditEventRecord final {
   /// Event time.
   unsigned long int time;
 
-  /// Audit event id that owns this record.
-  unsigned long int audit_id;
+  /// Audit event id that owns this record. Remember: PRIMARY KEY(id, timestamp)
+  std::string audit_id;
 
   /// The field list for this record.
   std::map<std::string, std::string> fields;
@@ -75,6 +75,10 @@ class AuditNetlink final {
   /// Set to true by ::terminate() when the thread should exit.
   std::atomic<bool> terminate_thread_{false};
 
+  /// This is the set of rules we have applied when configuring the service.
+  /// This is also what we need to remove when exiting.
+  std::vector<int> monitored_syscall_list_;
+
  public:
   static AuditNetlink& getInstance();
   ~AuditNetlink();
@@ -95,7 +99,7 @@ class AuditNetlink final {
       NetlinkSubscriptionHandle handle) noexcept;
 
  private:
-  AuditNetlink();
+  AuditNetlink() = default;
 
   /// Starts the event receiver thread.
   bool start() noexcept;
@@ -105,6 +109,12 @@ class AuditNetlink final {
 
   /// Reads as many audit event records as possible before returning.
   bool acquireMessages() noexcept;
+
+  /// Configures the audit service and applies required rules
+  bool configureAuditService() noexcept;
+
+  /// Removes
+  void restoreAuditServiceConfiguration() noexcept;
 
   /// (Re)acquire the netlink handle.
   NetlinkStatus acquireHandle() noexcept;

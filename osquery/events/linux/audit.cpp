@@ -38,7 +38,7 @@ void AuditAssembler::start(size_t capacity,
   types_ = std::move(types);
 }
 
-boost::optional<AuditFields> AuditAssembler::add(AuditId id,
+boost::optional<AuditFields> AuditAssembler::add(const std::string &id,
                                                  size_t type,
                                                  const AuditFields& fields) {
   auto it = m_.find(id);
@@ -94,18 +94,18 @@ boost::optional<AuditFields> AuditAssembler::add(AuditId id,
   return boost::none;
 }
 
-void AuditAssembler::evict(AuditId id) {
+void AuditAssembler::evict(const std::string &id) {
   queue_.erase(std::remove(queue_.begin(), queue_.end(), id), queue_.end());
   mt_.erase(id);
   m_.erase(id);
 }
 
-void AuditAssembler::shuffle(AuditId id) {
+void AuditAssembler::shuffle(const std::string & id) {
   queue_.erase(std::remove(queue_.begin(), queue_.end(), id), queue_.end());
   queue_.push_back(id);
 }
 
-bool AuditAssembler::complete(AuditId id) {
+bool AuditAssembler::complete(const std::string & id) {
   // Is this type enough.
   const auto& types = mt_.at(id);
   for (const auto& t : types_) {

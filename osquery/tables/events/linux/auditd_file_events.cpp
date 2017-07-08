@@ -26,6 +26,11 @@ namespace boost_fs = boost::filesystem;
 
 namespace osquery {
 
+FLAG(bool,
+     audit_allow_file_events,
+     false,
+     "Allow the audit publisher to install file event monitoring rules");
+
 #define AUDIT_SYSCALL_READ 0
 #define AUDIT_SYSCALL_WRITE 1
 #define AUDIT_SYSCALL_OPEN 2

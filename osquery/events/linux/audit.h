@@ -32,39 +32,6 @@ namespace osquery {
 #define AUDIT_TYPE_SYSCALL 1300
 #define AUDIT_TYPE_SOCKADDR 1306
 
-typedef std::pair<audit_reply, std::size_t> AuditReplyDescriptor;
-
-/**
- * @brief This is the context data used by the thread that receives the audit
- * events.
- */
-
-struct EventReaderTaskContext final {
-  /// The ::tearDown method of the publisher sets this to true when terminating.
-  std::atomic<bool> terminate{false};
-
-  /// The file descriptor to the auditd netlink.
-  int audit_handle{0};
-
-  /// The primary event queue. We have two because we swap them to avoid a
-  /// potentially slow copy.
-  std::vector<AuditReplyDescriptor> primary_audit_queue;
-
-  /// The secondary event queue; see primary_audit_queue.
-  std::vector<AuditReplyDescriptor> secondary_audit_queue;
-
-  /// This is the mutex that controls access to this structure.
-  std::mutex context_mutex;
-
-  /// The active audit queue is where new audit event are stored. It will either
-  /// point to the primary or secondary event queue.
-  std::vector<AuditReplyDescriptor>* active_audit_queue{nullptr};
-
-  /// The passive audit queue is where audit events are taken for processing. It
-  /// will either point to the primary or secondary event queue.
-  std::vector<AuditReplyDescriptor>* passive_audit_queue{nullptr};
-};
-
 /**
  * @brief A simple audit rule description that can be populated via a config.
  *
@@ -101,9 +68,6 @@ struct AuditRuleInternal {
   int flags{0};
   int action{0};
 };
-
-/// The audit ID is a smaller integer.
-using AuditId = size_t;
 
 /// Alias the field container so we can replace and improve with refactors.
 using AuditFields = std::map<std::string, std::string>;
@@ -145,30 +109,30 @@ class AuditAssembler : private boost::noncopyable {
   void start(size_t capacity, std::vector<size_t> types, AuditUpdate update);
 
   /// Add a message from audit.
-  boost::optional<AuditFields> add(AuditId id,
+  boost::optional<AuditFields> add(const std::string &id,
                                    size_t type,
                                    const AuditFields& fields);
 
   /// Allow the publisher to explicit-set fields.
-  void set(AuditId id, const std::string& key, const std::string& value) {
+  void set(const std::string &id, const std::string& key, const std::string& value) {
     m_[id][key] = value;
   }
 
   /// Remove an audit ID from the queue and clear associated messages/types.
-  void evict(AuditId id);
+  void evict(const std::string &id);
 
   /// Shuffle an audit ID to the front of the queue.
-  void shuffle(AuditId id);
+  void shuffle(const std::string & id);
 
   /// Check if the audit ID has completed each required message types.
-  bool complete(AuditId id);
+  bool complete(const std::string & id);
 
  private:
   /// A map of audit ID to aggregate message fields.
-  std::unordered_map<AuditId, AuditFields> m_;
+  std::unordered_map<std::string, AuditFields> m_;
 
   /// A map of audit ID to current set of types seen.
-  std::unordered_map<AuditId, std::vector<size_t>> mt_;
+  std::unordered_map<std::string, std::vector<size_t>> mt_;
 
   /// A functional callable to sanitize individual messages.
   AuditUpdate update_{nullptr};
@@ -177,7 +141,7 @@ class AuditAssembler : private boost::noncopyable {
   size_t capacity_{0};
 
   /// The in-order (by time) queue of audit IDs.
-  std::vector<AuditId> queue_;
+  std::vector<std::string> queue_;
 
   /// The set of required types.
   std::vector<size_t> types_;
@@ -242,7 +206,7 @@ struct AuditEventContext : public EventContext {
   AuditFields fields;
 
   /// Each message will contain the audit ID.
-  AuditId audit_id{0};
+  std::string audit_id{0};
 
   /// Each message will contain the event time.
   size_t time{0};
