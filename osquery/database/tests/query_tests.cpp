@@ -33,7 +33,7 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
   // Test adding a "current" set of results to a scheduled query instance.
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
-  auto status = cf.addNewResults(getTestDBExpectedResults());
+  auto status = cf.addNewResults(getTestDBExpectedResults(), 0);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(status.toString(), "OK");
 
@@ -47,7 +47,7 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
 
     // Add the "current" results and output the differentials.
     DiffResults dr;
-    auto s = cf.addNewResults(result.second, dr, true);
+    auto s = cf.addNewResults(result.second, 0, dr, true);
     EXPECT_TRUE(s.ok());
 
     // Call the diffing utility directly.
@@ -105,14 +105,14 @@ TEST_F(QueryTests, test_query_name_updated) {
 
   DiffResults dr;
   auto results = getTestDBExpectedResults();
-  cf.addNewResults(results, dr);
+  cf.addNewResults(results, 0, dr);
   EXPECT_FALSE(cf.isNewQuery());
 
   query.query += " LIMIT 1";
   auto cf2 = Query("will_update_query", query);
   EXPECT_TRUE(cf2.isQueryNameInDatabase());
   EXPECT_TRUE(cf2.isNewQuery());
-  cf2.addNewResults(results, dr);
+  cf2.addNewResults(results, 0, dr);
   EXPECT_FALSE(cf2.isNewQuery());
 }
 
