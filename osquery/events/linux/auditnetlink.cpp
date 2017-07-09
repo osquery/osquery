@@ -18,47 +18,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-/// \todo Move these flags
-
-// socket_events flags
-bool FLAGS_audit_allow_sockets = true;
-bool FLAGS_audit_allow_unix = true;
-
-// auditd_file_events flags
-bool FLAGS_audit_allow_file_events = true;
-
-// process_events flags
-bool FLAGS_audit_allow_process_events = true;
-
-/** \todo check for the AUDIT_GET event and persist
-
-  if (static_cast<pid_t>(status_.pid) != getpid()) {
-    if (control_ && status_.pid != 0) {
-      VLOG(1) << "Audit control lost to pid: " << status_.pid;
-      // This process has lost control of audit.
-      // The initial request for control was made during setup.
-      control_ = false;
-    }
-
-    if (FLAGS_audit_persist && !FLAGS_disable_audit && !immutable_) {
-      VLOG(1) << "Persisting audit control";
-      audit_set_pid(handle_, getpid(), WAIT_NO);
-      control_ = true;
-    }
-  }
-
-  // Only apply a cool down if the reply request failed.
-  return Status(0, "OK");
- */
-
-/** \todo dedup
-  if (ec->type >= AUDIT_FIRST_USER_MSG && ec->type <= AUDIT_LAST_USER_MSG) {
-    if (!checkUserCache(ec->audit_id)) {
-      return false;
-    }
-  }
- */
-
 namespace {
 std::string GetAuditRecordTypeName(int type) noexcept {
   // clang-format off
@@ -183,6 +142,10 @@ FLAG(bool,
 /// Audit debugger helper
 HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
 
+// External flags
+DECLARE_bool(audit_allow_process_events);
+DECLARE_bool(audit_allow_sockets);
+
 enum AuditStatus {
   AUDIT_DISABLED = 0,
   AUDIT_ENABLED = 1,
@@ -199,6 +162,13 @@ AuditNetlink::~AuditNetlink() {
   thread_->join();
 
   audit_close(audit_netlink_handle_);
+}
+
+AuditNetlink::AuditNetlink() {
+  std::stringstream str_helper;
+  str_helper << getpid();
+
+  osquery_pid_ = str_helper.str();
 }
 
 bool AuditNetlink::start() noexcept {
@@ -288,42 +258,39 @@ std::vector<AuditEventRecord> AuditNetlink::getEvents(
     reply.conf = nullptr;
 
     switch (reply.type) {
-      case NLMSG_ERROR: {
-        reply.error =
-                static_cast<struct nlmsgerr*>(NLMSG_DATA(reply.nlh));
-        break;
-      }
+    case NLMSG_ERROR: {
+      reply.error = static_cast<struct nlmsgerr*>(NLMSG_DATA(reply.nlh));
+      break;
+    }
 
-      case AUDIT_GET: {
-        reply.status =
-                static_cast<struct audit_status*>(NLMSG_DATA(reply.nlh));
-        break;
-      }
+    case AUDIT_GET: {
+      reply.status = static_cast<struct audit_status*>(NLMSG_DATA(reply.nlh));
+      break;
+    }
 
-      case AUDIT_LIST_RULES: {
-        reply.ruledata =
-                static_cast<struct audit_rule_data*>(NLMSG_DATA(reply.nlh));
-        break;
-      }
+    case AUDIT_LIST_RULES: {
+      reply.ruledata =
+          static_cast<struct audit_rule_data*>(NLMSG_DATA(reply.nlh));
+      break;
+    }
 
-      case AUDIT_USER:
-      case AUDIT_LOGIN:
-      case AUDIT_KERNEL:
-      case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
-      case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
-      case AUDIT_FIRST_EVENT ... AUDIT_INTEGRITY_LAST_MSG: {
-        reply.message = static_cast<char*>(NLMSG_DATA(reply.nlh));
-        break;
-      }
+    case AUDIT_USER:
+    case AUDIT_LOGIN:
+    case AUDIT_KERNEL:
+    case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
+    case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
+    case AUDIT_FIRST_EVENT ... AUDIT_INTEGRITY_LAST_MSG: {
+      reply.message = static_cast<char*>(NLMSG_DATA(reply.nlh));
+      break;
+    }
 
-      case AUDIT_SIGNAL_INFO: {
-        reply.signal_info =
-                static_cast<audit_sig_info*>(NLMSG_DATA(reply.nlh));
-        break;
-      }
+    case AUDIT_SIGNAL_INFO: {
+      reply.signal_info = static_cast<audit_sig_info*>(NLMSG_DATA(reply.nlh));
+      break;
+    }
 
-      default:
-        break;
+    default:
+      break;
     }
 
     bool dispatch_message = false;
@@ -366,19 +333,10 @@ std::vector<AuditEventRecord> AuditNetlink::getEvents(
       continue;
     }
 
-    // clang-format off
-    try {
-      safeStrtoul(message_view.substr(6, 10).to_string(), 10, audit_event_record.time);
-
-      audit_event_record.audit_id = message_view.substr(6, preamble_end - 6).to_string();
-
-      // clang-format on
-      boost::string_ref field_view(message_view.substr(preamble_end + 3));
-    } catch (...) {
-      std::cout << "TYPE IS " << reply.type << std::endl;
-      std::cout << "BROKEN MESSAGE IS " << message_view.to_string() << std::endl;
-    }
-
+    safeStrtoul(
+        message_view.substr(6, 10).to_string(), 10, audit_event_record.time);
+    audit_event_record.audit_id =
+        message_view.substr(6, preamble_end - 6).to_string();
     boost::string_ref field_view(message_view.substr(preamble_end + 3));
 
     // The linear search will construct series of key value pairs.
@@ -442,12 +400,28 @@ std::vector<AuditEventRecord> AuditNetlink::getEvents(
       if (audit_event_timestamp_it != audit_event_record.fields.end())
         audit_event_timestamp = audit_event_timestamp_it->second;
 
-      std::cout << audit_event_record.audit_id << "." << audit_event_timestamp
-                << ": (" << GetAuditRecordTypeName(audit_event_record.type)
-                << ") ";
+      std::cout << "audit_id=\'" << audit_event_record.audit_id << "\' ";
 
-      for (const auto& f : audit_event_record.fields) {
-        std::cout << f.first << "=" << f.second << " ";
+      if (!audit_event_timestamp.empty())
+        std::cout << "time=\'" << audit_event_timestamp << "\' ";
+
+      std::cout << "type=\'" << GetAuditRecordTypeName(audit_event_record.type)
+                << "\' ";
+
+      if (!audit_event_record.fields.empty()) {
+        std::cout << "fields=\'";
+
+        for (auto field_it = audit_event_record.fields.begin();
+             field_it != audit_event_record.fields.end();
+             field_it++) {
+          std::cout << field_it->first << ":" << field_it->second;
+
+          if (std::next(field_it) != audit_event_record.fields.end()) {
+            std::cout << ", ";
+          }
+        }
+
+        std::cout << "\'";
       }
 
       std::cout << std::endl;
@@ -604,28 +578,15 @@ bool AuditNetlink::configureAuditService() noexcept {
     }
   }
 
-  // Rules required by the auditd_file_events table
-  if (FLAGS_audit_allow_file_events) {
-    VLOG(1) << "Enabling audit rules for the auditd_file_events table";
-
-    int syscall_list[] = {__NR_read, __NR_write, __NR_open, __NR_close};
-    for (int syscall : syscall_list) {
-      monitored_syscall_list_.push_back(syscall);
-    }
-  }
-
   // Rules required by the process_events table
-  if (FLAGS_audit_allow_sockets) {
+  if (FLAGS_audit_allow_process_events) {
     VLOG(1) << "Enabling audit rules for the process_events table";
 
-    int syscall_list[] = {__NR_bind, __NR_connect};
+    int syscall_list[] = {__NR_execve};
     for (int syscall : syscall_list) {
       monitored_syscall_list_.push_back(syscall);
     }
   }
-
-  /// \todo DELETE ME!
-  monitored_syscall_list_ = { 0, 1, 10, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 11, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 12, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 13, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 14, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 15, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 16, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 17, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 18, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 19, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 2, 20, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 21, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 22, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 23, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 24, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 25, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 26, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 27, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 28, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 29, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 3, 30, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 31, 310, 311, 312, 313, 314, 315, 316, 319, 32, 320, 323, 33, 34, 35, 36, 37, 38, 39, 4, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 5, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 6, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 7, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 8, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 9, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99 };
 
   // Remove duplicated rules
   std::sort(monitored_syscall_list_.begin(), monitored_syscall_list_.end());

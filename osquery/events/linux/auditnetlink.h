@@ -79,6 +79,9 @@ class AuditNetlink final {
   /// This is also what we need to remove when exiting.
   std::vector<int> monitored_syscall_list_;
 
+  /// The osquery pid, so that we can avoid receiving events that match this pid
+  std::string osquery_pid_;
+
  public:
   static AuditNetlink& getInstance();
   ~AuditNetlink();
@@ -99,7 +102,7 @@ class AuditNetlink final {
       NetlinkSubscriptionHandle handle) noexcept;
 
  private:
-  AuditNetlink() = default;
+  AuditNetlink();
 
   /// Starts the event receiver thread.
   bool start() noexcept;
@@ -113,7 +116,7 @@ class AuditNetlink final {
   /// Configures the audit service and applies required rules
   bool configureAuditService() noexcept;
 
-  /// Removes
+  /// Removes the rules that we have applied
   void restoreAuditServiceConfiguration() noexcept;
 
   /// (Re)acquire the netlink handle.
