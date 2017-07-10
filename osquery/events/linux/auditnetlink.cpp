@@ -356,7 +356,8 @@ std::vector<AuditEventRecord> AuditNetlink::getEvents(
           value += c;
         }
 
-        // This is a terminating sequence, the end of an enclosure or space tok.
+        // This is a terminating sequence, the end of an enclosure or space
+        // tok.
         if (!key.empty()) {
           // Multiple space tokens are supported.
           audit_event_record.fields.emplace(
@@ -436,6 +437,9 @@ std::vector<AuditEventRecord> AuditNetlink::getEvents(
 bool AuditNetlink::thread() noexcept {
   bool acquire_handle = true;
 
+  int counter_to_next_status_request = 0;
+  const int status_request_countdown = 1000;
+
   while (!terminate_thread_) {
     if (subscriber_count_ == 0) {
       std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -452,6 +456,25 @@ bool AuditNetlink::thread() noexcept {
       }
 
       acquire_handle = false;
+      counter_to_next_status_request = status_request_countdown;
+    }
+
+    if (counter_to_next_status_request == 0) {
+      errno = 0;
+      if (audit_request_status(audit_netlink_handle_) <= 0) {
+        if (errno == ENOBUFS) {
+          VLOG(1) << "Warning: Failed to request audit status (ENOBUFS). "
+                     "Retrying again later...";
+        } else {
+          VLOG(1) << "Error: Failed to request audit status. Requesting a "
+                     "handle reset";
+          acquire_handle = true;
+        }
+      }
+
+      counter_to_next_status_request = status_request_countdown;
+    } else {
+      --counter_to_next_status_request;
     }
 
     if (!acquireMessages()) {
@@ -488,12 +511,25 @@ bool AuditNetlink::acquireMessages() noexcept {
     }
 
     audit_reply reply = {};
-    int len = recvfrom(audit_netlink_handle_,
-                       &reply.msg,
-                       sizeof(reply.msg),
-                       0,
-                       reinterpret_cast<struct sockaddr*>(&nladdr),
-                       &nladdrlen);
+    ssize_t len = recvfrom(audit_netlink_handle_,
+                           &reply.msg,
+                           sizeof(reply.msg),
+                           0,
+                           reinterpret_cast<struct sockaddr*>(&nladdr),
+                           &nladdrlen);
+
+    if (reply.type == AUDIT_GET) {
+      if (static_cast<__pid_t>(reply.status->pid) != getpid()) {
+        VLOG(1) << "Audit control lost to pid " << reply.status->pid;
+
+        if (FLAGS_audit_persist) {
+          VLOG(1) << "Requesting a handle reset to attempt to reacquire "
+                     "audit control";
+
+          reset_handle = true;
+        }
+      }
+    }
 
     if (len < 0) {
       VLOG(1) << "Failed to receive data from the audit netlink";
