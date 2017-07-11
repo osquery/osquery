@@ -1,5 +1,5 @@
 table_name("gatekeeper_approved_apps")
-description("Gatekeeper apps a user allowed to run.")
+description("Gatekeeper apps a user has allowed to run.")
 schema([
     Column("path", TEXT, "Path of executable allowed to run"),
     Column("requirement", TEXT, "Code signing requirement language"),

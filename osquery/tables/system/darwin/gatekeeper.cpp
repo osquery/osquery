@@ -26,14 +26,11 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-const std::string kGkeStatusPath{
-    "/var/db/SystemPolicy-prefs.plist"};
+const std::string kGkeStatusPath = "/var/db/SystemPolicy-prefs.plist";
 
-const std::string kGkeBundlePath{
-    "/var/db/gke.bundle/Contents/version.plist"};
+const std::string kGkeBundlePath = "/var/db/gke.bundle/Contents/version.plist";
 
-const std::string kGkeOpaquePath{
-    "/var/db/gkopaque.bundle/Contents/version.plist"};
+const std::string kGkeOpaquePath = "/var/db/gkopaque.bundle/Contents/version.plist";
 
 const std::string kPolicyDb = "/var/db/SystemPolicy";
 
@@ -50,13 +47,14 @@ bool isGateKeeperDevIdEnabled() {
     if (db != nullptr) {
       free(db);
     }
+    return false;
   }
 
   std::string query = "SELECT disabled FROM authority WHERE label = 'Developer ID'";
   sqlite3_stmt* stmt = nullptr;
   rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
 
-  while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+  while ((sqlite3_step(stmt)) == SQLITE_ROW) {
     int value = sqlite3_column_int(stmt, 0);
     if (value == 1) {
       // Clean up.
@@ -82,11 +80,7 @@ QueryData genGateKeeper(QueryContext& context) {
   for (const auto& row : gke_status) {
     if (row.at("key") == "enabled" && row.at("value") == "yes" ) {
       r["assessments_enabled"] = INTEGER(1);
-      if (isGateKeeperDevIdEnabled()) {
-        r["dev_id_enabled"] = INTEGER(1);
-      } else {
-        r["dev_id_enabled"] = INTEGER(0);
-      }
+      r["dev_id_enabled"] = isGateKeeperDevIdEnabled() ? INTEGER(1) : INTEGER(0);
     } else {
       r["assessments_enabled"] = INTEGER(0);
       r["dev_id_enabled"] = INTEGER(0);
@@ -126,7 +120,7 @@ void genGateKeeperApprovedAppRow(sqlite3_stmt* stmt, Row& r) {
     if (column_type == SQLITE_TEXT) {
       auto value = sqlite3_column_text(stmt, i);
       if (value != nullptr) {
-        r[column_name] = std::string((const char*)value);
+        r[column_name] = std::string(reinterpret_cast<const char*>(value));
       }
     } else if (column_type == SQLITE_FLOAT) {
       auto value = sqlite3_column_double(stmt, i);
@@ -153,10 +147,10 @@ QueryData genGateKeeperApprovedApps(QueryContext& context) {
     }
   }
 
-  std::string query = "SELECT remarks as path, requirement, ctime, mtime from authority WHERE disabled = 0 AND JULIANDAY('now') < expires AND (flags & 1) = 0 AND label is NULL";
+  const std::string query = "SELECT remarks as path, requirement, ctime, mtime from authority WHERE disabled = 0 AND JULIANDAY('now') < expires AND (flags & 1) = 0 AND label is NULL";
   sqlite3_stmt* stmt = nullptr;
   rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
-  while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+  while ((sqlite3_step(stmt)) == SQLITE_ROW) {
     Row r;
     genGateKeeperApprovedAppRow(stmt, r);
     results.push_back(r);
