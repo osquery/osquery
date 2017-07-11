@@ -47,7 +47,7 @@ struct AuditNetlinkSubscriberContext final {
 
 class AuditNetlink final {
   /// Netlink handle.
-  int audit_netlink_handle_{0};
+  int audit_netlink_handle_{-1};
 
   /// True if the netlink class has been initialized.
   bool initialized_{false};
@@ -69,18 +69,12 @@ class AuditNetlink final {
   /// The thread that receives and pre-process the audit events.
   std::unique_ptr<std::thread> thread_;
 
-  /// The thread exit code.
-  std::shared_future<bool> thread_result_;
-
   /// Set to true by ::terminate() when the thread should exit.
   std::atomic<bool> terminate_thread_{false};
 
   /// This is the set of rules we have applied when configuring the service.
   /// This is also what we need to remove when exiting.
-  std::vector<int> monitored_syscall_list_;
-
-  /// The osquery pid, so that we can avoid receiving events that match this pid
-  std::string osquery_pid_;
+  std::vector<audit_rule_data> installed_rule_list_;
 
  public:
   static AuditNetlink& getInstance();
@@ -93,9 +87,6 @@ class AuditNetlink final {
   /// Destroyes the subscription context associated with the given handle.
   void unsubscribe(NetlinkSubscriptionHandle handle) noexcept;
 
-  /// Asks the event receiver thread to terminate
-  void terminate() noexcept;
-
   /// Prepares the raw audit event records stored in the given subscriber
   /// context and returns them to the caller.
   std::vector<AuditEventRecord> getEvents(
@@ -106,6 +97,9 @@ class AuditNetlink final {
 
   /// Starts the event receiver thread.
   bool start() noexcept;
+
+  /// Terminates the thread receiving the events
+  void terminate() noexcept;
 
   /// This is the entry point for the event receive thread.
   bool thread() noexcept;

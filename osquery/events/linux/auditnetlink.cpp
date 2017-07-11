@@ -157,26 +157,15 @@ AuditNetlink& AuditNetlink::getInstance() {
   return instance;
 }
 
-AuditNetlink::~AuditNetlink() {
-  terminate();
-  thread_->join();
+AuditNetlink::~AuditNetlink() {}
 
-  audit_close(audit_netlink_handle_);
-}
-
-AuditNetlink::AuditNetlink() {
-  std::stringstream str_helper;
-  str_helper << getpid();
-
-  osquery_pid_ = str_helper.str();
-}
+AuditNetlink::AuditNetlink() {}
 
 bool AuditNetlink::start() noexcept {
   try {
     std::packaged_task<bool(AuditNetlink&)> thread_task(
         std::bind(&AuditNetlink::thread, this));
 
-    thread_result_ = thread_task.get_future().share();
     thread_.reset(new std::thread(std::move(thread_task), std::ref(*this)));
 
     initialized_ = true;
@@ -185,6 +174,12 @@ bool AuditNetlink::start() noexcept {
   } catch (const std::bad_alloc&) {
     return false;
   }
+}
+
+void AuditNetlink::terminate() noexcept {
+  terminate_thread_ = true;
+  thread_->join();
+  initialized_ = false;
 }
 
 NetlinkSubscriptionHandle AuditNetlink::subscribe() noexcept {
@@ -212,12 +207,12 @@ void AuditNetlink::unsubscribe(NetlinkSubscriptionHandle handle) noexcept {
     return;
 
   subscribers_.erase(it);
-
   subscriber_count_ = subscribers_.size();
-}
 
-void AuditNetlink::terminate() noexcept {
-  terminate_thread_ = true;
+  if (subscriber_count_ == 0) {
+    terminate();
+    initialized_ = false;
+  }
 }
 
 std::vector<AuditEventRecord> AuditNetlink::getEvents(
@@ -326,7 +321,8 @@ std::vector<AuditEventRecord> AuditNetlink::getEvents(
     audit_event_record.type = reply.type;
 
     // Tokenize the message.
-    boost::string_ref message_view(reply.message, reply.len);
+    boost::string_ref message_view(reply.message,
+                                   static_cast<unsigned int>(reply.len));
     auto preamble_end = message_view.find("): ");
     if (preamble_end == std::string::npos) {
       VLOG(1) << "Malformed message received";
@@ -440,7 +436,7 @@ bool AuditNetlink::thread() noexcept {
   int counter_to_next_status_request = 0;
   const int status_request_countdown = 1000;
 
-  while (!terminate_thread_) {
+  while (!terminate_thread_.load()) {
     if (subscriber_count_ == 0) {
       std::this_thread::sleep_for(std::chrono::seconds(5));
       continue;
@@ -461,6 +457,7 @@ bool AuditNetlink::thread() noexcept {
 
     if (counter_to_next_status_request == 0) {
       errno = 0;
+
       if (audit_request_status(audit_netlink_handle_) <= 0) {
         if (errno == ENOBUFS) {
           VLOG(1) << "Warning: Failed to request audit status (ENOBUFS). "
@@ -468,6 +465,7 @@ bool AuditNetlink::thread() noexcept {
         } else {
           VLOG(1) << "Error: Failed to request audit status. Requesting a "
                      "handle reset";
+
           acquire_handle = true;
         }
       }
@@ -482,6 +480,11 @@ bool AuditNetlink::thread() noexcept {
       continue;
     }
   }
+
+  restoreAuditServiceConfiguration();
+
+  audit_close(audit_netlink_handle_);
+  audit_netlink_handle_ = -1;
 
   return true;
 }
@@ -604,13 +607,15 @@ bool AuditNetlink::configureAuditService() noexcept {
   // Audit rules
   //
 
+  std::vector<int> monitored_syscall_list;
+
   // Rules required by the socket_events table
   if (FLAGS_audit_allow_sockets) {
     VLOG(1) << "Enabling audit rules for the socket_events table";
 
     int syscall_list[] = {__NR_bind, __NR_connect};
     for (int syscall : syscall_list) {
-      monitored_syscall_list_.push_back(syscall);
+      monitored_syscall_list.push_back(syscall);
     }
   }
 
@@ -620,19 +625,19 @@ bool AuditNetlink::configureAuditService() noexcept {
 
     int syscall_list[] = {__NR_execve};
     for (int syscall : syscall_list) {
-      monitored_syscall_list_.push_back(syscall);
+      monitored_syscall_list.push_back(syscall);
     }
   }
 
   // Remove duplicated rules
-  std::sort(monitored_syscall_list_.begin(), monitored_syscall_list_.end());
-  monitored_syscall_list_.erase(std::unique(monitored_syscall_list_.begin(),
-                                            monitored_syscall_list_.end()),
-                                monitored_syscall_list_.end());
+  std::sort(monitored_syscall_list.begin(), monitored_syscall_list.end());
+  monitored_syscall_list.erase(
+      std::unique(monitored_syscall_list.begin(), monitored_syscall_list.end()),
+      monitored_syscall_list.end());
 
   // Attempt to add each one of the rules we collected
-  for (auto syscall_it = monitored_syscall_list_.begin();
-       syscall_it != monitored_syscall_list_.end();) {
+  for (auto syscall_it = monitored_syscall_list.begin();
+       syscall_it != monitored_syscall_list.end();) {
     int syscall_number = *syscall_it;
 
     audit_rule_data rule = {};
@@ -649,14 +654,16 @@ bool AuditNetlink::configureAuditService() noexcept {
     // clang-format on
 
     if (rule_add_error >= 0) {
+      installed_rule_list_.push_back(rule);
       syscall_it++;
+
       continue;
     }
 
     // If the rule we tried to apply already existed, remove it from our list
     // so that we do not revert it back when we exit
     rule_add_error = -rule_add_error;
-    syscall_it = monitored_syscall_list_.erase(syscall_it);
+    syscall_it = monitored_syscall_list.erase(syscall_it);
 
     if (rule_add_error != EEXIST) {
       VLOG(1) << "The following syscall number could not be added to the audit "
@@ -668,6 +675,26 @@ bool AuditNetlink::configureAuditService() noexcept {
   }
 
   return true;
+}
+
+void AuditNetlink::restoreAuditServiceConfiguration() noexcept {
+  // Remove the rules we have added
+  VLOG(1) << "Uninstalling the audit rules we have installed";
+
+  for (auto& rule : installed_rule_list_) {
+    audit_delete_rule_data(
+        audit_netlink_handle_, &rule, AUDIT_FILTER_EXIT, AUDIT_ALWAYS);
+  }
+
+  installed_rule_list_.clear();
+
+  // Restore audit configuration defaults.
+  VLOG(1) << "Restoring the default configuration for the audit service";
+
+  audit_set_backlog_limit(audit_netlink_handle_, 0);
+  audit_set_backlog_wait_time(audit_netlink_handle_, 60000);
+  audit_set_failure(audit_netlink_handle_, AUDIT_FAIL_PRINTK);
+  audit_set_enabled(audit_netlink_handle_, AUDIT_DISABLED);
 }
 
 NetlinkStatus AuditNetlink::acquireHandle() noexcept {
@@ -704,18 +731,18 @@ NetlinkStatus AuditNetlink::acquireHandle() noexcept {
 
   if (audit_netlink_handle_ != 0) {
     audit_close(audit_netlink_handle_);
-    audit_netlink_handle_ = 0;
+    audit_netlink_handle_ = -1;
   }
 
   audit_netlink_handle_ = audit_open();
   if (audit_netlink_handle_ <= 0) {
-    audit_netlink_handle_ = 0;
+    audit_netlink_handle_ = -1;
     return NetlinkStatus::Error;
   }
 
   if (audit_set_pid(audit_netlink_handle_, getpid(), WAIT_NO) < 0) {
     audit_close(audit_netlink_handle_);
-    audit_netlink_handle_ = 0;
+    audit_netlink_handle_ = -1;
 
     return NetlinkStatus::Error;
   }
@@ -724,7 +751,7 @@ NetlinkStatus AuditNetlink::acquireHandle() noexcept {
   if (FLAGS_audit_allow_config && netlink_status == NetlinkStatus::Disabled) {
     if (audit_set_enabled(audit_netlink_handle_, AUDIT_ENABLED) < 0) {
       audit_close(audit_netlink_handle_);
-      audit_netlink_handle_ = 0;
+      audit_netlink_handle_ = -1;
 
       return NetlinkStatus::Error;
     }
@@ -734,7 +761,7 @@ NetlinkStatus AuditNetlink::acquireHandle() noexcept {
       netlink_status == NetlinkStatus::ActiveMutable) {
     if (!configureAuditService()) {
       audit_close(audit_netlink_handle_);
-      audit_netlink_handle_ = 0;
+      audit_netlink_handle_ = -1;
 
       return NetlinkStatus::Error;
     }
