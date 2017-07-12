@@ -78,12 +78,14 @@ QueryData genGateKeeper(QueryContext& context) {
   }
 
   for (const auto& row : gke_status) {
-    if (row.at("key") == "enabled" && row.at("value") == "yes" ) {
-      r["assessments_enabled"] = INTEGER(1);
-      r["dev_id_enabled"] = isGateKeeperDevIdEnabled() ? INTEGER(1) : INTEGER(0);
-    } else {
-      r["assessments_enabled"] = INTEGER(0);
-      r["dev_id_enabled"] = INTEGER(0);
+    if ((row.find("key") == row.begin() || row.find("key") == row.end()) || (row.find("value") == row.begin() || row.find("value") == row.end())) {
+      if (row.at("key") == "enabled" && row.at("value") == "yes" ) {
+        r["assessments_enabled"] = INTEGER(1);
+        r["dev_id_enabled"] = isGateKeeperDevIdEnabled() ? INTEGER(1) : INTEGER(0);
+      } else {
+        r["assessments_enabled"] = INTEGER(0);
+        r["dev_id_enabled"] = INTEGER(0);
+      }
     }
   }
 
@@ -94,8 +96,10 @@ QueryData genGateKeeper(QueryContext& context) {
   }
 
   for (const auto& row : gke_bundle) {
-    if (row.at("key") == "CFBundleShortVersionString") {
-      r["version"] = row.at("value");
+    if ((row.find("key") == row.begin() || row.find("key") == row.end()) || (row.find("value") == row.begin() || row.find("value") == row.end())) {
+      if (row.at("key") == "CFBundleShortVersionString") {
+        r["version"] = row.at("value");
+      }
     }
   }
 
@@ -113,7 +117,7 @@ QueryData genGateKeeper(QueryContext& context) {
   return {r};
 }
 
-void genGateKeeperApprovedAppRow(sqlite3_stmt* stmt, Row& r) {
+void genGateKeeperApprovedAppRow(sqlite3_stmt* const stmt, Row& r) {
   for (int i = 0; i < sqlite3_column_count(stmt); i++) {
     auto column_name = std::string(sqlite3_column_name(stmt, i));
     auto column_type = sqlite3_column_type(stmt, i);
