@@ -1,0 +1,106 @@
+#pragma once
+
+#include "osquery/events/linux/auditnetlink.h"
+#include <osquery/events.h>
+
+namespace osquery {
+
+/// Syscall event descriptor
+struct SyscallEvent final {
+  /// Event type
+  enum class Type {
+    Execve,
+    Exit,
+    Exit_group,
+    Open,
+    Openat,
+    Open_by_handle_at,
+    Close,
+    Dup,
+    Read,
+    Write,
+    Mmap,
+    Invalid
+  };
+
+  //
+  // Populated from the AUDIT_SYSCALL event record
+  //
+
+  /// Event type
+  Type type;
+
+  /// Process id
+  __pid_t process_id;
+
+  /// Parent process id
+  __pid_t parent_process_id;
+
+  /// Input file descriptor (i.e.: read syscall)
+  int input_fd;
+
+  /// Output file descriptor (i.e.: open syscall)
+  int output_fd;
+
+  /// Whether the syscall has managed to perform its task
+  bool success;
+
+  //
+  // Populated from the AUDIT_CWD event record
+  //
+
+  /// Working directory at the time of the syscall
+  std::string cwd;
+
+  //
+  // Populated from the AUDIT_PATH event record
+  //
+
+  /// Path passed to the syscall
+  std::string path;
+};
+
+/// Syscall event pretty printer, used for the --audit_fim_debug flag
+std::ostream& operator<<(std::ostream& stream,
+                         const SyscallEvent& syscall_event);
+
+struct AuditFimSubscriptionContext : public SubscriptionContext {
+  bool dummy;
+
+ private:
+  friend class AuditFimEventPublisher;
+};
+
+struct AuditFimEventContext : public EventContext {};
+
+using AuditFimEventContextRef = std::shared_ptr<AuditFimEventContext>;
+using AuditFimSubscriptionContextRef =
+    std::shared_ptr<AuditFimSubscriptionContext>;
+
+class AuditFimEventPublisher
+    : public EventPublisher<AuditFimSubscriptionContext, AuditFimEventContext> {
+  DECLARE_PUBLISHER("auditfim");
+
+ public:
+  Status setUp() override;
+  void configure() override;
+  void tearDown() override;
+  Status run() override;
+
+ public:
+  AuditFimEventPublisher() : EventPublisher() {}
+
+  virtual ~AuditFimEventPublisher() {
+    tearDown();
+  }
+
+ private:
+  /// Apply normal subscription to event matching logic.
+  bool shouldFire(const AuditFimSubscriptionContextRef& mc,
+                  const AuditFimEventContextRef& ec) const override;
+
+ private:
+  /// Audit netlink subscription handle
+  NetlinkSubscriptionHandle audit_netlink_subscription_;
+};
+}

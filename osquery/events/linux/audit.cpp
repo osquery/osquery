@@ -38,7 +38,7 @@ void AuditAssembler::start(size_t capacity,
   types_ = std::move(types);
 }
 
-boost::optional<AuditFields> AuditAssembler::add(const std::string &id,
+boost::optional<AuditFields> AuditAssembler::add(const std::string& id,
                                                  size_t type,
                                                  const AuditFields& fields) {
   auto it = m_.find(id);
@@ -94,18 +94,18 @@ boost::optional<AuditFields> AuditAssembler::add(const std::string &id,
   return boost::none;
 }
 
-void AuditAssembler::evict(const std::string &id) {
+void AuditAssembler::evict(const std::string& id) {
   queue_.erase(std::remove(queue_.begin(), queue_.end(), id), queue_.end());
   mt_.erase(id);
   m_.erase(id);
 }
 
-void AuditAssembler::shuffle(const std::string & id) {
+void AuditAssembler::shuffle(const std::string& id) {
   queue_.erase(std::remove(queue_.begin(), queue_.end(), id), queue_.end());
   queue_.push_back(id);
 }
 
-bool AuditAssembler::complete(const std::string & id) {
+bool AuditAssembler::complete(const std::string& id) {
   // Is this type enough.
   const auto& types = mt_.at(id);
   for (const auto& t : types_) {
@@ -183,7 +183,7 @@ Status AuditEventPublisher::run() {
 
     // There is a special field for syscalls.
     if (ec->fields.count("syscall") == 1) {
-      const auto& syscall_string = ec->fields.at("syscall").c_str();
+      const auto& syscall_string = ec->fields.at("syscall").data();
       long long syscall_number{0};
       if (!safeStrtoll(syscall_string, 10, syscall_number)) {
         syscall_number = 0;

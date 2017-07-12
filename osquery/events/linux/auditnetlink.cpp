@@ -145,6 +145,7 @@ HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
 // External flags
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
+DECLARE_bool(audit_allow_file_events);
 
 enum AuditStatus {
   AUDIT_DISABLED = 0,
@@ -443,6 +444,10 @@ bool AuditNetlink::thread() noexcept {
     }
 
     if (acquire_handle) {
+      if (FLAGS_audit_debug) {
+        std::cout << "(re)acquiring audit handle.." << std::endl;
+      }
+
       NetlinkStatus netlink_status = acquireHandle();
 
       if (netlink_status == NetlinkStatus::Disabled ||
@@ -462,6 +467,7 @@ bool AuditNetlink::thread() noexcept {
         if (errno == ENOBUFS) {
           VLOG(1) << "Warning: Failed to request audit status (ENOBUFS). "
                      "Retrying again later...";
+
         } else {
           VLOG(1) << "Error: Failed to request audit status. Requesting a "
                      "handle reset";
@@ -629,6 +635,24 @@ bool AuditNetlink::configureAuditService() noexcept {
     }
   }
 
+  // Rules required by the auditd_file_events table
+  if (FLAGS_audit_allow_file_events) {
+    VLOG(1) << "Enabling audit rules for the auditd_file_events table";
+
+    /// \todo Add the following syscalls: read, write, mmap
+    int syscall_list[] = {__NR_execve,
+                          __NR_exit,
+                          __NR_exit_group,
+                          __NR_open,
+                          __NR_close,
+                          __NR_dup,
+                          __NR_dup2,
+                          __NR_dup3};
+    for (int syscall : syscall_list) {
+      monitored_syscall_list.push_back(syscall);
+    }
+  }
+
   // Remove duplicated rules
   std::sort(monitored_syscall_list.begin(), monitored_syscall_list.end());
   monitored_syscall_list.erase(
@@ -654,10 +678,20 @@ bool AuditNetlink::configureAuditService() noexcept {
     // clang-format on
 
     if (rule_add_error >= 0) {
+      if (FLAGS_audit_debug) {
+        std::cout << "Audit rule installed for syscall " << syscall_number
+                  << std::endl;
+      }
+
       installed_rule_list_.push_back(rule);
       syscall_it++;
 
       continue;
+    }
+
+    if (FLAGS_audit_debug) {
+      std::cout << "Audit rule for syscall " << syscall_number
+                << " could not be installed. Errno: " << (-errno) << std::endl;
     }
 
     // If the rule we tried to apply already existed, remove it from our list
@@ -678,6 +712,10 @@ bool AuditNetlink::configureAuditService() noexcept {
 }
 
 void AuditNetlink::restoreAuditServiceConfiguration() noexcept {
+  if (FLAGS_audit_debug) {
+    std::cout << "Uninstalling audit rules..." << std::endl;
+  }
+
   // Remove the rules we have added
   VLOG(1) << "Uninstalling the audit rules we have installed";
 
@@ -689,6 +727,12 @@ void AuditNetlink::restoreAuditServiceConfiguration() noexcept {
   installed_rule_list_.clear();
 
   // Restore audit configuration defaults.
+  if (FLAGS_audit_debug) {
+    std::cout
+        << "Audit: restoring default settings and disabling the service..."
+        << std::endl;
+  }
+
   VLOG(1) << "Restoring the default configuration for the audit service";
 
   audit_set_backlog_limit(audit_netlink_handle_, 0);
@@ -708,7 +752,8 @@ NetlinkStatus AuditNetlink::acquireHandle() noexcept {
       return NetlinkStatus::Disabled;
     }
 
-    if (audit_request_status(netlink_handle) < 0) {
+    errno = 0;
+    if (audit_request_status(netlink_handle) < 0 && errno != ENOBUFS) {
       return NetlinkStatus::Error;
     }
 
@@ -753,9 +798,19 @@ NetlinkStatus AuditNetlink::acquireHandle() noexcept {
       audit_close(audit_netlink_handle_);
       audit_netlink_handle_ = -1;
 
+      if (FLAGS_audit_debug) {
+        std::cout << "Failed to enable the audit service" << std::endl;
+      }
+
       return NetlinkStatus::Error;
     }
+
+    if (FLAGS_audit_debug) {
+      std::cout << "Audit service enabled" << std::endl;
+    }
   }
+
+  netlink_status = L_GetNetlinkStatus(audit_netlink_handle_);
 
   if (FLAGS_audit_allow_config &&
       netlink_status == NetlinkStatus::ActiveMutable) {
