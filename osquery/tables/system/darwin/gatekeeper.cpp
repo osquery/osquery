@@ -78,7 +78,7 @@ QueryData genGateKeeper(QueryContext& context) {
   }
 
   for (const auto& row : gke_status) {
-    if ((row.find("key") == row.begin() || row.find("key") == row.end()) || (row.find("value") == row.begin() || row.find("value") == row.end())) {
+    if (row.find("key") != row.end() && row.find("value") != row.end()) {
       if (row.at("key") == "enabled" && row.at("value") == "yes" ) {
         r["assessments_enabled"] = INTEGER(1);
         r["dev_id_enabled"] = isGateKeeperDevIdEnabled() ? INTEGER(1) : INTEGER(0);
@@ -96,7 +96,7 @@ QueryData genGateKeeper(QueryContext& context) {
   }
 
   for (const auto& row : gke_bundle) {
-    if ((row.find("key") == row.begin() || row.find("key") == row.end()) || (row.find("value") == row.begin() || row.find("value") == row.end())) {
+    if (row.find("key") != row.end() && row.find("value") != row.end()) {
       if (row.at("key") == "CFBundleShortVersionString") {
         r["version"] = row.at("value");
       }
@@ -110,8 +110,10 @@ QueryData genGateKeeper(QueryContext& context) {
   }
 
   for (const auto& row : gke_opaque) {
-    if (row.at("key") == "CFBundleShortVersionString") {
-      r["opaque_version"] = row.at("value");
+    if (row.find("key") != row.end() && row.find("value") != row.end()) {
+      if (row.at("key") == "CFBundleShortVersionString") {
+        r["opaque_version"] = row.at("value");
+      }
     }
   }
   return {r};
