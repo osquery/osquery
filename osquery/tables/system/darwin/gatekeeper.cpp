@@ -151,6 +151,7 @@ QueryData genGateKeeperApprovedApps(QueryContext& context) {
     if (db != nullptr) {
       free(db);
     }
+    return results;
   }
 
   const std::string query = "SELECT remarks as path, requirement, ctime, mtime from authority WHERE disabled = 0 AND JULIANDAY('now') < expires AND (flags & 1) = 0 AND label is NULL";
