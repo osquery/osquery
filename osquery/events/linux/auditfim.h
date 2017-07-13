@@ -71,7 +71,9 @@ struct AuditFimSubscriptionContext : public SubscriptionContext {
   friend class AuditFimEventPublisher;
 };
 
-struct AuditFimEventContext : public EventContext {};
+struct AuditFimEventContext : public EventContext {
+  std::vector<SyscallEvent> syscall_events;
+};
 
 using AuditFimEventContextRef = std::shared_ptr<AuditFimEventContext>;
 using AuditFimSubscriptionContextRef =
@@ -102,5 +104,8 @@ class AuditFimEventPublisher
  private:
   /// Audit netlink subscription handle
   NetlinkSubscriptionHandle audit_netlink_subscription_;
+
+  /// This is where audit records are assembled
+  std::map<std::string, SyscallEvent> syscall_event_list_;
 };
 }

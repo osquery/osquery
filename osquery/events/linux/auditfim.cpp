@@ -83,6 +83,31 @@ void AuditFimEventPublisher::tearDown() {
 }
 
 Status AuditFimEventPublisher::run() {
+  const std::vector<int> syscall_filter = {__NR_execve,
+                                           __NR_exit,
+                                           __NR_exit_group,
+                                           __NR_open,
+                                           __NR_openat,
+                                           __NR_open_by_handle_at,
+                                           __NR_close,
+                                           __NR_dup,
+                                           __NR_dup2,
+                                           __NR_dup3};
+
+  const std::vector<int> input_fd_syscall_list = {
+      __NR_dup, __NR_dup2, __NR_dup3, __NR_close};
+  const std::vector<int> output_fd_syscall_list = {__NR_open,
+                                                   __NR_openat,
+                                                   __NR_open_by_handle_at,
+                                                   __NR_dup,
+                                                   __NR_dup2,
+                                                   __NR_dup3};
+
+  auto L_ContainsSyscall = [](const std::vector<int>& filter,
+                              int syscall) -> bool {
+    return (std::find(filter.begin(), filter.end(), syscall) != filter.end());
+  };
+
   auto L_GetFieldFromMap = [](
       const std::map<std::string, std::string>& field_map,
       const std::string& name,
@@ -97,15 +122,15 @@ Status AuditFimEventPublisher::run() {
   auto audit_event_record_queue =
       AuditNetlink::getInstance().getEvents(audit_netlink_subscription_);
 
-  std::map<std::string, SyscallEvent> syscall_event_list;
+  auto event_context = createEventContext();
 
   for (const auto& audit_event_record : audit_event_record_queue) {
-    auto audit_event_it = syscall_event_list.find(audit_event_record.audit_id);
+    auto audit_event_it = syscall_event_list_.find(audit_event_record.audit_id);
 
     if (audit_event_record.type == AUDIT_SYSCALL) {
-      if (audit_event_it != syscall_event_list.end()) {
+      if (audit_event_it != syscall_event_list_.end()) {
         std::cout << "DUPLICATED!" << std::endl;
-        syscall_event_list.erase(audit_event_it);
+        syscall_event_list_.erase(audit_event_it);
       }
 
       std::string field_value =
@@ -117,17 +142,27 @@ Status AuditFimEventPublisher::run() {
         continue;
       }
 
-      bool skip_record = false;
-      SyscallEvent syscall_event;
+      if (!L_ContainsSyscall(syscall_filter, syscall_number))
+        continue;
 
-      switch (syscall_number) {
-      case __NR_open:
-      case __NR_openat:
-      case __NR_open_by_handle_at:
-      case __NR_dup:
-      case __NR_dup2:
-      case __NR_dup3: {
-        syscall_event.type = GetSyscallEventType(syscall_number);
+      SyscallEvent syscall_event;
+      syscall_event.type = GetSyscallEventType(syscall_number);
+
+      if (L_ContainsSyscall(input_fd_syscall_list, syscall_number)) {
+        field_value = L_GetFieldFromMap(audit_event_record.fields, "a0", "");
+
+        long long int input_fd;
+        if (!safeStrtoll(field_value, 16, input_fd)) {
+          std::cout << "MALFORMED SYSCALL EVENT (invalid close() parameter)"
+                    << std::endl;
+          syscall_event.input_fd = -1;
+
+        } else {
+          syscall_event.input_fd = static_cast<int>(input_fd);
+        }
+      }
+
+      if (L_ContainsSyscall(output_fd_syscall_list, syscall_number)) {
         field_value = L_GetFieldFromMap(audit_event_record.fields, "exit", "");
 
         long long int output_fd;
@@ -139,26 +174,7 @@ Status AuditFimEventPublisher::run() {
         } else {
           syscall_event.output_fd = static_cast<int>(output_fd);
         }
-
-        break;
       }
-
-      case __NR_execve:
-      case __NR_exit:
-      case __NR_exit_group:
-      case __NR_close: {
-        syscall_event.type = GetSyscallEventType(syscall_number);
-        break;
-      }
-
-      default: {
-        skip_record = true;
-        break;
-      }
-      }
-
-      if (skip_record)
-        continue;
 
       field_value =
           L_GetFieldFromMap(audit_event_record.fields, "success", "false");
@@ -182,10 +198,10 @@ Status AuditFimEventPublisher::run() {
       }
 
       syscall_event.process_id = static_cast<__pid_t>(process_id_value);
-      syscall_event_list[audit_event_record.audit_id] = syscall_event;
+      syscall_event_list_[audit_event_record.audit_id] = syscall_event;
 
     } else if (audit_event_record.type == AUDIT_CWD) {
-      if (audit_event_it == syscall_event_list.end()) {
+      if (audit_event_it == syscall_event_list_.end()) {
         std::cout << "MISSING EVENT! SKIPPING!" << std::endl;
         continue;
       }
@@ -195,7 +211,7 @@ Status AuditFimEventPublisher::run() {
       audit_event_it->second.cwd = field_value;
 
     } else if (audit_event_record.type == AUDIT_PATH) {
-      if (audit_event_it == syscall_event_list.end()) {
+      if (audit_event_it == syscall_event_list_.end()) {
         std::cout << "MISSING EVENT! SKIPPING!" << std::endl;
         continue;
       }
@@ -205,18 +221,24 @@ Status AuditFimEventPublisher::run() {
       audit_event_it->second.path = field_value;
 
     } else if (audit_event_record.type == AUDIT_EOE) {
-      if (audit_event_it == syscall_event_list.end()) {
+      if (audit_event_it == syscall_event_list_.end()) {
         std::cout << "MISSING EVENT! SKIPPING!" << std::endl;
         continue;
       }
 
       auto completed_syscall_event = audit_event_it->second;
-      syscall_event_list.erase(audit_event_it);
+      syscall_event_list_.erase(audit_event_it);
 
       if (FLAGS_audit_fim_debug) {
         std::cout << completed_syscall_event << std::endl;
       }
+
+      event_context->syscall_events.push_back(completed_syscall_event);
     }
+  }
+
+  if (!event_context->syscall_events.empty()) {
+    fire(event_context);
   }
 
   return Status(0, "OK");

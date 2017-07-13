@@ -18,6 +18,9 @@
 
 #include <asm/unistd_64.h>
 
+#include <iostream>
+#include <unordered_map>
+
 namespace osquery {
 
 FLAG(bool,
@@ -25,11 +28,12 @@ FLAG(bool,
      true,
      "Allow the audit publisher to install file event monitoring rules");
 
-namespace tables {
-extern long getUptime();
-}
+typedef std::unordered_map<int, std::string> HandleMap;
+typedef std::unordered_map<__pid_t, HandleMap> ProcessMap;
 
 class AuditFimEventSubscriber : public EventSubscriber<AuditFimEventPublisher> {
+  ProcessMap process_map_;
+
  public:
   Status init() override;
   Status Callback(const ECRef& event_context,
@@ -45,21 +49,116 @@ Status AuditFimEventSubscriber::init() {
   return Status(0, "OK");
 }
 
+/// \todo Events are collected but rows are not being added yet
 Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
                                          const SCRef& subscription_context) {
-  std::map<std::string, std::string> test;
+  for (const SyscallEvent& syscall : event_context->syscall_events) {
+    switch (syscall.type) {
+    case SyscallEvent::Type::Execve: {
+      // Allocate a new handle table
+      process_map_[syscall.process_id] = HandleMap();
+      break;
+    }
 
-  test["operation"] = "operation";
-  test["pid"] = "pid";
-  test["ppid"] = "ppid";
-  test["cwd"] = "cwd";
-  test["inode"] = "inode";
-  test["name"] = "name";
-  test["canonical_path"] = "canonical_path";
-  test["time"] = "time";
-  test["eid"] = "eid";
+    /// \todo The exit_group should probably be treated differently
+    case SyscallEvent::Type::Exit:
+    case SyscallEvent::Type::Exit_group: {
+      // We just have to drop the table for the exiting process
+      auto handle_map_it = process_map_.find(syscall.process_id);
+      if (handle_map_it == process_map_.end()) {
+        std::cout << "Untracked process exiting: " << syscall.process_id
+                  << std::endl;
+      } else {
+        process_map_.erase(handle_map_it);
+      }
 
-  add(test);
+      break;
+    }
+
+    /// \todo The openat and open_by_handle_at are probably not handled
+    /// correctly
+    case SyscallEvent::Type::Open:
+    case SyscallEvent::Type::Openat:
+    case SyscallEvent::Type::Open_by_handle_at: {
+      // Find the handle table for the process, and then lookup the file
+      // descriptor
+      auto handle_map_it = process_map_.find(syscall.process_id);
+      if (handle_map_it == process_map_.end()) {
+        std::cout << "Untracked process opening a file: " << syscall.process_id
+                  << std::endl;
+        break;
+      }
+
+      /// \todo Canonicalize the path; we should attempt to avoid accessing the
+      /// filesystem if possible
+      HandleMap& handle_map = handle_map_it->second;
+      handle_map[syscall.output_fd] = syscall.cwd + "|" + syscall.path;
+
+      /// \todo Add this event as a new row
+      std::cout << "open: " << handle_map[syscall.output_fd] << std::endl;
+
+      break;
+    }
+
+    case SyscallEvent::Type::Close: {
+      // Find the handle table for the process, and drop the specified file
+      // descriptor
+      auto handle_map_it = process_map_.find(syscall.process_id);
+      if (handle_map_it == process_map_.end()) {
+        std::cout << "Untracked process closing a file: " << syscall.process_id
+                  << std::endl;
+        break;
+      }
+
+      HandleMap& handle_map = handle_map_it->second;
+      auto file_name_it = handle_map.find(syscall.output_fd);
+      if (file_name_it == handle_map.end()) {
+        std::cout << "Unknown file closed by a tracked process" << std::endl;
+        break;
+      }
+
+      /// \todo Add this event as a new row
+      std::cout << "close: " << file_name_it->second << std::endl;
+      handle_map.erase(file_name_it);
+
+      break;
+    }
+
+    case SyscallEvent::Type::Dup: {
+      // Find the handle table for the process, and duplicate the specified file
+      // descriptor
+      auto handle_map_it = process_map_.find(syscall.process_id);
+      if (handle_map_it == process_map_.end()) {
+        std::cout << "Untracked process duplicating a file handle: "
+                  << syscall.process_id << std::endl;
+        break;
+      }
+
+      HandleMap& handle_map = handle_map_it->second;
+      auto file_name_it = handle_map.find(syscall.input_fd);
+      if (file_name_it == handle_map.end()) {
+        std::cout << "Unknown file duplicated by a tracked process"
+                  << std::endl;
+        break;
+      }
+
+      handle_map[syscall.output_fd] = file_name_it->second;
+      break;
+    }
+
+    // Not yet implemented
+    case SyscallEvent::Type::Read:
+    case SyscallEvent::Type::Write:
+    case SyscallEvent::Type::Mmap: {
+      break;
+    }
+
+    case SyscallEvent::Type::Invalid: {
+      return Status(1, "Invalid event type");
+    }
+    }
+  }
+
   return Status(0, "OK");
 }
 }
