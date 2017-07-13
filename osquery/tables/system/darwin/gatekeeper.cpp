@@ -60,7 +60,8 @@ bool isGateKeeperDevIdEnabled() {
       // Clean up.
       sqlite3_finalize(stmt);
       free(db);
-      return false; // return false if any rows say "disabled"
+      // return false if any rows say "disabled"
+      return false;
     }
   }
   sqlite3_finalize(stmt);
