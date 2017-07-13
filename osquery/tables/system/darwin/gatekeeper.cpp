@@ -30,7 +30,8 @@ const std::string kGkeStatusPath = "/var/db/SystemPolicy-prefs.plist";
 
 const std::string kGkeBundlePath = "/var/db/gke.bundle/Contents/version.plist";
 
-const std::string kGkeOpaquePath = "/var/db/gkopaque.bundle/Contents/version.plist";
+const std::string kGkeOpaquePath =
+    "/var/db/gkopaque.bundle/Contents/version.plist";
 
 const std::string kPolicyDb = "/var/db/SystemPolicy";
 
@@ -50,7 +51,8 @@ bool isGateKeeperDevIdEnabled() {
     return false;
   }
 
-  std::string query = "SELECT disabled FROM authority WHERE label = 'Developer ID'";
+  std::string query =
+      "SELECT disabled FROM authority WHERE label = 'Developer ID'";
   sqlite3_stmt* stmt = nullptr;
   rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
 
@@ -80,9 +82,10 @@ QueryData genGateKeeper(QueryContext& context) {
 
   for (const auto& row : gke_status) {
     if (row.find("key") != row.end() && row.find("value") != row.end()) {
-      if (row.at("key") == "enabled" && row.at("value") == "yes" ) {
+      if (row.at("key") == "enabled" && row.at("value") == "yes") {
         r["assessments_enabled"] = INTEGER(1);
-        r["dev_id_enabled"] = isGateKeeperDevIdEnabled() ? INTEGER(1) : INTEGER(0);
+        r["dev_id_enabled"] =
+            isGateKeeperDevIdEnabled() ? INTEGER(1) : INTEGER(0);
       } else {
         r["assessments_enabled"] = INTEGER(0);
         r["dev_id_enabled"] = INTEGER(0);
@@ -155,7 +158,10 @@ QueryData genGateKeeperApprovedApps(QueryContext& context) {
     return results;
   }
 
-  const std::string query = "SELECT remarks as path, requirement, ctime, mtime from authority WHERE disabled = 0 AND JULIANDAY('now') < expires AND (flags & 1) = 0 AND label is NULL";
+  const std::string query =
+      "SELECT remarks as path, requirement, ctime, mtime from authority WHERE "
+      "disabled = 0 AND JULIANDAY('now') < expires AND (flags & 1) = 0 AND "
+      "label is NULL";
   sqlite3_stmt* stmt = nullptr;
   rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
   while ((sqlite3_step(stmt)) == SQLITE_ROW) {
@@ -170,5 +176,5 @@ QueryData genGateKeeperApprovedApps(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
