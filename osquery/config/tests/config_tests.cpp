@@ -15,11 +15,11 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
 #include <osquery/sql.h>
-#include <osquery/system.h>
 
 #include "osquery/core/json.h"
 #include "osquery/core/process.h"
@@ -67,13 +67,13 @@ class ConfigTests : public testing::Test {
 class TestConfigPlugin : public ConfigPlugin {
  public:
   TestConfigPlugin() {
-    genConfigCount = 0;
-    genPackCount = 0;
+    gen_config_count_ = 0;
+    gen_pack_count_ = 0;
   }
 
   Status genConfig(std::map<std::string, std::string>& config) override {
-    genConfigCount++;
-    if (fail) {
+    gen_config_count_++;
+    if (fail_) {
       return Status(1);
     }
 
@@ -86,7 +86,7 @@ class TestConfigPlugin : public ConfigPlugin {
   Status genPack(const std::string& name,
                  const std::string& value,
                  std::string& pack) override {
-    genPackCount++;
+    gen_pack_count_++;
     std::stringstream ss;
     pt::write_json(ss, getUnrestrictedPack(), false);
     pack = ss.str();
@@ -94,9 +94,9 @@ class TestConfigPlugin : public ConfigPlugin {
   }
 
  public:
-  std::atomic<size_t> genConfigCount{0};
-  std::atomic<size_t> genPackCount{0};
-  std::atomic<bool> fail{false};
+  std::atomic<size_t> gen_config_count_{0};
+  std::atomic<size_t> gen_pack_count_{0};
+  std::atomic<bool> fail_{false};
 };
 
 TEST_F(ConfigTests, test_plugin) {
@@ -113,7 +113,7 @@ TEST_F(ConfigTests, test_plugin) {
   EXPECT_EQ(status.toString(), "OK");
 
   Registry::call("config", {{"action", "genConfig"}});
-  EXPECT_EQ(2U, plugin->genConfigCount);
+  EXPECT_EQ(2U, plugin->gen_config_count_);
   rf.registry("config")->remove("test");
 }
 
@@ -177,7 +177,7 @@ TEST_F(ConfigTests, test_pack_noninline) {
   this->load();
   // Expect the test plugin to have recorded 1 pack.
   // This value is incremented when its genPack method is called.
-  EXPECT_EQ(plugin->genPackCount, 1U);
+  EXPECT_EQ(plugin->gen_pack_count_, 1U);
 
   int total_packs = 0;
   // Expect the config to have recorded a pack for the inline and non-inline.
@@ -413,7 +413,7 @@ void waitForConfig(std::shared_ptr<TestConfigPlugin>& plugin, size_t count) {
   // Max wait of 3 seconds.
   size_t delay = 3000;
   while (delay > 0) {
-    if (plugin->genConfigCount > count) {
+    if (plugin->gen_config_count_ > count) {
       break;
     }
     delay -= 20;
@@ -437,7 +437,7 @@ TEST_F(ConfigTests, test_config_refresh) {
   // Set a config_refresh value to convince the Config to start the thread.
   FLAGS_config_refresh = 2;
   FLAGS_config_accelerated_refresh = 1;
-  get().refresh_runner_->mod_ = 10;
+  get().setRefresh(get().getRefresh(), 10);
   get().refresh();
 
   // This refresh call with a refresh value > 0 will have started a refresh
@@ -446,21 +446,21 @@ TEST_F(ConfigTests, test_config_refresh) {
 
   // The runner will wait at least one refresh-delay.
   waitForConfig(plugin, 1);
-  ASSERT_GT(plugin->genConfigCount, 1U);
+  ASSERT_GT(plugin->gen_config_count_, 1U);
 
   // Now make the configuration break.
-  plugin->fail = true;
-  auto count = static_cast<size_t>(plugin->genConfigCount);
+  plugin->fail_ = true;
+  auto count = static_cast<size_t>(plugin->gen_config_count_);
   waitForConfig(plugin, count + 1);
-  ASSERT_GT(plugin->genConfigCount, count + 1);
-  EXPECT_EQ(get().refresh_runner_->refresh(), 1U);
+  ASSERT_GT(plugin->gen_config_count_, count + 1);
+  EXPECT_EQ(get().getRefresh(), 1U);
 
   // Test that the normal acceleration is restored.
-  plugin->fail = false;
-  count = static_cast<size_t>(plugin->genConfigCount);
+  plugin->fail_ = false;
+  count = static_cast<size_t>(plugin->gen_config_count_);
   waitForConfig(plugin, count + 1);
-  ASSERT_GT(plugin->genConfigCount, count + 1);
-  EXPECT_EQ(get().refresh_runner_->refresh(), 2U);
+  ASSERT_GT(plugin->gen_config_count_, count + 1);
+  EXPECT_EQ(get().getRefresh(), 2U);
 
   // Stop the refresh runner thread.
   Dispatcher::stopServices();
