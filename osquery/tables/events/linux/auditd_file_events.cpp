@@ -25,7 +25,7 @@ namespace osquery {
 
 FLAG(bool,
      audit_allow_file_events,
-     true,
+     false,
      "Allow the audit publisher to install file event monitoring rules");
 
 typedef std::unordered_map<int, std::string> HandleMap;
@@ -35,12 +35,21 @@ class AuditFimEventSubscriber : public EventSubscriber<AuditFimEventPublisher> {
   ProcessMap process_map_;
 
  public:
+  Status setUp() override;
   Status init() override;
   Status Callback(const ECRef& event_context,
                   const SCRef& subscription_context);
 };
 
 REGISTER(AuditFimEventSubscriber, "event_subscriber", "auditd_file_events");
+
+Status AuditFimEventSubscriber::setUp() {
+  if (!FLAGS_audit_allow_file_events) {
+    return Status(1, "Subscriber disabled via configuration");
+  }
+
+  return Status(0);
+}
 
 Status AuditFimEventSubscriber::init() {
   auto sc = createSubscriptionContext();

@@ -17,11 +17,9 @@
 
 namespace osquery {
 
-/// This flag has just been introduced; keep the default value to true to avoid
-/// breaking compatibility
 FLAG(bool,
      audit_allow_process_events,
-     true,
+     false,
      "Allow the audit publisher to install process event monitoring rules");
 
 #define AUDIT_SYSCALL_EXECVE 59

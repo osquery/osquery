@@ -24,6 +24,10 @@
 namespace osquery {
 REGISTER(AuditEventPublisher, "event_publisher", "audit");
 
+// External flags
+DECLARE_bool(audit_allow_process_events);
+DECLARE_bool(audit_allow_sockets);
+
 void AuditAssembler::start(size_t capacity,
                            std::vector<size_t> types,
                            AuditUpdate update) {
@@ -118,6 +122,10 @@ bool AuditAssembler::complete(const std::string& id) {
 }
 
 Status AuditEventPublisher::setUp() {
+  if (!FLAGS_audit_allow_process_events && !FLAGS_audit_allow_sockets) {
+    return Status(1, "Subscriber disabled via configuration");
+  }
+
   return Status(0, "OK");
 }
 

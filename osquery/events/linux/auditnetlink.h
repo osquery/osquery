@@ -5,6 +5,7 @@
 #include <future>
 #include <map>
 #include <memory>
+#include <set>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -39,18 +40,32 @@ struct AuditEventRecord final {
 struct AuditNetlinkSubscriberContext final {
   /// This queue contains unprocessed events, waiting for a
   /// AuditNetlink::getEvents() call to finalize them.
-  std::vector<audit_reply> queue;
+  std::vector<AuditEventRecord> queue;
 
   /// Queue mutex.
   std::mutex queue_mutex;
 };
 
 class AuditNetlink final {
+  /// This is the set of rules we have applied when configuring the service.
+  /// This is also what we need to remove when exiting.
+  std::vector<audit_rule_data> installed_rule_list_;
+
+  /// The syscalls we are listening for
+  std::set<int> monitored_syscall_list_;
+
+  //
+  // Common thread data
+  //
+
   /// Netlink handle.
   int audit_netlink_handle_{-1};
 
   /// True if the netlink class has been initialized.
   bool initialized_{false};
+
+  /// Initialization mutex
+  std::mutex initialization_mutex_;
 
   /// This value is used to generate subscription handles.
   NetlinkSubscriptionHandle handle_generator_{0};
@@ -66,15 +81,37 @@ class AuditNetlink final {
   std::unordered_map<NetlinkSubscriptionHandle, AuditNetlinkSubscriberContext>
       subscribers_;
 
-  /// The thread that receives and pre-process the audit events.
-  std::unique_ptr<std::thread> thread_;
-
   /// Set to true by ::terminate() when the thread should exit.
-  std::atomic<bool> terminate_thread_{false};
+  std::atomic<bool> terminate_threads_{false};
 
-  /// This is the set of rules we have applied when configuring the service.
-  /// This is also what we need to remove when exiting.
-  std::vector<audit_rule_data> installed_rule_list_;
+  /// Used to wake up the thread that processes the raw audit records
+  std::condition_variable raw_records_pending_;
+
+  //
+  // Primary thread (recvThread)
+  //
+
+  /// The thread that receives the audit events from the netlink.
+  std::unique_ptr<std::thread> recv_thread_;
+
+  /// Unprocessed audit records
+  std::vector<audit_reply> raw_audit_record_list_;
+  static_assert(
+      std::is_move_constructible<decltype(raw_audit_record_list_)>::value,
+      "not move constructible");
+
+  /// Mutex for the list of unprocessed records
+  std::mutex raw_audit_record_list_mutex_;
+
+  /// Read buffer used when receiving events from the netlink
+  std::vector<audit_reply> read_buffer_;
+
+  //
+  // Secondary thread (processThread)
+  //
+
+  /// The thread that processes the audit events
+  std::unique_ptr<std::thread> processing_thread_;
 
  public:
   static AuditNetlink& getInstance();
@@ -101,8 +138,11 @@ class AuditNetlink final {
   /// Terminates the thread receiving the events
   void terminate() noexcept;
 
-  /// This is the entry point for the event receive thread.
-  bool thread() noexcept;
+  /// This is the entry point for the thread that receives the netlink events.
+  bool recvThread() noexcept;
+
+  /// This is the entry point for the thread that processes the netlink events.
+  bool processThread() noexcept;
 
   /// Reads as many audit event records as possible before returning.
   bool acquireMessages() noexcept;

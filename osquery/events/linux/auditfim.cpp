@@ -26,6 +26,7 @@
 
 namespace osquery {
 HIDDEN_FLAG(bool, audit_fim_debug, false, "Show audit FIM events");
+DECLARE_bool(audit_allow_file_events);
 
 REGISTER(AuditFimEventPublisher, "event_publisher", "auditfim");
 
@@ -65,6 +66,10 @@ SyscallEvent::Type GetSyscallEventType(int syscall_number) noexcept {
 }
 
 Status AuditFimEventPublisher::setUp() {
+  if (!FLAGS_audit_allow_file_events) {
+    return Status(1, "Publisher disabled via configuration");
+  }
+
   return Status(0, "OK");
 }
 
@@ -96,6 +101,7 @@ Status AuditFimEventPublisher::run() {
 
   const std::vector<int> input_fd_syscall_list = {
       __NR_dup, __NR_dup2, __NR_dup3, __NR_close};
+
   const std::vector<int> output_fd_syscall_list = {__NR_open,
                                                    __NR_openat,
                                                    __NR_open_by_handle_at,
@@ -238,7 +244,12 @@ Status AuditFimEventPublisher::run() {
   }
 
   if (!event_context->syscall_events.empty()) {
-    fire(event_context);
+    // fire(event_context);
+
+    for (const auto& syscall_event : event_context->syscall_events) {
+      std::cout << syscall_event << "\n";
+    }
+    std::cout << std::endl;
   }
 
   return Status(0, "OK");
