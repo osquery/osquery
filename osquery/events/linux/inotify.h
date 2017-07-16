@@ -28,6 +28,7 @@ extern const uint32_t kFileAccessMasks;
 // INotifySubscriptionContext containers
 using PathDescriptorMap = std::map<std::string, int>;
 using DescriptorPathMap = std::map<int, std::string>;
+using PathStatusChangeTimeMap = std::map<std::string, time_t>;
 
 /**
  * @brief Subscription details for INotifyEventPublisher events.
@@ -75,14 +76,14 @@ struct INotifySubscriptionContext : public SubscriptionContext {
   }
 
  private:
-  /// Actual number of paths being tracked under this subscription context.
-  std::atomic<unsigned int> use_count_{0};
-
   /// A configure-time pattern was expanded to match absolute paths.
   bool recursive_match{false};
 
   /// Map of inotify watch file descriptor to watched path string.
   DescriptorPathMap descriptor_paths_;
+
+  /// Map of path and status change time of file/directory.
+  PathStatusChangeTimeMap path_sc_time_;
 
  private:
   friend class INotifyEventPublisher;
@@ -196,6 +197,19 @@ class INotifyEventPublisher
                   uint32_t mask,
                   bool recursive,
                   bool add_watch = true);
+
+  /**
+   * Some decision making code refactored in needMonitoring before calling
+   * addMonitor in the context of monitorSubscription.
+   * Decision to call addMonitor from the context of monitorSubscription
+   * is done based on the status change time of file/directory, since
+   * creation time is not available on linux.
+   */
+  bool needMonitoring(const std::string& path,
+                      INotifySubscriptionContextRef& isc,
+                      uint32_t mask,
+                      bool recursive,
+                      bool add_watch);
 
   /// Helper method to parse a subscription and add an equivalent monitor.
   bool monitorSubscription(INotifySubscriptionContextRef& sc,

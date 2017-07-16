@@ -66,6 +66,28 @@ Status INotifyEventPublisher::setUp() {
   return Status(0, "OK");
 }
 
+bool INotifyEventPublisher::needMonitoring(const std::string& path,
+                                           INotifySubscriptionContextRef& isc,
+                                           uint32_t mask,
+                                           bool recursive,
+                                           bool add_watch) {
+  bool rc = true;
+  struct stat file_dir_stat;
+  time_t sc_time = isc->path_sc_time_[path];
+
+  if (stat(path.c_str(), &file_dir_stat) == -1) {
+    LOG(WARNING) << "Failed to do stat on: " << path;
+    return false;
+  }
+
+  if (sc_time != file_dir_stat.st_ctime) {
+    if ((rc = addMonitor(path, isc, isc->mask, isc->recursive, add_watch))) {
+      isc->path_sc_time_[path] = file_dir_stat.st_ctime;
+    }
+  }
+  return rc;
+}
+
 bool INotifyEventPublisher::monitorSubscription(
     INotifySubscriptionContextRef& sc, bool add_watch) {
   std::string discovered = sc->path;
@@ -90,7 +112,7 @@ bool INotifyEventPublisher::monitorSubscription(
       resolveFilePattern(discovered, paths);
       sc->recursive_match = sc->recursive;
       for (const auto& _path : paths) {
-        addMonitor(_path, sc, sc->mask, sc->recursive, add_watch);
+        needMonitoring(_path, sc, sc->mask, sc->recursive, add_watch);
       }
       return true;
     }
@@ -100,7 +122,8 @@ bool INotifyEventPublisher::monitorSubscription(
     sc->path += '/';
     discovered += '/';
   }
-  return addMonitor(discovered, sc, sc->mask, sc->recursive, add_watch);
+
+  return needMonitoring(discovered, sc, sc->mask, sc->recursive, add_watch);
 }
 
 void INotifyEventPublisher::configure() {
@@ -141,10 +164,6 @@ void INotifyEventPublisher::configure() {
     // Configure is called as a response to removing/adding subscriptions.
     // This means recalculating all monitored paths.
     auto sc = getSubscriptionContext(sub->context);
-    if (sc->use_count_) {
-      continue;
-    }
-
     monitorSubscription(sc);
   }
 }
@@ -321,7 +340,6 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
       }
       ino_sc->descriptor_paths_.erase(watch);
       descriptor_inosubctx_.erase(watch);
-      --ino_sc->use_count_;
     }
 
     // Keep a map of (descriptor -> path)
@@ -331,7 +349,6 @@ bool INotifyEventPublisher::addMonitor(const std::string& path,
       // Keep a map of the path -> watch descriptor
       path_descriptors_[path] = watch;
     }
-    ++isc->use_count_;
   }
 
   if (recursive && isDirectory(path).ok()) {
@@ -368,7 +385,6 @@ bool INotifyEventPublisher::removeMonitor(int watch,
 
     if (!batch_del) {
       isc->descriptor_paths_.erase(watch);
-      --isc->use_count_;
     }
   }
 
