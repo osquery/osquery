@@ -38,6 +38,7 @@ namespace osquery {
 
 DECLARE_string(tls_hostname);
 DECLARE_bool(enroll_always);
+DECLARE_uint64(config_refresh);
 
 class TLSConfigTests : public testing::Test {
  public:
@@ -49,7 +50,11 @@ class TLSConfigTests : public testing::Test {
     plugin_ = Flag::getValue("config_plugin");
     endpoint_ = Flag::getValue("config_tls_endpoint");
     node_ = Flag::getValue("tls_node_api");
+    refresh_ = Flag::getValue("config_refresh");
     enroll_ = FLAGS_enroll_always;
+
+    // Prevent the refresh thread from starting.
+    FLAGS_config_refresh = 0;
   }
 
   void TearDown() override {
@@ -59,6 +64,7 @@ class TLSConfigTests : public testing::Test {
     Flag::updateValue("config_plugin", plugin_);
     Flag::updateValue("config_tls_endpoint", endpoint_);
     Flag::updateValue("tls_node_api", node_);
+    Flag::updateValue("config_refresh", refresh_);
     FLAGS_enroll_always = enroll_;
   }
 
@@ -67,6 +73,7 @@ class TLSConfigTests : public testing::Test {
   std::string plugin_;
   std::string endpoint_;
   std::string node_;
+  std::string refresh_;
   bool enroll_{false};
 };
 
@@ -109,6 +116,7 @@ TEST_F(TLSConfigTests, test_runner_and_scheduler) {
   Dispatcher::addService(std::make_shared<SchedulerRunner>(t + 1, 1));
   // Reload our instance config.
   Config::get().load();
+
   Dispatcher::joinServices();
 }
 
