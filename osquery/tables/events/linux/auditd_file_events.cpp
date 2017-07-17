@@ -22,6 +22,10 @@
 #include <unordered_map>
 
 namespace osquery {
+// Depend on the external getUptime table method.
+namespace tables {
+extern long getUptime();
+}
 
 FLAG(bool,
      audit_allow_file_events,
@@ -58,7 +62,6 @@ Status AuditFimEventSubscriber::init() {
   return Status(0, "OK");
 }
 
-/// \todo Events are collected but rows are not being added yet
 Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
                                          const SCRef& subscription_context) {
   for (const SyscallEvent& syscall : event_context->syscall_events) {
@@ -69,32 +72,34 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
       break;
     }
 
-    /// \todo The exit_group should probably be treated differently
+    // We just have to drop the file descriptor table for the exiting process
     case SyscallEvent::Type::Exit:
     case SyscallEvent::Type::Exit_group: {
-      // We just have to drop the table for the exiting process
+      /// \todo The exit_group should probably be treated differently
+
+      // This process may have been created before us, so we may not have
+      // a handle table to drop
       auto handle_map_it = process_map_.find(syscall.process_id);
-      if (handle_map_it == process_map_.end()) {
-        std::cout << "Untracked process exiting: " << syscall.process_id
-                  << std::endl;
-      } else {
+      if (handle_map_it != process_map_.end()) {
         process_map_.erase(handle_map_it);
       }
 
       break;
     }
 
-    /// \todo The openat and open_by_handle_at are probably not handled
-    /// correctly
+    // Find the handle table for the process, and then lookup the file
+    // descriptor
     case SyscallEvent::Type::Open:
     case SyscallEvent::Type::Openat:
     case SyscallEvent::Type::Open_by_handle_at: {
-      // Find the handle table for the process, and then lookup the file
-      // descriptor
+      /// \todo The openat and open_by_handle_at are probably broken
+
+      // Allocate a new handle map if this process has been created before
+      // osquery
       auto handle_map_it = process_map_.find(syscall.process_id);
       if (handle_map_it == process_map_.end()) {
-        std::cout << "Untracked process opening a file: " << syscall.process_id
-                  << std::endl;
+        process_map_[syscall.process_id] = HandleMap();
+        handle_map_it = process_map_.find(syscall.process_id);
         break;
       }
 
@@ -103,55 +108,73 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
       HandleMap& handle_map = handle_map_it->second;
       handle_map[syscall.output_fd] = syscall.cwd + "|" + syscall.path;
 
-      /// \todo Add this event as a new row
-      std::cout << "open: " << handle_map[syscall.output_fd] << std::endl;
+      Row row;
+      row["action"] = "open";
+      row["pid"] = std::to_string(syscall.process_id);
+      row["ppid"] = std::to_string(syscall.parent_process_id);
+      row["cwd"] = syscall.cwd;
+      row["name"] = syscall.path;
+      row["canonical_path"] = handle_map[syscall.output_fd];
+      row["uptime"] = std::to_string(tables::getUptime());
+      add(row);
 
       break;
     }
 
+    // Find the handle table for the process, and drop the specified file
+    // descriptor
     case SyscallEvent::Type::Close: {
-      // Find the handle table for the process, and drop the specified file
-      // descriptor
+      // Allocate a new handle map if this process has been created before
+      // osquery
       auto handle_map_it = process_map_.find(syscall.process_id);
       if (handle_map_it == process_map_.end()) {
-        std::cout << "Untracked process closing a file: " << syscall.process_id
-                  << std::endl;
+        process_map_[syscall.process_id] = HandleMap();
+        handle_map_it = process_map_.find(syscall.process_id);
         break;
       }
 
+      Row row;
+      row["action"] = "close";
+      row["pid"] = std::to_string(syscall.process_id);
+      row["ppid"] = std::to_string(syscall.parent_process_id);
+      row["uptime"] = std::to_string(tables::getUptime());
+
+      // the following fields are not known for this type of event
+      row["cwd"] = "";
+      row["name"] = "";
+
+      /// attempt to solve the file descriptor
       HandleMap& handle_map = handle_map_it->second;
-      auto file_name_it = handle_map.find(syscall.output_fd);
-      if (file_name_it == handle_map.end()) {
-        std::cout << "Unknown file closed by a tracked process" << std::endl;
-        break;
+      auto file_name_it = handle_map.find(syscall.input_fd);
+      if (file_name_it != handle_map.end()) {
+        row["canonical_path"] = file_name_it->second;
+        handle_map.erase(file_name_it);
+      } else {
+        row["canonical_path"] = "";
       }
 
-      /// \todo Add this event as a new row
-      std::cout << "close: " << file_name_it->second << std::endl;
-      handle_map.erase(file_name_it);
-
+      add(row);
       break;
     }
 
+    // Find the handle table for the process, and duplicate the specified file
+    // descriptor
     case SyscallEvent::Type::Dup: {
-      // Find the handle table for the process, and duplicate the specified file
-      // descriptor
+      // Allocate a new handle map if this process has been created before
+      // osquery
       auto handle_map_it = process_map_.find(syscall.process_id);
       if (handle_map_it == process_map_.end()) {
-        std::cout << "Untracked process duplicating a file handle: "
-                  << syscall.process_id << std::endl;
+        process_map_[syscall.process_id] = HandleMap();
+        handle_map_it = process_map_.find(syscall.process_id);
         break;
       }
 
       HandleMap& handle_map = handle_map_it->second;
       auto file_name_it = handle_map.find(syscall.input_fd);
-      if (file_name_it == handle_map.end()) {
-        std::cout << "Unknown file duplicated by a tracked process"
-                  << std::endl;
-        break;
+      if (file_name_it != handle_map.end()) {
+        handle_map[syscall.output_fd] = file_name_it->second;
       }
 
-      handle_map[syscall.output_fd] = file_name_it->second;
       break;
     }
 

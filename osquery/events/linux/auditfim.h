@@ -42,9 +42,6 @@ struct SyscallEvent final {
   /// Output file descriptor (i.e.: open syscall)
   int output_fd;
 
-  /// Whether the syscall has managed to perform its task
-  bool success;
-
   //
   // Populated from the AUDIT_CWD event record
   //

@@ -182,10 +182,6 @@ Status AuditFimEventPublisher::run() {
         }
       }
 
-      field_value =
-          L_GetFieldFromMap(audit_event_record.fields, "success", "false");
-      syscall_event.success = (field_value == "true");
-
       field_value = L_GetFieldFromMap(audit_event_record.fields, "ppid", "");
 
       long long int process_id_value;
@@ -244,7 +240,7 @@ Status AuditFimEventPublisher::run() {
   }
 
   if (!event_context->syscall_events.empty()) {
-    // fire(event_context);
+    fire(event_context);
 
     for (const auto& syscall_event : event_context->syscall_events) {
       std::cout << syscall_event << "\n";
@@ -263,8 +259,8 @@ bool AuditFimEventPublisher::shouldFire(
 
 std::ostream& operator<<(std::ostream& stream,
                          const SyscallEvent& syscall_event) {
-  std::cout << "ppid: " << syscall_event.parent_process_id << " ";
-  std::cout << "pid: " << syscall_event.process_id << " ";
+  stream << "ppid: " << syscall_event.parent_process_id << " ";
+  stream << "pid: " << syscall_event.process_id << " ";
 
   bool show_path_and_cwd = false;
   bool show_input_file_descriptor = false;
@@ -272,23 +268,23 @@ std::ostream& operator<<(std::ostream& stream,
 
   switch (syscall_event.type) {
   case SyscallEvent::Type::Execve: {
-    std::cout << "execve";
+    stream << "execve";
     show_path_and_cwd = true;
     break;
   }
 
   case SyscallEvent::Type::Exit: {
-    std::cout << "exit";
+    stream << "exit";
     break;
   }
 
   case SyscallEvent::Type::Exit_group: {
-    std::cout << "exit_group";
+    stream << "exit_group";
     break;
   }
 
   case SyscallEvent::Type::Open: {
-    std::cout << "open";
+    stream << "open";
 
     show_path_and_cwd = true;
     show_output_file_descriptor = true;
@@ -297,7 +293,7 @@ std::ostream& operator<<(std::ostream& stream,
   }
 
   case SyscallEvent::Type::Openat: {
-    std::cout << "openat";
+    stream << "openat";
 
     show_path_and_cwd = true;
     show_output_file_descriptor = true;
@@ -306,7 +302,7 @@ std::ostream& operator<<(std::ostream& stream,
   }
 
   case SyscallEvent::Type::Open_by_handle_at: {
-    std::cout << "open_by_handle_at";
+    stream << "open_by_handle_at";
 
     show_input_file_descriptor = true;
     show_output_file_descriptor = true;
@@ -315,54 +311,54 @@ std::ostream& operator<<(std::ostream& stream,
   }
 
   case SyscallEvent::Type::Close: {
-    std::cout << "close";
+    stream << "close";
     show_input_file_descriptor = true;
     break;
   }
 
   case SyscallEvent::Type::Dup: {
-    std::cout << "dup";
+    stream << "dup";
     show_input_file_descriptor = true;
     show_output_file_descriptor = true;
     break;
   }
 
   case SyscallEvent::Type::Read: {
-    std::cout << "read";
+    stream << "read";
     show_input_file_descriptor = true;
     break;
   }
 
   case SyscallEvent::Type::Write: {
-    std::cout << "write";
+    stream << "write";
     show_input_file_descriptor = true;
     break;
   }
 
   case SyscallEvent::Type::Mmap: {
-    std::cout << "mmap";
+    stream << "mmap";
     show_input_file_descriptor = true;
     break;
   }
 
   default: {
-    std::cout << "invalid_syscall_id";
+    stream << "invalid_syscall_id";
     break;
   }
   }
 
-  std::cout << "(";
+  stream << "(";
 
   if (show_path_and_cwd) {
-    std::cout << "cwd:" << syscall_event.cwd << ", ";
-    std::cout << "path:" << syscall_event.path;
+    stream << "cwd:" << syscall_event.cwd << ", ";
+    stream << "path:" << syscall_event.path;
   } else if (show_input_file_descriptor) {
-    std::cout << "input_fd:" << syscall_event.input_fd;
+    stream << "input_fd:" << syscall_event.input_fd;
   }
 
-  std::cout << ")";
+  stream << ")";
   if (show_output_file_descriptor)
-    std::cout << " -> " << syscall_event.output_fd;
+    stream << " -> " << syscall_event.output_fd;
 
   return stream;
 }
