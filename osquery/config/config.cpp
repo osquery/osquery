@@ -677,6 +677,7 @@ void Config::purge() {
     if (last_executed < getUnixTime() - 592200) {
       // Query has not run in the last week, expire results and interval.
       deleteDatabaseValue(kQueries, saved_query);
+      deleteDatabaseValue(kQueries, saved_query + "epoch");
       deleteDatabaseValue(kPersistentSettings, "interval." + saved_query);
       deleteDatabaseValue(kPersistentSettings, "timestamp." + saved_query);
       VLOG(1) << "Expiring results for scheduled query: " << saved_query;

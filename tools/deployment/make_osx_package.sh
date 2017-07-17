@@ -34,6 +34,7 @@ KERNEL_APP_IDENTIFIER="com.facebook.osquery.kernel"
 LD_IDENTIFIER="com.facebook.osqueryd"
 LD_INSTALL="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
 OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$APP_VERSION.pkg"
+OUTPUT_DEBUG_PKG_PATH="$BUILD_DIR/osquery-debug-$APP_VERSION.pkg"
 KERNEL_OUTPUT_PKG_PATH="$BUILD_DIR/osquery-kernel-${APP_VERSION}.pkg"
 AUTOSTART=false
 CLEAN=false
@@ -62,6 +63,7 @@ OSQUERY_PKG_INCLUDE_DIRS=()
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX="$WORKING_DIR/prefix"
+DEBUG_PREFIX="$WORKING_DIR/debug"
 SCRIPT_ROOT="$WORKING_DIR/scripts"
 PREINSTALL="$SCRIPT_ROOT/preinstall"
 POSTINSTALL="$SCRIPT_ROOT/postinstall"
@@ -199,6 +201,11 @@ function main() {
   strip $BINARY_INSTALL_DIR/*
   cp "$OSQUERYCTL_PATH" $BINARY_INSTALL_DIR
 
+  BINARY_DEBUG_DIR="$DEBUG_PREFIX/private/var/osquery/debug"
+  mkdir -p "$BINARY_DEBUG_DIR"
+  cp "$BUILD_DIR/osquery/osqueryi" $BINARY_DEBUG_DIR/osqueryi.debug
+  cp "$BUILD_DIR/osquery/osqueryd" $BINARY_DEBUG_DIR/osqueryd.debug
+
   # Create the prefix log dir and copy source configs.
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
   mkdir -p `dirname $INSTALL_PREFIX$OSQUERY_CONFIG_DST`
@@ -255,6 +262,13 @@ function main() {
            $OUTPUT_PKG_PATH 2>&1  1>/dev/null
   log "package created at $OUTPUT_PKG_PATH"
 
+  pkgbuild --root $DEBUG_PREFIX          \
+           --identifier $APP_IDENTIFIER.debug \
+           --version $APP_VERSION             \
+           $OUTPUT_DEBUG_PKG_PATH 2>&1  1>/dev/null
+  log "package created at $OUTPUT_DEBUG_PKG_PATH"
+
+
   # We optionally create an RPM equivalent.
   FPM=$(which fpm || true)
   RPMBUILD=$(which rpmbuild || true)
@@ -267,6 +281,7 @@ function main() {
     PACKAGE_ITERATION="1.darwin"
     RPM_APP_VERSION=$(echo ${APP_VERSION}|tr '-' '_')
     OUTPUT_RPM_PATH="$BUILD_DIR/osquery-$RPM_APP_VERSION-$PACKAGE_ITERATION.$PACKAGE_ARCH.rpm"
+    rm -f $OUTPUT_RPM_PATH
     CMD="$FPM -s dir -t rpm \
       -n osquery \
       -v $RPM_APP_VERSION \
@@ -277,6 +292,19 @@ function main() {
       \"$INSTALL_PREFIX/=/\""
     eval "$CMD"
     log "RPM package (also) created at $OUTPUT_RPM_PATH"
+
+    OUTPUT_DEBUG_RPM_PATH="$BUILD_DIR/osquery-debug-$RPM_APP_VERSION-$PACKAGE_ITERATION.$PACKAGE_ARCH.rpm"
+    rm -f $OUTPUT_DEBUG_RPM_PATH
+    CMD="$FPM -s dir -t rpm \
+      -n osquery-debug \
+      -v $RPM_APP_VERSION \
+      --iteration $PACKAGE_ITERATION -a $PACKAGE_ARCH \
+      -p $OUTPUT_DEBUG_RPM_PATH \
+      --url https://osquery.io -m osquery@osquery.io \
+      --vendor Facebook --license BSD \
+      \"$DEBUG_PREFIX/=/\""
+    eval "$CMD"
+    log "RPM package (also) created at $OUTPUT_DEBUG_RPM_PATH"
   else
     log "Skipping OS X RPM package build: Cannot find fpm and rpmbuild"
   fi

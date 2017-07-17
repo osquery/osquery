@@ -16,6 +16,16 @@
 
 namespace osquery {
 
+uint64_t Query::getPreviousEpoch() {
+  uint64_t epoch = 0;
+  std::string raw;
+  auto status = getDatabaseValue(kQueries, name_ + "epoch", raw);
+  if (status.ok()) {
+    epoch = std::stoul(raw);
+  }
+  return epoch;
+}
+
 Status Query::getPreviousQueryResults(QueryData& results) {
   std::string raw;
   auto status = getDatabaseValue(kQueries, name_, raw);
@@ -52,12 +62,13 @@ bool Query::isNewQuery() {
   return (query != query_.query);
 }
 
-Status Query::addNewResults(const QueryData& qd) {
+Status Query::addNewResults(const QueryData& qd, const uint64_t epoch) {
   DiffResults dr;
-  return addNewResults(qd, dr, false);
+  return addNewResults(qd, epoch, dr, false);
 }
 
 Status Query::addNewResults(const QueryData& current_qd,
+                            const uint64_t current_epoch,
                             DiffResults& dr,
                             bool calculate_diff) {
   // The current results are 'fresh' when not calculating a differential.
@@ -67,6 +78,10 @@ Status Query::addNewResults(const QueryData& current_qd,
     fresh_results = true;
     LOG(INFO) << "Storing initial results for new scheduled query: " << name_;
     saveQuery(name_, query_.query);
+  } else if (getPreviousEpoch() != current_epoch) {
+    fresh_results = true;
+    LOG(INFO) << "New Epoch " << current_epoch << " for scheduled query "
+              << name_;
   } else if (isNewQuery()) {
     // This query is 'new' in that the previous results may be invalid.
     LOG(INFO) << "Scheduled query has been updated: " + name_;
@@ -102,6 +117,12 @@ Status Query::addNewResults(const QueryData& current_qd,
     }
 
     status = setDatabaseValue(kQueries, name_, json);
+    if (!status.ok()) {
+      return status;
+    }
+
+    status = setDatabaseValue(
+        kQueries, name_ + "epoch", std::to_string(current_epoch));
     if (!status.ok()) {
       return status;
     }
