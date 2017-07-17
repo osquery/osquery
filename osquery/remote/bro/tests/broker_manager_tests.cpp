@@ -103,7 +103,7 @@ TEST_F(BrokerManagerTests, test_announce) {
   auto msg = msgs.front();
 
   // Checking announce message format
-  EXPECT_TRUE(msg.size() == 4);
+  EXPECT_TRUE(msg.size() == 3);
   // EVENT Name
   EXPECT_TRUE(broker::is<std::string>(msg[0]));
   EXPECT_TRUE(*broker::get<std::string>(msg[0]) == get().EVENT_HOST_NEW);
@@ -118,8 +118,6 @@ TEST_F(BrokerManagerTests, test_announce) {
   EXPECT_TRUE(groups.size() == 2);
   EXPECT_TRUE(*broker::get<std::string>(groups.at(0)) == "test1");
   EXPECT_TRUE(*broker::get<std::string>(groups.at(1)) == "test2");
-  // Addr List
-  EXPECT_TRUE(broker::is<broker::vector>(msg[3]));
 }
 
 TEST_F(BrokerManagerTests, test_addandremovegroups) {

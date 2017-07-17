@@ -231,23 +231,11 @@ Status BrokerManager::announce() {
   for (const auto& g : getGroups()) {
     group_list.push_back(g);
   }
-  // Collect IPs
-  broker::vector addr_list;
-  SQL sql("SELECT address from interface_addresses");
-  if (!sql.ok()) {
-    return Status(1, "Failed to retrieve interface addresses");
-  }
-  for (const auto& row : sql.rows()) {
-    const auto& if_mac = row.at("address");
-    addr_list.push_back(
-        broker::data(broker::address::from_string(if_mac).get()));
-  }
 
   // Create Message
   broker::message announceMsg = broker::message{broker::data(EVENT_HOST_NEW),
                                                 broker::data(getNodeID()),
-                                                broker::data(group_list),
-                                                broker::data(addr_list)};
+                                                broker::data(group_list)};
   Status s = sendEvent(TOPIC_ANNOUNCE, announceMsg);
   if (!s.ok()) {
     return s;
