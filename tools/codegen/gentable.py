@@ -235,9 +235,6 @@ class TableState(Singleton):
         if "event_subscriber" in self.attributes:
             self.generator = True
         if "cacheable" in self.attributes:
-            if len(set(all_options).intersection(NON_CACHEABLE)) > 0:
-                print(lightred("Table cannot be marked cacheable: %s" % (path)))
-                exit(1)
             if self.generator:
                 print(lightred(
                     "Table cannot use a generator and be marked cacheable: %s" % (path)))
