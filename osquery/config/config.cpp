@@ -410,16 +410,6 @@ Status Config::refresh() {
       return Status();
     }
     status = update(response[0]);
-
-    /*
-     * If the initial configuration includes a non-0 refresh, start an
-     * additional service that sleeps and periodically regenerates the
-     * configuration.
-     */
-    if (!started_thread_ && FLAGS_config_refresh >= 1) {
-      Dispatcher::addService(refresh_runner_);
-      started_thread_ = true;
-    }
   }
 
   loaded_ = true;
@@ -446,6 +436,17 @@ Status Config::load() {
 
   // Set the initial and optional refresh value.
   setRefresh(FLAGS_config_refresh);
+
+  /*
+   * If the initial configuration includes a non-0 refresh, start an
+   * additional service that sleeps and periodically regenerates the
+   * configuration.
+   */
+  if (!FLAGS_config_check && !started_thread_ && getRefresh() > 0) {
+    Dispatcher::addService(refresh_runner_);
+    started_thread_ = true;
+  }
+
   return refresh();
 }
 
@@ -725,6 +726,9 @@ void Config::reset() {
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
   loaded_ = false;
+
+  refresh_runner_ = std::make_shared<ConfigRefreshRunner>();
+  started_thread_ = false;
 
   // Also request each parse to reset state.
   for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {

@@ -45,23 +45,33 @@ class ConfigTests : public testing::Test {
 
  protected:
   void SetUp() {
+    refresh_ = FLAGS_config_refresh;
+    FLAGS_config_refresh = 0;
+
     createMockFileStructure();
   }
 
   void TearDown() {
     tearDownMockFileStructure();
+
+    FLAGS_config_refresh = refresh_;
   }
 
  protected:
   Status load() {
     return Config::get().load();
   }
+
   void setLoaded() {
     Config::get().loaded_ = true;
   }
+
   Config& get() {
     return Config::get();
   }
+
+ private:
+  size_t refresh_{0};
 };
 
 class TestConfigPlugin : public ConfigPlugin {
@@ -431,38 +441,53 @@ TEST_F(ConfigTests, test_config_refresh) {
   EXPECT_TRUE(rf.registry("config")->add("test", plugin));
   EXPECT_TRUE(rf.setActive("config", "test"));
 
-  // Expect the config to not contain a default refresh value.
-  ASSERT_EQ(0U, refresh);
+  // Reset the configuration and stop the refresh thread.
+  get().reset();
+
+  // Stop the existing refresh runner thread.
+  Dispatcher::stopServices();
+  Dispatcher::joinServices();
 
   // Set a config_refresh value to convince the Config to start the thread.
   FLAGS_config_refresh = 2;
   FLAGS_config_accelerated_refresh = 1;
-  get().setRefresh(get().getRefresh(), 10);
-  get().refresh();
+  get().setRefresh(FLAGS_config_refresh, 10);
 
-  // This refresh call with a refresh value > 0 will have started a refresh
-  // thread.
-  ASSERT_TRUE(get().started_thread_);
+  // Fail the first config load.
+  plugin->fail_ = true;
 
   // The runner will wait at least one refresh-delay.
-  waitForConfig(plugin, 1);
-  ASSERT_GT(plugin->gen_config_count_, 1U);
+  auto count = static_cast<size_t>(plugin->gen_config_count_);
+
+  get().load();
+  EXPECT_TRUE(get().started_thread_);
+  EXPECT_GT(plugin->gen_config_count_, count);
+  EXPECT_EQ(get().getRefresh(), FLAGS_config_accelerated_refresh);
+
+  plugin->fail_ = false;
+  count = static_cast<size_t>(plugin->gen_config_count_);
+
+  waitForConfig(plugin, count + 1);
+  EXPECT_GT(plugin->gen_config_count_, count);
+  EXPECT_EQ(get().getRefresh(), FLAGS_config_refresh);
 
   // Now make the configuration break.
   plugin->fail_ = true;
-  auto count = static_cast<size_t>(plugin->gen_config_count_);
+  count = static_cast<size_t>(plugin->gen_config_count_);
+
   waitForConfig(plugin, count + 1);
-  ASSERT_GT(plugin->gen_config_count_, count + 1);
-  EXPECT_EQ(get().getRefresh(), 1U);
+  EXPECT_GT(plugin->gen_config_count_, count);
+  EXPECT_EQ(get().getRefresh(), FLAGS_config_accelerated_refresh);
 
   // Test that the normal acceleration is restored.
   plugin->fail_ = false;
   count = static_cast<size_t>(plugin->gen_config_count_);
-  waitForConfig(plugin, count + 1);
-  ASSERT_GT(plugin->gen_config_count_, count + 1);
-  EXPECT_EQ(get().getRefresh(), 2U);
 
-  // Stop the refresh runner thread.
+  waitForConfig(plugin, count + 1);
+  EXPECT_GT(plugin->gen_config_count_, count);
+  EXPECT_EQ(get().getRefresh(), FLAGS_config_refresh);
+
+  // Stop the new refresh runner thread.
   Dispatcher::stopServices();
   Dispatcher::joinServices();
 
