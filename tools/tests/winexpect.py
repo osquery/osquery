@@ -6,8 +6,6 @@
 #  This source code is licensed under the BSD-style license found in the
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
-
-
 """
     A Windows specific implementation of REPLWrapper from pexpect.
 
@@ -19,7 +17,6 @@
 import os
 import shlex
 import subprocess
-
 import threading
 import time
 
@@ -29,18 +26,24 @@ except ImportError:
     # TODO: Get on all python3
     from queue import Queue, Empty
 
+
 class REPLWrapper(object):
-    def __init__(self, proc, orig_prompt, prompt_change, continuation_prompt='', timeout=2):
+    def __init__(self,
+                 proc,
+                 orig_prompt,
+                 prompt_change,
+                 continuation_prompt='',
+                 timeout=2):
         self.child = proc
         self.prompt = orig_prompt
         self.prompt_change = prompt_change
         self.continuation_prompt = continuation_prompt
-        self.timeout=timeout
+        self.timeout = timeout
 
     # We currently only support 1 query at a time.
     def run_command(self, command):
         res = ''
-        if(command == ' '):
+        if (command == ' '):
             return res
         try:
             self.child.proc.stdin.write(command + '\r\n')
@@ -60,12 +63,18 @@ class REPLWrapper(object):
             print('[-] Failed to communicate with client: {}'.format(e))
         return res
 
+
 class WinExpectSpawn(object):
     def __init__(self, command='', cwd=None, env=None):
         si = subprocess.STARTUPINFO()
         si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        kwargs = dict(bufsize=1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-              cwd=cwd, env=env)
+        kwargs = dict(
+            bufsize=1,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=cwd,
+            env=env)
         kwargs['startupinfo'] = si
         kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
 
@@ -74,8 +83,8 @@ class WinExpectSpawn(object):
 
         # Spawn a new thread for "non-blocking" reads.
         self.out_queue = Queue()
-        self.stdout_thread = threading.Thread(target=self.read_pipe,
-                                args=(self.proc.stdout, self.out_queue))
+        self.stdout_thread = threading.Thread(
+            target=self.read_pipe, args=(self.proc.stdout, self.out_queue))
         self.stdout_thread.daemon = True
         self.stdout_thread.start()
 
@@ -86,6 +95,7 @@ class WinExpectSpawn(object):
         #self.stderr_thread.start()
 
     # Thread worker function used to insert stderr/stdout into a thread-safe queue
+
     def read_pipe(self, out, queue):
         for l in iter(out.readline, b''):
             queue.put(l)

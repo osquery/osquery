@@ -33,7 +33,7 @@ class OsqueryiTest(unittest.TestCase):
             test_base.CONFIG["options"]["database_path"],
             str(random.randint(1000, 9999)))
 
-    @unittest.skipIf(os.name == 'nt', "stderr tests not supported on Windows.")
+    @unittest.skipIf(os.name == "nt", "stderr tests not supported on Windows.")
     def test_error(self):
         '''Test that we throw an error on bad query'''
         self.osqueryi.run_command(' ')
@@ -194,7 +194,7 @@ class OsqueryiTest(unittest.TestCase):
     @test_base.flaky
     def test_foreign_tables(self):
         '''Requires the --enable_foreign flag to add at least one table.'''
-        ret = self.osqueryi.run_command(' ')
+        self.osqueryi.run_command(' ')
 
         query = 'SELECT count(1) c FROM osquery_registry;'
         result = self.osqueryi.run_query(query)
