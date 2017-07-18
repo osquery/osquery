@@ -42,6 +42,15 @@ struct SyscallEvent final {
   /// Output file descriptor (i.e.: open syscall)
   int output_fd;
 
+  /// Syscall exit status
+  std::string success;
+
+  /// Executable path
+  std::string executable_path;
+
+  /// If true, this is a partial event
+  bool partial;
+
   //
   // Populated from the AUDIT_CWD event record
   //

@@ -18,6 +18,8 @@
 
 #include <asm/unistd_64.h>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <iostream>
 #include <unordered_map>
 
@@ -100,22 +102,35 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
       if (handle_map_it == process_map_.end()) {
         process_map_[syscall.process_id] = HandleMap();
         handle_map_it = process_map_.find(syscall.process_id);
-        break;
       }
 
-      /// \todo Canonicalize the path; we should attempt to avoid accessing the
-      /// filesystem if possible
       HandleMap& handle_map = handle_map_it->second;
-      handle_map[syscall.output_fd] = syscall.cwd + "|" + syscall.path;
+
+      namespace boostfs = boost::filesystem;
+      boostfs::path translated_path;
+
+      try {
+        translated_path = boostfs::canonical(boostfs::path(syscall.path),
+                                             boostfs::path(syscall.cwd));
+      } catch (...) {
+        translated_path = boostfs::path(syscall.path).normalize();
+      }
+
+      handle_map[syscall.output_fd] = translated_path.string();
 
       Row row;
-      row["action"] = "open";
+      row["syscall"] = "open";
       row["pid"] = std::to_string(syscall.process_id);
       row["ppid"] = std::to_string(syscall.parent_process_id);
       row["cwd"] = syscall.cwd;
       row["name"] = syscall.path;
       row["canonical_path"] = handle_map[syscall.output_fd];
       row["uptime"] = std::to_string(tables::getUptime());
+      row["input_fd"] = "";
+      row["output_fd"] = std::to_string(syscall.output_fd);
+      row["success"] = syscall.success;
+      row["executable"] = syscall.executable_path;
+      row["partial"] = (syscall.partial ? "true" : "false");
       add(row);
 
       break;
@@ -126,18 +141,25 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
     case SyscallEvent::Type::Close: {
       // Allocate a new handle map if this process has been created before
       // osquery
+      bool partial_event = syscall.partial;
+
       auto handle_map_it = process_map_.find(syscall.process_id);
       if (handle_map_it == process_map_.end()) {
         process_map_[syscall.process_id] = HandleMap();
         handle_map_it = process_map_.find(syscall.process_id);
-        break;
+
+        partial_event = true;
       }
 
       Row row;
-      row["action"] = "close";
+      row["syscall"] = "close";
       row["pid"] = std::to_string(syscall.process_id);
       row["ppid"] = std::to_string(syscall.parent_process_id);
       row["uptime"] = std::to_string(tables::getUptime());
+      row["input_fd"] = std::to_string(syscall.input_fd);
+      row["output_fd"] = "";
+      row["success"] = syscall.success;
+      row["executable"] = syscall.executable_path;
 
       // the following fields are not known for this type of event
       row["cwd"] = "";
@@ -151,7 +173,10 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
         handle_map.erase(file_name_it);
       } else {
         row["canonical_path"] = "";
+        partial_event = true;
       }
+
+      row["partial"] = (partial_event ? "true" : "false");
 
       add(row);
       break;

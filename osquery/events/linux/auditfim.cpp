@@ -59,6 +59,15 @@ SyscallEvent::Type GetSyscallEventType(int syscall_number) noexcept {
   case __NR_dup3:
     return SyscallEvent::Type::Dup;
 
+  case __NR_mmap:
+    return SyscallEvent::Type::Mmap;
+
+  case __NR_write:
+    return SyscallEvent::Type::Write;
+
+  case __NR_read:
+    return SyscallEvent::Type::Read;
+
   default:
     return SyscallEvent::Type::Invalid;
   }
@@ -97,10 +106,18 @@ Status AuditFimEventPublisher::run() {
                                            __NR_close,
                                            __NR_dup,
                                            __NR_dup2,
-                                           __NR_dup3};
+                                           __NR_dup3,
+                                           __NR_write,
+                                           __NR_read,
+                                           __NR_mmap};
 
-  const std::vector<int> input_fd_syscall_list = {
-      __NR_dup, __NR_dup2, __NR_dup3, __NR_close};
+  const std::vector<int> input_fd_syscall_list = {__NR_dup,
+                                                  __NR_dup2,
+                                                  __NR_dup3,
+                                                  __NR_close,
+                                                  __NR_write,
+                                                  __NR_read,
+                                                  __NR_mmap};
 
   const std::vector<int> output_fd_syscall_list = {__NR_open,
                                                    __NR_openat,
@@ -152,6 +169,8 @@ Status AuditFimEventPublisher::run() {
         continue;
 
       SyscallEvent syscall_event;
+      syscall_event.partial = false;
+
       syscall_event.type = GetSyscallEventType(syscall_number);
 
       if (L_ContainsSyscall(input_fd_syscall_list, syscall_number)) {
@@ -162,6 +181,7 @@ Status AuditFimEventPublisher::run() {
           std::cout << "MALFORMED SYSCALL EVENT (invalid close() parameter)"
                     << std::endl;
           syscall_event.input_fd = -1;
+          syscall_event.partial = true;
 
         } else {
           syscall_event.input_fd = static_cast<int>(input_fd);
@@ -176,11 +196,22 @@ Status AuditFimEventPublisher::run() {
           std::cout << "MALFORMED SYSCALL EVENT (invalid exit field)"
                     << std::endl;
           syscall_event.output_fd = -1;
+          syscall_event.partial = true;
 
         } else {
           syscall_event.output_fd = static_cast<int>(output_fd);
         }
       }
+
+      syscall_event.success =
+          L_GetFieldFromMap(audit_event_record.fields, "success", "yes");
+
+      field_value = L_GetFieldFromMap(audit_event_record.fields, "exe", "");
+      if (field_value.empty()) {
+        syscall_event.partial = true;
+        std::cout << "MISSING EXE FROM SYSCALL" << std::endl;
+      }
+      syscall_event.executable_path = field_value;
 
       field_value = L_GetFieldFromMap(audit_event_record.fields, "ppid", "");
 
@@ -188,6 +219,7 @@ Status AuditFimEventPublisher::run() {
       if (!safeStrtoll(field_value, 10, process_id_value)) {
         std::cout << "MALFORMED SYSCALL EVENT (invalid ppid field)"
                   << std::endl;
+        syscall_event.partial = true;
         continue;
       }
 
@@ -196,6 +228,7 @@ Status AuditFimEventPublisher::run() {
       field_value = L_GetFieldFromMap(audit_event_record.fields, "pid", "");
       if (!safeStrtoll(field_value, 10, process_id_value)) {
         std::cout << "MALFORMED SYSCALL EVENT (invalid pid field)" << std::endl;
+        syscall_event.partial = true;
         continue;
       }
 
