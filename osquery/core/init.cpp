@@ -609,7 +609,7 @@ void Initializer::start() const {
   if (!s.ok()) {
     auto severity = (Watcher::get().hasManagedExtensions()) ? google::GLOG_ERROR
                                                             : google::GLOG_INFO;
-    if(severity == google::GLOG_INFO) {
+    if (severity == google::GLOG_INFO) {
       VLOG(1) << "Cannot start extension manager: " + s.getMessage();
     } else {
       google::LogMessage(__FILE__, __LINE__, severity).stream()

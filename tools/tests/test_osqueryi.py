@@ -191,7 +191,9 @@ class OsqueryiTest(unittest.TestCase):
         self.assertTrue(0 <= int(row['minutes']) <= 60)
         self.assertTrue(0 <= int(row['seconds']) <= 60)
 
+    # TODO: Running foreign table tests as non-priv user fails
     @test_base.flaky
+    @unittest.skipIf(os.name == "nt", "foreign table tests not supported on Windows.")
     def test_foreign_tables(self):
         '''Requires the --enable_foreign flag to add at least one table.'''
         self.osqueryi.run_command(' ')
@@ -203,6 +205,7 @@ class OsqueryiTest(unittest.TestCase):
         osqueryi2 = test_base.OsqueryWrapper(self.binary,
             args={"enable_foreign": True})
         osqueryi2.run_command(' ')
+        # This execution fails if the user is not Administrator on Windows
         result = osqueryi2.run_query(query)
         after = int(result[0]['c'])
         self.assertGreater(after, before)

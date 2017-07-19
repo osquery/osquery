@@ -54,7 +54,6 @@ class REPLWrapper(object):
                 if not self.child.out_queue.empty():
                     break
                 time.sleep(1)
-
             while not self.child.out_queue.empty():
                 l = self.child.out_queue.get_nowait()
                 res += l

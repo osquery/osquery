@@ -284,7 +284,7 @@ class ProcRunner(object):
 
     def kill(self, children=False):
         self.requireStarted()
-        sig = signal.SIGINT if os.name == "nt" else signal.SIGHUP
+        sig = signal.SIGINT if os.name == "nt" else signal.SIGKILL
         if children:
             for child in self.getChildren():
                 try:
@@ -343,6 +343,30 @@ def getLatestOsqueryDaemon():
         os.path.join(ARGS.build, "osquery", "Release", "osqueryd.exe"))
     relwithdebinfo_path = os.path.abspath(
         os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "osqueryd.exe"))
+
+    if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
+        if os.stat(release_path).st_mtime > os.stat(
+                relwithdebinfo_path).st_mtime:
+            return release_path
+        else:
+            return relwithdebinfo_path
+    elif os.path.exists(release_path):
+        return release_path
+    elif os.path.exists(relwithdebinfo_path):
+        return relwithdebinfo_path
+    else:
+        return None
+
+
+# Determine the last build osqueryi.exe
+def getLatestOsqueryShell():
+    if os.name == "posix":
+        return os.path.join(ARGS.build, "osquery", "osqueryi")
+
+    release_path = os.path.abspath(
+        os.path.join(ARGS.build, "osquery", "Release", "osqueryi.exe"))
+    relwithdebinfo_path = os.path.abspath(
+        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "osqueryi.exe"))
 
     if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
         if os.stat(release_path).st_mtime > os.stat(
@@ -420,7 +444,7 @@ class ProcessGenerator(object):
         Unittest should stop processes they generate, but on failure the
         tearDown method will cleanup.
         '''
-        sig = signal.SIGINT if os.name == "nt" else signalt.SIGKILL
+        sig = signal.SIGINT if os.name == "nt" else signal.SIGKILL
         for generator in self.generators:
             if generator.pid is not None:
                 try:
@@ -526,7 +550,6 @@ class TimeoutRunner(object):
 
 def flaky(gen):
     exceptions = []
-
     def attempt(this):
         try:
             worked = gen(this)
@@ -686,30 +709,6 @@ def assertPermissions():
         exit(1)
 
 
-# Determine the last build osqueryi.exe
-def getLatestOsqueryShell():
-    if os.name == "posix":
-        return os.path.join(ARGS.build, "osquery", "osqueryi")
-
-    release_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "Release", "osqueryi.exe"))
-    relwithdebinfo_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "osqueryi.exe"))
-
-    if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
-        if os.stat(release_path).st_mtime > os.stat(
-                relwithdebinfo_path).st_mtime:
-            return release_path
-        else:
-            return relwithdebinfo_path
-    elif os.path.exists(release_path):
-        return release_path
-    elif os.path.exists(relwithdebinfo_path):
-        return relwithdebinfo_path
-    else:
-        return None
-
-
 def getTestDirectory(base):
     path = os.path.join(base, "test-dir" + str(random.randint(1000, 9999)))
     utils.reset_dir(path)
@@ -721,8 +720,7 @@ def getLatestInfoLog(base):
     info_path = os.path.join(base, "osqueryd.INFO")
     if os.name != "nt":
         return info_path
-    query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;'.format(info_path+'%');".format(
-        base + "%")
+    query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;".format(info_path+'%')
     osqueryi = OsqueryWrapper(getLatestOsqueryShell())
     results = osqueryi.run_query(query)
     if len(results) > 0:

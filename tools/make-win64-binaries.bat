@@ -20,5 +20,5 @@ for %%t in (osquery_tests,osquery_additional_tests,osquery_tables_tests) do (
   cmake --build . --target %%t --config Release -- /verbosity:minimal /maxcpucount
   if errorlevel 1 goto end
 )
-ctest --output-on-failure
+ctest -C Release --output-on-failure
 :end
