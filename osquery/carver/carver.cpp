@@ -69,8 +69,8 @@ CLI_FLAG(bool,
 
 CLI_FLAG(bool,
          carver_compression,
-         true,
-         "Compress archives before they are uploaded (default true)");
+         false,
+         "Compress archives using zstd prior to upload (default false)");
 
 DECLARE_uint64(read_max);
 
