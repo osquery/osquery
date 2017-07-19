@@ -93,8 +93,7 @@ class WinExpectSpawn(object):
         #self.stderr_thread.daemon = True
         #self.stderr_thread.start()
 
-    # Thread worker function used to insert stderr/stdout into a thread-safe queue
-
+    # Thread worker used to insert stderr/stdout into a thread-safe queue
     def read_pipe(self, out, queue):
         for l in iter(out.readline, b''):
             queue.put(l)

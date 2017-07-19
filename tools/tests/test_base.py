@@ -118,6 +118,7 @@ DEFAULT_CONFIG = {
     },
     "schedule": {},
 }
+
 '''Expect CONFIG to be set during Tester.main() to a python dict.'''
 CONFIG = None
 '''Expect ARGS to contain the argparsed namespace.'''
@@ -332,41 +333,14 @@ class ProcRunner(object):
         return False
 
 
-'''Determine the last build osqueryi.exe'''
-
-
-def getLatestOsqueryDaemon():
+def getLatestOsqueryBinary(binary):
     if os.name == "posix":
-        return os.path.join(ARGS.build, "osquery", "osqueryd")
+        return os.path.join(ARGS.build, "osquery", binary)
 
     release_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "Release", "osqueryd.exe"))
+        os.path.join(ARGS.build, "osquery", "Release", "{}.exe".format(binary)))
     relwithdebinfo_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "osqueryd.exe"))
-
-    if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
-        if os.stat(release_path).st_mtime > os.stat(
-                relwithdebinfo_path).st_mtime:
-            return release_path
-        else:
-            return relwithdebinfo_path
-    elif os.path.exists(release_path):
-        return release_path
-    elif os.path.exists(relwithdebinfo_path):
-        return relwithdebinfo_path
-    else:
-        return None
-
-
-# Determine the last build osqueryi.exe
-def getLatestOsqueryShell():
-    if os.name == "posix":
-        return os.path.join(ARGS.build, "osquery", "osqueryi")
-
-    release_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "Release", "osqueryi.exe"))
-    relwithdebinfo_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "osqueryi.exe"))
+        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "{}.exe".format(binary)))
 
     if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
         if os.stat(release_path).st_mtime > os.stat(
@@ -408,7 +382,7 @@ class ProcessGenerator(object):
         for key in overwrite:
             config[key] = overwrite[key]
         utils.write_config(config)
-        binary = getLatestOsqueryDaemon()
+        binary = getLatestOsqueryBinary('osqueryd')
 
         daemon = ProcRunner("daemon", binary, flags, silent=silent)
         daemon.options = config["options"]
@@ -721,7 +695,7 @@ def getLatestInfoLog(base):
     if os.name != "nt":
         return info_path
     query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;".format(info_path+'%')
-    osqueryi = OsqueryWrapper(getLatestOsqueryShell())
+    osqueryi = OsqueryWrapper(getLatestOsqueryBinary('osqueryi'))
     results = osqueryi.run_query(query)
     if len(results) > 0:
         return results[0]["path"]

@@ -27,7 +27,7 @@ EXIT_CATASTROPHIC = 78
 
 class OsqueryiTest(unittest.TestCase):
     def setUp(self):
-        self.binary = test_base.getLatestOsqueryShell()
+        self.binary = test_base.getLatestOsqueryBinary('osqueryi')
         self.osqueryi = test_base.OsqueryWrapper(command=self.binary)
         self.dbpath = "%s%s" % (
             test_base.CONFIG["options"]["database_path"],
@@ -70,7 +70,7 @@ class OsqueryiTest(unittest.TestCase):
         actual = proc.stdout
 
         if os.name == "nt":
-            # Get rid of return carriages!
+            # Get rid of carriage returns
             actual = actual.replace("\r", "")
         self.assertEqual(actual, "{\"%s\": %s}\n" % (config, content))
         print (proc.stderr)

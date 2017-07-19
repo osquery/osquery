@@ -88,7 +88,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         })
         self.assertTrue(daemon.isAlive())
 
-        # Send a SIGHUP on posix, no SIGHUP on Windows.
+        # Send SIGHUP on posix. Windows does not have SIGHUP so we use SIGTERM
         sig = signal.SIGHUP if os.name != "nt" else signal.SIGTERM
         os.kill(daemon.proc.pid, sig)
         self.assertTrue(daemon.isAlive())
