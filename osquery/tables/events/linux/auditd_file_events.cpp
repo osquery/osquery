@@ -67,7 +67,9 @@ Status AuditFimEventSubscriber::init() {
 Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
                                          const SCRef& subscription_context) {
   for (const SyscallEvent& syscall : event_context->syscall_events) {
-    switch (syscall.type) {
+    auto syscall_type = syscall.type;
+
+    switch (syscall_type) {
     case SyscallEvent::Type::Execve: {
       // Allocate a new handle table
       process_map_[syscall.process_id] = HandleMap();
@@ -203,10 +205,61 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
       break;
     }
 
-    // Not yet implemented
-    case SyscallEvent::Type::Read:
-    case SyscallEvent::Type::Write:
+    // For the time being, remap this to a read or write, depending on the
+    // requested memory protection
     case SyscallEvent::Type::Mmap: {
+      bool write_memory_protection =
+          ((syscall.mmap_memory_protection_flags & PROT_WRITE) != 0);
+      syscall_type = (write_memory_protection ? SyscallEvent::Type::Write
+                                              : SyscallEvent::Type::Read);
+
+      // fall through here! we need to reach the Read and Write cases
+    }
+
+    case SyscallEvent::Type::Read:
+    case SyscallEvent::Type::Write: {
+      bool read_operation = (syscall.type == SyscallEvent::Type::Read);
+
+      // Allocate a new handle map if this process has been created before
+      // osquery
+      bool partial_event = syscall.partial;
+
+      auto handle_map_it = process_map_.find(syscall.process_id);
+      if (handle_map_it == process_map_.end()) {
+        process_map_[syscall.process_id] = HandleMap();
+        handle_map_it = process_map_.find(syscall.process_id);
+
+        partial_event = true;
+      }
+
+      Row row;
+      row["syscall"] = (read_operation ? "read" : "write");
+      row["pid"] = std::to_string(syscall.process_id);
+      row["ppid"] = std::to_string(syscall.parent_process_id);
+      row["uptime"] = std::to_string(tables::getUptime());
+      row["input_fd"] = std::to_string(syscall.input_fd);
+      row["output_fd"] = "";
+      row["success"] = syscall.success;
+      row["executable"] = syscall.executable_path;
+
+      // the following fields are not known for this type of event
+      row["cwd"] = "";
+      row["name"] = "";
+
+      /// attempt to solve the file descriptor
+      HandleMap& handle_map = handle_map_it->second;
+      auto file_name_it = handle_map.find(syscall.input_fd);
+      if (file_name_it != handle_map.end()) {
+        row["canonical_path"] = file_name_it->second;
+        handle_map.erase(file_name_it);
+      } else {
+        row["canonical_path"] = "";
+        partial_event = true;
+      }
+
+      row["partial"] = (partial_event ? "true" : "false");
+
+      add(row);
       break;
     }
 
