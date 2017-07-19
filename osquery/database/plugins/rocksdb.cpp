@@ -26,6 +26,12 @@
 
 namespace osquery {
 
+/// Hidden flags created for internal stress testing.
+HIDDEN_FLAG(int32, rocksdb_write_buffer, 16, "Max write buffer number");
+HIDDEN_FLAG(int32, rocksdb_merge_number, 4, "Min write buffer number to merge");
+HIDDEN_FLAG(int32, rocksdb_background_flushes, 4, "Max background flushes");
+HIDDEN_FLAG(uint64, rocksdb_buffer_blocks, 256, "Write buffer blocks (4k)");
+
 DECLARE_string(database_path);
 
 class GlogRocksDBLogger : public rocksdb::Logger {
@@ -173,10 +179,13 @@ Status RocksDBDatabasePlugin::setUp() {
     options_.compression = rocksdb::kNoCompression;
     options_.compaction_style = rocksdb::kCompactionStyleLevel;
     options_.arena_block_size = (4 * 1024);
-    options_.write_buffer_size = (4 * 1024) * 256; // 100 blocks.
-    options_.max_write_buffer_number = 4;
-    options_.min_write_buffer_number_to_merge = 1;
-    options_.max_background_flushes = 4;
+    options_.write_buffer_size = (4 * 1024) * FLAGS_rocksdb_buffer_blocks;
+    options_.max_write_buffer_number =
+        static_cast<int>(FLAGS_rocksdb_write_buffer);
+    options_.min_write_buffer_number_to_merge =
+        static_cast<int>(FLAGS_rocksdb_merge_number);
+    options_.max_background_flushes =
+        static_cast<int>(FLAGS_rocksdb_background_flushes);
 
     // Create an environment to replace the default logger.
     if (logger_ == nullptr) {
@@ -229,14 +238,6 @@ Status RocksDBDatabasePlugin::setUp() {
     if (!DatabasePlugin::kDBChecking) {
       LOG(INFO) << "Opening RocksDB failed: Continuing with read-only support";
     }
-#if !defined(ROCKSDB_LITE)
-    // RocksDB LITE does not support readonly mode.
-    // The database was readable but could not be opened, either (1) it is not
-    // writable or (2) it is already opened by another process.
-    // Try to open the database in a ReadOnly mode.
-    rocksdb::DB::OpenForReadOnly(
-        options_, path_, column_families_, &handles_, &db_);
-#endif
     // Also disable event publishers.
     Flag::updateValue("disable_events", "true");
     read_only_ = true;

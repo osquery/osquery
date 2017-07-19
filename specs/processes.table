@@ -29,6 +29,7 @@ schema([
     Column("threads", INTEGER, "Number of threads used by process"),
     Column("nice", INTEGER, "Process nice level (-20 to 20, default 0)"),
 ])
+attributes(cacheable=True)
 implementation("system/processes@genProcesses")
 examples([
   "select * from processes where pid = 1",

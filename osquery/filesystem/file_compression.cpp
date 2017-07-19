@@ -62,6 +62,7 @@ Status compress(const boost::filesystem::path& in,
       ZSTD_outBuffer output = {buffOut.data(), buffOutSize, 0};
       toRead = ZSTD_compressStream(cstream, &output, &input);
       if (ZSTD_isError(toRead)) {
+        ZSTD_freeCStream(cstream);
         return Status(1,
                       "ZSTD_compressStream() error : " +
                           std::string(ZSTD_getErrorName(toRead)));
@@ -78,6 +79,7 @@ Status compress(const boost::filesystem::path& in,
   size_t const remainingToFlush = ZSTD_endStream(cstream, &output);
 
   if (remainingToFlush) {
+    ZSTD_freeCStream(cstream);
     return Status(1, "Couldn't fully flush compressed file");
   }
 
@@ -104,6 +106,7 @@ Status decompress(const boost::filesystem::path& in,
 
   size_t const initResult = ZSTD_initDStream(dstream);
   if (ZSTD_isError(initResult)) {
+    ZSTD_freeDStream(dstream);
     return Status(1,
                   "ZSTD_initDStream() error : " +
                       std::string(ZSTD_getErrorName(initResult)));
@@ -120,6 +123,7 @@ Status decompress(const boost::filesystem::path& in,
       ZSTD_outBuffer output = {buffOut.data(), buffOutSize, 0};
       toRead = ZSTD_decompressStream(dstream, &output, &input);
       if (ZSTD_isError(toRead)) {
+        ZSTD_freeDStream(dstream);
         return Status(1,
                       "ZSTD_decompressStream() error : " +
                           std::string(ZSTD_getErrorName(toRead)));
@@ -129,7 +133,6 @@ Status decompress(const boost::filesystem::path& in,
     }
   }
   ZSTD_freeDStream(dstream);
-
   return Status(0);
 }
 

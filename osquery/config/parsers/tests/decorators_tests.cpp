@@ -83,6 +83,7 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_interval) {
   runDecorators(DECORATE_INTERVAL, 60);
 
   QueryLogItem item;
+  item.epoch = 0L;
   getDecorations(item.decorations);
   ASSERT_EQ(item.decorations.size(), 2U);
   EXPECT_EQ(item.decorations.at("internal_60_test"), "test");
@@ -92,7 +93,8 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_interval) {
   std::string expected =
       "{\"snapshot\":\"\",\"action\":\"snapshot\",\"name\":\"\","
       "\"hostIdentifier\":\"\",\"calendarTime\":\"\",\"unixTime\":\"0\","
-      "\"decorations\":{\"internal_60_test\":\"test\",\"one\":\"1\"}}\n";
+      "\"epoch\":\"0\",\"decorations\":{\"internal_60_test\":\"test\","
+      "\"one\":\"1\"}}\n";
   EXPECT_EQ(log_line, expected);
 
   // Now clear and run again.

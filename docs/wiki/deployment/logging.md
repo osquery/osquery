@@ -33,7 +33,7 @@ As the above directory listing reveals, *osqueryd.INFO* is a symlink to the most
 
 #### Differential logs
 
-The results of your scheduled queries are logged to the "results log". These are differential changes between the last (most recent) query execution and the current execution. Each log line is a JSON string that indicates what data has been added/removed by which query. There are two format options, *single*, or event, and *batched*. Some queries do not make sense to log "removed" events like:
+The results of your scheduled queries are logged to the "results log". These are differential changes between the last (most recent) query execution and the current execution. Each log line is a JSON string that indicates what data has been added/removed by which query. The first time the query is executed (there is no "last" run), the last run is treated as having null results, so the differential consists entirely of log lines with the added indication. There are two format options, *single*, or event, and *batched*. Some queries do not make sense to log "removed" events like:
 
 ```sql
 SELECT i.*, p.resident_size, p.user_time, p.system_time, t.minutes AS c
@@ -94,7 +94,8 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "name": "processes",
   "hostname": "hostname.local",
   "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850"
+  "unixTime": "1412123850",
+  "epoch": "314159265"
 }
 ```
 
@@ -109,7 +110,8 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "name": "processes",
   "hostname": "hostname.local",
   "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850"
+  "unixTime": "1412123850",
+  "epoch": "314159265"
 }
 ```
 
@@ -143,13 +145,14 @@ Consider the following example:
       "parent": "1",
       "path": "/usr/libexec/kextd",
       "pid": "54"
-    },
+    }
   ],
   "name": "process_snapshot",
   "hostIdentifier": "hostname.local",
   "calendarTime": "Mon May  2 22:27:32 2016 UTC",
-  "unixTime": "1462228052"
-},
+  "unixTime": "1462228052",
+  "epoch": "314159265"
+}
 ```
 
 ### Batch format
@@ -181,11 +184,17 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "name": "processes",
   "hostname": "hostname.local",
   "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850"
+  "unixTime": "1412123850",
+  "epoch": "314159265"
 }
 ```
 
 Most of the time the **Event format** is the most appropriate. The next section in the deployment guide describes [log aggregation](log-aggregation.md) methods. The aggregation methods describe collecting, searching, and alerting on the results from a query schedule.
+
+## Schedule epoch
+When [differential logs](#differential-logs) were described above, we mentioned that after the initial execution of a scheduled query, only differential results are logged. While this is very efficient from a size-of-logs perspective, it introduces some challenges. To begin with, if the logs are stored in a log management system of some kind, it becomes difficult or impossible to identify which log results are from the initial run of the query, and which ones are differentials to the initial results. In some situations, this becomes problematic - for example, for some tables like the users table that don't change very often at all and so don't generate differential results very often, one would have to search far into historical logs to find the last results returned by osquery; conversely, for some tables like processes that change frequently, one would have to do a fair amount of logic applying the effects of added and removed rows to reconstruct the current state of running processes. 
+
+To aid with this, osquery maintains an epoch marker along with each scheduled query execution, and calculates differentials only if the epoch of the last run matches the current epoch. If it doesn't, then it treats the current execution of the query as an initial run. You can set the epoch marker by starting osquery with the --schedule_epoch=<some 64bit int> flag or by updating the schedule_epoch flag remotely from a TLS backend. The epoch is transmitted with each log result, so that it is easy to identify which results belong to which execution of the scheduled query. 
 
 ## Unique host identification
 

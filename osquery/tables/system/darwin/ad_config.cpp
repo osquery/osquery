@@ -20,19 +20,20 @@ const std::string kADConfigPath =
     "Configurations/Active Directory/";
 
 void genADConfig(const std::string& path, QueryData& results) {
-  auto config = SQL::selectAllFrom("preferences", "path", EQUALS, path);
-  if (config.size() == 0) {
+  auto config = SQL::selectAllFrom("plist", "path", EQUALS, path);
+  if (config.size() == 0 || config[0].count("key") == 0) {
     // Fail if the file could not be plist-parsed.
     return;
   }
 
   // Walk through module options quickly to find the trust domain.
   // The file name and domain will be included in every row.
-  auto name = config[0].at("domain");
+  auto name = config[0].at("key");
   std::string domain;
   for (const auto& row : config) {
-    if (row.at("subkey") == "ActiveDirectory/trust domain") {
-      domain = row.at("value");
+    if (row.count("subkey") > 0 &&
+        row.at("subkey") == "ActiveDirectory/trust domain") {
+      domain = row.count("value") > 0 ? row.at("value") : "";
       break;
     }
   }
@@ -44,6 +45,9 @@ void genADConfig(const std::string& path, QueryData& results) {
     r["name"] = name;
 
     // Get references to common columns.
+    if (row.count("key") == 0 || row.count("subkey") == 0) {
+      continue;
+    }
     const auto& key = row.at("key");
     const auto& subkey = row.at("subkey");
     if (key == "trustoptions" ||
@@ -51,12 +55,12 @@ void genADConfig(const std::string& path, QueryData& results) {
         key == "trustaccount" ||
         key == "trusttype") {
       r["option"] = key;
-      r["value"] = row.at("value");
+      r["value"] = row.count("value") > 0 ? row.at("value") : "";
       results.push_back(r);
     } else if (key == "options") {
       // The options key has a single subkey with the option name.
       r["option"] = subkey;
-      r["value"] = row.at("value");
+      r["value"] = row.count("value") > 0 ? row.at("value") : "";
       results.push_back(r);
     } else if (key == "module options") {
       // Module options may contain 'managed client template', skip those.
@@ -66,7 +70,7 @@ void genADConfig(const std::string& path, QueryData& results) {
 
       // Skip the "ActiveDirectory/" preamble.
       r["option"] = subkey.substr(16);
-      r["value"] = row.at("value");
+      r["value"] = row.count("value") > 0 ? row.at("value") : "";
       results.push_back(r);
     }
   }

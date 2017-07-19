@@ -32,6 +32,8 @@ FLAG(uint64,
      300,
      "Interval in seconds to reload database arenas");
 
+FLAG(uint64, schedule_epoch, 0, "Epoch for scheduled queries");
+
 HIDDEN_FLAG(bool, enable_monitor, true, "Enable the schedule monitor");
 
 HIDDEN_FLAG(bool,
@@ -89,6 +91,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   item.name = name;
   item.identifier = ident;
   item.time = osquery::getUnixTime();
+  item.epoch = FLAGS_schedule_epoch;
   item.calendar_time = osquery::getAsciiTime();
   getDecorations(item.decorations);
 
@@ -110,7 +113,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // We can then ask for a differential from the last time this named query
   // was executed by exact matching each row.
   if (!FLAGS_events_optimize || !sql.eventBased()) {
-    status = dbQuery.addNewResults(sql.rows(), diff_results);
+    status = dbQuery.addNewResults(sql.rows(), item.epoch, diff_results);
     if (!status.ok()) {
       std::string line =
           "Error adding new results to database: " + status.what();
