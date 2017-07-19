@@ -62,6 +62,9 @@ void genInterfaceDetail(const WmiResultItem& adapter, QueryData& results) {
   WmiRequest irequest(query);
   if (irequest.getStatus().ok()) {
     auto& iresults = irequest.results();
+    if (iresults.size() == 0) {
+      return;
+    }
     iresults[0].GetLong("MTU", lPlaceHolder);
     r["mtu"] = INTEGER(lPlaceHolder);
 
