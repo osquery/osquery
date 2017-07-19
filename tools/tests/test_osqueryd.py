@@ -77,6 +77,37 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         self.assertTrue(daemon.isDead(children[0]))
 
     @test_base.flaky
+    def test_3_daemon_lost_worker(self):
+        # Test that killed workers are respawned by the watcher
+        if os.environ.get('SANITIZE') is not None:
+            return
+        daemon = self._run_daemon({
+            "allow_unsafe": True,
+            "disable_watchdog": False,
+            "ephemeral": True,
+            "disable_database": True,
+            "disable_logging": True,
+        })
+        self.assertTrue(daemon.isAlive())
+
+        # Check that the daemon spawned a child process
+        children = daemon.getChildren()
+        self.assertTrue(len(children) > 0)
+
+        # Kill only the child worker
+        os.kill(children[0], signal.SIGINT)
+        self.assertTrue(daemon.isDead(children[0]))
+        self.assertTrue(daemon.isAlive())
+
+        # Expect the children of the daemon to be respawned
+        def waitDaemonChildren():
+            children = daemon.getChildren()
+            return len(children) > 0
+        test_base.expectTrue(waitDaemonChildren)
+        children = daemon.getChildren()
+        self.assertTrue(len(children) > 0)
+
+    @test_base.flaky
     def test_4_daemon_sighup(self):
         # A hangup signal should not do anything to the daemon.
         daemon = self._run_daemon({
@@ -189,7 +220,6 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
         self.assertTrue(daemon.isAlive())
         daemon.kill()
-
 
 if __name__ == '__main__':
     test_base.Tester().run()
