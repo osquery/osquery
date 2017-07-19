@@ -111,13 +111,9 @@ Status AuditFimEventPublisher::run() {
                                            __NR_read,
                                            __NR_mmap};
 
-  const std::vector<int> input_fd_syscall_list = {__NR_dup,
-                                                  __NR_dup2,
-                                                  __NR_dup3,
-                                                  __NR_close,
-                                                  __NR_write,
-                                                  __NR_read,
-                                                  __NR_mmap};
+  // The mmap file descriptor is inside the AUDIT_MMAP event record
+  const std::vector<int> input_fd_syscall_list = {
+      __NR_dup, __NR_dup2, __NR_dup3, __NR_close, __NR_write, __NR_read};
 
   const std::vector<int> output_fd_syscall_list = {__NR_open,
                                                    __NR_openat,
@@ -173,6 +169,30 @@ Status AuditFimEventPublisher::run() {
 
       syscall_event.type = GetSyscallEventType(syscall_number);
 
+      // Special handling for mmap syscalls; the third parameter (a2 field)
+      // contains the requested
+      // memory protection
+      if (syscall_number == __NR_mmap) {
+        field_value = L_GetFieldFromMap(audit_event_record.fields, "a2", "");
+
+        long long int memory_protection_flags;
+        if (!safeStrtoll(field_value, 16, memory_protection_flags)) {
+          std::cout << "MALFORMED SYSCALL EVENT (invalid a2 parameter for the "
+                       "mmap() syscall)"
+                    << std::endl;
+
+          // we can't determine if this is a write or not; assume the worst case
+          syscall_event.mmap_memory_protection_flags = PROT_READ | PROT_WRITE;
+          syscall_event.partial = true;
+
+        } else {
+          syscall_event.mmap_memory_protection_flags =
+              static_cast<int>(memory_protection_flags);
+        }
+      }
+
+      // Note that mmap is handled differently; the file descriptor is inside
+      // the AUDIT_MMAP record
       if (L_ContainsSyscall(input_fd_syscall_list, syscall_number)) {
         field_value = L_GetFieldFromMap(audit_event_record.fields, "a0", "");
 
@@ -245,6 +265,30 @@ Status AuditFimEventPublisher::run() {
           L_GetFieldFromMap(audit_event_record.fields, "cwd", "");
       audit_event_it->second.cwd = field_value;
 
+    } else if (audit_event_record.type == AUDIT_MMAP) {
+      if (audit_event_it == syscall_event_list_.end()) {
+        std::cout << "MISSING EVENT! SKIPPING!" << std::endl;
+        continue;
+      }
+
+      std::string field_value =
+          L_GetFieldFromMap(audit_event_record.fields, "fd", "");
+
+      if (field_value.empty()) {
+        std::cout << "MALFORMED MMAP EVENT (missing fd field)" << std::endl;
+        audit_event_it->second.partial = true;
+
+      } else {
+        long long int mmap_fd;
+        if (!safeStrtoll(field_value, 10, mmap_fd)) {
+          std::cout << "MALFORMED MMAP EVENT (invalid fd field)" << std::endl;
+          audit_event_it->second.partial = true;
+
+        } else {
+          audit_event_it->second.input_fd = static_cast<int>(mmap_fd);
+        }
+      }
+
     } else if (audit_event_record.type == AUDIT_PATH) {
       if (audit_event_it == syscall_event_list_.end()) {
         std::cout << "MISSING EVENT! SKIPPING!" << std::endl;
@@ -278,6 +322,7 @@ Status AuditFimEventPublisher::run() {
     for (const auto& syscall_event : event_context->syscall_events) {
       std::cout << syscall_event << "\n";
     }
+
     std::cout << std::endl;
   }
 
@@ -298,6 +343,7 @@ std::ostream& operator<<(std::ostream& stream,
   bool show_path_and_cwd = false;
   bool show_input_file_descriptor = false;
   bool show_output_file_descriptor = false;
+  bool show_memory_protection = false;
 
   switch (syscall_event.type) {
   case SyscallEvent::Type::Execve: {
@@ -371,6 +417,7 @@ std::ostream& operator<<(std::ostream& stream,
   case SyscallEvent::Type::Mmap: {
     stream << "mmap";
     show_input_file_descriptor = true;
+    show_memory_protection = true;
     break;
   }
 
@@ -387,6 +434,11 @@ std::ostream& operator<<(std::ostream& stream,
     stream << "path:" << syscall_event.path;
   } else if (show_input_file_descriptor) {
     stream << "input_fd:" << syscall_event.input_fd;
+
+    if (show_memory_protection) {
+      stream << ", memory_protection:0x" << std::hex
+             << syscall_event.mmap_memory_protection_flags;
+    }
   }
 
   stream << ")";

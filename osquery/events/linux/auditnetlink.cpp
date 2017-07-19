@@ -699,7 +699,10 @@ bool AuditNetlink::configureAuditService() noexcept {
                           __NR_close,
                           __NR_dup,
                           __NR_dup2,
-                          __NR_dup3};
+                          __NR_dup3,
+                          __NR_read,
+                          __NR_write,
+                          __NR_mmap};
 
     for (int syscall : syscall_list) {
       monitored_syscall_list_.insert(syscall);

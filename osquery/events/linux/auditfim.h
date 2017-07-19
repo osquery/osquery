@@ -48,6 +48,9 @@ struct SyscallEvent final {
   /// Executable path
   std::string executable_path;
 
+  /// Memory protection flags (only valid for mmap() calls)
+  int mmap_memory_protection_flags;
+
   /// If true, this is a partial event
   bool partial;
 
