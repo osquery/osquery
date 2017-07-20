@@ -34,7 +34,14 @@ FLAG(bool,
      false,
      "Allow the audit publisher to install file event monitoring rules");
 
-typedef std::unordered_map<int, std::string> HandleMap;
+struct HandleInformation final {
+  enum class OperationType { Open, Read, Write };
+
+  OperationType last_operation{OperationType::Open};
+  std::string path;
+};
+
+typedef std::unordered_map<int, HandleInformation> HandleMap;
 typedef std::unordered_map<__pid_t, HandleMap> ProcessMap;
 
 class AuditFimEventSubscriber : public EventSubscriber<AuditFimEventPublisher> {
@@ -118,7 +125,11 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
         translated_path = boostfs::path(syscall.path).normalize();
       }
 
-      handle_map[syscall.output_fd] = translated_path.string();
+      HandleInformation handle_info;
+      handle_info.last_operation = HandleInformation::OperationType::Open;
+      handle_info.path = translated_path.string();
+
+      handle_map[syscall.output_fd] = handle_info;
 
       Row row;
       row["syscall"] = "open";
@@ -126,7 +137,7 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
       row["ppid"] = std::to_string(syscall.parent_process_id);
       row["cwd"] = syscall.cwd;
       row["name"] = syscall.path;
-      row["canonical_path"] = handle_map[syscall.output_fd];
+      row["canonical_path"] = translated_path.string();
       row["uptime"] = std::to_string(tables::getUptime());
       row["input_fd"] = "";
       row["output_fd"] = std::to_string(syscall.output_fd);
@@ -171,7 +182,8 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
       HandleMap& handle_map = handle_map_it->second;
       auto file_name_it = handle_map.find(syscall.input_fd);
       if (file_name_it != handle_map.end()) {
-        row["canonical_path"] = file_name_it->second;
+        const HandleInformation& handle_info = file_name_it->second;
+        row["canonical_path"] = handle_info.path;
         handle_map.erase(file_name_it);
       } else {
         row["canonical_path"] = "";
@@ -232,7 +244,55 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
         partial_event = true;
       }
 
+      /// attempt to solve the file descriptor
+      HandleMap& handle_map = handle_map_it->second;
+      HandleInformation* handle_info = nullptr;
+
+      auto file_info_it = handle_map.find(syscall.input_fd);
+      if (file_info_it != handle_map.end()) {
+        handle_info = &file_info_it->second;
+      } else {
+        partial_event = true;
+      }
+
+      // Only show state changes from "open" to "whatever" and from "read" to
+      // "write"
+      // The "written" state means that the file has also been read; this means
+      // that we will not
+      // notify about this file again until it is re-opened
+      bool discard_event = true;
+      if (partial_event || handle_info == nullptr) {
+        discard_event = false;
+
+      } else {
+        // Always keep the first event
+        if (handle_info->last_operation ==
+            HandleInformation::OperationType::Open) {
+          discard_event = false;
+          handle_info->last_operation =
+              (read_operation ? HandleInformation::OperationType::Read
+                              : HandleInformation::OperationType::Write);
+        }
+
+        else if (handle_info->last_operation ==
+                     HandleInformation::OperationType::Read &&
+                 !read_operation) {
+          discard_event = false;
+          handle_info->last_operation = HandleInformation::OperationType::Write;
+        }
+      }
+
+      if (discard_event) {
+        break;
+      }
+
       Row row;
+      if (handle_info != nullptr) {
+        row["canonical_path"] = handle_info->path;
+      } else {
+        row["canonical_path"] = "";
+      }
+
       row["syscall"] = (read_operation ? "read" : "write");
       row["pid"] = std::to_string(syscall.process_id);
       row["ppid"] = std::to_string(syscall.parent_process_id);
@@ -241,23 +301,11 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
       row["output_fd"] = "";
       row["success"] = syscall.success;
       row["executable"] = syscall.executable_path;
+      row["partial"] = (partial_event ? "true" : "false");
 
       // the following fields are not known for this type of event
       row["cwd"] = "";
       row["name"] = "";
-
-      /// attempt to solve the file descriptor
-      HandleMap& handle_map = handle_map_it->second;
-      auto file_name_it = handle_map.find(syscall.input_fd);
-      if (file_name_it != handle_map.end()) {
-        row["canonical_path"] = file_name_it->second;
-        handle_map.erase(file_name_it);
-      } else {
-        row["canonical_path"] = "";
-        partial_event = true;
-      }
-
-      row["partial"] = (partial_event ? "true" : "false");
 
       add(row);
       break;
