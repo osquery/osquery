@@ -66,13 +66,14 @@ class OsqueryiTest(unittest.TestCase):
             ],
             SHELL_TIMEOUT)
         content = ""
-        with open(config, 'r') as fh: content = fh.read()
+        with open(config, 'r') as fh:
+            content = fh.read()
         actual = proc.stdout
 
         if os.name == "nt":
-            # Get rid of carriage returns
-            actual = actual.replace("\r", "")
-        self.assertEqual(actual, "{\"%s\": %s}\n" % (config, content))
+            actual = actual.replace('\r', '')
+
+        self.assertEqual(actual, '{"%s": %s}\n' % (config, content))
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 

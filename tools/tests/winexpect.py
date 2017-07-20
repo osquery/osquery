@@ -43,7 +43,8 @@ class REPLWrapper(object):
     # We currently only support 1 query at a time.
     def run_command(self, command):
         res = ''
-        if (command == ' '):
+        command = command.strip()
+        if not command:
             return res
         try:
             self.child.proc.stdin.write(command + '\r\n')
