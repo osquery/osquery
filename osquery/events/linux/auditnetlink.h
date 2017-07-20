@@ -87,6 +87,9 @@ class AuditNetlink final {
   /// Used to wake up the thread that processes the raw audit records
   std::condition_variable raw_records_pending_;
 
+  /// When set to true, the audit handle is (re)acquired
+  std::atomic_bool acquire_netlink_handle_{true};
+
   //
   // Primary thread (recvThread)
   //

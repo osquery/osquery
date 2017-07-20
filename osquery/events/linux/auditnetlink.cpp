@@ -271,7 +271,7 @@ std::vector<AuditEventRecord> AuditNetlink::getEvents(
 }
 
 bool AuditNetlink::recvThread() noexcept {
-  bool acquire_handle = true;
+  acquire_netlink_handle_ = true;
 
   int counter_to_next_status_request = 0;
   const int status_request_countdown = 1000;
@@ -282,7 +282,7 @@ bool AuditNetlink::recvThread() noexcept {
       continue;
     }
 
-    if (acquire_handle) {
+    if (acquire_netlink_handle_) {
       if (FLAGS_audit_debug) {
         std::cout << "(re)acquiring audit handle.." << std::endl;
       }
@@ -295,7 +295,7 @@ bool AuditNetlink::recvThread() noexcept {
         continue;
       }
 
-      acquire_handle = false;
+      acquire_netlink_handle_ = false;
       counter_to_next_status_request = status_request_countdown;
     }
 
@@ -311,7 +311,7 @@ bool AuditNetlink::recvThread() noexcept {
           VLOG(1) << "Error: Failed to request audit status. Requesting a "
                      "handle reset";
 
-          acquire_handle = true;
+          acquire_netlink_handle_ = true;
         }
       }
 
@@ -321,7 +321,7 @@ bool AuditNetlink::recvThread() noexcept {
     }
 
     if (!acquireMessages()) {
-      acquire_handle = true;
+      acquire_netlink_handle_ = true;
       continue;
     }
   }
@@ -372,6 +372,17 @@ bool AuditNetlink::processThread() noexcept {
 
       case AUDIT_GET: {
         reply.status = static_cast<struct audit_status*>(NLMSG_DATA(reply.nlh));
+        pid_t new_pid = static_cast<pid_t>(reply.status->pid);
+
+        if (new_pid != getpid()) {
+          VLOG(1) << "Audit control lost to pid: " << new_pid;
+
+          if (FLAGS_audit_persist) {
+            VLOG(1) << "Attempting to reacquire control of the audit service";
+            acquire_netlink_handle_ = true;
+          }
+        }
+
         break;
       }
 
