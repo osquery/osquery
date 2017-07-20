@@ -34,6 +34,11 @@ FLAG(bool,
      false,
      "Allow the audit publisher to install file event monitoring rules");
 
+FLAG(bool,
+     audit_show_partial_file_events,
+     true,
+     "Allow the audit publisher to show partial file events");
+
 struct HandleInformation final {
   enum class OperationType { Open, Read, Write };
 
@@ -155,9 +160,16 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
       // Allocate a new handle map if this process has been created before
       // osquery
       bool partial_event = syscall.partial;
+      if (partial_event && !FLAGS_audit_show_partial_file_events) {
+        break;
+      }
 
       auto handle_map_it = process_map_.find(syscall.process_id);
       if (handle_map_it == process_map_.end()) {
+        if (!FLAGS_audit_show_partial_file_events) {
+          break;
+        }
+
         process_map_[syscall.process_id] = HandleMap();
         handle_map_it = process_map_.find(syscall.process_id);
 
@@ -185,7 +197,12 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
         const HandleInformation& handle_info = file_name_it->second;
         row["canonical_path"] = handle_info.path;
         handle_map.erase(file_name_it);
+
       } else {
+        if (!FLAGS_audit_show_partial_file_events) {
+          break;
+        }
+
         row["canonical_path"] = "";
         partial_event = true;
       }
@@ -235,9 +252,16 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
       // Allocate a new handle map if this process has been created before
       // osquery
       bool partial_event = syscall.partial;
+      if (partial_event && !FLAGS_audit_show_partial_file_events) {
+        break;
+      }
 
       auto handle_map_it = process_map_.find(syscall.process_id);
       if (handle_map_it == process_map_.end()) {
+        if (!FLAGS_audit_show_partial_file_events) {
+          break;
+        }
+
         process_map_[syscall.process_id] = HandleMap();
         handle_map_it = process_map_.find(syscall.process_id);
 
@@ -251,7 +275,12 @@ Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
       auto file_info_it = handle_map.find(syscall.input_fd);
       if (file_info_it != handle_map.end()) {
         handle_info = &file_info_it->second;
+
       } else {
+        if (!FLAGS_audit_show_partial_file_events) {
+          break;
+        }
+
         partial_event = true;
       }
 

@@ -318,12 +318,6 @@ Status AuditFimEventPublisher::run() {
 
   if (!event_context->syscall_events.empty()) {
     fire(event_context);
-
-    for (const auto& syscall_event : event_context->syscall_events) {
-      std::cout << syscall_event << "\n";
-    }
-
-    std::cout << std::endl;
   }
 
   return Status(0, "OK");
