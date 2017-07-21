@@ -268,7 +268,8 @@ Example:
     "read_max": 100000,
     "events_max": 100000,
     "enable_monitor": true,
-    "host_identifier": "uuid"
+    "host_identifier": "uuid",
+    "logger_tls_event_types": "file_events|socket_events|user_events|process_events"
   }
 }
 ```

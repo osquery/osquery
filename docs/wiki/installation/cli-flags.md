@@ -215,6 +215,12 @@ It is common for TLS/HTTPS servers to enforce a maximum request body size. The d
 
 Use this only in emergency situations as size violations are dropped. It is extremely uncommon for this to occur, as the `--value_max` for each column would need to be drastically larger, or the offending table would have to implement several hundred columns.
 
+`--logger_tls_event_types="file_events|socket_events|..."`
+
+Event types to be captured. This flag is introduced for forwarding the events to tls logger, by-passing the schedule query layer.
+One need not to specify 'select *' for any event table if this flag is set to capture that type of event.
+This flag can also be set by configuration file.
+
 `--logger_min_status=0`
 
 The minimum level for status log recording. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. When using `--verbose` this value is ignored.

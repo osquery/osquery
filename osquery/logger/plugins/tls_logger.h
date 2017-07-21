@@ -60,12 +60,19 @@ class TLSLoggerPlugin : public LoggerPlugin {
     return true;
   }
 
+  bool usesLogEvent() override {
+    return true;
+  }
+
  protected:
   /// Log a result string. This is the basic catch-all for snapshots and events.
   Status logString(const std::string& s) override;
 
   /// Log a status (ERROR/WARNING/INFO) message.
   Status logStatus(const std::vector<StatusLogLine>& log) override;
+
+  /// Log a result string. bypassing schedule query layer.
+  Status logEvent(const std::string& s) override;
 
  private:
   /// Forwarder that buffers/sends logs. Runs in a Dispatcher thread.

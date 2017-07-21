@@ -41,6 +41,8 @@ FLAG(uint64,
 
 FLAG(bool, logger_tls_compress, false, "GZip compress TLS/HTTPS request body");
 
+FLAG(string, logger_tls_event_types, "", "Event types to be captured");
+
 REGISTER(TLSLoggerPlugin, "logger", "tls");
 
 TLSLogForwarder::TLSLogForwarder()
@@ -56,6 +58,43 @@ Status TLSLoggerPlugin::logString(const std::string& s) {
 
 Status TLSLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
   return forwarder_->logStatus(log);
+}
+
+Status TLSLoggerPlugin::logEvent(const std::string& s) {
+  std::string capture_event_types = Flag::getValue("logger_tls_event_types");
+  if (capture_event_types.empty()) {
+    return Status(0);
+  }
+
+  pt::ptree child;
+  try {
+    std::stringstream input;
+    input << s;
+    pt::read_json(input, child);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1, e.what());
+  }
+
+  std::string event_type =
+      child.get<std::string>("event_type", "unknown_events");
+  if (capture_event_types.find(event_type) == std::string::npos) {
+    return Status(0);
+  }
+
+  pt::ptree parent;
+  parent.put<std::string>("name", event_type);
+  parent.put<std::string>("hostIdentifier", osquery::getHostIdentifier());
+  parent.put<std::string>("calendarTime", osquery::getAsciiTime());
+  parent.put<size_t>("unixTime", osquery::getUnixTime());
+  parent.put<uint64_t>("epoch", 0L);
+  child.erase("event_type");
+  parent.add_child("columns", child);
+  parent.put("action", "added");
+
+  std::ostringstream output;
+  pt::write_json(output, parent, false);
+
+  return logString(output.str());
 }
 
 Status TLSLoggerPlugin::setUp() {

@@ -53,6 +53,34 @@ The two areas below that are relevant to FIM are the scheduled query against `fi
 }
 ```
 
+### Exmaple for by-passing schedule query layer
+
+```json
+{
+  "schedule": {
+    "crontab": {
+      "query": "SELECT * FROM crontab;",
+      "interval": 300
+    }
+  },
+  "file_paths": {
+    "homes": [
+      "/root/.ssh/%%",
+      "/home/%/.ssh/%%"
+    ],
+    "etc": [
+      "/etc/%%"
+    ],
+    "tmp": [
+      "/tmp/%%"
+    ]
+  },
+  "options": {
+    "logger_tls_event_types": "file_events"
+  }
+}
+```
+
 ## Sample Event Output
 
 As file changes happen, events will appear in the [**file_events**](https://osquery.io/docs/tables/#file_events) table.  During a file change event, the md5, sha1, and sha256 for the file will be calculated if possible. A sample event looks like this:
