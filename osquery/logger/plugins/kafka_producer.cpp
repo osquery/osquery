@@ -54,11 +54,7 @@ void delKafkaTopic(rd_kafka_topic_t* kt) {
   rd_kafka_topic_destroy(kt);
 };
 
-class KafkaBgPoller;
-
 class KafkaProducerPlugin final : public LoggerPlugin, public InternalRunnable {
-  friend class KafkaBgPoller;
-
  public:
   /*
    * @brief Logs string s as payload to configured Kafka brokers.
