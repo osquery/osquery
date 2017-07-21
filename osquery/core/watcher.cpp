@@ -266,6 +266,7 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
   if (result == PROCESS_EXITED) {
     // If the worker process existed, store the exit code.
     Watcher::get().worker_status_ = process_status;
+    return false;
   }
 
   return true;
