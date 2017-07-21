@@ -45,16 +45,28 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
                 "logger_path": logger_path,
                 "verbose": True,
             })
-        info_path = test_base.getLatestInfoLog(logger_path)
 
         self.assertTrue(daemon.isAlive())
 
         def info_exists():
+            info_path = test_base.getLatestInfoLog(logger_path)
             return os.path.exists(info_path)
 
         # Wait for the daemon to flush to GLOG.
         test_base.expectTrue(info_exists)
+
+        # Assign the variable after we have assurances it exists
+        info_path = test_base.getLatestInfoLog(logger_path)
         self.assertTrue(os.path.exists(info_path))
+
+        # Lastly, verify that we have permission to read the file
+        data = ''
+        with open(info_path, 'r') as fh:
+            try:
+                data = fh.read()
+            except:
+                pass
+        self.assertTrue(len(data) > 0)
         daemon.kill()
 
     @test_base.flaky
