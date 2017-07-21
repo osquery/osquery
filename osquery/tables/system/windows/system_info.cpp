@@ -22,9 +22,9 @@ namespace tables {
 
 QueryData genSystemInfo(QueryContext& context) {
   Row r;
-  r["hostname"] = osquery::getHostname();
-  r["computer_name"] = r["hostname"];
-  r["local_hostname"] = r["hostname"];
+  r["hostname"] = osquery::getFqdn();
+  r["computer_name"] = osquery::getHostname();
+  r["local_hostname"] = r["computer_name"];
   getHostUUID(r["uuid"]);
 
   auto qd = SQL::selectAllFrom("cpuid");
