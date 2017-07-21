@@ -97,24 +97,36 @@ struct tm* localtime_r(time_t* t, struct tm* result) {
 #endif
 
 std::string getHostname() {
-#ifdef WIN32
-  long size = 256;
-#else
+  long max_path = 256;
+  long size = 0;
+#ifndef WIN32
   static long max_hostname = sysconf(_SC_HOST_NAME_MAX);
-  long size = (max_hostname > 255) ? max_hostname + 1 : 256;
+  size = (max_hostname > max_path - 1) ? max_hostname + 1 : max_path;
 #endif
-
-  char* hostname = (char*)malloc(size);
-  std::string hostname_string;
-  if (hostname != nullptr) {
-    memset((void*)hostname, 0, size);
-    gethostname(hostname, size - 1);
-    hostname_string = std::string(hostname);
-    free(hostname);
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    size = max_path;
   }
 
+  std::vector<char> hostname(size, 0x0);
+  std::string hostname_string;
+  if (hostname.data() != nullptr) {
+    gethostname(hostname.data(), size - 1);
+    hostname_string = std::string(hostname.data());
+  }
   boost::algorithm::trim(hostname_string);
   return hostname_string;
+}
+
+std::string getFqdn() {
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    return getHostname();
+  }
+  unsigned long size = 256;
+  std::vector<char> fqdn(size, 0x0);
+#ifdef WIN32
+  GetComputerNameEx(ComputerNameDnsFullyQualified, fqdn.data(), &size);
+#endif
+  return fqdn.data();
 }
 
 std::string generateNewUUID() {
