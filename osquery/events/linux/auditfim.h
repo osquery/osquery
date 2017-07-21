@@ -106,11 +106,6 @@ class AuditFimEventPublisher
   }
 
  private:
-  /// Apply normal subscription to event matching logic.
-  bool shouldFire(const AuditFimSubscriptionContextRef& mc,
-                  const AuditFimEventContextRef& ec) const override;
-
- private:
   /// Audit netlink subscription handle
   NetlinkSubscriptionHandle audit_netlink_subscription_;
 

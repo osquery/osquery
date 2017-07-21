@@ -109,23 +109,25 @@ class AuditAssembler : private boost::noncopyable {
   void start(size_t capacity, std::vector<size_t> types, AuditUpdate update);
 
   /// Add a message from audit.
-  boost::optional<AuditFields> add(const std::string &id,
+  boost::optional<AuditFields> add(const std::string& id,
                                    size_t type,
                                    const AuditFields& fields);
 
   /// Allow the publisher to explicit-set fields.
-  void set(const std::string &id, const std::string& key, const std::string& value) {
+  void set(const std::string& id,
+           const std::string& key,
+           const std::string& value) {
     m_[id][key] = value;
   }
 
   /// Remove an audit ID from the queue and clear associated messages/types.
-  void evict(const std::string &id);
+  void evict(const std::string& id);
 
   /// Shuffle an audit ID to the front of the queue.
-  void shuffle(const std::string & id);
+  void shuffle(const std::string& id);
 
   /// Check if the audit ID has completed each required message types.
-  bool complete(const std::string & id);
+  bool complete(const std::string& id);
 
  private:
   /// A map of audit ID to aggregate message fields.

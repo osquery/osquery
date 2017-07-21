@@ -130,6 +130,10 @@ Status AuditEventPublisher::setUp() {
 }
 
 void AuditEventPublisher::configure() {
+  if (!FLAGS_audit_allow_process_events && !FLAGS_audit_allow_sockets) {
+    return;
+  }
+
   // Only subscribe if we are actually going to have listeners
   if (audit_netlink_subscription_ == 0) {
     audit_netlink_subscription_ = AuditNetlink::getInstance().subscribe();

@@ -567,6 +567,9 @@ bool AuditNetlink::processThread() noexcept {
                                         audit_event_record_queue.end());
       }
     }
+
+    queue.clear();
+    audit_event_record_queue.clear();
   }
 
   return true;

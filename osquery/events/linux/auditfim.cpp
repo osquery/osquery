@@ -312,7 +312,9 @@ Status AuditFimEventPublisher::run() {
         std::cout << completed_syscall_event << std::endl;
       }
 
-      event_context->syscall_events.push_back(completed_syscall_event);
+      if (completed_syscall_event.process_id != getpid()) {
+        event_context->syscall_events.push_back(completed_syscall_event);
+      }
     }
   }
 
@@ -321,12 +323,6 @@ Status AuditFimEventPublisher::run() {
   }
 
   return Status(0, "OK");
-}
-
-bool AuditFimEventPublisher::shouldFire(
-    const AuditFimSubscriptionContextRef& sc,
-    const AuditFimEventContextRef& ec) const {
-  return true;
 }
 
 std::ostream& operator<<(std::ostream& stream,
