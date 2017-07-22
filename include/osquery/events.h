@@ -361,6 +361,9 @@ class EventPublisherPlugin : public Plugin,
   virtual void fireCallback(const SubscriptionRef& sub,
                             const EventContextRef& ec) const = 0;
 
+  /// A lock for subscription manipulation.
+  Mutex subscription_lock_;
+
   /// The EventPublisher will keep track of Subscription%s that contain callins.
   SubscriptionVector subscriptions_;
 
@@ -377,9 +380,6 @@ class EventPublisherPlugin : public Plugin,
 
   /// A lock for incrementing the next EventContextID.
   Mutex ec_id_lock_;
-
-  /// A lock for subscription manipulation.
-  Mutex subscription_lock_;
 
   /// A helper count of event publisher runloop iterations.
   std::atomic<size_t> restart_count_{0};
@@ -1072,8 +1072,11 @@ class EventSubscriber : public EventSubscriberPlugin {
       // EventSubscriber and a single parameter placeholder (the EventContext).
       auto cb = std::bind(base_entry, sub, _1, _2);
       // Add a subscription using the callable and SubscriptionContext.
-      EventFactory::addSubscription(sub->getType(), sub->getName(), sc, cb);
-      subscription_count_++;
+      Status stat =
+          EventFactory::addSubscription(sub->getType(), sub->getName(), sc, cb);
+      if (stat.ok()) {
+        subscription_count_++;
+      }
     }
   }
 
