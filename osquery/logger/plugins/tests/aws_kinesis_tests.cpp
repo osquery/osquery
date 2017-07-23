@@ -56,7 +56,8 @@ TEST_F(KinesisTests, test_send) {
   forwarder.client_ = client;
 
   std::vector<std::string> logs{"{\"foo\":\"bar\"}"};
-  Aws::Kinesis::Model::PutRecordsOutcome outcome;
+  Aws::Kinesis::Model::PutRecordsOutcome outcome(
+      Aws::Kinesis::Model::PutRecordsResult{});
   outcome.GetResult().SetFailedRecordCount(0);
   EXPECT_CALL(
       *client,
