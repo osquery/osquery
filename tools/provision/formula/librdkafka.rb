@@ -17,7 +17,8 @@ class Librdkafka < AbstractOsqueryFormula
       ENV.append "LIBS", "-lpthread -lz -lz -lssl -lssl -lcrypto -lcrypto  -lrt"
     end
     system "./configure", "--disable-dependency-tracking",
-                          "--prefix=#{prefix}"
+                          "--prefix=#{prefix}",
+                          "--disable-sasl"
     system "make"
     system "make", "install"
   end

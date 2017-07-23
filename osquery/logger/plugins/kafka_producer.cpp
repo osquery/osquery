@@ -40,9 +40,7 @@ FLAG(string,
 FLAG(string,
      logger_kafka_acks,
      "all",
-     "The number of acknowledgments the Kafka producer requires the leader to "
-     "have received before considering a request complete.  Valid values are "
-     "'0', '1', and 'all'");
+     "The number of acknowledgments the leader has to receive (0, 1, 'all')");
 
 const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
 
@@ -115,7 +113,7 @@ class KafkaProducerPlugin final : public LoggerPlugin, public InternalRunnable {
       topic_;
 
   /// std::future object for background Kafka poll thread.
-  std::future<void> futureTimer_;
+  // std::future<void> futureTimer_;
 
   /// Boolean representing whether the logger is running.
   std::atomic<bool> running_;
@@ -165,7 +163,6 @@ void KafkaProducerPlugin::start() {
     if (interrupted()) {
       return;
     }
-
     pollKafka();
   }
 }
@@ -248,7 +245,10 @@ void KafkaProducerPlugin::init(const std::string& name,
   // at times were no messages are produced
   // (http://docs.confluent.io/2.0.0/clients/producer.html#asynchronous-writes)
   running_.store(true);
-  futureTimer_ = std::async(std::launch::async, [this]() { start(); });
+
+  // futureTimer_ = std::async(std::launch::async, [this]() { start(); });
+  Dispatcher::addService(std::shared_ptr<KafkaProducerPlugin>(
+      this, [](KafkaProducerPlugin* k) { k->stop(); }));
 }
 
 Status KafkaProducerPlugin::logString(const std::string& payload) {
