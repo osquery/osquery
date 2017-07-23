@@ -77,7 +77,7 @@ Status RegistryInterface::setActive(const std::string& item_name) {
     }
   }
 
-  Status status(0, "OK");
+  Status status;
   active_ = item_name;
   // The active plugin is setup when initialized.
   for (const auto& item : osquery::split(item_name, ",")) {
@@ -89,6 +89,10 @@ Status RegistryInterface::setActive(const std::string& item_name) {
       // of active plugins, active them if they are extension-local, and finally
       // start their extension socket.
       status = pingExtension(getExtensionSocket(external_.at(item_name)));
+    }
+
+    if (!status.ok()) {
+      break;
     }
   }
   return status;
