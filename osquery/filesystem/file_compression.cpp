@@ -34,6 +34,8 @@ Status compress(const boost::filesystem::path& in,
                 const boost::filesystem::path& out) {
   PlatformFile inFile(in.string(), PF_OPEN_EXISTING | PF_READ);
   PlatformFile outFile(out.string(), PF_CREATE_NEW | PF_WRITE);
+
+  auto inFileSize = inFile.size();
   ZSTD_CStream* const cstream = ZSTD_createCStream();
   if (cstream == nullptr) {
     return Status(1, "Couldn't create compression stream");
@@ -50,11 +52,16 @@ Status compress(const boost::filesystem::path& in,
   std::vector<void*> buffOut(buffOutSize);
   auto read = buffInSize;
   auto toRead = buffInSize;
-
+  size_t readSoFar = 0;
   while (true) {
     read = inFile.read(buffIn.data(), toRead);
     if (read == 0) {
       break;
+    }
+    readSoFar += read;
+    if (readSoFar > inFileSize) {
+      ZSTD_freeCStream(cstream);
+      return Status(1, "File changed during compression");
     }
 
     ZSTD_inBuffer input = {buffIn.data(), read, 0};
@@ -94,6 +101,8 @@ Status decompress(const boost::filesystem::path& in,
                   const boost::filesystem::path& out) {
   PlatformFile inFile(in.string(), PF_OPEN_EXISTING | PF_READ);
   PlatformFile outFile(out.string(), PF_CREATE_NEW | PF_WRITE);
+
+  auto inFileSize = inFile.size();
   size_t const buffInSize = ZSTD_DStreamInSize();
   size_t const buffOutSize = ZSTD_DStreamOutSize();
   std::vector<void*> buffIn(buffInSize);
@@ -113,11 +122,18 @@ Status decompress(const boost::filesystem::path& in,
   }
   auto read = initResult;
   auto toRead = initResult;
+  size_t readSoFar = 0;
   while (true) {
     read = inFile.read(buffIn.data(), toRead);
     if (read == 0) {
       break;
     }
+    readSoFar += read;
+    if (readSoFar > inFileSize) {
+      ZSTD_freeDStream(dstream);
+      return Status(1, "File changed during decompression");
+    }
+
     ZSTD_inBuffer input = {buffIn.data(), read, 0};
     while (input.pos < input.size) {
       ZSTD_outBuffer output = {buffOut.data(), buffOutSize, 0};

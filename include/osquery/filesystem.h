@@ -356,6 +356,8 @@ Status readRawMem(size_t base, size_t length, void** buffer);
 /*
  * @brief A function to archive files specified into a single file
  *
+ * @param path The paths that you want bundled into the archive
+ * @param out The path where the resulting tar will be written to
  * Given a set of paths we bundle these into a tar archive.
  */
 Status archive(const std::set<boost::filesystem::path>& path,

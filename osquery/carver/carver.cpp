@@ -175,9 +175,9 @@ void Carver::start() {
     return;
   }
 
-  fs::path upload;
+  fs::path uploadPath;
   if (FLAGS_carver_compression) {
-    upload = compressPath_;
+    uploadPath = compressPath_;
     s = compress(archivePath_, compressPath_);
     if (!s.ok()) {
       VLOG(1) << "Failed to compress carve archive: " << s.getMessage();
@@ -185,23 +185,23 @@ void Carver::start() {
       return;
     }
   } else {
-    upload = archivePath_;
+    uploadPath = archivePath_;
   }
 
-  PlatformFile uploadFile(upload.string(), PF_OPEN_EXISTING | PF_READ);
+  PlatformFile uploadFile(uploadPath.string(), PF_OPEN_EXISTING | PF_READ);
   updateCarveValue(carveGuid_, "size", std::to_string(uploadFile.size()));
 
   std::string uploadHash =
       (uploadFile.size() > FLAGS_read_max)
           ? "-1"
-          : hashFromFile(HashType::HASH_TYPE_SHA256, upload.string());
+          : hashFromFile(HashType::HASH_TYPE_SHA256, uploadPath.string());
   if (uploadHash == "-1") {
     VLOG(1)
         << "Archive file size exceeds read max, skipping integrity computation";
   }
   updateCarveValue(carveGuid_, "sha256", uploadHash);
 
-  s = postCarve(upload);
+  s = postCarve(uploadPath);
   if (!s.ok()) {
     VLOG(1) << "Failed to post carve: " << s.getMessage();
     updateCarveValue(carveGuid_, "status", "DATA POST FAILED");
