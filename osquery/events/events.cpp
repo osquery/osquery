@@ -569,7 +569,7 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
   // The field below is added for event forwarding to tls logger.
   // Since this field is not part of any event table definition,
   // so this does not exist for upper schedule query layer.
-  r["event_type"] = getName();
+  r["_event_type"] = getName();
   // Serialize and store the row data, for query-time retrieval.
   std::string data;
   auto status = serializeRowJSON(r, data);

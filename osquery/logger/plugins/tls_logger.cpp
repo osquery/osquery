@@ -75,8 +75,8 @@ Status TLSLoggerPlugin::logEvent(const std::string& s) {
     return Status(1, e.what());
   }
 
-  std::string event_type =
-      child.get<std::string>("event_type", "unknown_events");
+  auto event_type =
+      child.get<std::string>("_event_type", "unknown_events");
   if (capture_event_types.find(event_type) == std::string::npos) {
     return Status(0);
   }
@@ -87,7 +87,7 @@ Status TLSLoggerPlugin::logEvent(const std::string& s) {
   parent.put<std::string>("calendarTime", osquery::getAsciiTime());
   parent.put<size_t>("unixTime", osquery::getUnixTime());
   parent.put<uint64_t>("epoch", 0L);
-  child.erase("event_type");
+  child.erase("_event_type");
   parent.add_child("columns", child);
   parent.put("action", "added");
 
