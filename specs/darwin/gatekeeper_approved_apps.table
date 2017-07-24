@@ -7,3 +7,6 @@ schema([
     Column("mtime", DOUBLE, "Last modification time"),
 ])
 implementation("gatekeeper@genGateKeeperApprovedApps")
+fuzz_paths([
+    "/var/db/SystemPolicy"
+])
