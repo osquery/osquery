@@ -7,3 +7,6 @@ schema([
     Column("opaque_version", TEXT, "Version of Gatekeeper's gkopaque.bundle"),
 ])
 implementation("gatekeeper@genGateKeeper")
+fuzz_paths([
+    "/var/db/SystemPolicy"
+])
