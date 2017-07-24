@@ -65,13 +65,16 @@ bool PlatformProcess::killGracefully() const {
 
 ProcessState PlatformProcess::checkStatus(int& status) const {
   int process_status = 0;
+  if (!isValid()) {
+    return PROCESS_ERROR;
+  }
 
   pid_t result = ::waitpid(nativeHandle(), &process_status, WNOHANG);
   if (result < 0) {
-    process_status = -1;
     if (errno == ECHILD) {
       return PROCESS_EXITED;
     }
+    process_status = -1;
     return PROCESS_ERROR;
   }
 
