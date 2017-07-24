@@ -148,7 +148,7 @@ Status AuditFimEventPublisher::run() {
 
     if (audit_event_record.type == AUDIT_SYSCALL) {
       if (audit_event_it != syscall_event_list_.end()) {
-        std::cout << "DUPLICATED!" << std::endl;
+        VLOG(1) << "Received a duplicated event.";
         syscall_event_list_.erase(audit_event_it);
       }
 
@@ -157,7 +157,8 @@ Status AuditFimEventPublisher::run() {
 
       long long int syscall_number;
       if (!safeStrtoll(field_value, 10, syscall_number)) {
-        std::cout << "MALFORMED SYSCALL EVENT (invalid field)" << std::endl;
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The syscall field "
+                   "is either missing or not valid.";
         continue;
       }
 
@@ -177,9 +178,8 @@ Status AuditFimEventPublisher::run() {
 
         long long int memory_protection_flags;
         if (!safeStrtoll(field_value, 16, memory_protection_flags)) {
-          std::cout << "MALFORMED SYSCALL EVENT (invalid a2 parameter for the "
-                       "mmap() syscall)"
-                    << std::endl;
+          VLOG(1) << "Malformed AUDIT_SYSCALL record received. The memory "
+                     "protection flags are either missing or not valid.";
 
           // we can't determine if this is a write or not; assume the worst case
           syscall_event.mmap_memory_protection_flags = PROT_READ | PROT_WRITE;
@@ -198,8 +198,9 @@ Status AuditFimEventPublisher::run() {
 
         long long int input_fd;
         if (!safeStrtoll(field_value, 16, input_fd)) {
-          std::cout << "MALFORMED SYSCALL EVENT (invalid close() parameter)"
-                    << std::endl;
+          VLOG(1) << "Malformed AUDIT_SYSCALL record received. The file "
+                     "descriptor is either missing or not valid.";
+
           syscall_event.input_fd = -1;
           syscall_event.partial = true;
 
@@ -213,8 +214,9 @@ Status AuditFimEventPublisher::run() {
 
         long long int output_fd;
         if (!safeStrtoll(field_value, 10, output_fd)) {
-          std::cout << "MALFORMED SYSCALL EVENT (invalid exit field)"
-                    << std::endl;
+          VLOG(1) << "Malformed AUDIT_SYSCALL record received. The exit field "
+                     "is either missing or not valid.";
+
           syscall_event.output_fd = -1;
           syscall_event.partial = true;
 
@@ -229,16 +231,19 @@ Status AuditFimEventPublisher::run() {
       field_value = L_GetFieldFromMap(audit_event_record.fields, "exe", "");
       if (field_value.empty()) {
         syscall_event.partial = true;
-        std::cout << "MISSING EXE FROM SYSCALL" << std::endl;
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The exe field is "
+                   "missing.";
+      } else {
+        syscall_event.executable_path = field_value;
       }
-      syscall_event.executable_path = field_value;
 
       field_value = L_GetFieldFromMap(audit_event_record.fields, "ppid", "");
 
       long long int process_id_value;
       if (!safeStrtoll(field_value, 10, process_id_value)) {
-        std::cout << "MALFORMED SYSCALL EVENT (invalid ppid field)"
-                  << std::endl;
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The parent "
+                   "process id field is either missing or not valid.";
+
         syscall_event.partial = true;
         continue;
       }
@@ -247,7 +252,9 @@ Status AuditFimEventPublisher::run() {
 
       field_value = L_GetFieldFromMap(audit_event_record.fields, "pid", "");
       if (!safeStrtoll(field_value, 10, process_id_value)) {
-        std::cout << "MALFORMED SYSCALL EVENT (invalid pid field)" << std::endl;
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process id "
+                   "field is either missing or not valid.";
+
         syscall_event.partial = true;
         continue;
       }
@@ -257,7 +264,7 @@ Status AuditFimEventPublisher::run() {
 
     } else if (audit_event_record.type == AUDIT_CWD) {
       if (audit_event_it == syscall_event_list_.end()) {
-        std::cout << "MISSING EVENT! SKIPPING!" << std::endl;
+        VLOG(1) << "Received an orphaned AUDIT_CWD record. Skipping it...";
         continue;
       }
 
@@ -267,7 +274,7 @@ Status AuditFimEventPublisher::run() {
 
     } else if (audit_event_record.type == AUDIT_MMAP) {
       if (audit_event_it == syscall_event_list_.end()) {
-        std::cout << "MISSING EVENT! SKIPPING!" << std::endl;
+        VLOG(1) << "Received an orphaned AUDIT_MMAP record. Skipping it...";
         continue;
       }
 
@@ -275,13 +282,15 @@ Status AuditFimEventPublisher::run() {
           L_GetFieldFromMap(audit_event_record.fields, "fd", "");
 
       if (field_value.empty()) {
-        std::cout << "MALFORMED MMAP EVENT (missing fd field)" << std::endl;
+        VLOG(1) << "Malformed AUDIT_MMAP record received. The file descriptor "
+                   "field is missing.";
         audit_event_it->second.partial = true;
 
       } else {
         long long int mmap_fd;
         if (!safeStrtoll(field_value, 10, mmap_fd)) {
-          std::cout << "MALFORMED MMAP EVENT (invalid fd field)" << std::endl;
+          VLOG(1) << "Malformed AUDIT_MMAP record received. The file "
+                     "descriptor field is not valid.";
           audit_event_it->second.partial = true;
 
         } else {
@@ -291,7 +300,7 @@ Status AuditFimEventPublisher::run() {
 
     } else if (audit_event_record.type == AUDIT_PATH) {
       if (audit_event_it == syscall_event_list_.end()) {
-        std::cout << "MISSING EVENT! SKIPPING!" << std::endl;
+        VLOG(1) << "Received an orphaned AUDIT_PATH record. Skipping it...";
         continue;
       }
 
@@ -301,7 +310,7 @@ Status AuditFimEventPublisher::run() {
 
     } else if (audit_event_record.type == AUDIT_EOE) {
       if (audit_event_it == syscall_event_list_.end()) {
-        std::cout << "MISSING EVENT! SKIPPING!" << std::endl;
+        VLOG(1) << "Received an orphaned AUDIT_EOE record. Skipping it...";
         continue;
       }
 

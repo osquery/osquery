@@ -132,6 +132,10 @@ class AuditNetlink final {
   std::vector<AuditEventRecord> getEvents(
       NetlinkSubscriptionHandle handle) noexcept;
 
+  /// Parses an audit_reply structure into an AuditEventRecord object
+  static bool ParseAuditReply(const audit_reply& reply,
+                              AuditEventRecord& event_record) noexcept;
+
  private:
   AuditNetlink();
 

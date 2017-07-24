@@ -15,6 +15,7 @@
 #include <osquery/events.h>
 
 #include "osquery/events/linux/audit.h"
+#include "osquery/events/linux/auditnetlink.h"
 
 namespace osquery {
 
@@ -57,10 +58,8 @@ static void AUDIT_handleReply(benchmark::State& state) {
   auto reply = getMockReply(kBenchmarkMessages[0]);
 
   while (state.KeepRunning()) {
-    auto ec = std::make_shared<AuditEventContext>();
-
-    // Perform the parsing.
-    handleAuditReply(reply, ec);
+    AuditEventRecord audit_event_record = {};
+    AuditNetlink::ParseAuditReply(reply, audit_event_record);
   }
 
   free((void*)reply.message);
@@ -82,17 +81,18 @@ static void AUDIT_assembler(benchmark::State& state) {
       getMockReply(kBenchmarkMessages[5]),
   };
 
-  std::vector<AuditEventContextRef> contexts;
+  std::vector<AuditEventRecord> contexts;
   for (const auto& r : replies) {
-    auto ec = std::make_shared<AuditEventContext>();
-    handleAuditReply(r, ec);
-    contexts.push_back(ec);
+    AuditEventRecord audit_event_record = {};
+    AuditNetlink::ParseAuditReply(r, audit_event_record);
+
+    contexts.push_back(audit_event_record);
   }
 
   size_t i = 0;
   while (state.KeepRunning()) {
     const auto& ec = contexts[i++ % 6];
-    asmb.add(ec->audit_id, ec->type, ec->fields);
+    asmb.add(ec.audit_id, ec.type, ec.fields);
   }
 
   for (auto& r : replies) {

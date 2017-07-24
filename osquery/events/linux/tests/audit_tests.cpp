@@ -17,18 +17,26 @@
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/audit.h"
+#include "osquery/events/linux/auditnetlink.h"
 #include "osquery/tests/test_util.h"
+
+#include <cstdint>
+#include <ctime>
 
 namespace osquery {
 
 DECLARE_bool(audit_allow_unix);
 
-/// Internal audit publisher testable methods.
-extern bool handleAuditReply(const struct audit_reply& reply,
-                             AuditEventContextRef& ec);
-
 /// Internal audit subscriber (socket events) testable methods.
 extern void parseSockAddr(const std::string& saddr, Row& r);
+
+/// Generates a fake audit id
+std::string generateAuditId(std::uint32_t event_id) {
+  std::stringstream str_helper;
+  str_helper << std::time(nullptr) << ".000:" << event_id;
+
+  return str_helper.str();
+}
 
 class AuditTests : public testing::Test {
  protected:
@@ -41,14 +49,11 @@ class AuditTests : public testing::Test {
 };
 
 TEST_F(AuditTests, test_handle_reply) {
-  // Create the input structures.
-  struct audit_reply reply;
-  auto ec = std::make_shared<AuditEventContext>();
-
   // A 'fake' audit message.
   std::string message =
       "audit(1440542781.644:403030): argc=3 a0=\"H=1 \" a1=\"/bin/sh\" a2=c";
 
+  struct audit_reply reply;
   reply.type = 1;
   reply.len = message.size();
   reply.message = (char*)malloc(sizeof(char) * (message.size() + 1));
@@ -56,18 +61,20 @@ TEST_F(AuditTests, test_handle_reply) {
   memcpy((void*)reply.message, message.c_str(), message.size());
 
   // Perform the parsing.
-  handleAuditReply(reply, ec);
+  AuditEventRecord audit_event_record = {};
+  bool parser_status = AuditNetlink::ParseAuditReply(reply, audit_event_record);
+  EXPECT_EQ(parser_status, true);
+
   free((char*)reply.message);
 
-  EXPECT_EQ(reply.type, ec->type);
-  EXPECT_EQ(1440542781U, ec->time);
-  EXPECT_EQ(403030U, ec->audit_id);
-  EXPECT_EQ(ec->fields.size(), 4U);
-  EXPECT_EQ(ec->fields.count("argc"), 1U);
-  EXPECT_EQ(ec->fields["argc"], "3");
-  EXPECT_EQ(ec->fields["a0"], "\"H=1 \"");
-  EXPECT_EQ(ec->fields["a1"], "\"/bin/sh\"");
-  EXPECT_EQ(ec->fields["a2"], "c");
+  EXPECT_EQ(reply.type, audit_event_record.type);
+  EXPECT_EQ("1440542781.644:403030", audit_event_record.audit_id);
+  EXPECT_EQ(audit_event_record.fields.size(), 4U);
+  EXPECT_EQ(audit_event_record.fields.count("argc"), 1U);
+  EXPECT_EQ(audit_event_record.fields["argc"], "3");
+  EXPECT_EQ(audit_event_record.fields["a0"], "\"H=1 \"");
+  EXPECT_EQ(audit_event_record.fields["a1"], "\"/bin/sh\"");
+  EXPECT_EQ(audit_event_record.fields["a2"], "c");
 }
 
 TEST_F(AuditTests, test_audit_value_decode) {
@@ -97,45 +104,49 @@ bool SimpleUpdate(size_t t, const AuditFields& f, AuditFields& m) {
 TEST_F(AuditTests, test_audit_assembler) {
   // Test the queue correctness.
   AuditAssembler asmb;
+  std::string audit_id = generateAuditId(100U);
 
   std::vector<size_t> expected_types{1, 2, 3};
   asmb.start(3, expected_types, nullptr);
 
   AuditFields expected_fields{{"1", "1"}};
-  asmb.add(100U, 1, expected_fields);
+  asmb.add(audit_id, 1, expected_fields);
 
   EXPECT_EQ(3U, asmb.capacity_);
   EXPECT_EQ(1U, asmb.queue_.size());
 
   EXPECT_EQ(expected_types, asmb.types_);
   // This will be empty since there is no update method.
-  EXPECT_TRUE(asmb.m_[100].empty());
+  EXPECT_TRUE(asmb.m_[audit_id].empty());
 
   expected_fields = {{"2", "2"}};
-  asmb.add(100U, 1, expected_fields);
+  asmb.add(audit_id, 1, expected_fields);
 
   // Again empty.
-  EXPECT_TRUE(asmb.m_[100].empty());
-  EXPECT_EQ(1U, asmb.mt_[100].size());
+  EXPECT_TRUE(asmb.m_[audit_id].empty());
+  EXPECT_EQ(1U, asmb.mt_[audit_id].size());
 
-  asmb.add(100U, 2, expected_fields);
-  asmb.add(100U, 3, expected_fields);
+  asmb.add(audit_id, 2, expected_fields);
+  asmb.add(audit_id, 3, expected_fields);
   EXPECT_TRUE(asmb.m_.empty());
   EXPECT_EQ(0U, asmb.queue_.size());
 
   // Flood with incomplete messages.
-  for (size_t i = 0; i < 101; i++) {
-    asmb.add(i, 1, {});
+  for (std::uint32_t i = 0U; i < 101U; i++) {
+    std::string temp_audit_id = generateAuditId(i);
+    asmb.add(temp_audit_id, 1, {});
   }
   EXPECT_EQ(3U, asmb.queue_.size());
   EXPECT_EQ(3U, asmb.mt_.size());
   EXPECT_EQ(3U, asmb.m_.size());
 
   // Flood with complete messages.
-  for (size_t i = 0; i < 101; i++) {
-    asmb.add(i, 3, {});
-    asmb.add(i, 1, {});
-    asmb.add(i, 2, {});
+  for (std::uint32_t i = 0U; i < 101U; i++) {
+    std::string temp_audit_id = generateAuditId(i);
+
+    asmb.add(temp_audit_id, 3, {});
+    asmb.add(temp_audit_id, 1, {});
+    asmb.add(temp_audit_id, 2, {});
   }
 
   // All of the queue items should have been removed.
@@ -144,15 +155,18 @@ TEST_F(AuditTests, test_audit_assembler) {
   EXPECT_EQ(0U, asmb.m_.size());
 
   asmb.start(3U, {1, 2, 3}, &SimpleUpdate);
-  EXPECT_FALSE(asmb.add(1, 1, expected_fields).is_initialized());
+
+  std::string temp_audit_id = generateAuditId(1);
+  EXPECT_FALSE(asmb.add(temp_audit_id, 1, expected_fields).is_initialized());
+
   EXPECT_EQ(1U, kAuditCounter);
 
   // Inject duplicate.
-  EXPECT_FALSE(asmb.add(1, 1, expected_fields).is_initialized());
+  EXPECT_FALSE(asmb.add(temp_audit_id, 1, expected_fields).is_initialized());
   EXPECT_EQ(2U, kAuditCounter);
 
-  EXPECT_FALSE(asmb.add(1, 2, expected_fields).is_initialized());
-  auto fields = asmb.add(1, 3, expected_fields);
+  EXPECT_FALSE(asmb.add(temp_audit_id, 2, expected_fields).is_initialized());
+  auto fields = asmb.add(temp_audit_id, 3, expected_fields);
   EXPECT_TRUE(fields.is_initialized());
   EXPECT_EQ(*fields, expected_fields);
 }

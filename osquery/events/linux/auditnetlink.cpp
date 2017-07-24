@@ -270,6 +270,84 @@ std::vector<AuditEventRecord> AuditNetlink::getEvents(
   return audit_event_record_list;
 }
 
+bool AuditNetlink::ParseAuditReply(const audit_reply& reply,
+                                   AuditEventRecord& event_record) noexcept {
+  event_record = {};
+
+  // Tokenize the message.
+  event_record.type = reply.type;
+
+  boost::string_ref message_view(reply.message,
+                                 static_cast<unsigned int>(reply.len));
+
+  auto preamble_end = message_view.find("): ");
+  if (preamble_end == std::string::npos) {
+    return false;
+  }
+
+  safeStrtoul(message_view.substr(6, 10).to_string(), 10, event_record.time);
+  event_record.audit_id = message_view.substr(6, preamble_end - 6).to_string();
+  boost::string_ref field_view(message_view.substr(preamble_end + 3));
+
+  // The linear search will construct series of key value pairs.
+  std::string key, value;
+  key.reserve(20);
+  value.reserve(256);
+
+  // There are several ways of representing value data (enclosed strings,
+  // etc).
+  bool found_assignment{false};
+  bool found_enclose{false};
+
+  for (const auto& c : field_view) {
+    // Iterate over each character in the audit message.
+    if ((found_enclose && c == '"') || (!found_enclose && c == ' ')) {
+      if (c == '"') {
+        value += c;
+      }
+
+      // This is a terminating sequence, the end of an enclosure or space
+      // tok.
+      if (!key.empty()) {
+        // Multiple space tokens are supported.
+        event_record.fields.emplace(
+            std::make_pair(std::move(key), std::move(value)));
+      }
+
+      found_enclose = false;
+      found_assignment = false;
+
+      key.clear();
+      value.clear();
+
+    } else if (!found_assignment && c == ' ') {
+      // A field tokenizer.
+
+    } else if (found_assignment) {
+      // Enclosure sequences appear immediately following assignment.
+      if (c == '"') {
+        found_enclose = true;
+      }
+
+      value += c;
+
+    } else if (c == '=') {
+      found_assignment = true;
+
+    } else {
+      key += c;
+    }
+  }
+
+  // Last step, if there was no trailing tokenizer.
+  if (!key.empty()) {
+    event_record.fields.emplace(
+        std::make_pair(std::move(key), std::move(value)));
+  }
+
+  return true;
+}
+
 bool AuditNetlink::recvThread() noexcept {
   acquire_netlink_handle_ = true;
 
@@ -441,78 +519,9 @@ bool AuditNetlink::processThread() noexcept {
         continue;
 
       AuditEventRecord audit_event_record = {};
-      audit_event_record.type = reply.type;
-
-      // Tokenize the message.
-      boost::string_ref message_view(reply.message,
-                                     static_cast<unsigned int>(reply.len));
-
-      auto preamble_end = message_view.find("): ");
-      if (preamble_end == std::string::npos) {
-        VLOG(1) << "Malformed message received";
+      if (!ParseAuditReply(reply, audit_event_record)) {
+        VLOG(1) << "Malformed audit record received";
         continue;
-      }
-
-      safeStrtoul(
-          message_view.substr(6, 10).to_string(), 10, audit_event_record.time);
-      audit_event_record.audit_id =
-          message_view.substr(6, preamble_end - 6).to_string();
-      boost::string_ref field_view(message_view.substr(preamble_end + 3));
-
-      // The linear search will construct series of key value pairs.
-      std::string key, value;
-      key.reserve(20);
-      value.reserve(256);
-
-      // There are several ways of representing value data (enclosed strings,
-      // etc).
-      bool found_assignment{false};
-      bool found_enclose{false};
-
-      for (const auto& c : field_view) {
-        // Iterate over each character in the audit message.
-        if ((found_enclose && c == '"') || (!found_enclose && c == ' ')) {
-          if (c == '"') {
-            value += c;
-          }
-
-          // This is a terminating sequence, the end of an enclosure or space
-          // tok.
-          if (!key.empty()) {
-            // Multiple space tokens are supported.
-            audit_event_record.fields.emplace(
-                std::make_pair(std::move(key), std::move(value)));
-          }
-
-          found_enclose = false;
-          found_assignment = false;
-
-          key.clear();
-          value.clear();
-
-        } else if (!found_assignment && c == ' ') {
-          // A field tokenizer.
-
-        } else if (found_assignment) {
-          // Enclosure sequences appear immediately following assignment.
-          if (c == '"') {
-            found_enclose = true;
-          }
-
-          value += c;
-
-        } else if (c == '=') {
-          found_assignment = true;
-
-        } else {
-          key += c;
-        }
-      }
-
-      // Last step, if there was no trailing tokenizer.
-      if (!key.empty()) {
-        audit_event_record.fields.emplace(
-            std::make_pair(std::move(key), std::move(value)));
       }
 
       if (FLAGS_audit_debug) {
