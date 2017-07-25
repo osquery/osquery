@@ -47,6 +47,12 @@ if(NOT SKIP_KAFKA AND NOT WINDOWS)
   )
 
   ADD_OSQUERY_LINK_ADDITIONAL("rdkafka")
+
+  set(OSQUERY_LOGGER_KAFKA_PLUGINS_TESTS
+    "logger/plugins/tests/kafka_producer_tests.cpp"
+  )
+
+  ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_LOGGER_KAFKA_PLUGINS_TESTS})
 endif()
 
 if(NOT SKIP_AWS)

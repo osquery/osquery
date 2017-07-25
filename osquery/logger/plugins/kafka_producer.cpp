@@ -1,3 +1,4 @@
+
 /*
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
@@ -10,11 +11,6 @@
 
 #include <unistd.h>
 
-#include <atomic>
-#include <future>
-#include <memory>
-#include <mutex>
-
 #include <librdkafka/rdkafka.h>
 
 #include <osquery/config.h>
@@ -23,6 +19,8 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
+
+#include "osquery/logger/plugins/kafka_producer.h"
 
 namespace osquery {
 
@@ -42,90 +40,14 @@ FLAG(string,
      "all",
      "The number of acknowledgments the leader has to receive (0, 1, 'all')");
 
-const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
-
+/// Deleter for rd_kafka_t unique_ptr.
 void delKafkaHandle(rd_kafka_t* k) {
   rd_kafka_destroy(k);
 };
 
+/// Deleter for rd_kafka_topic_t unique_ptr.
 void delKafkaTopic(rd_kafka_topic_t* kt) {
   rd_kafka_topic_destroy(kt);
-};
-
-class KafkaProducerPlugin final : public LoggerPlugin, public InternalRunnable {
- public:
-  /*
-   * @brief Logs string s as payload to configured Kafka brokers.
-   *
-   * Calls rd_kafka_poll regardless of production success.  rd_kafka_poll
-   * invokes callback that actually reports if message sends failed.
-   */
-  Status logString(const std::string& s) override;
-
-  /**
-   * @brief Initializes the Kafka producer.
-   *
-   * Setups producer with necessary configurations for interacting with Kafka
-   * brokers.  Registers the os hostname as the Kafka client.id.
-   */
-  void init(const std::string& name,
-            const std::vector<StatusLogLine>& log) override;
-
-  /**
-   * @brief InternalRunnable entry point that waits and polls Kafka
-   *
-   * If interrupted, invokes shutdown method
-   */
-  void start() override;
-
-  /**
-   * @brief Flushes final messages.
-   *
-   * Checks if Kafka producer is running and if so, flushes remaining messages
-   * to the brokers waiting a max of 3 seconds.
-   */
-  void stop() override;
-
-  KafkaProducerPlugin() : running_(false) {}
-  ~KafkaProducerPlugin() {}
-
-  KafkaProducerPlugin(KafkaProducerPlugin const&) = delete;
-  KafkaProducerPlugin& operator=(KafkaProducerPlugin const&) = delete;
-
- private:
-  /**
-   * Flushes all buffered messages to Kafka, waiting for a maximum of 3
-   * seconds.  Wrapper with mutex locking around rd_kafka_flush.
-   */
-  void flushMessages();
-
-  /**
-   * polls to ensure onMsgDelivery callback is invoked message receipt.
-   * Wrapper with mutex locking around rd_kafka_poll.
-   */
-  void pollKafka();
-
-  /// Smart pointer to the Kafka producer.
-  std::unique_ptr<rd_kafka_t, std::function<void(rd_kafka_t*)>> producer_;
-
-  /// Smart pointer to the Kafka topic.
-  std::unique_ptr<rd_kafka_topic_t, std::function<void(rd_kafka_topic_t*)>>
-      topic_;
-
-  /// std::future object for background Kafka poll thread.
-  // std::future<void> futureTimer_;
-
-  /// Boolean representing whether the logger is running.
-  std::atomic<bool> running_;
-
-  /// OS hostname and binary name interpolated as the Kafka message key.
-  std::string msgKey_;
-
-  /// Mutex for managing access to the producer_ pointer.
-  Mutex producerMutex_;
-
-  /// Flag to ensure shutdown method is called only once
-  static std::once_flag shutdownFlag_;
 };
 
 REGISTER(KafkaProducerPlugin, "logger", "kafka_producer");
@@ -158,7 +80,7 @@ void KafkaProducerPlugin::pollKafka() {
 }
 
 void KafkaProducerPlugin::start() {
-  while (!interrupted()) {
+  while (!interrupted() && running_.load()) {
     pauseMilli(kKafkaPollDuration);
     if (interrupted()) {
       return;
@@ -257,7 +179,20 @@ Status KafkaProducerPlugin::logString(const std::string& payload) {
         1, "Cannot log because Kafka producer did not initiate properly.");
   }
 
-  if (rd_kafka_produce(topic_.get(),
+  Status status = publishMsg(topic_.get(), payload);
+  if (!status.ok()) {
+    LOG(ERROR) << "Could not publish message: " << status.getMessage();
+  }
+
+  // Poll after every produce attempt.
+  pollKafka();
+
+  return status;
+}
+
+Status KafkaProducerPlugin::publishMsg(rd_kafka_topic_t* topic,
+                                       const std::string& payload) {
+  if (rd_kafka_produce(topic,
                        RD_KAFKA_PARTITION_UA,
                        RD_KAFKA_MSG_F_COPY,
                        (char*)payload.c_str(),
@@ -265,17 +200,12 @@ Status KafkaProducerPlugin::logString(const std::string& payload) {
                        msgKey_.c_str(), // Optional key
                        msgKey_.length(), // key length
                        NULL) == -1) {
-    pollKafka();
-    LOG(ERROR) << "Failed to produce on Kafka topic " +
-                      std::string(rd_kafka_topic_name(topic_.get())) + " :" +
-                      rd_kafka_err2str(rd_kafka_last_error());
     return Status(1,
                   "Failed to produce on Kafka topic " +
-                      std::string(rd_kafka_topic_name(topic_.get())) + " :" +
+                      std::string(rd_kafka_topic_name(topic)) + " :" +
                       rd_kafka_err2str(rd_kafka_last_error()));
   }
-  // Poll after every produce attempt.
-  pollKafka();
+
   return Status(0, "OK");
 }
 } // namespace osquery
