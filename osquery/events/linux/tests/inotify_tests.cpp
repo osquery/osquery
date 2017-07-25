@@ -54,7 +54,7 @@ class INotifyTests : public testing::Test {
   }
 
   void StartEventLoop() {
-    event_pub_ = std::make_shared<INotifyEventPublisher>();
+    event_pub_ = std::make_shared<INotifyEventPublisher>(true);
     auto status = EventFactory::registerEventPublisher(event_pub_);
     FILE* fd = fopen(real_test_path.c_str(), "w");
     fclose(fd);
@@ -101,15 +101,23 @@ class INotifyTests : public testing::Test {
     fclose(fd);
   }
 
+  void addMonitor(const std::string& path,
+                  uint32_t mask,
+                  bool recursive,
+                  bool add_watch) {
+    auto sc = event_pub_->createSubscriptionContext();
+    event_pub_->addMonitor(path, sc, mask, recursive, add_watch);
+  }
+
   void RemoveAll(std::shared_ptr<INotifyEventPublisher>& pub) {
     pub->subscriptions_.clear();
     // Reset monitors.
-    std::vector<std::string> monitors;
-    for (const auto& path : pub->path_descriptors_) {
-      monitors.push_back(path.first);
+    std::vector<int> wds;
+    for (const auto& path : pub->descriptor_inosubctx_) {
+      wds.push_back(path.first);
     }
-    for (const auto& path : monitors) {
-      pub->removeMonitor(path, true);
+    for (const auto& wd : wds) {
+      pub->removeMonitor(wd, true);
     }
   }
 
@@ -137,7 +145,7 @@ class INotifyTests : public testing::Test {
 };
 
 TEST_F(INotifyTests, test_register_event_pub) {
-  auto pub = std::make_shared<INotifyEventPublisher>();
+  auto pub = std::make_shared<INotifyEventPublisher>(true);
   auto status = EventFactory::registerEventPublisher(pub);
   EXPECT_TRUE(status.ok());
 
@@ -150,7 +158,7 @@ TEST_F(INotifyTests, test_register_event_pub) {
 
 TEST_F(INotifyTests, test_inotify_init) {
   // Handle should not be initialized during ctor.
-  auto event_pub = std::make_shared<INotifyEventPublisher>();
+  auto event_pub = std::make_shared<INotifyEventPublisher>(true);
   EXPECT_FALSE(event_pub->isHandleOpen());
 
   // Registering the event type initializes inotify.
@@ -164,7 +172,7 @@ TEST_F(INotifyTests, test_inotify_init) {
 }
 
 TEST_F(INotifyTests, test_inotify_add_subscription_missing_path) {
-  auto pub = std::make_shared<INotifyEventPublisher>();
+  auto pub = std::make_shared<INotifyEventPublisher>(true);
   EventFactory::registerEventPublisher(pub);
 
   // This subscription path is fake, and will succeed.
@@ -178,7 +186,7 @@ TEST_F(INotifyTests, test_inotify_add_subscription_missing_path) {
 }
 
 TEST_F(INotifyTests, test_inotify_add_subscription_success) {
-  auto pub = std::make_shared<INotifyEventPublisher>();
+  auto pub = std::make_shared<INotifyEventPublisher>(true);
   EventFactory::registerEventPublisher(pub);
 
   // This subscription path *should* be real.
@@ -193,40 +201,40 @@ TEST_F(INotifyTests, test_inotify_add_subscription_success) {
 }
 
 TEST_F(INotifyTests, test_inotify_match_subscription) {
-  auto pub = std::make_shared<INotifyEventPublisher>();
-  pub->addMonitor("/etc", IN_ALL_EVENTS, false, false);
-  EXPECT_EQ(pub->path_descriptors_.count("/etc"), 1U);
+  event_pub_ = std::make_shared<INotifyEventPublisher>(true);
+  addMonitor("/etc", IN_ALL_EVENTS, false, false);
+  EXPECT_EQ(event_pub_->path_descriptors_.count("/etc"), 1U);
   // This will fail because there is no trailing "/" at the end.
   // The configure component should take care of these paths.
-  EXPECT_FALSE(pub->isPathMonitored("/etc/passwd"));
-  pub->path_descriptors_.clear();
+  EXPECT_FALSE(event_pub_->isPathMonitored("/etc/passwd"));
+  event_pub_->path_descriptors_.clear();
 
   // Calling addMonitor the correct way.
-  pub->addMonitor("/etc/", IN_ALL_EVENTS, false, false);
-  EXPECT_TRUE(pub->isPathMonitored("/etc/passwd"));
-  pub->path_descriptors_.clear();
+  addMonitor("/etc/", IN_ALL_EVENTS, false, false);
+  EXPECT_TRUE(event_pub_->isPathMonitored("/etc/passwd"));
+  event_pub_->path_descriptors_.clear();
 
   // Test the matching capability.
   {
-    auto sc = pub->createSubscriptionContext();
+    auto sc = event_pub_->createSubscriptionContext();
     sc->path = "/etc";
-    pub->monitorSubscription(sc, false);
+    event_pub_->monitorSubscription(sc, false);
     EXPECT_EQ(sc->path, "/etc/");
-    EXPECT_TRUE(pub->isPathMonitored("/etc/"));
-    EXPECT_TRUE(pub->isPathMonitored("/etc/passwd"));
+    EXPECT_TRUE(event_pub_->isPathMonitored("/etc/"));
+    EXPECT_TRUE(event_pub_->isPathMonitored("/etc/passwd"));
   }
 
   std::vector<std::string> valid_dirs = {"/etc", "/etc/", "/etc/*"};
   for (const auto& dir : valid_dirs) {
-    pub->path_descriptors_.clear();
-    auto sc = pub->createSubscriptionContext();
+    event_pub_->path_descriptors_.clear();
+    auto sc = event_pub_->createSubscriptionContext();
     sc->path = dir;
-    pub->monitorSubscription(sc, false);
-    auto ec = pub->createEventContext();
+    event_pub_->monitorSubscription(sc, false);
+    auto ec = event_pub_->createEventContext();
     ec->path = "/etc/";
-    EXPECT_TRUE(pub->shouldFire(sc, ec));
+    EXPECT_TRUE(event_pub_->shouldFire(sc, ec));
     ec->path = "/etc/passwd";
-    EXPECT_TRUE(pub->shouldFire(sc, ec));
+    EXPECT_TRUE(event_pub_->shouldFire(sc, ec));
   }
 }
 
@@ -307,7 +315,7 @@ class TestINotifyEventSubscriber
 
 TEST_F(INotifyTests, test_inotify_run) {
   // Assume event type is registered.
-  event_pub_ = std::make_shared<INotifyEventPublisher>();
+  event_pub_ = std::make_shared<INotifyEventPublisher>(true);
   auto status = EventFactory::registerEventPublisher(event_pub_);
   EXPECT_TRUE(status.ok());
 
@@ -425,7 +433,7 @@ TEST_F(INotifyTests, test_inotify_directory_watch) {
 
 TEST_F(INotifyTests, test_inotify_recursion) {
   // Create a non-registered publisher and subscriber.
-  auto pub = std::make_shared<INotifyEventPublisher>();
+  auto pub = std::make_shared<INotifyEventPublisher>(true);
   EventFactory::registerEventPublisher(pub);
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
 
@@ -477,7 +485,7 @@ TEST_F(INotifyTests, test_inotify_recursion) {
 
 TEST_F(INotifyTests, test_inotify_embedded_wildcards) {
   // Assume event type is not registered.
-  event_pub_ = std::make_shared<INotifyEventPublisher>();
+  event_pub_ = std::make_shared<INotifyEventPublisher>(true);
   EventFactory::registerEventPublisher(event_pub_);
 
   auto sub = std::make_shared<TestINotifyEventSubscriber>();

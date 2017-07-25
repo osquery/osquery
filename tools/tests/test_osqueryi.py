@@ -15,7 +15,9 @@ from __future__ import print_function
 
 import os
 import random
+import sys
 import unittest
+import utils
 
 # osquery-specific testing utils
 import test_base
@@ -25,12 +27,13 @@ EXIT_CATASTROPHIC = 78
 
 class OsqueryiTest(unittest.TestCase):
     def setUp(self):
-        self.binary = os.path.join(test_base.ARGS.build, "osquery", "osqueryi")
-        self.osqueryi = test_base.OsqueryWrapper(self.binary)
+        self.binary = test_base.getLatestOsqueryBinary('osqueryi')
+        self.osqueryi = test_base.OsqueryWrapper(command=self.binary)
         self.dbpath = "%s%s" % (
             test_base.CONFIG["options"]["database_path"],
             str(random.randint(1000, 9999)))
 
+    @unittest.skipIf(os.name == "nt", "stderr tests not supported on Windows.")
     def test_error(self):
         '''Test that we throw an error on bad query'''
         self.osqueryi.run_command(' ')
@@ -55,7 +58,7 @@ class OsqueryiTest(unittest.TestCase):
     @test_base.flaky
     def test_config_dump(self):
         '''Test that config raw output is dumped when requested'''
-        config = "%s/test_noninline_packs.conf" % test_base.SCRIPT_DIR
+        config = os.path.join(test_base.SCRIPT_DIR, "test_noninline_packs.conf")
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_dump",
@@ -63,8 +66,14 @@ class OsqueryiTest(unittest.TestCase):
             ],
             SHELL_TIMEOUT)
         content = ""
-        with open(config, 'r') as fh: content = fh.read()
-        self.assertEqual(proc.stdout, "{\"%s\": %s}\n" % (config, content))
+        with open(config, 'r') as fh:
+            content = fh.read()
+        actual = proc.stdout
+
+        if os.name == "nt":
+            actual = actual.replace('\r', '')
+
+        self.assertEqual(actual, '{"%s": %s}\n' % (config, content))
         print (proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
@@ -90,7 +99,7 @@ class OsqueryiTest(unittest.TestCase):
             self.binary,
             "--config_check",
             "--database_path=%s" % (self.dbpath),
-            "--config_path=%s/test.badconfig" % test_base.SCRIPT_DIR
+            "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "test.badconfig")
         ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.proc.poll(), 1)
@@ -114,11 +123,11 @@ class OsqueryiTest(unittest.TestCase):
     @test_base.flaky
     def test_config_check_example(self):
         '''Test that the example config passes'''
-        example_path = "deployment/osquery.example.conf"
+        example_path = os.path.join("deployment", "osquery.example.conf")
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_check",
-                "--config_path=%s/../%s" % (test_base.SCRIPT_DIR, example_path)
+                "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "..", example_path)
             ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.stdout, "")
@@ -183,7 +192,9 @@ class OsqueryiTest(unittest.TestCase):
         self.assertTrue(0 <= int(row['minutes']) <= 60)
         self.assertTrue(0 <= int(row['seconds']) <= 60)
 
+    # TODO: Running foreign table tests as non-priv user fails
     @test_base.flaky
+    @unittest.skipIf(os.name == "nt", "foreign table tests not supported on Windows.")
     def test_foreign_tables(self):
         '''Requires the --enable_foreign flag to add at least one table.'''
         self.osqueryi.run_command(' ')
@@ -195,6 +206,7 @@ class OsqueryiTest(unittest.TestCase):
         osqueryi2 = test_base.OsqueryWrapper(self.binary,
             args={"enable_foreign": True})
         osqueryi2.run_command(' ')
+        # This execution fails if the user is not Administrator on Windows
         result = osqueryi2.run_query(query)
         after = int(result[0]['c'])
         self.assertGreater(after, before)

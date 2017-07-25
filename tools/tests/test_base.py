@@ -14,6 +14,7 @@ from __future__ import print_function
 # from __future__ import unicode_literals
 
 import copy
+import getpass
 import os
 import psutil
 import random
@@ -21,25 +22,43 @@ import re
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 import threading
 import unittest
 import utils
-import pexpect
-import timeout_decorator
+
+# TODO: Find an implementation that will work for Windows, for now, disable.
+# https://goo.gl/T4AgV5
+if os.name == "nt":
+    # We redefine timeout_decorator on windows
+    class timeout_decorator:
+        @staticmethod
+        def timeout(*args, **kwargs):
+            # return a no-op decorator
+            return lambda f: f
+else:
+    import timeout_decorator
+
+# We use a generic 'expect' style subprocess manager on Windows
+if os.name == "nt":
+    from winexpect import REPLWrapper, WinExpectSpawn
+else:
+    import pexpect
 
 # While this path can be variable, in practice is lives statically.
-OSQUERY_DEPENDENCIES = os.getenv('OSQUERY_DEPS', "/usr/local/osquery")
+OSQUERY_DEPENDENCIES = os.getenv("OSQUERY_DEPS", "/usr/local/osquery")
 sys.path = [OSQUERY_DEPENDENCIES + "/lib/python2.7/site-packages"] + sys.path
 
-try:
-    from pexpect.replwrap import REPLWrapper
-except ImportError as e:
-    print("Could not import pexpect.replwrap: %s" % (str(e)))
-    print("  Need pexpect version 3.3, installed version: %s" % (
-        str(pexpect.__version__)))
-    print("  pexpect location: %s" % (str(pexpect.__file__)))
-    exit(1)
+if os.name != "nt":
+    try:
+        from pexpect.replwrap import REPLWrapper
+    except ImportError as e:
+        print("Could not import pexpect.replwrap: %s" % (str(e)))
+        print("  Need pexpect version 3.3, installed version: %s" %
+              (str(pexpect.__version__)))
+        print("  pexpect location: %s" % (str(pexpect.__file__)))
+        exit(1)
 
 try:
     import argparse
@@ -57,24 +76,45 @@ except ImportError as e:
     print(str(e))
     exit(1)
 
+
+def getUserId():
+    if os.name == "nt":
+        return getpass.getuser()
+    return "%d" % os.getuid()
+
+
 '''Defaults that should be used in integration tests.'''
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-CONFIG_DIR = "/tmp/osquery-tests-python%d/" % (os.getuid())
-CONFIG_NAME = CONFIG_DIR + "tests"
+CONFIG_DIR = os.path.join(tempfile.gettempdir(),
+                          "osquery-tests-python-%s" % (getUserId()))
+CONFIG_NAME = os.path.join(CONFIG_DIR, "tests")
 DEFAULT_CONFIG = {
     "options": {
-        "flagfile": "/dev/null",
-        "database_path": "%s.db" % CONFIG_NAME,
-        "pidfile": "%s.pid" % CONFIG_NAME,
-        "config_path": "%s.conf" % CONFIG_NAME,
-        "extensions_autoload": "/dev/null",
-        "extensions_socket": "%s.em" % CONFIG_NAME,
-        "extensions_interval": "1",
-        "extensions_timeout": "0",
-        "watchdog_level": "3",
-        "disable_logging": "true",
-        "disable_events": "true",
-        "force": "true",
+        "flagfile":
+        "/dev/null" if os.name == "posix" else "",
+        "database_path":
+        "%s.db" % CONFIG_NAME,
+        "pidfile":
+        "%s.pid" % CONFIG_NAME,
+        "config_path":
+        "%s.conf" % CONFIG_NAME,
+        "extensions_autoload":
+        "/dev/null" if os.name == "posix" else "",
+        "extensions_socket":
+        "%s.em" % (CONFIG_NAME
+                   if os.name == "posix" else "\\\\.\\pipe\\tests"),
+        "extensions_interval":
+        "1",
+        "extensions_timeout":
+        "0",
+        "watchdog_level":
+        "3",
+        "disable_logging":
+        "true",
+        "disable_events":
+        "true",
+        "force":
+        "true",
     },
     "schedule": {},
 }
@@ -99,7 +139,7 @@ class OsqueryWrapper(REPLWrapper):
     '''A pexpect wrapper intended for interacting with the osqueryi REPL'''
     PROMPT = u'osquery> '
     CONTINUATION_PROMPT = u'    ...> '
-    ERROR_PREFIX = 'Error:'
+    ERROR_PREFIX = u'Error:'
 
     def __init__(self, command='../osqueryi', args={}, env={}):
         global CONFIG_NAME, CONFIG
@@ -107,9 +147,13 @@ class OsqueryWrapper(REPLWrapper):
         for option in args.keys():
             options[option] = args[option]
         options["database_path"] += str(random.randint(1000, 9999))
-        command = command + " " + " ".join(["--%s=%s" % (k, v) for
-                                            k, v in options.iteritems()])
-        proc = pexpect.spawn(command, env=env)
+        command = command + " " + " ".join(
+            ["--%s=%s" % (k, v) for k, v in options.iteritems()])
+        if os.name == "nt":
+            proc = WinExpectSpawn(command, env=env)
+        else:
+            proc = pexpect.spawn(command, env=env)
+
         super(OsqueryWrapper, self).__init__(
             proc,
             self.PROMPT,
@@ -241,15 +285,16 @@ class ProcRunner(object):
 
     def kill(self, children=False):
         self.requireStarted()
+        sig = signal.SIGINT if os.name == "nt" else signal.SIGKILL
         if children:
             for child in self.getChildren():
                 try:
-                    os.kill(child, 9)
+                    os.kill(child, sig)
                 except:
                     pass
         if self.proc:
             try:
-                os.kill(self.pid, 9)
+                os.kill(self.pid, sig)
             except:
                 pass
         self.proc = None
@@ -288,6 +333,29 @@ class ProcRunner(object):
         return False
 
 
+def getLatestOsqueryBinary(binary):
+    if os.name == "posix":
+        return os.path.join(ARGS.build, "osquery", binary)
+
+    release_path = os.path.abspath(
+        os.path.join(ARGS.build, "osquery", "Release", "{}.exe".format(binary)))
+    relwithdebinfo_path = os.path.abspath(
+        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "{}.exe".format(binary)))
+
+    if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
+        if os.stat(release_path).st_mtime > os.stat(
+                relwithdebinfo_path).st_mtime:
+            return release_path
+        else:
+            return relwithdebinfo_path
+    elif os.path.exists(release_path):
+        return release_path
+    elif os.path.exists(relwithdebinfo_path):
+        return relwithdebinfo_path
+    else:
+        return None
+
+
 class ProcessGenerator(object):
     '''Helper methods to patch into a unittest'''
     generators = []
@@ -295,14 +363,17 @@ class ProcessGenerator(object):
     def setUp(self):
         utils.reset_dir(CONFIG_DIR)
 
-    def _run_daemon(self, options={}, silent=False, options_only={},
+    def _run_daemon(self,
+                    options={},
+                    silent=False,
+                    options_only={},
                     overwrite={}):
         '''Spawn an osquery daemon process'''
         global ARGS, CONFIG_NAME, CONFIG
         config = copy.deepcopy(CONFIG)
         config["options"]["database_path"] += str(random.randint(1000, 9999))
-        config["options"][
-            "extensions_socket"] += str(random.randint(1000, 9999))
+        config["options"]["extensions_socket"] += str(
+            random.randint(1000, 9999))
         for option in options.keys():
             config["options"][option] = options[option]
         flags = ["--%s=%s" % (k, v) for k, v in config["options"].items()]
@@ -311,7 +382,7 @@ class ProcessGenerator(object):
         for key in overwrite:
             config[key] = overwrite[key]
         utils.write_config(config)
-        binary = os.path.join(ARGS.build, "osquery", "osqueryd")
+        binary = getLatestOsqueryBinary('osqueryd')
 
         daemon = ProcRunner("daemon", binary, flags, silent=silent)
         daemon.options = config["options"]
@@ -322,21 +393,20 @@ class ProcessGenerator(object):
         '''Spawn an osquery extension (example_extension)'''
         global ARGS, CONFIG
         config = copy.deepcopy(CONFIG)
-        config["options"][
-            "extensions_socket"] += str(random.randint(1000, 9999))
+        config["options"]["extensions_socket"] += str(
+            random.randint(1000, 9999))
         binary = os.path.join(ARGS.build, "osquery", "example_extension.ext")
         if path is not None:
             config["options"]["extensions_socket"] = path
-        extension = ProcRunner("extension",
-                               binary,
-                               [
-                                   "--socket=%s" % config["options"][
-                                       "extensions_socket"],
-                                   "--verbose" if not silent else "",
-                                   "--timeout=%d" % timeout,
-                                   "--interval=%d" % 0,
-                               ],
-                               silent=silent)
+        extension = ProcRunner(
+            "extension",
+            binary, [
+                "--socket=%s" % config["options"]["extensions_socket"],
+                "--verbose" if not silent else "",
+                "--timeout=%d" % timeout,
+                "--interval=%d" % 0,
+            ],
+            silent=silent)
         self.generators.append(extension)
         extension.options = config["options"]
         return extension
@@ -348,10 +418,11 @@ class ProcessGenerator(object):
         Unittest should stop processes they generate, but on failure the
         tearDown method will cleanup.
         '''
+        sig = signal.SIGINT if os.name == "nt" else signal.SIGKILL
         for generator in self.generators:
             if generator.pid is not None:
                 try:
-                    os.kill(generator.pid, signal.SIGKILL)
+                    os.kill(generator.pid, sig)
                 except Exception as e:
                     pass
 
@@ -411,13 +482,13 @@ class EXClient(object):
     def getEM(self):
         '''Return an extension manager (osquery core) client.'''
         if self._manager is None:
-            raise(Exception, "The EXClient must be 'setUp' with a manager")
+            raise (Exception, "The EXClient must be 'setUp' with a manager")
         return self._manager.Client(self.protocol)
 
     def getEX(self):
         '''Return an extension (osquery extension) client.'''
         if self._client is None:
-            raise(Exception, "The EXClient must be 'setUp' with a client")
+            raise (Exception, "The EXClient must be 'setUp' with a client")
         return self._client.Client(self.protocol)
 
 
@@ -426,7 +497,8 @@ class Autoloader(object):
 
     def __init__(self, autoloads=[]):
         global CONFIG_DIR
-        self.path = CONFIG_DIR + "ext.load" + str(random.randint(1000, 9999))
+        self.path = os.path.join(CONFIG_DIR,
+                                 "ext.load" + str(random.randint(1000, 9999)))
         with open(self.path, "w") as fh:
             fh.write("\n".join(autoloads))
 
@@ -438,13 +510,11 @@ class Autoloader(object):
 
 
 class TimeoutRunner(object):
-
     def __init__(self, cmd=[], timeout_sec=1):
         self.stdout = None
         self.stderr = None
-        self.proc = subprocess.Popen(cmd,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE)
+        self.proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         kill_proc = lambda p: p.kill()
         timer = threading.Timer(timeout_sec, kill_proc, [self.proc])
         timer.start()
@@ -462,46 +532,47 @@ def flaky(gen):
             import traceback
             exc_type, exc_obj, tb = sys.exc_info()
             exceptions.append(e)
-            print (traceback.format_tb(tb)[1])
+            print(traceback.format_tb(tb)[1])
         return False
+
     def wrapper(this):
         for i in range(3):
             if attempt(this):
                 return True
         i = 1
         for exc in exceptions:
-            print("Test (attempt %d) %s::%s failed: %s" % (
-                i,
-                this.__class__.__name__,
-                gen.__name__,  str(exc[0])))
+            print("Test (attempt %d) %s::%s failed: %s" %
+                  (i, this.__class__.__name__, gen.__name__, str(exc[0])))
             i += 1
         if len(exceptions) > 0:
             raise exceptions[0]
         return False
+
     return wrapper
 
 
 class Tester(object):
-
     def __init__(self):
         global ARGS, CONFIG, CONFIG_DIR
-        parser = argparse.ArgumentParser(description=(
-            "osquery python integration testing."
-        ))
+        parser = argparse.ArgumentParser(
+            description=("osquery python integration testing."))
         parser.add_argument(
-            "--config", metavar="FILE", default=None,
-            help="Use special options from a config."
-        )
+            "--config",
+            metavar="FILE",
+            default=None,
+            help="Use special options from a config.")
         parser.add_argument(
-            "--verbose", default=False, action="store_true",
-            help="Run daemons and extensions with --verbose"
-        )
+            "--verbose",
+            default=False,
+            action="store_true",
+            help="Run daemons and extensions with --verbose")
 
         # Directory structure options
         parser.add_argument(
-            "--build", metavar="PATH", default=".",
-            help="Path to osquery build (./build/<sys>/)."
-        )
+            "--build",
+            metavar="PATH",
+            default=".",
+            help="Path to osquery build (./build/<sys>/).")
         ARGS = parser.parse_args()
 
         if not os.path.exists(ARGS.build):
@@ -517,7 +588,8 @@ class Tester(object):
 
     @timeout_decorator.timeout(20 * 60)
     def run(self):
-        os.setpgrp()
+        if os.name == "posix":
+            os.setpgrp()
         unittest_args = [sys.argv[0]]
         if ARGS.verbose:
             unittest_args += ["-v"]
@@ -534,8 +606,8 @@ def expect(functional, expected, interval=0.01, timeout=4):
             if len(result) == expected:
                 break
         except Exception as e:
-            print("Expect exception (%s): %s not %s" % (
-                str(e), str(functional), expected))
+            print("Expect exception (%s): %s not %s" %
+                  (str(e), str(functional), expected))
             return None
         if delay >= timeout:
             return None
@@ -545,7 +617,6 @@ def expect(functional, expected, interval=0.01, timeout=4):
 
 
 class QueryTester(ProcessGenerator, unittest.TestCase):
-
     def setUp(self):
         self.binary = os.path.join(ARGS.build, "osquery", "osqueryi")
         self.daemon = self._run_daemon({
@@ -573,8 +644,8 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
             self.assertEqual(result.status.code, 0)
             return result.response
         except Exception as e:
-            print("General exception executing query: %s (%s)" % (
-                utils.lightred(query), str(e)))
+            print("General exception executing query: %s (%s)" %
+                  (utils.lightred(query), str(e)))
             raise e
 
     def _execute_set(self, queries):
@@ -616,6 +687,19 @@ def getTestDirectory(base):
     path = os.path.join(base, "test-dir" + str(random.randint(1000, 9999)))
     utils.reset_dir(path)
     return path
+
+
+# Grab the latest info log
+def getLatestInfoLog(base):
+    info_path = os.path.join(base, "osqueryd.INFO")
+    if os.name != "nt":
+        return info_path
+    query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;".format(info_path+'%')
+    osqueryi = OsqueryWrapper(getLatestOsqueryBinary('osqueryi'))
+    results = osqueryi.run_query(query)
+    if len(results) > 0:
+        return results[0]["path"]
+    return ""
 
 
 def loadThriftFromBuild(build_dir):
