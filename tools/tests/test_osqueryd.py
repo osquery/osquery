@@ -168,12 +168,15 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
                 "logger_mode": test_mode,
                 "verbose": True,
             })
-        info_path = test_base.getLatestInfoLog(logger_path)
+
         results_path = os.path.join(logger_path, "osqueryd.results.log")
         self.assertTrue(daemon.isAlive())
 
+        # Wait for the daemon to write the info log to disk before continuing
         def info_exists():
+            info_path = test_base.getLatestInfoLog(logger_path)
             return os.path.exists(info_path)
+        info_path = test_base.getLatestInfoLog(logger_path)
 
         def results_exists():
             return os.path.exists(results_path)
