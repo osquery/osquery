@@ -73,14 +73,12 @@ struct SyscallEvent final {
 std::ostream& operator<<(std::ostream& stream,
                          const SyscallEvent& syscall_event);
 
-struct AuditFimSubscriptionContext : public SubscriptionContext {
-  bool dummy;
-
+struct AuditFimSubscriptionContext final : public SubscriptionContext {
  private:
   friend class AuditFimEventPublisher;
 };
 
-struct AuditFimEventContext : public EventContext {
+struct AuditFimEventContext final : public EventContext {
   std::vector<SyscallEvent> syscall_events;
 };
 
@@ -88,7 +86,7 @@ using AuditFimEventContextRef = std::shared_ptr<AuditFimEventContext>;
 using AuditFimSubscriptionContextRef =
     std::shared_ptr<AuditFimSubscriptionContext>;
 
-class AuditFimEventPublisher
+class AuditFimEventPublisher final
     : public EventPublisher<AuditFimSubscriptionContext, AuditFimEventContext> {
   DECLARE_PUBLISHER("auditfim");
 
@@ -99,8 +97,6 @@ class AuditFimEventPublisher
   Status run() override;
 
  public:
-  AuditFimEventPublisher() : EventPublisher() {}
-
   virtual ~AuditFimEventPublisher() {
     tearDown();
   }

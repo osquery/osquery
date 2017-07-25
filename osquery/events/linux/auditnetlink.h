@@ -18,7 +18,7 @@ namespace osquery {
 enum class NetlinkStatus { ActiveMutable, ActiveImmutable, Disabled, Error };
 
 /// Subscription handle to be used with AuditNetlink::getEvents()
-typedef std::uint32_t NetlinkSubscriptionHandle;
+using NetlinkSubscriptionHandle = std::uint32_t;
 
 /// A single, prepared audit event record.
 struct AuditEventRecord final {
@@ -117,8 +117,11 @@ class AuditNetlink final {
   std::unique_ptr<std::thread> processing_thread_;
 
  public:
+  AuditNetlink(const AuditNetlink&) = delete;
+  AuditNetlink& operator=(const AuditNetlink&) = delete;
+
   static AuditNetlink& getInstance();
-  ~AuditNetlink(){};
+  ~AuditNetlink() = default;
 
   /// Creates a subscription context and returns a handle that can be used with
   /// ::getEvents().
@@ -137,7 +140,7 @@ class AuditNetlink final {
                               AuditEventRecord& event_record) noexcept;
 
  private:
-  AuditNetlink(){};
+  AuditNetlink() = default;
 
   /// Starts the event receiver thread.
   bool start() noexcept;
@@ -162,8 +165,5 @@ class AuditNetlink final {
 
   /// (Re)acquire the netlink handle.
   NetlinkStatus acquireHandle() noexcept;
-
-  AuditNetlink(const AuditNetlink&) = delete;
-  AuditNetlink& operator=(const AuditNetlink&) = delete;
 };
 }

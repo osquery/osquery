@@ -53,12 +53,13 @@ struct HandleInformation final {
 };
 
 /// Holds the file descriptor map for a process
-typedef std::unordered_map<int, HandleInformation> HandleMap;
+using HandleMap = std::unordered_map<int, HandleInformation>;
 
 /// Holds the file descriptor maps for all processes
-typedef std::unordered_map<__pid_t, HandleMap> ProcessMap;
+using ProcessMap = std::unordered_map<__pid_t, HandleMap>;
 
-class AuditFimEventSubscriber : public EventSubscriber<AuditFimEventPublisher> {
+class AuditFimEventSubscriber final
+    : public EventSubscriber<AuditFimEventPublisher> {
   ProcessMap process_map_;
 
  public:
