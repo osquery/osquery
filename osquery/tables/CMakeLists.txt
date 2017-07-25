@@ -51,6 +51,7 @@ if(WINDOWS)
 
   # Additional Windows libraries
   ADD_OSQUERY_LINK_ADDITIONAL("crypt32.lib")
+  ADD_OSQUERY_LINK_ADDITIONAL("Wintrust.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("Advapi32.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("Iphlpapi.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("SetupAPI.lib")
