@@ -72,6 +72,193 @@ SyscallEvent::Type GetSyscallEventType(int syscall_number) noexcept {
     return SyscallEvent::Type::Invalid;
   }
 }
+
+/// Returns the specified field name from the given audit event record; if the
+/// field is
+/// missing, the user-supplied default value is returned instead
+bool GetAuditRecordField(
+    std::string& value,
+    const AuditEventRecord& record,
+    const std::string& field_name,
+    const std::string& default_value = std::string()) noexcept {
+  const auto& field_map = record.fields;
+
+  auto field_it = field_map.find(field_name);
+  if (field_it == field_map.end()) {
+    value = default_value;
+    return false;
+  }
+
+  value = field_it->second;
+  return true;
+}
+
+/// Returns the specified field name from the given audit event record,
+/// converting it to an unsigned integer; if the field is
+/// missing, the user-supplied default value is returned instead
+bool GetAuditRecordField(std::uint64_t& value,
+                         const AuditEventRecord& record,
+                         const std::string& field_name,
+                         std::size_t base = 10,
+                         std::uint64_t default_value = 0) noexcept {
+  std::string string_value;
+  if (!GetAuditRecordField(string_value, record, field_name, "")) {
+    value = default_value;
+    return false;
+  }
+
+  long long temp;
+  if (!safeStrtoll(string_value, base, temp)) {
+    value = default_value;
+    return false;
+  }
+
+  value = static_cast<std::uint64_t>(temp);
+  return true;
+}
+
+bool ParseAuditSyscallRecord(
+    SyscallEvent& syscall_event,
+    const AuditEventRecord& audit_event_record) noexcept {
+  syscall_event = {};
+
+  // Contains the list of syscall that we need to track
+  const std::vector<std::uint64_t> syscall_filter = {__NR_execve,
+                                                     __NR_exit,
+                                                     __NR_exit_group,
+                                                     __NR_open,
+                                                     __NR_openat,
+                                                     __NR_open_by_handle_at,
+                                                     __NR_close,
+                                                     __NR_dup,
+                                                     __NR_dup2,
+                                                     __NR_dup3,
+                                                     __NR_write,
+                                                     __NR_read,
+                                                     __NR_mmap};
+
+  // Contains the list of syscalls that accept a file descriptor
+  // Note that the mmap file descriptor is inside the AUDIT_MMAP event record
+  const std::vector<std::uint64_t> input_fd_syscall_list = {
+      __NR_dup, __NR_dup2, __NR_dup3, __NR_close, __NR_write, __NR_read};
+
+  // Contains the lits of syscalls that outputs a file descriptor
+  const std::vector<std::uint64_t> output_fd_syscall_list = {
+      __NR_open,
+      __NR_openat,
+      __NR_open_by_handle_at,
+      __NR_dup,
+      __NR_dup2,
+      __NR_dup3};
+
+  // Searches the specified vector for the given syscall number; it used with
+  // the
+  // previously-defined vectors to detect what values the syscall accepts and/or
+  // outputs
+  auto L_ContainsSyscall = [](const std::vector<std::uint64_t>& filter,
+                              std::uint64_t syscall) -> bool {
+    return (std::find(filter.begin(), filter.end(), syscall) != filter.end());
+  };
+
+  std::uint64_t syscall_number;
+  if (!GetAuditRecordField(syscall_number, audit_event_record, "syscall")) {
+    VLOG(1) << "Malformed AUDIT_SYSCALL record received. The syscall field "
+               "is either missing or not valid.";
+
+    return false;
+  }
+
+  if (!L_ContainsSyscall(syscall_filter, syscall_number))
+    return false;
+
+  syscall_event.partial = false;
+  syscall_event.type = GetSyscallEventType(syscall_number);
+
+  // Special handling for mmap syscalls; the third parameter (a2 field)
+  // contains the requested
+  // memory protection
+  if (syscall_number == __NR_mmap) {
+    std::uint64_t memory_protection_flags;
+    if (!GetAuditRecordField(
+            memory_protection_flags, audit_event_record, "a2", 16)) {
+      VLOG(1) << "Malformed AUDIT_SYSCALL record received. The memory "
+                 "protection flags are either missing or not valid.";
+
+      // we can't determine if this is a write or not; assume the worst case
+      syscall_event.mmap_memory_protection_flags = PROT_READ | PROT_WRITE;
+
+    } else {
+      syscall_event.mmap_memory_protection_flags =
+          static_cast<int>(memory_protection_flags);
+    }
+  }
+
+  // Note that mmap is handled differently; the file descriptor is inside
+  // the AUDIT_MMAP record
+  if (L_ContainsSyscall(input_fd_syscall_list, syscall_number)) {
+    std::uint64_t input_fd;
+    if (!GetAuditRecordField(input_fd, audit_event_record, "a0", 16)) {
+      VLOG(1) << "Malformed AUDIT_SYSCALL record received. The file "
+                 "descriptor is either missing or not valid.";
+
+      syscall_event.input_fd = -1;
+      syscall_event.partial = true;
+
+    } else {
+      syscall_event.input_fd = static_cast<int>(input_fd);
+    }
+  }
+
+  if (L_ContainsSyscall(output_fd_syscall_list, syscall_number)) {
+    std::uint64_t output_fd;
+    if (!GetAuditRecordField(output_fd, audit_event_record, "exit")) {
+      VLOG(1) << "Malformed AUDIT_SYSCALL record received. The exit field "
+                 "is either missing or not valid.";
+
+      syscall_event.output_fd = -1;
+      syscall_event.partial = true;
+
+    } else {
+      syscall_event.output_fd = static_cast<int>(output_fd);
+    }
+  }
+
+  GetAuditRecordField(
+      syscall_event.success, audit_event_record, "success", "yes");
+
+  if (!GetAuditRecordField(
+          syscall_event.executable_path, audit_event_record, "exe")) {
+    VLOG(1) << "Malformed AUDIT_SYSCALL record received. The exe field is "
+               "missing.";
+
+    syscall_event.partial = true;
+  }
+
+  std::uint64_t parent_process_id;
+  if (!GetAuditRecordField(parent_process_id, audit_event_record, "ppid")) {
+    VLOG(1) << "Malformed AUDIT_SYSCALL record received. The parent "
+               "process id field is either missing or not valid.";
+
+    syscall_event.parent_process_id = 0;
+    syscall_event.partial = true;
+
+  } else {
+    syscall_event.parent_process_id = static_cast<__pid_t>(parent_process_id);
+  }
+
+  std::uint64_t process_id;
+  if (!GetAuditRecordField(process_id, audit_event_record, "pid")) {
+    VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process id "
+               "field is either missing or not valid.";
+
+    return false;
+
+  } else {
+    syscall_event.process_id = static_cast<__pid_t>(parent_process_id);
+  }
+
+  return true;
+}
 }
 
 Status AuditFimEventPublisher::setUp() {
@@ -97,52 +284,13 @@ void AuditFimEventPublisher::tearDown() {
 }
 
 Status AuditFimEventPublisher::run() {
-  const std::vector<int> syscall_filter = {__NR_execve,
-                                           __NR_exit,
-                                           __NR_exit_group,
-                                           __NR_open,
-                                           __NR_openat,
-                                           __NR_open_by_handle_at,
-                                           __NR_close,
-                                           __NR_dup,
-                                           __NR_dup2,
-                                           __NR_dup3,
-                                           __NR_write,
-                                           __NR_read,
-                                           __NR_mmap};
-
-  // The mmap file descriptor is inside the AUDIT_MMAP event record
-  const std::vector<int> input_fd_syscall_list = {
-      __NR_dup, __NR_dup2, __NR_dup3, __NR_close, __NR_write, __NR_read};
-
-  const std::vector<int> output_fd_syscall_list = {__NR_open,
-                                                   __NR_openat,
-                                                   __NR_open_by_handle_at,
-                                                   __NR_dup,
-                                                   __NR_dup2,
-                                                   __NR_dup3};
-
-  auto L_ContainsSyscall = [](const std::vector<int>& filter,
-                              int syscall) -> bool {
-    return (std::find(filter.begin(), filter.end(), syscall) != filter.end());
-  };
-
-  auto L_GetFieldFromMap = [](
-      const std::map<std::string, std::string>& field_map,
-      const std::string& name,
-      const std::string& default_value) -> std::string {
-    auto field_it = field_map.find(name);
-    if (field_it == field_map.end())
-      return default_value;
-
-    return field_it->second;
-  };
-
+  // Request our event queue from the AuditNetlink component
   auto audit_event_record_queue =
       AuditNetlink::getInstance().getEvents(audit_netlink_subscription_);
 
   auto event_context = createEventContext();
 
+  // Build a SyscallEvent object for each audit event
   for (const auto& audit_event_record : audit_event_record_queue) {
     auto audit_event_it = syscall_event_list_.find(audit_event_record.audit_id);
 
@@ -152,115 +300,10 @@ Status AuditFimEventPublisher::run() {
         syscall_event_list_.erase(audit_event_it);
       }
 
-      std::string field_value =
-          L_GetFieldFromMap(audit_event_record.fields, "syscall", "");
-
-      long long int syscall_number;
-      if (!safeStrtoll(field_value, 10, syscall_number)) {
-        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The syscall field "
-                   "is either missing or not valid.";
-        continue;
-      }
-
-      if (!L_ContainsSyscall(syscall_filter, syscall_number))
-        continue;
-
       SyscallEvent syscall_event;
-      syscall_event.partial = false;
-
-      syscall_event.type = GetSyscallEventType(syscall_number);
-
-      // Special handling for mmap syscalls; the third parameter (a2 field)
-      // contains the requested
-      // memory protection
-      if (syscall_number == __NR_mmap) {
-        field_value = L_GetFieldFromMap(audit_event_record.fields, "a2", "");
-
-        long long int memory_protection_flags;
-        if (!safeStrtoll(field_value, 16, memory_protection_flags)) {
-          VLOG(1) << "Malformed AUDIT_SYSCALL record received. The memory "
-                     "protection flags are either missing or not valid.";
-
-          // we can't determine if this is a write or not; assume the worst case
-          syscall_event.mmap_memory_protection_flags = PROT_READ | PROT_WRITE;
-          syscall_event.partial = true;
-
-        } else {
-          syscall_event.mmap_memory_protection_flags =
-              static_cast<int>(memory_protection_flags);
-        }
+      if (ParseAuditSyscallRecord(syscall_event, audit_event_record)) {
+        syscall_event_list_[audit_event_record.audit_id] = syscall_event;
       }
-
-      // Note that mmap is handled differently; the file descriptor is inside
-      // the AUDIT_MMAP record
-      if (L_ContainsSyscall(input_fd_syscall_list, syscall_number)) {
-        field_value = L_GetFieldFromMap(audit_event_record.fields, "a0", "");
-
-        long long int input_fd;
-        if (!safeStrtoll(field_value, 16, input_fd)) {
-          VLOG(1) << "Malformed AUDIT_SYSCALL record received. The file "
-                     "descriptor is either missing or not valid.";
-
-          syscall_event.input_fd = -1;
-          syscall_event.partial = true;
-
-        } else {
-          syscall_event.input_fd = static_cast<int>(input_fd);
-        }
-      }
-
-      if (L_ContainsSyscall(output_fd_syscall_list, syscall_number)) {
-        field_value = L_GetFieldFromMap(audit_event_record.fields, "exit", "");
-
-        long long int output_fd;
-        if (!safeStrtoll(field_value, 10, output_fd)) {
-          VLOG(1) << "Malformed AUDIT_SYSCALL record received. The exit field "
-                     "is either missing or not valid.";
-
-          syscall_event.output_fd = -1;
-          syscall_event.partial = true;
-
-        } else {
-          syscall_event.output_fd = static_cast<int>(output_fd);
-        }
-      }
-
-      syscall_event.success =
-          L_GetFieldFromMap(audit_event_record.fields, "success", "yes");
-
-      field_value = L_GetFieldFromMap(audit_event_record.fields, "exe", "");
-      if (field_value.empty()) {
-        syscall_event.partial = true;
-        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The exe field is "
-                   "missing.";
-      } else {
-        syscall_event.executable_path = field_value;
-      }
-
-      field_value = L_GetFieldFromMap(audit_event_record.fields, "ppid", "");
-
-      long long int process_id_value;
-      if (!safeStrtoll(field_value, 10, process_id_value)) {
-        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The parent "
-                   "process id field is either missing or not valid.";
-
-        syscall_event.partial = true;
-        continue;
-      }
-
-      syscall_event.parent_process_id = static_cast<__pid_t>(process_id_value);
-
-      field_value = L_GetFieldFromMap(audit_event_record.fields, "pid", "");
-      if (!safeStrtoll(field_value, 10, process_id_value)) {
-        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process id "
-                   "field is either missing or not valid.";
-
-        syscall_event.partial = true;
-        continue;
-      }
-
-      syscall_event.process_id = static_cast<__pid_t>(process_id_value);
-      syscall_event_list_[audit_event_record.audit_id] = syscall_event;
 
     } else if (audit_event_record.type == AUDIT_CWD) {
       if (audit_event_it == syscall_event_list_.end()) {
@@ -268,9 +311,13 @@ Status AuditFimEventPublisher::run() {
         continue;
       }
 
-      std::string field_value =
-          L_GetFieldFromMap(audit_event_record.fields, "cwd", "");
-      audit_event_it->second.cwd = field_value;
+      auto& syscall_event = audit_event_it->second;
+      if (!GetAuditRecordField(syscall_event.cwd, audit_event_record, "cwd")) {
+        VLOG(1) << "Malformed AUDIT_CWD record received. The cwd field is "
+                   "missing.";
+
+        syscall_event.partial = true;
+      }
 
     } else if (audit_event_record.type == AUDIT_MMAP) {
       if (audit_event_it == syscall_event_list_.end()) {
@@ -278,24 +325,16 @@ Status AuditFimEventPublisher::run() {
         continue;
       }
 
-      std::string field_value =
-          L_GetFieldFromMap(audit_event_record.fields, "fd", "");
+      auto& syscall_event = audit_event_it->second;
 
-      if (field_value.empty()) {
-        VLOG(1) << "Malformed AUDIT_MMAP record received. The file descriptor "
-                   "field is missing.";
-        audit_event_it->second.partial = true;
+      std::uint64_t input_fd;
+      if (!GetAuditRecordField(input_fd, audit_event_record, "fd")) {
+        VLOG(1) << "Malformed AUDIT_MMAP record received. The fd field is "
+                   "missing.";
 
+        syscall_event.partial = true;
       } else {
-        long long int mmap_fd;
-        if (!safeStrtoll(field_value, 10, mmap_fd)) {
-          VLOG(1) << "Malformed AUDIT_MMAP record received. The file "
-                     "descriptor field is not valid.";
-          audit_event_it->second.partial = true;
-
-        } else {
-          audit_event_it->second.input_fd = static_cast<int>(mmap_fd);
-        }
+        syscall_event.input_fd = static_cast<int>(input_fd);
       }
 
     } else if (audit_event_record.type == AUDIT_PATH) {
@@ -304,9 +343,14 @@ Status AuditFimEventPublisher::run() {
         continue;
       }
 
-      std::string field_value =
-          L_GetFieldFromMap(audit_event_record.fields, "name", "NOT FOUND");
-      audit_event_it->second.path = field_value;
+      auto& syscall_event = audit_event_it->second;
+      if (!GetAuditRecordField(
+              syscall_event.path, audit_event_record, "name", "")) {
+        VLOG(1) << "Malformed AUDIT_PATH record received. The path field is "
+                   "missing.";
+
+        syscall_event.partial = true;
+      }
 
     } else if (audit_event_record.type == AUDIT_EOE) {
       if (audit_event_it == syscall_event_list_.end()) {

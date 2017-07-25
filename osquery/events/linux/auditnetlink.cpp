@@ -122,6 +122,104 @@ std::string GetAuditRecordTypeName(int type) noexcept {
 
   return it->second;
 }
+
+void AdjustAuditReply(audit_reply& reply) noexcept {
+  reply.type = reply.msg.nlh.nlmsg_type;
+  reply.len = reply.msg.nlh.nlmsg_len;
+  reply.nlh = &reply.msg.nlh;
+
+  reply.status = nullptr;
+  reply.ruledata = nullptr;
+  reply.login = nullptr;
+  reply.message = nullptr;
+  reply.error = nullptr;
+  reply.signal_info = nullptr;
+  reply.conf = nullptr;
+
+  switch (reply.type) {
+  case NLMSG_ERROR: {
+    reply.error = static_cast<struct nlmsgerr*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  case AUDIT_LIST_RULES: {
+    reply.ruledata =
+        static_cast<struct audit_rule_data*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  case AUDIT_USER:
+  case AUDIT_LOGIN:
+  case AUDIT_KERNEL:
+  case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
+  case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
+  case AUDIT_FIRST_EVENT ... AUDIT_INTEGRITY_LAST_MSG: {
+    reply.message = static_cast<char*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  case AUDIT_SIGNAL_INFO: {
+    reply.signal_info = static_cast<audit_sig_info*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  default:
+    break;
+  }
+}
+
+bool ShouldHandle(const audit_reply& reply) noexcept {
+  switch (reply.type) {
+  case NLMSG_NOOP:
+  case NLMSG_DONE:
+  case NLMSG_ERROR:
+  case AUDIT_LIST_RULES:
+  case AUDIT_SECCOMP:
+  case AUDIT_GET:
+  case (AUDIT_GET + 1)...(AUDIT_LIST_RULES - 1):
+  case (AUDIT_LIST_RULES + 1)...(AUDIT_FIRST_USER_MSG - 1):
+  case AUDIT_DAEMON_START ... AUDIT_DAEMON_CONFIG: // 1200 - 1203
+  case AUDIT_CONFIG_CHANGE:
+    return false;
+
+  default:
+    return true;
+  }
+}
+
+std::ostream& operator<<(std::ostream& stream,
+                         const osquery::AuditEventRecord& audit_event_record) {
+  std::string audit_event_timestamp;
+  auto audit_event_timestamp_it = audit_event_record.fields.find("time");
+  if (audit_event_timestamp_it != audit_event_record.fields.end())
+    audit_event_timestamp = audit_event_timestamp_it->second;
+
+  stream << "audit_id=\'" << audit_event_record.audit_id << "\' ";
+
+  if (!audit_event_timestamp.empty())
+    stream << "time=\'" << audit_event_timestamp << "\' ";
+
+  stream << "type=\'" << GetAuditRecordTypeName(audit_event_record.type)
+         << "\' ";
+
+  if (!audit_event_record.fields.empty()) {
+    stream << "fields=\'";
+
+    for (auto field_it = audit_event_record.fields.begin();
+         field_it != audit_event_record.fields.end();
+         field_it++) {
+      stream << field_it->first << ":" << field_it->second;
+
+      if (std::next(field_it) != audit_event_record.fields.end()) {
+        stream << ", ";
+      }
+    }
+
+    stream << "\'";
+  }
+
+  return stream;
+}
 }
 
 namespace osquery {
@@ -159,10 +257,6 @@ AuditNetlink& AuditNetlink::getInstance() {
   return instance;
 }
 
-AuditNetlink::~AuditNetlink() {}
-
-AuditNetlink::AuditNetlink() {}
-
 bool AuditNetlink::start() noexcept {
   std::lock_guard<std::mutex> lock(initialization_mutex_);
 
@@ -176,14 +270,23 @@ bool AuditNetlink::start() noexcept {
   }
 
   try {
-    read_buffer_.resize(4096);
+    // Allocate the read buffer before we start the threads
+    const std::size_t read_buffer_size = 4096;
 
+    read_buffer_.resize(read_buffer_size);
+    if (read_buffer_.size() != read_buffer_size) {
+      VLOG(1) << "Failed to allocate the audit netlink read buffer";
+      return false;
+    }
+
+    // Start the reading thread
     std::packaged_task<bool(AuditNetlink&)> recv_thread_task(
         std::bind(&AuditNetlink::recvThread, this));
 
     recv_thread_.reset(
         new std::thread(std::move(recv_thread_task), std::ref(*this)));
 
+    // Start the processing thread
     std::packaged_task<bool(AuditNetlink&)> processing_thread_task(
         std::bind(&AuditNetlink::processThread, this));
 
@@ -429,26 +532,14 @@ bool AuditNetlink::processThread() noexcept {
     std::vector<AuditEventRecord> audit_event_record_queue;
 
     for (auto& reply : queue) {
-      // Adjust the reply
-      reply.type = reply.msg.nlh.nlmsg_type;
-      reply.len = reply.msg.nlh.nlmsg_len;
-      reply.nlh = &reply.msg.nlh;
+      AdjustAuditReply(reply);
 
-      reply.status = nullptr;
-      reply.ruledata = nullptr;
-      reply.login = nullptr;
-      reply.message = nullptr;
-      reply.error = nullptr;
-      reply.signal_info = nullptr;
-      reply.conf = nullptr;
-
-      switch (reply.type) {
-      case NLMSG_ERROR: {
-        reply.error = static_cast<struct nlmsgerr*>(NLMSG_DATA(reply.nlh));
-        break;
-      }
-
-      case AUDIT_GET: {
+      // This record carries the process id of the controlling daemon; in case
+      // we lost
+      // control of the audit service, we are going to request a reset as soon
+      // as we
+      // finish processing the pending queue
+      if (reply.type == AUDIT_GET) {
         reply.status = static_cast<struct audit_status*>(NLMSG_DATA(reply.nlh));
         pid_t new_pid = static_cast<pid_t>(reply.status->pid);
 
@@ -461,63 +552,16 @@ bool AuditNetlink::processThread() noexcept {
           }
         }
 
-        break;
+        continue;
       }
 
-      case AUDIT_LIST_RULES: {
-        reply.ruledata =
-            static_cast<struct audit_rule_data*>(NLMSG_DATA(reply.nlh));
-        break;
-      }
-
-      case AUDIT_USER:
-      case AUDIT_LOGIN:
-      case AUDIT_KERNEL:
-      case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
-      case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
-      case AUDIT_FIRST_EVENT ... AUDIT_INTEGRITY_LAST_MSG: {
-        reply.message = static_cast<char*>(NLMSG_DATA(reply.nlh));
-        break;
-      }
-
-      case AUDIT_SIGNAL_INFO: {
-        reply.signal_info = static_cast<audit_sig_info*>(NLMSG_DATA(reply.nlh));
-        break;
-      }
-
-      default:
-        break;
-      }
-
-      bool dispatch_message = false;
-
-      switch (reply.type) {
-      case NLMSG_NOOP:
-      case NLMSG_DONE:
-      case NLMSG_ERROR:
-      case AUDIT_LIST_RULES:
-      case AUDIT_SECCOMP:
-      case AUDIT_GET:
-      case (AUDIT_GET + 1)...(AUDIT_LIST_RULES - 1):
-      case (AUDIT_LIST_RULES + 1)...(AUDIT_FIRST_USER_MSG - 1):
-      case AUDIT_DAEMON_START ... AUDIT_DAEMON_CONFIG: // 1200 - 1203
-      case AUDIT_CONFIG_CHANGE:
-        break;
-
-      /// \todo Why have these been explicitly added here?
-      case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
-      case AUDIT_SYSCALL: // 1300
-      case AUDIT_CWD: // 1307
-      case AUDIT_PATH: // 1302
-      case AUDIT_EXECVE: // 1309 (execve arguments).
-      default:
-        dispatch_message = true;
-        break;
-      }
-
-      if (!dispatch_message)
+      // We are not interested in all messages; only get the ones related to
+      // syscalls and their
+      // parameters
+      if (!ShouldHandle(reply))
         continue;
 
+      // Parse the audit record body and store it into our queue
       AuditEventRecord audit_event_record = {};
       if (!ParseAuditReply(reply, audit_event_record)) {
         VLOG(1) << "Malformed audit record received";
@@ -525,41 +569,13 @@ bool AuditNetlink::processThread() noexcept {
       }
 
       if (FLAGS_audit_debug) {
-        std::string audit_event_timestamp;
-        auto audit_event_timestamp_it = audit_event_record.fields.find("time");
-        if (audit_event_timestamp_it != audit_event_record.fields.end())
-          audit_event_timestamp = audit_event_timestamp_it->second;
-
-        std::cout << "audit_id=\'" << audit_event_record.audit_id << "\' ";
-
-        if (!audit_event_timestamp.empty())
-          std::cout << "time=\'" << audit_event_timestamp << "\' ";
-
-        std::cout << "type=\'"
-                  << GetAuditRecordTypeName(audit_event_record.type) << "\' ";
-
-        if (!audit_event_record.fields.empty()) {
-          std::cout << "fields=\'";
-
-          for (auto field_it = audit_event_record.fields.begin();
-               field_it != audit_event_record.fields.end();
-               field_it++) {
-            std::cout << field_it->first << ":" << field_it->second;
-
-            if (std::next(field_it) != audit_event_record.fields.end()) {
-              std::cout << ", ";
-            }
-          }
-
-          std::cout << "\'";
-        }
-
-        std::cout << std::endl;
+        std::cout << audit_event_record << std::endl;
       }
 
       audit_event_record_queue.push_back(audit_event_record);
     }
 
+    // Dispatch the new records to the subscribers
     if (!audit_event_record_queue.empty()) {
       std::lock_guard<std::mutex> subscriber_list_lock(subscribers_mutex_);
 

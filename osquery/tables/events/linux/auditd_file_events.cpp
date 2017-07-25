@@ -39,14 +39,23 @@ FLAG(bool,
      true,
      "Allow the audit publisher to show partial file events");
 
+/// This structure stores the information for a tracked file handle
 struct HandleInformation final {
+  /// Operation type affecting this file handle
   enum class OperationType { Open, Read, Write };
 
+  /// The last operation executed on this file handle; this is used by the
+  /// filtering logic to reduce output
   OperationType last_operation{OperationType::Open};
+
+  /// The path for this file handle
   std::string path;
 };
 
+/// Holds the file descriptor map for a process
 typedef std::unordered_map<int, HandleInformation> HandleMap;
+
+/// Holds the file descriptor maps for all processes
 typedef std::unordered_map<__pid_t, HandleMap> ProcessMap;
 
 class AuditFimEventSubscriber : public EventSubscriber<AuditFimEventPublisher> {

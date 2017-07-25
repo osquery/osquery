@@ -118,13 +118,13 @@ class AuditNetlink final {
 
  public:
   static AuditNetlink& getInstance();
-  ~AuditNetlink();
+  ~AuditNetlink(){};
 
   /// Creates a subscription context and returns a handle that can be used with
   /// ::getEvents().
   NetlinkSubscriptionHandle subscribe() noexcept;
 
-  /// Destroyes the subscription context associated with the given handle.
+  /// Destroys the subscription context associated with the given handle.
   void unsubscribe(NetlinkSubscriptionHandle handle) noexcept;
 
   /// Prepares the raw audit event records stored in the given subscriber
@@ -137,7 +137,7 @@ class AuditNetlink final {
                               AuditEventRecord& event_record) noexcept;
 
  private:
-  AuditNetlink();
+  AuditNetlink(){};
 
   /// Starts the event receiver thread.
   bool start() noexcept;
