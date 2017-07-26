@@ -56,7 +56,7 @@ REGISTER(KafkaProducerPlugin, "logger", "kafka_producer");
 
 std::once_flag KafkaProducerPlugin::shutdownFlag_;
 
-static inline std::string getMsgName(const std::string& payload) {
+inline std::string getMsgName(const std::string& payload) {
   const std::string fieldName = "\"name\"";
   size_t ipos = payload.rfind(fieldName);
   if (ipos == std::string::npos) {

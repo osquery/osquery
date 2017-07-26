@@ -30,7 +30,7 @@ const std::string kKafkaBaseTopic = "base_topic";
 const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
 
 /// Retrieves log payload field "name".
-static inline std::string getMsgName(const std::string& payload);
+std::string getMsgName(const std::string& payload);
 
 class KafkaProducerPlugin : public LoggerPlugin, public InternalRunnable {
  public:
