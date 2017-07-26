@@ -20,6 +20,7 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
+#include "osquery/config/parsers/kafka_topics.h"
 #include "osquery/logger/plugins/kafka_producer.h"
 
 namespace osquery {
@@ -30,10 +31,7 @@ FLAG(string,
      "Bootstrap broker(s) as a comma-separated list of host or host:port "
      "(default port 9092)");
 
-FLAG(string,
-     logger_kafka_topic,
-     "osquery",
-     "Kafka topic to publish logs under");
+FLAG(string, logger_kafka_topic, "", "Kafka topic to publish logs under");
 
 FLAG(string,
      logger_kafka_acks,
@@ -42,17 +40,42 @@ FLAG(string,
 
 /// Deleter for rd_kafka_t unique_ptr.
 void delKafkaHandle(rd_kafka_t* k) {
-  rd_kafka_destroy(k);
+  if (k != nullptr) {
+    rd_kafka_destroy(k);
+  }
 };
 
 /// Deleter for rd_kafka_topic_t unique_ptr.
 void delKafkaTopic(rd_kafka_topic_t* kt) {
-  rd_kafka_topic_destroy(kt);
+  if (kt != nullptr) {
+    rd_kafka_topic_destroy(kt);
+  }
 };
 
 REGISTER(KafkaProducerPlugin, "logger", "kafka_producer");
 
 std::once_flag KafkaProducerPlugin::shutdownFlag_;
+
+static inline std::string getMsgName(const std::string& payload) {
+  const std::string fieldName = "\"name\"";
+  size_t ipos = payload.rfind(fieldName);
+  if (ipos == std::string::npos) {
+    // return base topic key
+    return "";
+  }
+
+  size_t first = payload.find('"', ipos + 6);
+  if (first == std::string::npos) {
+    return "";
+  }
+
+  size_t last = payload.find('"', first + 1);
+  if (last == std::string::npos) {
+    return "";
+  }
+
+  return payload.substr(first + 1, last - first - 1);
+}
 
 /**
  * @brief callback for status of message delivery
@@ -138,28 +161,10 @@ void KafkaProducerPlugin::init(const std::string& name,
     return;
   }
 
-  // Set topic configurations.
-  rd_kafka_topic_conf_t* topicConf = rd_kafka_topic_conf_new();
-  if (rd_kafka_topic_conf_set(topicConf,
-                              "acks",
-                              FLAGS_logger_kafka_acks.c_str(),
-                              errstr,
-                              sizeof(errstr)) != RD_KAFKA_CONF_OK) {
+  // Configure Kafka topics
+  if (!configureTopics()) {
     LOG(ERROR)
-        << "Could not initiate Kafka request.required.acks configuration: "
-        << errstr;
-    return;
-  }
-
-  // Initiate Kafka topic.
-  std::unique_ptr<rd_kafka_topic_t, std::function<void(rd_kafka_topic_t*)>> tk(
-      rd_kafka_topic_new(
-          producer_.get(), FLAGS_logger_kafka_topic.c_str(), topicConf),
-      delKafkaTopic);
-  topic_.swap(tk);
-  if (topic_.get() == nullptr) {
-    LOG(ERROR) << "Could not create Kafka topic " << FLAGS_logger_kafka_topic
-               << ": " << rd_kafka_last_error();
+        << "Could not initial Kafka logger because configuration is invalid";
     return;
   }
 
@@ -168,7 +173,6 @@ void KafkaProducerPlugin::init(const std::string& name,
   // (http://docs.confluent.io/2.0.0/clients/producer.html#asynchronous-writes)
   running_.store(true);
 
-  // futureTimer_ = std::async(std::launch::async, [this]() { start(); });
   Dispatcher::addService(std::shared_ptr<KafkaProducerPlugin>(
       this, [](KafkaProducerPlugin* k) { k->stop(); }));
 }
@@ -179,7 +183,25 @@ Status KafkaProducerPlugin::logString(const std::string& payload) {
         1, "Cannot log because Kafka producer did not initiate properly.");
   }
 
-  Status status = publishMsg(topic_.get(), payload);
+  std::string name(getMsgName(payload));
+
+  rd_kafka_topic_t* topic;
+  try {
+    topic = queryToTopics_.at(name);
+
+  } catch (const std::out_of_range& _) {
+    topic = queryToTopics_[kKafkaBaseTopic];
+  }
+
+  if (topic == nullptr) {
+    std::string errMsg(
+        "Could not publish message: Topic not configured for message name '" +
+        name + "'");
+    LOG(ERROR) << errMsg;
+    return Status(2, errMsg);
+  }
+
+  Status status = publishMsg(topic, payload);
   if (!status.ok()) {
     LOG(ERROR) << "Could not publish message: " << status.getMessage();
   }
@@ -207,5 +229,80 @@ Status KafkaProducerPlugin::publishMsg(rd_kafka_topic_t* topic,
   }
 
   return Status(0, "OK");
+}
+
+inline rd_kafka_topic_t* KafkaProducerPlugin::initTopic(
+    const std::string& topicName) {
+  char errstr[512];
+  rd_kafka_topic_conf_t* topicConf = rd_kafka_topic_conf_new();
+  if (rd_kafka_topic_conf_set(topicConf,
+                              "acks",
+                              FLAGS_logger_kafka_acks.c_str(),
+                              errstr,
+                              sizeof(errstr)) != RD_KAFKA_CONF_OK) {
+    LOG(ERROR) << "Could not initiate Kafka request.required.acks "
+                  "configuration: "
+               << errstr;
+    return nullptr;
+  }
+
+  return rd_kafka_topic_new(producer_.get(), topicName.c_str(), topicConf);
+}
+
+bool KafkaProducerPlugin::configureTopics() {
+  auto parser = Config::getParser("kafka_topics");
+
+  if (parser != nullptr || parser.get() != nullptr) {
+    const auto& config = parser->getData().get_child(
+        kKafkaTopicParserRootKey, boost::property_tree::ptree("UNEXPECTED"));
+    if (!config.empty() && config.get_value("") != "UNEXPECTED") {
+      for (const auto& t : config) {
+        auto topic = initTopic(t.first);
+        if (topic == nullptr) {
+          continue;
+        }
+
+        topics_.push_back(
+            std::unique_ptr<rd_kafka_topic_t,
+                            std::function<void(rd_kafka_topic_t*)>>(
+                topic, delKafkaTopic));
+
+        // Configure queryToTopics_
+        for (const auto& n :
+             config.get_child(t.first, boost::property_tree::ptree())) {
+          if (!n.first.empty()) {
+            LOG(WARNING)
+                << "Query names for a topic must be in JSON array format";
+            continue;
+          }
+
+          queryToTopics_[n.second.data()] = topic;
+        }
+      }
+    }
+  }
+
+  // Initiate base Kafka topic.
+  if (FLAGS_logger_kafka_topic != "") {
+    auto topic = initTopic(FLAGS_logger_kafka_topic);
+    if (topic != nullptr) {
+      topics_.push_back(std::unique_ptr<rd_kafka_topic_t,
+                                        std::function<void(rd_kafka_topic_t*)>>(
+          topic, delKafkaTopic));
+    }
+
+    queryToTopics_[kKafkaBaseTopic] = topic;
+
+  } else {
+    /* If no previous topics successfully configured and no base topic is set
+     * then configuration fails.*/
+    if (topics_.empty()) {
+      return false;
+    }
+
+    queryToTopics_[kKafkaBaseTopic] = nullptr;
+  }
+
+  return true;
 }
 } // namespace osquery

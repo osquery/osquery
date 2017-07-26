@@ -8,6 +8,8 @@
  *
  */
 
+#pragma once
+
 #include <atomic>
 #include <future>
 #include <memory>
@@ -21,8 +23,14 @@
 
 namespace osquery {
 
+/// Default Kafka topic to publish to if payload name is not found.
+const std::string kKafkaBaseTopic = "base_topic";
+
 /// How often to poll Kafka broker for publish results.
 const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
+
+/// Retrieves log payload field "name".
+static inline std::string getMsgName(const std::string& payload);
 
 class KafkaProducerPlugin : public LoggerPlugin, public InternalRunnable {
  public:
@@ -58,7 +66,7 @@ class KafkaProducerPlugin : public LoggerPlugin, public InternalRunnable {
    */
   void stop() override;
 
-  KafkaProducerPlugin() : running_(false), topic_(nullptr) {}
+  KafkaProducerPlugin() : running_(false) {}
   ~KafkaProducerPlugin() {}
 
   KafkaProducerPlugin(KafkaProducerPlugin const&) = delete;
@@ -77,13 +85,13 @@ class KafkaProducerPlugin : public LoggerPlugin, public InternalRunnable {
                             const std::string& payload);
 
   /**
-   * Flushes all buffered messages to Kafka, waiting for a maximum of 3
+   * @brief Flushes all buffered messages to Kafka, waiting for a maximum of 3
    * seconds.  Wrapper with mutex locking around rd_kafka_flush.
    */
   virtual void flushMessages();
 
   /**
-   * polls to ensure onMsgDelivery callback is invoked message receipt.
+   * @brief polls to ensure onMsgDelivery callback is invoked message receipt.
    * Wrapper with mutex locking around rd_kafka_poll.
    */
   virtual void pollKafka();
@@ -91,13 +99,23 @@ class KafkaProducerPlugin : public LoggerPlugin, public InternalRunnable {
   /// Boolean representing whether the logger is running.
   std::atomic<bool> running_;
 
+  /// Map of query names to Kafka topic.
+  std::map<std::string, rd_kafka_topic_t*> queryToTopics_;
+
  private:
+  /// Configures Kafka topics accordingly.
+  bool configureTopics();
+
+  /// Initiates Kafka topic.  Caller needs to handle rd_kafka_topic_t* cleanup.
+  rd_kafka_topic_t* initTopic(const std::string& topicName);
+
   /// Smart pointer to the Kafka producer.
   std::unique_ptr<rd_kafka_t, std::function<void(rd_kafka_t*)>> producer_;
 
-  /// Smart pointer to the Kafka topic.
-  std::unique_ptr<rd_kafka_topic_t, std::function<void(rd_kafka_topic_t*)>>
-      topic_;
+  /// Vector of unique_ptr to the Kafka topic.
+  std::vector<
+      std::unique_ptr<rd_kafka_topic_t, std::function<void(rd_kafka_topic_t*)>>>
+      topics_;
 
   /// OS hostname and binary name interpolated as the Kafka message key.
   std::string msgKey_;

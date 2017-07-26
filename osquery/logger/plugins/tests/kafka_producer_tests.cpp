@@ -36,6 +36,10 @@ class MockKafkaProducerPlugin : public KafkaProducerPlugin {
     return running_.load();
   }
 
+  void setQueryToTopics(const std::map<std::string, rd_kafka_topic_t*>& m) {
+    queryToTopics_ = m;
+  }
+
  protected:
   Status publishMsg(rd_kafka_topic_t* topic,
                     const std::string& payload) override {
@@ -64,6 +68,13 @@ class KafkaProducerPluginTest : public ::testing::Test {};
 
 TEST_F(KafkaProducerPluginTest, logString_happy_path) {
   MockKafkaProducerPlugin mkpp;
+
+  std::map<std::string, rd_kafka_topic_t*> qToT;
+
+  /* Set some fake address so won't evaluate true for nullptr check.  Use
+   * reinterpret_cast since rd_kafka_topic_t is opaque. */
+  qToT[kKafkaBaseTopic] = reinterpret_cast<rd_kafka_topic_t*>(0x692870);
+  mkpp.setQueryToTopics(qToT);
 
   std::vector<std::string> msgs = {
       "{\"name\": \"test1\"}",
