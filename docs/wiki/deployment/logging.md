@@ -81,15 +81,49 @@ Users can configure logs to be directly published to a Kafka topic.
 
 #### Configuration
 
-Currently only 3 Kafka configurations are exposed: a comma delimited list of brokers with or without the port (by default `9092`) [default value: `localhost`], topic name [default value: `osquery`], and acks (the number acknowledgments the logger requires from the Kafka leader before the considering the request complete) [default: `all`; valid values: `0`, `1`, `all`]. [See official documentation for more details.](https://kafka.apache.org/documentation/#producerconfigs)
+There are 3 Kafka configurations are exposed as option: a comma delimited list of brokers with or without the port (by default `9092`) [default value: `localhost`], a default topic [default value: `""`], and acks (the number acknowledgments the logger requires from the Kafka leader before the considering the request complete) [default: `all`; valid values: `0`, `1`, `all`]. [See official documentation for more details.](https://kafka.apache.org/documentation/#producerconfigs)
+
+To publish queries to specific topics, add a `kafka_topics` field at the top level of `osquery.conf` (see example below).  If a given query was not explicitely configured in `kafka_topics` then the base topic will be used.  If there is no base topic configured, then that query will not be logged.  There is however a performance cost for the falling back of unconfigured queries to the base topic, so it is advised that when using multiple topics to explicitly configure all scheduled queries in `kafka_topics`.
 
 The configuration parameters are exposed via command line options and can be set in a JSON configuration file as exampled here:
 ```json
 {
   "options": {
     "logger_kafka_brokers": "some.example1.com:9092,some.example2.com:9092",
-    "logger_kafka_topic": "osquery_logs",
+    "logger_kafka_topic": "base_topic",
     "logger_kafka_acks": "1"
+  },
+  "packs": {
+    "system-snapshot": {
+      "queries": {
+        "some_query1": {
+          "query": "select * from system_info",
+          "snapshot": true,
+          "interval": 60
+        },
+        "some_query2": {
+          "query": "select * from md_devices",
+          "snapshot": true,
+          "interval": 60
+        },
+        "some_query3": {
+          "query": "select * from md_drives",
+          "snapshot": true,
+          "interval": 60
+        }
+      }
+    }
+  },
+  "kafka_topics": {
+    "test1_topic": [
+      "pack_system-snapshot_some_query1"
+    ],
+    "test2_topic": [
+      "pack_system-snapshot_some_query2"
+    ],
+    "test3_topic": [
+      "pack_system-snapshot_some_query3"
+    ],
   }
 }
 ```
