@@ -12,6 +12,7 @@
 
 #include <osquery/config.h>
 #include <osquery/events.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
@@ -58,13 +59,21 @@ using HandleMap = std::unordered_map<int, HandleInformation>;
 /// Holds the file descriptor maps for all processes
 using ProcessMap = std::unordered_map<__pid_t, HandleMap>;
 
+/// A simple vector of strings
+using StringList = std::vector<std::string>;
+
 class AuditFimEventSubscriber final
     : public EventSubscriber<AuditFimEventPublisher> {
   ProcessMap process_map_;
+  StringList included_path_list_;
+  StringList excluded_path_list_;
+  bool show_accesses_{true};
 
  public:
   Status setUp() override;
   Status init() override;
+  void configure() override;
+
   Status Callback(const ECRef& event_context,
                   const SCRef& subscription_context);
 };
@@ -84,6 +93,54 @@ Status AuditFimEventSubscriber::init() {
   subscribe(&AuditFimEventSubscriber::Callback, sc);
 
   return Status(0, "OK");
+}
+
+void AuditFimEventSubscriber::configure() {
+  auto parser = Config::getParser("audit_fim");
+  const auto& root_key = parser.get()->getData();
+
+  if (root_key.find("file_paths") != root_key.not_found()) {
+    for (auto& path_value : root_key.get_child("file_paths")) {
+      auto pattern = path_value.second.data();
+      replaceGlobWildcards(pattern);
+
+      StringList solved_path_list = {};
+      resolveFilePattern(pattern, solved_path_list);
+
+      included_path_list_.reserve(included_path_list_.size() +
+                                  solved_path_list.size());
+      included_path_list_.insert(included_path_list_.end(),
+                                 solved_path_list.begin(),
+                                 solved_path_list.end());
+    }
+
+    for (const std::string& path : included_path_list_) {
+      std::cout << "INCLUDE " << path << std::endl;
+    }
+  }
+
+  if (root_key.find("exclude") != root_key.not_found()) {
+    for (auto& path_value : root_key.get_child("exclude")) {
+      auto pattern = path_value.second.data();
+      replaceGlobWildcards(pattern);
+
+      StringList solved_path_list = {};
+      resolveFilePattern(pattern, solved_path_list);
+
+      excluded_path_list_.resize(excluded_path_list_.size() +
+                                 excluded_path_list_.size());
+      excluded_path_list_.insert(excluded_path_list_.end(),
+                                 solved_path_list.begin(),
+                                 solved_path_list.end());
+    }
+  }
+
+  if (root_key.find("show_accesses") != root_key.not_found()) {
+    auto key = root_key.get_child("show_accesses");
+    auto value = key.get_value<std::string>();
+
+    show_accesses_ = (value == "true");
+  }
 }
 
 Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
