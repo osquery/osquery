@@ -20,7 +20,6 @@
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
-#include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
