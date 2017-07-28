@@ -68,48 +68,48 @@ Status OpenBSMExecVESubscriber::Callback(
   for (const auto& tok : ec->tokens) {
     switch (tok.id) {
     case AUT_HEADER32:
-      r["time"] = std::to_string(tok.tt.hdr32.s);
+      r["time"] = BIGINT(tok.tt.hdr32.s);
       break;
     case AUT_HEADER32_EX:
-      r["time"] = std::to_string(tok.tt.hdr32_ex.s);
+      r["time"] = BIGINT(tok.tt.hdr32_ex.s);
       break;
     case AUT_HEADER64:
-      r["time"] = std::to_string(tok.tt.hdr64_ex.s);
+      r["time"] = BIGINT(tok.tt.hdr64_ex.s);
       break;
     case AUT_HEADER64_EX:
-      r["time"] = std::to_string(tok.tt.hdr64_ex.s);
+      r["time"] = BIGINT(tok.tt.hdr64_ex.s);
       break;
     case AUT_SUBJECT32:
-      r["pid"] = std::to_string(tok.tt.subj32.pid);
-      r["euid"] = std::to_string(tok.tt.subj32.euid);
-      r["egid"] = std::to_string(tok.tt.subj32.egid);
-      r["ruid"] = std::to_string(tok.tt.subj32.ruid);
-      r["rgid"] = std::to_string(tok.tt.subj32.rgid);
+      r["pid"] = INTEGER(tok.tt.subj32.pid);
+      r["euid"] = INTEGER(tok.tt.subj32.euid);
+      r["egid"] = INTEGER(tok.tt.subj32.egid);
+      r["ruid"] = INTEGER(tok.tt.subj32.ruid);
+      r["rgid"] = INTEGER(tok.tt.subj32.rgid);
       break;
     case AUT_SUBJECT64:
-      r["pid"] = std::to_string(tok.tt.subj64.pid);
-      r["euid"] = std::to_string(tok.tt.subj64.euid);
-      r["egid"] = std::to_string(tok.tt.subj64.egid);
-      r["ruid"] = std::to_string(tok.tt.subj64.ruid);
-      r["rgid"] = std::to_string(tok.tt.subj64.rgid);
+      r["pid"] = INTEGER(tok.tt.subj64.pid);
+      r["euid"] = INTEGER(tok.tt.subj64.euid);
+      r["egid"] = INTEGER(tok.tt.subj64.egid);
+      r["ruid"] = INTEGER(tok.tt.subj64.ruid);
+      r["rgid"] = INTEGER(tok.tt.subj64.rgid);
       break;
     case AUT_SUBJECT32_EX:
-      r["pid"] = std::to_string(tok.tt.subj32_ex.pid);
-      r["euid"] = std::to_string(tok.tt.subj32_ex.euid);
-      r["egid"] = std::to_string(tok.tt.subj32_ex.egid);
-      r["ruid"] = std::to_string(tok.tt.subj32_ex.ruid);
-      r["rgid"] = std::to_string(tok.tt.subj32_ex.rgid);
+      r["pid"] = INTEGER(tok.tt.subj32_ex.pid);
+      r["euid"] = INTEGER(tok.tt.subj32_ex.euid);
+      r["egid"] = INTEGER(tok.tt.subj32_ex.egid);
+      r["ruid"] = INTEGER(tok.tt.subj32_ex.ruid);
+      r["rgid"] = INTEGER(tok.tt.subj32_ex.rgid);
       break;
     case AUT_RETURN32:
-      r["status"] = std::to_string(tok.tt.ret32.status);
+      r["status"] = INTEGER(static_cast<unsigned long>(tok.tt.ret32.status));
       break;
     case AUT_RETURN64:
-      r["status"] = tok.tt.ret64.err;
+      r["status"] = INTEGER(tok.tt.ret64.err);
       break;
     case AUT_EXEC_ARGS:
-      for (unsigned int i = 0; i < tok.tt.execarg.count; ++i) {
-        r["args"] += TEXT(std::string(tok.tt.execarg.text[i]));
-        r["args"] += " ";
+      for (auto i = static_cast<unsigned int>(0); i < tok.tt.execarg.count;
+           ++i) {
+        r["args"] += TEXT(std::string(tok.tt.execarg.text[i]) + " ");
       }
       break;
     case AUT_PATH:
@@ -131,27 +131,28 @@ Status OpenBSMSSHLoginSubscriber::Callback(
     const OpenBSMEventContextRef& ec, const OpenBSMSubscriptionContextRef& sc) {
   Row r;
   for (const auto& tok : ec->tokens) {
-    VLOG(1) << (unsigned int)tok.id;
     switch (tok.id) {
     case AUT_HEADER32:
-      r["time"] = std::to_string(tok.tt.hdr32.s);
+      r["time"] = BIGINT(tok.tt.hdr32.s);
       break;
     case AUT_HEADER32_EX:
-      r["time"] = std::to_string(tok.tt.hdr32_ex.s);
+      r["time"] = BIGINT(tok.tt.hdr32_ex.s);
       break;
     case AUT_HEADER64:
-      r["time"] = std::to_string(tok.tt.hdr64_ex.s);
+      r["time"] = BIGINT(tok.tt.hdr64_ex.s);
       break;
     case AUT_HEADER64_EX:
-      r["time"] = std::to_string(tok.tt.hdr64_ex.s);
+      r["time"] = BIGINT(tok.tt.hdr64_ex.s);
       break;
     case AUT_SUBJECT32_EX:
-      r["uid"] = std::to_string(tok.tt.subj32_ex.ruid);
+      r["uid"] = INTEGER(tok.tt.subj32_ex.ruid);
+      r["gid"] = INTEGER(tok.tt.subj32_ex.rgid);
+      r["euid"] = INTEGER(tok.tt.subj32_ex.euid);
+      r["egid"] = INTEGER(tok.tt.subj32_ex.egid);
       break;
     }
   }
   add(r);
   return Status(0);
 }
-
 } // namespace osquery

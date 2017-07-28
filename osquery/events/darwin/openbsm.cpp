@@ -25,7 +25,6 @@ Status OpenBSMEventPublisher::setUp() {
     LOG(WARNING) << "The auditpipe couldn't be opened.";
     return Status(1, "Could not open OpenBSM pipe");
   }
-  VLOG(1) << "OpenBSM is starting";
   return Status(0);
 }
 void OpenBSMEventPublisher::configure() {}
@@ -38,12 +37,11 @@ Status OpenBSMEventPublisher::run() {
   if (audit_pipe_ == nullptr) {
     return Status(1, "No open audit_pipe");
   }
-  unsigned char* buffer;
-  std::string del = ",";
   tokenstr_t tok;
   auto reclen = 0;
   auto bytesread = 0;
-  unsigned int event_id = 0;
+  auto event_id = 0;
+  auto buffer = static_cast<unsigned char*>(nullptr);
   std::vector<tokenstr_t> tokens{};
 
   while ((reclen = au_read_rec(audit_pipe_, &buffer)) != -1) {
