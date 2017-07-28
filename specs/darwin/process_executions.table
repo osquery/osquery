@@ -1,0 +1,13 @@
+table_name("process_execution_events")
+description("Track execve calls used for process executions.")
+schema([
+    Column("path", TEXT, "The path associated with the event"),
+    Column("pid", TEXT, "The pid of the started process"),
+    Column("args", TEXT, "Arguments of the started process"),
+    Column("time", BIGINT, "Time the process was started"),
+    Column("euid", TEXT, "euid of who started the process"),
+    Column("ruid", TEXT, "ruid"),
+    Column("status", TEXT, "Status of the process"),
+])
+attributes(event_subscriber=True)
+implementation("openbsm_events@openbsm_events::genTable")

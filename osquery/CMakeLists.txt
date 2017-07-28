@@ -166,7 +166,7 @@ if(POSIX)
 endif()
 
 if(APPLE)
-  ADD_OSQUERY_LINK_CORE("liblzma libbz2")
+  ADD_OSQUERY_LINK_CORE("liblzma libbz2 libbsm")
 else()
   if(POSIX)
     ADD_OSQUERY_LINK_CORE("lzma")
