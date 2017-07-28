@@ -12,6 +12,7 @@
 #include <sstream>
 #include <string>
 
+#include <boost/network/protocol/http/client.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -30,10 +31,11 @@
 #include <osquery/system.h>
 
 #include "osquery/core/json.h"
-#include "osquery/logger/plugins/aws_util.h"
 #include "osquery/remote/transports/tls.h"
+#include "osquery/utils/aws_util.h"
 
 namespace pt = boost::property_tree;
+namespace http = boost::network::http;
 namespace bn = boost::network;
 namespace uri = boost::network::uri;
 
@@ -219,7 +221,12 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
       initAwsSdk();
     }
 
-    makeAWSClient<Aws::STS::STSClient>(client_, false);
+    Status s = makeAWSClient<Aws::STS::STSClient>(client_, "", false);
+    if (!s.ok()) {
+      LOG(WARNING) << "Error creating AWS client: " << s.what();
+      return Aws::Auth::AWSCredentials("", "");
+    }
+
     Model::AssumeRoleRequest sts_r;
     sts_r.SetRoleArn(FLAGS_aws_sts_arn_role);
     sts_r.SetRoleSessionName(FLAGS_aws_sts_session_name);
@@ -319,6 +326,52 @@ void initAwsSdk() {
   } catch (const std::system_error& e) {
     LOG(ERROR) << "call_once was not executed for initAwsSdk";
   }
+}
+
+void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
+  static std::atomic<bool> checked(false);
+  static std::string cached_id;
+  static std::string cached_region;
+  if (checked) {
+    // Return if already checked
+    instance_id = cached_id;
+    region = cached_region;
+    return;
+  }
+
+  static std::once_flag once_flag;
+  std::call_once(once_flag, []() {
+    if (checked) {
+      return;
+    }
+
+    initAwsSdk();
+    http::client::request req(
+        "http://169.254.169.254/latest/dynamic/instance-identity/document");
+    http::client::options options;
+    options.timeout(3);
+    http::client client(options);
+
+    try {
+      http::client::response res = client.get(req);
+      if (res.status() == 200) {
+        pt::ptree tree;
+        std::stringstream ss(res.body());
+        pt::read_json(ss, tree);
+        cached_id = tree.get<std::string>("instanceId", ""),
+        cached_region = tree.get<std::string>("region", ""),
+        VLOG(1) << "EC2 instance ID: " << cached_id
+                << ". Region: " << cached_region;
+      }
+    } catch (const std::system_error& e) {
+      // Assume that this is not EC2 instance
+      VLOG(1) << "Error getting EC2 instance information: " << e.what();
+    }
+    checked = true;
+  });
+
+  instance_id = cached_id;
+  region = cached_region;
 }
 
 Status getAWSRegion(std::string& region, bool sts) {

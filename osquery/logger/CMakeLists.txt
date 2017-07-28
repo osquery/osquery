@@ -40,7 +40,6 @@ if(NOT SKIP_AWS AND NOT WINDOWS)
   set(OSQUERY_LOGGER_AWS_PLUGINS
     "plugins/aws_firehose.cpp"
     "plugins/aws_kinesis.cpp"
-    "plugins/aws_util.cpp"
   )
 
   ADD_OSQUERY_LIBRARY_ADDITIONAL(
@@ -51,13 +50,10 @@ if(NOT SKIP_AWS AND NOT WINDOWS)
   set(OSQUERY_LOGGER_AWS_PLUGIN_TESTS
     "logger/plugins/tests/aws_firehose_tests.cpp"
     "logger/plugins/tests/aws_kinesis_tests.cpp"
-    "logger/plugins/tests/aws_util_tests.cpp"
   )
 
   ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_LOGGER_AWS_PLUGIN_TESTS})
 
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-kinesis")
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-firehose")
-  ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-sts")
-  ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-core")
 endif()
