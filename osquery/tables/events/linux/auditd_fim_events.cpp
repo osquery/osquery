@@ -37,7 +37,7 @@ FLAG(bool,
 
 FLAG(bool,
      audit_show_partial_file_events,
-     true,
+     false,
      "Allow the audit publisher to show partial file events");
 
 /// This structure stores the information for a tracked file handle
@@ -76,6 +76,10 @@ class AuditdFimEventSubscriber final
 
   Status Callback(const ECRef& event_context,
                   const SCRef& subscription_context);
+
+ private:
+  bool isPathIncluded(const std::string& path) const noexcept;
+  bool isPathExcluded(const std::string& path) const noexcept;
 };
 
 REGISTER(AuditdFimEventSubscriber, "event_subscriber", "auditd_fim_events");
@@ -113,10 +117,6 @@ void AuditdFimEventSubscriber::configure() {
                                  solved_path_list.begin(),
                                  solved_path_list.end());
     }
-
-    for (const std::string& path : included_path_list_) {
-      std::cout << "INCLUDE " << path << std::endl;
-    }
   }
 
   if (root_key.find("exclude") != root_key.not_found()) {
@@ -132,10 +132,6 @@ void AuditdFimEventSubscriber::configure() {
       excluded_path_list_.insert(excluded_path_list_.end(),
                                  solved_path_list.begin(),
                                  solved_path_list.end());
-
-      for (const std::string& path : excluded_path_list_) {
-        std::cout << "EXCLUDE " << path << std::endl;
-      }
     }
   }
 
@@ -144,9 +140,6 @@ void AuditdFimEventSubscriber::configure() {
     auto value = key.get_value<std::string>();
 
     show_accesses_ = (value == "true");
-
-    std::cout << "show_accesses set to " << (show_accesses_ ? "true" : "false")
-              << std::endl;
   }
 }
 
@@ -194,36 +187,55 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
 
       HandleMap& handle_map = handle_map_it->second;
 
-      namespace boostfs = boost::filesystem;
-      boostfs::path translated_path;
-
-      try {
-        translated_path = boostfs::canonical(boostfs::path(syscall.path),
-                                             boostfs::path(syscall.cwd));
-      } catch (...) {
-        translated_path = boostfs::path(syscall.path).normalize();
+      // normalize the path
+      std::string path = syscall.path;
+      if (syscall.path[0] == '"') {
+        path = syscall.path.substr(1, syscall.path.size() - 2);
+      } else {
+        path = syscall.path;
       }
 
+      if (path[0] != '/') {
+        std::string cwd;
+
+        if (syscall.cwd[0] == '"') {
+          cwd = syscall.cwd.substr(1, syscall.cwd.size() - 2);
+        } else {
+          cwd = syscall.cwd;
+        }
+
+        path = cwd + "/" + path;
+      }
+
+      namespace boostfs = boost::filesystem;
+      boostfs::path translated_path(path);
+      translated_path = translated_path.normalize();
+
+      // update the handle table
       HandleInformation handle_info;
       handle_info.last_operation = HandleInformation::OperationType::Open;
       handle_info.path = translated_path.string();
 
       handle_map[syscall.output_fd] = handle_info;
 
-      Row row;
-      row["syscall"] = "open";
-      row["pid"] = std::to_string(syscall.process_id);
-      row["ppid"] = std::to_string(syscall.parent_process_id);
-      row["cwd"] = syscall.cwd;
-      row["name"] = syscall.path;
-      row["canonical_path"] = translated_path.string();
-      row["uptime"] = std::to_string(tables::getUptime());
-      row["input_fd"] = "";
-      row["output_fd"] = std::to_string(syscall.output_fd);
-      row["success"] = syscall.success;
-      row["executable"] = syscall.executable_path;
-      row["partial"] = (syscall.partial ? "true" : "false");
-      add(row);
+      // collect the event, if necessary
+      if (show_accesses_ && !isPathExcluded(handle_info.path) &&
+          isPathIncluded(handle_info.path)) {
+        Row row;
+        row["syscall"] = "open";
+        row["pid"] = std::to_string(syscall.process_id);
+        row["ppid"] = std::to_string(syscall.parent_process_id);
+        row["cwd"] = syscall.cwd;
+        row["name"] = syscall.path;
+        row["canonical_path"] = handle_info.path;
+        row["uptime"] = std::to_string(tables::getUptime());
+        row["input_fd"] = "";
+        row["output_fd"] = std::to_string(syscall.output_fd);
+        row["success"] = syscall.success;
+        row["executable"] = syscall.executable_path;
+        row["partial"] = (syscall.partial ? "true" : "false");
+        add(row);
+      }
 
       break;
     }
@@ -250,40 +262,56 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
         partial_event = true;
       }
 
-      Row row;
-      row["syscall"] = "close";
-      row["pid"] = std::to_string(syscall.process_id);
-      row["ppid"] = std::to_string(syscall.parent_process_id);
-      row["uptime"] = std::to_string(tables::getUptime());
-      row["input_fd"] = std::to_string(syscall.input_fd);
-      row["output_fd"] = "";
-      row["success"] = syscall.success;
-      row["executable"] = syscall.executable_path;
+      if (show_accesses_) {
+        Row row;
 
-      // the following fields are not known for this type of event
-      row["cwd"] = "";
-      row["name"] = "";
+        /// attempt to solve the file descriptor
+        HandleMap& handle_map = handle_map_it->second;
+        auto file_name_it = handle_map.find(syscall.input_fd);
 
-      /// attempt to solve the file descriptor
-      HandleMap& handle_map = handle_map_it->second;
-      auto file_name_it = handle_map.find(syscall.input_fd);
-      if (file_name_it != handle_map.end()) {
-        const HandleInformation& handle_info = file_name_it->second;
-        row["canonical_path"] = handle_info.path;
-        handle_map.erase(file_name_it);
+        if (file_name_it != handle_map.end()) {
+          const HandleInformation& handle_info = file_name_it->second;
 
-      } else {
-        if (!FLAGS_audit_show_partial_file_events) {
-          break;
+          row["canonical_path"] = handle_info.path;
+          handle_map.erase(file_name_it);
+
+        } else {
+          if (!FLAGS_audit_show_partial_file_events) {
+            break;
+          }
+
+          row["canonical_path"] = "";
+          partial_event = true;
         }
 
-        row["canonical_path"] = "";
-        partial_event = true;
+        bool discard_event;
+        if (partial_event) {
+          discard_event = !FLAGS_audit_show_partial_file_events;
+        } else {
+          discard_event = (isPathExcluded(row["canonical_path"]) ||
+                           !isPathIncluded(row["canonical_path"]));
+        }
+
+        if (!discard_event) {
+          row["syscall"] = "close";
+          row["pid"] = std::to_string(syscall.process_id);
+          row["ppid"] = std::to_string(syscall.parent_process_id);
+          row["uptime"] = std::to_string(tables::getUptime());
+          row["input_fd"] = std::to_string(syscall.input_fd);
+          row["output_fd"] = "";
+          row["success"] = syscall.success;
+          row["executable"] = syscall.executable_path;
+
+          // the following fields are not known for this type of event
+          row["cwd"] = "";
+          row["name"] = "";
+
+          row["partial"] = (partial_event ? "true" : "false");
+
+          add(row);
+        }
       }
 
-      row["partial"] = (partial_event ? "true" : "false");
-
-      add(row);
       break;
     }
 
@@ -330,6 +358,7 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
         break;
       }
 
+      // Discard this right away if we do not allow partial events
       auto handle_map_it = process_map_.find(syscall.process_id);
       if (handle_map_it == process_map_.end()) {
         if (!FLAGS_audit_show_partial_file_events) {
@@ -342,7 +371,7 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
         partial_event = true;
       }
 
-      /// attempt to solve the file descriptor
+      // attempt to solve the file descriptor
       HandleMap& handle_map = handle_map_it->second;
       HandleInformation* handle_info = nullptr;
 
@@ -358,11 +387,12 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
         partial_event = true;
       }
 
-      // Only show state changes from "open" to "whatever" and from "read" to
+      // Only show state changes from "open" to "read or write" and from "read"
+      // to
       // "write"
       // The "written" state means that the file has also been read; this means
-      // that we will not
-      // notify about this file again until it is re-opened
+      // that we will not notify about this file again until it is re-opened
+
       bool discard_event = true;
       if (partial_event || handle_info == nullptr) {
         discard_event = false;
@@ -372,6 +402,7 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
         if (handle_info->last_operation ==
             HandleInformation::OperationType::Open) {
           discard_event = false;
+
           handle_info->last_operation =
               (read_operation ? HandleInformation::OperationType::Read
                               : HandleInformation::OperationType::Write);
@@ -389,28 +420,47 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
         break;
       }
 
-      Row row;
-      if (handle_info != nullptr) {
-        row["canonical_path"] = handle_info->path;
-      } else {
-        row["canonical_path"] = "";
+      //
+      // check the filters
+      //
+
+      discard_event = true;
+
+      if (!read_operation || show_accesses_) {
+        if (partial_event) {
+          discard_event = false;
+        } else {
+          discard_event = (isPathExcluded(handle_info->path) ||
+                           !isPathIncluded(handle_info->path));
+        }
       }
 
-      row["syscall"] = (read_operation ? "read" : "write");
-      row["pid"] = std::to_string(syscall.process_id);
-      row["ppid"] = std::to_string(syscall.parent_process_id);
-      row["uptime"] = std::to_string(tables::getUptime());
-      row["input_fd"] = std::to_string(syscall.input_fd);
-      row["output_fd"] = "";
-      row["success"] = syscall.success;
-      row["executable"] = syscall.executable_path;
-      row["partial"] = (partial_event ? "true" : "false");
+      if (!discard_event) {
+        Row row;
 
-      // the following fields are not known for this type of event
-      row["cwd"] = "";
-      row["name"] = "";
+        if (handle_info != nullptr) {
+          row["canonical_path"] = handle_info->path;
+        } else {
+          row["canonical_path"] = "";
+        }
 
-      add(row);
+        row["syscall"] = (read_operation ? "read" : "write");
+        row["pid"] = std::to_string(syscall.process_id);
+        row["ppid"] = std::to_string(syscall.parent_process_id);
+        row["uptime"] = std::to_string(tables::getUptime());
+        row["input_fd"] = std::to_string(syscall.input_fd);
+        row["output_fd"] = "";
+        row["success"] = syscall.success;
+        row["executable"] = syscall.executable_path;
+        row["partial"] = (partial_event ? "true" : "false");
+
+        // the following fields are not known for this type of event
+        row["cwd"] = "";
+        row["name"] = "";
+
+        add(row);
+      }
+
       break;
     }
 
@@ -421,5 +471,19 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
   }
 
   return Status(0, "OK");
+}
+
+bool AuditdFimEventSubscriber::isPathIncluded(const std::string& path) const
+    noexcept {
+  return (std::find(included_path_list_.begin(),
+                    included_path_list_.end(),
+                    path) != included_path_list_.end());
+}
+
+bool AuditdFimEventSubscriber::isPathExcluded(const std::string& path) const
+    noexcept {
+  return (std::find(excluded_path_list_.begin(),
+                    excluded_path_list_.end(),
+                    path) != excluded_path_list_.end());
 }
 }
