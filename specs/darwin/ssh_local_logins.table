@@ -1,0 +1,8 @@
+table_name("local_ssh_login_events")
+description("Track SSH logins to the local system.")
+schema([
+    Column("time", BIGINT, "Time the process was started"),
+    Column("uid", TEXT,  "UID of the user who logged in")
+])
+attributes(event_subscriber=True)
+implementation("openbsm_event@local_ssh_login_events::genTable")

@@ -8,11 +8,14 @@
  *
  */
 
-#include <vector>
 #include <string>
+#include <vector>
 
-#include <osquery/core.h>
+#include <bsm/audit.h>
+#include <bsm/libbsm.h>
+
 #include <osquery/config.h>
+#include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -21,7 +24,7 @@
 
 namespace osquery {
 
-class OpenBSMSubscriber : public EventSubscriber<OpenBSMEventPublisher> {
+class OpenBSMExecVESubscriber : public EventSubscriber<OpenBSMEventPublisher> {
  public:
   Status init() override {
     return Status(0);
@@ -29,46 +32,126 @@ class OpenBSMSubscriber : public EventSubscriber<OpenBSMEventPublisher> {
 
   void configure() override;
 
-  /**
-   * @brief This exports a single Callback for OpenBSM events.
-   *
-   * @param ec The EventCallback type receives an EventContextRef substruct
-   * for the OpenBSMEventPublisher declared in this EventSubscriber subclass.
-   *
-   * @return Was the callback successful.
-   */
   Status Callback(const OpenBSMEventContextRef& ec,
                   const OpenBSMSubscriptionContextRef& sc);
 };
 
-/**
- * @brief Each EventSubscriber must register itself so the init method is
- *called.
- *
- * This registers OpenBSMSubscriber into the osquery EventSubscriber
- * pseudo-plugin registry.
- */
-REGISTER(OpenBSMSubscriber, "event_subscriber", "process_execution_events");
+class OpenBSMSSHLoginSubscriber
+    : public EventSubscriber<OpenBSMEventPublisher> {
+ public:
+  Status init() override {
+    return Status(0);
+  }
 
-void OpenBSMSubscriber::configure() {
-      auto sc = createSubscriptionContext();
-      sc->event_id = 23;
-      subscribe(&OpenBSMSubscriber::Callback, sc);
+  void configure() override;
+
+  Status Callback(const OpenBSMEventContextRef& ec,
+                  const OpenBSMSubscriptionContextRef& sc);
+};
+
+REGISTER(OpenBSMExecVESubscriber,
+         "event_subscriber",
+         "process_execution_events");
+REGISTER(OpenBSMSSHLoginSubscriber,
+         "event_subscriber",
+         "local_ssh_login_events");
+
+void OpenBSMExecVESubscriber::configure() {
+  auto sc = createSubscriptionContext();
+  sc->event_id = 23;
+  subscribe(&OpenBSMExecVESubscriber::Callback, sc);
 }
 
-Status OpenBSMSubscriber::Callback(const OpenBSMEventContextRef& ec,
-                                   const OpenBSMSubscriptionContextRef& sc) {
-
+Status OpenBSMExecVESubscriber::Callback(
+    const OpenBSMEventContextRef& ec, const OpenBSMSubscriptionContextRef& sc) {
   Row r;
-  r["path"] = ec->event_details["path"];
-  r["pid"] = ec->event_details["pid"];
-  r["args"] = ec->event_details["args"];
-  r["time"] = ec->event_details["time"];
-  r["euid"] = ec->event_details["euid"];
-  r["ruid"] = ec->event_details["ruid"];
-  r["status"] = ec->event_details["status"];
-
+  for (const auto& tok : ec->tokens) {
+    switch (tok.id) {
+    case AUT_HEADER32:
+      r["time"] = std::to_string(tok.tt.hdr32.s);
+      break;
+    case AUT_HEADER32_EX:
+      r["time"] = std::to_string(tok.tt.hdr32_ex.s);
+      break;
+    case AUT_HEADER64:
+      r["time"] = std::to_string(tok.tt.hdr64_ex.s);
+      break;
+    case AUT_HEADER64_EX:
+      r["time"] = std::to_string(tok.tt.hdr64_ex.s);
+      break;
+    case AUT_SUBJECT32:
+      r["pid"] = std::to_string(tok.tt.subj32.pid);
+      r["euid"] = std::to_string(tok.tt.subj32.euid);
+      r["egid"] = std::to_string(tok.tt.subj32.egid);
+      r["ruid"] = std::to_string(tok.tt.subj32.ruid);
+      r["rgid"] = std::to_string(tok.tt.subj32.rgid);
+      break;
+    case AUT_SUBJECT64:
+      r["pid"] = std::to_string(tok.tt.subj64.pid);
+      r["euid"] = std::to_string(tok.tt.subj64.euid);
+      r["egid"] = std::to_string(tok.tt.subj64.egid);
+      r["ruid"] = std::to_string(tok.tt.subj64.ruid);
+      r["rgid"] = std::to_string(tok.tt.subj64.rgid);
+      break;
+    case AUT_SUBJECT32_EX:
+      r["pid"] = std::to_string(tok.tt.subj32_ex.pid);
+      r["euid"] = std::to_string(tok.tt.subj32_ex.euid);
+      r["egid"] = std::to_string(tok.tt.subj32_ex.egid);
+      r["ruid"] = std::to_string(tok.tt.subj32_ex.ruid);
+      r["rgid"] = std::to_string(tok.tt.subj32_ex.rgid);
+      break;
+    case AUT_RETURN32:
+      r["status"] = std::to_string(tok.tt.ret32.status);
+      break;
+    case AUT_RETURN64:
+      r["status"] = tok.tt.ret64.err;
+      break;
+    case AUT_EXEC_ARGS:
+      for (unsigned int i = 0; i < tok.tt.execarg.count; ++i) {
+        r["args"] += TEXT(std::string(tok.tt.execarg.text[i]));
+        r["args"] += " ";
+      }
+      break;
+    case AUT_PATH:
+      r["path"] = TEXT(std::string(tok.tt.path.path));
+      break;
+    }
+  }
   add(r);
   return Status(0, "OK");
 }
+
+void OpenBSMSSHLoginSubscriber::configure() {
+  auto sc = createSubscriptionContext();
+  sc->event_id = 32800;
+  subscribe(&OpenBSMSSHLoginSubscriber::Callback, sc);
 }
+
+Status OpenBSMSSHLoginSubscriber::Callback(
+    const OpenBSMEventContextRef& ec, const OpenBSMSubscriptionContextRef& sc) {
+  Row r;
+  for (const auto& tok : ec->tokens) {
+    VLOG(1) << (unsigned int)tok.id;
+    switch (tok.id) {
+    case AUT_HEADER32:
+      r["time"] = std::to_string(tok.tt.hdr32.s);
+      break;
+    case AUT_HEADER32_EX:
+      r["time"] = std::to_string(tok.tt.hdr32_ex.s);
+      break;
+    case AUT_HEADER64:
+      r["time"] = std::to_string(tok.tt.hdr64_ex.s);
+      break;
+    case AUT_HEADER64_EX:
+      r["time"] = std::to_string(tok.tt.hdr64_ex.s);
+      break;
+    case AUT_SUBJECT32_EX:
+      r["uid"] = std::to_string(tok.tt.subj32_ex.ruid);
+      break;
+    }
+  }
+  add(r);
+  return Status(0);
+}
+
+} // namespace osquery

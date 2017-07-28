@@ -5,9 +5,11 @@ schema([
     Column("pid", TEXT, "The pid of the started process"),
     Column("args", TEXT, "Arguments of the started process"),
     Column("time", BIGINT, "Time the process was started"),
-    Column("euid", TEXT, "euid of who started the process"),
-    Column("ruid", TEXT, "ruid"),
+    Column("euid", TEXT, "Effective uid of who started the process"),
+    Column("egid", TEXT, "Effective gid of who started the process"),
+    Column("ruid", TEXT, "Real uid of who started the process"),
+    Column("rgid", TEXT, "Real gid of who started the process"),
     Column("status", TEXT, "Status of the process"),
 ])
 attributes(event_subscriber=True)
-implementation("openbsm_events@openbsm_events::genTable")
+implementation("openbsm_events@process_execution_events::genTable")
