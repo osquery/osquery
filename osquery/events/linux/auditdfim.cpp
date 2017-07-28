@@ -8,7 +8,7 @@
  *
  */
 
-#include "osquery/events/linux/auditfim.h"
+#include "osquery/events/linux/auditdfim.h"
 #include "osquery/core/conversions.h"
 
 #include <boost/algorithm/string/classification.hpp>
@@ -26,9 +26,9 @@
 
 namespace osquery {
 HIDDEN_FLAG(bool, audit_fim_debug, false, "Show audit FIM events");
-DECLARE_bool(audit_allow_file_events);
+DECLARE_bool(audit_allow_fim_events);
 
-REGISTER(AuditFimEventPublisher, "event_publisher", "auditfim");
+REGISTER(AuditdFimEventPublisher, "event_publisher", "auditfim");
 
 namespace {
 SyscallEvent::Type GetSyscallEventType(int syscall_number) noexcept {
@@ -261,32 +261,32 @@ bool ParseAuditSyscallRecord(
 }
 }
 
-Status AuditFimEventPublisher::setUp() {
-  if (!FLAGS_audit_allow_file_events) {
+Status AuditdFimEventPublisher::setUp() {
+  if (!FLAGS_audit_allow_fim_events) {
     return Status(1, "Publisher disabled via configuration");
   }
 
   return Status(0, "OK");
 }
 
-void AuditFimEventPublisher::configure() {
+void AuditdFimEventPublisher::configure() {
   // Only subscribe if we are actually going to have listeners
   if (audit_netlink_subscription_ == 0) {
-    audit_netlink_subscription_ = AuditNetlink::getInstance().subscribe();
+    audit_netlink_subscription_ = AuditdNetlink::getInstance().subscribe();
   }
 }
 
-void AuditFimEventPublisher::tearDown() {
+void AuditdFimEventPublisher::tearDown() {
   if (audit_netlink_subscription_ != 0) {
-    AuditNetlink::getInstance().unsubscribe(audit_netlink_subscription_);
+    AuditdNetlink::getInstance().unsubscribe(audit_netlink_subscription_);
     audit_netlink_subscription_ = 0;
   }
 }
 
-Status AuditFimEventPublisher::run() {
-  // Request our event queue from the AuditNetlink component
+Status AuditdFimEventPublisher::run() {
+  // Request our event queue from the AuditdNetlink component
   auto audit_event_record_queue =
-      AuditNetlink::getInstance().getEvents(audit_netlink_subscription_);
+      AuditdNetlink::getInstance().getEvents(audit_netlink_subscription_);
 
   auto event_context = createEventContext();
 

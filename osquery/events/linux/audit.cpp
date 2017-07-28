@@ -136,20 +136,20 @@ void AuditEventPublisher::configure() {
 
   // Only subscribe if we are actually going to have listeners
   if (audit_netlink_subscription_ == 0) {
-    audit_netlink_subscription_ = AuditNetlink::getInstance().subscribe();
+    audit_netlink_subscription_ = AuditdNetlink::getInstance().subscribe();
   }
 }
 
 void AuditEventPublisher::tearDown() {
   if (audit_netlink_subscription_ != 0) {
-    AuditNetlink::getInstance().unsubscribe(audit_netlink_subscription_);
+    AuditdNetlink::getInstance().unsubscribe(audit_netlink_subscription_);
     audit_netlink_subscription_ = 0;
   }
 }
 
 Status AuditEventPublisher::run() {
   auto audit_event_record_queue =
-      AuditNetlink::getInstance().getEvents(audit_netlink_subscription_);
+      AuditdNetlink::getInstance().getEvents(audit_netlink_subscription_);
 
   for (auto& audit_record : audit_event_record_queue) {
     bool handle_reply = false;

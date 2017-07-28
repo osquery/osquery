@@ -1,4 +1,4 @@
-table_name("auditd_file_events")
+table_name("auditd_fim_events")
 description("A File Integrity Monitor implementation using the audit service.")
 schema([
     # Populated from the AUDIT_SYSCALL event record
@@ -23,4 +23,4 @@ schema([
     Column("eid", TEXT, "Event ID", hidden=True),
 ])
 attributes(event_subscriber=True)
-implementation("auditd_file_events@auditd_file_events::genTable")
+implementation("auditd_fim_events@auditd_fim_events::genTable")

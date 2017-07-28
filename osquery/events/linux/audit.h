@@ -25,7 +25,7 @@
 
 #include <osquery/events.h>
 
-#include "osquery/events/linux/auditnetlink.h"
+#include "osquery/events/linux/auditdnetlink.h"
 
 namespace osquery {
 

@@ -8,7 +8,7 @@
  *
  */
 
-#include "osquery/events/linux/auditfim.h"
+#include "osquery/events/linux/auditdfim.h"
 
 #include <osquery/config.h>
 #include <osquery/events.h>
@@ -31,7 +31,7 @@ extern long getUptime();
 }
 
 FLAG(bool,
-     audit_allow_file_events,
+     audit_allow_fim_events,
      false,
      "Allow the audit publisher to install file event monitoring rules");
 
@@ -62,8 +62,8 @@ using ProcessMap = std::unordered_map<__pid_t, HandleMap>;
 /// A simple vector of strings
 using StringList = std::vector<std::string>;
 
-class AuditFimEventSubscriber final
-    : public EventSubscriber<AuditFimEventPublisher> {
+class AuditdFimEventSubscriber final
+    : public EventSubscriber<AuditdFimEventPublisher> {
   ProcessMap process_map_;
   StringList included_path_list_;
   StringList excluded_path_list_;
@@ -78,29 +78,29 @@ class AuditFimEventSubscriber final
                   const SCRef& subscription_context);
 };
 
-REGISTER(AuditFimEventSubscriber, "event_subscriber", "auditd_file_events");
+REGISTER(AuditdFimEventSubscriber, "event_subscriber", "auditd_fim_events");
 
-Status AuditFimEventSubscriber::setUp() {
-  if (!FLAGS_audit_allow_file_events) {
+Status AuditdFimEventSubscriber::setUp() {
+  if (!FLAGS_audit_allow_fim_events) {
     return Status(1, "Subscriber disabled via configuration");
   }
 
   return Status(0);
 }
 
-Status AuditFimEventSubscriber::init() {
+Status AuditdFimEventSubscriber::init() {
   auto sc = createSubscriptionContext();
-  subscribe(&AuditFimEventSubscriber::Callback, sc);
+  subscribe(&AuditdFimEventSubscriber::Callback, sc);
 
   return Status(0, "OK");
 }
 
-void AuditFimEventSubscriber::configure() {
-  auto parser = Config::getParser("audit_fim");
+void AuditdFimEventSubscriber::configure() {
+  auto parser = Config::getParser("auditd_fim");
   const auto& root_key = parser.get()->getData();
 
-  if (root_key.find("file_paths") != root_key.not_found()) {
-    for (auto& path_value : root_key.get_child("file_paths")) {
+  if (root_key.find("include") != root_key.not_found()) {
+    for (auto& path_value : root_key.get_child("include")) {
       auto pattern = path_value.second.data();
       replaceGlobWildcards(pattern);
 
@@ -132,6 +132,10 @@ void AuditFimEventSubscriber::configure() {
       excluded_path_list_.insert(excluded_path_list_.end(),
                                  solved_path_list.begin(),
                                  solved_path_list.end());
+
+      for (const std::string& path : excluded_path_list_) {
+        std::cout << "EXCLUDE " << path << std::endl;
+      }
     }
   }
 
@@ -140,11 +144,14 @@ void AuditFimEventSubscriber::configure() {
     auto value = key.get_value<std::string>();
 
     show_accesses_ = (value == "true");
+
+    std::cout << "show_accesses set to " << (show_accesses_ ? "true" : "false")
+              << std::endl;
   }
 }
 
-Status AuditFimEventSubscriber::Callback(const ECRef& event_context,
-                                         const SCRef& subscription_context) {
+Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
+                                          const SCRef& subscription_context) {
   for (const SyscallEvent& syscall : event_context->syscall_events) {
     auto syscall_type = syscall.type;
 

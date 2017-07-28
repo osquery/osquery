@@ -46,7 +46,7 @@ struct AuditNetlinkSubscriberContext final {
   std::mutex queue_mutex;
 };
 
-class AuditNetlink final {
+class AuditdNetlink final {
   /// This is the set of rules we have applied when configuring the service.
   /// This is also what we need to remove when exiting.
   std::vector<audit_rule_data> installed_rule_list_;
@@ -117,11 +117,11 @@ class AuditNetlink final {
   std::unique_ptr<std::thread> processing_thread_;
 
  public:
-  AuditNetlink(const AuditNetlink&) = delete;
-  AuditNetlink& operator=(const AuditNetlink&) = delete;
+  AuditdNetlink(const AuditdNetlink&) = delete;
+  AuditdNetlink& operator=(const AuditdNetlink&) = delete;
 
-  static AuditNetlink& getInstance();
-  ~AuditNetlink() = default;
+  static AuditdNetlink& getInstance();
+  ~AuditdNetlink() = default;
 
   /// Creates a subscription context and returns a handle that can be used with
   /// ::getEvents().
@@ -140,7 +140,7 @@ class AuditNetlink final {
                               AuditEventRecord& event_record) noexcept;
 
  private:
-  AuditNetlink() = default;
+  AuditdNetlink() = default;
 
   /// Starts the event receiver thread.
   bool start() noexcept;

@@ -1,4 +1,4 @@
-#include "osquery/events/linux/auditnetlink.h"
+#include "osquery/events/linux/auditdnetlink.h"
 #include "osquery/core/conversions.h"
 
 #include <osquery/flags.h>
@@ -244,7 +244,7 @@ HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
 // External flags
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
-DECLARE_bool(audit_allow_file_events);
+DECLARE_bool(audit_allow_fim_events);
 
 enum AuditStatus {
   AUDIT_DISABLED = 0,
@@ -252,12 +252,12 @@ enum AuditStatus {
   AUDIT_IMMUTABLE = 2,
 };
 
-AuditNetlink& AuditNetlink::getInstance() {
-  static AuditNetlink instance;
+AuditdNetlink& AuditdNetlink::getInstance() {
+  static AuditdNetlink instance;
   return instance;
 }
 
-bool AuditNetlink::start() noexcept {
+bool AuditdNetlink::start() noexcept {
   std::lock_guard<std::mutex> lock(initialization_mutex_);
 
   if (initialized_)
@@ -265,7 +265,7 @@ bool AuditNetlink::start() noexcept {
 
   if (FLAGS_disable_audit ||
       (!FLAGS_audit_allow_process_events && !FLAGS_audit_allow_sockets &&
-       !FLAGS_audit_allow_file_events)) {
+       !FLAGS_audit_allow_fim_events)) {
     return true;
   }
 
@@ -280,15 +280,15 @@ bool AuditNetlink::start() noexcept {
     }
 
     // Start the reading thread
-    std::packaged_task<bool(AuditNetlink&)> recv_thread_task(
-        std::bind(&AuditNetlink::recvThread, this));
+    std::packaged_task<bool(AuditdNetlink&)> recv_thread_task(
+        std::bind(&AuditdNetlink::recvThread, this));
 
     recv_thread_.reset(
         new std::thread(std::move(recv_thread_task), std::ref(*this)));
 
     // Start the processing thread
-    std::packaged_task<bool(AuditNetlink&)> processing_thread_task(
-        std::bind(&AuditNetlink::processThread, this));
+    std::packaged_task<bool(AuditdNetlink&)> processing_thread_task(
+        std::bind(&AuditdNetlink::processThread, this));
 
     processing_thread_.reset(
         new std::thread(std::move(processing_thread_task), std::ref(*this)));
@@ -301,7 +301,7 @@ bool AuditNetlink::start() noexcept {
   }
 }
 
-void AuditNetlink::terminate() noexcept {
+void AuditdNetlink::terminate() noexcept {
   std::lock_guard<std::mutex> lock(initialization_mutex_);
 
   terminate_threads_ = true;
@@ -312,9 +312,9 @@ void AuditNetlink::terminate() noexcept {
   initialized_ = false;
 }
 
-NetlinkSubscriptionHandle AuditNetlink::subscribe() noexcept {
+NetlinkSubscriptionHandle AuditdNetlink::subscribe() noexcept {
   if (!start()) {
-    VLOG(1) << "Failed to initialize the AuditNetlink class";
+    VLOG(1) << "Failed to initialize the AuditdNetlink class";
     return 0;
   }
 
@@ -327,7 +327,7 @@ NetlinkSubscriptionHandle AuditNetlink::subscribe() noexcept {
   return new_handle;
 }
 
-void AuditNetlink::unsubscribe(NetlinkSubscriptionHandle handle) noexcept {
+void AuditdNetlink::unsubscribe(NetlinkSubscriptionHandle handle) noexcept {
   std::lock_guard<std::mutex> lock(subscribers_mutex_);
 
   auto it = subscribers_.find(handle);
@@ -343,11 +343,11 @@ void AuditNetlink::unsubscribe(NetlinkSubscriptionHandle handle) noexcept {
   }
 }
 
-std::vector<AuditEventRecord> AuditNetlink::getEvents(
+std::vector<AuditEventRecord> AuditdNetlink::getEvents(
     NetlinkSubscriptionHandle handle) noexcept {
   if (FLAGS_disable_audit ||
       (!FLAGS_audit_allow_process_events && !FLAGS_audit_allow_sockets &&
-       !FLAGS_audit_allow_file_events)) {
+       !FLAGS_audit_allow_fim_events)) {
     return std::vector<AuditEventRecord>();
   }
 
@@ -373,8 +373,8 @@ std::vector<AuditEventRecord> AuditNetlink::getEvents(
   return audit_event_record_list;
 }
 
-bool AuditNetlink::ParseAuditReply(const audit_reply& reply,
-                                   AuditEventRecord& event_record) noexcept {
+bool AuditdNetlink::ParseAuditReply(const audit_reply& reply,
+                                    AuditEventRecord& event_record) noexcept {
   event_record = {};
 
   // Tokenize the message.
@@ -451,7 +451,7 @@ bool AuditNetlink::ParseAuditReply(const audit_reply& reply,
   return true;
 }
 
-bool AuditNetlink::recvThread() noexcept {
+bool AuditdNetlink::recvThread() noexcept {
   acquire_netlink_handle_ = true;
 
   int counter_to_next_status_request = 0;
@@ -515,7 +515,7 @@ bool AuditNetlink::recvThread() noexcept {
   return true;
 }
 
-bool AuditNetlink::processThread() noexcept {
+bool AuditdNetlink::processThread() noexcept {
   while (!terminate_threads_) {
     std::vector<audit_reply> queue;
 
@@ -600,7 +600,7 @@ bool AuditNetlink::processThread() noexcept {
   return true;
 }
 
-bool AuditNetlink::acquireMessages() noexcept {
+bool AuditdNetlink::acquireMessages() noexcept {
   pollfd fds[] = {{audit_netlink_handle_, POLLIN, 0}};
 
   struct sockaddr_nl nladdr = {};
@@ -689,7 +689,7 @@ bool AuditNetlink::acquireMessages() noexcept {
   return true;
 }
 
-bool AuditNetlink::configureAuditService() noexcept {
+bool AuditdNetlink::configureAuditService() noexcept {
   VLOG(1) << "Attempting to configure the audit service...";
 
   // Want to set a min sane buffer and maximum number of events/second min.
@@ -726,9 +726,9 @@ bool AuditNetlink::configureAuditService() noexcept {
     }
   }
 
-  // Rules required by the auditd_file_events table
-  if (FLAGS_audit_allow_file_events) {
-    VLOG(1) << "Enabling audit rules for the auditd_file_events table";
+  // Rules required by the auditd_fim_events table
+  if (FLAGS_audit_allow_fim_events) {
+    VLOG(1) << "Enabling audit rules for the auditd_fim_events table";
 
     /// \todo Add the following syscalls: read, write, mmap
     int syscall_list[] = {__NR_execve,
@@ -787,14 +787,14 @@ bool AuditNetlink::configureAuditService() noexcept {
                  "service rules: "
               << syscall_number
               << ". Some of the auditd table may not work properly "
-                 "(process_events, socket_events, auditd_file_events)";
+                 "(process_events, socket_events, auditd_fim_events)";
     }
   }
 
   return true;
 }
 
-void AuditNetlink::restoreAuditServiceConfiguration() noexcept {
+void AuditdNetlink::restoreAuditServiceConfiguration() noexcept {
   if (FLAGS_audit_debug) {
     std::cout << "Uninstalling audit rules..." << std::endl;
   }
@@ -824,7 +824,7 @@ void AuditNetlink::restoreAuditServiceConfiguration() noexcept {
   audit_set_enabled(audit_netlink_handle_, AUDIT_DISABLED);
 }
 
-NetlinkStatus AuditNetlink::acquireHandle() noexcept {
+NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
   // Returns the audit netlink status
   auto L_GetNetlinkStatus = [](int netlink_handle) -> NetlinkStatus {
     if (netlink_handle <= 0) {

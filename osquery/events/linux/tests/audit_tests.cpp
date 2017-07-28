@@ -17,7 +17,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/audit.h"
-#include "osquery/events/linux/auditnetlink.h"
+#include "osquery/events/linux/auditdnetlink.h"
 #include "osquery/tests/test_util.h"
 
 #include <cstdint>
@@ -62,7 +62,8 @@ TEST_F(AuditTests, test_handle_reply) {
 
   // Perform the parsing.
   AuditEventRecord audit_event_record = {};
-  bool parser_status = AuditNetlink::ParseAuditReply(reply, audit_event_record);
+  bool parser_status =
+      AuditdNetlink::ParseAuditReply(reply, audit_event_record);
   EXPECT_EQ(parser_status, true);
 
   free((char*)reply.message);

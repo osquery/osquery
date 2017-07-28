@@ -1,6 +1,6 @@
 #pragma once
 
-#include "osquery/events/linux/auditnetlink.h"
+#include "osquery/events/linux/auditdnetlink.h"
 #include <osquery/events.h>
 
 namespace osquery {
@@ -73,21 +73,22 @@ struct SyscallEvent final {
 std::ostream& operator<<(std::ostream& stream,
                          const SyscallEvent& syscall_event);
 
-struct AuditFimSubscriptionContext final : public SubscriptionContext {
+struct AuditdFimSubscriptionContext final : public SubscriptionContext {
  private:
-  friend class AuditFimEventPublisher;
+  friend class AuditdFimEventPublisher;
 };
 
-struct AuditFimEventContext final : public EventContext {
+struct AuditdFimEventContext final : public EventContext {
   std::vector<SyscallEvent> syscall_events;
 };
 
-using AuditFimEventContextRef = std::shared_ptr<AuditFimEventContext>;
-using AuditFimSubscriptionContextRef =
-    std::shared_ptr<AuditFimSubscriptionContext>;
+using AuditdFimEventContextRef = std::shared_ptr<AuditdFimEventContext>;
+using AuditdFimSubscriptionContextRef =
+    std::shared_ptr<AuditdFimSubscriptionContext>;
 
-class AuditFimEventPublisher final
-    : public EventPublisher<AuditFimSubscriptionContext, AuditFimEventContext> {
+class AuditdFimEventPublisher final
+    : public EventPublisher<AuditdFimSubscriptionContext,
+                            AuditdFimEventContext> {
   DECLARE_PUBLISHER("auditfim");
 
  public:
@@ -97,7 +98,7 @@ class AuditFimEventPublisher final
   Status run() override;
 
  public:
-  virtual ~AuditFimEventPublisher() {
+  virtual ~AuditdFimEventPublisher() {
     tearDown();
   }
 
