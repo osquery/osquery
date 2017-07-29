@@ -139,6 +139,9 @@ class AuditdNetlink final {
   static bool ParseAuditReply(const audit_reply& reply,
                               AuditEventRecord& event_record) noexcept;
 
+  /// Adjusts the internal pointers of the audit_reply object
+  static void AdjustAuditReply(audit_reply& reply) noexcept;
+
  private:
   AuditdNetlink() = default;
 

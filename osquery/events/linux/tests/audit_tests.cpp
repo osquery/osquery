@@ -18,6 +18,7 @@
 
 #include "osquery/events/linux/audit.h"
 #include "osquery/events/linux/auditdnetlink.h"
+#include "osquery/events/linux/tests/audit_tests_common.h"
 #include "osquery/tests/test_util.h"
 
 #include <cstdint>
@@ -29,14 +30,6 @@ DECLARE_bool(audit_allow_unix);
 
 /// Internal audit subscriber (socket events) testable methods.
 extern void parseSockAddr(const std::string& saddr, Row& r);
-
-/// Generates a fake audit id
-std::string generateAuditId(std::uint32_t event_id) {
-  std::stringstream str_helper;
-  str_helper << std::time(nullptr) << ".000:" << event_id;
-
-  return str_helper.str();
-}
 
 class AuditTests : public testing::Test {
  protected:

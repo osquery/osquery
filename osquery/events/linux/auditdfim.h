@@ -86,6 +86,8 @@ using AuditdFimEventContextRef = std::shared_ptr<AuditdFimEventContext>;
 using AuditdFimSubscriptionContextRef =
     std::shared_ptr<AuditdFimSubscriptionContext>;
 
+using SyscallTraceContext = std::map<std::string, SyscallEvent>;
+
 class AuditdFimEventPublisher final
     : public EventPublisher<AuditdFimSubscriptionContext,
                             AuditdFimEventContext> {
@@ -97,16 +99,19 @@ class AuditdFimEventPublisher final
   void tearDown() override;
   Status run() override;
 
- public:
   virtual ~AuditdFimEventPublisher() {
     tearDown();
   }
+
+  static void ProcessEvents(AuditdFimEventContextRef event_context,
+                            const std::vector<AuditEventRecord>& record_list,
+                            SyscallTraceContext& trace_context) noexcept;
 
  private:
   /// Audit netlink subscription handle
   NetlinkSubscriptionHandle audit_netlink_subscription_;
 
   /// This is where audit records are assembled
-  std::map<std::string, SyscallEvent> syscall_event_list_;
+  SyscallTraceContext syscall_trace_context_;
 };
 }

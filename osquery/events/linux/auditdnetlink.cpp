@@ -123,51 +123,6 @@ std::string GetAuditRecordTypeName(int type) noexcept {
   return it->second;
 }
 
-void AdjustAuditReply(audit_reply& reply) noexcept {
-  reply.type = reply.msg.nlh.nlmsg_type;
-  reply.len = reply.msg.nlh.nlmsg_len;
-  reply.nlh = &reply.msg.nlh;
-
-  reply.status = nullptr;
-  reply.ruledata = nullptr;
-  reply.login = nullptr;
-  reply.message = nullptr;
-  reply.error = nullptr;
-  reply.signal_info = nullptr;
-  reply.conf = nullptr;
-
-  switch (reply.type) {
-  case NLMSG_ERROR: {
-    reply.error = static_cast<struct nlmsgerr*>(NLMSG_DATA(reply.nlh));
-    break;
-  }
-
-  case AUDIT_LIST_RULES: {
-    reply.ruledata =
-        static_cast<struct audit_rule_data*>(NLMSG_DATA(reply.nlh));
-    break;
-  }
-
-  case AUDIT_USER:
-  case AUDIT_LOGIN:
-  case AUDIT_KERNEL:
-  case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
-  case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
-  case AUDIT_FIRST_EVENT ... AUDIT_INTEGRITY_LAST_MSG: {
-    reply.message = static_cast<char*>(NLMSG_DATA(reply.nlh));
-    break;
-  }
-
-  case AUDIT_SIGNAL_INFO: {
-    reply.signal_info = static_cast<audit_sig_info*>(NLMSG_DATA(reply.nlh));
-    break;
-  }
-
-  default:
-    break;
-  }
-}
-
 bool ShouldHandle(const audit_reply& reply) noexcept {
   switch (reply.type) {
   case NLMSG_NOOP:
@@ -379,7 +334,6 @@ bool AuditdNetlink::ParseAuditReply(const audit_reply& reply,
 
   // Tokenize the message.
   event_record.type = reply.type;
-
   boost::string_ref message_view(reply.message,
                                  static_cast<unsigned int>(reply.len));
 
@@ -449,6 +403,51 @@ bool AuditdNetlink::ParseAuditReply(const audit_reply& reply,
   }
 
   return true;
+}
+
+void AuditdNetlink::AdjustAuditReply(audit_reply& reply) noexcept {
+  reply.type = reply.msg.nlh.nlmsg_type;
+  reply.len = reply.msg.nlh.nlmsg_len;
+  reply.nlh = &reply.msg.nlh;
+
+  reply.status = nullptr;
+  reply.ruledata = nullptr;
+  reply.login = nullptr;
+  reply.message = nullptr;
+  reply.error = nullptr;
+  reply.signal_info = nullptr;
+  reply.conf = nullptr;
+
+  switch (reply.type) {
+  case NLMSG_ERROR: {
+    reply.error = static_cast<struct nlmsgerr*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  case AUDIT_LIST_RULES: {
+    reply.ruledata =
+        static_cast<struct audit_rule_data*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  case AUDIT_USER:
+  case AUDIT_LOGIN:
+  case AUDIT_KERNEL:
+  case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
+  case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
+  case AUDIT_FIRST_EVENT ... AUDIT_INTEGRITY_LAST_MSG: {
+    reply.message = static_cast<char*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  case AUDIT_SIGNAL_INFO: {
+    reply.signal_info = static_cast<audit_sig_info*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  default:
+    break;
+  }
 }
 
 bool AuditdNetlink::recvThread() noexcept {

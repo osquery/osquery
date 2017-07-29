@@ -11,19 +11,15 @@
 #include "osquery/events/linux/auditdfim.h"
 #include "osquery/core/conversions.h"
 
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/split.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/utility/string_ref.hpp>
-
-#include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
 #include <asm/unistd_64.h>
 
 #include <iostream>
-
+#undef VLOG
+#define VLOG(x) std::cout << x
 namespace osquery {
 HIDDEN_FLAG(bool, audit_fim_debug, false, "Show audit FIM events");
 DECLARE_bool(audit_allow_fim_events);
@@ -289,24 +285,36 @@ Status AuditdFimEventPublisher::run() {
       AuditdNetlink::getInstance().getEvents(audit_netlink_subscription_);
 
   auto event_context = createEventContext();
+  ProcessEvents(
+      event_context, audit_event_record_queue, syscall_trace_context_);
 
-  // Build a SyscallEvent object for each audit event
-  for (const auto& audit_event_record : audit_event_record_queue) {
-    auto audit_event_it = syscall_event_list_.find(audit_event_record.audit_id);
+  if (!event_context->syscall_events.empty()) {
+    fire(event_context);
+  }
+
+  return Status(0, "OK");
+}
+
+void AuditdFimEventPublisher::ProcessEvents(
+    AuditdFimEventContextRef event_context,
+    const std::vector<AuditEventRecord>& record_list,
+    SyscallTraceContext& trace_context) noexcept {
+  for (const auto& audit_event_record : record_list) {
+    auto audit_event_it = trace_context.find(audit_event_record.audit_id);
 
     if (audit_event_record.type == AUDIT_SYSCALL) {
-      if (audit_event_it != syscall_event_list_.end()) {
+      if (audit_event_it != trace_context.end()) {
         VLOG(1) << "Received a duplicated event.";
-        syscall_event_list_.erase(audit_event_it);
+        trace_context.erase(audit_event_it);
       }
 
       SyscallEvent syscall_event;
       if (ParseAuditSyscallRecord(syscall_event, audit_event_record)) {
-        syscall_event_list_[audit_event_record.audit_id] = syscall_event;
+        trace_context[audit_event_record.audit_id] = syscall_event;
       }
 
     } else if (audit_event_record.type == AUDIT_CWD) {
-      if (audit_event_it == syscall_event_list_.end()) {
+      if (audit_event_it == trace_context.end()) {
         VLOG(1) << "Received an orphaned AUDIT_CWD record. Skipping it...";
         continue;
       }
@@ -320,7 +328,7 @@ Status AuditdFimEventPublisher::run() {
       }
 
     } else if (audit_event_record.type == AUDIT_MMAP) {
-      if (audit_event_it == syscall_event_list_.end()) {
+      if (audit_event_it == trace_context.end()) {
         VLOG(1) << "Received an orphaned AUDIT_MMAP record. Skipping it...";
         continue;
       }
@@ -338,7 +346,7 @@ Status AuditdFimEventPublisher::run() {
       }
 
     } else if (audit_event_record.type == AUDIT_PATH) {
-      if (audit_event_it == syscall_event_list_.end()) {
+      if (audit_event_it == trace_context.end()) {
         VLOG(1) << "Received an orphaned AUDIT_PATH record. Skipping it...";
         continue;
       }
@@ -353,13 +361,13 @@ Status AuditdFimEventPublisher::run() {
       }
 
     } else if (audit_event_record.type == AUDIT_EOE) {
-      if (audit_event_it == syscall_event_list_.end()) {
+      if (audit_event_it == trace_context.end()) {
         VLOG(1) << "Received an orphaned AUDIT_EOE record. Skipping it...";
         continue;
       }
 
       auto completed_syscall_event = audit_event_it->second;
-      syscall_event_list_.erase(audit_event_it);
+      trace_context.erase(audit_event_it);
 
       if (FLAGS_audit_fim_debug) {
         std::cout << completed_syscall_event << std::endl;
@@ -370,12 +378,6 @@ Status AuditdFimEventPublisher::run() {
       }
     }
   }
-
-  if (!event_context->syscall_events.empty()) {
-    fire(event_context);
-  }
-
-  return Status(0, "OK");
 }
 
 std::ostream& operator<<(std::ostream& stream,
