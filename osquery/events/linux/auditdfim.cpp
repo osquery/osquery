@@ -18,8 +18,7 @@
 #include <asm/unistd_64.h>
 
 #include <iostream>
-#undef VLOG
-#define VLOG(x) std::cout << x
+
 namespace osquery {
 HIDDEN_FLAG(bool, audit_fim_debug, false, "Show audit FIM events");
 DECLARE_bool(audit_allow_fim_events);
@@ -376,6 +375,44 @@ void AuditdFimEventPublisher::ProcessEvents(
       if (completed_syscall_event.process_id != getpid()) {
         event_context->syscall_events.push_back(completed_syscall_event);
       }
+    }
+  }
+
+  // Drop events that are older than 5 minutes; it means that we have failed to
+  // receive the end of record and will never complete them correctly
+
+  std::time_t current_time;
+  std::time(&current_time);
+
+  std::unordered_map<std::string, std::time_t> timestamp_cache;
+
+  for (auto syscall_it = trace_context.begin();
+       syscall_it != trace_context.end();) {
+    const auto& audit_event_id = syscall_it->first;
+    std::time_t event_timestamp;
+
+    auto timestamp_it = timestamp_cache.find(audit_event_id);
+    if (timestamp_it == timestamp_cache.end()) {
+      // The first part of the audit id is a timestamp: 1501323932.710:7670542
+      std::string string_timestamp = audit_event_id.substr(0, 10);
+
+      long long int converted_value;
+      if (!safeStrtoll(string_timestamp, 10, converted_value)) {
+        event_timestamp = 0;
+      } else {
+        event_timestamp = static_cast<std::time_t>(converted_value);
+      }
+
+      timestamp_cache[audit_event_id] = event_timestamp;
+
+    } else {
+      event_timestamp = timestamp_it->second;
+    }
+
+    if (current_time - event_timestamp >= 300) {
+      syscall_it = trace_context.erase(syscall_it);
+    } else {
+      syscall_it++;
     }
   }
 }
