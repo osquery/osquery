@@ -24,6 +24,28 @@
 
 namespace osquery {
 
+// OpenBSM token parsers
+static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
+  if (tok.id != AUT_SUBJECT32_EX) {
+    return;
+  }
+  r["pid"] = INTEGER(tok.tt.subj32_ex.pid);
+  r["uid"] = INTEGER(tok.tt.subj32_ex.ruid);
+  r["gid"] = INTEGER(tok.tt.subj32_ex.rgid);
+  r["euid"] = INTEGER(tok.tt.subj32_ex.euid);
+  r["egid"] = INTEGER(tok.tt.subj32_ex.egid);
+}
+// End of OpenBSM token parsers
+
+unsigned long decimalIntToOctInt(unsigned long x) {
+  auto ret = 0;
+  for (auto i = 1; x > 0; i *= 10) {
+    ret += (x & 0x7) * i;
+    x >>= 3;
+  }
+  return ret;
+}
+
 class OpenBSMExecVESubscriber : public EventSubscriber<OpenBSMEventPublisher> {
  public:
   Status init() override {
@@ -74,8 +96,6 @@ Status OpenBSMExecVESubscriber::Callback(
       r["time"] = BIGINT(tok.tt.hdr32_ex.s);
       break;
     case AUT_HEADER64:
-      r["time"] = BIGINT(tok.tt.hdr64_ex.s);
-      break;
     case AUT_HEADER64_EX:
       r["time"] = BIGINT(tok.tt.hdr64_ex.s);
       break;
@@ -94,11 +114,7 @@ Status OpenBSMExecVESubscriber::Callback(
       r["rgid"] = INTEGER(tok.tt.subj64.rgid);
       break;
     case AUT_SUBJECT32_EX:
-      r["pid"] = INTEGER(tok.tt.subj32_ex.pid);
-      r["euid"] = INTEGER(tok.tt.subj32_ex.euid);
-      r["egid"] = INTEGER(tok.tt.subj32_ex.egid);
-      r["ruid"] = INTEGER(tok.tt.subj32_ex.ruid);
-      r["rgid"] = INTEGER(tok.tt.subj32_ex.rgid);
+      OpenBSM_AUT_SUBJECT32_EX(r, tok);
       break;
     case AUT_RETURN32:
       r["status"] = INTEGER(static_cast<unsigned long>(tok.tt.ret32.status));
@@ -114,6 +130,14 @@ Status OpenBSMExecVESubscriber::Callback(
       break;
     case AUT_PATH:
       r["path"] = TEXT(std::string(tok.tt.path.path));
+      break;
+    case AUT_ATTR32:
+      r["file_mode"] = INTEGER(decimalIntToOctInt(tok.tt.attr32.mode));
+      r["owner_uid"] = INTEGER(tok.tt.attr32.uid);
+      r["owner_gid"] = INTEGER(tok.tt.attr32.gid);
+      r["fsid"] = INTEGER(tok.tt.attr32.fsid);
+      r["nid"] = INTEGER(tok.tt.attr32.nid);
+      r["dev"] = INTEGER(tok.tt.attr32.dev);
       break;
     }
   }
@@ -139,16 +163,11 @@ Status OpenBSMSSHLoginSubscriber::Callback(
       r["time"] = BIGINT(tok.tt.hdr32_ex.s);
       break;
     case AUT_HEADER64:
-      r["time"] = BIGINT(tok.tt.hdr64_ex.s);
-      break;
     case AUT_HEADER64_EX:
       r["time"] = BIGINT(tok.tt.hdr64_ex.s);
       break;
     case AUT_SUBJECT32_EX:
-      r["uid"] = INTEGER(tok.tt.subj32_ex.ruid);
-      r["gid"] = INTEGER(tok.tt.subj32_ex.rgid);
-      r["euid"] = INTEGER(tok.tt.subj32_ex.euid);
-      r["egid"] = INTEGER(tok.tt.subj32_ex.egid);
+      OpenBSM_AUT_SUBJECT32_EX(r, tok);
       break;
     }
   }

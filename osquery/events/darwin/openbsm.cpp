@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
 #include <bsm/libbsm.h>
 
 #include <bsm/audit.h>
@@ -27,12 +37,15 @@ Status OpenBSMEventPublisher::setUp() {
   }
   return Status(0);
 }
+
 void OpenBSMEventPublisher::configure() {}
+
 void OpenBSMEventPublisher::tearDown() {
   if (audit_pipe_ != nullptr) {
     fclose(audit_pipe_);
   }
 }
+
 Status OpenBSMEventPublisher::run() {
   if (audit_pipe_ == nullptr) {
     return Status(1, "No open audit_pipe");
