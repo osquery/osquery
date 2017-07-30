@@ -17,13 +17,14 @@
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditdfim.h"
 #include "osquery/events/linux/tests/audit_tests_common.h"
+#include "osquery/tables/events/linux/auditd_fim_events.h"
 #include "osquery/tests/test_util.h"
 
 #include <linux/audit.h>
 
 #include <cstdint>
+#include <cstdio>
 #include <ctime>
-#include <stdio.h>
 #include <string>
 #include <vector>
 
@@ -724,5 +725,75 @@ TEST_F(AuditdFimTests, broken_record_sequence) {
 
   EXPECT_EQ(syscall_trace_context.size(), 0U);
   EXPECT_EQ(event_context->syscall_events.size(), 33U);
+}
+
+TEST_F(AuditdFimTests, row_emission) {
+  std::vector<AuditEventRecord> event_record_list;
+
+  for (const auto& record_descriptor : complete_event_list) {
+    std::string audit_message_copy = record_descriptor.second;
+
+    audit_reply reply = {};
+    reply.type = record_descriptor.first;
+    reply.len = audit_message_copy.size();
+    reply.message = &audit_message_copy[0];
+
+    AuditEventRecord audit_event_record = {};
+
+    bool parser_status =
+        AuditdNetlink::ParseAuditReply(reply, audit_event_record);
+    EXPECT_EQ(parser_status, true);
+
+    event_record_list.push_back(audit_event_record);
+  }
+
+  EXPECT_EQ(event_record_list.size(), 85U);
+
+  auto event_context = std::make_shared<AuditdFimEventContext>();
+  SyscallTraceContext syscall_trace_context;
+
+  AuditdFimEventPublisher::ProcessEvents(
+      event_context, event_record_list, syscall_trace_context);
+
+  EXPECT_EQ(syscall_trace_context.size(), 0U);
+  EXPECT_EQ(event_context->syscall_events.size(), 36U);
+
+  // First test, showing only write operations. We expect to find a single write
+  // here.
+  AuditdFimConfiguration configuration;
+  configuration.show_accesses = false;
+  configuration.included_path_list.push_back("/home/user/test_file");
+
+  AuditdFimProcessMap process_map;
+  std::vector<Row> emitted_row_list;
+
+  auto exit_status =
+      AuditdFimEventSubscriber::ProcessEvents(emitted_row_list,
+                                              process_map,
+                                              configuration,
+                                              event_context->syscall_events);
+  EXPECT_EQ(exit_status.ok(), true);
+  EXPECT_EQ(emitted_row_list.size(), 1U);
+
+  // Second test, with access events enabled
+  configuration.show_accesses = true;
+
+  configuration.included_path_list.clear();
+  configuration.included_path_list.push_back("/etc/ld.so.cache");
+  configuration.included_path_list.push_back("/home/user/test_file");
+  configuration.included_path_list.push_back("/lib64/libc.so.6");
+
+  configuration.excluded_path_list.push_back("/home/user/test_file");
+
+  process_map.clear();
+  emitted_row_list.clear();
+
+  exit_status =
+      AuditdFimEventSubscriber::ProcessEvents(emitted_row_list,
+                                              process_map,
+                                              configuration,
+                                              event_context->syscall_events);
+  EXPECT_EQ(exit_status.ok(), true);
+  EXPECT_EQ(emitted_row_list.size(), 7U);
 }
 }

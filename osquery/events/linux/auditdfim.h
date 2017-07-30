@@ -86,6 +86,7 @@ using AuditdFimEventContextRef = std::shared_ptr<AuditdFimEventContext>;
 using AuditdFimSubscriptionContextRef =
     std::shared_ptr<AuditdFimSubscriptionContext>;
 
+/// This type maps audit event id with the corresponding syscall event object
 using SyscallTraceContext = std::map<std::string, SyscallEvent>;
 
 class AuditdFimEventPublisher final
@@ -103,6 +104,7 @@ class AuditdFimEventPublisher final
     tearDown();
   }
 
+  /// Aggregates raw event records into syscall events
   static void ProcessEvents(AuditdFimEventContextRef event_context,
                             const std::vector<AuditEventRecord>& record_list,
                             SyscallTraceContext& trace_context) noexcept;

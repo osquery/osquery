@@ -8,21 +8,14 @@
  *
  */
 
-#include "osquery/events/linux/auditdfim.h"
+#include "osquery/tables/events/linux/auditd_fim_events.h"
 
 #include <osquery/config.h>
-#include <osquery/events.h>
+
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/sql.h>
-#include <osquery/system.h>
-
-#include <asm/unistd_64.h>
 
 #include <boost/filesystem/operations.hpp>
-
-#include <iostream>
-#include <unordered_map>
 
 namespace osquery {
 // Depend on the external getUptime table method.
@@ -39,48 +32,6 @@ FLAG(bool,
      audit_show_partial_file_events,
      false,
      "Allow the audit publisher to show partial file events");
-
-/// This structure stores the information for a tracked file handle
-struct HandleInformation final {
-  /// Operation type affecting this file handle
-  enum class OperationType { Open, Read, Write };
-
-  /// The last operation executed on this file handle; this is used by the
-  /// filtering logic to reduce output
-  OperationType last_operation{OperationType::Open};
-
-  /// The path for this file handle
-  std::string path;
-};
-
-/// Holds the file descriptor map for a process
-using HandleMap = std::unordered_map<int, HandleInformation>;
-
-/// Holds the file descriptor maps for all processes
-using ProcessMap = std::unordered_map<__pid_t, HandleMap>;
-
-/// A simple vector of strings
-using StringList = std::vector<std::string>;
-
-class AuditdFimEventSubscriber final
-    : public EventSubscriber<AuditdFimEventPublisher> {
-  ProcessMap process_map_;
-  StringList included_path_list_;
-  StringList excluded_path_list_;
-  bool show_accesses_{true};
-
- public:
-  Status setUp() override;
-  Status init() override;
-  void configure() override;
-
-  Status Callback(const ECRef& event_context,
-                  const SCRef& subscription_context);
-
- private:
-  bool isPathIncluded(const std::string& path) const noexcept;
-  bool isPathExcluded(const std::string& path) const noexcept;
-};
 
 REGISTER(AuditdFimEventSubscriber, "event_subscriber", "auditd_fim_events");
 
@@ -111,11 +62,12 @@ void AuditdFimEventSubscriber::configure() {
       StringList solved_path_list = {};
       resolveFilePattern(pattern, solved_path_list);
 
-      included_path_list_.reserve(included_path_list_.size() +
-                                  solved_path_list.size());
-      included_path_list_.insert(included_path_list_.end(),
-                                 solved_path_list.begin(),
-                                 solved_path_list.end());
+      configuration_.included_path_list.reserve(
+          configuration_.included_path_list.size() + solved_path_list.size());
+      configuration_.included_path_list.insert(
+          configuration_.included_path_list.end(),
+          solved_path_list.begin(),
+          solved_path_list.end());
     }
   }
 
@@ -127,11 +79,13 @@ void AuditdFimEventSubscriber::configure() {
       StringList solved_path_list = {};
       resolveFilePattern(pattern, solved_path_list);
 
-      excluded_path_list_.resize(excluded_path_list_.size() +
-                                 excluded_path_list_.size());
-      excluded_path_list_.insert(excluded_path_list_.end(),
-                                 solved_path_list.begin(),
-                                 solved_path_list.end());
+      configuration_.excluded_path_list.resize(
+          configuration_.excluded_path_list.size() +
+          configuration_.excluded_path_list.size());
+      configuration_.excluded_path_list.insert(
+          configuration_.excluded_path_list.end(),
+          solved_path_list.begin(),
+          solved_path_list.end());
     }
   }
 
@@ -139,32 +93,62 @@ void AuditdFimEventSubscriber::configure() {
     auto key = root_key.get_child("show_accesses");
     auto value = key.get_value<std::string>();
 
-    show_accesses_ = (value == "true");
+    configuration_.show_accesses = (value == "true");
   }
 }
 
 Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
                                           const SCRef& subscription_context) {
-  for (const SyscallEvent& syscall : event_context->syscall_events) {
+  std::vector<Row> emitted_row_list;
+  auto exit_status = ProcessEvents(emitted_row_list,
+                                   process_map_,
+                                   configuration_,
+                                   event_context->syscall_events);
+
+  for (auto& row : emitted_row_list) {
+    add(row);
+  }
+
+  return exit_status;
+}
+
+Status AuditdFimEventSubscriber::ProcessEvents(
+    std::vector<Row>& emitted_row_list,
+    AuditdFimProcessMap& process_map,
+    const AuditdFimConfiguration& configuration,
+    const std::vector<SyscallEvent>& syscall_event_list) noexcept {
+  auto L_isPathIncluded = [&configuration](const std::string& path) -> bool {
+    return (std::find(configuration.included_path_list.begin(),
+                      configuration.included_path_list.end(),
+                      path) != configuration.included_path_list.end());
+  };
+
+  auto L_isPathExcluded = [&configuration](const std::string& path) -> bool {
+    return (std::find(configuration.excluded_path_list.begin(),
+                      configuration.excluded_path_list.end(),
+                      path) != configuration.excluded_path_list.end());
+  };
+
+  emitted_row_list.clear();
+
+  for (const SyscallEvent& syscall : syscall_event_list) {
     auto syscall_type = syscall.type;
 
     switch (syscall_type) {
     case SyscallEvent::Type::Execve: {
       // Allocate a new handle table
-      process_map_[syscall.process_id] = HandleMap();
+      process_map[syscall.process_id] = AuditdFimHandleMap();
       break;
     }
 
     // We just have to drop the file descriptor table for the exiting process
     case SyscallEvent::Type::Exit:
     case SyscallEvent::Type::Exit_group: {
-      /// \todo The exit_group should probably be treated differently
-
       // This process may have been created before us, so we may not have
       // a handle table to drop
-      auto handle_map_it = process_map_.find(syscall.process_id);
-      if (handle_map_it != process_map_.end()) {
-        process_map_.erase(handle_map_it);
+      auto handle_map_it = process_map.find(syscall.process_id);
+      if (handle_map_it != process_map.end()) {
+        process_map.erase(handle_map_it);
       }
 
       break;
@@ -175,17 +159,17 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
     case SyscallEvent::Type::Open:
     case SyscallEvent::Type::Openat:
     case SyscallEvent::Type::Open_by_handle_at: {
-      /// \todo The openat and open_by_handle_at are probably broken
+      /// \todo The open_by_handle_at is probably broken
 
       // Allocate a new handle map if this process has been created before
       // osquery
-      auto handle_map_it = process_map_.find(syscall.process_id);
-      if (handle_map_it == process_map_.end()) {
-        process_map_[syscall.process_id] = HandleMap();
-        handle_map_it = process_map_.find(syscall.process_id);
+      auto handle_map_it = process_map.find(syscall.process_id);
+      if (handle_map_it == process_map.end()) {
+        process_map[syscall.process_id] = AuditdFimHandleMap();
+        handle_map_it = process_map.find(syscall.process_id);
       }
 
-      HandleMap& handle_map = handle_map_it->second;
+      AuditdFimHandleMap& handle_map = handle_map_it->second;
 
       // normalize the path
       std::string path = syscall.path;
@@ -219,8 +203,8 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
       handle_map[syscall.output_fd] = handle_info;
 
       // collect the event, if necessary
-      if (show_accesses_ && !isPathExcluded(handle_info.path) &&
-          isPathIncluded(handle_info.path)) {
+      if (configuration.show_accesses && !L_isPathExcluded(handle_info.path) &&
+          L_isPathIncluded(handle_info.path)) {
         Row row;
         row["syscall"] = "open";
         row["pid"] = std::to_string(syscall.process_id);
@@ -234,7 +218,7 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
         row["success"] = syscall.success;
         row["executable"] = syscall.executable_path;
         row["partial"] = (syscall.partial ? "true" : "false");
-        add(row);
+        emitted_row_list.push_back(row);
       }
 
       break;
@@ -250,23 +234,23 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
         break;
       }
 
-      auto handle_map_it = process_map_.find(syscall.process_id);
-      if (handle_map_it == process_map_.end()) {
+      auto handle_map_it = process_map.find(syscall.process_id);
+      if (handle_map_it == process_map.end()) {
         if (!FLAGS_audit_show_partial_file_events) {
           break;
         }
 
-        process_map_[syscall.process_id] = HandleMap();
-        handle_map_it = process_map_.find(syscall.process_id);
+        process_map[syscall.process_id] = AuditdFimHandleMap();
+        handle_map_it = process_map.find(syscall.process_id);
 
         partial_event = true;
       }
 
-      if (show_accesses_) {
+      if (configuration.show_accesses) {
         Row row;
 
         /// attempt to solve the file descriptor
-        HandleMap& handle_map = handle_map_it->second;
+        AuditdFimHandleMap& handle_map = handle_map_it->second;
         auto file_name_it = handle_map.find(syscall.input_fd);
 
         if (file_name_it != handle_map.end()) {
@@ -288,8 +272,8 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
         if (partial_event) {
           discard_event = !FLAGS_audit_show_partial_file_events;
         } else {
-          discard_event = (isPathExcluded(row["canonical_path"]) ||
-                           !isPathIncluded(row["canonical_path"]));
+          discard_event = (L_isPathExcluded(row["canonical_path"]) ||
+                           !L_isPathIncluded(row["canonical_path"]));
         }
 
         if (!discard_event) {
@@ -308,7 +292,7 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
 
           row["partial"] = (partial_event ? "true" : "false");
 
-          add(row);
+          emitted_row_list.push_back(row);
         }
       }
 
@@ -320,14 +304,14 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
     case SyscallEvent::Type::Dup: {
       // Allocate a new handle map if this process has been created before
       // osquery
-      auto handle_map_it = process_map_.find(syscall.process_id);
-      if (handle_map_it == process_map_.end()) {
-        process_map_[syscall.process_id] = HandleMap();
-        handle_map_it = process_map_.find(syscall.process_id);
+      auto handle_map_it = process_map.find(syscall.process_id);
+      if (handle_map_it == process_map.end()) {
+        process_map[syscall.process_id] = AuditdFimHandleMap();
+        handle_map_it = process_map.find(syscall.process_id);
         break;
       }
 
-      HandleMap& handle_map = handle_map_it->second;
+      AuditdFimHandleMap& handle_map = handle_map_it->second;
       auto file_name_it = handle_map.find(syscall.input_fd);
       if (file_name_it != handle_map.end()) {
         handle_map[syscall.output_fd] = file_name_it->second;
@@ -359,20 +343,20 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
       }
 
       // Discard this right away if we do not allow partial events
-      auto handle_map_it = process_map_.find(syscall.process_id);
-      if (handle_map_it == process_map_.end()) {
+      auto handle_map_it = process_map.find(syscall.process_id);
+      if (handle_map_it == process_map.end()) {
         if (!FLAGS_audit_show_partial_file_events) {
           break;
         }
 
-        process_map_[syscall.process_id] = HandleMap();
-        handle_map_it = process_map_.find(syscall.process_id);
+        process_map[syscall.process_id] = AuditdFimHandleMap();
+        handle_map_it = process_map.find(syscall.process_id);
 
         partial_event = true;
       }
 
       // attempt to solve the file descriptor
-      HandleMap& handle_map = handle_map_it->second;
+      AuditdFimHandleMap& handle_map = handle_map_it->second;
       HandleInformation* handle_info = nullptr;
 
       auto file_info_it = handle_map.find(syscall.input_fd);
@@ -388,10 +372,9 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
       }
 
       // Only show state changes from "open" to "read or write" and from "read"
-      // to
-      // "write"
-      // The "written" state means that the file has also been read; this means
-      // that we will not notify about this file again until it is re-opened
+      // to "write" The "written" state means that the file has also been
+      // read; this means that we will not notify about this file again until
+      // it is re-opened
 
       bool discard_event = true;
       if (partial_event || handle_info == nullptr) {
@@ -426,12 +409,12 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
 
       discard_event = true;
 
-      if (!read_operation || show_accesses_) {
+      if (!read_operation || configuration.show_accesses) {
         if (partial_event) {
           discard_event = false;
         } else {
-          discard_event = (isPathExcluded(handle_info->path) ||
-                           !isPathIncluded(handle_info->path));
+          discard_event = (L_isPathExcluded(handle_info->path) ||
+                           !L_isPathIncluded(handle_info->path));
         }
       }
 
@@ -458,7 +441,7 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
         row["cwd"] = "";
         row["name"] = "";
 
-        add(row);
+        emitted_row_list.push_back(row);
       }
 
       break;
@@ -471,19 +454,5 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
   }
 
   return Status(0, "OK");
-}
-
-bool AuditdFimEventSubscriber::isPathIncluded(const std::string& path) const
-    noexcept {
-  return (std::find(included_path_list_.begin(),
-                    included_path_list_.end(),
-                    path) != included_path_list_.end());
-}
-
-bool AuditdFimEventSubscriber::isPathExcluded(const std::string& path) const
-    noexcept {
-  return (std::find(excluded_path_list_.begin(),
-                    excluded_path_list_.end(),
-                    path) != excluded_path_list_.end());
 }
 }
