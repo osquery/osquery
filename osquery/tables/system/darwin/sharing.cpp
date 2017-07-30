@@ -118,7 +118,7 @@ int getInterNetSharingStatus() {
   return 0;
 }
 
-int getBluetoothSharingStatus(QueryContext& context) {
+int getBluetoothSharingStatus() {
   auto users = SQL::selectAllFrom("users");
   for (const auto& row : users) {
     if (row.count("uid") > 0 && row.count("directory") > 0) {
@@ -159,7 +159,7 @@ QueryData genSharing(QueryContext& context) {
   r["remote_management"] = INTEGER(getRemoteManagementStatus());
   r["remote_apple_events"] = INTEGER(getRemoteAppleEventStatus());
   r["internet_sharing"] = INTEGER(getInterNetSharingStatus());
-  r["bluetooth_sharing"] = INTEGER(getBluetoothSharingStatus(context));
+  r["bluetooth_sharing"] = INTEGER(getBluetoothSharingStatus());
   r["disc_sharing"] = INTEGER(getDiscSharingStatus());
   return {r};
 }
