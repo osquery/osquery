@@ -131,6 +131,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
 
   emitted_row_list.clear();
 
+  // Process the syscall events we received and emit the necessary rows
   for (const SyscallEvent& syscall : syscall_event_list) {
     auto syscall_type = syscall.type;
 
@@ -450,6 +451,18 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     case SyscallEvent::Type::Invalid: {
       return Status(1, "Invalid event type");
     }
+    }
+  }
+
+  // If we have lost audit event records (i.e.: the kernel queue is smaller
+  // than the system activity) we may end up having orphaned process entries.
+  //
+  // Erase the objects that no longer have a valid process id
+  for (auto it = process_map.begin(); it != process_map.end();) {
+    if (getpgid(it->first) != static_cast<__pid_t>(-1)) {
+      it++;
+    } else if (errno == ESRCH) {
+      it = process_map.erase(it);
     }
   }
 
