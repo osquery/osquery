@@ -34,8 +34,9 @@ const std::string kRemoteBluetoothSharingPattern = "com.apple.Bluetooth.%";
 
 
 bool remoteAppleManagementPlistExists() {
-  auto internet_sharing_status = SQL::selectAllFrom("file", "path", EQUALS, kRemoteAppleManagementPath);
-  if (internet_sharing_status.empty()) {
+  auto remoteAppleManagementFileInfo =
+      SQL::selectAllFrom("file", "path", EQUALS, kRemoteAppleManagementPath);
+  if (remoteAppleManagementFileInfo.empty()) {
     return false;
   }
   return true;
