@@ -45,9 +45,9 @@ int getScreenSharingStatus() {
   Boolean persistent;
   if (remoteAppleManagementPlistExists()) {
     return 0;
-  } else {
-    return SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.screensharing"), &persistent);
   }
+  return SMJobIsEnabled(
+      kSMDomainSystemLaunchd, CFSTR("com.apple.screensharing"), &persistent);
 }
 
 int getRemoteManagementStatus() {
@@ -58,11 +58,7 @@ int getFileSharingStatus() {
   Boolean persistent;
   int smbStatus = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.smbd"), &persistent);
   int fileServerStatus = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.AppleFileServer"), &persistent);
-  if (smbStatus == 1 || fileServerStatus == 1) {
-    return 1;
-  } else {
-    return 0;
-  }
+  return smbStatus | fileServerStatus;
 }
 
 int getRemoteLoginStatus() {
@@ -83,14 +79,22 @@ int getDiscSharingStatus() {
 int getPrinterSharingStatus() {
   http_t *cups;
   int num_settings = 0;
-  cups_option_t *settings = NULL;
+  cups_option_t* settings = nullptr;
   const char *value;
 
-  cups = httpConnect2(cupsServer(), ippPort(), NULL, AF_INET, cupsEncryption(), 1, 30000, NULL);
-  if (cups != NULL) {
+  cups = httpConnect2(cupsServer(),
+                      ippPort(),
+                      nullptr,
+                      AF_INET,
+                      cupsEncryption(),
+                      1,
+                      30000,
+                      nullptr);
+  if (cups != nullptr) {
     int ret = cupsAdminGetServerSettings(cups, &num_settings, &settings);
     if (ret != 0) {
-      if ((value = cupsGetOption("_share_printers", num_settings, settings)) && value != NULL) {
+      if ((value = cupsGetOption("_share_printers", num_settings, settings)) &&
+          value != nullptr) {
         return *value == '1' ? 1 : 0;
       }
       cupsFreeOptions(num_settings, settings);
@@ -103,11 +107,12 @@ int getPrinterSharingStatus() {
 }
 
 int getInterNetSharingStatus() {
-  auto internet_sharing_status = SQL::selectAllFrom("plist", "path", EQUALS, kInternetSharingPath);
-  if (internet_sharing_status.empty()) {
+  auto internetSharingStatus =
+      SQL::selectAllFrom("plist", "path", EQUALS, kInternetSharingPath);
+  if (internetSharingStatus.empty()) {
     return 0;
   }
-  for (const auto& row : internet_sharing_status) {
+  for (const auto& row : internetSharingStatus) {
     if (row.find("key") == row.end() || row.find("subkey") == row.end() || row.find("value") == row.end()) {
       continue;
     }
