@@ -1,0 +1,14 @@
+table_name("sharing")
+description("OS X Sharing preferences.")
+schema([
+Column("screen_sharing", INTEGER, "1 If screen sharing is enabled else 0"),
+Column("file_sharing", INTEGER, "1 If file sharing is enabled else 0"),
+Column("printer_sharing", INTEGER, "1 If printer sharing is enabled else 0"),
+Column("remote_login", INTEGER, "1 If remote login is enabled else 0"),
+Column("remote_management", INTEGER, "1 If remote management is enabled else 0"),
+Column("remote_apple_events", INTEGER, "1 If remote apple events are enabled else 0"),
+Column("internet_sharing", INTEGER, "1 If internet sharing is enabled else 0"),
+Column("bluetooth_sharing", INTEGER, "1 If bluetooth sharing is enabled for any user else 0"),
+Column("disc_sharing", INTEGER, "1 If CD or DVD sharing is enabled else 0"),
+])
+implementation("sharing@genSharing")
