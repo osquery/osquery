@@ -78,10 +78,10 @@ int getDiscSharingStatus() {
 }
 
 int getPrinterSharingStatus() {
-  http_t *cups;
+  http_t *cups = nullptr;
   int num_settings = 0;
   cups_option_t* settings = nullptr;
-  const char *value;
+  const char *value = nullptr;
 
   cups = httpConnect2(cupsServer(),
                       ippPort(),
