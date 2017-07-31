@@ -18,7 +18,9 @@
 namespace osquery {
 namespace tables {
 
-Status genSharePointEntries(std::vector<NSDictionary *> &sharepoints) {
+QueryData genSharedFolders(QueryContext &context) {
+  QueryData results;
+
   @autoreleasepool {
     ODSession *s = [ODSession defaultSession];
     NSError *err = nullptr;
@@ -26,7 +28,6 @@ Status genSharePointEntries(std::vector<NSDictionary *> &sharepoints) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory node: "
            << std::string([[err localizedDescription] UTF8String]);
-      return Status(1, [[err localizedDescription] UTF8String]);
     }
 
     ODQuery *q = [ODQuery queryWithNode:root
@@ -40,7 +41,6 @@ Status genSharePointEntries(std::vector<NSDictionary *> &sharepoints) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory query: "
            << std::string([[err localizedDescription] UTF8String]);
-      return Status(1, [[err localizedDescription] UTF8String]);
     }
 
     // Obtain the results synchronously, not good for very large sets.
@@ -48,34 +48,25 @@ Status genSharePointEntries(std::vector<NSDictionary *> &sharepoints) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory results: "
            << std::string([[err localizedDescription] UTF8String]);
-      return Status(1, [[err localizedDescription] UTF8String]);
     }
 
     for (ODRecord *re in od_results) {
       NSDictionary *recordPath = [re recordDetailsForAttributes:nil error:&err];
+      Row r;
+
       if (err != nullptr) {
         TLOG << "Error with OpenDirectory attribute: "
              << std::string([[err localizedDescription] UTF8String]);
-        return Status(1, [[err localizedDescription] UTF8String]);
       } else {
-        sharepoints.push_back(recordPath);
+        auto nameValue = [[[recordPath valueForKey:@"dsAttrTypeNative:smb_name"]
+            lastObject] UTF8String];
+        auto pathValue = [[[recordPath valueForKey:@"dsAttrTypeNative:directory_path"]
+            lastObject] UTF8String];
+        r["name"] = nameValue;
+        r["path"] = pathValue;
+        results.push_back(r);
       }
     }
-  }
-  return Status(0, "OK");
-}
-
-QueryData genSharedFolders(QueryContext &context) {
-  std::vector<NSDictionary *> sharepoints;
-  QueryData results;
-  genSharePointEntries(sharepoints);
-  for (const auto &sharepoint : sharepoints) {
-    Row r;
-    r["name"] = [[[sharepoint valueForKey:@"dsAttrTypeNative:smb_name"]
-        lastObject] UTF8String];
-    r["path"] = [[[sharepoint valueForKey:@"dsAttrTypeNative:directory_path"]
-        lastObject] UTF8String];
-    results.push_back(r);
   }
   return results;
 }
