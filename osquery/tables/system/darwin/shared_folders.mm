@@ -26,7 +26,7 @@ Status genSharePointEntries(std::vector<NSDictionary *> &sharepoints) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory node: "
            << std::string([[err localizedDescription] UTF8String]);
-      return osquery::Status(1, [[err localizedDescription] UTF8String]);
+      return Status(1, [[err localizedDescription] UTF8String]);
     }
 
     ODQuery *q = [ODQuery queryWithNode:root
@@ -40,7 +40,7 @@ Status genSharePointEntries(std::vector<NSDictionary *> &sharepoints) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory query: "
            << std::string([[err localizedDescription] UTF8String]);
-      return osquery::Status(1, [[err localizedDescription] UTF8String]);
+      return Status(1, [[err localizedDescription] UTF8String]);
     }
 
     // Obtain the results synchronously, not good for very large sets.
@@ -48,7 +48,7 @@ Status genSharePointEntries(std::vector<NSDictionary *> &sharepoints) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory results: "
            << std::string([[err localizedDescription] UTF8String]);
-      return osquery::Status(1, [[err localizedDescription] UTF8String]);
+      return Status(1, [[err localizedDescription] UTF8String]);
     }
 
     for (ODRecord *re in od_results) {
@@ -56,13 +56,13 @@ Status genSharePointEntries(std::vector<NSDictionary *> &sharepoints) {
       if (err != nullptr) {
         TLOG << "Error with OpenDirectory attribute: "
              << std::string([[err localizedDescription] UTF8String]);
-        return osquery::Status(1, [[err localizedDescription] UTF8String]);
+        return Status(1, [[err localizedDescription] UTF8String]);
       } else {
         sharepoints.push_back(recordPath);
       }
     }
   }
-  return osquery::Status(0, "OK");
+  return Status(0, "OK");
 }
 
 QueryData genSharedFolders(QueryContext &context) {
