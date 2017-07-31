@@ -48,13 +48,12 @@ bool remoteAppleManagementPlistExists() {
 }
 
 int getScreenSharingStatus() {
-  Boolean loaded = false, persistence = false;
+  Boolean persistence = false;
   if (remoteAppleManagementPlistExists()) {
     return 0;
   }
-  loaded = SMJobIsEnabled(
+  return SMJobIsEnabled(
       kSMDomainSystemLaunchd, CFSTR("com.apple.screensharing"), &persistence);
-  return (!(loaded ^ persistence));
 }
 
 int getRemoteManagementStatus() {
@@ -62,30 +61,33 @@ int getRemoteManagementStatus() {
 }
 
 int getFileSharingStatus() {
-  Boolean fileServerStatus = false, fileServerPersistence = false;
-  Boolean smbStatus = false, smbPersistence = false;
+  Boolean fileServerStatus, fileServerPersistence = false;
+  Boolean smbStatus, smbPersistence = false;
 
   smbStatus = SMJobIsEnabled(
       kSMDomainSystemLaunchd, CFSTR("com.apple.smbd"), &smbPersistence);
   fileServerStatus = SMJobIsEnabled(kSMDomainSystemLaunchd,
                                     CFSTR("com.apple.AppleFileServer"),
                                     &fileServerPersistence);
-  return (!(smbStatus ^ smbPersistence)) |
-         (!(fileServerStatus ^ fileServerPersistence));
+  return smbStatus | fileServerStatus;
 }
 
 int getRemoteLoginStatus() {
-  Boolean loaded = false, persistence = false;
-  loaded = SMJobIsEnabled(
+  Boolean persistence = false;
+  return SMJobIsEnabled(
       kSMDomainSystemLaunchd, CFSTR("com.openssh.sshd"), &persistence);
-  return (!(loaded ^ persistence));
 }
 
 int getRemoteAppleEventStatus() {
-  Boolean loaded = false, persistence = false;
-  loaded = SMJobIsEnabled(
+  Boolean persistence = false;
+  return SMJobIsEnabled(
       kSMDomainSystemLaunchd, CFSTR("com.apple.AEServer"), &persistence);
-  return (!(loaded ^ persistence));
+}
+
+int getDiscSharingStatus() {
+  Boolean persistence = false;
+  return SMJobIsEnabled(
+      kSMDomainSystemLaunchd, CFSTR("com.apple.ODSAgent"), &persistence);
 }
 
 int getPrinterSharingStatus() {
@@ -185,6 +187,7 @@ QueryData genSharing(QueryContext& context) {
   r["remote_apple_events"] = INTEGER(getRemoteAppleEventStatus());
   r["internet_sharing"] = INTEGER(getInterNetSharingStatus());
   r["bluetooth_sharing"] = INTEGER(getBluetoothSharingStatus());
+  r["disc_sharing"] = INTEGER(getDiscSharingStatus());
   return {r};
 }
 
