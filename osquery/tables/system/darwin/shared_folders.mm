@@ -71,8 +71,10 @@ QueryData genSharedFolders(QueryContext &context) {
   genSharePointEntries(sharepoints);
   for (const auto &sharepoint : sharepoints) {
     Row r;
-    r["name"] = [[[sharepoint valueForKey:@"dsAttrTypeNative:smb_name"] lastObject] UTF8String];
-    r["path"] = [[[sharepoint valueForKey:@"dsAttrTypeNative:directory_path"] lastObject] UTF8String];
+    r["name"] = [[[sharepoint valueForKey:@"dsAttrTypeNative:smb_name"]
+        lastObject] UTF8String];
+    r["path"] = [[[sharepoint valueForKey:@"dsAttrTypeNative:directory_path"]
+        lastObject] UTF8String];
     results.push_back(r);
   }
   return results;
