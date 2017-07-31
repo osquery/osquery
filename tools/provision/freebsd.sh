@@ -33,6 +33,7 @@ function distro_main() {
   package asio
   package cpp-netlib
   package linenoise-ng
+  package zstd
 
   # Non-optional features.
   package augeas
