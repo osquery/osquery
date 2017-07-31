@@ -60,8 +60,9 @@ QueryData genSharedFolders(QueryContext &context) {
       } else {
         auto nameValue = [[[recordPath valueForKey:@"dsAttrTypeNative:smb_name"]
             lastObject] UTF8String];
-        auto pathValue = [[[recordPath valueForKey:@"dsAttrTypeNative:directory_path"]
-            lastObject] UTF8String];
+        auto pathValue =
+            [[[recordPath valueForKey:@"dsAttrTypeNative:directory_path"]
+                lastObject] UTF8String];
         r["name"] = nameValue;
         r["path"] = pathValue;
         results.push_back(r);
