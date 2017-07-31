@@ -14,6 +14,7 @@ struct SyscallEvent final {
     Exit_group,
     Open,
     Openat,
+    Name_to_handle_at,
     Open_by_handle_at,
     Close,
     Dup,
@@ -65,7 +66,13 @@ struct SyscallEvent final {
   // Populated from the AUDIT_PATH event record
   //
 
-  /// Path passed to the syscall
+  /// This is the file inode; it is only used for name_to_handle_at
+  /// and open_by_handle_at syscalls
+  std::uint64_t file_inode;
+
+  /// Path passed to the syscall; note that this is not valid
+  /// for open_by_handle_at syscalls. You have to match the
+  /// inode field with the name_to_handle_at system call
   std::string path;
 };
 

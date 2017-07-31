@@ -43,6 +43,9 @@ SyscallEvent::Type GetSyscallEventType(int syscall_number) noexcept {
   case __NR_openat:
     return SyscallEvent::Type::Openat;
 
+  case __NR_name_to_handle_at:
+    return SyscallEvent::Type::Name_to_handle_at;
+
   case __NR_open_by_handle_at:
     return SyscallEvent::Type::Open_by_handle_at;
 
@@ -68,9 +71,9 @@ SyscallEvent::Type GetSyscallEventType(int syscall_number) noexcept {
   }
 }
 
-/// Returns the specified field name from the given audit event record; if the
-/// field is
-/// missing, the user-supplied default value is returned instead
+/// Returns the specified field name from the given audit event record; if
+/// the field is missing, the user-supplied default value is returned
+/// instead
 bool GetAuditRecordField(
     std::string& value,
     const AuditEventRecord& record,
@@ -117,12 +120,13 @@ bool ParseAuditSyscallRecord(
     const AuditEventRecord& audit_event_record) noexcept {
   syscall_event = {};
 
-  // Contains the list of syscall that we need to track
+  // Contains the list of syscalls that we need to track
   const std::vector<std::uint64_t> syscall_filter = {__NR_execve,
                                                      __NR_exit,
                                                      __NR_exit_group,
                                                      __NR_open,
                                                      __NR_openat,
+                                                     __NR_name_to_handle_at,
                                                      __NR_open_by_handle_at,
                                                      __NR_close,
                                                      __NR_dup,
@@ -137,7 +141,7 @@ bool ParseAuditSyscallRecord(
   const std::vector<std::uint64_t> input_fd_syscall_list = {
       __NR_dup, __NR_dup2, __NR_dup3, __NR_close, __NR_write, __NR_read};
 
-  // Contains the lits of syscalls that outputs a file descriptor
+  // Contains the list of syscalls that outputs a file descriptor
   const std::vector<std::uint64_t> output_fd_syscall_list = {
       __NR_open,
       __NR_openat,
@@ -147,14 +151,14 @@ bool ParseAuditSyscallRecord(
       __NR_dup3};
 
   // Searches the specified vector for the given syscall number; it used with
-  // the
-  // previously-defined vectors to detect what values the syscall accepts and/or
-  // outputs
+  // the previously-defined vectors to detect what values the syscall accepts
+  // and/or outputs
   auto L_ContainsSyscall = [](const std::vector<std::uint64_t>& filter,
                               std::uint64_t syscall) -> bool {
     return (std::find(filter.begin(), filter.end(), syscall) != filter.end());
   };
 
+  // Attempt to get the syscall number; we can't go on without it!
   std::uint64_t syscall_number;
   if (!GetAuditRecordField(syscall_number, audit_event_record, "syscall")) {
     VLOG(1) << "Malformed AUDIT_SYSCALL record received. The syscall field "
@@ -169,8 +173,12 @@ bool ParseAuditSyscallRecord(
   syscall_event.partial = false;
   syscall_event.type = GetSyscallEventType(syscall_number);
 
-  // Special handling for mmap syscalls; the third parameter (a2 field)
-  // contains the requested
+  //
+  // Special syscall handling
+  //
+
+  // mmap syscalls
+  // the third parameter (field a2) contains the requested
   // memory protection
   if (syscall_number == __NR_mmap) {
     std::uint64_t memory_protection_flags;
@@ -188,6 +196,10 @@ bool ParseAuditSyscallRecord(
     }
   }
 
+  //
+  // Common handling for the remaining syscalls
+  //
+
   // Note that mmap is handled differently; the file descriptor is inside
   // the AUDIT_MMAP record
   if (L_ContainsSyscall(input_fd_syscall_list, syscall_number)) {
@@ -204,6 +216,7 @@ bool ParseAuditSyscallRecord(
     }
   }
 
+  // This is the value that the syscall has returned
   if (L_ContainsSyscall(output_fd_syscall_list, syscall_number)) {
     std::uint64_t output_fd;
     if (!GetAuditRecordField(output_fd, audit_event_record, "exit")) {
@@ -218,6 +231,8 @@ bool ParseAuditSyscallRecord(
     }
   }
 
+  // Not all syscalls have a 'success' field; in case it is missing, it's
+  // implicitly a 'yes'
   GetAuditRecordField(
       syscall_event.success, audit_event_record, "success", "yes");
 
@@ -229,6 +244,7 @@ bool ParseAuditSyscallRecord(
     syscall_event.partial = true;
   }
 
+  // Parent process id
   std::uint64_t parent_process_id;
   if (!GetAuditRecordField(parent_process_id, audit_event_record, "ppid")) {
     VLOG(1) << "Malformed AUDIT_SYSCALL record received. The parent "
@@ -241,6 +257,7 @@ bool ParseAuditSyscallRecord(
     syscall_event.parent_process_id = static_cast<__pid_t>(parent_process_id);
   }
 
+  // Process id
   std::uint64_t process_id;
   if (!GetAuditRecordField(process_id, audit_event_record, "pid")) {
     VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process id "
@@ -298,6 +315,8 @@ void AuditdFimEventPublisher::ProcessEvents(
     AuditdFimEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
     SyscallTraceContext& trace_context) noexcept {
+  // Assemble each record into a SyscallEvent object; an event is
+  // complete when we receive the terminator (AUDIT_EOE)
   for (const auto& audit_event_record : record_list) {
     auto audit_event_it = trace_context.find(audit_event_record.audit_id);
 
@@ -312,6 +331,9 @@ void AuditdFimEventPublisher::ProcessEvents(
         trace_context[audit_event_record.audit_id] = syscall_event;
       }
 
+      // Contains the working directory; it is always followed by an
+      // AUDIT_PATH record, and it's useful in case the specified path
+      // is relative
     } else if (audit_event_record.type == AUDIT_CWD) {
       if (audit_event_it == trace_context.end()) {
         VLOG(1) << "Received an orphaned AUDIT_CWD record. Skipping it...";
@@ -326,6 +348,8 @@ void AuditdFimEventPublisher::ProcessEvents(
         syscall_event.partial = true;
       }
 
+      // This record contains additional parameters for the mmap() syscalls; we
+      // are only interested in the file descriptor
     } else if (audit_event_record.type == AUDIT_MMAP) {
       if (audit_event_it == trace_context.end()) {
         VLOG(1) << "Received an orphaned AUDIT_MMAP record. Skipping it...";
@@ -344,6 +368,8 @@ void AuditdFimEventPublisher::ProcessEvents(
         syscall_event.input_fd = static_cast<int>(input_fd);
       }
 
+      // This record is emitted once for each path passed to the syscall. For
+      // example, the execve uses two records of this type
     } else if (audit_event_record.type == AUDIT_PATH) {
       if (audit_event_it == trace_context.end()) {
         VLOG(1) << "Received an orphaned AUDIT_PATH record. Skipping it...";
@@ -359,6 +385,23 @@ void AuditdFimEventPublisher::ProcessEvents(
         syscall_event.partial = true;
       }
 
+      // We also need the inode number for these two syscalls
+      if (syscall_event.type == SyscallEvent::Type::Name_to_handle_at ||
+          syscall_event.type == SyscallEvent::Type::Open_by_handle_at) {
+        if (!GetAuditRecordField(
+                syscall_event.file_inode, audit_event_record, "inode", 16)) {
+          VLOG(1) << "Malformed AUDIT_SYSCALL record received. The file "
+                     "inode is either missing or invalid.";
+
+          syscall_event.partial = true;
+
+        } else {
+          syscall_event.file_inode = 0;
+        }
+      }
+
+      // This is the event terminator, and it's always sent for AUDIT_SYSCALL
+      // events.
     } else if (audit_event_record.type == AUDIT_EOE) {
       if (audit_event_it == trace_context.end()) {
         VLOG(1) << "Received an orphaned AUDIT_EOE record. Skipping it...";
@@ -386,6 +429,7 @@ void AuditdFimEventPublisher::ProcessEvents(
 
   std::unordered_map<std::string, std::time_t> timestamp_cache;
 
+  // The first part of the audit id is a timestamp: 1501323932.710:7670542
   for (auto syscall_it = trace_context.begin();
        syscall_it != trace_context.end();) {
     const auto& audit_event_id = syscall_it->first;
@@ -393,7 +437,6 @@ void AuditdFimEventPublisher::ProcessEvents(
 
     auto timestamp_it = timestamp_cache.find(audit_event_id);
     if (timestamp_it == timestamp_cache.end()) {
-      // The first part of the audit id is a timestamp: 1501323932.710:7670542
       std::string string_timestamp = audit_event_id.substr(0, 10);
 
       long long int converted_value;

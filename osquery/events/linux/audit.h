@@ -217,9 +217,6 @@ struct AuditEventContext : public EventContext {
 using AuditEventContextRef = std::shared_ptr<AuditEventContext>;
 using AuditSubscriptionContextRef = std::shared_ptr<AuditSubscriptionContext>;
 
-/// This is a dispatched service that handles published audit replies.
-class AuditConsumerRunner;
-
 class AuditEventPublisher final
     : public EventPublisher<AuditSubscriptionContext, AuditEventContext> {
   DECLARE_PUBLISHER("audit");

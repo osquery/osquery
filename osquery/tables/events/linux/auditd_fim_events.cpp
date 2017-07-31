@@ -11,7 +11,6 @@
 #include "osquery/tables/events/linux/auditd_fim_events.h"
 
 #include <osquery/config.h>
-
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
@@ -117,6 +116,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     AuditdFimProcessMap& process_map,
     const AuditdFimConfiguration& configuration,
     const std::vector<SyscallEvent>& syscall_event_list) noexcept {
+  // Configuration helpers
   auto L_isPathIncluded = [&configuration](const std::string& path) -> bool {
     return (std::find(configuration.included_path_list.begin(),
                       configuration.included_path_list.end(),
@@ -129,6 +129,44 @@ Status AuditdFimEventSubscriber::ProcessEvents(
                       path) != configuration.excluded_path_list.end());
   };
 
+  // Path normalization utility
+  auto L_normalizePath = [](const std::string& cwd,
+                            const std::string& path) -> std::string {
+    std::string translated_path;
+
+    // Remove the surrounding quotes, if any (they are only present if
+    // the path contains spaces)
+    if (path[0] == '"') {
+      translated_path = path.substr(1, path.size() - 2);
+    } else {
+      translated_path = path;
+    }
+
+    // Also use the working directory if the path is not absolute
+    if (translated_path[0] != '/') {
+      std::string translated_cwd;
+
+      if (cwd[0] == '"') {
+        translated_cwd = cwd.substr(1, cwd.size() - 2);
+      } else {
+        translated_cwd = cwd;
+      }
+
+      translated_path = translated_cwd + "/" + translated_path;
+    }
+
+    // Normalize the path; we could have used 'canonicalize()' but that
+    // accesses the file system and we don't want that (because it may
+    // spawn other events). It is also possible that by the time we
+    // inspect the files on disk the state that caused this event has
+    // changed.
+    namespace boostfs = boost::filesystem;
+    boostfs::path normalized_path(translated_path);
+    normalized_path = normalized_path.normalize();
+
+    return normalized_path.string();
+  };
+
   emitted_row_list.clear();
 
   // Process the syscall events we received and emit the necessary rows
@@ -138,7 +176,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     switch (syscall_type) {
     case SyscallEvent::Type::Execve: {
       // Allocate a new handle table
-      process_map[syscall.process_id] = AuditdFimHandleMap();
+      process_map[syscall.process_id] = AuditdFimProcessState();
       break;
     }
 
@@ -155,51 +193,112 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       break;
     }
 
-    // Find the handle table for the process, and then lookup the file
-    // descriptor
-    case SyscallEvent::Type::Open:
-    case SyscallEvent::Type::Openat:
-    case SyscallEvent::Type::Open_by_handle_at: {
-      /// \todo The open_by_handle_at is probably broken
+    /*
+      name_to_handle_at contains both the path and inode of the file.
 
+      The open_by_handle_at() outputs a file descriptor, but to find the
+      path we need to match the inode.
+
+      Pseudo code:
+        struct file_handle h;
+        name_to_handle_at("/path", &h); // AUDIT_PATH with name + inode
+        int fd = open_by_handle_at(&h); // AUDIT_PATH with just the inode
+    */
+
+    case SyscallEvent::Type::Name_to_handle_at: {
       // Allocate a new handle map if this process has been created before
       // osquery
-      auto handle_map_it = process_map.find(syscall.process_id);
-      if (handle_map_it == process_map.end()) {
-        process_map[syscall.process_id] = AuditdFimHandleMap();
-        handle_map_it = process_map.find(syscall.process_id);
+      auto process_state_it = process_map.find(syscall.process_id);
+      if (process_state_it == process_map.end()) {
+        process_map[syscall.process_id] = AuditdFimProcessState();
+        process_state_it = process_map.find(syscall.process_id);
       }
 
-      AuditdFimHandleMap& handle_map = handle_map_it->second;
+      AuditdFimFileInodeMap& file_inode_map =
+          process_state_it->second.inode_map;
+      file_inode_map[syscall.file_inode].path = syscall.path;
+      file_inode_map[syscall.file_inode].cwd = syscall.cwd;
 
-      // normalize the path
-      std::string path = syscall.path;
-      if (syscall.path[0] == '"') {
-        path = syscall.path.substr(1, syscall.path.size() - 2);
-      } else {
-        path = syscall.path;
+      // Limit the amount of inodes we are going to track
+      if (file_inode_map.size() > 4096) {
+        file_inode_map.erase(file_inode_map.begin());
       }
 
-      if (path[0] != '/') {
-        std::string cwd;
+      break;
+    }
 
-        if (syscall.cwd[0] == '"') {
-          cwd = syscall.cwd.substr(1, syscall.cwd.size() - 2);
-        } else {
-          cwd = syscall.cwd;
-        }
-
-        path = cwd + "/" + path;
+    // See how the name_to_handle_at syscall above is handled
+    case SyscallEvent::Type::Open_by_handle_at: {
+      // Allocate a new handle map if this process has been created before
+      // osquery
+      auto process_state_it = process_map.find(syscall.process_id);
+      if (process_state_it == process_map.end()) {
+        process_map[syscall.process_id] = AuditdFimProcessState();
+        process_state_it = process_map.find(syscall.process_id);
       }
 
-      namespace boostfs = boost::filesystem;
-      boostfs::path translated_path(path);
-      translated_path = translated_path.normalize();
+      const auto& file_struct_map = process_state_it->second.inode_map;
+
+      auto inode_it = file_struct_map.find(syscall.file_inode);
+      if (inode_it == file_struct_map.end()) {
+        VLOG(1) << "Untracked open_by_handle_at syscall received. Subsequent "
+                   "calls on this handle will be shown as partials";
+
+        break;
+      }
+
+      AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
+      std::string translated_path =
+          L_normalizePath(inode_it->second.cwd, inode_it->second.path);
 
       // update the handle table
       HandleInformation handle_info;
       handle_info.last_operation = HandleInformation::OperationType::Open;
-      handle_info.path = translated_path.string();
+      handle_info.path = translated_path;
+
+      handle_map[syscall.output_fd] = handle_info;
+
+      // collect the event, if necessary
+      if (configuration.show_accesses && !L_isPathExcluded(handle_info.path) &&
+          L_isPathIncluded(handle_info.path)) {
+        Row row;
+        row["syscall"] = "open";
+        row["pid"] = std::to_string(syscall.process_id);
+        row["ppid"] = std::to_string(syscall.parent_process_id);
+        row["cwd"] = syscall.cwd;
+        row["name"] = syscall.path;
+        row["canonical_path"] = handle_info.path;
+        row["uptime"] = std::to_string(tables::getUptime());
+        row["input_fd"] = "";
+        row["output_fd"] = std::to_string(syscall.output_fd);
+        row["success"] = syscall.success;
+        row["executable"] = syscall.executable_path;
+        row["partial"] = (syscall.partial ? "true" : "false");
+        emitted_row_list.push_back(row);
+      }
+
+      break;
+    }
+
+    // Find the handle table for the process, and then lookup the file
+    // descriptor
+    case SyscallEvent::Type::Open:
+    case SyscallEvent::Type::Openat: {
+      // Allocate a new handle map if this process has been created before
+      // osquery
+      auto process_state_it = process_map.find(syscall.process_id);
+      if (process_state_it == process_map.end()) {
+        process_map[syscall.process_id] = AuditdFimProcessState();
+        process_state_it = process_map.find(syscall.process_id);
+      }
+
+      AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
+      std::string translated_path = L_normalizePath(syscall.cwd, syscall.path);
+
+      // update the handle table
+      HandleInformation handle_info;
+      handle_info.last_operation = HandleInformation::OperationType::Open;
+      handle_info.path = translated_path;
 
       handle_map[syscall.output_fd] = handle_info;
 
@@ -235,14 +334,14 @@ Status AuditdFimEventSubscriber::ProcessEvents(
         break;
       }
 
-      auto handle_map_it = process_map.find(syscall.process_id);
-      if (handle_map_it == process_map.end()) {
+      auto process_state_it = process_map.find(syscall.process_id);
+      if (process_state_it == process_map.end()) {
         if (!FLAGS_audit_show_partial_file_events) {
           break;
         }
 
-        process_map[syscall.process_id] = AuditdFimHandleMap();
-        handle_map_it = process_map.find(syscall.process_id);
+        process_map[syscall.process_id] = AuditdFimProcessState();
+        process_state_it = process_map.find(syscall.process_id);
 
         partial_event = true;
       }
@@ -251,7 +350,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
         Row row;
 
         /// attempt to solve the file descriptor
-        AuditdFimHandleMap& handle_map = handle_map_it->second;
+        AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
         auto file_name_it = handle_map.find(syscall.input_fd);
 
         if (file_name_it != handle_map.end()) {
@@ -305,14 +404,14 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     case SyscallEvent::Type::Dup: {
       // Allocate a new handle map if this process has been created before
       // osquery
-      auto handle_map_it = process_map.find(syscall.process_id);
-      if (handle_map_it == process_map.end()) {
-        process_map[syscall.process_id] = AuditdFimHandleMap();
-        handle_map_it = process_map.find(syscall.process_id);
+      auto process_state_it = process_map.find(syscall.process_id);
+      if (process_state_it == process_map.end()) {
+        process_map[syscall.process_id] = AuditdFimProcessState();
+        process_state_it = process_map.find(syscall.process_id);
         break;
       }
 
-      AuditdFimHandleMap& handle_map = handle_map_it->second;
+      AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
       auto file_name_it = handle_map.find(syscall.input_fd);
       if (file_name_it != handle_map.end()) {
         handle_map[syscall.output_fd] = file_name_it->second;
@@ -344,20 +443,20 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       }
 
       // Discard this right away if we do not allow partial events
-      auto handle_map_it = process_map.find(syscall.process_id);
-      if (handle_map_it == process_map.end()) {
+      auto process_state_it = process_map.find(syscall.process_id);
+      if (process_state_it == process_map.end()) {
         if (!FLAGS_audit_show_partial_file_events) {
           break;
         }
 
-        process_map[syscall.process_id] = AuditdFimHandleMap();
-        handle_map_it = process_map.find(syscall.process_id);
+        process_map[syscall.process_id] = AuditdFimProcessState();
+        process_state_it = process_map.find(syscall.process_id);
 
         partial_event = true;
       }
 
       // attempt to solve the file descriptor
-      AuditdFimHandleMap& handle_map = handle_map_it->second;
+      AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
       HandleInformation* handle_info = nullptr;
 
       auto file_info_it = handle_map.find(syscall.input_fd);

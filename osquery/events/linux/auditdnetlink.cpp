@@ -534,10 +534,8 @@ bool AuditdNetlink::processThread() noexcept {
       AdjustAuditReply(reply);
 
       // This record carries the process id of the controlling daemon; in case
-      // we lost
-      // control of the audit service, we are going to request a reset as soon
-      // as we
-      // finish processing the pending queue
+      // we lost control of the audit service, we are going to request a reset
+      // as soon as we finish processing the pending queue
       if (reply.type == AUDIT_GET) {
         reply.status = static_cast<struct audit_status*>(NLMSG_DATA(reply.nlh));
         pid_t new_pid = static_cast<pid_t>(reply.status->pid);
@@ -555,8 +553,7 @@ bool AuditdNetlink::processThread() noexcept {
       }
 
       // We are not interested in all messages; only get the ones related to
-      // syscalls and their
-      // parameters
+      // syscalls and their parameters
       if (!ShouldHandle(reply))
         continue;
 
@@ -709,31 +706,27 @@ bool AuditdNetlink::configureAuditService() noexcept {
   if (FLAGS_audit_allow_sockets) {
     VLOG(1) << "Enabling audit rules for the socket_events table";
 
-    int syscall_list[] = {__NR_bind, __NR_connect};
-    for (int syscall : syscall_list) {
-      monitored_syscall_list_.insert(syscall);
-    }
+    monitored_syscall_list_.insert(__NR_bind);
+    monitored_syscall_list_.insert(__NR_connect);
   }
 
   // Rules required by the process_events table
   if (FLAGS_audit_allow_process_events) {
     VLOG(1) << "Enabling audit rules for the process_events table";
-
-    int syscall_list[] = {__NR_execve};
-    for (int syscall : syscall_list) {
-      monitored_syscall_list_.insert(syscall);
-    }
+    monitored_syscall_list_.insert(__NR_execve);
   }
 
   // Rules required by the auditd_fim_events table
   if (FLAGS_audit_allow_fim_events) {
     VLOG(1) << "Enabling audit rules for the auditd_fim_events table";
 
-    /// \todo Add the following syscalls: read, write, mmap
     int syscall_list[] = {__NR_execve,
                           __NR_exit,
                           __NR_exit_group,
                           __NR_open,
+                          __NR_openat,
+                          __NR_name_to_handle_at,
+                          __NR_open_by_handle_at,
                           __NR_close,
                           __NR_dup,
                           __NR_dup2,
@@ -784,9 +777,9 @@ bool AuditdNetlink::configureAuditService() noexcept {
     if (rule_add_error != EEXIST) {
       VLOG(1) << "The following syscall number could not be added to the audit "
                  "service rules: "
-              << syscall_number
-              << ". Some of the auditd table may not work properly "
-                 "(process_events, socket_events, auditd_fim_events)";
+              << syscall_number << ". Some of the auditd "
+              << "table may not work properly (process_events, "
+              << "socket_events, auditd_fim_events)";
     }
   }
 
