@@ -27,11 +27,15 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-const std::string kInternetSharingPath = "/Library/Preferences/SystemConfiguration/com.apple.nat.plist";
-const std::string kRemoteAppleManagementPath = "/Library/Application Support/Apple/Remote Desktop/RemoteManagement.launchd";
-const std::string kRemoteBluetoothSharingPath = "/Library/Preferences/ByHost/";
-const std::string kRemoteBluetoothSharingPattern = "com.apple.Bluetooth.%";
+const std::string kInternetSharingPath =
+    "/Library/Preferences/SystemConfiguration/com.apple.nat.plist";
 
+const std::string kRemoteAppleManagementPath =
+    "/Library/Application Support/Apple/Remote Desktop/RemoteManagement.launchd";
+
+const std::string kRemoteBluetoothSharingPath = "/Library/Preferences/ByHost/";
+
+const std::string kRemoteBluetoothSharingPattern = "com.apple.Bluetooth.%";
 
 bool remoteAppleManagementPlistExists() {
   auto remoteAppleManagementFileInfo =
@@ -56,25 +60,24 @@ int getRemoteManagementStatus() {
 }
 
 int getFileSharingStatus() {
-  Boolean persistent;
-  int smbStatus = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.smbd"), &persistent);
-  int fileServerStatus = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.AppleFileServer"), &persistent);
-  return smbStatus | fileServerStatus;
+  Boolean fileServerStatus = false, fileServerPersistence = false;
+  Boolean smbStatus = false, smbPersistence = false;
+
+  smbStatus = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.smbd"), &smbPersistence);
+  fileServerStatus = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.AppleFileServer"), &fileServerPersistence);
+  return (!(smbStatus ^ smbPersistence)) | (!(fileServerStatus ^ fileServerPersistence));
 }
 
 int getRemoteLoginStatus() {
-  Boolean persistent;
-  return SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.openssh.sshd"), &persistent);
+  Boolean loaded = false, persistence = false;
+  loaded = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.openssh.sshd"), &persistence);
+  return (!(loaded ^ persistence));
 }
 
 int getRemoteAppleEventStatus() {
-  Boolean persistent;
-  return SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.AEServer"), &persistent);
-}
-
-int getDiscSharingStatus() {
-  Boolean persistent;
-  return SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.ODSAgent"), &persistent);
+  Boolean loaded = false, persistence = false;
+  loaded = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.AEServer"), &persistence);
+  return (!(loaded ^ persistence));
 }
 
 int getPrinterSharingStatus() {
@@ -94,15 +97,15 @@ int getPrinterSharingStatus() {
   if (cups != nullptr) {
     int ret = cupsAdminGetServerSettings(cups, &num_settings, &settings);
     if (ret != 0) {
-      if ((value = cupsGetOption("_share_printers", num_settings, settings)) &&
-          value != nullptr) {
-        return *value == '1' ? 1 : 0;
-      }
+      value = cupsGetOption("_share_printers", num_settings, settings);
       cupsFreeOptions(num_settings, settings);
     } else {
       VLOG(1) << "ERROR: Unable to get CUPS server settings: " << cupsLastErrorString();
     }
     httpClose(cups);
+  }
+  if (value != nullptr) {
+    return *value == '1' ? 1 : 0;
   }
   return 0;
 }
@@ -166,10 +169,8 @@ QueryData genSharing(QueryContext& context) {
   r["remote_apple_events"] = INTEGER(getRemoteAppleEventStatus());
   r["internet_sharing"] = INTEGER(getInterNetSharingStatus());
   r["bluetooth_sharing"] = INTEGER(getBluetoothSharingStatus());
-  r["disc_sharing"] = INTEGER(getDiscSharingStatus());
   return {r};
 }
-
 
 } // namespace tables
 } // namespace osquery
