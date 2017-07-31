@@ -18,7 +18,7 @@
 namespace osquery {
 namespace tables {
 
-void genSharePointEntries(NSMutableArray *sharepoints) {
+Status genSharePointEntries(std::vector<NSDictionary *> &sharepoints) {
   @autoreleasepool {
     ODSession *s = [ODSession defaultSession];
     NSError *err = nullptr;
@@ -26,7 +26,7 @@ void genSharePointEntries(NSMutableArray *sharepoints) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory node: "
            << std::string([[err localizedDescription] UTF8String]);
-      return;
+      return osquery::Status(1, [[err localizedDescription] UTF8String]);
     }
 
     ODQuery *q = [ODQuery queryWithNode:root
@@ -40,7 +40,7 @@ void genSharePointEntries(NSMutableArray *sharepoints) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory query: "
            << std::string([[err localizedDescription] UTF8String]);
-      return;
+      return osquery::Status(1, [[err localizedDescription] UTF8String]);
     }
 
     // Obtain the results synchronously, not good for very large sets.
@@ -48,7 +48,7 @@ void genSharePointEntries(NSMutableArray *sharepoints) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory results: "
            << std::string([[err localizedDescription] UTF8String]);
-      return;
+      return osquery::Status(1, [[err localizedDescription] UTF8String]);
     }
 
     for (ODRecord *re in od_results) {
@@ -56,19 +56,20 @@ void genSharePointEntries(NSMutableArray *sharepoints) {
       if (err != nullptr) {
         TLOG << "Error with OpenDirectory attribute: "
              << std::string([[err localizedDescription] UTF8String]);
-        return;
+        return osquery::Status(1, [[err localizedDescription] UTF8String]);
       } else {
-        [sharepoints addObject: recordPath];
+        sharepoints.push_back(recordPath);
       }
     }
   }
+  return osquery::Status(0, "OK");
 }
 
 QueryData genSharedFolders(QueryContext &context) {
-  NSMutableArray *sharepoints = [[NSMutableArray alloc] init];
+  std::vector<NSDictionary *> sharepoints;
   QueryData results;
   genSharePointEntries(sharepoints);
-  for (id sharepoint in sharepoints) {
+  for (const auto &sharepoint : sharepoints) {
     Row r;
     r["name"] = [[[sharepoint valueForKey:@"dsAttrTypeNative:smb_name"] lastObject] UTF8String];
     r["path"] = [[[sharepoint valueForKey:@"dsAttrTypeNative:directory_path"] lastObject] UTF8String];
