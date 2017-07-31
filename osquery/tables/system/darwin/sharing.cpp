@@ -31,7 +31,8 @@ const std::string kInternetSharingPath =
     "/Library/Preferences/SystemConfiguration/com.apple.nat.plist";
 
 const std::string kRemoteAppleManagementPath =
-    "/Library/Application Support/Apple/Remote Desktop/RemoteManagement.launchd";
+    "/Library/Application Support/Apple/Remote "
+    "Desktop/RemoteManagement.launchd";
 
 const std::string kRemoteBluetoothSharingPath = "/Library/Preferences/ByHost/";
 
@@ -64,28 +65,34 @@ int getFileSharingStatus() {
   Boolean fileServerStatus = false, fileServerPersistence = false;
   Boolean smbStatus = false, smbPersistence = false;
 
-  smbStatus = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.smbd"), &smbPersistence);
-  fileServerStatus = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.AppleFileServer"), &fileServerPersistence);
-  return (!(smbStatus ^ smbPersistence)) | (!(fileServerStatus ^ fileServerPersistence));
+  smbStatus = SMJobIsEnabled(
+      kSMDomainSystemLaunchd, CFSTR("com.apple.smbd"), &smbPersistence);
+  fileServerStatus = SMJobIsEnabled(kSMDomainSystemLaunchd,
+                                    CFSTR("com.apple.AppleFileServer"),
+                                    &fileServerPersistence);
+  return (!(smbStatus ^ smbPersistence)) |
+         (!(fileServerStatus ^ fileServerPersistence));
 }
 
 int getRemoteLoginStatus() {
   Boolean loaded = false, persistence = false;
-  loaded = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.openssh.sshd"), &persistence);
+  loaded = SMJobIsEnabled(
+      kSMDomainSystemLaunchd, CFSTR("com.openssh.sshd"), &persistence);
   return (!(loaded ^ persistence));
 }
 
 int getRemoteAppleEventStatus() {
   Boolean loaded = false, persistence = false;
-  loaded = SMJobIsEnabled(kSMDomainSystemLaunchd, CFSTR("com.apple.AEServer"), &persistence);
+  loaded = SMJobIsEnabled(
+      kSMDomainSystemLaunchd, CFSTR("com.apple.AEServer"), &persistence);
   return (!(loaded ^ persistence));
 }
 
 int getPrinterSharingStatus() {
-  http_t *cups = nullptr;
+  http_t* cups = nullptr;
   int num_settings = 0;
   cups_option_t* settings = nullptr;
-  const char *value = nullptr;
+  const char* value = nullptr;
 
   cups = httpConnect2(cupsServer(),
                       ippPort(),
@@ -101,7 +108,8 @@ int getPrinterSharingStatus() {
       value = cupsGetOption("_share_printers", num_settings, settings);
       cupsFreeOptions(num_settings, settings);
     } else {
-      VLOG(1) << "ERROR: Unable to get CUPS server settings: " << cupsLastErrorString();
+      VLOG(1) << "ERROR: Unable to get CUPS server settings: "
+              << cupsLastErrorString();
     }
     httpClose(cups);
   }
@@ -118,10 +126,12 @@ int getInterNetSharingStatus() {
     return 0;
   }
   for (const auto& row : internetSharingStatus) {
-    if (row.find("key") == row.end() || row.find("subkey") == row.end() || row.find("value") == row.end()) {
+    if (row.find("key") == row.end() || row.find("subkey") == row.end() ||
+        row.find("value") == row.end()) {
       continue;
     }
-    if (row.at("key") == "NAT" && row.at("subkey") == "Enabled" && row.at("value") == INTEGER(1)) {
+    if (row.at("key") == "NAT" && row.at("subkey") == "Enabled" &&
+        row.at("value") == INTEGER(1)) {
       return 1;
     }
   }
@@ -137,12 +147,14 @@ int getBluetoothSharingStatus() {
         continue;
       }
       std::vector<std::string> paths;
-      if (!resolveFilePattern(dir / kRemoteBluetoothSharingPattern, paths).ok()) {
+      if (!resolveFilePattern(dir / kRemoteBluetoothSharingPattern, paths)
+               .ok()) {
         continue;
       }
 
       for (const auto& bluetoothSharing_path : paths) {
-        auto bluetoothSharingStatus = SQL::selectAllFrom("plist", "path", EQUALS, bluetoothSharing_path);
+        auto bluetoothSharingStatus =
+            SQL::selectAllFrom("plist", "path", EQUALS, bluetoothSharing_path);
         if (bluetoothSharingStatus.empty()) {
           continue;
         }
@@ -150,7 +162,8 @@ int getBluetoothSharingStatus() {
           if (r.find("key") == row.end() || row.find("value") == r.end()) {
             continue;
           }
-          if (r.at("key") == "PrefKeyServicesEnabled" && r.at("value") == INTEGER(1)) {
+          if (r.at("key") == "PrefKeyServicesEnabled" &&
+              r.at("value") == INTEGER(1)) {
             return 1;
           }
         }
