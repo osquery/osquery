@@ -102,17 +102,19 @@ int getPrinterSharingStatus() {
                       1,
                       30000,
                       nullptr);
-  if (cups != nullptr) {
-    int ret = cupsAdminGetServerSettings(cups, &num_settings, &settings);
-    if (ret != 0) {
-      value = cupsGetOption("_share_printers", num_settings, settings);
-      cupsFreeOptions(num_settings, settings);
-    } else {
-      VLOG(1) << "ERROR: Unable to get CUPS server settings: "
-              << cupsLastErrorString();
-    }
-    httpClose(cups);
+  if (cups == nullptr) {
+    return 0;
   }
+  int ret = cupsAdminGetServerSettings(cups, &num_settings, &settings);
+  if (ret != 0) {
+    value = cupsGetOption("_share_printers", num_settings, settings);
+    cupsFreeOptions(num_settings, settings);
+  } else {
+    VLOG(1) << "ERROR: Unable to get CUPS server settings: "
+            << cupsLastErrorString();
+  }
+  httpClose(cups);
+
   if (value != nullptr) {
     return *value == '1' ? 1 : 0;
   }
