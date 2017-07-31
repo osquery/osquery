@@ -47,12 +47,13 @@ bool remoteAppleManagementPlistExists() {
 }
 
 int getScreenSharingStatus() {
-  Boolean persistent;
+  Boolean loaded = false, persistence = false;
   if (remoteAppleManagementPlistExists()) {
     return 0;
   }
-  return SMJobIsEnabled(
-      kSMDomainSystemLaunchd, CFSTR("com.apple.screensharing"), &persistent);
+  loaded = SMJobIsEnabled(
+      kSMDomainSystemLaunchd, CFSTR("com.apple.screensharing"), &persistence);
+  return (!(loaded ^ persistence));
 }
 
 int getRemoteManagementStatus() {
