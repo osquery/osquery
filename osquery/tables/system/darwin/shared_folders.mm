@@ -7,13 +7,12 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#import <OpenDirectory/OpenDirectory.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#import <OpenDirectory/OpenDirectory.h>
 
 namespace osquery {
 namespace tables {
