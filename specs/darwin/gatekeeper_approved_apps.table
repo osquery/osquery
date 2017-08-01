@@ -1,0 +1,12 @@
+table_name("gatekeeper_approved_apps")
+description("Gatekeeper apps a user has allowed to run.")
+schema([
+    Column("path", TEXT, "Path of executable allowed to run"),
+    Column("requirement", TEXT, "Code signing requirement language"),
+    Column("ctime", DOUBLE, "Last change time"),
+    Column("mtime", DOUBLE, "Last modification time"),
+])
+implementation("gatekeeper@genGateKeeperApprovedApps")
+fuzz_paths([
+    "/var/db/SystemPolicy"
+])

@@ -372,6 +372,9 @@ struct QueryLogItem {
   /// The time that the query was executed, seconds as UNIX time.
   size_t time{0};
 
+  /// The epoch at the time the query was executed
+  uint64_t epoch;
+
   /// The time that the query was executed, an ASCII string.
   std::string calendar_time;
 

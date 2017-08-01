@@ -101,71 +101,9 @@ class Watcher : private boost::noncopyable {
     return instance;
   }
 
-  /// Reset counters after a worker exits.
-  void resetWorkerCounters(size_t respawn_time);
-
-  /// Reset counters for an extension path.
-  void resetExtensionCounters(const std::string& extension,
-                              size_t respawn_time);
-
-  /// Lock access to extensions.
-  void lock() {
-    get().lock_.lock();
-  }
-
-  /// Unlock access to extensions.
-  void unlock() {
-    get().lock_.unlock();
-  }
-
-  /// Accessor for autoloadable extension paths.
-  const ExtensionMap& extensions() const {
-    return extensions_;
-  }
-
-  /// Lookup extension path from pid.
-  std::string getExtensionPath(const PlatformProcess& child);
-
-  /// Remove an autoloadable extension path.
-  void removeExtensionPath(const std::string& extension);
-
-  /// Add extensions autoloadable paths.
-  void addExtensionPath(const std::string& path);
-
-  /// Get state information for a worker or extension child.
-  PerformanceState& getState(const PlatformProcess& child);
-  PerformanceState& getState(const std::string& extension);
-
-  /// Accessor for the worker process.
-  PlatformProcess& getWorker() {
-    return *worker_;
-  }
-
-  /// Setter for worker process.
-  void setWorker(const std::shared_ptr<PlatformProcess>& child) {
-    worker_ = child;
-  }
-
-  /// Setter for an extension process.
-  void setExtension(const std::string& extension,
-                    const std::shared_ptr<PlatformProcess>& child);
-
-  /// Reset pid and performance counters for a worker or extension process.
-  void reset(const PlatformProcess& child);
-
-  /// Count the number of worker restarts.
-  size_t workerRestartCount() const {
-    return worker_restarts_;
-  }
-
   /// Become responsible for the worker's fate, but do not guarantee its safety.
   void bindFates() {
     restart_worker_ = false;
-  }
-
-  /// Check if the worker and watcher's fates are bound.
-  bool fatesBound() const {
-    return !restart_worker_;
   }
 
   /**
@@ -182,14 +120,85 @@ class Watcher : private boost::noncopyable {
     return worker_status_;
   }
 
+  /// Add extensions autoloadable paths.
+  void addExtensionPath(const std::string& path);
+
+  /// Lock access to extensions.
+  void lock() {
+    get().lock_.lock();
+  }
+
+  /// Unlock access to extensions.
+  void unlock() {
+    get().lock_.unlock();
+  }
+
+  /// Allow other parts of the codebase to check worker state.
+  bool isWorkerValid() const {
+    WriteLock lock(worker_mutex_);
+    return worker_->isValid();
+  }
+
+ private:
+  /// Accessor for the worker process.
+  PlatformProcess& getWorker() {
+    return *worker_;
+  }
+
+  /// Reset counters after a worker exits.
+  void resetWorkerCounters(size_t respawn_time);
+
+  /// Reset counters for an extension path.
+  void resetExtensionCounters(const std::string& extension,
+                              size_t respawn_time);
+
+  /// Accessor for autoloadable extension paths.
+  const ExtensionMap& extensions() const {
+    return extensions_;
+  }
+
+  /// Lookup extension path from pid.
+  std::string getExtensionPath(const PlatformProcess& child);
+
+  /// Remove an autoloadable extension path.
+  void removeExtensionPath(const std::string& extension);
+
+  /// Get state information for a worker or extension child.
+  PerformanceState& getState(const PlatformProcess& child);
+  PerformanceState& getState(const std::string& extension);
+
+
+  /// Setter for worker process.
+  void setWorker(const std::shared_ptr<PlatformProcess>& child) {
+    WriteLock lock(worker_mutex_);
+    worker_ = child;
+  }
+
+  /// Setter for an extension process.
+  void setExtension(const std::string& extension,
+                    const std::shared_ptr<PlatformProcess>& child);
+
+  /// Reset pid and performance counters for a worker or extension process.
+  void reset(const PlatformProcess& child);
+
+  /// Count the number of worker restarts.
+  size_t workerRestartCount() const {
+    return worker_restarts_;
+  }
+
+
+  /// Check if the worker and watcher's fates are bound.
+  bool fatesBound() const {
+    return !restart_worker_;
+  }
+
  private:
   /// Do not request the lock until extensions are used.
-  Watcher()
-      : worker_(std::make_shared<PlatformProcess>()),
-        worker_restarts_(0),
-        lock_(mutex_, std::defer_lock) {}
-  Watcher(Watcher const&);
+  Watcher() : worker_restarts_(0), lock_(mutex_, std::defer_lock) {
+    setWorker(std::make_shared<PlatformProcess>());
+  }
 
+  Watcher(Watcher const&);
   void operator=(Watcher const&);
   virtual ~Watcher() {}
 
@@ -220,12 +229,15 @@ class Watcher : private boost::noncopyable {
   std::vector<std::string> extensions_paths_;
 
   /// Bind the fate of the watcher to the worker.
-  bool restart_worker_{true};
+  std::atomic<bool> restart_worker_{true};
 
   /// Record the exit status of the most recent worker.
   std::atomic<int> worker_status_{-1};
 
  private:
+  /// Set and access the worker process.
+  mutable Mutex worker_mutex_;
+
   /// Mutex and lock around extensions access.
   Mutex mutex_;
 

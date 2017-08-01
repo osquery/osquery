@@ -25,6 +25,11 @@ extern std::map<int, std::string> kMaskActions;
 extern const uint32_t kFileDefaultMasks;
 extern const uint32_t kFileAccessMasks;
 
+// INotifySubscriptionContext containers
+using PathDescriptorMap = std::map<std::string, int>;
+using DescriptorPathMap = std::map<int, std::string>;
+using PathStatusChangeTimeMap = std::map<std::string, time_t>;
+
 /**
  * @brief Subscription details for INotifyEventPublisher events.
  *
@@ -40,6 +45,9 @@ struct INotifySubscriptionContext : public SubscriptionContext {
   /// Subscription the following filesystem path.
   std::string path;
 
+  /// original path, read from config
+  std::string opath;
+
   /// Limit the `inotify` actions to the subscription mask (if not 0).
   uint32_t mask{0};
 
@@ -48,6 +56,9 @@ struct INotifySubscriptionContext : public SubscriptionContext {
 
   /// Save the category this path originated form within the config.
   std::string category;
+
+  /// Lazy deletion of a subscription.
+  bool mark_for_deletion{false};
 
   /**
    * @brief Helper method to map a string action to `inotify` action mask bit.
@@ -65,15 +76,24 @@ struct INotifySubscriptionContext : public SubscriptionContext {
   }
 
  private:
-  /// During configure the INotify publisher may modify/optimize the paths.
-  std::string discovered_;
-
   /// A configure-time pattern was expanded to match absolute paths.
   bool recursive_match{false};
+
+  /// Map of inotify watch file descriptor to watched path string.
+  DescriptorPathMap descriptor_paths_;
+
+  /// Map of path and status change time of file/directory.
+  PathStatusChangeTimeMap path_sc_time_;
 
  private:
   friend class INotifyEventPublisher;
 };
+
+/// Overloaded '==' operator, to check if two inotify subscriptions are same.
+inline bool operator==(const INotifySubscriptionContext& lsc,
+                       const INotifySubscriptionContext& rsc) {
+  return ((lsc.category == rsc.category) && (lsc.opath == rsc.opath));
+}
 
 /**
  * @brief Event details for INotifyEventPublisher events.
@@ -96,10 +116,8 @@ using INotifyEventContextRef = std::shared_ptr<INotifyEventContext>;
 using INotifySubscriptionContextRef =
     std::shared_ptr<INotifySubscriptionContext>;
 
-// Publisher containers
-using DescriptorVector = std::vector<int>;
-using PathDescriptorMap = std::map<std::string, int>;
-using DescriptorPathMap = std::map<int, std::string>;
+// Publisher container
+using DescriptorINotifySubCtxMap = std::map<int, INotifySubscriptionContextRef>;
 
 /**
  * @brief A Linux `inotify` EventPublisher.
@@ -118,6 +136,10 @@ class INotifyEventPublisher
   DECLARE_PUBLISHER("inotify");
 
  public:
+  //@param unit_test publisher is instantiated for unit test.
+  INotifyEventPublisher(bool unit_test = false)
+      : inotify_sanity_check(unit_test) {}
+
   virtual ~INotifyEventPublisher() {
     tearDown();
   }
@@ -134,8 +156,11 @@ class INotifyEventPublisher
   /// The calling for beginning the thread's run loop.
   Status run() override;
 
-  /// Remove all monitors and subscriptions.
+  /// Mark for delete, subscriptions.
   void removeSubscriptions(const std::string& subscriber) override;
+
+  /// Only add the subscription, if it not already part of subscription list.
+  Status addSubscription(const SubscriptionRef& subscription) override;
 
  private:
   /// Helper/specialized event context creation.
@@ -148,6 +173,7 @@ class INotifyEventPublisher
   }
 
   /// Check all added Subscription%s for a path.
+  /// Used for sanity check from unit test(s).
   bool isPathMonitored(const std::string& path) const;
 
   /**
@@ -161,22 +187,36 @@ class INotifyEventPublisher
    * recursively and add monitors to them.
    *
    * @param path complete (non-glob) canonical path to monitor.
+   * @param subscription context tracking the path.
    * @param recursive perform a single recursive search of subdirectories.
    * @param add_watch (testing only) should an inotify watch be created.
    * @return success if the inotify watch was created.
    */
   bool addMonitor(const std::string& path,
+                  INotifySubscriptionContextRef& isc,
                   uint32_t mask,
                   bool recursive,
                   bool add_watch = true);
+
+  /**
+   * Some decision making code refactored in needMonitoring before calling
+   * addMonitor in the context of monitorSubscription.
+   * Decision to call addMonitor from the context of monitorSubscription
+   * is done based on the status change time of file/directory, since
+   * creation time is not available on linux.
+   */
+  bool needMonitoring(const std::string& path,
+                      INotifySubscriptionContextRef& isc,
+                      uint32_t mask,
+                      bool recursive,
+                      bool add_watch);
 
   /// Helper method to parse a subscription and add an equivalent monitor.
   bool monitorSubscription(INotifySubscriptionContextRef& sc,
                            bool add_watch = true);
 
   /// Remove an INotify watch (monitor) from our tracking.
-  bool removeMonitor(const std::string& path, bool force = false);
-  bool removeMonitor(int watch, bool force = false);
+  bool removeMonitor(int watch, bool force = false, bool batch_del = false);
 
   /// Given a SubscriptionContext and INotifyEventContext match path and action.
   bool shouldFire(const INotifySubscriptionContextRef& mc,
@@ -189,26 +229,30 @@ class INotifyEventPublisher
 
   /// Get the number of actual INotify active descriptors.
   size_t numDescriptors() const {
-    return descriptors_.size();
+    return descriptor_inosubctx_.size();
   }
 
-  /// If we overflow, try and restart the monitor
-  Status restartMonitoring();
-
-  // Consider an event queue if separating buffering from firing/servicing.
-  DescriptorVector descriptors_;
+  /// If we overflow, try to read more events from OS at time.
+  void handleOverflow();
 
   /// Map of watched path string to inotify watch file descriptor.
+  /// Used for sanity check from unit test(s).
   PathDescriptorMap path_descriptors_;
 
-  /// Map of inotify watch file descriptor to watched path string.
-  DescriptorPathMap descriptor_paths_;
+  /// Map of inotify watch file descriptor to subscription context.
+  DescriptorINotifySubCtxMap descriptor_inosubctx_;
 
   /// The inotify file descriptor handle.
   std::atomic<int> inotify_handle_{-1};
 
-  /// Time in seconds of the last inotify restart.
-  std::atomic<int> last_restart_{-1};
+  /// Time in seconds of the last inotify overflow.
+  std::atomic<int> last_overflow_{-1};
+
+  /// Tracks how many events to be received from OS.
+  size_t inotify_events_{16};
+
+  /// Enable for sanity check from unit test(s).
+  bool inotify_sanity_check{false};
 
   /**
    * @brief Scratch space for reading INotify responses.

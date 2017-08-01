@@ -19,10 +19,10 @@ LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
 
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
-HOMEBREW_CORE="f7e573dfdbe26f00bf39d6dd8244d253ca4c1a94"
-LINUXBREW_CORE="501c656e81770ff64f12131a20535795e9229e44"
-HOMEBREW_BREW="b5529084906af89827f6d9befd613457a1615918"
-LINUXBREW_BREW="1d16368a177807663e1b3146d71fcd69e2061e27"
+HOMEBREW_CORE="941ca36839ea354031846d73ad538e1e44e673f4"
+LINUXBREW_CORE="abc5c5782c5850f2deff1f3d463945f90f2feaac"
+HOMEBREW_BREW="ac2cbd2137006ebfe84d8584ccdcb5d78c1130d9"
+LINUXBREW_BREW="20bcce2c176469cec271b46d523eef1510217436"
 
 # If the world needs to be rebuilt, increase the version
 DEPS_VERSION="4"
@@ -127,6 +127,7 @@ function platform_darwin_main() {
   # libarchive for file carving
   brew_dependency osquery/osquery-local/libarchive
   brew_dependency osquery/osquery-local/rapidjson
+  brew_dependency osquery/osquery-local/zstd
 
   # List of LLVM-compiled dependencies.
   brew_dependency osquery/osquery-local/lz4

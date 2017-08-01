@@ -69,7 +69,7 @@ void FileEventSubscriber::configure() {
       auto sc = createSubscriptionContext();
       // Use the filesystem globbing pattern to determine recursiveness.
       sc->recursive = 0;
-      sc->path = file;
+      sc->opath = sc->path = file;
       sc->mask = kFileDefaultMasks;
       if (accesses.count(category) > 0) {
         sc->mask |= kFileAccessMasks;

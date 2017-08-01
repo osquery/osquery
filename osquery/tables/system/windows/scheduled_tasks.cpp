@@ -60,7 +60,7 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
   }
 
   ITaskFolder* pRootFolder = nullptr;
-  auto widePath = stringToWstring(path.c_str());
+  auto widePath = stringToWstring(path);
   ret = pService->GetFolder(BSTR(widePath.c_str()), &pRootFolder);
   pService->Release();
   if (FAILED(ret)) {

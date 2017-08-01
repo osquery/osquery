@@ -138,7 +138,7 @@ static void DATABASE_query_results(benchmark::State& state) {
   while (state.KeepRunning()) {
     DiffResults diff_results;
     auto dbq = Query("default", query);
-    dbq.addNewResults(qd, diff_results);
+    dbq.addNewResults(qd, 0, diff_results);
   }
 }
 

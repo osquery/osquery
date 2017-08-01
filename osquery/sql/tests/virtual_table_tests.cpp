@@ -449,6 +449,69 @@ TEST_F(VirtualTableTests, test_table_cache) {
   ASSERT_EQ(results[0]["data"], "awesome_data");
 }
 
+class tableCacheTablePlugin : public TablePlugin {
+ public:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("i", TEXT_TYPE, ColumnOptions::INDEX),
+        std::make_tuple("d", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+  TableAttributes attributes() const override {
+    return TableAttributes::CACHEABLE;
+  }
+
+  QueryData generate(QueryContext& ctx) override {
+    if (isCached(60, ctx)) {
+      return getCache();
+    }
+
+    generates_++;
+    Row r;
+    r["i"] = "1";
+    setCache(60, 1, ctx, {r});
+    return {r};
+  }
+
+  size_t generates_{0};
+};
+
+TEST_F(VirtualTableTests, test_table_results_cache) {
+  // Get a database connection.
+  auto tables = RegistryFactory::get().registry("table");
+  auto cache = std::make_shared<tableCacheTablePlugin>();
+  tables->add("table_cache", cache);
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal("table_cache", cache->columnDefinition(), dbc);
+
+  QueryData results;
+  std::string statement = "SELECT * from table_cache;";
+  auto status = queryInternal(statement, results, dbc->db());
+  dbc->clearAffectedTables();
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(cache->generates_, 1U);
+
+  // Run the query again, the virtual table cache should have been expired.
+  results.clear();
+  statement = "SELECT * from table_cache;";
+  queryInternal(statement, results, dbc->db());
+  EXPECT_EQ(results.size(), 1U);
+
+  // The table should have used the cache.
+  EXPECT_EQ(cache->generates_, 1U);
+
+  results.clear();
+  statement = "SELECT * from table_cache where i = '1';";
+  queryInternal(statement, results, dbc->db());
+  EXPECT_EQ(results.size(), 1U);
+
+  // The table should NOT have used the cache.
+  EXPECT_EQ(cache->generates_, 2U);
+}
+
 class yieldTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const override {

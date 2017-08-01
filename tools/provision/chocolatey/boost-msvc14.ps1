@@ -49,7 +49,7 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retreive the source
+# Retrieve the source
 Invoke-WebRequest $url -OutFile "boost-$version.7z" -UserAgent [Microsoft.PowerShell.Commands.PSUserAgent]::Chrome
 
 # Extract the source

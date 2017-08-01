@@ -40,6 +40,7 @@ std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemModified, "UPDATED"},
     {kFSEventStreamEventFlagItemRenamed, "MOVED_TO"},
     {kFSEventStreamEventFlagMustScanSubDirs, "COLLISION_WITHIN"},
+    {kFSEventStreamEventFlagMount, "MOUNTED"},
     {kFSEventStreamEventFlagUnmount, "UNMOUNTED"},
     {kFSEventStreamEventFlagRootChanged, "ROOT_CHANGED"},
 };

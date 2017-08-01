@@ -367,6 +367,7 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
   tree.put<std::string>("hostIdentifier", item.identifier);
   tree.put<std::string>("calendarTime", item.calendar_time);
   tree.put<size_t>("unixTime", item.time);
+  tree.put<uint64_t>("epoch", item.epoch);
 
   // Append the decorations.
   if (item.decorations.size() > 0) {

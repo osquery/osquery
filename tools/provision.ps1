@@ -292,6 +292,7 @@ function Install-ThirdParty {
     "zlib.1.2.8",
     "libarchive.3.3.1-r1",
     "rapidjson.1.1.0"
+    "zstd.1.2.0-r3"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
   Remove-Item $tmpDir -Recurse -ErrorAction Ignore

@@ -34,6 +34,7 @@ function distro_main() {
   package cpp-netlib
   package linenoise-ng
   package rapidjson
+  package zstd
 
   # Non-optional features.
   package augeas

@@ -133,10 +133,14 @@ class TestTablePlugin : public TablePlugin {
  public:
   void testSetCache(size_t step, size_t interval) {
     QueryData r;
-    setCache(step, interval, r);
+    QueryContext ctx;
+    setCache(step, interval, ctx, r);
   }
 
-  bool testIsCached(size_t interval) { return isCached(interval); }
+  bool testIsCached(size_t interval) {
+    QueryContext ctx;
+    return isCached(interval, ctx);
+  }
 };
 
 TEST_F(TablesTests, test_caching) {

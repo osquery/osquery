@@ -32,20 +32,32 @@ class FileOpsTests : public testing::Test {
   }
 
   bool globResultsMatch(const std::vector<std::string>& results,
-                        std::vector<fs::path>& expected) {
-    if (results.size() == expected.size()) {
-      size_t i = 0;
-      for (auto const& path : results) {
-        if (path != expected[i].make_preferred().string()) {
-          return false;
-        }
-        i++;
-      }
-
-      return true;
+                        const std::vector<fs::path>& expected) {
+    // Sets cannot be the same if they are different sizes
+    if (results.size() != expected.size()) {
+      return false;
+    }
+    // Convert the data structure to a set for better searching
+    std::set<std::string> results_set;
+    for (const auto& res : results) {
+      results_set.insert(res);
     }
 
-    return false;
+    for (auto res : expected) {
+      const auto loc = results_set.find(res.make_preferred().string());
+      // Unable to find element (something is in expected but not results)
+      if (loc == results_set.end()) {
+        return false;
+      }
+      // Pair found so remove from results
+      results_set.erase(loc);
+    }
+
+    // There are unremoved values so expected is a proper subset of results
+    if (!results_set.empty()) {
+      return false;
+    }
+    return true;
   }
 };
 
@@ -668,21 +680,11 @@ TEST_F(FileOpsTests, test_glob) {
   }
 
   {
-    std::vector<fs::path> expected;
-    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-      expected = {kFakeDirectory + "/deep1/deep2/",
-                  kFakeDirectory + "/deep1/level1.txt",
-                  kFakeDirectory + "/deep11/deep2/",
-                  kFakeDirectory + "/deep11/level1.txt",
-                  kFakeDirectory + "/deep11/not_bash"};
-    } else {
-      expected = {kFakeDirectory + "/deep1/deep2/",
-                  kFakeDirectory + "/deep11/deep2/",
-                  kFakeDirectory + "/deep1/level1.txt",
-                  kFakeDirectory + "/deep11/level1.txt",
-                  kFakeDirectory + "/deep11/not_bash"};
-    }
-
+    std::vector<fs::path> expected{kFakeDirectory + "/deep1/deep2/",
+                                   kFakeDirectory + "/deep1/level1.txt",
+                                   kFakeDirectory + "/deep11/deep2/",
+                                   kFakeDirectory + "/deep11/level1.txt",
+                                   kFakeDirectory + "/deep11/not_bash"};
     auto result =
         platformGlob(kFakeDirectory + "/*/{deep2,level1,not_bash}{,.txt}");
     EXPECT_TRUE(globResultsMatch(result, expected));

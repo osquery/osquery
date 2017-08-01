@@ -53,7 +53,7 @@ const WatchdogLimitMap kWatchdogLimits = {
     // User or system CPU worker can utilize for LATENCY_LIMIT seconds.
     {WatchdogLimitType::UTILIZATION_LIMIT, {90, 80, 1000}},
     // Number of seconds the worker should run, else consider the exit fatal.
-    {WatchdogLimitType::RESPAWN_LIMIT, {10, 4, 1000}},
+    {WatchdogLimitType::RESPAWN_LIMIT, {4, 4, 1000}},
     // If the worker respawns too quickly, backoff on creating additional.
     {WatchdogLimitType::RESPAWN_DELAY, {5, 5, 1}},
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
@@ -180,25 +180,41 @@ bool WatcherRunner::ok() const {
 }
 
 void WatcherRunner::start() {
-  // Set worker performance counters to an initial state.
-  Watcher::get().resetWorkerCounters(0);
   // Hold the current process (watcher) for inspection too.
-  auto watcher = PlatformProcess::getCurrentProcess();
+  auto& watcher = Watcher::get();
+  auto self = PlatformProcess::getCurrentProcess();
+
+  // Set worker performance counters to an initial state.
+  watcher.resetWorkerCounters(0);
   PerformanceState watcher_state;
 
   // Enter the watch loop.
   do {
-    if (use_worker_ && !watch(Watcher::get().getWorker())) {
-      if (Watcher::get().fatesBound()) {
+    if (use_worker_ && !watch(watcher.getWorker())) {
+      if (watcher.fatesBound()) {
         // A signal has interrupted the watcher.
         break;
       }
+
+      auto status = watcher.getWorkerStatus();
+      if (status == EXIT_CATASTROPHIC) {
+        Initializer::requestShutdown(EXIT_CATASTROPHIC);
+        break;
+      }
+
+      if (watcher.workerRestartCount() ==
+          getWorkerLimit(WatchdogLimitType::RESPAWN_LIMIT)) {
+        // Too many worker restarts.
+        Initializer::requestShutdown(EXIT_FAILURE, "Too many worker restarts");
+        break;
+      }
+
       // The watcher failed, create a worker.
       createWorker();
     }
 
     // Loop over every managed extension and check sanity.
-    for (const auto& extension : Watcher::get().extensions()) {
+    for (const auto& extension : watcher.extensions()) {
       auto s = isChildSane(*extension.second);
       if (!s.ok()) {
         // The extension manager also watches for extension-related failures.
@@ -212,13 +228,13 @@ void WatcherRunner::start() {
     // If any extension creations failed, stop managing them.
     for (auto& extension : extension_restarts_) {
       if (extension.second > 3) {
-        Watcher::get().removeExtensionPath(extension.first);
+        watcher.removeExtensionPath(extension.first);
         extension.second = 0;
       }
     }
 
     if (use_worker_) {
-      auto status = isWatcherHealthy(*watcher, watcher_state);
+      auto status = isWatcherHealthy(*self, watcher_state);
       if (!status.ok()) {
         Initializer::requestShutdown(
             EXIT_CATASTROPHIC,
@@ -266,6 +282,7 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
   if (result == PROCESS_EXITED) {
     // If the worker process existed, store the exit code.
     Watcher::get().worker_status_ = process_status;
+    return false;
   }
 
   return true;
@@ -429,9 +446,10 @@ void WatcherRunner::createWorker() {
     WatcherExtensionsLocker locker;
     if (watcher.getState(watcher.getWorker()).last_respawn_time >
         getUnixTime() - getWorkerLimit(WatchdogLimitType::RESPAWN_LIMIT)) {
+      watcher.workerRestarted();
       LOG(WARNING) << "osqueryd worker respawning too quickly: "
                    << watcher.workerRestartCount() << " times";
-      watcher.workerRestarted();
+
       // The configured automatic delay.
       size_t delay = getWorkerLimit(WatchdogLimitType::RESPAWN_DELAY) * 1000;
       // Exponential back off for quickly-respawning clients.
@@ -482,6 +500,7 @@ void WatcherRunner::createWorker() {
   watcher.resetWorkerCounters(getUnixTime());
   VLOG(1) << "osqueryd watcher (" << PlatformProcess::getCurrentProcess()->pid()
           << ") executing worker (" << worker->pid() << ")";
+  watcher.worker_status_ = -1;
 }
 
 void WatcherRunner::createExtension(const std::string& extension) {
