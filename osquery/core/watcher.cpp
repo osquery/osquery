@@ -213,25 +213,9 @@ void WatcherRunner::start() {
       createWorker();
     }
 
-    // Loop over every managed extension and check sanity.
-    for (const auto& extension : watcher.extensions()) {
-      auto s = isChildSane(*extension.second);
-      if (!s.ok()) {
-        // The extension manager also watches for extension-related failures.
-        // The watchdog is more general, but may find failed extensions first.
-        createExtension(extension.first);
-        extension_restarts_[extension.first] += 1;
-      } else {
-        extension_restarts_[extension.first] = 0;
-      }
-    }
-    // If any extension creations failed, stop managing them.
-    for (auto& extension : extension_restarts_) {
-      if (extension.second > 3) {
-        watcher.removeExtensionPath(extension.first);
-        extension.second = 0;
-      }
-    }
+    // After inspecting the worker, check the extensions.
+    // Extensions may be active even if a worker/watcher is not used.
+    watchExtensions();
 
     if (use_worker_) {
       auto status = isWatcherHealthy(*self, watcher_state);
@@ -249,6 +233,34 @@ void WatcherRunner::start() {
     }
     pauseMilli(getWorkerLimit(WatchdogLimitType::INTERVAL) * 1000);
   } while (!interrupted() && ok());
+}
+
+void WatcherRunner::watchExtensions() {
+  auto& watcher = Watcher::get();
+
+  // Loop over every managed extension and check sanity.
+  for (const auto& extension : watcher.extensions()) {
+    // Check the extension status, causing a wait.
+    int process_status = 0;
+    extension.second->checkStatus(process_status);
+
+    auto s = isChildSane(*extension.second);
+    if (!extension.second->isValid() || !s.ok()) {
+      // The extension manager also watches for extension-related failures.
+      // The watchdog is more general, but may find failed extensions first.
+      createExtension(extension.first);
+      extension_restarts_[extension.first] += 1;
+    } else {
+      extension_restarts_[extension.first] = 0;
+    }
+  }
+  // If any extension creations failed, stop managing them.
+  for (auto& extension : extension_restarts_) {
+    if (extension.second > 3) {
+      watcher.removeExtensionPath(extension.first);
+      extension.second = 0;
+    }
+  }
 }
 
 size_t WatcherRunner::delayedTime() const {
