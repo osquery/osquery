@@ -8,6 +8,9 @@ targets = {
   "debian8" => {
     "box" => "bento/debian-8.2"
   },
+  "debian9" => {
+    "box" => "bento/debian-9.0"
+  },
   "centos6.5" => {
     "box" => "bento/centos-6.7"
   },
