@@ -299,6 +299,9 @@ class WatcherRunner : public InternalRunnable {
   /// Begin the worker-watcher process.
   virtual bool watch(const PlatformProcess& child) const;
 
+  /// Enumerate each extension and check sanity.
+  virtual void watchExtensions();
+
   /// Inspect into the memory, CPU, and other worker/extension process states.
   virtual Status isChildSane(const PlatformProcess& child) const;
 
