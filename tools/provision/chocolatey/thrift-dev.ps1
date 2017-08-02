@@ -45,7 +45,7 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retreive the source
+# Retrieve the source
 Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
 
 # Extract the source

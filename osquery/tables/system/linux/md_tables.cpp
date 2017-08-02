@@ -22,6 +22,7 @@
 #include <memory>
 #include <numeric>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core/conversions.h>
@@ -126,7 +127,7 @@ std::string MD::getPathByDevName(const std::string& name) {
     if (name.compare(
             strlen(devName) - name.length(), std::string::npos, devName) == 0) {
       devPath = devName;
-      if (devPath.find('/') != 0) {
+      if (!boost::starts_with(devPath, "/")) {
         devPath = "/dev/" + devPath;
       }
 
@@ -408,7 +409,7 @@ static inline bool handleMDStatuses(
 }
 
 MDDrive parseMDDrive(const std::string& name) {
-  MDDrive drive;
+  MDDrive drive = {};
   drive.name = name;
 
   auto start = name.find('[');
@@ -478,7 +479,6 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
        * safety, we check if we at the end of the file. */
       if (n >= lines.size() - 1) {
         continue;
-        n += 1;
       }
       auto configline(split(lines[n + 1]));
 

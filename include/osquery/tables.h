@@ -783,6 +783,7 @@ class TablePlugin : public Plugin {
    * practice this does not perform well and is explicitly disabled.
    *
    * @param interval The interval this query expects the tables results.
+   * @param ctx The query context.
    * @return True if the cache contains fresh results, otherwise false.
    */
   bool isCached(size_t interval, const QueryContext& ctx) const;

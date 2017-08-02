@@ -51,7 +51,7 @@ class Status {
    * Otherwise, it doesn't matter what the string is, as long as both the
    * setter and caller agree.
    */
-  Status(int c, std::string m) : code_(c), message_(m) {}
+  Status(int c, const std::string& m) : code_(c), message_(m) {}
 
  public:
   /**
