@@ -72,6 +72,12 @@ SyscallEvent::Type GetSyscallEventType(int syscall_number) noexcept {
   case __NR_mknod:
     return SyscallEvent::Type::Mknod;
 
+  case __NR_unlink:
+    return SyscallEvent::Type::Unlink;
+
+  case __NR_unlinkat:
+    return SyscallEvent::Type::Unlinkat;
+
   case __NR_mknodat:
     return SyscallEvent::Type::Mknodat;
 
@@ -145,6 +151,8 @@ bool ParseAuditSyscallRecord(
                                                      __NR_read,
                                                      __NR_mmap,
                                                      __NR_creat,
+                                                     __NR_unlink,
+                                                     __NR_unlinkat,
                                                      __NR_mknodat,
                                                      __NR_mknod};
 
@@ -356,6 +364,16 @@ void AuditdFimEventPublisher::ProcessEvents(
       }
 
       auto& syscall_event = audit_event_it->second;
+
+      // These syscalls receive two AUDIT_PATH records; the first one is the cwd
+      if (syscall_event.type == SyscallEvent::Type::Mknod ||
+          syscall_event.type == SyscallEvent::Type::Mknodat ||
+          syscall_event.type == SyscallEvent::Type::Creat ||
+          syscall_event.type == SyscallEvent::Type::Unlink ||
+          syscall_event.type == SyscallEvent::Type::Unlinkat) {
+        continue;
+      }
+
       if (!GetAuditRecordField(syscall_event.cwd, audit_event_record, "cwd")) {
         VLOG(1) << "Malformed AUDIT_CWD record received. The cwd field is "
                    "missing.";
@@ -391,45 +409,61 @@ void AuditdFimEventPublisher::ProcessEvents(
         continue;
       }
 
-      // The mknod/mknodat/creat syscalls emit two AUDIT_PATH records; the
-      // first one is the working directory, while the second one is
-      // the actual file path
       auto& syscall_event = audit_event_it->second;
-      if (syscall_event.type == SyscallEvent::Type::Mknod ||
-          syscall_event.type == SyscallEvent::Type::Mknodat ||
-          syscall_event.type == SyscallEvent::Type::Creat) {
-        std::uint64_t item_id;
-        if (!GetAuditRecordField(item_id, audit_event_record, "item", 10, 0)) {
-          VLOG(1) << "Malformed AUDIT_PATH record received. The item field is "
-                     "missing.";
-        }
 
-        if (item_id != 1) {
-          continue;
-        }
-      }
-
-      if (!GetAuditRecordField(
-              syscall_event.path, audit_event_record, "name", "")) {
+      std::string path;
+      if (!GetAuditRecordField(path, audit_event_record, "name", "")) {
         VLOG(1) << "Malformed AUDIT_PATH record received. The path field is "
                    "missing.";
 
         syscall_event.partial = true;
       }
 
-      // We also need the inode number for these two syscalls, because it's the
-      // only piece of data that links those two operations
-      if (syscall_event.type == SyscallEvent::Type::Name_to_handle_at ||
-          syscall_event.type == SyscallEvent::Type::Open_by_handle_at) {
-        if (!GetAuditRecordField(
-                syscall_event.file_inode, audit_event_record, "inode", 16)) {
-          VLOG(1) << "Malformed AUDIT_SYSCALL record received. The file "
-                     "inode is either missing or invalid.";
+      // mknod/mknodat/creat/unlink/unlinkat
+      // These syscalls always emit two AUDIT_PATH records; the first
+      // one is the working directory, while the second one is the
+      // actual file path
+      if (syscall_event.type == SyscallEvent::Type::Mknod ||
+          syscall_event.type == SyscallEvent::Type::Mknodat ||
+          syscall_event.type == SyscallEvent::Type::Creat ||
+          syscall_event.type == SyscallEvent::Type::Unlink ||
+          syscall_event.type == SyscallEvent::Type::Unlinkat) {
+        std::uint64_t item_id;
+        if (!GetAuditRecordField(item_id, audit_event_record, "item", 10, 0)) {
+          VLOG(1) << "Malformed AUDIT_PATH record received. The item field is "
+                     "missing.";
+        }
 
-          syscall_event.partial = true;
+        if (item_id == 0) {
+          syscall_event.cwd = path;
+
+        } else if (item_id == 1) {
+          syscall_event.path = path;
 
         } else {
-          syscall_event.file_inode = 0;
+          VLOG(1) << "Malformed AUDIT_PATH record received. The item field is "
+                     "out of range.";
+        }
+
+        // all other syscalls
+      } else {
+        syscall_event.path = path;
+
+        // We also need the inode number for these two syscalls, because it's
+        // the
+        // only piece of data that links those two operations
+        if (syscall_event.type == SyscallEvent::Type::Name_to_handle_at ||
+            syscall_event.type == SyscallEvent::Type::Open_by_handle_at) {
+          if (!GetAuditRecordField(
+                  syscall_event.file_inode, audit_event_record, "inode", 16)) {
+            VLOG(1) << "Malformed AUDIT_SYSCALL record received. The file "
+                       "inode is either missing or invalid.";
+
+            syscall_event.partial = true;
+
+          } else {
+            syscall_event.file_inode = 0;
+          }
         }
       }
 

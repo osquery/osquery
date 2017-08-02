@@ -279,6 +279,30 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       break;
     }
 
+    case SyscallEvent::Type::Unlink:
+    case SyscallEvent::Type::Unlinkat: {
+      auto normalized_path = L_normalizePath(syscall.cwd, syscall.path);
+
+      if (!L_isPathExcluded(normalized_path) &&
+          L_isPathIncluded(normalized_path)) {
+        Row row;
+        row["syscall"] = "unlink";
+        row["pid"] = std::to_string(syscall.process_id);
+        row["ppid"] = std::to_string(syscall.parent_process_id);
+        row["cwd"] = syscall.cwd;
+        row["name"] = syscall.path;
+        row["canonical_path"] = normalized_path;
+        row["uptime"] = std::to_string(tables::getUptime());
+        row["input_fd"] = "";
+        row["output_fd"] = "";
+        row["executable"] = syscall.executable_path;
+        row["partial"] = "false";
+        emitted_row_list.push_back(row);
+      }
+
+      break;
+    }
+
     // Find the handle table for the process, and then lookup the file
     // descriptor
     case SyscallEvent::Type::Creat:

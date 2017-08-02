@@ -21,6 +21,8 @@ struct SyscallEvent final {
     Read,
     Creat,
     Mknod,
+    Unlink,
+    Unlinkat,
     Mknodat,
     Write,
     Mmap,
