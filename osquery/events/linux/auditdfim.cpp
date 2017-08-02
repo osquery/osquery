@@ -66,6 +66,15 @@ SyscallEvent::Type GetSyscallEventType(int syscall_number) noexcept {
   case __NR_read:
     return SyscallEvent::Type::Read;
 
+  case __NR_creat:
+    return SyscallEvent::Type::Creat;
+
+  case __NR_mknod:
+    return SyscallEvent::Type::Mknod;
+
+  case __NR_mknodat:
+    return SyscallEvent::Type::Mknodat;
+
   default:
     return SyscallEvent::Type::Invalid;
   }
@@ -134,7 +143,10 @@ bool ParseAuditSyscallRecord(
                                                      __NR_dup3,
                                                      __NR_write,
                                                      __NR_read,
-                                                     __NR_mmap};
+                                                     __NR_mmap,
+                                                     __NR_creat,
+                                                     __NR_mknodat,
+                                                     __NR_mknod};
 
   // Contains the list of syscalls that accept a file descriptor
   // Note that the mmap file descriptor is inside the AUDIT_MMAP event record
@@ -148,7 +160,10 @@ bool ParseAuditSyscallRecord(
       __NR_open_by_handle_at,
       __NR_dup,
       __NR_dup2,
-      __NR_dup3};
+      __NR_dup3,
+      __NR_creat,
+      __NR_mknodat,
+      __NR_mknod};
 
   // Searches the specified vector for the given syscall number; it used with
   // the previously-defined vectors to detect what values the syscall accepts
@@ -376,7 +391,24 @@ void AuditdFimEventPublisher::ProcessEvents(
         continue;
       }
 
+      // The mknod/mknodat/creat syscalls emit two AUDIT_PATH records; the
+      // first one is the working directory, while the second one is
+      // the actual file path
       auto& syscall_event = audit_event_it->second;
+      if (syscall_event.type == SyscallEvent::Type::Mknod ||
+          syscall_event.type == SyscallEvent::Type::Mknodat ||
+          syscall_event.type == SyscallEvent::Type::Creat) {
+        std::uint64_t item_id;
+        if (!GetAuditRecordField(item_id, audit_event_record, "item", 10, 0)) {
+          VLOG(1) << "Malformed AUDIT_PATH record received. The item field is "
+                     "missing.";
+        }
+
+        if (item_id != 1) {
+          continue;
+        }
+      }
+
       if (!GetAuditRecordField(
               syscall_event.path, audit_event_record, "name", "")) {
         VLOG(1) << "Malformed AUDIT_PATH record received. The path field is "
@@ -385,7 +417,8 @@ void AuditdFimEventPublisher::ProcessEvents(
         syscall_event.partial = true;
       }
 
-      // We also need the inode number for these two syscalls
+      // We also need the inode number for these two syscalls, because it's the
+      // only piece of data that links those two operations
       if (syscall_event.type == SyscallEvent::Type::Name_to_handle_at ||
           syscall_event.type == SyscallEvent::Type::Open_by_handle_at) {
         if (!GetAuditRecordField(

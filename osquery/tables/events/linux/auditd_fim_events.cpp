@@ -282,6 +282,9 @@ Status AuditdFimEventSubscriber::ProcessEvents(
 
     // Find the handle table for the process, and then lookup the file
     // descriptor
+    case SyscallEvent::Type::Creat:
+    case SyscallEvent::Type::Mknod:
+    case SyscallEvent::Type::Mknodat:
     case SyscallEvent::Type::Open:
     case SyscallEvent::Type::Openat: {
       // Allocate a new handle map if this process has been created before

@@ -19,6 +19,9 @@ struct SyscallEvent final {
     Close,
     Dup,
     Read,
+    Creat,
+    Mknod,
+    Mknodat,
     Write,
     Mmap,
     Invalid
