@@ -18,8 +18,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include "osquery/sql/sqlite_util.h"
+#include <osquery/sql.h>
 
 #ifndef __SERVICEMANAGEMENT_PRIVATE_H__
 #define __SERVICEMANAGEMENT_PRIVATE_H__
