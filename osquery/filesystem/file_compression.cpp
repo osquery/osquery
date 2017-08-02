@@ -55,7 +55,7 @@ Status compress(const boost::filesystem::path& in,
   size_t readSoFar = 0;
   while (true) {
     read = inFile.read(buffIn.data(), toRead);
-    if (read == 0) {
+    if (read < 1) {
       break;
     }
     readSoFar += read;
@@ -125,7 +125,7 @@ Status decompress(const boost::filesystem::path& in,
   size_t readSoFar = 0;
   while (true) {
     read = inFile.read(buffIn.data(), toRead);
-    if (read == 0) {
+    if (read < 1) {
       break;
     }
     readSoFar += read;
@@ -173,13 +173,15 @@ Status archive(const std::set<boost::filesystem::path>& paths,
     archive_entry_set_filetype(entry, AE_IFREG);
     archive_entry_set_perm(entry, 0644);
     archive_write_header(arch, entry);
-    auto blkCount =
-        static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
-                                 static_cast<double>(FLAGS_carver_block_size)));
+
+    auto blockSize =
+        FLAGS_carver_block_size > 0 ? FLAGS_carver_block_size : 8192;
+    auto blkCount = static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
+                                             static_cast<double>(blockSize)));
     for (size_t i = 0; i < blkCount; i++) {
-      std::vector<char> block(FLAGS_carver_block_size, 0);
-      auto r = pFile.read(block.data(), FLAGS_carver_block_size);
-      if (r != FLAGS_carver_block_size && r > 0) {
+      std::vector<char> block(blockSize, 0);
+      auto r = pFile.read(block.data(), blockSize);
+      if (r != blockSize && r > 0) {
         // resize the buffer to size we read as last block is likely smaller
         block.resize(r);
       }

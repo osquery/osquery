@@ -35,7 +35,7 @@ Status readMem(int fd, size_t base, size_t length, uint8_t* buffer) {
   // Read from raw memory until an unrecoverable read error or the all of the
   // requested bytes are read.
   size_t total_read = 0;
-  ssize_t bytes_read = 0;
+  ssize_t bytes_read = -1;
   while (total_read != length && bytes_read != 0) {
     bytes_read = read(fd, buffer + total_read, length - total_read);
     if (bytes_read == -1) {

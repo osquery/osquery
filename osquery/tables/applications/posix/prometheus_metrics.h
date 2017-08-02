@@ -14,8 +14,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/network/protocol/http/client.hpp>
-
 #include <osquery/tables.h>
 
 namespace osquery {

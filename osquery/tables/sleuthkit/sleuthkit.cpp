@@ -279,6 +279,7 @@ MultiHashes hashInode(TskFsFile* file) {
   // Set a maximum 'chunk' or block size to 1 page or the file size.
   TSK_OFF_T size = meta->getSize();
   if (size == 0) {
+    delete meta;
     return MultiHashes();
   }
 
@@ -308,7 +309,7 @@ MultiHashes hashInode(TskFsFile* file) {
   delete meta;
 
   // Convert the set of hashes into a device hashes transport.
-  MultiHashes dhs;
+  MultiHashes dhs = {};
   dhs.md5 = md5.digest();
   dhs.sha1 = sha1.digest();
   dhs.sha256 = sha256.digest();
