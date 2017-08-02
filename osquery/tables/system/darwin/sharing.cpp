@@ -8,18 +8,28 @@
  *
  */
 
-#include <boost/algorithm/string/join.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+
+#include <cups/adminutil.h>
+#include <cups/cups.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/sql/sqlite_util.h"
-#include "osquery/tables/system/darwin/sharing.h"
+
+#ifndef __SERVICEMANAGEMENT_PRIVATE_H__
+#define __SERVICEMANAGEMENT_PRIVATE_H__
+
+#include <ServiceManagement/ServiceManagement.h>
+extern "C" {
+int SMJobIsEnabled(CFStringRef domain, CFStringRef service, Boolean* value);
+}
+
+#endif
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -112,7 +122,7 @@ int getPrinterSharingStatus() {
     value = cupsGetOption("_share_printers", num_settings, settings);
     cupsFreeOptions(num_settings, settings);
   } else {
-    VLOG(1) << "ERROR: Unable to get CUPS server settings: "
+    VLOG(1) << "Unable to get CUPS server settings: "
             << cupsLastErrorString();
   }
   httpClose(cups);
