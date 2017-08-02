@@ -17,8 +17,8 @@
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/tables.h>
 #include <osquery/sql.h>
+#include <osquery/tables.h>
 
 #ifndef __SERVICEMANAGEMENT_PRIVATE_H__
 #define __SERVICEMANAGEMENT_PRIVATE_H__
@@ -121,8 +121,7 @@ int getPrinterSharingStatus() {
     value = cupsGetOption("_share_printers", num_settings, settings);
     cupsFreeOptions(num_settings, settings);
   } else {
-    VLOG(1) << "Unable to get CUPS server settings: "
-            << cupsLastErrorString();
+    VLOG(1) << "Unable to get CUPS server settings: " << cupsLastErrorString();
   }
   httpClose(cups);
 
