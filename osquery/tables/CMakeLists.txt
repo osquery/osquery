@@ -27,9 +27,11 @@ if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("-framework Security")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework OpenDirectory")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework DiskArbitration")
+  ADD_OSQUERY_LINK_ADDITIONAL("-framework ServiceManagement")
 
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.dylib")
   ADD_OSQUERY_LINK_ADDITIONAL("libxar.dylib")
+  ADD_OSQUERY_LINK_ADDITIONAL("libcups")
   ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
 endif()
 
