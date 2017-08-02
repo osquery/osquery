@@ -8,23 +8,14 @@
  *
  */
 
-#include <string>
-#include <vector>
-
-#include <bsm/audit.h>
 #include <bsm/libbsm.h>
 
-#include <osquery/config.h>
-#include <osquery/core.h>
-#include <osquery/logger.h>
-#include <osquery/tables.h>
+#include <osquery/events.h>
 
 #include "osquery/events/darwin/openbsm.h"
-#include "osquery/tables/events/event_utils.h"
 
 namespace osquery {
 
-// OpenBSM token parsers
 static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
   if (tok.id != AUT_SUBJECT32_EX) {
     return;
@@ -35,9 +26,8 @@ static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
   r["euid"] = INTEGER(tok.tt.subj32_ex.euid);
   r["egid"] = INTEGER(tok.tt.subj32_ex.egid);
 }
-// End of OpenBSM token parsers
 
-unsigned long decimalIntToOctInt(unsigned long x) {
+static inline unsigned long decimalIntToOctInt(unsigned long x) {
   auto ret = 0;
   for (auto i = 1; x > 0; i *= 10) {
     ret += (x & 0x7) * i;
@@ -125,11 +115,11 @@ Status OpenBSMExecVESubscriber::Callback(
     case AUT_EXEC_ARGS:
       for (auto i = static_cast<unsigned int>(0); i < tok.tt.execarg.count;
            ++i) {
-        r["args"] += TEXT(std::string(tok.tt.execarg.text[i]) + " ");
+        r["args"] += std::string(tok.tt.execarg.text[i]) + " ";
       }
       break;
     case AUT_PATH:
-      r["path"] = TEXT(std::string(tok.tt.path.path));
+      r["path"] = std::string(tok.tt.path.path);
       break;
     case AUT_ATTR32:
       r["file_mode"] = INTEGER(decimalIntToOctInt(tok.tt.attr32.mode));

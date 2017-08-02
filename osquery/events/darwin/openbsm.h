@@ -10,15 +10,7 @@
 
 #pragma once
 
-#include <map>
-#include <set>
-#include <vector>
-
-#include <boost/algorithm/hex.hpp>
-
 #include <osquery/events.h>
-
-#include "osquery/core/conversions.h"
 
 namespace osquery {
 

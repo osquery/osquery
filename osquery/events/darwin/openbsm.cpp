@@ -10,11 +10,10 @@
 
 #include <bsm/libbsm.h>
 
-#include <bsm/audit.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include "openbsm.h"
+#include "osquery/events/darwin/openbsm.h"
 
 namespace osquery {
 
@@ -22,7 +21,7 @@ namespace osquery {
 FLAG(bool,
      disable_openbsm,
      true,
-     "Disable receiving events from the audit subsystem");
+     "Disable receiving events from the OpenBSM subsystem");
 
 REGISTER(OpenBSMEventPublisher, "event_publisher", "openbsm");
 
@@ -43,6 +42,7 @@ void OpenBSMEventPublisher::configure() {}
 void OpenBSMEventPublisher::tearDown() {
   if (audit_pipe_ != nullptr) {
     fclose(audit_pipe_);
+    audit_pipe_ = nullptr;
   }
 }
 
@@ -57,17 +57,13 @@ Status OpenBSMEventPublisher::run() {
   auto buffer = static_cast<unsigned char*>(nullptr);
   std::vector<tokenstr_t> tokens{};
 
-  while ((reclen = au_read_rec(audit_pipe_, &buffer)) != -1) {
+  while (!isEnding() && (reclen = au_read_rec(audit_pipe_, &buffer)) != -1) {
     bytesread = 0;
 
     while (bytesread < reclen) {
       if (au_fetch_tok(&tok, buffer + bytesread, reclen - bytesread) == -1) {
         break;
       }
-      // This can be used to parse the log for us and provided in a
-      // delimited list or XML It only writes to file descriptors
-      // though. fopenmem()?
-      // au_print_flags_tok(stdout, &tok, &del[0], AU_OFLAG_XML);
       switch (tok.id) {
       case AUT_HEADER32:
         event_id = tok.tt.hdr32_ex.e_type;
@@ -96,9 +92,6 @@ Status OpenBSMEventPublisher::run() {
     fire(ec);
     tokens.clear();
     event_id = 0;
-    if (isEnding()) {
-      return Status(0);
-    }
   }
   return Status(0);
 }
