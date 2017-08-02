@@ -185,7 +185,7 @@ int getBluetoothSharingStatus() {
   return 0;
 }
 
-QueryData genSharing(QueryContext& context) {
+QueryData genSharingPreferences(QueryContext& context) {
   Row r;
   r["screen_sharing"] = INTEGER(getScreenSharingStatus());
   r["file_sharing"] = INTEGER(getFileSharingStatus());

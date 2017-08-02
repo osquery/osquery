@@ -1,4 +1,4 @@
-table_name("sharing")
+table_name("sharing_preferences")
 description("OS X Sharing preferences.")
 schema([
 Column("screen_sharing", INTEGER, "1 If screen sharing is enabled else 0"),
@@ -11,4 +11,4 @@ Column("internet_sharing", INTEGER, "1 If internet sharing is enabled else 0"),
 Column("bluetooth_sharing", INTEGER, "1 If bluetooth sharing is enabled for any user else 0"),
 Column("disc_sharing", INTEGER, "1 If CD or DVD sharing is enabled else 0"),
 ])
-implementation("sharing@genSharing")
+implementation("sharing_preferences@genSharingPreferences")
