@@ -271,7 +271,6 @@ Status AuditdFimEventSubscriber::ProcessEvents(
         row["uptime"] = std::to_string(tables::getUptime());
         row["input_fd"] = "";
         row["output_fd"] = std::to_string(syscall.output_fd);
-        row["success"] = syscall.success;
         row["executable"] = syscall.executable_path;
         row["partial"] = (syscall.partial ? "true" : "false");
         emitted_row_list.push_back(row);
@@ -318,7 +317,6 @@ Status AuditdFimEventSubscriber::ProcessEvents(
         row["uptime"] = std::to_string(tables::getUptime());
         row["input_fd"] = "";
         row["output_fd"] = std::to_string(syscall.output_fd);
-        row["success"] = syscall.success;
         row["executable"] = syscall.executable_path;
         row["partial"] = (syscall.partial ? "true" : "false");
         emitted_row_list.push_back(row);
@@ -386,7 +384,6 @@ Status AuditdFimEventSubscriber::ProcessEvents(
           row["uptime"] = std::to_string(tables::getUptime());
           row["input_fd"] = std::to_string(syscall.input_fd);
           row["output_fd"] = "";
-          row["success"] = syscall.success;
           row["executable"] = syscall.executable_path;
 
           // the following fields are not known for this type of event
@@ -536,7 +533,6 @@ Status AuditdFimEventSubscriber::ProcessEvents(
         row["uptime"] = std::to_string(tables::getUptime());
         row["input_fd"] = std::to_string(syscall.input_fd);
         row["output_fd"] = "";
-        row["success"] = syscall.success;
         row["executable"] = syscall.executable_path;
         row["partial"] = (partial_event ? "true" : "false");
 

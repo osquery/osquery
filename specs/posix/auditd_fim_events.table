@@ -9,7 +9,6 @@ schema([
     Column("executable", TEXT, "The executable path"),
     Column("input_fd", TEXT, "Input file descriptor"),
     Column("output_fd", TEXT, "Output file descriptor"),
-    Column("success", TEXT, "Syscall exit status"),
     Column("partial", TEXT, "True if this is a partial event (i.e.: this process existed before we started osquery)"),
 
     # Populated from the AUDIT_CWD event record

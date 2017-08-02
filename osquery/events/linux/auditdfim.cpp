@@ -448,7 +448,8 @@ void AuditdFimEventPublisher::ProcessEvents(
         std::cout << completed_syscall_event << std::endl;
       }
 
-      if (completed_syscall_event.process_id != getpid()) {
+      if (completed_syscall_event.process_id != getpid() &&
+          completed_syscall_event.success != "no") {
         event_context->syscall_events.push_back(completed_syscall_event);
       }
     }
