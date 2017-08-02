@@ -19,8 +19,8 @@
 #include <osquery/logger.h>
 
 #include "osquery/logger/plugins/aws_kinesis.h"
-#include "osquery/logger/plugins/aws_util.h"
 #include "osquery/tests/test_util.h"
+#include "osquery/utils/aws_util.h"
 
 using namespace testing;
 

@@ -1,0 +1,12 @@
+table_name("ec2_instance_tags")
+description("EC2 instance tag key value pairs.")
+schema([
+    Column("instance_id", TEXT, "EC2 instance ID"),
+    Column("key", TEXT, "Tag key"),
+    Column("value", TEXT, "Tag value")
+])
+attributes(cacheable=True)
+implementation("cloud/ec2_instance_tags@genEc2InstanceTags")
+examples([
+  "select * from ec2_instance_tags"
+])

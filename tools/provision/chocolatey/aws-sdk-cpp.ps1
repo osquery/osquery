@@ -19,6 +19,7 @@ $url = "https://github.com/aws/aws-sdk-cpp/archive/$version.zip"
 
 $libs = @(
   'aws-cpp-sdk-core',
+  'aws-cpp-sdk-ec2',
   'aws-cpp-sdk-sts',
   'aws-cpp-sdk-firehose',
   'aws-cpp-sdk-kinesis'

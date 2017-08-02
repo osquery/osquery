@@ -3,8 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class AwsSdkCpp < AbstractOsqueryFormula
   desc "AWS SDK for C++"
   homepage "https://github.com/aws/aws-sdk-cpp"
-  url "https://github.com/aws/aws-sdk-cpp/archive/1.1.5.tar.gz"
-  sha256 "fc16f2fb45254acb2fcbabe13a97daceb1d920a6ac684ef5c601871a29dcb0cf"
+  url "https://github.com/aws/aws-sdk-cpp/archive/1.1.20.tar.gz"
+  sha256 "94d3bf8cbb1db18ebdb50fbf20aa48ad1838f1743bbd22ca04adbaad9bc284dc"
   revision 101
 
   bottle do
@@ -25,7 +25,7 @@ class AwsSdkCpp < AbstractOsqueryFormula
     args << "-DMINIMIZE_SIZE=ON"
     args << "-DBUILD_SHARED_LIBS=OFF"
 
-    args << "-DBUILD_ONLY=firehose;kinesis;sts"
+    args << "-DBUILD_ONLY=ec2;firehose;kinesis;sts"
 
     mkdir "build" do
       system "cmake", "..", *args
