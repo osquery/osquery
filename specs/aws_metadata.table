@@ -1,0 +1,28 @@
+table_name("aws_metadata")
+description("access AWS metadata available to VM's running as EC2 instances in AWS")
+schema([
+    Column("ami_id", TEXT, "AMI id of EC2 instance"),
+    Column("ami_launch_index", INTEGER, "EC2 launche index"),
+    Column("ami_manifest_path", TEXT, "The path to the AMI manifest file in Amazon S3"),
+    Column("ancestor_ami_ids", TEXT, "The AMI IDs of any instances that were rebundled to create this AMI"),
+    Column("block_device_root", TEXT, "The virtual device that contains the root/boot file system"),
+    Column("hostname", TEXT, "EC2 hostname"),
+    Column("instance_action", TEXT, "Notifies the instance that it should reboot in preparation for bundling"),
+    Column("instance_id", TEXT, "AMI instance id"),
+    Column("instance_type", TEXT, "AMI instance type"),
+    Column("local_hostname", TEXT, "AMI local hostname for the first network interface"),
+    Column("local_ipv4", TEXT, "AMI local ipv4 for the first network interface"),
+    Column("mac", TEXT, "AMI local mac address for the first network interface"),
+    Column("availability_zone", TEXT, "The Availability Zone in which the instance launched"),
+    Column("product_codes", TEXT, "Product codes associated with the instance, if any"),
+    Column("public_hostname", TEXT, "AMI public hostname"),
+    Column("public_ipv4", TEXT, "AMI public ipv4"),
+    Column("openssh_public_key", TEXT, "openssh pub key"),
+    Column("reservation_id", TEXT, "The ID of the reservation"),
+    Column("security_group", TEXT, "The name of the security group"),
+    Column("user_data", TEXT, "user-data attached to the instance"),
+    Column("iam_credential_name", TEXT, "EC2 associated IAM role last update time"),
+    Column("iam_arn", TEXT, "EC2 associated IAM role name"),
+])
+attributes(cacheable=True)
+implementation("aws_metadata@genAwsMetadata")
