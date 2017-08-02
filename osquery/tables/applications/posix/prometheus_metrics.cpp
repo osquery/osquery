@@ -9,6 +9,8 @@
  */
 #include <sstream>
 
+#include <boost/network/protocol/http/client.hpp>
+
 #include <osquery/config.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>

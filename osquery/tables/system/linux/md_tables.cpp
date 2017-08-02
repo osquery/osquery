@@ -409,7 +409,7 @@ static inline bool handleMDStatuses(
 }
 
 MDDrive parseMDDrive(const std::string& name) {
-  MDDrive drive;
+  MDDrive drive = {};
   drive.name = name;
 
   auto start = name.find('[');
@@ -479,7 +479,6 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
        * safety, we check if we at the end of the file. */
       if (n >= lines.size() - 1) {
         continue;
-        n += 1;
       }
       auto configline(split(lines[n + 1]));
 

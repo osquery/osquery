@@ -110,7 +110,7 @@ MultiHashes hashMultiFromFile(int mask, const std::string& path) {
                       }
                     }));
 
-  MultiHashes mh;
+  MultiHashes mh = {};
   if (!s.ok()) {
     return mh;
   }
