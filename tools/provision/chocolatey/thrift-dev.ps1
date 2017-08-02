@@ -63,15 +63,14 @@ if (-not (Test-Path $sourceDir)) {
 }
 Set-Location $sourceDir
 
-<<<<<<< HEAD
-=======
 # Thrift-dev requires this patch on windows, as our communications with the
 # thrift named pipe server happen to quickly, and we get loads of verbosity
 # this turns off said verbosity, as it's only concerned with our status
 # pings, and not the actual result flow of extensions itself.
 $git = (Get-Command 'git').Source
 # Applying patches on Windows wasn't working until we were in an active repo
-Start-OsqueryProcess $git 'init'
+
+<#Start-OsqueryProcess $git 'init'
 foreach ($patch in $patchfiles) {
   $patchArgs = @(
     'apply',
@@ -82,8 +81,8 @@ foreach ($patch in $patchfiles) {
   )
   Start-OsqueryProcess $git $patchArgs
 }
+#>
 
->>>>>>> Adding git patch logic to thrift-dev choco package
 # Build the libraries
 $buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'
 Set-Location $buildDir
