@@ -44,6 +44,12 @@ static void getBlockDevice(struct udev_device *dev, QueryData &results) {
     r["size"] = size;
   }
 
+  const char* block_size =
+      udev_device_get_sysattr_value(dev, "queue/logical_block_size");
+  if (block_size != nullptr) {
+    r["block_size"] = block_size;
+  }
+
   subdev = udev_device_get_parent_with_subsystem_devtype(dev, "scsi", nullptr);
   if (subdev != nullptr) {
     const char *model = udev_device_get_sysattr_value(subdev, "model");

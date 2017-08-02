@@ -65,7 +65,7 @@ std::string stringFromCFData(const CFDataRef& cf_data) {
 }
 
 std::string stringFromCFNumber(const CFDataRef& cf_number) {
-  return stringFromCFNumber(cf_number, kCFNumberIntType);
+  return stringFromCFNumber(cf_number, CFNumberGetType((CFNumberRef)cf_number));
 }
 
 std::string stringFromCFNumber(const CFDataRef& cf_number, CFNumberType type) {
