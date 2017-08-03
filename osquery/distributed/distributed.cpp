@@ -17,14 +17,12 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
-#include <rapidjson/document.h>
-#include <rapidjson/error/en.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
-
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
+// Windows defines the function GetObject globally meaning when compiling on
+// Windows, cl doesn't know what function to use. We need to undef this at the
+// beginning of all files that try to call the RapidJSON GetObject
 #undef GetObject
 
 namespace rj = rapidjson;

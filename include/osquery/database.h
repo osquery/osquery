@@ -20,10 +20,7 @@
 #include <osquery/registry.h>
 #include <osquery/status.h>
 
-#include <rapidjson/document.h>
-#include <rapidjson/error/en.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
+#include "osquery/core/json.h"
 
 namespace osquery {
 

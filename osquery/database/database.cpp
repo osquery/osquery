@@ -186,9 +186,9 @@ Status deserializeRowJSONRJ(const std::string& json, Row& r) {
 Status serializeQueryData(const QueryData& q, pt::ptree& tree) {
   for (const auto& r : q) {
     pt::ptree serialized;
-    auto s = serializeRow(r, serialized);
-    if (!s.ok()) {
-      return s;
+    auto status = serializeRow(r, serialized);
+    if (!status.ok()) {
+      return status;
     }
     tree.push_back(std::make_pair("", serialized));
   }
@@ -200,9 +200,9 @@ Status serializeQueryData(const QueryData& q,
                           pt::ptree& tree) {
   for (const auto& r : q) {
     pt::ptree serialized;
-    auto s = serializeRow(r, cols, serialized);
-    if (!s.ok()) {
-      return s;
+    auto status = serializeRow(r, cols, serialized);
+    if (!status.ok()) {
+      return status;
     }
     tree.push_back(std::make_pair("", serialized));
   }
@@ -825,9 +825,9 @@ Status serializeQueryDataRJ(const QueryData& q, rj::Document& d) {
   for (const auto& r : q) {
     rj::Document serialized;
     serialized.SetObject();
-    auto s = serializeRowRJ(r, serialized);
-    if (!s.ok()) {
-      return s;
+    auto status = serializeRowRJ(r, serialized);
+    if (!status.ok()) {
+      return status;
     }
     if (serialized.GetObject().MemberCount()) {
       d.PushBack(rj::Value(serialized, d.GetAllocator()).Move(),
@@ -843,9 +843,9 @@ Status serializeQueryDataRJ(const QueryData& q,
   for (const auto& r : q) {
     rj::Document serialized;
     serialized.SetObject();
-    auto s = serializeRowRJ(r, cols, serialized);
-    if (!s.ok()) {
-      return s;
+    auto status = serializeRowRJ(r, cols, serialized);
+    if (!status.ok()) {
+      return status;
     }
     if (serialized.GetObject().MemberCount()) {
       d.PushBack(rj::Value(serialized, d.GetAllocator()).Move(),

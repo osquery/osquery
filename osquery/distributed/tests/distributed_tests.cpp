@@ -26,6 +26,7 @@
 
 #include <rapidjson/prettywriter.h>
 
+// distributed.cpp for why this is undefed
 #undef GetObject
 
 namespace pt = boost::property_tree;

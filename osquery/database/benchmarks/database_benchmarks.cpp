@@ -214,7 +214,7 @@ static void DATABASE_store_append(benchmark::State& state) {
 
   // All benchmarks will share a single database handle.
   for (size_t i = 0; i < k; ++i) {
-    // deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(i));
+    deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(i));
   }
 }
 
@@ -235,7 +235,7 @@ static void DATABASE_store_appendRJ(benchmark::State& state) {
 
   // All benchmarks will share a single database handle.
   for (size_t i = 0; i < k; ++i) {
-    // deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(i));
+    deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(i));
   }
 }
 

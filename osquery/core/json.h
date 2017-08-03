@@ -17,6 +17,11 @@
 
 #include <boost/property_tree/json_parser.hpp>
 
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+
 #ifdef WIN32
 #pragma warning(pop)
 
