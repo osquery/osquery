@@ -57,8 +57,10 @@ std::string getKeyUsage(const PCERT_INFO& certInfo) {
   // Key usage size is 1 or 2 bytes of data, we use 4 to cast to uint
   constexpr uint32_t keyUsageSize = 4;
   uint32_t keyUsage;
-  auto ret = CertGetIntendedKeyUsage(
-      CERT_ENCODING, certInfo, reinterpret_cast<BYTE*>(&keyUsage), keyUsageSize);
+  auto ret = CertGetIntendedKeyUsage(CERT_ENCODING,
+                                     certInfo,
+                                     reinterpret_cast<BYTE*>(&keyUsage),
+                                     keyUsageSize);
   if (ret == 0) {
     return "";
   }
