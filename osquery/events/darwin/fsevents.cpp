@@ -31,12 +31,6 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-/// Add listeners to mount points of detected mount events
-CLI_FLAG(bool,
-         listen_on_mount,
-         false,
-         "When a mount is detected, adds a listener on the device");
-
 std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemChangeOwner, "ATTRIBUTES_MODIFIED"},
     {kFSEventStreamEventFlagItemXattrMod, "ATTRIBUTES_MODIFIED"},
@@ -260,17 +254,13 @@ void FSEventsEventPublisher::Callback(
       // Should remove the watch on this path.
     }
 
-    // Need to call configure on the publisher, not the subscriber
     if (ec->fsevent_flags & kFSEventStreamEventFlagMount) {
-      // Should we add listening to the mount point
-      if (FLAGS_listen_on_mount) {
-        auto mc = std::make_shared<FSEventsSubscriptionContext>();
-        mc->path = ec->path + "/*";
-        auto subscription = Subscription::create("file_events", mc);
-        auto status = EventFactory::addSubscription("fsevents", subscription);
-        auto pub = EventFactory::getEventPublisher("fsevents");
-        pub->configure();
-      }
+      auto mc = std::make_shared<FSEventsSubscriptionContext>();
+      mc->path = ec->path + "/*";
+      auto subscription = Subscription::create("file_events", mc);
+      auto status = EventFactory::addSubscription("fsevents", subscription);
+      auto pub = EventFactory::getEventPublisher("fsevents");
+      pub->configure();
     }
 
     // Record the string-version of the first matched mask bit.

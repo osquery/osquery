@@ -22,8 +22,6 @@
 
 namespace osquery {
 
-DECLARE_bool(listen_on_mount);
-
 extern const std::set<std::string> kCommonFileColumns;
 
 /**
@@ -87,17 +85,15 @@ Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
   // Need to call configure on the publisher, not the subscriber
   if (ec->fsevent_flags & kFSEventStreamEventFlagMount) {
     // Should we add listening to the mount point
-    if (FLAGS_listen_on_mount) {
-      auto subscriber = ([this, &ec]() {
-        auto msc = createSubscriptionContext();
-        msc->path = ec->path + "/*";
-        msc->category = "tmp";
-        return subscribe(&FileEventSubscriber::Callback, msc);
-      });
-      std::packaged_task<void()> task(std::move(subscriber));
-      auto result = task.get_future();
-      std::thread(std::move(task)).detach();
-    }
+    auto subscriber = ([this, &ec]() {
+      auto msc = createSubscriptionContext();
+      msc->path = ec->path + "/*";
+      msc->category = "tmp";
+      return subscribe(&FileEventSubscriber::Callback, msc);
+    });
+    std::packaged_task<void()> task(std::move(subscriber));
+    auto result = task.get_future();
+    std::thread(std::move(task)).detach();
   }
 
   Row r;
