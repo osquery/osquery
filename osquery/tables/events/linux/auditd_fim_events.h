@@ -10,7 +10,7 @@
 
 namespace osquery {
 /// This structure stores the information for a tracked file handle
-struct HandleInformation final {
+struct AuditdFimHandleInformation final {
   /// Operation type affecting this file handle
   enum class OperationType { Open, Read, Write };
 
@@ -24,7 +24,7 @@ struct HandleInformation final {
 
 /// This structure contains a complex (i.e. not normalized) path. It is
 /// mainly used to solve name_to_handle_at/open_by_handle_at syscalls.
-struct AuditFimPathInformation final {
+struct AuditdFimPathInformation final {
   std::string path;
   std::string cwd;
 };
@@ -33,10 +33,10 @@ struct AuditFimPathInformation final {
 /// system call. It is used to solve the file path of the
 /// open_by_handle_at syscall.
 using AuditdFimFileInodeMap =
-    std::unordered_map<std::uint64_t, AuditFimPathInformation>;
+    std::unordered_map<std::uint64_t, AuditdFimPathInformation>;
 
 /// Holds the file descriptor map for a process
-using AuditdFimHandleMap = std::unordered_map<int, HandleInformation>;
+using AuditdFimHandleMap = std::unordered_map<int, AuditdFimHandleInformation>;
 
 /// Contains the state of a tracked process
 struct AuditdFimProcessState final {
@@ -94,5 +94,51 @@ class AuditdFimEventSubscriber final
       AuditdFimProcessMap& process_map,
       const AuditdFimConfiguration& configuration,
       const std::vector<SyscallEvent>& syscall_event_list) noexcept;
+
+ private:
+  /// Returns the process state for the specified pid
+  static AuditdFimProcessMap::iterator GetOrCreateProcessState(
+      AuditdFimProcessMap& process_map,
+      __pid_t process_id,
+      bool create_if_missing) noexcept;
+
+  /// Drops the specified state from the map
+  static void DropProcessState(AuditdFimProcessMap& process_map,
+                               __pid_t process_id) noexcept;
+
+  /// Updates the inode map (used for name_to_handle_at and open_by_handle_at)
+  static void SaveInodeInformation(AuditdFimProcessMap& process_map,
+                                   __pid_t process_id,
+                                   __ino_t inode,
+                                   const std::string& cwd,
+                                   const std::string& path) noexcept;
+
+  /// Returns the specified inode from the process state (used for
+  /// name_to_handle_at and open_by_handle_at)
+  static bool GetInodeInformation(
+      AuditdFimProcessMap& process_map,
+      __pid_t process_id,
+      __ino_t inode,
+      AuditdFimPathInformation& path_information) noexcept;
+
+  /// Updates the specified handle in the process state
+  static void SaveHandleInformation(
+      AuditdFimProcessMap& process_map,
+      __pid_t process_id,
+      std::uint64_t fd,
+      const std::string& path,
+      AuditdFimHandleInformation::OperationType last_operation) noexcept;
+
+  /// Returns information about the specified handle
+  static bool GetHandleInformation(
+      AuditdFimProcessMap& process_map,
+      __pid_t process_id,
+      std::uint64_t fd,
+      AuditdFimHandleInformation& handle_info) noexcept;
+
+  /// Removes the specified file descriptor from the process state
+  static void DropHandleInformation(AuditdFimProcessMap& process_map,
+                                    __pid_t process_id,
+                                    std::uint64_t fd) noexcept;
 };
 }

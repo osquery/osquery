@@ -34,6 +34,48 @@ FLAG(bool,
 
 REGISTER(AuditdFimEventSubscriber, "event_subscriber", "auditd_fim_events");
 
+namespace {
+std::string NormalizePath(const std::string& cwd,
+                          const std::string& path) noexcept {
+  std::string translated_path;
+
+  // Remove the surrounding quotes, if any (they are only present if
+  // the path contains spaces)
+  if (path[0] == '"') {
+    translated_path = path.substr(1, path.size() - 2);
+  } else {
+    translated_path = path;
+  }
+
+  // Also use the working directory if the path is not absolute
+  if (translated_path[0] != '/') {
+    std::string translated_cwd;
+
+    if (cwd[0] == '"') {
+      translated_cwd = cwd.substr(1, cwd.size() - 2);
+    } else {
+      translated_cwd = cwd;
+    }
+
+    translated_path = translated_cwd + "/" + translated_path;
+  }
+
+  /*
+    Normalize the path; we could have used 'canonicalize()' but that
+    accesses the file system and we don't want that (because it may
+    spawn other events). It is also possible that by the time we
+    inspect the files on disk the state that caused this event has
+    changed.
+  */
+
+  namespace boostfs = boost::filesystem;
+  boostfs::path normalized_path(translated_path);
+  normalized_path = normalized_path.normalize();
+
+  return normalized_path.string();
+};
+}
+
 Status AuditdFimEventSubscriber::setUp() {
   if (!FLAGS_audit_allow_fim_events) {
     return Status(1, "Subscriber disabled via configuration");
@@ -129,44 +171,6 @@ Status AuditdFimEventSubscriber::ProcessEvents(
                       path) != configuration.excluded_path_list.end());
   };
 
-  // Path normalization utility
-  auto L_normalizePath = [](const std::string& cwd,
-                            const std::string& path) -> std::string {
-    std::string translated_path;
-
-    // Remove the surrounding quotes, if any (they are only present if
-    // the path contains spaces)
-    if (path[0] == '"') {
-      translated_path = path.substr(1, path.size() - 2);
-    } else {
-      translated_path = path;
-    }
-
-    // Also use the working directory if the path is not absolute
-    if (translated_path[0] != '/') {
-      std::string translated_cwd;
-
-      if (cwd[0] == '"') {
-        translated_cwd = cwd.substr(1, cwd.size() - 2);
-      } else {
-        translated_cwd = cwd;
-      }
-
-      translated_path = translated_cwd + "/" + translated_path;
-    }
-
-    // Normalize the path; we could have used 'canonicalize()' but that
-    // accesses the file system and we don't want that (because it may
-    // spawn other events). It is also possible that by the time we
-    // inspect the files on disk the state that caused this event has
-    // changed.
-    namespace boostfs = boost::filesystem;
-    boostfs::path normalized_path(translated_path);
-    normalized_path = normalized_path.normalize();
-
-    return normalized_path.string();
-  };
-
   emitted_row_list.clear();
 
   // Process the syscall events we received and emit the necessary rows
@@ -175,99 +179,56 @@ Status AuditdFimEventSubscriber::ProcessEvents(
 
     switch (syscall_type) {
     case SyscallEvent::Type::Execve: {
-      // Allocate a new handle table
-      process_map[syscall.process_id] = AuditdFimProcessState();
+      auto unused =
+          GetOrCreateProcessState(process_map, syscall.process_id, true);
+      static_cast<void>(unused);
       break;
     }
 
-    // We just have to drop the file descriptor table for the exiting process
     case SyscallEvent::Type::Exit:
     case SyscallEvent::Type::Exit_group: {
-      // This process may have been created before us, so we may not have
-      // a handle table to drop
-      auto handle_map_it = process_map.find(syscall.process_id);
-      if (handle_map_it != process_map.end()) {
-        process_map.erase(handle_map_it);
-      }
-
+      DropProcessState(process_map, syscall.process_id);
       break;
     }
-
-    /*
-      name_to_handle_at contains both the path and inode of the file.
-
-      The open_by_handle_at() outputs a file descriptor, but to find the
-      path we need to match the inode.
-
-      Pseudo code:
-        struct file_handle h;
-        name_to_handle_at("/path", &h); // AUDIT_PATH with name + inode
-        int fd = open_by_handle_at(&h); // AUDIT_PATH with just the inode
-    */
 
     case SyscallEvent::Type::Name_to_handle_at: {
-      // Allocate a new handle map if this process has been created before
-      // osquery
-      auto process_state_it = process_map.find(syscall.process_id);
-      if (process_state_it == process_map.end()) {
-        process_map[syscall.process_id] = AuditdFimProcessState();
-        process_state_it = process_map.find(syscall.process_id);
-      }
-
-      AuditdFimFileInodeMap& file_inode_map =
-          process_state_it->second.inode_map;
-      file_inode_map[syscall.file_inode].path = syscall.path;
-      file_inode_map[syscall.file_inode].cwd = syscall.cwd;
-
-      // Limit the amount of inodes we are going to track
-      if (file_inode_map.size() > 4096) {
-        file_inode_map.erase(file_inode_map.begin());
-      }
-
+      SaveInodeInformation(process_map,
+                           syscall.process_id,
+                           syscall.file_inode,
+                           syscall.cwd,
+                           syscall.path);
       break;
     }
 
-    // See how the name_to_handle_at syscall above is handled
     case SyscallEvent::Type::Open_by_handle_at: {
-      // Allocate a new handle map if this process has been created before
-      // osquery
-      auto process_state_it = process_map.find(syscall.process_id);
-      if (process_state_it == process_map.end()) {
-        process_map[syscall.process_id] = AuditdFimProcessState();
-        process_state_it = process_map.find(syscall.process_id);
-      }
-
-      const auto& file_struct_map = process_state_it->second.inode_map;
-
-      auto inode_it = file_struct_map.find(syscall.file_inode);
-      if (inode_it == file_struct_map.end()) {
+      AuditdFimPathInformation inode_info;
+      if (!GetInodeInformation(process_map,
+                               syscall.process_id,
+                               syscall.file_inode,
+                               inode_info)) {
         VLOG(1) << "Untracked open_by_handle_at syscall received. Subsequent "
                    "calls on this handle will be shown as partials";
 
         break;
       }
 
-      AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
-      std::string translated_path =
-          L_normalizePath(inode_it->second.cwd, inode_it->second.path);
+      std::string normalized_path =
+          NormalizePath(inode_info.cwd, inode_info.path);
+      SaveHandleInformation(process_map,
+                            syscall.process_id,
+                            static_cast<std::uint64_t>(syscall.output_fd),
+                            normalized_path,
+                            AuditdFimHandleInformation::OperationType::Open);
 
-      // update the handle table
-      HandleInformation handle_info;
-      handle_info.last_operation = HandleInformation::OperationType::Open;
-      handle_info.path = translated_path;
-
-      handle_map[syscall.output_fd] = handle_info;
-
-      // collect the event, if necessary
-      if (configuration.show_accesses && !L_isPathExcluded(handle_info.path) &&
-          L_isPathIncluded(handle_info.path)) {
+      if (configuration.show_accesses && !L_isPathExcluded(normalized_path) &&
+          L_isPathIncluded(normalized_path)) {
         Row row;
         row["syscall"] = "open";
         row["pid"] = std::to_string(syscall.process_id);
         row["ppid"] = std::to_string(syscall.parent_process_id);
         row["cwd"] = syscall.cwd;
         row["name"] = syscall.path;
-        row["canonical_path"] = handle_info.path;
+        row["canonical_path"] = normalized_path;
         row["uptime"] = std::to_string(tables::getUptime());
         row["input_fd"] = "";
         row["output_fd"] = std::to_string(syscall.output_fd);
@@ -281,7 +242,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
 
     case SyscallEvent::Type::Unlink:
     case SyscallEvent::Type::Unlinkat: {
-      auto normalized_path = L_normalizePath(syscall.cwd, syscall.path);
+      auto normalized_path = NormalizePath(syscall.cwd, syscall.path);
 
       if (!L_isPathExcluded(normalized_path) &&
           L_isPathIncluded(normalized_path)) {
@@ -303,41 +264,27 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       break;
     }
 
-    // Find the handle table for the process, and then lookup the file
-    // descriptor
     case SyscallEvent::Type::Creat:
     case SyscallEvent::Type::Mknod:
     case SyscallEvent::Type::Mknodat:
     case SyscallEvent::Type::Open:
     case SyscallEvent::Type::Openat: {
-      // Allocate a new handle map if this process has been created before
-      // osquery
-      auto process_state_it = process_map.find(syscall.process_id);
-      if (process_state_it == process_map.end()) {
-        process_map[syscall.process_id] = AuditdFimProcessState();
-        process_state_it = process_map.find(syscall.process_id);
-      }
+      std::string normalized_path = NormalizePath(syscall.cwd, syscall.path);
+      SaveHandleInformation(process_map,
+                            syscall.process_id,
+                            static_cast<std::uint64_t>(syscall.output_fd),
+                            normalized_path,
+                            AuditdFimHandleInformation::OperationType::Open);
 
-      AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
-      std::string translated_path = L_normalizePath(syscall.cwd, syscall.path);
-
-      // update the handle table
-      HandleInformation handle_info;
-      handle_info.last_operation = HandleInformation::OperationType::Open;
-      handle_info.path = translated_path;
-
-      handle_map[syscall.output_fd] = handle_info;
-
-      // collect the event, if necessary
-      if (configuration.show_accesses && !L_isPathExcluded(handle_info.path) &&
-          L_isPathIncluded(handle_info.path)) {
+      if (configuration.show_accesses && !L_isPathExcluded(normalized_path) &&
+          L_isPathIncluded(normalized_path)) {
         Row row;
         row["syscall"] = "open";
         row["pid"] = std::to_string(syscall.process_id);
         row["ppid"] = std::to_string(syscall.parent_process_id);
         row["cwd"] = syscall.cwd;
         row["name"] = syscall.path;
-        row["canonical_path"] = handle_info.path;
+        row["canonical_path"] = normalized_path;
         row["uptime"] = std::to_string(tables::getUptime());
         row["input_fd"] = "";
         row["output_fd"] = std::to_string(syscall.output_fd);
@@ -349,208 +296,118 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       break;
     }
 
-    // Find the handle table for the process, and drop the specified file
-    // descriptor
     case SyscallEvent::Type::Close: {
-      // Allocate a new handle map if this process has been created before
-      // osquery
-      bool partial_event = syscall.partial;
-      if (partial_event && !FLAGS_audit_show_partial_file_events) {
+      auto fd = static_cast<std::uint64_t>(syscall.input_fd);
+
+      AuditdFimHandleInformation handle_info;
+      if (!GetHandleInformation(
+              process_map, syscall.process_id, fd, handle_info)) {
         break;
       }
 
-      auto process_state_it = process_map.find(syscall.process_id);
-      if (process_state_it == process_map.end()) {
-        if (!FLAGS_audit_show_partial_file_events) {
-          break;
-        }
-
-        process_map[syscall.process_id] = AuditdFimProcessState();
-        process_state_it = process_map.find(syscall.process_id);
-
-        partial_event = true;
+      DropHandleInformation(process_map, syscall.process_id, fd);
+      if (!configuration.show_accesses) {
+        break;
       }
 
-      if (configuration.show_accesses) {
+      if (!L_isPathExcluded(handle_info.path) &&
+          L_isPathIncluded(handle_info.path)) {
         Row row;
+        row["canonical_path"] = handle_info.path;
+        row["syscall"] = "close";
+        row["pid"] = std::to_string(syscall.process_id);
+        row["ppid"] = std::to_string(syscall.parent_process_id);
+        row["uptime"] = std::to_string(tables::getUptime());
+        row["input_fd"] = std::to_string(syscall.input_fd);
+        row["output_fd"] = "";
+        row["executable"] = syscall.executable_path;
+        row["cwd"] = "";
+        row["name"] = "";
+        row["partial"] = "false";
 
-        /// attempt to solve the file descriptor
-        AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
-        auto file_name_it = handle_map.find(syscall.input_fd);
-
-        if (file_name_it != handle_map.end()) {
-          const HandleInformation& handle_info = file_name_it->second;
-
-          row["canonical_path"] = handle_info.path;
-          handle_map.erase(file_name_it);
-
-        } else {
-          if (!FLAGS_audit_show_partial_file_events) {
-            break;
-          }
-
-          row["canonical_path"] = "";
-          partial_event = true;
-        }
-
-        bool discard_event;
-        if (partial_event) {
-          discard_event = !FLAGS_audit_show_partial_file_events;
-        } else {
-          discard_event = (L_isPathExcluded(row["canonical_path"]) ||
-                           !L_isPathIncluded(row["canonical_path"]));
-        }
-
-        if (!discard_event) {
-          row["syscall"] = "close";
-          row["pid"] = std::to_string(syscall.process_id);
-          row["ppid"] = std::to_string(syscall.parent_process_id);
-          row["uptime"] = std::to_string(tables::getUptime());
-          row["input_fd"] = std::to_string(syscall.input_fd);
-          row["output_fd"] = "";
-          row["executable"] = syscall.executable_path;
-
-          // the following fields are not known for this type of event
-          row["cwd"] = "";
-          row["name"] = "";
-
-          row["partial"] = (partial_event ? "true" : "false");
-
-          emitted_row_list.push_back(row);
-        }
+        emitted_row_list.push_back(row);
       }
 
       break;
     }
 
-    // Find the handle table for the process, and duplicate the specified file
-    // descriptor
     case SyscallEvent::Type::Dup: {
-      // Allocate a new handle map if this process has been created before
-      // osquery
-      auto process_state_it = process_map.find(syscall.process_id);
-      if (process_state_it == process_map.end()) {
-        process_map[syscall.process_id] = AuditdFimProcessState();
-        process_state_it = process_map.find(syscall.process_id);
+      auto fd = static_cast<std::uint64_t>(syscall.input_fd);
+
+      AuditdFimHandleInformation handle_info;
+      if (!GetHandleInformation(
+              process_map, syscall.process_id, fd, handle_info)) {
         break;
       }
 
-      AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
-      auto file_name_it = handle_map.find(syscall.input_fd);
-      if (file_name_it != handle_map.end()) {
-        handle_map[syscall.output_fd] = file_name_it->second;
-      }
-
+      SaveHandleInformation(process_map,
+                            syscall.process_id,
+                            fd,
+                            handle_info.path,
+                            handle_info.last_operation);
       break;
     }
 
-    // For the time being, remap this to a read or write, depending on the
-    // requested memory protection
-    case SyscallEvent::Type::Mmap: {
-      bool write_memory_protection =
-          ((syscall.mmap_memory_protection_flags & PROT_WRITE) != 0);
-      syscall_type = (write_memory_protection ? SyscallEvent::Type::Write
-                                              : SyscallEvent::Type::Read);
-
-      // fall through here! we need to reach the Read and Write cases
-    }
+    // Handle the mmap syscall like a read or write operation, depending on the
+    // memory protection flags
+    case SyscallEvent::Type::Mmap:
+      syscall_type = ((syscall.mmap_memory_protection_flags & PROT_WRITE) != 0
+                          ? SyscallEvent::Type::Write
+                          : SyscallEvent::Type::Read);
 
     case SyscallEvent::Type::Read:
     case SyscallEvent::Type::Write: {
-      bool read_operation = (syscall.type == SyscallEvent::Type::Read);
+      auto fd = static_cast<std::uint64_t>(syscall.input_fd);
 
-      // Allocate a new handle map if this process has been created before
-      // osquery
-      bool partial_event = syscall.partial;
-      if (partial_event && !FLAGS_audit_show_partial_file_events) {
+      AuditdFimHandleInformation handle_info;
+      if (!GetHandleInformation(
+              process_map, syscall.process_id, fd, handle_info)) {
         break;
       }
 
-      // Discard this right away if we do not allow partial events
-      auto process_state_it = process_map.find(syscall.process_id);
-      if (process_state_it == process_map.end()) {
-        if (!FLAGS_audit_show_partial_file_events) {
-          break;
-        }
+      bool read_operation = (syscall_type == SyscallEvent::Type::Read);
 
-        process_map[syscall.process_id] = AuditdFimProcessState();
-        process_state_it = process_map.find(syscall.process_id);
+      /*
+        Only save state changes from "open" to "read or write" and from "read"
+        to "write". The "written" state means that the file may has also have
+        been read; in this case, we will not notify about this file again
+        until it is closed and opened again
+      */
 
-        partial_event = true;
-      }
-
-      // attempt to solve the file descriptor
-      AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
-      HandleInformation* handle_info = nullptr;
-
-      auto file_info_it = handle_map.find(syscall.input_fd);
-      if (file_info_it != handle_map.end()) {
-        handle_info = &file_info_it->second;
-
-      } else {
-        if (!FLAGS_audit_show_partial_file_events) {
-          break;
-        }
-
-        partial_event = true;
-      }
-
-      // Only show state changes from "open" to "read or write" and from "read"
-      // to "write" The "written" state means that the file has also been
-      // read; this means that we will not notify about this file again until
-      // it is re-opened
-
+      // Advance the file state
       bool discard_event = true;
-      if (partial_event || handle_info == nullptr) {
+
+      if (handle_info.last_operation ==
+          AuditdFimHandleInformation::OperationType::Open) {
         discard_event = false;
 
-      } else {
-        // Always keep the first event
-        if (handle_info->last_operation ==
-            HandleInformation::OperationType::Open) {
-          discard_event = false;
-
-          handle_info->last_operation =
-              (read_operation ? HandleInformation::OperationType::Read
-                              : HandleInformation::OperationType::Write);
-        }
-
-        else if (handle_info->last_operation ==
-                     HandleInformation::OperationType::Read &&
-                 !read_operation) {
-          discard_event = false;
-          handle_info->last_operation = HandleInformation::OperationType::Write;
-        }
+        handle_info.last_operation =
+            (read_operation ? AuditdFimHandleInformation::OperationType::Read
+                            : AuditdFimHandleInformation::OperationType::Write);
       }
 
-      if (discard_event) {
+      else if (!read_operation &&
+               handle_info.last_operation ==
+                   AuditdFimHandleInformation::OperationType::Read) {
+        discard_event = false;
+        handle_info.last_operation =
+            AuditdFimHandleInformation::OperationType::Write;
+      }
+
+      SaveHandleInformation(process_map,
+                            syscall.process_id,
+                            fd,
+                            handle_info.path,
+                            handle_info.last_operation);
+
+      if (discard_event || !configuration.show_accesses) {
         break;
       }
 
-      //
-      // check the filters
-      //
-
-      discard_event = true;
-
-      if (!read_operation || configuration.show_accesses) {
-        if (partial_event) {
-          discard_event = false;
-        } else {
-          discard_event = (L_isPathExcluded(handle_info->path) ||
-                           !L_isPathIncluded(handle_info->path));
-        }
-      }
-
-      if (!discard_event) {
+      if (!L_isPathExcluded(handle_info.path) &&
+          L_isPathIncluded(handle_info.path)) {
         Row row;
-
-        if (handle_info != nullptr) {
-          row["canonical_path"] = handle_info->path;
-        } else {
-          row["canonical_path"] = "";
-        }
-
+        row["canonical_path"] = handle_info.path;
         row["syscall"] = (read_operation ? "read" : "write");
         row["pid"] = std::to_string(syscall.process_id);
         row["ppid"] = std::to_string(syscall.parent_process_id);
@@ -558,9 +415,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
         row["input_fd"] = std::to_string(syscall.input_fd);
         row["output_fd"] = "";
         row["executable"] = syscall.executable_path;
-        row["partial"] = (partial_event ? "true" : "false");
-
-        // the following fields are not known for this type of event
+        row["partial"] = "false";
         row["cwd"] = "";
         row["name"] = "";
 
@@ -576,10 +431,13 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     }
   }
 
-  // If we have lost audit event records (i.e.: the kernel queue is smaller
-  // than the system activity) we may end up having orphaned process entries.
-  //
-  // Erase the objects that no longer have a valid process id
+  /*
+    If we have lost audit event records (i.e.: the kernel queue is smaller
+    than the system activity) we may end up having orphaned process entries.
+
+    Erase the objects that no longer have a valid process id
+  */
+
   for (auto it = process_map.begin(); it != process_map.end();) {
     if (getpgid(it->first) != static_cast<__pid_t>(-1)) {
       it++;
@@ -589,5 +447,116 @@ Status AuditdFimEventSubscriber::ProcessEvents(
   }
 
   return Status(0, "OK");
+}
+
+AuditdFimProcessMap::iterator AuditdFimEventSubscriber::GetOrCreateProcessState(
+    AuditdFimProcessMap& process_map,
+    __pid_t process_id,
+    bool create_if_missing) noexcept {
+  auto it = process_map.find(process_id);
+  if (it == process_map.end() && create_if_missing) {
+    it = process_map.insert({process_id, AuditdFimProcessState()}).first;
+  }
+
+  return it;
+}
+
+void AuditdFimEventSubscriber::DropProcessState(
+    AuditdFimProcessMap& process_map, __pid_t process_id) noexcept {
+  auto it = process_map.find(process_id);
+  if (it != process_map.end()) {
+    process_map.erase(it);
+  }
+}
+
+void AuditdFimEventSubscriber::SaveInodeInformation(
+    AuditdFimProcessMap& process_map,
+    __pid_t process_id,
+    __ino_t inode,
+    const std::string& cwd,
+    const std::string& path) noexcept {
+  auto process_state_it =
+      GetOrCreateProcessState(process_map, process_id, true);
+
+  AuditdFimFileInodeMap& file_inode_map = process_state_it->second.inode_map;
+  file_inode_map[inode] = {cwd, path};
+
+  // Limit the amount of inodes we are going to track
+  if (file_inode_map.size() > 4096) {
+    file_inode_map.erase(file_inode_map.begin());
+  }
+}
+
+bool AuditdFimEventSubscriber::GetInodeInformation(
+    AuditdFimProcessMap& process_map,
+    __pid_t process_id,
+    __ino_t inode,
+    AuditdFimPathInformation& path_information) noexcept {
+  path_information = {};
+
+  auto process_state_it =
+      GetOrCreateProcessState(process_map, process_id, true);
+
+  const AuditdFimFileInodeMap& inode_map = process_state_it->second.inode_map;
+  auto it = inode_map.find(inode);
+  if (it == inode_map.end()) {
+    return false;
+  }
+
+  path_information = it->second;
+  return true;
+}
+
+void AuditdFimEventSubscriber::SaveHandleInformation(
+    AuditdFimProcessMap& process_map,
+    __pid_t process_id,
+    std::uint64_t fd,
+    const std::string& path,
+    AuditdFimHandleInformation::OperationType last_operation) noexcept {
+  auto process_state_it =
+      GetOrCreateProcessState(process_map, process_id, true);
+
+  AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
+  handle_map[fd] = {last_operation, path};
+}
+
+bool AuditdFimEventSubscriber::GetHandleInformation(
+    AuditdFimProcessMap& process_map,
+    __pid_t process_id,
+    std::uint64_t fd,
+    AuditdFimHandleInformation& handle_info) noexcept {
+  handle_info = {};
+
+  auto process_state_it =
+      GetOrCreateProcessState(process_map, process_id, false);
+  if (process_state_it == process_map.end()) {
+    return false;
+  }
+
+  AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
+  auto it = handle_map.find(fd);
+  if (it == handle_map.end()) {
+    return false;
+  }
+
+  handle_info = it->second;
+  return true;
+}
+
+void AuditdFimEventSubscriber::DropHandleInformation(
+    AuditdFimProcessMap& process_map,
+    __pid_t process_id,
+    std::uint64_t fd) noexcept {
+  auto process_state_it =
+      GetOrCreateProcessState(process_map, process_id, false);
+  if (process_state_it == process_map.end()) {
+    return;
+  }
+
+  AuditdFimHandleMap& handle_map = process_state_it->second.handle_map;
+  auto it = handle_map.find(fd);
+  if (it != handle_map.end()) {
+    handle_map.erase(it);
+  }
 }
 }
