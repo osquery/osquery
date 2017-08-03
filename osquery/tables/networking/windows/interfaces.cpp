@@ -37,12 +37,11 @@ void genInterfaceDetail(const WmiResultItem& adapter, QueryData& results) {
   std::vector<std::string> vPlaceHolder;
   unsigned __int64 ulPlaceHolder;
 
-  r["interface"] = INTEGER(lPlaceHolder);
   adapter.GetString("MACAddress", r["mac"]);
   adapter.GetString("AdapterType", r["type"]);
-
   adapter.GetString("Description", r["description"]);
   adapter.GetLong("InterfaceIndex", lPlaceHolder);
+  r["interface"] = INTEGER(lPlaceHolder);
   adapter.GetString("Manufacturer", r["manufacturer"]);
   adapter.GetString("NetConnectionID", r["connection_id"]);
   adapter.GetLong("NetConnectionStatus", lPlaceHolder);
@@ -54,7 +53,7 @@ void genInterfaceDetail(const WmiResultItem& adapter, QueryData& results) {
   adapter.GetUnsignedLongLong("Speed", ulPlaceHolder);
   r["speed"] = INTEGER(ulPlaceHolder);
 
-  std::string query =
+  auto query =
       "SELECT * FROM win32_networkadapterconfiguration WHERE "
       "InterfaceIndex = " +
       r["interface"];
