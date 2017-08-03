@@ -11,7 +11,7 @@
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
 $version = '0.10.0'
-$chocoVersion = '0.10.0-r3'
+$chocoVersion = '0.10.0-r4'
 $packageName = 'thrift-dev'
 $projectSource = 'https://github.com/apache/thrift'
 $packageSourceUrl = 'https://github.com/apache/thrift'
@@ -62,26 +62,6 @@ if (-not (Test-Path $sourceDir)) {
   Start-OsqueryProcess $7z $7zargs
 }
 Set-Location $sourceDir
-
-# Thrift-dev requires this patch on windows, as our communications with the
-# thrift named pipe server happen to quickly, and we get loads of verbosity
-# this turns off said verbosity, as it's only concerned with our status
-# pings, and not the actual result flow of extensions itself.
-$git = (Get-Command 'git').Source
-# Applying patches on Windows wasn't working until we were in an active repo
-
-<#Start-OsqueryProcess $git 'init'
-foreach ($patch in $patchfiles) {
-  $patchArgs = @(
-    'apply',
-    '--ignore-space-change',
-    '--ignore-whitespace',
-    '--whitespace=nowarn',
-    "`"$patch`""
-  )
-  Start-OsqueryProcess $git $patchArgs
-}
-#>
 
 # Build the libraries
 $buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'

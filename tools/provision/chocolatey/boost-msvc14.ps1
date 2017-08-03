@@ -52,10 +52,6 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-<<<<<<< HEAD
-# Retrieve the source
-Invoke-WebRequest $url -OutFile "boost-$version.7z" -UserAgent [Microsoft.PowerShell.Commands.PSUserAgent]::Chrome
-=======
 # Retreive the source only if it doesn't already exist
 if (-not (Test-Path "boost-$version.7z")) {
   Invoke-WebRequest `
@@ -63,7 +59,6 @@ if (-not (Test-Path "boost-$version.7z")) {
     -UserAgent [Microsoft.PowerShell.Commands.PSUserAgent]::Chrome `
     $url
 }
->>>>>>> Updating chocolatey powershell build scripts
 
 # Extract the source
 $sourceDir = Join-Path $(Get-Location) "boost_$versionUnderscores"

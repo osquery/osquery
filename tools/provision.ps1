@@ -294,7 +294,7 @@ function Install-ThirdParty {
     "openssl.1.0.2-k",
     "rocksdb.5.1.4-r1",
     "snappy-msvc.1.1.1.8",
-    "thrift-dev.0.10.0-r3",
+    "thrift-dev.0.10.0-r4",
     "zlib.1.2.8",
     "zstd.1.2.0-r3"
   )

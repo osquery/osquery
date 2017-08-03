@@ -45,16 +45,11 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-<<<<<<< HEAD
-# Retrieve the source
-Invoke-WebRequest $url -OutFile "rocksdb-$version.zip"
-=======
 # Retreive the source
 $zipfile = "rocksdb-$version.zip"
 if (-not (Test-Path $zipfile)) {
   Invoke-WebRequest $url -OutFile $zipfile
 }
->>>>>>> Updating chocolatey powershell build scripts
 
 # Extract the source
 $sourceDir = Join-Path $(Get-Location) "rocksdb-$version"

@@ -23,7 +23,7 @@ $url = "https://github.com/openssl/openssl/archive/OpenSSL_$version.zip"
 
 # Public Cert bundle we bring alonge with openssl libs
 $curlCerts = "https://curl.haxx.se/ca/cacert-2016-11-02.pem"
-$curlCertsShaSum = 
+$curlCertsShaSum =
   "cc7c9e2d259e20b72634371b146faec98df150d18dd9da9ad6ef0b2deac2a9d3"
 
 # Invoke our utilities file
@@ -48,7 +48,7 @@ if (-not
 if (-not (Get-Command 'perl' -ErrorAction SilentlyContinue)) {
   $msg = "[-] This build requires perl which was not found. Please install " +
          "perl from http://www.activestate.com/activeperl/downloads and add " +
-         "to the SYSTEM path before continuing" 
+         "to the SYSTEM path before continuing"
   Write-Host $msg -ForegroundColor Red
   exit
 }
@@ -81,16 +81,11 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-<<<<<<< HEAD
-# Retrieve the source
-Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
-=======
 # Retreive the source
 $zipFile = Join-Path $(Get-Location) "$packageName-$version.zip"
 if (-not (Test-Path $zipFile)) {
   Invoke-WebRequest $url -OutFile "$zipFile"
 }
->>>>>>> Updating chocolatey powershell build scripts
 
 # Extract the source
 7z x $zipFile
