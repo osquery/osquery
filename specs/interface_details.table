@@ -15,6 +15,7 @@ schema([
     Column("oerrors", BIGINT, "Output errors"),
     Column("idrops", BIGINT, "Input drops"),
     Column("odrops", BIGINT, "Output drops"),
+    Column("collisions", BIGINT, "Packet Collisions detected"),
     Column("last_change", BIGINT, "Time of last device modification (optional)"),
 ])
 extended_schema(WINDOWS, [

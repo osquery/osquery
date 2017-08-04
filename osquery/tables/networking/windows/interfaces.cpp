@@ -21,7 +21,6 @@
 #include <osquery/core.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
 namespace osquery {
@@ -37,12 +36,11 @@ void genInterfaceDetail(const WmiResultItem& adapter, QueryData& results) {
   std::vector<std::string> vPlaceHolder;
   unsigned __int64 ulPlaceHolder;
 
-  r["interface"] = INTEGER(lPlaceHolder);
   adapter.GetString("MACAddress", r["mac"]);
   adapter.GetString("AdapterType", r["type"]);
-
   adapter.GetString("Description", r["description"]);
   adapter.GetLong("InterfaceIndex", lPlaceHolder);
+  r["interface"] = SQL_TEXT(lPlaceHolder);
   adapter.GetString("Manufacturer", r["manufacturer"]);
   adapter.GetString("NetConnectionID", r["connection_id"]);
   adapter.GetLong("NetConnectionStatus", lPlaceHolder);
@@ -54,7 +52,7 @@ void genInterfaceDetail(const WmiResultItem& adapter, QueryData& results) {
   adapter.GetUnsignedLongLong("Speed", ulPlaceHolder);
   r["speed"] = INTEGER(ulPlaceHolder);
 
-  std::string query =
+  auto query =
       "SELECT * FROM win32_networkadapterconfiguration WHERE "
       "InterfaceIndex = " +
       r["interface"];
@@ -62,6 +60,9 @@ void genInterfaceDetail(const WmiResultItem& adapter, QueryData& results) {
   WmiRequest irequest(query);
   if (irequest.getStatus().ok()) {
     auto& iresults = irequest.results();
+    if (iresults.empty()) {
+      return;
+    }
     iresults[0].GetLong("MTU", lPlaceHolder);
     r["mtu"] = INTEGER(lPlaceHolder);
 

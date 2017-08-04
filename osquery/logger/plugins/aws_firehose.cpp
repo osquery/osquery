@@ -22,7 +22,7 @@
 #include <osquery/registry.h>
 
 #include "osquery/logger/plugins/aws_firehose.h"
-#include "osquery/logger/plugins/aws_util.h"
+#include "osquery/utils/aws_util.h"
 
 namespace osquery {
 
@@ -100,6 +100,12 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
 
   Aws::Firehose::Model::PutRecordBatchOutcome outcome =
       client_->PutRecordBatch(request);
+
+  if (!outcome.IsSuccess()) {
+    LOG(ERROR) << "Firehose write failed: " << outcome.GetError().GetMessage();
+    return Status(1, outcome.GetError().GetMessage());
+  }
+
   Aws::Firehose::Model::PutRecordBatchResult result = outcome.GetResult();
   if (result.GetFailedPutCount() != 0) {
     for (const auto& record : result.GetRequestResponses()) {

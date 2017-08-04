@@ -59,7 +59,7 @@ mdu_disk_info_t getDiskInfo(
  */
 void GetDrivesForArrayTestHarness(std::string arrayName,
                                   int arrayRaidDisks,
-                                  std::string blkDevicePrefix,
+                                  const std::string& blkDevicePrefix,
                                   std::map<int, mdu_disk_info_t> targetDisks,
                                   QueryData& got) {
   MockMD md;

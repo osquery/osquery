@@ -10,17 +10,14 @@
 
 #pragma once
 
-#include <list>
 #include <map>
 #include <memory>
 #include <vector>
 
-#include <boost/iterator/filter_iterator.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
 #include <osquery/database.h>
-#include <osquery/dispatcher.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 
@@ -30,43 +27,10 @@ class Config;
 class Pack;
 class Schedule;
 class ConfigParserPlugin;
+class ConfigRefreshRunner;
 
 /// The name of the executing query within the single-threaded schedule.
 extern const std::string kExecutingQuery;
-
-/**
- * @brief A thread that periodically reloads configuration state.
- *
- * This refresh runner thread can refresh any configuration plugin.
- * It may accelerate the time between checks if the configuration fails to load.
- * For configurations pulled from the network this assures that configuration
- * is fresh when re-attaching.
- */
-class ConfigRefreshRunner : public InternalRunnable {
- public:
-  /// A simple wait/interruptible lock.
-  void start();
-
- private:
-  /// Allow the configuration to update the refresh rate.
-  void refresh(size_t refresh) {
-    refresh_ = refresh;
-  }
-
-  /// Inspect the current refresh rate.
-  size_t refresh() {
-    return refresh_;
-  }
-
- private:
-  /// The current refresh rate in seconds.
-  std::atomic<size_t> refresh_{0};
-  std::atomic<size_t> mod_{1000};
-
- private:
-  friend class Config;
-  FRIEND_TEST(ConfigTests, test_config_refresh);
-};
 
 /**
  * @brief The programmatic representation of osquery's configuration
@@ -138,6 +102,9 @@ class Config : private boost::noncopyable {
    * @return The SHA1 hash of the osquery config
    */
   Status genHash(std::string& hash);
+
+  /// Retrieve the hash of a named source.
+  std::string getHash(const std::string& source) const;
 
   /**
    * @brief Hash a source's config data
@@ -271,6 +238,12 @@ class Config : private boost::noncopyable {
    * that periodically calls genConfig to reload config state
    */
   Status refresh();
+
+  /// Update the refresh rate.
+  void setRefresh(size_t refresh, size_t mod = 0);
+
+  /// Inspect the refresh rate.
+  size_t getRefresh() const;
 
   /**
    * @brief Check if a config plugin is registered and load configs.

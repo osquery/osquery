@@ -45,16 +45,18 @@ elseif(CLANGXX_EXECUTABLE)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
-find_program(CCACHE_EXECUTABLE ccache ENV PATH)
-if(CCACHE_EXECUTABLE)
-  if(NOT DEFINED CCACHE_FOUND_LOG)
-    set(CCACHE_FOUND_LOG TRUE CACHE BOOL "Write log line for ccache.")
-    LOG("Found ccache ${CCACHE_EXECUTABLE}")
-    LOG("Using ccache to speed up compilation")
+if(NOT DEFINED ENV{SKIP_CCACHE})
+  find_program(CCACHE_EXECUTABLE ccache ENV PATH)
+  if(CCACHE_EXECUTABLE)
+    if(NOT DEFINED CCACHE_FOUND_LOG)
+      set(CCACHE_FOUND_LOG TRUE CACHE BOOL "Write log line for ccache.")
+      LOG("Found ccache ${CCACHE_EXECUTABLE}")
+      LOG("Using ccache to speed up compilation")
+    endif()
+    set(ENV{CCACHE_CPP2} "yes")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_EXECUTABLE}")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_EXECUTABLE}")
   endif()
-  set(ENV{CCACHE_CPP2} "yes")
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_EXECUTABLE}")
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_EXECUTABLE}")
 endif()
 
 # osquery additional compiler flags added by CMake.
@@ -165,6 +167,7 @@ elseif(WINDOWS)
     /W3
     /guard:cf
   )
+  add_definitions(-DBOOST_ALL_NO_LIB)
 endif()
 
 if(LINUX AND CMAKE_CXX_COMPILER MATCHES "clang")
@@ -631,7 +634,7 @@ add_custom_target(
 # make format
 add_custom_target(
   format
-  "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py" "-f"
+  "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py" "-f" "--binary" "${BUILD_DEPS}/bin/clang-format"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )

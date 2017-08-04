@@ -5,6 +5,14 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+if(NOT WINDOWS)
+  ADD_OSQUERY_LINK_ADDITIONAL("archive")
+  ADD_OSQUERY_LINK_ADDITIONAL("zstd")
+else()
+  ADD_OSQUERY_LINK_ADDITIONAL("archive_static")
+  ADD_OSQUERY_LINK_ADDITIONAL("zstd_static")
+endif()
+
 if(APPLE)
   ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem_plist
     darwin/plist.mm
@@ -24,6 +32,10 @@ file(GLOB OS_FILEOPS_SOURCE "${PROCESS_FAMILY}/*.cpp")
 ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem
   filesystem.cpp
   ${OS_FILEOPS_SOURCE}
+)
+
+ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_filesystem_compression
+  file_compression.cpp
 )
 
 file(GLOB OSQUERY_FILESYSTEM_TESTS "tests/*.cpp")

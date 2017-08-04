@@ -19,10 +19,10 @@ LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
 
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
-HOMEBREW_CORE="4e686a0a2a23d4075077eed5a1250fc020ab1864"
-LINUXBREW_CORE="501c656e81770ff64f12131a20535795e9229e44"
-HOMEBREW_BREW="ea8be174f6009bc9bdec67b13ca501b5b83fc4b8"
-LINUXBREW_BREW="1d16368a177807663e1b3146d71fcd69e2061e27"
+HOMEBREW_CORE="941ca36839ea354031846d73ad538e1e44e673f4"
+LINUXBREW_CORE="abc5c5782c5850f2deff1f3d463945f90f2feaac"
+HOMEBREW_BREW="ac2cbd2137006ebfe84d8584ccdcb5d78c1130d9"
+LINUXBREW_BREW="20bcce2c176469cec271b46d523eef1510217436"
 
 # If the world needs to be rebuilt, increase the version
 DEPS_VERSION="4"
@@ -106,10 +106,11 @@ function platform_darwin_main() {
   brew_tool xz
   brew_tool readline
   brew_tool sqlite
-  brew_tool makedepend
-  brew_tool clang-format
   brew_tool pkg-config
-  brew_tool bison
+  brew_tool makedepend
+  brew_tool ninja
+  brew_tool osquery/osquery-local/cmake --without-docs
+  brew_tool clang-format
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
@@ -117,7 +118,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl
   brew_tool osquery/osquery-local/python
-  brew_tool osquery/osquery-local/cmake --without-docs
+  brew_tool osquery/osquery-local/bison
 
   platform_posix_main
 }
@@ -125,6 +126,7 @@ function platform_darwin_main() {
  function platform_posix_main() {
   # libarchive for file carving
   brew_dependency osquery/osquery-local/libarchive
+  brew_dependency osquery/osquery-local/zstd
 
   # List of LLVM-compiled dependencies.
   brew_dependency osquery/osquery-local/lz4
@@ -195,7 +197,7 @@ function main() {
 
   # Setup the osquery dependency directory.
   # One can use a non-build location using OSQUERY_DEPS=/path/to/deps
-  if [[ -e "$OSQUERY_DEPS" ]]; then
+  if [[ ! -z "$OSQUERY_DEPS" ]]; then
     DEPS_DIR="$OSQUERY_DEPS"
   else
     DEPS_DIR="/usr/local/osquery"

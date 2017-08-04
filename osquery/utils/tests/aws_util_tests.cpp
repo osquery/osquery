@@ -15,7 +15,7 @@
 #include <osquery/logger.h>
 
 #include "osquery/tests/test_util.h"
-#include "osquery/logger/plugins/aws_util.h"
+#include "osquery/utils/aws_util.h"
 
 namespace osquery {
 

@@ -121,7 +121,7 @@ static inline bool hasWorkerVariable() {
 volatile std::sig_atomic_t kHandledSignal{0};
 
 static inline bool isWatcher() {
-  return (osquery::Watcher::get().getWorker().isValid());
+  return (osquery::Watcher::get().isWorkerValid());
 }
 
 void signalHandler(int num) {
@@ -147,6 +147,9 @@ void signalHandler(int num) {
       // Time to stop, set an upper bound time constraint on how long threads
       // have to terminate (join). Publishers may be in 20ms or similar sleeps.
       alarm(osquery::FLAGS_alarm_timeout);
+
+      // Allow the OS to auto-reap our child processes.
+      std::signal(SIGCHLD, SIG_IGN);
 #endif
 
       // Restore the default signal handler.
@@ -369,7 +372,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   std::signal(SIGINT, signalHandler);
   std::signal(SIGHUP, signalHandler);
   std::signal(SIGALRM, signalHandler);
-  std::signal(SIGCHLD, SIG_IGN);
 #endif
 
   std::signal(SIGABRT, signalHandler);
@@ -609,8 +611,12 @@ void Initializer::start() const {
   if (!s.ok()) {
     auto severity = (Watcher::get().hasManagedExtensions()) ? google::GLOG_ERROR
                                                             : google::GLOG_INFO;
-    google::LogMessage(__FILE__, __LINE__, severity).stream()
-        << "Cannot start extension manager: " + s.getMessage();
+    if (severity == google::GLOG_INFO) {
+      VLOG(1) << "Cannot start extension manager: " + s.getMessage();
+    } else {
+      google::LogMessage(__FILE__, __LINE__, severity).stream()
+          << "Cannot start extension manager: " + s.getMessage();
+    }
   }
 
   // Then set the config plugin, which uses a single/active plugin.
@@ -675,8 +681,11 @@ void Initializer::waitForShutdown() {
 }
 
 void Initializer::requestShutdown(int retcode) {
+  if (kExitCode == 0) {
+    kExitCode = retcode;
+  }
+
   // Stop thrift services/clients/and their thread pools.
-  kExitCode = retcode;
   if (std::this_thread::get_id() != kMainThreadId) {
     raise(SIGUSR1);
   } else {

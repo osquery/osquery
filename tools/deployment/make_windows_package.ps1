@@ -3,6 +3,7 @@
 param()
 
 function Main() {
+  $working_dir = Get-Location
   if (-not (Get-Command 7z.exe)) {
     Write-Host '[-] 7z note found!  Please run .\tools\make-win64-dev-env.bat before continuing!' -ForegroundColor Red
     exit
@@ -30,7 +31,7 @@ function Main() {
   if (-not (Test-Path (Join-Path (Get-Location).Path 'build\windows10\osquery\Release'))) {
     & '.\tools\make-win64-binaries.bat'
   }
-  
+
   # Listing of artifacts bundled with osquery
   $scriptPath = Get-Location
   $chocoPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
@@ -127,7 +128,8 @@ $nupkg +=
   Set-Location "$osqueryChocoPath"
   choco pack
 
-  Write-Host "[+] Chocolatey Package has been created. Run 'choco push' to push the package to Chocolatey" -ForegroundColor Green
+  Write-Host "[+] Chocolatey Package written to $osqueryChocoPath" -ForegroundColor Green
+  Set-Location $working_dir
 }
 
 $null = Main

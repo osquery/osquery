@@ -1079,7 +1079,7 @@ inline void meta_schema(int nArg, char** azArg) {
 }
 
 inline void meta_features(struct callback_data* p) {
-  auto results = osquery::SQL::SQL(
+  auto results = osquery::SQL(
       "select * from osquery_flags where (name like 'disable_%' or name like "
       "'enable_%') and type = 'bool'");
   for (const auto& flag : results.rows()) {

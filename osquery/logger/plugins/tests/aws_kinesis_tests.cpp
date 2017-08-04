@@ -19,8 +19,8 @@
 #include <osquery/logger.h>
 
 #include "osquery/logger/plugins/aws_kinesis.h"
-#include "osquery/logger/plugins/aws_util.h"
 #include "osquery/tests/test_util.h"
+#include "osquery/utils/aws_util.h"
 
 using namespace testing;
 
@@ -56,7 +56,8 @@ TEST_F(KinesisTests, test_send) {
   forwarder.client_ = client;
 
   std::vector<std::string> logs{"{\"foo\":\"bar\"}"};
-  Aws::Kinesis::Model::PutRecordsOutcome outcome;
+  Aws::Kinesis::Model::PutRecordsOutcome outcome(
+      Aws::Kinesis::Model::PutRecordsResult{});
   outcome.GetResult().SetFailedRecordCount(0);
   EXPECT_CALL(
       *client,

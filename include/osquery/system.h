@@ -272,6 +272,14 @@ class DropPrivileges : private boost::noncopyable {
 std::string getHostname();
 
 /**
+ * @brief Getter for a host's fully qualified domain name
+ *
+ * @return a string representation of the hosts fully qualified domain name
+ * if the host is joined to a domain, otherwise it simply returns the hostname
+ */
+std::string getFqdn();
+
+/**
  * @brief Generate a new generic UUID
  *
  * @return a string containing a random UUID

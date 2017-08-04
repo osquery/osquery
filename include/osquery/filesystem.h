@@ -351,6 +351,35 @@ Status procReadDescriptor(const std::string& process,
  * @return status The status of the read.
  */
 Status readRawMem(size_t base, size_t length, void** buffer);
-
 #endif
+
+/*
+ * @brief A function to archive files specified into a single file
+ *
+ * @param path The paths that you want bundled into the archive
+ * @param out The path where the resulting tar will be written to
+ * Given a set of paths we bundle these into a tar archive.
+ */
+Status archive(const std::set<boost::filesystem::path>& path,
+               const boost::filesystem::path& out);
+
+/*
+ * @brief Given a path, compress it with zstd and save to out.
+ *
+ * @param in The file to compress
+ * @param out Where to write the compressed file to
+ * @return A status containing the success or failure of the operation
+ */
+Status compress(const boost::filesystem::path& in,
+                const boost::filesystem::path& out);
+
+/*
+ * @brief Given a path, decompress it with zstd and save to out.
+ *
+ * @param in The file to decompress
+ * @param out Where to write the decompressed file to
+ * @return A status containing the success or failure of the operation
+ */
+Status decompress(const boost::filesystem::path& in,
+                  const boost::filesystem::path& out);
 }

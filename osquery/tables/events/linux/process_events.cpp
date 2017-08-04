@@ -85,6 +85,10 @@ bool ProcessUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
     r["owner_uid"] = fields.count("ouid") ? fields.at("ouid") : "0";
     r["owner_gid"] = fields.count("ogid") ? fields.at("ogid") : "0";
   }
+
+  if (type == AUDIT_CWD) {
+    r["cwd"] = fields.count("cwd") ? decodeAuditValue(fields.at("cwd")) : "";
+  }
   return true;
 }
 

@@ -20,9 +20,9 @@
 
 #include <osquery/logger.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/logger/plugins/aws_firehose.h"
-#include "osquery/logger/plugins/aws_util.h"
+#include "osquery/tests/test_util.h"
+#include "osquery/utils/aws_util.h"
 
 using namespace testing;
 
@@ -54,7 +54,8 @@ TEST_F(FirehoseTests, test_send) {
   forwarder.client_ = client;
 
   std::vector<std::string> logs{"{\"foo\":\"bar\"}"};
-  Aws::Firehose::Model::PutRecordBatchOutcome outcome;
+  Aws::Firehose::Model::PutRecordBatchOutcome outcome(
+      Aws::Firehose::Model::PutRecordBatchResult{});
   outcome.GetResult().SetFailedPutCount(0);
   EXPECT_CALL(*client,
               PutRecordBatch(Property(

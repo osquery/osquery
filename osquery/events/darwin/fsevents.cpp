@@ -40,6 +40,7 @@ std::map<FSEventStreamEventFlags, std::string> kMaskActions = {
     {kFSEventStreamEventFlagItemModified, "UPDATED"},
     {kFSEventStreamEventFlagItemRenamed, "MOVED_TO"},
     {kFSEventStreamEventFlagMustScanSubDirs, "COLLISION_WITHIN"},
+    {kFSEventStreamEventFlagMount, "MOUNTED"},
     {kFSEventStreamEventFlagUnmount, "UNMOUNTED"},
     {kFSEventStreamEventFlagRootChanged, "ROOT_CHANGED"},
 };
@@ -251,6 +252,15 @@ void FSEventsEventPublisher::Callback(
 
     if (ec->fsevent_flags & kFSEventStreamEventFlagUnmount) {
       // Should remove the watch on this path.
+    }
+
+    if (ec->fsevent_flags & kFSEventStreamEventFlagMount) {
+      auto mc = std::make_shared<FSEventsSubscriptionContext>();
+      mc->path = ec->path + "/*";
+      auto subscription = Subscription::create("file_events", mc);
+      auto status = EventFactory::addSubscription("fsevents", subscription);
+      auto pub = EventFactory::getEventPublisher("fsevents");
+      pub->configure();
     }
 
     // Record the string-version of the first matched mask bit.

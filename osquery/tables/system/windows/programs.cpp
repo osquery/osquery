@@ -19,19 +19,17 @@
 namespace osquery {
 namespace tables {
 
-QueryData genPrograms(QueryContext& context) {
-  QueryData results;
+void keyEnumPrograms(const std::string& key,
+                     std::set<std::string>& processed,
+                     QueryData& results) {
   QueryData regResults;
-  queryKey(
-      "HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\"
-      "Windows\\CurrentVersion\\Uninstall",
-      regResults);
+  queryKey(key, regResults);
   for (const auto& rKey : regResults) {
     if (rKey.at("type") != "subkey") {
       continue;
     }
     QueryData appResults;
-    std::string subkey = rKey.at("path");
+    const auto& subkey = rKey.at("path");
     // make sure it's a sane uninstall key
     boost::smatch matches;
     boost::regex expression(
@@ -40,9 +38,15 @@ QueryData genPrograms(QueryContext& context) {
     if (!boost::regex_search(subkey, matches, expression)) {
       continue;
     }
+    // Ensure we only process a program once
+    auto processGuid = matches[0];
+    if (processed.find(processGuid) != processed.end()) {
+      continue;
+    }
+    processed.insert(processGuid);
     queryKey(subkey, appResults);
     Row r;
-    r["identifying_number"] = matches[0];
+    r["identifying_number"] = processGuid;
     for (const auto& aKey : appResults) {
       if (aKey.at("name") == "DisplayName") {
         r["name"] = aKey.at("data");
@@ -67,6 +71,29 @@ QueryData genPrograms(QueryContext& context) {
       }
     }
     results.push_back(r);
+  }
+}
+
+QueryData genPrograms(QueryContext& context) {
+  QueryData results;
+
+  std::set<std::string> programKeys = {
+      "HKEY_LOCAL_"
+      "MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+      "HKEY_LOCAL_"
+      "MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Unin"
+      "stall",
+  };
+
+  std::set<std::string> userProgramKeys;
+  expandRegistryGlobs(
+      "HKEY_USERS\\%\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+      userProgramKeys);
+  programKeys.insert(userProgramKeys.begin(), userProgramKeys.end());
+
+  std::set<std::string> processedPrograms;
+  for (const auto& k : programKeys) {
+    keyEnumPrograms(k, processedPrograms, results);
   }
 
   return results;

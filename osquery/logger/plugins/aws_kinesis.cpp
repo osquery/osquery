@@ -24,7 +24,7 @@
 
 #include "osquery/core/process.h"
 #include "osquery/logger/plugins/aws_kinesis.h"
-#include "osquery/logger/plugins/aws_util.h"
+#include "osquery/utils/aws_util.h"
 
 namespace osquery {
 
@@ -132,6 +132,12 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
 
     Aws::Kinesis::Model::PutRecordsOutcome outcome =
         client_->PutRecords(request);
+
+    if (!outcome.IsSuccess()) {
+      LOG(ERROR) << "Kinesis write failed: " << outcome.GetError().GetMessage();
+      return Status(1, outcome.GetError().GetMessage());
+    }
+
     Aws::Kinesis::Model::PutRecordsResult result = outcome.GetResult();
     VLOG(1) << "Successfully sent "
             << result.GetRecords().size() - result.GetFailedRecordCount()
