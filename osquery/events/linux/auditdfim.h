@@ -12,6 +12,7 @@
 
 #include <osquery/events.h>
 
+
 #include "osquery/events/linux/auditdnetlink.h"
 
 namespace osquery {
@@ -40,50 +41,38 @@ struct SyscallEvent final {
     Invalid
   };
 
-  //
-  // Populated from the AUDIT_SYSCALL event record
-  //
-
-  /// Event type
+  /// Event type (AUDIT_SYSCALL)
   Type type;
 
-  /// Process id
+  /// Process id (AUDIT_SYSCALL)
   __pid_t process_id;
 
-  /// Parent process id
+  /// Parent process id (AUDIT_SYSCALL)
   __pid_t parent_process_id;
 
-  /// Input file descriptor (i.e.: read syscall)
+  /// Input file descriptor (i.e.: read syscall) (AUDIT_SYSCALL)
   int input_fd;
 
-  /// Output file descriptor (i.e.: open syscall)
+  /// Output file descriptor (i.e.: open syscall) (AUDIT_SYSCALL)
   int output_fd;
 
-  /// Syscall exit status
+  /// Syscall exit status (AUDIT_SYSCALL)
   std::string success;
 
-  /// Executable path
+  /// Executable path (AUDIT_SYSCALL)
   std::string executable_path;
 
-  /// Memory protection flags (only valid for mmap() calls)
+  /// Memory protection flags (only valid for mmap() calls) (AUDIT_SYSCALL)
   int mmap_memory_protection_flags;
 
   /// If true, this is a partial event
   bool partial;
 
-  //
-  // Populated from the AUDIT_CWD event record
-  //
-
-  /// Working directory at the time of the syscall
+  /// Working directory at the time of the syscall (AUDIT_CWD)
   std::string cwd;
 
-  //
-  // Populated from the AUDIT_PATH event record
-  //
-
   /**
-   * @brief Inode number for the input file(s).
+   * @brief Inode number for the input file(s) (AUDIT_PATH).
    *
    * This is the file inode; it is only used for name_to_handle_at
    * and open_by_handle_at syscalls
@@ -91,7 +80,7 @@ struct SyscallEvent final {
   std::uint64_t file_inode;
 
   /**
-   * @brief Path passed to the syscall.
+   * @brief Path passed to the syscall (AUDIT_PATH).
    *
    * Path passed to the syscall; note that this is not valid
    * for open_by_handle_at syscalls. You have to match the
