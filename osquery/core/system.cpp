@@ -280,7 +280,8 @@ size_t toUnixTime(const struct tm* tm_time) {
 }
 
 size_t getUnixTime() {
-  return std::time(nullptr);
+  std::time_t ut = std::time(nullptr);
+  return ut < 0 ? 0 : ut;
 }
 
 Status checkStalePid(const std::string& content) {
@@ -443,8 +444,10 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
   }
 
   group_size_ = getgroups(0, nullptr);
-  original_groups_ = (gid_t*)malloc(group_size_ * sizeof(gid_t));
-  group_size_ = getgroups(group_size_, original_groups_);
+  if (group_size_ > 0) {
+    original_groups_ = (gid_t*)malloc(group_size_ * sizeof(gid_t));
+    group_size_ = getgroups(group_size_, original_groups_);
+  }
   setgroups(1, &gid);
 
   if (!setThreadEffective(uid, gid)) {
@@ -460,9 +463,11 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
 }
 
 void DropPrivileges::restoreGroups() {
-  setgroups(group_size_, original_groups_);
-  group_size_ = 0;
-  free(original_groups_);
+  if (group_size_ > 0) {
+    setgroups(group_size_, original_groups_);
+    group_size_ = 0;
+    free(original_groups_);
+  }
   original_groups_ = nullptr;
 }
 
