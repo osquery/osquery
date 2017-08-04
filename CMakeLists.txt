@@ -165,6 +165,7 @@ elseif(WINDOWS)
     /W3
     /guard:cf
   )
+  add_definitions(-DBOOST_ALL_NO_LIB)
 endif()
 
 if(LINUX AND CMAKE_CXX_COMPILER MATCHES "clang")

@@ -9,7 +9,10 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 
 # We make heavy use of Write-Host, because colors are awesome. #dealwithit.
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope = "Function", Target = "*")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", `
+                                                   '', `
+                                                   Scope = "Function", `
+                                                   Target = "*")]
 param()
 
 # URL of where our pre-compiled third-party dependenices are archived
@@ -208,7 +211,14 @@ function Install-ChocoPackage {
     choco ${args}
     # Visual studio will occasionally exit with one of the following codes,
     # indicating a system reboot is needed before continuing.
-    if (@(3010, 2147781575, -2147185721, -2147205120) -Contains $LastExitCode) {
+    $rebootErrorCodes = @(
+      3010,
+      2147781575,
+      -2147185721,
+      -2147205120,
+      -2147023436
+    )
+    if ($rebootErrorCodes -Contains $LastExitCode) {
       $LastExitCode = 0
     }
     if (1638 -eq $LastExitCode) {
@@ -269,28 +279,23 @@ function Install-ThirdParty {
   }
   Write-Host " => Retrieving third-party dependencies" -foregroundcolor DarkYellow
 
-  # XXX: The code below exists because our chocolatey packages are not currently in the chocolatey
-  #      repository. For now, we will download our packages locally and install from a local source.
-  #      We also include the official source since thrift-dev depends on the chocolatey thrift package.
-  #
-  #      Once our chocolatey packages are added to the official repository, installing the third-party
-  #      dependencies will be as easy as Install-ChocoPackage '<package-name>'.
+  # List of our third party packages, hosted in our AWS S3 bucket
   $packages = @(
     "aws-sdk-cpp.1.0.107-r1",
-    "boost-msvc14.1.63.0-r1",
+    "boost-msvc14.1.63.0-r2",
     "bzip2.1.0.6",
+    "clang-format.3.9.0",
+    "cpp-netlib.0.12.0-r4",
     "doxygen.1.8.11",
     "gflags-dev.2.2.0-r1",
     "glog.0.3.4-r1",
+    "libarchive.3.3.1-r1",
+    "linenoise-ng.1.0.0-r1",
     "openssl.1.0.2-k",
     "rocksdb.5.1.4-r1",
     "snappy-msvc.1.1.1.8",
-    "thrift-dev.0.10.0-r2",
-    "cpp-netlib.0.12.0-r3",
-    "linenoise-ng.1.0.0-r1",
-    "clang-format.3.9.0",
+    "thrift-dev.0.10.0-r4",
     "zlib.1.2.8",
-    "libarchive.3.3.1-r1",
     "zstd.1.2.0-r3"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'
@@ -383,13 +388,13 @@ function Main {
   $out = Install-Chocolatey
   $out = Install-ChocoPackage 'winflexbison'
   # Get flex and bison into our path for use
-  $chocoPath = $oldPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
+  $chocoPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
   if (Test-Path (Join-Path $chocoPath 'lib\winflexbison\tools\')) {
-    if (-not (Get-Command bison.exe)) {
+    if (-not (Get-Command bison.exe -ErrorAction SilentlyContinue)) {
       Copy-Item (Join-Path $chocoPath 'lib\winflexbison\tools\win_bison.exe') (Join-Path $chocoPath 'bin\bison.exe')
       Copy-Item -Recurse (Join-Path $chocoPath 'lib\winflexbison\tools\data') (Join-Path $chocoPath 'bin\data')
     }
-    if (-not (Get-Command flex.exe)) {
+    if (-not (Get-Command flex.exe -ErrorAction SilentlyContinue)) {
       Copy-Item (Join-Path $chocoPath 'lib\winflexbison\tools\win_flex.exe') (Join-Path $chocoPath 'bin\flex.exe')
     }
   }
