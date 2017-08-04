@@ -314,6 +314,10 @@ Status AuditdFimEventPublisher::setUp() {
 }
 
 void AuditdFimEventPublisher::configure() {
+  if (!FLAGS_audit_allow_fim_events) {
+    return;
+  }
+
   // Only subscribe if we are actually going to have listeners
   if (audit_netlink_subscription_ == 0) {
     audit_netlink_subscription_ = AuditdNetlink::get().subscribe();
@@ -328,6 +332,10 @@ void AuditdFimEventPublisher::tearDown() {
 }
 
 Status AuditdFimEventPublisher::run() {
+  if (!FLAGS_audit_allow_fim_events) {
+    return Status(1, "Publisher disabled via configuration");
+  }
+
   // Request our event queue from the AuditdNetlink component
   auto audit_event_record_queue =
       AuditdNetlink::get().getEvents(audit_netlink_subscription_);

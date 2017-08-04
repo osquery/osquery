@@ -12,7 +12,6 @@
 
 #include <osquery/events.h>
 
-
 #include "osquery/events/linux/auditdnetlink.h"
 
 namespace osquery {
@@ -131,7 +130,7 @@ class AuditdFimEventPublisher final
 
  private:
   /// Audit netlink subscription handle
-  NetlinkSubscriptionHandle audit_netlink_subscription_;
+  NetlinkSubscriptionHandle audit_netlink_subscription_{0};
 
   /// This is where audit records are assembled
   SyscallTraceContext syscall_trace_context_;

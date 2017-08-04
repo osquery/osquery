@@ -128,7 +128,7 @@ class AuditdNetlink final : private boost::noncopyable {
   std::atomic<bool> terminate_threads_{false};
 
   /// Used to wake up the thread that processes the raw audit records
-  std::condition_variable raw_records_pending_;
+  std::condition_variable proc_thread_cv_;
 
   /// When set to true, the audit handle is (re)acquired
   std::atomic_bool acquire_netlink_handle_{true};

@@ -261,8 +261,8 @@ void AuditdNetlink::terminate() noexcept {
 
   terminate_threads_ = true;
 
-  recv_thread_->join();
   processing_thread_->join();
+  recv_thread_->join();
 
   initialized_ = false;
 }
@@ -506,6 +506,7 @@ bool AuditdNetlink::recvThread() noexcept {
     }
   }
 
+  proc_thread_cv_.notify_one();
   restoreAuditServiceConfiguration();
 
   audit_close(audit_netlink_handle_);
@@ -521,8 +522,9 @@ bool AuditdNetlink::processThread() noexcept {
     {
       std::unique_lock<std::mutex> lock(raw_audit_record_list_mutex_);
 
-      while (raw_audit_record_list_.empty())
-        raw_records_pending_.wait(lock);
+      while (raw_audit_record_list_.empty() && !terminate_threads_) {
+        proc_thread_cv_.wait(lock);
+      }
 
       queue = std::move(raw_audit_record_list_);
       raw_audit_record_list_.clear();
@@ -674,7 +676,7 @@ bool AuditdNetlink::acquireMessages() noexcept {
         read_buffer_.begin(),
         std::next(read_buffer_.begin(), events_received));
 
-    raw_records_pending_.notify_one();
+    proc_thread_cv_.notify_one();
   }
 
   if (reset_handle) {
