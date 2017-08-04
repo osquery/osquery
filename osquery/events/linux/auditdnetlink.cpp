@@ -1,8 +1,9 @@
-#include "osquery/events/linux/auditdnetlink.h"
-#include "osquery/core/conversions.h"
-
-#include <osquery/flags.h>
-#include <osquery/logger.h>
+#include <asm/unistd_64.h>
+#include <linux/audit.h>
+#include <poll.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <chrono>
 #include <iostream>
@@ -12,12 +13,11 @@
 #include <boost/filesystem.hpp>
 #include <boost/utility/string_ref.hpp>
 
-#include <asm/unistd_64.h>
-#include <linux/audit.h>
-#include <poll.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <osquery/flags.h>
+#include <osquery/logger.h>
+
+#include "osquery/core/conversions.h"
+#include "osquery/events/linux/auditdnetlink.h"
 
 namespace {
 std::string GetAuditRecordTypeName(int type) noexcept {
@@ -207,7 +207,7 @@ enum AuditStatus {
   AUDIT_IMMUTABLE = 2,
 };
 
-AuditdNetlink& AuditdNetlink::getInstance() {
+AuditdNetlink& AuditdNetlink::get() {
   static AuditdNetlink instance;
   return instance;
 }

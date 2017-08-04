@@ -12,17 +12,18 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
+#include <ctime>
+
+#include <sstream>
+
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/audit.h"
 #include "osquery/events/linux/auditdnetlink.h"
-#include "osquery/events/linux/tests/audit_tests_common.h"
 #include "osquery/tests/test_util.h"
-
-#include <cstdint>
-#include <ctime>
 
 namespace osquery {
 
@@ -30,6 +31,14 @@ DECLARE_bool(audit_allow_unix);
 
 /// Internal audit subscriber (socket events) testable methods.
 extern void parseSockAddr(const std::string& saddr, Row& r);
+
+/// Generates a fake audit id
+std::string generateAuditId(std::uint32_t event_id) noexcept {
+  std::stringstream str_helper;
+  str_helper << std::time(nullptr) << ".000:" << event_id;
+
+  return str_helper.str();
+}
 
 class AuditTests : public testing::Test {
  protected:

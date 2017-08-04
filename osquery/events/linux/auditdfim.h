@@ -1,7 +1,18 @@
+/*
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
 #pragma once
 
-#include "osquery/events/linux/auditdnetlink.h"
 #include <osquery/events.h>
+
+#include "osquery/events/linux/auditdnetlink.h"
 
 namespace osquery {
 
@@ -71,13 +82,21 @@ struct SyscallEvent final {
   // Populated from the AUDIT_PATH event record
   //
 
-  /// This is the file inode; it is only used for name_to_handle_at
-  /// and open_by_handle_at syscalls
+  /**
+   * @brief Inode number for the input file(s).
+   *
+   * This is the file inode; it is only used for name_to_handle_at
+   * and open_by_handle_at syscalls
+   */
   std::uint64_t file_inode;
 
-  /// Path passed to the syscall; note that this is not valid
-  /// for open_by_handle_at syscalls. You have to match the
-  /// inode field with the name_to_handle_at system call
+  /**
+   * @brief Path passed to the syscall.
+   *
+   * Path passed to the syscall; note that this is not valid
+   * for open_by_handle_at syscalls. You have to match the
+   * inode field with the name_to_handle_at system call
+   */
   std::string path;
 };
 

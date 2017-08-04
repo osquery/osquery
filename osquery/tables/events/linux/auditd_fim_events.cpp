@@ -8,13 +8,15 @@
  *
  */
 
-#include "osquery/tables/events/linux/auditd_fim_events.h"
+#include <boost/filesystem/operations.hpp>
 
 #include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-#include <boost/filesystem/operations.hpp>
+#include "osquery/tables/events/linux/auditd_fim_events.h"
+
+namespace boostfs = boost::filesystem;
 
 namespace osquery {
 // Depend on the external getUptime table method.
@@ -57,7 +59,7 @@ std::string NormalizePath(const std::string& cwd,
       translated_cwd = cwd;
     }
 
-    translated_path = translated_cwd + "/" + translated_path;
+    translated_path = translated_cwd + '/' + translated_path;
   }
 
   /*
@@ -68,7 +70,6 @@ std::string NormalizePath(const std::string& cwd,
     changed.
   */
 
-  namespace boostfs = boost::filesystem;
   boostfs::path normalized_path(translated_path);
   normalized_path = normalized_path.normalize();
 
@@ -174,37 +175,37 @@ Status AuditdFimEventSubscriber::ProcessEvents(
   emitted_row_list.clear();
 
   // Process the syscall events we received and emit the necessary rows
-  for (const SyscallEvent& syscall : syscall_event_list) {
-    auto syscall_type = syscall.type;
+  for (const SyscallEvent& syscall_event : syscall_event_list) {
+    auto syscall_type = syscall_event.type;
 
     switch (syscall_type) {
     case SyscallEvent::Type::Execve: {
       auto unused =
-          GetOrCreateProcessState(process_map, syscall.process_id, true);
+          GetOrCreateProcessState(process_map, syscall_event.process_id, true);
       static_cast<void>(unused);
       break;
     }
 
     case SyscallEvent::Type::Exit:
     case SyscallEvent::Type::Exit_group: {
-      DropProcessState(process_map, syscall.process_id);
+      DropProcessState(process_map, syscall_event.process_id);
       break;
     }
 
     case SyscallEvent::Type::Name_to_handle_at: {
       SaveInodeInformation(process_map,
-                           syscall.process_id,
-                           syscall.file_inode,
-                           syscall.cwd,
-                           syscall.path);
+                           syscall_event.process_id,
+                           syscall_event.file_inode,
+                           syscall_event.cwd,
+                           syscall_event.path);
       break;
     }
 
     case SyscallEvent::Type::Open_by_handle_at: {
       AuditdFimPathInformation inode_info;
       if (!GetInodeInformation(process_map,
-                               syscall.process_id,
-                               syscall.file_inode,
+                               syscall_event.process_id,
+                               syscall_event.file_inode,
                                inode_info)) {
         VLOG(1) << "Untracked open_by_handle_at syscall received. Subsequent "
                    "calls on this handle will be shown as partials";
@@ -215,8 +216,8 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       std::string normalized_path =
           NormalizePath(inode_info.cwd, inode_info.path);
       SaveHandleInformation(process_map,
-                            syscall.process_id,
-                            static_cast<std::uint64_t>(syscall.output_fd),
+                            syscall_event.process_id,
+                            static_cast<std::uint64_t>(syscall_event.output_fd),
                             normalized_path,
                             AuditdFimHandleInformation::OperationType::Open);
 
@@ -224,16 +225,16 @@ Status AuditdFimEventSubscriber::ProcessEvents(
           L_isPathIncluded(normalized_path)) {
         Row row;
         row["syscall"] = "open";
-        row["pid"] = std::to_string(syscall.process_id);
-        row["ppid"] = std::to_string(syscall.parent_process_id);
-        row["cwd"] = syscall.cwd;
-        row["name"] = syscall.path;
+        row["pid"] = std::to_string(syscall_event.process_id);
+        row["ppid"] = std::to_string(syscall_event.parent_process_id);
+        row["cwd"] = syscall_event.cwd;
+        row["name"] = syscall_event.path;
         row["canonical_path"] = normalized_path;
         row["uptime"] = std::to_string(tables::getUptime());
         row["input_fd"] = "";
-        row["output_fd"] = std::to_string(syscall.output_fd);
-        row["executable"] = syscall.executable_path;
-        row["partial"] = (syscall.partial ? "true" : "false");
+        row["output_fd"] = std::to_string(syscall_event.output_fd);
+        row["executable"] = syscall_event.executable_path;
+        row["partial"] = (syscall_event.partial ? "true" : "false");
         emitted_row_list.push_back(row);
       }
 
@@ -242,21 +243,22 @@ Status AuditdFimEventSubscriber::ProcessEvents(
 
     case SyscallEvent::Type::Unlink:
     case SyscallEvent::Type::Unlinkat: {
-      auto normalized_path = NormalizePath(syscall.cwd, syscall.path);
+      auto normalized_path =
+          NormalizePath(syscall_event.cwd, syscall_event.path);
 
       if (!L_isPathExcluded(normalized_path) &&
           L_isPathIncluded(normalized_path)) {
         Row row;
         row["syscall"] = "unlink";
-        row["pid"] = std::to_string(syscall.process_id);
-        row["ppid"] = std::to_string(syscall.parent_process_id);
-        row["cwd"] = syscall.cwd;
-        row["name"] = syscall.path;
+        row["pid"] = std::to_string(syscall_event.process_id);
+        row["ppid"] = std::to_string(syscall_event.parent_process_id);
+        row["cwd"] = syscall_event.cwd;
+        row["name"] = syscall_event.path;
         row["canonical_path"] = normalized_path;
         row["uptime"] = std::to_string(tables::getUptime());
         row["input_fd"] = "";
         row["output_fd"] = "";
-        row["executable"] = syscall.executable_path;
+        row["executable"] = syscall_event.executable_path;
         row["partial"] = "false";
         emitted_row_list.push_back(row);
       }
@@ -269,10 +271,11 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     case SyscallEvent::Type::Mknodat:
     case SyscallEvent::Type::Open:
     case SyscallEvent::Type::Openat: {
-      std::string normalized_path = NormalizePath(syscall.cwd, syscall.path);
+      std::string normalized_path =
+          NormalizePath(syscall_event.cwd, syscall_event.path);
       SaveHandleInformation(process_map,
-                            syscall.process_id,
-                            static_cast<std::uint64_t>(syscall.output_fd),
+                            syscall_event.process_id,
+                            static_cast<std::uint64_t>(syscall_event.output_fd),
                             normalized_path,
                             AuditdFimHandleInformation::OperationType::Open);
 
@@ -280,16 +283,16 @@ Status AuditdFimEventSubscriber::ProcessEvents(
           L_isPathIncluded(normalized_path)) {
         Row row;
         row["syscall"] = "open";
-        row["pid"] = std::to_string(syscall.process_id);
-        row["ppid"] = std::to_string(syscall.parent_process_id);
-        row["cwd"] = syscall.cwd;
-        row["name"] = syscall.path;
+        row["pid"] = std::to_string(syscall_event.process_id);
+        row["ppid"] = std::to_string(syscall_event.parent_process_id);
+        row["cwd"] = syscall_event.cwd;
+        row["name"] = syscall_event.path;
         row["canonical_path"] = normalized_path;
         row["uptime"] = std::to_string(tables::getUptime());
         row["input_fd"] = "";
-        row["output_fd"] = std::to_string(syscall.output_fd);
-        row["executable"] = syscall.executable_path;
-        row["partial"] = (syscall.partial ? "true" : "false");
+        row["output_fd"] = std::to_string(syscall_event.output_fd);
+        row["executable"] = syscall_event.executable_path;
+        row["partial"] = (syscall_event.partial ? "true" : "false");
         emitted_row_list.push_back(row);
       }
 
@@ -297,15 +300,15 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     }
 
     case SyscallEvent::Type::Close: {
-      auto fd = static_cast<std::uint64_t>(syscall.input_fd);
+      auto fd = static_cast<std::uint64_t>(syscall_event.input_fd);
 
       AuditdFimHandleInformation handle_info;
       if (!GetHandleInformation(
-              process_map, syscall.process_id, fd, handle_info)) {
+              process_map, syscall_event.process_id, fd, handle_info)) {
         break;
       }
 
-      DropHandleInformation(process_map, syscall.process_id, fd);
+      DropHandleInformation(process_map, syscall_event.process_id, fd);
       if (!configuration.show_accesses) {
         break;
       }
@@ -315,12 +318,12 @@ Status AuditdFimEventSubscriber::ProcessEvents(
         Row row;
         row["canonical_path"] = handle_info.path;
         row["syscall"] = "close";
-        row["pid"] = std::to_string(syscall.process_id);
-        row["ppid"] = std::to_string(syscall.parent_process_id);
+        row["pid"] = std::to_string(syscall_event.process_id);
+        row["ppid"] = std::to_string(syscall_event.parent_process_id);
         row["uptime"] = std::to_string(tables::getUptime());
-        row["input_fd"] = std::to_string(syscall.input_fd);
+        row["input_fd"] = std::to_string(syscall_event.input_fd);
         row["output_fd"] = "";
-        row["executable"] = syscall.executable_path;
+        row["executable"] = syscall_event.executable_path;
         row["cwd"] = "";
         row["name"] = "";
         row["partial"] = "false";
@@ -332,16 +335,16 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     }
 
     case SyscallEvent::Type::Dup: {
-      auto fd = static_cast<std::uint64_t>(syscall.input_fd);
+      auto fd = static_cast<std::uint64_t>(syscall_event.input_fd);
 
       AuditdFimHandleInformation handle_info;
       if (!GetHandleInformation(
-              process_map, syscall.process_id, fd, handle_info)) {
+              process_map, syscall_event.process_id, fd, handle_info)) {
         break;
       }
 
       SaveHandleInformation(process_map,
-                            syscall.process_id,
+                            syscall_event.process_id,
                             fd,
                             handle_info.path,
                             handle_info.last_operation);
@@ -351,17 +354,18 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     // Handle the mmap syscall like a read or write operation, depending on the
     // memory protection flags
     case SyscallEvent::Type::Mmap:
-      syscall_type = ((syscall.mmap_memory_protection_flags & PROT_WRITE) != 0
-                          ? SyscallEvent::Type::Write
-                          : SyscallEvent::Type::Read);
+      syscall_type =
+          ((syscall_event.mmap_memory_protection_flags & PROT_WRITE) != 0
+               ? SyscallEvent::Type::Write
+               : SyscallEvent::Type::Read);
 
     case SyscallEvent::Type::Read:
     case SyscallEvent::Type::Write: {
-      auto fd = static_cast<std::uint64_t>(syscall.input_fd);
+      auto fd = static_cast<std::uint64_t>(syscall_event.input_fd);
 
       AuditdFimHandleInformation handle_info;
       if (!GetHandleInformation(
-              process_map, syscall.process_id, fd, handle_info)) {
+              process_map, syscall_event.process_id, fd, handle_info)) {
         break;
       }
 
@@ -395,7 +399,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       }
 
       SaveHandleInformation(process_map,
-                            syscall.process_id,
+                            syscall_event.process_id,
                             fd,
                             handle_info.path,
                             handle_info.last_operation);
@@ -409,12 +413,12 @@ Status AuditdFimEventSubscriber::ProcessEvents(
         Row row;
         row["canonical_path"] = handle_info.path;
         row["syscall"] = (read_operation ? "read" : "write");
-        row["pid"] = std::to_string(syscall.process_id);
-        row["ppid"] = std::to_string(syscall.parent_process_id);
+        row["pid"] = std::to_string(syscall_event.process_id);
+        row["ppid"] = std::to_string(syscall_event.parent_process_id);
         row["uptime"] = std::to_string(tables::getUptime());
-        row["input_fd"] = std::to_string(syscall.input_fd);
+        row["input_fd"] = std::to_string(syscall_event.input_fd);
         row["output_fd"] = "";
-        row["executable"] = syscall.executable_path;
+        row["executable"] = syscall_event.executable_path;
         row["partial"] = "false";
         row["cwd"] = "";
         row["name"] = "";

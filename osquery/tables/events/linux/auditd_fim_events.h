@@ -1,12 +1,12 @@
 #pragma once
 
-#include "osquery/events/linux/auditdfim.h"
-
-#include <osquery/events.h>
-
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include <osquery/events.h>
+
+#include "osquery/events/linux/auditdfim.h"
 
 namespace osquery {
 /// This structure stores the information for a tracked file handle

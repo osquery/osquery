@@ -12,16 +12,12 @@
 
 #include <libaudit.h>
 
-#include <atomic>
-#include <future>
 #include <map>
 #include <set>
-#include <thread>
-#include <utility>
+#include <unordered_map>
 #include <vector>
 
 #include <boost/algorithm/hex.hpp>
-#include <boost/scoped_ptr.hpp>
 
 #include <osquery/events.h>
 
@@ -53,8 +49,11 @@ struct AuditRule {
   /// The rule action.
   int action{AUDIT_ALWAYS};
 
-  /// Audit rules are used for matching events to subscribers.
-  /// They can also apply their syscall or filter rule during setUp.
+  /**
+  * @brief Audit rules are used for matching events to subscribers.
+  *
+  * They can also apply their syscall or filter rule during setUp.
+  */
   bool apply_rule{true};
 
   /// Helper to set either a syscall, filter, or both.
@@ -195,8 +194,12 @@ struct AuditEventContext : public EventContext {
   /// The audit reply type.
   int type{0};
 
-  /// If the type=AUDIT_SYSCALL then this is filled in with the syscall type.
-  /// Otherwise this set to 0.
+  /**
+  * @brief If the type=AUDIT_SYSCALL then this is filled in with the syscall
+  * type.
+  *
+  * If this is not an AUDIT_SYSCALL record, then it is set to 0.
+  */
   int syscall{0};
 
   /**

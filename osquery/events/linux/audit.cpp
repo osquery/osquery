@@ -8,6 +8,8 @@
  *
  */
 
+#include <utility>
+
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/filesystem.hpp>
@@ -136,20 +138,20 @@ void AuditEventPublisher::configure() {
 
   // Only subscribe if we are actually going to have listeners
   if (audit_netlink_subscription_ == 0) {
-    audit_netlink_subscription_ = AuditdNetlink::getInstance().subscribe();
+    audit_netlink_subscription_ = AuditdNetlink::get().subscribe();
   }
 }
 
 void AuditEventPublisher::tearDown() {
   if (audit_netlink_subscription_ != 0) {
-    AuditdNetlink::getInstance().unsubscribe(audit_netlink_subscription_);
+    AuditdNetlink::get().unsubscribe(audit_netlink_subscription_);
     audit_netlink_subscription_ = 0;
   }
 }
 
 Status AuditEventPublisher::run() {
   auto audit_event_record_queue =
-      AuditdNetlink::getInstance().getEvents(audit_netlink_subscription_);
+      AuditdNetlink::get().getEvents(audit_netlink_subscription_);
 
   for (auto& audit_record : audit_event_record_queue) {
     bool handle_reply = false;

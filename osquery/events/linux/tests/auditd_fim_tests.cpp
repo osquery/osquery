@@ -10,16 +10,6 @@
 
 #include <gtest/gtest.h>
 
-#include <osquery/events.h>
-#include <osquery/flags.h>
-#include <osquery/tables.h>
-
-#include "osquery/core/conversions.h"
-#include "osquery/events/linux/auditdfim.h"
-#include "osquery/events/linux/tests/audit_tests_common.h"
-#include "osquery/tables/events/linux/auditd_fim_events.h"
-#include "osquery/tests/test_util.h"
-
 #include <linux/audit.h>
 
 #include <cstdint>
@@ -27,6 +17,17 @@
 #include <ctime>
 #include <string>
 #include <vector>
+
+#include <sstream>
+
+#include <osquery/events.h>
+#include <osquery/flags.h>
+#include <osquery/tables.h>
+
+#include "osquery/core/conversions.h"
+#include "osquery/events/linux/auditdfim.h"
+#include "osquery/tables/events/linux/auditd_fim_events.h"
+#include "osquery/tests/test_util.h"
 
 const std::vector<std::pair<int, std::string>> complete_event_list = {
     {AUDIT_SYSCALL,
@@ -648,6 +649,8 @@ const std::vector<std::pair<int, std::string>> broken_event_list = {
     {AUDIT_EOE, "audit(1501323932.710:7670542): "}};
 
 namespace osquery {
+extern std::string generateAuditId(std::uint32_t event_id) noexcept;
+
 class AuditdFimTests : public testing::Test {
  protected:
   void SetUp() override {

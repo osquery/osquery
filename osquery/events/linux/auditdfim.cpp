@@ -8,16 +8,17 @@
  *
  */
 
-#include "osquery/events/linux/auditdfim.h"
-#include "osquery/core/conversions.h"
-
-#include <boost/filesystem.hpp>
-#include <osquery/flags.h>
-#include <osquery/logger.h>
-
 #include <asm/unistd_64.h>
 
 #include <iostream>
+
+#include <boost/filesystem.hpp>
+
+#include <osquery/flags.h>
+#include <osquery/logger.h>
+
+#include "osquery/core/conversions.h"
+#include "osquery/events/linux/auditdfim.h"
 
 namespace osquery {
 HIDDEN_FLAG(bool, audit_fim_debug, false, "Show audit FIM events");
@@ -86,9 +87,13 @@ SyscallEvent::Type GetSyscallEventType(int syscall_number) noexcept {
   }
 }
 
-/// Returns the specified field name from the given audit event record; if
-/// the field is missing, the user-supplied default value is returned
-/// instead
+/**
+* @brief Returns the specified field from the record.
+*
+* Returns the specified field name from the given audit event record; if
+* the field is missing, the user-supplied default value is returned
+* instead
+*/
 bool GetAuditRecordField(
     std::string& value,
     const AuditEventRecord& record,
@@ -106,9 +111,13 @@ bool GetAuditRecordField(
   return true;
 }
 
-/// Returns the specified field name from the given audit event record,
-/// converting it to an unsigned integer; if the field is
-/// missing, the user-supplied default value is returned instead
+/**
+* @brief Returns the specified field from the record.
+*
+* Returns the specified field name from the given audit event record,
+* converting it to an unsigned integer; if the field is
+* missing, the user-supplied default value is returned instead
+*/
 bool GetAuditRecordField(std::uint64_t& value,
                          const AuditEventRecord& record,
                          const std::string& field_name,
@@ -307,13 +316,13 @@ Status AuditdFimEventPublisher::setUp() {
 void AuditdFimEventPublisher::configure() {
   // Only subscribe if we are actually going to have listeners
   if (audit_netlink_subscription_ == 0) {
-    audit_netlink_subscription_ = AuditdNetlink::getInstance().subscribe();
+    audit_netlink_subscription_ = AuditdNetlink::get().subscribe();
   }
 }
 
 void AuditdFimEventPublisher::tearDown() {
   if (audit_netlink_subscription_ != 0) {
-    AuditdNetlink::getInstance().unsubscribe(audit_netlink_subscription_);
+    AuditdNetlink::get().unsubscribe(audit_netlink_subscription_);
     audit_netlink_subscription_ = 0;
   }
 }
@@ -321,7 +330,7 @@ void AuditdFimEventPublisher::tearDown() {
 Status AuditdFimEventPublisher::run() {
   // Request our event queue from the AuditdNetlink component
   auto audit_event_record_queue =
-      AuditdNetlink::getInstance().getEvents(audit_netlink_subscription_);
+      AuditdNetlink::get().getEvents(audit_netlink_subscription_);
 
   auto event_context = createEventContext();
   ProcessEvents(
