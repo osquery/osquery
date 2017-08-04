@@ -734,7 +734,7 @@ TEST_F(ParseMDStatTest, 2_devices_1_missing_each) {
   MD md;
   MDStat got;
   md.parseMDStat(lines, got);
-  EXPECT_TRUE(got == expected);
+  EXPECT_EQ(got, expected);
 };
 
 TEST_F(ParseMDStatTest, 2_devices_1_recovery) {
@@ -807,7 +807,7 @@ TEST_F(ParseMDStatTest, 2_devices_1_recovery) {
   MDStat got;
   md.parseMDStat(lines, got);
 
-  EXPECT_TRUE(got == expected);
+  EXPECT_EQ(got, expected);
 };
 
 TEST_F(ParseMDStatTest, 2_devices_2_actions) {
@@ -884,7 +884,7 @@ TEST_F(ParseMDStatTest, 2_devices_2_actions) {
   MD md;
   MDStat got;
   md.parseMDStat(lines, got);
-  EXPECT_TRUE(got == expected);
+  EXPECT_EQ(got, expected);
 };
 
 TEST_F(ParseMDStatTest, 2_devices_1_recovery_1_delay) {
@@ -958,7 +958,7 @@ TEST_F(ParseMDStatTest, 2_devices_1_recovery_1_delay) {
   MD md;
   MDStat got;
   md.parseMDStat(lines, got);
-  EXPECT_TRUE(got == expected);
+  EXPECT_EQ(got, expected);
 };
 
 TEST_F(ParseMDStatTest, 2_devices_1_recovery_bitmap) {
@@ -1033,7 +1033,7 @@ TEST_F(ParseMDStatTest, 2_devices_1_recovery_bitmap) {
   MD md;
   MDStat got;
   md.parseMDStat(lines, got);
-  EXPECT_TRUE(got == expected);
+  EXPECT_EQ(got, expected);
 };
 
 TEST_F(ParseMDStatTest, 2_devices_1_recovery_bitmap_file) {
@@ -1105,7 +1105,50 @@ TEST_F(ParseMDStatTest, 2_devices_1_recovery_bitmap_file) {
   MD md;
   MDStat got;
   md.parseMDStat(lines, got);
-  EXPECT_TRUE(got == expected);
+  EXPECT_EQ(got, expected);
+};
+
+TEST_F(ParseMDStatTest, negative_test_unexpected_texts_in_substr_receivers) {
+  std::vector<std::string> lines = {
+      "Personalities : [] r",
+      "md1 : active raid10 sde2[ sdd2] sdc2 sdb2 sda2][",
+      "4687296000 blocks super 1.2 512K chunks 2 near-copies [6/5] [UUUUU_]",
+      "[>....................]  recovery =",
+      "check =",
+      "bitmap: 5/113 pages [20KB], 8192KB chunk, file:",
+      "",
+      "md0",
+      "248640 blocks super 1.2 [6/5] [UU_UUU]",
+      "",
+      "unu <none>",
+  };
+
+  MDStat expected;
+  expected.personalities = {};
+
+  MDDevice md1;
+
+  md1.name = "md1";
+  md1.status = "active";
+  md1.raidLevel = "raid10";
+  md1.usableSize = 4687296000;
+  md1.drives = {
+      getMDDrive("sde2[", 0),
+      getMDDrive("sdd2]", 0),
+      getMDDrive("sdc2", 0),
+      getMDDrive("sdb2", 0),
+      getMDDrive("sda2][", 0),
+  };
+  md1.other = "super 1.2 512K chunks 2 near-copies";
+  md1.healthyDrives = "[6/5]";
+  md1.driveStatuses = "[UUUUU_]";
+
+  expected.devices = {md1};
+
+  MD md;
+  MDStat got;
+  md.parseMDStat(lines, got);
+  EXPECT_EQ(got, expected);
 };
 
 } // namespace tables
