@@ -21,7 +21,6 @@
 #include <osquery/core.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
 namespace osquery {
@@ -41,7 +40,7 @@ void genInterfaceDetail(const WmiResultItem& adapter, QueryData& results) {
   adapter.GetString("AdapterType", r["type"]);
   adapter.GetString("Description", r["description"]);
   adapter.GetLong("InterfaceIndex", lPlaceHolder);
-  r["interface"] = INTEGER(lPlaceHolder);
+  r["interface"] = SQL_TEXT(lPlaceHolder);
   adapter.GetString("Manufacturer", r["manufacturer"]);
   adapter.GetString("NetConnectionID", r["connection_id"]);
   adapter.GetLong("NetConnectionStatus", lPlaceHolder);

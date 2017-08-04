@@ -1,12 +1,12 @@
 /*
-*  Copyright (c) 2014-present, Facebook, Inc.
-*  All rights reserved.
-*
-*  This source code is licensed under the BSD-style license found in the
-*  LICENSE file in the root directory of this source tree. An additional grant
-*  of patent rights can be found in the PATENTS file in the same directory.
-*
-*/
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <boost/algorithm/string/replace.hpp>
 
@@ -54,10 +54,11 @@ QueryData genIPv4ArpCache(QueryContext& context) {
 
   for (const auto& iface : interfaces) {
     long interfaceIndex;
+
     if (iface.count("interface") > 0) {
       safeStrtol(iface.at("interface"), 10, interfaceIndex);
-      auto macAddress = iface.count("mac") > 0 ? iface.at("mac") : "";
-      mapOfInterfaces.insert(std::make_pair(interfaceIndex, macAddress));
+      mapOfInterfaces[interfaceIndex] =
+          iface.count("mac") > 0 ? iface.at("mac") : "";
     }
   }
 
@@ -110,5 +111,5 @@ QueryData genArpCache(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
