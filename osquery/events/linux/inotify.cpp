@@ -19,6 +19,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
+#include <osquery/config.h>
 
 #include "osquery/events/linux/inotify.h"
 
@@ -126,24 +127,60 @@ bool INotifyEventPublisher::monitorSubscription(
   return needMonitoring(discovered, sc, sc->mask, sc->recursive, add_watch);
 }
 
+void INotifyEventPublisher::buildExcludePathsSet(
+    const std::set<std::string>& valid_categories) {
+  auto parser = Config::getParser("file_paths");
+  WriteLock lock(subscription_lock_);
+  exclude_paths_.clear();
+  for (const auto& excl_category :
+       parser->getData().get_child("exclude_paths")) {
+    if (valid_categories.find(excl_category.first) == valid_categories.end()) {
+      // valid_categories contain all the valid categories defined under
+      // "file_paths".
+      continue;
+    }
+
+    for (const auto& excl_path : excl_category.second) {
+      auto pattern = excl_path.second.get_value<std::string>("");
+      if (pattern.empty()) {
+        continue;
+      }
+      bool recursive = false;
+      if (pattern.find("%%") != std::string::npos) {
+        recursive = true;
+        pattern = pattern.substr(0, pattern.find("%%"));
+      }
+
+      std::vector<std::string> paths;
+      resolveFilePattern(pattern, paths);
+      for (const auto& path : paths) {
+        exclude_paths_.insert(Path(path, recursive));
+      }
+    }
+  }
+}
+
 void INotifyEventPublisher::configure() {
   if (inotify_handle_ == -1) {
     // This publisher has not been setup correctly.
     return;
   }
 
+  std::set<std::string> valid_categories;
   SubscriptionVector delete_subscriptions;
   {
     WriteLock lock(subscription_lock_);
     auto end = std::remove_if(
         subscriptions_.begin(),
         subscriptions_.end(),
-        [&delete_subscriptions](const SubscriptionRef& subscription) {
+        [&delete_subscriptions,
+         &valid_categories](const SubscriptionRef& subscription) {
           auto inotify_sc = getSubscriptionContext(subscription->context);
           if (inotify_sc->mark_for_deletion == true) {
             delete_subscriptions.push_back(subscription);
             return true;
           }
+          valid_categories.insert(inotify_sc->category);
           return false;
         });
     subscriptions_.erase(end, subscriptions_.end());
@@ -156,10 +193,11 @@ void INotifyEventPublisher::configure() {
     }
     ino_sc->descriptor_paths_.clear();
   }
-
   delete_subscriptions.clear();
 
-  for (auto& sub : subscriptions_) {
+  buildExcludePathsSet(valid_categories);
+
+      for (auto& sub : subscriptions_) {
     // Anytime a configure is called, try to monitor all subscriptions.
     // Configure is called as a response to removing/adding subscriptions.
     // This means recalculating all monitored paths.
@@ -286,6 +324,11 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
                                        const INotifyEventContextRef& ec) const {
   // The subscription may supply a required event mask.
   if (sc->mask != 0 && !(ec->event->mask & sc->mask)) {
+    return false;
+  }
+
+  auto path = ec->path + (isDirectory(ec->path) ? "/" : "");
+  if (exclude_paths_.find(Path(path)) != exclude_paths_.end()) {
     return false;
   }
 

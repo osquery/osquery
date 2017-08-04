@@ -25,6 +25,45 @@ extern std::map<int, std::string> kMaskActions;
 extern const uint32_t kFileDefaultMasks;
 extern const uint32_t kFileAccessMasks;
 
+struct Path {
+  Path(const std::string& str, bool r = false) : path(str), recursive(r) {}
+  const std::string path;
+  bool recursive;
+};
+
+inline bool operator<(const Path& lhs, const Path& rhs) {
+  size_t size =
+      (lhs.path.size() < rhs.path.size()) ? lhs.path.size() : rhs.path.size();
+
+  int rc = lhs.path.compare(0, size, rhs.path, 0, size);
+
+  if (rc > 0) {
+    return false;
+  }
+
+  if (rc < 0) {
+    return true;
+  }
+
+  if (size < rhs.path.size() && lhs.recursive) {
+    return false;
+  }
+
+  if (size < lhs.path.size() && rhs.recursive) {
+    return false;
+  }
+
+  return (lhs.path.size() < rhs.path.size());
+}
+
+struct compareExcludePaths {
+  bool operator()(const Path& lhs, const Path& rhs) const {
+    return lhs < rhs;
+  }
+};
+
+using ExcludePathSet = std::set<Path, compareExcludePaths>;
+
 // INotifySubscriptionContext containers
 using PathDescriptorMap = std::map<std::string, int>;
 using DescriptorPathMap = std::map<int, std::string>;
@@ -215,6 +254,10 @@ class INotifyEventPublisher
   bool monitorSubscription(INotifySubscriptionContextRef& sc,
                            bool add_watch = true);
 
+  /// Build the set of excluded paths(only belonging to valid categories),
+  /// for which events are not to be propogated.
+  void buildExcludePathsSet(const std::set<std::string>& valid_categories);
+
   /// Remove an INotify watch (monitor) from our tracking.
   bool removeMonitor(int watch, bool force = false, bool batch_del = false);
 
@@ -241,6 +284,9 @@ class INotifyEventPublisher
 
   /// Map of inotify watch file descriptor to subscription context.
   DescriptorINotifySubCtxMap descriptor_inosubctx_;
+
+  /// Events pertaining to these paths not to be propagated.
+  ExcludePathSet exclude_paths_;
 
   /// The inotify file descriptor handle.
   std::atomic<int> inotify_handle_{-1};

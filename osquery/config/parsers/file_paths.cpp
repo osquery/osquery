@@ -25,7 +25,7 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
   virtual ~FilePathsConfigParserPlugin() {}
 
   std::vector<std::string> keys() const override {
-    return {"file_paths", "file_accesses"};
+    return {"file_paths", "file_accesses", "exclude_paths"};
   }
 
   Status setUp() override { return Status(0); };
@@ -40,6 +40,7 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
 FilePathsConfigParserPlugin::FilePathsConfigParserPlugin() {
   data_.put_child("file_paths", pt::ptree());
   data_.put_child("file_accesses", pt::ptree());
+  data_.put_child("exclude_paths", pt::ptree());
 }
 
 Status FilePathsConfigParserPlugin::update(const std::string& source,
@@ -64,6 +65,10 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
         accesses.put(category, access_source.first);
       }
     }
+  }
+
+  if (config.count("exclude_paths") > 0) {
+    data_.put_child("exclude_paths", config.at("exclude_paths"));
   }
 
   Config::get().removeFiles(source);
