@@ -225,9 +225,11 @@ Status Carver::carve(const boost::filesystem::path& path) {
   for (size_t i = 0; i < blkCount; i++) {
     inBuff.clear();
     auto bytesRead = src.read(inBuff.data(), FLAGS_carver_block_size);
-    auto bytesWritten = dst.write(inBuff.data(), bytesRead);
-    if (bytesWritten < 0) {
-      return Status(1, "Error writing bytes to tmp fs");
+    if (bytesRead > 0) {
+      auto bytesWritten = dst.write(inBuff.data(), bytesRead);
+      if (bytesWritten < 0) {
+        return Status(1, "Error writing bytes to tmp fs");
+      }
     }
   }
 

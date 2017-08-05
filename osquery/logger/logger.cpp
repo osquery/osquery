@@ -258,23 +258,27 @@ class LoggerDisabler : private boost::noncopyable {
 
 static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
                                      PluginRequest& request) {
-  pt::ptree tree;
-  for (const auto& log_item : log) {
-    pt::ptree child;
-    child.put("s", log_item.severity);
-    child.put("f", log_item.filename);
-    child.put("i", log_item.line);
-    child.put("m", log_item.message);
-    child.put("h", log_item.identifier);
-    child.put("c", log_item.calendar_time);
-    child.put("u", log_item.time);
-    tree.push_back(std::make_pair("", std::move(child)));
-  }
+  try {
+    pt::ptree tree;
+    for (const auto& log_item : log) {
+      pt::ptree child;
+      child.put("s", log_item.severity);
+      child.put("f", log_item.filename);
+      child.put("i", log_item.line);
+      child.put("m", log_item.message);
+      child.put("h", log_item.identifier);
+      child.put("c", log_item.calendar_time);
+      child.put("u", log_item.time);
+      tree.push_back(std::make_pair("", std::move(child)));
+    }
 
-  // Save the log as a request JSON string.
-  std::ostringstream output;
-  pt::write_json(output, tree, false);
-  request["log"] = output.str();
+    // Save the log as a request JSON string.
+    std::ostringstream output;
+    pt::write_json(output, tree, false);
+    request["log"] = output.str();
+  } catch (const pt::ptree_error& e) {
+    VLOG(1) << "Error serializing log entries: " << e.what();
+  }
 }
 
 static void deserializeIntermediateLog(const PluginRequest& request,
