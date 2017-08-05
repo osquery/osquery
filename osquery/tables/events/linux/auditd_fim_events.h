@@ -1,56 +1,42 @@
 #pragma once
 
+#include <sys/types.h>
+
+
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+
+#include <boost/variant.hpp>
+
+
 #include <osquery/events.h>
 
-#include "osquery/events/linux/auditdfim.h"
+
+#include "osquery/events/linux/syscall_monitor.h"
 
 namespace osquery {
-/// This structure stores the information for a tracked file handle
-struct AuditdFimHandleInformation final {
-  /// Operation type affecting this file handle
+struct AuditdFimInodeDescriptor final {
+  enum class Type {
+    File,
+    Folder
+  };
+
+  Type type;
+  std::string path;
+};
+
+struct AuditdFimFdDescriptor final {
   enum class OperationType { Open, Read, Write };
 
-  /// The last operation executed on this file handle; this is used by the
-  /// filtering logic to reduce output
-  OperationType last_operation{OperationType::Open};
-
-  /// The path for this file handle
-  std::string path;
+  ino_t inode;
+  OperationType last_operation;
 };
 
-/// This structure contains a complex (i.e. not normalized) path. It is
-/// mainly used to solve name_to_handle_at/open_by_handle_at syscalls.
-struct AuditdFimPathInformation final {
-  std::string path;
-  std::string cwd;
-};
-
-/// This map contains the file inode emitted by the name_to_handle_at
-/// system call. It is used to solve the file path of the
-/// open_by_handle_at syscall.
-using AuditdFimFileInodeMap =
-    std::unordered_map<std::uint64_t, AuditdFimPathInformation>;
-
-/// Holds the file descriptor map for a process
-using AuditdFimHandleMap = std::unordered_map<int, AuditdFimHandleInformation>;
-
-/// Contains the state of a tracked process
-struct AuditdFimProcessState final {
-  /// Contains the handle map for the process
-  AuditdFimHandleMap handle_map;
-
-  /// Contains the mapping for the file inodes emitted by
-  /// name_to_handle_at syscalls, and it is used to retrieve
-  /// the path for the open_by_handle_at system call.
-  AuditdFimFileInodeMap inode_map;
-};
-
-/// Holds the process state for all encountered process ids
-using AuditdFimProcessMap = std::unordered_map<__pid_t, AuditdFimProcessState>;
+using AuditdFimInodeMap = std::unordered_map<ino_t, AuditdFimInodeDescriptor>;
+using AuditdFimFdMap = std::unordered_map<int, AuditdFimFdDescriptor>;
+using AuditdFimProcessMap = std::unordered_map<pid_t, AuditdFimFdMap>;
 
 /// A simple vector of strings
 using StringList = std::vector<std::string>;
@@ -68,15 +54,98 @@ struct AuditdFimConfiguration final {
   bool show_accesses{true};
 };
 
+struct AuditdFimContext final {
+  AuditdFimConfiguration configuration;
+  AuditdFimProcessMap process_map;
+  AuditdFimInodeMap inode_map;
+};
+
+struct AuditdFimSyscallRecord final {
+  enum class Type {
+    Link,
+    Symlink,
+    Unlink,
+    Rename,
+    Open,
+    Close,
+    Dup,
+    Read,
+    Write,
+    Mmap
+  };
+
+  Type type;
+  bool partial;
+
+  pid_t process_id;
+  pid_t parent_process_id;
+  std::string executable_path;
+  std::uint64_t return_value;
+};
+
+struct AuditdFimPathRecordItem final {
+  std::size_t index;
+  ino_t inode;
+  std::string path;
+};
+
+struct AuditdFimRenameData final {
+  std::string source;
+  std::string destination;
+};
+
+struct AuditdFimIOData final {
+  enum class Type {
+    Open,
+    Read,
+    Write,
+    Close,
+    Unlink
+  };
+
+  std::string target;
+  Type type;
+  bool state_changed;
+};
+
+using SyscallData = boost::variant<AuditdFimRenameData, AuditdFimIOData>;
+
+struct AuditdFimSyscallContext final {
+  enum class Type {
+    Link,
+    Symlink,
+    Unlink,
+    Rename,
+    Open,
+    Close,
+    Dup,
+    Read,
+    Write,
+    Mmap,
+    NameToHandleAt
+  };
+
+  Type type;
+  std::uint64_t syscall_number;
+  bool partial;
+
+  std::string cwd;
+  std::unordered_map<std::size_t, AuditdFimPathRecordItem> path_record_map;
+
+  pid_t process_id;
+  pid_t parent_process_id;
+  std::string executable_path;
+  std::uint64_t return_value;
+
+  SyscallData syscall_data;
+};
+
 /// This subscriber receives syscall events from the publisher and
 /// builds a file descriptor map for each process. Once a read or
 /// write operation is performed, a new row is emitted (according
 /// to how it has been configured).
 class AuditdFimEventSubscriber final
-    : public EventSubscriber<AuditdFimEventPublisher> {
-  AuditdFimProcessMap process_map_;
-  AuditdFimConfiguration configuration_;
-
+    : public EventSubscriber<SyscallMonitorEventPublisher> {
  public:
   Status setUp() override;
   Status init() override;
@@ -88,57 +157,20 @@ class AuditdFimEventSubscriber final
   Status Callback(const ECRef& event_context,
                   const SCRef& subscription_context);
 
-  /// Processes the given events, updating the tracing context and emitting rows
+  /// Processes the given events, updating the tracing context
   static Status ProcessEvents(
-      std::vector<Row>& emitted_row_list,
-      AuditdFimProcessMap& process_map,
-      const AuditdFimConfiguration& configuration,
-      const std::vector<SyscallEvent>& syscall_event_list) noexcept;
+      std::vector<Row> &emitted_row_list,
+      AuditdFimContext &fim_context,
+      const std::vector<SyscallMonitorEvent>& event_list) noexcept;
 
- private:
-  /// Returns the process state for the specified pid
-  static AuditdFimProcessMap::iterator GetOrCreateProcessState(
-      AuditdFimProcessMap& process_map,
-      __pid_t process_id,
-      bool create_if_missing) noexcept;
+  static bool EmitRowFromSyscallContext(Row &row, AuditdFimSyscallContext &syscall_context) noexcept;
 
-  /// Drops the specified state from the map
-  static void DropProcessState(AuditdFimProcessMap& process_map,
-                               __pid_t process_id) noexcept;
+      static bool AuditSyscallRecordHandler(AuditdFimContext &fim_context, AuditdFimSyscallContext &syscall_context, const AuditEventRecord &record) noexcept;
+  static bool ParseAuditCwdRecord(std::string &cwd, const AuditEventRecord &record) noexcept;
+  static bool ParseAuditMmapRecord(const AuditEventRecord &record) noexcept;
+  static bool ParseAuditPathRecord(AuditdFimPathRecordItem &output, const AuditEventRecord &record) noexcept;
 
-  /// Updates the inode map (used for name_to_handle_at and open_by_handle_at)
-  static void SaveInodeInformation(AuditdFimProcessMap& process_map,
-                                   __pid_t process_id,
-                                   __ino_t inode,
-                                   const std::string& cwd,
-                                   const std::string& path) noexcept;
-
-  /// Returns the specified inode from the process state (used for
-  /// name_to_handle_at and open_by_handle_at)
-  static bool GetInodeInformation(
-      AuditdFimProcessMap& process_map,
-      __pid_t process_id,
-      __ino_t inode,
-      AuditdFimPathInformation& path_information) noexcept;
-
-  /// Updates the specified handle in the process state
-  static void SaveHandleInformation(
-      AuditdFimProcessMap& process_map,
-      __pid_t process_id,
-      std::uint64_t fd,
-      const std::string& path,
-      AuditdFimHandleInformation::OperationType last_operation) noexcept;
-
-  /// Returns information about the specified handle
-  static bool GetHandleInformation(
-      AuditdFimProcessMap& process_map,
-      __pid_t process_id,
-      std::uint64_t fd,
-      AuditdFimHandleInformation& handle_info) noexcept;
-
-  /// Removes the specified file descriptor from the process state
-  static void DropHandleInformation(AuditdFimProcessMap& process_map,
-                                    __pid_t process_id,
-                                    std::uint64_t fd) noexcept;
+private:
+  AuditdFimContext context_;
 };
 }

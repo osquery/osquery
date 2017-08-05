@@ -1,0 +1,26 @@
+Configuration
+  setenforce Permissive
+  vim /etc/selinux/config # also set it here
+
+  service auditd stop
+  chkconfig auditd off
+
+Preprequisites:
+  yum install ruby ruby-devel doxygen
+  sudo gem install fpm
+
+Compiling & installing
+  git clone
+  git submodule init
+  git submodule update --recursive
+
+  make sysprep
+  make deps
+  make
+  make package
+
+  rpm -i ./build/xxxx.rpm
+
+Final steps
+  cp /usr/share/osquery/osquery.example.conf /etc/osquery/osquery.conf
+

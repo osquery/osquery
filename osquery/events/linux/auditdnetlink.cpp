@@ -331,7 +331,7 @@ std::vector<AuditEventRecord> AuditdNetlink::getEvents(
 bool AuditdNetlink::ParseAuditReply(const audit_reply& reply,
                                     AuditEventRecord& event_record) noexcept {
   event_record = {};
-
+//std::cout << reply.type << " " << std::string(reply.message, reply.len) << std::endl;
   // Tokenize the message.
   event_record.type = reply.type;
   boost::string_ref message_view(reply.message,
@@ -722,25 +722,9 @@ bool AuditdNetlink::configureAuditService() noexcept {
   if (FLAGS_audit_allow_fim_events) {
     VLOG(1) << "Enabling audit rules for the auditd_fim_events table";
 
-    int syscall_list[] = {__NR_execve,
-                          __NR_exit,
-                          __NR_exit_group,
-                          __NR_open,
-                          __NR_openat,
-                          __NR_name_to_handle_at,
-                          __NR_open_by_handle_at,
-                          __NR_close,
-                          __NR_dup,
-                          __NR_dup2,
-                          __NR_dup3,
-                          __NR_read,
-                          __NR_write,
-                          __NR_mmap,
-                          __NR_creat,
-                          __NR_mknodat,
-                          __NR_unlink,
-                          __NR_unlinkat,
-                          __NR_mknod};
+    int syscall_list[] = {
+      __NR_link, __NR_linkat, __NR_symlink, __NR_symlinkat, __NR_unlink, __NR_unlinkat, __NR_rename, __NR_renameat, __NR_renameat2, __NR_mknod, __NR_mknodat, __NR_open, __NR_openat, __NR_open_by_handle_at, __NR_name_to_handle_at, __NR_close, __NR_dup, __NR_dup2, __NR_dup3, __NR_pread64, __NR_preadv, __NR_read, __NR_readv, __NR_mmap, __NR_mremap, __NR_munmap, __NR_remap_file_pages, __NR_write, __NR_writev, __NR_pwrite64, __NR_pwritev
+    };
 
     for (int syscall : syscall_list) {
       monitored_syscall_list_.insert(syscall);

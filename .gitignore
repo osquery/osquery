@@ -42,6 +42,8 @@ build/
 
 # CLion IDE
 .idea
+cmake-build-debug
+cmake-build-release
 
 # QtCreator files
 osquery.config

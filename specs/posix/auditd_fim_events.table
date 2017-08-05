@@ -1,23 +1,15 @@
 table_name("auditd_fim_events")
 description("A File Integrity Monitor implementation using the audit service.")
 schema([
-    # Populated from the AUDIT_SYSCALL event record
-    Column("syscall", TEXT, "Syscall name"),
+    Column("operation", TEXT, "Operation type"),
     Column("pid", BIGINT, "Process ID"),
     Column("ppid", BIGINT, "Parent process ID"),
     Column("time", BIGINT, "Time of execution in UNIX time"),
     Column("executable", TEXT, "The executable path"),
-    Column("input_fd", TEXT, "Input file descriptor"),
-    Column("output_fd", TEXT, "Output file descriptor"),
     Column("partial", TEXT, "True if this is a partial event (i.e.: this process existed before we started osquery)"),
-
-    # Populated from the AUDIT_CWD event record
     Column("cwd", TEXT, "The current working directory of the process"),
-
-    # Populated from the AUDIT_PATH event record
-    Column("name", TEXT, "The path associated with the event"),
-    Column("canonical_path", TEXT, "The canonical path associated with the event"),
-    
+    Column("path1", TEXT, "The path associated with the event"),
+    Column("path2", TEXT, "The canonical path associated with the event"),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
     Column("eid", TEXT, "Event ID", hidden=True),
 ])
