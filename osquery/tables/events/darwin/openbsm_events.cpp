@@ -193,11 +193,11 @@ Status OpenBSMSSHLoginSubscriber::Callback(
       }
       break;
     case AUT_TEXT:
-      r["message"] = std::string(tok.tt.text.text, tok.tt.text.len);
+      r["message"] =
+          "OpenSSH: " + std::string(tok.tt.text.text, tok.tt.text.len);
       break;
     }
   }
-
   r["uptime"] = INTEGER(tables::getUptime());
   add(r);
   return Status(0);
