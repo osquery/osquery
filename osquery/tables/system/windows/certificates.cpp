@@ -37,6 +37,7 @@ const std::map<unsigned long, std::string> kKeyUsages = {
     {CERT_NON_REPUDIATION_KEY_USAGE, "CERT_NON_REPUDIATION_KEY_USAGE"},
     {CERT_OFFLINE_CRL_SIGN_KEY_USAGE, "CERT_OFFLINE_CRL_SIGN_KEY_USAGE"}};
 
+/// A struct holding the arguments we pass to the WinAPI callback function
 typedef struct _ENUM_ARG {
   DWORD dwFlags;
   const void* pvStoreLocationPara;
@@ -80,7 +81,7 @@ void getCertCtxProp(const PCCERT_CONTEXT& certContext,
   auto ret = CertGetCertificateContextProperty(
       certContext, propId, nullptr, &dataBuffLen);
   if (ret == 0) {
-    VLOG(1) << "Failed to get certificate property struct " << propId
+    VLOG(1) << "Failed to get certificate property structure " << propId
             << " with " << GetLastError();
     return;
   }
@@ -90,7 +91,7 @@ void getCertCtxProp(const PCCERT_CONTEXT& certContext,
       certContext, propId, dataBuff.data(), &dataBuffLen);
 
   if (ret == 0) {
-    VLOG(1) << "Failed to get certificate property struct " << propId
+    VLOG(1) << "Failed to get certificate property structure " << propId
             << " with " << GetLastError();
   }
 }
@@ -123,7 +124,7 @@ void enumerateCertStore(const HCERTSTORE& certStore,
 
     Row r;
     r["sha1"] = fingerprint;
-    certBuff.resize(256);
+    certBuff.resize(256, 0);
     std::fill(certBuff.begin(), certBuff.end(), 0);
     CertGetNameString(certContext,
                       CERT_NAME_SIMPLE_DISPLAY_TYPE,
@@ -138,28 +139,28 @@ void enumerateCertStore(const HCERTSTORE& certStore,
                                   CERT_SIMPLE_NAME_STR,
                                   nullptr,
                                   0);
-    certBuff.resize(subjSize);
+    certBuff.resize(subjSize, 0);
     std::fill(certBuff.begin(), certBuff.end(), 0);
     subjSize = CertNameToStr(certContext->dwCertEncodingType,
                              &(certContext->pCertInfo->Subject),
                              CERT_SIMPLE_NAME_STR,
                              certBuff.data(),
                              subjSize);
-    r["subject"] = subjSize == 0 ? "" : std::string(certBuff.data());
+    r["subject"] = subjSize == 0 ? "" : certBuff.data();
 
     auto issuerSize = CertNameToStr(certContext->dwCertEncodingType,
                                     &(certContext->pCertInfo->Issuer),
                                     CERT_SIMPLE_NAME_STR,
                                     nullptr,
                                     0);
-    certBuff.resize(issuerSize);
+    certBuff.resize(issuerSize, 0);
     std::fill(certBuff.begin(), certBuff.end(), 0);
     issuerSize = CertNameToStr(certContext->dwCertEncodingType,
                                &(certContext->pCertInfo->Issuer),
                                CERT_SIMPLE_NAME_STR,
                                certBuff.data(),
                                issuerSize);
-    r["issuer"] = issuerSize == 0 ? "" : std::string(certBuff.data());
+    r["issuer"] = issuerSize == 0 ? "" : certBuff.data();
 
     // TODO: Find the right API calls to get whether a cert is for a CA
     r["ca"] = INTEGER(-1);
@@ -170,10 +171,10 @@ void enumerateCertStore(const HCERTSTORE& certStore,
             : INTEGER(0);
 
     r["not_valid_before"] =
-        std::to_string(filetimeToUnixtime(certContext->pCertInfo->NotBefore));
+        INTEGER(filetimeToUnixtime(certContext->pCertInfo->NotBefore));
 
     r["not_valid_after"] =
-        std::to_string(filetimeToUnixtime(certContext->pCertInfo->NotAfter));
+        INTEGER(filetimeToUnixtime(certContext->pCertInfo->NotAfter));
 
     r["signing_algorithm"] =
         cryptOIDToString(certContext->pCertInfo->SignatureAlgorithm.pszObjId);
@@ -185,30 +186,57 @@ void enumerateCertStore(const HCERTSTORE& certStore,
 
     r["key_strength"] = INTEGER(certContext->cbCertEncoded);
 
-    std::stringstream subjId;
-    // TODO: Sort out why we're not getting back Subject IDs
-    if (certContext->pCertInfo->SubjectUniqueId.cbData > 0) {
-      try {
-        boost::algorithm::hex(certContext->pCertInfo->SubjectUniqueId.pbData,
-                              std::ostream_iterator<char>{subjId, ""});
-      } catch (std::exception /* e */) {
-      }
-      r["subject_key_id"] = subjId.str();
-    } else {
-      r["subject_key_id"] = "-1";
-    }
-
-    std::stringstream issuerId;
-    // TODO: Sort out why we're not getting back Issuer IDs
-    if (certContext->pCertInfo->IssuerUniqueId.cbData > 0) {
-      boost::algorithm::hex(certContext->pCertInfo->IssuerUniqueId.pbData,
-                            std::ostream_iterator<char>{issuerId, ""});
-      r["authority_key_id"] = issuerId.str();
-    } else {
-      r["authority_key_id"] = "-1";
-    }
+    certBuff.clear();
+    getCertCtxProp(certContext, CERT_KEY_IDENTIFIER_PROP_ID, certBuff);
+    std::string subjectKeyId;
+    boost::algorithm::hex(std::string(certBuff.begin(), certBuff.end()),
+                          back_inserter(subjectKeyId));
+    r["subject_key_id"] = subjectKeyId;
 
     r["path"] = certStoreName.empty() ? "-1" : certStoreName;
+
+    std::string authKeyId;
+    if (certContext->pCertInfo->cExtension != 0) {
+      auto extension = CertFindExtension(szOID_AUTHORITY_KEY_IDENTIFIER2,
+                                         certContext->pCertInfo->cExtension,
+                                         certContext->pCertInfo->rgExtension);
+      if (extension != nullptr) {
+        unsigned long decodedBuffSize = 0;
+        CryptDecodeObjectEx(CERT_ENCODING,
+                            X509_AUTHORITY_KEY_ID2,
+                            extension->Value.pbData,
+                            extension->Value.cbData,
+                            CRYPT_DECODE_NOCOPY_FLAG,
+                            nullptr,
+                            nullptr,
+                            &decodedBuffSize);
+
+        certBuff.resize(decodedBuffSize, 0);
+        std::fill(certBuff.begin(), certBuff.end(), 0);
+        auto decodeRet = CryptDecodeObjectEx(CERT_ENCODING,
+                                             X509_AUTHORITY_KEY_ID2,
+                                             extension->Value.pbData,
+                                             extension->Value.cbData,
+                                             CRYPT_DECODE_NOCOPY_FLAG,
+                                             nullptr,
+                                             certBuff.data(),
+                                             &decodedBuffSize);
+        if (decodeRet != FALSE) {
+          auto authKeyIdBlob =
+              reinterpret_cast<CERT_AUTHORITY_KEY_ID2_INFO*>(certBuff.data());
+
+          boost::algorithm::hex(std::string(authKeyIdBlob->KeyId.pbData,
+                                            authKeyIdBlob->KeyId.pbData +
+                                                authKeyIdBlob->KeyId.cbData),
+                                back_inserter(authKeyId));
+        } else {
+          VLOG(1) << "Failed to decode authority_key_id with ("
+                  << GetLastError() << ")";
+        }
+      }
+    }
+    r["authority_key_id"] = authKeyId;
+
     results.push_back(r);
     certContext = CertEnumCertificatesInStore(certStore, certContext);
   }
@@ -220,10 +248,10 @@ BOOL WINAPI certEnumSystemStoreCallback(const void* systemStore,
                                         PCERT_SYSTEM_STORE_INFO storeInfo,
                                         void* reserved,
                                         void* arg) {
-  auto storeArg = *static_cast<ENUM_ARG*>(arg);
+  auto* storeArg = static_cast<ENUM_ARG*>(arg);
   const auto& certStoreName =
       wstringToString(static_cast<LPCWSTR>(systemStore));
-  auto friendlyStoreName = wstringToString(
+  const auto& friendlyStoreName = wstringToString(
       CryptFindLocalizedName(static_cast<LPCWSTR>(systemStore)));
   auto certHandle = CertOpenSystemStore(0, certStoreName.c_str());
   if (certHandle == nullptr) {
@@ -233,7 +261,7 @@ BOOL WINAPI certEnumSystemStoreCallback(const void* systemStore,
   }
 
   enumerateCertStore(
-      certHandle, friendlyStoreName, *storeArg.processed, *storeArg.results);
+      certHandle, friendlyStoreName, *storeArg->processed, *storeArg->results);
 
   auto ret = CertCloseStore(certHandle, 0);
   if (ret != TRUE) {
