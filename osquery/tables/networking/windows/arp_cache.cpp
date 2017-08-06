@@ -1,17 +1,14 @@
 /*
-*  Copyright (c) 2014-present, Facebook, Inc.
-*  All rights reserved.
-*
-*  This source code is licensed under the BSD-style license found in the
-*  LICENSE file in the root directory of this source tree. An additional grant
-*  of patent rights can be found in the PATENTS file in the same directory.
-*
-*/
-
-#include <string>
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/range/algorithm/find.hpp>
 
 #include <osquery/tables.h>
 
@@ -43,10 +40,10 @@ const std::map<unsigned char, const std::string> kMapOfState = {
 
 QueryData genIPv4ArpCache(QueryContext& context) {
   QueryData results;
-  QueryData interfaces = genInterfaceDetails(context);
+  auto interfaces = genInterfaceDetails(context);
   WmiRequest wmiSystemReq("select * from MSFT_NetNeighbor",
                           (BSTR)L"ROOT\\StandardCimv2");
-  std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
+  auto& wmiResults = wmiSystemReq.results();
   std::map<long, std::string> mapOfInterfaces = {
       {1, ""}, // loopback
   };
@@ -57,29 +54,36 @@ QueryData genIPv4ArpCache(QueryContext& context) {
 
   for (const auto& iface : interfaces) {
     long interfaceIndex;
+
     if (iface.count("interface") > 0) {
       safeStrtol(iface.at("interface"), 10, interfaceIndex);
-      std::string macAddress = iface.at("mac");
-
-      mapOfInterfaces.insert(std::make_pair(interfaceIndex, macAddress));
+      mapOfInterfaces[interfaceIndex] =
+          iface.count("mac") > 0 ? iface.at("mac") : "";
     }
   }
+
   for (const auto& item : wmiResults) {
     Row r;
     item.GetUnsignedShort("AddressFamily", usiPlaceHolder);
-    r["address_family"] = SQL_TEXT(kMapOfAddressFamily.at(usiPlaceHolder));
+    r["address_family"] = kMapOfAddressFamily.count(usiPlaceHolder) > 0
+                              ? kMapOfAddressFamily.at(usiPlaceHolder)
+                              : "-1";
     item.GetUChar("Store", cPlaceHolder);
-    r["store"] = SQL_TEXT(kMapOfStore.at(cPlaceHolder));
+    r["store"] = kMapOfStore.count(cPlaceHolder) > 0
+                     ? kMapOfStore.at(cPlaceHolder)
+                     : "-1";
     item.GetUChar("State", cPlaceHolder);
-    r["state"] = SQL_TEXT(kMapOfState.at(cPlaceHolder));
+    r["state"] = kMapOfState.count(cPlaceHolder) > 0
+                     ? kMapOfState.at(cPlaceHolder)
+                     : "-1";
     item.GetUnsignedInt32("InterfaceIndex", uiPlaceHolder);
-    r["interface"] = SQL_TEXT(mapOfInterfaces.at(uiPlaceHolder));
+    r["interface"] = mapOfInterfaces.count(uiPlaceHolder) > 0
+                         ? mapOfInterfaces.at(uiPlaceHolder)
+                         : "-1";
     item.GetString("IPAddress", r["ip_address"]);
     item.GetString("InterfaceAlias", r["interface_alias"]);
     item.GetString("LinkLayerAddress", strPlaceHolder);
-    r["link_layer_address"] =
-        SQL_TEXT(boost::replace_all_copy(strPlaceHolder, "-", ":"));
-
+    r["link_layer_address"] = boost::replace_all_copy(strPlaceHolder, "-", ":");
     results.push_back(r);
   }
 
@@ -100,12 +104,12 @@ QueryData genArpCache(QueryContext& context) {
       r["address"] = item.at("ip_address");
       r["mac"] = item.at("link_layer_address");
       r["interface"] = item.at("interface");
-      r["permanent"] = SQL_TEXT(("Permanent" == item.at("state")) ? "1" : "0");
+      r["permanent"] = "Permanent" == item.at("state") ? "1" : "0";
       results.push_back(r);
     }
   }
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

@@ -276,7 +276,7 @@ class AuditEventPublisher
    * This contains the: pid, enabled, rate_limit, backlog_limit, lost, and
    * failure booleans and counts.
    */
-  struct audit_status status_;
+  struct audit_status status_ {};
 
   /**
    * @brief A counter of non-blocking netlink reads that contained no data.
@@ -291,7 +291,7 @@ class AuditEventPublisher
   bool control_{false};
 
   /// The last (most recent) audit reply.
-  struct audit_reply reply_;
+  struct audit_reply reply_ {};
 
   /// Track all rule data added by the publisher.
   std::vector<struct AuditRuleInternal> transient_rules_;

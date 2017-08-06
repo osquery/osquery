@@ -27,9 +27,11 @@ if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("-framework Security")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework OpenDirectory")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework DiskArbitration")
+  ADD_OSQUERY_LINK_ADDITIONAL("-framework ServiceManagement")
 
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.dylib")
   ADD_OSQUERY_LINK_ADDITIONAL("libxar.dylib")
+  ADD_OSQUERY_LINK_ADDITIONAL("libcups")
   ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
   ADD_OSQUERY_LINK_ADDITIONAL("libbsm")
 endif()
@@ -123,6 +125,18 @@ file(GLOB OSQUERY_UTILITY_TABLES "utility/*.cpp")
 ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
   ${OSQUERY_UTILITY_TABLES}
 )
+
+if(NOT SKIP_AWS AND LINUX)
+  file(GLOB OSQUERY_CLOUD_TABLES "cloud/*.[cpm]*")
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_cloud_tables ${OSQUERY_CLOUD_TABLES})
+ 
+  file(GLOB OSQUERY_CLOUD_TABLES_TESTS "cloud/tests/*.[cpm]*")
+  if(OSQUERY_CLOUD_TABLES_TESTS)
+    ADD_OSQUERY_TABLE_TEST(${OSQUERY_CLOUD_TABLES_TESTS})
+  endif()
+
+  ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-ec2")
+endif()
 
 if(NOT SKIP_TSK AND POSIX)
   file(GLOB OSQUERY_TSK_TABLES "sleuthkit/*.[cpm]*")

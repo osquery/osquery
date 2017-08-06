@@ -112,6 +112,10 @@ std::string macAsString(const struct ifaddrs* addr) {
   }
 
 #if defined(__linux__)
+  if (addr->ifa_name == nullptr) {
+    return blank_mac;
+  }
+
   struct ifreq ifr;
   ifr.ifr_addr.sa_family = AF_INET;
   memcpy(ifr.ifr_name, addr->ifa_name, IFNAMSIZ);

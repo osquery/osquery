@@ -3,15 +3,15 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class AwsSdkCpp < AbstractOsqueryFormula
   desc "AWS SDK for C++"
   homepage "https://github.com/aws/aws-sdk-cpp"
-  url "https://github.com/aws/aws-sdk-cpp/archive/1.1.5.tar.gz"
-  sha256 "fc16f2fb45254acb2fcbabe13a97daceb1d920a6ac684ef5c601871a29dcb0cf"
+  url "https://github.com/aws/aws-sdk-cpp/archive/1.1.20.tar.gz"
+  sha256 "94d3bf8cbb1db18ebdb50fbf20aa48ad1838f1743bbd22ca04adbaad9bc284dc"
   revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "74639e0ab4b05e3e26356677d1ededbe221dbe3e18205fe9dfea53f43f67cf5f" => :sierra
-    sha256 "aa9b708a93f65447f79a80d04eb7edd496e63a8350a19ee2e585a3b8c69a0f1f" => :x86_64_linux
+    sha256 "68a77b8250e9408bc365c43a0701ff389f39db61ee1d7f876459501236004c44" => :sierra
+    sha256 "e89d2f3a6d190c2b8a02b61fa396588ec23c6fae0aad8307b1fb5d0bdeecae99" => :x86_64_linux
   end
 
   depends_on "cmake" => :build
@@ -25,7 +25,7 @@ class AwsSdkCpp < AbstractOsqueryFormula
     args << "-DMINIMIZE_SIZE=ON"
     args << "-DBUILD_SHARED_LIBS=OFF"
 
-    args << "-DBUILD_ONLY=firehose;kinesis;sts"
+    args << "-DBUILD_ONLY=ec2;firehose;kinesis;sts"
 
     mkdir "build" do
       system "cmake", "..", *args
