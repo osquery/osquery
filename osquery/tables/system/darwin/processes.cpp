@@ -31,6 +31,8 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
+extern long getUptime();
+
 // The maximum number of expected memory regions per process.
 #define MAX_MEMORY_MAPS 512
 
@@ -310,9 +312,19 @@ QueryData genProcesses(QueryContext& context) {
       r["system_time"] = TEXT(rusage_info_data.ri_system_time / CPU_TIME_RATIO);
       // Convert the time in CPU ticks since boot to seconds.
       // This is relative to time not-sleeping since boot.
-      r["start_time"] =
-          TEXT((rusage_info_data.ri_proc_start_abstime / START_TIME_RATIO) *
-               time_base.numer / time_base.denom);
+
+      long uptime = tables::getUptime();
+      uint64_t absoluteTime = mach_absolute_time();
+
+      double multiply = (double) time_base.numer / (double) time_base.denom;
+      long diff = ((rusage_info_data.ri_proc_start_abstime - absoluteTime));
+
+      // This is a negative value
+      long seconds_since_launch = (long) ((diff * multiply) / START_TIME_RATIO);
+
+      // Get the start_time since the computer started
+      r["start_time"] = TEXT(uptime + seconds_since_launch);
+
     } else {
       r["wired_size"] = "-1";
       r["resident_size"] = "-1";
