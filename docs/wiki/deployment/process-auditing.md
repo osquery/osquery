@@ -50,7 +50,7 @@ member-set-sflags-mask:
 member-clear-sflags-mask:has_authenticated
 ```
 
-It is also possible to enable process auditing using a kernel extension. The extension can be downloaded and installed from the [http://osquery.io/downloads](http://osquery.io/downloads) page. It must be kept up to date alongside the osquery daemon and shell since there are automatic API restrictions applied. If you are running a 1.7.5 daemon, a 1.7.5 extension is needed otherwise the extension will not be used. If you are interested in the extension's design and development please check out the [kernel](../development/kernel.md) development guide.
+It is also possible to enable process auditing using a kernel extension. You can build the extension using the osquery build system's `make kernel`. It must be kept up to date alongside the osquery daemon and shell since there are automatic API restrictions applied. If you are running a 1.7.5 daemon, a 1.7.5 extension is needed otherwise the extension will not be used. If you are interested in the extension's design and development please check out the [kernel](../development/kernel.md) development guide.
 
 At the heart of the extension is a replica of the userland Table Pubsub Framework. All osquery-developed kernel code is 100% OS public API compatible and designed to introduce as little stability risk as possible. Running the kernel extension without the osquery daemon should not impact performance.
 

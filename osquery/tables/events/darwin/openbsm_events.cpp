@@ -32,6 +32,18 @@ static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
   r["gid"] = INTEGER(tok.tt.subj32_ex.rgid);
   r["euid"] = INTEGER(tok.tt.subj32_ex.euid);
   r["egid"] = INTEGER(tok.tt.subj32_ex.egid);
+  char ip_str[INET6_ADDRSTRLEN];
+  if (tok.tt.proc32_ex.tid.type == AU_IPv4) {
+    struct in_addr ipv4;
+    ipv4.s_addr = static_cast<in_addr_t>(*tok.tt.subj32_ex.tid.addr);
+    r["address"] =
+        std::string(inet_ntop(AF_INET, &ipv4, ip_str, INET6_ADDRSTRLEN));
+  } else {
+    struct in6_addr ipv6;
+    bcopy(tok.tt.subj32_ex.tid.addr, &ipv6, sizeof(ipv6));
+    r["address"] =
+        std::string(inet_ntop(AF_INET6, &ipv6, ip_str, INET6_ADDRSTRLEN));
+  }
 }
 
 static inline unsigned long decimalIntToOctInt(unsigned long x) {
@@ -72,9 +84,15 @@ REGISTER(OpenBSMExecVESubscriber, "event_subscriber", "process_events");
 REGISTER(OpenBSMSSHLoginSubscriber, "event_subscriber", "user_events");
 
 void OpenBSMExecVESubscriber::configure() {
-  auto sc = createSubscriptionContext();
-  sc->event_id = 23;
-  subscribe(&OpenBSMExecVESubscriber::Callback, sc);
+  std::vector<size_t> event_ids{
+      23, // execve
+      43190, // AUX_POSIX_SPAWN
+  };
+  for (const auto& evid : event_ids) {
+    auto sc = createSubscriptionContext();
+    sc->event_id = evid;
+    subscribe(&OpenBSMExecVESubscriber::Callback, sc);
+  }
 }
 
 Status OpenBSMExecVESubscriber::Callback(
@@ -118,8 +136,7 @@ Status OpenBSMExecVESubscriber::Callback(
       r["status"] = INTEGER(tok.tt.ret64.err);
       break;
     case AUT_EXEC_ARGS:
-      for (auto i = static_cast<unsigned int>(0); i < tok.tt.execarg.count;
-           ++i) {
+      for (size_t i = 0; i < tok.tt.execarg.count; ++i) {
         r["cmdline"] += std::string(tok.tt.execarg.text[i]) + " ";
       }
       r["cmdline_size"] = INTEGER(r["cmdline"].length());
@@ -136,8 +153,7 @@ Status OpenBSMExecVESubscriber::Callback(
       r["dev"] = INTEGER(tok.tt.attr32.dev);
       break;
     case AUT_EXEC_ENV:
-      for (auto i = static_cast<unsigned int>(0); i < tok.tt.execarg.count;
-           ++i) {
+      for (size_t i = 0; i < tok.tt.execarg.count; ++i) {
         r["env"] += std::string(tok.tt.execenv.text[i]) + " ";
       }
       r["env_count"] = INTEGER(tok.tt.execarg.count);
@@ -176,21 +192,6 @@ Status OpenBSMSSHLoginSubscriber::Callback(
       break;
     case AUT_SUBJECT32_EX:
       OpenBSM_AUT_SUBJECT32_EX(r, tok);
-      char ip_str[INET6_ADDRSTRLEN];
-      if (tok.tt.subj32_ex.tid.addr == nullptr) {
-        break;
-      }
-      if (tok.tt.proc32_ex.tid.type == AU_IPv4) {
-        struct in_addr ipv4;
-        ipv4.s_addr = static_cast<in_addr_t>(*tok.tt.subj32_ex.tid.addr);
-        r["address"] =
-            std::string(inet_ntop(AF_INET, &ipv4, ip_str, INET6_ADDRSTRLEN));
-      } else {
-        struct in6_addr ipv6;
-        bcopy(tok.tt.subj32_ex.tid.addr, &ipv6, sizeof(ipv6));
-        r["address"] =
-            std::string(inet_ntop(AF_INET6, &ipv6, ip_str, INET6_ADDRSTRLEN));
-      }
       break;
     case AUT_TEXT:
       r["message"] =
