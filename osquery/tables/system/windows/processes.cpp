@@ -28,6 +28,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
+#include <osquery/filesystem/fileops.h>
 
 namespace osquery {
 int getUidFromSid(PSID sid);
@@ -71,6 +72,8 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   result.GetLong("Priority", lPlaceHolder);
   r["nice"] = INTEGER(lPlaceHolder);
   r["on_disk"] = osquery::pathExists(r["path"]).toString();
+  result.GetLong("ThreadCount", lPlaceHolder);
+  r["threads"] = INTEGER(lPlaceHolder);
 
   std::vector<char> fileName(MAX_PATH);
   fileName.assign(MAX_PATH + 1, '\0');
@@ -87,15 +90,29 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   r["suid"] = "-1";
   r["egid"] = "-1";
   r["sgid"] = "-1";
-  r["start_time"] = "0";
 
-  result.GetString("UserModeTime", sPlaceHolder);
-  long long llHolder;
-  osquery::safeStrtoll(sPlaceHolder, 10, llHolder);
-  r["user_time"] = BIGINT(llHolder / 10000000);
-  result.GetString("KernelModeTime", sPlaceHolder);
-  osquery::safeStrtoll(sPlaceHolder, 10, llHolder);
-  r["system_time"] = BIGINT(llHolder / 10000000);
+  FILETIME createTime;
+  FILETIME exitTime;
+  FILETIME kernelTime;
+  FILETIME userTime;
+  auto procRet =
+      GetProcessTimes(hProcess, &createTime, &exitTime, &kernelTime, &userTime);
+  if (procRet == FALSE) {
+    r["user_time"] = BIGINT(-1);
+    r["system_time"] = BIGINT(-1);
+    r["start_time"] = BIGINT(-1);
+  } else {
+    // Windows stores proc times in 100 nanosecond ticks
+    ULARGE_INTEGER utime;
+    utime.HighPart = userTime.dwHighDateTime;
+    utime.LowPart = userTime.dwLowDateTime;
+    r["user_time"] = BIGINT(utime.QuadPart / 10000000);
+    utime.HighPart = kernelTime.dwHighDateTime;
+    utime.LowPart = kernelTime.dwLowDateTime;
+    r["system_time"] = BIGINT(utime.QuadPart / 10000000);
+    r["start_time"] = BIGINT(osquery::filetimeToUnixtime(createTime));
+  }
+
   result.GetString("PrivatePageCount", sPlaceHolder);
   r["wired_size"] = BIGINT(sPlaceHolder);
   result.GetString("WorkingSetSize", sPlaceHolder);
