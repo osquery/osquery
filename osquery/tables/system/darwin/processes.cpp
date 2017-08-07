@@ -324,10 +324,8 @@ QueryData genProcesses(QueryContext& context) {
       // This is a negative value
       auto seconds_since_launch =
           static_cast<long>((diff * multiply) / START_TIME_RATIO);
-
       // Get the start_time since the computer started
       r["start_time"] = TEXT(uptime + seconds_since_launch);
-
     } else {
       r["wired_size"] = "-1";
       r["resident_size"] = "-1";
