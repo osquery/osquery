@@ -313,7 +313,6 @@ QueryData genProcesses(QueryContext& context) {
       // Convert the time in CPU ticks since boot to seconds.
       // This is relative to time not-sleeping since boot.
 
-      //
       auto uptime = tables::getUptime();
       uint64_t absoluteTime = mach_absolute_time();
 
