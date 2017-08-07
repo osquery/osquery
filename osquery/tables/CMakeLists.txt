@@ -33,6 +33,7 @@ if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("libxar.dylib")
   ADD_OSQUERY_LINK_ADDITIONAL("libcups")
   ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
+  ADD_OSQUERY_LINK_ADDITIONAL("libbsm")
 endif()
 
 # FreeBSD specific and applicable tables.
