@@ -16,6 +16,7 @@
 #include <Windows.h>
 #include <psapi.h>
 #include <stdlib.h>
+#include <tlhelp32.h>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -34,6 +35,113 @@ namespace osquery {
 int getUidFromSid(PSID sid);
 int getGidFromSid(PSID sid);
 namespace tables {
+
+const std::map<unsigned long, std::string> kMemoryConstants = {
+    {PAGE_EXECUTE, "PAGE_EXECUTE"},
+    {PAGE_EXECUTE_READ, "PAGE_EXECUTE_READ"},
+    {PAGE_EXECUTE_READWRITE, "PAGE_EXECUTE_READWRITE"},
+    {PAGE_EXECUTE_WRITECOPY, "PAGE_EXECUTE_WRITECOPY"},
+    {PAGE_NOACCESS, "PAGE_NOACCESS"},
+    {PAGE_READONLY, "PAGE_READONLY"},
+    {PAGE_READWRITE, "PAGE_READWRITE"},
+    {PAGE_WRITECOPY, "PAGE_WRITECOPY"},
+    {PAGE_GUARD, "PAGE_GUARD"},
+    {PAGE_NOCACHE, "PAGE_NOCACHE"},
+    {PAGE_WRITECOMBINE, "PAGE_WRITECOMBINE"},
+};
+
+/// Given a pid, enumerates all loaded modules and memory pages for that process
+Status genMemoryMap(unsigned long pid, QueryData& results) {
+  auto proc = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+  if (proc == INVALID_HANDLE_VALUE) {
+    Row r;
+    r["pid"] = INTEGER(pid);
+    r["start"] = INTEGER(-1);
+    r["end"] = INTEGER(-1);
+    r["permissions"] = "";
+    r["offset"] = INTEGER(-1);
+    r["device"] = "-1";
+    r["inode"] = INTEGER(-1);
+    r["path"] = "";
+    r["pseudo"] = INTEGER(-1);
+    results.push_back(r);
+    return Status(1, "Failed to open handle to process " + std::to_string(pid));
+  }
+  auto modSnap =
+      CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid);
+  if (modSnap == INVALID_HANDLE_VALUE) {
+    return Status(1, "Failed to enumerate modules for " + std::to_string(pid));
+  }
+
+  auto formatMemPerms = [](unsigned long perm) {
+    std::vector<std::string> perms;
+    for (const auto& kv : kMemoryConstants) {
+      if (kv.first & perm) {
+        perms.push_back(kv.second);
+      }
+    }
+    return osquery::join(perms, " | ");
+  };
+
+  MODULEENTRY32 me;
+  MEMORY_BASIC_INFORMATION mInfo;
+  me.dwSize = sizeof(MODULEENTRY32);
+  auto ret = Module32First(modSnap, &me);
+  while (ret != FALSE) {
+    for (auto p = me.modBaseAddr;
+         VirtualQueryEx(proc, p, &mInfo, sizeof(mInfo)) == sizeof(mInfo) &&
+         p < (me.modBaseAddr + me.modBaseSize);
+         p += mInfo.RegionSize) {
+      Row r;
+      r["pid"] = INTEGER(pid);
+      std::stringstream ssStart;
+      ssStart << std::hex << mInfo.BaseAddress;
+      r["start"] = "0x" + ssStart.str();
+      std::stringstream ssEnd;
+      ssEnd << std::hex << std::setfill('0') << std::setw(16)
+            << reinterpret_cast<unsigned long long>(mInfo.BaseAddress) +
+                   mInfo.RegionSize;
+      r["end"] = "0x" + ssEnd.str();
+      r["permissions"] = formatMemPerms(mInfo.Protect);
+      r["offset"] =
+          BIGINT(reinterpret_cast<unsigned long long>(mInfo.AllocationBase));
+      r["device"] = "-1";
+      r["inode"] = INTEGER(-1);
+      r["path"] = me.szExePath;
+      r["pseudo"] = INTEGER(-1);
+      results.push_back(r);
+    }
+    ret = Module32Next(modSnap, &me);
+  }
+
+  CloseHandle(modSnap);
+  return Status(0, "Ok");
+}
+
+/// Helper function for enumerating all active processes on the system
+Status getProcList(std::set<long>& pids) {
+  auto procSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (procSnap == INVALID_HANDLE_VALUE) {
+    return Status(1, "Failed to open process snapshot");
+  }
+
+  PROCESSENTRY32 procEntry;
+  procEntry.dwSize = sizeof(PROCESSENTRY32);
+  auto ret = Process32First(procSnap, &procEntry);
+
+  if (ret == FALSE) {
+    CloseHandle(procSnap);
+    return Status(1, "Failed to open first process");
+  }
+
+  while (ret != FALSE) {
+    pids.insert(procEntry.th32ProcessID);
+    ret = Process32Next(procSnap, &procEntry);
+  }
+
+  CloseHandle(procSnap);
+  return Status(0, "Ok");
+}
 
 void genProcess(const WmiResultItem& result, QueryData& results_data) {
   Row r;
@@ -166,7 +274,7 @@ QueryData genProcesses(QueryContext& context) {
       }
     }
     // None of the constraints returned valid pids, bail out early
-    if (pidlist.size() == 0) {
+    if (pidlist.empty()) {
       return results;
     }
   }
@@ -193,5 +301,32 @@ QueryData genProcesses(QueryContext& context) {
 
   return results;
 }
+
+QueryData genProcessMemoryMap(QueryContext& context) {
+  QueryData results;
+
+  std::set<long> pidlist;
+  if (context.constraints.count("pid") > 0 &&
+      context.constraints.at("pid").exists(EQUALS)) {
+    for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
+      if (pid > 0) {
+        pidlist.insert(pid);
+      }
+    }
+  }
+  if (pidlist.empty()) {
+    getProcList(pidlist);
+  }
+
+  for (const auto& pid : pidlist) {
+    auto s = genMemoryMap(pid, results);
+    if (!s.ok()) {
+      VLOG(1) << s.getMessage();
+    }
+  }
+
+  return results;
+}
+
 } // namespace tables
 } // namespace osquery
