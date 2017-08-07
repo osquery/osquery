@@ -18,5 +18,9 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_core
   watcher.cpp
 )
 
+ADD_OSQUERY_LIBRARY(FALSE osquery_signing
+  signing.cpp
+)
+
 file(GLOB OSQUERY_CORE_TESTS "tests/*.cpp")
 ADD_OSQUERY_TEST(TRUE ${OSQUERY_CORE_TESTS} ${OS_CORE_TESTS_SOURCE})

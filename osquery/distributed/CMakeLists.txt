@@ -1,4 +1,8 @@
-ADD_OSQUERY_LIBRARY(TRUE osquery_distributed
+ADD_OSQUERY_LIBRARY(TRUE osquery_ondemand
+  ondemand.cpp
+)
+
+ADD_OSQUERY_LIBRARY(FALSE osquery_distributed
   distributed.cpp
 )
 

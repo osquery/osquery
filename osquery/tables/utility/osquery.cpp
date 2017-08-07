@@ -21,7 +21,9 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/process.h"
+#include "osquery/core/signing.h"
 
 namespace osquery {
 
@@ -258,6 +260,38 @@ QueryData genOsquerySchedule(QueryContext& context) {
 
     results.push_back(r);
   });
+  return results;
+}
+
+QueryData genOsqueryStrictMode(QueryContext& context) {
+  QueryData results;
+
+  std::string enabled;
+  getDatabaseValue(kPersistentSettings, kStrictMode + ".enabled", enabled);
+  std::string strict_mode_key;
+  getDatabaseValue(kPersistentSettings,
+                   kStrictMode + "." + kStrictModePublicKey,
+                   strict_mode_key);
+  std::string uuid_signing;
+  getDatabaseValue(kPersistentSettings,
+                   kStrictMode + "." + kStrictModeUUIDSigning,
+                   uuid_signing);
+  std::string query_counter;
+  getDatabaseValue(
+      kPersistentSettings, kStrictMode + ".query_counter", query_counter);
+  std::string counter_mode;
+  getDatabaseValue(kPersistentSettings,
+                   kStrictMode + "." + kStrictModeCounterMode,
+                   counter_mode);
+  unsigned long counter;
+  safeStrtoul(query_counter, 10, counter);
+  Row r;
+  r["enabled"] = SQL_TEXT(enabled);
+  r["public_key"] = SQL_TEXT(strict_mode_key);
+  r["uuid_signing"] = SQL_TEXT(uuid_signing);
+  r["counter_mode"] = SQL_TEXT(counter_mode);
+  r["counter"] = INTEGER(counter);
+  results.push_back(r);
   return results;
 }
 }
