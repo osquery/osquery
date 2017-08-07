@@ -9,6 +9,8 @@
  */
 #include <sstream>
 
+#include <boost/network/protocol/http/client.hpp>
+
 #include <osquery/config.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -103,12 +105,11 @@ QueryData genPrometheusMetrics(QueryContext& context) {
   /* Below should be unreachable if there were no urls child node, but we set
    * handle with default value for consistency's sake and for added robustness.
    */
-  auto urls = config.get_child("urls", boost::property_tree::ptree());
+  auto urls = config.get_child("urls");
   if (urls.empty()) {
     return result;
   }
-  for (const auto& url :
-       config.get_child("urls", boost::property_tree::ptree())) {
+  for (const auto& url : config.get_child("urls")) {
     if (!url.first.empty()) {
       return result;
     }

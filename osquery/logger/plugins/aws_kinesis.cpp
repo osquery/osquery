@@ -24,7 +24,7 @@
 
 #include "osquery/core/process.h"
 #include "osquery/logger/plugins/aws_kinesis.h"
-#include "osquery/logger/plugins/aws_util.h"
+#include "osquery/utils/aws_util.h"
 
 namespace osquery {
 

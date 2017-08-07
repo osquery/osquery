@@ -55,14 +55,14 @@ inline std::string readProcLink(const std::string& attr,
   // The exe is a symlink to the binary on-disk.
   auto attr_path = getProcAttr(attr, pid);
 
-  std::string result;
-  char link_path[PATH_MAX] = {0};
-  auto bytes = readlink(attr_path.c_str(), link_path, sizeof(link_path) - 1);
-  if (bytes >= 0) {
-    result = std::string(link_path);
+  char* link_path = realpath(attr_path.c_str(), nullptr);
+  if (link_path != nullptr) {
+    std::string result = std::string(link_path);
+    free(link_path);
+    return result;
   }
 
-  return result;
+  return "";
 }
 
 // In the case where the linked binary path ends in " (deleted)", and a file
