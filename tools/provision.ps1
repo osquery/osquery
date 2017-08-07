@@ -296,6 +296,8 @@ function Install-ThirdParty {
     "snappy-msvc.1.1.1.8",
     "thrift-dev.0.10.0-r4",
     "zlib.1.2.8",
+    "libarchive.3.3.1-r1",
+    "rapidjson.1.1.0"
     "zstd.1.2.0-r3"
   )
   $tmpDir = Join-Path $env:TEMP 'osquery-packages'

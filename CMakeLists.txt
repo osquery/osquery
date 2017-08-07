@@ -428,6 +428,7 @@ add_definitions(
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}_${OSQUERY_BUILD_DISTRO_DEFINE}
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
+  -DNOMINMAX
 )
 
 # Remove console output (not handled by logged).

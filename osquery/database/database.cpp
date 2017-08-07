@@ -18,6 +18,7 @@
 #include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -70,10 +71,36 @@ Status serializeRow(const Row& r, pt::ptree& tree) {
   return Status(0, "OK");
 }
 
+Status serializeRowRJ(const Row& r, rj::Document& d) {
+  try {
+    for (auto& i : r) {
+      d.AddMember(rj::Value(i.first.c_str(), d.GetAllocator()).Move(),
+                  rj::Value(i.second.c_str(), d.GetAllocator()).Move(),
+                  d.GetAllocator());
+    }
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
+
 Status serializeRow(const Row& r, const ColumnNames& cols, pt::ptree& tree) {
   try {
     for (auto& c : cols) {
       tree.add<std::string>(c, r.at(c));
+    }
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
+
+Status serializeRowRJ(const Row& r, const ColumnNames& cols, rj::Document& d) {
+  try {
+    for (auto& c : cols) {
+      d.AddMember(rj::Value(c.c_str(), d.GetAllocator()).Move(),
+                  rj::Value(r.at(c).c_str(), d.GetAllocator()).Move(),
+                  d.GetAllocator());
     }
   } catch (const std::exception& e) {
     return Status(1, e.what());
@@ -99,10 +126,38 @@ Status serializeRowJSON(const Row& r, std::string& json) {
   return Status(0, "OK");
 }
 
+Status serializeRowJSONRJ(const Row& r, std::string& json) {
+  rj::Document d(rj::kObjectType);
+  auto status = serializeRowRJ(r, d);
+  if (!status.ok()) {
+    return status;
+  }
+
+  rj::StringBuffer sb;
+  rj::Writer<rj::StringBuffer> writer(sb);
+  d.Accept(writer);
+  json = sb.GetString();
+  return Status(0, "OK");
+}
+
 Status deserializeRow(const pt::ptree& tree, Row& r) {
   for (const auto& i : tree) {
     if (i.first.length() > 0) {
       r[i.first] = i.second.data();
+    }
+  }
+  return Status(0, "OK");
+}
+
+Status deserializeRowRJ(const rj::Value& v, Row& r) {
+  if (!v.IsObject()) {
+    return Status(1, "Row not an object");
+  }
+  for (const auto& i : v.GetObject()) {
+    std::string name(i.name.GetString());
+    std::string value(i.value.GetString());
+    if (name.length() > 0) {
+      r[name] = value;
     }
   }
   return Status(0, "OK");
@@ -120,12 +175,20 @@ Status deserializeRowJSON(const std::string& json, Row& r) {
   return deserializeRow(tree, r);
 }
 
+Status deserializeRowJSONRJ(const std::string& json, Row& r) {
+  rj::Document d;
+  if (d.Parse(json.c_str()).HasParseError()) {
+    return Status(1, "Error serializing JSON");
+  }
+  return deserializeRowRJ(d, r);
+}
+
 Status serializeQueryData(const QueryData& q, pt::ptree& tree) {
   for (const auto& r : q) {
     pt::ptree serialized;
-    auto s = serializeRow(r, serialized);
-    if (!s.ok()) {
-      return s;
+    auto status = serializeRow(r, serialized);
+    if (!status.ok()) {
+      return status;
     }
     tree.push_back(std::make_pair("", serialized));
   }
@@ -137,9 +200,9 @@ Status serializeQueryData(const QueryData& q,
                           pt::ptree& tree) {
   for (const auto& r : q) {
     pt::ptree serialized;
-    auto s = serializeRow(r, cols, serialized);
-    if (!s.ok()) {
-      return s;
+    auto status = serializeRow(r, cols, serialized);
+    if (!status.ok()) {
+      return status;
     }
     tree.push_back(std::make_pair("", serialized));
   }
@@ -164,10 +227,40 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
   return Status(0, "OK");
 }
 
+Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json) {
+  rj::Document d;
+  d.SetArray();
+  auto status = serializeQueryDataRJ(q, d);
+  if (!status.ok()) {
+    return status;
+  }
+
+  rj::StringBuffer sb;
+  rj::Writer<rj::StringBuffer> writer(sb);
+  d.Accept(writer);
+  json = sb.GetString();
+  return Status(0, "OK");
+}
+
 Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
   for (const auto& i : tree) {
     Row r;
     auto status = deserializeRow(i.second, r);
+    if (!status.ok()) {
+      return status;
+    }
+    qd.push_back(r);
+  }
+  return Status(0, "OK");
+}
+
+Status deserializeQueryDataRJ(const rj::Value& v, QueryData& qd) {
+  if (!v.IsArray()) {
+    return Status(1, "Not an array");
+  }
+  for (const auto& i : v.GetArray()) {
+    Row r;
+    auto status = deserializeRowRJ(i, r);
     if (!status.ok()) {
       return status;
     }
@@ -723,5 +816,68 @@ void dumpDatabase() {
           stdout, "%s[%s]: %s\n", domain.c_str(), key.c_str(), value.c_str());
     }
   }
+}
+
+Status serializeQueryDataRJ(const QueryData& q, rj::Document& d) {
+  if (!d.IsArray()) {
+    return Status(1, "Document is not an array");
+  }
+  for (const auto& r : q) {
+    rj::Document serialized;
+    serialized.SetObject();
+    auto status = serializeRowRJ(r, serialized);
+    if (!status.ok()) {
+      return status;
+    }
+    if (serialized.GetObject().MemberCount()) {
+      d.PushBack(rj::Value(serialized, d.GetAllocator()).Move(),
+                 d.GetAllocator());
+    }
+  }
+  return Status(0, "OK");
+}
+
+Status serializeQueryDataRJ(const QueryData& q,
+                            const ColumnNames& cols,
+                            rj::Document& d) {
+  for (const auto& r : q) {
+    rj::Document serialized;
+    serialized.SetObject();
+    auto status = serializeRowRJ(r, cols, serialized);
+    if (!status.ok()) {
+      return status;
+    }
+    if (serialized.GetObject().MemberCount()) {
+      d.PushBack(rj::Value(serialized, d.GetAllocator()).Move(),
+                 d.GetAllocator());
+    }
+  }
+  return Status(0, "OK");
+}
+
+Status serializeDiffResultsRJ(const DiffResults& d, rj::Document& doc) {
+  // Serialize and add "removed" first.
+  // A property tree is somewhat ordered, this provides a loose contract to
+  // the logger plugins and their aggregations, allowing them to parse chunked
+  // lines. Note that the chunking is opaque to the database functions.
+  rj::Document removed;
+  auto status = serializeQueryDataRJ(d.removed, removed);
+  if (!status.ok()) {
+    return status;
+  }
+
+  doc.AddMember(rj::Value("removed", doc.GetAllocator()).Move(),
+                rj::Value(removed, doc.GetAllocator()).Move(),
+                doc.GetAllocator());
+
+  rj::Document added;
+  status = serializeQueryDataRJ(d.added, added);
+  if (!status.ok()) {
+    return status;
+  }
+  doc.AddMember(rj::Value("added", doc.GetAllocator()).Move(),
+                rj::Value(added, doc.GetAllocator()).Move(),
+                doc.GetAllocator());
+  return Status(0, "OK");
 }
 }

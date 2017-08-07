@@ -20,6 +20,8 @@
 #include <osquery/registry.h>
 #include <osquery/status.h>
 
+#include "osquery/core/json.h"
+
 namespace osquery {
 
 /**
@@ -91,6 +93,7 @@ using ColumnNames = std::vector<std::string>;
  * @return Status indicating the success or failure of the operation
  */
 Status serializeRow(const Row& r, boost::property_tree::ptree& tree);
+Status serializeRowRJ(const Row& r, rapidjson::Document& d);
 
 /**
  * @brief Serialize a Row object into a JSON string
@@ -101,6 +104,7 @@ Status serializeRow(const Row& r, boost::property_tree::ptree& tree);
  * @return Status indicating the success or failure of the operation
  */
 Status serializeRowJSON(const Row& r, std::string& json);
+Status serializeRowJSONRJ(const Row& r, std::string& json);
 
 /**
  * @brief Deserialize a Row object from a property tree
@@ -112,6 +116,8 @@ Status serializeRowJSON(const Row& r, std::string& json);
  */
 Status deserializeRow(const boost::property_tree::ptree& tree, Row& r);
 
+Status deserializeRowRJ(const rapidjson::Value& v, Row& r);
+
 /**
  * @brief Deserialize a Row object from a JSON string
  *
@@ -121,6 +127,7 @@ Status deserializeRow(const boost::property_tree::ptree& tree, Row& r);
  * @return Status indicating the success or failure of the operation
  */
 Status deserializeRowJSON(const std::string& json, Row& r);
+Status deserializeRowJSONRJ(const std::string& json, Row& r);
 
 /**
  * @brief The result set returned from a osquery SQL query
@@ -141,6 +148,8 @@ using QueryData = std::vector<Row>;
 Status serializeQueryData(const QueryData& q,
                           boost::property_tree::ptree& tree);
 
+Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d);
+
 /**
  * @brief Serialize a QueryData object into a property tree
  *
@@ -154,6 +163,10 @@ Status serializeQueryData(const QueryData& q,
                           const ColumnNames& cols,
                           boost::property_tree::ptree& tree);
 
+Status serializeQueryDataRJ(const QueryData& q,
+                            const ColumnNames& cols,
+                            rapidjson::Document& d);
+
 /**
  * @brief Serialize a QueryData object into a JSON string
  *
@@ -164,9 +177,14 @@ Status serializeQueryData(const QueryData& q,
  */
 Status serializeQueryDataJSON(const QueryData& q, std::string& json);
 
+Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json);
+
 /// Inverse of serializeQueryData, convert property tree to QueryData.
 Status deserializeQueryData(const boost::property_tree::ptree& tree,
                             QueryData& qd);
+
+/// Inverse of serializeQueryData, convert property tree to QueryData.
+Status deserializeQueryDataRJ(const rapidjson::Value& v, QueryData& qd);
 
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryData.
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd);
