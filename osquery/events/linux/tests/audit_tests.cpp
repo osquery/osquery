@@ -7,7 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
+/*
 #include <stdio.h>
 
 #include <gtest/gtest.h>
@@ -204,3 +204,4 @@ TEST_F(AuditTests, test_parse_sock_addr) {
   FLAGS_audit_allow_unix = socket_flag;
 }
 }
+*/

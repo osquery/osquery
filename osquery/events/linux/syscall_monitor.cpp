@@ -8,8 +8,6 @@
  *
  */
 
-#include <iostream>
-
 #include <boost/filesystem.hpp>
 
 #include <osquery/flags.h>
@@ -20,10 +18,15 @@
 
 namespace osquery {
 DECLARE_bool(audit_allow_fim_events);
+DECLARE_bool(audit_allow_process_events);
+DECLARE_bool(audit_allow_sockets);
 
 REGISTER(SyscallMonitorEventPublisher, "event_publisher", "syscallmonitor");
 
 namespace {
+bool IsPublisherEnabled() noexcept {
+  return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events || FLAGS_audit_allow_sockets);
+}
 /**
 * @brief Returns the specified field from the record.
 *
@@ -78,7 +81,7 @@ bool GetAuditRecordField(std::uint64_t& value,
 }
 
 Status SyscallMonitorEventPublisher::setUp() {
-  if (!FLAGS_audit_allow_fim_events) {
+  if (!IsPublisherEnabled) {
     return Status(1, "Publisher disabled via configuration");
   }
 
@@ -86,7 +89,7 @@ Status SyscallMonitorEventPublisher::setUp() {
 }
 
 void SyscallMonitorEventPublisher::configure() {
-  if (!FLAGS_audit_allow_fim_events) {
+  if (!IsPublisherEnabled()) {
     return;
   }
 
@@ -104,7 +107,7 @@ void SyscallMonitorEventPublisher::tearDown() {
 }
 
 Status SyscallMonitorEventPublisher::run() {
-  if (!FLAGS_audit_allow_fim_events) {
+  if (!IsPublisherEnabled()) {
     return Status(1, "Publisher disabled via configuration");
   }
 

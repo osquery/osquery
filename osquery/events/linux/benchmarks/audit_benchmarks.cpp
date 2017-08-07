@@ -7,7 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-
+/*
 #include <map>
 
 #include <benchmark/benchmark.h>
@@ -102,3 +102,4 @@ static void AUDIT_assembler(benchmark::State& state) {
 
 BENCHMARK(AUDIT_assembler);
 }
+*/

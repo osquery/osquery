@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <boost/algorithm/hex.hpp>
+
 namespace osquery {
 
 /// Netlink status, used by AuditNetlink::acquireHandle()
@@ -151,4 +153,16 @@ class AuditdNetlink final : private boost::noncopyable {
   /// The thread that processes the audit events
   std::unique_ptr<std::thread> processing_thread_;
 };
+
+/// Handle quote and hex-encoded audit field content.
+inline std::string DecodeHexEncodedValue(const std::string& s) {
+  if (s.size() > 1 && s[0] == '"') {
+    return s.substr(1, s.size() - 2);
+  }
+  try {
+    return boost::algorithm::unhex(s);
+  } catch (const boost::algorithm::hex_decode_error& e) {
+    return s;
+  }
+}
 }
