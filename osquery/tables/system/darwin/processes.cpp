@@ -313,14 +313,18 @@ QueryData genProcesses(QueryContext& context) {
       // Convert the time in CPU ticks since boot to seconds.
       // This is relative to time not-sleeping since boot.
 
+      //
       auto uptime = tables::getUptime();
       uint64_t absoluteTime = mach_absolute_time();
 
-      auto multiply = static_cast<double>(time_base.numer) / static_cast<double>(time_base.denom);
-      auto diff = static_cast<long>((rusage_info_data.ri_proc_start_abstime - absoluteTime));
+      auto multiply = static_cast<double>(time_base.numer) /
+                      static_cast<double>(time_base.denom);
+      auto diff = static_cast<long>(
+          (rusage_info_data.ri_proc_start_abstime - absoluteTime));
 
       // This is a negative value
-      auto seconds_since_launch = static_cast<long>((diff * multiply) / START_TIME_RATIO);
+      auto seconds_since_launch =
+          static_cast<long>((diff * multiply) / START_TIME_RATIO);
 
       // Get the start_time since the computer started
       r["start_time"] = TEXT(uptime + seconds_since_launch);
