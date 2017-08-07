@@ -40,7 +40,7 @@ static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
         std::string(inet_ntop(AF_INET, &ipv4, ip_str, INET6_ADDRSTRLEN));
   } else {
     struct in6_addr ipv6;
-    bcopy(tok.tt.subj32_ex.tid.addr, &ipv6, sizeof(ipv6));
+    memcpy(&ipv6, tok.tt.subj32_ex.tid.addr, sizeof(ipv6));
     r["address"] =
         std::string(inet_ntop(AF_INET6, &ipv6, ip_str, INET6_ADDRSTRLEN));
   }

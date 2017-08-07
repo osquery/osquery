@@ -128,7 +128,9 @@ $nupkg +=
   Set-Location "$osqueryChocoPath"
   choco pack
 
-  Write-Host "[+] Chocolatey Package written to $osqueryChocoPath" -ForegroundColor Green
+  $packagePath = Join-Path $osqueryChocoPath "osquery.$version.nupkg"
+  Write-Host "[+] Chocolatey Package written to $packagePath" `
+             -ForegroundColor Green
   Set-Location $working_dir
 }
 
