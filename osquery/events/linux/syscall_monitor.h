@@ -13,45 +13,62 @@
 #include <limits>
 #include <cstdint>
 
+#include <boost/variant.hpp>
+
 #include <osquery/events.h>
 
 #include "osquery/events/linux/auditdnetlink.h"
 
 namespace osquery {
 
-/// Syscall event descriptor
-struct SyscallMonitorEvent final {
+struct UserAuditEventData final {
+  std::uint64_t user_event_id;
+};
+
+struct SyscallAuditEventData final {
   std::uint64_t syscall_number;
+
   pid_t process_id;
   pid_t parent_process_id;
+};
+
+/// Audit event descriptor
+struct AuditEvent final {
+  enum class Type {
+    UserEvent,
+    Syscall
+  };
+
+  Type type;
+  boost::variant<UserAuditEventData, SyscallAuditEventData> data;
 
   std::vector<AuditEventRecord> record_list;
 };
 
-/// Syscall event pretty printer, used for the --audit_fim_debug flag
+/// Audit event pretty printer, used for the --audit_fim_debug flag
 std::ostream& operator<<(std::ostream& stream,
-                         const SyscallMonitorEvent& syscall_event);
+                         const AuditEvent& audit_event);
 
-struct SyscallMonitorSubscriptionContext final : public SubscriptionContext {
+struct AuditSubscriptionContext final : public SubscriptionContext {
  private:
-  friend class SyscallMonitorEventPublisher;
+  friend class AuditEventPublisher;
 };
 
-struct SyscallMonitorEventContext final : public EventContext {
-  std::vector<SyscallMonitorEvent> syscall_events;
+struct AuditEventContext final : public EventContext {
+  std::vector<AuditEvent> audit_events;
 };
 
-using SyscallMonitorEventContextRef = std::shared_ptr<SyscallMonitorEventContext>;
-using SyscallMonitorSubscriptionContextRef =
-    std::shared_ptr<SyscallMonitorSubscriptionContext>;
+using AuditEventContextRef = std::shared_ptr<AuditEventContext>;
+using AuditSubscriptionContextRef =
+    std::shared_ptr<AuditSubscriptionContext>;
 
-/// This type maps audit event id with the corresponding syscall event object
-using SyscallMonitorTraceContext = std::map<std::string, SyscallMonitorEvent>;
+/// This type maps audit event id with the corresponding audit event object
+using AuditTraceContext = std::map<std::string, AuditEvent>;
 
-class SyscallMonitorEventPublisher final
-    : public EventPublisher<SyscallMonitorSubscriptionContext,
-                            SyscallMonitorEventContext> {
-  DECLARE_PUBLISHER("syscallmonitor");
+class AuditEventPublisher final
+    : public EventPublisher<AuditSubscriptionContext,
+                            AuditEventContext> {
+  DECLARE_PUBLISHER("auditeventpublisher");
 
  public:
   Status setUp() override;
@@ -59,25 +76,25 @@ class SyscallMonitorEventPublisher final
   void tearDown() override;
   Status run() override;
 
-  virtual ~SyscallMonitorEventPublisher() {
+  virtual ~AuditEventPublisher() {
     tearDown();
   }
 
-  /// Aggregates raw event records into syscall events
-  static void ProcessEvents(SyscallMonitorEventContextRef event_context,
+  /// Aggregates raw event records into audit events
+  static void ProcessEvents(AuditEventContextRef event_context,
                             const std::vector<AuditEventRecord>& record_list,
-                            SyscallMonitorTraceContext& trace_context) noexcept;
+                            AuditTraceContext& trace_context) noexcept;
 
  private:
   /// Audit netlink subscription handle
   NetlinkSubscriptionHandle audit_netlink_subscription_{0};
 
   /// This is where audit records are assembled
-  SyscallMonitorTraceContext syscall_trace_context_;
+  AuditTraceContext audit_trace_context_;
 };
 
-/// Extracts the specified audit event record from the syscall event
-const AuditEventRecord *GetEventRecord(const SyscallMonitorEvent &event, int record_type) noexcept;
+/// Extracts the specified audit event record from the given audit event
+const AuditEventRecord *GetEventRecord(const AuditEvent &event, int record_type) noexcept;
 
 /// Extracts the specified string key from the given string map
 bool GetStringFieldFromMap(std::string &value, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value = std::string()) noexcept;

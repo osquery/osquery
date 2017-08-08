@@ -21,7 +21,7 @@ DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
 
-REGISTER(SyscallMonitorEventPublisher, "event_publisher", "syscallmonitor");
+REGISTER(AuditEventPublisher, "event_publisher", "auditeventpublisher");
 
 namespace {
 bool IsPublisherEnabled() noexcept {
@@ -29,7 +29,7 @@ bool IsPublisherEnabled() noexcept {
 }
 }
 
-Status SyscallMonitorEventPublisher::setUp() {
+Status AuditEventPublisher::setUp() {
   if (!IsPublisherEnabled()) {
     return Status(1, "Publisher disabled via configuration");
   }
@@ -37,7 +37,7 @@ Status SyscallMonitorEventPublisher::setUp() {
   return Status(0, "OK");
 }
 
-void SyscallMonitorEventPublisher::configure() {
+void AuditEventPublisher::configure() {
   if (!IsPublisherEnabled()) {
     return;
   }
@@ -48,14 +48,14 @@ void SyscallMonitorEventPublisher::configure() {
   }
 }
 
-void SyscallMonitorEventPublisher::tearDown() {
+void AuditEventPublisher::tearDown() {
   if (audit_netlink_subscription_ != 0) {
     AuditdNetlink::get().unsubscribe(audit_netlink_subscription_);
     audit_netlink_subscription_ = 0;
   }
 }
 
-Status SyscallMonitorEventPublisher::run() {
+Status AuditEventPublisher::run() {
   if (!IsPublisherEnabled()) {
     return Status(1, "Publisher disabled via configuration");
   }
@@ -66,32 +66,54 @@ Status SyscallMonitorEventPublisher::run() {
 
   auto event_context = createEventContext();
   ProcessEvents(
-      event_context, audit_event_record_queue, syscall_trace_context_);
+      event_context, audit_event_record_queue, audit_trace_context_);
 
-  if (!event_context->syscall_events.empty()) {
+  if (!event_context->audit_events.empty()) {
     fire(event_context);
   }
 
   return Status(0, "OK");
 }
 
-void SyscallMonitorEventPublisher::ProcessEvents(
-    SyscallMonitorEventContextRef event_context,
+void AuditEventPublisher::ProcessEvents(
+    AuditEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
-    SyscallMonitorTraceContext& trace_context) noexcept {
-  // Assemble each record into a SyscallMonitorEvent object; an event is
+    AuditTraceContext& trace_context) noexcept {
+  // Assemble each record into a AuditEvent object; an event is
   // complete when we receive the terminator (AUDIT_EOE)
   for (const auto& audit_event_record : record_list) {
     auto audit_event_it = trace_context.find(audit_event_record.audit_id);
 
-    if (audit_event_record.type == AUDIT_SYSCALL) {
+    // We have two entry points here; the first one is for user messages, while
+    // the second one is for syscalls
+    if (audit_event_record.type >= AUDIT_FIRST_USER_MSG && audit_event_record.type <= AUDIT_LAST_USER_MSG) {
       if (audit_event_it != trace_context.end()) {
         VLOG(1) << "Received a duplicated event.";
         trace_context.erase(audit_event_it);
       }
 
-      SyscallMonitorEvent syscall_event;
-      if (!GetIntegerFieldFromMap(syscall_event.syscall_number, audit_event_record.fields, "syscall")) {
+      AuditEvent audit_event;
+      audit_event.type = AuditEvent::Type::UserEvent;
+
+      UserAuditEventData data;
+      data.user_event_id = audit_event_record.type;
+      audit_event.data = data;
+
+      audit_event.record_list.push_back(audit_event_record);
+      trace_context[audit_event_record.audit_id] = std::move(audit_event);
+
+    } else if (audit_event_record.type == AUDIT_SYSCALL) {
+      if (audit_event_it != trace_context.end()) {
+        VLOG(1) << "Received a duplicated event.";
+        trace_context.erase(audit_event_it);
+      }
+
+      AuditEvent audit_event;
+      audit_event.type = AuditEvent::Type::Syscall;
+
+      SyscallAuditEventData data;
+
+      if (!GetIntegerFieldFromMap(data.syscall_number, audit_event_record.fields, "syscall")) {
         VLOG(1) << "Malformed AUDIT_SYSCALL record received. The syscall field "
                 "is either missing or not valid.";
 
@@ -123,26 +145,28 @@ void SyscallMonitorEventPublisher::ProcessEvents(
         continue;
       }
 
-      syscall_event.process_id = static_cast<pid_t>(process_id);
-      syscall_event.parent_process_id = static_cast<pid_t>(parent_process_id);
+      data.process_id = static_cast<pid_t>(process_id);
+      data.parent_process_id = static_cast<pid_t>(parent_process_id);
 
       pid_t osquery_pid = getpid();
-      if (syscall_event.process_id == osquery_pid || syscall_event.parent_process_id == osquery_pid) {
+      if (data.process_id == osquery_pid || data.parent_process_id == osquery_pid) {
         continue;
       }
 
-      syscall_event.record_list.push_back(audit_event_record);
-      trace_context[audit_event_record.audit_id] = std::move(syscall_event);
+      audit_event.data = data;
+
+      audit_event.record_list.push_back(audit_event_record);
+      trace_context[audit_event_record.audit_id] = std::move(audit_event);
 
     } else if (audit_event_record.type == AUDIT_EOE) {
       if (audit_event_it == trace_context.end()) {
         continue;
       }
 
-      auto completed_syscall_event = audit_event_it->second;
+      auto completed_audit_event = audit_event_it->second;
       trace_context.erase(audit_event_it);
 
-      event_context->syscall_events.push_back(completed_syscall_event);
+      event_context->audit_events.push_back(completed_audit_event);
 
     } else {
       if (audit_event_it == trace_context.end()) {
@@ -162,9 +186,9 @@ void SyscallMonitorEventPublisher::ProcessEvents(
   std::unordered_map<std::string, std::time_t> timestamp_cache;
 
   // The first part of the audit id is a timestamp: 1501323932.710:7670542
-  for (auto syscall_it = trace_context.begin();
-       syscall_it != trace_context.end();) {
-    const auto& audit_event_id = syscall_it->first;
+  for (auto event_it = trace_context.begin();
+       event_it != trace_context.end();) {
+    const auto& audit_event_id = event_it->first;
     std::time_t event_timestamp;
 
     auto timestamp_it = timestamp_cache.find(audit_event_id);
@@ -185,14 +209,14 @@ void SyscallMonitorEventPublisher::ProcessEvents(
     }
 
     if (current_time - event_timestamp >= 300) {
-      syscall_it = trace_context.erase(syscall_it);
+      event_it = trace_context.erase(event_it);
     } else {
-      syscall_it++;
+      event_it++;
     }
   }
 }
 
-const AuditEventRecord *GetEventRecord(const SyscallMonitorEvent &event, int record_type) noexcept {
+const AuditEventRecord *GetEventRecord(const AuditEvent &event, int record_type) noexcept {
   auto it = std::find_if(event.record_list.begin(), event.record_list.end(),
                          [record_type](const AuditEventRecord &record) -> bool {
                              return (record.type == record_type);

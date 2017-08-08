@@ -683,14 +683,14 @@ TEST_F(AuditdFimTests, correct_record_sequence) {
 
   EXPECT_EQ(event_record_list.size(), 85U);
 
-  auto event_context = std::make_shared<SyscallMonitorEventContext>();
-  SyscallMonitorTraceContext syscall_trace_context;
+  auto event_context = std::make_shared<AuditEventContext>();
+  AuditTraceContext syscall_trace_context;
 
-  SyscallMonitorEventPublisher::ProcessEvents(
+  AuditEventPublisher::ProcessEvents(
       event_context, event_record_list, syscall_trace_context);
 
   EXPECT_EQ(syscall_trace_context.size(), 0U);
-  EXPECT_EQ(event_context->syscall_events.size(), 36U);
+  EXPECT_EQ(event_context->audit_events.size(), 36U);
 }
 
 TEST_F(AuditdFimTests, broken_record_sequence) {
@@ -720,14 +720,14 @@ TEST_F(AuditdFimTests, broken_record_sequence) {
 
   EXPECT_EQ(event_record_list.size(), 82U);
 
-  auto event_context = std::make_shared<SyscallMonitorEventContext>();
-  SyscallMonitorTraceContext syscall_trace_context;
+  auto event_context = std::make_shared<AuditEventContext>();
+  AuditTraceContext syscall_trace_context;
 
-  SyscallMonitorEventPublisher::ProcessEvents(
+  AuditEventPublisher::ProcessEvents(
       event_context, event_record_list, syscall_trace_context);
 
   EXPECT_EQ(syscall_trace_context.size(), 0U);
-  EXPECT_EQ(event_context->syscall_events.size(), 33U);
+  EXPECT_EQ(event_context->audit_events.size(), 33U);
 }
 
 TEST_F(AuditdFimTests, row_emission) {
@@ -752,14 +752,14 @@ TEST_F(AuditdFimTests, row_emission) {
 
   EXPECT_EQ(event_record_list.size(), 85U);
 
-  auto event_context = std::make_shared<SyscallMonitorEventContext>();
-  SyscallMonitorTraceContext syscall_trace_context;
+  auto event_context = std::make_shared<AuditEventContext>();
+  AuditTraceContext syscall_trace_context;
 
-  SyscallMonitorEventPublisher::ProcessEvents(
+  AuditEventPublisher::ProcessEvents(
       event_context, event_record_list, syscall_trace_context);
 
   EXPECT_EQ(syscall_trace_context.size(), 0U);
-  EXPECT_EQ(event_context->syscall_events.size(), 36U);
+  EXPECT_EQ(event_context->audit_events.size(), 36U);
 
   // First test, showing only write operations. We expect to find a single write
   // here.
@@ -774,7 +774,7 @@ TEST_F(AuditdFimTests, row_emission) {
       AuditdFimEventSubscriber::ProcessEvents(emitted_row_list,
                                               process_map,
                                               configuration,
-                                              event_context->syscall_events);
+                                              event_context->audit_events);
   EXPECT_EQ(exit_status.ok(), true);
   EXPECT_EQ(emitted_row_list.size(), 1U);
 
@@ -795,7 +795,7 @@ TEST_F(AuditdFimTests, row_emission) {
       AuditdFimEventSubscriber::ProcessEvents(emitted_row_list,
                                               process_map,
                                               configuration,
-                                              event_context->syscall_events);
+                                              event_context->audit_events);
   EXPECT_EQ(exit_status.ok(), true);
   EXPECT_EQ(emitted_row_list.size(), 7U);
 }

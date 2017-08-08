@@ -720,7 +720,7 @@ void AuditdFimEventSubscriber::configure() {
 Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
                                           const SCRef& subscription_context) {
   std::vector<Row> emitted_row_list;
-  auto exit_status = ProcessEvents(emitted_row_list, context_, event_context->syscall_events);
+  auto exit_status = ProcessEvents(emitted_row_list, context_, event_context->audit_events);
   for (Row &row : emitted_row_list) {
     add(row);
   }
@@ -731,7 +731,7 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
 Status AuditdFimEventSubscriber::ProcessEvents(
     std::vector<Row> &emitted_row_list,
     AuditdFimContext &fim_context,
-    const std::vector<SyscallMonitorEvent>& event_list) noexcept {
+    const std::vector<AuditEvent>& event_list) noexcept {
 
 
   emitted_row_list.clear();
@@ -757,18 +757,23 @@ Status AuditdFimEventSubscriber::ProcessEvents(
   auto osquery_pid = getpid();
 
   for (const auto &event : event_list) {
-    if (event.process_id == osquery_pid || event.parent_process_id == osquery_pid) {
+    if (event.type != AuditEvent::Type::Syscall) {
       continue;
     }
 
-    if (!L_ShouldHandle(event.syscall_number)) {
+    const auto &event_data = boost::get<SyscallAuditEventData>(event.data);
+      if (event_data.process_id == osquery_pid || event_data.parent_process_id == osquery_pid) {
+      continue;
+    }
+
+    if (!L_ShouldHandle(event_data.syscall_number)) {
       continue;
     }
 
     AuditdFimSyscallContext syscall_context = {};
-    syscall_context.syscall_number = event.syscall_number;
-    syscall_context.process_id = event.process_id;
-    syscall_context.parent_process_id = event.parent_process_id;
+    syscall_context.syscall_number = event_data.syscall_number;
+    syscall_context.process_id = event_data.process_id;
+    syscall_context.parent_process_id = event_data.parent_process_id;
 
     const AuditEventRecord *syscall_record = nullptr;
     bool record_error = false;

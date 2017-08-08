@@ -145,7 +145,7 @@ struct AuditdFimSyscallContext final {
 /// write operation is performed, a new row is emitted (according
 /// to how it has been configured).
 class AuditdFimEventSubscriber final
-    : public EventSubscriber<SyscallMonitorEventPublisher> {
+    : public EventSubscriber<AuditEventPublisher> {
  public:
   Status setUp() override;
   Status init() override;
@@ -161,7 +161,7 @@ class AuditdFimEventSubscriber final
   static Status ProcessEvents(
       std::vector<Row> &emitted_row_list,
       AuditdFimContext &fim_context,
-      const std::vector<SyscallMonitorEvent>& event_list) noexcept;
+      const std::vector<AuditEvent>& event_list) noexcept;
 
 private:
   AuditdFimContext context_;

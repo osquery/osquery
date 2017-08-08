@@ -28,7 +28,7 @@ namespace tables {
 extern long getUptime();
 }
 
-class AuditProcessEventSubscriber final : public EventSubscriber<SyscallMonitorEventPublisher> {
+class AuditProcessEventSubscriber final : public EventSubscriber<AuditEventPublisher> {
  public:
   /// The process event subscriber declares an audit event type subscription.
   Status init() override;
@@ -38,7 +38,7 @@ class AuditProcessEventSubscriber final : public EventSubscriber<SyscallMonitorE
 
   /// Processes the updates received from the callback
   static Status ProcessEvents(std::vector<Row> &emitted_row_list,
-    const std::vector<SyscallMonitorEvent>& event_list) noexcept;
+    const std::vector<AuditEvent>& event_list) noexcept;
 };
 
 REGISTER(AuditProcessEventSubscriber, "event_subscriber", "process_events");
@@ -56,7 +56,7 @@ Status AuditProcessEventSubscriber::init() {
 
 Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   std::vector<Row> emitted_row_list;
-  auto status = ProcessEvents(emitted_row_list, ec->syscall_events);
+  auto status = ProcessEvents(emitted_row_list, ec->audit_events);
   if (!status.ok()) {
     return status;
   }
@@ -69,7 +69,7 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 }
 
 Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
-                                const std::vector<SyscallMonitorEvent>& event_list) noexcept {
+                                const std::vector<AuditEvent>& event_list) noexcept {
   // clang-format off
   /*
     1300 audit(1502125323.756:6): arch=c000003e syscall=59 success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 comm="sh" exe="/usr/bin/bash" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)
@@ -88,7 +88,12 @@ Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_
   emitted_row_list.clear();
 
   for (const auto &event : event_list) {
-    if (event.syscall_number != __NR_execve) {
+    if (event.type != AuditEvent::Type::Syscall) {
+      continue;
+    }
+
+    const auto &event_data = boost::get<SyscallAuditEventData>(event.data);
+    if (event_data.syscall_number != __NR_execve) {
       continue;
     }
 

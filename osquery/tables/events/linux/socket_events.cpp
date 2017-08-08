@@ -14,7 +14,6 @@
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/logger.h>
-#include <osquery/sql.h>
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
@@ -93,18 +92,17 @@ bool parseSockAddr(const std::string& saddr, Row &row, bool &unix_socket) {
   return true;
 }
 
-class SocketEventSubscriber final : public EventSubscriber<SyscallMonitorEventPublisher> {
- public:
+class SocketEventSubscriber final : public EventSubscriber<AuditEventPublisher> {
 public:
-    /// The process event subscriber declares an audit event type subscription.
-    Status init() override;
+  /// The process event subscriber declares an audit event type subscription.
+  Status init() override;
 
-    /// Kernel events matching the event type will fire.
-    Status Callback(const ECRef& ec, const SCRef& sc);
+  /// Kernel events matching the event type will fire.
+  Status Callback(const ECRef& ec, const SCRef& sc);
 
-    /// Processes the updates received from the callback
-    static Status ProcessEvents(std::vector<Row> &emitted_row_list,
-                                const std::vector<SyscallMonitorEvent>& event_list) noexcept;
+  /// Processes the updates received from the callback
+  static Status ProcessEvents(std::vector<Row> &emitted_row_list,
+                              const std::vector<AuditEvent>& event_list) noexcept;
 };
 
 REGISTER(SocketEventSubscriber, "event_subscriber", "socket_events");
@@ -122,7 +120,7 @@ Status SocketEventSubscriber::init() {
 
 Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   std::vector<Row> emitted_row_list;
-  auto status = ProcessEvents(emitted_row_list, ec->syscall_events);
+  auto status = ProcessEvents(emitted_row_list, ec->audit_events);
   if (!status.ok()) {
     return status;
   }
@@ -135,7 +133,7 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 }
 
 Status SocketEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
-                                                  const std::vector<SyscallMonitorEvent>& event_list) noexcept {
+                                                  const std::vector<AuditEvent>& event_list) noexcept {
   auto L_CopyFieldFromMap = [](Row &row, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value = std::string()) -> void {
       GetStringFieldFromMap(row[name], fields, name, default_value);
   };
@@ -143,11 +141,16 @@ Status SocketEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
   emitted_row_list.clear();
 
   for (const auto &event : event_list) {
-    Row row = {};
+    if (event.type != AuditEvent::Type::Syscall) {
+      continue;
+    }
 
-    if (event.syscall_number == __NR_connect) {
+    Row row = {};
+    const auto &event_data = boost::get<SyscallAuditEventData>(event.data);
+
+    if (event_data.syscall_number == __NR_connect) {
       row["action"] = "connect";
-    } else if (event.syscall_number == __NR_bind) {
+    } else if (event_data.syscall_number == __NR_bind) {
       row["action"] = "bind";
     } else {
       continue;

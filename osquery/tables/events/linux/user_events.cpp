@@ -8,59 +8,111 @@
  *
  */
 
-#include <osquery/config.h>
+#include <asm/unistd_64.h>
+
+#include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include <osquery/logger.h>
-#include <osquery/sql.h>
 #include <osquery/system.h>
 
-#include "osquery/events/linux/audit.h"
+#include "osquery/core/conversions.h"
+#include "osquery/events/linux/syscall_monitor.h"
 
 namespace osquery {
+
+FLAG(bool,
+     audit_allow_user_events,
+     false,
+     "Allow the audit publisher to install user events-related rules");
 
 // Depend on the external getUptime table method.
 namespace tables {
 extern long getUptime();
 }
 
-// From process_events.
-extern std::string decodeAuditValue(const std::string& s);
-
-class UserEventSubscriber : public EventSubscriber<AuditEventPublisher> {
- public:
-  /// The user event subscriber declares an audit event type subscription.
+class UserEventSubscriber final : public EventSubscriber<AuditEventPublisher> {
+public:
+  /// The process event subscriber declares an audit event type subscription.
   Status init() override;
 
+  /// Kernel events matching the event type will fire.
   Status Callback(const ECRef& ec, const SCRef& sc);
+
+  /// Processes the updates received from the callback
+  static Status ProcessEvents(std::vector<Row> &emitted_row_list,
+                              const std::vector<AuditEvent>& event_list) noexcept;
 };
 
 REGISTER(UserEventSubscriber, "event_subscriber", "user_events");
 
 Status UserEventSubscriber::init() {
-  auto sc = createSubscriptionContext();
+  if (!FLAGS_audit_allow_user_events) {
+    return Status(1, "Subscriber disabled via configuration");
+  }
 
-  // Request call backs for all user-related auditd events.
-  sc->user_types = true;
+  auto sc = createSubscriptionContext();
   subscribe(&UserEventSubscriber::Callback, sc);
 
   return Status(0, "OK");
 }
 
 Status UserEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
-  Row r;
-  r["uid"] = ec->fields["uid"];
-  r["pid"] = ec->fields["pid"];
-  if (ec->fields.count("msg") && ec->fields.at("msg").size() > 1) {
-    ec->fields["msg"].erase(0, 1);
-    r["message"] = std::move(ec->fields["msg"]);
+  std::vector<Row> emitted_row_list;
+  auto status = ProcessEvents(emitted_row_list, ec->audit_events);
+  if (!status.ok()) {
+    return status;
   }
-  r["auid"] = ec->fields["auid"];
-  r["type"] = INTEGER(ec->type);
-  r["path"] = decodeAuditValue(ec->fields["exe"]);
-  r["address"] = ec->fields["addr"];
-  r["terminal"] = ec->fields["terminal"];
-  r["uptime"] = INTEGER(tables::getUptime());
 
-  add(r);
-  return Status(0, "OK");
+  for (auto &row : emitted_row_list) {
+    add(row);
+  }
+
+  return Status(0, "Ok");
+}
+
+Status UserEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
+                                            const std::vector<AuditEvent>& event_list) noexcept {
+  auto L_CopyFieldFromMap = [](Row &row, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value = std::string()) -> void {
+      GetStringFieldFromMap(row[name], fields, name, default_value);
+  };
+
+  emitted_row_list.clear();
+
+  for (const auto &event : event_list) {
+    if (event.type != AuditEvent::Type::UserEvent) {
+      continue;
+    }
+
+    for (const auto &record : event.record_list) {
+      Row row = {};
+
+      row["uptime"] = INTEGER(tables::getUptime());
+      row["type"] = INTEGER(record.type);
+
+      L_CopyFieldFromMap(row, record.fields, "uid", "");
+      L_CopyFieldFromMap(row, record.fields, "pid", "");
+      L_CopyFieldFromMap(row, record.fields, "auid", "");
+      L_CopyFieldFromMap(row, record.fields, "terminal", "");
+
+      GetStringFieldFromMap(row["address"], record.fields, "addr", "");
+
+      std::string executable_path;
+      GetStringFieldFromMap(executable_path, record.fields, "exe", "");
+      row["path"] = DecodeHexEncodedValue(executable_path);
+
+      std::string message;
+      GetStringFieldFromMap(message, record.fields, "msg", "");
+
+      if (message.size() > 1) {
+        message.erase(0, 1);
+        row["message"] = message;
+      }
+
+      emitted_row_list.push_back(row);
+    }
+  }
+
+  return Status(0, "Ok");
 }
 } // namespace osquery
