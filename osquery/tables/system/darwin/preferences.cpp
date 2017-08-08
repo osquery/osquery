@@ -245,7 +245,12 @@ void genOSXPlistPrefValue(const pt::ptree& tree,
     if (r["subkey"].size() > 0) {
       r["subkey"] += "/";
     }
-    r["subkey"] += item.first;
+
+    if (item.first.size() == 0) {
+      r["subkey"] += item.second.get("Name", "");
+    } else {
+      r["subkey"] += item.first;
+    }
     genOSXPlistPrefValue(item.second, r, results);
   }
 }
