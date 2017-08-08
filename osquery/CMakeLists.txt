@@ -127,7 +127,6 @@ else()
   ADD_OSQUERY_LINK_CORE("libz")
   ADD_OSQUERY_LINK_CORE("gflags")
   ADD_OSQUERY_LINK_CORE("thrift")
-  ADD_OSQUERY_LINK_CORE("lz4")
 endif()
 
 if(APPLE OR LINUX)
