@@ -8,8 +8,6 @@
  *
  */
 
-#include <iostream>
-
 #include <asm/unistd_64.h>
 
 #include <osquery/config.h>
@@ -30,7 +28,7 @@ namespace tables {
 extern long getUptime();
 }
 
-class AuditProcessEventSubscriber : public EventSubscriber<SyscallMonitorEventPublisher> {
+class AuditProcessEventSubscriber final : public EventSubscriber<SyscallMonitorEventPublisher> {
  public:
   /// The process event subscriber declares an audit event type subscription.
   Status init() override;
@@ -57,8 +55,6 @@ Status AuditProcessEventSubscriber::init() {
 }
 
 Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
-  std::cout << __func__ << "@" << __LINE__ << std::endl;
-
   std::vector<Row> emitted_row_list;
   auto status = ProcessEvents(emitted_row_list, ec->syscall_events);
   if (!status.ok()) {
@@ -85,32 +81,8 @@ Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_
   */
   // clang-format on
 
-  auto L_GetFieldFromMap = [](std::string &value, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value = std::string()) -> bool {
-    auto it = fields.find(name);
-    if (it == fields.end()) {
-      value = default_value;
-      return false;
-    }
-
-    value = it->second;
-    return true;
-  };
-
-  auto L_CopyFieldFromMap = [L_GetFieldFromMap](Row &row, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value) -> void {
-    L_GetFieldFromMap(row[name], fields, name, default_value);
-  };
-
-  auto L_GetEventRecord = [](const SyscallMonitorEvent &event, int record_type) -> const AuditEventRecord * {
-    auto it = std::find_if(event.record_list.begin(), event.record_list.end(),
-      [record_type](const AuditEventRecord &record) -> bool {
-        return (record.type == record_type);
-    });
-
-    if (it == event.record_list.end()) {
-      return nullptr;
-    }
-
-    return &(*it);
+  auto L_CopyFieldFromMap = [](Row &row, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value) -> void {
+    GetStringFieldFromMap(row[name], fields, name, default_value);
   };
 
   emitted_row_list.clear();
@@ -120,19 +92,19 @@ Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_
       continue;
     }
 
-    const AuditEventRecord *syscall_event_record = L_GetEventRecord(event, AUDIT_SYSCALL);
+    const AuditEventRecord *syscall_event_record = GetEventRecord(event, AUDIT_SYSCALL);
     if (syscall_event_record == nullptr) {
       VLOG(1) << "Malformed AUDIT_SYSCALL event";
       continue;
     }
 
-    const AuditEventRecord *execve_event_record = L_GetEventRecord(event, AUDIT_EXECVE);
+    const AuditEventRecord *execve_event_record = GetEventRecord(event, AUDIT_EXECVE);
     if (execve_event_record == nullptr) {
       VLOG(1) << "Malformed AUDIT_EXECVE event";
       continue;
     }
 
-    const AuditEventRecord *first_path_event_record = L_GetEventRecord(event, AUDIT_PATH);
+    const AuditEventRecord *first_path_event_record = GetEventRecord(event, AUDIT_PATH);
     if (first_path_event_record == nullptr) {
       VLOG(1) << "Malformed AUDIT_PATH event";
       continue;
@@ -148,8 +120,8 @@ Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_
     L_CopyFieldFromMap(row, syscall_event_record->fields, "gid", "0");
     L_CopyFieldFromMap(row, syscall_event_record->fields, "egid", "0");
 
-    L_GetFieldFromMap(row["path"], syscall_event_record->fields, "exe", "");
-    L_GetFieldFromMap(row["cmdline"], syscall_event_record->fields, "comm", "");
+    GetStringFieldFromMap(row["path"], syscall_event_record->fields, "exe", "");
+    GetStringFieldFromMap(row["cmdline"], syscall_event_record->fields, "comm", "");
 
     auto qd = SQL::selectAllFrom("file", "path", EQUALS, row.at("path"));
     if (qd.size() == 1) {
@@ -186,8 +158,8 @@ Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_
 
     // Get the remaining data from the first AUDIT_PATH record
     L_CopyFieldFromMap(row, first_path_event_record->fields, "mode", "");
-    L_GetFieldFromMap(row["owner_uid"], first_path_event_record->fields, "ouid", "0");
-    L_GetFieldFromMap(row["owner_gid"], first_path_event_record->fields, "ogid", "0");
+    GetStringFieldFromMap(row["owner_uid"], first_path_event_record->fields, "ouid", "0");
+    GetStringFieldFromMap(row["owner_gid"], first_path_event_record->fields, "ogid", "0");
 
     emitted_row_list.push_back(row);
   }

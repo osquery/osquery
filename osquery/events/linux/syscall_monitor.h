@@ -72,4 +72,10 @@ class SyscallMonitorEventPublisher final
   /// This is where audit records are assembled
   SyscallMonitorTraceContext syscall_trace_context_;
 };
+
+/// Extracts the specified audit event record from the syscall event
+const AuditEventRecord *GetEventRecord(const SyscallMonitorEvent &event, int record_type) noexcept;
+
+/// Extracts the specified key from the given string map
+bool GetStringFieldFromMap(std::string &value, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value = std::string()) noexcept;
 }

@@ -81,7 +81,7 @@ bool GetAuditRecordField(std::uint64_t& value,
 }
 
 Status SyscallMonitorEventPublisher::setUp() {
-  if (!IsPublisherEnabled) {
+  if (!IsPublisherEnabled()) {
     return Status(1, "Publisher disabled via configuration");
   }
 
@@ -242,4 +242,28 @@ void SyscallMonitorEventPublisher::ProcessEvents(
     }
   }
 }
+
+const AuditEventRecord *GetEventRecord(const SyscallMonitorEvent &event, int record_type) noexcept {
+  auto it = std::find_if(event.record_list.begin(), event.record_list.end(),
+                         [record_type](const AuditEventRecord &record) -> bool {
+                             return (record.type == record_type);
+                         });
+
+  if (it == event.record_list.end()) {
+    return nullptr;
+  }
+
+  return &(*it);
+};
+
+bool GetStringFieldFromMap(std::string &value, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value) noexcept {
+  auto it = fields.find(name);
+  if (it == fields.end()) {
+    value = default_value;
+    return false;
+  }
+
+  value = it->second;
+  return true;
+};
 }
