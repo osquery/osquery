@@ -12,6 +12,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/events/linux/udev.h"
 
 namespace osquery {
@@ -26,6 +27,7 @@ const std::string kUSBKeySubsystem = "SUBSYSTEM";
 const std::string kUSBKeySerial = "ID_SERIAL_SHORT";
 const std::string kUSBKeyAddress = "BUSNUM";
 const std::string kUSBKeyPort = "DEVNUM";
+const std::string kUSBKeyType = "TYPE";
 
 QueryData genUSBDevices(QueryContext &context) {
   QueryData results;
@@ -58,6 +60,19 @@ QueryData genUSBDevices(QueryContext &context) {
     r["model_id"] = UdevEventPublisher::getValue(device, kUSBKeyModelID);
     r["vendor_id"] = UdevEventPublisher::getValue(device, kUSBKeyVendorID);
     r["serial"] = UdevEventPublisher::getValue(device, kUSBKeySerial);
+
+    // This will be of the form class/subclass/protocol and has to be parsed
+    auto devType = UdevEventPublisher::getValue(device, kUSBKeyType);
+    auto classInfo = osquery::split(devType, "/");
+    if (classInfo.size() == 3) {
+      r["class"] = classInfo[0];
+      r["subclass"] = classInfo[1];
+      r["protocol"] = classInfo[2];
+    } else {
+      r["class"] = "";
+      r["subclass"] = "";
+      r["protocol"] = "";
+    }
 
     // Address/port accessors.
     r["usb_address"] = UdevEventPublisher::getValue(device, kUSBKeyAddress);
