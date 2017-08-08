@@ -24,7 +24,6 @@ function distro_main() {
 
   # Core development requirements.
   package glog
-  package snappy
   package thrift
   package thrift-cpp
   package boost-libs
