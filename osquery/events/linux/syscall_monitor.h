@@ -10,6 +10,9 @@
 
 #pragma once
 
+#include <limits>
+#include <cstdint>
+
 #include <osquery/events.h>
 
 #include "osquery/events/linux/auditdnetlink.h"
@@ -76,6 +79,9 @@ class SyscallMonitorEventPublisher final
 /// Extracts the specified audit event record from the syscall event
 const AuditEventRecord *GetEventRecord(const SyscallMonitorEvent &event, int record_type) noexcept;
 
-/// Extracts the specified key from the given string map
+/// Extracts the specified string key from the given string map
 bool GetStringFieldFromMap(std::string &value, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value = std::string()) noexcept;
+
+/// Extracts the specified integer key from the given string map
+bool GetIntegerFieldFromMap(std::uint64_t& value, const std::map<std::string, std::string>& field_map, const std::string& field_name, std::size_t base = 10, std::uint64_t default_value = std::numeric_limits<std::uint64_t>::max()) noexcept;
 }

@@ -27,57 +27,6 @@ namespace {
 bool IsPublisherEnabled() noexcept {
   return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events || FLAGS_audit_allow_sockets);
 }
-/**
-* @brief Returns the specified field from the record.
-*
-* Returns the specified field name from the given audit event record; if
-* the field is missing, the user-supplied default value is returned
-* instead
-*/
-bool GetAuditRecordField(
-    std::string& value,
-    const AuditEventRecord& record,
-    const std::string& field_name,
-    const std::string& default_value = std::string()) noexcept {
-  const auto& field_map = record.fields;
-
-  auto field_it = field_map.find(field_name);
-  if (field_it == field_map.end()) {
-    value = default_value;
-    return false;
-  }
-
-  value = field_it->second;
-  return true;
-}
-
-/**
-* @brief Returns the specified field from the record.
-*
-* Returns the specified field name from the given audit event record,
-* converting it to an unsigned integer; if the field is
-* missing, the user-supplied default value is returned instead
-*/
-bool GetAuditRecordField(std::uint64_t& value,
-                         const AuditEventRecord& record,
-                         const std::string& field_name,
-                         std::size_t base = 10,
-                         std::uint64_t default_value = 0) noexcept {
-  std::string string_value;
-  if (!GetAuditRecordField(string_value, record, field_name, "")) {
-    value = default_value;
-    return false;
-  }
-
-  long long temp;
-  if (!safeStrtoll(string_value, base, temp)) {
-    value = default_value;
-    return false;
-  }
-
-  value = static_cast<std::uint64_t>(temp);
-  return true;
-}
 }
 
 Status SyscallMonitorEventPublisher::setUp() {
@@ -142,7 +91,7 @@ void SyscallMonitorEventPublisher::ProcessEvents(
       }
 
       SyscallMonitorEvent syscall_event;
-      if (!GetAuditRecordField(syscall_event.syscall_number, audit_event_record, "syscall")) {
+      if (!GetIntegerFieldFromMap(syscall_event.syscall_number, audit_event_record.fields, "syscall")) {
         VLOG(1) << "Malformed AUDIT_SYSCALL record received. The syscall field "
                 "is either missing or not valid.";
 
@@ -150,7 +99,7 @@ void SyscallMonitorEventPublisher::ProcessEvents(
       }
 
       std::string syscall_status;
-      GetAuditRecordField(syscall_status, audit_event_record, "success", "yes");
+      GetStringFieldFromMap(syscall_status, audit_event_record.fields, "success", "yes");
 
       // By discarding this event, we will also automatically discard any other attached
       // record
@@ -159,7 +108,7 @@ void SyscallMonitorEventPublisher::ProcessEvents(
       }
 
       std::uint64_t process_id;
-      if (!GetAuditRecordField(process_id, audit_event_record, "pid")) {
+      if (!GetIntegerFieldFromMap(process_id, audit_event_record.fields, "pid")) {
         VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process id "
                 "field is either missing or not valid.";
 
@@ -167,7 +116,7 @@ void SyscallMonitorEventPublisher::ProcessEvents(
       }
 
       std::uint64_t parent_process_id;
-      if (!GetAuditRecordField(parent_process_id, audit_event_record, "ppid")) {
+      if (!GetIntegerFieldFromMap(parent_process_id, audit_event_record.fields, "ppid")) {
         VLOG(1) << "Malformed AUDIT_SYSCALL record received. The parent "
                 "process id field is either missing or not valid.";
 
@@ -265,5 +214,22 @@ bool GetStringFieldFromMap(std::string &value, const std::map<std::string, std::
 
   value = it->second;
   return true;
-};
+}
+
+bool GetIntegerFieldFromMap(std::uint64_t& value, const std::map<std::string, std::string>& field_map, const std::string& field_name, std::size_t base, std::uint64_t default_value) noexcept {
+  std::string string_value;
+  if (!GetStringFieldFromMap(string_value, field_map, field_name, "")) {
+    value = default_value;
+    return false;
+  }
+
+  long long temp;
+  if (!safeStrtoll(string_value, base, temp)) {
+    value = default_value;
+    return false;
+  }
+
+  value = static_cast<std::uint64_t>(temp);
+  return true;
+}
 }

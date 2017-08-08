@@ -163,13 +163,6 @@ class AuditdFimEventSubscriber final
       AuditdFimContext &fim_context,
       const std::vector<SyscallMonitorEvent>& event_list) noexcept;
 
-  static bool EmitRowFromSyscallContext(Row &row, AuditdFimSyscallContext &syscall_context) noexcept;
-
-      static bool AuditSyscallRecordHandler(AuditdFimContext &fim_context, AuditdFimSyscallContext &syscall_context, const AuditEventRecord &record) noexcept;
-  static bool ParseAuditCwdRecord(std::string &cwd, const AuditEventRecord &record) noexcept;
-  static bool ParseAuditMmapRecord(const AuditEventRecord &record) noexcept;
-  static bool ParseAuditPathRecord(AuditdFimPathRecordItem &output, const AuditEventRecord &record) noexcept;
-
 private:
   AuditdFimContext context_;
 };
