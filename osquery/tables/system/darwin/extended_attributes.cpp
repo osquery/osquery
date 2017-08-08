@@ -21,6 +21,8 @@
 
 #include "osquery/core/conversions.h"
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 namespace tables {
 
@@ -215,7 +217,23 @@ void getFileData(QueryData &results, const std::string &path) {
 
 QueryData genXattr(QueryContext &context) {
   QueryData results;
+  // Resolve file paths for EQUALS and LIKE operations.
   auto paths = context.constraints["path"].getAll(EQUALS);
+  context.expandConstraints(
+      "path",
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
 
   for (const auto &path_string : paths) {
     boost::filesystem::path path = path_string;
@@ -227,18 +245,41 @@ QueryData genXattr(QueryContext &context) {
     getFileData(results, path.string());
   }
 
+  // Resolve directories for EQUALS and LIKE operations.
   auto directories = context.constraints["directory"].getAll(EQUALS);
-  for (const auto &directory : directories) {
-    if (!boost::filesystem::is_directory(directory)) {
-      continue;
-    }
-    std::vector<std::string> files;
-    listFilesInDirectory(directory, files);
+  context.expandConstraints(
+      "directory",
+      LIKE,
+      directories,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_FOLDERS | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
+        }
+        return status;
+      }));
 
-    for (auto &file : files) {
-      getFileData(results, file);
+    // Now loop through constraints using the directory column constraint.
+    for (const auto& directory_string : directories) {
+      if (!isReadable(directory_string) || !isDirectory(directory_string)) {
+        continue;
+      }
+
+      try {
+        // Iterate over the directory and generate info for each regular file.
+        fs::directory_iterator begin(directory_string), end;
+        for (; begin != end; ++begin) {
+          getFileData(results, begin->path().string().c_str());
+        }
+      } catch (const fs::filesystem_error& /* e */) {
+        continue;
+      }
     }
-  }
+
   return results;
 }
 }
