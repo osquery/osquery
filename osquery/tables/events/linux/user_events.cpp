@@ -25,7 +25,7 @@ extern long getUptime();
 }
 
 class UserEventSubscriber final : public EventSubscriber<AuditEventPublisher> {
-public:
+ public:
   /// The process event subscriber declares an audit event type subscription.
   Status init() override;
 
@@ -33,8 +33,9 @@ public:
   Status Callback(const ECRef& ec, const SCRef& sc);
 
   /// Processes the updates received from the callback
-  static Status ProcessEvents(std::vector<Row> &emitted_row_list,
-                              const std::vector<AuditEvent>& event_list) noexcept;
+  static Status ProcessEvents(
+      std::vector<Row>& emitted_row_list,
+      const std::vector<AuditEvent>& event_list) noexcept;
 };
 
 REGISTER(UserEventSubscriber, "event_subscriber", "user_events");
@@ -57,26 +58,31 @@ Status UserEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
-  for (auto &row : emitted_row_list) {
+  for (auto& row : emitted_row_list) {
     add(row);
   }
 
   return Status(0, "Ok");
 }
 
-Status UserEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
-                                            const std::vector<AuditEvent>& event_list) noexcept {
-  auto L_CopyFieldFromMap = [](Row &row, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value = std::string()) -> void {
-      GetStringFieldFromMap(row[name], fields, name, default_value);
+Status UserEventSubscriber::ProcessEvents(
+    std::vector<Row>& emitted_row_list,
+    const std::vector<AuditEvent>& event_list) noexcept {
+  auto L_CopyFieldFromMap = [](
+      Row& row,
+      const std::map<std::string, std::string>& fields,
+      const std::string& name,
+      const std::string& default_value = std::string()) -> void {
+    GetStringFieldFromMap(row[name], fields, name, default_value);
   };
 
   emitted_row_list.clear();
-  for (const auto &event : event_list) {
+  for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::UserEvent) {
       continue;
     }
 
-    for (const auto &record : event.record_list) {
+    for (const auto& record : event.record_list) {
       Row row = {};
 
       row["uptime"] = INTEGER(tables::getUptime());

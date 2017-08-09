@@ -2,10 +2,10 @@
 
 #include <sys/types.h>
 
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <set>
 
 #include <boost/variant.hpp>
 
@@ -15,10 +15,7 @@
 
 namespace osquery {
 struct AuditdFimInodeDescriptor final {
-  enum class Type {
-    File,
-    Folder
-  };
+  enum class Type { File, Folder };
 
   Type type;
   std::string path;
@@ -92,13 +89,7 @@ struct AuditdFimRenameData final {
 };
 
 struct AuditdFimIOData final {
-  enum class Type {
-    Open,
-    Read,
-    Write,
-    Close,
-    Unlink
-  };
+  enum class Type { Open, Read, Write, Close, Unlink };
 
   std::string target;
   Type type;
@@ -156,14 +147,14 @@ class AuditdFimEventSubscriber final
 
   /// Processes the given events, updating the tracing context
   static Status ProcessEvents(
-      std::vector<Row> &emitted_row_list,
-      AuditdFimContext &fim_context,
+      std::vector<Row>& emitted_row_list,
+      AuditdFimContext& fim_context,
       const std::vector<AuditEvent>& event_list) noexcept;
 
   /// Returns the set of syscalls that this subscriber can handle
-  static const std::set<int> &GetSyscallSet() noexcept;
+  static const std::set<int>& GetSyscallSet() noexcept;
 
-private:
+ private:
   AuditdFimContext context_;
 };
 }

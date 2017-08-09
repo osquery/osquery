@@ -48,15 +48,16 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
-  for (auto &row : emitted_row_list) {
+  for (auto& row : emitted_row_list) {
     add(row);
   }
 
   return Status(0, "Ok");
 }
 
-Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
-                                const std::vector<AuditEvent>& event_list) noexcept {
+Status AuditProcessEventSubscriber::ProcessEvents(
+    std::vector<Row>& emitted_row_list,
+    const std::vector<AuditEvent>& event_list) noexcept {
   // clang-format off
   /*
     1300 audit(1502125323.756:6): arch=c000003e syscall=59 success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 comm="sh" exe="/usr/bin/bash" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)
@@ -68,35 +69,41 @@ Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_
   */
   // clang-format on
 
-  auto L_CopyFieldFromMap = [](Row &row, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value) -> void {
+  auto L_CopyFieldFromMap = [](Row& row,
+                               const std::map<std::string, std::string>& fields,
+                               const std::string& name,
+                               const std::string& default_value) -> void {
     GetStringFieldFromMap(row[name], fields, name, default_value);
   };
 
   emitted_row_list.clear();
 
-  for (const auto &event : event_list) {
+  for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::Syscall) {
       continue;
     }
 
-    const auto &event_data = boost::get<SyscallAuditEventData>(event.data);
+    const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
     if (event_data.syscall_number != __NR_execve) {
       continue;
     }
 
-    const AuditEventRecord *syscall_event_record = GetEventRecord(event, AUDIT_SYSCALL);
+    const AuditEventRecord* syscall_event_record =
+        GetEventRecord(event, AUDIT_SYSCALL);
     if (syscall_event_record == nullptr) {
       VLOG(1) << "Malformed AUDIT_SYSCALL event";
       continue;
     }
 
-    const AuditEventRecord *execve_event_record = GetEventRecord(event, AUDIT_EXECVE);
+    const AuditEventRecord* execve_event_record =
+        GetEventRecord(event, AUDIT_EXECVE);
     if (execve_event_record == nullptr) {
       VLOG(1) << "Malformed AUDIT_EXECVE event";
       continue;
     }
 
-    const AuditEventRecord *first_path_event_record = GetEventRecord(event, AUDIT_PATH);
+    const AuditEventRecord* first_path_event_record =
+        GetEventRecord(event, AUDIT_PATH);
     if (first_path_event_record == nullptr) {
       VLOG(1) << "Malformed AUDIT_PATH event";
       continue;
@@ -113,7 +120,8 @@ Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_
     L_CopyFieldFromMap(row, syscall_event_record->fields, "egid", "0");
 
     GetStringFieldFromMap(row["path"], syscall_event_record->fields, "exe", "");
-    GetStringFieldFromMap(row["cmdline"], syscall_event_record->fields, "comm", "");
+    GetStringFieldFromMap(
+        row["cmdline"], syscall_event_record->fields, "comm", "");
 
     auto qd = SQL::selectAllFrom("file", "path", EQUALS, row.at("path"));
     if (qd.size() == 1) {
@@ -150,8 +158,10 @@ Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_
 
     // Get the remaining data from the first AUDIT_PATH record
     L_CopyFieldFromMap(row, first_path_event_record->fields, "mode", "");
-    GetStringFieldFromMap(row["owner_uid"], first_path_event_record->fields, "ouid", "0");
-    GetStringFieldFromMap(row["owner_gid"], first_path_event_record->fields, "ogid", "0");
+    GetStringFieldFromMap(
+        row["owner_uid"], first_path_event_record->fields, "ouid", "0");
+    GetStringFieldFromMap(
+        row["owner_gid"], first_path_event_record->fields, "ogid", "0");
 
     emitted_row_list.push_back(row);
   }
@@ -159,7 +169,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_
   return Status(0, "Ok");
 }
 
-const std::set<int> &AuditProcessEventSubscriber::GetSyscallSet() noexcept {
+const std::set<int>& AuditProcessEventSubscriber::GetSyscallSet() noexcept {
   static const std::set<int> syscall_set = {__NR_execve};
   return syscall_set;
 }

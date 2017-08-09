@@ -21,8 +21,9 @@
 
 namespace osquery {
 
-class SocketEventSubscriber final : public EventSubscriber<AuditEventPublisher> {
-public:
+class SocketEventSubscriber final
+    : public EventSubscriber<AuditEventPublisher> {
+ public:
   /// The process event subscriber declares an audit event type subscription.
   Status init() override;
 
@@ -30,12 +31,12 @@ public:
   Status Callback(const ECRef& ec, const SCRef& sc);
 
   /// Processes the updates received from the callback
-  static Status ProcessEvents(std::vector<Row> &emitted_row_list,
-                              const std::vector<AuditEvent>& event_list) noexcept;
+  static Status ProcessEvents(
+      std::vector<Row>& emitted_row_list,
+      const std::vector<AuditEvent>& event_list) noexcept;
 
   /// Returns the set of syscalls that this subscriber can handle
-  static const std::set<int> &GetSyscallSet() noexcept;
+  static const std::set<int>& GetSyscallSet() noexcept;
 };
 
 } // namespace osquery
-

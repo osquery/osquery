@@ -62,7 +62,8 @@ FLAG(bool,
 FLAG(bool,
      audit_force_unconfigure,
      false,
-     "Always uninstall all rules, regardless of whether they were already installed or not");
+     "Always uninstall all rules, regardless of whether they were already "
+     "installed or not");
 
 /// Audit debugger helper
 HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
@@ -78,7 +79,8 @@ bool IsAuditdNetlinkEnabled() noexcept {
     return false;
   }
 
-  return (FLAGS_audit_allow_process_events || FLAGS_audit_allow_sockets || FLAGS_audit_allow_fim_events || FLAGS_audit_allow_user_events);
+  return (FLAGS_audit_allow_process_events || FLAGS_audit_allow_sockets ||
+          FLAGS_audit_allow_fim_events || FLAGS_audit_allow_user_events);
 }
 
 enum AuditStatus {
@@ -209,7 +211,8 @@ bool AuditdNetlink::ParseAuditReply(const audit_reply& reply,
   event_record = {};
 
   if (FLAGS_audit_debug) {
-    std::cout << reply.type << ", " << std::string(reply.message, reply.len) << std::endl;
+    std::cout << reply.type << ", " << std::string(reply.message, reply.len)
+              << std::endl;
   }
 
   // Tokenize the message.

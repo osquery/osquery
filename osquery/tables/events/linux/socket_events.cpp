@@ -46,7 +46,7 @@ std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
          std::to_string((result & 0x000000ff));
 }
 
-bool parseSockAddr(const std::string& saddr, Row &row, bool &unix_socket) {
+bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
   unix_socket = false;
 
   // The protocol is not included in the audit message.
@@ -113,28 +113,33 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
-  for (auto &row : emitted_row_list) {
+  for (auto& row : emitted_row_list) {
     add(row);
   }
 
   return Status(0, "Ok");
 }
 
-Status SocketEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
-                                                  const std::vector<AuditEvent>& event_list) noexcept {
-  auto L_CopyFieldFromMap = [](Row &row, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value = std::string()) -> void {
-      GetStringFieldFromMap(row[name], fields, name, default_value);
+Status SocketEventSubscriber::ProcessEvents(
+    std::vector<Row>& emitted_row_list,
+    const std::vector<AuditEvent>& event_list) noexcept {
+  auto L_CopyFieldFromMap = [](
+      Row& row,
+      const std::map<std::string, std::string>& fields,
+      const std::string& name,
+      const std::string& default_value = std::string()) -> void {
+    GetStringFieldFromMap(row[name], fields, name, default_value);
   };
 
   emitted_row_list.clear();
 
-  for (const auto &event : event_list) {
+  for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::Syscall) {
       continue;
     }
 
     Row row = {};
-    const auto &event_data = boost::get<SyscallAuditEventData>(event.data);
+    const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
 
     if (event_data.syscall_number == __NR_connect) {
       row["action"] = "connect";
@@ -144,17 +149,19 @@ Status SocketEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
       continue;
     }
 
-    const AuditEventRecord *syscall_event_record = GetEventRecord(event, AUDIT_SYSCALL);
+    const AuditEventRecord* syscall_event_record =
+        GetEventRecord(event, AUDIT_SYSCALL);
     if (syscall_event_record == nullptr) {
       VLOG(1) << "Malformed syscall event. The AUDIT_SYSCALL record "
                  "is missing";
       continue;
     }
 
-    const AuditEventRecord *sockaddr_event_record = GetEventRecord(event, AUDIT_SOCKADDR);
+    const AuditEventRecord* sockaddr_event_record =
+        GetEventRecord(event, AUDIT_SOCKADDR);
     if (sockaddr_event_record == nullptr) {
       VLOG(1) << "Malformed syscall event. The AUDIT_SOCKADDR record "
-              "is missing";
+                 "is missing";
       continue;
     }
 
@@ -162,7 +169,7 @@ Status SocketEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
     GetStringFieldFromMap(saddr, sockaddr_event_record->fields, "saddr");
     if (saddr.size() < 4 || saddr[0] == '1') {
       VLOG(1) << "Malformed syscall event. The AUDIT_SOCKADDR does not "
-              "have a valid saddr field";
+                 "have a valid saddr field";
       continue;
     }
 
@@ -172,7 +179,8 @@ Status SocketEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
 
     row["path"] = DecodeHexEncodedValue(syscall_event_record->fields.at("exe"));
     row["fd"] = syscall_event_record->fields.at("a0");
-    row["success"] = (syscall_event_record->fields.at("success") == "yes") ? "1" : "0";
+    row["success"] =
+        (syscall_event_record->fields.at("success") == "yes") ? "1" : "0";
     row["uptime"] = std::to_string(tables::getUptime());
 
     // Set some sane defaults and then attempt to parse the sockaddr value
@@ -197,7 +205,7 @@ Status SocketEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
   return Status(0, "Ok");
 }
 
-const std::set<int> &SocketEventSubscriber::GetSyscallSet() noexcept {
+const std::set<int>& SocketEventSubscriber::GetSyscallSet() noexcept {
   static const std::set<int> syscall_set = {__NR_bind, __NR_connect};
   return syscall_set;
 }

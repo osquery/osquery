@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <limits>
 #include <cstdint>
+#include <limits>
 
 #include <boost/variant.hpp>
 
@@ -34,10 +34,7 @@ struct SyscallAuditEventData final {
 
 /// Audit event descriptor
 struct AuditEvent final {
-  enum class Type {
-    UserEvent,
-    Syscall
-  };
+  enum class Type { UserEvent, Syscall };
 
   Type type;
   boost::variant<UserAuditEventData, SyscallAuditEventData> data;
@@ -46,8 +43,7 @@ struct AuditEvent final {
 };
 
 /// Audit event pretty printer, used for the --audit_fim_debug flag
-std::ostream& operator<<(std::ostream& stream,
-                         const AuditEvent& audit_event);
+std::ostream& operator<<(std::ostream& stream, const AuditEvent& audit_event);
 
 struct AuditSubscriptionContext final : public SubscriptionContext {
  private:
@@ -59,15 +55,13 @@ struct AuditEventContext final : public EventContext {
 };
 
 using AuditEventContextRef = std::shared_ptr<AuditEventContext>;
-using AuditSubscriptionContextRef =
-    std::shared_ptr<AuditSubscriptionContext>;
+using AuditSubscriptionContextRef = std::shared_ptr<AuditSubscriptionContext>;
 
 /// This type maps audit event id with the corresponding audit event object
 using AuditTraceContext = std::map<std::string, AuditEvent>;
 
 class AuditEventPublisher final
-    : public EventPublisher<AuditSubscriptionContext,
-                            AuditEventContext> {
+    : public EventPublisher<AuditSubscriptionContext, AuditEventContext> {
   DECLARE_PUBLISHER("auditeventpublisher");
 
  public:
@@ -94,11 +88,22 @@ class AuditEventPublisher final
 };
 
 /// Extracts the specified audit event record from the given audit event
-const AuditEventRecord *GetEventRecord(const AuditEvent &event, int record_type) noexcept;
+const AuditEventRecord* GetEventRecord(const AuditEvent& event,
+                                       int record_type) noexcept;
 
 /// Extracts the specified string key from the given string map
-bool GetStringFieldFromMap(std::string &value, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value = std::string()) noexcept;
+bool GetStringFieldFromMap(
+    std::string& value,
+    const std::map<std::string, std::string>& fields,
+    const std::string& name,
+    const std::string& default_value = std::string()) noexcept;
 
 /// Extracts the specified integer key from the given string map
-bool GetIntegerFieldFromMap(std::uint64_t& value, const std::map<std::string, std::string>& field_map, const std::string& field_name, std::size_t base = 10, std::uint64_t default_value = std::numeric_limits<std::uint64_t>::max()) noexcept;
+bool GetIntegerFieldFromMap(
+    std::uint64_t& value,
+    const std::map<std::string, std::string>& field_map,
+    const std::string& field_name,
+    std::size_t base = 10,
+    std::uint64_t default_value =
+        std::numeric_limits<std::uint64_t>::max()) noexcept;
 }

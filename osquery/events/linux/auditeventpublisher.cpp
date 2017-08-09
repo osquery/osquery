@@ -21,7 +21,6 @@ DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
 
-
 REGISTER(AuditEventPublisher, "event_publisher", "auditeventpublisher");
 
 namespace {
@@ -30,7 +29,8 @@ bool IsPublisherEnabled() noexcept {
     return false;
   }
 
-  return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events || FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events);
+  return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events ||
+          FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events);
 }
 }
 
@@ -69,8 +69,7 @@ Status AuditEventPublisher::run() {
       AuditdNetlink::get().getEvents(audit_netlink_subscription_);
 
   auto event_context = createEventContext();
-  ProcessEvents(
-      event_context, audit_event_record_queue, audit_trace_context_);
+  ProcessEvents(event_context, audit_event_record_queue, audit_trace_context_);
 
   if (!event_context->audit_events.empty()) {
     fire(event_context);
@@ -90,7 +89,8 @@ void AuditEventPublisher::ProcessEvents(
 
     // We have two entry points here; the first one is for user messages, while
     // the second one is for syscalls
-    if (audit_event_record.type >= AUDIT_FIRST_USER_MSG && audit_event_record.type <= AUDIT_LAST_USER_MSG) {
+    if (audit_event_record.type >= AUDIT_FIRST_USER_MSG &&
+        audit_event_record.type <= AUDIT_LAST_USER_MSG) {
       UserAuditEventData data;
       data.user_event_id = audit_event_record.type;
 
@@ -112,34 +112,39 @@ void AuditEventPublisher::ProcessEvents(
 
       SyscallAuditEventData data;
 
-      if (!GetIntegerFieldFromMap(data.syscall_number, audit_event_record.fields, "syscall")) {
+      if (!GetIntegerFieldFromMap(
+              data.syscall_number, audit_event_record.fields, "syscall")) {
         VLOG(1) << "Malformed AUDIT_SYSCALL record received. The syscall field "
-                "is either missing or not valid.";
+                   "is either missing or not valid.";
 
         continue;
       }
 
       std::string syscall_status;
-      GetStringFieldFromMap(syscall_status, audit_event_record.fields, "success", "yes");
+      GetStringFieldFromMap(
+          syscall_status, audit_event_record.fields, "success", "yes");
 
-      // By discarding this event, we will also automatically discard any other attached
+      // By discarding this event, we will also automatically discard any other
+      // attached
       // record
       if (syscall_status != "yes") {
         continue;
       }
 
       std::uint64_t process_id;
-      if (!GetIntegerFieldFromMap(process_id, audit_event_record.fields, "pid")) {
+      if (!GetIntegerFieldFromMap(
+              process_id, audit_event_record.fields, "pid")) {
         VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process id "
-                "field is either missing or not valid.";
+                   "field is either missing or not valid.";
 
         continue;
       }
 
       std::uint64_t parent_process_id;
-      if (!GetIntegerFieldFromMap(parent_process_id, audit_event_record.fields, "ppid")) {
+      if (!GetIntegerFieldFromMap(
+              parent_process_id, audit_event_record.fields, "ppid")) {
         VLOG(1) << "Malformed AUDIT_SYSCALL record received. The parent "
-                "process id field is either missing or not valid.";
+                   "process id field is either missing or not valid.";
 
         continue;
       }
@@ -148,7 +153,8 @@ void AuditEventPublisher::ProcessEvents(
       data.parent_process_id = static_cast<pid_t>(parent_process_id);
 
       pid_t osquery_pid = getpid();
-      if (data.process_id == osquery_pid || data.parent_process_id == osquery_pid) {
+      if (data.process_id == osquery_pid ||
+          data.parent_process_id == osquery_pid) {
         continue;
       }
 
@@ -215,10 +221,12 @@ void AuditEventPublisher::ProcessEvents(
   }
 }
 
-const AuditEventRecord *GetEventRecord(const AuditEvent &event, int record_type) noexcept {
-  auto it = std::find_if(event.record_list.begin(), event.record_list.end(),
-                         [record_type](const AuditEventRecord &record) -> bool {
-                             return (record.type == record_type);
+const AuditEventRecord* GetEventRecord(const AuditEvent& event,
+                                       int record_type) noexcept {
+  auto it = std::find_if(event.record_list.begin(),
+                         event.record_list.end(),
+                         [record_type](const AuditEventRecord& record) -> bool {
+                           return (record.type == record_type);
                          });
 
   if (it == event.record_list.end()) {
@@ -228,7 +236,10 @@ const AuditEventRecord *GetEventRecord(const AuditEvent &event, int record_type)
   return &(*it);
 };
 
-bool GetStringFieldFromMap(std::string &value, const std::map<std::string, std::string> &fields, const std::string &name, const std::string &default_value) noexcept {
+bool GetStringFieldFromMap(std::string& value,
+                           const std::map<std::string, std::string>& fields,
+                           const std::string& name,
+                           const std::string& default_value) noexcept {
   auto it = fields.find(name);
   if (it == fields.end()) {
     value = default_value;
@@ -239,7 +250,11 @@ bool GetStringFieldFromMap(std::string &value, const std::map<std::string, std::
   return true;
 }
 
-bool GetIntegerFieldFromMap(std::uint64_t& value, const std::map<std::string, std::string>& field_map, const std::string& field_name, std::size_t base, std::uint64_t default_value) noexcept {
+bool GetIntegerFieldFromMap(std::uint64_t& value,
+                            const std::map<std::string, std::string>& field_map,
+                            const std::string& field_name,
+                            std::size_t base,
+                            std::uint64_t default_value) noexcept {
   std::string string_value;
   if (!GetStringFieldFromMap(string_value, field_map, field_name, "")) {
     value = default_value;

@@ -29,8 +29,8 @@ namespace osquery {
 DECLARE_bool(audit_allow_unix);
 
 /// Internal audit subscriber (socket events) testable methods.
-extern void parseSockAddr(const std::string& saddr, Row& r, bool &unix_socket);
-    
+extern void parseSockAddr(const std::string& saddr, Row& r, bool& unix_socket);
+
 using StringMap = std::map<std::string, std::string>;
 
 /// Generates a fake audit id
