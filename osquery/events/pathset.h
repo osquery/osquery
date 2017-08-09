@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/noncopyable.hpp>
 #include <boost/tokenizer.hpp>
 
 #include <osquery/core.h>
@@ -43,7 +44,7 @@ namespace osquery {
  */
 
 template <typename PathType>
-class PathSet {
+class PathSet : private boost::noncopyable {
  public:
   void insert(const std::string& str) {
     auto pattern = str;
@@ -120,6 +121,11 @@ class patternedPath {
     boost::char_separator<char> sep{"/"};
     tokenizer tokens(str, sep);
     Path path;
+
+    if (str == "/") {
+      path.push_back("");
+    }
+
     for (std::string component : tokens) {
       path.push_back(std::move(component));
     }
@@ -131,6 +137,11 @@ class patternedPath {
     tokenizer tokens(str, sep);
     VPath vpath;
     Path path;
+
+    if (str == "/") {
+      path.push_back("");
+    }
+
     for (std::string component : tokens) {
       if (component == "**") {
         vpath.push_back(path);
