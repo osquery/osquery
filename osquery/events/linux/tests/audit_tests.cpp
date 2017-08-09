@@ -7,7 +7,7 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
-/*
+
 #include <stdio.h>
 
 #include <gtest/gtest.h>
@@ -30,6 +30,8 @@ DECLARE_bool(audit_allow_unix);
 
 /// Internal audit subscriber (socket events) testable methods.
 extern void parseSockAddr(const std::string& saddr, Row& r, bool &unix_socket);
+    
+using StringMap = std::map<std::string, std::string>;
 
 /// Generates a fake audit id
 std::string generateAuditId(std::uint32_t event_id) noexcept {
@@ -81,96 +83,26 @@ TEST_F(AuditTests, test_handle_reply) {
 
 TEST_F(AuditTests, test_audit_value_decode) {
   // In the normal case the decoding only removes '"' characters from the ends.
-  auto decoded_normal = decodeAuditValue("\"/bin/ls\"");
+  auto decoded_normal = DecodeHexEncodedValue("\"/bin/ls\"");
   EXPECT_EQ(decoded_normal, "/bin/ls");
 
   // If the first char is not '"', the value is expected to be hex-encoded.
-  auto decoded_hex = decodeAuditValue("736C6565702031");
+  auto decoded_hex = DecodeHexEncodedValue("736C6565702031");
   EXPECT_EQ(decoded_hex, "sleep 1");
 
   // When the hex fails to decode the input value is returned as the result.
-  auto decoded_fail = decodeAuditValue("7");
+  auto decoded_fail = DecodeHexEncodedValue("7");
   EXPECT_EQ(decoded_fail, "7");
 }
 
 size_t kAuditCounter{0};
 
-bool SimpleUpdate(size_t t, const AuditFields& f, AuditFields& m) {
+bool SimpleUpdate(size_t t, const StringMap& f, StringMap& m) {
   kAuditCounter++;
   for (const auto& i : f) {
     m[i.first] = i.second;
   }
   return true;
-}
-
-TEST_F(AuditTests, test_audit_assembler) {
-  // Test the queue correctness.
-  AuditAssembler asmb;
-  std::string audit_id = generateAuditId(100U);
-
-  std::vector<size_t> expected_types{1, 2, 3};
-  asmb.start(3, expected_types, nullptr);
-
-  AuditFields expected_fields{{"1", "1"}};
-  asmb.add(audit_id, 1, expected_fields);
-
-  EXPECT_EQ(3U, asmb.capacity_);
-  EXPECT_EQ(1U, asmb.queue_.size());
-
-  EXPECT_EQ(expected_types, asmb.types_);
-  // This will be empty since there is no update method.
-  EXPECT_TRUE(asmb.m_[audit_id].empty());
-
-  expected_fields = {{"2", "2"}};
-  asmb.add(audit_id, 1, expected_fields);
-
-  // Again empty.
-  EXPECT_TRUE(asmb.m_[audit_id].empty());
-  EXPECT_EQ(1U, asmb.mt_[audit_id].size());
-
-  asmb.add(audit_id, 2, expected_fields);
-  asmb.add(audit_id, 3, expected_fields);
-  EXPECT_TRUE(asmb.m_.empty());
-  EXPECT_EQ(0U, asmb.queue_.size());
-
-  // Flood with incomplete messages.
-  for (std::uint32_t i = 0U; i < 101U; i++) {
-    std::string temp_audit_id = generateAuditId(i);
-    asmb.add(temp_audit_id, 1, {});
-  }
-  EXPECT_EQ(3U, asmb.queue_.size());
-  EXPECT_EQ(3U, asmb.mt_.size());
-  EXPECT_EQ(3U, asmb.m_.size());
-
-  // Flood with complete messages.
-  for (std::uint32_t i = 0U; i < 101U; i++) {
-    std::string temp_audit_id = generateAuditId(i);
-
-    asmb.add(temp_audit_id, 3, {});
-    asmb.add(temp_audit_id, 1, {});
-    asmb.add(temp_audit_id, 2, {});
-  }
-
-  // All of the queue items should have been removed.
-  EXPECT_EQ(0U, asmb.queue_.size());
-  EXPECT_EQ(0U, asmb.mt_.size());
-  EXPECT_EQ(0U, asmb.m_.size());
-
-  asmb.start(3U, {1, 2, 3}, &SimpleUpdate);
-
-  std::string temp_audit_id = generateAuditId(1);
-  EXPECT_FALSE(asmb.add(temp_audit_id, 1, expected_fields).is_initialized());
-
-  EXPECT_EQ(1U, kAuditCounter);
-
-  // Inject duplicate.
-  EXPECT_FALSE(asmb.add(temp_audit_id, 1, expected_fields).is_initialized());
-  EXPECT_EQ(2U, kAuditCounter);
-
-  EXPECT_FALSE(asmb.add(temp_audit_id, 2, expected_fields).is_initialized());
-  auto fields = asmb.add(temp_audit_id, 3, expected_fields);
-  EXPECT_TRUE(fields.is_initialized());
-  EXPECT_EQ(*fields, expected_fields);
 }
 
 TEST_F(AuditTests, test_parse_sock_addr) {
@@ -204,4 +136,3 @@ TEST_F(AuditTests, test_parse_sock_addr) {
   FLAGS_audit_allow_unix = socket_flag;
 }
 }
-*/
