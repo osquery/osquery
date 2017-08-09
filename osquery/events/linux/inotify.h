@@ -18,51 +18,14 @@
 
 #include <osquery/events.h>
 
+#include "osquery/events/pathset.h"
+
 namespace osquery {
 
 extern std::map<int, std::string> kMaskActions;
 
 extern const uint32_t kFileDefaultMasks;
 extern const uint32_t kFileAccessMasks;
-
-struct Path {
-  Path(const std::string& str, bool r = false) : path(str), recursive(r) {}
-  const std::string path;
-  bool recursive;
-};
-
-inline bool operator<(const Path& lhs, const Path& rhs) {
-  size_t size =
-      (lhs.path.size() < rhs.path.size()) ? lhs.path.size() : rhs.path.size();
-
-  int rc = lhs.path.compare(0, size, rhs.path, 0, size);
-
-  if (rc > 0) {
-    return false;
-  }
-
-  if (rc < 0) {
-    return true;
-  }
-
-  if (size < rhs.path.size() && lhs.recursive) {
-    return false;
-  }
-
-  if (size < lhs.path.size() && rhs.recursive) {
-    return false;
-  }
-
-  return (lhs.path.size() < rhs.path.size());
-}
-
-struct compareExcludePaths {
-  bool operator()(const Path& lhs, const Path& rhs) const {
-    return lhs < rhs;
-  }
-};
-
-using ExcludePathSet = std::set<Path, compareExcludePaths>;
 
 // INotifySubscriptionContext containers
 using PathDescriptorMap = std::map<std::string, int>;
@@ -134,6 +97,9 @@ inline bool operator==(const INotifySubscriptionContext& lsc,
   return ((lsc.category == rsc.category) && (lsc.opath == rsc.opath));
 }
 
+using INotifySubscriptionContextRef =
+    std::shared_ptr<INotifySubscriptionContext>;
+
 /**
  * @brief Event details for INotifyEventPublisher events.
  */
@@ -149,14 +115,17 @@ struct INotifyEventContext : public EventContext {
 
   /// A no-op event transaction id.
   uint32_t transaction_id{0};
+
+  /// This event ctx belongs to isub_ctx
+  INotifySubscriptionContextRef isub_ctx;
 };
 
 using INotifyEventContextRef = std::shared_ptr<INotifyEventContext>;
-using INotifySubscriptionContextRef =
-    std::shared_ptr<INotifySubscriptionContext>;
 
 // Publisher container
 using DescriptorINotifySubCtxMap = std::map<int, INotifySubscriptionContextRef>;
+
+using ExcludePathSet = PathSet<patternedPath>;
 
 /**
  * @brief A Linux `inotify` EventPublisher.
@@ -254,9 +223,8 @@ class INotifyEventPublisher
   bool monitorSubscription(INotifySubscriptionContextRef& sc,
                            bool add_watch = true);
 
-  /// Build the set of excluded paths(only belonging to valid categories),
-  /// for which events are not to be propogated.
-  void buildExcludePathsSet(const std::set<std::string>& valid_categories);
+  /// Build the set of excluded paths for which events are not to be propogated.
+  void buildExcludePathsSet();
 
   /// Remove an INotify watch (monitor) from our tracking.
   bool removeMonitor(int watch, bool force = false, bool batch_del = false);

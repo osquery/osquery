@@ -16,10 +16,10 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
-#include <osquery/config.h>
 
 #include "osquery/events/linux/inotify.h"
 
@@ -127,35 +127,19 @@ bool INotifyEventPublisher::monitorSubscription(
   return needMonitoring(discovered, sc, sc->mask, sc->recursive, add_watch);
 }
 
-void INotifyEventPublisher::buildExcludePathsSet(
-    const std::set<std::string>& valid_categories) {
+void INotifyEventPublisher::buildExcludePathsSet() {
   auto parser = Config::getParser("file_paths");
+
   WriteLock lock(subscription_lock_);
   exclude_paths_.clear();
   for (const auto& excl_category :
        parser->getData().get_child("exclude_paths")) {
-    if (valid_categories.find(excl_category.first) == valid_categories.end()) {
-      // valid_categories contain all the valid categories defined under
-      // "file_paths".
-      continue;
-    }
-
     for (const auto& excl_path : excl_category.second) {
       auto pattern = excl_path.second.get_value<std::string>("");
       if (pattern.empty()) {
         continue;
       }
-      bool recursive = false;
-      if (pattern.find("%%") != std::string::npos) {
-        recursive = true;
-        pattern = pattern.substr(0, pattern.find("%%"));
-      }
-
-      std::vector<std::string> paths;
-      resolveFilePattern(pattern, paths);
-      for (const auto& path : paths) {
-        exclude_paths_.insert(Path(path, recursive));
-      }
+      exclude_paths_.insert(pattern);
     }
   }
 }
@@ -166,21 +150,18 @@ void INotifyEventPublisher::configure() {
     return;
   }
 
-  std::set<std::string> valid_categories;
   SubscriptionVector delete_subscriptions;
   {
     WriteLock lock(subscription_lock_);
     auto end = std::remove_if(
         subscriptions_.begin(),
         subscriptions_.end(),
-        [&delete_subscriptions,
-         &valid_categories](const SubscriptionRef& subscription) {
+        [&delete_subscriptions](const SubscriptionRef& subscription) {
           auto inotify_sc = getSubscriptionContext(subscription->context);
           if (inotify_sc->mark_for_deletion == true) {
             delete_subscriptions.push_back(subscription);
             return true;
           }
-          valid_categories.insert(inotify_sc->category);
           return false;
         });
     subscriptions_.erase(end, subscriptions_.end());
@@ -195,9 +176,9 @@ void INotifyEventPublisher::configure() {
   }
   delete_subscriptions.clear();
 
-  buildExcludePathsSet(valid_categories);
+  buildExcludePathsSet();
 
-      for (auto& sub : subscriptions_) {
+  for (auto& sub : subscriptions_) {
     // Anytime a configure is called, try to monitor all subscriptions.
     // Configure is called as a response to removing/adding subscriptions.
     // This means recalculating all monitored paths.
@@ -304,6 +285,7 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
     } else {
       auto isc = descriptor_inosubctx_.at(event->wd);
       ec->path = isc->descriptor_paths_.at(event->wd);
+      ec->isub_ctx = isc;
     }
   }
 
@@ -322,31 +304,14 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
 
 bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
                                        const INotifyEventContextRef& ec) const {
+  if (sc.get() != ec->isub_ctx.get()) {
+    /// Not my event.
+    return false;
+  }
+
   // The subscription may supply a required event mask.
   if (sc->mask != 0 && !(ec->event->mask & sc->mask)) {
     return false;
-  }
-
-  auto path = ec->path + (isDirectory(ec->path) ? "/" : "");
-  if (exclude_paths_.find(Path(path)) != exclude_paths_.end()) {
-    return false;
-  }
-
-  if (sc->recursive && !sc->recursive_match) {
-    ssize_t found = ec->path.find(sc->path);
-    if (found != 0) {
-      return false;
-    }
-  } else if (ec->path == sc->path) {
-    return true;
-  } else {
-    auto flags = FNM_PATHNAME | FNM_CASEFOLD |
-                 ((sc->recursive_match) ? FNM_LEADING_DIR : 0);
-    if (fnmatch((sc->path + "*").c_str(), ec->path.c_str(), flags) != 0) {
-      // Only apply a leading-dir match if this is a recursive watch with a
-      // match requirement (and inline wildcard with ending recursive wildcard).
-      return false;
-    }
   }
 
   // inotify will not monitor recursively, new directories need watches.
@@ -356,6 +321,12 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
         const_cast<INotifySubscriptionContextRef&>(sc),
         sc->mask,
         true);
+  }
+
+  /// exclude paths should be applied at last
+  auto path = ec->path.substr(0, ec->path.rfind('/'));
+  if (exclude_paths_.find(path)) {
+    return false;
   }
 
   return true;

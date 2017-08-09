@@ -67,11 +67,9 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
     }
   }
 
-  if (config.count("exclude_paths") > 0) {
-    data_.put_child("exclude_paths", config.at("exclude_paths"));
-  }
-
   Config::get().removeFiles(source);
+
+  std::set<std::string> valid_categories;
   for (const auto& category : data_.get_child("file_paths")) {
     for (const auto& path : category.second) {
       auto pattern = path.second.get_value<std::string>("");
@@ -80,7 +78,27 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
       }
       replaceGlobWildcards(pattern);
       Config::get().addFile(source, category.first, pattern);
+      valid_categories.insert(category.first);
     }
+  }
+
+  if (config.count("exclude_paths") > 0) {
+    data_.put_child("exclude_paths", config.at("exclude_paths"));
+  }
+
+  std::set<std::string> invalid_categories;
+  for (const auto& excl_category : data_.get_child("exclude_paths")) {
+    if (valid_categories.find(excl_category.first) == valid_categories.end()) {
+      // valid_categories contains all the valid categories collected from
+      // traversing "file_paths" above.
+      invalid_categories.insert(excl_category.first);
+    }
+  }
+
+  for (const auto& invalid_category : invalid_categories) {
+    // invalid_categories contains all the categories which are mentioned in
+    // exclude_paths but not found in file_paths.
+    data_.get_child("exclude_paths").erase(invalid_category);
   }
 
   return Status(0, "OK");

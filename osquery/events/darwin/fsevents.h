@@ -77,6 +77,8 @@ using FSEventsEventContextRef = std::shared_ptr<FSEventsEventContext>;
 using FSEventsSubscriptionContextRef =
     std::shared_ptr<FSEventsSubscriptionContext>;
 
+using ExcludePathSet = PathSet<patternedPath>;
+
 /**
  * @brief An osquery EventPublisher for the Apple FSEvents notification API.
  *
@@ -135,6 +137,9 @@ class FSEventsEventPublisher
   std::set<std::string> transformSubscription(
       FSEventsSubscriptionContextRef& sc) const;
 
+  /// Build the set of excluded paths for which events are not to be propogated.
+  void buildExcludePathsSet();
+
  private:
   /// Check if the stream (and run loop) are running.
   bool isStreamRunning() const;
@@ -151,6 +156,9 @@ class FSEventsEventPublisher
 
   /// Set of paths to monitor, determined by a configure step.
   std::set<std::string> paths_;
+
+  /// Events pertaining to these paths not to be propagated.
+  ExcludePathSet exclude_paths_;
 
   /// Reference to the run loop for this thread.
   CFRunLoopRef run_loop_{nullptr};

@@ -186,9 +186,28 @@ std::set<std::string> FSEventsEventPublisher::transformSubscription(
   return paths;
 }
 
+void FSEventsEventPublisher::buildExcludePathsSet() {
+  auto parser = Config::getParser("file_paths");
+
+  WriteLock lock(subscription_lock_);
+  exclude_paths_.clear();
+  for (const auto& excl_category :
+       parser->getData().get_child("exclude_paths")) {
+    for (const auto& excl_path : excl_category.second) {
+      auto pattern = excl_path.second.get_value<std::string>("");
+      if (pattern.empty()) {
+        continue;
+      }
+      exclude_paths_.insert(pattern);
+    }
+  }
+}
+
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
   stop();
+
+  buildExcludePathsSet();
 
   {
     WriteLock lock(mutex_);
@@ -285,6 +304,11 @@ void FSEventsEventPublisher::Callback(
 bool FSEventsEventPublisher::shouldFire(
     const FSEventsSubscriptionContextRef& sc,
     const FSEventsEventContextRef& ec) const {
+  auto path = ec->path.substr(0, ec->path.rfind('/'));
+  if (exclude_paths_.find(path)) {
+    return false;
+  }
+
   if (sc->recursive && !sc->recursive_match) {
     ssize_t found = ec->path.find(sc->path);
     if (found != 0) {
