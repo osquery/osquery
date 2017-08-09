@@ -127,7 +127,7 @@ std::ostream& operator<<(std::ostream& stream,
 
   case AuditdFimSyscallContext::Type::Rename: {
     const auto& data =
-        boost::get<AuditdFimRenameData>(syscall_context.syscall_data);
+        boost::get<AuditdFimSrcDestData>(syscall_context.syscall_data);
     stream << data.source << " -> " << data.destination;
     break;
   }
@@ -253,7 +253,7 @@ bool EmitRowFromSyscallContext(
     row["operation"] = "rename";
 
     const auto& data =
-        boost::get<AuditdFimRenameData>(syscall_context.syscall_data);
+        boost::get<AuditdFimSrcDestData>(syscall_context.syscall_data);
     row["path1"] = data.source;
     row["path2"] = data.destination;
 
@@ -320,9 +320,9 @@ bool ParseAuditPathRecord(AuditdFimPathRecordItem& output,
   if (!GetIntegerFieldFromMap(item_index, record.fields, "item", 10))
     return false;
 
+  // The inode number is not mandatory when dealing with folders
   std::uint64_t inode;
-  if (!GetIntegerFieldFromMap(inode, record.fields, "inode", 10))
-    return false;
+  GetIntegerFieldFromMap(inode, record.fields, "inode", 10, 0);
 
   // The 'name' field is sometimes left blank (i.e.: open_by_handle_at)
   GetStringFieldFromMap(output.path, record.fields, "name");
@@ -534,7 +534,7 @@ bool HandleRenameSyscallRecord(AuditdFimContext& fim_context,
     return false;
   }
 
-  AuditdFimRenameData data;
+  AuditdFimSrcDestData data;
   data.source = NormalizePath(syscall_context.path_record_map[0].path,
                               syscall_context.path_record_map[2].path);
   data.destination = NormalizePath(syscall_context.path_record_map[1].path,
@@ -596,6 +596,62 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
   return true;
 }
 
+bool HandleLinkAndSymlinkSyscallRecord(
+    AuditdFimContext& fim_context,
+    AuditdFimSyscallContext& syscall_context,
+    const AuditEventRecord& record) noexcept {
+  auto L_SaveInodeInformation = [&fim_context](
+      const AuditdFimPathRecordItem& path_record,
+      const std::string& normalized_path) {
+    // The inode number is not always present (i.e.: the second AUDIT_PATH
+    // record of the link/symlink
+    // event family)
+    if (path_record.inode == 0) {
+      return;
+    }
+
+    AuditdFimInodeDescriptor inode_desc;
+
+    inode_desc.path = normalized_path;
+    if (path_record.path[path_record.path.size() - 1] == '/') {
+      inode_desc.type = AuditdFimInodeDescriptor::Type::Folder;
+    } else {
+      inode_desc.type = AuditdFimInodeDescriptor::Type::File;
+    }
+
+    fim_context.inode_map[path_record.inode] = inode_desc;
+  };
+
+  if (syscall_context.syscall_number == __NR_symlink ||
+      syscall_context.syscall_number == __NR_symlinkat) {
+    syscall_context.type = AuditdFimSyscallContext::Type::Symlink;
+  } else {
+    syscall_context.type = AuditdFimSyscallContext::Type::Link;
+  }
+
+  if (syscall_context.path_record_map.size() != 3) {
+    VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
+               "AUDIT_PATH records mismatch)";
+
+    syscall_context.partial = true;
+    return false;
+  }
+
+  AuditdFimSrcDestData data;
+  data.source = NormalizePath(syscall_context.cwd,
+                              syscall_context.path_record_map[0].path);
+
+  data.destination = NormalizePath(syscall_context.path_record_map[1].path,
+                                   syscall_context.path_record_map[2].path);
+
+  syscall_context.syscall_data = data;
+
+  L_SaveInodeInformation(syscall_context.path_record_map[0], data.source);
+  L_SaveInodeInformation(syscall_context.path_record_map[2], data.destination);
+
+  return true;
+}
+
 bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
                                AuditdFimSyscallContext& syscall_context,
                                const AuditEventRecord& record) noexcept {
@@ -620,15 +676,10 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
   case __NR_linkat:
   case __NR_symlink:
   case __NR_symlinkat: {
-    if (syscall_context.syscall_number == __NR_link ||
-        syscall_context.syscall_number == __NR_linkat) {
-      syscall_context.type = AuditdFimSyscallContext::Type::Link;
-    } else {
-      syscall_context.type = AuditdFimSyscallContext::Type::Symlink;
-    }
-
-    return false;
+    return HandleLinkAndSymlinkSyscallRecord(
+        fim_context, syscall_context, record);
   }
+
   case __NR_name_to_handle_at: {
     syscall_context.type = AuditdFimSyscallContext::Type::NameToHandleAt;
     return false;
@@ -831,6 +882,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
 
       case AUDIT_CWD: {
         if (!ParseAuditCwdRecord(syscall_context.cwd, record)) {
+          VLOG(1) << "Invalid AUDIT_CWD record";
           record_error = true;
           break;
         }
@@ -840,6 +892,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       case AUDIT_PATH: {
         AuditdFimPathRecordItem output;
         if (!ParseAuditPathRecord(output, record)) {
+          VLOG(1) << "Invalid AUDIT_PATH record";
           record_error = true;
           break;
         }
@@ -850,6 +903,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
 
       case AUDIT_MMAP: {
         if (!ParseAuditMmapRecord(record)) {
+          VLOG(1) << "Invalid AUDIT_MMAP record";
           record_error = true;
           break;
         }
@@ -881,7 +935,12 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       fim_context.inode_map[path_item.inode] = inode_descriptor;
     }
 
-    if (record_error || syscall_record == nullptr) {
+    if (syscall_record == nullptr) {
+      VLOG(1) << "Malformed audit event; the syscall record was not found";
+      continue;
+    }
+
+    if (record_error) {
       VLOG(1)
           << "Invalid syscall event; one or more child records were malformed";
       continue;
@@ -930,10 +989,8 @@ Status AuditdFimEventSubscriber::ProcessEvents(
 }
 
 const std::set<int>& AuditdFimEventSubscriber::GetSyscallSet() noexcept {
-  static const std::set<int> syscall_set = {__NR_link,
-                                            __NR_linkat,
-                                            __NR_symlink,
-                                            __NR_symlinkat,
+  static const std::set<int> syscall_set = {
+      __NR_link, __NR_linkat, __NR_symlink, __NR_symlinkat /*,
                                             __NR_unlink,
                                             __NR_unlinkat,
                                             __NR_rename,
@@ -960,7 +1017,7 @@ const std::set<int>& AuditdFimEventSubscriber::GetSyscallSet() noexcept {
                                             __NR_write,
                                             __NR_writev,
                                             __NR_pwrite64,
-                                            __NR_pwritev};
+                                            __NR_pwritev*/};
   return syscall_set;
 }
 }

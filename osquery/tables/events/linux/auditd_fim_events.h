@@ -83,7 +83,7 @@ struct AuditdFimPathRecordItem final {
   std::string path;
 };
 
-struct AuditdFimRenameData final {
+struct AuditdFimSrcDestData final {
   std::string source;
   std::string destination;
 };
@@ -96,7 +96,7 @@ struct AuditdFimIOData final {
   bool state_changed;
 };
 
-using SyscallData = boost::variant<AuditdFimRenameData, AuditdFimIOData>;
+using SyscallData = boost::variant<AuditdFimSrcDestData, AuditdFimIOData>;
 
 struct AuditdFimSyscallContext final {
   enum class Type {
