@@ -17,7 +17,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/events/linux/syscall_monitor.h"
+#include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {
 

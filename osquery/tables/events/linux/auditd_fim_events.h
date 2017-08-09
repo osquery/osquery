@@ -14,7 +14,7 @@
 #include <osquery/events.h>
 
 
-#include "osquery/events/linux/syscall_monitor.h"
+#include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {
 struct AuditdFimInodeDescriptor final {

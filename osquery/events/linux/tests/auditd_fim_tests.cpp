@@ -25,7 +25,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/events/linux/syscall_monitor.h"
+#include "osquery/events/linux/auditeventpublisher.h"
 #include "osquery/tables/events/linux/auditd_fim_events.h"
 #include "osquery/tests/test_util.h"
 /*

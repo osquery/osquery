@@ -14,7 +14,7 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
-#include "osquery/events/linux/syscall_monitor.h"
+#include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {
 

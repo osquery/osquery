@@ -14,7 +14,7 @@
 #include <osquery/logger.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/events/linux/syscall_monitor.h"
+#include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {
 DECLARE_bool(audit_allow_fim_events);
