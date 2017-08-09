@@ -14,7 +14,7 @@
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
-#include "osquery/events/linux/auditeventpublisher.h"
+#include "osquery/tables/events/linux/process_events.h"
 
 namespace osquery {
 
@@ -27,19 +27,6 @@ FLAG(bool,
 namespace tables {
 extern long getUptime();
 }
-
-class AuditProcessEventSubscriber final : public EventSubscriber<AuditEventPublisher> {
- public:
-  /// The process event subscriber declares an audit event type subscription.
-  Status init() override;
-
-  /// Kernel events matching the event type will fire.
-  Status Callback(const ECRef& ec, const SCRef& sc);
-
-  /// Processes the updates received from the callback
-  static Status ProcessEvents(std::vector<Row> &emitted_row_list,
-    const std::vector<AuditEvent>& event_list) noexcept;
-};
 
 REGISTER(AuditProcessEventSubscriber, "event_subscriber", "process_events");
 
@@ -170,5 +157,10 @@ Status AuditProcessEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_
   }
 
   return Status(0, "Ok");
+}
+
+const std::set<int> &AuditProcessEventSubscriber::GetSyscallSet() noexcept {
+  static const std::set<int> syscall_set = {__NR_execve};
+  return syscall_set;
 }
 }

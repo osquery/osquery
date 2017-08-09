@@ -8,8 +8,6 @@
  *
  */
 
-#include <boost/filesystem.hpp>
-
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
@@ -17,15 +15,22 @@
 #include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {
+DECLARE_bool(disable_audit);
 DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
+DECLARE_bool(audit_allow_user_events);
+
 
 REGISTER(AuditEventPublisher, "event_publisher", "auditeventpublisher");
 
 namespace {
 bool IsPublisherEnabled() noexcept {
-  return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events || FLAGS_audit_allow_sockets);
+  if (FLAGS_disable_audit) {
+    return false;
+  }
+
+  return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events || FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events);
 }
 }
 
@@ -42,7 +47,6 @@ void AuditEventPublisher::configure() {
     return;
   }
 
-  // Only subscribe if we are actually going to have listeners
   if (audit_netlink_subscription_ == 0) {
     audit_netlink_subscription_ = AuditdNetlink::get().subscribe();
   }
@@ -79,28 +83,23 @@ void AuditEventPublisher::ProcessEvents(
     AuditEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
     AuditTraceContext& trace_context) noexcept {
-  // Assemble each record into a AuditEvent object; an event is
-  // complete when we receive the terminator (AUDIT_EOE)
+  // Assemble each record into a AuditEvent object; multi-record events
+  // are complete when we receive the terminator (AUDIT_EOE)
   for (const auto& audit_event_record : record_list) {
     auto audit_event_it = trace_context.find(audit_event_record.audit_id);
 
     // We have two entry points here; the first one is for user messages, while
     // the second one is for syscalls
     if (audit_event_record.type >= AUDIT_FIRST_USER_MSG && audit_event_record.type <= AUDIT_LAST_USER_MSG) {
-      if (audit_event_it != trace_context.end()) {
-        VLOG(1) << "Received a duplicated event.";
-        trace_context.erase(audit_event_it);
-      }
+      UserAuditEventData data;
+      data.user_event_id = audit_event_record.type;
 
       AuditEvent audit_event;
       audit_event.type = AuditEvent::Type::UserEvent;
-
-      UserAuditEventData data;
-      data.user_event_id = audit_event_record.type;
+      audit_event.record_list.push_back(audit_event_record);
       audit_event.data = data;
 
-      audit_event.record_list.push_back(audit_event_record);
-      trace_context[audit_event_record.audit_id] = std::move(audit_event);
+      event_context->audit_events.push_back(audit_event);
 
     } else if (audit_event_record.type == AUDIT_SYSCALL) {
       if (audit_event_it != trace_context.end()) {

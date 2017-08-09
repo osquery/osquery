@@ -18,111 +18,11 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditdnetlink.h"
+#include "osquery/tables/events/linux/auditd_fim_events.h"
+#include "osquery/tables/events/linux/process_events.h"
+#include "osquery/tables/events/linux/socket_events.h"
 
 namespace {
-std::string GetAuditRecordTypeName(int type) noexcept {
-  // clang-format off
-  const std::unordered_map<int, const char*> audit_event_name = {
-    {1000, "AUDIT_GET"},
-    {1001, "AUDIT_SET"},
-    {1002, "AUDIT_LIST"},
-    {1003, "AUDIT_ADD"},
-    {1004, "AUDIT_DEL"},
-    {1005, "AUDIT_USER"},
-    {1006, "AUDIT_LOGIN"},
-    {1007, "AUDIT_WATCH_INS"},
-    {1008, "AUDIT_WATCH_REM"},
-    {1009, "AUDIT_WATCH_LIST"},
-    {1010, "AUDIT_SIGNAL_INFO"},
-    {1011, "AUDIT_ADD_RULE"},
-    {1012, "AUDIT_DEL_RULE"},
-    {1013, "AUDIT_LIST_RULES"},
-    {1014, "AUDIT_TRIM"},
-    {1015, "AUDIT_MAKE_EQUIV"},
-    {1016, "AUDIT_TTY_GET"},
-    {1017, "AUDIT_TTY_SET"},
-    {1018, "AUDIT_SET_FEATURE"},
-    {1019, "AUDIT_GET_FEATURE"},
-    {1100, "AUDIT_FIRST_USER_MSG"},
-    {1107, "AUDIT_USER_AVC"},
-    {1124, "AUDIT_USER_TTY"},
-    {1199, "AUDIT_LAST_USER_MSG"},
-    {2100, "AUDIT_FIRST_USER_MSG2"},
-    {2999, "AUDIT_LAST_USER_MSG2"},
-    {1200, "AUDIT_DAEMON_START"},
-    {1201, "AUDIT_DAEMON_END"},
-    {1202, "AUDIT_DAEMON_ABORT"},
-    {1203, "AUDIT_DAEMON_CONFIG"},
-    {1300, "AUDIT_SYSCALL"},
-    {1301, "AUDIT_FS_WATCH"},
-    {1302, "AUDIT_PATH"},
-    {1303, "AUDIT_IPC"},
-    {1304, "AUDIT_SOCKETCALL"},
-    {1305, "AUDIT_CONFIG_CHANGE"},
-    {1306, "AUDIT_SOCKADDR"},
-    {1307, "AUDIT_CWD"},
-    {1309, "AUDIT_EXECVE"},
-    {1311, "AUDIT_IPC_SET_PERM"},
-    {1312, "AUDIT_MQ_OPEN"},
-    {1313, "AUDIT_MQ_SENDRECV"},
-    {1314, "AUDIT_MQ_NOTIFY"},
-    {1315, "AUDIT_MQ_GETSETATTR"},
-    {1316, "AUDIT_KERNEL_OTHER"},
-    {1317, "AUDIT_FD_PAIR"},
-    {1318, "AUDIT_OBJ_PID"},
-    {1319, "AUDIT_TTY"},
-    {1320, "AUDIT_EOE"},
-    {1321, "AUDIT_BPRM_FCAPS"},
-    {1322, "AUDIT_CAPSET"},
-    {1323, "AUDIT_MMAP"},
-    {1324, "AUDIT_NETFILTER_PKT"},
-    {1325, "AUDIT_NETFILTER_CFG"},
-    {1326, "AUDIT_SECCOMP"},
-    {1328, "AUDIT_FEATURE_CHANGE"},
-    {1329, "AUDIT_REPLACE"},
-    {1400, "AUDIT_AVC"},
-    {1401, "AUDIT_SELINUX_ERR"},
-    {1402, "AUDIT_AVC_PATH"},
-    {1403, "AUDIT_MAC_POLICY_LOAD"},
-    {1404, "AUDIT_MAC_STATUS"},
-    {1405, "AUDIT_MAC_CONFIG_CHANGE"},
-    {1406, "AUDIT_MAC_UNLBL_ALLOW"},
-    {1407, "AUDIT_MAC_CIPSOV4_ADD"},
-    {1408, "AUDIT_MAC_CIPSOV4_DEL"},
-    {1409, "AUDIT_MAC_MAP_ADD"},
-    {1410, "AUDIT_MAC_MAP_DEL"},
-    {1411, "AUDIT_MAC_IPSEC_ADDSA"},
-    {1412, "AUDIT_MAC_IPSEC_DELSA"},
-    {1413, "AUDIT_MAC_IPSEC_ADDSPD"},
-    {1414, "AUDIT_MAC_IPSEC_DELSPD"},
-    {1415, "AUDIT_MAC_IPSEC_EVENT"},
-    {1416, "AUDIT_MAC_UNLBL_STCADD"},
-    {1417, "AUDIT_MAC_UNLBL_STCDEL"},
-    {1700, "AUDIT_FIRST_KERN_ANOM_MSG"},
-    {1799, "AUDIT_LAST_KERN_ANOM_MSG"},
-    {1700, "AUDIT_ANOM_PROMISCUOUS"},
-    {1701, "AUDIT_ANOM_ABEND"},
-    {1702, "AUDIT_ANOM_LINK"},
-    {1800, "AUDIT_INTEGRITY_DATA"},
-    {1801, "AUDIT_INTEGRITY_METADATA"},
-    {1802, "AUDIT_INTEGRITY_STATUS"},
-    {1803, "AUDIT_INTEGRITY_HASH"},
-    {1804, "AUDIT_INTEGRITY_PCR"},
-    {1805, "AUDIT_INTEGRITY_RULE"},
-    {2000, "AUDIT_KERNEL"}
-  };
-  // clang-format on
-
-  auto it = audit_event_name.find(type);
-  if (it == audit_event_name.end()) {
-    std::stringstream str_helper;
-    str_helper << type;
-    return str_helper.str();
-  }
-
-  return it->second;
-}
-
 bool ShouldHandle(const audit_reply& reply) noexcept {
   switch (reply.type) {
   case NLMSG_NOOP:
@@ -140,40 +40,6 @@ bool ShouldHandle(const audit_reply& reply) noexcept {
   default:
     return true;
   }
-}
-
-std::ostream& operator<<(std::ostream& stream,
-                         const osquery::AuditEventRecord& audit_event_record) {
-  std::string audit_event_timestamp;
-  auto audit_event_timestamp_it = audit_event_record.fields.find("time");
-  if (audit_event_timestamp_it != audit_event_record.fields.end())
-    audit_event_timestamp = audit_event_timestamp_it->second;
-
-  stream << "audit_id=\'" << audit_event_record.audit_id << "\' ";
-
-  if (!audit_event_timestamp.empty())
-    stream << "time=\'" << audit_event_timestamp << "\' ";
-
-  stream << "type=\'" << GetAuditRecordTypeName(audit_event_record.type)
-         << "\' ";
-
-  if (!audit_event_record.fields.empty()) {
-    stream << "fields=\'";
-
-    for (auto field_it = audit_event_record.fields.begin();
-         field_it != audit_event_record.fields.end();
-         field_it++) {
-      stream << field_it->first << ":" << field_it->second;
-
-      if (std::next(field_it) != audit_event_record.fields.end()) {
-        stream << ", ";
-      }
-    }
-
-    stream << "\'";
-  }
-
-  return stream;
 }
 }
 
@@ -193,6 +59,11 @@ FLAG(bool,
      false,
      "Allow the audit publisher to change auditing configuration");
 
+FLAG(bool,
+     audit_force_unconfigure,
+     false,
+     "Always uninstall all rules, regardless of whether they were already installed or not");
+
 /// Audit debugger helper
 HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
 
@@ -200,6 +71,15 @@ HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_fim_events);
+DECLARE_bool(audit_allow_user_events);
+
+bool IsAuditdNetlinkEnabled() noexcept {
+  if (FLAGS_disable_audit) {
+    return false;
+  }
+
+  return (FLAGS_audit_allow_process_events || FLAGS_audit_allow_sockets || FLAGS_audit_allow_fim_events || FLAGS_audit_allow_user_events);
+}
 
 enum AuditStatus {
   AUDIT_DISABLED = 0,
@@ -218,9 +98,7 @@ bool AuditdNetlink::start() noexcept {
   if (initialized_)
     return true;
 
-  if (FLAGS_disable_audit ||
-      (!FLAGS_audit_allow_process_events && !FLAGS_audit_allow_sockets &&
-       !FLAGS_audit_allow_fim_events)) {
+  if (!IsAuditdNetlinkEnabled()) {
     return true;
   }
 
@@ -300,9 +178,7 @@ void AuditdNetlink::unsubscribe(NetlinkSubscriptionHandle handle) noexcept {
 
 std::vector<AuditEventRecord> AuditdNetlink::getEvents(
     NetlinkSubscriptionHandle handle) noexcept {
-  if (FLAGS_disable_audit ||
-      (!FLAGS_audit_allow_process_events && !FLAGS_audit_allow_sockets &&
-       !FLAGS_audit_allow_fim_events)) {
+  if (!IsAuditdNetlinkEnabled()) {
     return std::vector<AuditEventRecord>();
   }
 
@@ -331,7 +207,11 @@ std::vector<AuditEventRecord> AuditdNetlink::getEvents(
 bool AuditdNetlink::ParseAuditReply(const audit_reply& reply,
                                     AuditEventRecord& event_record) noexcept {
   event_record = {};
-//std::cout << reply.type << " " << std::string(reply.message, reply.len) << std::endl;
+
+  if (FLAGS_audit_debug) {
+    std::cout << reply.type << ", " << std::string(reply.message, reply.len) << std::endl;
+  }
+
   // Tokenize the message.
   event_record.type = reply.type;
   boost::string_ref message_view(reply.message,
@@ -555,19 +435,16 @@ bool AuditdNetlink::processThread() noexcept {
       }
 
       // We are not interested in all messages; only get the ones related to
-      // syscalls and their parameters
-      if (!ShouldHandle(reply))
+      // user events and syscalls
+      if (!ShouldHandle(reply)) {
         continue;
+      }
 
       // Parse the audit record body and store it into our queue
       AuditEventRecord audit_event_record = {};
       if (!ParseAuditReply(reply, audit_event_record)) {
         VLOG(1) << "Malformed audit record received";
         continue;
-      }
-
-      if (FLAGS_audit_debug) {
-        std::cout << audit_event_record << std::endl;
       }
 
       audit_event_record_queue.push_back(audit_event_record);
@@ -708,25 +585,25 @@ bool AuditdNetlink::configureAuditService() noexcept {
   if (FLAGS_audit_allow_sockets) {
     VLOG(1) << "Enabling audit rules for the socket_events table";
 
-    monitored_syscall_list_.insert(__NR_bind);
-    monitored_syscall_list_.insert(__NR_connect);
+    for (int syscall : SocketEventSubscriber::GetSyscallSet()) {
+      monitored_syscall_list_.insert(syscall);
+    }
   }
 
   // Rules required by the process_events table
   if (FLAGS_audit_allow_process_events) {
     VLOG(1) << "Enabling audit rules for the process_events table";
-    monitored_syscall_list_.insert(__NR_execve);
+
+    for (int syscall : AuditProcessEventSubscriber::GetSyscallSet()) {
+      monitored_syscall_list_.insert(syscall);
+    }
   }
 
   // Rules required by the auditd_fim_events table
   if (FLAGS_audit_allow_fim_events) {
     VLOG(1) << "Enabling audit rules for the auditd_fim_events table";
 
-    int syscall_list[] = {
-      __NR_creat, __NR_link, __NR_linkat, __NR_symlink, __NR_symlinkat, __NR_unlink, __NR_unlinkat, __NR_rename, __NR_renameat, __NR_renameat2, __NR_mknod, __NR_mknodat, __NR_open, __NR_openat, __NR_open_by_handle_at, __NR_name_to_handle_at, __NR_close, __NR_dup, __NR_dup2, __NR_dup3, __NR_pread64, __NR_preadv, __NR_read, __NR_readv, __NR_mmap, __NR_mremap, __NR_munmap, __NR_remap_file_pages, __NR_write, __NR_writev, __NR_pwrite64, __NR_pwritev
-    };
-
-    for (int syscall : syscall_list) {
+    for (int syscall : AuditdFimEventSubscriber::GetSyscallSet()) {
       monitored_syscall_list_.insert(syscall);
     }
   }
@@ -746,6 +623,8 @@ bool AuditdNetlink::configureAuditService() noexcept {
     );
     // clang-format on
 
+    // When exiting, don't remove the rules that were already installed, unless
+    // we have been asked to
     if (rule_add_error >= 0) {
       if (FLAGS_audit_debug) {
         std::cout << "Audit rule installed for syscall " << syscall_number
@@ -761,8 +640,10 @@ bool AuditdNetlink::configureAuditService() noexcept {
                 << " could not be installed. Errno: " << (-errno) << std::endl;
     }
 
-    // If the rule we tried to apply already existed, remove it from our list
-    // so that we do not revert it back when we exit
+    if (FLAGS_audit_force_unconfigure) {
+      installed_rule_list_.push_back(rule);
+    }
+
     rule_add_error = -rule_add_error;
 
     if (rule_add_error != EEXIST) {

@@ -8,15 +8,8 @@
  *
  */
 
-#include <asm/unistd_64.h>
-
-#include <boost/algorithm/hex.hpp>
-#include <boost/algorithm/string.hpp>
-
 #include <osquery/logger.h>
-#include <osquery/system.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {
@@ -78,7 +71,6 @@ Status UserEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
   };
 
   emitted_row_list.clear();
-
   for (const auto &event : event_list) {
     if (event.type != AuditEvent::Type::UserEvent) {
       continue;

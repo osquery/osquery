@@ -2,17 +2,14 @@
 
 #include <sys/types.h>
 
-
 #include <string>
 #include <unordered_map>
 #include <vector>
-
+#include <set>
 
 #include <boost/variant.hpp>
 
-
 #include <osquery/events.h>
-
 
 #include "osquery/events/linux/auditeventpublisher.h"
 
@@ -162,6 +159,9 @@ class AuditdFimEventSubscriber final
       std::vector<Row> &emitted_row_list,
       AuditdFimContext &fim_context,
       const std::vector<AuditEvent>& event_list) noexcept;
+
+  /// Returns the set of syscalls that this subscriber can handle
+  static const std::set<int> &GetSyscallSet() noexcept;
 
 private:
   AuditdFimContext context_;

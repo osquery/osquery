@@ -18,6 +18,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditeventpublisher.h"
+#include "osquery/tables/events/linux/socket_events.h"
 
 namespace osquery {
 
@@ -91,19 +92,6 @@ bool parseSockAddr(const std::string& saddr, Row &row, bool &unix_socket) {
   }
   return true;
 }
-
-class SocketEventSubscriber final : public EventSubscriber<AuditEventPublisher> {
-public:
-  /// The process event subscriber declares an audit event type subscription.
-  Status init() override;
-
-  /// Kernel events matching the event type will fire.
-  Status Callback(const ECRef& ec, const SCRef& sc);
-
-  /// Processes the updates received from the callback
-  static Status ProcessEvents(std::vector<Row> &emitted_row_list,
-                              const std::vector<AuditEvent>& event_list) noexcept;
-};
 
 REGISTER(SocketEventSubscriber, "event_subscriber", "socket_events");
 
@@ -207,5 +195,10 @@ Status SocketEventSubscriber::ProcessEvents(std::vector<Row> &emitted_row_list,
   }
 
   return Status(0, "Ok");
+}
+
+const std::set<int> &SocketEventSubscriber::GetSyscallSet() noexcept {
+  static const std::set<int> syscall_set = {__NR_bind, __NR_connect};
+  return syscall_set;
 }
 } // namespace osquery

@@ -733,12 +733,11 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     AuditdFimContext &fim_context,
     const std::vector<AuditEvent>& event_list) noexcept {
 
-
   emitted_row_list.clear();
 
   auto L_ShouldHandle = [](std::uint64_t syscall_number) -> bool {
-    static std::set<std::uint64_t> syscall_set = {__NR_link, __NR_linkat, __NR_symlink, __NR_symlinkat, __NR_unlink, __NR_unlinkat, __NR_rename, __NR_renameat, __NR_renameat2, __NR_mknod, __NR_mknodat, __NR_open, __NR_openat, __NR_open_by_handle_at, __NR_name_to_handle_at, __NR_close, __NR_dup, __NR_dup2, __NR_dup3, __NR_pread64, __NR_preadv, __NR_read, __NR_readv, __NR_mmap, __NR_mremap, __NR_munmap, __NR_remap_file_pages, __NR_write, __NR_writev, __NR_pwrite64, __NR_pwritev };
-    return (syscall_set.find(syscall_number) != syscall_set.end());
+      const auto &syscall_set = AuditdFimEventSubscriber::GetSyscallSet();
+    return (syscall_set.find(static_cast<int>(syscall_number)) != syscall_set.end());
   };
 
   // Configuration helpers
@@ -878,5 +877,10 @@ Status AuditdFimEventSubscriber::ProcessEvents(
   }
 
   return Status(0, "OK");
+}
+
+const std::set<int> &AuditdFimEventSubscriber::GetSyscallSet() noexcept {
+  static const std::set<int> syscall_set = {__NR_link, __NR_linkat, __NR_symlink, __NR_symlinkat, __NR_unlink, __NR_unlinkat, __NR_rename, __NR_renameat, __NR_renameat2, __NR_mknod, __NR_mknodat, __NR_open, __NR_openat, __NR_open_by_handle_at, __NR_name_to_handle_at, __NR_close, __NR_dup, __NR_dup2, __NR_dup3, __NR_pread64, __NR_preadv, __NR_read, __NR_readv, __NR_mmap, __NR_mremap, __NR_munmap, __NR_remap_file_pages, __NR_write, __NR_writev, __NR_pwrite64, __NR_pwritev };
+  return syscall_set;
 }
 }
