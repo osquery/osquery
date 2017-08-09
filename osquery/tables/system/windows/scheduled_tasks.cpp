@@ -106,7 +106,7 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     BSTR taskPath;
     ret = pRegisteredTask->get_Path(&taskPath);
     std::wstring wTaskPath(taskPath, SysStringLen(taskPath));
-    r["path"] = ret == S_OK ? SQL_TEXT(wstringToString(wTaskPath.c_str())) : "";
+    r["path"] = ret == S_OK ? wstringToString(wTaskPath.c_str()) : "";
 
     VARIANT_BOOL hidden = false;
     pRegisteredTask->get_Enabled(&hidden);
@@ -135,6 +135,57 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     SystemTimeToFileTime(&st, &ft);
     LocalFileTimeToFileTime(&ft, &locFt);
     r["next_run_time"] = INTEGER(filetimeToUnixtime(locFt));
+
+    ITaskDefinition* taskDef = nullptr;
+    IActionCollection* tActionCollection = nullptr;
+    pRegisteredTask->get_Definition(&taskDef);
+    if (taskDef != nullptr) {
+      taskDef->get_Actions(&tActionCollection);
+    }
+
+    long actionCount = 0;
+    if (tActionCollection != nullptr) {
+      tActionCollection->get_Count(&actionCount);
+    }
+    std::vector<std::string> actions;
+
+    // Task collections are 1-indexed
+    for (auto j = 1; j <= actionCount; j++) {
+      IAction* act = nullptr;
+      IExecAction* execAction = nullptr;
+      tActionCollection->get_Item(j, &act);
+      if (act == nullptr) {
+        continue;
+      }
+      act->QueryInterface(IID_IExecAction,
+                          reinterpret_cast<void**>(&execAction));
+      if (execAction == nullptr) {
+        continue;
+      }
+
+      BSTR taskExecPath;
+      execAction->get_Path(&taskExecPath);
+      std::wstring wTaskExecPath(taskExecPath, SysStringLen(taskExecPath));
+
+      BSTR taskExecArgs;
+      execAction->get_Arguments(&taskExecArgs);
+      std::wstring wTaskExecArgs(taskExecArgs, SysStringLen(taskExecArgs));
+
+      BSTR taskExecRoot;
+      execAction->get_WorkingDirectory(&taskExecRoot);
+      std::wstring wTaskExecRoot(taskExecRoot, SysStringLen(taskExecRoot));
+
+      auto full = wTaskExecRoot + L" " + wTaskExecPath + L" " + wTaskExecArgs;
+      actions.push_back(wstringToString(full.c_str()));
+      act->Release();
+    }
+    if (tActionCollection != nullptr) {
+      tActionCollection->Release();
+    }
+    if (taskDef != nullptr) {
+      taskDef->Release();
+    }
+    r["action"] = !actions.empty() ? osquery::join(actions, ",") : "";
 
     results.push_back(r);
     pRegisteredTask->Release();
@@ -173,5 +224,5 @@ QueryData genScheduledTasks(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
