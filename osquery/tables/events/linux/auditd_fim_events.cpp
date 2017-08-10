@@ -558,8 +558,39 @@ bool HandleRenameSyscallRecord(AuditdFimContext& fim_context,
 bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
                                      AuditdFimSyscallContext& syscall_context,
                                      const AuditEventRecord& record) noexcept {
-  /// \todo truncate?
-  syscall_context.type = AuditdFimSyscallContext::Type::Open;
+  // The open/openat/open_by_handle_at can also truncate the file
+  // with the right flags. If this is the case, mark the file as
+  // written
+  bool is_truncate = false;
+
+  if (syscall_context.syscall_number == __NR_open) {
+    std::uint64_t open_flags;
+    GetIntegerFieldFromMap(open_flags,
+                           record.fields,
+                           "a1",
+                           16,
+                           static_cast<std::uint64_t>(O_TRUNC));
+    is_truncate = ((open_flags & O_TRUNC) != 0);
+
+  } else if (syscall_context.syscall_number == __NR_openat ||
+             syscall_context.syscall_number == __NR_open_by_handle_at) {
+    std::uint64_t open_flags;
+    GetIntegerFieldFromMap(open_flags,
+                           record.fields,
+                           "a2",
+                           16,
+                           static_cast<std::uint64_t>(O_TRUNC));
+    is_truncate = ((open_flags & O_TRUNC) != 0);
+
+  } else {
+    syscall_context.type = AuditdFimSyscallContext::Type::Open;
+  }
+
+  if (is_truncate) {
+    syscall_context.type = AuditdFimSyscallContext::Type::Write;
+  } else {
+    syscall_context.type = AuditdFimSyscallContext::Type::Open;
+  }
 
   AuditdFimFdMap& fd_map =
       *GetOrCreateProcessMap(fim_context, syscall_context.process_id, true);
@@ -614,7 +645,14 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
 
   AuditdFimFdDescriptor fd_desc;
   fd_desc.inode = path_record.inode;
-  fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Open;
+
+  // If the file has been truncated (O_TRUNC flag), mask as written
+  if (is_truncate) {
+    fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Write;
+  } else {
+    fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Open;
+  }
+
   fd_map[syscall_context.return_value] = fd_desc;
 
   AuditdFimInodeDescriptor inode_desc;
