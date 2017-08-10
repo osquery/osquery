@@ -564,12 +564,29 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
   AuditdFimFdMap& fd_map =
       *GetOrCreateProcessMap(fim_context, syscall_context.process_id, true);
 
-  if (syscall_context.path_record_map.size() != 1) {
-    VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
-               "AUDIT_PATH records mismatch)";
+  std::string cwd;
 
-    syscall_context.partial = true;
-    return false;
+  if (syscall_context.syscall_number == __NR_creat) {
+    if (syscall_context.path_record_map.size() != 2) {
+      VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
+                 "AUDIT_PATH records mismatch)";
+
+      syscall_context.partial = true;
+      return false;
+    }
+
+    cwd = syscall_context.path_record_map[1].path;
+
+  } else {
+    if (syscall_context.path_record_map.size() != 1) {
+      VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
+                 "AUDIT_PATH records mismatch)";
+
+      syscall_context.partial = true;
+      return false;
+    }
+
+    cwd = syscall_context.cwd;
   }
 
   // If this is an open_by_handle_at syscall, we will not find the path name
@@ -577,7 +594,8 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
   // try to solve it by inode if the path is missing
   auto path_record = syscall_context.path_record_map[0];
 
-  if (syscall_context.syscall_number == __NR_open_by_handle_at || path_record.path.empty()) {
+  if (syscall_context.syscall_number == __NR_open_by_handle_at ||
+      path_record.path.empty()) {
     auto inode_desc_it = fim_context.inode_map.find(path_record.inode);
     if (inode_desc_it == fim_context.inode_map.end()) {
       VLOG(1) << "Untracked inode in open* syscall with empty path field";
@@ -589,8 +607,7 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
   }
 
   AuditdFimIOData data;
-  data.target = NormalizePath(syscall_context.cwd,
-                              path_record.path);
+  data.target = NormalizePath(cwd, path_record.path);
   data.type = AuditdFimIOData::Type::Open;
   data.state_changed = true;
   syscall_context.syscall_data = data;
@@ -668,21 +685,22 @@ bool HandleLinkAndSymlinkSyscallRecord(
   return true;
 }
 
-bool HandleNameToHandleAtSyscallRecord(AuditdFimContext& fim_context,
-                                     AuditdFimSyscallContext& syscall_context,
-                                     const AuditEventRecord& record) noexcept {
+bool HandleNameToHandleAtSyscallRecord(
+    AuditdFimContext& fim_context,
+    AuditdFimSyscallContext& syscall_context,
+    const AuditEventRecord& record) noexcept {
   syscall_context.type = AuditdFimSyscallContext::Type::NameToHandleAt;
 
   if (syscall_context.path_record_map.size() != 1) {
     VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
-            "AUDIT_PATH records mismatch)";
+               "AUDIT_PATH records mismatch)";
 
     syscall_context.partial = true;
     return false;
   }
 
-  std::string normalized_path = NormalizePath(syscall_context.cwd,
-                              syscall_context.path_record_map[0].path);
+  std::string normalized_path = NormalizePath(
+      syscall_context.cwd, syscall_context.path_record_map[0].path);
 
   AuditdFimInodeDescriptor inode_desc;
   inode_desc.path = normalized_path;
@@ -725,7 +743,8 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
   }
 
   case __NR_name_to_handle_at: {
-    return HandleNameToHandleAtSyscallRecord(fim_context, syscall_context, record);
+    return HandleNameToHandleAtSyscallRecord(
+        fim_context, syscall_context, record);
   }
 
   case __NR_mmap:
@@ -891,10 +910,14 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     if (event.type != AuditEvent::Type::Syscall) {
       continue;
     }
-
     const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
     if (event_data.process_id == osquery_pid ||
         event_data.parent_process_id == osquery_pid) {
+      continue;
+    }
+
+    if (event_data.process_id == getpid() ||
+        event_data.parent_process_id == getpid()) {
       continue;
     }
 
@@ -1010,13 +1033,16 @@ Status AuditdFimEventSubscriber::ProcessEvents(
 }
 
 const std::set<int>& AuditdFimEventSubscriber::GetSyscallSet() noexcept {
-  static const std::set<int> syscall_set = {
-      __NR_link, __NR_linkat, __NR_symlink, __NR_symlinkat,
+  static const std::set<int> syscall_set = {__NR_link,
+                                            __NR_linkat,
+                                            __NR_symlink,
+                                            __NR_symlinkat,
                                             __NR_unlink,
                                             __NR_unlinkat,
                                             __NR_rename,
                                             __NR_renameat,
                                             __NR_renameat2,
+                                            __NR_creat,
                                             __NR_mknod,
                                             __NR_mknodat,
                                             __NR_open,
