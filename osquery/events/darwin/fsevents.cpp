@@ -305,7 +305,9 @@ bool FSEventsEventPublisher::shouldFire(
     const FSEventsSubscriptionContextRef& sc,
     const FSEventsEventContextRef& ec) const {
   auto path = ec->path.substr(0, ec->path.rfind('/'));
-  if (exclude_paths_.find(path)) {
+  // Need to have two finds,
+  // what if somebody excluded an individual file inside a directory
+  if (exclude_paths_.find(path) || exclude_paths_.find(ec->path)) {
     return false;
   }
 

@@ -323,9 +323,11 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
         true);
   }
 
-  /// exclude paths should be applied at last
+  // exclude paths should be applied at last
   auto path = ec->path.substr(0, ec->path.rfind('/'));
-  if (exclude_paths_.find(path)) {
+  // Need to have two finds,
+  // what if somebody excluded an individual file inside a directory
+  if (exclude_paths_.find(path) || exclude_paths_.find(ec->path)) {
     return false;
   }
 

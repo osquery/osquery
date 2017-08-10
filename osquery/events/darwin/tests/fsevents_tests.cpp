@@ -169,6 +169,37 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
   EventFactory::deregisterEventPublisher("fsevents");
 }
 
+TEST_F(FSEventsTests, test_fsevents_match_subscription) {
+  auto event_pub = std::make_shared<FSEventsEventPublisher>();
+
+  auto sc = event_pub->createSubscriptionContext();
+  sc->path = "/etc/%%";
+  auto subscription = Subscription::create("TestSubscriber", sc);
+  auto status = EventFactory::addSubscription("fsevents", subscription);
+  EXPECT_TRUE(status.ok());
+  event_pub->configure();
+
+  std::vector<std::string> exclude_paths = {
+      "/etc/ssh/%%", "/etc/", "/etc/ssl/openssl.cnf", "/"};
+  for (const auto& path : exclude_paths) {
+    event_pub->exclude_paths_.insert(path);
+  }
+
+  {
+    auto ec = event_pub->createEventContext();
+    ec->path = "/etc/ssh/ssh_config";
+    EXPECT_FALSE(event_pub->shouldFire(sc, ec));
+    ec->path = "/etc/passwd";
+    EXPECT_FALSE(event_pub->shouldFire(sc, ec));
+    ec->path = "/etc/group";
+    EXPECT_FALSE(event_pub->shouldFire(sc, ec));
+    ec->path = "/etc/ssl/openssl.cnf";
+    EXPECT_FALSE(event_pub->shouldFire(sc, ec));
+    ec->path = "/etc/ssl/certs/";
+    EXPECT_TRUE(event_pub->shouldFire(sc, ec));
+  }
+}
+
 class TestFSEventsEventSubscriber
     : public EventSubscriber<FSEventsEventPublisher> {
  public:

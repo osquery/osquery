@@ -182,5 +182,6 @@ class FSEventsEventPublisher
   FRIEND_TEST(FSEventsTests, test_fsevents_fire_event);
   FRIEND_TEST(FSEventsTests, test_fsevents_event_action);
   FRIEND_TEST(FSEventsTests, test_fsevents_embedded_wildcards);
+  FRIEND_TEST(FSEventsTests, test_fsevents_match_subscription);
 };
 }
