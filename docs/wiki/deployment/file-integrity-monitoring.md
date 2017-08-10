@@ -61,13 +61,13 @@ The three areas below that are relevant to FIM are the scheduled query against `
 }
 ```
 
-One just must not mention arbitrary tag name under the exclude_paths node, only valid tags are allowed.
+One must not mention arbitrary tag name under the exclude_paths node, only valid tags are allowed.
 
 * `valid tags` - tags which are mentioned under `file_paths` node.
                  E.g.  In the above example config `homes`, `etc` and `tmp` are termed as valid tags.
 * `invalid tags` - any other tag name apart from `homes`, `etc` and `tmp` are considered as invalid tags.
 
-**Note:** Invalid tags dropped silently, i.e. they don't have any effect on the events generated.
+**Note:** Invalid tags get dropped silently, i.e. they don't have any effect on the events generated.
 
 ## Sample Event Output
 
