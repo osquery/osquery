@@ -58,7 +58,7 @@ QueryData genPkgPackages(QueryContext& context) {
     VLOG(1) << "Cannot open pkgdb: " << rc << " "
             << getStringForSQLiteReturnCode(rc);
     if (db != nullptr) {
-      free(db);
+      sqlite3_close(db);
     }
   }
 
@@ -75,7 +75,7 @@ QueryData genPkgPackages(QueryContext& context) {
 
   // Clean up.
   sqlite3_finalize(stmt);
-  free(db);
+  sqlite3_close(db);
 
   return results;
 }
