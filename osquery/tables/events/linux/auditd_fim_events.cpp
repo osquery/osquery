@@ -714,6 +714,34 @@ bool HandleNameToHandleAtSyscallRecord(
   return true;
 }
 
+bool HandleTruncateSyscallRecord(AuditdFimContext& fim_context,
+                                 AuditdFimSyscallContext& syscall_context,
+                                 const AuditEventRecord& record) noexcept {
+  syscall_context.type = AuditdFimSyscallContext::Type::Write;
+
+  if (syscall_context.path_record_map.size() != 1) {
+    VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
+               "AUDIT_PATH records mismatch)";
+
+    syscall_context.partial = true;
+    return false;
+  }
+
+  AuditdFimIOData data;
+  data.state_changed = true;
+  data.type = AuditdFimIOData::Type::Write;
+
+  data.target = NormalizePath(syscall_context.cwd,
+                              syscall_context.path_record_map[0].path);
+  syscall_context.syscall_data = data;
+
+  AuditdFimInodeDescriptor inode_desc;
+  inode_desc.path = data.target;
+  inode_desc.type = AuditdFimInodeDescriptor::Type::File;
+
+  return true;
+}
+
 bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
                                AuditdFimSyscallContext& syscall_context,
                                const AuditEventRecord& record) noexcept {
@@ -786,6 +814,10 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
     return HandleDupSyscallRecord(fim_context, syscall_context, record);
   }
 
+  case __NR_truncate: {
+    return HandleTruncateSyscallRecord(fim_context, syscall_context, record);
+  }
+
   case __NR_pread64:
   case __NR_preadv:
   case __NR_read:
@@ -793,7 +825,8 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
   case __NR_write:
   case __NR_writev:
   case __NR_pwrite64:
-  case __NR_pwritev: {
+  case __NR_pwritev:
+  case __NR_ftruncate: {
     return HandleReadOrWriteSyscallRecord(fim_context, syscall_context, record);
   }
 
@@ -1064,7 +1097,9 @@ const std::set<int>& AuditdFimEventSubscriber::GetSyscallSet() noexcept {
                                             __NR_write,
                                             __NR_writev,
                                             __NR_pwrite64,
-                                            __NR_pwritev};
+                                            __NR_pwritev,
+                                            __NR_truncate,
+                                            __NR_ftruncate};
   return syscall_set;
 }
 }
