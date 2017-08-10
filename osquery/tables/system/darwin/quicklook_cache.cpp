@@ -108,7 +108,7 @@ QueryData genQuicklookCache(QueryContext& context) {
       VLOG(1) << "Cannot open " << index << " read only: "
               << rc << " " << getStringForSQLiteReturnCode(rc);
       if (db != nullptr) {
-        free(db);
+        sqlite3_close(db);
       }
       continue;
     }
@@ -132,7 +132,7 @@ QueryData genQuicklookCache(QueryContext& context) {
 
     // Clean up.
     sqlite3_finalize(stmt);
-    free(db);
+    sqlite3_close(db);
   }
 
   return results;
