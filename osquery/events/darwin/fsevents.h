@@ -21,6 +21,8 @@
 #include <osquery/events.h>
 #include <osquery/status.h>
 
+#include "osquery/events/pathset.h"
+
 namespace osquery {
 
 struct FSEventsSubscriptionContext : public SubscriptionContext {
