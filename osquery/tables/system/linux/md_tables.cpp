@@ -123,9 +123,13 @@ std::string MD::getPathByDevName(const std::string& name) {
 
   walkUdevDevices("block", [&](udev_device* const& device) {
     const char* devName = udev_device_get_property_value(device, "DEVNAME");
+    size_t devNameLen = strlen(devName);
+    if (name.length() > devNameLen) {
+      return false;
+    }
 
-    if (name.compare(
-            strlen(devName) - name.length(), std::string::npos, devName) == 0) {
+    if (name.compare(devNameLen - name.length(), std::string::npos, devName) ==
+        0) {
       devPath = devName;
       if (!boost::starts_with(devPath, "/")) {
         devPath = "/dev/" + devPath;
@@ -285,7 +289,6 @@ std::string getSuperBlkStateStr(int state) {
 auto const kFClose = [](int* fd) { close(*fd); };
 
 bool MD::getDiskInfo(const std::string& arrayName, mdu_disk_info_t& diskInfo) {
-  std::map<std::string, std::string> results;
   int fd = 0;
 
   std::unique_ptr<int, decltype(kFClose)> _(
@@ -302,7 +305,6 @@ bool MD::getDiskInfo(const std::string& arrayName, mdu_disk_info_t& diskInfo) {
 }
 
 bool MD::getArrayInfo(const std::string& name, mdu_array_info_t& array) {
-  std::map<std::string, std::string> results;
   int fd = 0;
 
   std::unique_ptr<int, decltype(kFClose)> _(
@@ -388,16 +390,24 @@ void parseMDBitmap(const std::string& line, MDBitmap& result) {
  * extracted
  *
  * @return bool indicating whether a line for the searchTerm was found in the
- * line n + 1 and handleFunc was executed, increments param n to n + 1
+ * line n + 1 and handleFunc was executed, increments param n to n + 1.  Returns
+ * false if value referenced by `n` + 1 is out of bounds.
  */
 static inline bool handleMDStatuses(
     const std::vector<std::string>& lines,
     size_t& n,
     const std::string& searchTerm,
     std::function<void(const std::string& line)> handleFunc) {
-  std::size_t pos = lines[n + 1].find(searchTerm);
-  if (pos != std::string::npos) {
-    std::string line(lines[n + 1].substr(pos + searchTerm.length()));
+  // Bounds check to ensure `n + 1` is a valid position in lines.
+  if (n + 2 > lines.size()) {
+    return false;
+  }
+
+  // Store on stack to avoid extra pointer jumps
+  auto l = lines[n + 1];
+  std::size_t pos = l.find(searchTerm);
+  if (pos != std::string::npos && l.length() > (pos + searchTerm.length())) {
+    std::string line(l.substr(pos + searchTerm.length()));
     boost::algorithm::trim(line);
     handleFunc(line);
     // Add an extra line for next iteration if so..
@@ -414,11 +424,12 @@ MDDrive parseMDDrive(const std::string& name) {
 
   auto start = name.find('[');
   auto end = name.find(']');
-  if (start == std::string::npos || end == std::string::npos) {
+  if (start == std::string::npos || end == std::string::npos || start > end) {
     LOG(WARNING) << "Unexpected drive name format: " << name;
     return drive;
   }
 
+  // No need to check name length since we know it is at least 2 characters.
   drive.pos = std::stoi(name.substr(start + 1, end - start - 1));
 
   return drive;
@@ -444,7 +455,8 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
   }
 
   while (n < lines.size()) {
-    if (lines[n].find_first_not_of("\t\r\v ") == std::string::npos) {
+    if (lines[n].find_first_not_of("\t\r\v ") == std::string::npos ||
+        lines[n].length() < 2) {
       n += 1;
       continue;
     }
@@ -562,8 +574,9 @@ void MD::parseMDStat(const std::vector<std::string>& lines, MDStat& result) {
 
       result.devices.push_back(mdd);
 
-      // Assume unused
-    } else if (firstTwo == "un") {
+      // Assume unused but check length for safety
+    } else if (firstTwo == "un" &&
+               lines[n].length() > sizeof("unused devices:")) {
       result.unused = lines[n].substr(sizeof("unused devices:") - 1);
       boost::algorithm::trim(result.unused);
       // Unexpected mdstat line, log a warning...
@@ -628,7 +641,7 @@ void getDrivesForArray(const std::string& arrayName,
          * for the same slot, we potentially miss identifying the original slot
          * position of the bad disk. */
       } else if (disk.raid_disk < 0 && disk.number < array.raid_disks) {
-        r["slot"] = std::to_string(disk.number);
+        r["slot"] = INTEGER(disk.number);
         missingSlots.erase(
             std::remove(missingSlots.begin(), missingSlots.end(), disk.number),
             missingSlots.end());
@@ -655,7 +668,7 @@ void getDrivesForArray(const std::string& arrayName,
       r["md_device_name"] = arrayName;
       r["drive_name"] = "unknown";
       r["state"] = "removed";
-      r["slot"] = std::to_string(slot);
+      r["slot"] = INTEGER(slot);
       data.push_back(r);
     }
   }
