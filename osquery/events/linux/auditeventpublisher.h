@@ -30,6 +30,7 @@ struct SyscallAuditEventData final {
 
   pid_t process_id;
   pid_t parent_process_id;
+  std::string executable_path;
 };
 
 /// Audit event descriptor
@@ -73,6 +74,9 @@ class AuditEventPublisher final
   virtual ~AuditEventPublisher() {
     tearDown();
   }
+
+  /// Executable path
+  static std::string executable_path_;
 
   /// Aggregates raw event records into audit events
   static void ProcessEvents(AuditEventContextRef event_context,

@@ -347,7 +347,7 @@ bool AuditdNetlink::recvThread() noexcept {
 
     if (acquire_netlink_handle_) {
       if (FLAGS_audit_debug) {
-        std::cout << "(re)acquiring audit handle.." << std::endl;
+        std::cout << "(re)acquiring the audit handle.." << std::endl;
       }
 
       NetlinkStatus netlink_status = acquireHandle();
@@ -704,6 +704,7 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
 
     errno = 0;
     if (audit_request_status(netlink_handle) < 0 && errno != ENOBUFS) {
+      VLOG(1) << "Failed to query the audit netlink status";
       return NetlinkStatus::Error;
     }
 
@@ -711,31 +712,39 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
 
     if (enabled == AUDIT_IMMUTABLE || getuid() != 0 ||
         !FLAGS_audit_allow_config) {
+      VLOG(1) << "Audit state: active, immutable";
       return NetlinkStatus::ActiveImmutable;
 
     } else if (enabled == AUDIT_ENABLED) {
+      VLOG(1) << "Audit state: active, mutable";
       return NetlinkStatus::ActiveMutable;
 
     } else if (enabled == AUDIT_DISABLED) {
+      VLOG(1) << "Audit state: disabled";
       return NetlinkStatus::Disabled;
 
     } else {
+      VLOG(1) << "Audit state: error";
       return NetlinkStatus::Error;
     }
   };
 
-  if (audit_netlink_handle_ != 0) {
+  if (audit_netlink_handle_ != -1) {
     audit_close(audit_netlink_handle_);
     audit_netlink_handle_ = -1;
   }
 
   audit_netlink_handle_ = audit_open();
   if (audit_netlink_handle_ <= 0) {
+    VLOG(1) << "Audit: failed to acquire the netlink handle";
+
     audit_netlink_handle_ = -1;
     return NetlinkStatus::Error;
   }
 
   if (audit_set_pid(audit_netlink_handle_, getpid(), WAIT_NO) < 0) {
+    VLOG(1) << "Audit: failed to set the netlink owner";
+
     audit_close(audit_netlink_handle_);
     audit_netlink_handle_ = -1;
 
@@ -745,12 +754,10 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
   NetlinkStatus netlink_status = L_GetNetlinkStatus(audit_netlink_handle_);
   if (FLAGS_audit_allow_config && netlink_status == NetlinkStatus::Disabled) {
     if (audit_set_enabled(audit_netlink_handle_, AUDIT_ENABLED) < 0) {
+      VLOG(1) << "Failed to enable the audit service";
+
       audit_close(audit_netlink_handle_);
       audit_netlink_handle_ = -1;
-
-      if (FLAGS_audit_debug) {
-        std::cout << "Failed to enable the audit service" << std::endl;
-      }
 
       return NetlinkStatus::Error;
     }

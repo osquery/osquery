@@ -109,23 +109,47 @@ struct AuditdFimSyscallContext final {
     Dup,
     Read,
     Write,
+    Truncate,
     Mmap,
     NameToHandleAt
   };
 
+  /// Syscall type
   Type type;
+
+  /// Syscall number
   std::uint64_t syscall_number;
+
+  /// If true, one or more event components were missing
   bool partial;
 
+  /// Working directory
   std::string cwd;
+
+  // A collection of all the AUDIT_PATH records we found
   std::unordered_map<std::size_t, AuditdFimPathRecordItem> path_record_map;
 
+  // The process id
   pid_t process_id;
+
+  // The parent process id
   pid_t parent_process_id;
+
+  // Path of the executable that generated the event
   std::string executable_path;
+
+  // This is the return value of the syscall; used with the system calls that
+  // return a file descriptor.
   std::uint64_t return_value;
 
+  // Syscall data
   SyscallData syscall_data;
+
+  /// This field is dedicated to mmap() and contains the file descriptor
+  std::uint64_t mmap_file_descriptor;
+
+  /// This field is dedicated to mmap() and contains the memory protection flags
+  std::uint64_t mmap_prot_flags;
 };
 
 /// This subscriber receives syscall events from the publisher and

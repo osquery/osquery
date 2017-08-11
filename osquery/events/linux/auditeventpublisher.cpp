@@ -8,6 +8,8 @@
  *
  */
 
+#include <array>
+
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
@@ -33,6 +35,8 @@ bool IsPublisherEnabled() noexcept {
           FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events);
 }
 }
+
+std::string AuditEventPublisher::executable_path_;
 
 Status AuditEventPublisher::setUp() {
   if (!IsPublisherEnabled()) {
@@ -82,6 +86,12 @@ void AuditEventPublisher::ProcessEvents(
     AuditEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
     AuditTraceContext& trace_context) noexcept {
+  if (executable_path_.empty()) {
+    char buffer[PATH_MAX] = {};
+    assert(readlink("/proc/self/exe", buffer, sizeof(buffer)) != -1);
+    executable_path_ = std::string("\"") + buffer + "\"";
+  }
+
   // Assemble each record into a AuditEvent object; multi-record events
   // are complete when we receive the terminator (AUDIT_EOE)
   for (const auto& audit_event_record : record_list) {
@@ -112,6 +122,19 @@ void AuditEventPublisher::ProcessEvents(
 
       SyscallAuditEventData data;
 
+      if (!GetStringFieldFromMap(
+              data.executable_path, audit_event_record.fields, "exe")) {
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
+                   "executable path field is either missing or not valid.";
+
+        continue;
+      }
+
+      // Do not process events originated by the osquery watchdog or daemon
+      if (executable_path_ == data.executable_path) {
+        continue;
+      }
+
       if (!GetIntegerFieldFromMap(
               data.syscall_number, audit_event_record.fields, "syscall")) {
         VLOG(1) << "Malformed AUDIT_SYSCALL record received. The syscall field "
@@ -125,8 +148,7 @@ void AuditEventPublisher::ProcessEvents(
           syscall_status, audit_event_record.fields, "success", "yes");
 
       // By discarding this event, we will also automatically discard any other
-      // attached
-      // record
+      // attached record
       if (syscall_status != "yes") {
         continue;
       }
@@ -151,18 +173,12 @@ void AuditEventPublisher::ProcessEvents(
 
       data.process_id = static_cast<pid_t>(process_id);
       data.parent_process_id = static_cast<pid_t>(parent_process_id);
-
-      pid_t osquery_pid = getpid();
-      if (data.process_id == osquery_pid ||
-          data.parent_process_id == osquery_pid) {
-        continue;
-      }
-
       audit_event.data = data;
 
       audit_event.record_list.push_back(audit_event_record);
       trace_context[audit_event_record.audit_id] = std::move(audit_event);
 
+      // This is the terminator for multi-record audit events
     } else if (audit_event_record.type == AUDIT_EOE) {
       if (audit_event_it == trace_context.end()) {
         continue;

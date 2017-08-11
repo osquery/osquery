@@ -220,7 +220,28 @@ AuditdFimFdMap* GetOrCreateProcessMap(AuditdFimContext& fim_context,
                                       bool create_if_missing = false) noexcept {
   auto it = fim_context.process_map.find(process_id);
   if (it == fim_context.process_map.end() && create_if_missing) {
+    // Use reserved inode number to map stdin/stdout/stderr file descriptors
+    // to dummy files
     it = fim_context.process_map.insert({process_id, AuditdFimFdMap()}).first;
+    auto& fd_map = it->second;
+
+    AuditdFimFdDescriptor stdin_fd_desc = {
+        1, AuditdFimFdDescriptor::OperationType::Open};
+    fd_map[STDIN_FILENO] = stdin_fd_desc;
+    fim_context.inode_map[stdin_fd_desc.inode] = {
+        AuditdFimInodeDescriptor::Type::File, "stdin"};
+
+    AuditdFimFdDescriptor stdout_fd_desc = {
+        2, AuditdFimFdDescriptor::OperationType::Open};
+    fd_map[STDOUT_FILENO] = stdout_fd_desc;
+    fim_context.inode_map[stdout_fd_desc.inode] = {
+        AuditdFimInodeDescriptor::Type::File, "stdout"};
+
+    AuditdFimFdDescriptor stderr_fd_desc = {
+        3, AuditdFimFdDescriptor::OperationType::Open};
+    fd_map[STDERR_FILENO] = stderr_fd_desc;
+    fim_context.inode_map[stderr_fd_desc.inode] = {
+        AuditdFimInodeDescriptor::Type::File, "stderr"};
   }
 
   if (it != fim_context.process_map.end()) {
@@ -231,7 +252,22 @@ AuditdFimFdMap* GetOrCreateProcessMap(AuditdFimContext& fim_context,
 }
 
 bool EmitRowFromSyscallContext(
-    Row& row, AuditdFimSyscallContext& syscall_context) noexcept {
+    Row& row,
+    const AuditdFimContext& fim_context,
+    const AuditdFimSyscallContext& syscall_context) noexcept {
+  auto L_IsPathIncluded = [&fim_context](const std::string& path) -> bool {
+    if (std::find(fim_context.configuration.excluded_path_list.begin(),
+                  fim_context.configuration.excluded_path_list.end(),
+                  path) != fim_context.configuration.excluded_path_list.end()) {
+      return false;
+    }
+
+    return (std::find(fim_context.configuration.included_path_list.begin(),
+                      fim_context.configuration.included_path_list.end(),
+                      path) !=
+            fim_context.configuration.included_path_list.end());
+  };
+
   row.clear();
 
   if (!FLAGS_audit_show_partial_fim_events && syscall_context.partial) {
@@ -241,6 +277,18 @@ bool EmitRowFromSyscallContext(
   switch (syscall_context.type) {
   case AuditdFimSyscallContext::Type::Link: {
     row["operation"] = "link";
+
+    const auto& data =
+        boost::get<AuditdFimSrcDestData>(syscall_context.syscall_data);
+
+    row["path1"] = data.source;
+    row["path2"] = data.destination;
+
+    break;
+  }
+
+  case AuditdFimSyscallContext::Type::Dup:
+  case AuditdFimSyscallContext::Type::NameToHandleAt: {
     return false;
   }
 
@@ -254,6 +302,7 @@ bool EmitRowFromSyscallContext(
 
     const auto& data =
         boost::get<AuditdFimSrcDestData>(syscall_context.syscall_data);
+
     row["path1"] = data.source;
     row["path2"] = data.destination;
 
@@ -264,7 +313,9 @@ bool EmitRowFromSyscallContext(
   case AuditdFimSyscallContext::Type::Read:
   case AuditdFimSyscallContext::Type::Write:
   case AuditdFimSyscallContext::Type::Open:
-  case AuditdFimSyscallContext::Type::Close: {
+  case AuditdFimSyscallContext::Type::Close:
+  case AuditdFimSyscallContext::Type::Truncate:
+  case AuditdFimSyscallContext::Type::Mmap: {
     const auto& data =
         boost::get<AuditdFimIOData>(syscall_context.syscall_data);
     if (!data.state_changed) {
@@ -286,18 +337,18 @@ bool EmitRowFromSyscallContext(
     row["path1"] = data.target;
     break;
   }
-
-  case AuditdFimSyscallContext::Type::Mmap: {
-    return false;
   }
 
-  default: { return false; }
+  if (!L_IsPathIncluded(row["path1"]) || L_IsPathIncluded(row["path2"])) {
+    return false;
   }
 
   row["pid"] =
       std::to_string(static_cast<std::uint64_t>(syscall_context.process_id));
+
   row["ppid"] = std::to_string(
       static_cast<std::uint64_t>(syscall_context.parent_process_id));
+
   row["executable"] = syscall_context.executable_path;
   row["partial"] = (syscall_context.partial ? "true" : "false");
   row["cwd"] = syscall_context.cwd;
@@ -310,7 +361,14 @@ bool ParseAuditCwdRecord(std::string& cwd,
   return GetStringFieldFromMap(cwd, record.fields, "cwd");
 }
 
-bool ParseAuditMmapRecord(const AuditEventRecord& record) noexcept {
+bool ParseAuditMmapRecord(std::uint64_t& fd,
+                          std::uint64_t& flags,
+                          const AuditEventRecord& record) noexcept {
+  if (!GetIntegerFieldFromMap(fd, record.fields, "fd", 16)) {
+    return false;
+  }
+
+  GetIntegerFieldFromMap(flags, record.fields, "flags", 16, PROT_WRITE);
   return true;
 }
 
@@ -333,46 +391,84 @@ bool ParseAuditPathRecord(AuditdFimPathRecordItem& output,
   return true;
 }
 
-bool HandleReadOrWriteSyscallRecord(AuditdFimContext& fim_context,
-                                    AuditdFimSyscallContext& syscall_context,
-                                    const AuditEventRecord& record) noexcept {
-  if (syscall_context.syscall_number == __NR_pread64 ||
-      syscall_context.syscall_number == __NR_preadv ||
-      syscall_context.syscall_number == __NR_read ||
-      syscall_context.syscall_number == __NR_readv) {
+bool HandleFileDescriptorSyscallRecord(
+    AuditdFimContext& fim_context,
+    AuditdFimSyscallContext& syscall_context,
+    const AuditEventRecord& record) noexcept {
+  // Set the syscall context type and determine if this is a
+  // read or write operation
+  bool write_operation = false;
+
+  switch (syscall_context.syscall_number) {
+  case __NR_pread64:
+  case __NR_preadv:
+  case __NR_read:
+  case __NR_readv: {
+    write_operation = false;
     syscall_context.type = AuditdFimSyscallContext::Type::Read;
-  } else {
+    break;
+  }
+
+  case __NR_pwrite64:
+  case __NR_pwritev:
+  case __NR_write:
+  case __NR_writev: {
+    write_operation = true;
     syscall_context.type = AuditdFimSyscallContext::Type::Write;
+    break;
   }
 
+  case __NR_ftruncate: {
+    write_operation = true;
+    syscall_context.type = AuditdFimSyscallContext::Type::Truncate;
+    break;
+  }
+
+  case __NR_mmap: {
+    write_operation = ((syscall_context.mmap_prot_flags & PROT_WRITE) != 0);
+    syscall_context.type = AuditdFimSyscallContext::Type::Mmap;
+    break;
+  }
+  }
+
+  // Get the file descriptor. Mmap syscalls store them into a dedicated
+  // event record of type AUDIT_MMAP
   std::uint64_t fd;
-  if (!GetIntegerFieldFromMap(fd, record.fields, "a0")) {
-    VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
-               "file descriptor field is either missing or not valid.";
+  if (syscall_context.syscall_number == __NR_mmap) {
+    fd = syscall_context.mmap_file_descriptor;
 
-    syscall_context.partial = true;
-    return false;
+  } else {
+    if (!GetIntegerFieldFromMap(fd, record.fields, "a0", 16)) {
+      VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
+                 "file descriptor field is either missing or not valid.";
+
+      syscall_context.partial = true;
+      return false;
+    }
   }
 
+  // Lookup the file descriptor
   AuditdFimFdMap& fd_map =
       *GetOrCreateProcessMap(fim_context, syscall_context.process_id, true);
 
   auto fd_desc_it = fd_map.find(fd);
   if (fd_desc_it == fd_map.end()) {
-    VLOG(1) << "Untracked file descriptor";
+    VLOG(1) << "Untracked file descriptor from pid "
+            << syscall_context.process_id;
     syscall_context.partial = true;
     return false;
   }
 
+  // Only track state changes
   AuditdFimFdDescriptor& fd_desc = fd_desc_it->second;
   bool state_changed = false;
 
   switch (fd_desc.last_operation) {
   case AuditdFimFdDescriptor::OperationType::Open: {
-    if (syscall_context.type == AuditdFimSyscallContext::Type::Read) {
-      fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Read;
-    } else {
+    if (write_operation) {
       fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Write;
+    } else {
+      fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Read;
     }
 
     state_changed = true;
@@ -380,7 +476,7 @@ bool HandleReadOrWriteSyscallRecord(AuditdFimContext& fim_context,
   }
 
   case AuditdFimFdDescriptor::OperationType::Read: {
-    if (syscall_context.type == AuditdFimSyscallContext::Type::Write) {
+    if (write_operation) {
       fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Write;
       state_changed = true;
     }
@@ -393,6 +489,7 @@ bool HandleReadOrWriteSyscallRecord(AuditdFimContext& fim_context,
   }
   }
 
+  // Update the state map
   auto inode_desc_it = fim_context.inode_map.find(fd_desc.inode);
   if (inode_desc_it == fim_context.inode_map.end()) {
     VLOG(1) << "Missing inode number";
@@ -404,9 +501,8 @@ bool HandleReadOrWriteSyscallRecord(AuditdFimContext& fim_context,
 
   AuditdFimIOData data;
   data.target = inode_desc.path;
-  data.type = (syscall_context.type == AuditdFimSyscallContext::Type::Read
-                   ? AuditdFimIOData::Type::Read
-                   : AuditdFimIOData::Type::Write);
+  data.type = (write_operation ? AuditdFimIOData::Type::Write
+                               : AuditdFimIOData::Type::Read);
   data.state_changed = state_changed;
   syscall_context.syscall_data = data;
 
@@ -419,7 +515,7 @@ bool HandleDupSyscallRecord(AuditdFimContext& fim_context,
   syscall_context.type = AuditdFimSyscallContext::Type::Dup;
 
   std::uint64_t fd;
-  if (!GetIntegerFieldFromMap(fd, record.fields, "a0")) {
+  if (!GetIntegerFieldFromMap(fd, record.fields, "a0", 16)) {
     VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
                "file descriptor field is either missing or not valid.";
 
@@ -432,7 +528,8 @@ bool HandleDupSyscallRecord(AuditdFimContext& fim_context,
 
   auto fd_desc_it = fd_map.find(fd);
   if (fd_desc_it == fd_map.end()) {
-    VLOG(1) << "Untracked file descriptor";
+    VLOG(1) << "Untracked file descriptor from pid "
+            << syscall_context.process_id;
     syscall_context.partial = true;
     return false;
   }
@@ -449,7 +546,7 @@ bool HandleCloseSyscallRecord(AuditdFimContext& fim_context,
   syscall_context.type = AuditdFimSyscallContext::Type::Close;
 
   std::uint64_t fd;
-  if (!GetIntegerFieldFromMap(fd, record.fields, "a0")) {
+  if (!GetIntegerFieldFromMap(fd, record.fields, "a0", 16)) {
     VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
                "file descriptor field is either missing or not valid.";
 
@@ -462,7 +559,8 @@ bool HandleCloseSyscallRecord(AuditdFimContext& fim_context,
 
   auto fd_desc_it = fd_map.find(fd);
   if (fd_desc_it == fd_map.end()) {
-    VLOG(1) << "Untracked file descriptor";
+    VLOG(1) << "Untracked file descriptor from pid "
+            << syscall_context.process_id;
     syscall_context.partial = true;
     return false;
   }
@@ -592,59 +690,54 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
     syscall_context.type = AuditdFimSyscallContext::Type::Open;
   }
 
-  AuditdFimFdMap& fd_map =
-      *GetOrCreateProcessMap(fim_context, syscall_context.process_id, true);
-
+  // Some syscalls send more than one AUDIT_PATH record, meaning
+  // that we need to use it instead of the cwd to solve relative
+  // paths
   std::string cwd;
+  std::string raw_path;
+  ino_t inode;
 
-  if (syscall_context.syscall_number == __NR_creat) {
-    if (syscall_context.path_record_map.size() != 2) {
-      VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
-                 "AUDIT_PATH records mismatch)";
-
-      syscall_context.partial = true;
-      return false;
-    }
-
+  if (syscall_context.path_record_map.size() == 2) {
     cwd = syscall_context.path_record_map[1].path;
+    raw_path = syscall_context.path_record_map[0].path;
+    inode = syscall_context.path_record_map[0].inode;
+
+  } else if (syscall_context.path_record_map.size() == 1) {
+    cwd = syscall_context.cwd;
+    raw_path = syscall_context.path_record_map[0].path;
+    inode = syscall_context.path_record_map[0].inode;
 
   } else {
-    if (syscall_context.path_record_map.size() != 1) {
-      VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
-                 "AUDIT_PATH records mismatch)";
+    VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
+               "AUDIT_PATH records mismatch)";
 
-      syscall_context.partial = true;
-      return false;
-    }
-
-    cwd = syscall_context.cwd;
+    syscall_context.partial = true;
+    return false;
   }
 
   // If this is an open_by_handle_at syscall, we will not find the path name
   // but we stored its inode when name_to_handle_at was called. We will always
   // try to solve it by inode if the path is missing
-  auto path_record = syscall_context.path_record_map[0];
-
   if (syscall_context.syscall_number == __NR_open_by_handle_at ||
-      path_record.path.empty()) {
-    auto inode_desc_it = fim_context.inode_map.find(path_record.inode);
+      raw_path.empty()) {
+    auto inode_desc_it = fim_context.inode_map.find(inode);
     if (inode_desc_it == fim_context.inode_map.end()) {
       VLOG(1) << "Untracked inode in open* syscall with empty path field";
       syscall_context.partial = true;
       return false;
     }
 
-    path_record.path = inode_desc_it->second.path;
+    raw_path = inode_desc_it->second.path;
   }
 
   AuditdFimIOData data;
-  data.target = NormalizePath(cwd, path_record.path);
+  data.target = NormalizePath(cwd, raw_path);
   data.type = AuditdFimIOData::Type::Open;
   data.state_changed = true;
   syscall_context.syscall_data = data;
 
   AuditdFimFdDescriptor fd_desc;
-  fd_desc.inode = path_record.inode;
+  fd_desc.inode = inode;
 
   // If the file has been truncated (O_TRUNC flag), mask as written
   if (is_truncate) {
@@ -653,11 +746,14 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
     fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Open;
   }
 
+  AuditdFimFdMap& fd_map =
+      *GetOrCreateProcessMap(fim_context, syscall_context.process_id, true);
+
   fd_map[syscall_context.return_value] = fd_desc;
 
   AuditdFimInodeDescriptor inode_desc;
   inode_desc.path = data.target;
-  if (path_record.path.back() == '/') {
+  if (raw_path[raw_path.size() - 1] == '/') {
     inode_desc.type = AuditdFimInodeDescriptor::Type::Folder;
   } else {
     inode_desc.type = AuditdFimInodeDescriptor::Type::File;
@@ -755,7 +851,7 @@ bool HandleNameToHandleAtSyscallRecord(
 bool HandleTruncateSyscallRecord(AuditdFimContext& fim_context,
                                  AuditdFimSyscallContext& syscall_context,
                                  const AuditEventRecord& record) noexcept {
-  syscall_context.type = AuditdFimSyscallContext::Type::Write;
+  syscall_context.type = AuditdFimSyscallContext::Type::Truncate;
 
   if (syscall_context.path_record_map.size() != 1) {
     VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
@@ -782,21 +878,25 @@ bool HandleTruncateSyscallRecord(AuditdFimContext& fim_context,
 
 bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
                                AuditdFimSyscallContext& syscall_context,
-                               const AuditEventRecord& record) noexcept {
+                               const AuditEventRecord& record,
+                               bool& skip_row_emission) noexcept {
+  skip_row_emission = false;
+
   if (!GetIntegerFieldFromMap(
-          syscall_context.return_value, record.fields, "exit", 0)) {
+          syscall_context.return_value, record.fields, "exit", 16, 0U)) {
     VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
                "exit field is either missing or not valid.";
 
     syscall_context.partial = true;
   }
 
-  if (!GetStringFieldFromMap(
-          syscall_context.executable_path, record.fields, "exe")) {
-    VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
-               "process id field is either missing or not valid.";
+  if (FLAGS_audit_fim_debug) {
+    const char* exe_name = getenv("OSQUERY_FIM_DEBUG_PROC_NAME_FILTER");
 
-    syscall_context.partial = true;
+    if (syscall_context.executable_path.find(exe_name) == std::string::npos) {
+      skip_row_emission = true;
+      return true;
+    }
   }
 
   switch (syscall_context.syscall_number) {
@@ -809,16 +909,10 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
   }
 
   case __NR_name_to_handle_at: {
+    skip_row_emission = true;
+
     return HandleNameToHandleAtSyscallRecord(
         fim_context, syscall_context, record);
-  }
-
-  case __NR_mmap:
-  case __NR_mremap:
-  case __NR_munmap:
-  case __NR_remap_file_pages: {
-    syscall_context.type = AuditdFimSyscallContext::Type::Mmap;
-    return false;
   }
 
   case __NR_rename:
@@ -849,6 +943,7 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
   case __NR_dup:
   case __NR_dup2:
   case __NR_dup3: {
+    skip_row_emission = true;
     return HandleDupSyscallRecord(fim_context, syscall_context, record);
   }
 
@@ -864,8 +959,10 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
   case __NR_writev:
   case __NR_pwrite64:
   case __NR_pwritev:
-  case __NR_ftruncate: {
-    return HandleReadOrWriteSyscallRecord(fim_context, syscall_context, record);
+  case __NR_ftruncate:
+  case __NR_mmap: {
+    return HandleFileDescriptorSyscallRecord(
+        fim_context, syscall_context, record);
   }
 
   default: { return false; }
@@ -960,38 +1057,12 @@ Status AuditdFimEventSubscriber::ProcessEvents(
             syscall_set.end());
   };
 
-  // Configuration helpers
-  auto L_isPathIncluded = [&fim_context](const std::string& path) -> bool {
-    return (std::find(fim_context.configuration.included_path_list.begin(),
-                      fim_context.configuration.included_path_list.end(),
-                      path) !=
-            fim_context.configuration.included_path_list.end());
-  };
-
-  auto L_isPathExcluded = [&fim_context](const std::string& path) -> bool {
-    return (std::find(fim_context.configuration.excluded_path_list.begin(),
-                      fim_context.configuration.excluded_path_list.end(),
-                      path) !=
-            fim_context.configuration.excluded_path_list.end());
-  };
-
-  auto osquery_pid = getpid();
-
   for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::Syscall) {
       continue;
     }
+
     const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
-    if (event_data.process_id == osquery_pid ||
-        event_data.parent_process_id == osquery_pid) {
-      continue;
-    }
-
-    if (event_data.process_id == getpid() ||
-        event_data.parent_process_id == getpid()) {
-      continue;
-    }
-
     if (!L_ShouldHandle(event_data.syscall_number)) {
       continue;
     }
@@ -1000,6 +1071,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     syscall_context.syscall_number = event_data.syscall_number;
     syscall_context.process_id = event_data.process_id;
     syscall_context.parent_process_id = event_data.parent_process_id;
+    syscall_context.executable_path = event_data.executable_path;
 
     const AuditEventRecord* syscall_record = nullptr;
     bool record_error = false;
@@ -1033,11 +1105,14 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       }
 
       case AUDIT_MMAP: {
-        if (!ParseAuditMmapRecord(record)) {
+        if (!ParseAuditMmapRecord(syscall_context.mmap_file_descriptor,
+                                  syscall_context.mmap_prot_flags,
+                                  record)) {
           VLOG(1) << "Invalid AUDIT_MMAP record";
           record_error = true;
           break;
         }
+
         break;
       }
 
@@ -1061,15 +1136,11 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       continue;
     }
 
+    bool skip_row_emission;
     if (!AuditSyscallRecordHandler(
-            fim_context, syscall_context, *syscall_record)) {
+            fim_context, syscall_context, *syscall_record, skip_row_emission)) {
       VLOG(1)
           << "Invalid syscall event; the AUDIT_SYSCALL record was malformed";
-      continue;
-    }
-
-    if (syscall_context.process_id == getpid() ||
-        syscall_context.parent_process_id == getpid()) {
       continue;
     }
 
@@ -1077,9 +1148,12 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       std::cout << syscall_context << std::endl;
     }
 
-    Row row;
-    if (EmitRowFromSyscallContext(row, syscall_context)) {
-      emitted_row_list.push_back(row);
+    if (!skip_row_emission) {
+      Row row;
+
+      if (EmitRowFromSyscallContext(row, fim_context, syscall_context)) {
+        emitted_row_list.push_back(row);
+      }
     }
   }
 
@@ -1129,9 +1203,6 @@ const std::set<int>& AuditdFimEventSubscriber::GetSyscallSet() noexcept {
                                             __NR_read,
                                             __NR_readv,
                                             __NR_mmap,
-                                            __NR_mremap,
-                                            __NR_munmap,
-                                            __NR_remap_file_pages,
                                             __NR_write,
                                             __NR_writev,
                                             __NR_pwrite64,
