@@ -12,6 +12,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -304,13 +305,6 @@ void FSEventsEventPublisher::Callback(
 bool FSEventsEventPublisher::shouldFire(
     const FSEventsSubscriptionContextRef& sc,
     const FSEventsEventContextRef& ec) const {
-  auto path = ec->path.substr(0, ec->path.rfind('/'));
-  // Need to have two finds,
-  // what if somebody excluded an individual file inside a directory
-  if (exclude_paths_.find(path) || exclude_paths_.find(ec->path)) {
-    return false;
-  }
-
   if (sc->recursive && !sc->recursive_match) {
     ssize_t found = ec->path.find(sc->path);
     if (found != 0) {
@@ -329,6 +323,14 @@ bool FSEventsEventPublisher::shouldFire(
     // Compare the event context mask to the subscription context.
     return false;
   }
+
+  auto path = ec->path.substr(0, ec->path.rfind('/'));
+  // Need to have two finds,
+  // what if somebody excluded an individual file inside a directory
+  if (exclude_paths_.find(path) || exclude_paths_.find(ec->path)) {
+    return false;
+  }
+
   return true;
 }
 
