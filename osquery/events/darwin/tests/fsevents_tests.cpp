@@ -171,9 +171,10 @@ TEST_F(FSEventsTests, test_fsevents_add_subscription_success) {
 
 TEST_F(FSEventsTests, test_fsevents_match_subscription) {
   auto event_pub = std::make_shared<FSEventsEventPublisher>();
+  EventFactory::registerEventPublisher(event_pub);
 
   auto sc = event_pub->createSubscriptionContext();
-  sc->path = "/etc/%%";
+  sc->path = "/etc/**";
   auto subscription = Subscription::create("TestSubscriber", sc);
   auto status = EventFactory::addSubscription("fsevents", subscription);
   EXPECT_TRUE(status.ok());
