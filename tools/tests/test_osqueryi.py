@@ -56,6 +56,7 @@ class OsqueryiTest(unittest.TestCase):
             test_base.CONFIG["options"]["database_path"],
             str(random.randint(1000, 9999)))
 
+    @unittest.skipIf(os.name == 'nt', "stderr tests not supported on Windows.")
     def test_error(self):
         '''Test that we throw an error on bad query'''
         self.osqueryi.run_command(' ')
