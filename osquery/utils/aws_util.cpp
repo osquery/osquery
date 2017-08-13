@@ -185,7 +185,8 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
 
     response->GetResponseBody() << resp.body();
 
-  } catch (const std::exception& e) {
+  } catch (std::exception e) {
+    /* NOTE: This exception must NOT be passed by reference. */
     LOG(ERROR) << "Exception making HTTP request to URL (" << url
                << "): " << e.what();
     return nullptr;
