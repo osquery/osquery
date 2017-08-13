@@ -69,7 +69,8 @@ DEFINES := CTEST_OUTPUT_ON_FAILURE=1 \
 	LSAN_OPTIONS="detect_container_overflow=0 \
 	suppressions=${ANALYSIS}/lsan.supp" \
 	ASAN_OPTIONS="suppressions=${ANALYSIS}/asan.supp" \
-	TSAN_OPTIONS="suppressions=${ANALYSIS}/tsan.supp,second_deadlock_stack=1"
+	TSAN_OPTIONS="suppressions=${ANALYSIS}/tsan.supp,second_deadlock_stack=1" \
+	$(PATH_SET)
 
 
 .setup:
