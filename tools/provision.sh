@@ -20,7 +20,7 @@ LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
 HOMEBREW_CORE="941ca36839ea354031846d73ad538e1e44e673f4"
-LINUXBREW_CORE="abc5c5782c5850f2deff1f3d463945f90f2feaac"
+LINUXBREW_CORE="f54281a496bb7d3dd2f46b2f3067193d05f5013b"
 HOMEBREW_BREW="ac2cbd2137006ebfe84d8584ccdcb5d78c1130d9"
 LINUXBREW_BREW="20bcce2c176469cec271b46d523eef1510217436"
 
