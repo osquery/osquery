@@ -19,6 +19,8 @@
 #include <libmnl/libmnl.h>
 #include <libnetfilter_conntrack/libnetfilter_conntrack.h>
 
+#include <boost/filesystem.hpp>
+
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
@@ -33,6 +35,11 @@ FLAG(bool,
      true,
      "Disable receiving events from the conntrack subsystem");
 
+FLAG(bool,
+     debug_conntrack,
+     false,
+     "Print events from the conntrack subsystem");
+
 REGISTER(ConntrackEventPublisher, "event_publisher", "conntrack");
 
 Status ConntrackEventPublisher::setUp() {
@@ -46,12 +53,36 @@ Status ConntrackEventPublisher::setUp() {
     return Status(1, "Could not open conntrack subsystem");
   }
 
-  // TODO: How to test if kernel modules have been loaded?
+  // Test if kernel modules have been loaded
+  std::set<std::string> loadedModules;
+  std::set<std::string> reqModules = {"nf_conntrack", "nf_conntrack_netlink"};
+  std::set<std::string> optModules = {"nf_conntrack_ipv4", "nf_conntrack_ipv6"};
+  modModules(loadedModules);
+
+  for (const auto& mod: reqModules) {
+    if (loadedModules.count(mod) <= 0) {
+      LOG(WARNING) << "Kernel module '" << mod <<"' is not loaded";
+      return Status(1, "Required kernel modules are not loaded");
+    }
+  }
+
+  int countOpt = 0;
+  for (const auto& mod: optModules) {
+    if (loadedModules.count(mod) <= 0) {
+      LOG(WARNING) << "Optional kernel module '" << mod <<"' is not loaded";
+    } else {
+      countOpt++;
+    }
+  }
+  if (countOpt <= 0) {
+    LOG(WARNING) << "No kernel module loaded to track connection state";
+    return Status(1, "No optional kernel module loaded");
+  }
 
   // TODO: Filter on event types? Move to configure() and select based on
   // subscriber?
   if (mnl_socket_bind(nl_.get(),
-                      NF_NETLINK_CONNTRACK_NEW | NF_NETLINK_CONNTRACK_UPDATE |
+                      NF_NETLINK_CONNTRACK_NEW | //NF_NETLINK_CONNTRACK_UPDATE |
                           NF_NETLINK_CONNTRACK_DESTROY,
                       MNL_SOCKET_AUTOPID) < 0) {
     return Status(1, "Could not subscribe to updates from conntrack subsystem");
@@ -88,12 +119,12 @@ static int data_cb(const struct nlmsghdr* nlh, void* data) {
     return MNL_CB_OK;
 
   nfct_nlmsg_parse(nlh, ct);
-  /**
-  char buf[4096];
-  nfct_snprintf(buf, sizeof(buf), ct,
-                type, NFCT_O_DEFAULT, 0);
-  printf("%s\n", buf);
-  **/
+  if (FLAGS_debug_conntrack) {
+    char buf[4096];
+    nfct_snprintf(buf, sizeof(buf), ct,
+                  type, NFCT_O_DEFAULT, 0);
+    LOG(INFO) << buf;
+  }
 
   return MNL_CB_OK;
 }

@@ -65,6 +65,73 @@ class ConnectionEventSubscriber
  */
 REGISTER(ConnectionEventSubscriber, "event_subscriber", "connection_events");
 
+void printSockAddress(const sockaddr_storage& addr) {
+  char straddr[std::max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)];
+  switch (addr.ss_family) {
+    case AF_INET: {
+      LOG(INFO) << inet_ntop(AF_INET, &((struct sockaddr_in*)&addr)->sin_addr, straddr, sizeof(straddr)) << ":" << ntohs(((struct sockaddr_in*)&addr)->sin_port);
+    }
+      break;
+    case AF_INET6: {
+      LOG(INFO) << inet_ntop(AF_INET, &((struct sockaddr_in6*)&addr)->sin6_addr, straddr, sizeof(straddr)) << ":" << ntohs(((struct sockaddr_in6*)&addr)->sin6_port);
+    }
+      break;
+  }
+
+  LOG(INFO) << inet_ntop(AF_INET, &((struct sockaddr_in*)&addr)->sin_addr, straddr, sizeof(straddr)) << ":" << ntohs(((struct sockaddr_in*)&addr)->sin_port);
+}
+
+void printSockAddressTuple(const sockaddr_storage& from_addr, const sockaddr_storage& to_addr) {
+  char from_straddr[std::max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)];
+  std::string from_strport;
+  switch (from_addr.ss_family) {
+    case AF_INET: {
+      inet_ntop(AF_INET, &((struct sockaddr_in*)&from_addr)->sin_addr, from_straddr, sizeof(from_straddr));
+      from_strport = std::to_string(ntohs(((struct sockaddr_in*)&from_addr)->sin_port));
+    }
+      break;
+    case AF_INET6: {
+      inet_ntop(AF_INET, &((struct sockaddr_in6*)&from_addr)->sin6_addr, from_straddr, sizeof(from_straddr));
+      from_strport = std::to_string(ntohs(((struct sockaddr_in6*)&from_addr)->sin6_port));
+    }
+      break;
+  }
+
+  char to_straddr[std::max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)];
+  std::string to_strport;
+  switch (from_addr.ss_family) {
+    case AF_INET: {
+      inet_ntop(AF_INET, &((struct sockaddr_in*)&to_addr)->sin_addr, to_straddr, sizeof(to_straddr));
+      to_strport = std::to_string(ntohs(((struct sockaddr_in*)&to_addr)->sin_port));
+    }
+      break;
+    case AF_INET6: {
+      inet_ntop(AF_INET, &((struct sockaddr_in6*)&to_addr)->sin6_addr, to_straddr, sizeof(to_straddr));
+      to_strport = std::to_string(ntohs(((struct sockaddr_in6*)&to_addr)->sin6_port));
+    }
+      break;
+  }
+
+  LOG(INFO) << "(" << from_straddr << ":" << from_strport << " -> " << to_straddr << ":" << to_strport << ")";
+}
+
+void printConnection(Row r) {
+  LOG(INFO) << "(" << r["orig_address"] << ":" << r["orig_port"] << " -> " << r["resp_address"] << ":" << r["resp_port"] << ")";
+}
+
+unsigned short getPortFromSockAddr(const sockaddr_storage& addr) {
+  switch (addr.ss_family) {
+    case AF_INET: {
+      return ntohs(((struct sockaddr_in*)&addr)->sin_port);
+    }
+    case AF_INET6: {
+      return ntohs(((struct sockaddr_in6*)&addr)->sin6_port);
+    }
+  }
+
+  return 0;
+}
+
 Status ConnectionEventSubscriber::init() {
   auto sc = createSubscriptionContext();
   subscribe(&ConnectionEventSubscriber::Callback, sc);
@@ -418,9 +485,11 @@ Status getSocketForConnection(int protocol,
     if (results.at(0).count("socket") >= 1 &&
         !results.at(0)["socket"].empty()) {
       row["socket"] = results.at(0)["socket"];
+      LOG(INFO) << "Matching socket for connection";
     }
     if (results.at(0).count("user") >= 1 && !results.at(0)["user"].empty()) {
       row["user"] = results.at(0)["user"];
+      LOG(INFO) << "Matching user for connection";
     }
   }
 
@@ -482,22 +551,37 @@ Status ConnectionEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   r["fd"] = "";
   r["pid"] = "";
 
-  // Ask socket_diag for more information
-  // TODO: Broadcast addresses does not seems to match (/proc <-> conntrack)
+  int i = 0;
   Row socket_row;
-  socket_row["direction"] = "OUT";
-  getSocketForConnection(
-      std::stoi(r["protocol"]), orig_addr, resp_addr, socket_row);
-  if (socket_row.count("socket") == 0 && socket_row.count("user") == 0) {
-    socket_row["direction"] = "IN";
+  while (true) {
+    i++;
+    // Ask socket_diag for more information
+    // TODO: Broadcast addresses does not seems to match (/proc <-> conntrack)
+    //Row socket_row;
+    socket_row["direction"] = "OUT";
+    LOG(WARNING) << "\nSearching for outgoing connection:";
+    printSockAddressTuple(orig_addr, resp_addr);
     getSocketForConnection(
-        std::stoi(r["protocol"]), resp_addr, orig_addr, socket_row);
-  }
+            std::stoi(r["protocol"]), orig_addr, resp_addr, socket_row);
+    if (socket_row.count("socket") == 0 && socket_row.count("user") == 0) {
+      socket_row["direction"] = "IN";
+      LOG(WARNING) << "\nSearching for incoming connection:";
+      printSockAddressTuple(resp_addr, orig_addr);
+      getSocketForConnection(
+              std::stoi(r["protocol"]), resp_addr, orig_addr, socket_row);
+    }
 
-  // Did we find the socket and process?
-  if (socket_row.count("socket") == 0 && socket_row.count("user") == 0) {
-    add(r);
-    return Status(0, "No socket or user for connection found");
+    // Did we find the socket and process?
+    if (socket_row.count("socket") == 0 && socket_row.count("user") == 0) {
+      add(r);
+      LOG(WARNING) << "No socket or user for connection found";
+      if (i>=5) {
+        sleep(1);
+        return Status(0, "No socket or user for connection found");
+      }
+      continue;
+    }
+    break;
   }
   r["inode"] = socket_row["socket"];
   r["uid"] = socket_row["user"];
@@ -533,6 +617,7 @@ Status ConnectionEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   if (fd_n_process.second.empty()) {
     add(r);
+    LOG(WARNING) << "No process for inode found";
     return Status(0, "No process for inode found");
   }
   r["fd"] = fd_n_process.first;
@@ -542,6 +627,7 @@ Status ConnectionEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
   // state or calls `add` to store a marked up event.
   add(r);
 
+  LOG(INFO) << "Found inode '" << r["inode"] <<"' and pid '" << r["pid"] << "'";
   return Status(0, "OK");
 }
 }

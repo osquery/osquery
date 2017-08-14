@@ -16,9 +16,27 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/conversions.h"
+
 namespace osquery {
 
 const std::string kLinuxProcPath = "/proc";
+const std::string kLinuxModPath = "/proc/modules";
+
+Status modModules(std::set<std::string>& modules) {
+  std::string content;
+  try {
+    readFile(kLinuxModPath, content);
+    for (const auto &line : osquery::split(content, "\n")) {
+      auto fields = osquery::split(line, " ");
+      modules.insert(fields[0]);
+    }
+  } catch (const boost::filesystem::filesystem_error& e) {
+    VLOG(1) << "Exception iterating Linux kernel modules " << e.what();
+    return Status(1, e.what());
+  }
+  return Status(0, "OK");
+}
 
 Status procProcesses(std::set<std::string>& processes) {
   // Iterate over each process-like directory in proc.

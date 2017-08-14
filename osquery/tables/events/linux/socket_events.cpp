@@ -22,6 +22,12 @@ namespace osquery {
 
 #define AUDIT_SYSCALL_BIND 49
 #define AUDIT_SYSCALL_CONNECT 42
+//New:
+#define AUDIT_SYSCALL_ACCEPT 43
+#define AUDIT_SYSCALL_LISTEN 50
+#define AUDIT_SYSCALL_RECVFROM 45
+#define AUDIT_SYSCALL_SENDTO 44
+#define AUDIT_SYSCALL_SOCKET 41
 
 FLAG(bool,
      audit_allow_sockets,
@@ -153,8 +159,11 @@ Status SocketEventSubscriber::init() {
   // Monitor for bind and connect syscalls.
   sc->rules.push_back({AUDIT_SYSCALL_BIND, ""});
   sc->rules.push_back({AUDIT_SYSCALL_CONNECT, ""});
+  sc->rules.push_back({AUDIT_SYSCALL_SOCKET, ""});
   // Also grab SADDR structures
   sc->types.insert(AUDIT_TYPE_SOCKADDR);
+  // Also grab sys_socketcall arguments
+  sc->types.insert(AUDIT_TYPE_SOCKETCALL);
 
   // Drop events if they are encountered outside of the expected state.
   // sc->types = {AUDIT_SYSCALL};
@@ -169,7 +178,9 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
       // The connect syscall may want an exit with EINPROGRESS.
     }
   } else if (ec->type == AUDIT_TYPE_SYSCALL &&
-             ec->syscall != AUDIT_SYSCALL_BIND) {
+             ec->syscall != AUDIT_SYSCALL_BIND &&
+             ec->syscall != AUDIT_SYSCALL_SOCKET) {
+    LOG(ERROR) << "Cancel '" << ec->syscall << "' (type: '" << ec->type << "')";
     return Status(0);
   }
 
@@ -178,12 +189,20 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
     asm_.set(ec->audit_id, "action", "connect");
   } else if (ec->syscall == AUDIT_SYSCALL_BIND) {
     asm_.set(ec->audit_id, "action", "bind");
+  } else if (ec->syscall == AUDIT_SYSCALL_SOCKET) {
+    LOG(ERROR) << "Setting action field";
+    asm_.set(ec->audit_id, "action", "socket");
   }
 
   if (fields.is_initialized()) {
     if ((*fields)["action"] == "bind") {
       (*fields)["local_port"] = std::move((*fields)["remote_port"]);
       (*fields)["local_address"] = std::move((*fields)["remote_address"]);
+    }
+    if ((*fields)["action"] == "socket") {
+      LOG(ERROR) << "Adding socket field";
+      (*fields)["protocol"] = std::move((*fields)[""]);
+      LOG(ERROR) << "socket field added";
     }
     add(*fields);
   }

@@ -78,10 +78,13 @@ boost::optional<AuditFields> AuditAssembler::add(AuditId id,
       AuditFields r;
       if (update_ == nullptr) {
         m_[id] = {};
+        LOG(ERROR) << "RETURN 1";
         return boost::none;
       } else if (!update_(type, fields, r)) {
+        LOG(ERROR) << "RETURN 2";
         return boost::none;
       }
+      LOG(ERROR) << "RETURN 3";
       return r;
     }
 
@@ -93,6 +96,7 @@ boost::optional<AuditFields> AuditAssembler::add(AuditId id,
     } else {
       update_(type, fields, m_[id]);
     }
+    LOG(ERROR) << "RETURN 4";
     return boost::none;
   }
 
@@ -104,6 +108,7 @@ boost::optional<AuditFields> AuditAssembler::add(AuditId id,
 
   if (update_ != nullptr && !update_(type, fields, m_[id])) {
     evict(id);
+    LOG(ERROR) << "RETURN 5";
     return boost::none;
   }
 
@@ -111,11 +116,13 @@ boost::optional<AuditFields> AuditAssembler::add(AuditId id,
   if (complete(id)) {
     auto new_fields = std::move(it->second);
     evict(id);
+    LOG(ERROR) << "RETURN 6";
     return new_fields;
   }
 
   // Move the audit ID to the front of the queue.
   shuffle(id);
+  LOG(ERROR) << "RETURN 7";
   return boost::none;
 }
 
@@ -534,6 +541,8 @@ Status AuditEventPublisher::run() {
       // Build the event context from the reply type and parse the message.
       if (handleAuditReply(reply_, ec)) {
         fire(ec);
+      } else {
+        LOG(ERROR) << reply_.type << " is not fired";
       }
     }
   });

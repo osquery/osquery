@@ -297,6 +297,15 @@ Status parsePlistContent(const std::string& content,
 
 #ifdef __linux__
 /**
+ * @brief Iterate over `/proc/modules` process, returns a list of module names.
+ *
+ * @param modules output list of module names as strings.
+ *
+ * @return an instance of Status, indicating success or failure.
+ */
+Status modModules(std::set<std::string>& modules);
+
+/**
  * @brief Iterate over `/proc` process, returns a list of pids.
  *
  * @param processes output list of process pids as strings (int paths in proc).
