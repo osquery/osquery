@@ -79,13 +79,48 @@ TEST_F(AuditdFimTests, row_emission) {
   EXPECT_EQ(audit_trace_context.size(), 0U);
   EXPECT_EQ(event_context->audit_events.size(), 71U);
 
-  // Emit the rows
+  // Configure what we want to log and what we want to ignore
   AuditdFimContext fim_context;
-  std::vector<Row> emitted_row_list;
+  fim_context.configuration.show_accesses = true;
 
+  fim_context.configuration.included_path_list.push_back("/etc/ld.so.cache");
+  fim_context.configuration.included_path_list.push_back(
+      "/home/alessandro/test_file");
+  fim_context.configuration.included_path_list.push_back("/lib64/libc.so.6");
+  fim_context.configuration.included_path_list.push_back(
+      "/lib64/libgcc_s.so.1");
+  fim_context.configuration.included_path_list.push_back("/lib64/libm.so.6");
+  fim_context.configuration.included_path_list.push_back(
+      "/lib64/libstdc++.so.6");
+  fim_context.configuration.included_path_list.push_back(
+      "/home/alessandro/test_file");
+  fim_context.configuration.included_path_list.push_back(
+      "/home/alessandro/test_file1");
+  fim_context.configuration.included_path_list.push_back(
+      "/home/alessandro/test_file2");
+  fim_context.configuration.included_path_list.push_back(
+      "/home/alessandro/test_file3");
+  fim_context.configuration.included_path_list.push_back(
+      "/home/alessandro/test_file4");
+  fim_context.configuration.included_path_list.push_back(
+      "/home/alessandro/test_file5");
+  fim_context.configuration.included_path_list.push_back(
+      "/home/alessandro/test_file7");
+  fim_context.configuration.included_path_list.push_back(
+      "/home/alessandro/test_file_rename");
+  fim_context.configuration.included_path_list.push_back(
+      "/home/alessandro/test_file_renameat");
+
+  fim_context.configuration.excluded_path_list.push_back(
+      "/home/alessandro/test_file6");
+
+  // Emit the rows
+  std::vector<Row> emitted_row_list;
   Status status = AuditdFimEventSubscriber::ProcessEvents(
       emitted_row_list, fim_context, event_context->audit_events);
+
   EXPECT_EQ(status.ok(), true);
+  EXPECT_EQ(emitted_row_list.size(), 46U);
 }
 }
 

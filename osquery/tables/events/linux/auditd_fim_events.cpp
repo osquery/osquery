@@ -239,30 +239,16 @@ bool EmitRowFromSyscallContext(
   }
 
   switch (syscall_context.type) {
+  case AuditdFimSyscallContext::Type::Symlink:
+  case AuditdFimSyscallContext::Type::Rename:
   case AuditdFimSyscallContext::Type::Link: {
-    row["operation"] = "link";
-
-    const auto& data =
-        boost::get<AuditdFimSrcDestData>(syscall_context.syscall_data);
-
-    row["path1"] = data.source;
-    row["path2"] = data.destination;
-
-    break;
-  }
-
-  case AuditdFimSyscallContext::Type::Dup:
-  case AuditdFimSyscallContext::Type::NameToHandleAt: {
-    return false;
-  }
-
-  case AuditdFimSyscallContext::Type::Symlink: {
-    row["operation"] = "symlink";
-    return false;
-  }
-
-  case AuditdFimSyscallContext::Type::Rename: {
-    row["operation"] = "rename";
+    if (syscall_context.type == AuditdFimSyscallContext::Type::Symlink) {
+      row["operation"] = "symlink";
+    } else if (syscall_context.type == AuditdFimSyscallContext::Type::Rename) {
+      row["operation"] = "rename";
+    } else {
+      row["operation"] = "link";
+    }
 
     const auto& data =
         boost::get<AuditdFimSrcDestData>(syscall_context.syscall_data);
@@ -301,9 +287,14 @@ bool EmitRowFromSyscallContext(
     row["path1"] = data.target;
     break;
   }
+
+  case AuditdFimSyscallContext::Type::Dup:
+  case AuditdFimSyscallContext::Type::NameToHandleAt: {
+    return false;
+  }
   }
 
-  if (!L_IsPathIncluded(row["path1"]) || L_IsPathIncluded(row["path2"])) {
+  if (!L_IsPathIncluded(row["path1"]) && L_IsPathIncluded(row["path2"])) {
     return false;
   }
 
