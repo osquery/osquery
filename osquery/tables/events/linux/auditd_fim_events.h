@@ -14,6 +14,7 @@
 #include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {
+/// An inode descriptor, containing the file (or folder) path
 struct AuditdFimInodeDescriptor final {
   enum class Type { File, Folder };
 
@@ -21,6 +22,7 @@ struct AuditdFimInodeDescriptor final {
   std::string path;
 };
 
+/// An fd descriptor, containing the inode used to solve the path
 struct AuditdFimFdDescriptor final {
   enum class OperationType { Open, Read, Write };
 
@@ -28,65 +30,106 @@ struct AuditdFimFdDescriptor final {
   OperationType last_operation;
 };
 
+/// A global inode map
 class AuditdFimInodeMap final {
  public:
   AuditdFimInodeMap();
+
+  /// Returns a reference to the specified inode object
   bool getReference(AuditdFimInodeDescriptor*& ino_desc, ino_t inode);
+
+  /// Removes and returns the specified inode object
   bool takeAndRemove(AuditdFimInodeDescriptor& ino_desc, ino_t inode);
+
+  /// Saves a new inode into the map
   void save(ino_t inode,
             AuditdFimInodeDescriptor::Type type,
             const std::string& path);
+
+  /// Removes the specified inode
   void remove(ino_t inode);
+
+  /// Removes all inodes from the map
   void clear();
 
  private:
+  /// The global inode map
   std::map<ino_t, AuditdFimInodeDescriptor> data_;
 };
 
+/// Contains
 class AuditdFimFdMap final {
  public:
   AuditdFimFdMap(pid_t process_id);
 
+  /// Returns a reference to the specified fd object
   bool getReference(AuditdFimFdDescriptor*& fd_desc, std::uint64_t fd);
+
+  /// Duplicates the specified fd (used for dup/dup2/dup3)
   bool duplicate(std::uint64_t fd, std::uint64_t new_fd);
+
+  /// Removes and returns the specified fd object
   bool takeAndRemove(AuditdFimFdDescriptor& fd_desc, std::uint64_t fd);
+
+  /// Saves a new fd in the map
   void save(std::uint64_t fd,
             ino_t inode,
             AuditdFimFdDescriptor::OperationType last_operation =
                 AuditdFimFdDescriptor::OperationType::Open);
+
+  /// Removes all items from the map
   void clear();
 
  private:
+  /// Prints a warning when an untracked fd is found
   void printUntrackedFdWarning(std::uint64_t fd);
 
  private:
+  /// The process id that owns this fd map
   pid_t process_id_;
+
+  /// A time-based filter to avoid spamming the warning log
   std::time_t warning_suppression_timer_{0};
+
+  /// A map of all the known file descriptors for this process
   std::unordered_map<std::uint64_t, AuditdFimFdDescriptor> data_;
 };
 
+/// A utility class to track processes and their fd maps
 class AuditdFimProcessMap final {
  public:
+  /// Returns a reference to the specified fd object
   bool getReference(AuditdFimFdDescriptor*& fd_desc,
                     pid_t process_id,
                     std::uint64_t fd);
+
+  /// Duplicates the specified fd. Used for dup/dup2/dup3
   bool duplicate(pid_t process_id, std::uint64_t fd, std::uint64_t new_fd);
+
+  /// Removes and returns the specified fd object
   bool takeAndRemove(AuditdFimFdDescriptor& fd_desc,
                      pid_t process_id,
                      std::uint64_t fd);
+
+  /// Saves a new fd in the specified process map
   void save(std::uint64_t fd,
             pid_t process_id,
             ino_t inode,
             AuditdFimFdDescriptor::OperationType last_operation =
                 AuditdFimFdDescriptor::OperationType::Open);
+
+  /// Removes all items
   void clear();
 
  private:
-  void removeUnusedProcessEntries();
+  /// Prints a warning (VLOG) when an untracked pid is found
   void printUntrackedPidWarning(pid_t pid);
 
  private:
+  /// Time-based filtering to avoid spamming the warning log
   std::map<pid_t, std::time_t> warning_suppression_filter_;
+
+  /// An fd map for each process
   std::map<pid_t, AuditdFimFdMap> data_;
 };
 
@@ -106,23 +149,27 @@ struct AuditdFimConfiguration final {
   bool show_accesses{true};
 };
 
+/// The fim context contains configuration and process state
 struct AuditdFimContext final {
   AuditdFimConfiguration configuration;
   AuditdFimProcessMap process_map;
   AuditdFimInodeMap inode_map;
 };
 
+/// Used to aggregate each AUDIT_PATH record
 struct AuditdFimPathRecordItem final {
   std::size_t index;
   ino_t inode;
   std::string path;
 };
 
+/// Contains information for syscalls with 2 paths (link, rename, etc)
 struct AuditdFimSrcDestData final {
   std::string source;
   std::string destination;
 };
 
+/// Contains information for syscalls that create/write/read files
 struct AuditdFimIOData final {
   enum class Type { Open, Read, Write, Close, Unlink };
 
@@ -133,6 +180,7 @@ struct AuditdFimIOData final {
 
 using SyscallData = boost::variant<AuditdFimSrcDestData, AuditdFimIOData>;
 
+/// Contains everything that is related to a specific syscall
 struct AuditdFimSyscallContext final {
   enum class Type {
     Link,
