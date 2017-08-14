@@ -78,6 +78,9 @@ TEST_F(BrokerManagerTests, test_successestablishconnection) {
   // Connect the broker endpoint
   auto s_peer = get().peerEndpoint("127.0.0.1", 9999, 3);
   EXPECT_TRUE(s_peer.ok());
+  if (not s_peer.ok()) {
+    LOG(ERROR) << s_peer.getMessage();
+  }
 }
 
 TEST_F(BrokerManagerTests, test_announce) {
@@ -92,6 +95,9 @@ TEST_F(BrokerManagerTests, test_announce) {
   // Connect the broker endpoint and send announcement
   auto s_peer = get().peerEndpoint("127.0.0.1", 9998, 3);
   EXPECT_TRUE(s_peer.ok());
+  if (not s_peer.ok()) {
+    LOG(ERROR) << s_peer.getMessage();
+  }
   EXPECT_TRUE(get().announce().ok());
 
   // Wait for message
@@ -130,6 +136,9 @@ TEST_F(BrokerManagerTests, test_addandremovegroups) {
   // Connect the broker endpoint
   auto s_peer = get().peerEndpoint("127.0.0.1", 9997, 3);
   EXPECT_TRUE(s_peer.ok());
+  if (not s_peer.ok()) {
+    LOG(ERROR) << s_peer.getMessage();
+  }
 
   // Add group2 after connecting
   EXPECT_TRUE(get().addGroup("test2").ok());
