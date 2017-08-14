@@ -29,7 +29,7 @@ void genFDEStatusForBlockDevice(const std::string &name,
   r["name"] = name;
   r["uuid"] = uuid;
 
-  struct crypt_device *cd = nullptr;
+  struct crypt_device* cd = nullptr;
   struct crypt_active_device cad;
   crypt_status_info ci;
   std::string type;
@@ -52,14 +52,12 @@ void genFDEStatusForBlockDevice(const std::string &name,
 
     if (crypt_init < 0) {
       VLOG(1) << "Unable to initialize crypt device for " << name;
-      crypt_free(cd);
       break;
     }
 
     type = crypt_get_type(cd);
     if (crypt_get_active_device(cd, name.c_str(), &cad) < 0) {
       VLOG(1) << "Unable to get active device for " << name;
-      crypt_free(cd);
       break;
     }
     cipher = crypt_get_cipher(cd);
@@ -72,6 +70,9 @@ void genFDEStatusForBlockDevice(const std::string &name,
     r["encrypted"] = "0";
   }
 
+  if (cd != nullptr) {
+    crypt_free(cd);
+  }
   results.push_back(r);
 }
 
