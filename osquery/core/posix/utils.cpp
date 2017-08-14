@@ -20,7 +20,9 @@ std::string platformAsctime(const struct tm* timeptr) {
     return "";
   }
 
-  return ::asctime(timeptr);
+  // Manual says at least 26 characters.
+  char buffer[32] = {0};
+  return ::asctime_r(timeptr, buffer);
 }
 
 std::string platformStrerr(int errnum) {

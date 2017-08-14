@@ -8,22 +8,19 @@
  *
  */
 
-#include <chrono>
 #include <mutex>
-#include <random>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/iterator/filter_iterator.hpp>
 
 #include <osquery/config.h>
 #include <osquery/database.h>
 #include <osquery/events.h>
-#include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/registry.h>
-#include <osquery/system.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -209,6 +206,28 @@ class Schedule : private boost::noncopyable {
   friend class Config;
 };
 
+/**
+ * @brief A thread that periodically reloads configuration state.
+ *
+ * This refresh runner thread can refresh any configuration plugin.
+ * It may accelerate the time between checks if the configuration fails to load.
+ * For configurations pulled from the network this assures that configuration
+ * is fresh when re-attaching.
+ */
+class ConfigRefreshRunner : public InternalRunnable {
+ public:
+  /// A simple wait/interruptible lock.
+  void start();
+
+ private:
+  /// The current refresh rate in seconds.
+  std::atomic<size_t> refresh_{0};
+  std::atomic<size_t> mod_{1000};
+
+ private:
+  friend class Config;
+};
+
 void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist) {
   std::string content;
   getDatabaseValue(kPersistentSettings, kFailedQueries, content);
@@ -363,17 +382,16 @@ Status Config::refresh() {
 
   WriteLock lock(config_refresh_mutex_);
   if (!status.ok()) {
-    if (FLAGS_config_refresh > 0 &&
-        refresh_runner_->refresh() == FLAGS_config_refresh) {
+    if (FLAGS_config_refresh > 0 && getRefresh() == FLAGS_config_refresh) {
       VLOG(1) << "Using accelerated configuration delay";
-      refresh_runner_->refresh(FLAGS_config_accelerated_refresh);
+      setRefresh(FLAGS_config_accelerated_refresh);
     }
 
     loaded_ = true;
     return status;
-  } else if (refresh_runner_->refresh() != FLAGS_config_refresh) {
+  } else if (getRefresh() != FLAGS_config_refresh) {
     VLOG(1) << "Normal configuration delay restored";
-    refresh_runner_->refresh(FLAGS_config_refresh);
+    setRefresh(FLAGS_config_refresh);
   }
 
   // if there was a response, parse it and update internal state
@@ -392,20 +410,21 @@ Status Config::refresh() {
       return Status();
     }
     status = update(response[0]);
-
-    /*
-     * If the initial configuration includes a non-0 refresh, start an
-     * additional service that sleeps and periodically regenerates the
-     * configuration.
-     */
-    if (!started_thread_ && FLAGS_config_refresh >= 1) {
-      Dispatcher::addService(refresh_runner_);
-      started_thread_ = true;
-    }
   }
 
   loaded_ = true;
   return status;
+}
+
+void Config::setRefresh(size_t refresh, size_t mod) {
+  refresh_runner_->refresh_ = refresh;
+  if (mod > 0) {
+    refresh_runner_->mod_ = mod;
+  }
+}
+
+size_t Config::getRefresh() const {
+  return refresh_runner_->refresh_;
 }
 
 Status Config::load() {
@@ -416,7 +435,18 @@ Status Config::load() {
   }
 
   // Set the initial and optional refresh value.
-  refresh_runner_->refresh(FLAGS_config_refresh);
+  setRefresh(FLAGS_config_refresh);
+
+  /*
+   * If the initial configuration includes a non-0 refresh, start an
+   * additional service that sleeps and periodically regenerates the
+   * configuration.
+   */
+  if (!FLAGS_config_check && !started_thread_ && getRefresh() > 0) {
+    Dispatcher::addService(refresh_runner_);
+    started_thread_ = true;
+  }
+
   return refresh();
 }
 
@@ -601,10 +631,12 @@ Status Config::update(const std::map<std::string, std::string>& config) {
   for (const auto& source : config) {
     auto status = updateSource(source.first, source.second);
     if (status.getCode() == 2) {
+      // The source content did not change.
       continue;
     }
 
     if (!status.ok()) {
+      // The content was not parsed correctly.
       return status;
     }
     // If a source was updated and the content has changed, then the registry
@@ -694,6 +726,9 @@ void Config::reset() {
   std::map<std::string, std::string>().swap(hash_);
   valid_ = false;
   loaded_ = false;
+
+  refresh_runner_ = std::make_shared<ConfigRefreshRunner>();
+  started_thread_ = false;
 
   // Also request each parse to reset state.
   for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {
@@ -815,6 +850,14 @@ Status Config::genHash(std::string& hash) {
   hash = getBufferSHA1(buffer.data(), buffer.size());
 
   return Status(0, "OK");
+}
+
+std::string Config::getHash(const std::string& source) const {
+  WriteLock lock(config_hash_mutex_);
+  if (!hash_.count(source)) {
+    return std::string();
+  }
+  return hash_.at(source);
 }
 
 const std::shared_ptr<ConfigParserPlugin> Config::getParser(
