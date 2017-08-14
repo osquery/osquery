@@ -712,19 +712,15 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
 
     if (enabled == AUDIT_IMMUTABLE || getuid() != 0 ||
         !FLAGS_audit_allow_config) {
-      VLOG(1) << "Audit state: active, immutable";
       return NetlinkStatus::ActiveImmutable;
 
     } else if (enabled == AUDIT_ENABLED) {
-      VLOG(1) << "Audit state: active, mutable";
       return NetlinkStatus::ActiveMutable;
 
     } else if (enabled == AUDIT_DISABLED) {
-      VLOG(1) << "Audit state: disabled";
       return NetlinkStatus::Disabled;
 
     } else {
-      VLOG(1) << "Audit state: error";
       return NetlinkStatus::Error;
     }
   };
@@ -752,7 +748,9 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
   }
 
   NetlinkStatus netlink_status = L_GetNetlinkStatus(audit_netlink_handle_);
-  if (FLAGS_audit_allow_config && netlink_status == NetlinkStatus::Disabled) {
+  if (FLAGS_audit_allow_config &&
+      (netlink_status != NetlinkStatus::ActiveMutable &&
+       netlink_status != NetlinkStatus::ActiveImmutable)) {
     if (audit_set_enabled(audit_netlink_handle_, AUDIT_ENABLED) < 0) {
       VLOG(1) << "Failed to enable the audit service";
 
@@ -767,15 +765,16 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
     }
   }
 
-  netlink_status = L_GetNetlinkStatus(audit_netlink_handle_);
-
-  if (FLAGS_audit_allow_config &&
-      netlink_status == NetlinkStatus::ActiveMutable) {
+  if (FLAGS_audit_allow_config) {
     if (!configureAuditService()) {
       audit_close(audit_netlink_handle_);
       audit_netlink_handle_ = -1;
 
       return NetlinkStatus::Error;
+    }
+
+    if (FLAGS_audit_debug) {
+      std::cout << "Audit service configured" << std::endl;
     }
   }
 

@@ -28,625 +28,8 @@
 #include "osquery/events/linux/auditeventpublisher.h"
 #include "osquery/tables/events/linux/auditd_fim_events.h"
 #include "osquery/tests/test_util.h"
-/*
-const std::vector<std::pair<int, std::string>> complete_event_list = {
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670507): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=3 a1=0 a2=f a3=7f20e4218a10 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670507): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670508): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=4 a1=6b8f20 a2=96b020 a3=9 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670508): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670509): arch=c000003e syscall=0 success=yes "
-     "exit=0 a0=3 a1=7ffe7b8aac28 a2=1 a3=7f20e4218a10 items=0 ppid=7812 "
-     "pid=1236 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" "
-     "exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670509): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670511): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=3 a1=7ffe7b8aac28 a2=1 a3=7f20e4218a10 items=0 ppid=7812 "
-     "pid=1236 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" "
-     "exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670511): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670510): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=a a1=0 a2=f a3=0 items=0 ppid=1236 pid=99999 auid=1000 "
-     "uid=1000 "
-     "gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 "
-     "tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670510): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670512): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=d a1=0 a2=f a3=0 items=0 ppid=1236 pid=99999 auid=1000 "
-     "uid=1000 "
-     "gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 "
-     "tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670512): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670513): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=e a1=0 a2=f a3=0 items=0 ppid=1236 pid=99999 auid=1000 "
-     "uid=1000 "
-     "gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 "
-     "tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670513): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670514): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=f a1=0 a2=96bc71 a3=0 items=0 ppid=1236 pid=99999 auid=1000 "
-     "uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 "
-     "fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670514): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670515): arch=c000003e syscall=3 success=no "
-     "exit=-9 a0=f a1=ac7570 a2=ac7570 a3=0 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670515): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670516): arch=c000003e syscall=3 success=no "
-     "exit=-9 a0=e a1=ac7570 a2=ac7570 a3=0 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670516): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670517): arch=c000003e syscall=3 success=no "
-     "exit=-9 a0=d a1=ac7570 a2=ac7570 a3=0 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670517): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670518): arch=c000003e syscall=59 success=yes "
-     "exit=0 a0=7f20e4119328 a1=7f20e4119340 a2=9c62d0 a3=7ffe7b8a15f0 items=2 "
-     "ppid=1236 pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
-     "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EXECVE, "audit(1501323932.708:7670518): argc=1 a0=\"./test\""},
-    {AUDIT_CWD, "audit(1501323932.708:7670518):  cwd=\"/home/user\""},
-    {AUDIT_PATH,
-     "audit(1501323932.708:7670518): item=0 name=\"./test\" inode=1011065 "
-     "dev=fd:02 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
-     "obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
-    {AUDIT_PATH,
-     "audit(1501323932.708:7670518): item=1 "
-     "name=\"/lib64/ld-linux-x86-64.so.2\" inode=33555875 dev=fd:00 "
-     "mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:ld_so_t:s0 "
-     "objtype=NORMAL"},
-    {AUDIT_EOE, "audit(1501323932.708:7670518): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670519): arch=c000003e syscall=9 success=yes "
-     "exit=139954710917120 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670519): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670520): arch=c000003e syscall=2 success=yes "
-     "exit=3 a0=7f49beb3fdf5 a1=80000 a2=1 a3=7f49bed464f8 items=1 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_CWD, "audit(1501323932.708:7670520):  cwd=\"/home/user\""},
-    {AUDIT_PATH,
-     "audit(1501323932.708:7670520): item=0 name=\"/etc/ld.so.cache\" "
-     "inode=67183304 dev=fd:00 mode=0100644 ouid=0 ogid=0 rdev=00:00 "
-     "obj=unconfined_u:object_r:ld_so_cache_t:s0 objtype=NORMAL"},
-    {AUDIT_EOE, "audit(1501323932.708:7670520): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670521): arch=c000003e syscall=9 success=yes "
-     "exit=139954710810624 a0=0 a1=19e73 a2=1 a3=2 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_MMAP, "audit(1501323932.708:7670521): fd=3 flags=0x2"},
-    {AUDIT_EOE, "audit(1501323932.708:7670521): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670522): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=3 a1=19e73 a2=1 a3=2 items=0 ppid=1236 pid=99999 auid=1000 "
-     "uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 "
-     "fsgid=1000 tty=pts7 ses=34 comm=\"test\" exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670522): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670523): arch=c000003e syscall=2 success=yes "
-     "exit=3 a0=7f49bed43640 a1=80000 a2=7f49bed46150 a3=7f49bed43640 items=1 "
-     "ppid=1236 pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
-     "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_CWD, "audit(1501323932.708:7670523):  cwd=\"/home/user\""},
-    {AUDIT_PATH,
-     "audit(1501323932.708:7670523): item=0 name=\"/lib64/libc.so.6\" "
-     "inode=33555889 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
-     "obj=system_u:object_r:lib_t:s0 objtype=NORMAL"},
-    {AUDIT_EOE, "audit(1501323932.708:7670523): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670524): arch=c000003e syscall=0 success=yes "
-     "exit=832 a0=3 a1=7ffcb2470470 a2=340 a3=7f49bed43640 items=0 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670524): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670525): arch=c000003e syscall=9 success=yes "
-     "exit=139954704756736 a0=0 a1=3c0200 a2=5 a3=802 items=0 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_MMAP, "audit(1501323932.709:7670525): fd=3 flags=0x802"},
-    {AUDIT_EOE, "audit(1501323932.709:7670525): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670526): arch=c000003e syscall=9 success=yes "
-     "exit=139954708647936 a0=7f49beb19000 a1=6000 a2=3 a3=812 items=0 "
-     "ppid=1236 pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
-     "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_MMAP, "audit(1501323932.709:7670526): fd=3 flags=0x812"},
-    {AUDIT_EOE, "audit(1501323932.709:7670526): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670527): arch=c000003e syscall=9 success=yes "
-     "exit=139954708672512 a0=7f49beb1f000 a1=4200 a2=3 a3=32 items=0 "
-     "ppid=1236 pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
-     "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670527): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670528): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=3 a1=7f49bed43698 a2=0 a3=31 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670528): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670529): arch=c000003e syscall=9 success=yes "
-     "exit=139954710806528 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670529): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670530): arch=c000003e syscall=9 success=yes "
-     "exit=139954710798336 a0=0 a1=2000 a2=3 a3=22 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670530): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670531): arch=c000003e syscall=9 success=yes "
-     "exit=139954710913024 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670531): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670532): arch=c000003e syscall=1 success=yes "
-     "exit=17 a0=1 a1=7f49bed42000 a2=11 a3=0 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670532): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670533): arch=c000003e syscall=1 per=400000 "
-     "success=yes exit=8 a0=1a a1=7f34857b5ee8 a2=8 a3=0 items=0 ppid=12225 "
-     "pid=12272 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=(none) ses=34 comm=\"code\" "
-     "exe=\"/usr/share/code/code\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670533): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670534): arch=c000003e syscall=0 per=400000 "
-     "success=yes exit=8 a0=1a a1=7ffe732b04a0 a2=400 a3=10f7 items=0 "
-     "ppid=12225 pid=12267 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
-     "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=(none) ses=34 "
-     "comm=\"code\" exe=\"/usr/share/code/code\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670534): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670535): arch=c000003e syscall=2 success=yes "
-     "exit=3 a0=401181 a1=2 a2=7f49beb1fa00 a3=7ffcb2471410 items=1 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_CWD, "audit(1501323932.709:7670535):  cwd=\"/home/user\""},
-    {AUDIT_PATH,
-     "audit(1501323932.709:7670535): item=0 name=\"/home/user/test_file\" "
-     "inode=1007599 dev=fd:02 mode=0100644 ouid=1000 ogid=1000 rdev=00:00 "
-     "obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
-    {AUDIT_EOE, "audit(1501323932.709:7670535): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670536): arch=c000003e syscall=0 success=yes "
-     "exit=10 a0=3 a1=7ffcb2471730 a2=a a3=7ffcb2471410 items=0 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670536): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670537): arch=c000003e syscall=1 success=yes "
-     "exit=1024 a0=3 a1=7ffcb2471730 a2=400 a3=7ffcb2471410 items=0 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670537): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670538): arch=c000003e syscall=32 success=yes "
-     "exit=4 a0=3 a1=7ffcb2471730 a2=400 a3=7ffcb2471410 items=0 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670538): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670539): arch=c000003e syscall=33 success=yes "
-     "exit=10 a0=3 a1=a a2=400 a3=7ffcb2471410 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670539): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670540): arch=c000003e syscall=292 success=yes "
-     "exit=11 a0=3 a1=b a2=0 a3=7ffcb2471410 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670540): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670541): arch=c000003e syscall=1 success=yes "
-     "exit=41 a0=1 a1=7f49bed42000 a2=29 a3=5 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670541): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.710:7670542): arch=c000003e syscall=231 a0=1 a1=0 a2=1 "
-     "a3=ffffffffffffff80 items=0 ppid=1236 pid=99999 auid=1000 uid=1000 "
-     "gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 "
-     "tty=pts7 ses=34 comm=\"test\" exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.710:7670542): "}};
 
-const std::vector<std::pair<int, std::string>> broken_event_list = {
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670507): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=3 a1=0 a2=f a3=7f20e4218a10 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670507): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670508): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=4 a1=6b8f20 a2=96b020 a3=9 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670508): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670509): arch=c000003e syscall=0 success=yes "
-     "exit=0 a0=3 a1=7ffe7b8aac28 a2=1 a3=7f20e4218a10 items=0 ppid=7812 "
-     "pid=1236 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" "
-     "exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670509): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670511): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=3 a1=7ffe7b8aac28 a2=1 a3=7f20e4218a10 items=0 ppid=7812 "
-     "pid=1236 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" "
-     "exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670511): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670510): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=a a1=0 a2=f a3=0 items=0 ppid=1236 pid=99999 auid=1000 "
-     "uid=1000 "
-     "gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 "
-     "tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670510): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670512): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=d a1=0 a2=f a3=0 items=0 ppid=1236 pid=99999 auid=1000 "
-     "uid=1000 "
-     "gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 "
-     "tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670512): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.707:7670513): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=e a1=0 a2=f a3=0 items=0 ppid=1236 pid=99999 auid=1000 "
-     "uid=1000 "
-     "gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 "
-     "tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.707:7670513): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670514): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=f a1=0 a2=96bc71 a3=0 items=0 ppid=1236 pid=99999 auid=1000 "
-     "uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 "
-     "fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670514): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670515): arch=c000003e syscall=3 success=no "
-     "exit=-9 a0=f a1=ac7570 a2=ac7570 a3=0 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670515): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670516): arch=c000003e syscall=3 success=no "
-     "exit=-9 a0=e a1=ac7570 a2=ac7570 a3=0 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670516): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670517): arch=c000003e syscall=3 success=no "
-     "exit=-9 a0=d a1=ac7570 a2=ac7570 a3=0 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"zsh\" exe=\"/usr/bin/zsh\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670517): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670518): arch=c000003e syscall=59 success=yes "
-     "exit=0 a0=7f20e4119328 a1=7f20e4119340 a2=9c62d0 a3=7ffe7b8a15f0 items=2 "
-     "ppid=1236 pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
-     "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EXECVE, "audit(1501323932.708:7670518): argc=1 a0=\"./test\""},
-    {AUDIT_CWD, "audit(1501323932.708:7670518):  cwd=\"/home/user\""},
-    {AUDIT_PATH,
-     "audit(1501323932.708:7670518): item=0 name=\"./test\" inode=1011065 "
-     "dev=fd:02 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
-     "obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
-    {AUDIT_PATH,
-     "audit(1501323932.708:7670518): item=1 "
-     "name=\"/lib64/ld-linux-x86-64.so.2\" inode=33555875 dev=fd:00 "
-     "mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:ld_so_t:s0 "
-     "objtype=NORMAL"},
-    {AUDIT_EOE, "audit(1501323932.708:7670518): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670519): arch=c000003e syscall=9 success=yes "
-     "exit=139954710917120 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670520): arch=c000003e syscall=2 success=yes "
-     "exit=3 a0=7f49beb3fdf5 a1=80000 a2=1 a3=7f49bed464f8 items=1 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_CWD, "audit(1501323932.708:7670520):  cwd=\"/home/user\""},
-    {AUDIT_PATH,
-     "audit(1501323932.708:7670520): item=0 name=\"/etc/ld.so.cache\" "
-     "inode=67183304 dev=fd:00 mode=0100644 ouid=0 ogid=0 rdev=00:00 "
-     "obj=unconfined_u:object_r:ld_so_cache_t:s0 objtype=NORMAL"},
-    {AUDIT_EOE, "audit(1501323932.708:7670520): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670521): arch=c000003e syscall=9 success=yes "
-     "exit=139954710810624 a0=0 a1=19e73 a2=1 a3=2 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_MMAP, "audit(1501323932.708:7670521): fd=3 flags=0x2"},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670522): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=3 a1=19e73 a2=1 a3=2 items=0 ppid=1236 pid=99999 auid=1000 "
-     "uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 "
-     "fsgid=1000 tty=pts7 ses=34 comm=\"test\" exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670522): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670523): arch=c000003e syscall=2 success=yes "
-     "exit=3 a0=7f49bed43640 a1=80000 a2=7f49bed46150 a3=7f49bed43640 items=1 "
-     "ppid=1236 pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
-     "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_CWD, "audit(1501323932.708:7670523):  cwd=\"/home/user\""},
-    {AUDIT_PATH,
-     "audit(1501323932.708:7670523): item=0 name=\"/lib64/libc.so.6\" "
-     "inode=33555889 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 "
-     "obj=system_u:object_r:lib_t:s0 objtype=NORMAL"},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.708:7670524): arch=c000003e syscall=0 success=yes "
-     "exit=832 a0=3 a1=7ffcb2470470 a2=340 a3=7f49bed43640 items=0 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.708:7670524): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670525): arch=c000003e syscall=9 success=yes "
-     "exit=139954704756736 a0=0 a1=3c0200 a2=5 a3=802 items=0 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_MMAP, "audit(1501323932.709:7670525): fd=3 flags=0x802"},
-    {AUDIT_EOE, "audit(1501323932.709:7670525): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670526): arch=c000003e syscall=9 success=yes "
-     "exit=139954708647936 a0=7f49beb19000 a1=6000 a2=3 a3=812 items=0 "
-     "ppid=1236 pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
-     "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_MMAP, "audit(1501323932.709:7670526): fd=3 flags=0x812"},
-    {AUDIT_EOE, "audit(1501323932.709:7670526): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670527): arch=c000003e syscall=9 success=yes "
-     "exit=139954708672512 a0=7f49beb1f000 a1=4200 a2=3 a3=32 items=0 "
-     "ppid=1236 pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
-     "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670527): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670528): arch=c000003e syscall=3 success=yes "
-     "exit=0 a0=3 a1=7f49bed43698 a2=0 a3=31 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670528): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670529): arch=c000003e syscall=9 success=yes "
-     "exit=139954710806528 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670529): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670530): arch=c000003e syscall=9 success=yes "
-     "exit=139954710798336 a0=0 a1=2000 a2=3 a3=22 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670530): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670531): arch=c000003e syscall=9 success=yes "
-     "exit=139954710913024 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670531): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670532): arch=c000003e syscall=1 success=yes "
-     "exit=17 a0=1 a1=7f49bed42000 a2=11 a3=0 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670532): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670533): arch=c000003e syscall=1 per=400000 "
-     "success=yes exit=8 a0=1a a1=7f34857b5ee8 a2=8 a3=0 items=0 ppid=12225 "
-     "pid=12272 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=(none) ses=34 comm=\"code\" "
-     "exe=\"/usr/share/code/code\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670533): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670534): arch=c000003e syscall=0 per=400000 "
-     "success=yes exit=8 a0=1a a1=7ffe732b04a0 a2=400 a3=10f7 items=0 "
-     "ppid=12225 pid=12267 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 "
-     "fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=(none) ses=34 "
-     "comm=\"code\" exe=\"/usr/share/code/code\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670534): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670535): arch=c000003e syscall=2 success=yes "
-     "exit=3 a0=401181 a1=2 a2=7f49beb1fa00 a3=7ffcb2471410 items=1 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_CWD, "audit(1501323932.709:7670535):  cwd=\"/home/user\""},
-    {AUDIT_PATH,
-     "audit(1501323932.709:7670535): item=0 name=\"/home/user/test_file\" "
-     "inode=1007599 dev=fd:02 mode=0100644 ouid=1000 ogid=1000 rdev=00:00 "
-     "obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
-    {AUDIT_EOE, "audit(1501323932.709:7670535): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670536): arch=c000003e syscall=0 success=yes "
-     "exit=10 a0=3 a1=7ffcb2471730 a2=a a3=7ffcb2471410 items=0 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670536): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670537): arch=c000003e syscall=1 success=yes "
-     "exit=1024 a0=3 a1=7ffcb2471730 a2=400 a3=7ffcb2471410 items=0 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670537): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670538): arch=c000003e syscall=32 success=yes "
-     "exit=4 a0=3 a1=7ffcb2471730 a2=400 a3=7ffcb2471410 items=0 ppid=1236 "
-     "pid=99999 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 "
-     "egid=1000 sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670538): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670539): arch=c000003e syscall=33 success=yes "
-     "exit=10 a0=3 a1=a a2=400 a3=7ffcb2471410 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670539): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670540): arch=c000003e syscall=292 success=yes "
-     "exit=11 a0=3 a1=b a2=0 a3=7ffcb2471410 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670540): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.709:7670541): arch=c000003e syscall=1 success=yes "
-     "exit=41 a0=1 a1=7f49bed42000 a2=29 a3=5 items=0 ppid=1236 pid=99999 "
-     "auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 "
-     "sgid=1000 fsgid=1000 tty=pts7 ses=34 comm=\"test\" "
-     "exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.709:7670541): "},
-    {AUDIT_SYSCALL,
-     "audit(1501323932.710:7670542): arch=c000003e syscall=231 a0=1 a1=0 a2=1 "
-     "a3=ffffffffffffff80 items=0 ppid=1236 pid=99999 auid=1000 uid=1000 "
-     "gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 "
-     "tty=pts7 ses=34 comm=\"test\" exe=\"/home/user/test\" "
-     "subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
-    {AUDIT_EOE, "audit(1501323932.710:7670542): "}};
+extern std::vector<std::pair<int, std::string>> complete_event_list;
 
 namespace osquery {
 extern std::string generateAuditId(std::uint32_t event_id) noexcept;
@@ -661,78 +44,11 @@ class AuditdFimTests : public testing::Test {
   Row row_;
 };
 
-TEST_F(AuditdFimTests, correct_record_sequence) {
-  std::vector<AuditEventRecord> event_record_list;
-
-  for (const auto& record_descriptor : complete_event_list) {
-    std::string audit_message_copy = record_descriptor.second;
-
-    audit_reply reply = {};
-    reply.type = record_descriptor.first;
-    reply.len = audit_message_copy.size();
-    reply.message = &audit_message_copy[0];
-
-    AuditEventRecord audit_event_record = {};
-
-    bool parser_status =
-        AuditdNetlink::ParseAuditReply(reply, audit_event_record);
-    EXPECT_EQ(parser_status, true);
-
-    event_record_list.push_back(audit_event_record);
-  }
-
-  EXPECT_EQ(event_record_list.size(), 85U);
-
-  auto event_context = std::make_shared<AuditEventContext>();
-  AuditTraceContext syscall_trace_context;
-
-  AuditEventPublisher::ProcessEvents(
-      event_context, event_record_list, syscall_trace_context);
-
-  EXPECT_EQ(syscall_trace_context.size(), 0U);
-  EXPECT_EQ(event_context->audit_events.size(), 36U);
-}
-
-TEST_F(AuditdFimTests, broken_record_sequence) {
-  std::vector<AuditEventRecord> event_record_list;
-
-  for (const auto& record_descriptor : broken_event_list) {
-    std::string audit_message_copy = record_descriptor.second;
-
-    audit_reply reply = {};
-    reply.type = record_descriptor.first;
-    reply.len = audit_message_copy.size();
-    reply.message = &audit_message_copy[0];
-
-    AuditEventRecord audit_event_record = {};
-
-    // The pre-recorded event list contains timestamps from the past; these are
-    // older than the 5 minutes limit used by ParseAuditReply to drop broken
-    // events. In short, the cleanup procedure will delete those incomplete
-    // records right away
-
-    bool parser_status =
-        AuditdNetlink::ParseAuditReply(reply, audit_event_record);
-    EXPECT_EQ(parser_status, true);
-
-    event_record_list.push_back(audit_event_record);
-  }
-
-  EXPECT_EQ(event_record_list.size(), 82U);
-
-  auto event_context = std::make_shared<AuditEventContext>();
-  AuditTraceContext syscall_trace_context;
-
-  AuditEventPublisher::ProcessEvents(
-      event_context, event_record_list, syscall_trace_context);
-
-  EXPECT_EQ(syscall_trace_context.size(), 0U);
-  EXPECT_EQ(event_context->audit_events.size(), 33U);
-}
-
 TEST_F(AuditdFimTests, row_emission) {
   std::vector<AuditEventRecord> event_record_list;
 
+  // Parse the row messages and make sure we get the right amount
+  // of records
   for (const auto& record_descriptor : complete_event_list) {
     std::string audit_message_copy = record_descriptor.second;
 
@@ -750,54 +66,273 @@ TEST_F(AuditdFimTests, row_emission) {
     event_record_list.push_back(audit_event_record);
   }
 
-  EXPECT_EQ(event_record_list.size(), 85U);
+  EXPECT_EQ(event_record_list.size(), 243U);
 
+  // Assemble the audit records into audit events, and make sure
+  // we get the correct amount of objects
   auto event_context = std::make_shared<AuditEventContext>();
-  AuditTraceContext syscall_trace_context;
+  AuditTraceContext audit_trace_context;
 
   AuditEventPublisher::ProcessEvents(
-      event_context, event_record_list, syscall_trace_context);
+      event_context, event_record_list, audit_trace_context);
 
-  EXPECT_EQ(syscall_trace_context.size(), 0U);
-  EXPECT_EQ(event_context->audit_events.size(), 36U);
+  EXPECT_EQ(audit_trace_context.size(), 0U);
+  EXPECT_EQ(event_context->audit_events.size(), 71U);
 
-  // First test, showing only write operations. We expect to find a single write
-  // here.
-  AuditdFimConfiguration configuration;
-  configuration.show_accesses = false;
-  configuration.included_path_list.push_back("/home/user/test_file");
-
-  AuditdFimProcessMap process_map;
+  // Emit the rows
+  AuditdFimContext fim_context;
   std::vector<Row> emitted_row_list;
 
-  auto exit_status =
-      AuditdFimEventSubscriber::ProcessEvents(emitted_row_list,
-                                              process_map,
-                                              configuration,
-                                              event_context->audit_events);
-  EXPECT_EQ(exit_status.ok(), true);
-  EXPECT_EQ(emitted_row_list.size(), 1U);
-
-  // Second test, with access events enabled
-  configuration.show_accesses = true;
-
-  configuration.included_path_list.clear();
-  configuration.included_path_list.push_back("/etc/ld.so.cache");
-  configuration.included_path_list.push_back("/home/user/test_file");
-  configuration.included_path_list.push_back("/lib64/libc.so.6");
-
-  configuration.excluded_path_list.push_back("/home/user/test_file");
-
-  process_map.clear();
-  emitted_row_list.clear();
-
-  exit_status =
-      AuditdFimEventSubscriber::ProcessEvents(emitted_row_list,
-                                              process_map,
-                                              configuration,
-                                              event_context->audit_events);
-  EXPECT_EQ(exit_status.ok(), true);
-  EXPECT_EQ(emitted_row_list.size(), 7U);
+  Status status = AuditdFimEventSubscriber::ProcessEvents(
+      emitted_row_list, fim_context, event_context->audit_events);
+  EXPECT_EQ(status.ok(), true);
 }
 }
-*/
+
+// clang-format off
+std::vector<std::pair<int, std::string>> complete_event_list = {
+  {1300, "audit(1502573850.697:38395): arch=c000003e syscall=9 success=yes exit=140095431475200 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.697:38395): "},
+  {1300, "audit(1502573850.697:38396): arch=c000003e syscall=2 success=yes exit=3 a0=7f6a824d4df5 a1=80000 a2=1 a3=7f6a826db4f8 items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.697:38396):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.697:38396): item=0 name=\"/etc/ld.so.cache\" inode=67842177 dev=fd:00 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:ld_so_cache_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573850.697:38396): "},
+  {1300, "audit(1502573850.697:38397): arch=c000003e syscall=9 success=yes exit=140095431385088 a0=0 a1=15e5b a2=1 a3=2 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1323, "audit(1502573850.697:38397): fd=3 flags=0x2"},
+  {1320, "audit(1502573850.697:38397): "},
+  {1300, "audit(1502573850.697:38398): arch=c000003e syscall=3 success=yes exit=0 a0=3 a1=15e5b a2=1 a3=2 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.697:38398): "},
+  {1300, "audit(1502573850.697:38399): arch=c000003e syscall=2 success=yes exit=3 a0=7f6a826d8640 a1=80000 a2=7f6a826db150 a3=7f6a826d8640 items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.697:38399):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.697:38399): item=0 name=\"/lib64/libstdc++.so.6\" inode=33604382 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:lib_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573850.697:38399): "},
+  {1300, "audit(1502573850.697:38400): arch=c000003e syscall=0 success=yes exit=832 a0=3 a1=7fff15c09350 a2=340 a3=7f6a826d8640 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.697:38400): "},
+  {1300, "audit(1502573850.697:38401): arch=c000003e syscall=9 success=yes exit=140095426068480 a0=0 a1=308420 a2=5 a3=802 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1323, "audit(1502573850.697:38401): fd=3 flags=0x802"},
+  {1320, "audit(1502573850.697:38401): "},
+  {1300, "audit(1502573850.697:38402): arch=c000003e syscall=9 success=yes exit=140095429120000 a0=7f6a82499000 a1=b000 a2=3 a3=812 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1323, "audit(1502573850.697:38402): fd=3 flags=0x812"},
+  {1320, "audit(1502573850.697:38402): "},
+  {1300, "audit(1502573850.697:38403): arch=c000003e syscall=9 success=yes exit=140095429165056 a0=7f6a824a4000 a1=14420 a2=3 a3=32 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.697:38403): "},
+  {1300, "audit(1502573850.697:38404): arch=c000003e syscall=3 success=yes exit=0 a0=3 a1=7f6a826d8698 a2=0 a3=31 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.697:38404): "},
+  {1300, "audit(1502573850.697:38405): arch=c000003e syscall=2 success=yes exit=3 a0=7f6a826d8b08 a1=80000 a2=7f6a826db150 a3=7f6a826d8b08 items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.697:38405):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.697:38405): item=0 name=\"/lib64/libm.so.6\" inode=33604048 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:lib_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573850.697:38405): "},
+  {1300, "audit(1502573850.697:38406): arch=c000003e syscall=0 success=yes exit=832 a0=3 a1=7fff15c09320 a2=340 a3=7f6a826d8b08 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.697:38406): "},
+  {1300, "audit(1502573850.697:38407): arch=c000003e syscall=9 success=yes exit=140095422914560 a0=0 a1=301148 a2=5 a3=802 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1323, "audit(1502573850.697:38407): fd=3 flags=0x802"},
+  {1320, "audit(1502573850.697:38407): "},
+  {1300, "audit(1502573850.697:38408): arch=c000003e syscall=9 success=yes exit=140095426060288 a0=7f6a821ae000 a1=2000 a2=3 a3=812 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1323, "audit(1502573850.697:38408): fd=3 flags=0x812"},
+  {1320, "audit(1502573850.697:38408): "},
+  {1300, "audit(1502573850.697:38409): arch=c000003e syscall=3 success=yes exit=0 a0=3 a1=7f6a826d8b60 a2=0 a3=31 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.697:38409): "},
+  {1300, "audit(1502573850.697:38410): arch=c000003e syscall=2 success=yes exit=3 a0=7f6a826d8fd0 a1=80000 a2=7f6a826db150 a3=7f6a826d8fd0 items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.697:38410):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.697:38410): item=0 name=\"/lib64/libgcc_s.so.1\" inode=33554508 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:lib_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573850.697:38410): "},
+  {1300, "audit(1502573850.697:38411): arch=c000003e syscall=0 success=yes exit=832 a0=3 a1=7fff15c092f0 a2=340 a3=7f6a826d8fd0 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.697:38411): "},
+  {1300, "audit(1502573850.697:38412): arch=c000003e syscall=9 success=yes exit=140095431380992 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.697:38412): "},
+  {1300, "audit(1502573850.697:38413): arch=c000003e syscall=9 success=yes exit=140095420727296 a0=0 a1=215400 a2=5 a3=802 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1323, "audit(1502573850.697:38413): fd=3 flags=0x802"},
+  {1320, "audit(1502573850.697:38413): "},
+  {1300, "audit(1502573850.697:38414): arch=c000003e syscall=9 success=yes exit=140095422906368 a0=7f6a81eac000 a1=2000 a2=3 a3=812 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1323, "audit(1502573850.697:38414): fd=3 flags=0x812"},
+  {1320, "audit(1502573850.697:38414): "},
+  {1300, "audit(1502573850.697:38415): arch=c000003e syscall=3 success=yes exit=0 a0=3 a1=7f6a826c1040 a2=0 a3=31 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.697:38415): "},
+  {1300, "audit(1502573850.698:38416): arch=c000003e syscall=2 success=yes exit=3 a0=7f6a826c14b0 a1=80000 a2=7f6a826db150 a3=7f6a826c14b0 items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.698:38416):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.698:38416): item=0 name=\"/lib64/libc.so.6\" inode=33604039 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:lib_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573850.698:38416): "},
+  {1300, "audit(1502573850.698:38417): arch=c000003e syscall=0 success=yes exit=832 a0=3 a1=7fff15c092c0 a2=340 a3=7f6a826c14b0 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.698:38417): "},
+  {1300, "audit(1502573850.698:38418): arch=c000003e syscall=9 success=yes exit=140095416791040 a0=0 a1=3c0200 a2=5 a3=802 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1323, "audit(1502573850.698:38418): fd=3 flags=0x802"},
+  {1320, "audit(1502573850.698:38418): "},
+  {1300, "audit(1502573850.698:38419): arch=c000003e syscall=9 success=yes exit=140095420682240 a0=7f6a81c8d000 a1=6000 a2=3 a3=812 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1323, "audit(1502573850.698:38419): fd=3 flags=0x812"},
+  {1320, "audit(1502573850.698:38419): "},
+  {1300, "audit(1502573850.698:38420): arch=c000003e syscall=9 success=yes exit=140095420706816 a0=7f6a81c93000 a1=4200 a2=3 a3=32 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.698:38420): "},
+  {1300, "audit(1502573850.698:38421): arch=c000003e syscall=3 success=yes exit=0 a0=3 a1=7f6a826c1508 a2=0 a3=31 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.698:38421): "},
+  {1300, "audit(1502573850.698:38422): arch=c000003e syscall=9 success=yes exit=140095431376896 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.698:38422): "},
+  {1300, "audit(1502573850.698:38423): arch=c000003e syscall=9 success=yes exit=140095431368704 a0=0 a1=2000 a2=3 a3=22 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.698:38423): "},
+  {1300, "audit(1502573850.698:38424): arch=c000003e syscall=9 success=yes exit=140095431364608 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.698:38424): "},
+  {1300, "audit(1502573850.698:38425): arch=c000003e syscall=87 success=yes exit=0 a0=40219c a1=7fff15c0ab48 a2=7fff15c0ab58 a3=7fff15c0a7d0 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.698:38425):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.698:38425): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573850.698:38425): item=1 name=\"test_file\" inode=724389 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1320, "audit(1502573850.698:38425): "},
+  {1300, "audit(1502573850.699:38428): arch=c000003e syscall=87 success=yes exit=0 a0=4021ff a1=7fff15c0ab48 a2=7fff15c0ab58 a3=7fff15c0a7d0 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.699:38428):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.699:38428): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573850.699:38428): item=1 name=\"test_file3\" inode=724389 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1320, "audit(1502573850.699:38428): "},
+  {1300, "audit(1502573850.699:38429): arch=c000003e syscall=87 success=yes exit=0 a0=40220a a1=7fff15c0ab48 a2=7fff15c0ab58 a3=7fff15c0a7d0 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.699:38429):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.699:38429): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573850.699:38429): item=1 name=\"test_file4\" inode=724416 dev=fd:02 mode=0120777 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1320, "audit(1502573850.699:38429): "},
+  {1300, "audit(1502573850.699:38430): arch=c000003e syscall=87 success=yes exit=0 a0=40242d a1=7fff15c0ab48 a2=7fff15c0ab58 a3=7fff15c0a7d0 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.699:38430):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.699:38430): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573850.699:38430): item=1 name=\"test_file5\" inode=724406 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1320, "audit(1502573850.699:38430): "},
+  {1300, "audit(1502573850.699:38431): arch=c000003e syscall=87 success=yes exit=0 a0=402451 a1=7fff15c0ab48 a2=7fff15c0ab58 a3=7fff15c0a7d0 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.699:38431):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.699:38431): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573850.699:38431): item=1 name=\"test_file6\" inode=724418 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1320, "audit(1502573850.699:38431): "},
+  {1300, "audit(1502573850.699:38432): arch=c000003e syscall=87 success=yes exit=0 a0=402477 a1=7fff15c0ab48 a2=7fff15c0ab58 a3=7fff15c0a7d0 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.699:38432):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.699:38432): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573850.699:38432): item=1 name=\"test_file7\" inode=724419 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1320, "audit(1502573850.699:38432): "},
+  {1300, "audit(1502573850.725:38494): arch=c000003e syscall=257 success=yes exit=3 a0=ffffffffffffff9c a1=40259e a2=90800 a3=0 items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573850.725:38494):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573850.725:38494): item=0 name=\".\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573850.725:38494): "},
+  {1300, "audit(1502573850.725:38495): arch=c000003e syscall=9 success=yes exit=140095431471104 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.725:38495): "},
+  {1300, "audit(1502573850.725:38496): arch=c000003e syscall=1 success=yes exit=18 a0=1 a1=7f6a826d7000 a2=12 a3=0 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.725:38496): "},
+  {1300, "audit(1502573850.725:38497): arch=c000003e syscall=9 success=yes exit=140095431467008 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.725:38497): "},
+  {1300, "audit(1502573850.726:38498): arch=c000003e syscall=1 success=yes exit=31 a0=1 a1=7f6a826d7000 a2=1f a3=22 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.726:38498): "},
+  {1300, "audit(1502573850.726:46799): arch=c000003e syscall=0 success=yes exit=1 a0=0 a1=7f6a826d6000 a2=400 a3=22 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573850.726:46799): "},
+  {1300, "audit(1502573858.178:46800): arch=c000003e syscall=76 success=yes exit=0 a0=40219c a1=c a2=a a3=7fff15c0a7c0 items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46800):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46800): item=0 name=\"test_file\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573858.178:46800): "},
+  {1300, "audit(1502573858.178:46801): arch=c000003e syscall=86 success=yes exit=0 a0=40219c a1=402191 a2=a a3=7fff15c0a7c0 items=3 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46801):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46801): item=0 name=\"test_file\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
+  {1302, "audit(1502573858.178:46801): item=1 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46801): item=2 name=\"test_file1\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=CREATE"},
+  {1320, "audit(1502573858.178:46801): "},
+  {1300, "audit(1502573858.178:46802): arch=c000003e syscall=88 success=yes exit=0 a0=40219c a1=4021cc a2=a a3=7fff15c0a7c0 items=3 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46802):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46802): item=0 name=\"test_file\" objtype=UNKNOWN"},
+  {1302, "audit(1502573858.178:46802): item=1 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46802): item=2 name=\"test_file2\" inode=724389 dev=fd:02 mode=0120777 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=CREATE"},
+  {1320, "audit(1502573858.178:46802): "},
+  {1300, "audit(1502573858.178:46803): arch=c000003e syscall=265 success=yes exit=0 a0=3 a1=40219c a2=3 a3=4021ff items=3 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46803):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46803): item=0 name=\"test_file\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
+  {1302, "audit(1502573858.178:46803): item=1 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46803): item=2 name=\"test_file3\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=CREATE"},
+  {1320, "audit(1502573858.178:46803): "},
+  {1300, "audit(1502573858.178:46804): arch=c000003e syscall=266 success=yes exit=0 a0=40219c a1=3 a2=40220a a3=7fff15c0a7c0 items=3 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46804):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46804): item=0 name=\"test_file\" objtype=UNKNOWN"},
+  {1302, "audit(1502573858.178:46804): item=1 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46804): item=2 name=\"test_file4\" inode=724406 dev=fd:02 mode=0120777 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=CREATE"},
+  {1320, "audit(1502573858.178:46804): "},
+  {1300, "audit(1502573858.178:46805): arch=c000003e syscall=82 success=yes exit=0 a0=40219c a1=402215 a2=40220a a3=7fff15c0a7c0 items=4 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46805):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46805): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46805): item=1 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46805): item=2 name=\"test_file\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1302, "audit(1502573858.178:46805): item=3 name=\"test_file_rename\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=CREATE"},
+  {1320, "audit(1502573858.178:46805): "},
+  {1300, "audit(1502573858.178:46806): arch=c000003e syscall=264 success=yes exit=0 a0=3 a1=402215 a2=3 a3=40224e items=4 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46806):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46806): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46806): item=1 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46806): item=2 name=\"test_file_rename\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1302, "audit(1502573858.178:46806): item=3 name=\"test_file_renameat\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=CREATE"},
+  {1320, "audit(1502573858.178:46806): "},
+  {1300, "audit(1502573858.178:46807): arch=c000003e syscall=316 success=yes exit=0 a0=3 a1=40224e a2=3 a3=40219c items=4 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46807):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46807): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46807): item=1 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46807): item=2 name=\"test_file_renameat\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1302, "audit(1502573858.178:46807): item=3 name=\"test_file\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=CREATE"},
+  {1320, "audit(1502573858.178:46807): "},
+  {1300, "audit(1502573858.178:46808): arch=c000003e syscall=87 success=yes exit=0 a0=402191 a1=40224e a2=3 a3=40219c items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46808):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46808): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46808): item=1 name=\"test_file1\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1320, "audit(1502573858.178:46808): "},
+  {1300, "audit(1502573858.178:46809): arch=c000003e syscall=263 success=yes exit=0 a0=3 a1=4021cc a2=0 a3=7fff15c0a7b0 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46809):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46809): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46809): item=1 name=\"test_file2\" inode=724389 dev=fd:02 mode=0120777 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=DELETE"},
+  {1320, "audit(1502573858.178:46809): "},
+  {1300, "audit(1502573858.178:46810): arch=c000003e syscall=2 success=yes exit=4 a0=4022c6 a1=42 a2=0 a3=7fff15c0a3a0 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46810):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46810): item=0 name=\"/home/alessandro/\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46810): item=1 name=\"/home/alessandro/test_file\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573858.178:46810): "},
+  {1300, "audit(1502573858.178:46811): arch=c000003e syscall=32 success=yes exit=5 a0=4 a1=42 a2=0 a3=7fff15c0a3a0 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573858.178:46811): "},
+  {1300, "audit(1502573858.178:46812): arch=c000003e syscall=33 success=yes exit=10 a0=4 a1=a a2=0 a3=7fff15c0a3a0 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573858.178:46812): "},
+  {1300, "audit(1502573858.178:46813): arch=c000003e syscall=292 success=yes exit=11 a0=4 a1=b a2=0 a3=7fff15c0a3a0 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573858.178:46813): "},
+  {1300, "audit(1502573858.178:46814): arch=c000003e syscall=3 success=yes exit=0 a0=b a1=b a2=0 a3=7fff15c0a3a0 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573858.178:46814): "},
+  {1300, "audit(1502573858.178:46815): arch=c000003e syscall=257 success=yes exit=6 a0=3 a1=40219c a2=0 a3=0 items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46815):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46815): item=0 name=\"test_file\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573858.178:46815): "},
+  {1300, "audit(1502573858.178:46816): arch=c000003e syscall=303 success=yes exit=0 a0=ffffff9c a1=40219c a2=7fff15c0a620 a3=7fff15c0aa2c items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46816):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46816): item=0 name=\"test_file\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573858.178:46816): "},
+  {1300, "audit(1502573858.178:46817): arch=c000003e syscall=304 success=yes exit=7 a0=ffffff9c a1=7fff15c0a620 a2=2 a3=7fff15c0a3a0 items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46817):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46817): item=0 name="" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573858.178:46817): "},
+  {1300, "audit(1502573858.178:46818): arch=c000003e syscall=303 success=yes exit=0 a0=3 a1=40219c a2=7fff15c0a620 a3=7fff15c0aa2c items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46818):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46818): item=0 name=\"test_file\" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573858.178:46818): "},
+  {1300, "audit(1502573858.178:46819): arch=c000003e syscall=304 success=yes exit=8 a0=3 a1=7fff15c0a620 a2=2 a3=7fff15c0aa2c items=1 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46819):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46819): item=0 name="" inode=98362 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=NORMAL"},
+  {1320, "audit(1502573858.178:46819): "},
+  {1300, "audit(1502573858.178:46820): arch=c000003e syscall=133 success=yes exit=0 a0=40242d a1=81a4 a2=0 a3=7fff15c0a380 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46820):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46820): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46820): item=1 name=\"test_file5\" inode=560977 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=CREATE"},
+  {1320, "audit(1502573858.178:46820): "},
+  {1300, "audit(1502573858.178:46821): arch=c000003e syscall=259 success=yes exit=0 a0=3 a1=402451 a2=81a4 a3=0 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46821):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46821): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46821): item=1 name=\"test_file6\" inode=560986 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=CREATE"},
+  {1320, "audit(1502573858.178:46821): "},
+  {1300, "audit(1502573858.178:46822): arch=c000003e syscall=85 success=yes exit=9 a0=402477 a1=81a4 a2=81a4 a3=7fff15c0a3a0 items=2 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1307, "audit(1502573858.178:46822):  cwd=\"/home/alessandro\""},
+  {1302, "audit(1502573858.178:46822): item=0 name=\"/home/alessandro\" inode=67 dev=fd:02 mode=040700 ouid=1000 ogid=1000 rdev=00:00 obj=unconfined_u:object_r:user_home_dir_t:s0 objtype=PARENT"},
+  {1302, "audit(1502573858.178:46822): item=1 name=\"test_file7\" inode=560990 dev=fd:02 mode=0100644 ouid=0 ogid=0 rdev=00:00 obj=unconfined_u:object_r:user_home_t:s0 objtype=CREATE"},
+  {1320, "audit(1502573858.178:46822): "},
+  {1300, "audit(1502573858.179:46823): arch=c000003e syscall=0 success=yes exit=10 a0=4 a1=7fff15c0a640 a2=a a3=7fff15c0a3c0 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573858.179:46823): "},
+  {1300, "audit(1502573858.179:46824): arch=c000003e syscall=1 success=yes exit=1024 a0=4 a1=7fff15c0a640 a2=400 a3=7fff15c0a3c0 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573858.179:46824): "},
+  {1300, "audit(1502573858.179:46825): arch=c000003e syscall=17 success=yes exit=10 a0=4 a1=7fff15c0a640 a2=a a3=1 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573858.179:46825): "},
+  {1300, "audit(1502573858.179:46826): arch=c000003e syscall=18 success=yes exit=1024 a0=4 a1=7fff15c0a640 a2=400 a3=1 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573858.179:46826): "},
+  {1300, "audit(1502573858.179:46827): arch=c000003e syscall=77 success=yes exit=0 a0=4 a1=b a2=400 a3=7fff15c0a7c0 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1320, "audit(1502573858.179:46827): "},
+  {1300, "audit(1502573858.179:46828): arch=c000003e syscall=9 success=yes exit=140095431462912 a0=0 a1=a a2=7 a3=1 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
+  {1323, "audit(1502573858.179:46828): fd=4 flags=0x1"},
+  {1320, "audit(1502573858.179:46828): "}
+};
+// clang-format on

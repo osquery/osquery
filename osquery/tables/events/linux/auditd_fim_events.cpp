@@ -215,42 +215,6 @@ std::string NormalizePath(const std::string& cwd,
   return normalized_path.string();
 };
 
-AuditdFimFdMap* GetOrCreateProcessMap(AuditdFimContext& fim_context,
-                                      pid_t process_id,
-                                      bool create_if_missing = false) noexcept {
-  auto it = fim_context.process_map.find(process_id);
-  if (it == fim_context.process_map.end() && create_if_missing) {
-    // Use reserved inode number to map stdin/stdout/stderr file descriptors
-    // to dummy files
-    it = fim_context.process_map.insert({process_id, AuditdFimFdMap()}).first;
-    auto& fd_map = it->second;
-
-    AuditdFimFdDescriptor stdin_fd_desc = {
-        1, AuditdFimFdDescriptor::OperationType::Open};
-    fd_map[STDIN_FILENO] = stdin_fd_desc;
-    fim_context.inode_map[stdin_fd_desc.inode] = {
-        AuditdFimInodeDescriptor::Type::File, "stdin"};
-
-    AuditdFimFdDescriptor stdout_fd_desc = {
-        2, AuditdFimFdDescriptor::OperationType::Open};
-    fd_map[STDOUT_FILENO] = stdout_fd_desc;
-    fim_context.inode_map[stdout_fd_desc.inode] = {
-        AuditdFimInodeDescriptor::Type::File, "stdout"};
-
-    AuditdFimFdDescriptor stderr_fd_desc = {
-        3, AuditdFimFdDescriptor::OperationType::Open};
-    fd_map[STDERR_FILENO] = stderr_fd_desc;
-    fim_context.inode_map[stderr_fd_desc.inode] = {
-        AuditdFimInodeDescriptor::Type::File, "stderr"};
-  }
-
-  if (it != fim_context.process_map.end()) {
-    return &it->second;
-  } else {
-    return nullptr;
-  }
-}
-
 bool EmitRowFromSyscallContext(
     Row& row,
     const AuditdFimContext& fim_context,
@@ -447,28 +411,22 @@ bool HandleFileDescriptorSyscallRecord(
     }
   }
 
-  // Lookup the file descriptor
-  AuditdFimFdMap& fd_map =
-      *GetOrCreateProcessMap(fim_context, syscall_context.process_id, true);
-
-  auto fd_desc_it = fd_map.find(fd);
-  if (fd_desc_it == fd_map.end()) {
-    VLOG(1) << "Untracked file descriptor from pid "
-            << syscall_context.process_id;
+  // Only track state changes
+  AuditdFimFdDescriptor* fd_desc;
+  if (!fim_context.process_map.getReference(
+          fd_desc, syscall_context.process_id, fd)) {
     syscall_context.partial = true;
     return false;
   }
 
-  // Only track state changes
-  AuditdFimFdDescriptor& fd_desc = fd_desc_it->second;
   bool state_changed = false;
 
-  switch (fd_desc.last_operation) {
+  switch (fd_desc->last_operation) {
   case AuditdFimFdDescriptor::OperationType::Open: {
     if (write_operation) {
-      fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Write;
+      fd_desc->last_operation = AuditdFimFdDescriptor::OperationType::Write;
     } else {
-      fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Read;
+      fd_desc->last_operation = AuditdFimFdDescriptor::OperationType::Read;
     }
 
     state_changed = true;
@@ -477,7 +435,7 @@ bool HandleFileDescriptorSyscallRecord(
 
   case AuditdFimFdDescriptor::OperationType::Read: {
     if (write_operation) {
-      fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Write;
+      fd_desc->last_operation = AuditdFimFdDescriptor::OperationType::Write;
       state_changed = true;
     }
 
@@ -490,17 +448,14 @@ bool HandleFileDescriptorSyscallRecord(
   }
 
   // Update the state map
-  auto inode_desc_it = fim_context.inode_map.find(fd_desc.inode);
-  if (inode_desc_it == fim_context.inode_map.end()) {
-    VLOG(1) << "Missing inode number";
+  AuditdFimInodeDescriptor* ino_desc;
+  if (!fim_context.inode_map.getReference(ino_desc, fd_desc->inode)) {
     syscall_context.partial = true;
     return true;
   }
 
-  AuditdFimInodeDescriptor inode_desc = inode_desc_it->second;
-
   AuditdFimIOData data;
-  data.target = inode_desc.path;
+  data.target = ino_desc->path;
   data.type = (write_operation ? AuditdFimIOData::Type::Write
                                : AuditdFimIOData::Type::Read);
   data.state_changed = state_changed;
@@ -512,6 +467,9 @@ bool HandleFileDescriptorSyscallRecord(
 bool HandleDupSyscallRecord(AuditdFimContext& fim_context,
                             AuditdFimSyscallContext& syscall_context,
                             const AuditEventRecord& record) noexcept {
+  // The dup/dup2/dup3 syscalls are all the same for us; the file
+  // descriptor is always the first (a0) parameter.
+
   syscall_context.type = AuditdFimSyscallContext::Type::Dup;
 
   std::uint64_t fd;
@@ -523,19 +481,11 @@ bool HandleDupSyscallRecord(AuditdFimContext& fim_context,
     return false;
   }
 
-  AuditdFimFdMap& fd_map =
-      *GetOrCreateProcessMap(fim_context, syscall_context.process_id, true);
-
-  auto fd_desc_it = fd_map.find(fd);
-  if (fd_desc_it == fd_map.end()) {
-    VLOG(1) << "Untracked file descriptor from pid "
-            << syscall_context.process_id;
+  if (!fim_context.process_map.duplicate(
+          syscall_context.process_id, fd, syscall_context.return_value)) {
     syscall_context.partial = true;
     return false;
   }
-
-  AuditdFimFdDescriptor fd_desc = fd_desc_it->second;
-  fd_map[fd] = fd_desc;
 
   return true;
 }
@@ -543,6 +493,9 @@ bool HandleDupSyscallRecord(AuditdFimContext& fim_context,
 bool HandleCloseSyscallRecord(AuditdFimContext& fim_context,
                               AuditdFimSyscallContext& syscall_context,
                               const AuditEventRecord& record) noexcept {
+  // The input file descriptor is in the first (a0) parameter of the
+  // AUDIT_SYSCALL record
+
   syscall_context.type = AuditdFimSyscallContext::Type::Close;
 
   std::uint64_t fd;
@@ -554,31 +507,21 @@ bool HandleCloseSyscallRecord(AuditdFimContext& fim_context,
     return false;
   }
 
-  AuditdFimFdMap& fd_map =
-      *GetOrCreateProcessMap(fim_context, syscall_context.process_id, true);
-
-  auto fd_desc_it = fd_map.find(fd);
-  if (fd_desc_it == fd_map.end()) {
-    VLOG(1) << "Untracked file descriptor from pid "
-            << syscall_context.process_id;
+  AuditdFimFdDescriptor fd_desc;
+  if (!fim_context.process_map.takeAndRemove(
+          fd_desc, syscall_context.process_id, fd)) {
     syscall_context.partial = true;
     return false;
   }
 
-  AuditdFimFdDescriptor fd_desc = fd_desc_it->second;
-  fd_map.erase(fd_desc_it);
-
-  auto inode_desc_it = fim_context.inode_map.find(fd_desc.inode);
-  if (inode_desc_it == fim_context.inode_map.end()) {
-    VLOG(1) << "Missing inode number";
+  AuditdFimInodeDescriptor* ino_desc;
+  if (!fim_context.inode_map.getReference(ino_desc, fd_desc.inode)) {
     syscall_context.partial = true;
     return true;
   }
 
-  AuditdFimInodeDescriptor inode_desc = inode_desc_it->second;
-
   AuditdFimIOData data;
-  data.target = inode_desc.path;
+  data.target = ino_desc->path;
   data.type = AuditdFimIOData::Type::Close;
   data.state_changed = true;
   syscall_context.syscall_data = data;
@@ -589,11 +532,20 @@ bool HandleCloseSyscallRecord(AuditdFimContext& fim_context,
 bool HandleUnlinkSyscallRecord(AuditdFimContext& fim_context,
                                AuditdFimSyscallContext& syscall_context,
                                const AuditEventRecord& record) noexcept {
+  // The unlink and unlinkat syscalls receive two AUDIT_PATH records; the
+  // first one is the working directory, while the second one is the file
+  // path. Note that the second path can either be relative or absolute.
+
   syscall_context.type = AuditdFimSyscallContext::Type::Unlink;
 
   if (syscall_context.path_record_map.size() != 2) {
     VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
-               "AUDIT_PATH records mismatch)";
+               "AUDIT_PATH records mismatch) in syscall "
+            << syscall_context.syscall_number;
+
+    for (const auto& p : syscall_context.path_record_map) {
+      VLOG(1) << p.second.index << " " << p.second.path;
+    }
 
     syscall_context.partial = true;
     return false;
@@ -602,54 +554,85 @@ bool HandleUnlinkSyscallRecord(AuditdFimContext& fim_context,
   AuditdFimIOData data;
   data.target = NormalizePath(syscall_context.path_record_map[0].path,
                               syscall_context.path_record_map[1].path);
+
   data.type = AuditdFimIOData::Type::Unlink;
   data.state_changed = true;
   syscall_context.syscall_data = data;
 
-  AuditdFimInodeDescriptor inode_desc;
-  inode_desc.path = data.target;
-  if (syscall_context.path_record_map[1].path.back() == '/') {
-    inode_desc.type = AuditdFimInodeDescriptor::Type::Folder;
-  } else {
-    inode_desc.type = AuditdFimInodeDescriptor::Type::File;
-  }
-
-  fim_context.inode_map.erase(syscall_context.path_record_map[1].inode);
-
+  fim_context.inode_map.remove(syscall_context.path_record_map[1].inode);
   return true;
 }
 
 bool HandleRenameSyscallRecord(AuditdFimContext& fim_context,
                                AuditdFimSyscallContext& syscall_context,
                                const AuditEventRecord& record) noexcept {
+  // The rename/renameat/renameat2 syscalls all receive either four
+  // or give AUDIT_PATH records
+  //
+  // item 0: working directory of the first path
+  // item 1: working directory of the second path
+  // item 2: source file name
+  // item 3: destination file name
+  //
+  // If the destination file is being overwritten:
+  //
+  // item 0: working directory of the first path
+  // item 1: working directory of the second path
+  // item 2: source file name
+  // item 3: file being overwritten
+  // item 4: destination file name
+  //
+  // In this case the items 3 and 4 have the same path but
+  // different inodes
   syscall_context.type = AuditdFimSyscallContext::Type::Rename;
 
-  if (syscall_context.path_record_map.size() != 4) {
+  AuditdFimPathRecordItem source_cwd;
+  AuditdFimPathRecordItem source_path;
+
+  AuditdFimPathRecordItem destination_cwd;
+  AuditdFimPathRecordItem destination_path;
+
+  if (syscall_context.path_record_map.size() == 4) {
+    source_cwd = syscall_context.path_record_map[0];
+    destination_cwd = syscall_context.path_record_map[1];
+
+    source_path = syscall_context.path_record_map[2];
+    destination_path = syscall_context.path_record_map[3];
+
+  } else if (syscall_context.path_record_map.size() == 5) {
+    source_cwd = syscall_context.path_record_map[0];
+    destination_cwd = syscall_context.path_record_map[1];
+
+    source_path = syscall_context.path_record_map[2];
+    destination_path = syscall_context.path_record_map[4];
+  } else {
     VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
-               "AUDIT_PATH records mismatch)";
+               "AUDIT_PATH records mismatch) in syscall "
+            << syscall_context.syscall_number;
+
+    for (const auto& p : syscall_context.path_record_map) {
+      VLOG(1) << p.second.index << " " << p.second.path;
+    }
 
     syscall_context.partial = true;
     return false;
   }
 
   AuditdFimSrcDestData data;
-  data.source = NormalizePath(syscall_context.path_record_map[0].path,
-                              syscall_context.path_record_map[2].path);
-  data.destination = NormalizePath(syscall_context.path_record_map[1].path,
-                                   syscall_context.path_record_map[3].path);
+  data.source = NormalizePath(source_cwd.path, source_path.path);
+  data.destination = NormalizePath(destination_cwd.path, destination_path.path);
+
   syscall_context.syscall_data = data;
 
-  AuditdFimInodeDescriptor inode_desc;
-  inode_desc.path = data.destination;
-  if (syscall_context.path_record_map[3].path.back() == '/') {
-    inode_desc.type = AuditdFimInodeDescriptor::Type::Folder;
-  } else {
-    inode_desc.type = AuditdFimInodeDescriptor::Type::File;
+  AuditdFimInodeDescriptor ino_desc;
+  if (!fim_context.inode_map.takeAndRemove(
+          ino_desc, syscall_context.path_record_map[2].inode)) {
+    syscall_context.partial = true;
+    return false;
   }
 
-  fim_context.inode_map.erase(syscall_context.path_record_map[2].inode);
-  fim_context.inode_map[syscall_context.path_record_map[3].inode] = inode_desc;
-
+  fim_context.inode_map.save(
+      syscall_context.path_record_map[3].inode, ino_desc.type, ino_desc.path);
   return true;
 }
 
@@ -658,7 +641,7 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
                                      const AuditEventRecord& record) noexcept {
   // The open/openat/open_by_handle_at can also truncate the file
   // with the right flags. If this is the case, mark the file as
-  // written
+  // written.
   bool is_truncate = false;
 
   if (syscall_context.syscall_number == __NR_open) {
@@ -690,76 +673,133 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
     syscall_context.type = AuditdFimSyscallContext::Type::Open;
   }
 
-  // Some syscalls send more than one AUDIT_PATH record, meaning
-  // that we need to use it instead of the cwd to solve relative
-  // paths
-  std::string cwd;
-  std::string raw_path;
-  ino_t inode;
+  /*
+    Paths are passed via AUDIT_PATH records; this is a quick recap
+    of how they work for each system call.
 
-  if (syscall_context.path_record_map.size() == 2) {
-    cwd = syscall_context.path_record_map[1].path;
-    raw_path = syscall_context.path_record_map[0].path;
-    inode = syscall_context.path_record_map[0].inode;
+    Sample record
+      audit(1502573850.697:38396): item=0 name="/etc/ld.so.cache"
+        inode=67842177 dev=fd:00 mode=0100644 ouid=0 ogid=0
+        rdev=00:00 obj=unconfined_u:object_r:ld_so_cache_t:s0
+        objtype=NORMAL
 
-  } else if (syscall_context.path_record_map.size() == 1) {
-    cwd = syscall_context.cwd;
-    raw_path = syscall_context.path_record_map[0].path;
-    inode = syscall_context.path_record_map[0].inode;
+    The item id must be used to determine what we are reading. When
+    the working directory is missing, we can use the one in AUDIT_CWD.
 
-  } else {
+    creat():
+    mknod():
+    mknodat():
+      item 0: Working directory (path + inode)
+      item 1: File (relative path + inode)
+
+    open():
+      Can either have one path record or two.
+
+    open_by_handle_at():
+    openat():
+      item 0: File (inode)
+  */
+
+  bool wrong_record_count = false;
+  std::string input_path_working_dir;
+  std::string raw_input_path;
+  ino_t input_inode;
+  std::string normalized_path;
+
+  switch (syscall_context.syscall_number) {
+  case __NR_creat:
+  case __NR_mknod:
+  case __NR_mknodat: {
+    if (syscall_context.path_record_map.size() != 2) {
+      wrong_record_count = true;
+      break;
+    }
+
+    input_path_working_dir = syscall_context.path_record_map[0].path;
+    raw_input_path = syscall_context.path_record_map[1].path;
+    input_inode = syscall_context.path_record_map[1].inode;
+    normalized_path = NormalizePath(input_path_working_dir, raw_input_path);
+
+    break;
+  }
+
+  case __NR_openat:
+  case __NR_open: {
+    if (syscall_context.path_record_map.size() == 1) {
+      input_path_working_dir = syscall_context.cwd;
+      raw_input_path = syscall_context.path_record_map[0].path;
+      input_inode = syscall_context.path_record_map[0].inode;
+
+    } else if (syscall_context.path_record_map.size() == 2) {
+      input_path_working_dir = syscall_context.path_record_map[0].path;
+      raw_input_path = syscall_context.path_record_map[1].path;
+      input_inode = syscall_context.path_record_map[1].inode;
+
+    } else {
+      wrong_record_count = true;
+      break;
+    }
+
+    normalized_path = NormalizePath(input_path_working_dir, raw_input_path);
+    break;
+  }
+
+  case __NR_open_by_handle_at: {
+    if (syscall_context.path_record_map.size() != 1) {
+      wrong_record_count = true;
+      break;
+    }
+
+    input_path_working_dir = syscall_context.cwd;
+    input_inode = syscall_context.path_record_map[0].inode;
+
+    AuditdFimInodeDescriptor* ino_desc;
+    if (!fim_context.inode_map.getReference(ino_desc, input_inode)) {
+      syscall_context.partial = true;
+      return false;
+    }
+
+    raw_input_path = syscall_context.path_record_map[0].path;
+    normalized_path = NormalizePath(input_path_working_dir, raw_input_path);
+
+    break;
+  }
+  }
+
+  if (wrong_record_count) {
     VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
-               "AUDIT_PATH records mismatch)";
+               "AUDIT_PATH records mismatch) in syscall "
+            << syscall_context.syscall_number;
+
+    for (const auto& p : syscall_context.path_record_map) {
+      VLOG(1) << p.second.index << " " << p.second.path;
+    }
 
     syscall_context.partial = true;
     return false;
   }
 
-  // If this is an open_by_handle_at syscall, we will not find the path name
-  // but we stored its inode when name_to_handle_at was called. We will always
-  // try to solve it by inode if the path is missing
-  if (syscall_context.syscall_number == __NR_open_by_handle_at ||
-      raw_path.empty()) {
-    auto inode_desc_it = fim_context.inode_map.find(inode);
-    if (inode_desc_it == fim_context.inode_map.end()) {
-      VLOG(1) << "Untracked inode in open* syscall with empty path field";
-      syscall_context.partial = true;
-      return false;
-    }
-
-    raw_path = inode_desc_it->second.path;
-  }
-
   AuditdFimIOData data;
-  data.target = NormalizePath(cwd, raw_path);
+  data.target = normalized_path;
   data.type = AuditdFimIOData::Type::Open;
   data.state_changed = true;
   syscall_context.syscall_data = data;
 
-  AuditdFimFdDescriptor fd_desc;
-  fd_desc.inode = inode;
-
-  // If the file has been truncated (O_TRUNC flag), mask as written
+  // If the file has been truncated (O_TRUNC flag), mark as written
+  AuditdFimFdDescriptor::OperationType last_operation;
   if (is_truncate) {
-    fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Write;
+    last_operation = AuditdFimFdDescriptor::OperationType::Write;
   } else {
-    fd_desc.last_operation = AuditdFimFdDescriptor::OperationType::Open;
+    last_operation = AuditdFimFdDescriptor::OperationType::Open;
   }
 
-  AuditdFimFdMap& fd_map =
-      *GetOrCreateProcessMap(fim_context, syscall_context.process_id, true);
+  fim_context.process_map.save(syscall_context.return_value,
+                               syscall_context.process_id,
+                               input_inode,
+                               last_operation);
+  fim_context.inode_map.save(
+      input_inode, AuditdFimInodeDescriptor::Type::File, data.target);
 
-  fd_map[syscall_context.return_value] = fd_desc;
-
-  AuditdFimInodeDescriptor inode_desc;
-  inode_desc.path = data.target;
-  if (raw_path[raw_path.size() - 1] == '/') {
-    inode_desc.type = AuditdFimInodeDescriptor::Type::Folder;
-  } else {
-    inode_desc.type = AuditdFimInodeDescriptor::Type::File;
-  }
-
-  fim_context.inode_map[fd_desc.inode] = inode_desc;
   return true;
 }
 
@@ -767,28 +807,6 @@ bool HandleLinkAndSymlinkSyscallRecord(
     AuditdFimContext& fim_context,
     AuditdFimSyscallContext& syscall_context,
     const AuditEventRecord& record) noexcept {
-  auto L_SaveInodeInformation = [&fim_context](
-      const AuditdFimPathRecordItem& path_record,
-      const std::string& normalized_path) {
-    // The inode number is not always present (i.e.: the second AUDIT_PATH
-    // record of the link/symlink
-    // event family)
-    if (path_record.inode == 0) {
-      return;
-    }
-
-    AuditdFimInodeDescriptor inode_desc;
-
-    inode_desc.path = normalized_path;
-    if (path_record.path[path_record.path.size() - 1] == '/') {
-      inode_desc.type = AuditdFimInodeDescriptor::Type::Folder;
-    } else {
-      inode_desc.type = AuditdFimInodeDescriptor::Type::File;
-    }
-
-    fim_context.inode_map[path_record.inode] = inode_desc;
-  };
-
   if (syscall_context.syscall_number == __NR_symlink ||
       syscall_context.syscall_number == __NR_symlinkat) {
     syscall_context.type = AuditdFimSyscallContext::Type::Symlink;
@@ -796,9 +814,25 @@ bool HandleLinkAndSymlinkSyscallRecord(
     syscall_context.type = AuditdFimSyscallContext::Type::Link;
   }
 
+  /*
+    This syscall receives three AUDIT_PATH records:
+
+    item0: oldpath
+    item1: working directory for newpath
+    item2: newpath
+
+    Since we only have 3 records, path 0 must be normalized with
+    the cwd parameter of the AUDIT_CWD record.
+  */
+
   if (syscall_context.path_record_map.size() != 3) {
     VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
-               "AUDIT_PATH records mismatch)";
+               "AUDIT_PATH records mismatch) in syscall "
+            << syscall_context.syscall_number;
+
+    for (const auto& p : syscall_context.path_record_map) {
+      VLOG(1) << p.second.index << " " << p.second.path;
+    }
 
     syscall_context.partial = true;
     return false;
@@ -813,8 +847,30 @@ bool HandleLinkAndSymlinkSyscallRecord(
 
   syscall_context.syscall_data = data;
 
-  L_SaveInodeInformation(syscall_context.path_record_map[0], data.source);
-  L_SaveInodeInformation(syscall_context.path_record_map[2], data.destination);
+  // If this is a link/linkat syscall, we can copy the inode number from
+  // the AUDIT_PATH record containing the newpath parameter
+  AuditdFimInodeDescriptor::Type source_type;
+  AuditdFimInodeDescriptor::Type destination_type =
+      AuditdFimInodeDescriptor::Type::File;
+
+  auto source_path = syscall_context.path_record_map[0];
+  if (syscall_context.syscall_number == __NR_link ||
+      syscall_context.syscall_number == __NR_linkat) {
+    source_type = AuditdFimInodeDescriptor::Type::File;
+    source_path.inode = syscall_context.path_record_map[2].inode;
+
+  } else {
+    if (syscall_context.path_record_map[0].path.back() == '/') {
+      source_type = AuditdFimInodeDescriptor::Type::Folder;
+    } else {
+      source_type = AuditdFimInodeDescriptor::Type::File;
+    }
+  }
+
+  fim_context.inode_map.save(source_path.inode, source_type, data.source);
+  fim_context.inode_map.save(syscall_context.path_record_map[2].inode,
+                             destination_type,
+                             data.destination);
 
   return true;
 }
@@ -823,11 +879,24 @@ bool HandleNameToHandleAtSyscallRecord(
     AuditdFimContext& fim_context,
     AuditdFimSyscallContext& syscall_context,
     const AuditEventRecord& record) noexcept {
+  // This syscall prepares a file_handle structure that can be later
+  // used to open the file without solving the path from scratch.
+  //
+  // We have to handle this syscall because it receives both the inode
+  // and path name for the file to open (the open_by_handle_at receives
+  // no path information).
   syscall_context.type = AuditdFimSyscallContext::Type::NameToHandleAt;
 
+  // This syscall only receives the file path; we have to use the
+  // AUDIT_CWD record to normalize it
   if (syscall_context.path_record_map.size() != 1) {
     VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
-               "AUDIT_PATH records mismatch)";
+               "AUDIT_PATH records mismatch) in syscall "
+            << syscall_context.syscall_number;
+
+    for (const auto& p : syscall_context.path_record_map) {
+      VLOG(1) << p.second.index << " " << p.second.path;
+    }
 
     syscall_context.partial = true;
     return false;
@@ -836,26 +905,33 @@ bool HandleNameToHandleAtSyscallRecord(
   std::string normalized_path = NormalizePath(
       syscall_context.cwd, syscall_context.path_record_map[0].path);
 
-  AuditdFimInodeDescriptor inode_desc;
-  inode_desc.path = normalized_path;
+  AuditdFimInodeDescriptor::Type type;
   if (syscall_context.path_record_map[0].path.back() == '/') {
-    inode_desc.type = AuditdFimInodeDescriptor::Type::Folder;
+    type = AuditdFimInodeDescriptor::Type::Folder;
   } else {
-    inode_desc.type = AuditdFimInodeDescriptor::Type::File;
+    type = AuditdFimInodeDescriptor::Type::File;
   }
 
-  fim_context.inode_map[syscall_context.path_record_map[0].inode] = inode_desc;
+  fim_context.inode_map.save(
+      syscall_context.path_record_map[0].inode, type, normalized_path);
   return true;
 }
 
 bool HandleTruncateSyscallRecord(AuditdFimContext& fim_context,
                                  AuditdFimSyscallContext& syscall_context,
                                  const AuditEventRecord& record) noexcept {
+  // This is the truncate(path, size) syscall; it only receives one AUDIT_PATH
+  // record, so we have to solve the path using the AUDIT_CWD information.
   syscall_context.type = AuditdFimSyscallContext::Type::Truncate;
 
   if (syscall_context.path_record_map.size() != 1) {
     VLOG(1) << "Malformed AUDIT_SYSCALL event received ("
-               "AUDIT_PATH records mismatch)";
+               "AUDIT_PATH records mismatch) in syscall "
+            << syscall_context.syscall_number;
+
+    for (const auto& p : syscall_context.path_record_map) {
+      VLOG(1) << p.second.index << " " << p.second.path;
+    }
 
     syscall_context.partial = true;
     return false;
@@ -867,12 +943,12 @@ bool HandleTruncateSyscallRecord(AuditdFimContext& fim_context,
 
   data.target = NormalizePath(syscall_context.cwd,
                               syscall_context.path_record_map[0].path);
+
   syscall_context.syscall_data = data;
 
-  AuditdFimInodeDescriptor inode_desc;
-  inode_desc.path = data.target;
-  inode_desc.type = AuditdFimInodeDescriptor::Type::File;
-
+  fim_context.inode_map.save(syscall_context.path_record_map[0].inode,
+                             AuditdFimInodeDescriptor::Type::File,
+                             data.target);
   return true;
 }
 
@@ -888,15 +964,7 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
                "exit field is either missing or not valid.";
 
     syscall_context.partial = true;
-  }
-
-  if (FLAGS_audit_fim_debug) {
-    const char* exe_name = getenv("OSQUERY_FIM_DEBUG_PROC_NAME_FILTER");
-
-    if (syscall_context.executable_path.find(exe_name) == std::string::npos) {
-      skip_row_emission = true;
-      return true;
-    }
+    return false;
   }
 
   switch (syscall_context.syscall_number) {
@@ -1139,8 +1207,6 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     bool skip_row_emission;
     if (!AuditSyscallRecordHandler(
             fim_context, syscall_context, *syscall_record, skip_row_emission)) {
-      VLOG(1)
-          << "Invalid syscall event; the AUDIT_SYSCALL record was malformed";
       continue;
     }
 
@@ -1154,23 +1220,6 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       if (EmitRowFromSyscallContext(row, fim_context, syscall_context)) {
         emitted_row_list.push_back(row);
       }
-    }
-  }
-
-  /*
-    If we have lost audit event records (i.e.: the kernel queue is smaller
-    than the system activity) we may end up having orphaned process entries.
-
-    Erase the objects that no longer have a valid process id
-  */
-
-  for (auto it = fim_context.process_map.begin();
-       it != fim_context.process_map.end();) {
-    errno = 0;
-    if (getpgid(it->first) != static_cast<__pid_t>(-1)) {
-      it++;
-    } else if (errno == ESRCH) {
-      it = fim_context.process_map.erase(it);
     }
   }
 
@@ -1210,5 +1259,227 @@ const std::set<int>& AuditdFimEventSubscriber::GetSyscallSet() noexcept {
                                             __NR_truncate,
                                             __NR_ftruncate};
   return syscall_set;
+}
+
+AuditdFimInodeMap::AuditdFimInodeMap() {
+  save(STDIN_FILENO, AuditdFimInodeDescriptor::Type::File, "stdin");
+  save(STDOUT_FILENO, AuditdFimInodeDescriptor::Type::File, "stdout");
+  save(STDERR_FILENO, AuditdFimInodeDescriptor::Type::File, "stderr");
+}
+
+bool AuditdFimInodeMap::getReference(AuditdFimInodeDescriptor*& ino_desc,
+                                     ino_t inode) {
+  auto it = data_.find(inode);
+  if (it == data_.end()) {
+    return false;
+  }
+
+  ino_desc = &it->second;
+  return true;
+}
+
+bool AuditdFimInodeMap::takeAndRemove(AuditdFimInodeDescriptor& ino_desc,
+                                      ino_t inode) {
+  auto it = data_.find(inode);
+  if (it == data_.end()) {
+    return false;
+  }
+
+  ino_desc = it->second;
+  data_.erase(it);
+
+  return true;
+}
+
+void AuditdFimInodeMap::save(ino_t inode,
+                             AuditdFimInodeDescriptor::Type type,
+                             const std::string& path) {
+  AuditdFimInodeDescriptor ino_desc;
+  ino_desc.type = type;
+  ino_desc.path = path;
+
+  data_[inode] = ino_desc;
+
+  if (data_.size() > 20000) {
+    data_.erase(data_.begin());
+  }
+}
+
+void AuditdFimInodeMap::remove(ino_t inode) {
+  data_.erase(inode);
+}
+
+void AuditdFimInodeMap::clear() {
+  data_.clear();
+}
+
+AuditdFimFdMap::AuditdFimFdMap(pid_t process_id) : process_id_(process_id) {}
+
+bool AuditdFimFdMap::getReference(AuditdFimFdDescriptor*& fd_desc,
+                                  std::uint64_t fd) {
+  auto it = data_.find(fd);
+  if (it == data_.end()) {
+    printUntrackedFdWarning(fd);
+    return false;
+  }
+
+  fd_desc = &it->second;
+  return true;
+}
+
+bool AuditdFimFdMap::duplicate(std::uint64_t fd, std::uint64_t new_fd) {
+  auto it = data_.find(fd);
+  if (it == data_.end()) {
+    printUntrackedFdWarning(fd);
+    return false;
+  }
+
+  data_.insert({new_fd, it->second});
+  return true;
+}
+
+bool AuditdFimFdMap::takeAndRemove(AuditdFimFdDescriptor& fd_desc,
+                                   std::uint64_t fd) {
+  auto it = data_.find(fd);
+  if (it == data_.end()) {
+    printUntrackedFdWarning(fd);
+    return false;
+  }
+
+  fd_desc = it->second;
+  data_.erase(it);
+
+  return true;
+}
+
+void AuditdFimFdMap::save(std::uint64_t fd,
+                          ino_t inode,
+                          AuditdFimFdDescriptor::OperationType last_operation) {
+  AuditdFimFdDescriptor fd_desc;
+  fd_desc.inode = inode;
+  fd_desc.last_operation = last_operation;
+
+  data_.insert({fd, fd_desc});
+}
+
+void AuditdFimFdMap::clear() {
+  data_.clear();
+}
+
+void AuditdFimFdMap::printUntrackedFdWarning(std::uint64_t fd) {
+  auto current_time = std::time(nullptr);
+  bool show_warning = false;
+
+  if ((current_time - warning_suppression_timer_) > 300) {
+    warning_suppression_timer_ = current_time;
+    show_warning = true;
+  }
+
+  if (show_warning) {
+    VLOG(1) << "Untracked file descriptor from process " << process_id_;
+  }
+}
+
+bool AuditdFimProcessMap::getReference(AuditdFimFdDescriptor*& fd_desc,
+                                       pid_t process_id,
+                                       std::uint64_t fd) {
+  auto process_it = data_.find(process_id);
+  if (process_it == data_.end()) {
+    printUntrackedPidWarning(process_id);
+    return false;
+  }
+
+  AuditdFimFdMap& fd_map = process_it->second;
+  return fd_map.getReference(fd_desc, fd);
+}
+
+bool AuditdFimProcessMap::duplicate(pid_t process_id,
+                                    std::uint64_t fd,
+                                    std::uint64_t new_fd) {
+  auto process_it = data_.find(process_id);
+  if (process_it == data_.end()) {
+    printUntrackedPidWarning(process_id);
+    return false;
+  }
+
+  AuditdFimFdMap& fd_map = process_it->second;
+  return fd_map.duplicate(fd, new_fd);
+}
+
+bool AuditdFimProcessMap::takeAndRemove(AuditdFimFdDescriptor& fd_desc,
+                                        pid_t process_id,
+                                        std::uint64_t fd) {
+  auto process_it = data_.find(process_id);
+  if (process_it == data_.end()) {
+    printUntrackedPidWarning(process_id);
+    return false;
+  }
+
+  AuditdFimFdMap& fd_map = process_it->second;
+  return fd_map.takeAndRemove(fd_desc, fd);
+}
+
+void AuditdFimProcessMap::save(
+    std::uint64_t fd,
+    pid_t process_id,
+    ino_t inode,
+    AuditdFimFdDescriptor::OperationType last_operation) {
+  auto process_it = data_.find(process_id);
+  if (process_it == data_.end()) {
+    process_it = data_.insert({process_id, AuditdFimFdMap(process_id)}).first;
+
+    save(1,
+         process_id,
+         STDIN_FILENO,
+         AuditdFimFdDescriptor::OperationType::Open);
+
+    save(2,
+         process_id,
+         STDOUT_FILENO,
+         AuditdFimFdDescriptor::OperationType::Open);
+
+    save(3,
+         process_id,
+         STDERR_FILENO,
+         AuditdFimFdDescriptor::OperationType::Open);
+
+    // Try to limit the amount of processes we are tracking. When
+    // removing, start from the oldest ones
+    if (data_.size() > 4096) {
+      data_.erase(data_.begin());
+    }
+  }
+
+  AuditdFimFdMap& fd_map = process_it->second;
+  return fd_map.save(fd, inode, last_operation);
+}
+
+void AuditdFimProcessMap::clear() {
+  data_.clear();
+}
+
+void AuditdFimProcessMap::printUntrackedPidWarning(pid_t pid) {
+  bool show_warning = false;
+  auto current_time = std::time(nullptr);
+
+  auto it = warning_suppression_filter_.find(pid);
+  if (it == warning_suppression_filter_.end()) {
+    warning_suppression_filter_[pid] = current_time;
+    if (warning_suppression_filter_.size() > 2000) {
+      warning_suppression_filter_.erase(warning_suppression_filter_.begin());
+    }
+
+    show_warning = true;
+
+  } else {
+    std::time_t elapsed_time = current_time - it->second;
+    if (elapsed_time > 300) {
+      show_warning = true;
+    }
+  }
+
+  if (show_warning) {
+    VLOG(1) << "Untracked process with pid " << pid;
+  }
 }
 }
