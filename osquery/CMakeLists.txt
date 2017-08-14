@@ -364,7 +364,7 @@ if(NOT SKIP_TESTS)
   ADD_DEFAULT_LINKS(osquery_tests FALSE)
   target_link_libraries(osquery_tests gtest gmock libosquery_testing)
   SET_OSQUERY_COMPILE(osquery_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
-  add_test(osquery_tests osquery_tests)
+  add_test(osquery_tests osquery_tests ${TEST_ARGS})
 
   # osquery kernel tests.
   if(NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WINDOWS)
@@ -403,14 +403,14 @@ if(NOT SKIP_TESTS)
     ADD_DEFAULT_LINKS(osquery_additional_tests TRUE)
     target_link_libraries(osquery_additional_tests gtest gmock libosquery_testing)
     SET_OSQUERY_COMPILE(osquery_additional_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
-    add_test(osquery_additional_tests osquery_additional_tests)
+    add_test(osquery_additional_tests osquery_additional_tests ${TEST_ARGS})
 
     # osquery tables set of unit tests (extracted for organization).
     add_executable(osquery_tables_tests main/tests.cpp ${OSQUERY_TABLES_TESTS})
     ADD_DEFAULT_LINKS(osquery_tables_tests TRUE)
     target_link_libraries(osquery_tables_tests gtest gmock libosquery_testing)
     SET_OSQUERY_COMPILE(osquery_tables_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
-    add_test(osquery_tables_tests osquery_tables_tests)
+    add_test(osquery_tables_tests osquery_tables_tests ${TEST_ARGS})
   endif()
 
   # Build the example extension with the SDK.

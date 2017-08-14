@@ -35,8 +35,10 @@ void genIOMediaDevice(const io_service_t& device,
 
   r["uuid"] = getIOKitProperty(properties, "UUID");
   r["name"] = "/dev/" + getIOKitProperty(properties, "BSD Name");
-  r["size"] = getIOKitProperty(properties, "Size");
-
+  r["block_size"] = getIOKitProperty(properties, "Preferred Block Size");
+  auto disk_size = getNumIOKitProperty(properties, "Size");
+  auto block_size = getNumIOKitProperty(properties, "Preferred Block Size");
+  r["size"] = boost::lexical_cast<std::string>(disk_size / block_size);
   auto type = getIOKitProperty(properties, "Whole");
   if (type == "1") {
     // The "Whole" property applies to the entire disk entry, not partitions.

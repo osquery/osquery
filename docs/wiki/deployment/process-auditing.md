@@ -32,7 +32,25 @@ If you would like to log UNIX domain sockets use the hidden flag: `--audit_allow
 
 ## macOS process auditing
 
-osquery does not (yet?) support audit on Darwin platforms. It is possible to enable process auditing using a kernel extension. The extension can be downloaded and installed from the [http://osquery.io/downloads](http://osquery.io/downloads) page. It must be kept up to date alongside the osquery daemon and shell since there are automatic API restrictions applied. If you are running a 1.7.5 daemon, a 1.7.5 extension is needed otherwise the extension will not be used. If you are interested in the extension's design and development please check out the [kernel](../development/kernel.md) development guide.
+osquery has support for OpenBSM audit on Darwin platforms. This feature is already enabled on all macOS installations but doesn't audit process execution or the root user with default settings. To start process auditing on macOS, edit the `audit_control` file in `/etc/security/`. An example configuration is provided below but the important flags are: `ex`, `pc`, `argv`, and `arge`. The `ex` flag will log `exec` events while `pc` logs `exec`, `fork`, and `exit`. If you don't need `fork` and `exit` you may leave that flag out however in future, getting parent pid may require `fork`. If you care about getting the arguments and environment variables you also need `argv` and `arge`. More about these flags can be found [here](https://www.freebsd.org/cgi/man.cgi?apropos=0&sektion=5&query=audit_control&manpath=FreeBSD+7.0-current&format=html). Note that it might require a reboot of the system for these new flags to take effect. `audit -s` should restart the system but your mileage may vary.
+```
+#
+# $P4: //depot/projects/trustedbsd/openbsm/etc/audit_control#8 $
+#
+dir:/var/audit
+flags:ex,pc,ap,aa,lo,ad
+minfree:5
+naflags:no
+policy:cnt,argv,arge
+filesz:2M
+expire-after:10M
+superuser-set-sflags-mask:has_authenticated,has_console_access
+superuser-clear-sflags-mask:has_authenticated,has_console_access
+member-set-sflags-mask:
+member-clear-sflags-mask:has_authenticated
+```
+
+It is also possible to enable process auditing using a kernel extension. You can build the extension using the osquery build system's `make kernel`. It must be kept up to date alongside the osquery daemon and shell since there are automatic API restrictions applied. If you are running a 1.7.5 daemon, a 1.7.5 extension is needed otherwise the extension will not be used. If you are interested in the extension's design and development please check out the [kernel](../development/kernel.md) development guide.
 
 At the heart of the extension is a replica of the userland Table Pubsub Framework. All osquery-developed kernel code is 100% OS public API compatible and designed to introduce as little stability risk as possible. Running the kernel extension without the osquery daemon should not impact performance.
 

@@ -27,6 +27,9 @@
 #include "osquery/core/process.h"
 #include "osquery/filesystem/fileops.h"
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
 namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;
 

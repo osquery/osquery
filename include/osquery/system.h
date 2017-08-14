@@ -255,7 +255,7 @@ class DropPrivileges : private boost::noncopyable {
   gid_t* original_groups_{nullptr};
 
   /// The size of the original groups to backup when restoring privileges.
-  size_t group_size_{0};
+  int group_size_{0};
 
  private:
   FRIEND_TEST(PermissionsTests, test_explicit_drop);

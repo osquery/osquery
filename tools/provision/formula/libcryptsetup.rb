@@ -4,7 +4,7 @@ class Libcryptsetup < AbstractOsqueryFormula
   desc "Open source disk encryption libraries"
   homepage "https://gitlab.com/cryptsetup/cryptsetup"
   url "https://osquery-packages.s3.amazonaws.com/deps/cryptsetup-1.6.7.tar.gz"
-  revision 101
+  revision 102
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -13,6 +13,8 @@ class Libcryptsetup < AbstractOsqueryFormula
   end
 
   def install
+    ENV.append "LDFLAGS", "-lm"
+
     args = [
       "--disable-selinux",
       "--disable-udev",

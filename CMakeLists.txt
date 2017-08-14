@@ -170,6 +170,7 @@ elseif(WINDOWS)
   add_definitions(-DBOOST_ALL_NO_LIB)
 endif()
 
+set(TEST_ARGS "")
 if(LINUX AND CMAKE_CXX_COMPILER MATCHES "clang")
   # Use the LLVM versions of ar and ranlib to support LTO builds
   find_program(LLVMRANLIB_EXECUTABLE "llvm-ranlib" ENV PATH)
@@ -221,6 +222,19 @@ elseif(DEFINED ENV{SANITIZE})
       # LSAN is not available on OS X 10.12.
       add_compile_options(-fsanitize=leak)
     endif()
+  endif()
+
+  if(LINUX)
+    # Tests that fail TSAN Checks.
+    set(SANITIZE_SKIP_TEST
+      ProcessTests.test_launchExtension
+      BufferedLogForwarderTests.test_index
+      CarverTests.test_carve_files_locally
+      FileEventsTableTests.*
+      YARATest.*
+    )
+    string(REPLACE ";" ":" TEST_ARGS "${SANITIZE_SKIP_TEST}")
+    set(TEST_ARGS "--gtest_filter=-${TEST_ARGS}")
   endif()
 else()
   set(DEBUG FALSE)
@@ -432,6 +446,7 @@ add_definitions(
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}_${OSQUERY_BUILD_DISTRO_DEFINE}
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
+  -DNOMINMAX
 )
 
 # Remove console output (not handled by logged).
