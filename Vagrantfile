@@ -8,6 +8,9 @@ targets = {
   "debian8" => {
     "box" => "bento/debian-8.2"
   },
+  "debian9" => {
+    "box" => "bento/debian-9.0"
+  },
   "centos6.5" => {
     "box" => "bento/centos-6.7"
   },
@@ -208,10 +211,10 @@ Vagrant.configure("2") do |config|
             "\" | sudo tee /etc/fstab;"\
             "sudo ln -f `which bash` /bin"
       end
-      if name.start_with?('ubuntu')
+      if name.start_with?('ubuntu', 'debian')
         build.vm.provision 'bootstrap', type: 'shell' do |s|
           s.inline = 'sudo apt-get update;'\
-                     'sudo apt-get install --yes git;'
+                     'sudo apt-get install --yes git realpath;'
         end
       end
     end

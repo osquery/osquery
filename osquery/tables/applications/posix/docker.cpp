@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/asio.hpp>
 #include <boost/foreach.hpp>
@@ -266,7 +267,7 @@ std::string getValue(const pt::ptree& tree,
                      const std::set<std::string>& set,
                      const std::string& key) {
   std::string value = tree.get<std::string>(key, "");
-  if (value.find("sha256:") == 0) {
+  if (boost::starts_with(value, "sha256:")) {
     value.erase(0, 7);
   }
   if (set.empty()) {
@@ -274,7 +275,7 @@ std::string getValue(const pt::ptree& tree,
   }
 
   for (const auto& entry : set) {
-    if (value.find(entry) == 0) {
+    if (boost::starts_with(value, entry)) {
       return entry; // If entry from set is prefix of value from tree, return
     }
   }
@@ -378,7 +379,7 @@ QueryData genContainers(QueryContext& context) {
       }
     }
     r["image_id"] = container.get<std::string>("ImageID", "");
-    if (r["image_id"].find("sha256:") == 0) {
+    if (boost::starts_with(r["image_id"], "sha256:")) {
       r["image_id"].erase(0, 7);
     }
     r["image"] = container.get<std::string>("Image", "");
@@ -877,7 +878,7 @@ QueryData genImages(QueryContext& context) {
       const pt::ptree& node = entry.second;
       Row r;
       r["id"] = node.get<std::string>("Id", "");
-      if (r["id"].find("sha256:") == 0) {
+      if (boost::starts_with(r["id"], "sha256:")) {
         r["id"].erase(0, 7);
       }
       r["created"] = BIGINT(node.get<uint64_t>("Created", 0));

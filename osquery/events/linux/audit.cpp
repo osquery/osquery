@@ -77,7 +77,7 @@ class AuditConsumer : private boost::noncopyable {
   std::queue<AuditEventContextRef> queue_;
 
   /// An observed max-size of the queue.
-  size_t max_size_;
+  size_t max_size_ = 0;
 
   /// The queue-protecting Mutex.
   mutable Mutex mutex_;

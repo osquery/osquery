@@ -139,6 +139,17 @@ class OsqueryAWSCredentialsProviderChain
 void initAwsSdk();
 
 /**
+ * @brief Returns EC2 instance ID and region of this machine.
+ *
+ * If this is EC2 instance, returns the instance ID and region by querying the
+ * EC2 metadata service. If this is not EC2 instance, returns empty strings.
+ * This function makes HTTP call to EC2 metadata service. EC2 instance ID and
+ * region are cached. First call to this method on non-EC2 instance machines can
+ * take up to 3 seconds (HTTP timeout).
+ */
+void getInstanceIDAndRegion(std::string& instance_id, std::string& region);
+
+/**
  * @brief Retrieve the Aws::Region from the aws_region flag
  *
  * @param region The output string containing the region name.
@@ -156,16 +167,24 @@ Status getAWSRegion(std::string& region, bool sts = false);
  * parameter.
  *
  * @param client Pointer to the client object to instantiate.
+ * @param region AWS region to connect to. If not specified, will try to figure
+ * out based on the configuration flags and AWS profile.
  *
  * @return 0 if successful, 1 if there was a problem reading configs.
  */
 template <class Client>
-Status makeAWSClient(std::shared_ptr<Client>& client, bool sts = true) {
+Status makeAWSClient(std::shared_ptr<Client>& client,
+                     const std::string& region = "",
+                     bool sts = true) {
   // Set up client
   Aws::Client::ClientConfiguration client_config;
-  Status s = getAWSRegion(client_config.region, sts);
-  if (!s.ok()) {
-    return s;
+  if (region.empty()) {
+    Status s = getAWSRegion(client_config.region, sts);
+    if (!s.ok()) {
+      return s;
+    }
+  } else {
+    client_config.region = region;
   }
   client = std::make_shared<Client>(
       std::make_shared<OsqueryAWSCredentialsProviderChain>(sts), client_config);

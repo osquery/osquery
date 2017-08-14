@@ -22,7 +22,7 @@
 #include <osquery/registry.h>
 
 #include "osquery/logger/plugins/aws_firehose.h"
-#include "osquery/logger/plugins/aws_util.h"
+#include "osquery/utils/aws_util.h"
 
 namespace osquery {
 
