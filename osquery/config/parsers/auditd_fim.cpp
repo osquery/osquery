@@ -24,7 +24,6 @@ class AuditdFimConfigParserPlugin final : public ConfigParserPlugin {
   AuditdFimConfigParserPlugin() {
     data_.put_child("file_paths", pt::ptree());
     data_.put_child("exclude", pt::ptree());
-    data_.put_child("show_accesses", pt::ptree());
   }
 
   virtual ~AuditdFimConfigParserPlugin() = default;
@@ -50,10 +49,6 @@ Status AuditdFimConfigParserPlugin::update(const std::string& source,
 
   if (root_key.find("exclude") != root_key.not_found()) {
     data_.put_child("exclude", root_key.get_child("exclude"));
-  }
-
-  if (root_key.find("show_accesses") != root_key.not_found()) {
-    data_.put_child("show_accesses", root_key.get_child("show_accesses"));
   }
 
   return Status(0, "OK");

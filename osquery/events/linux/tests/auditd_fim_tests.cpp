@@ -97,34 +97,19 @@ TEST_F(AuditdFimTests, row_emission) {
 
   // Configure what we want to log and what we want to ignore
   AuditdFimContext fim_context;
-  fim_context.configuration.show_accesses = true;
   fim_context.configuration.included_path_list = included_file_paths;
   fim_context.configuration.excluded_path_list = excluded_file_paths;
 
-  // Emit the rows, showing all accesses
+  // Emit the rows, showing only writes
   std::vector<Row> emitted_row_list;
   Status status = AuditdFimEventSubscriber::ProcessEvents(
-      emitted_row_list, fim_context, event_context->audit_events);
-
-  EXPECT_EQ(status.ok(), true);
-  EXPECT_EQ(emitted_row_list.size(), 33U);
-
-#ifdef AUDITD_FIM_TESTS_DEBUG
-  std::cout << "Row list:\n";
-  DumpRowList(emitted_row_list);
-#endif
-
-  // Emit the rows again, this time only showing writes
-  fim_context.configuration.show_accesses = false;
-  emitted_row_list.clear();
-  status = AuditdFimEventSubscriber::ProcessEvents(
       emitted_row_list, fim_context, event_context->audit_events);
 
   EXPECT_EQ(status.ok(), true);
   EXPECT_EQ(emitted_row_list.size(), 15U);
 
 #ifdef AUDITD_FIM_TESTS_DEBUG
-  std::cout << "\n\nRow list:\n";
+  std::cout << "Row list:\n";
   DumpRowList(emitted_row_list);
 #endif
 }

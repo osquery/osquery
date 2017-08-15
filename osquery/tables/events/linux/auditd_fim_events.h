@@ -24,7 +24,7 @@ struct AuditdFimInodeDescriptor final {
 
 /// An fd descriptor, containing the inode used to solve the path
 struct AuditdFimFdDescriptor final {
-  enum class OperationType { Open, Read, Write };
+  enum class OperationType { Open, OpenTruncate, Read, Write };
 
   ino_t inode;
   OperationType last_operation;
@@ -153,9 +153,6 @@ struct AuditdFimConfiguration final {
   /// The paths excluded from the audit fim events. Takes precedence over
   /// included_path_list
   StringList excluded_path_list;
-
-  /// Whether to only show writes or also open() and read() events
-  bool show_accesses{true};
 };
 
 /// The fim context contains configuration and process state
@@ -180,7 +177,7 @@ struct AuditdFimSrcDestData final {
 
 /// Contains information for syscalls that create/write/read files
 struct AuditdFimIOData final {
-  enum class Type { Open, Read, Write, Close, Unlink };
+  enum class Type { Open, OpenTruncate, Read, Write, Close, Unlink };
 
   std::string target;
   Type type;
@@ -197,6 +194,7 @@ struct AuditdFimSyscallContext final {
     Unlink,
     Rename,
     Open,
+    OpenTruncate,
     Close,
     Dup,
     Read,

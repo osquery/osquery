@@ -29,6 +29,7 @@ namespace tables {
 extern long getUptime();
 }
 
+// Recommended configuration is just --audit_allow_fim_events=true
 FLAG(bool,
      audit_allow_fim_events,
      false,
@@ -38,6 +39,11 @@ FLAG(bool,
      audit_show_partial_fim_events,
      false,
      "Allow the audit publisher to show partial file events");
+
+FLAG(bool,
+     audit_fim_show_accesses,
+     false,
+     "Also show file accesses (not just writes)");
 
 FLAG(bool,
      audit_show_untracked_res_warnings,
@@ -102,6 +108,16 @@ std::ostream& operator<<(std::ostream& stream,
 
   case AuditdFimSyscallContext::Type::Mmap: {
     stream << "Mmap";
+    break;
+  }
+
+  case AuditdFimSyscallContext::Type::CloneOrFork: {
+    stream << "CloneOrFork";
+    break;
+  }
+
+  case AuditdFimSyscallContext::Type::Execve: {
+    stream << "Execve";
     break;
   }
 
@@ -281,6 +297,7 @@ bool EmitRowFromSyscallContext(
   case AuditdFimSyscallContext::Type::Read:
   case AuditdFimSyscallContext::Type::Write:
   case AuditdFimSyscallContext::Type::Open:
+  case AuditdFimSyscallContext::Type::OpenTruncate:
   case AuditdFimSyscallContext::Type::Close:
   case AuditdFimSyscallContext::Type::Truncate:
   case AuditdFimSyscallContext::Type::Mmap: {
@@ -293,6 +310,10 @@ bool EmitRowFromSyscallContext(
 
     if (data.type == AuditdFimIOData::Type::Open) {
       row["operation"] = "open";
+
+    } else if (data.type == AuditdFimIOData::Type::OpenTruncate) {
+      row["operation"] = "open+truncate";
+      is_write_operation = true;
 
     } else if (data.type == AuditdFimIOData::Type::Read) {
       row["operation"] = "read";
@@ -331,7 +352,7 @@ bool EmitRowFromSyscallContext(
     return false;
   }
 
-  if (!fim_context.configuration.show_accesses && !is_write_operation) {
+  if (!FLAGS_audit_fim_show_accesses && !is_write_operation) {
     return false;
   }
 
@@ -454,6 +475,7 @@ bool HandleFileDescriptorSyscallRecord(
   bool state_changed = false;
 
   switch (fd_desc->last_operation) {
+  case AuditdFimFdDescriptor::OperationType::OpenTruncate:
   case AuditdFimFdDescriptor::OperationType::Open: {
     if (write_operation) {
       fd_desc->last_operation = AuditdFimFdDescriptor::OperationType::Write;
@@ -469,6 +491,7 @@ bool HandleFileDescriptorSyscallRecord(
     if (write_operation) {
       fd_desc->last_operation = AuditdFimFdDescriptor::OperationType::Write;
       state_changed = true;
+    } else {
     }
 
     break;
@@ -479,7 +502,7 @@ bool HandleFileDescriptorSyscallRecord(
   }
   }
 
-  // Update the state map
+  // Complete the syscall context
   AuditdFimInodeDescriptor* ino_desc;
   if (!fim_context.inode_map.getReference(ino_desc, fd_desc->inode)) {
     syscall_context.partial = true;
@@ -700,7 +723,7 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
   }
 
   if (is_truncate) {
-    syscall_context.type = AuditdFimSyscallContext::Type::Write;
+    syscall_context.type = AuditdFimSyscallContext::Type::OpenTruncate;
   } else {
     syscall_context.type = AuditdFimSyscallContext::Type::Open;
   }
@@ -817,19 +840,21 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
     return false;
   }
 
+  // If the file has been truncated (O_TRUNC flag), mark as written
   AuditdFimIOData data;
   data.target = normalized_path;
-  data.type = AuditdFimIOData::Type::Open;
   data.state_changed = true;
-  syscall_context.syscall_data = data;
 
-  // If the file has been truncated (O_TRUNC flag), mark as written
   AuditdFimFdDescriptor::OperationType last_operation;
   if (is_truncate) {
-    last_operation = AuditdFimFdDescriptor::OperationType::Write;
+    data.type = AuditdFimIOData::Type::OpenTruncate;
+    last_operation = AuditdFimFdDescriptor::OperationType::OpenTruncate;
   } else {
+    data.type = AuditdFimIOData::Type::Open;
     last_operation = AuditdFimFdDescriptor::OperationType::Open;
   }
+
+  syscall_context.syscall_data = data;
 
   fim_context.process_map.save(syscall_context.return_value,
                                syscall_context.process_id,
@@ -1158,13 +1183,6 @@ void AuditdFimEventSubscriber::configure() {
           solved_path_list.begin(),
           solved_path_list.end());
     }
-  }
-
-  if (root_key.find("show_accesses") != root_key.not_found()) {
-    auto key = root_key.get_child("show_accesses");
-    auto value = key.get_value<std::string>();
-
-    context_.configuration.show_accesses = (value == "true");
   }
 }
 
