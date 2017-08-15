@@ -233,6 +233,7 @@ bool EmitRowFromSyscallContext(
   };
 
   row.clear();
+  bool is_write_operation = false;
 
   if (!FLAGS_audit_show_partial_fim_events && syscall_context.partial) {
     return false;
@@ -256,6 +257,7 @@ bool EmitRowFromSyscallContext(
     row["path1"] = data.source;
     row["path2"] = data.destination;
 
+    is_write_operation = true;
     break;
   }
 
@@ -268,18 +270,25 @@ bool EmitRowFromSyscallContext(
   case AuditdFimSyscallContext::Type::Mmap: {
     const auto& data =
         boost::get<AuditdFimIOData>(syscall_context.syscall_data);
+
     if (!data.state_changed) {
       return false;
     }
 
     if (data.type == AuditdFimIOData::Type::Open) {
       row["operation"] = "open";
+
     } else if (data.type == AuditdFimIOData::Type::Read) {
       row["operation"] = "read";
+
     } else if (data.type == AuditdFimIOData::Type::Write) {
       row["operation"] = "write";
+      is_write_operation = true;
+
     } else if (data.type == AuditdFimIOData::Type::Unlink) {
       row["operation"] = "unlink";
+      is_write_operation = true;
+
     } else {
       row["operation"] = "close";
     }
@@ -294,7 +303,17 @@ bool EmitRowFromSyscallContext(
   }
   }
 
-  if (!L_IsPathIncluded(row["path1"]) && L_IsPathIncluded(row["path2"])) {
+  // Filter the events
+  bool include_event = L_IsPathIncluded(row["path1"]);
+  if (!include_event && row.find("path2") != row.end()) {
+    include_event = L_IsPathIncluded(row["path2"]);
+  }
+
+  if (!include_event) {
+    return false;
+  }
+
+  if (!fim_context.configuration.show_accesses && !is_write_operation) {
     return false;
   }
 
@@ -316,14 +335,17 @@ bool ParseAuditCwdRecord(std::string& cwd,
   return GetStringFieldFromMap(cwd, record.fields, "cwd");
 }
 
-bool ParseAuditMmapRecord(std::uint64_t& fd,
-                          std::uint64_t& flags,
+bool ParseAuditMmapRecord(AuditdFimSyscallContext& syscall_context,
                           const AuditEventRecord& record) noexcept {
-  if (!GetIntegerFieldFromMap(fd, record.fields, "fd", 16)) {
+  syscall_context.mmap_record_present = true;
+
+  if (!GetIntegerFieldFromMap(
+          syscall_context.mmap_file_descriptor, record.fields, "fd", 16)) {
     return false;
   }
 
-  GetIntegerFieldFromMap(flags, record.fields, "flags", 16, PROT_WRITE);
+  GetIntegerFieldFromMap(
+      syscall_context.mmap_prot_flags, record.fields, "flags", 16, PROT_WRITE);
   return true;
 }
 
@@ -1018,8 +1040,16 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
   case __NR_writev:
   case __NR_pwrite64:
   case __NR_pwritev:
-  case __NR_ftruncate:
+  case __NR_ftruncate: {
+    return HandleFileDescriptorSyscallRecord(
+        fim_context, syscall_context, record);
+  }
+
   case __NR_mmap: {
+    if (syscall_context.mmap_record_present) {
+      return false;
+    }
+
     return HandleFileDescriptorSyscallRecord(
         fim_context, syscall_context, record);
   }
@@ -1164,9 +1194,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
       }
 
       case AUDIT_MMAP: {
-        if (!ParseAuditMmapRecord(syscall_context.mmap_file_descriptor,
-                                  syscall_context.mmap_prot_flags,
-                                  record)) {
+        if (!ParseAuditMmapRecord(syscall_context, record)) {
           VLOG(1) << "Invalid AUDIT_MMAP record";
           record_error = true;
           break;
@@ -1419,7 +1447,7 @@ void AuditdFimProcessMap::save(
   if (process_it == data_.end()) {
     process_it = data_.insert({process_id, AuditdFimFdMap(process_id)}).first;
 
-    save(1,
+    /*save(1,
          process_id,
          STDIN_FILENO,
          AuditdFimFdDescriptor::OperationType::Open);
@@ -1432,7 +1460,7 @@ void AuditdFimProcessMap::save(
     save(3,
          process_id,
          STDERR_FILENO,
-         AuditdFimFdDescriptor::OperationType::Open);
+         AuditdFimFdDescriptor::OperationType::Open);*/
 
     // Try to limit the amount of processes we are tracking. When
     // removing, start from the oldest ones

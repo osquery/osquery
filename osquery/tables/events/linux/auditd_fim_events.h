@@ -228,6 +228,9 @@ struct AuditdFimSyscallContext final {
   // Syscall data
   SyscallData syscall_data;
 
+  /// True if the AUDIT_MMAP record has been received
+  bool mmap_record_present;
+
   /// This field is dedicated to mmap() and contains the file descriptor
   std::uint64_t mmap_file_descriptor;
 

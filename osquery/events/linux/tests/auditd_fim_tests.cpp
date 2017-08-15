@@ -29,9 +29,10 @@
 #include "osquery/tables/events/linux/auditd_fim_events.h"
 #include "osquery/tests/test_util.h"
 
-extern std::vector<std::pair<int, std::string>> complete_event_list;
-
 namespace osquery {
+extern std::vector<std::pair<int, std::string>> complete_event_list;
+extern StringList included_file_paths;
+extern StringList excluded_file_paths;
 extern std::string generateAuditId(std::uint32_t event_id) noexcept;
 
 class AuditdFimTests : public testing::Test {
@@ -44,10 +45,25 @@ class AuditdFimTests : public testing::Test {
   Row row_;
 };
 
+void DumpRow(Row r) {
+  std::cout << "  " << r["operation"] << " " << r["path1"];
+  if (r.find("path2") != r.end()) {
+    std::cout << " " << r["path2"];
+  }
+
+  std::cout << "\n";
+}
+
+void DumpRowList(const std::vector<Row>& row_list) {
+  for (const auto& r : row_list) {
+    DumpRow(r);
+  }
+}
+
 TEST_F(AuditdFimTests, row_emission) {
   std::vector<AuditEventRecord> event_record_list;
 
-  // Parse the row messages and make sure we get the right amount
+  // Parse the raw messages and make sure we get the right amount
   // of records
   for (const auto& record_descriptor : complete_event_list) {
     std::string audit_message_copy = record_descriptor.second;
@@ -82,49 +98,60 @@ TEST_F(AuditdFimTests, row_emission) {
   // Configure what we want to log and what we want to ignore
   AuditdFimContext fim_context;
   fim_context.configuration.show_accesses = true;
+  fim_context.configuration.included_path_list = included_file_paths;
+  fim_context.configuration.excluded_path_list = excluded_file_paths;
 
-  fim_context.configuration.included_path_list.push_back("/etc/ld.so.cache");
-  fim_context.configuration.included_path_list.push_back(
-      "/home/alessandro/test_file");
-  fim_context.configuration.included_path_list.push_back("/lib64/libc.so.6");
-  fim_context.configuration.included_path_list.push_back(
-      "/lib64/libgcc_s.so.1");
-  fim_context.configuration.included_path_list.push_back("/lib64/libm.so.6");
-  fim_context.configuration.included_path_list.push_back(
-      "/lib64/libstdc++.so.6");
-  fim_context.configuration.included_path_list.push_back(
-      "/home/alessandro/test_file");
-  fim_context.configuration.included_path_list.push_back(
-      "/home/alessandro/test_file1");
-  fim_context.configuration.included_path_list.push_back(
-      "/home/alessandro/test_file2");
-  fim_context.configuration.included_path_list.push_back(
-      "/home/alessandro/test_file3");
-  fim_context.configuration.included_path_list.push_back(
-      "/home/alessandro/test_file4");
-  fim_context.configuration.included_path_list.push_back(
-      "/home/alessandro/test_file5");
-  fim_context.configuration.included_path_list.push_back(
-      "/home/alessandro/test_file7");
-  fim_context.configuration.included_path_list.push_back(
-      "/home/alessandro/test_file_rename");
-  fim_context.configuration.included_path_list.push_back(
-      "/home/alessandro/test_file_renameat");
-
-  fim_context.configuration.excluded_path_list.push_back(
-      "/home/alessandro/test_file6");
-
-  // Emit the rows
+  // Emit the rows, showing all accesses
   std::vector<Row> emitted_row_list;
   Status status = AuditdFimEventSubscriber::ProcessEvents(
       emitted_row_list, fim_context, event_context->audit_events);
 
   EXPECT_EQ(status.ok(), true);
-  EXPECT_EQ(emitted_row_list.size(), 46U);
-}
+  EXPECT_EQ(emitted_row_list.size(), 33U);
+
+#ifdef AUDITD_FIM_TESTS_DEBUG
+  std::cout << "Row list:\n";
+  DumpRowList(emitted_row_list);
+#endif
+
+  // Emit the rows again, this time only showing writes
+  fim_context.configuration.show_accesses = false;
+  emitted_row_list.clear();
+  status = AuditdFimEventSubscriber::ProcessEvents(
+      emitted_row_list, fim_context, event_context->audit_events);
+
+  EXPECT_EQ(status.ok(), true);
+  EXPECT_EQ(emitted_row_list.size(), 15U);
+
+#ifdef AUDITD_FIM_TESTS_DEBUG
+  std::cout << "\n\nRow list:\n";
+  DumpRowList(emitted_row_list);
+#endif
 }
 
 // clang-format off
+StringList included_file_paths = {
+  "/etc/ld.so.cache",
+  "/home/alessandro/test_file",
+  "/lib64/libc.so.6",
+  "/lib64/libgcc_s.so.1",
+  "/lib64/libm.so.6",
+  "/lib64/libstdc++.so.6",
+  "/home/alessandro/test_file",
+  "/home/alessandro/test_file1",
+  "/home/alessandro/test_file2",
+  "/home/alessandro/test_file3",
+  "/home/alessandro/test_file4",
+  "/home/alessandro/test_file5",
+  "/home/alessandro/test_file7",
+  "/home/alessandro/test_file_rename",
+  "/home/alessandro/test_file_renameat"
+};
+
+StringList excluded_file_paths = {
+  "/home/alessandro/test_file6"
+};
+
 std::vector<std::pair<int, std::string>> complete_event_list = {
   {1300, "audit(1502573850.697:38395): arch=c000003e syscall=9 success=yes exit=140095431475200 a0=0 a1=1000 a2=3 a3=22 items=0 ppid=4316 pid=5581 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm=\"mytest\" exe=\"/home/alessandro/mytest\" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)"},
   {1320, "audit(1502573850.697:38395): "},
@@ -371,3 +398,4 @@ std::vector<std::pair<int, std::string>> complete_event_list = {
   {1320, "audit(1502573858.179:46828): "}
 };
 // clang-format on
+}
