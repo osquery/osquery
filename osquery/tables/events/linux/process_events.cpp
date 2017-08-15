@@ -20,7 +20,7 @@ namespace osquery {
 
 FLAG(bool,
      audit_allow_process_events,
-     false,
+     true,
      "Allow the audit publisher to install process event monitoring rules");
 
 // Depend on the external getUptime table method.

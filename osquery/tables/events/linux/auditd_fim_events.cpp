@@ -12,7 +12,6 @@
 
 #include <cstdint>
 #include <iostream>
-#include <string>
 
 #include <boost/filesystem/operations.hpp>
 
@@ -20,7 +19,6 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/tables/events/linux/auditd_fim_events.h"
 
 namespace boostfs = boost::filesystem;
@@ -41,7 +39,15 @@ FLAG(bool,
      false,
      "Allow the audit publisher to show partial file events");
 
-FLAG(bool, audit_fim_debug, false, "Show debug messages for the FIM table");
+FLAG(bool,
+     audit_show_untracked_res_warnings,
+     false,
+     "Shows warnings about untracked processes (started before osquery)");
+
+HIDDEN_FLAG(bool,
+            audit_fim_debug,
+            false,
+            "Show debug messages for the FIM table");
 
 REGISTER(AuditdFimEventSubscriber, "event_subscriber", "auditd_fim_events");
 
@@ -164,6 +170,16 @@ std::ostream& operator<<(std::ostream& stream,
 
   case AuditdFimSyscallContext::Type::Mmap: {
     stream << "Mmap";
+    break;
+  }
+
+  case AuditdFimSyscallContext::Type::CloneOrFork: {
+    stream << "CloneOrFork";
+    break;
+  }
+
+  case AuditdFimSyscallContext::Type::Execve: {
+    stream << "Execve";
     break;
   }
 
@@ -298,7 +314,9 @@ bool EmitRowFromSyscallContext(
   }
 
   case AuditdFimSyscallContext::Type::Dup:
-  case AuditdFimSyscallContext::Type::NameToHandleAt: {
+  case AuditdFimSyscallContext::Type::NameToHandleAt:
+  case AuditdFimSyscallContext::Type::CloneOrFork:
+  case AuditdFimSyscallContext::Type::Execve: {
     return false;
   }
   }
@@ -326,6 +344,7 @@ bool EmitRowFromSyscallContext(
   row["executable"] = syscall_context.executable_path;
   row["partial"] = (syscall_context.partial ? "true" : "false");
   row["cwd"] = syscall_context.cwd;
+  row["uptime"] = std::to_string(tables::getUptime());
 
   return true;
 }
@@ -705,12 +724,13 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
       item 0: Working directory (path + inode)
       item 1: File (relative path + inode)
 
-    open():
-      Can either have one path record or two.
-
     open_by_handle_at():
     openat():
       item 0: File (inode)
+
+    open():
+      Can have one, two or three AUDIT_PATH records.
+      In case it has three, use the one at index 0.
   */
 
   bool wrong_record_count = false;
@@ -747,6 +767,11 @@ bool HandleOpenOrCreateSyscallRecord(AuditdFimContext& fim_context,
       input_path_working_dir = syscall_context.path_record_map[0].path;
       raw_input_path = syscall_context.path_record_map[1].path;
       input_inode = syscall_context.path_record_map[1].inode;
+
+    } else if (syscall_context.path_record_map.size() == 3) {
+      input_path_working_dir = syscall_context.cwd;
+      raw_input_path = syscall_context.path_record_map[0].path;
+      input_inode = syscall_context.path_record_map[0].inode;
 
     } else {
       wrong_record_count = true;
@@ -981,6 +1006,27 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
   }
 
   switch (syscall_context.syscall_number) {
+  // The following syscalls are only handled to duplicate and/or create the fd
+  // map
+  case __NR_fork:
+  case __NR_vfork:
+  case __NR_clone: {
+    skip_row_emission = true;
+    syscall_context.type = AuditdFimSyscallContext::Type::CloneOrFork;
+
+    return fim_context.process_map.clone(
+        syscall_context.process_id,
+        static_cast<pid_t>(syscall_context.return_value));
+  }
+
+  case __NR_execve: {
+    skip_row_emission = true;
+    syscall_context.type = AuditdFimSyscallContext::Type::Execve;
+
+    fim_context.process_map.create(syscall_context.process_id);
+    return true;
+  }
+
   case __NR_link:
   case __NR_linkat:
   case __NR_symlink:
@@ -1276,7 +1322,11 @@ const std::set<int>& AuditdFimEventSubscriber::GetSyscallSet() noexcept {
                                             __NR_pwrite64,
                                             __NR_pwritev,
                                             __NR_truncate,
-                                            __NR_ftruncate};
+                                            __NR_ftruncate,
+                                            __NR_clone,
+                                            __NR_fork,
+                                            __NR_vfork,
+                                            __NR_execve};
   return syscall_set;
 }
 
@@ -1332,7 +1382,13 @@ void AuditdFimInodeMap::clear() {
   data_.clear();
 }
 
-AuditdFimFdMap::AuditdFimFdMap(pid_t process_id) : process_id_(process_id) {}
+AuditdFimFdMap::AuditdFimFdMap(pid_t process_id) {
+  setProcessId(process_id);
+}
+
+void AuditdFimFdMap::setProcessId(pid_t process_id) {
+  process_id_ = process_id;
+}
 
 bool AuditdFimFdMap::getReference(AuditdFimFdDescriptor*& fd_desc,
                                   std::uint64_t fd) {
@@ -1386,6 +1442,10 @@ void AuditdFimFdMap::clear() {
 }
 
 void AuditdFimFdMap::printUntrackedFdWarning(std::uint64_t fd) {
+  if (!FLAGS_audit_show_untracked_res_warnings) {
+    return;
+  }
+
   auto current_time = std::time(nullptr);
   bool show_warning = false;
 
@@ -1412,6 +1472,15 @@ bool AuditdFimProcessMap::getReference(AuditdFimFdDescriptor*& fd_desc,
   return fd_map.getReference(fd_desc, fd);
 }
 
+void AuditdFimProcessMap::create(pid_t process_id) {
+  auto process_it = data_.find(process_id);
+  if (process_it != data_.end()) {
+    process_it->second.clear();
+  } else {
+    data_.insert({process_id, AuditdFimFdMap(process_id)});
+  }
+}
+
 bool AuditdFimProcessMap::duplicate(pid_t process_id,
                                     std::uint64_t fd,
                                     std::uint64_t new_fd) {
@@ -1423,6 +1492,20 @@ bool AuditdFimProcessMap::duplicate(pid_t process_id,
 
   AuditdFimFdMap& fd_map = process_it->second;
   return fd_map.duplicate(fd, new_fd);
+}
+
+bool AuditdFimProcessMap::clone(pid_t old_pid, pid_t new_pid) {
+  auto process_it = data_.find(old_pid);
+  if (process_it == data_.end()) {
+    printUntrackedPidWarning(old_pid);
+    return false;
+  }
+
+  AuditdFimFdMap fd_map = process_it->second;
+  fd_map.setProcessId(new_pid);
+
+  data_.insert({new_pid, fd_map});
+  return true;
 }
 
 bool AuditdFimProcessMap::takeAndRemove(AuditdFimFdDescriptor& fd_desc,
@@ -1447,21 +1530,6 @@ void AuditdFimProcessMap::save(
   if (process_it == data_.end()) {
     process_it = data_.insert({process_id, AuditdFimFdMap(process_id)}).first;
 
-    /*save(1,
-         process_id,
-         STDIN_FILENO,
-         AuditdFimFdDescriptor::OperationType::Open);
-
-    save(2,
-         process_id,
-         STDOUT_FILENO,
-         AuditdFimFdDescriptor::OperationType::Open);
-
-    save(3,
-         process_id,
-         STDERR_FILENO,
-         AuditdFimFdDescriptor::OperationType::Open);*/
-
     // Try to limit the amount of processes we are tracking. When
     // removing, start from the oldest ones
     if (data_.size() > 4096) {
@@ -1478,6 +1546,10 @@ void AuditdFimProcessMap::clear() {
 }
 
 void AuditdFimProcessMap::printUntrackedPidWarning(pid_t pid) {
+  if (!FLAGS_audit_show_untracked_res_warnings) {
+    return;
+  }
+
   bool show_warning = false;
   auto current_time = std::time(nullptr);
 

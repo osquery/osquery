@@ -62,6 +62,9 @@ class AuditdFimFdMap final {
  public:
   AuditdFimFdMap(pid_t process_id);
 
+  /// Sets the new proces id that owns this fd map
+  void setProcessId(pid_t process_id);
+
   /// Returns a reference to the specified fd object
   bool getReference(AuditdFimFdDescriptor*& fd_desc, std::uint64_t fd);
 
@@ -103,8 +106,14 @@ class AuditdFimProcessMap final {
                     pid_t process_id,
                     std::uint64_t fd);
 
+  /// Creates a new empty process
+  void create(pid_t process_id);
+
   /// Duplicates the specified fd. Used for dup/dup2/dup3
   bool duplicate(pid_t process_id, std::uint64_t fd, std::uint64_t new_fd);
+
+  /// Clones the specified process (used for fork/vfork/clone)
+  bool clone(pid_t old_pid, pid_t new_pid);
 
   /// Removes and returns the specified fd object
   bool takeAndRemove(AuditdFimFdDescriptor& fd_desc,
@@ -194,7 +203,9 @@ struct AuditdFimSyscallContext final {
     Write,
     Truncate,
     Mmap,
-    NameToHandleAt
+    NameToHandleAt,
+    CloneOrFork,
+    Execve
   };
 
   /// Syscall type
