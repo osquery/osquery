@@ -767,10 +767,7 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
 
   if (FLAGS_audit_allow_config) {
     if (!configureAuditService()) {
-      audit_close(audit_netlink_handle_);
-      audit_netlink_handle_ = -1;
-
-      return NetlinkStatus::Error;
+      return NetlinkStatus::ActiveImmutable;
     }
 
     if (FLAGS_audit_debug) {
@@ -778,6 +775,6 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
     }
   }
 
-  return netlink_status;
+  return NetlinkStatus::ActiveMutable;
 }
 }
