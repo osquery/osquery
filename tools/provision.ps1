@@ -284,13 +284,13 @@ function Install-ThirdParty {
     "aws-sdk-cpp.1.0.107-r1",
     "boost-msvc14.1.63.0-r2",
     "bzip2.1.0.6",
-    "clang-format.3.9.0",
     "cpp-netlib.0.12.0-r4",
     "doxygen.1.8.11",
     "gflags-dev.2.2.0-r1",
     "glog.0.3.4-r1",
     "libarchive.3.3.1-r1",
     "linenoise-ng.1.0.0-r1",
+    "llvm-clang.4.0.1",
     "openssl.1.0.2-k",
     "rocksdb.5.1.4-r1",
     "snappy-msvc.1.1.1.8",
@@ -310,11 +310,6 @@ function Install-ThirdParty {
       $packageData = $package -split '\.'
       $packageName = $packageData[0]
       $packageVersion = [string]::Join('.', $packageData[1..$packageData.length])
-
-      if (($packageName -eq "clang-format") -and (Test-Path env:OSQUERY_BUILD_HOST)) {
-        Write-Host "[*] Skipping $packageName $packageVersion on build hosts." -foregroundcolor Green
-        continue
-      }
 
       Write-Host " => Determining whether $packageName is already installed..." -foregroundcolor DarkYellow
       $isInstalled = Test-ChocoPackageInstalled $packageName $packageVersion

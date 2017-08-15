@@ -35,7 +35,7 @@ struct DistributedQueryRequest {
  * @brief Serialize a DistributedQueryRequest into a property tree
  *
  * @param r the DistributedQueryRequest to serialize
- * @param tree the output property tree
+ * @param d the output rapidjson document
  *
  * @return Status indicating the success or failure of the operation
  */
@@ -56,7 +56,7 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
 /**
  * @brief Deserialize a DistributedQueryRequest object from a property tree
  *
- * @param tree the input property tree
+ * @param d the input rapidjson value
  * @param r the output DistributedQueryRequest structure
  *
  * @return Status indicating the success or failure of the operation
@@ -97,7 +97,7 @@ struct DistributedQueryResult {
  * @brief Serialize a DistributedQueryResult into a property tree
  *
  * @param r the DistributedQueryResult to serialize
- * @param tree the output property tree
+ * @param d the output rapidjson document
  *
  * @return Status indicating the success or failure of the operation
  */
@@ -117,7 +117,7 @@ Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
 /**
  * @brief Deserialize a DistributedQueryResult object from a property tree
  *
- * @param tree the input property tree
+ * @param d the input rapidjson document
  * @param r the output DistributedQueryResult structure
  *
  * @return Status indicating the success or failure of the operation
