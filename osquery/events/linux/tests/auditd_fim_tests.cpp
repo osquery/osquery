@@ -32,7 +32,6 @@
 namespace osquery {
 extern std::vector<std::pair<int, std::string>> complete_event_list;
 extern StringList included_file_paths;
-extern StringList excluded_file_paths;
 extern std::string generateAuditId(std::uint32_t event_id) noexcept;
 
 class AuditdFimTests : public testing::Test {
@@ -97,8 +96,7 @@ TEST_F(AuditdFimTests, row_emission) {
 
   // Configure what we want to log and what we want to ignore
   AuditdFimContext fim_context;
-  fim_context.configuration.included_path_list = included_file_paths;
-  fim_context.configuration.excluded_path_list = excluded_file_paths;
+  fim_context.included_path_list = included_file_paths;
 
   // Emit the rows, showing only writes
   std::vector<Row> emitted_row_list;
@@ -131,10 +129,6 @@ StringList included_file_paths = {
   "/home/alessandro/test_file7",
   "/home/alessandro/test_file_rename",
   "/home/alessandro/test_file_renameat"
-};
-
-StringList excluded_file_paths = {
-  "/home/alessandro/test_file6"
 };
 
 std::vector<std::pair<int, std::string>> complete_event_list = {

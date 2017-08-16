@@ -145,20 +145,15 @@ class AuditdFimProcessMap final {
 /// A simple vector of strings
 using StringList = std::vector<std::string>;
 
-/// Contains the AuditdFim configuration
-struct AuditdFimConfiguration final {
+/// The fim context contains configuration and process state
+struct AuditdFimContext final {
   /// The paths included in the audit fim events
   StringList included_path_list;
 
-  /// The paths excluded from the audit fim events. Takes precedence over
-  /// included_path_list
-  StringList excluded_path_list;
-};
-
-/// The fim context contains configuration and process state
-struct AuditdFimContext final {
-  AuditdFimConfiguration configuration;
+  /// The process map, containing an fd map for each process
   AuditdFimProcessMap process_map;
+
+  /// The global inode map
   AuditdFimInodeMap inode_map;
 };
 

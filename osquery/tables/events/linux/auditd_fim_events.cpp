@@ -35,20 +35,21 @@ FLAG(bool,
      false,
      "Allow the audit publisher to install file event monitoring rules");
 
-FLAG(bool,
-     audit_show_partial_fim_events,
-     false,
-     "Allow the audit publisher to show partial file events");
+HIDDEN_FLAG(bool,
+            audit_show_partial_fim_events,
+            false,
+            "Allow the audit publisher to show partial file events");
 
-FLAG(bool,
-     audit_fim_show_accesses,
-     false,
-     "Also show file accesses (not just writes)");
+HIDDEN_FLAG(bool,
+            audit_fim_show_accesses,
+            false,
+            "Also show file accesses (not just writes)");
 
-FLAG(bool,
-     audit_show_untracked_res_warnings,
-     false,
-     "Shows warnings about untracked processes (started before osquery)");
+HIDDEN_FLAG(
+    bool,
+    audit_show_untracked_res_warnings,
+    false,
+    "Shows warnings about untracked processes (started before osquery)");
 
 HIDDEN_FLAG(bool,
             audit_fim_debug,
@@ -252,16 +253,9 @@ bool EmitRowFromSyscallContext(
     const AuditdFimContext& fim_context,
     const AuditdFimSyscallContext& syscall_context) noexcept {
   auto L_IsPathIncluded = [&fim_context](const std::string& path) -> bool {
-    if (std::find(fim_context.configuration.excluded_path_list.begin(),
-                  fim_context.configuration.excluded_path_list.end(),
-                  path) != fim_context.configuration.excluded_path_list.end()) {
-      return false;
-    }
-
-    return (std::find(fim_context.configuration.included_path_list.begin(),
-                      fim_context.configuration.included_path_list.end(),
-                      path) !=
-            fim_context.configuration.included_path_list.end());
+    return (std::find(fim_context.included_path_list.begin(),
+                      fim_context.included_path_list.end(),
+                      path) != fim_context.included_path_list.end());
   };
 
   row.clear();
@@ -1146,44 +1140,23 @@ Status AuditdFimEventSubscriber::init() {
 }
 
 void AuditdFimEventSubscriber::configure() {
-  auto parser = Config::getParser("auditd_fim");
-  const auto& root_key = parser.get()->getData();
-
-  if (root_key.find("include") != root_key.not_found()) {
-    for (auto& path_value : root_key.get_child("include")) {
-      auto pattern = path_value.second.data();
-      replaceGlobWildcards(pattern);
+  auto parser = Config::getParser("file_paths");
+  Config::get().files([&this](const std::string& category,
+                              const std::vector<std::string>& files) {
+    for (auto file : files) {
+      replaceGlobWildcards(file);
 
       StringList solved_path_list = {};
-      resolveFilePattern(pattern, solved_path_list);
+      resolveFilePattern(file, solved_path_list);
 
-      context_.configuration.included_path_list.reserve(
-          context_.configuration.included_path_list.size() +
-          solved_path_list.size());
-      context_.configuration.included_path_list.insert(
-          context_.configuration.included_path_list.end(),
-          solved_path_list.begin(),
-          solved_path_list.end());
+      context_.included_path_list.reserve(context_.included_path_list.size() +
+                                          solved_path_list.size());
+
+      context_.included_path_list.insert(context_.included_path_list.end(),
+                                         solved_path_list.begin(),
+                                         solved_path_list.end());
     }
-  }
-
-  if (root_key.find("exclude") != root_key.not_found()) {
-    for (auto& path_value : root_key.get_child("exclude")) {
-      auto pattern = path_value.second.data();
-      replaceGlobWildcards(pattern);
-
-      StringList solved_path_list = {};
-      resolveFilePattern(pattern, solved_path_list);
-
-      context_.configuration.excluded_path_list.resize(
-          context_.configuration.excluded_path_list.size() +
-          context_.configuration.excluded_path_list.size());
-      context_.configuration.excluded_path_list.insert(
-          context_.configuration.excluded_path_list.end(),
-          solved_path_list.begin(),
-          solved_path_list.end());
-    }
-  }
+  });
 }
 
 Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
