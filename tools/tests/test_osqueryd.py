@@ -12,6 +12,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import glob
 import os
 import signal
 import shutil
@@ -44,13 +45,17 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
             "logger_path": logger_path,
             "verbose": True,
         })
-        info_path = os.path.join(logger_path, "osqueryd.INFO")
+
+        info_glob = os.path.join(logger_path, 'osqueryd.INFO*')
+        info_globs = glob.glob(info_glob)
+        info_path = info_globs[0] if len(info_globs) > 0 else ''
         self.assertTrue(daemon.isAlive())
 
         def info_exists():
             return os.path.exists(info_path)
         # Wait for the daemon to flush to GLOG.
         test_base.expectTrue(info_exists)
+        print('[+] Info Exists: {}'.format(os.path.exists(info_path)))
         self.assertTrue(os.path.exists(info_path))
         daemon.kill()
 
@@ -84,8 +89,9 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         })
         self.assertTrue(daemon.isAlive())
 
-        # Send a SIGHUP
-        os.kill(daemon.proc.pid, signal.SIGHUP)
+        # Send a SIGHUP on posix, no SIGHUP on Windows.
+        sig = signal.SIGHUP if os.name != 'nt' else signal.SIGTERM
+        os.kill(daemon.proc.pid, sig)
         self.assertTrue(daemon.isAlive())
 
     @test_base.flaky

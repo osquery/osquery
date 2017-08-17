@@ -271,15 +271,16 @@ class ProcRunner(object):
 
     def kill(self, children=False):
         self.requireStarted()
+        sig = signal.SIGINT if os.name == 'nt' else signalt.SIGHUP
         if children:
             for child in self.getChildren():
                 try:
-                    os.kill(child, 9)
+                    os.kill(child, sig)
                 except:
                     pass
         if self.proc:
             try:
-                os.kill(self.pid, 9)
+                os.kill(self.pid, sig)
             except:
                 pass
         self.proc = None
@@ -398,10 +399,11 @@ class ProcessGenerator(object):
         Unittest should stop processes they generate, but on failure the
         tearDown method will cleanup.
         '''
+        sig = sig = signal.SIGINT if os.name == 'nt' else signalt.SIGKILL
         for generator in self.generators:
             if generator.pid is not None:
                 try:
-                    os.kill(generator.pid, signal.SIGKILL)
+                    os.kill(generator.pid, sig)
                 except Exception as e:
                     pass
 
