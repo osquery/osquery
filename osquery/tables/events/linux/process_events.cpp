@@ -148,7 +148,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
         row["cmdline"] += " ";
       }
 
-      row["cmdline"] += DecodeHexEncodedValue(arg.second);
+      row["cmdline"] += DecodeAuditPathValues(arg.second);
     }
 
     // There may be a better way to calculate actual size from audit.

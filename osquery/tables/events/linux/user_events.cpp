@@ -97,7 +97,7 @@ Status UserEventSubscriber::ProcessEvents(
 
       std::string executable_path;
       GetStringFieldFromMap(executable_path, record.fields, "exe", "");
-      row["path"] = DecodeHexEncodedValue(executable_path);
+      row["path"] = DecodeAuditPathValues(executable_path);
 
       std::string message;
       GetStringFieldFromMap(message, record.fields, "msg", "");

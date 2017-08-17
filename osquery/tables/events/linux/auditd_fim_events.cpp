@@ -355,7 +355,15 @@ bool EmitRowFromSyscallContext(
 
 bool ParseAuditCwdRecord(std::string& cwd,
                          const AuditEventRecord& record) noexcept {
-  return GetStringFieldFromMap(cwd, record.fields, "cwd");
+  cwd.clear();
+
+  std::string buffer;
+  if (!GetStringFieldFromMap(buffer, record.fields, "cwd")) {
+    return false;
+  }
+
+  cwd = DecodeAuditPathValues(buffer);
+  return true;
 }
 
 bool ParseAuditMmapRecord(AuditdFimSyscallContext& syscall_context,
@@ -383,7 +391,10 @@ bool ParseAuditPathRecord(AuditdFimPathRecordItem& output,
   GetIntegerFieldFromMap(inode, record.fields, "inode", 10, 0);
 
   // The 'name' field is sometimes left blank (i.e.: open_by_handle_at)
-  GetStringFieldFromMap(output.path, record.fields, "name");
+  std::string buffer;
+  if (GetStringFieldFromMap(buffer, record.fields, "name")) {
+    output.path = DecodeAuditPathValues(buffer);
+  }
 
   output.index = static_cast<std::size_t>(item_index);
   output.inode = static_cast<ino_t>(inode);

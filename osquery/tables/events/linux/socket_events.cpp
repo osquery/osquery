@@ -177,7 +177,7 @@ Status SocketEventSubscriber::ProcessEvents(
     L_CopyFieldFromMap(row, syscall_event_record->fields, "pid");
     GetStringFieldFromMap(row["fd"], syscall_event_record->fields, "a0");
 
-    row["path"] = DecodeHexEncodedValue(syscall_event_record->fields.at("exe"));
+    row["path"] = DecodeAuditPathValues(syscall_event_record->fields.at("exe"));
     row["fd"] = syscall_event_record->fields.at("a0");
     row["success"] =
         (syscall_event_record->fields.at("success") == "yes") ? "1" : "0";

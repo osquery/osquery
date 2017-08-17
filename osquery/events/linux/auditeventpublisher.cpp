@@ -89,7 +89,7 @@ void AuditEventPublisher::ProcessEvents(
   if (executable_path_.empty()) {
     char buffer[PATH_MAX] = {};
     assert(readlink("/proc/self/exe", buffer, sizeof(buffer)) != -1);
-    executable_path_ = std::string("\"") + buffer + "\"";
+    executable_path_ = buffer;
   }
 
   // Assemble each record into a AuditEvent object; multi-record events
@@ -122,13 +122,16 @@ void AuditEventPublisher::ProcessEvents(
 
       SyscallAuditEventData data;
 
+      std::string raw_executable_path;
       if (!GetStringFieldFromMap(
-              data.executable_path, audit_event_record.fields, "exe")) {
+              raw_executable_path, audit_event_record.fields, "exe")) {
         VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
                    "executable path field is either missing or not valid.";
 
         continue;
       }
+
+      data.executable_path = DecodeAuditPathValues(raw_executable_path);
 
       // Do not process events originated by the osquery watchdog or daemon
       if (executable_path_ == data.executable_path) {

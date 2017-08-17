@@ -155,10 +155,11 @@ class AuditdNetlink final : private boost::noncopyable {
 };
 
 /// Handle quote and hex-encoded audit field content.
-inline std::string DecodeHexEncodedValue(const std::string& s) {
+inline std::string DecodeAuditPathValues(const std::string& s) {
   if (s.size() > 1 && s[0] == '"') {
     return s.substr(1, s.size() - 2);
   }
+
   try {
     return boost::algorithm::unhex(s);
   } catch (const boost::algorithm::hex_decode_error& e) {

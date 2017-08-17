@@ -83,15 +83,15 @@ TEST_F(AuditTests, test_handle_reply) {
 
 TEST_F(AuditTests, test_audit_value_decode) {
   // In the normal case the decoding only removes '"' characters from the ends.
-  auto decoded_normal = DecodeHexEncodedValue("\"/bin/ls\"");
+  auto decoded_normal = DecodeAuditPathValues("\"/bin/ls\"");
   EXPECT_EQ(decoded_normal, "/bin/ls");
 
   // If the first char is not '"', the value is expected to be hex-encoded.
-  auto decoded_hex = DecodeHexEncodedValue("736C6565702031");
+  auto decoded_hex = DecodeAuditPathValues("736C6565702031");
   EXPECT_EQ(decoded_hex, "sleep 1");
 
   // When the hex fails to decode the input value is returned as the result.
-  auto decoded_fail = DecodeHexEncodedValue("7");
+  auto decoded_fail = DecodeAuditPathValues("7");
   EXPECT_EQ(decoded_fail, "7");
 }
 
