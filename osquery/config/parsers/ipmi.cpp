@@ -8,8 +8,6 @@
  *
  */
 
-#include <iostream>
-
 #include <osquery/config.h>
 #include <osquery/logger.h>
 

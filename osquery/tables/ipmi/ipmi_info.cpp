@@ -81,15 +81,13 @@ const auto kFreeLANParm = [](ipmi_lanparm_t* lp) {
  * @brief retrieves name of MC
  *
  * @param mc pointer to OPENIPMI ipmi_mc_t
- *
  * @param defaultName fallback name if the MC name is unable to be retrieved
  *
  * @return MC name as std::string
  */
-static inline std::string getMCName(ipmi_mc_t* mc,
-                                    std::string defaultName = "missing") {
+static inline std::string getMCName(
+    ipmi_mc_t* mc, const std::string& defaultName = "missing") {
   char name[IPMI_MC_NAME_LEN];
-
   int len = ipmi_mc_get_name(mc, name, IPMI_MC_NAME_LEN);
   if (len < 1) {
     return defaultName;
@@ -115,9 +113,7 @@ class IPMIClient;
  * @brief parmData encapsulates things that are required for retrieving LANPARM
  *
  * @param client pointer to IPMIClient instance
- *
  * @param mcKey unique key to identify the MC
- *
  * @parm colName the osquery table column name of the LANPARM
  *
  * @parm parm OpenIPMI identifier for the LANPARM
@@ -144,7 +140,6 @@ class IPMIClient : public InternalRunnable {
  public:
   /**
    * @brief retrieves instance of IPMIClient (singleton).
-   *
    */
   static IPMIClient& get();
 
@@ -182,7 +177,7 @@ class IPMIClient : public InternalRunnable {
    *
    * @return bool indicating client state.
    */
-  bool up();
+  bool isUp();
 
   /// Starts background clean up routine.  Implements InternalRunnable.
   void start() override;
@@ -269,8 +264,8 @@ class IPMIClient : public InternalRunnable {
   /// Other functions that need access to private functionality.
   friend void getPARM(ipmi_lanparm_t* lp,
                       unsigned int parm,
-                      const std::string key,
-                      const std::string colName,
+                      const std::string& key,
+                      const std::string& colName,
                       IPMIClient* client);
 
   /// Client managed Rows for public queries.
@@ -325,16 +320,17 @@ void ipmiLoggerCB(os_handler_t* handler,
                   const char* format,
                   enum ipmi_log_type_e logType,
                   va_list ap) {
-  const size_t max = 1024;
-  char buf[max];
-
   switch (logType) {
   case IPMI_LOG_SEVERE:
   case IPMI_LOG_FATAL:
-  case IPMI_LOG_ERR_INFO:
+  case IPMI_LOG_ERR_INFO: {
+    /* We use C style data structures and string functions because we are given
+     * C style formatters and variadic functions */
+    const size_t max = 1024;
+    char buf[max];
     vsnprintf(buf, max, format, ap);
     LOG(ERROR) << buf;
-
+  }
   default:
     // Silence all other log levels
     break;
@@ -461,8 +457,8 @@ static inline void unlockLANPARM(ipmi_lanparm_t* lp) {
 /// Gets a ipmi_lanparm_t*.  Does all registration needed with IPMIClient.
 void getPARM(ipmi_lanparm_t* lp,
              unsigned int parm,
-             const std::string key,
-             const std::string colName,
+             const std::string& key,
+             const std::string& colName,
              IPMIClient* client) {
   parmData* data = new parmData;
   data->client = client;
@@ -549,7 +545,7 @@ void getPARM(ipmi_lanparm_t* lp,
  */
 
 void getLANsCB(ipmi_domain_t* domain, ipmi_mc_t* mc, void* data) {
-  IPMIClient* client = (IPMIClient*)data;
+  IPMIClient* client = reinterpret_cast<IPMIClient*>(data);
 
   std::string key = getMCKey(mc);
   ipmi_lanparm_t* lp = client->getLANParm(key, mc);
@@ -563,7 +559,7 @@ void getLANsCB(ipmi_domain_t* domain, ipmi_mc_t* mc, void* data) {
   if (len > 0) {
     client->insertRowsQueue(key, "mc_name", name);
   }
-  client->insertRowsQueue(key, "mc_id", std::to_string(ipmi_mc_device_id(mc)));
+  client->insertRowsQueue(key, "mc_id", INTEGER(ipmi_mc_device_id(mc)));
 
   getPARM(lp, IPMI_LANPARM_IP_ADDRESS, key, "ip", client);
 
@@ -595,7 +591,7 @@ void getLANsCB(ipmi_domain_t* domain, ipmi_mc_t* mc, void* data) {
 
 void IPMIFullyUpCB(ipmi_domain_t* domain, void* data) {
   TLOG << "OpenIPMI is now fully up";
-  IPMIClient* c = (IPMIClient*)data;
+  IPMIClient* c = reinterpret_cast<IPMIClient*>(data);
   c->setDomain(domain);
 
   return;
@@ -603,35 +599,32 @@ void IPMIFullyUpCB(ipmi_domain_t* domain, void* data) {
 
 /// Gets the the value suffix for a sensor reading.
 std::string getSensorThresholdSuffix(ipmi_sensor_t* sensor) {
-  const size_t suffixLen = 50;
-  char suffix[suffixLen];
+  std::string percent, base, mod_use, modifier, rate;
 
-  const char* percent = "";
-  const char* base;
-  const char* mod_use = "";
-  const char* modifier = "";
-  const char* rate;
   base = ipmi_sensor_get_base_unit_string(sensor);
-  if (ipmi_sensor_get_percentage(sensor))
+
+  if (ipmi_sensor_get_percentage(sensor)) {
     percent = "%";
+  }
+
   switch (ipmi_sensor_get_modifier_unit_use(sensor)) {
   case IPMI_MODIFIER_UNIT_NONE:
     break;
+
   case IPMI_MODIFIER_UNIT_BASE_DIV_MOD:
     mod_use = "/";
     modifier = ipmi_sensor_get_modifier_unit_string(sensor);
     break;
+
   case IPMI_MODIFIER_UNIT_BASE_MULT_MOD:
     mod_use = "*";
     modifier = ipmi_sensor_get_modifier_unit_string(sensor);
     break;
   }
+
   rate = ipmi_sensor_get_rate_unit_string(sensor);
 
-  snprintf(
-      suffix, suffixLen, "%s %s%s%s%s", percent, base, mod_use, modifier, rate);
-
-  return suffix;
+  return percent + " " + base + mod_use + modifier + rate;
 }
 
 void readThresholdSensorCB(ipmi_sensor_t* sensor,
@@ -654,13 +647,8 @@ void readThresholdSensorCB(ipmi_sensor_t* sensor,
 
   const int maxChar = 256;
   char name[maxChar];
-  int rv = ipmi_sensor_get_name(sensor, name, maxChar);
-  if (rv < 1) {
-    r["name"] = "missing";
-
-  } else {
-    r["name"] = name;
-  }
+  ipmi_sensor_get_name(sensor, name, maxChar) < 1 ? r["name"] = "missing"
+                                                  : r["name"] = name;
 
   r["sensor_type"] = ipmi_sensor_get_sensor_type_string(sensor);
 
@@ -683,7 +671,7 @@ void readThresholdSensorCB(ipmi_sensor_t* sensor,
           ? "1"
           : "0";
 
-  IPMIClient* c = (IPMIClient*)data;
+  IPMIClient* c = reinterpret_cast<IPMIClient*>(data);
   c->insertRowsQueue(r["name"] + "-" + r["mc_name"] + "-" + r["mc_id"], r);
 }
 
@@ -742,7 +730,7 @@ void traverseFRUNodeTree(ipmi_fru_node_t* node, Row& row) {
       continue;
     }
 
-    std::string colName = "";
+    std::string colName;
     if (name == nullptr) {
       colName = "missing[" + std::to_string(i) + "]";
     } else {
@@ -821,15 +809,15 @@ void getFRUCB(ipmi_entity_t* entity, void* data) {
   r["type"] = type;
   traverseFRUNodeTree(node, r);
 
-  IPMIClient* c = (IPMIClient*)data;
+  IPMIClient* c = reinterpret_cast<IPMIClient*>(data);
   c->insertRowsQueue(
       r["entity_id"] + "-" + r["entity_instance"] + "-" + r["name"], r);
 }
 
 void iterateMCsCB(ipmi_domain_t* domain, ipmi_mc_t* mc, void* data) {
   Row r;
-  char name[IPMI_MC_NAME_LEN];
 
+  char name[IPMI_MC_NAME_LEN];
   int len = ipmi_mc_get_name(mc, name, IPMI_MC_NAME_LEN);
   if (len > 0) {
     r["name"] = name;
@@ -872,7 +860,7 @@ void iterateMCsCB(ipmi_domain_t* domain, ipmi_mc_t* mc, void* data) {
     LOG(ERROR) << "Unexpected error retrieving MC GUID: " << strerror(rv);
   }
 
-  IPMIClient* c = (IPMIClient*)data;
+  IPMIClient* c = reinterpret_cast<IPMIClient*>(data);
   c->insertRowsQueue(r["name"] + "-" + r["device_id"], r);
 }
 
@@ -881,7 +869,7 @@ IPMIClient& IPMIClient::get() {
   return c;
 }
 
-bool IPMIClient::up() {
+bool IPMIClient::isUp() {
   return up_.load();
 }
 
@@ -965,7 +953,7 @@ IPMIClient::IPMIClient()
   rv = ipmi_domain_iterate_mcs(
       domain_,
       [](ipmi_domain_t* domain, ipmi_mc_t* mc, void* data) {
-        IPMIClient* c = (IPMIClient*)data;
+        IPMIClient* c = reinterpret_cast<IPMIClient*>(data);
         c->addLANParm(getMCKey(mc), mc);
       },
       this);
@@ -1115,7 +1103,7 @@ void IPMIClient::findLANCh() {
             }
 
             if (medium == IPMI_CHANNEL_MEDIUM_8023_LAN) {
-              IPMIClient* c = (IPMIClient*)data;
+              IPMIClient* c = reinterpret_cast<IPMIClient*>(data);
               c->setLANCh(ch);
             }
 
@@ -1225,7 +1213,7 @@ void IPMIClient::start() {
       return;
     }
 
-    if (IPMIClient::up()) {
+    if (isUp()) {
       TLOG << "Running IPMIClient cleanup routine";
       cleanup();
     }
@@ -1254,7 +1242,7 @@ QueryData genIPMILANs(QueryContext& context) {
   QueryData results;
 
   IPMIClient& c = IPMIClient::get();
-  if (!c.up()) {
+  if (!c.isUp()) {
     LOG(ERROR) << "IPMI client did not initate properly";
     return results;
   }
@@ -1268,7 +1256,7 @@ QueryData genIPMIThresholdSensors(QueryContext& context) {
   QueryData results;
 
   IPMIClient& c = IPMIClient::get();
-  if (!c.up()) {
+  if (!c.isUp()) {
     LOG(ERROR) << "IPMI client did not initate properly";
     return results;
   }
@@ -1282,7 +1270,7 @@ QueryData genIPMIFRUs(QueryContext& context) {
   QueryData results;
 
   IPMIClient& c = IPMIClient::get();
-  if (!c.up()) {
+  if (!c.isUp()) {
     LOG(ERROR) << "IPMI client did not initate properly";
     return results;
   }
@@ -1295,7 +1283,7 @@ QueryData genIPMIFRUs(QueryContext& context) {
 QueryData genIPMIMCs(QueryContext& context) {
   QueryData results;
   IPMIClient& c = IPMIClient::get();
-  if (!c.up()) {
+  if (!c.isUp()) {
     LOG(ERROR) << "IPMI client did not initate properly";
     return results;
   }
