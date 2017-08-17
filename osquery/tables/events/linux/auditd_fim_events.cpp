@@ -117,11 +117,6 @@ std::ostream& operator<<(std::ostream& stream,
     break;
   }
 
-  case AuditdFimSyscallContext::Type::Execve: {
-    stream << "Execve";
-    break;
-  }
-
   default: {
     stream << "Unknown";
     break;
@@ -192,11 +187,6 @@ std::ostream& operator<<(std::ostream& stream,
 
   case AuditdFimSyscallContext::Type::CloneOrFork: {
     stream << "CloneOrFork";
-    break;
-  }
-
-  case AuditdFimSyscallContext::Type::Execve: {
-    stream << "Execve";
     break;
   }
 
@@ -330,8 +320,7 @@ bool EmitRowFromSyscallContext(
 
   case AuditdFimSyscallContext::Type::Dup:
   case AuditdFimSyscallContext::Type::NameToHandleAt:
-  case AuditdFimSyscallContext::Type::CloneOrFork:
-  case AuditdFimSyscallContext::Type::Execve: {
+  case AuditdFimSyscallContext::Type::CloneOrFork: {
     return false;
   }
   }
@@ -1038,14 +1027,6 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
         static_cast<pid_t>(syscall_context.return_value));
   }
 
-  case __NR_execve: {
-    skip_row_emission = true;
-    syscall_context.type = AuditdFimSyscallContext::Type::Execve;
-
-    fim_context.process_map.create(syscall_context.process_id);
-    return true;
-  }
-
   case __NR_link:
   case __NR_linkat:
   case __NR_symlink:
@@ -1141,8 +1122,8 @@ Status AuditdFimEventSubscriber::init() {
 
 void AuditdFimEventSubscriber::configure() {
   auto parser = Config::getParser("file_paths");
-  Config::get().files([&this](const std::string& category,
-                              const std::vector<std::string>& files) {
+  Config::get().files([this](const std::string& category,
+                             const std::vector<std::string>& files) {
     for (auto file : files) {
       replaceGlobWildcards(file);
 
@@ -1316,8 +1297,7 @@ const std::set<int>& AuditdFimEventSubscriber::GetSyscallSet() noexcept {
                                             __NR_ftruncate,
                                             __NR_clone,
                                             __NR_fork,
-                                            __NR_vfork,
-                                            __NR_execve};
+                                            __NR_vfork};
   return syscall_set;
 }
 

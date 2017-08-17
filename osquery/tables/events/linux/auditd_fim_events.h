@@ -197,8 +197,7 @@ struct AuditdFimSyscallContext final {
     Truncate,
     Mmap,
     NameToHandleAt,
-    CloneOrFork,
-    Execve
+    CloneOrFork
   };
 
   /// Syscall type
