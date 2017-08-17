@@ -28,21 +28,21 @@ namespace osquery {
  *
  * 'multiset' is used because with patterns we can serach for equivalent keys.
  * Since  '/This/Path/is' ~= '/This/Path/%' ~= '/This/Path/%%' (equivalent).
- * Path components containing only '%' and '%%' are supported -
- * e.g. '/This/Path/%'
- * Path components containing partial patterns are not supported -
- * e.g. '/This/Path/xyz%' ('xyz%' will not be treated as pattern)
  *
  * multiset is protected by lock. It is threadsafe.
  *
- * This PathSet can take any of the two policies -
- * 1. patternedPath - path can contain pattern '%' and '%%'.
+ * PathSet can take any of the two policies -
+ * 1. patternedPath - Path can contain pattern '%' and '%%'.
+ *                    Path components containing only '%' and '%%' are supported
+ *                    e.g. '/This/Path/%'.
+ *                    Path components containing partial patterns are not
+ *                    supported e.g. '/This/Path/xyz%' ('xyz%' will not be
+ *                    treated as pattern).
  *
  * 2. resolvedPath - path is resolved before being inserted into set.
  *                   But path can match recursively.
  *
  */
-
 template <typename PathType>
 class PathSet : private boost::noncopyable {
  public:
@@ -70,6 +70,11 @@ class PathSet : private boost::noncopyable {
   void clear() {
     WriteLock lock(mset_lock_);
     paths_.clear();
+  }
+
+  bool empty() const {
+    ReadLock lock(mset_lock_);
+    return paths_.empty();
   }
 
  private:

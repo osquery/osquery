@@ -327,7 +327,8 @@ bool FSEventsEventPublisher::shouldFire(
   auto path = ec->path.substr(0, ec->path.rfind('/'));
   // Need to have two finds,
   // what if somebody excluded an individual file inside a directory
-  if (exclude_paths_.find(path) || exclude_paths_.find(ec->path)) {
+  if (!exclude_paths_.empty() &&
+      (exclude_paths_.find(path) || exclude_paths_.find(ec->path))) {
     return false;
   }
 
