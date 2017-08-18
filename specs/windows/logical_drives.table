@@ -1,0 +1,13 @@
+table_name("logical_drives")
+description("Details for logical drives on the system. A logical drive generally represents a single partition.")
+schema([
+    Column("device_id", TEXT, "The unique identifier of the logical disk from other devices on the system.."),
+    Column("type", TEXT, "The type of disk drive this logical drive represents."),
+    Column("free_space", TEXT, "The amount of free space, in bytes, of the drive."),
+    Column("size", TEXT, "The total amount of space, in bytes, of the drive."),
+])
+implementation("logical_drives@genLogicalDrives")
+examples([
+  "select * from logical_drives",
+  'select free_space from logical_drives where device_id = "C:"'
+])
