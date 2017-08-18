@@ -15,7 +15,7 @@ QueryData genLogicalDrives(QueryContext& context) {
     unsigned int driveType = 0;
     wmiResults[i].GetString("DeviceID", r["device_id"]);
     wmiResults[i].GetUnsignedInt32("DriveType", driveType);
-    wmiResults[i].GetString("FreeSpace", r["freespace"]);
+    wmiResults[i].GetString("FreeSpace", r["free_space"]);
     wmiResults[i].GetString("Size", r["size"]);
 
     switch (driveType) {
