@@ -36,7 +36,8 @@ if os.name == 'nt':
     class timeout_decorator:
         @staticmethod
         def timeout(*args, **kwargs):
-            return lambda f: f # return a no-op decorator
+            # return a no-op decorator
+            return lambda f: f
 else:
     import timeout_decorator
 
@@ -663,12 +664,43 @@ def assertPermissions():
             stat_info.st_uid, os.getuid())))
         exit(1)
 
+'''Determine the last build osqueryi.exe'''
+def getLatestOsqueryShell():
+    if os.name == "posix":
+        return os.path.join(ARGS.build, "osquery", "osqueryi")
+
+    release_path = os.path.abspath(os.path.join(ARGS.build, "osquery", "Release", "osqueryi.exe"))
+    relwithdebinfo_path = os.path.abspath(
+        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "osqueryi.exe"))
+
+    if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
+        if os.stat(release_path).st_mtime > os.stat(relwithdebinfo_path).st_mtime:
+            return release_path
+        else:
+            return relwithdebinfo_path
+    elif os.path.exists(release_path):
+        return release_path
+    elif os.path.exists(relwithdebinfo_path):
+        return relwithdebinfo_path
+    else:
+        return None
 
 def getTestDirectory(base):
     path = os.path.join(base, "test-dir" + str(random.randint(1000, 9999)))
     utils.reset_dir(path)
     return path
 
+''' Grab the latest info log '''
+def getLatestInfoLog(base):
+    info_path = os.path.join(base, 'osqueryd.INFO')
+    if os.name != 'nt':
+        return info_path
+    query = 'select path from file where path like \'{}\' ORDER BY mtime DESC LIMIT 1;'.format(info_path+'%');
+    osqueryi = OsqueryWrapper(getLatestOsqueryShell())
+    results = osqueryi.run_query(query)
+    if len(results) > 0:
+        return results[0]['path']
+    return ''
 
 def loadThriftFromBuild(build_dir):
     '''Find and import the thrift-generated python interface.'''

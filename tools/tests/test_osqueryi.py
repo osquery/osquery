@@ -19,38 +19,15 @@ import sys
 import unittest
 import utils
 
-from active_state_winexpect import Popen
-
 # osquery-specific testing utils
 import test_base
 
 SHELL_TIMEOUT = 10
 EXIT_CATASTROPHIC = 78
 
-'''Determine the last build osqueryi.exe'''
-def getLatestOsqueryShell():
-    if os.name == "posix":
-        return os.path.join(test_base.ARGS.build, "osquery", "osqueryi")
-
-    release_path = os.path.abspath(os.path.join(test_base.ARGS.build, "osquery", "Release", "osqueryi.exe"))
-    relwithdebinfo_path = os.path.abspath(
-        os.path.join(test_base.ARGS.build, "osquery", "RelWithDebInfo", "osqueryi.exe"))
-
-    if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
-        if os.stat(release_path).st_mtime > os.stat(relwithdebinfo_path).st_mtime:
-            return release_path
-        else:
-            return relwithdebinfo_path
-    elif os.path.exists(release_path):
-        return release_path
-    elif os.path.exists(relwithdebinfo_path):
-        return relwithdebinfo_path
-    else:
-        return None
-
 class OsqueryiTest(unittest.TestCase):
     def setUp(self):
-        self.binary = getLatestOsqueryShell()
+        self.binary = test_base.getLatestOsqueryShell()
         self.osqueryi = test_base.OsqueryWrapper(command=self.binary)
         self.dbpath = "%s%s" % (
             test_base.CONFIG["options"]["database_path"],

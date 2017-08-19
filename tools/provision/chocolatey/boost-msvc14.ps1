@@ -13,7 +13,7 @@
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
 $version = '1.63.0'
-$chocoVersion = '1.63.0-r1'
+$chocoVersion = '1.63.0'
 $packageName = 'boost-msvc14'
 $projectSource = 'http://www.boost.org/users/history/version_1_63_0.html'
 $packageSourceUrl = 'http://www.boost.org/users/history/version_1_63_0.html'
@@ -59,8 +59,8 @@ $sourceDir = Get-Location
 
 # Build the libraries
 Invoke-BatchFile './bootstrap.bat'
-.\b2.exe -j2 toolset=msvc-14.0 address-model=64 architecture=x86 link=static threading=multi runtime-link=static --build-type=minimal stage --stagedir=stage/x64 install
-.\b2.exe -j2 toolset=msvc-14.0 address-model=32 architecture=x86 link=static threading=multi runtime-link=static --build-type=minimal stage --stagedir=stage/win32 install
+.\b2.exe -j2 toolset=msvc-14.0 address-model=64 architecture=x86 link=static threading=multi runtime-link=static --build-type=minimal stage --stagedir=stage/x64
+.\b2.exe -j2 toolset=msvc-14.0 address-model=32 architecture=x86 link=static threading=multi runtime-link=static --build-type=minimal stage --stagedir=stage/win32
 
 # Construct the Chocolatey Package
 $chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'

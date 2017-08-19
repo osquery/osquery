@@ -46,16 +46,13 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
             "verbose": True,
         })
 
-        info_glob = os.path.join(logger_path, 'osqueryd.INFO*')
-        info_globs = glob.glob(info_glob)
-        info_path = info_globs[0] if len(info_globs) > 0 else ''
+        info_path = test_base.getLatestInfoLog(logger_path)
         self.assertTrue(daemon.isAlive())
 
         def info_exists():
             return os.path.exists(info_path)
         # Wait for the daemon to flush to GLOG.
         test_base.expectTrue(info_exists)
-        print('[+] Info Exists: {}'.format(os.path.exists(info_path)))
         self.assertTrue(os.path.exists(info_path))
         daemon.kill()
 
@@ -65,6 +62,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         if os.environ.get('SANITIZE') is not None:
             return
         daemon = self._run_daemon({
+            "allow_unsafe": True,
             "disable_watchdog": False,
             "ephemeral": True,
             "disable_database": True,
@@ -74,6 +72,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
 
         # Check that the daemon spawned a child process
         children = daemon.getChildren()
+
         self.assertTrue(len(children) > 0)
         daemon.kill()
 
@@ -108,7 +107,8 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         # Send a SIGINT
         os.kill(daemon.pid, signal.SIGINT)
         self.assertTrue(daemon.isDead(daemon.pid, 10))
-        self.assertTrue(daemon.retcode in [128 + signal.SIGINT, -2])
+        if os.name != 'nt':
+            self.assertTrue(daemon.retcode in [128 + signal.SIGINT, -2])
 
     @test_base.flaky
     def test_6_logger_mode(self):
@@ -124,7 +124,7 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
             "logger_mode": test_mode,
             "verbose": True,
         })
-        info_path = os.path.join(logger_path, "osqueryd.INFO")
+        info_path = test_base.getLatestInfoLog(logger_path)
         results_path = os.path.join(logger_path, "osqueryd.results.log")
         self.assertTrue(daemon.isAlive())
 
@@ -142,7 +142,8 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
             self.assertTrue(os.path.exists(pth))
 
             # Only apply the mode checks to .log files.
-            if pth.find('.log') > 0:
+            # TODO: Add ACL checks for Windows logs
+            if pth.find('.log') > 0 and os.name != 'nt':
                 rpath = os.path.realpath(pth)
                 mode = os.stat(rpath).st_mode & 0777
                 self.assertEqual(mode, test_mode)
