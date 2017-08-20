@@ -123,14 +123,6 @@ Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 Status SocketEventSubscriber::ProcessEvents(
     std::vector<Row>& emitted_row_list,
     const std::vector<AuditEvent>& event_list) noexcept {
-  auto L_CopyFieldFromMap = [](
-      Row& row,
-      const std::map<std::string, std::string>& fields,
-      const std::string& name,
-      const std::string& default_value = std::string()) -> void {
-    GetStringFieldFromMap(row[name], fields, name, default_value);
-  };
-
   emitted_row_list.clear();
 
   for (const auto& event : event_list) {
@@ -173,8 +165,8 @@ Status SocketEventSubscriber::ProcessEvents(
       continue;
     }
 
-    L_CopyFieldFromMap(row, syscall_event_record->fields, "auid");
-    L_CopyFieldFromMap(row, syscall_event_record->fields, "pid");
+    CopyFieldFromMap(row, syscall_event_record->fields, "auid");
+    CopyFieldFromMap(row, syscall_event_record->fields, "pid");
     GetStringFieldFromMap(row["fd"], syscall_event_record->fields, "a0");
 
     row["path"] = DecodeAuditPathValues(syscall_event_record->fields.at("exe"));

@@ -110,4 +110,11 @@ bool GetIntegerFieldFromMap(
     std::size_t base = 10,
     std::uint64_t default_value =
         std::numeric_limits<std::uint64_t>::max()) noexcept;
+
+/// Copies a named field from the 'fields' map to the specified row
+void CopyFieldFromMap(
+    Row& row,
+    const std::map<std::string, std::string>& fields,
+    const std::string& name,
+    const std::string& default_value = std::string()) noexcept;
 }

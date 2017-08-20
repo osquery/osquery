@@ -68,15 +68,8 @@ Status UserEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 Status UserEventSubscriber::ProcessEvents(
     std::vector<Row>& emitted_row_list,
     const std::vector<AuditEvent>& event_list) noexcept {
-  auto L_CopyFieldFromMap = [](
-      Row& row,
-      const std::map<std::string, std::string>& fields,
-      const std::string& name,
-      const std::string& default_value = std::string()) -> void {
-    GetStringFieldFromMap(row[name], fields, name, default_value);
-  };
-
   emitted_row_list.clear();
+
   for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::UserEvent) {
       continue;
@@ -88,10 +81,10 @@ Status UserEventSubscriber::ProcessEvents(
       row["uptime"] = INTEGER(tables::getUptime());
       row["type"] = INTEGER(record.type);
 
-      L_CopyFieldFromMap(row, record.fields, "uid", "");
-      L_CopyFieldFromMap(row, record.fields, "pid", "");
-      L_CopyFieldFromMap(row, record.fields, "auid", "");
-      L_CopyFieldFromMap(row, record.fields, "terminal", "");
+      CopyFieldFromMap(row, record.fields, "uid", "");
+      CopyFieldFromMap(row, record.fields, "pid", "");
+      CopyFieldFromMap(row, record.fields, "auid", "");
+      CopyFieldFromMap(row, record.fields, "terminal", "");
 
       GetStringFieldFromMap(row["address"], record.fields, "addr", "");
 

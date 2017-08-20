@@ -69,13 +69,6 @@ Status AuditProcessEventSubscriber::ProcessEvents(
   */
   // clang-format on
 
-  auto L_CopyFieldFromMap = [](Row& row,
-                               const std::map<std::string, std::string>& fields,
-                               const std::string& name,
-                               const std::string& default_value) -> void {
-    GetStringFieldFromMap(row[name], fields, name, default_value);
-  };
-
   emitted_row_list.clear();
 
   for (const auto& event : event_list) {
@@ -111,13 +104,13 @@ Status AuditProcessEventSubscriber::ProcessEvents(
 
     Row row = {};
 
-    L_CopyFieldFromMap(row, syscall_event_record->fields, "auid", "0");
-    L_CopyFieldFromMap(row, syscall_event_record->fields, "pid", "0");
-    L_CopyFieldFromMap(row, syscall_event_record->fields, "ppid", "0");
-    L_CopyFieldFromMap(row, syscall_event_record->fields, "uid", "0");
-    L_CopyFieldFromMap(row, syscall_event_record->fields, "euid", "0");
-    L_CopyFieldFromMap(row, syscall_event_record->fields, "gid", "0");
-    L_CopyFieldFromMap(row, syscall_event_record->fields, "egid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "auid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "pid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "ppid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "uid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "euid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "gid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "egid", "0");
 
     GetStringFieldFromMap(row["path"], syscall_event_record->fields, "exe", "");
     GetStringFieldFromMap(
@@ -157,7 +150,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     row["cmdline_size"] = std::to_string(row.at("cmdline").size());
 
     // Get the remaining data from the first AUDIT_PATH record
-    L_CopyFieldFromMap(row, first_path_event_record->fields, "mode", "");
+    CopyFieldFromMap(row, first_path_event_record->fields, "mode", "");
     GetStringFieldFromMap(
         row["owner_uid"], first_path_event_record->fields, "ouid", "0");
     GetStringFieldFromMap(

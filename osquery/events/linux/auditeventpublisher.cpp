@@ -289,4 +289,11 @@ bool GetIntegerFieldFromMap(std::uint64_t& value,
   value = static_cast<std::uint64_t>(temp);
   return true;
 }
+
+void CopyFieldFromMap(Row& row,
+                      const std::map<std::string, std::string>& fields,
+                      const std::string& name,
+                      const std::string& default_value) noexcept {
+  GetStringFieldFromMap(row[name], fields, name, default_value);
+}
 }
