@@ -11,7 +11,7 @@
 #include <sstream>
 #include <utility>
 
-#include <osquery/core.h>
+#include <osquery/database.h>
 #include <osquery/distributed.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>

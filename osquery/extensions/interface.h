@@ -10,10 +10,6 @@
 
 #pragma once
 
-#include <thread>
-
-#include <boost/noncopyable.hpp>
-
 #include <osquery/dispatcher.h>
 #include <osquery/extensions.h>
 

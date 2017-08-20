@@ -9,8 +9,9 @@
  */
 
 #include <chrono>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
+#include <vector>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>

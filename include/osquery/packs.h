@@ -18,7 +18,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/database.h>
+#include <osquery/query.h>
 
 namespace osquery {
 

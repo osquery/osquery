@@ -8,7 +8,9 @@
  *
  */
 
-#include <mutex>
+#include <map>
+#include <string>
+#include <vector>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>

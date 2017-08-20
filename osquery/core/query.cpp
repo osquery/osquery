@@ -9,14 +9,15 @@
  */
 
 #include <algorithm>
+#include <vector>
 
+#include <osquery/database.h>
 #include <osquery/logger.h>
-
-#include "osquery/database/query.h"
+#include <osquery/query.h>
 
 namespace osquery {
 
-uint64_t Query::getPreviousEpoch() {
+uint64_t Query::getPreviousEpoch() const {
   uint64_t epoch = 0;
   std::string raw;
   auto status = getDatabaseValue(kQueries, name_ + "epoch", raw);
@@ -26,7 +27,7 @@ uint64_t Query::getPreviousEpoch() {
   return epoch;
 }
 
-Status Query::getPreviousQueryResults(QueryData& results) {
+Status Query::getPreviousQueryResults(QueryData& results) const {
   std::string raw;
   auto status = getDatabaseValue(kQueries, name_, raw);
   if (!status.ok()) {
@@ -46,7 +47,7 @@ std::vector<std::string> Query::getStoredQueryNames() {
   return results;
 }
 
-bool Query::isQueryNameInDatabase() {
+bool Query::isQueryNameInDatabase() const {
   auto names = Query::getStoredQueryNames();
   return std::find(names.begin(), names.end(), name_) != names.end();
 }
@@ -56,13 +57,13 @@ static inline void saveQuery(const std::string& name,
   setDatabaseValue(kQueries, "query." + name, query);
 }
 
-bool Query::isNewQuery() {
+bool Query::isNewQuery() const {
   std::string query;
   getDatabaseValue(kQueries, "query." + name_, query);
   return (query != query_.query);
 }
 
-Status Query::addNewResults(const QueryData& qd, const uint64_t epoch) {
+Status Query::addNewResults(const QueryData& qd, const uint64_t epoch) const {
   DiffResults dr;
   return addNewResults(qd, epoch, dr, false);
 }
@@ -70,7 +71,7 @@ Status Query::addNewResults(const QueryData& qd, const uint64_t epoch) {
 Status Query::addNewResults(const QueryData& current_qd,
                             const uint64_t current_epoch,
                             DiffResults& dr,
-                            bool calculate_diff) {
+                            bool calculate_diff) const {
   // The current results are 'fresh' when not calculating a differential.
   bool fresh_results = !calculate_diff;
   if (!isQueryNameInDatabase()) {
