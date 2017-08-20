@@ -16,7 +16,8 @@
 
 #include <gtest/gtest.h>
 
-#include "osquery/database/query.h"
+#include <osquery/query.h>
+
 #include "osquery/tests/test_util.h"
 
 namespace osquery {

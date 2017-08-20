@@ -10,6 +10,9 @@
 
 #pragma once
 
+#include <set>
+#include <string>
+
 #include <osquery/dispatcher.h>
 #include <osquery/filesystem.h>
 
@@ -140,6 +143,7 @@ class Carver : public InternalRunnable {
   friend class CarverTests;
   FRIEND_TEST(CarverTests, test_carve_files_locally);
 };
+
 /**
  * @brief Start a file carve of the given paths
  *

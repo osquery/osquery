@@ -23,8 +23,8 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
-#include <osquery/database.h>
 #include <osquery/flags.h>
+#include <osquery/query.h>
 #include <osquery/registry.h>
 
 namespace osquery {

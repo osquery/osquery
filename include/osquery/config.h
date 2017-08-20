@@ -17,7 +17,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
-#include <osquery/database.h>
+#include <osquery/query.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 

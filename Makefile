@@ -59,7 +59,7 @@ endif
 
 
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
-CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib" cmake $(SOURCE_DIR)/
+CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib" cmake $(CMAKE_EXTRA) $(SOURCE_DIR)/
 CTEST := $(PATH_SET) ctest $(SOURCE_DIR)/
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"

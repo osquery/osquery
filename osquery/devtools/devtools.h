@@ -10,10 +10,12 @@
 
 #pragma once
 
+#include <map>
 #include <string>
+#include <vector>
 
-#include <osquery/database.h>
 #include <osquery/flags.h>
+#include <osquery/query.h>
 
 namespace osquery {
 
