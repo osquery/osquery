@@ -231,9 +231,34 @@ TEST_F(INotifyTests, test_inotify_match_subscription) {
     sc->path = dir;
     event_pub_->monitorSubscription(sc, false);
     auto ec = event_pub_->createEventContext();
+    ec->isub_ctx = sc;
     ec->path = "/etc/";
     EXPECT_TRUE(event_pub_->shouldFire(sc, ec));
     ec->path = "/etc/passwd";
+    EXPECT_TRUE(event_pub_->shouldFire(sc, ec));
+  }
+
+  std::vector<std::string> exclude_paths = {
+      "/etc/ssh/%%", "/etc/", "/etc/ssl/openssl.cnf", "/"};
+  for (const auto& path : exclude_paths) {
+    event_pub_->exclude_paths_.insert(path);
+  }
+
+  {
+    event_pub_->path_descriptors_.clear();
+    auto sc = event_pub_->createSubscriptionContext();
+    sc->path = "/etc/%%";
+    auto ec = event_pub_->createEventContext();
+    ec->isub_ctx = sc;
+    ec->path = "/etc/ssh/ssh_config";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/etc/passwd";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/etc/group";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/etc/ssl/openssl.cnf";
+    EXPECT_FALSE(event_pub_->shouldFire(sc, ec));
+    ec->path = "/etc/ssl/certs/";
     EXPECT_TRUE(event_pub_->shouldFire(sc, ec));
   }
 }

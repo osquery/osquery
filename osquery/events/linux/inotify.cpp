@@ -16,6 +16,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
@@ -126,6 +127,23 @@ bool INotifyEventPublisher::monitorSubscription(
   return needMonitoring(discovered, sc, sc->mask, sc->recursive, add_watch);
 }
 
+void INotifyEventPublisher::buildExcludePathsSet() {
+  auto parser = Config::getParser("file_paths");
+
+  WriteLock lock(subscription_lock_);
+  exclude_paths_.clear();
+  for (const auto& excl_category :
+       parser->getData().get_child("exclude_paths")) {
+    for (const auto& excl_path : excl_category.second) {
+      auto pattern = excl_path.second.get_value<std::string>("");
+      if (pattern.empty()) {
+        continue;
+      }
+      exclude_paths_.insert(pattern);
+    }
+  }
+}
+
 void INotifyEventPublisher::configure() {
   if (inotify_handle_ == -1) {
     // This publisher has not been setup correctly.
@@ -156,8 +174,9 @@ void INotifyEventPublisher::configure() {
     }
     ino_sc->descriptor_paths_.clear();
   }
-
   delete_subscriptions.clear();
+
+  buildExcludePathsSet();
 
   for (auto& sub : subscriptions_) {
     // Anytime a configure is called, try to monitor all subscriptions.
@@ -266,6 +285,7 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
     } else {
       auto isc = descriptor_inosubctx_.at(event->wd);
       ec->path = isc->descriptor_paths_.at(event->wd);
+      ec->isub_ctx = isc;
     }
   }
 
@@ -284,26 +304,14 @@ INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
 
 bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
                                        const INotifyEventContextRef& ec) const {
-  // The subscription may supply a required event mask.
-  if (sc->mask != 0 && !(ec->event->mask & sc->mask)) {
+  if (sc.get() != ec->isub_ctx.get()) {
+    /// Not my event.
     return false;
   }
 
-  if (sc->recursive && !sc->recursive_match) {
-    ssize_t found = ec->path.find(sc->path);
-    if (found != 0) {
-      return false;
-    }
-  } else if (ec->path == sc->path) {
-    return true;
-  } else {
-    auto flags = FNM_PATHNAME | FNM_CASEFOLD |
-                 ((sc->recursive_match) ? FNM_LEADING_DIR : 0);
-    if (fnmatch((sc->path + "*").c_str(), ec->path.c_str(), flags) != 0) {
-      // Only apply a leading-dir match if this is a recursive watch with a
-      // match requirement (and inline wildcard with ending recursive wildcard).
-      return false;
-    }
+  // The subscription may supply a required event mask.
+  if (sc->mask != 0 && !(ec->event->mask & sc->mask)) {
+    return false;
   }
 
   // inotify will not monitor recursively, new directories need watches.
@@ -313,6 +321,15 @@ bool INotifyEventPublisher::shouldFire(const INotifySubscriptionContextRef& sc,
         const_cast<INotifySubscriptionContextRef&>(sc),
         sc->mask,
         true);
+  }
+
+  // exclude paths should be applied at last
+  auto path = ec->path.substr(0, ec->path.rfind('/'));
+  // Need to have two finds,
+  // what if somebody excluded an individual file inside a directory
+  if (!exclude_paths_.empty() &&
+      (exclude_paths_.find(path) || exclude_paths_.find(ec->path))) {
+    return false;
   }
 
   return true;

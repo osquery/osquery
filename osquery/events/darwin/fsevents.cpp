@@ -12,6 +12,7 @@
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -186,9 +187,28 @@ std::set<std::string> FSEventsEventPublisher::transformSubscription(
   return paths;
 }
 
+void FSEventsEventPublisher::buildExcludePathsSet() {
+  auto parser = Config::getParser("file_paths");
+
+  WriteLock lock(subscription_lock_);
+  exclude_paths_.clear();
+  for (const auto& excl_category :
+       parser->getData().get_child("exclude_paths")) {
+    for (const auto& excl_path : excl_category.second) {
+      auto pattern = excl_path.second.get_value<std::string>("");
+      if (pattern.empty()) {
+        continue;
+      }
+      exclude_paths_.insert(pattern);
+    }
+  }
+}
+
 void FSEventsEventPublisher::configure() {
   // Rebuild the watch paths.
   stop();
+
+  buildExcludePathsSet();
 
   {
     WriteLock lock(mutex_);
@@ -303,6 +323,15 @@ bool FSEventsEventPublisher::shouldFire(
     // Compare the event context mask to the subscription context.
     return false;
   }
+
+  auto path = ec->path.substr(0, ec->path.rfind('/'));
+  // Need to have two finds,
+  // what if somebody excluded an individual file inside a directory
+  if (!exclude_paths_.empty() &&
+      (exclude_paths_.find(path) || exclude_paths_.find(ec->path))) {
+    return false;
+  }
+
   return true;
 }
 
