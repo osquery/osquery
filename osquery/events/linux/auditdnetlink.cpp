@@ -18,9 +18,6 @@
 #include <chrono>
 #include <iostream>
 
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/utility/string_ref.hpp>
 
 #include <osquery/flags.h>

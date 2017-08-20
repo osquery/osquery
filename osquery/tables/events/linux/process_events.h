@@ -8,12 +8,6 @@
  *
  */
 
-#include <asm/unistd_64.h>
-
-#include <osquery/config.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
-
 #include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {

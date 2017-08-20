@@ -19,8 +19,6 @@
 
 #include <boost/variant.hpp>
 
-#include <osquery/events.h>
-
 #include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {

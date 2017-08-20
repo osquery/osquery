@@ -8,15 +8,6 @@
  *
  */
 
-#include <asm/unistd_64.h>
-
-#include <boost/algorithm/hex.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include <osquery/logger.h>
-#include <osquery/system.h>
-
-#include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {
