@@ -498,7 +498,7 @@ bool AuditdNetlink::acquireMessages() noexcept {
   for (events_received = 0; events_received < read_buffer_.size();
        events_received++) {
     errno = 0;
-    int poll_status = ::poll(fds, 1, 1);
+    int poll_status = ::poll(fds, 1, 4);
     if (poll_status == 0) {
       break;
     }
