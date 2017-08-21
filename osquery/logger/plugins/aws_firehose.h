@@ -28,15 +28,15 @@ DECLARE_uint64(aws_firehose_period);
 
 class FirehoseLogForwarder : public BufferedLogForwarder {
  private:
-  static const size_t kFirehoseMaxLogBytes;
-  static const size_t kFirehoseMaxRecords;
-  static const size_t kFirehoseMaxBatchBytes;
+  static const size_t kFirehoseMaxBytesPerRecord;
+  static const size_t kFirehoseMaxRecordsPerBatch;
+  static const size_t kFirehoseMaxBytesPerBatch;
 
  public:
   FirehoseLogForwarder()
       : BufferedLogForwarder("firehose",
                              std::chrono::seconds(FLAGS_aws_firehose_period),
-                             kFirehoseMaxRecords) {}
+                             kFirehoseMaxRecordsPerBatch) {}
   Status setUp() override;
 
  protected:

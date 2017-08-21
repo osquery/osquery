@@ -43,10 +43,13 @@ FLAG(bool,
      "Enable random kinesis partition keys");
 
 // This is the max per AWS docs
-const size_t KinesisLogForwarder::kKinesisMaxRecords = 500;
+const size_t KinesisLogForwarder::kKinesisMaxRecordsPerBatch = 500;
+
+// Max batch size
+const size_t KinesisLogForwarder::kKinesisMaxBytesPerBatch = 5000000;
 
 // Max size of log + partition key is 1MB. Max size of partition key is 256B.
-const size_t KinesisLogForwarder::kKinesisMaxLogBytes = 1000000 - 256;
+const size_t KinesisLogForwarder::kKinesisMaxBytesPerRecord = 1000000 - 256;
 
 const size_t KinesisLogForwarder::kKinesisMaxRetryCount = 100;
 const size_t KinesisLogForwarder::kKinesisInitialRetryDelay = 3000;
@@ -104,7 +107,7 @@ Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
         }
       }
 
-      if (log.size() > kKinesisMaxLogBytes) {
+      if (log.size() > kKinesisMaxBytesPerRecord) {
         LOG(ERROR) << "Kinesis log too big, discarding!";
       }
 

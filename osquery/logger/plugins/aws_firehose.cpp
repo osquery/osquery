@@ -36,13 +36,13 @@ FLAG(uint64,
 FLAG(string, aws_firehose_stream, "", "Name of Firehose stream for logging")
 
 // This is the max per AWS docs
-const size_t FirehoseLogForwarder::kFirehoseMaxRecords = 500;
+const size_t FirehoseLogForwarder::kFirehoseMaxRecordsPerBatch = 500;
 
 // Max size of log is 1MB.
-const size_t FirehoseLogForwarder::kFirehoseMaxLogBytes = 1000000;
+const size_t FirehoseLogForwarder::kFirehoseMaxBytesPerRecord = 1000000;
 
 // Max request size is 4MB.
-const size_t FirehoseLogForwarder::kFirehoseMaxBatchBytes = 4000000;
+const size_t FirehoseLogForwarder::kFirehoseMaxBytesPerBatch = 4000000;
 
 // Used to split log data into batches compatible with the protocol limits
 using FirehoseBatchGenerator = BatchGenerator<Aws::Firehose::Model::Record>;
@@ -89,15 +89,15 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
     record.SetData(buffer);
   };
 
-  auto batch_list =
-      FirehoseBatchGenerator::consumeLogDataAndGenerate(discarded_records,
-                                                        log_type,
-                                                        log_data,
-                                                        true,
-                                                        kFirehoseMaxBatchBytes,
-                                                        kFirehoseMaxLogBytes,
-                                                        kFirehoseMaxRecords,
-                                                        L_RecordInitializer);
+  auto batch_list = FirehoseBatchGenerator::consumeLogDataAndGenerate(
+      discarded_records,
+      log_type,
+      log_data,
+      true,
+      kFirehoseMaxBytesPerBatch,
+      kFirehoseMaxBytesPerRecord,
+      kFirehoseMaxRecordsPerBatch,
+      L_RecordInitializer);
 
   for (const auto& record : discarded_records) {
     LOG(ERROR) << "aws_firehose: The following log record has been discarded "

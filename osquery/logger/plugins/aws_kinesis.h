@@ -28,8 +28,9 @@ DECLARE_uint64(aws_kinesis_period);
 
 class KinesisLogForwarder : public BufferedLogForwarder {
  private:
-  static const size_t kKinesisMaxLogBytes;
-  static const size_t kKinesisMaxRecords;
+  static const size_t kKinesisMaxBytesPerRecord;
+  static const size_t kKinesisMaxRecordsPerBatch;
+  static const size_t kKinesisMaxBytesPerBatch;
   static const size_t kKinesisMaxRetryCount;
   static const size_t kKinesisInitialRetryDelay;
 
@@ -37,7 +38,7 @@ class KinesisLogForwarder : public BufferedLogForwarder {
   KinesisLogForwarder()
       : BufferedLogForwarder("kinesis",
                              std::chrono::seconds(FLAGS_aws_kinesis_period),
-                             kKinesisMaxRecords) {}
+                             kKinesisMaxRecordsPerBatch) {}
   Status setUp() override;
 
  protected:
