@@ -109,9 +109,14 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
 
   // Send each batch
   std::size_t sent_record_count = 0U;
+
+  std::size_t batch_index = 0;
+  std::stringstream error_output;
   bool send_error = false;
 
   for (auto& batch : batch_list) {
+    ++batch_index;
+
     Aws::Firehose::Model::PutRecordBatchRequest request;
     request.WithDeliveryStreamName(FLAGS_aws_firehose_stream)
         .WithRecords(std::move(batch));
@@ -120,10 +125,18 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
         client_->PutRecordBatch(request);
 
     if (!outcome.IsSuccess()) {
-      LOG(ERROR) << "Firehose write failed: "
-                 << outcome.GetError().GetMessage();
+      std::string error = outcome.GetError().GetMessage();
 
+      LOG(ERROR) << "Firehose write failed: " << error;
+
+      if (!error_output.str().empty()) {
+        error_output << "\n";
+      }
+
+      error_output << "Batch #" << batch_index
+                   << ": Write failure with error \"" << error << "\"";
       send_error = true;
+
       continue;
     }
 
@@ -139,9 +152,20 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
         continue;
       }
 
-      VLOG(1) << "Firehose write for " << result.GetFailedPutCount() << " of "
-              << result.GetRequestResponses().size()
-              << " records failed with error " << record.GetErrorMessage();
+      std::string error = outcome.GetError().GetMessage();
+
+      VLOG(1) << "Firehose write for record " << result.GetFailedPutCount()
+              << " of " << result.GetRequestResponses().size()
+              << " with error \"" << record.GetErrorMessage() << "\"";
+
+      if (!error_output.str().empty()) {
+        error_output << "\n";
+      }
+
+      error_output << "Batch #" << batch_index << ": Write failure for record "
+                   << result.GetFailedPutCount() << " of "
+                   << result.GetRequestResponses().size() << " with error \""
+                   << record.GetErrorMessage() << "\"";
 
       send_error = true;
     }
@@ -149,7 +173,11 @@ Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
 
   VLOG(1) << "Successfully sent " << sent_record_count << " logs to Firehose";
 
-  return Status(send_error ? 1 : 0, "One or more records couldn't be written");
+  if (send_error) {
+    return Status(1, error_output.str());
+  }
+
+  return Status(0, "OK");
 }
 
 Status FirehoseLogForwarder::setUp() {

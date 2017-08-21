@@ -45,7 +45,9 @@ class MockFirehoseClient : public Aws::Firehose::FirehoseClient {
 
 class FirehoseTests : public testing::Test {
  public:
-  void SetUp() override { initAwsSdk(); }
+  void SetUp() override {
+    initAwsSdk();
+  }
 };
 
 TEST_F(FirehoseTests, test_send) {
@@ -81,6 +83,10 @@ TEST_F(FirehoseTests, test_send) {
               MatchesEntry("{\"bar\":\"foo\",\"log_type\":\"results\"}\n"),
               MatchesEntry("{\"foo\":\"bar\",\"log_type\":\"results\"}\n")))))
       .WillOnce(Return(outcome));
-  EXPECT_EQ(Status(1, "Foo error"), forwarder.send(logs, "results"));
+  EXPECT_EQ(
+      Status(
+          1,
+          "Batch #1: Write failure for record 1 of 2 with error \"Foo error\""),
+      forwarder.send(logs, "results"));
 }
 }
