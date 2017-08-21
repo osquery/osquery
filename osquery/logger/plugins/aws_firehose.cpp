@@ -32,21 +32,31 @@ FLAG(uint64,
      aws_firehose_period,
      10,
      "Seconds between flushing logs to Firehose (default 10)");
+
 FLAG(string, aws_firehose_stream, "", "Name of Firehose stream for logging")
 
 // This is the max per AWS docs
 const size_t FirehoseLogForwarder::kFirehoseMaxRecords = 500;
-// Max size of log + partition key is 1MB. Max size of partition key is 256B.
-const size_t FirehoseLogForwarder::kFirehoseMaxLogBytes = 1000000 - 256;
+
+// Max size of log is 1MB.
+const size_t FirehoseLogForwarder::kFirehoseMaxLogBytes = 1000000;
+
+// Max request size is 4MB.
+const size_t FirehoseLogForwarder::kFirehoseMaxBatchBytes = 4000000;
+
+// Used to split log data into batches compatible with the protocol limits
+using FirehoseBatchGenerator = BatchGenerator<Aws::Firehose::Model::Record>;
 
 Status FirehoseLoggerPlugin::setUp() {
   initAwsSdk();
+
   forwarder_ = std::make_shared<FirehoseLogForwarder>();
   Status s = forwarder_->setUp();
   if (!s.ok()) {
     LOG(ERROR) << "Error initializing Firehose logger: " << s.getMessage();
     return s;
   }
+
   Dispatcher::addService(forwarder_);
   return Status(0);
 }
@@ -68,59 +78,78 @@ void FirehoseLoggerPlugin::init(const std::string& name,
 
 Status FirehoseLogForwarder::send(std::vector<std::string>& log_data,
                                   const std::string& log_type) {
-  std::vector<Aws::Firehose::Model::Record> records;
-  for (std::string& log : log_data) {
-    Status status = appendLogTypeToJson(log_type, log);
-    if (!status.ok()) {
-      LOG(ERROR)
-          << "Failed to append log_type key to status log JSON in Firehose";
+  // Generate the batches, according to the protocol limits
+  //
+  // Firehose buffers together the individual records, so we must insert
+  // newlines here if we want newlines in the resultant files after Firehose
+  // processing. See http://goo.gl/Pz6XOj
+  StringList discarded_records;
+  auto L_RecordInitializer = [](Aws::Firehose::Model::Record& record,
+                                Aws::Utils::ByteBuffer& buffer) -> void {
+    record.SetData(buffer);
+  };
 
-      // To achieve behavior parity with TLS logger plugin, skip non-JSON
-      // content
+  auto batch_list =
+      FirehoseBatchGenerator::consumeLogDataAndGenerate(discarded_records,
+                                                        log_type,
+                                                        log_data,
+                                                        true,
+                                                        kFirehoseMaxBatchBytes,
+                                                        kFirehoseMaxLogBytes,
+                                                        kFirehoseMaxRecords,
+                                                        L_RecordInitializer);
+
+  for (const auto& record : discarded_records) {
+    LOG(ERROR) << "aws_firehose: The following log record has been discarded "
+                  "because it was too big: "
+               << record;
+  }
+
+  discarded_records.clear();
+
+  // Send each batch
+  std::size_t sent_record_count = 0U;
+  bool send_error = false;
+
+  for (auto& batch : batch_list) {
+    Aws::Firehose::Model::PutRecordBatchRequest request;
+    request.WithDeliveryStreamName(FLAGS_aws_firehose_stream)
+        .WithRecords(std::move(batch));
+
+    Aws::Firehose::Model::PutRecordBatchOutcome outcome =
+        client_->PutRecordBatch(request);
+
+    if (!outcome.IsSuccess()) {
+      LOG(ERROR) << "Firehose write failed: "
+                 << outcome.GetError().GetMessage();
+
+      send_error = true;
       continue;
     }
 
-    if (log.size() + 1 > kFirehoseMaxLogBytes) {
-      LOG(ERROR) << "Firehose log too big, discarding!";
+    Aws::Firehose::Model::PutRecordBatchResult result = outcome.GetResult();
+    sent_record_count += result.GetRequestResponses().size();
+
+    if (result.GetFailedPutCount() == 0) {
+      continue;
     }
-    Aws::Firehose::Model::Record record;
-    auto buffer =
-        Aws::Utils::ByteBuffer((unsigned char*)log.c_str(), log.length() + 1);
-    // Firehose buffers together the individual records, so we must insert
-    // newlines here if we want newlines in the resultant files after Firehose
-    // processing. See http://goo.gl/Pz6XOj
-    buffer[log.length()] = '\n';
-    record.SetData(buffer);
-    records.emplace_back(std::move(record));
-  }
 
-  Aws::Firehose::Model::PutRecordBatchRequest request;
-  request.WithDeliveryStreamName(FLAGS_aws_firehose_stream)
-      .WithRecords(std::move(records));
-
-  Aws::Firehose::Model::PutRecordBatchOutcome outcome =
-      client_->PutRecordBatch(request);
-
-  if (!outcome.IsSuccess()) {
-    LOG(ERROR) << "Firehose write failed: " << outcome.GetError().GetMessage();
-    return Status(1, outcome.GetError().GetMessage());
-  }
-
-  Aws::Firehose::Model::PutRecordBatchResult result = outcome.GetResult();
-  if (result.GetFailedPutCount() != 0) {
     for (const auto& record : result.GetRequestResponses()) {
-      if (!record.GetErrorMessage().empty()) {
-        VLOG(1) << "Firehose write for " << result.GetFailedPutCount() << " of "
-                << result.GetRequestResponses().size()
-                << " records failed with error " << record.GetErrorMessage();
-        return Status(1, record.GetErrorMessage());
+      if (record.GetErrorMessage().empty()) {
+        continue;
       }
+
+      VLOG(1) << "Firehose write for " << result.GetFailedPutCount() << " of "
+              << result.GetRequestResponses().size()
+              << " records failed with error " << record.GetErrorMessage();
+
+      send_error = true;
     }
   }
 
-  VLOG(1) << "Successfully sent " << result.GetRequestResponses().size()
-          << " logs to Firehose";
-  return Status(0);
+  VLOG(1) << "Successfully sent " << sent_record_count << " logs to Firehose";
+
+  return Status(send_error ? 1 : 0, "One or more records couldn't be written");
 }
 
 Status FirehoseLogForwarder::setUp() {

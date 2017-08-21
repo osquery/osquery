@@ -30,6 +30,7 @@ class FirehoseLogForwarder : public BufferedLogForwarder {
  private:
   static const size_t kFirehoseMaxLogBytes;
   static const size_t kFirehoseMaxRecords;
+  static const size_t kFirehoseMaxBatchBytes;
 
  public:
   FirehoseLogForwarder()
