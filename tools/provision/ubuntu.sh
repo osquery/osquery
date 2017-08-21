@@ -21,8 +21,9 @@ function distro_main() {
   package bison
   package flex
   package bsdtar
-  package doxygen
   package realpath
+  package doxygen
+  package valgrind
 
   GEM=`which gem`
   do_sudo $GEM install fpm 

@@ -47,8 +47,8 @@ endif
 ifeq ($(DEBUG_SHARED_DIR),0)
 	DEBUG_DIR = $(shell ln -sf $(shell mktemp -d) build/debug_shared)
 endif
-	BUILD_DIR = $(shell realpath build/$(BUILD_NAME))$(DIR)
-	DEBUG_BUILD_DIR = $(shell realpath build/debug_$(BUILD_NAME))$(DEBUG_DIR)
+	BUILD_DIR = $(shell readlink --canonicalize build/$(BUILD_NAME))$(DIR)
+	DEBUG_BUILD_DIR = $(shell readlink --canonicalize build/debug_$(BUILD_NAME))$(DEBUG_DIR)
 ifneq (build/$(BUILD_NAME),$(BUILD_DIR))
 	LINK = " \-\> $(BUILD_DIR), $(DEBUG_BUILD_DIR)"
 endif
