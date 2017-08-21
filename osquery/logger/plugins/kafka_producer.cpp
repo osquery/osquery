@@ -38,22 +38,33 @@ FLAG(string,
      "all",
      "The number of acknowledgments the leader has to receive (0, 1, 'all')");
 
+/// How often to poll Kafka broker for publish results.
+const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
+
 /// Deleter for rd_kafka_t unique_ptr.
-void delKafkaHandle(rd_kafka_t* k) {
+static inline void delKafkaHandle(rd_kafka_t* k) {
   if (k != nullptr) {
     rd_kafka_destroy(k);
   }
 };
 
 /// Deleter for rd_kafka_topic_t unique_ptr.
-void delKafkaTopic(rd_kafka_topic_t* kt) {
+static inline void delKafkaTopic(rd_kafka_topic_t* kt) {
   if (kt != nullptr) {
     rd_kafka_topic_destroy(kt);
   }
 };
 
+/// Deleter for rd_kafka_conf_t.
+static inline void delKafkaConf(rd_kafka_conf_t* conf) {
+  if (conf != nullptr) {
+    rd_kafka_conf_destroy(conf);
+  }
+}
+
 REGISTER(KafkaProducerPlugin, "logger", "kafka_producer");
 
+/// Flag to ensure shutdown method is called only once
 std::once_flag KafkaProducerPlugin::shutdownFlag_;
 
 inline std::string getMsgName(const std::string& payload) {
@@ -129,13 +140,20 @@ void KafkaProducerPlugin::init(const std::string& name,
   msgKey_ = hostname + "_" + name;
 
   // Configure Kafka producer.
-  char errstr[512];
-  rd_kafka_conf_t* conf = rd_kafka_conf_new();
+  char errstr[512] = {0};
+
+  /* Per rd_kafka.h in describing `rd_kafka_new`: "The \p conf object is freed
+   * by this function on success and must not be used". Therefore we only
+   * explicitly delete until that function is called.
+   */
+  auto conf = rd_kafka_conf_new();
 
   if (rd_kafka_conf_set(
           conf, "client.id", hostname.c_str(), errstr, sizeof(errstr)) !=
       RD_KAFKA_CONF_OK) {
-    LOG(ERROR) << "Could not initiate Kafka client.id configuration:" << errstr;
+    LOG(ERROR) << "Could not initiate Kafka client.id configuration: "
+               << errstr;
+    delKafkaConf(conf);
     return;
   }
 
@@ -145,6 +163,7 @@ void KafkaProducerPlugin::init(const std::string& name,
                         errstr,
                         sizeof(errstr)) != RD_KAFKA_CONF_OK) {
     LOG(ERROR) << "Could not initiate Kafka brokers configuration: " << errstr;
+    delKafkaConf(conf);
     return;
   }
 
@@ -158,6 +177,7 @@ void KafkaProducerPlugin::init(const std::string& name,
   producer_.swap(rk);
   if (producer_.get() == nullptr) {
     LOG(ERROR) << "Could not initiate Kafka producer handle: " << errstr;
+    delKafkaConf(conf);
     return;
   }
 
@@ -185,10 +205,9 @@ Status KafkaProducerPlugin::logString(const std::string& payload) {
 
   std::string name(getMsgName(payload));
 
-  rd_kafka_topic_t* topic;
+  rd_kafka_topic_t* topic = nullptr;
   try {
     topic = queryToTopics_.at(name);
-
   } catch (const std::out_of_range& _) {
     topic = queryToTopics_[kKafkaBaseTopic];
   }
@@ -221,10 +240,10 @@ Status KafkaProducerPlugin::publishMsg(rd_kafka_topic_t* topic,
                        payload.length(),
                        msgKey_.c_str(), // Optional key
                        msgKey_.length(), // key length
-                       NULL) == -1) {
+                       nullptr) == -1) {
     return Status(1,
                   "Failed to produce on Kafka topic " +
-                      std::string(rd_kafka_topic_name(topic)) + " :" +
+                      std::string(rd_kafka_topic_name(topic)) + " : " +
                       rd_kafka_err2str(rd_kafka_last_error()));
   }
 
@@ -233,7 +252,7 @@ Status KafkaProducerPlugin::publishMsg(rd_kafka_topic_t* topic,
 
 inline rd_kafka_topic_t* KafkaProducerPlugin::initTopic(
     const std::string& topicName) {
-  char errstr[512];
+  char errstr[512] = {0};
   rd_kafka_topic_conf_t* topicConf = rd_kafka_topic_conf_new();
   if (rd_kafka_topic_conf_set(topicConf,
                               "acks",
@@ -283,7 +302,7 @@ bool KafkaProducerPlugin::configureTopics() {
   }
 
   // Initiate base Kafka topic.
-  if (FLAGS_logger_kafka_topic != "") {
+  if (!FLAGS_logger_kafka_topic.empty()) {
     auto topic = initTopic(FLAGS_logger_kafka_topic);
     if (topic != nullptr) {
       topics_.push_back(std::unique_ptr<rd_kafka_topic_t,

@@ -36,7 +36,7 @@ set(OSQUERY_LOGGER_PLUGIN_TESTS
 # and others, which use a Glog sink. They must be tested in tandem.
 ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_LOGGER_PLUGIN_TESTS})
 
-if(NOT SKIP_KAFKA AND NOT WINDOWS)
+if(NOT SKIP_KAFKA AND NOT WINDOWS AND NOT FREEBSD)
   set(OSQUERY_LOGGER_KAFKA_PLUGINS
     "plugins/kafka_producer.cpp"
   )

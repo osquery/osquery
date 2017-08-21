@@ -11,8 +11,6 @@
 #pragma once
 
 #include <atomic>
-#include <future>
-#include <memory>
 #include <mutex>
 
 #include <librdkafka/rdkafka.h>
@@ -25,9 +23,6 @@ namespace osquery {
 
 /// Default Kafka topic to publish to if payload name is not found.
 const std::string kKafkaBaseTopic = "base_topic";
-
-/// How often to poll Kafka broker for publish results.
-const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
 
 /// Retrieves log payload field "name".
 std::string getMsgName(const std::string& payload);
