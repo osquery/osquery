@@ -130,4 +130,4 @@ Status Query::addNewResults(const QueryData& current_qd,
   }
   return Status(0, "OK");
 }
-}
+} // namespace osquery

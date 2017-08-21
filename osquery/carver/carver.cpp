@@ -278,7 +278,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   auto contRequest = Request<TLSTransport, JSONSerializer>(contUri_);
 
   std::set<std::pair<unsigned int, unsigned int>> carveBlocks;
-  for (auto i = 0; i < blkCount; i++) {
+  for (unsigned int i = 0; i < blkCount; i++) {
     // Map the carve data as (Block ID, Number of POST attempts)
     carveBlocks.insert(std::make_pair(i, 0));
   }

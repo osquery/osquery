@@ -22,6 +22,7 @@
 #include "osquery/core/json.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/hash.h"
+#include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
@@ -58,14 +59,39 @@ class CarverTests : public testing::Test {
  protected:
   void SetUp() override {
     createMockFileStructure();
+
+    // Start a server.
+    TLSServerRunner::start();
+    TLSServerRunner::setClientConfig();
+
+    // Configure the carver endpoints
+    carver_start_endpoint_ = Flag::getValue("carver_start_endpoint");
+    Flag::updateValue("carver_start_endpoint", "/carve_init");
+
+    carver_continue_endpoint_ = Flag::getValue("carver_continue_endpoint");
+    Flag::updateValue("carver_continue_endpoint", "/carve_block");
+
+    disable_carver_ = Flag::getValue("disable_carver");
+    Flag::updateValue("disable_carver", "false");
   }
 
   void TearDown() override {
     tearDownMockFileStructure();
+
+    // Stop the server.
+    TLSServerRunner::unsetClientConfig();
+    TLSServerRunner::stop();
+
+    Flag::updateValue("carver_start_endpoint", carver_start_endpoint_);
+    Flag::updateValue("carver_continue_endpoint", carver_continue_endpoint_);
+    Flag::updateValue("disable_carver", disable_carver_);
   }
 
  private:
   std::set<std::string> carvePaths;
+  std::string carver_start_endpoint_;
+  std::string carver_continue_endpoint_;
+  std::string disable_carver_;
 };
 
 TEST_F(CarverTests, test_carve_files_locally) {
@@ -98,6 +124,45 @@ TEST_F(CarverTests, test_carve_files_locally) {
   EXPECT_GT(tar.size(), 0U);
 }
 
+TEST_F(CarverTests, test_full_carve) {
+  {
+    SQL results("select * from carves where carve=1 and path='" +
+                kFakeDirectory + "/files_to_carve/evil.exe'");
+  }
+
+  SQL carveResults("select sha256, carve_guid, status from carves");
+  EXPECT_TRUE(carveResults.rows().size() > 0);
+
+  int tries = 0;
+  auto status = carveResults.rows()[0].at("status");
+  std::string carveShaSum = "";
+  while (status == "PENDING" && tries < 10) {
+// Failing with unresolved symbol :(
+// pauseMilli(100);
+#ifdef WIN32
+    Sleep(1);
+#else
+    sleep(1);
+#endif
+    SQL carveResultsCont(
+        "select status, sha256 from carves where carve_guid = '" +
+        carveResults.rows()[0].at("carve_guid") + "'");
+    status = carveResultsCont.rows()[0].at("status");
+
+    // The sha256 isn't updated until after the carve completes
+    carveShaSum = carveResultsCont.rows()[0].at("sha256");
+    tries++;
+  }
+  EXPECT_TRUE(!carveShaSum.empty());
+
+  auto fileShaSum = hashFromFile(
+      HASH_TYPE_SHA256,
+      (fs::temp_directory_path() / carveResults.rows()[0].at("carve_guid"))
+              .string() +
+          ".tar");
+  EXPECT_EQ(fileShaSum, carveShaSum);
+}
+
 TEST_F(CarverTests, test_compression) {
   auto s = osquery::compress(
       kTestDataPath + "test.config",
@@ -116,4 +181,4 @@ TEST_F(CarverTests, test_decompression) {
           (fs::temp_directory_path() / fs::path("test.config")).string()) ==
       hashFromFile(HashType::HASH_TYPE_SHA256, kTestDataPath + "test.config"));
 }
-}
+} // namespace osquery

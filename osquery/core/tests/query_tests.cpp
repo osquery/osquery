@@ -130,4 +130,4 @@ TEST_F(QueryTests, test_get_stored_query_names) {
   auto in_vector = std::find(names.begin(), names.end(), "foobar");
   EXPECT_NE(in_vector, names.end());
 }
-}
+} // namespace osquery

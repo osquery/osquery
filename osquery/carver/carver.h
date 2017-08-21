@@ -142,6 +142,9 @@ class Carver : public InternalRunnable {
  private:
   friend class CarverTests;
   FRIEND_TEST(CarverTests, test_carve_files_locally);
+  FRIEND_TEST(CarverTests, test_compression);
+  FRIEND_TEST(CarverTests, test_decompression);
+  FRIEND_TEST(CarverTests, test_full_carve);
 };
 
 /**
