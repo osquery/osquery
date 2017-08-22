@@ -72,7 +72,7 @@ Set-DenyWriteAcl $daemonFolder 'Add'
 
 if ($installService) {
   if (-not (Get-Service $serviceName -ErrorAction SilentlyContinue)) {
-    Write-Debug '[+] Installing osquery daemon service.'
+    Write-Debug 'Installing osquery daemon service.'
     # If the 'install' parameter is passed, we create a Windows service with
     # the flag file in the default location in \ProgramData\osquery\
     New-Service -Name $serviceName -BinaryPathName "$destDaemonBin --flagfile=\ProgramData\osquery\osquery.flags" -DisplayName $serviceName -Description $serviceDescription -StartupType Automatic
@@ -95,10 +95,4 @@ if (-not ($oldPath -imatch [regex]::escape($targetFolder))) {
     $newPath = $newPath + ';' + $targetFolder
   }
   [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
-}
-
-if (Test-Path $targetFolder) {
-  Write-Output "osquery was successfully installed to $targetFolder."
-} else {
-  Write-Output 'There was an error installing osquery.'
 }
