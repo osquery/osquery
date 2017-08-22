@@ -119,10 +119,7 @@ restart() {
 }
 
 status() {
-  if [ ! -f $PIDFILE ] ; then
-    echo "$PROG is not running. no pidfile found."
-    RETVAL=7
-  else
+  if [ -f $PIDFILE ]; then
     PID=$(cat $PIDFILE)
     PROCNAME=$(ps -p $PID -o comm\=)
     if [ "$PROCNAME" = "$PROG" ]; then
@@ -133,6 +130,20 @@ status() {
       echo "$PROG is not running but a stale pidfile was found."
       RETVAL=7
     fi
+  elif [ -f $OLD_PIDFILE ]; then
+    PID=$(cat $OLD_PIDFILE)
+    PROCNAME=$(ps -p $PID -o comm\=)
+    if [ "$PROCNAME" = "$PROG" ]; then
+      echo "$PROG is already running (old pidfile): $PID"
+      RETVAL=0
+    else
+      # osqueryd pidfile exists but it's not running
+      echo "$PROG is not running but a stale old pidfile was found."
+      RETVAL=7
+    fi
+  else
+    echo "$PROG is not running. no pidfile found."
+    RETVAL=7
   fi
 }
 
