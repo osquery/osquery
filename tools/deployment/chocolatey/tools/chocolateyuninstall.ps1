@@ -31,11 +31,6 @@ if ((Get-Service $serviceName -ErrorAction SilentlyContinue)) {
 
 if (Test-Path $targetFolder) {
   Remove-Item -Force -Recurse $targetFolder
-  if (Test-Path $targetFolder) {
-    Write-Output 'osquery uninstallation was unsuccessful.'
-  } else {
-    Write-Output 'osquery was uninstalled successfully.'
-  }
 } else {
-  Write-Output 'osquery was not found on the system. Nothing to do.'
+  Write-Debug 'osquery was not found on the system. Nothing to do.'
 }
