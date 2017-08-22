@@ -16,4 +16,4 @@ schema([
     Column("backup_gateway_mac", TEXT, "Backup gateway MAC address"),
     Column("snmp_community_string", TEXT, "SNMP community string of BMC")
 ])
-implementation("linux/ipmi@genIPMILANs")
+implementation("ipmi/ipmi_info@genIPMILANs")

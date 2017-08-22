@@ -2,7 +2,7 @@ table_name("ipmi_mc")
 description("IPMI Management Controller information.")
 schema([
     Column("name", TEXT, "Name of the MC"),
-    Column("device_id", INTEGER, "Device ID of the MC"),
+    Column("id", INTEGER, "Device ID of the MC"),
     Column("device_revision", INTEGER, "Device revision of the MC"),
     Column("device_available", INTEGER,
       "Boolean value indicating whether MC device is available"),
@@ -28,4 +28,4 @@ schema([
       "Boolean value indicating whether MC is active"),
     Column("guid", TEXT, "GUID of MC, if available"),
 ])
-implementation("linux/ipmi@genIPMIMCs")
+implementation("ipmi/ipmi_info@genIPMIMCs")

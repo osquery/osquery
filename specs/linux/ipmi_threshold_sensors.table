@@ -9,4 +9,4 @@ schema([
     Column("threshold_out_of_range", INTEGER,
       "Boolean value indicating whether reading is out-of-range of threshold"),
 ])
-implementation("linux/ipmi@genIPMIThresholdSensors")
+implementation("ipmi/ipmi_info@genIPMIThresholdSensors")

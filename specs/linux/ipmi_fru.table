@@ -43,4 +43,4 @@ schema([
     Column("multi_record_offset", INTEGER, "Multi-record offset value"),
     Column("multi_record_length", INTEGER, "Multi-record legnth"),
 ])
-implementation("linux/ipmi@genIPMIFRUs")
+implementation("ipmi/ipmi_info@genIPMIFRUs")
