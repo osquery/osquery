@@ -9,6 +9,9 @@
  */
 
 #include <algorithm>
+#include <chrono>
+#include <iterator>
+#include <thread>
 
 #include <aws/core/utils/Outcome.h>
 #include <aws/kinesis/model/PutRecordsRequest.h>
@@ -41,6 +44,10 @@ FLAG(bool,
      aws_kinesis_random_partition_key,
      false,
      "Enable random kinesis partition keys");
+
+// Used to split log data into batches compatible with the protocol limits
+using KinesisBatchGenerator =
+    BatchGenerator<Aws::Kinesis::Model::PutRecordsRequestEntry>;
 
 // This is the max per AWS docs
 const size_t KinesisLogForwarder::kKinesisMaxRecordsPerBatch = 500;
@@ -83,103 +90,109 @@ void KinesisLoggerPlugin::init(const std::string& name,
 
 Status KinesisLogForwarder::send(std::vector<std::string>& log_data,
                                  const std::string& log_type) {
-  size_t retry_count = kKinesisMaxRetryCount;
-  size_t retry_delay = kKinesisInitialRetryDelay;
-  size_t original_data_size = log_data.size();
+  // Generate the batches, according to the protocol limits
+  StringList discarded_records;
+  auto L_RecordInitializer = [this](
+      Aws::Kinesis::Model::PutRecordsRequestEntry& record,
+      Aws::Utils::ByteBuffer& buffer) -> void {
 
-  // exit if we sent all the data
-  while (log_data.size() > 0) {
-    std::vector<Aws::Kinesis::Model::PutRecordsRequestEntry> entries;
-    std::vector<size_t> valid_log_data_indices;
-
-    size_t log_data_index = 0;
-    for (std::string& log : log_data) {
-      if (retry_count == kKinesisMaxRetryCount) {
-        // On first send attempt, append log_type to the JSON log content
-        // Other send attempts will be already have log_type appended
-        Status status = appendLogTypeToJson(log_type, log);
-        if (!status.ok()) {
-          LOG(ERROR)
-              << "Failed to append log_type key to status log JSON in Kinesis";
-
-          log_data_index++;
-          continue;
-        }
-      }
-
-      if (log.size() > kKinesisMaxBytesPerRecord) {
-        LOG(ERROR) << "Kinesis log too big, discarding!";
-      }
-
-      std::string record_partition_key = partition_key_;
-      if (FLAGS_aws_kinesis_random_partition_key) {
-        // Generate a random partition key for each record, ensuring that
-        // records are spread evenly across shards.
-        boost::uuids::uuid uuid = boost::uuids::random_generator()();
-        record_partition_key = boost::uuids::to_string(uuid);
-      }
-
-      Aws::Kinesis::Model::PutRecordsRequestEntry entry;
-      entry.WithPartitionKey(record_partition_key)
-          .WithData(Aws::Utils::ByteBuffer((unsigned char*)log.c_str(),
-                                           log.length()));
-      entries.emplace_back(std::move(entry));
-      valid_log_data_indices.push_back(log_data_index);
-
-      log_data_index++;
-    }
-
-    Aws::Kinesis::Model::PutRecordsRequest request;
-    request.WithStreamName(FLAGS_aws_kinesis_stream)
-        .WithRecords(std::move(entries));
-
-    Aws::Kinesis::Model::PutRecordsOutcome outcome =
-        client_->PutRecords(request);
-
-    if (!outcome.IsSuccess()) {
-      LOG(ERROR) << "Kinesis write failed: " << outcome.GetError().GetMessage();
-      return Status(1, outcome.GetError().GetMessage());
-    }
-
-    Aws::Kinesis::Model::PutRecordsResult result = outcome.GetResult();
-    VLOG(1) << "Successfully sent "
-            << result.GetRecords().size() - result.GetFailedRecordCount()
-            << " of " << result.GetRecords().size() << " logs to Kinesis";
-    if (result.GetFailedRecordCount() != 0) {
-      std::vector<std::string> resend;
-      std::string error_msg = "";
-      log_data_index = 0;
-      for (const auto& record : result.GetRecords()) {
-        if (!record.GetErrorMessage().empty()) {
-          size_t valid_log_data_index = valid_log_data_indices[log_data_index];
-          resend.push_back(log_data[valid_log_data_index]);
-          error_msg = record.GetErrorMessage();
-        }
-        log_data_index++;
-      }
-      // exit if we have tried too many times
-      // exit if all uploads fail right off the bat
-      // note, this will go back to the default logger batch retry code
-      if (retry_count == 0 ||
-          static_cast<int>(original_data_size) ==
-              result.GetFailedRecordCount()) {
-        LOG(ERROR) << "Kinesis write for " << result.GetFailedRecordCount()
-                   << " of " << result.GetRecords().size()
-                   << " records failed with error " << error_msg;
-        return Status(1, error_msg);
-      }
-
-      VLOG(1) << "Resending " << result.GetFailedRecordCount()
-              << " records to Kinesis";
-      log_data = resend;
-      sleepFor(retry_delay);
+    std::string record_partition_key;
+    if (FLAGS_aws_kinesis_random_partition_key) {
+      // Generate a random partition key for each record, ensuring that
+      // records are spread evenly across shards.
+      boost::uuids::uuid uuid = boost::uuids::random_generator()();
+      record_partition_key = boost::uuids::to_string(uuid);
     } else {
-      log_data.clear();
+      record_partition_key = partition_key_;
     }
-    --retry_count;
-    retry_delay += 1000;
+
+    Aws::Kinesis::Model::PutRecordsRequestEntry entry;
+    record.WithPartitionKey(record_partition_key).WithData(buffer);
+  };
+
+  auto batch_list = KinesisBatchGenerator::consumeLogDataAndGenerate(
+      discarded_records,
+      log_type,
+      log_data,
+      true,
+      kKinesisMaxBytesPerBatch,
+      kKinesisMaxBytesPerRecord,
+      kKinesisMaxRecordsPerBatch,
+      L_RecordInitializer);
+
+  for (const auto& record : discarded_records) {
+    LOG(ERROR) << "aws_kinesis: The following log record has been discarded "
+                  "because it was too big: "
+               << record;
   }
-  return Status(0);
+
+  discarded_records.clear();
+
+  // Send each batch
+  std::size_t sent_record_count = 0U;
+
+  for (auto batch_it = batch_list.begin(); batch_it != batch_list.end();) {
+    auto& batch = *batch_it;
+    bool send_error = true;
+
+    for (std::size_t retry = 0; retry < kKinesisMaxRetryCount; retry++) {
+      // Increase the resend delay at each retry
+      std::size_t retry_delay =
+          (retry == 0 ? 0 : kKinesisInitialRetryDelay) + (retry * 1000U);
+      if (retry_delay != 0) {
+        std::this_thread::sleep_for(std::chrono::seconds(retry_delay));
+      }
+
+      // Attempt to send the whole batch
+      Aws::Kinesis::Model::PutRecordsRequest request;
+      request.WithStreamName(FLAGS_aws_kinesis_stream).SetRecords(batch);
+
+      auto outcome = client_->PutRecords(request);
+      if (!outcome.IsSuccess()) {
+        LOG(ERROR) << "Kinesis write failed: "
+                   << outcome.GetError().GetMessage();
+        continue;
+      }
+
+      auto result = outcome.GetResult();
+      VLOG(1) << "Successfully sent "
+              << result.GetRecords().size() - result.GetFailedRecordCount()
+              << " of " << result.GetRecords().size() << " logs to Kinesis";
+
+      if (result.GetFailedRecordCount() == 0) {
+        send_error = false;
+        break;
+      }
+
+      // We didn't manage to send all records; remove the ones that succeeded
+      // (so that we do not duplicate them) and try again
+      std::size_t record_index = 0;
+      for (const auto& record : result.GetRecords()) {
+        if (!record.GetErrorCode().empty()) {
+          batch.erase(std::next(batch.begin(), record_index));
+        }
+
+        record_index++;
+      }
+    }
+
+    // We couldn't write some of the records; log them locally so that the
+    // administrator will at least be able to inspect them
+    if (send_error) {
+      LOG(ERROR) << "The aws_kinesis logger failed to send the following "
+                 << batch.size() << " log records: ";
+      for (const auto& failed_record : batch) {
+        const auto& record_data = failed_record.GetData();
+        LOG(ERROR) << " > " << std::string(reinterpret_cast<const char*>(
+                                               record_data.GetUnderlyingData()),
+                                           record_data.GetLength());
+      }
+    }
+
+    batch_it = batch_list.erase(batch_it);
+  }
+
+  return Status(0, "OK");
 }
 
 Status KinesisLogForwarder::setUp() {
