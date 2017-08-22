@@ -7,6 +7,11 @@ class Rapidjson < AbstractOsqueryFormula
   sha256 "bf7ced29704a1e696fbccf2a2b4ea068e7774fa37f6d7dd4039d0787f8bed98e"
   head "https://github.com/miloyip/rapidjson.git"
 
+  bottle do
+    cellar :any_skip_relocation
+    sha256 "928f6189837de2419d4936340e9b29394454fb2ec65b1deac2923fb2155ad584" => :x86_64_linux
+  end
+
   option "without-docs", "Don't build documentation"
 
   depends_on "cmake" => :build
