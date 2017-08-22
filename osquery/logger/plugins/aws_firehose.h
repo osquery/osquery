@@ -20,32 +20,48 @@
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
 
-#include "osquery/logger/plugins/buffered.h"
+#include "osquery/logger/plugins/aws_log_forwarder.h"
 
 namespace osquery {
 
 DECLARE_uint64(aws_firehose_period);
 
-class FirehoseLogForwarder : public BufferedLogForwarder {
- private:
-  static const size_t kFirehoseMaxBytesPerRecord;
-  static const size_t kFirehoseMaxRecordsPerBatch;
-  static const size_t kFirehoseMaxBytesPerBatch;
-
+class FirehoseLogForwarder final : public IFirehoseLogForwarder {
  public:
-  FirehoseLogForwarder()
-      : BufferedLogForwarder("firehose",
-                             std::chrono::seconds(FLAGS_aws_firehose_period),
-                             kFirehoseMaxRecordsPerBatch) {}
-  Status setUp() override;
+  FirehoseLogForwarder(const std::string& name,
+                       std::size_t log_period,
+                       std::size_t max_lines)
+      : IFirehoseLogForwarder(name, log_period, max_lines) {}
 
  protected:
-  Status send(std::vector<std::string>& log_data,
-              const std::string& log_type) override;
+  Status internalSetup() override;
+  Outcome internalSend(const Batch& batch) override;
+  void initializeRecord(Record& record,
+                        Aws::Utils::ByteBuffer& buffer) const override;
+
+  std::size_t getMaxBytesPerRecord() const override {
+    return (1000000U - 256U);
+  }
+  std::size_t getMaxRecordsPerBatch() const override {
+    return 500U;
+  }
+  std::size_t getMaxBytesPerBatch() const override {
+    return 4000000U;
+  }
+  std::size_t getMaxRetryCount() const override {
+    return 100U;
+  }
+  std::size_t getInitialRetryDelay() const override {
+    return 3000U;
+  }
+  bool appendNewlineSeparators() const override {
+    return false;
+  }
+
+  std::size_t getFailedRecordCount(Outcome& outcome) const override;
+  Result getResult(Outcome& outcome) const override;
 
  private:
-  std::shared_ptr<Aws::Firehose::FirehoseClient> client_{nullptr};
-
   FRIEND_TEST(FirehoseTests, test_send);
 };
 
