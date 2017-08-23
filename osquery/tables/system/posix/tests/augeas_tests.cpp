@@ -61,5 +61,9 @@ TEST_F(AugeasTests, select_hosts_by_node) {
       << "Value is not empty. Got " << results.rows()[0].at("value")
       << "instead";
 }
+TEST_F(AugeasTests, select_hosts_by_node) {
+  auto results = SQL("select COUNT(*) as count from augeas where path != ''");
+  ASSERT_GE(results.rows()[0].at("count"), 1);
+}
 }
 }

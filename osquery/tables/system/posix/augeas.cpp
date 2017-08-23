@@ -105,15 +105,15 @@ void matchAugeasPattern(augeas* aug,
                         bool use_path = false) {
   // The caller may supply an Augeas PATH/NODE expression or filesystem path.
   // Below we formulate a Augeas pattern from a path if needed.
-  char** matches = nullptr;
-  int len = aug_match(
+  struct aug_node* node = (aug_node*)malloc(sizeof(aug_node));
+  int len = aug_get_nodes(
       aug,
       (use_path ? ("/files/" + pattern + "|/files" + pattern + "//*").c_str()
                 : pattern.c_str()),
-      &matches);
+      node);
 
   // Handle matching errors.
-  if (matches == nullptr) {
+  if (node == nullptr) {
     return;
   } else if (len < 0) {
     reportAugeasError(aug);
@@ -121,41 +121,22 @@ void matchAugeasPattern(augeas* aug,
   }
 
   // Emit a row for each match.
-  for (size_t i = 0; i < static_cast<size_t>(len); i++) {
-    if (matches[i] == nullptr) {
-      continue;
-    }
-
-    // The caller is responsible for the matching memory.
-    std::string node(matches[i]);
-    free(matches[i]);
+  for (aug_node *current_node = node; current_node != nullptr; current_node = current_node->next) {
 
     Row r;
-    const char* value = nullptr;
-    int result = aug_get(aug, node.c_str(), &value);
-    if (result == 1) {
-      r["node"] = node;
-
-      if (value != nullptr) {
-        r["value"] = value;
-      }
-
-      if (!use_path) {
-        r["path"] = getSpanInfo(aug, node, context);
-      } else {
-        r["path"] = pattern;
-      }
-
-      r["label"] = getLabelInfo(aug, node, context);
-
-      results.push_back(r);
-    } else if (result < 1) {
-      reportAugeasError(aug);
+    r["node"] = std::string(node->path);
+    r["value"] = std::string(node->value);
+    r["label"] = std::string(node->label);
+    if (node->filename != nullptr) {
+      r["path"] = std::string(node->filename);
+    }
+    else {
+      r["path"] = "";
     }
   }
 
-  // aug_match() allocates the matches array and expects the caller to free it.
-  free(matches);
+  // aug_get_nodes() allocates the matches linked list and expects the caller to free it.
+  aug_free_nodes(node);
 }
 
 QueryData genAugeas(QueryContext& context) {
