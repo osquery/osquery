@@ -205,7 +205,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
         std::size_t failed_record_count = getFailedRecordCount(outcome);
 
         VLOG(1) << name_ << ": Successfully sent "
-                << batch.size() - failed_record_count << " out of of "
+                << batch.size() - failed_record_count << " out of "
                 << batch.size() << " log records";
 
         if (failed_record_count == 0) {
