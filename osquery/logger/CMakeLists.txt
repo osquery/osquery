@@ -48,8 +48,7 @@ if(NOT SKIP_AWS AND NOT WINDOWS)
   )
 
   set(OSQUERY_LOGGER_AWS_PLUGIN_TESTS
-    "logger/plugins/tests/aws_firehose_tests.cpp"
-    "logger/plugins/tests/aws_kinesis_tests.cpp"
+    "logger/plugins/tests/aws_logger_tests.cpp"
   )
 
   ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_LOGGER_AWS_PLUGIN_TESTS})

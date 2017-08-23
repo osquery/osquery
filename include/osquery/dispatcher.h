@@ -117,6 +117,7 @@ class InterruptableRunnable {
   FRIEND_TEST(DispatcherTests, test_independent_run);
   FRIEND_TEST(DispatcherTests, test_interruption);
   FRIEND_TEST(BufferedLogForwarderTests, test_async);
+  FRIEND_TEST(AwsLoggerTests, test_send);
 };
 
 class InternalRunnable : private boost::noncopyable,

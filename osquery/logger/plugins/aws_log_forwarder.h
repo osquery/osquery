@@ -101,7 +101,10 @@ class AwsLogForwarder : public BufferedLogForwarder {
       if (!status.ok()) {
         // To achieve behavior parity with TLS logger plugin, skip non-JSON
         // content
-        discarded_records.push_back(std::move(record));
+        LOG(ERROR) << name_ << ": The following log record has been discarded "
+                               "because it was not in JSON format: "
+                   << record;
+
         continue;
       }
 
@@ -186,31 +189,27 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
         // Attempt to send batch
         auto outcome = internalSend(batch);
-        if (!outcome.IsSuccess()) {
-          LOG(ERROR) << name_
-                     << " write failed: " << outcome.GetError().GetMessage();
-
-          if (is_last_retry) {
-            if (!status_output.str().empty()) {
-              status_output << "\n";
-            }
-
-            status_output << outcome.GetError().GetMessage();
-            error_count++;
-          }
-
-          continue;
-        }
-
         std::size_t failed_record_count = getFailedRecordCount(outcome);
+        std::size_t sent_record_count = batch.size() - failed_record_count;
 
-        VLOG(1) << name_ << ": Successfully sent "
-                << batch.size() - failed_record_count << " out of "
-                << batch.size() << " log records";
+        if (sent_record_count > 0) {
+          VLOG(1) << name_ << ": Successfully sent "
+                  << batch.size() - failed_record_count << " out of "
+                  << batch.size() << " log records";
+        }
 
         if (failed_record_count == 0) {
           send_error = false;
           break;
+        }
+
+        if (is_last_retry) {
+          if (!status_output.str().empty()) {
+            status_output << "\n";
+          }
+
+          status_output << outcome.GetError().GetMessage();
+          error_count++;
         }
 
         // We didn't manage to send all records; remove the ones that succeeded
