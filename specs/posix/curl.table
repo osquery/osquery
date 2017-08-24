@@ -4,7 +4,7 @@ schema([
     Column("url", TEXT, "The url for the request", required=True, index=True),
     Column("method", TEXT, "The HTTP method for the request"),
     Column("ua", TEXT, "The user-agent string to use for the request"),
-    Column("response_code", INTEGER, "The HTTP status code for the response"),
+    Column("response_code", BIGINT, "The HTTP status code for the response"),
     Column("rtt", BIGINT, "Time taken to complete the request"),
     Column("bytes", BIGINT, "Number of bytes in the response"),
     Column("result", TEXT, "The HTTP response body"),
