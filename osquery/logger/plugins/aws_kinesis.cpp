@@ -106,6 +106,31 @@ void KinesisLogForwarder::initializeRecord(
   record.WithPartitionKey(record_partition_key).WithData(buffer);
 }
 
+std::size_t KinesisLogForwarder::getMaxBytesPerRecord() const {
+  // Max size of log + partition key is 1MB. Max size of partition key is 256B.
+  return (1000000U - 256U);
+}
+
+std::size_t KinesisLogForwarder::getMaxRecordsPerBatch() const {
+  return 500U;
+}
+
+std::size_t KinesisLogForwarder::getMaxBytesPerBatch() const {
+  return 5000000U;
+}
+
+std::size_t KinesisLogForwarder::getMaxRetryCount() const {
+  return 100U;
+}
+
+std::size_t KinesisLogForwarder::getInitialRetryDelay() const {
+  return 3000U;
+}
+
+bool KinesisLogForwarder::appendNewlineSeparators() const {
+  return false;
+}
+
 std::size_t KinesisLogForwarder::getFailedRecordCount(Outcome& outcome) const {
   return static_cast<std::size_t>(outcome.GetResult().GetFailedRecordCount());
 }

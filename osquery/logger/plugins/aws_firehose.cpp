@@ -61,6 +61,7 @@ void FirehoseLoggerPlugin::init(const std::string& name,
   google::InitGoogleLogging(name.c_str());
   logStatus(log);
 }
+
 Status FirehoseLogForwarder::internalSetup() {
   if (FLAGS_aws_firehose_stream.empty()) {
     return Status(1,
@@ -84,6 +85,30 @@ FirehoseLogForwarder::Outcome FirehoseLogForwarder::internalSend(
 void FirehoseLogForwarder::initializeRecord(
     Record& record, Aws::Utils::ByteBuffer& buffer) const {
   record.SetData(buffer);
+}
+
+std::size_t FirehoseLogForwarder::getMaxBytesPerRecord() const {
+  return 1000000U;
+}
+
+std::size_t FirehoseLogForwarder::getMaxRecordsPerBatch() const {
+  return 500U;
+}
+
+std::size_t FirehoseLogForwarder::getMaxBytesPerBatch() const {
+  return 4000000U;
+}
+
+std::size_t FirehoseLogForwarder::getMaxRetryCount() const {
+  return 100U;
+}
+
+std::size_t FirehoseLogForwarder::getInitialRetryDelay() const {
+  return 3000U;
+}
+
+bool FirehoseLogForwarder::appendNewlineSeparators() const {
+  return false;
 }
 
 std::size_t FirehoseLogForwarder::getFailedRecordCount(Outcome& outcome) const {

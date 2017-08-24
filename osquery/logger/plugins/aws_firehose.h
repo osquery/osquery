@@ -39,24 +39,12 @@ class FirehoseLogForwarder final : public IFirehoseLogForwarder {
   void initializeRecord(Record& record,
                         Aws::Utils::ByteBuffer& buffer) const override;
 
-  std::size_t getMaxBytesPerRecord() const override {
-    return (1000000U - 256U);
-  }
-  std::size_t getMaxRecordsPerBatch() const override {
-    return 500U;
-  }
-  std::size_t getMaxBytesPerBatch() const override {
-    return 4000000U;
-  }
-  std::size_t getMaxRetryCount() const override {
-    return 100U;
-  }
-  std::size_t getInitialRetryDelay() const override {
-    return 3000U;
-  }
-  bool appendNewlineSeparators() const override {
-    return false;
-  }
+  std::size_t getMaxBytesPerRecord() const override;
+  std::size_t getMaxRecordsPerBatch() const override;
+  std::size_t getMaxBytesPerBatch() const override;
+  std::size_t getMaxRetryCount() const override;
+  std::size_t getInitialRetryDelay() const override;
+  bool appendNewlineSeparators() const override;
 
   std::size_t getFailedRecordCount(Outcome& outcome) const override;
   Result getResult(Outcome& outcome) const override;
