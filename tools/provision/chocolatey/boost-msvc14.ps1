@@ -12,21 +12,25 @@
 # $version - The version of the software package to build
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
-$version = '1.63.0'
-$chocoVersion = '1.63.0-r2'
+$version = '1.65.0'
+$chocoVersion = '1.65.0'
+$versionUnderscores = $version -replace '\.', '_'
 $packageName = 'boost-msvc14'
-$projectSource = 'http://www.boost.org/users/history/version_1_63_0.html'
-$packageSourceUrl = 'http://www.boost.org/users/history/version_1_63_0.html'
+$projectSource = `
+      "http://www.boost.org/users/history/version_$versionUnderscores.html"
+$packageSourceUrl = `
+      "http://www.boost.org/users/history/version_$versionUnderscores.html"
 $authors = 'boost-msvc14'
 $owners = 'boost-msvc14'
 $copyright = 'http://www.boost.org/users/license.html'
 $license = 'http://www.boost.org/users/license.html'
-$versionUnderscores = $version -replace '\.', '_'
 $timestamp = [int][double]::Parse((Get-Date -UFormat %s))
 $url = "http://downloads.sourceforge.net/project/boost/boost/" +
        "$version/boost_$versionUnderscores.7z?r=&ts=$timestamp" +
        "&use_mirror=pilotfiber"
 $numJobs = 2
+
+$currentLoc = Get-Location
 
 # Invoke our utilities file
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
@@ -70,8 +74,13 @@ if (-not (Test-Path $sourceDir)) {
 Set-Location $sourceDir
 
 # Build the b2 binary
+if ($(Get-Command 'vswhere' -ErrorAction SilentlyContinue) -eq $null) {
+  Write-Host '[-] Did not find vswhere in PATH.' -foregroundcolor red
+  exit
+}
 $b2 = Join-Path $(Get-Location) 'b2.exe'
 if (-not (Test-Path $b2)) {
+  Write-Debug '[*] Boost build engine not found, building'
   Invoke-BatchFile './bootstrap.bat'
 }
 
@@ -129,12 +138,13 @@ choco pack
 Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" `
   -ForegroundColor DarkGreen
 if (Test-Path "$packageName.$chocoVersion.nupkg") {
+  $package = "$(Get-Location)\$packageName.$chocoVersion.nupkg"
   Write-Host `
-    "[+] Finished building $packageName v$chocoVersion." `
-    -ForegroundColor Green
+    "[+] Finished building. Package written to $package" -ForegroundColor Green
 }
 else {
   Write-Host `
     "[-] Failed to build $packageName v$chocoVersion." `
     -ForegroundColor Red
 }
+Set-Location $currentLoc
