@@ -7,7 +7,7 @@ class Asio < AbstractOsqueryFormula
   sha256 "fc475c6b737ad92b944babdc3e5dcf5837b663f54ba64055dc3d8fc4a3061372"
   head "https://github.com/chriskohlhoff/asio.git"
   version "1.10.8"
-  revision 101
+  revision 102
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
