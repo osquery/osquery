@@ -107,7 +107,7 @@ static inline bool hasWorkerVariable() {
 
 volatile std::sig_atomic_t kHandledSignal{0};
 
-static inline bool isWatcher() {
+static inline bool hasWorker() {
   return (osquery::Watcher::get().isWorkerValid());
 }
 
@@ -364,7 +364,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
     std::signal(SIGALRM, signalHandler);
   }
 
-
   // If the caller is checking configuration, disable the watchdog/worker.
   if (FLAGS_config_check) {
     FLAGS_disable_watchdog = true;
@@ -462,7 +461,7 @@ void Initializer::initShell() const {
 
 void Initializer::initWatcher() const {
   // The watcher should not log into or use a persistent database.
-  if (!FLAGS_disable_watchdog && !isWorker()) {
+  if (isWatcher()) {
     FLAGS_disable_database = true;
     FLAGS_disable_logging = true;
     DatabasePlugin::setAllowOpen(true);
@@ -481,6 +480,10 @@ void Initializer::initWatcher() const {
   }
 
   if (isWatcher()) {
+    if (shutdown_ != nullptr) {
+      shutdown_();
+    }
+
     // If there are no autoloaded extensions, the watcher service will end,
     // otherwise it will continue as a background thread and respawn them.
     // If the watcher is also a worker watchdog it will do nothing but monitor

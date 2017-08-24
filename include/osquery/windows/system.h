@@ -22,6 +22,11 @@
 /// We define SIGHUP similarly to POSIX.
 #define SIGHUP 1
 
+// Windows defines the function GetObject globally meaning when compiling on
+// Windows, cl doesn't know what function to use. We need to undef this at the
+// beginning of all files that try to call the RapidJSON GetObject
+#undef GetObject
+
 /**
  * @brief For Windows, SIGILL and SIGTERM are not generated signals.
  *
