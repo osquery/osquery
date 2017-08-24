@@ -19,4 +19,6 @@ function distro_main() {
   package bzip2
   package bison
   package flex
+  package doxygen
+  package valgrind
 }

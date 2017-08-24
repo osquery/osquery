@@ -21,6 +21,8 @@ namespace tables {
 struct MDDrive {
   std::string name;
   size_t pos;
+
+  MDDrive() : pos(0) {}
 };
 
 struct MDAction {
@@ -49,6 +51,8 @@ struct MDDevice {
   MDAction reshape;
   MDAction checkArray;
   MDBitmap bitmap;
+
+  MDDevice() : usableSize(0) {}
 };
 
 struct MDStat {

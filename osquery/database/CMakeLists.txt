@@ -7,7 +7,6 @@
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_database
   database.cpp
-  query.cpp
   plugins/ephemeral.cpp
 )
 

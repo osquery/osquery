@@ -231,6 +231,7 @@ QueryData genOSXDefaultPreferences(QueryContext& context) {
 
 void genOSXPlistPrefValue(const pt::ptree& tree,
                           const Row& base,
+                          unsigned int level,
                           QueryData& results) {
   if (tree.empty()) {
     Row r = base;
@@ -244,9 +245,13 @@ void genOSXPlistPrefValue(const pt::ptree& tree,
     Row r = base;
     if (r["subkey"].size() > 0) {
       r["subkey"] += "/";
+      if (item.first.size() == 0) {
+        r["subkey"] += std::to_string(level++);
+      }
     }
+
     r["subkey"] += item.first;
-    genOSXPlistPrefValue(item.second, r, results);
+    genOSXPlistPrefValue(item.second, r, level, results);
   }
 }
 
@@ -289,7 +294,7 @@ QueryData genOSXPlist(QueryContext& context) {
       r["path"] = path;
       r["key"] = item.first;
       r["subkey"] = "";
-      genOSXPlistPrefValue(item.second, r, results);
+      genOSXPlistPrefValue(item.second, r, 0, results);
     }
   }
 

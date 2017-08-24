@@ -15,11 +15,11 @@
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/query.h>
 #include <osquery/system.h>
 
 #include "osquery/config/parsers/decorators.h"
 #include "osquery/core/process.h"
-#include "osquery/database/query.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/sql/sqlite_util.h"
 

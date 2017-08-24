@@ -33,6 +33,7 @@ if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("libxar.dylib")
   ADD_OSQUERY_LINK_ADDITIONAL("libcups")
   ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
+  ADD_OSQUERY_LINK_ADDITIONAL("libbsm")
 endif()
 
 # FreeBSD specific and applicable tables.
@@ -52,6 +53,8 @@ if(WINDOWS)
   set(TABLE_PLATFORM "windows")
 
   # Additional Windows libraries
+  ADD_OSQUERY_LINK_ADDITIONAL("crypt32.lib")
+  ADD_OSQUERY_LINK_ADDITIONAL("Wintrust.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("Advapi32.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("Iphlpapi.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("SetupAPI.lib")
@@ -64,7 +67,7 @@ if(LINUX)
   set(TABLE_PLATFORM "linux")
 
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.so")
-  ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper")
+  ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper lvm2app lvm-internal daemonclient")
   ADD_OSQUERY_LINK_ADDITIONAL("gcrypt gpg-error")
   ADD_OSQUERY_LINK_ADDITIONAL("blkid")
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")

@@ -16,6 +16,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+#include <osquery/database.h>
 #include <osquery/distributed.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -25,9 +26,7 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 #include "osquery/filesystem/fileops.h"
-#include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
-#include "osquery/remote/transports/tls.h"
 #include "osquery/remote/utility.h"
 #include "osquery/tables/system/hash.h"
 
@@ -225,9 +224,11 @@ Status Carver::carve(const boost::filesystem::path& path) {
   for (size_t i = 0; i < blkCount; i++) {
     inBuff.clear();
     auto bytesRead = src.read(inBuff.data(), FLAGS_carver_block_size);
-    auto bytesWritten = dst.write(inBuff.data(), bytesRead);
-    if (bytesWritten < 0) {
-      return Status(1, "Error writing bytes to tmp fs");
+    if (bytesRead > 0) {
+      auto bytesWritten = dst.write(inBuff.data(), bytesRead);
+      if (bytesWritten < 0) {
+        return Status(1, "Error writing bytes to tmp fs");
+      }
     }
   }
 

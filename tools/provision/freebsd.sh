@@ -33,6 +33,7 @@ function distro_main() {
   package asio
   package cpp-netlib
   package linenoise-ng
+  package rapidjson
   package zstd
 
   # Non-optional features.
@@ -43,4 +44,8 @@ function distro_main() {
   package yara
   package aws-sdk-cpp
   package lldpd
+
+  # For testing
+  package doxygen
+  package valgrind
 }

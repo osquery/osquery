@@ -22,6 +22,7 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/windows/wmi.h"
+#include "osquery/core/conversions.h"
 
 namespace osquery {
 
@@ -59,12 +60,23 @@ int getUidFromSid(PSID sid) {
   // USER_INFO_3 struct contains the RID (uid) of our user
   unsigned long userInfoLevel = 3;
   unsigned char* userBuff = nullptr;
+  unsigned long uid = -1;
   ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
-
-  if (ret != NERR_Success || userBuff == nullptr) {
-    return -1;
+  if (ret != NERR_Success && ret != NERR_UserNotFound) {
+    return uid;
   }
-  auto uid = LPUSER_INFO_3(userBuff)->usri3_user_id;
+
+  // SID belongs to a domain user, so we return the relative identifier (RID)
+  if (ret == NERR_UserNotFound) {
+    LPTSTR sidString;
+    ConvertSidToStringSid(sid, &sidString);
+    auto toks = osquery::split(sidString, "-");
+    safeStrtoul(toks.at(toks.size() - 1), 10, uid);
+    LocalFree(sidString);
+  } else if (ret == NERR_Success) {
+    uid = LPUSER_INFO_3(userBuff)->usri3_user_id;
+  }
+
   NetApiBufferFree(userBuff);
   return uid;
 }
@@ -93,12 +105,19 @@ int getGidFromSid(PSID sid) {
   // USER_INFO_3 struct contains the RID (uid) of our user
   unsigned long userInfoLevel = 3;
   unsigned char* userBuff = nullptr;
+  unsigned long gid = -1;
   ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
 
-  if (ret != NERR_Success || userBuff == nullptr) {
-    return -1;
+  if (ret == NERR_UserNotFound) {
+    LPTSTR sidString;
+    ConvertSidToStringSid(sid, &sidString);
+    auto toks = osquery::split(sidString, "-");
+    safeStrtoul(toks.at(toks.size() - 1), 10, gid);
+    LocalFree(sidString);
+  } else if (ret == NERR_Success) {
+    gid = LPUSER_INFO_3(userBuff)->usri3_primary_group_id;
   }
-  auto gid = LPUSER_INFO_3(userBuff)->usri3_primary_group_id;
+
   NetApiBufferFree(userBuff);
   return gid;
 }

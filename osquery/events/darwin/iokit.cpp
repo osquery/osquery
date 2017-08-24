@@ -90,6 +90,25 @@ std::string getIOKitProperty(const CFMutableDictionaryRef& details,
   return value;
 }
 
+long long int getNumIOKitProperty(const CFMutableDictionaryRef& details,
+                                  const std::string& key) {
+  // Get a property from the device.
+  auto cfkey = CFStringCreateWithCString(
+      kCFAllocatorDefault, key.c_str(), kCFStringEncodingUTF8);
+  auto property = CFDictionaryGetValue(details, cfkey);
+  CFRelease(cfkey);
+
+  // Several supported ways of parsing IOKit-encoded data.
+  if (property && CFGetTypeID(property) == CFNumberGetTypeID()) {
+    CFNumberType type = CFNumberGetType((CFNumberRef)property);
+    long long int value;
+    CFNumberGetValue((CFNumberRef)property, type, &value);
+    return value;
+  }
+
+  return 0;
+}
+
 void IOKitEventPublisher::restart() {
   static std::vector<const std::string*> device_classes = {
       &kIOUSBDeviceClassName_,

@@ -22,6 +22,8 @@ function distro_main() {
   package gettext-devel
   package bison
   package flex
+  package doxygen
+  package valgrind
 
   package rpm-devel
   package rpm-build

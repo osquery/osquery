@@ -47,6 +47,16 @@ TEST_F(ResultsTests, test_serialize_row) {
   EXPECT_EQ(results.first, tree);
 }
 
+TEST_F(ResultsTests, test_serializeRJ_row) {
+  auto results = getSerializedRow();
+  rapidjson::Document d(rapidjson::kObjectType);
+  auto s = serializeRowRJ(results.second, d);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+  EXPECT_EQ(d["meaning_of_life"], "meaning_of_life_value");
+  EXPECT_EQ(d["alphabetical"], "alphabetical_value");
+}
+
 TEST_F(ResultsTests, test_deserialize_row_json) {
   auto results = getSerializedRow();
   std::string input;
@@ -58,6 +68,17 @@ TEST_F(ResultsTests, test_deserialize_row_json) {
   EXPECT_TRUE(s.ok());
   // The output container should match the input row.
   EXPECT_EQ(output, results.second);
+}
+
+TEST_F(ResultsTests, test_deserialize_row_jsonRJ) {
+  auto results = getSerializedRow();
+  std::string input;
+  serializeRowJSONRJ(results.second, input);
+
+  // Pull the serialized JSON back into a Row output container.
+  Row output;
+  auto s = deserializeRowJSONRJ(input, output);
+  EXPECT_TRUE(s.ok());
 }
 
 TEST_F(ResultsTests, test_serialize_query_data) {

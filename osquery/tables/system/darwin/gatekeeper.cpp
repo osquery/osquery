@@ -46,7 +46,7 @@ bool isGateKeeperDevIdEnabled() {
     VLOG(1) << "Cannot open Gatekeeper DB: " << rc << " "
             << getStringForSQLiteReturnCode(rc);
     if (db != nullptr) {
-      free(db);
+      sqlite3_close(db);
     }
     return false;
   }
@@ -61,13 +61,13 @@ bool isGateKeeperDevIdEnabled() {
     if (value == 1) {
       // Clean up.
       sqlite3_finalize(stmt);
-      free(db);
+      sqlite3_close(db);
       // return false if any rows say "disabled"
       return false;
     }
   }
   sqlite3_finalize(stmt);
-  free(db);
+  sqlite3_close(db);
   return true;
 }
 
@@ -156,7 +156,7 @@ QueryData genGateKeeperApprovedApps(QueryContext& context) {
     VLOG(1) << "Cannot open Gatekeeper DB: " << rc << " "
             << getStringForSQLiteReturnCode(rc);
     if (db != nullptr) {
-      free(db);
+      sqlite3_close(db);
     }
     return results;
   }
@@ -175,7 +175,7 @@ QueryData genGateKeeperApprovedApps(QueryContext& context) {
 
   // Clean up.
   sqlite3_finalize(stmt);
-  free(db);
+  sqlite3_close(db);
 
   return results;
 }

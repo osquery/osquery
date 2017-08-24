@@ -618,6 +618,7 @@ Status AuditEventPublisher::run() {
       // A monitored syscall was issued, most likely part of a multi-record.
       handle_reply = true;
       break;
+    case AUDIT_TYPE_SOCKADDR:
     case AUDIT_CWD: // 1307
     case AUDIT_PATH: // 1302
     case AUDIT_EXECVE: // // 1309 (execve arguments).

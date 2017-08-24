@@ -34,6 +34,13 @@ EXAMPLE_CONFIG = {
     "node_invalid": False,
 }
 
+EXAMPLE_EMPTY_CONFIG = {
+    "schedule": {
+        "tls_proc": {"query": "select * from processes", "interval": 1},
+    },
+    "node_invalid": False,
+}
+
 # A 'node' variation of the TLS API uses a GET for config.
 EXAMPLE_NODE_CONFIG = EXAMPLE_CONFIG
 EXAMPLE_NODE_CONFIG["node"] = True
@@ -215,7 +222,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self._reply({})
 
     def test_read_requests(self):
-        # call made by unit tests to retrieve the entire history of requests 
+        # call made by unit tests to retrieve the entire history of requests
         # made by code under test. Used by unit tests to verify that the code
         # under test made the expected calls to the TLS backend
         self._reply(RECEIVED_REQUESTS)
@@ -259,14 +266,14 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # can retrieve it later for verification purposes
         request['command'] = command
         RECEIVED_REQUESTS.append(request)
-        
+
     def _reply(self, response):
         debug("Replying: %s" % (str(response)))
         self.wfile.write(json.dumps(response))
 
 
 def handler():
-    debug("Shutting down HTTP server via timeout (%d) seconds." 
+    debug("Shutting down HTTP server via timeout (%d) seconds."
           % (ARGS.timeout))
     thread.interrupt_main()
 
