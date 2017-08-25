@@ -56,6 +56,12 @@ CLI_FLAG(uint32,
          8192,
          "Size of blocks used for POSTing data back to remote endpoints");
 
+/// Size of blocks used for POSTing data back to remote endpoints
+CLI_FLAG(uint32,
+         carver_max_block_retries,
+         3,
+         "Maximum number of times to attempt POSTing a block before giving up");
+
 CLI_FLAG(bool,
          disable_carver,
          true,
@@ -270,31 +276,50 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   }
 
   auto contRequest = Request<TLSTransport, JSONSerializer>(contUri_);
-  for (size_t i = 0; i < blkCount; i++) {
-    std::vector<char> block(FLAGS_carver_block_size, 0);
-    auto r = pFile.read(block.data(), FLAGS_carver_block_size);
 
-    if (r != FLAGS_carver_block_size && r > 0) {
-      // resize the buffer to size we read as last block is likely smaller
-      block.resize(r);
-    }
-
-    pt::ptree params;
-    params.put<size_t>("block_id", i);
-    params.put<std::string>("session_id", session_id);
-    params.put<std::string>("request_id", requestId_);
-    params.put<std::string>(
-        "data", base64Encode(std::string(block.begin(), block.end())));
-
-    // TODO: Error sending files.
-    status = contRequest.call(params);
-    if (!status.ok()) {
-      VLOG(1) << "Post of carved block " << i
-              << " failed: " << status.getMessage();
-      continue;
-    }
+  std::set<std::pair<unsigned int, unsigned int>> carveBlocks;
+  for (unsigned int i = 0; i < blkCount; i++) {
+    // Map the carve data as (Block ID, Number of POST attempts)
+    carveBlocks.insert(std::make_pair(i, 0));
   }
 
+  while (!carveBlocks.empty()) {
+    for (auto cit = carveBlocks.begin(); cit != carveBlocks.end();) {
+      std::vector<char> block(FLAGS_carver_block_size, 0);
+      pFile.seek(cit->first * FLAGS_carver_block_size, PF_SEEK_BEGIN);
+      auto r = pFile.read(block.data(), FLAGS_carver_block_size);
+      if (r != FLAGS_carver_block_size && r > 0) {
+        // resize the buffer to size we read as last block is likely smaller
+        block.resize(r);
+      }
+      pt::ptree params;
+      params.put<size_t>("block_id", cit->first);
+      params.put<std::string>("session_id", session_id);
+      params.put<std::string>("request_id", requestId_);
+      params.put<std::string>(
+          "data", base64Encode(std::string(block.begin(), block.end())));
+
+      status = contRequest.call(params);
+      if (!status.ok()) {
+        // If the POST fails back off and retry later
+        const_cast<std::pair<unsigned int, unsigned int>&>(*cit).second++;
+        if (cit->second >= FLAGS_carver_max_block_retries) {
+          // The POST failed and exceeded our retry threshold
+          updateCarveValue(carveGuid_, "status", "FAILED");
+          return Status(1,
+                        "POST of block " + std::to_string(cit->first) +
+                            " failed " + std::to_string(cit->first) +
+                            " times with error: " + status.getMessage());
+        }
+        // Back off of POSTing and retry later.
+        pauseMilli(100 * cit->second + 1);
+        ++cit;
+      } else {
+        // The POST succeeded, remove the block from our list
+        cit = carveBlocks.erase(cit);
+      }
+    }
+  }
   updateCarveValue(carveGuid_, "status", "SUCCESS");
   return Status(0, "Ok");
 };

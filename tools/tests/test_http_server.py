@@ -20,6 +20,7 @@ import random
 import ssl
 import string
 import sys
+import tempfile
 import thread
 import threading
 
@@ -99,7 +100,7 @@ ENROLL_RESPONSE = {
 }
 
 RECEIVED_REQUESTS = []
-FILE_CARVE_DIR = '/tmp/'
+FILE_CARVE_DIR = tempfile.gettempdir()
 FILE_CARVE_MAP = {}
 
 def debug(response):
@@ -135,7 +136,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self._set_headers()
         content_len = int(self.headers.getheader('content-length', 0))
         request = json.loads(self.rfile.read(content_len))
-        
+
         # This contains a base64 encoded block of a file printing to the screen
         # slows down carving and makes scroll back a pain
         if (self.path != "/carve_block"):
@@ -247,7 +248,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # Do we still need more blocks
         if len(FILE_CARVE_MAP[request['session_id']]['blocks_received']) < FILE_CARVE_MAP[request['session_id']]['block_count']:
             return
-        out_file_name = FILE_CARVE_DIR+FILE_CARVE_MAP[request['session_id']]['carve_guid']
+        out_file_name = os.path.join(FILE_CARVE_DIR, FILE_CARVE_MAP[request['session_id']]['carve_guid'])
         # Check the first four bytes for the zstd header.
         if (base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]['blocks_received'][0])[0:4] == b'\x28\xB5\x2F\xFD'):
             out_file_name +=  '.zst'
