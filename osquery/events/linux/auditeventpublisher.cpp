@@ -178,6 +178,27 @@ void AuditEventPublisher::ProcessEvents(
       data.parent_process_id = static_cast<pid_t>(parent_process_id);
       audit_event.data = data;
 
+      std::uint64_t process_uid;
+      if (!GetIntegerFieldFromMap(
+              process_uid, audit_event_record.fields, "uid")) {
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process "
+                   "uid field is either missing or not valid.";
+
+        continue;
+      }
+
+      std::uint64_t process_gid;
+      if (!GetIntegerFieldFromMap(
+              process_gid, audit_event_record.fields, "gid")) {
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process "
+                   "gid field is either missing or not valid.";
+
+        continue;
+      }
+
+      data.process_uid = static_cast<uid_t>(process_uid);
+      data.process_gid = static_cast<gid_t>(process_gid);
+
       audit_event.record_list.push_back(audit_event_record);
       trace_context[audit_event_record.audit_id] = std::move(audit_event);
 

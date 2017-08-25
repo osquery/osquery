@@ -10,6 +10,8 @@ schema([
     Column("cwd", TEXT, "The current working directory of the process"),
     Column("path", TEXT, "The path associated with the event"),
     Column("dest_path", TEXT, "The canonical path associated with the event"),
+    Column("uid", TEXT, "The uid of the process performing the action"),
+    Column("gid", TEXT, "The gid of the process performing the action"),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
     Column("eid", TEXT, "Event ID", hidden=True),
 ])

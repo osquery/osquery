@@ -345,6 +345,12 @@ bool EmitRowFromSyscallContext(
   row["ppid"] = std::to_string(
       static_cast<std::uint64_t>(syscall_context.parent_process_id));
 
+  row["uid"] =
+      std::to_string(static_cast<std::uint64_t>(syscall_context.process_uid));
+
+  row["gid"] =
+      std::to_string(static_cast<std::uint64_t>(syscall_context.process_gid));
+
   row["executable"] = syscall_context.executable_path;
   row["partial"] = (syscall_context.partial ? "true" : "false");
   row["cwd"] = syscall_context.cwd;
@@ -1189,6 +1195,8 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     syscall_context.syscall_number = event_data.syscall_number;
     syscall_context.process_id = event_data.process_id;
     syscall_context.parent_process_id = event_data.parent_process_id;
+    syscall_context.process_uid = event_data.process_uid;
+    syscall_context.process_gid = event_data.process_gid;
     syscall_context.executable_path = event_data.executable_path;
 
     const AuditEventRecord* syscall_record = nullptr;
