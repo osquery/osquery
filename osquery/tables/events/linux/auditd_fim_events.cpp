@@ -270,8 +270,8 @@ bool EmitRowFromSyscallContext(
     const auto& data =
         boost::get<AuditdFimSrcDestData>(syscall_context.syscall_data);
 
-    row["path1"] = data.source;
-    row["path2"] = data.destination;
+    row["path"] = data.source;
+    row["dest_path"] = data.destination;
 
     is_write_operation = true;
     break;
@@ -314,7 +314,7 @@ bool EmitRowFromSyscallContext(
       row["operation"] = "close";
     }
 
-    row["path1"] = data.target;
+    row["path"] = data.target;
     break;
   }
 
@@ -326,9 +326,9 @@ bool EmitRowFromSyscallContext(
   }
 
   // Filter the events
-  bool include_event = L_IsPathIncluded(row["path1"]);
-  if (!include_event && row.find("path2") != row.end()) {
-    include_event = L_IsPathIncluded(row["path2"]);
+  bool include_event = L_IsPathIncluded(row["path"]);
+  if (!include_event && row.find("dest_path") != row.end()) {
+    include_event = L_IsPathIncluded(row["dest_path"]);
   }
 
   if (!include_event) {
