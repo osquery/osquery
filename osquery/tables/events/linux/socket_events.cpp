@@ -159,7 +159,8 @@ Status SocketEventSubscriber::ProcessEvents(
     GetStringFieldFromMap(saddr, sockaddr_event_record->fields, "saddr");
     if (saddr.size() < 4 || saddr[0] == '1') {
       VLOG(1) << "Malformed syscall event. The AUDIT_SOCKADDR does not "
-                 "have a valid saddr field";
+                 "have a valid saddr field: \""
+              << saddr << "\"";
       continue;
     }
 
