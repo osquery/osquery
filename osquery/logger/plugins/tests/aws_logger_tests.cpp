@@ -13,6 +13,8 @@
 #include <memory>
 #include <vector>
 
+#include <aws/kinesis/KinesisClient.h>
+#include <aws/kinesis/model/PutRecordsRequestEntry.h>
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
@@ -30,9 +32,15 @@ class AwsLoggerTests : public testing::Test {
   void SetUp() override {}
 };
 
-class DummyLogForwarder final : public IKinesisLogForwarder {
+using IDummyLogForwarder =
+    AwsLogForwarder<Aws::Kinesis::Model::PutRecordsRequestEntry,
+                    Aws::Kinesis::KinesisClient,
+                    Aws::Kinesis::Model::PutRecordsOutcome,
+                    Aws::Vector<Aws::Kinesis::Model::PutRecordsResultEntry>>;
+
+class DummyLogForwarder final : public IDummyLogForwarder {
  public:
-  DummyLogForwarder() : IKinesisLogForwarder("dummy", 1, 50) {}
+  DummyLogForwarder() : IDummyLogForwarder("dummy", 1, 50) {}
 
   using RawBatch = std::vector<std::string>;
   using RawBatchList = std::vector<RawBatch>;
@@ -119,8 +127,8 @@ TEST_F(AwsLoggerTests, test_send) {
       "This line will be discarded because it is not in JSON format");
   std::this_thread::sleep_for(std::chrono::seconds(2));
 
-  // The next 3 lines will be split in two because the whole batch size is too
-  // big
+  // The next 3 lines will be split in two because the whole batch size
+  // is too big
   log_forwarder->logString(
       "{ \"batch2\": \"1\", \"test test test test test\": \"1\" }");
   log_forwarder->logString(
@@ -138,7 +146,7 @@ TEST_F(AwsLoggerTests, test_send) {
   //
 
   // We expect to have sent three batches
-  EXPECT_EQ(log_forwarder->emitted_batch_list_.size(), 3);
+  EXPECT_EQ(log_forwarder->emitted_batch_list_.size(), 3U);
 
   // The first batch should contain 3 items
   auto first_batch = log_forwarder->emitted_batch_list_[0];

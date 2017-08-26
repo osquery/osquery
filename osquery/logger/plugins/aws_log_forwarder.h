@@ -14,12 +14,6 @@
 #include <memory>
 #include <vector>
 
-#include <aws/firehose/FirehoseClient.h>
-#include <aws/firehose/model/PutRecordBatchResponseEntry.h>
-#include <aws/firehose/model/Record.h>
-#include <aws/kinesis/KinesisClient.h>
-#include <aws/kinesis/model/PutRecordsRequestEntry.h>
-
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
@@ -313,16 +307,4 @@ class AwsLogForwarder : public BufferedLogForwarder {
   /// Logger name; used when printing messages
   std::string name_;
 };
-
-using IFirehoseLogForwarder = AwsLogForwarder<
-    Aws::Firehose::Model::Record,
-    Aws::Firehose::FirehoseClient,
-    Aws::Firehose::Model::PutRecordBatchOutcome,
-    Aws::Vector<Aws::Firehose::Model::PutRecordBatchResponseEntry>>;
-
-using IKinesisLogForwarder =
-    AwsLogForwarder<Aws::Kinesis::Model::PutRecordsRequestEntry,
-                    Aws::Kinesis::KinesisClient,
-                    Aws::Kinesis::Model::PutRecordsOutcome,
-                    Aws::Vector<Aws::Kinesis::Model::PutRecordsResultEntry>>;
 }

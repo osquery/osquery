@@ -15,6 +15,7 @@
 #include <vector>
 
 #include <aws/kinesis/KinesisClient.h>
+#include <aws/kinesis/model/PutRecordsRequestEntry.h>
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
@@ -24,6 +25,12 @@
 
 namespace osquery {
 DECLARE_uint64(aws_kinesis_period);
+
+using IKinesisLogForwarder =
+    AwsLogForwarder<Aws::Kinesis::Model::PutRecordsRequestEntry,
+                    Aws::Kinesis::KinesisClient,
+                    Aws::Kinesis::Model::PutRecordsOutcome,
+                    Aws::Vector<Aws::Kinesis::Model::PutRecordsResultEntry>>;
 
 class KinesisLogForwarder final : public IKinesisLogForwarder {
  public:

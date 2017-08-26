@@ -15,6 +15,8 @@
 #include <vector>
 
 #include <aws/firehose/FirehoseClient.h>
+#include <aws/firehose/model/PutRecordBatchResponseEntry.h>
+#include <aws/firehose/model/Record.h>
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
@@ -25,6 +27,12 @@
 namespace osquery {
 
 DECLARE_uint64(aws_firehose_period);
+
+using IFirehoseLogForwarder = AwsLogForwarder<
+    Aws::Firehose::Model::Record,
+    Aws::Firehose::FirehoseClient,
+    Aws::Firehose::Model::PutRecordBatchOutcome,
+    Aws::Vector<Aws::Firehose::Model::PutRecordBatchResponseEntry>>;
 
 class FirehoseLogForwarder final : public IFirehoseLogForwarder {
  public:
