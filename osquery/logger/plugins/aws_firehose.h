@@ -29,8 +29,8 @@ DECLARE_uint64(aws_firehose_period);
 class FirehoseLogForwarder final : public IFirehoseLogForwarder {
  public:
   FirehoseLogForwarder(const std::string& name,
-                       std::size_t log_period,
-                       std::size_t max_lines)
+                       size_t log_period,
+                       size_t max_lines)
       : IFirehoseLogForwarder(name, log_period, max_lines) {}
 
  protected:
@@ -39,14 +39,14 @@ class FirehoseLogForwarder final : public IFirehoseLogForwarder {
   void initializeRecord(Record& record,
                         Aws::Utils::ByteBuffer& buffer) const override;
 
-  std::size_t getMaxBytesPerRecord() const override;
-  std::size_t getMaxRecordsPerBatch() const override;
-  std::size_t getMaxBytesPerBatch() const override;
-  std::size_t getMaxRetryCount() const override;
-  std::size_t getInitialRetryDelay() const override;
+  size_t getMaxBytesPerRecord() const override;
+  size_t getMaxRecordsPerBatch() const override;
+  size_t getMaxBytesPerBatch() const override;
+  size_t getMaxRetryCount() const override;
+  size_t getInitialRetryDelay() const override;
   bool appendNewlineSeparators() const override;
 
-  std::size_t getFailedRecordCount(Outcome& outcome) const override;
+  size_t getFailedRecordCount(Outcome& outcome) const override;
   Result getResult(Outcome& outcome) const override;
 
  private:

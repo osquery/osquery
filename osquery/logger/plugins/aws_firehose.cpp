@@ -87,23 +87,23 @@ void FirehoseLogForwarder::initializeRecord(
   record.SetData(buffer);
 }
 
-std::size_t FirehoseLogForwarder::getMaxBytesPerRecord() const {
+size_t FirehoseLogForwarder::getMaxBytesPerRecord() const {
   return 1000000U;
 }
 
-std::size_t FirehoseLogForwarder::getMaxRecordsPerBatch() const {
+size_t FirehoseLogForwarder::getMaxRecordsPerBatch() const {
   return 500U;
 }
 
-std::size_t FirehoseLogForwarder::getMaxBytesPerBatch() const {
+size_t FirehoseLogForwarder::getMaxBytesPerBatch() const {
   return 4000000U;
 }
 
-std::size_t FirehoseLogForwarder::getMaxRetryCount() const {
+size_t FirehoseLogForwarder::getMaxRetryCount() const {
   return 100U;
 }
 
-std::size_t FirehoseLogForwarder::getInitialRetryDelay() const {
+size_t FirehoseLogForwarder::getInitialRetryDelay() const {
   return 3000U;
 }
 
@@ -111,8 +111,8 @@ bool FirehoseLogForwarder::appendNewlineSeparators() const {
   return false;
 }
 
-std::size_t FirehoseLogForwarder::getFailedRecordCount(Outcome& outcome) const {
-  return static_cast<std::size_t>(outcome.GetResult().GetFailedPutCount());
+size_t FirehoseLogForwarder::getFailedRecordCount(Outcome& outcome) const {
+  return static_cast<size_t>(outcome.GetResult().GetFailedPutCount());
 }
 
 FirehoseLogForwarder::Result FirehoseLogForwarder::getResult(

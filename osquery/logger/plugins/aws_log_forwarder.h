@@ -42,9 +42,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
   using Result = ResultType;
 
  public:
-  AwsLogForwarder(const std::string& name,
-                  std::size_t log_period,
-                  std::size_t max_lines)
+  AwsLogForwarder(const std::string& name, size_t log_period, size_t max_lines)
       : BufferedLogForwarder(name, std::chrono::seconds(log_period), max_lines),
         name_(name) {}
 
@@ -66,7 +64,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
  private:
   /// Dumps the specified batch to the given stream
   std::ostream& dumpBatch(std::ostream& stream, const Batch& batch) {
-    std::size_t index = 0;
+    size_t index = 0;
 
     for (auto it = batch.begin(); it != batch.end(); it++) {
       const auto& record = *it;
@@ -93,7 +91,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
     BatchList batch_list;
 
     Batch current_batch;
-    std::size_t current_batch_byte_size = 0U;
+    size_t current_batch_byte_size = 0U;
 
     for (auto& record : log_data) {
       // Initialize the line and make sure we are still within protocol limits
@@ -108,7 +106,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
         continue;
       }
 
-      std::size_t record_size = record.size();
+      size_t record_size = record.size();
       if (appendNewlineSeparators()) {
         ++record_size;
       }
@@ -170,27 +168,27 @@ class AwsLogForwarder : public BufferedLogForwarder {
     discarded_records.clear();
 
     // Send each batch
-    std::size_t error_count = 0;
+    size_t error_count = 0;
     std::stringstream status_output;
 
     for (auto batch_it = batch_list.begin(); batch_it != batch_list.end();) {
       auto& batch = *batch_it;
       bool send_error = true;
 
-      for (std::size_t retry = 0; retry < getMaxRetryCount(); retry++) {
+      for (size_t retry = 0; retry < getMaxRetryCount(); retry++) {
         bool is_last_retry = (retry + 1 >= getMaxRetryCount());
 
         // Increase the resend delay at each retry
-        std::size_t retry_delay =
+        size_t retry_delay =
             (retry == 0 ? 0 : getInitialRetryDelay()) + (retry * 1000U);
         if (retry_delay != 0) {
-          std::this_thread::sleep_for(std::chrono::seconds(retry_delay));
+          pauseMilli(retry_delay);
         }
 
         // Attempt to send batch
         auto outcome = internalSend(batch);
-        std::size_t failed_record_count = getFailedRecordCount(outcome);
-        std::size_t sent_record_count = batch.size() - failed_record_count;
+        size_t failed_record_count = getFailedRecordCount(outcome);
+        size_t sent_record_count = batch.size() - failed_record_count;
 
         if (sent_record_count > 0) {
           VLOG(1) << name_ << ": Successfully sent "
@@ -216,7 +214,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
         // (so that we do not duplicate them) and try again
         const auto& result_record_list = getResult(outcome);
 
-        for (std::size_t i = batch.size(); i-- > 0;) {
+        for (size_t i = batch.size(); i-- > 0;) {
           if (result_record_list[i].GetErrorCode().empty()) {
             auto it = std::next(batch.begin(), i);
             batch.erase(it);
@@ -256,25 +254,25 @@ class AwsLogForwarder : public BufferedLogForwarder {
                                 Aws::Utils::ByteBuffer& buffer) const = 0;
 
   /// Must return the amount of bytes that can fit in a single record
-  virtual std::size_t getMaxBytesPerRecord() const = 0;
+  virtual size_t getMaxBytesPerRecord() const = 0;
 
   /// Must return the amount of records that can be inserted into a single batch
-  virtual std::size_t getMaxRecordsPerBatch() const = 0;
+  virtual size_t getMaxRecordsPerBatch() const = 0;
 
   /// Must return the amount of bytes that can fit in a single batch
-  virtual std::size_t getMaxBytesPerBatch() const = 0;
+  virtual size_t getMaxBytesPerBatch() const = 0;
 
   /// Must return the maximum amount of retries when sending records
-  virtual std::size_t getMaxRetryCount() const = 0;
+  virtual size_t getMaxRetryCount() const = 0;
 
   /// Must return the initial delay, in seconds, between each retry
-  virtual std::size_t getInitialRetryDelay() const = 0;
+  virtual size_t getInitialRetryDelay() const = 0;
 
   /// Must return true if records should be terminated with newlines
   virtual bool appendNewlineSeparators() const = 0;
 
   /// Must return the amount of records that could not be sent
-  virtual std::size_t getFailedRecordCount(Outcome& outcome) const = 0;
+  virtual size_t getFailedRecordCount(Outcome& outcome) const = 0;
 
   /// Must return the vector containing the upload result for each record
   virtual Result getResult(Outcome& outcome) const = 0;
