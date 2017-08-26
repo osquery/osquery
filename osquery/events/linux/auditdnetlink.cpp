@@ -66,11 +66,18 @@ FLAG(bool,
      false,
      "Allow the audit publisher to change auditing configuration");
 
+/// Always uninstall all the audit rules that osquery uses when exiting
 FLAG(bool,
      audit_force_unconfigure,
      false,
      "Always uninstall all rules, regardless of whether they were already "
      "installed or not");
+
+/// Forces osquery to remove all rules upon startup
+FLAG(bool,
+     audit_force_reconfigure,
+     false,
+     "Configure the audit subsystem from scratch");
 
 /// Audit debugger helper
 HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
@@ -503,8 +510,8 @@ bool AuditdNetlink::acquireMessages() noexcept {
       break;
     }
 
-    else if (poll_status < 0) {
-      VLOG(1) << "pool() failed with error " << errno;
+    if (poll_status < 0) {
+      VLOG(1) << "Audit: pool() failed with error " << errno;
       reset_handle = true;
       break;
     }
@@ -522,28 +529,28 @@ bool AuditdNetlink::acquireMessages() noexcept {
                            &nladdrlen);
 
     if (len < 0) {
-      VLOG(1) << "Failed to receive data from the audit netlink";
+      VLOG(1) << "Audit: Failed to receive data from the audit netlink";
       reset_handle = true;
       break;
     }
 
     if (nladdrlen != sizeof(nladdr)) {
-      VLOG(1) << "Protocol error";
+      VLOG(1) << "Audit: Protocol error";
       reset_handle = true;
       break;
     }
 
     if (nladdr.nl_pid) {
-      VLOG(1) << "Invalid netlink endpoint";
+      VLOG(1) << "Audit: Invalid netlink endpoint";
       reset_handle = true;
       break;
     }
 
     if (!NLMSG_OK(&reply.msg.nlh, static_cast<unsigned int>(len))) {
       if (len == sizeof(reply.msg)) {
-        VLOG(1) << "Netlink event too big (EFBIG)";
+        VLOG(1) << "Audit: Netlink event too big (EFBIG)";
       } else {
-        VLOG(1) << "Broken netlink event (EBADE)";
+        VLOG(1) << "Audit: Broken netlink event (EBADE)";
       }
 
       reset_handle = true;
@@ -668,6 +675,149 @@ bool AuditdNetlink::configureAuditService() noexcept {
   return true;
 }
 
+bool AuditdNetlink::clearAuditConfiguration() noexcept {
+  int seq = audit_request_rules_list_data(audit_netlink_handle_);
+  if (seq <= 0) {
+    VLOG(1) << "Failed to list the audit rules";
+    return false;
+  }
+
+  // Attempt to list all rules
+  std::vector<AuditRuleDataObject> rule_object_list;
+
+  for (int read_retry = 0; read_retry < 3; ++read_retry) {
+    bool netlink_ready = false;
+
+    for (int poll_retry = 0; poll_retry < 3; ++poll_retry) {
+      pollfd fds[] = {{audit_netlink_handle_, POLLIN, 0}};
+
+      errno = 0;
+      int poll_status = ::poll(fds, 1, 4);
+      if (poll_status == 0) {
+        continue;
+      }
+
+      if (poll_status < 0) {
+        VLOG(1) << "pool() failed with error " << errno;
+        return false;
+      }
+
+      if ((fds[0].revents & POLLIN) != 0) {
+        netlink_ready = true;
+        break;
+      }
+    }
+
+    if (!netlink_ready) {
+      VLOG(1) << "Could not read from the audit netlink";
+      return false;
+    }
+
+    // Get the reply from the audit link
+    struct audit_reply reply = {};
+    if (audit_get_reply(
+            audit_netlink_handle_, &reply, GET_REPLY_NONBLOCKING, 0) <= 0) {
+      continue;
+    }
+
+    read_retry = 0;
+    if (reply.nlh->nlmsg_seq != static_cast<unsigned int>(seq)) {
+      continue;
+    }
+
+    if (reply.type == NLMSG_DONE) {
+      // We have finished listing the rules
+      break;
+    }
+
+    if (reply.type == NLMSG_ERROR && reply.error->error != 0) {
+      return false;
+    }
+
+    if (reply.type != AUDIT_LIST_RULES) {
+      // Skip this reply if it is not part of the rule list output
+      continue;
+    }
+
+    // Save the rule
+    auto reply_size = sizeof(struct audit_reply) + reply.ruledata->buflen;
+
+    AuditRuleDataObject reply_object;
+    reply_object.resize(reply_size);
+    if (reply_object.size() != reply_size) {
+      VLOG(1) << "Failed to read the audit rule data";
+      return false;
+    }
+
+    std::memcpy(reply_object.data(), reply.ruledata, reply_size);
+    rule_object_list.push_back(reply_object);
+  }
+
+  // Delete each rule
+  std::size_t error_count = 0;
+  for (auto& rule_object : rule_object_list) {
+    if (!deleteAuditRule(rule_object)) {
+      error_count++;
+    }
+  }
+
+  if (error_count != 0) {
+    VLOG(1) << error_count << " audit rules could not be correctly removed";
+    return false;
+  }
+
+  VLOG(1) << "The audit configuration has been cleared";
+  return true;
+}
+
+bool AuditdNetlink::deleteAuditRule(AuditRuleDataObject& rule_object) {
+  if (NLMSG_SPACE(rule_object.size()) > MAX_AUDIT_MESSAGE_LENGTH) {
+    return false;
+  }
+
+  auto* rule_data =
+      reinterpret_cast<struct audit_rule_data*>(rule_object.data());
+
+  struct audit_message request = {};
+  request.nlh.nlmsg_len = static_cast<__u32>(NLMSG_SPACE(rule_object.size()));
+  request.nlh.nlmsg_type = AUDIT_DEL_RULE;
+  request.nlh.nlmsg_flags = NLM_F_REQUEST;
+  std::memcpy(NLMSG_DATA(&request.nlh), rule_data, rule_object.size());
+
+  struct sockaddr_nl address = {};
+  address.nl_family = AF_NETLINK;
+
+  bool success = false;
+
+  for (std::size_t i = 0; i < 3; i++) {
+    ssize_t bytes_sent;
+
+    while (true) {
+      errno = 0;
+      bytes_sent = sendto(audit_netlink_handle_,
+                          &request,
+                          request.nlh.nlmsg_len,
+                          0,
+                          reinterpret_cast<struct sockaddr*>(&address),
+                          sizeof(address));
+      if (bytes_sent >= 0) {
+        break;
+      }
+
+      if (errno != EINTR) {
+        return false;
+      }
+    }
+
+    if (bytes_sent == static_cast<ssize_t>(request.nlh.nlmsg_len)) {
+      success = true;
+      break;
+    }
+  }
+
+  return success;
+}
+
 void AuditdNetlink::restoreAuditServiceConfiguration() noexcept {
   if (FLAGS_audit_debug) {
     std::cout << "Uninstalling audit rules..." << std::endl;
@@ -773,6 +923,13 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
   }
 
   if (FLAGS_audit_allow_config) {
+    if (FLAGS_audit_force_reconfigure) {
+      if (!clearAuditConfiguration()) {
+        audit_netlink_handle_ = -1;
+        return NetlinkStatus::Error;
+      }
+    }
+
     if (!configureAuditService()) {
       return NetlinkStatus::ActiveImmutable;
     }

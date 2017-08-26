@@ -31,6 +31,9 @@ enum class NetlinkStatus { ActiveMutable, ActiveImmutable, Disabled, Error };
 /// Subscription handle to be used with AuditNetlink::getEvents()
 using NetlinkSubscriptionHandle = std::uint32_t;
 
+/// Contains an audit_rule_data structure
+using AuditRuleDataObject = std::vector<std::uint8_t>;
+
 /// A single, prepared audit event record.
 struct AuditEventRecord final {
   /// Record type (i.e.: AUDIT_SYSCALL, AUDIT_PATH, ...)
@@ -100,6 +103,12 @@ class AuditdNetlink final : private boost::noncopyable {
 
   /// Configures the audit service and applies required rules
   bool configureAuditService() noexcept;
+
+  /// Clears out the audit configuration
+  bool clearAuditConfiguration() noexcept;
+
+  /// Deletes the given audit rule
+  bool deleteAuditRule(AuditRuleDataObject& rule_object);
 
   /// Removes the rules that we have applied
   void restoreAuditServiceConfiguration() noexcept;
