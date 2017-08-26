@@ -62,8 +62,37 @@ class AwsLogForwarder : public BufferedLogForwarder {
   }
 
  private:
+  /// Dumps the given batch to the error log
+  void dumpBatchToErrorLog(const Batch& batch) const {
+    std::stringstream error_output;
+
+    error_output << name_
+                 << " logger: Failed to write the following records:\n";
+    dumpBatch(error_output, batch);
+
+    LOG(ERROR) << error_output.str();
+  }
+
+  /// Dumps the discarded records to the error log
+  void dumpDiscardedRecordsToErrorLog(
+      const std::vector<std::string>& discarded_records) const {
+    if (discarded_records.empty()) {
+      return;
+    }
+
+    std::stringstream output;
+    output << name_ << ": The following log records have been discarded "
+                       "because they were too big:\n";
+
+    for (const auto& record : discarded_records) {
+      output << record << "\n";
+    }
+
+    LOG(ERROR) << output.str();
+  }
+
   /// Dumps the specified batch to the given stream
-  std::ostream& dumpBatch(std::ostream& stream, const Batch& batch) {
+  std::ostream& dumpBatch(std::ostream& stream, const Batch& batch) const {
     size_t index = 0;
 
     for (auto it = batch.begin(); it != batch.end(); it++) {
@@ -87,7 +116,7 @@ class AwsLogForwarder : public BufferedLogForwarder {
   BatchList consumeDataAndGenerateBatches(
       std::vector<std::string>& discarded_records,
       const std::string& log_type,
-      std::vector<std::string>& log_data) {
+      std::vector<std::string>& log_data) const {
     BatchList batch_list;
 
     Batch current_batch;
@@ -150,21 +179,74 @@ class AwsLogForwarder : public BufferedLogForwarder {
   }
 
  protected:
+  /// Sends a single batch
+  bool sendBatch(Batch& batch, std::stringstream& status_output) {
+    bool success = false;
+
+    auto max_retry_count = getMaxRetryCount();
+    auto base_retry_delay = getInitialRetryDelay();
+
+    for (size_t retry = 0; retry < max_retry_count; retry++) {
+      bool is_last_retry = (retry + 1 >= max_retry_count);
+
+      // Increase the resend delay at each retry
+      size_t retry_delay =
+          (retry == 0 ? 0 : base_retry_delay) + (retry * 1000U);
+      if (retry_delay != 0) {
+        pauseMilli(retry_delay);
+      }
+
+      // Attempt to send the batch
+      auto outcome = internalSend(batch);
+      size_t failed_record_count = getFailedRecordCount(outcome);
+      size_t sent_record_count = batch.size() - failed_record_count;
+
+      if (sent_record_count > 0) {
+        VLOG(1) << name_ << ": Successfully sent "
+                << batch.size() - failed_record_count << " out of "
+                << batch.size() << " log records";
+      }
+
+      if (failed_record_count == 0) {
+        success = true;
+        break;
+      }
+
+      // Only log final errors
+      if (is_last_retry) {
+        if (!status_output.str().empty()) {
+          status_output << "\n";
+        }
+
+        status_output << outcome.GetError().GetMessage();
+      }
+
+      // We didn't manage to send all records; remove the ones that succeeded
+      // (so that we do not duplicate them) and try again
+      const auto& result_record_list = getResult(outcome);
+
+      for (size_t i = batch.size(); i-- > 0;) {
+        if (!result_record_list[i].GetErrorCode().empty()) {
+          continue;
+        }
+
+        auto it = std::next(batch.begin(), i);
+        batch.erase(it);
+      }
+    }
+
+    return success;
+  }
+
   /// Sends the specified data in one or more batches, depending on the log size
   Status send(std::vector<std::string>& log_data,
               const std::string& log_type) override {
     // Generate the batches, according to the protocol limits
     std::vector<std::string> discarded_records;
-
     auto batch_list =
         consumeDataAndGenerateBatches(discarded_records, log_type, log_data);
 
-    for (const auto& record : discarded_records) {
-      LOG(ERROR) << name_ << ": The following log record has been discarded "
-                             "because it was too big: "
-                 << record;
-    }
-
+    dumpDiscardedRecordsToErrorLog(discarded_records);
     discarded_records.clear();
 
     // Send each batch
@@ -173,64 +255,11 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
     for (auto batch_it = batch_list.begin(); batch_it != batch_list.end();) {
       auto& batch = *batch_it;
-      bool send_error = true;
-
-      for (size_t retry = 0; retry < getMaxRetryCount(); retry++) {
-        bool is_last_retry = (retry + 1 >= getMaxRetryCount());
-
-        // Increase the resend delay at each retry
-        size_t retry_delay =
-            (retry == 0 ? 0 : getInitialRetryDelay()) + (retry * 1000U);
-        if (retry_delay != 0) {
-          pauseMilli(retry_delay);
-        }
-
-        // Attempt to send batch
-        auto outcome = internalSend(batch);
-        size_t failed_record_count = getFailedRecordCount(outcome);
-        size_t sent_record_count = batch.size() - failed_record_count;
-
-        if (sent_record_count > 0) {
-          VLOG(1) << name_ << ": Successfully sent "
-                  << batch.size() - failed_record_count << " out of "
-                  << batch.size() << " log records";
-        }
-
-        if (failed_record_count == 0) {
-          send_error = false;
-          break;
-        }
-
-        if (is_last_retry) {
-          if (!status_output.str().empty()) {
-            status_output << "\n";
-          }
-
-          status_output << outcome.GetError().GetMessage();
-          error_count++;
-        }
-
-        // We didn't manage to send all records; remove the ones that succeeded
-        // (so that we do not duplicate them) and try again
-        const auto& result_record_list = getResult(outcome);
-
-        for (size_t i = batch.size(); i-- > 0;) {
-          if (result_record_list[i].GetErrorCode().empty()) {
-            auto it = std::next(batch.begin(), i);
-            batch.erase(it);
-          }
-        }
-      }
-
-      // We couldn't write some of the records; log them locally so that the
-      // administrator will at least be able to inspect them
-      if (send_error) {
-        std::stringstream error_output;
-        error_output << name_
-                     << " logger: Failed to write the following records:\n";
-        dumpBatch(error_output, batch);
-
-        LOG(ERROR) << error_output.str();
+      if (!sendBatch(batch, status_output)) {
+        // We couldn't write some of the records; log them locally so that the
+        // administrator will at least be able to inspect them
+        dumpBatchToErrorLog(batch);
+        error_count++;
       }
 
       batch_it = batch_list.erase(batch_it);
