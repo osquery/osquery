@@ -443,6 +443,9 @@ add_definitions(
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
   -DNOMINMAX
+
+  # See boost 1.65 breakage https://github.com/Homebrew/homebrew-core/pull/17150
+  -D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0
 )
 
 # Remove console output (not handled by logged).
