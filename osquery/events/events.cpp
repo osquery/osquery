@@ -130,7 +130,7 @@ void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
         stop = std::min(stop, expr);
       }
     }
-  } else if (kToolType == ToolType::DAEMON && FLAGS_events_optimize) {
+  } else if (Initializer::isDaemon() && FLAGS_events_optimize) {
     // If the daemon is querying a subscriber without a 'time' constraint and
     // allows optimization, only emit events since the last query.
     std::string query_name;
