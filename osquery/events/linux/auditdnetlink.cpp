@@ -684,11 +684,17 @@ bool AuditdNetlink::clearAuditConfiguration() noexcept {
 
   // Attempt to list all rules
   std::vector<AuditRuleDataObject> rule_object_list;
+  auto timeout = std::time(nullptr) + 5;
 
-  for (int read_retry = 0; read_retry < 3; ++read_retry) {
+  for (size_t read_retry = 0U; read_retry < 3U; ++read_retry) {
+    if (timeout < std::time(nullptr)) {
+      VLOG(1) << "Failed to unconfigure the audit service (timeout)";
+      return false;
+    }
+
     bool netlink_ready = false;
 
-    for (int poll_retry = 0; poll_retry < 3; ++poll_retry) {
+    for (size_t poll_retry = 0U; poll_retry < 3U; ++poll_retry) {
       pollfd fds[] = {{audit_netlink_handle_, POLLIN, 0}};
 
       errno = 0;
@@ -698,7 +704,7 @@ bool AuditdNetlink::clearAuditConfiguration() noexcept {
       }
 
       if (poll_status < 0) {
-        VLOG(1) << "pool() failed with error " << errno;
+        VLOG(1) << "pool() failed with errno " << errno;
         return false;
       }
 
@@ -754,14 +760,14 @@ bool AuditdNetlink::clearAuditConfiguration() noexcept {
   }
 
   // Delete each rule
-  std::size_t error_count = 0;
+  size_t error_count = 0U;
   for (auto& rule_object : rule_object_list) {
     if (!deleteAuditRule(rule_object)) {
       error_count++;
     }
   }
 
-  if (error_count != 0) {
+  if (error_count != 0U) {
     VLOG(1) << error_count << " audit rules could not be correctly removed";
     return false;
   }

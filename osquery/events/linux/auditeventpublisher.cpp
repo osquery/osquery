@@ -181,8 +181,7 @@ void AuditEventPublisher::ProcessEvents(
       std::uint64_t process_uid;
       if (!GetIntegerFieldFromMap(
               process_uid, audit_event_record.fields, "uid")) {
-        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process "
-                   "uid field is either missing or not valid.";
+        VLOG(1) << "Missing or invalid uid field in AUDIT_SYSCALL";
 
         continue;
       }
@@ -190,8 +189,7 @@ void AuditEventPublisher::ProcessEvents(
       std::uint64_t process_gid;
       if (!GetIntegerFieldFromMap(
               process_gid, audit_event_record.fields, "gid")) {
-        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process "
-                   "gid field is either missing or not valid.";
+        VLOG(1) << "Missing or invalid gid field in AUDIT_SYSCALL";
 
         continue;
       }
