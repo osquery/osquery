@@ -62,10 +62,11 @@ void DebugPrintf(const char* fmt, ...) {
 // A helper function to return a HANDLE to the named Stop Event for child
 // processes
 HANDLE getStopEvent() {
-  auto stopEvent =
-      ::OpenEventA(SYNCHRONIZE, FALSE, osquery::kStopEventName.c_str());
+  auto stopEvent = ::OpenEventA(
+      SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, osquery::kStopEventName.c_str());
   if (stopEvent == nullptr) {
-    SLOG("Opening HANDLE to kStopEvent failed (lasterror=%i)",
+    SLOG("OpenEventA failed for event name %s (lasterror=%d)",
+         osquery::kStopEventName.c_str(),
          ::GetLastError());
   }
   return stopEvent;
@@ -81,7 +82,7 @@ static void UpdateServiceStatus(DWORD controls,
   kServiceStatus.dwCheckPoint = checkpoint;
 
   if (!::SetServiceStatus(kStatusHandle, &kServiceStatus)) {
-    SLOG("SetServiceStatus failed (lasterror=%i)", ::GetLastError());
+    SLOG("SetServiceStatus failed (lasterror=%d)", ::GetLastError());
   }
 }
 
@@ -296,7 +297,10 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
     {
       auto stopEvent = osquery::getStopEvent();
       if (stopEvent != nullptr) {
-        SetEvent(stopEvent);
+        auto ret = SetEvent(stopEvent);
+        if (ret != TRUE) {
+          SLOG("SetEvent failed (lasterror=%d)", ::GetLastError());
+        }
         CloseHandle(stopEvent);
       }
     }
@@ -332,10 +336,10 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
 
       ::CloseHandle(stopEvent);
     } else {
-      SLOG("CreateEventA failed (lasterror=%i)", ::GetLastError());
+      SLOG("CreateEventA failed (lasterror=%d)", ::GetLastError());
     }
   } else {
-    SLOG("RegisterServiceCtrlHandlerA failed (lasterror=%i)", ::GetLastError());
+    SLOG("RegisterServiceCtrlHandlerA failed (lasterror=%d)", ::GetLastError());
   }
 
   UpdateServiceStatus(0, SERVICE_STOPPED, 0, 3);
@@ -358,8 +362,7 @@ int main(int argc, char* argv[]) {
       osquery::startOsquery(argc, argv, osquery::kShutdownCallable);
     } else {
       // An actual error has occurred at this point
-      SLOG("StartServiceCtrlDispatcherA error (lasterror=%i)",
-           ::GetLastError());
+      SLOG("StartServiceCtrlDispatcherA error (lasterror=%d)", last_error);
     }
   }
   return 0;
