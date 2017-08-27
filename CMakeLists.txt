@@ -515,7 +515,6 @@ if(WINDOWS)
 
   ## TODO(FIXME): temporary for now
   include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
-  include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
 else()
   set(PROCESS_FAMILY "posix")
   set(MKDIR_OPTS "-p")

@@ -5,7 +5,7 @@ class Rocksdb < AbstractOsqueryFormula
   homepage "http://rocksdb.org"
   url "https://github.com/facebook/rocksdb/archive/v5.1.4.tar.gz"
   sha256 "3ee7e791d12d5359d0cf61c8c22713811dfda024afdd724cdf66ca022992be35"
-  revision 101
+  revision 103
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -15,8 +15,7 @@ class Rocksdb < AbstractOsqueryFormula
   end
 
   needs :cxx11
-  depends_on "snappy"
-  depends_on "lz4"
+  depends_on "zstd"
 
   fails_with :gcc
 
