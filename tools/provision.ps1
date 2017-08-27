@@ -398,7 +398,7 @@ function Main {
   $out = Install-ChocoPackage 'cppcheck'
   $out = Install-ChocoPackage '7zip.commandline'
   $out = Install-ChocoPackage 'vswhere'
-  $out = Install-ChocoPackage 'cmake.portable' '3.6.1'
+  $out = Install-ChocoPackage 'cmake.portable'
   $chocoParams = @("--params=`"/InstallDir:C:\tools\python2`"")
   $out = Install-ChocoPackage 'python2' '' ${chocoParams}
   # Convenience variable for accessing Python
