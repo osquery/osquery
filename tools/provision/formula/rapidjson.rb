@@ -8,6 +8,7 @@ class Rapidjson < AbstractOsqueryFormula
   head "https://github.com/miloyip/rapidjson.git"
 
   bottle do
+    root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "8725e7b2e737904b7d72cfd9d844341310e42221d8c9c7df96d8380414bfc503" => :sierra
     sha256 "928f6189837de2419d4936340e9b29394454fb2ec65b1deac2923fb2155ad584" => :x86_64_linux
