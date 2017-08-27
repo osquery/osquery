@@ -16,7 +16,6 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/core/process.h"
 
 namespace fs = boost::filesystem;
@@ -25,23 +24,30 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-Status genPackage(fs::path nuspec, Row& r) {
-  std::string content;
-  if (!readFile(nuspec, content).ok()) {
-    return Status(1, "Failed to read nuspec:" + nuspec.string());
-  }
-
-  std::stringstream ss;
-  ss << content;
+Status genPackage(const fs::path& nuspec, Row& r) {
+  r["path"] = nuspec.string();
   pt::ptree propTree;
-  read_xml(ss, propTree);
+
+  {
+    std::string content;
+    if (!readFile(nuspec, content).ok()) {
+      return Status(1, "Failed to read nuspec:" + nuspec.string());
+    }
+
+    std::stringstream ss;
+    ss << content;
+    try {
+      read_xml(ss, propTree);
+    } catch (const pt::xml_parser::xml_parser_error& /* e */) {
+      return Status(1, "Failed to parse nuspec xml");
+    }
+  }
 
   r["name"] = propTree.get("package.metadata.id", "");
   r["version"] = propTree.get("package.metadata.version", "");
   r["summary"] = propTree.get("package.metadata.summary", "");
   r["author"] = propTree.get("package.metadata.authors", "");
   r["license"] = propTree.get("package.metadata.licenseUrl", "");
-  r["path"] = nuspec.string();
 
   return Status();
 }
@@ -57,7 +63,7 @@ QueryData genChocolateyPackages(QueryContext& context) {
   }
 
   if (chocoInstallPath.empty()) {
-    LOG(WARNING) << "Did not find chocolatey path environment variable.";
+    LOG(WARNING) << "Did not find chocolatey path environment variable";
     return results;
   }
 
