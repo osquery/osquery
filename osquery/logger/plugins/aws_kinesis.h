@@ -15,38 +15,49 @@
 #include <vector>
 
 #include <aws/kinesis/KinesisClient.h>
+#include <aws/kinesis/model/PutRecordsRequestEntry.h>
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
 
-#include "osquery/logger/plugins/buffered.h"
+#include "osquery/logger/plugins/aws_log_forwarder.h"
 
 namespace osquery {
-
 DECLARE_uint64(aws_kinesis_period);
 
-class KinesisLogForwarder : public BufferedLogForwarder {
- private:
-  static const size_t kKinesisMaxLogBytes;
-  static const size_t kKinesisMaxRecords;
-  static const size_t kKinesisMaxRetryCount;
-  static const size_t kKinesisInitialRetryDelay;
+using IKinesisLogForwarder =
+    AwsLogForwarder<Aws::Kinesis::Model::PutRecordsRequestEntry,
+                    Aws::Kinesis::KinesisClient,
+                    Aws::Kinesis::Model::PutRecordsOutcome,
+                    Aws::Vector<Aws::Kinesis::Model::PutRecordsResultEntry>>;
 
+class KinesisLogForwarder final : public IKinesisLogForwarder {
  public:
-  KinesisLogForwarder()
-      : BufferedLogForwarder("kinesis",
-                             std::chrono::seconds(FLAGS_aws_kinesis_period),
-                             kKinesisMaxRecords) {}
-  Status setUp() override;
+  KinesisLogForwarder(const std::string& name,
+                      size_t log_period,
+                      size_t max_lines)
+      : IKinesisLogForwarder(name, log_period, max_lines) {}
 
  protected:
-  Status send(std::vector<std::string>& log_data,
-              const std::string& log_type) override;
+  Status internalSetup() override;
+  Outcome internalSend(const Batch& batch) override;
+  void initializeRecord(Record& record,
+                        Aws::Utils::ByteBuffer& buffer) const override;
+
+  size_t getMaxBytesPerRecord() const override;
+  size_t getMaxRecordsPerBatch() const override;
+  size_t getMaxBytesPerBatch() const override;
+  size_t getMaxRetryCount() const override;
+  size_t getInitialRetryDelay() const override;
+  bool appendNewlineSeparators() const override;
+
+  size_t getFailedRecordCount(Outcome& outcome) const override;
+  Result getResult(Outcome& outcome) const override;
 
  private:
+  /// The partition key; ignored if aws_kinesis_random_partition_key is set
   std::string partition_key_;
-  std::shared_ptr<Aws::Kinesis::KinesisClient> client_{nullptr};
 
   FRIEND_TEST(KinesisTests, test_send);
 };

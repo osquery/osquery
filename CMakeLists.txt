@@ -443,6 +443,9 @@ add_definitions(
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
   -DNOMINMAX
+
+  # See boost 1.65 breakage https://github.com/Homebrew/homebrew-core/pull/17150
+  -D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0
 )
 
 # Remove console output (not handled by logged).
@@ -512,7 +515,6 @@ if(WINDOWS)
 
   ## TODO(FIXME): temporary for now
   include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
-  include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
 else()
   set(PROCESS_FAMILY "posix")
   set(MKDIR_OPTS "-p")

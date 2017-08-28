@@ -4,6 +4,7 @@
 #  This source code is licensed under the BSD-style license found in the
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
+cmake_policy(SET CMP0026 OLD)
 
 # The 'core' source files define the osquery SDK (libosquery).
 # There are macros throughout CMake to append sources to this list.
@@ -117,7 +118,6 @@ if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("thriftmt${WT_KEY}")
   ADD_OSQUERY_LINK_CORE("linenoise${WO_KEY}.lib")
   ADD_OSQUERY_LINK_CORE("gflags_static${WO_KEY}")
-  ADD_OSQUERY_LINK_CORE("snappy64")
   ADD_OSQUERY_LINK_CORE("ssleay32")
   ADD_OSQUERY_LINK_CORE("eay32")
   ADD_OSQUERY_LINK_CORE("zlibstatic")
@@ -129,7 +129,6 @@ else()
   ADD_OSQUERY_LINK_CORE("libz")
   ADD_OSQUERY_LINK_CORE("gflags")
   ADD_OSQUERY_LINK_CORE("thrift")
-  ADD_OSQUERY_LINK_CORE("lz4")
 endif()
 
 if(APPLE OR LINUX)
@@ -159,7 +158,6 @@ ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-client-connections${WO_KEY}")
 ADD_OSQUERY_LINK_CORE("glog${WO_KEY}")
 
 if(POSIX)
-  ADD_OSQUERY_LINK_ADDITIONAL("snappy")
   ADD_OSQUERY_LINK_ADDITIONAL("ssl")
   ADD_OSQUERY_LINK_ADDITIONAL("crypto")
   ADD_OSQUERY_LINK_ADDITIONAL("libpthread")
@@ -294,30 +292,14 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
     set_target_properties(libosquery_additional_shared PROPERTIES OUTPUT_NAME osquery_additional)
   endif()
 
-  add_executable(shell devtools/shell.cpp main/shell.cpp)
-  ADD_DEFAULT_LINKS(shell TRUE)
-  SET_OSQUERY_COMPILE(shell "${CXX_COMPILE_FLAGS}")
-  target_link_libraries(shell)
-  set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
-
-  add_executable(daemon main/${PROCESS_FAMILY}/daemon.cpp)
+  add_executable(daemon
+    devtools/shell.cpp
+    main/main.cpp
+    main/${PROCESS_FAMILY}/main.cpp
+  )
   ADD_DEFAULT_LINKS(daemon TRUE)
   SET_OSQUERY_COMPILE(daemon "${CXX_COMPILE_FLAGS}")
   set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
-
-  # Include the public API includes if make devel.
-  install(TARGETS libosquery ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
-  install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/osquery"
-    DESTINATION include
-    COMPONENT devel OPTIONAL
-    PATTERN ".*" EXCLUDE
-  )
-
-  # A friendly echo printed before building the shell
-  add_custom_command(TARGET shell PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-      "-- Building osqueryi: $<TARGET_FILE:shell>"
-  )
 
   # A friendly echo printed before building the daemon
   add_custom_command(TARGET daemon PRE_BUILD
@@ -325,9 +307,34 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
       "-- Building osqueryd: $<TARGET_FILE:daemon>"
   )
 
+  get_property (DAEMON_EXECUTABLE TARGET daemon PROPERTY LOCATION)
+  get_filename_component(DAEMON_DIR "${DAEMON_EXECUTABLE}" DIRECTORY)
+  set(SHELL_EXECUTABLE "${DAEMON_DIR}/osqueryi")
+  if(WINDOWS)
+    set(SHELL_EXECUTABLE "${SHELL_EXECUTABLE}.exe")
+  endif()
+
+  add_custom_target(shell ALL
+    COMMAND ${CMAKE_COMMAND} -E copy
+      $<TARGET_FILE:daemon> "${SHELL_EXECUTABLE}")
+
+  add_custom_command(
+    TARGET shell POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
+      "-- Creating osqueryi: ${SHELL_EXECUTABLE}")
+
+  # This is no longer supported.
+  # Include the public API includes if make devel.
+  # install(TARGETS libosquery ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
+  # install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/osquery"
+  #   DESTINATION include
+  #   COMPONENT devel OPTIONAL
+  #   PATTERN ".*" EXCLUDE
+  # )
+
   # make install (executables)
-  install(TARGETS shell RUNTIME DESTINATION bin COMPONENT main)
   install(TARGETS daemon RUNTIME DESTINATION bin COMPONENT main)
+  install(PROGRAMS ${CMAKE_BINARY_DIR}/osquery/osqueryi DESTINATION bin COMPONENT main)
   install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryctl"
     DESTINATION bin COMPONENT main)
 
@@ -343,7 +350,7 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
       DESTINATION "${CMAKE_INSTALL_PREFIX}/share/osquery/" COMPONENT main)
   else()
     install(PROGRAMS "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd"
-      DESTINATION "/etc/init.d/" RENAME "osqueryd" COMPONENT main)
+      DESTINATION "${CMAKE_INSTALL_PREFIX}/etc/init.d/" RENAME "osqueryd" COMPONENT main)
   endif()
 endif()
 

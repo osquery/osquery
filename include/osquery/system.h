@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <csignal>
-#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -19,6 +17,12 @@
 #include <boost/filesystem/path.hpp>
 
 #include <osquery/core.h>
+
+#ifdef WIN32
+#include <osquery/windows/system.h>
+#else
+#include <osquery/posix/system.h>
+#endif
 
 namespace osquery {
 
@@ -32,23 +36,9 @@ namespace osquery {
  */
 extern volatile std::sig_atomic_t kExitCode;
 
-#ifdef WIN32
-/// Unfortunately, pid_t is not defined in Windows, however, DWORD is the
-/// most appropriate alternative since process ID on Windows are stored in
-/// a DWORD.
-using pid_t = unsigned long;
-using PlatformPidType = void*;
-#else
-using PlatformPidType = pid_t;
-#endif
-
 using ModuleHandle = void*;
 
 class Initializer : private boost::noncopyable {
- private:
-  static const size_t kDatabaseMaxRetryCount;
-  static const size_t kDatabaseRetryDelay;
-
  public:
   /**
    * @brief Sets up various aspects of osquery execution state.
@@ -96,9 +86,18 @@ class Initializer : private boost::noncopyable {
    */
   void initWorkerWatcher(const std::string& name = "") const;
 
+  /**
+   * @brief Move a function callable into the initializer to be called.
+   *
+   * Install an optional platform method to call when waiting for shutdown.
+   * This exists for Windows when the daemon must wait for the service to stop.
+   */
+  void installShutdown(std::function<void()>& handler);
+
   /// Assume initialization finished, start work.
   void start() const;
 
+ public:
   /**
    * @brief Forcefully request the application to stop.
    *
@@ -149,7 +148,16 @@ class Initializer : private boost::noncopyable {
    */
   static void platformTeardown();
 
- public:
+  /// Check the program is the osquery daemon.
+  static bool isDaemon() {
+    return kToolType == ToolType::DAEMON;
+  }
+
+  /// Check the program is the osquery shell.
+  static bool isShell() {
+    return kToolType == ToolType::SHELL;
+  }
+
   /**
    * @brief Check if a process is an osquery worker.
    *
@@ -161,6 +169,16 @@ class Initializer : private boost::noncopyable {
    */
   static bool isWorker();
 
+  /**
+   * @brief Check is a process is an osquery watcher.
+   *
+   * Is watcher is different from the opposite of isWorker. An osquery process
+   * may have disabled the watchdog so the parent could be doing the work or
+   * the worker child.
+   */
+  static bool isWatcher();
+
+ public:
   /// Initialize this process as an osquery daemon worker.
   void initWorker(const std::string& name) const;
 
@@ -181,88 +199,12 @@ class Initializer : private boost::noncopyable {
   /// A saved, mutable, reference to the process's argv.
   char*** argv_{nullptr};
 
-  /// The deduced tool type, determined by initializer construction.
-  ToolType tool_;
-
   /// The deduced program name determined by executing path.
   std::string binary_;
+
+  /// A platform specific callback to wait for shutdown.
+  static std::function<void()> shutdown_;
 };
-
-#ifndef WIN32
-class DropPrivileges;
-typedef std::shared_ptr<DropPrivileges> DropPrivilegesRef;
-
-class DropPrivileges : private boost::noncopyable {
- public:
-  /// Make call sites use 'dropTo' booleans to improve the UI.
-  static DropPrivilegesRef get() {
-    DropPrivilegesRef handle = DropPrivilegesRef(new DropPrivileges());
-    return handle;
-  }
-
-  /**
-   * @brief Attempt to drop privileges to that of the parent of a given path.
-   *
-   * This will return false if privileges could not be dropped or there was
-   * an previous, and still active, request for dropped privileges.
-   *
-   * @return success if privileges were dropped, otherwise false.
-   */
-  bool dropToParent(const boost::filesystem::path& path);
-
-  /// See DropPrivileges::dropToParent but explicitly set the UID and GID.
-  bool dropTo(uid_t uid, gid_t gid);
-
-  /// See DropPrivileges::dropToParent but for a user's UID and GID.
-  bool dropTo(const std::string& user);
-
-  /// Check if effective privileges do not match real.
-  bool dropped() {
-    return (getuid() != geteuid() || getgid() != getegid());
-  }
-
-  /**
-   * @brief The privilege/permissions dropper deconstructor will restore
-   * effective permissions.
-   *
-   * There should only be a single drop of privilege/permission active.
-   */
-  virtual ~DropPrivileges();
-
- private:
-  DropPrivileges() : dropped_(false), to_user_(0), to_group_(0) {}
-
-  /// Restore groups if dropping consecutively.
-  void restoreGroups();
-
- private:
-  /// Boolean to track if this instance needs to restore privileges.
-  bool dropped_;
-
-  /// The user this instance dropped privileges to.
-  uid_t to_user_;
-
-  /// The group this instance dropped privileges to.
-  gid_t to_group_;
-
-  /**
-   * @brief If dropping explicitly to a user and group also drop groups.
-   *
-   * Original process groups before explicitly dropping privileges.
-   * On restore, if there are any groups in this list, they will be added
-   * to the processes group list.
-   */
-  gid_t* original_groups_{nullptr};
-
-  /// The size of the original groups to backup when restoring privileges.
-  int group_size_{0};
-
- private:
-  FRIEND_TEST(PermissionsTests, test_explicit_drop);
-  FRIEND_TEST(PermissionsTests, test_path_drop);
-  FRIEND_TEST(PermissionsTests, test_nobody_drop);
-};
-#endif
 
 /**
  * @brief Getter for a host's current hostname
@@ -379,12 +321,4 @@ Status createPidFile();
  * @return A bool indicating if the current process is running as admin
  */
 bool isUserAdmin();
-
-#ifdef WIN32
-// Microsoft provides FUNCTION_s with more or less the same parameters.
-// Notice that they are swapped when compared to POSIX FUNCTION_r.
-struct tm* gmtime_r(time_t* t, struct tm* result);
-
-struct tm* localtime_r(time_t* t, struct tm* result);
-#endif
 } // namespace osquery
