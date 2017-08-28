@@ -12,7 +12,6 @@
 #include <sstream>
 #include <string>
 
-#include <boost/network/protocol/http/client.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -29,14 +28,13 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
+#include <osquery/http_client.h>
 
 #include "osquery/core/json.h"
 #include "osquery/remote/transports/tls.h"
 #include "osquery/utils/aws_util.h"
 
 namespace pt = boost::property_tree;
-namespace http = boost::network::http;
-namespace bn = boost::network;
 namespace uri = boost::network::uri;
 
 namespace Standard = Aws::Http::Standard;
@@ -118,11 +116,11 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
   uri.SetPath(Aws::Http::URI::URLEncodePath(uri.GetPath()));
   Aws::String url = uri.GetURIString();
 
-  bn::http::client client = TLSTransport().getClient();
-  bn::http::client::request req(url);
+  http::Client client(TLSTransport().getOptions());
+  http::Request req(url);
 
   for (const auto& requestHeader : request.GetHeaders()) {
-    req << bn::header(requestHeader.first, requestHeader.second);
+    req << http::Request::Header(requestHeader.first, requestHeader.second);
   }
 
   std::string body;
@@ -134,21 +132,11 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
 
   auto response = std::make_shared<Standard::StandardHttpResponse>(request);
   try {
-    bn::http::client::response resp;
+    http::Response resp;
 
     switch (request.GetMethod()) {
     case Aws::Http::HttpMethod::HTTP_GET:
       resp = client.get(req);
-      if (resp.status() == 301 || resp.status() == 302) {
-        VLOG(1) << "Attempting custom redirect as cpp-netlib does not support "
-                   "redirects";
-        for (const auto& header : resp.headers()) {
-          if (header.first == "Location") {
-            req.uri(header.second);
-            resp = client.get(req);
-          }
-        }
-      }
       break;
     case Aws::Http::HttpMethod::HTTP_POST:
       resp = client.post(req, body, request.GetContentType());
@@ -160,7 +148,7 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
       resp = client.head(req);
       break;
     case Aws::Http::HttpMethod::HTTP_PATCH:
-      LOG(ERROR) << "cpp-netlib does not support HTTP PATCH";
+      LOG(ERROR) << "osquery-http_client does not support HTTP PATCH";
       return nullptr;
       break;
     case Aws::Http::HttpMethod::HTTP_DELETE:
@@ -176,11 +164,11 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
     response->SetResponseCode(
         static_cast<Aws::Http::HttpResponseCode>(resp.status()));
 
-    for (const auto& header : resp.headers()) {
-      if (header.first == "content-type") {
-        response->SetContentType(header.second);
+    for (auto it = resp.headers().begin(); it != resp.headers().end(); ++it) {
+      if (it.header_name() == "content-type") {
+        response->SetContentType(it.header_value());
       }
-      response->AddHeader(header.first, header.second);
+      response->AddHeader(it.header_name(), it.header_value());
     }
 
     response->GetResponseBody() << resp.body();
@@ -347,14 +335,14 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
     }
 
     initAwsSdk();
-    http::client::request req(
+    http::Request req(
         "http://169.254.169.254/latest/dynamic/instance-identity/document");
-    http::client::options options;
+    http::Client::Options options;
     options.timeout(3);
-    http::client client(options);
+    http::Client client(options);
 
     try {
-      http::client::response res = client.get(req);
+      http::Response res = client.get(req);
       if (res.status() == 200) {
         pt::ptree tree;
         std::stringstream ss(res.body());

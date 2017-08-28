@@ -19,7 +19,6 @@
 #include <osquery/filesystem.h>
 
 namespace fs = boost::filesystem;
-namespace http = boost::network::http;
 
 namespace osquery {
 
@@ -33,6 +32,9 @@ CLI_FLAG(string,
          tls_hostname,
          "",
          "TLS/HTTPS hostname for Config, Logger, and Enroll plugins");
+
+/// proxy server hostname.
+CLI_FLAG(string, proxy_hostname, "", "proxy hostname");
 
 /// Path to optional TLS server/CA certificate(s), used for pinning.
 CLI_FLAG(string,
@@ -77,17 +79,21 @@ TLSTransport::TLSTransport() : verify_peer_(true) {
   }
 }
 
-void TLSTransport::decorateRequest(http::client::request& r) {
-  r << boost::network::header("Connection", "close");
-  r << boost::network::header("Content-Type", serializer_->getContentType());
-  r << boost::network::header("Accept", serializer_->getContentType());
-  r << boost::network::header("Host", FLAGS_tls_hostname);
-  r << boost::network::header("User-Agent", kTLSUserAgentBase + kVersion);
+void TLSTransport::decorateRequest(http::Request& r) {
+  r << http::Request::Header("Connection", "close");
+  r << http::Request::Header("Content-Type", serializer_->getContentType());
+  r << http::Request::Header("Accept", serializer_->getContentType());
+  r << http::Request::Header("Host", FLAGS_tls_hostname);
+  r << http::Request::Header("User-Agent", kTLSUserAgentBase + kVersion);
 }
 
-http::client TLSTransport::getClient() {
-  http::client::options options;
+http::Client::Options TLSTransport::getOptions() {
+  http::Client::Options options;
   options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
+
+  if (FLAGS_proxy_hostname.size() > 0) {
+    options.proxy_hostname(FLAGS_proxy_hostname);
+  }
 
   std::string ciphers = kTLSCiphers;
   if (!isPlatform(PlatformType::TYPE_OSX)) {
@@ -111,7 +117,7 @@ http::client TLSTransport::getClient() {
                    << server_certificate_file_;
     } else {
       // There is a non-default server certificate set.
-      boost::system::error_code ec;
+      boost_system::error_code ec;
 
       auto status = fs::status(server_certificate_file_, ec);
       options.openssl_verify_path(server_certificate_file_);
@@ -147,8 +153,7 @@ http::client TLSTransport::getClient() {
     options.openssl_sni_hostname(options_.get<std::string>("hostname"));
   }
 
-  http::client client(options);
-  return client;
+  return options;
 }
 
 inline bool tlsFailure(const std::string& what) {
@@ -163,16 +168,16 @@ Status TLSTransport::sendRequest() {
     return Status(1, "Cannot create TLS request for non-HTTPS protocol URI");
   }
 
-  auto client = getClient();
-  http::client::request r(destination_);
+  http::Client client(getOptions());
+  http::Request r(destination_);
   decorateRequest(r);
 
   VLOG(1) << "TLS/HTTPS GET request to URI: " << destination_;
   try {
     response_ = client.get(r);
-    const auto& response_body = body(response_);
+    const auto& response_body = response_.body();
     if (FLAGS_verbose && FLAGS_tls_dump) {
-      fprintf(stdout, "%s\n", std::string(response_body).c_str());
+      fprintf(stdout, "%s\n", response_body.c_str());
     }
     response_status_ =
         serializer_->deserialize(response_body, response_params_);
@@ -188,12 +193,12 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
     return Status(1, "Cannot create TLS request for non-HTTPS protocol URI");
   }
 
-  auto client = getClient();
-  http::client::request r(destination_);
+  http::Client client(getOptions());
+  http::Request r(destination_);
   decorateRequest(r);
   if (compress) {
     // Later, when posting/putting, the data will be optionally compressed.
-    r << boost::network::header("Content-Encoding", "gzip");
+    r << http::Request::Header("Content-Encoding", "gzip");
   }
 
   // Allow request calls to override the default HTTP POST verb.
@@ -215,9 +220,9 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
       response_ = client.put(r, (compress) ? compressString(params) : params);
     }
 
-    const auto& response_body = body(response_);
+    const auto& response_body = response_.body();
     if (FLAGS_verbose && FLAGS_tls_dump) {
-      fprintf(stdout, "%s\n", std::string(response_body).c_str());
+      fprintf(stdout, "%s\n", response_body.c_str());
     }
     response_status_ =
         serializer_->deserialize(response_body, response_params_);
