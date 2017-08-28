@@ -5,7 +5,7 @@ class Libaptpkg < AbstractOsqueryFormula
   homepage "https://apt.alioth.debian.org/python-apt-doc/library/apt_pkg.html"
   url "https://github.com/Debian/apt/archive/1.3.1.tar.gz"
   sha256 "a91a5e96417aad33f236234730b2a0bed3a028d6fc01c57d060b7d92746bf65a"
-  revision 101
+  revision 102
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -13,8 +13,8 @@ class Libaptpkg < AbstractOsqueryFormula
     sha256 "7bf998189b4fa8c3a18bce7216634e20bf1d9c2eb978b45b64290a307f7b42df" => :x86_64_linux
   end
 
-  depends_on "lz4"
-
+  # This removes the requirement for sphinx to build the documentation.
+  # It also remove LZ4 and most of the build (everything by the libaptpkg).
   patch :DATA
 
   def install
@@ -54,34 +54,38 @@ index f3bbfdc..f37b82c 100644
  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/docbook-text-style.xsl.cmake.in
                  ${CMAKE_CURRENT_BINARY_DIR}/docbook-text-style.xsl)
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 19d8728..47a527f 100644
+index 19d8728..abd350b 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -197,17 +197,17 @@ configure_file(CMake/config.h.in ${PROJECT_BINARY_DIR}/include/config.h)
+@@ -98,10 +98,12 @@ if (LZMA_FOUND)
+ endif()
+ 
+ 
++if(WITH_LZ4)
+ find_package(LZ4)
+ if (LZ4_FOUND)
+   set(HAVE_LZ4 1)
+ endif()
++endif()
+ 
+ # Mount()ing and stat()ing and friends
+ check_symbol_exists(statfs sys/vfs.h HAVE_VFS_H)
+@@ -197,8 +199,9 @@ configure_file(CMake/config.h.in ${PROJECT_BINARY_DIR}/include/config.h)
  configure_file(CMake/apti18n.h.in ${PROJECT_BINARY_DIR}/include/apti18n.h)
  
  # Add our subdirectories
 -add_subdirectory(vendor)
-+#add_subdirectory(vendor)
  add_subdirectory(apt-pkg)
--add_subdirectory(apt-private)
--add_subdirectory(apt-inst)
--add_subdirectory(cmdline)
--add_subdirectory(completions)
--add_subdirectory(doc)
--add_subdirectory(dselect)
--add_subdirectory(ftparchive)
--add_subdirectory(methods)
--add_subdirectory(test)
-+#add_subdirectory(apt-private)
-+#add_subdirectory(apt-inst)
-+#add_subdirectory(cmdline)
-+#add_subdirectory(completions)
-+#add_subdirectory(doc)
-+#add_subdirectory(dselect)
-+#add_subdirectory(ftparchive)
-+#add_subdirectory(methods)
-+#add_subdirectory(test)
++if(WITH_EVERYTHING)
++add_subdirectory(vendor)
+ add_subdirectory(apt-private)
+ add_subdirectory(apt-inst)
+ add_subdirectory(cmdline)
+@@ -208,6 +211,7 @@ add_subdirectory(dselect)
+ add_subdirectory(ftparchive)
+ add_subdirectory(methods)
+ add_subdirectory(test)
++endif()
  
  if (USE_NLS)
  add_subdirectory(po)

@@ -3,8 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Rocksdb < AbstractOsqueryFormula
   desc "Persistent key-value store for fast storage environments"
   homepage "http://rocksdb.org"
-  url "https://github.com/facebook/rocksdb/archive/v5.1.4.tar.gz"
-  sha256 "3ee7e791d12d5359d0cf61c8c22713811dfda024afdd724cdf66ca022992be35"
+  url "https://github.com/facebook/rocksdb/archive/rocksdb-5.7.2.tar.gz"
+  sha256 "31934ed4e2ab4d08eabd5f68fa625146eba371f8f588350b79e1fee7dd510bcc"
   revision 103
 
   bottle do
@@ -15,9 +15,9 @@ class Rocksdb < AbstractOsqueryFormula
   end
 
   needs :cxx11
-  depends_on "zstd"
 
-  fails_with :gcc
+  # Remove the logic to auto-discover support for snappy and lz4.
+  patch :DATA
 
   def install
     ENV.cxx11
@@ -31,3 +31,27 @@ class Rocksdb < AbstractOsqueryFormula
     system "make", "install", "INSTALL_PATH=#{prefix}"
   end
 end
+
+__END__
+diff --git a/build_tools/build_detect_platform b/build_tools/build_detect_platform
+index 440c6a5..1888eaa 100755
+--- a/build_tools/build_detect_platform
++++ b/build_tools/build_detect_platform
+@@ -216,7 +216,7 @@ EOF
+       #include <snappy.h>
+       int main() {}
+ EOF
+-    if [ "$?" = 0 ]; then
++    if [ 1 = 0 ]; then
+         COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
+         PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
+         JAVA_LDFLAGS="$JAVA_LDFLAGS -lsnappy"
+@@ -274,7 +274,7 @@ EOF
+       #include <lz4hc.h>
+       int main() {}
+ EOF
+-    if [ "$?" = 0 ]; then
++    if [ 1 = 0 ]; then
+         COMMON_FLAGS="$COMMON_FLAGS -DLZ4"
+         PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -llz4"
+         JAVA_LDFLAGS="$JAVA_LDFLAGS -llz4"
