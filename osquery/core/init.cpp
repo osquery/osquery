@@ -570,6 +570,7 @@ void Initializer::initActivePlugin(const std::string& type,
 }
 
 void Initializer::installShutdown(std::function<void()>& handler) {
+  WriteLock lock(shutdown_mutext_);
   shutdown_ = std::move(handler);
 }
 
@@ -671,8 +672,16 @@ void Initializer::start() const {
 }
 
 void Initializer::waitForShutdown() {
-  if (shutdown_ != nullptr) {
-    shutdown_();
+  {
+    WriteLock lock(shutdown_mutext_);
+    if (shutdown_ != nullptr) {
+      // Copy the callable, then remove it, prevent callable recursion.
+      auto shutdown = shutdown_;
+      shutdown_ = nullptr;
+
+      // Call the shutdown callable.
+      shutdown();
+    }
   }
 
   // Attempt to be the only place in code where a join is attempted.
