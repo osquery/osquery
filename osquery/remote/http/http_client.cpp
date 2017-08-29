@@ -151,7 +151,12 @@ void Client::sendRequest(Request& req, beast_http_response_parser& resp) {
                                client_options_.sni_hostname_->c_str());
   }
 
-  stream.handshake(boost_asio::ssl::stream_base::client);
+  boost_system::error_code rc;
+  stream.handshake(boost_asio::ssl::stream_base::client, rc);
+
+  if (rc) {
+    throw std::system_error(rc);
+  }
 
   req.target((req.remotePath()) ? *req.remotePath() : "/");
   req.version = 11;
@@ -182,7 +187,7 @@ void Client::sendRequest(Request& req, beast_http_response_parser& resp) {
   ios_.reset();
 
   if (ec_) {
-    BOOST_THROW_EXCEPTION(boost_system::system_error{ec_});
+    throw std::system_error(ec_);
   }
 }
 

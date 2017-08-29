@@ -10,11 +10,11 @@
 
 #pragma once
 
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
 #include <boost/network/uri.hpp>
 #include <boost/network/uri/uri_io.hpp>
 #include <boost/optional/optional.hpp>
