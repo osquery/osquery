@@ -8,12 +8,14 @@
  *
  */
 
+#include <chrono>
+
 #include <boost/network/include/http/client.hpp>
 #include <boost/numeric/conversion/cast.hpp>
-#include <chrono>
-#include <osquery/tables.h>
 
-#include <stdio.h>
+#include <osquery/logger.h>
+#include <osquery/status.h>
+#include <osquery/tables.h>
 
 using namespace boost::network::http;
 using namespace std::chrono;
@@ -21,29 +23,29 @@ using namespace std::chrono;
 namespace osquery {
 namespace tables {
 
-void processRequest(const std::string& request_str, QueryData& results) {
+Status processRequest(const std::string& request_str, QueryData& results) {
   Row r;
   r["url"] = request_str;
   r["method"] = "GET";
   r["ua"] = "osquery";
 
+  client client_;
+  client::response response_;
   try {
-    client client_;
     client::request request_(request_str);
     time_point<system_clock> start = std::chrono::system_clock::now();
-    client::response response_ = client_.get(request_);
+    response_ = client_.get(request_);
     time_point<system_clock> end = std::chrono::system_clock::now();
-    r["response_code"] = BIGINT(static_cast<int>(status(response_)));
-    r["rtt"] = BIGINT(microseconds(end - start).count());
-
-    // This usually destroys the UI since responses are long
-    // r["result"] = static_cast<std::string>(body(response_));
-
-    r["bytes"] = BIGINT((static_cast<std::string>(body(response_))).size());
+    r["response_code"] = INTEGER(static_cast<int>(status(response_)));
+    r["rtt"] = BIGINT(duration_cast<microseconds>(end - start).count());
+    r["result"] = static_cast<std::string>(body(response_));
+    r["bytes"] = r["result"].size();
     results.push_back(r);
-  } catch (std::exception& e) {
-    std::cerr << "Exception: " << e.what() << std::endl;
+  } catch (const std::exception& e) {
+    return Status(1, e.what());
   }
+
+  return Status();
 }
 
 QueryData genCurl(QueryContext& context) {
@@ -51,8 +53,15 @@ QueryData genCurl(QueryContext& context) {
 
   auto requests = context.constraints["url"].getAll(EQUALS);
 
+  if (context.constraints["url"].getAll(LIKE).size()) {
+    LOG(WARNING) << "Using like clause for url is not supported";
+  }
+
   for (const auto& request : requests) {
-    processRequest(request, results);
+    auto status = processRequest(request, results);
+    if (!status.ok()) {
+      LOG(WARNING) << status.getMessage();
+    }
   }
 
   return results;
