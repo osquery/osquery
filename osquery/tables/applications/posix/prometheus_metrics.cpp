@@ -10,9 +10,9 @@
 #include <sstream>
 
 #include <osquery/config.h>
+#include <osquery/http_client.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-#include <osquery/http_client.h>
 
 #include <osquery/core/conversions.h>
 

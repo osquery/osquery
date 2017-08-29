@@ -26,9 +26,9 @@
 #include <aws/sts/model/Credentials.h>
 
 #include <osquery/flags.h>
+#include <osquery/http_client.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
-#include <osquery/http_client.h>
 
 #include "osquery/core/json.h"
 #include "osquery/remote/transports/tls.h"
@@ -165,10 +165,10 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
         static_cast<Aws::Http::HttpResponseCode>(resp.status()));
 
     for (auto it = resp.headers().begin(); it != resp.headers().end(); ++it) {
-      if (it.header_name() == "content-type") {
-        response->SetContentType(it.header_value());
+      if (it->header_name() == "content-type") {
+        response->SetContentType(it->header_value());
       }
-      response->AddHeader(it.header_name(), it.header_value());
+      response->AddHeader(it->header_name(), it->header_value());
     }
 
     response->GetResponseBody() << resp.body();

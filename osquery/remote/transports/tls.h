@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <osquery/http_client.h>
 #include <osquery/flags.h>
+#include <osquery/http_client.h>
 
 #include "osquery/remote/requests.h"
 

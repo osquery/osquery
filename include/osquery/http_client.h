@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <beast/core.hpp>
-#include <beast/http.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/ssl.hpp>
@@ -47,7 +47,7 @@ void ERR_remove_state(unsigned long);
 
 namespace boost_system = boost::system;
 namespace boost_asio = boost::asio;
-namespace beast_http = beast::http;
+namespace beast_http = boost::beast::http;
 
 typedef beast_http::request<beast_http::string_body> beast_http_request;
 typedef beast_http::response<beast_http::string_body> beast_http_response;
@@ -59,14 +59,16 @@ typedef beast_http::request_serializer<beast_http::string_body>
 namespace osquery {
 namespace http {
 
-template <typename T> class HTTP_Request;
-template <typename T> class HTTP_Response;
+template <typename T>
+class HTTP_Request;
+template <typename T>
+class HTTP_Response;
 typedef HTTP_Request<beast_http_request> Request;
 typedef HTTP_Response<beast_http_response> Response;
 
 /**
- * @brief http client class 
- * 
+ * @brief http client class
+ *
  * Implements put, post, get, head and delete_ methods.
  * These methods take request as refrence and  return respose by value.
  */
@@ -233,7 +235,8 @@ class HTTP_Request : public T {
   }
 
   boost::optional<std::string> protocol() {
-    return uri_.scheme().size() ? uri_.scheme() : boost::optional<std::string>();
+    return uri_.scheme().size() ? uri_.scheme()
+                                : boost::optional<std::string>();
   }
 
   HTTP_Request& operator<<(const Header& h) {
@@ -291,6 +294,10 @@ class HTTP_Response<T>::Iterator {
 
   bool operator!=(const Iterator& it) const {
     return (iter_ != it.iter_);
+  }
+
+  auto operator-> () {
+    return this;
   }
 
   std::string header_name() {

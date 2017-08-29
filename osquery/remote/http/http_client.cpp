@@ -8,14 +8,14 @@
  *
  */
 
-#include <osquery/logger.h>
 #include <osquery/http_client.h>
+#include <osquery/logger.h>
 
 namespace osquery {
 namespace http {
 
-/// In the postResponseHandler, treating SHORT_READ_ERROR as success 
-/// for ssl connections. This can happen if a remote server did not 
+/// In the postResponseHandler, treating SHORT_READ_ERROR as success
+/// for ssl connections. This can happen if a remote server did not
 /// call on shutdown ssl connection.
 void Client::postResponseHandler(boost_system::error_code const& ec) {
   if ((ec.category() == boost_asio::error::ssl_category) &&
@@ -86,8 +86,8 @@ void Client::createConnection() {
   if (client_options_.proxy_hostname_) {
     std::string remote_host = *client_options_.remote_hostname_;
     std::string remote_port = (client_options_.remote_port_)
-                               ? *client_options_.remote_port_
-                               : std::to_string(HTTP_DEFAULT_PORT);
+                                  ? *client_options_.remote_port_
+                                  : std::to_string(HTTP_DEFAULT_PORT);
 
     beast_http_request req;
     req.method(beast_http::verb::connect);
@@ -96,7 +96,7 @@ void Client::createConnection() {
     req.prepare_payload();
     beast_http::write(sock_, req);
 
-    beast::flat_buffer b;
+    boost::beast::flat_buffer b;
     beast_http_response_parser rp;
     rp.skip(true);
     beast_http::read_header(sock_, b, rp);
@@ -169,7 +169,7 @@ void Client::sendRequest(Request& req, beast_http_response_parser& resp) {
         [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
   }
 
-  ::beast::flat_buffer b;
+  boost::beast::flat_buffer b;
   beast_http::async_read(
       stream, b, resp, [&](boost_system::error_code const& ec) {
         if (client_options_.timeout_) {
@@ -228,8 +228,8 @@ Response Client::sendHTTPRequest(Request& req) {
 }
 
 Response Client::put(Request& req,
-                          std::string const& body,
-                          std::string const& content_type) {
+                     std::string const& body,
+                     std::string const& content_type) {
   req.method(beast_http::verb::put);
   req.body = body;
   if (content_type.size()) {
@@ -239,8 +239,8 @@ Response Client::put(Request& req,
 }
 
 Response Client::post(Request& req,
-                           std::string const& body,
-                           std::string const& content_type) {
+                      std::string const& body,
+                      std::string const& content_type) {
   req.method(beast_http::verb::post);
   req.body = body;
   if (content_type.size()) {
