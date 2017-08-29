@@ -15,17 +15,12 @@ class Librdkafka < AbstractOsqueryFormula
     args = [
       "--disable-dependency-tracking",
       "--prefix=#{prefix}",
+      "--disable-sasl",
+      "--disable-lz4",
     ]
 
-    if OS.mac?
-      args += [
-        "--disable-sasl",
-        "--disable-lz4",
-      ]
-    end
-
     if OS.linux?
-      ENV.append "LIBS", "-lpthread -lz -lz -lssl -lssl -lcrypto -lcrypto  -lrt"
+      ENV.append "LIBS", "-lpthread -lz -lssl -lcrypto -lrt"
     end
 
     system "./configure", *args

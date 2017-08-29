@@ -17,8 +17,11 @@
 
 namespace osquery {
 
-const std::string kKafkaTopicParserRootKey("kafka_topics");
+/// Root key to retrieve Kafka topic configurations.
+extern const std::string kKafkaTopicParserRootKey;
 
+/// KafkaTopicsConfigParserPlugin extracts, updates, and parses Kafka topic
+/// configurations from Osquery's configurations.
 class KafkaTopicsConfigParserPlugin : public ConfigParserPlugin {
  public:
   std::vector<std::string> keys() const override;

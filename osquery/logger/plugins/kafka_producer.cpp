@@ -41,6 +41,9 @@ FLAG(string,
 /// How often to poll Kafka broker for publish results.
 const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
 
+/// Default Kafka topic to publish to if payload name is not found.
+const std::string kKafkaBaseTopic("base_topic");
+
 /// Deleter for rd_kafka_t unique_ptr.
 static inline void delKafkaHandle(rd_kafka_t* k) {
   if (k != nullptr) {

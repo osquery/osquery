@@ -21,8 +21,9 @@
 
 namespace osquery {
 
-/// Default Kafka topic to publish to if payload name is not found.
-const std::string kKafkaBaseTopic = "base_topic";
+/// Name indicating default Kafka topic to publish to if payload name is not
+/// found.
+extern const std::string kKafkaBaseTopic;
 
 /// Retrieves log payload field "name".
 std::string getMsgName(const std::string& payload);
