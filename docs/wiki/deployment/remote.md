@@ -9,12 +9,15 @@ The most important differentiator to the **filesystem** suite of plugins is an a
 The initial step is called an "enroll step" and in the case of **tls** plugins, uses an implicit *enroll* plugin, also called **tls**. If you enable either config or logger **tls** plugins the enrollment plugin will turn on automatically. Enrollment provides an initial secret to the remote server in order to negotiate a private node secret used for future identification. The process is simple:
 
 1. Configure a target `--tls_hostname`, `--enroll_tls_endpoint`.
-2. Place your server's root certificate authority's PEM-encoded certificate into a file, for example `/path/to/server-root.pem` and configure the note client to pin this root: `--tls_server_certs=`.
-3. Submit an `--enroll_secret_path`, an `--enroll_secret_env`, or use TLS-client authentication, to the enroll endpoint.
-4. Receive a **node_key** and store within the node's backing store (RocksDB).
-5. Make config/logger requests while providing **node_key** as identification/authentication.
+2. Configure a proxy `--proxy_hostname`(Optional Step).
+3. Place your server's root certificate authority's PEM-encoded certificate into a file, for example `/path/to/server-root.pem` and configure the note client to pin this root: `--tls_server_certs=`.
+4. Submit an `--enroll_secret_path`, an `--enroll_secret_env`, or use TLS-client authentication, to the enroll endpoint.
+5. Receive a **node_key** and store within the node's backing store (RocksDB).
+6. Make config/logger requests while providing **node_key** as identification/authentication.
 
 The validity of a **node_key** is determined and implemented in the TLS server. The node only manages to ask for the content during enroll, and posts the content during subsequent requests.
+
+**Note:** `--proxy_hostname` is used to communicate via proxy server.
 
 ### Simple shared secret enrollment
 
