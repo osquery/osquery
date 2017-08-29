@@ -17,29 +17,33 @@
 #include <osquery/status.h>
 #include <osquery/tables.h>
 
+using namespace boost::network;
 using namespace boost::network::http;
 using namespace std::chrono;
 
 namespace osquery {
 namespace tables {
 
+const std::string OSQUERY_USER_AGENT = "osquery";
+
 Status processRequest(const std::string& request_str, QueryData& results) {
   Row r;
   r["url"] = request_str;
   r["method"] = "GET";
-  r["ua"] = "osquery";
+  r["ua"] = OSQUERY_USER_AGENT;
 
-  client client_;
-  client::response response_;
   try {
+    client client_;
+    client::response response_;
     client::request request_(request_str);
+    request_ << header("User-Agent", OSQUERY_USER_AGENT);
     time_point<system_clock> start = std::chrono::system_clock::now();
     response_ = client_.get(request_);
     time_point<system_clock> end = std::chrono::system_clock::now();
     r["response_code"] = INTEGER(static_cast<int>(status(response_)));
     r["rtt"] = BIGINT(duration_cast<microseconds>(end - start).count());
     r["result"] = static_cast<std::string>(body(response_));
-    r["bytes"] = r["result"].size();
+    r["bytes"] = BIGINT(r["result"].size());
     results.push_back(r);
   } catch (const std::exception& e) {
     return Status(1, e.what());
