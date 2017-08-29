@@ -39,24 +39,14 @@ static SERVICE_STATUS kServiceStatus = {0};
 static const std::string kStopEventName{"osqueryd-service-stop-event"};
 
 /// Logging for when we need to debug this service
-#define SLOG(...) ::osquery::DebugPrintf("[osqueryd] " __VA_ARGS__)
+#define SLOG(s) ::osquery::DebugPrintf(s)
 
-void DebugPrintf(const char* fmt, ...) {
-  va_list vl;
-  va_start(vl, fmt);
-
-  int size = _vscprintf(fmt, vl);
-  if (size > 0) {
-    char* buf = static_cast<char*>(
-        ::HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, size + 2));
-    if (buf != nullptr) {
-      _vsprintf_p(buf, size + 1, fmt, vl);
-      ::OutputDebugStringA(buf);
-      ::HeapFree(GetProcessHeap(), 0, buf);
-    }
+void DebugPrintf(const std::string& s) {
+  auto dbgString = "[osqueryd] " + s;
+  if (isDebuggerPresent()) {
+    ::OutputDebugStringA(dbgString.c_str());
   }
-
-  va_end(vl);
+  LOG(ERROR) << s;
 }
 
 // A helper function to return a HANDLE to the named Stop Event for child
@@ -65,9 +55,9 @@ HANDLE getStopEvent() {
   auto stopEvent = ::OpenEventA(
       SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, osquery::kStopEventName.c_str());
   if (stopEvent == nullptr) {
-    SLOG("OpenEventA failed for event name %s (lasterror=%d)",
-         osquery::kStopEventName.c_str(),
-         ::GetLastError());
+    SLOG("OpenEventA failed for event name " + osquery::kStopEventName
+         " (lasterror=" +
+         std::to_string(GetLastError()) + ")");
   }
   return stopEvent;
 }
@@ -82,7 +72,8 @@ static void UpdateServiceStatus(DWORD controls,
   kServiceStatus.dwCheckPoint = checkpoint;
 
   if (!::SetServiceStatus(kStatusHandle, &kServiceStatus)) {
-    SLOG("SetServiceStatus failed (lasterror=%d)", ::GetLastError());
+    SLOG("SetServiceStatus failed (lasterror=" +
+         std::to_string(GetLastError()) + ")");
   }
 }
 
@@ -299,7 +290,8 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
       if (stopEvent != nullptr) {
         auto ret = SetEvent(stopEvent);
         if (ret != TRUE) {
-          SLOG("SetEvent failed (lasterror=%d)", ::GetLastError());
+          SLOG("SetEvent failed (lasterror=" + std::to_string(GetLastError()) +
+               ")");
         }
         CloseHandle(stopEvent);
       }
@@ -328,7 +320,8 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
 
       ServiceArgumentParser parser(argc, argv);
       if (parser.count() == 0) {
-        SLOG("ServiceArgumentParser failed (cmdline=%s)", ::GetCommandLineA());
+        SLOG("ServiceArgumentParser failed (cmdline=" + GetCommandLineA() +
+             ")");
       } else {
         osquery::startOsquery(
             parser.count(), parser.arguments(), kShutdownCallable);
@@ -336,10 +329,12 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
 
       ::CloseHandle(stopEvent);
     } else {
-      SLOG("CreateEventA failed (lasterror=%d)", ::GetLastError());
+      SLOG("CreateEventA failed (lasterror=" + std::to_string(GetLastError()) +
+           ")");
     }
   } else {
-    SLOG("RegisterServiceCtrlHandlerA failed (lasterror=%d)", ::GetLastError());
+    SLOG("RegisterServiceCtrlHandlerA failed (lasterror=" +
+         std::to_string(GetLastError()) + ")");
   }
 
   UpdateServiceStatus(0, SERVICE_STOPPED, 0, 3);
@@ -362,7 +357,8 @@ int main(int argc, char* argv[]) {
       osquery::startOsquery(argc, argv, osquery::kShutdownCallable);
     } else {
       // An actual error has occurred at this point
-      SLOG("StartServiceCtrlDispatcherA error (lasterror=%d)", last_error);
+      SLOG("StartServiceCtrlDispatcherA error (lasterror=" +
+           std::to_string(last_error) + ")");
     }
   }
   return 0;
