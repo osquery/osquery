@@ -10,6 +10,7 @@ set(OSQUERY_REMOTE
   "serializers/json.cpp"
   "transports/tls.cpp"
   "remote.cpp"
+)
 
 if(NOT SKIP_BRO)
   LIST(APPEND OSQUERY_REMOTE "bro/broker_manager.cpp")
