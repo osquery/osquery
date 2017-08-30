@@ -204,26 +204,31 @@ Status forensicReadFile(const fs::path& path,
   return readFile(path, content, 0, false, true, blocking);
 }
 
-Status isWritable(const fs::path& path) {
+Status isWritable(const fs::path& path, bool effective) {
   auto path_exists = pathExists(path);
   if (!path_exists.ok()) {
     return path_exists;
   }
-
-  if (platformAccess(path.string(), W_OK) == 0) {
+  if (effective) {
+    PlatformFile fd(path.string(), PF_OPEN_EXISTING | PF_WRITE);
+    return fd.isValid() ? Status(0) : Status(1);
+  } else if (platformAccess(path.string(), W_OK) == 0) {
     return Status(0, "OK");
   }
 
   return Status(1, "Path is not writable: " + path.string());
 }
 
-Status isReadable(const fs::path& path) {
+Status isReadable(const fs::path& path, bool effective) {
   auto path_exists = pathExists(path);
   if (!path_exists.ok()) {
     return path_exists;
   }
 
-  if (platformAccess(path.string(), R_OK) == 0) {
+  if (effective) {
+    PlatformFile fd(path.string(), PF_OPEN_EXISTING | PF_READ);
+    return fd.isValid() ? Status(0) : Status(1);
+  } else if (platformAccess(path.string(), R_OK) == 0) {
     return Status(0, "OK");
   }
 

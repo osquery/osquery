@@ -10,6 +10,10 @@
 
 #pragma once
 
+#ifndef WIN32
+#include <pwd.h>
+#endif
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,6 +25,18 @@
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
+#ifndef WIN32
+#define AS_NOBODY(code)                                                        \
+  {                                                                            \
+    auto dropper = DropPrivileges::get();                                      \
+    auto nobody = getpwnam("nobody");                                          \
+    dropper->dropTo(nobody->pw_uid, nobody->pw_gid);                           \
+    code;                                                                      \
+  }
+#else
+#define AS_NOBODY(code)                                                        \
+  { code; }
+#endif
 
 namespace pt = boost::property_tree;
 

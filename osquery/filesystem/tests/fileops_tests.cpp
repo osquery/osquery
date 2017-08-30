@@ -7,12 +7,16 @@
  *  of patent rights can be found in the PATENTS file in the same directory.
  *
  */
+#ifndef WIN32
+#include <pwd.h>
+#endif
 
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
 
 #include <osquery/core.h>
+#include <osquery/logger.h>
 
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tests/test_util.h"
@@ -408,8 +412,8 @@ TEST_F(FileOpsTests, test_chmod_no_read) {
   EXPECT_TRUE(platformChmod(path, S_IWUSR | S_IWOTH));
 
   {
-    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_FALSE(fd.isValid());
+    AS_NOBODY(PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
+              EXPECT_FALSE(fd.isValid()););
   }
 
   {
@@ -436,12 +440,18 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
   }
 
   {
-    PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
-    EXPECT_FALSE(fd.isValid());
+    AS_NOBODY(PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
+              EXPECT_FALSE(fd.isValid()););
   }
 }
 
 TEST_F(FileOpsTests, test_access) {
+#ifndef WIN32
+  if (getuid() == 0) {
+    LOG(WARNING) << "Access always succeeds as root; skipping";
+    return;
+  }
+#endif
   const int all_access = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP |
                          S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
 
@@ -692,6 +702,12 @@ TEST_F(FileOpsTests, test_glob) {
 }
 
 TEST_F(FileOpsTests, test_zero_permissions_file) {
+#ifndef WIN32
+  if (getuid() == 0) {
+    LOG(WARNING) << "Access always succeeds as root; skipping";
+    return;
+  }
+#endif
   TempFile tmp_file;
   std::string path = tmp_file.path();
 
