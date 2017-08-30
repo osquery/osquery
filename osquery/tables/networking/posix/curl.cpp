@@ -24,21 +24,18 @@ using namespace std::chrono;
 namespace osquery {
 namespace tables {
 
-const std::string OSQUERY_USER_AGENT = "osquery";
+const std::string kOsqueryUserAgent{"osquery"};
 
-Status processRequest(const std::string& request_str, QueryData& results) {
-  Row r;
-  r["url"] = request_str;
+Status processRequest(Row& r) {
   r["method"] = "GET";
-  r["ua"] = OSQUERY_USER_AGENT;
 
   try {
     client client_;
     client::response response_;
-    client::request request_(request_str);
+    client::request request_(r["url"]);
 
     // Change the user-agent for the request to be osquery
-    request_ << header("User-Agent", OSQUERY_USER_AGENT);
+    request_ << header("User-Agent", r["user_agent"]);
 
     // Measure the rtt using the system clock
     time_point<system_clock> start = std::chrono::system_clock::now();
@@ -46,10 +43,10 @@ Status processRequest(const std::string& request_str, QueryData& results) {
     time_point<system_clock> end = std::chrono::system_clock::now();
 
     r["response_code"] = INTEGER(static_cast<int>(status(response_)));
-    r["rtt"] = BIGINT(duration_cast<microseconds>(end - start).count());
+    r["round_trip_time"] =
+        BIGINT(duration_cast<microseconds>(end - start).count());
     r["result"] = static_cast<std::string>(body(response_));
     r["bytes"] = BIGINT(r["result"].size());
-    results.push_back(r);
   } catch (const std::exception& e) {
     return Status(1, e.what());
   }
@@ -61,17 +58,34 @@ QueryData genCurl(QueryContext& context) {
   QueryData results;
 
   auto requests = context.constraints["url"].getAll(EQUALS);
+  auto user_agents = context.constraints["user_agent"].getAll(EQUALS);
+
+  if (user_agents.size() > 1) {
+    LOG(WARNING) << "Can only accept a single user_agent";
+    return results;
+  }
 
   // Using the like clause for urls wouldn't make sense
   if (context.constraints["url"].getAll(LIKE).size()) {
-    LOG(WARNING) << "Using like clause for url is not supported";
+    LOG(WARNING) << "Using LIKE clause for url is not supported";
   }
 
   for (const auto& request : requests) {
-    auto status = processRequest(request, results);
+    Row r;
+    r["url"] = request;
+    r["user_agent"] = kOsqueryUserAgent;
+
+    // user_agents set size <= 1
+    for (const auto& user_agent : user_agents) {
+      r["user_agent"] = user_agent;
+    }
+
+    auto status = processRequest(r);
     if (!status.ok()) {
       LOG(WARNING) << status.getMessage();
     }
+
+    results.push_back(r);
   }
 
   return results;
