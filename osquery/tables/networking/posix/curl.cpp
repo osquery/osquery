@@ -72,7 +72,8 @@ QueryData genCurl(QueryContext& context) {
     Row r;
     r["url"] = request;
     r["method"] = "GET";
-    r["user_agent"] = user_agents.empty() ? kOsqueryUserAgent : *(user_agents.begin());
+    r["user_agent"] =
+        user_agents.empty() ? kOsqueryUserAgent : *(user_agents.begin());
 
     auto status = processRequest(r);
     if (!status.ok()) {
