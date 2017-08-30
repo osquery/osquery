@@ -10,7 +10,7 @@ class Libaptpkg < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "7bf998189b4fa8c3a18bce7216634e20bf1d9c2eb978b45b64290a307f7b42df" => :x86_64_linux
+    sha256 "c1b334851875c83dcbd33e4051dd80126b418b0f14b509a3d31aceae1904354f" => :x86_64_linux
   end
 
   # This removes the requirement for sphinx to build the documentation.
