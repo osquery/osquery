@@ -71,13 +71,8 @@ QueryData genCurl(QueryContext& context) {
   for (const auto& request : requests) {
     Row r;
     r["url"] = request;
-    r["user_agent"] = kOsqueryUserAgent;
     r["method"] = "GET";
-
-    // user_agents set size <= 1
-    for (const auto& user_agent : user_agents) {
-      r["user_agent"] = user_agent;
-    }
+    r["user_agent"] = user_agents.empty() ? kOsqueryUserAgent : *(user_agents.begin());
 
     auto status = processRequest(r);
     if (!status.ok()) {
