@@ -36,10 +36,15 @@ Status processRequest(const std::string& request_str, QueryData& results) {
     client client_;
     client::response response_;
     client::request request_(request_str);
+
+    // Change the user-agent for the request to be osquery
     request_ << header("User-Agent", OSQUERY_USER_AGENT);
+
+    // Measure the rtt using the system clock
     time_point<system_clock> start = std::chrono::system_clock::now();
     response_ = client_.get(request_);
     time_point<system_clock> end = std::chrono::system_clock::now();
+
     r["response_code"] = INTEGER(static_cast<int>(status(response_)));
     r["rtt"] = BIGINT(duration_cast<microseconds>(end - start).count());
     r["result"] = static_cast<std::string>(body(response_));
@@ -57,6 +62,7 @@ QueryData genCurl(QueryContext& context) {
 
   auto requests = context.constraints["url"].getAll(EQUALS);
 
+  // Using the like clause for urls wouldn't make sense
   if (context.constraints["url"].getAll(LIKE).size()) {
     LOG(WARNING) << "Using like clause for url is not supported";
   }
