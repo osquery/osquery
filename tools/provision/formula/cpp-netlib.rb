@@ -11,7 +11,7 @@ class CppNetlib < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "e31a4a6c1203918eeefaca7c7fc1cd66a4563ab4527dc594a3b70f8df656fd79" => :sierra
+    sha256 "9394f505e39d8e85d78d6c1b6af27b190bfbcd51b54b94944dee64acbd82f974" => :sierra
     sha256 "852481adfc61d2a5bb2e5c3e7076882c9432231c7c17dff7d57e55a9e0968cc1" => :x86_64_linux
   end
 

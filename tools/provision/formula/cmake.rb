@@ -12,7 +12,7 @@ class Cmake < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "511eb3b6b8ff3381c2af2637ea57ed2034a8035a21c9551ba6163b23a1d24d8e" => :sierra
+    sha256 "aa6d4acaf60b8a6ab32d925ae56ab5f8c886857f382ce85143542047fa3d1110" => :sierra
     sha256 "3bf8a820fabc6b9b7bbca8c65ef633c7fb7e7950bbdcb66d055c26bc1218080e" => :x86_64_linux
   end
 
