@@ -12,9 +12,9 @@
 
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
+#include <osquery/query.h>
 
 #include "osquery/core/json.h"
-#include "osquery/database/query.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {

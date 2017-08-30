@@ -70,11 +70,11 @@ function platform_linux_main() {
   # OpenSSL is needed for the final build.
   brew_tool osquery/osquery-local/libxml2
   brew_tool osquery/osquery-local/openssl
+  brew_tool osquery/osquery-local/cmake
 
   # Curl and Python are needed for LLVM mostly.
   brew_tool osquery/osquery-local/curl
   brew_tool osquery/osquery-local/python
-  brew_tool osquery/osquery-local/cmake --without-docs
 
   # Linux library secondary dependencies.
   brew_tool osquery/osquery-local/berkeley-db
@@ -109,7 +109,7 @@ function platform_darwin_main() {
   brew_tool pkg-config
   brew_tool makedepend
   brew_tool ninja
-  brew_tool osquery/osquery-local/cmake --without-docs
+  brew_tool osquery/osquery-local/cmake
   brew_tool clang-format
   brew_tool autoconf
   brew_tool automake
@@ -130,14 +130,12 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/zstd
 
   # List of LLVM-compiled dependencies.
-  brew_dependency osquery/osquery-local/lz4
   brew_dependency osquery/osquery-local/libmagic
   brew_dependency osquery/osquery-local/pcre
   brew_dependency osquery/osquery-local/boost
   brew_dependency osquery/osquery-local/asio
   brew_dependency osquery/osquery-local/cpp-netlib
   brew_dependency osquery/osquery-local/google-benchmark
-  brew_dependency osquery/osquery-local/snappy
   brew_dependency osquery/osquery-local/sleuthkit
   brew_dependency osquery/osquery-local/thrift
   brew_dependency osquery/osquery-local/rocksdb

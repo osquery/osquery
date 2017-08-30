@@ -3,10 +3,10 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Boost < AbstractOsqueryFormula
   desc "Collection of portable C++ source libraries"
   homepage "https://www.boost.org/"
-  url "https://downloads.sourceforge.net/project/boost/boost/1.63.0/boost_1_63_0.tar.bz2"
-  sha256 "beae2529f759f6b3bf3f4969a19c2e9d6f0c503edcb2de4a61d1428519fcb3b0"
+  url "https://downloads.sourceforge.net/project/boost/boost/1.65.0/boost_1_65_0.tar.bz2"
+  sha256 "ea26712742e2fb079c2a566a31f3266973b76e38222b9f88b387e3c8b2f9902c"
   head "https://github.com/boostorg/boost.git"
-  revision 101
+  revision 102
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -29,19 +29,14 @@ class Boost < AbstractOsqueryFormula
     ENV.cxx11
     ENV.universal_binary if build.universal?
 
-    # Force boost to compile with the desired compiler
-    open("user-config.jam", "a") do |file|
-      if OS.mac?
-        file.write "using darwin : : #{ENV.cxx} ;\n"
-      else
-        file.write "using gcc : : #{ENV.cxx} ;\n"
-      end
-    end
-
     # libdir should be set by --prefix but isn't
     bootstrap_args = [
       "--prefix=#{prefix}",
       "--libdir=#{lib}",
+
+      # This is a non-standard toolset, but informs the bjam build to use the
+      # compile and link environment variables.
+      "--with-toolset=cc",
     ]
 
     # layout should be synchronized with boost-python
@@ -52,37 +47,42 @@ class Boost < AbstractOsqueryFormula
       "-j#{ENV.make_jobs}",
       "--layout=tagged",
       "--ignore-site-config",
-      "--user-config=user-config.jam",
       "--disable-icu",
       "--with-filesystem",
       "--with-regex",
       "--with-system",
       "--with-thread",
-      "--with-coroutine2",
+      "--with-coroutine",
       "--with-context",
       "threading=multi",
       "link=static",
       "optimization=space",
       "variant=release",
+      "toolset=clang",
     ]
 
-    # Trunk starts using "clang++ -x c" to select C compiler which breaks C++11
-    # handling using ENV.cxx11. Using "cxxflags" and "linkflags" still works.
-    if build.cxx11? or true
-      args << "cxxflags=-std=c++11 -fpic"
-      #if ENV.compiler == :clang and OS.mac?
-      #  #args << "cxxflags=-stdlib=libc++" << "linkflags=-stdlib=libc++"
-      #end
-    end
+    args << "cxxflags=-std=c++11 #{ENV["CXXFLAGS"]}"
 
     # Fix error: bzlib.h: No such file or directory
     # and /usr/bin/ld: cannot find -lbz2
     args += [
       "include=#{HOMEBREW_PREFIX}/include",
-      "linkflags=-L#{HOMEBREW_PREFIX}/lib"] unless OS.mac?
+      "linkflags=#{ENV["LDFLAGS"]}"
+    ] unless OS.mac?
 
     system "./bootstrap.sh", *bootstrap_args
-    system "./b2", "headers"
+
+    # The B2 script will not read our user-config.
+    # You will encounter: ERROR: rule "cc.init" unknown in module "toolset".
+    # If the lines from project-config are moved into a --user-config b2 will
+    # complain about duplicate initializations:
+    #  error: duplicate initialization of clang-linux
+    if OS.mac?
+      inreplace "project-config.jam", "cc ;", "darwin ;"
+    else
+      inreplace "project-config.jam", "cc ;", "clang ;"
+    end
+
     system "./b2", "install", *args
   end
 end

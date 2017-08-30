@@ -8,16 +8,18 @@
  *
  */
 
-#include <csignal>
+#include <map>
+#include <set>
+#include <string>
+#include <tuple>
+#include <vector>
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
-#include <osquery/sql.h>
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
@@ -32,7 +34,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-// Millisecond latency between initalizing manager pings.
+// Millisecond latency between initializing manager pings.
 const size_t kExtensionInitializeLatency = 20;
 
 enum class ExtendableType {

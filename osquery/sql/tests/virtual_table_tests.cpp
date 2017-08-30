@@ -557,6 +557,113 @@ TEST_F(VirtualTableTests, test_yield_generator) {
   EXPECT_EQ(results[0]["index"], "10");
 }
 
+class likeTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("i", TEXT_TYPE, ColumnOptions::INDEX),
+        std::make_tuple("op", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext& context) override {
+    QueryData results;
+
+    // To test, we'll move all predicate constraints into the result set.
+    // First we'll move constrains for the column `i` using operands =, LIKE.
+    auto i = context.constraints["i"].getAll(EQUALS);
+    for (const auto& constraint : i) {
+      Row r;
+      r["i"] = constraint;
+      r["op"] = "EQUALS";
+      results.push_back(r);
+    }
+
+    i = context.constraints["i"].getAll(LIKE);
+    for (const auto& constraint : i) {
+      Row r;
+      r["i"] = constraint;
+      r["op"] = "LIKE";
+      results.push_back(r);
+    }
+
+    return results;
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_like_constraints);
+};
+
+TEST_F(VirtualTableTests, test_like_constraints) {
+  auto table = std::make_shared<likeTablePlugin>();
+  auto table_registry = RegistryFactory::get().registry("table");
+  table_registry->add("like_table", table);
+
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal("like_table", table->columnDefinition(), dbc);
+
+  // Base case, without constrains this table has no results.
+  QueryData results;
+  queryInternal("SELECT * FROM like_table", results, dbc->db());
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 0U);
+
+  // A single EQUAL constraint's value is emitted.
+  queryInternal("SELECT * FROM like_table WHERE i = '1'", results, dbc->db());
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["i"], "1");
+  EXPECT_EQ(results[0]["op"], "EQUALS");
+
+  // When using OR, both values should be added.
+  results.clear();
+  queryInternal(
+      "SELECT * FROM like_table WHERE i = '1' OR i = '2'", results, dbc->db());
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 2U);
+  EXPECT_EQ(results[0]["i"], "1");
+  EXPECT_EQ(results[0]["op"], "EQUALS");
+  EXPECT_EQ(results[1]["i"], "2");
+  EXPECT_EQ(results[1]["op"], "EQUALS");
+
+  // When using a LIKE, the value (with substitution character) is emitted.
+  results.clear();
+  queryInternal(
+      "SELECT * FROM like_table WHERE i LIKE '/test/1/%'", results, dbc->db());
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["i"], "/test/1/%");
+  EXPECT_EQ(results[0]["op"], "LIKE");
+
+  // As with EQUAL, multiple LIKEs mean multiple values.
+  results.clear();
+  queryInternal(
+      "SELECT * FROM like_table WHERE i LIKE '/test/1/%' OR i LIKE '/test/2/%'",
+      results,
+      dbc->db());
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 2U);
+  EXPECT_EQ(results[0]["i"], "/test/1/%");
+  EXPECT_EQ(results[0]["op"], "LIKE");
+  EXPECT_EQ(results[1]["i"], "/test/2/%");
+  EXPECT_EQ(results[1]["op"], "LIKE");
+
+  // As with EQUAL, multiple LIKEs mean multiple values.
+  results.clear();
+  queryInternal(
+      "SELECT * FROM like_table WHERE i LIKE '/home/%/downloads' OR i LIKE "
+      "'/home/%/documents'",
+      results,
+      dbc->db());
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 2U);
+  EXPECT_EQ(results[0]["i"], "/home/%/downloads");
+  EXPECT_EQ(results[0]["op"], "LIKE");
+  EXPECT_EQ(results[1]["i"], "/home/%/documents");
+  EXPECT_EQ(results[1]["op"], "LIKE");
+}
+
 class indexIOptimizedTablePlugin : public TablePlugin {
  private:
   TableColumns columns() const override {

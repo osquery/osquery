@@ -19,4 +19,6 @@ function distro_main() {
   package curl
   package bison
   package flex
+  package doxygen
+  package valgrind
 }

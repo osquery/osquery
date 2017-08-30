@@ -282,7 +282,7 @@ function Install-ThirdParty {
   # List of our third party packages, hosted in our AWS S3 bucket
   $packages = @(
     "aws-sdk-cpp.1.0.107-r1",
-    "boost-msvc14.1.63.0-r2",
+    "boost-msvc14.1.65.0",
     "bzip2.1.0.6",
     "cpp-netlib.0.12.0-r4",
     "doxygen.1.8.11",
@@ -293,7 +293,6 @@ function Install-ThirdParty {
     "llvm-clang.4.0.1",
     "openssl.1.0.2-k",
     "rocksdb.5.1.4-r1",
-    "snappy-msvc.1.1.1.8",
     "thrift-dev.0.10.0-r4",
     "zlib.1.2.8",
     "libarchive.3.3.1-r1",
@@ -397,7 +396,8 @@ function Main {
   }
   $out = Install-ChocoPackage 'cppcheck'
   $out = Install-ChocoPackage '7zip.commandline'
-  $out = Install-ChocoPackage 'cmake.portable' '3.6.1'
+  $out = Install-ChocoPackage 'vswhere'
+  $out = Install-ChocoPackage 'cmake.portable'
   $chocoParams = @("--params=`"/InstallDir:C:\tools\python2`"")
   $out = Install-ChocoPackage 'python2' '' ${chocoParams}
   # Convenience variable for accessing Python

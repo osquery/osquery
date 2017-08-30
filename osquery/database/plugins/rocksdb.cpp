@@ -12,8 +12,6 @@
 
 #include <sys/stat.h>
 
-#include <snappy.h>
-
 #include <rocksdb/db.h>
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
@@ -176,6 +174,7 @@ Status RocksDBDatabasePlugin::setUp() {
     options_.max_manifest_file_size = 1024 * 500;
 
     // Performance and optimization settings.
+    // Use rocksdb::kZSTD to use ZSTD database compression
     options_.compression = rocksdb::kNoCompression;
     options_.compaction_style = rocksdb::kCompactionStyleLevel;
     options_.arena_block_size = (4 * 1024);

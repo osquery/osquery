@@ -47,8 +47,8 @@ endif
 ifeq ($(DEBUG_SHARED_DIR),0)
 	DEBUG_DIR = $(shell ln -sf $(shell mktemp -d) build/debug_shared)
 endif
-	BUILD_DIR = $(shell realpath build/$(BUILD_NAME))$(DIR)
-	DEBUG_BUILD_DIR = $(shell realpath build/debug_$(BUILD_NAME))$(DEBUG_DIR)
+	BUILD_DIR = $(shell readlink --canonicalize build/$(BUILD_NAME))$(DIR)
+	DEBUG_BUILD_DIR = $(shell readlink --canonicalize build/debug_$(BUILD_NAME))$(DEBUG_DIR)
 ifneq (build/$(BUILD_NAME),$(BUILD_DIR))
 	LINK = " \-\> $(BUILD_DIR), $(DEBUG_BUILD_DIR)"
 endif
@@ -59,7 +59,7 @@ endif
 
 
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
-CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib" cmake $(SOURCE_DIR)/
+CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib" cmake $(CMAKE_EXTRA) $(SOURCE_DIR)/
 CTEST := $(PATH_SET) ctest $(SOURCE_DIR)/
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"

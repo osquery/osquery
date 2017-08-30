@@ -18,6 +18,8 @@
 
 #include <osquery/events.h>
 
+#include "osquery/events/pathset.h"
+
 namespace osquery {
 
 extern std::map<int, std::string> kMaskActions;
@@ -95,6 +97,9 @@ inline bool operator==(const INotifySubscriptionContext& lsc,
   return ((lsc.category == rsc.category) && (lsc.opath == rsc.opath));
 }
 
+using INotifySubscriptionContextRef =
+    std::shared_ptr<INotifySubscriptionContext>;
+
 /**
  * @brief Event details for INotifyEventPublisher events.
  */
@@ -110,14 +115,17 @@ struct INotifyEventContext : public EventContext {
 
   /// A no-op event transaction id.
   uint32_t transaction_id{0};
+
+  /// This event ctx belongs to isub_ctx
+  INotifySubscriptionContextRef isub_ctx;
 };
 
 using INotifyEventContextRef = std::shared_ptr<INotifyEventContext>;
-using INotifySubscriptionContextRef =
-    std::shared_ptr<INotifySubscriptionContext>;
 
 // Publisher container
 using DescriptorINotifySubCtxMap = std::map<int, INotifySubscriptionContextRef>;
+
+using ExcludePathSet = PathSet<patternedPath>;
 
 /**
  * @brief A Linux `inotify` EventPublisher.
@@ -215,6 +223,9 @@ class INotifyEventPublisher
   bool monitorSubscription(INotifySubscriptionContextRef& sc,
                            bool add_watch = true);
 
+  /// Build the set of excluded paths for which events are not to be propogated.
+  void buildExcludePathsSet();
+
   /// Remove an INotify watch (monitor) from our tracking.
   bool removeMonitor(int watch, bool force = false, bool batch_del = false);
 
@@ -241,6 +252,9 @@ class INotifyEventPublisher
 
   /// Map of inotify watch file descriptor to subscription context.
   DescriptorINotifySubCtxMap descriptor_inosubctx_;
+
+  /// Events pertaining to these paths not to be propagated.
+  ExcludePathSet exclude_paths_;
 
   /// The inotify file descriptor handle.
   std::atomic<int> inotify_handle_{-1};

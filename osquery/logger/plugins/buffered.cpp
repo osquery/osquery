@@ -15,7 +15,6 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/database.h>
-#include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
@@ -33,9 +32,9 @@ FLAG(uint64,
      1000000,
      "Maximum number of logs in buffered output plugins (0 = unlimited)");
 
-const std::chrono::seconds BufferedLogForwarder::kLogPeriod =
-    std::chrono::seconds(4);
-const size_t BufferedLogForwarder::kMaxLogLines = 1024;
+const std::chrono::seconds BufferedLogForwarder::kLogPeriod{
+    std::chrono::seconds(4)};
+const size_t BufferedLogForwarder::kMaxLogLines{1024};
 
 Status BufferedLogForwarder::setUp() {
   // initialize buffer_count_ by scanning the DB
@@ -46,6 +45,7 @@ Status BufferedLogForwarder::setUp() {
     return Status(1, "Error scanning for buffered log count");
   }
 
+  RecursiveLock lock(count_mutex_);
   buffer_count_ = indexes.size();
   return Status(0);
 }
@@ -103,6 +103,7 @@ void BufferedLogForwarder::check() {
 }
 
 void BufferedLogForwarder::purge() {
+  RecursiveLock lock(count_mutex_);
   if (buffer_count_ <= FLAGS_buffered_log_max) {
     return;
   }
@@ -251,14 +252,14 @@ std::string BufferedLogForwarder::genStatusIndex(size_t time) {
 }
 
 std::string BufferedLogForwarder::genIndexPrefix(bool results) {
-  return index_name_ + "_" + ((results) ? "r" : "s") + "_";
+  return index_name_ + '_' + ((results) ? 'r' : 's') + '_';
 }
 
 std::string BufferedLogForwarder::genIndex(bool results, size_t time) {
   if (time == 0) {
     time = getUnixTime();
   }
-  return genIndexPrefix(results) + std::to_string(time) + "_" +
+  return genIndexPrefix(results) + std::to_string(time) + '_' +
          std::to_string(++log_index_);
 }
 
@@ -267,6 +268,7 @@ Status BufferedLogForwarder::addValueWithCount(const std::string& domain,
                                                const std::string& value) {
   Status status = setDatabaseValue(domain, key, value);
   if (status.ok()) {
+    RecursiveLock lock(count_mutex_);
     buffer_count_++;
   }
   return status;
@@ -276,7 +278,10 @@ Status BufferedLogForwarder::deleteValueWithCount(const std::string& domain,
                                                   const std::string& key) {
   Status status = deleteDatabaseValue(domain, key);
   if (status.ok()) {
-    buffer_count_--;
+    RecursiveLock lock(count_mutex_);
+    if (buffer_count_ > 0) {
+      buffer_count_--;
+    }
   }
   return status;
 }
