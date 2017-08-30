@@ -27,8 +27,6 @@ namespace tables {
 const std::string kOsqueryUserAgent{"osquery"};
 
 Status processRequest(Row& r) {
-  r["method"] = "GET";
-
   try {
     client client_;
     client::response response_;
@@ -74,6 +72,7 @@ QueryData genCurl(QueryContext& context) {
     Row r;
     r["url"] = request;
     r["user_agent"] = kOsqueryUserAgent;
+    r["method"] = "GET";
 
     // user_agents set size <= 1
     for (const auto& user_agent : user_agents) {
