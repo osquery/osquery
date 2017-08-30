@@ -9,7 +9,7 @@ class Librdkafka < AbstractOsqueryFormula
   depends_on "openssl"
   depends_on "pkg-config" => :build
   depends_on "lzlib"
-  depends_on "lz4" => :recommended
+  depends_on "lz4" => :optional
 
   def install
     args = [
