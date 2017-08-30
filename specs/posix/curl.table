@@ -11,5 +11,5 @@ schema([
 ])
 implementation("networking/curl@genCurl")
 examples([
-  "select url, rtt, response_code from curl where url = 'https://github.com/facebook/osquery'",
+  "select url, round_trip_time, response_code from curl where url = 'https://github.com/facebook/osquery'",
 ])
