@@ -43,7 +43,7 @@ static const std::string kStopEventName{"osqueryd-service-stop-event"};
 
 void DebugPrintf(const std::string& s) {
   auto dbgString = "[osqueryd] " + s;
-  if (isDebuggerPresent()) {
+  if (IsDebuggerPresent()) {
     ::OutputDebugStringA(dbgString.c_str());
   }
   LOG(ERROR) << s;
@@ -55,9 +55,8 @@ HANDLE getStopEvent() {
   auto stopEvent = ::OpenEventA(
       SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, osquery::kStopEventName.c_str());
   if (stopEvent == nullptr) {
-    SLOG("OpenEventA failed for event name " + osquery::kStopEventName
-         " (lasterror=" +
-         std::to_string(GetLastError()) + ")");
+    SLOG("OpenEventA failed for event name " + osquery::kStopEventName +
+         " (lasterror=" + std::to_string(GetLastError()) + ")");
   }
   return stopEvent;
 }
@@ -81,7 +80,7 @@ static auto kShutdownCallable = ([]() {
   // The event only gets initialized in the entry point of the service. Child
   // processes and those run from the commandline will not have a stop event.
   auto stopEvent = osquery::getStopEvent();
-  if (stopEvent != nullptr) {
+  if (stopEvent != nullptr && !Initializer::isWorker()) {
     ::WaitForSingleObject(stopEvent, INFINITE);
 
     UpdateServiceStatus(0, SERVICE_STOPPED, 0, 3);
@@ -320,8 +319,8 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
 
       ServiceArgumentParser parser(argc, argv);
       if (parser.count() == 0) {
-        SLOG("ServiceArgumentParser failed (cmdline=" + GetCommandLineA() +
-             ")");
+        SLOG("ServiceArgumentParser failed (cmdline=" +
+             std::string(GetCommandLineA()) + ")");
       } else {
         osquery::startOsquery(
             parser.count(), parser.arguments(), kShutdownCallable);
