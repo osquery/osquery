@@ -206,7 +206,7 @@ class Initializer : private boost::noncopyable {
   static std::function<void()> shutdown_;
 
   /// Mutex to protect use of the shutdown callable.
-  Mutex shutdown_mutext_;
+  static Mutex shutdown_mutex_;
 };
 
 /**
