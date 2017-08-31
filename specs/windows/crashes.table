@@ -1,0 +1,9 @@
+table_name("crashes")
+
+description("Windows crash log information.")
+
+schema([
+    Column("test", TEXT, "The current hour"),
+])
+
+implementation("crashes@genCrashLogs")
