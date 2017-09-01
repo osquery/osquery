@@ -12,6 +12,7 @@
 
 #include <boost/algorithm/string/join.hpp>
 
+#include <aws/core/client/AWSError.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/firehose/model/PutRecordBatchRequest.h>
 #include <aws/firehose/model/PutRecordBatchResult.h>
