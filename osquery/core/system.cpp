@@ -344,9 +344,7 @@ Status createPidFile() {
   }
 
   // Now the pidfile is either the wrong pid or the pid is not running.
-  try {
-    boost::filesystem::remove(pidfile_path);
-  } catch (const boost::filesystem::filesystem_error& /* e */) {
+  if (!removePath(pidfile_path)) {
     // Unable to remove old pidfile.
     LOG(WARNING) << "Unable to remove the osqueryd pidfile";
   }

@@ -44,8 +44,8 @@ class ExtensionsTest : public testing::Test {
     socket_path += "testextmgr" + std::to_string(rand());
 
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-      remove(socket_path);
-      if (pathExists(socket_path)) {
+      removePath(socket_path);
+      if (pathExists(socket_path).ok()) {
         throw std::domain_error("Cannot test sockets: " + socket_path);
       }
     }
@@ -56,7 +56,7 @@ class ExtensionsTest : public testing::Test {
     Dispatcher::joinServices();
 
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-      remove(socket_path);
+      removePath(socket_path);
     }
   }
 

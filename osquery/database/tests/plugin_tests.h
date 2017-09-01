@@ -12,10 +12,7 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/filesystem/operations.hpp>
-
 #include <osquery/database.h>
-#include <osquery/flags.h>
 
 #include "osquery/tests/test_util.h"
 
@@ -48,29 +45,11 @@
 
 namespace osquery {
 
-DECLARE_string(database_path);
-
 class DatabasePluginTests : public testing::Test {
  public:
-  void SetUp() override {
-    auto& rf = RegistryFactory::get();
-    existing_plugin_ = rf.getActive("database");
-    rf.plugin("database", existing_plugin_)->tearDown();
+  void SetUp() override;
 
-    setName(name());
-    path_ = FLAGS_database_path;
-    boost::filesystem::remove_all(path_);
-
-    auto plugin = rf.plugin("database", getName());
-    plugin_ = std::dynamic_pointer_cast<DatabasePlugin>(plugin);
-    plugin_->reset();
-  }
-
-  void TearDown() override {
-    auto& rf = RegistryFactory::get();
-    rf.plugin("database", name_)->tearDown();
-    rf.setActive("database", existing_plugin_);
-  }
+  void TearDown() override;
 
  protected:
   /// Path to testing database.
@@ -84,9 +63,11 @@ class DatabasePluginTests : public testing::Test {
   void setName(const std::string& name) {
     name_ = name;
   }
+
   const std::string& getName() {
     return name_;
   }
+
   std::shared_ptr<DatabasePlugin> getPlugin() {
     return plugin_;
   }
