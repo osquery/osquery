@@ -4,9 +4,9 @@ class Beast < AbstractOsqueryFormula
   desc "HTTP and WebSocket built on Boost.Asio in C++11"
   homepage "http://vinniefalco.github.io/"
   head "https://github.com/boostorg/beast.git"
-  url "https://github.com/boostorg/beast/archive/master.zip"
-  sha256 "fd9683549da1d00dd1b1d9b9799952626e2ea7122a54563bf01d85ca74552ed7"
-  version "108"
+  url "https://github.com/uptycs-nishant/beast/archive/v111.zip"
+  sha256 "003bb33e21256530deea5b1c689128990cf0fd10a31ce2d76d4c5fd470b08c8a"
+  version "111"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
