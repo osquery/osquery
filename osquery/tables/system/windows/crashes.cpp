@@ -20,9 +20,8 @@ namespace osquery {
 namespace tables {
 	const std::string kLocalDumpsRegKey = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting\\LocalDumps";
 	const std::string kDumpFolderRegPath = kLocalDumpsRegKey + "\\DumpFolder";
-	const std::string kDumpFileExtension = ".dmp";
 	const std::string kFallbackFolder = "%TMP%";
-	DWORD dwSysGran = NULL;
+	const std::string kDumpFileExtension = ".dmp";
 
 	Row extractDumpInfo(LPCTSTR lpFileName) {
 		Row r;
@@ -63,16 +62,11 @@ namespace tables {
 		}
 
 		// Map the file
-		if (dwSysGran == NULL) {
-			SYSTEM_INFO sysInfo;
-			GetSystemInfo(&sysInfo);
-			dwSysGran = sysInfo.dwAllocationGranularity;
-		}
 		pBase = MapViewOfFile(
 			hMapFile,
 			FILE_MAP_READ,
 			0,
-			dwSysGran,
+			0,
 			0
 		);
 		if (pBase == NULL) {
@@ -84,16 +78,16 @@ namespace tables {
 		}
 
 		// Read dump file streams
-		PMINIDUMP_DIRECTORY *pExceptionStreamDir = 0;
-		PVOID *pExceptionStream = 0;
-		ULONG *pExceptionStreamSize = 0;
+		PMINIDUMP_DIRECTORY pExceptionStreamDir = 0;
+		PVOID pExceptionStream = 0;
+		ULONG pExceptionStreamSize = 0;
 
 		BOOL bDumpRead = MiniDumpReadDumpStream(
 			pBase,
 			ExceptionStream,
-			pExceptionStreamDir,
-			pExceptionStream,
-			pExceptionStreamSize
+			&pExceptionStreamDir,
+			&pExceptionStream,
+			&pExceptionStreamSize
 		);
 		if (!bDumpRead) {
 			DWORD dwError = GetLastError();
@@ -121,13 +115,13 @@ namespace tables {
 		// Query registry for crash dump folder
 		std::string dumpFolderQuery = "SELECT data FROM registry WHERE key = \"" + kLocalDumpsRegKey + "\" AND path = \"" + kDumpFolderRegPath + "\"";
 		SQL dumpFolderResults(dumpFolderQuery);
-		RowData dumpFolderRowData = dumpFolderResults.rows()[0].at("data");
 
-		if (dumpFolderRowData.empty()) {
+		if (dumpFolderResults.rows().empty()) {
 			LOG(WARNING) << "No crash dump folder found in registry; using fallback location of " << kFallbackFolder;
 			szDumpFolderLocation = kFallbackFolder.c_str();
 		}
 		else {
+			RowData dumpFolderRowData = dumpFolderResults.rows()[0].at("data");
 			szDumpFolderLocation = dumpFolderRowData.c_str();
 		}
 
@@ -145,8 +139,10 @@ namespace tables {
 		boost::filesystem::directory_iterator iterator(szExpandedDumpFolderLocation);
 		boost::filesystem::directory_iterator endIterator;
 		while (iterator != endIterator) {
+			std::string sExtension = iterator->path().extension().string();
+			std::transform(sExtension.begin(), sExtension.end(), sExtension.begin(), ::tolower);
 			if (boost::filesystem::is_regular_file(*iterator) &&
-				(iterator->path().extension() == kDumpFileExtension)) {
+				(sExtension.compare(kDumpFileExtension) == 0)) {
 				Row r = extractDumpInfo(iterator->path().generic_string().c_str());
 				if (!r.empty()) results.push_back(r);
 			}
