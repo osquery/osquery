@@ -15,10 +15,34 @@
 #include <boost/asio/ssl.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
-#include <boost/network/uri.hpp>
-#include <boost/network/uri/uri_io.hpp>
 #include <boost/optional/optional.hpp>
 
+// clang-format off
+#ifdef WIN32
+#pragma warning(push, 3)
+
+/*
+ * Suppressing warning C4005:
+ * 'ASIO_ERROR_CATEGORY_NOEXCEPT': macro redefinition
+ */
+#pragma warning(disable: 4005)
+
+/*
+ * Suppressing warning C4244:
+ * 'argument': conversion from '__int64' to 'long', possible loss of data
+ */
+#pragma warning(disable: 4244)
+#endif
+
+#include <boost/network/uri.hpp>
+#include <boost/network/uri/uri_io.hpp>
+
+#ifdef WIN32
+#pragma warning(pop)
+
+/// We need to reinclude this to re-enable boost's warning suppression
+#include <boost/config/compiler/visualc.hpp>
+#endif
 // clang-format on
 
 #include <openssl/crypto.h>

@@ -211,8 +211,13 @@ Response Client::sendHTTPRequest(Request& req) {
     switch (resp.get().result()) {
     case beast_http::status::ok:
       return Response(resp.get());
-    case beast_http::status::moved_permanently... beast_http::status::
-        permanent_redirect: {
+    case beast_http::status::moved_permanently:
+    case beast_http::status::found:
+    case beast_http::status::see_other:
+    case beast_http::status::not_modified:
+    case beast_http::status::use_proxy:
+    case beast_http::status::temporary_redirect:
+    case beast_http::status::permanent_redirect: {
       if (!client_options_.follow_redirects_) {
         throw std::runtime_error(resp.get().reason().data());
       }
