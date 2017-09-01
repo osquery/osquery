@@ -36,8 +36,15 @@ function Test-IsAdmin {
 }
 
 function Test-RebootPending {
-  $compBasedServ = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending" -ErrorAction Ignore
-  $winUpdate = Get-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired" -ErrorAction Ignore
+
+  $rebootPendingKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion' +
+                      '\Component Based Servicing\RebootPending'
+  $compBasedServ = Get-ChildItem $rebootPendingKey -ErrorAction Ignore
+
+  $winUpdateRebootKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion' +
+                        '\WindowsUpdate\Auto Update\RebootRequired'
+  $winUpdate = Get-Item $winUpdateRebootKey -ErrorAction Ignore
+
   $ccm = $false
   try {
     $util = [wmiclass]"\\.\root\ccm\clientsdk:CCM_ClientUtilities"
@@ -73,7 +80,8 @@ function Add-ToPath {
     $newPath = $oldPath + ';' + $appendPath
     [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
   }
-  # Append the newly added path to the sessions Path variable, for immediate use.
+  # Append the newly added path to the sessions Path variable,
+  # for immediate use.
   $env:Path += $appendPath
 }
 
@@ -197,10 +205,19 @@ function Install-PowershellLinter {
       break
     }
   }
+
   if (-not $psScriptAnalyzerInstalled) {
-    Write-Host " => PSScriptAnalyzer either not installed or out of date. Installing..." -foregroundcolor Cyan
-    Install-Module -Name PSScriptAnalyzer -Force
-    Write-Host "[+] PSScriptAnalyzer installed!" -foregroundcolor Green
+    if((Get-Command Install-Module).Source -eq 'PsGet') {
+      $msg = '[-] Conflicting package manager PsGet found, skipping ' +
+             'Powershell modules.'
+      Write-Host $msg -ForegroundColor Yellow
+    } else {
+      $msg = ' => PSScriptAnalyzer either not installed or ' +
+      'out of date. Installing...'
+      Write-Host $msg -foregroundcolor Cyan
+      Install-Module -Name PSScriptAnalyzer -Force
+      Write-Host "[+] PSScriptAnalyzer installed!" -foregroundcolor Green
+    }
   } else {
     Write-Host "[*] PSScriptAnalyzer already installed." -foregroundcolor Green
   }
@@ -453,6 +470,8 @@ function Main {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
     $pythonInstall = Test-PythonInstalled
   }
+  $out = Install-ChocoPackage 'wixtoolset'
+
   # Convenience variable for accessing Python
   [Environment]::SetEnvironmentVariable("OSQUERY_PYTHON_PATH", $pythonInstall, "Machine")
   $out = Install-PipPackage
