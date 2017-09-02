@@ -203,7 +203,11 @@ Status resolveFilePattern(const boost::filesystem::path& pattern,
 void replaceGlobWildcards(std::string& pattern, GlobLimits limits = GLOB_ALL);
 
 /// Attempt to remove a directory path.
-Status remove(const boost::filesystem::path& path);
+Status removePath(const boost::filesystem::path& path);
+
+/// Move a file or directory to another path.
+Status movePath(const boost::filesystem::path& from,
+                const boost::filesystem::path& to);
 
 /**
  * @brief Check if an input path is a directory.

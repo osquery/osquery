@@ -44,8 +44,7 @@ class FSEventsTests : public testing::Test {
   }
 
   void TearDown() override {
-    remove(real_test_path);
-    fs::remove_all(real_test_dir);
+    removePath(real_test_dir);
   }
 
   void StartEventLoop() {

@@ -345,7 +345,7 @@ Status socketExists(const fs::path& path, bool remove_socket) {
   if (pathExists(path).ok()) {
     if (!isWritable(path).ok()) {
       return Status(1, "Cannot write extension socket: " + path.string());
-    } else if (remove_socket && !osquery::remove(path).ok()) {
+    } else if (remove_socket && !removePath(path).ok()) {
       return Status(1, "Cannot remove extension socket: " + path.string());
     }
   } else {
