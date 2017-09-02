@@ -28,7 +28,7 @@ function distro_main() {
   package thrift-cpp
   package boost-libs
   package magic
-  package rocksdb-lite
+  package rocksdb
   package asio
   package cpp-netlib
   package linenoise-ng
