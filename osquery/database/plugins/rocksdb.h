@@ -96,6 +96,9 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
    */
   void repairDB();
 
+  /// Flush memtables and trigger compaction.
+  void flush();
+
  private:
   /**
    * @brief Mark the RocksDB database as corrupted.
