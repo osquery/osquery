@@ -6,16 +6,16 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 # Update-able metadata
-$version = '1.0.107'
-$chocoVersion = '1.0.107-r1'
+$version = '1.1.44'
+$chocoVersion = '1.1.44-r1'
 $packageName = 'aws-sdk-cpp'
 $projectSource = 'https://github.com/aws/aws-sdk-cpp'
-$packageSourceUrl = 'https://github.com/apache/thrift'
+$packageSourceUrl = 'https://github.com/aws/aws-sdk-cpp/archive/$version.zip'
 $authors = 'Amazon'
 $owners = 'Amazon'
 $copyright = 'https://github.com/aws/aws-sdk-cpp/blob/master/LICENSE'
 $license = 'https://github.com/aws/aws-sdk-cpp/blob/master/LICENSE'
-$url = "https://github.com/aws/aws-sdk-cpp/archive/$version.zip"
+$url = "$packageSourceUrl"
 
 $libs = @(
   'aws-cpp-sdk-core',
@@ -49,7 +49,7 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retreive the source
+# Retrieve the source
 Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
 
 # Extract the source
@@ -70,8 +70,8 @@ cmake -G 'Visual Studio 14 2015 Win64' -DSTATIC_LINKING=1 -DNO_HTTP_CLIENT=1 -DM
 
 # Build the libraries
 $libs | Foreach-Object {
-  msbuild 'aws-cpp-sdk-all.sln' /p:Configuration=Release /m /t:$_ /v:m
-  msbuild 'aws-cpp-sdk-all.sln' /p:Configuration=Debug /m /t:$_ /v:m
+  msbuild 'AWSSDK.sln' /p:Configuration=Release /m /t:$_ /v:m
+  msbuild 'AWSSDK.sln' /p:Configuration=Debug /m /t:$_ /v:m
 }
 
 # Construct the Chocolatey Package
