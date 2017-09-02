@@ -88,6 +88,7 @@ Status RocksDBDatabasePlugin::setUp() {
     options_.log_file_time_to_roll = 0;
     options_.keep_log_file_num = 10;
     options_.max_log_file_size = 1024 * 1024 * 1;
+    options_.max_open_files = 256;
     options_.stats_dump_period_sec = 0;
     options_.max_manifest_file_size = 1024 * 500;
 
@@ -158,6 +159,10 @@ Status RocksDBDatabasePlugin::setUp() {
     // Also disable event publishers.
     Flag::updateValue("disable_events", "true");
     read_only_ = true;
+  } else {
+    // Trigger a flush when the database is opened.
+    // This helps if previous databases were closed and not compacted.
+    flush();
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
@@ -171,11 +176,18 @@ void RocksDBDatabasePlugin::tearDown() {
   close();
 }
 
+void RocksDBDatabasePlugin::flush() {
+  for (auto& cf : handles_) {
+    db_->Flush(rocksdb::FlushOptions(), cf);
+  }
+}
+
 void RocksDBDatabasePlugin::close() {
   WriteLock lock(close_mutex_);
   if (db_ != nullptr) {
-    db_->Flush(rocksdb::FlushOptions());
+    flush();
   }
+
   for (auto handle : handles_) {
     delete handle;
   }
