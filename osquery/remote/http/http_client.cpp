@@ -78,7 +78,7 @@ void Client::createConnection() {
     if (client_options_.proxy_hostname_) {
       error += "proxy host ";
     }
-    error += connect_host + ":" + port + ":" + rc.message();
+    error += connect_host + ":" + port;
     throw std::system_error(
         std::error_code(rc.value(), std::generic_category()), error);
   }

@@ -189,7 +189,8 @@ class Client {
   };
 
  public: // methods
-  Client(Options const& opts) : client_options_(opts), r_(ios_), sock_(ios_) {}
+  Client(Options const& opts = Options())
+      : client_options_(opts), r_(ios_), sock_(ios_) {}
 
   Response put(Request& req,
                std::string const& body,

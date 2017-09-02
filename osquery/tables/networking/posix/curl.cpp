@@ -10,15 +10,13 @@
 
 #include <chrono>
 
-#include <boost/network/include/http/client.hpp>
 #include <boost/numeric/conversion/cast.hpp>
 
+#include <osquery/http_client.h>
 #include <osquery/logger.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
 
-using namespace boost::network;
-using namespace boost::network::http;
 using namespace std::chrono;
 
 namespace osquery {
@@ -28,22 +26,22 @@ const std::string kOsqueryUserAgent{"osquery"};
 
 Status processRequest(Row& r) {
   try {
-    client client_;
-    client::response response_;
-    client::request request_(r["url"]);
+    osquery::http::Client client_;
+    osquery::http::Response response_;
+    osquery::http::Request request_(r["url"]);
 
     // Change the user-agent for the request to be osquery
-    request_ << header("User-Agent", r["user_agent"]);
+    request_ << osquery::http::Request::Header("User-Agent", r["user_agent"]);
 
     // Measure the rtt using the system clock
     time_point<system_clock> start = std::chrono::system_clock::now();
     response_ = client_.get(request_);
     time_point<system_clock> end = std::chrono::system_clock::now();
 
-    r["response_code"] = INTEGER(static_cast<int>(status(response_)));
+    r["response_code"] = response_.status();
     r["round_trip_time"] =
         BIGINT(duration_cast<microseconds>(end - start).count());
-    r["result"] = static_cast<std::string>(body(response_));
+    r["result"] = response_.body();
     r["bytes"] = BIGINT(r["result"].size());
   } catch (const std::exception& e) {
     return Status(1, e.what());

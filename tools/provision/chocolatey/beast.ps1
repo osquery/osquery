@@ -55,10 +55,11 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Checkout our working, patched, build of beast-111
-git clone https://github.com/boostorg/beast.git
+# Checkout our working, patched, build of beast-v111
+git clone https://github.com/uptycs-nishant/beast.git
 $sourceDir = 'beast'
 Set-Location $sourceDir
+git checkout v111
 
 # Build the libraries, remove any old versions first.
 $buildDir = Join-Path $(Get-Location) 'osquery-win-build'
