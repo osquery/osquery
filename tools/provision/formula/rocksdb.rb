@@ -10,8 +10,8 @@ class Rocksdb < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "18a52b1e96c93b9a99cc33ad9a2eb0b6db0ecd864f25f24684bb6117a44f00f2" => :sierra
-    sha256 "5754ea9999e374273ab7d766e5bc0dae5ee43e544f3d93b4402cc57112dffbf6" => :x86_64_linux
+    sha256 "d56829ad4f656aabde556bbc3e947ebcdab3b8ca51fe4a0ab7a80cb852e10500" => :sierra
+    sha256 "c27a534f2a44bec1fd4ace5040a06b66be9fbded6e3915d9baee75ac13ee841e" => :x86_64_linux
   end
 
   needs :cxx11
