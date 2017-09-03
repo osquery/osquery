@@ -80,6 +80,9 @@ TEST_F(AwsUtilTests, test_get_credentials) {
   ASSERT_EQ("FLAG_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
   ASSERT_EQ("flag_secret_key", credentials.GetAWSSecretKey());
 
+// Profiles are not working on Windows; see the constructor of
+// OsqueryAWSCredentialsProviderChain for more information
+#if !defined(WINDOWS)
   FLAGS_aws_access_key_id = "";
   FLAGS_aws_secret_access_key = "flag_secret_key";
   // With the flags set improperly, the profile should be used
@@ -114,6 +117,7 @@ TEST_F(AwsUtilTests, test_get_credentials) {
   // Now the "test" profile should take precedence
   ASSERT_EQ("TEST_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
   ASSERT_EQ("test_secret_key", credentials.GetAWSSecretKey());
+#endif
 }
 
 TEST_F(AwsUtilTests, test_get_region) {
