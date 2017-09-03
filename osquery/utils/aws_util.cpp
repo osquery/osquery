@@ -231,7 +231,7 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
     Model::AssumeRoleRequest sts_r;
     sts_r.SetRoleArn(FLAGS_aws_sts_arn_role);
     sts_r.SetRoleSessionName(FLAGS_aws_sts_session_name);
-    sts_r.SetDurationSeconds(FLAGS_aws_sts_timeout);
+    sts_r.SetDurationSeconds(static_cast<int>(FLAGS_aws_sts_timeout));
 
     // Pull our STS credentials.
     Model::AssumeRoleOutcome sts_outcome = client_->AssumeRole(sts_r);
@@ -270,8 +270,12 @@ OsqueryAWSCredentialsProviderChain::OsqueryAWSCredentialsProviderChain(bool sts)
   AddProvider(std::make_shared<Aws::Auth::EnvironmentAWSCredentialsProvider>());
   AddProvider(
       std::make_shared<Aws::Auth::ProfileConfigFileAWSCredentialsProvider>());
+
+// This is disabled on Windows because it causes a crash
+#if !defined(WINDOWS)
   AddProvider(
       std::make_shared<Aws::Auth::InstanceProfileCredentialsProvider>());
+#endif
 }
 
 Status getAWSRegionFromProfile(std::string& region) {
@@ -324,7 +328,7 @@ void initAwsSdk() {
       };
       Aws::InitAPI(options);
     });
-  } catch (const std::system_error& e) {
+  } catch (const std::system_error&) {
     LOG(ERROR) << "call_once was not executed for initAwsSdk";
   }
 }
