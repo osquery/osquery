@@ -204,6 +204,9 @@ class Initializer : private boost::noncopyable {
 
   /// A platform specific callback to wait for shutdown.
   static std::function<void()> shutdown_;
+
+  /// Mutex to protect use of the shutdown callable.
+  static Mutex shutdown_mutex_;
 };
 
 /**
