@@ -12,6 +12,7 @@
 
 #include <gtest/gtest.h>
 
+#include <osquery/core/process.h>
 #include <osquery/logger.h>
 
 #include "osquery/tests/test_util.h"
@@ -29,22 +30,6 @@ static const char* kAwsProfileFileEnvVar = "AWS_SHARED_CREDENTIALS_FILE";
 static const char* kAwsAccessKeyEnvVar = "AWS_ACCESS_KEY_ID";
 static const char* kAwsSecretKeyEnvVar = "AWS_SECRET_ACCESS_KEY";
 
-void SetEnvVar(const std::string& name, const std::string& value) {
-#ifdef WINDOWS
-  SetEnvironmentVariable(name.data(), value.data());
-#else
-  setenv(name.data(), value.data(), true);
-#endif
-}
-
-void ClearEnvVar(const std::string& name) {
-#ifdef WINDOWS
-  SetEnvironmentVariable(name.data(), nullptr);
-#else
-  unsetenv(name.data());
-#endif
-}
-
 class AwsUtilTests : public testing::Test {
  public:
   void SetUp() override {
@@ -55,11 +40,11 @@ class AwsUtilTests : public testing::Test {
 TEST_F(AwsUtilTests, test_get_credentials) {
   // Set a good path for the credentials file
   std::string profile_path = kTestDataPath + "/aws/credentials";
-  SetEnvVar(kAwsProfileFileEnvVar, profile_path.c_str());
+  setEnvVar(kAwsProfileFileEnvVar, profile_path.c_str());
 
   // Clear any values for the other AWS env vars
-  ClearEnvVar(kAwsAccessKeyEnvVar);
-  ClearEnvVar(kAwsSecretKeyEnvVar);
+  unsetEnvVar(kAwsAccessKeyEnvVar);
+  unsetEnvVar(kAwsSecretKeyEnvVar);
 
   OsqueryAWSCredentialsProviderChain provider;
   Aws::Auth::AWSCredentials credentials("", "");
@@ -80,44 +65,44 @@ TEST_F(AwsUtilTests, test_get_credentials) {
   ASSERT_EQ("FLAG_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
   ASSERT_EQ("flag_secret_key", credentials.GetAWSSecretKey());
 
-// Profiles are not working on Windows; see the constructor of
-// OsqueryAWSCredentialsProviderChain for more information
-#if !defined(WINDOWS)
-  FLAGS_aws_access_key_id = "";
-  FLAGS_aws_secret_access_key = "flag_secret_key";
-  // With the flags set improperly, the profile should be used
-  provider = OsqueryAWSCredentialsProviderChain();
-  credentials = provider.GetAWSCredentials();
-  ASSERT_EQ("DEFAULT_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
-  ASSERT_EQ("default_secret_key", credentials.GetAWSSecretKey());
+  // Profiles are not working on Windows; see the constructor of
+  // OsqueryAWSCredentialsProviderChain for more information
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    FLAGS_aws_access_key_id = "";
+    FLAGS_aws_secret_access_key = "flag_secret_key";
+    // With the flags set improperly, the profile should be used
+    provider = OsqueryAWSCredentialsProviderChain();
+    credentials = provider.GetAWSCredentials();
+    ASSERT_EQ("DEFAULT_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+    ASSERT_EQ("default_secret_key", credentials.GetAWSSecretKey());
 
-  FLAGS_aws_access_key_id = "FLAG_ACCESS_KEY_ID";
-  FLAGS_aws_secret_access_key = "";
-  // With the flags set improperly, the profile should be used
-  provider = OsqueryAWSCredentialsProviderChain();
-  credentials = provider.GetAWSCredentials();
-  ASSERT_EQ("DEFAULT_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
-  ASSERT_EQ("default_secret_key", credentials.GetAWSSecretKey());
+    FLAGS_aws_access_key_id = "FLAG_ACCESS_KEY_ID";
+    FLAGS_aws_secret_access_key = "";
+    // With the flags set improperly, the profile should be used
+    provider = OsqueryAWSCredentialsProviderChain();
+    credentials = provider.GetAWSCredentials();
+    ASSERT_EQ("DEFAULT_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+    ASSERT_EQ("default_secret_key", credentials.GetAWSSecretKey());
 
-  // Clear flags
-  FLAGS_aws_access_key_id = "";
-  FLAGS_aws_secret_access_key = "";
+    // Clear flags
+    FLAGS_aws_access_key_id = "";
+    FLAGS_aws_secret_access_key = "";
 
-  SetEnvVar(kAwsAccessKeyEnvVar, "ENV_ACCESS_KEY_ID");
-  SetEnvVar(kAwsSecretKeyEnvVar, "env_secret_key");
-  // Now env variables should be the primary source
-  provider = OsqueryAWSCredentialsProviderChain();
-  credentials = provider.GetAWSCredentials();
-  ASSERT_EQ("ENV_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
-  ASSERT_EQ("env_secret_key", credentials.GetAWSSecretKey());
+    setEnvVar(kAwsAccessKeyEnvVar, "ENV_ACCESS_KEY_ID");
+    setEnvVar(kAwsSecretKeyEnvVar, "env_secret_key");
+    // Now env variables should be the primary source
+    provider = OsqueryAWSCredentialsProviderChain();
+    credentials = provider.GetAWSCredentials();
+    ASSERT_EQ("ENV_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+    ASSERT_EQ("env_secret_key", credentials.GetAWSSecretKey());
 
-  FLAGS_aws_profile_name = "test";
-  provider = OsqueryAWSCredentialsProviderChain();
-  credentials = provider.GetAWSCredentials();
-  // Now the "test" profile should take precedence
-  ASSERT_EQ("TEST_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
-  ASSERT_EQ("test_secret_key", credentials.GetAWSSecretKey());
-#endif
+    FLAGS_aws_profile_name = "test";
+    provider = OsqueryAWSCredentialsProviderChain();
+    credentials = provider.GetAWSCredentials();
+    // Now the "test" profile should take precedence
+    ASSERT_EQ("TEST_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+    ASSERT_EQ("test_secret_key", credentials.GetAWSSecretKey());
+  }
 }
 
 TEST_F(AwsUtilTests, test_get_region) {
@@ -152,31 +137,36 @@ TEST_F(AwsUtilTests, test_get_region) {
 
   // Test no credential file, should default to us-east-1
   std::string profile_path = kTestDataPath + "credentials";
-  SetEnvVar(kAwsProfileFileEnvVar, profile_path.c_str());
+  setEnvVar(kAwsProfileFileEnvVar, profile_path.c_str());
   ASSERT_EQ(Status(0), getAWSRegion(region));
   ASSERT_EQ(std::string(Aws::Region::US_EAST_1), region);
 
-  // Set an invalid path for the credentials file with a profile name provided,
-  profile_path = kTestDataPath + "credentials";
-  SetEnvVar(kAwsProfileFileEnvVar, profile_path.c_str());
-  FLAGS_aws_profile_name = "test";
-  ASSERT_FALSE(getAWSRegion(region).ok());
+  // Profiles are not working on Windows; see the constructor of
+  // OsqueryAWSCredentialsProviderChain for more information
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    // Set an invalid path for the credentials file with a profile name
+    // provided,
+    profile_path = kTestDataPath + "credentials";
+    setEnvVar(kAwsProfileFileEnvVar, profile_path.c_str());
+    FLAGS_aws_profile_name = "test";
+    ASSERT_FALSE(getAWSRegion(region).ok());
 
-  // Set a valid path for the credentials file with profile name.
-  profile_path = kTestDataPath + "aws/credentials";
-  SetEnvVar(kAwsProfileFileEnvVar, profile_path.c_str());
-  FLAGS_aws_profile_name = "test";
-  ASSERT_EQ(Status(0), getAWSRegion(region));
-  ASSERT_EQ(std::string(Aws::Region::EU_CENTRAL_1), region);
+    // Set a valid path for the credentials file with profile name.
+    profile_path = kTestDataPath + "aws/credentials";
+    setEnvVar(kAwsProfileFileEnvVar, profile_path.c_str());
+    FLAGS_aws_profile_name = "test";
+    ASSERT_EQ(Status(0), getAWSRegion(region));
+    ASSERT_EQ(std::string(Aws::Region::EU_CENTRAL_1), region);
 
-  FLAGS_aws_profile_name = "default";
-  ASSERT_EQ(Status(0), getAWSRegion(region));
-  ASSERT_EQ(std::string(Aws::Region::US_WEST_2), region);
+    FLAGS_aws_profile_name = "default";
+    ASSERT_EQ(Status(0), getAWSRegion(region));
+    ASSERT_EQ(std::string(Aws::Region::US_WEST_2), region);
 
-  // Should default to "default" and give same result as just above
-  FLAGS_aws_profile_name = "";
-  ASSERT_EQ(Status(0), getAWSRegion(region));
-  ASSERT_EQ(std::string(Aws::Region::US_WEST_2), region);
+    // Should default to "default" and give same result as just above
+    FLAGS_aws_profile_name = "";
+    ASSERT_EQ(Status(0), getAWSRegion(region));
+    ASSERT_EQ(std::string(Aws::Region::US_WEST_2), region);
+  }
 }
 
 TEST_F(AwsUtilTests, test_append_log_type_to_json) {

@@ -7,7 +7,7 @@
 
 # Update-able metadata
 $version = '1.1.44'
-$chocoVersion = '1.1.44-r1'
+$chocoVersion = '1.1.44'
 $packageName = 'aws-sdk-cpp'
 $projectSource = 'https://github.com/aws/aws-sdk-cpp'
 $packageSourceUrl = 'https://github.com/aws/aws-sdk-cpp/archive/$version.zip'
