@@ -73,9 +73,7 @@ void Client::createConnection() {
 
   std::string port = (client_options_.proxy_hostname_)
                          ? std::to_string(PROXY_DEFAUT_PORT)
-                         : (client_options_.remote_port_)
-                               ? *client_options_.remote_port_
-                               : std::to_string(HTTP_DEFAULT_PORT);
+                         : *client_options_.remote_port_;
 
   std::string connect_host = (client_options_.proxy_hostname_)
                                  ? *client_options_.proxy_hostname_
@@ -105,9 +103,7 @@ void Client::createConnection() {
 
   if (client_options_.proxy_hostname_) {
     std::string remote_host = *client_options_.remote_hostname_;
-    std::string remote_port = (client_options_.remote_port_)
-                                  ? *client_options_.remote_port_
-                                  : std::to_string(HTTP_DEFAULT_PORT);
+    std::string remote_port = *client_options_.remote_port_;
 
     beast_http_request req;
     req.method(beast_http::verb::connect);
@@ -180,6 +176,7 @@ void Client::sendEncryptedRequest(Request& req, beast_http_response_parser& resp
 
   req.target((req.remotePath()) ? *req.remotePath() : "/");
   req.version = 11;
+  req << Request::Header("Host", *client_options_.remote_hostname_);
   req.prepare_payload();
 
   req.keep_alive(true);
@@ -214,6 +211,7 @@ void Client::sendEncryptedRequest(Request& req, beast_http_response_parser& resp
 void Client::sendRequest(Request& req, beast_http_response_parser& resp) {
   req.target((req.remotePath()) ? *req.remotePath() : "/");
   req.version = 11;
+  req << Request::Header("Host", *client_options_.remote_hostname_);
   req.prepare_payload();
 
   req.keep_alive(true);
@@ -254,6 +252,8 @@ Response Client::sendHTTPRequest(Request& req) {
         client_options_.remote_port_ = *req.remotePort();
       } else if (req.protocol() && (*req.protocol()).compare("https") == 0) {
           client_options_.remote_port_ = std::to_string(HTTPS_DEFAULT_PORT);
+      } else {
+          client_options_.remote_port_ = std::to_string(HTTP_DEFAULT_PORT);
       }
 
       if (req.protocol()) {
