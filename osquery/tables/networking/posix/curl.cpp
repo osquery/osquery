@@ -38,7 +38,7 @@ Status processRequest(Row& r) {
     response_ = client_.get(request_);
     time_point<system_clock> end = std::chrono::system_clock::now();
 
-    r["response_code"] = response_.status();
+    r["response_code"] = INTEGER(static_cast<int>(response_.status()));
     r["round_trip_time"] =
         BIGINT(duration_cast<microseconds>(end - start).count());
     r["result"] = response_.body();
