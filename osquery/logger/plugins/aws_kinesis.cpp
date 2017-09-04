@@ -13,6 +13,7 @@
 #include <iterator>
 #include <thread>
 
+#include <aws/core/client/AWSError.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/kinesis/model/PutRecordsRequest.h>
 #include <aws/kinesis/model/PutRecordsResult.h>
