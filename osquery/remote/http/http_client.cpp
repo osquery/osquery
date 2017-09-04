@@ -122,7 +122,8 @@ void Client::createConnection() {
   }
 }
 
-void Client::sendEncryptedRequest(Request& req, beast_http_response_parser& resp) {
+void Client::sendEncryptedRequest(Request& req,
+                                  beast_http_response_parser& resp) {
   boost_asio::ssl::context ctx{boost_asio::ssl::context::sslv23};
 
   if (client_options_.always_verify_peer_) {
@@ -251,9 +252,9 @@ Response Client::sendHTTPRequest(Request& req) {
       if (req.remotePort()) {
         client_options_.remote_port_ = *req.remotePort();
       } else if (req.protocol() && (*req.protocol()).compare("https") == 0) {
-          client_options_.remote_port_ = std::to_string(HTTPS_DEFAULT_PORT);
+        client_options_.remote_port_ = std::to_string(HTTPS_DEFAULT_PORT);
       } else {
-          client_options_.remote_port_ = std::to_string(HTTP_DEFAULT_PORT);
+        client_options_.remote_port_ = std::to_string(HTTP_DEFAULT_PORT);
       }
 
       if (req.protocol()) {
