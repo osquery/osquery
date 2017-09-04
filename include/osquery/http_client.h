@@ -103,7 +103,7 @@ class Client {
     Options()
         : ssl_options_(0),
           timeout_(0),
-          always_verify_peer_(true),
+          always_verify_peer_(false),
           follow_redirects_(false) {}
 
     Options& follow_redirects(bool fr) {
@@ -213,6 +213,7 @@ class Client {
  private: // methods
   void createConnection();
   void sendRequest(Request& req, beast_http_response_parser& resp);
+  void sendEncryptedRequest(Request& req, beast_http_response_parser& resp);
   Response sendHTTPRequest(Request& req);
   void timeoutHandler(boost_system::error_code const& ec);
   void postResponseHandler(boost_system::error_code const& ec);
@@ -224,6 +225,7 @@ class Client {
   boost_asio::ip::tcp::resolver r_;
   boost_asio::ip::tcp::socket sock_;
   boost_system::error_code ec_;
+  bool ssl_connection = false;
   static const long SHORT_READ_ERROR = 0x140000dbL;
   /// Setting the default port to squid proxy default port
   static const int PROXY_DEFAUT_PORT = 3128;

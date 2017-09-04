@@ -14,6 +14,26 @@
 namespace osquery {
 namespace http {
 
+/// This class is used to convert boost::system_exception
+/// to std::system_exception on freebsd since it is on boost-1.64.
+/// Idea taken from boost-1.65
+class adapted_category : public std::error_category {
+ private:
+  boost::system::error_category const* pc_;
+
+ public:
+  explicit adapted_category(boost::system::error_category const* pc)
+      : pc_(pc) {}
+
+  virtual const char* name() const noexcept {
+    return pc_->name();
+  }
+
+  virtual std::string message(int ev) const {
+    return pc_->message(ev);
+  }
+};
+
 /// In the postResponseHandler, treating SHORT_READ_ERROR as success
 /// for ssl connections. This can happen if a remote server did not
 /// call on shutdown ssl connection.
@@ -106,7 +126,7 @@ void Client::createConnection() {
   }
 }
 
-void Client::sendRequest(Request& req, beast_http_response_parser& resp) {
+void Client::sendEncryptedRequest(Request& req, beast_http_response_parser& resp) {
   boost_asio::ssl::context ctx{boost_asio::ssl::context::sslv23};
 
   if (client_options_.always_verify_peer_) {
@@ -155,7 +175,7 @@ void Client::sendRequest(Request& req, beast_http_response_parser& resp) {
   stream.handshake(boost_asio::ssl::stream_base::client, rc);
 
   if (rc) {
-    throw std::system_error(rc);
+    throw std::system_error(rc.value(), adapted_category(&rc.category()));
   }
 
   req.target((req.remotePath()) ? *req.remotePath() : "/");
@@ -187,7 +207,41 @@ void Client::sendRequest(Request& req, beast_http_response_parser& resp) {
   ios_.reset();
 
   if (ec_) {
-    throw std::system_error(ec_);
+    throw std::system_error(ec_.value(), adapted_category(&ec_.category()));
+  }
+}
+
+void Client::sendRequest(Request& req, beast_http_response_parser& resp) {
+  req.target((req.remotePath()) ? *req.remotePath() : "/");
+  req.version = 11;
+  req.prepare_payload();
+
+  req.keep_alive(true);
+  beast_http_request_serializer sr{req};
+  beast_http::write(sock_, sr);
+
+  boost_asio::deadline_timer timer{ios_};
+  if (client_options_.timeout_) {
+    timer.expires_from_now(
+        boost::posix_time::seconds(client_options_.timeout_));
+    timer.async_wait(
+        [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
+  }
+
+  boost::beast::flat_buffer b;
+  beast_http::async_read(
+      sock_, b, resp, [&](boost_system::error_code const& ec) {
+        if (client_options_.timeout_) {
+          timer.cancel();
+        }
+        postResponseHandler(ec);
+      });
+
+  ios_.run();
+  ios_.reset();
+
+  if (ec_) {
+    throw std::system_error(ec_.value(), adapted_category(&ec_.category()));
   }
 }
 
@@ -195,18 +249,31 @@ Response Client::sendHTTPRequest(Request& req) {
   do {
     if (req.remoteHost()) {
       client_options_.remote_hostname_ = *req.remoteHost();
+
       if (req.remotePort()) {
         client_options_.remote_port_ = *req.remotePort();
-      } else if (req.protocol()) {
-        if ((*req.protocol()).compare("https") == 0) {
+      } else if (req.protocol() && (*req.protocol()).compare("https") == 0) {
           client_options_.remote_port_ = std::to_string(HTTPS_DEFAULT_PORT);
+      }
+
+      if (req.protocol()) {
+        if ((*req.protocol()).compare("https") == 0) {
+          ssl_connection = true;
+        } else {
+          ssl_connection = false;
         }
+      } else {
+        ssl_connection = false;
       }
     }
 
     beast_http_response_parser resp;
     createConnection();
-    sendRequest(req, resp);
+    if (ssl_connection) {
+      sendEncryptedRequest(req, resp);
+    } else {
+      sendRequest(req, resp);
+    }
 
     switch (resp.get().result()) {
     case beast_http::status::ok:
