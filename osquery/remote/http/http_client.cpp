@@ -287,7 +287,7 @@ Response Client::sendHTTPRequest(Request& req) {
     case beast_http::status::temporary_redirect:
     case beast_http::status::permanent_redirect: {
       if (!client_options_.follow_redirects_) {
-        throw std::runtime_error(resp.get().reason().data());
+        return Response(resp.get());
       }
 
       std::string redir_url = Response(resp.get()).headers()["Location"];
@@ -300,7 +300,7 @@ Response Client::sendHTTPRequest(Request& req) {
       break;
     }
     default:
-      throw std::runtime_error(resp.get().reason().data());
+      return Response(resp.get());
     }
   } while (true);
 }
