@@ -284,7 +284,7 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
     // A delayed watchdog does not stop the worker process.
     if (!status.ok() && getUnixTime() >= delayedTime()) {
       LOG(WARNING) << "osqueryd worker (" << child.pid()
-                   << "): " << status.getMessage();
+                   << ") is being stopped. Reason: " << status.getMessage();
       stopChild(child);
       return false;
     }
@@ -305,11 +305,16 @@ void WatcherRunner::stopChild(const PlatformProcess& child) const {
 
   // Clean up the defunct (zombie) process.
   if (!child.cleanup()) {
-    // The child did not exit, force kill and attempt to cleanup again.
+    auto child_pid = child.pid();
+
+    LOG(WARNING) << "osqueryd worker (" << std::to_string(child_pid)
+                 << ") could not be stopped. Sending kill signal.";
+
     child.kill();
     if (!child.cleanup()) {
-      Initializer::requestShutdown(EXIT_CATASTROPHIC,
-                                   "Watcher cannot stop worker process");
+      auto message = std::string("Watcher cannot stop worker process (") +
+                     std::to_string(child_pid) + ").";
+      Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
     }
   }
 }
@@ -433,8 +438,11 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
   }
 
   if (exceededCyclesLimit(change)) {
-    return Status(1, "System performance limits exceeded");
+    return Status(1,
+                  "Maximum sustainable CPU utilization limit exceeded: " +
+                      std::to_string(change.sustained_latency * change.iv));
   }
+
   // Check if the private memory exceeds a memory limit.
   if (exceededMemoryLimit(change)) {
     return Status(
