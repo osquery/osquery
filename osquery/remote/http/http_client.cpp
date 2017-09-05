@@ -18,9 +18,6 @@ namespace http {
 /// to std::system_exception on freebsd since it is on boost-1.64.
 /// Idea taken from boost-1.65
 class adapted_category : public std::error_category {
- private:
-  boost::system::error_category const* pc_;
-
  public:
   explicit adapted_category(boost::system::error_category const* pc)
       : pc_(pc) {}
@@ -32,6 +29,9 @@ class adapted_category : public std::error_category {
   virtual std::string message(int ev) const {
     return pc_->message(ev);
   }
+
+ private:
+  boost::system::error_category const* pc_;
 };
 
 /// In the postResponseHandler, treating SHORT_READ_ERROR as success
@@ -277,8 +277,6 @@ Response Client::sendHTTPRequest(Request& req) {
     }
 
     switch (resp.get().result()) {
-    case beast_http::status::ok:
-      return Response(resp.get());
     case beast_http::status::moved_permanently:
     case beast_http::status::found:
     case beast_http::status::see_other:
@@ -287,7 +285,7 @@ Response Client::sendHTTPRequest(Request& req) {
     case beast_http::status::temporary_redirect:
     case beast_http::status::permanent_redirect: {
       if (!client_options_.follow_redirects_) {
-        return Response(resp.get());
+        return Response(resp.release());
       }
 
       std::string redir_url = Response(resp.get()).headers()["Location"];
@@ -300,7 +298,7 @@ Response Client::sendHTTPRequest(Request& req) {
       break;
     }
     default:
-      return Response(resp.get());
+      return Response(resp.release());
     }
   } while (true);
 }
