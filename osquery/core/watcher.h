@@ -167,7 +167,6 @@ class Watcher : private boost::noncopyable {
   PerformanceState& getState(const PlatformProcess& child);
   PerformanceState& getState(const std::string& extension);
 
-
   /// Setter for worker process.
   void setWorker(const std::shared_ptr<PlatformProcess>& child) {
     WriteLock lock(worker_mutex_);
@@ -185,7 +184,6 @@ class Watcher : private boost::noncopyable {
   size_t workerRestartCount() const {
     return worker_restarts_;
   }
-
 
   /// Check if the worker and watcher's fates are bound.
   bool fatesBound() const {
@@ -285,7 +283,10 @@ class WatcherRunner : public InternalRunnable {
    * @param use_worker True if the process should spawn and monitor a worker.
    */
   explicit WatcherRunner(int argc, char** argv, bool use_worker)
-      : argc_(argc), argv_(argv), use_worker_(use_worker) {
+      : InternalRunnable("WatcherRunner"),
+        argc_(argc),
+        argv_(argv),
+        use_worker_(use_worker) {
     (void)argc_;
   }
 
@@ -361,7 +362,7 @@ class WatcherRunner : public InternalRunnable {
 class WatcherWatcherRunner : public InternalRunnable {
  public:
   explicit WatcherWatcherRunner(const std::shared_ptr<PlatformProcess>& watcher)
-      : watcher_(watcher) {}
+      : InternalRunnable("WatcherWatcherRunner"), watcher_(watcher) {}
 
   /// Runnable thread's entry point.
   void start();

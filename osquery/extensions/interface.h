@@ -242,7 +242,10 @@ class ExtensionWatcher : public InternalRunnable {
  public:
   virtual ~ExtensionWatcher() {}
   ExtensionWatcher(const std::string& path, size_t interval, bool fatal)
-      : path_(path), interval_(interval), fatal_(fatal) {
+      : InternalRunnable(std::string("ExtensionWatcher:") + path),
+        path_(path),
+        interval_(interval),
+        fatal_(fatal) {
     // Set the interval to a minimum of 200 milliseconds.
     interval_ = (interval_ < 200) ? 200 : interval_;
   }
@@ -289,7 +292,9 @@ class ExtensionRunnerCore : public InternalRunnable {
  public:
   virtual ~ExtensionRunnerCore();
   explicit ExtensionRunnerCore(const std::string& path)
-      : path_(path), server_(nullptr) {}
+      : InternalRunnable(std::string("ExtensionRunnerCore:") + path),
+        path_(path),
+        server_(nullptr) {}
 
  public:
   /// Given a handler transport and protocol start a thrift threaded server.

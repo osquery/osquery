@@ -88,8 +88,10 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   auto thread = std::make_shared<std::thread>(
       std::bind(&InternalRunnable::run, &*service));
   WriteLock lock(self.mutex_);
-  DLOG(INFO) << "Adding new service: " << service.get()
-             << " to thread: " << thread.get();
+  DLOG(INFO) << "Adding new service: " << service->name() << " ("
+             << service.get() << ") to thread: " << thread->get_id() << " ("
+             << thread.get() << ")";
+
   self.service_threads_.push_back(thread);
   self.services_.push_back(std::move(service));
   return Status(0, "OK");

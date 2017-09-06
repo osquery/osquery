@@ -22,7 +22,9 @@ namespace osquery {
 class SchedulerRunner : public InternalRunnable {
  public:
   SchedulerRunner(unsigned long int timeout, size_t interval)
-      : interval_(interval), timeout_(timeout) {}
+      : InternalRunnable("SchedulerRunner"),
+        interval_(interval),
+        timeout_(timeout) {}
 
  public:
   /// The Dispatcher thread entry point.
