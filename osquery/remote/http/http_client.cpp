@@ -288,7 +288,7 @@ Response Client::sendHTTPRequest(Request& req) {
         return Response(resp.release());
       }
 
-      std::string redir_url = Response(resp.get()).headers()["Location"];
+      std::string redir_url = Response(resp.release()).headers()["Location"];
       if (!redir_url.size()) {
         throw std::runtime_error(
             "Location header missing in redirect response.");
