@@ -30,6 +30,12 @@ namespace osquery {
 
 using RegionName = const char* const;
 
+/// EC2 instance latestmetadata URL
+const std::string kEc2MetadataUrl = "http://169.254.169.254/latest/";
+
+/// Hypervisor UUID file
+const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
+
 /**
  * @brief Client factory for the netlib HTTP client
  */
@@ -139,13 +145,22 @@ class OsqueryAWSCredentialsProviderChain
 void initAwsSdk();
 
 /**
+ * @brief Checks to see if this machine is EC2 instance.
+ *
+ * This method caches results after first check and returns cached data. It
+ * first checks if /sys/hypervisor/uuid file exists and its contents starts with
+ * 'ec2'. If UUID prefix matches, it then connects to EC2 latest metadata URL.
+ * If both checks pass, this method returns true. Otherwise false.
+ */
+bool isEc2Instance();
+
+/**
  * @brief Returns EC2 instance ID and region of this machine.
  *
  * If this is EC2 instance, returns the instance ID and region by querying the
  * EC2 metadata service. If this is not EC2 instance, returns empty strings.
  * This function makes HTTP call to EC2 metadata service. EC2 instance ID and
- * region are cached. First call to this method on non-EC2 instance machines can
- * take up to 3 seconds (HTTP timeout).
+ * region are cached.
  */
 void getInstanceIDAndRegion(std::string& instance_id, std::string& region);
 
