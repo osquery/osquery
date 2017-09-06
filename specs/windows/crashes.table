@@ -3,7 +3,32 @@ table_name("crashes")
 description("Windows crash log information.")
 
 schema([
-    Column("test", TEXT, "The current hour"),
+	Column("type", TEXT, "Type of crash log"),
+	Column("pid", BIGINT, "Process (or thread) ID of the crashed process"), # NOTE: different than crashed_thread
+	Column("path", TEXT, "Path of the image file of the crashed process"),
+	Column("crash_path", TEXT, "Location of the log file"),
+	# identifier - window name?
+	Column("version", TEXT, "Version info of the crashed process"),
+	Column("parent", TEXT, "Parent PID of the crashed process"),
+	# responsible - what is this?
+	Column("uid", INTEGER, "User ID of the crashed process"),
+	Column("datetime", TEXT, "Timestamp (log format) of the crash"),
+	Column("crashed_thread", BIGINT, "Thread ID which crashed"),
+	Column("stack_trace", TEXT, "Most recent frame from the stack trace"),
+    Column("exception_type", TEXT, "Reason the exception occurred"), #code
+	Column("exception_codes", TEXT, "Exception codes from the crash"), #flags
+	Column("exception_address", TEXT, "Address where the exception occurred"),
+	Column("registers", TEXT, "The values of the system registers"),
+
+	Column("command_line", TEXT, "Command-line string passed to the crashing process"),
+	Column("current_directory", TEXT, "Current directory of the crashing process"),
+	Column("machine_name", TEXT, "Name of the crashing machine"),
+	Column("major_version", INTEGER, "Windows major version of the crashing machine"),
+	Column("minor_version", INTEGER, "Windows minor version of the crashing machine"),
+	Column("build_number", INTEGER, "Windows build number of the crashing machine"),
+	Column("process_create_time", BIGINT, "Creation time of the process, in time_t format"),
+	Column("process_user_time", BIGINT, "The time the process has executed in user mode, in seconds"),
+	Column("process_kernel_time", BIGINT, "The time the process has executed in kernel mode, in seconds")
 ])
 
 implementation("crashes@genCrashLogs")
