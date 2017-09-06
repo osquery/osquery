@@ -113,7 +113,8 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // We can then ask for a differential from the last time this named query
   // was executed by exact matching each row.
   if (!FLAGS_events_optimize || !sql.eventBased()) {
-    status = dbQuery.addNewResults(sql.rows(), item.epoch, diff_results);
+    status = dbQuery.addNewResults(
+        sql.rows(), item.epoch, item.counter, diff_results);
     if (!status.ok()) {
       std::string line =
           "Error adding new results to database: " + status.what();
