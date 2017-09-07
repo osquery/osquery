@@ -137,8 +137,9 @@ static void DATABASE_query_results(benchmark::State& state) {
   auto query = getOsqueryScheduledQuery();
   while (state.KeepRunning()) {
     DiffResults diff_results;
+    uint64_t counter;
     auto dbq = Query("default", query);
-    dbq.addNewResults(qd, 0, diff_results);
+    dbq.addNewResults(qd, 0, counter, diff_results);
   }
 }
 
