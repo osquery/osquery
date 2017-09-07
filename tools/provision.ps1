@@ -282,6 +282,7 @@ function Install-ThirdParty {
   # List of our third party packages, hosted in our AWS S3 bucket
   $packages = @(
     "aws-sdk-cpp.1.1.44",
+    "beast.111.0"
     "boost-msvc14.1.65.0",
     "bzip2.1.0.6",
     "cpp-netlib.0.12.0-r4",

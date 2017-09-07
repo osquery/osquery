@@ -10,32 +10,21 @@
 # $version - The version of the software package to build
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
-# Note: not currently used as @poppyseedplehzr maintains our working branch
+
 $version = '111.0'
 $chocoVersion = $version
 $packageName = 'beast'
 $projectSource = 'https://github.com/boostorg/beast/tree/master'
 $packageSourceUrl = 'https://github.com/boostorg/beast/tree/master'
 
-$authors = 'beast'
-$owners = 'beast'
+$authors = 'boost'
+$owners = 'boost'
 $copyright = 'https://github.com/boostorg/beast/blob/master/LICENSE_1_0.txt'
 $license = 'https://github.com/boostorg/beast/blob/master/LICENSE_1_0.txt'
+$gitUrl = 'https://github.com/uptycs-nishant/beast.git'
 
 # Invoke our utilities file
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
-
-# Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
-
-$chocolateyRoot = 'C:\ProgramData\chocolatey\lib'
-$openSslRoot = "$chocolateyRoot\openssl\local"
-$openSslInclude = "$openSslRoot\include"
-$boostRoot = "$chocolateyRoot\boost-msvc14\local"
-$boostLibRoot = "$boostRoot\lib"
-$env:OPENSSL_ROOT_DIR = $openSslRoot
-$env:BOOST_ROOT = $boostRoot
-$env:BOOST_LIBRARYDIR = $boostLibRoot
 
 # Time our execution
 $sw = [System.Diagnostics.StopWatch]::startnew()
@@ -55,11 +44,15 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Checkout our working, patched, build of beast-v111
-git clone https://github.com/uptycs-nishant/beast.git
-$sourceDir = 'beast'
+$sourceDir = Join-Path $(Get-Location) "$packageName"
+$git = (Get-Command 'git').Source
+$gitArgs = "clone $gitUrl"
+Start-OsqueryProcess $git $gitArgs
 Set-Location $sourceDir
-git checkout v111
+
+# Checkout our working, patched, build of beast-v111
+$gitArgs = 'checkout v111'
+Start-OsqueryProcess $git $gitArgs
 
 # Build the libraries, remove any old versions first.
 $buildDir = Join-Path $(Get-Location) 'osquery-win-build'
