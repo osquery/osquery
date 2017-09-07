@@ -242,7 +242,7 @@ class ExtensionWatcher : public InternalRunnable {
  public:
   virtual ~ExtensionWatcher() {}
   ExtensionWatcher(const std::string& path, size_t interval, bool fatal)
-      : InternalRunnable(std::string("ExtensionWatcher:") + path),
+      : InternalRunnable("ExtensionWatcher"),
         path_(path),
         interval_(interval),
         fatal_(fatal) {
@@ -292,7 +292,7 @@ class ExtensionRunnerCore : public InternalRunnable {
  public:
   virtual ~ExtensionRunnerCore();
   explicit ExtensionRunnerCore(const std::string& path)
-      : InternalRunnable(std::string("ExtensionRunnerCore:") + path),
+      : InternalRunnable("ExtensionRunnerCore"),
         path_(path),
         server_(nullptr) {}
 
