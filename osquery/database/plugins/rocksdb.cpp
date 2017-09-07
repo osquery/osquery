@@ -40,6 +40,9 @@ DECLARE_string(database_path);
  */
 std::atomic<bool> kRocksDBCorruptionIndicator{false};
 
+/// Allow tests to force-skip the internal repair APIs.
+std::atomic<bool> kRocksDBCorruptionForced{false};
+
 /// Backing-storage provider for osquery internal/core.
 REGISTER_INTERNAL(RocksDBDatabasePlugin, "database", "rocksdb");
 
@@ -163,6 +166,14 @@ Status RocksDBDatabasePlugin::setUp() {
     // Trigger a flush when the database is opened.
     // This helps if previous databases were closed and not compacted.
     flush();
+
+    std::vector<std::string> files;
+    uint64_t size = 0;
+    db_->GetLiveFiles(files, &size);
+    if (files.size() > 1024) {
+      LOG(WARNING) << "RocksDB database is using a large number of files: "
+                   << files.size();
+    }
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
@@ -177,8 +188,12 @@ void RocksDBDatabasePlugin::tearDown() {
 }
 
 void RocksDBDatabasePlugin::flush() {
+  auto range_options = rocksdb::CompactRangeOptions();
+  range_options.change_level = true;
+
   for (auto& cf : handles_) {
     db_->Flush(rocksdb::FlushOptions(), cf);
+    db_->CompactRange(range_options, cf, nullptr, nullptr);
   }
 }
 
@@ -200,7 +215,7 @@ void RocksDBDatabasePlugin::close() {
 
   if (isCorrupted()) {
     repairDB();
-    setCorrupted(false);
+    setCorrupted(false, false);
   }
 }
 
@@ -208,11 +223,18 @@ bool RocksDBDatabasePlugin::isCorrupted() {
   return kRocksDBCorruptionIndicator;
 }
 
-void RocksDBDatabasePlugin::setCorrupted(bool corrupted) {
+void RocksDBDatabasePlugin::setCorrupted(bool corrupted, bool force) {
   kRocksDBCorruptionIndicator = corrupted;
+  kRocksDBCorruptionForced = force;
 }
 
 void RocksDBDatabasePlugin::repairDB() {
+  if (!kRocksDBCorruptionForced &&
+      RepairDB(path_, options_, column_families_).ok()) {
+    LOG(WARNING) << "RocksDB database was corrupted but repaired successfully";
+    return;
+  }
+
   // Try to backup the existing database.
   auto bpath = path_ + ".backup";
   if (pathExists(bpath).ok()) {

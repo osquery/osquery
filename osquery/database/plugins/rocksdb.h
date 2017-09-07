@@ -26,8 +26,6 @@ namespace osquery {
  */
 class GlogRocksDBLogger : public rocksdb::Logger {
  public:
-  using rocksdb::Logger::Logv;
-
   /// Capture log events from RocksDB, inspect, and potentially forward to Glog.
   void Logv(const char* format, va_list ap) override;
 };
@@ -106,7 +104,7 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
    * This will set the global kCorruptionIndicator.
    * This may be used from tests or from the RocksDB logger.
    */
-  static void setCorrupted(bool corrupted = true);
+  static void setCorrupted(bool corrupted = true, bool force = false);
 
   /// Check if the RocksDB database as been marked corrupted.
   static bool isCorrupted();

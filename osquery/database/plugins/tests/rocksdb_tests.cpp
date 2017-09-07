@@ -41,18 +41,21 @@ TEST_F(RocksDBDatabasePluginTests, test_corruption) {
   ASSERT_FALSE(pathExists(path_ + ".backup"));
 
   // Mark the database as corrupted
-  RocksDBDatabasePlugin::setCorrupted();
-  printf("set corrupt\n");
+  RocksDBDatabasePlugin::setCorrupted(true, true);
   resetDatabase();
-  printf("did reset\n");
-
   EXPECT_TRUE(pathExists(path_ + ".backup"));
 
   // Remove the backup and expect another reload to not create one.
   removePath(path_ + ".backup");
   ASSERT_FALSE(pathExists(path_ + ".backup"));
 
+  // Resetting will have cleared the corruption indicators.
   resetDatabase();
   EXPECT_FALSE(pathExists(path_ + ".backup"));
+
+  // A non-forced corrupted call will use the internal Repair APIs.
+  RocksDBDatabasePlugin::setCorrupted();
+  resetDatabase();
+  ASSERT_FALSE(pathExists(path_ + ".backup"));
 }
 }

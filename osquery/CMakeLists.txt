@@ -133,10 +133,8 @@ endif()
 
 if(APPLE OR LINUX)
   ADD_OSQUERY_LINK_CORE("libdl")
-  ADD_OSQUERY_LINK_ADDITIONAL("rocksdb_lite")
 elseif(FREEBSD)
   ADD_OSQUERY_LINK_CORE("icuuc")
-  ADD_OSQUERY_LINK_ADDITIONAL("rocksdb-lite")
 endif()
 
 if(POSIX)
@@ -145,6 +143,7 @@ if(POSIX)
   ADD_OSQUERY_LINK_CORE("boost_thread")
   ADD_OSQUERY_LINK_CORE("boost_context")
   ADD_OSQUERY_LINK_ADDITIONAL("boost_regex")
+  ADD_OSQUERY_LINK_ADDITIONAL("rocksdb")
 endif()
 
 if(LINUX OR FREEBSD)

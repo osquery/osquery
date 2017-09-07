@@ -10,9 +10,6 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_database
   plugins/ephemeral.cpp
 )
 
-# Optionally (but by default), add the RocksDB database plugin.
-add_definitions(-DROCKSDB_LITE=1)
-
 # Begin with just the SQLite database plugin.
 set(OSQUERY_DATABASE_PLUGINS
   plugins/sqlite.cpp
