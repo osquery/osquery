@@ -243,9 +243,26 @@ Status pathExists(const fs::path& path) {
   return Status(0, "1");
 }
 
-Status remove(const fs::path& path) {
-  auto status_code = std::remove(path.string().c_str());
-  return Status(status_code, "N/A");
+Status movePath(const fs::path& from, const fs::path& to) {
+  boost::system::error_code ec;
+  if (from.empty() || to.empty()) {
+    return Status(1, "Cannot copy empty paths");
+  }
+
+  fs::rename(from, to, ec);
+  if (ec.value() != errc::success) {
+    return Status(1, ec.message());
+  }
+  return Status(0);
+}
+
+Status removePath(const fs::path& path) {
+  boost::system::error_code ec;
+  auto removed_files = fs::remove_all(path, ec);
+  if (ec.value() != errc::success) {
+    return Status(1, ec.message());
+  }
+  return Status(0, std::to_string(removed_files));
 }
 
 static void genGlobs(std::string path,

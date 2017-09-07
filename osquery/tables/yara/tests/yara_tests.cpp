@@ -24,14 +24,14 @@ const std::string alwaysFalse = "rule always_false { condition: false }";
 class YARATest : public testing::Test {
  protected:
   void SetUp() {
-    remove(ruleFile);
+    removePath(ruleFile);
     if (pathExists(ruleFile).ok()) {
       throw std::domain_error("Rule file exists.");
     }
   }
 
   void TearDown() {
-    remove(ruleFile);
+    removePath(ruleFile);
   }
 
   Row scanFile(const std::string& ruleContent) {

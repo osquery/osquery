@@ -5,10 +5,15 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
-if(NOT SKIP_AWS AND NOT WINDOWS)
+if(NOT SKIP_AWS)
   set(OSQUERY_AWS_UTIL
     "aws_util.cpp"
   )
+
+  if(WINDOWS)
+    # This is a fix for a conversion error in the uri.hpp file of cpp-netlib
+    set_source_files_properties("aws_util.cpp" PROPERTIES COMPILE_FLAGS "/wd4244")
+  endif()
 
   ADD_OSQUERY_LIBRARY_ADDITIONAL(
     osquery_aws_util

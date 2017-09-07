@@ -8,19 +8,19 @@
  *
  */
 
-#include <mutex>
-
 #include <sys/stat.h>
 
 #include <rocksdb/db.h>
 #include <rocksdb/env.h>
 #include <rocksdb/options.h>
 
-#include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/database/plugins/rocksdb.h"
 #include "osquery/filesystem/fileops.h"
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 
@@ -32,100 +32,13 @@ HIDDEN_FLAG(uint64, rocksdb_buffer_blocks, 256, "Write buffer blocks (4k)");
 
 DECLARE_string(database_path);
 
-class GlogRocksDBLogger : public rocksdb::Logger {
- public:
-  // We intend to override a virtual method that is overloaded.
-  using rocksdb::Logger::Logv;
-  void Logv(const char* format, va_list ap) override;
-};
-
-class RocksDBDatabasePlugin : public DatabasePlugin {
- public:
-  /// Data retrieval method.
-  Status get(const std::string& domain,
-             const std::string& key,
-             std::string& value) const override;
-
-  /// Data storage method.
-  Status put(const std::string& domain,
-             const std::string& key,
-             const std::string& value) override;
-
-  /// Data removal method.
-  Status remove(const std::string& domain, const std::string& k) override;
-
-  /// Data range removal method.
-  Status removeRange(const std::string& domain,
-                     const std::string& low,
-                     const std::string& high) override;
-
-  /// Key/index lookup method.
-  Status scan(const std::string& domain,
-              std::vector<std::string>& results,
-              const std::string& prefix,
-              size_t max = 0) const override;
-
- public:
-  /// Database workflow: open and setup.
-  Status setUp() override;
-
-  /// Database workflow: close and cleanup.
-  void tearDown() override {
-    close();
-  }
-
-  /// Need to tear down open resources,
-  virtual ~RocksDBDatabasePlugin() {
-    close();
-  }
-
- private:
-  /// Obtain a close lock and release resources.
-  void close();
-
-  /**
-   * @brief Private helper around accessing the column family handle for a
-   * specific column family, based on its name
-   */
-  rocksdb::ColumnFamilyHandle* getHandleForColumnFamily(
-      const std::string& cf) const;
-
-  /**
-   * @brief Helper method which can be used to get a raw pointer to the
-   * underlying RocksDB database handle
-   *
-   * @return a pointer to the underlying RocksDB database handle
-   */
-  rocksdb::DB* getDB() const;
-
-  /**
-   * @brief Helper method to repair a corrupted db. Best effort only.
-   *
-   * @return nothing.
-   */
-  void repairDB();
-
- private:
-  bool initialized_{false};
-
-  /// The database handle
-  rocksdb::DB* db_{nullptr};
-
-  /// RocksDB logger instance.
-  std::shared_ptr<GlogRocksDBLogger> logger_{nullptr};
-
-  /// Column family descriptors which are used to connect to RocksDB
-  std::vector<rocksdb::ColumnFamilyDescriptor> column_families_;
-
-  /// A vector of pointers to column family handles
-  std::vector<rocksdb::ColumnFamilyHandle*> handles_;
-
-  /// The RocksDB connection options that are used to connect to RocksDB
-  rocksdb::Options options_;
-
-  /// Deconstruction mutex.
-  Mutex close_mutex_;
-};
+/**
+ * @brief Track external systems marking the RocksDB database as corrupted.
+ *
+ * This can be set using the RocksDBDatabasePlugin's static methods.
+ * The two primary external systems are the RocksDB logger plugin and tests.
+ */
+std::atomic<bool> kRocksDBCorruptionIndicator{false};
 
 /// Backing-storage provider for osquery internal/core.
 REGISTER_INTERNAL(RocksDBDatabasePlugin, "database", "rocksdb");
@@ -152,6 +65,11 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
     // deadlock.
     LOG(INFO) << "RocksDB: " << log_line;
   }
+
+  // If the callback includes 'Corruption' then set the corruption indicator.
+  if (log_line.find("Corruption:") != std::string::npos) {
+    RocksDBDatabasePlugin::setCorrupted();
+  }
 }
 
 Status RocksDBDatabasePlugin::setUp() {
@@ -170,6 +88,7 @@ Status RocksDBDatabasePlugin::setUp() {
     options_.log_file_time_to_roll = 0;
     options_.keep_log_file_num = 10;
     options_.max_log_file_size = 1024 * 1024 * 1;
+    options_.max_open_files = 256;
     options_.stats_dump_period_sec = 0;
     options_.max_manifest_file_size = 1024 * 500;
 
@@ -240,6 +159,10 @@ Status RocksDBDatabasePlugin::setUp() {
     // Also disable event publishers.
     Flag::updateValue("disable_events", "true");
     read_only_ = true;
+  } else {
+    // Trigger a flush when the database is opened.
+    // This helps if previous databases were closed and not compacted.
+    flush();
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
@@ -249,11 +172,22 @@ Status RocksDBDatabasePlugin::setUp() {
   return Status(0);
 }
 
+void RocksDBDatabasePlugin::tearDown() {
+  close();
+}
+
+void RocksDBDatabasePlugin::flush() {
+  for (auto& cf : handles_) {
+    db_->Flush(rocksdb::FlushOptions(), cf);
+  }
+}
+
 void RocksDBDatabasePlugin::close() {
   WriteLock lock(close_mutex_);
   if (db_ != nullptr) {
-    db_->Flush(rocksdb::FlushOptions());
+    flush();
   }
+
   for (auto handle : handles_) {
     delete handle;
   }
@@ -263,21 +197,42 @@ void RocksDBDatabasePlugin::close() {
     delete db_;
     db_ = nullptr;
   }
+
+  if (isCorrupted()) {
+    repairDB();
+    setCorrupted(false);
+  }
+}
+
+bool RocksDBDatabasePlugin::isCorrupted() {
+  return kRocksDBCorruptionIndicator;
+}
+
+void RocksDBDatabasePlugin::setCorrupted(bool corrupted) {
+  kRocksDBCorruptionIndicator = corrupted;
 }
 
 void RocksDBDatabasePlugin::repairDB() {
-  // ROCKSDB_LITE does not have a RepairDB method. No option but to delete the
-  // corrupted DB
-  LOG(INFO) << "Deleting corrupted database files";
-  std::vector<std::string> file_names;
-  auto s = listFilesInDirectory(path_, file_names);
-  if (s.ok()) {
-    for (auto file : file_names) {
-      osquery::remove(file);
+  // Try to backup the existing database.
+  auto bpath = path_ + ".backup";
+  if (pathExists(bpath).ok()) {
+    if (!removePath(bpath).ok()) {
+      LOG(ERROR) << "Cannot remove previous RocksDB database backup: " << bpath;
+      return;
+    } else {
+      LOG(WARNING) << "Removed previous RocksDB database backup: " << bpath;
     }
-  } else {
-    LOG(INFO) << "Unable to list " << path_ << ": " << s.toString();
   }
+
+  if (movePath(path_, bpath).ok()) {
+    LOG(WARNING) << "Backing up RocksDB database: " << bpath;
+  } else {
+    LOG(ERROR) << "Cannot backup the RocksDB database: " << bpath;
+    return;
+  }
+
+  // ROCKSDB_LITE does not have a RepairDB method.
+  LOG(WARNING) << "Destroying RocksDB database due to corruption";
 }
 
 rocksdb::DB* RocksDBDatabasePlugin::getDB() const {
@@ -328,8 +283,6 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
   // Events should be fast, and do not need to force syncs.
   if (kEvents != domain) {
     options.sync = true;
-  } else {
-    options.disableWAL = true;
   }
   auto s = getDB()->Put(options, cfh, key, value);
   if (s.code() != 0 && s.IsIOError()) {

@@ -114,7 +114,7 @@ if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("libboost_regex-mt-${WB_KEY}")
   ADD_OSQUERY_LINK_CORE("libboost_filesystem-mt-${WB_KEY}")
   ADD_OSQUERY_LINK_CORE("libboost_context-mt-${WB_KEY}")
-  ADD_OSQUERY_LINK_CORE("rocksdblib${WO_KEY}")
+  ADD_OSQUERY_LINK_CORE("rocksdb${WO_KEY}")
   ADD_OSQUERY_LINK_CORE("thriftmt${WT_KEY}")
   ADD_OSQUERY_LINK_CORE("linenoise${WO_KEY}.lib")
   ADD_OSQUERY_LINK_CORE("gflags_static${WO_KEY}")
@@ -292,11 +292,33 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
     set_target_properties(libosquery_additional_shared PROPERTIES OUTPUT_NAME osquery_additional)
   endif()
 
-  add_executable(daemon
+  set(DAEMON_SOURCE_FILES
     devtools/shell.cpp
     main/main.cpp
     main/${PROCESS_FAMILY}/main.cpp
   )
+  # Add the versioning information for Windows binaries
+  if(WINDOWS)
+    # The windows version resource requires a version string, as well
+    # as version components separated by a comma. First we replace the `-`
+    # values that may exist for commit hash versions, then we grab the
+    # major version components
+    string(REPLACE "-" "." OSQUERY_VER_TEMP "${OSQUERY_BUILD_VERSION}")
+    string(REPLACE "." ";" OSQUERY_VERSION_LIST "${OSQUERY_VER_TEMP}")
+    list(GET OSQUERY_VERSION_LIST 0 OSQUERY_PRODUCT_NUMBER)
+    list(GET OSQUERY_VERSION_LIST 1 OSQUERY_PRODUCT_VERSION)
+    list(GET OSQUERY_VERSION_LIST 2 OSQUERY_BUILD_NUMBER)
+
+    configure_file(
+      ${CMAKE_SOURCE_DIR}/tools/version.rc.in
+      ${CMAKE_BINARY_DIR}/osquery/version.rc
+      @ONLY)
+    list(APPEND DAEMON_SOURCE_FILES ${CMAKE_BINARY_DIR}/osquery/version.rc)
+  endif()
+  add_executable(daemon
+    ${DAEMON_SOURCE_FILES}
+  )
+
   ADD_DEFAULT_LINKS(daemon TRUE)
   SET_OSQUERY_COMPILE(daemon "${CXX_COMPILE_FLAGS}")
   set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)

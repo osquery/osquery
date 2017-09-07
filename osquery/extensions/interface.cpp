@@ -242,7 +242,7 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
 } // namespace extensions
 
 ExtensionRunnerCore::~ExtensionRunnerCore() {
-  remove(path_);
+  removePath(path_);
 }
 
 void ExtensionRunnerCore::stop() {
@@ -265,7 +265,7 @@ inline void removeStalePaths(const std::string& manager) {
   // Attempt to remove all stale extension sockets.
   resolveFilePattern(manager + ".*", paths);
   for (const auto& path : paths) {
-    remove(path);
+    removePath(path);
   }
 }
 

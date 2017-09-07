@@ -16,6 +16,7 @@ Ubuntu 14.04   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBu
 Ubuntu 16.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/) | | **Guide:** | https://osquery.readthedocs.org
 Windows 2016 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildWindows2016/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildWindows16/) | | [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com) | https://osquery-slack.herokuapp.com
 Windows 10 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/) | | |
+FreeBSD 11 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildFreeBSD11/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildFreeBSD11/) | | |
 
 There are many additional [continuous build jobs](https://jenkins.osquery.io/) that perform **dynamic** and **static** analysis, test the **package build** process, **rebuild dependencies** from source, assure **deterministic build** on macOS and Linux, **fuzz** test the virtual tables, and build on several other platforms not included above. Code safety, testing rigor, data integrity, and a friendly development community are our primary goals.
 

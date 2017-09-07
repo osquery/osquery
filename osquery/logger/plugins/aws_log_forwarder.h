@@ -21,6 +21,14 @@
 #include "osquery/logger/plugins/buffered.h"
 #include "osquery/utils/aws_util.h"
 
+// This macro from the Windows headers is used to map the GetMessage
+// name to either GetMessageW or GetMessageA depending on the UNICODE
+// define. We have to undefine this because it causes a method in the
+// AWS sdk to be renamed, causing a compilation error.
+#if defined(WINDOWS) && defined(GetMessage)
+#undef GetMessage
+#endif
+
 namespace osquery {
 template <typename RecordType,
           typename ClientType,
