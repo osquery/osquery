@@ -77,6 +77,10 @@ static void UpdateServiceStatus(DWORD controls,
 }
 
 static auto kShutdownCallable = ([]() {
+  // To prevent invalid access to the stop event, we return if running as shell
+  if (Initializer::isShell()) {
+    return;
+  }
   // The event only gets initialized in the entry point of the service. Child
   // processes and those run from the commandline will not have a stop event.
   auto stopEvent = osquery::getStopEvent();
