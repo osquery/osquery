@@ -45,7 +45,10 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
  public:
   AwsLogForwarder(const std::string& name, size_t log_period, size_t max_lines)
-      : BufferedLogForwarder(name, std::chrono::seconds(log_period), max_lines),
+      : BufferedLogForwarder(std::string("AwsLogForwarder:") + name,
+                             name,
+                             std::chrono::seconds(log_period),
+                             max_lines),
         name_(name) {}
 
   /// Common plugin initialization

@@ -44,7 +44,8 @@ FLAG(bool, logger_tls_compress, false, "GZip compress TLS/HTTPS request body");
 REGISTER(TLSLoggerPlugin, "logger", "tls");
 
 TLSLogForwarder::TLSLogForwarder()
-    : BufferedLogForwarder("tls",
+    : BufferedLogForwarder("TLSLogForwarder",
+                           "tls",
                            std::chrono::seconds(FLAGS_logger_tls_period),
                            kTLSMaxLogLines) {
   uri_ = TLSRequestHelper::makeURI(FLAGS_logger_tls_endpoint);
