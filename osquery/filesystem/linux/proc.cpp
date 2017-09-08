@@ -65,13 +65,12 @@ Status procReadDescriptor(const std::string& process,
                           std::string& result) {
   auto link = kLinuxProcPath + "/" + process + "/fd/" + descriptor;
 
-  char* result_path = realpath(link.c_str(), nullptr);
-  if (result_path != nullptr) {
+  char result_path[PATH_MAX] = {0};
+  auto size = readlink(link.c_str(), result_path, sizeof(result_path) - 1);
+  if (size >= 0) {
     result = std::string(result_path);
-    free(result_path);
-    return Status(0, "OK");
+    return Status(0);
   }
-
   return Status(1, "Could not read path");
 }
 }
