@@ -115,7 +115,8 @@ TEST_F(FilesystemTests, test_write_file) {
   ASSERT_TRUE(pathExists(test_file).ok());
 
   // On POSIX systems, root can still read/write.
-  EXPECT_EQ(isUserAdmin(), isWritable(test_file).ok());
+  bool can_rw = !isPlatform(PlatformType::TYPE_WINDOWS) && isUserAdmin();
+  EXPECT_EQ(can_rw, isWritable(test_file).ok());
   EXPECT_TRUE(isReadable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 
@@ -123,8 +124,8 @@ TEST_F(FilesystemTests, test_write_file) {
   ASSERT_TRUE(pathExists(test_file).ok());
 
   // On POSIX systems, root can still read/write.
-  EXPECT_EQ(isUserAdmin(), isWritable(test_file).ok());
-  EXPECT_EQ(isUserAdmin(), isReadable(test_file).ok());
+  EXPECT_EQ(can_rw, isWritable(test_file).ok());
+  EXPECT_EQ(can_rw, isReadable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 }
 

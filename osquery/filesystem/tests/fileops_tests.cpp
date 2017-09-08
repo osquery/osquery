@@ -154,6 +154,11 @@ std::unique_ptr<PlatformFile> openRWSharedFile(const std::string& path,
 #endif
 }
 
+/// Some permissions do not apply to POSIX root.
+static bool isUserPOSIXAdmin() {
+  return !isPlatform(PlatformType::TYPE_WINDOWS) && isUserAdmin();
+}
+
 TEST_F(FileOpsTests, test_shareRead) {
   TempFile tmp_file;
   std::string path = tmp_file.path();
@@ -409,7 +414,7 @@ TEST_F(FileOpsTests, test_chmod_no_read) {
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_EQ(isUserAdmin(), fd.isValid());
+    EXPECT_EQ(isUserPOSIXAdmin(), fd.isValid());
   }
 
   {
@@ -437,7 +442,7 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
-    EXPECT_EQ(isUserAdmin(), fd.isValid());
+    EXPECT_EQ(isUserPOSIXAdmin(), fd.isValid());
   }
 }
 
@@ -476,7 +481,7 @@ TEST_F(FileOpsTests, test_access) {
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IXUSR));
 
-  if (!isUserAdmin()) {
+  if (!isUserPOSIXAdmin()) {
     EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
     EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
     EXPECT_EQ(0, platformAccess(path, R_OK | X_OK));
@@ -488,7 +493,7 @@ TEST_F(FileOpsTests, test_access) {
 
   EXPECT_TRUE(platformChmod(path, S_IWUSR | S_IXUSR));
 
-  if (!isUserAdmin()) {
+  if (!isUserPOSIXAdmin()) {
     EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
     EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
     EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
@@ -500,7 +505,7 @@ TEST_F(FileOpsTests, test_access) {
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR));
 
-  if (!isUserAdmin()) {
+  if (!isUserPOSIXAdmin()) {
     EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
     EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
     EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
@@ -512,7 +517,7 @@ TEST_F(FileOpsTests, test_access) {
 
   EXPECT_TRUE(platformChmod(path, S_IWUSR));
 
-  if (!isUserAdmin()) {
+  if (!isUserPOSIXAdmin()) {
     EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
     EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
     EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
@@ -524,7 +529,7 @@ TEST_F(FileOpsTests, test_access) {
 
   EXPECT_TRUE(platformChmod(path, S_IXUSR));
 
-  if (!isUserAdmin()) {
+  if (!isUserPOSIXAdmin()) {
     EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
     EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
     EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
@@ -720,7 +725,7 @@ TEST_F(FileOpsTests, test_zero_permissions_file) {
   std::vector<char> buf(expected_len);
   EXPECT_EQ(0, fd.read(buf.data(), expected_len));
 
-  if (!isUserAdmin()) {
+  if (!isUserPOSIXAdmin()) {
     auto modes = {R_OK, W_OK, X_OK};
     for (auto& mode : modes) {
       EXPECT_EQ(-1, platformAccess(path, mode));
