@@ -25,6 +25,9 @@ set(OSQUERY_LOGGER_PLUGINS
   "plugins/tls_logger.cpp"
   "plugins/stdout.cpp"
 )
+if(NOT SKIP_BRO)
+  LIST(APPEND OSQUERY_LOGGER_PLUGINS "plugins/bro_logger.cpp")
+endif()
 
 if(LINUX)
   list(APPEND OSQUERY_LOGGER_PLUGINS "plugins/syslog_logger.cpp")

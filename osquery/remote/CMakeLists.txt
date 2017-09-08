@@ -15,6 +15,14 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_remote
   uri.cpp
 )
 
+if(NOT SKIP_BRO)
+  LIST(APPEND OSQUERY_REMOTE "bro/broker_manager.cpp")
+  LIST(APPEND OSQUERY_REMOTE "bro/query_manager.cpp")
+  LIST(APPEND OSQUERY_REMOTE "bro/bro_utils.cpp")
+endif()
+
+ADD_OSQUERY_LIBRARY(FALSE osquery_remote ${OSQUERY_REMOTE})
+
 ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
   enroll/plugins/tls_enroll.cpp
 )
@@ -26,4 +34,10 @@ file(GLOB OSQUERY_REMOTE_TESTS "tests/*.cpp")
 ADD_OSQUERY_TEST(FALSE ${OSQUERY_REMOTE_TESTS})
 
 file(GLOB OSQUERY_REMOTE_COMPONENT_TESTS "*/tests/*.cpp")
+
+if(NOT SKIP_BRO)
+  file(GLOB OSQUERY_REMOTE_BRO_TESTS "bro/tests/*.cpp")
+  LIST(APPEND OSQUERY_REMOTE_COMPONENT_TESTS ${OSQUERY_REMOTE_BRO_TESTS})
+endif()
+
 ADD_OSQUERY_TEST(FALSE ${OSQUERY_REMOTE_COMPONENT_TESTS})
