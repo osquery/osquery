@@ -11,6 +11,8 @@ warning C4091: 'typedef ': ignored on left of '' when no variable is declared
 #include <DbgHelp.h>
 #pragma warning (pop)
 #pragma comment(lib, "dbghelp.lib")
+#include <DbgEng.h>
+#pragma comment(lib,"dbgeng.lib")
 
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -22,6 +24,7 @@ namespace tables {
 	const std::string kDumpFolderRegPath = kLocalDumpsRegKey + "\\DumpFolder";
 	const std::string kFallbackFolder = "%TMP%";
 	const std::string kDumpFileExtension = ".dmp";
+	const ULONG kulNumStackFramesToLog = 10;
 	const std::map<ULONG64, std::string> kMiniDumpTypeFlags = {
 		{ 0x00000000, "MiniDumpNormal" },
 		{ 0x00000001, "MiniDumpWithDataSegs"},
@@ -47,100 +50,117 @@ namespace tables {
 		{ 0x00100000, "MiniDumpFilterTriage" },
 		{ 0x001fffff, "MiniDumpValidTypeFlags" }
 	};
-	const std::vector<MINIDUMP_STREAM_TYPE> streamTypes = { ThreadListStream, ModuleListStream, ExceptionStream, SystemInfoStream, MiscInfoStream };
+	// Note: ModuleListStream should be processed after ExceptionStream so the crashed module can be found
+	const std::vector<MINIDUMP_STREAM_TYPE> kStreamTypes = { ThreadListStream, ExceptionStream, ModuleListStream, SystemInfoStream, MiscInfoStream };
+	ULONG64 ulExceptionAddress = NULL;
 
-	void processDumpExceptionStream(Row &r, PMINIDUMP_DIRECTORY pDumpStreamDir, PVOID pDumpStream, ULONG pDumpStreamSize) {
+	void processDumpExceptionStream(Row &r, PMINIDUMP_DIRECTORY pDumpStreamDir, PVOID pDumpStream, ULONG pDumpStreamSize, PVOID pBase) {
 		MINIDUMP_EXCEPTION_STREAM* pExceptionStream = (MINIDUMP_EXCEPTION_STREAM*)pDumpStream;
 		MINIDUMP_EXCEPTION ex = pExceptionStream->ExceptionRecord;
 
-		// Log message string for exception code
+		// Log ID of thread that caused the exception
+		r["tid"] = BIGINT(pExceptionStream->ThreadId);
+
+		// Log exception code
+		std::stringstream exCode;
+		// Note: easiest to hard-code cases b/c C++ has no reflection
 		switch (ex.ExceptionCode) {
 		case EXCEPTION_ACCESS_VIOLATION:
-			r["exception_type"] = "EXCEPTION_ACCESS_VIOLATION";
+			exCode << "EXCEPTION_ACCESS_VIOLATION ";
 			break;
 		case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-			r["exception_type"] = "EXCEPTION_ARRAY_BOUNDS_EXCEEDED";
+			exCode << "EXCEPTION_ARRAY_BOUNDS_EXCEEDED ";
 			break;
 		case EXCEPTION_BREAKPOINT:
-			r["exception_type"] = "EXCEPTION_BREAKPOINT";
+			exCode << "EXCEPTION_BREAKPOINT ";
 			break;
 		case EXCEPTION_DATATYPE_MISALIGNMENT:
-			r["exception_type"] = "EXCEPTION_DATATYPE_MISALIGNMENT";
+			exCode << "EXCEPTION_DATATYPE_MISALIGNMENT ";
 			break;
 		case EXCEPTION_FLT_DENORMAL_OPERAND:
-			r["exception_type"] = "EXCEPTION_FLT_DENORMAL_OPERAND";
+			exCode << "EXCEPTION_FLT_DENORMAL_OPERAND ";
 			break;
 		case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-			r["exception_type"] = "EXCEPTION_FLT_DIVIDE_BY_ZERO";
+			exCode << "EXCEPTION_FLT_DIVIDE_BY_ZERO ";
 			break;
 		case EXCEPTION_FLT_INEXACT_RESULT:
-			r["exception_type"] = "EXCEPTION_FLT_INEXACT_RESULT";
+			exCode << "EXCEPTION_FLT_INEXACT_RESULT ";
 			break;
 		case EXCEPTION_FLT_INVALID_OPERATION:
-			r["exception_type"] = "EXCEPTION_FLT_INVALID_OPERATION";
+			exCode << "EXCEPTION_FLT_INVALID_OPERATION ";
 			break;
 		case EXCEPTION_FLT_OVERFLOW:
-			r["exception_type"] = "EXCEPTION_FLT_OVERFLOW";
+			exCode << "EXCEPTION_FLT_OVERFLOW ";
 			break;
 		case EXCEPTION_FLT_STACK_CHECK:
-			r["exception_type"] = "EXCEPTION_FLT_STACK_CHECK";
+			exCode << "EXCEPTION_FLT_STACK_CHECK ";
 			break;
 		case EXCEPTION_FLT_UNDERFLOW:
-			r["exception_type"] = "EXCEPTION_FLT_UNDERFLOW";
+			exCode << "EXCEPTION_FLT_UNDERFLOW ";
 			break;
 		case EXCEPTION_ILLEGAL_INSTRUCTION:
-			r["exception_type"] = "EXCEPTION_ILLEGAL_INSTRUCTION";
+			exCode << "EXCEPTION_ILLEGAL_INSTRUCTION ";
 			break;
 		case EXCEPTION_IN_PAGE_ERROR:
-			r["exception_type"] = "EXCEPTION_IN_PAGE_ERROR";
+			exCode << "EXCEPTION_IN_PAGE_ERROR ";
 			break;
 		case EXCEPTION_INT_DIVIDE_BY_ZERO:
-			r["exception_type"] = "EXCEPTION_INT_DIVIDE_BY_ZERO";
+			exCode << "EXCEPTION_INT_DIVIDE_BY_ZERO ";
 			break;
 		case EXCEPTION_INT_OVERFLOW:
-			r["exception_type"] = "EXCEPTION_INT_OVERFLOW";
+			exCode << "EXCEPTION_INT_OVERFLOW ";
 			break;
 		case EXCEPTION_INVALID_DISPOSITION:
-			r["exception_type"] = "EXCEPTION_INVALID_DISPOSITION";
+			exCode << "EXCEPTION_INVALID_DISPOSITION ";
 			break;
 		case EXCEPTION_NONCONTINUABLE_EXCEPTION:
-			r["exception_type"] = "EXCEPTION_NONCONTINUABLE_EXCEPTION";
+			exCode << "EXCEPTION_NONCONTINUABLE_EXCEPTION ";
 			break;
 		case EXCEPTION_PRIV_INSTRUCTION:
-			r["exception_type"] = "EXCEPTION_PRIV_INSTRUCTION";
+			exCode << "EXCEPTION_PRIV_INSTRUCTION ";
 			break;
 		case EXCEPTION_SINGLE_STEP:
-			r["exception_type"] = "EXCEPTION_SINGLE_STEP";
+			exCode << "EXCEPTION_SINGLE_STEP ";
 			break;
 		case EXCEPTION_STACK_OVERFLOW:
-			r["exception_type"] = "EXCEPTION_STACK_OVERFLOW";
+			exCode << "EXCEPTION_STACK_OVERFLOW ";
 			break;
 		default:
-			r["exception_type"] = "Unknown Exception";
 			break;
 		}
+		exCode << "(" << std::hex << ex.ExceptionCode;
+		exCode << ")";
+		r["exception_code"] = exCode.str();
 
 		// Log exception address
 		std::stringstream exAddrAsHex;
 		exAddrAsHex << std::hex << ex.ExceptionAddress;
 		r["exception_address"] = exAddrAsHex.str();
+		ulExceptionAddress = ex.ExceptionAddress;
 
-		// Log the error code
-		// Handle special cases for errors with parameters
+		// Log the exception message
+		// Handle special cases for errors with defined parameters
+		// (see ExceptionInformation @ https://msdn.microsoft.com/en-us/library/windows/desktop/ms680367(v=vs.85).aspx)
 		if ((ex.ExceptionCode == EXCEPTION_ACCESS_VIOLATION) && (ex.NumberParameters == 2)) {
-			std::stringstream errorCode;
+			std::stringstream errorMsg;
 			std::stringstream memAddrAsHex;
 			memAddrAsHex << std::hex << ex.ExceptionInformation[1];
 
-			errorCode << "The instruction at " << exAddrAsHex.str()
-				<< " referenced memory at " << memAddrAsHex.str() << ". ";
-			if (ex.ExceptionInformation[0] == 0) {
-				errorCode << "The memory could not be read.";
+			errorMsg << "The instruction at " << exAddrAsHex.str()
+				<< " referenced memory at " << memAddrAsHex.str() << ".";
+			switch (ex.ExceptionInformation[0]) {
+			case 0:
+				errorMsg << " The memory could not be read.";
+				break;
+			case 1:
+				errorMsg << " The memory could not be written.";
+				break;
+			case 8:
+				errorMsg << " DEP access violation.";
+				break;
 			}
-			else if (ex.ExceptionInformation[0] == 1) {
-				errorCode << "The memory could not be written.";
-			}
-			r["exception_codes"] = errorCode.str();
+
+			r["exception_message"] = errorMsg.str();
 		}
 		// For errors without parameters, just log the NTSTATUS error code
 		else {
@@ -156,12 +176,40 @@ namespace tables {
 				(LPTSTR)&lpNTSTATUS,
 				0,
 				NULL);
-			r["exception_codes"] = (LPTSTR)lpNTSTATUS;
+			r["exception_message"] = (LPTSTR)lpNTSTATUS;
 			LocalFree(lpNTSTATUS);
 			FreeLibrary(hNTDLL);
 		}
 
-		// TODO process threadcontext
+		// Log registers from crashed thread
+		CONTEXT* pThreadContext = (CONTEXT*)((BYTE*)pBase + pExceptionStream->ThreadContext.Rva);
+		std::stringstream registers;
+		// Registers are hard-coded for x64 system b/c lack of C++ reflection
+		registers << "rax:" << std::hex << pThreadContext->Rax;
+		registers << " rbx:" << std::hex << pThreadContext->Rbx;
+		registers << " rcx:" << std::hex << pThreadContext->Rcx;
+		registers << " rdx:" << std::hex << pThreadContext->Rdx;
+		registers << " rdi:" << std::hex << pThreadContext->Rdi;
+		registers << " rsi:" << std::hex << pThreadContext->Rsi;
+		registers << " rbp:" << std::hex << pThreadContext->Rbp;
+		registers << " rsp:" << std::hex << pThreadContext->Rsp;
+		registers << " r8:" << std::hex << pThreadContext->R8;
+		registers << " r9:" << std::hex << pThreadContext->R9;
+		registers << " r10:" << std::hex << pThreadContext->R10;
+		registers << " r11:" << std::hex << pThreadContext->R11;
+		registers << " r12:" << std::hex << pThreadContext->R12;
+		registers << " r13:" << std::hex << pThreadContext->R13;
+		registers << " r14:" << std::hex << pThreadContext->R14;
+		registers << " r15:" << std::hex << pThreadContext->R15;
+		registers << " rip:" << std::hex << pThreadContext->Rip;
+		registers << " segcs:" << std::hex << pThreadContext->SegCs;
+		registers << " segds:" << std::hex << pThreadContext->SegDs;
+		registers << " seges:" << std::hex << pThreadContext->SegEs;
+		registers << " segfs:" << std::hex << pThreadContext->SegFs;
+		registers << " seggs:" << std::hex << pThreadContext->SegGs;
+		registers << " segss:" << std::hex << pThreadContext->SegSs;
+		registers << " eflags:" << std::hex << pThreadContext->EFlags;
+		r["registers"] = registers.str();
 
 		return;
 	}
@@ -176,7 +224,12 @@ namespace tables {
 
 		// Log process times, if they exist
 		if (pMiscInfoStream->Flags1 & MINIDUMP_MISC1_PROCESS_TIMES) {
-			r["process_create_time"] = BIGINT(pMiscInfoStream->ProcessCreateTime);
+			time_t procTimestamp = pMiscInfoStream->ProcessCreateTime;
+			struct tm gmt;
+			char timeBuff[64];
+			gmtime_s(&gmt, &procTimestamp);
+			strftime(timeBuff, sizeof(timeBuff), "%Y-%m-%d %H:%M:%S UTC", &gmt);
+			r["process_create_time"] = timeBuff;
 			r["process_user_time"] = BIGINT(pMiscInfoStream->ProcessUserTime);
 			r["process_kernel_time"] = BIGINT(pMiscInfoStream->ProcessKernelTime);
 		}
@@ -197,17 +250,17 @@ namespace tables {
 
 	void processDumpModuleListStream(Row &r, PMINIDUMP_DIRECTORY pDumpStreamDir, PVOID pDumpStream, ULONG pDumpStreamSize, LPVOID pBase) {
 		MINIDUMP_MODULE_LIST *pModuleListStream = (MINIDUMP_MODULE_LIST*)pDumpStream;
-		MINIDUMP_MODULE parentModule = pModuleListStream->Modules[0];
-
-		// Log module path
-		MINIDUMP_STRING* pModuleName = (MINIDUMP_STRING*)((BYTE*)pBase + parentModule.ModuleNameRva);
 		char defChar = ' ';
-		char ch[MAX_PATH];
-		WideCharToMultiByte(CP_ACP, 0, pModuleName->Buffer, -1, ch, 260, &defChar, NULL);
-		r["path"] = ch;
+		char pathBuffer[MAX_PATH]; // TODO stringstream this?
 
-		// Log module version
-		VS_FIXEDFILEINFO versionInfo = parentModule.VersionInfo;
+		// Log PE path
+		MINIDUMP_MODULE exeModule = pModuleListStream->Modules[0];
+		MINIDUMP_STRING* pExePath = (MINIDUMP_STRING*)((BYTE*)pBase + exeModule.ModuleNameRva);
+		WideCharToMultiByte(CP_ACP, 0, pExePath->Buffer, -1, pathBuffer, sizeof(pathBuffer), &defChar, NULL);
+		r["path"] = pathBuffer;
+
+		// Log PE version
+		VS_FIXEDFILEINFO versionInfo = exeModule.VersionInfo;
 		std::stringstream versionString;
 		versionString << ((versionInfo.dwFileVersionMS >> 16) & 0xffff) << "."
 			<< ((versionInfo.dwFileVersionMS >> 0) & 0xffff) << "."
@@ -215,14 +268,30 @@ namespace tables {
 			<< ((versionInfo.dwFileVersionLS >> 0) & 0xffff);
 		r["version"] = versionString.str();
 
+		// Log module that caused the exception, if any
+		if (ulExceptionAddress != NULL) {
+			for (ULONG32 i = 0; i < pModuleListStream->NumberOfModules; i++) {
+				MINIDUMP_MODULE module = pModuleListStream->Modules[i];
+				// Is the exception address within this module's memory space?
+				if ((module.BaseOfImage < ulExceptionAddress) && (ulExceptionAddress < (module.BaseOfImage+module.SizeOfImage))) {
+					MINIDUMP_STRING* pModulePath = (MINIDUMP_STRING*)((BYTE*)pBase + module.ModuleNameRva);
+					WideCharToMultiByte(CP_ACP, 0, pModulePath->Buffer, -1, pathBuffer, sizeof(pathBuffer), &defChar, NULL);
+					r["module"] = pathBuffer;
+					break;
+				}
+			}
+		}
+
 		return;
 	}
 
 	void processDumpThreadListStream(Row &r, PMINIDUMP_DIRECTORY pDumpStreamDir, PVOID pDumpStream, ULONG pDumpStreamSize) {
 		MINIDUMP_THREAD_LIST *pThreadListStream = (MINIDUMP_THREAD_LIST*)pDumpStream;
 		MINIDUMP_THREAD testThread = pThreadListStream->Threads[0];
-		LOG(INFO) << "ThreadID: " << testThread.ThreadId;
-		LOG(INFO) << "SuspendCount: " << testThread.SuspendCount;
+		// for each thread
+			// if thread ID == crashed thread ID
+				// thread -> stack
+				// get stack frame
 		return;
 	}
 
@@ -240,8 +309,8 @@ namespace tables {
 		// Log dump type
 		std::stringstream activeFlags;
 		bool firstString = true;
+		// Loop through MINIDUMP_TYPE flags and log the ones that are set
 		for (auto const& flag : kMiniDumpTypeFlags) {
-			// If this MINIDUMP_TYPE flag is set, log it
 			if (pDumpHeader->Flags & flag.first) {
 				if (!firstString) activeFlags << ",";
 				firstString = false;
@@ -253,8 +322,7 @@ namespace tables {
 		return;
 	}
 
-	Row extractDumpInfo(LPCTSTR lpFileName) {
-		Row r;
+	void extractDumpInfo(Row &r, LPCTSTR lpFileName) {
 		HANDLE hFile;
 		HANDLE hMapFile;
 		LPVOID pBase;
@@ -274,7 +342,7 @@ namespace tables {
 		if (hFile == NULL) {
 			DWORD dwError = GetLastError();
 			LOG(ERROR) << "Error opening crash dump file: " << lpFileName << " with error code " << dwError;
-			return r;
+			return;
 		}
 
 		// Create file mapping object
@@ -290,7 +358,7 @@ namespace tables {
 			DWORD dwError = GetLastError();
 			LOG(ERROR) << "Error creating crash dump mapping object: " << lpFileName << " with error code " << dwError;
 			CloseHandle(hFile);
-			return r;
+			return;
 		}
 
 		// Map the file
@@ -306,14 +374,14 @@ namespace tables {
 			LOG(ERROR) << "Error mapping crash dump file: " << lpFileName << " with error code " << dwError;
 			CloseHandle(hMapFile);
 			CloseHandle(hFile);
-			return r;
+			return;
 		}
 		
 		// Process dump header info
 		processDumpHeaderInfo(r, pBase);
 
 		// Process dump file info from each stream
-		for (auto stream : streamTypes) {
+		for (auto stream : kStreamTypes) {
 			PMINIDUMP_DIRECTORY pDumpStreamDir = 0;
 			PVOID pDumpStream = 0;
 			ULONG pDumpStreamSize = 0;
@@ -339,7 +407,7 @@ namespace tables {
 				processDumpModuleListStream(r, pDumpStreamDir, pDumpStream, pDumpStreamSize, pBase);
 				break;
 			case ExceptionStream:
-				processDumpExceptionStream(r, pDumpStreamDir, pDumpStream, pDumpStreamSize);
+				processDumpExceptionStream(r, pDumpStreamDir, pDumpStream, pDumpStreamSize, pBase);
 				break;
 			case SystemInfoStream:
 				processDumpSystemInfoStream(r, pDumpStreamDir, pDumpStream, pDumpStreamSize);
@@ -357,8 +425,93 @@ namespace tables {
 		UnmapViewOfFile(pBase);
 		CloseHandle(hMapFile);
 		CloseHandle(hFile);
+		return;
+	}
 
-		return r;
+	void debugEngineCleanup(IDebugClient4* client, IDebugControl4* control, IDebugSymbols3* symbols) {
+		if (symbols != NULL) symbols->Release();
+		if (control != NULL) control->Release();
+		if (client != NULL) {
+			client->SetOutputCallbacks(NULL);
+			client->EndSession(DEBUG_END_PASSIVE);
+			client->Release();
+		}
+		return;
+	}
+
+	void getStackTrace(Row &r, LPCTSTR lpFileName, PCSTR pPath) {
+		IDebugClient4* client;
+		IDebugControl4* control;
+		IDebugSymbols3* symbols;
+		DEBUG_STACK_FRAME stackFrames[kulNumStackFramesToLog] = { 0 };
+		ULONG numFrames = 0;
+		char context[1024] = { 0 };
+		ULONG type = 0;
+		ULONG procID = 0;
+		ULONG threadID = 0;
+		ULONG contextSize = 0;
+		
+
+		// Create interfaces
+		if (DebugCreate(__uuidof(IDebugClient), (void**)&client) != S_OK) {
+			LOG(ERROR) << "DebugCreate failed while debugging crash dump: " << lpFileName;
+			return debugEngineCleanup(client, NULL, NULL);
+		}
+		if ((client->QueryInterface(__uuidof(IDebugControl4), (void**)&control) != S_OK)
+			|| (client->QueryInterface(__uuidof(IDebugSymbols), (void**)&symbols) != S_OK)) {
+			LOG(ERROR) << "QueryInterface failed while debugging crash dump: " << lpFileName;
+			return debugEngineCleanup(client, control, symbols);
+		}
+
+		// Initialization
+		if (symbols->SetImagePath(pPath) != S_OK) {
+			LOG(ERROR) << "Failed to set image path to \"" << pPath << "\" while debugging crash dump: " << lpFileName;
+			return debugEngineCleanup(client, control, symbols);
+		}
+		if (symbols->SetSymbolPath("srv*C:\\Windows\\symbols*http://msdl.microsoft.com/download/symbols") != S_OK) {
+			LOG(ERROR) << "Failed to set symbol path while debugging crash dump: " << lpFileName;
+			return debugEngineCleanup(client, control, symbols);
+		}
+		if (client->OpenDumpFile(lpFileName) != S_OK) {
+			LOG(ERROR) << "Failed to open dump file while debugging crash dump: " << lpFileName;
+			return debugEngineCleanup(client, control, symbols);
+		}
+		if (control->WaitForEvent(DEBUG_WAIT_DEFAULT, INFINITE) != S_OK) {
+			LOG(ERROR) << "Initial processing failed while debugging crash dump: " << lpFileName;
+			return debugEngineCleanup(client, control, symbols);
+		}
+
+		// Get stack frames from dump
+		if (control->GetStoredEventInformation(&type, &procID, &threadID, context, sizeof(context), &contextSize, NULL, 0, 0) != S_OK) {
+			LOG(ERROR) << "Error extracting information while debugging crash dump: " << lpFileName;
+			return debugEngineCleanup(client, control, symbols);
+		}
+		char* contextData = new char[kulNumStackFramesToLog*contextSize];
+		if (control->GetContextStackTrace(context, contextSize, stackFrames, ARRAYSIZE(stackFrames), contextData, kulNumStackFramesToLog*contextSize, contextSize, &numFrames) != S_OK) {
+			LOG(ERROR) << "Error getting stack trace while debugging crash dump: " << lpFileName;
+			delete[] contextData;
+			return debugEngineCleanup(client, control, symbols);
+		}
+		
+		std::stringstream stackTrace;
+		BOOL firstFrame = true;
+		for (ULONG frame = 0; frame < numFrames; frame++) {
+			char name[512] = { 0 };
+			unsigned __int64 offset = 0;
+
+			if (!firstFrame) stackTrace << ",";
+			firstFrame = false;
+			if (symbols->GetNameByOffset(stackFrames[frame].InstructionOffset, name, ARRAYSIZE(name) - 1, NULL, &offset) == S_OK) {
+				stackTrace << name << "+0x" << std::hex << offset;
+			}
+			stackTrace << "(0x" << std::hex << stackFrames[frame].InstructionOffset;
+			stackTrace << ")";
+		}
+		r["stack_trace"] = stackTrace.str();
+
+		// Cleanup
+		delete[] contextData;
+		return debugEngineCleanup(client, control, symbols);
 	}
 
 	QueryData genCrashLogs(QueryContext &context) {
@@ -396,7 +549,9 @@ namespace tables {
 			std::transform(sExtension.begin(), sExtension.end(), sExtension.begin(), ::tolower);
 			if (boost::filesystem::is_regular_file(*iterator) &&
 				(sExtension.compare(kDumpFileExtension) == 0)) {
-				Row r = extractDumpInfo(iterator->path().generic_string().c_str());
+				Row r;
+				extractDumpInfo(r, iterator->path().generic_string().c_str());
+				getStackTrace(r, iterator->path().generic_string().c_str(), r.at("path").c_str()); //problem when these are variables
 				if (!r.empty()) results.push_back(r);
 			}
 			++iterator;

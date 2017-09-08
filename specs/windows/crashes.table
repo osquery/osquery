@@ -4,29 +4,28 @@ description("Windows crash log information.")
 
 schema([
 	Column("type", TEXT, "Type of crash log"),
-	Column("pid", BIGINT, "Process (or thread) ID of the crashed process"), # NOTE: different than crashed_thread
-	Column("path", TEXT, "Path of the image file of the crashed process"),
-	Column("crash_path", TEXT, "Location of the log file"),
-	# identifier - window name?
-	Column("version", TEXT, "Version info of the crashed process"),
-	Column("parent", TEXT, "Parent PID of the crashed process"),
-	# responsible - what is this?
+	Column("pid", BIGINT, "Process ID of the crashed process"),
+	Column("tid", BIGINT, "Thread ID of the crashed thread"),
+	Column("path", TEXT, "Path of the executable file for the crashed process"),
+	Column("module", TEXT, "Path of the crashed module within the process"),
+	Column("version", TEXT, "File version info of the crashed process"),
+	Column("parent", BIGINT, "Parent PID of the crashed process"),
 	Column("uid", INTEGER, "User ID of the crashed process"),
+	Column("crash_path", TEXT, "Path of the log file"),
 	Column("datetime", TEXT, "Timestamp (log format) of the crash"),
-	Column("crashed_thread", BIGINT, "Thread ID which crashed"),
-	Column("stack_trace", TEXT, "Most recent frame from the stack trace"),
-    Column("exception_type", TEXT, "Reason the exception occurred"), #code
-	Column("exception_codes", TEXT, "Exception codes from the crash"), #flags
-	Column("exception_address", TEXT, "Address where the exception occurred"),
+	Column("stack_trace", TEXT, "Multiple stack frames from the stack trace"),
+    Column("exception_code", TEXT, "The Windows exception code"),
+	Column("exception_message", TEXT, "The NTSTATUS error message associated with the exception code"),
+	Column("exception_address", TEXT, "Address (in hex) where the exception occurred"),
 	Column("registers", TEXT, "The values of the system registers"),
-
-	Column("command_line", TEXT, "Command-line string passed to the crashing process"),
-	Column("current_directory", TEXT, "Current directory of the crashing process"),
-	Column("machine_name", TEXT, "Name of the crashing machine"),
-	Column("major_version", INTEGER, "Windows major version of the crashing machine"),
-	Column("minor_version", INTEGER, "Windows minor version of the crashing machine"),
+	Column("being_debugged", TEXT, "Whether the crashed process was being debugged or not"),
+	Column("command_line", TEXT, "Command-line string passed to the crashed process"),
+	Column("current_directory", TEXT, "Current working directory of the crashed process"),
+	Column("machine_name", TEXT, "Name of the machine where the crash happened"),
+	Column("major_version", INTEGER, "Windows major version of the machine"),
+	Column("minor_version", INTEGER, "Windows minor version of the machine"),
 	Column("build_number", INTEGER, "Windows build number of the crashing machine"),
-	Column("process_create_time", BIGINT, "Creation time of the process, in time_t format"),
+	Column("process_create_time", TEXT, "Creation time of the process"),
 	Column("process_user_time", BIGINT, "The time the process has executed in user mode, in seconds"),
 	Column("process_kernel_time", BIGINT, "The time the process has executed in kernel mode, in seconds")
 ])
