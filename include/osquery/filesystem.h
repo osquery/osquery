@@ -101,11 +101,25 @@ Status writeTextFile(const boost::filesystem::path& path,
                      int permissions = 0660,
                      bool force_permissions = false);
 
-/// Check if a path is writable.
-Status isWritable(const boost::filesystem::path& path);
+/**
+ * @brief Check if a path is writable.
+ *
+ * @param path The path of the file that you would like to write.
+ * @param effective If you would like to check using effective UID
+ *
+ * @return A status returning if it's writable
+ */
+Status isWritable(const boost::filesystem::path& path, bool effective = false);
 
-/// Check if a path is readable.
-Status isReadable(const boost::filesystem::path& path);
+/**
+ * @brief Check if a path is readable.
+ *
+ * @param path The path of the file that you would like to read.
+ * @param effective If you would like to check using effective UID
+ *
+ * @return A status returning if it's readable
+ */
+Status isReadable(const boost::filesystem::path& path, bool effective = false);
 
 /**
  * @brief A helper to check if a path exists on disk or not.
