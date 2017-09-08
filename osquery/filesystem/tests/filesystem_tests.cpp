@@ -111,21 +111,25 @@ TEST_F(FilesystemTests, test_write_file) {
   ASSERT_TRUE(isWritable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, (int)0400, true));
+  EXPECT_TRUE(writeTextFile(test_file, content, 0400, true));
   ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_FALSE(isWritable(test_file).ok());
-  ASSERT_TRUE(isReadable(test_file).ok());
+
+  // On POSIX systems, root can still read/write.
+  EXPECT_EQ(isUserAdmin(), isWritable(test_file).ok());
+  EXPECT_TRUE(isReadable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, (int)0000, true));
+  EXPECT_TRUE(writeTextFile(test_file, content, 0000, true));
   ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_FALSE(isWritable(test_file).ok());
-  ASSERT_FALSE(isReadable(test_file).ok());
+
+  // On POSIX systems, root can still read/write.
+  EXPECT_EQ(isUserAdmin(), isWritable(test_file).ok());
+  EXPECT_EQ(isUserAdmin(), isReadable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 }
 
 TEST_F(FilesystemTests, test_readwrite_file) {
-  fs::path test_file(kTestWorkingDirectory + "fstests-file2");
+  fs::path test_file(kTestWorkingDirectory + "fstests-file3");
   size_t filesize = 4096 * 10;
 
   std::string in_content(filesize, 'A');
