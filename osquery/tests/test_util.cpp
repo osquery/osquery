@@ -323,12 +323,14 @@ std::pair<pt::ptree, QueryLogItem> getSerializedQueryLogItem() {
   i.time = 1408993857;
   i.identifier = "foobaz";
   i.epoch = 0L;
+  i.counter = 0L;
   root.add_child("diffResults", dr.first);
   root.put<std::string>("name", "foobar");
   root.put<std::string>("hostIdentifier", "foobaz");
   root.put<std::string>("calendarTime", "Mon Aug 25 12:10:57 2014");
   root.put<int>("unixTime", 1408993857);
   root.put<uint64_t>("epoch", 0L);
+  root.put<uint64_t>("counter", 0L);
   return std::make_pair(root, i);
 }
 

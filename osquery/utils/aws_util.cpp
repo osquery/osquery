@@ -8,6 +8,7 @@
  *
  */
 
+#include <fstream>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -325,8 +326,8 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
   static std::atomic<bool> checked(false);
   static std::string cached_id;
   static std::string cached_region;
-  if (checked) {
-    // Return if already checked
+  if (checked || !isEc2Instance()) {
+    // Return if already checked or this is not EC2 instance
     instance_id = cached_id;
     region = cached_region;
     return;
@@ -339,8 +340,7 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
     }
 
     initAwsSdk();
-    http::Request req(
-        "http://169.254.169.254/latest/dynamic/instance-identity/document");
+    http::Request req(kEc2MetadataUrl + "dynamic/instance-identity/document");
     http::Client::Options options;
     options.timeout(3);
     http::Client client(options);
@@ -365,6 +365,47 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
 
   instance_id = cached_id;
   region = cached_region;
+}
+
+bool isEc2Instance() {
+  static std::atomic<bool> checked(false);
+  static std::atomic<bool> is_ec2_instance(false);
+  if (checked) {
+    return is_ec2_instance; // Return if already checked
+  }
+
+  static std::once_flag once_flag;
+  std::call_once(once_flag, []() {
+    if (checked) {
+      return;
+    }
+    checked = true;
+
+    std::ifstream fd(kHypervisorUuid, std::ifstream::in);
+    if (!fd) {
+      return; // No hypervisor UUID file. Not EC2
+    }
+    if (!(fd.get() == 'e' && fd.get() == 'c' && fd.get() == '2')) {
+      return; // Not EC2 instance
+    }
+
+    http::Request req(kEc2MetadataUrl);
+    http::Client::Options options;
+    options.timeout(3);
+    http::Client client(options);
+
+    try {
+      http::Response res = client.get(req);
+      if (res.status() == 200) {
+        is_ec2_instance = true;
+      }
+    } catch (const std::system_error& e) {
+      // Assume that this is not EC2 instance
+      VLOG(1) << "Error checking if this is EC2 instance: " << e.what();
+    }
+  });
+
+  return is_ec2_instance;
 }
 
 Status getAWSRegion(std::string& region, bool sts) {
