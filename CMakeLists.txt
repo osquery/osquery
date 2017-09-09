@@ -154,7 +154,7 @@ if(POSIX)
     -fdata-sections
     -ffunction-sections
   )
-  if(NOT FREEBSD)
+  if(NOT FREEBSD AND NOT DEFINED ENV{OSQUERY_BUILD_SHARED})
     add_compile_options(
       -Werror=shadow
       -fvisibility=hidden
