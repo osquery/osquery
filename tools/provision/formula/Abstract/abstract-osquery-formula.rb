@@ -158,7 +158,7 @@ class AbstractOsqueryFormula < Formula
     append "CFLAGS", "-fPIC -DNDEBUG -Os -march=core2"
     append "CXXFLAGS", "-fPIC -DNDEBUG -Os -march=core2"
 
-    if ENV["CC"].to_s.include?("clang") and !["librpm", "python", "librdkafka"].include?(self.name)
+    if ENV["CC"].to_s.include?("clang") and !["librpm", "python"].include?(self.name)
       append "CFLAGS", "-fvisibility=hidden -fvisibility-inlines-hidden"
       append "CXXFLAGS", "-fvisibility=hidden -fvisibility-inlines-hidden"
       append "CFLAGS", "-Wno-unused-command-line-argument"
