@@ -391,7 +391,7 @@ if(NOT SKIP_TESTS)
   add_test(osquery_tests osquery_tests ${TEST_ARGS})
 
   # osquery kernel tests.
-  if(NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WINDOWS)
+  if(NOT SKIP_KERNEL AND NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WINDOWS)
     add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
     ADD_DEFAULT_LINKS(osquery_kernel_tests TRUE)
     target_link_libraries(osquery_kernel_tests gtest gmock libosquery_testing)
@@ -407,10 +407,12 @@ if(NOT SKIP_TESTS)
     set(BENCHMARK_TARGET "$<TARGET_FILE:osquery_benchmarks>")
 
     # osquery kernel benchmarks.
-    add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
-    target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing pthread)
-    ADD_DEFAULT_LINKS(osquery_kernel_benchmarks TRUE)
-    SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
+    if (NOT SKIP_KERNEL)
+      add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
+      target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing pthread)
+      ADD_DEFAULT_LINKS(osquery_kernel_benchmarks TRUE)
+      SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
+    endif()
 
     # make benchmark
     add_custom_target(

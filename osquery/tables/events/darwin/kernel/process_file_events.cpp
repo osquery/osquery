@@ -24,8 +24,8 @@ class ProcessFileEventSubscriber
   /// Walk the configuration's file paths, create subscriptions.
   void configure() override;
 
-  Status Callback(const TypedKernelEventContextRef<osquery_file_event_t> &ec,
-                  const KernelSubscriptionContextRef &sc);
+  Status Callback(const TypedKernelEventContextRef<osquery_file_event_t>& ec,
+                  const KernelSubscriptionContextRef& sc);
 };
 
 REGISTER(ProcessFileEventSubscriber, "event_subscriber", "process_file_events");
@@ -45,7 +45,7 @@ void ProcessFileEventSubscriber::configure() {
 
   Config::get().files([this](const std::string& category,
                              const std::vector<std::string>& files) {
-    for (const auto &file : files) {
+    for (const auto& file : files) {
       auto sc = createSubscriptionContext();
       sc->event_type = OSQUERY_FILE_EVENT;
       osquery_file_event_subscription_t sub = {
@@ -64,8 +64,8 @@ void ProcessFileEventSubscriber::configure() {
 }
 
 Status ProcessFileEventSubscriber::Callback(
-    const TypedKernelEventContextRef<osquery_file_event_t> &ec,
-    const KernelSubscriptionContextRef &sc) {
+    const TypedKernelEventContextRef<osquery_file_event_t>& ec,
+    const KernelSubscriptionContextRef& sc) {
   Row r;
   switch (ec->event.action) {
   case OSQUERY_FILE_ACTION_OPEN:
