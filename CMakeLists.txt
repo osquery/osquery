@@ -308,26 +308,36 @@ endif()
 # The recommended osquery build, and distributed packages, do not use these.
 if(DEFINED ENV{SKIP_AWS})
   set(SKIP_AWS TRUE)
+  add_definitions(-DSKIP_AWS=1)
 endif()
 if(DEFINED ENV{SKIP_TSK})
   set(SKIP_TSK TRUE)
+  add_definitions(-DSKIP_TSK=1)
 endif()
 if(DEFINED ENV{SKIP_LLDPD})
   set(SKIP_LLDPD TRUE)
+  add_definitions(-DSKIP_LLDPD=1)
 endif()
 if(DEFINED ENV{SKIP_YARA})
   set(SKIP_YARA TRUE)
+  add_definitions(-DSKIP_YARA=1)
+endif()
+if(DEFINED ENV{SKIP_KAFKA})
+  set(SKIP_KAFKA TRUE)
+  add_definitions(-DSKIP_KAFKA=1)
 endif()
 if(DEFINED ENV{SKIP_CARVER})
   set(SKIP_CARVER TRUE)
-if(DEFINED ENV{SKIP_KAFKA})
-  set(SKIP_KAFKA TRUE)
+  add_definitions(-DSKIP_CARVER=1)
 endif()
-  # To remove references to carve functionality in sqlite helper functions
-  add_definitions(
-    -DSKIP_CARVER=1
-  )
+
+# The kernel builds are skipped by default.
+if(DEFINED ENV{SKIP_KERNEL} AND "$ENV{SKIP_KERNEL}" STREQUAL "False")
+  set(SKIP_KERNEL FALSE)
+else()
+  set(SKIP_KERNEL TRUE)
 endif()
+
 
 # Similar to the feature skips, there are default-build skips.
 if(DEFINED ENV{SKIP_TESTS})
@@ -601,7 +611,7 @@ add_subdirectory(osquery)
 add_subdirectory(tools/tests)
 
 # Include the kernel building targets/macros
-if(NOT ${OSQUERY_BUILD_SDK_ONLY})
+if(NOT SKIP_KERNEL AND NOT ${OSQUERY_BUILD_SDK_ONLY})
   add_subdirectory(kernel)
 endif()
 

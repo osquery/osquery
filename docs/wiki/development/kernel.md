@@ -10,6 +10,12 @@ This code is mostly shared between BSD-based kernels and Linux. The ring buffer 
 
 The kernel applies calling-process ownership limitations to super users. Only 1 process should issues IOCTL commands, if another process (pid) uses the device node the queue and buffer are considered invalid and all pointers are reset. Clean tear down assures deregistration of callback functions and will result in maximum performance. Improper tear down may trigger timeouts and in the worst scenario continue to track callbacks.
 
+To build the daemon with support for the kernel extensions use:
+```
+SKIP_KERNEL=0
+make
+```
+
 # Apple Kernel Extensions
 
 Kernel extension loading requires extension bundles signed by valid Apple developer certificates. During development it is NOT recommended to sign inline with building and running unit/integration tests. Changes to the kernel-mode code may result in kernel panics. Some of the development-only-enabled unit test code is designed to stress the limits of kernel memory management and event synchronization. It is very highly recommended to restrict these tests to running inside a virtual environment.
@@ -25,6 +31,7 @@ The high-level kernel development workflow involves:
 First disable signature verification on the machine by running `make kernel-deps` a reboot is required for this to take effect.  **CAUTION:** this lowers the security of your system.  It is better to have your kernel extensions signed on your host and develop/load in a virtual machine.
 
 ```
+export SKIP_KERNEL=0
 make kernel-build
 make kernel-test-load
 # Optionally run the unit tests
