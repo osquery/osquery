@@ -482,15 +482,20 @@ namespace tables {
 		}
 
 		// Get stack frames from dump
-		if (control->GetStoredEventInformation(&type, &procID, &threadID, context, sizeof(context), &contextSize, NULL, 0, 0) != S_OK) {
-			LOG(ERROR) << "Error extracting information while debugging crash dump: " << lpFileName;
-			return debugEngineCleanup(client, control, symbols);
-		}
-		char* contextData = new char[kulNumStackFramesToLog*contextSize];
-		if (control->GetContextStackTrace(context, contextSize, stackFrames, ARRAYSIZE(stackFrames), contextData, kulNumStackFramesToLog*contextSize, contextSize, &numFrames) != S_OK) {
-			LOG(ERROR) << "Error getting stack trace while debugging crash dump: " << lpFileName;
+		if (control->GetStoredEventInformation(&type, &procID, &threadID, context, sizeof(context), &contextSize, NULL, 0, 0) == S_OK) {
+			char* contextData = new char[kulNumStackFramesToLog*contextSize];
+			HRESULT status = control->GetContextStackTrace(context, contextSize, stackFrames, ARRAYSIZE(stackFrames), contextData, kulNumStackFramesToLog*contextSize, contextSize, &numFrames);
 			delete[] contextData;
-			return debugEngineCleanup(client, control, symbols);
+			if (status != S_OK) {
+				LOG(ERROR) << "Error getting context stack trace while debugging crash dump: " << lpFileName;
+				return debugEngineCleanup(client, control, symbols);
+			}
+		}
+		else {
+			LOG(ERROR) << "Error extracting context information while debugging crash dump: " << lpFileName;
+			if (control->GetStackTrace(0, 0, 0, stackFrames, ARRAYSIZE(stackFrames), &numFrames) != S_OK) {
+				LOG(ERROR) << "Error getting stack trace while debugging crash dump: " << lpFileName;
+			}
 		}
 		
 		std::stringstream stackTrace;
@@ -510,7 +515,6 @@ namespace tables {
 		r["stack_trace"] = stackTrace.str();
 
 		// Cleanup
-		delete[] contextData;
 		return debugEngineCleanup(client, control, symbols);
 	}
 
