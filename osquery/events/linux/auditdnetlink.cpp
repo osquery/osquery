@@ -120,7 +120,7 @@ bool AuditdNetlink::start() noexcept {
 
   try {
     // Allocate the read buffer before we start the threads
-    const std::size_t read_buffer_size = 4096;
+    const size_t read_buffer_size = 4096;
 
     read_buffer_.resize(read_buffer_size);
     if (read_buffer_.size() != read_buffer_size) {
@@ -499,7 +499,7 @@ bool AuditdNetlink::acquireMessages() noexcept {
   socklen_t nladdrlen = sizeof(nladdr);
 
   bool reset_handle = false;
-  std::size_t events_received = 0;
+  size_t events_received = 0;
 
   // Attempt to read as many messages as possible before we exit
   for (events_received = 0; events_received < read_buffer_.size();
@@ -511,7 +511,7 @@ bool AuditdNetlink::acquireMessages() noexcept {
     }
 
     if (poll_status < 0) {
-      VLOG(1) << "Audit: pool() failed with error " << errno;
+      VLOG(1) << "Audit: poll() failed with error " << errno;
       reset_handle = true;
       break;
     }
@@ -684,10 +684,10 @@ bool AuditdNetlink::clearAuditConfiguration() noexcept {
 
   // Attempt to list all rules
   std::vector<AuditRuleDataObject> rule_object_list;
-  auto timeout = std::time(nullptr) + 5;
+  auto timeout = getUnixTime() + 5;
 
   for (size_t read_retry = 0U; read_retry < 3U; ++read_retry) {
-    if (timeout < std::time(nullptr)) {
+    if (timeout < getUnixTime()) {
       VLOG(1) << "Failed to unconfigure the audit service (timeout)";
       return false;
     }
@@ -704,7 +704,7 @@ bool AuditdNetlink::clearAuditConfiguration() noexcept {
       }
 
       if (poll_status < 0) {
-        VLOG(1) << "pool() failed with errno " << errno;
+        VLOG(1) << "poll() failed with errno " << errno;
         return false;
       }
 
@@ -746,7 +746,7 @@ bool AuditdNetlink::clearAuditConfiguration() noexcept {
     }
 
     // Save the rule
-    auto reply_size = sizeof(struct audit_reply) + reply.ruledata->buflen;
+    auto reply_size = sizeof(reply) + reply.ruledata->buflen;
 
     AuditRuleDataObject reply_object;
     reply_object.resize(reply_size);
@@ -776,13 +776,13 @@ bool AuditdNetlink::clearAuditConfiguration() noexcept {
   return true;
 }
 
-bool AuditdNetlink::deleteAuditRule(AuditRuleDataObject& rule_object) {
+bool AuditdNetlink::deleteAuditRule(const AuditRuleDataObject& rule_object) {
   if (NLMSG_SPACE(rule_object.size()) > MAX_AUDIT_MESSAGE_LENGTH) {
     return false;
   }
 
-  auto* rule_data =
-      reinterpret_cast<struct audit_rule_data*>(rule_object.data());
+  auto rule_data =
+      reinterpret_cast<const struct audit_rule_data*>(rule_object.data());
 
   struct audit_message request = {};
   request.nlh.nlmsg_len = static_cast<__u32>(NLMSG_SPACE(rule_object.size()));
@@ -795,7 +795,7 @@ bool AuditdNetlink::deleteAuditRule(AuditRuleDataObject& rule_object) {
 
   bool success = false;
 
-  for (std::size_t i = 0; i < 3; i++) {
+  for (size_t i = 0; i < 3; i++) {
     ssize_t bytes_sent;
 
     while (true) {

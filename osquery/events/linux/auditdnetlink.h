@@ -108,7 +108,7 @@ class AuditdNetlink final : private boost::noncopyable {
   bool clearAuditConfiguration() noexcept;
 
   /// Deletes the given audit rule
-  bool deleteAuditRule(AuditRuleDataObject& rule_object);
+  bool deleteAuditRule(const AuditRuleDataObject& rule_object);
 
   /// Removes the rules that we have applied
   void restoreAuditServiceConfiguration() noexcept;
