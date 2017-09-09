@@ -320,6 +320,9 @@ if(DEFINED ENV{SKIP_YARA})
 endif()
 if(DEFINED ENV{SKIP_CARVER})
   set(SKIP_CARVER TRUE)
+if(DEFINED ENV{SKIP_KAFKA})
+  set(SKIP_KAFKA TRUE)
+endif()
   # To remove references to carve functionality in sqlite helper functions
   add_definitions(
     -DSKIP_CARVER=1
