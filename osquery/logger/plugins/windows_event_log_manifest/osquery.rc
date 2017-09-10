@@ -1,0 +1,3 @@
+LANGUAGE 0x9,0x1
+1 11 "osquery/logger/plugins/windows_event_log_manifest/MSG00001.bin"
+1 WEVT_TEMPLATE "osquery/logger/plugins/windows_event_log_manifest/osqueryTEMP.BIN"
