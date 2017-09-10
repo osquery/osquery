@@ -51,8 +51,10 @@ QueryData getKnownHostsKeys(QueryContext& context) {
   // Iterate over each user
   auto users = usersFromContext(context);
   for (const auto& row : users) {
-    if (row.count("uid") > 0 && row.count("directory") > 0) {
-      genSSHkeysForHosts(row.at("uid"), row.at("directory"), results);
+    auto uid = row.find("uid");
+    auto directory = row.find("directory");
+    if (uid != row.end() && directory != row.end()) {
+      genSSHkeysForHosts(uid->second, directory->second, results);
     }
   }
 
