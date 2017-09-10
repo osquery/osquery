@@ -4,7 +4,6 @@
 #  This source code is licensed under the BSD-style license found in the
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
-cmake_policy(SET CMP0026 OLD)
 
 # The 'core' source files define the osquery SDK (libosquery).
 # There are macros throughout CMake to append sources to this list.
@@ -329,21 +328,19 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
       "-- Building osqueryd: $<TARGET_FILE:daemon>"
   )
 
-  get_property (DAEMON_EXECUTABLE TARGET daemon PROPERTY LOCATION)
-  get_filename_component(DAEMON_DIR "${DAEMON_EXECUTABLE}" DIRECTORY)
-  set(SHELL_EXECUTABLE "${DAEMON_DIR}/osqueryi")
+  set(SHELL_EXECUTABLE "osqueryi")
   if(WINDOWS)
     set(SHELL_EXECUTABLE "${SHELL_EXECUTABLE}.exe")
   endif()
 
   add_custom_target(shell ALL
     COMMAND ${CMAKE_COMMAND} -E copy
-      $<TARGET_FILE:daemon> "${SHELL_EXECUTABLE}")
+      $<TARGET_FILE:daemon> "$<TARGET_FILE_DIR:daemon>/${SHELL_EXECUTABLE}")
 
   add_custom_command(
     TARGET shell POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-      "-- Creating osqueryi: ${SHELL_EXECUTABLE}")
+      "-- Creating osqueryi: $<TARGET_FILE_DIR:daemon>/${SHELL_EXECUTABLE}")
 
   # This is no longer supported.
   # Include the public API includes if make devel.
