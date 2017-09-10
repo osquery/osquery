@@ -242,7 +242,7 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
   EXPECT_EQ(100U, state.initial_footprint);
 
   // The measurement of latency applies an interval value normalization.
-  auto iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), (size_t)1);
+  auto iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1UL);
   EXPECT_EQ(100U / iv, state.user_time);
   EXPECT_EQ(0U, state.sustained_latency);
 

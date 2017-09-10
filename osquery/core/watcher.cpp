@@ -70,7 +70,7 @@ CLI_FLAG(int32,
 CLI_FLAG(uint64,
          watchdog_memory_limit,
          0,
-         "Override watchdog profile memory limit");
+         "Override watchdog profile memory limit (e.g., 300, for 300MB)");
 
 CLI_FLAG(uint64,
          watchdog_utilization_limit,
@@ -318,7 +318,7 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   PerformanceChange change;
 
   // IV is the check interval in seconds, and utilization is set per-second.
-  change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), (size_t)1);
+  change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1UL);
   UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
   try {
     change.parent =
@@ -331,10 +331,9 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   }
 
   // Check the difference of CPU time used since last check.
-  if (user_time - state.user_time >
-          getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT) ||
-      system_time - state.system_time >
-          getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT)) {
+  auto ul = getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT);
+  if (user_time - state.user_time > ul ||
+      system_time - state.system_time > ul) {
     state.sustained_latency++;
   } else {
     state.sustained_latency = 0;
