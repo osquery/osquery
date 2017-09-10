@@ -10,7 +10,10 @@
 
 #pragma once
 
+#include <set>
 #include <string>
+
+#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -19,6 +22,14 @@ namespace osquery {
 
 /// Allow users to disable enrollment features.
 DECLARE_bool(disable_enrollment);
+
+/**
+ * @brief These tables populate the "host_details" content.
+ *
+ * Enrollment plugins should send 'default' host details to enroll request
+ * endpoints. This allows the enrollment service to identify the new node.
+ */
+extern const std::set<std::string> kEnrollHostDetails;
 
 /**
  * @brief Superclass for enroll plugins.
@@ -50,6 +61,17 @@ class EnrollPlugin : public Plugin {
    * @return An enrollment secret or key material or identifier.
    */
   virtual std::string enroll() = 0;
+
+  /**
+   * @brief Populate a property tree with host details.
+   *
+   * This will use kEnrollHostDetails to select from each table and
+   * construct a property tree from the results of the first row of each.
+   * The input property tree will have a key set for each table.
+   *
+   * @param host_details An output property tree containing each table.
+   */
+  void genHostDetails(boost::property_tree::ptree& host_details);
 };
 
 /**

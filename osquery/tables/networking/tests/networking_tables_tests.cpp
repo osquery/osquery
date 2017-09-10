@@ -11,16 +11,16 @@
 #include <gtest/gtest.h>
 
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 
+#include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
 namespace tables {
 
-osquery::QueryData parseEtcHostsContent(const std::string& content);
-#ifndef WIN32
-osquery::QueryData parseEtcProtocolsContent(const std::string& content);
-#endif
+QueryData parseEtcHostsContent(const std::string& content);
+QueryData parseEtcProtocolsContent(const std::string& content);
 
 class NetworkingTablesTests : public testing::Test {};
 
@@ -29,11 +29,27 @@ TEST_F(NetworkingTablesTests, test_parse_etc_hosts_content) {
             getEtcHostsExpectedResults());
 }
 
-#ifndef WIN32
 TEST_F(NetworkingTablesTests, test_parse_etc_protocols_content) {
   EXPECT_EQ(parseEtcProtocolsContent(getEtcProtocolsContent()),
             getEtcProtocolsExpectedResults());
 }
-#endif
+
+TEST_F(NetworkingTablesTests, test_listening_ports) {
+  auto& server = TLSServerRunner::instance();
+  server.start();
+  auto results = SQL::selectAllFrom("listening_ports");
+
+  std::string pid;
+  for (const auto& row : results) {
+    // Expect to find a process PID for the server.
+    if (row.at("port") == server.port()) {
+      pid = row.at("pid");
+    }
+  }
+
+  EXPECT_GT(pid.size(), 0U);
+  EXPECT_NE(pid, "-1");
+  server.stop();
+}
 }
 }

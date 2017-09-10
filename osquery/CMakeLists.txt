@@ -4,7 +4,6 @@
 #  This source code is licensed under the BSD-style license found in the
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
-cmake_policy(SET CMP0026 OLD)
 
 # The 'core' source files define the osquery SDK (libosquery).
 # There are macros throughout CMake to append sources to this list.
@@ -288,7 +287,7 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   # Create the dynamic libosquery_additional.
   if(DEFINED ENV{OSQUERY_BUILD_SHARED})
     add_library(libosquery_additional_shared SHARED ${OSQUERY_ADDITIONAL_SOURCES})
-    target_link_libraries(libosquery_additional_shared PRIVATE ${OSQUERY_ADDITIONAL_LINKS})
+    target_link_libraries(libosquery_additional_shared PRIVATE ${OSQUERY_LINKS} ${OSQUERY_ADDITIONAL_LINKS})
     set_target_properties(libosquery_additional_shared PROPERTIES OUTPUT_NAME osquery_additional)
   endif()
 
@@ -329,21 +328,19 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
       "-- Building osqueryd: $<TARGET_FILE:daemon>"
   )
 
-  get_property (DAEMON_EXECUTABLE TARGET daemon PROPERTY LOCATION)
-  get_filename_component(DAEMON_DIR "${DAEMON_EXECUTABLE}" DIRECTORY)
-  set(SHELL_EXECUTABLE "${DAEMON_DIR}/osqueryi")
+  set(SHELL_EXECUTABLE "osqueryi")
   if(WINDOWS)
     set(SHELL_EXECUTABLE "${SHELL_EXECUTABLE}.exe")
   endif()
 
   add_custom_target(shell ALL
     COMMAND ${CMAKE_COMMAND} -E copy
-      $<TARGET_FILE:daemon> "${SHELL_EXECUTABLE}")
+      $<TARGET_FILE:daemon> "$<TARGET_FILE_DIR:daemon>/${SHELL_EXECUTABLE}")
 
   add_custom_command(
     TARGET shell POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-      "-- Creating osqueryi: ${SHELL_EXECUTABLE}")
+      "-- Creating osqueryi: $<TARGET_FILE_DIR:daemon>/${SHELL_EXECUTABLE}")
 
   # This is no longer supported.
   # Include the public API includes if make devel.
@@ -391,7 +388,7 @@ if(NOT SKIP_TESTS)
   add_test(osquery_tests osquery_tests ${TEST_ARGS})
 
   # osquery kernel tests.
-  if(NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WINDOWS)
+  if(NOT SKIP_KERNEL AND NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WINDOWS)
     add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
     ADD_DEFAULT_LINKS(osquery_kernel_tests TRUE)
     target_link_libraries(osquery_kernel_tests gtest gmock libosquery_testing)
@@ -407,10 +404,12 @@ if(NOT SKIP_TESTS)
     set(BENCHMARK_TARGET "$<TARGET_FILE:osquery_benchmarks>")
 
     # osquery kernel benchmarks.
-    add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
-    target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing pthread)
-    ADD_DEFAULT_LINKS(osquery_kernel_benchmarks TRUE)
-    SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
+    if (NOT SKIP_KERNEL)
+      add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
+      target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing pthread)
+      ADD_DEFAULT_LINKS(osquery_kernel_benchmarks TRUE)
+      SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
+    endif()
 
     # make benchmark
     add_custom_target(
@@ -430,7 +429,7 @@ if(NOT SKIP_TESTS)
     add_test(osquery_additional_tests osquery_additional_tests ${TEST_ARGS})
 
     # osquery tables set of unit tests (extracted for organization).
-    add_executable(osquery_tables_tests main/tests.cpp ${OSQUERY_TABLES_TESTS})
+    add_executable(osquery_tables_tests tests/test_additional_util.cpp main/tests.cpp ${OSQUERY_TABLES_TESTS})
     ADD_DEFAULT_LINKS(osquery_tables_tests TRUE)
     target_link_libraries(osquery_tables_tests gtest gmock libosquery_testing)
     SET_OSQUERY_COMPILE(osquery_tables_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")

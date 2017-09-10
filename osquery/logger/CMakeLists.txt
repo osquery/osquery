@@ -36,6 +36,25 @@ set(OSQUERY_LOGGER_PLUGIN_TESTS
 # and others, which use a Glog sink. They must be tested in tandem.
 ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_LOGGER_PLUGIN_TESTS})
 
+if(NOT SKIP_KAFKA AND NOT WINDOWS AND NOT FREEBSD)
+  set(OSQUERY_LOGGER_KAFKA_PLUGINS
+    "plugins/kafka_producer.cpp"
+  )
+
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(
+    osquery_logger_kafka_plugins
+    ${OSQUERY_LOGGER_KAFKA_PLUGINS}
+  )
+
+  ADD_OSQUERY_LINK_ADDITIONAL("rdkafka")
+
+  set(OSQUERY_LOGGER_KAFKA_PLUGINS_TESTS
+    "logger/plugins/tests/kafka_producer_tests.cpp"
+  )
+
+  ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_LOGGER_KAFKA_PLUGINS_TESTS})
+endif()
+
 if(NOT SKIP_AWS)
   set(OSQUERY_LOGGER_AWS_PLUGINS
     "plugins/aws_firehose.cpp"

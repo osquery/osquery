@@ -363,6 +363,18 @@ This is default `true` and will also send log messages in GLog format to the pro
 
 This controls the types of logs sent to the process's `stderr`. It does NOT limit or control the types sent to the logger plugin. The default value 2 is `ERROR`, set this to `0` for all non-verbose types. If the `--verbose` flag is set this value is overridden to `0`.
 
+`--logger_kafka_brokers`
+
+A comma delimited list of Kafka brokers to connect to.  Format can be `host:port` or just `host` with the port number falling back to the default value of `9092`.
+
+`--logger_kafka_topic`
+
+The Kafka topic to publish logs to.  When using multiple topics this configuration becomes the base topic that unconfigured queries fall back to.  Please see the Kafka section of the [logging wiki](../deployment/logging.md) for more details.
+
+`--logger_kafka_acks`
+
+The number of acknowledgments the Kafka leader has to receive before a publish is considered succesful.  Valid options are (0, 1, "all").
+
 ### Distributed query service flags
 
 `--distributed_plugin=tls`

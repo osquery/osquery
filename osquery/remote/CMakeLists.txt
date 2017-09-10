@@ -17,7 +17,7 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
   enroll/plugins/tls_enroll.cpp
 )
 
-file(GLOB OSQUERY_ENROLLMENT_PLUGIN_TESTS "enrollment/plugins/tests/*.cpp")
+file(GLOB OSQUERY_ENROLLMENT_PLUGIN_TESTS "enroll/plugins/tests/*.cpp")
 ADD_OSQUERY_TEST(FALSE ${OSQUERY_ENROLLMENT_PLUGIN_TESTS})
 
 file(GLOB OSQUERY_REMOTE_TESTS "tests/*.cpp")
