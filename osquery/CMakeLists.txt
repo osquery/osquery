@@ -308,10 +308,10 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
     list(GET OSQUERY_VERSION_LIST 2 OSQUERY_BUILD_NUMBER)
 
     configure_file(
-      ${CMAKE_SOURCE_DIR}/tools/version.rc.in
-      ${CMAKE_BINARY_DIR}/osquery/version.rc
+      ${CMAKE_SOURCE_DIR}/tools/windows_resources.rc.in
+      ${CMAKE_BINARY_DIR}/osquery/windows_resources.rc
       @ONLY)
-    list(APPEND DAEMON_SOURCE_FILES ${CMAKE_BINARY_DIR}/osquery/version.rc)
+    list(APPEND DAEMON_SOURCE_FILES ${CMAKE_BINARY_DIR}/osquery/windows_resources.rc)
   endif()
   add_executable(daemon
     ${DAEMON_SOURCE_FILES}

@@ -10,8 +10,10 @@
 
 #include <iostream>
 
-#include <evntprov.h>
+// clang-format off
 #include <windows.h>
+#include <evntprov.h>
+// clang-format on
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
