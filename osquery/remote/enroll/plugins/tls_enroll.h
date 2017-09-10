@@ -15,14 +15,6 @@
 
 namespace osquery {
 
-/**
- * @brief These tables populate the "host_details" content.
- *
- * Enrollment plugins should send 'default' host details to enroll request
- * endpoints. This allows the enrollment service to identify the new node.
- */
-extern const std::set<std::string> kEnrollHostDetails;
-
 class TLSEnrollPlugin : public EnrollPlugin {
  private:
   /// Enroll called, return cached key or if no key cached, call requestKey.
