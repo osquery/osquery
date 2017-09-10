@@ -38,10 +38,7 @@ void genSSHkeysForHosts(const std::string& uid,
 
     for (const auto& line : split(keys_content, "\n")) {
       if (!line.empty() && line[0] != '#') {
-        Row r;
-        r["uid"] = uid;
-        r["key"] = line;
-        r["key_file"] = keys_file.string();
+        Row r = {{"uid", uid}, {"key", line}, {"key_file", keys_file.string()}};
         results.push_back(r);
       }
     }
