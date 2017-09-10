@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <set>
 #include <string>
 
 #include <osquery/flags.h>
@@ -19,6 +20,14 @@ namespace osquery {
 
 /// Allow users to disable enrollment features.
 DECLARE_bool(disable_enrollment);
+
+/**
+ * @brief These tables populate the "host_details" content.
+ *
+ * Enrollment plugins should send 'default' host details to enroll request
+ * endpoints. This allows the enrollment service to identify the new node.
+ */
+extern const std::set<std::string> kEnrollHostDetails;
 
 /**
  * @brief Superclass for enroll plugins.

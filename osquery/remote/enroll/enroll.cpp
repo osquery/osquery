@@ -60,6 +60,10 @@ CLI_FLAG(bool,
  */
 CREATE_LAZY_REGISTRY(EnrollPlugin, "enroll");
 
+const std::set<std::string> kEnrollHostDetails{
+    "osquery_info", "system_info", "platform_info",
+};
+
 Status clearNodeKey() {
   return deleteDatabaseValue(kPersistentSettings, "nodeKey");
 }
@@ -91,7 +95,7 @@ const std::string getEnrollSecret() {
   std::string enrollment_secret;
 
   if (FLAGS_enroll_secret_path != "") {
-    osquery::readFile(FLAGS_enroll_secret_path, enrollment_secret);
+    readFile(FLAGS_enroll_secret_path, enrollment_secret);
     boost::trim(enrollment_secret);
   } else {
     auto env_secret = getEnvVar(FLAGS_enroll_secret_env);
