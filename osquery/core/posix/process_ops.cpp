@@ -85,14 +85,10 @@ bool isUserAdmin() {
 }
 
 int platformGetPid() {
-  return (int)getpid();
+  return static_cast<int>(getpid());
 }
 
 int platformGetTid() {
-#if defined(__APPLE__) || defined(FREEBSD)
   return std::hash<std::thread::id>()(std::this_thread::get_id());
-#else
-  return (int)syscall(SYS_gettid);
-#endif
 }
 }
