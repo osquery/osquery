@@ -288,7 +288,7 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   # Create the dynamic libosquery_additional.
   if(DEFINED ENV{OSQUERY_BUILD_SHARED})
     add_library(libosquery_additional_shared SHARED ${OSQUERY_ADDITIONAL_SOURCES})
-    target_link_libraries(libosquery_additional_shared PRIVATE ${OSQUERY_ADDITIONAL_LINKS})
+    target_link_libraries(libosquery_additional_shared PRIVATE ${OSQUERY_LINKS} ${OSQUERY_ADDITIONAL_LINKS})
     set_target_properties(libosquery_additional_shared PROPERTIES OUTPUT_NAME osquery_additional)
   endif()
 
