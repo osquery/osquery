@@ -176,13 +176,10 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   return std::make_shared<PlatformProcess>(ext_pid);
 }
 
-std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
+std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
     const std::string& args) {
-  std::shared_ptr<PlatformProcess> process;
-  std::string argv;
   std::string osquery_path;
-
-  boost::optional<std::string> osquery_path_option = getEnvVar("OSQUERY_DEPS");
+  auto osquery_path_option = getEnvVar("OSQUERY_DEPS");
   if (osquery_path_option) {
     osquery_path = *osquery_path_option;
   } else {
@@ -193,8 +190,10 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
     }
   }
 
-  argv = osquery_path + "/bin/python " + args;
+  // The whole-string, space-delimited, python process arguments.
+  auto argv = osquery_path + "/bin/python " + args;
 
+  std::shared_ptr<PlatformProcess> process;
   int process_pid = ::fork();
   if (process_pid == 0) {
     // Start a Python script
