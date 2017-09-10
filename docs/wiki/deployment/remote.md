@@ -41,6 +41,7 @@ The most basic TLS-based server should implement 3 HTTP POST endpoints. This API
   "enroll_secret": "...", // Optional.
   "host_identifier": "..." // Determined by the --host_identifier flag
   "host_details": { // A dictionary of keys mapping to helpful osquery tables.
+    "os_version": {},
     "osquery_info": {},
     "system_info": {},
     "platform_info": {}

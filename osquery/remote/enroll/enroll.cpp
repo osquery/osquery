@@ -65,7 +65,7 @@ CLI_FLAG(bool,
 CREATE_LAZY_REGISTRY(EnrollPlugin, "enroll");
 
 const std::set<std::string> kEnrollHostDetails{
-    "osquery_info", "system_info", "platform_info",
+    "os_version", "osquery_info", "system_info", "platform_info",
 };
 
 Status clearNodeKey() {
