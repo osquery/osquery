@@ -32,11 +32,9 @@ QueryData genLoadAverage(QueryContext& context) {
 
   if (getloadavg(loads, 3) != -1) {
     for (int i = 0; i < 3; i++) {
-      Row r = {
-        {"period", periods[i].data()},
-        {"average", std::to_string(loads[i])}
-      };
-      
+      Row r = {{"period", periods[i].data()},
+               {"average", std::to_string(loads[i])}};
+
       results[i] = r;
     }
   };
