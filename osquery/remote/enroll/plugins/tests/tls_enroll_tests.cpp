@@ -16,8 +16,8 @@
 
 #include <osquery/config.h>
 #include <osquery/database.h>
+#include <osquery/flags.h>
 #include <osquery/sql.h>
-#include <osquery/system.h>
 
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"

@@ -86,16 +86,7 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
 
   // Select from each table describing host details.
   pt::ptree host_details;
-  for (const auto& table : kEnrollHostDetails) {
-    auto results = SQL::selectAllFrom(table);
-    if (!results.empty()) {
-      pt::ptree details;
-      for (const auto& detail : results[0]) {
-        details.put<std::string>(detail.first, detail.second);
-      }
-      host_details.put_child(table, details);
-    }
-  }
+  genHostDetails(host_details);
   params.put_child("host_details", host_details);
 
   auto request = Request<TLSTransport, JSONSerializer>(uri);

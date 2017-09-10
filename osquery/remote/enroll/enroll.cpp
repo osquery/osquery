@@ -9,15 +9,19 @@
  */
 
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/enroll.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/sql.h>
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -105,6 +109,20 @@ const std::string getEnrollSecret() {
   }
 
   return enrollment_secret;
+}
+
+void EnrollPlugin::genHostDetails(pt::ptree& host_details) {
+  // Select from each table describing host details.
+  for (const auto& table : kEnrollHostDetails) {
+    auto results = SQL::selectAllFrom(table);
+    if (!results.empty()) {
+      pt::ptree details;
+      for (const auto& detail : results[0]) {
+        details.put<std::string>(detail.first, detail.second);
+      }
+      host_details.put_child(table, details);
+    }
+  }
 }
 
 Status EnrollPlugin::call(const PluginRequest& request,

@@ -13,6 +13,8 @@
 #include <set>
 #include <string>
 
+#include <boost/property_tree/ptree.hpp>
+
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
@@ -59,6 +61,17 @@ class EnrollPlugin : public Plugin {
    * @return An enrollment secret or key material or identifier.
    */
   virtual std::string enroll() = 0;
+
+  /**
+   * @brief Populate a property tree with host details.
+   *
+   * This will use kEnrollHostDetails to select from each table and
+   * construct a property tree from the results of the first row of each.
+   * The input property tree will have a key set for each table.
+   *
+   * @param host_details An output property tree containing each table.
+   */
+  void genHostDetails(boost::property_tree::ptree& host_details);
 };
 
 /**
