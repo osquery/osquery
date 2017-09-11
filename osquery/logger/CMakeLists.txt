@@ -82,6 +82,7 @@ if(NOT SKIP_AWS)
   if(WINDOWS)
     ADD_OSQUERY_LINK_CORE("UserEnv.lib")
     ADD_OSQUERY_LINK_CORE("bcrypt.lib")
+    ADD_OSQUERY_LINK_CORE("wevtapi.lib")
   endif()
 
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-kinesis")

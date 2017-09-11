@@ -8,6 +8,11 @@
  *
  */
 
+// clang-format off
+#include <windows.h>
+#include <evntprov.h>
+// clang-format on
+
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
@@ -15,6 +20,8 @@ namespace osquery {
 
 class WindowsEventLoggerPlugin : public LoggerPlugin {
  public:
+  virtual ~WindowsEventLoggerPlugin();
+
   bool usesLogStatus() override {
     return true;
   }
@@ -24,5 +31,8 @@ class WindowsEventLoggerPlugin : public LoggerPlugin {
   void init(const std::string& name,
             const std::vector<StatusLogLine>& log) override;
   Status logStatus(const std::vector<StatusLogLine>& log) override;
+
+ private:
+  REGHANDLE registration_handle_{0};
 };
 }
