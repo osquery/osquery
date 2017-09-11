@@ -101,7 +101,7 @@ If this value is >0 then the watchdog level (`--watchdog_level`) for maximum mem
 
 If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 30% of a thread for more than 9 seconds of wall time. The length of sustained utilization is not independently configurable.
 
-This value is a maximum number of CPU cycles counted as the `process` table's `user_time` and `system_time`. The default is 90 seconds of cpu time per 3 seconds of wall time.
+This value is a maximum number of CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default is 90, meaning less 90 seconds of cpu time per 3 seconds of wall time is allowed.
 
 `--watchdog_delay=60`
 
