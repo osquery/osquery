@@ -318,7 +318,7 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   PerformanceChange change;
 
   // IV is the check interval in seconds, and utilization is set per-second.
-  change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1UL);
+  change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
   UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
   try {
     change.parent =
