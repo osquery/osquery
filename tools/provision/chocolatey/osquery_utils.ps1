@@ -121,6 +121,7 @@ function Start-OsqueryProcess {
           -FilePath $binaryPath `
           -ArgumentList $buildArgs `
           -NoNewWindow `
-          -Wait | Wait-Process
+          -PassThru
+  $out.WaitForExit()
   return $out
 }
