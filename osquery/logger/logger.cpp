@@ -8,7 +8,9 @@
  *
  */
 
-#ifndef WIN32
+#ifdef WIN32
+#include "osquery/logger/plugins/windows_event_log.h"
+#else
 #include <syslog.h>
 #endif
 
@@ -691,7 +693,19 @@ void relayStatusLogs(bool async) {
 }
 
 void systemLog(const std::string& line) {
-#ifndef WIN32
+#ifdef WIN32
+  REGHANDLE registration_handle = 0;
+  auto status = WindowsEventLoggerPlugin::acquireHandle(registration_handle);
+  if (!status.ok()) {
+    return;
+  }
+  
+  status = WindowsEventLoggerPlugin::emitLogRecord(registration_handle, line);
+  static_cast<void>(status);
+
+  WindowsEventLoggerPlugin::releaseHandle(registration_handle);
+
+#else
   syslog(LOG_NOTICE, "%s", line.c_str());
 #endif
 }
