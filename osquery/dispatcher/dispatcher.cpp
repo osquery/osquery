@@ -90,7 +90,7 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   WriteLock lock(self.mutex_);
   DLOG(INFO) << "Adding new service: " << service->name() << " ("
              << service.get() << ") to thread: " << thread->get_id() << " ("
-             << thread.get() << ")";
+             << thread.get() << ") in process " << platformGetPid();
 
   self.service_threads_.push_back(thread);
   self.services_.push_back(std::move(service));
