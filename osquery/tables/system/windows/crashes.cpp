@@ -1,7 +1,9 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <boost/filesystem.hpp>
+#define _WIN32_DCOM
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <Winternl.h>
 #pragma warning (push)
 /*
 C:\Program Files (x86)\Windows Kits\8.1\Include\um\DbgHelp.h(3190):
@@ -12,14 +14,18 @@ warning C4091: 'typedef ': ignored on left of '' when no variable is declared
 #pragma warning (pop)
 #pragma comment(lib, "dbghelp.lib")
 #include <DbgEng.h>
-#pragma comment(lib,"dbgeng.lib")
+#pragma comment(lib ,"dbgeng.lib")
 
+#include <boost/filesystem.hpp>
+
+#include <osquery/core/windows/wmi.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
+
 	const std::string kLocalDumpsRegKey = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting\\LocalDumps";
 	const std::string kDumpFolderRegPath = kLocalDumpsRegKey + "\\DumpFolder";
 	const std::string kFallbackFolder = "%TMP%";
@@ -50,9 +56,15 @@ namespace tables {
 		{ 0x00100000, "MiniDumpFilterTriage" },
 		{ 0x001fffff, "MiniDumpValidTypeFlags" }
 	};
-	// Note: ModuleListStream should be processed after ExceptionStream so the crashed module can be found
-	const std::vector<MINIDUMP_STREAM_TYPE> kStreamTypes = { ThreadListStream, ExceptionStream, ModuleListStream, SystemInfoStream, MiscInfoStream };
+	// Note: ModuleListStream should be processed after ExceptionStream so the exception addr is defined
+	// ThreadListStream should be processed after ExceptionStream so the crashed thread is defined
+	// MemoryListStream should be processed after ThreadListStream so the PEB address is defined
+	const std::vector<MINIDUMP_STREAM_TYPE> kStreamTypes = { ExceptionStream, ModuleListStream, ThreadListStream, MemoryListStream, SystemInfoStream, MiscInfoStream };
+
 	ULONG64 ulExceptionAddress = NULL;
+	ULONG32 ulTID = NULL;
+	ULONG64 ulTEBAddress = NULL;
+	ULONG64 ulMiniDumpFlags = NULL;
 
 	void processDumpExceptionStream(Row &r, PMINIDUMP_DIRECTORY pDumpStreamDir, PVOID pDumpStream, ULONG pDumpStreamSize, PVOID pBase) {
 		MINIDUMP_EXCEPTION_STREAM* pExceptionStream = (MINIDUMP_EXCEPTION_STREAM*)pDumpStream;
@@ -60,6 +72,7 @@ namespace tables {
 
 		// Log ID of thread that caused the exception
 		r["tid"] = BIGINT(pExceptionStream->ThreadId);
+		ulTID = pExceptionStream->ThreadId;
 
 		// Log exception code
 		std::stringstream exCode;
@@ -138,8 +151,7 @@ namespace tables {
 		r["exception_address"] = exAddrAsHex.str();
 		ulExceptionAddress = ex.ExceptionAddress;
 
-		// Log the exception message
-		// Handle special cases for errors with defined parameters
+		// Log the exception message for errors with defined parameters
 		// (see ExceptionInformation @ https://msdn.microsoft.com/en-us/library/windows/desktop/ms680367(v=vs.85).aspx)
 		if ((ex.ExceptionCode == EXCEPTION_ACCESS_VIOLATION) && (ex.NumberParameters == 2)) {
 			std::stringstream errorMsg;
@@ -162,29 +174,11 @@ namespace tables {
 
 			r["exception_message"] = errorMsg.str();
 		}
-		// For errors without parameters, just log the NTSTATUS error code
-		else {
-			HMODULE hNTDLL = LoadLibrary("NTDLL.DLL");
-			LPVOID lpNTSTATUS;
-			FormatMessage(
-				FORMAT_MESSAGE_ALLOCATE_BUFFER |
-				FORMAT_MESSAGE_FROM_SYSTEM |
-				FORMAT_MESSAGE_FROM_HMODULE,
-				hNTDLL,
-				ex.ExceptionCode,
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-				(LPTSTR)&lpNTSTATUS,
-				0,
-				NULL);
-			r["exception_message"] = (LPTSTR)lpNTSTATUS;
-			LocalFree(lpNTSTATUS);
-			FreeLibrary(hNTDLL);
-		}
 
 		// Log registers from crashed thread
 		CONTEXT* pThreadContext = (CONTEXT*)((BYTE*)pBase + pExceptionStream->ThreadContext.Rva);
 		std::stringstream registers;
-		// Registers are hard-coded for x64 system b/c lack of C++ reflection
+		// Registers are hard-coded for x64 system b/c lack of C++ reflection on CONTEXT object
 		registers << "rax:" << std::hex << pThreadContext->Rax;
 		registers << " rbx:" << std::hex << pThreadContext->Rbx;
 		registers << " rcx:" << std::hex << pThreadContext->Rcx;
@@ -250,14 +244,11 @@ namespace tables {
 
 	void processDumpModuleListStream(Row &r, PMINIDUMP_DIRECTORY pDumpStreamDir, PVOID pDumpStream, ULONG pDumpStreamSize, LPVOID pBase) {
 		MINIDUMP_MODULE_LIST *pModuleListStream = (MINIDUMP_MODULE_LIST*)pDumpStream;
-		char defChar = ' ';
-		char pathBuffer[MAX_PATH]; // TODO stringstream this?
 
 		// Log PE path
 		MINIDUMP_MODULE exeModule = pModuleListStream->Modules[0];
 		MINIDUMP_STRING* pExePath = (MINIDUMP_STRING*)((BYTE*)pBase + exeModule.ModuleNameRva);
-		WideCharToMultiByte(CP_ACP, 0, pExePath->Buffer, -1, pathBuffer, sizeof(pathBuffer), &defChar, NULL);
-		r["path"] = pathBuffer;
+		r["path"] = wstringToString(pExePath->Buffer);
 
 		// Log PE version
 		VS_FIXEDFILEINFO versionInfo = exeModule.VersionInfo;
@@ -273,10 +264,9 @@ namespace tables {
 			for (ULONG32 i = 0; i < pModuleListStream->NumberOfModules; i++) {
 				MINIDUMP_MODULE module = pModuleListStream->Modules[i];
 				// Is the exception address within this module's memory space?
-				if ((module.BaseOfImage < ulExceptionAddress) && (ulExceptionAddress < (module.BaseOfImage+module.SizeOfImage))) {
+				if ((module.BaseOfImage <= ulExceptionAddress) && (ulExceptionAddress <= (module.BaseOfImage+module.SizeOfImage))) {
 					MINIDUMP_STRING* pModulePath = (MINIDUMP_STRING*)((BYTE*)pBase + module.ModuleNameRva);
-					WideCharToMultiByte(CP_ACP, 0, pModulePath->Buffer, -1, pathBuffer, sizeof(pathBuffer), &defChar, NULL);
-					r["module"] = pathBuffer;
+					r["module"] = wstringToString(pModulePath->Buffer);
 					break;
 				}
 			}
@@ -287,11 +277,85 @@ namespace tables {
 
 	void processDumpThreadListStream(Row &r, PMINIDUMP_DIRECTORY pDumpStreamDir, PVOID pDumpStream, ULONG pDumpStreamSize) {
 		MINIDUMP_THREAD_LIST *pThreadListStream = (MINIDUMP_THREAD_LIST*)pDumpStream;
-		MINIDUMP_THREAD testThread = pThreadListStream->Threads[0];
-		// for each thread
-			// if thread ID == crashed thread ID
-				// thread -> stack
-				// get stack frame
+
+		// Fetch TEB address of crashed thread for later processing
+		if (ulTID != NULL) {
+			for (ULONG32 i = 0; i < pThreadListStream->NumberOfThreads; i++) {
+				MINIDUMP_THREAD thread = pThreadListStream->Threads[i];
+				if (thread.ThreadId == ulTID) {
+					ulTEBAddress = thread.Teb;
+					break;
+				}
+			}
+		}
+
+		return;
+	}
+
+	MINIDUMP_MEMORY_DESCRIPTOR* getMemRangeContainingTarget(ULONG64 ulTarget, MINIDUMP_MEMORY_LIST *pMemoryListStream) {
+		for (ULONG32 i = 0; i < pMemoryListStream->NumberOfMemoryRanges; i++) {
+			MINIDUMP_MEMORY_DESCRIPTOR memRange = pMemoryListStream->MemoryRanges[i];
+			if ((memRange.StartOfMemoryRange <= ulTarget) &&
+				(ulTarget < (memRange.StartOfMemoryRange + memRange.Memory.DataSize))) {
+				return &pMemoryListStream->MemoryRanges[i];
+			}
+		}
+		return nullptr;
+	}
+
+	void processMemoryListStream(Row &r, PMINIDUMP_DIRECTORY pDumpStreamDir, PVOID pDumpStream, ULONG pDumpStreamSize, LPVOID pBase, LPCTSTR lpFileName) {
+		MINIDUMP_MEMORY_LIST *pMemoryListStream = (MINIDUMP_MEMORY_LIST*)pDumpStream;
+		
+		// Log PEB data
+		if ((ulTEBAddress != NULL) && (ulMiniDumpFlags & MiniDumpWithProcessThreadData)) {
+			// Get TEB from Minidump memory
+			MINIDUMP_MEMORY_DESCRIPTOR *pMemTEB = getMemRangeContainingTarget(ulTEBAddress, pMemoryListStream);
+			if (pMemTEB != nullptr) {
+				ULONG64 ulTEBOffset = ulTEBAddress - pMemTEB->StartOfMemoryRange;
+				TEB* pTEB = (TEB*)((BYTE*)pBase + pMemTEB->Memory.Rva + ulTEBOffset);
+
+				// Get PEB from Minidump memory
+				ULONG64 ulPEBAddress = (ULONG64)pTEB->ProcessEnvironmentBlock;
+				MINIDUMP_MEMORY_DESCRIPTOR *pMemPEB = getMemRangeContainingTarget(ulPEBAddress, pMemoryListStream);
+				if (pMemPEB != nullptr) {
+					ULONG64 ulPEBOffset = ulPEBAddress - pMemPEB->StartOfMemoryRange;
+					PEB* pPEB = (PEB*)((BYTE*)pBase + pMemPEB->Memory.Rva + ulPEBOffset);
+
+					// Log BeingDebugged
+					if (pPEB->BeingDebugged == TRUE) {
+						r["being_debugged"] = "true";
+					}
+					else {
+						r["being_debugged"] = "false";
+					}
+
+					// Get process parameters from Minidump memory
+					ULONG64 ulParamsAddress = (ULONG64)pPEB->ProcessParameters;
+					MINIDUMP_MEMORY_DESCRIPTOR *pMemParams = getMemRangeContainingTarget(ulParamsAddress, pMemoryListStream);
+					if (pMemParams != nullptr) {
+						ULONG64 ulParamsOffset = ulParamsAddress - pMemParams->StartOfMemoryRange;
+						RTL_USER_PROCESS_PARAMETERS* params = (RTL_USER_PROCESS_PARAMETERS*)((BYTE*)pBase + pMemParams->Memory.Rva + ulParamsOffset);
+
+						// Get command line arguments from Minidump memory
+						ULONG64 ulBufferAddress = (ULONG64)params->CommandLine.Buffer;
+						MINIDUMP_MEMORY_DESCRIPTOR *pMemBuffer = getMemRangeContainingTarget(ulBufferAddress, pMemoryListStream);
+						if (pMemBuffer != nullptr) {
+							ULONG64 ulBufferOffset = ulBufferAddress - pMemBuffer->StartOfMemoryRange;
+							PWSTR buffer = (PWSTR)((BYTE*)pBase + pMemBuffer->Memory.Rva + ulBufferOffset);
+							r["command_line"] = wstringToString(buffer);
+						}
+
+						// Get environment variables from Minidump memory
+
+						// Get current directory from Minidump memory
+					}
+				}
+				else {
+					LOG(ERROR) << "Error reading PEB for crash dump: " << lpFileName;
+				}
+			}
+		}
+
 		return;
 	}
 
@@ -318,6 +382,7 @@ namespace tables {
 			}
 		}
 		r["type"] = activeFlags.str();
+		ulMiniDumpFlags = pDumpHeader->Flags;
 
 		return;
 	}
@@ -333,7 +398,7 @@ namespace tables {
 		hFile = CreateFile(
 			lpFileName,
 			GENERIC_READ,
-			0,
+			FILE_SHARE_READ | FILE_SHARE_WRITE,
 			NULL,
 			OPEN_EXISTING,
 			FILE_ATTRIBUTE_NORMAL,
@@ -406,6 +471,9 @@ namespace tables {
 			case ModuleListStream:
 				processDumpModuleListStream(r, pDumpStreamDir, pDumpStream, pDumpStreamSize, pBase);
 				break;
+			case MemoryListStream:
+				processMemoryListStream(r, pDumpStreamDir, pDumpStream, pDumpStreamSize, pBase, lpFileName);
+				break;
 			case ExceptionStream:
 				processDumpExceptionStream(r, pDumpStreamDir, pDumpStream, pDumpStreamSize, pBase);
 				break;
@@ -439,6 +507,8 @@ namespace tables {
 		return;
 	}
 
+	// Note: appears to only detect unmanaged stack frames.
+	// See http://blog.steveniemitz.com/building-a-mixed-mode-stack-walker-part-2/
 	void getStackTrace(Row &r, LPCTSTR lpFileName, PCSTR pPath) {
 		IDebugClient4* client;
 		IDebugControl4* control;
@@ -484,6 +554,7 @@ namespace tables {
 		// Get stack frames from dump
 		if (control->GetStoredEventInformation(&type, &procID, &threadID, context, sizeof(context), &contextSize, NULL, 0, 0) == S_OK) {
 			char* contextData = new char[kulNumStackFramesToLog*contextSize];
+			symbols->SetScopeFromStoredEvent();
 			HRESULT status = control->GetContextStackTrace(context, contextSize, stackFrames, ARRAYSIZE(stackFrames), contextData, kulNumStackFramesToLog*contextSize, contextSize, &numFrames);
 			delete[] contextData;
 			if (status != S_OK) {
@@ -492,7 +563,7 @@ namespace tables {
 			}
 		}
 		else {
-			LOG(ERROR) << "Error extracting context information while debugging crash dump: " << lpFileName;
+			LOG(WARNING) << "GetStoredEventInformation failed for crash dump: " << lpFileName;
 			if (control->GetStackTrace(0, 0, 0, stackFrames, ARRAYSIZE(stackFrames), &numFrames) != S_OK) {
 				LOG(ERROR) << "Error getting stack trace while debugging crash dump: " << lpFileName;
 			}
@@ -555,7 +626,7 @@ namespace tables {
 				(sExtension.compare(kDumpFileExtension) == 0)) {
 				Row r;
 				extractDumpInfo(r, iterator->path().generic_string().c_str());
-				getStackTrace(r, iterator->path().generic_string().c_str(), r.at("path").c_str()); //problem when these are variables
+				getStackTrace(r, iterator->path().generic_string().c_str(), r.at("path").c_str());
 				if (!r.empty()) results.push_back(r);
 			}
 			++iterator;
