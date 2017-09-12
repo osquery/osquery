@@ -85,7 +85,6 @@ void Client::createConnection() {
     connect_host = connect_host.substr(0, pos);
   }
 
-  closeSocket();
   boost_system::error_code rc;
   connect(sock_,
           r_.resolve(boost_asio::ip::tcp::resolver::query{connect_host, port}),
@@ -122,59 +121,57 @@ void Client::createConnection() {
   }
 }
 
-void Client::sendEncryptedRequest(Request& req,
-                                  beast_http_response_parser& resp) {
-  boost_asio::ssl::context ctx{boost_asio::ssl::context::sslv23};
-
+void Client::encryptConnection() {
   if (client_options_.always_verify_peer_) {
-    ctx.set_verify_mode(boost_asio::ssl::verify_peer);
+    ctx_.set_verify_mode(boost_asio::ssl::verify_peer);
   } else {
-    ctx.set_verify_mode(boost_asio::ssl::verify_none);
+    ctx_.set_verify_mode(boost_asio::ssl::verify_none);
   }
 
   if (client_options_.server_certificate_) {
-    ctx.set_verify_mode(boost_asio::ssl::verify_peer);
-    ctx.load_verify_file(*client_options_.server_certificate_);
+    ctx_.set_verify_mode(boost_asio::ssl::verify_peer);
+    ctx_.load_verify_file(*client_options_.server_certificate_);
   }
 
   if (client_options_.verify_path_) {
-    ctx.set_verify_mode(boost_asio::ssl::verify_peer);
-    ctx.add_verify_path(*client_options_.verify_path_);
+    ctx_.set_verify_mode(boost_asio::ssl::verify_peer);
+    ctx_.add_verify_path(*client_options_.verify_path_);
   }
 
   if (client_options_.ciphers_) {
-    ::SSL_CTX_set_cipher_list(ctx.native_handle(),
+    ::SSL_CTX_set_cipher_list(ctx_.native_handle(),
                               client_options_.ciphers_->c_str());
   }
 
   if (client_options_.ssl_options_) {
-    ctx.set_options(client_options_.ssl_options_);
+    ctx_.set_options(client_options_.ssl_options_);
   }
 
   if (client_options_.client_certificate_file_) {
-    ctx.use_certificate_file(*client_options_.client_certificate_file_,
+    ctx_.use_certificate_file(*client_options_.client_certificate_file_,
                              boost_asio::ssl::context::pem);
   }
 
   if (client_options_.client_private_key_file_) {
-    ctx.use_private_key_file(*client_options_.client_private_key_file_,
+    ctx_.use_private_key_file(*client_options_.client_private_key_file_,
                              boost_asio::ssl::context::pem);
   }
 
-  boost_asio::ssl::stream<boost_asio::ip::tcp::socket&> stream{sock_, ctx};
-
   if (client_options_.sni_hostname_) {
-    ::SSL_set_tlsext_host_name(stream.native_handle(),
+    ::SSL_set_tlsext_host_name(ssl_sock_.native_handle(),
                                client_options_.sni_hostname_->c_str());
   }
 
   boost_system::error_code rc;
-  stream.handshake(boost_asio::ssl::stream_base::client, rc);
+  ssl_sock_.handshake(boost_asio::ssl::stream_base::client, rc);
 
   if (rc) {
     throw std::system_error(rc.value(), adapted_category(&rc.category()));
   }
+}
 
+template <typename STREAM_TYPE>
+void Client::sendRequest(STREAM_TYPE& stream, Request& req, beast_http_response_parser& resp) {
   req.target((req.remotePath()) ? *req.remotePath() : "/");
   req.version = 11;
   req << Request::Header("Host", *client_options_.remote_hostname_);
@@ -195,41 +192,6 @@ void Client::sendEncryptedRequest(Request& req,
   boost::beast::flat_buffer b;
   beast_http::async_read(
       stream, b, resp, [&](boost_system::error_code const& ec) {
-        if (client_options_.timeout_) {
-          timer.cancel();
-        }
-        postResponseHandler(ec);
-      });
-
-  ios_.run();
-  ios_.reset();
-
-  if (ec_) {
-    throw std::system_error(ec_.value(), adapted_category(&ec_.category()));
-  }
-}
-
-void Client::sendRequest(Request& req, beast_http_response_parser& resp) {
-  req.target((req.remotePath()) ? *req.remotePath() : "/");
-  req.version = 11;
-  req << Request::Header("Host", *client_options_.remote_hostname_);
-  req.prepare_payload();
-
-  req.keep_alive(true);
-  beast_http_request_serializer sr{req};
-  beast_http::write(sock_, sr);
-
-  boost_asio::deadline_timer timer{ios_};
-  if (client_options_.timeout_) {
-    timer.expires_from_now(
-        boost::posix_time::seconds(client_options_.timeout_));
-    timer.async_wait(
-        [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
-  }
-
-  boost::beast::flat_buffer b;
-  beast_http::async_read(
-      sock_, b, resp, [&](boost_system::error_code const& ec) {
         if (client_options_.timeout_) {
           timer.cancel();
         }
@@ -270,10 +232,15 @@ Response Client::sendHTTPRequest(Request& req) {
 
     beast_http_response_parser resp;
     createConnection();
+
     if (ssl_connection) {
-      sendEncryptedRequest(req, resp);
+      encryptConnection();
+    }
+
+    if (ssl_connection) {
+      sendRequest(ssl_sock_, req, resp);
     } else {
-      sendRequest(req, resp);
+      sendRequest(sock_, req, resp);
     }
 
     switch (resp.get().result()) {
@@ -293,6 +260,8 @@ Response Client::sendHTTPRequest(Request& req) {
         throw std::runtime_error(
             "Location header missing in redirect response.");
       }
+
+      closeSocket();
       req.uri(redir_url);
       LOG(INFO) << "HTTP(S) request re-directed to: " << redir_url;
       break;

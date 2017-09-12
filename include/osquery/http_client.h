@@ -190,7 +190,7 @@ class Client {
 
  public: // methods
   Client(Options const& opts = Options())
-      : client_options_(opts), r_(ios_), sock_(ios_) {}
+      : client_options_(opts), r_(ios_), sock_(ios_), ssl_sock_(sock_, ctx_) {}
 
   Response put(Request& req,
                std::string const& body,
@@ -212,8 +212,9 @@ class Client {
 
  private: // methods
   void createConnection();
-  void sendRequest(Request& req, beast_http_response_parser& resp);
-  void sendEncryptedRequest(Request& req, beast_http_response_parser& resp);
+  void encryptConnection();
+  template <typename STREAM_TYPE>
+  void sendRequest(STREAM_TYPE& stream, Request& req, beast_http_response_parser& resp);
   Response sendHTTPRequest(Request& req);
   void timeoutHandler(boost_system::error_code const& ec);
   void postResponseHandler(boost_system::error_code const& ec);
@@ -224,6 +225,8 @@ class Client {
   boost_asio::io_service ios_;
   boost_asio::ip::tcp::resolver r_;
   boost_asio::ip::tcp::socket sock_;
+  boost_asio::ssl::context ctx_{boost_asio::ssl::context::sslv23};
+  boost_asio::ssl::stream<boost_asio::ip::tcp::socket&> ssl_sock_;
   boost_system::error_code ec_;
   bool ssl_connection = false;
   static const long SHORT_READ_ERROR = 0x140000dbL;
