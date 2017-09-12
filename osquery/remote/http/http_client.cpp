@@ -85,6 +85,7 @@ void Client::createConnection() {
     connect_host = connect_host.substr(0, pos);
   }
 
+  closeSocket();
   boost_system::error_code rc;
   connect(sock_,
           r_.resolve(boost_asio::ip::tcp::resolver::query{connect_host, port}),
@@ -263,7 +264,6 @@ Response Client::sendHTTPRequest(Request& req) {
             "Location header missing in redirect response.");
       }
 
-      closeSocket();
       req.uri(redir_url);
       LOG(INFO) << "HTTP(S) request re-directed to: " << redir_url;
       break;
