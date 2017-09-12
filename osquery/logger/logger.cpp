@@ -699,7 +699,7 @@ void systemLog(const std::string& line) {
   if (!status.ok()) {
     return;
   }
-  
+
   status = WindowsEventLoggerPlugin::emitLogRecord(registration_handle, line);
   static_cast<void>(status);
 

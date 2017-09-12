@@ -34,13 +34,18 @@ class WindowsEventLoggerPlugin : public LoggerPlugin {
 
  public:
   /// Registers the process as a Windows Event Log provider
-  static Status acquireHandle(REGHANDLE &registration_handle);
+  static Status acquireHandle(REGHANDLE& registration_handle);
 
   /// Releases the Windows Event Log provider handle
-  static void releaseHandle(REGHANDLE &registration_handle);
+  static void releaseHandle(REGHANDLE& registration_handle);
 
   /// Emits a single log record to the Windows Event Log
-  static Status emitLogRecord(REGHANDLE registration_handle, const std::string &message, StatusLogSeverity severity = O_INFO, const std::string &source_file_name = std::string("<empty>"), size_t line = 0U);
+  static Status emitLogRecord(
+      REGHANDLE registration_handle,
+      const std::string& message,
+      StatusLogSeverity severity = O_INFO,
+      const std::string& source_file_name = std::string("<empty>"),
+      size_t line = 0U);
 
  private:
   REGHANDLE registration_handle_{0};
