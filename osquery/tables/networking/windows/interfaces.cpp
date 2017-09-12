@@ -32,7 +32,143 @@ const auto kMaxBufferAllocRetries = 3;
 const auto kWorkingBufferSize = 15000;
 const auto kFreeMem = [](auto ptr) { free(ptr); };
 
-Status getAdapters(std::vector<IP_ADAPTER_ADDRESSES>& adapterSet) {
+Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
+  r["interface"] = INTEGER(adapter->IfIndex);
+  r["mtu"] = INTEGER(adapter->Mtu);
+  r["type"] = INTEGER(adapter->IfType);
+
+  std::wstring wideHolder = std::wstring(adapter->Description);
+  auto ifaceDescription = std::string(wideHolder.begin(), wideHolder.end());
+  r["description"] = ifaceDescription;
+
+  std::vector<std::string> toks;
+  for (size_t i = 0; i < adapter->PhysicalAddressLength; i++) {
+    std::stringstream ss;
+    ss << std::hex;
+    ss << static_cast<unsigned int>(adapter->PhysicalAddress[i]);
+    auto s = ss.str();
+    if (s.size() < static_cast<unsigned int>(2)) {
+      s = "0" + s;
+    }
+    toks.push_back(s);
+  }
+  r["mac"] = osquery::join(toks, ":");
+  r["flags"] = INTEGER(adapter->Flags);
+  r["metric"] = INTEGER(adapter->Ipv4Metric);
+
+  // TODO: These values will need an equivalent on Windows systems
+  r["last_change"] = BIGINT("-1");
+  r["collisions"] = BIGINT("-1");
+
+  // Grab the remaining table values from WMI
+  Status s;
+  auto query =
+      "SELECT * FROM Win32_PerfRawData_Tcpip_NetworkInterface WHERE "
+      "Name = \"" +
+      ifaceDescription + "\"";
+  WmiRequest req1(query);
+  if (req1.getStatus().ok()) {
+    auto& results = req1.results();
+    if (!results.empty()) {
+      std::string sPlaceHolder;
+      unsigned long long ullPlaceHolder = 0;
+
+      results[0].GetString("PacketsReceivedPerSec", sPlaceHolder);
+      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
+      r["ipackets"] = BIGINT(ullPlaceHolder);
+      results[0].GetString("PacketsSentPerSec", sPlaceHolder);
+      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
+      r["opackets"] = BIGINT(ullPlaceHolder);
+
+      results[0].GetString("BytesReceivedPerSec", sPlaceHolder);
+      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
+      r["ibytes"] = BIGINT(ullPlaceHolder);
+      results[0].GetString("BytesSentPerSec", sPlaceHolder);
+      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
+      r["obytes"] = BIGINT(ullPlaceHolder);
+
+      results[0].GetString("PacketsReceivedErrors", sPlaceHolder);
+      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
+      r["ierrors"] = BIGINT(ullPlaceHolder);
+      results[0].GetString("PacketsOutboundErrors", sPlaceHolder);
+      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
+      r["oerrors"] = BIGINT(ullPlaceHolder);
+
+      results[0].GetString("PacketsReceivedDiscarded", sPlaceHolder);
+      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
+      r["idrops"] = BIGINT(ullPlaceHolder);
+      results[0].GetString("PacketsOutboundDiscarded", sPlaceHolder);
+      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
+      r["odrops"] = BIGINT(ullPlaceHolder);
+    } else {
+      r["ipackets"] = BIGINT("-1");
+      r["opackets"] = BIGINT("-1");
+      r["ibytes"] = BIGINT("-1");
+      r["obytes"] = BIGINT("-1");
+      r["ierrors"] = BIGINT("-1");
+      r["oerrors"] = BIGINT("-1");
+      r["idrops"] = BIGINT("-1");
+      r["odrops"] = BIGINT("-1");
+      s = Status(1, "Failed to enumerate extended interface details");
+    }
+  }
+
+  query =
+      "SELECT * FROM Win32_NetworkAdapter WHERE "
+      "InterfaceIndex = " +
+      r["interface"];
+  WmiRequest req2(query);
+  if (req2.getStatus().ok()) {
+    auto& results = req2.results();
+    if (!results.empty()) {
+      bool bPlaceHolder;
+      long lPlaceHolder = 0;
+      unsigned __int64 ullPlaceHolder = 0;
+      results[0].GetString("NetConnectionID", r["connection_id"]);
+      results[0].GetLong("NetConnectionStatus", lPlaceHolder);
+      r["connection_status"] = INTEGER(lPlaceHolder);
+      results[0].GetBool("NetEnabled", bPlaceHolder);
+      r["enabled"] = INTEGER(bPlaceHolder);
+      results[0].GetBool("PhysicalAdapter", bPlaceHolder);
+      r["physical_adapter"] = INTEGER(bPlaceHolder);
+      results[0].GetUnsignedLongLong("Speed", ullPlaceHolder);
+      r["speed"] = INTEGER(ullPlaceHolder);
+    } else {
+      s = Status(1, "Failed to enumerate extended interface details");
+    }
+  }
+
+  query =
+      "SELECT * FROM win32_networkadapterconfiguration WHERE "
+      "InterfaceIndex = " +
+      r["interface"];
+  WmiRequest req3(query);
+  if (req3.getStatus().ok()) {
+    auto& results = req3.results();
+    if (!results.empty()) {
+      bool bPlaceHolder;
+      std::vector<std::string> vPlaceHolder;
+      results[0].GetBool("DHCPEnabled", bPlaceHolder);
+      r["dhcp_enabled"] = INTEGER(bPlaceHolder);
+      results[0].GetString("DHCPLeaseExpires", r["dhcp_lease_expires"]);
+      results[0].GetString("DHCPLeaseObtained", r["dhcp_lease_obtained"]);
+      results[0].GetString("DHCPServer", r["dhcp_server"]);
+      results[0].GetString("DNSDomain", r["dns_domain"]);
+      results[0].GetVectorOfStrings("DNSDomainSuffixSearchOrder", vPlaceHolder);
+      r["dns_domain_suffix_search_order"] = osquery::join(vPlaceHolder, ", ");
+      results[0].GetString("DNSHostName", r["dns_host_name"]);
+      results[0].GetVectorOfStrings("DNSServerSearchOrder", vPlaceHolder);
+      r["dns_server_search_order"] = osquery::join(vPlaceHolder, ", ");
+    } else {
+      s = Status(1, "Failed to enumerate extended interface details");
+    }
+  }
+  return s;
+}
+
+QueryData genInterfaceDetails(QueryContext& context) {
+  QueryData results;
+
   DWORD buffSize = kWorkingBufferSize;
   auto alloc_attempts = 0;
   size_t alloc_result = 0;
@@ -47,7 +183,7 @@ Status getAdapters(std::vector<IP_ADAPTER_ADDRESSES>& adapterSet) {
   do {
     adapters.reset(static_cast<PIP_ADAPTER_ADDRESSES>(malloc(buffSize)));
     if (adapters == nullptr) {
-      return Status(1, "Error allocating buffer to receive adapters");
+      return results;
     }
     alloc_result = GetAdaptersAddresses(
         addrFamily, addrFlags, nullptr, adapters.get(), &buffSize);
@@ -55,132 +191,21 @@ Status getAdapters(std::vector<IP_ADAPTER_ADDRESSES>& adapterSet) {
   } while (alloc_result == ERROR_BUFFER_OVERFLOW &&
            alloc_attempts < kMaxBufferAllocRetries);
   if (alloc_result != NO_ERROR) {
-    return Status(1, "Error allocating buffer to receive adapters");
+    return results;
   }
 
   const IP_ADAPTER_ADDRESSES* currAdapter = adapters.get();
   while (currAdapter != nullptr) {
-    adapterSet.push_back(*currAdapter);
-    currAdapter = currAdapter->Next;
-  }
-  return Status();
-}
-
-Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES& adapter, Row& r) {
-  r["interface"] = INTEGER(adapter.IfIndex);
-  r["mtu"] = INTEGER(adapter.Mtu);
-  r["type"] = INTEGER(adapter.IfType);
-
-  std::wstring wideHolder = std::wstring(adapter.Description);
-  auto description = std::string(wideHolder.begin(), wideHolder.end());
-  r["description"] = description;
-
-  std::vector<std::string> toks;
-  for (size_t i = 0; i < adapter.PhysicalAddressLength; i++) {
-    std::stringstream ss;
-    ss << std::hex;
-    ss << static_cast<unsigned int>(adapter.PhysicalAddress[i]);
-    auto s = ss.str();
-    if (s.size() < static_cast<unsigned int>(2)) {
-      s = "0" + s;
-    }
-    toks.push_back(s);
-  }
-  r["mac"] = osquery::join(toks, ":");
-  r["flags"] = INTEGER(adapter.Flags);
-  r["metric"] = INTEGER(adapter.Ipv4Metric);
-
-  // Issue #2907: These values still require some work to get
-  r["ipackets"] = BIGINT("-1");
-  r["opackets"] = BIGINT("-1");
-  r["ibytes"] = BIGINT("-1");
-  r["obytes"] = BIGINT("-1");
-  r["ierrors"] = BIGINT("-1");
-  r["oerrors"] = BIGINT("-1");
-  r["idrops"] = BIGINT("-1");
-  r["odrops"] = BIGINT("-1");
-  r["collisions"] = BIGINT("-1");
-  r["last_change"] = BIGINT("-1");
-
-  // Grab the addition Windows schema values from WMI
-  Status s;
-  long lPlaceHolder = 0;
-  unsigned __int64 ulPlaceHolder = 0;
-  bool bPlaceHolder;
-  std::vector<std::string> vPlaceHolder;
-  auto query =
-      "SELECT * FROM Win32_NetworkAdapter WHERE "
-      "InterfaceIndex = " +
-      r["interface"];
-  WmiRequest req(query);
-  if (req.getStatus().ok()) {
-    auto& results = req.results();
-    if (!results.empty()) {
-      results[0].GetString("NetConnectionID", r["connection_id"]);
-      results[0].GetLong("NetConnectionStatus", lPlaceHolder);
-      r["connection_status"] = INTEGER(lPlaceHolder);
-      results[0].GetBool("NetEnabled", bPlaceHolder);
-      r["enabled"] = INTEGER(bPlaceHolder);
-      results[0].GetBool("PhysicalAdapter", bPlaceHolder);
-      r["physical_adapter"] = INTEGER(bPlaceHolder);
-      results[0].GetUnsignedLongLong("Speed", ulPlaceHolder);
-      r["speed"] = INTEGER(ulPlaceHolder);
-    } else {
-      s = Status(1, "Failed to enumerate extended interface details");
-    }
-  }
-  query =
-      "SELECT * FROM win32_networkadapterconfiguration WHERE "
-      "InterfaceIndex = " +
-      r["interface"];
-
-  WmiRequest irequest(query);
-  if (irequest.getStatus().ok()) {
-    auto& iresults = irequest.results();
-    if (!iresults.empty()) {
-      iresults[0].GetBool("DHCPEnabled", bPlaceHolder);
-      r["dhcp_enabled"] = INTEGER(bPlaceHolder);
-      iresults[0].GetString("DHCPLeaseExpires", r["dhcp_lease_expires"]);
-      iresults[0].GetString("DHCPLeaseObtained", r["dhcp_lease_obtained"]);
-      iresults[0].GetString("DHCPServer", r["dhcp_server"]);
-      iresults[0].GetString("DNSDomain", r["dns_domain"]);
-      iresults[0].GetVectorOfStrings("DNSDomainSuffixSearchOrder",
-                                     vPlaceHolder);
-      r["dns_domain_suffix_search_order"] =
-          SQL_TEXT(boost::algorithm::join(vPlaceHolder, ", "));
-      iresults[0].GetString("DNSHostName", r["dns_host_name"]);
-      iresults[0].GetVectorOfStrings("DNSServerSearchOrder", vPlaceHolder);
-      r["dns_server_search_order"] =
-          SQL_TEXT(boost::algorithm::join(vPlaceHolder, ", "));
-    } else {
-      s = Status(1, "Failed to enumerate extended interface details");
-    }
-  }
-  return s;
-}
-
-QueryData genInterfaceDetails(QueryContext& context) {
-  QueryData results;
-  std::vector<IP_ADAPTER_ADDRESSES> adapters;
-
-  auto s = getAdapters(adapters);
-  if (!s.ok()) {
-    LOG(WARNING) << s.getMessage();
-    return results;
-  }
-
-  for (const auto& adapter : adapters) {
     Row r;
-    auto s = genInterfaceDetail(adapter, r);
-    if (s.ok()) {
-      results.push_back(r);
-    } else {
+    auto s = genInterfaceDetail(currAdapter, r);
+    if (!s.ok()) {
       // The only failure we might expect is the extended details enumeration
       // in which we do not care to WARN
-      LOG(INFO) << s.getMessage();
+      VLOG(1) << s.getMessage();
     }
+    currAdapter = currAdapter->Next;
+    results.push_back(r);
   }
-
   return results;
 }
 
@@ -238,29 +263,48 @@ void genInterfaceAddress(const IP_ADAPTER_UNICAST_ADDRESS* ipaddr, Row& r) {
 
 QueryData genInterfaceAddresses(QueryContext& context) {
   QueryData results;
-  std::vector<IP_ADAPTER_ADDRESSES> adapters;
 
-  auto s = getAdapters(adapters);
-  if (!s.ok()) {
-    LOG(WARNING) << s.getMessage();
+  DWORD buffSize = kWorkingBufferSize;
+  auto alloc_attempts = 0;
+  size_t alloc_result = 0;
+  const auto addrFamily = AF_UNSPEC;
+  const auto addrFlags =
+      GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST;
+  std::unique_ptr<IP_ADAPTER_ADDRESSES, decltype(kFreeMem)> adapters(nullptr,
+                                                                     kFreeMem);
+
+  // Buffer size can change between the query and malloc (if adapters are
+  // added/removed), so shenanigans are required
+  do {
+    adapters.reset(static_cast<PIP_ADAPTER_ADDRESSES>(malloc(buffSize)));
+    if (adapters == nullptr) {
+      return results;
+    }
+    alloc_result = GetAdaptersAddresses(
+        addrFamily, addrFlags, nullptr, adapters.get(), &buffSize);
+    alloc_attempts++;
+  } while (alloc_result == ERROR_BUFFER_OVERFLOW &&
+           alloc_attempts < kMaxBufferAllocRetries);
+  if (alloc_result != NO_ERROR) {
     return results;
   }
 
-  for (const auto& adapter : adapters) {
-    std::wstring wsAdapterName = std::wstring(adapter.FriendlyName);
+  const IP_ADAPTER_ADDRESSES* currAdapter = adapters.get();
+  while (currAdapter != nullptr) {
+    std::wstring wsAdapterName = std::wstring(currAdapter->FriendlyName);
     auto adapterName = std::string(wsAdapterName.begin(), wsAdapterName.end());
 
-    const IP_ADAPTER_UNICAST_ADDRESS* ipaddr = adapter.FirstUnicastAddress;
+    const IP_ADAPTER_UNICAST_ADDRESS* ipaddr = currAdapter->FirstUnicastAddress;
     while (ipaddr != nullptr) {
       Row r;
-      r["interface"] = SQL_TEXT(adapter.IfIndex);
+      r["interface"] = SQL_TEXT(currAdapter->IfIndex);
       r["friendly_name"] = adapterName;
       genInterfaceAddress(ipaddr, r);
       ipaddr = ipaddr->Next;
       results.push_back(r);
     }
+    currAdapter = currAdapter->Next;
   }
-
   return results;
 }
 } // namespace tables
