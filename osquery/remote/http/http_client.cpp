@@ -149,12 +149,12 @@ void Client::encryptConnection() {
 
   if (client_options_.client_certificate_file_) {
     ctx_.use_certificate_file(*client_options_.client_certificate_file_,
-                             boost_asio::ssl::context::pem);
+                              boost_asio::ssl::context::pem);
   }
 
   if (client_options_.client_private_key_file_) {
     ctx_.use_private_key_file(*client_options_.client_private_key_file_,
-                             boost_asio::ssl::context::pem);
+                              boost_asio::ssl::context::pem);
   }
 
   if (client_options_.sni_hostname_) {
@@ -171,7 +171,9 @@ void Client::encryptConnection() {
 }
 
 template <typename STREAM_TYPE>
-void Client::sendRequest(STREAM_TYPE& stream, Request& req, beast_http_response_parser& resp) {
+void Client::sendRequest(STREAM_TYPE& stream,
+                         Request& req,
+                         beast_http_response_parser& resp) {
   req.target((req.remotePath()) ? *req.remotePath() : "/");
   req.version = 11;
   req << Request::Header("Host", *client_options_.remote_hostname_);

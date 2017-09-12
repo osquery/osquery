@@ -214,7 +214,9 @@ class Client {
   void createConnection();
   void encryptConnection();
   template <typename STREAM_TYPE>
-  void sendRequest(STREAM_TYPE& stream, Request& req, beast_http_response_parser& resp);
+  void sendRequest(STREAM_TYPE& stream,
+                   Request& req,
+                   beast_http_response_parser& resp);
   Response sendHTTPRequest(Request& req);
   void timeoutHandler(boost_system::error_code const& ec);
   void postResponseHandler(boost_system::error_code const& ec);
