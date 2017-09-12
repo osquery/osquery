@@ -51,5 +51,16 @@ TEST_F(NetworkingTablesTests, test_listening_ports) {
   EXPECT_NE(pid, "-1");
   server.stop();
 }
+
+TEST_F(NetworkingTablesTests, test_address_details_join) {
+  // Expect that we can join interface addresses with details
+  auto query = "select * from interface_details id, interface_addresses ia "
+               "on ia.interface = id.interface "
+               "where ia.address = '127.0.0.1';";
+
+  auto results = SQL::SQL(query);
+  EXPECT_GT(results.rows().size(), 0U);
+  
+}
 }
 }
