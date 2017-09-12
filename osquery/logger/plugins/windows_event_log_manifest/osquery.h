@@ -35,16 +35,19 @@ EXTERN_C __declspec(selectany) const GUID OsqueryWindowsEventLogProvider = {0xf7
 //
 // Event Descriptors
 //
-EXTERN_C __declspec(selectany) const EVENT_DESCRIPTOR DebugMessage = {0x1, 0x0, 0x10, 0x4, 0xa, 0x1, 0x8000000000000010};
+EXTERN_C __declspec(selectany) const EVENT_DESCRIPTOR DebugMessage = {0x1, 0x0, 0x10, 0x3, 0xa, 0x1, 0x8000000000000010};
 #define DebugMessage_value 0x1
 EXTERN_C __declspec(selectany) const EVENT_DESCRIPTOR InfoMessage = {0x2, 0x0, 0x10, 0x4, 0xa, 0x1, 0x8000000000000001};
 #define InfoMessage_value 0x2
-EXTERN_C __declspec(selectany) const EVENT_DESCRIPTOR WarningMessage = {0x3, 0x0, 0x10, 0x4, 0xa, 0x1, 0x8000000000000002};
+EXTERN_C __declspec(selectany) const EVENT_DESCRIPTOR WarningMessage = {0x3, 0x0, 0x10, 0x3, 0xa, 0x1, 0x8000000000000002};
 #define WarningMessage_value 0x3
-EXTERN_C __declspec(selectany) const EVENT_DESCRIPTOR ErrorMessage = {0x4, 0x0, 0x10, 0x4, 0xa, 0x1, 0x8000000000000004};
+EXTERN_C __declspec(selectany) const EVENT_DESCRIPTOR ErrorMessage = {0x4, 0x0, 0x10, 0x2, 0xa, 0x1, 0x8000000000000004};
 #define ErrorMessage_value 0x4
-EXTERN_C __declspec(selectany) const EVENT_DESCRIPTOR FatalMessage = {0x5, 0x0, 0x10, 0x4, 0xa, 0x1, 0x8000000000000008};
+EXTERN_C __declspec(selectany) const EVENT_DESCRIPTOR FatalMessage = {0x5, 0x0, 0x10, 0x1, 0xa, 0x1, 0x8000000000000008};
 #define FatalMessage_value 0x5
+#define MSG_level_Critical                   0x50000001L
+#define MSG_level_Error                      0x50000002L
+#define MSG_level_Warning                    0x50000003L
 #define MSG_level_Informational              0x50000004L
 #define MSG_osquery_channel_PrimaryWindowsEventLogChannel_message 0x90000001L
 #define MSG_osquery_event_1_message          0xB0000001L

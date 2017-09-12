@@ -4,11 +4,11 @@
 		<events>
 			<provider name="Facebook" guid="{F7740E18-3259-434F-9759-976319968900}" symbol="OsqueryWindowsEventLogProvider" resourceFileName="%systemdrive%\ProgramData\osquery\osqueryd\osqueryd.exe" messageFileName="%systemdrive%\ProgramData\osquery\osqueryd\osqueryd.exe">
 				<events>
-					<event symbol="DebugMessage" value="1" version="0" channel="osquery" level="win:Informational" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="DebugWindowsEventLogMessage " message="$(string.osquery.event.1.message)"></event>
+					<event symbol="DebugMessage" value="1" version="0" channel="osquery" level="win:Warning" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="DebugWindowsEventLogMessage " message="$(string.osquery.event.1.message)"></event>
 					<event symbol="InfoMessage" value="2" version="0" channel="osquery" level="win:Informational" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="InfoWindowsEventLogMessage " message="$(string.osquery.event.2.message)"></event>
-					<event symbol="WarningMessage" value="3" version="0" channel="osquery" level="win:Informational" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="WarningWindowsEventLogMessage " message="$(string.osquery.event.3.message)"></event>
-					<event symbol="ErrorMessage" value="4" version="0" channel="osquery" level="win:Informational" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="ErrorWindowsEventLogMessage " message="$(string.osquery.event.4.message)"></event>
-					<event symbol="FatalMessage" value="5" version="0" channel="osquery" level="win:Informational" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="FatalWindowsEventLogMessage " message="$(string.osquery.event.5.message)"></event>
+					<event symbol="WarningMessage" value="3" version="0" channel="osquery" level="win:Warning" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="WarningWindowsEventLogMessage " message="$(string.osquery.event.3.message)"></event>
+					<event symbol="ErrorMessage" value="4" version="0" channel="osquery" level="win:Error" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="ErrorWindowsEventLogMessage " message="$(string.osquery.event.4.message)"></event>
+					<event symbol="FatalMessage" value="5" version="0" channel="osquery" level="win:Critical" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="FatalWindowsEventLogMessage " message="$(string.osquery.event.5.message)"></event>
 				</events>
 				<levels></levels>
 				<tasks>
@@ -45,7 +45,11 @@
 				<string id="osquery.event.2.message" value="Information"></string>
 				<string id="osquery.event.1.message" value="Debug"></string>
 				<string id="osquery.channel.PrimaryWindowsEventLogChannel.message" value="osquery"></string>
+				<string id="level.Warning" value="Warning"></string>
+				<string id="level.Verbose" value="Verbose"></string>
 				<string id="level.Informational" value="Information"></string>
+				<string id="level.Error" value="Error"></string>
+				<string id="level.Critical" value="Critical"></string>
 			</stringTable>
 		</resources>
 	</localization>
