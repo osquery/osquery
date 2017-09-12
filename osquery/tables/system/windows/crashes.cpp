@@ -65,6 +65,7 @@ namespace tables {
 	ULONG32 ulTID = NULL;
 	ULONG64 ulTEBAddress = NULL;
 	ULONG64 ulMiniDumpFlags = NULL;
+	PCSTR psExePath = nullptr;
 
 	void processDumpExceptionStream(Row &r, PMINIDUMP_DIRECTORY pDumpStreamDir, PVOID pDumpStream, ULONG pDumpStreamSize, PVOID pBase) {
 		MINIDUMP_EXCEPTION_STREAM* pExceptionStream = (MINIDUMP_EXCEPTION_STREAM*)pDumpStream;
@@ -171,7 +172,6 @@ namespace tables {
 				errorMsg << " DEP access violation.";
 				break;
 			}
-
 			r["exception_message"] = errorMsg.str();
 		}
 
@@ -246,7 +246,8 @@ namespace tables {
 		// Log PE path
 		MINIDUMP_MODULE exeModule = pModuleListStream->Modules[0];
 		MINIDUMP_STRING* pExePath = (MINIDUMP_STRING*)((BYTE*)pBase + exeModule.ModuleNameRva);
-		r["path"] = wstringToString(pExePath->Buffer);
+		psExePath = wstringToString(pExePath->Buffer).c_str();
+		r["path"] = psExePath;
 
 		// Log PE version
 		VS_FIXEDFILEINFO versionInfo = exeModule.VersionInfo;
@@ -554,7 +555,6 @@ namespace tables {
 		ULONG procID = 0;
 		ULONG threadID = 0;
 		ULONG contextSize = 0;
-		
 
 		// Create interfaces
 		if (DebugCreate(__uuidof(IDebugClient), (void**)&client) != S_OK) {
@@ -568,9 +568,11 @@ namespace tables {
 		}
 
 		// Initialization
-		if (symbols->SetImagePath(pPath) != S_OK) {
-			LOG(ERROR) << "Failed to set image path to \"" << pPath << "\" while debugging crash dump: " << lpFileName;
-			return debugEngineCleanup(client, control, symbols);
+		if (pPath != nullptr) {
+			if (symbols->SetImagePath(pPath) != S_OK) {
+				LOG(ERROR) << "Failed to set image path to \"" << pPath << "\" while debugging crash dump: " << lpFileName;
+				return debugEngineCleanup(client, control, symbols);
+			}
 		}
 		if (symbols->SetSymbolPath("srv*C:\\Windows\\symbols*http://msdl.microsoft.com/download/symbols") != S_OK) {
 			LOG(ERROR) << "Failed to set symbol path while debugging crash dump: " << lpFileName;
@@ -584,7 +586,7 @@ namespace tables {
 			LOG(ERROR) << "Initial processing failed while debugging crash dump: " << lpFileName;
 			return debugEngineCleanup(client, control, symbols);
 		}
-
+		
 		// Get stack frames from dump
 		if (control->GetStoredEventInformation(&type, &procID, &threadID, context, sizeof(context), &contextSize, NULL, 0, 0) == S_OK) {
 			char* contextData = new char[kulNumStackFramesToLog*contextSize];
@@ -660,7 +662,7 @@ namespace tables {
 				(sExtension.compare(kDumpFileExtension) == 0)) {
 				Row r;
 				extractDumpInfo(r, iterator->path().generic_string().c_str());
-				getStackTrace(r, iterator->path().generic_string().c_str(), r.at("path").c_str());
+				getStackTrace(r, iterator->path().generic_string().c_str(), psExePath);
 				if (!r.empty()) results.push_back(r);
 			}
 			++iterator;
