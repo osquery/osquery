@@ -224,8 +224,6 @@ namespace tables {
 			gmtime_s(&gmt, &procTimestamp);
 			strftime(timeBuff, sizeof(timeBuff), "%Y-%m-%d %H:%M:%S UTC", &gmt);
 			r["process_create_time"] = timeBuff;
-			r["process_user_time"] = BIGINT(pMiscInfoStream->ProcessUserTime);
-			r["process_kernel_time"] = BIGINT(pMiscInfoStream->ProcessKernelTime);
 		}
 
 		return;
@@ -337,7 +335,7 @@ namespace tables {
 						RTL_USER_PROCESS_PARAMETERS* params = (RTL_USER_PROCESS_PARAMETERS*)((BYTE*)pBase + pMemParams->Memory.Rva + ulParamsOffset);
 
 						// Get command line arguments from Minidump memory
-						ULONG64 ulBufferAddress = (ULONG64)params->CommandLine.Buffer;
+						ULONG64 ulBufferAddress = (ULONG64)params->CommandLine.Buffer; // TODO rename
 						MINIDUMP_MEMORY_DESCRIPTOR *pMemBuffer = getMemRangeContainingTarget(ulBufferAddress, pMemoryListStream);
 						if (pMemBuffer != nullptr) {
 							ULONG64 ulBufferOffset = ulBufferAddress - pMemBuffer->StartOfMemoryRange;
@@ -345,9 +343,45 @@ namespace tables {
 							r["command_line"] = wstringToString(buffer);
 						}
 
-						// Get environment variables from Minidump memory
-
 						// Get current directory from Minidump memory
+						// Offset from WinDbg: dt nt!_RTL_USER_PROCESS_PARAMETERS
+						UNICODE_STRING* curDir = (UNICODE_STRING*)((BYTE*)params + 0x38);
+						ulBufferAddress = (ULONG64)curDir->Buffer;
+						pMemBuffer = getMemRangeContainingTarget(ulBufferAddress, pMemoryListStream);
+						if (pMemBuffer != nullptr) {
+							ULONG64 ulBufferOffset = ulBufferAddress - pMemBuffer->StartOfMemoryRange;
+							PWSTR buffer = (PWSTR)((BYTE*)pBase + pMemBuffer->Memory.Rva + ulBufferOffset);
+							r["current_directory"] = wstringToString(std::wstring(buffer, curDir->Length/2).c_str());
+						}
+
+						// Get environment variables from Minidump memory
+						// Offset from WinDbg: dt nt!_RTL_USER_PROCESS_PARAMETERS
+						ULONG64 *pEnvAddress = (ULONG64*)((BYTE*)params + 0x80);
+						MINIDUMP_MEMORY_DESCRIPTOR *pMemEnv = getMemRangeContainingTarget(*pEnvAddress, pMemoryListStream);
+						if (pMemEnv != nullptr) {
+							ULONG64 ulEnvOffset = *pEnvAddress - pMemEnv->StartOfMemoryRange;
+							PWSTR envVars = (PWSTR)((BYTE*)pBase + pMemEnv->Memory.Rva + ulEnvOffset);
+
+							//Loop through environment variables and log those of interest
+							//The environment variables are stored in the following format:
+							//Var1=Value1\0Var2=Value2\0Var3=Value3\0 ... VarN=ValueN\0\0
+							WCHAR *ptr = (WCHAR*)envVars;
+							while (*ptr != '\0') {
+								std::string envVar = wstringToString(std::wstring(ptr).c_str());				
+								std::string::size_type pos = envVar.find('=');
+								std::string varName = envVar.substr(0, pos);
+								std::string varValue = envVar.substr(pos + 1, envVar.length());
+								
+								if (varName == "COMPUTERNAME") {
+									r["machine_name"] = varValue;
+								}
+								else if (varName == "USERNAME") {
+									r["username"] = varValue;
+								}
+
+								ptr += envVar.length() + 1;
+							}
+						}
 					}
 				}
 				else {
