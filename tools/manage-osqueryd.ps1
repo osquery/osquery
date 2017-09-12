@@ -20,6 +20,7 @@ param(
 $kServiceName = "osqueryd"
 $kServiceDescription = "osquery daemon service"
 $kServiceBinaryPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'osquery', 'osqueryd', 'osqueryd.exe'))
+$windowsEvengLogManifest = Join-Path $PSScriptRoot 'osquery.man'
 
 # Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
 function Test-IsAdmin {
@@ -55,6 +56,9 @@ function Do-Service {
   $osquerydService = Get-WmiObject -Class Win32_Service -Filter "Name='$kServiceName'"
   
   if ($install) {
+    Write-Host "Installing the Windows Event Log manifest file..." -foregroundcolor Cyan
+    wevtutil im $windowsEvengLogManifest
+
     if ($osquerydService) {
       Write-Host "'$kServiceName' is already installed." -foregroundcolor Yellow
       Exit 1
@@ -68,6 +72,9 @@ function Do-Service {
       Exit 0
     }
   } elseif ($uninstall) {
+    Write-Host "Uninstalling the Windows Event Log manifest file..." -foregroundcolor Cyan
+    wevtutil um $windowsEvengLogManifest
+
     if ($osquerydService) {
       Stop-Service $kServiceName
       

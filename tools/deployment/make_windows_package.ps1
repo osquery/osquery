@@ -347,6 +347,7 @@ function New-ChocolateyPackage() {
   $buildDir = "$scriptPath\build\windows10\osquery\Release\"
   $clientPath = Join-Path $buildDir 'osqueryi.exe'
   $daemonPath = Join-Path $buildDir 'osqueryd.exe'
+  $windowsEventLogManifestPath = Join-Path (Get-location).Path "osquery\logger\plugins\windows_event_log_manifest\osquery.man"
   $mgmtScript = "$scriptPath\tools\manage-osqueryd.ps1"
 
   $nupkg =
@@ -446,7 +447,8 @@ And verify that the digests match one of the below values:
     "$packs",
     "$mgmtScript",
     "$license",
-    "$verification"
+    "$verification",
+    "$windowsEventLogManifestPath"
   )
   Start-OsqueryProcess $7z $7zArgs
   Set-Location "$osqueryChocoPath"
