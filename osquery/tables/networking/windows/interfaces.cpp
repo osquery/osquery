@@ -30,16 +30,12 @@ namespace tables {
 
 const auto kMaxBufferAllocRetries = 3;
 const auto kWorkingBufferSize = 15000;
-const auto kFreeMem = [](auto ptr) { free(ptr); };
 
 Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
   r["interface"] = INTEGER(adapter->IfIndex);
   r["mtu"] = INTEGER(adapter->Mtu);
   r["type"] = INTEGER(adapter->IfType);
-
-  std::wstring wideHolder = std::wstring(adapter->Description);
-  auto ifaceDescription = std::string(wideHolder.begin(), wideHolder.end());
-  r["description"] = ifaceDescription;
+  r["description"] = wstringToString(adapter->Description);
 
   std::vector<std::string> toks;
   for (size_t i = 0; i < adapter->PhysicalAddressLength; i++) {
@@ -47,8 +43,8 @@ Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
     ss << std::hex;
     ss << static_cast<unsigned int>(adapter->PhysicalAddress[i]);
     auto s = ss.str();
-    if (s.size() < static_cast<unsigned int>(2)) {
-      s = "0" + s;
+    if (s.size() < 2_sz) {
+      s = '0' + s;
     }
     toks.push_back(s);
   }
@@ -65,7 +61,7 @@ Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
   auto query =
       "SELECT * FROM Win32_PerfRawData_Tcpip_NetworkInterface WHERE "
       "Name = \"" +
-      ifaceDescription + "\"";
+      r["description"] + "\"";
   WmiRequest req1(query);
   if (req1.getStatus().ok()) {
     auto& results = req1.results();
@@ -175,8 +171,7 @@ QueryData genInterfaceDetails(QueryContext& context) {
   const auto addrFamily = AF_UNSPEC;
   const auto addrFlags =
       GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST;
-  std::unique_ptr<IP_ADAPTER_ADDRESSES, decltype(kFreeMem)> adapters(nullptr,
-                                                                     kFreeMem);
+  std::unique_ptr<IP_ADAPTER_ADDRESSES> adapters(nullptr);
 
   // Buffer size can change between the query and malloc (if adapters are
   // added/removed), so shenanigans are required
@@ -270,8 +265,7 @@ QueryData genInterfaceAddresses(QueryContext& context) {
   const auto addrFamily = AF_UNSPEC;
   const auto addrFlags =
       GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST;
-  std::unique_ptr<IP_ADAPTER_ADDRESSES, decltype(kFreeMem)> adapters(nullptr,
-                                                                     kFreeMem);
+  std::unique_ptr<IP_ADAPTER_ADDRESSES> adapters(nullptr);
 
   // Buffer size can change between the query and malloc (if adapters are
   // added/removed), so shenanigans are required

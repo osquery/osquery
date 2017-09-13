@@ -59,7 +59,7 @@ TEST_F(NetworkingTablesTests, test_address_details_join) {
       "on ia.interface = id.interface "
       "where ia.address = '127.0.0.1';";
 
-  auto results = SQL::SQL(query);
+  auto results = SQL(query);
   EXPECT_GT(results.rows().size(), 0U);
 }
 }
