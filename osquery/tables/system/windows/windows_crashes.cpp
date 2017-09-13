@@ -474,11 +474,11 @@ void processDumpHeaderInfo(Row& r, PVOID pBase) {
 void debugEngineCleanup(IDebugClient4* client,
                         IDebugControl4* control,
                         IDebugSymbols3* symbols) {
-  if (symbols != NULL)
+  if (symbols != nullptr)
     symbols->Release();
-  if (control != NULL)
+  if (control != nullptr)
     control->Release();
-  if (client != NULL) {
+  if (client != nullptr) {
     client->SetOutputCallbacks(NULL);
     client->EndSession(DEBUG_END_PASSIVE);
     client->Release();
@@ -506,7 +506,7 @@ void getStackTrace(Row& r, LPCTSTR lpFileName) {
   if (DebugCreate(__uuidof(IDebugClient), (void**)&client) != S_OK) {
     LOG(ERROR) << "DebugCreate failed while debugging crash dump: "
                << lpFileName;
-    return debugEngineCleanup(client, NULL, NULL);
+    return debugEngineCleanup(client, nullptr, nullptr);
   }
   if ((client->QueryInterface(__uuidof(IDebugControl4), (void**)&control) !=
        S_OK) ||
