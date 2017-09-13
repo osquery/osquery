@@ -159,10 +159,6 @@ Status RocksDBDatabasePlugin::setUp() {
     // Also disable event publishers.
     Flag::updateValue("disable_events", "true");
     read_only_ = true;
-  } else {
-    // Trigger a flush when the database is opened.
-    // This helps if previous databases were closed and not compacted.
-    flush();
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
@@ -176,18 +172,8 @@ void RocksDBDatabasePlugin::tearDown() {
   close();
 }
 
-void RocksDBDatabasePlugin::flush() {
-  for (auto& cf : handles_) {
-    db_->Flush(rocksdb::FlushOptions(), cf);
-  }
-}
-
 void RocksDBDatabasePlugin::close() {
   WriteLock lock(close_mutex_);
-  if (db_ != nullptr) {
-    flush();
-  }
-
   for (auto handle : handles_) {
     delete handle;
   }

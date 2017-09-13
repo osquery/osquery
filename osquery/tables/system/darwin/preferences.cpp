@@ -28,15 +28,22 @@ namespace tables {
 const size_t kPreferenceDepthLimit = 20;
 
 struct TRowResults {
-  const Row* const base;
-  QueryData* const results;
-  size_t depth;
-
+ public:
   TRowResults(const Row& r, QueryData& q, size_t d)
       : base(&r), results(&q), depth(d) {}
+
+ public:
+  /// The base row, this will be used to produce copies of the row content.
+  const Row* const base;
+
+  /// A reference to the mutable results.
+  QueryData* const results;
+
+  /// Track the depth as the preferences are recursed.
+  size_t depth;
 };
 
-// Walk the supported preference value structures.
+/// Walk the supported preference value structures.
 void genOSXPrefValues(const CFTypeRef& value,
                       const Row& base,
                       QueryData& results,
@@ -57,7 +64,8 @@ void genOSXHashPref(const void* key, const void* value, void* tref) {
     // The subkey is the hash map key.
     r["subkey"] += stringFromCFString((CFStringRef)key);
   }
-  genOSXPrefValues((CFTypeRef)value, r, *(trow->results), trow->depth);
+  genOSXPrefValues(
+      static_cast<CFTypeRef>(value), r, *(trow->results), trow->depth);
 }
 
 void genOSXListPref(const CFArrayRef& list,
@@ -67,9 +75,9 @@ void genOSXListPref(const CFArrayRef& list,
   // Iterate over a preference value that contains a list structure.
   for (CFIndex j = 0; j < CFArrayGetCount(list); ++j) {
     Row r = base;
-    CFTypeRef value = (CFTypeRef)CFArrayGetValueAtIndex(list, j);
-    if (r["subkey"].size() > 0) {
-      r["subkey"] += "/";
+    auto value = static_cast<CFTypeRef>(CFArrayGetValueAtIndex(list, j));
+    if (!r["subkey"].empty()) {
+      r["subkey"] += '/';
     }
     // The subkey is the index into the list.
     r["subkey"] += std::to_string(j);
@@ -87,7 +95,7 @@ void genOSXPrefValues(const CFTypeRef& value,
 
   // Since we recurse when parsing Arrays/Dicts, monitor stack limits.
   if (++depth > kPreferenceDepthLimit) {
-    TLOG << "OS X Preference: " << base.at("domain")
+    TLOG << "The macOS preference: " << base.at("domain")
          << " exceeded subkey depth limit: " << kPreferenceDepthLimit;
     return;
   }
@@ -95,21 +103,23 @@ void genOSXPrefValues(const CFTypeRef& value,
   // Emit a string representation for each preference type.
   Row r = base;
   if (CFGetTypeID(value) == CFNumberGetTypeID()) {
-    r["value"] = stringFromCFNumber((CFDataRef)value);
+    r["value"] = stringFromCFNumber(static_cast<CFDataRef>(value));
   } else if (CFGetTypeID(value) == CFStringGetTypeID()) {
-    r["value"] = stringFromCFString((CFStringRef)value);
+    r["value"] = stringFromCFString(static_cast<CFStringRef>(value));
   } else if (CFGetTypeID(value) == CFBooleanGetTypeID()) {
-    r["value"] =
-        (CFBooleanGetValue((CFBooleanRef)value) == TRUE) ? "true" : "false";
+    r["value"] = (CFBooleanGetValue(static_cast<CFBooleanRef>(value)) == TRUE)
+                     ? "true"
+                     : "false";
   } else if (CFGetTypeID(value) == CFDataGetTypeID()) {
     // Do not include data preferences.
   } else if (CFGetTypeID(value) == CFArrayGetTypeID()) {
-    genOSXListPref((CFArrayRef)value, base, results, depth);
+    genOSXListPref(static_cast<CFArrayRef>(value), base, results, depth);
     return;
   } else if (CFGetTypeID(value) == CFDictionaryGetTypeID()) {
     // Generate a row for each hash key.
     TRowResults trow(base, results, depth);
-    CFDictionaryApplyFunction((CFDictionaryRef)value, &genOSXHashPref, &trow);
+    CFDictionaryApplyFunction(
+        static_cast<CFDictionaryRef>(value), &genOSXHashPref, &trow);
     return;
   }
 
@@ -118,19 +128,20 @@ void genOSXPrefValues(const CFTypeRef& value,
 
 void genOSXDomainPrefs(const CFStringRef& username,
                        const CFStringRef& domain,
+                       bool current_host,
                        QueryData& results) {
   const auto* user = (username != nullptr)
                          ? &username
                          : (isUserAdmin()) ? &kCFPreferencesAnyUser
                                            : &kCFPreferencesCurrentUser;
-  CFArrayRef keys =
-      CFPreferencesCopyKeyList(domain, *user, kCFPreferencesAnyHost);
+  const auto* host =
+      (current_host) ? &kCFPreferencesCurrentHost : &kCFPreferencesAnyHost;
+  auto keys = CFPreferencesCopyKeyList(domain, *user, *host);
   if (keys == nullptr) {
     return;
   }
 
-  CFDictionaryRef values =
-      CFPreferencesCopyMultiple(keys, domain, *user, kCFPreferencesAnyHost);
+  auto values = CFPreferencesCopyMultiple(keys, domain, *user, *host);
   if (values == nullptr) {
     CFRelease(keys);
     return;
@@ -146,8 +157,9 @@ void genOSXDomainPrefs(const CFStringRef& username,
     Row r;
 
     r["username"] = username_string;
+    r["host"] = (current_host) ? "current" : "any";
     r["domain"] = stringFromCFString(domain);
-    CFStringRef key = (CFStringRef)CFArrayGetValueAtIndex(keys, j);
+    auto key = static_cast<CFStringRef>(CFArrayGetValueAtIndex(keys, j));
     if (CFStringGetTypeID() != CFGetTypeID(key)) {
       continue;
     }
@@ -161,14 +173,14 @@ void genOSXDomainPrefs(const CFStringRef& username,
 
     // Check if the preference key is managed by a profile.
     auto forced = CFPreferencesAppValueIsForced(key, domain);
-    r["forced"] = (forced) ? "1" : "0";
+    r["forced"] = (forced) ? '1' : '0';
 
     CFTypeRef value = nullptr;
     if (forced) {
-      value = (CFTypeRef)CFPreferencesCopyAppValue(key, domain);
+      value = static_cast<CFTypeRef>(CFPreferencesCopyAppValue(key, domain));
     } else {
       // Check the key and key type (which may be any CF type).
-      value = (CFTypeRef)CFDictionaryGetValue(values, key);
+      value = static_cast<CFTypeRef>(CFDictionaryGetValue(values, key));
     }
     genOSXPrefValues(value, r, results, 0);
     if (forced) {
@@ -195,31 +207,52 @@ QueryData genOSXDefaultPreferences(QueryContext& context) {
                          : (isUserAdmin()) ? &kCFPreferencesAnyUser
                                            : &kCFPreferencesCurrentUser;
 
-  CFArrayRef app_map = nullptr;
+  // Need lambda to iterate the map.
+  auto preferencesIterator =
+      ([&results, &username](CFMutableArrayRef& am, bool current_host) {
+        for (CFIndex i = 0; i < CFArrayGetCount(am); ++i) {
+          auto domain = static_cast<CFStringRef>(CFArrayGetValueAtIndex(am, i));
+          genOSXDomainPrefs(username, domain, current_host, results);
+        }
+      });
+
+  CFMutableArrayRef app_map = nullptr;
   if (context.constraints["domain"].exists(EQUALS)) {
     // If a specific domain is requested, speed up the set of type conversions.
     auto domains = context.constraints["domain"].getAll(EQUALS);
-    app_map = (CFArrayRef)CFArrayCreateMutable(
+    app_map = CFArrayCreateMutable(
         kCFAllocatorDefault, domains.size(), &kCFTypeArrayCallBacks);
     for (const auto& domain : domains) {
       auto cf_domain = CFStringCreateWithCString(
           kCFAllocatorDefault, domain.c_str(), kCFStringEncodingASCII);
-      CFArrayAppendValue((CFMutableArrayRef)app_map, cf_domain);
+      CFArrayAppendValue(app_map, cf_domain);
       CFRelease(cf_domain);
     }
+
+    // Iterate over each preference domain (applicationID).
+    preferencesIterator(app_map, true);
+    preferencesIterator(app_map, false);
+    CFRelease(app_map);
   } else {
     // Listing ALL application preferences is deprecated.
-    OSQUERY_USE_DEPRECATED(app_map = CFPreferencesCopyApplicationList(
-                               *user, kCFPreferencesAnyHost););
-  }
-
-  if (app_map != nullptr) {
-    // Iterate over each preference domain (applicationID).
-    for (CFIndex i = 0; i < CFArrayGetCount(app_map); ++i) {
-      CFStringRef domain = (CFStringRef)CFArrayGetValueAtIndex(app_map, i);
-      genOSXDomainPrefs(username, domain, results);
+    OSQUERY_USE_DEPRECATED(
+        app_map = (CFMutableArrayRef)CFPreferencesCopyApplicationList(
+            *user, kCFPreferencesCurrentHost););
+    if (app_map != nullptr) {
+      // Iterate over each preference domain (applicationID).
+      preferencesIterator(app_map, true);
+      CFRelease(app_map);
     }
-    CFRelease(app_map);
+
+    // Again for 'any' host.
+    OSQUERY_USE_DEPRECATED(
+        app_map = (CFMutableArrayRef)CFPreferencesCopyApplicationList(
+            *user, kCFPreferencesAnyHost););
+    if (app_map != nullptr) {
+      // Iterate over each preference domain (applicationID).
+      preferencesIterator(app_map, false);
+      CFRelease(app_map);
+    }
   }
 
   if (username != nullptr) {
@@ -244,7 +277,7 @@ void genOSXPlistPrefValue(const pt::ptree& tree,
   for (const auto& item : tree) {
     Row r = base;
     if (r["subkey"].size() > 0) {
-      r["subkey"] += "/";
+      r["subkey"] += '/';
       if (item.first.size() == 0) {
         r["subkey"] += std::to_string(level++);
       }

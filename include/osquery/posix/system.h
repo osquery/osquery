@@ -16,6 +16,8 @@
 
 #include <boost/filesystem/path.hpp>
 
+#include <osquery/core.h>
+
 namespace osquery {
 
 /// The osquery platform agnostic process identifier type.

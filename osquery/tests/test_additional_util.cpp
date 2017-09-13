@@ -19,6 +19,7 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/json.h"
+#include "osquery/core/process.h"
 #include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
@@ -46,7 +47,7 @@ void TLSServerRunner::start() {
                            .make_preferred()
                            .string() +
                        " --tls " + self.port_;
-  self.server_ = PlatformProcess::launchPythonScript(python_server);
+  self.server_ = PlatformProcess::launchTestPythonScript(python_server);
   if (self.server_ == nullptr) {
     return;
   }
@@ -64,7 +65,8 @@ void TLSServerRunner::start() {
           new PlatformProcess(std::atoi(results.rows()[0].at("pid").c_str())));
       break;
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    sleepFor(100);
     delay += 100;
   }
 }

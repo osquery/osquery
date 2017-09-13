@@ -66,7 +66,7 @@ TEST_F(PermissionsTests, test_explicit_drop) {
     gid_t expected_group = 0U;
     EXPECT_EQ(dropper->to_group_, expected_group);
 
-    // Checking if we are generally in a deprivileged mode.
+    // Checking if we are generally in an unprivileged mode.
     auto dropper2 = DropPrivileges::get();
     EXPECT_FALSE(dropper2->dropped());
   }
@@ -74,7 +74,7 @@ TEST_F(PermissionsTests, test_explicit_drop) {
 
 TEST_F(PermissionsTests, test_path_drop) {
   if (getuid() != 0) {
-    LOG(WARNING) << "Not root, skipping (path) deprivilege testing";
+    LOG(WARNING) << "Not root, skipping (path) unprivileged testing";
     return;
   }
 
@@ -91,8 +91,9 @@ TEST_F(PermissionsTests, test_path_drop) {
     EXPECT_TRUE(dropper->dropped_);
     EXPECT_EQ(dropper->to_user_, nobody->pw_uid);
 
+    // Dropping "up" to root should fail.
     // Even though this is possible and may make sense, it is confusing!
-    EXPECT_FALSE(dropper->dropTo(getuid(), getgid()));
+    EXPECT_FALSE(dropper->dropTo(0, 0));
 
     // Make sure the dropper worked!
     EXPECT_EQ(geteuid(), nobody->pw_uid);
@@ -103,9 +104,33 @@ TEST_F(PermissionsTests, test_path_drop) {
   EXPECT_EQ(getegid(), getgid());
 }
 
+TEST_F(PermissionsTests, test_functional_drop) {
+  if (getuid() != 0) {
+    LOG(WARNING) << "Not root, skipping (explicit) unprivileged testing";
+    return;
+  }
+
+  auto file_path = kTestWorkingDirectory + "permissions-file2";
+
+  {
+    writeTextFile(file_path, "data");
+    ASSERT_TRUE(platformChmod(file_path, 0400));
+  }
+
+  {
+    auto nobody = getpwnam("nobody");
+    auto dropper = DropPrivileges::get();
+    dropper->dropTo(nobody->pw_uid, nobody->pw_gid);
+    PlatformFile fd(file_path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_FALSE(fd.isValid());
+  }
+
+  osquery::removePath(file_path);
+}
+
 TEST_F(PermissionsTests, test_nobody_drop) {
   if (getuid() != 0) {
-    LOG(WARNING) << "Not root, skipping (explicit) deprivilege testing";
+    LOG(WARNING) << "Not root, skipping (explicit) unprivileged testing";
     return;
   }
 

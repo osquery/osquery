@@ -331,6 +331,7 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
   item.time = 0;
   item.calendar_time = "no_time";
   item.epoch = 0L;
+  item.counter = 0L;
   item.results.added.push_back({{"test_column", "test_value"}});
   logQueryLogItem(item);
   EXPECT_EQ(1U, LoggerTests::log_lines.size());
@@ -343,7 +344,8 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
   std::string expected =
       "{\"name\":\"test_query\",\"hostIdentifier\":\"unknown_test_host\","
       "\"calendarTime\":\"no_time\",\"unixTime\":\"0\",\"epoch\":\"0\","
-      "\"columns\":{\"test_column\":\"test_value\"},\"action\":\"added\"}";
+      "\"counter\":\"0\",\"columns\":{\"test_column\":\"test_value\"},"
+      "\"action\":\"added\"}";
   EXPECT_EQ(LoggerTests::log_lines.back(), expected);
 }
 

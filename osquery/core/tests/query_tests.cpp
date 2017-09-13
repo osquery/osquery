@@ -34,11 +34,14 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
   // Test adding a "current" set of results to a scheduled query instance.
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
-  auto status = cf.addNewResults(getTestDBExpectedResults(), 0);
+  uint64_t counter = 128;
+  auto status = cf.addNewResults(getTestDBExpectedResults(), 0, counter);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(status.toString(), "OK");
+  EXPECT_EQ(counter, 0UL);
 
   // Simulate results from several schedule runs, calculate differentials.
+  uint64_t expected_counter = counter + 1;
   for (auto result : getTestDBResultStream()) {
     // Get the results from the previous query execution (from the DB).
     QueryData previous_qd;
@@ -48,8 +51,10 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
 
     // Add the "current" results and output the differentials.
     DiffResults dr;
-    auto s = cf.addNewResults(result.second, 0, dr, true);
+    counter = 128;
+    auto s = cf.addNewResults(result.second, 0, counter, dr, true);
     EXPECT_TRUE(s.ok());
+    EXPECT_EQ(counter, expected_counter++);
 
     // Call the diffing utility directly.
     DiffResults expected = diff(previous_qd, result.second);
@@ -105,16 +110,20 @@ TEST_F(QueryTests, test_query_name_updated) {
   EXPECT_TRUE(cf.isNewQuery());
 
   DiffResults dr;
+  uint64_t counter = 128;
   auto results = getTestDBExpectedResults();
-  cf.addNewResults(results, 0, dr);
+  cf.addNewResults(results, 0, counter, dr);
   EXPECT_FALSE(cf.isNewQuery());
+  EXPECT_EQ(counter, 0UL);
 
   query.query += " LIMIT 1";
+  counter = 128;
   auto cf2 = Query("will_update_query", query);
   EXPECT_TRUE(cf2.isQueryNameInDatabase());
   EXPECT_TRUE(cf2.isNewQuery());
-  cf2.addNewResults(results, 0, dr);
+  cf2.addNewResults(results, 0, counter, dr);
   EXPECT_FALSE(cf2.isNewQuery());
+  EXPECT_EQ(counter, 0UL);
 }
 
 TEST_F(QueryTests, test_get_stored_query_names) {
