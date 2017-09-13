@@ -70,12 +70,6 @@ const std::vector<MINIDUMP_STREAM_TYPE> kStreamTypes = {ExceptionStream,
                                                         SystemInfoStream,
                                                         MiscInfoStream};
 
-ULONG64 ulExceptionAddress = NULL;
-ULONG32 ulTID = NULL;
-ULONG64 ulTEBAddress = NULL;
-ULONG64 ulMiniDumpFlags = NULL;
-PCSTR psExePath = nullptr;
-
 void processDumpExceptionStream(Row& r,
                                 PMINIDUMP_DIRECTORY pDumpStreamDir,
                                 PVOID pDumpStream,
@@ -87,7 +81,6 @@ void processDumpExceptionStream(Row& r,
 
   // Log ID of thread that caused the exception
   r["tid"] = BIGINT(pExceptionStream->ThreadId);
-  ulTID = pExceptionStream->ThreadId;
 
   // Log exception code
   std::stringstream exCode;
@@ -164,7 +157,6 @@ void processDumpExceptionStream(Row& r,
   std::stringstream exAddrAsHex;
   exAddrAsHex << std::hex << ex.ExceptionAddress;
   r["exception_address"] = exAddrAsHex.str();
-  ulExceptionAddress = ex.ExceptionAddress;
 
   // Log the exception message for errors with defined parameters
   // (see ExceptionInformation @
@@ -275,8 +267,7 @@ void processDumpModuleListStream(Row& r,
   MINIDUMP_MODULE exeModule = pModuleListStream->Modules[0];
   MINIDUMP_STRING* pExePath =
       (MINIDUMP_STRING*)((BYTE*)pBase + exeModule.ModuleNameRva);
-  psExePath = wstringToString(pExePath->Buffer).c_str();
-  r["path"] = psExePath;
+  r["path"] = wstringToString(pExePath->Buffer);
 
   // Log PE version
   VS_FIXEDFILEINFO versionInfo = exeModule.VersionInfo;
@@ -287,8 +278,13 @@ void processDumpModuleListStream(Row& r,
                 << ((versionInfo.dwFileVersionLS >> 0) & 0xffff);
   r["version"] = versionString.str();
 
+  // Read exception address from the row
+  std::istringstream exAddrStr(r["exception_address"]);
+  ULONG64 ulExceptionAddress;
+  exAddrStr >> std::hex >> ulExceptionAddress;
+
   // Log module that caused the exception, if any
-  if (ulExceptionAddress != NULL) {
+  if (!exAddrStr.fail()) {
     for (ULONG32 i = 0; i < pModuleListStream->NumberOfModules; i++) {
       MINIDUMP_MODULE module = pModuleListStream->Modules[i];
       // Is the exception address within this module's memory space?
@@ -305,24 +301,28 @@ void processDumpModuleListStream(Row& r,
   return;
 }
 
-void processDumpThreadListStream(Row& r,
+// Returns TEB address, or 0 if not found
+ULONG64 processDumpThreadListStream(Row& r,
                                  PMINIDUMP_DIRECTORY pDumpStreamDir,
                                  PVOID pDumpStream,
                                  ULONG pDumpStreamSize) {
   MINIDUMP_THREAD_LIST* pThreadListStream = (MINIDUMP_THREAD_LIST*)pDumpStream;
 
-  // Fetch TEB address of crashed thread for later processing
-  if (ulTID != NULL) {
-    for (ULONG32 i = 0; i < pThreadListStream->NumberOfThreads; i++) {
-      MINIDUMP_THREAD thread = pThreadListStream->Threads[i];
-      if (thread.ThreadId == ulTID) {
-        ulTEBAddress = thread.Teb;
-        break;
-      }
-    }
-  }
+  // Read TID of crashed thread from row
+  std::istringstream tidStr(r["tid"]);
+  ULONG32 tid;
+  tidStr >> tid;
 
-  return;
+  // Fetch TEB address of crashed thread for later processing
+  if (!tidStr.fail()) {
+	  for (ULONG32 i = 0; i < pThreadListStream->NumberOfThreads; i++) {
+		  MINIDUMP_THREAD thread = pThreadListStream->Threads[i];
+		  if (thread.ThreadId == tid) {
+			  return thread.Teb;
+		  }
+	  }
+  }
+	return 0;
 }
 
 // Pulls the memory range containing address ulTarget from the Minidump
@@ -343,15 +343,14 @@ void processMemoryListStream(Row& r,
                              PVOID pDumpStream,
                              ULONG pDumpStreamSize,
                              LPVOID pBase,
-                             LPCTSTR lpFileName) {
+                             LPCTSTR lpFileName, ULONG64 ulTEBAddress) {
   MINIDUMP_MEMORY_LIST* pMemoryListStream = (MINIDUMP_MEMORY_LIST*)pDumpStream;
 
-  if ((ulTEBAddress == NULL) ||
-      ((ulMiniDumpFlags & MiniDumpWithProcessThreadData) == 0)) {
+  if (ulTEBAddress == 0) {
     LOG(ERROR) << "Error reading PEB for crash dump: " << lpFileName;
     return;
   }
-
+ 
   // Get TEB from Minidump memory
   MINIDUMP_MEMORY_DESCRIPTOR* pMemTEB =
       getMemRange(ulTEBAddress, pMemoryListStream);
@@ -468,7 +467,6 @@ void processDumpHeaderInfo(Row& r, PVOID pBase) {
     }
   }
   r["type"] = activeFlags.str();
-  ulMiniDumpFlags = pDumpHeader->Flags;
 
   return;
 }
@@ -492,7 +490,7 @@ void debugEngineCleanup(IDebugClient4* client,
 Note: appears to only detect unmanaged stack frames.
 See http://blog.steveniemitz.com/building-a-mixed-mode-stack-walker-part-2/
 */
-void getStackTrace(Row& r, LPCTSTR lpFileName, PCSTR pPath) {
+void getStackTrace(Row& r, LPCTSTR lpFileName) {
   IDebugClient4* client;
   IDebugControl4* control;
   IDebugSymbols3* symbols;
@@ -520,13 +518,11 @@ void getStackTrace(Row& r, LPCTSTR lpFileName, PCSTR pPath) {
   }
 
   // Initialization
-  if (pPath != nullptr) {
-    if (symbols->SetImagePath(pPath) != S_OK) {
-      LOG(ERROR) << "Failed to set image path to \"" << pPath
+    if (symbols->SetImagePath(r["path"].c_str()) != S_OK) {
+      LOG(ERROR) << "Failed to set image path to \"" << r["path"]
                  << "\" while debugging crash dump: " << lpFileName;
       return debugEngineCleanup(client, control, symbols);
     }
-  }
   if (symbols->SetSymbolPath("srv*C:\\Windows\\symbols*http://"
                              "msdl.microsoft.com/download/symbols") != S_OK) {
     LOG(ERROR) << "Failed to set symbol path while debugging crash dump: "
@@ -654,6 +650,7 @@ void extractDumpInfo(Row& r, LPCTSTR lpFileName) {
   processDumpHeaderInfo(r, pBase);
 
   // Process dump file info from each stream
+  ULONG64 tebAddress = 0;
   for (auto stream : kStreamTypes) {
     PMINIDUMP_DIRECTORY pDumpStreamDir = 0;
     PVOID pDumpStream = 0;
@@ -671,7 +668,7 @@ void extractDumpInfo(Row& r, LPCTSTR lpFileName) {
 
     switch (stream) {
     case ThreadListStream:
-      processDumpThreadListStream(
+      tebAddress = processDumpThreadListStream(
           r, pDumpStreamDir, pDumpStream, pDumpStreamSize);
       break;
     case ModuleListStream:
@@ -680,7 +677,7 @@ void extractDumpInfo(Row& r, LPCTSTR lpFileName) {
       break;
     case MemoryListStream:
       processMemoryListStream(
-          r, pDumpStreamDir, pDumpStream, pDumpStreamSize, pBase, lpFileName);
+          r, pDumpStreamDir, pDumpStream, pDumpStreamSize, pBase, lpFileName, tebAddress);
       break;
     case ExceptionStream:
       processDumpExceptionStream(
@@ -751,7 +748,7 @@ QueryData genCrashLogs(QueryContext& context) {
         (sExtension.compare(kDumpFileExtension) == 0)) {
       Row r;
       extractDumpInfo(r, iterator->path().generic_string().c_str());
-      getStackTrace(r, iterator->path().generic_string().c_str(), psExePath);
+      getStackTrace(r, iterator->path().generic_string().c_str());
       if (!r.empty())
         results.push_back(r);
     }
