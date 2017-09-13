@@ -123,48 +123,51 @@ void Client::createConnection() {
 }
 
 void Client::encryptConnection() {
+  boost_asio::ssl::context ctx{boost_asio::ssl::context::sslv23};
+
   if (client_options_.always_verify_peer_) {
-    ctx_.set_verify_mode(boost_asio::ssl::verify_peer);
+    ctx.set_verify_mode(boost_asio::ssl::verify_peer);
   } else {
-    ctx_.set_verify_mode(boost_asio::ssl::verify_none);
+    ctx.set_verify_mode(boost_asio::ssl::verify_none);
   }
 
   if (client_options_.server_certificate_) {
-    ctx_.set_verify_mode(boost_asio::ssl::verify_peer);
-    ctx_.load_verify_file(*client_options_.server_certificate_);
+    ctx.set_verify_mode(boost_asio::ssl::verify_peer);
+    ctx.load_verify_file(*client_options_.server_certificate_);
   }
 
   if (client_options_.verify_path_) {
-    ctx_.set_verify_mode(boost_asio::ssl::verify_peer);
-    ctx_.add_verify_path(*client_options_.verify_path_);
+    ctx.set_verify_mode(boost_asio::ssl::verify_peer);
+    ctx.add_verify_path(*client_options_.verify_path_);
   }
 
   if (client_options_.ciphers_) {
-    ::SSL_CTX_set_cipher_list(ctx_.native_handle(),
+    ::SSL_CTX_set_cipher_list(ctx.native_handle(),
                               client_options_.ciphers_->c_str());
   }
 
   if (client_options_.ssl_options_) {
-    ctx_.set_options(client_options_.ssl_options_);
+    ctx.set_options(client_options_.ssl_options_);
   }
 
   if (client_options_.client_certificate_file_) {
-    ctx_.use_certificate_file(*client_options_.client_certificate_file_,
-                              boost_asio::ssl::context::pem);
+    ctx.use_certificate_file(*client_options_.client_certificate_file_,
+                             boost_asio::ssl::context::pem);
   }
 
   if (client_options_.client_private_key_file_) {
-    ctx_.use_private_key_file(*client_options_.client_private_key_file_,
-                              boost_asio::ssl::context::pem);
+    ctx.use_private_key_file(*client_options_.client_private_key_file_,
+                             boost_asio::ssl::context::pem);
   }
 
+  ssl_sock_ = std::make_shared<ssl_stream>(sock_, ctx);
   if (client_options_.sni_hostname_) {
-    ::SSL_set_tlsext_host_name(ssl_sock_.native_handle(),
+    ::SSL_set_tlsext_host_name(ssl_sock_->native_handle(),
                                client_options_.sni_hostname_->c_str());
   }
 
   boost_system::error_code rc;
-  ssl_sock_.handshake(boost_asio::ssl::stream_base::client, rc);
+  ssl_sock_->handshake(boost_asio::ssl::stream_base::client, rc);
 
   if (rc) {
     throw std::system_error(rc.value(), adapted_category(&rc.category()));
@@ -241,7 +244,7 @@ Response Client::sendHTTPRequest(Request& req) {
     }
 
     if (ssl_connection) {
-      sendRequest(ssl_sock_, req, resp);
+      sendRequest(*ssl_sock_, req, resp);
     } else {
       sendRequest(sock_, req, resp);
     }

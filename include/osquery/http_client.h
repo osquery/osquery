@@ -73,6 +73,7 @@ namespace boost_system = boost::system;
 namespace boost_asio = boost::asio;
 namespace beast_http = boost::beast::http;
 
+typedef boost_asio::ssl::stream<boost_asio::ip::tcp::socket&> ssl_stream;
 typedef beast_http::request<beast_http::string_body> beast_http_request;
 typedef beast_http::response<beast_http::string_body> beast_http_response;
 typedef beast_http::response_parser<beast_http::string_body>
@@ -190,7 +191,7 @@ class Client {
 
  public: // methods
   Client(Options const& opts = Options())
-      : client_options_(opts), r_(ios_), sock_(ios_), ssl_sock_(sock_, ctx_) {}
+      : client_options_(opts), r_(ios_), sock_(ios_) {}
 
   Response put(Request& req,
                std::string const& body,
@@ -227,8 +228,7 @@ class Client {
   boost_asio::io_service ios_;
   boost_asio::ip::tcp::resolver r_;
   boost_asio::ip::tcp::socket sock_;
-  boost_asio::ssl::context ctx_{boost_asio::ssl::context::sslv23};
-  boost_asio::ssl::stream<boost_asio::ip::tcp::socket&> ssl_sock_;
+  std::shared_ptr<ssl_stream> ssl_sock_;
   boost_system::error_code ec_;
   bool ssl_connection = false;
   static const long SHORT_READ_ERROR = 0x140000dbL;
