@@ -16,10 +16,11 @@ warning C4091: 'typedef ': ignored on left of '' when no variable is declared
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/core/windows/wmi.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
+
+#include "osquery/core/windows/wmi.h"
 
 namespace osquery {
 namespace tables {
@@ -83,92 +84,26 @@ void processDumpExceptionStream(Row& r,
   r["tid"] = BIGINT(pExceptionStream->ThreadId);
 
   // Log exception code
-  std::stringstream exCode;
-  // Note: easiest to hard-code cases b/c C++ has no reflection
-  switch (ex.ExceptionCode) {
-  case EXCEPTION_ACCESS_VIOLATION:
-    exCode << "EXCEPTION_ACCESS_VIOLATION ";
-    break;
-  case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
-    exCode << "EXCEPTION_ARRAY_BOUNDS_EXCEEDED ";
-    break;
-  case EXCEPTION_BREAKPOINT:
-    exCode << "EXCEPTION_BREAKPOINT ";
-    break;
-  case EXCEPTION_DATATYPE_MISALIGNMENT:
-    exCode << "EXCEPTION_DATATYPE_MISALIGNMENT ";
-    break;
-  case EXCEPTION_FLT_DENORMAL_OPERAND:
-    exCode << "EXCEPTION_FLT_DENORMAL_OPERAND ";
-    break;
-  case EXCEPTION_FLT_DIVIDE_BY_ZERO:
-    exCode << "EXCEPTION_FLT_DIVIDE_BY_ZERO ";
-    break;
-  case EXCEPTION_FLT_INEXACT_RESULT:
-    exCode << "EXCEPTION_FLT_INEXACT_RESULT ";
-    break;
-  case EXCEPTION_FLT_INVALID_OPERATION:
-    exCode << "EXCEPTION_FLT_INVALID_OPERATION ";
-    break;
-  case EXCEPTION_FLT_OVERFLOW:
-    exCode << "EXCEPTION_FLT_OVERFLOW ";
-    break;
-  case EXCEPTION_FLT_STACK_CHECK:
-    exCode << "EXCEPTION_FLT_STACK_CHECK ";
-    break;
-  case EXCEPTION_FLT_UNDERFLOW:
-    exCode << "EXCEPTION_FLT_UNDERFLOW ";
-    break;
-  case EXCEPTION_ILLEGAL_INSTRUCTION:
-    exCode << "EXCEPTION_ILLEGAL_INSTRUCTION ";
-    break;
-  case EXCEPTION_IN_PAGE_ERROR:
-    exCode << "EXCEPTION_IN_PAGE_ERROR ";
-    break;
-  case EXCEPTION_INT_DIVIDE_BY_ZERO:
-    exCode << "EXCEPTION_INT_DIVIDE_BY_ZERO ";
-    break;
-  case EXCEPTION_INT_OVERFLOW:
-    exCode << "EXCEPTION_INT_OVERFLOW ";
-    break;
-  case EXCEPTION_INVALID_DISPOSITION:
-    exCode << "EXCEPTION_INVALID_DISPOSITION ";
-    break;
-  case EXCEPTION_NONCONTINUABLE_EXCEPTION:
-    exCode << "EXCEPTION_NONCONTINUABLE_EXCEPTION ";
-    break;
-  case EXCEPTION_PRIV_INSTRUCTION:
-    exCode << "EXCEPTION_PRIV_INSTRUCTION ";
-    break;
-  case EXCEPTION_SINGLE_STEP:
-    exCode << "EXCEPTION_SINGLE_STEP ";
-    break;
-  case EXCEPTION_STACK_OVERFLOW:
-    exCode << "EXCEPTION_STACK_OVERFLOW ";
-    break;
-  default:
-    break;
-  }
-  exCode << "(" << std::hex << ex.ExceptionCode;
-  exCode << ")";
+  std::ostringstream exCode;
+  exCode << "0x" << std::hex << ex.ExceptionCode;
   r["exception_code"] = exCode.str();
 
   // Log exception address
-  std::stringstream exAddrAsHex;
-  exAddrAsHex << std::hex << ex.ExceptionAddress;
-  r["exception_address"] = exAddrAsHex.str();
+  std::ostringstream exAddr;
+  exAddr << "0x" << std::hex << ex.ExceptionAddress;
+  r["exception_address"] = exAddr.str();
 
   // Log the exception message for errors with defined parameters
   // (see ExceptionInformation @
   // https://msdn.microsoft.com/en-us/library/windows/desktop/ms680367(v=vs.85).aspx)
   if ((ex.ExceptionCode == EXCEPTION_ACCESS_VIOLATION) &&
       (ex.NumberParameters == 2)) {
-    std::stringstream errorMsg;
-    std::stringstream memAddrAsHex;
-    memAddrAsHex << std::hex << ex.ExceptionInformation[1];
+    std::ostringstream errorMsg;
+    std::ostringstream memAddr;
+    memAddr << "0x" << std::hex << ex.ExceptionInformation[1];
 
-    errorMsg << "The instruction at " << exAddrAsHex.str()
-             << " referenced memory at " << memAddrAsHex.str() << ".";
+    errorMsg << "The instruction at " << exAddr.str()
+             << " referenced memory at " << memAddr.str() << ".";
     switch (ex.ExceptionInformation[0]) {
     case 0:
       errorMsg << " The memory could not be read.";
@@ -186,33 +121,33 @@ void processDumpExceptionStream(Row& r,
   // Log registers from crashed thread
   CONTEXT* pThreadContext =
       (CONTEXT*)((BYTE*)pBase + pExceptionStream->ThreadContext.Rva);
-  std::stringstream registers;
+  std::ostringstream registers;
   // Registers are hard-coded for x64 system b/c lack of C++ reflection on
   // CONTEXT object
-  registers << "rax:" << std::hex << pThreadContext->Rax;
-  registers << " rbx:" << std::hex << pThreadContext->Rbx;
-  registers << " rcx:" << std::hex << pThreadContext->Rcx;
-  registers << " rdx:" << std::hex << pThreadContext->Rdx;
-  registers << " rdi:" << std::hex << pThreadContext->Rdi;
-  registers << " rsi:" << std::hex << pThreadContext->Rsi;
-  registers << " rbp:" << std::hex << pThreadContext->Rbp;
-  registers << " rsp:" << std::hex << pThreadContext->Rsp;
-  registers << " r8:" << std::hex << pThreadContext->R8;
-  registers << " r9:" << std::hex << pThreadContext->R9;
-  registers << " r10:" << std::hex << pThreadContext->R10;
-  registers << " r11:" << std::hex << pThreadContext->R11;
-  registers << " r12:" << std::hex << pThreadContext->R12;
-  registers << " r13:" << std::hex << pThreadContext->R13;
-  registers << " r14:" << std::hex << pThreadContext->R14;
-  registers << " r15:" << std::hex << pThreadContext->R15;
-  registers << " rip:" << std::hex << pThreadContext->Rip;
-  registers << " segcs:" << std::hex << pThreadContext->SegCs;
-  registers << " segds:" << std::hex << pThreadContext->SegDs;
-  registers << " seges:" << std::hex << pThreadContext->SegEs;
-  registers << " segfs:" << std::hex << pThreadContext->SegFs;
-  registers << " seggs:" << std::hex << pThreadContext->SegGs;
-  registers << " segss:" << std::hex << pThreadContext->SegSs;
-  registers << " eflags:" << std::hex << pThreadContext->EFlags;
+  registers << "rax:0x" << std::hex << pThreadContext->Rax;
+  registers << " rbx:0x" << std::hex << pThreadContext->Rbx;
+  registers << " rcx:0x" << std::hex << pThreadContext->Rcx;
+  registers << " rdx:0x" << std::hex << pThreadContext->Rdx;
+  registers << " rdi:0x" << std::hex << pThreadContext->Rdi;
+  registers << " rsi:0x" << std::hex << pThreadContext->Rsi;
+  registers << " rbp:0x" << std::hex << pThreadContext->Rbp;
+  registers << " rsp:0x" << std::hex << pThreadContext->Rsp;
+  registers << " r8:0x" << std::hex << pThreadContext->R8;
+  registers << " r9:0x" << std::hex << pThreadContext->R9;
+  registers << " r10:0x" << std::hex << pThreadContext->R10;
+  registers << " r11:0x" << std::hex << pThreadContext->R11;
+  registers << " r12:0x" << std::hex << pThreadContext->R12;
+  registers << " r13:0x" << std::hex << pThreadContext->R13;
+  registers << " r14:0x" << std::hex << pThreadContext->R14;
+  registers << " r15:0x" << std::hex << pThreadContext->R15;
+  registers << " rip:0x" << std::hex << pThreadContext->Rip;
+  registers << " segcs:0x" << std::hex << pThreadContext->SegCs;
+  registers << " segds:0x" << std::hex << pThreadContext->SegDs;
+  registers << " seges:0x" << std::hex << pThreadContext->SegEs;
+  registers << " segfs:0x" << std::hex << pThreadContext->SegFs;
+  registers << " seggs:0x" << std::hex << pThreadContext->SegGs;
+  registers << " segss:0x" << std::hex << pThreadContext->SegSs;
+  registers << " eflags:0x" << std::hex << pThreadContext->EFlags;
   r["registers"] = registers.str();
 
   return;
@@ -271,12 +206,12 @@ void processDumpModuleListStream(Row& r,
 
   // Log PE version
   VS_FIXEDFILEINFO versionInfo = exeModule.VersionInfo;
-  std::stringstream versionString;
-  versionString << ((versionInfo.dwFileVersionMS >> 16) & 0xffff) << "."
+  std::ostringstream versionStr;
+  versionStr << ((versionInfo.dwFileVersionMS >> 16) & 0xffff) << "."
                 << ((versionInfo.dwFileVersionMS >> 0) & 0xffff) << "."
                 << ((versionInfo.dwFileVersionLS >> 16) & 0xffff) << "."
                 << ((versionInfo.dwFileVersionLS >> 0) & 0xffff);
-  r["version"] = versionString.str();
+  r["version"] = versionStr.str();
 
   // Read exception address from the row
   std::istringstream exAddrStr(r["exception_address"]);
@@ -455,7 +390,7 @@ void processDumpHeaderInfo(Row& r, PVOID pBase) {
   r["datetime"] = timeBuff;
 
   // Log dump type
-  std::stringstream activeFlags;
+  std::ostringstream activeFlags;
   bool firstString = true;
   // Loop through MINIDUMP_TYPE flags and log the ones that are set
   for (auto const& flag : kMiniDumpTypeFlags) {
@@ -578,7 +513,7 @@ void getStackTrace(Row& r, LPCTSTR lpFileName) {
     }
   }
 
-  std::stringstream stackTrace;
+  std::ostringstream stackTrace;
   BOOL firstFrame = true;
   for (ULONG frame = 0; frame < numFrames; frame++) {
     char name[512] = {0};
