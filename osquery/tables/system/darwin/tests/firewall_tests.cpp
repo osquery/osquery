@@ -13,8 +13,8 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/tables/system/darwin/firewall.h"
+#include "osquery/tests/test_util.h"
 
 namespace pt = boost::property_tree;
 
@@ -37,13 +37,13 @@ TEST_F(FirewallTests, test_parse_alf_tree) {
   auto results = parseALFTree(tree);
   osquery::QueryData expected = {
       {
-       {"allow_signed_enabled", "1"},
-       {"firewall_unload", "0"},
-       {"global_state", "0"},
-       {"logging_enabled", "0"},
-       {"logging_option", "0"},
-       {"stealth_enabled", "0"},
-       {"version", "1.0a25"},
+          {"allow_signed_enabled", "1"},
+          {"firewall_unload", "0"},
+          {"global_state", "0"},
+          {"logging_enabled", "0"},
+          {"logging_option", "0"},
+          {"stealth_enabled", "0"},
+          {"version", "1.0a25"},
       },
   };
   EXPECT_EQ(results, expected);
@@ -85,37 +85,39 @@ TEST_F(FirewallTests, test_parse_alf_services_tree) {
   auto results = parseALFServicesTree(tree);
   osquery::QueryData expected = {
       {
-       {"service", "Apple Remote Desktop"},
-       {"process", "AppleVNCServer"},
-       {"state", "0"},
+          {"service", "Apple Remote Desktop"},
+          {"process", "AppleVNCServer"},
+          {"state", "0"},
       },
       {
-       {"service", "FTP"}, {"process", "ftpd"}, {"state", "0"},
+          {"service", "FTP"}, {"process", "ftpd"}, {"state", "0"},
       },
       {
-       {"service", "ODSAgent"}, {"process", "ODSAgent"}, {"state", "0"},
+          {"service", "ODSAgent"}, {"process", "ODSAgent"}, {"state", "0"},
       },
       {
-       {"service", "File Sharing"},
-       {"process", "AppleFileServer"},
-       {"state", "0"},
+          {"service", "File Sharing"},
+          {"process", "AppleFileServer"},
+          {"state", "0"},
       },
       {
-       {"service", "Web Sharing"}, {"process", "httpd"}, {"state", "0"},
+          {"service", "Web Sharing"}, {"process", "httpd"}, {"state", "0"},
       },
       {
-       {"service", "Printer Sharing"}, {"process", "cupsd"}, {"state", "0"},
+          {"service", "Printer Sharing"}, {"process", "cupsd"}, {"state", "0"},
       },
       {
-       {"service", "Remote Apple Events"},
-       {"process", "AEServer"},
-       {"state", "0"},
+          {"service", "Remote Apple Events"},
+          {"process", "AEServer"},
+          {"state", "0"},
       },
       {
-       {"service", "SSH"}, {"process", "sshd-keygen-wrapper"}, {"state", "0"},
+          {"service", "SSH"},
+          {"process", "sshd-keygen-wrapper"},
+          {"state", "0"},
       },
       {
-       {"service", "Samba Sharing"}, {"process", "smbd"}, {"state", "0"},
+          {"service", "Samba Sharing"}, {"process", "smbd"}, {"state", "0"},
       },
   };
   EXPECT_EQ(results, expected);
