@@ -113,7 +113,7 @@ Status WmiResultItem::GetUnsignedShort(const std::string& name,
   if (hr != S_OK) {
     return Status(-1, "Error retrieving data from WMI query.");
   }
-  if (value.vt != VT_I4) {
+  if (value.vt != VT_UI2) {
     VariantClear(&value);
     return Status(-1, "Invalid data type returned.");
   }
@@ -131,7 +131,7 @@ Status WmiResultItem::GetUnsignedInt32(const std::string& name,
   if (hr != S_OK) {
     return Status(-1, "Error retrieving data from WMI query.");
   }
-  if (value.vt != VT_I4) {
+  if (value.vt != VT_UINT) {
     VariantClear(&value);
     return Status(-1, "Invalid data type returned.");
   }
