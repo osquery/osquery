@@ -1,7 +1,5 @@
 table_name("windows_crashes")
-
-description("Windows crash log information.")
-
+description("Extracted information from Windows crash logs (Minidumps).")
 schema([
 	Column("datetime", TEXT, "Timestamp (log format) of the crash"),
 	Column("module", TEXT, "Path of the crashed module within the process"),
@@ -11,7 +9,7 @@ schema([
 	Column("version", TEXT, "File version info of the crashed process"),
 	Column("process_create_time", TEXT, "Creation time of the process"),
 	Column("stack_trace", TEXT, "Multiple stack frames from the stack trace"),
-    Column("exception_code", TEXT, "The Windows exception code"),
+	Column("exception_code", TEXT, "The Windows exception code"),
 	Column("exception_message", TEXT, "The NTSTATUS error message associated with the exception code"),
 	Column("exception_address", TEXT, "Address (in hex) where the exception occurred"),
 	Column("registers", TEXT, "The values of the system registers"),
@@ -26,5 +24,11 @@ schema([
 	Column("type", TEXT, "Type of crash log"),
 	Column("crash_path", TEXT, "Path of the log file")
 ])
-
 implementation("windows_crashes@genCrashLogs")
+examples([
+	"select * from windows_crashes",
+	"select * from windows_crashes where module like '%electron.exe%'",
+	"select * from windows_crashes where datetime < '2016-10-14'",
+	"select * from windows_crashes where registers like '%rax:0x0%'",
+	"select * from windows_crashes where stack_trace like '%vlc%'",
+])
