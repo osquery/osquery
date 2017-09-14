@@ -76,8 +76,8 @@ void processDumpExceptionStream(Row& r,
                                 void* dumpStream,
                                 unsigned long dumpStreamSize,
                                 void* dumpBase) {
-  MINIDUMP_EXCEPTION_STREAM* exceptionStream =
-      (MINIDUMP_EXCEPTION_STREAM*)dumpStream;
+  auto exceptionStream =
+      static_cast<MINIDUMP_EXCEPTION_STREAM*>(dumpStream);
   MINIDUMP_EXCEPTION ex = exceptionStream->ExceptionRecord;
 
   // Log ID of thread that caused the exception
@@ -119,8 +119,7 @@ void processDumpExceptionStream(Row& r,
   }
 
   // Log registers from crashed thread
-  CONTEXT* threadContext =
-      (CONTEXT*)((BYTE*)dumpBase + exceptionStream->ThreadContext.Rva);
+  auto threadContext = reinterpret_cast<CONTEXT*>(static_cast<unsigned char*>(dumpBase) + exceptionStream->ThreadContext.Rva);
   std::ostringstream registers;
   // Registers are hard-coded for x64 system b/c lack of C++ reflection on
   // CONTEXT object
@@ -157,7 +156,7 @@ void processDumpMiscInfoStream(Row& r,
                                MINIDUMP_DIRECTORY* dumpStreamDir,
                                void* dumpStream,
                                unsigned long dumpStreamSize) {
-  MINIDUMP_MISC_INFO* miscInfoStream = (MINIDUMP_MISC_INFO*)dumpStream;
+  auto miscInfoStream = static_cast<MINIDUMP_MISC_INFO*>(dumpStream);
 
   // Log PID, if it exists
   if (miscInfoStream->Flags1 & MINIDUMP_MISC1_PROCESS_ID) {
@@ -181,7 +180,7 @@ void processDumpSystemInfoStream(Row& r,
 	MINIDUMP_DIRECTORY* dumpStreamDir,
 	void* dumpStream,
 	unsigned long dumpStreamSize) {
-  MINIDUMP_SYSTEM_INFO* systemInfoStream = (MINIDUMP_SYSTEM_INFO*)dumpStream;
+  auto systemInfoStream = static_cast<MINIDUMP_SYSTEM_INFO*>(dumpStream);
 
   // Log system version information
   r["major_version"] = INTEGER(systemInfoStream->MajorVersion);
@@ -196,12 +195,11 @@ void processDumpModuleListStream(Row& r,
 	void* dumpStream,
 	unsigned long dumpStreamSize,
                                  void* dumpBase) {
-  MINIDUMP_MODULE_LIST* moduleListStream = (MINIDUMP_MODULE_LIST*)dumpStream;
+  auto moduleListStream = static_cast<MINIDUMP_MODULE_LIST*>(dumpStream);
 
   // Log PE path
   MINIDUMP_MODULE exeModule = moduleListStream->Modules[0];
-  MINIDUMP_STRING* exePath =
-      (MINIDUMP_STRING*)((BYTE*)dumpBase + exeModule.ModuleNameRva);
+  auto exePath = reinterpret_cast<MINIDUMP_STRING*>(static_cast<unsigned char*>(dumpBase) + exeModule.ModuleNameRva);
   r["path"] = wstringToString(exePath->Buffer);
 
   // Log PE version
@@ -225,8 +223,7 @@ void processDumpModuleListStream(Row& r,
       // Is the exception address within this module's memory space?
       if ((module.BaseOfImage <= exAddr) &&
           (exAddr <= (module.BaseOfImage + module.SizeOfImage))) {
-        MINIDUMP_STRING* modulePath =
-            (MINIDUMP_STRING*)((BYTE*)dumpBase + module.ModuleNameRva);
+		auto modulePath = reinterpret_cast<MINIDUMP_STRING*>(static_cast<unsigned char*>(dumpBase) + module.ModuleNameRva);
         r["module"] = wstringToString(modulePath->Buffer);
         break;
       }
@@ -241,7 +238,7 @@ unsigned long long processDumpThreadListStream(Row& r,
 	MINIDUMP_DIRECTORY* dumpStreamDir,
 	void* dumpStream,
 	unsigned long dumpStreamSize) {
-  MINIDUMP_THREAD_LIST* threadListStream = (MINIDUMP_THREAD_LIST*)dumpStream;
+  auto threadListStream = static_cast<MINIDUMP_THREAD_LIST*>(dumpStream);
 
   // Read TID of crashed thread from row
   std::istringstream tidStr(r["tid"]);
@@ -279,7 +276,7 @@ void processMemoryListStream(Row& r,
 	unsigned long dumpStreamSize,
                              void *dumpBase,
                              const char *fileName, unsigned long long tebAddr) {
-  MINIDUMP_MEMORY_LIST* memoryListStream = (MINIDUMP_MEMORY_LIST*)dumpStream;
+  auto memoryListStream = static_cast<MINIDUMP_MEMORY_LIST*>(dumpStream);
 
   if (tebAddr == 0) {
     LOG(ERROR) << "Error reading PEB for crash dump: " << fileName;
@@ -292,73 +289,69 @@ void processMemoryListStream(Row& r,
   if (tebMem == nullptr)
     return;
   unsigned long long tebOffset = tebAddr - tebMem->StartOfMemoryRange;
-  TEB* pTEB = (TEB*)((BYTE*)dumpBase + tebMem->Memory.Rva + tebOffset);
+  auto teb = reinterpret_cast<TEB*>(static_cast<unsigned char*>(dumpBase) + tebMem->Memory.Rva + tebOffset);
 
   // Get PEB from Minidump memory
-  unsigned long long pebAddr = (unsigned long long)pTEB->ProcessEnvironmentBlock;
+  auto pebAddr = reinterpret_cast<unsigned long long>(teb->ProcessEnvironmentBlock);
   MINIDUMP_MEMORY_DESCRIPTOR* pebMem =
       getMemRange(pebAddr, memoryListStream);
   if (pebMem == nullptr)
     return;
   unsigned long long pebOffset = pebAddr - pebMem->StartOfMemoryRange;
-  PEB* pPEB = (PEB*)((BYTE*)dumpBase + pebMem->Memory.Rva + pebOffset);
+  auto peb = reinterpret_cast<PEB*>(static_cast<unsigned char*>(dumpBase) + pebMem->Memory.Rva + pebOffset);
 
   // Log BeingDebugged
-  if (pPEB->BeingDebugged == TRUE) {
+  if (peb->BeingDebugged == TRUE) {
     r["being_debugged"] = "true";
   } else {
     r["being_debugged"] = "false";
   }
 
   // Get process parameters from Minidump memory
-  unsigned long long paramsAddr = (unsigned long long)pPEB->ProcessParameters;
+  auto paramsAddr = reinterpret_cast<unsigned long long>(peb->ProcessParameters);
   MINIDUMP_MEMORY_DESCRIPTOR* paramsMem =
       getMemRange(paramsAddr, memoryListStream);
   if (paramsMem == nullptr)
     return;
   unsigned long long paramsOffset = paramsAddr - paramsMem->StartOfMemoryRange;
-  RTL_USER_PROCESS_PARAMETERS* params =
-      (RTL_USER_PROCESS_PARAMETERS*)((BYTE*)dumpBase + paramsMem->Memory.Rva +
-                                     paramsOffset);
+  auto params = reinterpret_cast<RTL_USER_PROCESS_PARAMETERS*>(static_cast<unsigned char*>(dumpBase) + paramsMem->Memory.Rva + paramsOffset);
 
   // Get command line arguments from Minidump memory
-  unsigned long long cmdLineAddr = (unsigned long long)params->CommandLine.Buffer;
+  auto cmdLineAddr = reinterpret_cast<unsigned long long>(params->CommandLine.Buffer);
   MINIDUMP_MEMORY_DESCRIPTOR* cmdLineMem =
       getMemRange(cmdLineAddr, memoryListStream);
   if (cmdLineMem != nullptr) {
     unsigned long long cmdLineOffset = cmdLineAddr - cmdLineMem->StartOfMemoryRange;
-    wchar_t *cmdLine =
-        (wchar_t*)((BYTE*)dumpBase + cmdLineMem->Memory.Rva + cmdLineOffset);
+	auto cmdLine = reinterpret_cast<wchar_t*>(static_cast<unsigned char*>(dumpBase) + cmdLineMem->Memory.Rva + cmdLineOffset);
     r["command_line"] = wstringToString(cmdLine);
   }
 
   // Get current directory from Minidump memory
   // Offset 0x38 is from WinDbg: dt nt!_RTL_USER_PROCESS_PARAMETERS
-  UNICODE_STRING* curDirStruct = (UNICODE_STRING*)((BYTE*)params + 0x38);
-  unsigned long long curDirAddr = (unsigned long long)curDirStruct->Buffer;
+  auto curDirStruct = reinterpret_cast<UNICODE_STRING*>(reinterpret_cast<unsigned char*>(params) + 0x38);
+  auto curDirAddr = reinterpret_cast<unsigned long long>(curDirStruct->Buffer);
   MINIDUMP_MEMORY_DESCRIPTOR* curDirMem =
       getMemRange(curDirAddr, memoryListStream);
   if (curDirMem != nullptr) {
     unsigned long long curDirOffset = curDirAddr - curDirMem->StartOfMemoryRange;
-    wchar_t *curDir =
-        (wchar_t *)((BYTE*)dumpBase + curDirMem->Memory.Rva + curDirOffset);
+	auto curDir = reinterpret_cast<wchar_t*>(static_cast<unsigned char*>(dumpBase) + curDirMem->Memory.Rva + curDirOffset);
     r["current_directory"] =
         wstringToString(std::wstring(curDir, curDirStruct->Length / 2).c_str());
   }
 
   // Get environment variables from Minidump memory
   // Offset 0x80 is from WinDbg: dt nt!_RTL_USER_PROCESS_PARAMETERS
-  unsigned long long* envVarsAddr = (unsigned long long*)((BYTE*)params + 0x80);
+  auto envVarsAddr = reinterpret_cast<unsigned long long*>(reinterpret_cast<unsigned char*>(params) + 0x80);
   MINIDUMP_MEMORY_DESCRIPTOR* envVarsMem =
       getMemRange(*envVarsAddr, memoryListStream);
   if (envVarsMem != nullptr) {
     unsigned long long envOffset = *envVarsAddr - envVarsMem->StartOfMemoryRange;
-    wchar_t* envVars = (wchar_t*)((BYTE*)dumpBase + envVarsMem->Memory.Rva + envOffset);
+	auto envVars = reinterpret_cast<wchar_t*>(static_cast<unsigned char*>(dumpBase) + envVarsMem->Memory.Rva + envOffset);
 
     // Loop through environment variables and log those of interest
     // The environment variables are stored in the following format:
     // Var1=Value1\0Var2=Value2\0Var3=Value3\0 ... VarN=ValueN\0\0
-    wchar_t* ptr = (wchar_t*)envVars;
+    wchar_t* ptr = envVars;
     while (*ptr != '\0') {
       std::string envVar = wstringToString(std::wstring(ptr).c_str());
       std::string::size_type pos = envVar.find('=');
@@ -379,7 +372,7 @@ void processMemoryListStream(Row& r,
 }
 
 void processDumpHeaderInfo(Row& r, void* dumpBase) {
-  MINIDUMP_HEADER* dumpHeader = (MINIDUMP_HEADER*)dumpBase;
+  auto dumpHeader = static_cast<MINIDUMP_HEADER*>(dumpBase);
 
   // Log dump timestamp
   time_t dumpTimestamp = dumpHeader->TimeDateStamp;
