@@ -46,6 +46,7 @@ if(FREEBSD)
   ADD_OSQUERY_LINK_ADDITIONAL("util")
   ADD_OSQUERY_LINK_ADDITIONAL("kvm")
   ADD_OSQUERY_LINK_ADDITIONAL("elf")
+  ADD_OSQUERY_LINK_ADDITIONAL("libbsm")
 endif()
 
 # Windows specific and applicable tables.
