@@ -479,29 +479,6 @@ void Initializer::initWatcher() const {
     Dispatcher::addService(
         std::make_shared<WatcherRunner>(*argc_, *argv_, isWatcher()));
   }
-
-  if (isWatcher()) {
-    if (shutdown_ != nullptr) {
-      shutdown_();
-    }
-
-    // If there are no autoloaded extensions, the watcher service will end,
-    // otherwise it will continue as a background thread and respawn them.
-    // If the watcher is also a worker watchdog it will do nothing but monitor
-    // the extensions and worker process.
-    Dispatcher::joinServices();
-    // Execution should only reach this point if a signal was handled by the
-    // worker and watcher.
-    auto retcode = 0;
-    if (kHandledSignal > 0) {
-      retcode = 128 + kHandledSignal;
-    } else if (Watcher::get().getWorkerStatus() >= 0) {
-      retcode = Watcher::get().getWorkerStatus();
-    } else {
-      retcode = EXIT_FAILURE;
-    }
-    requestShutdown(retcode);
-  }
 }
 
 void Initializer::initWorker(const std::string& name) const {
