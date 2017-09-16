@@ -14,7 +14,10 @@ param(
   [switch] $stop = $false,
   
   [switch] $help = $false,
-  [switch] $debug = $false
+  [switch] $debug = $false,
+
+  [switch] $install_wel_manifest = $false,
+  [switch] $uninstall_wel_manifest = $false
 )
 
 $kServiceName = "osqueryd"
@@ -36,13 +39,15 @@ function Do-Help {
   Write-Host ""
   Write-Host "  Only one of the following options can be used. Using multiple will result in "
   Write-Host "  options being ignored."
-  Write-Host "    -install          Install the osqueryd service"
-  Write-Host "    -startupArgs     Specifies additional arguments for the service (only used with -install)"
-  Write-Host "    -uninstall        Uninstall the osqueryd service"
-  Write-Host "    -start            Start the osqueryd service"
-  Write-Host "    -stop             Stop the osqueryd service"
+  Write-Host "    -install                  Install the osqueryd service"
+  Write-Host "    -startupArgs              Specifies additional arguments for the service (only used with -install)"
+  Write-Host "    -uninstall                Uninstall the osqueryd service"
+  Write-Host "    -start                    Start the osqueryd service"
+  Write-Host "    -stop                     Stop the osqueryd service"
+  Write-Host "    -install_wel_manifest     Installs the Windows Event Log manifest"
+  Write-Host "    -uninstall_wel_manifest   Uninstalls the Windows Event Log manifest"
   Write-Host ""
-  Write-Host "    -help              Shows this help screen"
+  Write-Host "    -help                     Shows this help screen"
   
   Exit 1
 }
@@ -56,9 +61,6 @@ function Do-Service {
   $osquerydService = Get-WmiObject -Class Win32_Service -Filter "Name='$kServiceName'"
   
   if ($install) {
-    Write-Host "Installing the Windows Event Log manifest file..." -foregroundcolor Cyan
-    wevtutil im $windowsEvengLogManifest
-
     if ($osquerydService) {
       Write-Host "'$kServiceName' is already installed." -foregroundcolor Yellow
       Exit 1
@@ -72,9 +74,6 @@ function Do-Service {
       Exit 0
     }
   } elseif ($uninstall) {
-    Write-Host "Uninstalling the Windows Event Log manifest file..." -foregroundcolor Cyan
-    wevtutil um $windowsEvengLogManifest
-
     if ($osquerydService) {
       Stop-Service $kServiceName
       
@@ -107,7 +106,22 @@ function Do-Service {
     } else {
       Write-Host "'$kServiceName' is not an installed system service." -foregroundcolor Yellow
       Exit 1      
-    }  
+    }
+  } elseif ($install_wel_manifest) {
+    wevtutil im $windowsEvengLogManifest
+    if ($?) {
+      Write-Host "The Windows Event Log manifest has been successfully installed." -foregroundcolor Cyan
+    } else {
+      Write-Host "Failed to install the Windows Event Log manifest." -foregroundcolor Yellow
+    }
+
+  } elseif ($uninstall_wel_manifest) {
+    wevtutil um $windowsEvengLogManifest
+    if ($?) {
+      Write-Host "The Windows Event Log manifest has been successfully uninstalled." -foregroundcolor Cyan
+    } else {
+      Write-Host "Failed to uninstall the Windows Event Log manifest." -foregroundcolor Yellow
+    }
   } else {
     Write-Host "Invalid state: this should not exist!" -foregroundcolor Red
     Exit -1
@@ -131,7 +145,7 @@ function Main {
     Write-Host "             +exists = $osquerydExists" -foregroundcolor Cyan
     
     Exit 0
-  } elseif (($install.ToBool() + $uninstall.ToBool() + $start.ToBool() + $stop.ToBool()) -Eq 1) {
+  } elseif (($install.ToBool() + $uninstall.ToBool() + $start.ToBool() + $stop.ToBool() + $install_wel_manifest.ToBool() + $uninstall_wel_manifest.ToBool()) -Eq 1) {
     # The above is a dirty method of determining if only one of the following booleans are true.
     Do-Service
   } else {
