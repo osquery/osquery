@@ -1,12 +1,12 @@
 /*
-*  Copyright (c) 2014-present, Facebook, Inc.
-*  All rights reserved.
-*
-*  This source code is licensed under the BSD-style license found in the
-*  LICENSE file in the root directory of this source tree. An additional grant
-*  of patent rights can be found in the PATENTS file in the same directory.
-*
-*/
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #include <string>
 
@@ -17,6 +17,10 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+
+#ifdef WIN32
+#include "osquery/tables/system/windows/registry.h"
+#endif
 
 namespace fs = boost::filesystem;
 
@@ -38,6 +42,9 @@ const std::set<std::string> kPythonPath = {
 const std::set<std::string> kDarwinPythonPath = {
     "/System/Library/Frameworks/Python.framework/Versions/",
 };
+
+const std::string kWinPythonInstallKey =
+    "SOFTWARE\\Python\\PythonCore\\%\\InstallPath";
 
 void genPackage(const std::string& path, Row& r) {
   std::string content;
@@ -97,6 +104,24 @@ void genSiteDirectories(const std::string& site, QueryData& results) {
   }
 }
 
+void genWinPythonPackages(const std::string& keyGlob, QueryData& results) {
+#ifdef WIN32
+  std::set<std::string> installPathKeys;
+  expandRegistryGlobs(keyGlob, installPathKeys);
+  QueryData pythonInstallLocation;
+  for (const auto& installKey : installPathKeys) {
+    queryKey(installKey, pythonInstallLocation);
+    for (const auto& p : pythonInstallLocation) {
+      if (p.at("name") != "(Default)") {
+        continue;
+      }
+      genSiteDirectories(p.at("data"), results);
+    }
+    pythonInstallLocation.clear();
+  }
+#endif
+}
+
 QueryData genPythonPackages(QueryContext& context) {
   QueryData results;
 
@@ -123,9 +148,17 @@ QueryData genPythonPackages(QueryContext& context) {
         genSiteDirectories(complete, results);
       }
     }
+  } else if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    // Enumerate any system installed python packages
+    auto installPathKey = "HKEY_LOCAL_MACHINE\\" + kWinPythonInstallKey;
+    genWinPythonPackages(installPathKey, results);
+
+    // Enumerate any user installed python packages
+    installPathKey = "HKEY_USERS\\%\\" + kWinPythonInstallKey;
+    genWinPythonPackages(installPathKey, results);
   }
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
