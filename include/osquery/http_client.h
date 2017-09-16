@@ -73,6 +73,9 @@ namespace boost_system = boost::system;
 namespace boost_asio = boost::asio;
 namespace beast_http = boost::beast::http;
 
+namespace osquery {
+namespace http {
+
 typedef boost_asio::ssl::stream<boost_asio::ip::tcp::socket&> ssl_stream;
 typedef beast_http::request<beast_http::string_body> beast_http_request;
 typedef beast_http::response<beast_http::string_body> beast_http_response;
@@ -80,9 +83,6 @@ typedef beast_http::response_parser<beast_http::string_body>
     beast_http_response_parser;
 typedef beast_http::request_serializer<beast_http::string_body>
     beast_http_request_serializer;
-
-namespace osquery {
-namespace http {
 
 template <typename T>
 class HTTP_Request;
@@ -92,13 +92,20 @@ typedef HTTP_Request<beast_http_request> Request;
 typedef HTTP_Response<beast_http_response> Response;
 
 /**
- * @brief http client class
+ * @brief a simple http client class based upon boost.beast.
  *
  * Implements put, post, get, head and delete_ methods.
  * These methods take request as refrence and  return respose by value.
  */
 class Client {
- public: // struct(s)
+ public:
+  /**
+   * @brief Client options class.
+   *
+   * Behavior of the Client class is driven by its options.
+   * E.g. secured client or non-secured client.
+   * Or if the client will talk to server via proxy.
+   */
   class Options {
    public:
     Options()
@@ -189,29 +196,34 @@ class Client {
     friend class Client;
   };
 
- public: // methods
+ public:
   Client(Options const& opts = Options())
-      : client_options_(opts), r_(ios_), sock_(ios_) {}
+      : client_options_(opts), r_(ios_), sock_(ios_), timer_(ios_) {}
 
+  /// HTTP put request method
   Response put(Request& req,
                std::string const& body,
                std::string const& content_type = std::string());
 
+  /// HTTP post request method
   Response post(Request& req,
                 std::string const& body,
                 std::string const& content_type = std::string());
 
+  /// HTTP get request method
   Response get(Request& req);
 
+  /// HTTP head request method
   Response head(Request& req);
 
+  /// HTTP delete_ request method
   Response delete_(Request& req);
 
   ~Client() {
     closeSocket();
   }
 
- private: // methods
+ private:
   void createConnection();
   void encryptConnection();
   template <typename STREAM_TYPE>
@@ -223,11 +235,12 @@ class Client {
   void postResponseHandler(boost_system::error_code const& ec);
   void closeSocket();
 
- private: // data members
+ private:
   Options client_options_;
   boost_asio::io_service ios_;
   boost_asio::ip::tcp::resolver r_;
   boost_asio::ip::tcp::socket sock_;
+  boost_asio::deadline_timer timer_;
   std::shared_ptr<ssl_stream> ssl_sock_;
   boost_system::error_code ec_;
   bool ssl_connection = false;
@@ -238,9 +251,24 @@ class Client {
   static const int HTTPS_DEFAULT_PORT = 443;
 };
 
+/**
+ * @brief HTTP request class
+ *
+ * This class is inherited from implemention(boost.beast) request class.
+ * It extends the functionality via providing uri parsing.
+ *
+ */
 template <typename T>
 class HTTP_Request : public T {
  public:
+  /**
+   * @brief HTTP request header helper class
+   *
+   * constructor of this class takes (name, value)
+   * pair, which is used to set the request header
+   * of a http request with the help of overloaded
+   * function 'operator<<' of HTTP_Request class.
+   */
   struct Header {
     Header(const std::string& name, const std::string& value)
         : name_(name), value_(value) {}
@@ -252,30 +280,36 @@ class HTTP_Request : public T {
   };
 
  public:
-  HTTP_Request(const std::string& url) : uri_(url) {}
+  HTTP_Request(const std::string& url = std::string()) : uri_(url) {}
 
+  /// Returns the host part of a uri.
   boost::optional<std::string> remoteHost() {
     return uri_.host().size() ? uri_.host() : boost::optional<std::string>();
   }
 
+  /// Returns the port part of a uri.
   boost::optional<std::string> remotePort() {
     return uri_.port().size() ? uri_.port() : boost::optional<std::string>();
   }
 
+  /// Returns the path part of a uri.
   boost::optional<std::string> remotePath() {
     return uri_.path().size() ? uri_.path() : boost::optional<std::string>();
   }
 
+  /// Returns the protocol part of a uri. E.g. 'http' or 'https'
   boost::optional<std::string> protocol() {
     return uri_.scheme().size() ? uri_.scheme()
                                 : boost::optional<std::string>();
   }
 
+  /// overloaded operator to set header of an http request
   HTTP_Request& operator<<(const Header& h) {
     this->T::set(h.name_, h.value_);
     return *this;
   }
 
+  /// uri can also be set via this method, useful for redirected request.
   void uri(const std::string& url) {
     uri_ = url;
   }
@@ -284,6 +318,14 @@ class HTTP_Request : public T {
   boost::network::uri::uri uri_;
 };
 
+/**
+ * @brief HTTP response class
+ *
+ * This class is inherited from implementation(boost.beast) http response class.
+ * This class gives convinent access to some functionality of implemention
+ * specific http response class.
+ *
+ */
 template <typename T>
 class HTTP_Response : public T {
  public:
@@ -294,19 +336,27 @@ class HTTP_Response : public T {
   class Iterator;
   class Header;
 
+  /// status of an http response
   unsigned status() {
     return this->T::result_int();
   }
 
+  /// body of an http response
   const std::string& body() {
     return this->T::body;
   }
 
+  /// All headers of an http response.
+  /// Headers can be accesed via HTTP_Response<T>::Iterator class
   Header headers() {
     return Header(this);
   }
 };
 
+/**
+ * @brief HTTP response headers iterator class
+ *
+ */
 template <typename T>
 template <typename ITER>
 class HTTP_Response<T>::Iterator {
@@ -344,6 +394,19 @@ class HTTP_Response<T>::Iterator {
   ITER iter_;
 };
 
+/**
+ * @brief HTTP response headers helper class
+ *
+ * This class gives convenient access to all the
+ * headers of http respone.
+ * e.g. -
+ *
+ * auto it = response.headers().begin();
+ * for( ;it != response.headers().end(); ++it) {
+ *   it->header_name();
+ *   it->header_value();
+ * }
+ */
 template <typename T>
 class HTTP_Response<T>::Header {
  public:

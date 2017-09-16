@@ -14,19 +14,20 @@
 namespace osquery {
 namespace http {
 
-/// This class is used to convert boost::system_exception
-/// to std::system_exception on freebsd since it is on boost-1.64.
-/// Idea taken from boost-1.65
+/** This class is used to convert boost::system_exception
+ *  to std::system_exception, since on freebsd osquery is on boost-1.64.
+ *  Idea taken from boost-1.65
+ */
 class adapted_category : public std::error_category {
  public:
   explicit adapted_category(boost::system::error_category const* pc)
       : pc_(pc) {}
 
-  virtual const char* name() const noexcept {
+  const char* name() const noexcept {
     return pc_->name();
   }
 
-  virtual std::string message(int ev) const {
+  std::string message(int ev) const {
     return pc_->message(ev);
   }
 
@@ -34,9 +35,10 @@ class adapted_category : public std::error_category {
   boost::system::error_category const* pc_;
 };
 
-/// In the postResponseHandler, treating SHORT_READ_ERROR as success
-/// for ssl connections. This can happen if a remote server did not
-/// call on shutdown ssl connection.
+/** In the postResponseHandler, treating SHORT_READ_ERROR as success
+ *  for ssl connections. This can happen if a remote server did not
+ *  call shutdown on ssl connection.
+ */
 void Client::postResponseHandler(boost_system::error_code const& ec) {
   if ((ec.category() == boost_asio::error::ssl_category) &&
       (ec.value() == SHORT_READ_ERROR)) {
@@ -182,16 +184,34 @@ void Client::sendRequest(STREAM_TYPE& stream,
   req.version = 11;
   req << Request::Header("Host", *client_options_.remote_hostname_);
   req.prepare_payload();
-
   req.keep_alive(true);
-  beast_http_request_serializer sr{req};
-  beast_http::write(stream, sr);
 
-  boost_asio::deadline_timer timer{ios_};
   if (client_options_.timeout_) {
-    timer.expires_from_now(
-        boost::posix_time::seconds(client_options_.timeout_));
-    timer.async_wait(
+    timer_.async_wait(
+        [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
+  }
+
+  beast_http_request_serializer sr{req};
+  beast_http::async_write(stream, sr, [&](boost_system::error_code const& ec) {
+    if (client_options_.timeout_) {
+      timer_.cancel();
+    }
+
+    if ((ec.value() != boost_system::errc::operation_canceled) ||
+        (ec.category() != boost_asio::error::system_category)) {
+      ec_ = ec;
+    }
+  });
+
+  ios_.run();
+  ios_.reset();
+
+  if (ec_) {
+    throw std::system_error(ec_.value(), adapted_category(&ec_.category()));
+  }
+
+  if (client_options_.timeout_) {
+    timer_.async_wait(
         [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
   }
 
@@ -199,7 +219,7 @@ void Client::sendRequest(STREAM_TYPE& stream,
   beast_http::async_read(
       stream, b, resp, [&](boost_system::error_code const& ec) {
         if (client_options_.timeout_) {
-          timer.cancel();
+          timer_.cancel();
         }
         postResponseHandler(ec);
       });
@@ -213,6 +233,11 @@ void Client::sendRequest(STREAM_TYPE& stream,
 }
 
 Response Client::sendHTTPRequest(Request& req) {
+  if (client_options_.timeout_) {
+    timer_.expires_from_now(
+        boost::posix_time::seconds(client_options_.timeout_));
+  }
+
   do {
     if (req.remoteHost()) {
       client_options_.remote_hostname_ = *req.remoteHost();
