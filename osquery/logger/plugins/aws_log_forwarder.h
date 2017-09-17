@@ -200,7 +200,17 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
       // Attempt to send the batch
       auto outcome = internalSend(batch);
-      size_t failed_record_count = getFailedRecordCount(outcome);
+
+      size_t failed_record_count;
+      bool request_failure;
+      if (!outcome.IsSuccess()) {
+        failed_record_count = batch.size();
+        request_failure = true;
+      } else {
+        failed_record_count = getFailedRecordCount(outcome);
+        request_failure = false;
+      }
+
       size_t sent_record_count = batch.size() - failed_record_count;
 
       if (sent_record_count > 0) {
@@ -225,6 +235,15 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
       // We didn't manage to send all records; remove the ones that succeeded
       // (so that we do not duplicate them) and try again
+      if (request_failure) {
+        // By default, we have a high maximum retry count value! The user will
+        // not notice right away that his configuration is broken without this
+        // message!
+        LOG(ERROR) << name_ << ": Complete request failure: "
+                   << outcome.GetError().GetMessage();
+        continue;
+      }
+
       const auto& result_record_list = getResult(outcome);
 
       for (size_t i = batch.size(); i-- > 0;) {
