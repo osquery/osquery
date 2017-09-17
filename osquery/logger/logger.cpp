@@ -701,8 +701,6 @@ void systemLog(const std::string& line) {
   }
 
   status = WindowsEventLoggerPlugin::emitLogRecord(registration_handle, line);
-  static_cast<void>(status);
-
   WindowsEventLoggerPlugin::releaseHandle(registration_handle);
 
 #else

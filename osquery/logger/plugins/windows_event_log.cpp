@@ -28,18 +28,31 @@ Status WindowsEventLoggerPlugin::logString(const std::string& s) {
 
 Status WindowsEventLoggerPlugin::logStatus(
     const std::vector<StatusLogLine>& log) {
+  std::stringstream error_output;
+  bool prepend_newline = false;
+
   for (const auto& item : log) {
     auto status = emitLogRecord(registration_handle_,
                                 item.message,
                                 item.severity,
                                 item.filename,
                                 item.line);
+
     if (!status.ok()) {
-      LOG(ERROR) << status.getMessage();
+      if (prepend_newline) {
+        error_output << "\n";
+      }
+
+      error_output << status.getMessage();
+      prepend_newline = true;
     }
   }
 
-  return Status(0, "OK");
+  std::string error_message = error_output.str();
+  if (!error_message.empty())
+    return Status(1, error_message);
+
+  return Status();
 }
 
 void WindowsEventLoggerPlugin::init(const std::string& name,
@@ -61,7 +74,7 @@ Status WindowsEventLoggerPlugin::acquireHandle(REGHANDLE& registration_handle) {
     return Status(1, "Failed to register the Windows Event Log provider");
   }
 
-  return Status(0, "Ok");
+  return Status();
 }
 
 void WindowsEventLoggerPlugin::releaseHandle(REGHANDLE& registration_handle) {
@@ -124,6 +137,6 @@ Status WindowsEventLoggerPlugin::emitLogRecord(
     return Status(1, std::move(error_message));
   }
 
-  return Status(0, "Ok");
+  return Status();
 }
 }
