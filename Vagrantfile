@@ -11,32 +11,41 @@ targets = {
   "debian9" => {
     "box" => "bento/debian-9.0"
   },
+  "centos6" => {
+    "box" => "centos/6"
+  },
   "centos6.5" => {
     "box" => "bento/centos-6.7"
   },
-  "centos7.1"   => {
+  "centos7" => {
+    "box" => "centos/7"
+  },
+  "centos7.1" => {
     "box" => "bento/centos-7.1"
   },
-  "ubuntu15.04"  => {
+  "ubuntu15.04" => {
     "box" => "bento/ubuntu-15.04"
   },
-  "ubuntu15.10"  => {
+  "ubuntu15.10" => {
     "box" => "bento/ubuntu-15.10"
   },
-  "ubuntu16.04"  => {
+  "ubuntu16.04" => {
     "box" => "bento/ubuntu-16.04"
   },
-  "ubuntu16.10"  => {
+  "ubuntu16.10" => {
     "box" => "bento/ubuntu-16.10"
   },
-  "ubuntu17.04"  => {
+  "ubuntu17.04" => {
     "box" => "wholebits/ubuntu17.04-64"
   },
-  "ubuntu14"  => {
+  "ubuntu12" => {
+    "box" => "ubuntu/precise64"
+  },
+  "ubuntu14" => {
     "box" => "ubuntu/trusty64"
   },
-  "ubuntu12"  => {
-    "box" => "ubuntu/precise64"
+  "ubuntu16" => {
+    "box" => "ubuntu/xenial64"
   },
   "freebsd10" => {
     "box" => "bento/freebsd-10.2"
