@@ -212,7 +212,7 @@ const std::string kBackupDefaultFlagfile{OSQUERY_HOME "/osquery.flags.default"};
 const size_t kDatabaseMaxRetryCount{25};
 const size_t kDatabaseRetryDelay{200};
 std::function<void()> Initializer::shutdown_{nullptr};
-Mutex Initializer::shutdown_mutex_;
+RecursiveMutex Initializer::shutdown_mutex_;
 
 static inline void printUsage(const std::string& binary, ToolType tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -479,6 +479,29 @@ void Initializer::initWatcher() const {
     Dispatcher::addService(
         std::make_shared<WatcherRunner>(*argc_, *argv_, isWatcher()));
   }
+
+  if (isWatcher()) {
+    if (shutdown_ != nullptr) {
+      shutdown_();
+    }
+
+    // If there are no autoloaded extensions, the watcher service will end,
+    // otherwise it will continue as a background thread and respawn them.
+    // If the watcher is also a worker watchdog it will do nothing but monitor
+    // the extensions and worker process.
+    Dispatcher::joinServices();
+    // Execution should only reach this point if a signal was handled by the
+    // worker and watcher.
+    auto retcode = 0;
+    if (kHandledSignal > 0) {
+      retcode = 128 + kHandledSignal;
+    } else if (Watcher::get().getWorkerStatus() >= 0) {
+      retcode = Watcher::get().getWorkerStatus();
+    } else {
+      retcode = EXIT_FAILURE;
+    }
+    requestShutdown(retcode);
+  }
 }
 
 void Initializer::initWorker(const std::string& name) const {
@@ -548,7 +571,7 @@ void Initializer::initActivePlugin(const std::string& type,
 }
 
 void Initializer::installShutdown(std::function<void()>& handler) {
-  WriteLock lock(shutdown_mutex_);
+  RecursiveLock lock(shutdown_mutex_);
   shutdown_ = std::move(handler);
 }
 
@@ -651,7 +674,7 @@ void Initializer::start() const {
 
 void Initializer::waitForShutdown() {
   {
-    WriteLock lock(shutdown_mutex_);
+    RecursiveLock lock(shutdown_mutex_);
     if (shutdown_ != nullptr) {
       // Copy the callable, then remove it, prevent callable recursion.
       auto shutdown = shutdown_;
