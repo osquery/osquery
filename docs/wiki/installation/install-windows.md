@@ -73,3 +73,21 @@ osquery provides a helper script for [managing the osquery daemon service](https
 ## Packaging osquery
 
 If you'd like to create your own osquery Chocolatey package you can run [`.\tools\deployment\make_windows_package.ps1`](https://github.com/facebook/osquery/blob/master/tools/deployment/make_windows_package.ps1).  This script will grab the built binaries, the [`packs`](https://github.com/facebook/osquery/blob/master/packs) directory, the [`osquery.example.conf`](https://github.com/facebook/osquery/blob/master/tools/deployment/osquery.example.conf), and attempt to find the OpenSSL `certs.pem` at `C:\ProgramData\chocolatey\lib\openssl\local\certs`.
+
+## Enabling Windows Event Log support
+
+In order to enable support for the Windows Event Log, you have to install the manifest file. To install and uninstall it manually, you can use the built-in **wevtutil** command:
+
+ * **Install**: wevtutil im C:\ProgramData\osquery\osquery.man
+ * **Uninstall**: wevtutil um C:\ProgramData\osquery\osquery.man
+
+The same operation can be performed using the osquery manager (C:\ProgramData\osquery\manage-osqueryd.ps1):
+
+ * **Install**: .\manage-osqueryd.ps1 -install_wel_manifest
+ * **Uninstall**: .\manage-osqueryd.ps1 -uninstall_wel_manifest
+
+The manifest file path can also be overridden using the **-wel_manifest_path** switch.
+
+To verify that everything has been configured correctly, open the Event Viewer and search for the **osquery** folder under **Applications and Services Logs/Facebook/osquery**.
+
+To instruct osquery to use the channel you just created, change the configuration file to use the **windows_event_log** logger plugin.

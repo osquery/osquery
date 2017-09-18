@@ -1,5 +1,0 @@
-The manifest file (osquery.man) can be easily modified using the Manifest Generator (ecmangen.exe) tool found in the Windows SDK. Once it has been edited, you have to compile it using the Message Compiler (mc.exe). Since we are embedding the generated resource script in the main .rc file, it is important to edit it manually to correct the paths.
-
-Once the manifest is ready, you will have to install it: wevtutil im /path/to/manifest.man. You can remove it with the 'um' parameter. Keep in mind that having it installed may keep the osqueryd.exe executable in use, so you will have to uninstall it if you want to remove it/recompile.
-
-Last but not least, the manifest source file contains the full path to the osqueryd.exe executable. It is important to set it to the correct path, or the Windows Event Viewer will not be able to correctly decode the events.
