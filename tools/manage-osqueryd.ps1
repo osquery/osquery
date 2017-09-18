@@ -17,13 +17,13 @@ param(
   [switch] $debug = $false,
 
   [switch] $install_wel_manifest = $false,
-  [switch] $uninstall_wel_manifest = $false
+  [switch] $uninstall_wel_manifest = $false,
+  [string] $wel_manifest_path = (Join-Path $PSScriptRoot "osquery.man")
 )
 
 $kServiceName = "osqueryd"
 $kServiceDescription = "osquery daemon service"
 $kServiceBinaryPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'osquery', 'osqueryd', 'osqueryd.exe'))
-$windowsEvengLogManifest = Join-Path $PSScriptRoot 'osquery.man'
 
 # Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
 function Test-IsAdmin {
@@ -46,6 +46,7 @@ function Do-Help {
   Write-Host "    -stop                     Stop the osqueryd service"
   Write-Host "    -install_wel_manifest     Installs the Windows Event Log manifest"
   Write-Host "    -uninstall_wel_manifest   Uninstalls the Windows Event Log manifest"
+  Write-Host "    -wel_manifest_path <path> The Windows Event Log manifest path"
   Write-Host ""
   Write-Host "    -help                     Shows this help screen"
   
@@ -108,15 +109,24 @@ function Do-Service {
       Exit 1      
     }
   } elseif ($install_wel_manifest) {
-    wevtutil im $windowsEvengLogManifest
+    if (-not (Test-Path $wel_manifest_path)) {
+      Write-Host "[-] Failed to find the osquery Event Log manifest file! ($wel_manifest_path)" -ForegroundColor Red
+      Exit 1
+    }
+
+    wevtutil im $wel_manifest_path
     if ($?) {
       Write-Host "The Windows Event Log manifest has been successfully installed." -foregroundcolor Cyan
     } else {
       Write-Host "Failed to install the Windows Event Log manifest." -foregroundcolor Yellow
     }
-
   } elseif ($uninstall_wel_manifest) {
-    wevtutil um $windowsEvengLogManifest
+    if (-not (Test-Path $wel_manifest_path)) {
+      Write-Host "[-] Failed to find the osquery Event Log manifest file! ($wel_manifest_path)" -ForegroundColor Red
+      Exit 1
+    }
+
+    wevtutil um $wel_manifest_path
     if ($?) {
       Write-Host "The Windows Event Log manifest has been successfully uninstalled." -foregroundcolor Cyan
     } else {
