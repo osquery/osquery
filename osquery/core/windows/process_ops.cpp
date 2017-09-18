@@ -178,8 +178,6 @@ boost::optional<std::string> getEnvVar(const std::string& name) {
   auto value_len =
       ::GetEnvironmentVariableA(name.c_str(), buf.data(), kInitialBufferSize);
   if (value_len == 0) {
-    VLOG(1) << "Unable to find environment variable (" << GetLastError()
-            << "): " << name;
     return boost::none;
   }
 

@@ -293,7 +293,7 @@ function Install-ThirdParty {
     "linenoise-ng.1.0.0-r1",
     "llvm-clang.4.0.1",
     "openssl.1.0.2-k",
-    "rocksdb.5.7.1",
+    "rocksdb.5.7.1-r1",
     "thrift-dev.0.10.0-r4",
     "zlib.1.2.8",
     "libarchive.3.3.1-r1",

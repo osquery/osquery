@@ -213,7 +213,6 @@ using RecursiveMutex = std::recursive_mutex;
 
 /// Helper alias for write locking a recursive mutex.
 using RecursiveLock = std::lock_guard<std::recursive_mutex>;
-}
 
 /**
  * @brief An abstract similar to boost's noncopyable that defines moves.
@@ -239,3 +238,7 @@ class only_movable {
   /// Important, a private copy assignment constructor prevents copying.
   only_movable& operator=(const only_movable&);
 };
+
+/// Custom literal for size_t.
+size_t operator"" _sz(unsigned long long int x);
+}

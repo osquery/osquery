@@ -11,7 +11,7 @@
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
 $version = '5.7.1'
-$chocoVersion = '5.7.1'
+$chocoVersion = '5.7.1-r1'
 $packageName = "rocksdb"
 $projectSource = 'https://github.com/facebook/rocksdb/'
 $packageSourceUrl = 'https://github.com/facebook/rocksdb/'
@@ -102,7 +102,8 @@ Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" $platform
 $cmake = (Get-Command 'cmake').Source
 $cmakeArgs = @(
   "-G `"$cmakeBuildType`"",
-  '-DROCKSDB_LITE=1',
+  '-DPORTABLE=ON',
+  '-DROCKSDB_LITE=ON',
   '../'
 )
 Start-OsqueryProcess $cmake $cmakeArgs

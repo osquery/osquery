@@ -9,6 +9,8 @@ schema([
     Column("forced", INTEGER, "1 if the value is forced/managed, else 0"),
     Column("username", TEXT, "(optional) read preferences for a specific user",
       additional=True),
+    Column("host", TEXT,
+      "'current' or 'any' host, where 'current' takes precedence"),
 ])
 attributes(user_data=True)
 implementation("system/darwin/preferences@genOSXDefaultPreferences")

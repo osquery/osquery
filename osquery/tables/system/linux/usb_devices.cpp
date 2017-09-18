@@ -22,6 +22,7 @@ const std::string kUSBKeyVendorID = "ID_VENDOR_ID";
 const std::string kUSBKeyVendor = "ID_VENDOR_FROM_DATABASE";
 const std::string kUSBKeyModelID = "ID_MODEL_ID";
 const std::string kUSBKeyModel = "ID_MODEL_FROM_DATABASE";
+const std::string kUSBKeyModelFallback = "ID_MODEL";
 const std::string kUSBKeyDriver = "ID_USB_DRIVER";
 const std::string kUSBKeySubsystem = "SUBSYSTEM";
 const std::string kUSBKeySerial = "ID_SERIAL_SHORT";
@@ -55,6 +56,9 @@ QueryData genUSBDevices(QueryContext &context) {
     // r["driver"] = UdevEventPublisher::getValue(device, kUSBKeyDriver);
     r["vendor"] = UdevEventPublisher::getValue(device, kUSBKeyVendor);
     r["model"] = UdevEventPublisher::getValue(device, kUSBKeyModel);
+    if (r["model"].empty()) {
+      r["model"] = UdevEventPublisher::getValue(device, kUSBKeyModelFallback);
+    }
 
     // USB-specific vendor/model ID properties.
     r["model_id"] = UdevEventPublisher::getValue(device, kUSBKeyModelID);

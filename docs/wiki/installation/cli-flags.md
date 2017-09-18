@@ -95,11 +95,13 @@ It is better to set the level to disabled `-1` compared to disabling the watchdo
 
 `--watchdog_memory_limit=0`
 
-If this value is non-0 the watchdog level (`--watchdog_level`) for maximum memory is overridden. Use this if you would like to allow the `osqueryd` process to allocate more than 100M, but somewhere less than 1G.
+If this value is >0 then the watchdog level (`--watchdog_level`) for maximum memory is overridden. Use this if you would like to allow the `osqueryd` process to allocate more than 200M, but somewhere less than 1G. This memory limit is expressed as a value representing MB.
 
 `--watchdog_utilization_limit=0`
 
-If this value is non-0 the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 90% of a thread for more than 6 seconds of wall time.
+If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 30% of a thread for more than 9 seconds of wall time. The length of sustained utilization is not independently configurable.
+
+This value is a maximum number of CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default is 90, meaning less 90 seconds of cpu time per 3 seconds of wall time is allowed.
 
 `--watchdog_delay=60`
 

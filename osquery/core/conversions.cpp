@@ -139,4 +139,8 @@ std::string getBufferSHA1(const char* buffer, size_t size) {
   }
   return result.str();
 }
+
+size_t operator"" _sz(unsigned long long int x) {
+  return x;
+}
 }
