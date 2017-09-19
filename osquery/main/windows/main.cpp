@@ -15,6 +15,7 @@
 #include <shellapi.h>
 
 #include <osquery/core.h>
+#include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
@@ -54,7 +55,21 @@ void DebugPrintf(const std::string& s) {
 HANDLE getStopEvent() {
   auto stopEvent = ::OpenEventA(
       SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, osquery::kStopEventName.c_str());
+
   if (stopEvent == nullptr) {
+    return stopEvent;
+  }
+
+  auto ret = WaitForSingleObject(stopEvent, 0);
+
+  // The object has already been signaled
+  if (ret == WAIT_OBJECT_0) {
+    return nullptr;
+  }
+
+  // ERROR_FILE_NOT_FOUND indicates the event was never created.
+  // Likely the process running as the daemon at the command line.
+  if (stopEvent == nullptr && GetLastError() != ERROR_FILE_NOT_FOUND) {
     SLOG("OpenEventA failed for event name " + osquery::kStopEventName +
          " (lasterror=" + std::to_string(GetLastError()) + ")");
   }
@@ -84,12 +99,16 @@ static auto kShutdownCallable = ([]() {
   // The event only gets initialized in the entry point of the service. Child
   // processes and those run from the commandline will not have a stop event.
   auto stopEvent = osquery::getStopEvent();
-  if (stopEvent != nullptr && !Initializer::isWorker()) {
+  if (stopEvent != nullptr) {
+    // Wait forever, until the service handler signals us
     ::WaitForSingleObject(stopEvent, INFINITE);
-
-    UpdateServiceStatus(0, SERVICE_STOPPED, 0, 3);
-    Initializer::requestShutdown();
-    ::CloseHandle(stopEvent);
+    // Interup the worker service threads before joining
+    Dispatcher::stopServices();
+    auto ret = ::CloseHandle(stopEvent);
+    if (ret != TRUE) {
+      SLOG("kShutdownCallable failed to call CloseHandle with (" +
+           std::to_string(GetLastError()) + ")");
+    }
   }
 });
 
@@ -287,7 +306,7 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
       break;
     }
 
-    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 4);
+    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3);
     {
       auto stopEvent = osquery::getStopEvent();
       if (stopEvent != nullptr) {
@@ -340,7 +359,7 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
          std::to_string(GetLastError()) + ")");
   }
 
-  UpdateServiceStatus(0, SERVICE_STOPPED, 0, 3);
+  UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
 }
 } // namespace osquery
 
