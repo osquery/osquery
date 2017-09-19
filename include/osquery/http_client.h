@@ -389,20 +389,13 @@ class HTTP_Response<T>::Iterator {
   }
 
   auto operator-> () {
-    return this;
+    return std::make_shared<std::pair<std::string, std::string>>(
+        std::string(iter_->name_string()), std::string(iter_->value()));
   }
 
   auto operator*() {
     return std::make_pair(std::string(iter_->name_string()),
                           std::string(iter_->value()));
-  }
-
-  std::string name() {
-    return std::string(iter_->name_string());
-  }
-
-  std::string value() {
-    return std::string(iter_->value());
   }
 
  private:
