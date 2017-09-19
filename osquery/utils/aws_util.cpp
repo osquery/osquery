@@ -165,11 +165,11 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
     response->SetResponseCode(
         static_cast<Aws::Http::HttpResponseCode>(resp.status()));
 
-    for (auto it = resp.headers().begin(); it != resp.headers().end(); ++it) {
-      if (it->header_name() == "content-type") {
-        response->SetContentType(it->header_value());
+    for (const auto& header : resp.headers()) {
+      if (header.first == "content-type") {
+        response->SetContentType(header.second);
       }
-      response->AddHeader(it->header_name(), it->header_value());
+      response->AddHeader(header.first, header.second);
     }
 
     response->GetResponseBody() << resp.body();

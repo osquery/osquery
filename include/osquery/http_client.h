@@ -224,15 +224,25 @@ class Client {
   }
 
  private:
+  /// Create Connection to server, if proxy option is set, connect to proxy
   void createConnection();
+
+  /// Convert plain socket to ssl socket
   void encryptConnection();
+
   template <typename STREAM_TYPE>
   void sendRequest(STREAM_TYPE& stream,
                    Request& req,
                    beast_http_response_parser& resp);
+
   Response sendHTTPRequest(Request& req);
+
+  /// Handles HTTP request timeout
   void timeoutHandler(boost_system::error_code const& ec);
+
+  /// Handles respone code, if requests completes or aborted due to timeout
   void postResponseHandler(boost_system::error_code const& ec);
+
   void closeSocket();
 
  private:
@@ -334,7 +344,7 @@ class HTTP_Response : public T {
 
   template <typename ITER>
   class Iterator;
-  class Header;
+  class Headers;
 
   /// status of an http response
   unsigned status() {
@@ -348,8 +358,8 @@ class HTTP_Response : public T {
 
   /// All headers of an http response.
   /// Headers can be accesed via HTTP_Response<T>::Iterator class
-  Header headers() {
-    return Header(this);
+  Headers headers() {
+    return Headers(this);
   }
 };
 
@@ -382,11 +392,16 @@ class HTTP_Response<T>::Iterator {
     return this;
   }
 
-  std::string header_name() {
+  auto operator*() {
+    return std::make_pair(std::string(iter_->name_string()),
+                          std::string(iter_->value()));
+  }
+
+  std::string name() {
     return std::string(iter_->name_string());
   }
 
-  std::string header_value() {
+  std::string value() {
     return std::string(iter_->value());
   }
 
@@ -398,19 +413,18 @@ class HTTP_Response<T>::Iterator {
  * @brief HTTP response headers helper class
  *
  * This class gives convenient access to all the
- * headers of http respone.
- * e.g. -
+ * headers of http response.
  *
- * auto it = response.headers().begin();
- * for( ;it != response.headers().end(); ++it) {
- *   it->header_name();
- *   it->header_value();
+ * e.g. -
+ * for (const auto& header : resp.headers()) {
+ *   header.first;
+ *   header.second;
  * }
  */
 template <typename T>
-class HTTP_Response<T>::Header {
+class HTTP_Response<T>::Headers {
  public:
-  Header(T* resp) : resp_(resp) {}
+  Headers(T* resp) : resp_(resp) {}
 
   std::string operator[](const std::string& name) {
     return std::string(resp_->T::operator[](name));
