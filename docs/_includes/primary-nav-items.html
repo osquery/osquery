@@ -1,0 +1,20 @@
+<ul>
+  <li class="{% if page.overview %}current{% endif %}">
+    <a href="{{ site.baseurl }}/">Home</a>
+  </li>
+  <li class="{% if page.url contains '/docs/' %}current{% endif %}">
+    <a href="{{ site.baseurl }}/docs/home/">Docs</a>
+  </li>
+  <li class="{% if page.author %}current{% endif %}">
+    <a href="{{ site.baseurl }}/news/">News</a>
+  </li>
+  <li class="{% if page.url contains '/schema/' %}current{% endif %}">
+    <a href="{{ site.baseurl }}/schema/">Schema</a>
+  </li>
+  <li class="{% if page.url contains '/downloads/' %}current{% endif %}">
+    <a href="{{ site.baseurl }}/downloads/">Downloads</a>
+  </li>
+  <li>
+    <a href="{{ site.repository }}">GitHub</a>
+  </li>
+</ul>
