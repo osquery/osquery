@@ -184,6 +184,24 @@ void genApplication(const pt::ptree& tree,
   r["name"] = path.parent_path().parent_path().filename().string();
   r["path"] = path.parent_path().parent_path().string();
 
+  NSString* filePath =
+      [NSString stringWithUTF8String:path.parent_path().parent_path().c_str()];
+  MDItemRef mdItem = MDItemCreate(NULL, (CFStringRef)filePath);
+
+  if (mdItem != NULL) {
+    NSDate* lastOpened = (NSDate*)CFBridgingRelease(
+        MDItemCopyAttribute(mdItem, kMDItemLastUsedDate));
+    if (lastOpened != NULL) {
+      r["last_opened_time"] = INTEGER([lastOpened timeIntervalSince1970]);
+      CFRelease(mdItem);
+      mdItem = NULL;
+    } else {
+      r["last_opened_time"] = INTEGER(-1);
+    }
+  } else {
+    r["last_opened_time"] = INTEGER(-1);
+  }
+
   // Loop through each column and its mapped Info.plist key name.
   for (const auto& item : kAppsInfoPlistTopLevelStringKeys) {
     r[item.second] = tree.get<std::string>(item.first, "");
