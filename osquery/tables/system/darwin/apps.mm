@@ -188,16 +188,16 @@ void genApplication(const pt::ptree& tree,
       [NSString stringWithUTF8String:path.parent_path().parent_path().c_str()];
   MDItemRef mdItem = MDItemCreate(NULL, (CFStringRef)filePath);
 
-  if (mdItem != NULL) {
-    NSDate* lastOpened = (NSDate*)CFBridgingRelease(
-        MDItemCopyAttribute(mdItem, kMDItemLastUsedDate));
-    if (lastOpened != NULL) {
+  if (mdItem != nullptr) {
+    NSDate* lastOpened = static_cast<NSDate*>(
+        CFBridgingRelease(MDItemCopyAttribute(mdItem, kMDItemLastUsedDate)));
+    if (lastOpened != nullptr) {
       r["last_opened_time"] = INTEGER([lastOpened timeIntervalSince1970]);
-      CFRelease(mdItem);
-      mdItem = NULL;
     } else {
       r["last_opened_time"] = INTEGER(-1);
     }
+    CFRelease(mdItem);
+    mdItem = NULL;
   } else {
     r["last_opened_time"] = INTEGER(-1);
   }
