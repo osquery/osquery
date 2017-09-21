@@ -216,7 +216,7 @@ $(document).ready(function() {
           {% continue %}
         {% endif %}
         <span class="code {% if version contains _version.version %}current{% endif %}">
-          <a href="{{site.baseurl}}/schema/{{_version.version}}">{{_version.version}}</a></span>{% if _version != versions.last and forloop.index < max %},
+          <a href="/schema/{{_version.version}}">{{_version.version}}</a></span>{% if _version != versions.last and forloop.index < max %},
         {% endif %}
       {% endfor %}
     </div>

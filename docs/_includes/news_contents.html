@@ -2,10 +2,10 @@
   <aside>
     <ul>
       <li class="{% if page.title == 'News' %}current{% endif %}">
-        <a href="{{ site.baseurl }}/news/">All News</a>
+        <a href="/news/">All News</a>
       </li>
       <li class="{% if page.title == 'Community' %}current{% endif %}">
-        <a href="{{site.baseurl }}/community/">Community News</a>
+        <a href="/community/">Community News</a>
       </li>
     </ul>
     <h4>Other News</h4>
@@ -13,7 +13,7 @@
         {% for post in site.posts %}
         {% unless post.categories contains 'release' %}
         <li class="{% if page.title == post.title %}current{% endif %}">
-          <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
+          <a href="{{ post.url }}">{{ post.title }}</a>
         </li>
         {% endunless %}
         {% endfor %}
