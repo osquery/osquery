@@ -15,7 +15,6 @@
 
 #include "osquery/events/darwin/openbsm.h"
 
-
 namespace osquery {
 
 /// The OpenBSM subsystem may have a performance impact on the system.
