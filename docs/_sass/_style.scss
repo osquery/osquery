@@ -1168,3 +1168,25 @@ article {
     background: #454545;
   }
 }
+
+.facebookSourceFooter {
+  align-items: center;
+  display: flex;
+  flex-flow: row nowrap;
+
+  .facebookOSSLogoSvg {
+    flex: 0 0 31px;
+  }
+
+  path {
+    fill: #c0c0c0;
+  }
+
+  .middleRing {
+    opacity: 0.7;
+  }
+
+  .innerRing{
+    opacity: 0.45;
+  }
+}
