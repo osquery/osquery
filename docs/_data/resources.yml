@@ -1,0 +1,11 @@
+- speaker: Trail of Bits
+  twitter_handle: trailofbits
+  link: https://blog.trailofbits.com/2016/09/27/windows-network-security-now-easier-with-osquery/
+  topic: Windows network security now easier with osquery
+  year: 2016
+
+- speaker: Jen Andre
+  twitter_handle: fun_cuddles
+  link: https://komunity.komand.com/learn/featured/introduction-to-osquery-for-threat-detection-dfir/
+  topic: Introduction to osquery for threat detection and DFIR
+  year: 2016
