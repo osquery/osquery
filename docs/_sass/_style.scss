@@ -67,6 +67,10 @@ nav {
   li { display: inline-block; }
 }
 
+.logoheader {
+  white-space: nowrap;
+}
+
 .logo {
 
   color: #FFF;
@@ -74,9 +78,16 @@ nav {
   img {
     width: 60px;
     vertical-align: middle;
-    padding-top: 35px;
-    padding-bottom: 35px;
     margin-right: 15px;
+  }
+}
+
+@media (min-width: 796px) {
+  .logo {
+    img {
+      padding-top: 35px;
+      padding-bottom: 35px;
+    }
   }
 }
 
@@ -424,8 +435,15 @@ footer {
       display: block;
       margin: 0;
       padding: 0;
+      white-space: nowrap;
 
-      span { display: inline-block; }
+      span {
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        vertical-align: top;
+      }
     }
 
     .path {
