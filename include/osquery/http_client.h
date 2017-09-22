@@ -94,8 +94,8 @@ typedef HTTP_Response<beast_http_response> Response;
 /**
  * @brief a simple http client class based upon boost.beast.
  *
- * Implements put, post, get, head and delete_ methods.
- * These methods take request as refrence and  return respose by value.
+ * Implements put, post, get, head and delete methods.
+ * These methods take request as reference and  return response by value.
  */
 class Client {
  public:
@@ -205,9 +205,19 @@ class Client {
                std::string const& body,
                std::string const& content_type = std::string());
 
+  /// HTTP put request method with rvalue reference to body param
+  Response put(Request& req,
+               std::string&& body,
+               std::string const& content_type = std::string());
+
   /// HTTP post request method
   Response post(Request& req,
                 std::string const& body,
+                std::string const& content_type = std::string());
+
+  /// HTTP post request method with rvalue reference to body param
+  Response post(Request& req,
+                std::string&& body,
                 std::string const& content_type = std::string());
 
   /// HTTP get request method
@@ -332,15 +342,16 @@ class HTTP_Request : public T {
  * @brief HTTP response class
  *
  * This class is inherited from implementation(boost.beast) http response class.
- * This class gives convinent access to some functionality of implemention
+ * This class gives convenient access to some functionality of implemention
  * specific http response class.
  *
  */
 template <typename T>
 class HTTP_Response : public T {
  public:
-  HTTP_Response() {}
-  HTTP_Response(const T& resp) : T(resp) {}
+  HTTP_Response() = default;
+
+  HTTP_Response(T&& resp) : T(std::move(resp)) {}
 
   template <typename ITER>
   class Iterator;

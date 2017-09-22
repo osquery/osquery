@@ -42,8 +42,8 @@ class adapted_category : public std::error_category {
 void Client::postResponseHandler(boost_system::error_code const& ec) {
   if ((ec.category() == boost_asio::error::ssl_category) &&
       (ec.value() == SHORT_READ_ERROR)) {
-    // ignoring short read error
-    ec_ = boost_system::errc::make_error_code(boost_system::errc::success);
+    // ignoring short read error, set ec_ to success
+    ec_.clear();
   } else if ((ec.value() != boost_system::errc::operation_canceled) ||
              (ec.category() != boost_asio::error::system_category)) {
     ec_ = ec;
@@ -118,7 +118,8 @@ void Client::createConnection() {
     beast_http_response_parser rp;
     rp.skip(true);
     beast_http::read_header(sock_, b, rp);
-    if (rp.get().result() != beast_http::status::ok) {
+    if (beast_http::to_status_class(rp.get().result()) !=
+        beast_http::status_class::successful) {
       throw std::runtime_error(rp.get().reason().data());
     }
   }
@@ -182,7 +183,7 @@ void Client::sendRequest(STREAM_TYPE& stream,
                          beast_http_response_parser& resp) {
   req.target((req.remotePath()) ? *req.remotePath() : "/");
   req.version = 11;
-  req << Request::Header("Host", *client_options_.remote_hostname_);
+  req.set(beast_http::field::host, *client_options_.remote_hostname_);
   req.prepare_payload();
   req.keep_alive(true);
 
@@ -308,7 +309,7 @@ Response Client::put(Request& req,
   req.method(beast_http::verb::put);
   req.body = body;
   if (content_type.size()) {
-    req << Request::Header("Content-Type", content_type);
+    req.set(beast_http::field::content_type, content_type);
   }
   return sendHTTPRequest(req);
 }
@@ -319,7 +320,29 @@ Response Client::post(Request& req,
   req.method(beast_http::verb::post);
   req.body = body;
   if (content_type.size()) {
-    req << Request::Header("Content-Type", content_type);
+    req.set(beast_http::field::content_type, content_type);
+  }
+  return sendHTTPRequest(req);
+}
+
+Response Client::put(Request& req,
+                     std::string&& body,
+                     std::string const& content_type) {
+  req.method(beast_http::verb::put);
+  req.body = std::move(body);
+  if (content_type.size()) {
+    req.set(beast_http::field::content_type, content_type);
+  }
+  return sendHTTPRequest(req);
+}
+
+Response Client::post(Request& req,
+                      std::string&& body,
+                      std::string const& content_type) {
+  req.method(beast_http::verb::post);
+  req.body = std::move(body);
+  if (content_type.size()) {
+    req.set(beast_http::field::content_type, content_type);
   }
   return sendHTTPRequest(req);
 }
