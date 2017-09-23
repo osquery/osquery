@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <memory>
 
 #include <boost/variant.hpp>
 
@@ -88,8 +89,8 @@ class AuditEventPublisher final
                             AuditTraceContext& trace_context) noexcept;
 
  private:
-  /// Audit netlink subscription handle
-  NetlinkSubscriptionHandle audit_netlink_subscription_{0};
+  /// Netlink reader
+  std::unique_ptr<AuditdNetlink> audit_netlink_;
 
   /// This is where audit records are assembled
   AuditTraceContext audit_trace_context_;

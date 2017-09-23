@@ -28,9 +28,6 @@ namespace osquery {
 /// Netlink status, used by AuditNetlink::acquireHandle()
 enum class NetlinkStatus { ActiveMutable, ActiveImmutable, Disabled, Error };
 
-/// Subscription handle to be used with AuditNetlink::getEvents()
-using NetlinkSubscriptionHandle = std::uint32_t;
-
 /// Contains an audit_rule_data structure
 using AuditRuleDataObject = std::vector<std::uint8_t>;
 
@@ -49,32 +46,13 @@ struct AuditEventRecord final {
   std::map<std::string, std::string> fields;
 };
 
-/// The subscriber context stores the received audit event records.
-struct AuditNetlinkSubscriberContext final {
-  /// This queue contains unprocessed events
-  std::vector<AuditEventRecord> queue;
-
-  /// Queue mutex.
-  std::mutex queue_mutex;
-};
-
 class AuditdNetlink final : private boost::noncopyable {
  public:
-  AuditdNetlink(const AuditdNetlink&) = delete;
-  AuditdNetlink& operator=(const AuditdNetlink&) = delete;
-
-  static AuditdNetlink& get();
-  ~AuditdNetlink() = default;
-
-  /// Creates a subscription context and returns a handle
-  NetlinkSubscriptionHandle subscribe() noexcept;
-
-  /// Destroys the subscription context associated with the given handle.
-  void unsubscribe(NetlinkSubscriptionHandle handle) noexcept;
+  AuditdNetlink();
+  ~AuditdNetlink();
 
   /// Prepares the raw audit event records stored in the given context.
-  std::vector<AuditEventRecord> getEvents(
-      NetlinkSubscriptionHandle handle) noexcept;
+  std::vector<AuditEventRecord> getEvents() noexcept;
 
   /// Parses an audit_reply structure into an AuditEventRecord object
   static bool ParseAuditReply(const audit_reply& reply,
@@ -84,14 +62,6 @@ class AuditdNetlink final : private boost::noncopyable {
   static void AdjustAuditReply(audit_reply& reply) noexcept;
 
  private:
-  AuditdNetlink() = default;
-
-  /// Starts the event receiver thread.
-  bool start() noexcept;
-
-  /// Terminates the thread receiving the events
-  void terminate() noexcept;
-
   /// This is the entry point for the thread that receives the netlink events.
   bool recvThread() noexcept;
 
@@ -126,25 +96,6 @@ class AuditdNetlink final : private boost::noncopyable {
   /// Netlink handle.
   int audit_netlink_handle_{-1};
 
-  /// True if the netlink class has been initialized.
-  bool initialized_{false};
-
-  /// Initialization mutex
-  std::mutex initialization_mutex_;
-
-  /// This value is used to generate subscription handles.
-  NetlinkSubscriptionHandle handle_generator_{0};
-
-  /// Mutex that guards the subscriber list.
-  std::mutex subscribers_mutex_;
-
-  /// How many subscribers are receiving events
-  std::atomic<std::size_t> subscriber_count_{0};
-
-  /// Subscriber map.
-  std::unordered_map<NetlinkSubscriptionHandle, AuditNetlinkSubscriberContext>
-      subscribers_;
-
   /// Set to true by ::terminate() when the thread should exit.
   std::atomic<bool> terminate_threads_{false};
 
@@ -171,6 +122,12 @@ class AuditdNetlink final : private boost::noncopyable {
 
   /// The thread that processes the audit events
   std::unique_ptr<std::thread> processing_thread_;
+
+  /// This queue contains unprocessed events
+  std::vector<AuditEventRecord> raw_queue;
+
+  /// Queue mutex.
+  std::mutex raw_queue_mutex;
 };
 
 /// Handle quote and hex-encoded audit field content.

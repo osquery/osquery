@@ -8,10 +8,8 @@
  *
  */
 
-#include <asm/unistd_64.h>
 #include <linux/audit.h>
 #include <poll.h>
-#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -51,14 +49,11 @@ bool ShouldHandle(const audit_reply& reply) noexcept {
 }
 
 namespace osquery {
-/// The audit subsystem may have a performance impact on the system.
-FLAG(bool,
-     disable_audit,
-     true,
-     "Disable receiving events from the audit subsystem");
-
 /// Control the audit subsystem by electing to be the single process sink.
 FLAG(bool, audit_persist, true, "Attempt to retain control of audit");
+
+/// Audit debugger helper
+HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
 
 /// Control the audit subsystem by allowing subscriptions to apply rules.
 FLAG(bool,
@@ -79,23 +74,11 @@ FLAG(bool,
      false,
      "Configure the audit subsystem from scratch");
 
-/// Audit debugger helper
-HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
-
-// External flags
+// External flags; they are used to determine which rules needs to be installed
+DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
-DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_user_events);
-
-bool IsAuditdNetlinkEnabled() noexcept {
-  if (FLAGS_disable_audit) {
-    return false;
-  }
-
-  return (FLAGS_audit_allow_process_events || FLAGS_audit_allow_sockets ||
-          FLAGS_audit_allow_fim_events || FLAGS_audit_allow_user_events);
-}
 
 enum AuditStatus {
   AUDIT_DISABLED = 0,
@@ -103,119 +86,44 @@ enum AuditStatus {
   AUDIT_IMMUTABLE = 2,
 };
 
-AuditdNetlink& AuditdNetlink::get() {
-  static AuditdNetlink instance;
-  return instance;
-}
+AuditdNetlink::AuditdNetlink() {
+  // Allocate the read buffer before we start the threads
+  const size_t read_buffer_size = 4096;
 
-bool AuditdNetlink::start() noexcept {
-  std::lock_guard<std::mutex> lock(initialization_mutex_);
-
-  if (initialized_)
-    return true;
-
-  if (!IsAuditdNetlinkEnabled()) {
-    return true;
+  read_buffer_.resize(read_buffer_size);
+  if (read_buffer_.size() != read_buffer_size) {
+    VLOG(1) << "Failed to allocate the audit netlink read buffer";
+    throw std::bad_alloc();
   }
 
-  try {
-    // Allocate the read buffer before we start the threads
-    const size_t read_buffer_size = 4096;
+  // Start the reading thread
+  std::packaged_task<bool(AuditdNetlink&)> recv_thread_task(
+      std::bind(&AuditdNetlink::recvThread, this));
 
-    read_buffer_.resize(read_buffer_size);
-    if (read_buffer_.size() != read_buffer_size) {
-      VLOG(1) << "Failed to allocate the audit netlink read buffer";
-      return false;
-    }
+  recv_thread_.reset(
+      new std::thread(std::move(recv_thread_task), std::ref(*this)));
 
-    // Start the reading thread
-    std::packaged_task<bool(AuditdNetlink&)> recv_thread_task(
-        std::bind(&AuditdNetlink::recvThread, this));
+  // Start the processing thread
+  std::packaged_task<bool(AuditdNetlink&)> processing_thread_task(
+      std::bind(&AuditdNetlink::processThread, this));
 
-    recv_thread_.reset(
-        new std::thread(std::move(recv_thread_task), std::ref(*this)));
-
-    // Start the processing thread
-    std::packaged_task<bool(AuditdNetlink&)> processing_thread_task(
-        std::bind(&AuditdNetlink::processThread, this));
-
-    processing_thread_.reset(
-        new std::thread(std::move(processing_thread_task), std::ref(*this)));
-
-    initialized_ = true;
-    return true;
-
-  } catch (const std::bad_alloc&) {
-    return false;
-  }
+  processing_thread_.reset(
+      new std::thread(std::move(processing_thread_task), std::ref(*this)));
 }
 
-void AuditdNetlink::terminate() noexcept {
-  std::lock_guard<std::mutex> lock(initialization_mutex_);
-
+AuditdNetlink::~AuditdNetlink() {
   terminate_threads_ = true;
 
   processing_thread_->join();
   recv_thread_->join();
-
-  initialized_ = false;
 }
 
-NetlinkSubscriptionHandle AuditdNetlink::subscribe() noexcept {
-  if (!start()) {
-    VLOG(1) << "Failed to initialize the AuditdNetlink class";
-    return 0;
-  }
+std::vector<AuditEventRecord> AuditdNetlink::getEvents() noexcept {
+  /// \todo add some kind of pause/wakeup here
+  std::lock_guard<std::mutex> queue_lock(raw_queue_mutex);
 
-  std::lock_guard<std::mutex> lock(subscribers_mutex_);
-
-  auto new_handle = ++handle_generator_;
-  subscribers_[new_handle];
-
-  subscriber_count_ = subscribers_.size();
-  return new_handle;
-}
-
-void AuditdNetlink::unsubscribe(NetlinkSubscriptionHandle handle) noexcept {
-  std::lock_guard<std::mutex> lock(subscribers_mutex_);
-
-  auto it = subscribers_.find(handle);
-  if (it == subscribers_.end())
-    return;
-
-  subscribers_.erase(it);
-  subscriber_count_ = subscribers_.size();
-
-  if (subscriber_count_ == 0) {
-    terminate();
-    initialized_ = false;
-  }
-}
-
-std::vector<AuditEventRecord> AuditdNetlink::getEvents(
-    NetlinkSubscriptionHandle handle) noexcept {
-  if (!IsAuditdNetlinkEnabled()) {
-    return std::vector<AuditEventRecord>();
-  }
-
-  std::vector<AuditEventRecord> audit_event_record_list;
-
-  {
-    std::lock_guard<std::mutex> subscriber_list_lock(subscribers_mutex_);
-
-    auto subscriber_it = subscribers_.find(handle);
-    if (subscriber_it == subscribers_.end())
-      return std::vector<AuditEventRecord>();
-
-    auto& context = subscriber_it->second;
-
-    {
-      std::lock_guard<std::mutex> queue_lock(context.queue_mutex);
-
-      audit_event_record_list = std::move(context.queue);
-      context.queue.clear();
-    }
-  }
+  auto audit_event_record_list = std::move(raw_queue);
+  raw_queue.clear();
 
   return audit_event_record_list;
 }
@@ -354,11 +262,6 @@ bool AuditdNetlink::recvThread() noexcept {
   const int status_request_countdown = 1000;
 
   while (!terminate_threads_) {
-    if (subscriber_count_ == 0) {
-      std::this_thread::sleep_for(std::chrono::seconds(5));
-      continue;
-    }
-
     if (acquire_netlink_handle_) {
       if (FLAGS_audit_debug) {
         std::cout << "(re)acquiring the audit handle.." << std::endl;
@@ -437,7 +340,7 @@ bool AuditdNetlink::processThread() noexcept {
       // as soon as we finish processing the pending queue
       if (reply.type == AUDIT_GET) {
         reply.status = static_cast<struct audit_status*>(NLMSG_DATA(reply.nlh));
-        pid_t new_pid = static_cast<pid_t>(reply.status->pid);
+        auto new_pid = static_cast<pid_t>(reply.status->pid);
 
         if (new_pid != getpid()) {
           VLOG(1) << "Audit control lost to pid: " << new_pid;
@@ -469,20 +372,12 @@ bool AuditdNetlink::processThread() noexcept {
 
     // Dispatch the new records to the subscribers
     if (!audit_event_record_queue.empty()) {
-      std::lock_guard<std::mutex> subscriber_list_lock(subscribers_mutex_);
+      std::lock_guard<std::mutex> queue_lock(raw_queue_mutex);
 
-      for (auto& subscriber_descriptor : subscribers_) {
-        auto& subscriber_context = subscriber_descriptor.second;
-
-        std::lock_guard<std::mutex> queue_lock(subscriber_context.queue_mutex);
-
-        subscriber_context.queue.reserve(subscriber_context.queue.size() +
-                                         audit_event_record_queue.size());
-
-        subscriber_context.queue.insert(subscriber_context.queue.end(),
-                                        audit_event_record_queue.begin(),
-                                        audit_event_record_queue.end());
-      }
+      raw_queue.reserve(raw_queue.size() + audit_event_record_queue.size());
+      raw_queue.insert(raw_queue.end(),
+                       audit_event_record_queue.begin(),
+                       audit_event_record_queue.end());
     }
 
     queue.clear();
@@ -520,7 +415,7 @@ bool AuditdNetlink::acquireMessages() noexcept {
       break;
     }
 
-    audit_reply reply;
+    audit_reply reply = {};
     ssize_t len = recvfrom(audit_netlink_handle_,
                            &reply.msg,
                            sizeof(reply.msg),
@@ -859,10 +754,6 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
   auto L_GetNetlinkStatus = [](int netlink_handle) -> NetlinkStatus {
     if (netlink_handle <= 0) {
       return NetlinkStatus::Error;
-    }
-
-    if (FLAGS_disable_audit) {
-      return NetlinkStatus::Disabled;
     }
 
     errno = 0;
