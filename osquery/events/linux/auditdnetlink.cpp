@@ -119,13 +119,19 @@ AuditdNetlink::~AuditdNetlink() {
 }
 
 std::vector<AuditEventRecord> AuditdNetlink::getEvents() noexcept {
-  /// \todo add some kind of pause/wakeup here
-  std::lock_guard<std::mutex> queue_lock(raw_queue_mutex);
+  std::vector<AuditEventRecord> record_list;
 
-  auto audit_event_record_list = std::move(raw_queue);
-  raw_queue.clear();
+  {
+    std::unique_lock<std::mutex> queue_lock(event_queue_mutex_);
 
-  return audit_event_record_list;
+    if (event_queue_cv_.wait_for(queue_lock, std::chrono::seconds(5)) ==
+        std::cv_status::no_timeout) {
+      record_list = std::move(event_queue_);
+      event_queue_.clear();
+    }
+  }
+
+  return record_list;
 }
 
 bool AuditdNetlink::ParseAuditReply(const audit_reply& reply,
@@ -370,14 +376,17 @@ bool AuditdNetlink::processThread() noexcept {
       audit_event_record_queue.push_back(audit_event_record);
     }
 
-    // Dispatch the new records to the subscribers
+    // Save the new records and notify the reader
     if (!audit_event_record_queue.empty()) {
-      std::lock_guard<std::mutex> queue_lock(raw_queue_mutex);
+      std::lock_guard<std::mutex> queue_lock(event_queue_mutex_);
 
-      raw_queue.reserve(raw_queue.size() + audit_event_record_queue.size());
-      raw_queue.insert(raw_queue.end(),
-                       audit_event_record_queue.begin(),
-                       audit_event_record_queue.end());
+      event_queue_.reserve(event_queue_.size() +
+                           audit_event_record_queue.size());
+      event_queue_.insert(event_queue_.end(),
+                          audit_event_record_queue.begin(),
+                          audit_event_record_queue.end());
+
+      event_queue_cv_.notify_all();
     }
 
     queue.clear();

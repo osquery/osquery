@@ -13,6 +13,7 @@
 #include <libaudit.h>
 
 #include <atomic>
+#include <condition_variable>
 #include <future>
 #include <map>
 #include <memory>
@@ -123,11 +124,14 @@ class AuditdNetlink final : private boost::noncopyable {
   /// The thread that processes the audit events
   std::unique_ptr<std::thread> processing_thread_;
 
-  /// This queue contains unprocessed events
-  std::vector<AuditEventRecord> raw_queue;
+  /// This queue contains processed events
+  std::vector<AuditEventRecord> event_queue_;
 
-  /// Queue mutex.
-  std::mutex raw_queue_mutex;
+  /// Processed events queue mutex.
+  std::mutex event_queue_mutex_;
+
+  /// Processed events condition variable
+  std::condition_variable event_queue_cv_;
 };
 
 /// Handle quote and hex-encoded audit field content.

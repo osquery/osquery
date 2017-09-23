@@ -9,7 +9,6 @@
  */
 
 #include <array>
-#include <iostream>
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -89,7 +88,6 @@ Status AuditEventPublisher::run() {
     fire(event_context);
   }
 
-  std::cout << "AuditEventPublisher::run" << std::endl;
   return Status(0, "OK");
 }
 
