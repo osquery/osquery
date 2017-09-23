@@ -8,8 +8,5 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function distro_main() {
-  do_sudo dnf update -y
-
-  package doxygen
-  package valgrind
+  do_sudo zypper update -y
 }

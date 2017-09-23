@@ -63,6 +63,7 @@ function platform_linux_main() {
   brew_tool libidn
   brew_tool libedit
   brew_tool libtool
+  brew_tool libyaml
   brew_tool m4
   brew_tool autoconf
   brew_tool automake
