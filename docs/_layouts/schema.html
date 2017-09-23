@@ -103,7 +103,7 @@ function buildTable(pg, table) {
     column = table.columns[coli];
     cui = pg.find('.template-col').clone();
     cui.find('.col-name').text(column.name);
-    cui.find('.col-type').text(column.type);
+    cui.find('.col-type').text(column.type.replace(/_TYPE/, ''));
     cui.find('.col-desc').text(column.description);
     details = cui.find('.tables-details');
     if (column.options.index) {
@@ -148,6 +148,14 @@ $(document).ready(function() {
       };
 
       pg = $('#playground');
+      data.tables.sort(function(a, b) {
+        // Sort and replace the 'specs' category.
+        if (a.key == 'specs') {
+          a.key = 'all';
+        }
+        return a.key.localeCompare(b.key);
+      });
+
       for (var ci in data.tables) {
         ui = pg.find('.template-category').clone();
         ui.prop('id', data.tables[ci].key);
@@ -177,10 +185,12 @@ $(document).ready(function() {
     <div class="unit whole">
       <h2>Table schema</h2>
       <p>
-        There are some operating-specific tables that apply to OS X, Ubuntu,
-        or CentOS only. osquery stresses feature parity, minimizing tables
-        that are not available to all platforms is a priority. Tables marked
-        with [beta] may be subject to renaming or column changes.
+        We strive for feature parity and attempt to maximize the number of tables
+        universally available on all platforms.
+        Nevertheless, there are platform-specific tables that apply to macOS, Windows,
+        or Linux exclusively.
+        This schema documentation categorizes tables by platform availability.
+        Categories also include application or integration specific tables.
       </p>
     </div>
   </div>

@@ -70,3 +70,4 @@ separators:
   linux: "-"
 
 schema_url: https://raw.githubusercontent.com/osquery/osquery-site/master/schema
+slack_url: https://osquery-slack.herokuapp.com
