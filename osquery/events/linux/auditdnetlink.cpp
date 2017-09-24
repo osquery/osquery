@@ -74,7 +74,7 @@ FLAG(bool,
      false,
      "Configure the audit subsystem from scratch");
 
-// External flags; they are used to determine which rules needs to be installed
+// External flags; they are used to determine which rules need to be installed
 DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
@@ -87,188 +87,57 @@ enum AuditStatus {
 };
 
 AuditdNetlink::AuditdNetlink() {
-  // Allocate the read buffer before we start the threads
-  const size_t read_buffer_size = 4096;
+  try {
+    auditd_context_ = std::make_shared<AuditdContext>();
 
-  read_buffer_.resize(read_buffer_size);
-  if (read_buffer_.size() != read_buffer_size) {
-    VLOG(1) << "Failed to allocate the audit netlink read buffer";
-    throw std::bad_alloc();
+    Dispatcher::addService(
+        std::make_shared<AuditdNetlinkReader>(auditd_context_));
+
+    Dispatcher::addService(
+        std::make_shared<AuditdNetlinkParser>(auditd_context_));
+
+  } catch (const std::bad_alloc&) {
+    VLOG(1) << "Failed to initialize the AuditdNetlink services due to a "
+               "memory allocation error";
+    throw;
   }
-
-  // Start the reading thread
-  std::packaged_task<bool(AuditdNetlink&)> recv_thread_task(
-      std::bind(&AuditdNetlink::recvThread, this));
-
-  recv_thread_.reset(
-      new std::thread(std::move(recv_thread_task), std::ref(*this)));
-
-  // Start the processing thread
-  std::packaged_task<bool(AuditdNetlink&)> processing_thread_task(
-      std::bind(&AuditdNetlink::processThread, this));
-
-  processing_thread_.reset(
-      new std::thread(std::move(processing_thread_task), std::ref(*this)));
-}
-
-AuditdNetlink::~AuditdNetlink() {
-  terminate_threads_ = true;
-
-  processing_thread_->join();
-  recv_thread_->join();
 }
 
 std::vector<AuditEventRecord> AuditdNetlink::getEvents() noexcept {
   std::vector<AuditEventRecord> record_list;
 
   {
-    std::unique_lock<std::mutex> queue_lock(event_queue_mutex_);
+    std::unique_lock<std::mutex> queue_lock(
+        auditd_context_->processed_events_mutex);
 
-    if (event_queue_cv_.wait_for(queue_lock, std::chrono::seconds(5)) ==
+    if (auditd_context_->processed_records_cv.wait_for(
+            queue_lock, std::chrono::seconds(5)) ==
         std::cv_status::no_timeout) {
-      record_list = std::move(event_queue_);
-      event_queue_.clear();
+      record_list = std::move(auditd_context_->processed_events);
+      auditd_context_->processed_events.clear();
     }
   }
 
   return record_list;
 }
 
-bool AuditdNetlink::ParseAuditReply(const audit_reply& reply,
-                                    AuditEventRecord& event_record) noexcept {
-  event_record = {};
+AuditdNetlinkReader::AuditdNetlinkReader(AuditdContextRef context)
+    : auditd_context_(std::move(context)) {
+  const size_t read_buffer_size = 4096U;
 
-  if (FLAGS_audit_debug) {
-    std::cout << reply.type << ", " << std::string(reply.message, reply.len)
-              << std::endl;
-  }
-
-  // Tokenize the message.
-  event_record.type = reply.type;
-  boost::string_ref message_view(reply.message,
-                                 static_cast<unsigned int>(reply.len));
-
-  auto preamble_end = message_view.find("): ");
-  if (preamble_end == std::string::npos) {
-    return false;
-  }
-
-  safeStrtoul(message_view.substr(6, 10).to_string(), 10, event_record.time);
-  event_record.audit_id = message_view.substr(6, preamble_end - 6).to_string();
-  boost::string_ref field_view(message_view.substr(preamble_end + 3));
-
-  // The linear search will construct series of key value pairs.
-  std::string key, value;
-  key.reserve(20);
-  value.reserve(256);
-
-  // There are several ways of representing value data (enclosed strings,
-  // etc).
-  bool found_assignment{false};
-  bool found_enclose{false};
-
-  for (const auto& c : field_view) {
-    // Iterate over each character in the audit message.
-    if ((found_enclose && c == '"') || (!found_enclose && c == ' ')) {
-      if (c == '"') {
-        value += c;
-      }
-
-      // This is a terminating sequence, the end of an enclosure or space
-      // tok.
-      if (!key.empty()) {
-        // Multiple space tokens are supported.
-        event_record.fields.emplace(
-            std::make_pair(std::move(key), std::move(value)));
-      }
-
-      found_enclose = false;
-      found_assignment = false;
-
-      key.clear();
-      value.clear();
-
-    } else if (!found_assignment && c == ' ') {
-      // A field tokenizer.
-
-    } else if (found_assignment) {
-      // Enclosure sequences appear immediately following assignment.
-      if (c == '"') {
-        found_enclose = true;
-      }
-
-      value += c;
-
-    } else if (c == '=') {
-      found_assignment = true;
-
-    } else {
-      key += c;
-    }
-  }
-
-  // Last step, if there was no trailing tokenizer.
-  if (!key.empty()) {
-    event_record.fields.emplace(
-        std::make_pair(std::move(key), std::move(value)));
-  }
-
-  return true;
-}
-
-void AuditdNetlink::AdjustAuditReply(audit_reply& reply) noexcept {
-  reply.type = reply.msg.nlh.nlmsg_type;
-  reply.len = reply.msg.nlh.nlmsg_len;
-  reply.nlh = &reply.msg.nlh;
-
-  reply.status = nullptr;
-  reply.ruledata = nullptr;
-  reply.login = nullptr;
-  reply.message = nullptr;
-  reply.error = nullptr;
-  reply.signal_info = nullptr;
-  reply.conf = nullptr;
-
-  switch (reply.type) {
-  case NLMSG_ERROR: {
-    reply.error = static_cast<struct nlmsgerr*>(NLMSG_DATA(reply.nlh));
-    break;
-  }
-
-  case AUDIT_LIST_RULES: {
-    reply.ruledata =
-        static_cast<struct audit_rule_data*>(NLMSG_DATA(reply.nlh));
-    break;
-  }
-
-  case AUDIT_USER:
-  case AUDIT_LOGIN:
-  case AUDIT_KERNEL:
-  case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
-  case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
-  case AUDIT_FIRST_EVENT ... AUDIT_INTEGRITY_LAST_MSG: {
-    reply.message = static_cast<char*>(NLMSG_DATA(reply.nlh));
-    break;
-  }
-
-  case AUDIT_SIGNAL_INFO: {
-    reply.signal_info = static_cast<audit_sig_info*>(NLMSG_DATA(reply.nlh));
-    break;
-  }
-
-  default:
-    break;
+  read_buffer_.resize(read_buffer_size);
+  if (read_buffer_.size() != read_buffer_size) {
+    LOG(ERROR) << "Memory allocation error";
+    throw std::bad_alloc();
   }
 }
 
-bool AuditdNetlink::recvThread() noexcept {
-  acquire_netlink_handle_ = true;
-
+void AuditdNetlinkReader::start() {
   int counter_to_next_status_request = 0;
   const int status_request_countdown = 1000;
 
-  while (!terminate_threads_) {
-    if (acquire_netlink_handle_) {
+  while (!interrupted()) {
+    if (auditd_context_->acquire_handle) {
       if (FLAGS_audit_debug) {
         std::cout << "(re)acquiring the audit handle.." << std::endl;
       }
@@ -281,7 +150,7 @@ bool AuditdNetlink::recvThread() noexcept {
         continue;
       }
 
-      acquire_netlink_handle_ = false;
+      auditd_context_->acquire_handle = false;
       counter_to_next_status_request = status_request_countdown;
     }
 
@@ -297,7 +166,7 @@ bool AuditdNetlink::recvThread() noexcept {
           VLOG(1) << "Error: Failed to request audit status. Requesting a "
                      "handle reset";
 
-          acquire_netlink_handle_ = true;
+          auditd_context_->acquire_handle = true;
         }
       }
 
@@ -307,96 +176,18 @@ bool AuditdNetlink::recvThread() noexcept {
     }
 
     if (!acquireMessages()) {
-      acquire_netlink_handle_ = true;
-      continue;
+      auditd_context_->acquire_handle = true;
     }
   }
 
-  proc_thread_cv_.notify_one();
+  auditd_context_->unprocessed_records_cv.notify_all();
   restoreAuditServiceConfiguration();
 
   audit_close(audit_netlink_handle_);
   audit_netlink_handle_ = -1;
-
-  return true;
 }
 
-bool AuditdNetlink::processThread() noexcept {
-  while (!terminate_threads_) {
-    std::vector<audit_reply> queue;
-
-    {
-      std::unique_lock<std::mutex> lock(raw_audit_record_list_mutex_);
-
-      while (raw_audit_record_list_.empty() && !terminate_threads_) {
-        proc_thread_cv_.wait(lock);
-      }
-
-      queue = std::move(raw_audit_record_list_);
-      raw_audit_record_list_.clear();
-    }
-
-    std::vector<AuditEventRecord> audit_event_record_queue;
-
-    for (auto& reply : queue) {
-      AdjustAuditReply(reply);
-
-      // This record carries the process id of the controlling daemon; in case
-      // we lost control of the audit service, we are going to request a reset
-      // as soon as we finish processing the pending queue
-      if (reply.type == AUDIT_GET) {
-        reply.status = static_cast<struct audit_status*>(NLMSG_DATA(reply.nlh));
-        auto new_pid = static_cast<pid_t>(reply.status->pid);
-
-        if (new_pid != getpid()) {
-          VLOG(1) << "Audit control lost to pid: " << new_pid;
-
-          if (FLAGS_audit_persist) {
-            VLOG(1) << "Attempting to reacquire control of the audit service";
-            acquire_netlink_handle_ = true;
-          }
-        }
-
-        continue;
-      }
-
-      // We are not interested in all messages; only get the ones related to
-      // user events and syscalls
-      if (!ShouldHandle(reply)) {
-        continue;
-      }
-
-      // Parse the audit record body and store it into our queue
-      AuditEventRecord audit_event_record = {};
-      if (!ParseAuditReply(reply, audit_event_record)) {
-        VLOG(1) << "Malformed audit record received";
-        continue;
-      }
-
-      audit_event_record_queue.push_back(audit_event_record);
-    }
-
-    // Save the new records and notify the reader
-    if (!audit_event_record_queue.empty()) {
-      std::lock_guard<std::mutex> queue_lock(event_queue_mutex_);
-
-      event_queue_.reserve(event_queue_.size() +
-                           audit_event_record_queue.size());
-      event_queue_.insert(event_queue_.end(),
-                          audit_event_record_queue.begin(),
-                          audit_event_record_queue.end());
-
-      event_queue_cv_.notify_all();
-    }
-
-    queue.clear();
-    audit_event_record_queue.clear();
-  }
-
-  return true;
-}
-
-bool AuditdNetlink::acquireMessages() noexcept {
+bool AuditdNetlinkReader::acquireMessages() noexcept {
   pollfd fds[] = {{audit_netlink_handle_, POLLIN, 0}};
 
   struct sockaddr_nl nladdr = {};
@@ -415,7 +206,7 @@ bool AuditdNetlink::acquireMessages() noexcept {
     }
 
     if (poll_status < 0) {
-      VLOG(1) << "Audit: poll() failed with error " << errno;
+      VLOG(1) << "poll() failed with error " << errno;
       reset_handle = true;
       break;
     }
@@ -433,28 +224,28 @@ bool AuditdNetlink::acquireMessages() noexcept {
                            &nladdrlen);
 
     if (len < 0) {
-      VLOG(1) << "Audit: Failed to receive data from the audit netlink";
+      VLOG(1) << "Failed to receive data from the audit netlink";
       reset_handle = true;
       break;
     }
 
     if (nladdrlen != sizeof(nladdr)) {
-      VLOG(1) << "Audit: Protocol error";
+      VLOG(1) << "Protocol error";
       reset_handle = true;
       break;
     }
 
     if (nladdr.nl_pid) {
-      VLOG(1) << "Audit: Invalid netlink endpoint";
+      VLOG(1) << "Invalid netlink endpoint";
       reset_handle = true;
       break;
     }
 
     if (!NLMSG_OK(&reply.msg.nlh, static_cast<unsigned int>(len))) {
       if (len == sizeof(reply.msg)) {
-        VLOG(1) << "Audit: Netlink event too big (EFBIG)";
+        VLOG(1) << "Netlink event too big (EFBIG)";
       } else {
-        VLOG(1) << "Audit: Broken netlink event (EBADE)";
+        VLOG(1) << "Broken netlink event (EBADE)";
       }
 
       reset_handle = true;
@@ -465,16 +256,18 @@ bool AuditdNetlink::acquireMessages() noexcept {
   }
 
   if (events_received != 0) {
-    std::unique_lock<std::mutex> lock(raw_audit_record_list_mutex_);
+    std::unique_lock<std::mutex> lock(
+        auditd_context_->unprocessed_records_mutex);
 
-    raw_audit_record_list_.reserve(raw_audit_record_list_.size() +
-                                   events_received);
-    raw_audit_record_list_.insert(
-        raw_audit_record_list_.end(),
+    auditd_context_->unprocessed_records.reserve(
+        auditd_context_->unprocessed_records.size() + events_received);
+
+    auditd_context_->unprocessed_records.insert(
+        auditd_context_->unprocessed_records.end(),
         read_buffer_.begin(),
         std::next(read_buffer_.begin(), events_received));
 
-    proc_thread_cv_.notify_one();
+    auditd_context_->unprocessed_records_cv.notify_all();
   }
 
   if (reset_handle) {
@@ -485,7 +278,7 @@ bool AuditdNetlink::acquireMessages() noexcept {
   return true;
 }
 
-bool AuditdNetlink::configureAuditService() noexcept {
+bool AuditdNetlinkReader::configureAuditService() noexcept {
   VLOG(1) << "Attempting to configure the audit service...";
 
   // Want to set a min sane buffer and maximum number of events/second min.
@@ -579,7 +372,7 @@ bool AuditdNetlink::configureAuditService() noexcept {
   return true;
 }
 
-bool AuditdNetlink::clearAuditConfiguration() noexcept {
+bool AuditdNetlinkReader::clearAuditConfiguration() noexcept {
   int seq = audit_request_rules_list_data(audit_netlink_handle_);
   if (seq <= 0) {
     VLOG(1) << "Failed to list the audit rules";
@@ -680,7 +473,8 @@ bool AuditdNetlink::clearAuditConfiguration() noexcept {
   return true;
 }
 
-bool AuditdNetlink::deleteAuditRule(const AuditRuleDataObject& rule_object) {
+bool AuditdNetlinkReader::deleteAuditRule(
+    const AuditRuleDataObject& rule_object) {
   if (NLMSG_SPACE(rule_object.size()) > MAX_AUDIT_MESSAGE_LENGTH) {
     return false;
   }
@@ -728,7 +522,7 @@ bool AuditdNetlink::deleteAuditRule(const AuditRuleDataObject& rule_object) {
   return success;
 }
 
-void AuditdNetlink::restoreAuditServiceConfiguration() noexcept {
+void AuditdNetlinkReader::restoreAuditServiceConfiguration() noexcept {
   if (FLAGS_audit_debug) {
     std::cout << "Uninstalling audit rules..." << std::endl;
   }
@@ -745,9 +539,8 @@ void AuditdNetlink::restoreAuditServiceConfiguration() noexcept {
 
   // Restore audit configuration defaults.
   if (FLAGS_audit_debug) {
-    std::cout
-        << "Audit: restoring default settings and disabling the service..."
-        << std::endl;
+    std::cout << "Restoring default settings and disabling the service..."
+              << std::endl;
   }
 
   VLOG(1) << "Restoring the default configuration for the audit service";
@@ -758,7 +551,7 @@ void AuditdNetlink::restoreAuditServiceConfiguration() noexcept {
   audit_set_enabled(audit_netlink_handle_, AUDIT_DISABLED);
 }
 
-NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
+NetlinkStatus AuditdNetlinkReader::acquireHandle() noexcept {
   // Returns the audit netlink status
   auto L_GetNetlinkStatus = [](int netlink_handle) -> NetlinkStatus {
     if (netlink_handle <= 0) {
@@ -795,14 +588,14 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
 
   audit_netlink_handle_ = audit_open();
   if (audit_netlink_handle_ <= 0) {
-    VLOG(1) << "Audit: failed to acquire the netlink handle";
+    VLOG(1) << "Failed to acquire the netlink handle";
 
     audit_netlink_handle_ = -1;
     return NetlinkStatus::Error;
   }
 
   if (audit_set_pid(audit_netlink_handle_, getpid(), WAIT_NO) < 0) {
-    VLOG(1) << "Audit: failed to set the netlink owner";
+    VLOG(1) << "Failed to set the netlink owner";
 
     audit_close(audit_netlink_handle_);
     audit_netlink_handle_ = -1;
@@ -846,5 +639,212 @@ NetlinkStatus AuditdNetlink::acquireHandle() noexcept {
   }
 
   return NetlinkStatus::ActiveMutable;
+}
+
+AuditdNetlinkParser::AuditdNetlinkParser(AuditdContextRef context)
+    : auditd_context_(std::move(context)) {}
+
+void AuditdNetlinkParser::start() {
+  while (!interrupted()) {
+    std::vector<audit_reply> queue;
+
+    {
+      std::unique_lock<std::mutex> lock(
+          auditd_context_->unprocessed_records_mutex);
+
+      while (auditd_context_->unprocessed_records.empty() && !interrupted()) {
+        auditd_context_->unprocessed_records_cv.wait(lock);
+      }
+
+      queue = std::move(auditd_context_->unprocessed_records);
+      auditd_context_->unprocessed_records.clear();
+    }
+
+    std::vector<AuditEventRecord> audit_event_record_queue;
+
+    for (auto& reply : queue) {
+      AdjustAuditReply(reply);
+
+      // This record carries the process id of the controlling daemon; in case
+      // we lost control of the audit service, we are going to request a reset
+      // as soon as we finish processing the pending queue
+      if (reply.type == AUDIT_GET) {
+        reply.status = static_cast<struct audit_status*>(NLMSG_DATA(reply.nlh));
+        auto new_pid = static_cast<pid_t>(reply.status->pid);
+
+        if (new_pid != getpid()) {
+          VLOG(1) << "Audit control lost to pid: " << new_pid;
+
+          if (FLAGS_audit_persist) {
+            VLOG(1) << "Attempting to reacquire control of the audit service";
+            auditd_context_->acquire_handle = true;
+          }
+        }
+
+        continue;
+      }
+
+      // We are not interested in all messages; only get the ones related to
+      // user events and syscalls
+      if (!ShouldHandle(reply)) {
+        continue;
+      }
+
+      // Parse the audit record body and store it into our queue
+      AuditEventRecord audit_event_record = {};
+      if (!ParseAuditReply(reply, audit_event_record)) {
+        VLOG(1) << "Malformed audit record received";
+        continue;
+      }
+
+      audit_event_record_queue.push_back(audit_event_record);
+    }
+
+    // Save the new records and notify the reader
+    if (!audit_event_record_queue.empty()) {
+      std::lock_guard<std::mutex> queue_lock(
+          auditd_context_->processed_events_mutex);
+
+      auditd_context_->processed_events.reserve(
+          auditd_context_->processed_events.size() +
+          audit_event_record_queue.size());
+      auditd_context_->processed_events.insert(
+          auditd_context_->processed_events.end(),
+          audit_event_record_queue.begin(),
+          audit_event_record_queue.end());
+
+      auditd_context_->processed_records_cv.notify_all();
+    }
+
+    queue.clear();
+    audit_event_record_queue.clear();
+  }
+}
+
+bool AuditdNetlinkParser::ParseAuditReply(
+    const audit_reply& reply, AuditEventRecord& event_record) noexcept {
+  event_record = {};
+
+  if (FLAGS_audit_debug) {
+    std::cout << reply.type << ", " << std::string(reply.message, reply.len)
+              << std::endl;
+  }
+
+  // Tokenize the message.
+  event_record.type = reply.type;
+  boost::string_ref message_view(reply.message,
+                                 static_cast<unsigned int>(reply.len));
+
+  auto preamble_end = message_view.find("): ");
+  if (preamble_end == std::string::npos) {
+    return false;
+  }
+
+  safeStrtoul(message_view.substr(6, 10).to_string(), 10, event_record.time);
+  event_record.audit_id = message_view.substr(6, preamble_end - 6).to_string();
+  boost::string_ref field_view(message_view.substr(preamble_end + 3));
+
+  // The linear search will construct series of key value pairs.
+  std::string key, value;
+  key.reserve(20);
+  value.reserve(256);
+
+  // There are several ways of representing value data (enclosed strings,
+  // etc).
+  bool found_assignment{false};
+  bool found_enclose{false};
+
+  for (const auto& c : field_view) {
+    // Iterate over each character in the audit message.
+    if ((found_enclose && c == '"') || (!found_enclose && c == ' ')) {
+      if (c == '"') {
+        value += c;
+      }
+
+      // This is a terminating sequence, the end of an enclosure or space
+      // tok.
+      if (!key.empty()) {
+        // Multiple space tokens are supported.
+        event_record.fields.emplace(
+            std::make_pair(std::move(key), std::move(value)));
+      }
+
+      found_enclose = false;
+      found_assignment = false;
+
+      key.clear();
+      value.clear();
+
+    } else if (!found_assignment && c == ' ') {
+      // A field tokenizer.
+
+    } else if (found_assignment) {
+      // Enclosure sequences appear immediately following assignment.
+      if (c == '"') {
+        found_enclose = true;
+      }
+
+      value += c;
+
+    } else if (c == '=') {
+      found_assignment = true;
+
+    } else {
+      key += c;
+    }
+  }
+
+  // Last step, if there was no trailing tokenizer.
+  if (!key.empty()) {
+    event_record.fields.emplace(
+        std::make_pair(std::move(key), std::move(value)));
+  }
+
+  return true;
+}
+
+void AuditdNetlinkParser::AdjustAuditReply(audit_reply& reply) noexcept {
+  reply.type = reply.msg.nlh.nlmsg_type;
+  reply.len = reply.msg.nlh.nlmsg_len;
+  reply.nlh = &reply.msg.nlh;
+
+  reply.status = nullptr;
+  reply.ruledata = nullptr;
+  reply.login = nullptr;
+  reply.message = nullptr;
+  reply.error = nullptr;
+  reply.signal_info = nullptr;
+  reply.conf = nullptr;
+
+  switch (reply.type) {
+  case NLMSG_ERROR: {
+    reply.error = static_cast<struct nlmsgerr*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  case AUDIT_LIST_RULES: {
+    reply.ruledata =
+        static_cast<struct audit_rule_data*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  case AUDIT_USER:
+  case AUDIT_LOGIN:
+  case AUDIT_KERNEL:
+  case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
+  case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
+  case AUDIT_FIRST_EVENT ... AUDIT_INTEGRITY_LAST_MSG: {
+    reply.message = static_cast<char*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  case AUDIT_SIGNAL_INFO: {
+    reply.signal_info = static_cast<audit_sig_info*>(NLMSG_DATA(reply.nlh));
+    break;
+  }
+
+  default:
+    break;
+  }
 }
 }

@@ -18,11 +18,12 @@
 #include <map>
 #include <memory>
 #include <set>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
 #include <boost/algorithm/hex.hpp>
+
+#include <osquery/dispatcher.h>
 
 namespace osquery {
 
@@ -47,28 +48,43 @@ struct AuditEventRecord final {
   std::map<std::string, std::string> fields;
 };
 
-class AuditdNetlink final : private boost::noncopyable {
+// This structure is used to share data between the reading and processing
+// services
+struct AuditdContext final {
+  /// Unprocessed audit records
+  std::vector<audit_reply> unprocessed_records;
+  static_assert(
+      std::is_move_constructible<decltype(unprocessed_records)>::value,
+      "not move constructible");
+
+  /// Mutex for the list of unprocessed records
+  std::mutex unprocessed_records_mutex;
+
+  /// Processed events condition variable
+  std::condition_variable unprocessed_records_cv;
+
+  /// This queue contains processed events
+  std::vector<AuditEventRecord> processed_events;
+
+  /// Processed events queue mutex.
+  std::mutex processed_events_mutex;
+
+  /// Used to wake up the thread that processes the raw audit records
+  std::condition_variable processed_records_cv;
+
+  /// When set to true, the audit handle is (re)acquired
+  std::atomic_bool acquire_handle{true};
+};
+
+using AuditdContextRef = std::shared_ptr<AuditdContext>;
+
+/// This is the service responsible for reading data from the audit netlink
+class AuditdNetlinkReader final : public InternalRunnable {
  public:
-  AuditdNetlink();
-  ~AuditdNetlink();
-
-  /// Prepares the raw audit event records stored in the given context.
-  std::vector<AuditEventRecord> getEvents() noexcept;
-
-  /// Parses an audit_reply structure into an AuditEventRecord object
-  static bool ParseAuditReply(const audit_reply& reply,
-                              AuditEventRecord& event_record) noexcept;
-
-  /// Adjusts the internal pointers of the audit_reply object
-  static void AdjustAuditReply(audit_reply& reply) noexcept;
+  explicit AuditdNetlinkReader(AuditdContextRef context);
+  virtual void start() override;
 
  private:
-  /// This is the entry point for the thread that receives the netlink events.
-  bool recvThread() noexcept;
-
-  /// This is the entry point for the thread that processes the netlink events.
-  bool processThread() noexcept;
-
   /// Reads as many audit event records as possible before returning.
   bool acquireMessages() noexcept;
 
@@ -88,6 +104,12 @@ class AuditdNetlink final : private boost::noncopyable {
   NetlinkStatus acquireHandle() noexcept;
 
  private:
+  /// Shared data
+  AuditdContextRef auditd_context_;
+
+  /// Read buffer used when receiving events from the netlink
+  std::vector<audit_reply> read_buffer_;
+
   /// The set of rules we applied (and that we'll uninstall when exiting)
   std::vector<audit_rule_data> installed_rule_list_;
 
@@ -96,42 +118,38 @@ class AuditdNetlink final : private boost::noncopyable {
 
   /// Netlink handle.
   int audit_netlink_handle_{-1};
+};
 
-  /// Set to true by ::terminate() when the thread should exit.
-  std::atomic<bool> terminate_threads_{false};
+/// This service parses the raw audit records
+class AuditdNetlinkParser final : public InternalRunnable {
+ public:
+  explicit AuditdNetlinkParser(AuditdContextRef context);
+  virtual void start() override;
 
-  /// Used to wake up the thread that processes the raw audit records
-  std::condition_variable proc_thread_cv_;
+  /// Parses an audit_reply structure into an AuditEventRecord object
+  static bool ParseAuditReply(const audit_reply& reply,
+                              AuditEventRecord& event_record) noexcept;
 
-  /// When set to true, the audit handle is (re)acquired
-  std::atomic_bool acquire_netlink_handle_{true};
+  /// Adjusts the internal pointers of the audit_reply object
+  static void AdjustAuditReply(audit_reply& reply) noexcept;
 
-  /// The thread that receives the audit events from the netlink.
-  std::unique_ptr<std::thread> recv_thread_;
+ private:
+  /// Shared data
+  AuditdContextRef auditd_context_;
+};
 
-  /// Unprocessed audit records
-  std::vector<audit_reply> raw_audit_record_list_;
-  static_assert(
-      std::is_move_constructible<decltype(raw_audit_record_list_)>::value,
-      "not move constructible");
+/// This class provides access to the audit netlink data
+class AuditdNetlink final : private boost::noncopyable {
+ public:
+  AuditdNetlink();
+  virtual ~AuditdNetlink() = default;
 
-  /// Mutex for the list of unprocessed records
-  std::mutex raw_audit_record_list_mutex_;
+  /// Prepares the raw audit event records stored in the given context.
+  std::vector<AuditEventRecord> getEvents() noexcept;
 
-  /// Read buffer used when receiving events from the netlink
-  std::vector<audit_reply> read_buffer_;
-
-  /// The thread that processes the audit events
-  std::unique_ptr<std::thread> processing_thread_;
-
-  /// This queue contains processed events
-  std::vector<AuditEventRecord> event_queue_;
-
-  /// Processed events queue mutex.
-  std::mutex event_queue_mutex_;
-
-  /// Processed events condition variable
-  std::condition_variable event_queue_cv_;
+ private:
+  /// Shared data
+  AuditdContextRef auditd_context_;
 };
 
 /// Handle quote and hex-encoded audit field content.

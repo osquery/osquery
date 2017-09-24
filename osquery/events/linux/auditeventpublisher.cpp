@@ -116,7 +116,7 @@ void AuditEventPublisher::ProcessEvents(
 
     } else if (audit_event_record.type == AUDIT_SYSCALL) {
       if (audit_event_it != trace_context.end()) {
-        VLOG(1) << "Audit: Received a duplicated event.";
+        VLOG(1) << "Received a duplicated event.";
         trace_context.erase(audit_event_it);
       }
 
@@ -128,7 +128,7 @@ void AuditEventPublisher::ProcessEvents(
       std::string raw_executable_path;
       if (!GetStringFieldFromMap(
               raw_executable_path, audit_event_record.fields, "exe")) {
-        VLOG(1) << "Audit: Malformed AUDIT_SYSCALL record received. The "
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
                    "executable path field is either missing or not valid.";
 
         continue;
@@ -143,7 +143,7 @@ void AuditEventPublisher::ProcessEvents(
 
       if (!GetIntegerFieldFromMap(
               data.syscall_number, audit_event_record.fields, "syscall")) {
-        VLOG(1) << "Audit: Malformed AUDIT_SYSCALL record received. The "
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
                    "syscall field "
                    "is either missing or not valid.";
 
@@ -163,9 +163,8 @@ void AuditEventPublisher::ProcessEvents(
       std::uint64_t process_id;
       if (!GetIntegerFieldFromMap(
               process_id, audit_event_record.fields, "pid")) {
-        VLOG(1)
-            << "Audit: Malformed AUDIT_SYSCALL record received. The process id "
-               "field is either missing or not valid.";
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The process id "
+                   "field is either missing or not valid.";
 
         continue;
       }
@@ -173,7 +172,7 @@ void AuditEventPublisher::ProcessEvents(
       std::uint64_t parent_process_id;
       if (!GetIntegerFieldFromMap(
               parent_process_id, audit_event_record.fields, "ppid")) {
-        VLOG(1) << "Audit: Malformed AUDIT_SYSCALL record received. The parent "
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The parent "
                    "process id field is either missing or not valid.";
 
         continue;
@@ -186,7 +185,7 @@ void AuditEventPublisher::ProcessEvents(
       std::uint64_t process_uid;
       if (!GetIntegerFieldFromMap(
               process_uid, audit_event_record.fields, "uid")) {
-        VLOG(1) << "Audit: Missing or invalid uid field in AUDIT_SYSCALL";
+        VLOG(1) << "Missing or invalid uid field in AUDIT_SYSCALL";
 
         continue;
       }
@@ -194,7 +193,7 @@ void AuditEventPublisher::ProcessEvents(
       std::uint64_t process_gid;
       if (!GetIntegerFieldFromMap(
               process_gid, audit_event_record.fields, "gid")) {
-        VLOG(1) << "Audit: Missing or invalid gid field in AUDIT_SYSCALL";
+        VLOG(1) << "Missing or invalid gid field in AUDIT_SYSCALL";
 
         continue;
       }
