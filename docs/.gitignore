@@ -5,3 +5,4 @@ pkg/
 test/
 .idea/
 .bundle/
+.jekyll-metadata
