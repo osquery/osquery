@@ -493,7 +493,7 @@ bool AuditdNetlinkReader::deleteAuditRule(
 
   bool success = false;
 
-  for (size_t i = 0; i < 3; i++) {
+  for (size_t retry = 0U; retry < 3U; retry++) {
     ssize_t bytes_sent;
 
     while (true) {
