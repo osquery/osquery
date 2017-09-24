@@ -457,7 +457,7 @@ bool safePermissions(const fs::path& dir,
     return false;
   }
 
-  if (fd.isOwnerCurrentUser().ok() || fd.isOwnerRoot().ok()) {
+  if (fd.isOwnerRoot().ok() || fd.isOwnerCurrentUser().ok()) {
     result = fd.isExecutable();
 
     // Otherwise, require matching or root file ownership.
