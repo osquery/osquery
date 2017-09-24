@@ -136,7 +136,7 @@ $nupkg +=
 
   $license = Join-Path "$osqueryChocoPath\tools\" 'LICENSE.txt'
   Copy-Item $lic $license
-  $verification = Join-Path "$osqueryChocoPath\tools\" 'VERFICATION.txt'
+  $verification = Join-Path "$osqueryChocoPath\tools\" 'VERIFICATION.txt'
   $verMessage =
 @'
 To verify the osquery binaries are valid and not corrupted, one can run one of the following:
