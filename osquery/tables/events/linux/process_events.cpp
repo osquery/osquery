@@ -111,9 +111,9 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     CopyFieldFromMap(row, syscall_event_record->fields, "gid", "0");
     CopyFieldFromMap(row, syscall_event_record->fields, "egid", "0");
 
-    GetStringFieldFromMap(row["path"], syscall_event_record->fields, "exe", "");
-    GetStringFieldFromMap(
-        row["cmdline"], syscall_event_record->fields, "comm", "");
+    std::string field_value;
+    GetStringFieldFromMap(field_value, syscall_event_record->fields, "exe", "");
+    row["path"] = DecodeAuditPathValues(field_value);
 
     auto qd = SQL::selectAllFrom("file", "path", EQUALS, row.at("path"));
     if (qd.size() == 1) {
@@ -130,6 +130,8 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     row["uptime"] = std::to_string(tables::getUptime());
 
     // build the command line from the AUDIT_EXECVE record
+    row["cmdline"] = "";
+
     for (const auto& arg : execve_event_record->fields) {
       if (arg.first == "argc") {
         continue;
@@ -140,7 +142,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
         row["cmdline"] += " ";
       }
 
-      row["cmdline"] += DecodeAuditPathValues(arg.second);
+      row["cmdline"] += arg.second;
     }
 
     // There may be a better way to calculate actual size from audit.

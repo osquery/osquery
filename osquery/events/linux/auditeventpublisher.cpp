@@ -18,7 +18,13 @@
 #include "osquery/events/linux/auditeventpublisher.h"
 
 namespace osquery {
-DECLARE_bool(disable_audit);
+/// The audit subsystem may have a performance impact on the system.
+FLAG(bool,
+     disable_audit,
+     true,
+     "Disable receiving events from the audit subsystem");
+
+// External flags; they are used to determine whether we should run or not
 DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
@@ -44,6 +50,12 @@ Status AuditEventPublisher::setUp() {
     return Status(1, "Publisher disabled via configuration");
   }
 
+  if (executable_path_.empty()) {
+    char buffer[PATH_MAX] = {};
+    assert(readlink("/proc/self/exe", buffer, sizeof(buffer)) != -1);
+    executable_path_ = buffer;
+  }
+
   return Status(0, "OK");
 }
 
@@ -52,16 +64,15 @@ void AuditEventPublisher::configure() {
     return;
   }
 
-  if (audit_netlink_subscription_ == 0) {
-    audit_netlink_subscription_ = AuditdNetlink::get().subscribe();
-  }
+  audit_netlink_ = std::make_unique<AuditdNetlink>();
 }
 
 void AuditEventPublisher::tearDown() {
-  if (audit_netlink_subscription_ != 0) {
-    AuditdNetlink::get().unsubscribe(audit_netlink_subscription_);
-    audit_netlink_subscription_ = 0;
+  if (!IsPublisherEnabled()) {
+    return;
   }
+
+  audit_netlink_.reset();
 }
 
 Status AuditEventPublisher::run() {
@@ -69,9 +80,7 @@ Status AuditEventPublisher::run() {
     return Status(1, "Publisher disabled via configuration");
   }
 
-  // Request our event queue from the AuditdNetlink component
-  auto audit_event_record_queue =
-      AuditdNetlink::get().getEvents(audit_netlink_subscription_);
+  auto audit_event_record_queue = audit_netlink_->getEvents();
 
   auto event_context = createEventContext();
   ProcessEvents(event_context, audit_event_record_queue, audit_trace_context_);
@@ -87,12 +96,6 @@ void AuditEventPublisher::ProcessEvents(
     AuditEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
     AuditTraceContext& trace_context) noexcept {
-  if (executable_path_.empty()) {
-    char buffer[PATH_MAX] = {};
-    assert(readlink("/proc/self/exe", buffer, sizeof(buffer)) != -1);
-    executable_path_ = buffer;
-  }
-
   // Assemble each record into a AuditEvent object; multi-record events
   // are complete when we receive the terminator (AUDIT_EOE)
   for (const auto& audit_event_record : record_list) {
@@ -102,8 +105,8 @@ void AuditEventPublisher::ProcessEvents(
     // the second one is for syscalls
     if (audit_event_record.type >= AUDIT_FIRST_USER_MSG &&
         audit_event_record.type <= AUDIT_LAST_USER_MSG) {
-      UserAuditEventData data;
-      data.user_event_id = audit_event_record.type;
+      UserAuditEventData data = {};
+      data.user_event_id = static_cast<std::uint64_t>(audit_event_record.type);
 
       AuditEvent audit_event;
       audit_event.type = AuditEvent::Type::UserEvent;
@@ -141,7 +144,8 @@ void AuditEventPublisher::ProcessEvents(
 
       if (!GetIntegerFieldFromMap(
               data.syscall_number, audit_event_record.fields, "syscall")) {
-        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The syscall field "
+        VLOG(1) << "Malformed AUDIT_SYSCALL record received. The "
+                   "syscall field "
                    "is either missing or not valid.";
 
         continue;
@@ -178,6 +182,25 @@ void AuditEventPublisher::ProcessEvents(
       data.process_id = static_cast<pid_t>(process_id);
       data.parent_process_id = static_cast<pid_t>(parent_process_id);
       audit_event.data = data;
+
+      std::uint64_t process_uid;
+      if (!GetIntegerFieldFromMap(
+              process_uid, audit_event_record.fields, "uid")) {
+        VLOG(1) << "Missing or invalid uid field in AUDIT_SYSCALL";
+
+        continue;
+      }
+
+      std::uint64_t process_gid;
+      if (!GetIntegerFieldFromMap(
+              process_gid, audit_event_record.fields, "gid")) {
+        VLOG(1) << "Missing or invalid gid field in AUDIT_SYSCALL";
+
+        continue;
+      }
+
+      data.process_uid = static_cast<uid_t>(process_uid);
+      data.process_gid = static_cast<gid_t>(process_gid);
 
       audit_event.record_list.push_back(audit_event_record);
       trace_context[audit_event_record.audit_id] = std::move(audit_event);

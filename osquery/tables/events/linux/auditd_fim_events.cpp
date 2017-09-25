@@ -271,8 +271,8 @@ bool EmitRowFromSyscallContext(
     const auto& data =
         boost::get<AuditdFimSrcDestData>(syscall_context.syscall_data);
 
-    row["path1"] = data.source;
-    row["path2"] = data.destination;
+    row["path"] = data.source;
+    row["dest_path"] = data.destination;
 
     is_write_operation = true;
     break;
@@ -315,7 +315,7 @@ bool EmitRowFromSyscallContext(
       row["operation"] = "close";
     }
 
-    row["path1"] = data.target;
+    row["path"] = data.target;
     break;
   }
 
@@ -327,9 +327,9 @@ bool EmitRowFromSyscallContext(
   }
 
   // Filter the events
-  bool include_event = L_IsPathIncluded(row["path1"]);
-  if (!include_event && row.find("path2") != row.end()) {
-    include_event = L_IsPathIncluded(row["path2"]);
+  bool include_event = L_IsPathIncluded(row["path"]);
+  if (!include_event && row.find("dest_path") != row.end()) {
+    include_event = L_IsPathIncluded(row["dest_path"]);
   }
 
   if (!include_event) {
@@ -345,6 +345,12 @@ bool EmitRowFromSyscallContext(
 
   row["ppid"] = std::to_string(
       static_cast<std::uint64_t>(syscall_context.parent_process_id));
+
+  row["uid"] =
+      std::to_string(static_cast<std::uint64_t>(syscall_context.process_uid));
+
+  row["gid"] =
+      std::to_string(static_cast<std::uint64_t>(syscall_context.process_gid));
 
   row["executable"] = syscall_context.executable_path;
   row["partial"] = (syscall_context.partial ? "true" : "false");
@@ -1190,6 +1196,8 @@ Status AuditdFimEventSubscriber::ProcessEvents(
     syscall_context.syscall_number = event_data.syscall_number;
     syscall_context.process_id = event_data.process_id;
     syscall_context.parent_process_id = event_data.parent_process_id;
+    syscall_context.process_uid = event_data.process_uid;
+    syscall_context.process_gid = event_data.process_gid;
     syscall_context.executable_path = event_data.executable_path;
 
     const AuditEventRecord* syscall_record = nullptr;

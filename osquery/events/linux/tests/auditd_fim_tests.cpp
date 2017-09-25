@@ -76,7 +76,7 @@ TEST_F(AuditdFimTests, row_emission) {
     AuditEventRecord audit_event_record = {};
 
     bool parser_status =
-        AuditdNetlink::ParseAuditReply(reply, audit_event_record);
+        AuditdNetlinkParser::ParseAuditReply(reply, audit_event_record);
     EXPECT_EQ(parser_status, true);
 
     event_record_list.push_back(audit_event_record);
