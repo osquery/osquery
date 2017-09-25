@@ -30,7 +30,8 @@ namespace errc = boost::system::errc;
 
 namespace osquery {
 
-PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
+PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
+    : fname_(path) {
   int oflag = 0;
   bool may_create = false;
   bool check_existence = false;
@@ -84,10 +85,10 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
 
   boost::system::error_code ec;
   if (check_existence &&
-      (!fs::exists(path.c_str(), ec) || ec.value() != errc::success)) {
+      (!fs::exists(fname_, ec) || ec.value() != errc::success)) {
     handle_ = kInvalidHandle;
   } else {
-    handle_ = ::open(path.c_str(), oflag, perms);
+    handle_ = ::open(fname_.c_str(), oflag, perms);
   }
 }
 
