@@ -145,10 +145,6 @@ TEST_F(FirewallTests, test_on_disk_format) {
     EXPECT_NO_THROW(tree.get<std::string>(it.first));
   }
   EXPECT_NO_THROW(tree.get_child("firewall"));
-  auto firewall = tree.get_child("firewall");
-  for (const auto& it : kFirewallTreeKeys) {
-    EXPECT_NO_THROW(firewall.get_child(it.first));
-  }
 }
 }
 }
