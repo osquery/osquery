@@ -297,8 +297,8 @@ static Status checkAccessWithSD(PSECURITY_DESCRIPTOR sd, mode_t mode) {
     return Status(-1, "OpenProcessToken failed");
   }
 
-  status = ::DuplicateToken(
-      process_token, SecurityImpersonation, &impersonate_token);
+  status =
+      DuplicateToken(process_token, SecurityImpersonation, &impersonate_token);
   CloseHandle(process_token);
 
   if (!status) {
@@ -337,7 +337,7 @@ static Status checkAccessWithSD(PSECURITY_DESCRIPTOR sd, mode_t mode) {
   }
 
   if (access_status) {
-    return Status(0, "OK");
+    return Status();
   }
 
   return Status(1, "Bad mode for file");
