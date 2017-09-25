@@ -33,8 +33,8 @@ permalink: /downloads/
         {% assign sep = site.separators[key] %}
           <p class="line" style="margin-top: 10px">
             <span class="output">
-              <a href="https://pkg.osquery.io/{{key}}/osquery{{sep}}{{version}}.{{prefix}}">
-                https://pkg.osquery.io/{{key}}/osquery{{sep}}{{version}}.{{prefix}}
+              <a href="https://pkg.osquery.io/{{key}}/osquery{{sep}}{{version}}{{prefix}}">
+                https://pkg.osquery.io/{{key}}/osquery{{sep}}{{version}}{{prefix}}
               </a>
              </span>
           </p>
@@ -218,10 +218,11 @@ permalink: /downloads/
         {% assign key = dist[0] %}
         {% assign prefix = site.prefixes[key] %}
         {% assign sep = site.separators[key] %}
+        {% assign dbg = site.debug_prefixes[key] %}
           <p class="line" style="margin-top: 10px">
             <span class="output">
-              <a href="https://pkg.osquery.io/{{key}}/osquery-debug{{sep}}{{version}}.{{prefix}}">
-                https://pkg.osquery.io/{{key}}/osquery-debug{{sep}}{{version}}.{{prefix}}
+              <a href="https://pkg.osquery.io/{{key}}/osquery-{{dbg}}{{sep}}{{version}}{{prefix}}">
+                https://pkg.osquery.io/{{key}}/osquery-{{dbg}}{{sep}}{{version}}{{prefix}}
               </a>
              </span>
           </p>
