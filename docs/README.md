@@ -56,6 +56,14 @@ It's just a Jekyll site, afterall!
 
 This [GitHub guide](https://help.github.com/articles/adding-a-jekyll-theme-to-your-github-pages-site/) was helpful for getting started.
 
+To test the site use:
+
+```
+bundle exec htmlproofer ./_site --only-4xx --check-favicon --check-html
+```
+
+This will be run in the `Code Audit` Jenkins job.
+
 ### Updating Font Awesome
 
 1. Go to <https://icomoon.io/app/>
@@ -109,6 +117,8 @@ Use: `./tools/codegen/genapi.py` to generate the amalgamated schema. To generate
 ./tools/codegen/genapi.py --diff ./build/docs/OLD.json ./build/docs/CURRENT.json
 ```
 
-Packs do not require any processing, they can be copied to the homepage's data folder.
+We keep the table schema in [`osquery/osquery`](https://github.com/osquery/osquery)'s `/schema` directory.
+This protects the `facebook/osquery` repo from 1000+ LoC checkins of generated JSON.
 
-
+The `/docs/_data/packs.yml` holds the name of each pack and a friendly title.
+The Jekyll site will fetch each title from the `/packs` directory in `facebook/osquery`.
