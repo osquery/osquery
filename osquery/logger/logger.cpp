@@ -695,12 +695,11 @@ void relayStatusLogs(bool async) {
 void systemLog(const std::string& line) {
 #ifdef WIN32
   REGHANDLE registration_handle = 0;
-  auto status = WindowsEventLoggerPlugin::acquireHandle(registration_handle);
-  if (!status.ok()) {
+  if (!WindowsEventLoggerPlugin::acquireHandle(registration_handle).ok()) {
     return;
   }
 
-  status = WindowsEventLoggerPlugin::emitLogRecord(registration_handle, line);
+  WindowsEventLoggerPlugin::emitLogRecord(registration_handle, line);
   WindowsEventLoggerPlugin::releaseHandle(registration_handle);
 
 #else
