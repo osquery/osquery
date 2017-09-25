@@ -223,11 +223,17 @@ struct AuditdFimSyscallContext final {
   // A collection of all the AUDIT_PATH records we found
   std::unordered_map<std::size_t, AuditdFimPathRecordItem> path_record_map;
 
-  // The process id
+  /// The process id
   pid_t process_id;
 
-  // The parent process id
+  /// The parent process id
   pid_t parent_process_id;
+
+  /// The process uid
+  uid_t process_uid;
+
+  /// The process gid
+  gid_t process_gid;
 
   // Path of the executable that generated the event
   std::string executable_path;

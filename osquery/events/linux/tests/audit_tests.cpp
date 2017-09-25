@@ -66,7 +66,7 @@ TEST_F(AuditTests, test_handle_reply) {
   // Perform the parsing.
   AuditEventRecord audit_event_record = {};
   bool parser_status =
-      AuditdNetlink::ParseAuditReply(reply, audit_event_record);
+      AuditdNetlinkParser::ParseAuditReply(reply, audit_event_record);
   EXPECT_EQ(parser_status, true);
 
   free((char*)reply.message);

@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <memory>
 
 #include <boost/variant.hpp>
 
@@ -30,6 +31,10 @@ struct SyscallAuditEventData final {
 
   pid_t process_id;
   pid_t parent_process_id;
+
+  uid_t process_uid;
+  gid_t process_gid;
+
   std::string executable_path;
 };
 
@@ -84,8 +89,8 @@ class AuditEventPublisher final
                             AuditTraceContext& trace_context) noexcept;
 
  private:
-  /// Audit netlink subscription handle
-  NetlinkSubscriptionHandle audit_netlink_subscription_{0};
+  /// Netlink reader
+  std::unique_ptr<AuditdNetlink> audit_netlink_;
 
   /// This is where audit records are assembled
   AuditTraceContext audit_trace_context_;
