@@ -13,23 +13,25 @@
 #include <libaudit.h>
 
 #include <atomic>
+#include <condition_variable>
 #include <future>
 #include <map>
 #include <memory>
 #include <set>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
 #include <boost/algorithm/hex.hpp>
+
+#include <osquery/dispatcher.h>
 
 namespace osquery {
 
 /// Netlink status, used by AuditNetlink::acquireHandle()
 enum class NetlinkStatus { ActiveMutable, ActiveImmutable, Disabled, Error };
 
-/// Subscription handle to be used with AuditNetlink::getEvents()
-using NetlinkSubscriptionHandle = std::uint32_t;
+/// Contains an audit_rule_data structure
+using AuditRuleDataObject = std::vector<std::uint8_t>;
 
 /// A single, prepared audit event record.
 struct AuditEventRecord final {
@@ -46,32 +48,83 @@ struct AuditEventRecord final {
   std::map<std::string, std::string> fields;
 };
 
-/// The subscriber context stores the received audit event records.
-struct AuditNetlinkSubscriberContext final {
-  /// This queue contains unprocessed events
-  std::vector<AuditEventRecord> queue;
+// This structure is used to share data between the reading and processing
+// services
+struct AuditdContext final {
+  /// Unprocessed audit records
+  std::vector<audit_reply> unprocessed_records;
+  static_assert(
+      std::is_move_constructible<decltype(unprocessed_records)>::value,
+      "not move constructible");
 
-  /// Queue mutex.
-  std::mutex queue_mutex;
+  /// Mutex for the list of unprocessed records
+  std::mutex unprocessed_records_mutex;
+
+  /// Processed events condition variable
+  std::condition_variable unprocessed_records_cv;
+
+  /// This queue contains processed events
+  std::vector<AuditEventRecord> processed_events;
+
+  /// Processed events queue mutex.
+  std::mutex processed_events_mutex;
+
+  /// Used to wake up the thread that processes the raw audit records
+  std::condition_variable processed_records_cv;
+
+  /// When set to true, the audit handle is (re)acquired
+  std::atomic_bool acquire_handle{true};
 };
 
-class AuditdNetlink final : private boost::noncopyable {
+using AuditdContextRef = std::shared_ptr<AuditdContext>;
+
+/// This is the service responsible for reading data from the audit netlink
+class AuditdNetlinkReader final : public InternalRunnable {
  public:
-  AuditdNetlink(const AuditdNetlink&) = delete;
-  AuditdNetlink& operator=(const AuditdNetlink&) = delete;
+  explicit AuditdNetlinkReader(AuditdContextRef context);
+  virtual void start() override;
 
-  static AuditdNetlink& get();
-  ~AuditdNetlink() = default;
+ private:
+  /// Reads as many audit event records as possible before returning.
+  bool acquireMessages() noexcept;
 
-  /// Creates a subscription context and returns a handle
-  NetlinkSubscriptionHandle subscribe() noexcept;
+  /// Configures the audit service and applies required rules
+  bool configureAuditService() noexcept;
 
-  /// Destroys the subscription context associated with the given handle.
-  void unsubscribe(NetlinkSubscriptionHandle handle) noexcept;
+  /// Clears out the audit configuration
+  bool clearAuditConfiguration() noexcept;
 
-  /// Prepares the raw audit event records stored in the given context.
-  std::vector<AuditEventRecord> getEvents(
-      NetlinkSubscriptionHandle handle) noexcept;
+  /// Deletes the given audit rule
+  bool deleteAuditRule(const AuditRuleDataObject& rule_object);
+
+  /// Removes the rules that we have applied
+  void restoreAuditServiceConfiguration() noexcept;
+
+  /// (Re)acquire the netlink handle.
+  NetlinkStatus acquireHandle() noexcept;
+
+ private:
+  /// Shared data
+  AuditdContextRef auditd_context_;
+
+  /// Read buffer used when receiving events from the netlink
+  std::vector<audit_reply> read_buffer_;
+
+  /// The set of rules we applied (and that we'll uninstall when exiting)
+  std::vector<audit_rule_data> installed_rule_list_;
+
+  /// The syscalls we are listening for
+  std::set<int> monitored_syscall_list_;
+
+  /// Netlink handle.
+  int audit_netlink_handle_{-1};
+};
+
+/// This service parses the raw audit records
+class AuditdNetlinkParser final : public InternalRunnable {
+ public:
+  explicit AuditdNetlinkParser(AuditdContextRef context);
+  virtual void start() override;
 
   /// Parses an audit_reply structure into an AuditEventRecord object
   static bool ParseAuditReply(const audit_reply& reply,
@@ -81,87 +134,22 @@ class AuditdNetlink final : private boost::noncopyable {
   static void AdjustAuditReply(audit_reply& reply) noexcept;
 
  private:
-  AuditdNetlink() = default;
+  /// Shared data
+  AuditdContextRef auditd_context_;
+};
 
-  /// Starts the event receiver thread.
-  bool start() noexcept;
+/// This class provides access to the audit netlink data
+class AuditdNetlink final : private boost::noncopyable {
+ public:
+  AuditdNetlink();
+  virtual ~AuditdNetlink() = default;
 
-  /// Terminates the thread receiving the events
-  void terminate() noexcept;
-
-  /// This is the entry point for the thread that receives the netlink events.
-  bool recvThread() noexcept;
-
-  /// This is the entry point for the thread that processes the netlink events.
-  bool processThread() noexcept;
-
-  /// Reads as many audit event records as possible before returning.
-  bool acquireMessages() noexcept;
-
-  /// Configures the audit service and applies required rules
-  bool configureAuditService() noexcept;
-
-  /// Removes the rules that we have applied
-  void restoreAuditServiceConfiguration() noexcept;
-
-  /// (Re)acquire the netlink handle.
-  NetlinkStatus acquireHandle() noexcept;
+  /// Prepares the raw audit event records stored in the given context.
+  std::vector<AuditEventRecord> getEvents() noexcept;
 
  private:
-  /// The set of rules we applied (and that we'll uninstall when exiting)
-  std::vector<audit_rule_data> installed_rule_list_;
-
-  /// The syscalls we are listening for
-  std::set<int> monitored_syscall_list_;
-
-  /// Netlink handle.
-  int audit_netlink_handle_{-1};
-
-  /// True if the netlink class has been initialized.
-  bool initialized_{false};
-
-  /// Initialization mutex
-  std::mutex initialization_mutex_;
-
-  /// This value is used to generate subscription handles.
-  NetlinkSubscriptionHandle handle_generator_{0};
-
-  /// Mutex that guards the subscriber list.
-  std::mutex subscribers_mutex_;
-
-  /// How many subscribers are receiving events
-  std::atomic<std::size_t> subscriber_count_{0};
-
-  /// Subscriber map.
-  std::unordered_map<NetlinkSubscriptionHandle, AuditNetlinkSubscriberContext>
-      subscribers_;
-
-  /// Set to true by ::terminate() when the thread should exit.
-  std::atomic<bool> terminate_threads_{false};
-
-  /// Used to wake up the thread that processes the raw audit records
-  std::condition_variable proc_thread_cv_;
-
-  /// When set to true, the audit handle is (re)acquired
-  std::atomic_bool acquire_netlink_handle_{true};
-
-  /// The thread that receives the audit events from the netlink.
-  std::unique_ptr<std::thread> recv_thread_;
-
-  /// Unprocessed audit records
-  std::vector<audit_reply> raw_audit_record_list_;
-  static_assert(
-      std::is_move_constructible<decltype(raw_audit_record_list_)>::value,
-      "not move constructible");
-
-  /// Mutex for the list of unprocessed records
-  std::mutex raw_audit_record_list_mutex_;
-
-  /// Read buffer used when receiving events from the netlink
-  std::vector<audit_reply> read_buffer_;
-
-  /// The thread that processes the audit events
-  std::unique_ptr<std::thread> processing_thread_;
+  /// Shared data
+  AuditdContextRef auditd_context_;
 };
 
 /// Handle quote and hex-encoded audit field content.
