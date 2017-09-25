@@ -119,14 +119,12 @@ function buildTable(pg, table) {
   }
 
   if (table.examples.length > 0) {
-    examples = pg.find('.template-examples').clone();
     for (var exi in table.examples) {
       example = table.examples[exi];
-      eui = pg.find('.template-example').clone();
-      eui.text(example);
-      examples.find('code').append(eui);
+      examples = pg.find('.template-examples').clone();
+      examples.find('code').text(example);
+      tbody.append(examples);
     }
-    tbody.append(examples);
   }
 
   return tui;
