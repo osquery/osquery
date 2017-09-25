@@ -23,7 +23,7 @@ namespace tables {
  * @brief Well known path to the Application Layer Firewall configuration.
  *
  * This plist contains all of the details about the ALF.
- * It is used to populated all of the tables here.
+ * It is used to populate all of the tables here.
  */
 const std::string kALFPlistPath{"/Library/Preferences/com.apple.alf.plist"};
 
