@@ -549,7 +549,7 @@ static AclObject modifyAcl(PACL acl,
   return std::move(new_acl_buffer);
 }
 
-PlatformFile::PlatformFile(const std::string& path, int mode, int perms)
+PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     : fname_(path) {
   DWORD access_mask = 0;
   DWORD flags_and_attrs = 0;
@@ -593,7 +593,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms)
     // TODO(#2001): set up a security descriptor based off the perms
   }
 
-  handle_ = ::CreateFileA(path.c_str(),
+  handle_ = ::CreateFileA(fname_.string().c_str(),
                           access_mask,
                           FILE_SHARE_READ,
                           security_attrs.get(),
@@ -1279,7 +1279,7 @@ static std::string normalizeDirPath(const fs::path& path) {
 
   // Obtain the full path of the fs::path object
   DWORD nret = ::GetFullPathNameA(
-      (LPCSTR)path.string().c_str(), MAX_PATH, full_path.data(), nullptr);
+      path.string().c_str(), MAX_PATH, full_path.data(), nullptr);
   if (nret == 0) {
     return std::string();
   }

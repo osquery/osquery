@@ -54,7 +54,7 @@ Status writeTextFile(const fs::path& path,
                      bool force_permissions) {
   // Open the file with the request permissions.
   PlatformFile output_fd(
-      path.string(), PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND, permissions);
+      path, PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND, permissions);
   if (!output_fd.isValid()) {
     return Status(1, "Could not create file: " + path.string());
   }
@@ -83,7 +83,7 @@ struct OpenReadableFile : private boost::noncopyable {
     }
 
     // Open the file descriptor and allow caller to perform error checking.
-    fd.reset(new PlatformFile(path.string(), mode));
+    fd.reset(new PlatformFile(path, mode));
   }
 
  public:
@@ -211,7 +211,7 @@ Status isWritable(const fs::path& path, bool effective) {
   }
 
   if (effective) {
-    PlatformFile fd(path.string(), PF_OPEN_EXISTING | PF_WRITE);
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
     return Status(fd.isValid() ? 0 : 1);
   } else if (platformAccess(path.string(), W_OK) == 0) {
     return Status(0, "OK");
@@ -227,7 +227,7 @@ Status isReadable(const fs::path& path, bool effective) {
   }
 
   if (effective) {
-    PlatformFile fd(path.string(), PF_OPEN_EXISTING | PF_READ);
+    PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
     return Status(fd.isValid() ? 0 : 1);
   } else if (platformAccess(path.string(), R_OK) == 0) {
     return Status(0, "OK");
@@ -443,7 +443,7 @@ bool safePermissions(const fs::path& dir,
     return false;
   }
 
-  PlatformFile fd(path.string(), PF_OPEN_EXISTING | PF_READ);
+  PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
   if (!fd.isValid()) {
     return false;
   }
