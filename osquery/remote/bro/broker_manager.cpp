@@ -15,6 +15,7 @@
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
 #include <broker/message_queue.hh>
+#include <broker/status_subscriber.hh>
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -154,14 +155,15 @@ Status BrokerManager::peerEndpoint(const std::string& ip,
     return Status(1, "Broker Endpoint not set");
   }
 
-  if (p_ != nullptr) {
-    return Status(1, "Broker conenction already established");
+  if (ss_ != nullptr) {
+    return Status(1, "Broker connection already established");
   }
 
-  p_ = std::make_unique<broker::peering>(ep_->peer(ip, port));
+  ep_->peer_nosync(ip, port), broker::timeout::seconds(-1);
+  ss_ = std::make_unique<broker::status_subscriber>(ep_->make_status_subscriber(true));
 
-  // Wait for message
-  pollfd pfd{ep_->outgoing_connection_status().fd(), POLLIN, 0};
+  // Wait for status message
+  pollfd pfd{ss_->fd(), POLLIN, 0};
   int poll_code = poll(&pfd, 1, timeout);
   if (poll_code < 0) {
     return Status(1, "poll error returned connecting to bro endpoint");
@@ -171,35 +173,46 @@ Status BrokerManager::peerEndpoint(const std::string& ip,
     return Status(1, "Connecting to bro endpoint timed out");
   }
 
-  broker::outgoing_connection_status::tag status;
-  Status s = getOutgoingConnectionStatusChange(status, false);
-  if (!s.ok()) {
-    return s;
-  }
-  if (status == broker::outgoing_connection_status::tag::incompatible) {
-    return Status(1, "Cannot peer because broker versions are incompatible");
-  }
-  if (status == broker::outgoing_connection_status::tag::disconnected) {
-    return Status(1, "Cannot peer because broker connection was disconnected");
+  auto s = ss_->get();
+  if ( auto err = get_if<broker::error>(s) ) {
+    return Status(1, "Broker connection failed with code '" << err->code() << "' and message '" << broker::to_string(*err) << "'");
   }
 
+  broker::status broker_status;
+  if ( auto st = get_if<broker::status>(s) ) {
+    broker_status = st;
+  }
+
+  if (broker_status.code() == broker::sc::peer_removed) {
+    return Status(0, "Broker disconnected because peer was successfully removed");
+  }
+  if (broker_status.code() == broker::sc::peer_lost) {
+    return Status(0, "Broker connection was lost");
+  }
+  if (broker_status.code() == broker::sc::unspecified) {
+    return Status(1, "Unspecified connection status");
+  }
+  // broker_status.code() == broker::sc::peer_added
   return Status(0, "OK");
 }
 
 Status BrokerManager::unpeer() {
-  if (p_ != nullptr) {
-    ep_->unpeer(*p_);
-
-    p_ = nullptr;
-
-    broker::outgoing_connection_status::tag status;
-    Status s = getOutgoingConnectionStatusChange(status, false);
-    if (s.getCode() == 1 or
-        status != broker::outgoing_connection_status::tag::disconnected) {
-      return Status(1, "Unable to disconnect broker connection");
-    }
+  if (ss_ == nullptr) {
+    return Status(1, "No broker connection established");
   }
 
+  // retrieve the remote peer
+  auto pi = ep_->peers().at(0);
+  if (auto netw = broker::get_if<broker::network_info>(pi.peer.network)) {
+    // Try to disconnect
+    if (!ep_->unpeer(netw->address, netw->port)) {
+      return Status(1, "Disconnect from remote endpoint was not successfull");
+    }
+  } else {
+    return Status(1, "Cannot disconnect because remote endpoint has no network information");
+  }
+  
+  ss_ = nullptr;
   return Status(0, "OK");
 }
 

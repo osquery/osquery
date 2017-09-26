@@ -198,8 +198,8 @@ class BrokerManager : private boost::noncopyable {
   Status sendEvent(const std::string& topic, const broker::message& msg);
 
  private:
-  // The peering to identify the broker remote endpoint
-  std::unique_ptr<broker::peering> p_ = nullptr;
+  // The status_subscriber of the endpoint
+  std::unique_ptr<broker::status_subscriber> ss_ = nullptr;
 
   // The ID identifying the node (private channel)
   std::string nodeID_ = "";
