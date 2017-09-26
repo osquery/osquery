@@ -325,6 +325,9 @@ struct QueryLogItem {
   /// The epoch at the time the query was executed
   uint64_t epoch;
 
+  /// Query execution counter for current epoch
+  uint64_t counter{0};
+
   /// The time that the query was executed, an ASCII string.
   std::string calendar_time;
 
@@ -424,14 +427,27 @@ class Query {
   Status getPreviousQueryResults(QueryData& results) const;
 
   /**
-   * @brief Get the epoch associated with the previous query results
+   * @brief Get the epoch associated with the previous query results.
    *
    * This method retrieves the epoch associated with the results data that was
-   * was stored in rocksdb
+   * was stored in rocksdb.
    *
    * @return the epoch associated with the previous query results.
    */
   uint64_t getPreviousEpoch() const;
+
+  /**
+   * @brief Get the query invocation counter.
+   *
+   * This method returns query invocation counter. If the query is a new query,
+   * 0 is returned. Otherwise the counter associated with the query is retrieved
+   * from database and incremented by 1.
+   *
+   * @param new_query Whether or not the query is new.
+   *
+   * @return the query invocation counter.
+   */
+  uint64_t getQueryCounter(bool new_query) const;
 
   /**
    * @brief Check if a given scheduled query exists in the database.
@@ -455,10 +471,13 @@ class Query {
    *
    * @param qd the QueryData object, which has the results of the query.
    * @param epoch the epoch associatted with QueryData
+   * @param counter the output that holds the query execution counter.
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(const QueryData& qd, const uint64_t epoch) const;
+  Status addNewResults(const QueryData& qd,
+                       const uint64_t epoch,
+                       uint64_t& counter) const;
 
   /**
    * @brief Add a new set of results to the persistent storage and get back
@@ -470,6 +489,7 @@ class Query {
    *
    * @param qd the QueryData object containing query results to store.
    * @param epoch the epoch associated with QueryData
+   * @param counter the output that holds the query execution counter.
    * @param dr an output to a DiffResults object populated based on last run.
    * @param calculate_diff default true to populate dr.
    *
@@ -477,6 +497,7 @@ class Query {
    */
   Status addNewResults(const QueryData& qd,
                        const uint64_t epoch,
+                       uint64_t& counter,
                        DiffResults& dr,
                        bool calculate_diff = true) const;
 

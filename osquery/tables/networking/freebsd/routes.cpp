@@ -18,7 +18,6 @@
 
 #include <arpa/inet.h>
 #include <net/if_dl.h>
-#include <net/route.h>
 #include <sys/sysctl.h>
 
 #include <boost/algorithm/string/trim.hpp>
@@ -26,6 +25,9 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+// Include belongs here to fix build on older fbsds.
+#include <net/route.h>
 
 #include "osquery/tables/networking/utils.h"
 

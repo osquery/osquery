@@ -31,9 +31,23 @@ uint64_t Query::getPreviousEpoch() const {
   std::string raw;
   auto status = getDatabaseValue(kQueries, name_ + "epoch", raw);
   if (status.ok()) {
-    epoch = std::stoul(raw);
+    epoch = std::stoull(raw);
   }
   return epoch;
+}
+
+uint64_t Query::getQueryCounter(bool new_query) const {
+  uint64_t counter = 0;
+  if (new_query) {
+    return counter;
+  }
+
+  std::string raw;
+  auto status = getDatabaseValue(kQueries, name_ + "counter", raw);
+  if (status.ok()) {
+    counter = std::stoull(raw) + 1;
+  }
+  return counter;
 }
 
 Status Query::getPreviousQueryResults(QueryData& results) const {
@@ -72,17 +86,21 @@ bool Query::isNewQuery() const {
   return (query != query_.query);
 }
 
-Status Query::addNewResults(const QueryData& qd, const uint64_t epoch) const {
+Status Query::addNewResults(const QueryData& qd,
+                            const uint64_t epoch,
+                            uint64_t& counter) const {
   DiffResults dr;
-  return addNewResults(qd, epoch, dr, false);
+  return addNewResults(qd, epoch, counter, dr, false);
 }
 
 Status Query::addNewResults(const QueryData& current_qd,
                             const uint64_t current_epoch,
+                            uint64_t& counter,
                             DiffResults& dr,
                             bool calculate_diff) const {
   // The current results are 'fresh' when not calculating a differential.
   bool fresh_results = !calculate_diff;
+  bool new_query = false;
   if (!isQueryNameInDatabase()) {
     // This is the first encounter of the scheduled query.
     fresh_results = true;
@@ -94,6 +112,7 @@ Status Query::addNewResults(const QueryData& current_qd,
               << name_;
   } else if (isNewQuery()) {
     // This query is 'new' in that the previous results may be invalid.
+    new_query = true;
     LOG(INFO) << "Scheduled query has been updated: " + name_;
     saveQuery(name_, query_.query);
   }
@@ -102,6 +121,7 @@ Status Query::addNewResults(const QueryData& current_qd,
   // If a differential is requested and needed the target remains the original
   // query data, otherwise the content is moved to the differential's added set.
   const auto* target_gd = &current_qd;
+  bool update_db = true;
   if (!fresh_results && calculate_diff) {
     // Get the rows from the last run of this query name.
     QueryData previous_qd;
@@ -112,16 +132,23 @@ Status Query::addNewResults(const QueryData& current_qd,
 
     // Calculate the differential between previous and current query results.
     dr = diff(previous_qd, current_qd);
-    fresh_results = (!dr.added.empty() || !dr.removed.empty());
+    update_db = (!dr.added.empty() || !dr.removed.empty());
   } else {
     dr.added = std::move(current_qd);
     target_gd = &dr.added;
   }
 
-  if (fresh_results) {
+  counter = getQueryCounter(fresh_results || new_query);
+  auto status =
+      setDatabaseValue(kQueries, name_ + "counter", std::to_string(counter));
+  if (!status.ok()) {
+    return status;
+  }
+
+  if (update_db) {
     // Replace the "previous" query data with the current.
     std::string json;
-    auto status = serializeQueryDataJSON(*target_gd, json);
+    status = serializeQueryDataJSON(*target_gd, json);
     if (!status.ok()) {
       return status;
     }
@@ -448,6 +475,7 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
   tree.put<std::string>("calendarTime", item.calendar_time);
   tree.put<size_t>("unixTime", item.time);
   tree.put<uint64_t>("epoch", item.epoch);
+  tree.put<uint64_t>("counter", item.counter);
 
   // Append the decorations.
   if (item.decorations.size() > 0) {

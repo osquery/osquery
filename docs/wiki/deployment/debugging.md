@@ -121,6 +121,10 @@ $ sudo osqueryctl config-check || echo 'config has an error'
 
 The first `config-check` fails because it attempts to verify the sanity of the RocksDB directory while a daemon is running. The second attempt succeeds and should be the actual indicator!
 
+While not expected, the backing store may be corrupted by problems with the filesystem, incorrect shutdowns, or running out of disk space. If any corruption is detect via the startup sanity checks or during runtime osquery may backup the database and attempt a recovery. The most basic recovery is just to move the database content to the backup location and start 'fresh'.
+
+If your `--database_path` is `/var/osquery/osquery.db` then the backup is `/var/osquery/osquery.db.backup`. The database is always a folder and the backup location is the suffix ".backup" appended.
+
 ### Missing event subscribers
 
 If you see:

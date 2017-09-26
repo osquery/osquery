@@ -142,7 +142,7 @@ class DatabasePlugin : public Plugin {
 
  public:
   /// Database-specific workflow: reset the originally request instance.
-  virtual Status reset() final;
+  Status reset();
 
   /// Database-specific workflow: perform an initialize, then reset.
   bool checkDB();

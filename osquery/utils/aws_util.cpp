@@ -8,11 +8,28 @@
  *
  */
 
+#include <fstream>
 #include <mutex>
 #include <sstream>
 #include <string>
 
+// clang-format off
+#ifdef WIN32
+#pragma warning(push, 3)
+/*
+ * Suppressing warning C4005:
+ * 'ASIO_ERROR_CATEGORY_NOEXCEPT': macro redefinition
+ */
+#pragma warning(disable: 4005)
+#endif
 #include <boost/network/protocol/http/client.hpp>
+#ifdef WIN32
+#pragma warning(pop)
+/// We reinclude this to re-enable boost's warning suppression
+#include <boost/config/compiler/visualc.hpp>
+#endif
+// clang-format on
+
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -231,7 +248,7 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
     Model::AssumeRoleRequest sts_r;
     sts_r.SetRoleArn(FLAGS_aws_sts_arn_role);
     sts_r.SetRoleSessionName(FLAGS_aws_sts_session_name);
-    sts_r.SetDurationSeconds(FLAGS_aws_sts_timeout);
+    sts_r.SetDurationSeconds(static_cast<int>(FLAGS_aws_sts_timeout));
 
     // Pull our STS credentials.
     Model::AssumeRoleOutcome sts_outcome = client_->AssumeRole(sts_r);
@@ -270,8 +287,12 @@ OsqueryAWSCredentialsProviderChain::OsqueryAWSCredentialsProviderChain(bool sts)
   AddProvider(std::make_shared<Aws::Auth::EnvironmentAWSCredentialsProvider>());
   AddProvider(
       std::make_shared<Aws::Auth::ProfileConfigFileAWSCredentialsProvider>());
+
+// This is disabled on Windows because it causes a crash
+#if !defined(WINDOWS)
   AddProvider(
       std::make_shared<Aws::Auth::InstanceProfileCredentialsProvider>());
+#endif
 }
 
 Status getAWSRegionFromProfile(std::string& region) {
@@ -324,7 +345,7 @@ void initAwsSdk() {
       };
       Aws::InitAPI(options);
     });
-  } catch (const std::system_error& e) {
+  } catch (const std::system_error&) {
     LOG(ERROR) << "call_once was not executed for initAwsSdk";
   }
 }
@@ -333,8 +354,8 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
   static std::atomic<bool> checked(false);
   static std::string cached_id;
   static std::string cached_region;
-  if (checked) {
-    // Return if already checked
+  if (checked || !isEc2Instance()) {
+    // Return if already checked or this is not EC2 instance
     instance_id = cached_id;
     region = cached_region;
     return;
@@ -347,8 +368,8 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
     }
 
     initAwsSdk();
-    http::client::request req(
-        "http://169.254.169.254/latest/dynamic/instance-identity/document");
+    http::client::request req(kEc2MetadataUrl +
+                              "dynamic/instance-identity/document");
     http::client::options options;
     options.timeout(3);
     http::client client(options);
@@ -373,6 +394,47 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
 
   instance_id = cached_id;
   region = cached_region;
+}
+
+bool isEc2Instance() {
+  static std::atomic<bool> checked(false);
+  static std::atomic<bool> is_ec2_instance(false);
+  if (checked) {
+    return is_ec2_instance; // Return if already checked
+  }
+
+  static std::once_flag once_flag;
+  std::call_once(once_flag, []() {
+    if (checked) {
+      return;
+    }
+    checked = true;
+
+    std::ifstream fd(kHypervisorUuid, std::ifstream::in);
+    if (!fd) {
+      return; // No hypervisor UUID file. Not EC2
+    }
+    if (!(fd.get() == 'e' && fd.get() == 'c' && fd.get() == '2')) {
+      return; // Not EC2 instance
+    }
+
+    http::client::request req(kEc2MetadataUrl);
+    http::client::options options;
+    options.timeout(3);
+    http::client client(options);
+
+    try {
+      http::client::response res = client.get(req);
+      if (res.status() == 200) {
+        is_ec2_instance = true;
+      }
+    } catch (const std::system_error& e) {
+      // Assume that this is not EC2 instance
+      VLOG(1) << "Error checking if this is EC2 instance: " << e.what();
+    }
+  });
+
+  return is_ec2_instance;
 }
 
 Status getAWSRegion(std::string& region, bool sts) {
