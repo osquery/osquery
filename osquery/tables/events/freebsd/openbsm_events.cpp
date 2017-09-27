@@ -88,6 +88,8 @@ REGISTER(OpenBSMSSHLoginSubscriber, "event_subscriber", "user_events");
 void OpenBSMExecVESubscriber::configure() {
   std::vector<size_t> event_ids{
       23, // execve
+      43131, // AUE_MAC_EXECVE
+      43144, // AUE_FEXECVE (BSD)
       43190, // AUX_POSIX_SPAWN
   };
   for (const auto& evid : event_ids) {
