@@ -16,6 +16,9 @@
 #include <osquery/sql.h>
 
 #include "osquery/events/darwin/iokit.h"
+#include "osquery/events/darwin/diskarbitration.h"
+#include "osquery/events/darwin/DMAPFS.h"
+#include "osquery/events/darwin/DMManger.h"
 
 namespace osquery {
 namespace tables {
@@ -28,6 +31,7 @@ namespace tables {
  *   libkern/crypto/corecrypto_aesxts.c
  */
 const std::string kEncryptionType = "AES-XTS";
+const std::string kAPFSFileSystem = "apfs";
 
 /// Expect all device names to include a /dev path prefix.
 const std::string kDeviceNamePrefix = "/dev/";
@@ -87,7 +91,7 @@ Status genUid(id_t& uid, uuid_string_t& uuid_str) {
   if (uuid != nullptr) {
     CFRelease(uuid);
   }
-  
+
   uuid_t uuidT = {0};
   if (uuid_parse(uuid_str, uuidT) != 0) {
     return Status(1, "Could not parse UUID");
@@ -104,6 +108,7 @@ Status genUid(id_t& uid, uuid_string_t& uuid_str) {
 
 void genFDEStatusForBSDName(const std::string& bsd_name,
                             const std::string& uuid,
+                            bool isAPFS,
                             QueryData& results) {
 
   auto matching_dict =
@@ -130,23 +135,49 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
   r["name"] = kDeviceNamePrefix + bsd_name;
   r["uuid"] = uuid;
 
-  auto encrypted = getIOKitProperty(properties, kCoreStorageIsEncryptedKey_);
-  if (encrypted.empty()) {
-    r["encrypted"] = "0";
+  if (isAPFS) {
+    DASessionRef session = DASessionCreate(kCFAllocatorDefault);
+    DMManager manager = [[DMManager alloc] init];
+    [manager setDefaultDASession:session];
+    DMAPFS apfs = [[DMAPFS alloc] initWithManager:manager];
+    DADisk targetVol = [manager diskForPath:@"/" error:&err];
+    //DADiskGetBSDName
+    OSErr err = 0;
+    char isEncrypted = '\0';
+    err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
+    r["encypted"] = isEncrypted;
   } else {
-    r["encrypted"] = encrypted;
-    id_t uid;
-    uuid_string_t uuid_string = {0};
-    if (genUid(uid, uuid_string).ok()) {
-      r["uid"] = BIGINT(uid);
-      r["user_uuid"] = TEXT(uuid_string);
+    auto encrypted = getIOKitProperty(properties, kCoreStorageIsEncryptedKey_);
+    if (encrypted.empty()) {
+      r["encrypted"] = "0";
+    } else {
+      r["encrypted"] = encrypted;
+      id_t uid;
+      uuid_string_t uuid_string = {0};
+      if (genUid(uid, uuid_string).ok()) {
+        r["uid"] = BIGINT(uid);
+        r["user_uuid"] = TEXT(uuid_string);
+      }
     }
+    r["type"] = (r.at("encrypted") == "1") ? kEncryptionType : std::string();
   }
-  r["type"] = (r.at("encrypted") == "1") ? kEncryptionType : std::string();
+
+
 
   results.push_back(r);
   CFRelease(properties);
   IOObjectRelease(service);
+}
+
+bool isAPFS(const QueryData& result) {
+  if (result.empty()) {
+    return false;
+  }
+
+  if (result[0].at("type") == kAPFSFileSystem) {
+    return true;
+  }
+  return false;
 }
 
 QueryData genFDEStatus(QueryContext& context) {
@@ -154,9 +185,12 @@ QueryData genFDEStatus(QueryContext& context) {
 
   auto block_devices = SQL::selectAllFrom("block_devices");
 
+  select b.*, m.type from block_devices b LEFT JOIN mounts m ON b.name = m.device;
+
   for (const auto& row : block_devices) {
     const auto bsd_name = row.at("name").substr(kDeviceNamePrefix.size());
-    genFDEStatusForBSDName(bsd_name, row.at("uuid"), results);
+    auto mount = SQL::selectAllFrom("mounts", "device", EQUALS, bsd_name);
+    genFDEStatusForBSDName(bsd_name, row.at("uuid"), isAPFS(mount), results);
   }
 
   return results;
