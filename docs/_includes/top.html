@@ -17,11 +17,8 @@
   <script src="/js/zepto.min.js"></script>
   <script>
     var d = new String(window.location.host);
-    var p = new String(window.location.pathname);
-    var u = "http://" + d + p;
-    if (u.indexOf("facebook.github.io") != -1) {
-      u = u.replace(location.host, "osquery.io");
-      window.location = u;
+    if (d.indexOf("facebook.github.io") != -1) {
+      window.location = "{{ site.url }}";
     }
   </script>
 </head>
