@@ -13,7 +13,6 @@
 #include <broker/bro.hh>
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
-#include <broker/report.hh>
 
 #include <osquery/status.h>
 #include <osquery/system.h>

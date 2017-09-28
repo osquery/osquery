@@ -26,7 +26,6 @@ class Broker < AbstractOsqueryFormula
   patch :DATA
 
   def install
-    #prepend "CXXFLAGS", "-std=c++11 -stdlib=libstdc++ -Wextra -Wall -ftemplate-depth=512 -pedantic"
     prepend "CXXFLAGS", "-std=c++11 -Wextra -Wall"
     args = %W[--prefix=#{prefix} --enable-static-only --with-caf=#{default_prefix}]
 
@@ -38,6 +37,29 @@ class Broker < AbstractOsqueryFormula
 end
 
 __END__
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 48717a4..0f227f3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -31,6 +31,9 @@ endif ()
+ include_directories(BEFORE ${CAF_INCLUDE_DIRS})
+ set(LINK_LIBS ${LINK_LIBS} ${CAF_LIBRARIES})
+
++find_package(OpenSSL REQUIRED)
++set(LINK_LIBS ${LINK_LIBS} ${OPENSSL_LIBRARIES})
++
+ # RocksDB
+ find_package(RocksDB)
+ if (ROCKSDB_FOUND)
+@@ -147,7 +150,7 @@ set_source_files_properties(src/detail/sqlite3.c PROPERTIES COMPILE_FLAGS
+ include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/broker/config.hh.in
+-               ${CMAKE_CURRENT_BINARY_DIR}/broker/config.hh)
++       ${CMAKE_CURRENT_SOURCE_DIR}/broker/config.hh)
+
+ set(BROKER_SRC
+   src/address.cc
 diff --git a/cmake/FindCAF.cmake b/cmake/FindCAF.cmake
 index ea2860c..845a6e7 100644
 --- a/cmake/FindCAF.cmake
@@ -70,17 +92,3 @@ index ea2860c..845a6e7 100644
                       /usr/lib
                       /usr/local/lib
                       /opt/local/lib
-diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 48717a4..42e0828 100644
---- a/CMakeLists.txt
-+++ b/CMakeLists.txt
-@@ -31,6 +31,9 @@ endif ()
- include_directories(BEFORE ${CAF_INCLUDE_DIRS})
- set(LINK_LIBS ${LINK_LIBS} ${CAF_LIBRARIES})
-
-+find_package(OpenSSL REQUIRED)
-+set(LINK_LIBS ${LINK_LIBS} ${OPENSSL_LIBRARIES})
-+
- # RocksDB
- find_package(RocksDB)
- if (ROCKSDB_FOUND)

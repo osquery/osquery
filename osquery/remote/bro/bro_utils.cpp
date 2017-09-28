@@ -16,8 +16,6 @@
 #include <broker/bro.hh>
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
-#include <broker/message_queue.hh>
-#include <broker/report.hh>
 
 #include <osquery/config.h>
 #include <osquery/logger.h>
