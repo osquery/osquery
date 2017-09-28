@@ -661,9 +661,6 @@ void relayStatusLogs(bool async) {
       }
 
       serializeIntermediateLog(status_logs, request);
-      if (!request["log"].empty()) {
-        request["log"].pop_back();
-      }
 
       // Flush the buffered status logs.
       status_logs.clear();
