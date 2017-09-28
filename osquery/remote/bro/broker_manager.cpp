@@ -415,7 +415,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
     }
 
     // Send event message
-    broker::bro::Event msg(event_name, {msg_data});
+    broker::bro::Event msg(event_name, msg_data);
     sendEvent(topic, msg);
   }
 

@@ -55,16 +55,16 @@ Status createSubscriptionRequest(const BrokerRequestType& rType,
   }
 
   // Query String
-  if (!broker::is<std::string>(event_args[0])) {
+  if (!broker::is<std::string>(event_args[1])) {
     return Status(1, "SQL query is not a string");
   }
-  sr.query = broker::get<std::string>(event_args[0]);
+  sr.query = broker::get<std::string>(event_args[1]);
 
   // Response Event Name
-  if (!broker::is<std::string>(event_args[1])) {
+  if (!broker::is<std::string>(event_args[0])) {
     return Status(1, "Response Event Name is not a string");
   }
-  sr.response_event = broker::get<std::string>(event_args[1]);
+  sr.response_event = broker::get<std::string>(event_args[0]);
 
   // Cookie
   auto cookie = broker::to_string(event_args[2]);

@@ -104,7 +104,6 @@ REGISTER(BRODistributedPlugin, "distributed", "bro");
 Status BRODistributedPlugin::setUp() {
   // Setup Broker Endpoint
   LOG(INFO) << "Starting the Bro Distributed Plugin";
-  // broker::init();
   BrokerManager& bm = BrokerManager::get();
 
   // Subscribe to all and individual topic
@@ -294,7 +293,7 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
       // Directly updates the daemon schedule if requested
       // Returns one time queries otherwise
       assert(topic == msg.first);
-      s = processMessage(broker::bro::Event(msg.second), topic, oT_queries);
+      s = processMessage({msg.second}, topic, oT_queries);
       if (!s.ok()) {
         LOG(ERROR) << s.getMessage();
         continue;
