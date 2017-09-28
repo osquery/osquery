@@ -10,6 +10,8 @@
 
 #include <osquery/flags.h>
 
+#include "osquery/core/conversions.h"
+
 namespace boost {
 template <>
 bool lexical_cast<bool, std::string>(const std::string& arg) {
@@ -68,6 +70,12 @@ std::string Flag::getValue(const std::string& name) {
   std::string current_value;
   flags::GetCommandLineOption(name.c_str(), &current_value);
   return current_value;
+}
+
+long int Flag::getInt32Value(const std::string& name) {
+  long int value = 0;
+  safeStrtol(Flag::getValue(name), 10, value);
+  return value;
 }
 
 std::string Flag::getType(const std::string& name) {
