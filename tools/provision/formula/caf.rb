@@ -39,7 +39,7 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 index b56c979..7aaf516 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -305,9 +305,9 @@ if(CAF_IOS_DEPLOYMENT_TARGET)
+@@ -334,9 +334,9 @@ if(CAF_IOS_DEPLOYMENT_TARGET)
    endif()
  endif()
  # check if the user provided CXXFLAGS, set defaults otherwise
@@ -52,3 +52,15 @@ index b56c979..7aaf516 100644
  if(NOT CMAKE_CXX_FLAGS_DEBUG)
    set(CMAKE_CXX_FLAGS_DEBUG             "-O0 -g")
  endif()
+diff --git a/libcaf_core/caf/intrusive_ptr.hpp b/libcaf_core/caf/intrusive_ptr.hpp
+index 25d8a01..580dca3 100644
+--- a/libcaf_core/caf/intrusive_ptr.hpp
++++ b/libcaf_core/caf/intrusive_ptr.hpp
+@@ -249,7 +249,7 @@ std::string to_string(const intrusive_ptr<T>& x) {
+   // we convert to hex representation, i.e.,
+   // one byte takes two characters + null terminator + "0x" prefix
+   char buf[sizeof(v) * 2 + 3];
+-  sprintf(buf, "%" PRIxPTR, v);
++  sprintf(buf, "%lu", v);
+   return buf;
+ }

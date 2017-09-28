@@ -12,7 +12,6 @@
 
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
-#include <broker/message_queue.hh>
 #include <broker/report.hh>
 
 #include <osquery/status.h>
@@ -51,7 +50,7 @@ const std::map<BrokerRequestType, std::string> kBrokerRequestTypeNames = {
  * @return
  */
 Status createSubscriptionRequest(const BrokerRequestType& rType,
-                                 const broker::message& msg,
+                                 const broker::bro::Event& event,
                                  const std::string& incoming_topic,
                                  SubscriptionRequest& sr);
 

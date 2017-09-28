@@ -13,6 +13,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <broker/bro.hh>
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
 #include <broker/message_queue.hh>
@@ -30,61 +31,61 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 Status createSubscriptionRequest(const BrokerRequestType& rType,
-                                 const broker::message& msg,
+                                 const broker::bro::Event& event,
                                  const std::string& incoming_topic,
                                  SubscriptionRequest& sr) {
   // Check number of fields
+  auto event_args = event.args();
   unsigned long numFields;
   if (rType == EXECUTE) {
-    numFields = 6;
+    numFields = 5;
   } else if (rType == SUBSCRIBE || rType == UNSUBSCRIBE) {
-    numFields = 7;
+    numFields = 6;
   } else {
-    return Status(1,
-                  "Unknown Subscription Request Type '" +
-                      kBrokerRequestTypeNames.at(rType) + "'");
+    return Status(
+        1, "Unknown Subscription Request Type '" + std::to_string(rType) + "'");
   }
 
-  if (msg.size() != numFields) {
+  if (event_args.size() != numFields) {
     return Status(1,
-                  std::to_string(msg.size()) + " instead of " +
+                  std::to_string(event_args.size()) + " instead of " +
                       std::to_string(numFields) + " fields in '" +
                       kBrokerRequestTypeNames.at(rType) + "' message '" +
-                      broker::to_string(msg[0]));
+                      event.name());
   }
 
   // Query String
-  if (!broker::is<std::string>(msg[1])) {
+  if (!broker::is<std::string>(event_args[0])) {
     return Status(1, "SQL query is not a string");
   }
-  sr.query = *broker::get<std::string>(msg[2]);
+  sr.query = broker::get<std::string>(event_args[0]);
 
   // Response Event Name
-  if (!broker::is<std::string>(msg[1])) {
+  if (!broker::is<std::string>(event_args[1])) {
     return Status(1, "Response Event Name is not a string");
   }
-  sr.response_event = *broker::get<std::string>(msg[1]);
+  sr.response_event = broker::get<std::string>(event_args[1]);
 
   // Cookie
-  auto cookie = broker::to_string(msg[3]);
+  auto cookie = broker::to_string(event_args[2]);
   sr.cookie = cookie;
 
   // Response Topic
-  if (!broker::is<std::string>(msg[4])) {
+  if (!broker::is<std::string>(event_args[3])) {
     return Status(1, "Response Topic Name is not a string");
   }
-  if (broker::to_string(msg[4]).empty()) {
+  if (broker::get<std::string>(event_args[3]).empty()) {
     sr.response_topic = incoming_topic;
     LOG(WARNING) << "No response topic given for event '" << sr.response_event
                  << "' reporting back to "
                     "incoming topic '"
                  << incoming_topic << "'";
   } else {
-    sr.response_topic = *broker::get<std::string>(msg[4]);
+    sr.response_topic = broker::get<std::string>(event_args[3]);
   }
 
   // Update Type
-  std::string update_type = broker::to_string(msg[5]);
+  std::string update_type = broker::to_string(event_args[4]);
   if (update_type == "ADDED") {
     sr.added = true;
     sr.removed = false;
@@ -119,10 +120,10 @@ Status createSubscriptionRequest(const BrokerRequestType& rType,
   }
 
   // Interval
-  if (!broker::is<uint64_t>(msg[6])) {
+  if (!broker::is<uint64_t>(event_args[5])) {
     return Status(1, "Interval is not a number");
   }
-  sr.interval = *broker::get<uint64_t>(msg[6]);
+  sr.interval = broker::get<uint64_t>(event_args[5]);
 
   return Status(0, "OK");
 }

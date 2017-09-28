@@ -83,16 +83,3 @@ index 48717a4..42e0828 100644
  # RocksDB
  find_package(RocksDB)
  if (ROCKSDB_FOUND)
-diff --git a/broker/detail/appliers.hh b/broker/detail/appliers.hh
-index 8e21f7a..565dcba 100644
---- a/broker/detail/appliers.hh
-+++ b/broker/detail/appliers.hh
-@@ -137,7 +137,7 @@ struct retriever {
-       i = *x;
-     else {
-       auto y = get_if<integer>(aspect);
--      if (!y || y < 0)
-+      if (!y)
-         return ec::type_clash;
-       i = static_cast<count>(*y);
-     }
