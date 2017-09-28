@@ -9,7 +9,7 @@ class Broker < AbstractOsqueryFormula
 	  #:tag => "v0.6"
   head "https://github.com/bro/broker.git"
   version "0.6"
-  revision 1
+  revision 2
 
   needs :cxx11
 
