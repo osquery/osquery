@@ -339,8 +339,7 @@ void setVerboseLevel() {
   }
 
   if (!Flag::isDefault("logger_min_status")) {
-    long int i = 0;
-    safeStrtol(Flag::getValue("logger_min_status"), 10, i);
+    auto i = Flag::getInt32Value("logger_min_status");
     FLAGS_minloglevel = static_cast<decltype(FLAGS_minloglevel)>(i);
   }
 
