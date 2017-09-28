@@ -259,8 +259,13 @@ class LoggerPlugin : public Plugin {
 /// Set the verbose mode, changes Glog's sinking logic and will affect plugins.
 void setVerboseLevel();
 
-/// Start status logging to a buffer until the logger plugin is online.
-void initStatusLogger(const std::string& name);
+/**
+ * @brief Start status logging to a buffer until the logger plugin is online.
+ *
+ * This will also call google::InitGoogleLogging. Use the default init_glog
+ * to control this in tests to protect against calling the API twice.
+ */
+void initStatusLogger(const std::string& name, bool init_glog = true);
 
 /**
  * @brief Initialize the osquery Logger facility by dumping the buffered status
