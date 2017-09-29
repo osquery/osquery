@@ -73,28 +73,26 @@ const std::vector<MINIDUMP_STREAM_TYPE> kStreamTypes = {ExceptionStream,
                                                        SystemInfoStream,
                                                        MiscInfoStream};
 
-Status logAndStoreTID(MINIDUMP_EXCEPTION_STREAM* stream, unsigned int& tid, Row& r) {
-	if (stream == nullptr) return Status(1);
-	if (stream->ThreadId == 0) return Status(1);
+Status logAndStoreTID(const MINIDUMP_EXCEPTION_STREAM* stream, unsigned int& tid, Row& r) {
+	if ((stream == nullptr) || (stream->ThreadId == 0)) return Status(1);
 
 	r["tid"] = BIGINT(stream->ThreadId);
 	tid = stream->ThreadId;
 	return Status(0);
 }
 
-Status logAndStoreExceptionCodeAndAddr(MINIDUMP_EXCEPTION_STREAM* stream, unsigned int& exCode, unsigned long long& exAddr, Row& r) {
+Status logAndStoreExceptionCodeAndAddr(const MINIDUMP_EXCEPTION_STREAM* stream, unsigned int& exCode, unsigned long long& exAddr, Row& r) {
 	if (stream == nullptr) return Status(1);
+
 	auto ex = stream->ExceptionRecord;
 	std::ostringstream exCodeStr;
 	exCodeStr << "0x" << std::hex << ex.ExceptionCode;
-
 	if (exCodeStr.fail()) return Status(1);
 	r["exception_code"] = exCodeStr.str();
 	exCode = ex.ExceptionCode;
 
 	std::ostringstream exAddrStr;
 	exAddrStr << "0x" << std::hex << ex.ExceptionAddress;
-
 	if (exAddrStr.fail()) return Status(1);
 	r["exception_address"] = exAddrStr.str();
 	exAddr = ex.ExceptionAddress;
@@ -105,10 +103,10 @@ Status logAndStoreExceptionCodeAndAddr(MINIDUMP_EXCEPTION_STREAM* stream, unsign
 Log the exception message for errors with defined parameters
 (see ExceptionInformation @ https://msdn.microsoft.com/en-us/library/windows/desktop/ms680367(v=vs.85).aspx)
 */
-Status logExceptionMsg(MINIDUMP_EXCEPTION_STREAM* stream, unsigned int exCode, unsigned long long exAddr, Row& r) {
+Status logExceptionMsg(const MINIDUMP_EXCEPTION_STREAM* stream, unsigned int exCode, unsigned long long exAddr, Row& r) {
 	if (stream == nullptr) return Status(1);
-	auto ex = stream->ExceptionRecord;
 
+	auto ex = stream->ExceptionRecord;
 	if ((ex.ExceptionCode == EXCEPTION_ACCESS_VIOLATION) &&
 		(ex.NumberParameters == 2)) {
 		std::ostringstream errorMsg;
@@ -137,12 +135,12 @@ Status logExceptionMsg(MINIDUMP_EXCEPTION_STREAM* stream, unsigned int exCode, u
 	return Status(1);
 }
 
-Status logRegisters(MINIDUMP_EXCEPTION_STREAM* stream, unsigned char* dumpBase, Row& r) {
+Status logRegisters(const MINIDUMP_EXCEPTION_STREAM* stream, unsigned char* const dumpBase, Row& r) {
 	if (stream == nullptr) return Status(1);
+
 	auto ex = stream->ExceptionRecord;
 	auto threadContext =
 		reinterpret_cast<CONTEXT*>(dumpBase + stream->ThreadContext.Rva);
-
 	std::ostringstream registers;
 	// Registers are hard-coded for x64 system b/c lack of C++ reflection on
 	// CONTEXT object
@@ -174,40 +172,38 @@ Status logRegisters(MINIDUMP_EXCEPTION_STREAM* stream, unsigned char* dumpBase, 
 	return Status(0);
 }
 
-Status logPID(MINIDUMP_MISC_INFO* stream, Row& r) {
-	if (stream == nullptr) return Status(1);
-	if (!(stream->Flags1 & MINIDUMP_MISC1_PROCESS_ID)) return Status(1);
+Status logPID(const MINIDUMP_MISC_INFO* stream, Row& r) {
+	if ((stream == nullptr) || !(stream->Flags1 & MINIDUMP_MISC1_PROCESS_ID)) return Status(1);
 
 	r["pid"] = BIGINT(stream->ProcessId);
 	return Status(0);
 }
 
-Status logProcessCreateTime(MINIDUMP_MISC_INFO* stream, Row& r) {
-	if (stream == nullptr) return Status(1);
-	if (!(stream->Flags1 & MINIDUMP_MISC1_PROCESS_TIMES)) return Status(1);
+Status logProcessCreateTime(const MINIDUMP_MISC_INFO* stream, Row& r) {
+	if ((stream == nullptr) || !(stream->Flags1 & MINIDUMP_MISC1_PROCESS_TIMES)) return Status(1);
 
 	time_t procTimestamp = stream->ProcessCreateTime;
 	struct tm gmt;
 	char timeBuff[64];
 	gmtime_s(&gmt, &procTimestamp);
 	strftime(timeBuff, sizeof(timeBuff), "%Y-%m-%d %H:%M:%S UTC", &gmt);
-
 	r["process_create_time"] = timeBuff;
 	return Status(0);
 }
 
-Status logOSVersion(MINIDUMP_SYSTEM_INFO* stream, Row &r) {
+Status logOSVersion(const MINIDUMP_SYSTEM_INFO* stream, Row &r) {
 	if (stream == nullptr) return Status(1);
+
 	r["major_version"] = INTEGER(stream->MajorVersion);
 	r["minor_version"] = INTEGER(stream->MinorVersion);
 	r["build_number"] = INTEGER(stream->BuildNumber);
 	return Status(0);
 }
 
-Status logPEPathAndVersion(MINIDUMP_MODULE_LIST* stream, unsigned char* dumpBase, Row &r) {
+Status logPEPathAndVersion(const MINIDUMP_MODULE_LIST* stream, unsigned char* const dumpBase, Row &r) {
 	if (stream == nullptr) return Status(1);
-	auto exeModule = stream->Modules[0];
 
+	auto exeModule = stream->Modules[0];
 	auto exePath = reinterpret_cast<MINIDUMP_STRING*>(dumpBase + exeModule.ModuleNameRva);
 	r["path"] = wstringToString(exePath->Buffer);
 
@@ -222,8 +218,9 @@ Status logPEPathAndVersion(MINIDUMP_MODULE_LIST* stream, unsigned char* dumpBase
 	return Status(0);
 }
 
-Status logCrashedModule(MINIDUMP_MODULE_LIST* stream, unsigned char* dumpBase, unsigned long long exAddr, Row &r) {
+Status logCrashedModule(const MINIDUMP_MODULE_LIST* stream, unsigned char* const dumpBase, unsigned long long exAddr, Row &r) {
 	if (stream == nullptr) return Status(1);
+
 	for (unsigned int i = 0; i < stream->NumberOfModules; i++) {
 		auto module = stream->Modules[i];
 		// Is the exception address within this module's memory space?
@@ -234,28 +231,28 @@ Status logCrashedModule(MINIDUMP_MODULE_LIST* stream, unsigned char* dumpBase, u
 			return Status(0);
 		}
 	}
-
 	return Status(1);
 }
 
 // Pulls the memory at target address from the Minidump
 void* getMemAtTarget(
-	 MINIDUMP_MEMORY_LIST* stream, unsigned long long target, unsigned char* dumpBase) {
+	 const MINIDUMP_MEMORY_LIST* stream, unsigned long long target, unsigned char* const dumpBase) {
 	if (stream == nullptr) return nullptr;
 
 	for (unsigned int i = 0; i < stream->NumberOfMemoryRanges; i++) {
 		auto memRange = stream->MemoryRanges[i];
 		if ((memRange.StartOfMemoryRange <= target) &&
 			(target < (memRange.StartOfMemoryRange + memRange.Memory.DataSize))) {
-			unsigned long long offset = target - memRange.StartOfMemoryRange;
+			auto offset = target - memRange.StartOfMemoryRange;
 			return static_cast<void*>(dumpBase + memRange.Memory.Rva + offset);
 		}
 	}
 	return nullptr;
 }
 
-Status storeTEBAndPEB(MINIDUMP_THREAD_LIST* threadStream, MINIDUMP_MEMORY_LIST* memStream, unsigned char* dumpBase, unsigned int tid, TEB*& teb, PEB*& peb) {
+Status storeTEBAndPEB(const MINIDUMP_THREAD_LIST* threadStream, const MINIDUMP_MEMORY_LIST* memStream, unsigned char* const dumpBase, unsigned int tid, TEB*& teb, PEB*& peb) {
 	if ((threadStream == nullptr) || (memStream == nullptr)) return Status(1);
+
 	unsigned long long tebAddr = 0;
 	for (unsigned int i = 0; i < threadStream->NumberOfThreads; i++) {
 		auto thread = threadStream->Threads[i];
@@ -278,9 +275,10 @@ Status storeTEBAndPEB(MINIDUMP_THREAD_LIST* threadStream, MINIDUMP_MEMORY_LIST* 
 	return Status(0);
 }
 
-Status logBeingDebugged(PEB* peb, Row& r) {
+Status logBeingDebugged(const PEB* peb, Row& r) {
 	if (peb == nullptr) return Status(1);
-	if (peb->BeingDebugged == TRUE) {
+
+	if (peb->BeingDebugged == 1) {
 		r["being_debugged"] = "true";
 	}
 	else {
@@ -289,8 +287,9 @@ Status logBeingDebugged(PEB* peb, Row& r) {
 	return Status(0);
 }
 
-Status storeProcessParams(MINIDUMP_MEMORY_LIST* stream, unsigned char* dumpBase, PEB* peb, RTL_USER_PROCESS_PARAMETERS*& params) {
+Status storeProcessParams(const MINIDUMP_MEMORY_LIST* stream, unsigned char* const dumpBase, const PEB* peb, RTL_USER_PROCESS_PARAMETERS*& params) {
 	if ((stream == nullptr) || (peb == nullptr)) return Status(1);
+
 	auto paramsAddr =
 		reinterpret_cast<unsigned long long>(peb->ProcessParameters);
 	auto result = getMemAtTarget(stream, paramsAddr, dumpBase);
@@ -299,8 +298,9 @@ Status storeProcessParams(MINIDUMP_MEMORY_LIST* stream, unsigned char* dumpBase,
 	return Status(0);
 }
 
-Status logProcessCmdLine(MINIDUMP_MEMORY_LIST* stream, unsigned char* dumpBase, RTL_USER_PROCESS_PARAMETERS* params, Row& r) {
+Status logProcessCmdLine(const MINIDUMP_MEMORY_LIST* stream, unsigned char* const dumpBase, const RTL_USER_PROCESS_PARAMETERS* params, Row& r) {
 	if ((stream == nullptr) || (params == nullptr)) return Status(1);
+
 	auto cmdLineAddr =
 		reinterpret_cast<unsigned long long>(params->CommandLine.Buffer);
 	auto result = getMemAtTarget(stream, cmdLineAddr, dumpBase);
@@ -310,11 +310,12 @@ Status logProcessCmdLine(MINIDUMP_MEMORY_LIST* stream, unsigned char* dumpBase, 
 	return Status(0);
 }
 
-Status logProcessCurDir(MINIDUMP_MEMORY_LIST* stream, unsigned char* dumpBase, RTL_USER_PROCESS_PARAMETERS* params, Row& r) {
+Status logProcessCurDir(const MINIDUMP_MEMORY_LIST* stream, unsigned char* const dumpBase, const RTL_USER_PROCESS_PARAMETERS* params, Row& r) {
 	if ((stream == nullptr) || (params == nullptr)) return Status(1);
+
 	// Offset 0x38 is from WinDbg: dt nt!_RTL_USER_PROCESS_PARAMETERS
-	auto curDirStruct = reinterpret_cast<UNICODE_STRING*>(
-		reinterpret_cast<unsigned char*>(params) + 0x38);
+	auto curDirStruct = reinterpret_cast<const UNICODE_STRING*>(
+		reinterpret_cast<const unsigned char*>(params) + 0x38);
 	auto curDirAddr = reinterpret_cast<unsigned long long>(curDirStruct->Buffer);
 	auto result = getMemAtTarget(stream, curDirAddr, dumpBase);
 	if (result == nullptr) return Status(1);
@@ -323,11 +324,12 @@ Status logProcessCurDir(MINIDUMP_MEMORY_LIST* stream, unsigned char* dumpBase, R
 	return Status(0);
 }
 
-Status logProcessEnvVars(MINIDUMP_MEMORY_LIST* stream, unsigned char* dumpBase, RTL_USER_PROCESS_PARAMETERS* params, Row &r) {
+Status logProcessEnvVars(const MINIDUMP_MEMORY_LIST* stream, unsigned char* const dumpBase, const RTL_USER_PROCESS_PARAMETERS* params, Row &r) {
 	if ((stream == nullptr) || (params == nullptr)) return Status(1);
+
 	// Offset 0x80 is from WinDbg: dt nt!_RTL_USER_PROCESS_PARAMETERS
-	auto envVarsAddr = reinterpret_cast<unsigned long long*>(
-		reinterpret_cast<unsigned char*>(params) + 0x80);
+	auto envVarsAddr = reinterpret_cast<const unsigned long long*>(
+		reinterpret_cast<const unsigned char*>(params) + 0x80);
 	auto result = getMemAtTarget(stream, *envVarsAddr, dumpBase);
 	if (result == nullptr) return Status(1);
 	auto envVars = static_cast<wchar_t*>(result);
@@ -354,8 +356,9 @@ Status logProcessEnvVars(MINIDUMP_MEMORY_LIST* stream, unsigned char* dumpBase, 
 	return Status(0);
 }
 
-Status logDumpTime(MINIDUMP_HEADER* header, Row& r) {
+Status logDumpTime(const MINIDUMP_HEADER* header, Row& r) {
 	if (header == nullptr) return Status(1);
+
 	time_t dumpTimestamp = header->TimeDateStamp;
 	struct tm gmt;
 	char timeBuff[64];
@@ -365,8 +368,9 @@ Status logDumpTime(MINIDUMP_HEADER* header, Row& r) {
 	return Status(0);
 }
 
-Status logAndStoreDumpType(MINIDUMP_HEADER* header, Row& r, unsigned long long& flags) {
+Status logAndStoreDumpType(const MINIDUMP_HEADER* header, unsigned long long& flags, Row& r) {
 	if (header == nullptr) return Status(1);
+
 	std::ostringstream activeFlags;
 	bool firstString = true;
 	// Loop through MINIDUMP_TYPE flags and log the ones that are set
@@ -385,10 +389,8 @@ Status logAndStoreDumpType(MINIDUMP_HEADER* header, Row& r, unsigned long long& 
 void debugEngineCleanup(IDebugClient4* client,
                         IDebugControl4* control,
                         IDebugSymbols3* symbols) {
-  if (symbols != nullptr)
-    symbols->Release();
-  if (control != nullptr)
-    control->Release();
+  if (symbols != nullptr) symbols->Release();
+  if (control != nullptr) control->Release();
   if (client != nullptr) {
     client->SetOutputCallbacks(NULL);
     client->EndSession(DEBUG_END_PASSIVE);
@@ -401,7 +403,7 @@ void debugEngineCleanup(IDebugClient4* client,
 Note: appears to only detect unmanaged stack frames.
 See http://blog.steveniemitz.com/building-a-mixed-mode-stack-walker-part-2/
 */
-void logStackTrace(Row& r, const char* fileName) {
+void logStackTrace(const char* fileName, Row& r) {
   IDebugClient4* client;
   IDebugControl4* control;
   IDebugSymbols3* symbols;
@@ -460,9 +462,9 @@ void logStackTrace(Row& r, const char* fileName) {
                                          NULL,
                                          0,
                                          0) == S_OK) {
-    char* contextData = new char[kNumStackFramesToLog * contextSize];
+    auto contextData = new char[kNumStackFramesToLog * contextSize];
     symbols->SetScopeFromStoredEvent();
-    long status =
+    auto status =
         control->GetContextStackTrace(context,
                                       contextSize,
                                       stackFrames,
@@ -489,7 +491,7 @@ void logStackTrace(Row& r, const char* fileName) {
   }
 
   std::ostringstream stackTrace;
-  bool firstFrame = true;
+  auto firstFrame = true;
   for (unsigned long frame = 0; frame < numFrames; frame++) {
     char name[512] = {0};
     unsigned long long offset = 0;
@@ -513,7 +515,7 @@ void logStackTrace(Row& r, const char* fileName) {
   return debugEngineCleanup(client, control, symbols);
 }
 
-void processDumpFile(Row& r, const char* fileName) {
+void processDumpFile(const char* fileName, Row& r) {
   // Open the file
   auto dumpFile = CreateFile(fileName,
                         GENERIC_READ,
@@ -540,7 +542,7 @@ void processDumpFile(Row& r, const char* fileName) {
   }
 
   // Map the file
-  const auto dumpBase = MapViewOfFile(dumpMapFile, FILE_MAP_READ, 0, 0, 0);
+  auto dumpBase = MapViewOfFile(dumpMapFile, FILE_MAP_READ, 0, 0, 0);
   if (dumpBase == NULL) {
     unsigned long error = GetLastError();
     LOG(ERROR) << "Error mapping crash dump file: " << fileName
@@ -551,7 +553,7 @@ void processDumpFile(Row& r, const char* fileName) {
   }
 
   // Read dump streams
-  const auto header = static_cast<MINIDUMP_HEADER*>(dumpBase);
+  auto header = static_cast<MINIDUMP_HEADER*>(dumpBase);
   MINIDUMP_EXCEPTION_STREAM* exceptionStream = nullptr;
   MINIDUMP_MODULE_LIST* moduleStream = nullptr;
   MINIDUMP_THREAD_LIST* threadStream = nullptr;
@@ -610,7 +612,7 @@ void processDumpFile(Row& r, const char* fileName) {
   TEB* teb = nullptr;
   PEB* peb = nullptr;
   RTL_USER_PROCESS_PARAMETERS* params = nullptr;
-  logAndStoreDumpType(header, r, dumpFlags);
+  logAndStoreDumpType(header, dumpFlags, r);
   logAndStoreTID(exceptionStream, tid, r);
   storeTEBAndPEB(threadStream, memoryStream, dumpBaseAddr, tid, teb, peb);
   storeProcessParams(memoryStream, dumpBaseAddr, peb, params);
@@ -680,10 +682,9 @@ QueryData genCrashLogs(QueryContext& context) {
     if (fs::is_regular_file(*iterator) &&
         (extension.compare(kDumpFileExtension) == 0)) {
       Row r;
-      processDumpFile(r, iterator->path().generic_string().c_str());
-      logStackTrace(r, iterator->path().generic_string().c_str());
-      if (!r.empty())
-        results.push_back(r);
+      processDumpFile(iterator->path().generic_string().c_str(), r);
+      logStackTrace(iterator->path().generic_string().c_str(), r);
+      if (!r.empty()) results.push_back(r);
     }
     ++iterator;
   }
