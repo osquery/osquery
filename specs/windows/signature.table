@@ -6,5 +6,8 @@ schema([
 ])
 implementation("signature@generateQueryResults")
 examples([
-  "select * from signature where path = 'C:\\Windows\\notepad.exe'",
+  "SELECT * FROM signature WHERE path = 'C:\\Windows\\notepad.exe'",
+  ("SELECT process.pid, process.path, authenticode.result FROM "
+   "processes as process LEFT JOIN signature AS authenticode ON "
+   "process.path = authenticode.path;")
 ])

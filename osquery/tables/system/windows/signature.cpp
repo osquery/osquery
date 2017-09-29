@@ -32,6 +32,9 @@
 #include <osquery/tables.h>
 
 namespace osquery {
+// This is defined in osquery/core/windows/wmi.cpp
+std::wstring stringToWstring(const std::string& src);
+
 struct SignatureInformation final {
   enum class Result { Valid, Trusted, Invalid, Missing, Distrusted, Untrusted };
 
@@ -39,7 +42,9 @@ struct SignatureInformation final {
   Result result;
 };
 
-Row& operator<<(Row& row, const SignatureInformation& signature_info) {
+void generateRow(Row& row, const SignatureInformation& signature_info) {
+  row.clear();
+
   row["path"] = signature_info.path;
 
   switch (signature_info.result) {
@@ -72,27 +77,19 @@ Row& operator<<(Row& row, const SignatureInformation& signature_info) {
     row["result"] = "untrusted";
     break;
   }
+
+  default: {
+    row["result"] = "unknown";
+    LOG(ERROR) << "Unexpected result value";
+    break;
   }
-
-  return row;
-}
-
-Status toUtf16String(std::wstring& output, const std::string& s) {
-  try {
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> wstring_converter;
-    output = wstring_converter.from_bytes(s);
-    return Status(0, "Ok");
-
-  } catch (const std::exception&) {
-    output = std::wstring();
-    return Status(1, "Invalid string");
   }
 }
 
 Status querySignatureInformation(SignatureInformation& signature_info,
                                  const std::string& path) {
-  std::wstring utf16_path;
-  if (!toUtf16String(utf16_path, path).ok()) {
+  std::wstring utf16_path = stringToWstring(path);
+  if (utf16_path.empty()) {
     return Status(1, "Invalid path");
   }
 
@@ -113,7 +110,7 @@ Status querySignatureInformation(SignatureInformation& signature_info,
   // Disable the UI
   trust_provider_settings.dwUIChoice = WTD_UI_NONE;
 
-  // Verify an embedded signatures
+  // Verify an embedded signature
   trust_provider_settings.dwStateAction = WTD_STATEACTION_VERIFY;
   trust_provider_settings.dwUnionChoice = WTD_CHOICE_FILE;
 
@@ -196,7 +193,7 @@ Status generateRow(Row& r, const std::string& path) {
     return Status(1, error_message.str());
   }
 
-  r << signature_info;
+  generateRow(r, signature_info);
   return Status(0, "Ok");
 }
 
@@ -228,7 +225,7 @@ QueryData generateQueryResults(QueryContext& context) {
     if (status.ok()) {
       results.push_back(r);
     } else {
-      LOG(ERROR) << status.getMessage();
+      LOG(WARNING) << status.getMessage();
     }
   }
 
