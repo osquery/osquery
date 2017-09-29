@@ -1,0 +1,10 @@
+table_name("signature")
+description("File (executable, bundle, installer, disk) code signing status.")
+schema([
+    Column("path", TEXT, "Must provide a path or directory", required=True),
+    Column("result", TEXT, "The signature check result")
+])
+implementation("signature@generateQueryResults")
+examples([
+  "select * from signature where path = 'C:\\Windows\\notepad.exe'",
+])
