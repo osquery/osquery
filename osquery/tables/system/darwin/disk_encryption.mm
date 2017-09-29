@@ -8,6 +8,9 @@
  *
  */
 
+#include <Foundation/Foundation.h>
+#include <DiskArbitration/DiskArbitration.h>
+
 #include <membership.h>
 
 #include <osquery/core.h>
@@ -17,8 +20,6 @@
 
 #include "osquery/events/darwin/iokit.h"
 #include "osquery/events/darwin/diskarbitration.h"
-#include "osquery/events/darwin/DMAPFS.h"
-#include "osquery/events/darwin/DMManger.h"
 
 namespace osquery {
 namespace tables {
@@ -136,16 +137,76 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
   r["uuid"] = uuid;
 
   if (isAPFS) {
+
+
+    auto bundle_url = CFURLCreateWithFileSystemPath(
+      kCFAllocatorDefault,
+      CFSTR("/System/Library/PrivateFrameworks/DiskManagement.framework"),
+      kCFURLPOSIXPathStyle,
+      true);
+    if (bundle_url == nullptr) {
+      LOG(ERROR) << "parsing bundle URL";
+      return;
+    }
+
+    auto bundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
+    CFRelease(bundle_url);
+    if (bundle == nullptr) {
+      LOG(ERROR) << "opening bundle";
+      return;
+   }
+
+    CFBundleLoadExecutable(bundle);
+
     DASessionRef session = DASessionCreate(kCFAllocatorDefault);
-    DMManager manager = [[DMManager alloc] init];
-    [manager setDefaultDASession:session];
-    DMAPFS apfs = [[DMAPFS alloc] initWithManager:manager];
-    DADisk targetVol = [manager diskForPath:@"/" error:&err];
-    //DADiskGetBSDName
-    OSErr err = 0;
-    char isEncrypted = '\0';
-    err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
-    r["encypted"] = isEncrypted;
+
+    // DMManager *man = [DMManager sharedManager]aa
+    id cls = NSClassFromString(@"DMManager");
+    SEL sls = NSSelectorFromString(@"sharedManager");
+    id man = [cls performSelector:sls];
+
+    // Seems to be unnecessary?
+    // [man setDefaultDASession:session];
+    // TODO try/catch
+    //sls = NSSelectorFromString(@"setDefaultDASession:");
+    //[man performSelector:sls withObject:(__bridge id)session];
+
+    // DMAPFS * apfs = [[DMAPFS alloc] initWithManager:man];
+    cls = NSClassFromString(@"DMAPFS");
+    sls = NSSelectorFromString(@"alloc");
+    id apfs = [cls performSelector:sls];
+    sls = NSSelectorFromString(@"initWithManager:");
+    [apfs performSelector:sls withObject:man];
+
+    DADiskRef targetVol = DADiskCreateFromBSDName(NULL, session, r["name"].c_str());
+
+    //err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
+    char *typeEncodings;
+        asprintf(&typeEncodings, "%s%s%s%s%s",
+                 @encode(int),     // return
+                 @encode(id),       // self
+                 @encode(SEL),      // _cmd
+                 @encode(DADiskRef),
+                 @encode(char*)
+                 );
+    NSMethodSignature *signature = [NSMethodSignature signatureWithObjCTypes: typeEncodings];
+    free(typeEncodings);
+
+    char isEncrypted = 1;
+    char *isEncryptedPtr = &isEncrypted;
+    int err = 0;
+
+    NSInvocation *inv = [NSInvocation invocationWithMethodSignature:signature];
+    [inv setSelector:@selector(isEncryptedVolume:encrypted:)];
+    [inv setReturnValue:&err];
+    [inv setArgument:&targetVol atIndex:2];
+    [inv setArgument:&isEncryptedPtr atIndex:3];
+    [inv invokeWithTarget:apfs];
+
+    r["encrypted"] = isEncrypted ? "1" : "0";
+
+  CFBundleUnloadExecutable(bundle);
+  CFRelease(bundle);
   } else {
     auto encrypted = getIOKitProperty(properties, kCoreStorageIsEncryptedKey_);
     if (encrypted.empty()) {
@@ -161,8 +222,6 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
     }
     r["type"] = (r.at("encrypted") == "1") ? kEncryptionType : std::string();
   }
-
-
 
   results.push_back(r);
   CFRelease(properties);
@@ -184,8 +243,6 @@ QueryData genFDEStatus(QueryContext& context) {
   QueryData results;
 
   auto block_devices = SQL::selectAllFrom("block_devices");
-
-  select b.*, m.type from block_devices b LEFT JOIN mounts m ON b.name = m.device;
 
   for (const auto& row : block_devices) {
     const auto bsd_name = row.at("name").substr(kDeviceNamePrefix.size());
