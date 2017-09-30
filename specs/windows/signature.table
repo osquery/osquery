@@ -5,6 +5,7 @@ schema([
     Column("original_program_name", TEXT, "The original program name that the publisher has signed"),
     Column("serial_number", TEXT, "The certificate serial number"),
     Column("issuer_name", TEXT, "The certificate issuer name"),
+    Column("subject_name", TEXT, "The certificate subject name"),
     Column("result", TEXT, "The signature check result")
 ])
 implementation("signature@generateQueryResults")

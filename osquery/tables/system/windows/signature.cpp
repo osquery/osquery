@@ -77,6 +77,9 @@ struct SignatureInformation final {
   /// Issuer name
   std::string issuer_name;
 
+  /// The subject name
+  std::string subject_name;
+
   /// Signature verification result
   Result result;
 };
@@ -87,6 +90,7 @@ void generateRow(Row& row, const SignatureInformation& signature_info) {
   row["path"] = signature_info.path;
   row["serial_number"] = signature_info.serial_number;
   row["issuer_name"] = signature_info.issuer_name;
+  row["subject_name"] = signature_info.subject_name;
   row["original_program_name"] = signature_info.original_program_name;
 
   switch (signature_info.result) {
@@ -268,8 +272,8 @@ Status getOriginalProgramName(SignatureInformation& signature_info,
   return Status(0, "Ok");
 }
 
-Status getIssuerInformation(SignatureInformation& signature_info,
-                            PCCERT_CONTEXT certificate_context) {
+Status getCertificateInformation(SignatureInformation& signature_info,
+                                 PCCERT_CONTEXT certificate_context) {
   PCRYPT_INTEGER_BLOB serial_number =
       &certificate_context->pCertInfo->SerialNumber;
 
@@ -281,37 +285,54 @@ Status getIssuerInformation(SignatureInformation& signature_info,
 
   signature_info.serial_number = serial_number_string.str();
 
-  DWORD issuer_name_size = CertGetNameString(certificate_context,
-                                             CERT_NAME_SIMPLE_DISPLAY_TYPE,
-                                             CERT_NAME_ISSUER_FLAG,
-                                             nullptr,
-                                             nullptr,
-                                             0);
-  if (issuer_name_size == 0U) {
-    return Status(1, "Failed to get the issuer name size");
-  }
+  auto L_GetCertificateDetail = [](std::string& value,
+                                   PCCERT_CONTEXT certificate_context,
+                                   DWORD detail) -> bool {
+    DWORD value_size = CertGetNameString(certificate_context,
+                                         CERT_NAME_SIMPLE_DISPLAY_TYPE,
+                                         detail,
+                                         nullptr,
+                                         nullptr,
+                                         0);
+    if (value_size == 0U) {
+      return false;
+    }
 
-  std::string issuer_name;
-  issuer_name.resize(static_cast<size_t>(issuer_name_size));
-  if (issuer_name.size() != static_cast<size_t>(issuer_name_size)) {
-    return Status(1, "Memory allocation failure");
-  }
+    std::string buffer;
+    buffer.resize(static_cast<size_t>(value_size));
+    if (buffer.size() != static_cast<size_t>(value_size)) {
+      return false;
+    }
 
-  if (!CertGetNameString(certificate_context,
-                         CERT_NAME_SIMPLE_DISPLAY_TYPE,
-                         CERT_NAME_ISSUER_FLAG,
-                         nullptr,
-                         &issuer_name[0],
-                         issuer_name_size)) {
+    if (!CertGetNameString(certificate_context,
+                           CERT_NAME_SIMPLE_DISPLAY_TYPE,
+                           detail,
+                           nullptr,
+                           &buffer[0],
+                           value_size)) {
+      return false;
+    }
+
+    value = std::move(buffer);
+    return true;
+  };
+
+  if (!L_GetCertificateDetail(signature_info.issuer_name,
+                              certificate_context,
+                              CERT_NAME_ISSUER_FLAG)) {
     return Status(1, "Failed to retrieve the issuer name");
   }
 
-  signature_info.issuer_name = std::move(issuer_name);
+  if (!L_GetCertificateDetail(
+          signature_info.subject_name, certificate_context, 0)) {
+    return Status(1, "Failed to retrieve the subkect name");
+  }
+
   return Status(0, "Ok");
 }
 
-Status getCertificateInformation(SignatureInformation& signature_info,
-                                 const std::wstring& path) {
+Status getSignatureInformation(SignatureInformation& signature_info,
+                               const std::wstring& path) {
   unique_hcryptmsg::type message;
   unique_hcertstore::type certificate_store;
 
@@ -388,7 +409,7 @@ Status getCertificateInformation(SignatureInformation& signature_info,
     certificate_context.reset(cert_context);
   }
 
-  status = getIssuerInformation(signature_info, certificate_context.get());
+  status = getCertificateInformation(signature_info, certificate_context.get());
   if (!status.ok()) {
     return status;
   }
@@ -416,7 +437,7 @@ Status querySignatureInformation(SignatureInformation& signature_info,
     return Status(0, "Ok");
   }
 
-  status = getCertificateInformation(signature_info, utf16_path);
+  status = getSignatureInformation(signature_info, utf16_path);
   if (!status.ok()) {
     return status;
   }
