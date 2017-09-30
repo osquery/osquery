@@ -169,6 +169,14 @@ $(document).ready(function() {
 
         $('#output').append(ui);
       }
+
+      if (window.location.hash) {
+        tb = $(window.location.hash);
+        if (tb.length) {
+          hb = $('html,body');
+          hb.scrollTop(tb.offset().top - hb.offset().top + hb.scrollTop());
+        }
+      }
     });
 });
 </script>
