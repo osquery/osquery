@@ -71,6 +71,9 @@ struct SignatureInformation final {
   /// The original program name, when the publisher has signed the program
   std::string original_program_name;
 
+  /// Serial number
+  std::string serial_number;
+
   /// Signature verification result
   Result result;
 };
@@ -79,6 +82,7 @@ void generateRow(Row& row, const SignatureInformation& signature_info) {
   row.clear();
 
   row["path"] = signature_info.path;
+  row["serial_number"] = signature_info.serial_number;
   row["original_program_name"] = signature_info.original_program_name;
 
   switch (signature_info.result) {
@@ -260,6 +264,22 @@ Status getOriginalProgramName(SignatureInformation& signature_info,
   return Status(0, "Ok");
 }
 
+Status getIssuerInformation(SignatureInformation& signature_info,
+                            PCCERT_CONTEXT certificate_context) {
+  PCRYPT_INTEGER_BLOB serial_number =
+      &certificate_context->pCertInfo->SerialNumber;
+
+  std::stringstream serial_number_string;
+  for (DWORD i = serial_number->cbData - 1; i < serial_number->cbData; i--) {
+    serial_number_string << std::hex << std::setfill('0') << std::setw(2)
+                         << static_cast<int>(serial_number->pbData[i]);
+  }
+
+  signature_info.serial_number = serial_number_string.str();
+
+  return Status(0, "Ok");
+}
+
 Status getCertificateInformation(SignatureInformation& signature_info,
                                  const std::wstring& path) {
   unique_hcryptmsg::type message;
@@ -336,6 +356,11 @@ Status getCertificateInformation(SignatureInformation& signature_info,
     }
 
     certificate_context.reset(cert_context);
+  }
+
+  status = getIssuerInformation(signature_info, certificate_context.get());
+  if (!status.ok()) {
+    return status;
   }
 
   return Status(0, "Ok");
