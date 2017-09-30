@@ -74,6 +74,9 @@ struct SignatureInformation final {
   /// Serial number
   std::string serial_number;
 
+  /// Issuer name
+  std::string issuer_name;
+
   /// Signature verification result
   Result result;
 };
@@ -83,6 +86,7 @@ void generateRow(Row& row, const SignatureInformation& signature_info) {
 
   row["path"] = signature_info.path;
   row["serial_number"] = signature_info.serial_number;
+  row["issuer_name"] = signature_info.issuer_name;
   row["original_program_name"] = signature_info.original_program_name;
 
   switch (signature_info.result) {
@@ -277,6 +281,32 @@ Status getIssuerInformation(SignatureInformation& signature_info,
 
   signature_info.serial_number = serial_number_string.str();
 
+  DWORD issuer_name_size = CertGetNameString(certificate_context,
+                                             CERT_NAME_SIMPLE_DISPLAY_TYPE,
+                                             CERT_NAME_ISSUER_FLAG,
+                                             nullptr,
+                                             nullptr,
+                                             0);
+  if (issuer_name_size == 0U) {
+    return Status(1, "Failed to get the issuer name size");
+  }
+
+  std::string issuer_name;
+  issuer_name.resize(static_cast<size_t>(issuer_name_size));
+  if (issuer_name.size() != static_cast<size_t>(issuer_name_size)) {
+    return Status(1, "Memory allocation failure");
+  }
+
+  if (!CertGetNameString(certificate_context,
+                         CERT_NAME_SIMPLE_DISPLAY_TYPE,
+                         CERT_NAME_ISSUER_FLAG,
+                         nullptr,
+                         &issuer_name[0],
+                         issuer_name_size)) {
+    return Status(1, "Failed to retrieve the issuer name");
+  }
+
+  signature_info.issuer_name = std::move(issuer_name);
   return Status(0, "Ok");
 }
 
