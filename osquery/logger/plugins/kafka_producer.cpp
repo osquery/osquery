@@ -275,9 +275,10 @@ bool KafkaProducerPlugin::configureTopics() {
   auto parser = Config::getParser("kafka_topics");
 
   if (parser != nullptr || parser.get() != nullptr) {
-    const auto& config = parser->getData().get_child(
-        kKafkaTopicParserRootKey, boost::property_tree::ptree("UNEXPECTED"));
-    if (!config.empty() && config.get_value("") != "UNEXPECTED") {
+    const auto& root =
+        parser->getData().get_child_optional(kKafkaTopicParserRootKey);
+    if (root) {
+      const auto& config = root.get();
       for (const auto& t : config) {
         auto topic = initTopic(t.first);
         if (topic == nullptr) {

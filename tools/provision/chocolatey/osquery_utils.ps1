@@ -115,13 +115,20 @@ function Get-OsqueryBuildPath {
 function Start-OsqueryProcess {
   param(
     [string] $binaryPath = '',
-    [array] $buildArgs = @()
+    [array] $binaryArgs = @()
   )
-  $out = Start-Process `
-          -FilePath $binaryPath `
-          -ArgumentList $buildArgs `
-          -NoNewWindow `
-          -PassThru
-  $out.WaitForExit()
-  return $out
+  $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+  $pinfo.FileName = $binaryPath
+  $pinfo.RedirectStandardError = $true
+  $pinfo.RedirectStandardOutput = $true
+  $pinfo.UseShellExecute = $false
+  $pinfo.Arguments = $binaryArgs
+  $p = New-Object System.Diagnostics.Process
+  $p.StartInfo = $pinfo
+  $p.Start() | Out-Null
+  $p.WaitForExit()
+  $stdout = $p.StandardOutput.ReadToEnd()
+  $stderr = $p.StandardError.ReadToEnd()
+  Write-Debug $stderr
+  return $stdout
 }

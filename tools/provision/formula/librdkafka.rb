@@ -9,7 +9,13 @@ class Librdkafka < AbstractOsqueryFormula
   depends_on "openssl"
   depends_on "pkg-config" => :build
   depends_on "lzlib"
-  depends_on "lz4" => :optional
+
+  bottle do
+    root_url "https://osquery-packages.s3.amazonaws.com/bottles"
+    cellar :any_skip_relocation
+    sha256 "c81f3eb2b475691beb0bf050b8807a0df3d1217ed3e9ee417f44e543ec8e8126" => :sierra
+    sha256 "e08a43be5922873153a925913f1eafac5e20c956358b2046b33b574aacc49c5c" => :x86_64_linux
+  end
 
   def install
     args = [
