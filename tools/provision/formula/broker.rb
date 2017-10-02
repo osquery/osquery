@@ -9,7 +9,7 @@ class Broker < AbstractOsqueryFormula
 	  #:tag => "v0.6"
   head "https://github.com/bro/broker.git"
   version "0.6"
-  revision 2
+  revision 3
 
   needs :cxx11
 
@@ -41,7 +41,7 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 index 48717a4..0f227f3 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -31,6 +31,9 @@ endif ()
+@@ -32,6 +32,9 @@ endif ()
  include_directories(BEFORE ${CAF_INCLUDE_DIRS})
  set(LINK_LIBS ${LINK_LIBS} ${CAF_LIBRARIES})
 
@@ -51,15 +51,6 @@ index 48717a4..0f227f3 100644
  # RocksDB
  find_package(RocksDB)
  if (ROCKSDB_FOUND)
-@@ -147,7 +150,7 @@ set_source_files_properties(src/detail/sqlite3.c PROPERTIES COMPILE_FLAGS
- include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
- configure_file(${CMAKE_CURRENT_SOURCE_DIR}/broker/config.hh.in
--               ${CMAKE_CURRENT_BINARY_DIR}/broker/config.hh)
-+       ${CMAKE_CURRENT_SOURCE_DIR}/broker/config.hh)
-
- set(BROKER_SRC
-   src/address.cc
 diff --git a/cmake/FindCAF.cmake b/cmake/FindCAF.cmake
 index ea2860c..845a6e7 100644
 --- a/cmake/FindCAF.cmake
