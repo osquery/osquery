@@ -34,12 +34,6 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-FLAG(string, bro_ip, "localhost", "IP address of bro (default localhost)")
-
-FLAG(uint64, bro_port, 9999, "Port of bro (default 9999)")
-
-FLAG(string, bro_groups, "{}", "List of groups (default {})")
-
 /**
  * @brief Distributed Plugin for the communication with Bro via broker
  *
@@ -96,7 +90,6 @@ class BRODistributedPlugin : public DistributedPlugin {
   Status writeResults(const std::string& json) override;
 
  private:
-  std::vector<std::string> startup_groups_;
 };
 
 REGISTER(BRODistributedPlugin, "distributed", "bro");
@@ -106,34 +99,7 @@ Status BRODistributedPlugin::setUp() {
   LOG(INFO) << "Starting the Bro Distributed Plugin";
   BrokerManager& bm = BrokerManager::get();
 
-  // Subscribe to all and individual topic
-  auto s = bm.createSubscriber(bm.TOPIC_ALL);
-  if (!s.ok()) {
-    return s;
-  }
-  s = bm.createSubscriber(bm.TOPIC_PRE_INDIVIDUALS + bm.getNodeID());
-  if (!s.ok()) {
-    return s;
-  }
-
-  // Set Broker groups and subscribe to group topics
-  s = parseBrokerGroups(FLAGS_bro_groups, startup_groups_);
-  if (!s.ok()) {
-    return s;
-  }
-  for (const auto& g : startup_groups_) {
-    bm.addGroup(g);
-  }
-
-  // Connect to Bro
-  s = bm.peerEndpoint(FLAGS_bro_ip, FLAGS_bro_port);
-  if (!s.ok()) {
-    return s;
-  }
-  VLOG(1) << "Broker connection established";
-
-  // Send announce message
-  s = bm.announce();
+  Status s = bm.checkConnection();
   if (!s.ok()) {
     return s;
   }
@@ -172,7 +138,9 @@ inline Status processMessage(const broker::bro::Event& event,
 
   // Check Event Type
   if (event.name().empty()) {
-    return Status(1, "No or invalid event name when processing message");
+    return Status(1,
+                  "No or invalid event name '" + event.name() +
+                      "'when processing message");
   }
   LOG(INFO) << "Received event '" << event.name() << "' on topic '" << topic
             << "'";
@@ -293,7 +261,10 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
       // Directly updates the daemon schedule if requested
       // Returns one time queries otherwise
       assert(topic == msg.first);
-      s = processMessage({msg.second}, topic, oT_queries);
+      broker::bro::Event event(msg.second);
+      VLOG(1) << "Processing received event: "
+              << broker::to_string(event.as_data());
+      s = processMessage(event, topic, oT_queries);
       if (!s.ok()) {
         LOG(ERROR) << s.getMessage();
         continue;
@@ -318,35 +289,8 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
     return s;
   }
 
-  // Check for connection failure
-  if (bm.getPeeringStatus(0).code() == broker::sc::peer_added) {
-    // Reset config/schedule
-    std::map<std::string, std::string> config_schedule;
-    config_schedule["bro"] = "";
-    VLOG(1) << "Reset config schedule";
-    Config::get().update(config_schedule);
-
-    QueryManager::get().reset();
-    BrokerManager::get().reset();
-
-    // Set Startup groups and subscribe to group topics
-    for (const auto& g : startup_groups_) {
-      bm.addGroup(g);
-    }
-
-    // wait until connection is repaired
-    while (bm.getPeeringStatus(-1).code() == broker::sc::peer_added) {
-      // condition blocks until status change
-      continue;
-    }
-
-    // Send announce message
-    s = bm.announce();
-    if (!s.ok()) {
-      LOG(ERROR) << s.getMessage();
-      return s;
-    }
-  }
+  // Check for connection failure and wait for repair
+  bm.checkConnection();
 
   return Status(0, "OK");
 }

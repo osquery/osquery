@@ -19,6 +19,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/process.h"
 #include "osquery/remote/bro/broker_manager.h"
 
 DECLARE_string(bro_ip);
@@ -36,6 +37,9 @@ class BrokerManagerTests : public testing::Test {
   void SetUp() {
     LOG(INFO) << "Calling SetUp()";
     Flag::updateValue("disable_bro", "false");
+    Flag::updateValue("bro_ip", "172.0.0.1");
+    Flag::updateValue("bro_port", "0");
+    Flag::updateValue("bro_groups", "{\"group1\":\"test1\"}");
 
     // Create listening endpoint
     std::string ep_name = "brokermanager_test";
@@ -64,15 +68,20 @@ class BrokerManagerTests : public testing::Test {
   std::unique_ptr<broker::endpoint> ep_ = nullptr;
 };
 
-void waitForMessage(int fd) {
+void waitForMessage(int fd, bool expectMsg = true) {
   pollfd pfd{fd, POLLIN, 0};
-  int poll_code = poll(&pfd, 1, 2);
-  EXPECT_GE(poll_code, 0);
+  int poll_code = poll(&pfd, 1, 2 * 1000);
+  if (expectMsg) {
+    EXPECT_GT(poll_code, 0);
+  } else {
+    EXPECT_EQ(poll_code, 0);
+  }
 }
 
 TEST_F(BrokerManagerTests, test_failestablishconnection) {
   // NOT preparing receiver
-  auto s_peer = get().peerEndpoint("127.0.0.1", 9999, 3);
+  get().remote_endpoint_ = std::pair<std::string, int>{"127.0.0.1", 9999};
+  auto s_peer = get().checkConnection(3);
   EXPECT_FALSE(s_peer.ok());
 }
 
@@ -83,7 +92,8 @@ TEST_F(BrokerManagerTests, test_successestablishconnection) {
 
   // Connect the broker endpoint
   LOG(WARNING) << "Peering Endpoint";
-  auto s_peer = get().peerEndpoint("127.0.0.1", 9999, 3);
+  get().remote_endpoint_ = std::pair<std::string, int>{"127.0.0.1", 9999};
+  auto s_peer = get().checkConnection(3);
   LOG(WARNING) << "Checking Peering Endpoint";
   EXPECT_TRUE(s_peer.ok());
   if (not s_peer.ok()) {
@@ -95,26 +105,26 @@ TEST_F(BrokerManagerTests, test_successestablishconnection) {
 TEST_F(BrokerManagerTests, test_announce) {
   LOG(INFO) << "Number of peers: " << get().ep_->peers().size();
   // Prepare receiver
-  EXPECT_TRUE(ep_->listen("127.0.0.1", 9998));
-  broker::subscriber test_queue = ep_->make_subscriber({get().TOPIC_ANNOUNCE});
+  EXPECT_TRUE(ep_->listen("127.0.0.1", 9997));
+  broker::subscriber announce_queue =
+      ep_->make_subscriber({get().TOPIC_ANNOUNCE});
 
   // Add groups - Part of the announcement
-  EXPECT_TRUE(get().addGroup("test1").ok());
-  EXPECT_TRUE(get().addGroup("test2").ok());
+  // For initial groups see SetUp()
 
   // Connect the broker endpoint and send announcement
-  auto s_peer = get().peerEndpoint("127.0.0.1", 9998, 3);
+  get().remote_endpoint_ = std::pair<std::string, int>{"127.0.0.1", 9997};
+  auto s_peer = get().checkConnection(3);
   EXPECT_TRUE(s_peer.ok());
   if (not s_peer.ok()) {
     LOG(ERROR) << s_peer.getMessage();
   }
-  EXPECT_TRUE(get().announce().ok());
 
   // Wait for message
-  waitForMessage(test_queue.fd());
+  waitForMessage(announce_queue.fd());
   // Exactly one message expected
-  EXPECT_EQ(test_queue.available(), 1ul);
-  auto msg = test_queue.get(broker::to_duration(3)).value();
+  EXPECT_EQ(announce_queue.available(), 1ul);
+  auto msg = announce_queue.get(broker::to_duration(3)).value();
   LOG(INFO) << "Topic: " << msg.first.string();
   broker::bro::Event event(msg.second);
 
@@ -136,20 +146,22 @@ TEST_F(BrokerManagerTests, test_announce) {
   // Group List
   EXPECT_TRUE(broker::is<broker::vector>(event_args[1]));
   broker::vector groups = broker::get<broker::vector>(event_args[1]);
-  EXPECT_EQ(groups.size(), 2ul);
+  EXPECT_EQ(groups.size(), 1ul);
   EXPECT_EQ(broker::get<std::string>(groups.at(0)), "test1");
-  EXPECT_EQ(broker::get<std::string>(groups.at(1)), "test2");
 }
 
 TEST_F(BrokerManagerTests, test_addandremovegroups) {
   // Prepare receiver
-  EXPECT_TRUE(ep_->listen("127.0.0.1", 9997));
+  EXPECT_TRUE(ep_->listen("127.0.0.1", 9996));
+  broker::subscriber announce_queue =
+      ep_->make_subscriber({get().TOPIC_ANNOUNCE});
 
   // Add group1 prior to connect
-  EXPECT_TRUE(get().addGroup("test1").ok());
+  // For initial groups see SetUp()
 
   // Connect the broker endpoint
-  auto s_peer = get().peerEndpoint("127.0.0.1", 9997, 3);
+  get().remote_endpoint_ = std::pair<std::string, int>{"127.0.0.1", 9996};
+  auto s_peer = get().checkConnection(3);
   EXPECT_TRUE(s_peer.ok());
   if (not s_peer.ok()) {
     LOG(ERROR) << s_peer.getMessage();
@@ -157,10 +169,13 @@ TEST_F(BrokerManagerTests, test_addandremovegroups) {
 
   // Add group2 after connecting
   EXPECT_TRUE(get().addGroup("test2").ok());
+  // Wait for announce message
+  waitForMessage(announce_queue.fd());
 
   // Expect subscription to both groups
   EXPECT_EQ(get().getGroups().size(), 2ul);
-  EXPECT_EQ(get().getTopics().size(), 2ul);
+  // Individual + All + 2 Groups
+  EXPECT_EQ(get().getTopics().size(), 4ul);
 
   // Create and send messages to both groups
   broker::bro::Event test_msg1("ev_name1", {"message1"});
@@ -196,12 +211,25 @@ TEST_F(BrokerManagerTests, test_addandremovegroups) {
   // remove group2
   LOG(INFO) << "Removing Group 2";
   EXPECT_TRUE(get().removeGroup("test2").ok());
+  // Wait for the unsubscription to be propagated
+  sleepFor(1 * 1000);
 
   // Expect subscription to group1 only
   EXPECT_EQ(get().getGroups().size(), 1ul);
   EXPECT_EQ(get().getGroups().at(0), "test1");
-  EXPECT_EQ(get().getTopics().size(), 1ul);
-  EXPECT_EQ(get().getTopics().at(0), get().TOPIC_PRE_GROUPS + "test1");
+  EXPECT_EQ(get().getTopics().size(), 3ul);
+  EXPECT_NE(std::find(get().getTopics().begin(),
+                      get().getTopics().end(),
+                      get().TOPIC_PRE_GROUPS + "test1"),
+            get().getTopics().end());
+  EXPECT_NE(std::find(get().getTopics().begin(),
+                      get().getTopics().end(),
+                      get().TOPIC_PRE_INDIVIDUALS + get().getNodeID()),
+            get().getTopics().end());
+  EXPECT_NE(
+      std::find(
+          get().getTopics().begin(), get().getTopics().end(), get().TOPIC_ALL),
+      get().getTopics().end());
 
   // Create and send messages to both groups
   broker::bro::Event test_msg3("ev_name3", {"message3"});
@@ -211,6 +239,8 @@ TEST_F(BrokerManagerTests, test_addandremovegroups) {
 
   // Receive messages on group1
   waitForMessage(sub1->fd());
+  // TODO: How to revoke the subscription of removed groups
+  // waitForMessage(sub2->fd(), false);
   // Exactly one message expected on group1
   EXPECT_EQ(sub1->available(), 1ul);
   get().getPeeringStatus();
@@ -228,12 +258,12 @@ TEST_F(BrokerManagerTests, test_addandremovegroups) {
   // Expect subscription to no group
   EXPECT_NE(get().getNodeID(), "");
   EXPECT_EQ(get().getGroups().size(), 0ul);
-  EXPECT_EQ(get().getTopics().size(), 0ul);
+  EXPECT_EQ(get().getTopics().size(), 2ul);
 }
 
 TEST_F(BrokerManagerTests, test_reset) {
   // Prepare receiver
-  EXPECT_TRUE(ep_->listen("127.0.0.1", 9996));
+  EXPECT_TRUE(ep_->listen("127.0.0.1", 9995));
   // broker::message_queue test_queue(get().TOPIC_ANNOUNCE, *ep_);
 
   // Subscribe to all and individual topic
@@ -247,7 +277,8 @@ TEST_F(BrokerManagerTests, test_reset) {
   EXPECT_TRUE(get().addGroup("test1").ok());
 
   // Connect the broker endpoint
-  auto s_peer = get().peerEndpoint("127.0.0.1", 9996, 3);
+  get().remote_endpoint_ = std::pair<std::string, int>{"127.0.0.1", 9995};
+  auto s_peer = get().checkConnection(3);
   EXPECT_TRUE(s_peer.ok());
   if (not s_peer.ok()) {
     LOG(ERROR) << s_peer.getMessage();

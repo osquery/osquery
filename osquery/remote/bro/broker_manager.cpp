@@ -15,16 +15,26 @@
 #include <broker/bro.hh>
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
+#include <broker/error.hh>
+#include <broker/status.hh>
 #include <broker/status_subscriber.hh>
 
+#include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
+#include "osquery/core/process.h"
 #include "osquery/remote/bro/bro_utils.h"
 #include "osquery/remote/bro/broker_manager.h"
 
 namespace osquery {
+
+FLAG(string, bro_ip, "localhost", "IP address of bro (default localhost)")
+
+FLAG(uint64, bro_port, 9999, "Port of bro (default 9999)")
+
+FLAG(string, bro_groups, "{}", "List of groups (default {})")
 
 Status BrokerManager::reset(bool groups_only) {
   // Unsubscribe from all groups
@@ -130,7 +140,9 @@ Status BrokerManager::deleteSubscriber(const std::string& topic) {
   }
 
   // shared_ptr should delete the message_queue and unsubscribe from topic
-  subscribers_.erase(subscribers_.find(topic));
+  auto subscriber = subscribers_.find(topic);
+  subscriber->second->remove_topic(topic);
+  subscribers_.erase(subscriber);
   return Status(0, "OK");
 }
 
@@ -147,55 +159,124 @@ std::vector<std::string> BrokerManager::getTopics() {
   return topics;
 }
 
-Status BrokerManager::peerEndpoint(const std::string& ip,
-                                   int port,
-                                   double timeout) {
+Status BrokerManager::checkConnection(double timeout, bool ignore_error) {
+  // Exclusive access
+  WriteLock lock(connection_mutex_);
+  Status s;
+
+  // Are we unpeered or not peered yet?
+  if (!ss_) {
+    VLOG(1) << "Initializing Peering";
+    ss_ = std::make_unique<broker::status_subscriber>(
+        ep_->make_status_subscriber(true));
+    initiatePeering();
+  }
+
+  // Retrieve current connection state and whether is has changed
+  auto ps = getPeeringStatus(timeout);
+
+  // Still connected since last time?
+  if (!ps.second && ps.first.code() == broker::sc::peer_added) {
+    return Status(0, "OK");
+  }
+
+  // If changed then we have to reset
+  if (ps.second) {
+    VLOG(1) << "Resetting because connection status changed";
+    s = initiateReset();
+    if (!s.ok()) {
+      LOG(WARNING) << s.getMessage();
+    }
+  }
+
+  // Check for error
+  if (timeout < 0 && ignore_error) {
+    VLOG(1) << "Waiting until connection is established";
+    auto ip = remote_endpoint_.first;
+    auto port = remote_endpoint_.second;
+    while (ps.first.code() != broker::sc::peer_added) {
+      // We have to sleep since errors cause immediate return
+      sleepFor(3 * 1000);
+      // Reconnect if connection is broken
+      if (ps.first.code() == broker::sc::unspecified ||
+          ep_->peers().size() == 0) {
+        VLOG(1) << "Initiate peering to repair connection";
+        ep_->peer_nosync(ip, port, broker::timeout::seconds(-1));
+      }
+      ps = getPeeringStatus(timeout);
+    }
+  }
+
+  // Check for working connection state
+  if (ps.first.code() == broker::sc::peer_added) {
+    // Send announce message
+    s = announce();
+    if (!s.ok()) {
+      LOG(ERROR) << s.getMessage();
+      return s;
+    }
+
+    return Status(0, "OK");
+  }
+
+  if (ps.first.message()) {
+    return Status(1, *ps.first.message());
+  }
+
+  return Status(1, "Unknown connection status");
+}
+
+Status BrokerManager::initiatePeering() {
+  auto ip = remote_endpoint_.first;
+  auto port = remote_endpoint_.second;
   LOG(INFO) << "Connecting to Bro " << ip << ":" << port;
-  // Check current connection state
-  if (ep_ == nullptr) {
-    return Status(1, "Broker Endpoint not set");
-  }
-  if (ss_ != nullptr) {
-    return Status(1, "Broker connection already established");
-  }
 
-  // Connect endpoint and register for status updates and errors
-  ss_ = std::make_unique<broker::status_subscriber>(
-      ep_->make_status_subscriber(true));
   ep_->peer_nosync(ip, port, broker::timeout::seconds(-1));
+  return Status(0, "OK");
+}
 
-  // Wait for connection status update
-  LOG(WARNING) << "Waiting for Peering Status";
-  auto st = getPeeringStatus(timeout);
+Status BrokerManager::initiateReset() {
+  // Reset config/schedule
+  std::map<std::string, std::string> config_schedule;
+  config_schedule["bro"] = "";
+  VLOG(1) << "Reset config schedule";
+  Config::get().update(config_schedule);
 
-  // Check connection status
-  LOG(WARNING) << "Received Peering Status";
-  if (st.code() != broker::sc::peer_added) {
-    if (const auto stm = st.message()) {
-      LOG(WARNING) << "Printing Peering Status";
-      return Status(1, *stm);
-    } else {
-      LOG(WARNING) << "Unknown Peering Status";
-      return Status(1, "Unknown connection state");
+  QueryManager::get().reset();
+  reset(false);
+
+  // Subscribe to all
+  auto s = createSubscriber(TOPIC_ALL);
+  if (!s.ok()) {
+    return s;
+  }
+  // Subscribe to individual topic
+  s = createSubscriber(TOPIC_PRE_INDIVIDUALS + getNodeID());
+  if (!s.ok()) {
+    return s;
+  }
+  // Set Startup groups and subscribe to group topics
+  for (const auto& g : startup_groups_) {
+    s = addGroup(g);
+    if (!s.ok()) {
+      return s;
     }
   }
 
   return Status(0, "OK");
 }
 
-broker::status BrokerManager::getPeeringStatus(double timeout) {
+std::pair<broker::status, bool> BrokerManager::getPeeringStatus(
+    double timeout) {
   // Process latest status changes
   broker::detail::variant<broker::none, broker::error, broker::status> s;
-  assert(broker::is<broker::none>(s));
-  assert(!broker::is<broker::error>(s));
-  assert(!broker::is<broker::status>(s));
+  bool has_changed = false;
 
   // Block first to wait for a status change to happen
   if (timeout != 0) {
     // with timeout
     if (timeout > 0) {
-      auto s_opt = ss_->get(broker::to_duration(timeout));
-      if (s_opt) {
+      if (auto s_opt = ss_->get(broker::to_duration(timeout))) {
         // Status received in time
         s = s_opt.value();
       }
@@ -216,16 +297,21 @@ broker::status BrokerManager::getPeeringStatus(double timeout) {
     LOG(WARNING) << "Broker error:" << static_cast<int>(err->code()) << ", "
                  << to_string(*err);
     connection_status_ = {};
+    has_changed = true;
   }
   // Check status
   if (auto st = broker::get_if<broker::status>(s)) {
     connection_status_ = *st;
+    has_changed = true;
   }
 
-  return connection_status_;
+  return {connection_status_, has_changed};
 }
 
 Status BrokerManager::unpeer() {
+  // Exclusive access
+  WriteLock lock(connection_mutex_);
+
   // Check status subscriber
   if (ss_ == nullptr) {
     return Status(1, "No broker connection established");
@@ -251,7 +337,7 @@ Status BrokerManager::unpeer() {
 
       // Try to disconnect
       auto ps = BrokerManager::get().getPeeringStatus(3);
-      if (ps.code() != broker::sc::peer_removed) {
+      if (ps.first.code() != broker::sc::peer_removed) {
         return Status(1, "Unable to unpeer");
       }
       LOG(INFO) << "Unpeered from " << netw.address << ":"

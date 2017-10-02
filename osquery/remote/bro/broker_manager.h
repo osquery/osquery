@@ -19,11 +19,18 @@
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
 
+#include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/status.h>
 #include <osquery/system.h>
 
+#include "osquery/remote/bro/bro_utils.h"
+
 namespace osquery {
+
+DECLARE_string(bro_ip);
+DECLARE_uint64(bro_port);
+DECLARE_string(bro_groups);
 
 /**
  * @brief Manager class for connections of the broker communication library.
@@ -53,6 +60,16 @@ class BrokerManager : private boost::noncopyable {
       setNodeID(ident);
     }
     const auto& uid = getNodeID();
+
+    // Read groups from config
+    Status s = parseBrokerGroups(FLAGS_bro_groups, startup_groups_);
+    if (!s.ok()) {
+      LOG(WARNING) << s.getMessage();
+    }
+
+    // Read remote endpoint from config
+    remote_endpoint_ =
+        std::pair<std::string, int>(FLAGS_bro_ip, FLAGS_bro_port);
 
     // Create Broker endpoint
     Status s_ep = createEndpoint(uid);
@@ -94,6 +111,24 @@ class BrokerManager : private boost::noncopyable {
 
   /// Unpeer from existing remote broker endpoint
   Status unpeer();
+
+  /// Initiates the peering to remote endpoint
+  Status initiatePeering();
+
+  /// Initiates the reset of the broker manager
+  Status initiateReset();
+
+  /**
+   * @brief Retrieve the latest connection status change
+   *
+   * Checks for any connection changes and updates cached status to the latest
+   * change.
+   * Returns the latest cached status if no change occurred within timeout
+   *
+   * @param timeout duration how long to wait for a status change
+   * @return
+   */
+  std::pair<broker::status, bool> getPeeringStatus(double timeout = 0);
 
  public:
   /**
@@ -149,30 +184,17 @@ class BrokerManager : private boost::noncopyable {
   std::vector<std::string> getTopics();
 
   /**
-   * @brief Establish the connection to a remote broker endpoint.
+   * @brief checks for a working broker connection and wait if requested
    *
-   * Peering with another broker endpoint enables broker overlay communication.
-   * It provides the basic connectivity for communication.
+   * This is also used to initially establishing the connection and to reconnect
+   * after failure
    *
-   * @param ip the ip address of the remote endpoint
-   * @param port the port of the remote endpoint
    * @param timeout duration to wait before the peering attempt times out.
-   * Negative value for blocking until connection is established.
-   * @return
+   * @param ignore_error retry to connect, even if remote peer is not reachable
+   * (infinite timeout only)
+   * @return if connection is established
    */
-  Status peerEndpoint(const std::string& ip, int port, double timeout = -1);
-
-  /**
-   * @brief Retrieve the latest connection status change
-   *
-   * Checks for any connection changes and updates cached status to the latest
-   * change.
-   * Returns the latest cached status if no change occurred within timeout
-   *
-   * @param timeout duration how long to wait for a status change
-   * @return
-   */
-  broker::status getPeeringStatus(double timeout = 0);
+  Status checkConnection(double timeout = -1, bool ignore_error = true);
 
   /**
    * @brief Make the osquery host to announce itself to the remote broker
@@ -196,6 +218,10 @@ class BrokerManager : private boost::noncopyable {
   Status sendEvent(const std::string& topic, const broker::bro::Event& msg);
 
  private:
+  // Mutex to synchronize threats that check connection state
+  mutable Mutex connection_mutex_;
+  // The IP and port of the remote endpoint
+  std::pair<std::string, int> remote_endpoint_{"", 0};
   // The status_subscriber of the endpoint
   std::unique_ptr<broker::status_subscriber> ss_ = nullptr;
   // The connection status
@@ -211,10 +237,14 @@ class BrokerManager : private boost::noncopyable {
   //  Key: topic_Name, Value: subscriber
   std::map<std::string, std::shared_ptr<broker::subscriber>> subscribers_;
 
+  std::vector<std::string> startup_groups_;
+
  private:
   friend class BrokerManagerTests;
+  FRIEND_TEST(BrokerManagerTests, test_failestablishconnection);
   FRIEND_TEST(BrokerManagerTests, test_successestablishconnection);
   FRIEND_TEST(BrokerManagerTests, test_announce);
+  FRIEND_TEST(BrokerManagerTests, test_addandremovegroups);
   FRIEND_TEST(BrokerManagerTests, test_reset);
 };
 }
