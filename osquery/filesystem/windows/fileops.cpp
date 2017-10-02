@@ -380,9 +380,7 @@ static Status hasAccess(HANDLE handle, mode_t mode) {
     return Status(-1, "GetUserObjectSecurity get SD size error");
   }
 
-  std::vector<char> sd_buffer;
-  sd_buffer.assign(sd_size, '\0');
-
+  std::vector<char> sd_buffer(sd_size, '\0');
   PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR)sd_buffer.data();
   status = GetUserObjectSecurity(handle, &security_info, sd, sd_size, &sd_size);
   if (!status) {
@@ -768,15 +766,20 @@ static Status lowPrivWriteDenied(PACL acl) {
     // for the future potential allow entry
     if (entry->AceType == ACCESS_DENIED_ACE_TYPE) {
       auto denied_ace = reinterpret_cast<PACCESS_DENIED_ACE>(entry);
+
+      // We only care about Deny-Write entries, everything else is at the
+      // users discretion
+      if ((denied_ace->Mask & CHMOD_WRITE) != CHMOD_WRITE) {
+        continue;
+      }
+
       // A Deny-Write on Everyone supersedes other allow writes
-      if (EqualSid(&denied_ace->SidStart, world_sid) &&
-          (denied_ace->Mask & CHMOD_WRITE) == CHMOD_WRITE) {
+      if (EqualSid(&denied_ace->SidStart, world_sid)) {
         return Status();
       }
 
-      if ((denied_ace->Mask & CHMOD_WRITE) != 0) {
-        denyWriteSids.insert(&denied_ace->SidStart);
-      }
+      // Stash the Deny-Write ACE to check against future user Allow ACEs
+      denyWriteSids.insert(&denied_ace->SidStart);
       continue;
     }
 
@@ -793,6 +796,7 @@ static Status lowPrivWriteDenied(PACL acl) {
       for (const auto& p : denyWriteSids) {
         if (EqualSid(&allowed_ace->SidStart, p)) {
           hasDeny = true;
+          break;
         }
       }
       if (hasDeny) {
