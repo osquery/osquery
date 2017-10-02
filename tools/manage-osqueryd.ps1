@@ -6,7 +6,7 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 param(
-  [string] $args = "",
+  [string] $startup_args = "",
   [switch] $install = $false,
   [switch] $uninstall = $false,
   
@@ -35,7 +35,7 @@ function Do-Help {
   Write-Host "  Only one of the following options can be used. Using multiple will result in "
   Write-Host "  options being ignored."
   Write-Host "    -install          Install the osqueryd service"
-  Write-Host "    -args             Specifies additional arguments for the service (only used with -install)"
+  Write-Host "    -startup_args     Specifies additional arguments for the service (only used with -install)"
   Write-Host "    -uninstall        Uninstall the osqueryd service"
   Write-Host "    -start            Start the osqueryd service"
   Write-Host "    -stop             Stop the osqueryd service"
@@ -58,7 +58,7 @@ function Do-Service {
       Write-Host "'$kServiceName' is already installed." -foregroundcolor Yellow
       Exit 1
     } else {
-      New-Service -BinaryPathName "$kServiceBinaryPath $args" -Name $kServiceName -DisplayName $kServiceName -StartupType Automatic
+      New-Service -BinaryPathName "$kServiceBinaryPath $startup_args" -Name $kServiceName -DisplayName $kServiceName -StartupType Automatic
       Write-Host "Installed '$kServiceName' system service." -foregroundcolor Cyan
       Exit 0
     }
