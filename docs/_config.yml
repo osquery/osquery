@@ -8,6 +8,7 @@ timezone: America/Los_Angeles
 name: osquery • Performant Endpoint Visibility
 description: Easily ask questions about your Linux, Windows, and macOS infrastructure
 url: https://osquery.io
+baseurl: ""
 
 twitter:
   username: osquery
