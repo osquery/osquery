@@ -138,6 +138,7 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
 
   if (isAPFS) {
 
+    NSLog(@"%s", r["name"].c_str());
 
     auto bundle_url = CFURLCreateWithFileSystemPath(
       kCFAllocatorDefault,
@@ -202,6 +203,65 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
     [inv setArgument:&targetVol atIndex:2];
     [inv setArgument:&isEncryptedPtr atIndex:3];
     [inv invokeWithTarget:apfs];
+
+        asprintf(&typeEncodings, "%s%s%s%s%s",
+                 @encode(int),     // return
+                 @encode(id),       // self
+                 @encode(SEL),      // _cmd
+                 @encode(DADiskRef),
+                 @encode(void*)
+                 );
+    signature = [NSMethodSignature signatureWithObjCTypes: typeEncodings];
+    free(typeEncodings);
+
+    id foo;
+    void *fooPtr = &foo;
+    inv = [NSInvocation invocationWithMethodSignature:signature];
+    [inv setSelector:@selector(cryptoUsersForVolume:users:)];
+    [inv setReturnValue:&err];
+    [inv setArgument:&targetVol atIndex:2];
+    [inv setArgument:&fooPtr atIndex:3];
+    [inv invokeWithTarget:apfs];
+
+    // To determine user type, diskutil compares against known UUIDs for the
+    // iCloud and recovery related keys. We should be able to find the LDAP
+    // user and join with the users table to get the UID.
+    /*
+    var_C0 = @"Local Open Directory";
+    if ([r14 caseInsensitiveCompare:var_110] == 0x0) {
+            var_C0 = @"Disk";
+    }
+    if ([r14 caseInsensitiveCompare:@"EBC6C064-0000-11AA-AA11-00306543ECAC"] == 0x0) {
+            var_C0 = @"Personal Recovery";
+    }
+    if ([r14 caseInsensitiveCompare:@"64C0C6EB-0000-11AA-AA11-00306543ECAC"] == 0x0) {
+            var_C0 = @"iCloud Recovery";
+    }
+    if ([r14 caseInsensitiveCompare:@"C064EBC6-0000-11AA-AA11-00306543ECAC"] == 0x0) {
+            var_C0 = @"Institutional Recovery";
+    }
+    if ([r14 caseInsensitiveCompare:@"ec1c2ad9-b618-4ed6-bd8d-50f361c27507"] == 0x0) {
+            var_C0 = @"iCloud";
+    }
+    if ([r14 caseInsensitiveCompare:@"2fa31400-baff-4de7-ae2a-c3aa6e1fd340"] != 0x0) {
+            rdi = var_C0;
+    }
+    else {
+            var_C0 = @"Institutional";
+            rdi = @"Institutional";
+    }
+    */
+    if (foo == NULL) {
+      NSLog(@"No crypto users");
+    } else {
+      for (id user in (NSArray*)foo) {
+        NSLog(@"User: %@ %@", user, [user className]);
+      }
+    }
+
+
+    NSLog(@"test, %d", err);
+    NSLog(@"%@", [foo className]);
 
     r["encrypted"] = isEncrypted ? "1" : "0";
 
