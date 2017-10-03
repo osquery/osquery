@@ -13,7 +13,7 @@ schema([
 	Column("exception_message", TEXT, "The NTSTATUS error message associated with the exception code"),
 	Column("exception_address", TEXT, "Address (in hex) where the exception occurred"),
 	Column("registers", TEXT, "The values of the system registers"),
-	Column("being_debugged", TEXT, "Whether the crashed process was being debugged or not"),
+	Column("being_debugged", BIGINT, "Whether the crashed process was being debugged or not"),
 	Column("command_line", TEXT, "Command-line string passed to the crashed process"),
 	Column("current_directory", TEXT, "Current working directory of the crashed process"),
 	Column("username", TEXT, "Username of the user who ran the crashed process"),

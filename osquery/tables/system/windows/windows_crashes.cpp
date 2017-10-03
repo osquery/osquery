@@ -85,54 +85,38 @@ Status logAndStoreTID(const MINIDUMP_EXCEPTION_STREAM* stream,
   return Status();
 }
 
-Status logAndStoreExceptionCodeAndAddr(const MINIDUMP_EXCEPTION_STREAM* stream,
-                                       unsigned int& exCode,
-                                       unsigned long long& exAddr,
-                                       Row& r) {
-  if (stream == nullptr) {
-    return Status(1);
-  }
-
-  auto ex = stream->ExceptionRecord;
-  std::ostringstream exCodeStr;
-  exCodeStr << "0x" << std::hex << ex.ExceptionCode;
-  if (exCodeStr.fail()) {
-    return Status(1);
-  }
-  r["exception_code"] = exCodeStr.str();
-  exCode = ex.ExceptionCode;
-
-  std::ostringstream exAddrStr;
-  exAddrStr << "0x" << std::hex << ex.ExceptionAddress;
-  if (exAddrStr.fail()) {
-    return Status(1);
-  }
-  r["exception_address"] = exAddrStr.str();
-  exAddr = ex.ExceptionAddress;
-  return Status();
-}
-
 /*
-Log the exception message for errors with defined parameters
-(see ExceptionInformation @
-https://msdn.microsoft.com/en-us/library/windows/desktop/ms680367(v=vs.85).aspx)
+Log & store exception info, and the exception message for errors with defined
+parameters
 */
-Status logExceptionMsg(const MINIDUMP_EXCEPTION_STREAM* stream,
-                       unsigned int exCode,
-                       unsigned long long exAddr,
+Status logAndStoreExceptionInfo(const MINIDUMP_EXCEPTION_STREAM* stream,
+                       unsigned long long& exAddr,
                        Row& r) {
   if (stream == nullptr) {
     return Status(1);
   }
-
   auto ex = stream->ExceptionRecord;
+
+  std::ostringstream exCodeStr;
+  exCodeStr << "0x" << std::hex << ex.ExceptionCode;
+  if (exCodeStr.fail()) {
+	  return Status(1);
+  }
+  r["exception_code"] = exCodeStr.str();
+
+  std::ostringstream exAddrStr;
+  exAddrStr << "0x" << std::hex << ex.ExceptionAddress;
+  if (exAddrStr.fail()) {
+	  return Status(1);
+  }
+  r["exception_address"] = exAddrStr.str();
+  exAddr = ex.ExceptionAddress;
+
+  std::ostringstream errorMsg;
   if ((ex.ExceptionCode == EXCEPTION_ACCESS_VIOLATION) &&
       (ex.NumberParameters == 2)) {
-    std::ostringstream errorMsg;
     std::ostringstream memAddrStr;
     memAddrStr << "0x" << std::hex << ex.ExceptionInformation[1];
-    std::ostringstream exAddrStr;
-    exAddrStr << "0x" << std::hex << exAddr;
 
     errorMsg << "The instruction at " << exAddrStr.str()
              << " referenced memory at " << memAddrStr.str() << ".";
@@ -148,10 +132,23 @@ Status logExceptionMsg(const MINIDUMP_EXCEPTION_STREAM* stream,
       break;
     }
     r["exception_message"] = errorMsg.str();
-    return Status();
+  }
+  else if ((ex.ExceptionCode == EXCEPTION_IN_PAGE_ERROR) &&
+	  (ex.NumberParameters == 3)) {
+	std::ostringstream memAddrStr;
+	memAddrStr << "0x" << std::hex << ex.ExceptionInformation[1];
+
+	std::ostringstream ntstatusStr;
+	ntstatusStr << "0x" << std::hex << ex.ExceptionInformation[2];
+
+	errorMsg << "The instruction at " << exAddrStr.str()
+			 << " referenced memory at " << memAddrStr.str() << "."
+			 << " The required data was not placed into memory because of"
+			 << " an I/O error status of " << ntstatusStr.str() << ".";
+	r["exception_message"] = errorMsg.str();
   }
 
-  return Status(1);
+  return Status();
 }
 
 Status logRegisters(const MINIDUMP_EXCEPTION_STREAM* stream,
@@ -212,6 +209,7 @@ Status logProcessCreateTime(const MINIDUMP_MISC_INFO* stream, Row& r) {
   time_t procTimestamp = stream->ProcessCreateTime;
   struct tm gmt;
   char timeBuff[64];
+  memset(timeBuff, 0, 64);
   gmtime_s(&gmt, &procTimestamp);
   strftime(timeBuff, sizeof(timeBuff), "%Y-%m-%d %H:%M:%S UTC", &gmt);
   r["process_create_time"] = timeBuff;
@@ -336,11 +334,7 @@ Status logBeingDebugged(const PEB* peb, Row& r) {
     return Status(1);
   }
 
-  if (peb->BeingDebugged == 1) {
-    r["being_debugged"] = "true";
-  } else {
-    r["being_debugged"] = "false";
-  }
+  r["being_debugged"] = BIGINT(static_cast<unsigned long>(peb->BeingDebugged));
   return Status();
 }
 
@@ -450,6 +444,7 @@ Status logDumpTime(const MINIDUMP_HEADER* header, Row& r) {
   time_t dumpTimestamp = header->TimeDateStamp;
   struct tm gmt;
   char timeBuff[64];
+  memset(timeBuff, 0, 64);
   gmtime_s(&gmt, &dumpTimestamp);
   strftime(timeBuff, sizeof(timeBuff), "%Y-%m-%d %H:%M:%S UTC", &gmt);
   r["datetime"] = timeBuff;
@@ -707,7 +702,6 @@ void processDumpFile(const char* fileName, Row& r) {
   // First, run functions that store information for later processing
   unsigned long long dumpFlags = 0;
   unsigned int tid = 0;
-  unsigned int exCode = 0;
   unsigned long long exAddr = 0;
   TEB* teb = nullptr;
   PEB* peb = nullptr;
@@ -716,12 +710,11 @@ void processDumpFile(const char* fileName, Row& r) {
   logAndStoreTID(exceptionStream, tid, r);
   storeTEBAndPEB(threadStream, memoryStream, dumpBaseAddr, tid, teb, peb);
   storeProcessParams(memoryStream, dumpBaseAddr, peb, params);
-  logAndStoreExceptionCodeAndAddr(exceptionStream, exCode, exAddr, r);
+  logAndStoreExceptionInfo(exceptionStream, exAddr, r);
 
   // Then, process everything else
   r["crash_path"] = fileName;
   logDumpTime(header, r);
-  logExceptionMsg(exceptionStream, exCode, exAddr, r);
   logRegisters(exceptionStream, dumpBaseAddr, r);
   logPID(miscStream, r);
   logProcessCreateTime(miscStream, r);
