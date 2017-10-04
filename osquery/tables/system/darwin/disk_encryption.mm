@@ -166,6 +166,8 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
 
     DASessionRef session = DASessionCreate(kCFAllocatorDefault);
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
     // DMManager *man = [DMManager sharedManager]
     id cls = NSClassFromString(@"DMManager");
     SEL sls = NSSelectorFromString(@"sharedManager");
@@ -177,6 +179,8 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
     id apfs = [cls performSelector:sls];
     sls = NSSelectorFromString(@"initWithManager:");
     [apfs performSelector:sls withObject:man];
+
+#pragma clang diagnostic pop
 
     DADiskRef targetVol = DADiskCreateFromBSDName(nullptr, session, r["name"].c_str());
 
