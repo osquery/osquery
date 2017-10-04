@@ -125,7 +125,7 @@ function Start-OsqueryProcess {
   $pinfo.Arguments = $binaryArgs
   $p = New-Object System.Diagnostics.Process
   $p.StartInfo = $pinfo
-  $p.Start() | Out-Null
+  $p.Start()
   $p.WaitForExit()
   $stdout = $p.StandardOutput.ReadToEnd()
   $stderr = $p.StandardError.ReadToEnd()
