@@ -3,9 +3,9 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class AwsSdkCpp < AbstractOsqueryFormula
   desc "AWS SDK for C++"
   homepage "https://github.com/aws/aws-sdk-cpp"
-  url "https://github.com/aws/aws-sdk-cpp/archive/1.1.20.tar.gz"
-  sha256 "94d3bf8cbb1db18ebdb50fbf20aa48ad1838f1743bbd22ca04adbaad9bc284dc"
-  revision 101
+  url "https://github.com/aws/aws-sdk-cpp/archive/1.2.7.tar.gz"
+  sha256 "1f65e63dbbceb1e8ffb19851a8e0ee153e05bf63bfa12b0e259d50021ac3ab6e"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
