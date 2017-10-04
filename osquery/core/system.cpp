@@ -380,38 +380,52 @@ bool PlatformProcess::cleanup() const {
 
 #ifndef WIN32
 
-bool ownerFromResult(const QueryData& result, long& uid, long& gid) {
-  if (result.empty()) {
-    return false;
-  }
-
-  if (!safeStrtol(result[0].at("uid"), 10, uid) ||
-      !safeStrtol(result[0].at("gid"), 10, gid)) {
+static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
+  if (!safeStrtol(row.at("uid"), 10, uid) ||
+      !safeStrtol(row.at("gid"), 10, gid)) {
     return false;
   }
   return true;
 }
 
 bool DropPrivileges::dropToParent(const fs::path& path) {
-  auto result =
-      SQL::selectAllFrom("file", "path", EQUALS, path.parent_path().string());
+  auto parent = path.parent_path().string();
+  auto result = SQL::selectAllFrom("file", "path", EQUALS, parent);
+  if (result.empty()) {
+    return false;
+  }
+
+  if (result.front().at("symlink") == "1") {
+    // The file is a symlink, inspect the owner of the link.
+    struct stat link_stat;
+    if (lstat(parent.c_str(), &link_stat) != 0) {
+      return false;
+    }
+
+    return dropTo(link_stat.st_uid, link_stat.st_gid);
+  }
 
   long uid = 0;
   long gid = 0;
-  if (!ownerFromResult(result, uid, gid)) {
+  if (!ownerFromResult(result.front(), uid, gid)) {
     return false;
   }
+
   return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
 }
 
 bool DropPrivileges::dropTo(const std::string& user) {
   auto result = SQL::selectAllFrom("users", "username", EQUALS, user);
+  if (result.empty()) {
+    return false;
+  }
 
   long uid = 0;
   long gid = 0;
-  if (!ownerFromResult(result, uid, gid)) {
+  if (!ownerFromResult(result.front(), uid, gid)) {
     return false;
   }
+
   return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
 }
 
