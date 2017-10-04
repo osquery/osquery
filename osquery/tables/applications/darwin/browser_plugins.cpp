@@ -17,6 +17,7 @@ extern "C" {
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/applications/browser_utils.h"
 #include "osquery/tables/system/system_utils.h"
 
@@ -129,6 +130,7 @@ QueryData genBrowserPlugins(QueryContext& context) {
 }
 
 inline void genSafariExtension(const std::string& uid,
+                               const std::string& gid,
                                const std::string& path,
                                QueryData& results) {
   Row r;
@@ -142,7 +144,11 @@ inline void genSafariExtension(const std::string& uid,
 
   // Finally drop privileges to the user controlling the extension.
   auto dropper = DropPrivileges::get();
-  if (!dropper->dropToParent(path)) {
+  unsigned long int _uid = 0;
+  unsigned long int _gid = 0;
+  if (!safeStrtoul(uid, 10, _uid).ok() || !safeStrtoul(gid, 10, _gid).ok() ||
+      !dropper->dropTo(static_cast<uid_t>(_uid), static_cast<gid_t>(_gid))) {
+    VLOG(1) << "Cannot drop privileges to UID " << uid;
     return;
   }
 
@@ -207,22 +213,29 @@ QueryData genSafariExtensions(QueryContext& context) {
   // Iterate over each user
   auto users = usersFromContext(context);
   for (const auto& row : users) {
-    if (row.count("uid") > 0 && row.count("directory") > 0) {
-      auto dir = fs::path(row.at("directory")) / kSafariExtensionsPath;
-      // Check that an extensions directory exists.
-      if (!pathExists(dir).ok()) {
-        continue;
-      }
+    auto uid = row.find("uid");
+    auto gid = row.find("gid");
+    auto directory = row.find("directory");
+    if (uid == row.end() || gid == row.end() || directory == row.end()) {
+      continue;
+    }
 
-      // Glob the extension files.
-      std::vector<std::string> paths;
-      if (!resolveFilePattern(dir / kSafariExtensionsPattern, paths).ok()) {
-        continue;
-      }
+    auto dir = fs::path(directory->second) / kSafariExtensionsPath;
+    // Check that an extensions directory exists.
+    if (!pathExists(dir).ok()) {
+      continue;
+    }
 
-      for (const auto& extension_path : paths) {
-        genSafariExtension(row.at("uid"), extension_path, results);
-      }
+    // Glob the extension files.
+    std::vector<std::string> paths;
+    if (!resolveFilePattern(
+             dir / kSafariExtensionsPattern, paths, GLOB_ALL | GLOB_NO_CANON)
+             .ok()) {
+      continue;
+    }
+
+    for (const auto& extension_path : paths) {
+      genSafariExtension(uid->second, gid->second, extension_path, results);
     }
   }
 
