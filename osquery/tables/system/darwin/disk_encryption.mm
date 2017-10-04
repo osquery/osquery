@@ -257,12 +257,25 @@ void genFDEStatusForAPFS(Row& r) {
     char *isEncryptedPtr = &isEncrypted;
     int err = 0;
 
-    NSInvocation *inv = [NSInvocation invocationWithMethodSignature:signature];
-    [inv setSelector:@selector(isEncryptedVolume:encrypted:)];
-    [inv setReturnValue:&err];
-    [inv setArgument:&targetVol atIndex:2];
-    [inv setArgument:&isEncryptedPtr atIndex:3];
-    [inv invokeWithTarget:apfs];
+    @try {
+      NSInvocation* inv =
+          [NSInvocation invocationWithMethodSignature:signature];
+      if (inv == nullptr) {
+        LOG(ERROR)
+            << "Failed to create NSInvocation for isEncryptedVolume:encrypted:";
+        cleanup();
+        return;
+      }
+      [inv setSelector:@selector(isEncryptedVolume:encrypted:)];
+      [inv setReturnValue:&err];
+      [inv setArgument:&targetVol atIndex:2];
+      [inv setArgument:&isEncryptedPtr atIndex:3];
+      [inv invokeWithTarget:apfs];
+    } @catch (NSException* exception) {
+      LOG(ERROR) << "NSInvocation threw for isEncryptedVolume:encrypted:";
+      cleanup();
+      return;
+    }
     if (err != 0) {
       LOG(ERROR) << "Error calling isEncryptedVolume:encrypted:";
       cleanup();
@@ -293,12 +306,25 @@ void genFDEStatusForAPFS(Row& r) {
 
     NSArray* cryptoUsers = nullptr;
     void *cryptoUsersPtr = &cryptoUsers;
-    inv = [NSInvocation invocationWithMethodSignature:signature];
-    [inv setSelector:@selector(cryptoUsersForVolume:users:)];
-    [inv setReturnValue:&err];
-    [inv setArgument:&targetVol atIndex:2];
-    [inv setArgument:&cryptoUsersPtr atIndex:3];
-    [inv invokeWithTarget:apfs];
+    @try {
+      NSInvocation* inv =
+          [NSInvocation invocationWithMethodSignature:signature];
+      if (inv == nullptr) {
+        LOG(ERROR)
+            << "Failed to create NSInvocation for cryptoUsersForVolume:users:";
+        cleanup();
+        return;
+      }
+      [inv setSelector:@selector(cryptoUsersForVolume:users:)];
+      [inv setReturnValue:&err];
+      [inv setArgument:&targetVol atIndex:2];
+      [inv setArgument:&cryptoUsersPtr atIndex:3];
+      [inv invokeWithTarget:apfs];
+    } @catch (NSException* exception) {
+      LOG(ERROR) << "NSInvocation threw for cryptoUsersForVolume:users:";
+      cleanup();
+      return;
+    }
 
     // We can perform this cleanup before analyzing the results of the calls.
     cleanup();
@@ -319,7 +345,7 @@ void genFDEStatusForAPFS(Row& r) {
           if (cStr == nullptr) {
             continue;
           }
-          std::string uuidStr = std::string(cStr);
+          std::string uuidStr(cStr);
 
           if (kHardcodedDiskUUIDs.count(uuidStr) == 0) {
             QueryData rows = SQL::selectAllFrom("users");
