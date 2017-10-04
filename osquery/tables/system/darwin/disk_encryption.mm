@@ -115,54 +115,37 @@ Status genUid(id_t& uid, uuid_string_t& uuid_str) {
   return Status(0, "ok");
 }
 
-void genFDEStatusForBSDName(const std::string& bsd_name,
-                            const std::string& uuid,
-                            bool isAPFS,
-                            QueryData& results) {
-
-  auto matching_dict =
-      IOBSDNameMatching(kIOMasterPortDefault, kNilOptions, bsd_name.c_str());
-  if (matching_dict == nullptr) {
-    return;
-  }
-
-  auto service =
-      IOServiceGetMatchingService(kIOMasterPortDefault, matching_dict);
-  if (!service) {
-    return;
-  }
-
-  CFMutableDictionaryRef properties;
-  if (IORegistryEntryCreateCFProperties(
-          service, &properties, kCFAllocatorDefault, kNilOptions) !=
-      KERN_SUCCESS) {
-    IOObjectRelease(service);
-    return;
-  }
-
-  Row r;
-  r["name"] = kDeviceNamePrefix + bsd_name;
-  r["uuid"] = uuid;
-
-  if (isAPFS) {
-    auto bundle_url = CFURLCreateWithFileSystemPath(
+void genFDEStatusForAPFS(Row& r) {
+  // BEWARE: Because of the dynamic nature of the calls in this function, we
+  // must be careful to properly clean up the memory. Any future modifications
+  // to this function should attempt to ensure there are no leaks.
+  auto bundle_url = CFURLCreateWithFileSystemPath(
       kCFAllocatorDefault,
       CFSTR("/System/Library/PrivateFrameworks/DiskManagement.framework"),
       kCFURLPOSIXPathStyle,
       true);
-    if (bundle_url == nullptr) {
-      LOG(ERROR) << "parsing DiskManagement bundle URL";
-    }
+  if (bundle_url == nullptr) {
+    LOG(ERROR) << "Error parsing DiskManagement bundle URL";
+    return;
+  }
 
-    auto bundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
-    CFRelease(bundle_url);
-    if (bundle == nullptr) {
-      LOG(ERROR) << "opening DiskManagement bundle";
-   }
+  auto bundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
+  CFRelease(bundle_url);
+  if (bundle == nullptr) {
+    LOG(ERROR) << "Error opening DiskManagement bundle";
+    return;
+  }
 
-    CFBundleLoadExecutable(bundle);
+  CFBundleLoadExecutable(bundle);
 
-    DASessionRef session = DASessionCreate(kCFAllocatorDefault);
+  DASessionRef session = DASessionCreate(kCFAllocatorDefault);
+
+  if (session == nullptr) {
+    LOG(ERROR) << "Error creating DiskArbitration session";
+    CFBundleUnloadExecutable(bundle);
+    CFRelease(bundle);
+    return;
+  }
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
@@ -177,10 +160,20 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
     cls = NSClassFromString(@"DMAPFS");
     if (cls == nullptr) {
       LOG(ERROR) << "Could not load DMAPFS class";
+      CFBundleUnloadExecutable(bundle);
+      CFRelease(bundle);
+      return;
     }
     // Must use NSSelectorFromString or compiler complains about using alloc
     // with ARC.
     id apfs = [cls performSelector:NSSelectorFromString(@"alloc")];
+    if (apfs == nullptr) {
+      LOG(ERROR) << "Could not allocate DMAPFS object";
+      CFRelease(session);
+      CFBundleUnloadExecutable(bundle);
+      CFRelease(bundle);
+      return;
+    }
     [apfs performSelector:@selector(initWithManager:) withObject:man];
 
 #pragma clang diagnostic pop
@@ -209,6 +202,25 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
     [inv setArgument:&targetVol atIndex:2];
     [inv setArgument:&isEncryptedPtr atIndex:3];
     [inv invokeWithTarget:apfs];
+    if (targetVol == nullptr) {
+      LOG(ERROR)
+          << "Error calling isEncryptedVolume:encrypted:, targetVol is null";
+      CFRelease((__bridge CFTypeRef)apfs);
+      CFRelease(session);
+      CFBundleUnloadExecutable(bundle);
+      CFRelease(bundle);
+      return;
+    }
+    if (err != 0) {
+      LOG(ERROR)
+          << "Error calling isEncryptedVolume:encrypted:, targetVol not null";
+      CFRelease(targetVol);
+      CFRelease((__bridge CFTypeRef)apfs);
+      CFRelease(session);
+      CFBundleUnloadExecutable(bundle);
+      CFRelease(bundle);
+      return;
+    }
 
     // err = [apfs cryptoUsersForVolume:targetVol users:&cryptoUsers];
     asprintf(&typeEncodings,
@@ -230,9 +242,16 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
     [inv setArgument:&cryptoUsersPtr atIndex:3];
     [inv invokeWithTarget:apfs];
 
-    CFRelease(session);
     CFRelease(targetVol);
     CFRelease((__bridge CFTypeRef)apfs);
+    CFRelease(session);
+    CFBundleUnloadExecutable(bundle);
+    CFRelease(bundle);
+
+    if (err != 0) {
+      LOG(ERROR) << "Error calling cryptoUsersForVolume:users:";
+      return;
+    }
 
     if (cryptoUsers != nullptr) {
       @autoreleasepool {
@@ -240,10 +259,10 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
           std::string uuidStr = std::string([userUUID UTF8String]);
           if (kHardcodedDiskUUIDs.count(uuidStr) == 0) {
             QueryData rows = SQL::selectAllFrom("users", "uuid", EQUALS, "foo");
-            for (auto &row : rows) {
-              if (row["uuid"] == uuidStr) {
-                r["user_uuid"] = row["uuid"];
-                r["uid"] = row["uid"];
+            for (const auto& row : rows) {
+              if (row.count("uuid") > 0 && row.at("uuid") == uuidStr) {
+                r["user_uuid"] = row.at("uuid");
+                r["uid"] = row.count("uuid") > 0 ? row.at("uid") : "";
               }
             }
           }
@@ -253,9 +272,38 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
 
     r["encrypted"] = isEncrypted ? "1" : "0";
     r["type"] = isEncrypted ? "APFS Encryption" : "";
+}
 
-    CFBundleUnloadExecutable(bundle);
-    CFRelease(bundle);
+void genFDEStatusForBSDName(const std::string& bsd_name,
+                            const std::string& uuid,
+                            bool isAPFS,
+                            QueryData& results) {
+  auto matching_dict =
+      IOBSDNameMatching(kIOMasterPortDefault, kNilOptions, bsd_name.c_str());
+  if (matching_dict == nullptr) {
+    return;
+  }
+
+  auto service =
+      IOServiceGetMatchingService(kIOMasterPortDefault, matching_dict);
+  if (!service) {
+    return;
+  }
+
+  CFMutableDictionaryRef properties;
+  if (IORegistryEntryCreateCFProperties(
+          service, &properties, kCFAllocatorDefault, kNilOptions) !=
+      KERN_SUCCESS) {
+    IOObjectRelease(service);
+    return;
+  }
+
+  Row r;
+  r["name"] = kDeviceNamePrefix + bsd_name;
+  r["uuid"] = uuid;
+
+  if (isAPFS) {
+    genFDEStatusForAPFS(r);
   } else {
     auto encrypted = getIOKitProperty(properties, kCoreStorageIsEncryptedKey_);
     if (encrypted.empty()) {
