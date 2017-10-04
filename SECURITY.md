@@ -16,4 +16,6 @@ If you are editing this document please feel encouraged to change this format to
 - #1598 `readFile` TOCTOU error - 1.6.0 - NCC Group
 - #1596 Uncaught exception in config JSON parsing - 1.6.0 - NCC Group
 - #1585 Various comparisons of integers of different signs - 1.6.0 - NCC Group
+- #993 Add restricted permissions to RocksDB - 1.4.5 - Anonymous security review
+- #740 Add hardening compile flags and `-fPIE` - 1.4.1 - Anonymous security review
 - #300 Add restricted permissions to osqueryd logging - 1.0.4
