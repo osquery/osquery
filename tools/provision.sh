@@ -24,6 +24,10 @@ LINUXBREW_CORE="f54281a496bb7d3dd2f46b2f3067193d05f5013b"
 HOMEBREW_BREW="ac2cbd2137006ebfe84d8584ccdcb5d78c1130d9"
 LINUXBREW_BREW="20bcce2c176469cec271b46d523eef1510217436"
 
+# These suffixes are used when building bottle tarballs.
+LINUX_BOTTLE_SUFFIX="x86_64_linux"
+DARWIN_BOTTLE_SUFFIX="sierra"
+
 # If the world needs to be rebuilt, increase the version
 DEPS_VERSION="4"
 
@@ -240,6 +244,10 @@ function main() {
     do_sudo mkdir -p "$DEPS_DIR"
     do_sudo chown $USER "$DEPS_DIR" > /dev/null 2>&1 || true
   fi
+
+  # Save the directory we're executing from and change to the deps directory.
+  # Other imported scripts may need to reference the repository directory.
+  export CURRENT_DIR=$(pwd)
   cd "$DEPS_DIR"
 
   # Finally run the setup of *brew, and checkout the needed Taps.
@@ -258,6 +266,8 @@ function main() {
     brew_uninstall "$2"
     return
   elif [[ "$ACTION" = "install" ]]; then
+    # If someone explicitly requested a provision install then build a bottle.
+    export OSQUERY_BUILD_DEPS=True
     brew_dependency "$2"
     return
   fi
