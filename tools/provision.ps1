@@ -286,7 +286,7 @@ function Install-ThirdParty {
     "bzip2.1.0.6",
     "cpp-netlib.0.12.0-r4",
     "doxygen.1.8.11",
-    "gflags-dev.2.2.0-r1",
+    "gflags-dev.2.2.1",
     "glog.0.3.4-r1",
     "libarchive.3.3.1-r1",
     "linenoise-ng.1.0.0-r1",
