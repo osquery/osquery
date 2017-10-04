@@ -151,15 +151,13 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
       kCFURLPOSIXPathStyle,
       true);
     if (bundle_url == nullptr) {
-      LOG(ERROR) << "parsing bundle URL";
-      return;
+      LOG(ERROR) << "parsing DiskManagement bundle URL";
     }
 
     auto bundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
     CFRelease(bundle_url);
     if (bundle == nullptr) {
-      LOG(ERROR) << "opening bundle";
-      return;
+      LOG(ERROR) << "opening DiskManagement bundle";
    }
 
     CFBundleLoadExecutable(bundle);
@@ -170,30 +168,34 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
     // DMManager *man = [DMManager sharedManager]
     id cls = NSClassFromString(@"DMManager");
-    SEL sls = NSSelectorFromString(@"sharedManager");
-    id man = [cls performSelector:sls];
+    if (![cls respondsToSelector:@selector(sharedManager)]) {
+      LOG(ERROR) << "DMManager does not respond to sharedManager selector";
+    }
+    id man = [cls performSelector:@selector(sharedManager)];
 
     // DMAPFS * apfs = [[DMAPFS alloc] initWithManager:man];
     cls = NSClassFromString(@"DMAPFS");
-    sls = NSSelectorFromString(@"alloc");
-    id apfs = [cls performSelector:sls];
-    sls = NSSelectorFromString(@"initWithManager:");
-    [apfs performSelector:sls withObject:man];
+    if (cls == nullptr) {
+      LOG(ERROR) << "Could not load DMAPFS class";
+    }
+    // Must use NSSelectorFromString or compiler complains about using alloc
+    // with ARC.
+    id apfs = [cls performSelector:NSSelectorFromString(@"alloc")];
+    [apfs performSelector:@selector(initWithManager:) withObject:man];
 
 #pragma clang diagnostic pop
 
     DADiskRef targetVol = DADiskCreateFromBSDName(nullptr, session, r["name"].c_str());
 
-    // The following is an NSInvocation form of this objc line:
     // err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
     char *typeEncodings;
-        asprintf(&typeEncodings, "%s%s%s%s%s",
-                 @encode(int),     // return
-                 @encode(id),       // self
-                 @encode(SEL),      // _cmd
-                 @encode(DADiskRef),
-                 @encode(char*)
-                 );
+    asprintf(&typeEncodings,
+             "%s%s%s%s%s",
+             @encode(int), // return
+             @encode(id), // self
+             @encode(SEL), // _cmd
+             @encode(DADiskRef),
+             @encode(char*));
     NSMethodSignature *signature = [NSMethodSignature signatureWithObjCTypes: typeEncodings];
     free(typeEncodings);
 
@@ -208,13 +210,14 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
     [inv setArgument:&isEncryptedPtr atIndex:3];
     [inv invokeWithTarget:apfs];
 
-        asprintf(&typeEncodings, "%s%s%s%s%s",
-                 @encode(int),     // return
-                 @encode(id),       // self
-                 @encode(SEL),      // _cmd
-                 @encode(DADiskRef),
-                 @encode(void*)
-                 );
+    // err = [apfs cryptoUsersForVolume:targetVol users:&cryptoUsers];
+    asprintf(&typeEncodings,
+             "%s%s%s%s%s",
+             @encode(int), // return
+             @encode(id), // self
+             @encode(SEL), // _cmd
+             @encode(DADiskRef),
+             @encode(void*));
     signature = [NSMethodSignature signatureWithObjCTypes: typeEncodings];
     free(typeEncodings);
 
@@ -275,14 +278,8 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
 }
 
 bool isAPFS(const QueryData& result) {
-  if (result.empty()) {
-    return false;
-  }
-
-  if (result[0].at("type") == kAPFSFileSystem) {
-    return true;
-  }
-  return false;
+  return !result.empty() && result[0].count("type") > 0 &&
+         result[0].at("type") == kAPFSFileSystem;
 }
 
 QueryData genFDEStatus(QueryContext& context) {
