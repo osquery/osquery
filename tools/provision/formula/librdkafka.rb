@@ -3,8 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Librdkafka < AbstractOsqueryFormula
   desc "The Apache Kafka C/C++ library"
   homepage "https://github.com/edenhill/librdkafka"
-  url "https://github.com/edenhill/librdkafka/archive/v0.9.5.tar.gz"
-  sha256 "dd395ffca89c9591e567366f3ad2517cee76578a10d0a16a93f990c33f553179"
+  url "https://github.com/edenhill/librdkafka/archive/v0.11.0.tar.gz"
+  sha256 "d4baf9a0d08767128913bb4e39d68995a95d7efa834fcf3e4f60c3156003b887"
 
   depends_on "openssl"
   depends_on "pkg-config" => :build
@@ -13,8 +13,8 @@ class Librdkafka < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "c81f3eb2b475691beb0bf050b8807a0df3d1217ed3e9ee417f44e543ec8e8126" => :sierra
-    sha256 "e08a43be5922873153a925913f1eafac5e20c956358b2046b33b574aacc49c5c" => :x86_64_linux
+    sha256 "68c1f06e021f201a9c77b4ebd631df950e8eaf3d4e8882f65b38a8d5b4f2c825" => :sierra
+    sha256 "4f66dcfc34b7224fc6cdd9b951be616d2dacb42c53bd6b4f9cf56ce765262c75" => :x86_64_linux
   end
 
   def install
