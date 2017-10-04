@@ -103,6 +103,8 @@ There are several forms of [eventing](http://osquery.readthedocs.org/en/stable/d
 
 ## Vulnerabilities
 
+We keep track of security announcements in our tagged version release notes on GitHub. We aggregate these into [SECURITY.md](https://github.com/facebook/osquery/blob/master/SECURITY.md) too.
+
 Facebook has a [bug bounty](https://www.facebook.com/whitehat/) program that includes osquery. If you find a security vulnerability in osquery, please submit it via the process outlined on that page and do not file a public issue. For more information on finding vulnerabilities in osquery, see a recent blog post about [bug-hunting osquery](https://www.facebook.com/notes/facebook-bug-bounty/bug-hunting-osquery/954850014529225).
 
 ## Learn more
