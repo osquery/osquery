@@ -11,6 +11,8 @@
 #include <Foundation/Foundation.h>
 #include <DiskArbitration/DiskArbitration.h>
 
+#include <functional>
+
 #include <membership.h>
 
 #include <osquery/core.h>
@@ -138,50 +140,81 @@ void genFDEStatusForAPFS(Row& r) {
 
   CFBundleLoadExecutable(bundle);
 
-  DASessionRef session = DASessionCreate(kCFAllocatorDefault);
-
-  if (session == nullptr) {
-    LOG(ERROR) << "Error creating DiskArbitration session";
+  std::function<void()> cleanup = [&]() {
     CFBundleUnloadExecutable(bundle);
     CFRelease(bundle);
+  };
+
+  DASessionRef session = DASessionCreate(kCFAllocatorDefault);
+  if (session == nullptr) {
+    LOG(ERROR) << "Error creating DiskArbitration session";
+    cleanup();
     return;
   }
+  cleanup = [&]() {
+    CFRelease(session);
+    CFBundleUnloadExecutable(bundle);
+    CFRelease(bundle);
+  };
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
     // DMManager *man = [DMManager sharedManager]
     id cls = NSClassFromString(@"DMManager");
-    if (![cls respondsToSelector:@selector(sharedManager)]) {
-      LOG(ERROR) << "DMManager does not respond to sharedManager selector";
+    if (cls == nullptr) {
+      LOG(ERROR) << "Could not load DMManager class";
+      cleanup();
+      return;
     }
-    id man = [cls performSelector:@selector(sharedManager)];
+    SEL sel = @selector(sharedManager);
+    if (![cls respondsToSelector:sel]) {
+      LOG(ERROR) << "DMManager does not respond to sharedManager selector";
+      cleanup();
+      return;
+    }
+    id man = [cls performSelector:sel];
 
     // DMAPFS * apfs = [[DMAPFS alloc] initWithManager:man];
     cls = NSClassFromString(@"DMAPFS");
     if (cls == nullptr) {
       LOG(ERROR) << "Could not load DMAPFS class";
-      CFBundleUnloadExecutable(bundle);
-      CFRelease(bundle);
+      cleanup();
       return;
     }
-    // Must use NSSelectorFromString or compiler complains about using alloc
-    // with ARC.
-    id apfs = [cls performSelector:NSSelectorFromString(@"alloc")];
+    sel = @selector(alloc);
+    if (![cls respondsToSelector:sel]) {
+      LOG(ERROR) << "DMAPFS does not respond to alloc selector";
+      cleanup();
+      return;
+    }
+    id apfs = [cls performSelector:sel];
     if (apfs == nullptr) {
       LOG(ERROR) << "Could not allocate DMAPFS object";
+      cleanup();
+      return;
+    }
+
+    sel = @selector(initWithManager:);
+    if (![apfs respondsToSelector:sel]) {
+      LOG(ERROR) << "DMAPFS does not respond to initWithManager: selector";
+      cleanup();
+      return;
+    }
+    [apfs performSelector:sel withObject:man];
+
+    cleanup = [&]() {
+      CFRelease((__bridge CFTypeRef)apfs);
       CFRelease(session);
       CFBundleUnloadExecutable(bundle);
       CFRelease(bundle);
-      return;
-    }
-    [apfs performSelector:@selector(initWithManager:) withObject:man];
+    };
 
 #pragma clang diagnostic pop
 
     DADiskRef targetVol = DADiskCreateFromBSDName(nullptr, session, r["name"].c_str());
 
     // err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
-    char *typeEncodings;
+    char* typeEncodings = nullptr;
     asprintf(&typeEncodings,
              "%s%s%s%s%s",
              @encode(int), // return
@@ -189,8 +222,19 @@ void genFDEStatusForAPFS(Row& r) {
              @encode(SEL), // _cmd
              @encode(DADiskRef),
              @encode(char*));
-    NSMethodSignature *signature = [NSMethodSignature signatureWithObjCTypes: typeEncodings];
+    if (typeEncodings == nullptr) {
+      LOG(ERROR) << "asprintf returned nullptr for typeEncodings";
+      cleanup();
+      return;
+    }
+    NSMethodSignature* signature =
+        [NSMethodSignature signatureWithObjCTypes:typeEncodings];
     free(typeEncodings);
+    if (signature == nullptr) {
+      LOG(ERROR) << "Got null NSMethodSignature";
+      cleanup();
+      return;
+    }
 
     char isEncrypted = 1;
     char *isEncryptedPtr = &isEncrypted;
@@ -205,24 +249,25 @@ void genFDEStatusForAPFS(Row& r) {
     if (targetVol == nullptr) {
       LOG(ERROR)
           << "Error calling isEncryptedVolume:encrypted:, targetVol is null";
-      CFRelease((__bridge CFTypeRef)apfs);
-      CFRelease(session);
-      CFBundleUnloadExecutable(bundle);
-      CFRelease(bundle);
+      cleanup();
       return;
     }
-    if (err != 0) {
-      LOG(ERROR)
-          << "Error calling isEncryptedVolume:encrypted:, targetVol not null";
+    cleanup = [&]() {
       CFRelease(targetVol);
       CFRelease((__bridge CFTypeRef)apfs);
       CFRelease(session);
       CFBundleUnloadExecutable(bundle);
       CFRelease(bundle);
+    };
+    if (err != 0) {
+      LOG(ERROR)
+          << "Error calling isEncryptedVolume:encrypted:, targetVol not null";
+      cleanup();
       return;
     }
 
     // err = [apfs cryptoUsersForVolume:targetVol users:&cryptoUsers];
+    typeEncodings = nullptr;
     asprintf(&typeEncodings,
              "%s%s%s%s%s",
              @encode(int), // return
@@ -230,8 +275,18 @@ void genFDEStatusForAPFS(Row& r) {
              @encode(SEL), // _cmd
              @encode(DADiskRef),
              @encode(void*));
-    signature = [NSMethodSignature signatureWithObjCTypes: typeEncodings];
+    if (typeEncodings == nullptr) {
+      LOG(ERROR) << "asprintf returned nullptr for typeEncodings";
+      cleanup();
+      return;
+    }
+    signature = [NSMethodSignature signatureWithObjCTypes:typeEncodings];
     free(typeEncodings);
+    if (signature == nullptr) {
+      LOG(ERROR) << "Got null NSMethodSignature";
+      cleanup();
+      return;
+    }
 
     NSArray *cryptoUsers;
     void *cryptoUsersPtr = &cryptoUsers;
@@ -242,11 +297,8 @@ void genFDEStatusForAPFS(Row& r) {
     [inv setArgument:&cryptoUsersPtr atIndex:3];
     [inv invokeWithTarget:apfs];
 
-    CFRelease(targetVol);
-    CFRelease((__bridge CFTypeRef)apfs);
-    CFRelease(session);
-    CFBundleUnloadExecutable(bundle);
-    CFRelease(bundle);
+    // We can perform this cleanup before analyzing the results of the calls.
+    cleanup();
 
     if (err != 0) {
       LOG(ERROR) << "Error calling cryptoUsersForVolume:users:";
@@ -255,10 +307,19 @@ void genFDEStatusForAPFS(Row& r) {
 
     if (cryptoUsers != nullptr) {
       @autoreleasepool {
-        for (NSString *userUUID in cryptoUsers) {
-          std::string uuidStr = std::string([userUUID UTF8String]);
+        for (id arrObj in cryptoUsers) {
+          if (![arrObj isKindOfClass:[NSString class]]) {
+            continue;
+          }
+
+          const char* cStr = [(NSString*)arrObj UTF8String];
+          if (cStr == nullptr) {
+            continue;
+          }
+          std::string uuidStr = std::string(cStr);
+
           if (kHardcodedDiskUUIDs.count(uuidStr) == 0) {
-            QueryData rows = SQL::selectAllFrom("users", "uuid", EQUALS, "foo");
+            QueryData rows = SQL::selectAllFrom("users");
             for (const auto& row : rows) {
               if (row.count("uuid") > 0 && row.at("uuid") == uuidStr) {
                 r["user_uuid"] = row.at("uuid");
