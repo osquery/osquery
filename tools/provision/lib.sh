@@ -253,20 +253,18 @@ function brew_bottle() {
   fi
 
   HASH=$(shasum -a 256 $DEPS_DIR/${TOOL}-${INSTALLED}* | awk '{print $1}')
-  if [[ "$BREW_TYPE" = "linux" ]]; then
-    SUFFIX="x86_64_linux"
-  else
-    SUFFIX="sierra"
-  fi
 
   log "installing $HASH into $FORMULA_FILE"
   if [[ "$BREW_TYPE" = "linux" ]]; then
     SED="sed -i "
+    SUFFIX=$LINUX_BOTTLE_SUFFIX
   else
-    SED="sed -i '' "
+    SED="sed -i .orig "
+    SUFFIX=$DARWIN_BOTTLE_SUFFIX
   fi
 
   $SED "s/sha256 \"\\(.*\\)\" => :${SUFFIX}/sha256 \"${HASH}\" => :${SUFFIX}/g" $FORMULA_FILE
+  cp $DEPS_DIR/${TOOL}-${INSTALLED}.${SUFFIX}.bottle.tar.gz $CURRENT_DIR
 }
 
 function brew_postinstall() {
