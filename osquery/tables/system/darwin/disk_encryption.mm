@@ -173,6 +173,11 @@ void genFDEStatusForAPFS(Row& r) {
       return;
     }
     id man = [cls performSelector:sel];
+    if (man == nullptr) {
+      LOG(ERROR) << "[DMManager sharedManager] returned null";
+      cleanup();
+      return;
+    }
 
     // DMAPFS * apfs = [[DMAPFS alloc] initWithManager:man];
     cls = NSClassFromString(@"DMAPFS");
@@ -212,6 +217,18 @@ void genFDEStatusForAPFS(Row& r) {
 #pragma clang diagnostic pop
 
     DADiskRef targetVol = DADiskCreateFromBSDName(nullptr, session, r["name"].c_str());
+    if (targetVol == nullptr) {
+      LOG(ERROR) << "Error creating target volume from BSD name";
+      cleanup();
+      return;
+    }
+    cleanup = [&]() {
+      CFRelease(targetVol);
+      CFRelease((__bridge CFTypeRef)apfs);
+      CFRelease(session);
+      CFBundleUnloadExecutable(bundle);
+      CFRelease(bundle);
+    };
 
     // err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
     char* typeEncodings = nullptr;
@@ -236,7 +253,7 @@ void genFDEStatusForAPFS(Row& r) {
       return;
     }
 
-    char isEncrypted = 1;
+    char isEncrypted = 0;
     char *isEncryptedPtr = &isEncrypted;
     int err = 0;
 
@@ -246,22 +263,8 @@ void genFDEStatusForAPFS(Row& r) {
     [inv setArgument:&targetVol atIndex:2];
     [inv setArgument:&isEncryptedPtr atIndex:3];
     [inv invokeWithTarget:apfs];
-    if (targetVol == nullptr) {
-      LOG(ERROR)
-          << "Error calling isEncryptedVolume:encrypted:, targetVol is null";
-      cleanup();
-      return;
-    }
-    cleanup = [&]() {
-      CFRelease(targetVol);
-      CFRelease((__bridge CFTypeRef)apfs);
-      CFRelease(session);
-      CFBundleUnloadExecutable(bundle);
-      CFRelease(bundle);
-    };
     if (err != 0) {
-      LOG(ERROR)
-          << "Error calling isEncryptedVolume:encrypted:, targetVol not null";
+      LOG(ERROR) << "Error calling isEncryptedVolume:encrypted:";
       cleanup();
       return;
     }
@@ -288,7 +291,7 @@ void genFDEStatusForAPFS(Row& r) {
       return;
     }
 
-    NSArray *cryptoUsers;
+    NSArray* cryptoUsers = nullptr;
     void *cryptoUsersPtr = &cryptoUsers;
     inv = [NSInvocation invocationWithMethodSignature:signature];
     [inv setSelector:@selector(cryptoUsersForVolume:users:)];
