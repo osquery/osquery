@@ -37,6 +37,14 @@ const std::string kAPFSFileSystem = "apfs";
 /// Expect all device names to include a /dev path prefix.
 const std::string kDeviceNamePrefix = "/dev/";
 
+const std::set<std::string> kHardcodedDiskUUIDs = {
+  "EBC6C064-0000-11AA-AA11-00306543ECA",
+  "64C0C6EB-0000-11AA-AA11-00306543ECAC",
+  "C064EBC6-0000-11AA-AA11-00306543ECAC",
+  "ec1c2ad9-b618-4ed6-bd8d-50f361c27507",
+  "2fa31400-baff-4de7-ae2a-c3aa6e1fd340",
+};
+
 // kCoreStorageIsEncryptedKey is not publicly defined
 // or documented because CoreStorage is a private framework
 #define kCoreStorageIsEncryptedKey_ "CoreStorage Encrypted"
@@ -137,9 +145,6 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
   r["uuid"] = uuid;
 
   if (isAPFS) {
-
-    NSLog(@"%s", r["name"].c_str());
-
     auto bundle_url = CFURLCreateWithFileSystemPath(
       kCFAllocatorDefault,
       CFSTR("/System/Library/PrivateFrameworks/DiskManagement.framework"),
@@ -161,16 +166,10 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
 
     DASessionRef session = DASessionCreate(kCFAllocatorDefault);
 
-    // DMManager *man = [DMManager sharedManager]aa
+    // DMManager *man = [DMManager sharedManager]
     id cls = NSClassFromString(@"DMManager");
     SEL sls = NSSelectorFromString(@"sharedManager");
     id man = [cls performSelector:sls];
-
-    // Seems to be unnecessary?
-    // [man setDefaultDASession:session];
-    // TODO try/catch
-    //sls = NSSelectorFromString(@"setDefaultDASession:");
-    //[man performSelector:sls withObject:(__bridge id)session];
 
     // DMAPFS * apfs = [[DMAPFS alloc] initWithManager:man];
     cls = NSClassFromString(@"DMAPFS");
@@ -179,9 +178,10 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
     sls = NSSelectorFromString(@"initWithManager:");
     [apfs performSelector:sls withObject:man];
 
-    DADiskRef targetVol = DADiskCreateFromBSDName(NULL, session, r["name"].c_str());
+    DADiskRef targetVol = DADiskCreateFromBSDName(nullptr, session, r["name"].c_str());
 
-    //err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
+    // The following is an NSInvocation form of this objc line:
+    // err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
     char *typeEncodings;
         asprintf(&typeEncodings, "%s%s%s%s%s",
                  @encode(int),     // return
@@ -214,59 +214,41 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
     signature = [NSMethodSignature signatureWithObjCTypes: typeEncodings];
     free(typeEncodings);
 
-    id foo;
-    void *fooPtr = &foo;
+    NSArray *cryptoUsers;
+    void *cryptoUsersPtr = &cryptoUsers;
     inv = [NSInvocation invocationWithMethodSignature:signature];
     [inv setSelector:@selector(cryptoUsersForVolume:users:)];
     [inv setReturnValue:&err];
     [inv setArgument:&targetVol atIndex:2];
-    [inv setArgument:&fooPtr atIndex:3];
+    [inv setArgument:&cryptoUsersPtr atIndex:3];
     [inv invokeWithTarget:apfs];
 
-    // To determine user type, diskutil compares against known UUIDs for the
-    // iCloud and recovery related keys. We should be able to find the LDAP
-    // user and join with the users table to get the UID.
-    /*
-    var_C0 = @"Local Open Directory";
-    if ([r14 caseInsensitiveCompare:var_110] == 0x0) {
-            var_C0 = @"Disk";
-    }
-    if ([r14 caseInsensitiveCompare:@"EBC6C064-0000-11AA-AA11-00306543ECAC"] == 0x0) {
-            var_C0 = @"Personal Recovery";
-    }
-    if ([r14 caseInsensitiveCompare:@"64C0C6EB-0000-11AA-AA11-00306543ECAC"] == 0x0) {
-            var_C0 = @"iCloud Recovery";
-    }
-    if ([r14 caseInsensitiveCompare:@"C064EBC6-0000-11AA-AA11-00306543ECAC"] == 0x0) {
-            var_C0 = @"Institutional Recovery";
-    }
-    if ([r14 caseInsensitiveCompare:@"ec1c2ad9-b618-4ed6-bd8d-50f361c27507"] == 0x0) {
-            var_C0 = @"iCloud";
-    }
-    if ([r14 caseInsensitiveCompare:@"2fa31400-baff-4de7-ae2a-c3aa6e1fd340"] != 0x0) {
-            rdi = var_C0;
-    }
-    else {
-            var_C0 = @"Institutional";
-            rdi = @"Institutional";
-    }
-    */
-    if (foo == NULL) {
-      NSLog(@"No crypto users");
-    } else {
-      for (id user in (NSArray*)foo) {
-        NSLog(@"User: %@ %@", user, [user className]);
+    CFRelease(session);
+    CFRelease(targetVol);
+    CFRelease((__bridge CFTypeRef)apfs);
+
+    if (cryptoUsers != nullptr) {
+      @autoreleasepool {
+        for (NSString *userUUID in cryptoUsers) {
+          std::string uuidStr = std::string([userUUID UTF8String]);
+          if (kHardcodedDiskUUIDs.count(uuidStr) == 0) {
+            QueryData rows = SQL::selectAllFrom("users", "uuid", EQUALS, "foo");
+            for (auto &row : rows) {
+              if (row["uuid"] == uuidStr) {
+                r["user_uuid"] = row["uuid"];
+                r["uid"] = row["uid"];
+              }
+            }
+          }
+        }
       }
     }
 
-
-    NSLog(@"test, %d", err);
-    NSLog(@"%@", [foo className]);
-
     r["encrypted"] = isEncrypted ? "1" : "0";
+    r["type"] = isEncrypted ? "APFS Encryption" : "";
 
-  CFBundleUnloadExecutable(bundle);
-  CFRelease(bundle);
+    CFBundleUnloadExecutable(bundle);
+    CFRelease(bundle);
   } else {
     auto encrypted = getIOKitProperty(properties, kCoreStorageIsEncryptedKey_);
     if (encrypted.empty()) {
