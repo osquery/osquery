@@ -6,7 +6,7 @@ This document aggregates security issues (weaknesses and vulnerabilities) affect
 #PRNumber Title - (Optional CVE) - Fixed in Version - Optional Reporter
 ```
 
-There are several types of issues that do not include a CVE or reporter. The project maintainers should try to tag related issues and pull requests with the [`hardening`](https://github.com/facebook/osquery/issues?q=is%3Aissue+is%3Aopen+label%3Ahardening) tag. There may be changes with this label that are not directly security issues.
+There are several types of issues that do not include a CVE or reporter. If you find a security issue and believe a CVE should be assigned, please contact the project maintainers in the [osquery Slack](https://osquery-slack.herokuapp.com), we are happy to submit the request and provide attribution to you. The project maintainers will tag related issues and pull requests with the [`hardening`](https://github.com/facebook/osquery/issues?q=is%3Aissue+is%3Aopen+label%3Ahardening) label. There may be changes with this label that are not directly security issues.
 
 If you are editing this document please feel encouraged to change this format to provide more details. This is intended to be a helpful resource so please keep content valuable and concise.
 
