@@ -23,10 +23,11 @@
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm.hpp>
+
+#include <sqlite3.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -37,6 +38,7 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 #include "osquery/filesystem/fileops.h"
+#include "osquery/sql/sqlite_util.h"
 #include "osquery/tables/system/windows/registry.h"
 
 namespace fs = boost::filesystem;
@@ -83,22 +85,76 @@ const std::vector<std::string> kClassKeys = {
 const std::vector<std::string> kClassExecSubKeys = {
     "InProcServer%", "InProcHandler%", "LocalServer%"};
 
+Status queryMultipleRegistryKeys(const std::vector<std::string>& regexes,
+                                 const std::string& additionalConstraints,
+                                 QueryData& results) {
+  auto dbc = SQLiteDBManager::get();
+  std::string query(
+      "SELECT key, path, name, type, data, mtime FROM registry WHERE ");
+
+  if (!additionalConstraints.empty()) {
+    query += additionalConstraints + " AND ";
+  }
+
+  // Construct all of the registry key globs
+  query += "(key LIKE ";
+  std::vector<std::string> questions(regexes.size(), "?");
+  query += osquery::join(questions, " OR key LIKE ");
+  query += ")";
+
+  sqlite3_stmt* stmt = nullptr;
+  auto ret = sqlite3_prepare_v2(
+      dbc->db(), query.c_str(), static_cast<int>(query.size()), &stmt, nullptr);
+  if (ret != SQLITE_OK) {
+    return Status(1, "Failed to prepare sql query");
+  }
+  for (size_t i = 0; i < regexes.size(); i++) {
+    sqlite3_bind_text(
+        stmt, static_cast<int>(i + 1), regexes[i].c_str(), -1, SQLITE_STATIC);
+  }
+
+  // The registry table schema has exactly 6 columns
+  if (sqlite3_column_count(stmt) != 6) {
+    return Status(1, "registry query returned invalid number of columns");
+  }
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    Row r;
+    r["key"] = SQL_TEXT(sqlite3_column_text(stmt, 0));
+    r["path"] = SQL_TEXT(sqlite3_column_text(stmt, 1));
+    r["name"] = SQL_TEXT(sqlite3_column_text(stmt, 2));
+    r["type"] = SQL_TEXT(sqlite3_column_text(stmt, 3));
+    r["data"] = SQL_TEXT(sqlite3_column_text(stmt, 4));
+    r["mtime"] = BIGINT(sqlite3_column_int64(stmt, 5));
+    results.push_back(r);
+  }
+
+  ret = sqlite3_finalize(stmt);
+  if (ret != SQLITE_OK) {
+    return Status(1,
+                  "Failed to finalize statement with " + std::to_string(ret));
+  }
+  return Status();
+}
+
 Status getClassName(const std::string& clsId, std::string& rClsName) {
   std::vector<std::string> keys;
   for (const auto& key : kClassKeys) {
     keys.push_back(key + kRegSep + clsId);
   }
 
-  SQL sql("SELECT data FROM registry WHERE name = '" + kDefaultRegName +
-          "' AND (" + "key = '" + boost::join(keys, "' OR key = '") + "')");
-  if (!sql.ok()) {
-    return sql.getStatus();
+  QueryData regQueryResults;
+  std::string constraint("name = '" + kDefaultRegName + "'");
+  auto ret = queryMultipleRegistryKeys(keys, constraint, regQueryResults);
+
+  if (!ret.ok()) {
+    return ret;
   }
-  if (sql.rows().empty()) {
+  if (regQueryResults.empty()) {
     return Status(1, "ClsId not found in registry");
   }
 
-  for (const auto& row : sql.rows()) {
+  for (const auto& row : regQueryResults) {
     if (!row.at("data").empty()) {
       rClsName = row.at("data");
       return Status();
@@ -117,16 +173,16 @@ Status getClassExecutables(const std::string& clsId,
     }
   }
 
-  SQL sql("SELECT name,data FROM registry WHERE key LIKE '" +
-          boost::join(resolvedKeys, "' OR key LIKE '") + "'");
-  if (!sql.ok()) {
-    return sql.getStatus();
+  QueryData regQueryResults;
+  auto ret = queryMultipleRegistryKeys(resolvedKeys, "", regQueryResults);
+  if (!ret.ok()) {
+    return ret;
   }
-  if (sql.rows().empty()) {
+  if (regQueryResults.empty()) {
     return Status(1, "ClsId not found in registry");
   }
 
-  for (const auto& r : sql.rows()) {
+  for (const auto& r : regQueryResults) {
     if (r.at("name") == kDefaultRegName) {
       results.push_back(r.at("data"));
     }
