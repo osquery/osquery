@@ -8,12 +8,14 @@ QueryData genLogicalDrives(QueryContext& context) {
   Row r;
   QueryData results;
 
-  WmiRequest wmiSystemReq(
+  WmiRequest wmiLogicalDiskReq(
       "select DeviceID, DriveType, FreeSpace, Size from Win32_LogicalDisk");
-  std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
+  std::vector<WmiResultItem>& wmiResults = wmiLogicalDiskReq.results();
   for (unsigned int i = 0; i < wmiResults.size(); ++i) {
     unsigned int driveType = 0;
-    wmiResults[i].GetString("DeviceID", r["device_id"]);
+    std::string deviceId;
+    wmiResults[i].GetString("DeviceID", deviceId);
+    r["device_id"] = deviceId;
     wmiResults[i].GetUnsignedInt32("DriveType", driveType);
     wmiResults[i].GetString("FreeSpace", r["free_space"]);
     wmiResults[i].GetString("Size", r["size"]);
@@ -42,6 +44,26 @@ QueryData genLogicalDrives(QueryContext& context) {
       break;
     }
 
+    std::stringstream assoc_query_ss;
+    assoc_query_ss << "Associators of {Win32_LogicalDisk.DeviceID='" << deviceId
+                   << "'} where AssocClass=Win32_LogicalDiskToPartion";
+
+    WmiRequest wmiLogicalDiskToPartitionReq(assoc_query_ss.string());
+    std::vector<WmiResultItem&> wmiLogicalDiskToPartitionResults = wmiLogicalDiskToPartitionReq.results();
+    std::string partition_device_id;
+    for (unsigned int i = 0; i < wmiLogicalDiskToPartitionResults.size(); ++i) {
+      wmiLogicalDiskToPartitionResults.GetString("DeviceID", partiion_device_id);
+      std::stringstream partition_query_ss;
+      partition_query_ss << "SELECT BootPartition FROM Win32_DiskPartition WHERE DeviceID='"
+                         << partition_device_id << "'";
+      WmiRequest wmiPartitionReq(partition_query_ss.string());
+      std::vector<WmiResultItem&> wmiPartitionResults = wmiPartitionReq.results();
+      bool bootPartition = false;
+      if (wmiPartitionResults.size()) {
+        wmiPartitionResults[0].GetBool("BootPartition", bootPartition);
+      }
+      r["boot_partition"] = bootPartition ? INTEGER(1) : INTEGER(0)
+    }
     results.push_back(r);
   }
   return results;

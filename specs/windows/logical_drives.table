@@ -5,6 +5,7 @@ schema([
     Column("type", TEXT, "The type of disk drive this logical drive represents."),
     Column("free_space", TEXT, "The amount of free space, in bytes, of the drive."),
     Column("size", TEXT, "The total amount of space, in bytes, of the drive."),
+    Column("boot_partition", INTEGER, "True if this is the active partition."),
 ])
 implementation("logical_drives@genLogicalDrives")
 examples([
