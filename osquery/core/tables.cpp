@@ -328,21 +328,24 @@ bool ConstraintList::exists(const ConstraintOperatorFlag ops) const {
 
 bool ConstraintList::matches(const std::string& expr) const {
   // Support each SQL affinity type casting.
-  if (affinity == TEXT_TYPE) {
-    return literal_matches<TEXT_LITERAL>(expr);
-  } else if (affinity == INTEGER_TYPE) {
-    INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
-    return literal_matches<INTEGER_LITERAL>(lexpr);
-  } else if (affinity == BIGINT_TYPE) {
-    BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
-    return literal_matches<BIGINT_LITERAL>(lexpr);
-  } else if (affinity == UNSIGNED_BIGINT_TYPE) {
-    UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
-    return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
-  } else {
-    // Unsupported affinity type.
-    return false;
+  try {
+    if (affinity == TEXT_TYPE) {
+      return literal_matches<TEXT_LITERAL>(expr);
+    } else if (affinity == INTEGER_TYPE) {
+      INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
+      return literal_matches<INTEGER_LITERAL>(lexpr);
+    } else if (affinity == BIGINT_TYPE) {
+      BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
+      return literal_matches<BIGINT_LITERAL>(lexpr);
+    } else if (affinity == UNSIGNED_BIGINT_TYPE) {
+      UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
+      return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
+    }
+  } catch (const boost::bad_lexical_cast& /* e */) {
+    // Unsupported affinity type or unable to cast content type.
   }
+
+  return false;
 }
 
 template <typename T>
