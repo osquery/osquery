@@ -24,18 +24,16 @@
 #include <Softpub.h>
 // clang-format on
 
-#include <osquery/core.h>
-#include <osquery/core/conversions.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-namespace osquery {
-// These are defined in osquery/core/windows/wmi.cpp
-std::wstring stringToWstring(const std::string& src);
-std::string wstringToString(const wchar_t* src);
+#include "osquery/core.h"
+#include "osquery/core/conversions.h"
+#include "osquery/core/windows/wmi.h"
 
+namespace osquery {
 template <typename T, typename DeleterType, DeleterType deleter>
 struct CustomUniquePtr final {
   using pointer = T;
@@ -240,7 +238,6 @@ Status getOriginalProgramName(SignatureInformation& signature_info,
                          0,
                          nullptr,
                          &publisher_info_size)) {
-    VLOG(1) << GetLastError();
     return Status(1, "Failed to access the publisher information");
   }
 
@@ -464,7 +461,7 @@ Status generateRow(Row& r, const std::string& path) {
   return Status(0, "Ok");
 }
 
-QueryData generateQueryResults(QueryContext& context) {
+QueryData genAuthenticode(QueryContext& context) {
   // The query must provide a predicate with constraints including path or
   // directory. We search for the parsed predicate constraints with the equals
   // operator.

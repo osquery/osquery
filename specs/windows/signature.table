@@ -8,7 +8,7 @@ schema([
     Column("subject_name", TEXT, "The certificate subject name"),
     Column("result", TEXT, "The signature check result")
 ])
-implementation("signature@generateQueryResults")
+implementation("signature@genAuthenticode")
 examples([
   "SELECT * FROM signature WHERE path = 'C:\\Windows\\notepad.exe'",
   ("SELECT process.pid, process.path, authenticode.result FROM "
