@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #  Copyright (c) 2015, Facebook, Inc.
 #  All rights reserved.
@@ -33,9 +33,6 @@ function main() {
   echo "[+] Writing new table API"
   GENAPI="$OSQUERY/tools/codegen/genapi.py"
   /usr/local/osquery/bin/python "$GENAPI" --tables "$OSQUERY/specs" > "$SITE/schema/$VERSION.json"
-
-  echo "[+] Checkout out master"
-  (cd $OSQUERY; git checkout master)
 
   printf "[+] Downloading and hashing packages...\n"
   PACKAGE="$URL/linux/osquery-${VERSION}_1.linux_x86_64.tar.gz"
@@ -83,6 +80,14 @@ function main() {
 $EXISTING
 EOF
   echo "[+] Hashes written to $OUTPUT"
+
+  cat << EOF >> $OSQUERY/docs/_schema/$VERSION.md
+---
+version: $VERSION
+redirect_from: /docs/tables/$VERSION/index.html
+---
+EOF
+
   echo "[+] Finished"
 }
 
