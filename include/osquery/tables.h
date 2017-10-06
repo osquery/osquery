@@ -42,7 +42,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
-#include <osquery/database.h>
+#include <osquery/query.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 
@@ -625,7 +625,7 @@ struct QueryContext : private only_movable {
                            std::set<std::string>& output)> predicate);
 
   /// Check if a table-defined index exists within the query cache.
-  bool isCached(const std::string& index) {
+  bool isCached(const std::string& index) const {
     return (table_->cache.count(index) != 0);
   }
 
@@ -783,9 +783,10 @@ class TablePlugin : public Plugin {
    * practice this does not perform well and is explicitly disabled.
    *
    * @param interval The interval this query expects the tables results.
+   * @param ctx The query context.
    * @return True if the cache contains fresh results, otherwise false.
    */
-  bool isCached(size_t interval);
+  bool isCached(size_t interval, const QueryContext& ctx) const;
 
   /**
    * @brief Perform a database lookup of cached results and deserialize.
@@ -798,8 +799,17 @@ class TablePlugin : public Plugin {
    */
   QueryData getCache() const;
 
-  /// Similar to TablePlugin::getCache, if TablePlugin::generate is called.
-  void setCache(size_t step, size_t interval, const QueryData& results);
+  /**
+   * @brief Similar to getCache, stores the results from generate.
+   *
+   * Set will serialize and save the results as JSON to be retrieved later.
+   * It will inspect the query context, if any required/indexed/optimized or
+   * additional columns are used then the cache will not be saved.
+   */
+  void setCache(size_t step,
+                size_t interval,
+                const QueryContext& ctx,
+                const QueryData& results);
 
  private:
   /// The last time in seconds the table data results were saved to cache.
@@ -867,6 +877,7 @@ class TablePlugin : public Plugin {
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
   FRIEND_TEST(VirtualTableTests, test_indexing_costs);
+  FRIEND_TEST(VirtualTableTests, test_table_results_cache);
   FRIEND_TEST(VirtualTableTests, test_yield_generator);
 };
 

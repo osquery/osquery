@@ -1,0 +1,22 @@
+table_name("quicklook_cache")
+description("Files and thumbnails within OS X's Quicklook Cache.")
+schema([
+    Column("path", TEXT, "Path of file"),
+    Column("rowid", INTEGER, "Quicklook file rowid key"),
+    Column("fs_id", TEXT, "Quicklook file fs_id key"),
+    Column("volume_id", INTEGER, "Parsed volume ID from fs_id"),
+    Column("inode", INTEGER, "Parsed file ID (inode) from fs_id"),
+    Column("mtime", INTEGER, "Parsed version date field"),
+    Column("size", BIGINT, "Parsed version size field"),
+    Column("label", TEXT, "Parsed version 'gen' field"),
+    Column("last_hit_date", INTEGER,
+      "Apple date format for last thumbnail cache hit"),
+    Column("hit_count", TEXT, "Number of cache hits on thumbnail"),
+    Column("icon_mode", BIGINT, "Thumbnail icon mode"),
+    Column("cache_path", TEXT, "Path to cache data"),
+])
+attributes(cacheable=True)
+implementation("quicklook_cache@genQuicklookCache")
+fuzz_paths([
+    "/private/var/folders/",
+])

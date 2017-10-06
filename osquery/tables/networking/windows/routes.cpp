@@ -60,26 +60,6 @@ std::map<DWORD, IP_ADAPTER_INFO> getAdapterAddressMapping() {
   return returnMapping;
 }
 
-std::map<unsigned long, MIB_IPINTERFACE_ROW> getInterfaceRowMapping(
-    int type = AF_UNSPEC) {
-  std::map<unsigned long, MIB_IPINTERFACE_ROW> returnMapping;
-  PMIB_IPINTERFACE_TABLE interfaces;
-  auto dwRetVal = GetIpInterfaceTable(type, &interfaces);
-
-  if (dwRetVal != NO_ERROR) {
-    return returnMapping;
-  }
-
-  for (unsigned long i = 0; i < interfaces->NumEntries; ++i) {
-    MIB_IPINTERFACE_ROW currentRow = interfaces->Table[i];
-    returnMapping.insert(std::make_pair(currentRow.InterfaceIndex, currentRow));
-  }
-
-  FreeMibTable(interfaces);
-
-  return returnMapping;
-}
-
 QueryData genRoutes(QueryContext& context) {
   QueryData results;
   PMIB_IPFORWARD_TABLE2 ipTable = nullptr;
@@ -92,19 +72,42 @@ QueryData genRoutes(QueryContext& context) {
   }
 
   auto numEntries = ipTable[0].NumEntries;
-  auto interfaces = getInterfaceRowMapping();
   auto adapters = getAdapterAddressMapping();
 
   for (unsigned long i = 0; i < numEntries; ++i) {
     Row r;
     std::string interfaceIpAddress;
+    MIB_IPINTERFACE_ROW actualInterface;
     const auto& currentRow = ipTable[0].Table[i];
     auto addrFamily = currentRow.DestinationPrefix.Prefix.si_family;
-    auto actualInterface = interfaces.at(currentRow.InterfaceIndex);
+
+    actualInterface.Family = currentRow.DestinationPrefix.Prefix.si_family;
+    actualInterface.InterfaceLuid = currentRow.InterfaceLuid;
+    actualInterface.InterfaceIndex = currentRow.InterfaceIndex;
+    result = GetIpInterfaceEntry(&actualInterface);
+
+    if (result != NO_ERROR) {
+      LOG(ERROR) << "Error looking up interface "
+                 << "[INDEX] " << currentRow.InterfaceIndex << " "
+                 << "[LUID] " << currentRow.InterfaceLuid.Value;
+      r["metric"] = INTEGER(-1);
+      r["mtu"] = INTEGER(-1);
+    } else {
+      r["metric"] = INTEGER(actualInterface.Metric + currentRow.Metric);
+
+      // The actual value returned is a unsigned long, but cap it so it can be
+      // displayed in the table.
+      if (actualInterface.NlMtu >= MAXINT32 &&
+          actualInterface.NlMtu <= MAXULONG32) {
+        r["mtu"] = INTEGER(MAXINT32);
+      } else {
+        r["mtu"] = INTEGER(actualInterface.NlMtu);
+      }
+    }
+
     if (addrFamily == AF_INET6) {
       std::vector<char> buffer(INET6_ADDRSTRLEN);
 
-      r["mtu"] = INTEGER(actualInterface.NlMtu);
       // These are all technically "on-link" addresses according to
       // `route print -6`.
       r["type"] = "local";
@@ -132,7 +135,6 @@ QueryData genRoutes(QueryContext& context) {
           actualAdapter = adapters.at(currentRow.InterfaceIndex);
           interfaceIpAddress = actualAdapter.IpAddressList.IpAddress.String;
           r["gateway"] = SQL_TEXT(actualAdapter.GatewayList.IpAddress.String);
-          r["mtu"] = INTEGER(actualInterface.NlMtu);
         } catch (const std::out_of_range& oor) {
           LOG(ERROR) << "Error looking up interface "
                      << currentRow.InterfaceIndex;
@@ -142,13 +144,11 @@ QueryData genRoutes(QueryContext& context) {
         interfaceIpAddress = "127.0.0.1";
         InetNtop(addrFamily, (PVOID)&gateway, buffer.data(), buffer.size());
         r["gateway"] = SQL_TEXT(buffer.data());
-        r["mtu"] = UNSIGNED_BIGINT(0xFFFFFFFF);
         buffer.clear();
       }
       r["type"] = currentRow.Loopback ? "local" : "remote";
     }
     r["interface"] = SQL_TEXT(interfaceIpAddress);
-    r["metric"] = INTEGER(currentRow.Metric + actualInterface.Metric);
     r["netmask"] =
         SQL_TEXT(std::to_string(currentRow.DestinationPrefix.PrefixLength));
     // TODO: implement routes flags

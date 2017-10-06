@@ -16,6 +16,7 @@ Ubuntu 14.04   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBu
 Ubuntu 16.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/) | | **Guide:** | https://osquery.readthedocs.org
 Windows 2016 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildWindows2016/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildWindows16/) | | [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com) | https://osquery-slack.herokuapp.com
 Windows 10 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/) | | |
+FreeBSD 11 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildFreeBSD11/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildFreeBSD11/) | | |
 
 There are many additional [continuous build jobs](https://jenkins.osquery.io/) that perform **dynamic** and **static** analysis, test the **package build** process, **rebuild dependencies** from source, assure **deterministic build** on macOS and Linux, **fuzz** test the virtual tables, and build on several other platforms not included above. Code safety, testing rigor, data integrity, and a friendly development community are our primary goals.
 
@@ -102,9 +103,13 @@ There are several forms of [eventing](http://osquery.readthedocs.org/en/stable/d
 
 ## Vulnerabilities
 
+We keep track of security announcements in our tagged version release notes on GitHub. We aggregate these into [SECURITY.md](https://github.com/facebook/osquery/blob/master/SECURITY.md) too.
+
 Facebook has a [bug bounty](https://www.facebook.com/whitehat/) program that includes osquery. If you find a security vulnerability in osquery, please submit it via the process outlined on that page and do not file a public issue. For more information on finding vulnerabilities in osquery, see a recent blog post about [bug-hunting osquery](https://www.facebook.com/notes/facebook-bug-bounty/bug-hunting-osquery/954850014529225).
 
 ## Learn more
+
+**Want to be a Security Engineer at Facebook?** The osquery development team is hiring! Our team's mission is detect external and internal threats to users' data. We do that by building, deploying, and using intrusion detection tools like osquery. Check out our [position description](https://www.facebook.com/careers/jobs/a0I1200000JXmWQEA1/) or reach out to [`@theopolis`](https://github.com/theopolis).
 
 Read the [launch blog post](https://code.facebook.com/posts/844436395567983/introducing-osquery/) for background on the project.
 If you're interested in learning more about osquery, visit the [users guide](https://osquery.readthedocs.org/) and browse our RFC-labeled Github issues. Development and usage discussion is happing in the osquery Slack, grab an invite automatically: [https://osquery-slack.herokuapp.com/](https://osquery-slack.herokuapp.com/)!

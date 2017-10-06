@@ -24,7 +24,6 @@ function distro_main() {
 
   # Core development requirements.
   package glog
-  package snappy
   package thrift
   package thrift-cpp
   package boost-libs
@@ -33,6 +32,8 @@ function distro_main() {
   package asio
   package cpp-netlib
   package linenoise-ng
+  package rapidjson
+  package zstd
 
   # Non-optional features.
   package augeas
@@ -42,4 +43,8 @@ function distro_main() {
   package yara
   package aws-sdk-cpp
   package lldpd
+
+  # For testing
+  package doxygen
+  package valgrind
 }

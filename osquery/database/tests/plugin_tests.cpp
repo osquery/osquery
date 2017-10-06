@@ -10,9 +10,14 @@
 
 #include <future>
 
+#include <osquery/filesystem.h>
+#include <osquery/flags.h>
+
 #include "osquery/database/tests/plugin_tests.h"
 
 namespace osquery {
+
+DECLARE_string(database_path);
 
 class EphemeralDatabasePluginTests : public DatabasePluginTests {
  protected:
@@ -23,6 +28,28 @@ class EphemeralDatabasePluginTests : public DatabasePluginTests {
 
 // Define the default set of database plugin operation tests.
 CREATE_DATABASE_TESTS(EphemeralDatabasePluginTests);
+
+void DatabasePluginTests::SetUp() {
+  auto& rf = RegistryFactory::get();
+  existing_plugin_ = rf.getActive("database");
+  rf.plugin("database", existing_plugin_)->tearDown();
+
+  setName(name());
+  path_ = FLAGS_database_path;
+  removePath(path_);
+
+  auto plugin = rf.plugin("database", getName());
+  plugin_ = std::dynamic_pointer_cast<DatabasePlugin>(plugin);
+  plugin_->reset();
+
+  rf.setActive("database", getName());
+}
+
+void DatabasePluginTests::TearDown() {
+  auto& rf = RegistryFactory::get();
+  rf.plugin("database", name_)->tearDown();
+  rf.setActive("database", existing_plugin_);
+}
 
 void DatabasePluginTests::testPluginCheck() {
   auto& rf = RegistryFactory::get();

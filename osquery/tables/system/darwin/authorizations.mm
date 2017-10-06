@@ -9,8 +9,8 @@
  */
 
 #include <CoreFoundation/CoreFoundation.h>
-#include <Security/Security.h>
 #include <Foundation/Foundation.h>
+#include <Security/Security.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -25,148 +25,126 @@ namespace tables {
 // Path to OS X authorizations cache.
 #define AUTHORIZATION_FILE "/System/Library/Security/authorization.plist"
 
-QueryData genAuthorizationMechanisms(QueryContext &context) {
-  @autoreleasepool {
+using authorizationCallback = std::function<void(NSString*)>;
 
-    QueryData results;
-    NSMutableArray *labelsNS = nullptr;
+void authorizations(QueryContext& context, authorizationCallback cb) {
+  NSMutableArray* labels = nullptr;
 
-    // Grab all labels
-    if (context.constraints["label"].exists(EQUALS)) {
-      labelsNS = [[NSMutableArray alloc] init];
-      auto labels = context.constraints["label"].getAll(EQUALS);
-      for (const auto &label : labels) {
-        [labelsNS
-            addObject:[NSString
-                          stringWithCString:label.c_str()
-                                   encoding:[NSString defaultCStringEncoding]]];
-      }
+  // Grab all labels
+  if (context.constraints["label"].exists(EQUALS)) {
+    labels = [[NSMutableArray alloc] init];
+    auto label_values = context.constraints["label"].getAll(EQUALS);
+    for (const auto& label : label_values) {
+      [labels
+          addObject:[NSString
+                        stringWithCString:label.c_str()
+                                 encoding:[NSString defaultCStringEncoding]]];
     }
+  }
 
-    if (!labelsNS) {
-      NSString *authorizationPlistPath =
-          @"/System/Library/Security/authorization.plist";
-      NSDictionary *authorizationDict =
-          [NSDictionary dictionaryWithContentsOfFile:authorizationPlistPath];
-      labelsNS = [[NSMutableArray alloc]
-          initWithArray:[authorizationDict[@"rights"] allKeys]];
-      [labelsNS addObjectsFromArray:[authorizationDict[@"rules"] allKeys]];
-    }
+  if (labels == nullptr) {
+    NSDictionary* authorization =
+        [NSDictionary dictionaryWithContentsOfFile:@AUTHORIZATION_FILE];
+    labels = [[NSMutableArray alloc]
+        initWithArray:[authorization[@"rights"] allKeys]];
+    [labels addObjectsFromArray:[authorization[@"rules"] allKeys]];
+  }
 
-    for (NSString *label in labelsNS) {
-      Row r;
-      CFDictionaryRef rightSet = nullptr;
-      AuthorizationRightGet([label UTF8String], &rightSet);
-
-      if (rightSet == nullptr) {
-        continue;
-      }
-
-      NSDictionary *rightSetNS = (__bridge NSDictionary *)rightSet;
-      NSArray *mechArrayNS = [rightSetNS objectForKey:@"mechanisms"];
-      if (mechArrayNS) {
-        for (NSString *mechNS in mechArrayNS) {
-          r["label"] = TEXT([label UTF8String]);
-          r["privileged"] =
-              ([mechNS rangeOfString:@"privileged"].location != NSNotFound)
-                  ? "true"
-                  : "false";
-          r["entry"] = TEXT([mechNS UTF8String]);
-          NSRange colonRange = [mechNS rangeOfString:@":"];
-          NSRange pluginRange = NSMakeRange(0, colonRange.location);
-          NSRange mechRange =
-              NSMakeRange(colonRange.location + 1,
-                          [mechNS length] - (colonRange.location + 1));
-          r["plugin"] =
-              TEXT([[mechNS substringWithRange:pluginRange] UTF8String]);
-          r["mechanism"] = TEXT([[[mechNS substringWithRange:mechRange]
-              stringByReplacingOccurrencesOfString:@",privileged"
-                                        withString:@""] UTF8String]);
-          results.push_back(r);
-        }
-      }
-
-      if (rightSet != nullptr) {
-        CFRelease(rightSet);
-      }
-    }
-
-    return results;
+  for (NSString* label in labels) {
+    cb(label);
   }
 }
 
-QueryData genAuthorizations(QueryContext &context) {
+QueryData genAuthorizationMechanisms(QueryContext& context) {
+  QueryData results;
+
   @autoreleasepool {
+    authorizations(
+        context, ([&results](NSString* label) {
+          CFDictionaryRef rights_ = nullptr;
+          AuthorizationRightGet([label UTF8String], &rights_);
+          if (rights_ == nullptr) {
+            return;
+          }
 
-    QueryData results;
-    NSMutableArray *labelsNS;
+          Row r;
+          NSDictionary* rights = (__bridge NSDictionary*)rights_;
+          NSArray* mechs = [rights objectForKey:@"mechanisms"];
+          if (mechs == nullptr) {
+            CFRelease(rights_);
+            return;
+          }
 
-    if (context.constraints["label"].exists(EQUALS)) {
-      labelsNS = [[NSMutableArray alloc] init];
-      auto labels = context.constraints["label"].getAll(EQUALS);
-      for (const auto &label : labels) {
-        [labelsNS
-            addObject:[NSString
-                          stringWithCString:label.c_str()
-                                   encoding:[NSString defaultCStringEncoding]]];
-      }
-    }
+          for (NSString* mech in mechs) {
+            r["label"] = TEXT([label UTF8String]);
+            r["privileged"] =
+                ([mech rangeOfString:@"privileged"].location != NSNotFound)
+                    ? "true"
+                    : "false";
+            r["entry"] = TEXT([mech UTF8String]);
+            NSRange colon_loc = [mech rangeOfString:@":"];
+            NSRange plugin_loc = NSMakeRange(0, colon_loc.location);
+            NSRange mech_loc =
+                NSMakeRange(colon_loc.location + 1,
+                            [mech length] - (colon_loc.location + 1));
+            r["plugin"] =
+                TEXT([[mech substringWithRange:plugin_loc] UTF8String]);
+            r["mechanism"] = TEXT([[[mech substringWithRange:mech_loc]
+                stringByReplacingOccurrencesOfString:@",privileged"
+                                          withString:@""] UTF8String]);
+            results.push_back(r);
+          }
 
-    if (!labelsNS) {
-      NSString *authorizationPlistPath =
-          @"/System/Library/Security/authorization.plist";
-      NSDictionary *authorizationDict =
-          [NSDictionary dictionaryWithContentsOfFile:authorizationPlistPath];
-      labelsNS = [[NSMutableArray alloc]
-          initWithArray:[authorizationDict[@"rights"] allKeys]];
-      [labelsNS addObjectsFromArray:[authorizationDict[@"rules"] allKeys]];
-    }
-
-    for (NSString *label in labelsNS) {
-      Row r;
-      CFDictionaryRef rightSet = nullptr;
-      AuthorizationRightGet([label UTF8String], &rightSet);
-      if (rightSet == nullptr) {
-        continue;
-      }
-
-      CFIndex count = CFDictionaryGetCount(rightSet);
-      const void *keys[count];
-      const void *values[count];
-      CFDictionaryGetKeysAndValues(rightSet, keys, values);
-      if ((const void *)keys == nullptr || (const void *)values == nullptr) {
-        CFRelease(rightSet);
-        continue;
-      }
-
-      for (CFIndex i = 0; i < count; i++) {
-        r["label"] = TEXT([label UTF8String]);
-        NSString *keyNS = (__bridge NSString *)keys[i];
-        id valueNS = (__bridge id)values[i];
-        if (CFGetTypeID(values[i]) == CFNumberGetTypeID()) {
-          r[[[keyNS stringByReplacingOccurrencesOfString:@"-"
-                                              withString:@"_"] UTF8String]] =
-              TEXT([valueNS intValue]);
-        } else if (CFGetTypeID(values[i]) == CFStringGetTypeID()) {
-          r[[[keyNS stringByReplacingOccurrencesOfString:@"-"
-                                              withString:@"_"] UTF8String]] =
-              TEXT([valueNS UTF8String]);
-        } else if (CFGetTypeID(values[i]) == CFBooleanGetTypeID()) {
-          r[[[keyNS stringByReplacingOccurrencesOfString:@"-"
-                                              withString:@"_"] UTF8String]] =
-              TEXT(([valueNS boolValue]) ? "true" : "false");
-        }
-      }
-
-      results.push_back(r);
-
-      if (rightSet != nullptr) {
-        CFRelease(rightSet);
-      }
-    }
-
-    return results;
+          CFRelease(rights_);
+        }));
   }
+  return results;
+}
+
+QueryData genAuthorizations(QueryContext& context) {
+  QueryData results;
+
+  @autoreleasepool {
+    authorizations(
+        context, ([&results](NSString* label) {
+          CFDictionaryRef rights = nullptr;
+          AuthorizationRightGet([label UTF8String], &rights);
+          if (rights == nullptr) {
+            return;
+          }
+
+          CFIndex count = CFDictionaryGetCount(rights);
+          std::vector<const void*> keys(count);
+          std::vector<const void*> values(count);
+          CFDictionaryGetKeysAndValues(rights, keys.data(), values.data());
+          if (keys.data() == nullptr || values.data() == nullptr) {
+            CFRelease(rights);
+            return;
+          }
+
+          Row r;
+          for (CFIndex i = 0; i < count; i++) {
+            r["label"] = TEXT([label UTF8String]);
+            id value = (__bridge id)values[i];
+            auto key = [[(__bridge NSString*)keys[i]
+                stringByReplacingOccurrencesOfString:@"-"
+                                          withString:@"_"] UTF8String];
+
+            if (CFGetTypeID(values[i]) == CFNumberGetTypeID()) {
+              r[key] = TEXT([value intValue]);
+            } else if (CFGetTypeID(values[i]) == CFStringGetTypeID()) {
+              r[key] = TEXT([value UTF8String]);
+            } else if (CFGetTypeID(values[i]) == CFBooleanGetTypeID()) {
+              r[key] = TEXT(([value boolValue]) ? "true" : "false");
+            }
+          }
+
+          results.push_back(r);
+          CFRelease(rights);
+        }));
+  }
+
+  return results;
 }
 }
 }

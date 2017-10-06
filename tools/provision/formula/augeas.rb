@@ -4,14 +4,15 @@ class Augeas < AbstractOsqueryFormula
   desc "A configuration editing tool and API"
   homepage "http://augeas.net/"
   url "https://github.com/hercules-team/augeas.git",
-    :revision => "f66a71dc22c0536853bb99585a4bf605018ba6db"
-  version "1.8.0"
+    :revision => "aacc8ac07f6722622b73d9183b9acc666906d2e9"
+  version "1.8.1"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "c0fae5e9c047d39d8e60bedf915d74ebba57bc0cc83c6ab91280e85b0fb8a643" => :sierra
-    sha256 "910d65ee24f4cfd029b424cb24c0fdec92f070d84273ac9fc3657655051254bf" => :x86_64_linux
+    sha256 "3e09566342fbb532676db198d8c3b5c5bacdb3bc633dd751f19ac2a3b184631c" => :sierra
+    sha256 "a0fbaf826489cf8d1f5bce151d49e7b4a1704ed3ebc0b5c7a8d21f14bd615b51" => :x86_64_linux
   end
 
   # The autoconfigure requests readline.

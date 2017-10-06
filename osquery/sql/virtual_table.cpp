@@ -15,11 +15,17 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
+#include "osquery/core/process.h"
 #include "osquery/sql/virtual_table.h"
 
 namespace osquery {
 
 FLAG(bool, enable_foreign, false, "Enable no-op foreign virtual tables");
+
+FLAG(uint64,
+     table_delay,
+     0,
+     "Add an optional microsecond delay between table scans");
 
 SHELL_FLAG(bool, planner, false, "Enable osquery runtime planner output");
 
@@ -314,6 +320,16 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
   return SQLITE_OK;
 }
 
+static inline bool sensibleComparison(ColumnType type, unsigned char op) {
+  if (type == TEXT_TYPE) {
+    if (op == GREATER_THAN || op == GREATER_THAN_OR_EQUALS || op == LESS_THAN ||
+        op == LESS_THAN_OR_EQUALS) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   auto* pVtab = (VirtualTable*)tab;
   const auto& columns = pVtab->content->columns;
@@ -358,6 +374,11 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         continue;
       }
       const auto& name = std::get<0>(columns[constraint_info.iColumn]);
+      const auto& type = std::get<1>(columns[constraint_info.iColumn]);
+      if (!sensibleComparison(type, constraint_info.op)) {
+        cost += 10;
+        continue;
+      }
 
       // Check if this constraint is on an index or required column.
       const auto& options = std::get<2>(columns[constraint_info.iColumn]);
@@ -418,6 +439,10 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   BaseCursor* pCur = (BaseCursor*)pVtabCursor;
   auto* pVtab = (VirtualTable*)pVtabCursor->pVtab;
   auto* content = pVtab->content;
+  if (FLAGS_table_delay > 0 && pVtab->instance->tableCalled(content)) {
+    // Apply an optional sleep between table calls.
+    sleepFor(FLAGS_table_delay);
+  }
   pVtab->instance->addAffectedTable(content);
 
   pCur->row = 0;
@@ -494,7 +519,8 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
         required_satisfied = true;
       }
 
-      if (!user_based_satisfied && constraint.first == "uid") {
+      if (!user_based_satisfied &&
+          (constraint.first == "uid" || constraint.first == "username")) {
         // UID was required and exists in the constraints.
         user_based_satisfied = true;
       }
@@ -515,7 +541,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   }
 
   // Provide a helpful reference to table documentation within the shell.
-  if (kToolType == ToolType::SHELL &&
+  if (Initializer::isShell() &&
       (!user_based_satisfied || !required_satisfied || !events_satisfied)) {
     LOG(WARNING) << "Please see the table documentation: "
                  << table_doc(pVtab->content->name);

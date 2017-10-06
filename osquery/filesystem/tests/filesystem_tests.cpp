@@ -31,7 +31,6 @@ namespace pt = boost::property_tree;
 namespace osquery {
 
 DECLARE_uint64(read_max);
-DECLARE_uint64(read_user_max);
 
 class FilesystemTests : public testing::Test {
  protected:
@@ -85,7 +84,22 @@ TEST_F(FilesystemTests, test_read_file) {
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(content, "test123" + line_ending_);
 
-  osquery::remove(kTestWorkingDirectory + "fstests-file");
+  removePath(kTestWorkingDirectory + "fstests-file");
+}
+
+TEST_F(FilesystemTests, test_remove_path) {
+  fs::path test_dir(kTestWorkingDirectory + "rmdir");
+  fs::create_directories(test_dir);
+
+  fs::path test_file(kTestWorkingDirectory + "rmdir/rmfile");
+  writeTextFile(test_file, "testcontent");
+
+  ASSERT_TRUE(pathExists(test_file));
+
+  // Try to remove the directory.
+  EXPECT_TRUE(removePath(test_dir));
+  EXPECT_FALSE(pathExists(test_file));
+  EXPECT_FALSE(pathExists(test_dir));
 }
 
 TEST_F(FilesystemTests, test_write_file) {
@@ -95,23 +109,28 @@ TEST_F(FilesystemTests, test_write_file) {
   EXPECT_TRUE(writeTextFile(test_file, content).ok());
   ASSERT_TRUE(pathExists(test_file).ok());
   ASSERT_TRUE(isWritable(test_file).ok());
-  ASSERT_TRUE(osquery::remove(test_file).ok());
+  ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, (int)0400, true));
+  EXPECT_TRUE(writeTextFile(test_file, content, 0400, true));
   ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_FALSE(isWritable(test_file).ok());
-  ASSERT_TRUE(isReadable(test_file).ok());
-  ASSERT_TRUE(osquery::remove(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, (int)0000, true));
+  // On POSIX systems, root can still read/write.
+  bool can_rw = !isPlatform(PlatformType::TYPE_WINDOWS) && isUserAdmin();
+  EXPECT_EQ(can_rw, isWritable(test_file).ok());
+  EXPECT_TRUE(isReadable(test_file).ok());
+  ASSERT_TRUE(removePath(test_file).ok());
+
+  EXPECT_TRUE(writeTextFile(test_file, content, 0000, true));
   ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_FALSE(isWritable(test_file).ok());
-  ASSERT_FALSE(isReadable(test_file).ok());
-  ASSERT_TRUE(osquery::remove(test_file).ok());
+
+  // On POSIX systems, root can still read/write.
+  EXPECT_EQ(can_rw, isWritable(test_file).ok());
+  EXPECT_EQ(can_rw, isReadable(test_file).ok());
+  ASSERT_TRUE(removePath(test_file).ok());
 }
 
 TEST_F(FilesystemTests, test_readwrite_file) {
-  fs::path test_file(kTestWorkingDirectory + "fstests-file2");
+  fs::path test_file(kTestWorkingDirectory + "fstests-file3");
   size_t filesize = 4096 * 10;
 
   std::string in_content(filesize, 'A');
@@ -124,7 +143,7 @@ TEST_F(FilesystemTests, test_readwrite_file) {
   EXPECT_TRUE(readFile(test_file, out_content).ok());
   EXPECT_EQ(filesize, out_content.size());
   EXPECT_EQ(in_content, out_content);
-  osquery::remove(test_file);
+  removePath(test_file);
 
   // Now try to write outside of a 4k chunk size.
   in_content = std::string(filesize + 1, 'A');
@@ -132,34 +151,25 @@ TEST_F(FilesystemTests, test_readwrite_file) {
   out_content.clear();
   readFile(test_file, out_content);
   EXPECT_EQ(in_content, out_content);
-  osquery::remove(test_file);
+  removePath(test_file);
 }
 
 TEST_F(FilesystemTests, test_read_limit) {
   auto max = FLAGS_read_max;
-  auto user_max = FLAGS_read_user_max;
   FLAGS_read_max = 3;
   std::string content;
   auto status = readFile(kFakeDirectory + "/root.txt", content);
   EXPECT_FALSE(status.ok());
   FLAGS_read_max = max;
 
-  if (!isUserAdmin()) {
-    content.erase();
-    FLAGS_read_user_max = 2;
-    status = readFile(kFakeDirectory + "/root.txt", content);
-    EXPECT_FALSE(status.ok());
-    FLAGS_read_user_max = user_max;
+  // Make sure non-link files are still readable.
+  content.erase();
+  status = readFile(kFakeDirectory + "/root.txt", content);
+  EXPECT_TRUE(status.ok());
 
-    // Make sure non-link files are still readable.
-    content.erase();
-    status = readFile(kFakeDirectory + "/root.txt", content);
-    EXPECT_TRUE(status.ok());
-
-    // Any the links are readable too.
-    status = readFile(kFakeDirectory + "/root2.txt", content);
-    EXPECT_TRUE(status.ok());
-  }
+  // Any the links are readable too.
+  status = readFile(kFakeDirectory + "/root2.txt", content);
+  EXPECT_TRUE(status.ok());
 }
 
 TEST_F(FilesystemTests, test_list_files_missing_directory) {

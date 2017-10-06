@@ -8,7 +8,10 @@
  *
  */
 
+#include <chrono>
+#include <cstdlib>
 #include <string>
+#include <vector>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -18,6 +21,8 @@
 #include "osquery/extensions/interface.h"
 
 using namespace osquery::extensions;
+
+using chrono_clock = std::chrono::high_resolution_clock;
 
 namespace osquery {
 namespace extensions {
@@ -126,8 +131,13 @@ void ExtensionManagerHandler::registerExtension(
     }
   }
 
+  // srand must be called in the active thread on Windows due to thread saftey
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    std::srand(static_cast<unsigned int>(
+        chrono_clock::now().time_since_epoch().count()));
+  }
   // Every call to registerExtension is assigned a new RouteUUID.
-  RouteUUID uuid = (uint16_t)rand();
+  RouteUUID uuid = static_cast<uint16_t>(rand());
   VLOG(1) << "Registering extension (" << info.name << ", " << uuid
           << ", version=" << info.version << ", sdk=" << info.sdk_version
           << ")";
@@ -232,7 +242,7 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
 } // namespace extensions
 
 ExtensionRunnerCore::~ExtensionRunnerCore() {
-  remove(path_);
+  removePath(path_);
 }
 
 void ExtensionRunnerCore::stop() {
@@ -255,7 +265,7 @@ inline void removeStalePaths(const std::string& manager) {
   // Attempt to remove all stale extension sockets.
   resolveFilePattern(manager + ".*", paths);
   for (const auto& path : paths) {
-    remove(path);
+    removePath(path);
   }
 }
 

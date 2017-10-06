@@ -16,22 +16,17 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-// This define is required for Windows static linking of libarchive
-#define LIBARCHIVE_STATIC
-#include <archive.h>
-#include <archive_entry.h>
-
-#include <osquery/filesystem.h>
+#include <osquery/database.h>
+#include <osquery/distributed.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/system.h>
 
 #include "osquery/carver/carver.h"
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 #include "osquery/filesystem/fileops.h"
-#include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
-#include "osquery/remote/transports/tls.h"
 #include "osquery/remote/utility.h"
 #include "osquery/tables/system/hash.h"
 
@@ -66,17 +61,17 @@ CLI_FLAG(bool,
          true,
          "Disable the osquery file carver (default true)");
 
-/// Database domain where we store carve table entries
-const std::string kCarveDbDomain = "carves";
+CLI_FLAG(bool,
+         carver_disable_function,
+         FLAGS_disable_carver,
+         "Disable the osquery file carver function (default true)");
 
-/// Prefix used for the temp FS where carved files are stored
-const std::string kCarvePathPrefix = "osquery_carve_";
+CLI_FLAG(bool,
+         carver_compression,
+         false,
+         "Compress archives using zstd prior to upload (default false)");
 
-/// Prefix applied to the file carve tar archive.
-const std::string kCarveNamePrefix = "carve_";
-
-/// Database prefix used to directly access and manipulate our carver entries
-const std::string kCarverDBPrefix = "carves.";
+DECLARE_uint64(read_max);
 
 /// Helper function to update values related to a carve
 void updateCarveValue(const std::string& guid,
@@ -136,7 +131,9 @@ Carver::Carver(const std::set<std::string>& paths,
   }
 
   // Store the path to our archive for later exfiltration
-  archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tgz");
+  archivePath_ = carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tar");
+  compressPath_ =
+      carveDir_ / fs::path(kCarveNamePrefix + carveGuid_ + ".tar.zst");
 
   // Update the DB to reflect that the carve is pending.
   updateCarveValue(carveGuid_, "status", "PENDING");
@@ -152,15 +149,16 @@ void Carver::start() {
     LOG(WARNING) << "Carver has not been properly constructed";
     return;
   }
-
   for (const auto& p : carvePaths_) {
-    if (!fs::exists(p)) {
-      VLOG(1) << "File does not exist on disk: " << p;
-    } else {
-      Status s = carve(p);
-      if (!s.ok()) {
-        VLOG(1) << "Failed to carve file: " << p;
-      }
+    // Ensure the file is a flat file on disk before carving
+    PlatformFile pFile(p, PF_OPEN_EXISTING | PF_READ);
+    if (!pFile.isValid() || isDirectory(p)) {
+      VLOG(1) << "File does not exist on disk or is subdirectory: " << p;
+      continue;
+    }
+    Status s = carve(p);
+    if (!s.ok()) {
+      VLOG(1) << "Failed to carve file " << p << " " << s.getMessage();
     }
   }
 
@@ -169,14 +167,40 @@ void Carver::start() {
     carvedFiles.insert(fs::path(p));
   }
 
-  auto s = compress(carvedFiles);
+  auto s = archive(carvedFiles, archivePath_);
   if (!s.ok()) {
     VLOG(1) << "Failed to create carve archive: " << s.getMessage();
     updateCarveValue(carveGuid_, "status", "ARCHIVE FAILED");
     return;
   }
 
-  s = postCarve(archivePath_);
+  fs::path uploadPath;
+  if (FLAGS_carver_compression) {
+    uploadPath = compressPath_;
+    s = compress(archivePath_, compressPath_);
+    if (!s.ok()) {
+      VLOG(1) << "Failed to compress carve archive: " << s.getMessage();
+      updateCarveValue(carveGuid_, "status", "COMPRESS FAILED");
+      return;
+    }
+  } else {
+    uploadPath = archivePath_;
+  }
+
+  PlatformFile uploadFile(uploadPath, PF_OPEN_EXISTING | PF_READ);
+  updateCarveValue(carveGuid_, "size", std::to_string(uploadFile.size()));
+
+  std::string uploadHash =
+      (uploadFile.size() > FLAGS_read_max)
+          ? "-1"
+          : hashFromFile(HashType::HASH_TYPE_SHA256, uploadPath.string());
+  if (uploadHash == "-1") {
+    VLOG(1)
+        << "Archive file size exceeds read max, skipping integrity computation";
+  }
+  updateCarveValue(carveGuid_, "sha256", uploadHash);
+
+  s = postCarve(uploadPath);
   if (!s.ok()) {
     VLOG(1) << "Failed to post carve: " << s.getMessage();
     updateCarveValue(carveGuid_, "status", "DATA POST FAILED");
@@ -185,9 +209,8 @@ void Carver::start() {
 };
 
 Status Carver::carve(const boost::filesystem::path& path) {
-  PlatformFile src(path.string(), PF_OPEN_EXISTING | PF_READ);
-  PlatformFile dst((carveDir_ / path.leaf()).string(),
-                   PF_CREATE_NEW | PF_WRITE);
+  PlatformFile src(path, PF_OPEN_EXISTING | PF_READ);
+  PlatformFile dst(carveDir_ / path.leaf(), PF_CREATE_NEW | PF_WRITE);
 
   if (!dst.isValid()) {
     return Status(1, "Destination tmp FS is not valid.");
@@ -200,53 +223,13 @@ Status Carver::carve(const boost::filesystem::path& path) {
   for (size_t i = 0; i < blkCount; i++) {
     inBuff.clear();
     auto bytesRead = src.read(inBuff.data(), FLAGS_carver_block_size);
-    auto bytesWritten = dst.write(inBuff.data(), bytesRead);
-    if (bytesWritten < 0) {
-      return Status(1, "Error writing bytes to tmp fs");
+    if (bytesRead > 0) {
+      auto bytesWritten = dst.write(inBuff.data(), bytesRead);
+      if (bytesWritten < 0) {
+        return Status(1, "Error writing bytes to tmp fs");
+      }
     }
   }
-
-  return Status(0, "Ok");
-};
-
-Status Carver::compress(const std::set<boost::filesystem::path>& paths) {
-  auto arch = archive_write_new();
-  if (arch == nullptr) {
-    return Status(1, "Failed to create tar archive");
-  }
-  archive_write_set_format_zip(arch);
-  archive_write_set_format_pax_restricted(arch);
-  auto ret = archive_write_open_filename(arch, archivePath_.string().c_str());
-  if (ret == ARCHIVE_FATAL) {
-    archive_write_free(arch);
-    return Status(1, "Failed to open tar archive for writing");
-  }
-  for (const auto& f : paths) {
-    PlatformFile pFile(f.string(), PF_OPEN_EXISTING | PF_READ);
-
-    auto entry = archive_entry_new();
-    archive_entry_set_pathname(entry, f.string().c_str());
-    archive_entry_set_size(entry, pFile.size());
-    archive_entry_set_filetype(entry, AE_IFREG);
-    archive_entry_set_perm(entry, 0644);
-    archive_write_header(arch, entry);
-
-    // TODO: Chunking or a max file size.
-    std::ifstream in(f.string(), std::ios::binary);
-    std::stringstream buffer;
-    buffer << in.rdbuf();
-    archive_write_data(arch, buffer.str().c_str(), buffer.str().size());
-    in.close();
-    archive_entry_free(entry);
-  }
-  archive_write_free(arch);
-
-  PlatformFile archFile(archivePath_.string(), PF_OPEN_EXISTING | PF_READ);
-  updateCarveValue(carveGuid_, "size", std::to_string(archFile.size()));
-  updateCarveValue(
-      carveGuid_,
-      "sha256",
-      hashFromFile(HashType::HASH_TYPE_SHA256, archivePath_.string()));
 
   return Status(0, "Ok");
 };
@@ -255,7 +238,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   auto startRequest = Request<TLSTransport, JSONSerializer>(startUri_);
 
   // Perform the start request to get the session id
-  PlatformFile pFile(path.string(), PF_OPEN_EXISTING | PF_READ);
+  PlatformFile pFile(path, PF_OPEN_EXISTING | PF_READ);
   auto blkCount =
       static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
                                static_cast<double>(FLAGS_carver_block_size)));
@@ -314,4 +297,32 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   updateCarveValue(carveGuid_, "status", "SUCCESS");
   return Status(0, "Ok");
 };
+
+Status carvePaths(const std::set<std::string>& paths) {
+  auto guid = generateNewUUID();
+
+  pt::ptree tree;
+  tree.put("carve_guid", guid);
+  tree.put("time", getUnixTime());
+  tree.put("status", "STARTING");
+  tree.put("sha256", "");
+  tree.put("size", -1);
+
+  if (paths.size() > 1) {
+    tree.put("path", boost::algorithm::join(paths, ","));
+  } else {
+    tree.put("path", *(paths.begin()));
+  }
+
+  std::ostringstream os;
+  pt::write_json(os, tree, false);
+  auto s = setDatabaseValue(kCarveDbDomain, kCarverDBPrefix + guid, os.str());
+  if (!s.ok()) {
+    return s;
+  } else {
+    auto requestId = Distributed::getCurrentRequestId();
+    Dispatcher::addService(std::make_shared<Carver>(paths, guid, requestId));
+  }
+  return s;
 }
+} // namespace osquery

@@ -34,6 +34,13 @@ EXAMPLE_CONFIG = {
     "node_invalid": False,
 }
 
+EXAMPLE_EMPTY_CONFIG = {
+    "schedule": {
+        "tls_proc": {"query": "select * from processes", "interval": 1},
+    },
+    "node_invalid": False,
+}
+
 # A 'node' variation of the TLS API uses a GET for config.
 EXAMPLE_NODE_CONFIG = EXAMPLE_CONFIG
 EXAMPLE_NODE_CONFIG["node"] = True
@@ -65,7 +72,7 @@ EXAMPLE_DISTRIBUTED_ACCELERATE = {
 
 EXAMPLE_CARVE = {
     "queries": {
-        "test_carve" : "select * from forensic_carve where path='/tmp/afile.txt' and carve = 1"
+        "test_carve" : "select * from carves where path='/tmp/rook.stl' and carve = 1"
     }
 }
 
@@ -128,7 +135,11 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self._set_headers()
         content_len = int(self.headers.getheader('content-length', 0))
         request = json.loads(self.rfile.read(content_len))
-        debug("Request: %s" % str(request))
+
+        # This contains a base64 encoded block of a file printing to the screen
+        # slows down carving and makes scroll back a pain
+        if (self.path != "/carve_block"):
+            debug("Request: %s" % str(request))
 
         if self.path == '/enroll':
             self.enroll(request)
@@ -211,13 +222,24 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         self._reply({})
 
     def test_read_requests(self):
-        # call made by unit tests to retrieve the entire history of requests 
+        # call made by unit tests to retrieve the entire history of requests
         # made by code under test. Used by unit tests to verify that the code
         # under test made the expected calls to the TLS backend
         self._reply(RECEIVED_REQUESTS)
 
+    # Initial endpoint, used to start a carve request
     def start_carve(self, request):
+        # The osqueryd agent expects the first endpoint to return a
+        # 'session id' through which they'll communicate in future POSTs.
+        # We use this internally to connect the request to the person
+        # who requested the carve, and to prepare space for the data.
         sid = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+
+        # The agent will send up the total number of expected blocks, the
+        # size of each block, the size of the carve overall, and the carve GUID
+        # to identify this specific carve. We check all of these numbers
+        # against predefined maximums to ensure that agents aren't able
+        # to DOS our endpoints, and that carves are a reasonable size.
         FILE_CARVE_MAP[sid] = {
             'block_count': int(request['block_count']),
             'block_size': int(request['block_size']),
@@ -225,21 +247,40 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
             'carve_size': int(request['carve_size']),
             'carve_guid': request['carve_id'],
         }
+
+        # Lastly we let the agent know that the carve is good to start,
+        # and send the session id back
         self._reply({'session_id' : sid})
 
+
+    # Endpoint where the blocks of the carve are received, and
+    # susequently reassembled.
     def continue_carve(self, request):
-        # Do we already have this block
+        # First check if we have already received this block
         if request['block_id'] in FILE_CARVE_MAP[request['session_id']]['blocks_received']:
             return
-        # Store block data
+
+        # Store block data to be reassembled later
         FILE_CARVE_MAP[request['session_id']]['blocks_received'][int(request['block_id'])] = request['data']
-        # Do we still need more blocks
+
+        # Are we expecting to receive more blocks?
         if len(FILE_CARVE_MAP[request['session_id']]['blocks_received']) < FILE_CARVE_MAP[request['session_id']]['block_count']:
             return
-        f = open(FILE_CARVE_DIR+FILE_CARVE_MAP[request['session_id']]['carve_guid']+'.tar', 'wb')
+
+        # If not, let's reassemble everything
+        out_file_name = FILE_CARVE_DIR+FILE_CARVE_MAP[request['session_id']]['carve_guid']
+
+        # Check the first four bytes for the zstd header. If not no
+        # compression was used, it's an uncompressed .tar
+        if (base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]['blocks_received'][0])[0:4] == b'\x28\xB5\x2F\xFD'):
+            out_file_name +=  '.zst'
+        else:
+            out_file_name +=  '.tar'
+        f = open(out_file_name, 'wb')
         for x in range(0, FILE_CARVE_MAP[request['session_id']]['block_count']):
             f.write(base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]['blocks_received'][x]))
         f.close()
+        debug("File successfully carved to: %s" % out_file_name)
         FILE_CARVE_MAP[request['session_id']] = {}
 
 
@@ -248,14 +289,14 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # can retrieve it later for verification purposes
         request['command'] = command
         RECEIVED_REQUESTS.append(request)
-        
+
     def _reply(self, response):
         debug("Replying: %s" % (str(response)))
         self.wfile.write(json.dumps(response))
 
 
 def handler():
-    debug("Shutting down HTTP server via timeout (%d) seconds." 
+    debug("Shutting down HTTP server via timeout (%d) seconds."
           % (ARGS.timeout))
     thread.interrupt_main()
 

@@ -6,13 +6,13 @@ class Sleuthkit < AbstractOsqueryFormula
   url "https://github.com/sleuthkit/sleuthkit/archive/sleuthkit-4.3.0.tar.gz"
   sha256 "64a57a44955e91300e1ae69b34e8702afda0fb5bd72e2116429875c9f5f28980"
   head "https://github.com/sleuthkit/sleuthkit.git"
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "bc7fe404554c5fb2c28eccb7b8e820420c48464030fd25b3d3c6bddb00208977" => :sierra
-    sha256 "280f5ef4460942a04e7eb89ed3bb761fb28d35dcd656f7633864bcbdfc8a0be0" => :el_capitan
-    sha256 "68daa7ee6ee634b9e16a385a4fe5dbeb719287e15885b76949916a1a24668d35" => :x86_64_linux
+    sha256 "bca72113e70b3d62b2f3e8b474ad3d10929f86b714d5164fbfc6d2345483db7f" => :sierra
+    sha256 "bd20cce6970fb7557b5db04c923ae0e3fe4f8e8e7a2eb3877867bcbf7e3c3277" => :x86_64_linux
   end
 
   conflicts_with "irods", :because => "both install `ils`"
@@ -40,6 +40,8 @@ class Sleuthkit < AbstractOsqueryFormula
     system "./bootstrap"
     system "./configure", "--disable-dependency-tracking",
                           if build.without? "jni" then "--disable-java" end,
+                          "--disable-shared",
+                          "--enable-static",
                           "--prefix=#{prefix}"
     system "make"
     system "make", "install"

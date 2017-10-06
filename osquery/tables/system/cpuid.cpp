@@ -36,12 +36,17 @@ std::map<int, std::vector<FeatureDef>> kCPUFeatures{
          FEATURE("msr", "edx", 5),
          FEATURE("mtrr", "edx", 12),
          FEATURE("acpi", "edx", 22),
+         FEATURE("sse", "edx", 25),
+         FEATURE("sse2", "edx", 26),
          FEATURE("htt", "edx", 28),
          FEATURE("ia64", "edx", 30),
          FEATURE("vmx", "ecx", 5),
          FEATURE("smx", "ecx", 6),
-         FEATURE("hypervisor", "ecx", 31),
+         FEATURE("sse4.1", "ecx", 19),
+         FEATURE("sse4.2", "ecx", 20),
          FEATURE("aes", "ecx", 25),
+         FEATURE("avx", "ecx", 28),
+         FEATURE("hypervisor", "ecx", 31),
      }},
     {7,
      {
@@ -60,7 +65,8 @@ std::map<int, std::vector<FeatureDef>> kCPUFeatures{
 
 static inline void cpuid(size_t eax, size_t ecx, int regs[4]) {
 #if defined(WIN32)
-  __cpuidex((int*)regs, (int)eax, (int)ecx);
+  __cpuidex(
+      static_cast<int*>(regs), static_cast<int>(eax), static_cast<int>(ecx));
 #else
   asm volatile("cpuid"
                : "=a"(regs[0]), "=b"(regs[1]), "=c"(regs[2]), "=d"(regs[3])
@@ -122,9 +128,12 @@ inline Status genStrings(QueryData& results) {
   cpuid(0x40000000, 0, regs);
   if (regs[0] && 0xFF000000 != 0) {
     std::stringstream hypervisor;
-    hypervisor << std::hex << std::setw(8) << std::setfill('0') << (int)regs[0];
-    hypervisor << std::hex << std::setw(8) << std::setfill('0') << (int)regs[1];
-    hypervisor << std::hex << std::setw(8) << std::setfill('0') << (int)regs[2];
+    hypervisor << std::hex << std::setw(8) << std::setfill('0')
+               << static_cast<int>(regs[0]);
+    hypervisor << std::hex << std::setw(8) << std::setfill('0')
+               << static_cast<int>(regs[1]);
+    hypervisor << std::hex << std::setw(8) << std::setfill('0')
+               << static_cast<int>(regs[2]);
 
     r["feature"] = "hypervisor_id";
     r["value"] = hypervisor.str();
@@ -137,10 +146,13 @@ inline Status genStrings(QueryData& results) {
   // Finally, check the processor serial number.
   std::stringstream serial;
   cpuid(1, 0, regs);
-  serial << std::hex << std::setw(8) << std::setfill('0') << (int)regs[0];
+  serial << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[0]);
   cpuid(3, 0, regs);
-  serial << std::hex << std::setw(8) << std::setfill('0') << (int)regs[0];
-  serial << std::hex << std::setw(8) << std::setfill('0') << (int)regs[3];
+  serial << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[0]);
+  serial << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[3]);
 
   r["feature"] = "serial";
   r["value"] = serial.str();
@@ -156,7 +168,7 @@ inline void genFamily(QueryData& results) {
   int regs[4] = {-1};
 
   cpuid(1, 0, regs);
-  int family = regs[0] & 0xf00;
+  auto family = regs[0] & 0xf00;
 
   std::stringstream family_string;
   family_string << std::hex << std::setw(4) << std::setfill('0') << family;
@@ -182,10 +194,10 @@ QueryData genCPUID(QueryContext& context) {
   genFamily(results);
 
   int regs[4] = {-1};
-  int feature_register = 0;
-  int feature_bit = 0;
+  auto feature_register = 0;
+  auto feature_bit = 0;
   for (const auto& feature_set : kCPUFeatures) {
-    int eax = feature_set.first;
+    auto eax = feature_set.first;
     cpuid(eax, 0, regs);
 
     for (const auto& feature : feature_set.second) {
@@ -219,10 +231,14 @@ QueryData genCPUID(QueryContext& context) {
 
     cpuid(0x12, 0, regs);
     std::stringstream sgx0;
-    sgx0 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[0];
-    sgx0 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[1];
-    sgx0 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[2];
-    sgx0 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[3];
+    sgx0 << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[0]);
+    sgx0 << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[1]);
+    sgx0 << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[2]);
+    sgx0 << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[3]);
     r["feature"] = "sgx0";
     r["value"] = sgx0.str();
     r["input_eax"] = std::to_string(0x12);
@@ -230,10 +246,14 @@ QueryData genCPUID(QueryContext& context) {
 
     cpuid(0x12, 1, regs);
     std::stringstream sgx1;
-    sgx1 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[0];
-    sgx1 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[1];
-    sgx1 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[2];
-    sgx1 << std::hex << std::setw(8) << std::setfill('0') << (int)regs[3];
+    sgx1 << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[0]);
+    sgx1 << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[1]);
+    sgx1 << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[2]);
+    sgx1 << std::hex << std::setw(8) << std::setfill('0')
+         << static_cast<int>(regs[3]);
     r["feature"] = "sgx1";
     r["value"] = sgx1.str();
     r["input_eax"] = std::to_string(0x12) + ",1";
@@ -242,5 +262,5 @@ QueryData genCPUID(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

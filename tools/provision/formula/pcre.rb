@@ -6,12 +6,13 @@ class Pcre < AbstractOsqueryFormula
   url "https://ftp.pcre.org/pub/pcre/pcre-8.40.tar.gz"
   mirror "https://www.mirrorservice.org/sites/downloads.sourceforge.net/p/pc/pcre/pcre/8.40/pcre-8.40.tar.bz2"
   sha256 "1d75ce90ea3f81ee080cdc04e68c9c25a9fb984861a0618be7bbf676b18eda3e"
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "be04cdca1805c738e7373eb15a2969114defb61c0782c8e15ab733564e89536a" => :sierra
-    sha256 "1c5d08457a82ed7b74e6c858232b1e846b196b71f7f56944fed44c5e2bbbdaef" => :x86_64_linux
+    sha256 "ac3137371bd766d83c3a99c165c8c2b0d5dc249b097650f4006c0ca63fc033d6" => :sierra
+    sha256 "65248970cef381a2b511c68004ae5344713bd4fa5fd22c70d06f789efd33586c" => :x86_64_linux
   end
 
   head do
@@ -46,7 +47,9 @@ class Pcre < AbstractOsqueryFormula
                           "--enable-unicode-properties",
                           "--enable-pcregrep-libz",
                           "--enable-pcregrep-libbz2",
-                          "--enable-jit"
+                          "--enable-jit",
+                          "--disable-shared",
+                          "--enable-static"
     system "make"
     ENV.deparallelize
     system "make", "install"

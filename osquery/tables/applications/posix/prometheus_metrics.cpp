@@ -9,6 +9,8 @@
  */
 #include <sstream>
 
+#include <boost/network/protocol/http/client.hpp>
+
 #include <osquery/config.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -81,13 +83,14 @@ QueryData genPrometheusMetrics(QueryContext& context) {
   /* Add a specific value to the default property tree to differentiate it from
    * the scenario where the user does not provide any prometheus_targets config.
    */
-  const auto& config = parser->getData().get_child(
-      kConfigParserRootKey, boost::property_tree::ptree("UNEXPECTED"));
-  if (config.get_value("") == "UNEXPECTED") {
+  const auto& root = parser->getData().get_child_optional(kConfigParserRootKey);
+  if (!root) {
     LOG(WARNING) << "Could not load prometheus_targets root key: "
                  << kConfigParserRootKey;
     return result;
   }
+
+  const auto& config = root.get();
   if (config.count("urls") == 0) {
     /* Only warn the user if they supplied the config, but did not supply any
      * urls. */
@@ -103,12 +106,11 @@ QueryData genPrometheusMetrics(QueryContext& context) {
   /* Below should be unreachable if there were no urls child node, but we set
    * handle with default value for consistency's sake and for added robustness.
    */
-  auto urls = config.get_child("urls", boost::property_tree::ptree());
+  auto urls = config.get_child("urls");
   if (urls.empty()) {
     return result;
   }
-  for (const auto& url :
-       config.get_child("urls", boost::property_tree::ptree())) {
+  for (const auto& url : config.get_child("urls")) {
     if (!url.first.empty()) {
       return result;
     }

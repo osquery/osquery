@@ -3,13 +3,14 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Libdevmapper < AbstractOsqueryFormula
   desc "Device Mapper development"
   homepage "https://www.sourceware.org/dm/"
-  url "https://osquery-packages.s3.amazonaws.com/deps/LVM2.2.02.145.tar.gz"
-  sha256 "98b7c4c07c485a462c6a86e1a5265757133ceea36289ead8a419af29ef39560b"
+  url "ftp://sources.redhat.com/pub/lvm2/LVM2.2.02.173.tgz"
+  sha256 "ceb9168c7e009ef487f96a1fe969b23cbb07d920ffb71769affdbdf30fea8d64"
+  revision 2
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "e1041607e866c145ee82c3a5babc2df4942b3ac1ba905c7bc135d98a6256dbf4" => :x86_64_linux
+    sha256 "2ea48fa7fc28b923c1f626b6eab2175953931d2a6f2b8363a5a67ecb3948969a" => :x86_64_linux
   end
 
   def install
@@ -19,13 +20,36 @@ class Libdevmapper < AbstractOsqueryFormula
     args = [
       "--with-lvm1=none",
       "--disable-selinux",
+      "--disable-shared",
+      "--disable-readline",
       "--enable-static_link",
     ]
 
     system "./configure", "--prefix=#{prefix}", *args
     system "make", "libdm.device-mapper"
+
     cd "libdm" do
       system "make", "install"
     end
+
+    cd "lib" do
+      system "make"
+    end
+
+    cd "libdaemon" do
+      system "make"
+    end
+
+    cd "liblvm" do
+      system "make", "install"
+    end
+
+    # Install the internal methods needed by liblvm2app.
+    system "cp", "lib/liblvm-internal.a", "#{prefix}/lib/"
+    system "cp", "libdaemon/client/libdaemonclient.a", "#{prefix}/lib/"
+
+    # Configure still installs the shared object library.
+    rm_rf lib/"libdevmapper.so"
+    rm_rf lib/"liblvm2app.so"
   end
 end

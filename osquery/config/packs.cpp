@@ -12,6 +12,7 @@
 #include <random>
 
 #include <osquery/core.h>
+#include <osquery/database.h>
 #include <osquery/logger.h>
 #include <osquery/packs.h>
 #include <osquery/sql.h>
@@ -253,6 +254,11 @@ bool Pack::checkPlatform(const std::string& platform) const {
                      platform.find("ubuntu") != std::string::npos ||
                      platform.find("centos") != std::string::npos);
   if (linux_type && isPlatform(PlatformType::TYPE_LINUX)) {
+    return true;
+  }
+
+  auto posix_type = (platform.find("posix") != std::string::npos);
+  if (posix_type && isPlatform(PlatformType::TYPE_POSIX)) {
     return true;
   }
 

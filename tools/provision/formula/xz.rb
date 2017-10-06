@@ -8,12 +8,12 @@ class Xz < AbstractOsqueryFormula
   url "https://fossies.org/linux/misc/xz-5.2.2.tar.gz"
   mirror "http://tukaani.org/xz/xz-5.2.2.tar.gz"
   sha256 "73df4d5d34f0468bd57d09f2d8af363e95ed6cc3a4a86129d2f2c366259902a2"
-  revision 1
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "dc9fac54c8ba9092914d7c0c39e9432a16048f425d7fa6b68a4a2e0e2bd1989d" => :x86_64_linux
+    sha256 "f472ad6242a1e6ed6ec8bede925096226d471ad3cb79529917f9ff0c15705186" => :x86_64_linux
   end
 
   option :universal
@@ -23,7 +23,9 @@ class Xz < AbstractOsqueryFormula
     system "./configure", "--disable-debug",
                           "--disable-dependency-tracking",
                           "--disable-silent-rules",
-                          "--prefix=#{prefix}"
+                          "--prefix=#{prefix}",
+                          "--disable-shared",
+                          "--enable-static"
     system "make", "install"
   end
 

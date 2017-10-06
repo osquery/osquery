@@ -61,7 +61,7 @@ DECLARE_uint64(alarm_timeout);
 /// The path to the pidfile for osqueryd
 CLI_FLAG(string,
          pidfile,
-         OSQUERY_DB_HOME "/osqueryd.pidfile",
+         OSQUERY_PIDFILE "osqueryd.pidfile",
          "Path to the daemon pidfile mutex");
 
 /// Should the daemon force unload previously-running osqueryd daemons.
@@ -97,24 +97,36 @@ struct tm* localtime_r(time_t* t, struct tm* result) {
 #endif
 
 std::string getHostname() {
-#ifdef WIN32
-  long size = 256;
-#else
+  long max_path = 256;
+  long size = 0;
+#ifndef WIN32
   static long max_hostname = sysconf(_SC_HOST_NAME_MAX);
-  long size = (max_hostname > 255) ? max_hostname + 1 : 256;
+  size = (max_hostname > max_path - 1) ? max_hostname + 1 : max_path;
 #endif
-
-  char* hostname = (char*)malloc(size);
-  std::string hostname_string;
-  if (hostname != nullptr) {
-    memset((void*)hostname, 0, size);
-    gethostname(hostname, size - 1);
-    hostname_string = std::string(hostname);
-    free(hostname);
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    size = max_path;
   }
 
+  std::vector<char> hostname(size, 0x0);
+  std::string hostname_string;
+  if (hostname.data() != nullptr) {
+    gethostname(hostname.data(), size - 1);
+    hostname_string = std::string(hostname.data());
+  }
   boost::algorithm::trim(hostname_string);
   return hostname_string;
+}
+
+std::string getFqdn() {
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    return getHostname();
+  }
+  unsigned long size = 256;
+  std::vector<char> fqdn(size, 0x0);
+#ifdef WIN32
+  GetComputerNameEx(ComputerNameDnsFullyQualified, fqdn.data(), &size);
+#endif
+  return fqdn.data();
 }
 
 std::string generateNewUUID() {
@@ -268,7 +280,8 @@ size_t toUnixTime(const struct tm* tm_time) {
 }
 
 size_t getUnixTime() {
-  return std::time(nullptr);
+  std::time_t ut = std::time(nullptr);
+  return ut < 0 ? 0 : ut;
 }
 
 Status checkStalePid(const std::string& content) {
@@ -331,9 +344,7 @@ Status createPidFile() {
   }
 
   // Now the pidfile is either the wrong pid or the pid is not running.
-  try {
-    boost::filesystem::remove(pidfile_path);
-  } catch (const boost::filesystem::filesystem_error& /* e */) {
+  if (!removePath(pidfile_path)) {
     // Unable to remove old pidfile.
     LOG(WARNING) << "Unable to remove the osqueryd pidfile";
   }
@@ -369,38 +380,52 @@ bool PlatformProcess::cleanup() const {
 
 #ifndef WIN32
 
-bool ownerFromResult(const QueryData& result, long& uid, long& gid) {
-  if (result.empty()) {
-    return false;
-  }
-
-  if (!safeStrtol(result[0].at("uid"), 10, uid) ||
-      !safeStrtol(result[0].at("gid"), 10, gid)) {
+static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
+  if (!safeStrtol(row.at("uid"), 10, uid) ||
+      !safeStrtol(row.at("gid"), 10, gid)) {
     return false;
   }
   return true;
 }
 
 bool DropPrivileges::dropToParent(const fs::path& path) {
-  auto result =
-      SQL::selectAllFrom("file", "path", EQUALS, path.parent_path().string());
+  auto parent = path.parent_path().string();
+  auto result = SQL::selectAllFrom("file", "path", EQUALS, parent);
+  if (result.empty()) {
+    return false;
+  }
+
+  if (result.front().at("symlink") == "1") {
+    // The file is a symlink, inspect the owner of the link.
+    struct stat link_stat;
+    if (lstat(parent.c_str(), &link_stat) != 0) {
+      return false;
+    }
+
+    return dropTo(link_stat.st_uid, link_stat.st_gid);
+  }
 
   long uid = 0;
   long gid = 0;
-  if (!ownerFromResult(result, uid, gid)) {
+  if (!ownerFromResult(result.front(), uid, gid)) {
     return false;
   }
+
   return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
 }
 
 bool DropPrivileges::dropTo(const std::string& user) {
   auto result = SQL::selectAllFrom("users", "username", EQUALS, user);
+  if (result.empty()) {
+    return false;
+  }
 
   long uid = 0;
   long gid = 0;
-  if (!ownerFromResult(result, uid, gid)) {
+  if (!ownerFromResult(result.front(), uid, gid)) {
     return false;
   }
+
   return dropTo(static_cast<uid_t>(uid), static_cast<gid_t>(gid));
 }
 
@@ -431,8 +456,10 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
   }
 
   group_size_ = getgroups(0, nullptr);
-  original_groups_ = (gid_t*)malloc(group_size_ * sizeof(gid_t));
-  group_size_ = getgroups(group_size_, original_groups_);
+  if (group_size_ > 0) {
+    original_groups_ = (gid_t*)malloc(group_size_ * sizeof(gid_t));
+    group_size_ = getgroups(group_size_, original_groups_);
+  }
   setgroups(1, &gid);
 
   if (!setThreadEffective(uid, gid)) {
@@ -448,9 +475,11 @@ bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
 }
 
 void DropPrivileges::restoreGroups() {
-  setgroups(group_size_, original_groups_);
-  group_size_ = 0;
-  free(original_groups_);
+  if (group_size_ > 0) {
+    setgroups(group_size_, original_groups_);
+    group_size_ = 0;
+    free(original_groups_);
+  }
   original_groups_ = nullptr;
 }
 

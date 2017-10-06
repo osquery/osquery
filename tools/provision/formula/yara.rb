@@ -4,13 +4,13 @@ class Yara < AbstractOsqueryFormula
   desc "Malware identification and classification tool"
   homepage "https://github.com/VirusTotal/yara/"
   head "https://github.com/VirusTotal/yara.git"
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "d321f236fbdda9a08772d6fbdef20365b5332a437b584f709f0f8be894b34af1" => :sierra
-    sha256 "e9fe2b5ec31076d218d22e7190a9b010d0de8dd12330785395e8d5deeea85ea7" => :el_capitan
-    sha256 "12428e1c14b244f812bb6577b993c306ff56d62e966acd0152a2b805724f9bd9" => :x86_64_linux
+    sha256 "645665d4b083262f89895e2ba17702e40e5022dfcad2ef6b7599962a6232aaea" => :sierra
+    sha256 "dfab5e0b5061d3075a0d20ac7a9455196da4606233e8dca89206b8a23af15e64" => :x86_64_linux
   end
 
   stable do
@@ -18,8 +18,9 @@ class Yara < AbstractOsqueryFormula
     sha256 "4bc72ee755db85747f7e856afb0e817b788a280ab5e73dee42f159171a9b5299"
 
     patch do
-      url "https://github.com/VirusTotal/yara/pull/529.diff"
-      sha256 "c462efecbd2be2f582d64fd0cd493cb9ccc22ea42339b508488ddb20d63c4061"
+      # Fixes variable redefinitions.
+      url "https://github.com/VirusTotal/yara/commit/a0bb3836f16e3c5d0c2a1da097a1ebacbebc3a94.patch"
+      sha256 "dd21219d8137bc8167c7051ea0346119843f4e37c84b1a3b96418fa7e8e62179"
     end
   end
 
@@ -42,7 +43,9 @@ class Yara < AbstractOsqueryFormula
     system "./bootstrap.sh"
     system "./configure", "--disable-silent-rules",
                           "--disable-dependency-tracking",
-                          "--prefix=#{prefix}"
+                          "--prefix=#{prefix}",
+                          "--disable-shared",
+                          "--enable-static"
     system "make", "install"
   end
 end

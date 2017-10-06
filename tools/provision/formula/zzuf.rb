@@ -6,12 +6,13 @@ class Zzuf < AbstractOsqueryFormula
   url "https://github.com/theopolis/zzuf/archive/v0.15-osx-r2.tar.gz"
   sha256 "9f59bac21aef5408bbdaab0b2732ca5848dbd3e74297b66c34245bdbc04db86e"
   version "0.15-osx-r2"
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "bde4b84b9b95f7aed7dc436704ef67d7f14a630f77544147f4a528718d9ff6fe" => :sierra
-    sha256 "091209116c2c718ec3b34ceff764efa1c706daf112dff3350cdfcf4ba94666ce" => :x86_64_linux
+    sha256 "fd280466be13986efe1ec9280f18c180ae30b01b304ce88b1b679411a62afc4a" => :sierra
+    sha256 "0418ccf84f6548c2385363277e39e4b9d2855d7fd2745f279a709639f1a0e1e8" => :x86_64_linux
   end
 
   head do

@@ -43,7 +43,7 @@ QueryData genShims(QueryContext& context) {
     QueryData regResults;
     sdb sdb;
     std::string subkey = rKey.at("path");
-    auto start = subkey.find("{");
+    auto start = subkey.find('{');
     if (start == std::string::npos) {
       continue;
     }

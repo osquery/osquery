@@ -17,6 +17,8 @@
 #include <boost/archive/iterators/transform_width.hpp>
 #include <boost/uuid/sha1.hpp>
 
+#include <osquery/logger.h>
+
 #include "osquery/core/conversions.h"
 
 namespace bai = boost::archive::iterators;
@@ -48,11 +50,14 @@ std::string base64Decode(const std::string& encoded) {
   if (size == 0) {
     return "";
   }
-
-  std::copy(base64_dec(is.data()),
-            base64_dec(is.data() + size),
-            std::ostream_iterator<char>(os));
-
+  try {
+    std::copy(base64_dec(is.data()),
+              base64_dec(is.data() + size),
+              std::ostream_iterator<char>(os));
+  } catch (const boost::archive::iterators::dataflow_exception& e) {
+    LOG(INFO) << "Could not base64 decode string: " << e.what();
+    return "";
+  }
   return os.str();
 }
 
@@ -133,5 +138,9 @@ std::string getBufferSHA1(const char* buffer, size_t size) {
     result << std::setw(sizeof(uint32_t) * 2) << digest[i];
   }
   return result.str();
+}
+
+size_t operator"" _sz(unsigned long long int x) {
+  return x;
 }
 }

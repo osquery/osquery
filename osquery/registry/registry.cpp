@@ -77,7 +77,7 @@ Status RegistryInterface::setActive(const std::string& item_name) {
     }
   }
 
-  Status status(0, "OK");
+  Status status;
   active_ = item_name;
   // The active plugin is setup when initialized.
   for (const auto& item : osquery::split(item_name, ",")) {
@@ -89,6 +89,10 @@ Status RegistryInterface::setActive(const std::string& item_name) {
       // of active plugins, active them if they are extension-local, and finally
       // start their extension socket.
       status = pingExtension(getExtensionSocket(external_.at(item_name)));
+    }
+
+    if (!status.ok()) {
+      break;
     }
   }
   return status;
@@ -173,11 +177,6 @@ Status RegistryInterface::addPlugin(const std::string& plugin_name,
   // The item can be listed as internal, meaning it does not broadcast.
   if (internal) {
     internal_.push_back(plugin_name);
-  }
-
-  // The item may belong to a module.
-  if (RegistryFactory::get().usingModule()) {
-    modules_[plugin_name] = RegistryFactory::get().getModule();
   }
 
   return Status(0, "OK");
@@ -400,7 +399,7 @@ Status RegistryFactory::call(const std::string& registry_name,
                              PluginResponse& response) {
   // Forward factory call to the registry.
   try {
-    if (item_name.find(",") != std::string::npos) {
+    if (item_name.find(',') != std::string::npos) {
       // Call is multiplexing plugins (usually for multiple loggers).
       for (const auto& item : osquery::split(item_name, ",")) {
         get().registry(registry_name)->call(item, request, response);
@@ -505,107 +504,6 @@ size_t RegistryFactory::count(const std::string& registry_name) const {
     return 0;
   }
   return registry(registry_name)->count();
-}
-
-std::map<RouteUUID, ModuleInfo> RegistryFactory::getModules() const {
-  return modules_;
-}
-
-RouteUUID RegistryFactory::getModule() {
-  return module_uuid_;
-}
-
-bool RegistryFactory::usingModule() {
-  // Check if the registry is allowing a module's registrations.
-  return (!locked() && module_uuid_ != 0);
-}
-
-void RegistryFactory::shutdownModule() {
-  locked(true);
-  module_uuid_ = 0;
-}
-
-void RegistryFactory::initModule(const std::string& path) {
-  // Begin a module initialization, lock until the module is determined
-  // appropriate by requesting a call to `declareModule`.
-  module_uuid_ = (RouteUUID)rand();
-  modules_[getModule()].path = path;
-  locked(true);
-}
-
-void RegistryFactory::declareModule(const std::string& name,
-                                    const std::string& version,
-                                    const std::string& min_sdk_version,
-                                    const std::string& sdk_version) {
-  // Check the min_sdk_version against the Registry's SDK version.
-  auto& module = modules_[module_uuid_];
-  module.name = name;
-  module.version = version;
-  module.sdk_version = sdk_version;
-  locked(false);
-}
-
-RegistryModuleLoader::RegistryModuleLoader(const std::string& path)
-    : handle_(nullptr), path_(path) {
-  // Tell the registry that we are attempting to construct a module.
-  // Locking the registry prevents the module's global initialization from
-  // adding or creating registry items.
-  RegistryFactory::get().initModule(path_);
-
-  handle_ = platformModuleOpen(path_);
-  if (handle_ == nullptr) {
-    VLOG(1) << "Failed to load module: " << path_;
-    VLOG(1) << platformModuleGetError();
-    return;
-  }
-
-  // The module should have called RegistryFactory::declareModule and unlocked
-  // the registry for modification. The module should have done this using
-  // the SDK's CREATE_MODULE macro, which adds the global-scope constructor.
-  if (RegistryFactory::get().locked()) {
-    VLOG(1) << "Failed to declare module: " << path_;
-    platformModuleClose(handle_);
-    handle_ = nullptr;
-  }
-}
-
-void RegistryModuleLoader::init() {
-  if (handle_ == nullptr || RegistryFactory::get().locked()) {
-    handle_ = nullptr;
-    return;
-  }
-
-  // Locate a well-known symbol in the module.
-  // This symbol name is protected against rewriting when the module uses the
-  // SDK's CREATE_MODULE macro.
-  auto initializer =
-      (ModuleInitalizer)platformModuleGetSymbol(handle_, "initModule");
-  if (initializer != nullptr) {
-    initializer();
-    VLOG(1) << "Initialized module: " << path_;
-  } else {
-    VLOG(1) << "Failed to initialize module: " << path_;
-    VLOG(1) << platformModuleGetError();
-    platformModuleClose(handle_);
-    handle_ = nullptr;
-  }
-}
-
-RegistryModuleLoader::~RegistryModuleLoader() {
-  auto& rf = RegistryFactory::get();
-  if (handle_ == nullptr) {
-    // The module was not loaded or did not initalize.
-    rf.modules_.erase(rf.getModule());
-  }
-
-  // We do not close the module, and thus are OK with losing a reference to the
-  // module's handle. Attempting to close and clean up is very expensive for
-  // very little value/features.
-  if (!rf.locked()) {
-    rf.shutdownModule();
-  }
-  // No need to clean this resource.
-  handle_ = nullptr;
 }
 
 void Plugin::setName(const std::string& name) {

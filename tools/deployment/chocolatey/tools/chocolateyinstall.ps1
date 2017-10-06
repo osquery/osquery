@@ -8,23 +8,33 @@
 
 $serviceName = 'osqueryd'
 $serviceDescription = 'osquery daemon service'
-$progData =  [System.Environment]::GetEnvironmentVariable('ProgramData')
+$progData = [System.Environment]::GetEnvironmentVariable('ProgramData')
 $targetFolder = Join-Path $progData 'osquery'
 $daemonFolder = Join-Path $targetFolder 'osqueryd'
+$extensionsFolder = Join-Path $targetFolder 'extensions'
 $logFolder = Join-Path $targetFolder 'log'
 $targetDaemonBin = Join-Path $targetFolder 'osqueryd.exe'
 $destDaemonBin = Join-Path $daemonFolder 'osqueryd.exe'
 $packageParameters = $env:chocolateyPackageParameters
 $arguments = @{}
 
-# Before modifying we ensure to stop the service, if it exists
-if ((Get-Service $serviceName -ErrorAction SilentlyContinue) -and (Get-Service $serviceName).Status -eq 'Running') {
+# Ensure the service is stopped and processes are not running if exists.
+if ((Get-Service $serviceName -ErrorAction SilentlyContinue) -and `
+  (Get-Service $serviceName).Status -eq 'Running') {
   Stop-Service $serviceName
+  # If we find zombie processes, ensure they're termintated
+  $proc = Get-Process | Where-Object { $_.ProcessName -eq 'osqueryd' }
+  if ($proc -ne $null) {
+    Stop-Process -Force $proc -ErrorAction SilentlyContinue
+  }
 }
 
 # Lastly, ensure that the Deny Write ACLs have been removed before modifying
 if (Test-Path $daemonFolder) {
   Set-DenyWriteAcl $daemonFolder 'Remove'
+}
+if (Test-Path $extensionsFolder) {
+  Set-DenyWriteAcl $extensionsFolder 'Remove'
 }
 
 # Now parse the packageParameters using good old regular expression
@@ -62,7 +72,7 @@ Set-DenyWriteAcl $daemonFolder 'Add'
 
 if ($installService) {
   if (-not (Get-Service $serviceName -ErrorAction SilentlyContinue)) {
-    Write-Debug '[+] Installing osquery daemon service.'
+    Write-Debug 'Installing osquery daemon service.'
     # If the 'install' parameter is passed, we create a Windows service with
     # the flag file in the default location in \ProgramData\osquery\
     New-Service -Name $serviceName -BinaryPathName "$destDaemonBin --flagfile=\ProgramData\osquery\osquery.flags" -DisplayName $serviceName -Description $serviceDescription -StartupType Automatic
@@ -85,10 +95,4 @@ if (-not ($oldPath -imatch [regex]::escape($targetFolder))) {
     $newPath = $newPath + ';' + $targetFolder
   }
   [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
-}
-
-if (Test-Path $targetFolder) {
-  Write-Output "osquery was successfully installed to $targetFolder."
-} else {
-  Write-Output 'There was an error installing osquery.'
 }

@@ -15,11 +15,11 @@
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/query.h>
 #include <osquery/system.h>
 
 #include "osquery/config/parsers/decorators.h"
 #include "osquery/core/process.h"
-#include "osquery/database/query.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/sql/sqlite_util.h"
 
@@ -31,6 +31,8 @@ FLAG(uint64,
      schedule_reload,
      300,
      "Interval in seconds to reload database arenas");
+
+FLAG(uint64, schedule_epoch, 0, "Epoch for scheduled queries");
 
 HIDDEN_FLAG(bool, enable_monitor, true, "Enable the schedule monitor");
 
@@ -47,7 +49,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   auto pid = std::to_string(PlatformProcess::getCurrentProcess()->pid());
   auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
   auto t0 = getUnixTime();
-  Config::getInstance().recordQueryStart(name);
+  Config::get().recordQueryStart(name);
   SQLInternal sql(query.query);
   // Snapshot the performance after, and compare.
   auto t1 = getUnixTime();
@@ -63,8 +65,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
       }
     }
     // Always called while processes table is working.
-    Config::getInstance().recordQueryPerformance(
-        name, t1 - t0, size, r0[0], r1[0]);
+    Config::get().recordQueryPerformance(name, t1 - t0, size, r0[0], r1[0]);
   }
   return sql;
 }
@@ -90,6 +91,7 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   item.name = name;
   item.identifier = ident;
   item.time = osquery::getUnixTime();
+  item.epoch = FLAGS_schedule_epoch;
   item.calendar_time = osquery::getAsciiTime();
   getDecorations(item.decorations);
 
@@ -111,7 +113,8 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // We can then ask for a differential from the last time this named query
   // was executed by exact matching each row.
   if (!FLAGS_events_optimize || !sql.eventBased()) {
-    status = dbQuery.addNewResults(sql.rows(), diff_results);
+    status = dbQuery.addNewResults(
+        sql.rows(), item.epoch, item.counter, diff_results);
     if (!status.ok()) {
       std::string line =
           "Error adding new results to database: " + status.what();
@@ -149,7 +152,7 @@ void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
-    Config::getInstance().scheduledQueries(
+    Config::get().scheduledQueries(
         ([&i](const std::string& name, const ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
             TablePlugin::kCacheInterval = query.splayed_interval;

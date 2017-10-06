@@ -10,10 +10,25 @@
 
 #pragma once
 
+#include <set>
+#include <string>
+
 #include <osquery/dispatcher.h>
 #include <osquery/filesystem.h>
 
 namespace osquery {
+
+/// Database domain where we store carve table entries
+const std::string kCarveDbDomain = "carves";
+
+/// Prefix used for the temp FS where carved files are stored
+const std::string kCarvePathPrefix = "osquery_carve_";
+
+/// Prefix applied to the file carve tar archive.
+const std::string kCarveNamePrefix = "carve_";
+
+/// Database prefix used to directly access and manipulate our carver entries
+const std::string kCarverDBPrefix = "carves.";
 
 class Carver : public InternalRunnable {
  public:
@@ -40,13 +55,6 @@ class Carver : public InternalRunnable {
    * users tmp directory
    */
   Status carve(const boost::filesystem::path& path);
-  /*
-   * @brief A helper function to compress files in a specified directory
-   *
-   * Given a set of paths we bundle these into a tar archive. This file
-   * will be a tgz, however currently no compression is performed.
-   */
-  Status compress(const std::set<boost::filesystem::path>& path);
 
   /*
    * @brief Helper function to POST a carve to the graph endpoint.
@@ -93,6 +101,14 @@ class Carver : public InternalRunnable {
   boost::filesystem::path archivePath_;
 
   /*
+   * @brief a helper variable for keeping track of the compressed tar.
+   *
+   * This variable is the absolute location of the tar archive created from
+   * zstd of the archive.
+   */
+  boost::filesystem::path compressPath_;
+
+  /*
    * @brief a unique ID identifying the 'carve'
    *
    * This unique generated GUID is used to identify the carve session from
@@ -127,4 +143,11 @@ class Carver : public InternalRunnable {
   friend class CarverTests;
   FRIEND_TEST(CarverTests, test_carve_files_locally);
 };
-}
+
+/**
+ * @brief Start a file carve of the given paths
+ *
+ * @return A status returning if the carves were started successfully
+ */
+Status carvePaths(const std::set<std::string>& paths);
+} // namespace osquery

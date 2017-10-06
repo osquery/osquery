@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include <osquery/database.h>
+#include <osquery/query.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
 
@@ -35,12 +35,12 @@ struct DistributedQueryRequest {
  * @brief Serialize a DistributedQueryRequest into a property tree
  *
  * @param r the DistributedQueryRequest to serialize
- * @param tree the output property tree
+ * @param d the output rapidjson document
  *
  * @return Status indicating the success or failure of the operation
  */
 Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
-                                        boost::property_tree::ptree& tree);
+                                        rapidjson::Document& d);
 
 /**
  * @brief Serialize a DistributedQueryRequest object into a JSON string
@@ -56,13 +56,13 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
 /**
  * @brief Deserialize a DistributedQueryRequest object from a property tree
  *
- * @param tree the input property tree
+ * @param d the input rapidjson value
  * @param r the output DistributedQueryRequest structure
  *
  * @return Status indicating the success or failure of the operation
  */
-Status deserializeDistributedQueryRequest(
-    const boost::property_tree::ptree& tree, DistributedQueryRequest& r);
+Status deserializeDistributedQueryRequest(const rapidjson::Value& d,
+                                          DistributedQueryRequest& r);
 
 /**
  * @brief Deserialize a DistributedQueryRequest object from a JSON string
@@ -97,13 +97,12 @@ struct DistributedQueryResult {
  * @brief Serialize a DistributedQueryResult into a property tree
  *
  * @param r the DistributedQueryResult to serialize
- * @param tree the output property tree
+ * @param d the output rapidjson document
  *
  * @return Status indicating the success or failure of the operation
  */
 Status serializeDistributedQueryResult(const DistributedQueryResult& r,
-                                       boost::property_tree::ptree& tree);
-
+                                       rapidjson::Document& d);
 /**
  * @brief Serialize a DistributedQueryResult object into a JSON string
  *
@@ -118,13 +117,13 @@ Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
 /**
  * @brief Deserialize a DistributedQueryResult object from a property tree
  *
- * @param tree the input property tree
+ * @param d the input rapidjson document
  * @param r the output DistributedQueryResult structure
  *
  * @return Status indicating the success or failure of the operation
  */
-Status deserializeDistributedQueryResult(
-    const boost::property_tree::ptree& tree, DistributedQueryResult& r);
+Status deserializeDistributedQueryResult(const rapidjson::Document& d,
+                                         DistributedQueryResult& r);
 
 /**
  * @brief Deserialize a DistributedQueryResult object from a JSON string

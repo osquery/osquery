@@ -1,11 +1,10 @@
 An osquery deployment can help you establish an infrastructural baseline, allowing you to detect malicious activity using scheduled queries.
 
-This approach will help you catch known malware ([WireLurker](http://bits.blogs.nytimes.com/2014/11/05/malicious-software-campaign-targets-apple-users-in-china/), IceFog, Imuler, etc.), and more importantly, unknown malware. Let's look at Mac OS X startup items for a given laptop using [osqueryi](../introduction/using-osqueryi.md):
+This approach will help you catch known malware ([WireLurker](http://bits.blogs.nytimes.com/2014/11/05/malicious-software-campaign-targets-apple-users-in-china/), IceFog, Imuler, etc.), and more importantly, unknown malware. Let's look at MacOS startup items for a given laptop using [osqueryi](../introduction/using-osqueryi.md):
 
 ```sh
 $ osqueryi
 osqueryi> SELECT * FROM startup_items;
-
 +--------------+----------------------------------------------------------+
 | name         | path                                                     |
 +--------------+----------------------------------------------------------+
@@ -35,7 +34,9 @@ Using the [log aggregation guide](log-aggregation.md), you will receive log line
     },
     "hostname":  "ted-osx.local",
     "calendarTime":  "Fri Nov  7 09:42:42 2014",
-    "unixTime":  1415382685
+    "unixTime":  "1415382685",
+    "epoch": "314159265",
+    "counter": "1"
 }
 ```
 
@@ -43,7 +44,7 @@ It's clear that a suspicious application called "Phone" was added to this host's
 
 ### Case-study: WireLurker
 
-In November, Palo Alto Networks [discovered](http://researchcenter.paloaltonetworks.com/2014/11/wirelurker-new-era-os-x-ios-malware/) a new piece of OS X malware called Wirelurker.
+In November 2015, Palo Alto Networks [discovered](http://researchcenter.paloaltonetworks.com/2014/11/wirelurker-new-era-os-x-ios-malware/) a new piece of macOS malware called Wirelurker.
 
 If you have osquery deployed, you can search for their static IOCs (indicators of compromise):
 

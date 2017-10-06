@@ -6,7 +6,12 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 # Update-able metadata
+#
+# $version - The version of the software package to build
+# $chocoVersion - The chocolatey package version, used for incremental bumps
+#                 without changing the version of the software package
 $version = '0.10.0'
+$chocoVersion = '0.10.0-r4'
 $packageName = 'thrift-dev'
 $projectSource = 'https://github.com/apache/thrift'
 $packageSourceUrl = 'https://github.com/apache/thrift'
@@ -15,9 +20,13 @@ $owners = 'thrift-dev'
 $copyright = 'https://github.com/apache/thrift/blob/master/LICENSE'
 $license = 'https://github.com/apache/thrift/blob/master/LICENSE'
 $url = "https://github.com/apache/thrift/archive/$version.zip"
+$parentPath = $(Split-Path -Parent $MyInvocation.MyCommand.Definition)
+$patchfiles = @(
+  Join-Path $parentPath "patches/thrift-dev.patch"
+)
 
 # Invoke our utilities file
-. "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
+. $(Join-Path $parentPath "osquery_utils.ps1")
 
 # Invoke the MSVC developer tools/env
 Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
@@ -41,53 +50,138 @@ if (-not (Test-Path "$chocoBuildPath")) {
 Set-Location $chocoBuildPath
 
 # Retreive the source
-Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
+if (-not (Test-Path "$packageName-$version.zip")) {
+  Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
+}
 
 # Extract the source
-7z x "$packageName-$version.zip"
-$sourceDir = "thrift-$version"
+$sourceDir = Join-Path $(Get-Location) "thrift-$version"
+if (-not (Test-Path $sourceDir)) {
+  $7z = (Get-Command '7z').Source
+  $7zargs = "x $packageName-$version.zip"
+  Start-OsqueryProcess $7z $7zargs
+}
 Set-Location $sourceDir
-
-# Set the cmake logic to generate a static build for us
-Add-Content -NoNewline -Path 'lib\cpp\CMakeLists.txt' -Value "`nset(CMAKE_CXX_FLAGS_RELEASE `"`${CMAKE_CXX_FLAGS_RELEASE} /MT`")`nset(CMAKE_CXX_FLAGS_DEBUG `"`${CMAKE_CXX_FLAGS_DEBUG} /MTd`")"
 
 # Build the libraries
 $buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'
 Set-Location $buildDir
 
-cmake -G 'Visual Studio 14 2015 Win64' -DBUILD_COMPILER=OFF -DWITH_SHARED_LIB=off -DWITH_ZLIB=ON -DZLIB_INCLUDE_DIR=C:\ProgramData/chocolatey/lib/zlib/local/include -DZLIB_LIBRARY=C:/ProgramData/chocolatey/lib/zlib/local/lib/zlibstatic.lib -DWITH_OPENSSL=ON -DOPENSSL_INCLUDE_DIR=C:/ProgramData/chocolatey/lib/openssl/local/include -DOPENSSL_ROOT_DIR=C:/ProgramData/chocolatey/lib/openssl/local -DBOOST_LIBRARYDIR=C:/ProgramData/chocolatey/lib/boost-msvc14/local/lib64-msvc-14.0 -DBOOST_ROOT=C:/ProgramData/chocolatey/lib/boost-msvc14/local ../
+# Patches are applied in this section before build
+# Windows TPipe implementations are _very_ noisy, so we squelch the output
+Add-Content `
+  -NoNewline `
+  -Path "$buildDir\..\lib\cpp\CMakeLists.txt" `
+  -Value "`nadd_definitions(-DTHRIFT_SQUELCH_CONSOLE_OUTPUT=1)"
+
+# Generate the solution files
+$cmake = (Get-Command 'cmake').Source
+$cmakeArgs = @(
+  '-G "Visual Studio 14 2015 Win64"',
+  '-DBUILD_COMPILER=ON',
+  '-DWITH_SHARED_LIB=OFF',
+  '-DBUILD_TESTING=OFF',
+  '-DBUILD_TUTORIALS=OFF',
+  '-DWITH_ZLIB=ON',
+  '-DZLIB_INCLUDE_DIR=C:/ProgramData/chocolatey/lib/zlib/local/include',
+  '-DZLIB_LIBRARY=C:/ProgramData/chocolatey/lib/zlib/local/lib/zlibstatic.lib',
+  '-DWITH_OPENSSL=ON',
+  '-DOPENSSL_INCLUDE_DIR=C:/ProgramData/chocolatey/lib/openssl/local/include',
+  '-DOPENSSL_ROOT_DIR=C:/ProgramData/chocolatey/lib/openssl/local',
+  '-DBOOST_LIBRARYDIR=C:/ProgramData/chocolatey/lib/boost-msvc14/local/lib',
+  '-DBOOST_ROOT=C:/ProgramData/chocolatey/lib/boost-msvc14/local',
+  '-DWITH_STDTHREADS=ON',
+  '-DWITH_MT=ON',
+  '../'
+)
+Start-OsqueryProcess $cmake $cmakeArgs
 
 # Build the libraries
-msbuild 'Apache Thrift.sln' /p:Configuration=Release /m /t:thrift_static /v:m
-msbuild 'Apache Thrift.sln' /p:Configuration=Release /m /t:thriftz_static /v:m
-msbuild 'Apache Thrift.sln' /p:Configuration=Debug /m /t:thrift_static /v:m
-msbuild 'Apache Thrift.sln' /p:Configuration=Debug /m /t:thriftz_static /v:m
+$msbuild = (Get-Command 'msbuild').Source
+$sln = 'Apache Thrift.sln'
+$targets = @(
+  'thrift_static',
+  'thriftz_static'
+)
+foreach ($target in $targets) {
+  $msbuildArgs = @(
+    "`"$sln`"",
+    "/p:Configuration=Release",
+    "/t:$target",
+    '/m',
+    '/v:m'
+  )
+  Start-OsqueryProcess $msbuild $msbuildArgs
+
+  # Bundle debug libs for troubleshooting
+  $msbuildArgs = @(
+    "`"$sln`"",
+    "/p:Configuration=Debug",
+    "/t:$target",
+    '/m',
+    '/v:m'
+  )
+  Start-OsqueryProcess $msbuild $msbuildArgs
+}
+
+# Lastly build the Thrift Compiler
+$msbuildArgs = @(
+  "`"$sln`"",
+  '/p:Configuration=Release',
+  '/t:thrift-compiler',
+  '/m',
+  '/v:m'
+)
+Start-OsqueryProcess $msbuild $msbuildArgs
+
+# If the build path exists, purge it for a clean packaging
+$chocoDir = Join-Path $(Get-Location) 'osquery-choco'
+if (Test-Path $chocoDir) {
+  Remove-Item -Force -Recurse $chocoDir
+}
 
 # Construct the Chocolatey Package
-$chocoDir = New-Item -ItemType Directory -Path 'osquery-choco'
+New-Item -ItemType Directory -Path $chocoDir
 Set-Location $chocoDir
 $includeDir = New-Item -ItemType Directory -Path 'local\include'
 $libDir = New-Item -ItemType Directory -Path 'local\lib'
+$binDir = New-Item -ItemType Directory -Path 'local\bin'
 $srcDir = New-Item -ItemType Directory -Path 'local\src'
 
-Write-NuSpec $packageName $version $authors $owners $projectSource $packageSourceUrl $copyright $license
+Write-NuSpec `
+  $packageName `
+  $chocoVersion `
+  $authors `
+  $owners `
+  $projectSource `
+  $packageSourceUrl `
+  $copyright `
+  $license
 
 # Rename the Debug libraries to end with a `_dbg.lib`
 foreach ($lib in Get-ChildItem "$buildDir\lib\Debug\") {
   $toks = $lib.Name.split('.')
   $newLibName = $toks[0..$($toks.count - 2)] -join '.'
   $suffix = $toks[$($toks.count - 1)]
-  Copy-Item -Path $lib.Fullname -Destination "$libDir\$newLibName`_dbg.$suffix"
+  Copy-Item `
+    -Path $lib.Fullname `
+    -Destination "$libDir\$newLibName`_dbg.$suffix"
 }
 Copy-Item "$buildDir\lib\Release\*" $libDir
+Copy-Item "$buildDir\bin\Release\*" $binDir
 Copy-Item -Recurse "$buildDir\..\lib\cpp\src\thrift" $includeDir
 Copy-Item $buildScript $srcDir
 choco pack
 
-Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" -foregroundcolor DarkGreen
-if (Test-Path "$packageName.$version.nupkg") {
-  Write-Host "[+] Finished building $packageName v$version." -foregroundcolor Green
+Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" `
+  -ForegroundColor DarkGreen
+if (Test-Path "$packageName.$chocoVersion.nupkg") {
+  Write-Host `
+    "[+] Finished building $packageName v$chocoVersion." `
+    -ForegroundColor Green
 }
 else {
-  Write-Host "[-] Failed to build $packageName v$version." -foregroundcolor Red
+  Write-Host `
+    "[-] Failed to build $packageName v$chocoVersion." `
+    -ForegroundColor Red
 }

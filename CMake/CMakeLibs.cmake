@@ -43,6 +43,9 @@ macro(SET_OSQUERY_COMPILE TARGET)
   list(LENGTH OPTIONAL_FLAGS NUM_OPTIONAL_FLAGS)
   if(${NUM_OPTIONAL_FLAGS} GREATER 0)
     set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${OPTIONAL_FLAGS}")
+    if(DO_CLANG_TIDY AND NOT "${TARGET}" STREQUAL "osquery_extensions")
+      set_target_properties(${TARGET} PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
+    endif()
   endif()
 endmacro(SET_OSQUERY_COMPILE)
 
@@ -52,8 +55,10 @@ macro(ADD_DEFAULT_LINKS TARGET ADDITIONAL)
     if(${ADDITIONAL})
       target_link_libraries(${TARGET} libosquery_additional_shared)
     endif()
-    if(DEFINED ENV{OSQUERY_BUILD_SHARED})
-      target_link_libraries(${TARGET} "-Wl,-rpath,${CMAKE_BINARY_DIR}/osquery")
+    target_link_libraries(${TARGET} "-Wl,-rpath,${CMAKE_BINARY_DIR}/osquery")
+    target_link_libraries(${TARGET} ${OSQUERY_LINKS})
+    if(${ADDITIONAL})
+      target_link_libraries(${TARGET} ${OSQUERY_ADDITIONAL_LINKS})
     endif()
   else()
     TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery)
@@ -64,7 +69,7 @@ macro(ADD_DEFAULT_LINKS TARGET ADDITIONAL)
 endmacro()
 
 macro(ADD_OSQUERY_PYTHON_TEST TEST_NAME SOURCE)
-  if(NOT DEFINED ENV{SKIP_INTEGRATION_TESTS} AND NOT WINDOWS)
+  if(NOT DEFINED ENV{SKIP_INTEGRATION_TESTS})
     add_test(NAME python_${TEST_NAME}
       COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/tests/${SOURCE}"
         --build "${CMAKE_BINARY_DIR}"
@@ -125,10 +130,27 @@ macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
         endif()
         if(NOT ${ITEM_SYSTEM})
           find_library("${ITEM}_library"
-            NAMES "${ITEM}.lib" "lib${ITEM}.lib" "lib${ITEM}.a" "${ITEM}" HINTS ${LINK_PATHS_RELATIVE})
+            NAMES
+              "${ITEM}.lib"
+              "lib${ITEM}.lib"
+              "lib${ITEM}-mt.a"
+              "lib${ITEM}.a"
+              "${ITEM}"
+            HINTS ${LINK_PATHS_RELATIVE})
         else()
           find_library("${ITEM}_library"
-            NAMES "${ITEM}.lib" "lib${ITEM}.lib" "lib${ITEM}.so" "lib${ITEM}.dylib" "${ITEM}.so" "${ITEM}.dylib" "${ITEM}"
+            NAMES
+              "${ITEM}.lib"
+              "lib${ITEM}.lib"
+              "lib${ITEM}-mt.so"
+              "lib${ITEM}.so"
+              "lib${ITEM}-mt.dylib"
+              "lib${ITEM}.dylib"
+              "${ITEM}-mt.so"
+              "${ITEM}.so"
+              "${ITEM}-mt.dylib"
+              "${ITEM}.dylib"
+              "${ITEM}"
             HINTS ${LINK_PATHS_SYSTEM})
         endif()
         LOG_LIBRARY(${ITEM} "${${ITEM}_library}")
@@ -228,12 +250,7 @@ macro(ADD_OSQUERY_LIBRARY IS_CORE TARGET)
     endforeach()
     add_library(${TARGET} OBJECT ${ARGN})
     add_dependencies(${TARGET} osquery_extensions)
-    # TODO(#1985): For Windows, ignore the -static compiler flag
-    if(WINDOWS)
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS} /EHsc")
-    else()
-      SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}") # -static
-    endif()
+    SET_OSQUERY_COMPILE(${TARGET} "${CXX_COMPILE_FLAGS}")
     if(${IS_CORE})
       list(APPEND OSQUERY_SOURCES $<TARGET_OBJECTS:${TARGET}>)
       set(OSQUERY_SOURCES ${OSQUERY_SOURCES} PARENT_SCOPE)
@@ -251,40 +268,17 @@ macro(ADD_OSQUERY_EXTENSION TARGET)
   set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "${TARGET}.ext")
 endmacro(ADD_OSQUERY_EXTENSION)
 
-macro(ADD_OSQUERY_MODULE TARGET)
-  add_library(${TARGET} SHARED ${ARGN})
-  if(NOT FREEBSD AND NOT WINDOWS)
-    target_link_libraries(${TARGET} dl)
-  endif()
-
-  add_dependencies(${TARGET} libosquery)
-  if(APPLE)
-    target_link_libraries(${TARGET} "-undefined dynamic_lookup")
-  elseif(LINUX)
-    # This could implement a similar LINK_MODULE for gcc, libc, and libstdc++.
-    # However it is only provided as an example for unit testing.
-    target_link_libraries(${TARGET} "-static-libstdc++")
-    if(CMAKE_CXX_COMPILER MATCHES "clang")
-      target_link_libraries(${TARGET} "-fuse-ld=lld")
-    endif()
-  endif()
-  set_target_properties(${TARGET} PROPERTIES COMPILE_FLAGS "${CXX_COMPILE_FLAGS}")
-  set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME ${TARGET})
-endmacro(ADD_OSQUERY_MODULE)
-
 # Helper to abstract OS/Compiler whole linking.
-if(WINDOWS)
-  macro(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
-    target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}$<TARGET_FILE_NAME:${OSQUERY_LIB}>")
-    target_link_libraries(${TARGET} ${OSQUERY_LIB})
-  endmacro(TARGET_OSQUERY_LINK_WHOLE)
-else()
-  macro(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
-    target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}")
-    target_link_libraries(${TARGET} ${OSQUERY_LIB})
-    target_link_libraries(${TARGET} "${OS_WHOLELINK_POST}")
-  endmacro(TARGET_OSQUERY_LINK_WHOLE)
-endif()
+macro(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
+  if(WINDOWS)
+      target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}$<TARGET_FILE_NAME:${OSQUERY_LIB}>")
+      target_link_libraries(${TARGET} ${OSQUERY_LIB})
+  else()
+      target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}")
+      target_link_libraries(${TARGET} ${OSQUERY_LIB})
+      target_link_libraries(${TARGET} "${OS_WHOLELINK_POST}")
+  endif()
+endmacro(TARGET_OSQUERY_LINK_WHOLE)
 
 set(GLOBAL PROPERTY AMALGAMATE_TARGETS "")
 macro(GET_GENERATION_DEPS BASE_PATH)
@@ -305,13 +299,13 @@ macro(GENERATE_TABLES TABLES_PATH)
   set(TABLES_SPECS "${TABLES_PATH}/specs")
   set(TABLE_CATEGORIES "")
   if(APPLE)
-    list(APPEND TABLE_CATEGORIES "darwin" "posix")
+    list(APPEND TABLE_CATEGORIES "darwin" "posix" "macwin")
   elseif(FREEBSD)
     list(APPEND TABLE_CATEGORIES "freebsd" "posix")
   elseif(LINUX)
     list(APPEND TABLE_CATEGORIES "linux" "posix")
   elseif(WINDOWS)
-    list(APPEND TABLE_CATEGORIES "windows")
+    list(APPEND TABLE_CATEGORIES "windows" "macwin")
   else()
     message( FATAL_ERROR "Unknown platform detected, cannot generate tables")
   endif()

@@ -1,0 +1,29 @@
+table_name("carbon_black_info", aliases=["cb_info"])
+description("Returns info about a Carbon Black sensor install.")
+schema([
+    Column("sensor_id", INTEGER, "Sensor ID of the Carbon Black sensor"),
+    Column("config_name", TEXT, "Sensor group"),
+    Column("collect_store_files", INTEGER, "If the sensor is configured to send back binaries to the Carbon Black server"),
+    Column("collect_module_loads", INTEGER, "If the sensor is configured to capture module loads"),
+    Column("collect_module_info", INTEGER, "If the sensor is configured to collect metadata of binaries"),
+    Column("collect_file_mods", INTEGER, "If the sensor is configured to collect file modification events"),
+    Column("collect_reg_mods", INTEGER, "If the sensor is configured to collect registry modification events"),
+    Column("collect_net_conns", INTEGER, "If the sensor is configured to collect network connections"),
+    Column("collect_processes", INTEGER, "If the sensor is configured to process events"),
+    Column("collect_cross_processes", INTEGER, "If the sensor is configured to cross process events"),
+    Column("collect_emet_events", INTEGER, "If the sensor is configured to EMET events"),
+    Column("collect_data_file_writes", INTEGER, "If the sensor is configured to collect non binary file writes"),
+    Column("collect_process_user_context", INTEGER, "If the sensor is configured to collect the user running a process"),
+    Column("collect_sensor_operations", INTEGER, "Unknown"),
+    Column("log_file_disk_quota_mb", INTEGER, "Event file disk quota in MB"),
+    Column("log_file_disk_quota_percentage", INTEGER, "Event file disk quota in a percentage"),
+    Column("protection_disabled", INTEGER, "If the sensor is configured to report tamper events"),
+    Column("sensor_ip_addr", TEXT, "IP address of the sensor"),
+    Column("sensor_backend_server", TEXT, "Carbon Black server"),
+    Column("event_queue", INTEGER, "Size in bytes of Carbon Black event files on disk"),
+    Column("binary_queue", INTEGER, "Size in bytes of binaries waiting to be sent to Carbon Black server"),
+])
+implementation("carbon_black@genCarbonBlackInfo")
+fuzz_paths([
+    "/var/lib/cb",
+])

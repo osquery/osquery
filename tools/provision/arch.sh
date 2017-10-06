@@ -10,13 +10,6 @@
 function distro_main() {
   do_sudo pacman -Syu
 
-  package wget
-  package git
-  package unzip
-  package gawk
-  package xz
-  package ruby
-  package bzip2
-  package bison
-  package flex
+  package doxygen
+  package valgrind
 }

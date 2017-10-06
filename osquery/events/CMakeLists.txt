@@ -1,3 +1,10 @@
+#  Copyright (c) 2014-present, Facebook, Inc.
+#  All rights reserved.
+#
+#  This source code is licensed under the BSD-style license found in the
+#  LICENSE file in the root directory of this source tree. An additional grant
+#  of patent rights can be found in the PATENTS file in the same directory.
+
 if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreServices")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework SystemConfiguration")
@@ -42,23 +49,25 @@ if(NOT WINDOWS)
   )
 
   # Kernel-related userland code.
-  file(GLOB OSQUERY_EVENTS_KERNEL "kernel/*.cpp")
-  ADD_OSQUERY_LIBRARY(FALSE osquery_events_kernel
-    kernel.cpp
-    ${OSQUERY_EVENTS_KERNEL}
-  )
+  if(NOT SKIP_KERNEL)
+    file(GLOB OSQUERY_EVENTS_KERNEL "kernel/*.cpp")
+    ADD_OSQUERY_LIBRARY(FALSE osquery_events_kernel
+      kernel.cpp
+      ${OSQUERY_EVENTS_KERNEL}
+    )
 
-  # Special kernel test define when building non-SDK and non-Release.
-  if(NOT OSQUERY_BUILD_RELEASE AND NOT OSQUERY_BUILD_SDK_ONLY)
-    set_target_properties(osquery_events_kernel
-      PROPERTIES COMPILE_DEFINITIONS "KERNEL_TEST=1")
+    # Special kernel test define when building non-SDK and non-Release.
+    if(NOT OSQUERY_BUILD_RELEASE AND NOT OSQUERY_BUILD_SDK_ONLY)
+      set_target_properties(osquery_events_kernel
+        PROPERTIES COMPILE_DEFINITIONS "KERNEL_TEST=1")
+    endif()
+
+    file(GLOB OSQUERY_EVENTS_KERNEL_TESTS "kernel/tests/*.cpp")
+    ADD_OSQUERY_KERNEL_TEST(${OSQUERY_EVENTS_KERNEL_TESTS})
+
+    file(GLOB OSQUERY_EVENTS_KERNEL_BENCHMARKS "kernel/benchmarks/*.cpp")
+    ADD_OSQUERY_KERNEL_BENCHMARK(${OSQUERY_EVENTS_KERNEL_BENCHMARKS})
   endif()
-
-  file(GLOB OSQUERY_EVENTS_KERNEL_TESTS "kernel/tests/*.cpp")
-  ADD_OSQUERY_KERNEL_TEST(${OSQUERY_EVENTS_KERNEL_TESTS})
-
-  file(GLOB OSQUERY_EVENTS_KERNEL_BENCHMARKS "kernel/benchmarks/*.cpp")
-  ADD_OSQUERY_KERNEL_BENCHMARK(${OSQUERY_EVENTS_KERNEL_BENCHMARKS})
 endif()
 
 if(APPLE)

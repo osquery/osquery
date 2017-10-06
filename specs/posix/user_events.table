@@ -1,0 +1,17 @@
+table_name("user_events")
+description("Track user events from the audit framework.")
+schema([
+    Column("uid", BIGINT, "User ID"),
+    Column("auid", BIGINT, "Audit User ID"),
+    Column("pid", BIGINT, "Process (or thread) ID"),
+    Column("message", TEXT, "Message from the event"),
+    Column("type", INTEGER, "The file description for the process socket"),
+    Column("path", TEXT, "Supplied path from event"),
+    Column("address", TEXT, "The Internet protocol address or family ID"),
+    Column("terminal", TEXT, "The network protocol ID"),
+    Column("time", BIGINT, "Time of execution in UNIX time"),
+    Column("uptime", BIGINT, "Time of execution in system uptime"),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("user_events@user_events::genTable")

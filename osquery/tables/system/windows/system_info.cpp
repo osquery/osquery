@@ -22,8 +22,9 @@ namespace tables {
 
 QueryData genSystemInfo(QueryContext& context) {
   Row r;
-  r["hostname"] = osquery::getHostname();
-  r["computer_name"] = r["hostname"];
+  r["hostname"] = osquery::getFqdn();
+  r["computer_name"] = osquery::getHostname();
+  r["local_hostname"] = r["computer_name"];
   getHostUUID(r["uuid"]);
 
   auto qd = SQL::selectAllFrom("cpuid");
@@ -52,6 +53,14 @@ QueryData genSystemInfo(QueryContext& context) {
     r["hardware_vendor"] = "-1";
     r["hardware_model"] = "-1";
   }
+  
+  WmiRequest wmiBiosReq("select * from Win32_Bios");
+  std::vector<WmiResultItem>& wmiBiosResults = wmiBiosReq.results();
+  if (wmiBiosResults.size() != 0) {
+	  wmiBiosResults[0].GetString("SerialNumber", r["hardware_serial"]);
+  } else {
+	  r["hardware_serial"] = "-1";
+  }
 
   SYSTEM_INFO systemInfo;
   GetSystemInfo(&systemInfo);
@@ -76,7 +85,6 @@ QueryData genSystemInfo(QueryContext& context) {
 
   r["cpu_subtype"] = "-1";
   r["hardware_version"] = "-1";
-  r["hardware_serial"] = "-1";
   return {r};
 }
 }

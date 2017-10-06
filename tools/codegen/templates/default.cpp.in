@@ -100,13 +100,13 @@ class {{table_name_cc}}TablePlugin : public TablePlugin {
 {% else %}\
   QueryData generate(QueryContext& context) override {
 {% if attributes.cacheable %}\
-    if (isCached(kCacheStep)) {
+    if (isCached(kCacheStep, context)) {
       return getCache();
     }
 {% endif %}\
     auto results = tables::{{function}}(context);
 {% if attributes.cacheable %}\
-    setCache(kCacheStep, kCacheInterval, results);
+    setCache(kCacheStep, kCacheInterval, context, results);
 {% endif %}
     return results;
   }

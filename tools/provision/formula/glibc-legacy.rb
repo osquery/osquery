@@ -5,11 +5,12 @@ class GlibcLegacy < AbstractOsqueryFormula
   homepage "https://www.gnu.org/software/libc"
   url "ftp.gnu.org/gnu/glibc/glibc-2.13.tar.bz2"
   sha256 "0173c92a0545e6d99a46a4fbed2da00ba26556f5c6198e2f9f1631ed5318dbb2"
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "57535af3eadc4fe7158f2f2a1f721b113d88ffd825ace3ccbc96f95600657f17" => :x86_64_linux
+    sha256 "5613d3a040b2fdafd9c3de17aea7cae3291fa13f8b1998d05934ef5135c29735" => :x86_64_linux
   end
 
   # Must apply patches to allow compiling with newer versions of GCC/gmake.

@@ -45,16 +45,18 @@ elseif(CLANGXX_EXECUTABLE)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
-find_program(CCACHE_EXECUTABLE ccache ENV PATH)
-if(CCACHE_EXECUTABLE)
-  if(NOT DEFINED CCACHE_FOUND_LOG)
-    set(CCACHE_FOUND_LOG TRUE CACHE BOOL "Write log line for ccache.")
-    LOG("Found ccache ${CCACHE_EXECUTABLE}")
-    LOG("Using ccache to speed up compilation")
+if(NOT DEFINED ENV{SKIP_CCACHE})
+  find_program(CCACHE_EXECUTABLE ccache ENV PATH)
+  if(CCACHE_EXECUTABLE)
+    if(NOT DEFINED CCACHE_FOUND_LOG)
+      set(CCACHE_FOUND_LOG TRUE CACHE BOOL "Write log line for ccache.")
+      LOG("Found ccache ${CCACHE_EXECUTABLE}")
+      LOG("Using ccache to speed up compilation")
+    endif()
+    set(ENV{CCACHE_CPP2} "yes")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_EXECUTABLE}")
+    set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_EXECUTABLE}")
   endif()
-  set(ENV{CCACHE_CPP2} "yes")
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_EXECUTABLE}")
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CCACHE_EXECUTABLE}")
 endif()
 
 # osquery additional compiler flags added by CMake.
@@ -152,8 +154,23 @@ if(POSIX)
     -fdata-sections
     -ffunction-sections
   )
+  if(NOT FREEBSD AND NOT DEFINED ENV{OSQUERY_BUILD_SHARED})
+    add_compile_options(
+      -Werror=shadow
+      -fvisibility=hidden
+      -fvisibility-inlines-hidden
+    )
+  endif()
+elseif(WINDOWS)
+  add_compile_options(
+    /EHsc
+    /W3
+    /guard:cf
+  )
+  add_definitions(-DBOOST_ALL_NO_LIB)
 endif()
 
+set(TEST_ARGS "")
 if(LINUX AND CMAKE_CXX_COMPILER MATCHES "clang")
   # Use the LLVM versions of ar and ranlib to support LTO builds
   find_program(LLVMRANLIB_EXECUTABLE "llvm-ranlib" ENV PATH)
@@ -197,6 +214,8 @@ elseif(DEFINED ENV{SANITIZE})
   )
   if (DEFINED ENV{SANITIZE_THREAD})
     add_compile_options(-fsanitize=thread)
+  elseif(DEFINED ENV{SANITIZE_UNDEFINED})
+    add_compile_options(-fsanitize=undefined)
   else()
     add_compile_options(-fsanitize=address)
     if(LINUX)
@@ -204,10 +223,23 @@ elseif(DEFINED ENV{SANITIZE})
       add_compile_options(-fsanitize=leak)
     endif()
   endif()
+
+  if(LINUX)
+    # Tests that fail TSAN Checks.
+    set(SANITIZE_SKIP_TEST
+      ProcessTests.test_launchExtension
+      BufferedLogForwarderTests.test_index
+      CarverTests.test_carve_files_locally
+      FileEventsTableTests.*
+      YARATest.*
+    )
+    string(REPLACE ";" ":" TEST_ARGS "${SANITIZE_SKIP_TEST}")
+    set(TEST_ARGS "--gtest_filter=-${TEST_ARGS}")
+  endif()
 else()
   set(DEBUG FALSE)
   if(WINDOWS)
-    add_compile_options(/Ot)
+    add_compile_options(/Ot /WX)
   else()
     add_compile_options(-Os)
   endif()
@@ -226,7 +258,7 @@ else()
       -fpic
     )
     if (CMAKE_CXX_COMPILER MATCHES "clang" AND NOT FREEBSD)
-      # Only enale LTO builds when using clang on Unix, for now
+      # Only enable LTO builds when using clang on Unix, for now
       add_compile_options(-flto=thin)
     endif()
   endif()
@@ -276,16 +308,36 @@ endif()
 # The recommended osquery build, and distributed packages, do not use these.
 if(DEFINED ENV{SKIP_AWS})
   set(SKIP_AWS TRUE)
+  add_definitions(-DSKIP_AWS=1)
 endif()
 if(DEFINED ENV{SKIP_TSK})
   set(SKIP_TSK TRUE)
+  add_definitions(-DSKIP_TSK=1)
 endif()
 if(DEFINED ENV{SKIP_LLDPD})
   set(SKIP_LLDPD TRUE)
+  add_definitions(-DSKIP_LLDPD=1)
 endif()
 if(DEFINED ENV{SKIP_YARA})
   set(SKIP_YARA TRUE)
+  add_definitions(-DSKIP_YARA=1)
 endif()
+if(DEFINED ENV{SKIP_KAFKA})
+  set(SKIP_KAFKA TRUE)
+  add_definitions(-DSKIP_KAFKA=1)
+endif()
+if(DEFINED ENV{SKIP_CARVER})
+  set(SKIP_CARVER TRUE)
+  add_definitions(-DSKIP_CARVER=1)
+endif()
+
+# The kernel builds are skipped by default.
+if(DEFINED ENV{SKIP_KERNEL} AND "$ENV{SKIP_KERNEL}" STREQUAL "False")
+  set(SKIP_KERNEL FALSE)
+else()
+  set(SKIP_KERNEL TRUE)
+endif()
+
 
 # Similar to the feature skips, there are default-build skips.
 if(DEFINED ENV{SKIP_TESTS})
@@ -303,6 +355,27 @@ project(OSQUERY)
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake" "${CMAKE_MODULE_PATH}")
 include(CMakeLibs)
+
+find_program(CLANG_TIDY NAMES "clang-tidy" ENV PATH)
+if(DEFINED ENV{TIDY} AND CLANG_TIDY)
+  message(STATUS "clang-tidy found: ${CLANG_TIDY}")
+  set(TIDY_CHECKS
+    "*"
+    "-cert-err58-cpp"
+    "-cppcoreguidelines-pro-bounds-array-to-pointer-decay"
+    "-readability-else-after-return"
+    "-cppcoreguidelines-pro-type-union-access"
+    "-modernize-use-bool-literals"
+    "-modernize-use-emplace"
+    "-google-runtime-references"
+  )
+  JOIN("${TIDY_CHECKS}" "," TIDY_CHECKS)
+  set(DO_CLANG_TIDY "${CLANG_TIDY}"
+    "-checks=${TIDY_CHECKS}"
+    "-p=${CMAKE_BINARY_DIR}"
+    "-fix"
+  )
+endif()
 
 if(WINDOWS)
   foreach(flag_var
@@ -382,7 +455,14 @@ add_definitions(
   -D${OSQUERY_BUILD_PLATFORM_DEFINE}_${OSQUERY_BUILD_DISTRO_DEFINE}
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
+  -DNOMINMAX
+
+  # See boost 1.65 breakage https://github.com/Homebrew/homebrew-core/pull/17150
+  -D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0
 )
+
+# Remove console output (not handled by logged).
+add_definitions(-DTHRIFT_SQUELCH_CONSOLE_OUTPUT=1)
 
 if(DEFINED ENV{SQLITE_DEBUG})
   add_definitions(
@@ -443,12 +523,11 @@ if(WINDOWS)
   set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static gtest/gmock library" FORCE)
 
   file(GLOB INCLUDE_DIRS LIST_DIRECTORIES true "${WINDOWS_DEP_DIR}/*/*/include")
-  include_directories(${INCLUDE_DIRS})
-  include_directories("${WINDOWS_DEP_DIR}/boost-msvc14/local")
+  include_directories(SYSTEM ${INCLUDE_DIRS})
+  include_directories(SYSTEM "${WINDOWS_DEP_DIR}/boost-msvc14/local")
 
   ## TODO(FIXME): temporary for now
   include_directories("${WINDOWS_DEP_DIR}/linenoise-ng/local/include/linenoise")
-  include_directories("${WINDOWS_DEP_DIR}/snappy-msvc/tools/snappy-windows-1.1.1.8/include")
 else()
   set(PROCESS_FAMILY "posix")
   set(MKDIR_OPTS "-p")
@@ -532,7 +611,7 @@ add_subdirectory(osquery)
 add_subdirectory(tools/tests)
 
 # Include the kernel building targets/macros
-if(NOT ${OSQUERY_BUILD_SDK_ONLY})
+if(NOT SKIP_KERNEL AND NOT ${OSQUERY_BUILD_SDK_ONLY})
   add_subdirectory(kernel)
 endif()
 
@@ -575,7 +654,7 @@ endif()
 # make format-all
 find_program(CLANGFORMAT_EXECUTABLE "clang-format" ENV PATH)
 add_custom_target(
-  format-all
+  format_all
   find osquery include tools \( -name "*.h" -o -name "*.cpp" -o -name "*.mm" \)
     -exec "${CLANGFORMAT_EXECUTABLE}" -i {} +
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -585,7 +664,7 @@ add_custom_target(
 # make format
 add_custom_target(
   format
-  "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py" "-f"
+  "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/formatting/git-clang-format.py" "-f" "--binary" "${BUILD_DEPS}/bin/clang-format"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Formatting code staged code changes with clang-format" VERBATIM
 )

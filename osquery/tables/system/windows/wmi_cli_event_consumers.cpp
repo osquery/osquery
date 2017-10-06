@@ -9,16 +9,10 @@
  */
 
 #include <sstream>
-#include <string>
 
-#include <stdlib.h>
-
-#include <osquery/core.h>
-#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
 namespace osquery {
@@ -29,9 +23,12 @@ QueryData genWmiCliConsumers(QueryContext& context) {
   std::stringstream ss;
   ss << "SELECT * FROM CommandLineEventConsumer";
 
-  WmiRequest request(ss.str(), (BSTR)L"ROOT\\Subscription");
+  BSTR bstr = ::SysAllocString(L"ROOT\\Subscription");
+  WmiRequest request(ss.str(), bstr);
+  ::SysFreeString(bstr);
+
   if (request.getStatus().ok()) {
-    std::vector<WmiResultItem>& results = request.results();
+    auto& results = request.results();
     for (const auto& result : results) {
       Row r;
 
@@ -46,5 +43,5 @@ QueryData genWmiCliConsumers(QueryContext& context) {
 
   return results_data;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

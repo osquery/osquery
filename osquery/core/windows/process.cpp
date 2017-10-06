@@ -200,7 +200,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
   // backing memory as modifiable.
   for (size_t i = 0; i < argc; i++) {
     std::string component(argv[i]);
-    if (component.find(" ") != std::string::npos) {
+    if (component.find(' ') != std::string::npos) {
       boost::replace_all(component, "\"", "\\\"");
       argv_stream << "\"" << component << "\" ";
     } else {
@@ -299,10 +299,8 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   return process;
 }
 
-std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
+std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
     const std::string& args) {
-  std::shared_ptr<PlatformProcess> process;
-
   STARTUPINFOA si = {0};
   PROCESS_INFORMATION pi = {nullptr};
 
@@ -312,7 +310,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
   si.cb = sizeof(si);
 
   auto pythonEnv = getEnvVar("OSQUERY_PYTHON_PATH");
-  std::string pythonPath("");
+  std::string pythonPath;
   if (pythonEnv.is_initialized()) {
     pythonPath = *pythonEnv;
   }
@@ -322,6 +320,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchPythonScript(
   // environment variable.
   pythonPath += "\\python.exe";
 
+  std::shared_ptr<PlatformProcess> process;
   if (::CreateProcessA(pythonPath.c_str(),
                        mutable_argv.data(),
                        nullptr,

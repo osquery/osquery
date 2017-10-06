@@ -68,6 +68,9 @@ class SQLiteDBInstance : private boost::noncopyable {
   /// Clear per-query state of a table affected by the use of this instance.
   void clearAffectedTables();
 
+  /// Check if a virtual table had been called already.
+  bool tableCalled(VirtualTableContent* table);
+
  private:
   /// Handle the primary/forwarding requests for table attribute accesses.
   TableAttributes getAttributes() const;
@@ -361,4 +364,14 @@ void registerStringExtensions(sqlite3* db);
  * @brief Register hashing-related 'custom' functions.
  */
 void registerHashingExtensions(sqlite3* db);
+
+/**
+ * @brief Register osquery operation 'custom' functions.
+ */
+void registerOperationExtensions(sqlite3* db);
+
+/**
+ * @brief Register encoding-related 'custom' functions.
+ */
+void registerEncodingExtensions(sqlite3* db);
 }

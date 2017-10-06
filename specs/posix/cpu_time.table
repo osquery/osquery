@@ -1,0 +1,19 @@
+table_name("cpu_time")
+description("Displays information from /proc/stat file about the time the cpu cores spent in different parts of the system.")
+schema([
+    Column("core", INTEGER, "Name of the cpu (core)"),
+    Column("user", BIGINT, "Time spent in user mode"),
+    Column("nice", BIGINT, "Time spent in user mode with low priority (nice)"),
+    Column("system", BIGINT, "Time spent in system mode"),
+    Column("idle", BIGINT, "Time spent in the idle task"),
+    Column("iowait", BIGINT, "Time spent waiting for I/O to complete"),
+    Column("irq", BIGINT, "Time spent servicing interrupts"),
+    Column("softirq", BIGINT, "Time spent servicing softirqs"),
+    Column("steal", BIGINT, "Time spent in other operating systems when running in a virtualized environment"),
+    Column("guest", BIGINT, "Time spent running a virtual CPU for a guest OS under the control of the Linux kernel"),
+    Column("guest_nice", BIGINT, "Time spent running a niced guest "),
+])
+implementation("cpu_time@genCpuTime")
+fuzz_paths([
+    "/proc/stat",
+])

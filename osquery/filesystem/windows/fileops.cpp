@@ -27,6 +27,9 @@
 #include "osquery/core/process.h"
 #include "osquery/filesystem/fileops.h"
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
 namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;
 
@@ -97,6 +100,43 @@ class WindowsFindFiles {
 
   fs::path path_;
 };
+
+Status windowsShortPathToLongPath(const std::string& shortPath,
+                                  std::string& rLongPath) {
+  TCHAR longPath[MAX_PATH];
+  auto ret = GetLongPathName(shortPath.c_str(), longPath, MAX_PATH);
+  if (ret == 0) {
+    return Status(GetLastError(), "Failed to convert short path to long path");
+  }
+  rLongPath = std::string(longPath);
+  return Status();
+}
+
+Status windowsGetFileVersion(const std::string& path, std::string& rVersion) {
+  DWORD handle = 0;
+  auto verSize = GetFileVersionInfoSize(path.c_str(), &handle);
+  auto verInfo = std::make_unique<BYTE[]>(verSize);
+  if (verInfo == nullptr) {
+    return Status(1, "Failed to malloc for version info");
+  }
+  auto err = GetFileVersionInfo(path.c_str(), handle, verSize, verInfo.get());
+  if (err == 0) {
+    return Status(GetLastError(), "Failed to get file version info");
+  }
+  VS_FIXEDFILEINFO* pFileInfo = nullptr;
+  UINT verInfoSize = 0;
+  err = VerQueryValue(
+      verInfo.get(), TEXT("\\"), (LPVOID*)&pFileInfo, &verInfoSize);
+  if (err == 0) {
+    return Status(GetLastError(), "Failed to query version value");
+  }
+  rVersion =
+      std::to_string((pFileInfo->dwProductVersionMS >> 16 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwProductVersionMS >> 0 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwProductVersionLS >> 16 & 0xffff)) + "." +
+      std::to_string((pFileInfo->dwProductVersionLS >> 0 & 0xffff));
+  return Status();
+}
 
 static bool hasGlobBraces(const std::string& glob) {
   int brace_depth = 0;
@@ -509,7 +549,7 @@ static AclObject modifyAcl(PACL acl,
   return std::move(new_acl_buffer);
 }
 
-PlatformFile::PlatformFile(const std::string& path, int mode, int perms)
+PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     : fname_(path) {
   DWORD access_mask = 0;
   DWORD flags_and_attrs = 0;
@@ -553,7 +593,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms)
     // TODO(#2001): set up a security descriptor based off the perms
   }
 
-  handle_ = ::CreateFileA(path.c_str(),
+  handle_ = ::CreateFileA(fname_.string().c_str(),
                           access_mask,
                           FILE_SHARE_READ,
                           security_attrs.get(),
@@ -1239,7 +1279,7 @@ static std::string normalizeDirPath(const fs::path& path) {
 
   // Obtain the full path of the fs::path object
   DWORD nret = ::GetFullPathNameA(
-      (LPCSTR)path.string().c_str(), MAX_PATH, full_path.data(), nullptr);
+      path.string().c_str(), MAX_PATH, full_path.data(), nullptr);
   if (nret == 0) {
     return std::string();
   }

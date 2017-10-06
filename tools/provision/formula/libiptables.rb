@@ -5,11 +5,12 @@ class Libiptables < AbstractOsqueryFormula
   homepage "http://netfilter.samba.org/"
   url "https://osquery-packages.s3.amazonaws.com/deps/iptables-1.4.21.tar.gz"
   sha256 "ce1335c91764dc87a26978bd3725c510c2564853184c6e470e0a0f785f420f89"
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "a3be4342280da5a1755e469e51140389341f83a4f70ba3949e048b4554fa6114" => :x86_64_linux
+    sha256 "d3ae11309d313ecc6e7ae1d681e14cc7f7f5bd9a6a447d3bf70e1eb621041dfe" => :x86_64_linux
   end
 
   patch :DATA

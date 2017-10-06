@@ -1,0 +1,17 @@
+<ul>
+  <li class="{% if page.url contains '/docs/' %}current{% endif %}">
+    <a href="/docs/home/">Docs</a>
+  </li>
+  <li class="{% if page.author %}current{% endif %}">
+    <a href="/news/">News</a>
+  </li>
+  <li class="{% if page.url contains '/schema/' %}current{% endif %}">
+    <a href="/schema/">Schema</a>
+  </li>
+  <li class="{% if page.url contains '/downloads/' %}current{% endif %}">
+    <a href="/downloads/">Downloads</a>
+  </li>
+  <li>
+    <a href="{{ site.repository }}">GitHub</a>
+  </li>
+</ul>

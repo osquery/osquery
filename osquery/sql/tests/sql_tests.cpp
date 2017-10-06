@@ -106,4 +106,52 @@ TEST_F(SQLTests, test_sql_escape) {
   escapeNonPrintableBytesEx(input);
   EXPECT_EQ(input, "The quick brown fox jumps over the lazy dog.");
 }
+
+TEST_F(SQLTests, test_sql_base64_encode) {
+  QueryData d;
+  query("select to_base64('test') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "dGVzdA==");
+}
+
+TEST_F(SQLTests, test_sql_base64_decode) {
+  QueryData d;
+  query("select from_base64('dGVzdA==') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "test");
+}
+
+TEST_F(SQLTests, test_sql_base64_conditional_encode) {
+  QueryData d;
+  query("select conditional_to_base64('test') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "test");
+
+  QueryData d2;
+  query("select conditional_to_base64('悪因悪果') as test;", d2);
+  EXPECT_EQ(d2.size(), 1U);
+  EXPECT_EQ(d2[0]["test"], "5oKq5Zug5oKq5p6c");
+}
+
+TEST_F(SQLTests, test_sql_md5) {
+  QueryData d;
+  query("select md5('test') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "098f6bcd4621d373cade4e832627b4f6");
+}
+
+TEST_F(SQLTests, test_sql_sha1) {
+  QueryData d;
+  query("select sha1('test') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"], "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3");
+}
+
+TEST_F(SQLTests, test_sql_sha256) {
+  QueryData d;
+  query("select sha256('test') as test;", d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test"],
+            "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+}
 }

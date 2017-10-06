@@ -10,6 +10,8 @@
 
 #include <osquery/flags.h>
 
+#include "osquery/core/conversions.h"
+
 namespace boost {
 template <>
 bool lexical_cast<bool, std::string>(const std::string& arg) {
@@ -61,9 +63,19 @@ bool Flag::isDefault(const std::string& name) {
 }
 
 std::string Flag::getValue(const std::string& name) {
+  if (instance().custom_.count(name)) {
+    return instance().custom_.at(name);
+  }
+
   std::string current_value;
   flags::GetCommandLineOption(name.c_str(), &current_value);
   return current_value;
+}
+
+long int Flag::getInt32Value(const std::string& name) {
+  long int value = 0;
+  safeStrtol(Flag::getValue(name), 10, value);
+  return value;
 }
 
 std::string Flag::getType(const std::string& name) {
@@ -94,6 +106,8 @@ Status Flag::updateValue(const std::string& name, const std::string& value) {
     auto& real_name = instance().aliases_.at(name).description;
     flags::SetCommandLineOption(real_name.c_str(), value.c_str());
     return Status(0, "OK");
+  } else if (name.find("custom_") == 0) {
+    instance().custom_[name] = value;
   }
   return Status(1, "Flag not found");
 }
@@ -112,9 +126,14 @@ std::map<std::string, FlagInfo> Flag::flags() {
     // Set the flag info from the internal info kept by Gflags, except for
     // the stored description. Gflag keeps an "unknown" value if the flag
     // was declared without a definition.
-    flags[flag.name] = {flag.type, instance().flags_.at(flag.name).description,
-                        flag.default_value, flag.current_value,
+    flags[flag.name] = {flag.type,
+                        instance().flags_.at(flag.name).description,
+                        flag.default_value,
+                        flag.current_value,
                         instance().flags_.at(flag.name)};
+  }
+  for (const auto& flag : instance().custom_) {
+    flags[flag.first] = {"string", "", "", flag.second, {}};
   }
   return flags;
 }

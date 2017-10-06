@@ -1,0 +1,10 @@
+table_name("load_average")
+description("Displays information about the system wide load averages.")
+schema([
+    Column("period", TEXT, "Period over which the average is calculated."),
+    Column("average", TEXT, "Load average over the specified period."),
+])
+implementation("load_average@genLoadAverage")
+examples([
+  "select * from load_average;",
+])

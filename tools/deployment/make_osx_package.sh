@@ -22,7 +22,8 @@ else
   BUILD_DIR="${BUILD_DIR}darwin$BUILD_VERSION"
 fi
 
-export PATH="$PATH:/usr/local/bin"
+OSQUERY_DEPS="${OSQUERY_DEPS:-/usr/local/osquery}"
+
 source "$SOURCE_DIR/tools/lib.sh"
 distro "darwin" BUILD_VERSION
 
@@ -33,6 +34,7 @@ KERNEL_APP_IDENTIFIER="com.facebook.osquery.kernel"
 LD_IDENTIFIER="com.facebook.osqueryd"
 LD_INSTALL="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
 OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$APP_VERSION.pkg"
+OUTPUT_DEBUG_PKG_PATH="$BUILD_DIR/osquery-debug-$APP_VERSION.pkg"
 KERNEL_OUTPUT_PKG_PATH="$BUILD_DIR/osquery-kernel-${APP_VERSION}.pkg"
 AUTOSTART=false
 CLEAN=false
@@ -44,8 +46,8 @@ NEWSYSLOG_SRC="$SCRIPT_DIR/$LD_IDENTIFIER.conf"
 NEWSYSLOG_DST="/private/var/osquery/$LD_IDENTIFIER.conf"
 PACKS_SRC="$SOURCE_DIR/packs"
 PACKS_DST="/private/var/osquery/packs/"
-LENSES_LICENSE="/usr/local/osquery/Cellar/augeas/*/COPYING"
-LENSES_SRC="/usr/local/osquery/share/augeas/lenses/dist"
+LENSES_LICENSE="${OSQUERY_DEPS}/Cellar/augeas/*/COPYING"
+LENSES_SRC="${OSQUERY_DEPS}/share/augeas/lenses/dist"
 LENSES_DST="/private/var/osquery/lenses/"
 OSQUERY_EXAMPLE_CONFIG_SRC="$SCRIPT_DIR/osquery.example.conf"
 OSQUERY_EXAMPLE_CONFIG_DST="/private/var/osquery/osquery.example.conf"
@@ -53,13 +55,15 @@ OSQUERY_CONFIG_SRC=""
 OSQUERY_CONFIG_DST="/private/var/osquery/osquery.conf"
 OSQUERY_DB_LOCATION="/private/var/osquery/osquery.db/"
 OSQUERY_LOG_DIR="/private/var/log/osquery/"
-OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="/usr/local/osquery/etc/openssl/cert.pem"
+OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="${OSQUERY_DEPS}/etc/openssl/cert.pem"
 OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST="/private/var/osquery/certs/certs.pem"
 TLS_CERT_CHAIN_DST="/private/var/osquery/tls-server-certs.pem"
 FLAGFILE_DST="/private/var/osquery/osquery.flags"
+OSQUERY_PKG_INCLUDE_DIRS=()
 
 WORKING_DIR=/tmp/osquery_packaging
 INSTALL_PREFIX="$WORKING_DIR/prefix"
+DEBUG_PREFIX="$WORKING_DIR/debug"
 SCRIPT_ROOT="$WORKING_DIR/scripts"
 PREINSTALL="$SCRIPT_ROOT/preinstall"
 POSTINSTALL="$SCRIPT_ROOT/postinstall"
@@ -139,6 +143,9 @@ function parse_args() {
       -t | --cert-chain )     shift
                               TLS_CERT_CHAIN_SRC=$1
                               ;;
+      -i | --include-dir )    shift
+                              OSQUERY_PKG_INCLUDE_DIRS[${#OSQUERY_PKG_INCLUDE_DIRS}]=$1
+                              ;;
       -o | --output )         shift
                               OUTPUT_PKG_PATH=$1
                               ;;
@@ -194,6 +201,11 @@ function main() {
   strip $BINARY_INSTALL_DIR/*
   cp "$OSQUERYCTL_PATH" $BINARY_INSTALL_DIR
 
+  BINARY_DEBUG_DIR="$DEBUG_PREFIX/private/var/osquery/debug"
+  mkdir -p "$BINARY_DEBUG_DIR"
+  cp "$BUILD_DIR/osquery/osqueryi" $BINARY_DEBUG_DIR/osqueryi.debug
+  cp "$BUILD_DIR/osquery/osqueryd" $BINARY_DEBUG_DIR/osqueryd.debug
+
   # Create the prefix log dir and copy source configs.
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
   mkdir -p `dirname $INSTALL_PREFIX$OSQUERY_CONFIG_DST`
@@ -235,6 +247,13 @@ function main() {
     fi
   fi
 
+  # Copy extra files to the install prefix so that they get packaged too.
+  # NOTE: Files will be overwritten.
+  for include_dir in ${OSQUERY_PKG_INCLUDE_DIRS[*]}; do
+    log "adding $include_dir in the package prefix to be included in the package"
+    cp -fR $include_dir/* $INSTALL_PREFIX/
+  done
+
   log "creating package"
   pkgbuild --root $INSTALL_PREFIX       \
            --scripts $SCRIPT_ROOT       \
@@ -242,6 +261,13 @@ function main() {
            --version $APP_VERSION       \
            $OUTPUT_PKG_PATH 2>&1  1>/dev/null
   log "package created at $OUTPUT_PKG_PATH"
+
+  pkgbuild --root $DEBUG_PREFIX          \
+           --identifier $APP_IDENTIFIER.debug \
+           --version $APP_VERSION             \
+           $OUTPUT_DEBUG_PKG_PATH 2>&1  1>/dev/null
+  log "package created at $OUTPUT_DEBUG_PKG_PATH"
+
 
   # We optionally create an RPM equivalent.
   FPM=$(which fpm || true)
@@ -255,6 +281,7 @@ function main() {
     PACKAGE_ITERATION="1.darwin"
     RPM_APP_VERSION=$(echo ${APP_VERSION}|tr '-' '_')
     OUTPUT_RPM_PATH="$BUILD_DIR/osquery-$RPM_APP_VERSION-$PACKAGE_ITERATION.$PACKAGE_ARCH.rpm"
+    rm -f $OUTPUT_RPM_PATH
     CMD="$FPM -s dir -t rpm \
       -n osquery \
       -v $RPM_APP_VERSION \
@@ -265,6 +292,19 @@ function main() {
       \"$INSTALL_PREFIX/=/\""
     eval "$CMD"
     log "RPM package (also) created at $OUTPUT_RPM_PATH"
+
+    OUTPUT_DEBUG_RPM_PATH="$BUILD_DIR/osquery-debug-$RPM_APP_VERSION-$PACKAGE_ITERATION.$PACKAGE_ARCH.rpm"
+    rm -f $OUTPUT_DEBUG_RPM_PATH
+    CMD="$FPM -s dir -t rpm \
+      -n osquery-debug \
+      -v $RPM_APP_VERSION \
+      --iteration $PACKAGE_ITERATION -a $PACKAGE_ARCH \
+      -p $OUTPUT_DEBUG_RPM_PATH \
+      --url https://osquery.io -m osquery@osquery.io \
+      --vendor Facebook --license BSD \
+      \"$DEBUG_PREFIX/=/\""
+    eval "$CMD"
+    log "RPM package (also) created at $OUTPUT_DEBUG_RPM_PATH"
   else
     log "Skipping OS X RPM package build: Cannot find fpm and rpmbuild"
   fi

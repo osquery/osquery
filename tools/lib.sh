@@ -7,10 +7,6 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
-ORACLE_RELEASE=/etc/oracle-release
-SYSTEM_RELEASE=/etc/system-release
-LSB_RELEASE=/etc/lsb-release
-DEBIAN_VERSION=/etc/debian_version
 LIB_SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 # For OS X, define the distro that builds the kernel extension.
@@ -40,7 +36,7 @@ function _distro() {
 function threads() {
   local __out=$1
   platform OS
-  if [[ $FAMILY = "redhat" ]] || [[ $FAMILY = "debian" ]]; then
+  if [[ $FAMILY = "redhat" ]] || [[ $FAMILY = "debian" ]] || [[ $FAMILY = "suse" ]]; then
     eval $__out=`cat /proc/cpuinfo | grep processor | wc -l`
   elif [[ $OS = "darwin" ]]; then
     eval $__out=`sysctl hw.ncpu | awk '{print $2}'`
@@ -111,7 +107,7 @@ function build_target() {
   threads THREADS
 
   # Clean previous build artifacts.
-  $MAKE clean
+  $MAKE distclean
 
   # Build osquery.
   if [[ -z "$RUN_TARGET" ]]; then

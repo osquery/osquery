@@ -16,6 +16,61 @@
 namespace osquery {
 namespace tables {
 
+/// A set of common IOKit properties used to store firmware versions.
+const std::set<std::string> kFirmwareProperties{
+    "Firmware Revision", "IOFirmwareVersion", "FirmwareVersionString",
+};
+
+/**
+ * @brief A callback for each entry in the IOKit registry.
+ *
+ * An enumerator should fill in the table's results.
+ */
+using IOKitEnumerator = std::function<void(const io_service_t& device,
+                                           const io_service_t& parent,
+                                           const io_name_t plane,
+                                           int depth,
+                                           QueryData& results)>;
+
+static inline void genFirmware(const void* key, const void* value, void* r) {
+  auto* r2 = (Row*)r;
+  if (key == nullptr || value == nullptr || r2->count("version") != 0) {
+    return;
+  }
+
+  auto prop = stringFromCFString((CFStringRef)key);
+  if (kFirmwareProperties.find(prop) != kFirmwareProperties.end()) {
+    (*r2)["version"] = prop;
+  }
+}
+
+void genIOKitFirmware(const io_service_t& device,
+                      const io_service_t& parent,
+                      const io_name_t plane,
+                      int depth,
+                      QueryData& results) {
+  Row r;
+  io_name_t name;
+  auto kr = IORegistryEntryGetName(device, name);
+  if (kr == KERN_SUCCESS) {
+    r["device"] = std::string(name);
+  }
+
+  CFMutableDictionaryRef details;
+  IORegistryEntryCreateCFProperties(
+      device, &details, kCFAllocatorDefault, kNilOptions);
+  CFDictionaryApplyFunction(details, &genFirmware, &r);
+  if (r.count("version") != 0) {
+    // If the version is filled in from the dictionary walk callback then
+    // the value of the property name contains the firmware version.
+    r["version"] = getIOKitProperty(details, r["version"]);
+    r["type"] = getIOKitProperty(details, "IOProviderClass");
+    results.push_back(r);
+  }
+
+  CFRelease(details);
+}
+
 void genIOKitDevice(const io_service_t& device,
                     const io_service_t& parent,
                     const io_name_t plane,
@@ -82,7 +137,8 @@ void genIOKitDevice(const io_service_t& device,
   results.push_back(r);
 }
 
-void genIOKitDeviceChildren(const io_registry_entry_t& service,
+void genIOKitDeviceChildren(IOKitEnumerator enumerator,
+                            const io_registry_entry_t& service,
                             const io_name_t plane,
                             int depth,
                             QueryData& results) {
@@ -95,38 +151,47 @@ void genIOKitDeviceChildren(const io_registry_entry_t& service,
   io_service_t device;
   while ((device = IOIteratorNext(it))) {
     // Use this entry as the parent, and generate a result row.
-    genIOKitDevice(device, service, plane, depth, results);
-    genIOKitDeviceChildren(device, plane, depth + 1, results);
+    enumerator(device, service, plane, depth, results);
+    genIOKitDeviceChildren(enumerator, device, plane, depth + 1, results);
     IOObjectRelease(device);
   }
 
   IOObjectRelease(it);
 }
 
+QueryData genDeviceFirmware(QueryContext& context) {
+  QueryData qd;
+
+  // Start with the services root node.
+  auto service = IORegistryGetRootEntry(kIOMasterPortDefault);
+  genIOKitDeviceChildren(&genIOKitFirmware, service, kIOServicePlane, 0, qd);
+  IOObjectRelease(service);
+
+  return qd;
+}
+
 QueryData genIOKitDeviceTree(QueryContext& context) {
-  QueryData results;
+  QueryData qd;
 
   // Get the IO registry root node.
   auto service = IORegistryGetRootEntry(kIOMasterPortDefault);
-
   // Begin recursing along the IODeviceTree "plane".
-  genIOKitDeviceChildren(service, kIODeviceTreePlane, 0, results);
-
+  genIOKitDeviceChildren(&genIOKitDevice, service, kIODeviceTreePlane, 0, qd);
   IOObjectRelease(service);
-  return results;
+
+  return qd;
 }
 
 QueryData genIOKitRegistry(QueryContext& context) {
-  QueryData results;
+  QueryData qd;
 
   // Get the IO registry root node.
   auto service = IORegistryGetRootEntry(kIOMasterPortDefault);
-
   // Begin recursing along the IODeviceTree "plane".
-  genIOKitDeviceChildren(service, kIOServicePlane, 0, results);
-
+  genIOKitDeviceChildren(&genIOKitDevice, service, kIOServicePlane, 0, qd);
   IOObjectRelease(service);
-  return results;
+
+  return qd;
 }
 }
 }

@@ -1,0 +1,8 @@
+table_name("device_firmware")
+description("A best-effort list of discovered firmware versions.")
+schema([
+    Column("type", TEXT, "Type of device"),
+    Column("device", TEXT, "The device name", index=True),
+    Column("version", TEXT, "Firmware version"),
+])
+implementation("device_firmware@genDeviceFirmware")

@@ -31,29 +31,12 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-std::string kFakeDirectory = "";
-
-#ifdef DARWIN
-std::string kTestWorkingDirectory = "/private/tmp/osquery-tests";
-#else
-std::string kTestWorkingDirectory =
-    (fs::temp_directory_path() / "osquery-tests").make_preferred().string();
-#endif
-
-/// Most tests will use binary or disk-backed content for parsing tests.
-#if !defined(OSQUERY_BUILD_SDK) && !WIN32
+std::string kFakeDirectory;
+std::string kTestWorkingDirectory;
 std::string kTestDataPath = "../../../tools/tests/";
-#else
-std::string kTestDataPath = "../../../../tools/tests/";
-#endif
 
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
-
-#ifndef WIN32
-DECLARE_string(modules_autoload);
-#endif
-
 DECLARE_string(extensions_autoload);
 DECLARE_string(enroll_tls_endpoint);
 DECLARE_bool(disable_logging);
@@ -62,17 +45,44 @@ DECLARE_bool(disable_database);
 typedef std::chrono::high_resolution_clock chrono_clock;
 
 void initTesting() {
-  osquery::kToolType = ToolType::TEST;
+  Config::setStartTime(getUnixTime());
+
+  kToolType = ToolType::TEST;
+  if (osquery::isPlatform(PlatformType::TYPE_OSX)) {
+    kTestWorkingDirectory = "/private/tmp/osquery-tests";
+  } else {
+    kTestWorkingDirectory =
+        (fs::temp_directory_path() / "osquery-tests").string();
+  }
+
+  if (osquery::isPlatform(PlatformType::TYPE_WINDOWS)) {
+    kTestDataPath = "../" + kTestDataPath;
+  }
 
   registryAndPluginInit();
+
   // Allow unit test execution from anywhere in the osquery source/build tree.
-  while (osquery::kTestDataPath != "/") {
-    if (!fs::exists(osquery::kTestDataPath)) {
-      osquery::kTestDataPath =
-          osquery::kTestDataPath.substr(3, osquery::kTestDataPath.size());
-    } else {
-      break;
+  if (fs::exists("test_data/test_inline_pack.conf")) {
+    // If the execution occurs within the build/shared directory and shared
+    // is pointing to a tmp build directory. See #3414.
+    kTestDataPath = "test_data/";
+  } else if (fs::exists("../test_data/test_inline_pack.conf")) {
+    // ctest executes from the osquery subdirectory. If this is a build/shared
+    // link then the test_data directory links to the source repo.
+    kTestDataPath = "../test_data/";
+  } else {
+    while (kTestDataPath.find("tools") != 0) {
+      if (!fs::exists(kTestDataPath + "test_inline_pack.conf")) {
+        kTestDataPath = kTestDataPath.substr(3, kTestDataPath.size());
+      } else {
+        break;
+      }
     }
+  }
+
+  // The tests will fail randomly without test data.
+  if (!fs::exists(kTestDataPath)) {
+    throw std::runtime_error("Cannot find test data path");
   }
 
   // Seed the random number generator, some tests generate temporary files
@@ -91,10 +101,6 @@ void initTesting() {
   FLAGS_extensions_socket = kTestWorkingDirectory + "unittests.em";
   FLAGS_extensions_autoload = kTestWorkingDirectory + "unittests-ext.load";
 
-#ifndef WIN32
-  FLAGS_modules_autoload = kTestWorkingDirectory + "unittests-mod.load";
-#endif
-
   FLAGS_disable_logging = true;
   FLAGS_disable_database = true;
 
@@ -112,9 +118,9 @@ void shutdownTesting() {
   Initializer::platformTeardown();
 }
 
-std::map<std::string, std::string> getTestConfigMap() {
+std::map<std::string, std::string> getTestConfigMap(const std::string& file) {
   std::string content;
-  readFile(fs::path(kTestDataPath) / "test_parse_items.conf", content);
+  readFile(fs::path(kTestDataPath) / file, content);
   std::map<std::string, std::string> config;
   config["awesome"] = content;
   return config;
@@ -316,11 +322,15 @@ std::pair<pt::ptree, QueryLogItem> getSerializedQueryLogItem() {
   i.calendar_time = "Mon Aug 25 12:10:57 2014";
   i.time = 1408993857;
   i.identifier = "foobaz";
+  i.epoch = 0L;
+  i.counter = 0L;
   root.add_child("diffResults", dr.first);
   root.put<std::string>("name", "foobar");
   root.put<std::string>("hostIdentifier", "foobaz");
   root.put<std::string>("calendarTime", "Mon Aug 25 12:10:57 2014");
   root.put<int>("unixTime", 1408993857);
+  root.put<uint64_t>("epoch", 0L);
+  root.put<uint64_t>("counter", 0L);
   return std::make_pair(root, i);
 }
 

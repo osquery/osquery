@@ -1,6 +1,6 @@
 ## Dependencies
 
-We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses Homebrew for OS X and Linuxbrew for Linux. The following basic dependencies are need before running `make deps`:
+We include a `make deps` command to make it easier for developers to get started with the osquery project. `make deps` uses Homebrew for macOS and Linuxbrew for Linux. The following basic dependencies are need before running `make deps`:
 
 - `sudo`
 - `make` (that is, GNU make)
@@ -9,7 +9,7 @@ We include a `make deps` command to make it easier for developers to get started
 - `git`
 - `bash`
 
-**WARNING:** This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
+> NOTICE: This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
 
 For our build hosts (CentOS, Ubuntu 12, 14, 16, macOS 10.12, Windows 2016) we use a `sysprep` target to update the host and install these basic dependencies.
 
@@ -17,7 +17,7 @@ For our build hosts (CentOS, Ubuntu 12, 14, 16, macOS 10.12, Windows 2016) we us
 make sysprep
 ```
 
-## Building on OS X
+## Building on macOS
 
 `make deps` will take care of installing the appropriate library dependencies, but it's recommended to take a look at the Makefile, just in case something conflicts with your environment.
 
@@ -25,8 +25,8 @@ The complete installation/build steps are as follows:
 
 ```sh
 $ git clone https://github.com/facebook/osquery.git
-$ # make sysprep
 $ cd osquery
+$ # make sysprep
 $ make deps
 $ make
 ```
@@ -45,9 +45,9 @@ $ ls -la ./build/darwin/osquery/
 
 ## Building on Linux
 
-osquery supports several distributions of Linux.
+osquery supports almost all distributions of Linux.
 
-For each supported distro, we supply vagrant infrastructure for creating native operating system packages. To create a package (e.g. a deb on Ubuntu or an rpm on CentOS), simply spin up a vagrant instance.
+For some distros, we supply vagrant infrastructure for creating native operating system packages. To create a package (e.g. a deb on Ubuntu or an rpm on CentOS), simply spin up a vagrant instance.
 
 For example:
 
@@ -60,7 +60,7 @@ By default vagrant will allocate 2 virtual CPUs to the virtual machine instance.
 
 ```sh
 OSQUERY_BUILD_CPUS=`nproc`             # for Linux
-OSQUERY_BUILD_CPUS=`sysctl -n hw.ncpu` # for OS X
+OSQUERY_BUILD_CPUS=`sysctl -n hw.ncpu` # for MacOS
 ```
 
 Once you have logged into the vagrant box, run the following to create a package:
@@ -99,13 +99,13 @@ In that case the final push becomes `git push USERNAME`.
 
 Our Jenkins CI will test your changes in three steps.
 
-1. A code audit is run using `./tools/audit.sh`.
-2. The code is rebuilt, built again for release, then a package is generated using `./tools/build.sh` on various Linux and OS X versions.
+1. A code audit is run using `make audit`.
+2. The code is rebuilt, built again for release, then a package is generated using `./tools/build.sh` on various Linux and macOS versions.
 3. The same step is run on Windows 10.
 
 The audit step attempts to build the documentation, run code formatting checks, and a brief static code analysis. The formatting check is performed with `clang-format` (installed with `make deps` to your osquery dependencies directory). Your changes are compared against the local `master` branch. Within the build host this is always the TIP of `facebook/osquery`, but locally the branch may be behind.
 
-To speed up the format auditing process please configure your code editor to run `clang-format` on files changed. Or periodically during your development run `make format`. Running `make check` is also helpful, but it will use `cppcheck` which is not installed by default.
+To speed up the format auditing process please configure your code editor to run `clang-format` on files changed. Or periodically during your development run `make format_master`. Running `make check` is also helpful, but it will use `cppcheck` which is not installed by default.
 
 ## Dependencies and build internals
 
@@ -117,7 +117,7 @@ When using `make deps` the environment the resultant binaries will have a minimu
 - `libgcc_s`
 - `libz`
 
-All other dependencies are built, compiled, and linked statically. This makes for a rather large set of output binaries (15M on Linux and 9M on OS X) but the trade-off for deployment simplicity is very worthwhile.
+All other dependencies are built, compiled, and linked statically. This makes for a rather large set of output binaries (15M on Linux and 9M on macOS) but the trade-off for deployment simplicity is very worthwhile.
 
 Under the hood the `make deps` script is calling `./tools/provision.sh`, which performs the simplified set of steps:
 
@@ -156,7 +156,7 @@ This looks A LOT like normal *brew formulas. For a new dependency do not add a `
 
 If you want to make build changes see the Cookbook for `revision` edits. Note that committing new or edited formulas will invalidate package caches this will cause the package to be built from source on the test/build hosts.
 
-**If this is a new dependency** then you need to add a line to `./tools/provision.sh` for Linux and or OS X at the order/time it should be installed.
+**If this is a new dependency** then you need to add a line to `./tools/provision.sh` for Linux and or macOS at the order/time it should be installed.
 
 When a dependency is updated by a maintainer or contributor the flow should follow:
 * Update the target formula in `./tools/provision/formula/`.
@@ -240,12 +240,14 @@ make docs # Build the Doxygen and mkdocs wiki
 There are several additional code testing and formatting macros:
 
 ```sh
-make format # Apply clang-format using osquery's format spec*
-make format-all # Not recommended but formats the entire code base
 make format_master # Format everything changed from the local master branch
+make format_all # Not recommended but formats the entire code base
+make format # Apply clang-format using osquery's format spec*
 make analyze # Run clean first, then rebuild with the LLVM static analyzer
 make sanitize # Run clean first, then rebuild with sanitations
 make fuzz # Run basic fuzz tests, as defined in each table spec
+make audit # The clang-format and other PR-blocking checks
+make check # Run cpp-check and output style/performance/error warnings
 ```
 
 Generating the osquery SDK or sync:
@@ -260,31 +262,42 @@ variables. When making these changes it is best to removed your build cache
 by removing the `./build/` or `./build/{platform}/` directory.
 
 ```sh
-OSQUERY_BUILD_LINK_SHARED=True # Set CMake library discovery to prefer shared libraries
-OSQUERY_BUILD_SHARED=True # Build libosquery* as shared objects and link appropriately
+OSQUERY_BUILD_LINK_SHARED=True # Prefer linking against shared libraries
+OSQUERY_BUILD_SHARED=True # Build and link a shared libosquery.
 OSQUERY_BUILD_DEPS=True # Install dependencies from source when using make deps
-OSQUERY_BUILD_BOTTLES=True # Create Homebrew bottles from installed dependencies
-
+OSQUERY_BUILD_BOTTLES=True # Create bottles from installed dependencies
 OSQUERY_BUILD_VERSION=9.9.9 # Set a wacky version string
 OSQUERY_PLATFORM=custom_linux;1.0 # Set a wacky platform/distro name
-SDK_VERSION=9.9.9 # Set a wacky SDK-version string
-OSX_VERSION_MIN=10.11 # Override the native minimum OS X version ABI
-OSQUERY_DEPS=/path/to/dependencies # Use or create a custom dependency environment
-
-FAST=True # Build and link as quick as possible
+SDK_VERSION=9.9.9 # Set a wacky SDK-version string.
+OSX_VERSION_MIN=10.11 # Override the native minimum macOS version ABI
+OSQUERY_DEPS=/path/to/dependencies # Use a custom dependency environment
+FAST=True # Build and link as quick as possible.
 SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
+SANITIZE_UNDEFINED=True # Add -fsanitize=undefined when using "make sanitize"
 OPTIMIZED=True # Enable specific CPU optimizations (not recommended)
+SQLITE_DEBUG=True # Enable SQLite query debugging (very verbose!)
+```
+
+There are various features that can be disabled with a customized build. These are also controlled by environment variables to be as cross-platform as possible and take the form: `SKIP_*`. These are converted into CMake variables within the root `CMakeLists.txt`.
+
+```sh
+SKIP_AWS=True # Skip the various AWS integrations
+SKIP_TSK=True # Skip SleuthKit integrations
+SKIP_LLDPD=True # Skip LLDP tables
+SKIP_YARA=True # Skip Yara integrations, both events and the virtual tables
+SKIP_KAFKA=True # Skip support for Kafka logger plugins
+SKIP_CARVER=True # Skip support for file carving
+SKIP_KERNEL=True # Enabled by default, set to 'False' to enable
 SKIP_TESTS=True # Skip unit test building (very very not recommended!)
 SKIP_INTEGRATION_TESTS=True # Skip python tests when using "make test"
 SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
 SKIP_TABLES=True # Build platform without any table implementations or specs
 SKIP_DISTRO_MAIN=False # Run the sysprep update/install within make deps
-SQLITE_DEBUG=True # Enable SQLite query debugging (very verbose!)
 ```
 
 ## Custom Packages
 
-Building osquery on OS X or Linux requires a significant number of dependencies, which are not needed when deploying. It does not make sense to install osquery on your build hosts. See the [Custom Packages](../installation/custom-packages.md) guide for generating pkgs, debs or rpms.
+Building osquery on macOS or Linux requires a significant number of dependencies, which are not needed when deploying. It does not make sense to install osquery on your build hosts. See the [Custom Packages](../installation/custom-packages.md) guide for generating PKGs, debs or RPMs.
 
 Debug and from-source package building is not recommended but supported. You may generate several packages including devel, debuginfo, and additional sets of tools:
 

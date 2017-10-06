@@ -8,8 +8,10 @@
  *
  */
 
+#include <osquery/filesystem.h>
 #include <osquery/sql.h>
 
+#include "osquery/database/plugins/rocksdb.h"
 #include "osquery/database/tests/plugin_tests.h"
 
 namespace osquery {
@@ -32,5 +34,25 @@ TEST_F(RocksDBDatabasePluginTests, test_rocksdb_loglevel) {
   // RocksDB logs are intercepted and forwarded to the GLog sink.
   auto details = SQL::selectAllFrom("file", "path", EQUALS, path_ + "/LOG");
   ASSERT_EQ(details.size(), 0U);
+}
+
+TEST_F(RocksDBDatabasePluginTests, test_corruption) {
+  ASSERT_TRUE(pathExists(path_));
+  ASSERT_FALSE(pathExists(path_ + ".backup"));
+
+  // Mark the database as corrupted
+  RocksDBDatabasePlugin::setCorrupted();
+  printf("set corrupt\n");
+  resetDatabase();
+  printf("did reset\n");
+
+  EXPECT_TRUE(pathExists(path_ + ".backup"));
+
+  // Remove the backup and expect another reload to not create one.
+  removePath(path_ + ".backup");
+  ASSERT_FALSE(pathExists(path_ + ".backup"));
+
+  resetDatabase();
+  EXPECT_FALSE(pathExists(path_ + ".backup"));
 }
 }

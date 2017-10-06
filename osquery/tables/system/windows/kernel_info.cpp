@@ -36,33 +36,32 @@ void GetBootArgs(Row& r) {
 
 void GetSystemDriveGUID(Row& r) {
   char buf[51] = {0};
-  std::string sysRoot = getSystemRoot().root_name().string() + "\\";
-  if (GetVolumeNameForVolumeMountPoint(sysRoot.c_str(), (LPSTR)buf, 50)) {
+  auto sysRoot = getSystemRoot().root_name().string() + "\\";
+  if (GetVolumeNameForVolumeMountPoint(
+          sysRoot.c_str(), static_cast<LPSTR>(buf), 50)) {
     r["device"] = SQL_TEXT(buf);
   }
 }
 
 void GetKernelVersion(Row& r) {
-  UINT size = 0;
-  DWORD verSize = 0;
-  VS_FIXEDFILEINFO* lpVersionInfo = nullptr;
-
-  verSize = GetFileVersionInfoSize(kNtKernelPath.c_str(), nullptr);
+  unsigned int size = 0;
+  auto verSize = GetFileVersionInfoSize(kNtKernelPath.c_str(), nullptr);
   if (verSize == 0) {
     TLOG << "GetFileVersionInfoSize failed (" << GetLastError() << ")";
     return;
   }
 
-  LPSTR verData = (LPSTR)malloc(verSize);
+  auto verData = static_cast<LPSTR>(malloc(verSize));
 
   if (!GetFileVersionInfo(kNtKernelPath.c_str(), 0, verSize, verData)) {
     TLOG << "GetFileVersionInfo failed (" << GetLastError() << ")";
   }
 
-  if (!VerQueryValue(verData, "\\", (LPVOID*)&lpVersionInfo, &size)) {
+  void* vptrVersionInfo = nullptr;
+  if (!VerQueryValue(verData, "\\", &vptrVersionInfo, &size)) {
     TLOG << "GetFileVersionInfo failed (" << GetLastError() << ")";
   }
-
+  auto lpVersionInfo = static_cast<VS_FIXEDFILEINFO*>(vptrVersionInfo);
   if (size > 0) {
     if (lpVersionInfo->dwSignature == 0xfeef04bd) {
       auto majorMS = HIWORD(lpVersionInfo->dwProductVersionMS);
@@ -94,5 +93,5 @@ QueryData genKernelInfo(QueryContext& context) {
 
   return {r};
 }
-}
-}
+} // namespace tables
+} // namespace osquery

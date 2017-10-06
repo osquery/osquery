@@ -1079,7 +1079,7 @@ inline void meta_schema(int nArg, char** azArg) {
 }
 
 inline void meta_features(struct callback_data* p) {
-  auto results = osquery::SQL::SQL(
+  auto results = osquery::SQL(
       "select * from osquery_flags where (name like 'disable_%' or name like "
       "'enable_%') and type = 'bool'");
   for (const auto& flag : results.rows()) {
@@ -1627,7 +1627,7 @@ int runPack(struct callback_data* data) {
   int rc = 0;
 
   // Check every pack for a name matching the requested --pack flag.
-  Config::getInstance().packs([data, &rc](std::shared_ptr<Pack>& pack) {
+  Config::get().packs([data, &rc](std::shared_ptr<Pack>& pack) {
     if (pack->getName() != FLAGS_pack) {
       return;
     }

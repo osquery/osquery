@@ -169,8 +169,25 @@ PluginResponse TablePlugin::routeInfo() const {
   return response;
 }
 
-bool TablePlugin::isCached(size_t step) {
-  return (!FLAGS_disable_caching && step < last_cached_ + last_interval_);
+static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
+  auto uncachable = ColumnOptions::INDEX | ColumnOptions::REQUIRED |
+                    ColumnOptions::ADDITIONAL | ColumnOptions::OPTIMIZED;
+  for (const auto& column : cols) {
+    auto opts = std::get<2>(column) & uncachable;
+    if (opts && ctx.constraints.at(std::get<0>(column)).exists()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool TablePlugin::isCached(size_t step, const QueryContext& ctx) const {
+  if (FLAGS_disable_caching) {
+    return false;
+  }
+
+  // Perform the step comparison first, because it's easy.
+  return (step < last_cached_ + last_interval_ && cacheAllowed(columns(), ctx));
 }
 
 QueryData TablePlugin::getCache() const {
@@ -185,10 +202,15 @@ QueryData TablePlugin::getCache() const {
 
 void TablePlugin::setCache(size_t step,
                            size_t interval,
+                           const QueryContext& ctx,
                            const QueryData& results) {
+  if (FLAGS_disable_caching || !cacheAllowed(columns(), ctx)) {
+    return;
+  }
+
   // Serialize QueryData and save to database.
   std::string content;
-  if (!FLAGS_disable_caching && serializeQueryDataJSON(results, content)) {
+  if (serializeQueryDataJSON(results, content)) {
     last_cached_ = step;
     last_interval_ = interval;
     setDatabaseValue(kQueries, "cache." + getName(), content);
@@ -306,21 +328,24 @@ bool ConstraintList::exists(const ConstraintOperatorFlag ops) const {
 
 bool ConstraintList::matches(const std::string& expr) const {
   // Support each SQL affinity type casting.
-  if (affinity == TEXT_TYPE) {
-    return literal_matches<TEXT_LITERAL>(expr);
-  } else if (affinity == INTEGER_TYPE) {
-    INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
-    return literal_matches<INTEGER_LITERAL>(lexpr);
-  } else if (affinity == BIGINT_TYPE) {
-    BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
-    return literal_matches<BIGINT_LITERAL>(lexpr);
-  } else if (affinity == UNSIGNED_BIGINT_TYPE) {
-    UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
-    return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
-  } else {
-    // Unsupported affinity type.
-    return false;
+  try {
+    if (affinity == TEXT_TYPE) {
+      return literal_matches<TEXT_LITERAL>(expr);
+    } else if (affinity == INTEGER_TYPE) {
+      INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
+      return literal_matches<INTEGER_LITERAL>(lexpr);
+    } else if (affinity == BIGINT_TYPE) {
+      BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
+      return literal_matches<BIGINT_LITERAL>(lexpr);
+    } else if (affinity == UNSIGNED_BIGINT_TYPE) {
+      UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
+      return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
+    }
+  } catch (const boost::bad_lexical_cast& /* e */) {
+    // Unsupported affinity type or unable to cast content type.
   }
+
+  return false;
 }
 
 template <typename T>

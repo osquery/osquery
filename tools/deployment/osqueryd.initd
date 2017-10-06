@@ -33,7 +33,8 @@ if [ -z $EXEC ]; then EXEC=/usr/bin/osqueryd; fi
 if [ -z $FLAGS_PATH ]; then FLAGS_PATH=/etc/osquery/osquery.flags; fi
 if [ -z $REAL_CONFIG_PATH ]; then REAL_CONFIG_PATH=/etc/osquery/osquery.conf; fi
 if [ -z $LOCKFILE ]; then LOCKFILE=/var/lock/osqueryd; fi
-if [ -z $PIDFILE ]; then PIDFILE=/var/run/osqueryd.pid; fi
+if [ -z $PIDFILE ]; then PIDFILE=/var/run/osqueryd.pidfile; fi
+if [ -z $OLD_PIDFILE ]; then OLD_PIDFILE=/var/run/osqueryd.pid; fi
 if [ -z $UID ]; then UID=$(id -u); fi
 
 if [ $UID -eq 0 ] && [ -e /etc/sysconfig/$PROG ]; then
@@ -51,6 +52,13 @@ if [ ! -e $FLAGS_PATH ] && [ ! -e $REAL_CONFIG_PATH ]; then
   RETVAL=1
 fi
 
+move_pidfile() {
+  if [ -f $OLD_PIDFILE ]; then
+    # Support for deprecated pidfile location.
+    mv $OLD_PIDFILE $PIDFILE
+  fi
+}
+
 ensure_root() {
   if [ $UID -ne 0 ] ; then
     echo "User has insufficient privilege."
@@ -60,6 +68,7 @@ ensure_root() {
 
 start() {
   ensure_root
+  move_pidfile
 
   ARGS=""
   if [ -f $PIDFILE ]; then
@@ -84,6 +93,7 @@ start() {
 
 stop() {
   ensure_root
+  move_pidfile
 
   if [ ! -f $PIDFILE ] ; then
     RETVAL=0
@@ -109,10 +119,7 @@ restart() {
 }
 
 status() {
-  if [ ! -f $PIDFILE ] ; then
-    echo "$PROG is not running. no pidfile found."
-    RETVAL=7
-  else
+  if [ -f $PIDFILE ]; then
     PID=$(cat $PIDFILE)
     PROCNAME=$(ps -p $PID -o comm\=)
     if [ "$PROCNAME" = "$PROG" ]; then
@@ -123,6 +130,20 @@ status() {
       echo "$PROG is not running but a stale pidfile was found."
       RETVAL=7
     fi
+  elif [ -f $OLD_PIDFILE ]; then
+    PID=$(cat $OLD_PIDFILE)
+    PROCNAME=$(ps -p $PID -o comm\=)
+    if [ "$PROCNAME" = "$PROG" ]; then
+      echo "$PROG is already running (old pidfile): $PID"
+      RETVAL=0
+    else
+      # osqueryd pidfile exists but it's not running
+      echo "$PROG is not running but a stale old pidfile was found."
+      RETVAL=7
+    fi
+  else
+    echo "$PROG is not running. no pidfile found."
+    RETVAL=7
   fi
 }
 

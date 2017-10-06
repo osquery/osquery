@@ -20,7 +20,7 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
-#include "osquery/config/plugins/tls.h"
+#include "osquery/config/plugins/tls_config.h"
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 #include "osquery/dispatcher/scheduler.h"
@@ -38,6 +38,7 @@ namespace osquery {
 
 DECLARE_string(tls_hostname);
 DECLARE_bool(enroll_always);
+DECLARE_uint64(config_refresh);
 
 class TLSConfigTests : public testing::Test {
  public:
@@ -49,7 +50,11 @@ class TLSConfigTests : public testing::Test {
     plugin_ = Flag::getValue("config_plugin");
     endpoint_ = Flag::getValue("config_tls_endpoint");
     node_ = Flag::getValue("tls_node_api");
+    refresh_ = Flag::getValue("config_refresh");
     enroll_ = FLAGS_enroll_always;
+
+    // Prevent the refresh thread from starting.
+    FLAGS_config_refresh = 0;
   }
 
   void TearDown() override {
@@ -59,6 +64,7 @@ class TLSConfigTests : public testing::Test {
     Flag::updateValue("config_plugin", plugin_);
     Flag::updateValue("config_tls_endpoint", endpoint_);
     Flag::updateValue("tls_node_api", node_);
+    Flag::updateValue("config_refresh", refresh_);
     FLAGS_enroll_always = enroll_;
   }
 
@@ -67,6 +73,7 @@ class TLSConfigTests : public testing::Test {
   std::string plugin_;
   std::string endpoint_;
   std::string node_;
+  std::string refresh_;
   bool enroll_{false};
 };
 
@@ -80,9 +87,8 @@ TEST_F(TLSConfigTests, test_retrieve_config) {
   Config c;
   c.load();
 
-  const auto& hashes = c.hash_;
   EXPECT_EQ("d9b4a05d914c81a1ed4ce129928e2d9a0309c753",
-            hashes.at("tls_plugin"));
+            c.getHash("tls_plugin"));
 
   // Configure the plugin to use the node API.
   Flag::updateValue("tls_node_api", "1");
@@ -103,13 +109,14 @@ TEST_F(TLSConfigTests, test_runner_and_scheduler) {
   Registry::get().setActive("config", "tls");
 
   // Seed our instance config with a schedule.
-  Config::getInstance().load();
+  Config::get().load();
 
   // Start a scheduler runner for 3 seconds.
   auto t = static_cast<unsigned long int>(getUnixTime());
   Dispatcher::addService(std::make_shared<SchedulerRunner>(t + 1, 1));
   // Reload our instance config.
-  Config::getInstance().load();
+  Config::get().load();
+
   Dispatcher::joinServices();
 }
 

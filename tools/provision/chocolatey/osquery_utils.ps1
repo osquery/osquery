@@ -31,8 +31,7 @@ function Set-DenyWriteAcl {
     # We only support adding or removing the ACL
     if ($action -ieq 'add') {
       $acl.SetAccessRule($accessRule)
-    }
-    else {
+    } else {
       $acl.RemoveAccessRule($accessRule)
     }
     $acl | Set-Acl $targetDir
@@ -109,4 +108,31 @@ function Get-OsqueryBuildPath {
     }
   }
   return $ret
+}
+
+# A helper function for starting and waiting on processes in powershell
+function Start-OsqueryProcess {
+  param(
+    [string] $binaryPath = '',
+    [array] $binaryArgs = @()
+  )
+  $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+  $pinfo.FileName = $binaryPath
+  $pinfo.RedirectStandardError = $true
+  $pinfo.RedirectStandardOutput = $true
+  $pinfo.UseShellExecute = $false
+  $pinfo.Arguments = $binaryArgs
+  $pinfo.WorkingDirectory = Get-Location
+  $p = New-Object System.Diagnostics.Process
+  $p.StartInfo = $pinfo
+  $p.Start()
+  $p.WaitForExit()
+  $stdout = $p.StandardOutput.ReadToEnd()
+  $stderr = $p.StandardError.ReadToEnd()
+  $exit = $p.ExitCode
+  [PSCustomObject] @{
+    stdout = $stdout
+    stderr = $stderr
+    exitcode = $exit
+  }
 }

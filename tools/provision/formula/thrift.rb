@@ -5,17 +5,17 @@ class Thrift < AbstractOsqueryFormula
   homepage "https://thrift.apache.org/"
   url "http://www-us.apache.org/dist/thrift/0.10.0/thrift-0.10.0.tar.gz"
   sha256 "2289d02de6e8db04cbbabb921aeb62bfe3098c4c83f36eec6c31194301efa10b"
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "33597cefaff4c53602a628be01d7f85d90699552395d2947ac6e791dafeebdc0" => :sierra
-    sha256 "012df0c36a9ff168a553dacded7cd3905e66aa2be48e4858ce6432df455c550e" => :x86_64_linux
+    sha256 "f9bbba4aecd4de780e879dd71bcbd18e819ed8355e700177a543860120f4086b" => :sierra
+    sha256 "e818505723a34e425cd2e35acccd992f8f79287bfa77ec7bdda4e9df4083d5e2" => :x86_64_linux
   end
 
   depends_on "bison" => :build
   depends_on "openssl"
-  depends_on :python => :optional
 
   patch :DATA
 
@@ -47,6 +47,8 @@ class Thrift < AbstractOsqueryFormula
     system "./configure", "--disable-debug",
                           "--prefix=#{prefix}",
                           "--libdir=#{lib}",
+                          "--disable-shared",
+                          "--enable-static",
                           *exclusions
     system "make", "-j#{ENV.make_jobs}"
     system "make", "install"

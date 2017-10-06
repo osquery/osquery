@@ -24,6 +24,7 @@ SYSTEM_RELEASE = "/etc/system-release"
 LSB_RELEASE    = "/etc/lsb-release"
 DEBIAN_VERSION = "/etc/debian_version"
 GENTOO_RELEASE = "/etc/gentoo-release"
+SUSE_RELEASE   = "/etc/SuSE-release"
 
 def _platform():
     osType, _, _, _, _, _ = platform.uname()
@@ -71,6 +72,9 @@ def _platform():
 
         if os.path.exists(GENTOO_RELEASE):
             return ("gentoo", "gentoo")
+
+        if os.path.exists(SUSE_RELEASE):
+            return ("suse", "suse")
     else:
         return (None, osType.lower())
 
@@ -154,6 +158,12 @@ def _distro(osType):
           results = contents.split()
         if len(results) > 0:
           return results[len(results) -1]
+    elif osType == "suse":
+        with open(SUSE_RELEASE, "r") as fd:
+            contents = fd.read()
+            results = re.findall(r'VERSION = (.*)', contents)
+            if len(results) == 1:
+                return results[0]
     elif osType == "windows":
         return "windows%s" % osVersion
 

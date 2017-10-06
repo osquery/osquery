@@ -19,20 +19,22 @@ LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
 
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
-HOMEBREW_CORE="0e6f293450cf9b54e324e92ea0b0475fd4e0d929"
-LINUXBREW_CORE="600e1460c79b9cf6945e87cb5374b9202db1f6a9"
-HOMEBREW_DUPES="00df450f28f23aa1013564889d11440ab80b36a5"
-LINUXBREW_DUPES="83cad3d474e6d245cd543521061bba976529e5df"
-HOMEBREW_BREW="2be7999878702554f1e1b5f4118978e670e6156c"
-LINUXBREW_BREW="b3d07003e7c6e389fef1855564fef5954e20aea1"
+HOMEBREW_CORE="941ca36839ea354031846d73ad538e1e44e673f4"
+LINUXBREW_CORE="f54281a496bb7d3dd2f46b2f3067193d05f5013b"
+HOMEBREW_BREW="ac2cbd2137006ebfe84d8584ccdcb5d78c1130d9"
+LINUXBREW_BREW="20bcce2c176469cec271b46d523eef1510217436"
 
+# These suffixes are used when building bottle tarballs.
+LINUX_BOTTLE_SUFFIX="x86_64_linux"
+DARWIN_BOTTLE_SUFFIX="sierra"
+
+# If the world needs to be rebuilt, increase the version
+DEPS_VERSION="4"
 
 source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/provision/lib.sh"
 
 function platform_linux_main() {
-  brew_uninstall bison
-
   # GCC 5x bootstrapping.
   brew_tool patchelf
   brew_tool zlib
@@ -49,12 +51,12 @@ function platform_linux_main() {
 
   # Build a bottle for a legacy glibc.
   brew_tool osquery/osquery-local/glibc-legacy
+  brew_tool osquery/osquery-local/zlib-legacy
 
   # GCC 5x.
   brew_tool osquery/osquery-local/gcc
 
   # Need LZMA for final builds.
-  brew_tool osquery/osquery-local/zlib-legacy
   brew_tool osquery/osquery-local/xz
   brew_tool osquery/osquery-local/ncurses
   brew_tool osquery/osquery-local/bzip2
@@ -65,19 +67,19 @@ function platform_linux_main() {
   brew_tool libidn
   brew_tool libedit
   brew_tool libtool
+  brew_tool libyaml
   brew_tool m4
   brew_tool autoconf
   brew_tool automake
 
   # OpenSSL is needed for the final build.
   brew_tool osquery/osquery-local/libxml2
-  brew_clean osquery/osquery-local/curl
   brew_tool osquery/osquery-local/openssl
+  brew_tool osquery/osquery-local/cmake
 
   # Curl and Python are needed for LLVM mostly.
   brew_tool osquery/osquery-local/curl
   brew_tool osquery/osquery-local/python
-  brew_tool osquery/osquery-local/cmake --without-docs
 
   # Linux library secondary dependencies.
   brew_tool osquery/osquery-local/berkeley-db
@@ -103,17 +105,17 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
   brew_dependency osquery/osquery-local/librpm
-  brew_dependency osquery/osquery-local/lldpd
 }
 
 function platform_darwin_main() {
   brew_tool xz
   brew_tool readline
   brew_tool sqlite
-  brew_tool makedepend
-  brew_tool clang-format
   brew_tool pkg-config
-  brew_tool bison
+  brew_tool makedepend
+  brew_tool ninja
+  brew_tool osquery/osquery-local/cmake
+  brew_tool clang-format
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
@@ -121,7 +123,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl
   brew_tool osquery/osquery-local/python
-  brew_tool osquery/osquery-local/cmake --without-docs
+  brew_tool osquery/osquery-local/bison
 
   platform_posix_main
 }
@@ -129,16 +131,16 @@ function platform_darwin_main() {
  function platform_posix_main() {
   # libarchive for file carving
   brew_dependency osquery/osquery-local/libarchive
+  brew_dependency osquery/osquery-local/rapidjson
+  brew_dependency osquery/osquery-local/zstd
 
   # List of LLVM-compiled dependencies.
-  brew_dependency osquery/osquery-local/lz4
   brew_dependency osquery/osquery-local/libmagic
   brew_dependency osquery/osquery-local/pcre
   brew_dependency osquery/osquery-local/boost
   brew_dependency osquery/osquery-local/asio
   brew_dependency osquery/osquery-local/cpp-netlib
   brew_dependency osquery/osquery-local/google-benchmark
-  brew_dependency osquery/osquery-local/snappy
   brew_dependency osquery/osquery-local/sleuthkit
   brew_dependency osquery/osquery-local/thrift
   brew_dependency osquery/osquery-local/rocksdb
@@ -149,6 +151,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/linenoise-ng
   brew_dependency osquery/osquery-local/augeas
   brew_dependency osquery/osquery-local/lldpd
+  brew_dependency osquery/osquery-local/librdkafka
 
   # POSIX-shared locally-managed tools.
   brew_dependency osquery/osquery-local/zzuf
@@ -199,11 +202,13 @@ function main() {
 
   # Setup the osquery dependency directory.
   # One can use a non-build location using OSQUERY_DEPS=/path/to/deps
-  if [[ -e "$OSQUERY_DEPS" ]]; then
+  if [[ ! -z "$OSQUERY_DEPS" ]]; then
     DEPS_DIR="$OSQUERY_DEPS"
   else
     DEPS_DIR="/usr/local/osquery"
   fi
+
+  deps_version $DEPS_DIR $DEPS_VERSION
 
   if [[ "$ACTION" = "clean" ]]; then
     do_sudo rm -rf "$DEPS_DIR"
@@ -239,6 +244,10 @@ function main() {
     do_sudo mkdir -p "$DEPS_DIR"
     do_sudo chown $USER "$DEPS_DIR" > /dev/null 2>&1 || true
   fi
+
+  # Save the directory we're executing from and change to the deps directory.
+  # Other imported scripts may need to reference the repository directory.
+  export CURRENT_DIR=$(pwd)
   cd "$DEPS_DIR"
 
   # Finally run the setup of *brew, and checkout the needed Taps.
@@ -246,7 +255,8 @@ function main() {
   export PATH="$DEPS_DIR/bin:$PATH"
 
   if [[ ! "$BREW_TYPE" = "freebsd" ]]; then
-    setup_brew "$DEPS_DIR" "$BREW_TYPE"
+    setup_brew "$DEPS_DIR" "$BREW_TYPE" "$ACTION"
+    echo -n $DEPS_VERSION > $DEPS_DIR/DEPS_VERSION
   fi
 
   if [[ "$ACTION" = "bottle" ]]; then
@@ -256,6 +266,8 @@ function main() {
     brew_uninstall "$2"
     return
   elif [[ "$ACTION" = "install" ]]; then
+    # If someone explicitly requested a provision install then build a bottle.
+    export OSQUERY_BUILD_DEPS=True
     brew_dependency "$2"
     return
   fi
@@ -279,6 +291,8 @@ function main() {
 
   # Additional compilations may occur for Python and Ruby
   export LIBRARY_PATH="$DEPS_DIR/legacy/lib:$DEPS_DIR/lib:$LIBRARY_PATH"
+  set_cc clang
+  set_cxx clang++
 
   # Pip may have just been installed.
   log "upgrading pip and installing python dependencies"
@@ -292,7 +306,7 @@ function main() {
   if [[ $OS = "freebsd" ]]; then
     PIP="sudo $PIP"
   fi
-  $PIP install -I -r requirements.txt
+  $PIP install --no-cache-dir -I -r requirements.txt
 
   log "running auxiliary initialization"
   initialize $OS

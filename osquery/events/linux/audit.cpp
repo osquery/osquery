@@ -10,11 +10,14 @@
 
 #include <poll.h>
 
+#include <queue>
+
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/utility/string_ref.hpp>
 
+#include <osquery/dispatcher.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -39,12 +42,56 @@ FLAG(bool,
      false,
      "Allow the audit publisher to change auditing configuration");
 
+HIDDEN_FLAG(uint64, audit_queue_size, 8192 * 4, "Size of the userland queue");
+
+HIDDEN_FLAG(bool, audit_debug, false, "Debug Linux audit messages");
+
 REGISTER(AuditEventPublisher, "event_publisher", "audit");
 
 enum AuditStatus {
   AUDIT_DISABLED = 0,
   AUDIT_ENABLED = 1,
   AUDIT_IMMUTABLE = 2,
+};
+
+class AuditConsumer : private boost::noncopyable {
+ public:
+  static AuditConsumer& get() {
+    static AuditConsumer instance;
+    return instance;
+  }
+
+  /// Add and copy an audit reply into the queue.
+  void push(AuditEventContextRef& reply);
+
+  /// Inspect the front of the queue, usually to move the content.
+  AuditEventContextRef& peek();
+
+  size_t size() const;
+
+  /// Remove the front element.
+  void pop();
+
+ private:
+  /// The managed thread-unsafe queue.
+  std::queue<AuditEventContextRef> queue_;
+
+  /// An observed max-size of the queue.
+  size_t max_size_ = 0;
+
+  /// The queue-protecting Mutex.
+  mutable Mutex mutex_;
+};
+
+class AuditConsumerRunner : public InternalRunnable {
+ public:
+  AuditConsumerRunner(AuditEventPublisher* publisher) : publisher_(publisher) {}
+
+  /// Thread entrypoint.
+  void start() override;
+
+ private:
+  AuditEventPublisher* publisher_;
 };
 
 void AuditAssembler::start(size_t capacity,
@@ -185,6 +232,8 @@ Status AuditEventPublisher::setUp() {
     // Request only the highest priority of audit status messages.
     set_aumessage_mode(MSG_QUIET, DBG_NO);
   }
+
+  Dispatcher::addService(std::make_shared<AuditConsumerRunner>(this));
   return Status(0, "OK");
 }
 
@@ -355,6 +404,14 @@ bool handleAuditReply(const struct audit_reply& reply,
     ec->fields.emplace(std::make_pair(std::move(key), std::move(value)));
   }
 
+  if (FLAGS_audit_debug) {
+    fprintf(stdout, "%zu: (%d) ", ec->audit_id, ec->type);
+    for (const auto& f : ec->fields) {
+      fprintf(stdout, "%s=%s ", f.first.c_str(), f.second.c_str());
+    }
+    fprintf(stdout, "\n");
+  }
+
   if (ec->type >= AUDIT_FIRST_USER_MSG && ec->type <= AUDIT_LAST_USER_MSG) {
     if (!checkUserCache(ec->audit_id)) {
       return false;
@@ -409,9 +466,9 @@ static inline bool adjust_reply(struct audit_reply* rep, int len) {
   case AUDIT_USER:
   case AUDIT_LOGIN:
   case AUDIT_KERNEL:
-  case AUDIT_FIRST_USER_MSG... AUDIT_LAST_USER_MSG:
-  case AUDIT_FIRST_USER_MSG2... AUDIT_LAST_USER_MSG2:
-  case AUDIT_FIRST_EVENT... AUDIT_INTEGRITY_LAST_MSG:
+  case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
+  case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
+  case AUDIT_FIRST_EVENT ... AUDIT_INTEGRITY_LAST_MSG:
     rep->message = static_cast<char*>(NLMSG_DATA(rep->nlh));
   default:
     break;
@@ -419,7 +476,7 @@ static inline bool adjust_reply(struct audit_reply* rep, int len) {
   return true;
 }
 
-static inline bool safe_audit_get_reply(int fd, struct audit_reply* rep) {
+static inline int safe_audit_get_reply(int fd, struct audit_reply* rep) {
   if (fd < 0) {
     return -EBADF;
   }
@@ -429,8 +486,7 @@ static inline bool safe_audit_get_reply(int fd, struct audit_reply* rep) {
   fds[0].events = POLLIN;
 
   if (::poll(fds, 1, 4) <= 0) {
-    // Error or read timeout.
-    return -1;
+    return (errno == EINTR || errno == EAGAIN) ? 0 : -errno;
   }
 
   if (!(fds[0].revents & POLLIN)) {
@@ -465,6 +521,60 @@ static inline bool safe_audit_get_reply(int fd, struct audit_reply* rep) {
   return len;
 }
 
+void AuditConsumer::push(AuditEventContextRef& reply) {
+  auto& self = get();
+  WriteLock lock(self.mutex_);
+
+  if (self.queue_.size() > FLAGS_audit_queue_size) {
+    // The userland queue is filled, drop.
+    return;
+  }
+  self.queue_.push(reply);
+}
+
+AuditEventContextRef& AuditConsumer::peek() {
+  ReadLock lock(get().mutex_);
+
+  return get().queue_.front();
+}
+
+void AuditConsumer::pop() {
+  auto& self = get();
+  WriteLock lock(self.mutex_);
+
+  self.queue_.pop();
+
+  if (self.queue_.size() > self.max_size_) {
+    self.max_size_ = self.queue_.size();
+  } else if (self.queue_.empty() && self.max_size_ > 100) {
+    std::queue<AuditEventContextRef> empty;
+    std::swap(empty, self.queue_);
+    self.max_size_ = 0;
+  }
+}
+
+size_t AuditConsumer::size() const {
+  ReadLock lock(get().mutex_);
+
+  return get().queue_.size();
+}
+
+void AuditConsumerRunner::start() {
+  while (!interrupted()) {
+    size_t events = AuditConsumer::get().size();
+    for (size_t i = 0; i < events; i++) {
+      // Build the event context from the reply type and parse the message.
+      publisher_->fire(AuditConsumer::get().peek());
+      AuditConsumer::get().pop();
+    }
+
+    if (!interrupted() && events == 0) {
+      // Only pause if there were no events to process.
+      pauseMilli(1000);
+    }
+  }
+}
+
 Status AuditEventPublisher::run() {
   if (!FLAGS_disable_audit && (count_ == 0 || count_++ % 10 == 0)) {
     // Request an update to the audit status.
@@ -493,14 +603,14 @@ Status AuditEventPublisher::run() {
         memcpy(&status_, reply_.status, sizeof(struct audit_status));
       }
       break;
-    case AUDIT_FIRST_USER_MSG... AUDIT_LAST_USER_MSG:
+    case AUDIT_FIRST_USER_MSG ... AUDIT_LAST_USER_MSG:
       handle_reply = true;
       break;
     case (AUDIT_GET + 1)...(AUDIT_LIST_RULES - 1):
     case (AUDIT_LIST_RULES + 1)...(AUDIT_FIRST_USER_MSG - 1):
       // Not interested in handling meta-commands and actions.
       break;
-    case AUDIT_DAEMON_START... AUDIT_DAEMON_CONFIG: // 1200 - 1203
+    case AUDIT_DAEMON_START ... AUDIT_DAEMON_CONFIG: // 1200 - 1203
     case AUDIT_CONFIG_CHANGE:
       handleAuditConfigChange(reply_);
       break;
@@ -508,29 +618,33 @@ Status AuditEventPublisher::run() {
       // A monitored syscall was issued, most likely part of a multi-record.
       handle_reply = true;
       break;
+    case AUDIT_TYPE_SOCKADDR:
     case AUDIT_CWD: // 1307
     case AUDIT_PATH: // 1302
     case AUDIT_EXECVE: // // 1309 (execve arguments).
       handle_reply = true;
     case AUDIT_EOE: // 1320 (multi-record event).
       break;
+    case AUDIT_FIRST_SELINUX ... AUDIT_LAST_SELINUX:
+      break;
+    case AUDIT_FIRST_USER_MSG2 ... AUDIT_LAST_USER_MSG2:
+      break;
     default:
       // All other cases, pass to reply.
-      handle_reply = true;
+      handle_reply = false;
     }
 
     // Replies are 'handled' as potential events for several audit types.
     if (handle_reply) {
       auto ec = createEventContext();
-      // Build the event context from the reply type and parse the message.
       if (handleAuditReply(reply_, ec)) {
-        fire(ec);
+        AuditConsumer::get().push(ec);
       }
     }
   });
 
   // Reset the reply data.
-  bool result = false;
+  int result = 0;
   do {
     // Request a reply in a non-blocking mode.
     // This allows the publisher's run loop to periodically request an audit
@@ -539,10 +653,10 @@ Status AuditEventPublisher::run() {
     // This non-blocking also allows faster receipt of multi-message events.
     result = safe_audit_get_reply(handle_, &reply_);
 
-    if (result) {
+    if (result > 0) {
       inspectReply();
     }
-  } while (result && !isEnding());
+  } while (result > 0 && !isEnding());
 
   if (static_cast<pid_t>(status_.pid) != getpid()) {
     if (control_ && status_.pid != 0) {

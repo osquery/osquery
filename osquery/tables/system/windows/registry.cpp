@@ -27,14 +27,18 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/algorithm.hpp>
 
+#include <sqlite3.h>
+
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 #include "osquery/filesystem/fileops.h"
+#include "osquery/sql/sqlite_util.h"
 #include "osquery/tables/system/windows/registry.h"
 
 namespace fs = boost::filesystem;
@@ -73,6 +77,118 @@ const std::map<DWORD, std::string> kRegistryTypes = {
     {REG_FULL_RESOURCE_DESCRIPTOR, "REG_FULL_RESOURCE_DESCRIPTOR"},
     {REG_RESOURCE_LIST, "REG_RESOURCE_LIST"},
 };
+
+const std::vector<std::string> kClassKeys = {
+    "HKEY_USERS\\%\\SOFTWARE\\Classes\\CLSID",
+    "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\CLSID"};
+
+const std::vector<std::string> kClassExecSubKeys = {
+    "InProcServer%", "InProcHandler%", "LocalServer%"};
+
+Status queryMultipleRegistryKeys(const std::vector<std::string>& regexes,
+                                 const std::string& additionalConstraints,
+                                 QueryData& results) {
+  auto dbc = SQLiteDBManager::get();
+  std::string query(
+      "SELECT key, path, name, type, data, mtime FROM registry WHERE ");
+
+  if (!additionalConstraints.empty()) {
+    query += additionalConstraints + " AND ";
+  }
+
+  // Construct all of the registry key globs
+  query += "(key LIKE ";
+  std::vector<std::string> questions(regexes.size(), "?");
+  query += osquery::join(questions, " OR key LIKE ");
+  query += ")";
+
+  sqlite3_stmt* stmt = nullptr;
+  auto ret = sqlite3_prepare_v2(
+      dbc->db(), query.c_str(), static_cast<int>(query.size()), &stmt, nullptr);
+  if (ret != SQLITE_OK) {
+    return Status(1, "Failed to prepare sql query");
+  }
+  for (size_t i = 0; i < regexes.size(); i++) {
+    sqlite3_bind_text(
+        stmt, static_cast<int>(i + 1), regexes[i].c_str(), -1, SQLITE_STATIC);
+  }
+
+  // The registry table schema has exactly 6 columns
+  if (sqlite3_column_count(stmt) != 6) {
+    return Status(1, "registry query returned invalid number of columns");
+  }
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    Row r;
+    r["key"] = SQL_TEXT(sqlite3_column_text(stmt, 0));
+    r["path"] = SQL_TEXT(sqlite3_column_text(stmt, 1));
+    r["name"] = SQL_TEXT(sqlite3_column_text(stmt, 2));
+    r["type"] = SQL_TEXT(sqlite3_column_text(stmt, 3));
+    r["data"] = SQL_TEXT(sqlite3_column_text(stmt, 4));
+    r["mtime"] = BIGINT(sqlite3_column_int64(stmt, 5));
+    results.push_back(r);
+  }
+
+  ret = sqlite3_finalize(stmt);
+  if (ret != SQLITE_OK) {
+    return Status(1,
+                  "Failed to finalize statement with " + std::to_string(ret));
+  }
+  return Status();
+}
+
+Status getClassName(const std::string& clsId, std::string& rClsName) {
+  std::vector<std::string> keys;
+  for (const auto& key : kClassKeys) {
+    keys.push_back(key + kRegSep + clsId);
+  }
+
+  QueryData regQueryResults;
+  std::string constraint("name = '" + kDefaultRegName + "'");
+  auto ret = queryMultipleRegistryKeys(keys, constraint, regQueryResults);
+
+  if (!ret.ok()) {
+    return ret;
+  }
+  if (regQueryResults.empty()) {
+    return Status(1, "ClsId not found in registry");
+  }
+
+  for (const auto& row : regQueryResults) {
+    if (!row.at("data").empty()) {
+      rClsName = row.at("data");
+      return Status();
+    }
+  }
+
+  return Status(1, "No class name present in registry");
+}
+
+Status getClassExecutables(const std::string& clsId,
+                           std::vector<std::string>& results) {
+  std::vector<std::string> resolvedKeys;
+  for (auto key : kClassKeys) {
+    for (const auto& subkey : kClassExecSubKeys) {
+      resolvedKeys.push_back(key + kRegSep + clsId + kRegSep + subkey);
+    }
+  }
+
+  QueryData regQueryResults;
+  auto ret = queryMultipleRegistryKeys(resolvedKeys, "", regQueryResults);
+  if (!ret.ok()) {
+    return ret;
+  }
+  if (regQueryResults.empty()) {
+    return Status(1, "ClsId not found in registry");
+  }
+
+  for (const auto& r : regQueryResults) {
+    if (r.at("name") == kDefaultRegName) {
+      results.push_back(r.at("data"));
+    }
+  }
+  return Status();
+}
 
 Status getUsernameFromKey(const std::string& key, std::string& rUsername) {
   if (!boost::starts_with(key, "HKEY_USERS")) {
@@ -157,7 +273,9 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
                             &cbMaxValueData,
                             nullptr,
                             &ftLastWriteTime);
-
+  if (retCode != ERROR_SUCCESS) {
+    return Status(GetLastError(), "Failed to query registry info for key");
+  }
   auto achKey = std::make_unique<TCHAR[]>(maxKeyLength);
   DWORD cbName;
 
@@ -197,7 +315,6 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
 
   // Process registry values
   for (size_t i = 0; i < cValues; i++) {
-    size_t cnt = 0;
     cchValue = maxValueName;
     achValue[0] = '\0';
 
@@ -246,9 +363,8 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
 
     if (bpDataBuff != nullptr) {
       /// REG_LINK is a Unicode string, which in Windows is wchar_t
-      char* regLinkStr = nullptr;
+      auto regLinkStr = std::make_unique<char[]>(cbMaxValueData);
       if (lpType == REG_LINK) {
-        auto regLinkStr = std::make_unique<char[]>(cbMaxValueData);
         const size_t newSize = cbMaxValueData;
         size_t convertedChars = 0;
         wcstombs_s(&convertedChars,
@@ -267,8 +383,8 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
       case REG_FULL_RESOURCE_DESCRIPTOR:
       case REG_RESOURCE_LIST:
       case REG_BINARY:
-        for (size_t i = 0; i < cbMaxValueData; i++) {
-          regBinary.push_back((char)bpDataBuff[i]);
+        for (size_t j = 0; j < cbMaxValueData; j++) {
+          regBinary.push_back((char)bpDataBuff[j]);
         }
         boost::algorithm::hex(
             regBinary.begin(), regBinary.end(), std::back_inserter(data));
@@ -284,7 +400,7 @@ Status queryKey(const std::string& keyPath, QueryData& results) {
         r["data"] = std::string((char*)bpDataBuff.get());
         break;
       case REG_LINK:
-        r["data"] = std::string(regLinkStr);
+        r["data"] = std::string(regLinkStr.get());
         break;
       case REG_MULTI_SZ:
         while (*p != 0x00) {

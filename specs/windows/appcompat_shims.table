@@ -1,5 +1,5 @@
 table_name("appcompat_shims")
-description("Application Compatibility shims are a way to persist malware. This table presents the AppCompat Shim information from the registry in a nice format. http://files.brucon.org/2015/Tomczak_and_Ballenthin_Shims_for_the_Win.pdf")
+description("Application Compatibility shims are a way to persist malware. This table presents the AppCompat Shim information from the registry in a nice format. See http://files.brucon.org/2015/Tomczak_and_Ballenthin_Shims_for_the_Win.pdf for more details.")
 schema([
     Column("executable", TEXT, "Name of the executable that is being shimmed. This is pulled from the registry."),
     Column("path", TEXT, "This is the path to the SDB database."),

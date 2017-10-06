@@ -5,11 +5,12 @@ class Glibc < AbstractOsqueryFormula
   homepage "https://www.gnu.org/software/libc"
   url "ftp.gnu.org/gnu/glibc/glibc-2.19.tar.bz2"
   sha256 "2e293f714187044633264cd9ce0183c70c3aa960a2f77812a6390a3822694d15"
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "46c47d3e6df6dbbc7d1574e3c2f660d3aa81d47efd742512e6673fe2ca94308d" => :x86_64_linux
+    sha256 "8950b0697219adffa6f33a4e908d3416ade44d2dafb191e0308327568ff2a55c" => :x86_64_linux
   end
 
   # binutils 2.20 or later is required
