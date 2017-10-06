@@ -5,7 +5,6 @@ permalink: /downloads/
 ---
 
 {% assign versions = site.data.versions %}
-{% assign version = versions.first.version %}
 
 <section class="features">
   <div class="grid">
@@ -26,21 +25,24 @@ permalink: /downloads/
           <span class="prompt">$</span>
           <span class="command">ls osquery-latest/ | ./hashthem.sh</span>
         </p>
-        {% for dist in versions.first %}
-        {% if dist[0] != 'version' and dist[0] != 'debug' %}
-        {% assign key = dist[0] %}
-        {% assign prefix = site.prefixes[key] %}
-        {% assign sep = site.separators[key] %}
+        {% assign current_version = versions.first %}
+        {% assign version_number = current_version.version %}
+        {% for key in current_version %}
+        {% if key[0] != 'version' and key[0] != 'debug' %}
+        {% assign os = key[0] %}
+        {% assign prefix = site.prefixes[os] %}
+        {% assign sep = site.separators[os] %}
+        {% assign hash = key[1] %}
           <p class="line" style="margin-top: 10px">
             <span class="output">
-              <a href="https://pkg.osquery.io/{{key}}/osquery{{sep}}{{version}}{{prefix}}">
-                https://pkg.osquery.io/{{key}}/osquery{{sep}}{{version}}{{prefix}}
+              <a href="https://pkg.osquery.io/{{os}}/osquery{{sep}}{{version_number}}{{prefix}}">
+                https://pkg.osquery.io/{{os}}/osquery{{sep}}{{version_number}}{{prefix}}
               </a>
              </span>
           </p>
           <p class="line">
             <span class="output">
-              {{dist[1]}}
+              {{hash}}
              </span>
           </p>
         {% endif %}
@@ -204,7 +206,7 @@ permalink: /downloads/
     </div>
   </div>
 </section>
-<section class="quickstart">
+<section class="quickstart quickstart-second">
   <div class="grid">
     <div class="unit code">
       <p class="title">Debug Downloads</p>
@@ -214,21 +216,24 @@ permalink: /downloads/
           <span class="prompt">$</span>
           <span class="command">ls osquery-debug-latest/ | ./hashthem.sh</span>
         </p>
-        {% for dist in versions.first.debug %}
-        {% assign key = dist[0] %}
-        {% assign prefix = site.prefixes[key] %}
-        {% assign sep = site.separators[key] %}
-        {% assign dbg = site.debug_prefixes[key] %}
+        {% assign current_version = versions.first %}
+        {% assign version_number = current_version.version %}
+        {% for key in current_version.debug %}
+        {% assign os = key[0] %}
+        {% assign prefix = site.prefixes[os] %}
+        {% assign sep = site.separators[os] %}
+        {% assign hash = key[1] %}
+        {% assign dbg = site.debug_prefixes[os] %}
           <p class="line" style="margin-top: 10px">
             <span class="output">
-              <a href="https://pkg.osquery.io/{{key}}/osquery-{{dbg}}{{sep}}{{version}}{{prefix}}">
-                https://pkg.osquery.io/{{key}}/osquery-{{dbg}}{{sep}}{{version}}{{prefix}}
+              <a href="https://pkg.osquery.io/{{os}}/osquery-{{dbg}}{{sep}}{{version_number}}{{prefix}}">
+                https://pkg.osquery.io/{{os}}/osquery-{{dbg}}{{sep}}{{version_number}}{{prefix}}
               </a>
              </span>
           </p>
           <p class="line">
             <span class="output">
-              {{dist[1]}}
+              {{hash}}
              </span>
           </p>
         {% endfor %}
