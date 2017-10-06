@@ -129,6 +129,15 @@ TEST_F(TablesTests, test_constraint_map) {
   EXPECT_TRUE(cm["path"].existsAndMatches("some"));
 }
 
+TEST_F(TablesTests, test_constraint_map_cast) {
+  ConstraintMap cm;
+
+  cm["num"].affinity = INTEGER_TYPE;
+  cm["num"].add(Constraint(EQUALS, "hello"));
+
+  EXPECT_FALSE(cm["num"].existsAndMatches("hello"));
+}
+
 class TestTablePlugin : public TablePlugin {
  public:
   void testSetCache(size_t step, size_t interval) {
