@@ -7,7 +7,11 @@ schema([
     Column("encrypted", INTEGER, "1 if key is encrypted, 0 otherwise"),
     ForeignKey(column="uid", table="users"),
 ])
+attributes(user_data=True, no_pkey=True)
 implementation("user_ssh_keys@getUserSshKeys")
+examples([
+    "select * from users join user_ssh_keys using (uid) where encrypted = 0",
+])
 fuzz_paths([
     "/home",
     "/Users",
