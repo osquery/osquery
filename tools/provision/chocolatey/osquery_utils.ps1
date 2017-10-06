@@ -129,8 +129,10 @@ function Start-OsqueryProcess {
   $p.WaitForExit()
   $stdout = $p.StandardOutput.ReadToEnd()
   $stderr = $p.StandardError.ReadToEnd()
-  if ($stderr) {
-    Write-Error $stderr
+  $exit = $p.ExitCode
+  [PSCustomObject] @{
+    stdout = $stdout
+    stderr = $stderr
+    exitcode = $exit
   }
-  return $stdout
 }
