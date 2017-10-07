@@ -24,6 +24,15 @@ namespace tables {
 extern long getUptime();
 }
 
+static inline unsigned long decimalToOct(unsigned long dec){
+  unsigned long oct = 00;
+  for(auto i = 1; dec > 0; i *= 10){
+    oct += (dec & 07) * i;
+    dec >>= 3;
+  }
+  return oct;
+}
+
 bool ProcessUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
   if (type == AUDIT_SYSCALL) {
     r["auid"] = (fields.count("auid")) ? fields.at("auid") : "0";
@@ -81,7 +90,7 @@ bool ProcessUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
   }
 
   if (type == AUDIT_PATH) {
-    r["mode"] = (fields.count("mode")) ? fields.at("mode") : "";
+    r["mode"] = (fields.count("mode")) ? decimalToOct(fields.at("mode")) : "";
     r["owner_uid"] = fields.count("ouid") ? fields.at("ouid") : "0";
     r["owner_gid"] = fields.count("ogid") ? fields.at("ogid") : "0";
   }
