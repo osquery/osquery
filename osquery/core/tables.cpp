@@ -170,6 +170,11 @@ PluginResponse TablePlugin::routeInfo() const {
 }
 
 static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
+  if (!ctx.useCache()) {
+    // The query execution did not request use of the warm cache.
+    return false;
+  }
+
   auto uncachable = ColumnOptions::INDEX | ColumnOptions::REQUIRED |
                     ColumnOptions::ADDITIONAL | ColumnOptions::OPTIMIZED;
   for (const auto& column : cols) {
@@ -407,6 +412,37 @@ void ConstraintList::unserialize(const boost::property_tree::ptree& tree) {
     constraints_.push_back(constraint);
   }
   affinity = columnTypeName(tree.get<std::string>("affinity", "UNKNOWN"));
+}
+
+void QueryContext::useCache(bool use_cache) {
+  use_cache_ = use_cache;
+}
+
+bool QueryContext::useCache() const {
+  return use_cache_;
+}
+
+void QueryContext::setCache(const std::string& index, Row _cache) {
+  table_->cache[index] = std::move(_cache);
+}
+
+void QueryContext::setCache(const std::string& index,
+                            const std::string& key,
+                            std::string _item) {
+  table_->cache[index][key] = std::move(_item);
+}
+
+bool QueryContext::isCached(const std::string& index) const {
+  return (table_->cache.count(index) != 0);
+}
+
+const Row& QueryContext::getCache(const std::string& index) {
+  return table_->cache[index];
+}
+
+const std::string& QueryContext::getCache(const std::string& index,
+                                          const std::string& key) {
+  return table_->cache[index][key];
 }
 
 bool QueryContext::hasConstraint(const std::string& column,

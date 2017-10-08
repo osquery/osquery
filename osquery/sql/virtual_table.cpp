@@ -449,6 +449,9 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   pCur->n = 0;
   QueryContext context(content);
 
+  // The SQLite instance communicates to the TablePlugin via the context.
+  context.useCache(pVtab->instance->useCache());
+
   // Track required columns, this is different than the requirements check
   // that occurs within BestIndex because this scan includes a cursor.
   // For each cursor used, if a requirement exists, we need to scan the
