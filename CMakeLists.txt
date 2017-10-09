@@ -581,7 +581,13 @@ set(BUILD_GTEST TRUE)
 
 include(Thrift)
 
-add_definitions(-DGTEST_HAS_TR1_TUPLE=0)
+if(FREEBSD)
+  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=1)
+else()
+  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=0)
+endif()
+
+# add_definitions(-DGTEST_HAS_TR1_TUPLE=0)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
