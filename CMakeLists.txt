@@ -102,7 +102,7 @@ if(APPLE)
     -mmacosx-version-min=${OSX_VERSION_MIN}
   )
 
-  set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++")
+  set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   set(OS_WHOLELINK_PRE "-Wl,-force_load")
   set(OS_WHOLELINK_POST "")
   # Special compile flags for Objective-C++
@@ -124,10 +124,10 @@ else()
     set(FREEBSD TRUE)
     include_directories("/usr/local/include")
     include_directories("/usr/include")
-    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++")
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   else()
     set(LINUX TRUE)
-    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libstdc++")
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libstdc++" CACHE STRING "" FORCE)
   endif()
   set(POSIX TRUE)
 endif()
@@ -578,12 +578,6 @@ set(CTEST_TEST_TIMEOUT 600)
 set(BUILD_GTEST TRUE)
 
 include(Thrift)
-
-if(FREEBSD)
-  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=1)
-else()
-  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=0)
-endif()
 
 # Detect TR1 usage.
 include(CheckIncludeFileCXX)
