@@ -211,7 +211,7 @@ bool FileHashCache::exists(const std::string& path) {
     return false;
   }
 
-  if (!fileHasChanged_(path, entry->second)) {
+  if (fileHasChanged_(path, entry->second)) {
     return false;
   }
   return true;
