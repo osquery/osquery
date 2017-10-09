@@ -383,7 +383,7 @@ if(NOT SKIP_TESTS)
   add_executable(osquery_tests main/tests.cpp ${OSQUERY_TESTS})
   ADD_DEFAULT_LINKS(osquery_tests FALSE)
   target_link_libraries(osquery_tests gtest gmock libosquery_testing)
-  SET_OSQUERY_COMPILE(osquery_tests)
+  SET_OSQUERY_COMPILE(osquery_tests "${GTEST_FLAGS}")
   add_test(osquery_tests osquery_tests ${TEST_ARGS})
 
   # osquery kernel tests.
@@ -391,7 +391,7 @@ if(NOT SKIP_TESTS)
     add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
     ADD_DEFAULT_LINKS(osquery_kernel_tests TRUE)
     target_link_libraries(osquery_kernel_tests gtest gmock libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_kernel_tests "-DKERNEL_TEST=1")
+    SET_OSQUERY_COMPILE(osquery_kernel_tests "${GTEST_FLAGS} -DKERNEL_TEST=1")
   endif()
 
   # osquery benchmarks.
@@ -399,7 +399,7 @@ if(NOT SKIP_TESTS)
     add_executable(osquery_benchmarks main/benchmarks.cpp ${OSQUERY_BENCHMARKS})
     target_link_libraries(osquery_benchmarks benchmark libosquery_testing pthread)
     ADD_DEFAULT_LINKS(osquery_benchmarks TRUE)
-    SET_OSQUERY_COMPILE(osquery_benchmarks)
+    SET_OSQUERY_COMPILE(osquery_benchmarks "${GTEST_FLAGS}")
     set(BENCHMARK_TARGET "$<TARGET_FILE:osquery_benchmarks>")
 
     # osquery kernel benchmarks.
@@ -407,7 +407,7 @@ if(NOT SKIP_TESTS)
       add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
       target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing pthread)
       ADD_DEFAULT_LINKS(osquery_kernel_benchmarks TRUE)
-      SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "-DKERNEL_TEST=1")
+      SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${GTEST_FLAGS} -DKERNEL_TEST=1")
     endif()
 
     # make benchmark
@@ -424,14 +424,14 @@ if(NOT SKIP_TESTS)
     add_executable(osquery_additional_tests tests/test_additional_util.cpp main/tests.cpp ${OSQUERY_ADDITIONAL_TESTS})
     ADD_DEFAULT_LINKS(osquery_additional_tests TRUE)
     target_link_libraries(osquery_additional_tests gtest gmock libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_additional_tests)
+    SET_OSQUERY_COMPILE(osquery_additional_tests "${GTEST_FLAGS}")
     add_test(osquery_additional_tests osquery_additional_tests ${TEST_ARGS})
 
     # osquery tables set of unit tests (extracted for organization).
     add_executable(osquery_tables_tests tests/test_additional_util.cpp main/tests.cpp ${OSQUERY_TABLES_TESTS})
     ADD_DEFAULT_LINKS(osquery_tables_tests TRUE)
     target_link_libraries(osquery_tables_tests gtest gmock libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_tables_tests)
+    SET_OSQUERY_COMPILE(osquery_tables_tests "${GTEST_FLAGS}")
     add_test(osquery_tables_tests osquery_tables_tests ${TEST_ARGS})
   endif()
 

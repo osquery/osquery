@@ -504,6 +504,11 @@ elseif(LINUX)
 endif()
 
 if(POSIX)
+  set(CMAKE_REQUIRED_INCLUDES
+    "${BUILD_DEPS}/legacy/include"
+    "${BUILD_DEPS}/include"
+  )
+
   include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   include_directories(SYSTEM "${BUILD_DEPS}/include")
   include_directories("${BUILD_DEPS}/include/openssl")
@@ -592,6 +597,12 @@ if(FREEBSD OR "${HAVE_TR1_TUPLE}" STREQUAL "")
  else()
   add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=0)
 endif()
+
+set(GTEST_FLAGS
+  "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googletest/include"
+  "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googlemock/include"
+)
+join("${GTEST_FLAGS}" " " GTEST_FLAGS)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
