@@ -581,19 +581,7 @@ set(BUILD_GTEST TRUE)
 
 include(Thrift)
 
-# Detect TR1 usage.
-include(CheckIncludeFileCXX)
-if(WINDOWS)
-  check_include_file_cxx("tuple" HAVE_TR1_TUPLE)
-else()
-  check_include_file_cxx("tr1/tuple" HAVE_TR1_TUPLE)
-endif()
-
-if(FREEBSD OR "${HAVE_TR1_TUPLE}" STREQUAL "")
-  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=1)
-else()
-  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=0)
-endif()
+add_definitions(-DGTEST_HAS_TR1_TUPLE=0)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
