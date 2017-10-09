@@ -577,6 +577,9 @@ endif()
 # We can supply the known include paths within each test as compile flags.
 enable_testing()
 set(CTEST_TEST_TIMEOUT 600)
+set(BUILD_GTEST TRUE)
+
+include(Thrift)
 
 # Detect TR1 usage.
 include(CheckIncludeFileCXX)
@@ -587,24 +590,12 @@ else()
 endif()
 
 if(FREEBSD OR "${HAVE_TR1_TUPLE}" STREQUAL "")
-  set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=1")
+  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=1)
 else()
-  set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=0")
+  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=0)
 endif()
 
-set(GTEST_FLAGS
-  ${GTEST_FLAGS}
-  "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googletest/include"
-  "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googlemock/include"
-)
-join("${GTEST_FLAGS}" " " GTEST_FLAGS)
-
-set(BUILD_GTEST TRUE)
-
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
-
-include(Thrift)
-
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 
 add_subdirectory(osquery)
