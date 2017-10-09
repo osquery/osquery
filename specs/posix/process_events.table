@@ -3,7 +3,7 @@ description("Track time/action process executions.")
 schema([
     Column("pid", BIGINT, "Process (or thread) ID"),
     Column("path", TEXT, "Path of executed file"),
-    Column("mode", TEXT, "File mode permissions"),
+    Column("mode", BIGINT, "File mode permissions"),
     Column("cmdline", TEXT, "Command line arguments (argv)"),
     Column("cmdline_size", BIGINT, "Actual size (bytes) of command line arguments",
         hidden=True),

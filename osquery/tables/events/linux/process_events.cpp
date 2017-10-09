@@ -84,9 +84,8 @@ bool ProcessUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
     if (fields.count("mode")) {
       std::stringstream ss;
       ss << "0" << std::oct << fields.at("mode");
-      r["mode"] = std::move(ss.str());
-    }
-    else {
+      ss >> r["mode"];
+    } else {
       r["mode"] = "";
     }
     r["owner_uid"] = fields.count("ouid") ? fields.at("ouid") : "0";
