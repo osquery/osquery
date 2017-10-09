@@ -9,9 +9,11 @@
  */
 
 #include <iomanip>
-#include <sstream>
-#include <vector>
+#include <mutex>
 #include <queue>
+#include <sstream>
+#include <unordered_map>
+#include <vector>
 
 #include <openssl/md5.h>
 #include <openssl/sha.h>
@@ -19,12 +21,26 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/filesystem.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/tables/system/hash.h"
 
 namespace osquery {
+
+FLAG(bool,
+     enable_persistent_hash_cache,
+     false,
+     "Cache calculated file hashes, re-calculate only if file has changed");
+FLAG(uint32,
+     persistent_hash_cache_max_size,
+     500,
+     "Cache hashes for upto this number of files");
+HIDDEN_FLAG(uint32,
+            persistent_hash_cache_evict_bunch_size,
+            10,
+            "Clear this amount of rows every time eviction is triggered");
 
 #define HASH_CHUNK_SIZE 4096
 
@@ -140,11 +156,166 @@ std::string hashFromFile(HashType hash_type, const std::string& path) {
   }
 }
 
-namespace tables {
+/*
+ * FileHashCache implements persistent in-memory caching for files' hashes.
+ * this cache has LRU eviction policy. the hash is recalculated
+ * every time the file changes, the criteria of this change set in
+ * FileHashCache::fileHasChanged_.
+ */
 
-static bool fileCacheExists(const std::string &path);
-static bool fileCacheGet(const std::string &path, Row &r);
-static bool fileCacheSet(const std::string &path, Row r);
+struct FileHashCacheEntry {
+  time_t mtime; // last modification time of the file, # sec since UNIX
+  time_t cache_access; // last access to the cache entry, # sec since UNIX
+  off_t size; // file size in bytes
+  Row r; // cache payload, the whole hash table row
+  std::string path; // XXX: tracking it for eviction policy, think of better way
+};
+
+class FileHashCache {
+ public:
+  FileHashCache();
+  FileHashCache(size_t maxsize, size_t evict_at_once)
+      : maxsize_(maxsize), nevict_(evict_at_once), lruq_(fhccmp_) {}
+  bool exists(const std::string& path);
+  bool get(const std::string& path, Row& r);
+  bool set(const std::string& path, Row r);
+
+ private:
+  void evict_();
+  bool fileHasChanged_(const std::string& path,
+                       const FileHashCacheEntry& entry);
+  static bool fhccmp_(FileHashCacheEntry* l, FileHashCacheEntry* r) {
+    return l->cache_access > r->cache_access;
+  }
+  size_t maxsize_;
+  size_t nevict_;
+  std::mutex cache_mutex_;
+  std::unordered_map<std::string, FileHashCacheEntry> cache_;
+  std::priority_queue<FileHashCacheEntry*,
+                      std::vector<FileHashCacheEntry*>,
+                      bool (*)(FileHashCacheEntry*, FileHashCacheEntry*)>
+      lruq_;
+};
+
+FileHashCache::FileHashCache() : lruq_(fhccmp_) {
+  maxsize_ = FLAGS_persistent_hash_cache_max_size;
+  nevict_ = FLAGS_persistent_hash_cache_evict_bunch_size;
+}
+
+bool FileHashCache::exists(const std::string& path) {
+  // TODO: we are not writing anything here, boost::shared_mutex maybe?
+  std::lock_guard<std::mutex> guard(cache_mutex_);
+
+  auto entry = cache_.find(path);
+  if (entry == cache_.end()) {
+    return false;
+  }
+
+  if (!fileHasChanged_(path, entry->second)) {
+    return false;
+  }
+  return true;
+}
+
+bool FileHashCache::get(const std::string& path, Row& r) {
+  std::lock_guard<std::mutex> guard(cache_mutex_);
+
+  auto entry = cache_.find(path);
+  if (entry == cache_.end()) {
+    return false;
+  }
+  r = entry->second.r;
+  entry->second.cache_access = time(0);
+  return true;
+}
+
+void FileHashCache::evict_() {
+  for (size_t i = 0; i < nevict_; ++i) {
+    if (lruq_.top()) {
+      std::string key = lruq_.top()->path;
+      lruq_.pop();
+      if (cache_.find(key) != cache_.end()) {
+        cache_.erase(key);
+      } // TODO: handle an error in `else'
+    }
+  }
+}
+
+bool FileHashCache::set(const std::string& path, Row r) {
+  std::lock_guard<std::mutex> guard(cache_mutex_);
+
+  struct stat file_stat;
+  if (stat(path.c_str(), &file_stat) != 0) {
+    // again, just ignore the error for now, no caching performed of course
+    // TODO: handle this error maybe?
+    return false;
+  }
+
+  if (cache_.size() >= maxsize_) {
+    evict_();
+  }
+
+  FileHashCacheEntry entry = {.mtime = file_stat.st_mtime,
+                              .size = file_stat.st_size,
+                              .r = std::move(r),
+                              .cache_access = time(0),
+                              .path = path};
+  cache_[path] = entry;
+  lruq_.push(&cache_[path]);
+  return true;
+}
+
+// right now these are basically the same functions, with only
+// minor naming changes, but it is very likely to change, so it makes sense
+// to keep each under it's own clause
+
+#if defined(WIN32)
+
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+bool FileHashCache::fileHasChanged_(const std::string& path,
+                                    const FileHashCacheEntry& entry) {
+  struct _stat file_stat;
+  if (_stat(path.c_str(), &file_stat) != 0) {
+    LOG(WARNING) << "cannot stat file: " << path << " ; " << strerror(errno);
+    return false;
+  }
+  if (file_stat.st_size != entry->second.size ||
+      file_stat.st_mtime != entry->second.mtime) {
+    return true;
+  }
+  return false;
+}
+
+#else
+
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+bool FileHashCache::fileHasChanged_(const std::string& path,
+                                    const FileHashCacheEntry& entry) {
+  struct stat file_stat;
+  if (stat(path.c_str(), &file_stat) != 0) {
+    LOG(WARNING) << "cannot stat file: " << path << " ; " << strerror(errno);
+    return false;
+  }
+  if (file_stat.st_size != entry.size || file_stat.st_mtime != entry.mtime) {
+    return true;
+  }
+  return false;
+}
+#endif // WIN32
+
+// we are not working with multiple filesystems mounted to the same point,
+// hence static storage class.
+// TODO: if more usecases appear, consider implementing this as singleton.
+static FileHashCache cache;
 
 void genHashForFile(const std::string& path,
                     const std::string& dir,
@@ -153,11 +324,13 @@ void genHashForFile(const std::string& path,
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
   Row r;
-  if (fileCacheExists(path)) {
-    fileCacheGet(path, r);
+  if (FLAGS_enable_persistent_hash_cache && cache.exists(path)) {
+    cache.get(path, r);
   } else if (context.isCached(path)) {
     r = context.getCache(path);
-    fileCacheSet(path, r);
+    if (FLAGS_enable_persistent_hash_cache) {
+      cache.set(path, r);
+    }
   } else {
     auto hashes = hashMultiFromFile(
         HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
@@ -168,10 +341,14 @@ void genHashForFile(const std::string& path,
     r["sha1"] = std::move(hashes.sha1);
     r["sha256"] = std::move(hashes.sha256);
     context.setCache(path, r);
-    fileCacheSet(path, r);
+    if (FLAGS_enable_persistent_hash_cache) {
+      cache.set(path, r);
+    }
   }
   results.push_back(r);
 }
+
+namespace tables {
 
 QueryData genHash(QueryContext& context) {
   QueryData results;
@@ -245,106 +422,6 @@ QueryData genHash(QueryContext& context) {
 
   return results;
 }
-
-
-/*
- * This is a rought prototype of persistent caching of file hashes
- * TODO: refactor it to a separate singleton
- */
-
-// TODO: make it work on Windows
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-#include <mutex>
-#include <unordered_map>
-
-// TODO: make all of these gflags
-const int kEvictAtOnce = 1; // how much items to evict when cache is full
-const int kCacheSize = 500; // max number of entries the cache holds
-
-struct FileHashCache {
-  time_t mtime; // last modification time of the file, # sec since UNIX
-  time_t cache_access; // last access to the cache entry, # sec since UNIX
-  off_t size; // file size in bytes
-  Row r; // cache payload, the whole hash table row
-  std::string path; // XXX: tracking it for eviction policy, think of better way
-};
-static std::mutex cache_mutex;
-static std::unordered_map<std::string, FileHashCache> cache;
-auto fhccmp = [](FileHashCache *l, FileHashCache *r) {
-  return l->cache_access > r->cache_access;
-};
-static std::priority_queue<FileHashCache *, std::vector<FileHashCache * >, decltype(fhccmp) > lruq(fhccmp);
-
-bool fileCacheExists(const std::string &path) {
-  // TODO: we are not writing anything here, boost::shared_mutex maybe?
-  std::lock_guard<std::mutex> guard(cache_mutex);
-
-  auto entry = cache.find(path);
-  if (entry == cache.end())
-    return false;
-
-  struct stat file_stat;
-  if (stat(path.c_str(), &file_stat) != 0) {
-    // something is wrong with that path, pretend this call never happened and
-    // let the caller handle it
-    // TODO: handle this error maybe?
-    return false;
-  }
-  if (file_stat.st_size != entry->second.size ||
-      file_stat.st_mtime != entry->second.mtime)
-    return false;
-  return true;
-}
-
-bool fileCacheGet(const std::string &path, Row &r) {
-  std::lock_guard<std::mutex> guard(cache_mutex);
-
-  auto entry = cache.find(path);
-  if (entry == cache.end())
-    return false;
-  r = entry->second.r;
-  entry->second.cache_access = time(0);
-  return true;
-}
-
-static void fileHashEvict(int nitems = kEvictAtOnce) {
-  for (int i = 0; i < nitems; ++i) {
-    if (lruq.top()) {
-      std::string key = lruq.top()->path;
-      lruq.pop();
-      if (cache.find(key) != cache.end()) {
-        cache.erase(key);
-      } // TODO: handle an error in `else'
-    }
-  }
-}
-
-static bool fileCacheSet(const std::string &path, Row r) {
-  std::lock_guard<std::mutex> guard(cache_mutex);
-
-  struct stat file_stat;
-  if (stat(path.c_str(), &file_stat) != 0) {
-    // again, just ignore the error for now, no caching performed of course
-    // TODO: handle this error maybe?
-    return false;
-  }
-
-  if (cache.size() >= kCacheSize)
-    fileHashEvict();
-
-  FileHashCache entry = { .mtime = file_stat.st_mtime,
-                          .size = file_stat.st_size,
-                          .r = std::move(r),
-                          .cache_access = time(0),
-                          .path = path };
-  cache[path] = entry;
-  lruq.push(&cache[path]);
-  return true;
-}
-
 
 }
 }
