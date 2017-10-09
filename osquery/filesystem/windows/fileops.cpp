@@ -680,20 +680,27 @@ Status PlatformFile::isOwnerRoot() const {
   }
 
   SecurityDescriptor sd_wrapper(sd);
-  DWORD admins_buf_size = SECURITY_MAX_SID_SIZE;
-  std::vector<char> admins_buf(admins_buf_size, '\0');
+  DWORD sid_buff_size = SECURITY_MAX_SID_SIZE;
 
-  PSID admins_sid = static_cast<PSID>(admins_buf.data());
+  std::vector<char> admins_buf(sid_buff_size, '\0');
+  auto admins_sid = static_cast<PSID>(admins_buf.data());
   if (!CreateWellKnownSid(
-          WinBuiltinAdministratorsSid, nullptr, admins_sid, &admins_buf_size)) {
+          WinBuiltinAdministratorsSid, nullptr, admins_sid, &sid_buff_size)) {
     return Status(-1, "CreateWellKnownSid failed");
   }
 
-  if (EqualSid(owner, admins_sid)) {
+  std::vector<char> system_buf(sid_buff_size, '\0');
+  auto system_sid = static_cast<PSID>(system_buf.data());
+  if (!CreateWellKnownSid(
+          WinLocalSystemSid, nullptr, system_sid, &sid_buff_size)) {
+    return Status(-1, "CreateWellKnownSid failed");
+  }
+
+  if (EqualSid(owner, admins_sid) || EqualSid(owner, system_sid)) {
     return Status();
   }
 
-  return Status(1, "Owner is not Administrators group");
+  return Status(1, "Owner is not in Administrators group or Local System");
 }
 
 Status PlatformFile::isOwnerCurrentUser() const {
@@ -737,9 +744,9 @@ static Status lowPrivWriteDenied(PACL acl) {
   std::vector<char> administrators_buffer(sid_buff_size, '\0');
   std::vector<char> world_buffer(sid_buff_size, '\0');
 
-  PSID system_sid = static_cast<PSID>(system_buffer.data());
-  PSID admins_sid = static_cast<PSID>(administrators_buffer.data());
-  PSID world_sid = static_cast<PSID>(world_buffer.data());
+  auto system_sid = static_cast<PSID>(system_buffer.data());
+  auto admins_sid = static_cast<PSID>(administrators_buffer.data());
+  auto world_sid = static_cast<PSID>(world_buffer.data());
 
   if (!CreateWellKnownSid(
           WinBuiltinAdministratorsSid, nullptr, system_sid, &sid_buff_size)) {
@@ -786,13 +793,20 @@ static Status lowPrivWriteDenied(PACL acl) {
     if (entry->AceType == ACCESS_ALLOWED_ACE_TYPE) {
       auto allowed_ace = reinterpret_cast<PACCESS_ALLOWED_ACE>(entry);
 
+      // Administrators and SYSTEM are allowed Full access
       if (EqualSid(&allowed_ace->SidStart, system_sid) ||
           EqualSid(&allowed_ace->SidStart, admins_sid)) {
         continue;
       }
 
-      // Deny-Write ACEs supersede Allow-Write ACEs
-      bool hasDeny = false;
+      /*
+       * Deny-Write ACEs supersede Allow-Write ACEs, however this is
+       * only the case if the Deny ACE appears _before_ the allow. As
+       * such the location of the below equality check is important, and
+       * the check for an allow should only come after the check for a deny
+       * has been processed.
+       */
+      auto hasDeny = false;
       for (const auto& p : denyWriteSids) {
         if (EqualSid(&allowed_ace->SidStart, p)) {
           hasDeny = true;
