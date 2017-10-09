@@ -60,7 +60,7 @@ if(NOT DEFINED ENV{SKIP_CCACHE})
 endif()
 
 # osquery additional compiler flags added by CMake.
-set(C_COMPILE_FLAGS "")
+set(CXX_STD "c++14")
 set(CXX_COMPILE_FLAGS "")
 
 find_program(PYTHON_EXECUTABLE "python" ${BUILD_DEPS} ENV PATH)
@@ -102,7 +102,7 @@ if(APPLE)
     -mmacosx-version-min=${OSX_VERSION_MIN}
   )
 
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libc++")
+  set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++")
   set(OS_WHOLELINK_PRE "-Wl,-force_load")
   set(OS_WHOLELINK_POST "")
   # Special compile flags for Objective-C++
@@ -124,10 +124,10 @@ else()
     set(FREEBSD TRUE)
     include_directories("/usr/local/include")
     include_directories("/usr/include")
-    set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libc++")
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++")
   else()
     set(LINUX TRUE)
-    set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libstdc++")
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libstdc++")
   endif()
   set(POSIX TRUE)
 endif()
@@ -245,8 +245,6 @@ else()
   endif()
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
-  #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
-
   # Visual Studio does not support generation of PIC code
   if(POSIX)
     # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
@@ -587,7 +585,19 @@ else()
   add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=0)
 endif()
 
-# add_definitions(-DGTEST_HAS_TR1_TUPLE=0)
+# Detect TR1 usage.
+include(CheckIncludeFileCXX)
+if(WINDOWS)
+  check_include_file_cxx("tuple" HAVE_TR1_TUPLE)
+else()
+  check_include_file_cxx("tr1/tuple" HAVE_TR1_TUPLE)
+endif()
+
+if(FREEBSD OR "${HAVE_TR1_TUPLE}" STREQUAL "")
+  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=1)
+ else()
+  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=0)
+endif()
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
