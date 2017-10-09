@@ -81,11 +81,16 @@ function setup_brew() {
   mkdir -p "$DEPS/lib/python2.7/site-packages"
 }
 
-# json_element JSON STRUCT
+# json_attributes JSON [ATTRIBUTE_PATH, ...]
 #   1: JSON blob
-#   2: parse structure
-function json_element() {
-  CMD="import json,sys;obj=json.load(sys.stdin);print ${2}"
+#   N: path(s) to desired attributes
+function json_attributes() {
+  CMD="import json,sys;obj=json.load(sys.stdin)"
+
+  for attr in ${@:2}; do
+    CMD="$CMD;print $attr"
+  done
+
   RESULT=`(echo "${1}" | python -c "${CMD}") 2>/dev/null || echo 'NAN'`
   echo $RESULT
 }
@@ -122,10 +127,17 @@ function brew_internal() {
 
   FORMULA="$TOOL"
   INFO=`$BREW info --json=v1 "${FORMULA}"`
-  INSTALLED=$(json_element "${INFO}" 'obj[0]["installed"][0]["version"]')
-  STABLE=$(json_element "${INFO}" 'obj[0]["versions"]["stable"]')
-  REVISION=$(json_element "${INFO}" 'obj[0]["revision"]')
-  LINKED=$(json_element "${INFO}" 'obj[0]["linked_keg"]')
+  RESULTS=$(json_attributes "$INFO" 'obj[0]["installed"][0]["version"]' \
+                                    'obj[0]["versions"]["stable"]' \
+                                    'obj[0]["revision"]' \
+                                    'obj[0]["linked_keg"]')
+  read -r -a RESULTS <<< "$RESULTS"
+
+  INSTALLED="${RESULTS[0]}"
+  STABLE="${RESULTS[1]}"
+  REVISION="${RESULTS[2]}"
+  LINKED="${RESULTS[3]}"
+
   if [[ ! "$REVISION" = "0" ]]; then
     STABLE="${STABLE}_${REVISION}"
   fi
@@ -241,7 +253,7 @@ function brew_bottle() {
   $BREW bottle --skip-relocation "${FORMULA}"
 
   INFO=`$BREW info --json=v1 "${FORMULA}"`
-  INSTALLED=$(json_element "${INFO}" 'obj[0]["installed"][0]["version"]')
+  INSTALLED=$(json_attributes "${INFO}" 'obj[0]["installed"][0]["version"]')
 
   ARIN=(${FORMULA//// })
   TOOL=${ARIN[2]}
