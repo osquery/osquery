@@ -291,13 +291,16 @@ Status getCertificateInformation(SignatureInformation& signature_info,
                                          nullptr,
                                          nullptr,
                                          0);
-    if (value_size == 0U) {
+    if (value_size == 0U || value_size >= 10000) {
+      VLOG(1) << "Invalid certificate field size: " << value_size;
       return false;
     }
 
     std::string buffer;
-    buffer.resize(static_cast<size_t>(value_size));
-    if (buffer.size() != static_cast<size_t>(value_size)) {
+    try {
+      buffer.resize(static_cast<size_t>(value_size));
+    } catch (const std::exception&) {
+      VLOG(1) << "Memory allocation error";
       return false;
     }
 
