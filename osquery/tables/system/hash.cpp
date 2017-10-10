@@ -261,14 +261,12 @@ bool FileHashCache::load(const std::string& path, MultiHashes& out) {
   return true;
 }
 
-
 void genHashForFile(const std::string& path,
                     const std::string& dir,
                     QueryContext& context,
                     QueryData& results) {
   // Must provide the path, filename, directory separate from boost path->string
   // helpers to match any explicit (query-parsed) predicate constraints.
-  static FileHashCache cache;
   Row r;
 
   if (context.isCached(path)) {
@@ -276,7 +274,7 @@ void genHashForFile(const std::string& path,
   } else {
     MultiHashes hashes;
     if (FLAGS_enable_persistent_hash_cache) {
-      cache.load(path, hashes);
+      FileHashCache::load(path, hashes);
     } else {
       hashes = hashMultiFromFile(
           HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
