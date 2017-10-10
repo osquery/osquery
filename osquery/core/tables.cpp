@@ -364,8 +364,8 @@ bool ConstraintList::literal_matches(const T& base_expr) const {
     } else if (constraints_[i].op == LESS_THAN_OR_EQUALS) {
       aggregate = aggregate && (base_expr <= constraint_expr);
     } else {
-      // Unsupported constraint.
-      return false;
+      // Unsupported constraint. Should match every thing.
+      return true;
     }
     if (!aggregate) {
       // Speed up comparison.
