@@ -9,7 +9,8 @@ QueryData genLogicalDrives(QueryContext& context) {
   QueryData results;
 
   WmiRequest wmiLogicalDiskReq(
-      "select DeviceID, DriveType, FreeSpace, Size from Win32_LogicalDisk");
+      "select DeviceID, DriveType, FreeSpace, Size, FileSystem from "
+      "Win32_LogicalDisk");
   std::vector<WmiResultItem>& wmiResults = wmiLogicalDiskReq.results();
   for (unsigned int i = 0; i < wmiResults.size(); ++i) {
     unsigned int driveType = 0;
@@ -19,6 +20,7 @@ QueryData genLogicalDrives(QueryContext& context) {
     wmiResults[i].GetUnsignedInt32("DriveType", driveType);
     wmiResults[i].GetString("FreeSpace", r["free_space"]);
     wmiResults[i].GetString("Size", r["size"]);
+    wmiResults[i].GetString("FileSystem", r["file_system"]);
 
     switch (driveType) {
     case 0:
