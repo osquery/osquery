@@ -12,8 +12,10 @@
 #include <vector>
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/posix/system.h>
+#include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/system_utils.h"
@@ -24,8 +26,18 @@ namespace tables {
 const std::vector<std::string> kSSHKnownHostskeys = {".ssh/known_hosts"};
 
 void genSSHkeysForHosts(const std::string& uid,
+                        const std::string& gid,
                         const std::string& directory,
                         QueryData& results) {
+  auto dropper = DropPrivileges::get();
+  unsigned long int _uid = 0;
+  unsigned long int _gid = 0;
+  if (!safeStrtoul(uid, 10, _uid).ok() || !safeStrtoul(gid, 10, _gid).ok() ||
+      !dropper->dropTo(static_cast<uid_t>(_uid), static_cast<gid_t>(_gid))) {
+    VLOG(1) << "Cannot drop privileges to UID " << uid;
+    return;
+  }
+
   for (const auto& kfile : kSSHKnownHostskeys) {
     boost::filesystem::path keys_file = directory;
     keys_file /= kfile;
@@ -52,9 +64,10 @@ QueryData getKnownHostsKeys(QueryContext& context) {
   auto users = usersFromContext(context);
   for (const auto& row : users) {
     auto uid = row.find("uid");
+    auto gid = row.find("gid");
     auto directory = row.find("directory");
-    if (uid != row.end() && directory != row.end()) {
-      genSSHkeysForHosts(uid->second, directory->second, results);
+    if (uid != row.end() && gid != row.end() && directory != row.end()) {
+      genSSHkeysForHosts(uid->second, gid->second, directory->second, results);
     }
   }
 

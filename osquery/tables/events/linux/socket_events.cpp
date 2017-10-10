@@ -80,7 +80,7 @@ bool parseSockAddr(const std::string& saddr, AuditFields& r) {
     r["remote_address"] = ip4FromSaddr(saddr, 8);
   } else if (saddr[0] == '0' && saddr[1] == 'A') {
     // IPv6
-    r["family"] = "11";
+    r["family"] = "10";
     long result{0};
     safeStrtol(saddr.substr(4, 4), 16, result);
     r["remote_port"] = INTEGER(result);

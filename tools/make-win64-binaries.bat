@@ -9,7 +9,7 @@ cd .\build\windows10
 :: Generate the osquery solution
 cmake ..\.. -G "Visual Studio 14 2015 Win64"
 
-IF DEFINED RELWITHDEB (
+IF DEFINED RELWITHDEBINFO (
   SET rel="RelWithDebInfo"
 ) ELSE (
   SET rel="Release"
