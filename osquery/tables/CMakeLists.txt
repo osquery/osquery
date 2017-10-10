@@ -102,6 +102,12 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
         ${OSQUERY_${CATEGORY}_POSIX_TABLES}
       )
     endif()
+
+    # Add posix table tests.
+    file(GLOB POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS
+      "${CATEGORY}/posix/tests/*.[cpm]*"
+    )
+    ADD_OSQUERY_TABLE_TEST(${POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS})
   endif()
 
   # Table implementations shared by FreeBSD and Linux
@@ -121,13 +127,6 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
     "${CATEGORY}/${TABLE_PLATFORM}/tests/*.[cpm]*"
   )
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CATEGORY}_TABLES_TESTS})
-
-  if (POSIX)
-    file(GLOB POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS
-      "${CATEGORY}/posix/tests/*.[cpm]*"
-    )
-    ADD_OSQUERY_TABLE_TEST(${POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS})
-  endif()
 endforeach()
 
 if(NOT SKIP_KERNEL)
