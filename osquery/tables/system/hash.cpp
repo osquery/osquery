@@ -196,8 +196,7 @@ struct FileHashCache {
   }
   // do-it-all access function: maintains the cache of Row objects,
   // stats file at path, if it has changed or it is not present in cache
-  // calculates the hashes and caches the resulting Row,
-  // copies cached value to r
+  // calculates the hashes and caches the result
   // returns true if succeded, false if something went wrong
   static bool load(const std::string& path, MultiHashes& out);
 };
@@ -257,6 +256,7 @@ bool FileHashCache::load(const std::string& path, MultiHashes& out) {
   } else { // ok, got it
     out = entry->second.hashes;
     entry->second.cache_access = time(0);
+    std::make_heap(lru.begin(), lru.end(), FileHashCache::greater);
   }
   return true;
 }
