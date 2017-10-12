@@ -1,11 +1,20 @@
-#include "osquery/core/windows/wmi.h"
+/*
+*  Copyright (c) 2014-present, Facebook, Inc.
+*  All rights reserved.
+*
+*  This source code is licensed under the BSD-style license found in the
+*  LICENSE file in the root directory of this source tree. An additional grant
+*  of patent rights can be found in the PATENTS file in the same directory.
+*
+*/
 #include <osquery/tables.h>
+
+#include "osquery/core/windows/wmi.h"
 
 namespace osquery {
 namespace tables {
 
 QueryData genLogicalDrives(QueryContext& context) {
-  Row r;
   QueryData results;
 
   WmiRequest wmiLogicalDiskReq(
@@ -13,17 +22,21 @@ QueryData genLogicalDrives(QueryContext& context) {
       "Win32_LogicalDisk");
   std::vector<WmiResultItem>& wmiResults = wmiLogicalDiskReq.results();
   for (unsigned int i = 0; i < wmiResults.size(); ++i) {
+    Row r;
     unsigned int driveType = 0;
-    std::string deviceId;
+    std::string deviceId, freeSpaceStr, sizeStr;
     wmiResults[i].GetString("DeviceID", deviceId);
-    r["device_id"] = deviceId;
     wmiResults[i].GetUnsignedInt32("DriveType", driveType);
-    wmiResults[i].GetString("FreeSpace", r["free_space"]);
-    wmiResults[i].GetString("Size", r["size"]);
+    wmiResults[i].GetString("FreeSpace", freeSpaceStr);
+    wmiResults[i].GetString("Size", sizeStr);
     wmiResults[i].GetString("FileSystem", r["file_system"]);
 
+    r["device_id"] = deviceId;
+    r["free_space"] = BIGINT(freeSpaceStr);
+    r["size"] = BIGINT(sizeStr);
+
     switch (driveType) {
-    case 0:
+    default:
       r["type"] = TEXT("Unknown");
       break;
     case 1:
@@ -46,35 +59,38 @@ QueryData genLogicalDrives(QueryContext& context) {
       break;
     }
 
-    bool bootPartition = false;
+    r["boot_partition"] = INTEGER(0);
 
-    std::stringstream assoc_query_ss;
-    assoc_query_ss << "Associators of {Win32_LogicalDisk.DeviceID='" << deviceId
-                   << "'} where AssocClass=Win32_LogicalDiskToPartition";
+    std::stringstream assocQuerySs;
+    assocQuerySs << "Associators of {Win32_LogicalDisk.DeviceID='" << deviceId
+                 << "'} where AssocClass=Win32_LogicalDiskToPartition";
 
-    WmiRequest wmiLogicalDiskToPartitionReq(assoc_query_ss.str());
+    WmiRequest wmiLogicalDiskToPartitionReq(assocQuerySs.str());
     std::vector<WmiResultItem>& wmiLogicalDiskToPartitionResults =
         wmiLogicalDiskToPartitionReq.results();
 
-    if (wmiLogicalDiskToPartitionResults.size()) {
-      std::string partition_device_id;
-      wmiLogicalDiskToPartitionResults[0].GetString("DeviceID",
-                                                    partition_device_id);
-
-      std::stringstream partition_query_ss;
-      partition_query_ss
-          << "SELECT BootPartition FROM Win32_DiskPartition WHERE DeviceID='"
-          << partition_device_id << "'";
-
-      WmiRequest wmiPartitionReq(partition_query_ss.str());
-      std::vector<WmiResultItem>& wmiPartitionResults =
-          wmiPartitionReq.results();
-
-      if (wmiPartitionResults.size()) {
-        wmiPartitionResults[0].GetBool("BootPartition", bootPartition);
-      }
+    if (wmiLogicalDiskToPartitionResults.empty()) {
+      results.push_back(r);
+      continue;
     }
+    std::string partitionDeviceId;
+    wmiLogicalDiskToPartitionResults[0].GetString("DeviceID",
+                                                  partitionDeviceId);
 
+    std::stringstream partitionQuerySs;
+    partitionQuerySs
+        << "SELECT BootPartition FROM Win32_DiskPartition WHERE DeviceID='"
+        << partitionDeviceId << "'";
+
+    WmiRequest wmiPartitionReq(partitionQuerySs.str());
+    std::vector<WmiResultItem>& wmiPartitionResults = wmiPartitionReq.results();
+
+    if (wmiPartitionResults.empty()) {
+      results.push_back(r);
+      continue;
+    }
+    bool bootPartition = false;
+    wmiPartitionResults[0].GetBool("BootPartition", bootPartition);
     r["boot_partition"] = bootPartition ? INTEGER(1) : INTEGER(0);
     results.push_back(r);
   }

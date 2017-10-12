@@ -3,8 +3,8 @@ description("Details for logical drives on the system. A logical drive generally
 schema([
     Column("device_id", TEXT, "The drive id, usually the drive name, e.g., 'C:'."),
     Column("type", TEXT, "The type of disk drive this logical drive represents."),
-    Column("free_space", TEXT, "The amount of free space, in bytes, of the drive."),
-    Column("size", TEXT, "The total amount of space, in bytes, of the drive."),
+    Column("free_space", BIGINT, "The amount of free space, in bytes, of the drive."),
+    Column("size", BIGINT, "The total amount of space, in bytes, of the drive."),
     Column("file_system", TEXT, "The file system of the drive."),
     Column("boot_partition", INTEGER, "True if Windows booted from this drive."),
 ])
