@@ -625,39 +625,37 @@ struct QueryContext : private only_movable {
                            std::set<std::string>& output)> predicate);
 
   /// Check if a table-defined index exists within the query cache.
-  bool isCached(const std::string& index) const {
-    return (table_->cache.count(index) != 0);
-  }
+  bool isCached(const std::string& index) const;
 
   /// Retrieve an index within the query cache.
-  const Row& getCache(const std::string& index) {
-    return table_->cache[index];
-  }
+  const Row& getCache(const std::string& index);
 
   /// Helper to retrieve a keyed element within the query cache.
-  const std::string& getCache(const std::string& index,
-                              const std::string& key) {
-    return table_->cache[index][key];
-  }
+  const std::string& getCache(const std::string& index, const std::string& key);
+
+  /// Request the context use the warm query cache.
+  void useCache(bool use_cache);
+
+  /// Check if the query requested use of the warm query cache.
+  bool useCache() const;
 
   /// Set the entire cache for an index.
-  void setCache(const std::string& index, Row _cache) {
-    table_->cache[index] = std::move(_cache);
-  }
+  void setCache(const std::string& index, Row _cache);
 
   /// Helper to set a keyed element within the query cache.
   void setCache(const std::string& index,
                 const std::string& key,
-                std::string _item) {
-    table_->cache[index][key] = std::move(_item);
-  }
+                std::string _item);
 
   /// The map of column name to constraint list.
   ConstraintMap constraints;
 
  private:
-  /// If false then the context is maintaining a ephemeral cache.
+  /// If false then the context is maintaining an ephemeral cache.
   bool enable_cache_{false};
+
+  /// If the context is allowed to use the warm query cache.
+  bool use_cache_{false};
 
   /// Persistent table content for table caching.
   VirtualTableContent* table_{nullptr};

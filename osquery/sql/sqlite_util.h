@@ -71,6 +71,12 @@ class SQLiteDBInstance : private boost::noncopyable {
   /// Check if a virtual table had been called already.
   bool tableCalled(VirtualTableContent* table);
 
+  /// Request that virtual tables use a warm cache for their results.
+  void useCache(bool use_cache);
+
+  /// Check if the query requested use of the warm query cache.
+  bool useCache() const;
+
  private:
   /// Handle the primary/forwarding requests for table attribute accesses.
   TableAttributes getAttributes() const;
@@ -86,6 +92,9 @@ class SQLiteDBInstance : private boost::noncopyable {
 
   /// Track whether this instance is managed internally by the DB manager.
   bool managed_{false};
+
+  /// True if this query should bypass table cache.
+  bool use_cache_{false};
 
   /// Either the managed primary database or an ephemeral instance.
   sqlite3* db_{nullptr};
@@ -312,9 +321,10 @@ class SQLInternal : public SQL {
   /**
    * @brief Instantiate an instance of the class with an internal query.
    *
-   * @param q An osquery SQL query.
+   * @param query An osquery SQL query.
+   * @param use_cache [optional] Set true to use the query cache.
    */
-  explicit SQLInternal(const std::string& q);
+  explicit SQLInternal(const std::string& query, bool use_cache = false);
 
  public:
   /**
@@ -328,9 +338,7 @@ class SQLInternal : public SQL {
    * All the tables used in the query will be checked. The TableAttributes of
    * each will be ORed and if any include EVENT_BASED, this will return true.
    */
-  bool eventBased() const {
-    return event_based_;
-  }
+  bool eventBased() const;
 
  private:
   /// Before completing the execution, store a check for EVENT_BASED.
