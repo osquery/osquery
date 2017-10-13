@@ -494,22 +494,40 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   EXPECT_EQ(results.size(), 1U);
   EXPECT_EQ(cache->generates_, 1U);
 
-  // Run the query again, the virtual table cache should have been expired.
+  // Run the query again, the virtual table cache was not requested.
   results.clear();
   statement = "SELECT * from table_cache;";
   queryInternal(statement, results, dbc->db());
   EXPECT_EQ(results.size(), 1U);
 
   // The table should have used the cache.
-  EXPECT_EQ(cache->generates_, 1U);
+  EXPECT_EQ(cache->generates_, 2U);
 
+  // Now request that caching be used.
+  dbc->useCache(true);
+
+  // Run the query again, the virtual table cache will be populated.
+  results.clear();
+  statement = "SELECT * from table_cache;";
+  queryInternal(statement, results, dbc->db());
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(cache->generates_, 3U);
+
+  // Run the query again, the virtual table cache will be returned.
+  results.clear();
+  statement = "SELECT * from table_cache;";
+  queryInternal(statement, results, dbc->db());
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(cache->generates_, 3U);
+
+  // Once last time with constraints that invalidate the cache results.
   results.clear();
   statement = "SELECT * from table_cache where i = '1';";
   queryInternal(statement, results, dbc->db());
   EXPECT_EQ(results.size(), 1U);
 
   // The table should NOT have used the cache.
-  EXPECT_EQ(cache->generates_, 2U);
+  EXPECT_EQ(cache->generates_, 4U);
 }
 
 class yieldTablePlugin : public TablePlugin {

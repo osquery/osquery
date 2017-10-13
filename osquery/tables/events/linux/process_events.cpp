@@ -81,7 +81,13 @@ bool ProcessUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
   }
 
   if (type == AUDIT_PATH) {
-    r["mode"] = (fields.count("mode")) ? fields.at("mode") : "";
+    if (fields.count("mode")) {
+      std::stringstream ss;
+      ss << "0" << std::oct << fields.at("mode");
+      ss >> r["mode"];
+    } else {
+      r["mode"] = "";
+    }
     r["owner_uid"] = fields.count("ouid") ? fields.at("ouid") : "0";
     r["owner_gid"] = fields.count("ogid") ? fields.at("ogid") : "0";
   }

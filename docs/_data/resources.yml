@@ -1,5 +1,11 @@
 - speaker: Trail of Bits
   twitter_handle: trailofbits
+  link: https://blog.trailofbits.com/2017/10/10/tracking-a-stolen-code-signing-certificate-with-osquery/
+  topic: Tracking a stolen code-signing certificate with osquery
+  year: 2017
+
+- speaker: Trail of Bits
+  twitter_handle: trailofbits
   link: https://blog.trailofbits.com/2016/09/27/windows-network-security-now-easier-with-osquery/
   topic: Windows network security now easier with osquery
   year: 2016
@@ -9,3 +15,27 @@
   link: https://komunity.komand.com/learn/featured/introduction-to-osquery-for-threat-detection-dfir/
   topic: Introduction to osquery for threat detection and DFIR
   year: 2016
+
+- speaker: Scott Roberts and Kevin Thompson
+  twitter_handle: sroberts
+  link: https://speakerdeck.com/sroberts/responding-at-scale-osquery-for-mass-incident-response-and-detection
+  topic: Responding @ Scale - osquery for Mass Incident Response and Detection
+  year: 2015
+
+- speaker: Chris Long
+  twitter_handle: centurion
+  link: https://medium.com/@clong/osquery-for-security-b66fffdf2daf
+  topic: osquery for Security
+  year: 2016
+
+- speaker: Chris Long
+  twitter_handle: centurion
+  link: https://medium.com/@clong/osquery-for-security-part-2-2e03de4d3721
+  topic: osquery for Security - Part 2
+  year: 2017
+
+- speaker: Fini Decima
+  twitter_handle: finide
+  link: https://www.digitalocean.com/community/tutorials/how-to-monitor-your-system-security-with-osquery-on-ubuntu-16-04
+  topic: How To Monitor Your System Security with osquery on Ubuntu 16.04
+  year: 2017

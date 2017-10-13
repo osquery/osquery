@@ -24,15 +24,14 @@ FLAG(int32, value_max, 512, "Maximum returned row value size");
 
 CREATE_LAZY_REGISTRY(SQLPlugin, "sql");
 
-SQL::SQL(const std::string& q) {
+SQL::SQL(const std::string& query, bool use_cache) {
   TableColumns table_columns;
-  q_ = q;
-  status_ = getQueryColumns(q_, table_columns);
+  status_ = getQueryColumns(query, table_columns);
   if (status_.ok()) {
     for (auto c : table_columns) {
       columns_.push_back(std::get<0>(c));
     }
-    status_ = query(q_, results_);
+    status_ = osquery::query(query, results_, use_cache);
   }
 }
 
@@ -40,11 +39,11 @@ const QueryData& SQL::rows() const {
   return results_;
 }
 
-const ColumnNames& SQL::columns() {
+const ColumnNames& SQL::columns() const {
   return columns_;
 }
 
-bool SQL::ok() {
+bool SQL::ok() const {
   return status_.ok();
 }
 
@@ -52,7 +51,7 @@ const Status& SQL::getStatus() const {
   return status_;
 }
 
-std::string SQL::getMessageString() {
+std::string SQL::getMessageString() const {
   return status_.toString();
 }
 
@@ -125,7 +124,8 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
   }
 
   if (request.at("action") == "query") {
-    return this->query(request.at("query"), response);
+    bool use_cache = (request.count("cache") && request.at("cache") == "1");
+    return this->query(request.at("query"), response, use_cache);
   } else if (request.at("action") == "columns") {
     TableColumns columns;
     auto status = this->getQueryColumns(request.at("query"), columns);
@@ -156,9 +156,12 @@ Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
   return Status(1, "Unknown action");
 }
 
-Status query(const std::string& q, QueryData& results) {
+Status query(const std::string& q, QueryData& results, bool use_cache) {
   return Registry::call(
-      "sql", "sql", {{"action", "query"}, {"query", q}}, results);
+      "sql",
+      "sql",
+      {{"action", "query"}, {"cache", (use_cache) ? "1" : "0"}, {"query", q}},
+      results);
 }
 
 Status getQueryColumns(const std::string& q, TableColumns& columns) {
