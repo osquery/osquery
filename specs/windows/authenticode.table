@@ -1,4 +1,4 @@
-table_name("signature")
+table_name("authenticode")
 description("File (executable, bundle, installer, disk) code signing status.")
 schema([
     Column("path", TEXT, "Must provide a path or directory", required=True),
@@ -8,10 +8,10 @@ schema([
     Column("subject_name", TEXT, "The certificate subject name"),
     Column("result", TEXT, "The signature check result")
 ])
-implementation("signature@genAuthenticode")
+implementation("authenticode@genAuthenticode")
 examples([
-  "SELECT * FROM signature WHERE path = 'C:\\Windows\\notepad.exe'",
-  ("SELECT process.pid, process.path, authenticode.result FROM "
-   "processes as process LEFT JOIN signature AS authenticode ON "
-   "process.path = authenticode.path;")
+  "SELECT * FROM authenticode WHERE path = 'C:\\Windows\\notepad.exe'",
+  ("SELECT process.pid, process.path, signature.result FROM "
+   "processes as process LEFT JOIN authenticode AS signature ON "
+   "process.path = signature.path;")
 ])
