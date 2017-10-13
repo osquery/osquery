@@ -24,16 +24,14 @@ QueryData genLogicalDrives(QueryContext& context) {
   for (unsigned int i = 0; i < wmiResults.size(); ++i) {
     Row r;
     unsigned int driveType = 0;
-    std::string deviceId, freeSpaceStr, sizeStr;
+    std::string deviceId;
     wmiResults[i].GetString("DeviceID", deviceId);
     wmiResults[i].GetUnsignedInt32("DriveType", driveType);
-    wmiResults[i].GetString("FreeSpace", freeSpaceStr);
-    wmiResults[i].GetString("Size", sizeStr);
+    wmiResults[i].GetString("FreeSpace", r["free_space"]);
+    wmiResults[i].GetString("Size", r["size"]);
     wmiResults[i].GetString("FileSystem", r["file_system"]);
 
     r["device_id"] = deviceId;
-    r["free_space"] = BIGINT(freeSpaceStr);
-    r["size"] = BIGINT(sizeStr);
 
     switch (driveType) {
     default:
@@ -61,11 +59,11 @@ QueryData genLogicalDrives(QueryContext& context) {
 
     r["boot_partition"] = INTEGER(0);
 
-    std::stringstream assocQuerySs;
-    assocQuerySs << "Associators of {Win32_LogicalDisk.DeviceID='" << deviceId
-                 << "'} where AssocClass=Win32_LogicalDiskToPartition";
+    std::string assocQuery =
+        std::string("Associators of {Win32_LogicalDisk.DeviceID='") + deviceId +
+        "'} where AssocClass=Win32_LogicalDiskToPartition";
 
-    WmiRequest wmiLogicalDiskToPartitionReq(assocQuerySs.str());
+    WmiRequest wmiLogicalDiskToPartitionReq(assocQuery);
     std::vector<WmiResultItem>& wmiLogicalDiskToPartitionResults =
         wmiLogicalDiskToPartitionReq.results();
 
@@ -77,12 +75,11 @@ QueryData genLogicalDrives(QueryContext& context) {
     wmiLogicalDiskToPartitionResults[0].GetString("DeviceID",
                                                   partitionDeviceId);
 
-    std::stringstream partitionQuerySs;
-    partitionQuerySs
-        << "SELECT BootPartition FROM Win32_DiskPartition WHERE DeviceID='"
-        << partitionDeviceId << "'";
-
-    WmiRequest wmiPartitionReq(partitionQuerySs.str());
+    std::string partitionQuery =
+        std::string(
+            "SELECT BootPartition FROM Win32_DiskPartition WHERE DeviceID='") +
+        partitionDeviceId + '\'';
+    WmiRequest wmiPartitionReq(partitionQuery);
     std::vector<WmiResultItem>& wmiPartitionResults = wmiPartitionReq.results();
 
     if (wmiPartitionResults.empty()) {
