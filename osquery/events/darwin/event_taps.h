@@ -25,7 +25,8 @@ using EventTappingSubscriptionContextRef =
 class EventTappingConsumerRunner;
 
 class EventTappingEventPublisher
-    : public EventPublisher<EventTappingSubscriptionContext, EventTappingEventContext> {
+    : public EventPublisher<EventTappingSubscriptionContext,
+                            EventTappingEventContext> {
   DECLARE_PUBLISHER("event_tapping");
 
  public:

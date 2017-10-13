@@ -18,9 +18,10 @@ namespace osquery {
 
 /// Flag that turns the eventing system for event taps on or off
 FLAG(bool,
-	disable_event_tapping,
-	true,
-	"Disable receiving and subscribing to events from the event taps subsystem");
+     disable_event_tapping,
+     true,
+     "Disable receiving and subscribing to events from the event taps "
+     "subsystem");
 
 REGISTER(EventTappingEventPublisher, "event_publisher", "event_tapping");
 
