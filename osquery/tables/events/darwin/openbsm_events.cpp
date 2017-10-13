@@ -46,15 +46,6 @@ static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
   }
 }
 
-static inline unsigned long decimalIntToOctInt(unsigned long x) {
-  auto ret = 0;
-  for (auto i = 1; x > 0; i *= 10) {
-    ret += (x & 0x7) * i;
-    x >>= 3;
-  }
-  return ret;
-}
-
 class OpenBSMExecVESubscriber : public EventSubscriber<OpenBSMEventPublisher> {
  public:
   Status init() override {
@@ -144,14 +135,17 @@ Status OpenBSMExecVESubscriber::Callback(
     case AUT_PATH:
       r["path"] = std::string(tok.tt.path.path);
       break;
-    case AUT_ATTR32:
-      r["mode"] = INTEGER(decimalIntToOctInt(tok.tt.attr32.mode));
+    case AUT_ATTR32: {
+      std::stringstream ss;
+      ss << "0" << std::oct << tok.tt.attr32.mode;
+      ss >> r["mode"];
       r["owner_uid"] = INTEGER(tok.tt.attr32.uid);
       r["owner_gid"] = INTEGER(tok.tt.attr32.gid);
       r["fsid"] = INTEGER(tok.tt.attr32.fsid);
       r["nid"] = INTEGER(tok.tt.attr32.nid);
       r["dev"] = INTEGER(tok.tt.attr32.dev);
       break;
+    }
     case AUT_EXEC_ENV:
       for (size_t i = 0; i < tok.tt.execarg.count; ++i) {
         r["env"] += std::string(tok.tt.execenv.text[i]) + " ";
