@@ -1185,7 +1185,7 @@ inline void meta_show(struct callback_data* p) {
 
   {
     fprintf(p->out, "\nNon-default flags/options:\n");
-    auto results = osquery::SQL::SQL(
+    auto results = osquery::SQL(
         "select * from osquery_flags where default_value <> value");
     for (const auto& flag : results.rows()) {
       fprintf(p->out,
