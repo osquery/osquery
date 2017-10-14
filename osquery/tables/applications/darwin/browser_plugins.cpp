@@ -144,10 +144,7 @@ inline void genSafariExtension(const std::string& uid,
 
   // Finally drop privileges to the user controlling the extension.
   auto dropper = DropPrivileges::get();
-  unsigned long int _uid = 0;
-  unsigned long int _gid = 0;
-  if (!safeStrtoul(uid, 10, _uid).ok() || !safeStrtoul(gid, 10, _gid).ok() ||
-      !dropper->dropTo(static_cast<uid_t>(_uid), static_cast<gid_t>(_gid))) {
+  if (!dropper->dropTo(uid, gid)) {
     VLOG(1) << "Cannot drop privileges to UID " << uid;
     return;
   }
