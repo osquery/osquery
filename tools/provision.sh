@@ -17,6 +17,9 @@ FORMULA_DIR="$SCRIPT_DIR/provision/formula"
 HOMEBREW_REPO="https://github.com/Homebrew/brew"
 LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
 
+HOMEBREW_CORE_REPO="https://github.com/Homebrew/homebrew-core"
+LINUXBREW_CORE_REPO="https://github.com/Linuxbrew/homebrew-core"
+
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
 HOMEBREW_CORE="941ca36839ea354031846d73ad538e1e44e673f4"
