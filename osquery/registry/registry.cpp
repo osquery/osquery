@@ -311,9 +311,11 @@ RegistryBroadcast RegistryFactory::getBroadcast() {
 
 Status RegistryFactory::addBroadcast(const RouteUUID& uuid,
                                      const RegistryBroadcast& broadcast) {
-  WriteLock lock(mutex_);
-  if (extensions_.count(uuid) > 0) {
-    return Status(1, "Duplicate extension UUID: " + std::to_string(uuid));
+  {
+    ReadLock lock(mutex_);
+    if (extensions_.count(uuid) > 0) {
+      return Status(1, "Duplicate extension UUID: " + std::to_string(uuid));
+    }
   }
 
   // Make sure the extension does not broadcast conflicting registry items.
@@ -338,6 +340,7 @@ Status RegistryFactory::addBroadcast(const RouteUUID& uuid,
               << "contains unknown registry: " << registry.first;
       return Status(1, "Unknown registry: " + registry.first);
     }
+
     status = this->registry(registry.first)->addExternal(uuid, registry.second);
     if (!status.ok()) {
       // If any registry fails to add the set of external routes, stop.
@@ -351,24 +354,32 @@ Status RegistryFactory::addBroadcast(const RouteUUID& uuid,
   }
 
   // If any registry failed, remove each (assume a broadcast is atomic).
-  if (!status.ok()) {
-    for (const auto& registry : broadcast) {
-      this->registry(registry.first)->removeExternal(uuid);
+  {
+    if (!status.ok()) {
+      for (const auto& registry : broadcast) {
+        this->registry(registry.first)->removeExternal(uuid);
+      }
     }
+
+    WriteLock lock(mutex_);
+    extensions_.insert(uuid);
   }
-  extensions_.insert(uuid);
   return status;
 }
 
 Status RegistryFactory::removeBroadcast(const RouteUUID& uuid) {
-  WriteLock lock(mutex_);
-  if (extensions_.count(uuid) == 0) {
-    return Status(1, "Unknown extension UUID: " + std::to_string(uuid));
+  {
+    ReadLock lock(mutex_);
+    if (extensions_.count(uuid) == 0) {
+      return Status(1, "Unknown extension UUID: " + std::to_string(uuid));
+    }
   }
 
   for (const auto& registry : registries_) {
     registry.second->removeExternal(uuid);
   }
+
+  WriteLock lock(mutex_);
   extensions_.erase(uuid);
   return Status(0, "OK");
 }
@@ -491,7 +502,7 @@ std::vector<std::string> RegistryFactory::names(
 }
 
 std::vector<RouteUUID> RegistryFactory::routeUUIDs() const {
-  WriteLock lock(mutex_);
+  ReadLock lock(mutex_);
   std::vector<RouteUUID> uuids;
   for (const auto& extension : extensions_) {
     uuids.push_back(extension);
