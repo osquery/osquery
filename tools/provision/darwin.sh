@@ -8,5 +8,6 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 function distro_main() {
-  true
+  GEM=`which gem`
+  do_sudo $GEM install --no-ri --no-rdoc fpm
 }
