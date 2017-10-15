@@ -44,6 +44,9 @@ class DropPrivileges : private boost::noncopyable {
    */
   bool dropToParent(const boost::filesystem::path& path);
 
+  /// See DropPrivileges::dropToParent but explicitiy set the UID and GID.
+  bool dropTo(const std::string& uid, const std::string& gid);
+
   /// See DropPrivileges::dropToParent but explicitly set the UID and GID.
   bool dropTo(uid_t uid, gid_t gid);
 

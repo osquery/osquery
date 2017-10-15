@@ -439,6 +439,16 @@ bool setThreadEffective(uid_t uid, gid_t gid) {
   return 0;
 }
 
+bool DropPrivileges::dropTo(const std::string& uid, const std::string& gid) {
+  unsigned long int _uid = 0;
+  unsigned long int _gid = 0;
+  if (!safeStrtoul(uid, 10, _uid).ok() || !safeStrtoul(gid, 10, _gid).ok() ||
+      !dropTo(static_cast<uid_t>(_uid), static_cast<gid_t>(_gid))) {
+    return false;
+  }
+  return true;
+}
+
 bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {
   if (uid == geteuid() && gid == getegid()) {
     // Privileges do not need to be dropped.

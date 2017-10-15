@@ -144,6 +144,13 @@ TEST_F(PermissionsTests, test_nobody_drop) {
     EXPECT_EQ(geteuid(), nobody->pw_uid);
   }
 
+  {
+    auto dropper = DropPrivileges::get();
+    EXPECT_TRUE(dropper->dropTo(std::to_string(nobody->pw_uid),
+                                std::to_string(nobody->pw_gid)));
+    EXPECT_EQ(geteuid(), nobody->pw_uid);
+  }
+
   // Now that the dropper is gone, the effective user/group should be restored.
   EXPECT_EQ(geteuid(), getuid());
   EXPECT_EQ(getegid(), getgid());
