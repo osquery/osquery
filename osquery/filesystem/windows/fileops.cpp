@@ -633,8 +633,7 @@ static Status isUserCurrentUser(PSID user) {
   }
 
   unsigned long size = 0;
-  LPVOID ptu = nullptr;
-  auto ret = GetTokenInformation(token, TokenUser, ptu, 0, &size);
+  auto ret = GetTokenInformation(token, TokenUser, nullptr, 0, &size);
   if (ret || (!ret && GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
     CloseHandle(token);
 
@@ -644,7 +643,8 @@ static Status isUserCurrentUser(PSID user) {
   }
 
   /// Obtain the user SID behind the token handle
-  ret = GetTokenInformation(token, TokenUser, ptu, size, &size);
+  std::vector<char> tuBuff(size, '\0');
+  ret = GetTokenInformation(token, TokenUser, tuBuff.data(), size, &size);
   CloseHandle(token);
 
   if (!ret) {
@@ -654,7 +654,8 @@ static Status isUserCurrentUser(PSID user) {
   }
 
   /// Determine if the current user SID matches that of the specified user
-  if (EqualSid(user, static_cast<PTOKEN_USER>(ptu)->User.Sid)) {
+  PTOKEN_USER ptu = reinterpret_cast<PTOKEN_USER>(tuBuff.data());
+  if (EqualSid(user, ptu->User.Sid)) {
     return Status();
   }
 
