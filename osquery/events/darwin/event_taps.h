@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <ApplicationServices/ApplicationServices.h>
+
 #include <osquery/events.h>
 
 namespace osquery {
@@ -31,8 +33,6 @@ class EventTappingEventPublisher
 
  public:
   Status setUp() override;
-
-  void configure() override;
 
   void tearDown() override;
 
@@ -63,6 +63,6 @@ class EventTappingEventPublisher
   CFRunLoopRef run_loop_{nullptr};
 
   /// Storage/container operations protection mutex.
-  mutable Mutex mutex_;
+  mutable Mutex run_loop_mutex_;
 };
 } // namespace osquery

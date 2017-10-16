@@ -8,8 +8,6 @@
  *
  */
 
-#include <ApplicationServices/ApplicationServices.h>
-
 #include <osquery/flags.h>
 
 #include "osquery/events/darwin/event_taps.h"
@@ -18,10 +16,9 @@ namespace osquery {
 
 /// Flag that turns the eventing system for event taps on or off
 FLAG(bool,
-     disable_event_tapping,
-     true,
-     "Disable receiving and subscribing to events from the event taps "
-     "subsystem");
+     enable_keyboard_events,
+     false,
+     "Enable listening for keyboard events");
 
 REGISTER(EventTappingEventPublisher, "event_publisher", "event_tapping");
 
@@ -35,43 +32,35 @@ CGEventRef EventTappingEventPublisher::eventCallback(CGEventTapProxy proxy,
 }
 
 Status EventTappingEventPublisher::setUp() {
-  if (FLAGS_disable_event_tapping) {
+  if (!FLAGS_enable_keyboard_events) {
     return Status(1, "Publisher disabled via configuration");
   }
   return Status(0);
 }
 
-void EventTappingEventPublisher::configure() {
-  WriteLock lock(mutex_);
-  restart();
-}
-
 void EventTappingEventPublisher::tearDown() {
   stop();
-
-  WriteLock lock(mutex_);
-  run_loop_ = nullptr;
 }
 
 void EventTappingEventPublisher::stop() {
-  WriteLock lock(mutex_);
+  WriteLock lock(run_loop_mutex_);
 
   if (run_loop_source_ != nullptr) {
-    CFRunLoopRemoveSource(
-        CFRunLoopGetCurrent(), run_loop_source_, kCFRunLoopCommonModes);
+    CFRunLoopRemoveSource(run_loop_, run_loop_source_, kCFRunLoopCommonModes);
+    CFRelease(run_loop_source_);
     run_loop_source_ = nullptr;
   }
   if (run_loop_ != nullptr) {
     CFRunLoopStop(run_loop_);
+    run_loop_ = nullptr;
   }
 }
 
 void EventTappingEventPublisher::restart() {
-  if (run_loop_ == nullptr) {
-    return;
-  }
   stop();
-  WriteLock lock(mutex_);
+  WriteLock lock(run_loop_mutex_);
+
+  run_loop_ = CFRunLoopGetCurrent();
   CGEventMask eventMask = (1 << kCGEventKeyDown);
   CFMachPortRef eventTap = CGEventTapCreate(kCGSessionEventTap,
                                             kCGHeadInsertEventTap,
@@ -81,17 +70,13 @@ void EventTappingEventPublisher::restart() {
                                             NULL);
   run_loop_source_ =
       CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
-  CFRunLoopAddSource(
-      CFRunLoopGetCurrent(), run_loop_source_, kCFRunLoopCommonModes);
+  CFRunLoopAddSource(run_loop_, run_loop_source_, kCFRunLoopCommonModes);
   CGEventTapEnable(eventTap, true);
+  CFRelease(eventTap);
 }
 
 Status EventTappingEventPublisher::run() {
-  if (run_loop_ == nullptr) {
-    run_loop_ = CFRunLoopGetCurrent();
-    restart();
-  }
-
+  restart();
   CFRunLoopRun();
   return Status(0);
 }
