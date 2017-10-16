@@ -513,7 +513,7 @@ Status serializeQueryLogItem(const QueryLogItem& item, pt::ptree& tree) {
       return status;
     }
     tree.add_child("diffResults", results);
-  } else if (item.snapshot_results.size() > 0) {
+  } else {
     auto status = serializeQueryData(item.snapshot_results, results);
     if (!status.ok()) {
       return status;
