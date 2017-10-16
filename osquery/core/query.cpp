@@ -506,23 +506,68 @@ inline void getLegacyFieldsAndDecorations(const pt::ptree& tree,
 }
 
 Status serializeQueryLogItem(const QueryLogItem& item, pt::ptree& tree) {
-  pt::ptree results_tree;
+  pt::ptree results;
   if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
-    auto status = serializeDiffResults(item.results, results_tree);
+    auto status = serializeDiffResults(item.results, results);
     if (!status.ok()) {
       return status;
     }
-    tree.add_child("diffResults", results_tree);
-  } else {
-    auto status = serializeQueryData(item.snapshot_results, results_tree);
+    tree.add_child("diffResults", results);
+  } else if (item.snapshot_results.size() > 0) {
+    auto status = serializeQueryData(item.snapshot_results, results);
     if (!status.ok()) {
       return status;
     }
-    tree.add_child("snapshot", results_tree);
+    tree.add_child("snapshot", results);
     tree.put<std::string>("action", "snapshot");
   }
 
   addLegacyFieldsAndDecorations(item, tree);
+  return Status(0, "OK");
+}
+
+static inline Status serializeEvent(const QueryLogItem& item,
+                                    const pt::ptree& event,
+                                    pt::ptree& tree) {
+  addLegacyFieldsAndDecorations(item, tree);
+  pt::ptree columns;
+  for (auto& i : event) {
+    // Yield results as a "columns." map to avoid namespace collisions.
+    columns.put<std::string>(i.first, i.second.get_value<std::string>());
+  }
+
+  tree.add_child("columns", columns);
+  return Status(0, "OK");
+}
+
+Status serializeQueryLogItemAsEvents(const QueryLogItem& item,
+                                     pt::ptree& tree) {
+  pt::ptree results;
+  if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
+    auto status = serializeDiffResults(item.results, results);
+    if (!status.ok()) {
+      return status;
+    }
+  } else if (item.snapshot_results.size() > 0) {
+    pt::ptree snapshot_results;
+    auto status = serializeQueryData(item.snapshot_results, snapshot_results);
+    if (!status.ok()) {
+      return status;
+    }
+    results.add_child("snapshot", snapshot_results);
+  } else {
+    // This error case may also be represented in serializeQueryLogItem.
+    return Status(1, "No diff results or snapshot results");
+  }
+
+  for (auto& action : results) {
+    for (auto& row : action.second) {
+      pt::ptree event;
+      serializeEvent(item, row.second, event);
+      event.put<std::string>("action", action.first);
+      tree.push_back(std::make_pair("", event));
+    }
+  }
   return Status(0, "OK");
 }
 
@@ -574,42 +619,6 @@ Status deserializeQueryLogItemJSON(const std::string& json,
     return Status(1, e.what());
   }
   return deserializeQueryLogItem(tree, item);
-}
-
-Status serializeEvent(const QueryLogItem& item,
-                      const pt::ptree& event,
-                      pt::ptree& tree) {
-  addLegacyFieldsAndDecorations(item, tree);
-  pt::ptree columns;
-  for (auto& i : event) {
-    // Yield results as a "columns." map to avoid namespace collisions.
-    columns.put<std::string>(i.first, i.second.get_value<std::string>());
-  }
-
-  tree.add_child("columns", columns);
-  return Status(0, "OK");
-}
-
-Status serializeQueryLogItemAsEvents(const QueryLogItem& i, pt::ptree& tree) {
-  pt::ptree diff_results;
-  // Note, snapshot query results will bypass the "AsEvents" call, even when
-  // log_result_events is set. This is because the schedule will call an
-  // explicit ::logSnapshotQuery, which does not check for the result_events
-  // configuration.
-  auto status = serializeDiffResults(i.results, diff_results);
-  if (!status.ok()) {
-    return status;
-  }
-
-  for (auto& action : diff_results) {
-    for (auto& row : action.second) {
-      pt::ptree event;
-      serializeEvent(i, row.second, event);
-      event.put<std::string>("action", action.first);
-      tree.push_back(std::make_pair("", event));
-    }
-  }
-  return Status(0, "OK");
 }
 
 Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
