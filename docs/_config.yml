@@ -77,7 +77,7 @@ separators:
   rpm: "-"
   linux: "-"
 
-docs_url: https://osquery.readthedocs.io/en/stable
+docs_url: https://osquery.readthedocs.io/en/stable/
 schema_url: https://raw.githubusercontent.com/osquery/osquery-site/master/schema
 packs_url: https://raw.githubusercontent.com/facebook/osquery/master/packs
 slack_url: https://osquery-slack.herokuapp.com
