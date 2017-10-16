@@ -82,6 +82,7 @@ static void fillRow ( Row &r, X509 *cert ) {
 	unsigned len = SHORT_STR;
 	X509_digest( cert, digest, ( unsigned char* ) temp, &len );
 	char sha_text[ SHORT_STR + 1 ];
+	memset( sha_text, 0, sizeof( sha_text ) );
 	
 	for ( unsigned i=0; i < len; i++ ) {
     char byt[5];
@@ -92,7 +93,7 @@ static void fillRow ( Row &r, X509 *cert ) {
 	r["sha256_fingerprint"] = std::string( sha_text );	
 	digest = ( EVP_MD * ) EVP_sha1();
 	X509_digest( cert, digest, ( unsigned char* ) temp, &len );
-	memcpy( sha_text, "\0", sizeof( sha_text ) );
+	memset( sha_text, 0, sizeof( sha_text ) );
 	
 	for ( unsigned i=0; i < len; i++ ) {
 	  char byt[5];
@@ -105,49 +106,68 @@ static void fillRow ( Row &r, X509 *cert ) {
 	return;
 } 
 
-static void getSslCert( const char * domain, QueryData &results ) {
-  const char *def_cert_dir;
+static void getSslCert( const char * issued_cname, QueryData &results ) {
+  char *def_cert_dir;
+  
+  // common certificate directory for POSIX
+  const std::string cert_dir_list[6] = { "/etc/pki/tls/certs", "/etc/ssl/certs", 
+  "/etc/ssl", "/etc/pki/ca-trust/extracted/pem", "/usr/local/share/certs", "/etc/openssl/certs" };
+  
   def_cert_dir = getenv( X509_get_default_cert_dir_env() );
   
   if ( !def_cert_dir ) {
-    def_cert_dir = X509_get_default_cert_dir();
+    def_cert_dir = ( char * ) X509_get_default_cert_dir();
   }
   
   fs::path full_path( fs::initial_path<fs::path>() );
   
   full_path = fs::system_complete( fs::path( def_cert_dir ) );
   
-  if ( fs::exists( full_path ) ) {
+  // check if default certificate directory is empty
+  if ( fs::is_empty( full_path ) ) {
     
-    if ( fs::is_directory( full_path ) ) {
-      fs::directory_iterator end_iter;
+    // use the common certificate directory
+    for ( unsigned i = 0; i < (unsigned) ( sizeof(cert_dir_list)/sizeof(cert_dir_list[0]) ); i++ ) {
+      fs::path temp_path = fs::system_complete( fs::path( cert_dir_list[i] ) );
       
-      FILE *fp;
-      // parse each certificate in the default directory
-      for ( fs::directory_iterator dir_itr( full_path ); dir_itr != end_iter; ++dir_itr ) {
-        
-        if ( fs::is_regular_file( dir_itr->status() ) ) {
-          std::stringstream ss;
-          char ch = ( def_cert_dir[strlen(def_cert_dir) -1] == '/' ) ? '\0' : '/'; 
-          ss << def_cert_dir <<  ch << dir_itr->path().filename().string();
-          char issued_cn[SHORT_STR];
-          fp = fopen( (ss.str()).c_str(), "r" );
-          if ( fp == NULL ) continue;
-          X509 *cert = PEM_read_X509( fp, NULL, NULL, NULL );
-          if ( cert == NULL ) continue;
-          X509_NAME *subject_name = X509_get_subject_name( cert );
-          X509_NAME_get_text_by_NID( subject_name, NID_commonName, issued_cn, 255 );
+      if ( fs::exists( temp_path ) && !fs::is_empty( temp_path ) ) { 
+        def_cert_dir = ( char * ) cert_dir_list[i].c_str();
+        full_path = temp_path;
+        break;
+      } 
+    }  
+  }
     
-          if ( strcmp( issued_cn, domain ) == 0 ) {
-            Row r;
-            fillRow( r, cert );
-            results.push_back( r );
-          }
-          
+  if ( fs::is_directory( full_path ) ) {
+    fs::directory_iterator end_iter;
+      
+    FILE *fp;
+    // parse each certificate in the default directory
+    for ( fs::directory_iterator dir_itr( full_path ); dir_itr != end_iter; ++dir_itr ) {
+        
+      if ( fs::is_regular_file( dir_itr->status() ) ) {
+        std::stringstream ss;
+        ss << def_cert_dir <<  '/' << dir_itr->path().filename().string();
+        char issued_cn[SHORT_STR + 1];
+        fp = fopen( (ss.str()).c_str(), "r" );
+        if ( fp == NULL ) continue;
+        X509 *cert = PEM_read_X509( fp, NULL, NULL, NULL );
+        if ( cert == NULL ) continue;
+        X509_NAME *subject_name = X509_get_subject_name( cert );
+        X509_NAME_get_text_by_NID( subject_name, NID_commonName, issued_cn, SHORT_STR );
+    
+        if ( strcmp( issued_cn, issued_cname ) == 0 ) {
+          Row r;
+          fillRow( r, cert );
+          results.push_back( r );
           X509_free( cert );
           fclose( fp );
-        }  
-      }
+          return;
+        }
+          
+        X509_free( cert );
+        fclose( fp );
+      }  
     }
   }
   
@@ -156,10 +176,10 @@ static void getSslCert( const char * domain, QueryData &results ) {
 
 QueryData genSslCert( QueryContext &context ) {
   QueryData results;
-  auto domains = context.constraints["domain"].getAll( EQUALS );
+  auto issued_cname = context.constraints["issued_common_name"].getAll( EQUALS );
   
-  for ( const auto& domain : domains ) {
-    getSslCert( domain.c_str(), results );
+  for ( const auto& cn : issued_cname ) {
+    getSslCert( cn.c_str(), results );
   }
   
   return results;

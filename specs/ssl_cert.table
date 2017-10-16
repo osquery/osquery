@@ -1,7 +1,7 @@
 table_name("ssl_cert")
 description("SSL certificates information.")
 schema([
-    Column("issued_common_name", TEXT, "Common name of company issued to"),
+    Column("issued_common_name", TEXT, "Common name of company issued to", required=True),
     Column("issued_organization", TEXT, "Organization issued to"),
     Column("issued_organization_unit", TEXT, "Organization unit issued to"),
     Column("issued_serial_number", TEXT, "Certificate serial number", index=True),
@@ -15,5 +15,5 @@ schema([
 ])
 implementation("ssl_cert@genSslCert")
 examples([
-  "select * from ssl_cert where domain = 'www.facebook.com'"
+  "select * from ssl_cert where issued_common_name = 'www.facebook.com'"
 ])
