@@ -15,5 +15,5 @@ schema([
 ])
 implementation("ssl_cert@genSslCert")
 examples([
-  "select * from ssl_cert where issued_common_name = 'www.facebook.com'"
+  "select * from ssl_cert where issued_common_name = 'Amazon Root CA 1'"
 ])
