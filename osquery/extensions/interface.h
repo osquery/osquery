@@ -79,10 +79,6 @@ typedef SHARED_PTR_IMPL<TTransportFactory> TTransportFactoryRef;
 typedef SHARED_PTR_IMPL<TProtocolFactory> TProtocolFactoryRef;
 typedef SHARED_PTR_IMPL<ThreadManager> TThreadManagerRef;
 
-#ifndef WIN32
-typedef SHARED_PTR_IMPL<PosixThreadFactory> PosixThreadFactoryRef;
-#endif
-
 using TThreadedServerRef = std::shared_ptr<TThreadedServer>;
 
 namespace extensions {
@@ -240,15 +236,8 @@ typedef SHARED_PTR_IMPL<ExtensionManagerHandler> ExtensionManagerHandlerRef;
 /// A Dispatcher service thread that watches an ExtensionManagerHandler.
 class ExtensionWatcher : public InternalRunnable {
  public:
-  virtual ~ExtensionWatcher() {}
-  ExtensionWatcher(const std::string& path, size_t interval, bool fatal)
-      : InternalRunnable("ExtensionWatcher"),
-        path_(path),
-        interval_(interval),
-        fatal_(fatal) {
-    // Set the interval to a minimum of 200 milliseconds.
-    interval_ = (interval_ < 200) ? 200 : interval_;
-  }
+  virtual ~ExtensionWatcher() = default;
+  ExtensionWatcher(const std::string& path, size_t interval, bool fatal);
 
  public:
   /// The Dispatcher thread entry point.
@@ -330,18 +319,13 @@ class ExtensionRunnerCore : public InternalRunnable {
  */
 class ExtensionRunner : public ExtensionRunnerCore {
  public:
-  ExtensionRunner(const std::string& manager_path, RouteUUID uuid)
-      : ExtensionRunnerCore(""), uuid_(uuid) {
-    path_ = getExtensionSocket(uuid, manager_path);
-  }
+  ExtensionRunner(const std::string& manager_path, RouteUUID uuid);
 
  public:
   void start() override;
 
   /// Access the UUID provided by the ExtensionManager.
-  RouteUUID getUUID() {
-    return uuid_;
-  }
+  RouteUUID getUUID() const;
 
  private:
   /// The unique and transient Extension UUID assigned by the ExtensionManager.
@@ -373,13 +357,10 @@ class EXInternal : private boost::noncopyable {
         transport_(new TBufferedTransport(socket_)),
         protocol_(new TBinaryProtocol(transport_)) {}
 
-  virtual ~EXInternal() {
-    try {
-      transport_->close();
-    } catch (const std::exception& /* e */) {
-      // The transport/socket may have exited.
-    }
-  }
+  // Set the receive and send timeout.
+  void setTimeouts(size_t timeout);
+
+  virtual ~EXInternal();
 
  protected:
   TPlatformSocketRef socket_;
@@ -390,15 +371,17 @@ class EXInternal : private boost::noncopyable {
 /// Internal accessor for a client to an extension (from an extension manager).
 class EXClient : public EXInternal {
  public:
-  explicit EXClient(const std::string& path)
-      : EXInternal(path),
-        client_(std::make_shared<extensions::ExtensionClient>(protocol_)) {
-    (void)transport_->open();
-  }
+  /**
+   * @brief Create a client to a client extension.
+   *
+   * @note The default timeout to wait for buffered (whole-content) responses
+   * is 5 minutes.
+   * @param path This is the socket path for the client communication.
+   * @param timeout [optional] time in milliseconds to wait for input.
+   */
+  explicit EXClient(const std::string& path, size_t timeout = 5000 * 60);
 
-  const std::shared_ptr<extensions::ExtensionClient>& get() {
-    return client_;
-  }
+  const std::shared_ptr<extensions::ExtensionClient>& get() const;
 
  private:
   std::shared_ptr<extensions::ExtensionClient> client_;
@@ -407,16 +390,16 @@ class EXClient : public EXInternal {
 /// Internal accessor for a client to an extension manager (from an extension).
 class EXManagerClient : public EXInternal {
  public:
-  explicit EXManagerClient(const std::string& manager_path)
-      : EXInternal(manager_path),
-        client_(
-            std::make_shared<extensions::ExtensionManagerClient>(protocol_)) {
-    (void)transport_->open();
-  }
+  /**
+   * @brief Create a client to a manager extension.
+   *
+   * @param path This is the socket path for the manager communication.
+   * @param timeout [optional] time in milliseconds to wait for input.
+   */
+  explicit EXManagerClient(const std::string& manager_path,
+                           size_t timeout = 5000 * 60);
 
-  const std::shared_ptr<extensions::ExtensionManagerClient>& get() {
-    return client_;
-  }
+  const std::shared_ptr<extensions::ExtensionManagerClient>& get() const;
 
  private:
   std::shared_ptr<extensions::ExtensionManagerClient> client_;

@@ -241,6 +241,12 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
 }
 } // namespace extensions
 
+ExtensionRunner::ExtensionRunner(const std::string& manager_path,
+                                 RouteUUID uuid)
+    : ExtensionRunnerCore(""), uuid_(uuid) {
+  path_ = getExtensionSocket(uuid, manager_path);
+}
+
 ExtensionRunnerCore::~ExtensionRunnerCore() {
   removePath(path_);
 }
@@ -297,6 +303,10 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
   server_->serve();
 }
 
+RouteUUID ExtensionRunner::getUUID() const {
+  return uuid_;
+}
+
 void ExtensionRunner::start() {
   // Create the thrift instances.
   auto handler = ExtensionHandlerRef(new ExtensionHandler(uuid_));
@@ -331,5 +341,42 @@ void ExtensionManagerRunner::start() {
     LOG(WARNING) << "Extensions disabled: cannot start extension manager ("
                  << path_ << ") (" << e.what() << ")";
   }
+}
+
+EXInternal::~EXInternal() {
+  try {
+    transport_->close();
+  } catch (const std::exception& /* e */) {
+    // The transport/socket may have exited.
+  }
+}
+
+void EXInternal::setTimeouts(size_t timeouts) {
+  socket_->setRecvTimeout(timeouts);
+  socket_->setSendTimeout(timeouts);
+}
+
+EXClient::EXClient(const std::string& path, size_t timeout)
+    : EXInternal(path),
+      client_(std::make_shared<extensions::ExtensionClient>(protocol_)) {
+  setTimeouts(timeout);
+  (void)transport_->open();
+}
+
+EXManagerClient::EXManagerClient(const std::string& manager_path,
+                                 size_t timeout)
+    : EXInternal(manager_path),
+      client_(std::make_shared<extensions::ExtensionManagerClient>(protocol_)) {
+  setTimeouts(timeout);
+  (void)transport_->open();
+}
+
+const std::shared_ptr<extensions::ExtensionClient>& EXClient::get() const {
+  return client_;
+}
+
+const std::shared_ptr<extensions::ExtensionManagerClient>&
+EXManagerClient::get() const {
+  return client_;
 }
 } // namespace osquery
