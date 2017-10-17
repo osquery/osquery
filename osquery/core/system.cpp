@@ -13,9 +13,9 @@
 #include <sys/types.h>
 
 #ifndef WIN32
-#include <sys/socket.h>
-#include <netdb.h>
 #include <grp.h>
+#include <netdb.h>
+#include <sys/socket.h>
 #endif
 
 #include <signal.h>
@@ -125,7 +125,7 @@ std::string getFqdn() {
 
 #ifndef WIN32
     struct addrinfo hints;
-    memset (&hints, 0, sizeof (hints));
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_flags = AI_CANONNAME;
 
