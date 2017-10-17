@@ -72,9 +72,13 @@ function set_cc() {
 }
 
 function do_sudo() {
-  ARGS="$@"
-  log "requesting sudo: $ARGS"
-  sudo $@
+  if [[ "$OSQUERY_NOSUDO" = "True" ]]; then
+    $@
+  else
+    ARGS="$@"
+    log "requesting sudo: $ARGS"
+    sudo $@
+  fi
 }
 
 function contains_element() {
