@@ -43,8 +43,15 @@ FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
 FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
+/// Log each added or removed line individually, as an "event".
 FLAG(bool, logger_event_type, true, "Log scheduled results as events");
 FLAG_ALIAS(bool, log_result_events, logger_event_type);
+
+/// Log each row from a snapshot query individually, as an "event".
+FLAG(bool,
+     logger_snapshot_event_type,
+     false,
+     "Log scheduled snapshot results as events");
 
 /// Alias for the minloglevel used internally by GLOG.
 FLAG(int32, logger_min_status, 0, "Minimum level for status log recording");
@@ -563,7 +570,7 @@ Status logQueryLogItem(const QueryLogItem& results,
 
   std::vector<std::string> json_items;
   Status status;
-  if (FLAGS_log_result_events) {
+  if (FLAGS_logger_event_type) {
     status = serializeQueryLogItemAsEventsJSON(results, json_items);
   } else {
     std::string json;
@@ -588,30 +595,41 @@ Status logSnapshotQuery(const QueryLogItem& item) {
     return Status(0, "Logging disabled");
   }
 
-  std::string json;
-  if (!serializeQueryLogItemJSON(item, json)) {
-    return Status(1, "Could not serialize snapshot");
-  }
-  if (!json.empty() && json.back() == '\n') {
-    json.pop_back();
-  }
-
+  std::vector<std::string> json_items;
   Status status;
-  auto receiver = RegistryFactory::get().getActive("logger");
-  for (const auto& logger : osquery::split(receiver, ",")) {
-    if (FLAGS_logger_secondary_status_only &&
-        !BufferedLogSink::get().isPrimaryLogger(logger)) {
-      continue;
+  if (FLAGS_logger_snapshot_event_type) {
+    status = serializeQueryLogItemAsEventsJSON(item, json_items);
+  } else {
+    std::string json;
+    status = serializeQueryLogItemJSON(item, json);
+    json_items.emplace_back(json);
+  }
+  if (!status.ok()) {
+    return status;
+  }
+
+  for (auto& json : json_items) {
+    if (!json.empty() && json.back() == '\n') {
+      json.pop_back();
     }
 
-    if (Registry::get().exists("logger", logger, true)) {
-      auto plugin = Registry::get().plugin("logger", logger);
-      auto logger_plugin = std::dynamic_pointer_cast<LoggerPlugin>(plugin);
-      status = logger_plugin->logSnapshot(json);
-    } else {
-      status = Registry::call("logger", logger, {{"snapshot", json}});
+    auto receiver = RegistryFactory::get().getActive("logger");
+    for (const auto& logger : osquery::split(receiver, ",")) {
+      if (FLAGS_logger_secondary_status_only &&
+          !BufferedLogSink::get().isPrimaryLogger(logger)) {
+        continue;
+      }
+
+      if (Registry::get().exists("logger", logger, true)) {
+        auto plugin = Registry::get().plugin("logger", logger);
+        auto logger_plugin = std::dynamic_pointer_cast<LoggerPlugin>(plugin);
+        status = logger_plugin->logSnapshot(json);
+      } else {
+        status = Registry::call("logger", logger, {{"snapshot", json}});
+      }
     }
   }
+
   return status;
 }
 

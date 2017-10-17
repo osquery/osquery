@@ -322,6 +322,10 @@ Disable ERROR/WARNING/INFO (called status logs) and query result [logging](../de
 
 Log scheduled results as events.
 
+`--logger_snapshot_event_type=false`
+
+Log scheduled snapshot results as events, similar to differential results. If this is set to `true` then each row from a snapshot query will be logged individually.
+
 `--host_identifier=hostname`
 
 Field used to identify the host running osquery: **hostname**, **uuid**, **ephemeral**, **instance**.
