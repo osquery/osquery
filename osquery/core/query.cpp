@@ -531,7 +531,7 @@ static inline Status serializeEvent(const QueryLogItem& item,
                                     pt::ptree& tree) {
   addLegacyFieldsAndDecorations(item, tree);
   pt::ptree columns;
-  for (auto& i : event) {
+  for (const auto& i : event) {
     // Yield results as a "columns." map to avoid namespace collisions.
     columns.put<std::string>(i.first, i.second.get_value<std::string>());
   }
@@ -543,12 +543,12 @@ static inline Status serializeEvent(const QueryLogItem& item,
 Status serializeQueryLogItemAsEvents(const QueryLogItem& item,
                                      pt::ptree& tree) {
   pt::ptree results;
-  if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
+  if (!item.results.added.empty() || !item.results.removed.empty()) {
     auto status = serializeDiffResults(item.results, results);
     if (!status.ok()) {
       return status;
     }
-  } else if (item.snapshot_results.size() > 0) {
+  } else if (!item.snapshot_results.empty()) {
     pt::ptree snapshot_results;
     auto status = serializeQueryData(item.snapshot_results, snapshot_results);
     if (!status.ok()) {
@@ -560,8 +560,8 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item,
     return Status(1, "No diff results or snapshot results");
   }
 
-  for (auto& action : results) {
-    for (auto& row : action.second) {
+  for (const auto& action : results) {
+    for (const auto& row : action.second) {
       pt::ptree event;
       serializeEvent(item, row.second, event);
       event.put<std::string>("action", action.first);
