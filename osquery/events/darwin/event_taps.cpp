@@ -35,6 +35,9 @@ Status EventTappingEventPublisher::setUp() {
   if (!FLAGS_enable_keyboard_events) {
     return Status(1, "Publisher disabled via configuration");
   }
+  if (geteuid() != 0 || getegid() != 0) {
+    return Status(1, "Keyboard events requires root permissions");
+  }
   return Status(0);
 }
 
