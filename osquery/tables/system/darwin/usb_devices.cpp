@@ -19,10 +19,10 @@ namespace tables {
 
 std::string decodeUSBBCD(uint16_t bcd) {
   uint8_t array[2];
-  array[0]=bcd & 0xff;
-  array[1]=(bcd >> 8);
-  uint8_t major = ( (array[1]/16*10) + (array[1]%16) );
-  uint8_t minor = ( (array[0]/16*10) + (array[0]%16) );
+  array[0] = bcd & 0xff;
+  array[1] = (bcd >> 8);
+  uint8_t major = ((array[1] / 16 * 10) + (array[1] % 16));
+  uint8_t minor = ((array[0] / 16 * 10) + (array[0] % 16));
   return std::to_string(major) + "." + std::to_string(minor);
 }
 

@@ -64,7 +64,8 @@ QueryData genUSBDevices(QueryContext &context) {
     // USB-specific vendor/model ID properties.
     r["model_id"] = UdevEventPublisher::getValue(device, kUSBKeyModelID);
     r["vendor_id"] = UdevEventPublisher::getValue(device, kUSBKeyVendorID);
-    r["version"] = UdevEventPublisher::getValue(device, kUSBDeviceReleaseNumber);
+    r["version"] =
+        UdevEventPublisher::getValue(device, kUSBDeviceReleaseNumber);
     r["serial"] = UdevEventPublisher::getValue(device, kUSBKeySerial);
 
     // This will be of the form class/subclass/protocol and has to be parsed
