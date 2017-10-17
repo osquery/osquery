@@ -78,13 +78,13 @@ QueryData genSystemInfo(QueryContext& context) {
   Row r;
 
   // OS X also defines a friendly ComputerName along with a hostname.
-  r["hostname"] = osquery::getHostname();
+  r["hostname"] = osquery::getFqdn();
   auto cn = SCDynamicStoreCopyComputerName(nullptr, nullptr);
   if (cn != nullptr) {
     r["computer_name"] = stringFromCFString(cn);
     CFRelease(cn);
   } else {
-    r["computer_name"] = r["hostname"];
+    r["computer_name"] = getHostname();
   }
 
   auto lhn = SCDynamicStoreCopyLocalHostName(nullptr);
@@ -92,7 +92,7 @@ QueryData genSystemInfo(QueryContext& context) {
     r["local_hostname"] = stringFromCFString(lhn);
     CFRelease(lhn);
   } else {
-    r["local_hostname"] = r["hostname"];
+    r["local_hostname"] = getHostname();
   }
 
   // The UUID for Apple devices is a device identifier.

@@ -57,9 +57,9 @@ QueryData genSystemInfo(QueryContext& context) {
   WmiRequest wmiBiosReq("select * from Win32_Bios");
   std::vector<WmiResultItem>& wmiBiosResults = wmiBiosReq.results();
   if (wmiBiosResults.size() != 0) {
-	  wmiBiosResults[0].GetString("SerialNumber", r["hardware_serial"]);
+    wmiBiosResults[0].GetString("SerialNumber", r["hardware_serial"]);
   } else {
-	  r["hardware_serial"] = "-1";
+    r["hardware_serial"] = "-1";
   }
 
   SYSTEM_INFO systemInfo;
