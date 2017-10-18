@@ -1,0 +1,8 @@
+table_name("groups")
+description("Local system groups.")
+schema([
+    Column("ugid", TEXT, "Unique group ID", index=True),
+    Column("groupname", TEXT, "Group name"),
+    Column("comment", TEXT, "Remarks or comments associated with the group"),
+])
+implementation("groups@genGroups")
