@@ -30,6 +30,44 @@ warning C4091: 'typedef ': ignored on left of '' when no variable is declared
 
 #include "osquery/core/windows/wmi.h"
 
+class MinidumpOutputCallbacks : public IDebugOutputCallbacks {
+public:
+	std::string output;
+
+	STDMETHODIMP MinidumpOutputCallbacks::QueryInterface(THIS_ _In_ REFIID InterfaceId, _Out_ PVOID* Interface) {
+		*Interface = NULL;
+
+		if (IsEqualIID(InterfaceId, __uuidof(IUnknown)) ||
+			IsEqualIID(InterfaceId, __uuidof(IDebugOutputCallbacks))) {
+			*Interface = (IDebugOutputCallbacks *)this;
+			AddRef();
+			return S_OK;
+		}
+		else {
+			return E_NOINTERFACE;
+		}
+	}
+
+	STDMETHODIMP_(ULONG) MinidumpOutputCallbacks::AddRef(THIS) {
+		return 1;
+	}
+
+	STDMETHODIMP_(ULONG) MinidumpOutputCallbacks::Release(THIS) {
+		return 0;
+	}
+
+	STDMETHODIMP MinidumpOutputCallbacks::Output(THIS_ _In_ ULONG Mask, _In_ PCSTR Text) {
+		if (Mask & DEBUG_OUTPUT_NORMAL) {
+			this->output = std::string(Text);
+		}
+		return S_OK;
+	}
+
+	void logRegistersToRow(osquery::Row& r) {
+		r["registers"] = this->output;
+	}
+};
+
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -148,47 +186,6 @@ Status logAndStoreExceptionInfo(const MINIDUMP_EXCEPTION_STREAM* stream,
 	r["exception_message"] = errorMsg.str();
   }
 
-  return Status();
-}
-
-Status logRegisters(const MINIDUMP_EXCEPTION_STREAM* stream,
-                    unsigned char* const dumpBase,
-                    Row& r) {
-  if (stream == nullptr) {
-    return Status(1);
-  }
-
-  auto ex = stream->ExceptionRecord;
-  auto threadContext =
-      reinterpret_cast<CONTEXT*>(dumpBase + stream->ThreadContext.Rva);
-  std::ostringstream registers;
-  // Registers are hard-coded for x64 system b/c lack of C++ reflection on
-  // CONTEXT object
-  registers << "rax:0x" << std::hex << threadContext->Rax;
-  registers << " rbx:0x" << std::hex << threadContext->Rbx;
-  registers << " rcx:0x" << std::hex << threadContext->Rcx;
-  registers << " rdx:0x" << std::hex << threadContext->Rdx;
-  registers << " rdi:0x" << std::hex << threadContext->Rdi;
-  registers << " rsi:0x" << std::hex << threadContext->Rsi;
-  registers << " rbp:0x" << std::hex << threadContext->Rbp;
-  registers << " rsp:0x" << std::hex << threadContext->Rsp;
-  registers << " r8:0x" << std::hex << threadContext->R8;
-  registers << " r9:0x" << std::hex << threadContext->R9;
-  registers << " r10:0x" << std::hex << threadContext->R10;
-  registers << " r11:0x" << std::hex << threadContext->R11;
-  registers << " r12:0x" << std::hex << threadContext->R12;
-  registers << " r13:0x" << std::hex << threadContext->R13;
-  registers << " r14:0x" << std::hex << threadContext->R14;
-  registers << " r15:0x" << std::hex << threadContext->R15;
-  registers << " rip:0x" << std::hex << threadContext->Rip;
-  registers << " segcs:0x" << std::hex << threadContext->SegCs;
-  registers << " segds:0x" << std::hex << threadContext->SegDs;
-  registers << " seges:0x" << std::hex << threadContext->SegEs;
-  registers << " segfs:0x" << std::hex << threadContext->SegFs;
-  registers << " seggs:0x" << std::hex << threadContext->SegGs;
-  registers << " segss:0x" << std::hex << threadContext->SegSs;
-  registers << " eflags:0x" << std::hex << threadContext->EFlags;
-  r["registers"] = registers.str();
   return Status();
 }
 
@@ -475,7 +472,7 @@ Status logAndStoreDumpType(const MINIDUMP_HEADER* header,
   return Status();
 }
 
-void debugEngineCleanup(IDebugClient4* client,
+void debugEngineCleanup(IDebugClient5* client,
                         IDebugControl4* control,
                         IDebugSymbols3* symbols) {
   if (symbols != nullptr) {
@@ -492,28 +489,108 @@ void debugEngineCleanup(IDebugClient4* client,
   return;
 }
 
+Status logStackTrace(const char* fileName, IDebugControl4* control, IDebugSymbols3* symbols, Row& r) {
+	char context[1024] = { 0 };
+	unsigned long type = 0;
+	unsigned long procID = 0;
+	unsigned long threadID = 0;
+	unsigned long contextSize = 0;
+	unsigned long numFrames = 0;
+	DEBUG_STACK_FRAME stackFrames[kNumStackFramesToLog] = { 0 };
+
+	// Get stack frames, either with or without event context
+	if (control->GetStoredEventInformation(&type,
+		&procID,
+		&threadID,
+		context,
+		sizeof(context),
+		&contextSize,
+		NULL,
+		0,
+		0) == S_OK) {
+		auto contextData = new char[kNumStackFramesToLog * contextSize];
+		symbols->SetScopeFromStoredEvent();
+		auto status = control->GetContextStackTrace(context,
+			contextSize,
+			stackFrames,
+			ARRAYSIZE(stackFrames),
+			contextData,
+			kNumStackFramesToLog * contextSize,
+			contextSize,
+			&numFrames);
+		delete[] contextData;
+		if (status != S_OK) {
+			LOG(ERROR)
+				<< "Error getting context stack trace while debugging crash dump: "
+				<< fileName;
+			return Status(1);
+		}
+	}
+	else {
+		if (control->GetStackTrace(
+			0, 0, 0, stackFrames, ARRAYSIZE(stackFrames), &numFrames) != S_OK) {
+			LOG(ERROR) << "Error getting stack trace while debugging crash dump: "
+				<< fileName;
+			return Status(1);
+		}
+	}
+
+	// Then, log the stack frames
+	std::ostringstream stackTrace;
+	auto firstFrame = true;
+	for (unsigned long frame = 0; frame < numFrames; frame++) {
+		char name[512] = { 0 };
+		unsigned long long offset = 0;
+
+		if (!firstFrame) {
+			stackTrace << ",";
+		}
+		firstFrame = false;
+		if (symbols->GetNameByOffset(stackFrames[frame].InstructionOffset,
+			name,
+			ARRAYSIZE(name) - 1,
+			NULL,
+			&offset) == S_OK) {
+			stackTrace << name << "+0x" << std::hex << offset;
+		}
+		stackTrace << "(0x" << std::hex << stackFrames[frame].InstructionOffset;
+		stackTrace << ")";
+	}
+	r["stack_trace"] = stackTrace.str();
+	return Status();
+}
+
+Status logRegisters(IDebugClient5* client, IDebugControl4* control, MinidumpOutputCallbacks* callback, Row& r) {
+	IDebugRegisters2* registers;
+	if (client->QueryInterface(__uuidof(IDebugRegisters), (void**)&registers) != S_OK) {
+		return Status(1);
+	}
+
+	// Attempt to load exception register context, then log the registers
+	control->Execute(DEBUG_OUTCTL_THIS_CLIENT, ".ecxr", DEBUG_EXECUTE_NOT_LOGGED);
+	if (control->Execute(DEBUG_OUTCTL_ALL_CLIENTS, "r", DEBUG_EXECUTE_NOT_LOGGED) != S_OK) {
+		return Status(1);
+	}
+	callback->logRegistersToRow(r);
+	return Status();
+}
+
 /*
 Note: appears to only detect unmanaged stack frames.
 See http://blog.steveniemitz.com/building-a-mixed-mode-stack-walker-part-2/
 */
-void logStackTrace(const char* fileName, Row& r) {
-  IDebugClient4* client;
+void processDebugEngine(const char* fileName, Row& r) {
+  IDebugClient5* client;
   IDebugControl4* control;
   IDebugSymbols3* symbols;
-  DEBUG_STACK_FRAME stackFrames[kNumStackFramesToLog] = {0};
-  unsigned long numFrames = 0;
-  char context[1024] = {0};
-  unsigned long type = 0;
-  unsigned long procID = 0;
-  unsigned long threadID = 0;
-  unsigned long contextSize = 0;
+  MinidumpOutputCallbacks callback;
 
   // Create interfaces
   if (DebugCreate(__uuidof(IDebugClient), (void**)&client) != S_OK) {
     LOG(ERROR) << "DebugCreate failed while debugging crash dump: " << fileName;
     return debugEngineCleanup(client, nullptr, nullptr);
   }
-  if ((client->QueryInterface(__uuidof(IDebugControl4), (void**)&control) !=
+  if ((client->QueryInterface(__uuidof(IDebugControl), (void**)&control) !=
        S_OK) ||
       (client->QueryInterface(__uuidof(IDebugSymbols), (void**)&symbols) !=
        S_OK)) {
@@ -544,72 +621,17 @@ void logStackTrace(const char* fileName, Row& r) {
                << fileName;
     return debugEngineCleanup(client, control, symbols);
   }
+  client->SetOutputCallbacks(&callback);
 
-  // Get stack frames from dump
-  if (control->GetStoredEventInformation(&type,
-                                         &procID,
-                                         &threadID,
-                                         context,
-                                         sizeof(context),
-                                         &contextSize,
-                                         NULL,
-                                         0,
-                                         0) == S_OK) {
-    auto contextData = new char[kNumStackFramesToLog * contextSize];
-    symbols->SetScopeFromStoredEvent();
-    auto status =
-        control->GetContextStackTrace(context,
-                                      contextSize,
-                                      stackFrames,
-                                      ARRAYSIZE(stackFrames),
-                                      contextData,
-                                      kNumStackFramesToLog * contextSize,
-                                      contextSize,
-                                      &numFrames);
-    delete[] contextData;
-    if (status != S_OK) {
-      LOG(ERROR)
-          << "Error getting context stack trace while debugging crash dump: "
-          << fileName;
-      return debugEngineCleanup(client, control, symbols);
-    }
-  } else {
-    LOG(WARNING) << "GetStoredEventInformation failed for crash dump: "
-                 << fileName;
-    if (control->GetStackTrace(
-            0, 0, 0, stackFrames, ARRAYSIZE(stackFrames), &numFrames) != S_OK) {
-      LOG(ERROR) << "Error getting stack trace while debugging crash dump: "
-                 << fileName;
-    }
-  }
-
-  std::ostringstream stackTrace;
-  auto firstFrame = true;
-  for (unsigned long frame = 0; frame < numFrames; frame++) {
-    char name[512] = {0};
-    unsigned long long offset = 0;
-
-    if (!firstFrame) {
-      stackTrace << ",";
-    }
-    firstFrame = false;
-    if (symbols->GetNameByOffset(stackFrames[frame].InstructionOffset,
-                                 name,
-                                 ARRAYSIZE(name) - 1,
-                                 NULL,
-                                 &offset) == S_OK) {
-      stackTrace << name << "+0x" << std::hex << offset;
-    }
-    stackTrace << "(0x" << std::hex << stackFrames[frame].InstructionOffset;
-    stackTrace << ")";
-  }
-  r["stack_trace"] = stackTrace.str();
+  // Extract information for the row
+  logStackTrace(fileName, control, symbols, r);
+  logRegisters(client, control, &callback, r);
 
   // Cleanup
   return debugEngineCleanup(client, control, symbols);
 }
 
-void processDumpFile(const char* fileName, Row& r) {
+void processDumpStreams(const char* fileName, Row& r) {
   // Open the file
   auto dumpFile = CreateFile(fileName,
                              GENERIC_READ,
@@ -715,7 +737,6 @@ void processDumpFile(const char* fileName, Row& r) {
   // Then, process everything else
   r["crash_path"] = fileName;
   logDumpTime(header, r);
-  logRegisters(exceptionStream, dumpBaseAddr, r);
   logPID(miscStream, r);
   logProcessCreateTime(miscStream, r);
   logOSVersion(systemStream, r);
@@ -775,8 +796,8 @@ QueryData genCrashLogs(QueryContext& context) {
     if (fs::is_regular_file(*iterator) &&
         (extension.compare(kDumpFileExtension) == 0)) {
       Row r;
-      processDumpFile(iterator->path().generic_string().c_str(), r);
-      logStackTrace(iterator->path().generic_string().c_str(), r);
+      processDumpStreams(iterator->path().generic_string().c_str(), r);
+      processDebugEngine(iterator->path().generic_string().c_str(), r);
       if (!r.empty()) {
         results.push_back(r);
       }
