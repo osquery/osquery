@@ -175,12 +175,13 @@ function Get-OsqueryBuildPath {
 function Start-OsqueryProcess {
   param(
     [string] $binaryPath = '',
-    [array] $binaryArgs = @()
+    [array] $binaryArgs = @(),
+    [bool] $redirectOutput = $true
   )
   $pinfo = New-Object System.Diagnostics.ProcessStartInfo
   $pinfo.FileName = $binaryPath
-  $pinfo.RedirectStandardError = $true
-  $pinfo.RedirectStandardOutput = $true
+  $pinfo.RedirectStandardError = $redirectOutput
+  $pinfo.RedirectStandardOutput = $redirectOutput
   $pinfo.UseShellExecute = $false
   $pinfo.Arguments = $binaryArgs
   $pinfo.WorkingDirectory = Get-Location
@@ -188,12 +189,20 @@ function Start-OsqueryProcess {
   $p.StartInfo = $pinfo
   $p.Start()
   $p.WaitForExit()
-  $stdout = $p.StandardOutput.ReadToEnd()
-  $stderr = $p.StandardError.ReadToEnd()
-  $exit = $p.ExitCode
-  [PSCustomObject] @{
-    stdout = $stdout
-    stderr = $stderr
-    exitcode = $exit
+
+  if ($redirectOutput) {
+    $stdout = $p.StandardOutput.ReadToEnd()
+    $stderr = $p.StandardError.ReadToEnd()
+    $exit = $p.ExitCode
+    [PSCustomObject] @{
+      stdout = $stdout
+      stderr = $stderr
+      exitcode = $exit
+    }
+  } else {
+    $exit = $p.ExitCode
+    [PSCustomObject] @{
+      exitcode = $exit
+    }
   }
 }
