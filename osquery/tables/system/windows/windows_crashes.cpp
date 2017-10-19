@@ -32,7 +32,7 @@ warning C4091: 'typedef ': ignored on left of '' when no variable is declared
 
 class MinidumpOutputCallbacks : public IDebugOutputCallbacks {
 public:
-	std::string output;
+	std::ostringstream output;
 
 	STDMETHODIMP MinidumpOutputCallbacks::QueryInterface(THIS_ _In_ REFIID InterfaceId, _Out_ PVOID* Interface) {
 		*Interface = NULL;
@@ -57,14 +57,43 @@ public:
 	}
 
 	STDMETHODIMP MinidumpOutputCallbacks::Output(THIS_ _In_ ULONG Mask, _In_ PCSTR Text) {
-		if (Mask & DEBUG_OUTPUT_NORMAL) {
-			this->output = std::string(Text);
+		if ((Mask & DEBUG_OUTPUT_ERROR == 0) &&
+			(Mask & DEBUG_OUTPUT_WARNING == 0)) {
+			this->output << std::string(Text);
 		}
 		return S_OK;
 	}
 
-	void logRegistersToRow(osquery::Row& r) {
-		r["registers"] = this->output;
+	osquery::Status logRegistersToRow(osquery::Row& r) {
+		auto finalOutput = this->output.str();
+		this->output.clear();
+
+		std::string peskyFirstLine = "Last set context:\n";
+		auto location = finalOutput.find(peskyFirstLine);
+		// Remove pesky first line, if it exists
+		if (location == std::string::npos) {
+			r["registers"] = finalOutput;
+		}
+		else {
+			r["registers"] = finalOutput.substr(location + peskyFirstLine.size());
+		}
+		return osquery::Status();
+	}
+
+	osquery::Status logPEPathToRow(osquery::Row& r) {
+		auto finalOutput = this->output.str();
+		this->output.clear();
+
+		// Find the path of the first module
+		auto location = finalOutput.find(":\\");
+		if (location == std::string::npos) {
+			return osquery::Status(1);
+		}
+		auto firstPath = finalOutput.substr(location - 1);
+		// Trim the rest of the output so we get just the module path
+		location = firstPath.find("\n");
+		r["path"] = firstPath.substr(0, location);
+		return osquery::Status();
 	}
 };
 
@@ -224,7 +253,7 @@ Status logOSVersion(const MINIDUMP_SYSTEM_INFO* stream, Row& r) {
   return Status();
 }
 
-Status logPEPathAndVersion(const MINIDUMP_MODULE_LIST* stream,
+Status logPEVersion(const MINIDUMP_MODULE_LIST* stream,
                            unsigned char* const dumpBase,
                            Row& r) {
   if (stream == nullptr) {
@@ -232,10 +261,6 @@ Status logPEPathAndVersion(const MINIDUMP_MODULE_LIST* stream,
   }
 
   auto exeModule = stream->Modules[0];
-  auto exePath =
-      reinterpret_cast<MINIDUMP_STRING*>(dumpBase + exeModule.ModuleNameRva);
-  r["path"] = wstringToString(exePath->Buffer);
-
   auto versionInfo = exeModule.VersionInfo;
   std::ostringstream versionStr;
   versionStr << ((versionInfo.dwFileVersionMS >> 16) & 0xffff) << "."
@@ -568,11 +593,17 @@ Status logRegisters(IDebugClient5* client, IDebugControl4* control, MinidumpOutp
 
 	// Attempt to load exception register context, then log the registers
 	control->Execute(DEBUG_OUTCTL_THIS_CLIENT, ".ecxr", DEBUG_EXECUTE_NOT_LOGGED);
-	if (control->Execute(DEBUG_OUTCTL_ALL_CLIENTS, "r", DEBUG_EXECUTE_NOT_LOGGED) != S_OK) {
+	if (control->Execute(DEBUG_OUTCTL_THIS_CLIENT, "r", DEBUG_EXECUTE_NOT_LOGGED) != S_OK) {
 		return Status(1);
 	}
-	callback->logRegistersToRow(r);
-	return Status();
+	return callback->logRegistersToRow(r);
+}
+
+Status logPEPath(IDebugControl4* control, MinidumpOutputCallbacks* callback, Row& r) {
+	if (control->Execute(DEBUG_OUTCTL_THIS_CLIENT, "lm f", DEBUG_EXECUTE_NOT_LOGGED) != S_OK) {
+		return Status(1);
+	}
+	return callback->logPEPathToRow(r);
 }
 
 /*
@@ -626,6 +657,7 @@ void processDebugEngine(const char* fileName, Row& r) {
   // Extract information for the row
   logStackTrace(fileName, control, symbols, r);
   logRegisters(client, control, &callback, r);
+  logPEPath(control, &callback, r);
 
   // Cleanup
   return debugEngineCleanup(client, control, symbols);
@@ -740,7 +772,7 @@ void processDumpStreams(const char* fileName, Row& r) {
   logPID(miscStream, r);
   logProcessCreateTime(miscStream, r);
   logOSVersion(systemStream, r);
-  logPEPathAndVersion(moduleStream, dumpBaseAddr, r);
+  logPEVersion(moduleStream, dumpBaseAddr, r);
   logCrashedModule(moduleStream, dumpBaseAddr, exAddr, r);
   logBeingDebugged(peb, r);
   logProcessCmdLine(memoryStream, dumpBaseAddr, params, r);
