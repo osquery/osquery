@@ -1,9 +1,8 @@
 @echo off
 :: Set the environment for building with Visual Studio
-IF NOT DEFINED ONE_TIME_BUILD_VARS (
+IF NOT DEFINED VCINSTALLDIR (
   call "%VS140COMNTOOLS%vcvarsqueryregistry.bat" 64bit
   call "%VCINSTALLDIR%vcvarsall.bat" amd64
-  SET ONE_TIME_BUILD_VARS=1
 )
 
 :: Suppress the error message generated if the directory already exists
