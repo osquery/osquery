@@ -18,7 +18,6 @@ if (-not (Test-Path $utils)) {
 function Invoke-VcVarsAll {
 
   # First, derive the location of the latest VS install
-  Write-Host '[+] Invoking windows vcvarsall build env script'
   $vswhere = (Get-Command 'vswhere').Source
   $vswhereArgs = @('-latest')
   $vswhereOut = (Start-OsqueryProcess $vswhere $vswhereArgs).stdout
@@ -45,7 +44,7 @@ function Invoke-VcVarsAll {
   } else {
     $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
   }
-  
+
   # Lastly invoke the environment provisioning script
   $null = Invoke-BatchFile "$vcvarsall" "amd64"
 }
@@ -156,4 +155,3 @@ function Invoke-OsqueryBuild {
 
 # If the script is being invoked directly, we call our build function
 Invoke-OsqueryBuild
-
