@@ -791,6 +791,7 @@ static int shell_exec(
 
   while (zSql[0] && (SQLITE_OK == rc)) {
     /* A lock for attaching virtual tables, but also the SQL object states. */
+    osquery::RecursiveLock lock(osquery::kAttachMutex);
     rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, &zLeftover);
     if (SQLITE_OK != rc) {
       if (pzErrMsg) {
