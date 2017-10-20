@@ -25,11 +25,11 @@
 #include "osquery/core/conversions.h"
 
 namespace osquery {
-  
-// Defined in /osquery/core/windows/process_ops.cpp, but not declared in a 
+
+// Defined in /osquery/core/windows/process_ops.cpp, but not declared in a
 // header:
 std::string psidToString(PSID sid);
-  
+
 // Get the relative identifier (RID) from a security identifier (SID):
 unsigned long getRidFromSid(PSID sidPtr) {
   BYTE* countPtr = GetSidSubAuthorityCount(sidPtr);
@@ -40,26 +40,24 @@ unsigned long getRidFromSid(PSID sidPtr) {
 
 namespace tables {
 
-std::unique_ptr<BYTE[]> GetSid(LPCWSTR accountName)
-{
+std::unique_ptr<BYTE[]> GetSid(LPCWSTR accountName) {
   // Validate the input parameters.
-  if (accountName == nullptr)
-  {
+  if (accountName == nullptr) {
     LOG(INFO) << "GetSid(): no account name provided.";
     return nullptr;
   }
-      
+
   // Call LookupAccountNameW() once to retrieve the necessary buffer sizes for
   // the SID (in bytes) and the domain name (in TCHARS):
   unsigned long sidBufferSize = 0;
   unsigned long domainNameSize = 0;
   auto eSidType = SidTypeUnknown;
-  LookupAccountNameW(nullptr, 
-                     accountName, 
-                     nullptr, 
-                     &sidBufferSize, 
-                     nullptr, 
-                     &domainNameSize, 
+  LookupAccountNameW(nullptr,
+                     accountName,
+                     nullptr,
+                     &sidBufferSize,
+                     nullptr,
+                     &domainNameSize,
                      &eSidType);
 
   // Allocate sufficient buffers for the (binary data) SID and the (wide string)
@@ -67,19 +65,18 @@ std::unique_ptr<BYTE[]> GetSid(LPCWSTR accountName)
   auto sidBuffer = std::make_unique<BYTE[]>(sidBufferSize);
   std::vector<wchar_t> domainName(domainNameSize);
 
-  // Call LookupAccountNameW() a second time to actually obtain the SID for the 
+  // Call LookupAccountNameW() a second time to actually obtain the SID for the
   // given account name:
-  auto ret = LookupAccountNameW(nullptr, 
-                                accountName, 
-                                sidBuffer.get(), 
-                                &sidBufferSize, 
-                                domainName.data(), 
-                                &domainNameSize, 
+  auto ret = LookupAccountNameW(nullptr,
+                                accountName,
+                                sidBuffer.get(),
+                                &sidBufferSize,
+                                domainName.data(),
+                                &domainNameSize,
                                 &eSidType);
   if (ret == 0) {
     LOG(INFO) << "Failed to LookupAccountNameW(): " << accountName;
-  }
-  else if (IsValidSid(sidBuffer.get()) == FALSE) {
+  } else if (IsValidSid(sidBuffer.get()) == FALSE) {
     LOG(INFO) << "The SID for " << accountName << " is invalid.";
   }
 
@@ -92,18 +89,18 @@ void processLocalGroups(QueryData& results) {
   unsigned long totalGroups = 0;
   unsigned long resumeHandle = 0;
   unsigned long ret = 0;
-  LOCALGROUP_INFO_1 *lginfo = nullptr;
-      
+  LOCALGROUP_INFO_1* lginfo = nullptr;
+
   std::unique_ptr<BYTE[]> sidSmartPtr = nullptr;
   PSID sidPtr = nullptr;
 
   do {
-    ret = NetLocalGroupEnum(nullptr, 
-                            groupInfoLevel, 
-                            (LPBYTE *)&lginfo, 
-                            MAX_PREFERRED_LENGTH, 
-                            &numGroupsRead, 
-                            &totalGroups, 
+    ret = NetLocalGroupEnum(nullptr,
+                            groupInfoLevel,
+                            (LPBYTE*)&lginfo,
+                            MAX_PREFERRED_LENGTH,
+                            &numGroupsRead,
+                            &totalGroups,
                             nullptr);
 
     if ((ret == NERR_Success || ret == ERROR_MORE_DATA) && lginfo != nullptr) {
@@ -122,8 +119,7 @@ void processLocalGroups(QueryData& results) {
         r["groupname"] = wstringToString(lginfo[i].lgrpi1_name);
         results.push_back(r);
       }
-    }
-    else {
+    } else {
       LOG(INFO) << "NetLocalGroupEnum failed with return value: " << ret;
     }
     if (lginfo != nullptr) {
@@ -139,6 +135,5 @@ QueryData genGroups(QueryContext& context) {
 
   return results;
 }
-
 }
 }
