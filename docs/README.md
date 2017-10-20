@@ -76,7 +76,6 @@ This will be run in the `Code Audit` Jenkins job.
 1. Update code in `/tools` to produce the correct `version.yml` for new releases.
 2. Convert the deprecated ReadTheDocs wiki pages to Jekyll docs.
 3. Look for existing common redirects for backwards compatibility.
-4. Update the `downloads` page to list old versions and their hashes.
 
 ## ReadTheDocs Wiki (deprecated)
 

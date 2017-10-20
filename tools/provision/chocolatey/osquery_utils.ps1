@@ -5,8 +5,7 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
-# Helper function to toggle the Deny-Write ACL placed on the
-# osqueryd parent folder for 'safe' execution on Windows.
+# Helper function to add an explicit Deny-Write ACE for the Everyone group
 function Set-DenyWriteAcl {
   [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
   [OutputType('System.Boolean')]
@@ -25,7 +24,7 @@ function Set-DenyWriteAcl {
     $permType = [System.Security.AccessControl.AccessControlType]::Deny
 
     $worldSIDObj = New-Object System.Security.Principal.SecurityIdentifier ('S-1-1-0')
-    $worldUser = $worldSIDObj.Translate( [System.Security.Principal.NTAccount])
+    $worldUser = $worldSIDObj.Translate([System.Security.Principal.NTAccount])
     $permission = $worldUser.Value, "write", $inheritanceFlag, $propagationFlag, $permType
     $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule $permission
     # We only support adding or removing the ACL
@@ -34,7 +33,69 @@ function Set-DenyWriteAcl {
     } else {
       $acl.RemoveAccessRule($accessRule)
     }
-    $acl | Set-Acl $targetDir
+    Set-Acl $targetDir $acl
+    return $true
+  }
+  return $false
+}
+
+# A helper function to set "safe" permissions for osquery binaries
+function Set-SafePermissions {
+  [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
+  [OutputType('System.Boolean')]
+  param(
+    [string] $target = ''
+  )
+  if ($PSCmdlet.ShouldProcess($target)) {
+    $acl = Get-Acl $target
+
+    # First, to ensure success, we remove the entirety of the ACL
+    $acl.SetAccessRuleProtection($true, $false)
+    foreach ($access in $acl.Access) {
+      $acl.RemoveAccessRule($access)
+    }
+    Set-Acl $target $acl
+
+    $acl = Get-Acl $target
+    $inheritanceFlag = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+    $propagationFlag = [System.Security.AccessControl.PropagationFlags]::None
+    $permType = [System.Security.AccessControl.AccessControlType]::Allow
+
+    # "Safe" permissions in osquery entail the containing folder and binary both
+    # are owned by the Administrators group, as well as no account has Write
+    # permissions except for the Administrators group and SYSTEM account
+    $systemSid = New-Object System.Security.Principal.SecurityIdentifier('S-1-5-18')
+    $systemUser = $systemSid.Translate([System.Security.Principal.NTAccount])
+
+    $adminsSid = New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-544')
+    $adminsGroup = $adminsSid.Translate([System.Security.Principal.NTAccount])
+
+    $usersSid = New-Object System.Security.Principal.SecurityIdentifier('S-1-5-32-545')
+    $usersGroup = $usersSid.Translate([System.Security.Principal.NTAccount])
+
+    $permGroups = @($systemUser, $adminsGroup, $usersGroup)
+    foreach ($accnt in $permGroups) {
+      $grantedPerm = ''
+      if ($accnt -eq $usersGroup) {
+        $grantedPerm = 'ReadAndExecute'
+      } else {
+        $grantedPerm = 'FullControl'
+      }
+      $permission = $accnt.Value, $grantedPerm, $inheritanceFlag, $propagationFlag, $permType
+      $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule $permission
+      $acl.SetAccessRule($accessRule)
+    }
+    $acl.SetOwner($adminsGroup)
+    Set-Acl $target $acl
+
+    # Finally set the Administrators group as the owner for all items
+    $items = Get-ChildItem -Recurse -Path $target
+    foreach ($item in $items) {
+      $acl = Get-Acl -Path $item.FullName
+      $acl.SetOwner($adminsGroup)
+      Set-Acl $item.FullName $acl
+    }
+
     return $true
   }
   return $false
@@ -114,12 +175,13 @@ function Get-OsqueryBuildPath {
 function Start-OsqueryProcess {
   param(
     [string] $binaryPath = '',
-    [array] $binaryArgs = @()
+    [array] $binaryArgs = @(),
+    [bool] $redirectOutput = $true
   )
   $pinfo = New-Object System.Diagnostics.ProcessStartInfo
   $pinfo.FileName = $binaryPath
-  $pinfo.RedirectStandardError = $true
-  $pinfo.RedirectStandardOutput = $true
+  $pinfo.RedirectStandardError = $redirectOutput
+  $pinfo.RedirectStandardOutput = $redirectOutput
   $pinfo.UseShellExecute = $false
   $pinfo.Arguments = $binaryArgs
   $pinfo.WorkingDirectory = Get-Location
@@ -127,12 +189,20 @@ function Start-OsqueryProcess {
   $p.StartInfo = $pinfo
   $p.Start()
   $p.WaitForExit()
-  $stdout = $p.StandardOutput.ReadToEnd()
-  $stderr = $p.StandardError.ReadToEnd()
-  $exit = $p.ExitCode
-  [PSCustomObject] @{
-    stdout = $stdout
-    stderr = $stderr
-    exitcode = $exit
+
+  if ($redirectOutput) {
+    $stdout = $p.StandardOutput.ReadToEnd()
+    $stderr = $p.StandardError.ReadToEnd()
+    $exit = $p.ExitCode
+    [PSCustomObject] @{
+      stdout = $stdout
+      stderr = $stderr
+      exitcode = $exit
+    }
+  } else {
+    $exit = $p.ExitCode
+    [PSCustomObject] @{
+      exitcode = $exit
+    }
   }
 }

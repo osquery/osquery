@@ -143,11 +143,13 @@ class TestTablePlugin : public TablePlugin {
   void testSetCache(size_t step, size_t interval) {
     QueryData r;
     QueryContext ctx;
+    ctx.useCache(true);
     setCache(step, interval, ctx, r);
   }
 
   bool testIsCached(size_t interval) {
     QueryContext ctx;
+    ctx.useCache(true);
     return isCached(interval, ctx);
   }
 };

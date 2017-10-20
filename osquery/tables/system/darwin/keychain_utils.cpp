@@ -113,6 +113,7 @@ void genAlgorithmProperties(X509* cert,
         }
       }
     }
+    EVP_PKEY_free(pkey);
   }
 
   OSX_OPENSSL(nid = OBJ_obj2nid(cert->cert_info->signature->algorithm));

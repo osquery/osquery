@@ -14,6 +14,8 @@
 
 #ifndef WIN32
 #include <grp.h>
+#include <netdb.h>
+#include <sys/socket.h>
 #endif
 
 #include <signal.h>
@@ -119,14 +121,33 @@ std::string getHostname() {
 
 std::string getFqdn() {
   if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
-    return getHostname();
-  }
-  unsigned long size = 256;
-  std::vector<char> fqdn(size, 0x0);
-#ifdef WIN32
-  GetComputerNameEx(ComputerNameDnsFullyQualified, fqdn.data(), &size);
+    std::string fqdn_string = getHostname();
+
+#ifndef WIN32
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_flags = AI_CANONNAME;
+
+    struct addrinfo* res = nullptr;
+    if (getaddrinfo(fqdn_string.c_str(), nullptr, &hints, &res) == 0) {
+      if (res->ai_canonname != nullptr) {
+        fqdn_string = res->ai_canonname;
+      }
+    }
+    if (res != nullptr) {
+      freeaddrinfo(res);
+    }
 #endif
-  return fqdn.data();
+    return fqdn_string;
+  } else {
+    unsigned long size = 256;
+    std::vector<char> fqdn(size, 0x0);
+#ifdef WIN32
+    GetComputerNameEx(ComputerNameDnsFullyQualified, fqdn.data(), &size);
+#endif
+    return fqdn.data();
+  }
 }
 
 std::string generateNewUUID() {
@@ -437,6 +458,16 @@ bool setThreadEffective(uid_t uid, gid_t gid) {
           syscall(SYS_setresuid, -1, uid, -1) == 0);
 #endif
   return 0;
+}
+
+bool DropPrivileges::dropTo(const std::string& uid, const std::string& gid) {
+  unsigned long int _uid = 0;
+  unsigned long int _gid = 0;
+  if (!safeStrtoul(uid, 10, _uid).ok() || !safeStrtoul(gid, 10, _gid).ok() ||
+      !dropTo(static_cast<uid_t>(_uid), static_cast<gid_t>(_gid))) {
+    return false;
+  }
+  return true;
 }
 
 bool DropPrivileges::dropTo(uid_t uid, gid_t gid) {

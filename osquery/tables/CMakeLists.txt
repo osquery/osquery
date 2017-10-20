@@ -102,6 +102,12 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
         ${OSQUERY_${CATEGORY}_POSIX_TABLES}
       )
     endif()
+
+    # Add posix table tests.
+    file(GLOB POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS
+      "${CATEGORY}/posix/tests/*.[cpm]*"
+    )
+    ADD_OSQUERY_TABLE_TEST(${POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS})
   endif()
 
   # Table implementations shared by FreeBSD and Linux
@@ -142,7 +148,7 @@ ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
 if(NOT SKIP_AWS AND LINUX)
   file(GLOB OSQUERY_CLOUD_TABLES "cloud/*.[cpm]*")
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_cloud_tables ${OSQUERY_CLOUD_TABLES})
- 
+
   file(GLOB OSQUERY_CLOUD_TABLES_TESTS "cloud/tests/*.[cpm]*")
   if(OSQUERY_CLOUD_TABLES_TESTS)
     ADD_OSQUERY_TABLE_TEST(${OSQUERY_CLOUD_TABLES_TESTS})

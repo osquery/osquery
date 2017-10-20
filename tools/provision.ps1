@@ -130,8 +130,8 @@ function Test-ChocoPackageInstalled {
 function Test-PythonInstalled {
   $major = '*2.7*'
   $pythonInstall = (Get-Command 'python' -ErrorAction SilentlyContinue).Source
-  if ($pythonInstall -eq '') {
-    $msg = '[-] Did not find python installed'
+  if ($pythonInstall -eq $null) {
+    $msg = '[-] Python binary not found in system path'
     Write-Host $msg -ForegroundColor Yellow
     return $false
   }
@@ -447,8 +447,10 @@ function Main {
   # Only install python if it's not needed
   $pythonInstall = Test-PythonInstalled
   if (-not ($pythonInstall)) {
-    Write-Host '[*] Python not found. Installing.'
     Install-ChocoPackage 'python2'
+    # Update the system path and re-derive the python install
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+    $pythonInstall = Test-PythonInstalled
   }
   # Convenience variable for accessing Python
   [Environment]::SetEnvironmentVariable("OSQUERY_PYTHON_PATH", $pythonInstall, "Machine")

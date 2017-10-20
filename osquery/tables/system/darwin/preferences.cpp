@@ -106,6 +106,10 @@ void genOSXPrefValues(const CFTypeRef& value,
     r["value"] = stringFromCFNumber(static_cast<CFDataRef>(value));
   } else if (CFGetTypeID(value) == CFStringGetTypeID()) {
     r["value"] = stringFromCFString(static_cast<CFStringRef>(value));
+  } else if (CFGetTypeID(value) == CFDateGetTypeID()) {
+    auto unix_time = CFDateGetAbsoluteTime(static_cast<CFDateRef>(value)) +
+                     kCFAbsoluteTimeIntervalSince1970;
+    r["value"] = boost::lexical_cast<std::string>(std::llround(unix_time));
   } else if (CFGetTypeID(value) == CFBooleanGetTypeID()) {
     r["value"] = (CFBooleanGetValue(static_cast<CFBooleanRef>(value)) == TRUE)
                      ? "true"

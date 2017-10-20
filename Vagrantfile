@@ -183,8 +183,8 @@ Vagrant.configure("2") do |config|
 
       if name == 'macos10.12'
         config.vm.provision "shell",
-          inline: "dseditgroup -o create vagrant"
-        build.vm.synced_folder ".", "/vagrant", type: "rsync",
+          inline: "dseditgroup -o read vagrant || dseditgroup -o create vagrant"
+        build.vm.synced_folder ".", "/vagrant", group: "staff", type: "rsync",
           rsync__exclude: [
             "build",
             ".git/objects",
