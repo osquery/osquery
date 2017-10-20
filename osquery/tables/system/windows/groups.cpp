@@ -26,9 +26,16 @@
 
 namespace osquery {
   
-  // Functions defined in /osquery/core/windows/process_ops.cpp, but not declared in a header:
+  // Defined in /osquery/core/windows/process_ops.cpp, but not declared in a header:
   std::string psidToString(PSID sid);
-  int getUidFromSid(PSID sid);
+  
+  // Get the relative identifier (RID) from a security identifier (SID):
+  unsigned long getRidFromSid(PSID sidPtr) {
+    BYTE* countPtr = GetSidSubAuthorityCount(sidPtr);
+    unsigned long indexOfRid = static_cast<unsigned long>(*countPtr - 1);
+    unsigned long* ridPtr = GetSidSubAuthority(sidPtr, indexOfRid);
+    return *ridPtr;
+  }
 
   namespace tables {
 
@@ -83,11 +90,14 @@ namespace osquery {
             sidSmartPtr = GetSid(lginfo[i].lgrpi1_name);
             sidPtr = static_cast<PSID>(sidSmartPtr.get());
 
-            //TODO: r["gid_signed"] = INTEGER(getUidFromSid(sid)); // gets the RID aka last segment of the SID?
-            //TODO: r["gid"] = some kind of cast of getUidFromSid(sid);
-            r["ugid"] = psidToString(sidPtr);  // TODO: don't report this; it will be removed in the new schema
-            r["groupname"] = wstringToString(lginfo[i].lgrpi1_name);  //TODO: move this to an extended_schema in the spec
-            r["comment"] = wstringToString(lginfo[i].lgrpi1_comment); //TODO: move this to an extended_schema in the spec
+            // Windows' extended schema, including full SID and comment strings:
+            r["group_sid"] = psidToString(sidPtr);
+            r["comment"] = wstringToString(lginfo[i].lgrpi1_comment);
+
+            // Common schema, normalizing group information with POSIX:
+            r["gid"] = INTEGER(getRidFromSid(sidPtr));
+            r["gid_signed"] = INTEGER(getRidFromSid(sidPtr));
+            r["groupname"] = wstringToString(lginfo[i].lgrpi1_name);
             results.push_back(r);
           }
         }

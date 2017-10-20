@@ -1,8 +1,17 @@
 table_name("groups")
 description("Local system groups.")
 schema([
-    Column("ugid", TEXT, "Unique group ID", index=True),
-    Column("groupname", TEXT, "Group name"),
+    Column("gid", BIGINT, "Unsigned int64 group ID", index=True),
+    Column("gid_signed", BIGINT, "A signed int64 version of gid"),
+    Column("groupname", TEXT, "Canonical local group name"),
+])
+extended_schema(WINDOWS, [
+    Column("group_sid", TEXT, "Unique group ID", index=True),
     Column("comment", TEXT, "Remarks or comments associated with the group"),
 ])
 implementation("groups@genGroups")
+examples([
+  "select * from groups",
+  # The relative group ID, or RID, is used by osquery as the "gid"
+  # For Windows, "gid" and "gid_signed" will always be the same.
+])
