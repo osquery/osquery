@@ -31,6 +31,7 @@ class Beecrypt < AbstractOsqueryFormula
     ]
 
     system "./autogen.sh"
+    system "autoreconf", "--force", "--install" if OS.mac?
     system "./configure", "--prefix=#{prefix}", *args
     system "make"
     system "make", "check"

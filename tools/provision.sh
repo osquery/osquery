@@ -107,7 +107,6 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libudev
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
-  brew_dependency osquery/osquery-local/librpm
 }
 
 function platform_darwin_main() {
@@ -127,6 +126,10 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/openssl
   brew_tool osquery/osquery-local/python
   brew_tool osquery/osquery-local/bison
+
+  brew_tool osquery/osquery-local/berkeley-db
+  brew_tool osquery/osquery-local/popt
+  brew_tool osquery/osquery-local/beecrypt
 
   platform_posix_main
 }
@@ -155,6 +158,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/augeas
   brew_dependency osquery/osquery-local/lldpd
   brew_dependency osquery/osquery-local/librdkafka
+  brew_dependency osquery/osquery-local/librpm
 
   # POSIX-shared locally-managed tools.
   brew_dependency osquery/osquery-local/zzuf
