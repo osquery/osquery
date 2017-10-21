@@ -1,0 +1,19 @@
+table_name("connection_events")
+description("Track network connection changes to hosts specified in configuration data.")
+schema([
+    Column("type", TEXT, "Change action (NEW, UPDATE, DESTROY, etc)"),
+    Column("orig_address", TEXT, "The local address associated with the event"),
+    Column("resp_address", TEXT, "The remote address associated with the event"),
+    Column("protocol", INTEGER, "The transport layer protocol number of the event"),
+    Column("orig_port", INTEGER, "The local port associated with the event"),
+    Column("resp_port", INTEGER, "The remote port associated with the event"),
+    Column("direction", TEXT, "The direction of the connection (IN or OUT)"),
+    Column("uid", BIGINT, "User ID"),
+    Column("inode", TEXT, "The inode for the process socket"),
+    Column("fd", TEXT, "The file description for the process socket"),
+    Column("pid", BIGINT, "Process (or thread) ID"),
+    Column("time", BIGINT, "Time of connection event"),
+    Column("eid", TEXT, "Event ID", hidden=True),
+])
+attributes(event_subscriber=True)
+implementation("connection_events@connection_events::genTable")

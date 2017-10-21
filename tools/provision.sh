@@ -108,6 +108,10 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
   brew_dependency osquery/osquery-local/librpm
+
+  brew_dependency osquery/osquery-local/libnfnetlink
+  brew_dependency osquery/osquery-local/libmnl
+  brew_dependency osquery/osquery-local/libnetfilter-conntrack
 }
 
 function platform_darwin_main() {
