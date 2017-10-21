@@ -77,6 +77,9 @@ class SQLiteDBInstance : private boost::noncopyable {
   /// Check if the query requested use of the warm query cache.
   bool useCache() const;
 
+  /// Lock the database for attaching virtual tables.
+  WriteLock attachLock() const;
+
  private:
   /// Handle the primary/forwarding requests for table attribute accesses.
   TableAttributes getAttributes() const;
@@ -101,6 +104,9 @@ class SQLiteDBInstance : private boost::noncopyable {
 
   /// An attempted unique lock on the manager's primary database access mutex.
   WriteLock lock_;
+
+  /// Attaching can occur async from the registry APIs.
+  mutable Mutex attach_mutex_;
 
   /// Vector of tables that need their constraints cleared after execution.
   std::map<std::string, VirtualTableContent*> affected_tables_;
