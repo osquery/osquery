@@ -203,7 +203,7 @@ void SQLiteSQLPlugin::detach(const std::string& name) {
   if (!dbc->isPrimary()) {
     return;
   }
-  detachTableInternal(name, dbc->db());
+  detachTableInternal(name, dbc);
 }
 
 SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
@@ -249,6 +249,10 @@ void SQLiteDBInstance::useCache(bool use_cache) {
 
 bool SQLiteDBInstance::useCache() const {
   return use_cache_;
+}
+
+WriteLock SQLiteDBInstance::attachLock() const {
+  return WriteLock(attach_mutex_);
 }
 
 void SQLiteDBInstance::addAffectedTable(VirtualTableContent* table) {
