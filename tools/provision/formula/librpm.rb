@@ -36,6 +36,7 @@ class Librpm < AbstractOsqueryFormula
       "--disable-shared",
       "--disable-python",
       "--enable-static",
+      "--enable-zstd=no",
       "--with-crypto=beecrypt",
     ]
 
