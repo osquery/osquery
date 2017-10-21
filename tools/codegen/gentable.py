@@ -90,7 +90,7 @@ TABLE_ATTRIBUTES = {
 
 
 def WINDOWS():
-    return PLATFORM in ['windows']
+    return PLATFORM in ['windows', 'win32', 'cygwin']
 
 
 def LINUX():
