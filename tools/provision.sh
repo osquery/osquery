@@ -84,11 +84,6 @@ function platform_linux_main() {
   brew_tool osquery/osquery-local/curl
   brew_tool osquery/osquery-local/python
 
-  # Linux library secondary dependencies.
-  brew_tool osquery/osquery-local/berkeley-db
-  brew_tool osquery/osquery-local/popt
-  brew_tool osquery/osquery-local/beecrypt
-
   # LLVM/Clang.
   brew_tool osquery/osquery-local/llvm
 
@@ -124,17 +119,19 @@ function platform_darwin_main() {
 
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl
+
   brew_tool osquery/osquery-local/python
   brew_tool osquery/osquery-local/bison
-
-  brew_tool osquery/osquery-local/berkeley-db
-  brew_tool osquery/osquery-local/popt
-  brew_tool osquery/osquery-local/beecrypt
 
   platform_posix_main
 }
 
  function platform_posix_main() {
+  # Library secondary dependencies.
+  brew_dependency osquery/osquery-local/popt
+  brew_dependency osquery/osquery-local/beecrypt
+  brew_dependency osquery/osquery-local/berkeley-db
+
   # libarchive for file carving
   brew_dependency osquery/osquery-local/libarchive
   brew_dependency osquery/osquery-local/rapidjson

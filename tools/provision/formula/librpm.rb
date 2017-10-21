@@ -10,7 +10,8 @@ class Librpm < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "02be69d20e5b713d320118f78262eba1ef458f47e587f7c9e8111827eb7bec40" => :x86_64_linux
+    sha256 "cdec41658bf34f547819025b88910e2f94ed6929067755cf3cc08f7499391ee8" => :sierra
+    sha256 "521cd60e71aa3364af8ca9a997e61432dcca85901ec0bed46f495d34088b8678" => :x86_64_linux
   end
 
   depends_on "berkeley-db"
@@ -20,7 +21,6 @@ class Librpm < AbstractOsqueryFormula
   def install
     ENV.append "CFLAGS", "-I#{HOMEBREW_PREFIX}/include/beecrypt"
     ENV.append "LDFLAGS", "-lz -liconv" if OS.mac?
-
 
     args = [
       "--disable-dependency-tracking",
