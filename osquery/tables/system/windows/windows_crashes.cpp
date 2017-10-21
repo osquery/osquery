@@ -32,11 +32,14 @@ warning C4091: 'typedef ': ignored on left of '' when no variable is declared
 
 class MinidumpOutputCallbacks : public IDebugOutputCallbacks {
 public:
-	std::ostringstream output;
+	osquery::Row* r;
+
+	MinidumpOutputCallbacks(osquery::Row* r) {
+		this->r = r;
+	}
 
 	STDMETHODIMP MinidumpOutputCallbacks::QueryInterface(THIS_ _In_ REFIID InterfaceId, _Out_ PVOID* Interface) {
 		*Interface = NULL;
-
 		if (IsEqualIID(InterfaceId, __uuidof(IUnknown)) ||
 			IsEqualIID(InterfaceId, __uuidof(IDebugOutputCallbacks))) {
 			*Interface = (IDebugOutputCallbacks *)this;
@@ -57,43 +60,61 @@ public:
 	}
 
 	STDMETHODIMP MinidumpOutputCallbacks::Output(THIS_ _In_ ULONG Mask, _In_ PCSTR Text) {
-		if ((Mask & DEBUG_OUTPUT_ERROR == 0) &&
-			(Mask & DEBUG_OUTPUT_WARNING == 0)) {
-			this->output << std::string(Text);
+		if ((Mask & DEBUG_OUTPUT_NORMAL) == 0) {
+			return S_FALSE;
+		}
+
+		std::string output(Text);
+		auto cmd = processOutput(output);
+		if (cmd == std::string("r")) {
+			(*r)["registers"] = output;
+		}
+		else if (cmd.find("lm f a") != std::string::npos) {
+			(*r)["module"] = findModulePath(output);
+		}
+		else if (cmd.find("lm f") != std::string::npos) {
+			(*r)["path"] = findModulePath(output);
+		}
+		else {
+			return S_FALSE;
 		}
 		return S_OK;
 	}
 
-	osquery::Status logRegistersToRow(osquery::Row& r) {
-		auto finalOutput = this->output.str();
-		this->output.clear();
+	std::string processOutput(std::string& output) {
+		std::istringstream preprocessed(output);
+		std::ostringstream postprocessed;
+		std::string cmd;
+		std::string line;
 
-		std::string peskyFirstLine = "Last set context:\n";
-		auto location = finalOutput.find(peskyFirstLine);
-		// Remove pesky first line, if it exists
-		if (location == std::string::npos) {
-			r["registers"] = finalOutput;
+		// Get the command that was executed
+		std::getline(preprocessed, cmd);
+		// Perform some additional cleaning on the output
+		while (std::getline(preprocessed, line)) {
+			if (
+				// This comes from the "r" command if .ecxr is successful
+				(line.find("Last set context:") != std::string::npos) ||
+				// Remove natvis error messages that screw up column formatting
+				(line.find("No .natvis files found") != std::string::npos)
+				) {
+				continue;
+			}
+			postprocessed << line + "\n";
 		}
-		else {
-			r["registers"] = finalOutput.substr(location + peskyFirstLine.size());
-		}
-		return osquery::Status();
+		output = postprocessed.str();
+		return cmd;
 	}
 
-	osquery::Status logPEPathToRow(osquery::Row& r) {
-		auto finalOutput = this->output.str();
-		this->output.clear();
-
+	std::string findModulePath(std::string output) {
 		// Find the path of the first module
-		auto location = finalOutput.find(":\\");
+		auto location = output.find(":\\");
 		if (location == std::string::npos) {
-			return osquery::Status(1);
+			return std::string();
 		}
-		auto firstPath = finalOutput.substr(location - 1);
+		auto firstPath = output.substr(location - 1);
 		// Trim the rest of the output so we get just the module path
 		location = firstPath.find("\n");
-		r["path"] = firstPath.substr(0, location);
-		return osquery::Status();
+		return firstPath.substr(0, location);
 	}
 };
 
@@ -270,28 +291,6 @@ Status logPEVersion(const MINIDUMP_MODULE_LIST* stream,
   r["version"] = versionStr.str();
 
   return Status();
-}
-
-Status logCrashedModule(const MINIDUMP_MODULE_LIST* stream,
-                        unsigned char* const dumpBase,
-                        unsigned long long exAddr,
-                        Row& r) {
-  if (stream == nullptr) {
-    return Status(1);
-  }
-
-  for (unsigned int i = 0; i < stream->NumberOfModules; i++) {
-    auto module = stream->Modules[i];
-    // Is the exception address within this module's memory space?
-    if ((module.BaseOfImage <= exAddr) &&
-        (exAddr <= (module.BaseOfImage + module.SizeOfImage))) {
-      auto modulePath =
-          reinterpret_cast<MINIDUMP_STRING*>(dumpBase + module.ModuleNameRva);
-      r["module"] = wstringToString(modulePath->Buffer);
-      return Status();
-    }
-  }
-  return Status(1);
 }
 
 // Pulls the memory at target address from the Minidump
@@ -585,25 +584,26 @@ Status logStackTrace(const char* fileName, IDebugControl4* control, IDebugSymbol
 	return Status();
 }
 
-Status logRegisters(IDebugClient5* client, IDebugControl4* control, MinidumpOutputCallbacks* callback, Row& r) {
+Status logRegisters(IDebugClient5* client, IDebugControl4* control) {
 	IDebugRegisters2* registers;
 	if (client->QueryInterface(__uuidof(IDebugRegisters), (void**)&registers) != S_OK) {
 		return Status(1);
 	}
 
-	// Attempt to load exception register context, then log the registers
-	control->Execute(DEBUG_OUTCTL_THIS_CLIENT, ".ecxr", DEBUG_EXECUTE_NOT_LOGGED);
-	if (control->Execute(DEBUG_OUTCTL_THIS_CLIENT, "r", DEBUG_EXECUTE_NOT_LOGGED) != S_OK) {
-		return Status(1);
-	}
-	return callback->logRegistersToRow(r);
+	control->Execute(DEBUG_OUTCTL_THIS_CLIENT, ".ecxr", DEBUG_EXECUTE_ECHO);
+	auto status = control->Execute(DEBUG_OUTCTL_THIS_CLIENT, "r", DEBUG_EXECUTE_ECHO);
+	return (status == S_OK) ? Status() : Status(1);
 }
 
-Status logPEPath(IDebugControl4* control, MinidumpOutputCallbacks* callback, Row& r) {
-	if (control->Execute(DEBUG_OUTCTL_THIS_CLIENT, "lm f", DEBUG_EXECUTE_NOT_LOGGED) != S_OK) {
-		return Status(1);
-	}
-	return callback->logPEPathToRow(r);
+Status logPEPath(IDebugClient5* client, IDebugControl4* control) {
+	auto status = control->Execute(DEBUG_OUTCTL_THIS_CLIENT, "lm f", DEBUG_EXECUTE_ECHO);
+	return (status == S_OK) ? Status() : Status(1);
+}
+
+Status logModulePath(IDebugClient5* client, IDebugControl4* control, Row r) {
+	std::string cmd = "lm f a " + r["exception_address"];
+	auto status = control->Execute(DEBUG_OUTCTL_THIS_CLIENT, cmd.c_str(), DEBUG_EXECUTE_ECHO);
+	return (status == S_OK) ? Status() : Status(1);
 }
 
 /*
@@ -614,16 +614,16 @@ void processDebugEngine(const char* fileName, Row& r) {
   IDebugClient5* client;
   IDebugControl4* control;
   IDebugSymbols3* symbols;
-  MinidumpOutputCallbacks callback;
+  MinidumpOutputCallbacks callback(&r);
 
   // Create interfaces
-  if (DebugCreate(__uuidof(IDebugClient), (void**)&client) != S_OK) {
+  if (DebugCreate(__uuidof(IDebugClient5), (void**)&client) != S_OK) {
     LOG(ERROR) << "DebugCreate failed while debugging crash dump: " << fileName;
     return debugEngineCleanup(client, nullptr, nullptr);
   }
-  if ((client->QueryInterface(__uuidof(IDebugControl), (void**)&control) !=
+  if ((client->QueryInterface(__uuidof(IDebugControl4), (void**)&control) !=
        S_OK) ||
-      (client->QueryInterface(__uuidof(IDebugSymbols), (void**)&symbols) !=
+      (client->QueryInterface(__uuidof(IDebugSymbols3), (void**)&symbols) !=
        S_OK)) {
     LOG(ERROR) << "QueryInterface failed while debugging crash dump: "
                << fileName;
@@ -656,8 +656,9 @@ void processDebugEngine(const char* fileName, Row& r) {
 
   // Extract information for the row
   logStackTrace(fileName, control, symbols, r);
-  logRegisters(client, control, &callback, r);
-  logPEPath(control, &callback, r);
+  logPEPath(client, control);
+  logModulePath(client, control, r);
+  logRegisters(client, control);
 
   // Cleanup
   return debugEngineCleanup(client, control, symbols);
@@ -773,7 +774,6 @@ void processDumpStreams(const char* fileName, Row& r) {
   logProcessCreateTime(miscStream, r);
   logOSVersion(systemStream, r);
   logPEVersion(moduleStream, dumpBaseAddr, r);
-  logCrashedModule(moduleStream, dumpBaseAddr, exAddr, r);
   logBeingDebugged(peb, r);
   logProcessCmdLine(memoryStream, dumpBaseAddr, params, r);
   logProcessCurDir(memoryStream, dumpBaseAddr, params, r);
