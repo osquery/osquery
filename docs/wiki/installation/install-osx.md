@@ -48,7 +48,7 @@ rm -rf /private/var/log/osquery
 rm -rf /private/var/osquery
 rm /usr/local/bin/osquery*
 
-sudo pkgutil --forget com.facebook.osquery
+pkgutil --forget com.facebook.osquery
 ```
 
 ## Running osquery
