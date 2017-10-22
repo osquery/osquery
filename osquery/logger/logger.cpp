@@ -269,13 +269,13 @@ static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
   auto doc = JSON::newArray();
   for (const auto& i : log) {
     auto line = doc.getObject();
-    doc.add(line, "s", static_cast<int>(i.severity));
-    doc.add(line, "f", i.filename);
-    doc.add(line, "i", i.line);
-    doc.add(line, "m", i.message);
-    doc.add(line, "h", i.identifier);
-    doc.add(line, "c", i.calendar_time);
-    doc.add(line, "u", i.time);
+    doc.add("s", static_cast<int>(i.severity), line);
+    doc.addRef("f", i.filename, line);
+    doc.add("i", i.line, line);
+    doc.addRef("m", i.message, line);
+    doc.addRef("h", i.identifier, line);
+    doc.addRef("c", i.calendar_time, line);
+    doc.add("u", i.time, line);
     doc.push(line);
   }
 

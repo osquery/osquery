@@ -66,32 +66,62 @@ void JSON::push(rj::Document& line) {
                 doc_.GetAllocator());
 }
 
-void JSON::add(rj::Document& line,
-               const std::string& key,
-               const std::string& value) {
-  line.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
-                 rj::Value(value, doc_.GetAllocator()).Move(),
+void JSON::addCopy(const std::string& key,
+                   const std::string& value,
+                   rj::Document& line) {
+  rj::Value sc;
+  sc.SetString(value.c_str(), value.size(), doc_.GetAllocator());
+  line.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                 sc.Move(),
                  doc_.GetAllocator());
 }
 
-void JSON::add(rj::Document& line, const std::string& key, size_t value) {
-  line.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
+void JSON::addCopy(const std::string& key, const std::string& value) {
+  addCopy(key, value, doc());
+}
+
+void JSON::addRef(const std::string& key,
+                  const std::string& value,
+                  rj::Document& line) {
+  line.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                 rj::Value(rj::StringRef(value), doc_.GetAllocator()).Move(),
+                 doc_.GetAllocator());
+}
+
+void JSON::addRef(const std::string& key, const std::string& value) {
+  addRef(key, value, doc());
+}
+
+void JSON::add(const std::string& key, size_t value, rj::Document& line) {
+  line.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
                  rj::Value(static_cast<uint64_t>(value)).Move(),
                  doc_.GetAllocator());
 }
 
-void JSON::add(rj::Document& line, const std::string& key, int value) {
-  line.AddMember(rj::Value(key, doc_.GetAllocator()).Move(),
+void JSON::add(const std::string& key, size_t value) {
+  add(key, value, doc());
+}
+
+void JSON::add(const std::string& key, int value, rj::Document& line) {
+  line.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
                  rj::Value(value).Move(),
                  doc_.GetAllocator());
 }
 
-Status JSON::toString(std::string& str) {
+void JSON::add(const std::string& key, int value) {
+  add(key, value, doc());
+}
+
+Status JSON::toString(std::string& str) const {
   rj::StringBuffer sb;
   rj::Writer<rj::StringBuffer> writer(sb);
   doc_.Accept(writer);
   str = sb.GetString();
   return Status();
+}
+
+rj::Document& JSON::doc() {
+  return doc_;
 }
 
 std::string base64Decode(const std::string& encoded) {

@@ -70,19 +70,83 @@ class JSON : private only_movable {
   /// Add a JSON object or array to a list.
   void push(rapidjson::Document& line);
 
-  /// Add a string value to a JSON object.
-  void add(rapidjson::Document& line,
-           const std::string& key,
-           const std::string& value);
+  /**
+   * @brief Add a string value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to an input document.
+   * The input document must be an object type.
+   */
+  void addCopy(const std::string& key,
+               const std::string& value,
+               rapidjson::Document& line);
 
-  /// Add a size_t value to a JSON object.
-  void add(rapidjson::Document& line, const std::string& key, size_t value);
+  /**
+   * @brief Add a string value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to the JSON document.
+   * The document must be an object type.
+   */
+  void addCopy(const std::string& key, const std::string& value);
 
-  /// Add an int value to a JSON object.
-  void add(rapidjson::Document& line, const std::string& key, int value);
+  /**
+   * @brief Add a string value to a JSON object by referencing the contents.
+   *
+   * The string value must live longer than the document's use.
+   *
+   * This will add the key and value to an input document.
+   * The input document must be an object type.
+   */
+  void addRef(const std::string& key,
+              const std::string& value,
+              rapidjson::Document& line);
+
+  /**
+   * @brief Add a string value to a JSON object by referencing the contents.
+   *
+   * The string value must live longer than the document's use.
+   *
+   * This will add the key and value to the JSON document.
+   * The input document must be an object type.
+   */
+  void addRef(const std::string& key, const std::string& value);
+
+  /**
+   * @brief Add a size_t value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to an input document.
+   * The input document must be an object type.
+   */
+  void add(const std::string& key, size_t value, rapidjson::Document& line);
+
+  /**
+   * @brief Add a size_t value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to the JSON document.
+   * The document must be an object type.
+   */
+  void add(const std::string& key, size_t value);
+
+  /**
+   * @brief Add a int value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to an input document.
+   * The input document must be an object type.
+   */
+  void add(const std::string& key, int value, rapidjson::Document& line);
+
+  /**
+   * @brief Add a int value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to the JSON document.
+   * The document must be an object type.
+   */
+  void add(const std::string& key, int value);
 
   /// Convert this document to a JSON string.
-  Status toString(std::string& str);
+  Status toString(std::string& str) const;
+
+  /// Access the internal document containing the allocator.
+  rapidjson::Document& doc();
 
  private:
   rapidjson::Document doc_;
