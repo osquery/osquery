@@ -199,7 +199,8 @@ class LoggerPlugin : public Plugin {
    * @param log A vector of parsed Glog log lines.
    * @return Status non-op indicating success or failure.
    */
-  virtual Status logStatus(const std::vector<StatusLogLine>& /*log*/) {
+  virtual Status logStatus(const std::vector<StatusLogLine>& log) {
+    (void)log;
     return Status(1, "Not enabled");
   }
 

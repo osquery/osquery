@@ -950,7 +950,6 @@ class EventPublisher : public EventPublisherPlugin {
 
  public:
   EventPublisher() = default;
-  ;
   ~EventPublisher() override = default;
 
   /// Up-cast a base EventContext reference to the templated ECRef.
@@ -1003,7 +1002,9 @@ class EventPublisher : public EventPublisherPlugin {
    *
    * @return should the Subscription%'s EventCallback be called for this event.
    */
-  virtual bool shouldFire(const SCRef& /*sc*/, const ECRef& /*ec*/) const {
+  virtual bool shouldFire(const SCRef& sc, const ECRef& ec) const {
+    (void)sc;
+    (void)ec;
     return true;
   }
 

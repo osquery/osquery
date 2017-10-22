@@ -116,9 +116,9 @@ inline std::string __sqliteField(const Type& source) noexcept {
 /// See the literal type documentation for TEXT_LITERAL.
 #define INTEGER_LITERAL int
 /// See the literal type documentation for TEXT_LITERAL.
-#define BIGINT_LITERAL long long int
+#define BIGINT_LITERAL int64_t
 /// See the literal type documentation for TEXT_LITERAL.
-#define UNSIGNED_BIGINT_LITERAL unsigned long long int
+#define UNSIGNED_BIGINT_LITERAL uint64_t
 /// See the literal type documentation for TEXT_LITERAL.
 #define DOUBLE_LITERAL double
 /// Cast an SQLite affinity type to the literal type.
@@ -721,7 +721,8 @@ class TablePlugin : public Plugin {
    * @param context A query context filled in by SQLite's virtual table API.
    * @return The result rows for this table, given the query context.
    */
-  virtual QueryData generate(QueryContext& /*context*/) {
+  virtual QueryData generate(QueryContext& context) {
+    (void)context;
     return QueryData();
   }
 
@@ -745,7 +746,10 @@ class TablePlugin : public Plugin {
    * @param yield a callable that takes a single Row as input.
    * @param context a query context filled in by SQLite's virtual table API.
    */
-  virtual void generator(RowYield& /*yield*/, QueryContext& /*context*/) {}
+  virtual void generator(RowYield& yield, QueryContext& context) {
+    (void)yield;
+    (void)context;
+  }
 
   /// Override and return true to use the generator and yield method.
   virtual bool usesGenerator() const {

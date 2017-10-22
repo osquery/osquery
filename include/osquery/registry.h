@@ -125,8 +125,10 @@ class Plugin : private boost::noncopyable {
    * @param name The broadcasted name of the plugin.
    * @param info The routing info for the owning extension.
    */
-  static Status addExternal(const std::string& /*name*/,
-                            const PluginResponse& /*info*/) {
+  static Status addExternal(const std::string& name,
+                            const PluginResponse& info) {
+    (void)name;
+    (void)info;
     return Status(0, "Not used");
   }
 
