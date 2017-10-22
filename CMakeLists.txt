@@ -366,11 +366,13 @@ if(DEFINED ENV{TIDY} AND CLANG_TIDY)
     "-modernize-use-bool-literals"
     "-modernize-use-emplace"
     "-google-runtime-references"
+    "-llvm-header-guard"
   )
   JOIN("${TIDY_CHECKS}" "," TIDY_CHECKS)
   set(DO_CLANG_TIDY "${CLANG_TIDY}"
     "-checks=${TIDY_CHECKS}"
     "-p=${CMAKE_BINARY_DIR}"
+    "-header-filter=.*osquery/(include|osquery).*"
     "-fix"
   )
 endif()
