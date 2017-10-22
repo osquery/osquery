@@ -47,6 +47,8 @@ rm /Library/LaunchDaemons/com.facebook.osqueryd.plist
 rm -rf /private/var/log/osquery
 rm -rf /private/var/osquery
 rm /usr/local/bin/osquery*
+
+sudo pkgutil --forget com.facebook.osquery
 ```
 
 ## Running osquery
