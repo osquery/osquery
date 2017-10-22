@@ -86,7 +86,7 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
   CFArrayRef application_list = nullptr;
   OSQUERY_USE_DEPRECATED(
       os_status = SecACLCopySimpleContents(
-          acl, &application_list, &description, &prompt_selector););
+          acl, &application_list, &description, &prompt_selector));
   if (os_status != noErr) {
     return Status(os_status, "Could not copy ACL content");
   }
