@@ -100,4 +100,54 @@ TEST_F(ConversionsTests, test_buffer_sha1) {
   EXPECT_EQ("4e1243bd22c66e76c2ba9eddc1f91394e57f9f83",
             getBufferSHA1(test.c_str(), test.size()));
 }
+
+TEST_F(ConversionsTests, test_json_array) {
+  auto doc = JSON::newArray();
+
+  {
+    auto line = doc.getObject();
+    size_t value = 10_sz;
+    doc.add("key", value, line);
+    doc.push(line);
+  }
+
+  std::string result;
+  EXPECT_TRUE(doc.toString(result));
+
+  std::string expected = "[{\"key\":10}]";
+  EXPECT_EQ(expected, result);
+}
+
+TEST_F(ConversionsTests, test_json_object) {
+  auto doc = JSON::newObject();
+
+  {
+    size_t value = 10_sz;
+    doc.add("key", value);
+  }
+
+  std::string result;
+  EXPECT_TRUE(doc.toString(result));
+
+  std::string expected = "{\"key\":10}";
+  EXPECT_EQ(expected, result);
+}
+
+TEST_F(ConversionsTests, test_json_strings) {
+  auto doc = JSON::newObject();
+
+  {
+    std::string value("value");
+    doc.addCopy("key", value);
+  }
+
+  std::string value2("value2");
+  doc.addRef("key2", value2);
+
+  std::string result;
+  EXPECT_TRUE(doc.toString(result));
+
+  std::string expected = "{\"key\":\"value\",\"key2\":\"value2\"}";
+  EXPECT_EQ(expected, result);
+}
 }

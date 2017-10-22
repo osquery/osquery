@@ -31,6 +31,7 @@
 #include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -265,27 +266,20 @@ class LoggerDisabler : private boost::noncopyable {
 
 static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
                                      PluginRequest& request) {
-  try {
-    pt::ptree tree;
-    for (const auto& log_item : log) {
-      pt::ptree child;
-      child.put("s", log_item.severity);
-      child.put("f", log_item.filename);
-      child.put("i", log_item.line);
-      child.put("m", log_item.message);
-      child.put("h", log_item.identifier);
-      child.put("c", log_item.calendar_time);
-      child.put("u", log_item.time);
-      tree.push_back(std::make_pair("", std::move(child)));
-    }
-
-    // Save the log as a request JSON string.
-    std::ostringstream output;
-    pt::write_json(output, tree, false);
-    request["log"] = output.str();
-  } catch (const pt::ptree_error& e) {
-    VLOG(1) << "Error serializing log entries: " << e.what();
+  auto doc = JSON::newArray();
+  for (const auto& i : log) {
+    auto line = doc.getObject();
+    doc.add("s", static_cast<int>(i.severity), line);
+    doc.addRef("f", i.filename, line);
+    doc.add("i", i.line, line);
+    doc.addRef("m", i.message, line);
+    doc.addRef("h", i.identifier, line);
+    doc.addRef("c", i.calendar_time, line);
+    doc.add("u", i.time, line);
+    doc.push(line);
   }
+
+  doc.toString(request["log"]);
 }
 
 static void deserializeIntermediateLog(const PluginRequest& request,
@@ -294,25 +288,20 @@ static void deserializeIntermediateLog(const PluginRequest& request,
     return;
   }
 
-  // Read the plugin request string into a JSON tree and enumerate.
-  pt::ptree tree;
-  try {
-    std::stringstream input;
-    input << request.at("log");
-    pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
+  rj::Document doc;
+  if (doc.Parse(request.at("log").c_str()).HasParseError()) {
     return;
   }
 
-  for (const auto& item : tree.get_child("")) {
+  for (auto& line : doc.GetArray()) {
     log.push_back({
-        (StatusLogSeverity)item.second.get<int>("s", O_INFO),
-        item.second.get<std::string>("f", "<unknown>"),
-        item.second.get<size_t>("i", 0),
-        item.second.get<std::string>("m", ""),
-        item.second.get<std::string>("c", ""),
-        item.second.get<size_t>("u", 0),
-        item.second.get<std::string>("h", ""),
+        static_cast<StatusLogSeverity>(line["s"].GetInt()),
+        line["f"].GetString(),
+        line["i"].GetUint64(),
+        line["m"].GetString(),
+        line["c"].GetString(),
+        line["u"].GetUint64(),
+        line["h"].GetString(),
     });
   }
 }
@@ -672,9 +661,6 @@ void relayStatusLogs(bool async) {
       }
 
       serializeIntermediateLog(status_logs, request);
-      if (!request["log"].empty()) {
-        request["log"].pop_back();
-      }
 
       // Flush the buffered status logs.
       status_logs.clear();
