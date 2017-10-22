@@ -33,12 +33,10 @@ template <class PUB>
 class EventSubscriber;
 class EventFactory;
 
-using EventPublisherID = const std::string;
-using EventSubscriberID = const std::string;
 using EventID = const std::string;
 using EventContextID = uint64_t;
 using EventTime = uint64_t;
-using EventRecord = std::pair<EventID, EventTime>;
+using EventRecord = std::pair<std::string, EventTime>;
 
 /**
  * @brief An EventPublisher will define a SubscriptionContext for
@@ -134,7 +132,7 @@ struct SubscriberExpirationDetails {
  */
 #define DECLARE_PUBLISHER(TYPE)                                                \
  public:                                                                       \
-  EventPublisherID type() const override final {                               \
+  const std::string type() const override final {                               \
     return TYPE;                                                               \
   }
 
@@ -172,13 +170,13 @@ struct Subscription : private boost::noncopyable {
   /// An EventSubscription member EventCallback method.
   EventCallback callback;
 
-  explicit Subscription(EventSubscriberID& name) : subscriber_name(name){};
+  explicit Subscription(const std::string& name) : subscriber_name(name){};
 
-  static SubscriptionRef create(EventSubscriberID& name) {
+  static SubscriptionRef create(const std::string& name) {
     return std::make_shared<Subscription>(name);
   }
 
-  static SubscriptionRef create(EventSubscriberID& name,
+  static SubscriptionRef create(const std::string& name,
                                 const SubscriptionContextRef& mc,
                                 EventCallback ec = nullptr) {
     auto subscription = std::make_shared<Subscription>(name);
@@ -297,7 +295,7 @@ class EventPublisherPlugin : public Plugin,
   virtual ~EventPublisherPlugin() {}
 
   /// Return a string identifier associated with this EventPublisher.
-  virtual EventPublisherID type() const {
+  virtual const std::string type() const {
     return getName();
   }
 
@@ -476,7 +474,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    *
    * @return A unique ID for backing storage.
    */
-  EventID getEventID();
+  const std::string getEventID();
 
   /**
    * @brief Plan the best set of indexes for event record access.
@@ -532,7 +530,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    *
    * @return Were the indexes recorded.
    */
-  Status recordEvent(EventID& eid, EventTime time);
+  Status recordEvent(const std::string& eid, EventTime time);
 
   /**
    * @brief Get the expiration timeout for this event type
@@ -609,7 +607,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * registry plugin names.
    */
   /// See getType for lookup rational.
-  virtual EventPublisherID dbNamespace() const {
+  virtual const std::string dbNamespace() const {
     return getType() + '.' + getName();
   }
 
@@ -619,7 +617,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   }
 
   /// Trampoline into the EventFactory and lookup the name of the publisher.
-  virtual EventPublisherID& getType() const = 0;
+  virtual const std::string& getType() const = 0;
 
   /// Get a handle to the EventPublisher.
   EventPublisherRef getPublisher() const;
@@ -772,17 +770,17 @@ class EventFactory : private boost::noncopyable {
    *
    * @return Was the SubscriptionContext appropriate for the EventPublisher.
    */
-  static Status addSubscription(EventPublisherID& type_id,
-                                EventSubscriberID& name_id,
+  static Status addSubscription(const std::string& type_id,
+                                const std::string& name_id,
                                 const SubscriptionContextRef& sc,
                                 EventCallback cb = nullptr);
 
   /// Add a Subscription using a caller Subscription instance.
-  static Status addSubscription(EventPublisherID& type_id,
+  static Status addSubscription(const std::string& type_id,
                                 const SubscriptionRef& subscription);
 
   /// Get the total number of Subscription%s across ALL EventPublisher%s.
-  static size_t numSubscriptions(EventPublisherID& type_id);
+  static size_t numSubscriptions(const std::string& type_id);
 
   /// Get the number of EventPublishers.
   static size_t numEventPublishers() {
@@ -806,19 +804,19 @@ class EventFactory : private boost::noncopyable {
   static Status deregisterEventPublisher(const EventPublisherRef& pub);
 
   /// Deregister an EventPublisher by publisher name.
-  static Status deregisterEventPublisher(EventPublisherID& type_id);
+  static Status deregisterEventPublisher(const std::string& type_id);
 
   /// Deregister an EventSubscriber by the subscriber name.
-  static Status deregisterEventSubscriber(EventSubscriberID& sub);
+  static Status deregisterEventSubscriber(const std::string& sub);
 
   /// Return an instance to a registered EventPublisher.
-  static EventPublisherRef getEventPublisher(EventPublisherID& pub);
+  static EventPublisherRef getEventPublisher(const std::string& pub);
 
   /// Return an instance to a registered EventSubscriber.
-  static EventSubscriberRef getEventSubscriber(EventSubscriberID& sub);
+  static EventSubscriberRef getEventSubscriber(const std::string& sub);
 
   /// Check if an event subscriber exists.
-  static bool exists(EventSubscriberID& sub);
+  static bool exists(const std::string& sub);
 
   /// Return a list of publisher types, these are their registry names.
   static std::vector<std::string> publisherTypes();
@@ -844,7 +842,7 @@ class EventFactory : private boost::noncopyable {
 
  public:
   /// The dispatched event thread's entry-point (if needed).
-  static Status run(EventPublisherID& type_id);
+  static Status run(const std::string& type_id);
 
   /// An initializer's entry-point for spawning all event type run loops.
   static void delay();
@@ -864,7 +862,7 @@ class EventFactory : private boost::noncopyable {
    * callbacks to fire into subscribers.
    */
   template <class PUB>
-  static EventPublisherID getType() {
+  static const std::string getType() {
     auto pub = std::make_shared<PUB>();
     return pub->type();
   }
@@ -892,10 +890,10 @@ class EventFactory : private boost::noncopyable {
 
  private:
   /// Set of registered EventPublisher instances.
-  std::map<EventPublisherID, EventPublisherRef> event_pubs_;
+  std::map<std::string, EventPublisherRef> event_pubs_;
 
   /// Set of instantiated EventSubscriber subscriptions.
-  std::map<EventSubscriberID, EventSubscriberRef> event_subs_;
+  std::map<std::string, EventSubscriberRef> event_subs_;
 
   /// Set of running EventPublisher run loop threads.
   std::vector<std::shared_ptr<std::thread>> threads_;
@@ -1038,8 +1036,8 @@ class EventSubscriber : public EventSubscriberPlugin {
    * plugin name assigned to publishers. The corresponding publisher name is
    * interpreted as the subscriber's event 'type'.
    */
-  virtual EventPublisherID& getType() const override {
-    static EventPublisherID type = EventFactory::getType<PUB>();
+  virtual const std::string& getType() const override {
+    static const std::string type = EventFactory::getType<PUB>();
     return type;
   };
 
