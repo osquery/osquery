@@ -183,14 +183,16 @@ DECLARE_string(flagfile);
 namespace osquery {
 
 DECLARE_string(config_plugin);
+DECLARE_string(logger_plugin);
+DECLARE_string(distributed_plugin);
 DECLARE_bool(config_check);
 DECLARE_bool(config_dump);
 DECLARE_bool(database_dump);
 DECLARE_string(database_path);
-DECLARE_string(distributed_plugin);
 DECLARE_bool(disable_distributed);
 DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
+DECLARE_bool(disable_logging);
 
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");

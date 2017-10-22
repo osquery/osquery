@@ -31,9 +31,14 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
+/// Will be set with initTesting in test harness main.
 std::string kFakeDirectory;
+
+/// Will be set with initTesting in test harness main.
 std::string kTestWorkingDirectory;
-std::string kTestDataPath = "../../../tools/tests/";
+
+/// The relative path within the source repo to find test content.
+std::string kTestDataPath{"../../../tools/tests/"};
 
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);

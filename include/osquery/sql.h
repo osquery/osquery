@@ -52,10 +52,10 @@ class SQL : private only_movable {
   explicit SQL(const std::string& query, bool use_cache = false);
 
   /// Allow moving.
-  SQL(SQL&&) = default;
+  SQL(SQL&&) noexcept = default;
 
   /// Allow move assignment.
-  SQL& operator=(SQL&&) = default;
+  SQL& operator=(SQL&&) = delete;
 
  public:
   /**
@@ -160,7 +160,7 @@ class SQLPlugin : public Plugin {
   /// Run a SQL query string against the SQL implementation.
   virtual Status query(const std::string& query,
                        QueryData& results,
-                       bool use_cache = false) const = 0;
+                       bool use_cache) const = 0;
 
   /// Use the SQL implementation to parse a query string and return details
   /// (name, type) about the columns.

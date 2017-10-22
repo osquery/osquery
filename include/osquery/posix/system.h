@@ -67,7 +67,7 @@ class DropPrivileges : private boost::noncopyable {
   virtual ~DropPrivileges();
 
  private:
-  DropPrivileges() {}
+  DropPrivileges() = default;
 
   /// Restore groups if dropping consecutively.
   void restoreGroups();

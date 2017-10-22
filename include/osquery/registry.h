@@ -571,7 +571,7 @@ class RegistryFactory : private boost::noncopyable {
   }
 
  protected:
-  RegistryFactory() {}
+  RegistryFactory() = default;
   virtual ~RegistryFactory() = default;
 
  private:

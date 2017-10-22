@@ -117,7 +117,7 @@ class DatabasePlugin : public Plugin {
   virtual Status scan(const std::string& domain,
                       std::vector<std::string>& results,
                       const std::string& prefix,
-                      size_t max = 0) const;
+                      size_t max) const;
 
   /**
    * @brief Shutdown the database and release initialization resources.

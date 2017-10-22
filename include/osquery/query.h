@@ -278,7 +278,7 @@ struct ScheduledQuery {
   /// Set of query options.
   std::map<std::string, bool> options;
 
-  ScheduledQuery() {}
+  ScheduledQuery() = default;
 
   /// equals operator
   bool operator==(const ScheduledQuery& comp) const {

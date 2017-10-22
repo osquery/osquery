@@ -220,9 +220,9 @@ class only_movable {
   ~only_movable() = default;
 
   /// Important, existence of a move constructor.
-  only_movable(only_movable&& /*unused*/) {}
+  only_movable(only_movable&& /*unused*/) noexcept {}
 
- private:
+ public:
   /// Important, a private copy constructor prevents copying.
   only_movable(const only_movable&) = delete;
 

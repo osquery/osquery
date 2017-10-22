@@ -30,7 +30,7 @@ struct RunnerInterruptError {};
 
 class RunnerInterruptPoint : private boost::noncopyable {
  public:
-  RunnerInterruptPoint() {}
+  RunnerInterruptPoint() = default;
 
   /// Cancel the pause request.
   void cancel();

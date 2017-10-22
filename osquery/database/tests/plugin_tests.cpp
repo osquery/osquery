@@ -170,7 +170,7 @@ void DatabasePluginTests::testScan() {
   std::vector<std::string> keys;
   std::vector<std::string> expected = {
       "test_scan_foo1", "test_scan_foo2", "test_scan_foo3"};
-  auto s = getPlugin()->scan(kQueries, keys, "");
+  auto s = getPlugin()->scan(kQueries, keys, "", 0);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.getMessage(), "OK");
   EXPECT_EQ(keys.size(), 3U);

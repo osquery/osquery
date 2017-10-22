@@ -36,7 +36,7 @@ template <>
 bool lexical_cast<bool, std::string>(const std::string& arg);
 
 template <>
-std::string lexical_cast<std::string, bool>(const bool& b);
+std::string lexical_cast<std::string, bool>(const bool& arg);
 } // namespace boost
 
 namespace osquery {

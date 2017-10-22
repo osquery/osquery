@@ -351,7 +351,7 @@ struct ConstraintList : private boost::noncopyable {
    * @param ops (Optional: default ANY_OP) The operators types to look for.
    * @return true if any constraint exists.
    */
-  bool exists(const ConstraintOperatorFlag ops = ANY_OP) const;
+  bool exists(ConstraintOperatorFlag ops = ANY_OP) const;
 
   /**
    * @brief Check if a constraint exists AND matches the type expression.
@@ -538,7 +538,7 @@ struct QueryContext : private only_movable {
   QueryContext(QueryContext&&) = default;
 
   /// Allow move assignment.
-  QueryContext& operator=(QueryContext&&) = default;
+  QueryContext& operator=(QueryContext&&) = delete;
 
   /**
    * @brief Check if a constraint exists for a given column operator pair.

@@ -29,9 +29,6 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_logging);
-DECLARE_string(logger_plugin);
-
 /**
  * @brief An internal severity set mapping to Glog's LogSeverity levels.
  */

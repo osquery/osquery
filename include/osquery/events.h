@@ -355,7 +355,7 @@ class EventPublisherPlugin : public Plugin,
    * @param ec The EventContext created and fired by the EventPublisher.
    * @param time The most accurate time associated with the event.
    */
-  virtual void fire(const EventContextRef& ec, EventTime time = 0) final;
+  void fire(const EventContextRef& ec, EventTime time = 0);
 
   /// The internal fire method used by the typed EventPublisher.
   virtual void fireCallback(const SubscriptionRef& sub,
@@ -596,7 +596,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   /// Compare the number of queries run against the queries configured.
   bool executedAllQueries() const;
 
- private:
+ public:
   explicit EventSubscriberPlugin(EventSubscriberPlugin const&) = delete;
   EventSubscriberPlugin& operator=(EventSubscriberPlugin const&) = delete;
 
