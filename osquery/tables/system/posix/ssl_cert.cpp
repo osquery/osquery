@@ -8,189 +8,179 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
 #include <string>
-
-#include <osquery/tables.h>
 
 #include <openssl/asn1.h>
 #include <openssl/bio.h>
 #include <openssl/bn.h>
-#include <openssl/err.h>
-#include <openssl/pem.h>
+#include <openssl/ssl.h>
 #include <openssl/x509.h>
 
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-
-#define SHORT_STR 256
+#include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
-namespace fs = boost::filesystem;
-
 static void fillRow(Row& r, X509* cert) {
+#define SHORT_STR 256
   char temp[SHORT_STR + 1];
 
   // set certificate subject information
-  X509_NAME* subject_name = X509_get_subject_name(cert);
-  X509_NAME_get_text_by_NID(subject_name, NID_commonName, temp, SHORT_STR);
-  r["issued_common_name"] = std::string(temp);
+  auto subject_name = X509_get_subject_name(cert);
+  auto ret =
+      X509_NAME_get_text_by_NID(subject_name, NID_commonName, temp, SHORT_STR);
+  r["issued_common_name"] = ret == -1 ? "-1" : std::string(temp);
 
-  X509_NAME_get_text_by_NID(
+  ret = X509_NAME_get_text_by_NID(
       subject_name, NID_organizationName, temp, SHORT_STR);
-  r["issued_organization"] = std::string(temp);
+  r["issued_organization"] = ret == -1 ? "-1" : std::string(temp);
 
-  X509_NAME_get_text_by_NID(
+  ret = X509_NAME_get_text_by_NID(
       subject_name, NID_organizationalUnitName, temp, SHORT_STR);
-  r["issued_organization_unit"] = std::string(temp);
+  r["issued_organization_unit"] = ret == -1 ? "-1" : std::string(temp);
 
-  ASN1_INTEGER* serial = X509_get_serialNumber(cert);
-  BIGNUM* bn = ASN1_INTEGER_to_BN(serial, NULL);
-  char* dec_str = BN_bn2dec(bn);
-  r["issued_serial_number"] = std::string(dec_str);
+  auto serial = X509_get_serialNumber(cert);
+  auto bn = ASN1_INTEGER_to_BN(serial, NULL);
+  auto dec_str = BN_bn2hex(bn);
+  r["issued_serial_number"] = dec_str == NULL ? "-1" : std::string(dec_str);
   BN_free(bn);
   OPENSSL_free(dec_str);
 
   // set certificate issuer information
-  X509_NAME* issuer_name = X509_get_issuer_name(cert);
-  X509_NAME_get_text_by_NID(issuer_name, NID_commonName, temp, SHORT_STR);
-  r["issuer_cn"] = std::string(temp);
+  auto issuer_name = X509_get_issuer_name(cert);
+  ret = X509_NAME_get_text_by_NID(issuer_name, NID_commonName, temp, SHORT_STR);
+  r["issuer_cn"] = ret == -1 ? "-1" : std::string(temp);
 
-  X509_NAME_get_text_by_NID(issuer_name, NID_organizationName, temp, SHORT_STR);
-  r["issuer_organization"] = std::string(temp);
+  ret = X509_NAME_get_text_by_NID(
+      issuer_name, NID_organizationName, temp, SHORT_STR);
+  r["issuer_organization"] = ret == -1 ? "-1" : std::string(temp);
 
-  X509_NAME_get_text_by_NID(
+  ret = X509_NAME_get_text_by_NID(
       issuer_name, NID_organizationalUnitName, temp, SHORT_STR);
-  r["issuer_organization_unit"] = std::string(temp);
+  r["issuer_organization_unit"] = ret == -1 ? "-1" : std::string(temp);
 
   // set period of validity
-  ASN1_TIME* valid_from = X509_get_notBefore(cert);
-  ASN1_TIME* valid_to = X509_get_notAfter(cert);
-  BIO* b = BIO_new(BIO_s_mem());
+  auto valid_from = X509_get_notBefore(cert);
+  auto valid_to = X509_get_notAfter(cert);
+  auto b = BIO_new(BIO_s_mem());
 
   ASN1_TIME_print(b, valid_from);
-  BIO_gets(b, temp, SHORT_STR);
-  r["valid_from"] = std::string(temp);
+  ret = BIO_gets(b, temp, SHORT_STR);
+  r["valid_from"] = ret == 0 ? "-1" : std::string(temp);
 
   ASN1_TIME_print(b, valid_to);
-  BIO_gets(b, temp, SHORT_STR);
-  r["valid_to"] = std::string(temp);
+  ret = BIO_gets(b, temp, SHORT_STR);
+  r["valid_to"] = ret == 0 ? "-1" : std::string(temp);
   BIO_free(b);
 
   // set sha 256 & 1 fingerprint
-  EVP_MD* digest = (EVP_MD*)EVP_sha256();
+  unsigned char temp_c[SHORT_STR + 1];
+  auto digest = const_cast<EVP_MD*>(EVP_sha256());
   unsigned len = SHORT_STR;
-  X509_digest(cert, digest, (unsigned char*)temp, &len);
-  char sha_text[SHORT_STR + 1];
-  memset(sha_text, 0, sizeof(sha_text));
+  ret = X509_digest(cert, digest, temp_c, &len);
 
+  std::stringstream ss;
   for (unsigned i = 0; i < len; i++) {
-    char byt[5];
-    sprintf(byt, "%02X%c", temp[i], (i + 1 == len) ? '\0' : ':');
-    strcat(sha_text, byt);
+    if (ret == 0)
+      break;
+    ss << std::uppercase << std::hex << std::setfill('0') << std::setw(2)
+       << static_cast<unsigned>(temp_c[i]) << ':';
   }
 
-  r["sha256_fingerprint"] = std::string(sha_text);
-  digest = (EVP_MD*)EVP_sha1();
-  X509_digest(cert, digest, (unsigned char*)temp, &len);
-  memset(sha_text, 0, sizeof(sha_text));
+  std::string hex_str = ss.str();
+  r["sha256_fingerprint"] =
+      ret == 0 ? "-1" : hex_str.substr(0, hex_str.size() - 1);
 
+  memset(temp_c, 0, sizeof(temp_c));
+  digest = const_cast<EVP_MD*>(EVP_sha1());
+  ret = X509_digest(cert, digest, temp_c, &len);
+
+  ss.str("");
   for (unsigned i = 0; i < len; i++) {
-    char byt[5];
-    sprintf(byt, "%02X%c", temp[i], (i + 1 == len) ? '\0' : ':');
-    strcat(sha_text, byt);
+    if (ret == 0)
+      break;
+    ss << std::uppercase << std::hex << std::setfill('0') << std::setw(2)
+       << static_cast<unsigned>(temp_c[i]) << ':';
   }
 
-  r["sha1_fingerprint"] = std::string(sha_text);
+  hex_str = ss.str();
+  r["sha1_fingerprint"] =
+      ret == 0 ? "-1" : hex_str.substr(0, hex_str.size() - 1);
 
   return;
 }
 
-static void getSslCert(const char* issued_cname, QueryData& results) {
-  char* def_cert_dir;
+static void getSslCert(const std::string domain, QueryData& results) {
+#define PORT ":443"
+  SSL* ssl = NULL;
 
-  // common certificate directory for POSIX
-  const std::string cert_dir_list[6] = {"/etc/pki/tls/certs",
-                                        "/etc/ssl/certs",
-                                        "/etc/ssl",
-                                        "/etc/pki/ca-trust/extracted/pem",
-                                        "/usr/local/share/certs",
-                                        "/etc/openssl/certs"};
+  (void)SSL_library_init();
 
-  def_cert_dir = getenv(X509_get_default_cert_dir_env());
+  const auto method = SSLv23_method();
+  if (!method)
+    return;
 
-  if (!def_cert_dir) {
-    def_cert_dir = (char*)X509_get_default_cert_dir();
+  auto ctx = SSL_CTX_new(method);
+  if (!ctx)
+    return;
+
+  auto server = BIO_new_ssl_connect(ctx);
+  if (!server) {
+    VLOG(1) << "Failed to create SSL bio";
+    return;
   }
 
-  fs::path full_path(fs::initial_path<fs::path>());
-
-  full_path = fs::system_complete(fs::path(def_cert_dir));
-
-  // check if default certificate directory is empty
-  if (fs::is_empty(full_path)) {
-    // use the common certificate directory
-    for (unsigned i = 0;
-         i < (unsigned)(sizeof(cert_dir_list) / sizeof(cert_dir_list[0]));
-         i++) {
-      fs::path temp_path = fs::system_complete(fs::path(cert_dir_list[i]));
-
-      if (fs::exists(temp_path) && !fs::is_empty(temp_path)) {
-        def_cert_dir = (char*)cert_dir_list[i].c_str();
-        full_path = temp_path;
-        break;
-      }
-    }
+  if (BIO_set_conn_hostname(server, (domain + PORT).c_str()) != 1) {
+    VLOG(1) << "Failed to set SSL domain and port " << domain << PORT;
+    return;
   }
 
-  if (fs::is_directory(full_path)) {
-    fs::directory_iterator end_iter;
+  BIO_get_ssl(server, &ssl);
+  if (!ssl)
+    return;
 
-    FILE* fp;
-    // parse each certificate in the default directory
-    for (fs::directory_iterator dir_itr(full_path); dir_itr != end_iter;
-         ++dir_itr) {
-      if (fs::is_regular_file(dir_itr->status())) {
-        std::stringstream ss;
-        ss << def_cert_dir << '/' << dir_itr->path().filename().string();
-        char issued_cn[SHORT_STR + 1];
-        fp = fopen((ss.str()).c_str(), "r");
-        if (fp == NULL)
-          continue;
-        X509* cert = PEM_read_X509(fp, NULL, NULL, NULL);
-        if (cert == NULL)
-          continue;
-        X509_NAME* subject_name = X509_get_subject_name(cert);
-        X509_NAME_get_text_by_NID(
-            subject_name, NID_commonName, issued_cn, SHORT_STR);
+  if (SSL_set_tlsext_host_name(ssl, domain.c_str()) != 1)
+    return;
 
-        if (strcmp(issued_cn, issued_cname) == 0) {
-          Row r;
-          fillRow(r, cert);
-          results.push_back(r);
-          X509_free(cert);
-          fclose(fp);
-          return;
-        }
-
-        X509_free(cert);
-        fclose(fp);
-      }
-    }
+  if (BIO_do_connect(server) != 1) {
+    VLOG(1) << "Failed to establish SSL connection with " << domain;
+    return;
   }
+
+  if (BIO_do_handshake(server) != 1) {
+    VLOG(1) << "Failed to complete SSL/TLS handshake with " << domain;
+    return;
+  }
+
+  auto cert = SSL_get_peer_certificate(ssl);
+  if (!cert) {
+    VLOG(1) << "No certificate from " << domain;
+    return;
+  }
+  Row r;
+  r["domain"] = domain;
+  fillRow(r, cert);
+  results.push_back(r);
+
+  if (cert)
+    X509_free(cert);
+
+  if (server)
+    BIO_free_all(server);
+
+  if (ctx)
+    SSL_CTX_free(ctx);
 
   return;
 }
 
 QueryData genSslCert(QueryContext& context) {
   QueryData results;
-  auto issued_cname = context.constraints["issued_common_name"].getAll(EQUALS);
+  auto domains = context.constraints["domain"].getAll(EQUALS);
 
-  for (const auto& cn : issued_cname) {
-    getSslCert(cn.c_str(), results);
+  for (const auto& domain : domains) {
+    getSslCert(domain, results);
   }
 
   return results;
