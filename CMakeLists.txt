@@ -375,6 +375,7 @@ if(DEFINED ENV{TIDY} AND CLANG_TIDY)
     "-header-filter=.*osquery/(include|osquery).*"
     "-fix"
   )
+  message("Using clang-tidy checks: ${TIDY_CHECKS}")
 endif()
 
 if(WINDOWS)

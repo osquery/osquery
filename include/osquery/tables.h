@@ -15,6 +15,7 @@
 #include <memory>
 #include <set>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #ifdef WIN32
@@ -49,9 +50,8 @@
 /// Allow Tables to use "tracked" deprecated OS APIs.
 #define OSQUERY_USE_DEPRECATED(expr)                                           \
   do {                                                                         \
-    _Pragma("clang diagnostic push")                                           \
-        _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")      \
-            expr;                                                              \
+    _Pragma("clang diagnostic push") _Pragma(                                  \
+        "clang diagnostic ignored \"-Wdeprecated-declarations\"")(expr);       \
     _Pragma("clang diagnostic pop")                                            \
   } while (0)
 
@@ -157,7 +157,7 @@ enum ConstraintOperator : unsigned char {
 };
 
 /// Type for flags for what constraint operators are admissible.
-typedef unsigned char ConstraintOperatorFlag;
+using ConstraintOperatorFlag = unsigned char;
 
 /// Flag for any operator type.
 #define ANY_OP 0xFFU
@@ -177,8 +177,8 @@ struct Constraint {
   }
 
   // A constraint list in a context knows only the operator at creation.
-  explicit Constraint(unsigned char _op, const std::string& _expr)
-      : op(_op), expr(_expr) {}
+  explicit Constraint(unsigned char _op, std::string _expr)
+      : op(_op), expr(std::move(_expr)) {}
 };
 
 /*
@@ -308,10 +308,8 @@ struct QueryContext;
  */
 struct ConstraintList : private boost::noncopyable {
  public:
-  ConstraintList() : affinity(TEXT_TYPE) {}
-
   /// The SQLite affinity type.
-  ColumnType affinity;
+  ColumnType affinity{TEXT_TYPE};
 
   /**
    * @brief Check if an expression matches the query constraints.
@@ -522,7 +520,7 @@ using RowYield = RowGenerator::push_type;
  */
 struct QueryContext : private only_movable {
   /// Construct a context without cache support.
-  QueryContext() : enable_cache_(false), table_(new VirtualTableContent()) {}
+  QueryContext() : table_(new VirtualTableContent()) {}
 
   /// If the context was created without content, it is ephemeral.
   ~QueryContext() {
@@ -597,7 +595,7 @@ struct QueryContext : private only_movable {
   void iteritems(const std::string& column,
                  ConstraintOperator op,
                  std::function<void(const std::string& expr)> predicate) const {
-    return iteritems<std::string>(column, op, predicate);
+    return iteritems<std::string>(column, op, std::move(predicate));
   }
 
   /**
@@ -723,7 +721,7 @@ class TablePlugin : public Plugin {
    * @param context A query context filled in by SQLite's virtual table API.
    * @return The result rows for this table, given the query context.
    */
-  virtual QueryData generate(QueryContext& context) {
+  virtual QueryData generate(QueryContext& /*context*/) {
     return QueryData();
   }
 
@@ -747,7 +745,7 @@ class TablePlugin : public Plugin {
    * @param yield a callable that takes a single Row as input.
    * @param context a query context filled in by SQLite's virtual table API.
    */
-  virtual void generator(RowYield& yield, QueryContext& context) {}
+  virtual void generator(RowYield& /*yield*/, QueryContext& /*context*/) {}
 
   /// Override and return true to use the generator and yield method.
   virtual bool usesGenerator() const {
@@ -893,4 +891,4 @@ inline const std::string& columnTypeName(ColumnType type) {
 
 /// Get the column type from the string representation.
 ColumnType columnTypeName(const std::string& type);
-}
+} // namespace osquery

@@ -287,4 +287,4 @@ int platformGetPid();
 * and on posix platforms returns gettid()
 */
 int platformGetTid();
-}
+} // namespace osquery

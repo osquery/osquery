@@ -23,8 +23,8 @@
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
-typedef ::std::size_t SizeType;
-}
+using SizeType = ::std::size_t;
+} // namespace rapidjson
 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
@@ -152,4 +152,4 @@ class JSON : private only_movable {
   rapidjson::Document doc_;
   decltype(rapidjson::kObjectType) type_;
 };
-}
+} // namespace osquery

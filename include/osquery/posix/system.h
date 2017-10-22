@@ -67,20 +67,20 @@ class DropPrivileges : private boost::noncopyable {
   virtual ~DropPrivileges();
 
  private:
-  DropPrivileges() : dropped_(false), to_user_(0), to_group_(0) {}
+  DropPrivileges() {}
 
   /// Restore groups if dropping consecutively.
   void restoreGroups();
 
  private:
   /// Boolean to track if this instance needs to restore privileges.
-  bool dropped_;
+  bool dropped_{false};
 
   /// The user this instance dropped privileges to.
-  uid_t to_user_;
+  uid_t to_user_{0};
 
   /// The group this instance dropped privileges to.
-  gid_t to_group_;
+  gid_t to_group_{0};
 
   /**
    * @brief If dropping explicitly to a user and group also drop groups.

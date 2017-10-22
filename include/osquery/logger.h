@@ -202,7 +202,7 @@ class LoggerPlugin : public Plugin {
    * @param log A vector of parsed Glog log lines.
    * @return Status non-op indicating success or failure.
    */
-  virtual Status logStatus(const std::vector<StatusLogLine>& log) {
+  virtual Status logStatus(const std::vector<StatusLogLine>& /*log*/) {
     return Status(1, "Not enabled");
   }
 
@@ -226,7 +226,7 @@ class LoggerPlugin : public Plugin {
    * It is possible to skip the database representation of event subscribers
    * and instead forward each added event to the active logger plugin.
    */
-  virtual Status logEvent(const std::string& s) {
+  virtual Status logEvent(const std::string& /*s*/) {
     return Status(1, "Not enabled");
   }
 

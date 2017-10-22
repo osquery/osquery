@@ -422,7 +422,8 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
   return records;
 }
 
-Status EventSubscriberPlugin::recordEvent(const std::string& eid, EventTime et) {
+Status EventSubscriberPlugin::recordEvent(const std::string& eid,
+                                          EventTime et) {
   std::string time_value = boost::lexical_cast<std::string>(et);
 
   // The record is identified by the event type then module name.

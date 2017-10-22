@@ -16,6 +16,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include <osquery/core.h>
@@ -132,7 +133,7 @@ struct SubscriberExpirationDetails {
  */
 #define DECLARE_PUBLISHER(TYPE)                                                \
  public:                                                                       \
-  const std::string type() const override final {                               \
+  const std::string type() const override final {                              \
     return TYPE;                                                               \
   }
 
@@ -170,7 +171,7 @@ struct Subscription : private boost::noncopyable {
   /// An EventSubscription member EventCallback method.
   EventCallback callback;
 
-  explicit Subscription(const std::string& name) : subscriber_name(name){};
+  explicit Subscription(std::string name) : subscriber_name(std::move(name)){};
 
   static SubscriptionRef create(const std::string& name) {
     return std::make_shared<Subscription>(name);
@@ -181,7 +182,7 @@ struct Subscription : private boost::noncopyable {
                                 EventCallback ec = nullptr) {
     auto subscription = std::make_shared<Subscription>(name);
     subscription->context = mc;
-    subscription->callback = ec;
+    subscription->callback = std::move(ec);
     return subscription;
   }
 
@@ -229,7 +230,7 @@ class EventPublisherPlugin : public Plugin,
    * config changes. Since Linux `inotify` has a subscription limit, `configure`
    * can dedup paths.
    */
-  virtual void configure() override{};
+  void configure() override{};
 
   /**
    * @brief Perform handle opening, OS API callback registration.
@@ -238,7 +239,7 @@ class EventPublisherPlugin : public Plugin,
    * This is called in the main thread before the publisher's run loop has
    * started, immediately following registration.
    */
-  virtual Status setUp() override {
+  Status setUp() override {
     return Status(0, "Not used");
   }
 
@@ -249,7 +250,7 @@ class EventPublisherPlugin : public Plugin,
    * unblock resources, and prepare to exit. This will be called from the main
    * thread after the run loop thread has exited.
    */
-  virtual void tearDown() override {}
+  void tearDown() override {}
 
   /**
    * @brief Implement a "step" of an optional run loop.
@@ -269,10 +270,11 @@ class EventPublisherPlugin : public Plugin,
    * run loop manager will exit the stepping loop and fall through to a call
    * to tearDown followed by a removal of the publisher.
    */
-  virtual void stop() override {}
+  void stop() override {}
 
   /// This is a plugin type and must implement a call method.
-  Status call(const PluginRequest&, PluginResponse&) override {
+  Status call(const PluginRequest& /*request*/,
+              PluginResponse& /*response*/) override {
     return Status(0);
   }
 
@@ -291,8 +293,8 @@ class EventPublisherPlugin : public Plugin,
 
  public:
   /// Overriding the EventPublisher constructor is not recommended.
-  EventPublisherPlugin() {}
-  virtual ~EventPublisherPlugin() {}
+  EventPublisherPlugin() = default;
+  ~EventPublisherPlugin() override = default;
 
   /// Return a string identifier associated with this EventPublisher.
   virtual const std::string type() const {
@@ -404,7 +406,8 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   }
 
   /// This is a plugin type and must implement a call method.
-  Status call(const PluginRequest&, PluginResponse&) override {
+  Status call(const PluginRequest& /*request*/,
+              PluginResponse& /*response*/) override {
     return Status(0);
   }
 
@@ -565,7 +568,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    */
   EventSubscriberPlugin()
       : expire_events_(true), expire_time_(0), optimize_time_(0) {}
-  virtual ~EventSubscriberPlugin() {}
+  ~EventSubscriberPlugin() override = default;
 
   /**
    * @brief Suggested entrypoint for table generation.
@@ -885,8 +888,8 @@ class EventFactory : private boost::noncopyable {
 
  private:
   /// An EventFactory will exist for the lifetime of the application.
-  EventFactory() {}
-  ~EventFactory() {}
+  EventFactory() = default;
+  ~EventFactory() = default;
 
  private:
   /// Set of registered EventPublisher instances.
@@ -946,8 +949,9 @@ class EventPublisher : public EventPublisherPlugin {
   using ECRef = typename std::shared_ptr<EC>;
 
  public:
-  EventPublisher(){};
-  virtual ~EventPublisher() {}
+  EventPublisher() = default;
+  ;
+  ~EventPublisher() override = default;
 
   /// Up-cast a base EventContext reference to the templated ECRef.
   static ECRef getEventContext(const EventContextRef& ec) {
@@ -999,7 +1003,7 @@ class EventPublisher : public EventPublisherPlugin {
    *
    * @return should the Subscription%'s EventCallback be called for this event.
    */
-  virtual bool shouldFire(const SCRef& sc, const ECRef& ec) const {
+  virtual bool shouldFire(const SCRef& /*sc*/, const ECRef& /*ec*/) const {
     return true;
   }
 
@@ -1036,7 +1040,7 @@ class EventSubscriber : public EventSubscriberPlugin {
    * plugin name assigned to publishers. The corresponding publisher name is
    * interpreted as the subscriber's event 'type'.
    */
-  virtual const std::string& getType() const override {
+  const std::string& getType() const override {
     static const std::string type = EventFactory::getType<PUB>();
     return type;
   };
@@ -1081,7 +1085,7 @@ class EventSubscriber : public EventSubscriberPlugin {
  public:
   explicit EventSubscriber(bool enabled = true)
       : EventSubscriberPlugin(), disabled(!enabled) {}
-  virtual ~EventSubscriber() {}
+  ~EventSubscriber() override = default;
 
  protected:
   /**
@@ -1110,4 +1114,4 @@ class EventSubscriber : public EventSubscriberPlugin {
 /// Iterate the event publisher registry and create run loops for each using
 /// the event factory.
 void attachEvents();
-}
+} // namespace osquery
