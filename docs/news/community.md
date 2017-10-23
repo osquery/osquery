@@ -2,6 +2,7 @@
 layout: community_news
 title: Community
 permalink: /community/
+redirect_from: /community/queries/index.html
 ---
 
 {% assign community = site.data.resources | group_by: 'year' %}

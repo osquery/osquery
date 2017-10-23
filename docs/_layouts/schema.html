@@ -103,7 +103,7 @@ function buildTable(pg, table) {
     column = table.columns[coli];
     cui = pg.find('.template-col').clone();
     cui.find('.col-name').text(column.name);
-    cui.find('.col-type').text(column.type);
+    cui.find('.col-type').text(column.type.replace(/_TYPE/, ''));
     cui.find('.col-desc').text(column.description);
     details = cui.find('.tables-details');
     if (column.options.index) {
@@ -119,14 +119,12 @@ function buildTable(pg, table) {
   }
 
   if (table.examples.length > 0) {
-    examples = pg.find('.template-examples').clone();
     for (var exi in table.examples) {
       example = table.examples[exi];
-      eui = pg.find('.template-example').clone();
-      eui.text(example);
-      examples.find('code').append(eui);
+      examples = pg.find('.template-examples').clone();
+      examples.find('code').text(example);
+      tbody.append(examples);
     }
-    tbody.append(examples);
   }
 
   return tui;
@@ -141,13 +139,17 @@ $(document).ready(function() {
         "ubuntu": "ci-ubuntu",
         "centos": "ci-centos",
         "windows": "fa fa-windows",
-        "vuln-management": "fa fa-bug",
-        "incident-response": "fa fa-crosshairs",
-        "it-compliance": "fa fa-server",
-        "osx-attacks": "fa fa-bomb",
       };
 
       pg = $('#playground');
+      data.tables.sort(function(a, b) {
+        // Sort and replace the 'specs' category.
+        if (a.key == 'specs') {
+          a.key = 'all';
+        }
+        return a.key.localeCompare(b.key);
+      });
+
       for (var ci in data.tables) {
         ui = pg.find('.template-category').clone();
         ui.prop('id', data.tables[ci].key);
@@ -167,6 +169,14 @@ $(document).ready(function() {
 
         $('#output').append(ui);
       }
+
+      if (window.location.hash) {
+        tb = $(window.location.hash);
+        if (tb.length) {
+          hb = $('html,body');
+          hb.scrollTop(tb.offset().top - hb.offset().top + hb.scrollTop());
+        }
+      }
     });
 });
 </script>
@@ -177,10 +187,13 @@ $(document).ready(function() {
     <div class="unit whole">
       <h2>Table schema</h2>
       <p>
-        There are some operating-specific tables that apply to OS X, Ubuntu,
-        or CentOS only. osquery stresses feature parity, minimizing tables
-        that are not available to all platforms is a priority. Tables marked
-        with [beta] may be subject to renaming or column changes.
+        We strive for feature parity and attempt to maximize the number of tables
+        universally available on all platforms.
+        Nevertheless, there are platform-specific tables that apply to macOS, Windows,
+        or Linux exclusively.
+        This schema documentation categorizes tables by platform availability.
+        Categories also include application or integration specific tables.
+        We also publish unversioned query <a href="/schema/packs">pack</a> content.
       </p>
     </div>
   </div>

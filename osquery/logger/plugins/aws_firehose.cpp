@@ -109,7 +109,7 @@ size_t FirehoseLogForwarder::getInitialRetryDelay() const {
 }
 
 bool FirehoseLogForwarder::appendNewlineSeparators() const {
-  return false;
+  return true;
 }
 
 size_t FirehoseLogForwarder::getFailedRecordCount(Outcome& outcome) const {

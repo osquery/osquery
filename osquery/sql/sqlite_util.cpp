@@ -110,14 +110,16 @@ const std::map<std::string, QueryPlanner::Opcode> kSQLOpcodes = {
 class SQLiteSQLPlugin : public SQLPlugin {
  public:
   /// Execute SQL and store results.
-  Status query(const std::string& q, QueryData& results) const override;
+  Status query(const std::string& query,
+               QueryData& results,
+               bool use_cache) const override;
 
   /// Introspect, explain, the suspected types selected in an SQL statement.
-  Status getQueryColumns(const std::string& q,
+  Status getQueryColumns(const std::string& query,
                          TableColumns& columns) const override;
 
   /// Similar to getQueryColumns but return the scanned tables.
-  Status getQueryTables(const std::string& q,
+  Status getQueryTables(const std::string& query,
                         std::vector<std::string>& tables) const override;
 
   /// Create a SQLite module and attach (CREATE).
@@ -140,36 +142,44 @@ std::string getStringForSQLiteReturnCode(int code) {
   }
 }
 
-Status SQLiteSQLPlugin::query(const std::string& q, QueryData& results) const {
+Status SQLiteSQLPlugin::query(const std::string& query,
+                              QueryData& results,
+                              bool use_cache) const {
   auto dbc = SQLiteDBManager::get();
-  auto result = queryInternal(q, results, dbc->db());
+  dbc->useCache(use_cache);
+  auto result = queryInternal(query, results, dbc->db());
   dbc->clearAffectedTables();
   return result;
 }
 
-Status SQLiteSQLPlugin::getQueryColumns(const std::string& q,
+Status SQLiteSQLPlugin::getQueryColumns(const std::string& query,
                                         TableColumns& columns) const {
   auto dbc = SQLiteDBManager::get();
-  return getQueryColumnsInternal(q, columns, dbc->db());
+  return getQueryColumnsInternal(query, columns, dbc->db());
 }
 
-Status SQLiteSQLPlugin::getQueryTables(const std::string& q,
+Status SQLiteSQLPlugin::getQueryTables(const std::string& query,
                                        std::vector<std::string>& tables) const {
   auto dbc = SQLiteDBManager::get();
-  QueryPlanner planner(q, dbc->db());
+  QueryPlanner planner(query, dbc->db());
   tables = planner.tables();
   return Status(0);
 }
 
-SQLInternal::SQLInternal(const std::string& q) {
+SQLInternal::SQLInternal(const std::string& query, bool use_cache) {
   auto dbc = SQLiteDBManager::get();
-  status_ = queryInternal(q, results_, dbc->db());
+  dbc->useCache(use_cache);
+  status_ = queryInternal(query, results_, dbc->db());
 
   // One of the advantages of using SQLInternal (aside from the Registry-bypass)
   // is the ability to "deep-inspect" the table attributes and actions.
   event_based_ = (dbc->getAttributes() & TableAttributes::EVENT_BASED) != 0;
 
   dbc->clearAffectedTables();
+}
+
+bool SQLInternal::eventBased() const {
+  return event_based_;
 }
 
 Status SQLiteSQLPlugin::attach(const std::string& name) {
@@ -193,7 +203,7 @@ void SQLiteSQLPlugin::detach(const std::string& name) {
   if (!dbc->isPrimary()) {
     return;
   }
-  detachTableInternal(name, dbc->db());
+  detachTableInternal(name, dbc);
 }
 
 SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
@@ -231,6 +241,18 @@ static inline void openOptimized(sqlite3*& db) {
 void SQLiteDBInstance::init() {
   primary_ = false;
   openOptimized(db_);
+}
+
+void SQLiteDBInstance::useCache(bool use_cache) {
+  use_cache_ = use_cache;
+}
+
+bool SQLiteDBInstance::useCache() const {
+  return use_cache_;
+}
+
+WriteLock SQLiteDBInstance::attachLock() const {
+  return WriteLock(attach_mutex_);
 }
 
 void SQLiteDBInstance::addAffectedTable(VirtualTableContent* table) {
@@ -271,6 +293,7 @@ void SQLiteDBInstance::clearAffectedTables() {
   // Since the affected tables are cleared, there are no more affected tables.
   // There is no concept of compounding tables between queries.
   affected_tables_.clear();
+  use_cache_ = false;
 }
 
 SQLiteDBInstance::~SQLiteDBInstance() {

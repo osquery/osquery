@@ -80,13 +80,14 @@ QueryData genPrometheusMetrics(QueryContext& context) {
   /* Add a specific value to the default property tree to differentiate it from
    * the scenario where the user does not provide any prometheus_targets config.
    */
-  const auto& config = parser->getData().get_child(
-      kConfigParserRootKey, boost::property_tree::ptree("UNEXPECTED"));
-  if (config.get_value("") == "UNEXPECTED") {
+  const auto& root = parser->getData().get_child_optional(kConfigParserRootKey);
+  if (!root) {
     LOG(WARNING) << "Could not load prometheus_targets root key: "
                  << kConfigParserRootKey;
     return result;
   }
+
+  const auto& config = root.get();
   if (config.count("urls") == 0) {
     /* Only warn the user if they supplied the config, but did not supply any
      * urls. */

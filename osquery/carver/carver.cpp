@@ -152,7 +152,7 @@ void Carver::start() {
   }
   for (const auto& p : carvePaths_) {
     // Ensure the file is a flat file on disk before carving
-    PlatformFile pFile(p.string(), PF_OPEN_EXISTING | PF_READ);
+    PlatformFile pFile(p, PF_OPEN_EXISTING | PF_READ);
     if (!pFile.isValid() || isDirectory(p)) {
       VLOG(1) << "File does not exist on disk or is subdirectory: " << p;
       continue;
@@ -188,7 +188,7 @@ void Carver::start() {
     uploadPath = archivePath_;
   }
 
-  PlatformFile uploadFile(uploadPath.string(), PF_OPEN_EXISTING | PF_READ);
+  PlatformFile uploadFile(uploadPath, PF_OPEN_EXISTING | PF_READ);
   updateCarveValue(carveGuid_, "size", std::to_string(uploadFile.size()));
 
   std::string uploadHash =
@@ -210,9 +210,8 @@ void Carver::start() {
 };
 
 Status Carver::carve(const boost::filesystem::path& path) {
-  PlatformFile src(path.string(), PF_OPEN_EXISTING | PF_READ);
-  PlatformFile dst((carveDir_ / path.leaf()).string(),
-                   PF_CREATE_NEW | PF_WRITE);
+  PlatformFile src(path, PF_OPEN_EXISTING | PF_READ);
+  PlatformFile dst(carveDir_ / path.leaf(), PF_CREATE_NEW | PF_WRITE);
 
   if (!dst.isValid()) {
     return Status(1, "Destination tmp FS is not valid.");
@@ -240,7 +239,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   auto startRequest = Request<TLSTransport, JSONSerializer>(startUri_);
 
   // Perform the start request to get the session id
-  PlatformFile pFile(path.string(), PF_OPEN_EXISTING | PF_READ);
+  PlatformFile pFile(path, PF_OPEN_EXISTING | PF_READ);
   auto blkCount =
       static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
                                static_cast<double>(FLAGS_carver_block_size)));

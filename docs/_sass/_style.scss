@@ -67,6 +67,10 @@ nav {
   li { display: inline-block; }
 }
 
+.logoheader {
+  white-space: nowrap;
+}
+
 .logo {
 
   color: #FFF;
@@ -74,9 +78,16 @@ nav {
   img {
     width: 60px;
     vertical-align: middle;
-    padding-top: 35px;
-    padding-bottom: 35px;
     margin-right: 15px;
+  }
+}
+
+@media (min-width: 796px) {
+  .logo {
+    img {
+      padding-top: 35px;
+      padding-bottom: 35px;
+    }
   }
 }
 
@@ -103,6 +114,25 @@ nav {
       }
     }
 
+    a[href^="https://"]:after {
+      content: "\f08e";
+      font-family: FontAwesome;
+      font-weight: normal;
+      font-style: normal;
+      font-size: 10px;
+      display: inline-block;
+      text-decoration: none;
+      padding-left: 4px;
+    }
+
+    /* Strip from links to own domain or with class no_icon */
+    a[href^="{{ site.url }}"]:after,
+    a.no_icon:after {
+      content:"" !important;
+      padding-left: 0;
+    }
+
+
     &.current {
 
       a {
@@ -126,7 +156,7 @@ nav {
 }
 
 .schema {
-  font-size: 18px;
+  font-size: 16px;
 
   h3 {
     white-space: nowrap;
@@ -157,6 +187,7 @@ nav {
 
   .tables-table {
     background-color: #444;
+    width: 100%;
   }
 
   .tables-tag {
@@ -349,6 +380,11 @@ footer {
     display: block;
     margin: 0 0 -30px;
   }
+
+  .github-buttons {
+    margin-top: 10px;
+    text-align: center;
+  }
 }
 
 .quickstart-second {
@@ -424,8 +460,15 @@ footer {
       display: block;
       margin: 0;
       padding: 0;
+      white-space: nowrap;
 
-      span { display: inline-block; }
+      span {
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        vertical-align: top;
+      }
     }
 
     .path {

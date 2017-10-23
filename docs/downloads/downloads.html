@@ -5,13 +5,12 @@ permalink: /downloads/
 ---
 
 {% assign versions = site.data.versions %}
-{% assign version = versions.first.version %}
 
 <section class="features">
   <div class="grid">
     <div class="unit whole">
       <h2>Packages and tarballs</h2>
-      <p>These packages are built and signed by the osquery development team. They are mostly universal and included a minimal amount of required run-time dependencies. This means the binaries are abnormally big.</p>
+      <p>These packages are built and signed by the osquery development team. They are mostly universal and use a minimal number of run-time library dependencies. This means the binaries are abnormally big (~20MB).</p>
       <small>For release notes please visit <a href="https://github.com/facebook/osquery/releases">https://github.com/facebook/osquery/releases</a>.</small>
     </div>
   </div>
@@ -26,21 +25,24 @@ permalink: /downloads/
           <span class="prompt">$</span>
           <span class="command">ls osquery-latest/ | ./hashthem.sh</span>
         </p>
-        {% for dist in versions.first %}
-        {% if dist[0] != 'version' and dist[0] != 'debug' %}
-        {% assign key = dist[0] %}
-        {% assign prefix = site.prefixes[key] %}
-        {% assign sep = site.separators[key] %}
+        {% assign current_version = versions.first %}
+        {% assign version_number = current_version.version %}
+        {% for key in current_version %}
+        {% if key[0] != 'version' and key[0] != 'debug' %}
+        {% assign os = key[0] %}
+        {% assign prefix = site.prefixes[os] %}
+        {% assign sep = site.separators[os] %}
+        {% assign hash = key[1] %}
           <p class="line" style="margin-top: 10px">
             <span class="output">
-              <a href="https://pkg.osquery.io/{{key}}/osquery{{sep}}{{version}}.{{prefix}}">
-                https://pkg.osquery.io/{{key}}/osquery{{sep}}{{version}}.{{prefix}}
+              <a href="https://pkg.osquery.io/{{os}}/osquery{{sep}}{{version_number}}{{prefix}}">
+                https://pkg.osquery.io/{{os}}/osquery{{sep}}{{version_number}}{{prefix}}
               </a>
              </span>
           </p>
           <p class="line">
             <span class="output">
-              {{dist[1]}}
+              {{hash}}
              </span>
           </p>
         {% endif %}
@@ -63,7 +65,7 @@ permalink: /downloads/
 <section class="quickstart quickstart-second">
   <div class="grid">
     <div class="unit code">
-      <p class="title">Downloads</p>
+      <p class="title">Build Instructions</p>
       <div class="shell">
         <p class="line">
           <span class="prompt">$</span>
@@ -95,7 +97,7 @@ permalink: /downloads/
   <div class="grid">
     <div class="unit whole">
       <h2><span class="ci-centos"></span> Install yum repository</h2>
-      <p>We publish osquery in a yum repository.
+      <p>We publish osquery to a yum repository.
         The RPMs have extremely few dependencies and should work on *most* x86_64 Linux operating systems.
         You may install the "auto-repo-add" RPM or add the repository target.
       </p>
@@ -105,11 +107,11 @@ permalink: /downloads/
 <section class="quickstart quickstart-second">
   <div class="grid">
     <div class="unit code">
-      <p class="title">Downloads</p>
+      <p class="title">yum Install</p>
       <div class="shell">
         <p class="line">
           <span class="prompt">$</span>
-          <span class="command">curl https://pkg.osquery.io/rpm/GPG | sudo tee /etc/pki/rpm-gpg/RPM-GPG-KEY-osquery</span>
+          <span class="command">curl -L https://pkg.osquery.io/rpm/GPG | sudo tee /etc/pki/rpm-gpg/RPM-GPG-KEY-osquery</span>
         </p>
         <p class="line">
           <span class="prompt">$</span>
@@ -133,7 +135,7 @@ permalink: /downloads/
   <div class="grid">
     <div class="unit whole">
       <h2><span class="ci-ubuntu"></span> Install apt repository</h2>
-      <p>We publish osquery in an apt repository. The DEBs have extremely few dependencies and should work on *most* x86_64 Linux operating systems.
+      <p>We publish osquery to an apt repository. The DEBs have extremely few dependencies and should work on *most* x86_64 Linux operating systems.
       </p>
     </div>
   </div>
@@ -141,7 +143,7 @@ permalink: /downloads/
 <section class="quickstart quickstart-second">
   <div class="grid">
     <div class="unit code">
-      <p class="title">Downloads</p>
+      <p class="title">apt Install</p>
       <div class="shell">
         <p class="line">
           <span class="prompt">$</span>
@@ -182,7 +184,7 @@ permalink: /downloads/
 <section class="quickstart quickstart-second">
   <div class="grid">
     <div class="unit code">
-      <p class="title">Downloads</p>
+      <p class="title">Windows Install</p>
       <div class="shell">
         <p class="line">
           <span class="prompt">C:\></span>
@@ -204,32 +206,87 @@ permalink: /downloads/
     </div>
   </div>
 </section>
-<section class="quickstart">
+<section class="quickstart quickstart-second">
   <div class="grid">
     <div class="unit code">
-      <p class="title">Downloads</p>
+      <p class="title">Debug Downloads</p>
       <div class="shell">
         <p class="line">
           <span class="path">~</span>
           <span class="prompt">$</span>
           <span class="command">ls osquery-debug-latest/ | ./hashthem.sh</span>
         </p>
-        {% for dist in versions.first.debug %}
-        {% assign key = dist[0] %}
-        {% assign prefix = site.prefixes[key] %}
-        {% assign sep = site.separators[key] %}
+        {% assign current_version = versions.first %}
+        {% assign version_number = current_version.version %}
+        {% for key in current_version.debug %}
+        {% assign os = key[0] %}
+        {% assign prefix = site.prefixes[os] %}
+        {% assign sep = site.separators[os] %}
+        {% assign hash = key[1] %}
+        {% assign dbg = site.debug_prefixes[os] %}
           <p class="line" style="margin-top: 10px">
             <span class="output">
-              <a href="https://pkg.osquery.io/{{key}}/osquery-debug{{sep}}{{version}}.{{prefix}}">
-                https://pkg.osquery.io/{{key}}/osquery-debug{{sep}}{{version}}.{{prefix}}
+              <a href="https://pkg.osquery.io/{{os}}/osquery-{{dbg}}{{sep}}{{version_number}}{{prefix}}">
+                https://pkg.osquery.io/{{os}}/osquery-{{dbg}}{{sep}}{{version_number}}{{prefix}}
               </a>
              </span>
           </p>
           <p class="line">
             <span class="output">
-              {{dist[1]}}
+              {{hash}}
              </span>
           </p>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="clear"></div>
+  </div>
+</section>
+
+<section class="previous">
+  <div class="grid">
+    <div class="unit whole">
+      <h2><span class="fa fa-backward"></span> Previous Releases</h2>
+      <p>We continue to host previous releases of osquery and make them available for download. These are our last three releases for Linux and Darwin.
+      </p>
+    </div>
+  </div>
+</section>
+<section class="quickstart quickstart-second">
+  <div class="grid">
+    <div class="unit code">
+      <p class="title">Previous Releases</p>
+      <div class="shell">
+        {% assign previous_version_operating_systems = 'linux darwin' | split: ' ' %}
+        {% for previous_os in previous_version_operating_systems %}
+        <p class="line">
+          <span class="path">~</span>
+          <span class="prompt">$</span>
+          <span class="command">ls osquery-previous-{{previous_os}}/ | ./hashthem.sh</span>
+        </p>
+        {% for previous_version in versions offset:1 limit:3 %}
+        {% assign version_number = previous_version.version %}
+        {% for key in previous_version %}
+        {% if key[0] == previous_os %}
+        {% assign prefix = site.prefixes[previous_os] %}
+        {% assign sep = site.separators[previous_os] %}
+        {% assign hash = key[1] %}
+          <p class="line" style="margin-top: 10px">
+            <span class="output">
+              <a href="https://pkg.osquery.io/{{previous_os}}/osquery{{sep}}{{version_number}}{{prefix}}">
+                https://pkg.osquery.io/{{previous_os}}/osquery{{sep}}{{version_number}}{{prefix}}
+              </a>
+             </span>
+          </p>
+          <p class="line">
+            <span class="output">
+              {{hash}}
+             </span>
+          </p>
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+        <p class="line">&nbsp;</p>
         {% endfor %}
       </div>
     </div>

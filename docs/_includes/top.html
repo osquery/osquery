@@ -15,4 +15,10 @@
   <script src="/js/respond.min.js"></script>
   <![endif]-->
   <script src="/js/zepto.min.js"></script>
+  <script>
+    var d = new String(window.location.host);
+    if (d.indexOf("facebook.github.io") != -1) {
+      window.location = "{{ site.url }}";
+    }
+  </script>
 </head>

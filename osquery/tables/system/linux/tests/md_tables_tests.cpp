@@ -72,7 +72,7 @@ void GetDrivesForArrayTestHarness(std::string arrayName,
   EXPECT_CALL(md, getArrayInfo(arrayDevPath, _))
       .WillOnce(DoAll(SetArgReferee<1>(arrayInfo), Return(true)));
 
-  Sequence::Sequence s1;
+  Sequence s1;
   for (int i = 0; i < MD_SB_DISKS; i++) {
     mdu_disk_info_t diskInfo;
     diskInfo.number = i;

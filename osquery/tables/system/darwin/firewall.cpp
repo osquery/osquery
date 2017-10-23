@@ -8,8 +8,6 @@
  *
  */
 
-#include <boost/lexical_cast.hpp>
-
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -21,28 +19,18 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-const std::string kALFPlistPath = "/Library/Preferences/com.apple.alf.plist";
+/**
+ * @brief Well known path to the Application Layer Firewall configuration.
+ *
+ * This plist contains all of the details about the ALF.
+ * It is used to populate all of the tables here.
+ */
+const std::string kALFPlistPath{"/Library/Preferences/com.apple.alf.plist"};
 
-// it.first represents the key that is used in com.apple.alf.plist to identify
-// the data in question. it.second represents the value of the "service" column
-// in the alf_services table.
-const std::map<std::string, std::string> kFirewallTreeKeys = {
-    {"Apple Remote Desktop", "Apple Remote Desktop"},
-    {"FTP Access", "FTP"},
-    {"ODSAgent", "ODSAgent"},
-    {"Personal File Sharing", "File Sharing"},
-    {"Personal Web Sharing", "Web Sharing"},
-    {"Printer Sharing", "Printer Sharing"},
-    {"Remote Apple Events", "Remote Apple Events"},
-    {"Remote Login - SSH", "SSH"},
-    {"Samba Sharing", "Samba Sharing"},
-};
-
-// it.first represents the top level keys in com.apple.alf.plist to identify
-// the data in question. it.second represents the names of the columns that
-// each sample of data can be found under in the alf table.
-const std::map<std::string, std::string> kTopLevelIntKeys = {
+/// Well known keys within the plist containing settings.
+const std::map<std::string, std::string> kTopLevelIntKeys{
     {"allowsignedenabled", "allow_signed_enabled"},
+    {"allowdownloadsignedenabled", "allow_downloads_signed_enabled"},
     {"firewallunload", "firewall_unload"},
     {"globalstate", "global_state"},
     {"loggingenabled", "logging_enabled"},
@@ -50,10 +38,8 @@ const std::map<std::string, std::string> kTopLevelIntKeys = {
     {"stealthenabled", "stealth_enabled"},
 };
 
-// it.first represents the top level keys in com.apple.alf.plist to identify
-// the data in question. it.second represents the names of the columns that
-// each sample of data can be found under in the alf table.
-const std::map<std::string, std::string> kTopLevelStringKeys = {
+/// Well known keys within the plist containing settings (as strings).
+const std::map<std::string, std::string> kTopLevelStringKeys{
     {"version", "version"},
 };
 
@@ -146,13 +132,12 @@ QueryData parseALFServicesTree(const pt::ptree& tree) {
     return {};
   }
 
-  auto firewall_tree = tree.get_child("firewall");
-  for (const auto& it : kFirewallTreeKeys) {
+  auto& firewall_tree = tree.get_child("firewall");
+  for (const auto& it : firewall_tree) {
     Row r;
-    auto subtree = firewall_tree.get_child(it.first);
-    r["service"] = it.second;
-    r["process"] = subtree.get("proc", "");
-    r["state"] = INTEGER(subtree.get("state", -1));
+    r["service"] = it.first;
+    r["process"] = it.second.get("proc", "");
+    r["state"] = INTEGER(it.second.get("state", -1));
     results.push_back(r);
   }
   return results;

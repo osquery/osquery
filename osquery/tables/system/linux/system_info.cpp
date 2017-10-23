@@ -23,8 +23,8 @@ namespace tables {
 
 QueryData genSystemInfo(QueryContext& context) {
   Row r;
-  r["hostname"] = osquery::getHostname();
-  r["computer_name"] = r["hostname"];
+  r["hostname"] = osquery::getFqdn();
+  r["computer_name"] = osquery::getHostname();
   r["local_hostname"] = r["hostname"];
 
   std::string uuid;

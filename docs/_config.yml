@@ -8,6 +8,7 @@ timezone: America/Los_Angeles
 name: osquery • Performant Endpoint Visibility
 description: Easily ask questions about your Linux, Windows, and macOS infrastructure
 url: https://osquery.io
+baseurl: ""
 
 twitter:
   username: osquery
@@ -56,12 +57,19 @@ plugins:
 exclude:
   - .gitignore
   - README.md
+  - doxygen
+  - wiki
 
 prefixes:
-  darwin: pkg
-  deb: linux.amd64.deb
-  rpm: linux.x86_64.rpm
-  linux: linux_x86_64.tar.gz
+  darwin: .pkg
+  deb: _1.linux.amd64.deb
+  rpm: -1.linux.x86_64.rpm
+  linux: _1.linux_x86_64.tar.gz
+
+debug_prefixes:
+  darwin: debug
+  deb: dbg
+  rpm: debuginfo
 
 separators:
   darwin: "-"
@@ -69,4 +77,10 @@ separators:
   rpm: "-"
   linux: "-"
 
-schema_url: https://raw.githubusercontent.com/theopolis/osquery-site/master/schema
+docs_url: https://osquery.readthedocs.io/en/stable/
+schema_url: https://raw.githubusercontent.com/osquery/osquery-site/master/schema
+packs_url: https://raw.githubusercontent.com/facebook/osquery/master/packs
+slack_url: https://osquery-slack.herokuapp.com
+github_button:
+  user: facebook
+  repo: osquery

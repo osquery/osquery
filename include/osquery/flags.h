@@ -124,6 +124,9 @@ class Flag : private boost::noncopyable {
    */
   static std::string getValue(const std::string& name);
 
+  /// Get the flag value as a long int.
+  static long int getInt32Value(const std::string& name);
+
   /*
    * @brief Get the type as a string of an osquery flag.
    *

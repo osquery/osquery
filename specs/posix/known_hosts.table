@@ -7,8 +7,11 @@ schema([
     Column("key_file", TEXT, "Path to known_hosts file", index=True),
     ForeignKey(column="uid", table="users"),
 ])
-attributes(user_data=True)
+attributes(user_data=True, no_pkey=True)
 implementation("known_hosts@getKnownHostsKeys")
+examples([
+    "select * from users join known_hosts using (uid)",
+])
 fuzz_paths([
     "/home",
     "/Users",

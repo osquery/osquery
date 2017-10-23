@@ -17,6 +17,15 @@
 namespace osquery {
 namespace tables {
 
+std::string decodeUSBBCD(uint16_t bcd) {
+  uint8_t array[2];
+  array[0] = bcd & 0xff;
+  array[1] = (bcd >> 8);
+  uint8_t major = ((array[1] / 16 * 10) + (array[1] % 16));
+  uint8_t minor = ((array[0] / 16 * 10) + (array[0] % 16));
+  return std::to_string(major) + "." + std::to_string(minor);
+}
+
 void genUSBDevice(const io_service_t& device, QueryData& results) {
   Row r;
 
@@ -40,6 +49,7 @@ void genUSBDevice(const io_service_t& device, QueryData& results) {
   r["model_id"] = getIOKitProperty(details, "idProduct");
   r["vendor"] = getIOKitProperty(details, "USB Vendor Name");
   r["vendor_id"] = getIOKitProperty(details, "idVendor");
+  r["version"] = decodeUSBBCD(getNumIOKitProperty(details, "bcdDevice"));
 
   r["serial"] = getIOKitProperty(details, "USB Serial Number");
   if (r.at("serial").size() == 0) {
