@@ -248,7 +248,7 @@ function main() {
     do_sudo chown $USER "$DEPS_DIR" > /dev/null 2>&1 || true
   else
     # If the dependency directory (DEPS_DIR) already exists, there will be problems
-    fatal "build dir $DEPS_DIR already exists"
+    fatal "dependencies directory '$DEPS_DIR' already exists"
   fi
 
   # Save the directory we're executing from and change to the deps directory.
