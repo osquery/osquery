@@ -14,6 +14,7 @@
 #include <Windows.h>
 #endif
 
+#include <boost/algorithm/string.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/database.h>

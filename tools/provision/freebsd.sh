@@ -7,6 +7,46 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+function fetch_beast() {
+  log "fetching boost.beast"
+  PATH_PREFIX=`dirname \`pkg query  %p/%n| grep boost-libs\``
+  if [ -z $PATH_PREFIX ]
+  then
+    log "failed to install boost.beast"
+    return
+  fi
+
+  VERSION_FILE="${PATH_PREFIX}/include/boost/beast/version.hpp"
+  if [ -f "$VERSION_FILE" ]
+  then
+    version=`awk '{if ($2 == "BOOST_BEAST_VERSION") print $3}' $VERSION_FILE`
+    if [ $version -ne 111 ]
+    then
+      pushd ${PATH_PREFIX}/include/boost/
+      do_sudo rm -rf beast/ beast.hpp
+      popd
+    else
+      log "boost.beast v111 already installed"
+      return
+    fi
+  fi
+
+  if [ -d "/tmp/beast" ]
+    then
+    rm -rf /tmp/beast
+  fi
+
+  pushd /tmp/ > /dev/null
+  git clone https://github.com/uptycs-nishant/beast.git
+  pushd beast/ > /dev/null
+  git checkout v111
+  pushd include/boost/ > /dev/null
+  do_sudo mv -f beast/ beast.hpp ${PATH_PREFIX}/include/boost/
+  popd > /dev/null
+  popd > /dev/null
+  popd > /dev/null
+}
+
 function distro_main() {
   do_sudo pkg update
   do_sudo pkg upgrade -y
@@ -47,4 +87,8 @@ function distro_main() {
   # For testing
   package doxygen
   package valgrind
+
+  # With an upgrade to boost-1.66
+  # we can get rid of fetch_beast
+  fetch_beast
 }

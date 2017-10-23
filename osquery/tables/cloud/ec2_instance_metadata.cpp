@@ -11,18 +11,17 @@
 #include <string>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/network/protocol/http/client.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core.h>
+#include <osquery/http_client.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/utils/aws_util.h"
 
 namespace pt = boost::property_tree;
-namespace http = boost::network::http;
 
 namespace osquery {
 namespace tables {
@@ -130,13 +129,13 @@ class JSONEc2MetaData : public Ec2MetaData {
 std::string Ec2MetaData::doGet() const {
   const static std::string ec2_metadata_url{kEc2MetadataUrl};
 
-  http::client::request req(ec2_metadata_url + url_suffix_);
-  http::client::options options;
+  http::Request req(ec2_metadata_url + url_suffix_);
+  http::Client::Options options;
   options.timeout(3);
-  http::client client(options);
+  http::Client client(options);
 
   try {
-    http::client::response res = client.get(req);
+    http::Response res = client.get(req);
     boost::uint16_t http_status_code = res.status();
 
     // Silently ignore 404
