@@ -16,7 +16,7 @@ do
   rm -rf $dir
 done
 
-if pkgutil --pkgs | grep "com.facebook*"; then
+if pkgutil --pkgs | grep "com.facebook.osquery"; then
   # Forget package receipt
   pkgutil --forget com.facebook.osquery
 fi
