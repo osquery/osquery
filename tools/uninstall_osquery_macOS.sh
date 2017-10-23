@@ -3,7 +3,7 @@
 # Unload and remove com.facebook.osquery.plist launchdaemon
 osquery_launchd=/Library/LaunchDaemons/com.facebook.osqueryd.plist
 if [ -f $osquery_launchd ]; then
-  if launchctl list | grep "com.facebook*"; then
+  if launchctl list | grep "com.facebook.osqueryd.plist"; then
     launchctl unload $osquery_launchd
   fi
   rm $osquery_launchd
@@ -16,7 +16,7 @@ do
   rm -rf $dir
 done
 
-if pkgutil --pkgs | grep "com.facebook*"; then
+if pkgutil --pkgs | grep "com.facebook.osquery"; then
   # Forget package receipt
   pkgutil --forget com.facebook.osquery
 fi
