@@ -30,94 +30,6 @@ warning C4091: 'typedef ': ignored on left of '' when no variable is declared
 
 #include "osquery/core/windows/wmi.h"
 
-class MinidumpOutputCallbacks : public IDebugOutputCallbacks {
-public:
-	osquery::Row* r;
-
-	MinidumpOutputCallbacks(osquery::Row* r) {
-		this->r = r;
-	}
-
-	STDMETHODIMP MinidumpOutputCallbacks::QueryInterface(THIS_ _In_ REFIID InterfaceId, _Out_ PVOID* Interface) {
-		*Interface = NULL;
-		if (IsEqualIID(InterfaceId, __uuidof(IUnknown)) ||
-			IsEqualIID(InterfaceId, __uuidof(IDebugOutputCallbacks))) {
-			*Interface = (IDebugOutputCallbacks *)this;
-			AddRef();
-			return S_OK;
-		}
-		else {
-			return E_NOINTERFACE;
-		}
-	}
-
-	STDMETHODIMP_(ULONG) MinidumpOutputCallbacks::AddRef(THIS) {
-		return 1;
-	}
-
-	STDMETHODIMP_(ULONG) MinidumpOutputCallbacks::Release(THIS) {
-		return 0;
-	}
-
-	STDMETHODIMP MinidumpOutputCallbacks::Output(THIS_ _In_ ULONG Mask, _In_ PCSTR Text) {
-		if ((Mask & DEBUG_OUTPUT_NORMAL) == 0) {
-			return S_FALSE;
-		}
-
-		std::string output(Text);
-		auto cmd = processOutput(output);
-		if (cmd == std::string("r")) {
-			(*r)["registers"] = output;
-		}
-		else if (cmd.find("lm f a") != std::string::npos) {
-			(*r)["module"] = findModulePath(output);
-		}
-		else if (cmd.find("lm f") != std::string::npos) {
-			(*r)["path"] = findModulePath(output);
-		}
-		else {
-			return S_FALSE;
-		}
-		return S_OK;
-	}
-
-	std::string processOutput(std::string& output) {
-		std::istringstream preprocessed(output);
-		std::ostringstream postprocessed;
-		std::string cmd;
-		std::string line;
-
-		// Get the command that was executed
-		std::getline(preprocessed, cmd);
-		// Perform some additional cleaning on the output
-		while (std::getline(preprocessed, line)) {
-			if (
-				// This comes from the "r" command if .ecxr is successful
-				(line.find("Last set context:") != std::string::npos) ||
-				// Remove natvis error messages that screw up column formatting
-				(line.find("No .natvis files found") != std::string::npos)
-				) {
-				continue;
-			}
-			postprocessed << line + "\n";
-		}
-		output = postprocessed.str();
-		return cmd;
-	}
-
-	std::string findModulePath(std::string output) {
-		// Find the path of the first module
-		auto location = output.find(":\\");
-		if (location == std::string::npos) {
-			return std::string();
-		}
-		auto firstPath = output.substr(location - 1);
-		// Trim the rest of the output so we get just the module path
-		location = firstPath.find("\n");
-		return firstPath.substr(0, location);
-	}
-};
-
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -156,30 +68,117 @@ const std::map<unsigned long long, std::string> kMinidumpTypeFlags = {
     {0x001fffff, "MiniDumpValidTypeFlags"}};
 const std::vector<MINIDUMP_STREAM_TYPE> kStreamTypes = {ExceptionStream,
                                                         ModuleListStream,
-                                                        ThreadListStream,
-                                                        MemoryListStream,
                                                         SystemInfoStream,
                                                         MiscInfoStream};
 
-Status logAndStoreTID(const MINIDUMP_EXCEPTION_STREAM* stream,
-                      unsigned int& tid,
-                      Row& r) {
+class MinidumpOutputCallbacks : public IDebugOutputCallbacks {
+private:
+	Row* r;
+	// "What is the purpose of this output?"
+	enum Purpose { registers, modulePath, pePath };
+
+public:
+	MinidumpOutputCallbacks(Row* r) {
+		this->r = r;
+	}
+
+	STDMETHODIMP MinidumpOutputCallbacks::QueryInterface(THIS_ _In_ REFIID InterfaceId, _Out_ PVOID* Interface) {
+		*Interface = NULL;
+		if (IsEqualIID(InterfaceId, __uuidof(IUnknown)) ||
+			IsEqualIID(InterfaceId, __uuidof(IDebugOutputCallbacks))) {
+			*Interface = (IDebugOutputCallbacks *)this;
+			AddRef();
+			return S_OK;
+		}
+		else {
+			return E_NOINTERFACE;
+		}
+	}
+
+	STDMETHODIMP_(ULONG) MinidumpOutputCallbacks::AddRef(THIS) {
+		return 1;
+	}
+
+	STDMETHODIMP_(ULONG) MinidumpOutputCallbacks::Release(THIS) {
+		return 0;
+	}
+
+	STDMETHODIMP MinidumpOutputCallbacks::Output(THIS_ _In_ ULONG Mask, _In_ PCSTR Text) {
+		if ((Mask & DEBUG_OUTPUT_NORMAL) == 0) {
+			LOG(INFO) << Text;
+			return S_FALSE;
+		}
+
+		Purpose purpose;
+		std::istringstream preprocessed(Text);
+		std::ostringstream postprocessed;
+		std::string cmd;
+		std::string line;
+
+		// Get the debugger command that was executed and determine purpose
+		std::getline(preprocessed, cmd);
+		if (cmd == std::string("r")) {
+			purpose = registers;
+		}
+		else if (cmd.find("lm f a") != std::string::npos) {
+			purpose = modulePath;
+		}
+		else if (cmd.find("lm f") != std::string::npos) {
+			purpose = pePath;
+		}
+		else {
+			return S_FALSE;
+		}
+
+		// Remove unwanted lines
+		while (std::getline(preprocessed, line)) {
+			if ((line.find("Last set context:") != std::string::npos) ||
+				(line.find("No .natvis files found") != std::string::npos)) {
+				continue;
+			}
+			postprocessed << line + "\n";
+		}
+
+		switch (purpose) {
+		case registers:
+			(*r)["registers"] = postprocessed.str();
+			break;
+		case modulePath:
+			(*r)["module"] = findModulePath(postprocessed.str());
+			break;
+		case pePath:
+			(*r)["path"] = findModulePath(postprocessed.str());
+			break;
+		}
+
+		return S_OK;
+	}
+
+	std::string findModulePath(std::string output) {
+		// Find the path of the first module
+		auto location = output.find(":\\");
+		if (location == std::string::npos) {
+			return std::string();
+		}
+		auto firstPath = output.substr(location - 1);
+		// Trim the rest of the output so we get just the module path
+		location = firstPath.find("\n");
+		return firstPath.substr(0, location);
+	}
+};
+
+Status logTID(const MINIDUMP_EXCEPTION_STREAM* stream, Row& r) {
   if ((stream == nullptr) || (stream->ThreadId == 0)) {
     return Status(1);
   }
 
   r["tid"] = BIGINT(stream->ThreadId);
-  tid = stream->ThreadId;
   return Status();
 }
 
-/*
-Log & store exception info, and the exception message for errors with defined
-parameters
-*/
-Status logAndStoreExceptionInfo(const MINIDUMP_EXCEPTION_STREAM* stream,
-                       unsigned long long& exAddr,
-                       Row& r) {
+// Log exception info, and the exception message for errors with
+// defined parameters
+Status logExceptionInfo(const MINIDUMP_EXCEPTION_STREAM* stream, Row& r) {
   if (stream == nullptr) {
     return Status(1);
   }
@@ -198,7 +197,6 @@ Status logAndStoreExceptionInfo(const MINIDUMP_EXCEPTION_STREAM* stream,
 	  return Status(1);
   }
   r["exception_address"] = exAddrStr.str();
-  exAddr = ex.ExceptionAddress;
 
   std::ostringstream errorMsg;
   if ((ex.ExceptionCode == EXCEPTION_ACCESS_VIOLATION) &&
@@ -293,170 +291,6 @@ Status logPEVersion(const MINIDUMP_MODULE_LIST* stream,
   return Status();
 }
 
-// Pulls the memory at target address from the Minidump
-void* getMemAtTarget(const MINIDUMP_MEMORY_LIST* stream,
-                     unsigned long long target,
-                     unsigned char* const dumpBase) {
-  if (stream == nullptr) {
-    return nullptr;
-  }
-
-  for (unsigned int i = 0; i < stream->NumberOfMemoryRanges; i++) {
-    auto memRange = stream->MemoryRanges[i];
-    if ((memRange.StartOfMemoryRange <= target) &&
-        (target < (memRange.StartOfMemoryRange + memRange.Memory.DataSize))) {
-      auto offset = target - memRange.StartOfMemoryRange;
-      return static_cast<void*>(dumpBase + memRange.Memory.Rva + offset);
-    }
-  }
-  return nullptr;
-}
-
-Status storeTEBAndPEB(const MINIDUMP_THREAD_LIST* threadStream,
-                      const MINIDUMP_MEMORY_LIST* memStream,
-                      unsigned char* const dumpBase,
-                      unsigned int tid,
-                      TEB*& teb,
-                      PEB*& peb) {
-  if ((threadStream == nullptr) || (memStream == nullptr)) {
-    return Status(1);
-  }
-
-  unsigned long long tebAddr = 0;
-  for (unsigned int i = 0; i < threadStream->NumberOfThreads; i++) {
-    auto thread = threadStream->Threads[i];
-    if (thread.ThreadId == tid) {
-      tebAddr = thread.Teb;
-    }
-  }
-  if (tebAddr == 0) {
-    return Status(1);
-  }
-
-  auto result = getMemAtTarget(memStream, tebAddr, dumpBase);
-  if (result == nullptr) {
-    return Status(1);
-  }
-  teb = static_cast<TEB*>(result);
-
-  auto pebAddr =
-      reinterpret_cast<unsigned long long>(teb->ProcessEnvironmentBlock);
-  result = getMemAtTarget(memStream, pebAddr, dumpBase);
-  if (result == nullptr) {
-    return Status(1);
-  }
-  peb = static_cast<PEB*>(result);
-
-  return Status();
-}
-
-Status logBeingDebugged(const PEB* peb, Row& r) {
-  if (peb == nullptr) {
-    return Status(1);
-  }
-
-  r["being_debugged"] = BIGINT(static_cast<unsigned long>(peb->BeingDebugged));
-  return Status();
-}
-
-Status storeProcessParams(const MINIDUMP_MEMORY_LIST* stream,
-                          unsigned char* const dumpBase,
-                          const PEB* peb,
-                          RTL_USER_PROCESS_PARAMETERS*& params) {
-  if ((stream == nullptr) || (peb == nullptr)) {
-    return Status(1);
-  }
-
-  auto paramsAddr =
-      reinterpret_cast<unsigned long long>(peb->ProcessParameters);
-  auto result = getMemAtTarget(stream, paramsAddr, dumpBase);
-  if (result == nullptr) {
-    return Status(1);
-  }
-  params = static_cast<RTL_USER_PROCESS_PARAMETERS*>(result);
-  return Status();
-}
-
-Status logProcessCmdLine(const MINIDUMP_MEMORY_LIST* stream,
-                         unsigned char* const dumpBase,
-                         const RTL_USER_PROCESS_PARAMETERS* params,
-                         Row& r) {
-  if ((stream == nullptr) || (params == nullptr)) {
-    return Status(1);
-  }
-
-  auto cmdLineAddr =
-      reinterpret_cast<unsigned long long>(params->CommandLine.Buffer);
-  auto result = getMemAtTarget(stream, cmdLineAddr, dumpBase);
-  if (result == nullptr) {
-    return Status(1);
-  }
-
-  auto cmdLine = static_cast<wchar_t*>(result);
-  r["command_line"] = wstringToString(cmdLine);
-  return Status();
-}
-
-Status logProcessCurDir(const MINIDUMP_MEMORY_LIST* stream,
-                        unsigned char* const dumpBase,
-                        const RTL_USER_PROCESS_PARAMETERS* params,
-                        Row& r) {
-  if ((stream == nullptr) || (params == nullptr)) {
-    return Status(1);
-  }
-
-  // Offset 0x38 is from WinDbg: dt nt!_RTL_USER_PROCESS_PARAMETERS
-  auto curDirStruct = reinterpret_cast<const UNICODE_STRING*>(
-      reinterpret_cast<const unsigned char*>(params) + 0x38);
-  auto curDirAddr = reinterpret_cast<unsigned long long>(curDirStruct->Buffer);
-  auto result = getMemAtTarget(stream, curDirAddr, dumpBase);
-  if (result == nullptr) {
-    return Status(1);
-  }
-  auto curDir = static_cast<wchar_t*>(result);
-  r["current_directory"] =
-      wstringToString(std::wstring(curDir, curDirStruct->Length / 2).c_str());
-  return Status();
-}
-
-Status logProcessEnvVars(const MINIDUMP_MEMORY_LIST* stream,
-                         unsigned char* const dumpBase,
-                         const RTL_USER_PROCESS_PARAMETERS* params,
-                         Row& r) {
-  if ((stream == nullptr) || (params == nullptr)) {
-    return Status(1);
-  }
-
-  // Offset 0x80 is from WinDbg: dt nt!_RTL_USER_PROCESS_PARAMETERS
-  auto envVarsAddr = reinterpret_cast<const unsigned long long*>(
-      reinterpret_cast<const unsigned char*>(params) + 0x80);
-  auto result = getMemAtTarget(stream, *envVarsAddr, dumpBase);
-  if (result == nullptr) {
-    return Status(1);
-  }
-  auto envVars = static_cast<wchar_t*>(result);
-
-  // Loop through environment variables and log those of interest
-  // The environment variables are stored in the following format:
-  // Var1=Value1\0Var2=Value2\0Var3=Value3\0 ... VarN=ValueN\0\0
-  wchar_t* ptr = envVars;
-  while (*ptr != '\0') {
-    auto envVar = wstringToString(std::wstring(ptr).c_str());
-    auto pos = envVar.find('=');
-    auto varName = envVar.substr(0, pos);
-    auto varValue = envVar.substr(pos + 1, envVar.length());
-
-    if (varName == "COMPUTERNAME") {
-      r["machine_name"] = varValue;
-    } else if (varName == "USERNAME") {
-      r["username"] = varValue;
-    }
-
-    ptr += envVar.length() + 1;
-  }
-  return Status();
-}
-
 Status logDumpTime(const MINIDUMP_HEADER* header, Row& r) {
   if (header == nullptr) {
     return Status(1);
@@ -472,9 +306,7 @@ Status logDumpTime(const MINIDUMP_HEADER* header, Row& r) {
   return Status();
 }
 
-Status logAndStoreDumpType(const MINIDUMP_HEADER* header,
-                           unsigned long long& flags,
-                           Row& r) {
+Status logDumpType(const MINIDUMP_HEADER* header, Row& r) {
   if (header == nullptr) {
     return Status(1);
   }
@@ -492,27 +324,11 @@ Status logAndStoreDumpType(const MINIDUMP_HEADER* header,
     }
   }
   r["type"] = activeFlags.str();
-  flags = header->Flags;
   return Status();
 }
 
-void debugEngineCleanup(IDebugClient5* client,
-                        IDebugControl4* control,
-                        IDebugSymbols3* symbols) {
-  if (symbols != nullptr) {
-    symbols->Release();
-  }
-  if (control != nullptr) {
-    control->Release();
-  }
-  if (client != nullptr) {
-    client->SetOutputCallbacks(NULL);
-    client->EndSession(DEBUG_END_PASSIVE);
-    client->Release();
-  }
-  return;
-}
-
+// Note: appears to only detect unmanaged stack frames.
+// See http://blog.steveniemitz.com/building-a-mixed-mode-stack-walker-part-2/
 Status logStackTrace(const char* fileName, IDebugControl4* control, IDebugSymbols3* symbols, Row& r) {
 	char context[1024] = { 0 };
 	unsigned long type = 0;
@@ -585,11 +401,6 @@ Status logStackTrace(const char* fileName, IDebugControl4* control, IDebugSymbol
 }
 
 Status logRegisters(IDebugClient5* client, IDebugControl4* control) {
-	IDebugRegisters2* registers;
-	if (client->QueryInterface(__uuidof(IDebugRegisters), (void**)&registers) != S_OK) {
-		return Status(1);
-	}
-
 	control->Execute(DEBUG_OUTCTL_THIS_CLIENT, ".ecxr", DEBUG_EXECUTE_ECHO);
 	auto status = control->Execute(DEBUG_OUTCTL_THIS_CLIENT, "r", DEBUG_EXECUTE_ECHO);
 	return (status == S_OK) ? Status() : Status(1);
@@ -606,10 +417,125 @@ Status logModulePath(IDebugClient5* client, IDebugControl4* control, Row r) {
 	return (status == S_OK) ? Status() : Status(1);
 }
 
-/*
-Note: appears to only detect unmanaged stack frames.
-See http://blog.steveniemitz.com/building-a-mixed-mode-stack-walker-part-2/
-*/
+Status logPEBInfo(IDebugClient5* client, IDebugControl4* control, IDebugSymbols3* symbols, Row& r) {
+	IDebugSystemObjects* system;
+	IDebugDataSpaces4* data;
+	if ((client->QueryInterface(__uuidof(IDebugSystemObjects), (void**)&system) != S_OK) ||
+		(client->QueryInterface(__uuidof(IDebugDataSpaces4), (void**)&data) != S_OK)) {
+		return Status(1);
+	}
+
+	// Get ntdll symbols
+	symbols->Reload("/f ntdll.dll");
+	unsigned long long ntdllBase = 0;
+	if (symbols->GetModuleByModuleName("ntdll", 0, NULL, &ntdllBase) != S_OK) {
+		return Status(1);
+	}
+
+	// Get PEB address
+	unsigned long long pebAddr = 0;
+	if (system->GetCurrentProcessPeb(&pebAddr) != S_OK) {
+		return Status(1);
+	}
+
+	// Get ProcessParameters offset in the PEB
+	unsigned long pebTypeId = 0;
+	unsigned long procParamsOffset = 0;
+	if ((symbols->GetTypeId(ntdllBase, "_PEB", &pebTypeId) != S_OK) ||
+		(symbols->GetFieldOffset(ntdllBase, pebTypeId, "ProcessParameters", &procParamsOffset) != S_OK)) {
+		return Status(1);
+	}
+	// Get address of ProcessParameters struct
+	unsigned long long procParamsAddr = 0;
+	if (data->ReadPointersVirtual(1, pebAddr + procParamsOffset, &procParamsAddr) != S_OK) {
+		return Status(1);
+	}
+
+	// Get CurrentDirectory offset in ProcessParameters
+	unsigned long procParamsTypeId = 0;
+	unsigned long curDirOffset = 0;
+	if ((symbols->GetTypeId(ntdllBase, "_RTL_USER_PROCESS_PARAMETERS", &procParamsTypeId) != S_OK) ||
+		(symbols->GetFieldOffset(ntdllBase, procParamsTypeId, "CurrentDirectory", &curDirOffset) != S_OK)) {
+		return Status(1);
+	}
+	// Get CurrentDirectory
+	unsigned long long curDirBufferAddr = 0;
+	if (data->ReadPointersVirtual(1, procParamsAddr + curDirOffset + 0x8, &curDirBufferAddr) != S_OK) {
+		return Status(1);
+	}
+	wchar_t curDir[MAX_PATH * 2 + 1] = { 0 };
+	data->ReadUnicodeStringVirtualWide(curDirBufferAddr, MAX_PATH*2 + 1, curDir, MAX_PATH*2 + 1, NULL);
+	r["current_directory"] = wstringToString(curDir);
+
+	// Get CommandLine offset in ProcessParameters
+	unsigned long cmdLineOffset = 0;
+	if (symbols->GetFieldOffset(ntdllBase, procParamsTypeId, "CommandLine", &cmdLineOffset) != S_OK) {
+		return Status(1);
+	}
+	// Get CommandLine
+	unsigned long long cmdLineBufferAddr = 0;
+	if (data->ReadPointersVirtual(1, procParamsAddr + cmdLineOffset + 0x8, &cmdLineBufferAddr) != S_OK) {
+		return Status(1);
+	}
+	wchar_t cmdLine[UNICODE_STRING_MAX_BYTES] = { 0 };
+	data->ReadUnicodeStringVirtualWide(cmdLineBufferAddr, UNICODE_STRING_MAX_BYTES, cmdLine, UNICODE_STRING_MAX_BYTES, NULL);
+	r["command_line"] = wstringToString(cmdLine);
+
+	// Get Environment offset in ProcessParameters
+	unsigned long envOffset = 0;
+	if (symbols->GetFieldOffset(ntdllBase, procParamsTypeId, "Environment", &envOffset) != S_OK) {
+		return Status(1);
+	}
+	// Get Environment
+	unsigned long long envBufferAddr = 0;
+	if (data->ReadPointersVirtual(1, procParamsAddr + envOffset, &envBufferAddr) != S_OK) {
+		return Status(1);
+	}
+	// Loop through environment variables and log those of interest
+	// The environment variables are stored in the following format:
+	// Var1=Value1\0Var2=Value2\0Var3=Value3\0 ... VarN=ValueN\0\0
+	wchar_t env[UNICODE_STRING_MAX_BYTES] = { 0 };
+	unsigned long bytesRead = 0;
+	data->ReadUnicodeStringVirtualWide(envBufferAddr, UNICODE_STRING_MAX_BYTES, env, UNICODE_STRING_MAX_BYTES, &bytesRead);
+	while (bytesRead > sizeof(wchar_t)) {
+		envBufferAddr += bytesRead;
+		auto envVar = wstringToString(env);
+		auto pos = envVar.find('=');
+		auto varName = envVar.substr(0, pos);
+		auto varValue = envVar.substr(pos + 1, envVar.length());
+
+		if (varName == "COMPUTERNAME") {
+			r["machine_name"] = varValue;
+		}
+		else if (varName == "USERNAME") {
+			r["username"] = varValue;
+		}
+
+		if (data->ReadUnicodeStringVirtualWide(envBufferAddr, UNICODE_STRING_MAX_BYTES, env, UNICODE_STRING_MAX_BYTES, &bytesRead) != S_OK) {
+			break;
+		}
+	}
+
+	return Status();
+}
+
+void debugEngineCleanup(IDebugClient5* client,
+	IDebugControl4* control,
+	IDebugSymbols3* symbols) {
+	if (symbols != nullptr) {
+		symbols->Release();
+	}
+	if (control != nullptr) {
+		control->Release();
+	}
+	if (client != nullptr) {
+		client->SetOutputCallbacks(NULL);
+		client->EndSession(DEBUG_END_PASSIVE);
+		client->Release();
+	}
+	return;
+}
+
 void processDebugEngine(const char* fileName, Row& r) {
   IDebugClient5* client;
   IDebugControl4* control;
@@ -636,8 +562,10 @@ void processDebugEngine(const char* fileName, Row& r) {
                << "\" while debugging crash dump: " << fileName;
     return debugEngineCleanup(client, control, symbols);
   }
-  if (symbols->SetSymbolPath("srv*C:\\Windows\\symbols*http://"
-                             "msdl.microsoft.com/download/symbols") != S_OK) {
+  if ((symbols->SetSymbolPath("C:\\ProgramData\\dbg\\sym;"
+	  "cache*C:\\ProgramData\\dbg\\sym;"
+	  "srv*C:\\ProgramData\\dbg\\sym*https://msdl.microsoft.com/download/symbols") != S_OK) ||
+	  (symbols->SetSymbolOptions(SYMOPT_CASE_INSENSITIVE & SYMOPT_UNDNAME & SYMOPT_LOAD_LINES & SYMOPT_OMAP_FIND_NEAREST & SYMOPT_LOAD_ANYTHING & SYMOPT_FAIL_CRITICAL_ERRORS & SYMOPT_AUTO_PUBLICS) != S_OK)) {
     LOG(ERROR) << "Failed to set symbol path while debugging crash dump: "
                << fileName;
     return debugEngineCleanup(client, control, symbols);
@@ -659,6 +587,7 @@ void processDebugEngine(const char* fileName, Row& r) {
   logPEPath(client, control);
   logModulePath(client, control, r);
   logRegisters(client, control);
+  logPEBInfo(client, control, symbols, r);
 
   // Cleanup
   return debugEngineCleanup(client, control, symbols);
@@ -706,8 +635,6 @@ void processDumpStreams(const char* fileName, Row& r) {
   auto header = static_cast<MINIDUMP_HEADER*>(dumpBase);
   MINIDUMP_EXCEPTION_STREAM* exceptionStream = nullptr;
   MINIDUMP_MODULE_LIST* moduleStream = nullptr;
-  MINIDUMP_THREAD_LIST* threadStream = nullptr;
-  MINIDUMP_MEMORY_LIST* memoryStream = nullptr;
   MINIDUMP_SYSTEM_INFO* systemStream = nullptr;
   MINIDUMP_MISC_INFO* miscStream = nullptr;
 
@@ -727,14 +654,8 @@ void processDumpStreams(const char* fileName, Row& r) {
     }
 
     switch (stream) {
-    case ThreadListStream:
-      threadStream = static_cast<MINIDUMP_THREAD_LIST*>(dumpStream);
-      break;
     case ModuleListStream:
       moduleStream = static_cast<MINIDUMP_MODULE_LIST*>(dumpStream);
-      break;
-    case MemoryListStream:
-      memoryStream = static_cast<MINIDUMP_MEMORY_LIST*>(dumpStream);
       break;
     case ExceptionStream:
       exceptionStream = static_cast<MINIDUMP_EXCEPTION_STREAM*>(dumpStream);
@@ -754,30 +675,15 @@ void processDumpStreams(const char* fileName, Row& r) {
 
   auto dumpBaseAddr = static_cast<unsigned char*>(dumpBase);
   // Process dump info
-  // First, run functions that store information for later processing
-  unsigned long long dumpFlags = 0;
-  unsigned int tid = 0;
-  unsigned long long exAddr = 0;
-  TEB* teb = nullptr;
-  PEB* peb = nullptr;
-  RTL_USER_PROCESS_PARAMETERS* params = nullptr;
-  logAndStoreDumpType(header, dumpFlags, r);
-  logAndStoreTID(exceptionStream, tid, r);
-  storeTEBAndPEB(threadStream, memoryStream, dumpBaseAddr, tid, teb, peb);
-  storeProcessParams(memoryStream, dumpBaseAddr, peb, params);
-  logAndStoreExceptionInfo(exceptionStream, exAddr, r);
-
-  // Then, process everything else
   r["crash_path"] = fileName;
+  logDumpType(header, r);
+  logTID(exceptionStream, r);
+  logExceptionInfo(exceptionStream, r);
   logDumpTime(header, r);
   logPID(miscStream, r);
   logProcessCreateTime(miscStream, r);
   logOSVersion(systemStream, r);
   logPEVersion(moduleStream, dumpBaseAddr, r);
-  logBeingDebugged(peb, r);
-  logProcessCmdLine(memoryStream, dumpBaseAddr, params, r);
-  logProcessCurDir(memoryStream, dumpBaseAddr, params, r);
-  logProcessEnvVars(memoryStream, dumpBaseAddr, params, r);
 
   // Cleanup
   UnmapViewOfFile(dumpBase);
