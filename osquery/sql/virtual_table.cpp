@@ -625,6 +625,7 @@ Status attachTableInternal(const std::string& name,
   // Note, if the clientData API is used then this will save a registry call
   // within xCreate.
   auto lock(instance->attachLock());
+
   int rc = sqlite3_create_module(
       instance->db(), name.c_str(), &module, (void*)&(*instance));
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
