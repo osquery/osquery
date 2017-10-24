@@ -78,7 +78,7 @@ class SQLiteDBInstance : private boost::noncopyable {
   bool useCache() const;
 
   /// Lock the database for attaching virtual tables.
-  WriteLock attachLock() const;
+  RecursiveLock attachLock() const;
 
  private:
   /// Handle the primary/forwarding requests for table attribute accesses.
@@ -102,11 +102,25 @@ class SQLiteDBInstance : private boost::noncopyable {
   /// Either the managed primary database or an ephemeral instance.
   sqlite3* db_{nullptr};
 
-  /// An attempted unique lock on the manager's primary database access mutex.
+  /**
+   * @brief An attempted unique lock on the manager's primary database mutex.
+   *
+   * This lock is not always acquired. If it is then this instance has locked
+   * access to the 'primary' SQLite database.
+   */
   WriteLock lock_;
 
-  /// Attaching can occur async from the registry APIs.
-  mutable Mutex attach_mutex_;
+  /**
+   * @brief A mutex protecting access to this instance's SQLite database.
+   *
+   * Attaching, and other access, can occur async from the registry APIs.
+   *
+   * If a database is primary then the static attach mutex is used.
+   */
+  mutable RecursiveMutex attach_mutex_;
+
+  /// See attach_mutex_ but used for the primary database.
+  static RecursiveMutex kPrimaryAttachMutex;
 
   /// Vector of tables that need their constraints cleared after execution.
   std::map<std::string, VirtualTableContent*> affected_tables_;
@@ -227,8 +241,8 @@ class SQLiteDBManager : private boost::noncopyable {
 class QueryPlanner : private boost::noncopyable {
  public:
   explicit QueryPlanner(const std::string& query)
-      : QueryPlanner(query, SQLiteDBManager::get()->db()) {}
-  QueryPlanner(const std::string& query, sqlite3* db);
+      : QueryPlanner(query, SQLiteDBManager::get()) {}
+  QueryPlanner(const std::string& query, const SQLiteDBInstanceRef& instance);
   ~QueryPlanner() {}
 
  public:
@@ -298,7 +312,9 @@ extern const std::map<std::string, QueryPlanner::Opcode> kSQLOpcodes;
  *
  * @return A status indicating SQL query results.
  */
-Status queryInternal(const std::string& q, QueryData& results, sqlite3* db);
+Status queryInternal(const std::string& q,
+                     QueryData& results,
+                     const SQLiteDBInstanceRef& instance);
 
 /**
  * @brief SQLite Intern: Analyze a query, providing information about the
@@ -317,7 +333,7 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db);
  */
 Status getQueryColumnsInternal(const std::string& q,
                                TableColumns& columns,
-                               sqlite3* db);
+                               const SQLiteDBInstanceRef& instance);
 
 /**
  * @brief SQLInternal: SQL, but backed by internal calls.
