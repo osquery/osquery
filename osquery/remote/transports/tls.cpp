@@ -33,8 +33,8 @@ CLI_FLAG(string,
          "",
          "TLS/HTTPS hostname for Config, Logger, and Enroll plugins");
 
-/// proxy server hostname.
-CLI_FLAG(string, proxy_hostname, "", "proxy hostname");
+/// Optional HTTP proxy server hostname.
+CLI_FLAG(string, proxy_hostname, "", "Optional HTTP proxy hostname");
 
 /// Path to optional TLS server/CA certificate(s), used for pinning.
 CLI_FLAG(string,
@@ -80,10 +80,8 @@ TLSTransport::TLSTransport() : verify_peer_(true) {
 }
 
 void TLSTransport::decorateRequest(http::Request& r) {
-  r << http::Request::Header("Connection", "close");
   r << http::Request::Header("Content-Type", serializer_->getContentType());
   r << http::Request::Header("Accept", serializer_->getContentType());
-  r << http::Request::Header("Host", FLAGS_tls_hostname);
   r << http::Request::Header("User-Agent", kTLSUserAgentBase + kVersion);
 }
 

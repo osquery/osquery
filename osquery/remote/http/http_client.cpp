@@ -8,11 +8,18 @@
  *
  */
 
-#include <osquery/http_client.h>
 #include <osquery/logger.h>
+
+#include "osquery/remote/http_client.h"
 
 namespace osquery {
 namespace http {
+
+const std::string kHTTPSDefaultPort{"443"};
+const std::string kHTTPDefaultPort{"80"};
+const std::string kProxyDefaultPort{"3128"};
+
+const long kSSLShortReadError{0x140000dbL};
 
 /** This class is used to convert boost::system_exception
  *  to std::system_exception, since on freebsd osquery is on boost-1.64.
@@ -35,14 +42,10 @@ class adapted_category : public std::error_category {
   boost::system::error_category const* pc_;
 };
 
-/** In the postResponseHandler, treating SHORT_READ_ERROR as success
- *  for ssl connections. This can happen if a remote server did not
- *  call shutdown on ssl connection.
- */
 void Client::postResponseHandler(boost_system::error_code const& ec) {
   if ((ec.category() == boost_asio::error::ssl_category) &&
-      (ec.value() == SHORT_READ_ERROR)) {
-    // ignoring short read error, set ec_ to success
+      (ec.value() == kSSLShortReadError)) {
+    // Ignoring short read error, set ec_ to success.
     ec_.clear();
   } else if ((ec.value() != boost_system::errc::operation_canceled) ||
              (ec.category() != boost_asio::error::system_category)) {
@@ -74,7 +77,7 @@ void Client::createConnection() {
   }
 
   std::string port = (client_options_.proxy_hostname_)
-                         ? std::to_string(PROXY_DEFAUT_PORT)
+                         ? kProxyDefaultPort
                          : *client_options_.remote_port_;
 
   std::string connect_host = (client_options_.proxy_hostname_)
@@ -246,9 +249,9 @@ Response Client::sendHTTPRequest(Request& req) {
       if (req.remotePort()) {
         client_options_.remote_port_ = *req.remotePort();
       } else if (req.protocol() && (*req.protocol()).compare("https") == 0) {
-        client_options_.remote_port_ = std::to_string(HTTPS_DEFAULT_PORT);
+        client_options_.remote_port_ = kHTTPSDefaultPort;
       } else {
-        client_options_.remote_port_ = std::to_string(HTTP_DEFAULT_PORT);
+        client_options_.remote_port_ = kHTTPDefaultPort;
       }
 
       if (req.protocol()) {
@@ -257,8 +260,6 @@ Response Client::sendHTTPRequest(Request& req) {
         } else {
           ssl_connection = false;
         }
-      } else {
-        ssl_connection = false;
       }
     }
 
@@ -288,7 +289,7 @@ Response Client::sendHTTPRequest(Request& req) {
       }
 
       std::string redir_url = Response(resp.release()).headers()["Location"];
-      if (!redir_url.size()) {
+      if (redir_url.empty()) {
         throw std::runtime_error(
             "Location header missing in redirect response.");
       }
@@ -308,7 +309,7 @@ Response Client::put(Request& req,
                      std::string const& content_type) {
   req.method(beast_http::verb::put);
   req.body = body;
-  if (content_type.size()) {
+  if (!content_type.empty()) {
     req.set(beast_http::field::content_type, content_type);
   }
   return sendHTTPRequest(req);
@@ -319,7 +320,7 @@ Response Client::post(Request& req,
                       std::string const& content_type) {
   req.method(beast_http::verb::post);
   req.body = body;
-  if (content_type.size()) {
+  if (!content_type.empty()) {
     req.set(beast_http::field::content_type, content_type);
   }
   return sendHTTPRequest(req);
@@ -330,7 +331,7 @@ Response Client::put(Request& req,
                      std::string const& content_type) {
   req.method(beast_http::verb::put);
   req.body = std::move(body);
-  if (content_type.size()) {
+  if (!content_type.empty()) {
     req.set(beast_http::field::content_type, content_type);
   }
   return sendHTTPRequest(req);
@@ -341,7 +342,7 @@ Response Client::post(Request& req,
                       std::string const& content_type) {
   req.method(beast_http::verb::post);
   req.body = std::move(body);
-  if (content_type.size()) {
+  if (!content_type.empty()) {
     req.set(beast_http::field::content_type, content_type);
   }
   return sendHTTPRequest(req);

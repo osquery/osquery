@@ -27,16 +27,15 @@
 #include <aws/sts/model/Credentials.h>
 
 #include <osquery/flags.h>
-#include <osquery/http_client.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
 #include "osquery/core/json.h"
+#include "osquery/remote/http_client.h"
 #include "osquery/remote/transports/tls.h"
 #include "osquery/utils/aws_util.h"
 
 namespace pt = boost::property_tree;
-namespace uri = boost::network::uri;
 
 namespace Standard = Aws::Http::Standard;
 namespace Model = Aws::STS::Model;

@@ -10,13 +10,12 @@
 #include <sstream>
 
 #include <osquery/config.h>
-#include <osquery/http_client.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include <osquery/core/conversions.h>
-
 #include "osquery/config/parsers/prometheus_targets.h"
+#include "osquery/core/conversions.h"
+#include "osquery/remote/http_client.h"
 #include "osquery/tables/applications/posix/prometheus_metrics.h"
 
 namespace osquery {

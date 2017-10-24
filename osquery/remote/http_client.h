@@ -59,7 +59,6 @@
 #define OPENSSL_NO_MD5 1
 #define OPENSSL_NO_DEPRECATED 1
 
-/// Newer versions of LibreSSL will lack SSL methods.
 extern "C" {
 #if defined(NO_SSL_TXT_SSLV3)
 SSL_METHOD* SSLv3_server_method(void);
@@ -92,7 +91,7 @@ typedef HTTP_Request<beast_http_request> Request;
 typedef HTTP_Response<beast_http_response> Response;
 
 /**
- * @brief a simple http client class based upon boost.beast.
+ * @brief a simple HTTP client class based upon boost.beast.
  *
  * Implements put, post, get, head and delete methods.
  * These methods take request as reference and  return response by value.
@@ -200,33 +199,33 @@ class Client {
   Client(Options const& opts = Options())
       : client_options_(opts), r_(ios_), sock_(ios_), timer_(ios_) {}
 
-  /// HTTP put request method
+  /// HTTP put request method.
   Response put(Request& req,
                std::string const& body,
                std::string const& content_type = std::string());
 
-  /// HTTP put request method with rvalue reference to body param
+  /// HTTP put request method with rvalue reference to body param.
   Response put(Request& req,
                std::string&& body,
                std::string const& content_type = std::string());
 
-  /// HTTP post request method
+  /// HTTP post request method.
   Response post(Request& req,
                 std::string const& body,
                 std::string const& content_type = std::string());
 
-  /// HTTP post request method with rvalue reference to body param
+  /// HTTP post request method with rvalue reference to body param.
   Response post(Request& req,
                 std::string&& body,
                 std::string const& content_type = std::string());
 
-  /// HTTP get request method
+  /// HTTP get request method.
   Response get(Request& req);
 
-  /// HTTP head request method
+  /// HTTP head request method.
   Response head(Request& req);
 
-  /// HTTP delete_ request method
+  /// HTTP delete_ request method.
   Response delete_(Request& req);
 
   ~Client() {
@@ -234,10 +233,10 @@ class Client {
   }
 
  private:
-  /// Create Connection to server, if proxy option is set, connect to proxy
+  /// Create Connection to server, if proxy option is set, connect to proxy.
   void createConnection();
 
-  /// Convert plain socket to ssl socket
+  /// Convert plain socket to TLS socket.
   void encryptConnection();
 
   template <typename STREAM_TYPE>
@@ -247,10 +246,16 @@ class Client {
 
   Response sendHTTPRequest(Request& req);
 
-  /// Handles HTTP request timeout
+  /// Handles HTTP request timeout.
   void timeoutHandler(boost_system::error_code const& ec);
 
-  /// Handles respone code, if requests completes or aborted due to timeout
+  /**
+   * @brief Handles response if requests completes or aborted due to timeout.
+   *
+   * In the postResponseHandler, treating SHORT_READ_ERROR as success for TLS
+   * connections. This can happen if a remote server did not call shutdown on
+   * the TLS connection.
+   */
   void postResponseHandler(boost_system::error_code const& ec);
 
   void closeSocket();
@@ -263,30 +268,32 @@ class Client {
   boost_asio::deadline_timer timer_;
   std::shared_ptr<ssl_stream> ssl_sock_;
   boost_system::error_code ec_;
-  bool ssl_connection = false;
-  static const long SHORT_READ_ERROR = 0x140000dbL;
-  /// Setting the default port to squid proxy default port
-  static const int PROXY_DEFAUT_PORT = 3128;
-  static const int HTTP_DEFAULT_PORT = 80;
-  static const int HTTPS_DEFAULT_PORT = 443;
+
+  /**
+   * @brief This general-purpose HTTP Client allows HTTP and HTTPS.
+   *
+   * This does not allow HTTP for the TLS logger plugins.
+   * It uses a state variable `ssl_connection` to determine if the connection
+   * should be wrapped in a TLS socket.
+   */
+  bool ssl_connection{false};
 };
 
 /**
- * @brief HTTP request class
+ * @brief HTTP request class.
  *
- * This class is inherited from implemention(boost.beast) request class.
- * It extends the functionality via providing uri parsing.
+ * This class is inherited from implementation(boost.beast) request class.
+ * It extends the functionality via providing URI parsing.
  *
  */
 template <typename T>
 class HTTP_Request : public T {
  public:
   /**
-   * @brief HTTP request header helper class
+   * @brief HTTP request header helper class.
    *
-   * constructor of this class takes (name, value)
-   * pair, which is used to set the request header
-   * of a http request with the help of overloaded
+   * Constructor of this class takes (name, value) pair, which is used to set
+   * the request header of a HTTP request with the help of overloaded
    * function 'operator<<' of HTTP_Request class.
    */
   struct Header {
@@ -302,34 +309,48 @@ class HTTP_Request : public T {
  public:
   HTTP_Request(const std::string& url = std::string()) : uri_(url) {}
 
-  /// Returns the host part of a uri.
+  /// Returns the host part of a URI.
   boost::optional<std::string> remoteHost() {
-    return uri_.host().size() ? uri_.host() : boost::optional<std::string>();
+    return (!uri_.host().empty()) ? uri_.host()
+                                  : boost::optional<std::string>();
   }
 
-  /// Returns the port part of a uri.
+  /// Returns the port part of a URI.
   boost::optional<std::string> remotePort() {
-    return uri_.port().size() ? uri_.port() : boost::optional<std::string>();
+    return (!uri_.port().empty()) ? uri_.port()
+                                  : boost::optional<std::string>();
   }
 
-  /// Returns the path part of a uri.
+  /// Returns the path, query, and fragment parts of a URI.
   boost::optional<std::string> remotePath() {
-    return uri_.path().size() ? uri_.path() : boost::optional<std::string>();
+    std::string path;
+    if (!uri_.path().empty()) {
+      path += uri_.path();
+    }
+
+    if (!uri_.query().empty()) {
+      path += '?' + uri_.query();
+    }
+
+    if (!uri_.fragment().empty()) {
+      path += '#' + uri_.fragment();
+    }
+    return (!path.empty()) ? path : boost::optional<std::string>();
   }
 
-  /// Returns the protocol part of a uri. E.g. 'http' or 'https'
+  /// Returns the protocol part of a URI. E.g. 'http' or 'https'
   boost::optional<std::string> protocol() {
     return uri_.scheme().size() ? uri_.scheme()
                                 : boost::optional<std::string>();
   }
 
-  /// overloaded operator to set header of an http request
+  /// overloaded operator to set header of a HTTP request
   HTTP_Request& operator<<(const Header& h) {
     this->T::set(h.name_, h.value_);
     return *this;
   }
 
-  /// uri can also be set via this method, useful for redirected request.
+  /// URI can also be set via this method, useful for redirected request.
   void uri(const std::string& url) {
     uri_ = url;
   }
@@ -339,11 +360,11 @@ class HTTP_Request : public T {
 };
 
 /**
- * @brief HTTP response class
+ * @brief HTTP response class.
  *
- * This class is inherited from implementation(boost.beast) http response class.
- * This class gives convenient access to some functionality of implemention
- * specific http response class.
+ * This class is inherited from implementation(boost.beast) HTTP response class.
+ * This class gives convenient access to some functionality of implementation
+ * specific HTTP response class.
  *
  */
 template <typename T>
@@ -357,18 +378,21 @@ class HTTP_Response : public T {
   class Iterator;
   class Headers;
 
-  /// status of an http response
+  /// status of a HTTP response.
   unsigned status() {
     return this->T::result_int();
   }
 
-  /// body of an http response
+  /// body of a HTTP response.
   const std::string& body() {
     return this->T::body;
   }
 
-  /// All headers of an http response.
-  /// Headers can be accesed via HTTP_Response<T>::Iterator class
+  /**
+   * @brief All headers of a HTTP response.
+   *
+   * Headers can be accessed via HTTP_Response<T>::Iterator class.
+   */
   Headers headers() {
     return Headers(this);
   }
@@ -414,10 +438,9 @@ class HTTP_Response<T>::Iterator {
 };
 
 /**
- * @brief HTTP response headers helper class
+ * @brief HTTP response headers helper class.
  *
- * This class gives convenient access to all the
- * headers of http response.
+ * This class gives convenient access to all the headers of the HTTP response.
  *
  * e.g. -
  * for (const auto& header : resp.headers()) {
