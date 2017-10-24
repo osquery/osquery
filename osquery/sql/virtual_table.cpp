@@ -74,7 +74,7 @@ static inline std::string opString(unsigned char op) {
 }
 
 inline std::string table_doc(const std::string& name) {
-  return "https://osquery.io/docs/#" + name;
+  return "https://osquery.io/schema/#" + name;
 }
 
 static void plan(const std::string& output) {
