@@ -249,7 +249,7 @@ function main() {
     do_sudo chown $USER "$DEPS_DIR" > /dev/null 2>&1 || true
   elif [[ ! -d "$DEPS_DIR/.git" ]]; then
     # If the dependency directory (DEPS_DIR) already exists, there will be problems
-    fatal "dependencies directory '$DEPS_DIR' already exists"
+    log "[notice] dependencies directory '$DEPS_DIR' already exists"
   fi
 
   # Save the directory we're executing from and change to the deps directory.
