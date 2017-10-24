@@ -284,7 +284,7 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
     // A delayed watchdog does not stop the worker process.
     if (!status.ok() && getUnixTime() >= delayedTime()) {
       LOG(WARNING) << "osqueryd worker (" << child.pid()
-                   << ") is being stopped. Reason: " << status.getMessage();
+                   << ") stopping: " << status.getMessage();
       stopChild(child);
       return false;
     }
