@@ -263,12 +263,13 @@ class Client {
   boost_asio::deadline_timer timer_;
   std::shared_ptr<ssl_stream> ssl_sock_;
   boost_system::error_code ec_;
-  bool ssl_connection = false;
-  static const long SHORT_READ_ERROR = 0x140000dbL;
-  /// Setting the default port to squid proxy default port
-  static const int PROXY_DEFAUT_PORT = 3128;
-  static const int HTTP_DEFAULT_PORT = 80;
-  static const int HTTPS_DEFAULT_PORT = 443;
+
+  /**
+   * @brief This general-purpose HTTP Client allows HTTP.
+   *
+   * This does not allow HTTP for the TLS logger plugins.
+   */
+  bool ssl_connection{false};
 };
 
 /**
@@ -304,17 +305,31 @@ class HTTP_Request : public T {
 
   /// Returns the host part of a uri.
   boost::optional<std::string> remoteHost() {
-    return uri_.host().size() ? uri_.host() : boost::optional<std::string>();
+    return (!uri_.host().empty()) ? uri_.host()
+                                  : boost::optional<std::string>();
   }
 
   /// Returns the port part of a uri.
   boost::optional<std::string> remotePort() {
-    return uri_.port().size() ? uri_.port() : boost::optional<std::string>();
+    return (!uri_.port().empty()) ? uri_.port()
+                                  : boost::optional<std::string>();
   }
 
   /// Returns the path part of a uri.
   boost::optional<std::string> remotePath() {
-    return uri_.path().size() ? uri_.path() : boost::optional<std::string>();
+    std::string path;
+    if (!uri_.path().empty()) {
+      path += uri_.path();
+    }
+
+    if (!uri_.query().empty()) {
+      path += '?' + uri_.query();
+    }
+
+    if (!uri_.fragment().empty()) {
+      path += '#' + uri_.fragment();
+    }
+    return (!path.empty()) ? path : boost::optional<std::string>();
   }
 
   /// Returns the protocol part of a uri. E.g. 'http' or 'https'

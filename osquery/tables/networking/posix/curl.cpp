@@ -12,12 +12,11 @@
 
 #include <boost/numeric/conversion/cast.hpp>
 
-#include <osquery/http_client.h>
 #include <osquery/logger.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
 
-using namespace std::chrono;
+#include "osquery/remote/http_client.h"
 
 namespace osquery {
 namespace tables {
@@ -34,13 +33,16 @@ Status processRequest(Row& r) {
     request_ << osquery::http::Request::Header("User-Agent", r["user_agent"]);
 
     // Measure the rtt using the system clock
-    time_point<system_clock> start = std::chrono::system_clock::now();
+    std::chrono::time_point<std::chrono::system_clock> start =
+        std::chrono::system_clock::now();
     response_ = client_.get(request_);
-    time_point<system_clock> end = std::chrono::system_clock::now();
+    std::chrono::time_point<std::chrono::system_clock> end =
+        std::chrono::system_clock::now();
 
     r["response_code"] = INTEGER(static_cast<int>(response_.status()));
-    r["round_trip_time"] =
-        BIGINT(duration_cast<microseconds>(end - start).count());
+    r["round_trip_time"] = BIGINT(
+        std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+            .count());
     r["result"] = response_.body();
     r["bytes"] = BIGINT(r["result"].size());
   } catch (const std::exception& e) {

@@ -15,10 +15,10 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/core.h>
-#include <osquery/http_client.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/remote/http_client.h"
 #include "osquery/utils/aws_util.h"
 
 namespace pt = boost::property_tree;

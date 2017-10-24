@@ -11,8 +11,8 @@
 #pragma once
 
 #include <osquery/flags.h>
-#include <osquery/http_client.h>
 
+#include "osquery/remote/http_client.h"
 #include "osquery/remote/requests.h"
 
 namespace osquery {
