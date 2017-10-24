@@ -19,7 +19,7 @@ const std::string kHTTPSDefaultPort{"443"};
 const std::string kHTTPDefaultPort{"80"};
 const std::string kProxyDefaultPort{"3128"};
 
-const long kHTTPShortReadError{0x140000dbL};
+const long kSSLShortReadError{0x140000dbL};
 
 /** This class is used to convert boost::system_exception
  *  to std::system_exception, since on freebsd osquery is on boost-1.64.
@@ -42,14 +42,10 @@ class adapted_category : public std::error_category {
   boost::system::error_category const* pc_;
 };
 
-/** In the postResponseHandler, treating SHORT_READ_ERROR as success
- *  for ssl connections. This can happen if a remote server did not
- *  call shutdown on ssl connection.
- */
 void Client::postResponseHandler(boost_system::error_code const& ec) {
   if ((ec.category() == boost_asio::error::ssl_category) &&
-      (ec.value() == kHTTPShortReadError)) {
-    // ignoring short read error, set ec_ to success
+      (ec.value() == kSSLShortReadError)) {
+    // Ignoring short read error, set ec_ to success.
     ec_.clear();
   } else if ((ec.value() != boost_system::errc::operation_canceled) ||
              (ec.category() != boost_asio::error::system_category)) {
@@ -189,7 +185,6 @@ void Client::sendRequest(STREAM_TYPE& stream,
                          Request& req,
                          beast_http_response_parser& resp) {
   req.target((req.remotePath()) ? *req.remotePath() : "/");
-  printf("%s\n", req.remotePath()->c_str());
   req.version = 11;
   req.set(beast_http::field::host, *client_options_.remote_hostname_);
   req.prepare_payload();
