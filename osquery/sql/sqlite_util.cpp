@@ -254,7 +254,7 @@ bool SQLiteDBInstance::useCache() const {
 }
 
 RecursiveLock SQLiteDBInstance::attachLock() const {
-  if (primary_) {
+  if (isPrimary()) {
     return RecursiveLock(kPrimaryAttachMutex);
   }
   return RecursiveLock(attach_mutex_);
