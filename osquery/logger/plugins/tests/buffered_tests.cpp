@@ -65,8 +65,13 @@ class BufferedLogForwarderTests : public Test {
 
 class MockBufferedLogForwarder : public BufferedLogForwarder {
  public:
-  using BufferedLogForwarder::BufferedLogForwarder;
-  MockBufferedLogForwarder() : BufferedLogForwarder("mock") {}
+  MockBufferedLogForwarder(
+      const std::string& name = "mock",
+      const std::chrono::duration<long, std::ratio<1, 1000>> log_period =
+          kLogPeriod,
+      size_t max_log_lines = kMaxLogLines)
+      : BufferedLogForwarder(
+            "MockBufferedLogForwarder", name, log_period, max_log_lines) {}
 
   MOCK_METHOD2(send,
                Status(std::vector<std::string>& log_data,

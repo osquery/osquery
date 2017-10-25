@@ -85,7 +85,8 @@ class AuditConsumer : private boost::noncopyable {
 
 class AuditConsumerRunner : public InternalRunnable {
  public:
-  AuditConsumerRunner(AuditEventPublisher* publisher) : publisher_(publisher) {}
+  AuditConsumerRunner(AuditEventPublisher* publisher)
+      : InternalRunnable("AuditConsumerRunner"), publisher_(publisher) {}
 
   /// Thread entrypoint.
   void start() override;

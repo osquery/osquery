@@ -122,7 +122,7 @@ class InterruptableRunnable {
 class InternalRunnable : private boost::noncopyable,
                          public InterruptableRunnable {
  public:
-  InternalRunnable() : run_(false) {}
+  InternalRunnable(const std::string& name) : run_(false), name_(name) {}
   virtual ~InternalRunnable() {}
 
  public:
@@ -144,6 +144,11 @@ class InternalRunnable : private boost::noncopyable,
     return run_;
   }
 
+  /// Returns the runner name
+  std::string name() const {
+    return name_;
+  }
+
  protected:
   /// Require the runnable thread define an entrypoint.
   virtual void start() = 0;
@@ -153,6 +158,7 @@ class InternalRunnable : private boost::noncopyable,
 
  private:
   std::atomic<bool> run_{false};
+  std::string name_;
 };
 
 /// An internal runnable used throughout osquery as dispatcher services.
