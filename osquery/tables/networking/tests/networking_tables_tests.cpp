@@ -62,5 +62,5 @@ TEST_F(NetworkingTablesTests, test_address_details_join) {
   auto results = SQL(query);
   EXPECT_GT(results.rows().size(), 0U);
 }
-}
-}
+} // namespace tables
+} // namespace osquery

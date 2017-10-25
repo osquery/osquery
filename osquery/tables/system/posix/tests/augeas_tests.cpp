@@ -61,5 +61,5 @@ TEST_F(AugeasTests, select_hosts_by_node) {
       << "Value is not empty. Got " << results.rows()[0].at("value")
       << "instead";
 }
-}
-}
+} // namespace tables
+} // namespace osquery

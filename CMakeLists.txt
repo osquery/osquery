@@ -379,10 +379,8 @@ if(DEFINED ENV{TIDY} AND CLANG_TIDY)
   set(DO_CLANG_TIDY "${CLANG_TIDY}"
     "-checks=${TIDY_CHECKS}"
     "-p=${CMAKE_BINARY_DIR}"
-    "-header-filter=.*osquery/(include|osquery).*"
     "-fix"
   )
-  message("Using clang-tidy checks: ${TIDY_CHECKS}")
 endif()
 
 if(WINDOWS)
