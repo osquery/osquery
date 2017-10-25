@@ -77,8 +77,6 @@ function main() {
     vagrant ssh $DARWIN_BOX -c "$DARWIN_SETUP"
     echo "[+] Running build command for macOS..."
     vagrant ssh $DARWIN_BOX -c "$BUILD_CMD"
-    vagrant ssh $DARWIN_BOX -c "/usr/local/osquery/bin/brew update || true"
-    vagrant ssh $DARWIN_BOX -c "/usr/local/osquery/bin/brew install rpm"
     echo "[+] Running package build command for macOS..."
     vagrant ssh $DARWIN_BOX -c "$PACKAGES_CMD"
     echo "[+] Copying macOS packages to $PKG_DIR"
