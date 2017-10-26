@@ -13,23 +13,25 @@
 #include <Windows.h>
 #include <Winternl.h>
 #pragma warning(push)
-/*
-C:\Program Files (x86)\Windows Kits\8.1\Include\um\DbgHelp.h(3190):
-warning C4091: 'typedef ': ignored on left of '' when no variable is declared
-*/
+// C:\Program Files (x86)\Windows Kits\8.1\Include\um\DbgHelp.h(3190):
+// warning C4091: 'typedef ': ignored on left of '' when no variable is
+// declared
 #pragma warning(disable : 4091)
 #include <DbgHelp.h>
 #pragma warning(pop)
 #include <DbgEng.h>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/windows/wmi.h"
 
+namespace alg = boost::algorithm;
 namespace fs = boost::filesystem;
 
 namespace osquery {
@@ -41,6 +43,10 @@ const std::string kLocalDumpsRegKey =
 const std::string kDumpFolderRegPath = kLocalDumpsRegKey + "\\DumpFolder";
 const std::string kFallbackFolder = "%TMP%";
 const std::string kDumpFileExtension = ".dmp";
+const std::string kSymbolPath = "C:\\ProgramData\\dbg\\sym;"
+	"cache*C:\\ProgramData\\dbg\\sym;"
+	"srv*C:\\ProgramData\\dbg\\sym*https://msdl.microsoft.com/download/symbols";
+const unsigned long kSymbolOptions = SYMOPT_CASE_INSENSITIVE & SYMOPT_UNDNAME & SYMOPT_LOAD_LINES & SYMOPT_OMAP_FIND_NEAREST & SYMOPT_LOAD_ANYTHING & SYMOPT_FAIL_CRITICAL_ERRORS & SYMOPT_AUTO_PUBLICS;
 const unsigned long kNumStackFramesToLog = 10;
 const std::map<unsigned long long, std::string> kMinidumpTypeFlags = {
     {0x00000000, "MiniDumpNormal"},
@@ -71,18 +77,16 @@ const std::vector<MINIDUMP_STREAM_TYPE> kStreamTypes = {ExceptionStream,
                                                         SystemInfoStream,
                                                         MiscInfoStream};
 
-class MinidumpOutputCallbacks : public IDebugOutputCallbacks {
+class RegisterOutputCallbacks : public IDebugOutputCallbacks {
 private:
-	Row* r;
-	// "What is the purpose of this output?"
-	enum Purpose { registers, modulePath, pePath };
+	Row* r = nullptr;
 
 public:
-	MinidumpOutputCallbacks(Row* r) {
+	RegisterOutputCallbacks(Row* r) {
 		this->r = r;
 	}
 
-	STDMETHODIMP MinidumpOutputCallbacks::QueryInterface(THIS_ _In_ REFIID InterfaceId, _Out_ PVOID* Interface) {
+	STDMETHODIMP RegisterOutputCallbacks::QueryInterface(THIS_ _In_ REFIID InterfaceId, _Out_ PVOID* Interface) {
 		*Interface = NULL;
 		if (IsEqualIID(InterfaceId, __uuidof(IUnknown)) ||
 			IsEqualIID(InterfaceId, __uuidof(IDebugOutputCallbacks))) {
@@ -95,75 +99,26 @@ public:
 		}
 	}
 
-	STDMETHODIMP_(ULONG) MinidumpOutputCallbacks::AddRef(THIS) {
+	STDMETHODIMP_(ULONG) RegisterOutputCallbacks::AddRef(THIS) {
 		return 1;
 	}
 
-	STDMETHODIMP_(ULONG) MinidumpOutputCallbacks::Release(THIS) {
+	STDMETHODIMP_(ULONG) RegisterOutputCallbacks::Release(THIS) {
 		return 0;
 	}
 
-	STDMETHODIMP MinidumpOutputCallbacks::Output(THIS_ _In_ ULONG Mask, _In_ PCSTR Text) {
+	STDMETHODIMP RegisterOutputCallbacks::Output(THIS_ _In_ ULONG Mask, _In_ PCSTR Text) {
 		if ((Mask & DEBUG_OUTPUT_NORMAL) == 0) {
-			LOG(INFO) << Text;
 			return S_FALSE;
 		}
 
-		Purpose purpose;
-		std::istringstream preprocessed(Text);
-		std::ostringstream postprocessed;
-		std::string cmd;
-		std::string line;
+		// Replace CRLFs with spaces
+		std::string regs(Text);
+		regs.erase(std::remove(regs.begin(), regs.end(), '\r'), regs.end());
+		std::replace(regs.begin(), regs.end(), '\n', ' ');
 
-		// Get the debugger command that was executed and determine purpose
-		std::getline(preprocessed, cmd);
-		if (cmd == std::string("r")) {
-			purpose = registers;
-		}
-		else if (cmd.find("lm f a") != std::string::npos) {
-			purpose = modulePath;
-		}
-		else if (cmd.find("lm f") != std::string::npos) {
-			purpose = pePath;
-		}
-		else {
-			return S_FALSE;
-		}
-
-		// Remove unwanted lines
-		while (std::getline(preprocessed, line)) {
-			if ((line.find("Last set context:") != std::string::npos) ||
-				(line.find("No .natvis files found") != std::string::npos)) {
-				continue;
-			}
-			postprocessed << line + "\n";
-		}
-
-		switch (purpose) {
-		case registers:
-			(*r)["registers"] = postprocessed.str();
-			break;
-		case modulePath:
-			(*r)["module"] = findModulePath(postprocessed.str());
-			break;
-		case pePath:
-			(*r)["path"] = findModulePath(postprocessed.str());
-			break;
-		}
-
+		(*r)["registers"] = regs;
 		return S_OK;
-	}
-
-	std::string findModulePath(std::string output) {
-		// Find the path of the first module
-		auto location = output.find(":\\");
-		if (location == std::string::npos) {
-			return std::string();
-		}
-		auto firstPath = output.substr(location - 1);
-		// Trim the rest of the output so we get just the module path
-		location = firstPath.find("\n");
-		return firstPath.substr(0, location);
 	}
 };
 
@@ -329,14 +284,14 @@ Status logDumpType(const MINIDUMP_HEADER* header, Row& r) {
 
 // Note: appears to only detect unmanaged stack frames.
 // See http://blog.steveniemitz.com/building-a-mixed-mode-stack-walker-part-2/
-Status logStackTrace(const char* fileName, IDebugControl4* control, IDebugSymbols3* symbols, Row& r) {
-	char context[1024] = { 0 };
+Status logStackTrace(IDebugControl5* control, IDebugSymbols3* symbols, Row& r) {
+	char context[sizeof(CONTEXT)] = { 0 };
 	unsigned long type = 0;
 	unsigned long procID = 0;
 	unsigned long threadID = 0;
 	unsigned long contextSize = 0;
 	unsigned long numFrames = 0;
-	DEBUG_STACK_FRAME stackFrames[kNumStackFramesToLog] = { 0 };
+	DEBUG_STACK_FRAME_EX stackFrames[kNumStackFramesToLog] = { 0 };
 
 	// Get stack frames, either with or without event context
 	if (control->GetStoredEventInformation(&type,
@@ -348,29 +303,21 @@ Status logStackTrace(const char* fileName, IDebugControl4* control, IDebugSymbol
 		NULL,
 		0,
 		0) == S_OK) {
-		auto contextData = new char[kNumStackFramesToLog * contextSize];
 		symbols->SetScopeFromStoredEvent();
-		auto status = control->GetContextStackTrace(context,
+		if (control->GetContextStackTraceEx(context,
 			contextSize,
 			stackFrames,
-			ARRAYSIZE(stackFrames),
-			contextData,
-			kNumStackFramesToLog * contextSize,
-			contextSize,
-			&numFrames);
-		delete[] contextData;
-		if (status != S_OK) {
-			LOG(ERROR)
-				<< "Error getting context stack trace while debugging crash dump: "
-				<< fileName;
+			kNumStackFramesToLog,
+			NULL,
+			0,
+			0,
+			&numFrames) != S_OK) {
 			return Status(1);
 		}
 	}
 	else {
-		if (control->GetStackTrace(
-			0, 0, 0, stackFrames, ARRAYSIZE(stackFrames), &numFrames) != S_OK) {
-			LOG(ERROR) << "Error getting stack trace while debugging crash dump: "
-				<< fileName;
+		if (control->GetStackTraceEx(
+			0, 0, 0, stackFrames, kNumStackFramesToLog, &numFrames) != S_OK) {
 			return Status(1);
 		}
 	}
@@ -400,31 +347,63 @@ Status logStackTrace(const char* fileName, IDebugControl4* control, IDebugSymbol
 	return Status();
 }
 
-Status logRegisters(IDebugClient5* client, IDebugControl4* control) {
-	control->Execute(DEBUG_OUTCTL_THIS_CLIENT, ".ecxr", DEBUG_EXECUTE_ECHO);
-	auto status = control->Execute(DEBUG_OUTCTL_THIS_CLIENT, "r", DEBUG_EXECUTE_ECHO);
-	return (status == S_OK) ? Status() : Status(1);
-}
-
-Status logPEPath(IDebugClient5* client, IDebugControl4* control) {
-	auto status = control->Execute(DEBUG_OUTCTL_THIS_CLIENT, "lm f", DEBUG_EXECUTE_ECHO);
-	return (status == S_OK) ? Status() : Status(1);
-}
-
-Status logModulePath(IDebugClient5* client, IDebugControl4* control, Row r) {
-	std::string cmd = "lm f a " + r["exception_address"];
-	auto status = control->Execute(DEBUG_OUTCTL_THIS_CLIENT, cmd.c_str(), DEBUG_EXECUTE_ECHO);
-	return (status == S_OK) ? Status() : Status(1);
-}
-
-Status logPEBInfo(IDebugClient5* client, IDebugControl4* control, IDebugSymbols3* symbols, Row& r) {
-	IDebugSystemObjects* system;
-	IDebugDataSpaces4* data;
-	if ((client->QueryInterface(__uuidof(IDebugSystemObjects), (void**)&system) != S_OK) ||
-		(client->QueryInterface(__uuidof(IDebugDataSpaces4), (void**)&data) != S_OK)) {
+Status logRegisters(IDebugClient5* client, IDebugControl5* control, IDebugRegisters* registers, IDebugAdvanced* advanced, Row& r) {
+	RegisterOutputCallbacks callback(&r);
+	if (client->SetOutputCallbacks(&callback) != S_OK) {
 		return Status(1);
 	}
 
+	// Set thread context from stored event (usually an exception)
+	char context[sizeof(CONTEXT)] = { 0 };
+	unsigned long type = 0;
+	unsigned long procID = 0;
+	unsigned long threadID = 0;
+	if (control->GetStoredEventInformation(&type,
+		&procID,
+		&threadID,
+		context,
+		sizeof(context),
+		NULL,
+		NULL,
+		0,
+		NULL) == S_OK) {
+		advanced->SetThreadContext(context, sizeof(context));
+	}
+
+	auto status = registers->OutputRegisters(DEBUG_OUTCTL_THIS_CLIENT, DEBUG_REGISTERS_DEFAULT);
+	client->SetOutputCallbacks(NULL);
+	return (status == S_OK) ? Status() : Status(1);
+}
+
+Status logPEPath(IDebugSymbols3* symbols, Row& r) {
+	char pePath[MAX_PATH + 1] = { 0 };
+	if (symbols->GetModuleNameString(DEBUG_MODNAME_IMAGE, 0, NULL, pePath, MAX_PATH + 1, NULL) == S_OK) {
+		r["path"] = pePath;
+		return Status();
+	}
+	return Status(1);
+}
+
+Status logModulePath(IDebugSymbols3* symbols, Row& r) {
+	std::istringstream converter(r["exception_address"]);
+	unsigned long long exAddr;
+	converter >> std::hex >> exAddr;
+	if (converter.fail()) {
+		return Status(1);
+	}
+
+	unsigned long modIndex;
+	char modPath[MAX_PATH + 1] = { 0 };
+	if ((symbols->GetModuleByOffset(exAddr, 0, &modIndex, NULL) == S_OK) &&
+		(symbols->GetModuleNameString(DEBUG_MODNAME_IMAGE, modIndex, NULL, modPath, MAX_PATH + 1, NULL) == S_OK)) {
+		r["module"] = modPath;
+		return Status();
+	}
+	return Status(1);
+}
+
+Status logPEBInfo(IDebugClient5* client, IDebugControl5* control, IDebugSymbols3* symbols,
+	IDebugSystemObjects* system, IDebugDataSpaces4* data, Row& r) {
 	// Get ntdll symbols
 	symbols->Reload("/f ntdll.dll");
 	unsigned long long ntdllBase = 0;
@@ -458,7 +437,7 @@ Status logPEBInfo(IDebugClient5* client, IDebugControl4* control, IDebugSymbols3
 		(symbols->GetFieldOffset(ntdllBase, procParamsTypeId, "CurrentDirectory", &curDirOffset) != S_OK)) {
 		return Status(1);
 	}
-	// Get CurrentDirectory
+	// Log CurrentDirectory
 	unsigned long long curDirBufferAddr = 0;
 	if (data->ReadPointersVirtual(1, procParamsAddr + curDirOffset + 0x8, &curDirBufferAddr) != S_OK) {
 		return Status(1);
@@ -472,7 +451,7 @@ Status logPEBInfo(IDebugClient5* client, IDebugControl4* control, IDebugSymbols3
 	if (symbols->GetFieldOffset(ntdllBase, procParamsTypeId, "CommandLine", &cmdLineOffset) != S_OK) {
 		return Status(1);
 	}
-	// Get CommandLine
+	// Log CommandLine
 	unsigned long long cmdLineBufferAddr = 0;
 	if (data->ReadPointersVirtual(1, procParamsAddr + cmdLineOffset + 0x8, &cmdLineBufferAddr) != S_OK) {
 		return Status(1);
@@ -519,17 +498,26 @@ Status logPEBInfo(IDebugClient5* client, IDebugControl4* control, IDebugSymbols3
 	return Status();
 }
 
-void debugEngineCleanup(IDebugClient5* client,
-	IDebugControl4* control,
-	IDebugSymbols3* symbols) {
-	if (symbols != nullptr) {
-		symbols->Release();
-	}
+void debugEngineCleanup(IDebugClient5* client, IDebugControl5* control, IDebugSymbols3* symbols, IDebugSystemObjects* system, IDebugDataSpaces4* data, IDebugRegisters* registers, IDebugAdvanced* advanced) {
 	if (control != nullptr) {
 		control->Release();
 	}
+	if (symbols != nullptr) {
+		symbols->Release();
+	}
+	if (system != nullptr) {
+		system->Release();
+	}
+	if (data != nullptr) {
+		data->Release();
+	}
+	if (registers != nullptr) {
+		registers->Release();
+	}
+	if (advanced != nullptr) {
+		advanced->Release();
+	}
 	if (client != nullptr) {
-		client->SetOutputCallbacks(NULL);
 		client->EndSession(DEBUG_END_PASSIVE);
 		client->Release();
 	}
@@ -537,60 +525,48 @@ void debugEngineCleanup(IDebugClient5* client,
 }
 
 void processDebugEngine(const char* fileName, Row& r) {
-  IDebugClient5* client;
-  IDebugControl4* control;
-  IDebugSymbols3* symbols;
-  MinidumpOutputCallbacks callback(&r);
+  IDebugClient5* client = nullptr;
+  IDebugControl5* control = nullptr;
+  IDebugSymbols3* symbols = nullptr;
+  IDebugSystemObjects* system = nullptr;
+  IDebugDataSpaces4* data = nullptr;
+  IDebugRegisters* registers = nullptr;
+  IDebugAdvanced* advanced = nullptr;
 
   // Create interfaces
   if (DebugCreate(__uuidof(IDebugClient5), (void**)&client) != S_OK) {
     LOG(ERROR) << "DebugCreate failed while debugging crash dump: " << fileName;
-    return debugEngineCleanup(client, nullptr, nullptr);
+	return;
   }
-  if ((client->QueryInterface(__uuidof(IDebugControl4), (void**)&control) !=
-       S_OK) ||
-      (client->QueryInterface(__uuidof(IDebugSymbols3), (void**)&symbols) !=
-       S_OK)) {
-    LOG(ERROR) << "QueryInterface failed while debugging crash dump: "
+  if ((client->QueryInterface(__uuidof(IDebugControl5), (void**)&control) != S_OK) ||
+      (client->QueryInterface(__uuidof(IDebugSymbols3), (void**)&symbols) != S_OK) ||
+	  (client->QueryInterface(__uuidof(IDebugSystemObjects), (void**)&system) != S_OK) ||
+	  (client->QueryInterface(__uuidof(IDebugDataSpaces4), (void**)&data) != S_OK) ||
+	  (client->QueryInterface(__uuidof(IDebugRegisters), (void**)&registers) != S_OK) ||
+	  (client->QueryInterface(__uuidof(IDebugAdvanced), (void**)&advanced) != S_OK)) {
+    LOG(ERROR) << "Failed to generate interfaces while debugging crash dump: "
                << fileName;
-    return debugEngineCleanup(client, control, symbols);
+    return debugEngineCleanup(client, control, symbols, system, data, registers, advanced);
   }
 
   // Initialization
-  if (symbols->SetImagePath(r["path"].c_str()) != S_OK) {
-    LOG(ERROR) << "Failed to set image path to \"" << r["path"]
-               << "\" while debugging crash dump: " << fileName;
-    return debugEngineCleanup(client, control, symbols);
+  if ((symbols->SetSymbolPath(kSymbolPath.c_str()) != S_OK) ||
+	  (symbols->SetSymbolOptions(kSymbolOptions) != S_OK) ||
+	  (client->OpenDumpFile(fileName) != S_OK) ||
+	  (control->WaitForEvent(DEBUG_WAIT_DEFAULT, INFINITE) != S_OK)) {
+    LOG(ERROR) << "Failed during initialization while debugging crash dump: " << fileName;
+	return debugEngineCleanup(client, control, symbols, system, data, registers, advanced);
   }
-  if ((symbols->SetSymbolPath("C:\\ProgramData\\dbg\\sym;"
-	  "cache*C:\\ProgramData\\dbg\\sym;"
-	  "srv*C:\\ProgramData\\dbg\\sym*https://msdl.microsoft.com/download/symbols") != S_OK) ||
-	  (symbols->SetSymbolOptions(SYMOPT_CASE_INSENSITIVE & SYMOPT_UNDNAME & SYMOPT_LOAD_LINES & SYMOPT_OMAP_FIND_NEAREST & SYMOPT_LOAD_ANYTHING & SYMOPT_FAIL_CRITICAL_ERRORS & SYMOPT_AUTO_PUBLICS) != S_OK)) {
-    LOG(ERROR) << "Failed to set symbol path while debugging crash dump: "
-               << fileName;
-    return debugEngineCleanup(client, control, symbols);
-  }
-  if (client->OpenDumpFile(fileName) != S_OK) {
-    LOG(ERROR) << "Failed to open dump file while debugging crash dump: "
-               << fileName;
-    return debugEngineCleanup(client, control, symbols);
-  }
-  if (control->WaitForEvent(DEBUG_WAIT_DEFAULT, INFINITE) != S_OK) {
-    LOG(ERROR) << "Initial processing failed while debugging crash dump: "
-               << fileName;
-    return debugEngineCleanup(client, control, symbols);
-  }
-  client->SetOutputCallbacks(&callback);
 
   // Extract information for the row
-  logStackTrace(fileName, control, symbols, r);
-  logPEPath(client, control);
-  logModulePath(client, control, r);
-  logRegisters(client, control);
-  logPEBInfo(client, control, symbols, r);
+  logStackTrace(control, symbols, r);
+  logPEPath(symbols, r);
+  logModulePath(symbols, r);
+  logRegisters(client, control, registers, advanced, r);
+  logPEBInfo(client, control, symbols, system, data, r);
 
   // Cleanup
-  return debugEngineCleanup(client, control, symbols);
+  return debugEngineCleanup(client, control, symbols, system, data, registers, advanced);
 }
 
 void processDumpStreams(const char* fileName, Row& r) {
@@ -602,7 +578,7 @@ void processDumpStreams(const char* fileName, Row& r) {
                              OPEN_EXISTING,
                              FILE_ATTRIBUTE_NORMAL,
                              NULL);
-  if (dumpFile == NULL) {
+  if (dumpFile == INVALID_HANDLE_VALUE) {
     unsigned long error = GetLastError();
     LOG(ERROR) << "Error opening crash dump file: " << fileName
                << " with error code " << error;
@@ -637,7 +613,6 @@ void processDumpStreams(const char* fileName, Row& r) {
   MINIDUMP_MODULE_LIST* moduleStream = nullptr;
   MINIDUMP_SYSTEM_INFO* systemStream = nullptr;
   MINIDUMP_MISC_INFO* miscStream = nullptr;
-
   for (auto stream : kStreamTypes) {
     MINIDUMP_DIRECTORY* dumpStreamDir = 0;
     void* dumpStream = 0;
@@ -647,7 +622,7 @@ void processDumpStreams(const char* fileName, Row& r) {
         dumpBase, stream, &dumpStreamDir, &dumpStream, &dumpStreamSize);
     if (!dumpRead) {
       unsigned long dwError = GetLastError();
-      LOG(ERROR) << "Error reading stream " << stream
+      LOG(WARNING) << "Error reading stream " << stream
                  << " in crash dump file: " << fileName << " with error code "
                  << dwError;
       continue;
@@ -667,15 +642,15 @@ void processDumpStreams(const char* fileName, Row& r) {
       miscStream = static_cast<MINIDUMP_MISC_INFO*>(dumpStream);
       break;
     default:
-      LOG(ERROR) << "Attempting to process unsupported crash dump stream: "
+      LOG(WARNING) << "Attempting to process unsupported crash dump stream: "
                  << stream;
       break;
     }
   }
 
-  auto dumpBaseAddr = static_cast<unsigned char*>(dumpBase);
   // Process dump info
   r["crash_path"] = fileName;
+  auto dumpBaseAddr = static_cast<unsigned char*>(dumpBase);
   logDumpType(header, r);
   logTID(exceptionStream, r);
   logExceptionInfo(exceptionStream, r);
@@ -701,16 +676,7 @@ QueryData genCrashLogs(QueryContext& context) {
                                 kLocalDumpsRegKey + "\" AND path = \"" +
                                 kDumpFolderRegPath + "\"";
   SQL dumpFolderResults(dumpFolderQuery);
-
-  if (dumpFolderResults.rows().empty()) {
-    LOG(WARNING)
-        << "No crash dump folder found in registry; using fallback location of "
-        << kFallbackFolder;
-    dumpFolderLocation = kFallbackFolder;
-  } else {
-    RowData dumpFolderRowData = dumpFolderResults.rows()[0].at("data");
-    dumpFolderLocation = dumpFolderRowData;
-  }
+  dumpFolderLocation = dumpFolderResults.rows().empty() ? kFallbackFolder : dumpFolderResults.rows()[0].at("data");
 
   // Fill in any environment variables
   char expandedDumpFolderLocation[MAX_PATH];
@@ -719,28 +685,24 @@ QueryData genCrashLogs(QueryContext& context) {
 
   if (!fs::exists(expandedDumpFolderLocation) ||
       !fs::is_directory(expandedDumpFolderLocation)) {
-    LOG(ERROR) << "Invalid crash dump directory: "
-               << expandedDumpFolderLocation;
+    LOG(ERROR) << "No crash dump directory found";
     return results;
   }
 
   // Enumerate and process crash dumps
-  fs::directory_iterator iterator(expandedDumpFolderLocation);
-  fs::directory_iterator endIterator;
-  while (iterator != endIterator) {
-    std::string extension = iterator->path().extension().string();
-    std::transform(
-        extension.begin(), extension.end(), extension.begin(), ::tolower);
-    if (fs::is_regular_file(*iterator) &&
-        (extension.compare(kDumpFileExtension) == 0)) {
-      Row r;
-      processDumpStreams(iterator->path().generic_string().c_str(), r);
-      processDebugEngine(iterator->path().generic_string().c_str(), r);
-      if (!r.empty()) {
-        results.push_back(r);
-      }
-    }
-    ++iterator;
+  std::vector<std::string> files;
+  if (listFilesInDirectory(expandedDumpFolderLocation, files)) {
+	  for (const auto& lf : files) {
+		  if (alg::iends_with(lf, kDumpFileExtension) &&
+			  fs::is_regular_file(lf)) {
+			  Row r;
+			  processDumpStreams(lf.c_str(), r);
+			  processDebugEngine(lf.c_str(), r);
+			  if (!r.empty()) {
+				  results.push_back(r);
+			  }
+		  }
+	  }
   }
 
   return results;
