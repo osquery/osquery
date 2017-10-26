@@ -45,56 +45,53 @@ const std::map<std::string, std::string> kTopLevelStringKeys{
 };
 
 Status parseApplicationAliasData(const std::string& data, std::string& result) {
-
   std::string decoded_data = base64Decode(data);
-  if (decoded_data.length() == 0) {
+  if (decoded_data.empty()) {
     return Status(1, "Failed to base64 decode data");
   }
 
-  CFDataRef resourceData = CFDataCreate(nullptr, (const UInt8*)decoded_data.data(), decoded_data.length());
+  CFDataRef resourceData = CFDataCreate(
+      nullptr,
+      static_cast<const UInt8*>(static_cast<const void*>(decoded_data.c_str())),
+      decoded_data.length());
   if (resourceData == nullptr) {
     return Status(1, "Failed to allocate resource data");
   }
 
-  CFErrorRef errorString;
-  CFDataRef alias = (CFDataRef)CFPropertyListCreateWithData(kCFAllocatorDefault, resourceData, kCFPropertyListImmutable, nullptr, &errorString);
+  auto alias = (CFDataRef)CFPropertyListCreateWithData(kCFAllocatorDefault,
+                                                       resourceData,
+                                                       kCFPropertyListImmutable,
+                                                       nullptr,
+                                                       nullptr);
+  CFRelease(resourceData);
   if (alias == nullptr) {
-    CFRelease(resourceData);
-    CFRelease(errorString);
     return Status(1, "Failed to allocate alias data");
   }
 
-  auto bookmark = CFURLCreateBookmarkDataFromAliasRecord(kCFAllocatorDefault, alias);
+  auto bookmark =
+      CFURLCreateBookmarkDataFromAliasRecord(kCFAllocatorDefault, alias);
+  CFRelease(alias);
   if (bookmark == nullptr) {
-    CFRelease(resourceData);
-    CFRelease(alias);
     return Status(1, "Alias data is not a bookmark");
   }
 
-  auto url = CFURLCreateByResolvingBookmarkData(kCFAllocatorDefault, bookmark, 0, nullptr, nullptr, nullptr, nullptr);
+  auto url = CFURLCreateByResolvingBookmarkData(
+      kCFAllocatorDefault, bookmark, 0, nullptr, nullptr, nullptr, nullptr);
+  CFRelease(bookmark);
   if (url == nullptr) {
-    CFRelease(resourceData);
-    CFRelease(alias);
-    CFRelease(bookmark);
     return Status(1, "Alias data is not a URL bookmark");
   }
 
   // Get the URL-formatted path.
-  result = stringFromCFString(CFURLCreateStringByReplacingPercentEscapes(kCFAllocatorDefault, CFURLGetString(url), CFSTR("")));
-  if (result.length() == 0) {
-    CFRelease(resourceData);
-    CFRelease(alias);
-    CFRelease(bookmark);
+  result = stringFromCFString(CFURLCreateStringByReplacingPercentEscapes(
+      kCFAllocatorDefault, CFURLGetString(url), CFSTR("")));
+  CFRelease(url);
+  if (result.empty()) {
     return Status(1, "Return result is zero size");
   }
   if (result.length() > 6 && result.substr(0, 7) == "file://") {
     result = result.substr(7);
   }
-
-  CFRelease(resourceData);
-  CFRelease(alias);
-  CFRelease(bookmark);
-  CFRelease(url);
 
   return Status(0, "OK");
 }
@@ -150,7 +147,6 @@ QueryData parseALFExceptionsTree(const pt::ptree& tree) {
     Row r;
 
     if (it.second.get("alias", "").length() > 0) {
-
       std::string path;
       auto alias_data = it.second.get<std::string>("alias", "");
 
