@@ -7,7 +7,7 @@ schema([
 	Column("pid", BIGINT, "Process ID of the crashed process"),
 	Column("tid", BIGINT, "Thread ID of the crashed thread"),
 	Column("version", TEXT, "File version info of the crashed process"),
-	Column("process_create_time", TEXT, "Creation time of the process"),
+	Column("process_uptime", BIGINT, "Uptime of the process in seconds"),
 	Column("stack_trace", TEXT, "Multiple stack frames from the stack trace"),
 	Column("exception_code", TEXT, "The Windows exception code"),
 	Column("exception_message", TEXT, "The NTSTATUS error message associated with the exception code"),
@@ -28,6 +28,6 @@ examples([
 	"select * from windows_crashes",
 	"select * from windows_crashes where module like '%electron.exe%'",
 	"select * from windows_crashes where datetime < '2016-10-14'",
-	"select * from windows_crashes where registers like '%rax:0x0%'",
+	"select * from windows_crashes where registers like '%rax=0000000000000004%'",
 	"select * from windows_crashes where stack_trace like '%vlc%'",
 ])
