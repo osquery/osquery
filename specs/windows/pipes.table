@@ -1,0 +1,13 @@
+table_name("pipes")
+description("Named and Anonymous pipes.")
+schema([
+    Column("pid", BIGINT, "Process ID of the process to which the pipe belongs", index=True),
+    Column("path", TEXT, "Path of the pipe"),
+    Column("type", TEXT, "The type of pipe, anonymous or named"),
+    Column("creation_time", BIGINT, "Creation time of the pipe"),
+    Column("last_access_time", BIGINT, "Last time the pipe was accessed"),
+])
+implementation("pipes@genPipes")
+examples([
+  "select * from pipes",
+])
