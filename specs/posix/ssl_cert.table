@@ -1,7 +1,7 @@
 table_name("ssl_cert")
 description("SSL certificates information.")
 schema([
-    Column("domain", TEXT, "Issued organization domain name", required=True, hidden=True),
+    Column("domain", TEXT, "Issued organization domain name", required=True),
     Column("issued_common_name", TEXT, "Common name of company issued to"),
     Column("issued_organization", TEXT, "Organization issued to"),
     Column("issued_organization_unit", TEXT, "Organization unit issued to"),
