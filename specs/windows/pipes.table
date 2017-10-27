@@ -6,6 +6,8 @@ schema([
     Column("type", TEXT, "The type of pipe, anonymous or named"),
     Column("creation_time", BIGINT, "Creation time of the pipe"),
     Column("last_access_time", BIGINT, "Last time the pipe was accessed"),
+    Column("instances", INTEGER, "Number of instances of the named pipe"),
+    Column("user", TEXT, "The user, if any, associated with the client end of the pipe; this field may often be empty"),
 ])
 implementation("pipes@genPipes")
 examples([

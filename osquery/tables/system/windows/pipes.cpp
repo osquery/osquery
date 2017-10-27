@@ -13,8 +13,8 @@
 #include <Windows.h>
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
 #include <osquery/logger.h>
+#include <osquery/tables.h>
 
 #include "osquery/filesystem/fileops.h"
 
@@ -39,17 +39,35 @@ QueryData genPipes(QueryContext& context) {
 
     r["name"] = findFileData.cFileName;
     r["path"] = "\\\\.\\pipe\\" + r["name"];
-    r["creation_time"] = BIGINT(filetimeToUnixtime(findFileData.ftCreationTime));
-    r["last_access_time"] = BIGINT(filetimeToUnixtime(findFileData.ftLastAccessTime));
+    r["creation_time"] =
+        BIGINT(filetimeToUnixtime(findFileData.ftCreationTime));
+    r["last_access_time"] =
+        BIGINT(filetimeToUnixtime(findFileData.ftLastAccessTime));
 
     unsigned long pid = 0;
-    auto pipeHandle = CreateFile(r["path"].c_str(), GENERIC_READ , 0, NULL, OPEN_EXISTING, 0, NULL);
+    auto pipeHandle = CreateFile(
+        r["path"].c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 
     auto ret = GetNamedPipeServerProcessId(pipeHandle, &pid);
     if (ret != TRUE) {
       ret = GetNamedPipeClientProcessId(pipeHandle, &pid);
     }
     r["pid"] = ret == TRUE ? INTEGER(pid) : "-1";
+
+    unsigned long numInstances = 0;
+    unsigned long maxCollectionCount = 0;
+    unsigned long dataTimeout = 0;
+    std::vector<char> userName(256, 0x0);
+    ret = GetNamedPipeHandleState(pipeHandle,
+                                  nullptr,
+                                  &numInstances,
+                                  nullptr,
+                                  nullptr,
+                                  userName.data(),
+                                  static_cast<unsigned long>(userName.size()));
+
+    r["instances"] = INTEGER(numInstances);
+    r["user"] = std::string(userName.data());
 
     results.push_back(r);
   } while (FindNextFile(findHandle, &findFileData));
