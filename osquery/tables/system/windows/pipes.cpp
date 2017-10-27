@@ -39,10 +39,6 @@ QueryData genPipes(QueryContext& context) {
 
     r["name"] = findFileData.cFileName;
     r["path"] = "\\\\.\\pipe\\" + r["name"];
-    r["creation_time"] =
-        BIGINT(filetimeToUnixtime(findFileData.ftCreationTime));
-    r["last_access_time"] =
-        BIGINT(filetimeToUnixtime(findFileData.ftLastAccessTime));
 
     unsigned long pid = 0;
     auto pipeHandle = CreateFile(
@@ -55,21 +51,26 @@ QueryData genPipes(QueryContext& context) {
     r["pid"] = ret == TRUE ? INTEGER(pid) : "-1";
 
     unsigned long numInstances = 0;
-    unsigned long maxCollectionCount = 0;
-    unsigned long dataTimeout = 0;
-    std::vector<char> userName(256, 0x0);
-    ret = GetNamedPipeHandleState(pipeHandle,
-                                  nullptr,
-                                  &numInstances,
-                                  nullptr,
-                                  nullptr,
-                                  userName.data(),
-                                  static_cast<unsigned long>(userName.size()));
-
+    GetNamedPipeHandleState(
+        pipeHandle, nullptr, &numInstances, nullptr, nullptr, nullptr, 0);
     r["instances"] = INTEGER(numInstances);
-    r["user"] = std::string(userName.data());
+
+    unsigned long pipeFlags = 0;
+    unsigned long maxInstances = 0;
+    ret = GetNamedPipeInfo(
+        pipeHandle, &pipeFlags, nullptr, nullptr, &maxInstances);
+    r["max_instances"] = ret == TRUE ? INTEGER(maxInstances) : "-1";
+
+    std::string end = (pipeFlags & PIPE_SERVER_END) == PIPE_SERVER_END
+                          ? "PIPE_SERVER_END"
+                          : "PIPE_CLIENT_END";
+    std::string type = (pipeFlags & PIPE_TYPE_MESSAGE) == PIPE_TYPE_MESSAGE
+                           ? "PIPE_TYPE_MESSAGE"
+                           : "PIPE_TYPE_BYTE";
+    r["flags"] = end + " | " + type;
 
     results.push_back(r);
+    CloseHandle(pipeHandle);
   } while (FindNextFile(findHandle, &findFileData));
 
   FindClose(findHandle);

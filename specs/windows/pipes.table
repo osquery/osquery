@@ -3,11 +3,9 @@ description("Named and Anonymous pipes.")
 schema([
     Column("pid", BIGINT, "Process ID of the process to which the pipe belongs", index=True),
     Column("path", TEXT, "Path of the pipe"),
-    Column("type", TEXT, "The type of pipe, anonymous or named"),
-    Column("creation_time", BIGINT, "Creation time of the pipe"),
-    Column("last_access_time", BIGINT, "Last time the pipe was accessed"),
     Column("instances", INTEGER, "Number of instances of the named pipe"),
-    Column("user", TEXT, "The user, if any, associated with the client end of the pipe; this field may often be empty"),
+    Column("max_instances", INTEGER, "The maximum number of instances creatable for this pipe"),
+    Column("flags", TEXT, "The flags indicating whether this pipe connection is a server or client end, and if the pipe for sending messages or bytes"),
 ])
 implementation("pipes@genPipes")
 examples([
