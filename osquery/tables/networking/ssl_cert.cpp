@@ -25,20 +25,19 @@ namespace tables {
 static void fillRow(Row& r, X509* cert) {
   std::vector<char> temp(256, 0x0);
   auto temp_data = temp.data();
-  auto temp_size = temp.size();
 
   // set certificate subject information
   auto subject_name = X509_get_subject_name(cert);
   auto ret = X509_NAME_get_text_by_NID(
-      subject_name, NID_commonName, temp_data, temp_size);
+      subject_name, NID_commonName, temp_data, temp.size());
   r["issued_common_name"] = ret == -1 ? "-1" : std::string(temp_data);
 
   ret = X509_NAME_get_text_by_NID(
-      subject_name, NID_organizationName, temp_data, temp_size);
+      subject_name, NID_organizationName, temp_data, temp.size());
   r["issued_organization"] = ret == -1 ? "-1" : std::string(temp_data);
 
   ret = X509_NAME_get_text_by_NID(
-      subject_name, NID_organizationalUnitName, temp_data, temp_size);
+      subject_name, NID_organizationalUnitName, temp_data, temp.size());
   r["issued_organization_unit"] = ret == -1 ? "-1" : std::string(temp_data);
 
   auto serial = X509_get_serialNumber(cert);
@@ -51,15 +50,15 @@ static void fillRow(Row& r, X509* cert) {
   // set certificate issuer information
   auto issuer_name = X509_get_issuer_name(cert);
   ret = X509_NAME_get_text_by_NID(
-      issuer_name, NID_commonName, temp_data, temp_size);
+      issuer_name, NID_commonName, temp_data, temp.size());
   r["issuer_cn"] = ret == -1 ? "-1" : std::string(temp_data);
 
   ret = X509_NAME_get_text_by_NID(
-      issuer_name, NID_organizationName, temp_data, temp_size);
+      issuer_name, NID_organizationName, temp_data, temp.size());
   r["issuer_organization"] = ret == -1 ? "-1" : std::string(temp_data);
 
   ret = X509_NAME_get_text_by_NID(
-      issuer_name, NID_organizationalUnitName, temp_data, temp_size);
+      issuer_name, NID_organizationalUnitName, temp_data, temp.size());
   r["issuer_organization_unit"] = ret == -1 ? "-1" : std::string(temp_data);
 
   // set period of validity
@@ -115,41 +114,36 @@ static void fillRow(Row& r, X509* cert) {
   return;
 }
 
-static void getSslCert(const std::string domain, QueryData& results) {
-  std::string port = ":443";
-  SSL* ssl = NULL;
-
+Status getSslCert(const std::string domain, QueryData& results) {
+  SSL* ssl = nullptr;
   SSL_library_init();
 
   const auto method = SSLv23_method();
   if (!method) {
-    VLOG(1) << "Failed to create SSL_method object";
-    return;
+    return Status(1, "Failed to create SSL_method object");
   }
 
   auto ctx = SSL_CTX_new(method);
   if (!ctx) {
-    VLOG(1) << "Failed to create SSL_CTX object";
-    return;
+    return Status(1, "Failed to create SSL_CTX object");
   }
 
   auto server = BIO_new_ssl_connect(ctx);
   if (!server) {
-    VLOG(1) << "Failed to create SSL Bio object";
-    return;
+    return Status(1, "Failed to create SSL Bio object");
   }
 
+  std::string port = ":443";
   auto ret = BIO_set_conn_hostname(server, (domain + port).c_str());
   if (ret != 1) {
-    VLOG(1) << "Failed to set SSL domain and port " << domain << port << ": "
-            << std::to_string(ret);
-    return;
+    return Status(1,
+                  "Failed to set SSL domain and port " + domain + port + ": " +
+                      std::to_string(ret));
   }
 
   BIO_get_ssl(server, &ssl);
   if (!ssl) {
-    VLOG(1) << "Failed to retrieve SSL object from Bio";
-    return;
+    return Status(1, "Failed to retrieve SSL object from Bio");
   }
 
   ret = SSL_set_tlsext_host_name(ssl, domain.c_str());
@@ -161,23 +155,23 @@ static void getSslCert(const std::string domain, QueryData& results) {
 
   ret = BIO_do_connect(server);
   if (ret != 1) {
-    VLOG(1) << "Failed to establish SSL connection with " << domain << ": "
-            << std::to_string(ret);
-    return;
+    return Status(1,
+                  "Failed to establish SSL connection with " + domain + ": " +
+                      std::to_string(ret));
   }
 
   ret = BIO_do_handshake(server);
   if (ret != 1) {
-    VLOG(1) << "Failed to complete SSL/TLS handshake with " << domain << ": "
-            << std::to_string(ret);
-    return;
+    return Status(1,
+                  "Failed to complete SSL/TLS handshake with " + domain + ": " +
+                      std::to_string(ret));
   }
 
   auto cert = SSL_get_peer_certificate(ssl);
   if (!cert) {
-    VLOG(1) << "No certificate from " << domain;
-    return;
+    return Status(1, "No certificate from " + domain);
   }
+
   Row r;
   r["domain"] = domain;
   fillRow(r, cert);
@@ -192,7 +186,7 @@ static void getSslCert(const std::string domain, QueryData& results) {
   if (ctx) {
     SSL_CTX_free(ctx);
   }
-  return;
+  return Status();
 }
 
 QueryData genSslCert(QueryContext& context) {
@@ -200,7 +194,10 @@ QueryData genSslCert(QueryContext& context) {
   auto domains = context.constraints["domain"].getAll(EQUALS);
 
   for (const auto& domain : domains) {
-    getSslCert(domain, results);
+    auto s = getSslCert(domain, results);
+    if (!s.ok()) {
+      LOG(INFO) << s.getMessage();
+    }
   }
 
   return results;
