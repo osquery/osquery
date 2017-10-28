@@ -16,8 +16,6 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/filesystem/fileops.h"
-
 namespace osquery {
 namespace tables {
 
@@ -25,9 +23,9 @@ QueryData genPipes(QueryContext& context) {
   QueryData results;
   WIN32_FIND_DATA findFileData;
 
-  std::string pipePrefix = "\\\\.\\pipe\\*";
+  std::string pipeSearch = "\\\\.\\pipe\\*";
   memset(&findFileData, 0, sizeof(findFileData));
-  auto findHandle = FindFirstFileA(pipePrefix.c_str(), &findFileData);
+  auto findHandle = FindFirstFileA(pipeSearch.c_str(), &findFileData);
 
   if (findHandle == INVALID_HANDLE_VALUE) {
     LOG(INFO) << "Failed to enumerate system pipes";
@@ -38,11 +36,11 @@ QueryData genPipes(QueryContext& context) {
     Row r;
 
     r["name"] = findFileData.cFileName;
-    r["path"] = "\\\\.\\pipe\\" + r["name"];
 
     unsigned long pid = 0;
+    auto pipePath = "\\\\.\\pipe\\" + r["name"];
     auto pipeHandle = CreateFile(
-        r["path"].c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+        pipePath.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 
     auto ret = GetNamedPipeServerProcessId(pipeHandle, &pid);
     if (ret != TRUE) {
@@ -51,9 +49,9 @@ QueryData genPipes(QueryContext& context) {
     r["pid"] = ret == TRUE ? INTEGER(pid) : "-1";
 
     unsigned long numInstances = 0;
-    GetNamedPipeHandleState(
+    ret = GetNamedPipeHandleState(
         pipeHandle, nullptr, &numInstances, nullptr, nullptr, nullptr, 0);
-    r["instances"] = INTEGER(numInstances);
+    r["instances"] = ret != 0 ? INTEGER(numInstances) : "-1";
 
     unsigned long pipeFlags = 0;
     unsigned long maxInstances = 0;
@@ -67,7 +65,7 @@ QueryData genPipes(QueryContext& context) {
     std::string type = (pipeFlags & PIPE_TYPE_MESSAGE) == PIPE_TYPE_MESSAGE
                            ? "PIPE_TYPE_MESSAGE"
                            : "PIPE_TYPE_BYTE";
-    r["flags"] = end + " | " + type;
+    r["flags"] = end + "," + type;
 
     results.push_back(r);
     CloseHandle(pipeHandle);
