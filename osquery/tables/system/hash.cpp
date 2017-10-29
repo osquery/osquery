@@ -17,11 +17,21 @@
 #include <unordered_map>
 #include <vector>
 
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 
 #include <boost/filesystem.hpp>
 
+#include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -164,54 +174,43 @@ std::string hashFromFile(HashType hash_type, const std::string& path) {
  * every time the mtime or size of the file changes.
  */
 
-#include <errno.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 #if defined(WIN32)
 
-typedef struct _stat Stat;
-#define xstat(path, st) _stat((path), static_cast<struct _stat *>(st))
-
-#else
-
-#include <unistd.h>
-
-typedef struct stat Stat;
-#define xstat(path, st) stat((path), static_cast<struct stat *>(st))
+#define stat _stat
 
 #endif
 
 struct FileHashCache {
-  time_t mtime; // last modification time of the file, # sec since UNIX
-  time_t cache_access; // last access to the cache entry, # sec since UNIX
-  off_t size; // file size in bytes
-  MultiHashes hashes; // payload
-  std::string path; // tracking it for eviction policy
+  time_t file_mtime;
+  off_t file_size;
+  time_t cache_access_time;
+  MultiHashes hashes;
+  // tracking it for eviction policy
+  std::string path;
 
   // comparison function for organizing the LRU heap
   static bool greater(const FileHashCache* l, const FileHashCache* r) {
-    return l->cache_access > r->cache_access;
+    return l->cache_access_time > r->cache_access_time;
   }
-  // do-it-all access function: maintains the cache of Row objects,
+  // do-it-all access function: maintains the cache of hash sums,
   // stats file at path, if it has changed or it is not present in cache
   // calculates the hashes and caches the result
-  // returns true if succeded, false if something went wrong
+  // returns true if succeeded, false if something went wrong
   static bool load(const std::string& path, MultiHashes& out);
 };
 
 bool FileHashCache::load(const std::string& path, MultiHashes& out) {
-  static std::mutex mx; // synchronize the access to cache
+  static Mutex mx; // synchronize the access to cache
   // path => cache entry
   static std::unordered_map<std::string, FileHashCache> cache;
-  // minheap on cache_access
+  // minheap on cache_access_time
   static std::vector<FileHashCache*> lru;
 
-  std::lock_guard<std::mutex> guard(mx);
+  WriteLock guard(mx);
 
-  Stat st;
-  if (xstat(path.c_str(), &st) != 0) {
+  struct stat st;
+  if (stat(path.c_str(), &st) != 0) {
     LOG(WARNING) << "cannot stat file: " << path << " ; " << strerror(errno);
     return false;
   }
@@ -222,40 +221,41 @@ bool FileHashCache::load(const std::string& path, MultiHashes& out) {
       // too large, evict
       for (size_t i = 0; i < FLAGS_persistent_hash_cache_evict_bunch_size;
            ++i) {
-        if (!lru.empty()) {
-          std::string key = lru[0]->path;
-          std::pop_heap(lru.begin(), lru.end(), FileHashCache::greater);
-          lru.pop_back();
-          if (cache.find(key) != cache.end()) {
-            cache.erase(key);
-          }
+        if (lru.empty()) {
+          continue;
+        }
+        std::string key = lru[0]->path;
+        std::pop_heap(lru.begin(), lru.end(), FileHashCache::greater);
+        lru.pop_back();
+        if (cache.find(key) != cache.end()) {
+          cache.erase(key);
         }
       }
     }
     auto hashes = hashMultiFromFile(
         HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
-    FileHashCache rec = {.mtime = st.st_mtime,
-                         .size = st.st_size,
+    FileHashCache rec = {.file_mtime = st.st_mtime,
+                         .file_size = st.st_size,
                          .hashes = std::move(hashes),
-                         .cache_access = time(0),
+                         .cache_access_time = time(0),
                          .path = path};
     cache[path] = std::move(rec);
     lru.push_back(&cache[path]);
     std::push_heap(lru.begin(), lru.end(), FileHashCache::greater);
     out = cache[path].hashes;
-  } else if (st.st_size != entry->second.size ||
-             st.st_mtime != entry->second.mtime) { // changed, update
+  } else if (st.st_size != entry->second.file_size ||
+             st.st_mtime != entry->second.file_mtime) { // changed, update
     auto hashes = hashMultiFromFile(
         HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
-    entry->second.cache_access = time(0);
-    entry->second.mtime = st.st_mtime;
-    entry->second.size = st.st_size;
+    entry->second.cache_access_time = time(0);
+    entry->second.file_mtime = st.st_mtime;
+    entry->second.file_size = st.st_size;
     entry->second.hashes = std::move(hashes);
     std::make_heap(lru.begin(), lru.end(), FileHashCache::greater);
     out = entry->second.hashes;
   } else { // ok, got it
     out = entry->second.hashes;
-    entry->second.cache_access = time(0);
+    entry->second.cache_access_time = time(0);
     std::make_heap(lru.begin(), lru.end(), FileHashCache::greater);
   }
   return true;
