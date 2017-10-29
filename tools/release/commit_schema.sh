@@ -39,13 +39,13 @@ function main() {
     [[ "$0" = "$BASH_SOURCE" ]] && exit 1
   fi
 
-  (cd $SITE; git commit -m 'Adding schema $VERSION')
+  (cd $SITE; git commit -m "Adding schema $VERSION")
   read -p "Push to master? [y/N]: " -r
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     [[ "$0" = "$BASH_SOURCE" ]] && exit 1
   fi
 
-  (cd $SITE; git push master)
+  (cd $SITE; git push)
   echo "[+] Finished"
 }
 
