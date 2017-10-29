@@ -40,32 +40,36 @@ QueryData genPipes(QueryContext& context) {
     unsigned long pid = 0;
     auto pipePath = "\\\\.\\pipe\\" + r["name"];
     auto pipeHandle = CreateFile(
-        pipePath.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-
+        pipePath.c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+    if (pipeHandle == INVALID_HANDLE_VALUE) {
+      results.push_back(r);
+      LOG(INFO) << "Failed to open handle to pipe with " << GetLastError();
+      continue;
+    }
     auto ret = GetNamedPipeServerProcessId(pipeHandle, &pid);
     if (ret != TRUE) {
       ret = GetNamedPipeClientProcessId(pipeHandle, &pid);
     }
-    r["pid"] = ret == TRUE ? INTEGER(pid) : "-1";
+    r["pid"] = (ret == TRUE) ? INTEGER(pid) : "-1";
 
     unsigned long numInstances = 0;
     ret = GetNamedPipeHandleState(
         pipeHandle, nullptr, &numInstances, nullptr, nullptr, nullptr, 0);
-    r["instances"] = ret != 0 ? INTEGER(numInstances) : "-1";
+    r["instances"] = (ret != 0) ? INTEGER(numInstances) : "-1";
 
     unsigned long pipeFlags = 0;
     unsigned long maxInstances = 0;
     ret = GetNamedPipeInfo(
         pipeHandle, &pipeFlags, nullptr, nullptr, &maxInstances);
-    r["max_instances"] = ret == TRUE ? INTEGER(maxInstances) : "-1";
+    r["max_instances"] = (ret == TRUE) ? INTEGER(maxInstances) : "-1";
 
-    std::string end = (pipeFlags & PIPE_SERVER_END) == PIPE_SERVER_END
+    std::string end = ((pipeFlags & PIPE_SERVER_END) == PIPE_SERVER_END)
                           ? "PIPE_SERVER_END"
                           : "PIPE_CLIENT_END";
-    std::string type = (pipeFlags & PIPE_TYPE_MESSAGE) == PIPE_TYPE_MESSAGE
+    std::string type = ((pipeFlags & PIPE_TYPE_MESSAGE) == PIPE_TYPE_MESSAGE)
                            ? "PIPE_TYPE_MESSAGE"
                            : "PIPE_TYPE_BYTE";
-    r["flags"] = end + "," + type;
+    r["flags"] = end + ',' + type;
 
     results.push_back(r);
     CloseHandle(pipeHandle);
