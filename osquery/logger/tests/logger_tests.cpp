@@ -23,6 +23,7 @@ DECLARE_bool(logger_secondary_status_only);
 DECLARE_bool(logger_status_sync);
 DECLARE_bool(logger_event_type);
 DECLARE_bool(logger_snapshot_event_type);
+DECLARE_bool(disable_logging);
 
 class LoggerTests : public testing::Test {
  public:

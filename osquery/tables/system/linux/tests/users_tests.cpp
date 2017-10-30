@@ -41,4 +41,4 @@ TEST_F(UsersTests, test_nobody_drop_username) {
 
   EXPECT_NE(geteuid(), nobody_uid);
 }
-}
+} // namespace osquery

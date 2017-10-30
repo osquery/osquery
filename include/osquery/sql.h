@@ -52,10 +52,10 @@ class SQL : private only_movable {
   explicit SQL(const std::string& query, bool use_cache = false);
 
   /// Allow moving.
-  SQL(SQL&&) = default;
+  SQL(SQL&&) noexcept = default;
 
   /// Allow move assignment.
-  SQL& operator=(SQL&&) = default;
+  SQL& operator=(SQL&&) = delete;
 
  public:
   /**
@@ -126,7 +126,7 @@ class SQL : private only_movable {
    *
    * The osquery::SQL class should only ever be instantiated with a query.
    */
-  SQL() {}
+  SQL() = default;
 
  protected:
   /// The internal member which holds the results of the query.
@@ -160,7 +160,7 @@ class SQLPlugin : public Plugin {
   /// Run a SQL query string against the SQL implementation.
   virtual Status query(const std::string& query,
                        QueryData& results,
-                       bool use_cache = false) const = 0;
+                       bool use_cache) const = 0;
 
   /// Use the SQL implementation to parse a query string and return details
   /// (name, type) about the columns.
@@ -178,12 +178,12 @@ class SQLPlugin : public Plugin {
    * attached at run time. In the case of SQLite where a single DB object is
    * managed, tables are enumerated and attached during initialization.
    */
-  virtual Status attach(const std::string& name) {
+  virtual Status attach(const std::string& /*name*/) {
     return Status(0, "Not used");
   }
 
   /// Tables may be detached by name.
-  virtual void detach(const std::string& name) {}
+  virtual void detach(const std::string& /*name*/) {}
 
  public:
   Status call(const PluginRequest& request, PluginResponse& response) override;
@@ -245,4 +245,4 @@ Status getQueryColumns(const std::string& q, TableColumns& columns);
  * @return status indicating success or failure of the operation.
  */
 Status getQueryTables(const std::string& q, std::vector<std::string>& tables);
-}
+} // namespace osquery

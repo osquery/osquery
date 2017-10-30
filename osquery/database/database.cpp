@@ -95,6 +95,13 @@ bool DatabasePlugin::checkDB() {
   return result;
 }
 
+Status DatabasePlugin::scan(const std::string& domain,
+                            std::vector<std::string>& results,
+                            const std::string& prefix,
+                            size_t max) const {
+  return Status(0, "Not used");
+}
+
 Status DatabasePlugin::call(const PluginRequest& request,
                             PluginResponse& response) {
   if (request.count("action") == 0) {

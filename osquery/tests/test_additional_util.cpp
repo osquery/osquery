@@ -8,8 +8,8 @@
  *
  */
 
-#include <signal.h>
-#include <time.h>
+#include <csignal>
+#include <ctime>
 
 #include <thread>
 
@@ -35,7 +35,7 @@ DECLARE_bool(disable_caching);
 
 void TLSServerRunner::start() {
   auto& self = instance();
-  if (self.server_ != 0) {
+  if (self.server_ != nullptr) {
     return;
   }
 
@@ -60,7 +60,7 @@ void TLSServerRunner::start() {
     FLAGS_disable_caching = true;
     auto results = SQL(query);
     FLAGS_disable_caching = caching;
-    if (results.rows().size() > 0) {
+    if (!results.rows().empty()) {
       self.server_.reset(
           new PlatformProcess(std::atoi(results.rows()[0].at("pid").c_str())));
       break;
@@ -108,4 +108,4 @@ void TLSServerRunner::stop() {
     self.server_.reset();
   }
 }
-}
+} // namespace osquery

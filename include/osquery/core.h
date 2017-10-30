@@ -214,22 +214,22 @@ using RecursiveLock = boost::unique_lock<boost::recursive_mutex>;
 class only_movable {
  protected:
   /// Boilerplate self default constructor.
-  only_movable() {}
+  only_movable() = default;
 
   /// Boilerplate self destructor.
-  ~only_movable() {}
+  ~only_movable() = default;
 
   /// Important, existence of a move constructor.
-  only_movable(only_movable&&) {}
+  only_movable(only_movable&& /*unused*/) noexcept {}
 
- private:
+ public:
   /// Important, a private copy constructor prevents copying.
-  only_movable(const only_movable&);
+  only_movable(const only_movable&) = delete;
 
   /// Important, a private copy assignment constructor prevents copying.
-  only_movable& operator=(const only_movable&);
+  only_movable& operator=(const only_movable&) = delete;
 };
 
 /// Custom literal for size_t.
 size_t operator"" _sz(unsigned long long int x);
-}
+} // namespace osquery

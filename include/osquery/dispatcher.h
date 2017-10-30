@@ -30,7 +30,7 @@ struct RunnerInterruptError {};
 
 class RunnerInterruptPoint : private boost::noncopyable {
  public:
-  RunnerInterruptPoint() : stop_(false) {}
+  RunnerInterruptPoint() = default;
 
   /// Cancel the pause request.
   void cancel();
@@ -45,7 +45,7 @@ class RunnerInterruptPoint : private boost::noncopyable {
 
  private:
   /// Communicate between the pause and cancel event.
-  bool stop_;
+  bool stop_{false};
 
   /// Protection around pause and cancel calls.
   std::mutex mutex_;
@@ -56,7 +56,7 @@ class RunnerInterruptPoint : private boost::noncopyable {
 
 class InterruptableRunnable {
  public:
-  virtual ~InterruptableRunnable() {}
+  virtual ~InterruptableRunnable() = default;
 
   /**
    * @brief The std::thread's interruption point.
@@ -123,7 +123,7 @@ class InternalRunnable : private boost::noncopyable,
                          public InterruptableRunnable {
  public:
   InternalRunnable(const std::string& name) : run_(false), name_(name) {}
-  virtual ~InternalRunnable() {}
+  virtual ~InternalRunnable() override = default;
 
  public:
   /**
@@ -154,7 +154,7 @@ class InternalRunnable : private boost::noncopyable,
   virtual void start() = 0;
 
   /// The runnable thread may optionally define a stop/interrupt point.
-  virtual void stop() {}
+  void stop() override {}
 
  private:
   std::atomic<bool> run_{false};
@@ -207,8 +207,8 @@ class Dispatcher : private boost::noncopyable {
    * Since instances of Dispatcher should only be created via instance(),
    * Dispatcher's constructor is private.
    */
-  Dispatcher() {}
-  virtual ~Dispatcher() {}
+  Dispatcher() = default;
+  virtual ~Dispatcher() = default;
 
  private:
   /// When a service ends, it will remove itself from the dispatcher.
@@ -251,4 +251,4 @@ class Dispatcher : private boost::noncopyable {
   friend class ExtensionsTests;
   friend class DispatcherTests;
 };
-}
+} // namespace osquery

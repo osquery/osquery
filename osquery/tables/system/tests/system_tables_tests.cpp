@@ -156,10 +156,9 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
   {
     // Check LIKE and = operands.
     SQL results(
-        "select path from file where path = '/etc/' or path LIKE '/dev/%' or "
-        "path LIKE '\\Windows\\%';");
+        R"(select path from file where path = '/etc/' or path LIKE '/dev/%' or path LIKE '\Windows\%';)");
     ASSERT_GT(results.rows().size(), 1U);
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery
