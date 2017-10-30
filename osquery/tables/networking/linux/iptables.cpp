@@ -12,6 +12,7 @@
 
 #include <arpa/inet.h>
 #include <libiptc/libiptc.h>
+#include <netinet/in.h>
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -71,6 +72,39 @@ void parseIpEntry(const ipt_ip *ip, Row &r) {
   r["outiface_mask"] = TEXT(outiface_mask);
 }
 
+void parseEntryMatch(const struct ipt_entry* en, Row& r) {
+  // Get rule port details from the xt_entry_match object
+
+  auto m = (struct xt_entry_match*)en->elems;
+
+  if (en->ip.proto == IPPROTO_TCP) {
+    auto m_data = (struct ipt_tcp*)m->data;
+    r["src_port"] = (m_data)
+                        ? std::to_string(m_data->spts[0]) + ":" +
+                              std::to_string(m_data->spts[1])
+                        : "-1";
+    r["dst_port"] = (m_data)
+                        ? std::to_string(m_data->dpts[0]) + ":" +
+                              std::to_string(m_data->dpts[1])
+                        : "-1";
+
+  } else if (en->ip.proto == IPPROTO_UDP) {
+    auto m_data = (struct ipt_udp*)m->data;
+    r["src_port"] = (m_data)
+                        ? std::to_string(m_data->spts[0]) + ":" +
+                              std::to_string(m_data->spts[1])
+                        : "-1";
+    r["dst_port"] = (m_data)
+                        ? std::to_string(m_data->dpts[0]) + ":" +
+                              std::to_string(m_data->dpts[1])
+                        : "-1";
+
+  } else {
+    r["src_port"] = "0";
+    r["dst_port"] = "0";
+  }
+}
+
 void genIPTablesRules(const std::string &filter, QueryData &results) {
   Row r;
   r["filter_name"] = filter;
@@ -115,8 +149,12 @@ void genIPTablesRules(const std::string &filter, QueryData &results) {
 
       if (chain_rule->target_offset) {
         r["match"] = "yes";
+        // fill protocol port details
+        parseEntryMatch(chain_rule, r);
       } else {
         r["match"] = "no";
+        r["src_port"] = "";
+        r["dst_port"] = "";
       }
 
       const struct ipt_ip *ip = &chain_rule->ip;
