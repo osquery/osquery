@@ -82,10 +82,16 @@ Status parseApplicationAliasData(const std::string& data, std::string& result) {
     return Status(1, "Alias data is not a URL bookmark");
   }
 
-  // Get the URL-formatted path.
-  result = stringFromCFString(CFURLCreateStringByReplacingPercentEscapes(
-      kCFAllocatorDefault, CFURLGetString(url), CFSTR("")));
+  auto replaced = CFURLCreateStringByReplacingPercentEscapes(
+      kCFAllocatorDefault, CFURLGetString(url), CFSTR(""));
   CFRelease(url);
+  if (replaced == nullptr) {
+    return Status(1, "Failed to replace percent escapes.");
+  }
+
+  // Get the URL-formatted path.
+  result = stringFromCFString(replaced);
+  CFRelease(replaced);
   if (result.empty()) {
     return Status(1, "Return result is zero size");
   }
