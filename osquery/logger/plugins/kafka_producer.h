@@ -62,7 +62,7 @@ class KafkaProducerPlugin : public LoggerPlugin, public InternalRunnable {
    */
   void stop() override;
 
-  KafkaProducerPlugin() : running_(false) {}
+  KafkaProducerPlugin() : InternalRunnable("kafka_producer"), running_(false) {}
   ~KafkaProducerPlugin() {}
 
   KafkaProducerPlugin(KafkaProducerPlugin const&) = delete;

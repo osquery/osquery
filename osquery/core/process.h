@@ -39,7 +39,7 @@
 namespace osquery {
 
 /// Constant for an invalid process
-const PlatformPidType kInvalidPid = (PlatformPidType)-1;
+const auto kInvalidPid = (PlatformPidType)-1;
 
 /**
  * @brief Categories of process states adapted to be platform agnostic
@@ -287,4 +287,4 @@ int platformGetPid();
 * and on posix platforms returns gettid()
 */
 int platformGetTid();
-}
+} // namespace osquery

@@ -72,7 +72,7 @@ static bool compareArguments(char* result[],
 
   return true;
 }
-}
+} // namespace osquery
 
 int workerMain(int argc, char* argv[]) {
   if (!osquery::compareArguments(argv,
@@ -83,7 +83,7 @@ int workerMain(int argc, char* argv[]) {
   }
 
   auto process = osquery::PlatformProcess::getLauncherProcess();
-  if (process.get() == nullptr) {
+  if (process == nullptr) {
     return ERROR_LAUNCHER_PROCESS;
   }
 

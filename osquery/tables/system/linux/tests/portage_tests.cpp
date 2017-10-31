@@ -54,5 +54,5 @@ TEST_F(PortageTests, portageSplitPackageVersion_no_version) {
   ASSERT_EQ(result.first, "sys-kernel/gentoo-sources");
   ASSERT_EQ(result.second, "");
 }
-}
-}
+} // namespace tables
+} // namespace osquery

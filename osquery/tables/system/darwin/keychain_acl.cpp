@@ -70,7 +70,7 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
   uint32 acl_tag_size = 64;
   std::vector<CSSM_ACL_AUTHORIZATION_TAG> tags(acl_tag_size);
   OSQUERY_USE_DEPRECATED(
-      os_status = SecACLGetAuthorizations(acl, tags.data(), &acl_tag_size););
+      os_status = SecACLGetAuthorizations(acl, tags.data(), &acl_tag_size));
   if (os_status != noErr) {
     return Status(os_status, "Could not get ACL authorizations");
   }
@@ -86,7 +86,7 @@ Status parseKeychainItemACLEntry(SecACLRef acl,
   CFArrayRef application_list = nullptr;
   OSQUERY_USE_DEPRECATED(
       os_status = SecACLCopySimpleContents(
-          acl, &application_list, &description, &prompt_selector););
+          acl, &application_list, &description, &prompt_selector));
   if (os_status != noErr) {
     return Status(os_status, "Could not copy ACL content");
   }
@@ -282,7 +282,7 @@ Status genKeychainACLApps(const std::string& path, QueryData& results) {
   SecKeychainSearchRef search = nullptr;
   OSQUERY_USE_DEPRECATED(
       os_status = SecKeychainSearchCreateFromAttributes(
-          keychain, (SecItemClass)CSSM_DL_DB_RECORD_ANY, nullptr, &search););
+          keychain, (SecItemClass)CSSM_DL_DB_RECORD_ANY, nullptr, &search));
   if (os_status != noErr || search == nullptr) {
     if (search != nullptr) {
       CFRelease(search);

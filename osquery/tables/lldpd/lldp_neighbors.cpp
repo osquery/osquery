@@ -347,7 +347,7 @@ void LLDPNeighbor::getChassis() {
 }
 
 /**
- * @brief getNeighbor retreives all LLDP information of the given neighbor port
+ * @brief getNeighbor retrieves all LLDP information of the given neighbor port
  * and chassis.
  *
  * @return filled osquery::Row of lldp information for a given interface

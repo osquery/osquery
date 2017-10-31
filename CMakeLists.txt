@@ -366,6 +366,14 @@ if(DEFINED ENV{TIDY} AND CLANG_TIDY)
     "-modernize-use-bool-literals"
     "-modernize-use-emplace"
     "-google-runtime-references"
+    # This adds header guards when we already use pragmas
+    "-llvm-header-guard"
+    # This adds an explicit for operator TYPE() in flags.h
+    "-google-explicit-constructor"
+    # Too many notes about not defining all specials
+    "-cppcoreguidelines-special-member-functions"
+    # These default arguments are very valuable
+    "-google-default-arguments"
   )
   JOIN("${TIDY_CHECKS}" "," TIDY_CHECKS)
   set(DO_CLANG_TIDY "${CLANG_TIDY}"
@@ -513,6 +521,9 @@ if(POSIX)
   include_directories(SYSTEM "${BUILD_DEPS}/include")
   include_directories("${BUILD_DEPS}/include/openssl")
 endif()
+
+# Including Boost Beast within third-party until it's merged into boot 1.66.
+include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
 
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")

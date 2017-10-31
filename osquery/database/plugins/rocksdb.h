@@ -56,7 +56,7 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
   Status scan(const std::string& domain,
               std::vector<std::string>& results,
               const std::string& prefix,
-              size_t max = 0) const override;
+              size_t max) const override;
 
  public:
   /// Database workflow: open and setup.

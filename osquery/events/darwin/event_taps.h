@@ -38,7 +38,7 @@ class EventTappingEventPublisher
 
   void stop() override;
 
-  void restart();
+  Status restart();
 
   Status run() override;
 

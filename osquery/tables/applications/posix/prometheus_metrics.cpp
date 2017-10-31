@@ -9,18 +9,14 @@
  */
 #include <sstream>
 
-#include <boost/network/protocol/http/client.hpp>
-
 #include <osquery/config.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include <osquery/core/conversions.h>
-
 #include "osquery/config/parsers/prometheus_targets.h"
+#include "osquery/core/conversions.h"
+#include "osquery/remote/http_client.h"
 #include "osquery/tables/applications/posix/prometheus_metrics.h"
-
-namespace http = boost::network::http;
 
 namespace osquery {
 namespace tables {
@@ -52,18 +48,18 @@ void parseScrapeResults(
 
 void scrapeTargets(std::map<std::string, PrometheusResponseData>& scrapeResults,
                    size_t timeoutS) {
-  http::client client(
-      http::client::options().follow_redirects(true).timeout(timeoutS));
+  http::Client client(
+      http::Client::Options().follow_redirects(true).timeout(timeoutS));
 
   for (auto& target : scrapeResults) {
     try {
-      http::client::request request(target.first);
-      http::client::response response(client.get(request));
+      http::Request request(target.first);
+      http::Response response(client.get(request));
 
       target.second.timestampMS =
           std::chrono::duration_cast<std::chrono::milliseconds>(
               std::chrono::system_clock::now().time_since_epoch());
-      target.second.content = static_cast<std::string>(body(response));
+      target.second.content = response.body();
 
     } catch (std::exception& e) {
       LOG(ERROR) << "Failed on scrape of target " << target.first << ": "

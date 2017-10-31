@@ -2,7 +2,7 @@
 
 ## Executing SQL queries
 
-**osqueryi** lets you run meta-commands and query osquery tables. See the [table API](https://osquery.io/tables/) for a complete list of tables, types, and column descriptions. For SQL syntax help, see [SQL as understood by SQLite](http://www.sqlite.org/lang.html).
+**osqueryi** lets you run meta-commands and query osquery tables. See the [schema API](https://osquery.io/schema/) for a complete list of tables, types, and column descriptions. For SQL syntax help, see [SQL as understood by SQLite](http://www.sqlite.org/lang.html).
 
 Here is an example query:
 
