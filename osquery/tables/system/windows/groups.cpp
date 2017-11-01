@@ -21,14 +21,11 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/windows/wmi.h"
+#include "osquery/core/windows/process_ops.h"
 #include "osquery/tables/system/windows/registry.h"
 #include "osquery/core/conversions.h"
 
 namespace osquery {
-
-// Defined in /osquery/core/windows/process_ops.cpp, but not declared in a
-// header:
-std::string psidToString(PSID sid);
 
 // Get the relative identifier (RID) from a security identifier (SID):
 unsigned long getRidFromSid(PSID sidPtr) {
@@ -107,7 +104,14 @@ void processLocalGroups(QueryData& results) {
       for (size_t i = 0; i < numGroupsRead; i++) {
         Row r;
         sidSmartPtr = GetSid(lginfo[i].lgrpi1_name);
-        sidPtr = static_cast<PSID>(sidSmartPtr.get());
+
+        if (sidSmartPtr != nullptr) { 
+          sidPtr = static_cast<PSID>(sidSmartPtr.get());
+        }
+        else {
+          // nullptr still valid, just results in blank fields
+          sidPtr = nullptr;
+        }
 
         // Windows' extended schema, including full SID and comment strings:
         r["group_sid"] = psidToString(sidPtr);
