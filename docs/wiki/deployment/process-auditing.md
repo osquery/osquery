@@ -1,7 +1,7 @@
 Process auditing is available in osquery, but requires additional configuration. It uses the same event-based architecture as the [File Integrity Monitoring (FIM)](../deployment/file-integrity-monitoring.md). To read more about how event-based tables are created and designed, check out the osquery [Table Pubsub Framework](../development/pubsub-framework.md). On all supported platforms, process events are abstracted into [`process_events`](https://osquery.io/schema/#process_events). This table abstracts the basic details about process creation. Process state changes and destruction is not yet represented, nor planned.
 
 To collect process events add a query like:
-```
+```sql  
 SELECT * FROM process_events;
 ```
 to your query schedule, or to a query pack.
