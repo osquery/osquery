@@ -14,6 +14,7 @@
 #include <Windows.h>
 #endif
 
+#include <boost/algorithm/string.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/database.h>
@@ -105,7 +106,8 @@ void updateCarveValue(const std::string& guid,
 
 Carver::Carver(const std::set<std::string>& paths,
                const std::string& guid,
-               const std::string& requestId) {
+               const std::string& requestId)
+    : InternalRunnable("Carver") {
   status_ = Status(0, "Ok");
   for (const auto& p : paths) {
     carvePaths_.insert(fs::path(p));

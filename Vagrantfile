@@ -209,7 +209,9 @@ Vagrant.configure("2") do |config|
           ]
         build.vm.provision 'shell',
           inline:
-            "sudo sed -i '' -e 's/quarterly/latest/g' /etc/pkg/FreeBSD.conf;"\
+            # Switching to latest may cause failures if dependencies are not built.
+            # "sudo sed -i '' -e 's/quarterly/latest/g' /etc/pkg/FreeBSD.conf;"\
+            "su -m root -c 'hostname vagrant';"\
             "su -m root -c 'pkg update -f';"\
             "sudo pkg install -y openjdk8 bash git gmake python ruby;"\
             "sudo mount -t fdescfs fdesc /dev/fd;"\

@@ -17,9 +17,9 @@ if (-not (Test-Path $utils)) {
 # A helper function to derive the latest VS install and call vcvarsall.bat
 function Invoke-VcVarsAll {
 
-  # First, derive the location of the latest VS install
+  # Attempt to make use of vswhere to derive the build tools scripts
   $vswhere = (Get-Command 'vswhere').Source
-  $vswhereArgs = @('-latest')
+  $vswhereArgs = @('-latest', '-legacy')
   $vswhereOut = (Start-OsqueryProcess $vswhere $vswhereArgs).stdout
   $vsLoc = ''
   $vsVersion = ''
@@ -38,15 +38,29 @@ function Invoke-VcVarsAll {
   $vsLoc = $vsLoc.trim()
   $vsVersion = $vsVersion.trim()
 
-  $vcvarsall = Join-Path $vsLoc 'VC'
-  if ($vsVersion -eq '15') {
-    $vcvarsall = Join-Path $vcvarsall '\Auxiliary\Build\vcvarsall.bat'
-  } else {
-    $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
+  if ($vsLoc -ne '') {
+    $vcvarsall = Join-Path $vsLoc 'VC'
+    if ($vsVersion -eq '15') {
+      $vcvarsall = Join-Path $vcvarsall '\Auxiliary\Build\vcvarsall.bat'
+    } else {
+      $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
+    }
+  
+    # Lastly invoke the environment provisioning script
+    $null = Invoke-BatchFile "$vcvarsall" "amd64"
+    return $true
   }
 
-  # Lastly invoke the environment provisioning script
+  # As a last ditch effort, attempt to find the env variables set by VS2015
+  # in order to derive the location of vcvarsall
+  $vsComnTools = [environment]::GetEnvironmentVariable("VS140COMNTOOLS")
+  if ($vsComnTools -eq '') {
+    return $false
+  }
+  $vcvarsall = Resolve-Path $(Join-Path "$vsComnTools" "..\..\VC")
+  $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
   $null = Invoke-BatchFile "$vcvarsall" "amd64"
+  return $true
 }
 
 
@@ -141,8 +155,15 @@ function Invoke-OsqueryBuild {
   # will always get run as the powershell launches in it's own instance
   # but we still check for those who . invoke the functions
   $vc = [environment]::GetEnvironmentVariable("VCToolsInstallDir")
+  $ret = $false
   if ($vc -eq $null) {
-    Invoke-VcVarsAll
+    $ret = Invoke-VcVarsAll
+  }
+  if ($ret -ne $true) {
+    $msg = '[-] Failed to find vs build tools. Re-run ' + 
+           'tools\make-win64-dev-env.bat'
+    Write-Host $msg -ForegroundColor Red
+    exit
   }
 
   Invoke-OsqueryCmake

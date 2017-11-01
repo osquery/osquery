@@ -1,4 +1,4 @@
-File integrity monitoring (FIM) is available for Linux and Darwin using inotify and FSEvents. The daemon reads a list of files/directories from the osquery configuration. The actions (and hashes when appropriate) to those selected files populate the [`file_events`](https://osquery.io/docs/tables/#file_events) table.
+File integrity monitoring (FIM) is available for Linux and Darwin using inotify and FSEvents. The daemon reads a list of files/directories from the osquery configuration. The actions (and hashes when appropriate) to those selected files populate the [`file_events`](https://osquery.io/schema/#file_events) table.
 
 To get started with FIM, you must first identify which files and directories you wish to monitor. Then use *fnmatch*-style, or filesystem globbing, patterns to represent the target paths. You may use standard wildcards "*\**" or SQL-style wildcards "*%*":
 
@@ -70,7 +70,7 @@ One must not mention arbitrary category name under the exclude_paths node, only 
 
 ## Sample Event Output
 
-As file changes happen, events will appear in the [**file_events**](https://osquery.io/docs/tables/#file_events) table.  During a file change event, the md5, sha1, and sha256 for the file will be calculated if possible. A sample event looks like this:
+As file changes happen, events will appear in the [**file_events**](https://osquery.io/schema/#file_events) table.  During a file change event, the md5, sha1, and sha256 for the file will be calculated if possible. A sample event looks like this:
 
 ```json
 {

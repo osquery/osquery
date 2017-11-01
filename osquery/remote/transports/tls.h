@@ -10,75 +10,9 @@
 
 #pragma once
 
-/*
- * Our third-party version of cpp-netlib uses OpenSSL APIs.
- * On OS X these symbols are marked deprecated and clang will warn against
- * us including them. We are squashing the noise for OS X's OpenSSL only.
- *
- * This is placed here because of ordering issues. ASIO requires WinSock.h
- * not to be already included.
- */
-
-// clang-format off
-#ifdef WIN32
-#pragma warning(push, 3)
-
-/*
- * Suppressing warning C4005:
- * 'ASIO_ERROR_CATEGORY_NOEXCEPT': macro redefinition
- */
-#pragma warning(disable: 4005)
-
-/*
- * Suppressing warning C4244:
- * 'argument': conversion from '__int64' to 'long', possible loss of data
- */
-#pragma warning(disable: 4244)
-#else
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#pragma clang diagnostic ignored "-Wunused-local-typedef"
-#pragma clang diagnostic ignored "-W#pragma-messages"
-#endif
-
-#include <boost/network/protocol/http/client.hpp>
-
-#ifdef WIN32
-#pragma warning(pop)
-
-/// We need to reinclude this to re-enable boost's warning suppression
-#include <boost/config/compiler/visualc.hpp>
-#else
-#pragma clang diagnostic pop
-#endif
-// clang-format on
-
-#include <openssl/ssl.h>
-#include <openssl/crypto.h>
-
-#ifndef OPENSSL_NO_SSL2
-#define OPENSSL_NO_SSL2 1
-#endif
-
-#ifndef OPENSSL_NO_SSL3
-#define OPENSSL_NO_SSL3 1
-#endif
-
-#define OPENSSL_NO_MD5 1
-#define OPENSSL_NO_DEPRECATED 1
-
-/// Newer versions of LibreSSL will lack SSL methods.
-extern "C" {
-#if defined(NO_SSL_TXT_SSLV3)
-SSL_METHOD* SSLv3_server_method(void);
-SSL_METHOD* SSLv3_client_method(void);
-SSL_METHOD* SSLv3_method(void);
-#endif
-void ERR_remove_state(unsigned long);
-}
-
 #include <osquery/flags.h>
 
+#include "osquery/remote/http_client.h"
 #include "osquery/remote/requests.h"
 
 namespace osquery {
@@ -134,7 +68,7 @@ class TLSTransport : public Transport {
  public:
   TLSTransport();
 
-  boost::network::http::client getClient();
+  http::Client::Options getOptions();
 
  private:
   /// Testing-only, disable peer verification.
@@ -173,11 +107,11 @@ class TLSTransport : public Transport {
    *
    * @param The request object, to be modified
    */
-  void decorateRequest(boost::network::http::client::request& r);
+  void decorateRequest(http::Request& r);
 
  protected:
   /// Storage for the HTTP response object
-  boost::network::http::client::response response_;
+  http::Response response_;
 
  private:
   FRIEND_TEST(TLSTransportsTests, test_call);
