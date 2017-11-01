@@ -56,7 +56,7 @@ void EventTappingEventPublisher::stop() {
   }
 }
 
-void EventTappingEventPublisher::restart() {
+Status EventTappingEventPublisher::restart() {
   stop();
   WriteLock lock(run_loop_mutex_);
 
@@ -68,17 +68,23 @@ void EventTappingEventPublisher::restart() {
                                             eventMask,
                                             eventCallback,
                                             NULL);
+  if (eventTap == nullptr) {
+    return Status(1, "Could not create event tap");
+  }
   run_loop_source_ =
       CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
   CFRunLoopAddSource(run_loop_, run_loop_source_, kCFRunLoopCommonModes);
   CGEventTapEnable(eventTap, true);
   CFRelease(eventTap);
+  return Status(0);
 }
 
 Status EventTappingEventPublisher::run() {
-  restart();
-  CFRunLoopRun();
-  return Status(0);
+  Status s = restart();
+  if (s.ok()) {
+    CFRunLoopRun();
+  }
+  return s;
 }
 
 bool EventTappingEventPublisher::shouldFire(
