@@ -74,7 +74,7 @@ static inline std::string opString(unsigned char op) {
 }
 
 inline std::string table_doc(const std::string& name) {
-  return "https://osquery.io/docs/#" + name;
+  return "https://osquery.io/schema/#" + name;
 }
 
 static void plan(const std::string& output) {
@@ -624,7 +624,8 @@ Status attachTableInternal(const std::string& name,
 
   // Note, if the clientData API is used then this will save a registry call
   // within xCreate.
-  RecursiveLock lock(kAttachMutex);
+  auto lock(instance->attachLock());
+
   int rc = sqlite3_create_module(
       instance->db(), name.c_str(), &module, (void*)&(*instance));
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
@@ -637,10 +638,11 @@ Status attachTableInternal(const std::string& name,
   return Status(rc, getStringForSQLiteReturnCode(rc));
 }
 
-Status detachTableInternal(const std::string& name, sqlite3* db) {
-  RecursiveLock lock(kAttachMutex);
+Status detachTableInternal(const std::string& name,
+                           const SQLiteDBInstanceRef& instance) {
+  auto lock(instance->attachLock());
   auto format = "DROP TABLE IF EXISTS temp." + name;
-  int rc = sqlite3_exec(db, format.c_str(), nullptr, nullptr, 0);
+  int rc = sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, 0);
   if (rc != SQLITE_OK) {
     LOG(ERROR) << "Error detaching table: " << name << " (" << rc << ")";
   }
@@ -655,7 +657,7 @@ Status attachFunctionInternal(
   // Hold the manager connection instance again in callbacks.
   auto dbc = SQLiteDBManager::get();
   // Add some shell-specific functions to the instance.
-  RecursiveLock lock(kAttachMutex);
+  auto lock(dbc->attachLock());
   int rc = sqlite3_create_function(
       dbc->db(),
       name.c_str(),

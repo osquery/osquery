@@ -18,7 +18,7 @@ namespace osquery {
 class DistributedRunner : public InternalRunnable {
  public:
   virtual ~DistributedRunner() {}
-  DistributedRunner() {}
+  DistributedRunner() : InternalRunnable("DistributedRunner") {}
 
  public:
   /// The Dispatcher thread entry point.

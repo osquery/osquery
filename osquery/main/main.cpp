@@ -79,7 +79,7 @@ int profile(int argc, char* argv[]) {
   auto dbc = osquery::SQLiteDBManager::get();
   for (size_t i = 0; i < static_cast<size_t>(osquery::FLAGS_profile); ++i) {
     osquery::QueryData results;
-    auto status = osquery::queryInternal(query, results, dbc->db());
+    auto status = osquery::queryInternal(query, results, dbc);
     dbc->clearAffectedTables();
     if (!status) {
       fprintf(stderr,

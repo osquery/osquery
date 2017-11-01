@@ -36,6 +36,21 @@ sudo chown root /usr/local/Cellar/osquery/1.7.3/bin/osqueryd
 sudo cp /var/osquery/osquery.example.conf /var/osquery/osquery.conf
 ```
 
+### Removing osquery
+To remove osquery from a macOS system, run the following commands:
+```sh
+# Unload and remove com.facebook.osquery.plist launchdaemon
+launchctl unload /Library/LaunchDaemons/com.facebook.osqueryd.plist
+rm /Library/LaunchDaemons/com.facebook.osqueryd.plist
+
+# Remove files/directories created by osquery installer pkg
+rm -rf /private/var/log/osquery
+rm -rf /private/var/osquery
+rm /usr/local/bin/osquery*
+
+pkgutil --forget com.facebook.osquery
+```
+
 ## Running osquery
 
 To start a standalone osquery use: `osqueryi`. This does not need a server or service. All the table implementations are included!
