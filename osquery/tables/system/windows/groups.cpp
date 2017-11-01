@@ -105,10 +105,9 @@ void processLocalGroups(QueryData& results) {
         Row r;
         sidSmartPtr = GetSid(lginfo[i].lgrpi1_name);
 
-        if (sidSmartPtr != nullptr) { 
+        if (sidSmartPtr != nullptr) {
           sidPtr = static_cast<PSID>(sidSmartPtr.get());
-        }
-        else {
+        } else {
           // nullptr still valid, just results in blank fields
           sidPtr = nullptr;
         }
@@ -139,5 +138,5 @@ QueryData genGroups(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

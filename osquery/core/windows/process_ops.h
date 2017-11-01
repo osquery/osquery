@@ -1,12 +1,12 @@
 /*
-*  Copyright (c) 2014-present, Facebook, Inc.
-*  All rights reserved.
-*
-*  This source code is licensed under the BSD-style license found in the
-*  LICENSE file in the root directory of this source tree. An additional grant
-*  of patent rights can be found in the PATENTS file in the same directory.
-*
-*/
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
 
 #pragma once
 
@@ -27,12 +27,12 @@
 
 namespace osquery {
 
-  /**
-  * @brief Windows helper function used by to convert a binary SID struct into a
-  * string.
-  *
-  * @returns string representation of the binary SID struct.
-  */
-  std::string psidToString(PSID sid);
+/**
+ * @brief Windows helper function used by to convert a binary SID struct into a
+ * string.
+ *
+ * @returns string representation of the binary SID struct.
+ */
+std::string psidToString(PSID sid);
 
-}
+} // namespace osquery
