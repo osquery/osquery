@@ -6,7 +6,7 @@ Both of these tables are considered a beta feature right now.
 
 The configuration for osquery is simple. Here is an example config:
 
-```
+```json
 {
   // Description of the YARA feature.
   "yara": {
@@ -43,7 +43,7 @@ For example, when a file in */usr/bin/* and */usr/sbin/* is changed it will be s
 
 Using the configuration above you can see it in action. While osquery was running I executed `touch /Users/wxs/tmp/foo` in another terminal. Here is the relevant queries to show what happened:
 
-```bash
+```sql
 osquery> SELECT * FROM file_events;
 +--------------------+----------+------------+---------+----------------+----------------------------------+------------------------------------------+------------------------------------------------------------------+
 | target_path        | category | time       | action  | transaction_id | md5                              | sha1                                     | sha256                                                           |
@@ -63,7 +63,7 @@ The [**file_events**](https://osquery.io/schema/#file_events) table recorded tha
 
 The [**yara_events**](https://osquery.io/schema/#yara_events) table recorded that 1 matching rule (*always_true*) was found when the file was created. In this example every file will always have at least one match because I am using a rule which always evaluates to true. In the next example I'll issue the same command to create a file in a monitored directory but have removed the *always_true* rule from my signature files.
 
-```bash
+```sql
 osquery> SELECT * FROM yara_events;
 +--------------------+----------+------------+---------+----------------+-------------+-------+
 | target_path        | category | time       | action  | transaction_id | matches     | count |
@@ -86,8 +86,8 @@ Once the "where" is out of the way, you must specify the "what" part. This is do
 
 Here are some examples of the **yara** table in action:
 
-```bash
-osquery> SE:ECT * FROM yara WHERE path="/bin/ls" AND sig_group="sig_group_1";
+```sql
+osquery> SELECT * FROM yara WHERE path="/bin/ls" AND sig_group="sig_group_1";
 +---------+-------------+-------+-------------+---------+---------+
 | path    | matches     | count | sig_group   | sigfile | pattern |
 +---------+-------------+-------+-------------+---------+---------+
@@ -104,7 +104,7 @@ osquery>
 
 As you can see in these examples, I'm scanning the same file with two different signature groups and getting different results.
 
-```bash
+```sql
 osquery> SELECT * FROM yara WHERE pattern="/bin/%sh" AND sig_group="sig_group_1";
 +-----------+-------------+-------+-------------+---------+----------+
 | path      | matches     | count | sig_group   | sigfile | pattern  |
@@ -121,7 +121,7 @@ osquery>
 
 The above illustrates using the *pattern* constraint to scan */bin/%sh* with a signature group.
 
-```
+```sql
 osquery> SELECT * FROM yara WHERE pattern="/bin/%sh" AND sigfile="/Users/wxs/sigs/baz.sig";
 +-----------+---------+-------+-----------+-------------------------+----------+
 | path      | matches | count | sig_group | sigfile                 | pattern  |
