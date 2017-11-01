@@ -104,11 +104,11 @@ static void fillRow(Row& r, X509* cert) {
   std::stringstream ss;
   if (ret != 0) {
     for (size_t i = 0; i < len; i++) {
-      ss << std::uppercase << std::hex << std::setfill('0') << std::setw(2)
+      ss << std::hex << std::setfill('0') << std::setw(2)
          << static_cast<unsigned>(temp_c[i]);
     }
 
-    r["sha256_fingerprint"] = ss.str().substr(0, ss.str().size() - 1);
+    r["sha256_fingerprint"] = ss.str();
   }
 
   temp_c.clear();
@@ -118,11 +118,11 @@ static void fillRow(Row& r, X509* cert) {
   if (ret != 0) {
     ss.str("");
     for (size_t i = 0; i < len; i++) {
-      ss << std::uppercase << std::hex << std::setfill('0') << std::setw(2)
+      ss << std::hex << std::setfill('0') << std::setw(2)
          << static_cast<unsigned>(temp_c[i]);
     }
 
-    r["sha1_fingerprint"] = ss.str().substr(0, ss.str().size() - 1);
+    r["sha1_fingerprint"] = ss.str();
   }
 }
 
