@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <iomanip>
 #include <mutex>
-#include <queue>
 #include <set>
 #include <sstream>
 #include <unordered_map>
@@ -19,8 +18,11 @@
 
 #include <errno.h>
 #include <string.h>
+
+// clang-format off
 #include <sys/types.h>
 #include <sys/stat.h>
+// clang-format on
 
 #ifndef WIN32
 #include <unistd.h>
