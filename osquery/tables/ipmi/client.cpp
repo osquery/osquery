@@ -617,6 +617,12 @@ void getFRUCB(ipmi_entity_t* entity, void* data) {
       r["entity_id"] + "-" + r["entity_instance"] + "-" + r["name"], r);
 }
 
+static inline std::string toHexString(int&& i) {
+  std::stringstream ss;
+  ss << std::hex << i;
+  return ss.str();
+}
+
 void iterateMCsCB(ipmi_domain_t* domain, ipmi_mc_t* mc, void* data) {
   Row r;
 
@@ -627,8 +633,8 @@ void iterateMCsCB(ipmi_domain_t* domain, ipmi_mc_t* mc, void* data) {
   r["id"] = INTEGER(ipmi_mc_device_id(mc));
   r["device_revision"] = INTEGER(ipmi_mc_device_revision(mc));
   r["device_available"] = INTEGER(ipmi_mc_device_available(mc));
-  r["firmware_major_version"] = INTEGER(ipmi_mc_major_fw_revision(mc));
-  r["firmware_minor_version"] = INTEGER(ipmi_mc_minor_fw_revision(mc));
+  r["firmware_major_version"] = toHexString(ipmi_mc_major_fw_revision(mc));
+  r["firmware_minor_version"] = toHexString(ipmi_mc_minor_fw_revision(mc));
   r["ipmi_major_version"] = INTEGER(ipmi_mc_major_version(mc));
   r["ipmi_minor_version"] = INTEGER(ipmi_mc_minor_version(mc));
   r["iana_manufacturer_id"] = INTEGER(ipmi_mc_manufacturer_id(mc));
