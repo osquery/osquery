@@ -176,7 +176,6 @@ std::string hashFromFile(HashType hash_type, const std::string& path) {
  * every time the mtime or size of the file changes.
  */
 
-
 #if defined(WIN32)
 
 #define stat _stat
@@ -366,6 +365,5 @@ QueryData genHash(QueryContext& context) {
 
   return results;
 }
-
 }
 }
