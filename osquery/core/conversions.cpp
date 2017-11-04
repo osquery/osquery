@@ -9,6 +9,7 @@
  */
 
 #include <iomanip>
+#include <locale>
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
@@ -40,6 +41,11 @@ JSON::JSON(decltype(rj::kObjectType) type) : type_(type) {
   }
 }
 
+JSON::JSON() {
+  type_ = rj::kObjectType;
+  doc_.SetObject();
+}
+
 JSON JSON::newObject() {
   return JSON(rj::kObjectType);
 }
@@ -60,20 +66,65 @@ rj::Document JSON::getArray() const {
   return line;
 }
 
-void JSON::push(rj::Document& line) {
+void JSON::push(rj::Value& value) {
   assert(type_ == rj::kArrayType);
-  doc_.PushBack(rj::Value(line, doc_.GetAllocator()).Move(),
+  push(value, doc());
+}
+
+void JSON::push(rj::Value& value, rj::Value& arr) {
+  arr.PushBack(rj::Value(value, doc_.GetAllocator()).Move(),
+               doc_.GetAllocator());
+}
+
+void JSON::push(size_t value) {
+  push(value, doc());
+}
+
+void JSON::push(size_t value, rj::Value& arr) {
+  arr.PushBack(rj::Value(static_cast<uint64_t>(value)).Move(),
+               doc_.GetAllocator());
+}
+
+void JSON::pushCopy(const std::string& value) {
+  pushCopy(value, doc());
+}
+
+void JSON::pushCopy(const std::string& value, rj::Value& arr) {
+  rj::Value sc;
+  sc.SetString(value.c_str(), value.size(), doc_.GetAllocator());
+  arr.PushBack(sc.Move(), doc_.GetAllocator());
+}
+
+void JSON::add(const std::string& key, rj::Value& value) {
+  add(key, value, doc());
+}
+
+void JSON::add(const std::string& key, rj::Value& value, rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                rj::Value(value, doc_.GetAllocator()).Move(),
                 doc_.GetAllocator());
 }
 
 void JSON::addCopy(const std::string& key,
                    const std::string& value,
-                   rj::Document& line) {
+                   rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+
   rj::Value sc;
   sc.SetString(value.c_str(), value.size(), doc_.GetAllocator());
-  line.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
-                 sc.Move(),
-                 doc_.GetAllocator());
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                sc.Move(),
+                doc_.GetAllocator());
 }
 
 void JSON::addCopy(const std::string& key, const std::string& value) {
@@ -82,30 +133,48 @@ void JSON::addCopy(const std::string& key, const std::string& value) {
 
 void JSON::addRef(const std::string& key,
                   const std::string& value,
-                  rj::Document& line) {
-  line.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
-                 rj::Value(rj::StringRef(value), doc_.GetAllocator()).Move(),
-                 doc_.GetAllocator());
+                  rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                rj::Value(rj::StringRef(value), doc_.GetAllocator()).Move(),
+                doc_.GetAllocator());
 }
 
 void JSON::addRef(const std::string& key, const std::string& value) {
   addRef(key, value, doc());
 }
 
-void JSON::add(const std::string& key, size_t value, rj::Document& line) {
-  line.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
-                 rj::Value(static_cast<uint64_t>(value)).Move(),
-                 doc_.GetAllocator());
+void JSON::add(const std::string& key, size_t value, rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                rj::Value(static_cast<uint64_t>(value)).Move(),
+                doc_.GetAllocator());
 }
 
 void JSON::add(const std::string& key, size_t value) {
   add(key, value, doc());
 }
 
-void JSON::add(const std::string& key, int value, rj::Document& line) {
-  line.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
-                 rj::Value(value).Move(),
-                 doc_.GetAllocator());
+void JSON::add(const std::string& key, int value, rj::Value& obj) {
+  assert(obj.IsObject());
+  auto itr = obj.FindMember(key);
+  if (itr != obj.MemberEnd()) {
+    obj.RemoveMember(itr);
+  }
+
+  obj.AddMember(rj::Value(rj::StringRef(key), doc_.GetAllocator()).Move(),
+                rj::Value(value).Move(),
+                doc_.GetAllocator());
 }
 
 void JSON::add(const std::string& key, int value) {
@@ -120,8 +189,68 @@ Status JSON::toString(std::string& str) const {
   return Status();
 }
 
+Status JSON::fromString(const std::string& str) {
+  if (doc_.Parse(str.c_str()).HasParseError()) {
+    return Status(1, "Cannot parse JSON");
+  }
+  return Status();
+}
+
+void JSON::mergeObject(rj::Value& target_obj, rj::Value& source_obj) {
+  assert(target_obj.IsObject());
+  assert(source_obj.IsObject());
+  for (auto itr = source_obj.MemberBegin(); itr != source_obj.MemberEnd();
+       ++itr) {
+    auto titr = target_obj.FindMember(itr->name);
+    if (titr != target_obj.MemberEnd()) {
+      target_obj.RemoveMember(titr);
+    }
+
+    target_obj.AddMember(itr->name, itr->value, doc_.GetAllocator());
+  }
+}
+
+void JSON::mergeArray(rj::Value& target_arr, rj::Value& source_arr) {
+  assert(target_arr.IsArray());
+  assert(source_arr.IsArray());
+  for (auto itr = source_arr.Begin(); itr != source_arr.End(); ++itr) {
+    target_arr.PushBack(*itr, doc_.GetAllocator());
+  }
+}
+
 rj::Document& JSON::doc() {
   return doc_;
+}
+
+const rj::Document& JSON::doc() const {
+  return doc_;
+}
+
+size_t JSON::valueToSize(const rj::Value& value) {
+  unsigned long long i = 0;
+  if (value.IsString()) {
+    if (!safeStrtoull(value.GetString(), 10, i)) {
+      return 0_sz;
+    }
+    return static_cast<size_t>(i);
+  } else if (value.IsNumber()) {
+    return static_cast<size_t>(value.GetUint64());
+  }
+  return 0_sz;
+}
+
+bool JSON::valueToBool(const rj::Value& value) {
+  if (value.IsBool()) {
+    return value.GetBool();
+  } else if (value.IsString()) {
+    auto b = std::string(value.GetString());
+    std::transform(b.begin(), b.end(), b.begin(), ::tolower);
+
+    return (b == "true" || b == "t");
+  } else if (value.IsNumber()) {
+    return (value.GetInt() != 0);
+  }
+  return false;
 }
 
 std::string base64Decode(const std::string& encoded) {

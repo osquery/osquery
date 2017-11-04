@@ -100,10 +100,8 @@ class TestConfigPlugin : public ConfigPlugin {
                  const std::string& value,
                  std::string& pack) override {
     gen_pack_count_++;
-    std::stringstream ss;
-    pt::write_json(ss, getUnrestrictedPack(), false);
-    pack = ss.str();
-    return Status(0, "OK");
+    getUnrestrictedPack().toString(pack);
+    return Status();
   }
 
  public:
@@ -201,10 +199,10 @@ TEST_F(ConfigTests, test_pack_noninline) {
 }
 
 TEST_F(ConfigTests, test_pack_restrictions) {
-  auto tree = getExamplePacksConfig();
-  auto packs = tree.get_child("packs");
-  for (const auto& pack : packs) {
-    get().addPack(pack.first, "", pack.second);
+  auto doc = getExamplePacksConfig();
+  auto& packs = doc.doc()["packs"];
+  for (const auto& pack : packs.GetObject()) {
+    get().addPack(pack.name.GetString(), "", pack.value);
   }
 
   std::map<std::string, bool> results = {
@@ -234,7 +232,7 @@ TEST_F(ConfigTests, test_pack_removal) {
   EXPECT_EQ(pack_count, 0U);
 
   pack_count = 0;
-  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
   get().packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 1U);
 
@@ -271,14 +269,13 @@ TEST_F(ConfigTests, test_content_update) {
 TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<std::string> query_names;
   std::vector<ScheduledQuery> queries;
-  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
-  get().scheduledQueries(([&queries, &query_names](
-      const std::string& name, const ScheduledQuery& query) {
-    query_names.push_back(name);
-    queries.push_back(query);
-  }));
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
+  get().scheduledQueries(
+      ([&queries](const std::string&, const ScheduledQuery& query) {
+        queries.push_back(query);
+      }));
 
-  auto expected_size = getUnrestrictedPack().get_child("queries").size();
+  auto expected_size = getUnrestrictedPack().doc()["queries"].MemberCount();
   EXPECT_EQ(queries.size(), expected_size)
       << "The number of queries in the schedule (" << queries.size()
       << ") should equal " << expected_size;
@@ -357,12 +354,16 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
     update_called = true;
     // Copy all expected keys into the parser's data.
     for (const auto& key : config) {
-      data_.put_child(key.first, key.second);
+      auto obj = data_.getObject();
+      obj.CopyFrom(key.second.doc(), data_.doc().GetAllocator());
+      data_.add(key.first, obj, data_.doc());
     }
 
     // Set parser-rendered additional data.
-    data_.put("dictionary3.key2", "value2");
-    return Status(0, "OK");
+    auto obj2 = data_.getObject();
+    data_.addRef("key2", "value2", obj2);
+    data_.add("dictionary3", obj2, data_.doc());
+    return Status();
   }
 
   // Flag tracking that the update method was called.
@@ -390,10 +391,10 @@ TEST_F(ConfigTests, test_get_parser) {
 
   const auto& parser =
       std::dynamic_pointer_cast<TestConfigParserPlugin>(plugin);
-  const auto& data = parser->getData();
+  const auto& doc = parser->getData();
 
-  EXPECT_EQ(data.count("list"), 1U);
-  EXPECT_EQ(data.count("dictionary"), 1U);
+  EXPECT_TRUE(doc.doc().HasMember("list"));
+  EXPECT_TRUE(doc.doc().HasMember("dictionary"));
   rf.registry("config_parser")->remove("test");
 }
 
@@ -403,7 +404,7 @@ class PlaceboConfigParserPlugin : public ConfigParserPlugin {
     return {};
   }
   Status update(const std::string&, const ParserConfig&) override {
-    return Status(0);
+    return Status();
   }
 
   /// Make sure configure is called.
@@ -458,7 +459,7 @@ TEST_F(ConfigTests, test_pack_file_paths) {
     count += files.size();
   };
 
-  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
   get().files(fileCounter);
   EXPECT_EQ(count, 2U);
 
@@ -468,7 +469,7 @@ TEST_F(ConfigTests, test_pack_file_paths) {
   EXPECT_EQ(count, 0U);
 
   count = 0;
-  get().addPack("restricted_pack", "", getRestrictedPack());
+  get().addPack("restricted_pack", "", getRestrictedPack().doc());
   get().files(fileCounter);
   EXPECT_EQ(count, 0U);
 

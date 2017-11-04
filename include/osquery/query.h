@@ -46,48 +46,45 @@ using Row = std::map<std::string, RowData>;
 using ColumnNames = std::vector<std::string>;
 
 /**
- * @brief Serialize a Row into a property tree
+ * @brief Serialize a Row into a property tree.
  *
- * @param r the Row to serialize
- * @param tree the output property tree
+ * @param r the Row to serialize.
+ * @param doc the managed JSON document.
+ * @param dict [output] the JSON object to assign values.
  *
- * @return Status indicating the success or failure of the operation
+ * @return Status indicating the success or failure of the operation.
  */
-Status serializeRow(const Row& r, boost::property_tree::ptree& tree);
-Status serializeRowRJ(const Row& r, rapidjson::Document& d);
+Status serializeRow(const Row& r, JSON& doc, rapidjson::Document& dict);
 
 /**
- * @brief Serialize a Row object into a JSON string
+ * @brief Serialize a Row object into a JSON string.
  *
- * @param r the Row to serialize
- * @param json the output JSON string
+ * @param r the Row to serialize.
+ * @param json [output] the output JSON string.
  *
- * @return Status indicating the success or failure of the operation
+ * @return Status indicating the success or failure of the operation.
  */
 Status serializeRowJSON(const Row& r, std::string& json);
-Status serializeRowJSONRJ(const Row& r, std::string& json);
 
 /**
- * @brief Deserialize a Row object from a property tree
+ * @brief Deserialize a Row object from JSON object.
  *
- * @param tree the input property tree
- * @param r the output Row structure
+ * @param doc the input JSON value (should be an object).
+ * @param r [output] the output Row structure.
  *
- * @return Status indicating the success or failure of the operation
+ * @return Status indicating the success or failure of the operation.
  */
-Status deserializeRow(const boost::property_tree::ptree& tree, Row& r);
-Status deserializeRowRJ(const rapidjson::Value& v, Row& r);
+Status deserializeRow(const rapidjson::Value& doc, Row& r);
 
 /**
- * @brief Deserialize a Row object from a JSON string
+ * @brief Deserialize a Row object from a JSON string.
  *
- * @param json the input JSON string
- * @param r the output Row structure
+ * @param json the input JSON string.
+ * @param r [output] the output Row structure.
  *
  * @return Status indicating the success or failure of the operation
  */
 Status deserializeRowJSON(const std::string& json, Row& r);
-Status deserializeRowJSONRJ(const std::string& json, Row& r);
 
 /**
  * @brief The result set returned from a osquery SQL query
@@ -107,55 +104,52 @@ using QueryDataSet = std::multiset<Row>;
 /**
  * @brief Serialize a QueryData object into a property tree
  *
- * @param q the QueryData to serialize
- * @param tree the output property tree
+ * @param q the QueryData to serialize.
+ * @param doc the managed JSON document.
+ * @param arr [output] the output JSON array.
  *
- * @return Status indicating the success or failure of the operation
+ * @return Status indicating the success or failure of the operation.
  */
 Status serializeQueryData(const QueryData& q,
-                          boost::property_tree::ptree& tree);
-Status serializeQueryDataRJ(const QueryData& q, rapidjson::Document& d);
+                          JSON& doc,
+                          rapidjson::Document& arr);
 
 /**
- * @brief Serialize a QueryData object into a property tree
+ * @brief Serialize a QueryData object into a JSON array.
  *
- * @param q the QueryData to serialize
- * @param cols the TableColumn vector indicating column order
- * @param tree the output property tree
+ * @param q the QueryData to serialize.
+ * @param cols the TableColumn vector indicating column order.
+ * @param doc the managed JSON document.
+ * @param arr [output] the output JSON array.
  *
- * @return Status indicating the success or failure of the operation
+ * @return Status indicating the success or failure of the operation.
  */
 Status serializeQueryData(const QueryData& q,
                           const ColumnNames& cols,
-                          boost::property_tree::ptree& tree);
-Status serializeQueryDataRJ(const QueryData& q,
-                            const ColumnNames& cols,
-                            rapidjson::Document& d);
+                          JSON& doc,
+                          rapidjson::Document& arr);
 
 /**
- * @brief Serialize a QueryData object into a JSON string
+ * @brief Serialize a QueryData object into a JSON string.
  *
- * @param q the QueryData to serialize
- * @param json the output JSON string
+ * @param q the QueryData to serialize.
+ * @param json [output] the output JSON string.
  *
- * @return Status indicating the success or failure of the operation
+ * @return Status indicating the success or failure of the operation.
  */
 Status serializeQueryDataJSON(const QueryData& q, std::string& json);
-Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json);
 
 /// Inverse of serializeQueryData, convert property tree to QueryData.
-Status deserializeQueryData(const boost::property_tree::ptree& tree,
-                            QueryData& qd);
+Status deserializeQueryData(const rapidjson::Value& v, QueryData& qd);
+
 /// Inverse of serializeQueryData, convert property tree to QueryDataSet.
 Status deserializeQueryData(const boost::property_tree::ptree& tree,
                             QueryDataSet& qd);
 
-Status deserializeQueryDataRJ(const rapidjson::Value& v, QueryData& qd);
-
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryData.
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd);
-/// Inverse of serializeQueryDataJSON, convert a JSON string to QueryDataSet.
 
+/// Inverse of serializeQueryDataJSON, convert a JSON string to QueryDataSet.
 Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd);
 
 /**
@@ -185,24 +179,27 @@ struct DiffResults {
 };
 
 /**
- * @brief Serialize a DiffResults object into a property tree
+ * @brief Serialize a DiffResults object into a JSON object.
  *
- * @param d the DiffResults to serialize
- * @param tree the output property tree
+ * The object JSON will contain two new keys: added and removed.
  *
- * @return Status indicating the success or failure of the operation
+ * @param d the DiffResults to serialize.
+ * @param doc the managed JSON document.
+ * @param obj [output] the output JSON object.
+ *
+ * @return Status indicating the success or failure of the operation.
  */
 Status serializeDiffResults(const DiffResults& d,
-                            boost::property_tree::ptree& tree);
+                            JSON& doc,
+                            rapidjson::Document& obj);
 
 /**
- * @brief Serialize a DiffResults object into a JSON string
+ * @brief Serialize a DiffResults object into a JSON string.
  *
- * @param d the DiffResults to serialize
- * @param json the output JSON string
+ * @param d the DiffResults to serialize.
+ * @param json [output] the output JSON string.
  *
- * @return an instance of osquery::Status, indicating the success or failure
- * of the operation
+ * @return Status indicating the success or failure of the operation.
  */
 Status serializeDiffResultsJSON(const DiffResults& d, std::string& json);
 
@@ -210,8 +207,8 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json);
  * @brief Diff QueryDataSet object and QueryData object
  *        and create a DiffResults object
  *
- * @param old_ the "old" set of results
- * @param new_ the "new" set of results
+ * @param old_ the "old" set of results.
+ * @param new_ the "new" set of results.
  *
  * @return a DiffResults object which indicates the change from old_ to new_
  *
@@ -363,51 +360,49 @@ struct QueryLogItem {
 };
 
 /**
- * @brief Serialize a QueryLogItem object into a property tree
+ * @brief Serialize a QueryLogItem object into a JSON document.
  *
- * @param item the QueryLogItem to serialize
- * @param tree the output property tree
+ * @param item the QueryLogItem to serialize.
+ * @param doc [output] the output JSON document (object type).
  *
- * @return Status indicating the success or failure of the operation
+ * @return Status indicating the success or failure of the operation.
  */
-Status serializeQueryLogItem(const QueryLogItem& item,
-                             boost::property_tree::ptree& tree);
+Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc);
 
 /**
- * @brief Serialize a QueryLogItem object into a JSON string
+ * @brief Serialize a QueryLogItem object into a JSON string.
  *
- * @param item the QueryLogItem to serialize
- * @param json the output JSON string
+ * @param item the QueryLogItem to serialize.
+ * @param json [output] the output JSON string.
  *
- * @return Status indicating the success or failure of the operation
+ * @return Status indicating the success or failure of the operation.
  */
 Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json);
 
 /// Inverse of serializeQueryLogItem, convert property tree to QueryLogItem.
-Status deserializeQueryLogItem(const boost::property_tree::ptree& tree,
+Status deserializeQueryLogItem(const rapidjson::Document& doc,
                                QueryLogItem& item);
 
 /// Inverse of serializeQueryLogItem, convert a JSON string to QueryLogItem.
 Status deserializeQueryLogItemJSON(const std::string& json, QueryLogItem& item);
 
 /**
- * @brief Serialize a QueryLogItem object into a property tree
- * of events, a list of actions.
+ * @brief Serialize a QueryLogItem object into a JSON document containing
+ * events, a list of actions.
  *
  * @param item the QueryLogItem to serialize
- * @param tree the output property tree
+ * @param json [output] the output JSON document.
  *
  * @return Status indicating the success or failure of the operation
  */
-Status serializeQueryLogItemAsEvents(const QueryLogItem& item,
-                                     boost::property_tree::ptree& tree);
+Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& json);
 
 /**
  * @brief Serialize a QueryLogItem object into a JSON string of events,
  * a list of actions.
  *
  * @param i the QueryLogItem to serialize
- * @param items vector of JSON output strings
+ * @param items [output] vector of JSON output strings
  *
  * @return Status indicating the success or failure of the operation
  */
@@ -487,8 +482,8 @@ class Query {
    * to the database using addNewResults.
    *
    * @param qd the QueryData object, which has the results of the query.
-   * @param epoch the epoch associatted with QueryData
-   * @param counter the output that holds the query execution counter.
+   * @param epoch the epoch associated with QueryData
+   * @param counter [output] the output that holds the query execution counter.
    *
    * @return the success or failure of the operation.
    */

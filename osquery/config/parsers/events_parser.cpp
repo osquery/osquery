@@ -29,15 +29,17 @@ class EventsConfigParserPlugin : public ConfigParserPlugin {
 };
 
 Status EventsConfigParserPlugin::setUp() {
-  data_.put_child("events", pt::ptree());
+  auto obj = data_.getObject();
+  data_.add("events", obj);
   return Status(0, "OK");
 }
 
 Status EventsConfigParserPlugin::update(const std::string& source,
                                         const ParserConfig& config) {
   if (config.count("events") > 0) {
-    data_ = pt::ptree();
-    data_.put_child("events", config.at("events"));
+    auto obj = data_.getObject();
+    obj.CopyFrom(config.at("events").doc(), data_.doc().GetAllocator());
+    data_.add("events", obj, data_.doc());
   }
   return Status(0, "OK");
 }

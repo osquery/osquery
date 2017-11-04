@@ -26,9 +26,10 @@ TEST_F(OptionsConfigParserPluginTests, test_get_option) {
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
 
-  EXPECT_EQ(c.getParser("options")->getData().get_child("options").get<bool>(
-                "enable_monitor"),
-            true);
+  const auto& parser = c.getParser("options")->getData();
+  ASSERT_TRUE(parser.doc().HasMember("options"));
+  EXPECT_TRUE(JSON::valueToBool(parser.doc()["options"]["enable_monitor"]));
+
   c.reset();
 }
 
@@ -43,19 +44,20 @@ TEST_F(OptionsConfigParserPluginTests, test_unknown_option) {
 
   // This looks funky, because the parser is named 'options' and it claims
   // ownership of a single top-level-key called 'options'.
-  auto options = c.getParser("options")->getData().get_child("options");
+  const auto& doc = c.getParser("options")->getData().doc()["options"];
 
   // Since 'fake' was not defined as a flag, it is not an option.
-  EXPECT_EQ(1U, options.count("fake"));
+  EXPECT_TRUE(doc.HasMember("fake"));
   EXPECT_TRUE(Flag::getValue("fake").empty());
 
   // The word 'custom_' must be a prefix.
-  EXPECT_EQ(1U, options.count("fake_custom_fake"));
+  EXPECT_TRUE(doc.HasMember("fake_custom_fake"));
   EXPECT_TRUE(Flag::getValue("fake_custom_fake").empty());
 
   // This should work.
-  EXPECT_EQ(1U, options.count("custom_fake"));
-  EXPECT_EQ(1U, options.get<size_t>("custom_fake", 0U));
+  ASSERT_TRUE(doc.HasMember("custom_fake"));
+  EXPECT_TRUE(doc["custom_fake"].IsNumber());
+  EXPECT_EQ(1U, doc["custom_fake"].GetUint());
   EXPECT_FALSE(Flag::getValue("custom_fake").empty());
 }
 }

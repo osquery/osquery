@@ -89,8 +89,8 @@ void YARAEventSubscriber::configure() {
   }
 
   // Bail if there is no configured set of opt-in paths for yara.
-  const auto& yara_config = plugin->getData();
-  if (yara_config.count("file_paths") == 0) {
+  const auto& yara_config = plugin->getData().doc();
+  if (!yara_config.HasMember("file_paths")) {
     return;
   }
 
@@ -105,22 +105,22 @@ void YARAEventSubscriber::configure() {
 
   // For each category within yara's file_paths, add a subscription to the
   // corresponding set of paths.
-  const auto& yara_paths = yara_config.get_child("file_paths");
-  for (const auto& yara_path_element : yara_paths) {
+  const auto& yara_paths = yara_config["file_paths"];
+  for (const auto& yara_path_element : yara_paths.GetObject()) {
+    std::string category = yara_path_element.name.GetString();
     // Subscribe to each file for the given key (category).
-    if (file_map.count(yara_path_element.first) == 0) {
-      VLOG(1) << "Key in yara::file_paths not found in file_paths: "
-              << yara_path_element.first;
+    if (file_map.count(category) == 0) {
+      VLOG(1) << "Key in YARA file_paths not found in file_paths: " << category;
       continue;
     }
 
-    for (const auto& file : file_map.at(yara_path_element.first)) {
+    for (const auto& file : file_map.at(category)) {
       VLOG(1) << "Added YARA listener to: " << file;
       auto sc = createSubscriptionContext();
       sc->recursive = 0;
       sc->path = file;
       sc->mask = FILE_CHANGE_MASK;
-      sc->category = yara_path_element.first;
+      sc->category = std::move(category);
       subscribe(&YARAEventSubscriber::Callback, sc);
     }
   }
@@ -166,24 +166,27 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   // Use the category as a lookup into the yara file_paths. The value will be
   // a list of signature groups to scan with.
   auto category = r.at("category");
-  const auto& yara_config = parser->getData();
-  const auto& yara_paths = yara_config.get_child("file_paths");
-  const auto& sig_groups = yara_paths.find(category);
-  for (const auto& rule : sig_groups->second) {
-    const std::string group = rule.second.data();
-    int result = yr_rules_scan_file(rules[group],
-                                    ec->path.c_str(),
-                                    SCAN_FLAGS_FAST_MODE,
-                                    YARACallback,
-                                    (void*)&r,
-                                    0);
+  const auto& yara_config = parser->getData().doc();
+  const auto& yara_paths = yara_config["file_paths"];
+  const auto group_iter = yara_paths.FindMember(category);
+  if (group_iter != yara_paths.MemberEnd()) {
+    //  const auto& sig_groups = yara_paths.find(category);
+    for (const auto& rule : group_iter->value.GetArray()) {
+      std::string group = rule.GetString();
+      int result = yr_rules_scan_file(rules[group],
+                                      ec->path.c_str(),
+                                      SCAN_FLAGS_FAST_MODE,
+                                      YARACallback,
+                                      (void*)&r,
+                                      0);
 
-    if (result != ERROR_SUCCESS) {
-      return Status(1, "YARA error: " + std::to_string(result));
+      if (result != ERROR_SUCCESS) {
+        return Status(1, "YARA error: " + std::to_string(result));
+      }
     }
   }
 
-  if (ec->action != "" && r.at("matches").size() > 0) {
+  if (ec->action != "" && !r.at("matches").empty()) {
     add(r);
   }
 

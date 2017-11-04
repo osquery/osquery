@@ -21,7 +21,7 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
-namespace pt = boost::property_tree;
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -110,24 +110,24 @@ size_t restoreSplayedValue(const std::string& name, size_t interval) {
 
 void Pack::initialize(const std::string& name,
                       const std::string& source,
-                      const pt::ptree& tree) {
+                      const rj::Value& obj) {
   name_ = name;
   source_ = source;
   // Check the shard limitation, shards falling below this value are included.
-  if (tree.count("shard") > 0) {
-    shard_ = tree.get<size_t>("shard", 0);
+  if (obj.HasMember("shard")) {
+    shard_ = JSON::valueToSize(obj["shard"]);
   }
 
   // Check for a platform restriction.
   platform_.clear();
-  if (tree.count("platform") > 0) {
-    platform_ = tree.get<std::string>("platform", "");
+  if (obj.HasMember("platform")) {
+    platform_ = obj["platform"].GetString();
   }
 
   // Check for a version restriction.
   version_.clear();
-  if (tree.count("version") > 0) {
-    version_ = tree.get<std::string>("version", "");
+  if (obj.HasMember("version")) {
+    version_ = obj["version"].GetString();
   }
 
   // Apply the shard, platform, and version checking.
@@ -139,9 +139,9 @@ void Pack::initialize(const std::string& name,
   }
 
   discovery_queries_.clear();
-  if (tree.count("discovery") > 0) {
-    for (const auto& item : tree.get_child("discovery")) {
-      discovery_queries_.push_back(item.second.get_value<std::string>());
+  if (obj.HasMember("discovery")) {
+    for (const auto& item : obj["discovery"].GetArray()) {
+      discovery_queries_.push_back(item.GetString());
     }
   }
 
@@ -155,48 +155,60 @@ void Pack::initialize(const std::string& name,
   }
 
   schedule_.clear();
-  if (tree.count("queries") == 0) {
+  if (!obj.HasMember("queries")) {
     // This pack contained no queries.
     return;
   }
 
   // Iterate the queries (or schedule) and check platform/version/sanity.
-  for (const auto& q : tree.get_child("queries")) {
-    if (q.second.count("shard") > 0) {
-      auto shard = q.second.get<size_t>("shard", 0);
+  for (const auto& q : obj["queries"].GetObject()) {
+    if (q.value.HasMember("shard")) {
+      auto shard = JSON::valueToSize(q.value["shard"]);
       if (shard > 0 && shard < getMachineShard()) {
         continue;
       }
     }
 
-    if (q.second.count("platform")) {
-      if (!checkPlatform(q.second.get<std::string>("platform", ""))) {
+    if (q.value.HasMember("platform")) {
+      if (!checkPlatform(q.value["platform"].GetString())) {
         continue;
       }
     }
 
-    if (q.second.count("version")) {
-      if (!checkVersion(q.second.get<std::string>("version", ""))) {
+    if (q.value.HasMember("version")) {
+      if (!checkVersion(q.value["version"].GetString())) {
         continue;
       }
     }
 
     ScheduledQuery query;
-    query.query = q.second.get<std::string>("query", "");
-    query.interval = q.second.get("interval", FLAGS_schedule_default_interval);
+    query.query = q.value["query"].GetString();
+    if (!q.value.HasMember("interval")) {
+      query.interval = FLAGS_schedule_default_interval;
+    } else {
+      query.interval = JSON::valueToSize(q.value["interval"]);
+    }
     if (query.interval <= 0 || query.query.empty() ||
         query.interval > kMaxQueryInterval) {
       // Invalid pack query.
-      LOG(WARNING) << "Query has invalid interval: " << q.first << ": "
-                   << query.interval;
+      LOG(WARNING) << "Query has invalid interval: " << q.name.GetString()
+                   << ": " << query.interval;
       continue;
     }
 
-    query.splayed_interval = restoreSplayedValue(q.first, query.interval);
-    query.options["snapshot"] = q.second.get<bool>("snapshot", false);
-    query.options["removed"] = q.second.get<bool>("removed", true);
-    query.options["blacklist"] = q.second.get<bool>("blacklist", true);
-    schedule_[q.first] = query;
+    query.splayed_interval =
+        restoreSplayedValue(q.name.GetString(), query.interval);
+    query.options["snapshot"] =
+        (q.value.HasMember("snapshot")) ? q.value["snapshot"].GetBool() : false;
+    if (!q.value.HasMember("removed")) {
+      query.options["removed"] = true;
+    } else {
+      query.options["removed"] = q.value["removed"].GetBool();
+    }
+    query.options["blacklist"] =
+        (q.value.HasMember("blacklist")) ? q.value["blacklist"].GetBool() : true;
+
+    schedule_[q.name.GetString()] = query;
   }
 }
 
