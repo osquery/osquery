@@ -352,8 +352,11 @@ EXInternal::~EXInternal() {
 }
 
 void EXInternal::setTimeouts(size_t timeouts) {
+#ifndef WIN32
+  // Windows TPipe does not support timeouts.
   socket_->setRecvTimeout(timeouts);
   socket_->setSendTimeout(timeouts);
+#endif
 }
 
 EXClient::EXClient(const std::string& path, size_t timeout)

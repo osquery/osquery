@@ -139,7 +139,10 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
 ExtensionWatcher::ExtensionWatcher(const std::string& path,
                                    size_t interval,
                                    bool fatal)
-    : path_(path), interval_(interval), fatal_(fatal) {
+    : InternalRunnable("ExtensionWatcher"),
+      path_(path),
+      interval_(interval),
+      fatal_(fatal) {
   // Set the interval to a minimum of 200 milliseconds.
   interval_ = (interval_ < 200) ? 200 : interval_;
 }
