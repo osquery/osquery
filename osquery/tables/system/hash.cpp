@@ -44,17 +44,13 @@
 namespace osquery {
 
 FLAG(bool,
-     enable_persistent_hash_cache,
+     enable_hash_cache,
      false,
      "Cache calculated file hashes, re-calculate only if file has changed");
-FLAG(uint32,
-     persistent_hash_cache_max_size,
-     500,
-     "Cache hashes for upto this number of files");
-HIDDEN_FLAG(uint32,
-            persistent_hash_cache_evict_bunch_size,
-            5,
-            "Clear this amount of rows every time eviction is triggered");
+FLAG(uint32, hash_cache_max, 500, "Cache hashes for upto this number of files");
+
+// Clear this amount of rows every time eviction is triggered
+#define HASH_CACHE_EVICT_SIZE 5
 
 #define HASH_CHUNK_SIZE 4096
 
@@ -212,16 +208,15 @@ bool FileHashCache::load(const std::string& path, MultiHashes& out) {
 
   struct stat st;
   if (stat(path.c_str(), &st) != 0) {
-    LOG(WARNING) << "cannot stat file: " << path << " ; " << strerror(errno);
+    LOG(WARNING) << "cannot stat file: " << path << ": " << strerror(errno);
     return false;
   }
 
   auto entry = cache.find(path);
   if (entry == cache.end()) { // none, load
-    if (cache.size() >= FLAGS_persistent_hash_cache_max_size) {
+    if (cache.size() >= FLAGS_hash_cache_max) {
       // too large, evict
-      for (size_t i = 0; i < FLAGS_persistent_hash_cache_evict_bunch_size;
-           ++i) {
+      for (size_t i = 0; i < HASH_CACHE_EVICT_SIZE; ++i) {
         if (lru.empty()) {
           continue;
         }
@@ -274,7 +269,7 @@ void genHashForFile(const std::string& path,
     r = context.getCache(path);
   } else {
     MultiHashes hashes;
-    if (FLAGS_enable_persistent_hash_cache) {
+    if (FLAGS_enable_hash_cache) {
       FileHashCache::load(path, hashes);
     } else {
       hashes = hashMultiFromFile(
