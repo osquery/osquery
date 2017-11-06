@@ -20,9 +20,19 @@ class AugeasTests : public testing::Test {};
 TEST_F(AugeasTests, sanity_test) {
   auto results = SQL("select * from augeas");
   for (auto row : results.rows()) {
-    ASSERT_TRUE(row.at("node").find(row.at("path")) != std::string::npos)
-        << "Path not in node. Label=" << row.at("path")
-        << " Node=" << row.at("node");
+    auto node = row.at("node");
+    auto path = row.at("path");
+    auto label = row.at("label");
+    ASSERT_TRUE(node.find(path) != std::string::npos)
+        << "Path not in node. Path=" << path
+        << " Node=" << node;
+    // Deal with escaping issues
+    for(size_t pos = 0; (pos = node.find("\\", pos)) != std::string::npos; pos += 1) {
+      node.replace(pos, 1, "");
+    }
+    ASSERT_TRUE(node.find(label) != std::string::npos)
+        << "Label not in node. Label=" << label
+        << " Node=" << node;
   }
 }
 
