@@ -110,22 +110,41 @@ void matchAugeasPattern(augeas* aug,
   free(matches);
 }
 
-QueryData genAugeas(QueryContext& context) {
-  augeas* aug = aug_init(
-      nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE);
+class AugeasHandle {
+public:
+  augeas* aug;
+  bool error;
 
-  // Handle initialization errors.
-  if (aug == nullptr) {
-    LOG(ERROR) << "An error has occurred while trying to initialize augeas";
-    return {};
-  } else if (aug_error(aug) != AUG_NOERROR) {
-    // Do not use aug_error_details() here since augeas is not fully
-    // initialized.
-    LOG(ERROR) << "An error has occurred while trying to initialize augeas: "
-            << aug_error_message(aug);
-    aug_close(aug);
+  AugeasHandle() {
+    error = false;
+    this->aug = aug_init(nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_NO_LOAD);
+    // Handle initialization errors.
+    if (this->aug == nullptr) {
+      LOG(ERROR) << "An error has occurred while trying to initialize augeas";
+      error = true;
+    } else if (aug_error(this->aug) != AUG_NOERROR) {
+      error = true;
+      // Do not use aug_error_details() here since augeas is not fully
+      // initialized.
+      LOG(ERROR) << "An error has occurred while trying to initialize augeas: "
+              << aug_error_message(this->aug);
+      aug_close(this->aug);
+    }
+  }
+
+  ~AugeasHandle() {
+    aug_close(this->aug);
+  }
+};
+
+static AugeasHandle augeas_handle;
+
+QueryData genAugeas(QueryContext& context) {
+  if (augeas_handle.error == true) {
     return {};
   }
+  augeas* aug = augeas_handle.aug;
+  aug_load(aug);
 
   QueryData results;
   if (context.hasConstraint("path", EQUALS)) {
@@ -143,7 +162,6 @@ QueryData genAugeas(QueryContext& context) {
     matchAugeasPattern(aug, "/files//*", results, context);
   }
 
-  aug_close(aug);
   return results;
 }
 }
