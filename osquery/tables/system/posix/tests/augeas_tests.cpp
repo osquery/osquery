@@ -19,7 +19,6 @@ class AugeasTests : public testing::Test {};
 
 TEST_F(AugeasTests, sanity_test) {
   auto results = SQL("select * from augeas");
-  ASSERT_EQ(results.rows().size(), len);
   for (auto row : results.rows()) {
     ASSERT_TRUE(row.at("node").find(row.at("path")) != std::string::npos)
         << "Path not in node. Label=" << row.at("path")

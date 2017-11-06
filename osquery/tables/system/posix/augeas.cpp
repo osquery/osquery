@@ -84,6 +84,7 @@ void matchAugeasPattern(augeas* aug,
     char* file = nullptr;
     result = aug_ns_attr(aug, "matches", i, &value, &label, &file);
     if (result == -1) {
+      reportAugeasError(aug);
       return;
     }
 
@@ -115,12 +116,12 @@ QueryData genAugeas(QueryContext& context) {
 
   // Handle initialization errors.
   if (aug == nullptr) {
-    VLOG(1) << "An error has occurred while trying to initialize augeas";
+    LOG(ERROR) << "An error has occurred while trying to initialize augeas";
     return {};
   } else if (aug_error(aug) != AUG_NOERROR) {
     // Do not use aug_error_details() here since augeas is not fully
     // initialized.
-    VLOG(1) << "An error has occurred while trying to initialize augeas: "
+    LOG(ERROR) << "An error has occurred while trying to initialize augeas: "
             << aug_error_message(aug);
     aug_close(aug);
     return {};
