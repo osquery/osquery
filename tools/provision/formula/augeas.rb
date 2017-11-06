@@ -4,8 +4,8 @@ class Augeas < AbstractOsqueryFormula
   desc "A configuration editing tool and API"
   homepage "http://augeas.net/"
   url "https://github.com/hercules-team/augeas.git",
-    :revision => "aacc8ac07f6722622b73d9183b9acc666906d2e9"
-  version "1.8.1"
+    :tag => "release-1.9.0"
+  version "1.9.0"
   revision 100
 
   bottle do
@@ -55,9 +55,9 @@ index 5230efe..d639e14 100644
 @@ -91,7 +91,7 @@ AUGEAS_COMPILE_WARNINGS(maximum)
  AUGEAS_CFLAGS=-std=gnu99
  AC_SUBST(AUGEAS_CFLAGS)
- 
+
 -AUGEAS_CHECK_READLINE
 +# AUGEAS_CHECK_READLINE
  AC_CHECK_FUNCS([open_memstream uselocale])
- 
+
  AC_MSG_CHECKING([how to pass version script to the linker ($LD)])

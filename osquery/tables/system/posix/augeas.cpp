@@ -38,64 +38,8 @@ namespace tables {
 
 void reportAugeasError(augeas* aug) {
   const char* error_message = aug_error_message(aug);
-  VLOG(1) << "An error has occurred while trying to query augeas: "
-          << error_message;
-}
-
-std::string getSpanInfo(augeas* aug,
-                        const std::string& node,
-                        QueryContext& context) {
-  const auto& index = context.getCache(node);
-  if (index.count("filename")) {
-    return index.at("filename");
-  }
-
-  char* filename = nullptr;
-  // Unused for now.
-  unsigned int label_start = 0;
-  unsigned int label_end = 0;
-  unsigned int value_start = 0;
-  unsigned int value_end = 0;
-  unsigned int span_start = 0;
-  unsigned int span_end = 0;
-
-  int result = aug_span(aug,
-                        node.c_str(),
-                        &filename,
-                        &label_start,
-                        &label_end,
-                        &value_start,
-                        &value_end,
-                        &span_start,
-                        &span_end);
-
-  if (result == 0 && filename != nullptr) {
-    context.setCache(node, "filename", filename);
-    // aug_span() allocates the filename and expects the caller to free it.
-    free(filename);
-    return context.getCache(node).at("filename");
-  } else {
-    return "";
-  }
-}
-
-std::string getLabelInfo(const augeas* aug,
-                         const std::string& node,
-                         QueryContext& context) {
-  const auto& index = context.getCache(node);
-  if (index.count("label")) {
-    return index.at("label");
-  }
-
-  const char* label = nullptr;
-  int result = aug_label(aug, node.c_str(), &label);
-  if (result == 1 && label != nullptr) {
-    context.setCache(node, "label", label);
-    // Do not call free() on label. Augeas needs it.
-    return context.getCache(node).at("label");
-  } else {
-    return "";
-  }
+  LOG(ERROR) << "An error has occurred while trying to query augeas: "
+             << error_message;
 }
 
 void matchAugeasPattern(augeas* aug,
@@ -105,12 +49,18 @@ void matchAugeasPattern(augeas* aug,
                         bool use_path = false) {
   // The caller may supply an Augeas PATH/NODE expression or filesystem path.
   // Below we formulate a Augeas pattern from a path if needed.
-  char** matches = nullptr;
-  int len = aug_match(
+  int result = aug_defvar(
       aug,
-      (use_path ? ("/files/" + pattern + "|/files" + pattern + "//*").c_str()
-                : pattern.c_str()),
-      &matches);
+      "matches",
+      use_path ? ("/files/" + pattern + "|/files" + pattern + "//*").c_str()
+               : pattern.c_str());
+  if (result == -1) {
+    reportAugeasError(aug);
+    return;
+  }
+
+  char** matches = nullptr;
+  int len = aug_match(aug, "$matches", &matches);
 
   // Handle matching errors.
   if (matches == nullptr) {
@@ -130,28 +80,29 @@ void matchAugeasPattern(augeas* aug,
     std::string node(matches[i]);
     free(matches[i]);
 
-    Row r;
-    const char* value = nullptr;
-    int result = aug_get(aug, node.c_str(), &value);
-    if (result == 1) {
-      r["node"] = node;
-
-      if (value != nullptr) {
-        r["value"] = value;
-      }
-
-      if (!use_path) {
-        r["path"] = getSpanInfo(aug, node, context);
-      } else {
-        r["path"] = pattern;
-      }
-
-      r["label"] = getLabelInfo(aug, node, context);
-
-      results.push_back(r);
-    } else if (result < 1) {
-      reportAugeasError(aug);
+    const char *value = nullptr, *label = nullptr;
+    char* file = nullptr;
+    result = aug_ns_attr(aug, "matches", i, &value, &label, &file);
+    if (result == -1) {
+      return;
     }
+
+    std::string path;
+    if (file != nullptr) {
+      path = file;
+      path = path.substr(6);
+      // The caller is responsible for the matching memory.
+      free(file);
+    } else {
+      // The iterator is currently pointing to a folder so we extract the path from the node.
+      path = node.substr(6);
+    }
+
+    Row r = {{"node", node},
+             {"value", value == nullptr ? "" : value},
+             {"path", path},
+             {"label", label == nullptr ? "" : label}};
+    results.push_back(r);
   }
 
   // aug_match() allocates the matches array and expects the caller to free it.
@@ -160,7 +111,7 @@ void matchAugeasPattern(augeas* aug,
 
 QueryData genAugeas(QueryContext& context) {
   augeas* aug = aug_init(
-      nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_ENABLE_SPAN);
+      nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE);
 
   // Handle initialization errors.
   if (aug == nullptr) {
