@@ -75,34 +75,25 @@ void parseIpEntry(const ipt_ip *ip, Row &r) {
 void parseEntryMatch(const struct ipt_entry* en, Row& r) {
   // Get rule port details from the xt_entry_match object
 
-  // m will never be NULL
+  // m will never be NULL, elems is an array
   auto m = (struct xt_entry_match*)en->elems;
 
   if (en->ip.proto == IPPROTO_TCP) {
+    // m_data will never be NULL if ip.proto is set to TCP/UDP
     auto m_data = (struct ipt_tcp*)m->data;
-    r["src_port"] = (m_data != nullptr)
-                        ? std::to_string(m_data->spts[0]) + ':' +
-                              std::to_string(m_data->spts[1])
-                        : "-1";
-    r["dst_port"] = (m_data != nullptr)
-                        ? std::to_string(m_data->dpts[0]) + ':' +
-                              std::to_string(m_data->dpts[1])
-                        : "-1";
-
+    r["src_port"] =
+        std::to_string(m_data->spts[0]) + ':' + std::to_string(m_data->spts[1]);
+    r["dst_port"] =
+        std::to_string(m_data->dpts[0]) + ':' + std::to_string(m_data->dpts[1]);
   } else if (en->ip.proto == IPPROTO_UDP) {
     auto m_data = (struct ipt_udp*)m->data;
-    r["src_port"] = (m_data != nullptr)
-                        ? std::to_string(m_data->spts[0]) + ':' +
-                              std::to_string(m_data->spts[1])
-                        : "-1";
-    r["dst_port"] = (m_data != nullptr)
-                        ? std::to_string(m_data->dpts[0]) + ':' +
-                              std::to_string(m_data->dpts[1])
-                        : "-1";
-
+    r["src_port"] =
+        std::to_string(m_data->spts[0]) + ':' + std::to_string(m_data->spts[1]);
+    r["dst_port"] =
+        std::to_string(m_data->dpts[0]) + ':' + std::to_string(m_data->dpts[1]);
   } else {
-    r["src_port"] = "0";
-    r["dst_port"] = "0";
+    r["src_port"] = "";
+    r["dst_port"] = "";
   }
 }
 
