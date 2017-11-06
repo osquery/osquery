@@ -17,6 +17,16 @@ namespace tables {
 
 class AugeasTests : public testing::Test {};
 
+TEST_F(AugeasTests, sanity_test) {
+  auto results = SQL("select * from augeas");
+  ASSERT_EQ(results.rows().size(), len);
+  for (auto row : results.rows()) {
+    ASSERT_TRUE(row.at("node").find(row.at("path")) != std::string::npos)
+        << "Path not in node. Label=" << row.at("path")
+        << " Node=" << row.at("node");
+  }
+}
+
 TEST_F(AugeasTests, select_hosts_by_path_expression) {
   auto results = SQL("select * from augeas where path = '/etc/hosts' limit 1");
   ASSERT_EQ(results.rows().size(), 1U);
@@ -28,20 +38,18 @@ TEST_F(AugeasTests, select_hosts_by_path_expression) {
       << "instead";
 }
 
-TEST_F(AugeasTests, select_etc_by_path_expression) {
+TEST_F(AugeasTests, select_etc_folder_by_path_expression) {
   auto results = SQL("select * from augeas where path = '/etc' limit 1");
   ASSERT_EQ(results.rows().size(), 1U);
   ASSERT_EQ(results.rows()[0].at("node"), "/files/etc");
   ASSERT_EQ(results.rows()[0].at("label"), "etc");
-  ASSERT_FALSE(results.rows()[0].at("path").empty())
-      << "Filename is not empty. Got " << results.rows()[0].at("filename")
-      << "instead";
+  ASSERT_EQ(results.rows()[0].at("path"), "/etc");
   ASSERT_TRUE(results.rows()[0].at("value").empty())
       << "Value is not empty. Got " << results.rows()[0].at("value")
       << "instead";
 }
 
-TEST_F(AugeasTests, select_by_path_expression_with_or) {
+TEST_F(AugeasTests, select_files_by_path_expression_with_or) {
   auto results =
       SQL("select * from augeas where path = '/etc/hosts' or "
           "path = '/etc/resolv.conf' group by path order by path");
