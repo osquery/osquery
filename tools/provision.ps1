@@ -470,7 +470,8 @@ function Main {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
     $pythonInstall = Test-PythonInstalled
   }
-  $out = Install-ChocoPackage 'wixtoolset'
+
+  $out = Install-ChocoPackage 'wixtoolset' '' @('--version', '3.10.3.300701')
 
   # Convenience variable for accessing Python
   [Environment]::SetEnvironmentVariable("OSQUERY_PYTHON_PATH", $pythonInstall, "Machine")

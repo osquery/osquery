@@ -6,7 +6,7 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 # We make heavy use of Write-Host, because colors are awesome. #dealwithit.
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope="Function", Target="*")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope = "Function", Target = "*")]
 param(
   [string] $packageType = 'chocolatey'
 )
@@ -31,24 +31,22 @@ function New-MsiPackage() {
     [string] $version = '0.0.0'
   )
   $workingDir = Get-Location
-  if ((-not (Get-Command candle.exe)) -or (-not (Get-Command light.exe))) {
-    $msg = '[-] WiX toolkit not found. ' +
-           'please run .\tools\make-win64-dev-env.bat before continuing!'
+  if ((-not (Get-Command 'candle.exe')) -or 
+      (-not (Get-Command 'light.exe'))) {
+    $msg = '[-] WiX not found, run .\tools\make-win64-dev-env.bat.'
     Write-Host $msg -ForegroundColor Red
     exit
-  } else {
-    $7z = (Get-Command '7z.exe').Source
   }
 
   if ($PSVersionTable.PSVersion.Major -lt 5) {
     Write-Host '[-] Powershell 5.0 or great is required for this script.' `
-               -ForegroundColor Red
+      -ForegroundColor Red
     exit
   }
 
   if (-not (Test-Path (Join-Path (Get-location).Path 'tools\make-win64-binaries.bat'))) {
     Write-Host '[-] This script must be run from the osquery repo root.' `
-               -ForegroundColor Red
+      -ForegroundColor Red
     exit
   }
 
@@ -71,7 +69,7 @@ function New-MsiPackage() {
   }
 
   # Working directory and output of files will be in `build/msi`
-  $buildPath = Get-OsqueryBuildPath
+  $buildPath = Join-Path $(Get-OsqueryBuildPath) 'msi'
   if (-not (Test-Path $buildPath)) {
     New-Item -Force -ItemType Directory -Path $buildPath
   }
@@ -84,13 +82,13 @@ function New-MsiPackage() {
   }
 
   # We take advantage of a trick with WiX to copy folders
-  Copy-Item -Recurse -Force $certsPath 'certs'
-  Copy-Item -Recurse -Force $packsPath 'packs'
+  Copy-Item -Recurse -Force $certsPath $(Join-Path $(Get-Location) 'certs')
+  Copy-Item -Recurse -Force $packsPath $(Join-Path $(Get-Location) 'packs')
   $iconPath = Join-Path $scriptPath 'tools\osquery.ico'
   Copy-Item -Force $iconPath "$buildPath\osquery.ico"
 
   $wix =
-@'
+  @'
 <?xml version='1.0' encoding='windows-1252'?>
 
 <?define OsqueryVersion = 'OSQUERY_VERSION'?>
@@ -140,7 +138,14 @@ function New-MsiPackage() {
           <Directory Id='DaemonFolder' Name='osqueryd'>
             <Component Id='osqueryd'
                 Guid='41c9910d-bded-45dc-8f82-3cd00a24fa2f'>
-              <CreateFolder/>
+                <CreateFolder>
+                <Permission User="Users" Read="yes" 
+                  ReadExtendedAttributes="yes" Traverse="yes" 
+                  ReadAttributes="yes" ReadPermission="yes" Synchronize="yes"
+                  GenericWrite="no" WriteAttributes="no"/>
+                <Permission User="Administrators" GenericAll="yes"/>
+                <Permission User="SYSTEM" GenericAll="yes"/>
+              </CreateFolder>
               <File Id='osqueryd'
                 Name='osqueryd.exe'
                 Source='OSQUERY_DAEMON_PATH'
@@ -161,7 +166,6 @@ function New-MsiPackage() {
                 Wait='no'/>
             </Component>
           </Directory>
-          <Directory Id='LogFolder' Name='log'/>
           <Component Id='osqueryi' Guid='6a49524e-52b0-4e99-876f-ec50c0082a04'>
             <File Id='osqueryi'
               Name='osqueryi.exe'
@@ -179,13 +183,40 @@ function New-MsiPackage() {
             <File Id='osquery_utils.ps1'
               Name='osquery_utils.ps1'
               Source='OSQUERY_UTILS_PATH'/>
-            <CopyFile Id='packs'
-              SourceProperty='OSQUERY_PACKS_PATH'
-              DestinationDirectory='INSTALLFOLDER'/>
-            <CopyFile Id='certs'
-              SourceProperty='OSQUERY_CERTS_PATH'
-              DestinationDirectory='INSTALLFOLDER'/>
-          </Component>
+            <File Id='manage_osqueryd.ps1'
+              Name='manage-osqueryd.ps1'
+              Source='OSQUERY_MGMT_PATH'/>
+            </Component>
+            <Directory Id='PacksFolder' Name='packs'>
+              <Component Id='packs'
+                  Guid='e871e2b6-953e-4930-888b-78426816e566'>
+              <CreateFolder/>
+
+'@
+# All files must be explicitly listed for WiX
+$cnt = 0
+foreach ($p in $(Get-ChildItem $packsPath)) {
+  $wix += "<File Id='pack_$cnt.conf' Name='$p' Source='$packsPath\$p'/>`n"
+  $cnt += 1
+}
+$wix += 
+@'
+               </Component>
+             </Directory>
+             <Directory Id='CertsFolder' Name='certs'>
+             <Component Id='certs'
+                 Guid='bb27566a-6c31-4024-8f72-28709f919b08'>
+             <CreateFolder/>
+'@
+$cnt = 0
+foreach ($c in $(Get-ChildItem $certsPath)) {
+  $wix += "`n<File Id='cert_$cnt' Name='$c' Source='$certsPath\$c'/>`n"
+  $cnt += 1
+}
+
+$wix += @'
+            </Component>
+          </Directory>
           <Directory Id="FileSystemLogging" Name="log"/>
         </Directory>
       </Directory>
@@ -194,7 +225,7 @@ function New-MsiPackage() {
     <Icon Id="osquery.ico" SourceFile="OSQUERY_IMAGE_PATH"/>
     <Property Id="ARPPRODUCTICON" Value="osquery.ico" />
 
-    <Component Id='CreateFileSystemLogging'
+    <Component Id='logs'
                 Directory='FileSystemLogging'
                 Guid='bda18e0c-d356-441d-a264-d3e2c1718979'>
       <CreateFolder/>
@@ -203,8 +234,10 @@ function New-MsiPackage() {
     <Feature Id='Complete' Level='1'>
       <ComponentRef Id='osqueryd'/>
       <ComponentRef Id='osqueryi'/>
+      <ComponentRef Id='packs'/>
+      <ComponentRef Id='certs'/>
+      <ComponentRef Id='logs'/>
       <ComponentRef Id='extras'/>
-      <ComponentRef Id='CreateFileSystemLogging'/>
     </Feature>
   </Product>
 </Wix>
@@ -220,6 +253,8 @@ function New-MsiPackage() {
   $wix = $wix -Replace 'OSQUERY_UTILS_PATH', "$utils"
   $wix = $wix -Replace 'OSQUERY_CERTS_PATH', "certs"
   $wix = $wix -Replace 'OSQUERY_IMAGE_PATH', "$buildPath\osquery.ico"
+  $wix = $wix -Replace 'OSQUERY_MGMT_PATH', "$scriptPath\tools\manage-osqueryd.ps1"
+  
   $wix | Out-File -Encoding 'UTF8' "$buildPath\osquery.wxs"
 
   $candle = (Get-Command 'candle').Source
@@ -228,13 +263,14 @@ function New-MsiPackage() {
   )
   Start-OsqueryProcess $candle $candleArgs
 
+  $msi = Join-Path $buildPath "osquery.$version.msi"
   $light = (Get-Command 'light').Source
   $lightArgs = @(
-    "$buildPath\osquery.wixobj"
+    "$buildPath\osquery.wixobj",
+    "-o $msi"
   )
   Start-OsqueryProcess $light $lightArgs
 
-  $msi = Join-Path $buildPath 'osquery.msi'
   if (-not (Test-Path $msi)) {
     $msg = "[-] MSI Creation failed."
     Write-Host $msg -ForegroundColor Red
@@ -254,13 +290,15 @@ function New-ChocolateyPackage() {
     [string] $latest = '0.0.0'
   )
   $working_dir = Get-Location
-  if (-not (Get-Command 7z.exe)) {
-    Write-Host '[-] 7z note found!  Please run .\tools\make-win64-dev-env.bat before continuing!' -ForegroundColor Red
+  if (-not (Get-Command '7z.exe')) {
+    $msg = '[-] 7z note found, run .\tools\make-win64-dev-env.bat.'
+    Write-Host $msg -ForegroundColor Red
     exit
   }
 
   if ($PSVersionTable.PSVersion.Major -lt 5) {
-    Write-Host '[-] Powershell 5.0 or great is required for this script.' -ForegroundColor Red
+    $msg = '[-] Powershell 5.0 or great is required for this script.'
+    Write-Host $msg -ForegroundColor Red
     exit
   }
 
@@ -269,12 +307,14 @@ function New-ChocolateyPackage() {
   $chocoPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
   $certs = Join-Path "$chocoPath" 'lib\openssl\local\certs'
   if (-not (Test-Path $certs)) {
-    Write-Host "[*] Did not find openssl certs.pem" -ForegroundColor Yellow
+    $msg = '[*] Did not find openssl certs.pem'
+    Write-Host $msg -ForegroundColor Yellow
   }
 
   $conf = Join-Path $scriptPath 'tools\deployment\osquery.example.conf'
   if (-not (Test-Path $conf)) {
-    Write-Host "[*] Did not find example configuration" -ForegroundColor Yellow
+    $msg = '[*] Did not find example configuration'
+    Write-Host $msg -ForegroundColor Yellow
   }
 
   $packs = Join-Path $scriptPath 'packs'
@@ -295,7 +335,7 @@ function New-ChocolateyPackage() {
   $mgmtScript = "$scriptPath\tools\manage-osqueryd.ps1"
 
   $nupkg =
-@'
+  @'
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
@@ -333,9 +373,9 @@ function New-ChocolateyPackage() {
     </description>
     <releaseNotes>
 '@
-$nupkg += "https://github.com/facebook/osquery/releases/tag/$latest"
-$nupkg +=
-@'
+  $nupkg += "https://github.com/facebook/osquery/releases/tag/$latest"
+  $nupkg +=
+  @'
 </releaseNotes>
   </metadata>
   <files>
@@ -358,7 +398,7 @@ $nupkg +=
   Copy-Item $lic $license
   $verification = Join-Path "$osqueryChocoPath\tools\" 'VERIFICATION.txt'
   $verMessage =
-@'
+  @'
 To verify the osquery binaries are valid and not corrupted, one can run one of the following:
 
 C:\Users\> Get-FileHash -Algorithm SHA256 .\build\windows10\osquery\Release\osqueryd.exe
@@ -379,6 +419,7 @@ And verify that the digests match one of the below values:
     exit
   }
 
+  $7z = (Get-Command '7z.exe').Source
   # This bundles up all of the files we distribute.
   $7zArgs = @(
     'a',
@@ -392,15 +433,13 @@ And verify that the digests match one of the below values:
     "$license",
     "$verification"
   )
-  Write-Host $7z
   Start-OsqueryProcess $7z $7zArgs
-  Write-Debug "[+] Creating the chocolatey package for osquery $version"
   Set-Location "$osqueryChocoPath"
   choco pack
 
   $packagePath = Join-Path $osqueryChocoPath "osquery.$version.nupkg"
   Write-Host "[+] Chocolatey Package written to $packagePath" `
-             -ForegroundColor Green
+    -ForegroundColor Green
   Set-Location $working_dir
 }
 
@@ -411,7 +450,6 @@ function Main() {
   $daemon = Join-Path $buildPath 'osqueryd.exe'
   $shell = Join-Path $buildPath 'osqueryi.exe'
 
-
   if ((-not (Test-Path $shell)) -or (-not (Test-Path $daemon))) {
     $msg = '[-] Did not find Release binaries, check build script output.'
     Write-Host $msg -ForegroundColor Red
@@ -420,13 +458,13 @@ function Main() {
 
   $version = git describe --tags
   $latest = $version.split('-')[0]
-  # If split len is greater than 1, this is a pre-release. Chocolatey is particular
-  # about the format of the version for pre-releases.
+  # If split len is greater than 1, this is a pre-release. Chocolatey is 
+  # particular about the format of the version for pre-releases.
   if ($version.split('-').length -eq 3) {
     $version = $latest + '-' + $version.split('-')[2]
   }
 
-  if($packageType.ToLower() -eq 'msi') {
+  if ($packageType.ToLower() -eq 'msi') {
     Write-Host '[*] Building osquery MSI' -ForegroundColor Cyan
     $chocoPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
     $certs = $(Join-Path $chocoPath 'lib\openssl\local\certs')
