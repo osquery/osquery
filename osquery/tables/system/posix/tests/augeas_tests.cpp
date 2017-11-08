@@ -23,6 +23,7 @@ TEST_F(AugeasTests, sanity_test) {
     auto node = row.at("node");
     auto path = row.at("path");
     auto label = row.at("label");
+    ASSERT_FALSE(node.empty()) << "Node is empty!";
     ASSERT_TRUE(node.find(path) != std::string::npos)
         << "Path not in node. Path=" << path
         << " Node=" << node;
