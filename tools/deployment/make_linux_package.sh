@@ -18,7 +18,8 @@ OSQUERY_DEPS="${OSQUERY_DEPS:-/usr/local/osquery}"
 export PATH="${OSQUERY_DEPS}/bin:$PATH"
 source "$SOURCE_DIR/tools/lib.sh"
 
-PACKAGE_VERSION=`git describe --tags HEAD || echo 'unknown-version'`
+VERSION=`(cd $SOURCE_DIR; git describe --tags HEAD) || echo 'unknown-version'`
+PACKAGE_VERSION=${OSQUERY_BUILD_VERSION:="$VERSION"}
 PACKAGE_ARCH="x86_64"
 PACKAGE_TYPE=""
 PACKAGE_ITERATION=""
