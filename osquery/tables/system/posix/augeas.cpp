@@ -61,6 +61,7 @@ void matchAugeasPattern(augeas* aug,
 
   char** matches = nullptr;
   int len = aug_match(aug, "$matches", &matches);
+  results.reserve(len);
 
   // Handle matching errors.
   if (matches == nullptr) {
@@ -103,7 +104,7 @@ void matchAugeasPattern(augeas* aug,
              {"value", value == nullptr ? "" : value},
              {"path", path},
              {"label", label == nullptr ? "" : label}};
-    results.push_back(r);
+    results[i] = r;
   }
 
   // aug_match() allocates the matches array and expects the caller to free it.
