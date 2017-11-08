@@ -4,7 +4,7 @@ class Augeas < AbstractOsqueryFormula
   desc "A configuration editing tool and API"
   homepage "http://augeas.net/"
   url "https://github.com/hercules-team/augeas.git",
-    :tag => "release-1.9.0"
+    :revision => "3775c2bf53fef5f694fcf25308cee1dfe00600c4"
   version "1.9.0"
   revision 100
 
