@@ -28,7 +28,8 @@ source "$SOURCE_DIR/tools/lib.sh"
 distro "darwin" BUILD_VERSION
 
 # Binary identifiers
-APP_VERSION=`git describe --tags HEAD`
+VERSION=`(cd $SOURCE_DIR; git describe --tags HEAD) || echo 'unknown-version'`
+APP_VERSION=${OSQUERY_BUILD_VERSION:="$VERSION"}
 APP_IDENTIFIER="com.facebook.osquery"
 KERNEL_APP_IDENTIFIER="com.facebook.osquery.kernel"
 LD_IDENTIFIER="com.facebook.osqueryd"
