@@ -26,9 +26,13 @@ CGEventRef EventTappingEventPublisher::eventCallback(CGEventTapProxy proxy,
                                                      CGEventType type,
                                                      CGEventRef event,
                                                      void* refcon) {
-  auto ec = createEventContext();
-  EventFactory::fire<EventTappingEventPublisher>(ec);
-  return event;
+  EventFactory::fire<EventTappingEventPublisher>(createEventContext());
+  // If you change from listenOnly, return event or you will drop all events
+  return nullptr;
+}
+
+EventTappingEventPublisher::~EventTappingEventPublisher() {
+  tearDown();
 }
 
 Status EventTappingEventPublisher::setUp() {
@@ -50,6 +54,13 @@ void EventTappingEventPublisher::stop() {
     CFRelease(run_loop_source_);
     run_loop_source_ = nullptr;
   }
+
+  if (event_tap_ != nullptr) {
+    CGEventTapEnable(event_tap_, false);
+    CFRelease(event_tap_);
+    event_tap_ = nullptr;
+  }
+
   if (run_loop_ != nullptr) {
     CFRunLoopStop(run_loop_);
     run_loop_ = nullptr;
@@ -61,21 +72,20 @@ Status EventTappingEventPublisher::restart() {
   WriteLock lock(run_loop_mutex_);
 
   run_loop_ = CFRunLoopGetCurrent();
-  CGEventMask eventMask = (1 << kCGEventKeyDown);
-  CFMachPortRef eventTap = CGEventTapCreate(kCGSessionEventTap,
-                                            kCGHeadInsertEventTap,
-                                            kCGEventTapOptionListenOnly,
-                                            eventMask,
-                                            eventCallback,
-                                            NULL);
-  if (eventTap == nullptr) {
+  event_tap_ = CGEventTapCreate(kCGSessionEventTap,
+                                kCGHeadInsertEventTap,
+                                kCGEventTapOptionListenOnly,
+                                (1 << kCGEventKeyDown),
+                                eventCallback,
+                                nullptr);
+  if (event_tap_ == nullptr) {
+    run_loop_ = nullptr;
     return Status(1, "Could not create event tap");
   }
   run_loop_source_ =
-      CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
+      CFMachPortCreateRunLoopSource(kCFAllocatorDefault, event_tap_, 0);
   CFRunLoopAddSource(run_loop_, run_loop_source_, kCFRunLoopCommonModes);
-  CGEventTapEnable(eventTap, true);
-  CFRelease(eventTap);
+  CGEventTapEnable(event_tap_, true);
   return Status(0);
 }
 

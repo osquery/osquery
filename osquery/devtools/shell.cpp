@@ -244,7 +244,7 @@ static char continuePrompt[26]; // Continuation prompt. default: "   ...> "
 // of work. Instead just use this hack, which is quite harmless.
 static const char* zShellStatic = nullptr;
 void shellstaticFunc(sqlite3_context* context,
-                     int /*argc*/,
+                     int argc,
                      sqlite3_value** /* argv */) {
   assert(0 == argc);
   assert(zShellStatic);
