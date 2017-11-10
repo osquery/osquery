@@ -23,8 +23,8 @@ class ProcessEventSubscriber : public EventSubscriber<KernelEventPublisher> {
   Status init() override;
 
   /// Kernel events matching the event type will fire.
-  Status Callback(const TypedKernelEventContextRef<osquery_process_event_t> &ec,
-                  const KernelSubscriptionContextRef &sc);
+  Status Callback(const TypedKernelEventContextRef<osquery_process_event_t>& ec,
+                  const KernelSubscriptionContextRef& sc);
 };
 
 REGISTER(ProcessEventSubscriber, "event_subscriber", "process_events");
@@ -43,8 +43,8 @@ Status ProcessEventSubscriber::init() {
 }
 
 Status ProcessEventSubscriber::Callback(
-    const TypedKernelEventContextRef<osquery_process_event_t> &ec,
-    const KernelSubscriptionContextRef &sc) {
+    const TypedKernelEventContextRef<osquery_process_event_t>& ec,
+    const KernelSubscriptionContextRef& sc) {
   Row r;
   r["overflows"] = "";
   r["cmdline_size"] = BIGINT(ec->event.arg_length);
@@ -59,7 +59,7 @@ Status ProcessEventSubscriber::Callback(
         std::string(((r["overflows"].size() > 0) ? ", " : "")) + "environment";
   }
 
-  char *argv = &(ec->flexible_data.data()[ec->event.argv_offset]);
+  char* argv = &(ec->flexible_data.data()[ec->event.argv_offset]);
   std::string argv_accumulator("");
   while (ec->event.argc-- > 0) {
     argv_accumulator += argv;
@@ -79,19 +79,19 @@ Status ProcessEventSubscriber::Callback(
     if (plugin == nullptr || plugin.get() == nullptr) {
       LOG(ERROR) << "Could not load events config parser";
     } else {
-      const auto &data = plugin->getData();
+      const auto& data = plugin->getData();
       if (data.get_child("events").count("environment_variables") > 0) {
         use_whitelist = true;
         whitelist = data.get_child("events.environment_variables");
       }
     }
 
-    char *envv = &(ec->flexible_data.data()[ec->event.envv_offset]);
+    char* envv = &(ec->flexible_data.data()[ec->event.envv_offset]);
     std::string envv_accumulator("");
     while (ec->event.envc-- > 0) {
       auto envv_string = std::string(envv);
       if (use_whitelist) {
-        for (const auto &item : whitelist) {
+        for (const auto& item : whitelist) {
           if (envv_string.find(item.second.data()) == 0) {
             envv_accumulator += std::move(envv_string) + ' ';
             break;

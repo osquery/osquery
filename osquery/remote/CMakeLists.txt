@@ -5,10 +5,12 @@
 #  LICENSE file in the root directory of this source tree. An additional grant
 #  of patent rights can be found in the PATENTS file in the same directory.
 
+<<<<<<< HEAD
 set(OSQUERY_REMOTE
   "enroll/enroll.cpp"
   "serializers/json.cpp"
   "transports/tls.cpp"
+  "http/http_client.cpp"
   "remote.cpp"
 )
 
@@ -24,7 +26,7 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
   enroll/plugins/tls_enroll.cpp
 )
 
-file(GLOB OSQUERY_ENROLLMENT_PLUGIN_TESTS "enrollment/plugins/tests/*.cpp")
+file(GLOB OSQUERY_ENROLLMENT_PLUGIN_TESTS "enroll/plugins/tests/*.cpp")
 ADD_OSQUERY_TEST(FALSE ${OSQUERY_ENROLLMENT_PLUGIN_TESTS})
 
 file(GLOB OSQUERY_REMOTE_TESTS "tests/*.cpp")

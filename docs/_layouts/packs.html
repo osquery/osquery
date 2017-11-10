@@ -1,0 +1,165 @@
+---
+layout: default
+---
+<div id="playground" style="display: none">
+  <div class="template-query tables-tag">
+    <table class="table table-bordered table-striped tables-table">
+        <tr>
+          <th colspan="4">
+            <h4 class="tables-title">
+              <code class="template-query-name"></code>
+            </h4>
+          </th>
+        </tr>
+        <tr class="tables-description">
+          <th colspan="4">
+            <span class="template-query-description"></span>
+          </th>
+        </tr>
+
+        <tr class="tables-header">
+          <th width="15%">Query</th>
+          <td width="85%" colspan="3">
+            <code class="darker">
+              <span class="template-query-query"></span>
+            </code>
+          </td>
+        </tr>
+        <tr class="tables-header">
+          <th width="15%">Interval</th>
+          <td width="85%" colspan="3">
+            <code>
+              <span class="template-query-interval"></span>
+            </code>
+          </td>
+        </tr>
+        <tr class="tables-header">
+          <th width="15%">Platform/Version</th>
+          <td width="85%" colspan="3">
+            <code>
+              <span class="template-query-platform"></span>
+              and
+              <span class="template-query-version"></span>
+            </code>
+          </td>
+        </tr>
+        <tr class="tables-header template-value-row">
+          <th width="15%">Value</th>
+          <td width="85%" colspan="3">
+            <span class="template-query-value"></span>
+          </td>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="template-pack tables-tag">
+    <h3>
+      <span class="pack-icon"></span>
+      <span class="pack-name"></span>
+    </h3>
+    <div class="packs"></div>
+  </div>
+</div>
+
+<script type="text/javascript">
+function buildQuery(pg, pack_name, query) {
+  qui = pg.find('.template-query').clone();
+  qui.prop('id', pack_name + '_' + query.name);
+  qui.find('.template-query-name').text(query.name);
+  qui.find('.template-query-description').text(query.description);
+  qui.find('.template-query-interval').text(query.interval);
+  qui.find('.template-query-platform').text(query.platform);
+  qui.find('.template-query-version').text(query.version);
+  qui.find('.template-query-query').text(query.query);
+  if (query.value) {
+    qui.find('.template-query-value').text(query.value);
+  } else {
+    qui.find('.template-value-row').hide();
+  }
+
+  return qui;
+}
+
+function genPack(pack, title) {
+  $.getJSON('{{site.packs_url}}/' + pack + '.conf', function(data) {
+    var icons = {
+      "x": "fa fa-laptop",
+      "vuln-management": "fa fa-bug",
+      "incident-response": "fa fa-crosshairs",
+      "it-compliance": "fa fa-server",
+      "osx-attacks": "fa fa-bomb",
+    };
+
+    pg = $('#playground');
+
+    ui = pg.find('.template-pack').clone();
+    ui.prop('id', pack);
+    ui.find('.pack-name').text(title);
+    if (!(pack in icons)) {
+      icon = icons["x"];
+    } else {
+      icon = icons[pack];
+    }
+    ui.find('.pack-icon').addClass(icon);
+
+    version = 'any version';
+    if (data.version) {
+      version = data.version;
+    }
+
+    platform = 'all platforms';
+    if (data.platform) {
+      platform = data.platform;
+    }
+
+    pui = ui.find('.packs');
+    for (var qi in data.queries) {
+      data.queries[qi].name = qi;
+      if (!data.queries[qi].version) {
+        data.queries[qi].version = version;
+      }
+      if (!data.queries[qi].platform) {
+        data.queries[qi].platform = platform;
+      }
+      pui.append(buildQuery(pg, pack, data.queries[qi]));
+    }
+
+    $('#output').append(ui);
+  });
+}
+
+$(document).ready(function() {
+  {% for pack in site.data.packs %}
+    genPack('{{ pack.pack }}', '{{ pack.title }}');
+  {% endfor %}
+});
+
+</script>
+
+<section class="feature">
+  <div class="grid">
+    <div class="unit whole">
+      <h2>Query Packs</h2>
+      <p>
+        osquery query packs are groups of queries to be added to the osquery schedule.
+        Each pack location is specified in the main osquery configuration.
+        Learn more on how to format your query packs in the documentation.
+      </p>
+      <p>
+        osquery already provides the following query packs:
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="feature">
+  <div class="grid">
+    <div class="unit whole schema">
+      <div id="output">
+      </div>
+    </div>
+  </div>
+</section>

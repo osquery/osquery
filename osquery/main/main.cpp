@@ -79,7 +79,7 @@ int profile(int argc, char* argv[]) {
   auto dbc = osquery::SQLiteDBManager::get();
   for (size_t i = 0; i < static_cast<size_t>(osquery::FLAGS_profile); ++i) {
     osquery::QueryData results;
-    auto status = osquery::queryInternal(query, results, dbc->db());
+    auto status = osquery::queryInternal(query, results, dbc);
     dbc->clearAffectedTables();
     if (!status) {
       fprintf(stderr,
@@ -123,7 +123,8 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
     osquery::FLAGS_disable_events = true;
     osquery::FLAGS_disable_caching = true;
     // The shell may have loaded table extensions, if not, disable the manager.
-    if (!osquery::Watcher::get().hasManagedExtensions()) {
+    if (!osquery::Watcher::get().hasManagedExtensions() &&
+        Flag::isDefault("disable_extensions")) {
       osquery::FLAGS_disable_extensions = true;
     }
   }

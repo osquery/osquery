@@ -165,12 +165,13 @@ class PlatformProcess : private boost::noncopyable {
       bool verbose = false);
 
   /**
-   * @brief Launches a new Python script
+   * @brief Launches a new test Python script.
    *
    * This will launch a new Python process to run the specified script and
-   * script arguments
+   * script arguments. This is used within the test harnesses to run example
+   * TLS server scripts.
    */
-  static std::shared_ptr<PlatformProcess> launchPythonScript(
+  static std::shared_ptr<PlatformProcess> launchTestPythonScript(
       const std::string& args);
 
  private:

@@ -821,7 +821,7 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
     specialized_pub->state(EventState::EVENT_SETUP);
     if (!status.ok()) {
       // Only start event loop if setUp succeeds.
-      LOG(INFO) << "Event publisher failed setup: " << type_id << ": "
+      LOG(INFO) << "Event publisher not enabled: " << type_id << ": "
                 << status.what();
       specialized_pub->isEnding(true);
       return status;

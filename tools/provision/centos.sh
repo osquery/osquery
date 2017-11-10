@@ -10,22 +10,6 @@
 function distro_main() {
   do_sudo yum update -y
 
-  package wget
-  package git
-  package unzip
-  package gawk
-  package xz
-  package ruby
-  package ruby-irb
-  package gcc
-  package gcc-c++
-  package bzip2
-  package gettext-devel
-  package bison
-  package flex
   package doxygen
   package valgrind
-
-  package rpm-devel
-  package rpm-build
 }

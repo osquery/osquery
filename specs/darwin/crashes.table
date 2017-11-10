@@ -21,6 +21,9 @@ schema([
 ])
 attributes(user_data=True)
 implementation("crashes@genCrashLogs")
+examples([
+    "select * from users join crashes using (uid)",
+])
 fuzz_paths([
     "/Library/Logs/DiagnosticReports",
     "/Users",

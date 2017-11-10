@@ -16,6 +16,8 @@
 
 #include <boost/filesystem/path.hpp>
 
+#include <osquery/core.h>
+
 namespace osquery {
 
 /// The osquery platform agnostic process identifier type.
@@ -41,6 +43,9 @@ class DropPrivileges : private boost::noncopyable {
    * @return success if privileges were dropped, otherwise false.
    */
   bool dropToParent(const boost::filesystem::path& path);
+
+  /// See DropPrivileges::dropToParent but explicitiy set the UID and GID.
+  bool dropTo(const std::string& uid, const std::string& gid);
 
   /// See DropPrivileges::dropToParent but explicitly set the UID and GID.
   bool dropTo(uid_t uid, gid_t gid);

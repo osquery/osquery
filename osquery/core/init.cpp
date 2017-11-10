@@ -212,7 +212,7 @@ const std::string kBackupDefaultFlagfile{OSQUERY_HOME "/osquery.flags.default"};
 const size_t kDatabaseMaxRetryCount{25};
 const size_t kDatabaseRetryDelay{200};
 std::function<void()> Initializer::shutdown_{nullptr};
-Mutex Initializer::shutdown_mutex_;
+RecursiveMutex Initializer::shutdown_mutex_;
 
 static inline void printUsage(const std::string& binary, ToolType tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -571,7 +571,7 @@ void Initializer::initActivePlugin(const std::string& type,
 }
 
 void Initializer::installShutdown(std::function<void()>& handler) {
-  WriteLock lock(shutdown_mutex_);
+  RecursiveLock lock(shutdown_mutex_);
   shutdown_ = std::move(handler);
 }
 
@@ -674,7 +674,7 @@ void Initializer::start() const {
 
 void Initializer::waitForShutdown() {
   {
-    WriteLock lock(shutdown_mutex_);
+    RecursiveLock lock(shutdown_mutex_);
     if (shutdown_ != nullptr) {
       // Copy the callable, then remove it, prevent callable recursion.
       auto shutdown = shutdown_;

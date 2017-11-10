@@ -27,6 +27,7 @@ schema([
     Column("applescript_enabled", TEXT,
         "Info properties NSAppleScriptEnabled label"),
     Column("copyright", TEXT, "Info properties NSHumanReadableCopyright label"),
+    Column("last_opened_time", DOUBLE, "The time that the app was last used"),
 ])
 attributes(cacheable=True)
 implementation("apps@genApps")

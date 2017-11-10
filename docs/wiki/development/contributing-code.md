@@ -16,7 +16,7 @@ Keep in mind, osquery's style configurations are slightly different than vanilla
 
 ## Linting
 
-osquery has some basic linting for documentation that gets rendered on the [osquery tables](https://osquery.io/docs/tables/) page. Breaking these linting rules will cause table generation to fail and all builds will break.
+osquery has some basic linting for documentation that gets rendered on the [osquery schema](https://osquery.io/schema/) page. Breaking these linting rules will cause table generation to fail and all builds will break.
 
 **Active Linting Rules**
 

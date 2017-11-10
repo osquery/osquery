@@ -9,6 +9,9 @@ schema([
 ])
 attributes(user_data=True, no_pkey=True)
 implementation("shell_history@genShellHistory")
+examples([
+    "select * from users join shell_history using (uid)",
+])
 fuzz_paths([
     "/home",
     "/Users",
