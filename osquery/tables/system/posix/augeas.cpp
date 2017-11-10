@@ -96,7 +96,8 @@ void matchAugeasPattern(augeas* aug,
       // The caller is responsible for the matching memory.
       free(file);
     } else {
-      // The iterator is currently pointing to a folder so we extract the path from the node.
+      // The iterator is currently pointing to a folder so we extract the path
+      // from the node.
       path = node.substr(6);
     }
 
@@ -112,13 +113,14 @@ void matchAugeasPattern(augeas* aug,
 }
 
 class AugeasHandle {
-public:
+ public:
   augeas* aug;
   bool error;
 
   AugeasHandle() {
     error = false;
-    this->aug = aug_init(nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_NO_LOAD);
+    this->aug = aug_init(
+        nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_NO_LOAD);
     // Handle initialization errors.
     if (this->aug == nullptr) {
       LOG(ERROR) << "An error has occurred while trying to initialize augeas";
@@ -128,7 +130,7 @@ public:
       // Do not use aug_error_details() here since augeas is not fully
       // initialized.
       LOG(ERROR) << "An error has occurred while trying to initialize augeas: "
-              << aug_error_message(this->aug);
+                 << aug_error_message(this->aug);
       aug_close(this->aug);
     }
   }
