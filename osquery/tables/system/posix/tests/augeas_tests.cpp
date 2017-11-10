@@ -17,26 +17,6 @@ namespace tables {
 
 class AugeasTests : public testing::Test {};
 
-TEST_F(AugeasTests, sanity_test) {
-  auto results = SQL("select * from augeas");
-  for (auto row : results.rows()) {
-    auto node = row.at("node");
-    auto path = row.at("path");
-    auto label = row.at("label");
-    ASSERT_FALSE(node.empty()) << "Node is empty!";
-    ASSERT_TRUE(node.find(path) != std::string::npos)
-        << "Path not in node. Path=" << path
-        << " Node=" << node;
-    // Deal with escaping issues
-    for(size_t pos = 0; (pos = node.find("\\", pos)) != std::string::npos; pos += 1) {
-      node.replace(pos, 1, "");
-    }
-    ASSERT_TRUE(node.find(label) != std::string::npos)
-        << "Label not in node. Label=" << label
-        << " Node=" << node;
-  }
-}
-
 TEST_F(AugeasTests, select_hosts_by_path_expression) {
   auto results = SQL("select * from augeas where path = '/etc/hosts' limit 1");
   ASSERT_EQ(results.rows().size(), 1U);
