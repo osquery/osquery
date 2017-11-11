@@ -604,7 +604,7 @@ Status Config::genPack(const std::string& name,
   }
 
   auto clone = response[0][name];
-  if (clone == "") {
+  if (clone.empty()) {
     LOG(WARNING) << "Error reading the query pack named: " << name;
     return Status();
   }

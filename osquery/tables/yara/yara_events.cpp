@@ -170,7 +170,6 @@ Status YARAEventSubscriber::Callback(const FileEventContextRef& ec,
   const auto& yara_paths = yara_config["file_paths"];
   const auto group_iter = yara_paths.FindMember(category);
   if (group_iter != yara_paths.MemberEnd()) {
-    //  const auto& sig_groups = yara_paths.find(category);
     for (const auto& rule : group_iter->value.GetArray()) {
       std::string group = rule.GetString();
       int result = yr_rules_scan_file(rules[group],
