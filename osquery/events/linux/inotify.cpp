@@ -134,15 +134,17 @@ void INotifyEventPublisher::buildExcludePathsSet() {
   exclude_paths_.clear();
 
   const auto& doc = parser->getData();
-  if (doc.doc().HasMember("exclude_paths")) {
-    for (const auto& category : doc.doc()["exclude_paths"].GetObject()) {
-      for (const auto& excl_path : category.value.GetArray()) {
-        std::string pattern = excl_path.GetString();
-        if (pattern.empty()) {
-          continue;
-        }
-        exclude_paths_.insert(pattern);
+  if (!doc.doc().HasMember("exclude_paths")) {
+    return;
+  }
+
+  for (const auto& category : doc.doc()["exclude_paths"].GetObject()) {
+    for (const auto& excl_path : category.value.GetArray()) {
+      std::string pattern = excl_path.GetString();
+      if (pattern.empty()) {
+        continue;
       }
+      exclude_paths_.insert(pattern);
     }
   }
 }
