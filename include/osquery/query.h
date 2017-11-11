@@ -16,8 +16,6 @@
 #include <utility>
 #include <vector>
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <osquery/core.h>
 #include <osquery/status.h>
 
@@ -46,7 +44,7 @@ using Row = std::map<std::string, RowData>;
 using ColumnNames = std::vector<std::string>;
 
 /**
- * @brief Serialize a Row into a property tree.
+ * @brief Serialize a Row into a JSON document.
  *
  * @param r the Row to serialize.
  * @param doc the managed JSON document.
@@ -139,7 +137,7 @@ Status serializeQueryData(const QueryData& q,
  */
 Status serializeQueryDataJSON(const QueryData& q, std::string& json);
 
-/// Inverse of serializeQueryData, convert property tree to QueryData.
+/// Inverse of serializeQueryData, convert JSON to QueryData.
 Status deserializeQueryData(const rapidjson::Value& v, QueryData& qd);
 
 /// Inverse of serializeQueryData, convert property tree to QueryDataSet.
@@ -239,7 +237,7 @@ bool addUniqueRowToQueryData(QueryData& q, const Row& r);
  * This function is intended as a workaround for
  * https://svn.boost.org/trac/boost/ticket/8883,
  * and will allow rows containing data with non-ASCII characters to be stored in
- * the database and parsed back into a property tree.
+ * the database and parsed back into a JSON document.
  *
  * @param oldData the old QueryData to copy
  * @param newData the new escaped QueryData object
@@ -379,7 +377,7 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc);
  */
 Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json);
 
-/// Inverse of serializeQueryLogItem, convert property tree to QueryLogItem.
+/// Inverse of serializeQueryLogItem, convert JSON to QueryLogItem.
 Status deserializeQueryLogItem(const rapidjson::Document& doc,
                                QueryLogItem& item);
 

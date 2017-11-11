@@ -27,7 +27,8 @@ Status KafkaTopicsConfigParserPlugin::update(const std::string& source,
                                              const ParserConfig& config) {
   if (config.count(kKafkaTopicParserRootKey) > 0) {
     auto obj = data_.getObject();
-    obj.CopyFrom(config.at(kKafkaTopicParserRootKey).doc(), data_.doc().GetAllocator());
+    obj.CopyFrom(config.at(kKafkaTopicParserRootKey).doc(),
+                 data_.doc().GetAllocator());
     data_.add(kKafkaTopicParserRootKey, obj);
   }
   return Status();

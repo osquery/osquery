@@ -177,7 +177,8 @@ void DecoratorsConfigParserPlugin::updateDecorations(const std::string& source,
   if (doc.doc().HasMember(interval_key)) {
     const auto& interval = doc.doc()[interval_key];
     for (const auto& item : interval.GetObject()) {
-      size_t rate = std::stoll(item.name.GetString());
+      auto rate = doc.valueToSize(item.name);
+      //      size_t rate = std::stoll(item.name.GetString());
       if (rate % 60 != 0) {
         LOG(WARNING) << "Invalid decorator interval rate " << rate
                      << " in config source: " << source;

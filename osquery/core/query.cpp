@@ -322,7 +322,7 @@ Status deserializeDiffResults(const rj::Value& doc, DiffResults& dr) {
     }
   }
 
-  if (doc.HasMember("added") > 0) {
+  if (doc.HasMember("added")) {
     auto status = deserializeQueryData(doc["added"], dr.added);
     if (!status.ok()) {
       return status;

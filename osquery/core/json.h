@@ -80,10 +80,10 @@ class JSON : private only_movable {
   /// Add a size_t to a JSON array.
   void push(size_t value, rapidjson::Value& arr);
 
-  /// Add a size_t to a JSON array.
+  /// Add a copy of a string to a JSON array.
   void pushCopy(const std::string& value);
 
-  /// Add a size_t to a JSON array.
+  /// Add a reference to a string to a JSON array.
   void pushCopy(const std::string& value, rapidjson::Value& arr);
 
   /**
@@ -143,7 +143,7 @@ class JSON : private only_movable {
   void add(const std::string& key, size_t value);
 
   /**
-   * @brief Add a int value to a JSON object by copying the contents.
+   * @brief Add an int value to a JSON object by copying the contents.
    *
    * This will add the key and value to an input document.
    * The input document must be an object type.
@@ -151,7 +151,7 @@ class JSON : private only_movable {
   void add(const std::string& key, int value, rapidjson::Value& obj);
 
   /**
-   * @brief Add a int value to a JSON object by copying the contents.
+   * @brief Add an int value to a JSON object by copying the contents.
    *
    * This will add the key and value to the JSON document.
    * The document must be an object type.

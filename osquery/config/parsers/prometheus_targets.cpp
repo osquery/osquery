@@ -27,7 +27,8 @@ Status PrometheusMetricsConfigParserPlugin::update(const std::string& source,
                                                    const ParserConfig& config) {
   if (config.count(kPrometheusParserRootKey) > 0) {
     auto obj = data_.getObject();
-    obj.CopyFrom(config.at(kPrometheusParserRootKey).doc(), data_.doc().GetAllocator());
+    obj.CopyFrom(config.at(kPrometheusParserRootKey).doc(),
+                 data_.doc().GetAllocator());
     data_.add(kPrometheusParserRootKey, obj);
   }
 

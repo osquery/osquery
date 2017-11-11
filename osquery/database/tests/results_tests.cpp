@@ -64,8 +64,6 @@ TEST_F(ResultsTests, test_deserialize_row_json) {
 
 TEST_F(ResultsTests, test_serialize_query_data) {
   auto results = getSerializedQueryData();
-  //  pt::ptree tree;
-
   auto doc = JSON::newArray();
   auto s = serializeQueryData(results.second, doc, doc.doc());
   EXPECT_TRUE(s.ok());
@@ -76,8 +74,6 @@ TEST_F(ResultsTests, test_serialize_query_data) {
 TEST_F(ResultsTests, test_serialize_query_data_in_column_order) {
   auto results = getSerializedQueryDataWithColumnOrder();
   auto column_names = getSerializedRowColumnNames(true);
-  //  pt::ptree tree;
-
   auto doc = JSON::newArray();
   auto s = serializeQueryData(results.second, column_names, doc, doc.doc());
   EXPECT_TRUE(s.ok());
@@ -107,7 +103,6 @@ TEST_F(ResultsTests, test_deserialize_query_data_json) {
 
 TEST_F(ResultsTests, test_serialize_diff_results) {
   auto results = getSerializedDiffResults();
-  // pt::ptree tree;
   auto doc = JSON::newObject();
   auto s = serializeDiffResults(results.second, doc, doc.doc());
   EXPECT_TRUE(s.ok());
@@ -126,7 +121,6 @@ TEST_F(ResultsTests, test_serialize_diff_results_json) {
 
 TEST_F(ResultsTests, test_serialize_query_log_item) {
   auto results = getSerializedQueryLogItem();
-  //  pt::ptree tree;
   auto doc = JSON::newObject();
   auto s = serializeQueryLogItem(results.second, doc);
   EXPECT_TRUE(s.ok());

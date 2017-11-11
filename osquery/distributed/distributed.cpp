@@ -257,7 +257,6 @@ Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
 
 Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
                                             std::string& json) {
-  // rj::Document d;
   auto doc = JSON::newObject();
   auto s = serializeDistributedQueryRequest(r, doc, doc.doc());
   if (!s.ok()) {
@@ -269,7 +268,8 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
 
 Status deserializeDistributedQueryRequest(const rj::Value& d,
                                           DistributedQueryRequest& r) {
-  if (!d.HasMember("query") || !d.HasMember("id") || !d["query"].IsString() || !d["id"].IsString()) {
+  if (!d.HasMember("query") || !d.HasMember("id") || !d["query"].IsString() ||
+      !d["id"].IsString()) {
     return Status(1, "Malformed distributed query request");
   }
 
@@ -309,7 +309,6 @@ Status serializeDistributedQueryResult(const DistributedQueryResult& r,
 
 Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
                                            std::string& json) {
-  // rj::Document d;
   auto doc = JSON::newObject();
   auto s = serializeDistributedQueryResult(r, doc, doc.doc());
   if (!s.ok()) {
