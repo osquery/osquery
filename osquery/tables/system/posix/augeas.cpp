@@ -10,6 +10,7 @@
 
 #include <augeas.h>
 
+#include <unordered_set>
 #include <sstream>
 
 #include <boost/algorithm/string/join.hpp>
@@ -156,7 +157,7 @@ QueryData genAugeas(QueryContext& context) {
   aug_load(aug);
 
   QueryData results;
-  std::set<std::string> patterns;
+  std::unordered_set<std::string> patterns;
 
   if (context.hasConstraint("node", EQUALS)) {
     auto nodes = context.constraints["node"].getAll(EQUALS);
