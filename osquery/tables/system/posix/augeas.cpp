@@ -61,7 +61,6 @@ void matchAugeasPattern(augeas* aug,
 
   char** matches = nullptr;
   int len = aug_match(aug, "$matches", &matches);
-  results.reserve(len);
 
   // Handle matching errors.
   if (matches == nullptr) {
@@ -72,6 +71,7 @@ void matchAugeasPattern(augeas* aug,
   }
 
   // Emit a row for each match.
+  results.reserve(len);
   for (size_t i = 0; i < static_cast<size_t>(len); i++) {
     if (matches[i] == nullptr) {
       continue;
