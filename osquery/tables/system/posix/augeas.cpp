@@ -185,7 +185,6 @@ QueryData genAugeas(QueryContext& context) {
 
   if (patterns.empty()) {
     matchAugeasPattern(aug, "/files//*", results, context);
-    ;
   } else {
     matchAugeasPattern(
         aug, boost::algorithm::join(patterns, "|"), results, context);
