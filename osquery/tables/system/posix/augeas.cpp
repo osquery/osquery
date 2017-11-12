@@ -10,6 +10,8 @@
 
 #include <augeas.h>
 
+#include <sstream>
+
 #include <boost/algorithm/string/join.hpp>
 
 #include <osquery/logger.h>
@@ -45,15 +47,10 @@ void reportAugeasError(augeas* aug) {
 void matchAugeasPattern(augeas* aug,
                         const std::string& pattern,
                         QueryData& results,
-                        QueryContext& context,
-                        bool use_path = false) {
+                        QueryContext& context) {
   // The caller may supply an Augeas PATH/NODE expression or filesystem path.
   // Below we formulate a Augeas pattern from a path if needed.
-  int result = aug_defvar(
-      aug,
-      "matches",
-      use_path ? ("/files/" + pattern + "|/files" + pattern + "//*").c_str()
-               : pattern.c_str());
+  int result = aug_defvar(aug, "matches", pattern.c_str());
   if (result == -1) {
     reportAugeasError(aug);
     return;
@@ -159,19 +156,39 @@ QueryData genAugeas(QueryContext& context) {
   aug_load(aug);
 
   QueryData results;
+  std::set<std::string> patterns;
+
+  if (context.hasConstraint("node", EQUALS)) {
+    auto nodes = context.constraints["node"].getAll(EQUALS);
+    patterns.insert(nodes.begin(), nodes.end());
+  }
+
   if (context.hasConstraint("path", EQUALS)) {
     // Allow requests via filesystem path.
-    // We will request the pattern match by path using an optional argument.
     auto paths = context.constraints["path"].getAll(EQUALS);
-    for (const auto& path : paths) {
-      matchAugeasPattern(aug, path, results, context, true);
+    std::ostringstream pattern;
+
+    for (auto path : paths) {
+      pattern << "/files/" << path;
+      patterns.insert(pattern.str());
+
+      pattern.clear();
+      pattern.str(std::string());
+
+      pattern << "/files" << path << "//*";
+      patterns.insert(pattern.str());
+
+      pattern.clear();
+      pattern.str(std::string());
     }
-  } else if (context.hasConstraint("node", EQUALS)) {
-    auto nodes = context.constraints["node"].getAll(EQUALS);
-    auto pattern = boost::algorithm::join(nodes, "|");
-    matchAugeasPattern(aug, pattern, results, context);
-  } else {
+  }
+
+  if (patterns.empty()) {
     matchAugeasPattern(aug, "/files//*", results, context);
+    ;
+  } else {
+    matchAugeasPattern(
+        aug, boost::algorithm::join(patterns, "|"), results, context);
   }
 
   return results;
