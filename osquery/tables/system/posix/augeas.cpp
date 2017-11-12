@@ -101,11 +101,12 @@ void matchAugeasPattern(augeas* aug,
       path = node.substr(6);
     }
 
-    Row r = {{"node", node},
-             {"value", value == nullptr ? "" : value},
-             {"path", path},
-             {"label", label == nullptr ? "" : label}};
-    results[i] = r;
+    results.emplace_back(
+        std::initializer_list<std::pair<const std::string, std::string>>{
+            {"node", node},
+            {"value", value == nullptr ? "" : value},
+            {"path", path},
+            {"label", label == nullptr ? "" : label}});
   }
 
   // aug_match() allocates the matches array and expects the caller to free it.
