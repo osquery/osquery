@@ -18,7 +18,9 @@ namespace tables {
 class AugeasTests : public testing::Test {};
 
 TEST_F(AugeasTests, select_hosts_by_path_expression) {
-  auto results = SQL("select * from augeas where path = '/etc/hosts' and label = 'hosts' limit 1");
+  auto results =
+      SQL("select * from augeas where path = '/etc/hosts' and label = 'hosts' "
+          "limit 1");
   ASSERT_EQ(results.rows().size(), 1U);
   ASSERT_EQ(results.rows()[0].at("node"), "/files/etc/hosts");
   ASSERT_EQ(results.rows()[0].at("path"), "/etc/hosts");
