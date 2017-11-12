@@ -10,8 +10,8 @@
 
 #include <augeas.h>
 
-#include <unordered_set>
 #include <sstream>
+#include <unordered_set>
 
 #include <boost/algorithm/string/join.hpp>
 
