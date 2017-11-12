@@ -115,39 +115,47 @@ void matchAugeasPattern(augeas* aug,
 
 class AugeasHandle {
  public:
-  augeas* aug;
-  bool error;
+  augeas* aug{nullptr};
+  bool error{false};
 
-  AugeasHandle() {
-    error = false;
-    this->aug = aug_init(
-        nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_NO_LOAD);
-    // Handle initialization errors.
-    if (this->aug == nullptr) {
-      LOG(ERROR) << "An error has occurred while trying to initialize augeas";
-      error = true;
-    } else if (aug_error(this->aug) != AUG_NOERROR) {
-      error = true;
-      // Do not use aug_error_details() here since augeas is not fully
-      // initialized.
-      LOG(ERROR) << "An error has occurred while trying to initialize augeas: "
-                 << aug_error_message(this->aug);
-      aug_close(this->aug);
-    }
+  void initialize() {
+    std::call_once(initialized, [this]() {
+      this->aug = aug_init(
+          nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_NO_LOAD);
+      // Handle initialization errors.
+      if (this->aug == nullptr) {
+        LOG(ERROR) << "An error has occurred while trying to initialize augeas";
+        error = true;
+      } else if (aug_error(this->aug) != AUG_NOERROR) {
+        error = true;
+        // Do not use aug_error_details() here since augeas is not fully
+        // initialized.
+        LOG(ERROR)
+            << "An error has occurred while trying to initialize augeas: "
+            << aug_error_message(this->aug);
+        aug_close(this->aug);
+      }
+    });
   }
 
   ~AugeasHandle() {
-    aug_close(this->aug);
+    aug_close(aug);
   }
+
+ private:
+  std::once_flag initialized;
 };
 
-static AugeasHandle augeas_handle;
+static AugeasHandle kAugeasHandle;
 
 QueryData genAugeas(QueryContext& context) {
-  if (augeas_handle.error == true) {
+  kAugeasHandle.initialize();
+
+  if (kAugeasHandle.error == true) {
     return {};
   }
-  augeas* aug = augeas_handle.aug;
+
+  augeas* aug = kAugeasHandle.aug;
   aug_load(aug);
 
   QueryData results;
