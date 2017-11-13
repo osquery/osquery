@@ -371,7 +371,7 @@ This controls the types of logs sent to the process's `stderr`. It does NOT limi
 
 `--logger_kafka_brokers`
 
-A comma delimited list of Kafka brokers to connect to.  Format can be `host:port` or just `host` with the port number falling back to the default value of `9092`.
+A comma delimited list of Kafka brokers to connect to.  Format can be `protocol://host:port`, `host:port` or just `host` with the port number falling back to the default value of `9092`.  `protocol` can be `plaintext` (defualt) or `ssl`.  When protocol is `ssl`, `--tls_server_certs` value is used as certificate trust store.  Optionally `--tls_client_cert` and `--tls_client_key` can be provided for TLS client authentication with Kafka brokers.
 
 `--logger_kafka_topic`
 
