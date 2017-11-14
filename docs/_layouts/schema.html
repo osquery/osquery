@@ -8,7 +8,7 @@ layout: default
 {% if page.version %}
   {% assign version = page.title %}
 {% else %}
-  {% assign version = site.schema.last.title %}
+  {% assign version = versions.first.version %}
 {% endif %}
 
 <div id="playground" style="display: none">
