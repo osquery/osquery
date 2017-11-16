@@ -9,13 +9,15 @@ In the past 6 months the osquery project and community has benefited greatly fro
 
 Chris Long and Palantir shared hands-on experiences (good, bad, ugly) [at scale](https://medium.com/@palantir/osquery-across-the-enterprise-3c3c9d13ec55). This experience is honest and thorough. Other large enterprises can use this resource to better prepare for what a long and large deployment will entail.
 
-Trail Of Bits conducted and published a [survey](https://blog.trailofbits.com/2017/11/09/how-are-teams-currently-using-osquery/) of teams using osquery. This is a concise view of how osquery is solving use cases and adding value. Again, it is honest and highlights lots of areas for improvement. Bringing the community up to speed on the high-level issues and converging energy to address them is invaluable to any open source community.
+Lauren Pearl and Trail Of Bits conducted and published a [survey](https://blog.trailofbits.com/2017/11/09/how-are-teams-currently-using-osquery/) of teams using osquery. This is a concise view of how osquery is solving use cases and adding value. Again, it is honest and highlights lots of areas for improvement. Bringing the community up to speed on the high-level issues and converging energy to address them is invaluable to any open source community.
 
 Kolide has released two new open source projects for the osquery community, [Launcher](https://kolide.com/launcher) and [Fleet](https://kolide.com/fleet). Open sources projects do not exist in vacuums, they need and thrive with integrations and projects building on fundamentals. The osquery project *specifically* requires 'missing' components like configuration management, logging integrations, fleet management, and orchestration. There are tons of opportunities to continue to build, and there are still missing components you could build too!
 
 Mike Myers and Trail Of Bits wrote about [uses cases](https://blog.trailofbits.com/2017/10/10/tracking-a-stolen-code-signing-certificate-with-osquery/); Victor Vrantchan and Kolide did the [same](https://blog.kolide.com/check-the-efi-version-of-a-mac-with-osquery-f98c6e3beffa); and Timothy Spann wrote about Apache Phoenix [integrations](https://community.hortonworks.com/articles/79842/ingesting-osquery-into-apache-phoenix-using-apache.html). these articles have rippling effects throughout the community. They show health and interest and help others solve the same or similar use cases. At the end of the day osquery is not a solution, it requires examples and demonstrations to add the most value.
 
 Allister Banks spoke at [MacDevOps](https://www.youtube.com/watch?v=WFx9nPHC_Co&feature=youtu.be), and many others are investing lots of their own time showing support and expanding the community through conferences and workshops. This joins our community with others, for example communities of systems administrators, developers, enterprise defenders, and universities. Nick Anderson and Mitchell Grenier on the core team have been doing the same at [Microsoft BlueHat](https://blogs.technet.microsoft.com/bluehat/2017/09/01/announcing-the-bluehat-v17-schedule/) and [USENIX LISA](https://www.usenix.org/conference/lisa17/conference-program/presentation/reed).
+
+Marcin Wielgoszewski [presented](https://www.infoq.com/presentations/doorman-osquery) Doorman, osquery's first fleet management tool at QCon. [Doorman](https://github.com/mwielgoszewski/doorman) also recently celebrated its 6th release since April 2016. Congrats to everyone developing and providing valuable feedback to the project.
 
 We passed 10,000 GitHub stars, passed over 1000 users in Slack, and have 172 contributors to the repository! The project activity only continues to increase with no signs of stopping! If you want to see a more complete list of community highlights, or add more, check out the [Community News](https://osquery.io/community/). So now, let's talk about how to amplify that involvement.
 
@@ -30,5 +32,15 @@ We passed 10,000 GitHub stars, passed over 1000 users in Slack, and have 172 con
 * Reliability and performance accountability. Please continue to hold us accountable for developing a reliable and performant agent. We need to improve the optimizations and the assumptions. Even though we have a watchdog, it is not a solution if there is no reporting about the watchdog actions. We need to be reliable too, if you expect to get data the agent must have methods for assuring that or providing clear reasons why it cannot: query errors, query performance, host and schedule applicability, extension availability, logging and pipeline errors, etc.
 
 There are many many methods for being involved and contributing. Creating tutorials, mentoring, hosting hackathons, giving thanks! This is not an exhaustive list but if there is something that you feel has been invaluable to the community, please reach out and we can amend.
+
+<div class="note info">
+  <h5>Bi-weekly office hours disucssion</h5>
+  <p>Every other week, the osquery team jumps on a BlueJeans VC to hold office hours. The goal is to listen to other's comments and concerns and help prioritize features and fixes. It is a fun and friendly hour of osquery.</p>
+  <br />
+  <code>
+  When: Fridays @ 10:00AM PT
+  Where: The #officehours channel on Slack!
+  </code>
+</div>
 
 Thanks everyone, you're the absolute best, let's keep this train at max speed and keep shipping!

@@ -40,6 +40,12 @@
   topic: Managing Osquery with Kolide Launcher and Fleet
   year: 2017
 
+- speaker: Marcin Wielgoszewski
+  twitter_handle: marcinw
+  link: https://www.infoq.com/presentations/doorman-osquery
+  topic: Doorman - An osquery fleet manager
+  year: 2017
+
 - speaker: Trail of Bits
   twitter_handle: trailofbits
   link: https://blog.trailofbits.com/2017/10/10/tracking-a-stolen-code-signing-certificate-with-osquery/
