@@ -98,7 +98,10 @@ function New-MsiPackage() {
   <Product
     Name='osquery'
     Manufacturer='Facebook'
-    Id='44363808-f75e-471b-95bb-bacb1c404c5e'
+'@
+$wix += "`nId='$(New-Guid)'`n"
+$wix += 
+@'
     UpgradeCode='$(var.OsqueryUpgradeCode)'
     Language='1033'
     Codepage='1252'
@@ -116,11 +119,9 @@ function New-MsiPackage() {
 
     <MediaTemplate EmbedCab="yes" />
 
-    <Upgrade Id='$(var.OsqueryUpgradeCode)'>
-        <UpgradeVersion Minimum='$(var.OsqueryVersion)'
-                        OnlyDetect='yes'
-                        Property='NEWERVERSIONDETECTED'/>
-    </Upgrade>
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      DowngradeErrorMessage="A later version of osquery is already installed. Setup will now exit." />
 
     <Condition Message='A newer version of osquery is already installed.'>
       NOT NEWERVERSIONDETECTED
