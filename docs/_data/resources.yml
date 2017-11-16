@@ -1,7 +1,31 @@
+- speaker: Palantir
+  twitter_handle: PalantirTech
+  link: https://medium.com/@palantir/osquery-across-the-enterprise-3c3c9d13ec55
+  topic: osquery across the enterprise
+  year: 2017
+
+- speaker: Trail of Bits
+  twitter_handle: trailofbits
+  link: https://blog.trailofbits.com/2017/11/09/how-are-teams-currently-using-osquery/
+  topic: How teams are currently using osquery
+  year: 2017
+
 - speaker: Victor Vrantchan
   twitter_handle: https://twitter.com/wikiwalk
   link: https://blog.kolide.com/power-up-munki-conditions-with-osquery-3de186a239d3
   topic: Power Up Munki Conditions with Osquery
+  year: 2017
+
+- speaker: Mitchell Grenier
+  twitter_handle: xenolisk
+  link: http://www.metalliccode.com/carving/
+  topic: Using the osquery carver to pull files
+  year: 2017
+
+- speaker: Nick Anderson
+  twitter_handle: PoppySeedPlehzr
+  link: https://brewfault.io/blog/2017/9/24/local-configuration-for-osquery-on-windows
+  topic: Local configuration for osquery on Windows
   year: 2017
 
 - speaker: Zach Wasserman
