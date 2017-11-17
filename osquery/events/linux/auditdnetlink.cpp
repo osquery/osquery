@@ -122,7 +122,8 @@ std::vector<AuditEventRecord> AuditdNetlink::getEvents() noexcept {
 }
 
 AuditdNetlinkReader::AuditdNetlinkReader(AuditdContextRef context)
-    : auditd_context_(std::move(context)) {
+    : InternalRunnable("AuditdNetlinkReader"),
+      auditd_context_(std::move(context)) {
   const size_t read_buffer_size = 4096U;
 
   read_buffer_.resize(read_buffer_size);
@@ -642,7 +643,8 @@ NetlinkStatus AuditdNetlinkReader::acquireHandle() noexcept {
 }
 
 AuditdNetlinkParser::AuditdNetlinkParser(AuditdContextRef context)
-    : auditd_context_(std::move(context)) {}
+    : InternalRunnable("AuditdNetlinkParser"),
+      auditd_context_(std::move(context)) {}
 
 void AuditdNetlinkParser::start() {
   while (!interrupted()) {
