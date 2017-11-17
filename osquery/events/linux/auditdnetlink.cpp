@@ -112,7 +112,7 @@ std::vector<AuditEventRecord> AuditdNetlink::getEvents() noexcept {
         auditd_context_->processed_events_mutex);
 
     if (auditd_context_->processed_records_cv.wait_for(
-            queue_lock, std::chrono::seconds(5)) ==
+            queue_lock, std::chrono::seconds(1)) ==
         std::cv_status::no_timeout) {
       record_list = std::move(auditd_context_->processed_events);
       auditd_context_->processed_events.clear();
@@ -123,7 +123,8 @@ std::vector<AuditEventRecord> AuditdNetlink::getEvents() noexcept {
 }
 
 AuditdNetlinkReader::AuditdNetlinkReader(AuditdContextRef context)
-    : auditd_context_(std::move(context)) {
+    : InternalRunnable("AuditdNetlinkReader"),
+      auditd_context_(std::move(context)) {
   const size_t read_buffer_size = 4096U;
 
   read_buffer_.resize(read_buffer_size);
@@ -197,11 +198,13 @@ bool AuditdNetlinkReader::acquireMessages() noexcept {
   bool reset_handle = false;
   size_t events_received = 0;
 
-  // Attempt to read as many messages as possible before we exit
-  for (events_received = 0; events_received < read_buffer_.size();
+  // Attempt to read as many messages as possible before we exit, and terminate
+  // early if we have been asked to terminate
+  for (events_received = 0;
+       !interrupted() && events_received < read_buffer_.size();
        events_received++) {
     errno = 0;
-    int poll_status = ::poll(fds, 1, 4);
+    int poll_status = ::poll(fds, 1, 2000);
     if (poll_status == 0) {
       break;
     }
@@ -643,7 +646,8 @@ NetlinkStatus AuditdNetlinkReader::acquireHandle() noexcept {
 }
 
 AuditdNetlinkParser::AuditdNetlinkParser(AuditdContextRef context)
-    : auditd_context_(std::move(context)) {}
+    : InternalRunnable("AuditdNetlinkParser"),
+      auditd_context_(std::move(context)) {}
 
 void AuditdNetlinkParser::start() {
   while (!interrupted()) {
@@ -664,6 +668,10 @@ void AuditdNetlinkParser::start() {
     std::vector<AuditEventRecord> audit_event_record_queue;
 
     for (auto& reply : queue) {
+      if (interrupted()) {
+        break;
+      }
+
       AdjustAuditReply(reply);
 
       // This record carries the process id of the controlling daemon; in case
