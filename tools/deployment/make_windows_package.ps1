@@ -8,7 +8,11 @@
 # We make heavy use of Write-Host, because colors are awesome. #dealwithit.
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope = "Function", Target = "*")]
 param(
-  [string] $packageType = 'chocolatey'
+  [string] $type = 'chocolatey',
+  [string] $configfile = '',
+  [string] $flagfile = '',
+  [array] $extras = @(),
+  [bool] $help = $false
 )
 
 # Import the osquery utility functions
@@ -22,13 +26,14 @@ if (-not (Test-Path $utils)) {
 
 function New-MsiPackage() {
   param(
-    [string] $configPath = $(Join-Path (Get-Location) 'tools\deployment\osquery.example.conf'),
+    [string] $configPath = '',
     [string] $packsPath = $(Join-Path $(Get-Location) 'packs'),
     [string] $certsPath = '',
     [string] $flagsPath = '',
     [string] $shell = 'build\windows10\osquery\Release\osqueryi.exe',
     [string] $daemon = 'build\windows10\osquery\Release\osqueryd.exe',
-    [string] $version = '0.0.0'
+    [string] $version = '0.0.0',
+    [array] $extras = @()
   )
   $workingDir = Get-Location
   if ((-not (Get-Command 'candle.exe')) -or 
@@ -187,6 +192,15 @@ $wix +=
             <File Id='manage_osqueryd.ps1'
               Name='manage-osqueryd.ps1'
               Source='OSQUERY_MGMT_PATH'/>
+'@
+# Bundle along any addition files specified
+$cnt = 0
+foreach ($e in $extras) {
+  $name = Split-Path $e -Leaf
+  $wix += "`n<File Id='extra_$cnt' Name='$name' Source='$e'/>`n"
+  $cnt += 1
+}
+$wix += @'
             </Component>
             <Directory Id='PacksFolder' Name='packs'>
               <Component Id='packs'
@@ -444,7 +458,21 @@ And verify that the digests match one of the below values:
   Set-Location $working_dir
 }
 
+function Get-Help {
+  $programName = (Get-Item $PSCommandPath ).Name
+  $msg =  "Usage: $programName [-type] [-extras] `n" + 
+          "    -help       Prints this message`n" +
+          "    -type       The type of package to build, can be 'chocolatey' or 'msi'`n" +
+          "    -extras     Any additional files to bundle with the packages (msi only)`n`n"
+  Write-Host $msg -ForegroundColor Yellow
+  exit
+}
+
 function Main() {
+
+  if ($help) {
+    Get-Help
+  }
 
   $scriptPath = Get-Location
   $buildPath = Join-Path $scriptPath 'build\windows10\osquery\Release'
@@ -457,7 +485,12 @@ function Main() {
     exit
   }
 
-  $version = git describe --tags
+  $git = Get-Command 'git'
+  $gitArgs = @(
+    'describe',
+    '--tags'
+  )
+  $version = $(Start-OsqueryProcess $git $gitArgs).stdout
   $latest = $version.split('-')[0]
   # If split len is greater than 1, this is a pre-release. Chocolatey is 
   # particular about the format of the version for pre-releases.
@@ -465,14 +498,26 @@ function Main() {
     $version = $latest + '-' + $version.split('-')[2]
   }
 
-  if ($packageType.ToLower() -eq 'msi') {
+  if ($type.ToLower() -eq 'msi') {
     Write-Host '[*] Building osquery MSI' -ForegroundColor Cyan
     $chocoPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
     $certs = $(Join-Path $chocoPath 'lib\openssl\local\certs')
-    New-MsiPackage -shell $shell -daemon $daemon -certsPath $certs -version $latest
+    if ($configfile -eq '') {
+      $configfile = $(Join-Path (Get-Location) 'tools\deployment\osquery.example.conf')
+    }
+    New-MsiPackage -shell $shell `
+                   -daemon $daemon `
+                   -certsPath $certs `
+                   -flagsPath $flagfile `
+                   -configPath $configfile `
+                   -version $latest `
+                   -extras $extras
   } else {
     Write-Host '[*] Building osquery Chocolatey package' -ForegroundColor Cyan
-    New-ChocolateyPackage -shell $shell -daemon $daemon -version $version -latest $latest
+    New-ChocolateyPackage -shell $shell `
+                          -daemon $daemon `
+                          -version $version `
+                          -latest $latest
   }
 }
 
