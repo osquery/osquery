@@ -547,7 +547,6 @@ void WatcherRunner::createExtension(const std::string& extension) {
 
   auto ext_process =
       PlatformProcess::launchExtension(exec_path.string(),
-                                       extension,
                                        Flag::getValue("extensions_socket"),
                                        Flag::getValue("extensions_timeout"),
                                        Flag::getValue("extensions_interval"),
