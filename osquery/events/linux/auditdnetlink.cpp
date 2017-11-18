@@ -111,7 +111,7 @@ std::vector<AuditEventRecord> AuditdNetlink::getEvents() noexcept {
         auditd_context_->processed_events_mutex);
 
     if (auditd_context_->processed_records_cv.wait_for(
-            queue_lock, std::chrono::seconds(5)) ==
+            queue_lock, std::chrono::seconds(1)) ==
         std::cv_status::no_timeout) {
       record_list = std::move(auditd_context_->processed_events);
       auditd_context_->processed_events.clear();
@@ -197,11 +197,13 @@ bool AuditdNetlinkReader::acquireMessages() noexcept {
   bool reset_handle = false;
   size_t events_received = 0;
 
-  // Attempt to read as many messages as possible before we exit
-  for (events_received = 0; events_received < read_buffer_.size();
+  // Attempt to read as many messages as possible before we exit, and terminate
+  // early if we have been asked to terminate
+  for (events_received = 0;
+       !interrupted() && events_received < read_buffer_.size();
        events_received++) {
     errno = 0;
-    int poll_status = ::poll(fds, 1, 4);
+    int poll_status = ::poll(fds, 1, 2000);
     if (poll_status == 0) {
       break;
     }
@@ -665,6 +667,10 @@ void AuditdNetlinkParser::start() {
     std::vector<AuditEventRecord> audit_event_record_queue;
 
     for (auto& reply : queue) {
+      if (interrupted()) {
+        break;
+      }
+
       AdjustAuditReply(reply);
 
       // This record carries the process id of the controlling daemon; in case
