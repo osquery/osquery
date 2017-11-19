@@ -121,7 +121,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
       try {
         ExtensionStatus status;
         // Create a client with a 2-second receive timeout.
-        EXManagerClient client(path, 2 * 1000);
+        EXManagerClient client(path, 10 * 1000);
         client.get()->ping(status);
         return Status(0, "OK");
       } catch (const std::exception& /* e */) {
