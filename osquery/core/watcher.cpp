@@ -495,7 +495,7 @@ void WatcherRunner::createWorker() {
       size_t delay = getWorkerLimit(WatchdogLimitType::RESPAWN_DELAY);
       // Exponential back off for quickly-respawning clients.
       delay += static_cast<size_t>(pow(2, watcher.workerRestartCount()));
-      delay = std::max(FLAGS_watchdog_max_delay, delay);
+      delay = std::max(static_cast<size_t>(FLAGS_watchdog_max_delay), delay);
       pauseMilli(delay * 1000);
     }
   }
