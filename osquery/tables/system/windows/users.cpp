@@ -34,6 +34,25 @@ const std::string kRegProfilePath =
     "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows "
     "NT\\CurrentVersion\\ProfileList";
 const char kRegSep = '\\';
+const std::set<std::string> kWellKnownSids = {
+    "S-1-5-1",
+    "S-1-5-2",
+    "S-1-5-3",
+    "S-1-5-4",
+    "S-1-5-6",
+    "S-1-5-7",
+    "S-1-5-8",
+    "S-1-5-9",
+    "S-1-5-10",
+    "S-1-5-11",
+    "S-1-5-12",
+    "S-1-5-13",
+    "S-1-5-18",
+    "S-1-5-19",
+    "S-1-5-20",
+    "S-1-5-21",
+    "S-1-5-32",
+};
 
 namespace tables {
 
@@ -75,6 +94,9 @@ void processRoamingProfiles(const std::set<std::string>& processedSids,
     r["gid"] = INTEGER(getGidFromSid(sid));
     r["uid_signed"] = r["uid"];
     r["gid_signed"] = r["gid"];
+    r["type"] = kWellKnownSids.find(sidString) == kWellKnownSids.end()
+                    ? "roaming"
+                    : "special";
 
     // TODO
     r["shell"] = "C:\\Windows\\system32\\cmd.exe";
@@ -149,6 +171,7 @@ void processLocalAccounts(std::set<std::string>& processedSids,
             wstringToString(LPUSER_INFO_4(userLvl4Buff)->usri4_comment);
         r["directory"] = getUserHomeDir(sidString);
         r["shell"] = "C:\\Windows\\System32\\cmd.exe";
+        r["type"] = "local";
         if (userLvl4Buff != nullptr) {
           NetApiBufferFree(userLvl4Buff);
         }

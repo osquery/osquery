@@ -11,6 +11,9 @@ schema([
     Column("shell", TEXT, "User's configured default shell"),
     Column("uuid", TEXT, "User's UUID (Apple)"),
 ])
+extended_schema(WINDOWS, [
+    Column("type", TEXT, "Whether the account is roaming (domain), local, or a system profile"),
+])
 implementation("users@genUsers")
 examples([
   "select * from users where uid = 1000",
