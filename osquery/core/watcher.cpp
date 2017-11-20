@@ -256,7 +256,7 @@ void WatcherRunner::watchExtensions() {
         // The extension was already launched once.
         std::stringstream error;
         error << "osquery extension " << extension.first << " ("
-              << extension.second->pid() << ") stopped: " << s.getMessage();
+              << extension.second->pid() << ") stopping: " << s.getMessage();
         systemLog(error.str());
         LOG(WARNING) << error.str();
         stopChild(*extension.second);
