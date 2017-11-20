@@ -120,7 +120,8 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     if (socketExists(path)) {
       try {
         ExtensionStatus status;
-        EXManagerClient client(path);
+        // Create a client with a 10-second receive timeout.
+        EXManagerClient client(path, 10 * 1000);
         client.get()->ping(status);
         return Status(0, "OK");
       } catch (const std::exception& /* e */) {
@@ -133,6 +134,17 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     }
     return Status(1, "Extension socket not available: " + path);
   }));
+}
+
+ExtensionWatcher::ExtensionWatcher(const std::string& path,
+                                   size_t interval,
+                                   bool fatal)
+    : InternalRunnable("ExtensionWatcher"),
+      path_(path),
+      interval_(interval),
+      fatal_(fatal) {
+  // Set the interval to a minimum of 200 milliseconds.
+  interval_ = (interval_ < 200) ? 200 : interval_;
 }
 
 void ExtensionWatcher::start() {
