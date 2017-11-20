@@ -61,6 +61,9 @@ class JSON : private only_movable {
   /// Create a JSON wrapper for an Array (list).
   static JSON newArray();
 
+  /// Create a JSON wrapper from an existing value.
+  static JSON newFromValue(const rapidjson::Value& value);
+
  public:
   /// Make a JSON object (map).
   rapidjson::Document getObject() const;
@@ -165,6 +168,13 @@ class JSON : private only_movable {
   void add(const std::string& key,
            rapidjson::Value& value,
            rapidjson::Value& obj);
+
+  /**
+   * @brief Copy a JSON object/array into the document.
+   *
+   * The type of the base document may change, be careful.
+   */
+  void copyFrom(const rapidjson::Value& value, rapidjson::Value& target);
 
   /// Convert this document to a JSON string.
   Status toString(std::string& str) const;

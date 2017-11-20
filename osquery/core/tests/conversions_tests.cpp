@@ -138,6 +138,46 @@ TEST_F(ConversionsTests, test_json_object) {
   EXPECT_EQ(expected, result);
 }
 
+TEST_F(ConversionsTests, test_json_from_string) {
+  std::string json = "{\"key\":\"value\",\"key2\":{\"key3\":3}}";
+  auto doc = JSON::newObject();
+
+  EXPECT_TRUE(doc.fromString(json).ok());
+
+  std::string result;
+  EXPECT_TRUE(doc.toString(result));
+  EXPECT_EQ(json, result);
+
+  json += ';';
+  EXPECT_FALSE(doc.fromString(json).ok());
+}
+
+TEST_F(ConversionsTests, test_json_add_object) {
+  std::string json = "{\"key\":\"value\", \"key2\":{\"key3\":[3,2,1]}}";
+  auto doc = JSON::newObject();
+
+  ASSERT_TRUE(doc.fromString(json));
+  auto doc2 = JSON::newObject();
+  doc2.add("key2", doc.doc()["key2"]);
+  EXPECT_TRUE(doc2.doc().HasMember("key2"));
+  EXPECT_TRUE(doc2.doc()["key2"].IsObject());
+  EXPECT_TRUE(doc2.doc()["key2"].HasMember("key3"));
+
+  auto doc3 = JSON::newFromValue(doc.doc()["key2"]);
+  ASSERT_TRUE(doc3.doc().IsObject());
+  EXPECT_TRUE(doc3.doc().HasMember("key3"));
+
+  auto doc4 = JSON::newArray();
+  auto arr = doc4.getArray();
+  doc4.copyFrom(doc.doc()["key2"]["key3"], arr);
+  doc4.push(arr);
+
+  std::string expected = "[[3,2,1]]";
+  std::string output;
+  ASSERT_TRUE(doc4.toString(output).ok());
+  EXPECT_EQ(expected, output);
+}
+
 TEST_F(ConversionsTests, test_json_strings) {
   auto doc = JSON::newObject();
 

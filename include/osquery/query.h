@@ -48,11 +48,11 @@ using ColumnNames = std::vector<std::string>;
  *
  * @param r the Row to serialize.
  * @param doc the managed JSON document.
- * @param dict [output] the JSON object to assign values.
+ * @param obj [output] the JSON object to assign values.
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeRow(const Row& r, JSON& doc, rapidjson::Document& dict);
+Status serializeRow(const Row& r, JSON& doc, rapidjson::Value& obj);
 
 /**
  * @brief Serialize a Row object into a JSON string.
@@ -67,12 +67,12 @@ Status serializeRowJSON(const Row& r, std::string& json);
 /**
  * @brief Deserialize a Row object from JSON object.
  *
- * @param doc the input JSON value (should be an object).
+ * @param obj the input JSON value (should be an object).
  * @param r [output] the output Row structure.
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status deserializeRow(const rapidjson::Value& doc, Row& r);
+Status deserializeRow(const rapidjson::Value& obj, Row& r);
 
 /**
  * @brief Deserialize a Row object from a JSON string.
@@ -138,7 +138,7 @@ Status serializeQueryData(const QueryData& q,
 Status serializeQueryDataJSON(const QueryData& q, std::string& json);
 
 /// Inverse of serializeQueryData, convert JSON to QueryData.
-Status deserializeQueryData(const rapidjson::Value& v, QueryData& qd);
+Status deserializeQueryData(const rapidjson::Value& arr, QueryData& qd);
 
 /// Inverse of serializeQueryData, convert property tree to QueryDataSet.
 Status deserializeQueryData(const boost::property_tree::ptree& tree,
@@ -378,8 +378,7 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc);
 Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json);
 
 /// Inverse of serializeQueryLogItem, convert JSON to QueryLogItem.
-Status deserializeQueryLogItem(const rapidjson::Document& doc,
-                               QueryLogItem& item);
+Status deserializeQueryLogItem(const JSON& doc, QueryLogItem& item);
 
 /// Inverse of serializeQueryLogItem, convert a JSON string to QueryLogItem.
 Status deserializeQueryLogItemJSON(const std::string& json, QueryLogItem& item);

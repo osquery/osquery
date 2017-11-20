@@ -218,6 +218,19 @@ void JSON::mergeArray(rj::Value& target_arr, rj::Value& source_arr) {
   }
 }
 
+JSON JSON::newFromValue(const rapidjson::Value& value) {
+  assert(value.IsObject() || value.IsArray());
+
+  JSON doc;
+  doc.type_ = (value.IsArray()) ? rj::kArrayType : rj::kObjectType;
+  doc.copyFrom(value, doc.doc());
+  return doc;
+}
+
+void JSON::copyFrom(const rapidjson::Value& value, rj::Value& target) {
+  target.CopyFrom(value, doc().GetAllocator());
+}
+
 rj::Document& JSON::doc() {
   return doc_;
 }

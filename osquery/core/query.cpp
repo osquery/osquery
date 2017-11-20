@@ -168,7 +168,7 @@ Status Query::addNewResults(QueryData current_qd,
   return Status(0, "OK");
 }
 
-Status serializeRow(const Row& r, JSON& doc, rj::Document& obj) {
+Status serializeRow(const Row& r, JSON& doc, rj::Value& obj) {
   for (auto& i : r) {
     doc.addRef(i.first, i.second, obj);
   }
@@ -200,12 +200,12 @@ Status serializeRowJSON(const Row& r, std::string& json) {
 
 Status deserializeRow(const rj::Value& doc, Row& r) {
   if (!doc.IsObject()) {
-    return Status(1, "Row not an object");
+    return Status(1);
   }
 
   for (const auto& i : doc.GetObject()) {
     std::string name(i.name.GetString());
-    if (!name.empty()) {
+    if (!name.empty() && i.value.IsString()) {
       r[name] = i.value.GetString();
     }
   }
@@ -213,11 +213,11 @@ Status deserializeRow(const rj::Value& doc, Row& r) {
 }
 
 Status deserializeRowJSON(const std::string& json, Row& r) {
-  rj::Document doc;
-  if (doc.Parse(json.c_str()).HasParseError()) {
-    return Status(1, "Error serializing JSON");
+  auto doc = JSON::newObject();
+  if (!doc.fromString(json) || !doc.doc().IsObject()) {
+    return Status(1, "Cannot deserializing JSON");
   }
-  return deserializeRow(doc, r);
+  return deserializeRow(doc.doc(), r);
 }
 
 Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
@@ -229,12 +229,12 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
   return doc.toString(json);
 }
 
-Status deserializeQueryData(const rj::Value& v, QueryData& qd) {
-  if (!v.IsArray()) {
-    return Status(1, "Not an array");
+Status deserializeQueryData(const rj::Value& arr, QueryData& qd) {
+  if (!arr.IsArray()) {
+    return Status(1);
   }
 
-  for (const auto& i : v.GetArray()) {
+  for (const auto& i : arr.GetArray()) {
     Row r;
     auto status = deserializeRow(i, r);
     if (!status.ok()) {
@@ -262,11 +262,12 @@ Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
 }
 
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
-  rj::Document doc;
-  if (doc.Parse(json.c_str()).HasParseError()) {
-    return Status(1, "Error serializing JSON");
+  auto doc = JSON::newArray();
+  if (!doc.fromString(json) || !doc.doc().IsArray()) {
+    return Status(1, "Cannot deserializing JSON");
   }
-  return deserializeQueryData(doc, qd);
+
+  return deserializeQueryData(doc.doc(), qd);
 }
 
 Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
@@ -386,18 +387,20 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
   }
 }
 
-inline void getLegacyFieldsAndDecorations(const rj::Document& doc,
+inline void getLegacyFieldsAndDecorations(const JSON& doc,
                                           QueryLogItem& item) {
-  if (doc.HasMember("decorations")) {
-    for (const auto& i : doc["decorations"].GetObject()) {
-      item.decorations[i.name.GetString()] = i.value.GetString();
+  if (doc.doc().HasMember("decorations")) {
+    if (doc.doc()["decorations"].IsObject()) {
+      for (const auto& i : doc.doc()["decorations"].GetObject()) {
+        item.decorations[i.name.GetString()] = i.value.GetString();
+      }
     }
   }
 
-  item.name = doc["name"].GetString();
-  item.identifier = doc["hostIdentifier"].GetString();
-  item.calendar_time = doc["calendarTime"].GetString();
-  item.time = doc["unixTime"].GetUint64();
+  item.name = doc.doc()["name"].GetString();
+  item.identifier = doc.doc()["hostIdentifier"].GetString();
+  item.calendar_time = doc.doc()["calendarTime"].GetString();
+  item.time = doc.doc()["unixTime"].GetUint64();
 }
 
 Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
@@ -456,7 +459,7 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
     temp_doc.add("snapshot", arr);
   } else {
     // This error case may also be represented in serializeQueryLogItem.
-    return Status(1, "No diff results or snapshot results");
+    return Status(1, "No differential or snapshot results");
   }
 
   for (auto& action : temp_doc.doc().GetObject()) {
@@ -480,14 +483,18 @@ Status serializeQueryLogItemJSON(const QueryLogItem& i, std::string& json) {
   return doc.toString(json);
 }
 
-Status deserializeQueryLogItem(const rj::Document& doc, QueryLogItem& item) {
-  if (doc.HasMember("diffResults")) {
-    auto status = deserializeDiffResults(doc["diffResults"], item.results);
+Status deserializeQueryLogItem(const JSON& doc, QueryLogItem& item) {
+  if (!doc.doc().IsObject()) {
+    return Status(1);
+  }
+
+  if (doc.doc().HasMember("diffResults")) {
+    auto status = deserializeDiffResults(doc.doc()["diffResults"], item.results);
     if (!status.ok()) {
       return status;
     }
-  } else if (doc.HasMember("snapshot")) {
-    auto status = deserializeQueryData(doc["snapshot"], item.snapshot_results);
+  } else if (doc.doc().HasMember("snapshot")) {
+    auto status = deserializeQueryData(doc.doc()["snapshot"], item.snapshot_results);
     if (!status.ok()) {
       return status;
     }
@@ -499,9 +506,9 @@ Status deserializeQueryLogItem(const rj::Document& doc, QueryLogItem& item) {
 
 Status deserializeQueryLogItemJSON(const std::string& json,
                                    QueryLogItem& item) {
-  rj::Document doc;
-  if (doc.Parse(json.c_str()).HasParseError()) {
-    return Status(1, "Cannot parse JSON");
+  auto doc = JSON::newObject();
+  if (!doc.fromString(json) || !doc.doc().IsObject()) {
+    return Status(1, "Cannot deserialize JSON");
   }
   return deserializeQueryLogItem(doc, item);
 }

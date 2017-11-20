@@ -305,6 +305,8 @@ Config::Config()
 void Config::addPack(const std::string& name,
                      const std::string& source,
                      const rj::Value& obj) {
+  assert(obj.IsObject());
+
   auto addSinglePack = ([this, &source](const std::string pack_name,
                                         const rj::Value& pack_obj) {
     RecursiveLock wlock(config_schedule_mutex_);
@@ -539,7 +541,7 @@ Status Config::updateSource(const std::string& source,
   auto clone = json;
   stripConfigComments(clone);
 
-  if (!doc.fromString(clone)) {
+  if (!doc.fromString(clone) || !doc.doc().IsObject()) {
     return Status(1, "Error parsing the config JSON");
   }
 
@@ -574,13 +576,16 @@ Status Config::updateSource(const std::string& source,
 
   // extract the "packs" key into additional pack objects
   if (doc.doc().HasMember("packs") && !rf.external()) {
-    for (const auto& pack : doc.doc()["packs"].GetObject()) {
-      std::string pack_name = pack.name.GetString();
-      if (pack.value.IsObject()) {
-        // The pack is a JSON object, treat the content as pack data.
-        addPack(pack_name, source, pack.value);
-      } else {
-        genPack(pack_name, source, pack.value.GetString());
+    auto& packs = doc.doc()["packs"];
+    if (packs.IsObject()) {
+      for (const auto& pack : packs.GetObject()) {
+        std::string pack_name = pack.name.GetString();
+        if (pack.value.IsObject()) {
+          // The pack is a JSON object, treat the content as pack data.
+          addPack(pack_name, source, pack.value);
+        } else if (pack.value.IsString()) {
+          genPack(pack_name, source, pack.value.GetString());
+        }
       }
     }
   }
@@ -611,7 +616,7 @@ Status Config::genPack(const std::string& name,
 
   stripConfigComments(clone);
   auto doc = JSON::newObject();
-  if (!doc.fromString(clone)) {
+  if (!doc.fromString(clone) || !doc.doc().IsObject()) {
     LOG(WARNING) << "Error parsing the \"" << name << "\" pack JSON";
   } else {
     addPack(name, source, doc.doc());
