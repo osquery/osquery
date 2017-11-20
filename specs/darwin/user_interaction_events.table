@@ -1,0 +1,7 @@
+table_name("user_interaction_events")
+description("Track user interaction events from macOS' event tapping framework.")
+schema([
+    Column("time", BIGINT, "Time")
+])
+attributes(event_subscriber=True)
+implementation("events/darwin/user_interaction_events@user_interaction_events::genTable")

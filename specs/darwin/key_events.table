@@ -1,7 +1,0 @@
-table_name("key_events")
-description("Track key events.")
-schema([
-    Column("time", BIGINT, "Time")
-])
-attributes(event_subscriber=True)
-implementation("events/darwin/key_events@key_events::genTable")

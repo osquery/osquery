@@ -14,13 +14,18 @@
 
 namespace osquery {
 
-/// Flag that turns the eventing system for event taps on or off
+/// Flag that turns the keyboard events on
 FLAG(bool,
      enable_keyboard_events,
      false,
      "Enable listening for keyboard events");
 
-REGISTER(EventTappingEventPublisher, "event_publisher", "event_tapping");
+/// Flag that turns the mouse events on
+FLAG(bool, enable_mouse_events, false, "Enable listening for mouse events");
+
+REGISTER(EventTappingEventPublisher,
+         "event_publisher",
+         "user_interaction_publisher");
 
 CGEventRef EventTappingEventPublisher::eventCallback(CGEventTapProxy proxy,
                                                      CGEventType type,
@@ -36,7 +41,7 @@ EventTappingEventPublisher::~EventTappingEventPublisher() {
 }
 
 Status EventTappingEventPublisher::setUp() {
-  if (!FLAGS_enable_keyboard_events) {
+  if (!FLAGS_enable_keyboard_events && !FLAGS_enable_mouse_events) {
     return Status(1, "Publisher disabled via configuration");
   }
   return Status(0);
@@ -70,12 +75,21 @@ void EventTappingEventPublisher::stop() {
 Status EventTappingEventPublisher::restart() {
   stop();
   WriteLock lock(run_loop_mutex_);
-
   run_loop_ = CFRunLoopGetCurrent();
+
+  CGEventMask mask = kCGEventNull;
+  if (FLAGS_enable_keyboard_events) {
+    mask |= 1 << kCGEventKeyDown;
+  }
+
+  if (FLAGS_enable_mouse_events) {
+    mask |= 1 << kCGEventLeftMouseDown;
+  }
+
   event_tap_ = CGEventTapCreate(kCGSessionEventTap,
                                 kCGHeadInsertEventTap,
                                 kCGEventTapOptionListenOnly,
-                                (1 << kCGEventKeyDown),
+                                mask,
                                 eventCallback,
                                 nullptr);
   if (event_tap_ == nullptr) {
