@@ -120,13 +120,13 @@ void Pack::initialize(const std::string& name,
 
   // Check for a platform restriction.
   platform_.clear();
-  if (obj.HasMember("platform")) {
+  if (obj.HasMember("platform") && obj["platform"].IsString()) {
     platform_ = obj["platform"].GetString();
   }
 
   // Check for a version restriction.
   version_.clear();
-  if (obj.HasMember("version")) {
+  if (obj.HasMember("version") && obj["version"].IsString()) {
     version_ = obj["version"].GetString();
   }
 
@@ -139,7 +139,7 @@ void Pack::initialize(const std::string& name,
   }
 
   discovery_queries_.clear();
-  if (obj.HasMember("discovery")) {
+  if (obj.HasMember("discovery") && obj["discovery"].IsArray()) {
     for (const auto& item : obj["discovery"].GetArray()) {
       discovery_queries_.push_back(item.GetString());
     }
@@ -155,7 +155,7 @@ void Pack::initialize(const std::string& name,
   }
 
   schedule_.clear();
-  if (!obj.HasMember("queries")) {
+  if (!obj.HasMember("queries") || !obj["queries"].IsObject()) {
     // This pack contained no queries.
     return;
   }
@@ -169,16 +169,20 @@ void Pack::initialize(const std::string& name,
       }
     }
 
-    if (q.value.HasMember("platform")) {
+    if (q.value.HasMember("platform") && q.value["platform"].IsString()) {
       if (!checkPlatform(q.value["platform"].GetString())) {
         continue;
       }
     }
 
-    if (q.value.HasMember("version")) {
+    if (q.value.HasMember("version") && q.value["version"].IsString()) {
       if (!checkVersion(q.value["version"].GetString())) {
         continue;
       }
+    }
+
+    if (!q.value.HasMember("query") || !q.value["query"].IsString()) {
+      continue;
     }
 
     ScheduledQuery query;
@@ -198,12 +202,17 @@ void Pack::initialize(const std::string& name,
 
     query.splayed_interval =
         restoreSplayedValue(q.name.GetString(), query.interval);
-    query.options["snapshot"] =
-        (q.value.HasMember("snapshot")) ? q.value["snapshot"].GetBool() : false;
+
+    if (!q.value.HasMember("snapshot")) {
+      query.options["snapshot"] = false;
+    } else {
+      query.options["snapshot"] = JSON::valueAsBool(q.value["snapshot"]);
+    }
+
     if (!q.value.HasMember("removed")) {
       query.options["removed"] = true;
     } else {
-      query.options["removed"] = q.value["removed"].GetBool();
+      query.options["removed"] = JSON::valueAsBool(q.value["removed"]);
     }
     query.options["blacklist"] =
         (q.value.HasMember("blacklist")) ? q.value["blacklist"].GetBool() : true;
