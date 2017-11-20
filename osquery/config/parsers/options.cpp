@@ -51,17 +51,20 @@ class OptionsConfigParserPlugin : public ConfigParserPlugin {
 
 Status OptionsConfigParserPlugin::update(const std::string& source,
                                          const ParserConfig& config) {
-  if (config.count("options") > 0) {
-    if (!data_.doc().HasMember("options")) {
-      auto obj = data_.getObject();
-      data_.add("options", obj);
-    }
+  auto co = config.find("options");
+  if (co == config.end()) {
+    return Status();
+  }
 
-    if (config.at("options").doc().IsObject()) {
-      auto obj = data_.getObject();
-      obj.CopyFrom(config.at("options").doc(), data_.doc().GetAllocator());
-      data_.mergeObject(data_.doc()["options"], obj);
-    }
+  if (!data_.doc().HasMember("options")) {
+    auto obj = data_.getObject();
+    data_.add("options", obj);
+  }
+
+  if (co->second.doc().IsObject()) {
+    auto obj = data_.getObject();
+    data_.copyFrom(co->second.doc(), obj);
+    data_.mergeObject(data_.doc()["options"], obj);
   }
 
   const auto& options = data_.doc()["options"];
@@ -97,7 +100,7 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
     }
   }
 
-  return Status(0, "OK");
+  return Status();
 }
 
 REGISTER_INTERNAL(OptionsConfigParserPlugin, "config_parser", "options");

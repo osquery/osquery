@@ -25,10 +25,10 @@ std::vector<std::string> PrometheusMetricsConfigParserPlugin::keys() const {
 
 Status PrometheusMetricsConfigParserPlugin::update(const std::string& source,
                                                    const ParserConfig& config) {
-  if (config.count(kPrometheusParserRootKey) > 0) {
+  auto prometheus_targets = config.find(kPrometheusParserRootKey);
+  if (prometheus_targets != config.end()) {
     auto obj = data_.getObject();
-    obj.CopyFrom(config.at(kPrometheusParserRootKey).doc(),
-                 data_.doc().GetAllocator());
+    data_.copyFrom(prometheus_targets->second.doc(), obj);
     data_.add(kPrometheusParserRootKey, obj);
   }
 

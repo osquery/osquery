@@ -38,12 +38,13 @@ class ViewsConfigParserPlugin : public ConfigParserPlugin {
 
 Status ViewsConfigParserPlugin::update(const std::string& source,
                                        const ParserConfig& config) {
-  if (config.count("views") == 0) {
+  auto cv = config.find("views");
+  if (cv == config.end()) {
     return Status(1);
   }
 
   auto obj = data_.getObject();
-  obj.CopyFrom(config.at("views").doc(), data_.doc().GetAllocator());
+  data_.copyFrom(cv->second.doc(), obj);
   data_.add("views", obj);
 
   const auto& views = data_.doc()["views"];

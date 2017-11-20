@@ -143,46 +143,31 @@ JSON getExamplePacksConfig() {
 /// no discovery queries, no platform restriction
 JSON getUnrestrictedPack() {
   auto doc = getExamplePacksConfig();
-  auto pack_doc = JSON::newObject();
-  pack_doc.doc().CopyFrom(doc.doc()["packs"]["unrestricted_pack"],
-                          pack_doc.doc().GetAllocator());
-  return pack_doc;
+  return JSON::newFromValue(doc.doc()["packs"]["unrestricted_pack"]);
 }
 
 // several restrictions (version, platform, shard)
 JSON getRestrictedPack() {
   auto doc = getExamplePacksConfig();
-  auto pack_doc = JSON::newObject();
-  pack_doc.doc().CopyFrom(doc.doc()["packs"]["restricted_pack"],
-                          pack_doc.doc().GetAllocator());
-  return pack_doc;
+  return JSON::newFromValue(doc.doc()["packs"]["restricted_pack"]);
 }
 
 /// 1 discovery query, darwin platform restriction
 JSON getPackWithDiscovery() {
   auto doc = getExamplePacksConfig();
-  auto pack_doc = JSON::newObject();
-  pack_doc.doc().CopyFrom(doc.doc()["packs"]["discovery_pack"],
-                          pack_doc.doc().GetAllocator());
-  return pack_doc;
+  return JSON::newFromValue(doc.doc()["packs"]["discovery_pack"]);
 }
 
 /// 1 discovery query which will always pass
 JSON getPackWithValidDiscovery() {
   auto doc = getExamplePacksConfig();
-  auto pack_doc = JSON::newObject();
-  pack_doc.doc().CopyFrom(doc.doc()["packs"]["valid_discovery_pack"],
-                          pack_doc.doc().GetAllocator());
-  return pack_doc;
+  return JSON::newFromValue(doc.doc()["packs"]["valid_discovery_pack"]);
 }
 
 /// no discovery queries, no platform restriction, fake version string
 JSON getPackWithFakeVersion() {
   auto doc = getExamplePacksConfig();
-  auto pack_doc = JSON::newObject();
-  pack_doc.doc().CopyFrom(doc.doc()["packs"]["fake_version_pack"],
-                          pack_doc.doc().GetAllocator());
-  return pack_doc;
+  return JSON::newFromValue(doc.doc()["packs"]["fake_version_pack"]);
 }
 
 QueryData getTestDBExpectedResults() {
@@ -288,11 +273,11 @@ std::pair<JSON, QueryData> getSerializedQueryData() {
 
   JSON doc = JSON::newArray();
   auto arr1 = doc.getArray();
-  arr1.CopyFrom(r.first.doc(), doc.doc().GetAllocator());
+  doc.copyFrom(r.first.doc(), arr1);
   doc.push(arr1);
 
   auto arr2 = doc.getArray();
-  arr2.CopyFrom(r.first.doc(), doc.doc().GetAllocator());
+  doc.copyFrom(r.first.doc(), arr2);
   doc.push(arr2);
 
   return std::make_pair(std::move(doc), q);
@@ -303,11 +288,11 @@ std::pair<JSON, QueryData> getSerializedQueryDataWithColumnOrder() {
   QueryData q = {r.second, r.second};
   JSON doc = JSON::newArray();
   auto arr1 = doc.getArray();
-  arr1.CopyFrom(r.first.doc(), doc.doc().GetAllocator());
+  doc.copyFrom(r.first.doc(), arr1);
   doc.push(arr1);
 
   auto arr2 = doc.getArray();
-  arr2.CopyFrom(r.first.doc(), doc.doc().GetAllocator());
+  doc.copyFrom(r.first.doc(), arr2);
   doc.push(arr2);
 
   return std::make_pair(std::move(doc), q);

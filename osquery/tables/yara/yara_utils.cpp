@@ -257,17 +257,20 @@ Status YARAConfigParserPlugin::update(const std::string& source,
 
   // Look for a "signatures" key with the group/file content.
   if (yara_config.HasMember("signatures")) {
-    auto obj = data_.getObject();
-    obj.CopyFrom(yara_config["signatures"], data_.doc().GetAllocator());
-    data_.add("signatures", obj);
+    auto& signatures = yara_config["signatures"];
+    if (signatures.IsObject()) {
+      auto obj = data_.getObject();
+      data_.copyFrom(signatures, obj);
+      data_.add("signatures", obj);
 
-    for (const auto& element : data_.doc()["signatures"].GetObject()) {
-      std::string category = element.name.GetString();
-      VLOG(1) << "Compiling YARA signature group: " << category;
-      auto status = handleRuleFiles(category, element.value, rules_);
-      if (!status.ok()) {
-        VLOG(1) << "YARA rule compile error: " << status.getMessage();
-        return status;
+      for (const auto& element : data_.doc()["signatures"].GetObject()) {
+        std::string category = element.name.GetString();
+        VLOG(1) << "Compiling YARA signature group: " << category;
+        auto status = handleRuleFiles(category, element.value, rules_);
+        if (!status.ok()) {
+          VLOG(1) << "YARA rule compile error: " << status.getMessage();
+          return status;
+        }
       }
     }
   }
@@ -275,9 +278,12 @@ Status YARAConfigParserPlugin::update(const std::string& source,
   // The "file_paths" set maps the rule groups to the "file_paths" top level
   // configuration key. That similar key keeps the groups of file paths.
   if (yara_config.HasMember("file_paths")) {
-    auto obj = data_.getObject();
-    obj.CopyFrom(yara_config["file_paths"], data_.doc().GetAllocator());
-    data_.add("file_paths", obj);
+    auto& file_paths = yara_config["file_paths"];
+    if (file_paths.IsObject()) {
+      auto obj = data_.getObject();
+      data_.copyFrom(file_paths, obj);
+      data_.add("file_paths", obj);
+    }
   }
   return Status();
 }

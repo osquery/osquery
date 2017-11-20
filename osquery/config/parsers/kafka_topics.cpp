@@ -25,10 +25,10 @@ std::vector<std::string> KafkaTopicsConfigParserPlugin::keys() const {
 
 Status KafkaTopicsConfigParserPlugin::update(const std::string& source,
                                              const ParserConfig& config) {
-  if (config.count(kKafkaTopicParserRootKey) > 0) {
+  auto topics = config.find(kKafkaTopicParserRootKey);
+  if (topics != config.end()) {
     auto obj = data_.getObject();
-    obj.CopyFrom(config.at(kKafkaTopicParserRootKey).doc(),
-                 data_.doc().GetAllocator());
+    data_.copyFrom(topics->second.doc(), obj);
     data_.add(kKafkaTopicParserRootKey, obj);
   }
   return Status();

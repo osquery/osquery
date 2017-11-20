@@ -548,30 +548,33 @@ Status Config::updateSource(const std::string& source,
   // extract the "schedule" key and store it as the main pack
   auto& rf = RegistryFactory::get();
   if (doc.doc().HasMember("schedule") && !rf.external()) {
-    auto main_doc = JSON::newObject();
-    auto queries_obj = main_doc.getObject();
-    queries_obj.CopyFrom(doc.doc()["schedule"], main_doc.doc().GetAllocator());
-    main_doc.add("queries", queries_obj);
-
-    addPack("main", source, main_doc.doc());
+    auto& schedule = doc.doc()["schedule"];
+    if (schedule.IsObject()) {
+      auto main_doc = JSON::newObject();
+      auto queries_obj = main_doc.getObject();
+      main_doc.copyFrom(schedule, queries_obj);
+      main_doc.add("queries", queries_obj);
+      addPack("main", source, main_doc.doc());
+    }
   }
 
   if (doc.doc().HasMember("scheduledQueries") && !rf.external()) {
-    auto queries_doc = JSON::newObject();
-    auto queries_obj = queries_doc.getObject();
+    auto& schedule = doc.doc()["scheduledQueries"];
+    if (schedule.IsArray()) {
+      auto queries_doc = JSON::newObject();
+      auto queries_obj = queries_doc.getObject();
 
-    for (auto& query : doc.doc()["scheduledQueries"].GetArray()) {
-      std::string query_name = query["name"].GetString();
-
-      if (query_name.empty()) {
-        return Status(1, "Error getting name from legacy scheduled query");
+      for (auto& query : schedule.GetArray()) {
+        std::string query_name = query["name"].GetString();
+        if (query_name.empty()) {
+          return Status(1, "Error getting name from legacy scheduled query");
+        }
+        queries_doc.add(query_name, query, queries_obj);
       }
 
-      queries_doc.add(query_name, query, queries_obj);
+      queries_doc.add("queries", queries_obj);
+      addPack("legacy_main", source, queries_doc.doc());
     }
-
-    queries_doc.add("queries", queries_obj);
-    addPack("legacy_main", source, queries_doc.doc());
   }
 
   // extract the "packs" key into additional pack objects
@@ -628,6 +631,8 @@ Status Config::genPack(const std::string& name,
 void Config::applyParsers(const std::string& source,
                           const rj::Value& obj,
                           bool pack) {
+  assert(obj.IsObject());
+
   // Iterate each parser.
   RecursiveLock lock(config_schedule_mutex_);
   for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {
@@ -645,8 +650,7 @@ void Config::applyParsers(const std::string& source,
     std::map<std::string, JSON> parser_config;
     for (const auto& key : parser->keys()) {
       if (obj.HasMember(key)) {
-        auto doc = (obj[key].IsObject()) ? JSON::newObject() : JSON::newArray();
-        doc.doc().CopyFrom(obj[key], doc.doc().GetAllocator());
+        auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
       } else {
         parser_config.emplace(std::make_pair(key, JSON::newObject()));

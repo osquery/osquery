@@ -77,6 +77,7 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
     data_.add("file_accesses", arr);
   }
 
+  // We know this top-level is an Object.
   const auto& file_paths = config.at("file_paths").doc();
   for (const auto& category : file_paths.GetObject()) {
     if (category.value.IsArray()) {
@@ -93,6 +94,7 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
     }
   }
 
+  // We know this top-level is an Object.
   if (config.count("exclude_paths") > 0) {
     auto obj = data_.getObject();
     const auto& exclude_paths = config.at("exclude_paths").doc();

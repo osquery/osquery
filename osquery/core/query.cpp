@@ -387,8 +387,7 @@ inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
   }
 }
 
-inline void getLegacyFieldsAndDecorations(const JSON& doc,
-                                          QueryLogItem& item) {
+inline void getLegacyFieldsAndDecorations(const JSON& doc, QueryLogItem& item) {
   if (doc.doc().HasMember("decorations")) {
     if (doc.doc()["decorations"].IsObject()) {
       for (const auto& i : doc.doc()["decorations"].GetObject()) {
@@ -489,12 +488,14 @@ Status deserializeQueryLogItem(const JSON& doc, QueryLogItem& item) {
   }
 
   if (doc.doc().HasMember("diffResults")) {
-    auto status = deserializeDiffResults(doc.doc()["diffResults"], item.results);
+    auto status =
+        deserializeDiffResults(doc.doc()["diffResults"], item.results);
     if (!status.ok()) {
       return status;
     }
   } else if (doc.doc().HasMember("snapshot")) {
-    auto status = deserializeQueryData(doc.doc()["snapshot"], item.snapshot_results);
+    auto status =
+        deserializeQueryData(doc.doc()["snapshot"], item.snapshot_results);
     if (!status.ok()) {
       return status;
     }

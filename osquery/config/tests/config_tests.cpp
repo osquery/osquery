@@ -355,7 +355,7 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
     // Copy all expected keys into the parser's data.
     for (const auto& key : config) {
       auto obj = data_.getObject();
-      obj.CopyFrom(key.second.doc(), data_.doc().GetAllocator());
+      data_.copyFrom(key.second.doc(), obj);
       data_.add(key.first, obj, data_.doc());
     }
 
