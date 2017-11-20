@@ -158,7 +158,6 @@ class PlatformProcess : private boost::noncopyable {
    */
   static std::shared_ptr<PlatformProcess> launchExtension(
       const std::string& exec_path,
-      const std::string& extension,
       const std::string& extensions_socket,
       const std::string& extensions_timeout,
       const std::string& extensions_interval,

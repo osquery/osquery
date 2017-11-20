@@ -508,21 +508,11 @@ void Initializer::initWatcher() const {
 
 void Initializer::initWorker(const std::string& name) const {
   // Clear worker's arguments.
-  size_t name_size = strlen((*argv_)[0]);
   auto original_name = std::string((*argv_)[0]);
-  for (int i = 0; i < *argc_; i++) {
+  for (int i = 1; i < *argc_; i++) {
     if ((*argv_)[i] != nullptr) {
       memset((*argv_)[i], '\0', strlen((*argv_)[i]));
     }
-  }
-
-  // Set the worker's process name.
-  if (name.size() < name_size) {
-    std::copy(name.begin(), name.end(), (*argv_)[0]);
-    (*argv_)[0][name.size()] = '\0';
-  } else {
-    std::copy(original_name.begin(), original_name.end(), (*argv_)[0]);
-    (*argv_)[0][original_name.size()] = '\0';
   }
 
   // Start a 'watcher watcher' thread to exit the process if the watcher exits.

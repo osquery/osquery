@@ -128,7 +128,6 @@ TEST_F(ProcessTests, test_launchExtension) {
   {
     auto process =
         PlatformProcess::launchExtension(kProcessTestExecPath.c_str(),
-                                         "extension-test",
                                          kExpectedExtensionArgs[3],
                                          kExpectedExtensionArgs[5],
                                          kExpectedExtensionArgs[7],
@@ -168,23 +167,4 @@ TEST_F(ProcessTests, test_launchWorker) {
     EXPECT_EQ(code, WORKER_SUCCESS_CODE);
   }
 }
-
-#ifdef WIN32
-TEST_F(ProcessTests, test_launchExtensionQuotes) {
-  {
-    auto process =
-        PlatformProcess::launchExtension(kProcessTestExecPath.c_str(),
-                                         "exten\"sion-te\"st",
-                                         "socket-name",
-                                         "100",
-                                         "5",
-                                         true);
-    EXPECT_NE(nullptr, process.get());
-
-    int code = 0;
-    EXPECT_TRUE(getProcessExitCode(*process, code));
-    EXPECT_EQ(code, EXTENSION_SUCCESS_CODE);
-  }
-}
-#endif
 }
