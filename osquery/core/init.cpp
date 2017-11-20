@@ -509,7 +509,7 @@ void Initializer::initWatcher() const {
 void Initializer::initWorker(const std::string& name) const {
   // Clear worker's arguments.
   auto original_name = std::string((*argv_)[0]);
-  for (int i = 0; i < *argc_; i++) {
+  for (int i = 1; i < *argc_; i++) {
     if ((*argv_)[i] != nullptr) {
       memset((*argv_)[i], '\0', strlen((*argv_)[i]));
     }
