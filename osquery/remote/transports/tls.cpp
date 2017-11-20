@@ -11,6 +11,7 @@
 // clang-format off
 // This must be here to prevent a WinSock.h exists error
 #include "osquery/remote/transports/tls.h"
+#include "osquery/dispatcher/io_service.h"
 // clang-format on
 
 #include <boost/filesystem.hpp>
@@ -51,6 +52,16 @@ CLI_FLAG(string,
          "",
          "Optional path to a TLS client-auth PEM private key");
 
+/// Persitent transport - Once connection is established don't tear it,
+/// unless the request url changes.
+CLI_FLAG(bool, tls_persist_transport, false, "Persistent TLS transport");
+
+/// Persitent transport timeout - tear connection if times out.
+CLI_FLAG(uint32,
+         tls_persist_transport_timeout,
+         3600,
+         "Persistent TLS transport timeout in seconds(default 3600 seconds)");
+
 #if defined(DEBUG)
 HIDDEN_FLAG(bool,
             tls_allow_unsafe,
@@ -85,6 +96,8 @@ void TLSTransport::decorateRequest(http::Request& r) {
 http::Client::Options TLSTransport::getOptions() {
   http::Client::Options options;
   options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
+
+  options.keep_alive(FLAGS_tls_persist_transport);
 
   if (FLAGS_proxy_hostname.size() > 0) {
     options.proxy_hostname(FLAGS_proxy_hostname);
@@ -151,18 +164,47 @@ inline bool tlsFailure(const std::string& what) {
   return true;
 }
 
+static auto getClient() {
+  std::shared_ptr<http::Client> client;
+  if (FLAGS_tls_persist_transport) {
+    thread_local std::shared_ptr<http::Client> tl_client;
+    client = tl_client;
+
+    if (client.get() == nullptr) {
+      tl_client = client = std::make_shared<http::Client>();
+
+      if (FLAGS_tls_persist_transport_timeout) {
+        thread_local boost::asio::deadline_timer tl_timer(IOService::get());
+
+        tl_timer.expires_from_now(
+            boost::posix_time::seconds(FLAGS_tls_persist_transport_timeout));
+        auto this_client = &tl_client;
+        tl_timer.async_wait([this_client](boost_system::error_code const&) {
+          (*this_client).reset();
+        });
+      }
+    }
+  } else {
+    client = std::make_shared<http::Client>();
+  }
+  return client;
+}
+
 Status TLSTransport::sendRequest() {
   if (destination_.find("https://") == std::string::npos) {
     return Status(1, "Cannot create TLS request for non-HTTPS protocol URI");
   }
 
-  http::Client client(getOptions());
   http::Request r(destination_);
   decorateRequest(r);
 
   VLOG(1) << "TLS/HTTPS GET request to URI: " << destination_;
   try {
-    response_ = client.get(r);
+    std::shared_ptr<http::Client> client = getClient();
+
+    client->setOptions(getOptions());
+    response_ = client->get(r);
+
     const auto& response_body = response_.body();
     if (FLAGS_verbose && FLAGS_tls_dump) {
       fprintf(stdout, "%s\n", response_body.c_str());
@@ -181,7 +223,6 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
     return Status(1, "Cannot create TLS request for non-HTTPS protocol URI");
   }
 
-  http::Client client(getOptions());
   http::Request r(destination_);
   decorateRequest(r);
   if (compress) {
@@ -202,10 +243,13 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
   }
 
   try {
+    std::shared_ptr<http::Client> client = getClient();
+    client->setOptions(getOptions());
+
     if (verb == HTTP_POST) {
-      response_ = client.post(r, (compress) ? compressString(params) : params);
+      response_ = client->post(r, (compress) ? compressString(params) : params);
     } else {
-      response_ = client.put(r, (compress) ? compressString(params) : params);
+      response_ = client->put(r, (compress) ? compressString(params) : params);
     }
 
     const auto& response_body = response_.body();
