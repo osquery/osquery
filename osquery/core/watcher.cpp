@@ -82,6 +82,11 @@ CLI_FLAG(uint64,
          60,
          "Initial delay in seconds before watchdog starts");
 
+HIDDEN_FLAG(uint64,
+            watchdog_max_delay,
+            60 * 10,
+            "Max delay in seconds between worker respawns");
+
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
 void Watcher::resetWorkerCounters(size_t respawn_time) {
@@ -244,8 +249,20 @@ void WatcherRunner::watchExtensions() {
     int process_status = 0;
     extension.second->checkStatus(process_status);
 
+    auto ext_valid = extension.second->isValid();
     auto s = isChildSane(*extension.second);
-    if (!extension.second->isValid() || !s.ok()) {
+    if (!ext_valid || (!s.ok() && getUnixTime() >= delayedTime())) {
+      if (ext_valid) {
+        // The extension was already launched once.
+        std::stringstream error;
+        error << "osquery extension " << extension.first << " ("
+              << extension.second->pid() << ") stopping: " << s.getMessage();
+        systemLog(error.str());
+        LOG(WARNING) << error.str();
+        stopChild(*extension.second);
+        pauseMilli(getWorkerLimit(WatchdogLimitType::INTERVAL) * 1000);
+      }
+
       // The extension manager also watches for extension-related failures.
       // The watchdog is more general, but may find failed extensions first.
       createExtension(extension.first);
@@ -283,8 +300,13 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
     auto status = isChildSane(child);
     // A delayed watchdog does not stop the worker process.
     if (!status.ok() && getUnixTime() >= delayedTime()) {
-      LOG(WARNING) << "osqueryd worker (" << child.pid()
-                   << ") stopping: " << status.getMessage();
+      // Since the watchdog cannot use the logger plugin the error message
+      // should be logged to stderr and to the system log.
+      std::stringstream error;
+      error << "osqueryd worker (" << child.pid()
+            << ") stopping: " << status.getMessage();
+      systemLog(error.str());
+      LOG(WARNING) << error.str();
       stopChild(child);
       return false;
     }
@@ -418,7 +440,7 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
   auto rows = getProcessRow(child.pid());
   if (rows.size() == 0) {
     // Could not find worker process?
-    return Status(1, "Cannot find worker process");
+    return Status(1, "Cannot find process");
   }
 
   PerformanceChange change;
@@ -470,10 +492,11 @@ void WatcherRunner::createWorker() {
                    << watcher.workerRestartCount() << " times";
 
       // The configured automatic delay.
-      size_t delay = getWorkerLimit(WatchdogLimitType::RESPAWN_DELAY) * 1000;
+      size_t delay = getWorkerLimit(WatchdogLimitType::RESPAWN_DELAY);
       // Exponential back off for quickly-respawning clients.
-      delay += static_cast<size_t>(pow(2, watcher.workerRestartCount())) * 1000;
-      pauseMilli(delay);
+      delay += static_cast<size_t>(pow(2, watcher.workerRestartCount()));
+      delay = std::max(static_cast<size_t>(FLAGS_watchdog_max_delay), delay);
+      pauseMilli(delay * 1000);
     }
   }
 

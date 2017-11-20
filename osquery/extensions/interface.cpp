@@ -142,11 +142,12 @@ void ExtensionManagerHandler::registerExtension(
           << ", version=" << info.version << ", sdk=" << info.sdk_version
           << ")";
 
-  if (!RegistryFactory::get().addBroadcast(uuid, registry).ok()) {
-    LOG(WARNING) << "Could not add extension " << info.name
-                 << ": invalid extension registry";
+  auto status = RegistryFactory::get().addBroadcast(uuid, registry);
+  if (!status.ok()) {
+    LOG(WARNING) << "Could not add extension " << info.name << ": "
+                 << status.getMessage();
     _return.code = ExtensionCode::EXT_FAILED;
-    _return.message = "Failed adding registry broadcast";
+    _return.message = "Failed adding registry: " + status.getMessage();
     return;
   }
 
