@@ -189,7 +189,8 @@ void Client::sendRequest(STREAM_TYPE& stream,
 
   if (req[beast_http::field::host].empty()) {
     std::string host_header_value = *client_options_.remote_hostname_;
-    if (ssl_connection && (kHTTPSDefaultPort != *client_options_.remote_port_)) {
+    if (ssl_connection &&
+        (kHTTPSDefaultPort != *client_options_.remote_port_)) {
       host_header_value += ':' + *client_options_.remote_port_;
     } else if (kHTTPDefaultPort != *client_options_.remote_port_) {
       host_header_value += ':' + *client_options_.remote_port_;
