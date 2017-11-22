@@ -12,7 +12,7 @@
 
 namespace osquery {
 
-class EventTapsKeySubscriber
+class UserInteractionSubscriber
     : public EventSubscriber<EventTappingEventPublisher> {
  public:
   Status init() override {
@@ -25,14 +25,16 @@ class EventTapsKeySubscriber
                   const EventTappingSubscriptionContextRef& sc);
 };
 
-REGISTER(EventTapsKeySubscriber, "event_subscriber", "key_events");
+REGISTER(UserInteractionSubscriber,
+         "event_subscriber",
+         "user_interaction_events");
 
-void EventTapsKeySubscriber::configure() {
+void UserInteractionSubscriber::configure() {
   auto sc = createSubscriptionContext();
-  subscribe(&EventTapsKeySubscriber::Callback, sc);
+  subscribe(&UserInteractionSubscriber::Callback, sc);
 }
 
-Status EventTapsKeySubscriber::Callback(
+Status UserInteractionSubscriber::Callback(
     const EventTappingEventContextRef& ec,
     const EventTappingSubscriptionContextRef& sc) {
   Row r;
