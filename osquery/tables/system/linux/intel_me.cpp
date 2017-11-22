@@ -46,7 +46,7 @@ std::vector<uint8_t> kMEIUpdateGUID{
 
 void genIntelMEVersion(int mei_fd, QueryData& results) {
   uint8_t buffer[18] = {0};
-  memcpy(buffer, kMEIUpdateGUID.data(), sizeof(buffer));
+  memcpy(buffer, kMEIUpdateGUID.data(), kMEIUpdateGUID.size());
 
   if (ioctl(mei_fd, 0xc0104801, buffer) == -1) {
     VLOG(1) << "Intel MEI is not accessible";
