@@ -16,39 +16,20 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/tables/system/intel_me.hpp"
+
 namespace osquery {
 namespace tables {
 
 /// The Linux device node added by the mei driver.
 const std::string kIntelME{"/dev/mei0"};
 
-struct mei_response {
-  uint32_t maxlen;
-  uint8_t version;
-};
-
-struct mei_version {
-  uint32_t important_details[7];
-  uint16_t major;
-  uint16_t minor;
-  uint16_t hotfix;
-  uint16_t build;
-  uint16_t r_major;
-  uint16_t r_minor;
-  uint16_t r_hotfix;
-  uint16_t r_build;
-  uint16_t codes[6];
-};
-
-std::vector<uint8_t> kMEIUpdateGUID{
-    232, 205, 157, 48, 177, 204, 98, 64, 143, 120, 96, 1, 21, 163, 67, 39,
-};
 
 void genIntelMEVersion(int mei_fd, QueryData& results) {
   uint8_t buffer[18] = {0};
   memcpy(buffer, kMEIUpdateGUID.data(), kMEIUpdateGUID.size());
 
-  if (ioctl(mei_fd, 0xc0104801, buffer) == -1) {
+  if (ioctl(mei_fd, INTEL_ME_LINUX_IOCTL, buffer) == -1) {
     VLOG(1) << "Intel MEI is not accessible";
     return;
   }
@@ -76,8 +57,8 @@ void genIntelMEVersion(int mei_fd, QueryData& results) {
   Row r;
   r["version"] = std::to_string(version.major) + '.' +
                  std::to_string(version.minor) + '.' +
-                 std::to_string(version.build) + '.' +
-                 std::to_string(version.hotfix);
+                 std::to_string(version.hotfix) + '.' +
+                 std::to_string(version.build);
 
   results.push_back(r);
 }
