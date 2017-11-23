@@ -45,9 +45,6 @@
 #endif
 // clang-format on
 
-#include <openssl/crypto.h>
-#include <openssl/ssl.h>
-
 #ifndef OPENSSL_NO_SSL2
 #define OPENSSL_NO_SSL2 1
 #endif
@@ -59,14 +56,8 @@
 #define OPENSSL_NO_MD5 1
 #define OPENSSL_NO_DEPRECATED 1
 
-extern "C" {
-#if defined(NO_SSL_TXT_SSLV3)
-SSL_METHOD* SSLv3_server_method(void);
-SSL_METHOD* SSLv3_client_method(void);
-SSL_METHOD* SSLv3_method(void);
-#endif
-void ERR_remove_state(unsigned long);
-}
+#include <openssl/crypto.h>
+#include <openssl/ssl.h>
 
 namespace boost_system = boost::system;
 namespace boost_asio = boost::asio;
