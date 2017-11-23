@@ -6,7 +6,6 @@ schema([
     Column("cpu_type", TEXT, "CPU type"),
     Column("cpu_subtype", TEXT, "CPU subtype"),
     Column("cpu_brand", TEXT, "CPU brand string, contains vendor and model"),
-    Column("cpu_physical_processors", INTEGER, "Max number of CPU physical processors"),
     Column("cpu_physical_cores", INTEGER, "Max number of CPU physical cores"),
     Column("cpu_logical_cores", INTEGER, "Max number of CPU logical cores"),
     Column("physical_memory", BIGINT, "Total physical memory in bytes"),

@@ -39,12 +39,10 @@ QueryData genSystemInfo(QueryContext& context) {
   WmiRequest wmiSystemReqProc("select * from Win32_Processor");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   std::vector<WmiResultItem>& wmiResultsProc = wmiSystemReqProc.results();
-  if (wmiResults.size() != 0) {
+  if (!wmiResults.empty() && !wmiResultsProc.empty()) {
     long numProcs = 0;
     wmiResults[0].GetLong("NumberOfLogicalProcessors", numProcs);
     r["cpu_logical_cores"] = INTEGER(numProcs);
-    wmiResults[0].GetLong("NumberOfProcessors", numProcs);
-    r["cpu_physical_processors"] = INTEGER(numProcs);
     wmiResultsProc[0].GetLong("NumberOfCores", numProcs);
     r["cpu_physical_cores"] = INTEGER(numProcs);
     wmiResults[0].GetString("TotalPhysicalMemory", r["physical_memory"]);
