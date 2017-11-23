@@ -8,6 +8,8 @@
  *
  */
 
+#include <set>
+
 #include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -15,6 +17,16 @@
 namespace pt = boost::property_tree;
 
 namespace osquery {
+
+/**
+ * @brief Flag names that effect the verbosity of status logs.
+ *
+ * If any of these options are present, then ask the logger to reconfigure
+ * the verbosity.
+ */
+const std::set<std::string> kVerboseOptions{
+    "verbose", "logger_min_level", "verbose_debug", "debug", "minloglevel",
+};
 
 /**
  * @brief A simple ConfigParserPlugin for an "options" dictionary key.
@@ -56,8 +68,7 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
 
     Flag::updateValue(option.first, value);
     // There is a special case for supported Gflags-reserved switches.
-    if (option.first == "verbose" || option.first == "verbose_debug" ||
-        option.first == "debug") {
+    if (kVerboseOptions.count(option.first)) {
       setVerboseLevel();
       if (Flag::getValue("verbose") == "true") {
         VLOG(1) << "Verbose logging enabled by config option";

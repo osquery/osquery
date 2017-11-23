@@ -9,8 +9,9 @@
  */
 
 #include <chrono>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
+#include <vector>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -141,11 +142,12 @@ void ExtensionManagerHandler::registerExtension(
           << ", version=" << info.version << ", sdk=" << info.sdk_version
           << ")";
 
-  if (!RegistryFactory::get().addBroadcast(uuid, registry).ok()) {
-    LOG(WARNING) << "Could not add extension " << info.name
-                 << ": invalid extension registry";
+  auto status = RegistryFactory::get().addBroadcast(uuid, registry);
+  if (!status.ok()) {
+    LOG(WARNING) << "Could not add extension " << info.name << ": "
+                 << status.getMessage();
     _return.code = ExtensionCode::EXT_FAILED;
-    _return.message = "Failed adding registry broadcast";
+    _return.message = "Failed adding registry: " + status.getMessage();
     return;
   }
 
@@ -240,8 +242,14 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
 }
 } // namespace extensions
 
+ExtensionRunner::ExtensionRunner(const std::string& manager_path,
+                                 RouteUUID uuid)
+    : ExtensionRunnerCore(""), uuid_(uuid) {
+  path_ = getExtensionSocket(uuid, manager_path);
+}
+
 ExtensionRunnerCore::~ExtensionRunnerCore() {
-  remove(path_);
+  removePath(path_);
 }
 
 void ExtensionRunnerCore::stop() {
@@ -264,7 +272,7 @@ inline void removeStalePaths(const std::string& manager) {
   // Attempt to remove all stale extension sockets.
   resolveFilePattern(manager + ".*", paths);
   for (const auto& path : paths) {
-    remove(path);
+    removePath(path);
   }
 }
 
@@ -294,6 +302,10 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
   }
 
   server_->serve();
+}
+
+RouteUUID ExtensionRunner::getUUID() const {
+  return uuid_;
 }
 
 void ExtensionRunner::start() {
@@ -330,5 +342,45 @@ void ExtensionManagerRunner::start() {
     LOG(WARNING) << "Extensions disabled: cannot start extension manager ("
                  << path_ << ") (" << e.what() << ")";
   }
+}
+
+EXInternal::~EXInternal() {
+  try {
+    transport_->close();
+  } catch (const std::exception& /* e */) {
+    // The transport/socket may have exited.
+  }
+}
+
+void EXInternal::setTimeouts(size_t timeouts) {
+#ifndef WIN32
+  // Windows TPipe does not support timeouts.
+  socket_->setRecvTimeout(timeouts);
+  socket_->setSendTimeout(timeouts);
+#endif
+}
+
+EXClient::EXClient(const std::string& path, size_t timeout)
+    : EXInternal(path),
+      client_(std::make_shared<extensions::ExtensionClient>(protocol_)) {
+  setTimeouts(timeout);
+  (void)transport_->open();
+}
+
+EXManagerClient::EXManagerClient(const std::string& manager_path,
+                                 size_t timeout)
+    : EXInternal(manager_path),
+      client_(std::make_shared<extensions::ExtensionManagerClient>(protocol_)) {
+  setTimeouts(timeout);
+  (void)transport_->open();
+}
+
+const std::shared_ptr<extensions::ExtensionClient>& EXClient::get() const {
+  return client_;
+}
+
+const std::shared_ptr<extensions::ExtensionManagerClient>&
+EXManagerClient::get() const {
+  return client_;
 }
 } // namespace osquery

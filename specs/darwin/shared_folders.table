@@ -1,0 +1,7 @@
+table_name("shared_folders")
+description("Folders available to others via SMB or AFP.")
+schema([
+    Column("name", TEXT, "The shared name of the folder as it appears to other users"),
+    Column("path", TEXT, "Absolute path of shared folder on the local system")
+])
+implementation("shared_folders@genSharedFolders")

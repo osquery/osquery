@@ -10,6 +10,9 @@
 
 #pragma once
 
+#include <set>
+#include <string>
+
 #include <osquery/dispatcher.h>
 #include <osquery/filesystem.h>
 
@@ -52,13 +55,6 @@ class Carver : public InternalRunnable {
    * users tmp directory
    */
   Status carve(const boost::filesystem::path& path);
-  /*
-   * @brief A helper function to compress files in a specified directory
-   *
-   * Given a set of paths we bundle these into a tar archive. This file
-   * will be a tgz, however currently no compression is performed.
-   */
-  Status compress(const std::set<boost::filesystem::path>& path);
 
   /*
    * @brief Helper function to POST a carve to the graph endpoint.
@@ -105,6 +101,14 @@ class Carver : public InternalRunnable {
   boost::filesystem::path archivePath_;
 
   /*
+   * @brief a helper variable for keeping track of the compressed tar.
+   *
+   * This variable is the absolute location of the tar archive created from
+   * zstd of the archive.
+   */
+  boost::filesystem::path compressPath_;
+
+  /*
    * @brief a unique ID identifying the 'carve'
    *
    * This unique generated GUID is used to identify the carve session from
@@ -139,6 +143,7 @@ class Carver : public InternalRunnable {
   friend class CarverTests;
   FRIEND_TEST(CarverTests, test_carve_files_locally);
 };
+
 /**
  * @brief Start a file carve of the given paths
  *

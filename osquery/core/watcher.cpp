@@ -53,7 +53,7 @@ const WatchdogLimitMap kWatchdogLimits = {
     // User or system CPU worker can utilize for LATENCY_LIMIT seconds.
     {WatchdogLimitType::UTILIZATION_LIMIT, {90, 80, 1000}},
     // Number of seconds the worker should run, else consider the exit fatal.
-    {WatchdogLimitType::RESPAWN_LIMIT, {10, 4, 1000}},
+    {WatchdogLimitType::RESPAWN_LIMIT, {4, 4, 1000}},
     // If the worker respawns too quickly, backoff on creating additional.
     {WatchdogLimitType::RESPAWN_DELAY, {5, 5, 1}},
     // Seconds of tolerable UTILIZATION_LIMIT sustained latency.
@@ -70,7 +70,7 @@ CLI_FLAG(int32,
 CLI_FLAG(uint64,
          watchdog_memory_limit,
          0,
-         "Override watchdog profile memory limit");
+         "Override watchdog profile memory limit (e.g., 300, for 300MB)");
 
 CLI_FLAG(uint64,
          watchdog_utilization_limit,
@@ -81,6 +81,11 @@ CLI_FLAG(uint64,
          watchdog_delay,
          60,
          "Initial delay in seconds before watchdog starts");
+
+HIDDEN_FLAG(uint64,
+            watchdog_max_delay,
+            60 * 10,
+            "Max delay in seconds between worker respawns");
 
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
@@ -180,45 +185,45 @@ bool WatcherRunner::ok() const {
 }
 
 void WatcherRunner::start() {
-  // Set worker performance counters to an initial state.
-  Watcher::get().resetWorkerCounters(0);
   // Hold the current process (watcher) for inspection too.
-  auto watcher = PlatformProcess::getCurrentProcess();
+  auto& watcher = Watcher::get();
+  auto self = PlatformProcess::getCurrentProcess();
+
+  // Set worker performance counters to an initial state.
+  watcher.resetWorkerCounters(0);
   PerformanceState watcher_state;
 
   // Enter the watch loop.
   do {
-    if (use_worker_ && !watch(Watcher::get().getWorker())) {
-      if (Watcher::get().fatesBound()) {
+    if (use_worker_ && !watch(watcher.getWorker())) {
+      if (watcher.fatesBound()) {
         // A signal has interrupted the watcher.
         break;
       }
+
+      auto status = watcher.getWorkerStatus();
+      if (status == EXIT_CATASTROPHIC) {
+        Initializer::requestShutdown(EXIT_CATASTROPHIC);
+        break;
+      }
+
+      if (watcher.workerRestartCount() ==
+          getWorkerLimit(WatchdogLimitType::RESPAWN_LIMIT)) {
+        // Too many worker restarts.
+        Initializer::requestShutdown(EXIT_FAILURE, "Too many worker restarts");
+        break;
+      }
+
       // The watcher failed, create a worker.
       createWorker();
     }
 
-    // Loop over every managed extension and check sanity.
-    for (const auto& extension : Watcher::get().extensions()) {
-      auto s = isChildSane(*extension.second);
-      if (!s.ok()) {
-        // The extension manager also watches for extension-related failures.
-        // The watchdog is more general, but may find failed extensions first.
-        createExtension(extension.first);
-        extension_restarts_[extension.first] += 1;
-      } else {
-        extension_restarts_[extension.first] = 0;
-      }
-    }
-    // If any extension creations failed, stop managing them.
-    for (auto& extension : extension_restarts_) {
-      if (extension.second > 3) {
-        Watcher::get().removeExtensionPath(extension.first);
-        extension.second = 0;
-      }
-    }
+    // After inspecting the worker, check the extensions.
+    // Extensions may be active even if a worker/watcher is not used.
+    watchExtensions();
 
     if (use_worker_) {
-      auto status = isWatcherHealthy(*watcher, watcher_state);
+      auto status = isWatcherHealthy(*self, watcher_state);
       if (!status.ok()) {
         Initializer::requestShutdown(
             EXIT_CATASTROPHIC,
@@ -233,6 +238,46 @@ void WatcherRunner::start() {
     }
     pauseMilli(getWorkerLimit(WatchdogLimitType::INTERVAL) * 1000);
   } while (!interrupted() && ok());
+}
+
+void WatcherRunner::watchExtensions() {
+  auto& watcher = Watcher::get();
+
+  // Loop over every managed extension and check sanity.
+  for (const auto& extension : watcher.extensions()) {
+    // Check the extension status, causing a wait.
+    int process_status = 0;
+    extension.second->checkStatus(process_status);
+
+    auto ext_valid = extension.second->isValid();
+    auto s = isChildSane(*extension.second);
+    if (!ext_valid || (!s.ok() && getUnixTime() >= delayedTime())) {
+      if (ext_valid) {
+        // The extension was already launched once.
+        std::stringstream error;
+        error << "osquery extension " << extension.first << " ("
+              << extension.second->pid() << ") stopping: " << s.getMessage();
+        systemLog(error.str());
+        LOG(WARNING) << error.str();
+        stopChild(*extension.second);
+        pauseMilli(getWorkerLimit(WatchdogLimitType::INTERVAL) * 1000);
+      }
+
+      // The extension manager also watches for extension-related failures.
+      // The watchdog is more general, but may find failed extensions first.
+      createExtension(extension.first);
+      extension_restarts_[extension.first] += 1;
+    } else {
+      extension_restarts_[extension.first] = 0;
+    }
+  }
+  // If any extension creations failed, stop managing them.
+  for (auto& extension : extension_restarts_) {
+    if (extension.second > 3) {
+      watcher.removeExtensionPath(extension.first);
+      extension.second = 0;
+    }
+  }
 }
 
 size_t WatcherRunner::delayedTime() const {
@@ -255,8 +300,13 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
     auto status = isChildSane(child);
     // A delayed watchdog does not stop the worker process.
     if (!status.ok() && getUnixTime() >= delayedTime()) {
-      LOG(WARNING) << "osqueryd worker (" << child.pid()
-                   << "): " << status.getMessage();
+      // Since the watchdog cannot use the logger plugin the error message
+      // should be logged to stderr and to the system log.
+      std::stringstream error;
+      error << "osqueryd worker (" << child.pid()
+            << ") stopping: " << status.getMessage();
+      systemLog(error.str());
+      LOG(WARNING) << error.str();
       stopChild(child);
       return false;
     }
@@ -266,6 +316,7 @@ bool WatcherRunner::watch(const PlatformProcess& child) const {
   if (result == PROCESS_EXITED) {
     // If the worker process existed, store the exit code.
     Watcher::get().worker_status_ = process_status;
+    return false;
   }
 
   return true;
@@ -276,11 +327,16 @@ void WatcherRunner::stopChild(const PlatformProcess& child) const {
 
   // Clean up the defunct (zombie) process.
   if (!child.cleanup()) {
-    // The child did not exit, force kill and attempt to cleanup again.
+    auto child_pid = child.pid();
+
+    LOG(WARNING) << "osqueryd worker (" << std::to_string(child_pid)
+                 << ") could not be stopped. Sending kill signal.";
+
     child.kill();
     if (!child.cleanup()) {
-      Initializer::requestShutdown(EXIT_CATASTROPHIC,
-                                   "Watcher cannot stop worker process");
+      auto message = std::string("Watcher cannot stop worker process (") +
+                     std::to_string(child_pid) + ").";
+      Initializer::requestShutdown(EXIT_CATASTROPHIC, message);
     }
   }
 }
@@ -289,7 +345,7 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   PerformanceChange change;
 
   // IV is the check interval in seconds, and utilization is set per-second.
-  change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), (size_t)1);
+  change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
   UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
   try {
     change.parent =
@@ -302,10 +358,9 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   }
 
   // Check the difference of CPU time used since last check.
-  if (user_time - state.user_time >
-          getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT) ||
-      system_time - state.system_time >
-          getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT)) {
+  auto ul = getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT);
+  if (user_time - state.user_time > ul ||
+      system_time - state.system_time > ul) {
     state.sustained_latency++;
   } else {
     state.sustained_latency = 0;
@@ -385,7 +440,7 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
   auto rows = getProcessRow(child.pid());
   if (rows.size() == 0) {
     // Could not find worker process?
-    return Status(1, "Cannot find worker process");
+    return Status(1, "Cannot find process");
   }
 
   PerformanceChange change;
@@ -405,8 +460,11 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
   }
 
   if (exceededCyclesLimit(change)) {
-    return Status(1, "System performance limits exceeded");
+    return Status(1,
+                  "Maximum sustainable CPU utilization limit exceeded: " +
+                      std::to_string(change.sustained_latency * change.iv));
   }
+
   // Check if the private memory exceeds a memory limit.
   if (exceededMemoryLimit(change)) {
     return Status(
@@ -429,14 +487,16 @@ void WatcherRunner::createWorker() {
     WatcherExtensionsLocker locker;
     if (watcher.getState(watcher.getWorker()).last_respawn_time >
         getUnixTime() - getWorkerLimit(WatchdogLimitType::RESPAWN_LIMIT)) {
+      watcher.workerRestarted();
       LOG(WARNING) << "osqueryd worker respawning too quickly: "
                    << watcher.workerRestartCount() << " times";
-      watcher.workerRestarted();
+
       // The configured automatic delay.
-      size_t delay = getWorkerLimit(WatchdogLimitType::RESPAWN_DELAY) * 1000;
+      size_t delay = getWorkerLimit(WatchdogLimitType::RESPAWN_DELAY);
       // Exponential back off for quickly-respawning clients.
-      delay += static_cast<size_t>(pow(2, watcher.workerRestartCount())) * 1000;
-      pauseMilli(delay);
+      delay += static_cast<size_t>(pow(2, watcher.workerRestartCount()));
+      delay = std::max(static_cast<size_t>(FLAGS_watchdog_max_delay), delay);
+      pauseMilli(delay * 1000);
     }
   }
 
@@ -482,6 +542,7 @@ void WatcherRunner::createWorker() {
   watcher.resetWorkerCounters(getUnixTime());
   VLOG(1) << "osqueryd watcher (" << PlatformProcess::getCurrentProcess()->pid()
           << ") executing worker (" << worker->pid() << ")";
+  watcher.worker_status_ = -1;
 }
 
 void WatcherRunner::createExtension(const std::string& extension) {
@@ -509,7 +570,6 @@ void WatcherRunner::createExtension(const std::string& extension) {
 
   auto ext_process =
       PlatformProcess::launchExtension(exec_path.string(),
-                                       extension,
                                        Flag::getValue("extensions_socket"),
                                        Flag::getValue("extensions_timeout"),
                                        Flag::getValue("extensions_interval"),

@@ -8,8 +8,9 @@
  *
  */
 
-#include <vector>
+#include <future>
 #include <string>
+#include <vector>
 
 #include <osquery/core.h>
 #include <osquery/config.h>
@@ -79,6 +80,20 @@ Status FileEventSubscriber::Callback(const FSEventsEventContextRef& ec,
                                      const FSEventsSubscriptionContextRef& sc) {
   if (ec->action.empty()) {
     return Status(0);
+  }
+
+  // Need to call configure on the publisher, not the subscriber
+  if (ec->fsevent_flags & kFSEventStreamEventFlagMount) {
+    // Should we add listening to the mount point
+    auto subscriber = ([this, &ec]() {
+      auto msc = createSubscriptionContext();
+      msc->path = ec->path + "/*";
+      msc->category = "tmp";
+      return subscribe(&FileEventSubscriber::Callback, msc);
+    });
+    std::packaged_task<void()> task(std::move(subscriber));
+    auto result = task.get_future();
+    std::thread(std::move(task)).detach();
   }
 
   Row r;

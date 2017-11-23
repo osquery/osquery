@@ -67,6 +67,8 @@ struct IOKitPCIProperties {
 
 std::string getIOKitProperty(const CFMutableDictionaryRef& details,
                              const std::string& key);
+long long int getNumIOKitProperty(const CFMutableDictionaryRef& details,
+                                  const std::string& key);
 
 inline void idToHex(std::string& id) {
   long base = 0;

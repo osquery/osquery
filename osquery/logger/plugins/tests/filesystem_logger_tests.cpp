@@ -22,6 +22,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 DECLARE_string(logger_path);
+DECLARE_bool(disable_logging);
 
 class FilesystemLoggerTests : public testing::Test {
  public:
@@ -144,6 +145,8 @@ TEST_F(FilesystemLoggerTests, test_log_snapshot) {
   item.identifier = "test";
   item.time = 0;
   item.calendar_time = "test";
+  item.epoch = 0L;
+  item.counter = 0L;
 
   EXPECT_TRUE(logSnapshotQuery(item));
   auto snapshot_path = fs::path(FLAGS_logger_path) / "osqueryd.snapshots.log";
@@ -157,11 +160,11 @@ TEST_F(FilesystemLoggerTests, test_log_snapshot) {
 
   std::string expected =
       "{\"snapshot\":\"\",\"action\":\"snapshot\",\"name\":\"test\","
-      "\"hostIdentifier\":\"test\","
-      "\"calendarTime\":\"test\",\"unixTime\":\"0\"}\n{\"snapshot\":\"\","
-      "\"action\":\"snapshot\","
+      "\"hostIdentifier\":\"test\",\"calendarTime\":\"test\","
+      "\"unixTime\":\"0\",\"epoch\":\"0\",\"counter\":\"0\"}\n"
+      "{\"snapshot\":\"\",\"action\":\"snapshot\","
       "\"name\":\"test\",\"hostIdentifier\":\"test\",\"calendarTime\":\"test\","
-      "\"unixTime\":\"0\"}\n";
+      "\"unixTime\":\"0\",\"epoch\":\"0\",\"counter\":\"0\"}\n";
   EXPECT_EQ(content, expected);
 }
 }

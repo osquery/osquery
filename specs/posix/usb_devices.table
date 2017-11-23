@@ -5,9 +5,13 @@ schema([
     Column("usb_port", INTEGER, "USB Device used port"),
     Column("vendor", TEXT, "USB Device vendor string"),
     Column("vendor_id", TEXT, "Hex encoded USB Device vendor identifier"),
+    Column("version", TEXT, "USB Device version number"),
     Column("model", TEXT, "USB Device model string"),
     Column("model_id", TEXT, "Hex encoded USB Device model identifier"),
     Column("serial", TEXT, "USB Device serial connection"),
+    Column("class", TEXT, "USB Device class"),
+    Column("subclass", TEXT, "USB Device subclass"),
+    Column("protocol", TEXT, "USB Device protocol"),
     Column("removable", INTEGER, "1 If USB device is removable else 0"),
 ])
 implementation("usb_devices@genUSBDevices")

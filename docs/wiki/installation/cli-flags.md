@@ -39,13 +39,13 @@ If no `--flagfile` is provided, osquery will try to find and use a "default" fla
 
 ### Configuration control flags
 
-`--config_plugin="filesystem"`
+`--config_plugin=filesystem`
 
 Config plugin name. The type of configuration retrieval, the default **filesystem** plugin reads a configuration JSON from disk.
 
 Built-in options include: **filesystem**, **tls**
 
-`--config_path="/etc/osquery/osquery.conf"`
+`--config_path=/etc/osquery/osquery.conf`
 
 The **filesystem** config plugin's path to a JSON file.
 On macOS the default path is **/var/osquery/osquery.conf**.
@@ -95,11 +95,13 @@ It is better to set the level to disabled `-1` compared to disabling the watchdo
 
 `--watchdog_memory_limit=0`
 
-If this value is non-0 the watchdog level (`--watchdog_level`) for maximum memory is overridden. Use this if you would like to allow the `osqueryd` process to allocate more than 100M, but somewhere less than 1G.
+If this value is >0 then the watchdog level (`--watchdog_level`) for maximum memory is overridden. Use this if you would like to allow the `osqueryd` process to allocate more than 200M, but somewhere less than 1G. This memory limit is expressed as a value representing MB.
 
 `--watchdog_utilization_limit=0`
 
-If this value is non-0 the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 90% of a thread for more than 6 seconds of wall time.
+If this value is >0 then the watchdog level (`--watchdog_level`) for maximum sustained CPU utilization is overridden. Use this if you would like to allow the `osqueryd` process to use more than 30% of a thread for more than 9 seconds of wall time. The length of sustained utilization is not independently configurable.
+
+This value is a maximum number of CPU cycles counted as the `processes` table's `user_time` and `system_time`. The default is 90, meaning less 90 seconds of cpu time per 3 seconds of wall time is allowed.
 
 `--watchdog_delay=60`
 
@@ -161,19 +163,19 @@ Optional comma-delimited set of extension names to require before **osqueryi** o
 
 When using non-default [remote](../deployment/remote.md) plugins such as the **tls** config, logger and distributed plugins, there are process-wide settings applied to every plugin.
 
-`--tls_hostname=""`
+`--tls_hostname=`
 
 When using **tls**-based config or logger plugins, a single TLS host URI is used. Using separate hosts for configuration and logging is not supported among the **tls**-based plugin suite. Provide a host name and optional port, e.g.: `facebook.com` or `facebook.com:443`.
 
-`--tls_client_cert=""`
+`--tls_client_cert=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a PEM-formatted client TLS certificate.
 
-`--tls_client_key=""`
+`--tls_client_key=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a decrypted/password-less PEM-formatted client TLS private key.
 
-`--tls_server_certs=""`
+`--tls_server_certs=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a PEM-formatted server or authority certificate bundle. This path will be used as either an explicit set of accepted certificates or an OpenSSL-verify path directory of well-formed filename certificates.
 
@@ -181,11 +183,11 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optional
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Remote plugins use an enrollment process to enable possible server-side implemented authentication and identification/authorization. Config and logger plugins implicitly require enrollment features. It is not recommended to disable enrollment and this option may be removed in the future.
 
-`--enroll_secret_path=""`
+`--enroll_secret_path=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. A very simple authentication/enrollment involves posting a deployment or staged shared secret. This secret should be protected on the host, but potentially shared among an enterprise or fleet. Provide a path for the osquery process to read and use during enrollment phases.
 
-`--config_tls_endpoint=""`
+`--config_tls_endpoint=`
 
 The **tls** endpoint path, e.g.: **/api/v1/config** when using the **tls** config plugin. See the other **tls_** related CLI flags.
 
@@ -193,11 +195,11 @@ The **tls** endpoint path, e.g.: **/api/v1/config** when using the **tls** confi
 
 The total number of attempts that will be made to the remote config server if a request fails.
 
-`--logger_tls_endpoint=""`
+`--logger_tls_endpoint=`
 
 The **tls** endpoint path, e.g.: **/api/v1/logger** when using the **tls** logger plugin. See the other **tls_** related CLI flags.
 
-`--enrollment_tls_endpoint=""`
+`--enrollment_tls_endpoint=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. An enrollment process will be used to allow server-side implemented authentication and identification/authorization. You must provide an endpoint relative to the `--tls_hostname` URI.
 
@@ -219,11 +221,11 @@ Use this only in emergency situations as size violations are dropped. It is extr
 
 The minimum level for status log recording. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. When using `--verbose` this value is ignored.
 
-`--distributed_tls_read_endpoint=""`
+`--distributed_tls_read_endpoint=`
 
 The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for retrieving distributed queries when using the **tls** distributed plugin.
 
-`--distributed_tls_write_endpoint=""`
+`--distributed_tls_write_endpoint=`
 
 The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for submitting the results of distributed queries when using the **tls** distributed plugin.
 
@@ -320,6 +322,10 @@ Disable ERROR/WARNING/INFO (called status logs) and query result [logging](../de
 
 Log scheduled results as events.
 
+`--logger_snapshot_event_type=false`
+
+Log scheduled snapshot results as events, similar to differential results. If this is set to `true` then each row from a snapshot query will be logged individually.
+
 `--host_identifier=hostname`
 
 Field used to identify the host running osquery: **hostname**, **uuid**, **ephemeral**, **instance**.
@@ -363,6 +369,18 @@ This is default `true` and will also send log messages in GLog format to the pro
 
 This controls the types of logs sent to the process's `stderr`. It does NOT limit or control the types sent to the logger plugin. The default value 2 is `ERROR`, set this to `0` for all non-verbose types. If the `--verbose` flag is set this value is overridden to `0`.
 
+`--logger_kafka_brokers`
+
+A comma delimited list of Kafka brokers to connect to.  Format can be `host:port` or just `host` with the port number falling back to the default value of `9092`.
+
+`--logger_kafka_topic`
+
+The Kafka topic to publish logs to.  When using multiple topics this configuration becomes the base topic that unconfigured queries fall back to.  Please see the Kafka section of the [logging wiki](../deployment/logging.md) for more details.
+
+`--logger_kafka_acks`
+
+The number of acknowledgments the Kafka leader has to receive before a publish is considered succesful.  Valid options are (0, 1, "all").
+
 ### Distributed query service flags
 
 `--distributed_plugin=tls`
@@ -392,6 +410,18 @@ Path to the named pipe used for forwarding **rsyslog** events.
 `--syslog_rate_limit=100`
 
 Maximum number of logs to ingest per run (~200ms between runs). Use this as a fail-safe to prevent osquery from becoming overloaded when syslog is spammed.
+
+### Augeas flags
+
+`--augeas_lenses=/usr/share/osquery/lenses`
+
+Augeas lenses are bundled with osquery distributions. On Linux they are installed in /usr/share/osquery/lenses. On macOS lenses are installed in /private/var/osquery/lenses directory. Specify the path to the directory containing custom or different version lenses files.
+
+### Docker flags
+
+`--docker_socket=/var/run/docker.sock`
+
+Docker information for containers, networks, volumes, images etc is available in different tables. osquery uses docker's UNIX domain socket to invoke docker API calls. Provide the path to docker's domain socket file. User running osqueryd / osqueryi should have permission to read the socket file.
 
 ### Shell-only flags
 

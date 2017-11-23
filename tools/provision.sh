@@ -17,12 +17,19 @@ FORMULA_DIR="$SCRIPT_DIR/provision/formula"
 HOMEBREW_REPO="https://github.com/Homebrew/brew"
 LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
 
+HOMEBREW_CORE_REPO="https://github.com/Homebrew/homebrew-core"
+LINUXBREW_CORE_REPO="https://github.com/Linuxbrew/homebrew-core"
+
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
-HOMEBREW_CORE="4e686a0a2a23d4075077eed5a1250fc020ab1864"
-LINUXBREW_CORE="501c656e81770ff64f12131a20535795e9229e44"
-HOMEBREW_BREW="ea8be174f6009bc9bdec67b13ca501b5b83fc4b8"
-LINUXBREW_BREW="1d16368a177807663e1b3146d71fcd69e2061e27"
+HOMEBREW_CORE="941ca36839ea354031846d73ad538e1e44e673f4"
+LINUXBREW_CORE="f54281a496bb7d3dd2f46b2f3067193d05f5013b"
+HOMEBREW_BREW="ac2cbd2137006ebfe84d8584ccdcb5d78c1130d9"
+LINUXBREW_BREW="20bcce2c176469cec271b46d523eef1510217436"
+
+# These suffixes are used when building bottle tarballs.
+LINUX_BOTTLE_SUFFIX="x86_64_linux"
+DARWIN_BOTTLE_SUFFIX="sierra"
 
 # If the world needs to be rebuilt, increase the version
 DEPS_VERSION="4"
@@ -63,6 +70,7 @@ function platform_linux_main() {
   brew_tool libidn
   brew_tool libedit
   brew_tool libtool
+  brew_tool libyaml
   brew_tool m4
   brew_tool autoconf
   brew_tool automake
@@ -70,16 +78,11 @@ function platform_linux_main() {
   # OpenSSL is needed for the final build.
   brew_tool osquery/osquery-local/libxml2
   brew_tool osquery/osquery-local/openssl
+  brew_tool osquery/osquery-local/cmake
 
   # Curl and Python are needed for LLVM mostly.
   brew_tool osquery/osquery-local/curl
   brew_tool osquery/osquery-local/python
-  brew_tool osquery/osquery-local/cmake --without-docs
-
-  # Linux library secondary dependencies.
-  brew_tool osquery/osquery-local/berkeley-db
-  brew_tool osquery/osquery-local/popt
-  brew_tool osquery/osquery-local/beecrypt
 
   # LLVM/Clang.
   brew_tool osquery/osquery-local/llvm
@@ -99,42 +102,48 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libudev
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
-  brew_dependency osquery/osquery-local/librpm
 }
 
 function platform_darwin_main() {
   brew_tool xz
   brew_tool readline
   brew_tool sqlite
-  brew_tool makedepend
-  brew_tool clang-format
   brew_tool pkg-config
-  brew_tool bison
+  brew_tool makedepend
+  brew_tool ninja
+  brew_tool osquery/osquery-local/cmake
+  brew_tool clang-format
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
 
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl
+
   brew_tool osquery/osquery-local/python
-  brew_tool osquery/osquery-local/cmake --without-docs
+  brew_tool osquery/osquery-local/bison
 
   platform_posix_main
 }
 
  function platform_posix_main() {
+  # Library secondary dependencies.
+  brew_dependency osquery/osquery-local/popt
+  brew_dependency osquery/osquery-local/beecrypt
+  brew_dependency osquery/osquery-local/berkeley-db
+
   # libarchive for file carving
   brew_dependency osquery/osquery-local/libarchive
+  brew_dependency osquery/osquery-local/rapidjson
+  brew_dependency osquery/osquery-local/zstd
 
   # List of LLVM-compiled dependencies.
-  brew_dependency osquery/osquery-local/lz4
   brew_dependency osquery/osquery-local/libmagic
   brew_dependency osquery/osquery-local/pcre
   brew_dependency osquery/osquery-local/boost
   brew_dependency osquery/osquery-local/asio
   brew_dependency osquery/osquery-local/cpp-netlib
   brew_dependency osquery/osquery-local/google-benchmark
-  brew_dependency osquery/osquery-local/snappy
   brew_dependency osquery/osquery-local/sleuthkit
   brew_dependency osquery/osquery-local/thrift
   brew_dependency osquery/osquery-local/rocksdb
@@ -145,6 +154,8 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/linenoise-ng
   brew_dependency osquery/osquery-local/augeas
   brew_dependency osquery/osquery-local/lldpd
+  brew_dependency osquery/osquery-local/librdkafka
+  brew_dependency osquery/osquery-local/librpm
 
   # POSIX-shared locally-managed tools.
   brew_dependency osquery/osquery-local/zzuf
@@ -195,7 +206,7 @@ function main() {
 
   # Setup the osquery dependency directory.
   # One can use a non-build location using OSQUERY_DEPS=/path/to/deps
-  if [[ -e "$OSQUERY_DEPS" ]]; then
+  if [[ ! -z "$OSQUERY_DEPS" ]]; then
     DEPS_DIR="$OSQUERY_DEPS"
   else
     DEPS_DIR="/usr/local/osquery"
@@ -236,7 +247,14 @@ function main() {
     log "creating build dir: $DEPS_DIR"
     do_sudo mkdir -p "$DEPS_DIR"
     do_sudo chown $USER "$DEPS_DIR" > /dev/null 2>&1 || true
+  elif [[ ! -d "$DEPS_DIR/.git" ]]; then
+    # If the dependency directory (DEPS_DIR) already exists, there will be problems
+    log "[notice] dependencies directory '$DEPS_DIR' already exists"
   fi
+
+  # Save the directory we're executing from and change to the deps directory.
+  # Other imported scripts may need to reference the repository directory.
+  export CURRENT_DIR=$(pwd)
   cd "$DEPS_DIR"
 
   # Finally run the setup of *brew, and checkout the needed Taps.
@@ -255,6 +273,8 @@ function main() {
     brew_uninstall "$2"
     return
   elif [[ "$ACTION" = "install" ]]; then
+    # If someone explicitly requested a provision install then build a bottle.
+    export OSQUERY_BUILD_DEPS=True
     brew_dependency "$2"
     return
   fi

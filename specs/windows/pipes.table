@@ -1,0 +1,13 @@
+table_name("pipes")
+description("Named and Anonymous pipes.")
+schema([
+    Column("pid", BIGINT, "Process ID of the process to which the pipe belongs", index=True),
+    Column("name", TEXT, "Name of the pipe"),
+    Column("instances", INTEGER, "Number of instances of the named pipe"),
+    Column("max_instances", INTEGER, "The maximum number of instances creatable for this pipe"),
+    Column("flags", TEXT, "The flags indicating whether this pipe connection is a server or client end, and if the pipe for sending messages or bytes"),
+])
+implementation("pipes@genPipes")
+examples([
+  "select * from pipes",
+])

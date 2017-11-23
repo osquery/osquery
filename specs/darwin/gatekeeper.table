@@ -1,0 +1,12 @@
+table_name("gatekeeper")
+description("OS X Gatekeeper Details.")
+schema([
+    Column("assessments_enabled", INTEGER, "1 If a Gatekeeper is enabled else 0"),
+    Column("dev_id_enabled", INTEGER, "1 If a Gatekeeper allows execution from identified developers else 0"),
+    Column("version", TEXT, "Version of Gatekeeper's gke.bundle"),
+    Column("opaque_version", TEXT, "Version of Gatekeeper's gkopaque.bundle"),
+])
+implementation("gatekeeper@genGateKeeper")
+fuzz_paths([
+    "/var/db/SystemPolicy"
+])

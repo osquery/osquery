@@ -10,7 +10,6 @@
 function distro_main() {
   do_sudo apt-get -y update
 
-  package git
   package gawk
   package autotools-dev
   package autopoint
@@ -21,9 +20,10 @@ function distro_main() {
   package bison
   package flex
   package bsdtar
-  package doxygen
   package realpath
+  package doxygen
+  package valgrind
 
   GEM=`which gem`
-  do_sudo $GEM install fpm 
+  do_sudo $GEM install --no-ri --no-rdoc fpm
 }

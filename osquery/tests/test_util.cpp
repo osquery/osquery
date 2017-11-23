@@ -14,8 +14,8 @@
 #include <sstream>
 #include <thread>
 
-#include <signal.h>
-#include <time.h>
+#include <csignal>
+#include <ctime>
 
 #include <boost/filesystem/operations.hpp>
 
@@ -31,21 +31,14 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-std::string kFakeDirectory = "";
+/// Will be set with initTesting in test harness main.
+std::string kFakeDirectory;
 
-#ifdef DARWIN
-std::string kTestWorkingDirectory = "/private/tmp/osquery-tests";
-#else
-std::string kTestWorkingDirectory =
-    (fs::temp_directory_path() / "osquery-tests").make_preferred().string();
-#endif
+/// Will be set with initTesting in test harness main.
+std::string kTestWorkingDirectory;
 
-/// Most tests will use binary or disk-backed content for parsing tests.
-#if !defined(OSQUERY_BUILD_SDK) && !WIN32
-std::string kTestDataPath = "../../../tools/tests/";
-#else
-std::string kTestDataPath = "../../../../tools/tests/";
-#endif
+/// The relative path within the source repo to find test content.
+std::string kTestDataPath{"../../../tools/tests/"};
 
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
@@ -54,22 +47,47 @@ DECLARE_string(enroll_tls_endpoint);
 DECLARE_bool(disable_logging);
 DECLARE_bool(disable_database);
 
-typedef std::chrono::high_resolution_clock chrono_clock;
+using chrono_clock = std::chrono::high_resolution_clock;
 
 void initTesting() {
   Config::setStartTime(getUnixTime());
 
-  osquery::kToolType = ToolType::TEST;
+  kToolType = ToolType::TEST;
+  if (osquery::isPlatform(PlatformType::TYPE_OSX)) {
+    kTestWorkingDirectory = "/private/tmp/osquery-tests";
+  } else {
+    kTestWorkingDirectory =
+        (fs::temp_directory_path() / "osquery-tests").string();
+  }
+
+  if (osquery::isPlatform(PlatformType::TYPE_WINDOWS)) {
+    kTestDataPath = "../" + kTestDataPath;
+  }
 
   registryAndPluginInit();
+
   // Allow unit test execution from anywhere in the osquery source/build tree.
-  while (osquery::kTestDataPath != "/") {
-    if (!fs::exists(osquery::kTestDataPath)) {
-      osquery::kTestDataPath =
-          osquery::kTestDataPath.substr(3, osquery::kTestDataPath.size());
-    } else {
-      break;
+  if (fs::exists("test_data/test_inline_pack.conf")) {
+    // If the execution occurs within the build/shared directory and shared
+    // is pointing to a tmp build directory. See #3414.
+    kTestDataPath = "test_data/";
+  } else if (fs::exists("../test_data/test_inline_pack.conf")) {
+    // ctest executes from the osquery subdirectory. If this is a build/shared
+    // link then the test_data directory links to the source repo.
+    kTestDataPath = "../test_data/";
+  } else {
+    while (kTestDataPath.find("tools") != 0) {
+      if (!fs::exists(kTestDataPath + "test_inline_pack.conf")) {
+        kTestDataPath = kTestDataPath.substr(3, kTestDataPath.size());
+      } else {
+        break;
+      }
     }
+  }
+
+  // The tests will fail randomly without test data.
+  if (!fs::exists(kTestDataPath)) {
+    throw std::runtime_error("Cannot find test data path");
   }
 
   // Seed the random number generator, some tests generate temporary files
@@ -176,7 +194,7 @@ std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
   std::vector<std::pair<std::string, QueryData>> results;
 
   std::string q2 =
-      "INSERT INTO test_table (username, age) VALUES (\"joe\", 25)";
+      R"(INSERT INTO test_table (username, age) VALUES ("joe", 25))";
   QueryData d2;
   Row row2_1;
   row2_1["username"] = "mike";
@@ -192,7 +210,7 @@ std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
   d2.push_back(row2_3);
   results.push_back(std::make_pair(q2, d2));
 
-  std::string q3 = "UPDATE test_table SET age = 27 WHERE username = \"matt\"";
+  std::string q3 = R"(UPDATE test_table SET age = 27 WHERE username = "matt")";
   QueryData d3;
   Row row3_1;
   row3_1["username"] = "mike";
@@ -209,7 +227,7 @@ std::vector<std::pair<std::string, QueryData>> getTestDBResultStream() {
   results.push_back(std::make_pair(q3, d3));
 
   std::string q4 =
-      "DELETE FROM test_table WHERE username = \"matt\" AND age = 27";
+      R"(DELETE FROM test_table WHERE username = "matt" AND age = 27)";
   QueryData d4;
   Row row4_1;
   row4_1["username"] = "mike";
@@ -247,7 +265,7 @@ std::pair<pt::ptree, Row> getSerializedRow(bool unordered_and_repeated) {
   Row r;
   ColumnNames cns = getSerializedRowColumnNames(unordered_and_repeated);
   pt::ptree arr;
-  for (auto cn : cns) {
+  for (const auto& cn : cns) {
     std::string c_value = cn + "_value";
     r[cn] = c_value;
     arr.add<std::string>(cn, c_value);
@@ -309,11 +327,15 @@ std::pair<pt::ptree, QueryLogItem> getSerializedQueryLogItem() {
   i.calendar_time = "Mon Aug 25 12:10:57 2014";
   i.time = 1408993857;
   i.identifier = "foobaz";
+  i.epoch = 0L;
+  i.counter = 0L;
   root.add_child("diffResults", dr.first);
   root.put<std::string>("name", "foobar");
   root.put<std::string>("hostIdentifier", "foobaz");
   root.put<std::string>("calendarTime", "Mon Aug 25 12:10:57 2014");
   root.put<int>("unixTime", 1408993857);
+  root.put<uint64_t>("epoch", 0L);
+  root.put<uint64_t>("counter", 0L);
   return std::make_pair(root, i);
 }
 
@@ -384,7 +406,8 @@ QueryData getEtcHostsExpectedResults() {
 }
 
 ::std::ostream& operator<<(::std::ostream& os, const Status& s) {
-  return os << "Status(" << s.getCode() << ", \"" << s.getMessage() << "\")";
+  return os << "Status(" << s.getCode() << R"(, ")" << s.getMessage()
+            << R"("))";
 }
 
 QueryData getEtcProtocolsExpectedResults() {
@@ -439,7 +462,7 @@ void createMockFileStructure() {
   fs::create_directories(kFakeDirectory + "/deep11/deep2/deep3/");
   fs::create_directories(kFakeDirectory + "/deep1/deep2/");
   writeTextFile(kFakeDirectory + "/root.txt", "root");
-  writeTextFile(kFakeDirectory + "/door.txt", "toor");
+  writeTextFile(kFakeDirectory + "/door.txt", "toor", 0550);
   writeTextFile(kFakeDirectory + "/roto.txt", "roto");
   writeTextFile(kFakeDirectory + "/deep1/level1.txt", "l1");
   writeTextFile(kFakeDirectory + "/deep11/not_bash", "l1");
@@ -461,4 +484,4 @@ void createMockFileStructure() {
 void tearDownMockFileStructure() {
   boost::filesystem::remove_all(kFakeDirectory);
 }
-}
+} // namespace osquery

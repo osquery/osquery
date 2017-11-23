@@ -33,7 +33,7 @@ As the above directory listing reveals, *osqueryd.INFO* is a symlink to the most
 
 #### Differential logs
 
-The results of your scheduled queries are logged to the "results log". These are differential changes between the last (most recent) query execution and the current execution. Each log line is a JSON string that indicates what data has been added/removed by which query. There are two format options, *single*, or event, and *batched*. Some queries do not make sense to log "removed" events like:
+The results of your scheduled queries are logged to the "results log". These are differential changes between the last (most recent) query execution and the current execution. Each log line is a JSON string that indicates what data has been added/removed by which query. The first time the query is executed (there is no "last" run), the last run is treated as having null results, so the differential consists entirely of log lines with the added indication. There are two format options, *single*, or event, and *batched*. Some queries do not make sense to log "removed" events like:
 
 ```sql
 SELECT i.*, p.resident_size, p.user_time, p.system_time, t.minutes AS c
@@ -74,6 +74,62 @@ To schedule a snapshot query, use:
 }
 ```
 
+### Logging as a Kafka producer.
+
+Users can configure logs to be directly published to a Kafka topic.
+
+
+#### Configuration
+
+There are 3 Kafka configurations are exposed as option: a comma delimited list of brokers with or without the port (by default `9092`) [default value: `localhost`], a default topic [default value: `""`], and acks (the number acknowledgments the logger requires from the Kafka leader before the considering the request complete) [default: `all`; valid values: `0`, `1`, `all`]. [See official documentation for more details.](https://kafka.apache.org/documentation/#producerconfigs)
+
+To publish queries to specific topics, add a `kafka_topics` field at the top level of `osquery.conf` (see example below).  If a given query was not explicitely configured in `kafka_topics` then the base topic will be used.  If there is no base topic configured, then that query will not be logged.  There is however a performance cost for the falling back of unconfigured queries to the base topic, so it is advised that when using multiple topics to explicitly configure all scheduled queries in `kafka_topics`.
+
+The configuration parameters are exposed via command line options and can be set in a JSON configuration file as exampled here:
+```json
+{
+  "options": {
+    "logger_kafka_brokers": "some.example1.com:9092,some.example2.com:9092",
+    "logger_kafka_topic": "base_topic",
+    "logger_kafka_acks": "1"
+  },
+  "packs": {
+    "system-snapshot": {
+      "queries": {
+        "some_query1": {
+          "query": "select * from system_info",
+          "snapshot": true,
+          "interval": 60
+        },
+        "some_query2": {
+          "query": "select * from md_devices",
+          "snapshot": true,
+          "interval": 60
+        },
+        "some_query3": {
+          "query": "select * from md_drives",
+          "snapshot": true,
+          "interval": 60
+        }
+      }
+    }
+  },
+  "kafka_topics": {
+    "test1_topic": [
+      "pack_system-snapshot_some_query1"
+    ],
+    "test2_topic": [
+      "pack_system-snapshot_some_query2"
+    ],
+    "test3_topic": [
+      "pack_system-snapshot_some_query3"
+    ],
+  }
+}
+```
+
+Client ID and msg key used are a concatenation of the OS hostname and binary name (argv[0]).  Currently there can only be one topic passed into the configuration, so all logs will be published to the same topic.
+
 ## Schedule results
 
 ### Event format
@@ -94,7 +150,9 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "name": "processes",
   "hostname": "hostname.local",
   "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850"
+  "unixTime": "1412123850",
+  "epoch": "314159265",
+  "counter": "1"
 }
 ```
 
@@ -109,7 +167,9 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "name": "processes",
   "hostname": "hostname.local",
   "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850"
+  "unixTime": "1412123850",
+  "epoch": "314159265",
+  "counter": "1"
 }
 ```
 
@@ -143,13 +203,15 @@ Consider the following example:
       "parent": "1",
       "path": "/usr/libexec/kextd",
       "pid": "54"
-    },
+    }
   ],
   "name": "process_snapshot",
   "hostIdentifier": "hostname.local",
   "calendarTime": "Mon May  2 22:27:32 2016 UTC",
-  "unixTime": "1462228052"
-},
+  "unixTime": "1462228052",
+  "epoch": "314159265",
+  "counter": "1"
+}
 ```
 
 ### Batch format
@@ -181,11 +243,23 @@ Example output of `SELECT name, path, pid FROM processes;` (whitespace added for
   "name": "processes",
   "hostname": "hostname.local",
   "calendarTime": "Tue Sep 30 17:37:30 2014",
-  "unixTime": "1412123850"
+  "unixTime": "1412123850",
+  "epoch": "314159265",
+  "counter": "1"
 }
 ```
 
 Most of the time the **Event format** is the most appropriate. The next section in the deployment guide describes [log aggregation](log-aggregation.md) methods. The aggregation methods describe collecting, searching, and alerting on the results from a query schedule.
+
+## Schedule epoch
+
+When [differential logs](#differential-logs) were described above, we mentioned that after the initial execution of a scheduled query, only differential results are logged. While this is very efficient from a size-of-logs perspective, it introduces some challenges. To begin with, if the logs are stored in a log management system of some kind, it becomes difficult or impossible to identify which log results are from the initial run of the query, and which ones are differentials to the initial results. In some situations, this becomes problematic - for example, for some tables like the users table that don't change very often at all and so don't generate differential results very often, one would have to search far into historical logs to find the last results returned by osquery; conversely, for some tables like processes that change frequently, one would have to do a fair amount of logic applying the effects of added and removed rows to reconstruct the current state of running processes.
+
+To aid with this, osquery maintains an **epoch** marker along with each scheduled query execution, and calculates differentials only if the epoch of the last run matches the current epoch. If it doesn't, then it treats the current execution of the query as an initial run. You can set the epoch marker by starting osquery with the --schedule_epoch=<some 64bit int> flag or by updating the schedule_epoch flag remotely from a TLS backend. The epoch is transmitted with each log result, so that it is easy to identify which results belong to which execution of the scheduled query.
+
+## Schedule counter
+
+When setting up alerts for [differential logs](#differential-logs) data you might want to skip the initial **added** records. **counter** can be used to identify if the added records are all records from initial query of if they are new records. For initial query results that includes all records counter will be **"0"**. For subsequent query executions counter will be incremented by **1**. When **epoch** changes, counter will be reset back to "0".
 
 ## Unique host identification
 

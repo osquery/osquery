@@ -8,12 +8,11 @@
  *
  */
 
-#include <boost/lexical_cast.hpp>
-
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/darwin/firewall.h"
 
 namespace pt = boost::property_tree;
@@ -21,28 +20,18 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-const std::string kALFPlistPath = "/Library/Preferences/com.apple.alf.plist";
+/**
+ * @brief Well known path to the Application Layer Firewall configuration.
+ *
+ * This plist contains all of the details about the ALF.
+ * It is used to populate all of the tables here.
+ */
+const std::string kALFPlistPath{"/Library/Preferences/com.apple.alf.plist"};
 
-// it.first represents the key that is used in com.apple.alf.plist to identify
-// the data in question. it.second represents the value of the "service" column
-// in the alf_services table.
-const std::map<std::string, std::string> kFirewallTreeKeys = {
-    {"Apple Remote Desktop", "Apple Remote Desktop"},
-    {"FTP Access", "FTP"},
-    {"ODSAgent", "ODSAgent"},
-    {"Personal File Sharing", "File Sharing"},
-    {"Personal Web Sharing", "Web Sharing"},
-    {"Printer Sharing", "Printer Sharing"},
-    {"Remote Apple Events", "Remote Apple Events"},
-    {"Remote Login - SSH", "SSH"},
-    {"Samba Sharing", "Samba Sharing"},
-};
-
-// it.first represents the top level keys in com.apple.alf.plist to identify
-// the data in question. it.second represents the names of the columns that
-// each sample of data can be found under in the alf table.
-const std::map<std::string, std::string> kTopLevelIntKeys = {
+/// Well known keys within the plist containing settings.
+const std::map<std::string, std::string> kTopLevelIntKeys{
     {"allowsignedenabled", "allow_signed_enabled"},
+    {"allowdownloadsignedenabled", "allow_downloads_signed_enabled"},
     {"firewallunload", "firewall_unload"},
     {"globalstate", "global_state"},
     {"loggingenabled", "logging_enabled"},
@@ -50,12 +39,68 @@ const std::map<std::string, std::string> kTopLevelIntKeys = {
     {"stealthenabled", "stealth_enabled"},
 };
 
-// it.first represents the top level keys in com.apple.alf.plist to identify
-// the data in question. it.second represents the names of the columns that
-// each sample of data can be found under in the alf table.
-const std::map<std::string, std::string> kTopLevelStringKeys = {
+/// Well known keys within the plist containing settings (as strings).
+const std::map<std::string, std::string> kTopLevelStringKeys{
     {"version", "version"},
 };
+
+Status parseApplicationAliasData(const std::string& data, std::string& result) {
+  std::string decoded_data = base64Decode(data);
+  if (decoded_data.empty()) {
+    return Status(1, "Failed to base64 decode data");
+  }
+
+  CFDataRef resourceData = CFDataCreate(
+      nullptr,
+      static_cast<const UInt8*>(static_cast<const void*>(decoded_data.c_str())),
+      decoded_data.length());
+  if (resourceData == nullptr) {
+    return Status(1, "Failed to allocate resource data");
+  }
+
+  auto alias = (CFDataRef)CFPropertyListCreateWithData(kCFAllocatorDefault,
+                                                       resourceData,
+                                                       kCFPropertyListImmutable,
+                                                       nullptr,
+                                                       nullptr);
+  CFRelease(resourceData);
+  if (alias == nullptr) {
+    return Status(1, "Failed to allocate alias data");
+  }
+
+  auto bookmark =
+      CFURLCreateBookmarkDataFromAliasRecord(kCFAllocatorDefault, alias);
+  CFRelease(alias);
+  if (bookmark == nullptr) {
+    return Status(1, "Alias data is not a bookmark");
+  }
+
+  auto url = CFURLCreateByResolvingBookmarkData(
+      kCFAllocatorDefault, bookmark, 0, nullptr, nullptr, nullptr, nullptr);
+  CFRelease(bookmark);
+  if (url == nullptr) {
+    return Status(1, "Alias data is not a URL bookmark");
+  }
+
+  auto replaced = CFURLCreateStringByReplacingPercentEscapes(
+      kCFAllocatorDefault, CFURLGetString(url), CFSTR(""));
+  CFRelease(url);
+  if (replaced == nullptr) {
+    return Status(1, "Failed to replace percent escapes.");
+  }
+
+  // Get the URL-formatted path.
+  result = stringFromCFString(replaced);
+  CFRelease(replaced);
+  if (result.empty()) {
+    return Status(1, "Return result is zero size");
+  }
+  if (result.length() > 6 && result.substr(0, 7) == "file://") {
+    result = result.substr(7);
+  }
+
+  return Status(0, "OK");
+}
 
 Status genALFTreeFromFilesystem(pt::ptree& tree) {
   Status s = osquery::parsePlist(kALFPlistPath, tree);
@@ -103,6 +148,22 @@ QueryData parseALFExceptionsTree(const pt::ptree& tree) {
     results.push_back(r);
   }
 
+  auto applications_tree = tree.get_child("applications");
+  for (const auto& it : applications_tree) {
+    Row r;
+
+    if (it.second.get("alias", "").length() > 0) {
+      std::string path;
+      auto alias_data = it.second.get<std::string>("alias", "");
+
+      if (parseApplicationAliasData(alias_data, path).ok()) {
+        r["path"] = path;
+        r["state"] = INTEGER(it.second.get("state", -1));
+        results.push_back(r);
+      }
+    }
+  }
+
   return results;
 }
 
@@ -146,13 +207,12 @@ QueryData parseALFServicesTree(const pt::ptree& tree) {
     return {};
   }
 
-  auto firewall_tree = tree.get_child("firewall");
-  for (const auto& it : kFirewallTreeKeys) {
+  auto& firewall_tree = tree.get_child("firewall");
+  for (const auto& it : firewall_tree) {
     Row r;
-    auto subtree = firewall_tree.get_child(it.first);
-    r["service"] = it.second;
-    r["process"] = subtree.get("proc", "");
-    r["state"] = INTEGER(subtree.get("state", -1));
+    r["service"] = it.first;
+    r["process"] = it.second.get("proc", "");
+    r["state"] = INTEGER(it.second.get("state", -1));
     results.push_back(r);
   }
   return results;

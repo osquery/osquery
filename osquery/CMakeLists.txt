@@ -36,6 +36,7 @@ if(POSIX)
     -Wno-zero-length-array
     -Wno-unused-parameter
     -Wno-gnu-case-range
+    -Weffc++
   )
   if(NOT FREEBSD)
     add_compile_options(
@@ -73,6 +74,7 @@ add_subdirectory(logger)
 add_subdirectory(registry)
 add_subdirectory(sql)
 add_subdirectory(remote)
+add_subdirectory(utils)
 if(NOT SKIP_CARVER)
   add_subdirectory(carver)
 endif()
@@ -103,18 +105,18 @@ if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("netapi32.lib")
   ADD_OSQUERY_LINK_CORE("rpcrt4.lib")
   ADD_OSQUERY_LINK_CORE("shlwapi.lib")
+  ADD_OSQUERY_LINK_CORE("version.lib")
   ADD_OSQUERY_LINK_CORE("Wtsapi32.lib")
   ADD_OSQUERY_LINK_CORE("wbemuuid.lib")
   ADD_OSQUERY_LINK_CORE("taskschd.lib")
-  ADD_OSQUERY_LINK_CORE("libboost_system-vc140-mt-${WB_KEY}-1_63")
-  ADD_OSQUERY_LINK_CORE("libboost_regex-vc140-mt-${WB_KEY}-1_63")
-  ADD_OSQUERY_LINK_CORE("libboost_filesystem-vc140-mt-${WB_KEY}-1_63")
-  ADD_OSQUERY_LINK_CORE("libboost_context-vc140-mt-${WB_KEY}-1_63")
-  ADD_OSQUERY_LINK_CORE("rocksdblib${WO_KEY}")
+  ADD_OSQUERY_LINK_CORE("libboost_system-mt-${WB_KEY}")
+  ADD_OSQUERY_LINK_CORE("libboost_regex-mt-${WB_KEY}")
+  ADD_OSQUERY_LINK_CORE("libboost_filesystem-mt-${WB_KEY}")
+  ADD_OSQUERY_LINK_CORE("libboost_context-mt-${WB_KEY}")
+  ADD_OSQUERY_LINK_CORE("rocksdb${WO_KEY}")
   ADD_OSQUERY_LINK_CORE("thriftmt${WT_KEY}")
   ADD_OSQUERY_LINK_CORE("linenoise${WO_KEY}.lib")
   ADD_OSQUERY_LINK_CORE("gflags_static${WO_KEY}")
-  ADD_OSQUERY_LINK_CORE("snappy64")
   ADD_OSQUERY_LINK_CORE("ssleay32")
   ADD_OSQUERY_LINK_CORE("eay32")
   ADD_OSQUERY_LINK_CORE("zlibstatic")
@@ -126,7 +128,6 @@ else()
   ADD_OSQUERY_LINK_CORE("libz")
   ADD_OSQUERY_LINK_CORE("gflags")
   ADD_OSQUERY_LINK_CORE("thrift")
-  ADD_OSQUERY_LINK_CORE("lz4")
 endif()
 
 if(APPLE OR LINUX)
@@ -156,7 +157,6 @@ ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-client-connections${WO_KEY}")
 ADD_OSQUERY_LINK_CORE("glog${WO_KEY}")
 
 if(POSIX)
-  ADD_OSQUERY_LINK_ADDITIONAL("snappy")
   ADD_OSQUERY_LINK_ADDITIONAL("ssl")
   ADD_OSQUERY_LINK_ADDITIONAL("crypto")
   ADD_OSQUERY_LINK_ADDITIONAL("libpthread")
@@ -237,7 +237,6 @@ endif()
 set(OSQUERY_LIBRARY_FLAGS
   -DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION}
   -DOSQUERY_PLATFORM_MASK=${PLATFORM_MASK}
-  ${CXX_COMPILE_FLAGS}
 )
 JOIN("${OSQUERY_LIBRARY_FLAGS}" " " OSQUERY_LIBRARY_FLAGS)
 
@@ -287,34 +286,40 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
   # Create the dynamic libosquery_additional.
   if(DEFINED ENV{OSQUERY_BUILD_SHARED})
     add_library(libosquery_additional_shared SHARED ${OSQUERY_ADDITIONAL_SOURCES})
-    target_link_libraries(libosquery_additional_shared PRIVATE ${OSQUERY_ADDITIONAL_LINKS})
+    target_link_libraries(libosquery_additional_shared PRIVATE ${OSQUERY_LINKS} ${OSQUERY_ADDITIONAL_LINKS})
     set_target_properties(libosquery_additional_shared PROPERTIES OUTPUT_NAME osquery_additional)
   endif()
 
-  add_executable(shell devtools/shell.cpp main/shell.cpp)
-  ADD_DEFAULT_LINKS(shell TRUE)
-  SET_OSQUERY_COMPILE(shell "${CXX_COMPILE_FLAGS}")
-  target_link_libraries(shell)
-  set_target_properties(shell PROPERTIES OUTPUT_NAME osqueryi)
+  set(DAEMON_SOURCE_FILES
+    devtools/shell.cpp
+    main/main.cpp
+    main/${PROCESS_FAMILY}/main.cpp
+  )
+  # Add the versioning information for Windows binaries
+  if(WINDOWS)
+    # The windows version resource requires a version string, as well
+    # as version components separated by a comma. First we replace the `-`
+    # values that may exist for commit hash versions, then we grab the
+    # major version components
+    string(REPLACE "-" "." OSQUERY_VER_TEMP "${OSQUERY_BUILD_VERSION}")
+    string(REPLACE "." ";" OSQUERY_VERSION_LIST "${OSQUERY_VER_TEMP}")
+    list(GET OSQUERY_VERSION_LIST 0 OSQUERY_PRODUCT_NUMBER)
+    list(GET OSQUERY_VERSION_LIST 1 OSQUERY_PRODUCT_VERSION)
+    list(GET OSQUERY_VERSION_LIST 2 OSQUERY_BUILD_NUMBER)
 
-  add_executable(daemon main/${PROCESS_FAMILY}/daemon.cpp)
+    configure_file(
+      ${CMAKE_SOURCE_DIR}/tools/version.rc.in
+      ${CMAKE_BINARY_DIR}/osquery/version.rc
+      @ONLY)
+    list(APPEND DAEMON_SOURCE_FILES ${CMAKE_BINARY_DIR}/osquery/version.rc)
+  endif()
+  add_executable(daemon
+    ${DAEMON_SOURCE_FILES}
+  )
+
   ADD_DEFAULT_LINKS(daemon TRUE)
-  SET_OSQUERY_COMPILE(daemon "${CXX_COMPILE_FLAGS}")
+  SET_OSQUERY_COMPILE(daemon)
   set_target_properties(daemon PROPERTIES OUTPUT_NAME osqueryd)
-
-  # Include the public API includes if make devel.
-  install(TARGETS libosquery ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
-  install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/osquery"
-    DESTINATION include
-    COMPONENT devel OPTIONAL
-    PATTERN ".*" EXCLUDE
-  )
-
-  # A friendly echo printed before building the shell
-  add_custom_command(TARGET shell PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
-      "-- Building osqueryi: $<TARGET_FILE:shell>"
-  )
 
   # A friendly echo printed before building the daemon
   add_custom_command(TARGET daemon PRE_BUILD
@@ -322,9 +327,32 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
       "-- Building osqueryd: $<TARGET_FILE:daemon>"
   )
 
+  set(SHELL_EXECUTABLE "osqueryi")
+  if(WINDOWS)
+    set(SHELL_EXECUTABLE "${SHELL_EXECUTABLE}.exe")
+  endif()
+
+  add_custom_target(shell ALL
+    COMMAND ${CMAKE_COMMAND} -E copy
+      $<TARGET_FILE:daemon> "$<TARGET_FILE_DIR:daemon>/${SHELL_EXECUTABLE}")
+
+  add_custom_command(
+    TARGET shell POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan --bold
+      "-- Creating osqueryi: $<TARGET_FILE_DIR:daemon>/${SHELL_EXECUTABLE}")
+
+  # This is no longer supported.
+  # Include the public API includes if make devel.
+  # install(TARGETS libosquery ARCHIVE DESTINATION lib COMPONENT devel OPTIONAL)
+  # install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/osquery"
+  #   DESTINATION include
+  #   COMPONENT devel OPTIONAL
+  #   PATTERN ".*" EXCLUDE
+  # )
+
   # make install (executables)
-  install(TARGETS shell RUNTIME DESTINATION bin COMPONENT main)
   install(TARGETS daemon RUNTIME DESTINATION bin COMPONENT main)
+  install(PROGRAMS ${CMAKE_BINARY_DIR}/osquery/osqueryi DESTINATION bin COMPONENT main)
   install(FILES "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryctl"
     DESTINATION bin COMPONENT main)
 
@@ -340,7 +368,7 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
       DESTINATION "${CMAKE_INSTALL_PREFIX}/share/osquery/" COMPONENT main)
   else()
     install(PROGRAMS "${CMAKE_SOURCE_DIR}/tools/deployment/osqueryd.initd"
-      DESTINATION "/etc/init.d/" RENAME "osqueryd" COMPONENT main)
+      DESTINATION "${CMAKE_INSTALL_PREFIX}/etc/init.d/" RENAME "osqueryd" COMPONENT main)
   endif()
 endif()
 
@@ -348,22 +376,22 @@ if(NOT SKIP_TESTS)
   # osquery testing library (testing helper methods/libs).
   add_library(libosquery_testing STATIC tests/test_util.cpp)
   add_dependencies(libosquery_testing libosquery)
-  SET_OSQUERY_COMPILE(libosquery_testing "${CXX_COMPILE_FLAGS}")
+  SET_OSQUERY_COMPILE(libosquery_testing)
   set_target_properties(libosquery_testing PROPERTIES OUTPUT_NAME osquery_testing)
 
   # osquery core set of unit tests build with SDK.
   add_executable(osquery_tests main/tests.cpp ${OSQUERY_TESTS})
   ADD_DEFAULT_LINKS(osquery_tests FALSE)
   target_link_libraries(osquery_tests gtest gmock libosquery_testing)
-  SET_OSQUERY_COMPILE(osquery_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
-  add_test(osquery_tests osquery_tests)
+  SET_OSQUERY_COMPILE(osquery_tests "${GTEST_FLAGS}")
+  add_test(osquery_tests osquery_tests ${TEST_ARGS})
 
   # osquery kernel tests.
-  if(NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WINDOWS)
+  if(NOT SKIP_KERNEL AND NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WINDOWS)
     add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
     ADD_DEFAULT_LINKS(osquery_kernel_tests TRUE)
     target_link_libraries(osquery_kernel_tests gtest gmock libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_kernel_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
+    SET_OSQUERY_COMPILE(osquery_kernel_tests "${GTEST_FLAGS} -DKERNEL_TEST=1")
   endif()
 
   # osquery benchmarks.
@@ -371,14 +399,16 @@ if(NOT SKIP_TESTS)
     add_executable(osquery_benchmarks main/benchmarks.cpp ${OSQUERY_BENCHMARKS})
     target_link_libraries(osquery_benchmarks benchmark libosquery_testing pthread)
     ADD_DEFAULT_LINKS(osquery_benchmarks TRUE)
-    SET_OSQUERY_COMPILE(osquery_benchmarks "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
+    SET_OSQUERY_COMPILE(osquery_benchmarks "${GTEST_FLAGS}")
     set(BENCHMARK_TARGET "$<TARGET_FILE:osquery_benchmarks>")
 
     # osquery kernel benchmarks.
-    add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
-    target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing pthread)
-    ADD_DEFAULT_LINKS(osquery_kernel_benchmarks TRUE)
-    SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS} -DKERNEL_TEST=1")
+    if (NOT SKIP_KERNEL)
+      add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
+      target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing pthread)
+      ADD_DEFAULT_LINKS(osquery_kernel_benchmarks TRUE)
+      SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${GTEST_FLAGS} -DKERNEL_TEST=1")
+    endif()
 
     # make benchmark
     add_custom_target(
@@ -394,15 +424,15 @@ if(NOT SKIP_TESTS)
     add_executable(osquery_additional_tests tests/test_additional_util.cpp main/tests.cpp ${OSQUERY_ADDITIONAL_TESTS})
     ADD_DEFAULT_LINKS(osquery_additional_tests TRUE)
     target_link_libraries(osquery_additional_tests gtest gmock libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_additional_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
-    add_test(osquery_additional_tests osquery_additional_tests)
+    SET_OSQUERY_COMPILE(osquery_additional_tests "${GTEST_FLAGS}")
+    add_test(osquery_additional_tests osquery_additional_tests ${TEST_ARGS})
 
     # osquery tables set of unit tests (extracted for organization).
-    add_executable(osquery_tables_tests main/tests.cpp ${OSQUERY_TABLES_TESTS})
+    add_executable(osquery_tables_tests tests/test_additional_util.cpp main/tests.cpp ${OSQUERY_TABLES_TESTS})
     ADD_DEFAULT_LINKS(osquery_tables_tests TRUE)
     target_link_libraries(osquery_tables_tests gtest gmock libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_tables_tests "${GTEST_FLAGS} ${CXX_COMPILE_FLAGS}")
-    add_test(osquery_tables_tests osquery_tables_tests)
+    SET_OSQUERY_COMPILE(osquery_tables_tests "${GTEST_FLAGS}")
+    add_test(osquery_tables_tests osquery_tables_tests ${TEST_ARGS})
   endif()
 
   # Build the example extension with the SDK.

@@ -27,10 +27,13 @@ if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("-framework Security")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework OpenDirectory")
   ADD_OSQUERY_LINK_ADDITIONAL("-framework DiskArbitration")
+  ADD_OSQUERY_LINK_ADDITIONAL("-framework ServiceManagement")
 
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.dylib")
   ADD_OSQUERY_LINK_ADDITIONAL("libxar.dylib")
+  ADD_OSQUERY_LINK_ADDITIONAL("libcups")
   ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
+  ADD_OSQUERY_LINK_ADDITIONAL("libbsm")
 endif()
 
 # FreeBSD specific and applicable tables.
@@ -50,6 +53,8 @@ if(WINDOWS)
   set(TABLE_PLATFORM "windows")
 
   # Additional Windows libraries
+  ADD_OSQUERY_LINK_ADDITIONAL("crypt32.lib")
+  ADD_OSQUERY_LINK_ADDITIONAL("Wintrust.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("Advapi32.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("Iphlpapi.lib")
   ADD_OSQUERY_LINK_ADDITIONAL("SetupAPI.lib")
@@ -62,12 +67,12 @@ if(LINUX)
   set(TABLE_PLATFORM "linux")
 
   ADD_OSQUERY_LINK_ADDITIONAL("libresolv.so")
-  ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper")
+  ADD_OSQUERY_LINK_ADDITIONAL("cryptsetup devmapper lvm2app lvm-internal daemonclient")
   ADD_OSQUERY_LINK_ADDITIONAL("gcrypt gpg-error")
   ADD_OSQUERY_LINK_ADDITIONAL("blkid")
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
 
-  ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg lzma lz4 bz2")
+  ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg lzma bz2")
   ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio beecrypt popt db")
 endif()
 
@@ -76,41 +81,81 @@ if(POSIX)
 endif()
 
 # For each general category, add the C++ files in the base.
-foreach(CAT ${TABLE_CATEGORIES})
-  file(GLOB OSQUERY_${CAT}_TABLES
-    "${CAT}/*.[cpm]*"
-    "${CAT}/${TABLE_PLATFORM}/*.[cpm]*"
+foreach(CATEGORY ${TABLE_CATEGORIES})
+  file(GLOB OSQUERY_${CATEGORY}_TABLES
+    "${CATEGORY}/*.[cpm]*"
+    "${CATEGORY}/${TABLE_PLATFORM}/*.[cpm]*"
   )
-  if(OSQUERY_${CAT}_TABLES)
+  if(OSQUERY_${CATEGORY}_TABLES)
     ADD_OSQUERY_LIBRARY_ADDITIONAL(
-      osquery_${CAT}_tables
-      ${OSQUERY_${CAT}_TABLES}
+      osquery_${CATEGORY}_tables
+      ${OSQUERY_${CATEGORY}_TABLES}
     )
   endif()
 
   # POSIX tables.
   if(POSIX)
-    file(GLOB OSQUERY_${CAT}_POSIX_TABLES "${CAT}/posix/*.[cpm]*")
-    if(OSQUERY_${CAT}_POSIX_TABLES)
+    file(GLOB OSQUERY_${CATEGORY}_POSIX_TABLES "${CATEGORY}/posix/*.[cpm]*")
+    if(OSQUERY_${CATEGORY}_POSIX_TABLES)
       ADD_OSQUERY_LIBRARY_ADDITIONAL(
-        osquery_${CAT}_posix_tables
-        ${OSQUERY_${CAT}_POSIX_TABLES}
+        osquery_${CATEGORY}_posix_tables
+        ${OSQUERY_${CATEGORY}_POSIX_TABLES}
+      )
+    endif()
+
+    # Add posix table tests.
+    file(GLOB POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS
+      "${CATEGORY}/posix/tests/*.[cpm]*"
+    )
+    ADD_OSQUERY_TABLE_TEST(${POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS})
+  endif()
+
+  # Table implementations shared by FreeBSD and Linux
+  if(FREEBSD OR LINUX)
+    file(GLOB OSQUERY_${CATEGORY}_FREENUX_TABLES "${CATEGORY}/freenux/*.[cpm]*")
+    if(OSQUERY_${CATEGORY}_FREENUX_TABLES)
+      ADD_OSQUERY_LIBRARY_ADDITIONAL(
+        osquery_${CATEGORY}_freenux_tables
+        ${OSQUERY_${CATEGORY}_FREENUX_TABLES}
       )
     endif()
   endif()
 
   # Add the table tests.
-  file(GLOB OSQUERY_${CAT}_TABLES_TESTS
-    "${CAT}/tests/*.[cpm]*"
-    "${CAT}/${TABLE_PLATFORM}/tests/*.[cpm]*"
+  file(GLOB OSQUERY_${CATEGORY}_TABLES_TESTS
+    "${CATEGORY}/tests/*.[cpm]*"
+    "${CATEGORY}/${TABLE_PLATFORM}/tests/*.[cpm]*"
   )
-  ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CAT}_TABLES_TESTS})
+  ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CATEGORY}_TABLES_TESTS})
 endforeach()
+
+if(NOT SKIP_KERNEL)
+  file(GLOB OSQUERY_KERNEL_TABLES
+    "kernel/*.[cpm]*"
+    "*/${TABLE_PLATFORM}/kernel/*.[cpm]*"
+  )
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(
+    osquery_kernel_tables
+    ${OSQUERY_KERNEL_TABLES}
+  )
+endif()
 
 file(GLOB OSQUERY_UTILITY_TABLES "utility/*.cpp")
 ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
   ${OSQUERY_UTILITY_TABLES}
 )
+
+if(NOT SKIP_AWS AND LINUX)
+  file(GLOB OSQUERY_CLOUD_TABLES "cloud/*.[cpm]*")
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_cloud_tables ${OSQUERY_CLOUD_TABLES})
+
+  file(GLOB OSQUERY_CLOUD_TABLES_TESTS "cloud/tests/*.[cpm]*")
+  if(OSQUERY_CLOUD_TABLES_TESTS)
+    ADD_OSQUERY_TABLE_TEST(${OSQUERY_CLOUD_TABLES_TESTS})
+  endif()
+
+  ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-ec2")
+endif()
 
 if(NOT SKIP_TSK AND POSIX)
   file(GLOB OSQUERY_TSK_TABLES "sleuthkit/*.[cpm]*")

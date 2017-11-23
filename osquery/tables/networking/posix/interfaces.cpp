@@ -74,6 +74,7 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
     r["interface"] = "";
   }
   r["mac"] = macAsString(addr);
+  r["flags"] = INTEGER(addr->ifa_flags);
 
   if (addr->ifa_data != nullptr && addr->ifa_name != nullptr) {
 #ifdef __linux__
@@ -90,6 +91,7 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
     r["oerrors"] = BIGINT_FROM_UINT32(ifd->tx_errors);
     r["idrops"] = BIGINT_FROM_UINT32(ifd->rx_dropped);
     r["odrops"] = BIGINT_FROM_UINT32(ifd->tx_dropped);
+    r["collisions"] = BIGINT_FROM_UINT32(ifd->collisions);
     // Get Linux physical properties for the AF_PACKET entry.
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd >= 0) {
@@ -126,6 +128,7 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
     r["oerrors"] = BIGINT_FROM_UINT32(ifd->ifi_oerrors);
     r["idrops"] = BIGINT_FROM_UINT32(ifd->ifi_iqdrops);
     r["odrops"] = INTEGER(0);
+    r["collisions"] = BIGINT_FROM_UINT32(ifd->ifi_collisions);
     r["last_change"] = BIGINT_FROM_UINT32(ifd->ifi_lastchange.tv_sec);
 #endif
   }

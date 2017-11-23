@@ -74,7 +74,7 @@ static inline std::string opString(unsigned char op) {
 }
 
 inline std::string table_doc(const std::string& name) {
-  return "https://osquery.io/docs/#" + name;
+  return "https://osquery.io/schema/#" + name;
 }
 
 static void plan(const std::string& output) {
@@ -320,6 +320,16 @@ int xColumn(sqlite3_vtab_cursor* cur, sqlite3_context* ctx, int col) {
   return SQLITE_OK;
 }
 
+static inline bool sensibleComparison(ColumnType type, unsigned char op) {
+  if (type == TEXT_TYPE) {
+    if (op == GREATER_THAN || op == GREATER_THAN_OR_EQUALS || op == LESS_THAN ||
+        op == LESS_THAN_OR_EQUALS) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   auto* pVtab = (VirtualTable*)tab;
   const auto& columns = pVtab->content->columns;
@@ -364,6 +374,11 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         continue;
       }
       const auto& name = std::get<0>(columns[constraint_info.iColumn]);
+      const auto& type = std::get<1>(columns[constraint_info.iColumn]);
+      if (!sensibleComparison(type, constraint_info.op)) {
+        cost += 10;
+        continue;
+      }
 
       // Check if this constraint is on an index or required column.
       const auto& options = std::get<2>(columns[constraint_info.iColumn]);
@@ -433,6 +448,9 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   pCur->row = 0;
   pCur->n = 0;
   QueryContext context(content);
+
+  // The SQLite instance communicates to the TablePlugin via the context.
+  context.useCache(pVtab->instance->useCache());
 
   // Track required columns, this is different than the requirements check
   // that occurs within BestIndex because this scan includes a cursor.
@@ -504,7 +522,8 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
         required_satisfied = true;
       }
 
-      if (!user_based_satisfied && constraint.first == "uid") {
+      if (!user_based_satisfied &&
+          (constraint.first == "uid" || constraint.first == "username")) {
         // UID was required and exists in the constraints.
         user_based_satisfied = true;
       }
@@ -525,7 +544,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   }
 
   // Provide a helpful reference to table documentation within the shell.
-  if (kToolType == ToolType::SHELL &&
+  if (Initializer::isShell() &&
       (!user_based_satisfied || !required_satisfied || !events_satisfied)) {
     LOG(WARNING) << "Please see the table documentation: "
                  << table_doc(pVtab->content->name);
@@ -605,7 +624,8 @@ Status attachTableInternal(const std::string& name,
 
   // Note, if the clientData API is used then this will save a registry call
   // within xCreate.
-  RecursiveLock lock(kAttachMutex);
+  auto lock(instance->attachLock());
+
   int rc = sqlite3_create_module(
       instance->db(), name.c_str(), &module, (void*)&(*instance));
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
@@ -618,10 +638,11 @@ Status attachTableInternal(const std::string& name,
   return Status(rc, getStringForSQLiteReturnCode(rc));
 }
 
-Status detachTableInternal(const std::string& name, sqlite3* db) {
-  RecursiveLock lock(kAttachMutex);
+Status detachTableInternal(const std::string& name,
+                           const SQLiteDBInstanceRef& instance) {
+  auto lock(instance->attachLock());
   auto format = "DROP TABLE IF EXISTS temp." + name;
-  int rc = sqlite3_exec(db, format.c_str(), nullptr, nullptr, 0);
+  int rc = sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, 0);
   if (rc != SQLITE_OK) {
     LOG(ERROR) << "Error detaching table: " << name << " (" << rc << ")";
   }
@@ -636,7 +657,7 @@ Status attachFunctionInternal(
   // Hold the manager connection instance again in callbacks.
   auto dbc = SQLiteDBManager::get();
   // Add some shell-specific functions to the instance.
-  RecursiveLock lock(kAttachMutex);
+  auto lock(dbc->attachLock());
   int rc = sqlite3_create_function(
       dbc->db(),
       name.c_str(),

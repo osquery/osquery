@@ -12,9 +12,10 @@
 
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
+#include <osquery/query.h>
 
+#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
-#include "osquery/database/query.h"
 
 namespace osquery {
 
@@ -51,6 +52,20 @@ static void DATABASE_serialize(benchmark::State& state) {
 
 BENCHMARK(DATABASE_serialize)->ArgPair(1, 1)->ArgPair(10, 10)->ArgPair(10, 100);
 
+static void DATABASE_serializeRJ(benchmark::State& state) {
+  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  while (state.KeepRunning()) {
+    rapidjson::Document d;
+    d.SetArray();
+    serializeQueryDataRJ(qd, d);
+  }
+}
+
+BENCHMARK(DATABASE_serializeRJ)
+    ->ArgPair(1, 1)
+    ->ArgPair(10, 10)
+    ->ArgPair(10, 100);
+
 static void DATABASE_serialize_column_order(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range_x(), state.range_y());
   auto cn = getExampleColumnNames(state.range_x());
@@ -63,7 +78,24 @@ static void DATABASE_serialize_column_order(benchmark::State& state) {
 BENCHMARK(DATABASE_serialize_column_order)
     ->ArgPair(1, 1)
     ->ArgPair(10, 10)
-    ->ArgPair(10, 100);
+    ->ArgPair(10, 100)
+    ->ArgPair(100, 100);
+
+static void DATABASE_serializeRJ_column_order(benchmark::State& state) {
+  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  auto cn = getExampleColumnNames(state.range_x());
+  while (state.KeepRunning()) {
+    rapidjson::Document d;
+    d.SetArray();
+    serializeQueryDataRJ(qd, cn, d);
+  }
+}
+
+BENCHMARK(DATABASE_serializeRJ_column_order)
+    ->ArgPair(1, 1)
+    ->ArgPair(10, 10)
+    ->ArgPair(10, 100)
+    ->ArgPair(100, 100);
 
 static void DATABASE_serialize_json(benchmark::State& state) {
   auto qd = getExampleQueryData(state.range_x(), state.range_y());
@@ -74,6 +106,19 @@ static void DATABASE_serialize_json(benchmark::State& state) {
 }
 
 BENCHMARK(DATABASE_serialize_json)
+    ->ArgPair(1, 1)
+    ->ArgPair(10, 10)
+    ->ArgPair(10, 100);
+
+static void DATABASE_serializeRJ_json(benchmark::State& state) {
+  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  while (state.KeepRunning()) {
+    std::string content;
+    serializeQueryDataJSONRJ(qd, content);
+  }
+}
+
+BENCHMARK(DATABASE_serializeRJ_json)
     ->ArgPair(1, 1)
     ->ArgPair(10, 10)
     ->ArgPair(10, 100);
@@ -92,8 +137,9 @@ static void DATABASE_query_results(benchmark::State& state) {
   auto query = getOsqueryScheduledQuery();
   while (state.KeepRunning()) {
     DiffResults diff_results;
+    uint64_t counter;
     auto dbq = Query("default", query);
-    dbq.addNewResults(qd, diff_results);
+    dbq.addNewResults(qd, 0, counter, diff_results);
   }
 }
 
@@ -139,6 +185,21 @@ static void DATABASE_store_large(benchmark::State& state) {
 
 BENCHMARK(DATABASE_store_large);
 
+static void DATABASE_store_largeRJ(benchmark::State& state) {
+  // Serialize the example result set into a string.
+  std::string content;
+  auto qd = getExampleQueryData(20, 100);
+  serializeQueryDataJSONRJ(qd, content);
+
+  while (state.KeepRunning()) {
+    setDatabaseValue(kPersistentSettings, "benchmark", content);
+  }
+  // All benchmarks will share a single database handle.
+  deleteDatabaseValue(kPersistentSettings, "benchmark");
+}
+
+BENCHMARK(DATABASE_store_largeRJ);
+
 static void DATABASE_store_append(benchmark::State& state) {
   // Serialize the example result set into a string.
   std::string content;
@@ -154,9 +215,30 @@ static void DATABASE_store_append(benchmark::State& state) {
 
   // All benchmarks will share a single database handle.
   for (size_t i = 0; i < k; ++i) {
-    // deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(i));
+    deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(i));
   }
 }
 
 BENCHMARK(DATABASE_store_append);
+
+static void DATABASE_store_appendRJ(benchmark::State& state) {
+  // Serialize the example result set into a string.
+  std::string content;
+  auto qd = getExampleQueryData(20, 100);
+  serializeQueryDataJSONRJ(qd, content);
+
+  size_t k = 0;
+  while (state.KeepRunning()) {
+    setDatabaseValue(kPersistentSettings, "key" + std::to_string(k), content);
+    deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(k));
+    k++;
+  }
+
+  // All benchmarks will share a single database handle.
+  for (size_t i = 0; i < k; ++i) {
+    deleteDatabaseValue(kPersistentSettings, "key" + std::to_string(i));
+  }
+}
+
+BENCHMARK(DATABASE_store_appendRJ);
 }

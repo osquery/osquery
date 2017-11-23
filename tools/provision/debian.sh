@@ -10,13 +10,6 @@
 function distro_main() {
   do_sudo apt-get -y update
 
-  package git
-  package gawk
-  package autotools-dev
-  package autopoint
-  package g++
-  package ruby
-  package curl
-  package bison
-  package flex
+  package doxygen
+  package valgrind
 }

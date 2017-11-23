@@ -31,11 +31,14 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
+extern long getUptime();
+
 // The maximum number of expected memory regions per process.
 #define MAX_MEMORY_MAPS 512
 
 #define CPU_TIME_RATIO 1000000
 #define START_TIME_RATIO 1000000000
+#define NSECS_IN_USEC 1000
 
 // Process states are as defined in sys/proc.h
 // SIDL   (1) Process being created by fork
@@ -224,6 +227,25 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
   return args;
 }
 
+static inline long getUptimeInUSec() {
+  struct timeval boot_time;
+  size_t len = sizeof(boot_time);
+  int mib[2] = {CTL_KERN, KERN_BOOTTIME};
+
+  if (sysctl(mib, 2, &boot_time, &len, nullptr, 0) < 0) {
+    return -1;
+  }
+
+  time_t seconds_since_boot = boot_time.tv_sec;
+
+  struct timeval tv;
+  gettimeofday(&tv, nullptr);
+
+  // Ignoring boot_time.tv_usec
+  return long(difftime(tv.tv_sec, seconds_since_boot) * CPU_TIME_RATIO +
+              tv.tv_usec);
+}
+
 QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
@@ -308,11 +330,23 @@ QueryData genProcesses(QueryContext& context) {
       // time information
       r["user_time"] = TEXT(rusage_info_data.ri_user_time / CPU_TIME_RATIO);
       r["system_time"] = TEXT(rusage_info_data.ri_system_time / CPU_TIME_RATIO);
-      // Convert the time in CPU ticks since boot to seconds.
-      // This is relative to time not-sleeping since boot.
-      r["start_time"] =
-          TEXT((rusage_info_data.ri_proc_start_abstime / START_TIME_RATIO) *
-               time_base.numer / time_base.denom);
+
+      // Below is the logic to caculate the start_time since boot time
+      // with higher precision
+      auto uptime = getUptimeInUSec();
+      uint64_t absoluteTime = mach_absolute_time();
+
+      auto multiply = static_cast<double>(time_base.numer) /
+                      static_cast<double>(time_base.denom);
+      auto diff = static_cast<long>(
+          (rusage_info_data.ri_proc_start_abstime - absoluteTime));
+
+      // This is a negative value
+      auto seconds_since_launch =
+          static_cast<long>(diff * multiply) / NSECS_IN_USEC;
+
+      // Get the start_time of process since the computer started
+      r["start_time"] = TEXT((uptime + seconds_since_launch) / CPU_TIME_RATIO);
     } else {
       r["wired_size"] = "-1";
       r["resident_size"] = "-1";

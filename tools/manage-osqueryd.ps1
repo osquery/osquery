@@ -6,7 +6,7 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 param(
-  [string] $args = "",
+  [string] $startupArgs = "",
   [switch] $install = $false,
   [switch] $uninstall = $false,
   
@@ -17,7 +17,8 @@ param(
   [switch] $debug = $false
 )
 
-$kServiceName = "osquery daemon service"
+$kServiceName = "osqueryd"
+$kServiceDescription = "osquery daemon service"
 $kServiceBinaryPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'osquery', 'osqueryd', 'osqueryd.exe'))
 
 # Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
@@ -35,7 +36,7 @@ function Do-Help {
   Write-Host "  Only one of the following options can be used. Using multiple will result in "
   Write-Host "  options being ignored."
   Write-Host "    -install          Install the osqueryd service"
-  Write-Host "    -args             Specifies additional arguments for the service (only used with -install)"
+  Write-Host "    -startupArgs     Specifies additional arguments for the service (only used with -install)"
   Write-Host "    -uninstall        Uninstall the osqueryd service"
   Write-Host "    -start            Start the osqueryd service"
   Write-Host "    -stop             Stop the osqueryd service"
@@ -58,7 +59,11 @@ function Do-Service {
       Write-Host "'$kServiceName' is already installed." -foregroundcolor Yellow
       Exit 1
     } else {
-      New-Service -BinaryPathName "$kServiceBinaryPath $args" -Name $kServiceName -DisplayName $kServiceName -StartupType Automatic
+      New-Service -BinaryPathName "$kServiceBinaryPath $startupArgs" `
+                  -Name $kServiceName `
+                  -DisplayName $kServiceName `
+                  -Description $kServiceDescription `
+                  -StartupType Automatic
       Write-Host "Installed '$kServiceName' system service." -foregroundcolor Cyan
       Exit 0
     }

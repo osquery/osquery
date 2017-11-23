@@ -25,7 +25,7 @@ enum class WinSockTableType { tcp, tcp6, udp, udp6 };
 
 class WinSockets : private boost::noncopyable {
  public:
-  /// Retreives all of the socket table structures from the Windows API
+  /// Retrieves all of the socket table structures from the Windows API
   WinSockets();
 
   /// Ensures that all Socket tables have been deallocated

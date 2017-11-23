@@ -23,15 +23,15 @@ const std::string alwaysFalse = "rule always_false { condition: false }";
 
 class YARATest : public testing::Test {
  protected:
-  void SetUp() {
-    remove(ruleFile);
+  void SetUp() override {
+    removePath(ruleFile);
     if (pathExists(ruleFile).ok()) {
       throw std::domain_error("Rule file exists.");
     }
   }
 
-  void TearDown() {
-    remove(ruleFile);
+  void TearDown() override {
+    removePath(ruleFile);
   }
 
   Row scanFile(const std::string& ruleContent) {
@@ -69,4 +69,4 @@ TEST_F(YARATest, test_match_false) {
   // Should have 0 count
   EXPECT_TRUE(r["count"] == "0");
 }
-}
+} // namespace osquery

@@ -186,7 +186,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
 
   std::string q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
   QueryData results;
-  status = queryInternal(q, results, dbc->db());
+  status = queryInternal(q, results, dbc);
   EXPECT_EQ(
       "CREATE VIRTUAL TABLE sample USING sample(`foo` INTEGER, `bar` TEXT)",
       results[0]["sql"]);
@@ -200,7 +200,7 @@ TEST_F(VirtualTableTests, test_sqlite3_table_joins) {
   // Run a query with a join within.
   std::string statement =
       "SELECT p.pid FROM osquery_info oi, processes p WHERE oi.pid = p.pid";
-  auto status = queryInternal(statement, results, dbc->db());
+  auto status = queryInternal(statement, results, dbc);
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 1U);
 }
@@ -302,7 +302,7 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
 
   for (const auto& test : constraint_tests) {
     QueryData results;
-    queryInternal(test.first, results, dbc->db());
+    queryInternal(test.first, results, dbc);
     EXPECT_EQ(results, test.second);
   }
 
@@ -321,7 +321,7 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   size_t index = 0;
   for (const auto& test : constraint_tests) {
     QueryData results;
-    queryInternal(test.first + " union " + test.first, results, dbc->db());
+    queryInternal(test.first + " union " + test.first, results, dbc);
     EXPECT_EQ(results, union_results[index++]);
   }
 }
@@ -358,7 +358,7 @@ TEST_F(VirtualTableTests, test_json_extract) {
   // Run a query with a join within.
   std::string statement =
       "SELECT JSON_EXTRACT(data, '$.test') AS test FROM json;";
-  auto status = queryInternal(statement, results, dbc->db());
+  auto status = queryInternal(statement, results, dbc);
   EXPECT_TRUE(status.ok());
   ASSERT_EQ(results.size(), 1U);
   EXPECT_EQ(results[0]["test"], "1");
@@ -370,7 +370,7 @@ TEST_F(VirtualTableTests, test_null_values) {
   std::string statement = "SELECT NULL as null_value;";
   {
     QueryData results;
-    auto status = queryInternal(statement, results, dbc->db());
+    auto status = queryInternal(statement, results, dbc);
     EXPECT_TRUE(status.ok());
     EXPECT_EQ(results[0]["null_value"], "");
   }
@@ -379,7 +379,7 @@ TEST_F(VirtualTableTests, test_null_values) {
   {
     QueryData results;
     statement = "SELECT CAST(NULL as INTEGER) as null_value;";
-    queryInternal(statement, results, dbc->db());
+    queryInternal(statement, results, dbc);
     EXPECT_EQ(results[0]["null_value"], "");
   }
 
@@ -387,7 +387,7 @@ TEST_F(VirtualTableTests, test_null_values) {
   {
     QueryData results;
     statement = "SELECT CAST(NULL as BIGINT) as null_value;";
-    queryInternal(statement, results, dbc->db());
+    queryInternal(statement, results, dbc);
     EXPECT_EQ(results[0]["null_value"], "");
   }
 
@@ -395,7 +395,7 @@ TEST_F(VirtualTableTests, test_null_values) {
   {
     QueryData results;
     statement = "SELECT CAST(NULL as DOUBLE) as null_value;";
-    queryInternal(statement, results, dbc->db());
+    queryInternal(statement, results, dbc);
     EXPECT_EQ(results[0]["null_value"], "");
   }
 }
@@ -435,7 +435,7 @@ TEST_F(VirtualTableTests, test_table_cache) {
   QueryData results;
   // Run a query with a join within.
   std::string statement = "SELECT c2.data as data FROM cache c1, cache c2;";
-  auto status = queryInternal(statement, results, dbc->db());
+  auto status = queryInternal(statement, results, dbc);
   dbc->clearAffectedTables();
   EXPECT_TRUE(status.ok());
   ASSERT_EQ(results.size(), 1U);
@@ -444,9 +444,90 @@ TEST_F(VirtualTableTests, test_table_cache) {
   // Run the query again, the virtual table cache should have been expired.
   results.clear();
   statement = "SELECT data from cache c1";
-  queryInternal(statement, results, dbc->db());
+  queryInternal(statement, results, dbc);
   ASSERT_EQ(results.size(), 1U);
   ASSERT_EQ(results[0]["data"], "awesome_data");
+}
+
+class tableCacheTablePlugin : public TablePlugin {
+ public:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("i", TEXT_TYPE, ColumnOptions::INDEX),
+        std::make_tuple("d", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+  TableAttributes attributes() const override {
+    return TableAttributes::CACHEABLE;
+  }
+
+  QueryData generate(QueryContext& ctx) override {
+    if (isCached(60, ctx)) {
+      return getCache();
+    }
+
+    generates_++;
+    Row r;
+    r["i"] = "1";
+    setCache(60, 1, ctx, {r});
+    return {r};
+  }
+
+  size_t generates_{0};
+};
+
+TEST_F(VirtualTableTests, test_table_results_cache) {
+  // Get a database connection.
+  auto tables = RegistryFactory::get().registry("table");
+  auto cache = std::make_shared<tableCacheTablePlugin>();
+  tables->add("table_cache", cache);
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal("table_cache", cache->columnDefinition(), dbc);
+
+  QueryData results;
+  std::string statement = "SELECT * from table_cache;";
+  auto status = queryInternal(statement, results, dbc);
+  dbc->clearAffectedTables();
+
+  EXPECT_TRUE(status.ok());
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(cache->generates_, 1U);
+
+  // Run the query again, the virtual table cache was not requested.
+  results.clear();
+  statement = "SELECT * from table_cache;";
+  queryInternal(statement, results, dbc);
+  EXPECT_EQ(results.size(), 1U);
+
+  // The table should have used the cache.
+  EXPECT_EQ(cache->generates_, 2U);
+
+  // Now request that caching be used.
+  dbc->useCache(true);
+
+  // Run the query again, the virtual table cache will be populated.
+  results.clear();
+  statement = "SELECT * from table_cache;";
+  queryInternal(statement, results, dbc);
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(cache->generates_, 3U);
+
+  // Run the query again, the virtual table cache will be returned.
+  results.clear();
+  statement = "SELECT * from table_cache;";
+  queryInternal(statement, results, dbc);
+  EXPECT_EQ(results.size(), 1U);
+  EXPECT_EQ(cache->generates_, 3U);
+
+  // Once last time with constraints that invalidate the cache results.
+  results.clear();
+  statement = "SELECT * from table_cache where i = '1';";
+  queryInternal(statement, results, dbc);
+  EXPECT_EQ(results.size(), 1U);
+
+  // The table should NOT have used the cache.
+  EXPECT_EQ(cache->generates_, 4U);
 }
 
 class yieldTablePlugin : public TablePlugin {
@@ -483,15 +564,122 @@ TEST_F(VirtualTableTests, test_yield_generator) {
   attachTableInternal("yield", table->columnDefinition(), dbc);
 
   QueryData results;
-  queryInternal("SELECT * from yield", results, dbc->db());
+  queryInternal("SELECT * from yield", results, dbc);
   dbc->clearAffectedTables();
   EXPECT_EQ(results.size(), 10U);
   EXPECT_EQ(results[0]["index"], "0");
 
   results.clear();
-  queryInternal("SELECT * from yield", results, dbc->db());
+  queryInternal("SELECT * from yield", results, dbc);
   dbc->clearAffectedTables();
   EXPECT_EQ(results[0]["index"], "10");
+}
+
+class likeTablePlugin : public TablePlugin {
+ private:
+  TableColumns columns() const override {
+    return {
+        std::make_tuple("i", TEXT_TYPE, ColumnOptions::INDEX),
+        std::make_tuple("op", TEXT_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+ public:
+  QueryData generate(QueryContext& context) override {
+    QueryData results;
+
+    // To test, we'll move all predicate constraints into the result set.
+    // First we'll move constrains for the column `i` using operands =, LIKE.
+    auto i = context.constraints["i"].getAll(EQUALS);
+    for (const auto& constraint : i) {
+      Row r;
+      r["i"] = constraint;
+      r["op"] = "EQUALS";
+      results.push_back(r);
+    }
+
+    i = context.constraints["i"].getAll(LIKE);
+    for (const auto& constraint : i) {
+      Row r;
+      r["i"] = constraint;
+      r["op"] = "LIKE";
+      results.push_back(r);
+    }
+
+    return results;
+  }
+
+ private:
+  FRIEND_TEST(VirtualTableTests, test_like_constraints);
+};
+
+TEST_F(VirtualTableTests, test_like_constraints) {
+  auto table = std::make_shared<likeTablePlugin>();
+  auto table_registry = RegistryFactory::get().registry("table");
+  table_registry->add("like_table", table);
+
+  auto dbc = SQLiteDBManager::getUnique();
+  attachTableInternal("like_table", table->columnDefinition(), dbc);
+
+  // Base case, without constrains this table has no results.
+  QueryData results;
+  queryInternal("SELECT * FROM like_table", results, dbc);
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 0U);
+
+  // A single EQUAL constraint's value is emitted.
+  queryInternal("SELECT * FROM like_table WHERE i = '1'", results, dbc);
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["i"], "1");
+  EXPECT_EQ(results[0]["op"], "EQUALS");
+
+  // When using OR, both values should be added.
+  results.clear();
+  queryInternal(
+      "SELECT * FROM like_table WHERE i = '1' OR i = '2'", results, dbc);
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 2U);
+  EXPECT_EQ(results[0]["i"], "1");
+  EXPECT_EQ(results[0]["op"], "EQUALS");
+  EXPECT_EQ(results[1]["i"], "2");
+  EXPECT_EQ(results[1]["op"], "EQUALS");
+
+  // When using a LIKE, the value (with substitution character) is emitted.
+  results.clear();
+  queryInternal(
+      "SELECT * FROM like_table WHERE i LIKE '/test/1/%'", results, dbc);
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 1U);
+  EXPECT_EQ(results[0]["i"], "/test/1/%");
+  EXPECT_EQ(results[0]["op"], "LIKE");
+
+  // As with EQUAL, multiple LIKEs mean multiple values.
+  results.clear();
+  queryInternal(
+      "SELECT * FROM like_table WHERE i LIKE '/test/1/%' OR i LIKE '/test/2/%'",
+      results,
+      dbc);
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 2U);
+  EXPECT_EQ(results[0]["i"], "/test/1/%");
+  EXPECT_EQ(results[0]["op"], "LIKE");
+  EXPECT_EQ(results[1]["i"], "/test/2/%");
+  EXPECT_EQ(results[1]["op"], "LIKE");
+
+  // As with EQUAL, multiple LIKEs mean multiple values.
+  results.clear();
+  queryInternal(
+      "SELECT * FROM like_table WHERE i LIKE '/home/%/downloads' OR i LIKE "
+      "'/home/%/documents'",
+      results,
+      dbc);
+  dbc->clearAffectedTables();
+  ASSERT_EQ(results.size(), 2U);
+  EXPECT_EQ(results[0]["i"], "/home/%/downloads");
+  EXPECT_EQ(results[0]["op"], "LIKE");
+  EXPECT_EQ(results[1]["i"], "/home/%/documents");
+  EXPECT_EQ(results[1]["op"], "LIKE");
 }
 
 class indexIOptimizedTablePlugin : public TablePlugin {
@@ -600,7 +788,7 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
 
   QueryData results;
   queryInternal(
-      "SELECT * from default_scan JOIN index_i using (i);", results, dbc->db());
+      "SELECT * from default_scan JOIN index_i using (i);", results, dbc);
   dbc->clearAffectedTables();
 
   // We expect index_i to optimize, meaning the constraint evaluation
@@ -614,7 +802,7 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
 
   // The inverse should also hold, all cost evaluations will be high.
   queryInternal(
-      "SELECT * from index_i JOIN default_scan using (i);", results, dbc->db());
+      "SELECT * from index_i JOIN default_scan using (i);", results, dbc);
   dbc->clearAffectedTables();
   EXPECT_EQ(10U, i->scans);
   EXPECT_EQ(1U, default_scan->scans);
@@ -627,7 +815,7 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
       "SELECT * from default_scan join index_i using (i) join index_j using "
       "(j);",
       results,
-      dbc->db());
+      dbc);
   dbc->clearAffectedTables();
   ASSERT_EQ(1U, default_scan->scans);
   EXPECT_EQ(10U, i->scans);

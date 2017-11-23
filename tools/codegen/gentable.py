@@ -37,8 +37,6 @@ RESERVED = ["n", "index"]
 PLATFORM = platform()
 
 # Supported SQL types for spec
-
-
 class DataType(object):
     def __init__(self, affinity, cpp_type="std::string"):
         '''A column datatype is a pair of a SQL affinity to C++ type.'''
@@ -89,6 +87,26 @@ TABLE_ATTRIBUTES = {
     "utility": "UTILITY",
     "kernel_required": "KERNEL_REQUIRED",
 }
+
+
+def WINDOWS():
+    return PLATFORM in ['windows', 'win32', 'cygwin']
+
+
+def LINUX():
+    return PLATFORM in ['linux']
+
+
+def POSIX():
+    return PLATFORM in ['linux', 'darwin', 'freebsd']
+
+
+def DARWIN():
+    return PLATFORM in ['darwin']
+
+
+def FREEBSD():
+    return PLATFORM in ['freebsd']
 
 
 def to_camel_case(snake_case):
@@ -217,9 +235,6 @@ class TableState(Singleton):
         if "event_subscriber" in self.attributes:
             self.generator = True
         if "cacheable" in self.attributes:
-            if len(set(all_options).intersection(NON_CACHEABLE)) > 0:
-                print(lightred("Table cannot be marked cacheable: %s" % (path)))
-                exit(1)
             if self.generator:
                 print(lightred(
                     "Table cannot use a generator and be marked cacheable: %s" % (path)))
@@ -334,6 +349,19 @@ def schema(schema_list):
         if isinstance(it, ForeignKey):
             logging.debug("  - foreign_key: %s (%s)" % (it.column, it.table))
     table.schema = schema_list
+
+
+def extended_schema(check, schema_list):
+    """
+    define a comparator and a list of Columns objects.
+    """
+    logging.debug("- extended schema")
+    for it in schema_list:
+        if isinstance(it, Column):
+            logging.debug("  - column: %s (%s)" % (it.name, it.type))
+            if not check():
+                it.options['hidden'] = True
+            table.schema.append(it)
 
 
 def description(text):

@@ -10,23 +10,32 @@
 
 #include <stdlib.h>
 
+#include <array>
+
+#include <boost/utility/string_view.hpp>
+
 #include "osquery/core/conversions.h"
 #include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
+static constexpr std::array<boost::string_view, 3> periods = {
+    boost::string_view("1m", 2),
+    boost::string_view("5m", 2),
+    boost::string_view("15m", 3)};
+
 QueryData genLoadAverage(QueryContext& context) {
-  QueryData results;
+  QueryData results(3);
 
   double loads[3];
-  std::vector<std::string> periods = {"1m", "5m", "15m"};
+
   if (getloadavg(loads, 3) != -1) {
     for (int i = 0; i < 3; i++) {
-      Row r;
-      r["period"] = periods[i];
-      r["average"] = std::to_string(loads[i]);
-      results.push_back(r);
+      Row r = {{"period", periods[i].data()},
+               {"average", std::to_string(loads[i])}};
+
+      results[i] = r;
     }
   };
 

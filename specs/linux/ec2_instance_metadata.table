@@ -1,0 +1,23 @@
+table_name("ec2_instance_metadata")
+description("EC2 instance metadata.")
+schema([
+    Column("instance_id", TEXT, "EC2 instance ID", index=True),
+    Column("instance_type", TEXT, "EC2 instance type"),
+    Column("architecture", TEXT, "Hardware architecture of this EC2 instance"),
+    Column("region", TEXT, "AWS region in which this instance launched"),
+    Column("availability_zone", TEXT, "Availability zone in which this instance launched"),
+    Column("local_hostname", TEXT, "Private IPv4 DNS hostname of the first interface of this instance"),
+    Column("local_ipv4", TEXT, "Private IPv4 address of the first interface of this instance"),
+    Column("mac", TEXT, "MAC address for the first network interface of this EC2 instance"),
+    Column("security_groups", TEXT, "Comma separated list of security group names"),
+    Column("iam_arn", TEXT, "If there is an IAM role associated with the instance, contains instance profile ARN"),
+    Column("ami_id", TEXT, "AMI ID used to launch this EC2 instance"),
+    Column("reservation_id", TEXT, "ID of the reservation"),
+    Column("account_id", TEXT, "AWS account ID which owns this EC2 instance"),
+    Column("ssh_public_key", TEXT, "SSH public key. Only available if supplied at instance launch time")
+])
+attributes(cacheable=True)
+implementation("cloud/ec2_metadata@genEc2Metadata")
+examples([
+    "select * from ec2_instance_metadata"
+])

@@ -34,6 +34,12 @@ TEST_F(SystemsTablesTests, test_os_version) {
   EXPECT_FALSE(results.rows()[0].at("name").empty());
 }
 
+TEST_F(SystemsTablesTests, test_hostname) {
+  SQL results("select hostname from system_info");
+  EXPECT_EQ(results.rows().size(), 1U);
+  EXPECT_FALSE(results.rows()[0].at("hostname").empty());
+}
+
 TEST_F(SystemsTablesTests, test_process_info) {
   SQL results("select * from osquery_info join processes using (pid)");
   ASSERT_EQ(results.rows().size(), 1U);
@@ -150,10 +156,9 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
   {
     // Check LIKE and = operands.
     SQL results(
-        "select path from file where path = '/etc/' or path LIKE '/dev/%' or "
-        "path LIKE '\\Windows\\%';");
+        R"(select path from file where path = '/etc/' or path LIKE '/dev/%' or path LIKE '\Windows\%';)");
     ASSERT_GT(results.rows().size(), 1U);
   }
 }
-}
-}
+} // namespace tables
+} // namespace osquery

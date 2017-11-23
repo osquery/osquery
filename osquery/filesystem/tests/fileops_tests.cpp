@@ -32,20 +32,32 @@ class FileOpsTests : public testing::Test {
   }
 
   bool globResultsMatch(const std::vector<std::string>& results,
-                        std::vector<fs::path>& expected) {
-    if (results.size() == expected.size()) {
-      size_t i = 0;
-      for (auto const& path : results) {
-        if (path != expected[i].make_preferred().string()) {
-          return false;
-        }
-        i++;
-      }
-
-      return true;
+                        const std::vector<fs::path>& expected) {
+    // Sets cannot be the same if they are different sizes
+    if (results.size() != expected.size()) {
+      return false;
+    }
+    // Convert the data structure to a set for better searching
+    std::set<std::string> results_set;
+    for (const auto& res : results) {
+      results_set.insert(res);
     }
 
-    return false;
+    for (auto res : expected) {
+      const auto loc = results_set.find(res.make_preferred().string());
+      // Unable to find element (something is in expected but not results)
+      if (loc == results_set.end()) {
+        return false;
+      }
+      // Pair found so remove from results
+      results_set.erase(loc);
+    }
+
+    // There are unremoved values so expected is a proper subset of results
+    if (!results_set.empty()) {
+      return false;
+    }
+    return true;
   }
 };
 
@@ -140,6 +152,11 @@ std::unique_ptr<PlatformFile> openRWSharedFile(const std::string& path,
 #else
   return std::unique_ptr<PlatformFile>(new PlatformFile(path, mode));
 #endif
+}
+
+/// Some permissions do not apply to POSIX root.
+static bool isUserPOSIXAdmin() {
+  return !isPlatform(PlatformType::TYPE_WINDOWS) && isUserAdmin();
 }
 
 TEST_F(FileOpsTests, test_shareRead) {
@@ -332,7 +349,7 @@ TEST_F(FileOpsTests, test_large_read_write) {
 
   const std::string expected(20000000, 'A');
   const ssize_t expected_len = expected.size();
-  ASSERT_EQ(strlen(expected.data()), 20000000U);
+  ASSERT_EQ(strnlen(expected.data(), 20000001), 20000000U);
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
@@ -347,7 +364,7 @@ TEST_F(FileOpsTests, test_large_read_write) {
     EXPECT_TRUE(fd.isValid());
     auto read_len = fd.read(buffer.data(), expected_len);
     EXPECT_EQ(expected_len, read_len);
-    EXPECT_EQ(expected, std::string(buffer.data(), buffer.size())); 
+    EXPECT_EQ(expected, std::string(buffer.data(), buffer.size()));
   }
 }
 
@@ -397,7 +414,7 @@ TEST_F(FileOpsTests, test_chmod_no_read) {
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_FALSE(fd.isValid());
+    EXPECT_EQ(isUserPOSIXAdmin(), fd.isValid());
   }
 
   {
@@ -425,7 +442,7 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
-    EXPECT_FALSE(fd.isValid());
+    EXPECT_EQ(isUserPOSIXAdmin(), fd.isValid());
   }
 }
 
@@ -464,53 +481,63 @@ TEST_F(FileOpsTests, test_access) {
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IXUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(0, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(0, platformAccess(path, R_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK));
-  EXPECT_EQ(0, platformAccess(path, X_OK));
+  if (!isUserPOSIXAdmin()) {
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+    EXPECT_EQ(0, platformAccess(path, R_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+    EXPECT_EQ(0, platformAccess(path, R_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK));
+    EXPECT_EQ(0, platformAccess(path, X_OK));
+  }
 
   EXPECT_TRUE(platformChmod(path, S_IWUSR | S_IXUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(0, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK));
-  EXPECT_EQ(0, platformAccess(path, W_OK));
-  EXPECT_EQ(0, platformAccess(path, X_OK));
+  if (!isUserPOSIXAdmin()) {
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+    EXPECT_EQ(0, platformAccess(path, W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK));
+    EXPECT_EQ(0, platformAccess(path, W_OK));
+    EXPECT_EQ(0, platformAccess(path, X_OK));
+  }
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(0, platformAccess(path, R_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK));
-  EXPECT_EQ(-1, platformAccess(path, X_OK));
+  if (!isUserPOSIXAdmin()) {
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+    EXPECT_EQ(0, platformAccess(path, R_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK));
+    EXPECT_EQ(-1, platformAccess(path, X_OK));
+  }
 
   EXPECT_TRUE(platformChmod(path, S_IWUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK));
-  EXPECT_EQ(0, platformAccess(path, W_OK));
-  EXPECT_EQ(-1, platformAccess(path, X_OK));
+  if (!isUserPOSIXAdmin()) {
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK));
+    EXPECT_EQ(0, platformAccess(path, W_OK));
+    EXPECT_EQ(-1, platformAccess(path, X_OK));
+  }
 
   EXPECT_TRUE(platformChmod(path, S_IXUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK));
-  EXPECT_EQ(0, platformAccess(path, X_OK));
+  if (!isUserPOSIXAdmin()) {
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK));
+    EXPECT_EQ(0, platformAccess(path, X_OK));
+  }
 
   // Reset permissions
   EXPECT_TRUE(platformChmod(path, all_access));
@@ -668,21 +695,11 @@ TEST_F(FileOpsTests, test_glob) {
   }
 
   {
-    std::vector<fs::path> expected;
-    if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-      expected = {kFakeDirectory + "/deep1/deep2/",
-                  kFakeDirectory + "/deep1/level1.txt",
-                  kFakeDirectory + "/deep11/deep2/",
-                  kFakeDirectory + "/deep11/level1.txt",
-                  kFakeDirectory + "/deep11/not_bash"};
-    } else {
-      expected = {kFakeDirectory + "/deep1/deep2/",
-                  kFakeDirectory + "/deep11/deep2/",
-                  kFakeDirectory + "/deep1/level1.txt",
-                  kFakeDirectory + "/deep11/level1.txt",
-                  kFakeDirectory + "/deep11/not_bash"};
-    }
-
+    std::vector<fs::path> expected{kFakeDirectory + "/deep1/deep2/",
+                                   kFakeDirectory + "/deep1/level1.txt",
+                                   kFakeDirectory + "/deep11/deep2/",
+                                   kFakeDirectory + "/deep11/level1.txt",
+                                   kFakeDirectory + "/deep11/not_bash"};
     auto result =
         platformGlob(kFakeDirectory + "/*/{deep2,level1,not_bash}{,.txt}");
     EXPECT_TRUE(globResultsMatch(result, expected));
@@ -708,10 +725,12 @@ TEST_F(FileOpsTests, test_zero_permissions_file) {
   std::vector<char> buf(expected_len);
   EXPECT_EQ(0, fd.read(buf.data(), expected_len));
 
-  auto modes = {R_OK, W_OK, X_OK};
-  for (auto& mode : modes) {
-    EXPECT_EQ(-1, platformAccess(path, mode));
+  if (!isUserPOSIXAdmin()) {
+    auto modes = {R_OK, W_OK, X_OK};
+    for (auto& mode : modes) {
+      EXPECT_EQ(-1, platformAccess(path, mode));
+    }
+    EXPECT_EQ(boost::none, platformFopen(path, "r"));
   }
-  EXPECT_EQ(boost::none, platformFopen(path, "r"));
 }
 }

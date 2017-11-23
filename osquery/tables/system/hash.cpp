@@ -36,16 +36,16 @@ Hash::~Hash() {
 Hash::Hash(HashType algorithm) : algorithm_(algorithm) {
   if (algorithm_ == HASH_TYPE_MD5) {
     length_ = MD5_DIGEST_LENGTH;
-    ctx_ = (MD5_CTX*)malloc(sizeof(MD5_CTX));
-    MD5_Init((MD5_CTX*)ctx_);
+    ctx_ = static_cast<MD5_CTX*>(malloc(sizeof(MD5_CTX)));
+    MD5_Init(static_cast<MD5_CTX*>(ctx_));
   } else if (algorithm_ == HASH_TYPE_SHA1) {
     length_ = SHA_DIGEST_LENGTH;
-    ctx_ = (SHA_CTX*)malloc(sizeof(SHA_CTX));
-    SHA1_Init((SHA_CTX*)ctx_);
+    ctx_ = static_cast<SHA_CTX*>(malloc(sizeof(SHA_CTX)));
+    SHA1_Init(static_cast<SHA_CTX*>(ctx_));
   } else if (algorithm_ == HASH_TYPE_SHA256) {
     length_ = SHA256_DIGEST_LENGTH;
-    ctx_ = (SHA256_CTX*)malloc(sizeof(SHA256_CTX));
-    SHA256_Init((SHA256_CTX*)ctx_);
+    ctx_ = static_cast<SHA256_CTX*>(malloc(sizeof(SHA256_CTX)));
+    SHA256_Init(static_cast<SHA256_CTX*>(ctx_));
   } else {
     throw std::domain_error("Unknown hash function");
   }
@@ -53,11 +53,11 @@ Hash::Hash(HashType algorithm) : algorithm_(algorithm) {
 
 void Hash::update(const void* buffer, size_t size) {
   if (algorithm_ == HASH_TYPE_MD5) {
-    MD5_Update((MD5_CTX*)ctx_, buffer, size);
+    MD5_Update(static_cast<MD5_CTX*>(ctx_), buffer, size);
   } else if (algorithm_ == HASH_TYPE_SHA1) {
-    SHA1_Update((SHA_CTX*)ctx_, buffer, size);
+    SHA1_Update(static_cast<SHA_CTX*>(ctx_), buffer, size);
   } else if (algorithm_ == HASH_TYPE_SHA256) {
-    SHA256_Update((SHA256_CTX*)ctx_, buffer, size);
+    SHA256_Update(static_cast<SHA256_CTX*>(ctx_), buffer, size);
   }
 }
 
@@ -66,11 +66,11 @@ std::string Hash::digest() {
   hash.assign(length_, '\0');
 
   if (algorithm_ == HASH_TYPE_MD5) {
-    MD5_Final(hash.data(), (MD5_CTX*)ctx_);
+    MD5_Final(hash.data(), static_cast<MD5_CTX*>(ctx_));
   } else if (algorithm_ == HASH_TYPE_SHA1) {
-    SHA1_Final(hash.data(), (SHA_CTX*)ctx_);
+    SHA1_Final(hash.data(), static_cast<SHA_CTX*>(ctx_));
   } else if (algorithm_ == HASH_TYPE_SHA256) {
-    SHA256_Final(hash.data(), (SHA256_CTX*)ctx_);
+    SHA256_Final(hash.data(), static_cast<SHA256_CTX*>(ctx_));
   }
 
   // The hash value is only relevant as a hex digest.
@@ -108,9 +108,10 @@ MultiHashes hashMultiFromFile(int mask, const std::string& path) {
                           hash.second->update(&buffer[0], size);
                         }
                       }
-                    }));
+                    }),
+                    true);
 
-  MultiHashes mh;
+  MultiHashes mh = {};
   if (!s.ok()) {
     return mh;
   }

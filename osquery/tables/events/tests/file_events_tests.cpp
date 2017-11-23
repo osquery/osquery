@@ -119,4 +119,4 @@ TEST_F(FileEventsTableTests, test_configure_subscriptions) {
   }
 }
 #endif /* WIN32 */
-}
+} // namespace osquery

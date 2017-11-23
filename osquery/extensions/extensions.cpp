@@ -8,16 +8,18 @@
  *
  */
 
-#include <csignal>
+#include <map>
+#include <set>
+#include <string>
+#include <tuple>
+#include <vector>
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
-#include <osquery/sql.h>
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
@@ -32,7 +34,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-// Millisecond latency between initalizing manager pings.
+// Millisecond latency between initializing manager pings.
 const size_t kExtensionInitializeLatency = 20;
 
 enum class ExtendableType {
@@ -118,7 +120,8 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     if (socketExists(path)) {
       try {
         ExtensionStatus status;
-        EXManagerClient client(path);
+        // Create a client with a 10-second receive timeout.
+        EXManagerClient client(path, 10 * 1000);
         client.get()->ping(status);
         return Status(0, "OK");
       } catch (const std::exception& /* e */) {
@@ -131,6 +134,17 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     }
     return Status(1, "Extension socket not available: " + path);
   }));
+}
+
+ExtensionWatcher::ExtensionWatcher(const std::string& path,
+                                   size_t interval,
+                                   bool fatal)
+    : InternalRunnable("ExtensionWatcher"),
+      path_(path),
+      interval_(interval),
+      fatal_(fatal) {
+  // Set the interval to a minimum of 200 milliseconds.
+  interval_ = (interval_ < 200) ? 200 : interval_;
 }
 
 void ExtensionWatcher::start() {

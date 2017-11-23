@@ -169,6 +169,20 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
   return Status(0);
 }
 
+/// Safely convert a string representation of an integer base.
+inline Status safeStrtoull(const std::string& rep,
+                           size_t base,
+                           unsigned long long& out) {
+  char* end{nullptr};
+  out = strtoull(rep.c_str(), &end, static_cast<int>(base));
+  if (end == nullptr || end == rep.c_str() || *end != '\0' ||
+      (out == ULLONG_MAX && errno == ERANGE)) {
+    out = 0;
+    return Status(1);
+  }
+  return Status(0);
+}
+
 /// Safely convert unicode escaped ASCII.
 inline std::string unescapeUnicode(const std::string& escaped) {
   if (escaped.size() < 6) {

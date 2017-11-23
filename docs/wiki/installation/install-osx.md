@@ -13,6 +13,7 @@ The default package creates the following structure:
 /private/var/osquery/com.facebook.osqueryd.plist
 /private/var/osquery/osquery.example.conf
 /private/var/log/osquery/
+/private/var/osquery/lenses/{*}.aug
 /private/var/osquery/packs/{*}.conf
 /usr/local/lib/osquery/
 /usr/local/bin/osqueryctl
@@ -33,6 +34,21 @@ sudo ln -s /usr/local/share/osquery /var/osquery
 sudo mkdir /var/log/osquery
 sudo chown root /usr/local/Cellar/osquery/1.7.3/bin/osqueryd
 sudo cp /var/osquery/osquery.example.conf /var/osquery/osquery.conf
+```
+
+### Removing osquery
+To remove osquery from a macOS system, run the following commands:
+```sh
+# Unload and remove com.facebook.osquery.plist launchdaemon
+launchctl unload /Library/LaunchDaemons/com.facebook.osqueryd.plist
+rm /Library/LaunchDaemons/com.facebook.osqueryd.plist
+
+# Remove files/directories created by osquery installer pkg
+rm -rf /private/var/log/osquery
+rm -rf /private/var/osquery
+rm /usr/local/bin/osquery*
+
+pkgutil --forget com.facebook.osquery
 ```
 
 ## Running osquery

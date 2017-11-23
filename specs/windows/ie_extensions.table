@@ -1,0 +1,9 @@
+table_name("ie_extensions")
+description("Internet Explorer browser extensions.")
+schema([
+    Column("name", TEXT, "Extension display name"),
+    Column("registry_path", TEXT, "Extension identifier", index=True),
+    Column("version", TEXT, "Version of the executable"),
+    Column("path", TEXT, "Path to executable", index=True),
+])
+implementation("system/windows/ie_extensions@genIEExtensions")
