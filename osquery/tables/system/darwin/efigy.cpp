@@ -8,9 +8,11 @@
  *
  */
 
+#include <iostream>
 #include <sstream>
 #include <string>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/optional/optional.hpp>
 
 #include <osquery/core.h>
@@ -56,7 +58,7 @@ std::string getSMCVersionField(const std::string& raw_version_field,
     field_size = 2U;
 
   } else if (index == 3U) {
-    field_index = 6;
+    field_index = 6U;
     field_size = std::string::npos;
 
   } else {
@@ -72,9 +74,32 @@ std::string getSMCVersionField(const std::string& raw_version_field,
   return value;
 }
 
+osquery::Status getEFIVersion(std::string& version) {
+  version.clear();
+
+  auto platform_info = osquery::SQL::selectAllFrom("platform_info");
+  if (platform_info.empty()) {
+    return osquery::Status(1, "Failed to list the platform information");
+  }
+
+  std::stringstream version_stream(platform_info[0]["version"]);
+
+  std::vector<std::string> version_fields;
+  for (std::string s; std::getline(version_stream, s, '.');
+       version_fields.push_back(s))
+    ;
+
+  if (version_fields.size() != 5U) {
+    return osquery::Status(1, "Invalid platform version field");
+  }
+
+  version =
+      version_fields[0] + "." + version_fields[2] + "." + version_fields[3];
+  return osquery::Status(0, "OK");
+}
+
 osquery::Status getSystemInformation(SystemInformation& system_info) {
   system_info.board_id = "Mac-XXXXXXXXXXXXXXXX";
-  system_info.rom_ver = "MBP142.0167.B00";
 
   auto smc_keys =
       osquery::SQL::selectAllFrom("smc_keys", "key", osquery::EQUALS, "RVBF");
@@ -100,8 +125,14 @@ osquery::Status getSystemInformation(SystemInformation& system_info) {
   }
 
   system_info.hw_ver = mac_system_info[0]["hardware_model"];
+  boost::trim(system_info.hw_ver);
   if (system_info.hw_ver.empty()) {
     return osquery::Status(1, "Failed to retrieve the hardware model");
+  }
+
+  auto status = getEFIVersion(system_info.rom_ver);
+  if (!status.ok()) {
+    return status;
   }
 
   osquery::getHostUUID(system_info.sys_uuid);
