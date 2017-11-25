@@ -82,24 +82,15 @@ osquery::Status getPostRequestData(std::string& json,
   system_info_object.put("hw_ver", system_info.hw_ver);
   system_info_object.put("os_ver", system_info.os_ver);
 
-  // this identifier only makes sense when posting more than one query in
-  // a single request
-  std::string system_identifier = "127.0.0.1";
-
-  pt::ptree root_object;
-  root_object.push_back(
-      pt::ptree::value_type(system_identifier, system_info_object));
-
   std::stringstream json_stream;
-  pt::json_parser::write_json(json_stream, root_object);
-
+  pt::json_parser::write_json(json_stream, system_info_object);
   json = json_stream.str();
+
   return osquery::Status(0, "OK");
 }
 
 osquery::Status queryServer(ServerResponse& response,
                             const SystemInformation& system_info) {
-  const char* efigy_api_url = "https://api.efigy.io";
   response = {};
 
   std::string request_data;
@@ -108,64 +99,74 @@ osquery::Status queryServer(ServerResponse& response,
     return status;
   }
 
-  // todo: bundle the cert!
   osquery::http::Client::Options client_options;
-  client_options.openssl_verify_path("/Users/alessandro/Desktop/cacert.pem")
-      .always_verify_peer(true)
-      .openssl_options(SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
+  client_options.always_verify_peer(true)
+      .openssl_options(SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 |
+                       SSL_OP_NO_TLSv1_1)
+      .openssl_certificate("/etc/ssl/cert.pem")
+      .openssl_sni_hostname("api.efigy.io");
 
   client_options.timeout(5).follow_redirects(true);
 
+  pt::ptree json_response;
+
   try {
-    osquery::http::Request server_request(efigy_api_url);
+    osquery::http::Request server_request("https://api.efigy.io/apple/oneshot");
+
     server_request << osquery::http::Request::Header("User-Agent", "osquery");
+    server_request << osquery::http::Request::Header("Content-type",
+                                                     "application/json");
+
+    server_request << osquery::http::Request::Header("Accept",
+                                                     "application/json");
 
     osquery::http::Client client(client_options);
     auto server_response = client.post(server_request, request_data);
 
     std::stringstream json_stream(server_response.body());
-
-    pt::ptree root_object;
-    pt::read_json(json_stream, root_object);
-
-    auto latest_efi_version =
-        root_object.get_optional<std::string>("latest_efi_version.msg");
-    if (!latest_efi_version || latest_efi_version->empty()) {
-      return osquery::Status(1,
-                             "Invalid server response: the "
-                             "'latest_efi_version' object has no 'msg' value");
-    }
-
-    auto latest_os_version =
-        root_object.get_optional<std::string>("latest_os_version.msg");
-    if (!latest_os_version || latest_os_version->empty()) {
-      return osquery::Status(1,
-                             "Invalid server response: the 'latest_os_version' "
-                             "object has no 'msg' value");
-    }
-
-    auto latest_build_number =
-        root_object.get_optional<std::string>("latest_build_number.msg");
-    if (!latest_build_number || latest_build_number->empty()) {
-      return osquery::Status(1,
-                             "Invalid server response: the "
-                             "'latest_build_number' object has no 'msg' value");
-    }
-
-    response.latest_efi_version = latest_efi_version.get();
-    response.latest_os_version = latest_os_version.get();
-    response.latest_build_number = latest_build_number.get();
-
-    return osquery::Status(0, "OK");
+    pt::read_json(json_stream, json_response);
 
   } catch (const pt::json_parser_error& e) {
-    return osquery::Status(0,
-                           std::string("Invalid server response: ") + e.what());
+    return osquery::Status(
+        1, std::string("Invalid JSON in server response: ") + e.what());
 
   } catch (const std::exception& e) {
     return osquery::Status(
-        0, std::string("Could not query the EFIgy API endpoint: ") + e.what());
+        1, std::string("Could not query the EFIgy API endpoint: ") + e.what());
   }
+
+  auto latest_efi_version =
+      json_response.get_optional<std::string>("latest_efi_version.msg");
+
+  if (!latest_efi_version || latest_efi_version->empty()) {
+    return osquery::Status(1,
+                           "Invalid server response: the "
+                           "'latest_efi_version' object has no 'msg' value");
+  }
+
+  auto latest_os_version =
+      json_response.get_optional<std::string>("latest_os_version.msg");
+
+  if (!latest_os_version || latest_os_version->empty()) {
+    return osquery::Status(1,
+                           "Invalid server response: the 'latest_os_version' "
+                           "object has no 'msg' value");
+  }
+
+  auto latest_build_number =
+      json_response.get_optional<std::string>("latest_build_number.msg");
+
+  if (!latest_build_number || latest_build_number->empty()) {
+    return osquery::Status(1,
+                           "Invalid server response: the "
+                           "'latest_build_number' object has no 'msg' value");
+  }
+
+  response.latest_efi_version = latest_efi_version.get();
+  response.latest_os_version = latest_os_version.get();
+  response.latest_build_number = latest_build_number.get();
+
+  return osquery::Status(0, "OK");
 }
 } // namespace
 
