@@ -82,24 +82,22 @@ osquery::Status getEFIVersion(std::string& version) {
     return osquery::Status(1, "Failed to list the platform information");
   }
 
-  std::stringstream version_stream(platform_info[0]["version"]);
+  std::stringstream vers_stream(platform_info[0]["version"]);
 
-  std::vector<std::string> version_fields;
-  for (std::string s; std::getline(version_stream, s, '.');
-       version_fields.push_back(s))
+  std::vector<std::string> fields;
+  for (std::string s; std::getline(vers_stream, s, '.'); fields.push_back(s))
     ;
 
-  if (version_fields.size() != 5U) {
+  if (fields.size() != 5U) {
     return osquery::Status(1, "Invalid platform version field");
   }
 
-  version =
-      version_fields[0] + "." + version_fields[2] + "." + version_fields[3];
+  version = fields[0] + "." + fields[2] + "." + fields[3];
   return osquery::Status(0, "OK");
 }
 
-osquery::Status getSystemInformation(SystemInformation& system_info) {
-  system_info.board_id = "Mac-XXXXXXXXXXXXXXXX";
+osquery::Status getSMCVersion(std::string& version) {
+  version.clear();
 
   auto smc_keys =
       osquery::SQL::selectAllFrom("smc_keys", "key", osquery::EQUALS, "RVBF");
@@ -113,32 +111,34 @@ osquery::Status getSystemInformation(SystemInformation& system_info) {
   auto part2 = getSMCVersionField(raw_version_field, 2);
   auto part3 = getSMCVersionField(raw_version_field, 3);
 
-  system_info.smc_ver = part0 + "." + part1 + part2 + part3;
-
-  if (system_info.smc_ver.empty()) {
+  version = part0 + "." + part1 + part2 + part3;
+  if (version.empty()) {
     return osquery::Status(1, "Failed to retrieve the smc version");
   }
+
+  return osquery::Status(0, "OK");
+}
+
+osquery::Status getHardwareModel(std::string& model) {
+  model.clear();
 
   auto mac_system_info = osquery::SQL::selectAllFrom("system_info");
   if (mac_system_info.empty()) {
     return osquery::Status(1, "Failed to list the system information");
   }
 
-  system_info.hw_ver = mac_system_info[0]["hardware_model"];
-  boost::trim(system_info.hw_ver);
-  if (system_info.hw_ver.empty()) {
+  model = mac_system_info[0]["hardware_model"];
+  boost::trim(model);
+  if (model.empty()) {
     return osquery::Status(1, "Failed to retrieve the hardware model");
   }
 
-  auto status = getEFIVersion(system_info.rom_ver);
-  if (!status.ok()) {
-    return status;
-  }
+  return osquery::Status(0, "OK");
+}
 
-  osquery::getHostUUID(system_info.sys_uuid);
-  if (system_info.sys_uuid.empty()) {
-    return osquery::Status(1, "Failed to retrieve the system UUID");
-  }
+osquery::Status getOSVersion(std::string& version, std::string& build) {
+  version.clear();
+  build.clear();
 
   auto sw_vers = osquery::SQL::selectAllFrom(
       "plist",
@@ -151,17 +151,23 @@ osquery::Status getSystemInformation(SystemInformation& system_info) {
 
   for (const auto& row : sw_vers) {
     if (row.at("key") == "ProductBuildVersion") {
-      system_info.build_num = row.at("value");
+      build = row.at("value");
 
     } else if (row.at("key") == "ProductVersion") {
-      system_info.os_ver = row.at("value");
+      version = row.at("value");
     }
   }
 
-  if (system_info.build_num.empty() || system_info.build_num.empty()) {
+  if (version.empty() || build.empty()) {
     return osquery::Status(
         1, "Failed to retrieve the OS version and build number");
   }
+
+  return osquery::Status(0, "OK");
+}
+
+osquery::Status getMACAddress(std::string& mac) {
+  mac.clear();
 
   auto interface_details = osquery::SQL::selectAllFrom("interface_details");
   if (interface_details.empty()) {
@@ -171,13 +177,49 @@ osquery::Status getSystemInformation(SystemInformation& system_info) {
   for (const auto& row : interface_details) {
     auto mac_address = row.at("mac");
     if (!mac_address.empty() && mac_address != "00:00:00:00:00:00") {
-      system_info.mac_addr = mac_address;
+      mac = mac_address;
       break;
     }
   }
 
-  if (system_info.mac_addr.empty()) {
+  if (mac.empty()) {
     return osquery::Status(1, "Failed to retrieve a valid mac address");
+  }
+
+  return osquery::Status(0, "OK");
+}
+
+osquery::Status getSystemInformation(SystemInformation& system_info) {
+  system_info.board_id = "Mac-XXXXXXXXXXXXXXXX";
+
+  auto status = getSMCVersion(system_info.smc_ver);
+  if (!status.ok()) {
+    return status;
+  }
+
+  status = getHardwareModel(system_info.hw_ver);
+  if (!status.ok()) {
+    return status;
+  }
+
+  status = getEFIVersion(system_info.rom_ver);
+  if (!status.ok()) {
+    return status;
+  }
+
+  osquery::getHostUUID(system_info.sys_uuid);
+  if (system_info.sys_uuid.empty()) {
+    return osquery::Status(1, "Failed to retrieve the system UUID");
+  }
+
+  status = getOSVersion(system_info.os_ver, system_info.build_num);
+  if (!status.ok()) {
+    return status;
+  }
+
+  status = getMACAddress(system_info.mac_addr);
+  if (!status.ok()) {
+    return status;
   }
 
   return osquery::Status(0, "OK");
