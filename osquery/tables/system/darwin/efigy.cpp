@@ -15,6 +15,7 @@
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -41,15 +42,112 @@ struct ServerResponse final {
   std::string latest_build_number;
 };
 
+std::string getSMCVersionField(const std::string& raw_version_field,
+                               size_t index) {
+  if (raw_version_field.size() != 12U) {
+    return std::string();
+  }
+
+  size_t field_index;
+  size_t field_size;
+
+  if (index <= 2U) {
+    field_index = index * 2U;
+    field_size = 2U;
+
+  } else if (index == 3U) {
+    field_index = 6;
+    field_size = std::string::npos;
+
+  } else {
+    return std::string();
+  }
+
+  auto value = raw_version_field.substr(field_index, field_size);
+  value.erase(0, value.find_first_not_of('0'));
+  if (value.empty()) {
+    value = "0";
+  }
+
+  return value;
+}
+
 osquery::Status getSystemInformation(SystemInformation& system_info) {
   system_info.board_id = "Mac-XXXXXXXXXXXXXXXX";
-  system_info.smc_ver = "2.44f1";
-  system_info.sys_uuid = "XXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX";
-  system_info.build_num = "17B48";
   system_info.rom_ver = "MBP142.0167.B00";
-  system_info.hw_ver = "MacBookPro14,2";
-  system_info.os_ver = "10.13.1";
-  system_info.mac_addr = "0x0123456789ab";
+
+  auto smc_keys =
+      osquery::SQL::selectAllFrom("smc_keys", "key", osquery::EQUALS, "RVBF");
+  if (smc_keys.empty()) {
+    return osquery::Status(1, "Failed to select the RVBF smc_keys row");
+  }
+
+  std::string raw_version_field = smc_keys[0]["value"];
+  auto part0 = getSMCVersionField(raw_version_field, 0);
+  auto part1 = getSMCVersionField(raw_version_field, 1);
+  auto part2 = getSMCVersionField(raw_version_field, 2);
+  auto part3 = getSMCVersionField(raw_version_field, 3);
+
+  system_info.smc_ver = part0 + "." + part1 + part2 + part3;
+
+  if (system_info.smc_ver.empty()) {
+    return osquery::Status(1, "Failed to retrieve the smc version");
+  }
+
+  auto mac_system_info = osquery::SQL::selectAllFrom("system_info");
+  if (mac_system_info.empty()) {
+    return osquery::Status(1, "Failed to list the system information");
+  }
+
+  system_info.hw_ver = mac_system_info[0]["hardware_model"];
+  if (system_info.hw_ver.empty()) {
+    return osquery::Status(1, "Failed to retrieve the hardware model");
+  }
+
+  osquery::getHostUUID(system_info.sys_uuid);
+  if (system_info.sys_uuid.empty()) {
+    return osquery::Status(1, "Failed to retrieve the system UUID");
+  }
+
+  auto sw_vers = osquery::SQL::selectAllFrom(
+      "plist",
+      "path",
+      osquery::EQUALS,
+      "/System/Library/CoreServices/SystemVersion.plist");
+  if (sw_vers.empty()) {
+    return osquery::Status(1, "Failed to parse the SystemVersion plist file");
+  }
+
+  for (const auto& row : sw_vers) {
+    if (row.at("key") == "ProductBuildVersion") {
+      system_info.build_num = row.at("value");
+
+    } else if (row.at("key") == "ProductVersion") {
+      system_info.os_ver = row.at("value");
+    }
+  }
+
+  if (system_info.build_num.empty() || system_info.build_num.empty()) {
+    return osquery::Status(
+        1, "Failed to retrieve the OS version and build number");
+  }
+
+  auto interface_details = osquery::SQL::selectAllFrom("interface_details");
+  if (interface_details.empty()) {
+    return osquery::Status(1, "Failed to list the network interfaces");
+  }
+
+  for (const auto& row : interface_details) {
+    auto mac_address = row.at("mac");
+    if (!mac_address.empty() && mac_address != "00:00:00:00:00:00") {
+      system_info.mac_addr = mac_address;
+      break;
+    }
+  }
+
+  if (system_info.mac_addr.empty()) {
+    return osquery::Status(1, "Failed to retrieve a valid mac address");
+  }
 
   return osquery::Status(0, "OK");
 }
@@ -199,6 +297,16 @@ QueryData queryEFIgy(QueryContext& context) {
   auto status = getSystemInformation(system_info);
   if (!status.ok()) {
     VLOG(1) << status.getMessage();
+
+    Row r;
+    r["efi_version_status"] = r["os_version_status"] =
+        r["build_number_status"] = "error";
+
+    return {r};
+  }
+
+  if (system_info.hw_ver.find("Mac") != 0) {
+    VLOG(1) << "Unsupported macOS hardware model: " << system_info.hw_ver;
 
     Row r;
     r["efi_version_status"] = r["os_version_status"] =
