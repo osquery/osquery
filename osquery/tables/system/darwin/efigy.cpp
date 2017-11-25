@@ -11,6 +11,8 @@
 #include <sstream>
 #include <string>
 
+#include <boost/optional/optional.hpp>
+
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -68,8 +70,10 @@ osquery::Status getPostRequestData(std::string& json,
 
   {
     std::string buffer = system_info.mac_addr + system_info.sys_uuid;
+
     osquery::Hash hasher(osquery::HASH_TYPE_SHA256);
     hasher.update(buffer.data(), buffer.size());
+
     system_info_object.put("hashed_uuid", hasher.digest());
   }
 
@@ -96,6 +100,7 @@ osquery::Status getPostRequestData(std::string& json,
 osquery::Status queryServer(ServerResponse& response,
                             const SystemInformation& system_info) {
   const char* efigy_api_url = "https://api.efigy.io";
+  response = {};
 
   std::string request_data;
   auto status = getPostRequestData(request_data, system_info);
@@ -118,13 +123,46 @@ osquery::Status queryServer(ServerResponse& response,
     osquery::http::Client client(client_options);
     auto server_response = client.post(server_request, request_data);
 
-    auto json_output = server_response.body();
-    VLOG(1) << json_output;
+    std::stringstream json_stream(server_response.body());
+
+    pt::ptree root_object;
+    pt::read_json(json_stream, root_object);
+
+    auto latest_efi_version =
+        root_object.get_optional<std::string>("latest_efi_version.msg");
+    if (!latest_efi_version || latest_efi_version->empty()) {
+      return osquery::Status(1,
+                             "Invalid server response: the "
+                             "'latest_efi_version' object has no 'msg' value");
+    }
+
+    auto latest_os_version =
+        root_object.get_optional<std::string>("latest_os_version.msg");
+    if (!latest_os_version || latest_os_version->empty()) {
+      return osquery::Status(1,
+                             "Invalid server response: the 'latest_os_version' "
+                             "object has no 'msg' value");
+    }
+
+    auto latest_build_number =
+        root_object.get_optional<std::string>("latest_build_number.msg");
+    if (!latest_build_number || latest_build_number->empty()) {
+      return osquery::Status(1,
+                             "Invalid server response: the "
+                             "'latest_build_number' object has no 'msg' value");
+    }
+
+    response.latest_efi_version = latest_efi_version.get();
+    response.latest_os_version = latest_os_version.get();
+    response.latest_build_number = latest_build_number.get();
 
     return osquery::Status(0, "OK");
 
+  } catch (const pt::json_parser_error& e) {
+    return osquery::Status(0,
+                           std::string("Invalid server response: ") + e.what());
+
   } catch (const std::exception& e) {
-    VLOG(1) << e.what();
     return osquery::Status(
         0, std::string("Could not query the EFIgy API endpoint: ") + e.what());
   }
@@ -137,25 +175,24 @@ QueryData queryEFIgy(QueryContext& context) {
   SystemInformation system_info;
   auto status = getSystemInformation(system_info);
   if (!status.ok()) {
-    VLOG(1)
-        << "Failed to obtain the required system information. Error output: "
-        << status.getMessage();
+    VLOG(1) << status.getMessage();
 
     Row r;
     r["efi_version_status"] = r["os_version_status"] =
         r["build_number_status"] = "error";
+
     return {r};
   }
 
   ServerResponse response;
   status = queryServer(response, system_info);
   if (!status.ok()) {
-    VLOG(1) << "Failed to query the EFIgy API endpoint. Error output: "
-            << status.getMessage();
+    VLOG(1) << status.getMessage();
 
     Row r;
     r["efi_version_status"] = r["os_version_status"] =
         r["build_number_status"] = "error";
+
     return {r};
   }
 
