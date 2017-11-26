@@ -8,6 +8,9 @@
  *
  */
 
+#include <CoreServices/CoreServices.h>
+#include <IOKit/IOKitLib.h>
+
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -82,10 +85,10 @@ osquery::Status getEFIVersion(std::string& version) {
     return osquery::Status(1, "Failed to list the platform information");
   }
 
-  std::stringstream vers_stream(platform_info[0]["version"]);
+  std::stringstream stream(platform_info[0]["version"]);
 
   std::vector<std::string> fields;
-  for (std::string s; std::getline(vers_stream, s, '.'); fields.push_back(s))
+  for (std::string s; std::getline(stream, s, '.'); fields.push_back(s))
     ;
 
   if (fields.size() != 5U) {
@@ -166,6 +169,65 @@ osquery::Status getOSVersion(std::string& version, std::string& build) {
   return osquery::Status(0, "OK");
 }
 
+struct IORegistryEntryDeleter final {
+  using pointer = io_registry_entry_t;
+
+  void operator()(pointer p) {
+    IOObjectRelease(p);
+  }
+};
+
+struct CFStringRefDeleter final {
+  using pointer = CFStringRef;
+
+  void operator()(pointer p) {
+    CFRelease(p);
+  }
+};
+
+osquery::Status getBoardID(std::string& board_id) {
+  board_id.clear();
+
+  std::unique_ptr<io_registry_entry_t, IORegistryEntryDeleter> registry;
+  {
+    io_registry_entry_t r = IOServiceGetMatchingService(
+        kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+
+    if (r == MACH_PORT_NULL) {
+      return osquery::Status(
+          1, "Failed to open the IOPlatformExpertDevice registry entry");
+    }
+
+    registry.reset(r);
+  }
+
+  std::unique_ptr<CFStringRef, CFStringRefDeleter> board_id_property;
+  {
+    CFStringRef p = static_cast<CFStringRef>(IORegistryEntryCreateCFProperty(
+        registry.get(), CFSTR("board-id"), kCFAllocatorDefault, kNilOptions));
+
+    if (p == nullptr || CFGetTypeID(p) != CFDataGetTypeID()) {
+      return osquery::Status(1, "Failed to acquire the board-id property");
+    }
+
+    board_id_property.reset(p);
+  }
+
+  auto data_ref = reinterpret_cast<CFDataRef>(board_id_property.get());
+  auto buffer = reinterpret_cast<const char*>(CFDataGetBytePtr(data_ref));
+
+  board_id = buffer;
+  if (board_id.find("Mac-") != 0) {
+    auto status = osquery::Status(
+        1, std::string("Unsupported logic board id: ") + board_id);
+
+    board_id.clear();
+    return status;
+  }
+
+  return osquery::Status(0, "OK");
+}
+
 osquery::Status getMACAddress(std::string& mac) {
   mac.clear();
 
@@ -190,9 +252,12 @@ osquery::Status getMACAddress(std::string& mac) {
 }
 
 osquery::Status getSystemInformation(SystemInformation& system_info) {
-  system_info.board_id = "Mac-XXXXXXXXXXXXXXXX";
-
   auto status = getSMCVersion(system_info.smc_ver);
+  if (!status.ok()) {
+    return status;
+  }
+
+  status = getBoardID(system_info.board_id);
   if (!status.ok()) {
     return status;
   }
@@ -379,7 +444,7 @@ QueryData queryEFIgy(QueryContext& context) {
   }
 
   if (system_info.hw_ver.find("Mac") != 0) {
-    VLOG(1) << "Unsupported macOS hardware model: " << system_info.hw_ver;
+    VLOG(1) << "Unsupported hardware model: " << system_info.hw_ver;
 
     Row r;
     r["efi_version_status"] = r["os_version_status"] =
