@@ -251,7 +251,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   // To prevent errant double quotes from altering the intended arguments for
   // argv, we strip them out completely.
   std::stringstream argv_stream;
-  argv_stream << boost::replace_all_copy(exec_path, "\"", "") << "\" ";
+  argv_stream << "\"" << boost::replace_all_copy(exec_path, "\"", "") << "\" ";
   if (verbose) {
     argv_stream << "--verbose ";
   }
