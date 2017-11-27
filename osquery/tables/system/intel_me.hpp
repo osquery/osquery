@@ -45,7 +45,7 @@ struct mei_version {
   uint16_t r_build;
   uint16_t codes[6];
 #ifdef WIN32
-  uint16_t codes2[506];
+  uint16_t codes2[256];
 #endif
 };
 }

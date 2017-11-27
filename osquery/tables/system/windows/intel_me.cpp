@@ -58,7 +58,7 @@ void getHECIDriverVersion(QueryData& results) {
 
   unsigned long index = 0;
   auto ret = SetupDiEnumDeviceInterfaces(
-      deviceInfo, nullptr, guidPtr, index, &interfaceData);
+      deviceInfo, nullptr, guid, index, &interfaceData);
   while (ret == TRUE) {
     unsigned long detailSize = 0;
     if (!SetupDiGetDeviceInterfaceDetail(
@@ -85,7 +85,7 @@ void getHECIDriverVersion(QueryData& results) {
     }
 
     ret = SetupDiEnumDeviceInterfaces(
-        deviceInfo, nullptr, guidPtr, ++index, &interfaceData);
+        deviceInfo, nullptr, guid, ++index, &interfaceData);
   }
 
   SetupDiDestroyDeviceInfoList(deviceInfo);
@@ -117,8 +117,8 @@ void getHECIDriverVersion(QueryData& results) {
 
   ret = DeviceIoControl(driver,
                         ioctlConnectClient,
-                        static_cast<LPVOID>(kMEIUpdateGUID.data()),
-                        kMEIUpdateGUID.size(),
+                        (LPVOID)kMEIUpdateGUID.data(),
+                        static_cast<DWORD>(kMEIUpdateGUID.size()),
                         &response,
                         sizeof(response),
                         nullptr,
@@ -126,12 +126,6 @@ void getHECIDriverVersion(QueryData& results) {
 
   if (ret == 0) {
     VLOG(1) << "Device IOCTL call failed with " << GetLastError();
-    CloseHandle(driver);
-    return;
-  }
-
-  if (response.maxlen < sizeof(version)) {
-    VLOG(1) << "HECI driver does not support FirmwareUpdate responses";
     CloseHandle(driver);
     return;
   }
