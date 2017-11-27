@@ -170,7 +170,7 @@ QueryData genAugeas(QueryContext& context) {
     std::ostringstream pattern;
 
     for (const auto& path : paths) {
-      pattern << "/files/" << path;
+      pattern << "/files" << path;
       patterns.insert(pattern.str());
 
       pattern.clear();
