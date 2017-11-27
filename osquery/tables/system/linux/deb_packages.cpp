@@ -11,107 +11,20 @@
 // see README.api of libdpkg-dev
 #define LIBDPKG_VOLATILE_API
 
-extern "C" {
-#include <dpkg/dpkg-db.h>
-#include <dpkg/dpkg.h>
-#include <dpkg/pkg-array.h>
-#include <dpkg/parsedump.h>
-}
-
-#include <boost/algorithm/string.hpp>
-
 #include <osquery/filesystem.h>
+#include <osquery/tables/system/linux/deb.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+
+#include <boost/algorithm/string.hpp>
 
 namespace osquery {
 namespace tables {
 
 static const std::string kDPKGPath{"/var/lib/dpkg"};
 
-/// A comparator used to sort the packages array.
-int pkg_sorter(const void *a, const void *b) {
-  const struct pkginfo *pa = *(const struct pkginfo **)a;
-  const struct pkginfo *pb = *(const struct pkginfo **)b;
-  const char *arch_a = pa->installed.arch->name;
-  const char *arch_b = pb->installed.arch->name;
-
-  int res = strcmp(pa->set->name, pb->set->name);
-  if (res != 0) {
-    return res;
-  }
-
-  if (pa->installed.arch == pb->installed.arch) {
-    return 0;
-  }
-
-  return strcmp(arch_a, arch_b);
-}
-
-/**
- * @brief A field extractor to fetch the revision of a package.
- *
- * dpkg tracks the revision as part of version, but we need to provide our own
- * fwritefunction for fieldinfos to extract it.
- */
-void w_revision(struct varbuf *vb,
-                const struct pkginfo *pkg,
-                const struct pkgbin *pkgbin,
-                enum fwriteflags flags,
-                const struct fieldinfo *fip) {
-  if (flags & fw_printheader) {
-    varbuf_add_str(vb, "Revision: ");
-  }
-  varbuf_add_str(vb, pkgbin->version.revision);
-  if (flags & fw_printheader) {
-    varbuf_add_char(vb, '\n');
-  }
-}
-
-/**
-* @brief Initialize dpkg and load packages into memory
-*/
-void dpkg_setup(struct pkg_array *packages) {
-  dpkg_set_progname("osquery");
-  push_error_context();
-
-  dpkg_db_set_dir("/var/lib/dpkg/");
-  modstatdb_init();
-  modstatdb_open(msdbrw_readonly);
-
-  pkg_array_init_from_db(packages);
-  pkg_array_sort(packages, pkg_sorter);
-}
-
-/**
-* @brief Clean up after dpkg operations
-*/
-void dpkg_teardown(struct pkg_array *packages) {
-  pkg_array_destroy(packages);
-
-  pkg_db_reset();
-  modstatdb_done();
-
-  pop_error_context(ehflag_normaltidy);
-}
-
-const std::map<std::string, std::string> kFieldMappings = {
-    {"Package", "name"},
-    {"Version", "version"},
-    {"Installed-Size", "size"},
-    {"Architecture", "arch"},
-    {"Source", "source"},
-    {"Revision", "revision"}};
-
-/**
-* @brief Field names and function references to extract information.
-*
-* These are taken from lib/dpkg/parse.c, with a slight modification to
-* add an fwritefunction for Revision. Additional fields can be taken
-* as needed.
-*/
-const struct fieldinfo fieldinfos[] = {
+struct fieldinfo fieldinfos[] = {
     {FIELD("Package"), f_name, w_name, 0},
     {FIELD("Installed-Size"),
      f_charfield,
@@ -123,6 +36,13 @@ const struct fieldinfo fieldinfos[] = {
     {FIELD("Revision"), f_revision, w_revision, 0},
     {}};
 
+std::map<std::string, std::string> kFieldMappings = {{"Package", "name"},
+                                                     {"Version", "version"},
+                                                     {"Installed-Size", "size"},
+                                                     {"Architecture", "arch"},
+                                                     {"Source", "source"},
+                                                     {"Revision", "revision"}};
+
 void extractDebPackageInfo(const struct pkginfo *pkg, QueryData &results) {
   Row r;
 
@@ -131,7 +51,7 @@ void extractDebPackageInfo(const struct pkginfo *pkg, QueryData &results) {
 
   // Iterate over the desired fieldinfos, calling their fwritefunctions
   // to extract the package's information.
-  const struct fieldinfo *fip = nullptr;
+  const struct fieldinfo* fip = nullptr;
   for (fip = fieldinfos; fip->name; fip++) {
     fip->wcall(&vb, pkg, &pkg->installed, fw_printheader, fip);
 
@@ -148,10 +68,10 @@ void extractDebPackageInfo(const struct pkginfo *pkg, QueryData &results) {
       }
     }
     varbuf_reset(&vb);
-  }
-  varbuf_destroy(&vb);
+    }
+    varbuf_destroy(&vb);
 
-  results.push_back(r);
+    results.push_back(r);
 }
 
 QueryData genDebPackages(QueryContext &context) {
