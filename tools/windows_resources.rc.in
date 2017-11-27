@@ -1,5 +1,5 @@
 #include <windows.h>
-#include "osquery/logger/plugins/windows_event_log_manifest/osquery.rc"
+#include "tools/wel/osquery.rc"
 
 #define VER_FILEVERSION             @OSQUERY_PRODUCT_NUMBER@,@OSQUERY_PRODUCT_VERSION@,@OSQUERY_BUILD_NUMBER@,0
 #define VER_FILEVERSION_STR         "@OSQUERY_BUILD_VERSION@.0\0"
