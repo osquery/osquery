@@ -347,7 +347,7 @@ function New-ChocolateyPackage() {
   $buildDir = "$scriptPath\build\windows10\osquery\Release\"
   $clientPath = Join-Path $buildDir 'osqueryi.exe'
   $daemonPath = Join-Path $buildDir 'osqueryd.exe'
-  $windowsEventLogManifestPath = Join-Path (Get-location).Path "osquery\logger\plugins\windows_event_log_manifest\osquery.man"
+  $windowsEventLogManifestPath = Join-Path (Get-location).Path "tools\wel\osquery.man"
   $mgmtScript = "$scriptPath\tools\manage-osqueryd.ps1"
 
   $nupkg =
