@@ -135,5 +135,5 @@ QueryData genGroups(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
