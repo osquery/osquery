@@ -27,20 +27,11 @@
 
 namespace osquery {
 
-// Get the relative identifier (RID) from a security identifier (SID):
-unsigned long getRidFromSid(PSID sidPtr) {
-  BYTE* countPtr = GetSidSubAuthorityCount(sidPtr);
-  unsigned long indexOfRid = static_cast<unsigned long>(*countPtr - 1);
-  unsigned long* ridPtr = GetSidSubAuthority(sidPtr, indexOfRid);
-  return *ridPtr;
-}
-
 namespace tables {
 
-std::unique_ptr<BYTE[]> GetSid(LPCWSTR accountName) {
-  // Validate the input parameters.
+std::unique_ptr<BYTE[]> getSid(LPCWSTR accountName) {
   if (accountName == nullptr) {
-    LOG(INFO) << "GetSid(): no account name provided.";
+    LOG(INFO) << "No account name provided.";
     return nullptr;
   }
 
@@ -57,8 +48,7 @@ std::unique_ptr<BYTE[]> GetSid(LPCWSTR accountName) {
                      &domainNameSize,
                      &eSidType);
 
-  // Allocate sufficient buffers for the (binary data) SID and the (wide string)
-  // domain name:
+  // Allocate buffers for the (binary data) SID and (wide string) domain name:
   auto sidBuffer = std::make_unique<BYTE[]>(sidBufferSize);
   std::vector<wchar_t> domainName(domainNameSize);
 
@@ -77,7 +67,8 @@ std::unique_ptr<BYTE[]> GetSid(LPCWSTR accountName) {
     LOG(INFO) << "The SID for " << accountName << " is invalid.";
   }
 
-  return sidBuffer; // Implicit move operation. Caller "owns" returned pointer.
+  // Implicit move operation. Caller "owns" returned pointer:
+  return sidBuffer;
 }
 
 void processLocalGroups(QueryData& results) {
@@ -100,18 +91,17 @@ void processLocalGroups(QueryData& results) {
                             &totalGroups,
                             nullptr);
 
-    if ((ret == NERR_Success || ret == ERROR_MORE_DATA) && lginfo != nullptr) {
-      for (size_t i = 0; i < numGroupsRead; i++) {
-        Row r;
-        sidSmartPtr = GetSid(lginfo[i].lgrpi1_name);
+    if (lginfo == nullptr || (ret != NERR_Success && ret != ERROR_MORE_DATA)) {
+      LOG(INFO) << "NetLocalGroupEnum failed with return value: " << ret;
+      break;
+    }
 
-        if (sidSmartPtr != nullptr) { 
-          sidPtr = static_cast<PSID>(sidSmartPtr.get());
-        }
-        else {
-          // nullptr still valid, just results in blank fields
-          sidPtr = nullptr;
-        }
+    for (size_t i = 0; i < numGroupsRead; i++) {
+      Row r;
+      sidSmartPtr = getSid(lginfo[i].lgrpi1_name);
+
+      if (sidSmartPtr != nullptr) {
+        sidPtr = static_cast<PSID>(sidSmartPtr.get());
 
         // Windows' extended schema, including full SID and comment strings:
         r["group_sid"] = psidToString(sidPtr);
@@ -122,10 +112,16 @@ void processLocalGroups(QueryData& results) {
         r["gid_signed"] = INTEGER(getRidFromSid(sidPtr));
         r["groupname"] = wstringToString(lginfo[i].lgrpi1_name);
         results.push_back(r);
+      } else {
+        // If LookupAccountNameW failed to find a SID, don't add a row to the
+        // table.
+        LOG(WARNING)
+            << "Failed to find a SID from LookupAccountNameW for group: "
+            << lginfo[i].lgrpi1_name;
       }
-    } else {
-      LOG(INFO) << "NetLocalGroupEnum failed with return value: " << ret;
     }
+
+    // Free the memory allocated by NetLocalGroupEnum:
     if (lginfo != nullptr) {
       NetApiBufferFree(lginfo);
     }

@@ -9,6 +9,7 @@
  */
 
 #include "osquery/core/windows/process_ops.h"
+#include "osquery/core/conversions.h"
 
 namespace osquery {
 
@@ -106,6 +107,13 @@ int getGidFromSid(PSID sid) {
 
   NetApiBufferFree(userBuff);
   return gid;
+}
+
+unsigned long getRidFromSid(PSID sid) {
+  BYTE* countPtr = GetSidSubAuthorityCount(sid);
+  unsigned long indexOfRid = static_cast<unsigned long>(*countPtr - 1);
+  unsigned long* ridPtr = GetSidSubAuthority(sid, indexOfRid);
+  return *ridPtr;
 }
 
 int platformGetUid() {

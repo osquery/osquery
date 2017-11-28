@@ -27,12 +27,18 @@
 
 namespace osquery {
 
-  /**
-  * @brief Windows helper function used by to convert a binary SID struct into a
-  * string.
-  *
-  * @returns string representation of the binary SID struct.
-  */
-  std::string psidToString(PSID sid);
+/**
+* @brief Windows helper function used by to convert a binary SID struct into a
+* string.
+*
+* @returns string representation of the binary SID struct.
+*/
+std::string psidToString(PSID sid);
 
+/**
+* @brief Get the relative identifier (RID) from a security identifier (SID).
+*
+* @returns the RID represented as an unsigned long integer.
+*/
+unsigned long getRidFromSid(PSID sidPtr);
 }
