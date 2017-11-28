@@ -304,16 +304,10 @@ function main() {
   # Pip may have just been installed.
   log "upgrading pip and installing python dependencies"
   PIP=`which pip`
-  if [[ $OS = "freebsd" ]]; then
-    PIP="sudo $PIP"
-  fi
-  $PIP install --upgrade pip
+  $PIP install --user --upgrade pip
   # Pip may change locations after upgrade.
   PIP=`which pip`
-  if [[ $OS = "freebsd" ]]; then
-    PIP="sudo $PIP"
-  fi
-  $PIP install --no-cache-dir -I -r requirements.txt
+  $PIP install --user --no-cache-dir -I -r requirements.txt
 
   log "running auxiliary initialization"
   initialize $OS
