@@ -12,10 +12,10 @@
 #define LIBDPKG_VOLATILE_API
 
 #include <osquery/filesystem.h>
-#include <osquery/tables/system/linux/deb.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
+#include <osquery/tables/system/linux/deb.h>
 
 #include <boost/algorithm/string.hpp>
 
@@ -23,25 +23,6 @@ namespace osquery {
 namespace tables {
 
 static const std::string kDPKGPath{"/var/lib/dpkg"};
-
-struct fieldinfo fieldinfos[] = {
-    {FIELD("Package"), f_name, w_name, 0},
-    {FIELD("Installed-Size"),
-     f_charfield,
-     w_charfield,
-     PKGIFPOFF(installedsize)},
-    {FIELD("Architecture"), f_architecture, w_architecture, 0},
-    {FIELD("Source"), f_charfield, w_charfield, PKGIFPOFF(source)},
-    {FIELD("Version"), f_version, w_version, PKGIFPOFF(version)},
-    {FIELD("Revision"), f_revision, w_revision, 0},
-    {}};
-
-std::map<std::string, std::string> kFieldMappings = {{"Package", "name"},
-                                                     {"Version", "version"},
-                                                     {"Installed-Size", "size"},
-                                                     {"Architecture", "arch"},
-                                                     {"Source", "source"},
-                                                     {"Revision", "revision"}};
 
 void extractDebPackageInfo(const struct pkginfo *pkg, QueryData &results) {
   Row r;
@@ -68,10 +49,10 @@ void extractDebPackageInfo(const struct pkginfo *pkg, QueryData &results) {
       }
     }
     varbuf_reset(&vb);
-    }
-    varbuf_destroy(&vb);
+  }
+  varbuf_destroy(&vb);
 
-    results.push_back(r);
+  results.push_back(r);
 }
 
 QueryData genDebPackages(QueryContext &context) {
