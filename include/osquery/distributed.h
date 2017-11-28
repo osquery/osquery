@@ -36,13 +36,13 @@ struct DistributedQueryRequest {
  *
  * @param r the DistributedQueryRequest to serialize
  * @param doc the input JSON managed document
- * @param d the output rapidjson document
+ * @param obj the output rapidjson document [object]
  *
  * @return Status indicating the success or failure of the operation
  */
 Status serializeDistributedQueryRequest(const DistributedQueryRequest& r,
                                         JSON& doc,
-                                        rapidjson::Value& d);
+                                        rapidjson::Value& obj);
 
 /**
  * @brief Serialize a DistributedQueryRequest object into a JSON string
@@ -58,12 +58,12 @@ Status serializeDistributedQueryRequestJSON(const DistributedQueryRequest& r,
 /**
  * @brief Deserialize a DistributedQueryRequest object from a property tree
  *
- * @param d the input rapidjson value
+ * @param obj the input rapidjson value [object]
  * @param r the output DistributedQueryRequest structure
  *
  * @return Status indicating the success or failure of the operation
  */
-Status deserializeDistributedQueryRequest(const rapidjson::Value& d,
+Status deserializeDistributedQueryRequest(const rapidjson::Value& obj,
                                           DistributedQueryRequest& r);
 
 /**
@@ -100,13 +100,13 @@ struct DistributedQueryResult {
  *
  * @param r the DistributedQueryResult to serialize
  * @param doc the input JSON managed document
- * @param d the output rapidjson document
+ * @param obj the output rapidjson document [object]
  *
  * @return Status indicating the success or failure of the operation
  */
 Status serializeDistributedQueryResult(const DistributedQueryResult& r,
                                        JSON& doc,
-                                       rapidjson::Value& d);
+                                       rapidjson::Value& obj);
 /**
  * @brief Serialize a DistributedQueryResult object into a JSON string
  *
@@ -121,12 +121,12 @@ Status serializeDistributedQueryResultJSON(const DistributedQueryResult& r,
 /**
  * @brief Deserialize a DistributedQueryResult object from a property tree
  *
- * @param d the input rapidjson document
+ * @param obj the input rapidjson document [object]
  * @param r the output DistributedQueryResult structure
  *
  * @return Status indicating the success or failure of the operation
  */
-Status deserializeDistributedQueryResult(const rapidjson::Value& d,
+Status deserializeDistributedQueryResult(const rapidjson::Value& obj,
                                          DistributedQueryResult& r);
 
 /**

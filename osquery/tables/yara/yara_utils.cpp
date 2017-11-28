@@ -48,7 +48,7 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
 
   bool compiled = false;
   YR_RULES* tmp_rules;
-  VLOG(1) << "Loading " << file;
+  VLOG(1) << "Loading YARA signature file: " << file;
 
   // First attempt to load the file, in case it is saved (pre-compiled)
   // rules.

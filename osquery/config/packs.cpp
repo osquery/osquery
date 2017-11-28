@@ -206,13 +206,13 @@ void Pack::initialize(const std::string& name,
     if (!q.value.HasMember("snapshot")) {
       query.options["snapshot"] = false;
     } else {
-      query.options["snapshot"] = JSON::valueAsBool(q.value["snapshot"]);
+      query.options["snapshot"] = JSON::valueToBool(q.value["snapshot"]);
     }
 
     if (!q.value.HasMember("removed")) {
       query.options["removed"] = true;
     } else {
-      query.options["removed"] = JSON::valueAsBool(q.value["removed"]);
+      query.options["removed"] = JSON::valueToBool(q.value["removed"]);
     }
     query.options["blacklist"] =
         (q.value.HasMember("blacklist")) ? q.value["blacklist"].GetBool() : true;
