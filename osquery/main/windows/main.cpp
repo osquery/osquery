@@ -318,6 +318,7 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
         CloseHandle(stopEvent);
       }
     }
+    UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
 
     break;
   default:
