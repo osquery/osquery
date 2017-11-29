@@ -328,13 +328,18 @@ Log scheduled snapshot results as events, similar to differential results. If th
 
 `--host_identifier=hostname`
 
-Field used to identify the host running osquery: **hostname**, **uuid**, **ephemeral**, **instance**.
+Field used to identify the host running osquery: **hostname**, **uuid**, **ephemeral**, **instance**, **specified**.
 
-DHCP may assign variable hostnames, if this is the case, you may need a consistent logging label. Three options are available to you:
+DHCP may assign variable hostnames, if this is the case, you may need a consistent logging label. Four options are available to you:
 
 - `uuid` uses the platform (DMTF) host UUID, fetched at process start.
 - `instance` uses an instance-unique UUID generated at process start, persisted in the backing store.
 - `ephemeral` uses an instance-unique UUID generated at process start, not persisted.
+- `specified` uses an ID provided by the `--specified_identifier` flag.
+
+`--specified_identifier=this.is.the.identifier`
+
+If `--host_identifier=specified` is set, use this value as the host identifier.
 
 `--verbose=false`
 
