@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Librdkafka < AbstractOsqueryFormula
   desc "The Apache Kafka C/C++ library"
   homepage "https://github.com/edenhill/librdkafka"
+  license "BSD-2-Clause"
   url "https://github.com/edenhill/librdkafka/archive/v0.11.0.tar.gz"
   sha256 "d4baf9a0d08767128913bb4e39d68995a95d7efa834fcf3e4f60c3156003b887"
 

@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Lldpd < AbstractOsqueryFormula
   desc "lldpd is an implmentation of LLDP(802.1ab)"
   homepage "https://vincentbernat.github.io/lldpd"
+  license "ISC"
   url "https://media.luffy.cx/files/lldpd/lldpd-0.9.6.tar.gz"
   sha256 "e74e2dd7e2a233ca1ff385c925ddae2a916d302819d1433741407d2f8fb0ddd8"
   revision 101

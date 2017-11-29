@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Beecrypt < AbstractOsqueryFormula
   desc "C/C++ cryptography library"
   homepage "http://beecrypt.sourceforge.net"
+  license "LGPL-2.1+"
   url "https://downloads.sourceforge.net/project/beecrypt/beecrypt/4.2.1/beecrypt-4.2.1.tar.gz"
   sha256 "286f1f56080d1a6b1d024003a5fa2158f4ff82cae0c6829d3c476a4b5898c55d"
   revision 102

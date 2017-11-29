@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Libxml2 < AbstractOsqueryFormula
   desc "GNOME XML library"
   homepage "http://xmlsoft.org"
+  license "MIT"
   url "http://xmlsoft.org/sources/libxml2-2.9.5.tar.gz"
   mirror "ftp://xmlsoft.org/libxml2/libxml2-2.9.5.tar.gz"
   sha256 "4031c1ecee9ce7ba4f313e91ef6284164885cdb69937a123f6a83bb6a72dcd38"

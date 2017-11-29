@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Thrift < AbstractOsqueryFormula
   desc "Framework for scalable cross-language services development"
   homepage "https://thrift.apache.org/"
+  license "Apache-2.0"
   url "http://www-us.apache.org/dist/thrift/0.10.0/thrift-0.10.0.tar.gz"
   sha256 "2289d02de6e8db04cbbabb921aeb62bfe3098c4c83f36eec6c31194301efa10b"
   revision 101

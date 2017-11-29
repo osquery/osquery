@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Librpm < AbstractOsqueryFormula
   desc "The RPM Package Manager (RPM) development libraries"
   homepage "http://rpm.org/"
+  license "LGPL-3.0+"
   url "http://ftp.rpm.org/releases/rpm-4.14.x/rpm-4.14.0.tar.bz2"
   sha256 "06a0ad54600d3c42e42e02701697a8857dc4b639f6476edefffa714d9f496314"
   revision 100
