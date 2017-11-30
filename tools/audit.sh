@@ -33,15 +33,15 @@ function check_format() {
 function check_executable() {
   HERE=$(pwd)
   cd $SCRIPT_DIR/..;
-  FILES=$(find osquery -type f -executable)
-  if [[ ! "$FILES" = "" ]]; then
+  FILES=$(find osquery -type f -perm -a=x)
+  if [[ ! -z "$FILES" ]]; then
     echo "[!] Some source files are marked executable:"
     echo "$FILES"
     false
   fi
 
-  FILES=$(find include -type f -executable)
-  if [[ ! "$FILES" = "" ]]; then
+  FILES=$(find include -type f -perm -a=x)
+  if [[ ! -z "$FILES" ]]; then
     echo "[!] Some header files are marked executable:"
     echo "$FILES"
     false
