@@ -1,8 +1,9 @@
 require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 
-class Zstd < Formula
+class Zstd < AbstractOsqueryFormula
   desc "Zstandard is a real-time compression algorithm"
   homepage "http://zstd.net/"
+  license "GPL-2.0+"
   url "https://github.com/facebook/zstd/archive/v1.2.0.tar.gz"
   sha256 "4a7e4593a3638276ca7f2a09dc4f38e674d8317bbea51626393ca73fc047cbfb"
   revision 103

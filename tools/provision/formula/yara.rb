@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Yara < AbstractOsqueryFormula
   desc "Malware identification and classification tool"
   homepage "https://github.com/VirusTotal/yara/"
+  license "BSD-3-Clause"
   head "https://github.com/VirusTotal/yara.git"
   revision 101
 

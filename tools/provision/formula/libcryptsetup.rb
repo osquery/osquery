@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Libcryptsetup < AbstractOsqueryFormula
   desc "Open source disk encryption libraries"
   homepage "https://gitlab.com/cryptsetup/cryptsetup"
+  license "LGPL-2.1+"
   url "https://gitlab.com/cryptsetup/cryptsetup/repository/v1_7_5/archive.tar.gz"
   sha256 "6dead2f1420ab1c84a7e82f0ee197861f4a52e4c3284a0bfef824a90c392e077"
   version "1.7.5"

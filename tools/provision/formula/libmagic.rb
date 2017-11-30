@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Libmagic < AbstractOsqueryFormula
   desc "Implementation of the file(1) command"
   homepage "https://www.darwinsys.com/file/"
+  license "BSD-2-Clause"
   url "https://distfiles.macports.org/file/file-5.32.tar.gz"
   sha256 "8639dc4d1b21e232285cd483604afc4a6ee810710e00e579dbe9591681722b50"
   revision 100

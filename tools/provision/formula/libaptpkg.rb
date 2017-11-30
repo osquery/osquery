@@ -2,7 +2,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 
 class Libaptpkg < AbstractOsqueryFormula
   desc "The low-level bindings for apt-pkg"
-  homepage "https://apt.alioth.debian.org/python-apt-doc/library/apt_pkg.html"
+  homepage "https://github.com/Debian/apt"
+  license "GPL-2.0+"
   url "https://github.com/Debian/apt/archive/1.3.1.tar.gz"
   sha256 "a91a5e96417aad33f236234730b2a0bed3a028d6fc01c57d060b7d92746bf65a"
   revision 102
