@@ -4,11 +4,11 @@ class Openssl < AbstractOsqueryFormula
   desc "SSL/TLS cryptography library"
   homepage "https://openssl.org/"
   license "OpenSSL"
-  url "https://www.openssl.org/source/openssl-1.0.2k.tar.gz"
-  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2k.tar.gz"
-  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2k.tar.gz"
-  sha256 "6b3977c61f2aedf0f96367dcfb5c6e578cf37e7b8d913b4ecb6643c3cb88d8c0"
-  revision 101
+  url "https://www.openssl.org/source/openssl-1.0.2m.tar.gz"
+  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2m.tar.gz"
+  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2m.tar.gz"
+  sha256 "8c6ff15ec6b319b50788f42c7abc2890c08ba5a1cdcd3810eb9092deada37b0f"
+  revision 102
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -20,8 +20,8 @@ class Openssl < AbstractOsqueryFormula
   resource "cacert" do
     # Update post_install when you update this resource.
     # homepage "http://curl.haxx.se/docs/caextract.html"
-    url "https://curl.haxx.se/ca/cacert-2017-01-18.pem"
-    sha256 "e62a07e61e5870effa81b430e1900778943c228bd7da1259dd6a955ee2262b47"
+    url "https://curl.haxx.se/ca/cacert-2017-09-20.pem"
+    sha256 "435ac8e816f5c10eaaf228d618445811c16a5e842e461cb087642b6265a36856"
   end
 
   option "without-test", "Skip build-time tests (not recommended)"
@@ -85,7 +85,7 @@ class Openssl < AbstractOsqueryFormula
 
   def post_install
     ENV.delete "LIBRARY_PATH"
-    (etc/"openssl").install resource("cacert").files("cacert-2017-01-18.pem" => "cert.pem")
+    (etc/"openssl").install resource("cacert").files("cacert-2017-09-20.pem" => "cert.pem")
   end
 
   def caveats; <<-EOS.undent
