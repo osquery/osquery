@@ -3,22 +3,20 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class BerkeleyDb < AbstractOsqueryFormula
   desc "High performance key/value database"
   homepage "https://www.oracle.com/technology/products/berkeley-db/index.html"
-  license "AGPL-1.0"
-  url "http://download.oracle.com/berkeley-db/db-6.1.26.tar.gz"
-  sha256 "dd1417af5443f326ee3998e40986c3c60e2a7cfb5bfa25177ef7cadb2afb13a6"
-  revision 102
+  license "Sleepycat"
+  url "http://pkgs.fedoraproject.org/repo/pkgs/libdb/db-5.3.28.tar.gz/b99454564d5b4479750567031d66fe24/db-5.3.28.tar.gz"
+  sha256 "e0a992d740709892e81f9d93f06daf305cf73fb81b545afe72478043172c3628"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "564398bbad9afe8c0f60c2c5ae2c592eab4a390fc096bac135f6b1d70c53319d" => :sierra
-    sha256 "0c4225add337be64c394d2f777329f25a1f4eb6bb59546eaddaee25cbf8f8f75" => :x86_64_linux
+    sha256 "05e96e4323c562cc163a7374b988c26e2ca2f12984dd3557c77d9b7a6ee03f39" => :sierra
+    sha256 "60b5a48a043c22f8eeb49cbdcddad3b0f4e737bbe9aea68eeb7474ac30f3465d" => :x86_64_linux
   end
 
-  option "with-java", "Compile with Java support."
-  option "with-sql", "Compile with SQL support."
-
-  deprecated_option "enable-sql" => "with-sql"
+  # Fix inline atomic compare exchange.
+  patch :DATA
 
   def install
     # BerkeleyDB dislikes parallel builds
@@ -34,8 +32,6 @@ class BerkeleyDb < AbstractOsqueryFormula
       --disable-shared
       --enable-static
     ]
-    args << "--enable-java" if build.with? "java"
-    args << "--enable-sql" if build.with? "sql"
 
     # BerkeleyDB requires you to build everything from the build_unix subdirectory
     cd "build_unix" do
@@ -49,3 +45,27 @@ class BerkeleyDb < AbstractOsqueryFormula
     end
   end
 end
+
+__END__
+diff --git a/src/dbinc/atomic.h b/src/dbinc/atomic.h
+index 6a858f7..c0a0ee7 100644
+--- a/src/dbinc/atomic.h
++++ b/src/dbinc/atomic.h
+@@ -144,7 +144,7 @@ typedef LONG volatile *interlocked_val;
+ #define	atomic_inc(env, p)	__atomic_inc(p)
+ #define	atomic_dec(env, p)	__atomic_dec(p)
+ #define	atomic_compare_exchange(env, p, o, n)	\
+-	__atomic_compare_exchange((p), (o), (n))
++	__atomic_compare_exchange_db((p), (o), (n))
+ static inline int __atomic_inc(db_atomic_t *p)
+ {
+	int	temp;
+@@ -176,7 +176,7 @@ static inline int __atomic_dec(db_atomic_t *p)
+  * http://gcc.gnu.org/onlinedocs/gcc-4.1.0/gcc/Atomic-Builtins.html
+  * which configure could be changed to use.
+  */
+-static inline int __atomic_compare_exchange(
++static inline int __atomic_compare_exchange_db(
+	db_atomic_t *p, atomic_value_t oldval, atomic_value_t newval)
+ {
+	atomic_value_t was;
