@@ -127,16 +127,17 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
     diff_results.added = std::move(sql.rows());
   }
 
+  if (query.options.count("removed") && !query.options.at("removed")) {
+    diff_results.removed.clear();
+  }
+
   if (diff_results.added.empty() && diff_results.removed.empty()) {
     // No diff results or events to emit.
     return;
   }
 
   VLOG(1) << "Found results for query: " << name;
-  item.results = diff_results;
-  if (query.options.count("removed") && !query.options.at("removed")) {
-    item.results.removed.clear();
-  }
+  item.results = std::move(diff_results);
 
   status = logQueryLogItem(item);
   if (!status.ok()) {

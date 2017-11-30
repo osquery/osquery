@@ -39,13 +39,13 @@ If no `--flagfile` is provided, osquery will try to find and use a "default" fla
 
 ### Configuration control flags
 
-`--config_plugin="filesystem"`
+`--config_plugin=filesystem`
 
 Config plugin name. The type of configuration retrieval, the default **filesystem** plugin reads a configuration JSON from disk.
 
 Built-in options include: **filesystem**, **tls**
 
-`--config_path="/etc/osquery/osquery.conf"`
+`--config_path=/etc/osquery/osquery.conf`
 
 The **filesystem** config plugin's path to a JSON file.
 On macOS the default path is **/var/osquery/osquery.conf**.
@@ -163,19 +163,19 @@ Optional comma-delimited set of extension names to require before **osqueryi** o
 
 When using non-default [remote](../deployment/remote.md) plugins such as the **tls** config, logger and distributed plugins, there are process-wide settings applied to every plugin.
 
-`--tls_hostname=""`
+`--tls_hostname=`
 
 When using **tls**-based config or logger plugins, a single TLS host URI is used. Using separate hosts for configuration and logging is not supported among the **tls**-based plugin suite. Provide a host name and optional port, e.g.: `facebook.com` or `facebook.com:443`.
 
-`--tls_client_cert=""`
+`--tls_client_cert=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a PEM-formatted client TLS certificate.
 
-`--tls_client_key=""`
+`--tls_client_key=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a decrypted/password-less PEM-formatted client TLS private key.
 
-`--tls_server_certs=""`
+`--tls_server_certs=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a PEM-formatted server or authority certificate bundle. This path will be used as either an explicit set of accepted certificates or an OpenSSL-verify path directory of well-formed filename certificates.
 
@@ -183,11 +183,11 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optional
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Remote plugins use an enrollment process to enable possible server-side implemented authentication and identification/authorization. Config and logger plugins implicitly require enrollment features. It is not recommended to disable enrollment and this option may be removed in the future.
 
-`--enroll_secret_path=""`
+`--enroll_secret_path=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. A very simple authentication/enrollment involves posting a deployment or staged shared secret. This secret should be protected on the host, but potentially shared among an enterprise or fleet. Provide a path for the osquery process to read and use during enrollment phases.
 
-`--config_tls_endpoint=""`
+`--config_tls_endpoint=`
 
 The **tls** endpoint path, e.g.: **/api/v1/config** when using the **tls** config plugin. See the other **tls_** related CLI flags.
 
@@ -195,11 +195,11 @@ The **tls** endpoint path, e.g.: **/api/v1/config** when using the **tls** confi
 
 The total number of attempts that will be made to the remote config server if a request fails.
 
-`--logger_tls_endpoint=""`
+`--logger_tls_endpoint=`
 
 The **tls** endpoint path, e.g.: **/api/v1/logger** when using the **tls** logger plugin. See the other **tls_** related CLI flags.
 
-`--enrollment_tls_endpoint=""`
+`--enrollment_tls_endpoint=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. An enrollment process will be used to allow server-side implemented authentication and identification/authorization. You must provide an endpoint relative to the `--tls_hostname` URI.
 
@@ -221,11 +221,11 @@ Use this only in emergency situations as size violations are dropped. It is extr
 
 The minimum level for status log recording. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. When using `--verbose` this value is ignored.
 
-`--distributed_tls_read_endpoint=""`
+`--distributed_tls_read_endpoint=`
 
 The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for retrieving distributed queries when using the **tls** distributed plugin.
 
-`--distributed_tls_write_endpoint=""`
+`--distributed_tls_write_endpoint=`
 
 The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for submitting the results of distributed queries when using the **tls** distributed plugin.
 

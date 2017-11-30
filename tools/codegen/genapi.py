@@ -41,7 +41,8 @@ CANONICAL_PLATFORMS = {
     "yara": "YARA",
     "lldpd": "LLDPD",
     "sleuthkit": "The Sleuth Kit",
-    "macwin": "MacOS and Windows"
+    "macwin": "MacOS and Windows",
+    "linwin": "Linux and Windows"
 }
 
 TEMPLATE_API_DEFINITION = """

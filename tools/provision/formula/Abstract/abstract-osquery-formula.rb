@@ -29,6 +29,10 @@ class AbstractOsqueryFormula < Formula
         legacy_prefix
       )
     end
+
+    def license(name)
+      ENV["LICENSE"] = name
+    end
   end
 
   def initialize(*)

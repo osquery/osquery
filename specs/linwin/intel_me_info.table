@@ -1,0 +1,10 @@
+table_name("intel_me_info")
+description("Intel ME/CSE Info.")
+schema([
+    Column("version",  TEXT, "Intel ME version"),
+])
+
+implementation("intel_me_info@getIntelMEInfo")
+fuzz_paths([
+    "/proc/meminfo",
+])

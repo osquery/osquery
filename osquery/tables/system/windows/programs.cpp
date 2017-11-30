@@ -25,48 +25,61 @@ void keyEnumPrograms(const std::string& key,
   QueryData regResults;
   queryKey(key, regResults);
   for (const auto& rKey : regResults) {
+    // Each subkey represents a program, skip if not a subkey
     if (rKey.at("type") != "subkey") {
       continue;
     }
+
+    // Ensure we only process each program one time
+    const auto& fullProgramName = rKey.at("path");
+    if (processed.find(fullProgramName) != processed.end()) {
+      continue;
+    }
+    processed.insert(fullProgramName);
+
+    // Query additional information about the program
     QueryData appResults;
-    const auto& subkey = rKey.at("path");
-    // make sure it's a sane uninstall key
+    queryKey(fullProgramName, appResults);
+    Row r;
+
+    // Attempt to derive the program identifying GUID
+    std::string identifyingNumber;
     boost::smatch matches;
     boost::regex expression(
         "({[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+-[a-fA-F0-9]+})"
         "$");
-    if (!boost::regex_search(subkey, matches, expression)) {
-      continue;
+    if (boost::regex_search(fullProgramName, matches, expression)) {
+      identifyingNumber = matches[0];
+      r["identifying_number"] = identifyingNumber;
     }
-    // Ensure we only process a program once
-    auto processGuid = matches[0];
-    if (processed.find(processGuid) != processed.end()) {
-      continue;
-    }
-    processed.insert(processGuid);
-    queryKey(subkey, appResults);
-    Row r;
-    r["identifying_number"] = processGuid;
+
     for (const auto& aKey : appResults) {
-      if (aKey.at("name") == "DisplayName") {
+      auto name = aKey.find("name");
+      if (identifyingNumber.empty() && name->second == "BundleIdentifier") {
+        r["identifying_number"] = aKey.at("data");
+      }
+      if (name->second == "DisplayName") {
         r["name"] = aKey.at("data");
       }
-      if (aKey.at("name") == "DisplayVersion") {
+      if (name->second == "DisplayVersion") {
         r["version"] = aKey.at("data");
       }
-      if (aKey.at("name") == "InstallSource") {
+      if (name->second == "InstallLocation") {
+        r["install_location"] = aKey.at("data");
+      }
+      if (name->second == "InstallSource") {
         r["install_source"] = aKey.at("data");
       }
-      if (aKey.at("name") == "Language") {
+      if (name->second == "Language") {
         r["language"] = aKey.at("data");
       }
-      if (aKey.at("name") == "Publisher") {
+      if (name->second == "Publisher") {
         r["publisher"] = aKey.at("data");
       }
-      if (aKey.at("name") == "UninstallString") {
+      if (name->second == "UninstallString") {
         r["uninstall_string"] = aKey.at("data");
       }
-      if (aKey.at("name") == "InstallDate") {
+      if (name->second == "InstallDate") {
         r["install_date"] = aKey.at("data");
       }
     }

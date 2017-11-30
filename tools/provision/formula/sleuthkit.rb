@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Sleuthkit < AbstractOsqueryFormula
   desc "Forensic toolkit"
   homepage "http://www.sleuthkit.org/"
+  license "CPL-1.0 and IPL-1.0 and GPL-2.0+"
   url "https://github.com/sleuthkit/sleuthkit/archive/sleuthkit-4.3.0.tar.gz"
   sha256 "64a57a44955e91300e1ae69b34e8702afda0fb5bd72e2116429875c9f5f28980"
   head "https://github.com/sleuthkit/sleuthkit.git"

@@ -120,7 +120,6 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     const std::string& exec_path,
-    const std::string& extension,
     const std::string& extensions_socket,
     const std::string& extensions_timeout,
     const std::string& extensions_interval,
@@ -142,9 +141,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
 
     std::vector<const char*> arguments;
     arguments.push_back(exec_path.c_str());
-
-    auto exec_title = "osquery extension: " + extension;
-    arguments.push_back(exec_title.c_str());
+    arguments.push_back(exec_path.c_str());
 
     std::string arg_verbose("--verbose");
     if (verbose) {
@@ -168,7 +165,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     ::execve(arguments[0], argv, ::environ);
 
     // Code should never reach this point
-    VLOG(1) << "Could not start extension process: " << extension;
+    VLOG(1) << "Could not start extension process: " << exec_path;
     Initializer::shutdown(EXIT_FAILURE);
     return std::shared_ptr<PlatformProcess>();
   }

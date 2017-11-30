@@ -239,7 +239,6 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     const std::string& exec_path,
-    const std::string& extension,
     const std::string& extensions_socket,
     const std::string& extensions_timeout,
     const std::string& extensions_interval,
@@ -252,8 +251,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   // To prevent errant double quotes from altering the intended arguments for
   // argv, we strip them out completely.
   std::stringstream argv_stream;
-  argv_stream << "\"osquery extension: "
-              << boost::replace_all_copy(extension, "\"", "") << "\" ";
+  argv_stream << "\"" << boost::replace_all_copy(exec_path, "\"", "") << "\" ";
   if (verbose) {
     argv_stream << "--verbose ";
   }
