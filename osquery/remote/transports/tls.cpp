@@ -147,7 +147,6 @@ http::Client::Options TLSTransport::getOptions() {
   // 'Optionally', though all TLS plugins should set a hostname, supply an SNI
   // hostname. This will reveal the requested domain.
   if (options_.count("hostname")) {
-    // Boost cpp-netlib will only support SNI in versions >= 0.12
     options.openssl_sni_hostname(options_.get<std::string>("hostname"));
   }
 
