@@ -12,6 +12,6 @@ case "$1" in
 esac
 
 # If we have a systemd, daemon-reload away now
-if [ -x /bin/systemctl ] ; then
+if [ -x /bin/systemctl ] && pidof systemd ; then
   /bin/systemctl daemon-reload 2>/dev/null 2>&1
 fi
