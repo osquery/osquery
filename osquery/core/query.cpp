@@ -86,14 +86,14 @@ bool Query::isNewQuery() const {
   return (query != query_.query);
 }
 
-Status Query::addNewResults(const QueryData& qd,
+Status Query::addNewResults(QueryData& qd,
                             const uint64_t epoch,
                             uint64_t& counter) const {
   DiffResults dr;
   return addNewResults(qd, epoch, counter, dr, false);
 }
 
-Status Query::addNewResults(const QueryData& current_qd,
+Status Query::addNewResults(QueryData& current_qd,
                             const uint64_t current_epoch,
                             uint64_t& counter,
                             DiffResults& dr,

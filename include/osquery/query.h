@@ -467,9 +467,7 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(const QueryData& qd,
-                       uint64_t epoch,
-                       uint64_t& counter) const;
+  Status addNewResults(QueryData& qd, uint64_t epoch, uint64_t& counter) const;
 
   /**
    * @brief Add a new set of results to the persistent storage and get back
@@ -487,7 +485,7 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(const QueryData& qd,
+  Status addNewResults(QueryData& qd,
                        uint64_t epoch,
                        uint64_t& counter,
                        DiffResults& dr,
