@@ -78,13 +78,13 @@ static const std::set<std::string> kAwsRegions = {"us-east-1",
 static RegionName kDefaultAWSRegion = Aws::Region::US_EAST_1;
 
 std::shared_ptr<Aws::Http::HttpClient>
-NetlibHttpClientFactory::CreateHttpClient(
+OsqueryHttpClientFactory::CreateHttpClient(
     const Aws::Client::ClientConfiguration& clientConfiguration) const {
-  return std::make_shared<NetlibHttpClient>();
+  return std::make_shared<OsqueryHttpClient>();
 }
 
 std::shared_ptr<Aws::Http::HttpRequest>
-NetlibHttpClientFactory::CreateHttpRequest(
+OsqueryHttpClientFactory::CreateHttpRequest(
     const Aws::String& uri,
     Aws::Http::HttpMethod method,
     const Aws::IOStreamFactory& streamFactory) const {
@@ -92,7 +92,7 @@ NetlibHttpClientFactory::CreateHttpRequest(
 }
 
 std::shared_ptr<Aws::Http::HttpRequest>
-NetlibHttpClientFactory::CreateHttpRequest(
+OsqueryHttpClientFactory::CreateHttpRequest(
     const Aws::Http::URI& uri,
     Aws::Http::HttpMethod method,
     const Aws::IOStreamFactory& streamFactory) const {
@@ -102,7 +102,7 @@ NetlibHttpClientFactory::CreateHttpRequest(
   return request;
 }
 
-std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
+std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
     Aws::Http::HttpRequest& request,
     Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
     Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
@@ -312,7 +312,7 @@ void initAwsSdk() {
     std::call_once(once_flag, []() {
       Aws::SDKOptions options;
       options.httpOptions.httpClientFactory_create_fn = []() {
-        return std::make_shared<NetlibHttpClientFactory>();
+        return std::make_shared<OsqueryHttpClientFactory>();
       };
       Aws::InitAPI(options);
     });
