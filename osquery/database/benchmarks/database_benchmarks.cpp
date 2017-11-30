@@ -139,7 +139,7 @@ static void DATABASE_query_results(benchmark::State& state) {
     DiffResults diff_results;
     uint64_t counter;
     auto dbq = Query("default", query);
-    dbq.addNewResults(qd, 0, counter, diff_results);
+    dbq.addNewResults(std::move(qd), 0, counter, diff_results);
   }
 }
 
