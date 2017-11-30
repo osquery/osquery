@@ -21,7 +21,7 @@ function check_format() {
 
   # Format and show the status
   make format_master
-  
+
   if [[ `git diff --name-only | wc -l | awk '{print $1}'` = "0" ]]; then
     return 0
   else
@@ -30,12 +30,35 @@ function check_format() {
   fi
 }
 
+function check_executable() {
+  HERE=$(pwd)
+  cd $SCRIPT_DIR/..;
+  FILES=$(find osquery -type f -perm -a=x)
+  if [[ ! -z "$FILES" ]]; then
+    echo "[!] Some source files are marked executable:"
+    echo "$FILES"
+    false
+  fi
+
+  FILES=$(find include -type f -perm -a=x)
+  if [[ ! -z "$FILES" ]]; then
+    echo "[!] Some header files are marked executable:"
+    echo "$FILES"
+    false
+  fi
+  cd $HERE;
+}
+
 function audit() {
   log "Running various code/change audits!"
 
   echo ""
   log "Initializing and updating all submodules"
   checkout_thirdparty
+
+  echo ""
+  log "Checking for source files marked executable"
+  check_executable
 
   echo ""
   log "Running: make format"
