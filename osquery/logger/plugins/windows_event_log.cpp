@@ -49,8 +49,9 @@ Status WindowsEventLoggerPlugin::logStatus(
   }
 
   std::string error_message = error_output.str();
-  if (!error_message.empty())
+  if (!error_message.empty()) {
     return Status(1, error_message);
+  }
 
   return Status();
 }

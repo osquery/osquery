@@ -83,10 +83,10 @@ In order to enable support for the Windows Event Log, you have to install the ma
 
 The same operation can be performed using the osquery manager (C:\ProgramData\osquery\manage-osqueryd.ps1):
 
- * **Install**: .\manage-osqueryd.ps1 -install_wel_manifest
- * **Uninstall**: .\manage-osqueryd.ps1 -uninstall_wel_manifest
+ * **Install**: .\manage-osqueryd.ps1 -installWelManifest
+ * **Uninstall**: .\manage-osqueryd.ps1 -uninstallWelManifest
 
-The manifest file path can also be overridden using the **-wel_manifest_path** switch.
+The manifest file path can also be overridden using the **-welManifestPath** switch.
 
 To verify that everything has been configured correctly, open the Event Viewer and search for the **osquery** folder under **Applications and Services Logs/Facebook/osquery**.
 

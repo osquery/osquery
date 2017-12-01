@@ -16,9 +16,9 @@ param(
   [switch] $help = $false,
   [switch] $debug = $false,
 
-  [switch] $install_wel_manifest = $false,
-  [switch] $uninstall_wel_manifest = $false,
-  [string] $wel_manifest_path = (Join-Path $PSScriptRoot "osquery.man")
+  [switch] $installWelManifest = $false,
+  [switch] $uninstallWelManifest = $false,
+  [string] $welManifestPath = (Join-Path $PSScriptRoot "osquery.man")
 )
 
 $kServiceName = "osqueryd"
@@ -44,9 +44,9 @@ function Do-Help {
   Write-Host "    -uninstall                Uninstall the osqueryd service"
   Write-Host "    -start                    Start the osqueryd service"
   Write-Host "    -stop                     Stop the osqueryd service"
-  Write-Host "    -install_wel_manifest     Installs the Windows Event Log manifest"
-  Write-Host "    -uninstall_wel_manifest   Uninstalls the Windows Event Log manifest"
-  Write-Host "    -wel_manifest_path <path> The Windows Event Log manifest path"
+  Write-Host "    -installWelManifest       Installs the Windows Event Log manifest"
+  Write-Host "    -uninstallWelManifest     Uninstalls the Windows Event Log manifest"
+  Write-Host "    -welManifestPath <path>   The Windows Event Log manifest path"
   Write-Host ""
   Write-Host "    -help                     Shows this help screen"
   
@@ -108,25 +108,25 @@ function Do-Service {
       Write-Host "'$kServiceName' is not an installed system service." -foregroundcolor Yellow
       Exit 1      
     }
-  } elseif ($install_wel_manifest) {
-    if (-not (Test-Path $wel_manifest_path)) {
-      Write-Host "[-] Failed to find the osquery Event Log manifest file! ($wel_manifest_path)" -ForegroundColor Red
+  } elseif ($installWelManifest) {
+    if (-not (Test-Path $welManifestPath)) {
+      Write-Host "[-] Failed to find the osquery Event Log manifest file! ($welManifestPath)" -ForegroundColor Red
       Exit 1
     }
 
-    wevtutil im $wel_manifest_path
+    wevtutil im $welManifestPath
     if ($?) {
       Write-Host "The Windows Event Log manifest has been successfully installed." -foregroundcolor Cyan
     } else {
       Write-Host "Failed to install the Windows Event Log manifest." -foregroundcolor Yellow
     }
-  } elseif ($uninstall_wel_manifest) {
-    if (-not (Test-Path $wel_manifest_path)) {
-      Write-Host "[-] Failed to find the osquery Event Log manifest file! ($wel_manifest_path)" -ForegroundColor Red
+  } elseif ($uninstallWelManifest) {
+    if (-not (Test-Path $welManifestPath)) {
+      Write-Host "[-] Failed to find the osquery Event Log manifest file! ($welManifestPath)" -ForegroundColor Red
       Exit 1
     }
 
-    wevtutil um $wel_manifest_path
+    wevtutil um $welManifestPath
     if ($?) {
       Write-Host "The Windows Event Log manifest has been successfully uninstalled." -foregroundcolor Cyan
     } else {
@@ -155,7 +155,7 @@ function Main {
     Write-Host "             +exists = $osquerydExists" -foregroundcolor Cyan
     
     Exit 0
-  } elseif (($install.ToBool() + $uninstall.ToBool() + $start.ToBool() + $stop.ToBool() + $install_wel_manifest.ToBool() + $uninstall_wel_manifest.ToBool()) -Eq 1) {
+  } elseif (($install.ToBool() + $uninstall.ToBool() + $start.ToBool() + $stop.ToBool() + $installWelManifest.ToBool() + $uninstallWelManifest.ToBool()) -Eq 1) {
     # The above is a dirty method of determining if only one of the following booleans are true.
     Do-Service
   } else {
