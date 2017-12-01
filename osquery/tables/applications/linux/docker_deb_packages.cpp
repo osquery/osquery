@@ -52,6 +52,8 @@ void extractDebPackageInfo(const struct pkginfo* pkg,
 
   w.EndObject();
 }
+
+
 QueryData genDockerDebPackages(QueryContext& context) {
   QueryData results;
 
