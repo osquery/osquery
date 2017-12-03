@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
 #include <functional>
 #include <unistd.h>
 
@@ -20,12 +30,23 @@ static inline int setns(int fd, int nstype) {
 namespace osquery {
 namespace tables {
 
+/**
+ * @brief NamespaceOps provides an interface to run a function in another
+ * namespace and stream the results back to the parent process
+ */
 class NamespaceOps {
  public:
   NamespaceOps(int pid, int sockFD) : _pid{pid}, _sockFD{sockFD} {}
 
+  /**
+   * @brief invokes the specified function in the namespace
+   */
   Status invoke(std::function<void(int fd)> fn);
 
+  /**
+   * @brief blocks the caller until the operations in the namespace has been
+   * completed
+   */
   void wait();
 
   ~NamespaceOps() {}
