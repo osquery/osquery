@@ -137,6 +137,8 @@ QueryData genDockerDebPackages(QueryContext& context) {
     if (!forkOps.ok()) {
       VLOG(1) << "error entering namespace: " << forkOps.what() << " : "
               << forkOps.getCode();
+      close(fds[0]);
+      close(fds[1]);
       continue;
     }
 
@@ -145,6 +147,10 @@ QueryData genDockerDebPackages(QueryContext& context) {
     if (fp == NULL) {
       VLOG(1) << "unable to open fd " << strerror(errno);
       close(fds[0]);
+      Status k = nsOps.kill();
+      if (!k.ok()) {
+        VLOG(1) << "unable to terminate foked process " << k.what();
+      }
       continue;
     }
     char readBuffer[65536];
@@ -156,7 +162,7 @@ QueryData genDockerDebPackages(QueryContext& context) {
 
     Status w = nsOps.wait();
     if (!w.ok()) {
-        VLOG(1) << "unable to wait for forked process: " << w.what();
+      VLOG(1) << "unable to wait for forked process: " << w.what();
     }
 
     if (d.IsArray() != true) {

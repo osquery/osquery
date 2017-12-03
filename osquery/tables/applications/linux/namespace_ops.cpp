@@ -9,9 +9,9 @@
  */
 
 #include <fcntl.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <string.h>
 
 #include <osquery/tables/applications/linux/namespace_ops.h>
 
@@ -54,6 +54,17 @@ Status NamespaceOps::invoke(std::function<void(int fd)> fn) {
 Status NamespaceOps::wait() {
   int wstatus;
   if (waitpid(_childPid, &wstatus, WUNTRACED | WCONTINUED) == -1) {
+    return Status(1, strerror(errno));
+  }
+  return Status();
+}
+
+Status NamespaceOps::kill() {
+  // So that we don't accidentaly kill any other process
+  if (_childPid < 0) {
+    return Status(1, "invalid pid");
+  }
+  if (::kill(_childPid, SIGTERM) == -1) {
     return Status(1, strerror(errno));
   }
   return Status();

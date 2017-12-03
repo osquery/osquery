@@ -49,6 +49,11 @@ class NamespaceOps {
    */
   Status wait();
 
+  /**
+   * @brief kills the forked process
+   */
+  Status kill();
+
   ~NamespaceOps() {}
 
  private:
