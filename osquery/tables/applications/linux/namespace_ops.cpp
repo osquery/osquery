@@ -54,8 +54,8 @@ Status NamespaceOps::invoke(std::function<void(int fd)> fn) {
 }
 
 Status NamespaceOps::wait() {
-  int wstatus;
-  if (waitpid(_childPid, &wstatus, WUNTRACED | WCONTINUED) == -1) {
+  siginfo_t infop;
+  if (waitid(P_PID, _childPid, &infop, WEXITED) == -1) {
     return Status(1, strerror(errno));
   }
   return Status();
