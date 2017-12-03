@@ -27,6 +27,7 @@ Status NamespaceOps::invoke(std::function<void(int fd)> fn) {
 
   pid_t childPid = fork();
   if (childPid == -1) {
+    close(fd);
     return Status(1, strerror(errno));
   }
   if (childPid != 0) {
