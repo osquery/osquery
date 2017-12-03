@@ -8,25 +8,12 @@
  *
  */
 
-#include <cstdlib>
-#include <iostream>
-#include <string>
-
 #include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string/split.hpp>
 #include <boost/foreach.hpp>
-
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/interprocess/ipc/message_queue.hpp>
 
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 #include <osquery/tables/applications/posix/docker_api.h>
-
-#include "osquery/core/json.h"
 
 namespace osquery {
 

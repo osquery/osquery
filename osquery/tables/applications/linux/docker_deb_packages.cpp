@@ -8,6 +8,11 @@
  *
  */
 
+#include <sys/socket.h>
+#include <sys/types.h>
+
+#include <boost/algorithm/string.hpp>
+
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -15,17 +20,8 @@
 #include <osquery/tables/applications/posix/docker_api.h>
 #include <osquery/tables/system/linux/deb.h>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string/split.hpp>
 
-#include <iostream>
-#include <sys/socket.h>
-#include <sys/types.h>
-
-#include "osquery/core/json.h"
-#include "rapidjson/filereadstream.h"
+#include <rapidjson/filereadstream.h>
 
 namespace osquery {
 namespace tables {

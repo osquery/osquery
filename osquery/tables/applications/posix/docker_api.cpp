@@ -8,8 +8,6 @@
 #include <osquery/logger.h>
 #include <osquery/tables/applications/posix/docker_api.h>
 
-#include <stdio.h>
-
 namespace local = boost::asio::local;
 
 namespace osquery {
