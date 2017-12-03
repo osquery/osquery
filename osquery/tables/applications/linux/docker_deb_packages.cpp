@@ -30,6 +30,8 @@
 namespace osquery {
 namespace tables {
 
+const unsigned int BUF_SIZE = 65536;
+
 void extractDebPackageInfo(const struct pkginfo* pkg,
                            rapidjson::Writer<rapidjson::StringBuffer>& w) {
   struct varbuf vb;
@@ -153,7 +155,7 @@ QueryData genDockerDebPackages(QueryContext& context) {
       }
       continue;
     }
-    char readBuffer[65536];
+    char readBuffer[BUF_SIZE];
     rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
     rapidjson::Document d;
     d.ParseStream(is);
