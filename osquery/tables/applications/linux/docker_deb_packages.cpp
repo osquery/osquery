@@ -1,5 +1,7 @@
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/tables/applications/linux/namespace_ops.h>
 #include <osquery/tables/applications/posix/docker_api.h>
 #include <osquery/tables/system/linux/deb.h>
 
@@ -10,9 +12,7 @@
 
 #include <iostream>
 #include <sys/socket.h>
-#include <sys/syscall.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 
 #include "osquery/core/json.h"
 #include "rapidjson/filereadstream.h"
@@ -53,6 +53,43 @@ void extractDebPackageInfo(const struct pkginfo* pkg,
   w.EndObject();
 }
 
+void getDebPackages(int fd) {
+  if (!osquery::isDirectory(kDPKGPath)) {
+    TLOG << "Cannot find DPKG database: " << kDPKGPath;
+    return;
+  }
+
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  writer.StartArray();
+
+  struct pkg_array packages;
+  dpkg_setup(&packages);
+
+  for (int i = 0; i < packages.n_pkgs; i++) {
+    struct pkginfo* pkg = packages.pkgs[i];
+    // Casted to int to allow the older enums that were embeded in the
+    // packages
+    // struct to be compared
+    if (static_cast<int>(pkg->status) ==
+        static_cast<int>(PKG_STAT_NOTINSTALLED)) {
+      continue;
+    }
+
+    extractDebPackageInfo(pkg, writer);
+  }
+
+  dpkg_teardown(&packages);
+  writer.EndArray();
+
+  size_t bufSize = buffer.GetSize();
+  if (bufSize < 1) {
+    return;
+  }
+  if (write(fd, buffer.GetString(), bufSize) != (ssize_t)bufSize) {
+    VLOG(1) << "error writing pkginfo ";
+  }
+}
 
 QueryData genDockerDebPackages(QueryContext& context) {
   QueryData results;
@@ -78,69 +115,19 @@ QueryData genDockerDebPackages(QueryContext& context) {
       continue;
     }
 
-    std::string pidns = "/proc/" + std::to_string(pid) + "/ns/mnt";
-    int fd = open(pidns.c_str(), O_RDONLY);
-    if (fd == -1) {
-      VLOG(1) << "unable to open mnt ns for pid " << pid << " : "
-              << strerror(errno);
-      continue;
-    }
-
     int fds[2];
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == -1) {
       VLOG(1) << "unable to open socket pair" << strerror(errno);
       continue;
     }
 
-    pid_t childPid = fork();
-    if (childPid == -1) {
-      VLOG(1) << "unable to fork: " << strerror(errno);
+    NamespaceOps nsOps(pid, fds[1]);
+    Status forkOps = nsOps.invoke(getDebPackages);
+
+    if (!forkOps.ok()) {
+      VLOG(1) << "error entering namespace: " << forkOps.what() << " : "
+              << forkOps.getCode();
       continue;
-    }
-
-    if (childPid == 0) {
-      close(fds[0]);
-      if (syscall(SYS_setns, fd, 0) == -1) {
-        VLOG(1) << "unable to enter mnt ns for pid " << childPid << " :"
-                << strerror(errno);
-        continue;
-      }
-
-      rapidjson::StringBuffer buffer;
-      rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
-      writer.StartArray();
-
-      struct pkg_array packages;
-      dpkg_setup(&packages);
-
-      for (int i = 0; i < packages.n_pkgs; i++) {
-        struct pkginfo* pkg = packages.pkgs[i];
-        // Casted to int to allow the older enums that were embeded in the
-        // packages
-        // struct to be compared
-        if (static_cast<int>(pkg->status) ==
-            static_cast<int>(PKG_STAT_NOTINSTALLED)) {
-          continue;
-        }
-
-        extractDebPackageInfo(pkg, writer);
-      }
-
-      dpkg_teardown(&packages);
-      writer.EndArray();
-
-      size_t bufSize = buffer.GetSize();
-
-      // Checking if bufsize is less than 1 before we cast it it unsigned later
-      if (bufSize < 1) {
-        close(fds[1]);
-        _Exit(EXIT_SUCCESS);
-      }
-      if (write(fds[1], buffer.GetString(), bufSize) != (ssize_t)bufSize) {
-        VLOG(1) << "error writing pkginfo ";
-      }
-      close(fds[1]);
-      _Exit(EXIT_SUCCESS);
     }
 
     close(fds[1]);
@@ -157,11 +144,11 @@ QueryData genDockerDebPackages(QueryContext& context) {
     fclose(fp);
     close(fds[0]);
 
+    nsOps.wait();
+
     if (d.IsArray() != true) {
-      VLOG(1) << "Dom is not an array";
       continue;
     }
-
     for (rapidjson::SizeType i = 0; i < d.Size(); i++) {
       Row r;
       r["id"] = id;
@@ -184,12 +171,6 @@ QueryData genDockerDebPackages(QueryContext& context) {
         r["revision"] = d[i]["revision"].GetString();
       }
       results.push_back(r);
-    }
-
-    int wstatus;
-    if (waitpid(childPid, &wstatus, WUNTRACED | WCONTINUED) == -1) {
-      VLOG(1) << "unable to wait for child pid";
-      continue;
     }
   }
   return results;

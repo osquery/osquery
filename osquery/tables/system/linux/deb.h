@@ -12,6 +12,14 @@ extern "C" {
 namespace osquery {
 namespace tables {
 
+static const std::string kDPKGPath{"/var/lib/dpkg"};
+
+/**
+ * @brief A field extractor to fetch the revision of a package.
+ *
+ * dpkg tracks the revision as part of version, but we need to provide our own
+ * fwritefunction for fieldinfos to extract it.
+ */
 void w_revision(struct varbuf* vb,
                 const struct pkginfo* pkg,
                 const struct pkgbin* pkgbin,
@@ -21,6 +29,13 @@ void w_revision(struct varbuf* vb,
 #if !defined(DEB_CONSTS_H)
 #define DEB_CONSTS_H 1
 
+/**
+* @brief Field names and function references to extract information.
+*
+* These are taken from lib/dpkg/parse.c, with a slight modification to
+* add an fwritefunction for Revision. Additional fields can be taken
+* as needed.
+*/
 const struct fieldinfo fieldinfos[] = {
     {FIELD("Package"), f_name, w_name, 0},
     {FIELD("Installed-Size"),
@@ -42,10 +57,19 @@ const std::map<std::string, std::string> kFieldMappings = {
     {"Revision", "revision"}};
 #endif
 
+/**
+* @brief comparator used to sort the packages array.
+*/
 int pkg_sorter(const void* a, const void* b);
 
+/*
+* @brief Initialize dpkg and load packages into memory
+*/
 void dpkg_setup(struct pkg_array* packages);
 
+/**
+* @brief Clean up after dpkg operations
+*/
 void dpkg_teardown(struct pkg_array* packages);
 }
 }

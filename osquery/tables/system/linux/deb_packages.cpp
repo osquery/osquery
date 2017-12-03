@@ -22,8 +22,6 @@
 namespace osquery {
 namespace tables {
 
-static const std::string kDPKGPath{"/var/lib/dpkg"};
-
 void extractDebPackageInfo(const struct pkginfo *pkg, QueryData &results) {
   Row r;
 
