@@ -26,7 +26,7 @@
 namespace osquery {
 namespace tables {
 
-const unsigned int BUF_SIZE = 65536;
+static constexpr size_t BUF_SIZE{65536};
 
 void extractDebPackageInfo(const struct pkginfo* pkg,
                            rapidjson::Writer<rapidjson::StringBuffer>& w) {
@@ -90,12 +90,10 @@ void getDebPackages(int fd) {
   dpkg_teardown(&packages);
   writer.EndArray();
 
-  size_t bufSize = buffer.GetSize();
-  if (bufSize < 1) {
-    return;
-  }
+  if (const auto bufSize = buffer.GetSize(); bufSize >= 1) {
   if (write(fd, buffer.GetString(), bufSize) != (ssize_t)bufSize) {
     VLOG(1) << "error writing pkginfo ";
+  }
   }
 }
 
@@ -114,7 +112,7 @@ QueryData genDockerDebPackages(QueryContext& context) {
               << s.what();
       continue;
     }
-    if (container.get<bool>("State.Running", false) != true) {
+    if (!container.get<bool>("State.Running", false)) {
       continue;
     }
     pid_t pid = container.get<int>("State.Pid", 0);
@@ -163,28 +161,28 @@ QueryData genDockerDebPackages(QueryContext& context) {
       VLOG(1) << "unable to wait for forked process: " << w.what();
     }
 
-    if (d.IsArray() != true) {
+    if (!d.IsArray()) {
       continue;
     }
     for (rapidjson::SizeType i = 0; i < d.Size(); i++) {
       Row r;
       r["id"] = id;
-      if (d[i].HasMember("name") == true) {
+      if (d[i].HasMember("name")) {
         r["name"] = d[i]["name"].GetString();
       }
-      if (d[i].HasMember("version") == true) {
+      if (d[i].HasMember("version")) {
         r["version"] = d[i]["version"].GetString();
       }
-      if (d[i].HasMember("source") == true) {
+      if (d[i].HasMember("source")) {
         r["source"] = d[i]["source"].GetString();
       }
-      if (d[i].HasMember("size") == true) {
+      if (d[i].HasMember("size")) {
         r["size"] = d[i]["size"].GetString();
       }
-      if (d[i].HasMember("arch") == true) {
+      if (d[i].HasMember("arch")) {
         r["arch"] = d[i]["arch"].GetString();
       }
-      if (d[i].HasMember("revision") == true) {
+      if (d[i].HasMember("revision")) {
         r["revision"] = d[i]["revision"].GetString();
       }
       results.push_back(r);
