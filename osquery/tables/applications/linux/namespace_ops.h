@@ -47,7 +47,7 @@ class NamespaceOps {
    * @brief blocks the caller until the operations in the namespace has been
    * completed
    */
-  void wait();
+  Status wait();
 
   ~NamespaceOps() {}
 

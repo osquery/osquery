@@ -143,7 +143,7 @@ QueryData genDockerDebPackages(QueryContext& context) {
     close(fds[1]);
     FILE* fp = fdopen(fds[0], "rb");
     if (fp == NULL) {
-      std::cerr << "unable to open fd " << strerror(errno);
+      VLOG(1) << "unable to open fd " << strerror(errno);
       close(fds[0]);
       continue;
     }
@@ -154,7 +154,10 @@ QueryData genDockerDebPackages(QueryContext& context) {
     fclose(fp);
     close(fds[0]);
 
-    nsOps.wait();
+    Status w = nsOps.wait();
+    if (!w.ok()) {
+        VLOG(1) << "unable to wait for forked process: " << w.what();
+    }
 
     if (d.IsArray() != true) {
       continue;

@@ -11,8 +11,8 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <string.h>
 
-#include <osquery/logger.h>
 #include <osquery/tables/applications/linux/namespace_ops.h>
 
 namespace osquery {
@@ -22,8 +22,6 @@ Status NamespaceOps::invoke(std::function<void(int fd)> fn) {
   std::string pidns = "/proc/" + std::to_string(_pid) + "/ns/mnt";
   int fd = open(pidns.c_str(), O_RDONLY);
   if (fd == -1) {
-    VLOG(1) << "unable to open mnt ns for pid " << _pid << " : "
-            << strerror(errno);
     return Status(1, strerror(errno));
   }
 
@@ -53,12 +51,12 @@ Status NamespaceOps::invoke(std::function<void(int fd)> fn) {
   _Exit(EXIT_SUCCESS);
 }
 
-void NamespaceOps::wait() {
+Status NamespaceOps::wait() {
   int wstatus;
   if (waitpid(_childPid, &wstatus, WUNTRACED | WCONTINUED) == -1) {
-    VLOG(1) << "unable to wait for child pid";
-    return;
+    return Status(1, strerror(errno));
   }
+  return Status();
 }
 }
 }
