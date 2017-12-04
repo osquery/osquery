@@ -10,9 +10,11 @@
 
 #include <gtest/gtest.h>
 
+#include <unistd.h>
+
 #include <fstream>
 #include <iostream>
-#include <stdio.h>
+#include <stdlib.h>
 
 #include <boost/filesystem.hpp>
 #include <gflags/gflags.h>
