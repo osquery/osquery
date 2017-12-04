@@ -117,9 +117,7 @@ class DatabasePlugin : public Plugin {
   virtual Status scan(const std::string& domain,
                       std::vector<std::string>& results,
                       const std::string& prefix,
-                      size_t max = 0) const {
-    return Status(0, "Not used");
-  }
+                      size_t max) const;
 
   /**
    * @brief Shutdown the database and release initialization resources.
@@ -129,7 +127,7 @@ class DatabasePlugin : public Plugin {
    * initialization and destruction and assume #setUp and #tearDown will
    * dictate the flow in most situations.
    */
-  virtual ~DatabasePlugin() {}
+  ~DatabasePlugin() override = default;
 
   /**
    * @brief Support the registry calling API for extensions.
@@ -249,4 +247,4 @@ void resetDatabase();
 
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
-}
+} // namespace osquery

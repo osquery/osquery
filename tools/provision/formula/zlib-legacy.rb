@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class ZlibLegacy < AbstractOsqueryFormula
   desc "General-purpose lossless data-compression library"
   homepage "http://www.zlib.net/"
+  license "Zlib"
   url "https://github.com/madler/zlib/archive/v1.2.3.tar.gz"
   sha256 "2134178c123ea8252fd6afc9b794d9a2df480ccd030cc5db720a41883676fc2e"
   revision 101

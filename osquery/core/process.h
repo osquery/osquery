@@ -39,7 +39,7 @@
 namespace osquery {
 
 /// Constant for an invalid process
-const PlatformPidType kInvalidPid = (PlatformPidType)-1;
+const auto kInvalidPid = (PlatformPidType)-1;
 
 /**
  * @brief Categories of process states adapted to be platform agnostic
@@ -158,7 +158,6 @@ class PlatformProcess : private boost::noncopyable {
    */
   static std::shared_ptr<PlatformProcess> launchExtension(
       const std::string& exec_path,
-      const std::string& extension,
       const std::string& extensions_socket,
       const std::string& extensions_timeout,
       const std::string& extensions_interval,
@@ -287,4 +286,4 @@ int platformGetPid();
 * and on posix platforms returns gettid()
 */
 int platformGetTid();
-}
+} // namespace osquery

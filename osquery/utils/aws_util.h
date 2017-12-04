@@ -37,9 +37,9 @@ const std::string kEc2MetadataUrl = "http://169.254.169.254/latest/";
 const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
 
 /**
- * @brief Client factory for the netlib HTTP client
+ * @brief Client factory for the Osquery HTTP client
  */
-class NetlibHttpClientFactory : public Aws::Http::HttpClientFactory {
+class OsqueryHttpClientFactory : public Aws::Http::HttpClientFactory {
  public:
   std::shared_ptr<Aws::Http::HttpClient> CreateHttpClient(
       const Aws::Client::ClientConfiguration& clientConfiguration)
@@ -55,16 +55,16 @@ class NetlibHttpClientFactory : public Aws::Http::HttpClientFactory {
 };
 
 /**
- * @brief Netlib implementation of AWS HTTP Client
+ * @brief Osquery implementation of AWS HTTP Client
  *
  * AWS uses a libcurl HTTP client by default. We prefer not to use libcurl, so
  * we provide this HTTP client implementation for the AWS SDK to use when
  * querying the APIs. The SDK must be built with -DNO_HTTP_CLIENT=1 to prevent
  * it looking for libcurl when static linking.
  */
-class NetlibHttpClient : public Aws::Http::HttpClient {
+class OsqueryHttpClient : public Aws::Http::HttpClient {
  public:
-  NetlibHttpClient() : HttpClient() {}
+  OsqueryHttpClient() : HttpClient() {}
 
   std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
       Aws::Http::HttpRequest& request,
@@ -139,7 +139,7 @@ class OsqueryAWSCredentialsProviderChain
  *
  * This function is intended to be called from the ::setUp() method of logger
  * plugins that use the AWS SDK. It initializes the SDK, instructing it to use
- * our custom NetlibHttpClientFactory. This function may be called more than
+ * our custom OsqueryHttpClientFactory. This function may be called more than
  * once, but initializing will only occur on the first call.
  */
 void initAwsSdk();

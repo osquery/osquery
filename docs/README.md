@@ -76,7 +76,6 @@ This will be run in the `Code Audit` Jenkins job.
 1. Update code in `/tools` to produce the correct `version.yml` for new releases.
 2. Convert the deprecated ReadTheDocs wiki pages to Jekyll docs.
 3. Look for existing common redirects for backwards compatibility.
-4. Update the `downloads` page to list old versions and their hashes.
 
 ## ReadTheDocs Wiki (deprecated)
 
@@ -108,7 +107,7 @@ The output HTML documentation is written to `./build/docs/html/`. Use `index.htm
 
 ## Tables and Packs
 
-Table schema, the osquery user API, is created using the Python-based ".spec" files in [`./specs`](https://github.com/facebook/osquery/tree/master/specs). More documentation on how specs work can be found in the [Creating New Tables](http://osquery.readthedocs.org/en/stable/development/creating-tables/) developer documentation. These files are used to build osquery, but can be parsed to create JSON-based API schema. This JSON is published to the homepage at [https://osquery.io/docs/tables].
+Table schema, the osquery user API, is created using the Python-based ".spec" files in [`./specs`](https://github.com/facebook/osquery/tree/master/specs). More documentation on how specs work can be found in the [Creating New Tables](http://osquery.readthedocs.org/en/stable/development/creating-tables/) developer documentation. These files are used to build osquery, but can be parsed to create JSON-based API schema. This JSON is published to the homepage at [https://osquery.io/schema/].
 
 Use: `./tools/codegen/genapi.py` to generate the amalgamated schema. To generate a "change log" between tags, use the same script but use `--diff` and supply the two JSON imputs.
 

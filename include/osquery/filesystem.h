@@ -400,4 +400,4 @@ Status compress(const boost::filesystem::path& in,
  */
 Status decompress(const boost::filesystem::path& in,
                   const boost::filesystem::path& out);
-}
+} // namespace osquery

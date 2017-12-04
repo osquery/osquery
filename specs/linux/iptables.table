@@ -6,6 +6,8 @@ schema([
     Column("policy", TEXT, "Policy that applies for this rule."),
     Column("target", TEXT, "Target that applies for this rule."),
     Column("protocol", INTEGER, "Protocol number identification."),
+    Column("src_port", TEXT, "Protocol source port(s)."),
+    Column("dst_port", TEXT, "Protocol destination port(s)."),
     Column("src_ip", TEXT, "Source IP address."),
     Column("src_mask", TEXT, "Source IP address mask."),
     Column("iniface", TEXT, "Input interface for the rule."),

@@ -170,6 +170,11 @@ PluginResponse TablePlugin::routeInfo() const {
 }
 
 static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
+  if (!ctx.useCache()) {
+    // The query execution did not request use of the warm cache.
+    return false;
+  }
+
   auto uncachable = ColumnOptions::INDEX | ColumnOptions::REQUIRED |
                     ColumnOptions::ADDITIONAL | ColumnOptions::OPTIMIZED;
   for (const auto& column : cols) {
@@ -328,21 +333,24 @@ bool ConstraintList::exists(const ConstraintOperatorFlag ops) const {
 
 bool ConstraintList::matches(const std::string& expr) const {
   // Support each SQL affinity type casting.
-  if (affinity == TEXT_TYPE) {
-    return literal_matches<TEXT_LITERAL>(expr);
-  } else if (affinity == INTEGER_TYPE) {
-    INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
-    return literal_matches<INTEGER_LITERAL>(lexpr);
-  } else if (affinity == BIGINT_TYPE) {
-    BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
-    return literal_matches<BIGINT_LITERAL>(lexpr);
-  } else if (affinity == UNSIGNED_BIGINT_TYPE) {
-    UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
-    return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
-  } else {
-    // Unsupported affinity type.
-    return false;
+  try {
+    if (affinity == TEXT_TYPE) {
+      return literal_matches<TEXT_LITERAL>(expr);
+    } else if (affinity == INTEGER_TYPE) {
+      INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
+      return literal_matches<INTEGER_LITERAL>(lexpr);
+    } else if (affinity == BIGINT_TYPE) {
+      BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
+      return literal_matches<BIGINT_LITERAL>(lexpr);
+    } else if (affinity == UNSIGNED_BIGINT_TYPE) {
+      UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
+      return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
+    }
+  } catch (const boost::bad_lexical_cast& /* e */) {
+    // Unsupported affinity type or unable to cast content type.
   }
+
+  return false;
 }
 
 template <typename T>
@@ -361,8 +369,8 @@ bool ConstraintList::literal_matches(const T& base_expr) const {
     } else if (constraints_[i].op == LESS_THAN_OR_EQUALS) {
       aggregate = aggregate && (base_expr <= constraint_expr);
     } else {
-      // Unsupported constraint.
-      return false;
+      // Unsupported constraint. Should match every thing.
+      return true;
     }
     if (!aggregate) {
       // Speed up comparison.
@@ -404,6 +412,37 @@ void ConstraintList::unserialize(const boost::property_tree::ptree& tree) {
     constraints_.push_back(constraint);
   }
   affinity = columnTypeName(tree.get<std::string>("affinity", "UNKNOWN"));
+}
+
+void QueryContext::useCache(bool use_cache) {
+  use_cache_ = use_cache;
+}
+
+bool QueryContext::useCache() const {
+  return use_cache_;
+}
+
+void QueryContext::setCache(const std::string& index, Row _cache) {
+  table_->cache[index] = std::move(_cache);
+}
+
+void QueryContext::setCache(const std::string& index,
+                            const std::string& key,
+                            std::string _item) {
+  table_->cache[index][key] = std::move(_item);
+}
+
+bool QueryContext::isCached(const std::string& index) const {
+  return (table_->cache.count(index) != 0);
+}
+
+const Row& QueryContext::getCache(const std::string& index) {
+  return table_->cache[index];
+}
+
+const std::string& QueryContext::getCache(const std::string& index,
+                                          const std::string& key) {
+  return table_->cache[index][key];
 }
 
 bool QueryContext::hasConstraint(const std::string& column,

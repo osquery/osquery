@@ -18,7 +18,8 @@ OSQUERY_DEPS="${OSQUERY_DEPS:-/usr/local/osquery}"
 export PATH="${OSQUERY_DEPS}/bin:$PATH"
 source "$SOURCE_DIR/tools/lib.sh"
 
-PACKAGE_VERSION=`git describe --tags HEAD || echo 'unknown-version'`
+VERSION=`(cd $SOURCE_DIR; git describe --tags HEAD) || echo 'unknown-version'`
+PACKAGE_VERSION=${OSQUERY_BUILD_VERSION:="$VERSION"}
 PACKAGE_ARCH="x86_64"
 PACKAGE_TYPE=""
 PACKAGE_ITERATION=""
@@ -42,7 +43,7 @@ PACKS_DST="/usr/share/osquery/packs/"
 LENSES_LICENSE="${OSQUERY_DEPS}/Cellar/augeas/*/COPYING"
 LENSES_SRC="${OSQUERY_DEPS}/share/augeas/lenses/dist"
 LENSES_DST="/usr/share/osquery/lenses/"
-OSQUERY_POSTINSTALL=${OSQUERY_POSTINSTALL:-""}
+OSQUERY_POSTINSTALL=${OSQUERY_POSTINSTALL:-"$SCRIPT_DIR/linux_postinstall.sh"}
 OSQUERY_PREUNINSTALL=${OSQUERY_PREUNINSTALL:-""}
 OSQUERY_CONFIG_SRC=${OSQUERY_CONFIG_SRC:-""}
 OSQUERY_TLS_CERT_CHAIN_SRC=${OSQUERY_TLS_CERT_CHAIN_SRC:-""}

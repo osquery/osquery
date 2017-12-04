@@ -3,15 +3,16 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Libarchive < AbstractOsqueryFormula
   desc "Multi-format archive and compression library"
   homepage "http://www.libarchive.org"
-  url "http://www.libarchive.org/downloads/libarchive-3.2.2.tar.gz"
-  sha256 "691c194ee132d1f0f7a42541f091db811bc2e56f7107e9121be2bc8c04f1060f"
-  revision 101
+  license "BSD-2-Clause"
+  url "http://www.libarchive.org/downloads/libarchive-3.3.2.tar.gz"
+  sha256 "ed2dbd6954792b2c054ccf8ec4b330a54b85904a80cef477a1c74643ddafa0ce"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "edda4760384ef9ef69af0681d5bba2b2f508fd5188720ce1acbf3fc9890c91e7" => :sierra
-    sha256 "a608dc2be02fe57c7ca22cba2cfd5612cc7a80b32e87beb504830025d998ca8e" => :x86_64_linux
+    sha256 "a7bb4138e422a513c76b43dea7dd06ae80c28712451cacd30edb1db9e33be7e6" => :sierra
+    sha256 "ee089bdc10500dc71f2f0ce1571b34b78dd1d06f6bac912ca30b7e10d4083cc1" => :x86_64_linux
   end
 
   depends_on "xz" => :recommended

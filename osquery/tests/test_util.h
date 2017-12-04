@@ -34,11 +34,11 @@ namespace osquery {
 #define WORKER_SUCCESS_CODE 0x57
 
 /// The following are error codes returned by the child process.
-#define ERROR_COMPARE_ARGUMENT -1
-#define ERROR_LAUNCHER_PROCESS -2
-#define ERROR_QUERY_PROCESS_IMAGE -3
-#define ERROR_IMAGE_NAME_LENGTH -4
-#define ERROR_LAUNCHER_MISMATCH -5
+#define ERROR_COMPARE_ARGUMENT (-1)
+#define ERROR_LAUNCHER_PROCESS (-2)
+#define ERROR_QUERY_PROCESS_IMAGE (-3)
+#define ERROR_IMAGE_NAME_LENGTH (-4)
+#define ERROR_LAUNCHER_MISMATCH (-5)
 
 /// Init function for tests and benchmarks.
 void initTesting();
@@ -161,4 +161,4 @@ void createMockFileStructure();
 
 // remove the small directory structure used for testing
 void tearDownMockFileStructure();
-}
+} // namespace osquery

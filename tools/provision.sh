@@ -17,12 +17,19 @@ FORMULA_DIR="$SCRIPT_DIR/provision/formula"
 HOMEBREW_REPO="https://github.com/Homebrew/brew"
 LINUXBREW_REPO="https://github.com/Linuxbrew/brew"
 
+HOMEBREW_CORE_REPO="https://github.com/Homebrew/homebrew-core"
+LINUXBREW_CORE_REPO="https://github.com/Linuxbrew/homebrew-core"
+
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
 HOMEBREW_CORE="941ca36839ea354031846d73ad538e1e44e673f4"
 LINUXBREW_CORE="f54281a496bb7d3dd2f46b2f3067193d05f5013b"
 HOMEBREW_BREW="ac2cbd2137006ebfe84d8584ccdcb5d78c1130d9"
 LINUXBREW_BREW="20bcce2c176469cec271b46d523eef1510217436"
+
+# These suffixes are used when building bottle tarballs.
+LINUX_BOTTLE_SUFFIX="x86_64_linux"
+DARWIN_BOTTLE_SUFFIX="sierra"
 
 # If the world needs to be rebuilt, increase the version
 DEPS_VERSION="4"
@@ -77,11 +84,6 @@ function platform_linux_main() {
   brew_tool osquery/osquery-local/curl
   brew_tool osquery/osquery-local/python
 
-  # Linux library secondary dependencies.
-  brew_tool osquery/osquery-local/berkeley-db
-  brew_tool osquery/osquery-local/popt
-  brew_tool osquery/osquery-local/beecrypt
-
   # LLVM/Clang.
   brew_tool osquery/osquery-local/llvm
 
@@ -100,7 +102,6 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libudev
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
-  brew_dependency osquery/osquery-local/librpm
 }
 
 function platform_darwin_main() {
@@ -118,6 +119,7 @@ function platform_darwin_main() {
 
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl
+
   brew_tool osquery/osquery-local/python
   brew_tool osquery/osquery-local/bison
 
@@ -125,6 +127,11 @@ function platform_darwin_main() {
 }
 
  function platform_posix_main() {
+  # Library secondary dependencies.
+  brew_dependency osquery/osquery-local/popt
+  brew_dependency osquery/osquery-local/beecrypt
+  brew_dependency osquery/osquery-local/berkeley-db
+
   # libarchive for file carving
   brew_dependency osquery/osquery-local/libarchive
   brew_dependency osquery/osquery-local/rapidjson
@@ -148,6 +155,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/augeas
   brew_dependency osquery/osquery-local/lldpd
   brew_dependency osquery/osquery-local/librdkafka
+  brew_dependency osquery/osquery-local/librpm
 
   # POSIX-shared locally-managed tools.
   brew_dependency osquery/osquery-local/zzuf
@@ -239,7 +247,14 @@ function main() {
     log "creating build dir: $DEPS_DIR"
     do_sudo mkdir -p "$DEPS_DIR"
     do_sudo chown $USER "$DEPS_DIR" > /dev/null 2>&1 || true
+  elif [[ ! -d "$DEPS_DIR/.git" ]]; then
+    # If the dependency directory (DEPS_DIR) already exists, there will be problems
+    log "[notice] dependencies directory '$DEPS_DIR' already exists"
   fi
+
+  # Save the directory we're executing from and change to the deps directory.
+  # Other imported scripts may need to reference the repository directory.
+  export CURRENT_DIR=$(pwd)
   cd "$DEPS_DIR"
 
   # Finally run the setup of *brew, and checkout the needed Taps.
@@ -258,6 +273,8 @@ function main() {
     brew_uninstall "$2"
     return
   elif [[ "$ACTION" = "install" ]]; then
+    # If someone explicitly requested a provision install then build a bottle.
+    export OSQUERY_BUILD_DEPS=True
     brew_dependency "$2"
     return
   fi
@@ -287,16 +304,10 @@ function main() {
   # Pip may have just been installed.
   log "upgrading pip and installing python dependencies"
   PIP=`which pip`
-  if [[ $OS = "freebsd" ]]; then
-    PIP="sudo $PIP"
-  fi
-  $PIP install --upgrade pip
+  $PIP install --user --upgrade pip
   # Pip may change locations after upgrade.
   PIP=`which pip`
-  if [[ $OS = "freebsd" ]]; then
-    PIP="sudo $PIP"
-  fi
-  $PIP install --no-cache-dir -I -r requirements.txt
+  $PIP install --user --no-cache-dir -I -r requirements.txt
 
   log "running auxiliary initialization"
   initialize $OS

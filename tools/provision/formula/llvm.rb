@@ -22,6 +22,7 @@ end
 class Llvm < AbstractOsqueryFormula
   desc "Next-gen compiler infrastructure"
   homepage "http://llvm.org/"
+  license "NCSA"
   revision 101
 
   stable do

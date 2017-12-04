@@ -84,7 +84,8 @@ Status attachTableInternal(const std::string& name,
                            const SQLiteDBInstanceRef& instance);
 
 /// Detach (drop) a table.
-Status detachTableInternal(const std::string& name, sqlite3* db);
+Status detachTableInternal(const std::string& name,
+                           const SQLiteDBInstanceRef& instance);
 
 Status attachFunctionInternal(
     const std::string& name,

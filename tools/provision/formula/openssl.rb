@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Openssl < AbstractOsqueryFormula
   desc "SSL/TLS cryptography library"
   homepage "https://openssl.org/"
+  license "OpenSSL"
   url "https://www.openssl.org/source/openssl-1.0.2k.tar.gz"
   mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2k.tar.gz"
   mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2k.tar.gz"

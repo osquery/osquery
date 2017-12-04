@@ -60,7 +60,7 @@ if(NOT DEFINED ENV{SKIP_CCACHE})
 endif()
 
 # osquery additional compiler flags added by CMake.
-set(C_COMPILE_FLAGS "")
+set(CXX_STD "c++14")
 set(CXX_COMPILE_FLAGS "")
 
 find_program(PYTHON_EXECUTABLE "python" ${BUILD_DEPS} ENV PATH)
@@ -102,7 +102,7 @@ if(APPLE)
     -mmacosx-version-min=${OSX_VERSION_MIN}
   )
 
-  set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libc++")
+  set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   set(OS_WHOLELINK_PRE "-Wl,-force_load")
   set(OS_WHOLELINK_POST "")
   # Special compile flags for Objective-C++
@@ -124,10 +124,10 @@ else()
     set(FREEBSD TRUE)
     include_directories("/usr/local/include")
     include_directories("/usr/include")
-    set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libc++")
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   else()
     set(LINUX TRUE)
-    set(CXX_COMPILE_FLAGS "${CXX_COMPILE_FLAGS} -std=c++14 -stdlib=libstdc++")
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libstdc++" CACHE STRING "" FORCE)
   endif()
   set(POSIX TRUE)
 endif()
@@ -245,8 +245,6 @@ else()
   endif()
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
-  #set(C_COMPILE_FLAGS "${C_COMPILE_FLAGS} -D_FORTIFY_SOURCE=2")
-
   # Visual Studio does not support generation of PIC code
   if(POSIX)
     # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
@@ -368,6 +366,14 @@ if(DEFINED ENV{TIDY} AND CLANG_TIDY)
     "-modernize-use-bool-literals"
     "-modernize-use-emplace"
     "-google-runtime-references"
+    # This adds header guards when we already use pragmas
+    "-llvm-header-guard"
+    # This adds an explicit for operator TYPE() in flags.h
+    "-google-explicit-constructor"
+    # Too many notes about not defining all specials
+    "-cppcoreguidelines-special-member-functions"
+    # These default arguments are very valuable
+    "-google-default-arguments"
   )
   JOIN("${TIDY_CHECKS}" "," TIDY_CHECKS)
   set(DO_CLANG_TIDY "${CLANG_TIDY}"
@@ -506,10 +512,18 @@ elseif(LINUX)
 endif()
 
 if(POSIX)
+  set(CMAKE_REQUIRED_INCLUDES
+    "${BUILD_DEPS}/legacy/include"
+    "${BUILD_DEPS}/include"
+  )
+
   include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   include_directories(SYSTEM "${BUILD_DEPS}/include")
   include_directories("${BUILD_DEPS}/include/openssl")
 endif()
+
+# Including Boost Beast within third-party until it's merged into boot 1.66.
+include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
 
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
@@ -577,6 +591,9 @@ endif()
 # We can supply the known include paths within each test as compile flags.
 enable_testing()
 set(CTEST_TEST_TIMEOUT 600)
+set(BUILD_GTEST TRUE)
+
+include(Thrift)
 
 # Detect TR1 usage.
 include(CheckIncludeFileCXX)
@@ -587,24 +604,18 @@ else()
 endif()
 
 if(FREEBSD OR "${HAVE_TR1_TUPLE}" STREQUAL "")
-  set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=1")
-else()
-  set(GTEST_FLAGS "-DGTEST_USE_OWN_TR1_TUPLE=0")
+  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=1)
+ else()
+  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=0)
 endif()
 
 set(GTEST_FLAGS
-  ${GTEST_FLAGS}
   "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googletest/include"
   "-I${CMAKE_SOURCE_DIR}/third-party/googletest/googlemock/include"
 )
 join("${GTEST_FLAGS}" " " GTEST_FLAGS)
 
-set(BUILD_GTEST TRUE)
-
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
-
-include(Thrift)
-
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 
 add_subdirectory(osquery)

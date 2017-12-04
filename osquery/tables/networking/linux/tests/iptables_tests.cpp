@@ -12,8 +12,8 @@
 
 #include <osquery/logger.h>
 
-#include <libiptc/libiptc.h>
 #include <arpa/inet.h>
+#include <libiptc/libiptc.h>
 
 #include "osquery/tests/test_util.h"
 
@@ -62,5 +62,5 @@ TEST_F(IptablesTests, test_iptables_ip_entry) {
   parseIpEntry(getIpEntryContent(), row);
   EXPECT_EQ(row, getIpEntryExpectedResults());
 }
-}
-}
+} // namespace tables
+} // namespace osquery

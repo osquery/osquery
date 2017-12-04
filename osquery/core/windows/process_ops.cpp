@@ -8,20 +8,7 @@
  *
  */
 
-#define _WIN32_DCOM
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-// clang-format off
-#include <LM.h>
-// clang-format on
-
-#include <vector>
-
-#include <osquery/system.h>
-#include <osquery/logger.h>
-
-#include "osquery/core/process.h"
-#include "osquery/core/windows/wmi.h"
+#include "osquery/core/windows/process_ops.h"
 #include "osquery/core/conversions.h"
 
 namespace osquery {
@@ -120,6 +107,13 @@ int getGidFromSid(PSID sid) {
 
   NetApiBufferFree(userBuff);
   return gid;
+}
+
+unsigned long getRidFromSid(PSID sid) {
+  BYTE* countPtr = GetSidSubAuthorityCount(sid);
+  unsigned long indexOfRid = static_cast<unsigned long>(*countPtr - 1);
+  unsigned long* ridPtr = GetSidSubAuthority(sid, indexOfRid);
+  return *ridPtr;
 }
 
 int platformGetUid() {

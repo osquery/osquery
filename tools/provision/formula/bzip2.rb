@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Bzip2 < AbstractOsqueryFormula
   desc "Freely available high-quality data compressor"
   homepage "http://www.bzip.org/"
+  license "bzip2-1.0.6"
   url "http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz"
   sha256 "a2848f34fcd5d6cf47def00461fcb528a0484d8edef8208d6d2e2909dc61d9cd"
   revision 101

@@ -22,6 +22,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 
 DECLARE_string(logger_path);
+DECLARE_bool(disable_logging);
 
 class FilesystemLoggerTests : public testing::Test {
  public:

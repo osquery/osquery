@@ -218,6 +218,8 @@ class Schedule : private boost::noncopyable {
  */
 class ConfigRefreshRunner : public InternalRunnable {
  public:
+  ConfigRefreshRunner() : InternalRunnable("ConfigRefreshRunner") {}
+
   /// A simple wait/interruptible lock.
   void start();
 

@@ -10,6 +10,9 @@
 
 #include <augeas.h>
 
+#include <sstream>
+#include <unordered_set>
+
 #include <boost/algorithm/string/join.hpp>
 
 #include <osquery/logger.h>
@@ -38,79 +41,24 @@ namespace tables {
 
 void reportAugeasError(augeas* aug) {
   const char* error_message = aug_error_message(aug);
-  VLOG(1) << "An error has occurred while trying to query augeas: "
-          << error_message;
-}
-
-std::string getSpanInfo(augeas* aug,
-                        const std::string& node,
-                        QueryContext& context) {
-  const auto& index = context.getCache(node);
-  if (index.count("filename")) {
-    return index.at("filename");
-  }
-
-  char* filename = nullptr;
-  // Unused for now.
-  unsigned int label_start = 0;
-  unsigned int label_end = 0;
-  unsigned int value_start = 0;
-  unsigned int value_end = 0;
-  unsigned int span_start = 0;
-  unsigned int span_end = 0;
-
-  int result = aug_span(aug,
-                        node.c_str(),
-                        &filename,
-                        &label_start,
-                        &label_end,
-                        &value_start,
-                        &value_end,
-                        &span_start,
-                        &span_end);
-
-  if (result == 0 && filename != nullptr) {
-    context.setCache(node, "filename", filename);
-    // aug_span() allocates the filename and expects the caller to free it.
-    free(filename);
-    return context.getCache(node).at("filename");
-  } else {
-    return "";
-  }
-}
-
-std::string getLabelInfo(const augeas* aug,
-                         const std::string& node,
-                         QueryContext& context) {
-  const auto& index = context.getCache(node);
-  if (index.count("label")) {
-    return index.at("label");
-  }
-
-  const char* label = nullptr;
-  int result = aug_label(aug, node.c_str(), &label);
-  if (result == 1 && label != nullptr) {
-    context.setCache(node, "label", label);
-    // Do not call free() on label. Augeas needs it.
-    return context.getCache(node).at("label");
-  } else {
-    return "";
-  }
+  LOG(ERROR) << "An error has occurred while trying to query augeas: "
+             << error_message;
 }
 
 void matchAugeasPattern(augeas* aug,
                         const std::string& pattern,
                         QueryData& results,
-                        QueryContext& context,
-                        bool use_path = false) {
+                        QueryContext& context) {
   // The caller may supply an Augeas PATH/NODE expression or filesystem path.
   // Below we formulate a Augeas pattern from a path if needed.
+  int result = aug_defvar(aug, "matches", pattern.c_str());
+  if (result == -1) {
+    reportAugeasError(aug);
+    return;
+  }
+
   char** matches = nullptr;
-  int len = aug_match(
-      aug,
-      (use_path ? ("/files/" + pattern + "|/files" + pattern + "//*").c_str()
-                : pattern.c_str()),
-      &matches);
+  int len = aug_match(aug, "$matches", &matches);
 
   // Handle matching errors.
   if (matches == nullptr) {
@@ -121,6 +69,7 @@ void matchAugeasPattern(augeas* aug,
   }
 
   // Emit a row for each match.
+  results.reserve(len);
   for (size_t i = 0; i < static_cast<size_t>(len); i++) {
     if (matches[i] == nullptr) {
       continue;
@@ -130,68 +79,118 @@ void matchAugeasPattern(augeas* aug,
     std::string node(matches[i]);
     free(matches[i]);
 
-    Row r;
-    const char* value = nullptr;
-    int result = aug_get(aug, node.c_str(), &value);
-    if (result == 1) {
-      r["node"] = node;
-
-      if (value != nullptr) {
-        r["value"] = value;
-      }
-
-      if (!use_path) {
-        r["path"] = getSpanInfo(aug, node, context);
-      } else {
-        r["path"] = pattern;
-      }
-
-      r["label"] = getLabelInfo(aug, node, context);
-
-      results.push_back(r);
-    } else if (result < 1) {
+    const char *value = nullptr, *label = nullptr;
+    char* file = nullptr;
+    result = aug_ns_attr(aug, "matches", i, &value, &label, &file);
+    if (result == -1) {
       reportAugeasError(aug);
+      return;
     }
+
+    std::string path;
+    if (file != nullptr) {
+      path = file;
+      path = path.substr(6);
+      // The caller is responsible for the matching memory.
+      free(file);
+    } else {
+      // The iterator is currently pointing to a folder so we extract the path
+      // from the node.
+      path = node.substr(6);
+    }
+
+    results.emplace_back(
+        std::initializer_list<std::pair<const std::string, std::string>>{
+            {"node", node},
+            {"value", value == nullptr ? "" : value},
+            {"path", path},
+            {"label", label == nullptr ? "" : label}});
   }
 
   // aug_match() allocates the matches array and expects the caller to free it.
   free(matches);
 }
 
-QueryData genAugeas(QueryContext& context) {
-  augeas* aug = aug_init(
-      nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_ENABLE_SPAN);
+class AugeasHandle {
+ public:
+  augeas* aug{nullptr};
+  bool error{false};
 
-  // Handle initialization errors.
-  if (aug == nullptr) {
-    VLOG(1) << "An error has occurred while trying to initialize augeas";
-    return {};
-  } else if (aug_error(aug) != AUG_NOERROR) {
-    // Do not use aug_error_details() here since augeas is not fully
-    // initialized.
-    VLOG(1) << "An error has occurred while trying to initialize augeas: "
-            << aug_error_message(aug);
+  void initialize() {
+    std::call_once(initialized, [this]() {
+      this->aug = aug_init(
+          nullptr, FLAGS_augeas_lenses.c_str(), AUG_NO_ERR_CLOSE | AUG_NO_LOAD);
+      // Handle initialization errors.
+      if (this->aug == nullptr) {
+        LOG(ERROR) << "An error has occurred while trying to initialize augeas";
+        error = true;
+      } else if (aug_error(this->aug) != AUG_NOERROR) {
+        error = true;
+        // Do not use aug_error_details() here since augeas is not fully
+        // initialized.
+        LOG(ERROR)
+            << "An error has occurred while trying to initialize augeas: "
+            << aug_error_message(this->aug);
+        aug_close(this->aug);
+      }
+    });
+  }
+
+  ~AugeasHandle() {
     aug_close(aug);
+  }
+
+ private:
+  std::once_flag initialized;
+};
+
+static AugeasHandle kAugeasHandle;
+
+QueryData genAugeas(QueryContext& context) {
+  kAugeasHandle.initialize();
+
+  if (kAugeasHandle.error == true) {
     return {};
   }
+
+  augeas* aug = kAugeasHandle.aug;
+  aug_load(aug);
 
   QueryData results;
-  if (context.hasConstraint("path", EQUALS)) {
-    // Allow requests via filesystem path.
-    // We will request the pattern match by path using an optional argument.
-    auto paths = context.constraints["path"].getAll(EQUALS);
-    for (const auto& path : paths) {
-      matchAugeasPattern(aug, path, results, context, true);
-    }
-  } else if (context.hasConstraint("node", EQUALS)) {
+  std::unordered_set<std::string> patterns;
+
+  if (context.hasConstraint("node", EQUALS)) {
     auto nodes = context.constraints["node"].getAll(EQUALS);
-    auto pattern = boost::algorithm::join(nodes, "|");
-    matchAugeasPattern(aug, pattern, results, context);
-  } else {
-    matchAugeasPattern(aug, "/files//*", results, context);
+    patterns.insert(nodes.begin(), nodes.end());
   }
 
-  aug_close(aug);
+  if (context.hasConstraint("path", EQUALS)) {
+    // Allow requests via filesystem path.
+    auto paths = context.constraints["path"].getAll(EQUALS);
+    std::ostringstream pattern;
+
+    for (const auto& path : paths) {
+      pattern << "/files" << path;
+      patterns.insert(pattern.str());
+
+      pattern.clear();
+      pattern.str(std::string());
+
+      pattern << "/files" << path << "//*";
+      patterns.insert(pattern.str());
+
+      pattern.clear();
+      pattern.str(std::string());
+    }
+  }
+
+  if (patterns.empty()) {
+    matchAugeasPattern(aug, "/files//*", results, context);
+  } else {
+    matchAugeasPattern(
+        aug, boost::algorithm::join(patterns, "|"), results, context);
+  }
+
   return results;
 }
 }

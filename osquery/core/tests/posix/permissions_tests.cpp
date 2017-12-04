@@ -144,6 +144,13 @@ TEST_F(PermissionsTests, test_nobody_drop) {
     EXPECT_EQ(geteuid(), nobody->pw_uid);
   }
 
+  {
+    auto dropper = DropPrivileges::get();
+    EXPECT_TRUE(dropper->dropTo(std::to_string(nobody->pw_uid),
+                                std::to_string(nobody->pw_gid)));
+    EXPECT_EQ(geteuid(), nobody->pw_uid);
+  }
+
   // Now that the dropper is gone, the effective user/group should be restored.
   EXPECT_EQ(geteuid(), getuid());
   EXPECT_EQ(getegid(), getgid());
@@ -152,6 +159,10 @@ TEST_F(PermissionsTests, test_nobody_drop) {
 std::string kMultiThreadPermissionPath;
 
 class PermissionsRunnable : public InternalRunnable {
+ public:
+  PermissionsRunnable() : InternalRunnable("PermissionsRunnable") {}
+  PermissionsRunnable(const std::string& name) : InternalRunnable(name) {}
+
  private:
   virtual void start() override {
     while (!interrupted()) {
@@ -167,6 +178,9 @@ class PermissionsRunnable : public InternalRunnable {
 };
 
 class PermissionsPollRunnable : public PermissionsRunnable {
+ public:
+  PermissionsPollRunnable() : PermissionsRunnable("PermissionsPollRunnable") {}
+
  private:
   void start() override {
     PlatformFile file(kMultiThreadPermissionPath,

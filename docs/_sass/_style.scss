@@ -114,6 +114,25 @@ nav {
       }
     }
 
+    a[href^="https://"]:after {
+      content: "\f08e";
+      font-family: FontAwesome;
+      font-weight: normal;
+      font-style: normal;
+      font-size: 10px;
+      display: inline-block;
+      text-decoration: none;
+      padding-left: 4px;
+    }
+
+    /* Strip from links to own domain or with class no_icon */
+    a[href^="{{ site.url }}"]:after,
+    a.no_icon:after {
+      content:"" !important;
+      padding-left: 0;
+    }
+
+
     &.current {
 
       a {

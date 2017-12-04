@@ -8,8 +8,8 @@
  *
  */
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #ifdef WIN32
 #include <io.h>
@@ -79,7 +79,7 @@ int profile(int argc, char* argv[]) {
   auto dbc = osquery::SQLiteDBManager::get();
   for (size_t i = 0; i < static_cast<size_t>(osquery::FLAGS_profile); ++i) {
     osquery::QueryData results;
-    auto status = osquery::queryInternal(query, results, dbc->db());
+    auto status = osquery::queryInternal(query, results, dbc);
     dbc->clearAffectedTables();
     if (!status) {
       fprintf(stderr,
@@ -117,13 +117,14 @@ int startDaemon(Initializer& runner) {
 int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
   // Check for shell-specific switches and positional arguments.
   if (argc > 1 || !osquery::platformIsatty(stdin) ||
-      osquery::FLAGS_A.size() > 0 || osquery::FLAGS_pack.size() > 0 ||
+      !osquery::FLAGS_A.empty() || !osquery::FLAGS_pack.empty() ||
       osquery::FLAGS_L || osquery::FLAGS_profile > 0) {
     // A query was set as a positional argument, via stdin, or profiling is on.
     osquery::FLAGS_disable_events = true;
     osquery::FLAGS_disable_caching = true;
     // The shell may have loaded table extensions, if not, disable the manager.
-    if (!osquery::Watcher::get().hasManagedExtensions()) {
+    if (!osquery::Watcher::get().hasManagedExtensions() &&
+        Flag::isDefault("disable_extensions")) {
       osquery::FLAGS_disable_extensions = true;
     }
   }

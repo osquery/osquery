@@ -106,6 +106,10 @@ void genOSXPrefValues(const CFTypeRef& value,
     r["value"] = stringFromCFNumber(static_cast<CFDataRef>(value));
   } else if (CFGetTypeID(value) == CFStringGetTypeID()) {
     r["value"] = stringFromCFString(static_cast<CFStringRef>(value));
+  } else if (CFGetTypeID(value) == CFDateGetTypeID()) {
+    auto unix_time = CFDateGetAbsoluteTime(static_cast<CFDateRef>(value)) +
+                     kCFAbsoluteTimeIntervalSince1970;
+    r["value"] = boost::lexical_cast<std::string>(std::llround(unix_time));
   } else if (CFGetTypeID(value) == CFBooleanGetTypeID()) {
     r["value"] = (CFBooleanGetValue(static_cast<CFBooleanRef>(value)) == TRUE)
                      ? "true"
@@ -237,7 +241,7 @@ QueryData genOSXDefaultPreferences(QueryContext& context) {
     // Listing ALL application preferences is deprecated.
     OSQUERY_USE_DEPRECATED(
         app_map = (CFMutableArrayRef)CFPreferencesCopyApplicationList(
-            *user, kCFPreferencesCurrentHost););
+            *user, kCFPreferencesCurrentHost));
     if (app_map != nullptr) {
       // Iterate over each preference domain (applicationID).
       preferencesIterator(app_map, true);
@@ -247,7 +251,7 @@ QueryData genOSXDefaultPreferences(QueryContext& context) {
     // Again for 'any' host.
     OSQUERY_USE_DEPRECATED(
         app_map = (CFMutableArrayRef)CFPreferencesCopyApplicationList(
-            *user, kCFPreferencesAnyHost););
+            *user, kCFPreferencesAnyHost));
     if (app_map != nullptr) {
       // Iterate over each preference domain (applicationID).
       preferencesIterator(app_map, false);

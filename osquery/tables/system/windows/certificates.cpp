@@ -43,6 +43,7 @@ typedef struct _ENUM_ARG {
   const void* pvStoreLocationPara;
   QueryData* results;
   std::set<std::string>* processed;
+  std::string storeLocation;
 } ENUM_ARG, *PENUM_ARG;
 
 std::string cryptOIDToString(const char* objId) {
@@ -99,12 +100,13 @@ void getCertCtxProp(const PCCERT_CONTEXT& certContext,
 /// Enumerate and process a certificate store
 void enumerateCertStore(const HCERTSTORE& certStore,
                         const std::string& certStoreName,
+                        const std::string& storeLocation,
                         std::set<std::string>& processedCerts,
                         QueryData& results) {
   auto certContext = CertEnumCertificatesInStore(certStore, nullptr);
   if (certContext == nullptr) {
-    VLOG(1) << "Failed to enumerate certstore " << certStoreName << " with "
-            << GetLastError();
+    VLOG(1) << "Failed to enumerate certstore " << storeLocation << "\\"
+            << certStoreName << " with " << GetLastError();
     return;
   }
 
@@ -193,7 +195,7 @@ void enumerateCertStore(const HCERTSTORE& certStore,
                           back_inserter(subjectKeyId));
     r["subject_key_id"] = subjectKeyId;
 
-    r["path"] = certStoreName.empty() ? "-1" : certStoreName;
+    r["path"] = storeLocation + "\\" + certStoreName;
 
     std::string authKeyId;
     if (certContext->pCertInfo->cExtension != 0) {
@@ -260,8 +262,11 @@ BOOL WINAPI certEnumSystemStoreCallback(const void* systemStore,
     return FALSE;
   }
 
-  enumerateCertStore(
-      certHandle, friendlyStoreName, *storeArg->processed, *storeArg->results);
+  enumerateCertStore(certHandle,
+                     friendlyStoreName,
+                     storeArg->storeLocation,
+                     *storeArg->processed,
+                     *storeArg->results);
 
   auto ret = CertCloseStore(certHandle, 0);
   if (ret != TRUE) {
@@ -277,6 +282,7 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
                                                  void* reserved,
                                                  void* arg) {
   auto enumArg = static_cast<PENUM_ARG>(arg);
+  enumArg->storeLocation = wstringToString(storeLocation);
   flags &= CERT_SYSTEM_STORE_MASK;
   flags |= enumArg->dwFlags & ~CERT_SYSTEM_STORE_LOCATION_MASK;
   auto ret =
@@ -286,7 +292,8 @@ BOOL WINAPI certEnumSystemStoreLocationsCallback(LPCWSTR storeLocation,
                           certEnumSystemStoreCallback);
 
   if (ret != 1) {
-    VLOG(1) << "Failed to enumerate system stores with " << GetLastError();
+    VLOG(1) << "Failed to enumerate " << enumArg->storeLocation
+            << " store with " << GetLastError();
     return FALSE;
   }
   return TRUE;
