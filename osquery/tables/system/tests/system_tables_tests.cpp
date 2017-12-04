@@ -10,7 +10,15 @@
 
 #include <gtest/gtest.h>
 
+#include <fstream>
+#include <iostream>
+#include <stdio.h>
+
+#include <boost/filesystem.hpp>
+#include <gflags/gflags.h>
+
 #include <osquery/core.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
@@ -19,6 +27,9 @@
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
+
+DECLARE_bool(enable_hash_cache);
+
 namespace tables {
 
 class SystemsTablesTests : public testing::Test {};
@@ -154,6 +165,74 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
         "path LIKE '\\Windows\\%';");
     ASSERT_GT(results.rows().size(), 1U);
   }
+}
+
+TEST_F(SystemsTablesTests, test_hash_table) {
+  // this test requires cwd be writeable, which is meh,
+  // but I cannot figure out a better way to do it
+
+  const std::vector<std::string> content{"31337 hax0r", "random n00b"};
+  const std::string contentMd5 = "2adfc0fd337a144cb2f8abd7cb0bf98e";
+  const std::string contentSha1 = "21bd89f4580ef635e87f655fab5807a01e0ff2e9";
+  const std::string contentSha256 =
+      "6f1c16ac918f64721d14ff4bb3c51fe25ffde92f795ce6dbeb45722ce9d6e05c";
+  const std::string badContentMd5 = "e1cd6c58b0d4d9d7bcbfc0ec2b55ce94";
+
+  char f1path[] = "hash_table_test.tmpXXXXXX";
+  char* f1path_p = mktemp(f1path);
+  ASSERT_NE(f1path_p, nullptr);
+  std::ofstream f1;
+  f1.open(f1path);
+  f1 << content[0];
+  f1.flush();
+
+  char qry[0x200] = {0};
+  snprintf(qry,
+           sizeof(qry),
+           "select md5, sha1, sha256 from hash where path='%s'",
+           f1path);
+
+  // confirm we calculate correct hashes
+  {
+    SQL results(qry);
+    auto rows = results.rows();
+    EXPECT_EQ(rows.size(), 1U);
+    if (rows.size() == 1) {
+      EXPECT_EQ(rows[0].at("md5"), contentMd5);
+      EXPECT_EQ(rows[0].at("sha1"), contentSha1);
+      EXPECT_EQ(rows[0].at("sha256"), contentSha256);
+    }
+  }
+
+  // test caching
+  FLAGS_enable_hash_cache = true;
+  {
+    // test if result is cached
+    // cache is re-calculated if file's mtime and size do not match
+    // recorded value; both strings are the same size, and mtime
+    // has a resolution in seconds
+    // XXX: this relies on sub-second performance of write and query,
+    // which should be the case, but still something to consider
+    for (int i = 0; i < 2; ++i) {
+      f1.seekp(0, std::ios_base::beg);
+      f1 << content[i];
+      f1.flush();
+      SQL results(qry);
+      auto rows = results.rows();
+      EXPECT_EQ(rows[0].at("md5"), contentMd5);
+    }
+    // test if the cache is re-calculated properly
+    boost::filesystem::path p(f1path);
+    // now() - 1 hour, just in case
+    boost::filesystem::last_write_time(p, time(nullptr) - 60 * 60);
+    SQL results(qry);
+    auto rows = results.rows();
+    EXPECT_NE(rows[0].at("md5"), contentMd5);
+    EXPECT_EQ(rows[0].at("md5"), badContentMd5);
+  }
+
+  f1.close();
+  unlink(f1path);
 }
 }
 }
