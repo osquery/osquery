@@ -172,7 +172,6 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
   }
 }
 
-
 TEST_F(SystemsTablesTests, test_hash_table) {
   // this test requires cwd be writeable, which is meh,
   // but I cannot figure out a better way to do it
