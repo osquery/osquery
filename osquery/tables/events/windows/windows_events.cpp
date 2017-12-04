@@ -115,7 +115,12 @@ Status WindowsEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
 
   std::stringstream ss;
   boost::property_tree::write_json(ss, jsonOut, false);
-  r["data"] = ss.str();
+
+  auto s = ss.str();
+  if (s.at(s.size() - 1) == '\n') {
+    s.erase(s.end());
+  }
+  r["data"] = s;
 
   add(r);
   return Status(0, "OK");
