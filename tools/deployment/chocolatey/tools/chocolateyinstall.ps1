@@ -86,13 +86,4 @@ if ($installService) {
 }
 
 # Add osquery binary path to machines path for ease of use.
-$oldPath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
-if (-not ($oldPath -imatch [regex]::escape($targetFolder))) {
-  $newPath = $oldPath
-  if ($oldPath[-1] -eq ';') {
-    $newPath = $newPath + $targetFolder
-  } else {
-    $newPath = $newPath + ';' + $targetFolder
-  }
-  [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
-}
+Add-ToSystemPath $targetFolder

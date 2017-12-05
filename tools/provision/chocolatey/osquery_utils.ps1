@@ -171,6 +171,24 @@ function Get-OsqueryBuildPath {
   return $ret
 }
 
+# Helper function to add to the SYSTEM path
+function Add-ToSystemPath {
+  param(
+    [string] $targetFolder = ''
+  )
+
+  $oldPath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+  if (-not ($oldPath -imatch [regex]::escape($targetFolder))) {
+    $newPath = $oldPath
+    if ($oldPath[-1] -eq ';') {
+      $newPath = $newPath + $targetFolder
+    } else {
+      $newPath = $newPath + ';' + $targetFolder
+    }
+    [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
+  }
+}
+
 # A helper function for starting and waiting on processes in powershell
 function Start-OsqueryProcess {
   param(

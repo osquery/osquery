@@ -472,6 +472,8 @@ function Main {
   }
 
   $out = Install-ChocoPackage 'wixtoolset' '' @('--version', '3.10.3.300701')
+  # Add the WiX binary path to the system path for use
+  Add-ToSystemPath 'C:\Program Files (x86)\WiX Toolset v3.10\bin'
 
   # Convenience variable for accessing Python
   [Environment]::SetEnvironmentVariable("OSQUERY_PYTHON_PATH", $pythonInstall, "Machine")
