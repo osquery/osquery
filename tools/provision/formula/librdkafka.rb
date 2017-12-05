@@ -14,8 +14,8 @@ class Librdkafka < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "68c1f06e021f201a9c77b4ebd631df950e8eaf3d4e8882f65b38a8d5b4f2c825" => :sierra
-    sha256 "4f66dcfc34b7224fc6cdd9b951be616d2dacb42c53bd6b4f9cf56ce765262c75" => :x86_64_linux
+    sha256 "059dc732ce4cbe794a92164f451ef524c625f88be8c771a158b8d06be77bc643" => :sierra
+    sha256 "3908e35ba842583f8799a51dd65255e78918e26cd80e98531f6a3debab16dd67" => :x86_64_linux
   end
 
   def install
