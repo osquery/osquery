@@ -167,11 +167,36 @@ std::string hashFromFile(HashType hash_type, const std::string& path) {
   }
 }
 
-/*
- * FileHashCache implements persistent in-memory caching for files' hashes.
- * this cache has LRU eviction policy. the hash is recalculated
+/**
+ * @brief Implements persistent in-memory caching of files' hashes.
+ *
+ * This cache has LRU eviction policy. The hash is recalculated
  * every time the mtime or size of the file changes.
  */
+struct FileHashCache {
+  time_t file_mtime;
+  off_t file_size;
+  time_t cache_access_time;
+  MultiHashes hashes;
+  std::string path;
+
+  /// comparison function for organizing the LRU heap
+  static bool greater(const FileHashCache* l, const FileHashCache* r) {
+    return l->cache_access_time > r->cache_access_time;
+  }
+  /**
+   * @brief Do-it-all access function.
+   *
+   * Maintains the cache of hash sums, stats file at path, if it has changed or
+   * it is not present in cache calculates the hashes and caches the result
+   *
+   * @param path the path of file to hash
+   * @param out stores the calculated hashes
+   *
+   * @return true if succeeded, false if something went wrong
+   */
+  static bool load(const std::string& path, MultiHashes& out);
+};
 
 #if defined(WIN32)
 
@@ -179,27 +204,9 @@ std::string hashFromFile(HashType hash_type, const std::string& path) {
 
 #endif
 
-struct FileHashCache {
-  time_t file_mtime;
-  off_t file_size;
-  time_t cache_access_time;
-  MultiHashes hashes;
-  // tracking it for eviction policy
-  std::string path;
-
-  // comparison function for organizing the LRU heap
-  static bool greater(const FileHashCache* l, const FileHashCache* r) {
-    return l->cache_access_time > r->cache_access_time;
-  }
-  // do-it-all access function: maintains the cache of hash sums,
-  // stats file at path, if it has changed or it is not present in cache
-  // calculates the hashes and caches the result
-  // returns true if succeeded, false if something went wrong
-  static bool load(const std::string& path, MultiHashes& out);
-};
-
 bool FileHashCache::load(const std::string& path, MultiHashes& out) {
-  static Mutex mx; // synchronize the access to cache
+  // synchronize the access to cache
+  static Mutex mx;
   // path => cache entry
   static std::unordered_map<std::string, FileHashCache> cache;
   // minheap on cache_access_time
@@ -209,7 +216,7 @@ bool FileHashCache::load(const std::string& path, MultiHashes& out) {
 
   struct stat st;
   if (stat(path.c_str(), &st) != 0) {
-    LOG(WARNING) << "cannot stat file: " << path << ": " << strerror(errno);
+    LOG(WARNING) << "Cannot stat file: " << path << ": " << strerror(errno);
     return false;
   }
 
@@ -231,11 +238,11 @@ bool FileHashCache::load(const std::string& path, MultiHashes& out) {
     }
     auto hashes = hashMultiFromFile(
         HASH_TYPE_MD5 | HASH_TYPE_SHA1 | HASH_TYPE_SHA256, path);
-    FileHashCache rec = {.file_mtime = st.st_mtime,
-                         .file_size = st.st_size,
-                         .hashes = std::move(hashes),
-                         .cache_access_time = time(0),
-                         .path = path};
+    FileHashCache rec = {st.st_mtime, // .file_mtime
+                         st.st_size, // .file_size
+                         time(nullptr), // .cache_access_time
+                         std::move(hashes), // .hashes
+                         path}; // .path
     cache[path] = std::move(rec);
     lru.push_back(&cache[path]);
     std::push_heap(lru.begin(), lru.end(), FileHashCache::greater);
