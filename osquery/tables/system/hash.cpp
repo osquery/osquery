@@ -17,7 +17,6 @@
 #include <vector>
 
 #include <errno.h>
-#include <string.h>
 
 // clang-format off
 #include <sys/types.h>
