@@ -10,7 +10,12 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
+#include <gflags/gflags.h>
+
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
+#include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
@@ -19,6 +24,9 @@
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
+
+DECLARE_bool(enable_hash_cache);
+
 namespace tables {
 
 class SystemsTablesTests : public testing::Test {};
@@ -159,6 +167,84 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
         R"(select path from file where path = '/etc/' or path LIKE '/dev/%' or path LIKE '\Windows\%';)");
     ASSERT_GT(results.rows().size(), 1U);
   }
+}
+
+class HashTableTest : public testing::Test {
+ public:
+  const std::vector<std::string> content{"31337 hax0r", "random n00b"};
+  const std::string contentMd5 = "2adfc0fd337a144cb2f8abd7cb0bf98e";
+  const std::string contentSha1 = "21bd89f4580ef635e87f655fab5807a01e0ff2e9";
+  const std::string contentSha256 =
+      "6f1c16ac918f64721d14ff4bb3c51fe25ffde92f795ce6dbeb45722ce9d6e05c";
+  const std::string badContentMd5 = "e1cd6c58b0d4d9d7bcbfc0ec2b55ce94";
+
+  void SetContent(int n) {
+    if (pathExists(tmpPath)) {
+      boost::filesystem::resize_file(tmpPath, 0);
+    }
+    writeTextFile(tmpPath, content[n]);
+  }
+
+ protected:
+  virtual void SetUp() {
+    tmpPath = boost::filesystem::temp_directory_path();
+    tmpPath /= boost::filesystem::unique_path(
+        "osquery_hash_t_test-%%%%-%%%%-%%%%-%%%%");
+    qry = std::string("select md5, sha1, sha256 from hash where path='") +
+          tmpPath.string() + "'";
+  }
+
+  virtual void TearDown() {
+    removePath(tmpPath);
+  }
+
+  boost::filesystem::path tmpPath;
+  std::string qry;
+};
+
+TEST_F(HashTableTest, hashes_are_correct) {
+  SetContent(0);
+  SQL results(qry);
+  auto rows = results.rows();
+  ASSERT_EQ(rows.size(), 1U);
+  EXPECT_EQ(rows[0].at("md5"), contentMd5);
+  EXPECT_EQ(rows[0].at("sha1"), contentSha1);
+  EXPECT_EQ(rows[0].at("sha256"), contentSha256);
+}
+
+TEST_F(HashTableTest, test_cache_works) {
+  FLAGS_enable_hash_cache = true;
+  time_t last_mtime = 0;
+  for (int i = 0; i < 2; ++i) {
+    SetContent(i);
+    if (last_mtime == 0) {
+      last_mtime = boost::filesystem::last_write_time(tmpPath);
+    } else {
+      // make sure mtime doesn't change
+      boost::filesystem::last_write_time(tmpPath, last_mtime);
+    }
+    SQL results(qry);
+    auto rows = results.rows();
+    ASSERT_EQ(rows.size(), 1U);
+    EXPECT_EQ(rows[0].at("md5"), contentMd5);
+  }
+}
+
+TEST_F(HashTableTest, test_cache_updates) {
+  FLAGS_enable_hash_cache = true;
+  SetContent(0);
+  // cache the current state
+  SQL r1(qry);
+  ASSERT_EQ(r1.rows().size(), 1U);
+
+  SetContent(1);
+  // now() - 1 hour, just in case
+  boost::filesystem::last_write_time(tmpPath, time(nullptr) - 60 * 60);
+  SQL r2(qry);
+  auto rows = r2.rows();
+  ASSERT_EQ(rows.size(), 1U);
+  EXPECT_NE(rows[0].at("md5"), contentMd5);
+  EXPECT_EQ(rows[0].at("md5"), badContentMd5);
 }
 } // namespace tables
 } // namespace osquery
