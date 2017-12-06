@@ -90,7 +90,7 @@ Status Query::addNewResults(QueryData qd,
                             const uint64_t epoch,
                             uint64_t& counter) const {
   DiffResults dr;
-  return addNewResults(qd, epoch, counter, dr, false);
+  return addNewResults(std::move(qd), epoch, counter, dr, false);
 }
 
 Status Query::addNewResults(QueryData current_qd,
