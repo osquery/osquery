@@ -211,12 +211,10 @@ TEST_F(HashTableTest, hashes_are_correct) {
   SetContent(0);
   SQL results(qry);
   auto rows = results.rows();
-  EXPECT_EQ(rows.size(), 1U);
-  if (rows.size() == 1) {
-    EXPECT_EQ(rows[0].at("md5"), contentMd5);
-    EXPECT_EQ(rows[0].at("sha1"), contentSha1);
-    EXPECT_EQ(rows[0].at("sha256"), contentSha256);
-  }
+  ASSERT_EQ(rows.size(), 1U);
+  EXPECT_EQ(rows[0].at("md5"), contentMd5);
+  EXPECT_EQ(rows[0].at("sha1"), contentSha1);
+  EXPECT_EQ(rows[0].at("sha256"), contentSha256);
 }
 
 TEST_F(HashTableTest, test_cache_works) {
@@ -232,6 +230,7 @@ TEST_F(HashTableTest, test_cache_works) {
     }
     SQL results(qry);
     auto rows = results.rows();
+    ASSERT_EQ(rows.size(), 1U);
     EXPECT_EQ(rows[0].at("md5"), contentMd5);
   }
 }
@@ -241,12 +240,14 @@ TEST_F(HashTableTest, test_cache_updates) {
   SetContent(0);
   // cache the current state
   SQL r1(qry);
+  ASSERT_EQ(r1.rows().size(), 1U);
 
   SetContent(1);
   // now() - 1 hour, just in case
   boost::filesystem::last_write_time(tmpPath, time(nullptr) - 60 * 60);
   SQL r2(qry);
   auto rows = r2.rows();
+  ASSERT_EQ(rows.size(), 1U);
   EXPECT_NE(rows[0].at("md5"), contentMd5);
   EXPECT_EQ(rows[0].at("md5"), badContentMd5);
 }
