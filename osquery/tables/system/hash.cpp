@@ -17,6 +17,7 @@
 #include <vector>
 
 #include <errno.h>
+#include <string.h>
 
 // clang-format off
 #include <sys/types.h>
@@ -200,6 +201,7 @@ struct FileHashCache {
 #if defined(WIN32)
 
 #define stat _stat
+#define strerror_r(e, buf, sz) strerror_s((buf), (sz), (e))
 
 #endif
 
@@ -215,7 +217,9 @@ bool FileHashCache::load(const std::string& path, MultiHashes& out) {
 
   struct stat st;
   if (stat(path.c_str(), &st) != 0) {
-    LOG(WARNING) << "Cannot stat file: " << path << ": " << strerror(errno);
+    char buf[0x200] = {0};
+    strerror_r(errno, buf, sizeof(buf));
+    LOG(WARNING) << "Cannot stat file: " << path << ": " << buf;
     return false;
   }
 
