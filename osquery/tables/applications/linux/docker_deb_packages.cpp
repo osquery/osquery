@@ -67,6 +67,9 @@ void getDebPackages(int fd) {
     return;
   }
 
+  auto dropper = DropPrivileges::get();
+  dropper->dropTo("nobody");
+
   rapidjson::StringBuffer buffer;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   writer.StartArray();
@@ -79,21 +82,20 @@ void getDebPackages(int fd) {
     // Casted to int to allow the older enums that were embeded in the
     // packages
     // struct to be compared
-    if (static_cast<int>(pkg->status) ==
+    if (static_cast<int>(pkg->status) !=
         static_cast<int>(PKG_STAT_NOTINSTALLED)) {
-      continue;
+        extractDebPackageInfo(pkg, writer);
     }
-
-    extractDebPackageInfo(pkg, writer);
   }
 
   dpkg_teardown(&packages);
   writer.EndArray();
 
-  if (const auto bufSize = buffer.GetSize(); bufSize >= 1) {
-  if (write(fd, buffer.GetString(), bufSize) != (ssize_t)bufSize) {
-    VLOG(1) << "error writing pkginfo ";
-  }
+  const auto bufSize = buffer.GetSize();
+  if (bufSize >= 1) {
+      if (write(fd, buffer.GetString(), bufSize) != (ssize_t)bufSize) {
+          VLOG(1) << "error writing pkginfo ";
+      }
   }
 }
 
@@ -128,11 +130,9 @@ QueryData genDockerDebPackages(QueryContext& context) {
     }
 
     NamespaceOps nsOps(pid, fds[1]);
-    Status forkOps = nsOps.invoke(getDebPackages);
-
-    if (!forkOps.ok()) {
-      VLOG(1) << "error entering namespace: " << forkOps.what() << " : "
-              << forkOps.getCode();
+    Status iv = nsOps.invoke(getDebPackages);
+    if (!iv.ok()) {
+      VLOG(1) << "error entering namespace: " << iv.what();
       close(fds[0]);
       close(fds[1]);
       continue;

@@ -62,7 +62,7 @@ Status NamespaceOps::wait() {
 }
 
 Status NamespaceOps::kill() {
-  // So that we don't accidentaly kill any other process
+  // So that we don't accidentally kill any other process
   if (_childPid < 0) {
     return Status(1, "invalid pid");
   }
