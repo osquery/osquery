@@ -20,7 +20,6 @@
 #include <osquery/tables/applications/posix/docker_api.h>
 #include <osquery/tables/system/linux/deb.h>
 
-
 #include <rapidjson/filereadstream.h>
 
 namespace osquery {
@@ -84,7 +83,7 @@ void getDebPackages(int fd) {
     // struct to be compared
     if (static_cast<int>(pkg->status) !=
         static_cast<int>(PKG_STAT_NOTINSTALLED)) {
-        extractDebPackageInfo(pkg, writer);
+      extractDebPackageInfo(pkg, writer);
     }
   }
 
@@ -93,9 +92,9 @@ void getDebPackages(int fd) {
 
   const auto bufSize = buffer.GetSize();
   if (bufSize >= 1) {
-      if (write(fd, buffer.GetString(), bufSize) != (ssize_t)bufSize) {
-          VLOG(1) << "error writing pkginfo ";
-      }
+    if (write(fd, buffer.GetString(), bufSize) != (ssize_t)bufSize) {
+      VLOG(1) << "error writing pkginfo ";
+    }
   }
 }
 
