@@ -188,6 +188,7 @@ std::string generateHostUUID() {
   }
 
   // Unable to get the hardware UUID, just return a new UUID
+  VLOG(1) << "Failed to read system uuid, returning ephemeral uuid";
   return generateNewUUID();
 }
 
