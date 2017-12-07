@@ -66,8 +66,8 @@ QueryData genDebPackages(QueryContext &context) {
   struct pkg_array packages;
   dpkg_setup(&packages);
 
-  for (int i = 0; i < packages.n_pkgs; i++) {
-    struct pkginfo *pkg = packages.pkgs[i];
+  const auto* pk = packages.pkgs;
+  for (const auto& pkg : boost::make_iterator_range(pk, pk + packages.n_pkgs)) {
     // Casted to int to allow the older enums that were embeded in the packages
     // struct to be compared
     if (static_cast<int>(pkg->status) ==

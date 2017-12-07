@@ -32,7 +32,6 @@ const std::map<std::string, std::string> kFieldMappings = {
     {"Source", "source"},
     {"Revision", "revision"}};
 
-
 int pkg_sorter(const void* a, const void* b) {
   const struct pkginfo* pa = *(const struct pkginfo**)a;
   const struct pkginfo* pb = *(const struct pkginfo**)b;
