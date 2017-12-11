@@ -11,17 +11,6 @@ set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-DARWIN_SETUP="\
-if [[ ! -f /var/.osquery_build ]]; then \
-touch /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress; \
-PROD=\$(softwareupdate -l | grep \"\\*.*Command Line\" | \
-  head -n 1 | awk -F\"*\" '{print \$2}' | sed -e 's/^ *//' | tr -d '\n' \
-); \
-softwareupdate -i \"\$PROD\" --verbose; \
-sudo touch /var/.osquery_build; \
-fi; \
-"
-
 DARWIN_BOX="macos10.12"
 LINUX_BOX="ubuntu16.04"
 
@@ -74,7 +63,7 @@ function main() {
     echo "[+] Vagrant up $DARWIN_BOX"
     OSQUERY_BUILD_CPUS=4 vagrant up $DARWIN_BOX
     echo "[+] Running initial softwareupdate check..."
-    vagrant ssh $DARWIN_BOX -c "$DARWIN_SETUP"
+    vagrant ssh $DARWIN_BOX -c "/vagrant/tools/provision/darwin.sh"
     echo "[+] Running build command for macOS..."
     vagrant ssh $DARWIN_BOX -c "$BUILD_CMD"
     echo "[+] Running package build command for macOS..."
