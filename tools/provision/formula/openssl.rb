@@ -13,8 +13,8 @@ class Openssl < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "023a6f557c41015694c6508142687af7979d864f71a70b038b0aaafb945bc714" => :sierra
-    sha256 "79f095df9b09ea7b49165e2cc37e1ddd087365623d3186e499b70c30e6fcb25a" => :x86_64_linux
+    sha256 "c36da72ba511c0903e6f06b5c46bed71cb41f9d73c54c46c39e35e7d317a214b" => :sierra
+    sha256 "d44f51e85390246f2f8d6ba8b1a7082b5f6d4a83ace0b0f7a826bdf9352ba557" => :x86_64_linux
   end
 
   resource "cacert" do
