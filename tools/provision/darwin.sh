@@ -27,4 +27,4 @@ function distro_main() {
   do_sudo $GEM install --no-ri --no-rdoc fpm
 }
 
-[ "$0" = "$BASH_SOURCE" ] && vagrant_setup
+[ "$0" = "$BASH_SOURCE" ] && vagrant_setup || true
