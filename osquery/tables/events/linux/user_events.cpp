@@ -16,7 +16,7 @@ namespace osquery {
 
 FLAG(bool,
      audit_allow_user_events,
-     false,
+     true,
      "Allow the audit publisher to install user events-related rules");
 
 // Depend on the external getUptime table method.
