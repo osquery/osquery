@@ -1,4 +1,4 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
@@ -6,7 +6,6 @@
  *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
  *  in the COPYING file in the root directory of this source tree).
  *  You may select, at your option, one of the above-listed licenses.
- *
  */
 
 #pragma once
@@ -34,7 +33,10 @@ struct SyscallAuditEventData final {
   pid_t parent_process_id;
 
   uid_t process_uid;
+  uid_t process_euid;
+
   gid_t process_gid;
+  gid_t process_egid;
 
   std::string executable_path;
 };

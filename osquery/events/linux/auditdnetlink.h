@@ -1,4 +1,4 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
@@ -6,7 +6,6 @@
  *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
  *  in the COPYING file in the root directory of this source tree).
  *  You may select, at your option, one of the above-listed licenses.
- *
  */
 
 #pragma once

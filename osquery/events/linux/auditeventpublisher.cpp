@@ -1,4 +1,4 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
@@ -6,7 +6,6 @@
  *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
  *  in the COPYING file in the root directory of this source tree).
  *  You may select, at your option, one of the above-listed licenses.
- *
  */
 
 #include <array>
@@ -191,6 +190,14 @@ void AuditEventPublisher::ProcessEvents(
         continue;
       }
 
+      std::uint64_t process_euid;
+      if (!GetIntegerFieldFromMap(
+              process_euid, audit_event_record.fields, "euid")) {
+        VLOG(1) << "Missing or invalid euid field in AUDIT_SYSCALL";
+
+        continue;
+      }
+
       std::uint64_t process_gid;
       if (!GetIntegerFieldFromMap(
               process_gid, audit_event_record.fields, "gid")) {
@@ -199,8 +206,18 @@ void AuditEventPublisher::ProcessEvents(
         continue;
       }
 
+      std::uint64_t process_egid;
+      if (!GetIntegerFieldFromMap(
+              process_egid, audit_event_record.fields, "egid")) {
+        VLOG(1) << "Missing or invalid egid field in AUDIT_SYSCALL";
+
+        continue;
+      }
+
       data.process_uid = static_cast<uid_t>(process_uid);
+      data.process_euid = static_cast<uid_t>(process_euid);
       data.process_gid = static_cast<gid_t>(process_gid);
+      data.process_egid = static_cast<gid_t>(process_egid);
 
       audit_event.record_list.push_back(audit_event_record);
       trace_context[audit_event_record.audit_id] = std::move(audit_event);
