@@ -20,7 +20,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-#include "osquery/tables/events/linux/auditd_fim_events.h"
+#include "osquery/tables/events/linux/process_file_events.h"
 
 namespace boostfs = boost::filesystem;
 
@@ -57,7 +57,7 @@ HIDDEN_FLAG(bool,
             false,
             "Show debug messages for the FIM table");
 
-REGISTER(AuditdFimEventSubscriber, "event_subscriber", "auditd_fim_events");
+REGISTER(ProcessFileEventSubscriber, "event_subscriber", "process_file_events");
 
 namespace {
 std::ostream& operator<<(std::ostream& stream,
@@ -1123,7 +1123,7 @@ bool AuditSyscallRecordHandler(AuditdFimContext& fim_context,
 }
 } // namespace
 
-Status AuditdFimEventSubscriber::setUp() {
+Status ProcessFileEventSubscriber::setUp() {
   if (!FLAGS_audit_allow_fim_events) {
     return Status(1, "Subscriber disabled via configuration");
   }
@@ -1131,14 +1131,14 @@ Status AuditdFimEventSubscriber::setUp() {
   return Status(0);
 }
 
-Status AuditdFimEventSubscriber::init() {
+Status ProcessFileEventSubscriber::init() {
   auto sc = createSubscriptionContext();
-  subscribe(&AuditdFimEventSubscriber::Callback, sc);
+  subscribe(&ProcessFileEventSubscriber::Callback, sc);
 
   return Status(0, "OK");
 }
 
-void AuditdFimEventSubscriber::configure() {
+void ProcessFileEventSubscriber::configure() {
   auto parser = Config::getParser("file_paths");
   Config::get().files([this](const std::string& category,
                              const std::vector<std::string>& files) {
@@ -1158,8 +1158,8 @@ void AuditdFimEventSubscriber::configure() {
   });
 }
 
-Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
-                                          const SCRef& subscription_context) {
+Status ProcessFileEventSubscriber::Callback(const ECRef& event_context,
+                                            const SCRef& subscription_context) {
   std::vector<Row> emitted_row_list;
   auto exit_status =
       ProcessEvents(emitted_row_list, context_, event_context->audit_events);
@@ -1170,14 +1170,14 @@ Status AuditdFimEventSubscriber::Callback(const ECRef& event_context,
   return exit_status;
 }
 
-Status AuditdFimEventSubscriber::ProcessEvents(
+Status ProcessFileEventSubscriber::ProcessEvents(
     std::vector<Row>& emitted_row_list,
     AuditdFimContext& fim_context,
     const std::vector<AuditEvent>& event_list) noexcept {
   emitted_row_list.clear();
 
   auto L_ShouldHandle = [](std::uint64_t syscall_number) -> bool {
-    const auto& syscall_set = AuditdFimEventSubscriber::GetSyscallSet();
+    const auto& syscall_set = ProcessFileEventSubscriber::GetSyscallSet();
     return (syscall_set.find(static_cast<int>(syscall_number)) !=
             syscall_set.end());
   };
@@ -1283,7 +1283,7 @@ Status AuditdFimEventSubscriber::ProcessEvents(
   return Status(0, "OK");
 }
 
-const std::set<int>& AuditdFimEventSubscriber::GetSyscallSet() noexcept {
+const std::set<int>& ProcessFileEventSubscriber::GetSyscallSet() noexcept {
   static const std::set<int> syscall_set = {__NR_link,
                                             __NR_linkat,
                                             __NR_symlink,

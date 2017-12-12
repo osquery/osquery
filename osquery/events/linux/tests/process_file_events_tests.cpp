@@ -27,7 +27,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditeventpublisher.h"
-#include "osquery/tables/events/linux/auditd_fim_events.h"
+#include "osquery/tables/events/linux/process_file_events.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
@@ -101,7 +101,7 @@ TEST_F(AuditdFimTests, row_emission) {
 
   // Emit the rows, showing only writes
   std::vector<Row> emitted_row_list;
-  Status status = AuditdFimEventSubscriber::ProcessEvents(
+  Status status = ProcessFileEventSubscriber::ProcessEvents(
       emitted_row_list, fim_context, event_context->audit_events);
 
   EXPECT_EQ(status.ok(), true);

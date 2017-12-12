@@ -24,8 +24,8 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditdnetlink.h"
-#include "osquery/tables/events/linux/auditd_fim_events.h"
 #include "osquery/tables/events/linux/process_events.h"
+#include "osquery/tables/events/linux/process_file_events.h"
 #include "osquery/tables/events/linux/socket_events.h"
 
 namespace {
@@ -317,11 +317,11 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
     }
   }
 
-  // Rules required by the auditd_fim_events table
+  // Rules required by the process_file_events table
   if (FLAGS_audit_allow_fim_events) {
-    VLOG(1) << "Enabling audit rules for the auditd_fim_events table";
+    VLOG(1) << "Enabling audit rules for the process_file_events table";
 
-    for (int syscall : AuditdFimEventSubscriber::GetSyscallSet()) {
+    for (int syscall : ProcessFileEventSubscriber::GetSyscallSet()) {
       monitored_syscall_list_.insert(syscall);
     }
   }
@@ -369,7 +369,7 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
                  "service rules: "
               << syscall_number << ". Some of the auditd "
               << "table may not work properly (process_events, "
-              << "socket_events, auditd_fim_events)";
+              << "socket_events, process_file_events, user_events)";
     }
   }
 
