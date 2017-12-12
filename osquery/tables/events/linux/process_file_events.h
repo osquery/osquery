@@ -235,6 +235,12 @@ struct AuditdFimSyscallContext final {
   /// The process gid
   gid_t process_gid;
 
+  /// The process euid
+  uid_t process_euid;
+
+  /// The process egid
+  gid_t process_egid;
+
   // Path of the executable that generated the event
   std::string executable_path;
 
