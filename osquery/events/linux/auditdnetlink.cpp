@@ -161,7 +161,7 @@ void AuditdNetlinkReader::start() {
       if (audit_request_status(audit_netlink_handle_) <= 0) {
         if (errno == ENOBUFS) {
           VLOG(1) << "Warning: Failed to request audit status (ENOBUFS). "
-                     "Retrying again later...";
+                     "Retrying again later";
 
         } else {
           VLOG(1) << "Error: Failed to request audit status. Requesting a "
@@ -282,7 +282,7 @@ bool AuditdNetlinkReader::acquireMessages() noexcept {
 }
 
 bool AuditdNetlinkReader::configureAuditService() noexcept {
-  VLOG(1) << "Attempting to configure the audit service...";
+  VLOG(1) << "Attempting to configure the audit service";
 
   // Want to set a min sane buffer and maximum number of events/second min.
   // This is normally controlled through the audit config, but we must
@@ -527,7 +527,7 @@ bool AuditdNetlinkReader::deleteAuditRule(
 
 void AuditdNetlinkReader::restoreAuditServiceConfiguration() noexcept {
   if (FLAGS_audit_debug) {
-    std::cout << "Uninstalling audit rules..." << std::endl;
+    std::cout << "Uninstalling audit rules" << std::endl;
   }
 
   // Remove the rules we have added
@@ -542,7 +542,7 @@ void AuditdNetlinkReader::restoreAuditServiceConfiguration() noexcept {
 
   // Restore audit configuration defaults.
   if (FLAGS_audit_debug) {
-    std::cout << "Restoring default settings and disabling the service..."
+    std::cout << "Restoring default settings and disabling the service"
               << std::endl;
   }
 
