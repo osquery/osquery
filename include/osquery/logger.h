@@ -368,6 +368,8 @@ size_t queuedSenders();
  * configuration and log to the OS system log.
  *
  * Linux/Darwin: this uses syslog's LOG_NOTICE.
+ * Windows: This will end up inside the Facebook/osquery in the Windows
+ * Event Log.
  */
 void systemLog(const std::string& line);
 } // namespace osquery

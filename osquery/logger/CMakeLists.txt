@@ -6,6 +6,13 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 file(GLOB OSQUERY_LOGGER "*.cpp")
+
+if(WINDOWS)
+  # The Windows Event Log plugin is also used for the built-in systemLog call. This
+  # is why we are listing it as a core source file.
+  list(APPEND OSQUERY_LOGGER "plugins/windows_event_log.cpp")
+endif()
+
 ADD_OSQUERY_LIBRARY_CORE(osquery_logger ${OSQUERY_LOGGER})
 
 file(GLOB OSQUERY_LOGGER_TESTS "tests/*.cpp")
@@ -78,6 +85,7 @@ if(NOT SKIP_AWS)
   if(WINDOWS)
     ADD_OSQUERY_LINK_CORE("UserEnv.lib")
     ADD_OSQUERY_LINK_CORE("bcrypt.lib")
+    ADD_OSQUERY_LINK_CORE("wevtapi.lib")
   endif()
 
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-kinesis")
