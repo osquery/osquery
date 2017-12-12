@@ -157,8 +157,13 @@ Status SocketEventSubscriber::ProcessEvents(
 
     std::string saddr;
     GetStringFieldFromMap(saddr, sockaddr_event_record->fields, "saddr");
-    if (saddr.size() < 4 || saddr[0] == '1') {
+    if (saddr.size() < 4) {
       VLOG(1) << "Invalid saddr field in AUDIT_SOCKADDR: \"" << saddr << "\"";
+      continue;
+    }
+
+    // skip operations on NETLINK_ROUTE sockets
+    if (saddr[0] == '1' && saddr[1] == '0') {
       continue;
     }
 
@@ -180,7 +185,8 @@ Status SocketEventSubscriber::ProcessEvents(
     bool unix_socket;
     if (!parseSockAddr(saddr, row, unix_socket)) {
       VLOG(1) << "Malformed syscall event. The saddr field in the "
-                 "AUDIT_SOCKADDR record could not be parsed";
+                 "AUDIT_SOCKADDR record could not be parsed: \""
+              << saddr << "\"";
       continue;
     }
 
