@@ -1,5 +1,6 @@
-table_name("auditd_fim_events")
+table_name("process_file_events")
 description("A File Integrity Monitor implementation using the audit service.")
+
 schema([
     Column("operation", TEXT, "Operation type"),
     Column("pid", BIGINT, "Process ID"),
@@ -15,5 +16,6 @@ schema([
     Column("uptime", BIGINT, "Time of execution in system uptime"),
     Column("eid", TEXT, "Event ID", hidden=True),
 ])
+
 attributes(event_subscriber=True)
-implementation("auditd_fim_events@auditd_fim_events::genTable")
+implementation("process_file_events@process_file_events::genTable")

@@ -259,7 +259,7 @@ struct AuditdFimSyscallContext final {
 /// builds a file descriptor map for each process. Once a read or
 /// write operation is performed, a new row is emitted (according
 /// to how it has been configured).
-class AuditdFimEventSubscriber final
+class ProcessFileEventSubscriber final
     : public EventSubscriber<AuditEventPublisher> {
  public:
   Status setUp() override;
