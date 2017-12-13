@@ -165,12 +165,15 @@ Status grabProgramOutput(std::vector<std::string>& output,
     boostproc::ipstream process_output;
     boostproc::child process(boostproc::search_path(executable),
                              parameters,
-                             boostproc::std_out > process_output);
+                             boostproc::std_out > process_output,
+                             boostproc::std_err > boostproc::null);
 
     process.wait();
+
+    // clang-format off
     for (std::string line; std::getline(process_output, line);
-         output.push_back(line))
-      ;
+         output.push_back(line));
+    // clang-format on
 
     return Status(0, "OK");
 
