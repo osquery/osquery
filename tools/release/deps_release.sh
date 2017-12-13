@@ -10,6 +10,7 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+VAGRANT="/vagrant"
 
 DARWIN_BOX="macos10.12"
 LINUX_BOX="ubuntu16.04"
@@ -33,8 +34,8 @@ function install_deps() {
     vagrant ssh $BOX -c "$INSTALL_CMD"
 
     if [[ "$BOX" = "$DARWIN_BOX" ]]; then
-      vagrant scp "$BOX:/vagrant/*$DEP*.tar.gz" .
-      vagrant scp "$BOX:/vagrant/tools/provision/formula/$DEP.rb" \
+      vagrant scp "$BOX:$VAGRANT/*$DEP*.tar.gz" .
+      vagrant scp "$BOX:$VAGRANT/tools/provision/formula/$DEP.rb" \
         ./tools/provision/formula/$DEP.rb
     fi
   done
@@ -50,7 +51,7 @@ function main() {
   CURRENT_DIR=$(pwd)
   DEPS=$1
 
-  DEPS_CMD="cd /vagrant; make deps || true"
+  DEPS_CMD="cd $VAGRANT; make deps || true"
 
   echo "[+] Vagrant up $LINUX_BOX"
   OSQUERY_BUILD_CPUS=4 vagrant up $LINUX_BOX
@@ -62,7 +63,7 @@ function main() {
   echo "[+] Vagrant up $DARWIN_BOX"
   OSQUERY_BUILD_CPUS=4 vagrant up $DARWIN_BOX
   echo "[+] Running initial softwareupdate check..."
-  vagrant ssh $DARWIN_BOX -c "/vagrant/tools/provision/darwin.sh"
+  vagrant ssh $DARWIN_BOX -c "$VAGRANT/tools/provision/darwin.sh"
   echo "[+] Running build command for macOS..."
   vagrant ssh $DARWIN_BOX -c "$DEPS_CMD"
   install_deps $DARWIN_BOX "$DEPS"
