@@ -11,12 +11,14 @@
 #include <mutex>
 #include <set>
 
+#include <algorithm>
 #include <mutex>
 #include <set>
 #include <unordered_map>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/process.hpp>
 
 #include <osquery/core.h>
 #include <osquery/logger.h>
@@ -26,6 +28,7 @@ namespace osquery {
 namespace {
 
 namespace boostfs = boost::filesystem;
+namespace boostproc = boost::process;
 
 bool sysVinitEnabled() {
   static boost::optional<bool> enabled;
@@ -57,7 +60,7 @@ bool upstartEnabled() {
     return enabled.get();
   }
 
-  enabled = std::system("which service > /dev/null 2>&1") == 0;
+  enabled = boostfs::exists("/etc/init");
   VLOG(1) << "Upstart was" << (enabled.get() ? " " : " NOT ") << "found";
 
   return enabled.get();
@@ -132,16 +135,19 @@ Status enumerateSysVinitServices(QueryData& query_data) {
     r["path"] = std::string("/etc/init.d/") + service_name;
     r["service_type"] = "SysVinit";
 
-    for (auto run_level : run_level_list) {
-      if (!r["start_type"].empty()) {
-        r["start_type"] += ", ";
+    // Use the same syntax as Upstart
+    if (!run_level_list.empty()) {
+      r["start_type"] = "runlevel [";
+
+      for (auto run_level : run_level_list) {
+        if (run_level != 7) {
+          r["start_type"] += std::to_string(run_level);
+        } else {
+          r["start_type"] += "S";
+        }
       }
 
-      if (run_level != 7) {
-        r["start_type"] += std::to_string(run_level);
-      } else {
-        r["start_type"] += "S";
-      }
+      r["start_type"] += "]";
     }
 
     query_data.push_back(r);
@@ -150,9 +156,128 @@ Status enumerateSysVinitServices(QueryData& query_data) {
   return Status(0, "OK");
 }
 
+Status grabProgramOutput(std::vector<std::string>& output,
+                         const std::string& executable,
+                         const std::vector<std::string>& parameters) {
+  output.clear();
+
+  try {
+    boostproc::ipstream process_output;
+    boostproc::child process(boostproc::search_path(executable),
+                             parameters,
+                             boostproc::std_out > process_output);
+
+    process.wait();
+    for (std::string line; std::getline(process_output, line);
+         output.push_back(line))
+      ;
+
+    return Status(0, "OK");
+
+  } catch (...) {
+    return Status(1, "Failed to execute the process");
+  }
+}
+
+Status getUpstartServiceStatus(bool& running, const std::string& service_name) {
+  running = false;
+
+  std::vector<std::string> output;
+  auto status = grabProgramOutput(output, "initctl", {"status", service_name});
+  if (!status.ok()) {
+    return status;
+  }
+
+  // clang-format off
+  auto it = std::find_if(
+    output.begin(),
+    output.end(),
+    [service_name](const std::string &obj) -> bool {
+      auto str = service_name + " start/";
+      return (obj.find(str) != std::string::npos);
+    }
+  );
+  // clang-format on
+
+  running = (it != output.end());
+  return Status(0, "OK");
+}
+
+Status getUpstartServiceStartCondition(std::string& condition,
+                                       const std::string& service_name) {
+  condition.clear();
+
+  std::vector<std::string> output;
+  auto status =
+      grabProgramOutput(output, "initctl", {"show-config", service_name});
+  if (!status.ok()) {
+    return status;
+  }
+
+  // clang-format off
+  auto it = std::find_if(
+    output.begin(),
+    output.end(),
+    [](const std::string &obj) -> bool {
+      return (obj.find("  start on") == 0);
+    }
+  );
+  // clang-format on
+
+  if (it == output.end()) {
+    condition = "DISABLED";
+    return Status(0, "OK");
+  }
+
+  condition = it->substr(11);
+  return Status(0, "OK");
+}
+
 Status enumerateUpstartServices(QueryData& query_data) {
   if (!upstartEnabled()) {
     return Status(0, "OK");
+  }
+
+  boostfs::directory_iterator end_it;
+  for (auto it = boostfs::directory_iterator("/etc/init"); it != end_it; ++it) {
+    const auto& service_config_path = it->path();
+    if (!boostfs::is_regular_file(service_config_path)) {
+      VLOG(1) << "Skipping invalid service configuration file: "
+              << service_config_path;
+
+      continue;
+    }
+
+    Row r = {};
+    auto service_name = service_config_path.filename().stem().string();
+    r["name"] = service_name;
+    r["path"] = service_config_path.string();
+    r["service_type"] = "Upstart";
+
+    bool running;
+    auto status = getUpstartServiceStatus(running, service_name);
+    if (!status.ok()) {
+      running = false;
+      VLOG(1) << "Failed to determine whether the following Upstart service is "
+                 "running or not: "
+              << service_name;
+    }
+
+    r["status"] = running ? "RUNNING" : "STOPPED";
+
+    std::string start_condition;
+    status = getUpstartServiceStartCondition(start_condition, service_name);
+    if (!status.ok()) {
+      start_condition.clear();
+
+      VLOG(1) << "Failed to determine the following Upstart service "
+                 "start condition: "
+              << service_name;
+    }
+
+    r["start_type"] = start_condition;
+
+    query_data.push_back(r);
   }
 
   return Status(0, "OK");
