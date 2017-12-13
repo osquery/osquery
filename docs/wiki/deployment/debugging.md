@@ -125,6 +125,26 @@ While not expected, the backing store may be corrupted by problems with the file
 
 If your `--database_path` is `/var/osquery/osquery.db` then the backup is `/var/osquery/osquery.db.backup`. The database is always a folder and the backup location is the suffix ".backup" appended.
 
+### Inspecting TLS/HTTPS body request and responses
+
+When using the TLS-related plugins the hidden flag `--tls_dump` can be used with `--verbose`. This flag will print all of the HTTPS body content (usually JSON data) to `stderr`.
+
+### Using event publishers and tables in the shell
+
+Remember! The `osqueryi` shell and the `osqueryd` daemon do not communicate. The daemon is intended to be run as a privileged process and the shell may be run by any user. The daemon is intended to subscribe to operating system events that require non-default configurations and impose potential performance concerns. That said, the shell can mimic this behavior for testing and debugging.
+
+If you try to select from an events-based table in the shell you will see something similar to the following warning:
+
+```
+osquery> select * from file_events;
+virtual_table.cpp:542] Table file_events is event-based but events are disabled
+virtual_table.cpp:549] Please see the table documentation: https://osquery.io/schema/#file_events
+```
+
+If you start the shell using `osqueryi --disable_events=0` you will no longer get this warning. BUT! It is most likely the case that the events you are trying to inspect require future configuration. `file_events` requires a [file integrity monitoring](file-integrity-monitoring.md) configurations, `process_events` requires either additional flags or OpenBSM configuration, these situations are described in [process auditing](process-auditing.md).
+
+On Linux and MacOS the `hardware_events` table is enabled for-free, so try to plug in a USB and run `select * from hardware_events`.
+
 ### Missing event subscribers
 
 If you see:
