@@ -4,24 +4,24 @@ class Openssl < AbstractOsqueryFormula
   desc "SSL/TLS cryptography library"
   homepage "https://openssl.org/"
   license "OpenSSL"
-  url "https://www.openssl.org/source/openssl-1.0.2k.tar.gz"
-  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2k.tar.gz"
-  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2k.tar.gz"
-  sha256 "6b3977c61f2aedf0f96367dcfb5c6e578cf37e7b8d913b4ecb6643c3cb88d8c0"
-  revision 101
+  url "https://www.openssl.org/source/openssl-1.0.2m.tar.gz"
+  mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2m.tar.gz"
+  mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2m.tar.gz"
+  sha256 "8c6ff15ec6b319b50788f42c7abc2890c08ba5a1cdcd3810eb9092deada37b0f"
+  revision 102
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "023a6f557c41015694c6508142687af7979d864f71a70b038b0aaafb945bc714" => :sierra
-    sha256 "79f095df9b09ea7b49165e2cc37e1ddd087365623d3186e499b70c30e6fcb25a" => :x86_64_linux
+    sha256 "c36da72ba511c0903e6f06b5c46bed71cb41f9d73c54c46c39e35e7d317a214b" => :sierra
+    sha256 "d44f51e85390246f2f8d6ba8b1a7082b5f6d4a83ace0b0f7a826bdf9352ba557" => :x86_64_linux
   end
 
   resource "cacert" do
     # Update post_install when you update this resource.
     # homepage "http://curl.haxx.se/docs/caextract.html"
-    url "https://curl.haxx.se/ca/cacert-2017-01-18.pem"
-    sha256 "e62a07e61e5870effa81b430e1900778943c228bd7da1259dd6a955ee2262b47"
+    url "https://curl.haxx.se/ca/cacert-2017-09-20.pem"
+    sha256 "435ac8e816f5c10eaaf228d618445811c16a5e842e461cb087642b6265a36856"
   end
 
   option "without-test", "Skip build-time tests (not recommended)"
@@ -85,7 +85,7 @@ class Openssl < AbstractOsqueryFormula
 
   def post_install
     ENV.delete "LIBRARY_PATH"
-    (etc/"openssl").install resource("cacert").files("cacert-2017-01-18.pem" => "cert.pem")
+    (etc/"openssl").install resource("cacert").files("cacert-2017-09-20.pem" => "cert.pem")
   end
 
   def caveats; <<-EOS.undent
