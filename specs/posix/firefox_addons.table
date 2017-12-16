@@ -24,6 +24,9 @@ schema([
 ])
 attributes(user_data=True)
 implementation("applications/browser_firefox@genFirefoxAddons")
+examples([
+    "select * from users join firefox_addons using (uid)",
+])
 fuzz_paths([
     "/Library/Application Support/Firefox/Profiles/",
     "/Users",

@@ -36,12 +36,14 @@ QueryData genSystemInfo(QueryContext& context) {
   }
 
   WmiRequest wmiSystemReq("select * from Win32_ComputerSystem");
+  WmiRequest wmiSystemReqProc("select * from Win32_Processor");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  if (wmiResults.size() != 0) {
+  std::vector<WmiResultItem>& wmiResultsProc = wmiSystemReqProc.results();
+  if (!wmiResults.empty() && !wmiResultsProc.empty()) {
     long numProcs = 0;
     wmiResults[0].GetLong("NumberOfLogicalProcessors", numProcs);
     r["cpu_logical_cores"] = INTEGER(numProcs);
-    wmiResults[0].GetLong("NumberOfProcessors", numProcs);
+    wmiResultsProc[0].GetLong("NumberOfCores", numProcs);
     r["cpu_physical_cores"] = INTEGER(numProcs);
     wmiResults[0].GetString("TotalPhysicalMemory", r["physical_memory"]);
     wmiResults[0].GetString("Manufacturer", r["hardware_vendor"]);
@@ -52,6 +54,14 @@ QueryData genSystemInfo(QueryContext& context) {
     r["physical_memory"] = "-1";
     r["hardware_vendor"] = "-1";
     r["hardware_model"] = "-1";
+  }
+  
+  WmiRequest wmiBiosReq("select * from Win32_Bios");
+  std::vector<WmiResultItem>& wmiBiosResults = wmiBiosReq.results();
+  if (wmiBiosResults.size() != 0) {
+    wmiBiosResults[0].GetString("SerialNumber", r["hardware_serial"]);
+  } else {
+    r["hardware_serial"] = "-1";
   }
 
   SYSTEM_INFO systemInfo;
@@ -77,7 +87,6 @@ QueryData genSystemInfo(QueryContext& context) {
 
   r["cpu_subtype"] = "-1";
   r["hardware_version"] = "-1";
-  r["hardware_serial"] = "-1";
   return {r};
 }
 }

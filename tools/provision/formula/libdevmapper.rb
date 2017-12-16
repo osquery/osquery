@@ -3,7 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Libdevmapper < AbstractOsqueryFormula
   desc "Device Mapper development"
   homepage "https://www.sourceware.org/dm/"
-  url "ftp://sources.redhat.com/pub/lvm2/LVM2.2.02.173.tgz"
+  license "LGPL-2.1+"
+  url "https://www.mirrorservice.org/sites/sourceware.org/pub/lvm2/old/LVM2.2.02.173.tgz"
   sha256 "ceb9168c7e009ef487f96a1fe969b23cbb07d920ffb71769affdbdf30fea8d64"
   revision 2
 

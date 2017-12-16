@@ -12,6 +12,7 @@
 
 #include <sstream>
 #include <string>
+#include <utility>
 
 namespace osquery {
 
@@ -51,7 +52,7 @@ class Status {
    * Otherwise, it doesn't matter what the string is, as long as both the
    * setter and caller agree.
    */
-  Status(int c, const std::string& m) : code_(c), message_(m) {}
+  Status(int c, std::string m) : code_(c), message_(std::move(m)) {}
 
  public:
   /**
@@ -105,7 +106,9 @@ class Status {
    *   }
    * @endcode
    */
-  /* explicit */ operator bool() const { return ok(); }
+  /* explicit */ explicit operator bool() const {
+    return ok();
+  }
 
   // Below operator implementations useful for testing with gtest
 
@@ -127,4 +130,4 @@ class Status {
   /// the internal storage of the status message
   std::string message_;
 };
-}
+} // namespace osquery

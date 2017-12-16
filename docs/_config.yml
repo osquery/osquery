@@ -1,0 +1,86 @@
+markdown: kramdown
+highlighter: rouge
+sass:
+  style: compressed
+
+repository: https://github.com/facebook/osquery
+timezone: America/Los_Angeles
+name: osquery • Performant Endpoint Visibility
+description: Easily ask questions about your Linux, Windows, and macOS infrastructure
+url: https://osquery.io
+baseurl: ""
+
+twitter:
+  username: osquery
+
+logo: /img/logo-2x.png
+
+defaults:
+  -
+    scope:
+      path: "_docs"
+      type: "docs"
+    values:
+      layout: "docs"
+  -
+    scope:
+      path: "_posts"
+      type: "posts"
+    values:
+      layout: "news_item"
+  -
+    scope:
+      path: "_schema"
+    values:
+      layout: "schema"
+
+collections:
+  docs:
+    permalink: /:collection/:path/
+    output: true
+  posts:
+    permalink: /news/:year/:month/:day/:title/
+    output: true
+  schema:
+    permalink: /schema/:title/
+    output: true
+
+plugins:
+  - jekyll-avatar
+  - jekyll-feed
+  - jekyll-mentions
+  - jekyll-redirect-from
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jemoji
+
+exclude:
+  - .gitignore
+  - README.md
+  - doxygen
+  - wiki
+
+prefixes:
+  darwin: .pkg
+  deb: _1.linux.amd64.deb
+  rpm: -1.linux.x86_64.rpm
+  linux: _1.linux_x86_64.tar.gz
+
+debug_prefixes:
+  darwin: debug
+  deb: dbg
+  rpm: debuginfo
+
+separators:
+  darwin: "-"
+  deb: "_"
+  rpm: "-"
+  linux: "-"
+
+docs_url: https://osquery.readthedocs.io/en/stable/
+schema_url: https://raw.githubusercontent.com/osquery/osquery-site/master/schema
+packs_url: https://raw.githubusercontent.com/facebook/osquery/master/packs
+slack_url: https://osquery-slack.herokuapp.com
+github_button:
+  user: facebook
+  repo: osquery

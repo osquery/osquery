@@ -39,7 +39,7 @@
 namespace osquery {
 
 /// Constant for an invalid process
-const PlatformPidType kInvalidPid = (PlatformPidType)-1;
+const auto kInvalidPid = (PlatformPidType)-1;
 
 /**
  * @brief Categories of process states adapted to be platform agnostic
@@ -158,19 +158,19 @@ class PlatformProcess : private boost::noncopyable {
    */
   static std::shared_ptr<PlatformProcess> launchExtension(
       const std::string& exec_path,
-      const std::string& extension,
       const std::string& extensions_socket,
       const std::string& extensions_timeout,
       const std::string& extensions_interval,
       bool verbose = false);
 
   /**
-   * @brief Launches a new Python script
+   * @brief Launches a new test Python script.
    *
    * This will launch a new Python process to run the specified script and
-   * script arguments
+   * script arguments. This is used within the test harnesses to run example
+   * TLS server scripts.
    */
-  static std::shared_ptr<PlatformProcess> launchPythonScript(
+  static std::shared_ptr<PlatformProcess> launchTestPythonScript(
       const std::string& args);
 
  private:
@@ -286,4 +286,4 @@ int platformGetPid();
 * and on posix platforms returns gettid()
 */
 int platformGetTid();
-}
+} // namespace osquery

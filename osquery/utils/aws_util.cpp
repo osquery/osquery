@@ -8,11 +8,11 @@
  *
  */
 
+#include <fstream>
 #include <mutex>
 #include <sstream>
 #include <string>
 
-#include <boost/network/protocol/http/client.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -31,13 +31,11 @@
 #include <osquery/system.h>
 
 #include "osquery/core/json.h"
+#include "osquery/remote/http_client.h"
 #include "osquery/remote/transports/tls.h"
 #include "osquery/utils/aws_util.h"
 
 namespace pt = boost::property_tree;
-namespace http = boost::network::http;
-namespace bn = boost::network;
-namespace uri = boost::network::uri;
 
 namespace Standard = Aws::Http::Standard;
 namespace Model = Aws::STS::Model;
@@ -80,13 +78,13 @@ static const std::set<std::string> kAwsRegions = {"us-east-1",
 static RegionName kDefaultAWSRegion = Aws::Region::US_EAST_1;
 
 std::shared_ptr<Aws::Http::HttpClient>
-NetlibHttpClientFactory::CreateHttpClient(
+OsqueryHttpClientFactory::CreateHttpClient(
     const Aws::Client::ClientConfiguration& clientConfiguration) const {
-  return std::make_shared<NetlibHttpClient>();
+  return std::make_shared<OsqueryHttpClient>();
 }
 
 std::shared_ptr<Aws::Http::HttpRequest>
-NetlibHttpClientFactory::CreateHttpRequest(
+OsqueryHttpClientFactory::CreateHttpRequest(
     const Aws::String& uri,
     Aws::Http::HttpMethod method,
     const Aws::IOStreamFactory& streamFactory) const {
@@ -94,7 +92,7 @@ NetlibHttpClientFactory::CreateHttpRequest(
 }
 
 std::shared_ptr<Aws::Http::HttpRequest>
-NetlibHttpClientFactory::CreateHttpRequest(
+OsqueryHttpClientFactory::CreateHttpRequest(
     const Aws::Http::URI& uri,
     Aws::Http::HttpMethod method,
     const Aws::IOStreamFactory& streamFactory) const {
@@ -104,7 +102,7 @@ NetlibHttpClientFactory::CreateHttpRequest(
   return request;
 }
 
-std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
+std::shared_ptr<Aws::Http::HttpResponse> OsqueryHttpClient::MakeRequest(
     Aws::Http::HttpRequest& request,
     Aws::Utils::RateLimits::RateLimiterInterface* readLimiter,
     Aws::Utils::RateLimits::RateLimiterInterface* writeLimiter) const {
@@ -118,11 +116,11 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
   uri.SetPath(Aws::Http::URI::URLEncodePath(uri.GetPath()));
   Aws::String url = uri.GetURIString();
 
-  bn::http::client client = TLSTransport().getClient();
-  bn::http::client::request req(url);
+  http::Client client(TLSTransport().getOptions());
+  http::Request req(url);
 
   for (const auto& requestHeader : request.GetHeaders()) {
-    req << bn::header(requestHeader.first, requestHeader.second);
+    req << http::Request::Header(requestHeader.first, requestHeader.second);
   }
 
   std::string body;
@@ -134,21 +132,11 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
 
   auto response = std::make_shared<Standard::StandardHttpResponse>(request);
   try {
-    bn::http::client::response resp;
+    http::Response resp;
 
     switch (request.GetMethod()) {
     case Aws::Http::HttpMethod::HTTP_GET:
       resp = client.get(req);
-      if (resp.status() == 301 || resp.status() == 302) {
-        VLOG(1) << "Attempting custom redirect as cpp-netlib does not support "
-                   "redirects";
-        for (const auto& header : resp.headers()) {
-          if (header.first == "Location") {
-            req.uri(header.second);
-            resp = client.get(req);
-          }
-        }
-      }
       break;
     case Aws::Http::HttpMethod::HTTP_POST:
       resp = client.post(req, body, request.GetContentType());
@@ -160,7 +148,7 @@ std::shared_ptr<Aws::Http::HttpResponse> NetlibHttpClient::MakeRequest(
       resp = client.head(req);
       break;
     case Aws::Http::HttpMethod::HTTP_PATCH:
-      LOG(ERROR) << "cpp-netlib does not support HTTP PATCH";
+      LOG(ERROR) << "osquery-http_client does not support HTTP PATCH";
       return nullptr;
       break;
     case Aws::Http::HttpMethod::HTTP_DELETE:
@@ -231,7 +219,7 @@ OsquerySTSAWSCredentialsProvider::GetAWSCredentials() {
     Model::AssumeRoleRequest sts_r;
     sts_r.SetRoleArn(FLAGS_aws_sts_arn_role);
     sts_r.SetRoleSessionName(FLAGS_aws_sts_session_name);
-    sts_r.SetDurationSeconds(FLAGS_aws_sts_timeout);
+    sts_r.SetDurationSeconds(static_cast<int>(FLAGS_aws_sts_timeout));
 
     // Pull our STS credentials.
     Model::AssumeRoleOutcome sts_outcome = client_->AssumeRole(sts_r);
@@ -270,8 +258,12 @@ OsqueryAWSCredentialsProviderChain::OsqueryAWSCredentialsProviderChain(bool sts)
   AddProvider(std::make_shared<Aws::Auth::EnvironmentAWSCredentialsProvider>());
   AddProvider(
       std::make_shared<Aws::Auth::ProfileConfigFileAWSCredentialsProvider>());
+
+// This is disabled on Windows because it causes a crash
+#if !defined(WINDOWS)
   AddProvider(
       std::make_shared<Aws::Auth::InstanceProfileCredentialsProvider>());
+#endif
 }
 
 Status getAWSRegionFromProfile(std::string& region) {
@@ -320,11 +312,11 @@ void initAwsSdk() {
     std::call_once(once_flag, []() {
       Aws::SDKOptions options;
       options.httpOptions.httpClientFactory_create_fn = []() {
-        return std::make_shared<NetlibHttpClientFactory>();
+        return std::make_shared<OsqueryHttpClientFactory>();
       };
       Aws::InitAPI(options);
     });
-  } catch (const std::system_error& e) {
+  } catch (const std::system_error&) {
     LOG(ERROR) << "call_once was not executed for initAwsSdk";
   }
 }
@@ -333,8 +325,8 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
   static std::atomic<bool> checked(false);
   static std::string cached_id;
   static std::string cached_region;
-  if (checked) {
-    // Return if already checked
+  if (checked || !isEc2Instance()) {
+    // Return if already checked or this is not EC2 instance
     instance_id = cached_id;
     region = cached_region;
     return;
@@ -347,14 +339,13 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
     }
 
     initAwsSdk();
-    http::client::request req(
-        "http://169.254.169.254/latest/dynamic/instance-identity/document");
-    http::client::options options;
+    http::Request req(kEc2MetadataUrl + "dynamic/instance-identity/document");
+    http::Client::Options options;
     options.timeout(3);
-    http::client client(options);
+    http::Client client(options);
 
     try {
-      http::client::response res = client.get(req);
+      http::Response res = client.get(req);
       if (res.status() == 200) {
         pt::ptree tree;
         std::stringstream ss(res.body());
@@ -373,6 +364,47 @@ void getInstanceIDAndRegion(std::string& instance_id, std::string& region) {
 
   instance_id = cached_id;
   region = cached_region;
+}
+
+bool isEc2Instance() {
+  static std::atomic<bool> checked(false);
+  static std::atomic<bool> is_ec2_instance(false);
+  if (checked) {
+    return is_ec2_instance; // Return if already checked
+  }
+
+  static std::once_flag once_flag;
+  std::call_once(once_flag, []() {
+    if (checked) {
+      return;
+    }
+    checked = true;
+
+    std::ifstream fd(kHypervisorUuid, std::ifstream::in);
+    if (!fd) {
+      return; // No hypervisor UUID file. Not EC2
+    }
+    if (!(fd.get() == 'e' && fd.get() == 'c' && fd.get() == '2')) {
+      return; // Not EC2 instance
+    }
+
+    http::Request req(kEc2MetadataUrl);
+    http::Client::Options options;
+    options.timeout(3);
+    http::Client client(options);
+
+    try {
+      http::Response res = client.get(req);
+      if (res.status() == 200) {
+        is_ec2_instance = true;
+      }
+    } catch (const std::system_error& e) {
+      // Assume that this is not EC2 instance
+      VLOG(1) << "Error checking if this is EC2 instance: " << e.what();
+    }
+  });
+
+  return is_ec2_instance;
 }
 
 Status getAWSRegion(std::string& region, bool sts) {

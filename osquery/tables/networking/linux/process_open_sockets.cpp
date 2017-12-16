@@ -106,7 +106,7 @@ void genSocketsFromProc(const InodeMap &inodes,
     Row r;
     if (family == AF_UNIX) {
       r["socket"] = fields[6];
-      r["family"] = "0";
+      r["family"] = "1";
       r["protocol"] = fields[2];
       r["local_address"] = "";
       r["local_port"] = "0";

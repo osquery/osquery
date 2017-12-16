@@ -1,4 +1,4 @@
-osquery's remote configuration and logger plugins are completely optional. The only built-in optional plugins are **tls**. They very simply, receive and report via **https://** URI endpoints. osquery provides somewhat flexible node (the machine running osquery) authentication and identification though an 'enrollment' concept.
+osquery's remote configuration and logger plugins are completely optional. The only built-in optional plugins are **tls**. They very simply, receive and report via **https:// ** URI endpoints. osquery provides somewhat flexible node (the machine running osquery) authentication and identification though an 'enrollment' concept.
 
 The remote settings and plugins are mostly provided as examples. It is best to write custom plugins that implement specific web services or integrations. The remote settings uses a lot of additional [CLI-flags](../installation/cli-flags.md) for configuring the osquery clients, they are mostly organized under the **Remote Settings** heading.
 
@@ -9,12 +9,15 @@ The most important differentiator to the **filesystem** suite of plugins is an a
 The initial step is called an "enroll step" and in the case of **tls** plugins, uses an implicit *enroll* plugin, also called **tls**. If you enable either config or logger **tls** plugins the enrollment plugin will turn on automatically. Enrollment provides an initial secret to the remote server in order to negotiate a private node secret used for future identification. The process is simple:
 
 1. Configure a target `--tls_hostname`, `--enroll_tls_endpoint`.
-2. Place your server's root certificate authority's PEM-encoded certificate into a file, for example `/path/to/server-root.pem` and configure the note client to pin this root: `--tls_server_certs=`.
-3. Submit an `--enroll_secret_path`, an `--enroll_secret_env`, or use TLS-client authentication, to the enroll endpoint.
-4. Receive a **node_key** and store within the node's backing store (RocksDB).
-5. Make config/logger requests while providing **node_key** as identification/authentication.
+2. Configure a proxy `--proxy_hostname` (Optional Step).
+3. Place your server's root certificate authority's PEM-encoded certificate into a file, for example `/path/to/server-root.pem` and configure the client to pin to these roots: `--tls_server_certs=`.
+4. Submit an `--enroll_secret_path`, an `--enroll_secret_env`, or use TLS-client authentication, to the enroll endpoint.
+5. Receive a **node_key** and store within the node's persistent storage (RocksDB).
+6. Make config/logger requests while providing **node_key** as identification/authentication.
 
-The validity of a **node_key** is determined and implemented in the TLS server. The node only manages to ask for the content during enroll, and posts the content during subsequent requests.
+The validity of a **node_key** is determined and implemented in the TLS server. The node will request the key during an initial enroll step then post the key during subsequent requests for config or logging.
+
+**Note:** `--proxy_hostname` is used to communicate via proxy server.
 
 ### Simple shared secret enrollment
 
@@ -27,7 +30,7 @@ The shared secret can alternatively be kept in an environment variable which is 
 
 ### TLS client-auth enrollment
 
-If the **node** machines have a deployed TLS client certificate and key they should include those paths using `--tls_client_cert` and `--tls_client_key`. The TLS server may implement an enroll process to supply **nodes** with identifying **node_key**s or return blank keys during enrollment and require TLS client authentication for every endpoint request.
+If the **node** machines have a deployed TLS client certificate and key they should include those paths using `--tls_client_cert` and `--tls_client_key`. The TLS server may implement an enroll process to supply nodes with identifying **node_key**s or return blank keys during enrollment and require TLS client authentication for every endpoint request.
 
 If using TLS client authentication the enrollment step can be skipped entirely. Note that it is NOT skipped automatically. If your service does not need/implement enrollment include `--disable_enrollment` in the osquery configuration.
 
@@ -40,6 +43,12 @@ The most basic TLS-based server should implement 3 HTTP POST endpoints. This API
 {
   "enroll_secret": "...", // Optional.
   "host_identifier": "..." // Determined by the --host_identifier flag
+  "host_details": { // A dictionary of keys mapping to helpful osquery tables.
+    "os_version": {},
+    "osquery_info": {},
+    "system_info": {},
+    "platform_info": {}
+  }
 }
 ```
 
@@ -170,7 +179,7 @@ The TLS client does not handle HTTP errors, if the service returns a bad request
 
 We include a very basic example python TLS/HTTPS server: [./tools/tests/test_http_server.py](https://github.com/facebook/osquery/blob/master/tools/tests/test_http_server.py). And a set of unit/integration tests: [./osquery/remote/transports/tests/tls_transports_tests.cpp](https://github.com/facebook/osquery/blob/master/osquery/remote/transports/tests/tls_transports_tests.cpp) for a reference server implementation.
 
-The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use boost's ASIO header-libraries through the [cpp-netlib](http://cpp-netlib.org/) HTTPS library.
+The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use osquery's http_client built on top of Boost.Beast ASIO header-library.
 
 On macOS, Linux, and FreeBSD the TLS client prefers the TLS 1.2 protocol, but includes TLS 1.1/1.0 as well as the following cipher suites:
 

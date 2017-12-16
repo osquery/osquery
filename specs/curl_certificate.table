@@ -1,0 +1,20 @@
+table_name("curl_certificate")
+description("Inspect TLS certificates by connecting to input hostnames.")
+schema([
+    Column("hostname", TEXT, "Hostname (domain[:port]) to CURL", required=True),
+    Column("common_name", TEXT, "Common name of company issued to"),
+    Column("organization", TEXT, "Organization issued to"),
+    Column("organization_unit", TEXT, "Organization unit issued to"),
+    Column("serial_number", TEXT, "Certificate serial number"),
+    Column("issuer_common_name", TEXT, "Issuer common name"),
+    Column("issuer_organization", TEXT, "Issuer organization"),
+    Column("issuer_organization_unit", TEXT, "Issuer organization unit"),
+    Column("valid_from", TEXT, "Period of validity start date"),
+    Column("valid_to", TEXT, "Period of validity end date"),
+    Column("sha256_fingerprint", TEXT, "SHA-256 fingerprint"),
+    Column("sha1_fingerprint", TEXT, "SHA1 fingerprint")
+])
+implementation("curl_certificate@genTLSCertificate")
+examples([
+  "select * from curl_certificate where hostname = 'osquery.io'"
+])

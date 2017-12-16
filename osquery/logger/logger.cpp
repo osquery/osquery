@@ -8,7 +8,9 @@
  *
  */
 
-#ifndef WIN32
+#ifdef WIN32
+#include "osquery/logger/plugins/windows_event_log.h"
+#else
 #include <syslog.h>
 #endif
 
@@ -31,6 +33,7 @@
 #include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -43,8 +46,15 @@ FLAG(bool, disable_logging, false, "Disable ERROR/INFO logging");
 
 FLAG(string, logger_plugin, "filesystem", "Logger plugin name");
 
+/// Log each added or removed line individually, as an "event".
 FLAG(bool, logger_event_type, true, "Log scheduled results as events");
 FLAG_ALIAS(bool, log_result_events, logger_event_type);
+
+/// Log each row from a snapshot query individually, as an "event".
+FLAG(bool,
+     logger_snapshot_event_type,
+     false,
+     "Log scheduled snapshot results as events");
 
 /// Alias for the minloglevel used internally by GLOG.
 FLAG(int32, logger_min_status, 0, "Minimum level for status log recording");
@@ -258,27 +268,20 @@ class LoggerDisabler : private boost::noncopyable {
 
 static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
                                      PluginRequest& request) {
-  try {
-    pt::ptree tree;
-    for (const auto& log_item : log) {
-      pt::ptree child;
-      child.put("s", log_item.severity);
-      child.put("f", log_item.filename);
-      child.put("i", log_item.line);
-      child.put("m", log_item.message);
-      child.put("h", log_item.identifier);
-      child.put("c", log_item.calendar_time);
-      child.put("u", log_item.time);
-      tree.push_back(std::make_pair("", std::move(child)));
-    }
-
-    // Save the log as a request JSON string.
-    std::ostringstream output;
-    pt::write_json(output, tree, false);
-    request["log"] = output.str();
-  } catch (const pt::ptree_error& e) {
-    VLOG(1) << "Error serializing log entries: " << e.what();
+  auto doc = JSON::newArray();
+  for (const auto& i : log) {
+    auto line = doc.getObject();
+    doc.add("s", static_cast<int>(i.severity), line);
+    doc.addRef("f", i.filename, line);
+    doc.add("i", i.line, line);
+    doc.addRef("m", i.message, line);
+    doc.addRef("h", i.identifier, line);
+    doc.addRef("c", i.calendar_time, line);
+    doc.add("u", i.time, line);
+    doc.push(line);
   }
+
+  doc.toString(request["log"]);
 }
 
 static void deserializeIntermediateLog(const PluginRequest& request,
@@ -287,25 +290,20 @@ static void deserializeIntermediateLog(const PluginRequest& request,
     return;
   }
 
-  // Read the plugin request string into a JSON tree and enumerate.
-  pt::ptree tree;
-  try {
-    std::stringstream input;
-    input << request.at("log");
-    pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
+  rj::Document doc;
+  if (doc.Parse(request.at("log").c_str()).HasParseError()) {
     return;
   }
 
-  for (const auto& item : tree.get_child("")) {
+  for (auto& line : doc.GetArray()) {
     log.push_back({
-        (StatusLogSeverity)item.second.get<int>("s", O_INFO),
-        item.second.get<std::string>("f", "<unknown>"),
-        item.second.get<size_t>("i", 0),
-        item.second.get<std::string>("m", ""),
-        item.second.get<std::string>("c", ""),
-        item.second.get<size_t>("u", 0),
-        item.second.get<std::string>("h", ""),
+        static_cast<StatusLogSeverity>(line["s"].GetInt()),
+        line["f"].GetString(),
+        line["i"].GetUint64(),
+        line["m"].GetString(),
+        line["c"].GetString(),
+        line["u"].GetUint64(),
+        line["h"].GetString(),
     });
   }
 }
@@ -325,7 +323,7 @@ void setVerboseLevel() {
     // Do NOT log INFO, WARNING, ERROR to stderr.
     // Do log only WARNING, ERROR to log sinks.
     auto default_level = google::GLOG_INFO;
-    if (kToolType == ToolType::SHELL) {
+    if (Initializer::isShell()) {
       default_level = google::GLOG_WARNING;
     }
 
@@ -339,8 +337,7 @@ void setVerboseLevel() {
   }
 
   if (!Flag::isDefault("logger_min_status")) {
-    long int i = 0;
-    safeStrtol(Flag::getValue("logger_min_status"), 10, i);
+    auto i = Flag::getInt32Value("logger_min_status");
     FLAGS_minloglevel = static_cast<decltype(FLAGS_minloglevel)>(i);
   }
 
@@ -351,7 +348,7 @@ void setVerboseLevel() {
   }
 }
 
-void initStatusLogger(const std::string& name) {
+void initStatusLogger(const std::string& name, bool init_glog) {
   FLAGS_alsologtostderr = false;
   FLAGS_colorlogtostderr = true;
   FLAGS_logbufsecs = 0; // flush the log buffer immediately
@@ -361,7 +358,9 @@ void initStatusLogger(const std::string& name) {
 
   setVerboseLevel();
   // Start the logging, and announce the daemon is starting.
-  google::InitGoogleLogging(name.c_str());
+  if (init_glog) {
+    google::InitGoogleLogging(name.c_str());
+  }
   BufferedLogSink::get().setUp();
 }
 
@@ -466,7 +465,7 @@ void BufferedLogSink::send(google::LogSeverity severity,
   }
 
   // The daemon will relay according to the schedule.
-  if (enabled_ && kToolType != ToolType::DAEMON) {
+  if (enabled_ && !Initializer::isDaemon()) {
     relayStatusLogs(FLAGS_logger_status_sync);
   }
 }
@@ -562,7 +561,7 @@ Status logQueryLogItem(const QueryLogItem& results,
 
   std::vector<std::string> json_items;
   Status status;
-  if (FLAGS_log_result_events) {
+  if (FLAGS_logger_event_type) {
     status = serializeQueryLogItemAsEventsJSON(results, json_items);
   } else {
     std::string json;
@@ -587,30 +586,41 @@ Status logSnapshotQuery(const QueryLogItem& item) {
     return Status(0, "Logging disabled");
   }
 
-  std::string json;
-  if (!serializeQueryLogItemJSON(item, json)) {
-    return Status(1, "Could not serialize snapshot");
-  }
-  if (!json.empty() && json.back() == '\n') {
-    json.pop_back();
-  }
-
+  std::vector<std::string> json_items;
   Status status;
-  auto receiver = RegistryFactory::get().getActive("logger");
-  for (const auto& logger : osquery::split(receiver, ",")) {
-    if (FLAGS_logger_secondary_status_only &&
-        !BufferedLogSink::get().isPrimaryLogger(logger)) {
-      continue;
+  if (FLAGS_logger_snapshot_event_type) {
+    status = serializeQueryLogItemAsEventsJSON(item, json_items);
+  } else {
+    std::string json;
+    status = serializeQueryLogItemJSON(item, json);
+    json_items.emplace_back(json);
+  }
+  if (!status.ok()) {
+    return status;
+  }
+
+  for (auto& json : json_items) {
+    if (!json.empty() && json.back() == '\n') {
+      json.pop_back();
     }
 
-    if (Registry::get().exists("logger", logger, true)) {
-      auto plugin = Registry::get().plugin("logger", logger);
-      auto logger_plugin = std::dynamic_pointer_cast<LoggerPlugin>(plugin);
-      status = logger_plugin->logSnapshot(json);
-    } else {
-      status = Registry::call("logger", logger, {{"snapshot", json}});
+    auto receiver = RegistryFactory::get().getActive("logger");
+    for (const auto& logger : osquery::split(receiver, ",")) {
+      if (FLAGS_logger_secondary_status_only &&
+          !BufferedLogSink::get().isPrimaryLogger(logger)) {
+        continue;
+      }
+
+      if (Registry::get().exists("logger", logger, true)) {
+        auto plugin = Registry::get().plugin("logger", logger);
+        auto logger_plugin = std::dynamic_pointer_cast<LoggerPlugin>(plugin);
+        status = logger_plugin->logSnapshot(json);
+      } else {
+        status = Registry::call("logger", logger, {{"snapshot", json}});
+      }
     }
   }
+
   return status;
 }
 
@@ -653,9 +663,6 @@ void relayStatusLogs(bool async) {
       }
 
       serializeIntermediateLog(status_logs, request);
-      if (!request["log"].empty()) {
-        request["log"].pop_back();
-      }
 
       // Flush the buffered status logs.
       status_logs.clear();
@@ -686,7 +693,16 @@ void relayStatusLogs(bool async) {
 }
 
 void systemLog(const std::string& line) {
-#ifndef WIN32
+#ifdef WIN32
+  REGHANDLE registration_handle = 0;
+  if (!WindowsEventLoggerPlugin::acquireHandle(registration_handle).ok()) {
+    return;
+  }
+
+  WindowsEventLoggerPlugin::emitLogRecord(registration_handle, line);
+  WindowsEventLoggerPlugin::releaseHandle(registration_handle);
+
+#else
   syslog(LOG_NOTICE, "%s", line.c_str());
 #endif
 }

@@ -67,12 +67,14 @@ elseif(LINUX)
 
 endif()
 
-if(NOT DEFINED KERNEL_BINARY)
-  message(FATAL_ERROR "Package related targets must be included after kernel")
-endif()
+if(NOT SKIP_KERNEL)
+  if(NOT DEFINED KERNEL_BINARY)
+    message(FATAL_ERROR "Package related targets must be included after kernel")
+  endif()
 
-# Add dependencies and additional package data based on optional components.
-if(EXISTS "${CMAKE_BINARY_DIR}/kernel/${KERNEL_BINARY}")
-  # The osquery kernel was built
-  add_dependencies(packages kernel-build)
+  # Add dependencies and additional package data based on optional components.
+  if(EXISTS "${CMAKE_BINARY_DIR}/kernel/${KERNEL_BINARY}")
+    # The osquery kernel was built
+    add_dependencies(packages kernel-build)
+  endif()
 endif()

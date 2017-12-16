@@ -29,9 +29,6 @@
 
 namespace osquery {
 
-DECLARE_bool(disable_logging);
-DECLARE_string(logger_plugin);
-
 /**
  * @brief An internal severity set mapping to Glog's LogSeverity levels.
  */
@@ -203,6 +200,7 @@ class LoggerPlugin : public Plugin {
    * @return Status non-op indicating success or failure.
    */
   virtual Status logStatus(const std::vector<StatusLogLine>& log) {
+    (void)log;
     return Status(1, "Not enabled");
   }
 
@@ -226,7 +224,7 @@ class LoggerPlugin : public Plugin {
    * It is possible to skip the database representation of event subscribers
    * and instead forward each added event to the active logger plugin.
    */
-  virtual Status logEvent(const std::string& s) {
+  virtual Status logEvent(const std::string& /*s*/) {
     return Status(1, "Not enabled");
   }
 
@@ -259,8 +257,13 @@ class LoggerPlugin : public Plugin {
 /// Set the verbose mode, changes Glog's sinking logic and will affect plugins.
 void setVerboseLevel();
 
-/// Start status logging to a buffer until the logger plugin is online.
-void initStatusLogger(const std::string& name);
+/**
+ * @brief Start status logging to a buffer until the logger plugin is online.
+ *
+ * This will also call google::InitGoogleLogging. Use the default init_glog
+ * to control this in tests to protect against calling the API twice.
+ */
+void initStatusLogger(const std::string& name, bool init_glog = true);
 
 /**
  * @brief Initialize the osquery Logger facility by dumping the buffered status
@@ -365,6 +368,8 @@ size_t queuedSenders();
  * configuration and log to the OS system log.
  *
  * Linux/Darwin: this uses syslog's LOG_NOTICE.
+ * Windows: This will end up inside the Facebook/osquery in the Windows
+ * Event Log.
  */
 void systemLog(const std::string& line);
 } // namespace osquery

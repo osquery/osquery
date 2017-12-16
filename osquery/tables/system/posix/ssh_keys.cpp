@@ -12,8 +12,10 @@
 #include <vector>
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/posix/system.h>
+#include <osquery/tables.h>
 
 #include "osquery/tables/system/system_utils.h"
 
@@ -23,8 +25,15 @@ namespace tables {
 const std::string kSSHUserKeysDir = ".ssh/";
 
 void genSSHkeyForHosts(const std::string& uid,
+                       const std::string& gid,
                        const std::string& directory,
                        QueryData& results) {
+  auto dropper = DropPrivileges::get();
+  if (!dropper->dropTo(uid, gid)) {
+    VLOG(1) << "Cannot drop privileges to UID " << uid;
+    return;
+  }
+
   // Get list of files in directory
   boost::filesystem::path keys_dir = directory;
   keys_dir /= kSSHUserKeysDir;
@@ -33,6 +42,7 @@ void genSSHkeyForHosts(const std::string& uid,
   if (!status.ok()) {
     return;
   }
+
   // Go through each file
   for (const auto& kfile : files_list) {
     std::string keys_content;
@@ -46,12 +56,8 @@ void genSSHkeyForHosts(const std::string& uid,
       Row r;
       r["uid"] = uid;
       r["path"] = kfile;
-      r["encrypted"] = INTEGER(0);
-
-      // Check to see if the file is encrypted
-      if (keys_content.find("ENCRYPTED") != std::string::npos) {
-        r["encrypted"] = INTEGER(1);
-      }
+      r["encrypted"] =
+          (keys_content.find("ENCRYPTED") != std::string::npos) ? "1" : "0";
       results.push_back(r);
     }
   }
@@ -63,8 +69,11 @@ QueryData getUserSshKeys(QueryContext& context) {
   // Iterate over each user
   auto users = usersFromContext(context);
   for (const auto& row : users) {
-    if (row.count("uid") > 0 && row.count("directory") > 0) {
-      genSSHkeyForHosts(row.at("uid"), row.at("directory"), results);
+    auto uid = row.find("uid");
+    auto gid = row.find("gid");
+    auto directory = row.find("directory");
+    if (uid != row.end() && gid != row.end() && directory != row.end()) {
+      genSSHkeyForHosts(uid->second, gid->second, directory->second, results);
     }
   }
 

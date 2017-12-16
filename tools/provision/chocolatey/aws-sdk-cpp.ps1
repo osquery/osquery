@@ -6,16 +6,16 @@
 #  of patent rights can be found in the PATENTS file in the same directory.
 
 # Update-able metadata
-$version = '1.0.107'
-$chocoVersion = '1.0.107-r1'
+$version = '1.2.7'
+$chocoVersion = '1.2.7'
 $packageName = 'aws-sdk-cpp'
 $projectSource = 'https://github.com/aws/aws-sdk-cpp'
-$packageSourceUrl = 'https://github.com/apache/thrift'
+$packageSourceUrl = "https://github.com/aws/aws-sdk-cpp/archive/$version.zip"
 $authors = 'Amazon'
 $owners = 'Amazon'
 $copyright = 'https://github.com/aws/aws-sdk-cpp/blob/master/LICENSE'
 $license = 'https://github.com/aws/aws-sdk-cpp/blob/master/LICENSE'
-$url = "https://github.com/aws/aws-sdk-cpp/archive/$version.zip"
+$url = "$packageSourceUrl"
 
 $libs = @(
   'aws-cpp-sdk-core',
@@ -24,6 +24,9 @@ $libs = @(
   'aws-cpp-sdk-firehose',
   'aws-cpp-sdk-kinesis'
 )
+
+# Keep current loc to restore later
+$currentLoc = Get-Location
 
 # Invoke our utilities file
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
@@ -49,29 +52,70 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retreive the source
-Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
+# Retrieve the source only if we don't already have it
+$zipFile = "$packageName-$version.zip"
+if(-Not (Test-Path $zipFile)) {
+  Invoke-WebRequest $url -OutFile "$zipFile"
+}
 
 # Extract the source
-7z x "$packageName-$version.zip"
 $sourceDir = "$packageName-$version"
+if (-not (Test-Path $sourceDir)) {
+  $7z = (Get-Command '7z').Source
+  $7zargs = "x $packageName-$version.zip"
+  Start-OsqueryProcess $7z $7zargs
+}
 Set-Location $sourceDir
 
 # Set the cmake logic to generate a static build for us
-$libs | Foreach-Object {
-  Add-Content -NoNewline -Path "$_\CMakeLists.txt" -Value "`nset(CMAKE_CXX_FLAGS_RELEASE `"`${CMAKE_CXX_FLAGS_RELEASE} /MT`")`nset(CMAKE_CXX_FLAGS_DEBUG `"`${CMAKE_CXX_FLAGS_DEBUG} /MTd`")"
+$staticBuild = "`nset(CMAKE_CXX_FLAGS_RELEASE `"`${CMAKE_CXX_FLAGS_RELEASE} " +
+              "/MT`")`nset(CMAKE_CXX_FLAGS_DEBUG `"`${CMAKE_CXX_FLAGS_DEBUG} " +
+              "/MTd`")"
+
+foreach($lib in $libs) {
+  Add-Content `
+    -NoNewline `
+    -Path "$lib\CMakeLists.txt" `
+    -Value $staticBuild
 }
 
 # Build the libraries
 $buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'
 Set-Location $buildDir
 
-cmake -G 'Visual Studio 14 2015 Win64' -DSTATIC_LINKING=1 -DNO_HTTP_CLIENT=1 -DMINIMIZE_SIZE=ON -DBUILD_SHARED_LIBS=OFF ../
+$cmake = (Get-Command 'cmake').Source
+$cmakeArgs = @(
+  '-G "Visual Studio 14 2015 Win64"',
+  '-DSTATIC_LINKING=1',
+  '-DNO_HTTP_CLIENT=1',
+  '-DMINIMIZE_SIZE=ON',
+  '-DBUILD_SHARED_LIBS=OFF',
+  '../'
+)
+Start-OsqueryProcess $cmake $cmakeArgs
 
 # Build the libraries
-$libs | Foreach-Object {
-  msbuild 'aws-cpp-sdk-all.sln' /p:Configuration=Release /m /t:$_ /v:m
-  msbuild 'aws-cpp-sdk-all.sln' /p:Configuration=Debug /m /t:$_ /v:m
+$msbuild = (Get-Command 'msbuild').Source
+$sln = 'AWSSDK.sln'
+foreach($target in $libs) {
+  $msbuildArgs = @(
+    "$buildDir\$sln",
+    "/p:Configuration=Release",
+    "/t:$target",
+    '/m',
+    '/v:m'
+  )
+  Start-OsqueryProcess $msbuild $msbuildArgs
+
+  # Bundle debug libs for troubleshooting
+  $msbuildArgs = @(
+    "$buildDir\$sln",
+    "/p:Configuration=Debug",
+    "/t:$target",
+    '/m',
+    '/v:m'
+  )
+  Start-OsqueryProcess $msbuild $msbuildArgs
 }
 
 # Construct the Chocolatey Package
@@ -81,7 +125,15 @@ $includeDir = New-Item -ItemType Directory -Path 'local\include\aws'
 $libDir = New-Item -ItemType Directory -Path 'local\lib'
 $srcDir = New-Item -ItemType Directory -Path 'local\src'
 
-Write-NuSpec $packageName $chocoVersion $authors $owners $projectSource $packageSourceUrl $copyright $license
+Write-NuSpec `
+  $packageName `
+  $chocoVersion `
+  $authors `
+  $owners `
+  $projectSource `
+  $packageSourceUrl `
+  $copyright `
+  $license
 
 $libs | Foreach-Object {
   Copy-Item "$buildDir\$_\Release\*" $libDir
@@ -98,10 +150,15 @@ $libs | Foreach-Object {
 Copy-Item $buildScript $srcDir
 choco pack
 
-Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" -foregroundcolor DarkGreen
+Write-Host "[*] Build took $($sw.ElapsedMilliseconds) ms" `
+  -ForegroundColor DarkGreen
 if (Test-Path "$packageName.$chocoVersion.nupkg") {
-  Write-Host "[+] Finished building $packageName v$chocoVersion." -foregroundcolor Green
+  $package = "$(Get-Location)\$packageName.$chocoVersion.nupkg"
+  Write-Host `
+    "[+] Finished building. Package written to $package" -ForegroundColor Green
+} else {
+  Write-Host `
+    "[-] Failed to build $packageName v$chocoVersion." `
+    -ForegroundColor Red
 }
-else {
-  Write-Host "[-] Failed to build $packageName v$chocoVersion." -foregroundcolor Red
-}
+Set-Location $currentLoc

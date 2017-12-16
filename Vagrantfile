@@ -1,51 +1,60 @@
 targets = {
-  "debian7" => {
-    "box" => "bento/debian-7.9"
-  },
   "macos10.12" => {
     "box" => "jhcook/macos-sierra"
   },
+  "debian7" => {
+    "box" => "bento/debian-7"
+  },
   "debian8" => {
-    "box" => "bento/debian-8.2"
+    "box" => "bento/debian-8"
   },
   "debian9" => {
-    "box" => "bento/debian-9.0"
+    "box" => "bento/debian-9"
   },
-  "centos6.5" => {
-    "box" => "bento/centos-6.7"
+  "centos6" => {
+    "box" => "elastic/centos-6-x86_64"
   },
-  "centos7.1"   => {
-    "box" => "bento/centos-7.1"
+  "centos7" => {
+    "box" => "elastic/centos-7-x86_64"
   },
-  "ubuntu15.04"  => {
+  "ubuntu15.04" => {
     "box" => "bento/ubuntu-15.04"
   },
-  "ubuntu15.10"  => {
+  "ubuntu15.10" => {
     "box" => "bento/ubuntu-15.10"
   },
-  "ubuntu16.04"  => {
+  "ubuntu16.04" => {
     "box" => "bento/ubuntu-16.04"
   },
-  "ubuntu16.10"  => {
+  "ubuntu16.10" => {
     "box" => "bento/ubuntu-16.10"
   },
-  "ubuntu17.04"  => {
-    "box" => "wholebits/ubuntu17.04-64"
+  "ubuntu17.04" => {
+    "box" => "bento/ubuntu17.04"
   },
-  "ubuntu14"  => {
-    "box" => "ubuntu/trusty64"
-  },
-  "ubuntu12"  => {
+  "ubuntu12" => {
     "box" => "ubuntu/precise64"
   },
+  "ubuntu14" => {
+    "box" => "ubuntu/trusty64"
+  },
+  "ubuntu16" => {
+    "box" => "ubuntu/xenial64"
+  },
   "freebsd10" => {
-    "box" => "bento/freebsd-10.2"
+    "box" => "bento/freebsd-10"
   },
   "freebsd11" => {
-    "box" => "bento/freebsd-11.0"
+    "box" => "bento/freebsd-11"
   },
   "archlinux" => {
-    "box" => "terrywang/archlinux"
+    "box" => "archlinux/archlinux"
+  },
+  "suse11" => {
+    "box" => "elastic/sles-11-x86_64"
+  },
+  "suse12" => {
+    "box" => "elastic/sles-12-x86_64"
   },
   "aws-amazon2015.03" => {
     "box" => "andytson/aws-dummy",
@@ -174,8 +183,8 @@ Vagrant.configure("2") do |config|
 
       if name == 'macos10.12'
         config.vm.provision "shell",
-          inline: "dseditgroup -o create vagrant"
-        build.vm.synced_folder ".", "/vagrant", type: "rsync",
+          inline: "dseditgroup -o read vagrant || dseditgroup -o create vagrant"
+        build.vm.synced_folder ".", "/vagrant", group: "staff", type: "rsync",
           rsync__exclude: [
             "build",
             ".git/objects",
@@ -200,7 +209,9 @@ Vagrant.configure("2") do |config|
           ]
         build.vm.provision 'shell',
           inline:
-            "sudo sed -i '' -e 's/quarterly/latest/g' /etc/pkg/FreeBSD.conf;"\
+            # Switching to latest may cause failures if dependencies are not built.
+            # "sudo sed -i '' -e 's/quarterly/latest/g' /etc/pkg/FreeBSD.conf;"\
+            "su -m root -c 'hostname vagrant';"\
             "su -m root -c 'pkg update -f';"\
             "sudo pkg install -y openjdk8 bash git gmake python ruby;"\
             "sudo mount -t fdescfs fdesc /dev/fd;"\
@@ -214,7 +225,7 @@ Vagrant.configure("2") do |config|
       if name.start_with?('ubuntu', 'debian')
         build.vm.provision 'bootstrap', type: 'shell' do |s|
           s.inline = 'sudo apt-get update;'\
-                     'sudo apt-get install --yes git;'
+                     'sudo apt-get install --yes git make python;'
         end
       end
     end

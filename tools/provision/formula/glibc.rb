@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Glibc < AbstractOsqueryFormula
   desc "The GNU C Library"
   homepage "https://www.gnu.org/software/libc"
+  license "GPL-2.0+"
   url "ftp.gnu.org/gnu/glibc/glibc-2.19.tar.bz2"
   sha256 "2e293f714187044633264cd9ce0183c70c3aa960a2f77812a6390a3822694d15"
   revision 101

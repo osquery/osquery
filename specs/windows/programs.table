@@ -1,9 +1,10 @@
 table_name("programs", aliases=["programs_and_features"])
-description("Rrepresents products as they are installed by Windows Installer. A product generally correlates to one installation package.")
+description("Represents products as they are installed by Windows Installer. A product generally correlates to one installation package on Windows. Some fields may be blank as Windows installation details are left to the discretion of the product author.")
 schema([
     Column("name", TEXT, "Commonly used product name."),
     Column("version", TEXT, "Product version information."),
-    Column("install_source", TEXT, "The installation source directory of the product."),
+    Column("install_location", TEXT, "The installation location directory of the product."),
+    Column("install_source", TEXT, "The installation source of the product."),
     Column("language", TEXT, "The language of the product."),
     Column("publisher", TEXT, "Name of the product supplier."),
     Column("uninstall_string", TEXT, "Path and filename of the uninstaller."),
@@ -13,4 +14,5 @@ schema([
 implementation("programs@genPrograms")
 examples([
   "select * from programs",
+  "select name, install_location from programs where install_location not like 'C:\Program Files%';",
 ])

@@ -9,9 +9,15 @@ schema([
     Column("forced", INTEGER, "1 if the value is forced/managed, else 0"),
     Column("username", TEXT, "(optional) read preferences for a specific user",
       additional=True),
+    Column("host", TEXT,
+      "'current' or 'any' host, where 'current' takes precedence"),
 ])
 attributes(user_data=True)
 implementation("system/darwin/preferences@genOSXDefaultPreferences")
 examples([
-  "select * from preferences where domain = 'loginwindow'",
+    "select * from preferences where domain = 'loginwindow'",
+    "select preferences.* from users join preferences using (username)",
+])
+fuzz_paths([
+    "/Users",
 ])

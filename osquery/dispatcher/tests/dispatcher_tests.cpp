@@ -15,7 +15,9 @@
 namespace osquery {
 
 class DispatcherTests : public testing::Test {
-  void TearDown() override { Dispatcher::instance().resetStopping(); }
+  void TearDown() override {
+    Dispatcher::instance().resetStopping();
+  }
 };
 
 TEST_F(DispatcherTests, test_singleton) {
@@ -26,7 +28,7 @@ TEST_F(DispatcherTests, test_singleton) {
 
 class TestRunnable : public InternalRunnable {
  public:
-  explicit TestRunnable() {}
+  explicit TestRunnable() : InternalRunnable("TestRunnable") {}
 
   virtual void start() override {
     ++i;
@@ -97,7 +99,7 @@ TEST_F(DispatcherTests, test_independent_run) {
 
 class BlockingTestRunnable : public InternalRunnable {
  public:
-  explicit BlockingTestRunnable() {}
+  explicit BlockingTestRunnable() : InternalRunnable("BlockingTestRunnable") {}
 
   virtual void start() override {
     // Wow that's a long sleep!

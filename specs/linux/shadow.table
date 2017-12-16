@@ -1,0 +1,18 @@
+table_name("shadow")
+description("Local system users encrypted passwords and related information.")
+schema([
+    Column("password_status", TEXT, "Password status"),
+    Column("hash_alg", TEXT, "Password hashing algorithm"),
+    Column("last_change", BIGINT, "Date of last password change (starting from UNIX epoch date)"),
+    Column("min", BIGINT, "Minimal number of days between password changes"),
+    Column("max", BIGINT, "Maximum number of days between password changes"),
+    Column("warning", BIGINT, "Number of days before password expires to warn user about it"),
+    Column("inactive", BIGINT, "Number of days after password expires until account is blocked"),
+    Column("expire", BIGINT, "Number of days since UNIX epoch date until account is disabled"),
+    Column("flag", BIGINT, "Reserved"),
+    Column("username", TEXT, "Username", index=True),
+])
+implementation("system/shadow@genShadow")
+examples([
+  "select * from shadow where username = 'root'",
+])

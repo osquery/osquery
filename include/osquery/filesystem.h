@@ -101,11 +101,25 @@ Status writeTextFile(const boost::filesystem::path& path,
                      int permissions = 0660,
                      bool force_permissions = false);
 
-/// Check if a path is writable.
-Status isWritable(const boost::filesystem::path& path);
+/**
+ * @brief Check if a path is writable.
+ *
+ * @param path The path of the file that you would like to write.
+ * @param effective If you would like to check using effective UID
+ *
+ * @return A status returning if it's writable
+ */
+Status isWritable(const boost::filesystem::path& path, bool effective = false);
 
-/// Check if a path is readable.
-Status isReadable(const boost::filesystem::path& path);
+/**
+ * @brief Check if a path is readable.
+ *
+ * @param path The path of the file that you would like to read.
+ * @param effective If you would like to check using effective UID
+ *
+ * @return A status returning if it's readable
+ */
+Status isReadable(const boost::filesystem::path& path, bool effective = false);
 
 /**
  * @brief A helper to check if a path exists on disk or not.
@@ -203,7 +217,11 @@ Status resolveFilePattern(const boost::filesystem::path& pattern,
 void replaceGlobWildcards(std::string& pattern, GlobLimits limits = GLOB_ALL);
 
 /// Attempt to remove a directory path.
-Status remove(const boost::filesystem::path& path);
+Status removePath(const boost::filesystem::path& path);
+
+/// Move a file or directory to another path.
+Status movePath(const boost::filesystem::path& from,
+                const boost::filesystem::path& to);
 
 /**
  * @brief Check if an input path is a directory.
@@ -382,4 +400,4 @@ Status compress(const boost::filesystem::path& in,
  */
 Status decompress(const boost::filesystem::path& in,
                   const boost::filesystem::path& out);
-}
+} // namespace osquery

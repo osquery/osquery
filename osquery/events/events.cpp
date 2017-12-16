@@ -130,7 +130,7 @@ void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
         stop = std::min(stop, expr);
       }
     }
-  } else if (kToolType == ToolType::DAEMON && FLAGS_events_optimize) {
+  } else if (Initializer::isDaemon() && FLAGS_events_optimize) {
     // If the daemon is querying a subscriber without a 'time' constraint and
     // allows optimization, only emit events since the last query.
     std::string query_name;
@@ -422,7 +422,8 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
   return records;
 }
 
-Status EventSubscriberPlugin::recordEvent(EventID& eid, EventTime et) {
+Status EventSubscriberPlugin::recordEvent(const std::string& eid,
+                                          EventTime et) {
   std::string time_value = boost::lexical_cast<std::string>(et);
 
   // The record is identified by the event type then module name.
@@ -473,7 +474,7 @@ size_t EventSubscriberPlugin::getEventsMax() {
   return FLAGS_events_max;
 }
 
-EventID EventSubscriberPlugin::getEventID() {
+const std::string EventSubscriberPlugin::getEventID() {
   Status status;
   // First get an event ID from the meta key.
   std::string eid_key = "eid." + dbNamespace();
@@ -558,7 +559,7 @@ void EventSubscriberPlugin::get(RowYield& yield,
 
 Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
   // Get and increment the EID for this module.
-  EventID eid = getEventID();
+  const std::string eid = getEventID();
   // Without encouraging a missing event time, do not support a 0-time.
   if (event_time == 0) {
     event_time = getUnixTime();
@@ -720,7 +721,7 @@ void EventFactory::configUpdate() {
   }
 }
 
-Status EventFactory::run(EventPublisherID& type_id) {
+Status EventFactory::run(const std::string& type_id) {
   if (FLAGS_disable_events) {
     return Status(0, "Events disabled");
   }
@@ -821,7 +822,7 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
     specialized_pub->state(EventState::EVENT_SETUP);
     if (!status.ok()) {
       // Only start event loop if setUp succeeds.
-      LOG(INFO) << "Event publisher failed setup: " << type_id << ": "
+      LOG(INFO) << "Event publisher not enabled: " << type_id << ": "
                 << status.what();
       specialized_pub->isEnding(true);
       return status;
@@ -911,15 +912,15 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
   }
 }
 
-Status EventFactory::addSubscription(EventPublisherID& type_id,
-                                     EventSubscriberID& name_id,
+Status EventFactory::addSubscription(const std::string& type_id,
+                                     const std::string& name_id,
                                      const SubscriptionContextRef& mc,
                                      EventCallback cb) {
   auto subscription = Subscription::create(name_id, mc, cb);
   return EventFactory::addSubscription(type_id, subscription);
 }
 
-Status EventFactory::addSubscription(EventPublisherID& type_id,
+Status EventFactory::addSubscription(const std::string& type_id,
                                      const SubscriptionRef& subscription) {
   EventPublisherRef publisher = getInstance().getEventPublisher(type_id);
   if (publisher == nullptr) {
@@ -930,7 +931,7 @@ Status EventFactory::addSubscription(EventPublisherID& type_id,
   return publisher->addSubscription(subscription);
 }
 
-size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
+size_t EventFactory::numSubscriptions(const std::string& type_id) {
   EventPublisherRef publisher;
   try {
     publisher = EventFactory::getInstance().getEventPublisher(type_id);
@@ -943,7 +944,7 @@ size_t EventFactory::numSubscriptions(EventPublisherID& type_id) {
   return publisher->numSubscriptions();
 }
 
-EventPublisherRef EventFactory::getEventPublisher(EventPublisherID& type_id) {
+EventPublisherRef EventFactory::getEventPublisher(const std::string& type_id) {
   if (getInstance().event_pubs_.count(type_id) == 0) {
     LOG(ERROR) << "Requested unknown/failed event publisher: " + type_id;
     return nullptr;
@@ -952,7 +953,7 @@ EventPublisherRef EventFactory::getEventPublisher(EventPublisherID& type_id) {
 }
 
 EventSubscriberRef EventFactory::getEventSubscriber(
-    EventSubscriberID& name_id) {
+    const std::string& name_id) {
   if (!exists(name_id)) {
     LOG(ERROR) << "Requested unknown event subscriber: " + name_id;
     return nullptr;
@@ -960,7 +961,7 @@ EventSubscriberRef EventFactory::getEventSubscriber(
   return getInstance().event_subs_.at(name_id);
 }
 
-bool EventFactory::exists(EventSubscriberID& name_id) {
+bool EventFactory::exists(const std::string& name_id) {
   return (getInstance().event_subs_.count(name_id) > 0);
 }
 
@@ -968,7 +969,7 @@ Status EventFactory::deregisterEventPublisher(const EventPublisherRef& pub) {
   return EventFactory::deregisterEventPublisher(pub->type());
 }
 
-Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
+Status EventFactory::deregisterEventPublisher(const std::string& type_id) {
   auto& ef = EventFactory::getInstance();
 
   WriteLock lock(ef.factory_lock_);
@@ -994,7 +995,7 @@ Status EventFactory::deregisterEventPublisher(EventPublisherID& type_id) {
   return Status(0, "OK");
 }
 
-Status EventFactory::deregisterEventSubscriber(EventSubscriberID& sub) {
+Status EventFactory::deregisterEventSubscriber(const std::string& sub) {
   auto& ef = EventFactory::getInstance();
 
   WriteLock lock(ef.factory_lock_);

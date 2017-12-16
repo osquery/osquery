@@ -11,7 +11,6 @@
 #include <string>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/network/protocol/http/client.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -19,8 +18,10 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/remote/http_client.h"
+#include "osquery/utils/aws_util.h"
+
 namespace pt = boost::property_tree;
-namespace http = boost::network::http;
 
 namespace osquery {
 namespace tables {
@@ -126,15 +127,15 @@ class JSONEc2MetaData : public Ec2MetaData {
 };
 
 std::string Ec2MetaData::doGet() const {
-  const static std::string ec2_metadata_url{"http://169.254.169.254/latest/"};
+  const static std::string ec2_metadata_url{kEc2MetadataUrl};
 
-  http::client::request req(ec2_metadata_url + url_suffix_);
-  http::client::options options;
+  http::Request req(ec2_metadata_url + url_suffix_);
+  http::Client::Options options;
   options.timeout(3);
-  http::client client(options);
+  http::Client client(options);
 
   try {
-    http::client::response res = client.get(req);
+    http::Response res = client.get(req);
     boost::uint16_t http_status_code = res.status();
 
     // Silently ignore 404
@@ -202,39 +203,6 @@ void JSONEc2MetaData::extractResult(const std::string& http_body,
   } catch (const pt::json_parser::json_parser_error& e) {
     VLOG(1) << "Could not parse JSON from " << url_suffix_ << ": " << e.what();
   }
-}
-
-static bool isEc2Instance() {
-  static std::atomic<bool> checked(false);
-  static std::atomic<bool> is_ec2_instance(false);
-  if (checked) {
-    return is_ec2_instance; // Return if already checked
-  }
-
-  static std::once_flag once_flag;
-  std::call_once(once_flag, []() {
-    if (checked) {
-      return;
-    }
-
-    checked = true;
-    http::client::request req("http://169.254.169.254");
-    http::client::options options;
-    options.timeout(3);
-    http::client client(options);
-
-    try {
-      http::client::response res = client.get(req);
-      if (res.status() == 200) {
-        is_ec2_instance = true;
-      }
-    } catch (const std::system_error& e) {
-      // Assume that this is not EC2 instance
-      VLOG(1) << "Error checking if this is EC2 instance: " << e.what();
-    }
-  });
-
-  return is_ec2_instance;
 }
 
 QueryData genEc2Metadata(QueryContext& context) {

@@ -35,12 +35,12 @@ const char* kOsqueryTestModuleName = "osquery_tests.exe";
 
 /// These are the expected arguments for our test worker process.
 const char* kExpectedWorkerArgs[] = {
-    "worker-test", "--socket", "fake-socket", nullptr};
+    nullptr, "--socket", "fake-socket", nullptr};
 const size_t kExpectedWorkerArgsCount =
     (sizeof(osquery::kExpectedWorkerArgs) / sizeof(char*)) - 1;
 
 /// These are the expected arguments for our test extensions process.
-const char* kExpectedExtensionArgs[] = {"osquery extension: extension-test",
+const char* kExpectedExtensionArgs[] = {nullptr,
                                         "--verbose",
                                         "--socket",
                                         "socket-name",
@@ -72,7 +72,7 @@ static bool compareArguments(char* result[],
 
   return true;
 }
-}
+} // namespace osquery
 
 int workerMain(int argc, char* argv[]) {
   if (!osquery::compareArguments(argv,
@@ -83,7 +83,7 @@ int workerMain(int argc, char* argv[]) {
   }
 
   auto process = osquery::PlatformProcess::getLauncherProcess();
-  if (process.get() == nullptr) {
+  if (process == nullptr) {
     return ERROR_LAUNCHER_PROCESS;
   }
 
@@ -121,13 +121,16 @@ int extensionMain(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
+  osquery::kProcessTestExecPath = argv[0];
+  osquery::kExpectedExtensionArgs[0] = argv[0];
+  osquery::kExpectedWorkerArgs[0] = argv[0];
+
   if (auto val = osquery::getEnvVar("OSQUERY_WORKER")) {
     return workerMain(argc, argv);
   } else if ((val = osquery::getEnvVar("OSQUERY_EXTENSION"))) {
     return extensionMain(argc, argv);
   }
 
-  osquery::kProcessTestExecPath = argv[0];
   osquery::initTesting();
   testing::InitGoogleTest(&argc, argv);
   // Optionally enable Goggle Logging

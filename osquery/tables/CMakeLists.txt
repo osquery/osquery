@@ -72,7 +72,7 @@ if(LINUX)
   ADD_OSQUERY_LINK_ADDITIONAL("blkid")
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
 
-  ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg lzma lz4 bz2")
+  ADD_OSQUERY_LINK_ADDITIONAL("apt-pkg dpkg lzma bz2")
   ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio beecrypt popt db")
 endif()
 
@@ -102,6 +102,12 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
         ${OSQUERY_${CATEGORY}_POSIX_TABLES}
       )
     endif()
+
+    # Add posix table tests.
+    file(GLOB POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS
+      "${CATEGORY}/posix/tests/*.[cpm]*"
+    )
+    ADD_OSQUERY_TABLE_TEST(${POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS})
   endif()
 
   # Table implementations shared by FreeBSD and Linux
@@ -123,6 +129,17 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CATEGORY}_TABLES_TESTS})
 endforeach()
 
+if(NOT SKIP_KERNEL)
+  file(GLOB OSQUERY_KERNEL_TABLES
+    "kernel/*.[cpm]*"
+    "*/${TABLE_PLATFORM}/kernel/*.[cpm]*"
+  )
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(
+    osquery_kernel_tables
+    ${OSQUERY_KERNEL_TABLES}
+  )
+endif()
+
 file(GLOB OSQUERY_UTILITY_TABLES "utility/*.cpp")
 ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
   ${OSQUERY_UTILITY_TABLES}
@@ -131,7 +148,7 @@ ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
 if(NOT SKIP_AWS AND LINUX)
   file(GLOB OSQUERY_CLOUD_TABLES "cloud/*.[cpm]*")
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_cloud_tables ${OSQUERY_CLOUD_TABLES})
- 
+
   file(GLOB OSQUERY_CLOUD_TABLES_TESTS "cloud/tests/*.[cpm]*")
   if(OSQUERY_CLOUD_TABLES_TESTS)
     ADD_OSQUERY_TABLE_TEST(${OSQUERY_CLOUD_TABLES_TESTS})

@@ -8,8 +8,11 @@ schema([
     Column("key_file", TEXT, "Path to the authorized_keys file", index=True),
     ForeignKey(column="uid", table="users"),
 ])
-attributes(user_data=True)
+attributes(user_data=True, no_pkey=True)
 implementation("authorized_keys@getAuthorizedKeys")
+examples([
+  "select * from users join authorized_keys using (uid)",
+])
 fuzz_paths([
   "/home",
   "/Users",

@@ -30,10 +30,16 @@ namespace osquery {
 
 using RegionName = const char* const;
 
+/// EC2 instance latestmetadata URL
+const std::string kEc2MetadataUrl = "http://169.254.169.254/latest/";
+
+/// Hypervisor UUID file
+const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
+
 /**
- * @brief Client factory for the netlib HTTP client
+ * @brief Client factory for the Osquery HTTP client
  */
-class NetlibHttpClientFactory : public Aws::Http::HttpClientFactory {
+class OsqueryHttpClientFactory : public Aws::Http::HttpClientFactory {
  public:
   std::shared_ptr<Aws::Http::HttpClient> CreateHttpClient(
       const Aws::Client::ClientConfiguration& clientConfiguration)
@@ -49,16 +55,16 @@ class NetlibHttpClientFactory : public Aws::Http::HttpClientFactory {
 };
 
 /**
- * @brief Netlib implementation of AWS HTTP Client
+ * @brief Osquery implementation of AWS HTTP Client
  *
  * AWS uses a libcurl HTTP client by default. We prefer not to use libcurl, so
  * we provide this HTTP client implementation for the AWS SDK to use when
  * querying the APIs. The SDK must be built with -DNO_HTTP_CLIENT=1 to prevent
  * it looking for libcurl when static linking.
  */
-class NetlibHttpClient : public Aws::Http::HttpClient {
+class OsqueryHttpClient : public Aws::Http::HttpClient {
  public:
-  NetlibHttpClient() : HttpClient() {}
+  OsqueryHttpClient() : HttpClient() {}
 
   std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
       Aws::Http::HttpRequest& request,
@@ -133,10 +139,20 @@ class OsqueryAWSCredentialsProviderChain
  *
  * This function is intended to be called from the ::setUp() method of logger
  * plugins that use the AWS SDK. It initializes the SDK, instructing it to use
- * our custom NetlibHttpClientFactory. This function may be called more than
+ * our custom OsqueryHttpClientFactory. This function may be called more than
  * once, but initializing will only occur on the first call.
  */
 void initAwsSdk();
+
+/**
+ * @brief Checks to see if this machine is EC2 instance.
+ *
+ * This method caches results after first check and returns cached data. It
+ * first checks if /sys/hypervisor/uuid file exists and its contents starts with
+ * 'ec2'. If UUID prefix matches, it then connects to EC2 latest metadata URL.
+ * If both checks pass, this method returns true. Otherwise false.
+ */
+bool isEc2Instance();
 
 /**
  * @brief Returns EC2 instance ID and region of this machine.
@@ -144,8 +160,7 @@ void initAwsSdk();
  * If this is EC2 instance, returns the instance ID and region by querying the
  * EC2 metadata service. If this is not EC2 instance, returns empty strings.
  * This function makes HTTP call to EC2 metadata service. EC2 instance ID and
- * region are cached. First call to this method on non-EC2 instance machines can
- * take up to 3 seconds (HTTP timeout).
+ * region are cached.
  */
 void getInstanceIDAndRegion(std::string& instance_id, std::string& region);
 

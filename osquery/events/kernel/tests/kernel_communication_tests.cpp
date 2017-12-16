@@ -34,7 +34,9 @@ class KernelProducerRunnable : public InternalRunnable {
  public:
   explicit KernelProducerRunnable(unsigned int events_to_produce,
                                   unsigned int event_type)
-      : events_to_produce_(events_to_produce), event_type_(event_type) {}
+      : InternalRunnable("KernelProducerRunnable"),
+        events_to_produce_(events_to_produce),
+        event_type_(event_type) {}
 
   virtual void start() {
     int fd = open(kKernelDevice.c_str(), O_RDWR);

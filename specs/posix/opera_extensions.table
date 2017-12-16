@@ -17,3 +17,6 @@ schema([
 ])
 attributes(user_data=True)
 implementation("applications/browser_opera@genOperaExtensions")
+examples([
+    "select * from users join opera_extensions using (uid)",
+])

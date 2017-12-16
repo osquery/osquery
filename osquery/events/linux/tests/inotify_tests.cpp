@@ -49,8 +49,7 @@ class INotifyTests : public testing::Test {
 
   void TearDown() override {
     // End the event loops, and join on the threads.
-    remove(real_test_path);
-    fs::remove_all(real_test_dir);
+    removePath(real_test_dir);
   }
 
   void StartEventLoop() {

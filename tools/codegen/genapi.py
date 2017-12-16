@@ -41,7 +41,8 @@ CANONICAL_PLATFORMS = {
     "yara": "YARA",
     "lldpd": "LLDPD",
     "sleuthkit": "The Sleuth Kit",
-    "macwin": "MacOS and Windows"
+    "macwin": "MacOS and Windows",
+    "linwin": "Linux and Windows"
 }
 
 TEMPLATE_API_DEFINITION = """
@@ -199,6 +200,9 @@ def gen_api(tables_path, profile={}):
             if spec_file == 'blacklist':
                 continue
             platform = os.path.basename(base)
+            # Exclude kernel tables
+            if platform in ['kernel']:
+                continue
             platform_name = CANONICAL_PLATFORMS[platform]
             name = spec_file.split(".table", 1)[0]
             if platform not in categories.keys():

@@ -19,7 +19,7 @@
 namespace osquery {
 namespace tables {
 
-const std::map<unsigned short, const std::string> kMapOfAddressFamily = {
+const std::map<long, const std::string> kMapOfAddressFamily = {
     {2, "IPv4"}, {23, "IPv6"},
 };
 
@@ -47,10 +47,6 @@ QueryData genIPv4ArpCache(QueryContext& context) {
   std::map<long, std::string> mapOfInterfaces = {
       {1, ""}, // loopback
   };
-  unsigned short usiPlaceHolder;
-  unsigned char cPlaceHolder;
-  unsigned int uiPlaceHolder;
-  std::string strPlaceHolder;
 
   for (const auto& iface : interfaces) {
     long interfaceIndex;
@@ -62,11 +58,14 @@ QueryData genIPv4ArpCache(QueryContext& context) {
     }
   }
 
+  long lPlaceHolder = 0;
+  unsigned char cPlaceHolder;
+  std::string strPlaceHolder;
   for (const auto& item : wmiResults) {
     Row r;
-    item.GetUnsignedShort("AddressFamily", usiPlaceHolder);
-    r["address_family"] = kMapOfAddressFamily.count(usiPlaceHolder) > 0
-                              ? kMapOfAddressFamily.at(usiPlaceHolder)
+    item.GetLong("AddressFamily", lPlaceHolder);
+    r["address_family"] = kMapOfAddressFamily.count(lPlaceHolder) > 0
+                              ? kMapOfAddressFamily.at(lPlaceHolder)
                               : "-1";
     item.GetUChar("Store", cPlaceHolder);
     r["store"] = kMapOfStore.count(cPlaceHolder) > 0
@@ -76,9 +75,9 @@ QueryData genIPv4ArpCache(QueryContext& context) {
     r["state"] = kMapOfState.count(cPlaceHolder) > 0
                      ? kMapOfState.at(cPlaceHolder)
                      : "-1";
-    item.GetUnsignedInt32("InterfaceIndex", uiPlaceHolder);
-    r["interface"] = mapOfInterfaces.count(uiPlaceHolder) > 0
-                         ? mapOfInterfaces.at(uiPlaceHolder)
+    item.GetLong("InterfaceIndex", lPlaceHolder);
+    r["interface"] = mapOfInterfaces.count(lPlaceHolder) > 0
+                         ? mapOfInterfaces.at(lPlaceHolder)
                          : "-1";
     item.GetString("IPAddress", r["ip_address"]);
     item.GetString("InterfaceAlias", r["interface_alias"]);

@@ -518,7 +518,8 @@ class ConfigParserPlugin : public Plugin {
   /// Allow parsers to perform some setup before the configuration is loaded.
   Status setUp() override;
 
-  Status call(const PluginRequest&, PluginResponse&) override {
+  Status call(const PluginRequest& /*request*/,
+              PluginResponse& /*response*/) override {
     return Status(0);
   }
 
@@ -558,4 +559,4 @@ class ConfigParserPlugin : public Plugin {
  * @param json A mutable input/output string that will contain stripped JSON.
  */
 void stripConfigComments(std::string& json);
-}
+} // namespace osquery

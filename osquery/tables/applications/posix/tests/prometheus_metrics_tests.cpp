@@ -411,5 +411,5 @@ TEST_F(PrometheusMetricsTest, happy_path_10_metrics_2_targets) {
 
   validate(sr, expected);
 }
-}
-}
+} // namespace tables
+} // namespace osquery

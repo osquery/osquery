@@ -1,0 +1,246 @@
+---
+layout: default
+---
+
+{% assign versions = site.data.versions %}
+{% assign max = 5 %}
+
+{% if page.version %}
+  {% assign version = page.title %}
+{% else %}
+  {% assign version = versions.first.version %}
+{% endif %}
+
+<div id="playground" style="display: none">
+  <span class="template-pkey fa fa-key" title="acts as primary key"></span>
+  <span class="template-add fa fa-cubes" title="generates additional data"></span>
+  <span class="template-req fa fa-thumb-tack" title="required in WHERE clause"></span>
+  <span class="template-bl fa fa-ban" title="blacklisted"></span>
+  <span class="template-ep fa fa-database" title="uses an event publisher"></span>
+  <span class="template-kern fa fa-plug" title="requires kernel extension"></span>
+  <span class="template-util fa fa-wrench" title="utility table"></span>
+  <span class="template-example"><br /></span>
+
+  <table>
+    <tr class="template-col">
+      <td width="25%" class="column-name">
+        <b><code class="col-name"></code></b>
+      </td>
+      <td>
+        <code class="col-type darker"></code>
+      </td>
+      <td width="100%">
+        <span class="col-desc"></span>
+        <div class="column-icon tables-details"></div>
+      </td>
+    </tr>
+
+    <tr class="template-examples">
+      <td colspan="3" class="code-highlight">
+        <code>
+        </code>
+      </td>
+    </tr>
+  </table>
+
+  <div class="template-table tables-tag">
+    <table class="table table-bordered table-striped tables-table">
+      <thead>
+        <tr>
+          <th colspan="3">
+            <h4 class="tables-title">
+              <code class="template-table-name"></code>
+            </h4>
+            <div class="tables-details"></div>
+          </th>
+        </tr>
+        <tr class="tables-description">
+          <th colspan="3"></th>
+        </tr>
+        <tr class="tables-header">
+          <th>Column</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="template-category">
+    <h3>
+      <span class="category-icon"></span>
+      <span class="category-name"></span>
+    </h3>
+    <div class="tables"></div>
+  </div>
+</div>
+
+<script type="text/javascript">
+function buildTable(pg, table) {
+  tui = pg.find('.template-table').clone();
+  tui.prop('id', table.name);
+  tui.find('.template-table-name').text(table.name);
+  tuid = tui.find('.tables-details');
+  if (table.blacklisted) {
+    tuid.html(pg.find('.template-bl').clone());
+  }
+  if (table.attributes.event_subscriber) {
+    tuid.html(pg.find('.template-ep').clone());
+  }
+  if (table.attributes.kernel_required) {
+    tuid.html(pg.find('.template-kern').clone());
+  }
+  if (table.attributes.utility) {
+    tuid.html(pg.find('.template-util').clone());
+  }
+
+  tui.find('.tables-description th').text(table.description);
+  tbody = tui.find('tbody');
+
+  for (var coli in table.columns) {
+    column = table.columns[coli];
+    cui = pg.find('.template-col').clone();
+    cui.find('.col-name').text(column.name);
+    cui.find('.col-type').text(column.type.replace(/_TYPE/, ''));
+    cui.find('.col-desc').text(column.description);
+    details = cui.find('.tables-details');
+    if (column.options.index) {
+      details.html(pg.find('.template-pkey').clone());
+    }
+    if (column.options.additional) {
+      details.html(pg.find('.template-add').clone());
+    }
+    if (column.options.required) {
+      details.html(pg.find('.template-req').clone());
+    }
+    tbody.append(cui);
+  }
+
+  if (table.examples.length > 0) {
+    for (var exi in table.examples) {
+      example = table.examples[exi];
+      examples = pg.find('.template-examples').clone();
+      examples.find('code').text(example);
+      tbody.append(examples);
+    }
+  }
+
+  return tui;
+}
+
+$(document).ready(function() {
+    $.getJSON('{{site.schema_url}}/{{version}}.json', function(data) {
+      var icons = {
+        "x": "fa fa-laptop",
+        "darwin": "fa fa-apple",
+        "linux": "fa fa-linux",
+        "ubuntu": "ci-ubuntu",
+        "centos": "ci-centos",
+        "windows": "fa fa-windows",
+      };
+
+      pg = $('#playground');
+      data.tables.sort(function(a, b) {
+        // Sort and replace the 'specs' category.
+        if (a.key == 'specs') {
+          a.key = 'all';
+        }
+        return a.key.localeCompare(b.key);
+      });
+
+      for (var ci in data.tables) {
+        ui = pg.find('.template-category').clone();
+        ui.prop('id', data.tables[ci].key);
+        ui.find('.category-name').text(data.tables[ci].name);
+        if (!(data.tables[ci].key in icons)) {
+          icon = icons["x"];
+        } else {
+          icon = icons[data.tables[ci].key];
+        }
+
+        ui.find('.category-icon').addClass(icon);
+
+        ttui = ui.find('.tables');
+        for (var ti in data.tables[ci].tables) {
+          ttui.append(buildTable(pg, data.tables[ci].tables[ti]));
+        }
+
+        $('#output').append(ui);
+      }
+
+      if (window.location.hash) {
+        tb = $(window.location.hash);
+        if (tb.length) {
+          hb = $('html,body');
+          hb.scrollTop(tb.offset().top - hb.offset().top + hb.scrollTop());
+        }
+      }
+    });
+});
+</script>
+
+
+<section class="feature">
+  <div class="grid">
+    <div class="unit whole">
+      <h2>Table schema</h2>
+      <p>
+        We strive for feature parity and attempt to maximize the number of tables
+        universally available on all platforms.
+        Nevertheless, there are platform-specific tables that apply to macOS, Windows,
+        or Linux exclusively.
+        This schema documentation categorizes tables by platform availability.
+        Categories also include application or integration specific tables.
+        We also publish unversioned query <a href="/schema/packs">pack</a> content.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="feature">
+  <div class="grid">
+    <div class="unit one-third">
+      </p>
+      <span class="fa fa-database"></span> uses an event publisher <br/>
+      <span class="fa fa-plug"></span> requires kernel extension <br/>
+      <span class="fa fa-ban"></span> blacklisted <br/>
+      <span class="fa fa-warning"></span> performance impact <br/>
+      </p>
+    </div>
+    <div class="unit one-third">
+      </p>
+      <span class="fa fa-key"></span> treat as a primary key <br/>
+      <span class="fa fa-cubes"></span> use to control table output <br/>
+      <span class="fa fa-thumb-tack"></span> required in <tt>WHERE</tt> clause <br/>
+      <span class="fa fa-wrench"></span> utility, included in SDK <br/>
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="feature">
+  <div class="grid">
+    <div class="unit whole tags">
+      <strong>Release tags: </strong>
+      {% for _version in versions %}
+        {% if forloop.index > max %}
+          {% continue %}
+        {% endif %}
+        <span class="code {% if version contains _version.version %}current{% endif %}">
+          <a href="/schema/{{_version.version}}">{{_version.version}}</a></span>{% if _version != versions.last and forloop.index < max %},
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="feature">
+  <div class="grid">
+    <div class="unit whole schema">
+      <div id="output">
+      </div>
+    </div>
+  </div>
+</section>
