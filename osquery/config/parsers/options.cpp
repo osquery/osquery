@@ -25,7 +25,16 @@ namespace osquery {
  * the verbosity.
  */
 const std::set<std::string> kVerboseOptions{
-    "verbose", "logger_min_status", "verbose_debug", "debug", "minloglevel",
+    "verbose",
+    "verbose_debug",
+    "debug",
+    "minloglevel",
+    "logger_min_status",
+    "stderrthreshold",
+    "logger_min_stderr",
+    "logger_stderr",
+    "logtostderr",
+    "alsologtostderr",
 };
 
 /**

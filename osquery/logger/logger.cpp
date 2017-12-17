@@ -310,16 +310,15 @@ static void deserializeIntermediateLog(const PluginRequest& request,
 
 void setVerboseLevel() {
   auto default_level = google::GLOG_INFO;
-  // Do NOT log INFO, WARNING, ERROR to stderr.
-  // Do log only WARNING, ERROR to log sinks.
   if (Initializer::isShell()) {
+    // Do log only WARNING, ERROR to log sinks.
     default_level = google::GLOG_WARNING;
   }
 
   if (Flag::getValue("verbose") == "true") {
     // Turn verbosity up to 1.
     // Do log DEBUG, INFO, WARNING, ERROR to their log files.
-    // Do log the above and verbose=1 to stderr.
+    // Do log the above and verbose=1 to stderr (can be turned off later).
     FLAGS_minloglevel = google::GLOG_INFO;
     FLAGS_alsologtostderr = true;
     FLAGS_v = 1;
@@ -345,17 +344,16 @@ void setVerboseLevel() {
   }
 
   if (FLAGS_disable_logging) {
-    // Do log ERROR to stderr.
-    // Do NOT log INFO, WARNING, ERROR to their log files.
     FLAGS_logtostderr = true;
   }
 }
 
 void initStatusLogger(const std::string& name, bool init_glog) {
   FLAGS_colorlogtostderr = true;
-  FLAGS_logbufsecs = 0; // flush the log buffer immediately
+  FLAGS_logbufsecs = 0;
   FLAGS_stop_logging_if_full_disk = true;
-  FLAGS_max_log_size = 10; // max size for individual log file is 10MB
+  // The max size for individual log file is 10MB.
+  FLAGS_max_log_size = 10;
 
   setVerboseLevel();
   // Start the logging, and announce the daemon is starting.
