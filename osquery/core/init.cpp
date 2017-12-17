@@ -82,18 +82,6 @@ enum {
 #define OPTIONS_SHELL "\nosquery shell-only CLI flags:\n\n"
 #define OPTIONS_CLI "osquery%s command line flags:\n\n"
 #define USAGE "Usage: %s [OPTION]... %s\n\n"
-#define CONFIG_ERROR                                                           \
-  "You are using default configurations for osqueryd for one or more of the "  \
-  "following\n"                                                                \
-  "flags: pidfile, db_path.\n\n"                                               \
-  "These options create files in " OSQUERY_HOME                                \
-  " but it looks like that path "                                              \
-  "has not\n"                                                                  \
-  "been created. Please consider explicitly defining those "                   \
-  "options as a different \n"                                                  \
-  "path. Additionally, review the \"using osqueryd\" wiki page:\n"             \
-  " - https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/"  \
-  "\n\n";
 
 namespace osquery {
 CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
@@ -338,13 +326,16 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // Initialize registries and plugins
   registryAndPluginInit();
 
-  if (isShell()) {
+  if (isShell() || FLAGS_ephemeral) {
     if (Flag::isDefault("database_path") &&
         Flag::isDefault("disable_database")) {
       // The shell should not use a database by default, but should use the DB
       // specified by database_path if it is set
       FLAGS_disable_database = true;
     }
+  }
+
+  if (isShell()) {
     // Initialize the shell after setting modified defaults and parsing flags.
     initShell();
   }
@@ -412,11 +403,6 @@ void Initializer::initDaemon() const {
   systemLog(binary_ + " started [version=" + kVersion + "]");
 
   if (!FLAGS_ephemeral) {
-    if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
-        !isDirectory(OSQUERY_HOME)) {
-      std::cerr << CONFIG_ERROR;
-    }
-
     // Create a process mutex around the daemon.
     auto pid_status = createPidFile();
     if (!pid_status.ok()) {
