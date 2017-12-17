@@ -24,6 +24,8 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 
+#include "osquery/core/conversions.h"
+#include "osquery/core/process.h"
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -39,18 +41,11 @@ namespace tables {
 
 const std::string kLocalDumpsRegKey =
     "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\Windows Error "
-    "Reporting\\LocalDumps";
-const std::string kDumpFolderRegPath = kLocalDumpsRegKey + "\\DumpFolder";
-const std::string kFallbackFolder = "%TMP%";
-const std::string kDumpFileExtension = ".dmp";
+    "Reporting\\LocalDumps\\DumpFolder";
 const std::string kSymbolPath =
     "C:\\ProgramData\\dbg\\sym;"
     "cache*C:\\ProgramData\\dbg\\sym;"
     "srv*C:\\ProgramData\\dbg\\sym*https://msdl.microsoft.com/download/symbols";
-const unsigned long kSymbolOptions =
-    SYMOPT_CASE_INSENSITIVE & SYMOPT_UNDNAME & SYMOPT_LOAD_LINES &
-    SYMOPT_OMAP_FIND_NEAREST & SYMOPT_LOAD_ANYTHING &
-    SYMOPT_FAIL_CRITICAL_ERRORS & SYMOPT_AUTO_PUBLICS;
 const unsigned long kNumStackFramesToLog = 10;
 const std::map<unsigned long long, std::string> kMinidumpTypeFlags = {
     {0x00000000, "MiniDumpNormal"},
@@ -79,11 +74,11 @@ const std::map<unsigned long long, std::string> kMinidumpTypeFlags = {
 
 class RegisterOutputCallbacks : public IDebugOutputCallbacks {
  private:
-  Row* r = nullptr;
+  Row* r_ = nullptr;
 
  public:
   RegisterOutputCallbacks(Row* r) {
-    this->r = r;
+    this->r_ = r;
   }
 
   STDMETHODIMP RegisterOutputCallbacks::QueryInterface(
@@ -113,18 +108,30 @@ class RegisterOutputCallbacks : public IDebugOutputCallbacks {
       return S_FALSE;
     }
 
-    // Replace CRLFs with spaces
-    std::string regs(Text);
-    regs.erase(std::remove(regs.begin(), regs.end(), '\r'), regs.end());
-    std::replace(regs.begin(), regs.end(), '\n', ' ');
+    std::string output;
 
-    (*r)["registers"] = regs;
+    // Remove CRLFs and extra whitespace
+    std::istringstream stream(Text);
+    std::string reg;
+    while (stream >> reg) {
+      // Replace "=" with ":0x" to match darwin crashes table
+      size_t ptr = reg.find("=");
+      if (ptr != std::string::npos) {
+        reg.replace(ptr, 1, ":0x");
+      }
+
+      if (!output.empty()) {
+        output += ' ';
+      }
+      output += reg;
+    }
+
+    (*r_)["registers"] = output;
     return S_OK;
   }
 };
 
-// Log exception info, and the exception message for errors with
-// defined parameters
+// Log exception info, and the message when exception has defined parameters
 Status logExceptionInfo(IDebugControl5* control, Row& r) {
   unsigned long type = 0;
   unsigned long procID = 0;
@@ -258,19 +265,14 @@ Status logDumpType(IDebugControl5* control, Row& r) {
     return Status(1);
   }
 
-  std::ostringstream activeFlags;
-  bool firstString = true;
+  std::vector<std::string> activeFlags;
   // Loop through MINIDUMP_TYPE flags and log the ones that are set
   for (auto const& flag : kMinidumpTypeFlags) {
     if (flags & flag.first) {
-      if (!firstString) {
-        activeFlags << ",";
-      }
-      firstString = false;
-      activeFlags << flag.second;
+      activeFlags.push_back(flag.second);
     }
   }
-  r["type"] = activeFlags.str();
+  r["type"] = osquery::join(activeFlags, ",");
   return Status();
 }
 
@@ -306,35 +308,33 @@ Status logStackTrace(IDebugControl5* control, IDebugSymbols3* symbols, Row& r) {
                                         &numFrames) != S_OK) {
       return Status(1);
     }
-  } else {
-    if (control->GetStackTraceEx(
-            0, 0, 0, stackFrames, kNumStackFramesToLog, &numFrames) != S_OK) {
-      return Status(1);
-    }
+  } else if (control->GetStackTraceEx(
+                 0, 0, 0, stackFrames, kNumStackFramesToLog, &numFrames) !=
+             S_OK) {
+    return Status(1);
   }
 
   // Then, log the stack frames
+  std::vector<std::string> stackTraces;
+  std::vector<char> name(512, 0x0);
   std::ostringstream stackTrace;
-  auto firstFrame = true;
   for (unsigned long frame = 0; frame < numFrames; frame++) {
-    char name[512] = {0};
     unsigned long long offset = 0;
 
-    if (!firstFrame) {
-      stackTrace << ",";
-    }
-    firstFrame = false;
     if (symbols->GetNameByOffset(stackFrames[frame].InstructionOffset,
-                                 name,
-                                 ARRAYSIZE(name) - 1,
+                                 name.data(),
+                                 static_cast<unsigned long>(name.size() - 1),
                                  nullptr,
                                  &offset) == S_OK) {
-      stackTrace << name << "+0x" << std::hex << offset;
+      stackTrace << name.data() << "+0x" << std::hex << offset;
     }
     stackTrace << "(0x" << std::hex << stackFrames[frame].InstructionOffset;
     stackTrace << ")";
+    stackTraces.push_back(stackTrace.str());
+    name.clear();
+    stackTrace.str("");
   }
-  r["stack_trace"] = stackTrace.str();
+  r["stack_trace"] = osquery::join(stackTraces, ",");
   return Status();
 }
 
@@ -440,6 +440,7 @@ Status logPEBInfo(IDebugClient5* client,
        S_OK)) {
     return Status(1);
   }
+
   // Get address of ProcessParameters struct
   unsigned long long procParamsAddr = 0;
   if (data->ReadPointersVirtual(
@@ -458,6 +459,7 @@ Status logPEBInfo(IDebugClient5* client,
        S_OK)) {
     return Status(1);
   }
+
   // Log CurrentDirectory
   unsigned long long curDirBufferAddr = 0;
   if (data->ReadPointersVirtual(
@@ -475,6 +477,7 @@ Status logPEBInfo(IDebugClient5* client,
           ntdllBase, procParamsTypeId, "CommandLine", &cmdLineOffset) != S_OK) {
     return Status(1);
   }
+
   // Log CommandLine
   unsigned long long cmdLineBufferAddr = 0;
   if (data->ReadPointersVirtual(1,
@@ -496,20 +499,22 @@ Status logPEBInfo(IDebugClient5* client,
           ntdllBase, procParamsTypeId, "Environment", &envOffset) != S_OK) {
     return Status(1);
   }
+
   // Get Environment
   unsigned long long envBufferAddr = 0;
   if (data->ReadPointersVirtual(
           1, procParamsAddr + envOffset, &envBufferAddr) != S_OK) {
     return Status(1);
   }
+
   // Loop through environment variables and log those of interest
   // The environment variables are stored in the following format:
   // Var1=Value1\0Var2=Value2\0Var3=Value3\0 ... VarN=ValueN\0\0
   wchar_t env[UNICODE_STRING_MAX_BYTES] = {0};
   unsigned long bytesRead = 0;
-  data->ReadUnicodeStringVirtualWide(
+  auto ret = data->ReadUnicodeStringVirtualWide(
       envBufferAddr, sizeof(env), env, UNICODE_STRING_MAX_BYTES, &bytesRead);
-  while (bytesRead > sizeof(wchar_t)) {
+  while (ret == S_OK) {
     envBufferAddr += bytesRead;
     auto envVar = wstringToString(env);
     auto pos = envVar.find('=');
@@ -522,13 +527,8 @@ Status logPEBInfo(IDebugClient5* client,
       r["username"] = varValue;
     }
 
-    if (data->ReadUnicodeStringVirtualWide(envBufferAddr,
-                                           sizeof(env),
-                                           env,
-                                           UNICODE_STRING_MAX_BYTES,
-                                           &bytesRead) != S_OK) {
-      break;
-    }
+    ret = data->ReadUnicodeStringVirtualWide(
+        envBufferAddr, sizeof(env), env, UNICODE_STRING_MAX_BYTES, &bytesRead);
   }
 
   return Status();
@@ -567,6 +567,11 @@ void debugEngineCleanup(IDebugClient5* client,
 }
 
 void processDebugEngine(const char* fileName, Row& r) {
+  const unsigned long kSymbolOptions =
+      SYMOPT_CASE_INSENSITIVE & SYMOPT_UNDNAME & SYMOPT_LOAD_LINES &
+      SYMOPT_OMAP_FIND_NEAREST & SYMOPT_LOAD_ANYTHING &
+      SYMOPT_FAIL_CRITICAL_ERRORS & SYMOPT_AUTO_PUBLICS;
+
   IDebugClient5* client = nullptr;
   IDebugControl5* control = nullptr;
   IDebugSymbols3* symbols = nullptr;
@@ -629,32 +634,30 @@ void processDebugEngine(const char* fileName, Row& r) {
 }
 
 QueryData genCrashLogs(QueryContext& context) {
+  const std::string kDumpFileExtension = ".dmp";
   QueryData results;
-  std::string dumpFolderLocation;
+  std::string dumpFolderLocation{""};
 
   // Query registry for crash dump folder
-  std::string dumpFolderQuery = "SELECT data FROM registry WHERE key = \"" +
-                                kLocalDumpsRegKey + "\" AND path = \"" +
-                                kDumpFolderRegPath + "\"";
+  std::string dumpFolderQuery =
+      "SELECT data FROM registry WHERE path = \"" + kLocalDumpsRegKey + "\"";
   SQL dumpFolderResults(dumpFolderQuery);
-  dumpFolderLocation = dumpFolderResults.rows().empty()
-                           ? kFallbackFolder
-                           : dumpFolderResults.rows()[0].at("data");
+  if (!dumpFolderResults.rows().empty()) {
+    dumpFolderLocation = dumpFolderResults.rows()[0].at("data");
+  } else {
+    auto tempDumpLoc = getEnvVar("TMP");
+    dumpFolderLocation = tempDumpLoc.is_initialized() ? *tempDumpLoc : "";
+  }
 
-  // Fill in any environment variables
-  char expandedDumpFolderLocation[MAX_PATH];
-  ExpandEnvironmentStrings(
-      dumpFolderLocation.c_str(), expandedDumpFolderLocation, MAX_PATH);
-
-  if (!fs::exists(expandedDumpFolderLocation) ||
-      !fs::is_directory(expandedDumpFolderLocation)) {
+  if (!fs::exists(dumpFolderLocation) ||
+      !fs::is_directory(dumpFolderLocation)) {
     LOG(ERROR) << "No crash dump directory found";
     return results;
   }
 
   // Enumerate and process crash dumps
   std::vector<std::string> files;
-  if (listFilesInDirectory(expandedDumpFolderLocation, files)) {
+  if (listFilesInDirectory(dumpFolderLocation, files)) {
     for (const auto& lf : files) {
       if (alg::iends_with(lf, kDumpFileExtension) && fs::is_regular_file(lf)) {
         Row r;
