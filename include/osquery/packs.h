@@ -85,6 +85,9 @@ class Pack : private boost::noncopyable {
   /// Returns the schedule dictated by the pack
   const std::map<std::string, ScheduledQuery>& getSchedule() const;
 
+  /// Returns the schedule dictated by the pack
+  std::map<std::string, ScheduledQuery>& getSchedule();
+
   /// Verify that the platform is compatible
   bool checkPlatform() const;
 

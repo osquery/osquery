@@ -203,6 +203,10 @@ const std::map<std::string, ScheduledQuery>& Pack::getSchedule() const {
   return schedule_;
 }
 
+std::map<std::string, ScheduledQuery>& Pack::getSchedule() {
+  return schedule_;
+}
+
 const std::vector<std::string>& Pack::getDiscoveryQueries() const {
   return discovery_queries_;
 }

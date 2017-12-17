@@ -162,7 +162,8 @@ class Config : private boost::noncopyable {
    *
    * @param predicate is a function which accepts two parameters, the name of
    * the query and the ScheduledQuery struct of the queries data. predicate
-   * will be called on each currently scheduled query
+   * will be called on each currently scheduled query.
+   * @param blacklisted [optional] return blacklisted queries if true.
    *
    * @code{.cpp}
    *   std::map<std::string, ScheduledQuery> queries;
@@ -174,7 +175,8 @@ class Config : private boost::noncopyable {
    */
   void scheduledQueries(
       std::function<void(const std::string& name, const ScheduledQuery& query)>
-          predicate);
+          predicate,
+      bool blacklisted = false);
 
   /**
    * @brief Map a function across the set of configured files
@@ -352,6 +354,7 @@ class Config : private boost::noncopyable {
   friend class DecoratorsConfigParserPluginTests;
   friend class SchedulerTests;
   FRIEND_TEST(ConfigTests, test_config_refresh);
+  FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_add_view);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_swap_view);

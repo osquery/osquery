@@ -345,10 +345,11 @@ void Config::removeFiles(const std::string& source) {
 
 void Config::scheduledQueries(
     std::function<void(const std::string& name, const ScheduledQuery& query)>
-        predicate) {
+        predicate,
+    bool blacklisted) {
   RecursiveLock lock(config_schedule_mutex_);
-  for (const PackRef& pack : *schedule_) {
-    for (const auto& it : pack->getSchedule()) {
+  for (PackRef& pack : *schedule_) {
+    for (auto& it : pack->getSchedule()) {
       std::string name = it.first;
       // The query name may be synthetic.
       if (pack->getName() != "main" && pack->getName() != "legacy_main") {
@@ -356,17 +357,23 @@ void Config::scheduledQueries(
                FLAGS_pack_delimiter + it.first;
       }
       // They query may have failed and been added to the schedule's blacklist.
-      if (schedule_->blacklist_.count(name) > 0) {
-        auto blacklisted_query = schedule_->blacklist_.find(name);
+      auto blacklisted_query = schedule_->blacklist_.find(name);
+      if (blacklisted_query != schedule_->blacklist_.end()) {
         if (getUnixTime() > blacklisted_query->second) {
           // The blacklisted query passed the expiration time (remove).
           schedule_->blacklist_.erase(blacklisted_query);
           saveScheduleBlacklist(schedule_->blacklist_);
+          it.second.blacklisted = false;
         } else {
           // The query is still blacklisted.
-          continue;
+          it.second.blacklisted = true;
+          if (!blacklisted) {
+            // The caller does not want blacklisted queries.
+            continue;
+          }
         }
       }
+
       // Call the predicate.
       predicate(name, it.second);
     }
