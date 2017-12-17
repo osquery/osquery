@@ -58,8 +58,6 @@ Status FirehoseLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
 
 void FirehoseLoggerPlugin::init(const std::string& name,
                                 const std::vector<StatusLogLine>& log) {
-  google::ShutdownGoogleLogging();
-  google::InitGoogleLogging(name.c_str());
   logStatus(log);
 }
 

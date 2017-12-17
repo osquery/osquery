@@ -81,9 +81,6 @@ Status TLSLoggerPlugin::setUp() {
 
 void TLSLoggerPlugin::init(const std::string& name,
                            const std::vector<StatusLogLine>& log) {
-  // Restart the glog facilities using the name init was provided.
-  google::ShutdownGoogleLogging();
-  google::InitGoogleLogging(name.c_str());
   logStatus(log);
 }
 

@@ -12,7 +12,10 @@
 #include <osquery/logger.h>
 
 #include "osquery/logger/plugins/windows_event_log.h"
+
+// clang-format off
 #include "osquery/logger/plugins/generated_wel.h"
+// clang-format on
 
 namespace osquery {
 

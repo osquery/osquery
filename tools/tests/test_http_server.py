@@ -134,7 +134,9 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         debug("RealSimpleHandler::post %s" % self.path)
         self._set_headers()
         content_len = int(self.headers.getheader('content-length', 0))
-        request = json.loads(self.rfile.read(content_len))
+
+        body = self.rfile.read(content_len)
+        request = json.loads(body)
 
         # This contains a base64 encoded block of a file printing to the screen
         # slows down carving and makes scroll back a pain
