@@ -91,8 +91,7 @@ function Invoke-OsqueryMsbuild {
   $sln = 'osquery.sln'
   $targets = @(
     'shell',
-    'daemon',
-    'example_extension'
+    'daemon'
   )
   foreach ($target in $targets) {
     $msbuildArgs = @(
