@@ -32,7 +32,7 @@ REGISTER(StdoutLoggerPlugin, "logger", "stdout");
 
 Status StdoutLoggerPlugin::logString(const std::string& s) {
   printf("%s\n", s.c_str());
-  return Status(0, "OK");
+  return Status();
 }
 
 Status StdoutLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
@@ -43,7 +43,7 @@ Status StdoutLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
 
     printf("%s\n", line.c_str());
   }
-  return Status(0, "OK");
+  return Status();
 }
 
 void StdoutLoggerPlugin::init(const std::string& name,
@@ -51,6 +51,7 @@ void StdoutLoggerPlugin::init(const std::string& name,
   // Stop the internal Glog facilities.
   FLAGS_alsologtostderr = false;
   FLAGS_logtostderr = false;
+  FLAGS_stderrthreshold = 5;
 
   // Now funnel the intermediate status logs provided to `init`.
   logStatus(log);

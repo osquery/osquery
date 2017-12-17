@@ -217,10 +217,6 @@ It is common for TLS/HTTPS servers to enforce a maximum request body size. The d
 
 Use this only in emergency situations as size violations are dropped. It is extremely uncommon for this to occur, as the `--value_max` for each column would need to be drastically larger, or the offending table would have to implement several hundred columns.
 
-`--logger_min_status=0`
-
-The minimum level for status log recording. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. When using `--verbose` this value is ignored.
-
 `--distributed_tls_read_endpoint=`
 
 The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for retrieving distributed queries when using the **tls** distributed plugin.
@@ -326,6 +322,22 @@ Log scheduled results as events.
 
 Log scheduled snapshot results as events, similar to differential results. If this is set to `true` then each row from a snapshot query will be logged individually.
 
+`--logger_min_status=0`
+
+The minimum level for status log recording. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. When using `--verbose` this value is ignored.
+
+`--logger_min_stderr=0`
+
+The minimum level for status logs written to stderr. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. It does NOT limit or control the types sent to the logger plugin. When using `--verbose` this value is ignored.
+
+`--logger_stderr=true`
+
+The default behavior is to also write status logs to stderr. Set this flag to false to disable writing (copying) status logs to stderr. In this case `--verbose` is respected.
+
+`--logger_secondary_status_only=false`
+
+This is a rarely used logger plugin option. When enabled, the "secondary" logger plugins will only receive status logs. For an example if your `-logger_plugin=tls,firehose,syslog` then status logs would be sent to all 3 plugins, and query results will only be sent to `tls`.
+
 `--host_identifier=hostname`
 
 Field used to identify the host running osquery: **hostname**, **uuid**, **ephemeral**, **instance**, **specified**.
@@ -365,14 +377,6 @@ Set the syslog facility (number) 0-23 for the results log. When using the **sysl
 `--logger_syslog_prepend_cee`
 
 Prepend a `@cee:` cookie to JSON-formatted messages sent to the **syslog** logger plugin. Several syslog parsers use this cookie to indicate that the message payload is parseable JSON. The default value is false.
-
-`--logtostderr=true`
-
-This is default `true` and will also send log messages in GLog format to the process's `stderr`. The logs are limited by severity and the following flag: `--stderrthreshold`.
-
-`--stderrthreshold=2`
-
-This controls the types of logs sent to the process's `stderr`. It does NOT limit or control the types sent to the logger plugin. The default value 2 is `ERROR`, set this to `0` for all non-verbose types. If the `--verbose` flag is set this value is overridden to `0`.
 
 `--logger_kafka_brokers`
 

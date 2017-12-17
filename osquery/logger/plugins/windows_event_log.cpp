@@ -11,8 +11,8 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-#include "osquery/logger/plugins/windows_event_log.h"
 #include "osquery/logger/plugins/generated_wel.h"
+#include "osquery/logger/plugins/windows_event_log.h"
 
 namespace osquery {
 

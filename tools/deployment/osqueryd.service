@@ -9,6 +9,7 @@ ExecStartPre=/bin/sh -c "if [ ! -f $FLAG_FILE ]; then touch $FLAG_FILE; fi"
 ExecStartPre=/bin/sh -c "if [ -f $LOCAL_PIDFILE ]; then mv $LOCAL_PIDFILE $PIDFILE; fi"
 ExecStart=/usr/bin/osqueryd \
   --flagfile $FLAG_FILE \
+  --logger_min_stderr 1 \
   --config_path $CONFIG_FILE
 Restart=on-failure
 KillMode=process
