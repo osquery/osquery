@@ -87,6 +87,11 @@ HIDDEN_FLAG(uint64,
             60 * 10,
             "Max delay in seconds between worker respawns");
 
+CLI_FLAG(bool,
+         enable_extensions_watchdog,
+         false,
+         "Disable userland watchdog for extensions processes");
+
 CLI_FLAG(bool, disable_watchdog, false, "Disable userland watchdog process");
 
 void Watcher::resetWorkerCounters(size_t respawn_time) {
@@ -251,8 +256,9 @@ void WatcherRunner::watchExtensions() {
 
     auto ext_valid = extension.second->isValid();
     auto s = isChildSane(*extension.second);
+
     if (!ext_valid || (!s.ok() && getUnixTime() >= delayedTime())) {
-      if (ext_valid) {
+      if (ext_valid && FLAGS_enable_extensions_watchdog) {
         // The extension was already launched once.
         std::stringstream error;
         error << "osquery extension " << extension.first << " ("
