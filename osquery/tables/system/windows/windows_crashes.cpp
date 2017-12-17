@@ -110,7 +110,7 @@ class RegisterOutputCallbacks : public IDebugOutputCallbacks {
 
     // Remove CRLFs and extra whitespace
     std::istringstream stream(Text);
-	std::string output;
+    std::string output;
     std::string reg;
     while (stream >> reg) {
       // Replace "=" with ":0x" to match darwin crashes table
