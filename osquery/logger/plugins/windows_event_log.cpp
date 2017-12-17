@@ -12,7 +12,7 @@
 #include <osquery/logger.h>
 
 #include "osquery/logger/plugins/windows_event_log.h"
-#include "tools/wel/osquery.h"
+#include "osquery/logger/plugins/generated_wel.h"
 
 namespace osquery {
 
