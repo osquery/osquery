@@ -364,7 +364,7 @@ void Config::removeFiles(const std::string& source) {
  *
  * There are two scenarios where a blacklisted query becomes 'unblacklisted'.
  * The first is simple, the amount of time it was blacklisted for has expired.
- * The second is more complex, the query failed by the schedule has requested
+ * The second is more complex, the query failed but the schedule has requested
  * that the query should not be blacklisted.
  *
  * @param blt The time the query was originally blacklisted.
