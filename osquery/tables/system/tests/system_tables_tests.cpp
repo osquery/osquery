@@ -24,9 +24,6 @@
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
-
-DECLARE_bool(enable_hash_cache);
-
 namespace tables {
 
 class SystemsTablesTests : public testing::Test {};
@@ -213,7 +210,6 @@ TEST_F(HashTableTest, hashes_are_correct) {
 }
 
 TEST_F(HashTableTest, test_cache_works) {
-  FLAGS_enable_hash_cache = true;
   time_t last_mtime = 0;
   for (int i = 0; i < 2; ++i) {
     SetContent(i);
@@ -231,7 +227,6 @@ TEST_F(HashTableTest, test_cache_works) {
 }
 
 TEST_F(HashTableTest, test_cache_updates) {
-  FLAGS_enable_hash_cache = true;
   SetContent(0);
   // cache the current state
   SQL r1(qry);

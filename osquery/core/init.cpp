@@ -441,6 +441,11 @@ void Initializer::initShell() const {
     FLAGS_disable_extensions = true;
     FLAGS_disable_database = true;
   }
+
+  if (Flag::isDefault("hash_delay")) {
+    // The hash_delay is designed for daemons only.
+    Flag::updateValue("hash_delay", "0");
+  }
 }
 
 void Initializer::initWatcher() const {
