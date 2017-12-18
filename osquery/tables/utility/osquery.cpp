@@ -230,34 +230,37 @@ QueryData genOsqueryInfo(QueryContext& context) {
 QueryData genOsquerySchedule(QueryContext& context) {
   QueryData results;
 
-  Config::get().scheduledQueries([&results](const std::string& name,
-                                            const ScheduledQuery& query) {
-    Row r;
-    r["name"] = SQL_TEXT(name);
-    r["query"] = SQL_TEXT(query.query);
-    r["interval"] = INTEGER(query.interval);
-    // Set default (0) values for each query if it has not yet executed.
-    r["executions"] = "0";
-    r["output_size"] = "0";
-    r["wall_time"] = "0";
-    r["user_time"] = "0";
-    r["system_time"] = "0";
-    r["average_memory"] = "0";
-    r["last_executed"] = "0";
+  Config::get().scheduledQueries(
+      [&results](const std::string& name, const ScheduledQuery& query) {
+        Row r;
+        r["name"] = name;
+        r["query"] = query.query;
+        r["interval"] = INTEGER(query.interval);
+        r["blacklisted"] = (query.blacklisted) ? "1" : "0";
+        // Set default (0) values for each query if it has not yet executed.
+        r["executions"] = "0";
+        r["output_size"] = "0";
+        r["wall_time"] = "0";
+        r["user_time"] = "0";
+        r["system_time"] = "0";
+        r["average_memory"] = "0";
+        r["last_executed"] = "0";
 
-    // Report optional performance information.
-    Config::get().getPerformanceStats(name, [&r](const QueryPerformance& perf) {
-      r["executions"] = BIGINT(perf.executions);
-      r["last_executed"] = BIGINT(perf.last_executed);
-      r["output_size"] = BIGINT(perf.output_size);
-      r["wall_time"] = BIGINT(perf.wall_time);
-      r["user_time"] = BIGINT(perf.user_time);
-      r["system_time"] = BIGINT(perf.system_time);
-      r["average_memory"] = BIGINT(perf.average_memory);
-    });
+        // Report optional performance information.
+        Config::get().getPerformanceStats(
+            name, [&r](const QueryPerformance& perf) {
+              r["executions"] = BIGINT(perf.executions);
+              r["last_executed"] = BIGINT(perf.last_executed);
+              r["output_size"] = BIGINT(perf.output_size);
+              r["wall_time"] = BIGINT(perf.wall_time);
+              r["user_time"] = BIGINT(perf.user_time);
+              r["system_time"] = BIGINT(perf.system_time);
+              r["average_memory"] = BIGINT(perf.average_memory);
+            });
 
-    results.push_back(r);
-  });
+        results.push_back(r);
+      },
+      true);
   return results;
 }
 }

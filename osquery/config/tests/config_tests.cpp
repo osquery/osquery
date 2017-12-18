@@ -266,17 +266,59 @@ TEST_F(ConfigTests, test_content_update) {
 }
 
 TEST_F(ConfigTests, test_get_scheduled_queries) {
+  std::vector<std::string> query_names;
   std::vector<ScheduledQuery> queries;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack());
-  get().scheduledQueries(
-      ([&queries](const std::string&, const ScheduledQuery& query) {
-        queries.push_back(query);
-      }));
+  get().scheduledQueries(([&queries, &query_names](
+      const std::string& name, const ScheduledQuery& query) {
+    query_names.push_back(name);
+    queries.push_back(query);
+  }));
 
   auto expected_size = getUnrestrictedPack().get_child("queries").size();
   EXPECT_EQ(queries.size(), expected_size)
       << "The number of queries in the schedule (" << queries.size()
       << ") should equal " << expected_size;
+  ASSERT_FALSE(query_names.empty());
+
+  // Construct a schedule blacklist and place the first scheduled query.
+  std::map<std::string, size_t> blacklist;
+  std::string query_name = query_names[0];
+  blacklist[query_name] = getUnixTime() * 2;
+  saveScheduleBlacklist(blacklist);
+  blacklist.clear();
+
+  // When the blacklist is edited externally, the config must re-read.
+  get().reset();
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
+
+  // Clear the query names in the scheduled queries and request again.
+  query_names.clear();
+  get().scheduledQueries(
+      ([&query_names](const std::string& name, const ScheduledQuery&) {
+        query_names.push_back(name);
+      }));
+  // The query should not exist.
+  EXPECT_EQ(std::find(query_names.begin(), query_names.end(), query_name),
+            query_names.end());
+
+  // Try again, this time requesting scheduled queries.
+  query_names.clear();
+  queries.clear();
+  get().scheduledQueries(
+      ([&queries, &query_names, &query_name](const std::string& name,
+                                             const ScheduledQuery& query) {
+        if (name == query_name) {
+          // Only populate the query we've blacklisted.
+          query_names.push_back(name);
+          queries.push_back(query);
+        }
+      }),
+      true);
+  ASSERT_EQ(query_names.size(), 1_sz);
+  EXPECT_EQ(query_names[0], query_name);
+  ASSERT_EQ(queries.size(), 1_sz);
+  EXPECT_TRUE(queries[0].blacklisted);
 }
 
 class TestConfigParserPlugin : public ConfigParserPlugin {
