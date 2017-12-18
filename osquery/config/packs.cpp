@@ -195,6 +195,7 @@ void Pack::initialize(const std::string& name,
     query.splayed_interval = restoreSplayedValue(q.first, query.interval);
     query.options["snapshot"] = q.second.get<bool>("snapshot", false);
     query.options["removed"] = q.second.get<bool>("removed", true);
+    query.options["blacklist"] = q.second.get<bool>("blacklist", true);
     schedule_[q.first] = query;
   }
 }

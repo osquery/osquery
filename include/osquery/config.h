@@ -355,6 +355,7 @@ class Config : private boost::noncopyable {
   friend class SchedulerTests;
   FRIEND_TEST(ConfigTests, test_config_refresh);
   FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
+  FRIEND_TEST(ConfigTests, test_nonblacklist_query);
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_add_view);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_swap_view);

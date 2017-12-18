@@ -32,6 +32,9 @@ namespace osquery {
 DECLARE_uint64(config_refresh);
 DECLARE_uint64(config_accelerated_refresh);
 
+const std::string kConfigTestNonBlacklistQuery{
+    "pack_unrestricted_pack_process_heartbeat"};
+
 // Blacklist testing methods, internal to config implementations.
 extern void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist);
 extern void saveScheduleBlacklist(
@@ -319,6 +322,26 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   EXPECT_EQ(query_names[0], query_name);
   ASSERT_EQ(queries.size(), 1_sz);
   EXPECT_TRUE(queries[0].blacklisted);
+}
+
+TEST_F(ConfigTests, test_nonblacklist_query) {
+  std::map<std::string, size_t> blacklist;
+  blacklist[kConfigTestNonBlacklistQuery] = getUnixTime() * 2;
+  saveScheduleBlacklist(blacklist);
+
+  get().reset();
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
+
+  std::map<std::string, ScheduledQuery> queries;
+  get().scheduledQueries(
+      ([&queries](const std::string& name, const ScheduledQuery& query) {
+        queries[name] = query;
+      }));
+
+  // This query cannot be blacklisted.
+  auto query = queries.find(kConfigTestNonBlacklistQuery);
+  ASSERT_NE(query, queries.end());
+  EXPECT_FALSE(query->second.blacklisted);
 }
 
 class TestConfigParserPlugin : public ConfigParserPlugin {
