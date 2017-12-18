@@ -107,6 +107,10 @@ This value is a maximum number of CPU cycles counted as the `processes` table's 
 
 A delay in seconds before the watchdog process starts enforcing memory and CPU utilization limits. The default value `60s` allows the daemon to perform resource intense actions, such as forwarding logs, at startup.
 
+`--enable_extensions_watchdog=false`
+
+By default the watchdog monitors extensions for improper shutdown, but NOT for performance and utilization issues. Enable this flag if you would like extensions to use the same CPU and memory limits as the osquery worker. This means that your extensions or third-party extensions may be asked to stop and restart during execution.
+
 `--utc=true`
 
 Attempt to convert all UNIX calendar times to UTC.
