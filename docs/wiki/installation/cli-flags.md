@@ -119,6 +119,18 @@ Attempt to convert all UNIX calendar times to UTC.
 
 Add a microsecond delay between multiple table calls (when a table is used in a JOIN). A `200` microsecond delay will trade about 20% additional time for a reduced 5% CPU utilization.
 
+`--hash_cache_max=500`
+
+The `hash` table implements a cache that is invalidated when file path inodes are changed. Eviction occurs in chunks if the max-size is reached. This max should remain relatively low since it will persist in the daemon's resident memory.
+
+`--hash_delay=20`
+
+Add a millisecond delay between multiple `hash` attempts (aka when scanning a directory). This adds about 50% additional wall-time for 150 files. This reduces the instantaneous resource need from hashing new files.
+
+`--disable_hash_cache=false`
+
+Set this to true if you would like to disable file hash caching and always regenerate the file hashes every request. The default osquery configuration may report hashes incorrectly if things are editing filesystems outside of the OS's control.
+
 **Windows Only**
 
 Windows builds include a `--install` and `--uninstall` that will create a Windows service using the `osqueryd.exe` binary and preserve an optional `--flagfile` if provided.
