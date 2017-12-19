@@ -17,7 +17,7 @@
 
 #include "osquery/tables/applications/linux/namespace_ops.h"
 #include "osquery/tables/applications/posix/docker_api.h"
-#include "osquery/tables/system/linux/deb.h"
+#include "osquery/tables/system/linux/deb_package_helpers.h"
 
 #include <boost/algorithm/string.hpp>
 #include <rapidjson/filereadstream.h>
@@ -98,7 +98,7 @@ QueryData genDockerDebPackages(QueryContext& context) {
   QueryData results;
 
   for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
-    if (!checkConstraintValue(id)) {
+    if (!checkStringIsHash(id)) {
       continue;
     }
 

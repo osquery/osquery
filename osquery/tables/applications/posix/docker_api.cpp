@@ -81,7 +81,7 @@ Status dockerApi(const std::string& uri, pt::ptree& tree) {
   return Status(0);
 }
 
-bool checkConstraintValue(const std::string& str) {
+bool checkStringIsHash(const std::string& str) {
   if (str.length() > 64) {
     VLOG(1) << "Constraint value is too long. Ignoring: " << str;
     return false;

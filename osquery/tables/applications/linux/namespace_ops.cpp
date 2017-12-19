@@ -62,6 +62,7 @@ Status NamespaceOps::wait() {
       }
       return Status(1, strerror(errno));
     }
+    break;
   }
   return Status();
 }

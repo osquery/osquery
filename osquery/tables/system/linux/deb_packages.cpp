@@ -11,13 +11,14 @@
 // see README.api of libdpkg-dev
 #define LIBDPKG_VOLATILE_API
 
+#include <boost/algorithm/string.hpp>
+
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-#include <osquery/tables/system/linux/deb.h>
 
-#include <boost/algorithm/string.hpp>
+#include "osquery/tables/system/linux/deb_package_helpers.h"
 
 namespace osquery {
 namespace tables {

@@ -21,7 +21,7 @@ namespace tables {
  * @brief Utility method to check if specified string is SHA-256 hash or a
  * substring.
  */
-bool checkConstraintValue(const std::string& str);
+bool checkStringIsHash(const std::string& str);
 
 /**
 * @brief Makes API calls to the docker UNIX socket.

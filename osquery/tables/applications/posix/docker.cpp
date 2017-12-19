@@ -126,7 +126,7 @@ void getQuery(QueryContext& context,
 
   std::string key_str;
   for (const auto& item : context.constraints[key].getAll(EQUALS)) {
-    if (!checkConstraintValue(item)) {
+    if (!checkStringIsHash(item)) {
       continue;
     }
     if (!key_str.empty()) {
@@ -423,7 +423,7 @@ QueryData genContainerPorts(QueryContext& context) {
 QueryData genContainerProcesses(QueryContext& context) {
   QueryData results;
   for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
-    if (!checkConstraintValue(id)) {
+    if (!checkStringIsHash(id)) {
       continue;
     }
 
@@ -585,7 +585,7 @@ std::string getNetworkBytes(const pt::ptree& tree, const std::string& key) {
 QueryData genContainerStats(QueryContext& context) {
   QueryData results;
   for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
-    if (!checkConstraintValue(id)) {
+    if (!checkStringIsHash(id)) {
       continue;
     }
 

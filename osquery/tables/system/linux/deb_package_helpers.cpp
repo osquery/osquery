@@ -8,7 +8,7 @@
  *
  */
 
-#include "osquery/tables/system/linux/deb.h"
+#include "osquery/tables/system/linux/deb_package_helpers.h"
 
 namespace osquery {
 namespace tables {
