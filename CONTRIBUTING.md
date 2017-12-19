@@ -6,6 +6,8 @@ In order to accept your pull request, we need you to submit a CLA. You only need
 
 Complete your CLA here: <https://code.facebook.com/cla>
 
+By contributing to osquery, you agree that your contributions will be licensed under both the `LICENSE` file and the `COPYING` file in the root directory of this source tree.
+
 ## Git workflow
 
 Please do all of your development in a feature branch, on your own fork of osquery. You should clone osquery normally, like this:
