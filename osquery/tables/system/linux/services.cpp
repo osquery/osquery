@@ -8,13 +8,18 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <mutex>
-#include <set>
-
 #include <algorithm>
 #include <mutex>
 #include <set>
 #include <unordered_map>
+
+#define OSQUERY_ENABLE_SYSTEMD 1
+
+#ifdef OSQUERY_ENABLE_SYSTEMD
+#include <systemd/sd-bus.h>
+#include <systemd/sd-daemon.h>
+#include <systemd/sd-login.h>
+#endif
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -62,24 +67,6 @@ bool upstartEnabled() {
 
   enabled = boostfs::exists("/etc/init");
   VLOG(1) << "Upstart was" << (enabled.get() ? " " : " NOT ") << "found";
-
-  return enabled.get();
-}
-
-bool systemdEnabled() {
-  static boost::optional<bool> enabled;
-  if (enabled != boost::none) {
-    return enabled.get();
-  }
-
-  static std::mutex m;
-  std::lock_guard<std::mutex> lock(m);
-  if (enabled != boost::none) {
-    return enabled.get();
-  }
-
-  enabled = std::system("which systemctl > /dev/null 2>&1") == 0;
-  VLOG(1) << "systemd was" << (enabled.get() ? " " : " NOT ") << "found";
 
   return enabled.get();
 }
@@ -290,13 +277,186 @@ Status enumerateUpstartServices(QueryData& query_data) {
   return Status(0, "OK");
 }
 
-Status enumerateSystemdServices(QueryData& query_data) {
-  if (!systemdEnabled()) {
-    return Status(0, "OK");
+#ifdef OSQUERY_ENABLE_SYSTEMD
+/*
+  https://github.com/systemd/systemd/blob/master/ENVIRONMENT.md
+
+  $SYSTEMCTL_FORCE_BUS=1
+    if set, do not connect to PID1's private D-Bus listener, and
+    instead always connect through the dbus-daemon D-bus broker.
+*/
+
+sd_bus* getSystemdBusHandle() {
+  auto force_dbus_env_var = std::getenv("SYSTEMCTL_FORCE_BUS");
+
+  bool connection_mode = true;
+  if (force_dbus_env_var != nullptr) {
+    connection_mode = boost::lexical_cast<bool>(force_dbus_env_var);
   }
 
+  if (connection_mode || geteuid() != 0) {
+    VLOG(1) << "using sd_bus_default_system"; // XXX
+    sd_bus* bus = nullptr;
+    if (sd_bus_default_system(&bus) < 0) {
+      return nullptr;
+    }
+
+    sd_bus_set_allow_interactive_authorization(bus, 0);
+    return bus;
+  }
+
+  sd_bus* bus = nullptr;
+
+  try {
+    if (sd_bus_new(&bus) < 0 || bus == nullptr) {
+      throw std::runtime_error("Failed to start the bus");
+    }
+
+    if (sd_bus_set_address(bus, "unix:path=/run/systemd/private") < 0) {
+      throw std::runtime_error("Failed to set the bus address");
+    }
+
+    if (sd_bus_start(bus) < 0) {
+      throw std::runtime_error("Failed to start the bus");
+    }
+
+    sd_bus_set_allow_interactive_authorization(bus, 0);
+
+    auto fd = sd_bus_get_fd(bus);
+    if (fd < 0) {
+      throw std::runtime_error("Failed to acquire the bus file descriptor");
+    }
+
+    socklen_t l = sizeof(struct ucred);
+    struct ucred ucred = {};
+
+    if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &ucred, &l) < 0) {
+      throw std::runtime_error("");
+    }
+
+    if (l != sizeof(struct ucred)) {
+      throw std::runtime_error("");
+    }
+
+    if (ucred.uid != 0 && ucred.uid != geteuid()) {
+      throw std::runtime_error("");
+    }
+
+    return bus;
+
+  } catch (const std::exception& e) {
+    VLOG(1) << e.what();
+
+    if (bus != nullptr) {
+      bus = sd_bus_flush_close_unref(bus);
+    }
+
+    return nullptr;
+  }
+}
+
+struct SystemdUnitInfo final {
+  std::string path;
+  std::string state;
+};
+
+Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
+                          sd_bus* bus) {
+  unit_list.clear();
+
+  sd_bus_message* reply = nullptr;
+  sd_bus_error bus_error = SD_BUS_ERROR_NULL;
+
+  try {
+    /*if (sd_bus_message_new_method_call(bus,
+                                       &message,
+                                       "org.freedesktop.systemd1",
+                                       "/org/freedesktop/systemd1",
+                                       "org.freedesktop.systemd1.Manager",
+                                       "ListUnitFiles")) {
+      throw std::runtime_error("Failed to list the systemd units");
+    }
+
+    char** unit_filter = nullptr;
+    int r = sd_bus_message_append_strv(message, unit_filter);
+    if (r < 0) {
+      throw std::runtime_error("");
+    }*/
+
+    if (sd_bus_call_method(bus,
+                           "org.freedesktop.systemd1",
+                           "/org/freedesktop/systemd1",
+                           "org.freedesktop.systemd1.Manager",
+                           "ListUnitFiles",
+                           &bus_error,
+                           &reply,
+                           nullptr) < 0) {
+      std::string error_message;
+      if (bus_error.message != nullptr) {
+        error_message = bus_error.message;
+      } else {
+        error_message = "Failed to call the remote method";
+      }
+
+      throw std::runtime_error(error_message);
+    }
+
+    if (sd_bus_message_enter_container(reply, SD_BUS_TYPE_ARRAY, "(ss)") < 0) {
+      throw std::runtime_error("Failed to parse the reply");
+    }
+
+    while (true) {
+      char* unit_path = nullptr;
+      char* unit_state = nullptr;
+
+      auto error = sd_bus_message_read(reply, "(ss)", &unit_path, &unit_state);
+      if (error == 0) {
+        break;
+      } else if (error < 0) {
+        throw std::runtime_error("Failed to parse the unit information");
+      }
+
+      unit_list.push_back({unit_path, unit_state});
+    }
+
+    reply = sd_bus_message_unref(reply);
+
+    if (unit_list.empty()) {
+      return Status(1, "No services returned by the manager!");
+    }
+
+    return Status(0, "OK");
+
+  } catch (const std::exception& e) {
+    if (reply != nullptr) {
+      reply = sd_bus_message_unref(reply);
+    }
+
+    return Status(1, e.what());
+  }
+}
+
+Status enumerateSystemdServices(QueryData& query_data) {
+  auto bus = getSystemdBusHandle();
+  if (bus == nullptr) {
+    return Status(1, "Failed to acquire the bus handle");
+  }
+
+  std::vector<SystemdUnitInfo> unit_list;
+  auto status = getSystemdUnitList(unit_list, bus);
+  if (!status.ok()) {
+    VLOG(1) << "Failed to enumerate the systemd units: " << status.getMessage();
+
+  } else {
+    for (const auto& unit_info : unit_list) {
+      VLOG(1) << unit_info.path << " " << unit_info.state << std::endl;
+    }
+  }
+
+  bus = sd_bus_flush_close_unref(bus);
   return Status(0, "OK");
 }
+#endif
 } // namespace
 
 namespace tables {
@@ -315,11 +475,13 @@ QueryData genServices(QueryContext& context) {
             << status.getMessage();
   }
 
+#ifdef OSQUERY_ENABLE_SYSTEMD
   status = enumerateSystemdServices(query_data);
   if (!status.ok()) {
     VLOG(1) << "Failed to enumerate the systemd services: "
             << status.getMessage();
   }
+#endif
 
   return query_data;
 }
