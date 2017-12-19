@@ -13,13 +13,13 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include <osquery/tables/applications/linux/namespace_ops.h>
+#include "osquery/tables/applications/linux/namespace_ops.h"
 
 namespace osquery {
 namespace tables {
 
 Status NamespaceOps::invoke(std::function<void(int fd)> fn) {
-  std::string pidns = "/proc/" + std::to_string(_pid) + "/ns/mnt";
+  std::string pidns ("/proc/" + std::to_string(_pid) + "/ns/mnt");
   int fd = open(pidns.c_str(), O_RDONLY);
   if (fd == -1) {
     return Status(1, strerror(errno));

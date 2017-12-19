@@ -11,21 +11,21 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include <boost/algorithm/string.hpp>
-
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-#include <osquery/tables/applications/linux/namespace_ops.h>
-#include <osquery/tables/applications/posix/docker_api.h>
-#include <osquery/tables/system/linux/deb.h>
 
+#include "osquery/tables/applications/linux/namespace_ops.h"
+#include "osquery/tables/applications/posix/docker_api.h"
+#include "osquery/tables/system/linux/deb.h"
+
+#include <boost/algorithm/string.hpp>
 #include <rapidjson/filereadstream.h>
 
 namespace osquery {
 namespace tables {
 
-static constexpr size_t BUF_SIZE{65536};
+const size_t kBuffSize {65536};
 
 void extractDebPackageInfo(const struct pkginfo* pkg,
                            rapidjson::Writer<rapidjson::StringBuffer>& w) {
@@ -35,7 +35,7 @@ void extractDebPackageInfo(const struct pkginfo* pkg,
 
   // Iterate over the desired fieldinfos, calling their fwritefunctions
   // to extract the package's information.
-  for (const struct fieldinfo& fip : fieldinfos) {
+  for (const struct fieldinfo& fip : kfieldinfos) {
     fip.wcall(&vb, pkg, &pkg->installed, fw_printheader, &fip);
 
     std::string line = vb.string();
@@ -59,9 +59,9 @@ void extractDebPackageInfo(const struct pkginfo* pkg,
   w.EndObject();
 }
 
-void getDebPackages(int fd) {
+void getDebPackages(const int fd) {
   if (!osquery::isDirectory(kDPKGPath)) {
-    TLOG << "Cannot find DPKG database: " << kDPKGPath;
+    TLOG << "cannot find DPKG database: " << kDPKGPath;
     return;
   }
 
@@ -78,8 +78,7 @@ void getDebPackages(int fd) {
   const auto* pk = packages.pkgs;
   for (const auto& pkg : boost::make_iterator_range(pk, pk + packages.n_pkgs)) {
     // Casted to int to allow the older enums that were embeded in the
-    // packages
-    // struct to be compared
+    // packages struct to be compared
     if (static_cast<int>(pkg->status) !=
         static_cast<int>(PKG_STAT_NOTINSTALLED)) {
       extractDebPackageInfo(pkg, writer);
@@ -90,11 +89,9 @@ void getDebPackages(int fd) {
   writer.EndArray();
 
   const auto bufSize = buffer.GetSize();
-  if (bufSize >= 1) {
-    if (write(fd, buffer.GetString(), bufSize) != (ssize_t)bufSize) {
-      VLOG(1) << "error writing pkginfo ";
+  if (bufSize >= 1 && write(fd, buffer.GetString(), bufSize) != static_cast<ssize_t>(bufSize)) {
+      TLOG << "error writing pkginfo " << strerror(errno);
     }
-  }
 }
 
 QueryData genDockerDebPackages(QueryContext& context) {
@@ -108,7 +105,7 @@ QueryData genDockerDebPackages(QueryContext& context) {
     pt::ptree container;
     Status s = dockerApi("/containers/" + id + "/json", container);
     if (!s.ok()) {
-      VLOG(1) << "Error getting docker container info " << id << ": "
+      TLOG << "error getting docker container info " << id << ": "
               << s.what();
       continue;
     }
@@ -117,71 +114,71 @@ QueryData genDockerDebPackages(QueryContext& context) {
     }
     pid_t pid = container.get<int>("State.Pid", 0);
     if (pid == 0) {
-      VLOG(1) << "Error getting pid for container " << id;
+      TLOG << "error getting pid for container " << id;
       continue;
     }
 
     int fds[2];
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == -1) {
-      VLOG(1) << "unable to open socket pair" << strerror(errno);
+      TLOG << "unable to open socket pair" << strerror(errno);
       continue;
     }
 
     NamespaceOps nsOps(pid, fds[1]);
     Status iv = nsOps.invoke(getDebPackages);
     if (!iv.ok()) {
-      VLOG(1) << "error entering namespace: " << iv.what();
+      TLOG << "error entering namespace: " << iv.what();
       close(fds[0]);
       close(fds[1]);
       continue;
     }
 
     close(fds[1]);
-    FILE* fp = fdopen(fds[0], "rb");
-    if (fp == NULL) {
-      VLOG(1) << "unable to open fd " << strerror(errno);
+    auto fp = fdopen(fds[0], "rb");
+    if (fp == nullptr) {
+      TLOG << "unable to open fd " << strerror(errno);
       close(fds[0]);
-      Status k = nsOps.kill();
+      auto k = nsOps.kill();
       if (!k.ok()) {
-        VLOG(1) << "unable to terminate foked process " << k.what();
+        TLOG << "unable to terminate foked process " << k.what();
       }
       continue;
     }
-    char readBuffer[BUF_SIZE];
-    rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
-    rapidjson::Document d;
-    d.ParseStream(is);
+    std::vector<char> readBuffer(kBuffSize);
+    rapidjson::FileReadStream is(fp, &readBuffer[0], readBuffer.size());
+    rapidjson::Document doc;
+    doc.ParseStream(is);
     fclose(fp);
     close(fds[0]);
 
-    Status w = nsOps.wait();
-    if (!w.ok()) {
-      VLOG(1) << "unable to wait for forked process: " << w.what();
+    auto wait = nsOps.wait();
+    if (!wait.ok()) {
+      TLOG << "unable to wait for forked process: " << wait.what();
     }
 
-    if (!d.IsArray()) {
+    if (!doc.IsArray()) {
       continue;
     }
-    for (rapidjson::SizeType i = 0; i < d.Size(); i++) {
+    for (rapidjson::SizeType i = 0; i < doc.Size(); i++) {
       Row r;
       r["id"] = id;
-      if (d[i].HasMember("name")) {
-        r["name"] = d[i]["name"].GetString();
+      if (doc[i].HasMember("name")) {
+        r["name"] = doc[i]["name"].GetString();
       }
-      if (d[i].HasMember("version")) {
-        r["version"] = d[i]["version"].GetString();
+      if (doc[i].HasMember("version")) {
+        r["version"] = doc[i]["version"].GetString();
       }
-      if (d[i].HasMember("source")) {
-        r["source"] = d[i]["source"].GetString();
+      if (doc[i].HasMember("source")) {
+        r["source"] = doc[i]["source"].GetString();
       }
-      if (d[i].HasMember("size")) {
-        r["size"] = d[i]["size"].GetString();
+      if (doc[i].HasMember("size")) {
+        r["size"] = doc[i]["size"].GetString();
       }
-      if (d[i].HasMember("arch")) {
-        r["arch"] = d[i]["arch"].GetString();
+      if (doc[i].HasMember("arch")) {
+        r["arch"] = doc[i]["arch"].GetString();
       }
-      if (d[i].HasMember("revision")) {
-        r["revision"] = d[i]["revision"].GetString();
+      if (doc[i].HasMember("revision")) {
+        r["revision"] = doc[i]["revision"].GetString();
       }
       results.push_back(r);
     }

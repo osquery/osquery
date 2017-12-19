@@ -30,7 +30,7 @@ void extractDebPackageInfo(const struct pkginfo *pkg, QueryData &results) {
 
   // Iterate over the desired fieldinfos, calling their fwritefunctions
   // to extract the package's information.
-  for (const struct fieldinfo& fip : fieldinfos) {
+  for (const struct fieldinfo& fip : kfieldinfos) {
     fip.wcall(&vb, pkg, &pkg->installed, fw_printheader, &fip);
 
     std::string line = vb.string();

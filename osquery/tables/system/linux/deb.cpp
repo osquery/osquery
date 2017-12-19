@@ -8,12 +8,12 @@
  *
  */
 
-#include <osquery/tables/system/linux/deb.h>
+#include "osquery/tables/system/linux/deb.h"
 
 namespace osquery {
 namespace tables {
 
-const std::vector<struct fieldinfo> fieldinfos = {
+const std::vector<struct fieldinfo> kfieldinfos = {
     {FIELD("Package"), f_name, w_name, 0},
     {FIELD("Installed-Size"),
      f_charfield,

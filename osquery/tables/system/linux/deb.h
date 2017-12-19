@@ -46,7 +46,7 @@ void w_revision(struct varbuf* vb,
 * add an fwritefunction for Revision. Additional fields can be taken
 * as needed.
 */
-extern const std::vector<struct fieldinfo> fieldinfos;
+extern const std::vector<struct fieldinfo> kfieldinfos;
 
 extern const std::map<std::string, std::string> kFieldMappings;
 #endif

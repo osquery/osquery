@@ -1,3 +1,13 @@
+/*
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under the BSD-style license found in the
+ *  LICENSE file in the root directory of this source tree. An additional grant
+ *  of patent rights can be found in the PATENTS file in the same directory.
+ *
+ */
+
 #include <boost/asio.hpp>
 
 #if !defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
@@ -12,6 +22,7 @@ namespace local = boost::asio::local;
 
 namespace osquery {
 namespace tables {
+
 /**
  * @brief Docker UNIX domain socket path.
  *
@@ -23,14 +34,6 @@ FLAG(string,
      "/var/run/docker.sock",
      "Docker UNIX domain socket path");
 
-/**
-* @brief Makes API calls to the docker UNIX socket.
-*
-* @param uri Relative URI to invoke GET HTTP method.
-* @param tree Property tree where JSON result is stored.
-* @return Status with 0 code on success. Non-negative status with error
-*         message.
-*/
 Status dockerApi(const std::string& uri, pt::ptree& tree) {
   try {
     local::stream_protocol::endpoint ep(FLAGS_docker_socket);
@@ -78,10 +81,6 @@ Status dockerApi(const std::string& uri, pt::ptree& tree) {
   return Status(0);
 }
 
-/**
- * @brief Utility method to check if specified string is SHA-256 hash or a
- * substring.
- */
 bool checkConstraintValue(const std::string& str) {
   if (str.length() > 64) {
     VLOG(1) << "Constraint value is too long. Ignoring: " << str;
