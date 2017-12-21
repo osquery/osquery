@@ -4,7 +4,7 @@ class Thrift < AbstractOsqueryFormula
   desc "Framework for scalable cross-language services development"
   homepage "https://thrift.apache.org/"
   license "Apache-2.0"
-  url "http://www.apache.org/dyn/closer.cgi?path=/thrift/0.11.0/thrift-0.11.0.tar.gz"
+  url "https://github.com/apache/thrift/archive/0.11.0.tar.gz"
   sha256 "0e324569321a1b626381baabbb98000c8dd3a59697292dbcc71e67135af0fefd"
   revision 100
 
