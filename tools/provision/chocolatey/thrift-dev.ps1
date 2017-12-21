@@ -11,8 +11,8 @@
 # $version - The version of the software package to build
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
-$version = '0.10.0'
-$chocoVersion = '0.10.0-r4'
+$version = '0.11.0'
+$chocoVersion = '0.11.0'
 $packageName = 'thrift-dev'
 $projectSource = 'https://github.com/apache/thrift'
 $packageSourceUrl = 'https://github.com/apache/thrift'
@@ -22,9 +22,6 @@ $copyright = 'https://github.com/apache/thrift/blob/master/LICENSE'
 $license = 'https://github.com/apache/thrift/blob/master/LICENSE'
 $url = "https://github.com/apache/thrift/archive/$version.zip"
 $parentPath = $(Split-Path -Parent $MyInvocation.MyCommand.Definition)
-$patchfiles = @(
-  Join-Path $parentPath "patches/thrift-dev.patch"
-)
 
 # Invoke our utilities file
 . $(Join-Path $parentPath "osquery_utils.ps1")
