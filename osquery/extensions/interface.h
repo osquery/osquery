@@ -26,28 +26,23 @@
 #pragma warning(disable : 4250)
 #endif
 
-// osquery is built with various versions of thrift that use different search
-// paths for their includes. Unfortunately, changing include paths is not
-// possible in every build system.
-// clang-format off
-#include CONCAT(OSQUERY_THRIFT_SERVER_LIB,/TThreadedServer.h)
-#include CONCAT(OSQUERY_THRIFT_LIB,/protocol/TBinaryProtocol.h)
+#include <thrift/server/TThreadedServer.h>
+#include <thrift/protocol/TBinaryProtocol.h>
 
 #ifdef WIN32
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TPipeServer.h)
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TPipe.h)
+#include <thrift/transport/TPipeServer.h>
+#include <thrift/transport/TPipe.h>
 #else
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TServerSocket.h)
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TSocket.h)
+#include <thrift/transport/TServerSocket.h>
+#include <thrift/transport/TSocket.h>
 #endif
 
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TBufferTransports.h)
-#include CONCAT(OSQUERY_THRIFT_LIB,/concurrency/ThreadManager.h)
+#include <thrift/transport/TBufferTransports.h>
+#include <thrift/concurrency/ThreadManager.h>
 
 // Include intermediate Thrift-generated interface definitions.
-#include CONCAT(OSQUERY_THRIFT,Extension.h)
-#include CONCAT(OSQUERY_THRIFT,ExtensionManager.h)
-// clang-format on
+#include "Extension.h"
+#include "ExtensionManager.h"
 
 namespace osquery {
 
@@ -57,27 +52,24 @@ using namespace apache::thrift::transport;
 using namespace apache::thrift::server;
 using namespace apache::thrift::concurrency;
 
-/// Create easier to reference typedefs for Thrift layer implementations.
-#define SHARED_PTR_IMPL OSQUERY_THRIFT_POINTER::shared_ptr
-
 #ifdef WIN32
 typedef TPipe TPlatformSocket;
 typedef TPipeServer TPlatformServerSocket;
-typedef SHARED_PTR_IMPL<TPipe> TPlatformSocketRef;
+typedef std::shared_ptr<TPipe> TPlatformSocketRef;
 #else
 typedef TSocket TPlatformSocket;
 typedef TServerSocket TPlatformServerSocket;
-typedef SHARED_PTR_IMPL<TSocket> TPlatformSocketRef;
+typedef std::shared_ptr<TSocket> TPlatformSocketRef;
 #endif
 
-typedef SHARED_PTR_IMPL<TTransport> TTransportRef;
-typedef SHARED_PTR_IMPL<TProtocol> TProtocolRef;
+typedef std::shared_ptr<TTransport> TTransportRef;
+typedef std::shared_ptr<TProtocol> TProtocolRef;
 
-typedef SHARED_PTR_IMPL<TProcessor> TProcessorRef;
-typedef SHARED_PTR_IMPL<TServerTransport> TServerTransportRef;
-typedef SHARED_PTR_IMPL<TTransportFactory> TTransportFactoryRef;
-typedef SHARED_PTR_IMPL<TProtocolFactory> TProtocolFactoryRef;
-typedef SHARED_PTR_IMPL<ThreadManager> TThreadManagerRef;
+typedef std::shared_ptr<TProcessor> TProcessorRef;
+typedef std::shared_ptr<TServerTransport> TServerTransportRef;
+typedef std::shared_ptr<TTransportFactory> TTransportFactoryRef;
+typedef std::shared_ptr<TProtocolFactory> TProtocolFactoryRef;
+typedef std::shared_ptr<ThreadManager> TThreadManagerRef;
 
 using TThreadedServerRef = std::shared_ptr<TThreadedServer>;
 
@@ -229,8 +221,8 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   Mutex extensions_mutex_;
 };
 
-typedef SHARED_PTR_IMPL<ExtensionHandler> ExtensionHandlerRef;
-typedef SHARED_PTR_IMPL<ExtensionManagerHandler> ExtensionManagerHandlerRef;
+typedef std::shared_ptr<ExtensionHandler> ExtensionHandlerRef;
+typedef std::shared_ptr<ExtensionManagerHandler> ExtensionManagerHandlerRef;
 }
 
 /// A Dispatcher service thread that watches an ExtensionManagerHandler.
