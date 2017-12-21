@@ -26,19 +26,19 @@
 #pragma warning(disable : 4250)
 #endif
 
-#include <thrift/server/TThreadedServer.h>
 #include <thrift/protocol/TBinaryProtocol.h>
+#include <thrift/server/TThreadedServer.h>
 
 #ifdef WIN32
-#include <thrift/transport/TPipeServer.h>
 #include <thrift/transport/TPipe.h>
+#include <thrift/transport/TPipeServer.h>
 #else
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TSocket.h>
 #endif
 
-#include <thrift/transport/TBufferTransports.h>
 #include <thrift/concurrency/ThreadManager.h>
+#include <thrift/transport/TBufferTransports.h>
 
 // Include intermediate Thrift-generated interface definitions.
 #include "Extension.h"
