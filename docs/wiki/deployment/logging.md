@@ -93,7 +93,7 @@ Users can configure logs to be directly published to a Kafka topic.
 
 There are 3 Kafka configurations are exposed as option: a comma delimited list of brokers with or without the port (by default `9092`) [default value: `localhost`], a default topic [default value: `""`], and acks (the number acknowledgments the logger requires from the Kafka leader before the considering the request complete) [default: `all`; valid values: `0`, `1`, `all`]. [See official documentation for more details.](https://kafka.apache.org/documentation/#producerconfigs)
 
-To publish queries to specific topics, add a `kafka_topics` field at the top level of `osquery.conf` (see example below).  If a given query was not explicitely configured in `kafka_topics` then the base topic will be used.  If there is no base topic configured, then that query will not be logged.  There is however a performance cost for the falling back of unconfigured queries to the base topic, so it is advised that when using multiple topics to explicitly configure all scheduled queries in `kafka_topics`.
+To publish queries to specific topics, add a `kafka_topics` field at the top level of `osquery.conf` (see example below).  If a given query was not explicitly configured in `kafka_topics` then the base topic will be used.  If there is no base topic configured, then that query will not be logged.  There is however a performance cost for the falling back of unconfigured queries to the base topic, so it is advised that when using multiple topics to explicitly configure all scheduled queries in `kafka_topics`.
 
 The configuration parameters are exposed via command line options and can be set in a JSON configuration file as exampled here:
 ```json

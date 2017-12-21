@@ -34,7 +34,7 @@ We passed 10,000 GitHub stars, passed over 1000 users in Slack, and have 172 con
 There are many many methods for being involved and contributing. Creating tutorials, mentoring, hosting hackathons, giving thanks! This is not an exhaustive list but if there is something that you feel has been invaluable to the community, please reach out and we can amend.
 
 <div class="note info">
-  <h5>Bi-weekly office hours disucssion</h5>
+  <h5>Bi-weekly office hours discussion</h5>
   <p>Every other week, the osquery team jumps on a BlueJeans VC to hold office hours. The goal is to listen to other's comments and concerns and help prioritize features and fixes. It is a fun and friendly hour of osquery.</p>
   <br />
   <code>
