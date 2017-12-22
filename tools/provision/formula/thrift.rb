@@ -11,8 +11,8 @@ class Thrift < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "f9bbba4aecd4de780e879dd71bcbd18e819ed8355e700177a543860120f4086b" => :sierra
-    sha256 "e818505723a34e425cd2e35acccd992f8f79287bfa77ec7bdda4e9df4083d5e2" => :x86_64_linux
+    sha256 "8f7a14271460fc75e3fe44ac21dba7f3f88bd0dbf153f5b5ea20579ddeb6171a" => :sierra
+    sha256 "9ab1a97df4d5fca73a8144ba9c1471a1447e0b291df85d6dc269031d97904992" => :x86_64_linux
   end
 
   depends_on "bison" => :build
