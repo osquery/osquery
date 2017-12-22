@@ -295,7 +295,6 @@ sd_bus* getSystemdBusHandle() {
   }
 
   if (connection_mode || geteuid() != 0) {
-    VLOG(1) << "using sd_bus_default_system"; // XXX
     sd_bus* bus = nullptr;
     if (sd_bus_default_system(&bus) < 0) {
       return nullptr;
@@ -356,24 +355,33 @@ sd_bus* getSystemdBusHandle() {
 }
 
 struct SystemdUnitInfo final {
-  std::string path;
-  std::string state;
+  std::string id;
+  std::string description;
+  std::string load_state;
+  std::string active_state;
+  std::string sub_state;
+  std::string following;
+  std::string unit_path;
+  std::uint32_t job_id;
+  std::string job_type;
+  std::string job_path;
 };
 
 Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
                           sd_bus* bus) {
   unit_list.clear();
 
+  sd_bus_message* message = nullptr;
   sd_bus_message* reply = nullptr;
   sd_bus_error bus_error = SD_BUS_ERROR_NULL;
 
   try {
-    /*if (sd_bus_message_new_method_call(bus,
+    if (sd_bus_message_new_method_call(bus,
                                        &message,
                                        "org.freedesktop.systemd1",
                                        "/org/freedesktop/systemd1",
                                        "org.freedesktop.systemd1.Manager",
-                                       "ListUnitFiles")) {
+                                       "ListUnitsFiltered")) {
       throw std::runtime_error("Failed to list the systemd units");
     }
 
@@ -381,16 +389,9 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
     int r = sd_bus_message_append_strv(message, unit_filter);
     if (r < 0) {
       throw std::runtime_error("");
-    }*/
+    }
 
-    if (sd_bus_call_method(bus,
-                           "org.freedesktop.systemd1",
-                           "/org/freedesktop/systemd1",
-                           "org.freedesktop.systemd1.Manager",
-                           "ListUnitFiles",
-                           &bus_error,
-                           &reply,
-                           nullptr) < 0) {
+    if (sd_bus_call(bus, message, 0, &bus_error, &reply) < 0) {
       std::string error_message;
       if (bus_error.message != nullptr) {
         error_message = bus_error.message;
@@ -401,25 +402,55 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
       throw std::runtime_error(error_message);
     }
 
-    if (sd_bus_message_enter_container(reply, SD_BUS_TYPE_ARRAY, "(ss)") < 0) {
+    if (sd_bus_message_enter_container(
+            reply, SD_BUS_TYPE_ARRAY, "(ssssssouso)") < 0) {
       throw std::runtime_error("Failed to parse the reply");
     }
 
     while (true) {
-      char* unit_path = nullptr;
-      char* unit_state = nullptr;
+      const char* id = nullptr;
+      const char* description = nullptr;
+      const char* load_state = nullptr;
+      const char* active_state = nullptr;
+      const char* sub_state = nullptr;
+      const char* following = nullptr;
+      const char* unit_path = nullptr;
+      std::uint32_t job_id = 0U;
+      const char* job_type = nullptr;
+      const char* job_path = nullptr;
 
-      auto error = sd_bus_message_read(reply, "(ss)", &unit_path, &unit_state);
+      auto error = sd_bus_message_read(reply,
+                                       "(ssssssouso)",
+                                       &id,
+                                       &description,
+                                       &load_state,
+                                       &active_state,
+                                       &sub_state,
+                                       &following,
+                                       &unit_path,
+                                       &job_id,
+                                       &job_type,
+                                       &job_path);
       if (error == 0) {
         break;
       } else if (error < 0) {
         throw std::runtime_error("Failed to parse the unit information");
       }
 
-      unit_list.push_back({unit_path, unit_state});
+      unit_list.push_back({id,
+                           description,
+                           load_state,
+                           active_state,
+                           sub_state,
+                           following,
+                           unit_path,
+                           job_id,
+                           job_type,
+                           job_path});
     }
 
     reply = sd_bus_message_unref(reply);
+    message = sd_bus_message_unref(message);
 
     if (unit_list.empty()) {
       return Status(1, "No services returned by the manager!");
@@ -430,6 +461,10 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
   } catch (const std::exception& e) {
     if (reply != nullptr) {
       reply = sd_bus_message_unref(reply);
+    }
+
+    if (message != nullptr) {
+      message = sd_bus_message_unref(message);
     }
 
     return Status(1, e.what());
@@ -449,7 +484,14 @@ Status enumerateSystemdServices(QueryData& query_data) {
 
   } else {
     for (const auto& unit_info : unit_list) {
-      VLOG(1) << unit_info.path << " " << unit_info.state << std::endl;
+      Row r = {};
+      r["name"] = unit_info.id;
+      r["path"] = unit_info.unit_path;
+      r["service_type"] = "systemd";
+      r["status"] = unit_info.sub_state;
+      r["start_type"] = "enabled";
+
+      query_data.push_back(r);
     }
   }
 
