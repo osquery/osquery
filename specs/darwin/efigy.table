@@ -1,0 +1,19 @@
+table_name("efigy")
+description("Inspect the state of your EFI firmware using the Duo Labs EFIgy API.")
+
+schema([
+    Column("latest_efi_version", TEXT, "Latest EFI version that has been released for the system in use."),
+    Column("efi_version", TEXT, "Current EFI version for the system in use."),
+    Column("efi_version_status", TEXT, "'success' if up to date, 'failure' if outdated or 'error' in case of internal error."),
+
+    Column("latest_os_version", TEXT, "Latest OS version that has been released for the system in use."),
+    Column("os_version", TEXT, "Current OS version for the system in use."),
+    Column("os_version_status", TEXT, "'success' if up to date, 'failure' if outdated or 'error' in case of internal error."),
+
+    Column("latest_build_number", TEXT, "Latest OS build number that has been released for the system in use."),
+    Column("build_number", TEXT, "Current OS build number for the system in use."),
+    Column("build_number_status", TEXT, "'success' if up to date, 'failure' if outdated or 'error' in case of internal error.")
+])
+
+implementation("efigy@queryEFIgy")
+
