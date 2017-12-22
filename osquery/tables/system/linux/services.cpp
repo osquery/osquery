@@ -104,24 +104,28 @@ Status enumerateSysVinitServices(QueryData& query_data) {
        ++run_level) {
     const auto& run_level_path = run_level_dir_list[run_level];
 
-    boostfs::directory_iterator end_it;
-    for (auto it = boostfs::directory_iterator(run_level_path); it != end_it;
-         ++it) {
-      const auto& symlink = it->path();
-      if (!boostfs::is_symlink(symlink)) {
-        continue;
+    try {
+      boostfs::directory_iterator end_it;
+      for (auto it = boostfs::directory_iterator(run_level_path); it != end_it;
+           ++it) {
+        const auto& symlink = it->path();
+        if (!boostfs::is_symlink(symlink)) {
+          continue;
+        }
+
+        auto symlink_destination = boost::filesystem::canonical(symlink);
+        if (!boostfs::is_regular_file(symlink_destination)) {
+          VLOG(1) << "Skipping broken symlink: " << symlink << " -> "
+                  << symlink_destination;
+
+          continue;
+        }
+
+        auto service_name = symlink_destination.filename().string();
+        service_list[service_name].insert(run_level);
       }
-
-      auto symlink_destination = boost::filesystem::canonical(symlink);
-      if (!boostfs::is_regular_file(symlink_destination)) {
-        VLOG(1) << "Skipping broken symlink: " << symlink << " -> "
-                << symlink_destination;
-
-        continue;
-      }
-
-      auto service_name = symlink_destination.filename().string();
-      service_list[service_name].insert(run_level);
+    } catch (const boost::filesystem::filesystem_error& e) {
+      VLOG(1) << "An error has occurred: " << e.what() << ". Continuing anyway";
     }
   }
 
