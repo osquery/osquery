@@ -287,6 +287,7 @@ function main() {
   fi
 
   log "running unified platform initialization"
+  clean_thrift
   brew_clear_cache
   if [[ "$BREW_TYPE" = "darwin" ]]; then
     platform_darwin_main

@@ -6,7 +6,7 @@ class Thrift < AbstractOsqueryFormula
   license "Apache-2.0"
   url "https://github.com/apache/thrift/archive/0.11.0.tar.gz"
   sha256 "0e324569321a1b626381baabbb98000c8dd3a59697292dbcc71e67135af0fefd"
-  revision 100
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -38,7 +38,7 @@ class Thrift < AbstractOsqueryFormula
       "--without-qt",
       "--without-qt4",
       "--without-nodejs",
-      "--without-python",
+      "--with-python",
       "--with-cpp",
       "--with-openssl=#{Formula["osquery/osquery-local/openssl"].prefix}"
     ]
@@ -74,3 +74,22 @@ index 87b6383..447c89d 100644
        int errno_copy = THRIFT_GET_SOCKET_ERROR;
        GlobalOutput.perror("TServerSocket::acceptImpl() THRIFT_POLL() ", errno_copy);
        throw TTransportException(TTransportException::UNKNOWN, "Unknown", errno_copy);
+diff --git a/configure.ac b/configure.ac
+index 6a7a1a5..8b4ddc2 100755
+--- a/configure.ac
++++ b/configure.ac
+@@ -307,12 +307,14 @@ AM_CONDITIONAL(WITH_TWISTED_TEST, [test "$have_trial" = "yes"])
+ # It's distro specific and far from ideal but needed to cross test py2-3 at once.
+ # TODO: find "python2" if it's 3.x
+ have_py3="no"
++if test "$with_py3" = "yes";  then
+ if python --version 2>&1 | grep -q "Python 2"; then
+   AC_PATH_PROGS([PYTHON3], [python3 python3.5 python35 python3.4 python34])
+   if test -n "$PYTHON3"; then
+     have_py3="yes"
+   fi
+ fi
++fi
+ AM_CONDITIONAL(WITH_PY3, [test "$have_py3" = "yes"])
+ 
+ AX_THRIFT_LIB(perl, [Perl], yes)
