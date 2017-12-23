@@ -98,7 +98,7 @@ function setup_brew() {
 function clean_thrift() {
   TEST_FILE="$DEPS/lib/python2.7/site-packages/thrift"
   if [ -f "$TEST_FILE/__init__.py" ]; then
-    rm -rf "${TEST_FILE}*"
+    rm -rf "${TEST_FILE}"*
   fi
 }
 
