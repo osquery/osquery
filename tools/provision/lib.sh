@@ -95,6 +95,13 @@ function setup_brew() {
   mkdir -p "$DEPS/lib/python2.7/site-packages"
 }
 
+function clean_thrift() {
+  TEST_FILE="$DEPS/lib/python2.7/site-packages/thrift"
+  if [ -f "$TEST_FILE/__init__.py" ]; then
+    rm -rf "${TEST_FILE}"*
+  fi
+}
+
 # json_attributes JSON [ATTRIBUTE_PATH, ...]
 #   1: JSON blob
 #   N: print lines for desired attributes

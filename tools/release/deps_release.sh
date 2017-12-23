@@ -52,7 +52,7 @@ function main() {
   CURRENT_DIR=$(pwd)
   DEPS=$1
 
-  DEPS_CMD="cd $VAGRANT; make deps || true"
+  DEPS_CMD="cd $VAGRANT; make sysprep || true"
 
   echo "[+] Vagrant up $LINUX_BOX"
   OSQUERY_BUILD_CPUS=4 vagrant up $LINUX_BOX
