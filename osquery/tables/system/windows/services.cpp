@@ -115,6 +115,7 @@ static inline Status getService(const SC_HANDLE& scmHandle,
   r["start_type"] = SQL_TEXT(kSvcStartType[lpsc->dwStartType]);
   r["path"] = SQL_TEXT(lpsc->lpBinaryPathName);
   r["user_account"] = SQL_TEXT(lpsc->lpServiceStartName);
+  r["service_type"] = SQL_TEXT("Windows");
 
   if (kServiceType.count(lpsc->dwServiceType) > 0) {
     r["service_type"] = SQL_TEXT(kServiceType.at(lpsc->dwServiceType));

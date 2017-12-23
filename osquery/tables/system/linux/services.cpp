@@ -35,6 +35,7 @@ namespace {
 namespace boostfs = boost::filesystem;
 namespace boostproc = boost::process;
 
+#ifndef OSQUERY_ENABLE_SYSTEMD
 bool sysVinitEnabled() {
   static boost::optional<bool> enabled;
   if (enabled != boost::none) {
@@ -277,7 +278,8 @@ Status enumerateUpstartServices(QueryData& query_data) {
   return Status(0, "OK");
 }
 
-#ifdef OSQUERY_ENABLE_SYSTEMD
+#else //  OSQUERY_ENABLE_SYSTEMD
+
 /*
   https://github.com/systemd/systemd/blob/master/ENVIRONMENT.md
 
@@ -404,9 +406,12 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
 
     if (sd_bus_message_enter_container(
             reply, SD_BUS_TYPE_ARRAY, "(ssssssouso)") < 0) {
-      throw std::runtime_error("Failed to parse the reply");
+      throw std::runtime_error("Failed to enter the data container");
     }
 
+    std::unordered_map<std::string, SystemdUnitInfo> unit_map;
+
+    // List all units that have been loaded into memory first
     while (true) {
       const char* id = nullptr;
       const char* description = nullptr;
@@ -437,20 +442,81 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
         throw std::runtime_error("Failed to parse the unit information");
       }
 
-      unit_list.push_back({id,
-                           description,
-                           load_state,
-                           active_state,
-                           sub_state,
-                           following,
-                           unit_path,
-                           job_id,
-                           job_type,
-                           job_path});
+      unit_map[unit_path] = {id,
+                             description,
+                             load_state,
+                             active_state,
+                             sub_state,
+                             following,
+                             unit_path,
+                             job_id,
+                             job_type,
+                             job_path};
+    }
+
+    if (sd_bus_message_exit_container(reply) < 0) {
+      throw std::runtime_error("Failed to exit the data container");
     }
 
     reply = sd_bus_message_unref(reply);
     message = sd_bus_message_unref(message);
+
+    // List the remaining units (present on disk but not loaded into memory)
+    if (sd_bus_call_method(bus,
+                           "org.freedesktop.systemd1",
+                           "/org/freedesktop/systemd1",
+                           "org.freedesktop.systemd1.Manager",
+                           "ListUnitFiles",
+                           &bus_error,
+                           &reply,
+                           nullptr) < 0) {
+      std::string error_message;
+      if (bus_error.message != nullptr) {
+        error_message = bus_error.message;
+      } else {
+        error_message = "Failed to call the remote method";
+      }
+
+      throw std::runtime_error(error_message);
+    }
+
+    if (sd_bus_message_enter_container(reply, SD_BUS_TYPE_ARRAY, "(ss)") < 0) {
+      throw std::runtime_error("Failed to enter the data container");
+    }
+
+    while (true) {
+      const char* unit_path = nullptr;
+      const char* unit_state = nullptr;
+
+      auto error = sd_bus_message_read(reply, "(ss)", &unit_path, &unit_state);
+      if (error == 0) {
+        break;
+      } else if (error < 0) {
+        throw std::runtime_error("Failed to parse the unit information");
+      }
+
+      if (unit_map.find(unit_path) != unit_map.end()) {
+        continue;
+      }
+
+      SystemdUnitInfo info = {};
+      info.unit_path = unit_path;
+      info.sub_state = unit_state;
+
+      unit_map[unit_path] = info;
+    }
+
+    if (sd_bus_message_exit_container(reply) < 0) {
+      throw std::runtime_error("Failed to exit the data container");
+    }
+
+    reply = sd_bus_message_unref(reply);
+    message = sd_bus_message_unref(message);
+
+    // copy everything
+    for (const auto& pair : unit_map) {
+      unit_list.push_back(pair.second);
+    }
 
     if (unit_list.empty()) {
       return Status(1, "No services returned by the manager!");
@@ -486,10 +552,12 @@ Status enumerateSystemdServices(QueryData& query_data) {
     for (const auto& unit_info : unit_list) {
       Row r = {};
       r["name"] = unit_info.id;
+      r["status"] = unit_info.active_state;
       r["path"] = unit_info.unit_path;
+      r["start_type"] = "xx"; // todo
       r["service_type"] = "systemd";
-      r["status"] = unit_info.sub_state;
-      r["start_type"] = "enabled";
+      r["pid"] = "0"; // todo
+      r["description"] = unit_info.description;
 
       query_data.push_back(r);
     }
@@ -498,13 +566,15 @@ Status enumerateSystemdServices(QueryData& query_data) {
   bus = sd_bus_flush_close_unref(bus);
   return Status(0, "OK");
 }
-#endif
+
+#endif // OSQUERY_ENABLE_SYSTEMD
 } // namespace
 
 namespace tables {
 QueryData genServices(QueryContext& context) {
   QueryData query_data;
 
+#ifndef OSQUERY_ENABLE_SYSTEMD
   auto status = enumerateSysVinitServices(query_data);
   if (!status.ok()) {
     VLOG(1) << "Failed to enumerate the SysVinit services: "
@@ -517,8 +587,8 @@ QueryData genServices(QueryContext& context) {
             << status.getMessage();
   }
 
-#ifdef OSQUERY_ENABLE_SYSTEMD
-  status = enumerateSystemdServices(query_data);
+#else
+  auto status = enumerateSystemdServices(query_data);
   if (!status.ok()) {
     VLOG(1) << "Failed to enumerate the systemd services: "
             << status.getMessage();
