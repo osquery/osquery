@@ -376,7 +376,7 @@ class HTTP_Response : public T {
 
   /// body of a HTTP response.
   const std::string& body() {
-    return this->T::body;
+    return this->T::body();
   }
 
   /**
