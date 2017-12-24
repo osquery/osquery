@@ -523,8 +523,10 @@ if(POSIX)
   include_directories("${BUILD_DEPS}/include/openssl")
 endif()
 
-# Including Boost Beast within third-party until it's merged into boot 1.66.
-include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
+if(NOT LINUX AND NOT APPLE)
+  # Including Boost Beast within third-party until it's merged into boot 1.66.
+  include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
+endif()
 
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
