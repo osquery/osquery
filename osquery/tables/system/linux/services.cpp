@@ -369,8 +369,8 @@ struct SystemdUnitInfo final {
   std::string job_path;
 };
 
-Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
-                          sd_bus* bus) {
+Status getLoadedSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
+                                sd_bus* bus) {
   unit_list.clear();
 
   sd_bus_message* message = nullptr;
@@ -409,7 +409,6 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
       throw std::runtime_error("Failed to enter the data container");
     }
 
-    // List all units that have been loaded into memory first
     while (true) {
       const char* id = nullptr;
       const char* description = nullptr;
@@ -459,7 +458,30 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
     reply = sd_bus_message_unref(reply);
     message = sd_bus_message_unref(message);
 
-    // List the remaining units (present on disk but not loaded into memory)
+    return Status(0, "OK");
+
+  } catch (const std::exception& e) {
+    if (reply != nullptr) {
+      reply = sd_bus_message_unref(reply);
+    }
+
+    if (message != nullptr) {
+      message = sd_bus_message_unref(message);
+    }
+
+    return Status(1, e.what());
+  }
+}
+
+Status getInactiveSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
+                                  sd_bus* bus) {
+  unit_list.clear();
+
+  sd_bus_message* message = nullptr;
+  sd_bus_message* reply = nullptr;
+  sd_bus_error bus_error = SD_BUS_ERROR_NULL;
+
+  try {
     if (sd_bus_call_method(bus,
                            "org.freedesktop.systemd1",
                            "/org/freedesktop/systemd1",
@@ -528,6 +550,36 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
 
     return Status(1, e.what());
   }
+}
+
+Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
+                          sd_bus* bus) {
+  unit_list.clear();
+
+  std::vector<SystemdUnitInfo> loaded_unit_list;
+  auto status = getLoadedSystemdUnitList(loaded_unit_list, bus);
+  if (!status.ok()) {
+    return status;
+  }
+
+  std::vector<SystemdUnitInfo> inactive_unit_list;
+  status = getInactiveSystemdUnitList(inactive_unit_list, bus);
+  if (!status.ok()) {
+    return status;
+  }
+
+  unit_list = std::move(loaded_unit_list);
+  loaded_unit_list.clear();
+
+  // clang-format off
+  unit_list.insert(
+      unit_list.end(),
+      inactive_unit_list.begin(),
+      inactive_unit_list.end()
+  );
+  // clang-format on
+
+  return Status(0, "OK");
 }
 
 Status enumerateSystemdServices(QueryData& query_data) {
