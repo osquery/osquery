@@ -356,6 +356,90 @@ sd_bus* getSystemdBusHandle() {
   }
 }
 
+Status getSystemdUnitPid(pid_t& process_id,
+                         const std::string& unit_path,
+                         sd_bus* bus) {
+  sd_bus_message* reply = nullptr;
+  sd_bus_error bus_error = SD_BUS_ERROR_NULL;
+
+  try {
+    sd_bus_call_method(bus,
+                       "org.freedesktop.systemd1",
+                       unit_path.data(),
+                       "org.freedesktop.DBus.Properties",
+                       "GetAll",
+                       &bus_error,
+                       &reply,
+                       "s",
+                       "");
+
+    if (sd_bus_message_enter_container(reply, SD_BUS_TYPE_ARRAY, "{sv}") < 0) {
+      throw std::runtime_error("Failed to enter the data container");
+    }
+
+    while (true) {
+      auto container_err =
+          sd_bus_message_enter_container(reply, SD_BUS_TYPE_DICT_ENTRY, "sv");
+      if (container_err == 0) {
+        break;
+      } else if (container_err < 0) {
+        throw std::runtime_error("Failed to enter the data container");
+      }
+
+      const char* property_name = nullptr;
+      if (sd_bus_message_read(reply, "s", &property_name) < 0) {
+        throw std::runtime_error("Failed to retrieve the property name");
+      }
+
+      if (std::strcmp(property_name, "MainPID") == 0) {
+        const char* contents;
+        if (sd_bus_message_peek_type(reply, NULL, &contents) < 0) {
+          throw std::runtime_error("Failed to determine the property type");
+        }
+
+        if (sd_bus_message_enter_container(
+                reply, SD_BUS_TYPE_VARIANT, contents) < 0) {
+          throw std::runtime_error("Failed to enter the variant container");
+        }
+
+        char property_type;
+        if (sd_bus_message_peek_type(reply, &property_type, NULL) < 0) {
+          throw std::runtime_error("Failed to determine the property type");
+        }
+
+        if (sd_bus_message_read_basic(reply, property_type, &process_id) < 0) {
+          throw std::runtime_error("Failed to read the property value");
+        }
+
+        if (sd_bus_message_exit_container(reply) < 0) {
+          throw std::runtime_error("Failed to exit the data container");
+        }
+
+      } else if (sd_bus_message_skip(reply, "v") < 0) {
+        throw std::runtime_error("Failed to skip the data entry");
+      }
+
+      if (sd_bus_message_exit_container(reply) < 0) {
+        throw std::runtime_error("Failed to exit the data container");
+      }
+    }
+
+    if (sd_bus_message_exit_container(reply) < 0) {
+      throw std::runtime_error("Failed to exit the data container");
+    }
+
+    reply = sd_bus_message_unref(reply);
+    return Status(0, "OK");
+
+  } catch (const std::exception& e) {
+    if (reply != nullptr) {
+      reply = sd_bus_message_unref(reply);
+    }
+
+    return Status(1, e.what());
+  }
+}
+
 struct SystemdUnitInfo final {
   std::string id;
   std::string description;
@@ -367,6 +451,7 @@ struct SystemdUnitInfo final {
   std::uint32_t job_id;
   std::string job_type;
   std::string job_path;
+  pid_t process_id;
 };
 
 Status getLoadedSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
@@ -439,16 +524,26 @@ Status getLoadedSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
         throw std::runtime_error("Failed to parse the unit information");
       }
 
-      unit_list.push_back({id,
-                           description,
-                           load_state,
-                           active_state,
-                           sub_state,
-                           following,
-                           unit_path,
-                           job_id,
-                           job_type,
-                           job_path});
+      SystemdUnitInfo unit_info = {id,
+                                   description,
+                                   load_state,
+                                   active_state,
+                                   sub_state,
+                                   following,
+                                   unit_path,
+                                   job_id,
+                                   job_type,
+                                   job_path,
+                                   0U};
+
+      auto status = getSystemdUnitPid(unit_info.process_id, unit_path, bus);
+      if (!status.ok()) {
+        VLOG(1) << "Failed to determine the process id for the following "
+                   "systemd unit: "
+                << unit_path << ". Error: " << status.getMessage();
+      }
+
+      unit_list.push_back(unit_info);
     }
 
     if (sd_bus_message_exit_container(reply) < 0) {
@@ -601,7 +696,7 @@ Status enumerateSystemdServices(QueryData& query_data) {
       r["path"] = unit_info.unit_path;
       r["start_type"] = "xx"; // todo
       r["service_type"] = "systemd";
-      r["pid"] = "0"; // todo
+      r["pid"] = std::to_string(unit_info.process_id);
       r["description"] = unit_info.description;
 
       query_data.push_back(r);
