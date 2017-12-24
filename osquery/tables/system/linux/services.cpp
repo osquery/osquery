@@ -409,8 +409,6 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
       throw std::runtime_error("Failed to enter the data container");
     }
 
-    std::unordered_map<std::string, SystemdUnitInfo> unit_map;
-
     // List all units that have been loaded into memory first
     while (true) {
       const char* id = nullptr;
@@ -442,16 +440,16 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
         throw std::runtime_error("Failed to parse the unit information");
       }
 
-      unit_map[unit_path] = {id,
-                             description,
-                             load_state,
-                             active_state,
-                             sub_state,
-                             following,
-                             unit_path,
-                             job_id,
-                             job_type,
-                             job_path};
+      unit_list.push_back({id,
+                           description,
+                           load_state,
+                           active_state,
+                           sub_state,
+                           following,
+                           unit_path,
+                           job_id,
+                           job_type,
+                           job_path});
     }
 
     if (sd_bus_message_exit_container(reply) < 0) {
@@ -495,15 +493,15 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
         throw std::runtime_error("Failed to parse the unit information");
       }
 
-      if (unit_map.find(unit_path) != unit_map.end()) {
+      if (std::strcmp(unit_state, "disabled") != 0) {
         continue;
       }
 
       SystemdUnitInfo info = {};
       info.unit_path = unit_path;
-      info.sub_state = unit_state;
+      info.active_state = unit_state;
 
-      unit_map[unit_path] = info;
+      unit_list.push_back(info);
     }
 
     if (sd_bus_message_exit_container(reply) < 0) {
@@ -512,11 +510,6 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
 
     reply = sd_bus_message_unref(reply);
     message = sd_bus_message_unref(message);
-
-    // copy everything
-    for (const auto& pair : unit_map) {
-      unit_list.push_back(pair.second);
-    }
 
     if (unit_list.empty()) {
       return Status(1, "No services returned by the manager!");
