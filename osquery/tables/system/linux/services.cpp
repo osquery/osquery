@@ -694,7 +694,10 @@ Status enumerateSystemdServices(QueryData& query_data) {
       r["name"] = unit_info.id;
       r["status"] = unit_info.active_state;
       r["path"] = unit_info.unit_path;
-      r["start_type"] = "xx"; // todo
+
+      r["start_type"] =
+          (unit_info.active_state != "disabled") ? "SYSTEM_START" : "DISABLED";
+
       r["service_type"] = "systemd";
       r["pid"] = std::to_string(unit_info.process_id);
       r["description"] = unit_info.description;
