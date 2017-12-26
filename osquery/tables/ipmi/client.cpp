@@ -44,8 +44,8 @@ namespace osquery {
 
 #define IPMI_DEFAULT_INIT_TIMEOUT 360000
 #define IPMI_CLEANUP_DURATION 120000
-#define IPMI_QUERY_LAN_TIMEOUT 500
-#define IPMI_QUERY_THRESHOLD_SENSORS_TIMEOUT 500
+#define IPMI_QUERY_LAN_TIMEOUT 1000
+#define IPMI_QUERY_THRESHOLD_SENSORS_TIMEOUT 1000
 #define IPMI_QUERY_FRU_TIMEOUT 100
 #define IPMI_QUERY_MC_TIMEOUT 100
 #define NOERR 0
@@ -85,6 +85,23 @@ const auto kFreeLANParm = [](ipmi_lanparm_t* lp) {
                  << strerror(rv);
   }
 };
+
+/// Gets timeout value from configuration.
+static inline size_t getTimeoutConfig(const std::string&& name,
+                                      size_t defaultTimeout) {
+  auto parser = Config::getParser("ipmi");
+  if (parser != nullptr && parser.get() != nullptr) {
+    const auto& config = parser->getData().get_child(
+        kIPMIConfigParserRootKey, boost::property_tree::ptree("UNEXPECTED"));
+    if (config.get_value("") == "UNEXPECTED") {
+      LOG(WARNING) << "Could not load ipmi configuration root key: "
+                   << kIPMIConfigParserRootKey;
+    }
+
+    return config.get_child(name, boost::property_tree::ptree())
+        .get_value<size_t>(defaultTimeout);
+  }
+}
 
 /**
  * @brief retrieves name of MC
@@ -685,7 +702,11 @@ IPMIClient::~IPMIClient() {
 }
 
 IPMIClient::IPMIClient()
-    : up_(false), domain_(nullptr), os_hnd_(nullptr, kFreeOSHandle), lanCh_(0) {
+    : InternalRunnable("ipmi_client"),
+      up_(false),
+      domain_(nullptr),
+      os_hnd_(nullptr, kFreeOSHandle),
+      lanCh_(0) {
   TLOG << "First time initialization of OpenIPMI client.  This could "
           "take a few minutes";
 
@@ -727,20 +748,7 @@ IPMIClient::IPMIClient()
   Dispatcher::addService(
       std::shared_ptr<IPMIClient>(this, [](IPMIClient* c) { c->stop(); }));
 
-  // Set default timeout value.
-  size_t timeout = IPMI_DEFAULT_INIT_TIMEOUT;
-  auto parser = Config::getParser("ipmi");
-  if (parser != nullptr && parser.get() != nullptr) {
-    const auto& config = parser->getData().get_child(
-        kIPMIConfigParserRootKey, boost::property_tree::ptree("UNEXPECTED"));
-    if (config.get_value("") == "UNEXPECTED") {
-      LOG(WARNING) << "Could not load ipmi configuration root key: "
-                   << kIPMIConfigParserRootKey;
-    }
-
-    timeout = config.get_child("timeout", boost::property_tree::ptree())
-                  .get_value<size_t>(timeout);
-  }
+  auto timeout = getTimeoutConfig("timeout", IPMI_DEFAULT_INIT_TIMEOUT);
 
   TLOG << "Waiting for OpenIPMI to reach 'fully up' state to retrieve "
           "domain (may take up to "
@@ -970,11 +978,13 @@ void IPMIClient::iterateMCs(ipmi_domain_iterate_mcs_cb cb) {
 
 void IPMIClient::getLANConfigs(QueryData& results) {
   WriteLock lock(busy_);
-
   rowsQueue_.clear();
 
   iterateMCs(getLANsCB);
-  blkAndOp([]() { return false; }, IPMI_QUERY_LAN_TIMEOUT);
+
+  auto timeout = getTimeoutConfig("lan_query_timeout", IPMI_QUERY_LAN_TIMEOUT);
+  blkAndOp([]() { return false; }, timeout);
+
   toQueryData(results);
 
   rowsQueue_.clear();
@@ -985,7 +995,11 @@ void IPMIClient::getThresholdSensors(QueryData& results) {
   rowsQueue_.clear();
 
   iterateEntities(getThresholdSensorCB);
-  blkAndOp([]() { return false; }, IPMI_QUERY_THRESHOLD_SENSORS_TIMEOUT);
+
+  auto timeout = getTimeoutConfig("threshold_sensors_query_timeout",
+                                  IPMI_QUERY_THRESHOLD_SENSORS_TIMEOUT);
+  blkAndOp([]() { return false; }, timeout);
+
   toQueryData(results);
 
   rowsQueue_.clear();
@@ -997,7 +1011,9 @@ void IPMIClient::getFRUs(QueryData& results) {
 
   iterateEntities(getFRUCB);
 
-  blkAndOp([]() { return false; }, IPMI_QUERY_FRU_TIMEOUT);
+  auto timeout = getTimeoutConfig("fru_query_timeout", IPMI_QUERY_FRU_TIMEOUT);
+  blkAndOp([]() { return false; }, timeout);
+
   toQueryData(results);
 
   rowsQueue_.clear();
@@ -1009,7 +1025,9 @@ void IPMIClient::getMCs(QueryData& results) {
 
   iterateMCs(iterateMCsCB);
 
-  blkAndOp([]() { return false; }, IPMI_QUERY_MC_TIMEOUT);
+  auto timeout = getTimeoutConfig("mc_query_timeout", IPMI_QUERY_MC_TIMEOUT);
+  blkAndOp([]() { return false; }, timeout);
+
   toQueryData(results);
 
   rowsQueue_.clear();
