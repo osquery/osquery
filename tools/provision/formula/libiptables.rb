@@ -6,12 +6,12 @@ class Libiptables < AbstractOsqueryFormula
   license "GPL-2.0+"
   url "https://osquery-packages.s3.amazonaws.com/deps/iptables-1.4.21.tar.gz"
   sha256 "ce1335c91764dc87a26978bd3725c510c2564853184c6e470e0a0f785f420f89"
-  revision 101
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "d3ae11309d313ecc6e7ae1d681e14cc7f7f5bd9a6a447d3bf70e1eb621041dfe" => :x86_64_linux
+    sha256 "f39461e4549f49bacccbed6a28fd077177304328c2ed480679e6ff10363806e4" => :x86_64_linux
   end
 
   patch :DATA

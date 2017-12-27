@@ -7,12 +7,12 @@ class UtilLinux < AbstractOsqueryFormula
   url "https://www.kernel.org/pub/linux/utils/util-linux/v2.27/util-linux-2.27.1.tar.xz"
   sha256 "0a818fcdede99aec43ffe6ca5b5388bff80d162f2f7bd4541dca94fecb87a290"
   head "https://github.com/karelzak/util-linux.git"
-  revision 101
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "44b55c155b23c6f95e21b318a5a6ff59317ba3ce23e881647bc6736703d4c396" => :x86_64_linux
+    sha256 "79325684febb7f3b10e60a8f6ae8c0bbdccecfdc90e00a18804c041b37a0dfea" => :x86_64_linux
   end
 
   def install
@@ -27,11 +27,8 @@ class UtilLinux < AbstractOsqueryFormula
       # Conflicts with coreutils.
       "--disable-kill",
       "--disable-shared",
-      "--enable-static"
+      "--enable-static",
+      "--with-readline=no"
     system "make", "install"
-  end
-
-  test do
-    assert_match "January", shell_output("#{bin}/cal 1 2016")
   end
 end

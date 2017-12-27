@@ -58,11 +58,17 @@ else
 endif
 
 ifneq ($(VERBOSE_TEST),)
-  VERBOSE_TEST = "-V"
+	VERBOSE_TEST = "-V"
+endif
+
+ifneq ($(DISTRO),darwin)
+        LINK_FLAGS = -rtlib=compiler-rt -fuse-ld=lld
 endif
 
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
-CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib" cmake $(CMAKE_EXTRA) $(SOURCE_DIR)/
+CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib $(LINK_FLAGS)" \
+        cmake $(CMAKE_EXTRA) $(SOURCE_DIR)/
+
 CTEST := $(PATH_SET) ctest $(SOURCE_DIR)/
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"

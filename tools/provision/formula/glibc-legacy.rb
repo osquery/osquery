@@ -6,12 +6,12 @@ class GlibcLegacy < AbstractOsqueryFormula
   license "GPL-2.0+"
   url "ftp.gnu.org/gnu/glibc/glibc-2.13.tar.bz2"
   sha256 "0173c92a0545e6d99a46a4fbed2da00ba26556f5c6198e2f9f1631ed5318dbb2"
-  revision 101
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "5613d3a040b2fdafd9c3de17aea7cae3291fa13f8b1998d05934ef5135c29735" => :x86_64_linux
+    sha256 "e3053dff8fe6888f4ecbfe9a63d82a175d4147e03cd544f5d459fdd74ea88307" => :x86_64_linux
   end
 
   # Must apply patches to allow compiling with newer versions of GCC/gmake.
@@ -65,12 +65,6 @@ class GlibcLegacy < AbstractOsqueryFormula
   def post_install
     # Fix permissions
     chmod 0755, [lib/"ld-#{version}.so", lib/"libc-#{version}.so"]
-  end
-
-  test do
-    system "#{lib}/ld-#{version}.so 2>&1 |grep Usage"
-    system "#{lib}/libc-#{version}.so", "--version"
-    system "#{bin}/locale", "--version"
   end
 end
 

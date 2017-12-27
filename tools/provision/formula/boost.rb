@@ -7,22 +7,14 @@ class Boost < AbstractOsqueryFormula
   url "https://downloads.sourceforge.net/project/boost/boost/1.66.0/boost_1_66_0.tar.bz2"
   sha256 "5721818253e6a0989583192f96782c4a98eb6204965316df9f5ad75819225ca9"
   head "https://github.com/boostorg/boost.git"
-  revision 100
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "2ec00b382e342a74cf57f12955729c6e2db616afdfc3120e3d7f3d41c6a3c559" => :sierra
-    sha256 "8a435ce15fbd0f0e4c10f063a0cd94cbbaa430d3a6d64b01754b1794dae75e3f" => :x86_64_linux
+    sha256 "260f6810e5d1276f1866aff5bf0e997c12ed8ab46617ce16f5e985230ca8f062" => :sierra
+    sha256 "2807ae0b29f9aae8a6eccd36e297f7ff902742bef8d7b9fb0dadbeb99341c6ca" => :x86_64_linux
   end
-
-  env :userpaths
-
-  option :universal
-
-  # Keep this option, but force C++11.
-  option :cxx11
-  needs :cxx11
 
   depends_on "bzip2" unless OS.mac?
 
@@ -34,9 +26,6 @@ class Boost < AbstractOsqueryFormula
     bootstrap_args = [
       "--prefix=#{prefix}",
       "--libdir=#{lib}",
-
-      # This is a non-standard toolset, but informs the bjam build to use the
-      # compile and link environment variables.
       "--with-toolset=cc",
     ]
 

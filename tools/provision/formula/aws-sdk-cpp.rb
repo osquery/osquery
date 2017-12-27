@@ -6,13 +6,13 @@ class AwsSdkCpp < AbstractOsqueryFormula
   license "Apache-2.0"
   url "https://github.com/aws/aws-sdk-cpp/archive/1.2.7.tar.gz"
   sha256 "1f65e63dbbceb1e8ffb19851a8e0ee153e05bf63bfa12b0e259d50021ac3ab6e"
-  revision 100
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "7ee648587946bee53a22e12c391b3176bc48c5a9b5a7ae6bb7fad158bbe9adc6" => :sierra
-    sha256 "900b4f5ed5c5b6dbbeae72e939a5d2fcd4fbdf889d6fa316eb9b5d96afe91db5" => :x86_64_linux
+    sha256 "b35c6889799abe5553b428cd300622fc443a6aae8db9114cdc6172bafd2f902a" => :sierra
+    sha256 "afa67a91ae0356516861e677ac6b64f91d848fdc3ae10374934188ac9c70863c" => :x86_64_linux
   end
 
   depends_on "cmake" => :build
@@ -41,19 +41,5 @@ class AwsSdkCpp < AbstractOsqueryFormula
       system "mv #{lib64}/* #{lib}/"
       rmdir lib64
     end
-  end
-
-  test do
-    (testpath/"test.cpp").write <<-EOS.undent
-      #include <aws/core/Version.h>
-      #include <iostream>
-
-      int main() {
-          std::cout << Aws::Version::GetVersionString() << std::endl;
-          return 0;
-      }
-    EOS
-    system ENV.cxx, "test.cpp", "-o", "test", "-laws-cpp-sdk-core"
-    system "./test"
   end
 end

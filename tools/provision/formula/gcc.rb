@@ -4,38 +4,25 @@ class Gcc < AbstractOsqueryFormula
   desc "GNU compiler collection"
   homepage "https://gcc.gnu.org"
   license "GPL-3.0+"
-  url "https://ftp.heanet.ie/mirrors/gnu/gcc/gcc-5.3.0/gcc-5.3.0.tar.bz2"
-  mirror "https://ftp.gnu.org/gnu/gcc/gcc-5.3.0/gcc-5.3.0.tar.bz2"
-  sha256 "b84f5592e9218b73dbae612b5253035a7b34a9a1f7688d2e1bfaaf7267d5c4db"
-  revision 101
+  url "https://ftp.gnu.org/gnu/gcc/gcc-5.4.0/gcc-5.4.0.tar.bz2"
+  mirror "http://ftpmirror.gnu.org/gcc/gcc-5.4.0/gcc-5.4.0.tar.bz2"
+  sha256 "608df76dec2d34de6558249d8af4cbee21eceddbcb580d666f7a5a583ca3303a"
+  revision 200
+
 
   head "svn://gcc.gnu.org/svn/gcc/trunk"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "648bf905127b7984c91bc9a8099d08702545c7630d3de86f8e595cae929c8797" => :x86_64_linux
+    sha256 "0cf4be8852e9c68124423f4431f4a5ebbf57cd8218e333906bd2056a959d15ca" => :x86_64_linux
   end
 
-  option "with-java", "Build the gcj compiler"
-  option "with-all-languages", "Enable all compilers and languages, except Ada"
-  option "with-nls", "Build with native language support (localization)"
-  option "with-jit", "Build the jit compiler"
-  option "with-fortran", "Build without the gfortran compiler"
-  option "with-multilib", "Build with multilib support"
-
-  depends_on "zlib" unless OS.mac?
-  depends_on "binutils" if build.with? "glibc"
+  depends_on "zlib"
   depends_on "gmp"
   depends_on "libmpc"
   depends_on "mpfr"
   depends_on "isl"
-
-  fails_with :gcc_4_0
-  fails_with :llvm
-
-  # GCC bootstraps itself, so it is OK to have an incompatible C++ stdlib
-  cxxstdlib_check :skip
 
   def version_suffix
     version.to_s.slice(/\d/)
@@ -48,6 +35,7 @@ class Gcc < AbstractOsqueryFormula
   def install
     # GCC will suffer build errors if forced to use a particular linker.
     ENV.delete "LD"
+    ENV.delete "LDFLAGS"
 
     # C, C++ compilers are always built
     languages = %w[c c++]
@@ -88,7 +76,7 @@ class Gcc < AbstractOsqueryFormula
     ]
 
     # Fix cc1: error while loading shared libraries: libisl.so.15
-    args << "--with-boot-ldflags=-static-libstdc++ -static-libgcc #{ENV["LDFLAGS"]}" if OS.linux?
+    args << "--with-boot-ldflags=-static-libstdc++ -static-libgcc #{ENV["LDFLAGS"]}"
 
     # "Building GCC with plugin support requires a host that supports
     # -fPIC, -shared, -ldl and -rdynamic."
@@ -97,17 +85,14 @@ class Gcc < AbstractOsqueryFormula
     # The pre-Mavericks toolchain requires the older DWARF-2 debugging data
     # format to avoid failure during the stage 3 comparison of object files.
     # See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=45248
-    args << "--with-dwarf2" if OS.mac? && MacOS.version <= :mountain_lion
-    args << "--disable-nls" if build.without? "nls"
+    args << "--with-dwarf2"
+    args << "--disable-nls"
     args << "--disable-multilib"
 
     # Ensure correct install names when linking against libgcc_s;
     # see discussion in https://github.com/Homebrew/homebrew/pull/34303
     inreplace "libgcc/config/t-slibgcc-darwin", "@shlib_slibdir@", "#{default_prefix}/lib/gcc/#{version_suffix}"
     inreplace "libitm/method-serial.cc", "assert (ok);", "(void) ok;"
-
-    ENV.delete "LDFLAGS"
-    # ENV.delete "LD_LIBRARY_PATH"
 
     # osquery: speed up the build by skipping the bootstrap.
     args << "--disable-bootstrap"
@@ -133,19 +118,6 @@ class Gcc < AbstractOsqueryFormula
     # install-info is run. TODO fix this.
     info.rmtree
 
-    # Rename java properties
-    if build.with?("java") || build.with?("all-languages")
-      config_files = [
-        "#{lib}/gcc/#{version_suffix}/logging.properties",
-        "#{lib}/gcc/#{version_suffix}/security/classpath.security",
-        "#{lib}/gcc/#{version_suffix}/i386/logging.properties",
-        "#{lib}/gcc/#{version_suffix}/i386/security/classpath.security",
-      ]
-      config_files.each do |file|
-        add_suffix file, version_suffix if File.exist? file
-      end
-    end
-
     # Move lib64/* to lib/ on Linuxbrew
     lib64 = Pathname.new "#{lib}64"
     if lib64.directory?
@@ -153,6 +125,11 @@ class Gcc < AbstractOsqueryFormula
       rmdir lib64
       prefix.install_symlink "lib" => "lib64"
     end
+
+    system("strip", "--strip-unneeded", "--preserve-dates", *Dir["#{prefix}/**/*"].select do |f|
+      f = Pathname.new(f)
+      f.file? && (f.elf? || f.extname == ".a")
+    end)
   end
 
   def add_suffix(file, suffix)
@@ -190,9 +167,6 @@ class Gcc < AbstractOsqueryFormula
     glibc = Formula["glibc-legacy"]
     libgcc = lib/"gcc/x86_64-unknown-linux-gnu"/version
     specs.write specs_string + <<-EOS.undent
-      *cpp_unique_options:
-      + -isystem #{legacy_prefix}/include
-
       *link_libgcc:
       #{glibc.installed? ? "-nostdlib -L#{libgcc}" : "+"} -L#{legacy_prefix}/lib -L#{default_prefix}/lib -lrt -lpthread
 
@@ -200,29 +174,5 @@ class Gcc < AbstractOsqueryFormula
       + --dynamic-linker #{legacy_prefix}/lib/ld-linux-x86-64.so.2 -rpath #{default_prefix}/lib
 
     EOS
-  end
-
-  test do
-    (testpath/"hello-c.c").write <<-EOS.undent
-      #include <stdio.h>
-      int main()
-      {
-        puts("Hello, world!");
-        return 0;
-      }
-    EOS
-    system "#{bin}/gcc-#{version_suffix}", "-o", "hello-c", "hello-c.c"
-    assert_equal "Hello, world!\n", `./hello-c`
-
-    (testpath/"hello-cc.cc").write <<-EOS.undent
-      #include <iostream>
-      int main()
-      {
-        std::cout << "Hello, world!" << std::endl;
-        return 0;
-      }
-    EOS
-    system "#{bin}/g++-#{version_suffix}", "-o", "hello-cc", "hello-cc.cc"
-    assert_equal "Hello, world!\n", `./hello-cc`
   end
 end

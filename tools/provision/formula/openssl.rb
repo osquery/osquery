@@ -8,13 +8,13 @@ class Openssl < AbstractOsqueryFormula
   mirror "https://dl.bintray.com/homebrew/mirror/openssl-1.0.2m.tar.gz"
   mirror "https://www.mirrorservice.org/sites/ftp.openssl.org/source/openssl-1.0.2m.tar.gz"
   sha256 "8c6ff15ec6b319b50788f42c7abc2890c08ba5a1cdcd3810eb9092deada37b0f"
-  revision 102
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "c36da72ba511c0903e6f06b5c46bed71cb41f9d73c54c46c39e35e7d317a214b" => :sierra
-    sha256 "d44f51e85390246f2f8d6ba8b1a7082b5f6d4a83ace0b0f7a826bdf9352ba557" => :x86_64_linux
+    sha256 "06400b9c19b51c8c7d35a9f110c86331ef82b14ddf7270b5e68b6f9e7c0cfab6" => :sierra
+    sha256 "900d4718dec4ba09cc9ae304e3fb287b01089a86209f431e5993ff3a30858f92" => :x86_64_linux
   end
 
   resource "cacert" do
@@ -24,13 +24,7 @@ class Openssl < AbstractOsqueryFormula
     sha256 "435ac8e816f5c10eaaf228d618445811c16a5e842e461cb087642b6265a36856"
   end
 
-  option "without-test", "Skip build-time tests (not recommended)"
-
-  deprecated_option "without-check" => "without-test"
-
-  depends_on "makedepend" => :build
   depends_on "zlib" unless OS.mac?
-  depends_on :perl => ["5.0", :build] unless OS.mac?
 
   def arch_args
     if OS.linux?
@@ -55,10 +49,10 @@ class Openssl < AbstractOsqueryFormula
     if OS.linux?
       args += [
         ENV.cppflags,
-        ENV.cflags,
         ENV.ldflags,
       ]
     end
+    args << ENV.cflags
     return args
   end
 
@@ -75,7 +69,7 @@ class Openssl < AbstractOsqueryFormula
     system "perl", "./Configure", *(configure_args + arch_args)
     system "make", "depend"
     system "make"
-    system "make", "test" if build.with?("test")
+    system "make", "test"
     system "make", "install", "MANDIR=#{man}", "MANSUFFIX=ssl"
   end
 
@@ -96,20 +90,5 @@ class Openssl < AbstractOsqueryFormula
     and run
       #{opt_bin}/c_rehash
     EOS
-  end
-
-  test do
-    # Make sure the necessary .cnf file exists, otherwise OpenSSL gets moody.
-    assert (HOMEBREW_PREFIX/"etc/openssl/openssl.cnf").exist?,
-            "OpenSSL requires the .cnf file for some functionality"
-
-    # Check OpenSSL itself functions as expected.
-    (testpath/"testfile.txt").write("This is a test file")
-    expected_checksum = "e2d0fe1585a63ec6009c8016ff8dda8b17719a637405a4e23c0ff81339148249"
-    system "#{bin}/openssl", "dgst", "-sha256", "-out", "checksum.txt", "testfile.txt"
-    open("checksum.txt") do |f|
-      checksum = f.read(100).split("=").last.strip
-      assert_equal checksum, expected_checksum
-    end
   end
 end

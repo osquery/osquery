@@ -272,9 +272,8 @@ Status INotifyEventPublisher::run() {
 
 INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
     struct inotify_event* event) const {
-  auto shared_event = std::make_shared<struct inotify_event>(*event);
   auto ec = createEventContext();
-  ec->event = shared_event;
+  ec->event = std::make_unique<struct inotify_event>(*event);
 
   // Get the pathname the watch fired on.
   {

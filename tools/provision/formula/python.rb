@@ -6,13 +6,13 @@ class Python < AbstractOsqueryFormula
   url "https://www.python.org/ftp/python/2.7.12/Python-2.7.12.tar.xz"
   sha256 "d7837121dd5652a05fef807c361909d255d173280c4e1a4ded94d73d80a1f978"
   head "https://hg.python.org/cpython", :using => :hg, :branch => "2.7"
-  revision 101
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
     sha256 "a43f382991e2636cd1fc01619b5790898e1e40e89da94d5997cc80a0775d8a54" => :sierra
-    sha256 "8245288b9906228f925215162ecba6925d23c7bf544e919ce3152d90398f738c" => :x86_64_linux
+    sha256 "a133ba3c287beb886bae493a52854361cc14c3faf39b6c2b79bf8095c12c7b9b" => :x86_64_linux
   end
 
   option :universal
@@ -60,7 +60,7 @@ class Python < AbstractOsqueryFormula
   # https://bugs.python.org/issue10910
   # https://trac.macports.org/ticket/44288
   patch do
-    url "https://bugs.python.org/file30805/issue10910-workaround.txt"
+    url "https://trac.macports.org/raw-attachment/ticket/44288/issue10910-workaround.txt"
     sha256 "c075353337f9ff3ccf8091693d278782fcdff62c113245d8de43c5c7acc57daf"
   end
 

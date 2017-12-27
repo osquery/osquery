@@ -6,13 +6,13 @@ class Libmagic < AbstractOsqueryFormula
   license "BSD-2-Clause"
   url "https://distfiles.macports.org/file/file-5.32.tar.gz"
   sha256 "8639dc4d1b21e232285cd483604afc4a6ee810710e00e579dbe9591681722b50"
-  revision 100
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "9018d1df107b9e02f7c2bc09722f5db47e3f9fcd1f5e78ddf6fc93f4c6c56d14" => :sierra
-    sha256 "fc93dc4fff2228058abbc7e6acb6de2c86af40338cf4c09bd2af46495f1f959f" => :x86_64_linux
+    sha256 "aded14705f5ef4cce9b62b4be7157c63ebebed871f8f2e20bf2f23423c56eb4f" => :sierra
+    sha256 "b92728f8418492c61283600befdabbb891eba150d0611f10a4bc53989825952a" => :x86_64_linux
   end
 
   depends_on :python => :optional

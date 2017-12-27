@@ -6,16 +6,14 @@ class Rocksdb < AbstractOsqueryFormula
   license "Apache-2.0 and GPL-2.0+"
   url "https://github.com/facebook/rocksdb/archive/rocksdb-5.7.2.tar.gz"
   sha256 "31934ed4e2ab4d08eabd5f68fa625146eba371f8f588350b79e1fee7dd510bcc"
-  revision 103
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "d56829ad4f656aabde556bbc3e947ebcdab3b8ca51fe4a0ab7a80cb852e10500" => :sierra
-    sha256 "c27a534f2a44bec1fd4ace5040a06b66be9fbded6e3915d9baee75ac13ee841e" => :x86_64_linux
+    sha256 "5e5bb77b1ecb6d462865786993b2d64b0fe45506e983ed3258f2f7e97f82b2be" => :sierra
+    sha256 "257cb44370305fd1e19cd8ba05b3b0a103b72b8d54aa557fe9575a6c4881a8bc" => :x86_64_linux
   end
-
-  needs :cxx11
 
   # Remove the logic to auto-discover support for snappy and lz4.
   patch :DATA

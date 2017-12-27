@@ -62,7 +62,6 @@ endif()
 
 # osquery additional compiler flags added by CMake.
 set(CXX_STD "c++14")
-set(CXX_COMPILE_FLAGS "")
 
 find_program(PYTHON_EXECUTABLE "python" ${BUILD_DEPS} ENV PATH)
 find_program(THRIFT_COMPILER "thrift" ${BUILD_DEPS} ENV PATH)
@@ -128,7 +127,7 @@ else()
     set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   else()
     set(LINUX TRUE)
-    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libstdc++" CACHE STRING "" FORCE)
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   endif()
   set(POSIX TRUE)
 endif()
@@ -155,7 +154,7 @@ if(POSIX)
     -fdata-sections
     -ffunction-sections
   )
-  if(NOT FREEBSD AND NOT DEFINED ENV{OSQUERY_BUILD_SHARED})
+  if(NOT FREEBSD)
     add_compile_options(
       -Werror=shadow
       -fvisibility=hidden
@@ -242,7 +241,7 @@ else()
   if(WINDOWS)
     add_compile_options(/Ot /WX)
   else()
-    add_compile_options(-Os)
+    add_compile_options(-Oz)
   endif()
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
@@ -518,9 +517,10 @@ if(POSIX)
     "${BUILD_DEPS}/include"
   )
 
+  include_directories(SYSTEM "${BUILD_DEPS}/include/c++/v1")
   include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   include_directories(SYSTEM "${BUILD_DEPS}/include")
-  include_directories("${BUILD_DEPS}/include/openssl")
+  include_directories(SYSTEM "${BUILD_DEPS}/lib/clang/4.0.0/include")
 endif()
 
 if(NOT LINUX AND NOT APPLE)
