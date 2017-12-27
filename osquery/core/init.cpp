@@ -26,6 +26,10 @@
 #include <unistd.h>
 #endif
 
+#ifndef WIN32
+#include <sys/resource.h>
+#endif
+
 #include <boost/filesystem.hpp>
 
 #include <osquery/config.h>
@@ -41,10 +45,6 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
-
-#if defined(__linux__) || defined(__FreeBSD__)
-#include <sys/resource.h>
-#endif
 
 #ifdef __linux__
 #include <sys/syscall.h>
@@ -258,6 +258,16 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   // The 'main' thread is that which executes the initializer.
   kMainThreadId = std::this_thread::get_id();
+
+  // Set the max number of open files.
+  struct rlimit nofiles;
+  if (getrlimit(RLIMIT_NOFILE, &nofiles) == 0) {
+    if (nofiles.rlim_cur < 1024 || nofiles.rlim_max < 1024) {
+      nofiles.rlim_cur = (nofiles.rlim_cur < 1024) ? 1024 : nofiles.rlim_cur;
+      nofiles.rlim_max = (nofiles.rlim_max < 1024) ? 1024 : nofiles.rlim_max;
+      setrlimit(RLIMIT_NOFILE, &nofiles);
+    }
+  }
 
   // Handled boost filesystem locale problems fixes in 1.56.
   // See issue #1559 for the discussion and upstream boost patch.
