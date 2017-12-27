@@ -50,7 +50,7 @@ uint64_t Query::getQueryCounter(bool new_query) const {
   return counter;
 }
 
-Status Query::getPreviousQueryResults(QueryData& results) const {
+Status Query::getPreviousQueryResults(QueryDataSet& results) const {
   std::string raw;
   auto status = getDatabaseValue(kQueries, name_, raw);
   if (!status.ok()) {
@@ -124,7 +124,7 @@ Status Query::addNewResults(QueryData current_qd,
   bool update_db = true;
   if (!fresh_results && calculate_diff) {
     // Get the rows from the last run of this query name.
-    QueryData previous_qd;
+    QueryDataSet previous_qd;
     auto status = getPreviousQueryResults(previous_qd);
     if (!status.ok()) {
       return status;
@@ -132,6 +132,7 @@ Status Query::addNewResults(QueryData current_qd,
 
     // Calculate the differential between previous and current query results.
     dr = diff(previous_qd, current_qd);
+
     update_db = (!dr.added.empty() || !dr.removed.empty());
   } else {
     dr.added = std::move(current_qd);
@@ -349,6 +350,18 @@ Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json) {
   return Status(0, "OK");
 }
 
+Status deserializeQueryData(const pt::ptree& tree, QueryDataSet& qd) {
+  for (const auto& i : tree) {
+    Row r;
+    auto status = deserializeRow(i.second, r);
+    if (!status.ok()) {
+      return status;
+    }
+    qd.insert(std::move(r));
+  }
+  return Status(0, "OK");
+}
+
 Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
   for (const auto& i : tree) {
     Row r;
@@ -377,6 +390,18 @@ Status deserializeQueryDataRJ(const rj::Value& v, QueryData& qd) {
 }
 
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
+  pt::ptree tree;
+  try {
+    std::stringstream input;
+    input << json;
+    pt::read_json(input, tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1, e.what());
+  }
+  return deserializeQueryData(tree, qd);
+}
+
+Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
   pt::ptree tree;
   try {
     std::stringstream input;
@@ -444,26 +469,22 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
   return Status(0, "OK");
 }
 
-DiffResults diff(const QueryData& old, const QueryData& current) {
+DiffResults diff(QueryDataSet& old, QueryData& current) {
   DiffResults r;
-  QueryData overlap;
 
-  for (const auto& i : current) {
-    auto item = std::find(old.begin(), old.end(), i);
+  for (auto& i : current) {
+    auto item = old.find(i);
     if (item != old.end()) {
-      overlap.push_back(i);
+      old.erase(item);
     } else {
       r.added.push_back(i);
     }
   }
 
-  std::multiset<Row> overlap_set(overlap.begin(), overlap.end());
-  std::multiset<Row> old_set(old.begin(), old.end());
-  std::set_difference(old_set.begin(),
-                      old_set.end(),
-                      overlap_set.begin(),
-                      overlap_set.end(),
-                      std::back_inserter(r.removed));
+  for (auto& i : old) {
+    r.removed.push_back(std::move(i));
+  }
+
   return r;
 }
 

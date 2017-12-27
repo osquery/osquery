@@ -44,7 +44,7 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
   uint64_t expected_counter = counter + 1;
   for (auto result : getTestDBResultStream()) {
     // Get the results from the previous query execution (from the DB).
-    QueryData previous_qd;
+    QueryDataSet previous_qd;
     status = cf.getPreviousQueryResults(previous_qd);
     EXPECT_TRUE(status.ok());
     EXPECT_EQ(status.toString(), "OK");
@@ -61,9 +61,15 @@ TEST_F(QueryTests, test_add_and_get_current_results) {
     EXPECT_EQ(dr, expected);
 
     // After Query::addNewResults the previous results are now current.
-    QueryData qd;
-    cf.getPreviousQueryResults(qd);
-    EXPECT_EQ(qd, result.second);
+    QueryDataSet qds_previous;
+    cf.getPreviousQueryResults(qds_previous);
+
+    QueryDataSet qds;
+    for (auto& i : result.second) {
+      qds.insert(i);
+    }
+
+    EXPECT_EQ(qds_previous, qds);
   }
 }
 
@@ -75,7 +81,7 @@ TEST_F(QueryTests, test_get_query_results) {
   EXPECT_TRUE(status.ok());
 
   // Use the Query retrieval API to check the now "previous" result.
-  QueryData previous_qd;
+  QueryDataSet previous_qd;
   auto cf = Query("foobar", query);
   status = cf.getPreviousQueryResults(previous_qd);
   EXPECT_TRUE(status.ok());
@@ -83,7 +89,7 @@ TEST_F(QueryTests, test_get_query_results) {
 
 TEST_F(QueryTests, test_query_name_not_found_in_db) {
   // Try to retrieve results from a query that has not executed.
-  QueryData previous_qd;
+  QueryDataSet previous_qd;
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("not_a_real_query", query);
   auto status = cf.getPreviousQueryResults(previous_qd);
@@ -103,7 +109,7 @@ TEST_F(QueryTests, test_is_query_name_in_database) {
 
 TEST_F(QueryTests, test_query_name_updated) {
   // Try to retrieve results from a query that has not executed.
-  QueryData previous_qd;
+  QueryDataSet previous_qd;
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("will_update_query", query);
   EXPECT_TRUE(cf.isNewQuery());
