@@ -259,6 +259,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // The 'main' thread is that which executes the initializer.
   kMainThreadId = std::this_thread::get_id();
 
+#ifndef WIN32
   // Set the max number of open files.
   struct rlimit nofiles;
   if (getrlimit(RLIMIT_NOFILE, &nofiles) == 0) {
@@ -268,6 +269,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
       setrlimit(RLIMIT_NOFILE, &nofiles);
     }
   }
+#endif
 
   // Handled boost filesystem locale problems fixes in 1.56.
   // See issue #1559 for the discussion and upstream boost patch.
