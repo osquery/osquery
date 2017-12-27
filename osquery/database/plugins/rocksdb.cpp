@@ -88,7 +88,7 @@ Status RocksDBDatabasePlugin::setUp() {
     options_.log_file_time_to_roll = 0;
     options_.keep_log_file_num = 10;
     options_.max_log_file_size = 1024 * 1024 * 1;
-    options_.max_open_files = 256;
+    options_.max_open_files = 128;
     options_.stats_dump_period_sec = 0;
     options_.max_manifest_file_size = 1024 * 500;
 
