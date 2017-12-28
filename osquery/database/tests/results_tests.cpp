@@ -26,6 +26,7 @@ namespace osquery {
 class ResultsTests : public testing::Test {};
 
 TEST_F(ResultsTests, test_simple_diff) {
+  QueryDataSet os;
   QueryData o;
   QueryData n;
 
@@ -33,7 +34,7 @@ TEST_F(ResultsTests, test_simple_diff) {
   r1["foo"] = "bar";
   n.push_back(r1);
 
-  auto results = diff(o, n);
+  auto results = diff(os, n);
   EXPECT_EQ(results.added, n);
   EXPECT_EQ(results.removed, o);
 }

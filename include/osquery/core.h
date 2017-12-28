@@ -219,8 +219,11 @@ class only_movable {
   /// Boilerplate self destructor.
   ~only_movable() = default;
 
-  /// Important, existence of a move constructor.
-  only_movable(only_movable&& /*unused*/) noexcept {}
+  /// Boilerplate move constructor.
+  only_movable(only_movable&&) noexcept = default;
+
+  /// Boilerplate move assignment.
+  only_movable& operator=(only_movable&&) = default;
 
  public:
   /// Important, a private copy constructor prevents copying.

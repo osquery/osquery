@@ -11,6 +11,7 @@
 #pragma once
 
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -92,9 +93,16 @@ Status deserializeRowJSONRJ(const std::string& json, Row& r);
  * @brief The result set returned from a osquery SQL query
  *
  * QueryData is the canonical way to represent the results of SQL queries in
- * osquery. It's just a vector of Row's.
+ * osquery. It's just a vector of Rows.
  */
 using QueryData = std::vector<Row>;
+
+/**
+ * @brief Set representation result returned from a osquery SQL query
+ *
+ * QueryDataSet -  It's set of Rows for fast search of a specific row.
+ */
+using QueryDataSet = std::multiset<Row>;
 
 /**
  * @brief Serialize a QueryData object into a property tree
@@ -138,10 +146,17 @@ Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json);
 /// Inverse of serializeQueryData, convert property tree to QueryData.
 Status deserializeQueryData(const boost::property_tree::ptree& tree,
                             QueryData& qd);
+/// Inverse of serializeQueryData, convert property tree to QueryDataSet.
+Status deserializeQueryData(const boost::property_tree::ptree& tree,
+                            QueryDataSet& qd);
+
 Status deserializeQueryDataRJ(const rapidjson::Value& v, QueryData& qd);
 
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryData.
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd);
+/// Inverse of serializeQueryDataJSON, convert a JSON string to QueryDataSet.
+
+Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd);
 
 /**
  * @brief Data structure representing the difference between the results of
@@ -192,7 +207,8 @@ Status serializeDiffResults(const DiffResults& d,
 Status serializeDiffResultsJSON(const DiffResults& d, std::string& json);
 
 /**
- * @brief Diff two QueryData objects and create a DiffResults object
+ * @brief Diff QueryDataSet object and QueryData object
+ *        and create a DiffResults object
  *
  * @param old_ the "old" set of results
  * @param new_ the "new" set of results
@@ -201,7 +217,7 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json);
  *
  * @see DiffResults
  */
-DiffResults diff(const QueryData& old_, const QueryData& new_);
+DiffResults diff(QueryDataSet& old_, QueryData& new_);
 
 /**
  * @brief Add a Row to a QueryData if the Row hasn't appeared in the QueryData
@@ -419,13 +435,13 @@ class Query {
    * @brief Serialize the data in RocksDB into a useful data structure
    *
    * This method retrieves the data from RocksDB and returns the data in a
-   * HistoricalQueryResults struct.
+   * std::multiset, in-order to apply binary search in diff function.
    *
-   * @param results the output QueryData struct.
+   * @param results the output QueryDataSet struct.
    *
    * @return the success or failure of the operation.
    */
-  Status getPreviousQueryResults(QueryData& results) const;
+  Status getPreviousQueryResults(QueryDataSet& results) const;
 
   /**
    * @brief Get the epoch associated with the previous query results.
@@ -476,9 +492,7 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(const QueryData& qd,
-                       uint64_t epoch,
-                       uint64_t& counter) const;
+  Status addNewResults(QueryData qd, uint64_t epoch, uint64_t& counter) const;
 
   /**
    * @brief Add a new set of results to the persistent storage and get back
@@ -496,7 +510,7 @@ class Query {
    *
    * @return the success or failure of the operation.
    */
-  Status addNewResults(const QueryData& qd,
+  Status addNewResults(QueryData qd,
                        uint64_t epoch,
                        uint64_t& counter,
                        DiffResults& dr,

@@ -34,6 +34,21 @@ QueryData getExampleQueryData(size_t x, size_t y) {
   return qd;
 }
 
+QueryDataSet getExampleQueryDataSet(size_t x, size_t y) {
+  QueryDataSet qds;
+  Row r;
+
+  // Fill in a row with x;
+  for (size_t i = 0; i < x; i++) {
+    r["key" + std::to_string(i)] = std::to_string(i) + "content";
+  }
+  // Fill in the vector with y;
+  for (size_t i = 0; i < y; i++) {
+    qds.insert(r);
+  }
+  return qds;
+}
+
 ColumnNames getExampleColumnNames(size_t x) {
   ColumnNames cn;
   for (size_t i = 0; i < x; i++) {
@@ -124,9 +139,10 @@ BENCHMARK(DATABASE_serializeRJ_json)
     ->ArgPair(10, 100);
 
 static void DATABASE_diff(benchmark::State& state) {
-  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  QueryData qd = getExampleQueryData(state.range_x(), state.range_y());
+  QueryDataSet qds = getExampleQueryDataSet(state.range_x(), state.range_y());
   while (state.KeepRunning()) {
-    auto d = diff(qd, qd);
+    auto d = diff(qds, qd);
   }
 }
 
@@ -139,7 +155,7 @@ static void DATABASE_query_results(benchmark::State& state) {
     DiffResults diff_results;
     uint64_t counter;
     auto dbq = Query("default", query);
-    dbq.addNewResults(qd, 0, counter, diff_results);
+    dbq.addNewResults(std::move(qd), 0, counter, diff_results);
   }
 }
 

@@ -55,15 +55,22 @@ class SQL : private only_movable {
   SQL(SQL&&) noexcept = default;
 
   /// Allow move assignment.
-  SQL& operator=(SQL&&) = delete;
+  SQL& operator=(SQL&&) = default;
 
  public:
+  /**
+   * @brief Const accessor for the rows returned by the query.
+   *
+   * @return A QueryData object of the query results.
+   */
+  const QueryData& rows() const;
+
   /**
    * @brief Accessor for the rows returned by the query.
    *
    * @return A QueryData object of the query results.
    */
-  const QueryData& rows() const;
+  QueryData& rows();
 
   /**
    * @brief Column information for the query

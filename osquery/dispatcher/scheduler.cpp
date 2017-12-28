@@ -108,13 +108,13 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   sql.escapeResults();
 
   Status status;
-  DiffResults diff_results;
+  DiffResults& diff_results = item.results;
   // Add this execution's set of results to the database-tracked named query.
   // We can then ask for a differential from the last time this named query
   // was executed by exact matching each row.
   if (!FLAGS_events_optimize || !sql.eventBased()) {
     status = dbQuery.addNewResults(
-        sql.rows(), item.epoch, item.counter, diff_results);
+        std::move(sql.rows()), item.epoch, item.counter, diff_results);
     if (!status.ok()) {
       std::string line =
           "Error adding new results to database: " + status.what();
@@ -137,7 +137,6 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   }
 
   VLOG(1) << "Found results for query: " << name;
-  item.results = std::move(diff_results);
 
   status = logQueryLogItem(item);
   if (!status.ok()) {

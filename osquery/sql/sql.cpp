@@ -39,6 +39,10 @@ const QueryData& SQL::rows() const {
   return results_;
 }
 
+QueryData& SQL::rows() {
+  return results_;
+}
+
 const ColumnNames& SQL::columns() const {
   return columns_;
 }
