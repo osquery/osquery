@@ -9,17 +9,10 @@
  */
 
 #include <algorithm>
+#include <cstdlib>
 #include <mutex>
 #include <set>
 #include <unordered_map>
-
-#define OSQUERY_ENABLE_SYSTEMD 1
-
-#ifdef OSQUERY_ENABLE_SYSTEMD
-#include <systemd/sd-bus.h>
-#include <systemd/sd-daemon.h>
-#include <systemd/sd-login.h>
-#endif
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -29,13 +22,24 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+/*
+  You can compile this with the system libraries by uncommenting these lines
+  and removing "services.h"
+
+  #include <systemd/sd-bus.h>
+  #include <systemd/sd-daemon.h>
+  #include <systemd/sd-login.h>
+*/
+
+#include "services.h"
+using namespace systemd_deps;
+
 namespace osquery {
 namespace {
 
 namespace boostfs = boost::filesystem;
 namespace boostproc = boost::process;
 
-#ifndef OSQUERY_ENABLE_SYSTEMD
 bool sysVinitEnabled() {
   static boost::optional<bool> enabled;
   if (enabled != boost::none) {
@@ -101,7 +105,7 @@ Status enumerateSysVinitServices(QueryData& query_data) {
           continue;
         }
 
-        auto symlink_destination = boost::filesystem::canonical(symlink);
+        auto symlink_destination = boostfs::canonical(symlink);
         if (!boostfs::is_regular_file(symlink_destination)) {
           VLOG(1) << "Skipping broken symlink: " << symlink << " -> "
                   << symlink_destination;
@@ -112,7 +116,7 @@ Status enumerateSysVinitServices(QueryData& query_data) {
         auto service_name = symlink_destination.filename().string();
         service_list[service_name].insert(run_level);
       }
-    } catch (const boost::filesystem::filesystem_error& e) {
+    } catch (const boostfs::filesystem_error& e) {
       VLOG(1) << "An error has occurred: " << e.what() << ". Continuing anyway";
     }
   }
@@ -278,17 +282,39 @@ Status enumerateUpstartServices(QueryData& query_data) {
   return Status(0, "OK");
 }
 
-#else //  OSQUERY_ENABLE_SYSTEMD
+bool isSystemdEnabled() {
+  static bool initialized = false;
+  static std::mutex mutex;
 
-/*
+  static bool systemd_found = false;
+
+  if (!initialized) {
+    std::lock_guard<std::mutex> lock(mutex);
+
+    if (!initialized) {
+      initialized = true;
+
+      auto status = loadSystemdDependencies(systemd_found);
+      if (!status.ok()) {
+        VLOG(1) << status.getMessage();
+      }
+
+      VLOG(1) << "systemd was " << (systemd_found ? "" : "NOT ") << "found";
+    }
+  }
+
+  return systemd_found;
+}
+
+sd_bus* getSystemdBusHandle() {
+  /*
   https://github.com/systemd/systemd/blob/master/ENVIRONMENT.md
 
   $SYSTEMCTL_FORCE_BUS=1
     if set, do not connect to PID1's private D-Bus listener, and
     instead always connect through the dbus-daemon D-bus broker.
-*/
+  */
 
-sd_bus* getSystemdBusHandle() {
   auto force_dbus_env_var = std::getenv("SYSTEMCTL_FORCE_BUS");
 
   bool connection_mode = true;
@@ -709,34 +735,37 @@ Status enumerateSystemdServices(QueryData& query_data) {
   bus = sd_bus_flush_close_unref(bus);
   return Status(0, "OK");
 }
-
-#endif // OSQUERY_ENABLE_SYSTEMD
 } // namespace
 
 namespace tables {
 QueryData genServices(QueryContext& context) {
   QueryData query_data;
 
-#ifndef OSQUERY_ENABLE_SYSTEMD
   auto status = enumerateSysVinitServices(query_data);
   if (!status.ok()) {
     VLOG(1) << "Failed to enumerate the SysVinit services: "
             << status.getMessage();
   }
 
-  status = enumerateUpstartServices(query_data);
-  if (!status.ok()) {
-    VLOG(1) << "Failed to enumerate the Upstart services: "
-            << status.getMessage();
-  }
+  // In older Ubuntu versions, you could revert back to Upstart by
+  // disabling systemd. The "/etc/systemd/system" folder remains
+  // intact when doing so, but the packages conflict with each
+  // other so you can't have both binaries installed
 
-#else
-  auto status = enumerateSystemdServices(query_data);
-  if (!status.ok()) {
-    VLOG(1) << "Failed to enumerate the systemd services: "
-            << status.getMessage();
+  if (isSystemdEnabled()) {
+    status = enumerateSystemdServices(query_data);
+    if (!status.ok()) {
+      VLOG(1) << "Failed to enumerate the systemd services: "
+              << status.getMessage();
+    }
+
+  } else {
+    status = enumerateUpstartServices(query_data);
+    if (!status.ok()) {
+      VLOG(1) << "Failed to enumerate the Upstart services: "
+              << status.getMessage();
+    }
   }
-#endif
 
   return query_data;
 }
