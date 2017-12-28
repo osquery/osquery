@@ -311,6 +311,16 @@ Status parsePlist(const boost::filesystem::path& path,
  */
 Status parsePlistContent(const std::string& content,
                          boost::property_tree::ptree& tree);
+
+/**
+ * @brief Parse property list alias data into a path string.
+ *
+ * @param data a string container with the raw alias data.
+ * @param result a string containing the POSIX path.
+ *
+ * @return an instance of Status, indicating success or failure.
+ */
+Status pathFromPlistAliasData(const std::string& data, std::string& result);
 #endif
 
 #ifdef __linux__
