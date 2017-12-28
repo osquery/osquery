@@ -108,7 +108,7 @@ static inline Status getService(const SC_HANDLE& scmHandle,
   r["name"] = SQL_TEXT(svc.lpServiceName);
   r["display_name"] = SQL_TEXT(svc.lpDisplayName);
   r["status"] = SQL_TEXT(kSvcStatus[svc.ServiceStatusProcess.dwCurrentState]);
-  r["pid"] = INTEGER(svc.ServiceStatusProcess.dwProcessId);
+  r["pid"] = SQL_TEXT(svc.ServiceStatusProcess.dwProcessId);
   r["win32_exit_code"] = INTEGER(svc.ServiceStatusProcess.dwWin32ExitCode);
   r["service_exit_code"] =
       INTEGER(svc.ServiceStatusProcess.dwServiceSpecificExitCode);
