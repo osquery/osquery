@@ -79,10 +79,13 @@ const auto kFreeOSHandle = [](os_handler_t* h) {
 
 /// Unique pointer deleter for ipmi_lanparm_t*
 const auto kFreeLANParm = [](ipmi_lanparm_t* lp) {
-  auto rv = ipmi_lanparm_destroy(lp, NULL, NULL);
-  if (rv != 0) {
-    LOG(WARNING) << "Did not successfully destroy ipmi_lanparm_t*: "
-                 << strerror(rv);
+  if (lp != nullptr) {
+    // Utilizing the ipmi_lanparm_destroy from
+    // https://github.com/wrouesnel/openipmi/blob/master/include/OpenIPMI/ipmi_lanparm.h#L62
+    // results in segfaults on  process exit.  Leak check utilzing Valgrind
+    // showed no mem leaks utilizing the ref/defref API, but does intermittently
+    // show bytes as possibly lost.
+    ipmi_lanparm_deref(lp);
   }
 };
 
@@ -810,6 +813,8 @@ bool IPMIClient::addLANParm(const std::string& name, ipmi_mc_t* mc) {
                   "ipmi_lanparm_t*: still a nullptr";
     return false;
   }
+
+  ipmi_lanparm_ref(lp);
 
   lanparms_[getMCKey(mc)] =
       std::unique_ptr<ipmi_lanparm_t, std::function<void(ipmi_lanparm_t*)>>(
