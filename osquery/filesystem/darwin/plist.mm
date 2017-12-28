@@ -19,6 +19,8 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
+#include "osquery/core/conversions.h"
+
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
@@ -207,6 +209,81 @@ Status parsePlist(const fs::path& path, pt::ptree& tree) {
     }
     [stream close];
   }
+  return status;
+}
+
+static Status pathFromUnknownAlias(const CFDataRef& data, std::string& result) {
+  auto bytes = (const char*)CFDataGetBytePtr(data);
+  auto blen = static_cast<size_t>(CFDataGetLength(data));
+
+  size_t off = 0x76;
+  while ((off + 4) < blen) {
+    size_t rec = (bytes[off] << 8) + bytes[off + 1];
+    if (rec == 0xFF) {
+      break;
+    }
+
+    size_t rsize = (bytes[off + 2] << 8) + bytes[off + 3];
+    if (off + 4 + rsize > blen) {
+      break;
+    }
+
+    if (rec == 0x12) {
+      // This is not smart enough to know what mounted device to use.
+      result = '/' + std::string(&bytes[off + 4], rsize);
+      return Status(0);
+    }
+    off += 4 + rsize;
+  }
+  return Status(1, "Cannot find POSIX path tag in Alias");
+}
+
+/// Parse a Login Items Plist Alias data for bin path
+Status pathFromPlistAliasData(const std::string& data, std::string& result) {
+  auto decoded = base64Decode(data);
+  if (decoded.size() == 0) {
+    // Base64 encoded data (from plist parsing) failed to decode.
+    return Status(1, "Failed base64 decode");
+  }
+
+  auto alias = CFDataCreate(
+      kCFAllocatorDefault, (const UInt8*)decoded.c_str(), decoded.size());
+  if (alias == nullptr) {
+    // Failed to create CFData object.
+    return Status(2, "CFData allocation failed");
+  }
+
+  auto bookmark =
+      CFURLCreateBookmarkDataFromAliasRecord(kCFAllocatorDefault, alias);
+  CFRelease(alias);
+  if (bookmark == nullptr) {
+    return Status(1, "Alias data is not a bookmark");
+  }
+
+  auto url = CFURLCreateByResolvingBookmarkData(
+      kCFAllocatorDefault,
+      bookmark,
+      kCFURLBookmarkResolutionWithoutUIMask |
+          kCFURLBookmarkResolutionWithoutMountingMask,
+      nullptr,
+      nullptr,
+      nullptr,
+      nullptr);
+  if (url != nullptr) {
+    // Get the URL-formatted path.
+    result = stringFromCFString(CFURLGetString(url));
+    if (result.substr(0, 7) == "file://") {
+      result = result.substr(7);
+    }
+
+    CFRelease(bookmark);
+    CFRelease(url);
+    return Status(0);
+  }
+
+  // Last-ditch effort to parse the Alias record.
+  auto status = pathFromUnknownAlias(static_cast<CFDataRef>(bookmark), result);
+  CFRelease(bookmark);
   return status;
 }
 }
