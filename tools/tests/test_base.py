@@ -619,6 +619,7 @@ def expect(functional, expected, interval=0.01, timeout=4):
 
 class QueryTester(ProcessGenerator, unittest.TestCase):
     def setUp(self):
+        self.binary = os.path.join(ARGS.build, "osquery", "osqueryi")
         self.daemon = self._run_daemon({
             # The set of queries will hammer the daemon process.
             "disable_watchdog": True,
