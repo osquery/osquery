@@ -204,7 +204,7 @@ function build() {
 
   if [[ $RUN_TESTS = true ]]; then
     # Run code unit and integration tests.
-    $MAKE test/fast
+    $MAKE test
 
     if [[ $BUILD_KERNEL = 1 ]]; then
       # Run kernel unit and integration tests (optional).
