@@ -57,8 +57,8 @@ else
 	DEBUG_BUILD_DIR := build/debug_$(BUILD_NAME)
 endif
 
-ifneq ($(VERBOSE),)
-  VERBOSE = "-V"
+ifneq ($(VERBOSE_TEST),)
+  VERBOSE_TEST = "-V"
 endif
 
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
@@ -260,7 +260,7 @@ sync: .setup
 		$(DEFINES) $(MAKE) sync --no-print-directory $(MAKEFLAGS)
 
 test: .setup
-	@cd build/$(BUILD_NAME) && $(DEFINES) $(CTEST) $(VERBOSE)
+	@cd build/$(BUILD_NAME) && $(DEFINES) $(CTEST) $(VERBOSE_TEST)
 
 .DEFAULT: .setup
 	@$(MAKE) --no-print-directory $(MAKEFLAGS) setup
