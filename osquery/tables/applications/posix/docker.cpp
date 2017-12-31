@@ -27,6 +27,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/json.h"
+#include "osquery/filesystem/linux/proc.h"
 
 namespace pt = boost::property_tree;
 namespace local = boost::asio::local;
@@ -363,7 +364,7 @@ QueryData genContainers(QueryContext& context) {
   QueryData results;
   std::set<std::string> ids;
   pt::ptree containers;
-  Status s = getContainers(context, ids, containers);
+  auto s = getContainers(context, ids, containers);
   if (!s.ok()) {
     return results;
   }
@@ -378,6 +379,7 @@ QueryData genContainers(QueryContext& context) {
         break;
       }
     }
+
     r["image_id"] = container.get<std::string>("ImageID", "");
     if (boost::starts_with(r["image_id"], "sha256:")) {
       r["image_id"].erase(0, 7);
@@ -387,6 +389,32 @@ QueryData genContainers(QueryContext& context) {
     r["created"] = BIGINT(container.get<uint64_t>("Created", 0));
     r["state"] = container.get<std::string>("State", "");
     r["status"] = container.get<std::string>("Status", "");
+
+    pt::ptree container_details;
+    s = dockerApi("/containers/" + r["id"] + "/json?stream=false",
+                  container_details);
+    if (s.ok()) {
+      pid_t process_id = container_details.get<pid_t>("State.Pid", -1);
+      r["pid"] = std::to_string(process_id);
+
+    } else {
+      VLOG(1) << "Failed to retrieve the pid for container " << r["id"];
+    }
+
+    if (r["pid"] != "-1") {
+      ProcessNamespaceList namespace_list;
+      s = procGetProcessNamespaces(r["pid"], namespace_list);
+      if (s.ok()) {
+        for (const auto& pair : namespace_list) {
+          r[pair.first + "_namespace"] = std::to_string(pair.second);
+        }
+
+      } else {
+        VLOG(1) << "Failed to retrieve the namespace list for container "
+                << r["id"];
+      }
+    }
+
     results.push_back(r);
   }
 
