@@ -73,7 +73,7 @@ macro(ADD_OSQUERY_PYTHON_TEST TEST_NAME SOURCE)
   if(NOT DEFINED ENV{SKIP_INTEGRATION_TESTS})
     add_test(NAME python_${TEST_NAME}
       COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/tests/${SOURCE}"
-        --build "${CMAKE_BINARY_DIR}"
+        --verbose --build "${CMAKE_BINARY_DIR}"
       WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tools/tests/")
   endif()
 endmacro(ADD_OSQUERY_PYTHON_TEST)

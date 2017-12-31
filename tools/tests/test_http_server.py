@@ -104,9 +104,10 @@ FILE_CARVE_DIR = '/tmp/'
 FILE_CARVE_MAP = {}
 
 def debug(response):
-    print("-- [DEBUG] %s" % str(response))
-    sys.stdout.flush()
-    sys.stderr.flush()
+    if ARGS.verbose:
+        print("-- [DEBUG] %s" % str(response))
+        sys.stdout.flush()
+        sys.stderr.flush()
 
 ENROLL_RESET = {
     "count": 1,
@@ -321,6 +322,9 @@ if __name__ == '__main__':
         "--timeout", default=10, type=int,
         help="If not persisting, exit after a number of seconds"
     )
+    parser.add_argument(
+        '--verbose', default=False, action='store_true',
+        help='Output version/debug messages')
 
     parser.add_argument(
         "--cert", metavar="CERT_FILE",

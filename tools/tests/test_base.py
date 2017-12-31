@@ -626,6 +626,7 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
             # Enable the 'hidden' flag "registry_exceptions" to prevent
             # catching.
             "registry_exceptions": True,
+            "ephemeral": True,
         })
         self.assertTrue(self.daemon.isAlive())
 
