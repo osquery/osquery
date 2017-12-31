@@ -20,13 +20,17 @@ QueryData genListeningPorts(QueryContext& context) {
   auto sockets = SQL::selectAllFrom("process_open_sockets");
 
   for (const auto& socket : sockets) {
-    if (socket.at("remote_port") != "0") {
-      // Listening UDP/TCP ports have a remote_port == "0"
+    // 1  = AF_UNIX
+    if (socket.at("family") == "1" && socket.at("path").empty()) {
+      // Skip anonymous unix domain sockets
       continue;
     }
 
-    if (socket.at("family") == "1" && socket.at("path").empty()) {
-      // Skip anonymous unix domain sockets
+    // 2  = AF_INET
+    // 10 = AF_INET6
+    if ((socket.at("family") == "2" || socket.at("family") == "10") &&
+        socket.at("remote_port") != "0") {
+      // Listening UDP/TCP ports have a remote_port == "0"
       continue;
     }
 

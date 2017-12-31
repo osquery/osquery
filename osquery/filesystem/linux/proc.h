@@ -38,6 +38,7 @@ struct ProcessSocket final {
   std::string unix_socket_path;
 
   int fd;
+  std::string state;
 };
 
 // Linux proc protocol define to net stats file name.
@@ -48,6 +49,19 @@ const std::map<int, std::string> kLinuxProtocolNames = {
     {IPPROTO_UDPLITE, "udplite"},
     {IPPROTO_RAW, "raw"},
 };
+
+const std::vector<const char*> tcp_states = {"UNKNOWN",
+                                             "ESTABLISHED",
+                                             "SYN_SENT",
+                                             "SYN_RECV",
+                                             "FIN_WAIT1",
+                                             "FIN_WAIT2",
+                                             "TIME_WAIT",
+                                             "CLOSE",
+                                             "CLOSE_WAIT",
+                                             "LAST_ACK",
+                                             "LISTEN",
+                                             "CLOSING"};
 
 using ProcessNamespaceList = std::map<std::string, ino_t>;
 
@@ -228,6 +242,19 @@ Status procProcessSockets(bool (*callback)(const ProcessSocket&, UserData),
       proc_socket.local_port = procDecodePortFromHex(locals[1]);
       proc_socket.remote_address = procDecodeAddressFromHex(remotes[0], family);
       proc_socket.remote_port = procDecodePortFromHex(remotes[1]);
+
+      if (proc_socket.protocol == IPPROTO_TCP) {
+        char* null_terminator_ptr = nullptr;
+        auto integer_socket_state =
+            std::strtoull(fields[3].data(), &null_terminator_ptr, 16);
+        if (integer_socket_state == 0 ||
+            integer_socket_state >= tcp_states.size() ||
+            null_terminator_ptr == nullptr || *null_terminator_ptr != 0) {
+          proc_socket.state = "UNKNOWN";
+        } else {
+          proc_socket.state = tcp_states[integer_socket_state];
+        }
+      }
     }
 
     // If this socket has no fd, then it means that it is not owned by

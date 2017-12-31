@@ -46,6 +46,7 @@ QueryData genOpenSockets(QueryContext& context) {
     r["fd"] = std::to_string(proc_socket.fd);
     r["pid"] = data.process_id;
     r["net_namespace"] = std::to_string(data.current_network_namespace);
+    r["state"] = proc_socket.state;
 
     data.results.push_back(std::move(r));
     return true;
