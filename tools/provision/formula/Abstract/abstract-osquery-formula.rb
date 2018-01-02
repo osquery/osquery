@@ -119,6 +119,8 @@ class AbstractOsqueryFormula < Formula
     prepend_path "LIBRARY_PATH", "#{default_prefix}/lib"
 
     if stage1_build
+      ENV["CC"] = "gcc"
+      ENV["CXX"] = "g++"
       prepend "CFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
       prepend "CXXFLAGS", "-I#{legacy_prefix}/include" if OS.linux?
       prepend "CXXFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?

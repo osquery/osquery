@@ -7,7 +7,7 @@ class Gcc < AbstractOsqueryFormula
   url "https://ftp.gnu.org/gnu/gcc/gcc-5.4.0/gcc-5.4.0.tar.bz2"
   mirror "http://ftpmirror.gnu.org/gcc/gcc-5.4.0/gcc-5.4.0.tar.bz2"
   sha256 "608df76dec2d34de6558249d8af4cbee21eceddbcb580d666f7a5a583ca3303a"
-  revision 200
+  revision 201
 
 
   head "svn://gcc.gnu.org/svn/gcc/trunk"
@@ -15,7 +15,7 @@ class Gcc < AbstractOsqueryFormula
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "0cf4be8852e9c68124423f4431f4a5ebbf57cd8218e333906bd2056a959d15ca" => :x86_64_linux
+    sha256 "5ded60c4d67735a6d5cf54d8c2bd0d4721b6d66649c6c522626fb4e9f6e35bed" => :x86_64_linux
   end
 
   depends_on "zlib"
@@ -35,7 +35,6 @@ class Gcc < AbstractOsqueryFormula
   def install
     # GCC will suffer build errors if forced to use a particular linker.
     ENV.delete "LD"
-    ENV.delete "LDFLAGS"
 
     # C, C++ compilers are always built
     languages = %w[c c++]
@@ -97,6 +96,9 @@ class Gcc < AbstractOsqueryFormula
     # osquery: speed up the build by skipping the bootstrap.
     args << "--disable-bootstrap"
     args << "--disable-libgomp"
+
+    # Do not move this above the arguments configurations.
+    ENV["LDFLAGS"] = "-Wl,-rpath,#{default_prefix}/lib"
 
     mkdir "build" do
       system "../configure", *args
