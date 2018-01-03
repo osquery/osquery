@@ -181,7 +181,7 @@ class AbstractOsqueryFormula < Formula
     # Adding this one line to help gcc too.
     # if !["fbthrift"].any?{ |word| self.name.include?(word) }
     prepend "LDFLAGS", "-L#{default_prefix}/lib"
-    prepend "LDFLAGS", "-L#{legacy_prefix}/lib" if OS.linux?
+    prepend "LDFLAGS", "-L#{legacy_prefix}/lib -B#{legacy_prefix}/lib" if OS.linux?
 
     prepend_path "LIBRARY_PATH", "#{legacy_prefix}/lib" if OS.linux?
     append "LDFLAGS", "-Wl,-rpath,#{default_prefix}/lib"
