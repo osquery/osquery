@@ -1,0 +1,19 @@
+table_name("kva_speculative_info")
+description("Display kernel virtual address and speculative execution information for the system.")
+schema([
+  Column("kva_shadow_enabled", INTEGER, "Kernel Virtual Address shadowing is enabled."),
+  Column("kva_shadow_user_global", INTEGER, "User pages are marked as global."),
+  Column("kva_shadow_pcid", INTEGER, "Kernel VA PCID is enabled."),
+  Column("kva_shadow_inv_pcid", INTEGER, "Kernel VA INVPCID is enabled."),
+  Column("bp_mitigations", INTEGER, "Branch Prediction mitigations are enabled."),
+  Column("bp_system_pol_disabled", INTEGER, "Branch Predictions are disabled via system policy."),
+  Column("bp_hardware_supported", INTEGER, "Branch Predictions are disabled due to no hardware support."),
+  Column("speculation_control_support", INTEGER, "Speculation Control MSR supported by CPU."),
+  Column("speculation_command_support", INTEGER, "Speculation Command MSR supported by CPU."),
+  Column("ibrs_speculation_control_enabled", INTEGER, "IBRS Speculation Control MSR enabled."),
+  Column("sti_bp_enabled", INTEGER, "STIBP Speculation Command MSR enabled."),
+])
+implementation("system/windows/kva_speculative_info@genKvaSpeculative")
+examples([
+  "select * from kva_speculative_info",
+])
