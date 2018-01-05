@@ -8,6 +8,45 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+/**
+ * Copyright 2018 Alex Ionescu. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided
+ * that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and
+ *    the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions
+ *    and the following disclaimer in the documentation and/or other materials
+ * provided with the
+ *    distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY ALEX IONESCU ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL ALEX
+ * IONESCU
+ * OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+ * TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+ * EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * The views and conclusions contained in the software and documentation are
+ * those of the authors and
+ * should not be interpreted as representing official policies, either expressed
+ * or implied, of Alex Ionescu.
+ */
+
 #include <ntstatus.h>
 #define WIN32_NO_STATUS
 #define WIN32_LEAN_AND_MEAN
@@ -55,8 +94,17 @@ QueryData genKvaSpeculative(QueryContext& context) {
   auto ret = NtQuerySystemInformation(
       SystemKernelVaShadowInformation, &kvaInfo, sizeof(kvaInfo), nullptr);
 
-  if (ret == STATUS_INVALID_INFO_CLASS || !NT_SUCCESS(ret)) {
-    LOG(ERROR) << "Failed to query system information.";
+  if (ret == STATUS_INVALID_INFO_CLASS) {
+    LOG(ERROR) << "System does not have appropriate patch or might not "
+               << "support the required information class";
+    return {};
+  }
+  // x86 Systems without the mitigation active
+  if (ret == STATUS_NOT_IMPLEMENTED) {
+    LOG(INFO) << "System may not have KVA mitigations active";
+    RtlZeroMemory(&kvaInfo, sizeof(kvaInfo));
+  } else if (!NT_SUCCESS(ret)) {
+    LOG(ERROR) << "Failed to query KVA system information";
     return {};
   }
 
@@ -73,8 +121,13 @@ QueryData genKvaSpeculative(QueryContext& context) {
                                  &specInfo,
                                  sizeof(specInfo),
                                  nullptr);
-  if (ret == STATUS_INVALID_INFO_CLASS || !NT_SUCCESS(ret)) {
-    LOG(ERROR) << "Failed to query system information.";
+
+  if (ret == STATUS_INVALID_INFO_CLASS) {
+    LOG(ERROR) << "System does not have appropriate patch or might not "
+               << "support the required information class";
+    return {};
+  } else if (!NT_SUCCESS(ret)) {
+    LOG(ERROR) << "Failed to query speculative control information";
     return {};
   }
 
