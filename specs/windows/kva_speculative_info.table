@@ -1,4 +1,4 @@
-table_name("kva_speculative")
+table_name("kva_speculative_info")
 description("Display kernel virtual address and speculative execution information for the system.")
 schema([
   Column("kva_shadow_enabled", INTEGER, "Kernel Virtual Address shadowing is enabled."),
@@ -13,7 +13,7 @@ schema([
   Column("ibrs_speculation_control_enabled", INTEGER, "IBRS Speculation Control MSR enabled."),
   Column("sti_bp_enabled", INTEGER, "STIBP Speculation Command MSR enabled."),
 ])
-implementation("system/windows/kva_speculative@genKvaSpeculative")
+implementation("system/windows/kva_speculative_info@genKvaSpeculative")
 examples([
-  "select * from kva_speculative",
+  "select * from kva_speculative_info",
 ])
