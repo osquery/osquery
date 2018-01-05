@@ -33,63 +33,52 @@ LINUX_BOTTLE_SUFFIX="x86_64_linux"
 DARWIN_BOTTLE_SUFFIX="sierra"
 
 # If the world needs to be rebuilt, increase the version
-DEPS_VERSION="4"
+DEPS_VERSION="5"
 
 source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/provision/lib.sh"
 
 function platform_linux_main() {
-  # GCC 5x bootstrapping.
   brew_tool patchelf
   brew_tool zlib
-  brew_tool binutils
   brew_tool linux-headers
   brew_tool gmp
   brew_tool mpfr
   brew_tool libmpc
   brew_tool isl
-  brew_tool pkg-config
+  brew_tool sqlite
 
-  # Build a bottle of a modern glibc.
-  brew_tool osquery/osquery-local/glibc
-
-  # Build a bottle for a legacy glibc.
   brew_tool osquery/osquery-local/glibc-legacy
   brew_tool osquery/osquery-local/zlib-legacy
 
-  # GCC 5x.
+  if [ ! -d "$DEPS_DIR/Cellar/xz" ]; then
+    log "Installing temporary xz..."
+    mkdir -p "$DEPS_DIR/opt/xz/bin"
+    ln -sf `which xz` "$DEPS_DIR/opt/xz/bin"
+  fi
+
   brew_tool osquery/osquery-local/gcc
+  brew_tool osquery/osquery-local/llvm
+  brew_dependency osquery/osquery-local/libcpp
+
+  if [ ! -d "$DEPS_DIR/Cellar/xz" ]; then
+    rm -rf "$DEPS_DIR/opt/xz"
+  fi
+
 
   # Need LZMA for final builds.
-  brew_tool osquery/osquery-local/xz
-  brew_tool osquery/osquery-local/ncurses
-  brew_tool osquery/osquery-local/bzip2
-
-  brew_tool unzip
-  brew_tool sqlite
-  brew_tool makedepend
-  brew_tool libidn
-  brew_tool libedit
-  brew_tool libtool
-  brew_tool libyaml
-  brew_tool m4
-  brew_tool autoconf
-  brew_tool automake
+  brew_dependency osquery/osquery-local/xz
+  brew_dependency osquery/osquery-local/ncurses
+  brew_dependency osquery/osquery-local/bzip2
+  brew_dependency osquery/osquery-local/util-linux
 
   # OpenSSL is needed for the final build.
-  brew_tool osquery/osquery-local/libxml2
-  brew_tool osquery/osquery-local/openssl
-  brew_tool osquery/osquery-local/cmake
+  brew_dependency osquery/osquery-local/libxml2
+  brew_dependency osquery/osquery-local/openssl
 
   # Curl and Python are needed for LLVM mostly.
-  brew_tool osquery/osquery-local/curl
-  brew_tool osquery/osquery-local/python
-
-  # LLVM/Clang.
-  brew_tool osquery/osquery-local/llvm
-
-  # Util-Linux provides libuuid.
-  brew_dependency osquery/osquery-local/util-linux
+  brew_dependency osquery/osquery-local/python
+  brew_dependency osquery/osquery-local/cmake
 
   platform_posix_main
 
@@ -106,23 +95,22 @@ function platform_linux_main() {
 }
 
 function platform_darwin_main() {
-  brew_tool xz
   brew_tool readline
   brew_tool sqlite
   brew_tool pkg-config
   brew_tool makedepend
-  brew_tool ninja
-  brew_tool osquery/osquery-local/cmake
   brew_tool clang-format
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
 
+  brew_dependency osquery/osquery-local/xz
+  brew_dependency osquery/osquery-local/cmake
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl
 
-  brew_tool osquery/osquery-local/python
-  brew_tool osquery/osquery-local/bison
+  brew_dependency osquery/osquery-local/python
+  brew_dependency osquery/osquery-local/bison
 
   platform_posix_main
 }

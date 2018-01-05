@@ -6,17 +6,14 @@ class BerkeleyDb < AbstractOsqueryFormula
   license "Sleepycat"
   url "http://pkgs.fedoraproject.org/repo/pkgs/libdb/db-5.3.28.tar.gz/b99454564d5b4479750567031d66fe24/db-5.3.28.tar.gz"
   sha256 "e0a992d740709892e81f9d93f06daf305cf73fb81b545afe72478043172c3628"
-  revision 100
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "05e96e4323c562cc163a7374b988c26e2ca2f12984dd3557c77d9b7a6ee03f39" => :sierra
-    sha256 "60b5a48a043c22f8eeb49cbdcddad3b0f4e737bbe9aea68eeb7474ac30f3465d" => :x86_64_linux
+    sha256 "6088259904f7633200facfc9953ea974f67ec7f7a823c646590819085abfe2b8" => :sierra
+    sha256 "eeafab9caee4cd85d5220f28497955c629af669442396770a583c99eff033db9" => :x86_64_linux
   end
-
-  # Fix inline atomic compare exchange.
-  patch :DATA
 
   def install
     # BerkeleyDB dislikes parallel builds
@@ -33,6 +30,15 @@ class BerkeleyDb < AbstractOsqueryFormula
       --enable-static
     ]
 
+    inreplace "src/dbinc/atomic.h", "__atomic_compare_exchange", "__atomic_compare_exchange_db"
+    inreplace [
+      "src/dbinc/atomic.h",
+      "src/mutex/mut_tas.c",
+      "src/mp/mp_fget.c",
+      "src/mp/mp_mvcc.c",
+      "src/mp/mp_region.c"
+    ], "atomic_init", "atomic_init_db"
+
     # BerkeleyDB requires you to build everything from the build_unix subdirectory
     cd "build_unix" do
       system "../dist/configure", *args
@@ -45,27 +51,3 @@ class BerkeleyDb < AbstractOsqueryFormula
     end
   end
 end
-
-__END__
-diff --git a/src/dbinc/atomic.h b/src/dbinc/atomic.h
-index 6a858f7..c0a0ee7 100644
---- a/src/dbinc/atomic.h
-+++ b/src/dbinc/atomic.h
-@@ -144,7 +144,7 @@ typedef LONG volatile *interlocked_val;
- #define	atomic_inc(env, p)	__atomic_inc(p)
- #define	atomic_dec(env, p)	__atomic_dec(p)
- #define	atomic_compare_exchange(env, p, o, n)	\
--	__atomic_compare_exchange((p), (o), (n))
-+	__atomic_compare_exchange_db((p), (o), (n))
- static inline int __atomic_inc(db_atomic_t *p)
- {
-	int	temp;
-@@ -176,7 +176,7 @@ static inline int __atomic_dec(db_atomic_t *p)
-  * http://gcc.gnu.org/onlinedocs/gcc-4.1.0/gcc/Atomic-Builtins.html
-  * which configure could be changed to use.
-  */
--static inline int __atomic_compare_exchange(
-+static inline int __atomic_compare_exchange_db(
-	db_atomic_t *p, atomic_value_t oldval, atomic_value_t newval)
- {
-	atomic_value_t was;

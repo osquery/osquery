@@ -6,16 +6,15 @@ class Librdkafka < AbstractOsqueryFormula
   license "BSD-2-Clause"
   url "https://github.com/edenhill/librdkafka/archive/v0.11.1.tar.gz"
   sha256 "dd035d57c8f19b0b612dd6eefe6e5eebad76f506e302cccb7c2066f25a83585e"
+  revision 200
 
   depends_on "openssl"
-  depends_on "pkg-config" => :build
-  depends_on "lzlib"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "059dc732ce4cbe794a92164f451ef524c625f88be8c771a158b8d06be77bc643" => :sierra
-    sha256 "3908e35ba842583f8799a51dd65255e78918e26cd80e98531f6a3debab16dd67" => :x86_64_linux
+    sha256 "26704f9e73096866a8331653a004725e32a61d166ddcb486bc20c1d6e4c15e6f" => :sierra
+    sha256 "399d36524c08032e79b0d3f9673e6be4bc5f1c20c1e0dcff91316e9966465d68" => :x86_64_linux
   end
 
   def install
@@ -34,19 +33,4 @@ class Librdkafka < AbstractOsqueryFormula
     system "make"
     system "make", "install"
   end
-
-  test do
-    (testpath/"test.c").write <<-EOS.undent
-      #include <librdkafka/rdkafka.h>
-
-      int main (int argc, char **argv)
-      {
-        int partition = RD_KAFKA_PARTITION_UA; /* random */
-        return 0;
-      }
-    EOS
-    system ENV.cc, "test.c", "-L#{lib}", "-lrdkafka", "-lz", "-lpthread", "-o", "test"
-    system "./test"
-  end
-
 end

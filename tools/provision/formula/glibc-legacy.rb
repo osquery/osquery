@@ -6,12 +6,12 @@ class GlibcLegacy < AbstractOsqueryFormula
   license "GPL-2.0+"
   url "ftp.gnu.org/gnu/glibc/glibc-2.13.tar.bz2"
   sha256 "0173c92a0545e6d99a46a4fbed2da00ba26556f5c6198e2f9f1631ed5318dbb2"
-  revision 101
+  revision 201
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "5613d3a040b2fdafd9c3de17aea7cae3291fa13f8b1998d05934ef5135c29735" => :x86_64_linux
+    sha256 "830479008c2c95055eac05d4954e5f3890154a553a518487dc4eb4a2e37f4f4a" => :x86_64_linux
   end
 
   # Must apply patches to allow compiling with newer versions of GCC/gmake.
@@ -65,12 +65,6 @@ class GlibcLegacy < AbstractOsqueryFormula
   def post_install
     # Fix permissions
     chmod 0755, [lib/"ld-#{version}.so", lib/"libc-#{version}.so"]
-  end
-
-  test do
-    system "#{lib}/ld-#{version}.so 2>&1 |grep Usage"
-    system "#{lib}/libc-#{version}.so", "--version"
-    system "#{bin}/locale", "--version"
   end
 end
 
@@ -127,3 +121,16 @@ diff -Nur glibc-2.12.2/math/bits/mathcalls.h glibc-2.12.2-patched/math/bits/math
 
  /* Bessel functions.  */
  __MATHCALL (j0,, (_Mdouble_));
+diff --git a/include/features.h b/include/features.h
+index d9b6de9..05677a9 100644
+--- a/include/features.h
++++ b/include/features.h
+@@ -338,7 +338,7 @@
+ /* Major and minor version number of the GNU C library package.  Use
+    these macros to test for features in specific releases.  */
+ #define	__GLIBC__	2
+-#define	__GLIBC_MINOR__	13
++#define	__GLIBC_MINOR__	12
+ 
+ #define __GLIBC_PREREQ(maj, min) \
+	((__GLIBC__ << 16) + __GLIBC_MINOR__ >= ((maj) << 16) + (min))

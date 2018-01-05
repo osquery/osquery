@@ -7,23 +7,17 @@ class Ncurses < AbstractOsqueryFormula
   url "http://ftpmirror.gnu.org/ncurses/ncurses-6.0.tar.gz"
   mirror "https://ftp.gnu.org/gnu/ncurses/ncurses-6.0.tar.gz"
   sha256 "f551c24b30ce8bfb6e96d9f59b42fbea30fa3a6123384172f9e7284bcf647260"
-  revision 101
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "7647385400bdf6a04d8deab9892e0a6ebbb518a84453d587dce2048c9aab84d3" => :x86_64_linux
+    sha256 "386157fc0984dd0fe8a6c6a0ba4dac08933703e51d76b61a4aa98780d188721d" => :x86_64_linux
   end
 
   keg_only :provided_by_osx
 
-  depends_on "pkg-config" => :build
-
-  option :universal
-
   def install
-    ENV.universal_binary if build.universal?
-
     # Fix the build for GCC 5.1
     # error: expected ')' before 'int' in definition of macro 'mouse_trafo'
     # See https://lists.gnu.org/archive/html/bug-ncurses/2014-07/msg00022.html
@@ -76,18 +70,5 @@ class Ncurses < AbstractOsqueryFormula
     include.install_symlink [
       "ncursesw/curses.h", "ncursesw/form.h", "ncursesw/ncurses.h",
       "ncursesw/term.h", "ncursesw/termcap.h"]
-  end
-
-  test do
-    ENV["TERM"] = "xterm"
-    system bin/"tput", "cols"
-
-    system prefix/"test/configure", "--prefix=#{testpath}/test",
-                                    "--with-curses-dir=#{prefix}"
-    system "make", "install"
-
-    system testpath/"test/bin/keynames"
-    system testpath/"test/bin/test_arrays"
-    system testpath/"test/bin/test_vidputs"
   end
 end

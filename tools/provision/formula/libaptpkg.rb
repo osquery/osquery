@@ -6,12 +6,12 @@ class Libaptpkg < AbstractOsqueryFormula
   license "GPL-2.0+"
   url "https://github.com/Debian/apt/archive/1.3.1.tar.gz"
   sha256 "a91a5e96417aad33f236234730b2a0bed3a028d6fc01c57d060b7d92746bf65a"
-  revision 102
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "c1b334851875c83dcbd33e4051dd80126b418b0f14b509a3d31aceae1904354f" => :x86_64_linux
+    sha256 "8c979c4335229fda249570f81d22115a33224a6de3c29a528cc90b25636f905f" => :x86_64_linux
   end
 
   # This removes the requirement for sphinx to build the documentation.
@@ -19,6 +19,8 @@ class Libaptpkg < AbstractOsqueryFormula
   patch :DATA
 
   def install
+    inreplace "CMakeLists.txt", "find_package(CURL REQUIRED)", "find_package(CURL)"
+
     args = osquery_cmake_args
     args << "-DWITH_DOC=NO"
     args << "-DUSE_NLS=NO"

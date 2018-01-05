@@ -6,18 +6,15 @@ class Lldpd < AbstractOsqueryFormula
   license "ISC"
   url "https://media.luffy.cx/files/lldpd/lldpd-0.9.6.tar.gz"
   sha256 "e74e2dd7e2a233ca1ff385c925ddae2a916d302819d1433741407d2f8fb0ddd8"
-  revision 101
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "6f5877f6de12d94d1ac0064cec8656bae93deed429d0d8d7d30475809c397b08" => :sierra
-    sha256 "20339d207fd97dcb2f83a96806555354ed7524664b766bdff1656e8d8750d249" => :x86_64_linux
+    sha256 "84feefa7c6b9ebfcdee61b21c4a6263934cd07dc0fed45100e1a26376ddba1b2" => :sierra
+    sha256 "6c849a4ec8a701b3dd1db05591ca3fda2032efd105d24bbf3f55747f9ccccc7f" => :x86_64_linux
   end
 
-  option :universal
-
-  depends_on "pkg-config" => :build
   depends_on "libevent"
 
   def install

@@ -7,25 +7,16 @@ class Libxml2 < AbstractOsqueryFormula
   url "http://xmlsoft.org/sources/libxml2-2.9.5.tar.gz"
   mirror "ftp://xmlsoft.org/libxml2/libxml2-2.9.5.tar.gz"
   sha256 "4031c1ecee9ce7ba4f313e91ef6284164885cdb69937a123f6a83bb6a72dcd38"
-  revision 100
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "145739ead08f85fff40695ac83d615aeaae9a121d388f675f29f7330fcade892" => :sierra
-    sha256 "899d898d6930c15b21e97c62091fe70640ce93b37dbe08273e6b694d33de40b9" => :x86_64_linux
+    sha256 "19363b22cf72a3b7371e21c7da40f4523977bfd4599ed71f547f1dfbed960695" => :sierra
+    sha256 "af20f230a00b4bcc59361e99fa51c2278a448f7b50b256af31ac3e48c2187e9f" => :x86_64_linux
   end
 
-  option :universal
-
   def install
-    ENV.universal_binary if build.universal?
-
-    if build.head?
-      inreplace "autogen.sh", "libtoolize", "glibtoolize"
-      system "./autogen.sh"
-    end
-
     args = []
     args << "--with-zlib=#{legacy_prefix}" if OS.linux?
     system "./configure", "--disable-dependency-tracking",

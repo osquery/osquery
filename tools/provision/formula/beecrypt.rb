@@ -6,13 +6,13 @@ class Beecrypt < AbstractOsqueryFormula
   license "LGPL-2.1+"
   url "https://downloads.sourceforge.net/project/beecrypt/beecrypt/4.2.1/beecrypt-4.2.1.tar.gz"
   sha256 "286f1f56080d1a6b1d024003a5fa2158f4ff82cae0c6829d3c476a4b5898c55d"
-  revision 102
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "5be90841e0d956f54dfbb4c877432087089721cb4b8092b0a4f61fa65720fa5c" => :sierra
-    sha256 "5588e3cec4a7efcd88013f03f87a047f66b1876e78a583ed3b5e0c2e7955e127" => :x86_64_linux
+    sha256 "6ac5803d7e38b93223d09fb55dc56b6db16a873e8afaa98c71aa9f696eb7e372" => :sierra
+    sha256 "68d10e7f9e4141cf1610788cb3e8fee4f87ee83685f7eca78f527b7f5f2813a2" => :x86_64_linux
   end
 
   depends_on "libtool" => :build

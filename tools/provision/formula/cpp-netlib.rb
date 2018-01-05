@@ -7,13 +7,13 @@ class CppNetlib < AbstractOsqueryFormula
   url "https://github.com/cpp-netlib/cpp-netlib/archive/cpp-netlib-0.12.0-final.tar.gz"
   sha256 "d66e264240bf607d51b8d0e743a1fa9d592d96183d27e2abdaf68b0a87e64560"
   version "0.12.0"
-  revision 102
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "9394f505e39d8e85d78d6c1b6af27b190bfbcd51b54b94944dee64acbd82f974" => :sierra
-    sha256 "852481adfc61d2a5bb2e5c3e7076882c9432231c7c17dff7d57e55a9e0968cc1" => :x86_64_linux
+    sha256 "083d17b869f1b9e416cca657d813816c89c767b84545e5b9f93d1f3d559aec01" => :sierra
+    sha256 "b32366315f1464953b38543571bce0c1115e15bb77fb21ed710bbca698ab570d" => :x86_64_linux
   end
 
   patch :DATA

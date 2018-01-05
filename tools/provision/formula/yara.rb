@@ -5,13 +5,13 @@ class Yara < AbstractOsqueryFormula
   homepage "https://github.com/VirusTotal/yara/"
   license "BSD-3-Clause"
   head "https://github.com/VirusTotal/yara.git"
-  revision 101
+  revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "645665d4b083262f89895e2ba17702e40e5022dfcad2ef6b7599962a6232aaea" => :sierra
-    sha256 "dfab5e0b5061d3075a0d20ac7a9455196da4606233e8dca89206b8a23af15e64" => :x86_64_linux
+    sha256 "7071490d9d49934e36de07ecc250c5741256285c65d9d4b0c05c7bf20face8ac" => :sierra
+    sha256 "fafe8b8f40383f99f85c169394c2b654b66157526565ba7ddd57ab835c7f309c" => :x86_64_linux
   end
 
   stable do
@@ -25,10 +25,6 @@ class Yara < AbstractOsqueryFormula
     end
   end
 
-  depends_on "libtool" => :build
-  depends_on "autoconf" => :build
-  depends_on "automake" => :build
-
   depends_on "pcre"
   depends_on "openssl"
 
@@ -36,7 +32,7 @@ class Yara < AbstractOsqueryFormula
     ENV.cxx11
 
     # Use of "inline" requires gnu89 semantics
-    ENV.append "CFLAGS", "-std=gnu89" if ENV.compiler == :clang
+    ENV.append "CFLAGS", "-std=gnu89"
 
     # find Homebrew's libpcre
     ENV.append "LDFLAGS", "-L#{Formula["pcre"].opt_lib} -lpcre"
