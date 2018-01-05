@@ -16,6 +16,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
+#include "osquery/tables/system/windows/registry.h"
 
 namespace osquery {
 namespace tables {
@@ -58,7 +59,8 @@ QueryData genSystemInfo(QueryContext& context) {
 
   QueryData regResults;
   queryKey(
-      "HKEY_LOCAL_MACHINE\\HARDWARE\\DESCRIPTION\\System\CentralProcesses\0",
+      "HKEY_LOCAL_MACHINE\\"
+      "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0\\Update Revision",
       regResults);
   for (const auto& key : regResults) {
     if (key.at("name") == "Update Revision") {
