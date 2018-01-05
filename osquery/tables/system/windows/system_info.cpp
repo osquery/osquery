@@ -55,7 +55,18 @@ QueryData genSystemInfo(QueryContext& context) {
     r["hardware_vendor"] = "-1";
     r["hardware_model"] = "-1";
   }
-  
+
+  QueryData regResults;
+  queryKey(
+      "HKEY_LOCAL_MACHINE\\HARDWARE\\DESCRIPTION\\System\CentralProcesses\0",
+      regResults);
+  for (const auto& key : regResults) {
+    if (key.at("name") == "Update Revision") {
+      r["cpu_microcode"] = key.at("data");
+      break;
+    }
+  }
+
   WmiRequest wmiBiosReq("select * from Win32_Bios");
   std::vector<WmiResultItem>& wmiBiosResults = wmiBiosReq.results();
   if (wmiBiosResults.size() != 0) {
