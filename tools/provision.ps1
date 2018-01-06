@@ -328,6 +328,7 @@ function Install-PipPackage {
   }
   Write-Host " => Installing from requirements.txt" -foregroundcolor DarkYellow
   & "$pipPath\pip.exe" -q install -r $requirements.path
+  & "$pipPath\pip.exe" -q install thrift
   if ($LastExitCode -ne 0) {
     Write-Host "[-] ERROR: Install packages from requirements failed." -foregroundcolor Red
     Exit -1
