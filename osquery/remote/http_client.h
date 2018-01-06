@@ -21,15 +21,15 @@
 #define OPENSSL_NO_MD5 1
 #define OPENSSL_NO_DEPRECATED 1
 
-#include <openssl/crypto.h>
-#include <openssl/ssl.h>
-
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/optional/optional.hpp>
+
+#include <openssl/crypto.h>
+#include <openssl/ssl.h>
 
 #include "osquery/remote/uri.h"
 
