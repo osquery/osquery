@@ -2,15 +2,16 @@ table_name("apt_sources")
 description("Current list of APT repositories or software channels.")
 schema([
     Column("name", TEXT, "Repository name"),
+    Column("source", TEXT, "Source file"),
     Column("base_uri", TEXT, "Repository base URI"),
-    Column("package_cache_file", TEXT, "Repository cache file"),
     Column("release", TEXT, "Release name"),
-    Column("component", TEXT, "Repository component"),
     Column("version", TEXT, "Repository source version"),
     Column("maintainer", TEXT, "Repository maintainer"),
-    Column("site", TEXT, "Repository site"),
+    Column("components", TEXT, "Repository components"),
+    Column("architectures", TEXT, "Repository architectures"),
 ])
 implementation("system/apt_sources@genAptSrcs")
 fuzz_paths([
     "/etc/apt/",
+    "/var/lib/apt",
 ])
