@@ -27,7 +27,7 @@ set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
 
 # Add all and extra for osquery code.
-if(POSIX)
+if(CLANG AND POSIX)
   add_compile_options(
     -Wall
     -Wextra
@@ -200,7 +200,7 @@ if(LINUX)
   endif()
   # For Ubuntu/CentOS packages add the build SHA1.
   ADD_OSQUERY_LINK_CORE("-Wl,--build-id")
-  if (CMAKE_CXX_COMPILER MATCHES "clang")
+  if (CLANG AND DEPS)
     # If using GCC, libgcc_s may be needed.
     ADD_OSQUERY_LINK_CORE("-fuse-ld=lld")
     ADD_OSQUERY_LINK_CORE("c++")

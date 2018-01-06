@@ -46,6 +46,20 @@ elseif(CLANGXX_EXECUTABLE)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
+if(CMAKE_CXX_COMPILER MATCHES "clang")
+  set(CLANG TRUE)
+else()
+  set(CLANG FALSE)
+endif()
+
+# We will add a lot of extra flags and options when using the osquery runtime.
+# The "DEPS" environment is the osquery runtime compiler and 3rd-party deps.
+if(NOT DEFINED ENV{SKIP_DEPS})
+  set(DEPS TRUE)
+else()
+  set(DEPS FALSE)
+endif()
+
 if(NOT DEFINED ENV{SKIP_CCACHE})
   find_program(CCACHE_EXECUTABLE ccache ENV PATH)
   if(CCACHE_EXECUTABLE)
@@ -102,7 +116,6 @@ if(APPLE)
     -mmacosx-version-min=${OSX_VERSION_MIN}
   )
 
-  set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   set(OS_WHOLELINK_PRE "-Wl,-force_load")
   set(OS_WHOLELINK_POST "")
   # Special compile flags for Objective-C++
@@ -124,30 +137,46 @@ else()
     set(FREEBSD TRUE)
     include_directories("/usr/local/include")
     include_directories("/usr/include")
-    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   else()
     set(LINUX TRUE)
-    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   endif()
   set(POSIX TRUE)
 endif()
 
+# Configure the CXX standard and optionally set the stdlib to LLVM's.
+if(NOT WIN32)
+  if(CLANG)
+    set(CXX_STDLIB "-stdlib=libc++")
+  else()
+    set(CXX_STDLIB "")
+  endif()
+  set(CMAKE_CXX_FLAGS "-std=${CXX_STD} ${CXX_STDLIB}" CACHE STRING "" FORCE)
+endif()
+
 if(POSIX)
+  if(CLANG)
+    add_compile_options(
+      -Qunused-arguments
+      -Wabi-tag
+      -Wno-unused-local-typedef
+      -Wno-deprecated-register
+      -Wno-unknown-warning-option
+      -Wstrict-aliasing
+      -Wno-missing-field-initializers
+      -Wnon-virtual-dtor
+      -Wchar-subscripts
+      -Wpointer-arith
+      -Woverloaded-virtual
+    )
+  else()
+    add_compile_options(
+      -Wno-unknown-pragmas
+    )
+  endif()
   add_compile_options(
-    -Qunused-arguments
-    -Wstrict-aliasing
-    -Wno-missing-field-initializers
-    -Wno-unused-local-typedef
-    -Wno-deprecated-register
-    -Wno-unknown-warning-option
-    -Wnon-virtual-dtor
-    -Wchar-subscripts
-    -Wpointer-arith
-    -Woverloaded-virtual
     -Wformat
     -Wformat-security
     -Werror=format-security
-    -Wabi-tag
     -fpermissive
     -fstack-protector-all
     -pipe
@@ -174,7 +203,7 @@ elseif(WINDOWS)
 endif()
 
 set(TEST_ARGS "")
-if(LINUX AND CMAKE_CXX_COMPILER MATCHES "clang")
+if(LINUX AND CLANG AND DEPS)
   # Use the LLVM versions of ar and ranlib to support LTO builds
   find_program(LLVMRANLIB_EXECUTABLE "llvm-ranlib" ENV PATH)
   find_program(LLVMAR_EXECUTABLE "llvm-ar" ENV PATH)
@@ -243,8 +272,10 @@ else()
   set(DEBUG FALSE)
   if(WINDOWS)
     add_compile_options(/Ot /WX)
-  else()
+  elseif(CLANG)
     add_compile_options(-Oz)
+  else()
+    add_compile_options(-Os)
   endif()
   add_definitions(-DNDEBUG)
   # Do not enable fortify with clang: http://llvm.org/bugs/show_bug.cgi?id=16821
@@ -258,7 +289,7 @@ else()
       -fPIC
       -fpic
     )
-    if (CMAKE_CXX_COMPILER MATCHES "clang" AND NOT FREEBSD)
+    if (CLANG AND DEPS AND NOT FREEBSD)
       # Only enable LTO builds when using clang on Unix, for now
       add_compile_options(-flto=thin)
     endif()
@@ -403,12 +434,10 @@ if(WINDOWS)
   endforeach(flag_var)
 
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
-elseif(NOT FREEBSD)
-  if (CMAKE_CXX_COMPILER MATCHES "clang")
-    # Clang on Unix uses LTO; we also need to pass -flto when linking
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto=thin")
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto=thin")
-  endif()
+elseif(CLANG AND DEPS AND NOT FREEBSD)
+  # Clang on Unix uses LTO; we also need to pass -flto when linking
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto=thin")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto=thin")
 endif()
 
 if(NOT IS_DIRECTORY "${CMAKE_SOURCE_DIR}/third-party/sqlite3")
@@ -514,19 +543,24 @@ elseif(LINUX)
   include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
 endif()
 
-if(POSIX)
+if(POSIX AND DEPS)
   set(CMAKE_REQUIRED_INCLUDES
     "${BUILD_DEPS}/legacy/include"
     "${BUILD_DEPS}/include"
   )
 
-  include_directories(SYSTEM "${BUILD_DEPS}/include/c++/v1")
+  # The order here matters, please do not reorder.
+  if(CLANG)
+    include_directories(SYSTEM "${BUILD_DEPS}/include/c++/v1")
+  endif()
   include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   include_directories(SYSTEM "${BUILD_DEPS}/include")
-  include_directories(SYSTEM "${BUILD_DEPS}/lib/clang/4.0.0/include")
+  if(CLANG)
+    include_directories(SYSTEM "${BUILD_DEPS}/lib/clang/4.0.0/include")
+  endif()
 endif()
 
-if(NOT LINUX AND NOT APPLE AND NOT WINDOWS)
+if(FREEBSD)
   # Including Boost Beast within third-party until it's merged into boot 1.66.
   include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
 endif()

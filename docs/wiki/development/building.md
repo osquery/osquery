@@ -11,7 +11,7 @@ We include a `make deps` command to make it easier for developers to get started
 
 > NOTICE: This will install or build various dependencies on the build host that are not required to "use" osquery, only build osquery binaries and packages.
 
-For our build hosts (CentOS, Ubuntu 12, 14, 16, macOS 10.12, Windows 2016) we use a `sysprep` target to update the host and install these basic dependencies.
+For our build hosts (CentOS, Ubuntu 12, 14, 16, macOS 10.12, Windows 2016) we use a `sysprep` target to update the host and install these basic dependencies. This make target is included to help set up our cont-test hosts, your mileage may vary.
 
 ```sh
 make sysprep
@@ -26,7 +26,7 @@ The complete installation/build steps are as follows:
 ```sh
 $ git clone https://github.com/facebook/osquery.git
 $ cd osquery
-$ # make sysprep
+$ # ./tools/provision/darwin.sh # installs Xcode-Tools
 $ make deps
 $ make
 ```
@@ -45,7 +45,7 @@ $ ls -la ./build/darwin/osquery/
 
 ## Building on Linux
 
-osquery supports almost all distributions of Linux.
+osquery supports almost all distributions of Linux (2011+).
 
 For some distros, we supply vagrant infrastructure for creating native operating system packages. To create a package (e.g. a deb on Ubuntu or an rpm on CentOS), simply spin up a vagrant instance.
 
@@ -113,11 +113,10 @@ The `make deps` command is fairly intense and serves two purposes: (1) to commun
 
 When using `make deps` the environment the resultant binaries will have a minimum set of requirements to run:
 
-- `glibc` version 2.13
-- `libgcc_s`
+- `glibc` version 2.13 or greater
 - `libz`
 
-All other dependencies are built, compiled, and linked statically. This makes for a rather large set of output binaries (15M on Linux and 9M on macOS) but the trade-off for deployment simplicity is very worthwhile.
+All other dependencies are built, compiled, and linked statically. This makes for a rather large set of output binaries (20M+ on Linux and 15M+ on macOS) but the trade-off for deployment simplicity is very worthwhile.
 
 Under the hood the `make deps` script is calling `./tools/provision.sh`, which performs the simplified set of steps:
 
@@ -283,6 +282,7 @@ SQLITE_DEBUG=True # Enable SQLite query debugging (very verbose!)
 There are various features that can be disabled with a customized build. These are also controlled by environment variables to be as cross-platform as possible and take the form: `SKIP_*`. These are converted into CMake variables within the root `CMakeLists.txt`.
 
 ```sh
+SKIP_DEPS=True # Skip adding the header and linking options from make deps
 SKIP_AWS=True # Skip the various AWS integrations
 SKIP_TSK=True # Skip SleuthKit integrations
 SKIP_LLDPD=True # Skip LLDP tables
