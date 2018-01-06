@@ -249,4 +249,5 @@ class DaemonTests(test_base.ProcessGenerator, unittest.TestCase):
         daemon.kill()
 
 if __name__ == '__main__':
-    test_base.Tester().run()
+    with test_base.CleanChildProcesses():
+        test_base.Tester().run()

@@ -665,6 +665,20 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
             print(" (%sms) rows: %d" % (duration_ms, len(result)))
 
 
+class CleanChildProcesses:
+  # SO: 320232/ensuring-subprocesses-are-dead-on-exiting-python-program
+  def __enter__(self):
+    os.setpgrp() # create new process group, become its leader
+  def __exit__(self, type, value, traceback):
+    try:
+      os.killpg(0, signal.SIGINT) # kill all processes in my group
+    except KeyboardInterrupt:
+      # SIGINT is delivered to this process as well as the child processes.
+      # Ignore it so that the existing exception, if any, is returned. This
+      # leaves us with a clean exit code if there was no exception.
+      pass
+
+
 def expectTrue(functional, interval=0.01, timeout=8):
     """Helper function to run a function with expected latency"""
     delay = 0
