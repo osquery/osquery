@@ -10,41 +10,6 @@
 
 #pragma once
 
-#include <boost/asio.hpp>
-#include <boost/asio/deadline_timer.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/optional/optional.hpp>
-
-// clang-format off
-#ifdef WIN32
-#pragma warning(push, 3)
-
-/*
- * Suppressing warning C4005:
- * 'ASIO_ERROR_CATEGORY_NOEXCEPT': macro redefinition
- */
-#pragma warning(disable: 4005)
-
-/*
- * Suppressing warning C4244:
- * 'argument': conversion from '__int64' to 'long', possible loss of data
- */
-#pragma warning(disable: 4244)
-#endif
-
-#include <boost/network/uri.hpp>
-#include <boost/network/uri/uri_io.hpp>
-
-#ifdef WIN32
-#pragma warning(pop)
-
-/// We need to reinclude this to re-enable boost's warning suppression
-#include <boost/config/compiler/visualc.hpp>
-#endif
-// clang-format on
-
 #ifndef OPENSSL_NO_SSL2
 #define OPENSSL_NO_SSL2 1
 #endif
@@ -58,6 +23,15 @@
 
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
+
+#include <boost/asio.hpp>
+#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/ssl.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/optional/optional.hpp>
+
+#include "osquery/remote/uri.h"
 
 namespace boost_system = boost::system;
 namespace boost_asio = boost::asio;
@@ -298,7 +272,8 @@ class HTTP_Request : public T {
   };
 
  public:
-  HTTP_Request(const std::string& url = std::string()) : uri_(url) {}
+  HTTP_Request(const std::string& url = std::string())
+      : uri_(osquery::Uri(url)) {}
 
   /// Returns the host part of a URI.
   boost::optional<std::string> remoteHost() {
@@ -308,8 +283,8 @@ class HTTP_Request : public T {
 
   /// Returns the port part of a URI.
   boost::optional<std::string> remotePort() {
-    return (!uri_.port().empty()) ? uri_.port()
-                                  : boost::optional<std::string>();
+    return (uri_.port() > 0) ? std::to_string(uri_.port())
+                             : boost::optional<std::string>();
   }
 
   /// Returns the path, query, and fragment parts of a URI.
@@ -343,11 +318,11 @@ class HTTP_Request : public T {
 
   /// URI can also be set via this method, useful for redirected request.
   void uri(const std::string& url) {
-    uri_ = url;
+    uri_ = osquery::Uri(url);
   }
 
  private:
-  boost::network::uri::uri uri_;
+  osquery::Uri uri_;
 };
 
 /**

@@ -156,8 +156,6 @@ if(LINUX OR FREEBSD)
 endif()
 
 # Remaining additional development libraries.
-ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-uri${WO_KEY}")
-ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-client-connections${WO_KEY}")
 ADD_OSQUERY_LINK_CORE("glog${WO_KEY}")
 
 if(POSIX)

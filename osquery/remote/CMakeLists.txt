@@ -12,6 +12,7 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_remote
   transports/tls.cpp
   http/http_client.cpp
   remote.cpp
+  uri.cpp
 )
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
