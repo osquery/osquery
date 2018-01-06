@@ -523,7 +523,7 @@ if(POSIX)
   include_directories(SYSTEM "${BUILD_DEPS}/lib/clang/4.0.0/include")
 endif()
 
-if(NOT LINUX AND NOT APPLE)
+if(NOT LINUX AND NOT APPLE AND NOT WINDOWS)
   # Including Boost Beast within third-party until it's merged into boot 1.66.
   include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
 endif()
