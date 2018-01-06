@@ -672,7 +672,7 @@ class CleanChildProcesses:
             os.setpgrp()
     def __exit__(self, type, value, traceback):
         try:
-            if os.name == "nt":
+            if os.name != "nt":
                 os.killpg(0, signal.SIGINT)
         except KeyboardInterrupt:
             # SIGINT is delivered to this process and children.
