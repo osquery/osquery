@@ -272,6 +272,7 @@ OSQUERY_OSQUERY_DEPS=/usr/local/osquery # Set alternative dependency path
 OSQUERY_NOSUDO=True # If sudo is not available to user building osquery
 SDK_VERSION=9.9.9 # Set a wacky SDK-version string.
 OSX_VERSION_MIN=10.11 # Override the native minimum macOS version ABI
+OSX_VERSION_NATIVE=True # Set the macOS version ABI to the build system ABI
 OSQUERY_DEPS=/path/to/dependencies # Use a custom dependency environment
 FAST=True # Build and link as quick as possible.
 SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
