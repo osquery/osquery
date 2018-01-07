@@ -167,7 +167,10 @@ elseif(WINDOWS)
     /W3
     /guard:cf
   )
-  add_definitions(-DBOOST_ALL_NO_LIB)
+  add_definitions(
+    -DWIN32_LEAN_AND_MEAN
+    -DBOOST_ALL_NO_LIB
+  )
 endif()
 
 set(TEST_ARGS "")
