@@ -85,7 +85,6 @@ function platform_linux_main() {
   # General Linux dependencies and custom formulas for table implementations.
   brew_dependency osquery/osquery-local/libgpg-error
   brew_dependency osquery/osquery-local/libdevmapper
-  brew_dependency osquery/osquery-local/libaptpkg
   brew_dependency osquery/osquery-local/libiptables
   brew_dependency osquery/osquery-local/libgcrypt
   brew_dependency osquery/osquery-local/libcryptsetup
