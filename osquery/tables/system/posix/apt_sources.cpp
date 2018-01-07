@@ -30,7 +30,7 @@ static inline void parseAptUrl(const std::string& source,
   Row r;
   r["source"] = source;
   // The source name could set [arch=ARCH].
-  size_t offset = (comp[0][0] == '[') ? 1 : 0;
+  size_t offset = (comp.size() > 1 && comp[0][0] == '[') ? 1 : 0;
   r["base_uri"] = comp[offset];
   // Seek to the end of the schema.
   auto host = comp[offset].find("://");
