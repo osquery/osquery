@@ -106,8 +106,6 @@ QueryData genKvaSpeculative(QueryContext& context) {
       INTEGER(specInfo.SpeculationControlFlags.IbrsPresent);
   r["stibp_support_enabled"] =
       INTEGER(specInfo.SpeculationControlFlags.StibpPresent);
-  r["ibpb_support_enabled"] =
-      INTEGER(specInfo.SpeculationControlFlags.StibpPresent);
 
   return {r};
 }
