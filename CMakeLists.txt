@@ -109,8 +109,10 @@ list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO_DEFINE)
 if(APPLE)
   if(DEFINED ENV{OSX_VERSION_MIN})
     set(OSX_VERSION_MIN "$ENV{OSX_VERSION_MIN}")
-  else()
+  elseif(DEFINED ENV{OSX_VERSION_NATIVE})
     set(OSX_VERSION_MIN "${OSQUERY_BUILD_DISTRO}")
+  else()
+    set(OSX_VERSION_MIN "10.11")
   endif()
   add_compile_options(
     -mmacosx-version-min=${OSX_VERSION_MIN}

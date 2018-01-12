@@ -5,7 +5,7 @@ redirect_from: /faq/index.html
 ---
 
 ### What operating systems does osquery support?
-Apple macOS 10.10-10.13, any Linux flavor providing a glibc version 2.13 or newer, Windows 8+, and FreeBSD 10+ available through ports. Every supported OS is integrated into the osquery CI build and test processes. Additional operating systems package manager integrations are tested and supported by the osquery community.
+Apple macOS 10.11-10.13, any Linux flavor providing a glibc version 2.13 or newer, Windows 8+, and FreeBSD 10+ available through ports. Every supported OS is integrated into the osquery CI build and test processes. Additional operating systems package manager integrations are tested and supported by the osquery community.
 
 ### What information does osquery provide?
 osquery produces information in the form of [tables](/schema/index.html) and events. Tables are equivalent to SQL/SQLite tables except they generate data at query time. When you run `select * from time;` the result will be the current time! Events are a bit more complicated but essentially log operating system events in real time so tables may emit the real time results when the next appropriate query runs, sort of like flushing a queued buffer.
