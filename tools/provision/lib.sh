@@ -28,14 +28,16 @@ function setup_brew() {
   fi
 
   # Checkout new brew in local deps dir
-  if [[ ! -d "$DEPS/.git" ]]; then
-    log "setting up new brew in $DEPS"
-    git clone $BREW_REPO "$DEPS"
-  elif [[ ! "$ACTION" = "bottle" ]]; then
-    log "checking for updates to brew"
-    git fetch origin > /dev/null
-    git reset --hard origin/master > /dev/null
-    git clean -f
+  if [[ -z "$HOMEBREW_NO_AUTO_UPDATE" ]]; then
+    if [[ ! -d "$DEPS/.git" ]]; then
+      log "setting up new brew in $DEPS"
+      git clone $BREW_REPO "$DEPS"
+    elif [[ ! "$ACTION" = "bottle" ]]; then
+      log "checking for updates to brew"
+      git fetch origin > /dev/null
+      git reset --hard origin/master > /dev/null
+      git clean -f
+    fi
   fi
 
   # Reset to a deterministic checkout of brew.
