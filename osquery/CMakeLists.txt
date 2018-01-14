@@ -59,7 +59,10 @@ endif()
 
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
-set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
+set(OSQUERY_OBJECTS
+  $<TARGET_OBJECTS:osquery_sqlite>
+  $<TARGET_OBJECTS:linenoise-ng>
+)
 
 # Add subdirectories
 add_subdirectory(config)
@@ -119,7 +122,6 @@ if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("libboost_context-mt-${WB_KEY}")
   ADD_OSQUERY_LINK_CORE("rocksdb${WO_KEY}")
   ADD_OSQUERY_LINK_CORE("thriftmt${WT_KEY}")
-  ADD_OSQUERY_LINK_CORE("linenoise${WO_KEY}.lib")
   ADD_OSQUERY_LINK_CORE("gflags_static${WO_KEY}")
   ADD_OSQUERY_LINK_CORE("ssleay32")
   ADD_OSQUERY_LINK_CORE("eay32")
@@ -162,7 +164,6 @@ if(POSIX)
   ADD_OSQUERY_LINK_ADDITIONAL("ssl")
   ADD_OSQUERY_LINK_ADDITIONAL("crypto")
   ADD_OSQUERY_LINK_ADDITIONAL("libpthread")
-  ADD_OSQUERY_LINK_ADDITIONAL("linenoise")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
 endif()
 
