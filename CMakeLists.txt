@@ -571,6 +571,8 @@ include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 
+include_directories("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+
 set(MKDIR_OPTS "")
 if(WINDOWS)
   set(PROCESS_FAMILY "windows")
@@ -659,6 +661,7 @@ join("${GTEST_FLAGS}" " " GTEST_FLAGS)
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
+add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
 
 add_subdirectory(osquery)
 add_subdirectory(tools/tests)

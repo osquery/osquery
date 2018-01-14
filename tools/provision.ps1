@@ -352,13 +352,11 @@ function Install-ThirdParty {
     "gflags-dev.2.2.1",
     "glog.0.3.5",
     "libarchive.3.3.1-r1",
-    "linenoise-ng.1.0.0-r1",
     "llvm-clang.4.0.1",
     "openssl.1.0.2-k",
     "rocksdb.5.7.1-r1",
     "thrift-dev.0.11.0",
     "zlib.1.2.8",
-    "libarchive.3.3.1-r1",
     "rapidjson.1.1.0"
     "zstd.1.2.0-r3"
   )
