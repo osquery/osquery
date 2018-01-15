@@ -103,6 +103,10 @@ string(TOUPPER "${PLATFORM}" PLATFORM)
 list(GET PLATFORM 0 OSQUERY_BUILD_PLATFORM_DEFINE)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO_DEFINE)
 
+if(DEFINED ENV{FAST})
+  set(ENV{OSQUERY_BUILD_SHARED} TRUE)
+endif()
+
 # Set non-C compile flags and whole-loading linker flags.
 # osquery needs ALL symbols in the libraries it includes for relaxed ctors
 # late-loading modules and SQLite introspection utilities.
@@ -152,7 +156,13 @@ if(NOT WIN32)
   else()
     set(CXX_STDLIB "")
   endif()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=${CXX_STD} ${CXX_STDLIB}" CACHE STRING "" FORCE)
+
+  # Only allow adding CXX flags if using SKIP_DEPS.
+  if(DEFINED ENV{SKIP_DEPS})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=${CXX_STD} ${CXX_STDLIB}" CACHE STRING "" FORCE)
+  else()
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} ${CXX_STDLIB}" CACHE STRING "" FORCE)
+  endif()
 endif()
 
 if(POSIX)
@@ -185,9 +195,8 @@ if(POSIX)
     -fdata-sections
     -ffunction-sections
   )
-  if(NOT FREEBSD)
+  if(NOT FREEBSD AND NOT DEFINED ENV{OSQUERY_BUILD_SHARED})
     add_compile_options(
-      -Werror=shadow
       -fvisibility=hidden
       -fvisibility-inlines-hidden
     )
@@ -324,10 +333,6 @@ if(DEFINED ENV{SDK})
   set(OSQUERY_BUILD_SDK_ONLY TRUE)
 else()
   set(OSQUERY_BUILD_SDK_ONLY FALSE)
-endif()
-
-if(DEFINED ENV{FAST})
-  set(ENV{OSQUERY_BUILD_SHARED} TRUE)
 endif()
 
 # make packages will set release to true and blacklist development features,
