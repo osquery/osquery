@@ -41,14 +41,15 @@ build/
 .DS_Store
 
 # CLion IDE
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/dataSources.ids
-.idea/dataSources.xml
-.idea/sqlDataSources.xml
-.idea/dynamic.xml
-.idea/dictionaries
-.idea/codeStyleSettings.xml
+.idea
+cmake-build-debug
+cmake-build-release
+
+# QtCreator files
+osquery.config
+osquery.creator
+osquery.files
+osquery.includes
 
 # Doxygen Documentation
 doxygen/html
