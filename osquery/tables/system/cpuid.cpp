@@ -206,8 +206,6 @@ QueryData genCPUID(QueryContext& context) {
   genFamily(results);
 
   int regs[4] = {-1};
-  auto feature_register = 0;
-  auto feature_bit = 0;
   for (const auto& feature_set : kCPUFeatures) {
     auto eax = feature_set.first;
     cpuid(eax, 0, regs);
@@ -218,7 +216,7 @@ QueryData genCPUID(QueryContext& context) {
       r["feature"] = feature.first;
 
       // Get the return register holding the feature bit.
-      feature_register = 0;
+      auto feature_register = 0;
       if (feature.second.first == "edx") {
         feature_register = 3;
       } else if (feature.second.first == "ebx") {
@@ -227,7 +225,7 @@ QueryData genCPUID(QueryContext& context) {
         feature_register = 2;
       }
 
-      feature_bit = feature.second.second;
+      auto feature_bit = feature.second.second;
       r["value"] = isBitSet(feature_bit, regs[feature_register]) ? "1" : "0";
       r["output_register"] = feature.second.first;
       r["output_bit"] = INTEGER(feature_bit);
