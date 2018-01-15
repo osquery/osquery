@@ -152,7 +152,7 @@ if(NOT WIN32)
   else()
     set(CXX_STDLIB "")
   endif()
-  set(CMAKE_CXX_FLAGS "-std=${CXX_STD} ${CXX_STDLIB}" CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=${CXX_STD} ${CXX_STDLIB}" CACHE STRING "" FORCE)
 endif()
 
 if(POSIX)
@@ -659,12 +659,18 @@ set(GTEST_FLAGS
 )
 join("${GTEST_FLAGS}" " " GTEST_FLAGS)
 
-add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
+if(NOT SKIP_TESTS)
+  add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
+endif()
+
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
 
 add_subdirectory(osquery)
-add_subdirectory(tools/tests)
+
+if(NOT SKIP_TESTS)
+  add_subdirectory(tools/tests)
+endif()
 
 # Include the kernel building targets/macros
 if(NOT SKIP_KERNEL AND NOT ${OSQUERY_BUILD_SDK_ONLY})

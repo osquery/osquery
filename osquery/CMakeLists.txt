@@ -6,6 +6,8 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
+cmake_policy(SET CMP0068 NEW)
+
 # The 'core' source files define the osquery SDK (libosquery).
 # There are macros throughout CMake to append sources to this list.
 set(OSQUERY_SOURCES "")

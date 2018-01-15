@@ -407,6 +407,10 @@ function check() {
   DISTRO_BUILD_DIR="$2"
   platform OS
 
+  if [[ ! -z "$SKIP_DEPS" ]]; then
+    exit 0
+  fi
+
   if [[ $OS = "darwin" ]]; then
     HASH=`shasum "$0" | awk '{print $1}'`
   elif [[ $OS = "freebsd" ]]; then
