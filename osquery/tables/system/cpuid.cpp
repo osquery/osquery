@@ -26,42 +26,54 @@
 namespace osquery {
 namespace tables {
 
-using RegisterBit = std::pair<std::string, int>;
+using RegisterBit = std::pair<std::string, size_t>;
 using FeatureDef = std::pair<std::string, RegisterBit>;
 
-std::map<int, std::vector<FeatureDef>> kCPUFeatures{
+std::map<size_t, std::vector<FeatureDef>> kCPUFeatures{
     {1,
      {
-         FEATURE("pae", "edx", 6),
-         FEATURE("msr", "edx", 5),
-         FEATURE("mtrr", "edx", 12),
-         FEATURE("acpi", "edx", 22),
-         FEATURE("sse", "edx", 25),
-         FEATURE("sse2", "edx", 26),
-         FEATURE("htt", "edx", 28),
+         FEATURE("pae", "edx", 6),         FEATURE("msr", "edx", 5),
+         FEATURE("sep", "edx", 11),        FEATURE("mtrr", "edx", 12),
+         FEATURE("pge", "edx", 13),        FEATURE("mca", "edx", 14),
+         FEATURE("pat", "edx", 16),        FEATURE("clfsh", "edx", 19),
+         FEATURE("acpi", "edx", 22),       FEATURE("mmz", "edx", 23),
+         FEATURE("sse", "edx", 25),        FEATURE("sse2", "edx", 26),
+         FEATURE("ss", "edx", 27),         FEATURE("htt", "edx", 28),
          FEATURE("ia64", "edx", 30),
-         FEATURE("vmx", "ecx", 5),
-         FEATURE("smx", "ecx", 6),
-         FEATURE("sse4.1", "ecx", 19),
-         FEATURE("sse4.2", "ecx", 20),
-         FEATURE("aes", "ecx", 25),
-         FEATURE("avx", "ecx", 28),
+
+         FEATURE("sse3", "ecx", 0),        FEATURE("vmx", "ecx", 5),
+         FEATURE("smx", "ecx", 6),         FEATURE("ssse3", "ecx", 9),
+         FEATURE("sdbg", "ecx", 11),       FEATURE("pdcm", "ecx", 15),
+         FEATURE("pcid", "ecx", 17),       FEATURE("dca", "ecx", 18),
+         FEATURE("sse4.1", "ecx", 19),     FEATURE("sse4.2", "ecx", 20),
+         FEATURE("aes", "ecx", 25),        FEATURE("avx", "ecx", 28),
          FEATURE("hypervisor", "ecx", 31),
      }},
     {7,
      {
-         FEATURE("sgx", "ebx", 2),      FEATURE("avx2", "ebx", 5),
-         FEATURE("smep", "ebx", 7),     FEATURE("bmi2", "ebx", 8),
-         FEATURE("erms", "ebx", 9),     FEATURE("invpcid", "ebx", 10),
-         FEATURE("rtm", "ebx", 11),     FEATURE("pqm", "ebx", 12),
-         FEATURE("mpx", "ebx", 14),     FEATURE("pqe", "ebx", 15),
-         FEATURE("avx512f", "ebx", 16), FEATURE("avx512dq", "ebx", 17),
-         FEATURE("rdseed", "ebx", 18),  FEATURE("adx", "ebx", 19),
-         FEATURE("smap", "ebx", 20),    FEATURE("intel_pt", "ebx", 25),
-         FEATURE("sha", "ebx", 29),     FEATURE("pku", "ecx", 3),
-         FEATURE("ospke", "ecx", 4),    FEATURE("sgx_lc", "ecx", 30),
+         FEATURE("sgx", "ebx", 2),        FEATURE("hle", "ebx", 4),
+         FEATURE("avx2", "ebx", 5),       FEATURE("smep", "ebx", 7),
+         FEATURE("bmi2", "ebx", 8),       FEATURE("erms", "ebx", 9),
+         FEATURE("invpcid", "ebx", 10),   FEATURE("rtm", "ebx", 11),
+         FEATURE("pqm", "ebx", 12),       FEATURE("mpx", "ebx", 14),
+         FEATURE("pqe", "ebx", 15),       FEATURE("avx512f", "ebx", 16),
+         FEATURE("avx512dq", "ebx", 17),  FEATURE("rdseed", "ebx", 18),
+         FEATURE("adx", "ebx", 19),       FEATURE("smap", "ebx", 20),
+         FEATURE("intel_pt", "ebx", 25),  FEATURE("sha", "ebx", 29),
+
+         FEATURE("umip", "ecx", 2),       FEATURE("pku", "ecx", 3),
+         FEATURE("ospke", "ecx", 4),      FEATURE("gfni", "ecx", 8),
+         FEATURE("vaes", "ecx", 9),       FEATURE("sgx_lc", "ecx", 30),
+
+         FEATURE("spec_ctrl", "edx", 26),
      }},
-};
+    {0x80000001,
+     {
+         FEATURE("svm", "ecx", 2),
+         FEATURE("ibs", "ecx", 10),
+         FEATURE("skinit", "ecx", 12),
+         FEATURE("lwp", "ecx", 15),
+     }}};
 
 static inline void cpuid(size_t eax, size_t ecx, int regs[4]) {
 #if defined(WIN32)
