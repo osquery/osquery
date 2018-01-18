@@ -1,0 +1,17 @@
+table_name("powershell_events")
+description("Powershell script execution events.")
+schema([
+    Column("time", BIGINT, "Timestamp the event was received"),
+    Column("datetime", TEXT, "System time at which the event occurred"),
+    Column("script_block_id", TEXT, "The unique GUID of the powershell script to which this block belongs"),
+    Column("message_number", INTEGER, "The index for this script block"),
+    Column("message_total", INTEGER, "The total number of script blocks for this script"),
+    Column("script_block_text", TEXT, "The text content of the Powershell script"),
+    Column("script_name", TEXT, "The name of the Powershell script, this value is often null"),
+    Column("script_path", TEXT, "The path for the Powershell script, this value is often null"),
+])
+attributes(event_subscriber=True)
+implementation("powershell_events@PowershellEventSubscriber::genTable")
+examples([
+  "select * from powershell_events;",
+])
