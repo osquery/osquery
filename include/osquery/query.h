@@ -100,7 +100,7 @@ using QueryData = std::vector<Row>;
 using QueryDataSet = std::multiset<Row>;
 
 /**
- * @brief Serialize a QueryData object into a property tree
+ * @brief Serialize a QueryData object into a JSON array.
  *
  * @param q the QueryData to serialize.
  * @param doc the managed JSON document.
@@ -140,8 +140,8 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json);
 /// Inverse of serializeQueryData, convert JSON to QueryData.
 Status deserializeQueryData(const rapidjson::Value& arr, QueryData& qd);
 
-/// Inverse of serializeQueryData, convert property tree to QueryDataSet.
-Status deserializeQueryData(const boost::property_tree::ptree& tree,
+/// Inverse of serializeQueryData, convert JSON to QueryDataSet.
+Status deserializeQueryData(const rapidjson::Value& arr,
                             QueryDataSet& qd);
 
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryData.

@@ -271,7 +271,8 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<ScheduledQuery> queries;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
   get().scheduledQueries(
-      ([&queries](const std::string&, const ScheduledQuery& query) {
+      ([&queries, &query_names](const std::string& name, const ScheduledQuery& query) {
+        query_names.push_back(name);
         queries.push_back(query);
       }));
 
@@ -290,7 +291,7 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
 
   // When the blacklist is edited externally, the config must re-read.
   get().reset();
-  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
 
   // Clear the query names in the scheduled queries and request again.
   query_names.clear();
@@ -327,7 +328,7 @@ TEST_F(ConfigTests, test_nonblacklist_query) {
   saveScheduleBlacklist(blacklist);
 
   get().reset();
-  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
 
   std::map<std::string, ScheduledQuery> queries;
   get().scheduledQueries(

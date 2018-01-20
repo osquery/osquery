@@ -19,7 +19,6 @@
 
 #include "osquery/core/json.h"
 
-namespace pt = boost::property_tree;
 namespace rj = rapidjson;
 
 namespace osquery {
@@ -271,16 +270,6 @@ Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
 }
 
 Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
-  pt::ptree tree;
-  try {
-    std::stringstream input;
-    input << json;
-    pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    return Status(1, e.what());
-  }
-  return deserializeQueryData(tree, qd);
-
   rj::Document doc;
   if (doc.Parse(json.c_str()).HasParseError()) {
     return Status(1, "Error serializing JSON");
