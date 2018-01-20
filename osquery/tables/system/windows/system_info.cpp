@@ -60,11 +60,15 @@ QueryData genSystemInfo(QueryContext& context) {
   QueryData regResults;
   queryKey(
       "HKEY_LOCAL_MACHINE\\"
-      "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0\\Update Revision",
+      "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0\\",
       regResults);
   for (const auto& key : regResults) {
     if (key.at("name") == "Update Revision") {
-      r["cpu_microcode"] = key.at("data");
+      if (key.at("data").size() >= 16) {
+        unsigned long int revision = 0;
+        safeStrtoul(key.at("data").substr(8, 2), 16, revision);
+        r["cpu_microcode"] = std::to_string(revision);
+      }
       break;
     }
   }
