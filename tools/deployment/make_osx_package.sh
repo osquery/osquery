@@ -210,20 +210,20 @@ function main() {
   log "copying osquery binaries"
   BINARY_INSTALL_DIR="$INSTALL_PREFIX/usr/local/bin/"
   mkdir -p $BINARY_INSTALL_DIR
-  cp "$BUILD_DIR/osquery/osqueryi" $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
+  ln -s osqueryd $BINARY_INSTALL_DIR/osqueryi
   strip $BINARY_INSTALL_DIR/*
   cp "$OSQUERYCTL_PATH" $BINARY_INSTALL_DIR
 
   if [[ ! "$SIGNING_IDENTITY" = "" ]]; then
     log "signing release binaries"
-    codesign -s $SIGNING_IDENTITY --keychain \"$KEYCHAIN_IDENTITY\" $BINARY_INSTALL_DIR/osqueryi $BINARY_INSTALL_DIR/osqueryd
+    codesign -s $SIGNING_IDENTITY --keychain \"$KEYCHAIN_IDENTITY\" $BINARY_INSTALL_DIR/osqueryd
   fi
 
   BINARY_DEBUG_DIR="$DEBUG_PREFIX/private/var/osquery/debug"
   mkdir -p "$BINARY_DEBUG_DIR"
-  cp "$BUILD_DIR/osquery/osqueryi" $BINARY_DEBUG_DIR/osqueryi.debug
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_DEBUG_DIR/osqueryd.debug
+  ln -s osqueryd.debug $BINARY_DEBUG_DIR/osqueryi.debug
 
   # Create the prefix log dir and copy source configs.
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
