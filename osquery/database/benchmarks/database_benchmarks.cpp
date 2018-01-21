@@ -58,18 +58,18 @@ ColumnNames getExampleColumnNames(size_t x) {
 }
 
 static void DATABASE_serialize(benchmark::State& state) {
-  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  auto qd = getExampleQueryData(state.range(0), state.range(1));
   while (state.KeepRunning()) {
     auto doc = JSON::newArray();
-    serializeQueryData(qd, doc, doc.doc());
+    serializeQueryData(qd, {}, doc, doc.doc());
   }
 }
 
 BENCHMARK(DATABASE_serialize)->ArgPair(1, 1)->ArgPair(10, 10)->ArgPair(10, 100);
 
 static void DATABASE_serialize_column_order(benchmark::State& state) {
-  auto qd = getExampleQueryData(state.range_x(), state.range_y());
-  auto cn = getExampleColumnNames(state.range_x());
+  auto qd = getExampleQueryData(state.range(0), state.range(1));
+  auto cn = getExampleColumnNames(state.range(0));
   while (state.KeepRunning()) {
     auto doc = JSON::newArray();
     serializeQueryData(qd, cn, doc, doc.doc());
@@ -83,7 +83,7 @@ BENCHMARK(DATABASE_serialize_column_order)
     ->ArgPair(100, 100);
 
 static void DATABASE_serialize_json(benchmark::State& state) {
-  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  auto qd = getExampleQueryData(state.range(0), state.range(1));
   while (state.KeepRunning()) {
     std::string content;
     serializeQueryDataJSON(qd, content);
@@ -96,8 +96,8 @@ BENCHMARK(DATABASE_serialize_json)
     ->ArgPair(10, 100);
 
 static void DATABASE_diff(benchmark::State& state) {
-  QueryData qd = getExampleQueryData(state.range_x(), state.range_y());
-  QueryDataSet qds = getExampleQueryDataSet(state.range_x(), state.range_y());
+  QueryData qd = getExampleQueryData(state.range(0), state.range(1));
+  QueryDataSet qds = getExampleQueryDataSet(state.range(0), state.range(1));
   while (state.KeepRunning()) {
     auto d = diff(qds, qd);
   }
@@ -106,7 +106,7 @@ static void DATABASE_diff(benchmark::State& state) {
 BENCHMARK(DATABASE_diff)->ArgPair(1, 1)->ArgPair(10, 10)->ArgPair(10, 100);
 
 static void DATABASE_query_results(benchmark::State& state) {
-  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  auto qd = getExampleQueryData(state.range(0), state.range(1));
   auto query = getOsqueryScheduledQuery();
   while (state.KeepRunning()) {
     DiffResults diff_results;

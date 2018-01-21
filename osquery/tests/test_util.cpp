@@ -308,14 +308,14 @@ std::pair<JSON, DiffResults> getSerializedDiffResults() {
   doc.add("removed", qd.first.doc());
   doc.add("added", qd.first.doc());
 
-  return std::make_pair(std::move(doc), diff_results);
+  return std::make_pair(std::move(doc), std::move(diff_results));
 }
 
 std::pair<std::string, DiffResults> getSerializedDiffResultsJSON() {
   auto results = getSerializedDiffResults();
   std::string output;
   results.first.toString(output);
-  return std::make_pair(output, results.second);
+  return std::make_pair(output, std::move(results.second));
 }
 
 std::pair<std::string, QueryData> getSerializedQueryDataJSON() {
@@ -326,10 +326,11 @@ std::pair<std::string, QueryData> getSerializedQueryDataJSON() {
 }
 
 std::pair<JSON, QueryLogItem> getSerializedQueryLogItem() {
+  std::pair<JSON, QueryLogItem> p;
   QueryLogItem i;
   JSON doc = JSON::newObject();
   auto dr = getSerializedDiffResults();
-  i.results = dr.second;
+  i.results = std::move(dr.second);
   i.name = "foobar";
   i.calendar_time = "Mon Aug 25 12:10:57 2014";
   i.time = 1408993857;
@@ -347,14 +348,14 @@ std::pair<JSON, QueryLogItem> getSerializedQueryLogItem() {
   doc.add("epoch", 0_sz);
   doc.add("counter", 0_sz);
 
-  return std::make_pair(std::move(doc), i);
+  return std::make_pair(std::move(doc), std::move(i));
 }
 
 std::pair<std::string, QueryLogItem> getSerializedQueryLogItemJSON() {
   auto results = getSerializedQueryLogItem();
   std::string output;
   results.first.toString(output);
-  return std::make_pair(output, results.second);
+  return std::make_pair(output, std::move(results.second));
 }
 
 std::vector<SplitStringTestData> generateSplitStringTestData() {

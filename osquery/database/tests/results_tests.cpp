@@ -42,7 +42,7 @@ TEST_F(ResultsTests, test_simple_diff) {
 TEST_F(ResultsTests, test_serialize_row) {
   auto results = getSerializedRow();
   auto doc = JSON::newObject();
-  auto s = serializeRow(results.second, doc, doc.doc());
+  auto s = serializeRow(results.second, {}, doc, doc.doc());
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(doc.doc()["meaning_of_life"], "meaning_of_life_value");
@@ -65,7 +65,7 @@ TEST_F(ResultsTests, test_deserialize_row_json) {
 TEST_F(ResultsTests, test_serialize_query_data) {
   auto results = getSerializedQueryData();
   auto doc = JSON::newArray();
-  auto s = serializeQueryData(results.second, doc, doc.doc());
+  auto s = serializeQueryData(results.second, {}, doc, doc.doc());
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(results.first.doc(), doc.doc());
@@ -104,7 +104,7 @@ TEST_F(ResultsTests, test_deserialize_query_data_json) {
 TEST_F(ResultsTests, test_serialize_diff_results) {
   auto results = getSerializedDiffResults();
   auto doc = JSON::newObject();
-  auto s = serializeDiffResults(results.second, doc, doc.doc());
+  auto s = serializeDiffResults(results.second, {}, doc, doc.doc());
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
   EXPECT_EQ(results.first.doc(), doc.doc());

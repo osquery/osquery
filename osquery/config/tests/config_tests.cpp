@@ -268,18 +268,16 @@ TEST_F(ConfigTests, test_content_update) {
 
 TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<std::string> query_names;
-  std::vector<ScheduledQuery> queries;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
   get().scheduledQueries(
-      ([&queries, &query_names](const std::string& name,
+      ([&query_names](const std::string& name,
                                 const ScheduledQuery& query) {
         query_names.push_back(name);
-        queries.push_back(query);
       }));
 
   auto expected_size = getUnrestrictedPack().doc()["queries"].MemberCount();
-  EXPECT_EQ(queries.size(), expected_size)
-      << "The number of queries in the schedule (" << queries.size()
+  EXPECT_EQ(query_names.size(), expected_size)
+      << "The number of queries in the schedule (" << query_names.size()
       << ") should equal " << expected_size;
   ASSERT_FALSE(query_names.empty());
 
@@ -306,21 +304,20 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
 
   // Try again, this time requesting scheduled queries.
   query_names.clear();
-  queries.clear();
+  bool blacklisted = false;
   get().scheduledQueries(
-      ([&queries, &query_names, &query_name](const std::string& name,
+      ([&blacklisted, &query_names, &query_name](const std::string& name,
                                              const ScheduledQuery& query) {
         if (name == query_name) {
           // Only populate the query we've blacklisted.
           query_names.push_back(name);
-          queries.push_back(query);
+          blacklisted = query.blacklisted;
         }
       }),
       true);
   ASSERT_EQ(query_names.size(), 1_sz);
   EXPECT_EQ(query_names[0], query_name);
-  ASSERT_EQ(queries.size(), 1_sz);
-  EXPECT_TRUE(queries[0].blacklisted);
+  EXPECT_TRUE(blacklisted);
 }
 
 TEST_F(ConfigTests, test_nonblacklist_query) {
@@ -331,16 +328,16 @@ TEST_F(ConfigTests, test_nonblacklist_query) {
   get().reset();
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
 
-  std::map<std::string, ScheduledQuery> queries;
+  std::map<std::string, bool> blacklisted;
   get().scheduledQueries(
-      ([&queries](const std::string& name, const ScheduledQuery& query) {
-        queries[name] = query;
+      ([&blacklisted](const std::string& name, const ScheduledQuery& query) {
+        blacklisted[name] = query.blacklisted;
       }));
 
   // This query cannot be blacklisted.
-  auto query = queries.find(kConfigTestNonBlacklistQuery);
-  ASSERT_NE(query, queries.end());
-  EXPECT_FALSE(query->second.blacklisted);
+  auto query = blacklisted.find(kConfigTestNonBlacklistQuery);
+  ASSERT_NE(query, blacklisted.end());
+  EXPECT_FALSE(query->second);
 }
 
 class TestConfigParserPlugin : public ConfigParserPlugin {
