@@ -71,6 +71,16 @@ QueryData genSystemInfo(QueryContext& context) {
           // Not the most elegant but prevents us from splitting each line.
           r[(line[0] == 'c') ? "cpu_type" : "cpu_subtype"] = details[1];
         }
+      } else if (line.find("microcode") == 0) {
+        auto details = osquery::split(line, ":");
+        if (details.size() == 2) {
+          r["cpu_microcode"] = details[1];
+        }
+      }
+
+      // Minor optimization to not parse every line.
+      if (line.size() == 0) {
+        break;
       }
     }
   }
