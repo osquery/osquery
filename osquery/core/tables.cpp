@@ -8,9 +8,12 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <boost/lexical_cast.hpp>
+
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/json.h"
@@ -288,10 +291,9 @@ std::string columnDefinition(const PluginResponse& response, bool aliases) {
 
     if (column.at("id") == "column" && column.count("name") &&
         column.count("type")) {
-      auto options =
-          (column.count("op"))
-              ? (ColumnOptions)AS_LITERAL(INTEGER_LITERAL, column.at("op"))
-              : ColumnOptions::DEFAULT;
+      auto options = (column.count("op"))
+                         ? (ColumnOptions)std::stol(column.at("op"))
+                         : ColumnOptions::DEFAULT;
       auto column_type = columnTypeName(column.at("type"));
       columns.push_back(make_tuple(column.at("name"), column_type, options));
       if (aliases) {
@@ -339,13 +341,13 @@ bool ConstraintList::matches(const std::string& expr) const {
     if (affinity == TEXT_TYPE) {
       return literal_matches<TEXT_LITERAL>(expr);
     } else if (affinity == INTEGER_TYPE) {
-      INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
+      auto lexpr = boost::lexical_cast<INTEGER_LITERAL>(expr);
       return literal_matches<INTEGER_LITERAL>(lexpr);
     } else if (affinity == BIGINT_TYPE) {
-      BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
+      auto lexpr = boost::lexical_cast<BIGINT_LITERAL>(expr);
       return literal_matches<BIGINT_LITERAL>(lexpr);
     } else if (affinity == UNSIGNED_BIGINT_TYPE) {
-      UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
+      auto lexpr = boost::lexical_cast<UNSIGNED_BIGINT_LITERAL>(expr);
       return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
     }
   } catch (const boost::bad_lexical_cast& /* e */) {
@@ -359,7 +361,7 @@ template <typename T>
 bool ConstraintList::literal_matches(const T& base_expr) const {
   bool aggregate = true;
   for (size_t i = 0; i < constraints_.size(); ++i) {
-    T constraint_expr = AS_LITERAL(T, constraints_[i].expr);
+    auto constraint_expr = boost::lexical_cast<T>(constraints_[i].expr);
     if (constraints_[i].op == EQUALS) {
       aggregate = aggregate && (base_expr == constraint_expr);
     } else if (constraints_[i].op == GREATER_THAN) {
@@ -386,11 +388,48 @@ std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
   std::set<std::string> set;
   for (size_t i = 0; i < constraints_.size(); ++i) {
     if (constraints_[i].op == op) {
-      // TODO: this does not apply a distinct.
       set.insert(constraints_[i].expr);
     }
   }
   return set;
+}
+
+template <>
+std::set<int> ConstraintList::getAll<int>(ConstraintOperator op) const {
+  std::set<int> cs;
+  std::transform(constraints_.begin(),
+                 constraints_.end(),
+                 std::inserter(cs, cs.begin()),
+                 [](const Constraint& c) { return std::stoi(c.expr); });
+  return cs;
+}
+
+template <>
+std::set<long long> ConstraintList::getAll<long long>(
+    ConstraintOperator op) const {
+  std::set<long long> cs;
+  std::transform(constraints_.begin(),
+                 constraints_.end(),
+                 std::inserter(cs, cs.begin()),
+                 [](const Constraint& c) { return std::stoll(c.expr); });
+  return cs;
+}
+
+template <>
+std::set<unsigned long long> ConstraintList::getAll<unsigned long long>(
+    ConstraintOperator op) const {
+  std::set<unsigned long long> cs;
+  std::transform(constraints_.begin(),
+                 constraints_.end(),
+                 std::inserter(cs, cs.begin()),
+                 [](const Constraint& c) { return std::stoull(c.expr); });
+  return cs;
+}
+
+template <>
+std::set<std::string> ConstraintList::getAll<std::string>(
+    ConstraintOperator op) const {
+  return getAll(op);
 }
 
 void ConstraintList::serialize(JSON& doc, rapidjson::Value& obj) const {

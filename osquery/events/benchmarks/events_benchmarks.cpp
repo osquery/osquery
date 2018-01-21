@@ -12,6 +12,7 @@
 
 #include <osquery/config.h>
 #include <osquery/events.h>
+#include <osquery/registry.h>
 #include <osquery/tables.h>
 
 #include "osquery/tests/test_util.h"

@@ -19,6 +19,7 @@
 
 #include <boost/noncopyable.hpp>
 
+#include <osquery/mutex.h>
 #include <osquery/sql.h>
 
 #define SQLITE_SOFT_HEAP_LIMIT (5 * 1024 * 1024)

@@ -15,6 +15,8 @@
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
+#include <osquery/system.h>
 
 DECLARE_int32(minloglevel);
 DECLARE_int32(stderrthreshold);

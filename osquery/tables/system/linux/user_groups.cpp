@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <osquery/mutex.h>
+
 #include "osquery/tables/system/user_groups.h"
 #include "osquery/core/conversions.h"
 

@@ -13,7 +13,6 @@
 #include <osquery/core.h>
 #include <osquery/system.h>
 
-#include "osquery/core/utils.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {

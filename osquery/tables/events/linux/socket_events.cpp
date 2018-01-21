@@ -13,6 +13,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditeventpublisher.h"

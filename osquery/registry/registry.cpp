@@ -23,8 +23,6 @@
 #include "osquery/core/json.h"
 #include "osquery/core/process.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 HIDDEN_FLAG(bool, registry_exceptions, false, "Allow plugin exceptions");
@@ -635,26 +633,22 @@ void Plugin::setName(const std::string& name) {
 
 void Plugin::getResponse(const std::string& key,
                          const PluginResponse& response,
-                         boost::property_tree::ptree& tree) {
+                         JSON& doc) {
   for (const auto& item : response) {
-    boost::property_tree::ptree child;
+    auto child = doc.getObject();
     for (const auto& item_detail : item) {
-      child.put(item_detail.first, item_detail.second);
+      doc.addRef(item_detail.first, item_detail.second, child);
     }
-    tree.add_child(key, child);
+    doc.add(key, child);
   }
 }
 
 void Plugin::setResponse(const std::string& key,
-                         const boost::property_tree::ptree& tree,
+                         const JSON& doc,
                          PluginResponse& response) {
-  std::ostringstream output;
-  try {
-    boost::property_tree::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
-    // The plugin response could not be serialized.
-  }
-  response.push_back({{key, output.str()}});
+  std::string output;
+  doc.toString(output);
+  response.push_back({{key, std::move(output)}});
 }
 
 AutoRegisterInterface::AutoRegisterInterface(const char* _type,

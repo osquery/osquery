@@ -14,6 +14,7 @@
 #include <grp.h>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 #include <osquery/tables.h>
 
 namespace osquery {

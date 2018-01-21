@@ -354,11 +354,10 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
   UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
   try {
-    change.parent =
-        static_cast<pid_t>(AS_LITERAL(BIGINT_LITERAL, r.at("parent")));
-    user_time = AS_LITERAL(BIGINT_LITERAL, r.at("user_time")) / change.iv;
-    system_time = AS_LITERAL(BIGINT_LITERAL, r.at("system_time")) / change.iv;
-    change.footprint = AS_LITERAL(BIGINT_LITERAL, r.at("resident_size"));
+    change.parent = static_cast<pid_t>(std::stoll(r.at("parent")));
+    user_time = std::stoll(r.at("user_time")) / change.iv;
+    system_time = std::stoll(r.at("system_time")) / change.iv;
+    change.footprint = std::stoll(r.at("resident_size"));
   } catch (const std::exception& /* e */) {
     state.sustained_latency = 0;
   }

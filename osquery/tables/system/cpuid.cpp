@@ -229,7 +229,7 @@ QueryData genCPUID(QueryContext& context) {
       r["value"] = isBitSet(feature_bit, regs[feature_register]) ? "1" : "0";
       r["output_register"] = feature.second.first;
       r["output_bit"] = INTEGER(feature_bit);
-      r["input_eax"] = boost::lexical_cast<std::string>(eax);
+      r["input_eax"] = std::to_string(eax);
       results.push_back(r);
     }
   }

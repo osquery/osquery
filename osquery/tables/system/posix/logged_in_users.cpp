@@ -8,12 +8,13 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <utmpx.h>
+
 #include <mutex>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 #include <osquery/tables.h>
-
-#include <utmpx.h>
 
 namespace osquery {
 namespace tables {
@@ -50,9 +51,9 @@ QueryData genLoggedInUsers(QueryContext& context) {
     } else {
       r["type"] = kLoginTypes.at(entry->ut_type);
     }
-    r["user"] = TEXT(entry->ut_user);
-    r["tty"] = TEXT(entry->ut_line);
-    r["host"] = TEXT(entry->ut_host);
+    r["user"] = std::string(entry->ut_user);
+    r["tty"] = std::string(entry->ut_line);
+    r["host"] = std::string(entry->ut_host);
     r["time"] = INTEGER(entry->ut_tv.tv_sec);
     r["pid"] = INTEGER(entry->ut_pid);
     results.push_back(r);

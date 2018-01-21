@@ -12,9 +12,12 @@
 ** This file is generated. Do not modify it manually!
 */
 
+{% if class_name != "" %}\
 #include <osquery/events.h>
 #include <osquery/logger.h>
+{% endif %}\
 #include <osquery/tables.h>
+#include <osquery/registry.h>
 
 namespace osquery {
 namespace tables {

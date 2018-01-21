@@ -12,6 +12,7 @@
 
 #include <osquery/config.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 #include "osquery/config/parsers/prometheus_targets.h"
 

@@ -16,6 +16,7 @@
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 #include "osquery/database/plugins/rocksdb.h"
 #include "osquery/filesystem/fileops.h"

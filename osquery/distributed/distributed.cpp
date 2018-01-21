@@ -14,6 +14,7 @@
 #include <osquery/database.h>
 #include <osquery/distributed.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 

@@ -21,7 +21,7 @@
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
-#include <osquery/registry.h>
+#include <osquery/plugin.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
 

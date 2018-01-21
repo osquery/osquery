@@ -123,10 +123,10 @@ QueryData genOSVersion(QueryContext& context) {
   xp::smatch matches;
   for (const auto& line : osquery::split(content, "\n")) {
     if (xp::regex_search(line, matches, rx)) {
-      r["major"] = INTEGER(matches["major"]);
-      r["minor"] = INTEGER(matches["minor"]);
+      r["major"] = matches["major"];
+      r["minor"] = matches["minor"];
       r["patch"] =
-          (matches["patch"].length() > 0) ? INTEGER(matches["patch"]) : "0";
+          (matches["patch"].length() > 0) ? std::string(matches["patch"]) : "0";
       r["name"] = matches["name"];
       break;
     }

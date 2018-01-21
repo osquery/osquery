@@ -10,13 +10,14 @@
 
 #pragma once
 
-#include <mutex>
+#include <csignal>
 #include <string>
-#include <vector>
 
-#include <boost/filesystem/path.hpp>
+#include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
+#include <osquery/status.h>
 
 #ifdef WIN32
 #include <osquery/windows/system.h>
@@ -337,6 +338,15 @@ Status createPidFile();
  * @return A bool indicating if the current process is running as admin
  */
 bool isUserAdmin();
-
+    
 bool checkPlatform(const std::string& platform);
+
+/// Returns the ASCII version of the timeptr as a C++ string
+std::string platformAsctime(const struct tm* timeptr);
+
+/// Returns a C++ string explaining the errnum
+std::string platformStrerr(int errnum);
+
+/// Copies src string into the dst string buffer with error checks
+Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count);
 } // namespace osquery

@@ -11,9 +11,10 @@
 #include <vector>
 #include <string>
 
-#include <osquery/core.h>
 #include <osquery/config.h>
+#include <osquery/core.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/inotify.h"

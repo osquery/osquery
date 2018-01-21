@@ -11,6 +11,7 @@
 #include <iostream>
 
 #include <osquery/config.h>
+#include <osquery/registry.h>
 
 #include "osquery/config/parsers/kafka_topics.h"
 

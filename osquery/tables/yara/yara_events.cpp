@@ -13,6 +13,7 @@
 
 #include <osquery/config.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 /// The file change event publishers are slightly different in OS X and Linux.
 #ifdef __APPLE__
