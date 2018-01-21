@@ -117,7 +117,6 @@ function platform_darwin_main() {
  function platform_posix_main() {
   # Library secondary dependencies.
   brew_dependency osquery/osquery-local/popt
-  brew_dependency osquery/osquery-local/beecrypt
   brew_dependency osquery/osquery-local/berkeley-db
 
   # libarchive for file carving
