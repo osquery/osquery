@@ -82,7 +82,7 @@ static inline void saveQuery(const std::string& name,
 bool Query::isNewQuery() const {
   std::string query;
   getDatabaseValue(kQueries, "query." + name_, query);
-  return (query != query_.query);
+  return (query != query_);
 }
 
 Status Query::addNewResults(QueryData qd,
@@ -104,7 +104,7 @@ Status Query::addNewResults(QueryData current_qd,
     // This is the first encounter of the scheduled query.
     fresh_results = true;
     LOG(INFO) << "Storing initial results for new scheduled query: " << name_;
-    saveQuery(name_, query_.query);
+    saveQuery(name_, query_);
   } else if (getPreviousEpoch() != current_epoch) {
     fresh_results = true;
     LOG(INFO) << "New Epoch " << current_epoch << " for scheduled query "
@@ -113,7 +113,7 @@ Status Query::addNewResults(QueryData current_qd,
     // This query is 'new' in that the previous results may be invalid.
     new_query = true;
     LOG(INFO) << "Scheduled query has been updated: " + name_;
-    saveQuery(name_, query_.query);
+    saveQuery(name_, query_);
   }
 
   // Use a 'target' avoid copying the query data when serializing and saving.
@@ -167,30 +167,32 @@ Status Query::addNewResults(QueryData current_qd,
   return Status(0, "OK");
 }
 
-Status serializeRow(const Row& r, JSON& doc, rj::Value& obj) {
-  for (auto& i : r) {
-    doc.addRef(i.first, i.second, obj);
-  }
-  return Status();
-}
-
 Status serializeRow(const Row& r,
                     const ColumnNames& cols,
                     JSON& doc,
-                    rj::Document& obj) {
-  try {
-    for (auto& c : cols) {
-      doc.addRef(c, r.at(c), obj);
+                    rj::Value& obj) {
+  if (cols.empty()) {
+    for (const auto& i : r) {
+      doc.addRef(i.first, i.second, obj);
     }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
+  } else {
+    for (const auto& c : cols) {
+      auto i = r.find(c);
+      if (i != r.end()) {
+        doc.addRef(c, i->second, obj);
+      }
+    }
   }
+
   return Status();
 }
 
 Status serializeRowJSON(const Row& r, std::string& json) {
   auto doc = JSON::newObject();
-  auto status = serializeRow(r, doc, doc.doc());
+
+  // An empty column list will traverse the row map.
+  ColumnNames cols;
+  auto status = serializeRow(r, cols, doc, doc.doc());
   if (!status.ok()) {
     return status;
   }
@@ -221,7 +223,9 @@ Status deserializeRowJSON(const std::string& json, Row& r) {
 
 Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
   auto doc = JSON::newArray();
-  auto status = serializeQueryData(q, doc, doc.doc());
+
+  ColumnNames cols;
+  auto status = serializeQueryData(q, cols, doc, doc.doc());
   if (!status.ok()) {
     return status;
   }
@@ -278,6 +282,7 @@ Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
 }
 
 Status serializeDiffResults(const DiffResults& d,
+                            const ColumnNames& cols,
                             JSON& doc,
                             rj::Document& obj) {
   // Serialize and add "removed" first.
@@ -285,14 +290,14 @@ Status serializeDiffResults(const DiffResults& d,
   // the logger plugins and their aggregations, allowing them to parse chunked
   // lines. Note that the chunking is opaque to the database functions.
   auto removed_arr = doc.getArray();
-  auto status = serializeQueryData(d.removed, doc, removed_arr);
+  auto status = serializeQueryData(d.removed, cols, doc, removed_arr);
   if (!status.ok()) {
     return status;
   }
   doc.add("removed", removed_arr, obj);
 
   auto added_arr = doc.getArray();
-  status = serializeQueryData(d.added, doc, added_arr);
+  status = serializeQueryData(d.added, cols, doc, added_arr);
   if (!status.ok()) {
     return status;
   }
@@ -323,7 +328,9 @@ Status deserializeDiffResults(const rj::Value& doc, DiffResults& dr) {
 
 Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
   auto doc = JSON::newObject();
-  auto status = serializeDiffResults(d, doc, doc.doc());
+
+  ColumnNames cols;
+  auto status = serializeDiffResults(d, cols, doc, doc.doc());
   if (!status.ok()) {
     return status;
   }
@@ -394,7 +401,7 @@ inline void getLegacyFieldsAndDecorations(const JSON& doc, QueryLogItem& item) {
 Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
   if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
     auto obj = doc.getObject();
-    auto status = serializeDiffResults(item.results, doc, obj);
+    auto status = serializeDiffResults(item.results, item.columns, doc, obj);
     if (!status.ok()) {
       return status;
     }
@@ -402,7 +409,8 @@ Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
     doc.add("diffResults", obj);
   } else {
     auto arr = doc.getArray();
-    auto status = serializeQueryData(item.snapshot_results, doc, arr);
+    auto status =
+        serializeQueryData(item.snapshot_results, item.columns, doc, arr);
     if (!status.ok()) {
       return status;
     }
@@ -434,13 +442,14 @@ Status serializeEvent(const QueryLogItem& item,
 Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
   auto temp_doc = JSON::newObject();
   if (!item.results.added.empty() || !item.results.removed.empty()) {
-    auto status = serializeDiffResults(item.results, temp_doc, temp_doc.doc());
+    auto status = serializeDiffResults(
+        item.results, item.columns, temp_doc, temp_doc.doc());
     if (!status.ok()) {
       return status;
     }
   } else if (!item.snapshot_results.empty()) {
     auto arr = doc.getArray();
-    auto status = serializeQueryData(item.snapshot_results, temp_doc, arr);
+    auto status = serializeQueryData(item.snapshot_results, {}, temp_doc, arr);
     if (!status.ok()) {
       return status;
     }
@@ -461,9 +470,9 @@ Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
   return Status();
 }
 
-Status serializeQueryLogItemJSON(const QueryLogItem& i, std::string& json) {
+Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json) {
   auto doc = JSON::newObject();
-  auto status = serializeQueryLogItem(i, doc);
+  auto status = serializeQueryLogItem(item, doc);
   if (!status.ok()) {
     return status;
   }
@@ -503,10 +512,10 @@ Status deserializeQueryLogItemJSON(const std::string& json,
   return deserializeQueryLogItem(doc, item);
 }
 
-Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
+Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
                                          std::vector<std::string>& items) {
   auto doc = JSON::newArray();
-  auto status = serializeQueryLogItemAsEvents(i, doc);
+  auto status = serializeQueryLogItemAsEvents(item, doc);
   if (!status.ok()) {
     return status;
   }
@@ -517,18 +526,6 @@ Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
     rj::Writer<rj::StringBuffer> writer(sb);
     event.Accept(writer);
     items.push_back(sb.GetString());
-  }
-  return Status();
-}
-
-Status serializeQueryData(const QueryData& q, JSON& doc, rj::Document& arr) {
-  for (const auto& r : q) {
-    auto row_obj = doc.getObject();
-    auto status = serializeRow(r, doc, row_obj);
-    if (!status.ok()) {
-      return status;
-    }
-    doc.push(row_obj, arr);
   }
   return Status();
 }

@@ -47,12 +47,16 @@ using ColumnNames = std::vector<std::string>;
  * @brief Serialize a Row into a JSON document.
  *
  * @param r the Row to serialize.
+ * @param cols the TableColumn vector indicating column order
  * @param doc the managed JSON document.
  * @param obj [output] the JSON object to assign values.
  *
  * @return Status indicating the success or failure of the operation.
  */
-Status serializeRow(const Row& r, JSON& doc, rapidjson::Value& obj);
+Status serializeRow(const Row& r,
+                    const ColumnNames& cols,
+                    JSON& doc,
+                    rapidjson::Value& obj);
 
 /**
  * @brief Serialize a Row object into a JSON string.
@@ -103,19 +107,6 @@ using QueryDataSet = std::multiset<Row>;
  * @brief Serialize a QueryData object into a JSON array.
  *
  * @param q the QueryData to serialize.
- * @param doc the managed JSON document.
- * @param arr [output] the output JSON array.
- *
- * @return Status indicating the success or failure of the operation.
- */
-Status serializeQueryData(const QueryData& q,
-                          JSON& doc,
-                          rapidjson::Document& arr);
-
-/**
- * @brief Serialize a QueryData object into a JSON array.
- *
- * @param q the QueryData to serialize.
  * @param cols the TableColumn vector indicating column order.
  * @param doc the managed JSON document.
  * @param arr [output] the output JSON array.
@@ -157,12 +148,17 @@ Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd);
  * new QueryData, DiffResults indicates the "added" subset of rows and the
  * "removed" subset of rows.
  */
-struct DiffResults {
+struct DiffResults : private only_movable {
+ public:
   /// vector of added rows
   QueryData added;
 
   /// vector of removed rows
   QueryData removed;
+
+  DiffResults() {}
+  DiffResults(DiffResults&&) = default;
+  DiffResults& operator=(DiffResults&&) = default;
 
   /// equals operator
   bool operator==(const DiffResults& comp) const {
@@ -181,12 +177,14 @@ struct DiffResults {
  * The object JSON will contain two new keys: added and removed.
  *
  * @param d the DiffResults to serialize.
+ * @param cols the TableColumn vector indicating column order.
  * @param doc the managed JSON document.
  * @param obj [output] the output JSON object.
  *
  * @return Status indicating the success or failure of the operation.
  */
 Status serializeDiffResults(const DiffResults& d,
+                            const ColumnNames& cols,
                             JSON& doc,
                             rapidjson::Document& obj);
 
@@ -275,7 +273,8 @@ struct QueryPerformance {
  * Within the context of osqueryd, a scheduled query may have many relevant
  * attributes. Those attributes are represented in this data structure.
  */
-struct ScheduledQuery {
+struct ScheduledQuery : private only_movable {
+ public:
   /// The SQL query.
   std::string query;
 
@@ -298,6 +297,8 @@ struct ScheduledQuery {
   std::map<std::string, bool> options;
 
   ScheduledQuery() = default;
+  ScheduledQuery(ScheduledQuery&&) = default;
+  ScheduledQuery& operator=(ScheduledQuery&&) = default;
 
   /// equals operator
   bool operator==(const ScheduledQuery& comp) const {
@@ -318,6 +319,7 @@ struct ScheduledQuery {
  * results in potentially-differential form for a logger.
  */
 struct QueryLogItem {
+ public:
   /// Differential results from the query.
   DiffResults results;
 
@@ -344,6 +346,9 @@ struct QueryLogItem {
 
   /// A set of additional fields to emit with the log line.
   std::map<std::string, std::string> decorations;
+
+  /// The ordered map of columns from the query.
+  ColumnNames columns;
 
   /// equals operator
   bool operator==(const QueryLogItem& comp) const {
@@ -419,8 +424,8 @@ class Query {
    * @param name The query name.
    * @param q a SheduledQuery struct.
    */
-  explicit Query(std::string name, ScheduledQuery q)
-      : query_(std::move(q)), name_(std::move(name)) {}
+  explicit Query(std::string name, const ScheduledQuery& q)
+      : query_(q.query), name_(std::move(name)) {}
 
   /**
    * @brief Serialize the data in RocksDB into a useful data structure
@@ -529,8 +534,8 @@ class Query {
   static std::vector<std::string> getStoredQueryNames();
 
  private:
-  /// The scheduled query and internal
-  ScheduledQuery query_;
+  /// The scheduled query's query string.
+  std::string query_;
 
   /// The scheduled query name.
   std::string name_;

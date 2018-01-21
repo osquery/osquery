@@ -218,7 +218,7 @@ void Pack::initialize(const std::string& name,
                                      ? q.value["blacklist"].GetBool()
                                      : true;
 
-    schedule_[q.name.GetString()] = query;
+    schedule_.emplace(std::make_pair(q.name.GetString(), std::move(query)));
   }
 }
 
