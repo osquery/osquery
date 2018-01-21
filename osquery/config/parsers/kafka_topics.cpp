@@ -23,20 +23,15 @@ std::vector<std::string> KafkaTopicsConfigParserPlugin::keys() const {
   return {kKafkaTopicParserRootKey};
 }
 
-Status KafkaTopicsConfigParserPlugin::setUp() {
-  data_.put_child(kKafkaTopicParserRootKey, boost::property_tree::ptree());
-  return Status(0, "OK");
-}
-
 Status KafkaTopicsConfigParserPlugin::update(const std::string& source,
                                              const ParserConfig& config) {
-  if (config.count(kKafkaTopicParserRootKey) > 0) {
-    data_ = boost::property_tree::ptree();
-    data_.put_child(kKafkaTopicParserRootKey,
-                    config.at(kKafkaTopicParserRootKey));
+  auto topics = config.find(kKafkaTopicParserRootKey);
+  if (topics != config.end()) {
+    auto obj = data_.getObject();
+    data_.copyFrom(topics->second.doc(), obj);
+    data_.add(kKafkaTopicParserRootKey, obj);
   }
-
-  return Status(0, "OK");
+  return Status();
 }
 
 REGISTER_INTERNAL(KafkaTopicsConfigParserPlugin,

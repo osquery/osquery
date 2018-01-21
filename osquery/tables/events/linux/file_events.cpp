@@ -47,8 +47,7 @@ class FileEventSubscriber : public EventSubscriber<INotifyEventPublisher> {
 };
 
 /**
- * @brief Each EventSubscriber must register itself so the init method is
- *called.
+ * @brief EventSubscribers must register so their init method is called.
  *
  * This registers FileEventSubscriber into the osquery EventSubscriber
  * pseudo-plugin registry.
@@ -61,7 +60,7 @@ void FileEventSubscriber::configure() {
   removeSubscriptions();
 
   auto parser = Config::getParser("file_paths");
-  auto& accesses = parser->getData().get_child("file_accesses");
+  auto& accesses = parser->getData().doc()["file_accesses"];
   Config::get().files([this, &accesses](const std::string& category,
                                         const std::vector<std::string>& files) {
     for (const auto& file : files) {
@@ -71,8 +70,12 @@ void FileEventSubscriber::configure() {
       sc->recursive = 0;
       sc->opath = sc->path = file;
       sc->mask = kFileDefaultMasks;
-      if (accesses.count(category) > 0) {
-        sc->mask |= kFileAccessMasks;
+
+      for (const auto& item : accesses.GetArray()) {
+        if (item.GetString() == category) {
+          sc->mask |= kFileAccessMasks;
+          break;
+        }
       }
       sc->category = category;
       subscribe(&FileEventSubscriber::Callback, sc);

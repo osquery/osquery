@@ -48,8 +48,8 @@ EXAMPLE_NODE_CONFIG["node"] = True
 
 EXAMPLE_DISTRIBUTED = {
     "queries": {
-        "info": "select * from osquery_info",
-        "flags": "select * from osquery_flags",
+        "info": "select count(1) from osquery_info",
+        "flags": "select count(1) from osquery_flags",
     }
 }
 

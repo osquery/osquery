@@ -17,23 +17,22 @@
 
 namespace osquery {
 
-std::vector<std::string> PrometheusMetricsConfigParserPlugin::keys() const {
-  return {kConfigParserRootKey};
-}
+const std::string kPrometheusParserRootKey("prometheus_targets");
 
-Status PrometheusMetricsConfigParserPlugin::setUp() {
-  data_.put_child(kConfigParserRootKey, boost::property_tree::ptree());
-  return Status(0, "OK");
+std::vector<std::string> PrometheusMetricsConfigParserPlugin::keys() const {
+  return {kPrometheusParserRootKey};
 }
 
 Status PrometheusMetricsConfigParserPlugin::update(const std::string& source,
                                                    const ParserConfig& config) {
-  if (config.count(kConfigParserRootKey) > 0) {
-    data_ = boost::property_tree::ptree();
-    data_.put_child(kConfigParserRootKey, config.at(kConfigParserRootKey));
+  auto prometheus_targets = config.find(kPrometheusParserRootKey);
+  if (prometheus_targets != config.end()) {
+    auto obj = data_.getObject();
+    data_.copyFrom(prometheus_targets->second.doc(), obj);
+    data_.add(kPrometheusParserRootKey, obj);
   }
 
-  return Status(0, "OK");
+  return Status();
 }
 
 REGISTER_INTERNAL(PrometheusMetricsConfigParserPlugin,

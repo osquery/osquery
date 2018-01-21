@@ -38,7 +38,20 @@ namespace osquery {
 
 class DistributedTests : public testing::Test {
  protected:
-  void SetUp() {
+  void TearDown() override {
+    if (server_started_) {
+      TLSServerRunner::stop();
+      TLSServerRunner::unsetClientConfig();
+      clearNodeKey();
+
+      Flag::updateValue("distributed_tls_read_endpoint",
+                        distributed_tls_read_endpoint_);
+      Flag::updateValue("distributed_tls_write_endpoint",
+                        distributed_tls_write_endpoint_);
+    }
+  }
+
+  void startServer() {
     TLSServerRunner::start();
     TLSServerRunner::setClientConfig();
     clearNodeKey();
@@ -52,22 +65,15 @@ class DistributedTests : public testing::Test {
     Flag::updateValue("distributed_tls_write_endpoint", "/distributed_write");
 
     Registry::get().setActive("distributed", "tls");
-  }
-
-  void TearDown() {
-    TLSServerRunner::stop();
-    TLSServerRunner::unsetClientConfig();
-    clearNodeKey();
-
-    Flag::updateValue("distributed_tls_read_endpoint",
-                      distributed_tls_read_endpoint_);
-    Flag::updateValue("distributed_tls_write_endpoint",
-                      distributed_tls_write_endpoint_);
+    server_started_ = true;
   }
 
  protected:
   std::string distributed_tls_read_endpoint_;
   std::string distributed_tls_write_endpoint_;
+
+ private:
+  bool server_started_{false};
 };
 
 TEST_F(DistributedTests, test_serialize_distributed_query_request) {
@@ -75,42 +81,33 @@ TEST_F(DistributedTests, test_serialize_distributed_query_request) {
   r.query = "foo";
   r.id = "bar";
 
-  rapidjson::Document d(rapidjson::kObjectType);
-  auto s = serializeDistributedQueryRequest(r, d);
+  auto doc = JSON::newObject();
+  auto s = serializeDistributedQueryRequest(r, doc, doc.doc());
   EXPECT_TRUE(s.ok());
-  EXPECT_TRUE(d.HasMember("query") && d["query"].IsString());
-  EXPECT_TRUE(d.HasMember("id") && d["id"].IsString());
-  if (d.HasMember("query")) {
-    EXPECT_EQ(std::string(d["query"].GetString()), "foo");
+  EXPECT_TRUE(doc.doc().HasMember("query") && doc.doc()["query"].IsString());
+  EXPECT_TRUE(doc.doc().HasMember("id") && doc.doc()["id"].IsString());
+  if (doc.doc().HasMember("query")) {
+    EXPECT_EQ(std::string(doc.doc()["query"].GetString()), "foo");
   }
-  if (d.HasMember("id")) {
-    EXPECT_EQ(std::string(d["id"].GetString()), "bar");
+  if (doc.doc().HasMember("id")) {
+    EXPECT_EQ(std::string(doc.doc()["id"].GetString()), "bar");
   }
 }
 
 TEST_F(DistributedTests, test_deserialize_distributed_query_request) {
-  rapidjson::Document d(rapidjson::kObjectType);
-  d.AddMember(rapidjson::Value("query", d.GetAllocator()).Move(),
-              rapidjson::Value("foo", d.GetAllocator()),
-              d.GetAllocator());
-
-  d.AddMember(rapidjson::Value("id", d.GetAllocator()).Move(),
-              rapidjson::Value("bar", d.GetAllocator()).Move(),
-              d.GetAllocator());
+  auto doc = JSON::newObject();
+  doc.addRef("query", "foo");
+  doc.addRef("id", "bar");
 
   DistributedQueryRequest r;
-  auto s = deserializeDistributedQueryRequest(d, r);
+  auto s = deserializeDistributedQueryRequest(doc.doc(), r);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(r.query, "foo");
   EXPECT_EQ(r.id, "bar");
 }
 
 TEST_F(DistributedTests, test_deserialize_distributed_query_request_json) {
-  auto json =
-      "{"
-      "  \"query\": \"foo\","
-      "  \"id\": \"bar\""
-      "}";
+  std::string json = "{\"query\": \"foo\", \"id\": \"bar\"}";
 
   DistributedQueryRequest r;
   auto s = deserializeDistributedQueryRequestJSON(json, r);
@@ -128,14 +125,16 @@ TEST_F(DistributedTests, test_serialize_distributed_query_result) {
   r1["foo"] = "bar";
   r.results = {r1};
   r.columns = {"foo"};
-  rapidjson::Document d(rapidjson::kObjectType);
-  auto s = serializeDistributedQueryResult(r, d);
+
+  //  rapidjson::Document d(rapidjson::kObjectType);
+  auto doc = JSON::newObject();
+  auto s = serializeDistributedQueryResult(r, doc, doc.doc());
   EXPECT_TRUE(s.ok());
-  EXPECT_TRUE(d.IsObject());
-  EXPECT_EQ(d["request"]["query"], "foo");
-  EXPECT_EQ(d["request"]["id"], "bar");
-  EXPECT_TRUE(d["results"].IsArray());
-  for (const auto& q : d["results"].GetArray()) {
+  //  EXPECT_TRUE(doc.doc().IsObject());
+  EXPECT_EQ(doc.doc()["request"]["query"], "foo");
+  EXPECT_EQ(doc.doc()["request"]["id"], "bar");
+  EXPECT_TRUE(doc.doc()["results"].IsArray());
+  for (const auto& q : doc.doc()["results"].GetArray()) {
     for (const auto& row : q.GetObject()) {
       EXPECT_EQ(row.name, "foo");
       EXPECT_EQ(q[row.name], "bar");
@@ -144,36 +143,21 @@ TEST_F(DistributedTests, test_serialize_distributed_query_result) {
 }
 
 TEST_F(DistributedTests, test_deserialize_distributed_query_result) {
-  rapidjson::Document query_result(rapidjson::kObjectType);
-  rapidjson::Document request(rapidjson::kObjectType);
-  rapidjson::Value row(rapidjson::kObjectType);
-  rapidjson::Document results(rapidjson::kArrayType);
+  auto doc = JSON::newObject();
+  auto request_obj = doc.getObject();
+  doc.addRef("query", "bar", request_obj);
+  doc.addRef("id", "foo", request_obj);
 
-  request.AddMember(
-      rapidjson::Value("query", query_result.GetAllocator()).Move(),
-      rapidjson::Value("bar", query_result.GetAllocator()),
-      query_result.GetAllocator());
+  auto row_obj = doc.getObject();
+  doc.addRef("foo", "bar", row_obj);
 
-  request.AddMember(rapidjson::Value("id", query_result.GetAllocator()).Move(),
-                    rapidjson::Value("foo", query_result.GetAllocator()).Move(),
-                    query_result.GetAllocator());
-
-  row.AddMember(rapidjson::Value("foo", query_result.GetAllocator()).Move(),
-                rapidjson::Value("bar", query_result.GetAllocator()).Move(),
-                query_result.GetAllocator());
-
-  results.PushBack(rapidjson::Value(row, request.GetAllocator()).Move(),
-                   request.GetAllocator());
-
-  query_result.AddMember("request",
-                         rapidjson::Value(request, query_result.GetAllocator()),
-                         query_result.GetAllocator());
-  query_result.AddMember("results",
-                         rapidjson::Value(results, query_result.GetAllocator()),
-                         query_result.GetAllocator());
+  auto results_arr = doc.getArray();
+  doc.push(row_obj, results_arr);
+  doc.add("request", request_obj);
+  doc.add("results", results_arr);
 
   DistributedQueryResult r;
-  auto s = deserializeDistributedQueryResult(query_result, r);
+  auto s = deserializeDistributedQueryResult(doc.doc(), r);
   EXPECT_EQ(r.request.id, "foo");
   EXPECT_EQ(r.request.query, "bar");
   EXPECT_EQ(r.results[0]["foo"], "bar");
@@ -195,13 +179,16 @@ TEST_F(DistributedTests, test_deserialize_distributed_query_result_json) {
 
   DistributedQueryResult r;
   auto s = deserializeDistributedQueryResultJSON(json, r);
-  EXPECT_TRUE(s.ok());
+  ASSERT_TRUE(s.ok());
   EXPECT_EQ(r.request.id, "foo");
   EXPECT_EQ(r.request.query, "bar");
+  ASSERT_EQ(r.results.size(), 1_sz);
   EXPECT_EQ(r.results[0]["foo"], "bar");
 }
 
 TEST_F(DistributedTests, test_workflow) {
+  startServer();
+
   auto dist = Distributed();
   auto s = dist.pullUpdates();
   EXPECT_TRUE(s.ok());

@@ -246,6 +246,7 @@ static const char* zShellStatic = nullptr;
 void shellstaticFunc(sqlite3_context* context,
                      int argc,
                      sqlite3_value** /* argv */) {
+  (void)argc;
   assert(0 == argc);
   assert(zShellStatic);
   sqlite3_result_text(context, zShellStatic, -1, SQLITE_STATIC);

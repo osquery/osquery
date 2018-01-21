@@ -26,9 +26,8 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/core/json.h"
 
-namespace pt = boost::property_tree;
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -305,15 +304,16 @@ Config::Config()
 
 void Config::addPack(const std::string& name,
                      const std::string& source,
-                     const pt::ptree& tree) {
+                     const rj::Value& obj) {
+  assert(obj.IsObject());
+
   auto addSinglePack = ([this, &source](const std::string pack_name,
-                                        const pt::ptree& pack_tree) {
+                                        const rj::Value& pack_obj) {
     RecursiveLock wlock(config_schedule_mutex_);
     try {
-      schedule_->add(std::make_shared<Pack>(pack_name, source, pack_tree));
+      schedule_->add(std::make_shared<Pack>(pack_name, source, pack_obj));
       if (schedule_->last()->shouldPackExecute()) {
-        applyParsers(
-            source + FLAGS_pack_delimiter + pack_name, pack_tree, true);
+        applyParsers(source + FLAGS_pack_delimiter + pack_name, pack_obj, true);
       }
     } catch (const std::exception& e) {
       LOG(WARNING) << "Error adding pack: " << pack_name << ": " << e.what();
@@ -324,11 +324,11 @@ void Config::addPack(const std::string& name,
     // This is a multi-pack, expect the config plugin to have generated a
     // "name": {pack-content} response similar to embedded pack content
     // within the configuration.
-    for (const auto& pack : tree) {
-      addSinglePack(pack.first, pack.second);
+    for (const auto& pack : obj.GetObject()) {
+      addSinglePack(pack.name.GetString(), pack.value);
     }
   } else {
-    addSinglePack(name, tree);
+    addSinglePack(name, obj);
   }
 }
 
@@ -536,58 +536,65 @@ Status Config::updateSource(const std::string& source,
     removeFiles(source);
   }
 
-  // load the config (source.second) into a pt::ptree
-  pt::ptree tree;
-  try {
-    auto clone = json;
-    stripConfigComments(clone);
-    std::stringstream json_stream;
-    json_stream << clone;
-    pt::read_json(json_stream, tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
+  // load the config (source.second) into a JSON object.
+  auto doc = JSON::newObject();
+  auto clone = json;
+  stripConfigComments(clone);
+
+  if (!doc.fromString(clone) || !doc.doc().IsObject()) {
     return Status(1, "Error parsing the config JSON");
   }
 
   // extract the "schedule" key and store it as the main pack
   auto& rf = RegistryFactory::get();
-  if (tree.count("schedule") > 0 && !rf.external()) {
-    auto& schedule = tree.get_child("schedule");
-    pt::ptree main_pack;
-    main_pack.add_child("queries", schedule);
-    addPack("main", source, main_pack);
+  if (doc.doc().HasMember("schedule") && !rf.external()) {
+    auto& schedule = doc.doc()["schedule"];
+    if (schedule.IsObject()) {
+      auto main_doc = JSON::newObject();
+      auto queries_obj = main_doc.getObject();
+      main_doc.copyFrom(schedule, queries_obj);
+      main_doc.add("queries", queries_obj);
+      addPack("main", source, main_doc.doc());
+    }
   }
 
-  if (tree.count("scheduledQueries") > 0 && !rf.external()) {
-    auto& scheduled_queries = tree.get_child("scheduledQueries");
-    pt::ptree queries;
-    for (const std::pair<std::string, pt::ptree>& query : scheduled_queries) {
-      auto query_name = query.second.get<std::string>("name", "");
-      if (query_name.empty()) {
-        return Status(1, "Error getting name from legacy scheduled query");
+  if (doc.doc().HasMember("scheduledQueries") && !rf.external()) {
+    auto& schedule = doc.doc()["scheduledQueries"];
+    if (schedule.IsArray()) {
+      auto queries_doc = JSON::newObject();
+      auto queries_obj = queries_doc.getObject();
+
+      for (auto& query : schedule.GetArray()) {
+        std::string query_name = query["name"].GetString();
+        if (query_name.empty()) {
+          return Status(1, "Error getting name from legacy scheduled query");
+        }
+        queries_doc.add(query_name, query, queries_obj);
       }
-      queries.add_child(query_name, query.second);
+
+      queries_doc.add("queries", queries_obj);
+      addPack("legacy_main", source, queries_doc.doc());
     }
-    pt::ptree legacy_pack;
-    legacy_pack.add_child("queries", queries);
-    addPack("legacy_main", source, legacy_pack);
   }
 
   // extract the "packs" key into additional pack objects
-  if (tree.count("packs") > 0 && !rf.external()) {
-    auto& packs = tree.get_child("packs");
-    for (const auto& pack : packs) {
-      auto value = packs.get<std::string>(pack.first, "");
-      if (value.empty()) {
-        // The pack is a JSON object, treat the content as pack data.
-        addPack(pack.first, source, pack.second);
-      } else {
-        genPack(pack.first, source, value);
+  if (doc.doc().HasMember("packs") && !rf.external()) {
+    auto& packs = doc.doc()["packs"];
+    if (packs.IsObject()) {
+      for (const auto& pack : packs.GetObject()) {
+        std::string pack_name = pack.name.GetString();
+        if (pack.value.IsObject()) {
+          // The pack is a JSON object, treat the content as pack data.
+          addPack(pack_name, source, pack.value);
+        } else if (pack.value.IsString()) {
+          genPack(pack_name, source, pack.value.GetString());
+        }
       }
     }
   }
 
-  applyParsers(source, tree, false);
-  return Status(0, "OK");
+  applyParsers(source, doc.doc(), false);
+  return Status();
 }
 
 Status Config::genPack(const std::string& name,
@@ -604,28 +611,28 @@ Status Config::genPack(const std::string& name,
     return Status(1, "Invalid plugin response");
   }
 
-  try {
-    auto clone = response[0][name];
-    if (clone == "") {
-      LOG(WARNING) << "Error reading the query pack named: " << name;
-      return Status(0);
-    }
-    stripConfigComments(clone);
-    pt::ptree pack_tree;
-    std::stringstream pack_stream;
-    pack_stream << clone;
-    pt::read_json(pack_stream, pack_tree);
-    addPack(name, source, pack_tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    LOG(WARNING) << "Error parsing the \"" << name
-                 << "\" pack JSON: " << e.what();
+  auto clone = response[0][name];
+  if (clone.empty()) {
+    LOG(WARNING) << "Error reading the query pack named: " << name;
+    return Status();
   }
-  return Status(0);
+
+  stripConfigComments(clone);
+  auto doc = JSON::newObject();
+  if (!doc.fromString(clone) || !doc.doc().IsObject()) {
+    LOG(WARNING) << "Error parsing the \"" << name << "\" pack JSON";
+  } else {
+    addPack(name, source, doc.doc());
+  }
+
+  return Status();
 }
 
 void Config::applyParsers(const std::string& source,
-                          const pt::ptree& tree,
+                          const rj::Value& obj,
                           bool pack) {
+  assert(obj.IsObject());
+
   // Iterate each parser.
   RecursiveLock lock(config_schedule_mutex_);
   for (const auto& plugin : RegistryFactory::get().plugins("config_parser")) {
@@ -640,12 +647,13 @@ void Config::applyParsers(const std::string& source,
     }
 
     // For each key requested by the parser, add a property tree reference.
-    std::map<std::string, pt::ptree> parser_config;
+    std::map<std::string, JSON> parser_config;
     for (const auto& key : parser->keys()) {
-      if (tree.count(key) > 0) {
-        parser_config[key] = tree.get_child(key);
+      if (obj.HasMember(key)) {
+        auto doc = JSON::newFromValue(obj[key]);
+        parser_config.emplace(std::make_pair(key, std::move(doc)));
       } else {
-        parser_config[key] = pt::ptree();
+        parser_config.emplace(std::make_pair(key, JSON::newObject()));
       }
     }
     // The config parser plugin will receive a copy of each property tree for
@@ -799,8 +807,9 @@ void Config::reset() {
 
 void ConfigParserPlugin::reset() {
   // Resets will clear all top-level keys from the parser's data store.
-  for (auto& category : data_) {
-    boost::property_tree::ptree().swap(category.second);
+  for (auto& category : data_.doc().GetObject()) {
+    auto obj = data_.getObject();
+    data_.add(category.name.GetString(), obj, data_.doc());
   }
 }
 
@@ -970,9 +979,10 @@ Status ConfigPlugin::call(const PluginRequest& request,
 
 Status ConfigParserPlugin::setUp() {
   for (const auto& key : keys()) {
-    data_.put(key, "");
+    auto obj = data_.getObject();
+    data_.add(key, obj);
   }
-  return Status(0, "OK");
+  return Status();
 }
 
 void ConfigRefreshRunner::start() {
