@@ -270,8 +270,7 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<std::string> query_names;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
   get().scheduledQueries(
-      ([&query_names](const std::string& name,
-                                const ScheduledQuery& query) {
+      ([&query_names](const std::string& name, const ScheduledQuery& query) {
         query_names.push_back(name);
       }));
 
@@ -307,7 +306,7 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   bool blacklisted = false;
   get().scheduledQueries(
       ([&blacklisted, &query_names, &query_name](const std::string& name,
-                                             const ScheduledQuery& query) {
+                                                 const ScheduledQuery& query) {
         if (name == query_name) {
           // Only populate the query we've blacklisted.
           query_names.push_back(name);
