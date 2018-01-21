@@ -74,7 +74,7 @@ if(LINUX)
   ADD_OSQUERY_LINK_ADDITIONAL("ip4tc")
 
   ADD_OSQUERY_LINK_ADDITIONAL("dpkg lzma bz2")
-  ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio beecrypt popt db")
+  ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio popt db")
 endif()
 
 if(POSIX)
