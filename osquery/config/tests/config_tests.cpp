@@ -271,7 +271,8 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<ScheduledQuery> queries;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
   get().scheduledQueries(
-      ([&queries, &query_names](const std::string& name, const ScheduledQuery& query) {
+      ([&queries, &query_names](const std::string& name,
+                                const ScheduledQuery& query) {
         query_names.push_back(name);
         queries.push_back(query);
       }));

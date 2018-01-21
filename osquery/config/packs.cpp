@@ -214,8 +214,9 @@ void Pack::initialize(const std::string& name,
     } else {
       query.options["removed"] = JSON::valueToBool(q.value["removed"]);
     }
-    query.options["blacklist"] =
-        (q.value.HasMember("blacklist")) ? q.value["blacklist"].GetBool() : true;
+    query.options["blacklist"] = (q.value.HasMember("blacklist"))
+                                     ? q.value["blacklist"].GetBool()
+                                     : true;
 
     schedule_[q.name.GetString()] = query;
   }

@@ -141,8 +141,7 @@ Status serializeQueryDataJSON(const QueryData& q, std::string& json);
 Status deserializeQueryData(const rapidjson::Value& arr, QueryData& qd);
 
 /// Inverse of serializeQueryData, convert JSON to QueryDataSet.
-Status deserializeQueryData(const rapidjson::Value& arr,
-                            QueryDataSet& qd);
+Status deserializeQueryData(const rapidjson::Value& arr, QueryDataSet& qd);
 
 /// Inverse of serializeQueryDataJSON, convert a JSON string to QueryData.
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd);
