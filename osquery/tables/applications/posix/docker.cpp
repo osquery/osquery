@@ -396,7 +396,6 @@ QueryData genContainers(QueryContext& context) {
     if (s.ok()) {
       pid_t process_id = container_details.get<pid_t>("State.Pid", -1);
       r["pid"] = std::to_string(process_id);
-
     } else {
       VLOG(1) << "Failed to retrieve the pid for container " << r["id"];
     }
@@ -408,7 +407,6 @@ QueryData genContainers(QueryContext& context) {
         for (const auto& pair : namespace_list) {
           r[pair.first + "_namespace"] = std::to_string(pair.second);
         }
-
       } else {
         VLOG(1) << "Failed to retrieve the namespace list for container "
                 << r["id"];
@@ -941,5 +939,5 @@ QueryData genImageLabels(QueryContext& context) {
                    false, // Does not support "filters" query string
                    false); // Does not support "all" query string
 }
-}
-}
+} // namespace tables
+} // namespace osquery

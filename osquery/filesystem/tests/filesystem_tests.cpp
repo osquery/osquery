@@ -23,6 +23,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
+#include "osquery/filesystem/linux/proc.h"
 #include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
@@ -428,6 +429,23 @@ TEST_F(FilesystemTests, test_safe_permissions) {
   }
 }
 
+TEST_F(FilesystemTests, test_user_namespace_parser) {
+  std::string content;
+
+  if (isPlatform(PlatformType::TYPE_LINUX)) {
+    auto temp_path = fs::unique_path().native();
+    EXPECT_EQ(symlink("namespace:[112233]", temp_path.data()), 0);
+
+    ino_t namespace_inode;
+    auto status =
+        procGetNamespaceInode(namespace_inode, "namespace", temp_path);
+    EXPECT_TRUE(status.ok());
+
+    removePath(temp_path);
+    EXPECT_EQ(namespace_inode, static_cast<ino_t>(112233));
+  }
+}
+
 TEST_F(FilesystemTests, test_read_proc) {
   std::string content;
 
@@ -470,4 +488,4 @@ TEST_F(FilesystemTests, test_read_urandom) {
     EXPECT_NE(first, second);
   }
 }
-}
+} // namespace osquery

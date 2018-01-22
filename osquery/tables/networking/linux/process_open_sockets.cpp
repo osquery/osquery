@@ -54,11 +54,12 @@ QueryData genOpenSockets(QueryContext& context) {
 
   CallbackData callback_data = {};
 
-  std::set<ino_t> processed_namespaces;
-
   for (const auto& process_id : pids) {
+    // We are only interested in the 'net' namespace, so we will be filtering
+    // out everything else
     ProcessNamespaceList process_namespaces;
-    auto status = procGetProcessNamespaces(process_id, process_namespaces);
+    auto status =
+        procGetProcessNamespaces(process_id, process_namespaces, {"net"});
     if (!status.ok()) {
       VLOG(1)
           << "The process_open_sockets may be showing partial results. Error: "
@@ -122,5 +123,5 @@ QueryData genOpenSockets(QueryContext& context) {
 
   return callback_data.results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

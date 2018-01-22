@@ -24,22 +24,22 @@
 #include "osquery/core/conversions.h"
 
 namespace osquery {
-extern const char* kLinuxProcPath;
+const std::string kLinuxProcPath = "/proc";
 
 struct ProcessSocket final {
   std::string socket;
-  int family;
-  int protocol;
+  int family{0};
+  int protocol{0};
 
   std::string local_address;
-  std::uint16_t local_port;
+  std::uint16_t local_port{0U};
 
   std::string remote_address;
-  std::uint16_t remote_port;
+  std::uint16_t remote_port{0U};
 
   std::string unix_socket_path;
 
-  int fd;
+  int fd{0};
   std::string state;
 };
 
@@ -52,7 +52,7 @@ const std::map<int, std::string> kLinuxProtocolNames = {
     {IPPROTO_RAW, "raw"},
 };
 
-const std::vector<const char*> tcp_states = {"UNKNOWN",
+const std::vector<std::string> tcp_states = {"UNKNOWN",
                                              "ESTABLISHED",
                                              "SYN_SENT",
                                              "SYN_RECV",
@@ -67,12 +67,20 @@ const std::vector<const char*> tcp_states = {"UNKNOWN",
 
 using ProcessNamespaceList = std::map<std::string, ino_t>;
 
-Status procGetProcessNamespaces(const std::string& process_id,
-                                ProcessNamespaceList& namespace_list);
+Status procGetProcessNamespaces(
+    const std::string& process_id,
+    ProcessNamespaceList& namespace_list,
+    std::vector<std::string> namespaces = std::vector<std::string>());
 
 Status procReadDescriptor(const std::string& process,
                           const std::string& descriptor,
                           std::string& result);
+
+/// This function parses the inode value in the destination of a user namespace
+/// symlink; fail if the namespace name is now what we expect
+Status procGetNamespaceInode(ino_t& inode,
+                             const std::string& namespace_name,
+                             const std::string& process_namespace_root);
 
 std::string procDecodeAddressFromHex(const std::string& encoded_address,
                                      int family);
@@ -119,8 +127,7 @@ Status procDescriptors(const std::string& process_id,
                                         const std::string&,
                                         UserData),
                        UserData data) {
-  auto descriptors_path =
-      std::string(kLinuxProcPath) + "/" + process_id + "/fd";
+  auto descriptors_path = kLinuxProcPath + "/" + process_id + "/fd";
 
   try {
     boost::filesystem::directory_iterator it(descriptors_path), end;
@@ -154,6 +161,11 @@ Status procProcessSockets(bool (*callback)(const ProcessSocket&, UserData),
                           int family,
                           std::unordered_map<std::string, std::string>*
                               inode_to_fd_map_ptr = nullptr) {
+  if (protocol == IPPROTO_IP && family != AF_UNIX) {
+    return Status(
+        1, "The IPPROTO_IP protocol can only be used with the AF_UNIX family");
+  }
+
   if (protocol != IPPROTO_IP &&
       kLinuxProtocolNames.find(protocol) == kLinuxProtocolNames.end()) {
     return Status(1, "Invalid protocol specified");
@@ -166,7 +178,6 @@ Status procProcessSockets(bool (*callback)(const ProcessSocket&, UserData),
   std::unordered_map<std::string, std::string> inode_to_fd_map;
   if (inode_to_fd_map_ptr != nullptr) {
     inode_to_fd_map = *inode_to_fd_map_ptr;
-
   } else {
     auto status = procSocketInodeToFdMap(process_id, inode_to_fd_map);
     if (!status.ok()) {
@@ -174,8 +185,7 @@ Status procProcessSockets(bool (*callback)(const ProcessSocket&, UserData),
     }
   }
 
-  auto socket_list_path =
-      std::string(kLinuxProcPath) + "/" + process_id + "/net/";
+  auto socket_list_path = kLinuxProcPath + "/" + process_id + "/net/";
 
   if (family == AF_UNIX) {
     socket_list_path += "unix";
@@ -224,7 +234,6 @@ Status procProcessSockets(bool (*callback)(const ProcessSocket&, UserData),
       proc_socket.protocol = std::atoll(fields[2].data());
       proc_socket.local_port = proc_socket.remote_port = 0U;
       proc_socket.unix_socket_path = (fields.size() >= 8) ? fields[7] : "";
-
     } else {
       // Two of the fields are the local/remote address/port pairs.
       auto locals = osquery::split(fields[1], ":");
@@ -274,4 +283,4 @@ Status procProcessSockets(bool (*callback)(const ProcessSocket&, UserData),
 
   return Status(0, "OK");
 }
-}
+} // namespace osquery

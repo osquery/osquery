@@ -11,24 +11,26 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
+namespace {
+const std::string kAF_UNIX = "1";
+const std::string kAF_INET = "2";
+const std::string kAF_INET6 = "10";
+} // namespace
+
 namespace osquery {
 namespace tables {
-
 QueryData genListeningPorts(QueryContext& context) {
   QueryData results;
 
   auto sockets = SQL::selectAllFrom("process_open_sockets");
 
   for (const auto& socket : sockets) {
-    // 1  = AF_UNIX
-    if (socket.at("family") == "1" && socket.at("path").empty()) {
+    if (socket.at("family") == kAF_UNIX && socket.at("path").empty()) {
       // Skip anonymous unix domain sockets
       continue;
     }
 
-    // 2  = AF_INET
-    // 10 = AF_INET6
-    if ((socket.at("family") == "2" || socket.at("family") == "10") &&
+    if ((socket.at("family") == kAF_INET || socket.at("family") == kAF_INET6) &&
         socket.at("remote_port") != "0") {
       // Listening UDP/TCP ports have a remote_port == "0"
       continue;
@@ -37,7 +39,7 @@ QueryData genListeningPorts(QueryContext& context) {
     Row r;
     r["pid"] = socket.at("pid");
 
-    if (socket.at("family") == "1") {
+    if (socket.at("family") == kAF_UNIX) {
       r["path"] = socket.at("path");
     } else {
       r["address"] = socket.at("local_address");
@@ -55,5 +57,5 @@ QueryData genListeningPorts(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
