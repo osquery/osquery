@@ -37,7 +37,7 @@ function New-MsiPackage() {
     [array] $extras = @()
   )
   $workingDir = Get-Location
-  if ((-not (Get-Command 'candle.exe')) -or 
+  if ((-not (Get-Command 'candle.exe')) -or
       (-not (Get-Command 'light.exe'))) {
     $msg = '[-] WiX not found, run .\tools\make-win64-dev-env.bat.'
     Write-Host $msg -ForegroundColor Red
@@ -106,7 +106,7 @@ function New-MsiPackage() {
     Manufacturer='Facebook'
 '@
 $wix += "`nId='$(New-Guid)'`n"
-$wix += 
+$wix +=
 @'
     UpgradeCode='$(var.OsqueryUpgradeCode)'
     Language='1033'
@@ -126,7 +126,6 @@ $wix +=
     <MediaTemplate EmbedCab="yes" />
 
     <MajorUpgrade
-      AllowSameVersionUpgrades="yes"
       DowngradeErrorMessage="A later version of osquery is already installed. Setup will now exit." />
 
     <Condition Message='A newer version of osquery is already installed.'>
@@ -146,8 +145,8 @@ $wix +=
             <Component Id='osqueryd'
                 Guid='41c9910d-bded-45dc-8f82-3cd00a24fa2f'>
                 <CreateFolder>
-                <Permission User="Users" Read="yes" 
-                  ReadExtendedAttributes="yes" Traverse="yes" 
+                <Permission User="Users" Read="yes"
+                  ReadExtendedAttributes="yes" Traverse="yes"
                   ReadAttributes="yes" ReadPermission="yes" Synchronize="yes"
                   GenericWrite="no" WriteAttributes="no"/>
                 <Permission User="Administrators" GenericAll="yes"/>
@@ -215,7 +214,7 @@ foreach ($p in $(Get-ChildItem $packsPath)) {
   $wix += "<File Id='pack_$cnt.conf' Name='$p' Source='$packsPath\$p'/>`n"
   $cnt += 1
 }
-$wix += 
+$wix +=
 @'
                </Component>
              </Directory>
@@ -270,7 +269,7 @@ $wix += @'
   $wix = $wix -Replace 'OSQUERY_CERTS_PATH', "certs"
   $wix = $wix -Replace 'OSQUERY_IMAGE_PATH', "$buildPath\osquery.ico"
   $wix = $wix -Replace 'OSQUERY_MGMT_PATH', "$scriptPath\tools\manage-osqueryd.ps1"
-  
+
   $wix | Out-File -Encoding 'UTF8' "$buildPath\osquery.wxs"
 
   $candle = (Get-Command 'candle').Source
@@ -463,7 +462,7 @@ And verify that the digests match one of the below values:
 
 function Get-Help {
   $programName = (Get-Item $PSCommandPath ).Name
-  $msg =  "Usage: $programName [-type] [-extras] `n" + 
+  $msg =  "Usage: $programName [-type] [-extras] `n" +
           "    -help       Prints this message`n" +
           "    -type       The type of package to build, can be 'chocolatey' or 'msi'`n" +
           "    -extras     Any additional files to bundle with the packages (msi only)`n`n"
@@ -495,11 +494,13 @@ function Main() {
   )
   $version = $(Start-OsqueryProcess $git $gitArgs).stdout
   $latest = $version.split('-')[0]
-  # If split len is greater than 1, this is a pre-release. Chocolatey is 
+  # If split len is greater than 1, this is a pre-release. Chocolatey is
   # particular about the format of the version for pre-releases.
   if ($version.split('-').length -eq 3) {
     $version = $latest + '-' + $version.split('-')[2]
   }
+  # Strip off potential carriage return or newline from version string
+  $version = $version.trim()
 
   if ($type.ToLower() -eq 'msi') {
     Write-Host '[*] Building osquery MSI' -ForegroundColor Cyan
