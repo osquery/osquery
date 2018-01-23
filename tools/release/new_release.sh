@@ -10,7 +10,7 @@
 
 set -e
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )")"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 URL=https://osquery-packages.s3.amazonaws.com
 
@@ -34,6 +34,10 @@ function main() {
   echo "[+] Writing new table API"
   GENJSON="$SCRIPT_DIR/../codegen/genwebsitejson.py"
   /usr/local/osquery/bin/python "$GENJSON" --specs "$OSQUERY/specs" > "$SITE/src/data/osquery_schema_versions/$VERSION.json"
+
+  echo "[+] Writing new version metadata"
+  GENMETADATA="$SCRIPT_DIR/../codegen/genwebsitemetadata.py"
+  /usr/local/osquery/bin/python "$GENMETADATA" --file "$SITE/src/data/osquery_metadata.json" --version "$VERSION"
 
   printf "[+] Downloading and hashing packages...\n"
   PACKAGE="$URL/linux/osquery-${VERSION}_1.linux_x86_64.tar.gz"
@@ -120,6 +124,8 @@ function main() {
 }
 EOF
   echo "[+] Hashes written to $PACKAGES"
+
+
 
   echo "[+] Finished"
 }
