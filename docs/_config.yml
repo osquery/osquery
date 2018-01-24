@@ -65,6 +65,7 @@ prefixes:
   deb: _1.linux.amd64.deb
   rpm: -1.linux.x86_64.rpm
   linux: _1.linux_x86_64.tar.gz
+  windows: .msi
 
 debug_prefixes:
   darwin: debug
@@ -76,6 +77,7 @@ separators:
   deb: "_"
   rpm: "-"
   linux: "-"
+  windows: "-"
 
 docs_url: https://osquery.readthedocs.io/en/stable/
 schema_url: https://raw.githubusercontent.com/osquery/osquery-site/master/schema
