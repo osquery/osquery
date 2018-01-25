@@ -117,6 +117,15 @@ class AbstractOsqueryFormula < Formula
     return ["libcpp"].include?(self.name)
   end
 
+  def bypass_visibility_build
+    if ["librpm", "python", "librdkafka"].include?(self.name)
+      return true
+    elsif self.name.include?("fbthrift")
+      return true
+    end
+    return false
+  end
+
   def setup_runtimes
     prepend_path "LD_LIBRARY_PATH", lib
     prepend_path "LD_LIBRARY_PATH", prefix
@@ -159,7 +168,7 @@ class AbstractOsqueryFormula < Formula
         append "CXXFLAGS", "-stdlib=libc++" if OS.linux?
         append "LDFLAGS", "-rtlib=compiler-rt" if OS.linux?
 
-        if !["librpm", "python", "librdkafka"].include?(self.name)
+        if !bypass_visibility_build
           append "CFLAGS", "-fvisibility=hidden -fvisibility-inlines-hidden"
           append "CXXFLAGS", "-fvisibility=hidden -fvisibility-inlines-hidden"
         end

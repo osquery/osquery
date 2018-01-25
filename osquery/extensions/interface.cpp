@@ -32,33 +32,33 @@ const std::vector<std::string> kSDKVersionChanges = {
 };
 
 void ExtensionHandler::ping(ExtensionStatus& _return) {
-  _return.code = ExtensionCode::EXT_SUCCESS;
+  _return.code = (int)ExtensionCode::EXT_SUCCESS;
   _return.message = "pong";
   _return.uuid = uuid_;
 }
 
 void ExtensionHandler::call(ExtensionResponse& _return,
-                            const std::string& registry,
-                            const std::string& item,
-                            const ExtensionPluginRequest& request) {
+                            const std::unique_ptr<std::string> registry,
+                            const std::unique_ptr<std::string> item,
+                            const std::unique_ptr<ExtensionPluginRequest> request) {
   // Call will receive an extension or core's request to call the other's
   // internal registry call. It is the ONLY actor that resolves registry
   // item aliases.
-  auto local_item = RegistryFactory::get().getAlias(registry, item);
+  auto local_item = RegistryFactory::get().getAlias(*registry, *item);
   if (local_item.empty()) {
     // Extensions may not know about active (non-option based registries).
-    local_item = RegistryFactory::get().getActive(registry);
+    local_item = RegistryFactory::get().getActive(*registry);
   }
 
   PluginResponse response;
   PluginRequest plugin_request;
-  for (const auto& request_item : request) {
+  for (const auto& request_item : *request) {
     // Create a PluginRequest from an ExtensionPluginRequest.
     plugin_request[request_item.first] = request_item.second;
   }
 
   auto status =
-      RegistryFactory::call(registry, local_item, plugin_request, response);
+      RegistryFactory::call(*registry, local_item, plugin_request, response);
   _return.status.code = status.getCode();
   _return.status.message = status.getMessage();
   _return.status.uuid = uuid_;
@@ -111,21 +111,21 @@ void ExtensionManagerHandler::options(InternalOptionList& _return) {
 
 void ExtensionManagerHandler::registerExtension(
     ExtensionStatus& _return,
-    const InternalExtensionInfo& info,
-    const ExtensionRegistry& registry) {
-  if (exists(info.name)) {
-    LOG(WARNING) << "Refusing to register duplicate extension " << info.name;
-    _return.code = ExtensionCode::EXT_FAILED;
+    const std::unique_ptr<InternalExtensionInfo> info,
+    const std::unique_ptr<ExtensionRegistry> registry) {
+  if (exists(info->name)) {
+    LOG(WARNING) << "Refusing to register duplicate extension " << info->name;
+    _return.code = (int)ExtensionCode::EXT_FAILED;
     _return.message = "Duplicate extension registered";
     return;
   }
 
   // Enforce API change requirements.
   for (const auto& change : kSDKVersionChanges) {
-    if (!versionAtLeast(change, info.sdk_version)) {
-      LOG(WARNING) << "Could not add extension " << info.name
-                   << ": incompatible extension SDK " << info.sdk_version;
-      _return.code = ExtensionCode::EXT_FAILED;
+    if (!versionAtLeast(change, info->sdk_version)) {
+      LOG(WARNING) << "Could not add extension " << info->name
+                   << ": incompatible extension SDK " << info->sdk_version;
+      _return.code = (int)ExtensionCode::EXT_FAILED;
       _return.message = "Incompatible extension SDK version";
       return;
     }
@@ -138,22 +138,22 @@ void ExtensionManagerHandler::registerExtension(
   }
   // Every call to registerExtension is assigned a new RouteUUID.
   RouteUUID uuid = static_cast<uint16_t>(rand());
-  VLOG(1) << "Registering extension (" << info.name << ", " << uuid
-          << ", version=" << info.version << ", sdk=" << info.sdk_version
+  VLOG(1) << "Registering extension (" << info->name << ", " << uuid
+          << ", version=" << info->version << ", sdk=" << info->sdk_version
           << ")";
 
-  auto status = RegistryFactory::get().addBroadcast(uuid, registry);
+  auto status = RegistryFactory::get().addBroadcast(uuid, *registry);
   if (!status.ok()) {
-    LOG(WARNING) << "Could not add extension " << info.name << ": "
+    LOG(WARNING) << "Could not add extension " << info->name << ": "
                  << status.getMessage();
-    _return.code = ExtensionCode::EXT_FAILED;
+    _return.code = (int)ExtensionCode::EXT_FAILED;
     _return.message = "Failed adding registry: " + status.getMessage();
     return;
   }
 
   WriteLock lock(extensions_mutex_);
-  extensions_[uuid] = info;
-  _return.code = ExtensionCode::EXT_SUCCESS;
+  extensions_[uuid] = *info;
+  _return.code = (int)ExtensionCode::EXT_SUCCESS;
   _return.message = "OK";
   _return.uuid = uuid;
 }
@@ -163,7 +163,7 @@ void ExtensionManagerHandler::deregisterExtension(
   {
     ReadLock lock(extensions_mutex_);
     if (extensions_.count(uuid) == 0) {
-      _return.code = ExtensionCode::EXT_FAILED;
+      _return.code = (int)ExtensionCode::EXT_FAILED;
       _return.message = "No extension UUID registered";
       _return.uuid = 0;
       return;
@@ -175,14 +175,14 @@ void ExtensionManagerHandler::deregisterExtension(
 
   WriteLock lock(extensions_mutex_);
   extensions_.erase(uuid);
-  _return.code = ExtensionCode::EXT_SUCCESS;
+  _return.code = (int)ExtensionCode::EXT_SUCCESS;
   _return.uuid = uuid;
 }
 
 void ExtensionManagerHandler::query(ExtensionResponse& _return,
-                                    const std::string& sql) {
+                                    const std::unique_ptr<std::string> sql) {
   QueryData results;
-  auto status = osquery::query(sql, results);
+  auto status = osquery::query(*sql, results);
   _return.status.code = status.getCode();
   _return.status.message = status.getMessage();
   _return.status.uuid = uuid_;
@@ -195,9 +195,9 @@ void ExtensionManagerHandler::query(ExtensionResponse& _return,
 }
 
 void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
-                                              const std::string& sql) {
+                                              const std::unique_ptr<std::string> sql) {
   TableColumns columns;
-  auto status = osquery::getQueryColumns(sql, columns);
+  auto status = osquery::getQueryColumns(*sql, columns);
   _return.status.code = status.getCode();
   _return.status.message = status.getMessage();
   _return.status.uuid = uuid_;
@@ -284,7 +284,7 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
       return;
     }
 
-    transport_ = TServerTransportRef(new TPlatformServerSocket(path_));
+    //transport_ = TServerTransportRef(new TPlatformServerSocket(path_));
 
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
       // Before starting and after stopping the manager, remove stale sockets.
@@ -293,12 +293,21 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
     }
 
     // Construct the service's transport, protocol, thread pool.
-    auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
-    auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
+    //auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
+    //auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
 
     // Start the Thrift server's run loop.
-    server_ = TThreadedServerRef(new TThreadedServer(
-        processor, transport_, transport_fac, protocol_fac));
+    server_ = TThreadedServerRef(new ThriftServer());
+    server_->setProcessorFactory(processor);
+
+    auto fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, "socket", sizeof(addr.sun_path)-1);
+    //bind(fd, (struct sockaddr*)&addr, sizeof(addr));
+
+    server_->useExistingSocket(fd);
   }
 
   server_->serve();
@@ -311,11 +320,12 @@ RouteUUID ExtensionRunner::getUUID() const {
 void ExtensionRunner::start() {
   // Create the thrift instances.
   auto handler = ExtensionHandlerRef(new ExtensionHandler(uuid_));
-  auto processor = TProcessorRef(new ExtensionProcessor(handler));
+  //auto processor = TProcessorRef(new ExtensionAsyncProcessor(handler));
+  auto proc_factory = std::make_shared<ThriftServerAsyncProcessorFactory<ExtensionHandler>>(handler);
 
   VLOG(1) << "Extension service starting: " << path_;
   try {
-    startServer(processor);
+    startServer(proc_factory);
   } catch (const std::exception& e) {
     LOG(ERROR) << "Cannot start extension handler: " << path_ << " ("
                << e.what() << ")";
@@ -333,11 +343,13 @@ ExtensionManagerRunner::~ExtensionManagerRunner() {
 void ExtensionManagerRunner::start() {
   // Create the thrift instances.
   auto handler = ExtensionManagerHandlerRef(new ExtensionManagerHandler());
-  auto processor = TProcessorRef(new ExtensionManagerProcessor(handler));
+  //auto processor = TProcessorRef(new ExtensionManagerAsyncProcessor(handler));
+  auto proc_factory = std::make_shared<ThriftServerAsyncProcessorFactory<ExtensionManagerHandler>>(handler);
+
 
   VLOG(1) << "Extension manager service starting: " << path_;
   try {
-    startServer(processor);
+    startServer(proc_factory);
   } catch (const std::exception& e) {
     LOG(WARNING) << "Extensions disabled: cannot start extension manager ("
                  << path_ << ") (" << e.what() << ")";
@@ -346,7 +358,7 @@ void ExtensionManagerRunner::start() {
 
 EXInternal::~EXInternal() {
   try {
-    transport_->close();
+    //transport_->close();
   } catch (const std::exception& /* e */) {
     // The transport/socket may have exited.
   }
@@ -355,31 +367,29 @@ EXInternal::~EXInternal() {
 void EXInternal::setTimeouts(size_t timeouts) {
 #ifndef WIN32
   // Windows TPipe does not support timeouts.
-  socket_->setRecvTimeout(timeouts);
-  socket_->setSendTimeout(timeouts);
+//  socket_->setRecvTimeout(timeouts);
+//  socket_->setSendTimeout(timeouts);
 #endif
 }
 
 EXClient::EXClient(const std::string& path, size_t timeout)
-    : EXInternal(path),
-      client_(std::make_shared<extensions::ExtensionClient>(protocol_)) {
+    : EXInternal(path) /*, client_(std::make_shared<extensions::ExtensionClient>(protocol_))*/ {
   setTimeouts(timeout);
-  (void)transport_->open();
+  //(void)transport_->open();
 }
 
 EXManagerClient::EXManagerClient(const std::string& manager_path,
                                  size_t timeout)
-    : EXInternal(manager_path),
-      client_(std::make_shared<extensions::ExtensionManagerClient>(protocol_)) {
+    : EXInternal(manager_path) /*, client_(std::make_shared<extensions::ExtensionManagerClient>(protocol_)) */ {
   setTimeouts(timeout);
-  (void)transport_->open();
+  //(void)transport_->open();
 }
 
-const std::shared_ptr<extensions::ExtensionClient>& EXClient::get() const {
+const std::shared_ptr<extensions::ExtensionAsyncClient>& EXClient::get() const {
   return client_;
 }
 
-const std::shared_ptr<extensions::ExtensionManagerClient>&
+const std::shared_ptr<extensions::ExtensionManagerAsyncClient>&
 EXManagerClient::get() const {
   return client_;
 }

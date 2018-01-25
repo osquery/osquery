@@ -26,19 +26,16 @@
 #pragma warning(disable : 4250)
 #endif
 
-#include <thrift/protocol/TBinaryProtocol.h>
-#include <thrift/server/TThreadedServer.h>
+// #include <thrift/protocol/TBinaryProtocol.h>
+#include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
+// #include <thrift/server/TThreadedServer.h>
+#include <thrift/lib/cpp2/server/ThriftServer.h>
 
 #ifdef WIN32
 #include <thrift/transport/TPipe.h>
 #include <thrift/transport/TPipeServer.h>
 #else
-#include <thrift/transport/TServerSocket.h>
-#include <thrift/transport/TSocket.h>
 #endif
-
-#include <thrift/concurrency/ThreadManager.h>
-#include <thrift/transport/TBufferTransports.h>
 
 // Include intermediate Thrift-generated interface definitions.
 #include "Extension.h"
@@ -57,23 +54,18 @@ typedef TPipe TPlatformSocket;
 typedef TPipeServer TPlatformServerSocket;
 typedef std::shared_ptr<TPipe> TPlatformSocketRef;
 #else
-typedef TSocket TPlatformSocket;
-typedef TServerSocket TPlatformServerSocket;
-typedef std::shared_ptr<TSocket> TPlatformSocketRef;
 #endif
 
 typedef std::shared_ptr<TTransport> TTransportRef;
 typedef std::shared_ptr<TProtocol> TProtocolRef;
 
-typedef std::shared_ptr<TProcessor> TProcessorRef;
+typedef std::shared_ptr<AsyncProcessorFactory> TProcessorRef;
 typedef std::shared_ptr<TServerTransport> TServerTransportRef;
-typedef std::shared_ptr<TTransportFactory> TTransportFactoryRef;
-typedef std::shared_ptr<TProtocolFactory> TProtocolFactoryRef;
-typedef std::shared_ptr<ThreadManager> TThreadManagerRef;
-
-using TThreadedServerRef = std::shared_ptr<TThreadedServer>;
+using TThreadedServerRef = std::shared_ptr<ThriftServer>;
 
 namespace extensions {
+
+using namespace cpp2;
 
 /**
  * @brief The Thrift API server used by an osquery Extension process.
@@ -83,7 +75,7 @@ namespace extensions {
  * It implements all the Extension API handlers.
  *
  */
-class ExtensionHandler : virtual public ExtensionIf {
+class ExtensionHandler : virtual public ExtensionSvIf {
  public:
   ExtensionHandler() : uuid_(0) {}
   explicit ExtensionHandler(RouteUUID uuid) : uuid_(uuid) {}
@@ -100,9 +92,9 @@ class ExtensionHandler : virtual public ExtensionIf {
    * @param request The plugin request.
    */
   void call(ExtensionResponse& _return,
-            const std::string& registry,
-            const std::string& item,
-            const ExtensionPluginRequest& request) override;
+            const std::unique_ptr<std::string> registry,
+            const std::unique_ptr<std::string> item,
+            const std::unique_ptr<ExtensionPluginRequest> request) override;
 
   /// Request an extension to shutdown.
   virtual void shutdown() override;
@@ -123,7 +115,7 @@ class ExtensionHandler : virtual public ExtensionIf {
  * It implements all the ExtensionManager API handlers.
  *
  */
-class ExtensionManagerHandler : virtual public ExtensionManagerIf,
+class ExtensionManagerHandler : virtual public ExtensionManagerSvIf,
                                 public ExtensionHandler {
  public:
   ExtensionManagerHandler();
@@ -160,8 +152,8 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
    * @param registry The Extension's Registry::getBroadcast information.
    */
   void registerExtension(ExtensionStatus& _return,
-                         const InternalExtensionInfo& info,
-                         const ExtensionRegistry& registry) override;
+                         const std::unique_ptr<InternalExtensionInfo> info,
+                         const std::unique_ptr<ExtensionRegistry> registry) override;
 
   /**
    * @brief Request an Extension removal and removal of Registry routes.
@@ -187,7 +179,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
    * @param _return The output Status and QueryData (as response).
    * @param sql The sql statement.
    */
-  void query(ExtensionResponse& _return, const std::string& sql) override;
+  void query(ExtensionResponse& _return, const std::unique_ptr<std::string> sql) override;
 
   /**
    * @brief Get SQL column information for SQL statements in osquery core.
@@ -200,7 +192,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
    * @param sql The sql statement.
    */
   void getQueryColumns(ExtensionResponse& _return,
-                       const std::string& sql) override;
+                       const std::unique_ptr<std::string> sql) override;
 
  protected:
   /// A shutdown request does not apply to ExtensionManagers.
@@ -344,10 +336,11 @@ class ExtensionManagerRunner : public ExtensionRunnerCore {
 /// Internal accessor for extension clients.
 class EXInternal : private boost::noncopyable {
  public:
-  explicit EXInternal(const std::string& path)
-      : socket_(new TPlatformSocket(path)),
-        transport_(new TBufferedTransport(socket_)),
-        protocol_(new TBinaryProtocol(transport_)) {}
+  explicit EXInternal(const std::string& path) : path_(path)
+      //:  socket_(new TPlatformSocket(path)),
+        //transport_(new TBufferedTransport(socket_)),
+        //protocol_(new TBinaryProtocol(transport_)) {}
+    {}
 
   // Set the receive and send timeout.
   void setTimeouts(size_t timeout);
@@ -355,9 +348,10 @@ class EXInternal : private boost::noncopyable {
   virtual ~EXInternal();
 
  protected:
-  TPlatformSocketRef socket_;
-  TTransportRef transport_;
-  TProtocolRef protocol_;
+  std::string path_;
+//  TPlatformSocketRef socket_;
+//  TTransportRef transport_;
+ // TProtocolRef protocol_;
 };
 
 /// Internal accessor for a client to an extension (from an extension manager).
@@ -373,10 +367,10 @@ class EXClient : public EXInternal {
    */
   explicit EXClient(const std::string& path, size_t timeout = 5000 * 60);
 
-  const std::shared_ptr<extensions::ExtensionClient>& get() const;
+  const std::shared_ptr<extensions::ExtensionAsyncClient>& get() const;
 
  private:
-  std::shared_ptr<extensions::ExtensionClient> client_;
+  std::shared_ptr<extensions::ExtensionAsyncClient> client_;
 };
 
 /// Internal accessor for a client to an extension manager (from an extension).
@@ -391,10 +385,10 @@ class EXManagerClient : public EXInternal {
   explicit EXManagerClient(const std::string& manager_path,
                            size_t timeout = 5000 * 60);
 
-  const std::shared_ptr<extensions::ExtensionManagerClient>& get() const;
+  const std::shared_ptr<extensions::ExtensionManagerAsyncClient>& get() const;
 
  private:
-  std::shared_ptr<extensions::ExtensionManagerClient> client_;
+  std::shared_ptr<extensions::ExtensionManagerAsyncClient> client_;
 };
 }
 

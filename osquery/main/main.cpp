@@ -19,6 +19,8 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
+#include <folly/init/Init.h>
+
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/extensions.h>
@@ -144,6 +146,8 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
 }
 
 int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
+  ::folly::init(&argc, &argv, false);
+
   // Parse/apply flags, start registry, load logger/config plugins.
   osquery::Initializer runner(argc, argv, osquery::ToolType::SHELL_DAEMON);
 
