@@ -12,7 +12,7 @@
 
 #include <osquery/tables.h>
 
-#include "osquery/events/darwin/iokit.h"
+#include "osquery/core/darwin/iokit.hpp"
 
 namespace osquery {
 namespace tables {

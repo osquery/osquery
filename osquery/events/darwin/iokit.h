@@ -21,13 +21,9 @@
 
 #include "osquery/core/conversions.h"
 
-namespace osquery {
+#include <osquery/core/darwin/iokit.hpp>
 
-extern const std::string kIOUSBDeviceClassName_;
-extern const std::string kIOPCIDeviceClassName_;
-extern const std::string kIOPlatformExpertDeviceClassName_;
-extern const std::string kIOACPIPlatformDeviceClassName_;
-extern const std::string kIOPlatformDeviceClassname_;
+namespace osquery {
 
 struct IOKitSubscriptionContext : public SubscriptionContext {
   std::string model_id;
@@ -54,31 +50,6 @@ struct IOKitEventContext : public EventContext {
   std::string version;
   std::string serial;
 };
-
-struct IOKitPCIProperties {
-  std::string vendor_id;
-  std::string model_id;
-  std::string pci_class;
-  std::string driver;
-
-  /// Populate IOKit PCI device properties from the "compatible" property.
-  explicit IOKitPCIProperties(const std::string& compatible);
-};
-
-std::string getIOKitProperty(const CFMutableDictionaryRef& details,
-                             const std::string& key);
-long long int getNumIOKitProperty(const CFMutableDictionaryRef& details,
-                                  const std::string& key);
-
-inline void idToHex(std::string& id) {
-  long base = 0;
-  // = AS_LITERAL(int, id);
-  if (safeStrtol(id, 10, base)) {
-    std::stringstream hex_id;
-    hex_id << std::hex << std::setw(4) << std::setfill('0') << (base & 0xFFFF);
-    id = hex_id.str();
-  }
-}
 
 using IOKitEventContextRef = std::shared_ptr<IOKitEventContext>;
 using IOKitSubscriptionContextRef = std::shared_ptr<IOKitSubscriptionContext>;
