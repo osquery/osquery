@@ -9,6 +9,7 @@
  *
  */
 
+#include <iostream>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -868,17 +869,20 @@ void IPMIClient::blkAndOp(std::function<bool()> ready, int timeoutDurMS) {
     while (timeoutDurMS > 0 && !done.load()) {
       pauseMilli(pauseDuration);
       if (interrupted()) {
+        LOG(WARNING) << "EXITING!!!!!!!!!!\n\n";
         return;
       }
-
+      // TLOG << "T1: JUST POSTED FOR 5 MS";
       timeoutDurMS -= adjustedPauseDuration;
+
+      TLOG << "CURRENT TIMEOUT IS " << timeoutDurMS;
     }
   });
   std::future_status status;
 
   do {
     auto rv = oneOp();
-    if (rv == EINTR) {
+    if (rv == EINTR || rv == EINVAL) {
       done.store(true);
       return;
     }
@@ -887,9 +891,16 @@ void IPMIClient::blkAndOp(std::function<bool()> ready, int timeoutDurMS) {
     }
 
     status = fut.wait_for(std::chrono::milliseconds(1));
+    TLOG << "T2: JUST WAITED FOR 1 MS; STATUS IS ";
+
+    if (status == std::future_status::ready) {
+      TLOG << "STATUS IS READY!!!!!\n\n";
+    } else {
+      TLOG << "Status is not ready\n\n";
+    }
 
   } while (status != std::future_status::ready && !ready());
-
+  std::cout << "EXITINGGGGGGGG\n\n";
   done.store(true);
 }
 
@@ -944,7 +955,7 @@ void IPMIClient::findLANCh() {
 
 int IPMIClient::oneOp() {
   struct timeval tv = {0, 500000};
-
+  TLOG << "BOOM@@@@!!!!\n\n";
   return os_hnd_.get()->perform_one_op(os_hnd_.get(), &tv);
 }
 
