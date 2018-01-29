@@ -641,6 +641,8 @@ enable_testing()
 set(CTEST_TEST_TIMEOUT 600)
 set(BUILD_GTEST TRUE)
 
+include(Thrift)
+
 # Detect TR1 usage.
 include(CheckIncludeFileCXX)
 if(WINDOWS)

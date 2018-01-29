@@ -26,20 +26,49 @@
 #pragma warning(disable : 4250)
 #endif
 
-// #include <thrift/protocol/TBinaryProtocol.h>
+#ifdef FBTHRIFT
+#include <thrift/lib/cpp/async/TAsyncSocket.h>
+#include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 #include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
-// #include <thrift/server/TThreadedServer.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
+#else
+#include <thrift/concurrency/ThreadManager.h>
+#include <thrift/protocol/TBinaryProtocol.h>
+#include <thrift/server/TThreadedServer.h>
+#include <thrift/transport/TBufferTransports.h>
+#endif
 
 #ifdef WIN32
 #include <thrift/transport/TPipe.h>
 #include <thrift/transport/TPipeServer.h>
-#else
+#elif !defined(FBTHRIFT)
+#include <thrift/transport/TServerSocket.h>
+#include <thrift/transport/TSocket.h>
 #endif
 
 // Include intermediate Thrift-generated interface definitions.
 #include "Extension.h"
 #include "ExtensionManager.h"
+
+#ifdef FBTHRIFT
+#define API_PING sync_ping
+#define API_CALL sync_call
+#define API_QUERY sync_query
+#define API_COLUMNS sync_getQueryColumns
+#define API_REGISTER sync_registerExtension
+#define API_OPTIONS sync_options
+#define API_EXTENSIONS sync_extensions
+#define API_SHUTDOWN sync_shutdown
+#else
+#define API_PING ping
+#define API_CALL call
+#define API_QUERY query
+#define API_COLUMNS getQueryColumns
+#define API_REGISTER registerExtension
+#define API_OPTIONS options
+#define API_EXTENSIONS extensions
+#define API_SHUTDOWN shutdown
+#endif
 
 namespace osquery {
 
@@ -53,19 +82,49 @@ using namespace apache::thrift::concurrency;
 typedef TPipe TPlatformSocket;
 typedef TPipeServer TPlatformServerSocket;
 typedef std::shared_ptr<TPipe> TPlatformSocketRef;
-#else
+#elif !defined(FBTHRIFT)
+typedef TSocket TPlatformSocket;
+typedef TServerSocket TPlatformServerSocket;
+typedef std::shared_ptr<TSocket> TPlatformSocketRef;
 #endif
 
 typedef std::shared_ptr<TTransport> TTransportRef;
 typedef std::shared_ptr<TProtocol> TProtocolRef;
-
-typedef std::shared_ptr<AsyncProcessorFactory> TProcessorRef;
 typedef std::shared_ptr<TServerTransport> TServerTransportRef;
+
+#ifdef FBTHRIFT
+typedef std::shared_ptr<AsyncProcessorFactory> TProcessorRef;
 using TThreadedServerRef = std::shared_ptr<ThriftServer>;
+using _Client = extensions::cpp2::ExtensionAsyncClient;
+using _ManagerClient = extensions::cpp2::ExtensionManagerAsyncClient;
+#else
+typedef std::shared_ptr<TProcessor> TProcessorRef;
+typedef std::shared_ptr<TTransportFactory> TTransportFactoryRef;
+typedef std::shared_ptr<TProtocolFactory> TProtocolFactoryRef;
+typedef std::shared_ptr<ThreadManager> TThreadManagerRef;
+using TThreadedServerRef = std::shared_ptr<TThreadedServer>;
+using _Client = extensions::ExtensionClient;
+using _ManagerClient = extensions::ExtensionManagerClient;
+#endif
 
 namespace extensions {
 
+#ifdef FBTHRIFT
 using namespace cpp2;
+using _ExtensionIf = ExtensionSvIf;
+using _ExtensionManagerIf = ExtensionManagerSvIf;
+using _str_param = const std::unique_ptr<std::string>;
+using _plugin_param = const std::unique_ptr<ExtensionPluginRequest>;
+using _info_param = const std::unique_ptr<InternalExtensionInfo>;
+using _registry_param = const std::unique_ptr<ExtensionRegistry>;
+#else
+using _ExtensionIf = ExtensionIf;
+using _ExtensionManagerIf = ExtensionManagerIf;
+using _str_param = const std::string&;
+using _plugin_param = const ExtensionPluginRequest&;
+using _info_param = const InternalExtensionInfo&;
+using _registry_param = const ExtensionRegistry&;
+#endif
 
 /**
  * @brief The Thrift API server used by an osquery Extension process.
@@ -75,7 +134,7 @@ using namespace cpp2;
  * It implements all the Extension API handlers.
  *
  */
-class ExtensionHandler : virtual public ExtensionSvIf {
+class ExtensionHandler : virtual public _ExtensionIf {
  public:
   ExtensionHandler() : uuid_(0) {}
   explicit ExtensionHandler(RouteUUID uuid) : uuid_(uuid) {}
@@ -92,9 +151,9 @@ class ExtensionHandler : virtual public ExtensionSvIf {
    * @param request The plugin request.
    */
   void call(ExtensionResponse& _return,
-            const std::unique_ptr<std::string> registry,
-            const std::unique_ptr<std::string> item,
-            const std::unique_ptr<ExtensionPluginRequest> request) override;
+            _str_param registry,
+            _str_param item,
+            _plugin_param request) override;
 
   /// Request an extension to shutdown.
   virtual void shutdown() override;
@@ -115,7 +174,7 @@ class ExtensionHandler : virtual public ExtensionSvIf {
  * It implements all the ExtensionManager API handlers.
  *
  */
-class ExtensionManagerHandler : virtual public ExtensionManagerSvIf,
+class ExtensionManagerHandler : virtual public _ExtensionManagerIf,
                                 public ExtensionHandler {
  public:
   ExtensionManagerHandler();
@@ -152,8 +211,8 @@ class ExtensionManagerHandler : virtual public ExtensionManagerSvIf,
    * @param registry The Extension's Registry::getBroadcast information.
    */
   void registerExtension(ExtensionStatus& _return,
-                         const std::unique_ptr<InternalExtensionInfo> info,
-                         const std::unique_ptr<ExtensionRegistry> registry) override;
+                         _info_param info,
+                         _registry_param registry) override;
 
   /**
    * @brief Request an Extension removal and removal of Registry routes.
@@ -179,7 +238,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerSvIf,
    * @param _return The output Status and QueryData (as response).
    * @param sql The sql statement.
    */
-  void query(ExtensionResponse& _return, const std::unique_ptr<std::string> sql) override;
+  void query(ExtensionResponse& _return, _str_param sql) override;
 
   /**
    * @brief Get SQL column information for SQL statements in osquery core.
@@ -191,8 +250,7 @@ class ExtensionManagerHandler : virtual public ExtensionManagerSvIf,
    * @param _return The output Status and TableColumns (as response).
    * @param sql The sql statement.
    */
-  void getQueryColumns(ExtensionResponse& _return,
-                       const std::unique_ptr<std::string> sql) override;
+  void getQueryColumns(ExtensionResponse& _return, _str_param sql) override;
 
  protected:
   /// A shutdown request does not apply to ExtensionManagers.
@@ -280,6 +338,9 @@ class ExtensionRunnerCore : public InternalRunnable {
   /// The UNIX domain socket used for requests from the ExtensionManager.
   std::string path_;
 
+  /// Raw socket (optional)
+  int raw_socket_{0};
+
   /// Transport instance, will be interrupted if the thread is removed.
   TServerTransportRef transport_{nullptr};
 
@@ -336,11 +397,7 @@ class ExtensionManagerRunner : public ExtensionRunnerCore {
 /// Internal accessor for extension clients.
 class EXInternal : private boost::noncopyable {
  public:
-  explicit EXInternal(const std::string& path) : path_(path)
-      //:  socket_(new TPlatformSocket(path)),
-        //transport_(new TBufferedTransport(socket_)),
-        //protocol_(new TBinaryProtocol(transport_)) {}
-    {}
+  explicit EXInternal(const std::string& path);
 
   // Set the receive and send timeout.
   void setTimeouts(size_t timeout);
@@ -349,9 +406,13 @@ class EXInternal : private boost::noncopyable {
 
  protected:
   std::string path_;
-//  TPlatformSocketRef socket_;
-//  TTransportRef transport_;
- // TProtocolRef protocol_;
+  int raw_socket_{0};
+
+#if !defined(FBTHRIFT)
+  TPlatformSocketRef socket_;
+  TTransportRef transport_;
+  TProtocolRef protocol_;
+#endif
 };
 
 /// Internal accessor for a client to an extension (from an extension manager).
@@ -367,10 +428,10 @@ class EXClient : public EXInternal {
    */
   explicit EXClient(const std::string& path, size_t timeout = 5000 * 60);
 
-  const std::shared_ptr<extensions::ExtensionAsyncClient>& get() const;
+  const std::shared_ptr<_Client>& get() const;
 
  private:
-  std::shared_ptr<extensions::ExtensionAsyncClient> client_;
+  std::shared_ptr<_Client> client_;
 };
 
 /// Internal accessor for a client to an extension manager (from an extension).
@@ -385,10 +446,10 @@ class EXManagerClient : public EXInternal {
   explicit EXManagerClient(const std::string& manager_path,
                            size_t timeout = 5000 * 60);
 
-  const std::shared_ptr<extensions::ExtensionManagerAsyncClient>& get() const;
+  const std::shared_ptr<_ManagerClient>& get() const;
 
  private:
-  std::shared_ptr<extensions::ExtensionManagerAsyncClient> client_;
+  std::shared_ptr<_ManagerClient> client_;
 };
 }
 

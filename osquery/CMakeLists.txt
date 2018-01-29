@@ -85,9 +85,6 @@ if(NOT SKIP_CARVER)
   add_subdirectory(carver)
 endif()
 
-# Set the include directory for generated Thrift files.
-include_directories("${OSQUERY_THRIFT_DIR}")
-
 # Add externals directory from parent
 add_subdirectory("${CMAKE_SOURCE_DIR}/external" "${CMAKE_BINARY_DIR}/external")
 

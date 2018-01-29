@@ -122,7 +122,7 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
         ExtensionStatus status;
         // Create a client with a 10-second receive timeout.
         EXManagerClient client(path, 10 * 1000);
-        client.get()->sync_ping(status);
+        client.get()->API_PING(status);
         return Status(0, "OK");
       } catch (const std::exception& /* e */) {
         // Path might exist without a connected extension or extension manager.
@@ -170,7 +170,7 @@ void ExtensionManagerWatcher::start() {
     try {
       auto path = getExtensionSocket(uuid);
       EXClient client(path);
-      client.get()->sync_shutdown();
+      client.get()->API_SHUTDOWN();
     } catch (const std::exception& /* e */) {
       VLOG(1) << "Extension UUID " << uuid << " shutdown request failed";
       continue;
@@ -194,7 +194,7 @@ void ExtensionWatcher::watch() {
     try {
       EXManagerClient client(path_);
       // Ping the extension manager until it goes down.
-      client.get()->sync_ping(status);
+      client.get()->API_PING(status);
     } catch (const std::exception& /* e */) {
       core_sane = false;
     }
@@ -238,7 +238,7 @@ void ExtensionManagerWatcher::watch() {
       try {
         EXClient client(path);
         // Ping the extension until it goes down.
-        client.get()->sync_ping(status);
+        client.get()->API_PING(status);
       } catch (const std::exception& /* e */) {
         failures_[uuid] += 1;
         continue;
@@ -437,7 +437,7 @@ Status startExtension(const std::string& manager_path,
   ExtensionStatus ext_status;
   try {
     EXManagerClient client(manager_path);
-    client.get()->sync_registerExtension(ext_status, info, broadcast);
+    client.get()->API_REGISTER(ext_status, info, broadcast);
     // The main reason for a failed registry is a duplicate extension name
     // (the extension process is already running), or the extension broadcasts
     // a duplicate registry item.
@@ -446,7 +446,7 @@ Status startExtension(const std::string& manager_path,
     }
     // Request the core options, mainly to set the active registry plugins for
     // logger and config.
-    client.get()->sync_options(options);
+    client.get()->API_OPTIONS(options);
   } catch (const std::exception& e) {
     return Status(1, "Extension register failed: " + std::string(e.what()));
   }
@@ -488,7 +488,7 @@ Status queryExternal(const std::string& manager_path,
   ExtensionResponse response;
   try {
     EXManagerClient client(manager_path);
-    client.get()->sync_query(response, query);
+    client.get()->API_QUERY(response, query);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
   }
@@ -516,7 +516,7 @@ Status getQueryColumnsExternal(const std::string& manager_path,
   ExtensionResponse response;
   try {
     EXManagerClient client(manager_path);
-    client.get()->sync_getQueryColumns(response, query);
+    client.get()->API_COLUMNS(response, query);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
   }
@@ -551,7 +551,7 @@ Status pingExtension(const std::string& path) {
   ExtensionStatus ext_status;
   try {
     EXClient client(path);
-    client.get()->sync_ping(ext_status);
+    client.get()->API_PING(ext_status);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
   }
@@ -577,7 +577,7 @@ Status getExtensions(const std::string& manager_path,
   InternalExtensionList ext_list;
   try {
     EXManagerClient client(manager_path);
-    client.get()->sync_extensions(ext_list);
+    client.get()->API_EXTENSIONS(ext_list);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
   }
@@ -622,7 +622,7 @@ Status callExtension(const std::string& extension_path,
   ExtensionResponse ext_response;
   try {
     EXClient client(extension_path);
-    client.get()->sync_call(ext_response, registry, item, request);
+    client.get()->API_CALL(ext_response, registry, item, request);
   } catch (const std::exception& e) {
     return Status(1, "Extension call failed: " + std::string(e.what()));
   }

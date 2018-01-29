@@ -38,9 +38,9 @@ void ExtensionHandler::ping(ExtensionStatus& _return) {
 }
 
 void ExtensionHandler::call(ExtensionResponse& _return,
-                            const std::unique_ptr<std::string> registry,
-                            const std::unique_ptr<std::string> item,
-                            const std::unique_ptr<ExtensionPluginRequest> request) {
+                            _str_param registry,
+                            _str_param item,
+                            _plugin_param request) {
   // Call will receive an extension or core's request to call the other's
   // internal registry call. It is the ONLY actor that resolves registry
   // item aliases.
@@ -109,10 +109,9 @@ void ExtensionManagerHandler::options(InternalOptionList& _return) {
   }
 }
 
-void ExtensionManagerHandler::registerExtension(
-    ExtensionStatus& _return,
-    const std::unique_ptr<InternalExtensionInfo> info,
-    const std::unique_ptr<ExtensionRegistry> registry) {
+void ExtensionManagerHandler::registerExtension(ExtensionStatus& _return,
+                                                _info_param info,
+                                                _registry_param registry) {
   if (exists(info->name)) {
     LOG(WARNING) << "Refusing to register duplicate extension " << info->name;
     _return.code = (int)ExtensionCode::EXT_FAILED;
@@ -180,7 +179,7 @@ void ExtensionManagerHandler::deregisterExtension(
 }
 
 void ExtensionManagerHandler::query(ExtensionResponse& _return,
-                                    const std::unique_ptr<std::string> sql) {
+                                    _str_param sql) {
   QueryData results;
   auto status = osquery::query(*sql, results);
   _return.status.code = status.getCode();
@@ -195,7 +194,7 @@ void ExtensionManagerHandler::query(ExtensionResponse& _return,
 }
 
 void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
-                                              const std::unique_ptr<std::string> sql) {
+                                              _str_param sql) {
   TableColumns columns;
   auto status = osquery::getQueryColumns(*sql, columns);
   _return.status.code = status.getCode();
@@ -250,6 +249,11 @@ ExtensionRunner::ExtensionRunner(const std::string& manager_path,
 
 ExtensionRunnerCore::~ExtensionRunnerCore() {
   removePath(path_);
+
+  if (raw_socket_ > 0) {
+    close(raw_socket_);
+    raw_socket_ = 0;
+  }
 }
 
 void ExtensionRunnerCore::stop() {
@@ -284,7 +288,9 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
       return;
     }
 
-    //transport_ = TServerTransportRef(new TPlatformServerSocket(path_));
+#if !defined(FBTHRIFT)
+    transport_ = TServerTransportRef(new TPlatformServerSocket(path_));
+#endif
 
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
       // Before starting and after stopping the manager, remove stale sockets.
@@ -292,24 +298,30 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
       removeStalePaths(path_);
     }
 
+#if !defined(FBTHRIFT)
     // Construct the service's transport, protocol, thread pool.
-    //auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
-    //auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
+    auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
+    auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
 
-    // Start the Thrift server's run loop.
+    server_ = TThreadedServerRef(new TThreadedServer(
+        processor, transport_, transport_fac, protocol_fac));
+#else
     server_ = TThreadedServerRef(new ThriftServer());
     server_->setProcessorFactory(processor);
 
-    auto fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    raw_socket_ = socket(AF_UNIX, SOCK_STREAM, 0);
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, "socket", sizeof(addr.sun_path)-1);
-    //bind(fd, (struct sockaddr*)&addr, sizeof(addr));
-
-    server_->useExistingSocket(fd);
+    strncpy(addr.sun_path, path_.c_str(), sizeof(addr.sun_path) - 1);
+    if (bind(raw_socket_, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+      printf("cannot bind\n");
+    }
+    server_->useExistingSocket(raw_socket_);
+#endif
   }
 
+  // Start the Thrift server's run loop.
   server_->serve();
 }
 
@@ -320,12 +332,17 @@ RouteUUID ExtensionRunner::getUUID() const {
 void ExtensionRunner::start() {
   // Create the thrift instances.
   auto handler = ExtensionHandlerRef(new ExtensionHandler(uuid_));
-  //auto processor = TProcessorRef(new ExtensionAsyncProcessor(handler));
-  auto proc_factory = std::make_shared<ThriftServerAsyncProcessorFactory<ExtensionHandler>>(handler);
+#if !defined(FBTHRIFT)
+  auto processor = TProcessorRef(new ExtensionProcessor(handler));
+#else
+  auto processor =
+      std::make_shared<ThriftServerAsyncProcessorFactory<ExtensionHandler>>(
+          handler);
+#endif
 
   VLOG(1) << "Extension service starting: " << path_;
   try {
-    startServer(proc_factory);
+    startServer(processor);
   } catch (const std::exception& e) {
     LOG(ERROR) << "Cannot start extension handler: " << path_ << " ("
                << e.what() << ")";
@@ -343,54 +360,89 @@ ExtensionManagerRunner::~ExtensionManagerRunner() {
 void ExtensionManagerRunner::start() {
   // Create the thrift instances.
   auto handler = ExtensionManagerHandlerRef(new ExtensionManagerHandler());
-  //auto processor = TProcessorRef(new ExtensionManagerAsyncProcessor(handler));
-  auto proc_factory = std::make_shared<ThriftServerAsyncProcessorFactory<ExtensionManagerHandler>>(handler);
-
+#if !defined(FBTHRIFT)
+  auto processor = TProcessorRef(new ExtensionManagerProcessor(handler));
+#else
+  auto processor = std::make_shared<
+      ThriftServerAsyncProcessorFactory<ExtensionManagerHandler>>(handler);
+#endif
 
   VLOG(1) << "Extension manager service starting: " << path_;
   try {
-    startServer(proc_factory);
+    startServer(processor);
   } catch (const std::exception& e) {
     LOG(WARNING) << "Extensions disabled: cannot start extension manager ("
                  << path_ << ") (" << e.what() << ")";
   }
 }
 
-EXInternal::~EXInternal() {
-  try {
-    //transport_->close();
-  } catch (const std::exception& /* e */) {
-    // The transport/socket may have exited.
+EXInternal::EXInternal(const std::string& path) : path_(path) {
+#ifdef FBTHRIFT
+  raw_socket_ = socket(AF_UNIX, SOCK_STREAM, 0);
+  struct sockaddr_un addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, path_.c_str(), sizeof(addr.sun_path) - 1);
+  if (connect(raw_socket_, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+    printf("cannot connect\n");
   }
-}
-
-void EXInternal::setTimeouts(size_t timeouts) {
-#ifndef WIN32
-  // Windows TPipe does not support timeouts.
-//  socket_->setRecvTimeout(timeouts);
-//  socket_->setSendTimeout(timeouts);
+#else
+  socket_(new TPlatformSocket(path));
+  transport_(new TBufferedTransport(socket_));
+  protocol_(new TBinaryProtocol(transport_));
 #endif
 }
 
-EXClient::EXClient(const std::string& path, size_t timeout)
-    : EXInternal(path) /*, client_(std::make_shared<extensions::ExtensionClient>(protocol_))*/ {
+EXInternal::~EXInternal() {
+#if !defined(FBTHRIFT)
+  try {
+    transport_->close();
+  } catch (const std::exception& /* e */) {
+    // The transport/socket may have exited.
+  }
+#endif
+}
+
+void EXInternal::setTimeouts(size_t timeouts) {
+#if !defined(WIN32) && !defined(FBTHRIFT)
+  // Windows TPipe does not support timeouts.
+  socket_->setRecvTimeout(timeouts);
+  socket_->setSendTimeout(timeouts);
+#endif
+}
+
+EXClient::EXClient(const std::string& path, size_t timeout) : EXInternal(path) {
   setTimeouts(timeout);
-  //(void)transport_->open();
+#ifdef FBTHRIFT
+  client_ = std::make_shared<_Client>(
+      HeaderClientChannel::newChannel(async::TAsyncSocket::newSocket(
+          folly::EventBaseManager::get()->getEventBase(), raw_socket_)));
+#else
+  client_ = std::make_shared<_Client>(protocol_);
+  (void)transport_->open();
+#endif
 }
 
 EXManagerClient::EXManagerClient(const std::string& manager_path,
                                  size_t timeout)
-    : EXInternal(manager_path) /*, client_(std::make_shared<extensions::ExtensionManagerClient>(protocol_)) */ {
+    : EXInternal(manager_path) {
   setTimeouts(timeout);
-  //(void)transport_->open();
+
+#ifdef FBTHRIFT
+  // client_ = std::make_shared<_ManagerClient>(
+  //    HeaderClientChannel::newChannel(async::TAsyncSocket::newSocket(
+  //        folly::EventBaseManager::get()->getEventBase(), raw_socket_)));
+#else
+  client_ = std::make_shared<_ManagerClient>(protocol_);
+  (void)transport_->open();
+#endif
 }
 
-const std::shared_ptr<extensions::ExtensionAsyncClient>& EXClient::get() const {
+const std::shared_ptr<_Client>& EXClient::get() const {
   return client_;
 }
 
-const std::shared_ptr<extensions::ExtensionManagerAsyncClient>&
-EXManagerClient::get() const {
+const std::shared_ptr<_ManagerClient>& EXManagerClient::get() const {
   return client_;
 }
 } // namespace osquery
