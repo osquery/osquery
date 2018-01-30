@@ -57,6 +57,9 @@ class OpenBSMProcEvSubscriber : public EventSubscriber<OpenBSMEventPublisher> {
 
   Status Callback(const OpenBSMEventContextRef& ec,
                   const OpenBSMSubscriptionContextRef& sc);
+
+ private:
+  Status handleExec(const OpenBSMEventContextRef& ec);
 };
 
 class OpenBSMSSHLoginSubscriber
@@ -88,6 +91,10 @@ void OpenBSMProcEvSubscriber::configure() {
 
 Status OpenBSMProcEvSubscriber::Callback(
     const OpenBSMEventContextRef& ec, const OpenBSMSubscriptionContextRef& sc) {
+  return handleExec(ec);
+}
+
+Status OpenBSMProcEvSubscriber::handleExec(const OpenBSMEventContextRef& ec) {
   Row r;
   for (const auto& tok : ec->tokens) {
     switch (tok.id) {
