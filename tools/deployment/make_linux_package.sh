@@ -47,6 +47,8 @@ LENSES_DST="/usr/share/osquery/lenses/"
 OSQUERY_POSTINSTALL=${OSQUERY_POSTINSTALL:-"$SCRIPT_DIR/linux_postinstall.sh"}
 OSQUERY_PREUNINSTALL=${OSQUERY_PREUNINSTALL:-""}
 OSQUERY_CONFIG_SRC=${OSQUERY_CONFIG_SRC:-""}
+FLAGFILE_SRC=${FLAGFILE_SRC:-""}
+FLAGFILE_DST=${FLAGFILE_DST:-"osquery.flags"}
 OSQUERY_TLS_CERT_CHAIN_SRC=${OSQUERY_TLS_CERT_CHAIN_SRC:-""}
 OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="${OSQUERY_DEPS}/etc/openssl/cert.pem"
 OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST="/usr/share/osquery/certs/certs.pem"
@@ -65,6 +67,8 @@ function usage() {
     [-u|--preuninst] /path/to/pre-uninstall
     [-p|--postinst] /path/to/post-install
     [-c|--config] /path/to/embedded.config
+    [-f|--flagfile] /path/to/flagfile
+    [-s|--tls-cert] /path/to/trusted/ca/cert
   This will generate an Linux package with:
   (1) An example config /usr/share/osquery/osquery.example.conf
   (2) An init.d script /etc/init.d/osqueryd
@@ -94,6 +98,12 @@ function parse_args() {
                               ;;
       -c | --config )         shift
                               OSQUERY_CONFIG_SRC=$1
+                              ;;
+      -f | --flagfile )	      shift
+                              FLAGFILE_SRC=$1
+                              ;;
+      -s | --tls-cert )       shift
+                              OSQUERY_TLS_CERT_CHAIN_SRC=$1
                               ;;
       -h | --help )           usage
                               ;;
@@ -159,6 +169,10 @@ function main() {
   if [[ $OSQUERY_CONFIG_SRC != "" ]] && [[ -f $OSQUERY_CONFIG_SRC ]]; then
     log "config setup"
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/osquery.conf
+  fi
+  if [[ $FLAGFILE_SRC != "" ]] && [[ -f $FLAGFILE_SRC ]]; then
+    log "flagfile setup"
+    cp $FLAGFILE_SRC $INSTALL_PREFIX/$OSQUERY_ETC_DIR/$FLAGFILE_DST
   fi
 
   if [[ $OSQUERY_TLS_CERT_CHAIN_SRC != "" ]] && [[ -f $OSQUERY_TLS_CERT_CHAIN_SRC ]]; then

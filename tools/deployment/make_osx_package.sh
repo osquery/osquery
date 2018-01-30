@@ -3,10 +3,9 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under both the Apache 2.0 license (found in the
-#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
-#  in the COPYING file in the root directory of this source tree).
-#  You may select, at your option, one of the above-listed licenses.
+#  This source code is licensed under the BSD-style license found in the
+#  LICENSE file in the root directory of this source tree. An additional grant
+#  of patent rights can be found in the PATENTS file in the same directory.
 
 set -e
 
@@ -38,10 +37,6 @@ LD_INSTALL="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
 OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$APP_VERSION.pkg"
 OUTPUT_DEBUG_PKG_PATH="$BUILD_DIR/osquery-debug-$APP_VERSION.pkg"
 KERNEL_OUTPUT_PKG_PATH="$BUILD_DIR/osquery-kernel-${APP_VERSION}.pkg"
-SIGNING_IDENTITY=""
-SIGNING_IDENTITY_COMMAND=""
-KEYCHAIN_IDENTITY=""
-KEYCHAIN_IDENTITY_COMMAND=""
 AUTOSTART=false
 CLEAN=false
 
@@ -64,6 +59,7 @@ OSQUERY_LOG_DIR="/private/var/log/osquery/"
 OSQUERY_TLS_CERT_CHAIN_BUILTIN_SRC="${OSQUERY_DEPS}/etc/openssl/cert.pem"
 OSQUERY_TLS_CERT_CHAIN_BUILTIN_DST="/private/var/osquery/certs/certs.pem"
 TLS_CERT_CHAIN_DST="/private/var/osquery/tls-server-certs.pem"
+FLAGFILE_SRC=""
 FLAGFILE_DST="/private/var/osquery/osquery.flags"
 OSQUERY_PKG_INCLUDE_DIRS=()
 
@@ -101,7 +97,7 @@ fi
 
 POSTINSTALL_AUTOSTART_TEXT="
 cp $LAUNCHD_DST $LD_INSTALL
-touch $FLAGFILE_DST
+
 launchctl load $LD_INSTALL
 "
 
@@ -123,6 +119,7 @@ function usage() {
     -l PATH override the default launchd plist.
     -t PATH to embed a certificate chain file for TLS server validation
     -o PATH override the output path.
+    -f PATH to embed an osquery flagfile
     -a start the daemon when the package is installed
     -x force the daemon to start fresh, removing any results previously stored in the database
   This will generate an OSX package with:
@@ -155,13 +152,8 @@ function parse_args() {
       -o | --output )         shift
                               OUTPUT_PKG_PATH=$1
                               ;;
-      -s | --sign )           shift
-                              SIGNING_IDENTITY=$1
-                              SIGNING_IDENTITY_COMMAND="--sign "$1
-                              ;;
-      -k | --keychain )       shift
-                              KEYCHAIN_IDENTITY=$1
-                              KEYCHAIN_IDENTITY_COMMAND="--keychain "$1
+      -f | --flagfile )       shift
+                              FLAGFILE_SRC=$1
                               ;;
       -a | --autostart )      AUTOSTART=true
                               ;;
@@ -196,7 +188,7 @@ function main() {
 
   platform OS
   if [[ ! "$OS" = "darwin" ]]; then
-    fatal "This script must be run on macOS"
+    fatal "This script must be ran on OS X"
   fi
 
   rm -rf $WORKING_DIR
@@ -215,11 +207,6 @@ function main() {
   strip $BINARY_INSTALL_DIR/*
   cp "$OSQUERYCTL_PATH" $BINARY_INSTALL_DIR
 
-  if [[ ! "$SIGNING_IDENTITY" = "" ]]; then
-    log "signing release binaries"
-    codesign -s $SIGNING_IDENTITY --keychain \"$KEYCHAIN_IDENTITY\" $BINARY_INSTALL_DIR/osqueryi $BINARY_INSTALL_DIR/osqueryd
-  fi
-
   BINARY_DEBUG_DIR="$DEBUG_PREFIX/private/var/osquery/debug"
   mkdir -p "$BINARY_DEBUG_DIR"
   cp "$BUILD_DIR/osquery/osqueryi" $BINARY_DEBUG_DIR/osqueryi.debug
@@ -231,6 +218,10 @@ function main() {
   if [[ "$OSQUERY_CONFIG_SRC" != "" ]]; then
     cp $OSQUERY_CONFIG_SRC $INSTALL_PREFIX$OSQUERY_CONFIG_DST
   fi
+  if [[ "$FLAGFILE_SRC" != "" ]]; then
+    cp $FLAGFILE_SRC $INSTALL_PREFIX$FLAGFILE_DST
+  fi
+
 
   # Move configurations into the packaging root.
   log "copying osquery configurations"
@@ -272,22 +263,16 @@ function main() {
     log "adding $include_dir in the package prefix to be included in the package"
     cp -fR $include_dir/* $INSTALL_PREFIX/
   done
-  if [[ ! "$SIGNING_IDENTITY" = "" ]]; then
-    log "creating signed release package"
-  else
-    log "creating package"
-  fi
+
+  log "creating package"
   pkgbuild --root $INSTALL_PREFIX       \
            --scripts $SCRIPT_ROOT       \
            --identifier $APP_IDENTIFIER \
            --version $APP_VERSION       \
-           $SIGNING_IDENTITY_COMMAND    \
-           $KEYCHAIN_IDENTITY_COMMAND   \
            $OUTPUT_PKG_PATH 2>&1  1>/dev/null
   log "package created at $OUTPUT_PKG_PATH"
 
-  log "creating debug package"
-  pkgbuild --root $DEBUG_PREFIX               \
+  pkgbuild --root $DEBUG_PREFIX          \
            --identifier $APP_IDENTIFIER.debug \
            --version $APP_VERSION             \
            $OUTPUT_DEBUG_PKG_PATH 2>&1  1>/dev/null
