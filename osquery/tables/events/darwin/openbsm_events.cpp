@@ -33,7 +33,7 @@ static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
   r["euid"] = INTEGER(tok.tt.subj32_ex.euid);
   r["egid"] = INTEGER(tok.tt.subj32_ex.egid);
   char ip_str[INET6_ADDRSTRLEN];
-  if (tok.tt.proc32_ex.tid.type == AU_IPv4) {
+  if (tok.tt.subj32_ex.tid.type == AU_IPv4) {
     struct in_addr ipv4;
     ipv4.s_addr = static_cast<in_addr_t>(*tok.tt.subj32_ex.tid.addr);
     r["address"] =
