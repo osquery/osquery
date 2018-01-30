@@ -9,6 +9,7 @@
  */
 #include <arpa/inet.h>
 
+#include <bsm/audit_kevents.h>
 #include <bsm/libbsm.h>
 
 #include <osquery/events.h>
@@ -76,8 +77,7 @@ REGISTER(OpenBSMSSHLoginSubscriber, "event_subscriber", "user_events");
 
 void OpenBSMExecVESubscriber::configure() {
   std::vector<size_t> event_ids{
-      23, // execve
-      43190, // AUX_POSIX_SPAWN
+      AUE_EXECVE, AUE_POSIX_SPAWN,
   };
   for (const auto& evid : event_ids) {
     auto sc = createSubscriptionContext();
