@@ -73,9 +73,7 @@ $ make
 $ make test
 ```
 
-If you'd like to generate an RPM or DEB package, first ensure you have [fpm](https://github.com/jordansissel/fpm) installed and then run:
-
-`$ make packages`
+If you'd like to generate an RPM or DEB package, please view the [Custom Packages] section.(#custom-packages)
 
 The binaries are built to a distro-specific folder within *build* and symlinked in:
 
