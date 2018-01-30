@@ -1,0 +1,164 @@
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
+ */
+
+/*
+** This file is generated. Do not modify it manually!
+*/
+
+#include <osquery/tables.h>
+
+namespace osquery {
+
+namespace tables {
+extern TableColumns tbl_{{table_name}}_columndefs;
+
+#if defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_DEF) || defined(DECLARE_TABLE_FOREIGN_STUB)
+
+TableColumns tbl_{{table_name}}_columndefs = {
+{% for column in schema %}\
+  std::make_tuple("{{column.name}}", {{column.type.affinity}},\
+{% if column.options|length > 0 %} {{column.options_set}}\
+{% else %} ColumnOptions::DEFAULT\
+{% endif %}\
+),
+{% endfor %}\
+};
+
+#endif // defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_DEF)
+
+} // namespace tables
+
+#if defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_FOREIGN_STUB)
+
+class {{table_name_cc}}TablePluginBase : public TablePlugin {
+ private:
+  TableColumns columns() const override { return tables::tbl_{{table_name}}_columndefs; }
+
+{% if aliases|length > 0 %}\
+  std::vector<std::string> aliases() const override {
+    return {
+{% for alias in aliases %}\
+      "{{alias}}",
+{% endfor %}\
+    };
+  }
+{% endif %}\
+
+{% if has_column_aliases %}\
+
+  ColumnAliasSet columnAliases() const override {
+    return {
+{% for column in schema %}\
+{% if column.aliases|length > 0 %}\
+      {"{{column.name}}", {% raw %}{{% endraw %}\
+{% for alias in column.aliases %}"{{alias}}"\
+{% if not loop.last %}, {% endif %}\
+{% endfor %}}},
+{% endif %}\
+{% endfor %}\
+    };
+  }
+{% endif %}\
+
+  TableAttributes attributes() const override {
+    return \
+{% for attribute in attribute_set %}\
+      TableAttributes::{{attribute}} |\
+{% endfor %}\
+      TableAttributes::NONE;
+  }
+
+  QueryData generate(QueryContext& request) override { return QueryData(); }
+
+};
+
+void tbl_{{table_name}}_register_stub()
+{
+  bool isInternalUtilitiesTable =\
+  {% if attributes.utility %} true {% else %} false {% endif %};
+  auto registry = RegistryFactory::get().registry("table");
+  registry->add("{{table_name}}", std::make_shared<{{table_name_cc}}TablePluginBase>(), isInternalUtilitiesTable);
+}
+{% if table_name != filename %}\
+void tbl_{{filename}}_register_stub() { tbl_{{table_name}}_register_stub(); } // filename differs from table name
+{% endif %}\
+
+#endif // defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_FOREIGN_STUB)
+
+#if defined(DECLARE_TABLE_IMPLEMENTATION)
+
+// forward declaration of funcs
+namespace tables {
+{% if class_name == "" %}\
+{% if generator %}\
+void {{function}}(RowYield& yield, QueryContext& context);
+{% else %}\
+osquery::QueryData {{function}}(QueryContext& context);
+{% endif %}\
+{% else %}
+class {{class_name}} {
+ public:
+  void {{function}}(RowYield& yield, QueryContext& context);
+};
+{% endif %}\
+}
+
+class {{table_name_cc}}TablePlugin : public {{table_name_cc}}TablePluginBase {
+ private:
+{% if generator %}\
+  bool usesGenerator() const override { return true; }
+
+  void generator(RowYield& yield, QueryContext& context) override {
+{% if class_name != "" %}\
+    if (EventFactory::exists(getName())) {
+      auto subscriber = EventFactory::getEventSubscriber(getName());
+      return subscriber->{{function}}(yield, context);
+    } else {
+      LOG(ERROR) << "Subscriber table missing: " << getName();
+    }
+{% else %}\
+    tables::{{function}}(yield, context);
+{% endif %}\
+  }
+{% else %}\
+  QueryData generate(QueryContext& context) override {
+{% if attributes.cacheable %}\
+    if (isCached(kCacheStep, context)) {
+      return getCache();
+    }
+{% endif %}\
+    auto results = tables::{{function}}(context);
+{% if attributes.cacheable %}\
+    setCache(kCacheStep, kCacheInterval, context, results);
+{% endif %}
+    return results;
+  }
+{% endif %}\
+
+};
+
+void tbl_{{table_name}}_register()
+{
+  bool isInternalUtilitiesTable =\
+  {% if attributes.utility %} true {% else %} false {% endif %};
+  auto registry = RegistryFactory::get().registry("table");
+  registry->add("{{table_name}}", std::make_shared<{{table_name_cc}}TablePlugin>(), isInternalUtilitiesTable);
+}
+{% if table_name != filename %}\
+void tbl_{{filename}}_register() { tbl_{{table_name}}_register(); } // filename differs from table name
+{% endif %}\
+#endif // defined(DECLARE_TABLE_IMPLEMENTATION)
+
+extern void tbl_{{table_name}}_register();
+{% if table_name != filename %}\
+extern void tbl_{{filename}}_register();
+{% endif %}\
+
+} // namespace osquery

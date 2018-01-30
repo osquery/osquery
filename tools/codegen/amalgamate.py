@@ -18,6 +18,11 @@ import jinja2
 import os
 import sys
 
+# get the platform we are building for
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(SCRIPT_DIR + "/../tests")
+from utils import platform
+PLATFORM = platform()
 
 TEMPLATE_NAME = "amalgamation.cpp.in"
 BEGIN_LINE = "/// BEGIN[GENTABLE]"
@@ -40,6 +45,44 @@ def genTableData(filename):
         return None
     return "\n".join(table_data)
 
+gBlacklist=None
+
+class Table(object):
+        def __init__(self, name, is_blacklisted):
+            self.name = name
+            self.is_blacklisted = is_blacklisted
+
+def is_blacklisted(table_name, codegen_path=None):
+    """Allow blacklisting by tablename."""
+    global gBlacklist
+    if gBlacklist is None:
+        specs_path = os.path.join(codegen_path, "..", "..", "specs")
+        blacklist_path = os.path.join(specs_path, "blacklist")
+        if not os.path.exists(blacklist_path):
+            return False
+        try:
+            with open(blacklist_path, "r") as fh:
+                gBlacklist = [
+                    line.strip() for line in fh.read().split("\n")
+                    if len(line.strip()) > 0 and line.strip()[0] != "#"
+                ]
+        except Exception as e:
+            # Blacklist is not readable.
+            return False
+    if not gBlacklist:
+        return False
+
+    # table_name based blacklisting!
+    for item in gBlacklist:
+        item = item.split(":")
+        # If this item is restricted to a platform and the platform
+        # and table name match
+        if len(item) > 1 and PLATFORM == item[0] and table_name == item[1]:
+            return True
+        elif len(item) == 1 and table_name == item[0]:
+            return True
+    return False
+
 
 def main(argc, argv):
     parser = argparse.ArgumentParser(
@@ -48,7 +91,8 @@ def main(argc, argv):
         help="Generate a foreign table set amalgamation")
     parser.add_argument("codegen", help="Path to this codegen folder")
     parser.add_argument("generated", help="Path to generated build folder")
-    parser.add_argument("category", help="Category name of generated tables")
+    parser.add_argument("category", help="Category name of generated tables") # utils additional
+    parser.add_argument("tablenames", help="space delimited list of table names")
     args = parser.parse_args()
 
     tables = []
@@ -57,17 +101,22 @@ def main(argc, argv):
     with open(template, "rU") as fh:
         template_data = fh.read()
 
-    tables_folder = os.path.join(args.generated, "tables_%s" % (args.category))
-    for base, _, filenames in os.walk(tables_folder):
-        for filename in filenames:
-            if filename == args.category:
-                continue
-            table_data = genTableData(os.path.join(base, filename))
-            if table_data is not None:
-                tables.append(table_data)
+    table_names = args.tablenames.split(';')
+    for table_name in table_names:
+        tables.append(Table(table_name, is_blacklisted(table_name, args.codegen)))
+
+
+#    tables_folder = os.path.join(args.generated, "tables_%s" % (args.category))
+#    for base, _, filenames in os.walk(tables_folder):
+#        for filename in filenames:
+#            if filename == args.category:
+#                continue
+#            table_data = genTableData(os.path.join(base, filename))
+#            if table_data is not None:
+#                tables.append(table_data)
 
     amalgamation = jinja2.Template(template_data).render(tables=tables,
-        foreign=args.foreign)
+        foreign=args.foreign, category=args.category)
     output = os.path.join(args.generated, "%s_amalgamation.cpp" % args.category)
     try:
         os.makedirs(os.path.dirname(output))

@@ -16,15 +16,36 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+{% if foreign %}
+#define DECLARE_TABLE_FOREIGN_STUB
+{% for table in tables %}
+#include <generated/tables/tbl_{{table.name}}_defs.hpp>
+{% endfor %}
+{% endif %}
 
 namespace osquery {
+
 {% if foreign %}
-void registerForeignTables() {
+  void registerForeignTables() {
+  {% for table in tables %}
+    tbl_{{table.name}}_register_stub();
+  {% endfor %}
+  }
+{% else %}
+  class RegisterLinkedTables{{category}} {
+  public:
+    RegisterLinkedTables{{category}}() {
+    {% for table in tables %}
+    {% if table.is_blacklisted %}
+        // table {{table.name}} is blacklisted
+    {% else %}
+        extern void tbl_{{table.name}}_register();
+        tbl_{{table.name}}_register();
+    {% endif %}
+    {% endfor %}
+    }
+  };
+  static const auto doAutoReg = RegisterLinkedTables{{category}}();
 {% endif %}
-{% for table in tables %}
-{{table}}
-{% endfor %}
-{% if foreign %}
-}
-{% endif %}
-}
+
+} // namespace

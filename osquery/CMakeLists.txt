@@ -57,6 +57,8 @@ if(DEFINED ENV{SANITIZE})
   ADD_OSQUERY_LINK_CORE(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
 endif()
 
+include_directories("${CMAKE_BINARY_DIR}/") # for <generated/tables/tbl_xx_defs.hpp>
+
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
 set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
