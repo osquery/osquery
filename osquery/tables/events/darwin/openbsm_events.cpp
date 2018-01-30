@@ -47,7 +47,7 @@ static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
   }
 }
 
-class OpenBSMExecVESubscriber : public EventSubscriber<OpenBSMEventPublisher> {
+class OpenBSMProcEvSubscriber : public EventSubscriber<OpenBSMEventPublisher> {
  public:
   Status init() override {
     return Status(0);
@@ -72,21 +72,21 @@ class OpenBSMSSHLoginSubscriber
                   const OpenBSMSubscriptionContextRef& sc);
 };
 
-REGISTER(OpenBSMExecVESubscriber, "event_subscriber", "process_events");
+REGISTER(OpenBSMProcEvSubscriber, "event_subscriber", "process_events");
 REGISTER(OpenBSMSSHLoginSubscriber, "event_subscriber", "user_events");
 
-void OpenBSMExecVESubscriber::configure() {
+void OpenBSMProcEvSubscriber::configure() {
   std::vector<size_t> event_ids{
       AUE_EXECVE, AUE_POSIX_SPAWN,
   };
   for (const auto& evid : event_ids) {
     auto sc = createSubscriptionContext();
     sc->event_id = evid;
-    subscribe(&OpenBSMExecVESubscriber::Callback, sc);
+    subscribe(&OpenBSMProcEvSubscriber::Callback, sc);
   }
 }
 
-Status OpenBSMExecVESubscriber::Callback(
+Status OpenBSMProcEvSubscriber::Callback(
     const OpenBSMEventContextRef& ec, const OpenBSMSubscriptionContextRef& sc) {
   Row r;
   for (const auto& tok : ec->tokens) {
