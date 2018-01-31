@@ -9,17 +9,16 @@
  *
  */
 
-#include <iostream>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 
 #include <atomic>
 #include <chrono>
-#include <future>
 #include <map>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <OpenIPMI/ipmi_auth.h>
@@ -95,16 +94,13 @@ static inline size_t getTimeoutConfig(const std::string&& name,
                                       size_t defaultTimeout) {
   auto parser = Config::getParser("ipmi");
   if (parser != nullptr && parser.get() != nullptr) {
-    const auto& config = parser->getData().get_child(
-        kIPMIConfigParserRootKey, boost::property_tree::ptree("UNEXPECTED"));
-    if (config.get_value("") == "UNEXPECTED") {
-      LOG(WARNING) << "Could not load ipmi configuration root key: "
-                   << kIPMIConfigParserRootKey;
+    const auto& config = parser->getData().doc()[kIPMIConfigParserRootKey];
+    if (!config.IsNull() && config.HasMember(name) && config[name].IsInt()) {
+      return config[name].GetInt();
     }
-
-    return config.get_child(name, boost::property_tree::ptree())
-        .get_value<size_t>(defaultTimeout);
   }
+
+  return defaultTimeout;
 }
 
 /**
@@ -706,11 +702,7 @@ IPMIClient::~IPMIClient() {
 }
 
 IPMIClient::IPMIClient()
-    : InternalRunnable("ipmi_client"),
-      up_(false),
-      domain_(nullptr),
-      os_hnd_(nullptr, kFreeOSHandle),
-      lanCh_(0) {
+    : up_(false), domain_(nullptr), os_hnd_(nullptr, kFreeOSHandle), lanCh_(0) {
   TLOG << "First time initialization of OpenIPMI client.  This could "
           "take a few minutes";
 
@@ -747,10 +739,6 @@ IPMIClient::IPMIClient()
     LOG(ERROR) << "Error opening IPMI domain: " << strerror(rv);
     return;
   }
-
-  TLOG << "Adding IPMIClient as a dispatcher service";
-  Dispatcher::addService(
-      std::shared_ptr<IPMIClient>(this, [](IPMIClient* c) { c->stop(); }));
 
   auto timeout = getTimeoutConfig("timeout", IPMI_DEFAULT_INIT_TIMEOUT);
 
@@ -860,48 +848,24 @@ void IPMIClient::rmParmData(parmData* parm) {
 }
 
 void IPMIClient::blkAndOp(std::function<bool()> ready, int timeoutDurMS) {
-  const size_t pauseDuration = 5;
+  const size_t pauseDuration = 50;
   // To account for timing skews.
-  const size_t adjustedPauseDuration = 6;
-
-  std::atomic<bool> done(false);
-  auto fut = std::async(std::launch::async, [&, this] {
-    while (timeoutDurMS > 0 && !done.load()) {
-      pauseMilli(pauseDuration);
-      if (interrupted()) {
-        LOG(WARNING) << "EXITING!!!!!!!!!!\n\n";
-        return;
-      }
-      // TLOG << "T1: JUST POSTED FOR 5 MS";
-      timeoutDurMS -= adjustedPauseDuration;
-
-      TLOG << "CURRENT TIMEOUT IS " << timeoutDurMS;
-    }
-  });
-  std::future_status status;
+  const size_t adjustedPauseDuration = 60;
 
   do {
     auto rv = oneOp();
     if (rv == EINTR || rv == EINVAL) {
-      done.store(true);
       return;
     }
     if (rv != 0) {
       LOG(ERROR) << "Could not handle IPMI event: " << strerror(rv);
     }
 
-    status = fut.wait_for(std::chrono::milliseconds(1));
-    TLOG << "T2: JUST WAITED FOR 1 MS; STATUS IS ";
+    std::this_thread::sleep_for(std::chrono::milliseconds(pauseDuration));
 
-    if (status == std::future_status::ready) {
-      TLOG << "STATUS IS READY!!!!!\n\n";
-    } else {
-      TLOG << "Status is not ready\n\n";
-    }
+    timeoutDurMS -= adjustedPauseDuration;
 
-  } while (status != std::future_status::ready && !ready());
-  std::cout << "EXITINGGGGGGGG\n\n";
-  done.store(true);
+  } while (timeoutDurMS > 0 && !ready());
 }
 
 void IPMIClient::setLANCh(unsigned int ch) {
@@ -954,8 +918,7 @@ void IPMIClient::findLANCh() {
 }
 
 int IPMIClient::oneOp() {
-  struct timeval tv = {0, 500000};
-  TLOG << "BOOM@@@@!!!!\n\n";
+  struct timeval tv = {1, 0};
   return os_hnd_.get()->perform_one_op(os_hnd_.get(), &tv);
 }
 
@@ -993,7 +956,6 @@ void IPMIClient::iterateMCs(ipmi_domain_iterate_mcs_cb cb) {
 }
 
 void IPMIClient::getLANConfigs(QueryData& results) {
-  WriteLock lock(busy_);
   rowsQueue_.clear();
 
   iterateMCs(getLANsCB);
@@ -1007,7 +969,6 @@ void IPMIClient::getLANConfigs(QueryData& results) {
 }
 
 void IPMIClient::getThresholdSensors(QueryData& results) {
-  WriteLock lock(busy_);
   rowsQueue_.clear();
 
   iterateEntities(getThresholdSensorCB);
@@ -1022,7 +983,6 @@ void IPMIClient::getThresholdSensors(QueryData& results) {
 }
 
 void IPMIClient::getFRUs(QueryData& results) {
-  WriteLock lock(busy_);
   rowsQueue_.clear();
 
   iterateEntities(getFRUCB);
@@ -1036,7 +996,6 @@ void IPMIClient::getFRUs(QueryData& results) {
 }
 
 void IPMIClient::getMCs(QueryData& results) {
-  WriteLock lock(busy_);
   rowsQueue_.clear();
 
   iterateMCs(iterateMCsCB);
@@ -1047,35 +1006,5 @@ void IPMIClient::getMCs(QueryData& results) {
   toQueryData(results);
 
   rowsQueue_.clear();
-}
-
-void IPMIClient::start() {
-  while (!interrupted()) {
-    pauseMilli(IPMI_CLEANUP_DURATION);
-    if (interrupted()) {
-      return;
-    }
-
-    if (isUp()) {
-      TLOG << "Running IPMIClient cleanup routine";
-      cleanup();
-    }
-  }
-}
-
-void IPMIClient::stop() {
-  if (up_.load()) {
-    up_.store(false);
-  }
-
-  cleanup();
-}
-
-void IPMIClient::cleanup() {
-  WriteLock lock(busy_);
-  if (!rowsQueue_.empty()) {
-    TLOG << "IPMIClient cleaning up rowsQueue_ since it's not empty";
-    rowsQueue_.clear();
-  }
 }
 }

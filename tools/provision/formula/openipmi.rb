@@ -22,6 +22,7 @@ class Openipmi < AbstractOsqueryFormula
     args = [
       "--prefix=#{prefix}",
       "--enable-shared=no",
+      "--with-glibs=yes",
     ]
 
     ENV.append "PERL5LIB", "#{default_prefix}/Cellar/autoconf/2.69/share/autoconf"

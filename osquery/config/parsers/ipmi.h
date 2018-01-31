@@ -16,12 +16,11 @@
 
 namespace osquery {
 
-const std::string kIPMIConfigParserRootKey("ipmi");
+extern const std::string kIPMIConfigParserRootKey;
 
 class IPMIConfigParserPlugin : public ConfigParserPlugin {
  public:
   std::vector<std::string> keys() const override;
-  Status setUp() override;
   Status update(const std::string& source, const ParserConfig& config) override;
 };
 } // namespace osquery

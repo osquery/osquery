@@ -15,21 +15,19 @@
 
 namespace osquery {
 
+const std::string kIPMIConfigParserRootKey("ipmi");
+
 std::vector<std::string> IPMIConfigParserPlugin::keys() const {
   return {kIPMIConfigParserRootKey};
 }
 
-Status IPMIConfigParserPlugin::setUp() {
-  data_.put_child(kIPMIConfigParserRootKey, boost::property_tree::ptree());
-  return Status(0, "OK");
-}
-
 Status IPMIConfigParserPlugin::update(const std::string& source,
                                       const ParserConfig& config) {
-  if (config.count(kIPMIConfigParserRootKey) > 0) {
-    data_ = boost::property_tree::ptree();
-    data_.put_child(kIPMIConfigParserRootKey,
-                    config.at(kIPMIConfigParserRootKey));
+  auto fields = config.find(kIPMIConfigParserRootKey);
+  if (fields != config.end()) {
+    auto obj = data_.getObject();
+    data_.copyFrom(fields->second.doc(), obj);
+    data_.add(kIPMIConfigParserRootKey, obj);
   }
 
   return Status(0, "OK");

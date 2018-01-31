@@ -51,7 +51,8 @@ struct parmData;
  * table.  The initialization process waits for OpenIPMI to be in the "fully
  * up" state so it can a few minutes.
  */
-class IPMIClient : public InternalRunnable {
+// class IPMIClient : public InternalRunnable {
+class IPMIClient {
  public:
   /**
    * @brief retrieves instance of IPMIClient (singleton).
@@ -93,12 +94,6 @@ class IPMIClient : public InternalRunnable {
    * @return bool indicating client state.
    */
   bool isUp();
-
-  /// Starts background clean up routine.  Implements InternalRunnable.
-  void start() override;
-
-  /// Sets running state to false and does one final clean up.
-  void stop() override;
 
   ~IPMIClient();
   IPMIClient(IPMIClient const& client) = delete;
@@ -152,9 +147,6 @@ class IPMIClient : public InternalRunnable {
   /// Iterate all IPMI mcs by registering cb.
   void iterateMCs(ipmi_domain_iterate_mcs_cb);
 
-  /// Background loop for cleaning data from late IPMI events.
-  void cleanup();
-
   /// OpenIPMI callback for retrieving BMC LAN info.
   friend void getLANsCB(ipmi_domain_t* domain, ipmi_mc_t* mc, void* data);
 
@@ -192,14 +184,6 @@ class IPMIClient : public InternalRunnable {
 
   /// Stores state of client.
   std::atomic<bool> up_;
-
-  /* @brief Mutex to check if client is busy with a query.
-   *
-   * This is so bg task can clean up memory.  This is due to the asynchronous
-   * nature of IPMI and the fact that there's no guarantee when/if the
-   * requested data ever returns.
-   */
-  Mutex busy_;
 
   /* @brief Mutex for handling parmData*
    *
