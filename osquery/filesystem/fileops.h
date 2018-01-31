@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -25,11 +25,10 @@
 #include <vector>
 
 #include <boost/filesystem.hpp>
+#include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
 
 #include <osquery/status.h>
-
-namespace fs = boost::filesystem;
 
 namespace osquery {
 
@@ -109,14 +108,14 @@ LONGLONG filetimeToUnixtime(const FILETIME& ft);
 
 /**
  * @brief Stores information about the last Windows async request
- * @note Currently, we have rudimentary support for non-blocking operations
- *       on Windows. The implementation attempts to emulate POSIX non-blocking
- *       IO semantics using the Windows asynchronous API. As such, there are
- *       currently limitations. For example, opening a non-blocking file with
- *       read and write privileges may produce some problems. If a write
- *       operation does not immediately succeed, we cancel IO instead of
- *       waiting on it. As a result, on-going async read operations will get
- *       canceled and data might get lost.
+ *
+ * Currently, we have rudimentary support for non-blocking operations on
+ * Windows. The implementation attempts to emulate POSIX non-blocking IO
+ * semantics using the Windows asynchronous API. As such, there are currently
+ * limitations. For example, opening a non-blocking file with read and write
+ * privileges may produce some problems. If a write operation does not
+ * immediately succeed, we cancel IO instead of waiting on it. As a result,
+ * on-going async read operations will get canceled and data might get lost.
  *
  * Windows-only class that deals with simulating POSIX asynchronous IO semantics
  * using Windows API calls
@@ -161,15 +160,12 @@ Status windowsGetFileVersion(const std::string& path, std::string& rVersion);
  * PlatformFile is a multi-platform class that offers input/output capabilities
  * for files.
  */
-class PlatformFile {
+class PlatformFile : private boost::noncopyable {
  public:
-  explicit PlatformFile(const std::string& path, int mode, int perms = -1);
+  explicit PlatformFile(const boost::filesystem::path& path,
+                        int mode,
+                        int perms = -1);
   explicit PlatformFile(PlatformHandle handle) : handle_(handle) {}
-
-  PlatformFile(PlatformFile&& src) noexcept {
-    handle_ = kInvalidHandle;
-    std::swap(handle_, src.handle_);
-  }
 
   ~PlatformFile();
 
@@ -200,9 +196,10 @@ class PlatformFile {
 
   /**
    * @brief Returns success if owner of the file is root.
-   * @note At the moment, we only determine that the owner of the current file
-   *       is a member of the Administrators group. We do not count files owned
-   *       by TrustedInstaller as owned by root.
+   *
+   * At the moment, we only determine that the owner of the current file is a
+   * member of the Administrators group. We do not count files owned by
+   * TrustedInstaller as owned by root.
    */
   Status isOwnerRoot() const;
 
@@ -214,31 +211,41 @@ class PlatformFile {
 
   /**
    * @brief Determines how immutable the file is to external modifications.
-   * @note Currently, this is only implemented on Windows. The Windows version
-   *       of this function ensures that writes are explicitly denied for the
-   *       file AND the file's parent directory.
+   *
+   * Currently, this is only implemented on Windows. The Windows version of this
+   * function ensures that writes are explicitly denied for the file AND the
+   * file's parent directory.
    */
   Status hasSafePermissions() const;
 
+  /// Return the modified, created, birth, updated, etc times.
   bool getFileTimes(PlatformTime& times);
 
+  /// Change the file times.
   bool setFileTimes(const PlatformTime& times);
 
+  /// Read a number of bytes into a buffer.
   ssize_t read(void* buf, size_t nbyte);
 
+  /// Write a number of bytes from a buffer.
   ssize_t write(const void* buf, size_t nbyte);
 
+  /// Use the platform-specific seek.
   off_t seek(off_t offset, SeekMode mode);
 
+  /// Inspect the file size.
   size_t size() const;
 
  private:
-  fs::path fname_;
+  boost::filesystem::path fname_;
 
+  /// The internal platform-specific open file handle.
   PlatformHandle handle_{kInvalidHandle};
 
+  /// Is the file opened in a non-blocking read mode.
   bool is_nonblock_{false};
 
+  /// Does the file have pending operations.
   bool has_pending_io_{false};
 
 #ifdef WIN32
@@ -309,10 +316,10 @@ int platformAccess(const std::string& path, mode_t mode);
  * @note This just compares the temporary directory path against the given path
  *       on Windows.
  */
-Status platformIsTmpDir(const fs::path& dir);
+Status platformIsTmpDir(const boost::filesystem::path& dir);
 
 /// Determines the accessibility and existence of the file path.
-Status platformIsFileAccessible(const fs::path& path);
+Status platformIsFileAccessible(const boost::filesystem::path& path);
 
 /// Determine if the FILE object points to a tty (console, serial port, etc).
 bool platformIsatty(FILE* f);
@@ -338,7 +345,8 @@ boost::optional<FILE*> platformFopen(const std::string& filename,
  * if the socket exists and removal was requested (and the attempt to remove
  * had failed).
  */
-Status socketExists(const fs::path& path, bool remove_socket = false);
+Status socketExists(const boost::filesystem::path& path,
+                    bool remove_socket = false);
 
 /**
  * @brief Returns the OS root system directory.
@@ -349,7 +357,7 @@ Status socketExists(const fs::path& path, bool remove_socket = false);
  *
  * On POSIX systems this returns "/".
  *
- * @return an instance of fs::path, containing the OS root location.
+ * @return boost::filesystem::path containing the OS root location.
  */
 boost::filesystem::path getSystemRoot();
 }

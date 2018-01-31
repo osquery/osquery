@@ -3,14 +3,11 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
-ORACLE_RELEASE=/etc/oracle-release
-SYSTEM_RELEASE=/etc/system-release
-LSB_RELEASE=/etc/lsb-release
-DEBIAN_VERSION=/etc/debian_version
 LIB_SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 # For OS X, define the distro that builds the kernel extension.
@@ -40,7 +37,7 @@ function _distro() {
 function threads() {
   local __out=$1
   platform OS
-  if [[ $FAMILY = "redhat" ]] || [[ $FAMILY = "debian" ]]; then
+  if [[ $FAMILY = "redhat" ]] || [[ $FAMILY = "debian" ]] || [[ $FAMILY = "suse" ]]; then
     eval $__out=`cat /proc/cpuinfo | grep processor | wc -l`
   elif [[ $OS = "darwin" ]]; then
     eval $__out=`sysctl hw.ncpu | awk '{print $2}'`
@@ -76,9 +73,13 @@ function set_cc() {
 }
 
 function do_sudo() {
-  ARGS="$@"
-  log "requesting sudo: $ARGS"
-  sudo $@
+  if [[ "$OSQUERY_NOSUDO" = "True" ]]; then
+    $@
+  else
+    ARGS="$@"
+    log "requesting sudo: $ARGS"
+    sudo $@
+  fi
 }
 
 function contains_element() {

@@ -1,19 +1,18 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
-
-#include <boost/lexical_cast.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/darwin/firewall.h"
 
 namespace pt = boost::property_tree;
@@ -21,28 +20,18 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-const std::string kALFPlistPath = "/Library/Preferences/com.apple.alf.plist";
+/**
+ * @brief Well known path to the Application Layer Firewall configuration.
+ *
+ * This plist contains all of the details about the ALF.
+ * It is used to populate all of the tables here.
+ */
+const std::string kALFPlistPath{"/Library/Preferences/com.apple.alf.plist"};
 
-// it.first represents the key that is used in com.apple.alf.plist to identify
-// the data in question. it.second represents the value of the "service" column
-// in the alf_services table.
-const std::map<std::string, std::string> kFirewallTreeKeys = {
-    {"Apple Remote Desktop", "Apple Remote Desktop"},
-    {"FTP Access", "FTP"},
-    {"ODSAgent", "ODSAgent"},
-    {"Personal File Sharing", "File Sharing"},
-    {"Personal Web Sharing", "Web Sharing"},
-    {"Printer Sharing", "Printer Sharing"},
-    {"Remote Apple Events", "Remote Apple Events"},
-    {"Remote Login - SSH", "SSH"},
-    {"Samba Sharing", "Samba Sharing"},
-};
-
-// it.first represents the top level keys in com.apple.alf.plist to identify
-// the data in question. it.second represents the names of the columns that
-// each sample of data can be found under in the alf table.
-const std::map<std::string, std::string> kTopLevelIntKeys = {
+/// Well known keys within the plist containing settings.
+const std::map<std::string, std::string> kTopLevelIntKeys{
     {"allowsignedenabled", "allow_signed_enabled"},
+    {"allowdownloadsignedenabled", "allow_downloads_signed_enabled"},
     {"firewallunload", "firewall_unload"},
     {"globalstate", "global_state"},
     {"loggingenabled", "logging_enabled"},
@@ -50,10 +39,8 @@ const std::map<std::string, std::string> kTopLevelIntKeys = {
     {"stealthenabled", "stealth_enabled"},
 };
 
-// it.first represents the top level keys in com.apple.alf.plist to identify
-// the data in question. it.second represents the names of the columns that
-// each sample of data can be found under in the alf table.
-const std::map<std::string, std::string> kTopLevelStringKeys = {
+/// Well known keys within the plist containing settings (as strings).
+const std::map<std::string, std::string> kTopLevelStringKeys{
     {"version", "version"},
 };
 
@@ -103,6 +90,22 @@ QueryData parseALFExceptionsTree(const pt::ptree& tree) {
     results.push_back(r);
   }
 
+  auto applications_tree = tree.get_child("applications");
+  for (const auto& it : applications_tree) {
+    Row r;
+
+    if (it.second.get("alias", "").length() > 0) {
+      std::string path;
+      auto alias_data = it.second.get<std::string>("alias", "");
+
+      if (pathFromPlistAliasData(alias_data, path).ok()) {
+        r["path"] = path;
+        r["state"] = INTEGER(it.second.get("state", -1));
+        results.push_back(r);
+      }
+    }
+  }
+
   return results;
 }
 
@@ -146,13 +149,12 @@ QueryData parseALFServicesTree(const pt::ptree& tree) {
     return {};
   }
 
-  auto firewall_tree = tree.get_child("firewall");
-  for (const auto& it : kFirewallTreeKeys) {
+  auto& firewall_tree = tree.get_child("firewall");
+  for (const auto& it : firewall_tree) {
     Row r;
-    auto subtree = firewall_tree.get_child(it.first);
-    r["service"] = it.second;
-    r["process"] = subtree.get("proc", "");
-    r["state"] = INTEGER(subtree.get("state", -1));
+    r["service"] = it.first;
+    r["process"] = it.second.get("proc", "");
+    r["state"] = INTEGER(it.second.get("state", -1));
     results.push_back(r);
   }
   return results;

@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #define _WIN32_DCOM
@@ -47,24 +47,27 @@ const std::vector<std::string> kIEBrowserHelperKeys = {
 };
 
 static inline Status getBHOs(QueryData& results) {
-  SQL sql("SELECT name,path FROM registry WHERE key LIKE '" +
-          boost::join(kIEBrowserHelperKeys, "' OR key LIKE '") + "'");
-  if (!sql.ok()) {
-    return sql.getStatus();
+  QueryData regQueryResults;
+  auto ret =
+      queryMultipleRegistryKeys(kIEBrowserHelperKeys, "", regQueryResults);
+
+  if (!ret.ok()) {
+    return ret;
   }
-  for (const auto& cls : sql.rows()) {
+
+  for (const auto& res : regQueryResults) {
     std::vector<std::string> executables;
-    auto ret = getClassExecutables(cls.at("name"), executables);
+    auto ret = getClassExecutables(res.at("name"), executables);
     if (!ret.ok()) {
       LOG(WARNING) << "Failed to get class executables: " + ret.getMessage();
       continue;
     }
 
     std::string clsName;
-    ret = getClassName(cls.at("name"), clsName);
+    ret = getClassName(res.at("name"), clsName);
     if (!ret.ok()) {
-      LOG(WARNING) << "Failed to get class name: " + ret.getMessage();
-      return ret;
+      LOG(WARNING) << "Failed to lookup class name: " + ret.getMessage();
+      continue;
     }
 
     for (const auto& exec : executables) {
@@ -83,7 +86,7 @@ static inline Status getBHOs(QueryData& results) {
         r["version"] = std::move(version);
       }
 
-      r["registry_path"] = cls.at("path");
+      r["registry_path"] = res.at("path");
       results.push_back(r);
     }
   }

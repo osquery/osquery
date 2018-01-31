@@ -1,9 +1,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # List of table categories
 set(TABLE_CATEGORIES
@@ -102,6 +103,12 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
         ${OSQUERY_${CATEGORY}_POSIX_TABLES}
       )
     endif()
+
+    # Add posix table tests.
+    file(GLOB POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS
+      "${CATEGORY}/posix/tests/*.[cpm]*"
+    )
+    ADD_OSQUERY_TABLE_TEST(${POSIX_OSQUERY_${CATEGORY}_TABLES_TESTS})
   endif()
 
   # Table implementations shared by FreeBSD and Linux
@@ -123,6 +130,17 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CATEGORY}_TABLES_TESTS})
 endforeach()
 
+if(NOT SKIP_KERNEL)
+  file(GLOB OSQUERY_KERNEL_TABLES
+    "kernel/*.[cpm]*"
+    "*/${TABLE_PLATFORM}/kernel/*.[cpm]*"
+  )
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(
+    osquery_kernel_tables
+    ${OSQUERY_KERNEL_TABLES}
+  )
+endif()
+
 file(GLOB OSQUERY_UTILITY_TABLES "utility/*.cpp")
 ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
   ${OSQUERY_UTILITY_TABLES}
@@ -131,7 +149,7 @@ ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
 if(NOT SKIP_AWS AND LINUX)
   file(GLOB OSQUERY_CLOUD_TABLES "cloud/*.[cpm]*")
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_cloud_tables ${OSQUERY_CLOUD_TABLES})
- 
+
   file(GLOB OSQUERY_CLOUD_TABLES_TESTS "cloud/tests/*.[cpm]*")
   if(OSQUERY_CLOUD_TABLES_TESTS)
     ADD_OSQUERY_TABLE_TEST(${OSQUERY_CLOUD_TABLES_TESTS})

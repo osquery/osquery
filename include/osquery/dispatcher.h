@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -30,7 +30,7 @@ struct RunnerInterruptError {};
 
 class RunnerInterruptPoint : private boost::noncopyable {
  public:
-  RunnerInterruptPoint() : stop_(false) {}
+  RunnerInterruptPoint() = default;
 
   /// Cancel the pause request.
   void cancel();
@@ -45,7 +45,7 @@ class RunnerInterruptPoint : private boost::noncopyable {
 
  private:
   /// Communicate between the pause and cancel event.
-  bool stop_;
+  bool stop_{false};
 
   /// Protection around pause and cancel calls.
   std::mutex mutex_;
@@ -56,7 +56,7 @@ class RunnerInterruptPoint : private boost::noncopyable {
 
 class InterruptableRunnable {
  public:
-  virtual ~InterruptableRunnable() {}
+  virtual ~InterruptableRunnable() = default;
 
   /**
    * @brief The std::thread's interruption point.
@@ -122,8 +122,8 @@ class InterruptableRunnable {
 class InternalRunnable : private boost::noncopyable,
                          public InterruptableRunnable {
  public:
-  InternalRunnable() : run_(false) {}
-  virtual ~InternalRunnable() {}
+  InternalRunnable(const std::string& name) : run_(false), name_(name) {}
+  virtual ~InternalRunnable() override = default;
 
  public:
   /**
@@ -144,15 +144,21 @@ class InternalRunnable : private boost::noncopyable,
     return run_;
   }
 
+  /// Returns the runner name
+  std::string name() const {
+    return name_;
+  }
+
  protected:
   /// Require the runnable thread define an entrypoint.
   virtual void start() = 0;
 
   /// The runnable thread may optionally define a stop/interrupt point.
-  virtual void stop() {}
+  void stop() override {}
 
  private:
   std::atomic<bool> run_{false};
+  std::string name_;
 };
 
 /// An internal runnable used throughout osquery as dispatcher services.
@@ -201,8 +207,8 @@ class Dispatcher : private boost::noncopyable {
    * Since instances of Dispatcher should only be created via instance(),
    * Dispatcher's constructor is private.
    */
-  Dispatcher() {}
-  virtual ~Dispatcher() {}
+  Dispatcher() = default;
+  virtual ~Dispatcher() = default;
 
  private:
   /// When a service ends, it will remove itself from the dispatcher.
@@ -245,4 +251,4 @@ class Dispatcher : private boost::noncopyable {
   friend class ExtensionsTests;
   friend class DispatcherTests;
 };
-}
+} // namespace osquery

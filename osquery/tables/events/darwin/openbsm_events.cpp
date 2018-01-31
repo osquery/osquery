@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 #include <arpa/inet.h>
 
@@ -44,15 +44,6 @@ static inline void OpenBSM_AUT_SUBJECT32_EX(Row& r, const tokenstr_t& tok) {
     r["address"] =
         std::string(inet_ntop(AF_INET6, &ipv6, ip_str, INET6_ADDRSTRLEN));
   }
-}
-
-static inline unsigned long decimalIntToOctInt(unsigned long x) {
-  auto ret = 0;
-  for (auto i = 1; x > 0; i *= 10) {
-    ret += (x & 0x7) * i;
-    x >>= 3;
-  }
-  return ret;
 }
 
 class OpenBSMExecVESubscriber : public EventSubscriber<OpenBSMEventPublisher> {
@@ -144,14 +135,17 @@ Status OpenBSMExecVESubscriber::Callback(
     case AUT_PATH:
       r["path"] = std::string(tok.tt.path.path);
       break;
-    case AUT_ATTR32:
-      r["mode"] = INTEGER(decimalIntToOctInt(tok.tt.attr32.mode));
+    case AUT_ATTR32: {
+      std::stringstream ss;
+      ss << "0" << std::oct << tok.tt.attr32.mode;
+      ss >> r["mode"];
       r["owner_uid"] = INTEGER(tok.tt.attr32.uid);
       r["owner_gid"] = INTEGER(tok.tt.attr32.gid);
       r["fsid"] = INTEGER(tok.tt.attr32.fsid);
       r["nid"] = INTEGER(tok.tt.attr32.nid);
       r["dev"] = INTEGER(tok.tt.attr32.dev);
       break;
+    }
     case AUT_EXEC_ENV:
       for (size_t i = 0; i < tok.tt.execarg.count; ++i) {
         r["env"] += std::string(tok.tt.execenv.text[i]) + " ";

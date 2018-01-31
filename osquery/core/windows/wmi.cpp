@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <locale>
@@ -113,7 +113,7 @@ Status WmiResultItem::GetUnsignedShort(const std::string& name,
   if (hr != S_OK) {
     return Status(-1, "Error retrieving data from WMI query.");
   }
-  if (value.vt != VT_I4) {
+  if (value.vt != VT_UI2) {
     VariantClear(&value);
     return Status(-1, "Invalid data type returned.");
   }
@@ -131,7 +131,7 @@ Status WmiResultItem::GetUnsignedInt32(const std::string& name,
   if (hr != S_OK) {
     return Status(-1, "Error retrieving data from WMI query.");
   }
-  if (value.vt != VT_I4) {
+  if (value.vt != VT_UINT) {
     VariantClear(&value);
     return Status(-1, "Invalid data type returned.");
   }

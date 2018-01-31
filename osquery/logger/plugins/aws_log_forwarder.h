@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -45,7 +45,10 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
  public:
   AwsLogForwarder(const std::string& name, size_t log_period, size_t max_lines)
-      : BufferedLogForwarder(name, std::chrono::seconds(log_period), max_lines),
+      : BufferedLogForwarder(std::string("AwsLogForwarder:") + name,
+                             name,
+                             std::chrono::seconds(log_period),
+                             max_lines),
         name_(name) {}
 
   /// Common plugin initialization
@@ -200,7 +203,17 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
       // Attempt to send the batch
       auto outcome = internalSend(batch);
-      size_t failed_record_count = getFailedRecordCount(outcome);
+
+      size_t failed_record_count;
+      bool request_failure;
+      if (!outcome.IsSuccess()) {
+        failed_record_count = batch.size();
+        request_failure = true;
+      } else {
+        failed_record_count = getFailedRecordCount(outcome);
+        request_failure = false;
+      }
+
       size_t sent_record_count = batch.size() - failed_record_count;
 
       if (sent_record_count > 0) {
@@ -225,6 +238,15 @@ class AwsLogForwarder : public BufferedLogForwarder {
 
       // We didn't manage to send all records; remove the ones that succeeded
       // (so that we do not duplicate them) and try again
+      if (request_failure) {
+        // By default, we have a high maximum retry count value! The user will
+        // not notice right away that his configuration is broken without this
+        // message!
+        LOG(ERROR) << name_ << ": Complete request failure: "
+                   << outcome.GetError().GetMessage();
+        continue;
+      }
+
       const auto& result_record_list = getResult(outcome);
 
       for (size_t i = batch.size(); i-- > 0;) {

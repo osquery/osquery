@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <gtest/gtest.h>
@@ -152,6 +152,11 @@ std::unique_ptr<PlatformFile> openRWSharedFile(const std::string& path,
 #else
   return std::unique_ptr<PlatformFile>(new PlatformFile(path, mode));
 #endif
+}
+
+/// Some permissions do not apply to POSIX root.
+static bool isUserPOSIXAdmin() {
+  return !isPlatform(PlatformType::TYPE_WINDOWS) && isUserAdmin();
 }
 
 TEST_F(FileOpsTests, test_shareRead) {
@@ -409,7 +414,7 @@ TEST_F(FileOpsTests, test_chmod_no_read) {
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_FALSE(fd.isValid());
+    EXPECT_EQ(isUserPOSIXAdmin(), fd.isValid());
   }
 
   {
@@ -437,7 +442,7 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
-    EXPECT_FALSE(fd.isValid());
+    EXPECT_EQ(isUserPOSIXAdmin(), fd.isValid());
   }
 }
 
@@ -476,53 +481,63 @@ TEST_F(FileOpsTests, test_access) {
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR | S_IXUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(0, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(0, platformAccess(path, R_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK));
-  EXPECT_EQ(0, platformAccess(path, X_OK));
+  if (!isUserPOSIXAdmin()) {
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+    EXPECT_EQ(0, platformAccess(path, R_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+    EXPECT_EQ(0, platformAccess(path, R_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK));
+    EXPECT_EQ(0, platformAccess(path, X_OK));
+  }
 
   EXPECT_TRUE(platformChmod(path, S_IWUSR | S_IXUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(0, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK));
-  EXPECT_EQ(0, platformAccess(path, W_OK));
-  EXPECT_EQ(0, platformAccess(path, X_OK));
+  if (!isUserPOSIXAdmin()) {
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+    EXPECT_EQ(0, platformAccess(path, W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK));
+    EXPECT_EQ(0, platformAccess(path, W_OK));
+    EXPECT_EQ(0, platformAccess(path, X_OK));
+  }
 
   EXPECT_TRUE(platformChmod(path, S_IRUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(0, platformAccess(path, R_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK));
-  EXPECT_EQ(-1, platformAccess(path, X_OK));
+  if (!isUserPOSIXAdmin()) {
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+    EXPECT_EQ(0, platformAccess(path, R_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK));
+    EXPECT_EQ(-1, platformAccess(path, X_OK));
+  }
 
   EXPECT_TRUE(platformChmod(path, S_IWUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK));
-  EXPECT_EQ(0, platformAccess(path, W_OK));
-  EXPECT_EQ(-1, platformAccess(path, X_OK));
+  if (!isUserPOSIXAdmin()) {
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK));
+    EXPECT_EQ(0, platformAccess(path, W_OK));
+    EXPECT_EQ(-1, platformAccess(path, X_OK));
+  }
 
   EXPECT_TRUE(platformChmod(path, S_IXUSR));
 
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
-  EXPECT_EQ(-1, platformAccess(path, R_OK));
-  EXPECT_EQ(-1, platformAccess(path, W_OK));
-  EXPECT_EQ(0, platformAccess(path, X_OK));
+  if (!isUserPOSIXAdmin()) {
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | W_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK | X_OK));
+    EXPECT_EQ(-1, platformAccess(path, R_OK));
+    EXPECT_EQ(-1, platformAccess(path, W_OK));
+    EXPECT_EQ(0, platformAccess(path, X_OK));
+  }
 
   // Reset permissions
   EXPECT_TRUE(platformChmod(path, all_access));
@@ -710,10 +725,12 @@ TEST_F(FileOpsTests, test_zero_permissions_file) {
   std::vector<char> buf(expected_len);
   EXPECT_EQ(0, fd.read(buf.data(), expected_len));
 
-  auto modes = {R_OK, W_OK, X_OK};
-  for (auto& mode : modes) {
-    EXPECT_EQ(-1, platformAccess(path, mode));
+  if (!isUserPOSIXAdmin()) {
+    auto modes = {R_OK, W_OK, X_OK};
+    for (auto& mode : modes) {
+      EXPECT_EQ(-1, platformAccess(path, mode));
+    }
+    EXPECT_EQ(boost::none, platformFopen(path, "r"));
   }
-  EXPECT_EQ(boost::none, platformFopen(path, "r"));
 }
 }

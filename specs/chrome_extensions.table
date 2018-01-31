@@ -17,6 +17,9 @@ schema([
 ])
 attributes(user_data=True)
 implementation("applications/browser_chrome@genChromeExtensions")
+examples([
+    "select * from users join chrome_extensions using (uid)",
+])
 fuzz_paths([
     "/Library/Application Support/Google/Chrome/",
     "/Users",

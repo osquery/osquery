@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <gtest/gtest.h>
@@ -64,7 +64,7 @@ TEST_F(CACertsTests, test_certificate_properties) {
   genCommonName(x_cert, subject, common_name, issuer);
   EXPECT_EQ("localhost.localdomain", common_name);
 
-  OSX_OPENSSL(X509_check_ca(x_cert));
+  X509_check_ca(x_cert);
   auto skid = genKIDProperty(x_cert->skid->data, x_cert->skid->length);
   EXPECT_EQ("f2b99b00e0ee60d57c426ce3e64e3fdc6f6411c0", skid);
 

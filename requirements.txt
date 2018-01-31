@@ -1,6 +1,5 @@
 Jinja2==2.8
 argparse
-thrift
 
 # The pip / setup tools for Windows will not include psutil
 # Needed for integration tests

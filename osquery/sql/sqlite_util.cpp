@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <osquery/core.h>
@@ -106,18 +106,22 @@ const std::map<std::string, QueryPlanner::Opcode> kSQLOpcodes = {
     OpComparator("IfNotZero"),
 };
 
+RecursiveMutex SQLiteDBInstance::kPrimaryAttachMutex;
+
 /// The SQLiteSQLPlugin implements the "sql" registry for internal/core.
 class SQLiteSQLPlugin : public SQLPlugin {
  public:
   /// Execute SQL and store results.
-  Status query(const std::string& q, QueryData& results) const override;
+  Status query(const std::string& query,
+               QueryData& results,
+               bool use_cache) const override;
 
   /// Introspect, explain, the suspected types selected in an SQL statement.
-  Status getQueryColumns(const std::string& q,
+  Status getQueryColumns(const std::string& query,
                          TableColumns& columns) const override;
 
   /// Similar to getQueryColumns but return the scanned tables.
-  Status getQueryTables(const std::string& q,
+  Status getQueryTables(const std::string& query,
                         std::vector<std::string>& tables) const override;
 
   /// Create a SQLite module and attach (CREATE).
@@ -140,36 +144,44 @@ std::string getStringForSQLiteReturnCode(int code) {
   }
 }
 
-Status SQLiteSQLPlugin::query(const std::string& q, QueryData& results) const {
+Status SQLiteSQLPlugin::query(const std::string& query,
+                              QueryData& results,
+                              bool use_cache) const {
   auto dbc = SQLiteDBManager::get();
-  auto result = queryInternal(q, results, dbc->db());
+  dbc->useCache(use_cache);
+  auto result = queryInternal(query, results, dbc);
   dbc->clearAffectedTables();
   return result;
 }
 
-Status SQLiteSQLPlugin::getQueryColumns(const std::string& q,
+Status SQLiteSQLPlugin::getQueryColumns(const std::string& query,
                                         TableColumns& columns) const {
   auto dbc = SQLiteDBManager::get();
-  return getQueryColumnsInternal(q, columns, dbc->db());
+  return getQueryColumnsInternal(query, columns, dbc);
 }
 
-Status SQLiteSQLPlugin::getQueryTables(const std::string& q,
+Status SQLiteSQLPlugin::getQueryTables(const std::string& query,
                                        std::vector<std::string>& tables) const {
   auto dbc = SQLiteDBManager::get();
-  QueryPlanner planner(q, dbc->db());
+  QueryPlanner planner(query, dbc);
   tables = planner.tables();
   return Status(0);
 }
 
-SQLInternal::SQLInternal(const std::string& q) {
+SQLInternal::SQLInternal(const std::string& query, bool use_cache) {
   auto dbc = SQLiteDBManager::get();
-  status_ = queryInternal(q, results_, dbc->db());
+  dbc->useCache(use_cache);
+  status_ = queryInternal(query, results_, dbc);
 
   // One of the advantages of using SQLInternal (aside from the Registry-bypass)
   // is the ability to "deep-inspect" the table attributes and actions.
   event_based_ = (dbc->getAttributes() & TableAttributes::EVENT_BASED) != 0;
 
   dbc->clearAffectedTables();
+}
+
+bool SQLInternal::eventBased() const {
+  return event_based_;
 }
 
 Status SQLiteSQLPlugin::attach(const std::string& name) {
@@ -193,11 +205,11 @@ void SQLiteSQLPlugin::detach(const std::string& name) {
   if (!dbc->isPrimary()) {
     return;
   }
-  detachTableInternal(name, dbc->db());
+  detachTableInternal(name, dbc);
 }
 
 SQLiteDBInstance::SQLiteDBInstance(sqlite3*& db, Mutex& mtx)
-    : db_(db), lock_(mtx, MUTEX_IMPL::try_to_lock) {
+    : db_(db), lock_(mtx, boost::try_to_lock) {
   if (lock_.owns_lock()) {
     primary_ = true;
   } else {
@@ -231,6 +243,21 @@ static inline void openOptimized(sqlite3*& db) {
 void SQLiteDBInstance::init() {
   primary_ = false;
   openOptimized(db_);
+}
+
+void SQLiteDBInstance::useCache(bool use_cache) {
+  use_cache_ = use_cache;
+}
+
+bool SQLiteDBInstance::useCache() const {
+  return use_cache_;
+}
+
+RecursiveLock SQLiteDBInstance::attachLock() const {
+  if (isPrimary()) {
+    return RecursiveLock(kPrimaryAttachMutex);
+  }
+  return RecursiveLock(attach_mutex_);
 }
 
 void SQLiteDBInstance::addAffectedTable(VirtualTableContent* table) {
@@ -271,6 +298,7 @@ void SQLiteDBInstance::clearAffectedTables() {
   // Since the affected tables are cleared, there are no more affected tables.
   // There is no concept of compounding tables between queries.
   affected_tables_.clear();
+  use_cache_ = false;
 }
 
 SQLiteDBInstance::~SQLiteDBInstance() {
@@ -348,10 +376,11 @@ SQLiteDBManager::~SQLiteDBManager() {
   }
 }
 
-QueryPlanner::QueryPlanner(const std::string& query, sqlite3* db) {
+QueryPlanner::QueryPlanner(const std::string& query,
+                           const SQLiteDBInstanceRef& instance) {
   QueryData plan;
-  queryInternal("EXPLAIN QUERY PLAN " + query, plan, db);
-  queryInternal("EXPLAIN " + query, program_, db);
+  queryInternal("EXPLAIN QUERY PLAN " + query, plan, instance);
+  queryInternal("EXPLAIN " + query, program_, instance);
 
   for (const auto& row : plan) {
     auto details = osquery::split(row.at("detail"));
@@ -419,10 +448,13 @@ int queryDataCallback(void* argument, int argc, char* argv[], char* column[]) {
   return 0;
 }
 
-Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
+Status queryInternal(const std::string& q,
+                     QueryData& results,
+                     const SQLiteDBInstanceRef& instance) {
   char* err = nullptr;
-  sqlite3_exec(db, q.c_str(), queryDataCallback, &results, &err);
-  sqlite3_db_release_memory(db);
+  auto lock = instance->attachLock();
+  sqlite3_exec(instance->db(), q.c_str(), queryDataCallback, &results, &err);
+  sqlite3_db_release_memory(instance->db());
   if (err != nullptr) {
     auto error_string = std::string(err);
     sqlite3_free(err);
@@ -433,55 +465,62 @@ Status queryInternal(const std::string& q, QueryData& results, sqlite3* db) {
 
 Status getQueryColumnsInternal(const std::string& q,
                                TableColumns& columns,
-                               sqlite3* db) {
-  // Turn the query into a prepared statement
-  sqlite3_stmt* stmt{nullptr};
-  auto rc = sqlite3_prepare_v2(
-      db, q.c_str(), static_cast<int>(q.length() + 1), &stmt, nullptr);
-  if (rc != SQLITE_OK || stmt == nullptr) {
-    if (stmt != nullptr) {
-      sqlite3_finalize(stmt);
-    }
-    return Status(1, sqlite3_errmsg(db));
-  }
-
-  // Get column count
-  auto num_columns = sqlite3_column_count(stmt);
-  TableColumns results;
-  results.reserve(num_columns);
-
-  // Get column names and types
+                               const SQLiteDBInstanceRef& instance) {
   Status status = Status();
-  bool unknown_type = false;
-  for (int i = 0; i < num_columns; ++i) {
-    auto col_name = sqlite3_column_name(stmt, i);
-    auto col_type = sqlite3_column_decltype(stmt, i);
+  TableColumns results;
+  {
+    auto lock = instance->attachLock();
 
-    if (col_name == nullptr) {
-      status = Status(1, "Could not get column type");
-      break;
+    // Turn the query into a prepared statement
+    sqlite3_stmt* stmt{nullptr};
+    auto rc = sqlite3_prepare_v2(instance->db(),
+                                 q.c_str(),
+                                 static_cast<int>(q.length() + 1),
+                                 &stmt,
+                                 nullptr);
+    if (rc != SQLITE_OK || stmt == nullptr) {
+      if (stmt != nullptr) {
+        sqlite3_finalize(stmt);
+      }
+      return Status(1, sqlite3_errmsg(instance->db()));
     }
 
-    if (col_type == nullptr) {
-      // Types are only returned for table columns (not expressions).
-      col_type = "UNKNOWN";
-      unknown_type = true;
-    }
-    results.push_back(std::make_tuple(
-        col_name, columnTypeName(col_type), ColumnOptions::DEFAULT));
-  }
+    // Get column count
+    auto num_columns = sqlite3_column_count(stmt);
+    results.reserve(num_columns);
 
-  // An unknown type means we have to parse the plan and SQLite opcodes.
-  if (unknown_type) {
-    QueryPlanner planner(q, db);
-    planner.applyTypes(results);
+    // Get column names and types
+    bool unknown_type = false;
+    for (int i = 0; i < num_columns; ++i) {
+      auto col_name = sqlite3_column_name(stmt, i);
+      auto col_type = sqlite3_column_decltype(stmt, i);
+
+      if (col_name == nullptr) {
+        status = Status(1, "Could not get column type");
+        break;
+      }
+
+      if (col_type == nullptr) {
+        // Types are only returned for table columns (not expressions).
+        col_type = "UNKNOWN";
+        unknown_type = true;
+      }
+      results.push_back(std::make_tuple(
+          col_name, columnTypeName(col_type), ColumnOptions::DEFAULT));
+    }
+
+    // An unknown type means we have to parse the plan and SQLite opcodes.
+    if (unknown_type) {
+      QueryPlanner planner(q, instance);
+      planner.applyTypes(results);
+    }
+    sqlite3_finalize(stmt);
   }
 
   if (status.ok()) {
     columns = std::move(results);
   }
 
-  sqlite3_finalize(stmt);
   return status;
 }
 }

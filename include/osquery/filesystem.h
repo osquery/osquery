@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -101,11 +101,25 @@ Status writeTextFile(const boost::filesystem::path& path,
                      int permissions = 0660,
                      bool force_permissions = false);
 
-/// Check if a path is writable.
-Status isWritable(const boost::filesystem::path& path);
+/**
+ * @brief Check if a path is writable.
+ *
+ * @param path The path of the file that you would like to write.
+ * @param effective If you would like to check using effective UID
+ *
+ * @return A status returning if it's writable
+ */
+Status isWritable(const boost::filesystem::path& path, bool effective = false);
 
-/// Check if a path is readable.
-Status isReadable(const boost::filesystem::path& path);
+/**
+ * @brief Check if a path is readable.
+ *
+ * @param path The path of the file that you would like to read.
+ * @param effective If you would like to check using effective UID
+ *
+ * @return A status returning if it's readable
+ */
+Status isReadable(const boost::filesystem::path& path, bool effective = false);
 
 /**
  * @brief A helper to check if a path exists on disk or not.
@@ -297,6 +311,16 @@ Status parsePlist(const boost::filesystem::path& path,
  */
 Status parsePlistContent(const std::string& content,
                          boost::property_tree::ptree& tree);
+
+/**
+ * @brief Parse property list alias data into a path string.
+ *
+ * @param data a string container with the raw alias data.
+ * @param result a string containing the POSIX path.
+ *
+ * @return an instance of Status, indicating success or failure.
+ */
+Status pathFromPlistAliasData(const std::string& data, std::string& result);
 #endif
 
 #ifdef __linux__
@@ -386,4 +410,4 @@ Status compress(const boost::filesystem::path& in,
  */
 Status decompress(const boost::filesystem::path& in,
                   const boost::filesystem::path& out);
-}
+} // namespace osquery

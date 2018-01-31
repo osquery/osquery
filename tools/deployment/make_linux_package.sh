@@ -3,9 +3,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 set -e
 
@@ -18,7 +19,8 @@ OSQUERY_DEPS="${OSQUERY_DEPS:-/usr/local/osquery}"
 export PATH="${OSQUERY_DEPS}/bin:$PATH"
 source "$SOURCE_DIR/tools/lib.sh"
 
-PACKAGE_VERSION=`git describe --tags HEAD || echo 'unknown-version'`
+VERSION=`(cd $SOURCE_DIR; git describe --tags HEAD) || echo 'unknown-version'`
+PACKAGE_VERSION=${OSQUERY_BUILD_VERSION:="$VERSION"}
 PACKAGE_ARCH="x86_64"
 PACKAGE_TYPE=""
 PACKAGE_ITERATION=""
@@ -42,7 +44,7 @@ PACKS_DST="/usr/share/osquery/packs/"
 LENSES_LICENSE="${OSQUERY_DEPS}/Cellar/augeas/*/COPYING"
 LENSES_SRC="${OSQUERY_DEPS}/share/augeas/lenses/dist"
 LENSES_DST="/usr/share/osquery/lenses/"
-OSQUERY_POSTINSTALL=${OSQUERY_POSTINSTALL:-""}
+OSQUERY_POSTINSTALL=${OSQUERY_POSTINSTALL:-"$SCRIPT_DIR/linux_postinstall.sh"}
 OSQUERY_PREUNINSTALL=${OSQUERY_PREUNINSTALL:-""}
 OSQUERY_CONFIG_SRC=${OSQUERY_CONFIG_SRC:-""}
 OSQUERY_TLS_CERT_CHAIN_SRC=${OSQUERY_TLS_CERT_CHAIN_SRC:-""}
@@ -257,10 +259,10 @@ function main() {
     BUILDLINK_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/.build-id/64
     if [[ ! "$BUILD_ID_SHELL" = "" ]]; then
       mkdir -p $BUILDLINK_DEBUG_DIR
-      ln -s ../../../../bin/osqueryi $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL
-      ln -s ../../bin/osqueryi.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL.debug
-      ln -s ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON
-      ln -s ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON.debug
+      ln -sf ../../../../bin/osqueryi $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL
+      ln -sf ../../bin/osqueryi.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL.debug
+      ln -sf ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON
+      ln -sf ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON.debug
     fi
 
     # Install the non-stripped binaries.

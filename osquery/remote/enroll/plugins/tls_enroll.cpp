@@ -1,28 +1,35 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <boost/property_tree/ptree.hpp>
+
 #include <osquery/enroll.h>
-#include <osquery/filesystem.h>
+#include <osquery/flags.h>
+#include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/system.h>
 
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/transports/tls.h"
-
-// Ordering is messed up because of tls.h
 #include "osquery/core/process.h"
+
+#include "osquery/remote/enroll/plugins/tls_enroll.h"
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
 DECLARE_string(enroll_secret_path);
 DECLARE_bool(disable_enrollment);
+DECLARE_uint64(config_tls_max_attempts);
 
 /// Enrollment TLS endpoint (path) using TLS hostname.
 CLI_FLAG(string,
@@ -42,25 +49,13 @@ HIDDEN_FLAG(string,
             "enroll_secret",
             "Override the TLS enroll secret key name");
 
-DECLARE_uint64(config_tls_max_attempts);
-
-class TLSEnrollPlugin : public EnrollPlugin {
- private:
-  /// Enroll called, return cached key or if no key cached, call requestKey.
-  std::string enroll() override;
-
- private:
-  /// Request an enrollment key response from the TLS endpoint.
-  Status requestKey(const std::string& uri, std::string& node_key);
-};
-
 REGISTER(TLSEnrollPlugin, "enroll", "tls");
 
 std::string TLSEnrollPlugin::enroll() {
   // If no node secret has been negotiated, try a TLS request.
   auto uri = "https://" + FLAGS_tls_hostname + FLAGS_enroll_tls_endpoint;
   if (FLAGS_tls_secret_always) {
-    uri += ((uri.find('?') != std::string::npos) ? "&" : "?") +
+    uri += ((uri.find('?') != std::string::npos) ? '&' : '?') +
            FLAGS_tls_enroll_override + "=" + getEnrollSecret();
   }
 
@@ -83,11 +78,16 @@ std::string TLSEnrollPlugin::enroll() {
 Status TLSEnrollPlugin::requestKey(const std::string& uri,
                                    std::string& node_key) {
   // Read the optional enrollment secret data (sent with an enrollment request).
-  boost::property_tree::ptree params;
+  pt::ptree params;
   params.put<std::string>(FLAGS_tls_enroll_override, getEnrollSecret());
   params.put<std::string>("host_identifier", getHostIdentifier());
   params.put<std::string>("platform_type",
       boost::lexical_cast<std::string>(static_cast<uint64_t>(kPlatformType)));
+
+  // Select from each table describing host details.
+  pt::ptree host_details;
+  genHostDetails(host_details);
+  params.put_child("host_details", host_details);
 
   auto request = Request<TLSTransport, JSONSerializer>(uri);
   request.setOption("hostname", FLAGS_tls_hostname);
@@ -110,7 +110,7 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
     node_key = recv.get("id", "");
   }
 
-  if (node_key.size() == 0) {
+  if (node_key.empty()) {
     return Status(1, "No node key returned from TLS enroll plugin");
   }
   return Status(0, "OK");

@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -26,6 +26,23 @@ const size_t kRegMaxRecursiveDepth = 32;
 
 // Microsoft helper function for getting the contents of a registry key
 Status queryKey(const std::string& keyPath, QueryData& results);
+
+/*
+ * @brief Helper function to query multiple registry keys
+ *
+ * @param regexes a vector of registry key regexes to query
+ * @param additionalConstaints a string of hard-coded constraints for the query
+ * @param results a container to receive the results of the query
+ *
+ * This function binds the regexes to the query statement to ensure parameters
+ * are all properly escaped. It is the responsibility of the caller to parse
+ * through the QueryData object and extrct relevant data.
+ * Note: Ensure that the `additionalConstraints` field, if used, _does not_
+ * contain any user supplied data.
+ */
+Status queryMultipleRegistryKeys(const std::vector<std::string>& regexes,
+                                 const std::string& additionalConstraints,
+                                 QueryData& results);
 
 /*
  * @brief Get the name of a class from it's Class ID

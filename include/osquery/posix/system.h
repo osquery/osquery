@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -15,6 +15,8 @@
 #include <string>
 
 #include <boost/filesystem/path.hpp>
+
+#include <osquery/core.h>
 
 namespace osquery {
 
@@ -42,6 +44,9 @@ class DropPrivileges : private boost::noncopyable {
    */
   bool dropToParent(const boost::filesystem::path& path);
 
+  /// See DropPrivileges::dropToParent but explicitiy set the UID and GID.
+  bool dropTo(const std::string& uid, const std::string& gid);
+
   /// See DropPrivileges::dropToParent but explicitly set the UID and GID.
   bool dropTo(uid_t uid, gid_t gid);
 
@@ -62,20 +67,20 @@ class DropPrivileges : private boost::noncopyable {
   virtual ~DropPrivileges();
 
  private:
-  DropPrivileges() : dropped_(false), to_user_(0), to_group_(0) {}
+  DropPrivileges() = default;
 
   /// Restore groups if dropping consecutively.
   void restoreGroups();
 
  private:
   /// Boolean to track if this instance needs to restore privileges.
-  bool dropped_;
+  bool dropped_{false};
 
   /// The user this instance dropped privileges to.
-  uid_t to_user_;
+  uid_t to_user_{0};
 
   /// The group this instance dropped privileges to.
-  gid_t to_group_;
+  gid_t to_group_{0};
 
   /**
    * @brief If dropping explicitly to a user and group also drop groups.

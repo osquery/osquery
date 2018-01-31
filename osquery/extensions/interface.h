@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -26,28 +26,23 @@
 #pragma warning(disable : 4250)
 #endif
 
-// osquery is built with various versions of thrift that use different search
-// paths for their includes. Unfortunately, changing include paths is not
-// possible in every build system.
-// clang-format off
-#include CONCAT(OSQUERY_THRIFT_SERVER_LIB,/TThreadedServer.h)
-#include CONCAT(OSQUERY_THRIFT_LIB,/protocol/TBinaryProtocol.h)
+#include <thrift/protocol/TBinaryProtocol.h>
+#include <thrift/server/TThreadedServer.h>
 
 #ifdef WIN32
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TPipeServer.h)
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TPipe.h)
+#include <thrift/transport/TPipe.h>
+#include <thrift/transport/TPipeServer.h>
 #else
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TServerSocket.h)
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TSocket.h)
+#include <thrift/transport/TServerSocket.h>
+#include <thrift/transport/TSocket.h>
 #endif
 
-#include CONCAT(OSQUERY_THRIFT_LIB,/transport/TBufferTransports.h)
-#include CONCAT(OSQUERY_THRIFT_LIB,/concurrency/ThreadManager.h)
+#include <thrift/concurrency/ThreadManager.h>
+#include <thrift/transport/TBufferTransports.h>
 
 // Include intermediate Thrift-generated interface definitions.
-#include CONCAT(OSQUERY_THRIFT,Extension.h)
-#include CONCAT(OSQUERY_THRIFT,ExtensionManager.h)
-// clang-format on
+#include "Extension.h"
+#include "ExtensionManager.h"
 
 namespace osquery {
 
@@ -57,31 +52,24 @@ using namespace apache::thrift::transport;
 using namespace apache::thrift::server;
 using namespace apache::thrift::concurrency;
 
-/// Create easier to reference typedefs for Thrift layer implementations.
-#define SHARED_PTR_IMPL OSQUERY_THRIFT_POINTER::shared_ptr
-
 #ifdef WIN32
 typedef TPipe TPlatformSocket;
 typedef TPipeServer TPlatformServerSocket;
-typedef SHARED_PTR_IMPL<TPipe> TPlatformSocketRef;
+typedef std::shared_ptr<TPipe> TPlatformSocketRef;
 #else
 typedef TSocket TPlatformSocket;
 typedef TServerSocket TPlatformServerSocket;
-typedef SHARED_PTR_IMPL<TSocket> TPlatformSocketRef;
+typedef std::shared_ptr<TSocket> TPlatformSocketRef;
 #endif
 
-typedef SHARED_PTR_IMPL<TTransport> TTransportRef;
-typedef SHARED_PTR_IMPL<TProtocol> TProtocolRef;
+typedef std::shared_ptr<TTransport> TTransportRef;
+typedef std::shared_ptr<TProtocol> TProtocolRef;
 
-typedef SHARED_PTR_IMPL<TProcessor> TProcessorRef;
-typedef SHARED_PTR_IMPL<TServerTransport> TServerTransportRef;
-typedef SHARED_PTR_IMPL<TTransportFactory> TTransportFactoryRef;
-typedef SHARED_PTR_IMPL<TProtocolFactory> TProtocolFactoryRef;
-typedef SHARED_PTR_IMPL<ThreadManager> TThreadManagerRef;
-
-#ifndef WIN32
-typedef SHARED_PTR_IMPL<PosixThreadFactory> PosixThreadFactoryRef;
-#endif
+typedef std::shared_ptr<TProcessor> TProcessorRef;
+typedef std::shared_ptr<TServerTransport> TServerTransportRef;
+typedef std::shared_ptr<TTransportFactory> TTransportFactoryRef;
+typedef std::shared_ptr<TProtocolFactory> TProtocolFactoryRef;
+typedef std::shared_ptr<ThreadManager> TThreadManagerRef;
 
 using TThreadedServerRef = std::shared_ptr<TThreadedServer>;
 
@@ -233,19 +221,15 @@ class ExtensionManagerHandler : virtual public ExtensionManagerIf,
   Mutex extensions_mutex_;
 };
 
-typedef SHARED_PTR_IMPL<ExtensionHandler> ExtensionHandlerRef;
-typedef SHARED_PTR_IMPL<ExtensionManagerHandler> ExtensionManagerHandlerRef;
+typedef std::shared_ptr<ExtensionHandler> ExtensionHandlerRef;
+typedef std::shared_ptr<ExtensionManagerHandler> ExtensionManagerHandlerRef;
 }
 
 /// A Dispatcher service thread that watches an ExtensionManagerHandler.
 class ExtensionWatcher : public InternalRunnable {
  public:
-  virtual ~ExtensionWatcher() {}
-  ExtensionWatcher(const std::string& path, size_t interval, bool fatal)
-      : path_(path), interval_(interval), fatal_(fatal) {
-    // Set the interval to a minimum of 200 milliseconds.
-    interval_ = (interval_ < 200) ? 200 : interval_;
-  }
+  virtual ~ExtensionWatcher() = default;
+  ExtensionWatcher(const std::string& path, size_t interval, bool fatal);
 
  public:
   /// The Dispatcher thread entry point.
@@ -289,7 +273,9 @@ class ExtensionRunnerCore : public InternalRunnable {
  public:
   virtual ~ExtensionRunnerCore();
   explicit ExtensionRunnerCore(const std::string& path)
-      : path_(path), server_(nullptr) {}
+      : InternalRunnable("ExtensionRunnerCore"),
+        path_(path),
+        server_(nullptr) {}
 
  public:
   /// Given a handler transport and protocol start a thrift threaded server.
@@ -325,18 +311,13 @@ class ExtensionRunnerCore : public InternalRunnable {
  */
 class ExtensionRunner : public ExtensionRunnerCore {
  public:
-  ExtensionRunner(const std::string& manager_path, RouteUUID uuid)
-      : ExtensionRunnerCore(""), uuid_(uuid) {
-    path_ = getExtensionSocket(uuid, manager_path);
-  }
+  ExtensionRunner(const std::string& manager_path, RouteUUID uuid);
 
  public:
   void start() override;
 
   /// Access the UUID provided by the ExtensionManager.
-  RouteUUID getUUID() {
-    return uuid_;
-  }
+  RouteUUID getUUID() const;
 
  private:
   /// The unique and transient Extension UUID assigned by the ExtensionManager.
@@ -368,13 +349,10 @@ class EXInternal : private boost::noncopyable {
         transport_(new TBufferedTransport(socket_)),
         protocol_(new TBinaryProtocol(transport_)) {}
 
-  virtual ~EXInternal() {
-    try {
-      transport_->close();
-    } catch (const std::exception& /* e */) {
-      // The transport/socket may have exited.
-    }
-  }
+  // Set the receive and send timeout.
+  void setTimeouts(size_t timeout);
+
+  virtual ~EXInternal();
 
  protected:
   TPlatformSocketRef socket_;
@@ -385,15 +363,17 @@ class EXInternal : private boost::noncopyable {
 /// Internal accessor for a client to an extension (from an extension manager).
 class EXClient : public EXInternal {
  public:
-  explicit EXClient(const std::string& path)
-      : EXInternal(path),
-        client_(std::make_shared<extensions::ExtensionClient>(protocol_)) {
-    (void)transport_->open();
-  }
+  /**
+   * @brief Create a client to a client extension.
+   *
+   * @note The default timeout to wait for buffered (whole-content) responses
+   * is 5 minutes.
+   * @param path This is the socket path for the client communication.
+   * @param timeout [optional] time in milliseconds to wait for input.
+   */
+  explicit EXClient(const std::string& path, size_t timeout = 5000 * 60);
 
-  const std::shared_ptr<extensions::ExtensionClient>& get() {
-    return client_;
-  }
+  const std::shared_ptr<extensions::ExtensionClient>& get() const;
 
  private:
   std::shared_ptr<extensions::ExtensionClient> client_;
@@ -402,16 +382,16 @@ class EXClient : public EXInternal {
 /// Internal accessor for a client to an extension manager (from an extension).
 class EXManagerClient : public EXInternal {
  public:
-  explicit EXManagerClient(const std::string& manager_path)
-      : EXInternal(manager_path),
-        client_(
-            std::make_shared<extensions::ExtensionManagerClient>(protocol_)) {
-    (void)transport_->open();
-  }
+  /**
+   * @brief Create a client to a manager extension.
+   *
+   * @param path This is the socket path for the manager communication.
+   * @param timeout [optional] time in milliseconds to wait for input.
+   */
+  explicit EXManagerClient(const std::string& manager_path,
+                           size_t timeout = 5000 * 60);
 
-  const std::shared_ptr<extensions::ExtensionManagerClient>& get() {
-    return client_;
-  }
+  const std::shared_ptr<extensions::ExtensionManagerClient>& get() const;
 
  private:
   std::shared_ptr<extensions::ExtensionManagerClient> client_;

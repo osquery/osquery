@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <poll.h>
@@ -66,7 +66,7 @@ TEST_F(PermissionsTests, test_explicit_drop) {
     gid_t expected_group = 0U;
     EXPECT_EQ(dropper->to_group_, expected_group);
 
-    // Checking if we are generally in a deprivileged mode.
+    // Checking if we are generally in an unprivileged mode.
     auto dropper2 = DropPrivileges::get();
     EXPECT_FALSE(dropper2->dropped());
   }
@@ -74,7 +74,7 @@ TEST_F(PermissionsTests, test_explicit_drop) {
 
 TEST_F(PermissionsTests, test_path_drop) {
   if (getuid() != 0) {
-    LOG(WARNING) << "Not root, skipping (path) deprivilege testing";
+    LOG(WARNING) << "Not root, skipping (path) unprivileged testing";
     return;
   }
 
@@ -91,8 +91,9 @@ TEST_F(PermissionsTests, test_path_drop) {
     EXPECT_TRUE(dropper->dropped_);
     EXPECT_EQ(dropper->to_user_, nobody->pw_uid);
 
+    // Dropping "up" to root should fail.
     // Even though this is possible and may make sense, it is confusing!
-    EXPECT_FALSE(dropper->dropTo(getuid(), getgid()));
+    EXPECT_FALSE(dropper->dropTo(0, 0));
 
     // Make sure the dropper worked!
     EXPECT_EQ(geteuid(), nobody->pw_uid);
@@ -103,9 +104,33 @@ TEST_F(PermissionsTests, test_path_drop) {
   EXPECT_EQ(getegid(), getgid());
 }
 
+TEST_F(PermissionsTests, test_functional_drop) {
+  if (getuid() != 0) {
+    LOG(WARNING) << "Not root, skipping (explicit) unprivileged testing";
+    return;
+  }
+
+  auto file_path = kTestWorkingDirectory + "permissions-file2";
+
+  {
+    writeTextFile(file_path, "data");
+    ASSERT_TRUE(platformChmod(file_path, 0400));
+  }
+
+  {
+    auto nobody = getpwnam("nobody");
+    auto dropper = DropPrivileges::get();
+    dropper->dropTo(nobody->pw_uid, nobody->pw_gid);
+    PlatformFile fd(file_path, PF_OPEN_EXISTING | PF_READ);
+    EXPECT_FALSE(fd.isValid());
+  }
+
+  osquery::removePath(file_path);
+}
+
 TEST_F(PermissionsTests, test_nobody_drop) {
   if (getuid() != 0) {
-    LOG(WARNING) << "Not root, skipping (explicit) deprivilege testing";
+    LOG(WARNING) << "Not root, skipping (explicit) unprivileged testing";
     return;
   }
 
@@ -119,6 +144,13 @@ TEST_F(PermissionsTests, test_nobody_drop) {
     EXPECT_EQ(geteuid(), nobody->pw_uid);
   }
 
+  {
+    auto dropper = DropPrivileges::get();
+    EXPECT_TRUE(dropper->dropTo(std::to_string(nobody->pw_uid),
+                                std::to_string(nobody->pw_gid)));
+    EXPECT_EQ(geteuid(), nobody->pw_uid);
+  }
+
   // Now that the dropper is gone, the effective user/group should be restored.
   EXPECT_EQ(geteuid(), getuid());
   EXPECT_EQ(getegid(), getgid());
@@ -127,6 +159,10 @@ TEST_F(PermissionsTests, test_nobody_drop) {
 std::string kMultiThreadPermissionPath;
 
 class PermissionsRunnable : public InternalRunnable {
+ public:
+  PermissionsRunnable() : InternalRunnable("PermissionsRunnable") {}
+  PermissionsRunnable(const std::string& name) : InternalRunnable(name) {}
+
  private:
   virtual void start() override {
     while (!interrupted()) {
@@ -142,6 +178,9 @@ class PermissionsRunnable : public InternalRunnable {
 };
 
 class PermissionsPollRunnable : public PermissionsRunnable {
+ public:
+  PermissionsPollRunnable() : PermissionsRunnable("PermissionsPollRunnable") {}
+
  private:
   void start() override {
     PlatformFile file(kMultiThreadPermissionPath,

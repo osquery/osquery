@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <gmock/gmock.h>
@@ -242,7 +242,7 @@ TEST_F(WatcherTests, test_watcherrunner_watcherhealth) {
   EXPECT_EQ(100U, state.initial_footprint);
 
   // The measurement of latency applies an interval value normalization.
-  auto iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), (size_t)1);
+  auto iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
   EXPECT_EQ(100U / iv, state.user_time);
   EXPECT_EQ(0U, state.sustained_latency);
 

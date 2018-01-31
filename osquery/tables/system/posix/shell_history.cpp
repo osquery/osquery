@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <string>
@@ -14,8 +14,10 @@
 #include <boost/xpressive/xpressive.hpp>
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
+#include <osquery/posix/system.h>
+#include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/system_utils.h"
@@ -30,13 +32,18 @@ const std::vector<std::string> kShellHistoryFiles = {
 };
 
 void genShellHistoryForUser(const std::string& uid,
+                            const std::string& gid,
                             const std::string& directory,
                             QueryData& results) {
+  auto dropper = DropPrivileges::get();
+  if (!dropper->dropTo(uid, gid)) {
+    VLOG(1) << "Cannot drop privileges to UID " << uid;
+    return;
+  }
+
   auto bash_timestamp_rx = xp::sregex::compile("^#(?P<timestamp>[0-9]+)$");
-  xp::smatch bash_timestamp_matches;
   auto zsh_timestamp_rx = xp::sregex::compile(
       "^: {0,10}(?P<timestamp>[0-9]{1,11}):[0-9]+;(?P<command>.*)$");
-  xp::smatch zsh_timestamp_matches;
 
   for (const auto& hfile : kShellHistoryFiles) {
     boost::filesystem::path history_file = directory;
@@ -50,6 +57,9 @@ void genShellHistoryForUser(const std::string& uid,
 
     std::string prev_bash_timestamp;
     for (const auto& line : split(history_content, "\n")) {
+      xp::smatch bash_timestamp_matches;
+      xp::smatch zsh_timestamp_matches;
+
       if (prev_bash_timestamp.empty() &&
           xp::regex_search(line, bash_timestamp_matches, bash_timestamp_rx)) {
         prev_bash_timestamp = bash_timestamp_matches["timestamp"];
@@ -83,8 +93,11 @@ QueryData genShellHistory(QueryContext& context) {
   // Iterate over each user
   QueryData users = usersFromContext(context);
   for (const auto& row : users) {
-    if (row.count("uid") > 0 && row.count("directory") > 0) {
-      genShellHistoryForUser(row.at("uid"), row.at("directory"), results);
+    auto uid = row.find("uid");
+    auto gid = row.find("gid");
+    auto dir = row.find("directory");
+    if (uid != row.end() && gid != row.end() && dir != row.end()) {
+      genShellHistoryForUser(uid->second, gid->second, dir->second, results);
     }
   }
 

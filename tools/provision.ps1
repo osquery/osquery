@@ -1,22 +1,33 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # Turn on support for Powershell Cmdlet Bindings
 [CmdletBinding(SupportsShouldProcess = $true)]
 
 # We make heavy use of Write-Host, because colors are awesome. #dealwithit.
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", `
-                                                   '', `
-                                                   Scope = "Function", `
-                                                   Target = "*")]
+    '', `
+    Scope = "Function", `
+    Target = "*")]
 param()
 
 # URL of where our pre-compiled third-party dependenices are archived
 $THIRD_PARTY_ARCHIVE_URL = 'https://osquery-packages.s3.amazonaws.com/choco'
+
+# Make a best effort to dot-source our utils script
+$utils = Join-Path $(Get-Location) '.\tools\provision\chocolatey\osquery_utils.ps1'
+if (-not (Test-Path $utils)) {
+  $msg = '[-] Did not find osquery utils. This script should be run from source root.'
+  Write-Host $msg -ForegroundColor Red
+  exit
+}
+. $utils
+
 
 # Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
 function Test-IsAdmin {
@@ -26,8 +37,15 @@ function Test-IsAdmin {
 }
 
 function Test-RebootPending {
-  $compBasedServ = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending" -ErrorAction Ignore
-  $winUpdate = Get-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired" -ErrorAction Ignore
+
+  $rebootPendingKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion' +
+                      '\Component Based Servicing\RebootPending'
+  $compBasedServ = Get-ChildItem $rebootPendingKey -ErrorAction Ignore
+
+  $winUpdateRebootKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion' +
+                        '\WindowsUpdate\Auto Update\RebootRequired'
+  $winUpdate = Get-Item $winUpdateRebootKey -ErrorAction Ignore
+
   $ccm = $false
   try {
     $util = [wmiclass]"\\.\root\ccm\clientsdk:CCM_ClientUtilities"
@@ -63,7 +81,8 @@ function Add-ToPath {
     $newPath = $oldPath + ';' + $appendPath
     [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
   }
-  # Append the newly added path to the sessions Path variable, for immediate use.
+  # Append the newly added path to the sessions Path variable,
+  # for immediate use.
   $env:Path += $appendPath
 }
 
@@ -115,6 +134,46 @@ function Test-ChocoPackageInstalled {
   return $false
 }
 
+# Helper function to check the version of python installed, as well as
+# return the parent path where Python is installed.
+function Test-PythonInstalled {
+  $major = '*2.7*'
+  $pythonInstall = (Get-Command 'python' -ErrorAction SilentlyContinue).Source
+  if ($pythonInstall -eq $null) {
+    $msg = '[-] Python binary not found in system path'
+    Write-Host $msg -ForegroundColor Yellow
+    return $false
+  }
+  $out = Start-OsqueryProcess $pythonInstall @('--version')
+  if (($out.exitcode -ne 0) -or (-not ($out.stderr -like $major))) {
+    $msg = '[-] Python major version != 2.7'
+    Write-Host $msg -ForegroundColor Yellow
+    return $false
+  }
+  # Get the specific version returned
+  $version = $out.stderr.Split(" ")
+  if ($version.Length -lt 2) {
+    $msg = '[-] Encountered unknown version of python'
+    Write-Host $msg -ForegroundColor Yellow
+    return $false
+  }
+  $minor = $version[1].Trim().Split(".")
+  if ($minor.Length -le 2) {
+    $msg = '[-] Encountered unknown version of python'
+    Write-Host $msg -ForegroundColor Yellow
+    return $false
+  }
+  # The oldest Python variant we support is 2.7.12
+  if ([int]$minor[2] -lt 12) {
+    $msg = '[-] Python minor version < 12'
+    Write-Host $msg -ForegroundColor Yellow
+    return $false
+  }
+  # Lastly derive the parent path of the binary, as we use this to
+  # get the pip path also.
+  return (Get-Item $pythonInstall).Directory.Fullname
+}
+
 # Installs the Powershell Analzyer: https://github.com/PowerShell/PSScriptAnalyzer
 function Install-PowershellLinter {
   [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "Medium")]
@@ -135,8 +194,7 @@ function Install-PowershellLinter {
     Write-Host " => NuGet provider either not installed or out of date. Installing..." -foregroundcolor Cyan
     Install-PackageProvider -Name NuGet -Force
     Write-Host "[+] NuGet package provider installed!" -foregroundcolor Green
-  }
-  else {
+  } else {
     Write-Host "[*] NuGet provider already installed." -foregroundcolor Green
   }
 
@@ -148,12 +206,20 @@ function Install-PowershellLinter {
       break
     }
   }
+
   if (-not $psScriptAnalyzerInstalled) {
-    Write-Host " => PSScriptAnalyzer either not installed or out of date. Installing..." -foregroundcolor Cyan
-    Install-Module -Name PSScriptAnalyzer -Force
-    Write-Host "[+] PSScriptAnalyzer installed!" -foregroundcolor Green
-  }
-  else {
+    if((Get-Command Install-Module).Source -eq 'PsGet') {
+      $msg = '[-] Conflicting package manager PsGet found, skipping ' +
+             'Powershell modules.'
+      Write-Host $msg -ForegroundColor Yellow
+    } else {
+      $msg = ' => PSScriptAnalyzer either not installed or ' +
+      'out of date. Installing...'
+      Write-Host $msg -foregroundcolor Cyan
+      Install-Module -Name PSScriptAnalyzer -Force
+      Write-Host "[+] PSScriptAnalyzer installed!" -foregroundcolor Green
+    }
+  } else {
     Write-Host "[*] PSScriptAnalyzer already installed." -foregroundcolor Green
   }
 }
@@ -170,16 +236,14 @@ function Install-Chocolatey {
   if ($null -eq (Get-Command 'choco.exe' -ErrorAction SilentlyContinue)) {
     if (Test-Path "$env:ALLUSERSPROFILE\chocolatey\bin") {
       Write-Host "[-] WARN: Chocolatey appears to be installed, but cannot be found in the system path!" -foregroundcolor Yellow
-    }
-    else {
+    } else {
       Write-Host " => Did not find. Installing chocolatey..." -foregroundcolor Cyan
       Invoke-Expression ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
     }
     Write-Host " => Adding chocolatey to path."
     $chocoPath = $env:ALLUSERSPROFILE + '\chocolatey\bin'
     Add-ToPath $chocoPath
-  }
-  else {
+  } else {
     Write-Host "[*] Chocolatey is already installed." -foregroundcolor Green
   }
 }
@@ -230,8 +294,7 @@ function Install-ChocoPackage {
       Exit -1
     }
     Write-Host "[+] Done." -foregroundcolor Green
-  }
-  else {
+  } else {
     Write-Host "[*] $packageName $packageVersion already installed." -foregroundcolor Green
   }
 }
@@ -248,11 +311,11 @@ function Install-PipPackage {
   $pipPath = "$pythonPath\Scripts"
   Add-ToPath $pipPath
   if (-not (Test-Path "$pythonPath\python.exe")) {
-    Write-Host "[-] ERROR: failed to find python in C:\tools\python2!" -foregroundcolor Red
+    Write-Host "[-] ERROR: failed to find python at $pythonPath" -foregroundcolor Red
     Exit -1
   }
   if (-not (Test-Path "$pipPath\pip.exe")) {
-    Write-Host "[-] ERROR: failed to find pip in C:\tools\python2\Scripts!" -foregroundcolor Red
+    Write-Host "[-] ERROR: failed to find pip in $pythonPath\Scripts!" -foregroundcolor Red
     Exit -1
   }
 
@@ -281,19 +344,19 @@ function Install-ThirdParty {
 
   # List of our third party packages, hosted in our AWS S3 bucket
   $packages = @(
-    "aws-sdk-cpp.1.1.44",
+    "aws-sdk-cpp.1.2.7",
     "boost-msvc14.1.65.0",
     "bzip2.1.0.6",
     "cpp-netlib.0.12.0-r4",
     "doxygen.1.8.11",
-    "gflags-dev.2.2.0-r1",
-    "glog.0.3.4-r1",
+    "gflags-dev.2.2.1",
+    "glog.0.3.5",
     "libarchive.3.3.1-r1",
     "linenoise-ng.1.0.0-r1",
     "llvm-clang.4.0.1",
     "openssl.1.0.2-k",
-    "rocksdb.5.7.1",
-    "thrift-dev.0.10.0-r4",
+    "rocksdb.5.7.1-r1",
+    "thrift-dev.0.11.0",
     "zlib.1.2.8",
     "libarchive.3.3.1-r1",
     "rapidjson.1.1.0"
@@ -322,8 +385,7 @@ function Install-ThirdParty {
       if ($oldVersionInstalled) {
         Write-Host " => An old version of $packageName is installed. Forcing re-installation" -foregroundcolor Cyan
         $chocoForce = "-f"
-      }
-      else {
+      } else {
         Write-Host " => Did not find. Installing $packageName $packageVersion" -foregroundcolor Cyan
       }
       $downloadUrl = "$THIRD_PARTY_ARCHIVE_URL/$package.nupkg"
@@ -380,7 +442,8 @@ function Main {
     Exit -1
   }
 
-  Write-Host "[+] Success!" -foregroundcolor Green
+  $loc = Get-Location
+  Write-Host "[+] Success -- provisioning osquery from $loc" -foregroundcolor Green
   $out = Install-Chocolatey
   $out = Install-ChocoPackage 'winflexbison'
   # Get flex and bison into our path for use
@@ -398,16 +461,28 @@ function Main {
   $out = Install-ChocoPackage '7zip.commandline'
   $out = Install-ChocoPackage 'vswhere'
   $out = Install-ChocoPackage 'cmake.portable'
-  $chocoParams = @("--params=`"/InstallDir:C:\tools\python2`"")
-  $out = Install-ChocoPackage 'python2' '' ${chocoParams}
+  $out = Install-ChocoPackage 'windows-sdk-10.0'
+
+  # Only install python if it's not needed
+  $pythonInstall = Test-PythonInstalled
+  if (-not ($pythonInstall)) {
+    Install-ChocoPackage 'python2'
+    # Update the system path and re-derive the python install
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+    $pythonInstall = Test-PythonInstalled
+  }
+
+  $out = Install-ChocoPackage 'wixtoolset' '' @('--version', '3.10.3.300701')
+  # Add the WiX binary path to the system path for use
+  Add-ToSystemPath 'C:\Program Files (x86)\WiX Toolset v3.10\bin'
+
   # Convenience variable for accessing Python
-  [Environment]::SetEnvironmentVariable("OSQUERY_PYTHON_PATH", "C:\tools\python2", "Machine")
+  [Environment]::SetEnvironmentVariable("OSQUERY_PYTHON_PATH", $pythonInstall, "Machine")
   $out = Install-PipPackage
   $out = Update-GitSubmodule
   if (Test-Path env:OSQUERY_BUILD_HOST) {
     $out = Install-ChocoPackage 'visualcppbuildtools'
-  }
-  else {
+  } else {
     $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
     $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
     $out = Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
@@ -420,8 +495,7 @@ function Main {
 
     if ($PSVersionTable.PSVersion.Major -lt 5 -and $PSVersionTable.PSVersion.Minor -lt 1 ) {
       Write-Host "[*] Powershell version is < 5.1. Skipping Powershell Linter Installation." -foregroundcolor yellow
-    }
-    else {
+    } else {
       $out = Install-PowershellLinter
     }
   }

@@ -30,10 +30,25 @@ Only applies if you have never installed and run **osqueryd** on this Mac.
 After completing the brew installation run the following commands. If you are using the chef recipe to install osquery then these steps are not necessary, the [recipe](http://osquery.readthedocs.io/en/stable/deployment/configuration/#chef-os-x) has this covered.
 
 ```
-sudo ln -s /usr/local/share/osquery /var/osquery
+sudo ln -s /var/osquery /usr/local/share/osquery
 sudo mkdir /var/log/osquery
 sudo chown root /usr/local/Cellar/osquery/1.7.3/bin/osqueryd
 sudo cp /var/osquery/osquery.example.conf /var/osquery/osquery.conf
+```
+
+### Removing osquery
+To remove osquery from a macOS system, run the following commands:
+```sh
+# Unload and remove com.facebook.osquery.plist launchdaemon
+launchctl unload /Library/LaunchDaemons/com.facebook.osqueryd.plist
+rm /Library/LaunchDaemons/com.facebook.osqueryd.plist
+
+# Remove files/directories created by osquery installer pkg
+rm -rf /private/var/log/osquery
+rm -rf /private/var/osquery
+rm /usr/local/bin/osquery*
+
+pkgutil --forget com.facebook.osquery
 ```
 
 ## Running osquery

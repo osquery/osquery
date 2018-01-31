@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -229,6 +229,14 @@ class TLSRequestHelper : private boost::noncopyable {
                    std::string& output,
                    const size_t attempts) {
     Status s;
+
+    boost::property_tree::ptree override_params;
+    for (const auto& param : params) {
+      if (param.first.find('_') == 0) {
+        override_params.put(param.first, param.second.data());
+      }
+    }
+
     for (size_t i = 1; i <= attempts; i++) {
       s = TLSRequestHelper::go<TSerializer>(uri, params, output);
       if (s.ok()) {
@@ -236,6 +244,9 @@ class TLSRequestHelper : private boost::noncopyable {
       }
       if (i == attempts) {
         break;
+      }
+      for (const auto& param : override_params) {
+        params.put(param.first, param.second.data());
       }
       sleepFor(i * i * 1000);
     }

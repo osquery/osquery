@@ -3,9 +3,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 from __future__ import absolute_import
 from __future__ import division
@@ -37,8 +38,7 @@ from gentable import \
   TEXT, DATE, DATETIME, INTEGER, BIGINT, UNSIGNED_BIGINT, DOUBLE, BLOB
 
 
-def _fuzz_paths(shell, name, paths):
-    global EXIT_CODE
+def _fuzz_paths(shell, name, paths, query):
     cmd = [
         "zzuf",
         "-r0.001:0.1", "-s%d:%d" % (args.s, args.s + args.n)
@@ -47,8 +47,8 @@ def _fuzz_paths(shell, name, paths):
         cmd.append("-I")
         cmd.append(path)
     cmd.append(shell)
-    cmd.append("select count(1) from %s" % name)
-
+    cmd.append("--disable_extensions")
+    cmd.append(query)
     if args.verbose:
         print (" ".join(cmd))
     proc = subprocess.Popen(
@@ -63,6 +63,18 @@ def _fuzz_paths(shell, name, paths):
         print (" ".join(cmd))
         print(stderr)
     return proc.returncode
+
+def _fuzz_queries(shell, name, paths, examples=[]):
+    print("Fuzzing file reads for: %s" % (name))
+    ret = _fuzz_paths(shell, name, paths, "select count(1) from `%s`" % (name))
+    if ret != 0:
+        return ret
+    for example in examples:
+        print("Fuzzing file reads for query: %s" % (example))
+        ret = _fuzz_paths(shell, name, paths, example)
+        if ret != 0:
+            return ret
+    return 0
 
 
 if __name__ == "__main__":
@@ -130,9 +142,8 @@ if __name__ == "__main__":
             # We may later introduce other (simple) types of fuzzing.
             if len(TableState.fuzz_paths) > 0:
                 # The table specification opted-into path-based fuzzing.
-                print("Fuzzing file reads for: %s" % (TableState.table_name))
-                ret = _fuzz_paths(args.shell, TableState.table_name,
-                    TableState.fuzz_paths)
+                ret = _fuzz_queries(args.shell, TableState.table_name,
+                    TableState.fuzz_paths, TableState.examples)
                 if ret > 0:
                     exit_code = ret
                 if not args.c and ret != 0:

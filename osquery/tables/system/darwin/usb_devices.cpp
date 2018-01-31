@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <IOKit/usb/IOUSBLib.h>
@@ -16,6 +16,15 @@
 
 namespace osquery {
 namespace tables {
+
+std::string decodeUSBBCD(uint16_t bcd) {
+  uint8_t array[2];
+  array[0] = bcd & 0xff;
+  array[1] = (bcd >> 8);
+  uint8_t major = ((array[1] / 16 * 10) + (array[1] % 16));
+  uint8_t minor = ((array[0] / 16 * 10) + (array[0] % 16));
+  return std::to_string(major) + "." + std::to_string(minor);
+}
 
 void genUSBDevice(const io_service_t& device, QueryData& results) {
   Row r;
@@ -40,6 +49,7 @@ void genUSBDevice(const io_service_t& device, QueryData& results) {
   r["model_id"] = getIOKitProperty(details, "idProduct");
   r["vendor"] = getIOKitProperty(details, "USB Vendor Name");
   r["vendor_id"] = getIOKitProperty(details, "idVendor");
+  r["version"] = decodeUSBBCD(getNumIOKitProperty(details, "bcdDevice"));
 
   r["serial"] = getIOKitProperty(details, "USB Serial Number");
   if (r.at("serial").size() == 0) {

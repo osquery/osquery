@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <atomic>
@@ -74,7 +74,7 @@ static inline std::string opString(unsigned char op) {
 }
 
 inline std::string table_doc(const std::string& name) {
-  return "https://osquery.io/docs/#" + name;
+  return "https://osquery.io/schema/#" + name;
 }
 
 static void plan(const std::string& output) {
@@ -449,6 +449,9 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   pCur->n = 0;
   QueryContext context(content);
 
+  // The SQLite instance communicates to the TablePlugin via the context.
+  context.useCache(pVtab->instance->useCache());
+
   // Track required columns, this is different than the requirements check
   // that occurs within BestIndex because this scan includes a cursor.
   // For each cursor used, if a requirement exists, we need to scan the
@@ -621,7 +624,8 @@ Status attachTableInternal(const std::string& name,
 
   // Note, if the clientData API is used then this will save a registry call
   // within xCreate.
-  RecursiveLock lock(kAttachMutex);
+  auto lock(instance->attachLock());
+
   int rc = sqlite3_create_module(
       instance->db(), name.c_str(), &module, (void*)&(*instance));
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
@@ -634,10 +638,11 @@ Status attachTableInternal(const std::string& name,
   return Status(rc, getStringForSQLiteReturnCode(rc));
 }
 
-Status detachTableInternal(const std::string& name, sqlite3* db) {
-  RecursiveLock lock(kAttachMutex);
+Status detachTableInternal(const std::string& name,
+                           const SQLiteDBInstanceRef& instance) {
+  auto lock(instance->attachLock());
   auto format = "DROP TABLE IF EXISTS temp." + name;
-  int rc = sqlite3_exec(db, format.c_str(), nullptr, nullptr, 0);
+  int rc = sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, 0);
   if (rc != SQLITE_OK) {
     LOG(ERROR) << "Error detaching table: " << name << " (" << rc << ")";
   }
@@ -652,7 +657,7 @@ Status attachFunctionInternal(
   // Hold the manager connection instance again in callbacks.
   auto dbc = SQLiteDBManager::get();
   // Add some shell-specific functions to the instance.
-  RecursiveLock lock(kAttachMutex);
+  auto lock(dbc->attachLock());
   int rc = sqlite3_create_function(
       dbc->db(),
       name.c_str(),

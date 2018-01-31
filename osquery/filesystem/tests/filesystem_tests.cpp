@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <algorithm>
@@ -111,21 +111,26 @@ TEST_F(FilesystemTests, test_write_file) {
   ASSERT_TRUE(isWritable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, (int)0400, true));
+  EXPECT_TRUE(writeTextFile(test_file, content, 0400, true));
   ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_FALSE(isWritable(test_file).ok());
-  ASSERT_TRUE(isReadable(test_file).ok());
+
+  // On POSIX systems, root can still read/write.
+  bool can_rw = !isPlatform(PlatformType::TYPE_WINDOWS) && isUserAdmin();
+  EXPECT_EQ(can_rw, isWritable(test_file).ok());
+  EXPECT_TRUE(isReadable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 
-  EXPECT_TRUE(writeTextFile(test_file, content, (int)0000, true));
+  EXPECT_TRUE(writeTextFile(test_file, content, 0000, true));
   ASSERT_TRUE(pathExists(test_file).ok());
-  ASSERT_FALSE(isWritable(test_file).ok());
-  ASSERT_FALSE(isReadable(test_file).ok());
+
+  // On POSIX systems, root can still read/write.
+  EXPECT_EQ(can_rw, isWritable(test_file).ok());
+  EXPECT_EQ(can_rw, isReadable(test_file).ok());
   ASSERT_TRUE(removePath(test_file).ok());
 }
 
 TEST_F(FilesystemTests, test_readwrite_file) {
-  fs::path test_file(kTestWorkingDirectory + "fstests-file2");
+  fs::path test_file(kTestWorkingDirectory + "fstests-file3");
   size_t filesize = 4096 * 10;
 
   std::string in_content(filesize, 'A');

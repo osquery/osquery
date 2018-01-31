@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -163,6 +163,20 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
   out = strtoll(rep.c_str(), &end, static_cast<int>(base));
   if (end == nullptr || end == rep.c_str() || *end != '\0' ||
       ((out == LLONG_MIN || out == LLONG_MAX) && errno == ERANGE)) {
+    out = 0;
+    return Status(1);
+  }
+  return Status(0);
+}
+
+/// Safely convert a string representation of an integer base.
+inline Status safeStrtoull(const std::string& rep,
+                           size_t base,
+                           unsigned long long& out) {
+  char* end{nullptr};
+  out = strtoull(rep.c_str(), &end, static_cast<int>(base));
+  if (end == nullptr || end == rep.c_str() || *end != '\0' ||
+      (out == ULLONG_MAX && errno == ERANGE)) {
     out = 0;
     return Status(1);
   }

@@ -3,15 +3,16 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Libgcrypt < AbstractOsqueryFormula
   desc "Cryptographic library based on the code from GnuPG"
   homepage "https://directory.fsf.org/wiki/Libgcrypt"
-  url "https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.6.5.tar.bz2"
-  mirror "https://www.mirrorservice.org/sites/ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.5.tar.bz2"
-  sha256 "f49ebc5842d455ae7019def33eb5a014a0f07a2a8353dc3aa50a76fd1dafa924"
-  revision 101
+  license "LGPL-2.1+"
+  url "https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.8.1.tar.bz2"
+  mirror "https://www.mirrorservice.org/sites/ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.8.1.tar.bz2"
+  sha256 "7a2875f8b1ae0301732e878c0cca2c9664ff09ef71408f085c50e332656a78b3"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "d33dac41ffc0fadad593ecafdd6bbd275826b3abfbefadfedfd76b5db1853d24" => :x86_64_linux
+    sha256 "61cf14831c2b8d8f36688fbca3ee6c7dc9293c485fb633020383b2df676dee4f" => :x86_64_linux
   end
 
   depends_on "libgpg-error"

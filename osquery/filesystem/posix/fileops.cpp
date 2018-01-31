@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <glob.h>
@@ -30,7 +30,8 @@ namespace errc = boost::system::errc;
 
 namespace osquery {
 
-PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
+PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
+    : fname_(path) {
   int oflag = 0;
   bool may_create = false;
   bool check_existence = false;
@@ -84,10 +85,10 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms) {
 
   boost::system::error_code ec;
   if (check_existence &&
-      (!fs::exists(path.c_str(), ec) || ec.value() != errc::success)) {
+      (!fs::exists(fname_, ec) || ec.value() != errc::success)) {
     handle_ = kInvalidHandle;
   } else {
-    handle_ = ::open(path.c_str(), oflag, perms);
+    handle_ = ::open(fname_.c_str(), oflag, perms);
   }
 }
 

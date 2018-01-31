@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <gtest/gtest.h>
@@ -15,7 +15,9 @@
 namespace osquery {
 
 class DispatcherTests : public testing::Test {
-  void TearDown() override { Dispatcher::instance().resetStopping(); }
+  void TearDown() override {
+    Dispatcher::instance().resetStopping();
+  }
 };
 
 TEST_F(DispatcherTests, test_singleton) {
@@ -26,7 +28,7 @@ TEST_F(DispatcherTests, test_singleton) {
 
 class TestRunnable : public InternalRunnable {
  public:
-  explicit TestRunnable() {}
+  explicit TestRunnable() : InternalRunnable("TestRunnable") {}
 
   virtual void start() override {
     ++i;
@@ -97,7 +99,7 @@ TEST_F(DispatcherTests, test_independent_run) {
 
 class BlockingTestRunnable : public InternalRunnable {
  public:
-  explicit BlockingTestRunnable() {}
+  explicit BlockingTestRunnable() : InternalRunnable("BlockingTestRunnable") {}
 
   virtual void start() override {
     // Wow that's a long sleep!

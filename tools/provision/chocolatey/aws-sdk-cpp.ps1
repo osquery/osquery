@@ -1,13 +1,14 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # Update-able metadata
-$version = '1.1.44'
-$chocoVersion = '1.1.44'
+$version = '1.2.7'
+$chocoVersion = '1.2.7'
 $packageName = 'aws-sdk-cpp'
 $projectSource = 'https://github.com/aws/aws-sdk-cpp'
 $packageSourceUrl = "https://github.com/aws/aws-sdk-cpp/archive/$version.zip"
@@ -52,8 +53,11 @@ if (-not (Test-Path "$chocoBuildPath")) {
 }
 Set-Location $chocoBuildPath
 
-# Retrieve the source
-Invoke-WebRequest $url -OutFile "$packageName-$version.zip"
+# Retrieve the source only if we don't already have it
+$zipFile = "$packageName-$version.zip"
+if(-Not (Test-Path $zipFile)) {
+  Invoke-WebRequest $url -OutFile "$zipFile"
+}
 
 # Extract the source
 $sourceDir = "$packageName-$version"
@@ -68,10 +72,11 @@ Set-Location $sourceDir
 $staticBuild = "`nset(CMAKE_CXX_FLAGS_RELEASE `"`${CMAKE_CXX_FLAGS_RELEASE} " +
               "/MT`")`nset(CMAKE_CXX_FLAGS_DEBUG `"`${CMAKE_CXX_FLAGS_DEBUG} " +
               "/MTd`")"
-$libs | Foreach-Object {
+
+foreach($lib in $libs) {
   Add-Content `
     -NoNewline `
-    -Path "$_\CMakeLists.txt" `
+    -Path "$lib\CMakeLists.txt" `
     -Value $staticBuild
 }
 
@@ -95,7 +100,7 @@ $msbuild = (Get-Command 'msbuild').Source
 $sln = 'AWSSDK.sln'
 foreach($target in $libs) {
   $msbuildArgs = @(
-    "`"$sln`"",
+    "$buildDir\$sln",
     "/p:Configuration=Release",
     "/t:$target",
     '/m',
@@ -105,7 +110,7 @@ foreach($target in $libs) {
 
   # Bundle debug libs for troubleshooting
   $msbuildArgs = @(
-    "`"$sln`"",
+    "$buildDir\$sln",
     "/p:Configuration=Debug",
     "/t:$target",
     '/m',
@@ -152,8 +157,7 @@ if (Test-Path "$packageName.$chocoVersion.nupkg") {
   $package = "$(Get-Location)\$packageName.$chocoVersion.nupkg"
   Write-Host `
     "[+] Finished building. Package written to $package" -ForegroundColor Green
-}
-else {
+} else {
   Write-Host `
     "[-] Failed to build $packageName v$chocoVersion." `
     -ForegroundColor Red

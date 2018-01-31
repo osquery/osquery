@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <algorithm>
@@ -50,7 +50,7 @@ uint64_t Query::getQueryCounter(bool new_query) const {
   return counter;
 }
 
-Status Query::getPreviousQueryResults(QueryData& results) const {
+Status Query::getPreviousQueryResults(QueryDataSet& results) const {
   std::string raw;
   auto status = getDatabaseValue(kQueries, name_, raw);
   if (!status.ok()) {
@@ -86,14 +86,14 @@ bool Query::isNewQuery() const {
   return (query != query_.query);
 }
 
-Status Query::addNewResults(const QueryData& qd,
+Status Query::addNewResults(QueryData qd,
                             const uint64_t epoch,
                             uint64_t& counter) const {
   DiffResults dr;
-  return addNewResults(qd, epoch, counter, dr, false);
+  return addNewResults(std::move(qd), epoch, counter, dr, false);
 }
 
-Status Query::addNewResults(const QueryData& current_qd,
+Status Query::addNewResults(QueryData current_qd,
                             const uint64_t current_epoch,
                             uint64_t& counter,
                             DiffResults& dr,
@@ -124,7 +124,7 @@ Status Query::addNewResults(const QueryData& current_qd,
   bool update_db = true;
   if (!fresh_results && calculate_diff) {
     // Get the rows from the last run of this query name.
-    QueryData previous_qd;
+    QueryDataSet previous_qd;
     auto status = getPreviousQueryResults(previous_qd);
     if (!status.ok()) {
       return status;
@@ -132,6 +132,7 @@ Status Query::addNewResults(const QueryData& current_qd,
 
     // Calculate the differential between previous and current query results.
     dr = diff(previous_qd, current_qd);
+
     update_db = (!dr.added.empty() || !dr.removed.empty());
   } else {
     dr.added = std::move(current_qd);
@@ -349,6 +350,18 @@ Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json) {
   return Status(0, "OK");
 }
 
+Status deserializeQueryData(const pt::ptree& tree, QueryDataSet& qd) {
+  for (const auto& i : tree) {
+    Row r;
+    auto status = deserializeRow(i.second, r);
+    if (!status.ok()) {
+      return status;
+    }
+    qd.insert(std::move(r));
+  }
+  return Status(0, "OK");
+}
+
 Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
   for (const auto& i : tree) {
     Row r;
@@ -377,6 +390,18 @@ Status deserializeQueryDataRJ(const rj::Value& v, QueryData& qd) {
 }
 
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
+  pt::ptree tree;
+  try {
+    std::stringstream input;
+    input << json;
+    pt::read_json(input, tree);
+  } catch (const pt::json_parser::json_parser_error& e) {
+    return Status(1, e.what());
+  }
+  return deserializeQueryData(tree, qd);
+}
+
+Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
   pt::ptree tree;
   try {
     std::stringstream input;
@@ -444,26 +469,22 @@ Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
   return Status(0, "OK");
 }
 
-DiffResults diff(const QueryData& old, const QueryData& current) {
+DiffResults diff(QueryDataSet& old, QueryData& current) {
   DiffResults r;
-  QueryData overlap;
 
-  for (const auto& i : current) {
-    auto item = std::find(old.begin(), old.end(), i);
+  for (auto& i : current) {
+    auto item = old.find(i);
     if (item != old.end()) {
-      overlap.push_back(i);
+      old.erase(item);
     } else {
       r.added.push_back(i);
     }
   }
 
-  std::multiset<Row> overlap_set(overlap.begin(), overlap.end());
-  std::multiset<Row> old_set(old.begin(), old.end());
-  std::set_difference(old_set.begin(),
-                      old_set.end(),
-                      overlap_set.begin(),
-                      overlap_set.end(),
-                      std::back_inserter(r.removed));
+  for (auto& i : old) {
+    r.removed.push_back(std::move(i));
+  }
+
   return r;
 }
 
@@ -506,23 +527,68 @@ inline void getLegacyFieldsAndDecorations(const pt::ptree& tree,
 }
 
 Status serializeQueryLogItem(const QueryLogItem& item, pt::ptree& tree) {
-  pt::ptree results_tree;
+  pt::ptree results;
   if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
-    auto status = serializeDiffResults(item.results, results_tree);
+    auto status = serializeDiffResults(item.results, results);
     if (!status.ok()) {
       return status;
     }
-    tree.add_child("diffResults", results_tree);
+    tree.add_child("diffResults", results);
   } else {
-    auto status = serializeQueryData(item.snapshot_results, results_tree);
+    auto status = serializeQueryData(item.snapshot_results, results);
     if (!status.ok()) {
       return status;
     }
-    tree.add_child("snapshot", results_tree);
+    tree.add_child("snapshot", results);
     tree.put<std::string>("action", "snapshot");
   }
 
   addLegacyFieldsAndDecorations(item, tree);
+  return Status(0, "OK");
+}
+
+static inline Status serializeEvent(const QueryLogItem& item,
+                                    const pt::ptree& event,
+                                    pt::ptree& tree) {
+  addLegacyFieldsAndDecorations(item, tree);
+  pt::ptree columns;
+  for (const auto& i : event) {
+    // Yield results as a "columns." map to avoid namespace collisions.
+    columns.put<std::string>(i.first, i.second.get_value<std::string>());
+  }
+
+  tree.add_child("columns", columns);
+  return Status(0, "OK");
+}
+
+Status serializeQueryLogItemAsEvents(const QueryLogItem& item,
+                                     pt::ptree& tree) {
+  pt::ptree results;
+  if (!item.results.added.empty() || !item.results.removed.empty()) {
+    auto status = serializeDiffResults(item.results, results);
+    if (!status.ok()) {
+      return status;
+    }
+  } else if (!item.snapshot_results.empty()) {
+    pt::ptree snapshot_results;
+    auto status = serializeQueryData(item.snapshot_results, snapshot_results);
+    if (!status.ok()) {
+      return status;
+    }
+    results.add_child("snapshot", snapshot_results);
+  } else {
+    // This error case may also be represented in serializeQueryLogItem.
+    return Status(1, "No diff results or snapshot results");
+  }
+
+  for (const auto& action : results) {
+    for (const auto& row : action.second) {
+      pt::ptree event;
+      serializeEvent(item, row.second, event);
+      event.put<std::string>("action", action.first);
+      tree.push_back(std::make_pair("", event));
+    }
+  }
   return Status(0, "OK");
 }
 
@@ -574,42 +640,6 @@ Status deserializeQueryLogItemJSON(const std::string& json,
     return Status(1, e.what());
   }
   return deserializeQueryLogItem(tree, item);
-}
-
-Status serializeEvent(const QueryLogItem& item,
-                      const pt::ptree& event,
-                      pt::ptree& tree) {
-  addLegacyFieldsAndDecorations(item, tree);
-  pt::ptree columns;
-  for (auto& i : event) {
-    // Yield results as a "columns." map to avoid namespace collisions.
-    columns.put<std::string>(i.first, i.second.get_value<std::string>());
-  }
-
-  tree.add_child("columns", columns);
-  return Status(0, "OK");
-}
-
-Status serializeQueryLogItemAsEvents(const QueryLogItem& i, pt::ptree& tree) {
-  pt::ptree diff_results;
-  // Note, snapshot query results will bypass the "AsEvents" call, even when
-  // log_result_events is set. This is because the schedule will call an
-  // explicit ::logSnapshotQuery, which does not check for the result_events
-  // configuration.
-  auto status = serializeDiffResults(i.results, diff_results);
-  if (!status.ok()) {
-    return status;
-  }
-
-  for (auto& action : diff_results) {
-    for (auto& row : action.second) {
-      pt::ptree event;
-      serializeEvent(i, row.second, event);
-      event.put<std::string>("action", action.first);
-      tree.push_back(std::make_pair("", event));
-    }
-  }
-  return Status(0, "OK");
 }
 
 Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,

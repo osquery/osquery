@@ -1,17 +1,18 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # Update-able metadata
 #
 # $version - The version of the software package to build
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
-$version = '0.10.0'
-$chocoVersion = '0.10.0-r4'
+$version = '0.11.0'
+$chocoVersion = '0.11.0'
 $packageName = 'thrift-dev'
 $projectSource = 'https://github.com/apache/thrift'
 $packageSourceUrl = 'https://github.com/apache/thrift'
@@ -21,9 +22,6 @@ $copyright = 'https://github.com/apache/thrift/blob/master/LICENSE'
 $license = 'https://github.com/apache/thrift/blob/master/LICENSE'
 $url = "https://github.com/apache/thrift/archive/$version.zip"
 $parentPath = $(Split-Path -Parent $MyInvocation.MyCommand.Definition)
-$patchfiles = @(
-  Join-Path $parentPath "patches/thrift-dev.patch"
-)
 
 # Invoke our utilities file
 . $(Join-Path $parentPath "osquery_utils.ps1")
@@ -36,6 +34,9 @@ $sw = [System.Diagnostics.StopWatch]::startnew()
 
 # Keep the location of build script, to bring with in the chocolatey package
 $buildScript = $MyInvocation.MyCommand.Definition
+
+# Save location to restor later
+$loc = Get-Location
 
 # Create the choco build dir if needed
 $buildPath = Get-OsqueryBuildPath
@@ -59,7 +60,7 @@ $sourceDir = Join-Path $(Get-Location) "thrift-$version"
 if (-not (Test-Path $sourceDir)) {
   $7z = (Get-Command '7z').Source
   $7zargs = "x $packageName-$version.zip"
-  Start-OsqueryProcess $7z $7zargs
+  Start-OsqueryProcess $7z $7zargs $false
 }
 Set-Location $sourceDir
 
@@ -94,7 +95,7 @@ $cmakeArgs = @(
   '-DWITH_MT=ON',
   '../'
 )
-Start-OsqueryProcess $cmake $cmakeArgs
+Start-OsqueryProcess $cmake $cmakeArgs $false
 
 # Build the libraries
 $msbuild = (Get-Command 'msbuild').Source
@@ -111,7 +112,7 @@ foreach ($target in $targets) {
     '/m',
     '/v:m'
   )
-  Start-OsqueryProcess $msbuild $msbuildArgs
+  Start-OsqueryProcess $msbuild $msbuildArgs $false
 
   # Bundle debug libs for troubleshooting
   $msbuildArgs = @(
@@ -121,7 +122,7 @@ foreach ($target in $targets) {
     '/m',
     '/v:m'
   )
-  Start-OsqueryProcess $msbuild $msbuildArgs
+  Start-OsqueryProcess $msbuild $msbuildArgs $false
 }
 
 # Lastly build the Thrift Compiler
@@ -132,7 +133,7 @@ $msbuildArgs = @(
   '/m',
   '/v:m'
 )
-Start-OsqueryProcess $msbuild $msbuildArgs
+Start-OsqueryProcess $msbuild $msbuildArgs $false
 
 # If the build path exists, purge it for a clean packaging
 $chocoDir = Join-Path $(Get-Location) 'osquery-choco'
@@ -168,7 +169,7 @@ foreach ($lib in Get-ChildItem "$buildDir\lib\Debug\") {
     -Destination "$libDir\$newLibName`_dbg.$suffix"
 }
 Copy-Item "$buildDir\lib\Release\*" $libDir
-Copy-Item "$buildDir\bin\Release\*" $binDir
+Copy-Item "$buildDir\compiler\cpp\bin\Release\*" $binDir
 Copy-Item -Recurse "$buildDir\..\lib\cpp\src\thrift" $includeDir
 Copy-Item $buildScript $srcDir
 choco pack
@@ -185,3 +186,4 @@ else {
     "[-] Failed to build $packageName v$chocoVersion." `
     -ForegroundColor Red
 }
+Set-Location $loc

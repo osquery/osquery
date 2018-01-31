@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <map>
@@ -120,7 +120,8 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     if (socketExists(path)) {
       try {
         ExtensionStatus status;
-        EXManagerClient client(path);
+        // Create a client with a 10-second receive timeout.
+        EXManagerClient client(path, 10 * 1000);
         client.get()->ping(status);
         return Status(0, "OK");
       } catch (const std::exception& /* e */) {
@@ -133,6 +134,17 @@ Status extensionPathActive(const std::string& path, bool use_timeout = false) {
     }
     return Status(1, "Extension socket not available: " + path);
   }));
+}
+
+ExtensionWatcher::ExtensionWatcher(const std::string& path,
+                                   size_t interval,
+                                   bool fatal)
+    : InternalRunnable("ExtensionWatcher"),
+      path_(path),
+      interval_(interval),
+      fatal_(fatal) {
+  // Set the interval to a minimum of 200 milliseconds.
+  interval_ = (interval_ < 200) ? 200 : interval_;
 }
 
 void ExtensionWatcher::start() {

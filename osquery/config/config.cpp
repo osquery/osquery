@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <map>
@@ -130,58 +130,29 @@ class Schedule : private boost::noncopyable {
    * next iterator element or skipped.
    */
   struct Step {
-    bool operator()(PackRef& pack) {
-      return pack->shouldPackExecute();
-    }
+    bool operator()(PackRef& pack);
   };
 
   /// Add a pack to the schedule
-  void add(PackRef&& pack) {
-    remove(pack->getName(), pack->getSource());
-    packs_.push_back(pack);
-  }
+  void add(PackRef&& pack);
 
   /// Remove a pack, by name.
-  void remove(const std::string& pack) {
-    remove(pack, "");
-  }
+  void remove(const std::string& pack);
 
   /// Remove a pack by name and source.
-  void remove(const std::string& pack, const std::string& source) {
-    packs_.remove_if([pack, source](PackRef& p) {
-      if (p->getName() == pack && (p->getSource() == source || source == "")) {
-        Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
-        return true;
-      }
-      return false;
-    });
-  }
+  void remove(const std::string& pack, const std::string& source);
 
   /// Remove all packs by source.
-  void removeAll(const std::string& source) {
-    packs_.remove_if(([source](PackRef& p) {
-      if (p->getSource() == source) {
-        Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
-        return true;
-      }
-      return false;
-    }));
-  }
+  void removeAll(const std::string& source);
 
   /// Boost gives us a nice template for maintaining the state of the iterator
   using iterator = boost::filter_iterator<Step, container::iterator>;
 
-  iterator begin() {
-    return iterator(packs_.begin(), packs_.end());
-  }
+  iterator begin();
 
-  iterator end() {
-    return iterator(packs_.end(), packs_.end());
-  }
+  iterator end();
 
-  PackRef& last() {
-    return packs_.back();
-  }
+  PackRef& last();
 
  private:
   /// Underlying storage for the packs
@@ -208,6 +179,51 @@ class Schedule : private boost::noncopyable {
   friend class Config;
 };
 
+bool Schedule::Step::operator()(PackRef& pack) {
+  return pack->shouldPackExecute();
+}
+
+void Schedule::add(PackRef&& pack) {
+  remove(pack->getName(), pack->getSource());
+  packs_.push_back(pack);
+}
+
+void Schedule::remove(const std::string& pack) {
+  remove(pack, "");
+}
+
+void Schedule::remove(const std::string& pack, const std::string& source) {
+  packs_.remove_if([pack, source](PackRef& p) {
+    if (p->getName() == pack && (p->getSource() == source || source == "")) {
+      Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
+      return true;
+    }
+    return false;
+  });
+}
+
+void Schedule::removeAll(const std::string& source) {
+  packs_.remove_if(([source](PackRef& p) {
+    if (p->getSource() == source) {
+      Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
+      return true;
+    }
+    return false;
+  }));
+}
+
+Schedule::iterator Schedule::begin() {
+  return Schedule::iterator(packs_.begin(), packs_.end());
+}
+
+Schedule::iterator Schedule::end() {
+  return Schedule::iterator(packs_.end(), packs_.end());
+}
+
+PackRef& Schedule::last() {
+  return packs_.back();
+}
+
 /**
  * @brief A thread that periodically reloads configuration state.
  *
@@ -218,6 +234,8 @@ class Schedule : private boost::noncopyable {
  */
 class ConfigRefreshRunner : public InternalRunnable {
  public:
+  ConfigRefreshRunner() : InternalRunnable("ConfigRefreshRunner") {}
+
   /// A simple wait/interruptible lock.
   void start();
 
@@ -341,30 +359,62 @@ void Config::removeFiles(const std::string& source) {
   }
 }
 
+/**
+ * @brief Return true if the failed query is no longer blacklisted.
+ *
+ * There are two scenarios where a blacklisted query becomes 'unblacklisted'.
+ * The first is simple, the amount of time it was blacklisted for has expired.
+ * The second is more complex, the query failed but the schedule has requested
+ * that the query should not be blacklisted.
+ *
+ * @param blt The time the query was originally blacklisted.
+ * @param query The scheduled query and its options.
+ */
+static inline bool blacklistExpired(size_t blt, const ScheduledQuery& query) {
+  if (getUnixTime() > blt) {
+    return true;
+  }
+
+  auto blo = query.options.find("blacklist");
+  if (blo != query.options.end() && blo->second == false) {
+    // The schedule requested that we do not blacklist this query.
+    return true;
+  }
+  return false;
+}
+
 void Config::scheduledQueries(
     std::function<void(const std::string& name, const ScheduledQuery& query)>
-        predicate) {
+        predicate,
+    bool blacklisted) {
   RecursiveLock lock(config_schedule_mutex_);
-  for (const PackRef& pack : *schedule_) {
-    for (const auto& it : pack->getSchedule()) {
+  for (PackRef& pack : *schedule_) {
+    for (auto& it : pack->getSchedule()) {
       std::string name = it.first;
       // The query name may be synthetic.
       if (pack->getName() != "main" && pack->getName() != "legacy_main") {
         name = "pack" + FLAGS_pack_delimiter + pack->getName() +
                FLAGS_pack_delimiter + it.first;
       }
+
       // They query may have failed and been added to the schedule's blacklist.
-      if (schedule_->blacklist_.count(name) > 0) {
-        auto blacklisted_query = schedule_->blacklist_.find(name);
-        if (getUnixTime() > blacklisted_query->second) {
+      auto blacklisted_query = schedule_->blacklist_.find(name);
+      if (blacklisted_query != schedule_->blacklist_.end()) {
+        if (blacklistExpired(blacklisted_query->second, it.second)) {
           // The blacklisted query passed the expiration time (remove).
           schedule_->blacklist_.erase(blacklisted_query);
           saveScheduleBlacklist(schedule_->blacklist_);
+          it.second.blacklisted = false;
         } else {
           // The query is still blacklisted.
-          continue;
+          it.second.blacklisted = true;
+          if (!blacklisted) {
+            // The caller does not want blacklisted queries.
+            continue;
+          }
         }
       }
+
       // Call the predicate.
       predicate(name, it.second);
     }

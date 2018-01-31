@@ -1,17 +1,18 @@
 require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 
-class Zstd < Formula
+class Zstd < AbstractOsqueryFormula
   desc "Zstandard is a real-time compression algorithm"
   homepage "http://zstd.net/"
+  license "GPL-2.0+"
   url "https://github.com/facebook/zstd/archive/v1.2.0.tar.gz"
   sha256 "4a7e4593a3638276ca7f2a09dc4f38e674d8317bbea51626393ca73fc047cbfb"
-  revision 103
+  revision 104
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "1c284eb035ee3db8e00362214e21433d8af6d3ff5c576a67b8d3f140f773d14f" => :sierra
-    sha256 "732b5f9cad9755681842227d0be3fed8486b79db40d3869d4052204a64709f57" => :x86_64_linux
+    sha256 "c791cd29dd159b1a6fb3770c9a12fbc92e9b16c9a23ed5c67500c93cb727d5ee" => :sierra
+    sha256 "d02e6fd44e66a99f7a5c92c1a15c82095aaba4e943e274ccb82e8958a3d4f962" => :x86_64_linux
   end
 
   depends_on "cmake" => :build

@@ -1,0 +1,8 @@
+Gemfile.lock
+_site/
+*.swp
+pkg/
+test/
+.idea/
+.bundle/
+.jekyll-metadata

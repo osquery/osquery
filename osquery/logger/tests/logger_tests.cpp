@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <thread>
@@ -13,14 +13,20 @@
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
 DECLARE_int32(minloglevel);
+DECLARE_int32(stderrthreshold);
 
 namespace osquery {
 
+DECLARE_int32(logger_min_status);
 DECLARE_bool(logger_secondary_status_only);
 DECLARE_bool(logger_status_sync);
+DECLARE_bool(logger_event_type);
+DECLARE_bool(logger_snapshot_event_type);
+DECLARE_bool(disable_logging);
 
 class LoggerTests : public testing::Test {
  public:
@@ -189,16 +195,38 @@ TEST_F(LoggerTests, test_logger_log_status) {
 }
 
 TEST_F(LoggerTests, test_logger_status_level) {
+  auto minloglevel = FLAGS_minloglevel;
   FLAGS_minloglevel = 0;
   // This will be printed to stdout.
   LOG(INFO) << "Logger test is generating an info status";
   EXPECT_EQ(1U, LoggerTests::statuses_logged);
 
   FLAGS_minloglevel = 1;
+  setVerboseLevel();
+
   LOG(INFO) << "Logger test is generating an info status";
   EXPECT_EQ(1U, LoggerTests::statuses_logged);
   LOG(WARNING) << "Logger test is generating a warning status";
   EXPECT_EQ(2U, LoggerTests::statuses_logged);
+  FLAGS_minloglevel = minloglevel;
+
+  auto stderrthreshold = FLAGS_stderrthreshold;
+  FLAGS_stderrthreshold = 2;
+  setVerboseLevel();
+
+  LOG(WARNING) << "Logger test is generating a warning status";
+  EXPECT_EQ(3U, LoggerTests::statuses_logged);
+  FLAGS_stderrthreshold = stderrthreshold;
+
+  auto logger_min_status = FLAGS_logger_min_status;
+  FLAGS_logger_min_status = 1;
+  setVerboseLevel();
+
+  LOG(INFO) << "Logger test is generating an info status";
+  EXPECT_EQ(3U, LoggerTests::statuses_logged);
+  LOG(WARNING) << "Logger test is generating a warning status";
+  EXPECT_EQ(4U, LoggerTests::statuses_logged);
+  FLAGS_logger_min_status = logger_min_status;
 }
 
 TEST_F(LoggerTests, test_feature_request) {
@@ -249,6 +277,16 @@ TEST_F(LoggerTests, test_logger_snapshots) {
 
   // Expect the plugin to optionally handle snapshot logging.
   EXPECT_EQ(1U, LoggerTests::snapshot_rows_added);
+
+  // Expect a single event, event though there were two added.
+  item.results.added.push_back({{"test_column", "test_value"}});
+  logSnapshotQuery(item);
+  EXPECT_EQ(2U, LoggerTests::snapshot_rows_added);
+
+  FLAGS_logger_snapshot_event_type = true;
+  logSnapshotQuery(item);
+  EXPECT_EQ(4U, LoggerTests::snapshot_rows_added);
+  FLAGS_logger_snapshot_event_type = false;
 }
 
 class SecondTestLoggerPlugin : public LoggerPlugin {
@@ -336,9 +374,16 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
   logQueryLogItem(item);
   EXPECT_EQ(1U, LoggerTests::log_lines.size());
 
+  // The entire removed/added is one event when result events is false.
+  FLAGS_logger_event_type = false;
   item.results.removed.push_back({{"test_column", "test_new_value\n"}});
   logQueryLogItem(item);
-  ASSERT_EQ(3U, LoggerTests::log_lines.size());
+  EXPECT_EQ(2U, LoggerTests::log_lines.size());
+  FLAGS_logger_event_type = true;
+
+  // Now the two removed will be individual events.
+  logQueryLogItem(item);
+  EXPECT_EQ(4U, LoggerTests::log_lines.size());
 
   // Make sure the JSON output does not have a newline.
   std::string expected =
@@ -392,6 +437,7 @@ TEST_F(LoggerTests, test_recursion) {
   EXPECT_TRUE(rf.exists("logger", "recurse"));
   EXPECT_TRUE(rf.setActive("logger", "recurse").ok());
 
+  FLAGS_logtostderr = true;
   initStatusLogger("logger_test");
   initLogger("logger_test");
   LOG(WARNING) << "Log to the recursive logger";
@@ -426,5 +472,11 @@ TEST_F(LoggerTests, test_recursion) {
 
   EXPECT_EQ(0U, queuedStatuses());
   EXPECT_EQ(0U, queuedSenders());
+
+  // Make sure the test file does not create a filesystem log.
+  // This will happen if the logtostderr is not set.
+  EXPECT_FALSE(pathExists("logger_test.INFO"));
+
+  FLAGS_logtostderr = false;
 }
 }

@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -162,7 +162,8 @@ class Config : private boost::noncopyable {
    *
    * @param predicate is a function which accepts two parameters, the name of
    * the query and the ScheduledQuery struct of the queries data. predicate
-   * will be called on each currently scheduled query
+   * will be called on each currently scheduled query.
+   * @param blacklisted [optional] return blacklisted queries if true.
    *
    * @code{.cpp}
    *   std::map<std::string, ScheduledQuery> queries;
@@ -174,7 +175,8 @@ class Config : private boost::noncopyable {
    */
   void scheduledQueries(
       std::function<void(const std::string& name, const ScheduledQuery& query)>
-          predicate);
+          predicate,
+      bool blacklisted = false);
 
   /**
    * @brief Map a function across the set of configured files
@@ -352,6 +354,8 @@ class Config : private boost::noncopyable {
   friend class DecoratorsConfigParserPluginTests;
   friend class SchedulerTests;
   FRIEND_TEST(ConfigTests, test_config_refresh);
+  FRIEND_TEST(ConfigTests, test_get_scheduled_queries);
+  FRIEND_TEST(ConfigTests, test_nonblacklist_query);
   FRIEND_TEST(OptionsConfigParserPluginTests, test_get_option);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_add_view);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_swap_view);
@@ -518,7 +522,8 @@ class ConfigParserPlugin : public Plugin {
   /// Allow parsers to perform some setup before the configuration is loaded.
   Status setUp() override;
 
-  Status call(const PluginRequest&, PluginResponse&) override {
+  Status call(const PluginRequest& /*request*/,
+              PluginResponse& /*response*/) override {
     return Status(0);
   }
 
@@ -558,4 +563,4 @@ class ConfigParserPlugin : public Plugin {
  * @param json A mutable input/output string that will contain stripped JSON.
  */
 void stripConfigComments(std::string& json);
-}
+} // namespace osquery

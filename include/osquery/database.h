@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -117,9 +117,7 @@ class DatabasePlugin : public Plugin {
   virtual Status scan(const std::string& domain,
                       std::vector<std::string>& results,
                       const std::string& prefix,
-                      size_t max = 0) const {
-    return Status(0, "Not used");
-  }
+                      size_t max) const;
 
   /**
    * @brief Shutdown the database and release initialization resources.
@@ -129,7 +127,7 @@ class DatabasePlugin : public Plugin {
    * initialization and destruction and assume #setUp and #tearDown will
    * dictate the flow in most situations.
    */
-  virtual ~DatabasePlugin() {}
+  ~DatabasePlugin() override = default;
 
   /**
    * @brief Support the registry calling API for extensions.
@@ -249,4 +247,4 @@ void resetDatabase();
 
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
-}
+} // namespace osquery

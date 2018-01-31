@@ -1,23 +1,27 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/enroll.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/sql.h>
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
+
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -60,6 +64,10 @@ CLI_FLAG(bool,
  */
 CREATE_LAZY_REGISTRY(EnrollPlugin, "enroll");
 
+const std::set<std::string> kEnrollHostDetails{
+    "os_version", "osquery_info", "system_info", "platform_info",
+};
+
 Status clearNodeKey() {
   return deleteDatabaseValue(kPersistentSettings, "nodeKey");
 }
@@ -91,7 +99,7 @@ const std::string getEnrollSecret() {
   std::string enrollment_secret;
 
   if (FLAGS_enroll_secret_path != "") {
-    osquery::readFile(FLAGS_enroll_secret_path, enrollment_secret);
+    readFile(FLAGS_enroll_secret_path, enrollment_secret);
     boost::trim(enrollment_secret);
   } else {
     auto env_secret = getEnvVar(FLAGS_enroll_secret_env);
@@ -101,6 +109,20 @@ const std::string getEnrollSecret() {
   }
 
   return enrollment_secret;
+}
+
+void EnrollPlugin::genHostDetails(pt::ptree& host_details) {
+  // Select from each table describing host details.
+  for (const auto& table : kEnrollHostDetails) {
+    auto results = SQL::selectAllFrom(table);
+    if (!results.empty()) {
+      pt::ptree details;
+      for (const auto& detail : results[0]) {
+        details.put<std::string>(detail.first, detail.second);
+      }
+      host_details.put_child(table, details);
+    }
+  }
 }
 
 Status EnrollPlugin::call(const PluginRequest& request,

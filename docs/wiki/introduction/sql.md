@@ -44,7 +44,7 @@ CREATE TABLE process_open_sockets(pid INTEGER, fd BIGINT, socket BIGINT, family 
 CREATE TABLE processes(pid BIGINT, name TEXT, path TEXT, cmdline TEXT, state TEXT, cwd TEXT, root TEXT, uid BIGINT, gid BIGINT, euid BIGINT, egid BIGINT, suid BIGINT, sgid BIGINT, on_disk INTEGER, wired_size BIGINT, resident_size BIGINT, phys_footprint BIGINT, user_time BIGINT, system_time BIGINT, start_time BIGINT, parent BIGINT, pgroup BIGINT, nice INTEGER);
 ```
 
-This [complete schema](https://osquery.io/docs/tables/) for all supported platforms is available on the homepage. To see schema in your shell for tables foreign to your OS, like kernel modules on OSX, use the `--enable_foreign` [command line flag](../installation/cli-flags.md).
+This [complete schema](https://osquery.io/schema/) for all supported platforms is available on the homepage. To see schema in your shell for tables foreign to your OS, like kernel modules on OSX, use the `--enable_foreign` [command line flag](../installation/cli-flags.md).
 
 ### Your first query
 
@@ -127,7 +127,7 @@ We can expand upon this later using subqueries and more tables.
 
 ### Tables with arguments
 
-Several tables, `file` for example, represent concepts that require arguments. Consider `SELECT * FROM file`, you do not want this to trigger a complete walk of the mounted file systems. It is an ambiguous concept without some sort of argument or input parameter. These tables, and their columns, are flagged by a *dropper icon* in the [table documentation](https://osquery.io/docs/tables/) as requiring a column or as using a column to generate additional information.
+Several tables, `file` for example, represent concepts that require arguments. Consider `SELECT * FROM file`, you do not want this to trigger a complete walk of the mounted file systems. It is an ambiguous concept without some sort of argument or input parameter. These tables, and their columns, are flagged by a *dropper icon* in the [schema documentation](https://osquery.io/schema/) as requiring a column or as using a column to generate additional information.
 
 Let's exercise the `file` table:
 ```
@@ -154,7 +154,7 @@ osquery> SELECT count(1) FROM file WHERE path LIKE '/dev/%';
 count(1) = 568
 ```
 
-The documentation for [`file`](https://osquery.io/docs/tables/#file) says both `path` and `directory` can be used as input parameters. In *most* cases these columns and tables should "do the right thing" and respond to various operators. String data, like paths, are not easily compared so `=` or `<>` and `LIKE` are the only operators that make sense.
+The documentation for [`file`](https://osquery.io/schema/#file) says both `path` and `directory` can be used as input parameters. In *most* cases these columns and tables should "do the right thing" and respond to various operators. String data, like paths, are not easily compared so `=` or `<>` and `LIKE` are the only operators that make sense.
 
 Let's get semi-fancy:
 ```
@@ -167,7 +167,7 @@ inode = 304
  type = character
 ```
 
-Now let's introduce the [`hash`](https://osquery.io/docs/tables/#hash) table and hopefully show something useful, like the hash of the last file modified in `/etc`:
+Now let's introduce the [`hash`](https://osquery.io/schema/#hash) table and hopefully show something useful, like the hash of the last file modified in `/etc`:
 ```
 osquery> SELECT path, mtime, sha256
     ...>   FROM file

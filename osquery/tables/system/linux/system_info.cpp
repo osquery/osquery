@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <boost/algorithm/string.hpp>
@@ -23,8 +23,8 @@ namespace tables {
 
 QueryData genSystemInfo(QueryContext& context) {
   Row r;
-  r["hostname"] = osquery::getHostname();
-  r["computer_name"] = r["hostname"];
+  r["hostname"] = osquery::getFqdn();
+  r["computer_name"] = osquery::getHostname();
   r["local_hostname"] = r["hostname"];
 
   std::string uuid;

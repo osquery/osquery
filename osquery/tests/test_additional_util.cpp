@@ -1,15 +1,15 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <signal.h>
-#include <time.h>
+#include <csignal>
+#include <ctime>
 
 #include <thread>
 
@@ -19,6 +19,7 @@
 #include <osquery/sql.h>
 
 #include "osquery/core/json.h"
+#include "osquery/core/process.h"
 #include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
 
@@ -34,7 +35,7 @@ DECLARE_bool(disable_caching);
 
 void TLSServerRunner::start() {
   auto& self = instance();
-  if (self.server_ != 0) {
+  if (self.server_ != nullptr) {
     return;
   }
 
@@ -46,7 +47,7 @@ void TLSServerRunner::start() {
                            .make_preferred()
                            .string() +
                        " --tls " + self.port_;
-  self.server_ = PlatformProcess::launchPythonScript(python_server);
+  self.server_ = PlatformProcess::launchTestPythonScript(python_server);
   if (self.server_ == nullptr) {
     return;
   }
@@ -59,12 +60,13 @@ void TLSServerRunner::start() {
     FLAGS_disable_caching = true;
     auto results = SQL(query);
     FLAGS_disable_caching = caching;
-    if (results.rows().size() > 0) {
+    if (!results.rows().empty()) {
       self.server_.reset(
           new PlatformProcess(std::atoi(results.rows()[0].at("pid").c_str())));
       break;
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    sleepFor(100);
     delay += 100;
   }
 }
@@ -106,4 +108,4 @@ void TLSServerRunner::stop() {
     self.server_.reset();
   }
 }
-}
+} // namespace osquery

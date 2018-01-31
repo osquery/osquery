@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <gtest/gtest.h>
@@ -51,5 +51,16 @@ TEST_F(NetworkingTablesTests, test_listening_ports) {
   EXPECT_NE(pid, "-1");
   server.stop();
 }
+
+TEST_F(NetworkingTablesTests, test_address_details_join) {
+  // Expect that we can join interface addresses with details
+  auto query =
+      "select * from interface_details id, interface_addresses ia "
+      "on ia.interface = id.interface "
+      "where ia.address = '127.0.0.1';";
+
+  auto results = SQL(query);
+  EXPECT_GT(results.rows().size(), 0U);
 }
-}
+} // namespace tables
+} // namespace osquery

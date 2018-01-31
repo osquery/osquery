@@ -1,9 +1,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # Update-able metadata
 #
@@ -11,7 +12,7 @@
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
 $version = '5.7.1'
-$chocoVersion = '5.7.1'
+$chocoVersion = '5.7.1-r1'
 $packageName = "rocksdb"
 $projectSource = 'https://github.com/facebook/rocksdb/'
 $packageSourceUrl = 'https://github.com/facebook/rocksdb/'
@@ -102,7 +103,8 @@ Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" $platform
 $cmake = (Get-Command 'cmake').Source
 $cmakeArgs = @(
   "-G `"$cmakeBuildType`"",
-  '-DROCKSDB_LITE=1',
+  '-DPORTABLE=ON',
+  '-DROCKSDB_LITE=ON',
   '../'
 )
 Start-OsqueryProcess $cmake $cmakeArgs

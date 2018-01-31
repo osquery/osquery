@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <fstream>
@@ -31,13 +31,10 @@ const std::string kIOHIDXClassPath{"IOService:/IOResources/IOHDIXController/"};
 REGISTER(DiskArbitrationEventPublisher, "event_publisher", "diskarbitration");
 
 void DiskArbitrationEventPublisher::restart() {
-  if (run_loop_ == nullptr) {
-    return;
-  }
-
   stop();
 
   WriteLock lock(mutex_);
+  run_loop_ = CFRunLoopGetCurrent();
   session_ = DASessionCreate(kCFAllocatorDefault);
   DARegisterDiskAppearedCallback(
       session_,
@@ -54,33 +51,29 @@ void DiskArbitrationEventPublisher::restart() {
 }
 
 Status DiskArbitrationEventPublisher::run() {
-  if (run_loop_ == nullptr) {
-    run_loop_ = CFRunLoopGetCurrent();
-    restart();
-  }
-
+  restart();
   CFRunLoopRun();
   return Status(0, "OK");
 }
 
 void DiskArbitrationEventPublisher::stop() {
+  WriteLock lock(mutex_);
+
   if (run_loop_ == nullptr) {
     return;
   }
 
-  WriteLock lock(mutex_);
   if (session_ != nullptr) {
     DASessionUnscheduleFromRunLoop(session_, run_loop_, kCFRunLoopDefaultMode);
     CFRelease(session_);
     session_ = nullptr;
   }
-
   CFRunLoopStop(run_loop_);
+  run_loop_ = nullptr;
 }
 
 void DiskArbitrationEventPublisher::tearDown() {
   stop();
-  run_loop_ = nullptr;
 }
 
 void DiskArbitrationEventPublisher::DiskAppearedCallback(DADiskRef disk,

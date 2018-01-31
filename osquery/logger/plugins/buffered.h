@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -56,26 +56,32 @@ class BufferedLogForwarder : public InternalRunnable {
  protected:
   // These constructors are made available for subclasses to use, but
   // subclasses should expose appropriate constructors to their users.
-  explicit BufferedLogForwarder(const std::string& name)
-      : log_period_(kLogPeriod),
+  explicit BufferedLogForwarder(const std::string& service_name,
+                                const std::string& name)
+      : InternalRunnable(service_name),
+        log_period_(kLogPeriod),
         max_log_lines_(kMaxLogLines),
         index_name_(name) {}
 
   template <class Rep, class Period>
   explicit BufferedLogForwarder(
+      const std::string& service_name,
       const std::string& name,
       const std::chrono::duration<Rep, Period>& log_period)
-      : log_period_(
+      : InternalRunnable(service_name),
+        log_period_(
             std::chrono::duration_cast<std::chrono::seconds>(log_period)),
         max_log_lines_(kMaxLogLines),
         index_name_(name) {}
 
   template <class Rep, class Period>
   explicit BufferedLogForwarder(
+      const std::string& service_name,
       const std::string& name,
       const std::chrono::duration<Rep, Period>& log_period,
       size_t max_log_lines)
-      : log_period_(
+      : InternalRunnable(service_name),
+        log_period_(
             std::chrono::duration_cast<std::chrono::seconds>(log_period)),
         max_log_lines_(max_log_lines),
         index_name_(name) {}

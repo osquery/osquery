@@ -3,9 +3,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 from __future__ import absolute_import
 from __future__ import division
@@ -41,7 +42,8 @@ CANONICAL_PLATFORMS = {
     "yara": "YARA",
     "lldpd": "LLDPD",
     "sleuthkit": "The Sleuth Kit",
-    "macwin": "MacOS and Windows"
+    "macwin": "MacOS and Windows",
+    "linwin": "Linux and Windows"
 }
 
 TEMPLATE_API_DEFINITION = """
@@ -199,6 +201,9 @@ def gen_api(tables_path, profile={}):
             if spec_file == 'blacklist':
                 continue
             platform = os.path.basename(base)
+            # Exclude kernel tables
+            if platform in ['kernel']:
+                continue
             platform_name = CANONICAL_PLATFORMS[platform]
             name = spec_file.split(".table", 1)[0]
             if platform not in categories.keys():

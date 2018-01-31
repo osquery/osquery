@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SessionItems</key>
+	<dict>
+		<key>Controller</key>
+		<string>CustomListItems</string>
+		<key>CustomListItems</key>
+		<array>
+			<dict>
+				<key>Alias</key>
+				<data>
+				AAAAAADYAAMAAQAA1MnZcwAASCsAAAAAAAEIfQABCIAA
+				ANQ/KS0AAAAACSD//gAAAAAAAAAA/////wABABAAAQh9
+				AAEIawABCGoAAAA/AA4AIgAQAGkAVAB1AG4AZQBzAEgA
+				ZQBsAHAAZQByAC4AYQBwAHAADwAaAAwATQBhAGMAaQBu
+				AHQAbwBzAGgAIABIAEQAEgA3QXBwbGljYXRpb25zL2lU
+				dW5lcy5hcHAvQ29udGVudHMvTWFjT1MvaVR1bmVzSGVs
+				cGVyLmFwcAAAEwABLwD//wAA
+				</data>
+				<key>CustomItemProperties</key>
+				<dict>
+					<key>com.apple.LSSharedFileList.Binding</key>
+					<data>
+					ZG5pYgAAAAACAAAAAAAAAAAAAAAAAAAAAAAA
+					AEkAAAAAAAAAZmlsZTovL2xvY2FsaG9zdC9B
+					cHBsaWNhdGlvbnMvaVR1bmVzLmFwcC9Db250
+					ZW50cy9NYWNPUy9pVHVuZXNIZWxwZXIuYXBw
+					LxYAAAAAAAAAY29tLmFwcGxlLmlUdW5lc0hl
+					bHBlcnjkpwAAAAAAjkCQFAIAAABifXQZ
+					</data>
+					<key>com.apple.LSSharedFileList.ItemIsHidden</key>
+					<true/>
+				</dict>
+				<key>Flags</key>
+				<integer>1</integer>
+				<key>Name</key>
+				<string>iTunesHelper</string>
+			</dict>
+			<dict>
+				<key>Alias</key>
+				<data>
+				AAAAAAC+AAMAAAAA1MnZcwAASCsAAAAAAAZi5gHZbDMA
+				ANZq9vsAAAAACSD//gAAAAAAAAAA/////wABAAgABmLm
+				AAZhyAAOACgAEwB0AGgAaQBzAF8AZABvAGUAcwBfAG4A
+				bwB0AF8AZQB4AGkAcwB0AA8AGgAMAE0AYQBjAGkAbgB0
+				AG8AcwBoACAASABEABIAH3ByaXZhdGUvdG1wL3RoaXNf
+				ZG9lc19ub3RfZXhpc3QAABMAAS8A//8AAA==
+				</data>
+				<key>CustomItemProperties</key>
+				<dict>
+					<key>com.apple.LSSharedFileList.Binding</key>
+					<data>
+					ZG5pYgAAAAABAAAAAAAAAAAAAAAAAAAAAAAA
+					AAAAAAAAAAAAAAAAAAAAAAAAAAAA
+					</data>
+				</dict>
+				<key>Name</key>
+				<string>this_does_not_exist</string>
+			</dict>
+		</array>
+	</dict>
+</dict>
+</plist>

@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <sstream>
@@ -26,6 +26,7 @@ namespace osquery {
 class ResultsTests : public testing::Test {};
 
 TEST_F(ResultsTests, test_simple_diff) {
+  QueryDataSet os;
   QueryData o;
   QueryData n;
 
@@ -33,7 +34,7 @@ TEST_F(ResultsTests, test_simple_diff) {
   r1["foo"] = "bar";
   n.push_back(r1);
 
-  auto results = diff(o, n);
+  auto results = diff(os, n);
   EXPECT_EQ(results.added, n);
   EXPECT_EQ(results.removed, o);
 }

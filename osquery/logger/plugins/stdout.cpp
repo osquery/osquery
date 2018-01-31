@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <osquery/flags.h>
@@ -32,7 +32,7 @@ REGISTER(StdoutLoggerPlugin, "logger", "stdout");
 
 Status StdoutLoggerPlugin::logString(const std::string& s) {
   printf("%s\n", s.c_str());
-  return Status(0, "OK");
+  return Status();
 }
 
 Status StdoutLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
@@ -43,7 +43,7 @@ Status StdoutLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
 
     printf("%s\n", line.c_str());
   }
-  return Status(0, "OK");
+  return Status();
 }
 
 void StdoutLoggerPlugin::init(const std::string& name,
@@ -51,6 +51,7 @@ void StdoutLoggerPlugin::init(const std::string& name,
   // Stop the internal Glog facilities.
   FLAGS_alsologtostderr = false;
   FLAGS_logtostderr = false;
+  FLAGS_stderrthreshold = 5;
 
   // Now funnel the intermediate status logs provided to `init`.
   logStatus(log);

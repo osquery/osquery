@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Asio < AbstractOsqueryFormula
   desc "Cross-platform C++ Library for asynchronous programming"
   homepage "https://think-async.com/Asio"
+  license "BSL-1.0"
   url "https://github.com/chriskohlhoff/asio/archive/asio-1-10-8.tar.gz"
   sha256 "fc475c6b737ad92b944babdc3e5dcf5837b663f54ba64055dc3d8fc4a3061372"
   head "https://github.com/chriskohlhoff/asio.git"

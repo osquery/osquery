@@ -1,12 +1,13 @@
 ﻿#  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 param(
-  [string] $args = "",
+  [string] $startupArgs = "",
   [switch] $install = $false,
   [switch] $uninstall = $false,
   
@@ -14,10 +15,15 @@ param(
   [switch] $stop = $false,
   
   [switch] $help = $false,
-  [switch] $debug = $false
+  [switch] $debug = $false,
+
+  [switch] $installWelManifest = $false,
+  [switch] $uninstallWelManifest = $false,
+  [string] $welManifestPath = (Join-Path $PSScriptRoot "osquery.man")
 )
 
-$kServiceName = "osquery daemon service"
+$kServiceName = "osqueryd"
+$kServiceDescription = "osquery daemon service"
 $kServiceBinaryPath = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, '..', 'osquery', 'osqueryd', 'osqueryd.exe'))
 
 # Adapted from http://www.jonathanmedd.net/2014/01/testing-for-admin-privileges-in-powershell.html
@@ -34,13 +40,16 @@ function Do-Help {
   Write-Host ""
   Write-Host "  Only one of the following options can be used. Using multiple will result in "
   Write-Host "  options being ignored."
-  Write-Host "    -install          Install the osqueryd service"
-  Write-Host "    -args             Specifies additional arguments for the service (only used with -install)"
-  Write-Host "    -uninstall        Uninstall the osqueryd service"
-  Write-Host "    -start            Start the osqueryd service"
-  Write-Host "    -stop             Stop the osqueryd service"
+  Write-Host "    -install                  Install the osqueryd service"
+  Write-Host "    -startupArgs              Specifies additional arguments for the service (only used with -install)"
+  Write-Host "    -uninstall                Uninstall the osqueryd service"
+  Write-Host "    -start                    Start the osqueryd service"
+  Write-Host "    -stop                     Stop the osqueryd service"
+  Write-Host "    -installWelManifest       Installs the Windows Event Log manifest"
+  Write-Host "    -uninstallWelManifest     Uninstalls the Windows Event Log manifest"
+  Write-Host "    -welManifestPath <path>   The Windows Event Log manifest path"
   Write-Host ""
-  Write-Host "    -help              Shows this help screen"
+  Write-Host "    -help                     Shows this help screen"
   
   Exit 1
 }
@@ -58,7 +67,11 @@ function Do-Service {
       Write-Host "'$kServiceName' is already installed." -foregroundcolor Yellow
       Exit 1
     } else {
-      New-Service -BinaryPathName "$kServiceBinaryPath $args" -Name $kServiceName -DisplayName $kServiceName -StartupType Automatic
+      New-Service -BinaryPathName "$kServiceBinaryPath $startupArgs" `
+                  -Name $kServiceName `
+                  -DisplayName $kServiceName `
+                  -Description $kServiceDescription `
+                  -StartupType Automatic
       Write-Host "Installed '$kServiceName' system service." -foregroundcolor Cyan
       Exit 0
     }
@@ -95,7 +108,31 @@ function Do-Service {
     } else {
       Write-Host "'$kServiceName' is not an installed system service." -foregroundcolor Yellow
       Exit 1      
-    }  
+    }
+  } elseif ($installWelManifest) {
+    if (-not (Test-Path $welManifestPath)) {
+      Write-Host "[-] Failed to find the osquery Event Log manifest file! ($welManifestPath)" -ForegroundColor Red
+      Exit 1
+    }
+
+    wevtutil im $welManifestPath
+    if ($?) {
+      Write-Host "The Windows Event Log manifest has been successfully installed." -foregroundcolor Cyan
+    } else {
+      Write-Host "Failed to install the Windows Event Log manifest." -foregroundcolor Yellow
+    }
+  } elseif ($uninstallWelManifest) {
+    if (-not (Test-Path $welManifestPath)) {
+      Write-Host "[-] Failed to find the osquery Event Log manifest file! ($welManifestPath)" -ForegroundColor Red
+      Exit 1
+    }
+
+    wevtutil um $welManifestPath
+    if ($?) {
+      Write-Host "The Windows Event Log manifest has been successfully uninstalled." -foregroundcolor Cyan
+    } else {
+      Write-Host "Failed to uninstall the Windows Event Log manifest." -foregroundcolor Yellow
+    }
   } else {
     Write-Host "Invalid state: this should not exist!" -foregroundcolor Red
     Exit -1
@@ -119,7 +156,7 @@ function Main {
     Write-Host "             +exists = $osquerydExists" -foregroundcolor Cyan
     
     Exit 0
-  } elseif (($install.ToBool() + $uninstall.ToBool() + $start.ToBool() + $stop.ToBool()) -Eq 1) {
+  } elseif (($install.ToBool() + $uninstall.ToBool() + $start.ToBool() + $stop.ToBool() + $installWelManifest.ToBool() + $uninstallWelManifest.ToBool()) -Eq 1) {
     # The above is a dirty method of determining if only one of the following booleans are true.
     Do-Service
   } else {

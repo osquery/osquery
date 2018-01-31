@@ -3,15 +3,16 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Librpm < AbstractOsqueryFormula
   desc "The RPM Package Manager (RPM) development libraries"
   homepage "http://rpm.org/"
-  url "https://github.com/rpm-software-management/rpm/releases/download/rpm-4.13.0-release/rpm-4.13.0.tar.bz2"
-  sha256 "221166b61584721a8ca979d7d8576078a5dadaf09a44208f69cc1b353240ba1b"
-  version "4.13.0"
+  license "LGPL-3.0+"
+  url "http://ftp.rpm.org/releases/rpm-4.14.x/rpm-4.14.0.tar.bz2"
+  sha256 "06a0ad54600d3c42e42e02701697a8857dc4b639f6476edefffa714d9f496314"
   revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "b1085e25afacc142900cc48cea97f04648c94541c741dbd77965cda98795d399" => :x86_64_linux
+    sha256 "035096a03a14fd8059ffbe4d2174e1d09eccbe3c46696a7990859539105771d5" => :sierra
+    sha256 "f81690e32704f0107a33693709aadc5197faa9919b10c735e28e5e1aa94ce75b" => :x86_64_linux
   end
 
   depends_on "berkeley-db"
@@ -20,6 +21,7 @@ class Librpm < AbstractOsqueryFormula
 
   def install
     ENV.append "CFLAGS", "-I#{HOMEBREW_PREFIX}/include/beecrypt"
+    ENV.append "LDFLAGS", "-lz -liconv" if OS.mac?
 
     args = [
       "--disable-dependency-tracking",
@@ -35,8 +37,12 @@ class Librpm < AbstractOsqueryFormula
       "--disable-shared",
       "--disable-python",
       "--enable-static",
-      "--with-beecrypt",
+      "--enable-zstd=no",
+      "--with-crypto=beecrypt",
     ]
+
+    inreplace "Makefile.in", "rpm2cpio.$(OBJEXT)", "rpm2cpio.$(OBJEXT) lib/poptALL.$(OBJEXT) lib/poptQV.$(OBJEXT)" if OS.mac?
+    inreplace "Makefile.in", "rpmspec-rpmspec.$(OBJEXT)", "rpmspec-rpmspec.$(OBJEXT) lib/poptQV.$(OBJEXT)" if OS.mac?
 
     system "./configure", "--prefix=#{prefix}", *args
     system "make"

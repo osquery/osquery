@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <chrono>
@@ -26,6 +26,10 @@
 #include <unistd.h>
 #endif
 
+#ifndef WIN32
+#include <sys/resource.h>
+#endif
+
 #include <boost/filesystem.hpp>
 
 #include <osquery/config.h>
@@ -41,10 +45,6 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
-
-#if defined(__linux__) || defined(__FreeBSD__)
-#include <sys/resource.h>
-#endif
 
 #ifdef __linux__
 #include <sys/syscall.h>
@@ -82,18 +82,6 @@ enum {
 #define OPTIONS_SHELL "\nosquery shell-only CLI flags:\n\n"
 #define OPTIONS_CLI "osquery%s command line flags:\n\n"
 #define USAGE "Usage: %s [OPTION]... %s\n\n"
-#define CONFIG_ERROR                                                           \
-  "You are using default configurations for osqueryd for one or more of the "  \
-  "following\n"                                                                \
-  "flags: pidfile, db_path.\n\n"                                               \
-  "These options create files in " OSQUERY_HOME                                \
-  " but it looks like that path "                                              \
-  "has not\n"                                                                  \
-  "been created. Please consider explicitly defining those "                   \
-  "options as a different \n"                                                  \
-  "path. Additionally, review the \"using osqueryd\" wiki page:\n"             \
-  " - https://osquery.readthedocs.org/en/latest/introduction/using-osqueryd/"  \
-  "\n\n";
 
 namespace osquery {
 CLI_FLAG(uint64, alarm_timeout, 4, "Seconds to wait for a graceful shutdown");
@@ -183,14 +171,16 @@ DECLARE_string(flagfile);
 namespace osquery {
 
 DECLARE_string(config_plugin);
+DECLARE_string(logger_plugin);
+DECLARE_string(distributed_plugin);
 DECLARE_bool(config_check);
 DECLARE_bool(config_dump);
 DECLARE_bool(database_dump);
 DECLARE_string(database_path);
-DECLARE_string(distributed_plugin);
 DECLARE_bool(disable_distributed);
 DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
+DECLARE_bool(disable_logging);
 
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");
@@ -212,7 +202,7 @@ const std::string kBackupDefaultFlagfile{OSQUERY_HOME "/osquery.flags.default"};
 const size_t kDatabaseMaxRetryCount{25};
 const size_t kDatabaseRetryDelay{200};
 std::function<void()> Initializer::shutdown_{nullptr};
-Mutex Initializer::shutdown_mutex_;
+RecursiveMutex Initializer::shutdown_mutex_;
 
 static inline void printUsage(const std::string& binary, ToolType tool) {
   // Parse help options before gflags. Only display osquery-related options.
@@ -268,6 +258,18 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   // The 'main' thread is that which executes the initializer.
   kMainThreadId = std::this_thread::get_id();
+
+#ifndef WIN32
+  // Set the max number of open files.
+  struct rlimit nofiles;
+  if (getrlimit(RLIMIT_NOFILE, &nofiles) == 0) {
+    if (nofiles.rlim_cur < 1024 || nofiles.rlim_max < 1024) {
+      nofiles.rlim_cur = (nofiles.rlim_cur < 1024) ? 1024 : nofiles.rlim_cur;
+      nofiles.rlim_max = (nofiles.rlim_max < 1024) ? 1024 : nofiles.rlim_max;
+      setrlimit(RLIMIT_NOFILE, &nofiles);
+    }
+  }
+#endif
 
   // Handled boost filesystem locale problems fixes in 1.56.
   // See issue #1559 for the discussion and upstream boost patch.
@@ -336,20 +338,18 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // Initialize registries and plugins
   registryAndPluginInit();
 
-  if (isShell()) {
+  if (isShell() || FLAGS_ephemeral) {
     if (Flag::isDefault("database_path") &&
         Flag::isDefault("disable_database")) {
       // The shell should not use a database by default, but should use the DB
       // specified by database_path if it is set
       FLAGS_disable_database = true;
     }
+  }
+
+  if (isShell()) {
     // Initialize the shell after setting modified defaults and parsing flags.
     initShell();
-  } else {
-    // The daemon will only output ERROR logs to stderr.
-    if (Flag::isDefault("stderrthreshold")) {
-      Flag::updateValue("stderrthreshold", "2");
-    }
   }
 
   std::signal(SIGABRT, signalHandler);
@@ -415,11 +415,6 @@ void Initializer::initDaemon() const {
   systemLog(binary_ + " started [version=" + kVersion + "]");
 
   if (!FLAGS_ephemeral) {
-    if ((Flag::isDefault("pidfile") || Flag::isDefault("database_path")) &&
-        !isDirectory(OSQUERY_HOME)) {
-      std::cerr << CONFIG_ERROR;
-    }
-
     // Create a process mutex around the daemon.
     auto pid_status = createPidFile();
     if (!pid_status.ok()) {
@@ -457,6 +452,11 @@ void Initializer::initShell() const {
         stderr, "Cannot access or create osquery home: %s", homedir.c_str());
     FLAGS_disable_extensions = true;
     FLAGS_disable_database = true;
+  }
+
+  if (Flag::isDefault("hash_delay")) {
+    // The hash_delay is designed for daemons only.
+    Flag::updateValue("hash_delay", "0");
   }
 }
 
@@ -506,21 +506,11 @@ void Initializer::initWatcher() const {
 
 void Initializer::initWorker(const std::string& name) const {
   // Clear worker's arguments.
-  size_t name_size = strlen((*argv_)[0]);
   auto original_name = std::string((*argv_)[0]);
-  for (int i = 0; i < *argc_; i++) {
+  for (int i = 1; i < *argc_; i++) {
     if ((*argv_)[i] != nullptr) {
       memset((*argv_)[i], '\0', strlen((*argv_)[i]));
     }
-  }
-
-  // Set the worker's process name.
-  if (name.size() < name_size) {
-    std::copy(name.begin(), name.end(), (*argv_)[0]);
-    (*argv_)[0][name.size()] = '\0';
-  } else {
-    std::copy(original_name.begin(), original_name.end(), (*argv_)[0]);
-    (*argv_)[0][original_name.size()] = '\0';
   }
 
   // Start a 'watcher watcher' thread to exit the process if the watcher exits.
@@ -571,7 +561,7 @@ void Initializer::initActivePlugin(const std::string& type,
 }
 
 void Initializer::installShutdown(std::function<void()>& handler) {
-  WriteLock lock(shutdown_mutex_);
+  RecursiveLock lock(shutdown_mutex_);
   shutdown_ = std::move(handler);
 }
 
@@ -674,7 +664,7 @@ void Initializer::start() const {
 
 void Initializer::waitForShutdown() {
   {
-    WriteLock lock(shutdown_mutex_);
+    RecursiveLock lock(shutdown_mutex_);
     if (shutdown_ != nullptr) {
       // Copy the callable, then remove it, prevent callable recursion.
       auto shutdown = shutdown_;

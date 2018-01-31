@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <string>
@@ -15,6 +15,7 @@
 #include <shellapi.h>
 
 #include <osquery/core.h>
+#include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
@@ -54,7 +55,21 @@ void DebugPrintf(const std::string& s) {
 HANDLE getStopEvent() {
   auto stopEvent = ::OpenEventA(
       SYNCHRONIZE | EVENT_MODIFY_STATE, FALSE, osquery::kStopEventName.c_str());
+
   if (stopEvent == nullptr) {
+    return stopEvent;
+  }
+
+  auto ret = WaitForSingleObject(stopEvent, 0);
+
+  // The object has already been signaled
+  if (ret == WAIT_OBJECT_0) {
+    return nullptr;
+  }
+
+  // ERROR_FILE_NOT_FOUND indicates the event was never created.
+  // Likely the process running as the daemon at the command line.
+  if (stopEvent == nullptr && GetLastError() != ERROR_FILE_NOT_FOUND) {
     SLOG("OpenEventA failed for event name " + osquery::kStopEventName +
          " (lasterror=" + std::to_string(GetLastError()) + ")");
   }
@@ -77,15 +92,23 @@ static void UpdateServiceStatus(DWORD controls,
 }
 
 static auto kShutdownCallable = ([]() {
+  // To prevent invalid access to the stop event, we return if running as shell
+  if (Initializer::isShell()) {
+    return;
+  }
   // The event only gets initialized in the entry point of the service. Child
   // processes and those run from the commandline will not have a stop event.
   auto stopEvent = osquery::getStopEvent();
-  if (stopEvent != nullptr && !Initializer::isWorker()) {
+  if (stopEvent != nullptr) {
+    // Wait forever, until the service handler signals us
     ::WaitForSingleObject(stopEvent, INFINITE);
-
-    UpdateServiceStatus(0, SERVICE_STOPPED, 0, 3);
-    Initializer::requestShutdown();
-    ::CloseHandle(stopEvent);
+    // Interup the worker service threads before joining
+    Dispatcher::stopServices();
+    auto ret = ::CloseHandle(stopEvent);
+    if (ret != TRUE) {
+      SLOG("kShutdownCallable failed to call CloseHandle with (" +
+           std::to_string(GetLastError()) + ")");
+    }
   }
 });
 
@@ -283,7 +306,7 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
       break;
     }
 
-    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 4);
+    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3);
     {
       auto stopEvent = osquery::getStopEvent();
       if (stopEvent != nullptr) {
@@ -295,6 +318,7 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
         CloseHandle(stopEvent);
       }
     }
+    UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
 
     break;
   default:
@@ -336,7 +360,7 @@ void WINAPI ServiceMain(DWORD argc, LPSTR* argv) {
          std::to_string(GetLastError()) + ")");
   }
 
-  UpdateServiceStatus(0, SERVICE_STOPPED, 0, 3);
+  UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
 }
 } // namespace osquery
 

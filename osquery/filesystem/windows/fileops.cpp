@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <AclAPI.h>
@@ -256,13 +256,13 @@ static DWORD getNewAclSize(PACL dacl,
     }
 
     if (entry->AceType == ACCESS_ALLOWED_ACE_TYPE &&
-        ::EqualSid(sid, &((ACCESS_ALLOWED_ACE*)entry)->SidStart)) {
+        EqualSid(sid, &((ACCESS_ALLOWED_ACE*)entry)->SidStart)) {
       acl_size -=
           sizeof(ACCESS_ALLOWED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
     }
 
     if (entry->AceType == ACCESS_DENIED_ACE_TYPE &&
-        ::EqualSid(sid, &((ACCESS_DENIED_ACE*)entry)->SidStart)) {
+        EqualSid(sid, &((ACCESS_DENIED_ACE*)entry)->SidStart)) {
       acl_size -=
           sizeof(ACCESS_DENIED_ACE) + ::GetLengthSid(sid) - sizeof(DWORD);
     }
@@ -289,17 +289,17 @@ static Status checkAccessWithSD(PSECURITY_DESCRIPTOR sd, mode_t mode) {
     access_rights |= GENERIC_EXECUTE;
   }
 
-  status = ::OpenProcessToken(
-      ::GetCurrentProcess(),
+  status = OpenProcessToken(
+      GetCurrentProcess(),
       TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_DUPLICATE | STANDARD_RIGHTS_READ,
       &process_token);
   if (!status) {
     return Status(-1, "OpenProcessToken failed");
   }
 
-  status = ::DuplicateToken(
-      process_token, SecurityImpersonation, &impersonate_token);
-  ::CloseHandle(process_token);
+  status =
+      DuplicateToken(process_token, SecurityImpersonation, &impersonate_token);
+  CloseHandle(process_token);
 
   if (!status) {
     return Status(-1, "DuplicateToken failed");
@@ -320,24 +320,24 @@ static Status checkAccessWithSD(PSECURITY_DESCRIPTOR sd, mode_t mode) {
   mapping.GenericExecute = FILE_GENERIC_EXECUTE;
   mapping.GenericAll = FILE_ALL_ACCESS;
 
-  ::MapGenericMask(&access_rights, &mapping);
+  MapGenericMask(&access_rights, &mapping);
 
-  status = ::AccessCheck(sd,
-                         impersonate_token,
-                         access_rights,
-                         &mapping,
-                         &privileges,
-                         &privileges_length,
-                         &granted_access,
-                         &access_status);
-  ::CloseHandle(impersonate_token);
+  status = AccessCheck(sd,
+                       impersonate_token,
+                       access_rights,
+                       &mapping,
+                       &privileges,
+                       &privileges_length,
+                       &granted_access,
+                       &access_status);
+  CloseHandle(impersonate_token);
 
   if (!status) {
     return Status(-1, "AccessCheck failed");
   }
 
   if (access_status) {
-    return Status(0, "OK");
+    return Status();
   }
 
   return Status(1, "Bad mode for file");
@@ -350,20 +350,20 @@ static Status hasAccess(const fs::path& path, mode_t mode) {
                                        GROUP_SECURITY_INFORMATION |
                                        DACL_SECURITY_INFORMATION;
 
-  result = ::GetNamedSecurityInfoW(path.wstring().c_str(),
-                                   SE_FILE_OBJECT,
-                                   security_info,
-                                   nullptr,
-                                   nullptr,
-                                   nullptr,
-                                   nullptr,
-                                   &sd);
+  result = GetNamedSecurityInfoW(path.wstring().c_str(),
+                                 SE_FILE_OBJECT,
+                                 security_info,
+                                 nullptr,
+                                 nullptr,
+                                 nullptr,
+                                 nullptr,
+                                 &sd);
   if (result != ERROR_SUCCESS) {
     return Status(-1, "GetNamedSecurityInfo failed: " + std::to_string(result));
   }
 
   auto status = checkAccessWithSD(sd, mode);
-  ::LocalFree(sd);
+  LocalFree(sd);
 
   return status;
 }
@@ -375,18 +375,14 @@ static Status hasAccess(HANDLE handle, mode_t mode) {
                                        GROUP_SECURITY_INFORMATION |
                                        DACL_SECURITY_INFORMATION;
 
-  status =
-      ::GetUserObjectSecurity(handle, &security_info, nullptr, 0, &sd_size);
-  if (status || (!status && ::GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
+  status = GetUserObjectSecurity(handle, &security_info, nullptr, 0, &sd_size);
+  if (status || (!status && GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
     return Status(-1, "GetUserObjectSecurity get SD size error");
   }
 
-  std::vector<char> sd_buffer;
-  sd_buffer.assign(sd_size, '\0');
-
+  std::vector<char> sd_buffer(sd_size, '\0');
   PSECURITY_DESCRIPTOR sd = (PSECURITY_DESCRIPTOR)sd_buffer.data();
-  status =
-      ::GetUserObjectSecurity(handle, &security_info, sd, sd_size, &sd_size);
+  status = GetUserObjectSecurity(handle, &security_info, sd, sd_size, &sd_size);
   if (!status) {
     return Status(-1, "GetUserObjectSecurity failed");
   }
@@ -400,8 +396,8 @@ static AclObject modifyAcl(PACL acl,
                            bool allow_write,
                            bool allow_exec,
                            bool target_is_owner = false) {
-  if (acl == nullptr || !::IsValidAcl(acl) || target == nullptr ||
-      !::IsValidSid(target)) {
+  if (acl == nullptr || !IsValidAcl(acl) || target == nullptr ||
+      !IsValidSid(target)) {
     return std::move(AclObject());
   }
 
@@ -410,21 +406,20 @@ static AclObject modifyAcl(PACL acl,
    * To mimic this behavior on Windows, we give READ_CONTROL permissions to
    * everyone. READ_CONTROL allows for an user to read the target file's DACL.
    */
-  DWORD allow_mask = READ_CONTROL;
-  DWORD deny_mask = 0;
+  unsigned long allow_mask = READ_CONTROL;
+  unsigned long deny_mask = 0;
 
   ACL_SIZE_INFORMATION info = {0};
   info.AclBytesInUse = sizeof(ACL);
 
-  if (!::GetAclInformation(acl, &info, sizeof(info), AclSizeInformation)) {
+  if (!GetAclInformation(acl, &info, sizeof(info), AclSizeInformation)) {
     return std::move(AclObject());
   }
 
   if (target_is_owner) {
     /*
      * Owners should always have the ability to delete the target file and
-     * modify the target file's DACL--at least this appears to be the case for
-     * POSIX.
+     * modify the target file's DACL
      */
     allow_mask |= DELETE | WRITE_DAC;
   }
@@ -472,7 +467,7 @@ static AclObject modifyAcl(PACL acl,
     deny_mask |= FILE_READ_ATTRIBUTES;
   }
 
-  DWORD new_acl_size = 0;
+  unsigned long new_acl_size = 0;
   if (allow_read && allow_write && allow_exec) {
     new_acl_size = getNewAclSize(acl, target, info, true, false);
   } else {
@@ -482,7 +477,7 @@ static AclObject modifyAcl(PACL acl,
   AclObject new_acl_buffer(new unsigned char[new_acl_size]);
   PACL new_acl = reinterpret_cast<PACL>(new_acl_buffer.get());
 
-  if (!::InitializeAcl(new_acl, new_acl_size, ACL_REVISION)) {
+  if (!InitializeAcl(new_acl, new_acl_size, ACL_REVISION)) {
     return std::move(AclObject());
   }
 
@@ -501,47 +496,49 @@ static AclObject modifyAcl(PACL acl,
    * that deal with viewing or modifying the ACL (such as File Explorer).
    */
 
-  DWORD i = 0;
-  PACE_HEADER entry = nullptr;
+  unsigned long i = 0;
+  LPVOID void_ent = nullptr;
   for (i = 0; i < info.AceCount; i++) {
-    if (!::GetAce(acl, i, (LPVOID*)&entry)) {
+    if (!GetAce(acl, i, &void_ent)) {
       return std::move(AclObject());
     }
 
+    auto entry = static_cast<PACE_HEADER>(void_ent);
     if ((entry->AceFlags & INHERITED_ACE) == INHERITED_ACE) {
       break;
     }
 
+    auto allowed_ace = reinterpret_cast<ACCESS_ALLOWED_ACE*>(entry);
+    auto denied_ace = reinterpret_cast<ACCESS_DENIED_ACE*>(entry);
     if ((entry->AceType == ACCESS_ALLOWED_ACE_TYPE &&
-         ::EqualSid(target, &((ACCESS_ALLOWED_ACE*)entry)->SidStart)) ||
+         EqualSid(target, &allowed_ace->SidStart)) ||
         (entry->AceType == ACCESS_DENIED_ACE_TYPE &&
-         ::EqualSid(target, &((ACCESS_DENIED_ACE*)entry)->SidStart))) {
+         EqualSid(target, &denied_ace->SidStart))) {
       continue;
     }
 
-    if (!::AddAce(
-            new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
+    if (!AddAce(new_acl, ACL_REVISION, MAXDWORD, entry, entry->AceSize)) {
       return std::move(AclObject());
     }
   }
 
   if (deny_mask != 0 &&
-      !::AddAccessDeniedAce(new_acl, ACL_REVISION, deny_mask, target)) {
+      !AddAccessDeniedAce(new_acl, ACL_REVISION, deny_mask, target)) {
     return std::move(AclObject());
   }
 
   if (allow_mask != 0 &&
-      !::AddAccessAllowedAce(new_acl, ACL_REVISION, allow_mask, target)) {
+      !AddAccessAllowedAce(new_acl, ACL_REVISION, allow_mask, target)) {
     return std::move(AclObject());
   }
 
   for (; i < info.AceCount; i++) {
-    if (!::GetAce(acl, i, (LPVOID*)&entry)) {
+    if (!GetAce(acl, i, &void_ent)) {
       return std::move(AclObject());
     }
 
-    if (!::AddAce(
-            new_acl, ACL_REVISION, MAXDWORD, (LPVOID)entry, entry->AceSize)) {
+    auto entry = static_cast<PACE_HEADER>(void_ent);
+    if (!AddAce(new_acl, ACL_REVISION, MAXDWORD, void_ent, entry->AceSize)) {
       return std::move(AclObject());
     }
   }
@@ -549,11 +546,11 @@ static AclObject modifyAcl(PACL acl,
   return std::move(new_acl_buffer);
 }
 
-PlatformFile::PlatformFile(const std::string& path, int mode, int perms)
+PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     : fname_(path) {
-  DWORD access_mask = 0;
-  DWORD flags_and_attrs = 0;
-  DWORD creation_disposition = 0;
+  unsigned long access_mask = 0;
+  unsigned long flags_and_attrs = 0;
+  unsigned long creation_disposition = 0;
   std::unique_ptr<SECURITY_ATTRIBUTES> security_attrs;
 
   if ((mode & PF_READ) == PF_READ) {
@@ -593,7 +590,7 @@ PlatformFile::PlatformFile(const std::string& path, int mode, int perms)
     // TODO(#2001): set up a security descriptor based off the perms
   }
 
-  handle_ = ::CreateFileA(path.c_str(),
+  handle_ = ::CreateFileA(fname_.string().c_str(),
                           access_mask,
                           FILE_SHARE_READ,
                           security_attrs.get(),
@@ -613,54 +610,53 @@ PlatformFile::~PlatformFile() {
   if (handle_ != kInvalidHandle && handle_ != nullptr) {
     // Only cancel IO if we are a non-blocking HANDLE
     if (is_nonblock_) {
-      ::CancelIo(handle_);
+      CancelIo(handle_);
     }
 
-    ::CloseHandle(handle_);
+    CloseHandle(handle_);
     handle_ = kInvalidHandle;
   }
 }
 
 bool PlatformFile::isSpecialFile() const {
-  return (::GetFileType(handle_) != FILE_TYPE_DISK);
+  return (GetFileType(handle_) != FILE_TYPE_DISK);
 }
 
 static Status isUserCurrentUser(PSID user) {
-  BOOL ret = FALSE;
-  HANDLE token = INVALID_HANDLE_VALUE;
-
-  if (!::IsValidSid(user)) {
+  if (!IsValidSid(user)) {
     return Status(-1, "Invalid SID");
   }
 
-  if (!::OpenProcessToken(::GetCurrentProcess(), TOKEN_READ, &token)) {
+  HANDLE token = INVALID_HANDLE_VALUE;
+  if (!OpenProcessToken(GetCurrentProcess(), TOKEN_READ, &token)) {
     return Status(-1, "OpenProcessToken failed");
   }
 
-  DWORD size = 0;
-  PTOKEN_USER ptu = nullptr;
+  unsigned long size = 0;
+  auto ret = GetTokenInformation(token, TokenUser, nullptr, 0, &size);
+  if (ret || (!ret && GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
+    CloseHandle(token);
 
-  ret = ::GetTokenInformation(token, TokenUser, (LPVOID)ptu, 0, &size);
-  if (ret || (!ret && ::GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
-    ::CloseHandle(token);
-
-    return Status(-1, "GetTokenInformation failed (1)");
+    return Status(
+        -1,
+        "GetTokenInformation failed (" + std::to_string(GetLastError()) + ")");
   }
 
-  std::vector<char> buffer(size);
-  ptu = (PTOKEN_USER)buffer.data();
-
   /// Obtain the user SID behind the token handle
-  ret = ::GetTokenInformation(token, TokenUser, (LPVOID)ptu, size, &size);
-  ::CloseHandle(token);
+  std::vector<char> tuBuff(size, '\0');
+  ret = GetTokenInformation(token, TokenUser, tuBuff.data(), size, &size);
+  CloseHandle(token);
 
   if (!ret) {
-    return Status(-1, "GetTokenInformation failed (2)");
+    return Status(
+        -1,
+        "GetTokenInformation failed (" + std::to_string(GetLastError()) + ")");
   }
 
   /// Determine if the current user SID matches that of the specified user
-  if (::EqualSid(user, ptu->User.Sid)) {
-    return Status(0, "OK");
+  PTOKEN_USER ptu = reinterpret_cast<PTOKEN_USER>(tuBuff.data());
+  if (EqualSid(user, ptu->User.Sid)) {
+    return Status();
   }
 
   return Status(1, "User not current user");
@@ -668,64 +664,65 @@ static Status isUserCurrentUser(PSID user) {
 
 Status PlatformFile::isOwnerRoot() const {
   if (!isValid()) {
-    return Status(-1, "Invalid handle_");
+    return Status(-1, "Invalid file handle value");
   }
 
   PSID owner = nullptr;
   PSECURITY_DESCRIPTOR sd = nullptr;
-
-  if (::GetSecurityInfo(handle_,
-                        SE_FILE_OBJECT,
-                        OWNER_SECURITY_INFORMATION,
-                        &owner,
-                        nullptr,
-                        nullptr,
-                        nullptr,
-                        &sd) != ERROR_SUCCESS) {
-    return Status(-1, "GetSecurityInfo failed");
+  if (GetSecurityInfo(handle_,
+                      SE_FILE_OBJECT,
+                      OWNER_SECURITY_INFORMATION,
+                      &owner,
+                      nullptr,
+                      nullptr,
+                      nullptr,
+                      &sd) != ERROR_SUCCESS) {
+    return Status(1, "GetSecurityInfo failed");
   }
 
   SecurityDescriptor sd_wrapper(sd);
+  DWORD sid_buff_size = SECURITY_MAX_SID_SIZE;
 
-  DWORD admins_buf_size = SECURITY_MAX_SID_SIZE;
-  std::vector<char> admins_buf;
-  admins_buf.assign(admins_buf_size, '\0');
-
-  PSID admins_sid = (PSID)admins_buf.data();
-
-  if (!::CreateWellKnownSid(
-          WinBuiltinAdministratorsSid, nullptr, admins_sid, &admins_buf_size)) {
+  std::vector<char> admins_buf(sid_buff_size, '\0');
+  auto admins_sid = static_cast<PSID>(admins_buf.data());
+  if (!CreateWellKnownSid(
+          WinBuiltinAdministratorsSid, nullptr, admins_sid, &sid_buff_size)) {
     return Status(-1, "CreateWellKnownSid failed");
   }
 
-  if (::EqualSid(owner, admins_sid)) {
-    return Status(0, "OK");
+  std::vector<char> system_buf(sid_buff_size, '\0');
+  auto system_sid = static_cast<PSID>(system_buf.data());
+  if (!CreateWellKnownSid(
+          WinLocalSystemSid, nullptr, system_sid, &sid_buff_size)) {
+    return Status(-1, "CreateWellKnownSid failed");
   }
 
-  return Status(1, "Owner is not Administrators group");
+  if (EqualSid(owner, admins_sid) || EqualSid(owner, system_sid)) {
+    return Status();
+  }
+
+  return Status(1, "Owner is not in Administrators group or Local System");
 }
 
 Status PlatformFile::isOwnerCurrentUser() const {
   if (!isValid()) {
-    return Status(-1, "Invalid handle_");
+    return Status(-1, "Invalid file handle value");
   }
 
   PSID owner = nullptr;
   PSECURITY_DESCRIPTOR sd = nullptr;
-
-  if (::GetSecurityInfo(handle_,
-                        SE_FILE_OBJECT,
-                        OWNER_SECURITY_INFORMATION,
-                        &owner,
-                        nullptr,
-                        nullptr,
-                        nullptr,
-                        &sd) != ERROR_SUCCESS) {
+  if (GetSecurityInfo(handle_,
+                      SE_FILE_OBJECT,
+                      OWNER_SECURITY_INFORMATION,
+                      &owner,
+                      nullptr,
+                      nullptr,
+                      nullptr,
+                      &sd) != ERROR_SUCCESS) {
     return Status(-1, "GetSecurityInfo failed");
   }
 
   SecurityDescriptor sd_wrapper(sd);
-
   return isUserCurrentUser(owner);
 }
 
@@ -733,105 +730,157 @@ Status PlatformFile::isExecutable() const {
   return hasAccess(handle_, X_OK);
 }
 
-static Status isWriteDenied(PACL acl) {
+/*
+ * We ensure that only the Administrators group and the SYSTEM
+ * account itself have Write privileges on the specified ACL
+ */
+static Status lowPrivWriteDenied(PACL acl) {
   if (acl == nullptr) {
-    return Status(-1, "Invalid ACL pointer");
+    return Status(1, "Invalid ACL pointer");
   }
 
-  DWORD sid_buffer_size = SECURITY_MAX_SID_SIZE;
+  unsigned long sid_buff_size = SECURITY_MAX_SID_SIZE;
 
-  std::vector<char> sid_buffer;
-  sid_buffer.assign(sid_buffer_size, '\0');
+  std::vector<char> system_buffer(sid_buff_size, '\0');
+  std::vector<char> administrators_buffer(sid_buff_size, '\0');
+  std::vector<char> world_buffer(sid_buff_size, '\0');
 
-  PSID world = (PSID)sid_buffer.data();
+  auto system_sid = static_cast<PSID>(system_buffer.data());
+  auto admins_sid = static_cast<PSID>(administrators_buffer.data());
+  auto world_sid = static_cast<PSID>(world_buffer.data());
 
-  if (!::CreateWellKnownSid(WinWorldSid, nullptr, world, &sid_buffer_size)) {
-    return Status(-1, "CreateWellKnownSid failed");
+  if (!CreateWellKnownSid(
+          WinBuiltinAdministratorsSid, nullptr, system_sid, &sid_buff_size)) {
+    return Status(-1, "CreateWellKnownSid for Administrators failed");
+  }
+  if (!CreateWellKnownSid(
+          WinLocalSystemSid, nullptr, admins_sid, &sid_buff_size)) {
+    return Status(-1, "CreateWellKnownSid for SYSTEM failed");
+  }
+  if (!CreateWellKnownSid(WinWorldSid, nullptr, world_sid, &sid_buff_size)) {
+    return Status(-1, "CreateWellKnownSid for Everyone failed");
   }
 
-  PACE_HEADER entry = nullptr;
-  for (DWORD i = 0; i < acl->AceCount; i++) {
-    if (!::GetAce(acl, i, (LPVOID*)&entry)) {
-      return Status(-1, "GetAce failed");
+  PVOID void_ent = nullptr;
+  std::set<PSID> denyWriteSids;
+  for (unsigned long i = 0; i < acl->AceCount; i++) {
+    if (!GetAce(acl, i, &void_ent)) {
+      return Status(-1,
+                    "Failed to retreive ACE when checking safe permissions");
+    }
+    auto entry = static_cast<PACE_HEADER>(void_ent);
+
+    // If the ACE is a Deny-Write it supercedes subsequent allows, save
+    // for the future potential allow entry
+    if (entry->AceType == ACCESS_DENIED_ACE_TYPE) {
+      auto denied_ace = reinterpret_cast<PACCESS_DENIED_ACE>(entry);
+
+      // We only care about Deny-Write entries, everything else is at the
+      // users discretion
+      if ((denied_ace->Mask & CHMOD_WRITE) != CHMOD_WRITE) {
+        continue;
+      }
+
+      // A Deny-Write on Everyone supersedes other allow writes
+      if (EqualSid(&denied_ace->SidStart, world_sid)) {
+        return Status();
+      }
+
+      // Stash the Deny-Write ACE to check against future user Allow ACEs
+      denyWriteSids.insert(&denied_ace->SidStart);
+      continue;
     }
 
-    /*
-     * Check to see if the deny ACE is for Everyone while making sure that there
-     * must be no allow ACE that allow for writes before the denies
-     */
-    if (entry->AceType == ACCESS_DENIED_ACE_TYPE) {
-      PACCESS_DENIED_ACE denied_ace = (PACCESS_DENIED_ACE)entry;
+    if (entry->AceType == ACCESS_ALLOWED_ACE_TYPE) {
+      auto allowed_ace = reinterpret_cast<PACCESS_ALLOWED_ACE>(entry);
 
-      if (::EqualSid(&denied_ace->SidStart, world) &&
-          (denied_ace->Mask & CHMOD_WRITE) == CHMOD_WRITE) {
-        return Status(0, "OK");
+      // Administrators and SYSTEM are allowed Full access
+      if (EqualSid(&allowed_ace->SidStart, system_sid) ||
+          EqualSid(&allowed_ace->SidStart, admins_sid)) {
+        continue;
       }
-    } else if (entry->AceType == ACCESS_ALLOWED_ACE_TYPE) {
-      // This covers the case where the DACL has been modified by platformChmod
-      PACCESS_ALLOWED_ACE allowed_ace = (PACCESS_ALLOWED_ACE)entry;
+
+      /*
+       * Deny-Write ACEs supersede Allow-Write ACEs, however this is
+       * only the case if the Deny ACE appears _before_ the allow. As
+       * such the location of the below equality check is important, and
+       * the check for an allow should only come after the check for a deny
+       * has been processed.
+       */
+      auto hasDeny = false;
+      for (const auto& p : denyWriteSids) {
+        if (EqualSid(&allowed_ace->SidStart, p)) {
+          hasDeny = true;
+          break;
+        }
+      }
+      if (hasDeny) {
+        continue;
+      }
 
       // Check to see if ANY of CHMOD_WRITE rights are set
       if ((allowed_ace->Mask & CHMOD_WRITE) != 0) {
-        // Fail, since we discovered an access allowed ACE that enables write
-        break;
+        return Status(-1, "Write ACE was found on ACL");
       }
     }
   }
-
-  return Status(1, "No deny ACE for write");
+  return Status();
 }
 
 Status PlatformFile::hasSafePermissions() const {
+  // Get the access control list for the file specified
   PACL file_dacl = nullptr;
   PSECURITY_DESCRIPTOR file_sd = nullptr;
-
-  if (::GetSecurityInfo(handle_,
-                        SE_FILE_OBJECT,
-                        DACL_SECURITY_INFORMATION,
-                        nullptr,
-                        nullptr,
-                        &file_dacl,
-                        nullptr,
-                        &file_sd) != ERROR_SUCCESS) {
+  if (GetSecurityInfo(handle_,
+                      SE_FILE_OBJECT,
+                      DACL_SECURITY_INFORMATION,
+                      nullptr,
+                      nullptr,
+                      &file_dacl,
+                      nullptr,
+                      &file_sd) != ERROR_SUCCESS) {
     return Status(-1, "GetSecurityInfo failed");
   }
-
   SecurityDescriptor file_sd_wrapper(file_sd);
 
-  std::vector<char> path_buf;
-  path_buf.assign(MAX_PATH + 1, '\0');
-
-  // Derive the parent directory and insure it also has safe permissions
-  if (::GetFinalPathNameByHandleA(
+  // Get the access control list for the parent directory
+  std::vector<char> path_buf(MAX_PATH + 1, '\0');
+  if (GetFinalPathNameByHandleA(
           handle_, path_buf.data(), MAX_PATH, FILE_NAME_NORMALIZED) == 0) {
     return Status(-1, "GetFinalPathNameByHandleA failed");
   }
 
-  if (!::PathRemoveFileSpecA(path_buf.data())) {
+  if (!PathRemoveFileSpecA(path_buf.data())) {
     return Status(-1, "PathRemoveFileSpec");
   }
 
   PACL dir_dacl = nullptr;
   PSECURITY_DESCRIPTOR dir_sd = nullptr;
-
-  if (::GetNamedSecurityInfoA(path_buf.data(),
-                              SE_FILE_OBJECT,
-                              DACL_SECURITY_INFORMATION,
-                              nullptr,
-                              nullptr,
-                              &dir_dacl,
-                              nullptr,
-                              &dir_sd) != ERROR_SUCCESS) {
+  if (GetNamedSecurityInfoA(path_buf.data(),
+                            SE_FILE_OBJECT,
+                            DACL_SECURITY_INFORMATION,
+                            nullptr,
+                            nullptr,
+                            &dir_dacl,
+                            nullptr,
+                            &dir_sd) != ERROR_SUCCESS) {
     return Status(-1, "GetNamedSecurityInfoA failed for dir");
   }
-
   SecurityDescriptor dir_sd_wrapper(dir_sd);
 
-  if (isWriteDenied(file_dacl).ok() && isWriteDenied(dir_dacl).ok()) {
-    return Status(0, "OK");
+  /*
+   * Check to ensure that no allow write ACEs are found on either
+   * the daemon or the parent directory
+   */
+  auto s = lowPrivWriteDenied(file_dacl);
+  if (!s.ok()) {
+    return Status(1, "Write ACE was found on the executable");
   }
-
-  return Status(1, "Not safe for loading");
+  s = lowPrivWriteDenied(dir_dacl);
+  if (!s.ok()) {
+    return Status(1, "Write ACE was found on the parent directory");
+  }
+  return Status(0, "OK");
 }
 
 bool PlatformFile::getFileTimes(PlatformTime& times) {
@@ -1029,22 +1078,20 @@ size_t PlatformFile::size() const {
 }
 
 bool platformChmod(const std::string& path, mode_t perms) {
-  DWORD ret = 0;
   PACL dacl = nullptr;
   PSID owner = nullptr;
-  PSID group = nullptr;
   PSECURITY_DESCRIPTOR sd = nullptr;
 
-  ret = ::GetNamedSecurityInfoA(path.c_str(),
-                                SE_FILE_OBJECT,
-                                OWNER_SECURITY_INFORMATION |
-                                    GROUP_SECURITY_INFORMATION |
-                                    DACL_SECURITY_INFORMATION,
-                                &owner,
-                                &group,
-                                &dacl,
-                                nullptr,
-                                &sd);
+  auto ret = GetNamedSecurityInfoA(path.c_str(),
+                                   SE_FILE_OBJECT,
+                                   OWNER_SECURITY_INFORMATION |
+                                       GROUP_SECURITY_INFORMATION |
+                                       DACL_SECURITY_INFORMATION,
+                                   &owner,
+                                   nullptr,
+                                   &dacl,
+                                   nullptr,
+                                   &sd);
 
   if (ret != ERROR_SUCCESS) {
     return false;
@@ -1052,18 +1099,18 @@ bool platformChmod(const std::string& path, mode_t perms) {
 
   SecurityDescriptor sd_wrapper(sd);
 
-  if (owner == nullptr || group == nullptr || dacl == nullptr) {
+  if (owner == nullptr || dacl == nullptr) {
     return false;
   }
 
-  DWORD sid_size = SECURITY_MAX_SID_SIZE;
+  unsigned long sid_size = SECURITY_MAX_SID_SIZE;
   std::vector<char> world_buf(sid_size);
   PSID world = (PSID)world_buf.data();
-
   if (!::CreateWellKnownSid(WinWorldSid, nullptr, world, &sid_size)) {
     return false;
   }
 
+  // Modify the 'user' permissions
   PACL acl = nullptr;
   AclObject acl_buffer = modifyAcl(dacl,
                                    owner,
@@ -1072,47 +1119,73 @@ bool platformChmod(const std::string& path, mode_t perms) {
                                    (perms & S_IXUSR) == S_IXUSR,
                                    true);
   acl = reinterpret_cast<PACL>(acl_buffer.get());
-
   if (acl == nullptr) {
     return false;
   }
 
-  acl_buffer = modifyAcl(acl,
-                         group,
-                         (perms & S_IRGRP) == S_IRGRP,
-                         (perms & S_IWGRP) == S_IWGRP,
-                         (perms & S_IXGRP) == S_IXGRP);
-  acl = reinterpret_cast<PACL>(acl_buffer.get());
+  // Modify the 'group' permissions
+  PVOID void_ent = nullptr;
+  for (unsigned long i = 0; i < dacl->AceCount; i++) {
+    if (!GetAce(dacl, i, &void_ent)) {
+      return false;
+    }
 
-  if (acl == nullptr) {
-    return false;
+    auto ace = static_cast<PACE_HEADER>(void_ent);
+    PSID gsid = nullptr;
+    if (ace->AceType == ACCESS_ALLOWED_ACE_TYPE) {
+      auto allowed_ace = reinterpret_cast<PACCESS_ALLOWED_ACE>(ace);
+      gsid = &allowed_ace->SidStart;
+    }
+    if (ace->AceType == ACCESS_DENIED_ACE_TYPE) {
+      auto denied_ace = reinterpret_cast<PACCESS_DENIED_ACE>(ace);
+      gsid = &denied_ace->SidStart;
+    }
+
+    // We only modify allow or deny ACEs
+    if (gsid == nullptr) {
+      continue;
+    }
+
+    // We process the user and other permissions above and below
+    if (EqualSid(gsid, owner) || EqualSid(gsid, world)) {
+      continue;
+    }
+
+    acl_buffer = modifyAcl(acl,
+                           gsid,
+                           (perms & S_IRGRP) == S_IRGRP,
+                           (perms & S_IWGRP) == S_IWGRP,
+                           (perms & S_IXGRP) == S_IXGRP);
+    acl = reinterpret_cast<PACL>(acl_buffer.get());
+    if (acl == nullptr) {
+      return false;
+    }
   }
 
+  // Modify the 'other' permissions
   acl_buffer = modifyAcl(acl,
                          world,
                          (perms & S_IROTH) == S_IROTH,
                          (perms & S_IWOTH) == S_IWOTH,
                          (perms & S_IXOTH) == S_IXOTH);
   acl = reinterpret_cast<PACL>(acl_buffer.get());
-
   if (acl == nullptr) {
     return false;
   }
 
+  // Lastly, apply the permissions to the object
   // SetNamedSecurityInfoA takes a mutable string for the path parameter
   std::vector<char> mutable_path(path.begin(), path.end());
   mutable_path.push_back('\0');
-
-  if (::SetNamedSecurityInfoA(mutable_path.data(),
-                              SE_FILE_OBJECT,
-                              DACL_SECURITY_INFORMATION,
-                              nullptr,
-                              nullptr,
-                              acl,
-                              nullptr) != ERROR_SUCCESS) {
+  if (SetNamedSecurityInfoA(mutable_path.data(),
+                            SE_FILE_OBJECT,
+                            DACL_SECURITY_INFORMATION,
+                            nullptr,
+                            nullptr,
+                            acl,
+                            nullptr) != ERROR_SUCCESS) {
     return false;
   }
-
   return true;
 }
 
@@ -1279,7 +1352,7 @@ static std::string normalizeDirPath(const fs::path& path) {
 
   // Obtain the full path of the fs::path object
   DWORD nret = ::GetFullPathNameA(
-      (LPCSTR)path.string().c_str(), MAX_PATH, full_path.data(), nullptr);
+      path.string().c_str(), MAX_PATH, full_path.data(), nullptr);
   if (nret == 0) {
     return std::string();
   }
@@ -1330,14 +1403,13 @@ Status platformIsTmpDir(const fs::path& dir) {
   if (!dirPathsAreEqual(dir, fs::temp_directory_path(ec))) {
     return Status(1, "Not temp directory");
   }
-
-  return Status(0, "OK");
+  return Status();
 }
 
 Status platformIsFileAccessible(const fs::path& path) {
   boost::system::error_code ec;
   if (fs::is_regular_file(path, ec) && ec.value() == errc::success) {
-    return Status(0, "OK");
+    return Status();
   }
   return Status(1, "Not accessible file");
 }

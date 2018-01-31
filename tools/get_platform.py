@@ -3,9 +3,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 from __future__ import absolute_import
 from __future__ import division
@@ -24,6 +25,7 @@ SYSTEM_RELEASE = "/etc/system-release"
 LSB_RELEASE    = "/etc/lsb-release"
 DEBIAN_VERSION = "/etc/debian_version"
 GENTOO_RELEASE = "/etc/gentoo-release"
+SUSE_RELEASE   = "/etc/SuSE-release"
 
 def _platform():
     osType, _, _, _, _, _ = platform.uname()
@@ -71,6 +73,9 @@ def _platform():
 
         if os.path.exists(GENTOO_RELEASE):
             return ("gentoo", "gentoo")
+
+        if os.path.exists(SUSE_RELEASE):
+            return ("suse", "suse")
     else:
         return (None, osType.lower())
 
@@ -154,6 +159,12 @@ def _distro(osType):
           results = contents.split()
         if len(results) > 0:
           return results[len(results) -1]
+    elif osType == "suse":
+        with open(SUSE_RELEASE, "r") as fd:
+            contents = fd.read()
+            results = re.findall(r'VERSION = (.*)', contents)
+            if len(results) == 1:
+                return results[0]
     elif osType == "windows":
         return "windows%s" % osVersion
 

@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -13,6 +13,7 @@
 #include <map>
 #include <mutex>
 #include <set>
+#include <utility>
 #include <vector>
 
 #include <boost/noncopyable.hpp>
@@ -60,7 +61,7 @@ struct QueryContext;
 
 class Plugin : private boost::noncopyable {
  public:
-  virtual ~Plugin() {}
+  virtual ~Plugin() = default;
 
  public:
   /// The plugin may perform some initialization, not required.
@@ -126,11 +127,13 @@ class Plugin : private boost::noncopyable {
    */
   static Status addExternal(const std::string& name,
                             const PluginResponse& info) {
+    (void)name;
+    (void)info;
     return Status(0, "Not used");
   }
 
   /// Allow a specialized plugin type to act when an external plugin is removed.
-  static void removeExternal(const std::string& name) {}
+  static void removeExternal(const std::string& /*name*/) {}
 
  protected:
   /// Customized name for the plugin, usually set by the registry.
@@ -145,9 +148,9 @@ using PluginRef = std::shared_ptr<Plugin>;
  */
 class RegistryInterface : private boost::noncopyable {
  public:
-  explicit RegistryInterface(const std::string& name, bool auto_setup = false)
-      : name_(name), auto_setup_(auto_setup) {}
-  virtual ~RegistryInterface() {}
+  explicit RegistryInterface(std::string name, bool auto_setup = false)
+      : name_(std::move(name)), auto_setup_(auto_setup) {}
+  virtual ~RegistryInterface() = default;
 
   /**
    * @brief This is the only way to add plugins to a registry.
@@ -363,11 +366,11 @@ class RegistryType : public RegistryInterface {
   using PluginTypeRef = std::shared_ptr<PluginType>;
 
  public:
-  RegistryType(const std::string& name, bool auto_setup = false)
+  explicit RegistryType(const std::string& name, bool auto_setup = false)
       : RegistryInterface(name, auto_setup),
         add_(&PluginType::addExternal),
         remove_(&PluginType::removeExternal) {}
-  virtual ~RegistryType() {}
+  ~RegistryType() override = default;
 
   Status add(const std::string& plugin_name,
              const PluginRef& plugin_item,
@@ -570,9 +573,8 @@ class RegistryFactory : private boost::noncopyable {
   }
 
  protected:
-  RegistryFactory()
-      : allow_duplicates_(false), locked_(false), external_(false) {}
-  virtual ~RegistryFactory() {}
+  RegistryFactory() = default;
+  virtual ~RegistryFactory() = default;
 
  private:
   /// Track duplicate registry item support, used for testing.
@@ -633,7 +635,7 @@ class AutoRegisterInterface {
 
   AutoRegisterInterface(const char* _type, const char* _name, bool optional)
       : type_(_type), name_(_name), optional_(optional) {}
-  virtual ~AutoRegisterInterface() {}
+  virtual ~AutoRegisterInterface() = default;
 
   /// A call-in for the iterator.
   virtual void run() = 0;
@@ -701,7 +703,7 @@ struct PI {
     AutoRegisterInterface::autoloadPlugin(std::make_unique<AP<P>>(t, n, o));
   }
 };
-}
+} // namespace registries
 
 #define CREATE_REGISTRY(t, n)                                                  \
   namespace registries {                                                       \
@@ -724,4 +726,4 @@ struct PI {
   }
 
 void registryAndPluginInit();
-}
+} // namespace osquery

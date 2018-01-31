@@ -3,9 +3,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # 1: Path to install brew into
 # 2: Linux or Darwin
@@ -18,10 +19,12 @@ function setup_brew() {
     BREW_REPO=$LINUXBREW_REPO
     BREW_COMMIT=$LINUXBREW_BREW
     CORE_COMMIT=$LINUXBREW_CORE
+    CORE_REPO=$LINUXBREW_CORE_REPO
   else
     BREW_REPO=$HOMEBREW_REPO
     BREW_COMMIT=$HOMEBREW_BREW
     CORE_COMMIT=$HOMEBREW_CORE
+    CORE_REPO=$HOMEBREW_CORE_REPO
   fi
 
   # Checkout new brew in local deps dir
@@ -43,9 +46,11 @@ function setup_brew() {
 
   # Always update the location of the local tap link.
   log "refreshing local tap: osquery-local"
-  mkdir -p "$DEPS/Library/Taps/osquery/"
 
-  FORMULA_TAP="$DEPS/Library/Taps/osquery/homebrew-osquery-local"
+  TAPS="$DEPS/Library/Taps/"
+  mkdir -p "$TAPS/osquery/"
+
+  FORMULA_TAP="$TAPS/osquery/homebrew-osquery-local"
   if [[ -L "$FORMULA_TAP" ]]; then
     rm -f "$FORMULA_TAP"
   fi
@@ -58,14 +63,23 @@ function setup_brew() {
   export HOMEBREW_NO_EMOJI=1
   export HOMEBREW_BOTTLE_ARCH=core2
   export BREW="$DEPS/bin/brew"
-  TAPS="$DEPS/Library/Taps/"
 
   # Grab full clone to perform a pin
   if [[ ! "$ACTION" = "bottle" ]]; then
     log "installing and updating Homebrew core"
-    $BREW tap homebrew/core --full
-    (cd $TAPS/homebrew/homebrew-core && git pull > /dev/null && \
-        git reset --hard $CORE_COMMIT)
+    # Using a manual tap below, see: Homebrew/homebrew-core#19221
+    # $BREW tap homebrew/core --full
+    # (cd $TAPS/homebrew/homebrew-core && git pull > /dev/null && \
+    #     git reset --hard $CORE_COMMIT)
+
+    # This manually checks/clones/pulls the homebrew-core repo.
+    if [[ ! -d "$TAPS/homebrew/homebrew-core/.git" ]]; then
+      mkdir -p $TAPS/homebrew
+      (cd $TAPS/homebrew; git clone $CORE_REPO)
+    else
+      (cd $TAPS/homebrew/homebrew-core; git pull > /dev/null)
+    fi
+    (cd $TAPS/homebrew/homebrew-core; git reset --hard $CORE_COMMIT)
   fi
 
   # Create a 'legacy' mirror.
@@ -81,12 +95,21 @@ function setup_brew() {
   mkdir -p "$DEPS/lib/python2.7/site-packages"
 }
 
-# json_element JSON STRUCT
+function clean_thrift() {
+  TEST_FILE="$DEPS/lib/python2.7/site-packages/thrift"
+  if [ ! -L "$TEST_FILE/__init__.py" ]; then
+    rm -rf "${TEST_FILE}"*
+  fi
+}
+
+# json_attributes JSON [ATTRIBUTE_PATH, ...]
 #   1: JSON blob
-#   2: parse structure
-function json_element() {
-  CMD="import json,sys;obj=json.load(sys.stdin);print ${2}"
-  RESULT=`(echo "${1}" | python -c "${CMD}") 2>/dev/null || echo 'NAN'`
+#   N: print lines for desired attributes
+function json_attributes() {
+  CMD="import json,sys;obj=json.load(sys.stdin)"
+  CMD="$CMD;${@:2}"
+
+  RESULT=`(echo "${1}" | python -c "${CMD}") 2>/dev/null || echo 'Error'`
   echo $RESULT
 }
 
@@ -122,10 +145,19 @@ function brew_internal() {
 
   FORMULA="$TOOL"
   INFO=`$BREW info --json=v1 "${FORMULA}"`
-  INSTALLED=$(json_element "${INFO}" 'obj[0]["installed"][0]["version"]')
-  STABLE=$(json_element "${INFO}" 'obj[0]["versions"]["stable"]')
-  REVISION=$(json_element "${INFO}" 'obj[0]["revision"]')
-  LINKED=$(json_element "${INFO}" 'obj[0]["linked_keg"]')
+
+  RESULTS=$(json_attributes "$INFO" \
+    'print(obj[0]["installed"][0]["version"] if len(obj[0]["installed"]) > 0 else "None");' \
+    'print(obj[0]["versions"]["stable"]);' \
+    'print(obj[0]["revision"]);' \
+    'print(obj[0]["linked_keg"] if obj[0]["linked_keg"] is not None else "None")')
+  read -r -a RESULTS <<< "$RESULTS"
+
+  INSTALLED="${RESULTS[0]}"
+  STABLE="${RESULTS[1]}"
+  REVISION="${RESULTS[2]}"
+  LINKED="${RESULTS[3]}"
+
   if [[ ! "$REVISION" = "0" ]]; then
     STABLE="${STABLE}_${REVISION}"
   fi
@@ -134,7 +166,7 @@ function brew_internal() {
   ARGS="$@"
 
   if [[ "$TYPE" = "uninstall" ]]; then
-    if [[ ! "$INSTALLED" = "NAN" ]]; then
+    if [[ ! "$INSTALLED" = "None" ]]; then
       log "brew package $TOOL uninstalling version: ${STABLE}"
       $BREW uninstall --force "${FORMULA}"
     fi
@@ -183,14 +215,14 @@ function brew_internal() {
   if [[ ! -z "$OSQUERY_BUILD_BOTTLES" && "$FORMULA" == *"osquery"* ]]; then
     $BREW bottle --skip-relocation "${FORMULA}"
   elif [[ "$TYPE" = "clean" ]]; then
-    if [[ "${STABLE}" = "NAN_NAN" ]]; then
+    if [[ "${STABLE}" = "None_None" ]]; then
       log "brew cleaning older or forward-dependent version of $TOOL: ${INSTALLED}"
       $BREW uninstall --ignore-dependencies "${FORMULA}"
-    elif [[ ! "${INSTALLED}" = "${STABLE}" && ! "${INSTALLED}" = "NAN" ]]; then
+    elif [[ ! "${INSTALLED}" = "${STABLE}" && ! "${INSTALLED}" = "None" ]]; then
       log "brew cleaning older version of $TOOL: ${INSTALLED}"
       $BREW uninstall --ignore-dependencies "${FORMULA}"
     fi
-  elif [[ "${INSTALLED}" = "NAN" || "${INSTALLED}" = "None" ]]; then
+  elif [[ "${INSTALLED}" = "None" ]]; then
     log "brew package $TOOL installing new version: ${STABLE}"
     $BREW install $ARGS "${FORMULA}"
   elif [[ ! "${INSTALLED}" = "${STABLE}" || "${FROM_BOTTLE}" = "true" ]]; then
@@ -241,7 +273,8 @@ function brew_bottle() {
   $BREW bottle --skip-relocation "${FORMULA}"
 
   INFO=`$BREW info --json=v1 "${FORMULA}"`
-  INSTALLED=$(json_element "${INFO}" 'obj[0]["installed"][0]["version"]')
+  INSTALLED=$(json_attributes "${INFO}" \
+    'print(obj[0]["installed"][0]["version"]);')
 
   ARIN=(${FORMULA//// })
   TOOL=${ARIN[2]}
@@ -253,20 +286,18 @@ function brew_bottle() {
   fi
 
   HASH=$(shasum -a 256 $DEPS_DIR/${TOOL}-${INSTALLED}* | awk '{print $1}')
-  if [[ "$BREW_TYPE" = "linux" ]]; then
-    SUFFIX="x86_64_linux"
-  else
-    SUFFIX="sierra"
-  fi
 
   log "installing $HASH into $FORMULA_FILE"
   if [[ "$BREW_TYPE" = "linux" ]]; then
     SED="sed -i "
+    SUFFIX=$LINUX_BOTTLE_SUFFIX
   else
-    SED="sed -i '' "
+    SED="sed -i .orig "
+    SUFFIX=$DARWIN_BOTTLE_SUFFIX
   fi
 
   $SED "s/sha256 \"\\(.*\\)\" => :${SUFFIX}/sha256 \"${HASH}\" => :${SUFFIX}/g" $FORMULA_FILE
+  cp $DEPS_DIR/${TOOL}-${INSTALLED}.${SUFFIX}.bottle.tar.gz $CURRENT_DIR
 }
 
 function brew_postinstall() {

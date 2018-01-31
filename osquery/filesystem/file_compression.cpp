@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #ifdef WIN32
@@ -32,8 +32,8 @@ DECLARE_uint32(carver_block_size);
 
 Status compress(const boost::filesystem::path& in,
                 const boost::filesystem::path& out) {
-  PlatformFile inFile(in.string(), PF_OPEN_EXISTING | PF_READ);
-  PlatformFile outFile(out.string(), PF_CREATE_NEW | PF_WRITE);
+  PlatformFile inFile(in, PF_OPEN_EXISTING | PF_READ);
+  PlatformFile outFile(out, PF_CREATE_NEW | PF_WRITE);
 
   auto inFileSize = inFile.size();
   ZSTD_CStream* const cstream = ZSTD_createCStream();
@@ -99,8 +99,8 @@ Status compress(const boost::filesystem::path& in,
 
 Status decompress(const boost::filesystem::path& in,
                   const boost::filesystem::path& out) {
-  PlatformFile inFile(in.string(), PF_OPEN_EXISTING | PF_READ);
-  PlatformFile outFile(out.string(), PF_CREATE_NEW | PF_WRITE);
+  PlatformFile inFile(in, PF_OPEN_EXISTING | PF_READ);
+  PlatformFile outFile(out, PF_CREATE_NEW | PF_WRITE);
 
   auto inFileSize = inFile.size();
   size_t const buffInSize = ZSTD_DStreamInSize();
@@ -165,7 +165,7 @@ Status archive(const std::set<boost::filesystem::path>& paths,
     return Status(1, "Failed to open tar archive for writing");
   }
   for (const auto& f : paths) {
-    PlatformFile pFile(f.string(), PF_OPEN_EXISTING | PF_READ);
+    PlatformFile pFile(f, PF_OPEN_EXISTING | PF_READ);
 
     auto entry = archive_entry_new();
     archive_entry_set_pathname(entry, f.leaf().string().c_str());

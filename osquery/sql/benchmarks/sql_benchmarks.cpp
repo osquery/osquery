@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <benchmark/benchmark.h>
@@ -84,7 +84,7 @@ static void SQL_virtual_table_internal(benchmark::State& state) {
 
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal("select * from benchmark", results, dbc->db());
+    queryInternal("select * from benchmark", results, dbc);
     dbc->clearAffectedTables();
   }
 }
@@ -104,7 +104,7 @@ static void SQL_virtual_table_internal_yield(benchmark::State& state) {
 
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal("select * from benchmark_yield", results, dbc->db());
+    queryInternal("select * from benchmark_yield", results, dbc);
     dbc->clearAffectedTables();
   }
 }
@@ -124,7 +124,7 @@ static void SQL_virtual_table_internal_global(benchmark::State& state) {
     attachTableInternal("benchmark", columnDefinition(res), dbc);
 
     QueryData results;
-    queryInternal("select * from benchmark", results, dbc->db());
+    queryInternal("select * from benchmark", results, dbc);
     dbc->clearAffectedTables();
   }
 }
@@ -144,7 +144,7 @@ static void SQL_virtual_table_internal_unique(benchmark::State& state) {
     attachTableInternal("benchmark", columnDefinition(res), dbc);
 
     QueryData results;
-    queryInternal("select * from benchmark", results, dbc->db());
+    queryInternal("select * from benchmark", results, dbc);
     dbc->clearAffectedTables();
   }
 }
@@ -182,7 +182,7 @@ static void SQL_virtual_table_internal_long(benchmark::State& state) {
 
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal("select * from long_benchmark", results, dbc->db());
+    queryInternal("select * from long_benchmark", results, dbc);
     dbc->clearAffectedTables();
   }
 }
@@ -246,7 +246,7 @@ static void SQL_virtual_table_internal_wide(benchmark::State& state) {
   kWideCount = state.range_y();
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal("select * from wide_benchmark", results, dbc->db());
+    queryInternal("select * from wide_benchmark", results, dbc);
     dbc->clearAffectedTables();
   }
 }
@@ -272,7 +272,7 @@ static void SQL_virtual_table_internal_wide_yield(benchmark::State& state) {
   kWideCount = state.range_y();
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal("select * from wide_benchmark_yield", results, dbc->db());
+    queryInternal("select * from wide_benchmark_yield", results, dbc);
     dbc->clearAffectedTables();
   }
 }
@@ -287,8 +287,7 @@ static void SQL_select_metadata(benchmark::State& state) {
   auto dbc = SQLiteDBManager::getUnique();
   while (state.KeepRunning()) {
     QueryData results;
-    queryInternal(
-        "select count(*) from sqlite_temp_master;", results, dbc->db());
+    queryInternal("select count(*) from sqlite_temp_master;", results, dbc);
     dbc->clearAffectedTables();
   }
 }

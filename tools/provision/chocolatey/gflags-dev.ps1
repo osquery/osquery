@@ -1,17 +1,18 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # Update-able metadata
 #
 # $version - The version of the software package to build
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
-$version = '2.2.0'
-$chocoVersion = '2.2.0'
+$version = '2.2.1'
+$chocoVersion = '2.2.1'
 $packageName = 'gflags-dev'
 $projectSource = 'https://github.com/gflags/gflags'
 $packageSourceUrl = 'https://github.com/gflags/gflags'
@@ -32,6 +33,9 @@ $sw = [System.Diagnostics.StopWatch]::startnew()
 
 # Keep the location of build script, to bring with in the chocolatey package
 $buildScript = $MyInvocation.MyCommand.Definition
+
+# Grab the cwd to restore after the build completes
+$workingDir = Get-Location
 
 # Create the choco build dir if needed
 $buildPath = Get-OsqueryBuildPath
@@ -89,3 +93,6 @@ if (Test-Path "$packageName.$chocoVersion.nupkg") {
 else {
   Write-Host "[-] Failed to build $packageName v$chocoVersion." -foregroundcolor Red
 }
+
+# Restore the working dir
+Set-Location $workingDir

@@ -109,7 +109,7 @@ To speed up the format auditing process please configure your code editor to run
 
 ## Dependencies and build internals
 
-The `make deps` command is fairly intense and serves two purposes: (1) to communicate a standard set of environment setup instructions for our build and test nodes, (2) to provide an environment for reproducing errors. The are wonderful auxiliary benefits such as controlling the compiler and compile flags for almost all of our dependencies, controlling security-related features for dependencies, allowing a "mostly" universal build for Linux that makes deployment simple. To read more about the motivation and FAQ for our dependencies environment see the [Github Refererence #2253](https://github.com/facebook/osquery/issues/2253).
+The `make deps` command is fairly intense and serves two purposes: (1) to communicate a standard set of environment setup instructions for our build and test nodes, (2) to provide an environment for reproducing errors. The are wonderful auxiliary benefits such as controlling the compiler and compile flags for almost all of our dependencies, controlling security-related features for dependencies, allowing a "mostly" universal build for Linux that makes deployment simple. To read more about the motivation and FAQ for our dependencies environment see the [Github Reference #2253](https://github.com/facebook/osquery/issues/2253).
 
 When using `make deps` the environment the resultant binaries will have a minimum set of requirements to run:
 
@@ -262,27 +262,39 @@ variables. When making these changes it is best to removed your build cache
 by removing the `./build/` or `./build/{platform}/` directory.
 
 ```sh
-OSQUERY_BUILD_LINK_SHARED=True # Set CMake library discovery to prefer shared libraries
-OSQUERY_BUILD_SHARED=True # Build libosquery* as shared objects and link appropriately
+OSQUERY_BUILD_LINK_SHARED=True # Prefer linking against shared libraries
+OSQUERY_BUILD_SHARED=True # Build and link a shared libosquery.
 OSQUERY_BUILD_DEPS=True # Install dependencies from source when using make deps
-OSQUERY_BUILD_BOTTLES=True # Create Homebrew bottles from installed dependencies
-
+OSQUERY_BUILD_BOTTLES=True # Create bottles from installed dependencies
 OSQUERY_BUILD_VERSION=9.9.9 # Set a wacky version string
 OSQUERY_PLATFORM=custom_linux;1.0 # Set a wacky platform/distro name
-SDK_VERSION=9.9.9 # Set a wacky SDK-version string
+OSQUERY_OSQUERY_DEPS=/usr/local/osquery # Set alternative dependency path
+OSQUERY_NOSUDO=True # If sudo is not available to user building osquery
+SDK_VERSION=9.9.9 # Set a wacky SDK-version string.
 OSX_VERSION_MIN=10.11 # Override the native minimum macOS version ABI
-OSQUERY_DEPS=/path/to/dependencies # Use or create a custom dependency environment
-
-FAST=True # Build and link as quick as possible
+OSQUERY_DEPS=/path/to/dependencies # Use a custom dependency environment
+FAST=True # Build and link as quick as possible.
 SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
 SANITIZE_UNDEFINED=True # Add -fsanitize=undefined when using "make sanitize"
 OPTIMIZED=True # Enable specific CPU optimizations (not recommended)
+SQLITE_DEBUG=True # Enable SQLite query debugging (very verbose!)
+```
+
+There are various features that can be disabled with a customized build. These are also controlled by environment variables to be as cross-platform as possible and take the form: `SKIP_*`. These are converted into CMake variables within the root `CMakeLists.txt`.
+
+```sh
+SKIP_AWS=True # Skip the various AWS integrations
+SKIP_TSK=True # Skip SleuthKit integrations
+SKIP_LLDPD=True # Skip LLDP tables
+SKIP_YARA=True # Skip Yara integrations, both events and the virtual tables
+SKIP_KAFKA=True # Skip support for Kafka logger plugins
+SKIP_CARVER=True # Skip support for file carving
+SKIP_KERNEL=True # Enabled by default, set to 'False' to enable
 SKIP_TESTS=True # Skip unit test building (very very not recommended!)
 SKIP_INTEGRATION_TESTS=True # Skip python tests when using "make test"
 SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
 SKIP_TABLES=True # Build platform without any table implementations or specs
 SKIP_DISTRO_MAIN=False # Run the sysprep update/install within make deps
-SQLITE_DEBUG=True # Enable SQLite query debugging (very verbose!)
 ```
 
 ## Custom Packages

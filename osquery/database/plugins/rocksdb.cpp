@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <sys/stat.h>
@@ -88,7 +88,7 @@ Status RocksDBDatabasePlugin::setUp() {
     options_.log_file_time_to_roll = 0;
     options_.keep_log_file_num = 10;
     options_.max_log_file_size = 1024 * 1024 * 1;
-    options_.max_open_files = 256;
+    options_.max_open_files = 128;
     options_.stats_dump_period_sec = 0;
     options_.max_manifest_file_size = 1024 * 500;
 
@@ -159,10 +159,6 @@ Status RocksDBDatabasePlugin::setUp() {
     // Also disable event publishers.
     Flag::updateValue("disable_events", "true");
     read_only_ = true;
-  } else {
-    // Trigger a flush when the database is opened.
-    // This helps if previous databases were closed and not compacted.
-    flush();
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.
@@ -176,18 +172,8 @@ void RocksDBDatabasePlugin::tearDown() {
   close();
 }
 
-void RocksDBDatabasePlugin::flush() {
-  for (auto& cf : handles_) {
-    db_->Flush(rocksdb::FlushOptions(), cf);
-  }
-}
-
 void RocksDBDatabasePlugin::close() {
   WriteLock lock(close_mutex_);
-  if (db_ != nullptr) {
-    flush();
-  }
-
   for (auto handle : handles_) {
     delete handle;
   }
