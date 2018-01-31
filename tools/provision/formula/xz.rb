@@ -5,6 +5,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Xz < AbstractOsqueryFormula
   desc "General-purpose data compression with high compression ratio"
   homepage "http://tukaani.org/xz/"
+  license "Public"
   url "https://fossies.org/linux/misc/xz-5.2.2.tar.gz"
   mirror "http://tukaani.org/xz/xz-5.2.2.tar.gz"
   sha256 "73df4d5d34f0468bd57d09f2d8af363e95ed6cc3a4a86129d2f2c366259902a2"

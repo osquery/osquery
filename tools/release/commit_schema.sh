@@ -3,9 +3,10 @@
 #  Copyright (c) 2015, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 set -e
 
@@ -39,13 +40,13 @@ function main() {
     [[ "$0" = "$BASH_SOURCE" ]] && exit 1
   fi
 
-  (cd $SITE; git commit -m 'Adding schema $VERSION')
+  (cd $SITE; git commit -m "Adding schema $VERSION")
   read -p "Push to master? [y/N]: " -r
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     [[ "$0" = "$BASH_SOURCE" ]] && exit 1
   fi
 
-  (cd $SITE; git push master)
+  (cd $SITE; git push)
   echo "[+] Finished"
 }
 

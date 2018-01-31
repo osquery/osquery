@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -37,9 +37,9 @@ const std::string kEc2MetadataUrl = "http://169.254.169.254/latest/";
 const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
 
 /**
- * @brief Client factory for the netlib HTTP client
+ * @brief Client factory for the Osquery HTTP client
  */
-class NetlibHttpClientFactory : public Aws::Http::HttpClientFactory {
+class OsqueryHttpClientFactory : public Aws::Http::HttpClientFactory {
  public:
   std::shared_ptr<Aws::Http::HttpClient> CreateHttpClient(
       const Aws::Client::ClientConfiguration& clientConfiguration)
@@ -55,16 +55,16 @@ class NetlibHttpClientFactory : public Aws::Http::HttpClientFactory {
 };
 
 /**
- * @brief Netlib implementation of AWS HTTP Client
+ * @brief Osquery implementation of AWS HTTP Client
  *
  * AWS uses a libcurl HTTP client by default. We prefer not to use libcurl, so
  * we provide this HTTP client implementation for the AWS SDK to use when
  * querying the APIs. The SDK must be built with -DNO_HTTP_CLIENT=1 to prevent
  * it looking for libcurl when static linking.
  */
-class NetlibHttpClient : public Aws::Http::HttpClient {
+class OsqueryHttpClient : public Aws::Http::HttpClient {
  public:
-  NetlibHttpClient() : HttpClient() {}
+  OsqueryHttpClient() : HttpClient() {}
 
   std::shared_ptr<Aws::Http::HttpResponse> MakeRequest(
       Aws::Http::HttpRequest& request,
@@ -139,7 +139,7 @@ class OsqueryAWSCredentialsProviderChain
  *
  * This function is intended to be called from the ::setUp() method of logger
  * plugins that use the AWS SDK. It initializes the SDK, instructing it to use
- * our custom NetlibHttpClientFactory. This function may be called more than
+ * our custom OsqueryHttpClientFactory. This function may be called more than
  * once, but initializing will only occur on the first call.
  */
 void initAwsSdk();

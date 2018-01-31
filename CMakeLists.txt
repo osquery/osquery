@@ -1,9 +1,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 cmake_minimum_required(VERSION 2.8.12)
 string(ASCII 27 ESC)
@@ -370,6 +371,14 @@ if(DEFINED ENV{TIDY} AND CLANG_TIDY)
     "-modernize-use-bool-literals"
     "-modernize-use-emplace"
     "-google-runtime-references"
+    # This adds header guards when we already use pragmas
+    "-llvm-header-guard"
+    # This adds an explicit for operator TYPE() in flags.h
+    "-google-explicit-constructor"
+    # Too many notes about not defining all specials
+    "-cppcoreguidelines-special-member-functions"
+    # These default arguments are very valuable
+    "-google-default-arguments"
   )
   JOIN("${TIDY_CHECKS}" "," TIDY_CHECKS)
   set(DO_CLANG_TIDY "${CLANG_TIDY}"
@@ -518,8 +527,10 @@ if(POSIX)
   include_directories("${BUILD_DEPS}/include/openssl")
 endif()
 
-# Including Boost Beast within third-party until it's merged into boot 1.66.
-include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
+if(NOT LINUX AND NOT APPLE)
+  # Including Boost Beast within third-party until it's merged into boot 1.66.
+  include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
+endif()
 
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")

@@ -3,9 +3,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 set -e
 
@@ -289,6 +290,7 @@ function main() {
   fi
 
   log "running unified platform initialization"
+  clean_thrift
   brew_clear_cache
   if [[ "$BREW_TYPE" = "darwin" ]]; then
     platform_darwin_main
@@ -307,16 +309,10 @@ function main() {
   # Pip may have just been installed.
   log "upgrading pip and installing python dependencies"
   PIP=`which pip`
-  if [[ $OS = "freebsd" ]]; then
-    PIP="sudo $PIP"
-  fi
-  $PIP install --upgrade pip
+  $PIP install --user --upgrade pip
   # Pip may change locations after upgrade.
   PIP=`which pip`
-  if [[ $OS = "freebsd" ]]; then
-    PIP="sudo $PIP"
-  fi
-  $PIP install --no-cache-dir -I -r requirements.txt
+  $PIP install --user --no-cache-dir -I -r requirements.txt
 
   log "running auxiliary initialization"
   initialize $OS

@@ -111,8 +111,8 @@ ifeq ($(PLATFORM),Darwin)
 endif
 	@export PYTHONPATH="$DEPS_DIR/lib/python2.7/site-packages"
 
-	@ln -snf $(SOURCE_DIR)/tools/tests $(BUILD_DIR)/test_data
-	@ln -snf $(SOURCE_DIR)/tools/tests $(DEBUG_BUILD_DIR)/test_data
+	@ln -snf "$(SOURCE_DIR)/tools/tests" $(BUILD_DIR)/test_data
+	@ln -snf "$(SOURCE_DIR)/tools/tests" $(DEBUG_BUILD_DIR)/test_data
 
 all: .setup
 ifeq ($(wildcard $(DEPS_DIR)/.*),)

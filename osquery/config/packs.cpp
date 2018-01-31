@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <algorithm>
@@ -195,11 +195,16 @@ void Pack::initialize(const std::string& name,
     query.splayed_interval = restoreSplayedValue(q.first, query.interval);
     query.options["snapshot"] = q.second.get<bool>("snapshot", false);
     query.options["removed"] = q.second.get<bool>("removed", true);
+    query.options["blacklist"] = q.second.get<bool>("blacklist", true);
     schedule_[q.first] = query;
   }
 }
 
 const std::map<std::string, ScheduledQuery>& Pack::getSchedule() const {
+  return schedule_;
+}
+
+std::map<std::string, ScheduledQuery>& Pack::getSchedule() {
   return schedule_;
 }
 

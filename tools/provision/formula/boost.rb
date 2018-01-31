@@ -3,16 +3,17 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Boost < AbstractOsqueryFormula
   desc "Collection of portable C++ source libraries"
   homepage "https://www.boost.org/"
-  url "https://downloads.sourceforge.net/project/boost/boost/1.65.0/boost_1_65_0.tar.bz2"
-  sha256 "ea26712742e2fb079c2a566a31f3266973b76e38222b9f88b387e3c8b2f9902c"
+  license "BSL-1.0"
+  url "https://downloads.sourceforge.net/project/boost/boost/1.66.0/boost_1_66_0.tar.bz2"
+  sha256 "5721818253e6a0989583192f96782c4a98eb6204965316df9f5ad75819225ca9"
   head "https://github.com/boostorg/boost.git"
-  revision 102
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "623bd56bf62c72bf5e14919cf7d9c7f761b358aeabe7b3d6da59a89d7b1047c0" => :sierra
-    sha256 "720c4e37c3aba17b8965d1bd6c9b399f6a1c8866ff17be8a974efa1172c4a58a" => :x86_64_linux
+    sha256 "2ec00b382e342a74cf57f12955729c6e2db616afdfc3120e3d7f3d41c6a3c559" => :sierra
+    sha256 "8a435ce15fbd0f0e4c10f063a0cd94cbbaa430d3a6d64b01754b1794dae75e3f" => :x86_64_linux
   end
 
   env :userpaths

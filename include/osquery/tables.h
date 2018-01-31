@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -15,6 +15,7 @@
 #include <memory>
 #include <set>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #ifdef WIN32
@@ -49,9 +50,8 @@
 /// Allow Tables to use "tracked" deprecated OS APIs.
 #define OSQUERY_USE_DEPRECATED(expr)                                           \
   do {                                                                         \
-    _Pragma("clang diagnostic push")                                           \
-        _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")      \
-            expr;                                                              \
+    _Pragma("clang diagnostic push") _Pragma(                                  \
+        "clang diagnostic ignored \"-Wdeprecated-declarations\"")(expr);       \
     _Pragma("clang diagnostic pop")                                            \
   } while (0)
 
@@ -116,9 +116,9 @@ inline std::string __sqliteField(const Type& source) noexcept {
 /// See the literal type documentation for TEXT_LITERAL.
 #define INTEGER_LITERAL int
 /// See the literal type documentation for TEXT_LITERAL.
-#define BIGINT_LITERAL long long int
+#define BIGINT_LITERAL int64_t
 /// See the literal type documentation for TEXT_LITERAL.
-#define UNSIGNED_BIGINT_LITERAL unsigned long long int
+#define UNSIGNED_BIGINT_LITERAL uint64_t
 /// See the literal type documentation for TEXT_LITERAL.
 #define DOUBLE_LITERAL double
 /// Cast an SQLite affinity type to the literal type.
@@ -157,7 +157,7 @@ enum ConstraintOperator : unsigned char {
 };
 
 /// Type for flags for what constraint operators are admissible.
-typedef unsigned char ConstraintOperatorFlag;
+using ConstraintOperatorFlag = unsigned char;
 
 /// Flag for any operator type.
 #define ANY_OP 0xFFU
@@ -177,8 +177,8 @@ struct Constraint {
   }
 
   // A constraint list in a context knows only the operator at creation.
-  explicit Constraint(unsigned char _op, const std::string& _expr)
-      : op(_op), expr(_expr) {}
+  explicit Constraint(unsigned char _op, std::string _expr)
+      : op(_op), expr(std::move(_expr)) {}
 };
 
 /*
@@ -308,10 +308,8 @@ struct QueryContext;
  */
 struct ConstraintList : private boost::noncopyable {
  public:
-  ConstraintList() : affinity(TEXT_TYPE) {}
-
   /// The SQLite affinity type.
-  ColumnType affinity;
+  ColumnType affinity{TEXT_TYPE};
 
   /**
    * @brief Check if an expression matches the query constraints.
@@ -353,7 +351,7 @@ struct ConstraintList : private boost::noncopyable {
    * @param ops (Optional: default ANY_OP) The operators types to look for.
    * @return true if any constraint exists.
    */
-  bool exists(const ConstraintOperatorFlag ops = ANY_OP) const;
+  bool exists(ConstraintOperatorFlag ops = ANY_OP) const;
 
   /**
    * @brief Check if a constraint exists AND matches the type expression.
@@ -522,7 +520,7 @@ using RowYield = RowGenerator::push_type;
  */
 struct QueryContext : private only_movable {
   /// Construct a context without cache support.
-  QueryContext() : enable_cache_(false), table_(new VirtualTableContent()) {}
+  QueryContext() : table_(new VirtualTableContent()) {}
 
   /// If the context was created without content, it is ephemeral.
   ~QueryContext() {
@@ -540,7 +538,7 @@ struct QueryContext : private only_movable {
   QueryContext(QueryContext&&) = default;
 
   /// Allow move assignment.
-  QueryContext& operator=(QueryContext&&) = default;
+  QueryContext& operator=(QueryContext&&) = delete;
 
   /**
    * @brief Check if a constraint exists for a given column operator pair.
@@ -597,7 +595,7 @@ struct QueryContext : private only_movable {
   void iteritems(const std::string& column,
                  ConstraintOperator op,
                  std::function<void(const std::string& expr)> predicate) const {
-    return iteritems<std::string>(column, op, predicate);
+    return iteritems<std::string>(column, op, std::move(predicate));
   }
 
   /**
@@ -724,6 +722,7 @@ class TablePlugin : public Plugin {
    * @return The result rows for this table, given the query context.
    */
   virtual QueryData generate(QueryContext& context) {
+    (void)context;
     return QueryData();
   }
 
@@ -747,7 +746,10 @@ class TablePlugin : public Plugin {
    * @param yield a callable that takes a single Row as input.
    * @param context a query context filled in by SQLite's virtual table API.
    */
-  virtual void generator(RowYield& yield, QueryContext& context) {}
+  virtual void generator(RowYield& yield, QueryContext& context) {
+    (void)yield;
+    (void)context;
+  }
 
   /// Override and return true to use the generator and yield method.
   virtual bool usesGenerator() const {
@@ -893,4 +895,4 @@ inline const std::string& columnTypeName(ColumnType type) {
 
 /// Get the column type from the string representation.
 ColumnType columnTypeName(const std::string& type);
-}
+} // namespace osquery

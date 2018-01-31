@@ -101,6 +101,10 @@ The configuration allows you to organize files and directories for monitoring. T
 
 There are several forms of [eventing](http://osquery.readthedocs.org/en/stable/development/pubsub-framework/) in osquery along with file modifications and accesses. These range from disk mounts, network reconfigurations, hardware attach and detaching, and process starting. For a complete set review the table documentation and look for names with the `_events` suffix.
 
+## License
+
+The osquery project is dual-licensed under Apache 2.0 and GPLv2. You may select, at your option, one of the these licenses.
+
 ## Vulnerabilities
 
 We keep track of security announcements in our tagged version release notes on GitHub. We aggregate these into [SECURITY.md](https://github.com/facebook/osquery/blob/master/SECURITY.md) too.

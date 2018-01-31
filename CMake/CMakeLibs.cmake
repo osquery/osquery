@@ -1,9 +1,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # osquery-specific helper macros
 macro(LOG_PLATFORM NAME)
@@ -301,9 +302,9 @@ macro(GENERATE_TABLES TABLES_PATH)
   elseif(FREEBSD)
     list(APPEND TABLE_CATEGORIES "freebsd" "posix")
   elseif(LINUX)
-    list(APPEND TABLE_CATEGORIES "linux" "posix")
+    list(APPEND TABLE_CATEGORIES "linux" "posix" "linwin")
   elseif(WINDOWS)
-    list(APPEND TABLE_CATEGORIES "windows" "macwin")
+    list(APPEND TABLE_CATEGORIES "windows" "macwin" "linwin")
   else()
     message( FATAL_ERROR "Unknown platform detected, cannot generate tables")
   endif()

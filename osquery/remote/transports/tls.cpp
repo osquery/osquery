@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 // clang-format off
@@ -22,9 +22,6 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-const std::string kTLSCiphers =
-    "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:"
-    "DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5";
 const std::string kTLSUserAgentBase = "osquery/";
 
 /// TLS server hostname.
@@ -93,12 +90,6 @@ http::Client::Options TLSTransport::getOptions() {
     options.proxy_hostname(FLAGS_proxy_hostname);
   }
 
-  std::string ciphers = kTLSCiphers;
-  if (!isPlatform(PlatformType::TYPE_OSX)) {
-    // Otherwise we prefer GCM and SHA256+
-    ciphers += ":!CBC:!SHA";
-  }
-
 #if defined(DEBUG)
   // Configuration may allow unsafe TLS testing if compiled as a debug target.
   if (FLAGS_tls_allow_unsafe) {
@@ -106,7 +97,7 @@ http::Client::Options TLSTransport::getOptions() {
   }
 #endif
 
-  options.openssl_ciphers(ciphers);
+  options.openssl_ciphers(kTLSCiphers);
   options.openssl_options(SSL_OP_NO_SSLv3 | SSL_OP_NO_SSLv2 | SSL_OP_ALL);
 
   if (server_certificate_file_.size() > 0) {
@@ -147,7 +138,6 @@ http::Client::Options TLSTransport::getOptions() {
   // 'Optionally', though all TLS plugins should set a hostname, supply an SNI
   // hostname. This will reveal the requested domain.
   if (options_.count("hostname")) {
-    // Boost cpp-netlib will only support SNI in versions >= 0.12
     options.openssl_sni_hostname(options_.get<std::string>("hostname"));
   }
 

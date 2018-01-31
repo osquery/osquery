@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -16,6 +16,10 @@
 #include "osquery/remote/requests.h"
 
 namespace osquery {
+
+const std::string kTLSCiphers =
+    "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:"
+    "DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!CBC:!SHA";
 
 /// Path to optional TLS client secret key, used for enrollment/requests.
 DECLARE_string(tls_client_key);

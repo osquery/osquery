@@ -1,11 +1,19 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 file(GLOB OSQUERY_LOGGER "*.cpp")
+
+if(WINDOWS)
+  # The Windows Event Log plugin is also used for the built-in systemLog call. This
+  # is why we are listing it as a core source file.
+  list(APPEND OSQUERY_LOGGER "plugins/windows_event_log.cpp")
+endif()
+
 ADD_OSQUERY_LIBRARY_CORE(osquery_logger ${OSQUERY_LOGGER})
 
 file(GLOB OSQUERY_LOGGER_TESTS "tests/*.cpp")
@@ -81,6 +89,7 @@ if(NOT SKIP_AWS)
   if(WINDOWS)
     ADD_OSQUERY_LINK_CORE("UserEnv.lib")
     ADD_OSQUERY_LINK_CORE("bcrypt.lib")
+    ADD_OSQUERY_LINK_CORE("wevtapi.lib")
   endif()
 
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-kinesis")

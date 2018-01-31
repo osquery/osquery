@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -39,7 +39,7 @@
 namespace osquery {
 
 /// Constant for an invalid process
-const PlatformPidType kInvalidPid = (PlatformPidType)-1;
+const auto kInvalidPid = (PlatformPidType)-1;
 
 /**
  * @brief Categories of process states adapted to be platform agnostic
@@ -158,7 +158,6 @@ class PlatformProcess : private boost::noncopyable {
    */
   static std::shared_ptr<PlatformProcess> launchExtension(
       const std::string& exec_path,
-      const std::string& extension,
       const std::string& extensions_socket,
       const std::string& extensions_timeout,
       const std::string& extensions_interval,
@@ -287,4 +286,4 @@ int platformGetPid();
 * and on posix platforms returns gettid()
 */
 int platformGetTid();
-}
+} // namespace osquery

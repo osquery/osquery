@@ -19,6 +19,8 @@ To get started with FIM, you must first identify which files and directories you
 
 For example, you may want to monitor `/etc` along with other files on a Linux system. After you identify your target files and directories you wish to monitor, add them to a new section in the config *file_paths*.
 
+**Note:** Many applications may replace a file instead of editing them in place. If you monitor the file directly, osquery will need to be restarted in order to monitor the replacement. This can be avoided by monitoring the containing directory instead. 
+
 The three areas below that are relevant to FIM are the scheduled query against `file_events`, the added `file_paths` section and the `exclude_paths` sections. The `file_events` query is scheduled to collect all of the FIM events that have occurred on any files within the paths specified within `file_paths` but excluding the paths specified within `exclude_paths` on a five minute interval. At a high level this means events are buffered within osquery and sent to the configured _logger_ every five minutes.
 
 **Note:** You cannot match recursively inside a path. For example `/Users/%%/Configuration.conf` is not a valid wildcard.

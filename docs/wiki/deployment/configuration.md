@@ -306,21 +306,24 @@ Example:
 Each of `schedule`'s value's is also a map, we call these scheduled queries and their key is the `name` which shows up in your results log. In the example above the schedule includes two queries: **users_browser_plugins** and **hashes_of_bin**. While it is common to schedule a `SELECT * FROM your_favorite_table`, one of the powers of osquery is SQL expression and the combination of several table concepts please use `JOIN`s liberally.
 
 The basic scheduled query specification includes:
-* `query`: the SQL query to run
-* `interval`: an interval in seconds to run the query (subject to splay/smoothing)
-* `removed`: a boolean to determine if removed actions should be logged
-* `snapshot`: a boolean to set 'snapshot' mode
-* `platform`: restrict this query to a given platform
-* `version`: only run on osquery versions greater than or equal-to
-* `shard`: restrict this query to a percentage (1-100) of target hosts
+
+- `query`: the SQL query to run
+- `interval`: an interval in seconds to run the query (subject to splay/smoothing)
+- `removed`: a boolean to determine if "removed" actions should be logged, default true
+- `snapshot`: a boolean to set 'snapshot' mode, default false
+- `platform`: restrict this query to a given platform, default is 'all' platforms; you may use commas to set multiple platforms
+- `version`: only run on osquery versions greater than or equal-to this version string
+- `shard`: restrict this query to a percentage (1-100) of target hosts
+- `blacklist`: a boolean to determine if this query may be blacklisted, default true
 
 The `platform` key can be:
-* `darwin` for MacOS hosts
-* `freebsd` for FreeBSD hosts
-* `linux` for any RedHat or Debian-based hosts
-* `posix` for `linux`, `freebsd`, and `linux` hosts
-* `windows` for any Windows desktop or server hosts
-* `any` or `all` for all, alternatively no platform key selects all
+
+- `darwin` for MacOS hosts
+- `freebsd` for FreeBSD hosts
+- `linux` for any RedHat or Debian-based hosts
+- `posix` for `linux`, `freebsd`, and `linux` hosts
+- `windows` for any Windows desktop or server hosts
+- `any` or `all` for all, alternatively no platform key selects all
 
 The `shard` key works by hashing the hostname then taking the quotient 255 of the first byte. This allows us to select a deterministic 'preview' for the query, this helps when slow-rolling or testing new queries.
 
@@ -328,6 +331,8 @@ The schedule and associated queries generate a timeline of events through the de
 
 Snapshot queries, those with `snapshot: true` will not store differentials and will not emulate an event stream. Snapshots always return the entire results from the query on the given interval. See
 the next section on [logging](../deployment/logging.md) for examples of each log output.
+
+Queries may be "blacklisted" if they cause osquery to take too many system resources. A blacklisted query returns to the schedule after a cool-down period of 1 day. Some queries may be very important and you may request that they continue to run even if they are latent. Set the `blacklist: false` to prevent a query from being blacklisted.
 
 ### Packs
 
@@ -480,7 +485,7 @@ The columns, and their values, will be appended to each log line as follows. Ass
 
 Expect the normal set of log keys to be included and note that `decorations` is a top-level key in the log line whose value is an embedded map.
 
-The configuration flag `decorators_top_level` can be set to `true` to make decorator data populate as top level key/value objects instead of being contained as a child of `decorations`.  When using this feature, you must be weary of key collisions in existing, reserved, top-level keys.  When collisions do occur, existing key/value data will likely be overritten by the decorator key/value.  The following example shows the results of collisions on various top-level keys:
+The configuration flag `decorators_top_level` can be set to `true` to make decorator data populate as top level key/value objects instead of being contained as a child of `decorations`.  When using this feature, you must be weary of key collisions in existing, reserved, top-level keys.  When collisions do occur, existing key/value data will likely be overwritten by the decorator key/value.  The following example shows the results of collisions on various top-level keys:
 
 Example configuration:
 

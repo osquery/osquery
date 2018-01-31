@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <benchmark/benchmark.h>
@@ -32,6 +32,21 @@ QueryData getExampleQueryData(size_t x, size_t y) {
     qd.push_back(r);
   }
   return qd;
+}
+
+QueryDataSet getExampleQueryDataSet(size_t x, size_t y) {
+  QueryDataSet qds;
+  Row r;
+
+  // Fill in a row with x;
+  for (size_t i = 0; i < x; i++) {
+    r["key" + std::to_string(i)] = std::to_string(i) + "content";
+  }
+  // Fill in the vector with y;
+  for (size_t i = 0; i < y; i++) {
+    qds.insert(r);
+  }
+  return qds;
 }
 
 ColumnNames getExampleColumnNames(size_t x) {
@@ -124,9 +139,10 @@ BENCHMARK(DATABASE_serializeRJ_json)
     ->ArgPair(10, 100);
 
 static void DATABASE_diff(benchmark::State& state) {
-  auto qd = getExampleQueryData(state.range_x(), state.range_y());
+  QueryData qd = getExampleQueryData(state.range_x(), state.range_y());
+  QueryDataSet qds = getExampleQueryDataSet(state.range_x(), state.range_y());
   while (state.KeepRunning()) {
-    auto d = diff(qd, qd);
+    auto d = diff(qds, qd);
   }
 }
 
@@ -139,7 +155,7 @@ static void DATABASE_query_results(benchmark::State& state) {
     DiffResults diff_results;
     uint64_t counter;
     auto dbq = Query("default", query);
-    dbq.addNewResults(qd, 0, counter, diff_results);
+    dbq.addNewResults(std::move(qd), 0, counter, diff_results);
   }
 }
 

@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <boost/algorithm/string.hpp>
@@ -36,12 +36,14 @@ QueryData genSystemInfo(QueryContext& context) {
   }
 
   WmiRequest wmiSystemReq("select * from Win32_ComputerSystem");
+  WmiRequest wmiSystemReqProc("select * from Win32_Processor");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  if (wmiResults.size() != 0) {
+  std::vector<WmiResultItem>& wmiResultsProc = wmiSystemReqProc.results();
+  if (!wmiResults.empty() && !wmiResultsProc.empty()) {
     long numProcs = 0;
     wmiResults[0].GetLong("NumberOfLogicalProcessors", numProcs);
     r["cpu_logical_cores"] = INTEGER(numProcs);
-    wmiResults[0].GetLong("NumberOfProcessors", numProcs);
+    wmiResultsProc[0].GetLong("NumberOfCores", numProcs);
     r["cpu_physical_cores"] = INTEGER(numProcs);
     wmiResults[0].GetString("TotalPhysicalMemory", r["physical_memory"]);
     wmiResults[0].GetString("Manufacturer", r["hardware_vendor"]);

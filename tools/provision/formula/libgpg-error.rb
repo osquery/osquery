@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class LibgpgError < AbstractOsqueryFormula
   desc "Common error values for all GnuPG components"
   homepage "https://www.gnupg.org/related_software/libgpg-error/"
+  license "LGPL-2.1+"
   url "https://gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2"
   mirror "https://www.mirrorservice.org/sites/ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2"
   sha256 "4f93aac6fecb7da2b92871bb9ee33032be6a87b174f54abf8ddf0911a22d29d2"

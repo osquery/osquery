@@ -1,9 +1,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # Turn on support for Powershell Cmdlet Bindings
 [CmdletBinding(SupportsShouldProcess = $true)]
@@ -36,8 +37,15 @@ function Test-IsAdmin {
 }
 
 function Test-RebootPending {
-  $compBasedServ = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending" -ErrorAction Ignore
-  $winUpdate = Get-Item "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired" -ErrorAction Ignore
+
+  $rebootPendingKey = 'HKLM:\Software\Microsoft\Windows\CurrentVersion' +
+                      '\Component Based Servicing\RebootPending'
+  $compBasedServ = Get-ChildItem $rebootPendingKey -ErrorAction Ignore
+
+  $winUpdateRebootKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion' +
+                        '\WindowsUpdate\Auto Update\RebootRequired'
+  $winUpdate = Get-Item $winUpdateRebootKey -ErrorAction Ignore
+
   $ccm = $false
   try {
     $util = [wmiclass]"\\.\root\ccm\clientsdk:CCM_ClientUtilities"
@@ -73,7 +81,8 @@ function Add-ToPath {
     $newPath = $oldPath + ';' + $appendPath
     [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
   }
-  # Append the newly added path to the sessions Path variable, for immediate use.
+  # Append the newly added path to the sessions Path variable,
+  # for immediate use.
   $env:Path += $appendPath
 }
 
@@ -197,10 +206,19 @@ function Install-PowershellLinter {
       break
     }
   }
+
   if (-not $psScriptAnalyzerInstalled) {
-    Write-Host " => PSScriptAnalyzer either not installed or out of date. Installing..." -foregroundcolor Cyan
-    Install-Module -Name PSScriptAnalyzer -Force
-    Write-Host "[+] PSScriptAnalyzer installed!" -foregroundcolor Green
+    if((Get-Command Install-Module).Source -eq 'PsGet') {
+      $msg = '[-] Conflicting package manager PsGet found, skipping ' +
+             'Powershell modules.'
+      Write-Host $msg -ForegroundColor Yellow
+    } else {
+      $msg = ' => PSScriptAnalyzer either not installed or ' +
+      'out of date. Installing...'
+      Write-Host $msg -foregroundcolor Cyan
+      Install-Module -Name PSScriptAnalyzer -Force
+      Write-Host "[+] PSScriptAnalyzer installed!" -foregroundcolor Green
+    }
   } else {
     Write-Host "[*] PSScriptAnalyzer already installed." -foregroundcolor Green
   }
@@ -338,7 +356,7 @@ function Install-ThirdParty {
     "llvm-clang.4.0.1",
     "openssl.1.0.2-k",
     "rocksdb.5.7.1-r1",
-    "thrift-dev.0.10.0-r4",
+    "thrift-dev.0.11.0",
     "zlib.1.2.8",
     "libarchive.3.3.1-r1",
     "rapidjson.1.1.0"
@@ -453,6 +471,11 @@ function Main {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
     $pythonInstall = Test-PythonInstalled
   }
+
+  $out = Install-ChocoPackage 'wixtoolset' '' @('--version', '3.10.3.300701')
+  # Add the WiX binary path to the system path for use
+  Add-ToSystemPath 'C:\Program Files (x86)\WiX Toolset v3.10\bin'
+
   # Convenience variable for accessing Python
   [Environment]::SetEnvironmentVariable("OSQUERY_PYTHON_PATH", $pythonInstall, "Machine")
   $out = Install-PipPackage

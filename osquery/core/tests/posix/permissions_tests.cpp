@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <poll.h>
@@ -159,6 +159,10 @@ TEST_F(PermissionsTests, test_nobody_drop) {
 std::string kMultiThreadPermissionPath;
 
 class PermissionsRunnable : public InternalRunnable {
+ public:
+  PermissionsRunnable() : InternalRunnable("PermissionsRunnable") {}
+  PermissionsRunnable(const std::string& name) : InternalRunnable(name) {}
+
  private:
   virtual void start() override {
     while (!interrupted()) {
@@ -174,6 +178,9 @@ class PermissionsRunnable : public InternalRunnable {
 };
 
 class PermissionsPollRunnable : public PermissionsRunnable {
+ public:
+  PermissionsPollRunnable() : PermissionsRunnable("PermissionsPollRunnable") {}
+
  private:
   void start() override {
     PlatformFile file(kMultiThreadPermissionPath,

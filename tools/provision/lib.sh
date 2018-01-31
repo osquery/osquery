@@ -3,9 +3,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # 1: Path to install brew into
 # 2: Linux or Darwin
@@ -92,6 +93,13 @@ function setup_brew() {
 
   # Fix for python linking.
   mkdir -p "$DEPS/lib/python2.7/site-packages"
+}
+
+function clean_thrift() {
+  TEST_FILE="$DEPS/lib/python2.7/site-packages/thrift"
+  if [ ! -L "$TEST_FILE/__init__.py" ]; then
+    rm -rf "${TEST_FILE}"*
+  fi
 }
 
 # json_attributes JSON [ATTRIBUTE_PATH, ...]

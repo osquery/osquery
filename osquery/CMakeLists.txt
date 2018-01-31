@@ -1,9 +1,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # The 'core' source files define the osquery SDK (libosquery).
 # There are macros throughout CMake to append sources to this list.
@@ -109,6 +110,8 @@ if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("Wtsapi32.lib")
   ADD_OSQUERY_LINK_CORE("wbemuuid.lib")
   ADD_OSQUERY_LINK_CORE("taskschd.lib")
+  ADD_OSQUERY_LINK_CORE("dbghelp.lib")
+  ADD_OSQUERY_LINK_CORE("dbgeng.lib")
   ADD_OSQUERY_LINK_CORE("libboost_system-mt-${WB_KEY}")
   ADD_OSQUERY_LINK_CORE("libboost_regex-mt-${WB_KEY}")
   ADD_OSQUERY_LINK_CORE("libboost_filesystem-mt-${WB_KEY}")
@@ -314,10 +317,10 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
     list(GET OSQUERY_VERSION_LIST 2 OSQUERY_BUILD_NUMBER)
 
     configure_file(
-      ${CMAKE_SOURCE_DIR}/tools/version.rc.in
-      ${CMAKE_BINARY_DIR}/osquery/version.rc
+      ${CMAKE_SOURCE_DIR}/tools/windows_resources.rc.in
+      ${CMAKE_BINARY_DIR}/osquery/windows_resources.rc
       @ONLY)
-    list(APPEND DAEMON_SOURCE_FILES ${CMAKE_BINARY_DIR}/osquery/version.rc)
+    list(APPEND DAEMON_SOURCE_FILES ${CMAKE_BINARY_DIR}/osquery/windows_resources.rc)
   endif()
   add_executable(daemon
     ${DAEMON_SOURCE_FILES}

@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <sstream>
@@ -239,7 +239,6 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchWorker(
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     const std::string& exec_path,
-    const std::string& extension,
     const std::string& extensions_socket,
     const std::string& extensions_timeout,
     const std::string& extensions_interval,
@@ -252,8 +251,7 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
   // To prevent errant double quotes from altering the intended arguments for
   // argv, we strip them out completely.
   std::stringstream argv_stream;
-  argv_stream << "\"osquery extension: "
-              << boost::replace_all_copy(extension, "\"", "") << "\" ";
+  argv_stream << "\"" << boost::replace_all_copy(exec_path, "\"", "") << "\" ";
   if (verbose) {
     argv_stream << "--verbose ";
   }

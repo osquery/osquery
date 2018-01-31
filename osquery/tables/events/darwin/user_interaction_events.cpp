@@ -1,18 +1,18 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include "osquery/events/darwin/event_taps.h"
 
 namespace osquery {
 
-class EventTapsKeySubscriber
+class UserInteractionSubscriber
     : public EventSubscriber<EventTappingEventPublisher> {
  public:
   Status init() override {
@@ -25,14 +25,16 @@ class EventTapsKeySubscriber
                   const EventTappingSubscriptionContextRef& sc);
 };
 
-REGISTER(EventTapsKeySubscriber, "event_subscriber", "key_events");
+REGISTER(UserInteractionSubscriber,
+         "event_subscriber",
+         "user_interaction_events");
 
-void EventTapsKeySubscriber::configure() {
+void UserInteractionSubscriber::configure() {
   auto sc = createSubscriptionContext();
-  subscribe(&EventTapsKeySubscriber::Callback, sc);
+  subscribe(&UserInteractionSubscriber::Callback, sc);
 }
 
-Status EventTapsKeySubscriber::Callback(
+Status UserInteractionSubscriber::Callback(
     const EventTappingEventContextRef& ec,
     const EventTappingSubscriptionContextRef& sc) {
   Row r;

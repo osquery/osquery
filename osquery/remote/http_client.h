@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -45,9 +45,6 @@
 #endif
 // clang-format on
 
-#include <openssl/crypto.h>
-#include <openssl/ssl.h>
-
 #ifndef OPENSSL_NO_SSL2
 #define OPENSSL_NO_SSL2 1
 #endif
@@ -59,14 +56,8 @@
 #define OPENSSL_NO_MD5 1
 #define OPENSSL_NO_DEPRECATED 1
 
-extern "C" {
-#if defined(NO_SSL_TXT_SSLV3)
-SSL_METHOD* SSLv3_server_method(void);
-SSL_METHOD* SSLv3_client_method(void);
-SSL_METHOD* SSLv3_method(void);
-#endif
-void ERR_remove_state(unsigned long);
-}
+#include <openssl/crypto.h>
+#include <openssl/ssl.h>
 
 namespace boost_system = boost::system;
 namespace boost_asio = boost::asio;
@@ -385,7 +376,7 @@ class HTTP_Response : public T {
 
   /// body of a HTTP response.
   const std::string& body() {
-    return this->T::body;
+    return this->T::body();
   }
 
   /**

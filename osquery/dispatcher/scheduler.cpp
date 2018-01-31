@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <ctime>
@@ -108,13 +108,13 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   sql.escapeResults();
 
   Status status;
-  DiffResults diff_results;
+  DiffResults& diff_results = item.results;
   // Add this execution's set of results to the database-tracked named query.
   // We can then ask for a differential from the last time this named query
   // was executed by exact matching each row.
   if (!FLAGS_events_optimize || !sql.eventBased()) {
     status = dbQuery.addNewResults(
-        sql.rows(), item.epoch, item.counter, diff_results);
+        std::move(sql.rows()), item.epoch, item.counter, diff_results);
     if (!status.ok()) {
       std::string line =
           "Error adding new results to database: " + status.what();
@@ -127,16 +127,16 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
     diff_results.added = std::move(sql.rows());
   }
 
+  if (query.options.count("removed") && !query.options.at("removed")) {
+    diff_results.removed.clear();
+  }
+
   if (diff_results.added.empty() && diff_results.removed.empty()) {
     // No diff results or events to emit.
     return;
   }
 
   VLOG(1) << "Found results for query: " << name;
-  item.results = diff_results;
-  if (query.options.count("removed") && !query.options.at("removed")) {
-    item.results.removed.clear();
-  }
 
   status = logQueryLogItem(item);
   if (!status.ok()) {

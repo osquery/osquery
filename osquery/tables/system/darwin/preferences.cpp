@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <CoreFoundation/CoreFoundation.h>
@@ -241,7 +241,7 @@ QueryData genOSXDefaultPreferences(QueryContext& context) {
     // Listing ALL application preferences is deprecated.
     OSQUERY_USE_DEPRECATED(
         app_map = (CFMutableArrayRef)CFPreferencesCopyApplicationList(
-            *user, kCFPreferencesCurrentHost););
+            *user, kCFPreferencesCurrentHost));
     if (app_map != nullptr) {
       // Iterate over each preference domain (applicationID).
       preferencesIterator(app_map, true);
@@ -251,7 +251,7 @@ QueryData genOSXDefaultPreferences(QueryContext& context) {
     // Again for 'any' host.
     OSQUERY_USE_DEPRECATED(
         app_map = (CFMutableArrayRef)CFPreferencesCopyApplicationList(
-            *user, kCFPreferencesAnyHost););
+            *user, kCFPreferencesAnyHost));
     if (app_map != nullptr) {
       // Iterate over each preference domain (applicationID).
       preferencesIterator(app_map, false);

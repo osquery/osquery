@@ -1,9 +1,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # Make a best effort to dot-source our utils script
 $utils = Join-Path $(Get-Location) '.\tools\provision\chocolatey\osquery_utils.ps1'
@@ -71,7 +72,7 @@ function Invoke-OsqueryCmake {
     '-G "Visual Studio 14 2015 Win64"',
     '../../'
   )
-  $err = Start-OsqueryProcess $cmake $cmakeArgs $false
+  $null = Start-OsqueryProcess $cmake $cmakeArgs $false
 }
 
 # A helper function for build the osquery binaries. This must be
@@ -102,13 +103,17 @@ function Invoke-OsqueryMsbuild {
       '/m',
       '/v:m'
     )
-    $err = Start-OsqueryProcess $msbuild $msbuildArgs $false
+    $ret = Start-OsqueryProcess $msbuild $msbuildArgs $false
+    # The build failed, bail out early
+    if ($ret.exitcode -ne 0) {
+      return $ret
+    }
   }
 
-  # If desired, build our tests
+  # If the build failed, or we're skipping tests return
   $skipTests = [environment]::GetEnvironmentVariable("SKIP_TESTS")
-  if ($skipTests -ne $null) {
-    return
+  if (($ret.exitcode -ne 0) -or ($skipTests -ne $null)) {
+    return $ret
   }
 
   $targets = @(
@@ -124,7 +129,11 @@ function Invoke-OsqueryMsbuild {
       '/m',
       '/v:m'
     )
-    $err = Start-OsqueryProcess $msbuild $msbuildArgs $false
+    $ret = Start-OsqueryProcess $msbuild $msbuildArgs $false
+    # The build failed, bail out early
+    if ($ret.exitcode -ne 0) {
+      exit $ret.exitcode
+    }
   }
 
   # And finally, run the tests
@@ -134,7 +143,8 @@ function Invoke-OsqueryMsbuild {
     "$rel",
     '--output-on-failure'
   )
-  $err = Start-OsqueryProcess $ctest $ctestArgs $false
+  $ret = Start-OsqueryProcess $ctest $ctestArgs $false
+  return $ret
 }
 
 # A function for running cmake to generate the osquery solution,
@@ -160,19 +170,26 @@ function Invoke-OsqueryBuild {
     $ret = Invoke-VcVarsAll
   }
   if ($ret -ne $true) {
-    $msg = '[-] Failed to find vs build tools. Re-run ' + 
+    $msg = "`n[-] Failed to find vs build tools. Re-run " + 
            'tools\make-win64-dev-env.bat'
     Write-Host $msg -ForegroundColor Red
-    exit
+    exit 1
   }
 
   Invoke-OsqueryCmake
 
-  Invoke-OsqueryMsbuild
+  $ret = Invoke-OsqueryMsbuild
+  if ($ret.exitcode -ne 0) {
+    $msg = "`n[-] osquery build failed."
+    Write-Host $msg -ForegroundColor Red
+    exit $ret.exitcode
+  }
 
   $null = Set-Location $currentDir
-  Write-Host "[+] Build finished in $($sw.ElapsedMilliseconds) ms"
+  Write-Host "`n[+] Build finished in $($sw.ElapsedMilliseconds) ms"
+  return $ret.exitcode
 }
 
 # If the script is being invoked directly, we call our build function
-Invoke-OsqueryBuild
+$ret = Invoke-OsqueryBuild
+exit $ret

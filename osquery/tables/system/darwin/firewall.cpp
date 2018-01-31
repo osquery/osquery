@@ -1,17 +1,18 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/darwin/firewall.h"
 
 namespace pt = boost::property_tree;
@@ -87,6 +88,22 @@ QueryData parseALFExceptionsTree(const pt::ptree& tree) {
     r["path"] = it.second.get("path", "");
     r["state"] = INTEGER(it.second.get("state", -1));
     results.push_back(r);
+  }
+
+  auto applications_tree = tree.get_child("applications");
+  for (const auto& it : applications_tree) {
+    Row r;
+
+    if (it.second.get("alias", "").length() > 0) {
+      std::string path;
+      auto alias_data = it.second.get<std::string>("alias", "");
+
+      if (pathFromPlistAliasData(alias_data, path).ok()) {
+        r["path"] = path;
+        r["state"] = INTEGER(it.second.get("state", -1));
+        results.push_back(r);
+      }
+    }
   }
 
   return results;

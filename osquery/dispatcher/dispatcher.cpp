@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <osquery/dispatcher.h>
@@ -88,8 +88,10 @@ Status Dispatcher::addService(InternalRunnableRef service) {
   auto thread = std::make_shared<std::thread>(
       std::bind(&InternalRunnable::run, &*service));
   WriteLock lock(self.mutex_);
-  DLOG(INFO) << "Adding new service: " << service.get()
-             << " to thread: " << thread.get();
+  DLOG(INFO) << "Adding new service: " << service->name() << " ("
+             << service.get() << ") to thread: " << thread->get_id() << " ("
+             << thread.get() << ") in process " << platformGetPid();
+
   self.service_threads_.push_back(thread);
   self.services_.push_back(std::move(service));
   return Status(0, "OK");

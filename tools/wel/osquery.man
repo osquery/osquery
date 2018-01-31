@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<instrumentationManifest xsi:schemaLocation="http://schemas.microsoft.com/win/2004/08/events eventman.xsd" xmlns="http://schemas.microsoft.com/win/2004/08/events" xmlns:win="http://manifests.microsoft.com/win/2004/08/windows/events" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:trace="http://schemas.microsoft.com/win/2004/08/events/trace">
+	<instrumentation>
+		<events>
+			<provider name="Facebook" guid="{F7740E18-3259-434F-9759-976319968900}" symbol="OsqueryWindowsEventLogProvider" resourceFileName="%systemdrive%\ProgramData\osquery\osqueryd\osqueryd.exe" messageFileName="%systemdrive%\ProgramData\osquery\osqueryd\osqueryd.exe">
+				<events>
+					<event symbol="DebugMessage" value="1" version="0" channel="osquery" level="win:Warning" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="DebugWindowsEventLogMessage " message="$(string.osquery.event.1.message)"></event>
+					<event symbol="InfoMessage" value="2" version="0" channel="osquery" level="win:Informational" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="InfoWindowsEventLogMessage " message="$(string.osquery.event.2.message)"></event>
+					<event symbol="WarningMessage" value="3" version="0" channel="osquery" level="win:Warning" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="WarningWindowsEventLogMessage " message="$(string.osquery.event.3.message)"></event>
+					<event symbol="ErrorMessage" value="4" version="0" channel="osquery" level="win:Error" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="ErrorWindowsEventLogMessage " message="$(string.osquery.event.4.message)"></event>
+					<event symbol="FatalMessage" value="5" version="0" channel="osquery" level="win:Critical" task="LogMessage" opcode="MessageOpcode" template="_template_message" keywords="FatalWindowsEventLogMessage " message="$(string.osquery.event.5.message)"></event>
+				</events>
+				<levels></levels>
+				<tasks>
+					<task name="LogMessage" symbol="WindowsEventLogMessage" value="1" eventGUID="{D3C2B9E0-4AFE-41BD-99BE-F00EE4DFEB17}"></task>
+				</tasks>
+				<opcodes>
+					<opcode name="MessageOpcode" symbol="_opcode_message" value="10"></opcode>
+				</opcodes>
+				<channels>
+					<channel name="osquery" chid="osquery" symbol="OsqueryWindowsEventLogChannel" type="Admin" enabled="true" message="$(string.osquery.channel.PrimaryWindowsEventLogChannel.message)"></channel>
+				</channels>
+				<keywords>
+					<keyword name="InfoWindowsEventLogMessage" symbol="_keyword_info_message" mask="0x1"></keyword>
+					<keyword name="WarningWindowsEventLogMessage" symbol="_keyword_warning_message" mask="0x2"></keyword>
+					<keyword name="ErrorWindowsEventLogMessage" symbol="_keyword_error_message" mask="0x4"></keyword>
+					<keyword name="FatalWindowsEventLogMessage" symbol="_keyword_fatal_message" mask="0x8"></keyword>
+					<keyword name="DebugWindowsEventLogMessage" symbol="_keyword_debug_message" mask="0x10"></keyword>
+				</keywords>
+				<templates>
+					<template tid="_template_message">
+						<data name="Message" inType="win:AnsiString" outType="xs:string"></data>
+						<data name="Location" inType="win:AnsiString" outType="xs:string"></data>
+					</template>
+				</templates>
+			</provider>
+		</events>
+	</instrumentation>
+	<localization>
+		<resources culture="en-US">
+			<stringTable>
+				<string id="osquery.event.5.message" value="Fatal error"></string>
+				<string id="osquery.event.4.message" value="Error"></string>
+				<string id="osquery.event.3.message" value="Warning"></string>
+				<string id="osquery.event.2.message" value="Information"></string>
+				<string id="osquery.event.1.message" value="Debug"></string>
+				<string id="osquery.channel.PrimaryWindowsEventLogChannel.message" value="osquery"></string>
+				<string id="level.Warning" value="Warning"></string>
+				<string id="level.Verbose" value="Verbose"></string>
+				<string id="level.Informational" value="Information"></string>
+				<string id="level.Error" value="Error"></string>
+				<string id="level.Critical" value="Critical"></string>
+			</stringTable>
+		</resources>
+	</localization>
+</instrumentationManifest>

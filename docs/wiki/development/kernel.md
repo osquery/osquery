@@ -39,7 +39,7 @@ make kernel-test-load
 make kernel-test-unload
 ```
 
-> NOTICE: do not deploy a kernel built with `make kernel-build` as it is designed for testings. Always deploy artifacts generated through `make packages`.
+> NOTICE: do not deploy a kernel built with `make kernel-build` as it is designed for testing. Always deploy artifacts generated through `make packages`.
 
 ## Building on macOS for a debugging target machine (recommended)
 

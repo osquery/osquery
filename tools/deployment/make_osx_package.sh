@@ -3,9 +3,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 set -e
 
@@ -28,7 +29,8 @@ source "$SOURCE_DIR/tools/lib.sh"
 distro "darwin" BUILD_VERSION
 
 # Binary identifiers
-APP_VERSION=`git describe --tags HEAD`
+VERSION=`(cd $SOURCE_DIR; git describe --tags HEAD) || echo 'unknown-version'`
+APP_VERSION=${OSQUERY_BUILD_VERSION:="$VERSION"}
 APP_IDENTIFIER="com.facebook.osquery"
 KERNEL_APP_IDENTIFIER="com.facebook.osquery.kernel"
 LD_IDENTIFIER="com.facebook.osqueryd"

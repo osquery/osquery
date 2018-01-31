@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -14,6 +14,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
+#include <utility>
 
 #define GFLAGS_DLL_DEFINE_FLAG
 #define GFLAGS_DLL_DECLARE_FLAG
@@ -35,8 +36,8 @@ template <>
 bool lexical_cast<bool, std::string>(const std::string& arg);
 
 template <>
-std::string lexical_cast<std::string, bool>(const bool& b);
-}
+std::string lexical_cast<std::string, bool>(const bool& arg);
+} // namespace boost
 
 namespace osquery {
 
@@ -84,8 +85,8 @@ class Flag : private boost::noncopyable {
 
  private:
   /// Keep the ctor private, for accessing through `add` wrapper.
-  Flag() {}
-  virtual ~Flag() {}
+  Flag() = default;
+  virtual ~Flag() = default;
 
  public:
   /// The public flags instance, usable when parsing `--help`.
@@ -178,21 +179,21 @@ class FlagAlias {
     return *this;
   }
 
-  operator T() const {
+  /*explicit*/ operator T() const {
     return boost::lexical_cast<T>(Flag::getValue(name_));
   }
 
-  FlagAlias(const std::string& alias,
-            const std::string& type,
-            const std::string& name,
-            T* storage)
-      : name_(name) {}
+  FlagAlias(const std::string& /*alias*/,
+            const std::string& /*type*/,
+            std::string name,
+            T* /*storage*/)
+      : name_(std::move(name)) {}
 
  private:
   /// Friendly flag name.
   std::string name_;
 };
-}
+} // namespace osquery
 
 /*
  * @brief Replace gflags' `DEFINE_type` macros to track osquery flags.

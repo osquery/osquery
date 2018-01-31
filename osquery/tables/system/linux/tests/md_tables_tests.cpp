@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <linux/raid/md_p.h>
@@ -13,6 +13,8 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <utility>
 
 #include "osquery/tables/system/linux/md_tables.h"
 
@@ -35,7 +37,7 @@ class GetDrivesForArrayTest : public ::testing::Test {};
 
 mdu_disk_info_t getDiskInfo(
     int number, int raidDisk, int state, int major, int minor) {
-  mdu_disk_info_t diskInfo;
+  mdu_disk_info_t diskInfo{};
 
   diskInfo.number = number;
   diskInfo.raid_disk = raidDisk;
@@ -57,7 +59,7 @@ mdu_disk_info_t getDiskInfo(
  * @param targetDisks the target disks that will return custom mdu_disk_info_t
  * @param got reference to QueryData to be passed to to getDrivesForArray
  */
-void GetDrivesForArrayTestHarness(std::string arrayName,
+void GetDrivesForArrayTestHarness(const std::string& arrayName,
                                   int arrayRaidDisks,
                                   const std::string& blkDevicePrefix,
                                   std::map<int, mdu_disk_info_t> targetDisks,
@@ -67,14 +69,14 @@ void GetDrivesForArrayTestHarness(std::string arrayName,
 
   EXPECT_CALL(md, getPathByDevName(_)).WillOnce(Return(arrayDevPath));
 
-  mdu_array_info_t arrayInfo;
+  mdu_array_info_t arrayInfo{};
   arrayInfo.raid_disks = arrayRaidDisks;
   EXPECT_CALL(md, getArrayInfo(arrayDevPath, _))
       .WillOnce(DoAll(SetArgReferee<1>(arrayInfo), Return(true)));
 
   Sequence s1;
   for (int i = 0; i < MD_SB_DISKS; i++) {
-    mdu_disk_info_t diskInfo;
+    mdu_disk_info_t diskInfo{};
     diskInfo.number = i;
     if (targetDisks.find(i) != targetDisks.end()) {
       EXPECT_CALL(md, getDiskInfo(arrayDevPath, _))
@@ -527,7 +529,7 @@ TEST_F(GetDrivesForArrayTest, arrayInfo_ioctl_error) {
   QueryData got;
   getDrivesForArray("md0", md, got);
 
-  EXPECT_TRUE(got.size() == 0);
+  EXPECT_TRUE(got.empty());
 };
 
 class ParseMDStatTest : public ::testing::Test {};
@@ -651,11 +653,7 @@ bool operator==(MDStat const& lhs, MDStat const& rhs) {
     }
   }
 
-  if (lhs.unused != rhs.unused) {
-    return false;
-  }
-
-  return true;
+  return lhs.unused == rhs.unused;
 }
 
 bool operator!=(MDStat const& lhs, MDStat const& rhs) {
@@ -664,7 +662,7 @@ bool operator!=(MDStat const& lhs, MDStat const& rhs) {
 
 MDDrive getMDDrive(std::string name, size_t pos) {
   MDDrive drive;
-  drive.name = name;
+  drive.name = std::move(name);
   drive.pos = pos;
 
   return drive;

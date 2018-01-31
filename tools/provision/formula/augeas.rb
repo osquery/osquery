@@ -3,16 +3,17 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Augeas < AbstractOsqueryFormula
   desc "A configuration editing tool and API"
   homepage "http://augeas.net/"
+  license "LGPL-2.1+"
   url "https://github.com/hercules-team/augeas.git",
-    :revision => "aacc8ac07f6722622b73d9183b9acc666906d2e9"
-  version "1.8.1"
+    :revision => "3775c2bf53fef5f694fcf25308cee1dfe00600c4"
+  version "1.9.0"
   revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "3e09566342fbb532676db198d8c3b5c5bacdb3bc633dd751f19ac2a3b184631c" => :sierra
-    sha256 "a0fbaf826489cf8d1f5bce151d49e7b4a1704ed3ebc0b5c7a8d21f14bd615b51" => :x86_64_linux
+    sha256 "4d64984c408db64f33e4ba629195caa96ede0e02c1bcb7154fc2c9dc195ff4e9" => :sierra
+    sha256 "38b142641d71776eda481341e4e5d1b7396f30ae9266801416fa6129fcb01c15" => :x86_64_linux
   end
 
   # The autoconfigure requests readline.
@@ -55,9 +56,9 @@ index 5230efe..d639e14 100644
 @@ -91,7 +91,7 @@ AUGEAS_COMPILE_WARNINGS(maximum)
  AUGEAS_CFLAGS=-std=gnu99
  AC_SUBST(AUGEAS_CFLAGS)
- 
+
 -AUGEAS_CHECK_READLINE
 +# AUGEAS_CHECK_READLINE
  AC_CHECK_FUNCS([open_memstream uselocale])
- 
+
  AC_MSG_CHECKING([how to pass version script to the linker ($LD)])

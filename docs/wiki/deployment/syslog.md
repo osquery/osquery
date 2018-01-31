@@ -16,7 +16,7 @@ The configuration for `/var/log/install.log` and `/var/log/commerce.log` is hard
 
 The `asl` table can be queried like any other osquery table. It exposes many of the columns of structured data from the ASL store, and other additional columns are made available as a JSON dictionary in the `extra` column. Use `.schema asl` in the `osqueryi` shell to see the schema.
 
-Basic query predicates (`<`, `<=`, `=`, `>=`, `>`) are able to be efficiently queried in the store. The `LIKE` predicate is also supported, however it must be tested after applying all othe predicates and reading logs from the store. For performance reasons, it is suggested to use at least one basic predicate in a query against the `asl` table. For example,
+Basic query predicates (`<`, `<=`, `=`, `>=`, `>`) are able to be efficiently queried in the store. The `LIKE` predicate is also supported, however it must be tested after applying all other predicates and reading logs from the store. For performance reasons, it is suggested to use at least one basic predicate in a query against the `asl` table. For example,
 
 ```
 SELECT time, message FROM asl WHERE facility = 'authpriv' AND sender = 'sudo' AND message LIKE '%python%';

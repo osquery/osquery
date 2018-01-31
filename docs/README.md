@@ -52,7 +52,7 @@ You can preview your contributions before opening a pull request by running from
 1. `bundle install --without test test_legacy benchmark`
 2. `bundle exec jekyll serve`
 
-It's just a Jekyll site, afterall!
+It's just a Jekyll site, after all!
 
 This [GitHub guide](https://help.github.com/articles/adding-a-jekyll-theme-to-your-github-pages-site/) was helpful for getting started.
 
@@ -90,11 +90,11 @@ New wiki pages should be organized into one of the following categories:
 - **Deployment**: Tool concepts and all the wonderful goodies of making osquery useful.
 - **Development**: Help and guides for starting with osquery development and build.
 
-Make a new "filename.md" within the category folder withing `/docs/wiki/CATEGORY/`. Then add the friendly page title and path to [mkdocs.yml](https://github.com/facebook/osquery/blob/master/mkdocs.yml), in the order the page should appear within the wiki sidebar.
+Make a new "filename.md" within the category folder within `/docs/wiki/CATEGORY/`. Then add the friendly page title and path to [mkdocs.yml](https://github.com/facebook/osquery/blob/master/mkdocs.yml), in the order the page should appear within the wiki sidebar.
 
 ### Wiki style tips
 
-- Inline code highlighing (`$ echo 'this is inline'`) does not look the best in RTD, try to have as little inline syntax highlighting as possible.
+- Inline code highlighting (`$ echo 'this is inline'`) does not look the best in RTD, try to have as little inline syntax highlighting as possible.
 - **osqueryd**, **osqueryi** and other tool names should be in bold. Use `inline highligh` when a tool or script is mentioned for the first time.
 - Filesystem paths and non-clickable URI examples should also be bold.
 - Flag names are usually in quotes, `inline highlight` when introduced for the first time or used as an example.
@@ -109,7 +109,7 @@ The output HTML documentation is written to `./build/docs/html/`. Use `index.htm
 
 Table schema, the osquery user API, is created using the Python-based ".spec" files in [`./specs`](https://github.com/facebook/osquery/tree/master/specs). More documentation on how specs work can be found in the [Creating New Tables](http://osquery.readthedocs.org/en/stable/development/creating-tables/) developer documentation. These files are used to build osquery, but can be parsed to create JSON-based API schema. This JSON is published to the homepage at [https://osquery.io/schema/].
 
-Use: `./tools/codegen/genapi.py` to generate the amalgamated schema. To generate a "change log" between tags, use the same script but use `--diff` and supply the two JSON imputs.
+Use: `./tools/codegen/genapi.py` to generate the amalgamated schema. To generate a "change log" between tags, use the same script but use `--diff` and supply the two JSON inputs.
 
 ```python
 ./tools/codegen/genapi.py > ./build/docs/CURRENT.json

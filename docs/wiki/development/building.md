@@ -109,7 +109,7 @@ To speed up the format auditing process please configure your code editor to run
 
 ## Dependencies and build internals
 
-The `make deps` command is fairly intense and serves two purposes: (1) to communicate a standard set of environment setup instructions for our build and test nodes, (2) to provide an environment for reproducing errors. The are wonderful auxiliary benefits such as controlling the compiler and compile flags for almost all of our dependencies, controlling security-related features for dependencies, allowing a "mostly" universal build for Linux that makes deployment simple. To read more about the motivation and FAQ for our dependencies environment see the [Github Refererence #2253](https://github.com/facebook/osquery/issues/2253).
+The `make deps` command is fairly intense and serves two purposes: (1) to communicate a standard set of environment setup instructions for our build and test nodes, (2) to provide an environment for reproducing errors. The are wonderful auxiliary benefits such as controlling the compiler and compile flags for almost all of our dependencies, controlling security-related features for dependencies, allowing a "mostly" universal build for Linux that makes deployment simple. To read more about the motivation and FAQ for our dependencies environment see the [Github Reference #2253](https://github.com/facebook/osquery/issues/2253).
 
 When using `make deps` the environment the resultant binaries will have a minimum set of requirements to run:
 

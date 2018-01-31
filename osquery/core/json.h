@@ -1,12 +1,12 @@
-/*
-*  Copyright (c) 2014-present, Facebook, Inc.
-*  All rights reserved.
-*
-*  This source code is licensed under the BSD-style license found in the
-*  LICENSE file in the root directory of this source tree. An additional grant
-*  of patent rights can be found in the PATENTS file in the same directory.
-*
-*/
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
+ */
 
 #pragma once
 
@@ -23,8 +23,8 @@
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
-typedef ::std::size_t SizeType;
-}
+using SizeType = ::std::size_t;
+} // namespace rapidjson
 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
@@ -152,4 +152,4 @@ class JSON : private only_movable {
   rapidjson::Document doc_;
   decltype(rapidjson::kObjectType) type_;
 };
-}
+} // namespace osquery

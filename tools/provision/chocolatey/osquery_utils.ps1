@@ -1,9 +1,10 @@
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
 #
-#  This source code is licensed under the BSD-style license found in the
-#  LICENSE file in the root directory of this source tree. An additional grant
-#  of patent rights can be found in the PATENTS file in the same directory.
+#  This source code is licensed under both the Apache 2.0 license (found in the
+#  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+#  in the COPYING file in the root directory of this source tree).
+#  You may select, at your option, one of the above-listed licenses.
 
 # Helper function to add an explicit Deny-Write ACE for the Everyone group
 function Set-DenyWriteAcl {
@@ -169,6 +170,24 @@ function Get-OsqueryBuildPath {
     }
   }
   return $ret
+}
+
+# Helper function to add to the SYSTEM path
+function Add-ToSystemPath {
+  param(
+    [string] $targetFolder = ''
+  )
+
+  $oldPath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+  if (-not ($oldPath -imatch [regex]::escape($targetFolder))) {
+    $newPath = $oldPath
+    if ($oldPath[-1] -eq ';') {
+      $newPath = $newPath + $targetFolder
+    } else {
+      $newPath = $newPath + ';' + $targetFolder
+    }
+    [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'Machine')
+  }
 }
 
 # A helper function for starting and waiting on processes in powershell

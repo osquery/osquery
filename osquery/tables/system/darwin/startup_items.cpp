@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <boost/filesystem.hpp>
@@ -14,8 +14,6 @@
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
-
-#include "osquery/core/conversions.h"
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -57,51 +55,8 @@ void genLibraryStartupItems(const std::string& sysdir, QueryData& results) {
   }
 }
 
-/// Parse a Login Items Plist Alias data for bin path
-Status parseAliasData(const std::string& data, std::string& result) {
-  auto decoded = base64Decode(data);
-  if (decoded.size() == 0) {
-    // Base64 encoded data (from plist parsing) failed to decode.
-    return Status(1, "Failed base64 decode");
-  }
-
-  auto alias = CFDataCreate(
-      kCFAllocatorDefault, (const UInt8*)decoded.c_str(), decoded.size());
-  if (alias == nullptr) {
-    // Failed to create CFData object.
-    return Status(2, "CFData allocation failed");
-  }
-
-  auto bookmark =
-      CFURLCreateBookmarkDataFromAliasRecord(kCFAllocatorDefault, alias);
-  if (bookmark == nullptr) {
-    CFRelease(alias);
-    return Status(1, "Alias data is not a bookmark");
-  }
-
-  auto url = CFURLCreateByResolvingBookmarkData(
-      kCFAllocatorDefault, bookmark, 0, nullptr, nullptr, nullptr, nullptr);
-  if (url == nullptr) {
-    CFRelease(alias);
-    CFRelease(bookmark);
-    return Status(1, "Alias data is not a URL bookmark");
-  }
-
-  // Get the URL-formatted path.
-  result = stringFromCFString(CFURLGetString(url));
-  if (result.substr(0, 7) == "file://") {
-    result = result.substr(7);
-  }
-
-  CFRelease(alias);
-  CFRelease(bookmark);
-  CFRelease(url);
-  return Status(0, "OK");
-}
-
-void genLoginItems(const fs::path& homedir, QueryData& results) {
+void genLoginItems(const fs::path& sipath, QueryData& results) {
   pt::ptree tree;
-  fs::path sipath = homedir / kLoginItemsPlistPath;
   if (!pathExists(sipath.string()).ok() || !isReadable(sipath.string()).ok()) {
     // User does not have a startup items list, or bad permissions.
     return;
@@ -123,11 +78,12 @@ void genLoginItems(const fs::path& homedir, QueryData& results) {
 
         auto alias_data = entry.second.get<std::string>("Alias", "");
         std::string bin_path;
-        if (!parseAliasData(alias_data, bin_path).ok()) {
-          VLOG(1) << "No valid path found for " << r["name"] << " in "
-                  << sipath;
+        auto s = pathFromPlistAliasData(alias_data, bin_path);
+        if (!s.ok()) {
+          VLOG(1) << "No valid path found for " << r["name"] << ": "
+                  << s.getMessage();
         }
-        r["path"] = bin_path;
+        r["path"] = std::move(bin_path);
         results.push_back(r);
       }
     } catch (const pt::ptree_error& e) {
@@ -144,7 +100,8 @@ QueryData genStartupItems(QueryContext& context) {
 
   // Get the login items available in System Preferences for each user.
   for (const auto& dir : getHomeDirectories()) {
-    genLoginItems(dir, results);
+    auto sipath = dir / kLoginItemsPlistPath;
+    genLoginItems(sipath.string(), results);
   }
 
   // Find system wide startup items in Library directories.

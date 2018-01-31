@@ -39,13 +39,13 @@ If no `--flagfile` is provided, osquery will try to find and use a "default" fla
 
 ### Configuration control flags
 
-`--config_plugin="filesystem"`
+`--config_plugin=filesystem`
 
 Config plugin name. The type of configuration retrieval, the default **filesystem** plugin reads a configuration JSON from disk.
 
 Built-in options include: **filesystem**, **tls**
 
-`--config_path="/etc/osquery/osquery.conf"`
+`--config_path=/etc/osquery/osquery.conf`
 
 The **filesystem** config plugin's path to a JSON file.
 On macOS the default path is **/var/osquery/osquery.conf**.
@@ -107,6 +107,10 @@ This value is a maximum number of CPU cycles counted as the `processes` table's 
 
 A delay in seconds before the watchdog process starts enforcing memory and CPU utilization limits. The default value `60s` allows the daemon to perform resource intense actions, such as forwarding logs, at startup.
 
+`--enable_extensions_watchdog=false`
+
+By default the watchdog monitors extensions for improper shutdown, but NOT for performance and utilization issues. Enable this flag if you would like extensions to use the same CPU and memory limits as the osquery worker. This means that your extensions or third-party extensions may be asked to stop and restart during execution.
+
 `--utc=true`
 
 Attempt to convert all UNIX calendar times to UTC.
@@ -114,6 +118,18 @@ Attempt to convert all UNIX calendar times to UTC.
 `--table_delay=0`
 
 Add a microsecond delay between multiple table calls (when a table is used in a JOIN). A `200` microsecond delay will trade about 20% additional time for a reduced 5% CPU utilization.
+
+`--hash_cache_max=500`
+
+The `hash` table implements a cache that is invalidated when file path inodes are changed. Eviction occurs in chunks if the max-size is reached. This max should remain relatively low since it will persist in the daemon's resident memory.
+
+`--hash_delay=20`
+
+Add a millisecond delay between multiple `hash` attempts (aka when scanning a directory). This adds about 50% additional wall-time for 150 files. This reduces the instantaneous resource need from hashing new files.
+
+`--disable_hash_cache=false`
+
+Set this to true if you would like to disable file hash caching and always regenerate the file hashes every request. The default osquery configuration may report hashes incorrectly if things are editing filesystems outside of the OS's control.
 
 **Windows Only**
 
@@ -163,19 +179,19 @@ Optional comma-delimited set of extension names to require before **osqueryi** o
 
 When using non-default [remote](../deployment/remote.md) plugins such as the **tls** config, logger and distributed plugins, there are process-wide settings applied to every plugin.
 
-`--tls_hostname=""`
+`--tls_hostname=`
 
 When using **tls**-based config or logger plugins, a single TLS host URI is used. Using separate hosts for configuration and logging is not supported among the **tls**-based plugin suite. Provide a host name and optional port, e.g.: `facebook.com` or `facebook.com:443`.
 
-`--tls_client_cert=""`
+`--tls_client_cert=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a PEM-formatted client TLS certificate.
 
-`--tls_client_key=""`
+`--tls_client_key=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a decrypted/password-less PEM-formatted client TLS private key.
 
-`--tls_server_certs=""`
+`--tls_server_certs=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optionally provide a path to a PEM-formatted server or authority certificate bundle. This path will be used as either an explicit set of accepted certificates or an OpenSSL-verify path directory of well-formed filename certificates.
 
@@ -183,11 +199,11 @@ See the **tls**/[remote](../deployment/remote.md) plugin documentation. Optional
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. Remote plugins use an enrollment process to enable possible server-side implemented authentication and identification/authorization. Config and logger plugins implicitly require enrollment features. It is not recommended to disable enrollment and this option may be removed in the future.
 
-`--enroll_secret_path=""`
+`--enroll_secret_path=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. A very simple authentication/enrollment involves posting a deployment or staged shared secret. This secret should be protected on the host, but potentially shared among an enterprise or fleet. Provide a path for the osquery process to read and use during enrollment phases.
 
-`--config_tls_endpoint=""`
+`--config_tls_endpoint=`
 
 The **tls** endpoint path, e.g.: **/api/v1/config** when using the **tls** config plugin. See the other **tls_** related CLI flags.
 
@@ -195,11 +211,11 @@ The **tls** endpoint path, e.g.: **/api/v1/config** when using the **tls** confi
 
 The total number of attempts that will be made to the remote config server if a request fails.
 
-`--logger_tls_endpoint=""`
+`--logger_tls_endpoint=`
 
 The **tls** endpoint path, e.g.: **/api/v1/logger** when using the **tls** logger plugin. See the other **tls_** related CLI flags.
 
-`--enrollment_tls_endpoint=""`
+`--enrollment_tls_endpoint=`
 
 See the **tls**/[remote](../deployment/remote.md) plugin documentation. An enrollment process will be used to allow server-side implemented authentication and identification/authorization. You must provide an endpoint relative to the `--tls_hostname` URI.
 
@@ -217,15 +233,11 @@ It is common for TLS/HTTPS servers to enforce a maximum request body size. The d
 
 Use this only in emergency situations as size violations are dropped. It is extremely uncommon for this to occur, as the `--value_max` for each column would need to be drastically larger, or the offending table would have to implement several hundred columns.
 
-`--logger_min_status=0`
-
-The minimum level for status log recording. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. When using `--verbose` this value is ignored.
-
-`--distributed_tls_read_endpoint=""`
+`--distributed_tls_read_endpoint=`
 
 The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for retrieving distributed queries when using the **tls** distributed plugin.
 
-`--distributed_tls_write_endpoint=""`
+`--distributed_tls_write_endpoint=`
 
 The URI path which will be used, in conjunction with `--tls_hostname`, to create the remote URI for submitting the results of distributed queries when using the **tls** distributed plugin.
 
@@ -326,15 +338,36 @@ Log scheduled results as events.
 
 Log scheduled snapshot results as events, similar to differential results. If this is set to `true` then each row from a snapshot query will be logged individually.
 
+`--logger_min_status=0`
+
+The minimum level for status log recording. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. When using `--verbose` this value is ignored.
+
+`--logger_min_stderr=0`
+
+The minimum level for status logs written to stderr. Use the following values: `INFO = 0, WARNING = 1, ERROR = 2`. To disable all status messages use 3+. It does NOT limit or control the types sent to the logger plugin. When using `--verbose` this value is ignored.
+
+`--logger_stderr=true`
+
+The default behavior is to also write status logs to stderr. Set this flag to false to disable writing (copying) status logs to stderr. In this case `--verbose` is respected.
+
+`--logger_secondary_status_only=false`
+
+This is a rarely used logger plugin option. When enabled, the "secondary" logger plugins will only receive status logs. For an example if your `-logger_plugin=tls,firehose,syslog` then status logs would be sent to all 3 plugins, and query results will only be sent to `tls`.
+
 `--host_identifier=hostname`
 
-Field used to identify the host running osquery: **hostname**, **uuid**, **ephemeral**, **instance**.
+Field used to identify the host running osquery: **hostname**, **uuid**, **ephemeral**, **instance**, **specified**.
 
-DHCP may assign variable hostnames, if this is the case, you may need a consistent logging label. Three options are available to you:
+DHCP may assign variable hostnames, if this is the case, you may need a consistent logging label. Four options are available to you:
 
 - `uuid` uses the platform (DMTF) host UUID, fetched at process start.
 - `instance` uses an instance-unique UUID generated at process start, persisted in the backing store.
 - `ephemeral` uses an instance-unique UUID generated at process start, not persisted.
+- `specified` uses an ID provided by the `--specified_identifier` flag.
+
+`--specified_identifier=this.is.the.identifier`
+
+If `--host_identifier=specified` is set, use this value as the host identifier.
 
 `--verbose=false`
 
@@ -361,17 +394,9 @@ Set the syslog facility (number) 0-23 for the results log. When using the **sysl
 
 Prepend a `@cee:` cookie to JSON-formatted messages sent to the **syslog** logger plugin. Several syslog parsers use this cookie to indicate that the message payload is parseable JSON. The default value is false.
 
-`--logtostderr=true`
-
-This is default `true` and will also send log messages in GLog format to the process's `stderr`. The logs are limited by severity and the following flag: `--stderrthreshold`.
-
-`--stderrthreshold=2`
-
-This controls the types of logs sent to the process's `stderr`. It does NOT limit or control the types sent to the logger plugin. The default value 2 is `ERROR`, set this to `0` for all non-verbose types. If the `--verbose` flag is set this value is overridden to `0`.
-
 `--logger_kafka_brokers`
 
-A comma delimited list of Kafka brokers to connect to.  Format can be `host:port` or just `host` with the port number falling back to the default value of `9092`.
+A comma delimited list of Kafka brokers to connect to.  Format can be `protocol://host:port`, `host:port` or just `host` with the port number falling back to the default value of `9092`.  `protocol` can be `plaintext` (default) or `ssl`.  When protocol is `ssl`, `--tls_server_certs` value is used as certificate trust store.  Optionally `--tls_client_cert` and `--tls_client_key` can be provided for TLS client authentication with Kafka brokers.
 
 `--logger_kafka_topic`
 
@@ -379,7 +404,7 @@ The Kafka topic to publish logs to.  When using multiple topics this configurati
 
 `--logger_kafka_acks`
 
-The number of acknowledgments the Kafka leader has to receive before a publish is considered succesful.  Valid options are (0, 1, "all").
+The number of acknowledgments the Kafka leader has to receive before a publish is considered successful.  Valid options are (0, 1, "all").
 
 ### Distributed query service flags
 

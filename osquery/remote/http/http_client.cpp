@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <osquery/logger.h>
@@ -113,7 +113,7 @@ void Client::createConnection() {
     beast_http_request req;
     req.method(beast_http::verb::connect);
     req.target(remote_host + ":" + remote_port);
-    req.version = 11;
+    req.version(11);
     req.prepare_payload();
     beast_http::write(sock_, req);
 
@@ -185,8 +185,19 @@ void Client::sendRequest(STREAM_TYPE& stream,
                          Request& req,
                          beast_http_response_parser& resp) {
   req.target((req.remotePath()) ? *req.remotePath() : "/");
-  req.version = 11;
-  req.set(beast_http::field::host, *client_options_.remote_hostname_);
+  req.version(11);
+
+  if (req[beast_http::field::host].empty()) {
+    std::string host_header_value = *client_options_.remote_hostname_;
+    if (ssl_connection &&
+        (kHTTPSDefaultPort != *client_options_.remote_port_)) {
+      host_header_value += ':' + *client_options_.remote_port_;
+    } else if (kHTTPDefaultPort != *client_options_.remote_port_) {
+      host_header_value += ':' + *client_options_.remote_port_;
+    }
+    req.set(beast_http::field::host, host_header_value);
+  }
+
   req.prepare_payload();
   req.keep_alive(true);
 
@@ -196,16 +207,19 @@ void Client::sendRequest(STREAM_TYPE& stream,
   }
 
   beast_http_request_serializer sr{req};
-  beast_http::async_write(stream, sr, [&](boost_system::error_code const& ec) {
-    if (client_options_.timeout_) {
-      timer_.cancel();
-    }
+  beast_http::async_write(
+      stream,
+      sr,
+      [&](boost_system::error_code const& ec, size_t bytes_transferred) {
+        if (client_options_.timeout_) {
+          timer_.cancel();
+        }
 
-    if ((ec.value() != boost_system::errc::operation_canceled) ||
-        (ec.category() != boost_asio::error::system_category)) {
-      ec_ = ec;
-    }
-  });
+        if ((ec.value() != boost_system::errc::operation_canceled) ||
+            (ec.category() != boost_asio::error::system_category)) {
+          ec_ = ec;
+        }
+      });
 
   ios_.run();
   ios_.reset();
@@ -221,7 +235,10 @@ void Client::sendRequest(STREAM_TYPE& stream,
 
   boost::beast::flat_buffer b;
   beast_http::async_read(
-      stream, b, resp, [&](boost_system::error_code const& ec) {
+      stream,
+      b,
+      resp,
+      [&](boost_system::error_code const& ec, size_t bytes_transferred) {
         if (client_options_.timeout_) {
           timer_.cancel();
         }
@@ -308,7 +325,7 @@ Response Client::put(Request& req,
                      std::string const& body,
                      std::string const& content_type) {
   req.method(beast_http::verb::put);
-  req.body = body;
+  req.body() = body;
   if (!content_type.empty()) {
     req.set(beast_http::field::content_type, content_type);
   }
@@ -319,7 +336,7 @@ Response Client::post(Request& req,
                       std::string const& body,
                       std::string const& content_type) {
   req.method(beast_http::verb::post);
-  req.body = body;
+  req.body() = body;
   if (!content_type.empty()) {
     req.set(beast_http::field::content_type, content_type);
   }
@@ -330,7 +347,7 @@ Response Client::put(Request& req,
                      std::string&& body,
                      std::string const& content_type) {
   req.method(beast_http::verb::put);
-  req.body = std::move(body);
+  req.body() = std::move(body);
   if (!content_type.empty()) {
     req.set(beast_http::field::content_type, content_type);
   }
@@ -341,7 +358,7 @@ Response Client::post(Request& req,
                       std::string&& body,
                       std::string const& content_type) {
   req.method(beast_http::verb::post);
-  req.body = std::move(body);
+  req.body() = std::move(body);
   if (!content_type.empty()) {
     req.set(beast_http::field::content_type, content_type);
   }

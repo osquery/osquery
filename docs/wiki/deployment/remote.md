@@ -179,7 +179,7 @@ The TLS client does not handle HTTP errors, if the service returns a bad request
 
 We include a very basic example python TLS/HTTPS server: [./tools/tests/test_http_server.py](https://github.com/facebook/osquery/blob/master/tools/tests/test_http_server.py). And a set of unit/integration tests: [./osquery/remote/transports/tests/tls_transports_tests.cpp](https://github.com/facebook/osquery/blob/master/osquery/remote/transports/tests/tls_transports_tests.cpp) for a reference server implementation.
 
-The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use boost's ASIO header-libraries through the [cpp-netlib](http://cpp-netlib.org/) HTTPS library.
+The TLS clients built into osquery use the system-provided OpenSSL libraries. The clients use osquery's http_client built on top of Boost.Beast ASIO header-library.
 
 On macOS, Linux, and FreeBSD the TLS client prefers the TLS 1.2 protocol, but includes TLS 1.1/1.0 as well as the following cipher suites:
 

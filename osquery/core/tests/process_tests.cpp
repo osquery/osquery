@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #ifndef WIN32
@@ -128,7 +128,6 @@ TEST_F(ProcessTests, test_launchExtension) {
   {
     auto process =
         PlatformProcess::launchExtension(kProcessTestExecPath.c_str(),
-                                         "extension-test",
                                          kExpectedExtensionArgs[3],
                                          kExpectedExtensionArgs[5],
                                          kExpectedExtensionArgs[7],
@@ -168,23 +167,4 @@ TEST_F(ProcessTests, test_launchWorker) {
     EXPECT_EQ(code, WORKER_SUCCESS_CODE);
   }
 }
-
-#ifdef WIN32
-TEST_F(ProcessTests, test_launchExtensionQuotes) {
-  {
-    auto process =
-        PlatformProcess::launchExtension(kProcessTestExecPath.c_str(),
-                                         "exten\"sion-te\"st",
-                                         "socket-name",
-                                         "100",
-                                         "5",
-                                         true);
-    EXPECT_NE(nullptr, process.get());
-
-    int code = 0;
-    EXPECT_TRUE(getProcessExitCode(*process, code));
-    EXPECT_EQ(code, EXTENSION_SUCCESS_CODE);
-  }
-}
-#endif
 }

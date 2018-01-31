@@ -1,29 +1,34 @@
 
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <unistd.h>
 
-#include <librdkafka/rdkafka.h>
+#include <boost/algorithm/string/find.hpp>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
-#include <osquery/logger.h>
 #include <osquery/system.h>
 
 #include "osquery/config/parsers/kafka_topics.h"
 #include "osquery/logger/plugins/kafka_producer.h"
+#include "osquery/remote/transports/tls.h"
 
 namespace osquery {
+
+DECLARE_string(tls_client_cert);
+DECLARE_string(tls_client_key);
+DECLARE_string(tls_server_certs);
+DECLARE_bool(verbose);
 
 FLAG(string,
      logger_kafka_brokers,
@@ -63,6 +68,22 @@ static inline void delKafkaConf(rd_kafka_conf_t* conf) {
   if (conf != nullptr) {
     rd_kafka_conf_destroy(conf);
   }
+}
+
+static inline bool setConf(rd_kafka_conf_t* conf,
+                           const std::string& key,
+                           const std::string& value,
+                           char* errstr) {
+  if (!value.empty() &&
+      rd_kafka_conf_set(
+          conf, key.c_str(), value.c_str(), errstr, sizeof(errstr)) !=
+          RD_KAFKA_CONF_OK) {
+    LOG(ERROR) << "Could not set Kafka configuration key '" << key
+               << "': " << errstr;
+    delKafkaConf(conf);
+    return false;
+  }
+  return true;
 }
 
 REGISTER(KafkaProducerPlugin, "logger", "kafka_producer");
@@ -151,22 +172,24 @@ void KafkaProducerPlugin::init(const std::string& name,
    */
   auto conf = rd_kafka_conf_new();
 
-  if (rd_kafka_conf_set(
-          conf, "client.id", hostname.c_str(), errstr, sizeof(errstr)) !=
-      RD_KAFKA_CONF_OK) {
-    LOG(ERROR) << "Could not initiate Kafka client.id configuration: "
-               << errstr;
-    delKafkaConf(conf);
-    return;
+  if (FLAGS_verbose) {
+    setConf(conf, "debug", "all", errstr);
   }
 
-  if (rd_kafka_conf_set(conf,
-                        "bootstrap.servers",
-                        FLAGS_logger_kafka_brokers.c_str(),
-                        errstr,
-                        sizeof(errstr)) != RD_KAFKA_CONF_OK) {
-    LOG(ERROR) << "Could not initiate Kafka brokers configuration: " << errstr;
-    delKafkaConf(conf);
+  if (!boost::algorithm::ifind_first(FLAGS_logger_kafka_brokers, "ssl://")
+           .empty()) {
+    if (!setConf(conf, "security.protocol", "ssl", errstr) ||
+        !setConf(conf, "ssl.cipher.suites", kTLSCiphers, errstr) ||
+        !setConf(conf, "ssl.ca.location", FLAGS_tls_server_certs, errstr) ||
+        !setConf(conf, "ssl.key.location", FLAGS_tls_client_key, errstr) ||
+        !setConf(
+            conf, "ssl.certificate.location", FLAGS_tls_client_cert, errstr)) {
+      return;
+    }
+  }
+
+  if (!setConf(conf, "client.id", hostname, errstr) ||
+      !setConf(conf, "bootstrap.servers", FLAGS_logger_kafka_brokers, errstr)) {
     return;
   }
 
@@ -315,7 +338,6 @@ bool KafkaProducerPlugin::configureTopics() {
     }
 
     queryToTopics_[kKafkaBaseTopic] = topic;
-
   } else {
     /* If no previous topics successfully configured and no base topic is set
      * then configuration fails.*/

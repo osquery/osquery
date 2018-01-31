@@ -3,6 +3,7 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Libarchive < AbstractOsqueryFormula
   desc "Multi-format archive and compression library"
   homepage "http://www.libarchive.org"
+  license "BSD-2-Clause"
   url "http://www.libarchive.org/downloads/libarchive-3.3.2.tar.gz"
   sha256 "ed2dbd6954792b2c054ccf8ec4b330a54b85904a80cef477a1c74643ddafa0ce"
   revision 100

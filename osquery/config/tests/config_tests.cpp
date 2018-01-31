@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <memory>
@@ -31,6 +31,9 @@ namespace osquery {
 
 DECLARE_uint64(config_refresh);
 DECLARE_uint64(config_accelerated_refresh);
+
+const std::string kConfigTestNonBlacklistQuery{
+    "pack_unrestricted_pack_process_heartbeat"};
 
 // Blacklist testing methods, internal to config implementations.
 extern void restoreScheduleBlacklist(std::map<std::string, size_t>& blacklist);
@@ -266,17 +269,79 @@ TEST_F(ConfigTests, test_content_update) {
 }
 
 TEST_F(ConfigTests, test_get_scheduled_queries) {
+  std::vector<std::string> query_names;
   std::vector<ScheduledQuery> queries;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack());
-  get().scheduledQueries(
-      ([&queries](const std::string&, const ScheduledQuery& query) {
-        queries.push_back(query);
-      }));
+  get().scheduledQueries(([&queries, &query_names](
+      const std::string& name, const ScheduledQuery& query) {
+    query_names.push_back(name);
+    queries.push_back(query);
+  }));
 
   auto expected_size = getUnrestrictedPack().get_child("queries").size();
   EXPECT_EQ(queries.size(), expected_size)
       << "The number of queries in the schedule (" << queries.size()
       << ") should equal " << expected_size;
+  ASSERT_FALSE(query_names.empty());
+
+  // Construct a schedule blacklist and place the first scheduled query.
+  std::map<std::string, size_t> blacklist;
+  std::string query_name = query_names[0];
+  blacklist[query_name] = getUnixTime() * 2;
+  saveScheduleBlacklist(blacklist);
+  blacklist.clear();
+
+  // When the blacklist is edited externally, the config must re-read.
+  get().reset();
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
+
+  // Clear the query names in the scheduled queries and request again.
+  query_names.clear();
+  get().scheduledQueries(
+      ([&query_names](const std::string& name, const ScheduledQuery&) {
+        query_names.push_back(name);
+      }));
+  // The query should not exist.
+  EXPECT_EQ(std::find(query_names.begin(), query_names.end(), query_name),
+            query_names.end());
+
+  // Try again, this time requesting scheduled queries.
+  query_names.clear();
+  queries.clear();
+  get().scheduledQueries(
+      ([&queries, &query_names, &query_name](const std::string& name,
+                                             const ScheduledQuery& query) {
+        if (name == query_name) {
+          // Only populate the query we've blacklisted.
+          query_names.push_back(name);
+          queries.push_back(query);
+        }
+      }),
+      true);
+  ASSERT_EQ(query_names.size(), 1_sz);
+  EXPECT_EQ(query_names[0], query_name);
+  ASSERT_EQ(queries.size(), 1_sz);
+  EXPECT_TRUE(queries[0].blacklisted);
+}
+
+TEST_F(ConfigTests, test_nonblacklist_query) {
+  std::map<std::string, size_t> blacklist;
+  blacklist[kConfigTestNonBlacklistQuery] = getUnixTime() * 2;
+  saveScheduleBlacklist(blacklist);
+
+  get().reset();
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
+
+  std::map<std::string, ScheduledQuery> queries;
+  get().scheduledQueries(
+      ([&queries](const std::string& name, const ScheduledQuery& query) {
+        queries[name] = query;
+      }));
+
+  // This query cannot be blacklisted.
+  auto query = queries.find(kConfigTestNonBlacklistQuery);
+  ASSERT_NE(query, queries.end());
+  EXPECT_FALSE(query->second.blacklisted);
 }
 
 class TestConfigParserPlugin : public ConfigParserPlugin {

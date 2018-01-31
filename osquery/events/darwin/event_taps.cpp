@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <osquery/flags.h>
@@ -14,25 +14,34 @@
 
 namespace osquery {
 
-/// Flag that turns the eventing system for event taps on or off
+/// Flag that turns the keyboard events on
 FLAG(bool,
      enable_keyboard_events,
      false,
      "Enable listening for keyboard events");
 
-REGISTER(EventTappingEventPublisher, "event_publisher", "event_tapping");
+/// Flag that turns the mouse events on
+FLAG(bool, enable_mouse_events, false, "Enable listening for mouse events");
+
+REGISTER(EventTappingEventPublisher,
+         "event_publisher",
+         "user_interaction_publisher");
 
 CGEventRef EventTappingEventPublisher::eventCallback(CGEventTapProxy proxy,
                                                      CGEventType type,
                                                      CGEventRef event,
                                                      void* refcon) {
-  auto ec = createEventContext();
-  EventFactory::fire<EventTappingEventPublisher>(ec);
-  return event;
+  EventFactory::fire<EventTappingEventPublisher>(createEventContext());
+  // If you change from listenOnly, return event or you will drop all events
+  return nullptr;
+}
+
+EventTappingEventPublisher::~EventTappingEventPublisher() {
+  tearDown();
 }
 
 Status EventTappingEventPublisher::setUp() {
-  if (!FLAGS_enable_keyboard_events) {
+  if (!FLAGS_enable_keyboard_events && !FLAGS_enable_mouse_events) {
     return Status(1, "Publisher disabled via configuration");
   }
   return Status(0);
@@ -50,35 +59,56 @@ void EventTappingEventPublisher::stop() {
     CFRelease(run_loop_source_);
     run_loop_source_ = nullptr;
   }
+
+  if (event_tap_ != nullptr) {
+    CGEventTapEnable(event_tap_, false);
+    CFRelease(event_tap_);
+    event_tap_ = nullptr;
+  }
+
   if (run_loop_ != nullptr) {
     CFRunLoopStop(run_loop_);
     run_loop_ = nullptr;
   }
 }
 
-void EventTappingEventPublisher::restart() {
+Status EventTappingEventPublisher::restart() {
   stop();
   WriteLock lock(run_loop_mutex_);
-
   run_loop_ = CFRunLoopGetCurrent();
-  CGEventMask eventMask = (1 << kCGEventKeyDown);
-  CFMachPortRef eventTap = CGEventTapCreate(kCGSessionEventTap,
-                                            kCGHeadInsertEventTap,
-                                            kCGEventTapOptionListenOnly,
-                                            eventMask,
-                                            eventCallback,
-                                            NULL);
+
+  CGEventMask mask = kCGEventNull;
+  if (FLAGS_enable_keyboard_events) {
+    mask |= 1 << kCGEventKeyDown;
+  }
+
+  if (FLAGS_enable_mouse_events) {
+    mask |= 1 << kCGEventLeftMouseDown;
+  }
+
+  event_tap_ = CGEventTapCreate(kCGSessionEventTap,
+                                kCGHeadInsertEventTap,
+                                kCGEventTapOptionListenOnly,
+                                mask,
+                                eventCallback,
+                                nullptr);
+  if (event_tap_ == nullptr) {
+    run_loop_ = nullptr;
+    return Status(1, "Could not create event tap");
+  }
   run_loop_source_ =
-      CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
+      CFMachPortCreateRunLoopSource(kCFAllocatorDefault, event_tap_, 0);
   CFRunLoopAddSource(run_loop_, run_loop_source_, kCFRunLoopCommonModes);
-  CGEventTapEnable(eventTap, true);
-  CFRelease(eventTap);
+  CGEventTapEnable(event_tap_, true);
+  return Status(0);
 }
 
 Status EventTappingEventPublisher::run() {
-  restart();
-  CFRunLoopRun();
-  return Status(0);
+  Status s = restart();
+  if (s.ok()) {
+    CFRunLoopRun();
+  }
+  return s;
 }
 
 bool EventTappingEventPublisher::shouldFire(
