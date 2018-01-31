@@ -23,6 +23,11 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_launchd_defs.hpp>
+#include <generated/tables/tbl_launchd_overrides_defs.hpp>
+
+
 namespace osquery {
 namespace tables {
 

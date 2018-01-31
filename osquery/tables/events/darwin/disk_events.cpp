@@ -15,6 +15,9 @@
 
 #include "osquery/events/darwin/diskarbitration.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_disk_events_defs.hpp>
+
 namespace osquery {
 
 class DiskEventSubscriber

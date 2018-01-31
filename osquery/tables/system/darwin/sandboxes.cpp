@@ -20,6 +20,9 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_sandboxes_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

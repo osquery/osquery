@@ -12,6 +12,9 @@
 
 #include "osquery/events/darwin/iokit.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_pci_devices_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

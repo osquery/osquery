@@ -23,6 +23,9 @@
 #include "osquery/events/darwin/diskarbitration.h"
 #include "osquery/events/darwin/iokit.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_disk_encryption_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

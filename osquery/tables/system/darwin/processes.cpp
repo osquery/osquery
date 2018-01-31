@@ -28,6 +28,11 @@
 
 namespace fs = boost::filesystem;
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_processes_defs.hpp>
+#include <generated/tables/tbl_process_envs_defs.hpp>
+#include <generated/tables/tbl_process_memory_map_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

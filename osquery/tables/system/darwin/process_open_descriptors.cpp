@@ -19,6 +19,10 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_process_open_sockets_defs.hpp>
+#include <generated/tables/tbl_process_open_files_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

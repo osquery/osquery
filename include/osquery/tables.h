@@ -665,6 +665,80 @@ struct QueryContext : private only_movable {
 using QueryContext = struct QueryContext;
 using Constraint = struct Constraint;
 
+class TableCache {
+public:
+  virtual ~TableCache() {}
+
+  virtual const std::string getTableName() const = 0;
+
+  virtual bool isEnabled() const = 0;
+
+  /**
+   * @brief Check if there are fresh cache results for this table.
+   *
+   * Table results are considered fresh when evaluated against a given interval.
+   * The interval is the expected rate for which this data should be generated.
+   * Caching and cache freshness only applies to queries acting on tables
+   * within a schedule. If two queries "one" and "two" both inspect the
+   * table "processes" at the interval 60. The first executed will cache results
+   * and the second will use the cached results.
+   *
+   * @param interval The interval this query expects the tables results.
+   * @return True if the cache contains fresh results, otherwise false.
+   */
+  virtual bool isCached() const = 0;
+
+  /**
+   * @brief Perform a database lookup of cached results and deserialize.
+   *
+   * If a query determined the table's cached results are fresh, it may ask the
+   * table to retrieve results from the database and deserialized them into
+   * table row data.
+   *
+   * @return The deserialized row data of cached results.
+   */
+  virtual QueryData get() const = 0;
+
+  /**
+   * @brief Similar to getCache, stores the results from generate.
+   *
+   * Set will serialize and save the results to be retrieved later.
+   */
+  virtual void set(const QueryData& results) = 0;
+
+};
+
+/*
+ * Implementation of TableCache for tables that should not be cached.
+ */
+class TableCacheDisabled : public TableCache {
+public:
+  TableCacheDisabled(const std::string tableName) : tableName_(tableName) {}
+
+  virtual ~TableCacheDisabled() {}
+
+  virtual bool isEnabled() const { return false; }
+
+  virtual const std::string getTableName() const { return tableName_; }
+
+  virtual bool isCached() const { return false; }
+
+  virtual QueryData get() const { return QueryData(); }
+
+  virtual void set(const QueryData& results) {}
+
+private:
+  const std::string tableName_;
+};
+
+struct TableDefinition {
+  std::string              name;
+  std::vector<std::string> aliases;
+  TableColumns             columns;
+  ColumnAliasSet           columnAliases;
+  TableAttributes          attributes;
+};
+
 /**
  * @brief The TablePlugin defines the name, types, and column information.
  *
@@ -677,34 +751,12 @@ using Constraint = struct Constraint;
  */
 class TablePlugin : public Plugin {
  public:
-  /**
-   * @brief Table name aliases create full-scan VIEWs for tables.
-   *
-   * Aliases allow table names to be changed/deprecated without breaking
-   * existing deployments and scheduled queries.
-   *
-   * @return A string vector of qtable name aliases.
-   */
-  virtual std::vector<std::string> aliases() const {
-    return {};
-  }
 
-  /// Return the table's column name and type pairs.
-  virtual TableColumns columns() const {
-    return TableColumns();
-  }
+   TablePlugin(const TableDefinition& tdef, TableCache &tcache) : Plugin(), tableDef_(tdef), cache_(tcache) { }
 
-  /// Define a map of target columns to optional aliases.
-  virtual ColumnAliasSet columnAliases() const {
-    return ColumnAliasSet();
-  }
+   const TableDefinition& definition() const { return tableDef_; }
 
-  /// Return a set of attribute flags.
-  virtual TableAttributes attributes() const {
-    return TableAttributes::NONE;
-  }
-
-  /**
+ /**
    * @brief Generate a complete table representation.
    *
    * The TablePlugin::generate method is the most important part of the table.
@@ -725,6 +777,8 @@ class TablePlugin : public Plugin {
     (void)context;
     return QueryData();
   }
+
+  virtual TableCache& cache() { return cache_; }
 
   /**
    * @brief Generate a table representation by yielding each row.
@@ -757,12 +811,18 @@ class TablePlugin : public Plugin {
   }
 
  protected:
+   const TableDefinition &tableDef_;
+   TableCache &cache_;
+
+
+
   /// An SQL table containing the table definition/syntax.
-  std::string columnDefinition() const;
+  //std::string columnDefinition() const;
 
   /// Return the name and column pairs for attaching virtual tables.
-  PluginResponse routeInfo() const override;
+  //PluginResponse routeInfo() const override;
 
+#ifdef NEVER
   /**
    * @brief Check if there are fresh cache results for this table.
    *
@@ -817,6 +877,7 @@ class TablePlugin : public Plugin {
 
   /// The last interval in seconds when the table data was cached.
   size_t last_interval_{0};
+#endif // NEVER
 
  public:
   /**
@@ -826,10 +887,10 @@ class TablePlugin : public Plugin {
    * their scheduled interval to internal TablePlugin implementations. If the
    * table is cachable then the interval can be used to calculate freshness.
    */
-  static size_t kCacheInterval;
+  //static size_t kCacheInterval;
 
   /// The schedule step, this is the current position of the schedule.
-  static size_t kCacheStep;
+  //static size_t kCacheStep;
 
  public:
   /**

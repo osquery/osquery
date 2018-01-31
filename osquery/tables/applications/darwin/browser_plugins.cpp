@@ -24,6 +24,10 @@ extern "C" {
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_browser_plugins_defs.hpp>
+#include <generated/tables/tbl_safari_extensions_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

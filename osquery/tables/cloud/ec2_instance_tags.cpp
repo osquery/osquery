@@ -20,6 +20,9 @@
 
 #include "osquery/utils/aws_util.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_ec2_instance_tags_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

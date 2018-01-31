@@ -21,6 +21,9 @@
 
 namespace fs = boost::filesystem;
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_carbon_black_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

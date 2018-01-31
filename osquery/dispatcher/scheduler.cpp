@@ -41,6 +41,10 @@ HIDDEN_FLAG(bool,
             false,
             "Reload the SQL implementation during schedule reload");
 
+
+size_t kCacheInterval = 0;
+size_t kCacheStep = 0;
+
 /// Used to bypass (optimize-out) the set-differential of query results.
 DECLARE_bool(events_optimize);
 
@@ -155,8 +159,8 @@ void SchedulerRunner::start() {
     Config::get().scheduledQueries(
         ([&i](const std::string& name, const ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
-            TablePlugin::kCacheInterval = query.splayed_interval;
-            TablePlugin::kCacheStep = i;
+            kCacheInterval = query.splayed_interval;
+            kCacheStep = i;
             launchQuery(name, query);
           }
         }));

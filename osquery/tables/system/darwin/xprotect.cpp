@@ -23,6 +23,12 @@
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_xprotect_entries_defs.hpp>
+#include <generated/tables/tbl_xprotect_meta_defs.hpp>
+#include <generated/tables/tbl_xprotect_reports_defs.hpp>
+
+
 namespace osquery {
 namespace tables {
 

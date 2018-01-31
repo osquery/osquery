@@ -22,6 +22,9 @@
 #endif
 #include <yara.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_yara_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

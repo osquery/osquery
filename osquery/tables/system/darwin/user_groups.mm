@@ -13,6 +13,11 @@
 
 #include "osquery/tables/system/user_groups.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_user_groups_defs.hpp>
+#include <generated/tables/tbl_groups_defs.hpp>
+#include <generated/tables/tbl_users_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

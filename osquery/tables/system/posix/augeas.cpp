@@ -18,6 +18,9 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_augeas_defs.hpp>
+
 namespace osquery {
 
 /**

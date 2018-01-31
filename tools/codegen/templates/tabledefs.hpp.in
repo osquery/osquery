@@ -12,24 +12,45 @@
 ** This file is generated. Do not modify it manually!
 */
 
+#include <glog/logging.h>
 #include <osquery/tables.h>
 
 namespace osquery {
 
 namespace tables {
-extern TableColumns tbl_{{table_name}}_columndefs;
+extern const TableDefinition tbl_{{table_name}}_def;
 
 #if defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_DEF) || defined(DECLARE_TABLE_FOREIGN_STUB)
 
-TableColumns tbl_{{table_name}}_columndefs = {
-{% for column in schema %}\
-  std::make_tuple("{{column.name}}", {{column.type.affinity}},\
-{% if column.options|length > 0 %} {{column.options_set}}\
-{% else %} ColumnOptions::DEFAULT\
-{% endif %}\
-),
-{% endfor %}\
+const TableDefinition tbl_{{table_name}}_def = { "{{table_name}}",
+  {
+    {% for alias in aliases %}"{{alias}}",{% endfor %}\
+  },
+  {
+    {% for column in schema %}\
+      std::make_tuple("{{column.name}}", {{column.type.affinity}},\
+    {% if column.options|length > 0 %} {{column.options_set}}\
+    {% else %} ColumnOptions::DEFAULT\
+    {% endif %}\
+    ),
+    {% endfor %}\
+  },
+  {
+    {% for column in schema %}\
+    {% if column.aliases|length > 0 %}\
+      {"{{column.name}}", {% raw %}{{% endraw %}\
+      {% for alias in column.aliases %}"{{alias}}"\
+      {% if not loop.last %}, {% endif %}\
+      {% endfor %}}},
+    {% endif %}\
+    {% endfor %}\
+  },
+  {% for attribute in attribute_set %}\
+        TableAttributes::{{attribute}} |\
+  {% endfor %}\
+        TableAttributes::NONE
 };
+
 
 #endif // defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_DEF)
 
@@ -37,54 +58,13 @@ TableColumns tbl_{{table_name}}_columndefs = {
 
 #if defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_FOREIGN_STUB)
 
-class {{table_name_cc}}TablePluginBase : public TablePlugin {
- private:
-  TableColumns columns() const override { return tables::tbl_{{table_name}}_columndefs; }
-
-{% if aliases|length > 0 %}\
-  std::vector<std::string> aliases() const override {
-    return {
-{% for alias in aliases %}\
-      "{{alias}}",
-{% endfor %}\
-    };
-  }
-{% endif %}\
-
-{% if has_column_aliases %}\
-
-  ColumnAliasSet columnAliases() const override {
-    return {
-{% for column in schema %}\
-{% if column.aliases|length > 0 %}\
-      {"{{column.name}}", {% raw %}{{% endraw %}\
-{% for alias in column.aliases %}"{{alias}}"\
-{% if not loop.last %}, {% endif %}\
-{% endfor %}}},
-{% endif %}\
-{% endfor %}\
-    };
-  }
-{% endif %}\
-
-  TableAttributes attributes() const override {
-    return \
-{% for attribute in attribute_set %}\
-      TableAttributes::{{attribute}} |\
-{% endfor %}\
-      TableAttributes::NONE;
-  }
-
-  QueryData generate(QueryContext& request) override { return QueryData(); }
-
-};
-
 void tbl_{{table_name}}_register_stub()
 {
   bool isInternalUtilitiesTable =\
   {% if attributes.utility %} true {% else %} false {% endif %};
   auto registry = RegistryFactory::get().registry("table");
-  registry->add("{{table_name}}", std::make_shared<{{table_name_cc}}TablePluginBase>(), isInternalUtilitiesTable);
+  TableCache *cache = new TableCacheDisabled("{{table_name}}");
+  registry->add("{{table_name}}", std::make_shared<TablePlugin>(tables::tbl_{{table_name}}_def, *cache), isInternalUtilitiesTable);
 }
 {% if table_name != filename %}\
 void tbl_{{filename}}_register_stub() { tbl_{{table_name}}_register_stub(); } // filename differs from table name
@@ -110,7 +90,10 @@ class {{class_name}} {
 {% endif %}\
 }
 
-class {{table_name_cc}}TablePlugin : public {{table_name_cc}}TablePluginBase {
+class {{table_name_cc}}TablePlugin : public TablePlugin {
+public:
+ {{table_name_cc}}TablePlugin(const TableDefinition& tdef, TableCache &tcache) : TablePlugin(tdef, tcache) { }
+
  private:
 {% if generator %}\
   bool usesGenerator() const override { return true; }
@@ -129,15 +112,7 @@ class {{table_name_cc}}TablePlugin : public {{table_name_cc}}TablePluginBase {
   }
 {% else %}\
   QueryData generate(QueryContext& context) override {
-{% if attributes.cacheable %}\
-    if (isCached(kCacheStep, context)) {
-      return getCache();
-    }
-{% endif %}\
     auto results = tables::{{function}}(context);
-{% if attributes.cacheable %}\
-    setCache(kCacheStep, kCacheInterval, context, results);
-{% endif %}
     return results;
   }
 {% endif %}\
@@ -149,7 +124,14 @@ void tbl_{{table_name}}_register()
   bool isInternalUtilitiesTable =\
   {% if attributes.utility %} true {% else %} false {% endif %};
   auto registry = RegistryFactory::get().registry("table");
-  registry->add("{{table_name}}", std::make_shared<{{table_name_cc}}TablePlugin>(), isInternalUtilitiesTable);
+
+{% if attributes.cacheable %}\
+  extern TableCache* TableCacheDBNew(std::string tableName);
+  TableCache *cache=TableCacheDBNew("{{table_name}}");
+{% else %}\
+  TableCache *cache=new TableCacheDisabled("{{table_name}}");
+{% endif %}\
+  registry->add("{{table_name}}", std::make_shared<{{table_name_cc}}TablePlugin>(tables::tbl_{{table_name}}_def, *cache), isInternalUtilitiesTable);
 }
 {% if table_name != filename %}\
 void tbl_{{filename}}_register() { tbl_{{table_name}}_register(); } // filename differs from table name

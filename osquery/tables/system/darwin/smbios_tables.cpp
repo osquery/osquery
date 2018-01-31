@@ -21,6 +21,10 @@
 #include "osquery/events/darwin/iokit.h"
 #include "osquery/tables/system/smbios_utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_smbios_tables_defs.hpp>
+#include <generated/tables/tbl_platform_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

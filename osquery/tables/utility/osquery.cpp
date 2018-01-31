@@ -265,3 +265,13 @@ QueryData genOsquerySchedule(QueryContext& context) {
 }
 }
 }
+
+// declare TablePlugin
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_osquery_events_defs.hpp>
+#include <generated/tables/tbl_osquery_extensions_defs.hpp>
+#include <generated/tables/tbl_osquery_flags_defs.hpp>
+#include <generated/tables/tbl_osquery_info_defs.hpp>
+#include <generated/tables/tbl_osquery_packs_defs.hpp>
+#include <generated/tables/tbl_osquery_registry_defs.hpp>
+#include <generated/tables/tbl_osquery_schedule_defs.hpp>

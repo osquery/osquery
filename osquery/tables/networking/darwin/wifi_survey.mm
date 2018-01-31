@@ -16,6 +16,9 @@
 
 #include "osquery/tables/networking/darwin/wifi_utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_wifi_scan_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

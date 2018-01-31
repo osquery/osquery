@@ -31,6 +31,23 @@
 namespace pt = boost::property_tree;
 namespace local = boost::asio::local;
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_docker_container_labels_defs.hpp>
+#include <generated/tables/tbl_docker_container_mounts_defs.hpp>
+#include <generated/tables/tbl_docker_container_networks_defs.hpp>
+#include <generated/tables/tbl_docker_container_ports_defs.hpp>
+#include <generated/tables/tbl_docker_container_processes_defs.hpp>
+#include <generated/tables/tbl_docker_container_stats_defs.hpp>
+#include <generated/tables/tbl_docker_containers_defs.hpp>
+#include <generated/tables/tbl_docker_image_labels_defs.hpp>
+#include <generated/tables/tbl_docker_info_defs.hpp>
+#include <generated/tables/tbl_docker_images_defs.hpp>
+#include <generated/tables/tbl_docker_volumes_defs.hpp>
+#include <generated/tables/tbl_docker_volume_labels_defs.hpp>
+#include <generated/tables/tbl_docker_version_defs.hpp>
+#include <generated/tables/tbl_docker_networks_defs.hpp>
+#include <generated/tables/tbl_docker_network_labels_defs.hpp>
+
 namespace osquery {
 
 /**

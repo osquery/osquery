@@ -168,3 +168,7 @@ QueryData genFile(QueryContext& context) {
 }
 }
 }
+
+// declare TablePlugin
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_file_defs.hpp>

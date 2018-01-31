@@ -15,6 +15,9 @@
 
 #include <utmpx.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_logged_in_users_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

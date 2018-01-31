@@ -13,6 +13,12 @@
 
 #include "osquery/events/darwin/iokit.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_device_firmware_defs.hpp>
+#include <generated/tables/tbl_iokit_devicetree_defs.hpp>
+#include <generated/tables/tbl_iokit_registry_defs.hpp>
+
+
 namespace osquery {
 namespace tables {
 

@@ -19,6 +19,12 @@
 
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_smc_keys_defs.hpp>
+#include <generated/tables/tbl_power_sensors_defs.hpp>
+#include <generated/tables/tbl_temperature_sensors_defs.hpp>
+#include <generated/tables/tbl_fan_speed_sensors_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

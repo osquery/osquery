@@ -27,6 +27,9 @@
 
 namespace pt = boost::property_tree;
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_carves_defs.hpp>
+
 namespace osquery {
 
 DECLARE_bool(disable_carver);

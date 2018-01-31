@@ -16,6 +16,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/hash.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_acpi_tables_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

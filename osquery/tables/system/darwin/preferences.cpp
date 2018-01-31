@@ -21,6 +21,11 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_preferences_defs.hpp>
+#include <generated/tables/tbl_plist_defs.hpp>
+
+
 namespace osquery {
 namespace tables {
 

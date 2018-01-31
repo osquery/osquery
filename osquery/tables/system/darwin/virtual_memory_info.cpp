@@ -15,6 +15,9 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_virtual_memory_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

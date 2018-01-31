@@ -19,6 +19,9 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_crontab_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

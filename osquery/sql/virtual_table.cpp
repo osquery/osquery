@@ -431,6 +431,42 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   return SQLITE_OK;
 }
 
+
+static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
+  if (!ctx.useCache()) {
+    // The query execution did not request use of the warm cache.
+    return false;
+  }
+
+  auto uncachable = ColumnOptions::INDEX | ColumnOptions::REQUIRED |
+                    ColumnOptions::ADDITIONAL | ColumnOptions::OPTIMIZED;
+  for (const auto& column : cols) {
+    auto opts = std::get<2>(column) & uncachable;
+    if (opts && ctx.constraints.at(std::get<0>(column)).exists()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static QueryData tableGenerate(TablePlugin &tablePlugin, QueryContext &context)
+{
+  bool useCache = tablePlugin.cache().isEnabled() && cacheAllowed(tablePlugin.definition().columns, context);
+
+  if (useCache && tablePlugin.cache().isCached()) {
+    return tablePlugin.cache().get();
+  }
+
+  QueryData results = tablePlugin.generate(context);
+
+  if (useCache) {
+    tablePlugin.cache().set(results);
+  }
+
+  return results;
+}
+
+
 static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
                    int idxNum,
                    const char* idxStr,
@@ -571,7 +607,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
       }
       return SQLITE_OK;
     }
-    pCur->data = table->generate(context);
+    pCur->data = tableGenerate(*table, context); //table->generate(context);
   } else {
     PluginRequest request = {{"action", "generate"}};
     TablePlugin::setRequestFromContext(context, request);
@@ -581,7 +617,9 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   // Set the number of rows.
   pCur->n = pCur->data.size();
   return SQLITE_OK;
-}
+} // xFilter
+
+
 }
 }
 
@@ -671,6 +709,7 @@ Status attachFunctionInternal(
 }
 
 void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
+
   if (FLAGS_enable_foreign) {
 #if !defined(OSQUERY_EXTERNAL)
     // Foreign table schema is available for the shell and daemon only.

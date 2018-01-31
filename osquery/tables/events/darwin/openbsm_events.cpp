@@ -16,6 +16,10 @@
 
 #include "osquery/events/darwin/openbsm.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_process_events_defs.hpp>
+#include <generated/tables/tbl_user_events_defs.hpp>
+
 namespace osquery {
 
 namespace tables {

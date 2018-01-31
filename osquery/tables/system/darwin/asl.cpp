@@ -10,6 +10,9 @@
 
 #include "osquery/tables/system/darwin/asl_utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_asl_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

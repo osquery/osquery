@@ -20,6 +20,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/system_utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_known_hosts_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

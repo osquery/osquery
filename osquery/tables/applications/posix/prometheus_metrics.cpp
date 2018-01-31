@@ -18,6 +18,9 @@
 #include "osquery/remote/http_client.h"
 #include "osquery/tables/applications/posix/prometheus_metrics.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_prometheus_metrics_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

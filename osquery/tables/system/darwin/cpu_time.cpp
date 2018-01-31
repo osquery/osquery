@@ -21,6 +21,10 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_cpu_time_defs.hpp>
+
+
 namespace osquery {
 namespace tables {
 

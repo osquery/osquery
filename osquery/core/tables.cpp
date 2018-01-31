@@ -21,10 +21,11 @@ namespace osquery {
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 
-CREATE_LAZY_REGISTRY(TablePlugin, "table");
+//CREATE_LAZY_REGISTRY(TablePlugin, "table");
+CREATE_REGISTRY(TablePlugin, "table");
 
-size_t TablePlugin::kCacheInterval = 0;
-size_t TablePlugin::kCacheStep = 0;
+//size_t TablePlugin::kCacheInterval = 0;
+//size_t TablePlugin::kCacheStep = 0;
 
 const std::map<ColumnType, std::string> kColumnTypeNames = {
     {UNKNOWN_TYPE, "UNKNOWN"},
@@ -134,14 +135,17 @@ Status TablePlugin::call(const PluginRequest& request,
   return Status(0, "OK");
 }
 
+/*
 std::string TablePlugin::columnDefinition() const {
-  return osquery::columnDefinition(columns());
+  return osquery::columnDefinition(definition().columns);
 }
+*/
 
+/*
 PluginResponse TablePlugin::routeInfo() const {
   // Route info consists of the serialized column information.
   PluginResponse response;
-  for (const auto& column : columns()) {
+  for (const auto& column : definition().columns) {
     response.push_back(
         {{"id", "column"},
          {"name", std::get<0>(column)},
@@ -150,13 +154,13 @@ PluginResponse TablePlugin::routeInfo() const {
   }
   // Each table name alias is provided such that the core may add the views.
   // These views need to be removed when the backing table is detached.
-  for (const auto& alias : aliases()) {
+  for (const auto& alias : definition().aliases {
     response.push_back({{"id", "alias"}, {"alias", alias}});
   }
 
   // Each column alias must be provided, additionally to the column's option.
   // This sets up the value-replacement move within the SQL implementation.
-  for (const auto& target : columnAliases()) {
+  for (const auto& target : definition.columnAliases {
     for (const auto& alias : target.second) {
       response.push_back(
           {{"id", "columnAlias"}, {"name", alias}, {"target", target.first}});
@@ -168,7 +172,9 @@ PluginResponse TablePlugin::routeInfo() const {
        {"attributes", INTEGER(static_cast<size_t>(attributes()))}});
   return response;
 }
+*/
 
+/*
 static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
   if (!ctx.useCache()) {
     // The query execution did not request use of the warm cache.
@@ -221,6 +227,9 @@ void TablePlugin::setCache(size_t step,
     setDatabaseValue(kQueries, "cache." + getName(), content);
   }
 }
+*/
+
+
 
 std::string columnDefinition(const TableColumns& columns) {
   std::map<std::string, bool> epilog;
@@ -467,4 +476,5 @@ Status QueryContext::expandConstraints(
   }
   return Status(0);
 }
+
 }

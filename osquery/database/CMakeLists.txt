@@ -8,6 +8,7 @@
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_database
   database.cpp
+  tablecachedb.cpp
   plugins/ephemeral.cpp
 )
 

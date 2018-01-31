@@ -86,3 +86,6 @@ QueryData genTime(QueryContext& context) {
 }
 }
 }
+
+#define DECLARE_TABLE_IMPLEMENTATION
+#include <generated/tables/tbl_time_defs.hpp>
