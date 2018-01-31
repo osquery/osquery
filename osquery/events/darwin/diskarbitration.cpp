@@ -31,13 +31,10 @@ const std::string kIOHIDXClassPath{"IOService:/IOResources/IOHDIXController/"};
 REGISTER(DiskArbitrationEventPublisher, "event_publisher", "diskarbitration");
 
 void DiskArbitrationEventPublisher::restart() {
-  if (run_loop_ == nullptr) {
-    return;
-  }
-
   stop();
 
   WriteLock lock(mutex_);
+  run_loop_ = CFRunLoopGetCurrent();
   session_ = DASessionCreate(kCFAllocatorDefault);
   DARegisterDiskAppearedCallback(
       session_,
@@ -54,33 +51,29 @@ void DiskArbitrationEventPublisher::restart() {
 }
 
 Status DiskArbitrationEventPublisher::run() {
-  if (run_loop_ == nullptr) {
-    run_loop_ = CFRunLoopGetCurrent();
-    restart();
-  }
-
+  restart();
   CFRunLoopRun();
   return Status(0, "OK");
 }
 
 void DiskArbitrationEventPublisher::stop() {
+  WriteLock lock(mutex_);
+
   if (run_loop_ == nullptr) {
     return;
   }
 
-  WriteLock lock(mutex_);
   if (session_ != nullptr) {
     DASessionUnscheduleFromRunLoop(session_, run_loop_, kCFRunLoopDefaultMode);
     CFRelease(session_);
     session_ = nullptr;
   }
-
   CFRunLoopStop(run_loop_);
+  run_loop_ = nullptr;
 }
 
 void DiskArbitrationEventPublisher::tearDown() {
   stop();
-  run_loop_ = nullptr;
 }
 
 void DiskArbitrationEventPublisher::DiskAppearedCallback(DADiskRef disk,

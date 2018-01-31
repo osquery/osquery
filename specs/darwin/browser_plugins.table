@@ -16,3 +16,10 @@ schema([
 ])
 attributes(user_data=True)
 implementation("applications/browser_plugins@genBrowserPlugins")
+examples([
+    "select * from users join browser_plugins using (uid)",
+])
+fuzz_paths([
+    "/Library/Internet Plug-Ins",
+    "/Users",
+])

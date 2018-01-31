@@ -31,13 +31,20 @@ class AwsLoggerTests : public testing::Test {
   void SetUp() override {}
 };
 
+class DummyOutcome final : public Aws::Kinesis::Model::PutRecordsOutcome {
+ public:
+  bool IsSuccess() {
+    return true;
+  }
+};
+
 using RawBatch = std::vector<std::string>;
 using RawBatchList = std::vector<RawBatch>;
 
 using IDummyLogForwarder =
     AwsLogForwarder<Aws::Kinesis::Model::PutRecordsRequestEntry,
                     Aws::Kinesis::KinesisClient,
-                    Aws::Kinesis::Model::PutRecordsOutcome,
+                    DummyOutcome,
                     Aws::Vector<Aws::Kinesis::Model::PutRecordsResultEntry>>;
 
 class DummyLogForwarder final : public IDummyLogForwarder {

@@ -8,6 +8,10 @@
  *
  */
 
+#import <Foundation/Foundation.h>
+
+#include <CoreServices/CoreServices.h>
+
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
@@ -40,6 +44,15 @@ const std::map<std::string, std::string> kPkgReceiptKeys = {
     {"InstallPrefixPath", "location"},
     {"InstallDate", "install_time"},
     {"InstallProcessName", "installer_name"},
+};
+
+const std::map<std::string, std::string> kPKReceiptKeys{
+    {"package_id", "packageIdentifier"},
+    {"installer_name", "installProcessName"},
+    {"install_time", "installDate"},
+    {"location", "installPrefixPath"},
+    {"version", "packageVersion"},
+    {"path", "receiptStoragePaths"},
 };
 
 const std::map<std::string, std::string> kPkgInstallHistoryKeys = {
@@ -291,6 +304,130 @@ void genPackageReceipt(const std::string& path, QueryData& results) {
   }
 }
 
+/**
+ * @brief Try to use PackageKit to list installed packages.
+ *
+ * This method may return false, indicating that a fall-back brute-force method
+ * should be tried.
+ *
+ * @param results the output data.
+ * @return true of the APIs succeeded, otherwise false.
+ */
+static inline bool genPackagesFromPackageKit(QueryData& results) {
+  auto bundle_url = CFURLCreateWithFileSystemPath(
+      kCFAllocatorDefault,
+      CFSTR("/System/Library/PrivateFrameworks/PackageKit.framework"),
+      kCFURLPOSIXPathStyle,
+      true);
+  if (bundle_url == nullptr) {
+    return false;
+  }
+
+  auto bundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
+  CFRelease(bundle_url);
+  if (bundle == nullptr) {
+    return false;
+  }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+
+  @autoreleasepool {
+    NSArray* packages = nullptr;
+    if (CFBundleLoadExecutable(bundle)) {
+      auto cls = NSClassFromString(@"PKReceipt");
+      if (cls != nil) {
+        SEL sls = NSSelectorFromString(@"receiptsOnVolumeAtPath:");
+        @try {
+          id receipts = [cls performSelector:sls withObject:@"/"];
+          if ([receipts isKindOfClass:[NSArray class]]) {
+            packages = (NSArray*)receipts;
+          }
+        } @catch (NSException* exception) {
+          // The class did not respond to the selector.
+        }
+      }
+      CFBundleUnloadExecutable(bundle);
+    }
+
+    CFRelease(bundle);
+
+    if (packages == nullptr) {
+      // No packages were found.
+      return false;
+    }
+
+    for (id pkg in packages) {
+      Row r;
+      for (auto& pm : kPKReceiptKeys) {
+        @try {
+          auto selector = [NSString stringWithUTF8String:pm.second.c_str()];
+          auto sls = NSSelectorFromString(selector);
+          id value = [pkg performSelector:sls];
+
+          if ([value isKindOfClass:[NSString class]]) {
+            r[pm.first] = [value UTF8String];
+          } else if ([value isKindOfClass:[NSDate class]]) {
+            auto seconds =
+                [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+            r[pm.first] = [[seconds stringValue] UTF8String];
+          } else if ([value isKindOfClass:[NSArray class]]) {
+            for (id first in value) {
+              r[pm.first] = [first UTF8String];
+              break;
+            }
+          }
+        } @catch (NSException* ex) {
+          // The class did not respond to the selector.
+          // The type of data replied may have changes.
+          VLOG(1) << "Could not select " << pm.second << ": "
+                  << [[ex name] UTF8String];
+        }
+      }
+      results.push_back(r);
+    }
+  }
+
+#pragma clang diagnostic pop
+
+  // Add a final assumption that PackageKit will have found 1 package.
+  return (results.empty()) ? false : true;
+}
+
+/**
+ * @brief Iterate over each well-known system absolute directory of receipts.
+ *
+ * This is not the absolute correct way to enumerate receipts, but works.
+ * Consider this method a brute-force low-fidelity option if the private
+ * PackageKit APIs fail.
+ *
+ * @param results the output data.
+ */
+static inline void genPackagesFromPlists(QueryData& results) {
+  for (const auto& path : kPkgReceiptPaths) {
+    std::vector<std::string> receipts;
+    if (resolveFilePattern(path + "%.plist", receipts)) {
+      for (const auto& receipt : receipts) {
+        genPackageReceipt(receipt, results);
+      }
+    }
+  }
+
+  // User home directories may include user-specific receipt lists.
+  auto users = getHomeDirectories();
+  for (const auto& user : users) {
+    for (const auto& path : kPkgReceiptUserPaths) {
+      std::vector<std::string> receipts;
+      fs::path receipt_path = user / path;
+      if (resolveFilePattern(receipt_path.string() + "%.plist", receipts)) {
+        for (const auto& receipt : receipts) {
+          genPackageReceipt(receipt, results);
+        }
+      }
+    }
+  }
+}
+
 QueryData genPackageReceipts(QueryContext& context) {
   QueryData results;
   if (context.constraints["path"].exists(EQUALS)) {
@@ -314,29 +451,9 @@ QueryData genPackageReceipts(QueryContext& context) {
     return results;
   }
 
-  // Iterate over each well-known system absolute directory of receipts.
-  // This is not the absolute correct way to enumerate receipts, but works.
-  for (const auto& path : kPkgReceiptPaths) {
-    std::vector<std::string> receipts;
-    if (resolveFilePattern(path + "%.plist", receipts)) {
-      for (const auto& receipt : receipts) {
-        genPackageReceipt(receipt, results);
-      }
-    }
-  }
-
-  // User home directories may include user-specific receipt lists.
-  auto users = getHomeDirectories();
-  for (const auto& user : users) {
-    for (const auto& path : kPkgReceiptUserPaths) {
-      std::vector<std::string> receipts;
-      fs::path receipt_path = user / path;
-      if (resolveFilePattern(receipt_path.string() + "%.plist", receipts)) {
-        for (const auto& receipt : receipts) {
-          genPackageReceipt(receipt, results);
-        }
-      }
-    }
+  if (!genPackagesFromPackageKit(results)) {
+    VLOG(1) << "Cannot list package receipts from PackageKit";
+    genPackagesFromPlists(results);
   }
 
   return results;
@@ -374,5 +491,5 @@ QueryData genPackageInstallHistory(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

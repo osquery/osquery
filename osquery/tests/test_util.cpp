@@ -456,7 +456,7 @@ void createMockFileStructure() {
   fs::create_directories(kFakeDirectory + "/deep11/deep2/deep3/");
   fs::create_directories(kFakeDirectory + "/deep1/deep2/");
   writeTextFile(kFakeDirectory + "/root.txt", "root");
-  writeTextFile(kFakeDirectory + "/door.txt", "toor");
+  writeTextFile(kFakeDirectory + "/door.txt", "toor", 0550);
   writeTextFile(kFakeDirectory + "/roto.txt", "roto");
   writeTextFile(kFakeDirectory + "/deep1/level1.txt", "l1");
   writeTextFile(kFakeDirectory + "/deep11/not_bash", "l1");

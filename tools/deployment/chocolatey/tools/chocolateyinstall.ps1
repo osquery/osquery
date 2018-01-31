@@ -68,7 +68,7 @@ Get-ChocolateyUnzip -FileFullPath $packagePath -Destination $targetFolder
 # In order to run osqueryd as a service, we need to have a folder that has a
 # Deny Write ACL to everyone.
 Move-Item -Force -Path $targetDaemonBin -Destination $destDaemonBin
-Set-DenyWriteAcl $daemonFolder 'Add'
+Set-SafePermissions $daemonFolder
 
 if ($installService) {
   if (-not (Get-Service $serviceName -ErrorAction SilentlyContinue)) {

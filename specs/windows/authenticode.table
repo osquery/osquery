@@ -1,0 +1,17 @@
+table_name("authenticode")
+description("File (executable, bundle, installer, disk) code signing status.")
+schema([
+    Column("path", TEXT, "Must provide a path or directory", required=True),
+    Column("original_program_name", TEXT, "The original program name that the publisher has signed"),
+    Column("serial_number", TEXT, "The certificate serial number"),
+    Column("issuer_name", TEXT, "The certificate issuer name"),
+    Column("subject_name", TEXT, "The certificate subject name"),
+    Column("result", TEXT, "The signature check result")
+])
+implementation("authenticode@genAuthenticode")
+examples([
+  "SELECT * FROM authenticode WHERE path = 'C:\\Windows\\notepad.exe'",
+  ("SELECT process.pid, process.path, signature.result FROM "
+   "processes as process LEFT JOIN authenticode AS signature ON "
+   "process.path = signature.path;")
+])

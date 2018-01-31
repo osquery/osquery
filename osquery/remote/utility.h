@@ -229,6 +229,14 @@ class TLSRequestHelper : private boost::noncopyable {
                    std::string& output,
                    const size_t attempts) {
     Status s;
+
+    boost::property_tree::ptree override_params;
+    for (const auto& param : params) {
+      if (param.first.find('_') == 0) {
+        override_params.put(param.first, param.second.data());
+      }
+    }
+
     for (size_t i = 1; i <= attempts; i++) {
       s = TLSRequestHelper::go<TSerializer>(uri, params, output);
       if (s.ok()) {
@@ -236,6 +244,9 @@ class TLSRequestHelper : private boost::noncopyable {
       }
       if (i == attempts) {
         break;
+      }
+      for (const auto& param : override_params) {
+        params.put(param.first, param.second.data());
       }
       sleepFor(i * i * 1000);
     }
