@@ -10,7 +10,8 @@
 
 function distro_main() {
   do_sudo yum update -y
-
+  
+  package patch
   package doxygen
   package valgrind
 }

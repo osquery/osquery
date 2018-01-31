@@ -11,6 +11,7 @@
 function distro_main() {
   do_sudo dnf update -y
 
+  package patch
   package doxygen
   package valgrind
 }

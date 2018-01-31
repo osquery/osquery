@@ -1,0 +1,19 @@
+table_name("ipmi_lan")
+description("IPMI LAN information.")
+schema([
+    Column("mc_name", TEXT, "Name of the MC"),
+    Column("mc_id", TEXT, "Device ID of the MC"),
+    Column("set_in_progress", TEXT,
+      "Indication of whether LAN parameters are still being updated"),
+    Column("ip", TEXT, "IP address MC"),
+    Column("ip_address_source", TEXT,
+      "Source from which IP address was created"),
+    Column("gateway_ip", TEXT, "MC LAN Gateway IP"),
+    Column("mac", TEXT, "MAC address of MC LAN"),
+    Column("subnet_mask", TEXT, "Subnet mask of MC LAN"),
+    Column("gateway_mac", TEXT, "Gateway MAC address"),
+    Column("backup_gateway_ip", TEXT, "The backup gateway IP of the MC LAN"),
+    Column("backup_gateway_mac", TEXT, "Backup gateway MAC address"),
+    Column("snmp_community_string", TEXT, "SNMP community string of BMC")
+])
+implementation("ipmi/ipmi_info@genIPMILANs")

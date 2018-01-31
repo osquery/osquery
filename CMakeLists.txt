@@ -369,6 +369,9 @@ if(DEFINED ENV{SKIP_CARVER})
   set(SKIP_CARVER TRUE)
   add_definitions(-DSKIP_CARVER=1)
 endif()
+if(DEFINED ENV{SKIP_IPMI})
+  set(SKIP_IPMI TRUE)
+endif()
 
 # The kernel builds are skipped by default.
 if(DEFINED ENV{SKIP_KERNEL} AND "$ENV{SKIP_KERNEL}" STREQUAL "False")
