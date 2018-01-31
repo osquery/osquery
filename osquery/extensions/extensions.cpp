@@ -41,12 +41,13 @@ enum class ExtendableType {
   EXTENSION = 1,
 };
 
-using ExtendableTypeSet = std::map<ExtendableType, std::string>;
+using ExtendableTypeSet = std::map<ExtendableType, std::set<std::string>>;
 
 const std::map<PlatformType, ExtendableTypeSet> kFileExtensions{
-    {PlatformType::TYPE_WINDOWS, {{ExtendableType::EXTENSION, ".exe"}}},
-    {PlatformType::TYPE_LINUX, {{ExtendableType::EXTENSION, ".ext"}}},
-    {PlatformType::TYPE_OSX, {{ExtendableType::EXTENSION, ".ext"}}},
+    {PlatformType::TYPE_WINDOWS,
+     {{ExtendableType::EXTENSION, {".exe", ".ext"}}}},
+    {PlatformType::TYPE_LINUX, {{ExtendableType::EXTENSION, {".ext"}}}},
+    {PlatformType::TYPE_OSX, {{ExtendableType::EXTENSION, {".ext"}}}},
 };
 
 CLI_FLAG(bool, disable_extensions, false, "Disable extension API");
@@ -316,13 +317,13 @@ static bool isFileSafe(std::string& path, ExtendableType type) {
     return false;
   }
 
-  std::string ext;
+  std::set<std::string> exts;
   if (isPlatform(PlatformType::TYPE_LINUX)) {
-    ext = kFileExtensions.at(PlatformType::TYPE_LINUX).at(type);
+    exts = kFileExtensions.at(PlatformType::TYPE_LINUX).at(type);
   } else if (isPlatform(PlatformType::TYPE_OSX)) {
-    ext = kFileExtensions.at(PlatformType::TYPE_OSX).at(type);
+    exts = kFileExtensions.at(PlatformType::TYPE_OSX).at(type);
   } else {
-    ext = kFileExtensions.at(PlatformType::TYPE_WINDOWS).at(type);
+    exts = kFileExtensions.at(PlatformType::TYPE_WINDOWS).at(type);
   }
 
   // Only autoload file which were safe at the time of discovery.
@@ -337,9 +338,10 @@ static bool isFileSafe(std::string& path, ExtendableType type) {
     return false;
   }
 
-  if (extendable.extension().string() != ext) {
-    LOG(WARNING) << "Will not autoload " << type_name << " not ending in '"
-                 << ext << "': " << path;
+  if (exts.find(extendable.extension().string()) == exts.end()) {
+    std::string ends = osquery::join(exts, "', '");
+    LOG(WARNING) << "Will not autoload " << type_name
+                 << " not ending in one of '" << ends << "': " << path;
     return false;
   }
 
