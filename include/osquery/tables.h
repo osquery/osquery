@@ -736,6 +736,9 @@ private:
  */
 TableCache* TableCacheNew(const std::string tableName, bool isCacheable);
 
+/**
+ * @brief A TableDefinition is an encapsulation of a .table spec file.
+ */
 struct TableDefinition {
   std::string              name;
   std::vector<std::string> aliases;
@@ -752,7 +755,7 @@ struct TableDefinition {
  * TablePlugins and attempt to attach them to SQLite at instantiation.
  *
  * Note: When updating this class, be sure to update the corresponding template
- * in osquery/tables/templates/default.cpp.in
+ * in osquery/tables/templates/
  */
 
 class TablePlugin : public Plugin {
@@ -823,81 +826,8 @@ class TablePlugin : public Plugin {
 
 
 
-  /// An SQL table containing the table definition/syntax.
-  //std::string columnDefinition() const;
-
   /// Return the name and column pairs for attaching virtual tables.
   PluginResponse routeInfo() const override;
-
-#ifdef NEVER
-  /**
-   * @brief Check if there are fresh cache results for this table.
-   *
-   * Table results are considered fresh when evaluated against a given interval.
-   * The interval is the expected rate for which this data should be generated.
-   * Caching and cache freshness only applies to queries acting on tables
-   * within a schedule. If two queries "one" and "two" both inspect the
-   * table "processes" at the interval 60. The first executed will cache results
-   * and the second will use the cached results.
-   *
-   * Table results are not cached if a QueryContext contains constraints or
-   * provides HOB (hand-off blocks) to additional tables within a query.
-   * Currently, the query scheduler cannot communicate to table implementations.
-   * An interval is set globally by the scheduler and passed to the table
-   * implementation as a future-proof API. There is no "shortcut" for caching
-   * when used in external tables. A cache lookup within an extension means
-   * a database call API and re-serialization to the virtual table APIs. In
-   * practice this does not perform well and is explicitly disabled.
-   *
-   * @param interval The interval this query expects the tables results.
-   * @param ctx The query context.
-   * @return True if the cache contains fresh results, otherwise false.
-   */
-  bool isCached(size_t interval, const QueryContext& ctx) const;
-
-  /**
-   * @brief Perform a database lookup of cached results and deserialize.
-   *
-   * If a query determined the table's cached results are fresh, it may ask the
-   * table to retrieve results from the database and deserialized them into
-   * table row data.
-   *
-   * @return The deserialized row data of cached results.
-   */
-  QueryData getCache() const;
-
-  /**
-   * @brief Similar to getCache, stores the results from generate.
-   *
-   * Set will serialize and save the results as JSON to be retrieved later.
-   * It will inspect the query context, if any required/indexed/optimized or
-   * additional columns are used then the cache will not be saved.
-   */
-  void setCache(size_t step,
-                size_t interval,
-                const QueryContext& ctx,
-                const QueryData& results);
-
- private:
-  /// The last time in seconds the table data results were saved to cache.
-  size_t last_cached_{0};
-
-  /// The last interval in seconds when the table data was cached.
-  size_t last_interval_{0};
-#endif // NEVER
-
- public:
-  /**
-   * @brief The scheduled interval for the executing query.
-   *
-   * Scheduled queries execute within a pseudo-mutex, and each may communicate
-   * their scheduled interval to internal TablePlugin implementations. If the
-   * table is cachable then the interval can be used to calculate freshness.
-   */
-  //static size_t kCacheInterval;
-
-  /// The schedule step, this is the current position of the schedule.
-  //static size_t kCacheStep;
 
  public:
   /**

@@ -20,6 +20,9 @@
 #include <lldp-const.h>
 #include <lldpctl.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_lldp_neighbors
+#include <generated/tables/tbl_lldp_neighbors_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

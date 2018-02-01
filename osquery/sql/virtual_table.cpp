@@ -607,7 +607,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
       }
       return SQLITE_OK;
     }
-    pCur->data = tableGenerate(*table, context); //table->generate(context);
+    pCur->data = tableGenerate(*table, context);
   } else {
     PluginRequest request = {{"action", "generate"}};
     TablePlugin::setRequestFromContext(context, request);

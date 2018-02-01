@@ -21,11 +21,7 @@ namespace osquery {
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 
-//CREATE_LAZY_REGISTRY(TablePlugin, "table");
-CREATE_REGISTRY(TablePlugin, "table");
-
-//size_t TablePlugin::kCacheInterval = 0;
-//size_t TablePlugin::kCacheStep = 0;
+CREATE_LAZY_REGISTRY(TablePlugin, "table");
 
 const std::map<ColumnType, std::string> kColumnTypeNames = {
     {UNKNOWN_TYPE, "UNKNOWN"},
@@ -135,12 +131,6 @@ Status TablePlugin::call(const PluginRequest& request,
   return Status(0, "OK");
 }
 
-/*
-std::string TablePlugin::columnDefinition() const {
-  return osquery::columnDefinition(definition().columns);
-}
-*/
-
 
 PluginResponse TablePlugin::routeInfo() const {
   // Route info consists of the serialized column information.
@@ -172,63 +162,6 @@ PluginResponse TablePlugin::routeInfo() const {
        {"attributes", INTEGER(static_cast<size_t>(definition().attributes))}});
   return response;
 }
-
-/*
-static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
-  if (!ctx.useCache()) {
-    // The query execution did not request use of the warm cache.
-    return false;
-  }
-
-  auto uncachable = ColumnOptions::INDEX | ColumnOptions::REQUIRED |
-                    ColumnOptions::ADDITIONAL | ColumnOptions::OPTIMIZED;
-  for (const auto& column : cols) {
-    auto opts = std::get<2>(column) & uncachable;
-    if (opts && ctx.constraints.at(std::get<0>(column)).exists()) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool TablePlugin::isCached(size_t step, const QueryContext& ctx) const {
-  if (FLAGS_disable_caching) {
-    return false;
-  }
-
-  // Perform the step comparison first, because it's easy.
-  return (step < last_cached_ + last_interval_ && cacheAllowed(columns(), ctx));
-}
-
-QueryData TablePlugin::getCache() const {
-  VLOG(1) << "Retrieving results from cache for table: " << getName();
-  // Lookup results from database and deserialize.
-  std::string content;
-  getDatabaseValue(kQueries, "cache." + getName(), content);
-  QueryData results;
-  deserializeQueryDataJSON(content, results);
-  return results;
-}
-
-void TablePlugin::setCache(size_t step,
-                           size_t interval,
-                           const QueryContext& ctx,
-                           const QueryData& results) {
-  if (FLAGS_disable_caching || !cacheAllowed(columns(), ctx)) {
-    return;
-  }
-
-  // Serialize QueryData and save to database.
-  std::string content;
-  if (serializeQueryDataJSON(results, content)) {
-    last_cached_ = step;
-    last_interval_ = interval;
-    setDatabaseValue(kQueries, "cache." + getName(), content);
-  }
-}
-*/
-
-
 
 std::string columnDefinition(const TableColumns& columns) {
   std::map<std::string, bool> epilog;

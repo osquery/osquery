@@ -120,7 +120,6 @@ static const TableDefinition tbl_aliases_def = {
   "aka",
   { "aliases1", "aliases2" }, // table aliases
   {
-    std::make_tuple("id", INTEGER_TYPE, ColumnOptions::INDEX),
     std::make_tuple("username", TEXT_TYPE, ColumnOptions::ADDITIONAL),
     std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
   },
