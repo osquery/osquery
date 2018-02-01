@@ -7,6 +7,8 @@ namespace osquery {
 
   DECLARE_bool(disable_caching);
 
+  // the following static globals are manipulated by scheduler (and tests)
+  // to reflect time and scheduled query interval
   size_t kTableCacheInterval = 0;
   size_t kTableCacheStep = 0;
 
@@ -14,9 +16,15 @@ namespace osquery {
   {
   public:
 
+    /* constructor should primarily be called from TableCacheNew()
+    */
     TableCacheDB(std::string tableName) : last_cached_(0), last_interval_(0), tableName_(tableName) {}
     virtual ~TableCacheDB() {}
 
+    /*
+     * returns true if this is a TableCache implementation that can persist results.
+     * Only TableCacheDisabled should return false.
+     */
     virtual bool isEnabled() const { return true; }
 
     virtual const std::string getTableName() const { return tableName_; }
@@ -30,6 +38,9 @@ namespace osquery {
       return (kTableCacheStep < last_cached_ + last_interval_ );
     }
 
+    /*
+     * fetch results from store, deserialize, and return.
+     */
     virtual QueryData get() const {
       VLOG(1) << "Retrieving results from cache for table: " << getTableName();
       // Lookup results from database and deserialize.
@@ -40,6 +51,11 @@ namespace osquery {
       return results;
     }
 
+    /*
+     * if FLAGS_disable_caching is false, then serializes and stores data.
+     * Snapshots kTableCacheStep and kTableCacheInterval to ensure
+     * stays valid for desired time.
+     */
     void set(const QueryData& results) {
       if (FLAGS_disable_caching) {
         return;
@@ -61,6 +77,6 @@ namespace osquery {
 
   TableCache* TableCacheDBNew(std::string tableName) { return new TableCacheDB(tableName); }
 
-  TableCache* TableCacheNew(std::string tableName, bool disabled) { if (disabled) return new TableCacheDisabled(tableName); return new TableCacheDB(tableName); }
+  TableCache* TableCacheNew(std::string tableName, bool isCacheable) { if (!isCacheable) return new TableCacheDisabled(tableName); return new TableCacheDB(tableName); }
 
 }

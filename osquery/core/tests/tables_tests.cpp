@@ -138,45 +138,67 @@ TEST_F(TablesTests, test_constraint_map_cast) {
   EXPECT_FALSE(cm["num"].existsAndMatches("hello"));
 }
 
+const TableDefinition tbl_test1_def = { "test1",
+  { /* table aliases */    },
+  {
+    std::make_tuple("time", BIGINT_TYPE,     ColumnOptions::DEFAULT        ),
+  },
+  { /* column aliases */   },
+  TableAttributes::CACHEABLE
+};
+
 class TestTablePlugin : public TablePlugin {
  public:
-  void testSetCache(size_t step, size_t interval) {
-    QueryData r;
-    QueryContext ctx;
-    ctx.useCache(true);
-    setCache(step, interval, ctx, r);
-  }
-
-  bool testIsCached(size_t interval) {
-    QueryContext ctx;
-    ctx.useCache(true);
-    return isCached(interval, ctx);
-  }
+  TestTablePlugin() : TablePlugin(tbl_test1_def) {}
 };
+
+extern size_t kTableCacheStep;
+extern size_t kTableCacheInterval;
+
+#include <gflags/gflags.h>
+DECLARE_bool(disable_caching);
+
+// emulate how sceduler uses step and interval.
+// kTableCacheStep increments every second.
+// kTableCacheInterval is the interval of the query in seconds.
+// While it's a shared value, it's updated each time a query is run.
+// Since cache instances snapshot interval on set(), conflicts do not occur.
+// When cacheing data, the cache will snapshot the current values:
+//   snapshotStep=kTableCacheStep, snapshotInterval=kTableCacheInterval
+// The cached data remains valid while kTableCacheStep < (snapshotStep + snapshotInterval)
+// For example, if interval is 60 seconds, and data is cached at kTableCacheInterval = 1000,
+// the data is valid until kTableCacheStep >= 1060
 
 TEST_F(TablesTests, test_caching) {
   TestTablePlugin test;
+
+  FLAGS_disable_caching = false;
+
+  size_t testQueryIntervalSeconds = 60; // seconds
+
+  kTableCacheInterval = testQueryIntervalSeconds;
+  kTableCacheStep = 1;
+
   // By default the interval and step is 0, so a step of 5 will not be cached.
-  EXPECT_FALSE(test.testIsCached(5));
 
-  TablePlugin::kCacheInterval = 5;
-  TablePlugin::kCacheStep = 1;
-  EXPECT_FALSE(test.testIsCached(5));
-  // Set the current time to 1, and the interval at 5.
-  test.testSetCache(TablePlugin::kCacheStep, TablePlugin::kCacheInterval);
-  // Time at 1 is cached for an interval of 5, so at time 5 the cache is fresh.
-  EXPECT_TRUE(test.testIsCached(5));
+  EXPECT_FALSE(test.cache().isCached());
+
+  test.cache().set(QueryData());
+  EXPECT_TRUE(test.cache().isCached());
+
   // 6 is the end of the cache, it is not fresh.
-  EXPECT_FALSE(test.testIsCached(6));
-  // 7 is past the cache, it is not fresh.
-  EXPECT_FALSE(test.testIsCached(7));
+  kTableCacheStep = testQueryIntervalSeconds;
+  EXPECT_TRUE(test.cache().isCached());
+  kTableCacheStep += 1;
+  EXPECT_FALSE(test.cache().isCached());
+  kTableCacheStep += 1;
+  EXPECT_FALSE(test.cache().isCached());
 
-  // Set the time at now to 2.
-  TablePlugin::kCacheStep = 2;
-  test.testSetCache(TablePlugin::kCacheStep, TablePlugin::kCacheInterval);
-  EXPECT_TRUE(test.testIsCached(5));
-  // Now 6 is within the freshness of 2 + 5.
-  EXPECT_TRUE(test.testIsCached(6));
-  EXPECT_FALSE(test.testIsCached(7));
+  test.cache().set(QueryData());
+  EXPECT_TRUE(test.cache().isCached());
+  kTableCacheStep += testQueryIntervalSeconds-1;
+  EXPECT_TRUE(test.cache().isCached());
+  kTableCacheStep += 1;
+  EXPECT_FALSE(test.cache().isCached());
 }
 }

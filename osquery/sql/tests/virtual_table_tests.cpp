@@ -21,32 +21,43 @@ namespace osquery {
 
 class VirtualTableTests : public testing::Test {};
 
+static const TableDefinition tbl_sample_def = {
+  "sample", { /* no aliases */},
+  {
+    std::make_tuple("foo", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    std::make_tuple("bar", TEXT_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  {/* no attributes */}
+};
+
 // sample plugin used on tests
 class sampleTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("foo", INTEGER_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple("bar", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+ public:
+  sampleTablePlugin() : TablePlugin(tbl_sample_def) {}
 };
 
 TEST_F(VirtualTableTests, test_tableplugin_columndefinition) {
   auto table = std::make_shared<sampleTablePlugin>();
-  EXPECT_EQ("(`foo` INTEGER, `bar` TEXT)", table->columnDefinition());
+  EXPECT_EQ("(`foo` INTEGER, `bar` TEXT)", columnDefinition(table->definition().columns));
 }
 
+static const TableDefinition tbl_options_def = {
+  "options", { /* no aliases */},
+  {
+    std::make_tuple(
+        "id", INTEGER_TYPE, ColumnOptions::INDEX | ColumnOptions::REQUIRED),
+    std::make_tuple("username", TEXT_TYPE, ColumnOptions::OPTIMIZED),
+    std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  {/* no attributes */}
+};
+
+
 class optionsTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple(
-            "id", INTEGER_TYPE, ColumnOptions::INDEX | ColumnOptions::REQUIRED),
-        std::make_tuple("username", TEXT_TYPE, ColumnOptions::OPTIMIZED),
-        std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+public:
+  optionsTablePlugin() : TablePlugin(tbl_options_def) {}
 
  private:
   FRIEND_TEST(VirtualTableTests, test_tableplugin_options);
@@ -55,7 +66,7 @@ class optionsTablePlugin : public TablePlugin {
 TEST_F(VirtualTableTests, test_tableplugin_options) {
   auto table = std::make_shared<optionsTablePlugin>();
   EXPECT_EQ(ColumnOptions::INDEX | ColumnOptions::REQUIRED,
-            std::get<2>(table->columns()[0]));
+            std::get<2>(table->definition().columns[0]));
 
   PluginResponse response;
   PluginRequest request = {{"action", "columns"}};
@@ -73,15 +84,20 @@ TEST_F(VirtualTableTests, test_tableplugin_options) {
   EXPECT_EQ(expected_statement, columnDefinition(response, true));
 }
 
+static const TableDefinition tbl_more_options_def = {
+  "more_options", { /* no aliases */},
+  {
+    std::make_tuple("id", INTEGER_TYPE, ColumnOptions::INDEX),
+    std::make_tuple("username", TEXT_TYPE, ColumnOptions::ADDITIONAL),
+    std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  {/* no attributes */}
+};
+
 class moreOptionsTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("id", INTEGER_TYPE, ColumnOptions::INDEX),
-        std::make_tuple("username", TEXT_TYPE, ColumnOptions::ADDITIONAL),
-        std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+ public:
+  moreOptionsTablePlugin() : TablePlugin(tbl_more_options_def) {}
 
  private:
   FRIEND_TEST(VirtualTableTests, test_tableplugin_moreoptions);
@@ -100,24 +116,21 @@ TEST_F(VirtualTableTests, test_tableplugin_moreoptions) {
   EXPECT_EQ(expected_statement, columnDefinition(response, true));
 }
 
+static const TableDefinition tbl_aliases_def = {
+  "aka",
+  { "aliases1", "aliases2" }, // table aliases
+  {
+    std::make_tuple("id", INTEGER_TYPE, ColumnOptions::INDEX),
+    std::make_tuple("username", TEXT_TYPE, ColumnOptions::ADDITIONAL),
+    std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
+  },
+  {{"username", {"user_name"}}, {"name", {"name1", "name2"}}}, // column aliases
+  {/* no attributes */}
+};
+
 class aliasesTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("username", TEXT_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
-
-  std::vector<std::string> aliases() const override {
-    return {"aliases1", "aliases2"};
-  }
-
-  ColumnAliasSet columnAliases() const override {
-    return {
-        {"username", {"user_name"}}, {"name", {"name1", "name2"}},
-    };
-  }
+ public:
+  aliasesTablePlugin() : TablePlugin(tbl_aliases_def) {}
 
  private:
   FRIEND_TEST(VirtualTableTests, test_tableplugin_aliases);
@@ -126,7 +139,7 @@ class aliasesTablePlugin : public TablePlugin {
 TEST_F(VirtualTableTests, test_tableplugin_aliases) {
   auto table = std::make_shared<aliasesTablePlugin>();
   std::vector<std::string> expected_aliases = {"aliases1", "aliases2"};
-  EXPECT_EQ(expected_aliases, table->aliases());
+  EXPECT_EQ(expected_aliases, table->definition().aliases);
 
   PluginResponse response;
   PluginRequest request = {{"action", "columns"}};
@@ -205,16 +218,20 @@ TEST_F(VirtualTableTests, test_sqlite3_table_joins) {
   EXPECT_EQ(results.size(), 1U);
 }
 
-class pTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("x", INTEGER_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple("y", INTEGER_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+static const TableDefinition tbl_p_def = {
+  "p", { /* no aliases */},
+  {
+    std::make_tuple("x", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    std::make_tuple("y", INTEGER_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  {/* no attributes */}
+};
 
- public:
+class pTablePlugin : public TablePlugin {
+public:
+  pTablePlugin() : TablePlugin(tbl_p_def) {}
+
   QueryData generate(QueryContext&) override {
     return {
         {{"x", "1"}, {"y", "2"}}, {{"x", "2"}, {"y", "1"}},
@@ -225,16 +242,20 @@ class pTablePlugin : public TablePlugin {
   FRIEND_TEST(VirtualTableTests, test_constraints_stacking);
 };
 
-class kTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("x", INTEGER_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple("z", INTEGER_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+static const TableDefinition tbl_k_def = {
+  "k", { /* no aliases */},
+  {
+    std::make_tuple("x", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    std::make_tuple("z", INTEGER_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  {/* no attributes */}
+};
 
- public:
+class kTablePlugin : public TablePlugin {
+public:
+  kTablePlugin() : TablePlugin(tbl_k_def) {}
+
   QueryData generate(QueryContext&) override {
     return {
         {{"x", "1"}, {"z", "2"}}, {{"x", "2"}, {"z", "1"}},
@@ -268,9 +289,9 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   {
     // To simplify the attach, just access the column definition directly.
     auto p = std::make_shared<pTablePlugin>();
-    attachTableInternal("p", p->columnDefinition(), dbc);
+    attachTableInternal("p", columnDefinition(p->definition().columns), dbc);
     auto k = std::make_shared<kTablePlugin>();
-    attachTableInternal("k", k->columnDefinition(), dbc);
+    attachTableInternal("k", columnDefinition(k->definition().columns), dbc);
   }
 
   std::vector<std::pair<std::string, QueryData>> constraint_tests = {
@@ -326,15 +347,19 @@ TEST_F(VirtualTableTests, test_constraints_stacking) {
   }
 }
 
-class jsonTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("data", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
 
+static const TableDefinition tbl_json_test_def = {
+  "some_table_name", { /* no aliases */},
+  {
+    std::make_tuple("data", TEXT_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  {/* no attributes */}
+};
+
+class jsonTablePlugin : public TablePlugin {
  public:
+   jsonTablePlugin() : TablePlugin(tbl_json_test_def) {}
   QueryData generate(QueryContext&) override {
     return {
         {{"data", "{\"test\": 1}"}},
@@ -352,7 +377,7 @@ TEST_F(VirtualTableTests, test_json_extract) {
   tables->add("json", json);
 
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal("json", json->columnDefinition(), dbc);
+  attachTableInternal("json", columnDefinition(json->definition().columns), dbc);
 
   QueryData results;
   // Run a query with a join within.
@@ -400,15 +425,19 @@ TEST_F(VirtualTableTests, test_null_values) {
   }
 }
 
-class cacheTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("data", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+static const TableDefinition tbl_cacher_def = {
+  "cacher", { /* no aliases */},
+  {
+    std::make_tuple("data", TEXT_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  TableAttributes::NONE
+};
 
+class cacheTablePlugin : public TablePlugin {
  public:
+  cacheTablePlugin() : TablePlugin(tbl_cacher_def) {}
+
   QueryData generate(QueryContext& context) override {
     if (context.isCached("awesome_data")) {
       // There is cache entry for awesome data.
@@ -430,7 +459,7 @@ TEST_F(VirtualTableTests, test_table_cache) {
   auto cache = std::make_shared<cacheTablePlugin>();
   tables->add("cache", cache);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal("cache", cache->columnDefinition(), dbc);
+  attachTableInternal("cache", columnDefinition(cache->definition().columns), dbc);
 
   QueryData results;
   // Run a query with a join within.
@@ -449,41 +478,48 @@ TEST_F(VirtualTableTests, test_table_cache) {
   ASSERT_EQ(results[0]["data"], "awesome_data");
 }
 
+static const TableDefinition tbl_cache_table_test_def = {
+  "table_cache", { /* no aliases */},
+  {
+    std::make_tuple("i", TEXT_TYPE, ColumnOptions::INDEX),
+    std::make_tuple("d", TEXT_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  TableAttributes::CACHEABLE
+};
+
 class tableCacheTablePlugin : public TablePlugin {
  public:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("i", TEXT_TYPE, ColumnOptions::INDEX),
-        std::make_tuple("d", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
-
-  TableAttributes attributes() const override {
-    return TableAttributes::CACHEABLE;
-  }
+   tableCacheTablePlugin() : TablePlugin(tbl_cache_table_test_def) {}
 
   QueryData generate(QueryContext& ctx) override {
-    if (isCached(60, ctx)) {
-      return getCache();
-    }
-
     generates_++;
     Row r;
     r["i"] = "1";
-    setCache(60, 1, ctx, {r});
     return {r};
   }
 
   size_t generates_{0};
 };
 
+TEST_F(VirtualTableTests, test_cacheable_table_not_disabled)
+{
+  // tableCacheTable has TableAttributes::CACHEABLE, so it should have TableCacheDB instance
+  auto table = std::make_shared<tableCacheTablePlugin>();
+  ASSERT_TRUE(table->cache().isEnabled());
+
+  // pTable does not have TableAttributes::CACHEABLE, so it should have TableCacheDisabled instance
+  auto table2 = std::make_shared<pTablePlugin>();
+  ASSERT_FALSE(table2->cache().isEnabled());
+}
+
 TEST_F(VirtualTableTests, test_table_results_cache) {
   // Get a database connection.
   auto tables = RegistryFactory::get().registry("table");
-  auto cache = std::make_shared<tableCacheTablePlugin>();
-  tables->add("table_cache", cache);
+  auto pTable = std::make_shared<tableCacheTablePlugin>();
+  tables->add(pTable->definition().name, pTable);
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal("table_cache", cache->columnDefinition(), dbc);
+  attachTableInternal("table_cache", columnDefinition(pTable->definition().columns), dbc);
 
   QueryData results;
   std::string statement = "SELECT * from table_cache;";
@@ -492,7 +528,7 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
 
   EXPECT_TRUE(status.ok());
   EXPECT_EQ(results.size(), 1U);
-  EXPECT_EQ(cache->generates_, 1U);
+  EXPECT_EQ(pTable->generates_, 1U);
 
   // Run the query again, the virtual table cache was not requested.
   results.clear();
@@ -501,7 +537,7 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   EXPECT_EQ(results.size(), 1U);
 
   // The table should have used the cache.
-  EXPECT_EQ(cache->generates_, 2U);
+  EXPECT_EQ(pTable->generates_, 2U);
 
   // Now request that caching be used.
   dbc->useCache(true);
@@ -511,14 +547,14 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   statement = "SELECT * from table_cache;";
   queryInternal(statement, results, dbc);
   EXPECT_EQ(results.size(), 1U);
-  EXPECT_EQ(cache->generates_, 3U);
+  EXPECT_EQ(pTable->generates_, 3U);
 
   // Run the query again, the virtual table cache will be returned.
   results.clear();
   statement = "SELECT * from table_cache;";
   queryInternal(statement, results, dbc);
   EXPECT_EQ(results.size(), 1U);
-  EXPECT_EQ(cache->generates_, 3U);
+  EXPECT_EQ(pTable->generates_, 3U);
 
   // Once last time with constraints that invalidate the cache results.
   results.clear();
@@ -527,21 +563,23 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   EXPECT_EQ(results.size(), 1U);
 
   // The table should NOT have used the cache.
-  EXPECT_EQ(cache->generates_, 4U);
+  EXPECT_EQ(pTable->generates_, 4U);
 }
 
-class yieldTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("index", INTEGER_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+static const TableDefinition tbl_yield_test_def = {
+  "yield", { /* no aliases */},
+  {
+    std::make_tuple("index", INTEGER_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  TableAttributes::NONE
+};
 
+class yieldTablePlugin : public TablePlugin {
  public:
-  bool usesGenerator() const override {
-    return true;
-  }
+  yieldTablePlugin() : TablePlugin(tbl_yield_test_def) {}
+
+  bool usesGenerator() const override { return true; }
 
   void generator(RowYield& yield, QueryContext& qc) override {
     for (size_t i = 0; i < 10; i++) {
@@ -558,10 +596,10 @@ class yieldTablePlugin : public TablePlugin {
 TEST_F(VirtualTableTests, test_yield_generator) {
   auto table = std::make_shared<yieldTablePlugin>();
   auto table_registry = RegistryFactory::get().registry("table");
-  table_registry->add("yield", table);
+  table_registry->add(table->definition().name, table);
 
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal("yield", table->columnDefinition(), dbc);
+  attachTableInternal(table->definition().name, columnDefinition(table->definition().columns), dbc);
 
   QueryData results;
   queryInternal("SELECT * from yield", results, dbc);
@@ -575,16 +613,20 @@ TEST_F(VirtualTableTests, test_yield_generator) {
   EXPECT_EQ(results[0]["index"], "10");
 }
 
-class likeTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("i", TEXT_TYPE, ColumnOptions::INDEX),
-        std::make_tuple("op", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+static const TableDefinition tbl_like_test_def = {
+  "like_table", { /* no aliases */},
+  {
+    std::make_tuple("i", TEXT_TYPE, ColumnOptions::INDEX),
+    std::make_tuple("op", TEXT_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  TableAttributes::NONE
+};
 
+class likeTablePlugin : public TablePlugin {
  public:
+  likeTablePlugin() : TablePlugin(tbl_like_test_def) {}
+
   QueryData generate(QueryContext& context) override {
     QueryData results;
 
@@ -619,7 +661,7 @@ TEST_F(VirtualTableTests, test_like_constraints) {
   table_registry->add("like_table", table);
 
   auto dbc = SQLiteDBManager::getUnique();
-  attachTableInternal("like_table", table->columnDefinition(), dbc);
+  attachTableInternal("like_table", columnDefinition(table->definition().columns), dbc);
 
   // Base case, without constrains this table has no results.
   QueryData results;
@@ -682,17 +724,21 @@ TEST_F(VirtualTableTests, test_like_constraints) {
   EXPECT_EQ(results[1]["op"], "LIKE");
 }
 
-class indexIOptimizedTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("i", INTEGER_TYPE, ColumnOptions::INDEX),
-        std::make_tuple("j", INTEGER_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple("text", INTEGER_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+static const TableDefinition tbl_indexIOptimized_def = {
+  "indexIOptimized", { /* no aliases */},
+  {
+    std::make_tuple("i", INTEGER_TYPE, ColumnOptions::INDEX),
+    std::make_tuple("j", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    std::make_tuple("text", INTEGER_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  TableAttributes::NONE
+};
 
+class indexIOptimizedTablePlugin : public TablePlugin {
  public:
+  indexIOptimizedTablePlugin() : TablePlugin(tbl_indexIOptimized_def) {}
+
   QueryData generate(QueryContext& context) override {
     scans++;
 
@@ -715,16 +761,20 @@ class indexIOptimizedTablePlugin : public TablePlugin {
   size_t scans{0};
 };
 
-class indexJOptimizedTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("j", INTEGER_TYPE, ColumnOptions::INDEX),
-        std::make_tuple("text", INTEGER_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+static const TableDefinition tbl_indexJOptimized_def = {
+  "indexJOptimized", { /* no aliases */},
+  {
+    std::make_tuple("j", INTEGER_TYPE, ColumnOptions::INDEX),
+    std::make_tuple("text", INTEGER_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  TableAttributes::NONE
+};
 
+class indexJOptimizedTablePlugin : public TablePlugin {
  public:
+  indexJOptimizedTablePlugin() : TablePlugin(tbl_indexJOptimized_def) {}
+
   QueryData generate(QueryContext& context) override {
     scans++;
 
@@ -745,16 +795,20 @@ class indexJOptimizedTablePlugin : public TablePlugin {
   size_t scans{0};
 };
 
-class defaultScanTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const override {
-    return {
-        std::make_tuple("i", INTEGER_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple("text", INTEGER_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+static const TableDefinition tbl_defaultScan_def = {
+  "defaultScan", { /* no aliases */},
+  {
+    std::make_tuple("i", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    std::make_tuple("text", INTEGER_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  TableAttributes::NONE
+};
 
+class defaultScanTablePlugin : public TablePlugin {
  public:
+  defaultScanTablePlugin() : TablePlugin(tbl_defaultScan_def) {}
+
   QueryData generate(QueryContext& context) override {
     scans++;
 
@@ -776,15 +830,15 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
 
   auto i = std::make_shared<indexIOptimizedTablePlugin>();
   table_registry->add("index_i", i);
-  attachTableInternal("index_i", i->columnDefinition(), dbc);
+  attachTableInternal("index_i", columnDefinition(i->definition().columns), dbc);
 
   auto j = std::make_shared<indexJOptimizedTablePlugin>();
   table_registry->add("index_j", j);
-  attachTableInternal("index_j", j->columnDefinition(), dbc);
+  attachTableInternal("index_j", columnDefinition(j->definition().columns), dbc);
 
   auto default_scan = std::make_shared<defaultScanTablePlugin>();
   table_registry->add("default_scan", default_scan);
-  attachTableInternal("default_scan", default_scan->columnDefinition(), dbc);
+  attachTableInternal("default_scan", columnDefinition(default_scan->definition().columns), dbc);
 
   QueryData results;
   queryInternal(

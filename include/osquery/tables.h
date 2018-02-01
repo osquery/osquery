@@ -734,7 +734,7 @@ private:
 /*
  * @param disabled If true, then TableCacheDisabled instance returned, otherwise TableCacheDB instance
  */
-TableCache* TableCacheNew(const std::string tableName, bool disabled);
+TableCache* TableCacheNew(const std::string tableName, bool isCacheable);
 
 struct TableDefinition {
   std::string              name;

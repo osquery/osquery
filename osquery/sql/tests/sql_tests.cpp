@@ -28,14 +28,20 @@ TEST_F(SQLTests, test_raw_access) {
   EXPECT_EQ(results.size(), 1U);
 }
 
+static const TableDefinition tbl_test_def = {
+  "test", { /* no aliases */},
+  {
+    std::make_tuple("test_int", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    std::make_tuple("test_text", TEXT_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  {/* no attributes */}
+};
+
 class TestTablePlugin : public TablePlugin {
+public:
+  TestTablePlugin() : TablePlugin(tbl_test_def) {}
  private:
-  TableColumns columns() const {
-    return {
-        std::make_tuple("test_int", INTEGER_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple("test_text", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
 
   QueryData generate(QueryContext& ctx) {
     QueryData results;
