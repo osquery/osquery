@@ -13,9 +13,11 @@
 
 #include "osquery/events/darwin/iokit.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_device_firmware
 #include <generated/tables/tbl_device_firmware_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_iokit_devicetree
 #include <generated/tables/tbl_iokit_devicetree_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_iokit_registry
 #include <generated/tables/tbl_iokit_registry_defs.hpp>
 
 

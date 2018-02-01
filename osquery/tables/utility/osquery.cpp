@@ -23,6 +23,22 @@
 
 #include "osquery/core/process.h"
 
+// declare TablePlugin
+#define DECLARE_TABLE_IMPLEMENTATION_osquery_events
+#include <generated/tables/tbl_osquery_events_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_osquery_extensions
+#include <generated/tables/tbl_osquery_extensions_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_osquery_flags
+#include <generated/tables/tbl_osquery_flags_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_osquery_info
+#include <generated/tables/tbl_osquery_info_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_osquery_packs
+#include <generated/tables/tbl_osquery_packs_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_osquery_registry
+#include <generated/tables/tbl_osquery_registry_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_osquery_schedule
+#include <generated/tables/tbl_osquery_schedule_defs.hpp>
+
 namespace osquery {
 
 DECLARE_bool(disable_logging);
@@ -265,13 +281,3 @@ QueryData genOsquerySchedule(QueryContext& context) {
 }
 }
 }
-
-// declare TablePlugin
-#define DECLARE_TABLE_IMPLEMENTATION
-#include <generated/tables/tbl_osquery_events_defs.hpp>
-#include <generated/tables/tbl_osquery_extensions_defs.hpp>
-#include <generated/tables/tbl_osquery_flags_defs.hpp>
-#include <generated/tables/tbl_osquery_info_defs.hpp>
-#include <generated/tables/tbl_osquery_packs_defs.hpp>
-#include <generated/tables/tbl_osquery_registry_defs.hpp>
-#include <generated/tables/tbl_osquery_schedule_defs.hpp>

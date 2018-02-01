@@ -16,7 +16,7 @@
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/posix/sysctl_utils.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_system_controls
 #include <generated/tables/tbl_system_controls_defs.hpp>
 
 namespace osquery {

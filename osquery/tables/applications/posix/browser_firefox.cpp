@@ -20,7 +20,7 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_firefox_addons
 #include <generated/tables/tbl_firefox_addons_defs.hpp>
 
 namespace osquery {

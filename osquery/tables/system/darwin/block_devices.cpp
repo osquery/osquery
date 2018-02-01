@@ -18,7 +18,7 @@
 
 #include "osquery/events/darwin/iokit.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_block_devices
 #include <generated/tables/tbl_block_devices_defs.hpp>
 
 namespace osquery {

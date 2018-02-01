@@ -19,6 +19,10 @@
 
 namespace osquery {
 
+  // in database/tablecachedb
+  extern size_t kTableCacheInterval;
+  extern size_t kTableCacheStep;
+
 DECLARE_bool(disable_logging);
 DECLARE_uint64(schedule_reload);
 
@@ -138,12 +142,12 @@ TEST_F(SchedulerTests, test_config_results_purge) {
 }
 
 TEST_F(SchedulerTests, test_scheduler) {
-  auto backup_step = TablePlugin::kCacheStep;
-  auto backup_interval = TablePlugin::kCacheInterval;
+  auto backup_step = kTableCacheStep;
+  auto backup_interval = kTableCacheInterval;
 
   // Start the scheduler now.
   auto now = osquery::getUnixTime();
-  TablePlugin::kCacheStep = now;
+  kTableCacheStep = now;
 
   // Update the config with a pack/schedule that contains several queries.
   std::string config =
@@ -166,11 +170,11 @@ TEST_F(SchedulerTests, test_scheduler) {
   runner.start();
 
   // If a query was executed the cache step will have been advanced.
-  EXPECT_GT(TablePlugin::kCacheStep, now);
+  EXPECT_GT(kTableCacheStep, now);
 
   // Restore plugin settings.
-  TablePlugin::kCacheStep = backup_step;
-  TablePlugin::kCacheInterval = backup_interval;
+  kTableCacheStep = backup_step;
+  kTableCacheInterval = backup_interval;
 }
 
 TEST_F(SchedulerTests, test_scheduler_reload) {

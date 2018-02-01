@@ -19,7 +19,7 @@
 
 namespace pt = boost::property_tree;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_quicklook_cache
 #include <generated/tables/tbl_quicklook_cache_defs.hpp>
 
 namespace osquery {

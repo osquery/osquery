@@ -13,7 +13,7 @@
 
 #include <osquery/tables.h>
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_mounts
 #include <generated/tables/tbl_mounts_defs.hpp>
 
 namespace osquery {

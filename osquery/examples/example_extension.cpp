@@ -26,15 +26,20 @@ class ExampleConfigPlugin : public ConfigPlugin {
   }
 };
 
+static const TableDefinition tbl_example_def = {
+  "example", { /* no aliases */},
+  {
+      std::make_tuple("example_text", TEXT_TYPE, ColumnOptions::DEFAULT),
+      std::make_tuple("example_integer", INTEGER_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  {/* no attributes */}
+};
+
 class ExampleTable : public TablePlugin {
+public:
+  ExampleTable() : TablePlugin(tbl_example_def) {}
  private:
-  TableColumns columns() const {
-    return {
-        std::make_tuple("example_text", TEXT_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple(
-            "example_integer", INTEGER_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
 
   QueryData generate(QueryContext& request) {
     QueryData results;
@@ -46,6 +51,16 @@ class ExampleTable : public TablePlugin {
     results.push_back(r);
     return results;
   }
+};
+
+static const TableDefinition tbl_complex_example_def = {
+  "complex_example", { /* no aliases */},
+  {
+    std::make_tuple("flag_test", TEXT_TYPE, ColumnOptions::DEFAULT),
+    std::make_tuple("database_test", TEXT_TYPE, ColumnOptions::DEFAULT),
+  },
+  {/* no columnAliases */},
+  {/* no attributes */}
 };
 
 /**
@@ -62,14 +77,10 @@ class ExampleTable : public TablePlugin {
  * Direct use of the "database" registry will lead to undefined behavior.
  */
 class ComplexExampleTable : public TablePlugin {
- private:
-  TableColumns columns() const {
-    return {
-        std::make_tuple("flag_test", TEXT_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple("database_test", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+ public:
+  ComplexExampleTable() : TablePlugin(tbl_complex_example_def) {}
 
+ private:
   QueryData generate(QueryContext& request) {
     Row r;
 

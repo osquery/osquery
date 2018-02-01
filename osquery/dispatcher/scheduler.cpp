@@ -41,9 +41,10 @@ HIDDEN_FLAG(bool,
             false,
             "Reload the SQL implementation during schedule reload");
 
+// refs to osquery/database/tablecachedb globals
+extern size_t kTableCacheInterval;
+extern size_t kTableCacheStep;
 
-size_t kCacheInterval = 0;
-size_t kCacheStep = 0;
 
 /// Used to bypass (optimize-out) the set-differential of query results.
 DECLARE_bool(events_optimize);
@@ -159,8 +160,8 @@ void SchedulerRunner::start() {
     Config::get().scheduledQueries(
         ([&i](const std::string& name, const ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
-            kCacheInterval = query.splayed_interval;
-            kCacheStep = i;
+            kTableCacheInterval = query.splayed_interval;
+            kTableCacheStep = i;
             launchQuery(name, query);
           }
         }));

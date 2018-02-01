@@ -20,12 +20,10 @@ namespace osquery {
 namespace tables {
 extern const TableDefinition tbl_{{table_name}}_def;
 
-#if defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_DEF) || defined(DECLARE_TABLE_FOREIGN_STUB)
+#if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}}) || defined(DECLARE_TABLE_DEF_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}})
 
 const TableDefinition tbl_{{table_name}}_def = { "{{table_name}}",
-  {
-    {% for alias in aliases %}"{{alias}}",{% endfor %}\
-  },
+  { /* table aliases */  {% for alias in aliases %}"{{alias}}",{% endfor %}  },
   {
     {% for column in schema %}\
       std::make_tuple("{{column.name}}", {{column.type.affinity}},\
@@ -35,20 +33,20 @@ const TableDefinition tbl_{{table_name}}_def = { "{{table_name}}",
     ),
     {% endfor %}\
   },
-  {
-    {% for column in schema %}\
-    {% if column.aliases|length > 0 %}\
-      {"{{column.name}}", {% raw %}{{% endraw %}\
-      {% for alias in column.aliases %}"{{alias}}"\
-      {% if not loop.last %}, {% endif %}\
-      {% endfor %}}},
-    {% endif %}\
-    {% endfor %}\
+  { /* column aliases */ \
+{% for column in schema %}\
+{% if column.aliases|length > 0 %}\
+{"{{column.name}}", {% raw %}{{% endraw %}\
+{% for alias in column.aliases %}"{{alias}}"\
+{% if not loop.last %}, {% endif %}\
+{% endfor %}}},\
+{% endif %}\
+{% endfor %}\
   },
-  {% for attribute in attribute_set %}\
-        TableAttributes::{{attribute}} |\
-  {% endfor %}\
-        TableAttributes::NONE
+{% for attribute in attribute_set %}\
+  TableAttributes::{{attribute}} |\
+{% endfor %}
+  TableAttributes::NONE
 };
 
 
@@ -56,23 +54,39 @@ const TableDefinition tbl_{{table_name}}_def = { "{{table_name}}",
 
 } // namespace tables
 
-#if defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_FOREIGN_STUB)
+#if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}})
 
-void tbl_{{table_name}}_register_stub()
+TablePlugin* tbl_{{table_name}}_stub_new()
 {
-  bool isInternalUtilitiesTable =\
-  {% if attributes.utility %} true {% else %} false {% endif %};
-  auto registry = RegistryFactory::get().registry("table");
-  TableCache *cache = new TableCacheDisabled("{{table_name}}");
-  registry->add("{{table_name}}", std::make_shared<TablePlugin>(tables::tbl_{{table_name}}_def, *cache), isInternalUtilitiesTable);
+  return new TablePlugin(tables::tbl_{{table_name}}_def);
 }
 {% if table_name != filename %}\
-void tbl_{{filename}}_register_stub() { tbl_{{table_name}}_register_stub(); } // filename differs from table name
+TablePlugin* tbl_{{filename}}_stub_new() { return tbl_{{table_name}}_stub_new(); } // filename differs from table name
 {% endif %}\
 
 #endif // defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_FOREIGN_STUB)
 
-#if defined(DECLARE_TABLE_IMPLEMENTATION)
+#if defined(DECLARE_TABLE_STRUCT_{{table_name}})
+struct tbl_{{table_name}}_data_t {
+
+{% for column in schema %}\
+      {{column.type.type}}      {{column.name}};
+{% endfor %}\
+
+  /*
+   * Convert to osquery Row format
+   */
+  void toHashmap(Row &dest) const {
+    {% for column in schema %}\
+    dest["{{column.name}}"] = __sqliteField({{column.name}});
+    {% endfor %}\
+  }
+
+};
+
+#endif // DECLARE_TABLE_STRUCT_
+
+#if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}})
 
 // forward declaration of funcs
 namespace tables {
@@ -92,7 +106,7 @@ class {{class_name}} {
 
 class {{table_name_cc}}TablePlugin : public TablePlugin {
 public:
- {{table_name_cc}}TablePlugin(const TableDefinition& tdef, TableCache &tcache) : TablePlugin(tdef, tcache) { }
+ {{table_name_cc}}TablePlugin(const TableDefinition& tdef) : TablePlugin(tdef) { }
 
  private:
 {% if generator %}\
@@ -119,28 +133,18 @@ public:
 
 };
 
-void tbl_{{table_name}}_register()
+TablePlugin* tbl_{{table_name}}_plugin_new()
 {
-  bool isInternalUtilitiesTable =\
-  {% if attributes.utility %} true {% else %} false {% endif %};
-  auto registry = RegistryFactory::get().registry("table");
-
-{% if attributes.cacheable %}\
-  extern TableCache* TableCacheDBNew(std::string tableName);
-  TableCache *cache=TableCacheDBNew("{{table_name}}");
-{% else %}\
-  TableCache *cache=new TableCacheDisabled("{{table_name}}");
-{% endif %}\
-  registry->add("{{table_name}}", std::make_shared<{{table_name_cc}}TablePlugin>(tables::tbl_{{table_name}}_def, *cache), isInternalUtilitiesTable);
+  return new {{table_name_cc}}TablePlugin(tables::tbl_{{table_name}}_def);
 }
 {% if table_name != filename %}\
-void tbl_{{filename}}_register() { tbl_{{table_name}}_register(); } // filename differs from table name
+TablePlugin* tbl_{{filename}}_plugin_new() { return tbl_{{table_name}}_plugin_new(); } // filename differs from table name
 {% endif %}\
 #endif // defined(DECLARE_TABLE_IMPLEMENTATION)
 
-extern void tbl_{{table_name}}_register();
+extern TablePlugin* tbl_{{table_name}}_plugin_new();
 {% if table_name != filename %}\
-extern void tbl_{{filename}}_register();
+extern TablePlugin* tbl_{{filename}}_plugin_new();
 {% endif %}\
 
 } // namespace osquery

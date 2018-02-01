@@ -20,7 +20,7 @@
 #include <windows.h>
 #endif
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_uptime
 #include <generated/tables/tbl_uptime_defs.hpp>
 
 namespace osquery {

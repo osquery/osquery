@@ -16,7 +16,7 @@
 
 #include "osquery/tables/networking/darwin/wifi_utils.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_wifi_status
 #include <generated/tables/tbl_wifi_status_defs.hpp>
 
 namespace osquery {

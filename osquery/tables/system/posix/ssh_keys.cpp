@@ -19,7 +19,7 @@
 
 #include "osquery/tables/system/system_utils.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_user_ssh_keys
 #include <generated/tables/tbl_user_ssh_keys_defs.hpp>
 
 namespace osquery {

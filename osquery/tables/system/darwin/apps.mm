@@ -27,8 +27,9 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_apps
 #include <generated/tables/tbl_apps_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_app_schemes
 #include <generated/tables/tbl_app_schemes_defs.hpp>
 
 namespace osquery {

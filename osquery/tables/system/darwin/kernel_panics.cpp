@@ -22,7 +22,7 @@
 namespace fs = boost::filesystem;
 namespace alg = boost::algorithm;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_kernel_panics
 #include <generated/tables/tbl_kernel_panics_defs.hpp>
 
 namespace osquery {

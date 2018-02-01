@@ -20,7 +20,7 @@
 #include "osquery/events/darwin/fsevents.h"
 #include "osquery/tables/events/event_utils.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_file_events
 #include <generated/tables/tbl_file_events_defs.hpp>
 
 namespace osquery {

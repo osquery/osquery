@@ -15,7 +15,7 @@
 
 #include "osquery/core/conversions.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_os_version
 #include <generated/tables/tbl_os_version_defs.hpp>
 
 namespace osquery {

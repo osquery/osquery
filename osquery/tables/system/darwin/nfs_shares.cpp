@@ -13,7 +13,7 @@
 
 #include "osquery/core/conversions.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_nfs_shares
 #include <generated/tables/tbl_nfs_shares_defs.hpp>
 
 namespace osquery {

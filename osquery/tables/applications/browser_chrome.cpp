@@ -13,7 +13,7 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_chrome_extensions
 #include <generated/tables/tbl_chrome_extensions_defs.hpp>
 
 namespace osquery {

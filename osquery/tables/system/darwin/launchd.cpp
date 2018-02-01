@@ -23,8 +23,9 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_launchd
 #include <generated/tables/tbl_launchd_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_launchd_overrides
 #include <generated/tables/tbl_launchd_overrides_defs.hpp>
 
 

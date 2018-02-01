@@ -21,7 +21,7 @@
 
 #include "osquery/core/conversions.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_cpu_time
 #include <generated/tables/tbl_cpu_time_defs.hpp>
 
 

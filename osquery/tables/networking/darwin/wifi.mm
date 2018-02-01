@@ -20,7 +20,7 @@
 #include "osquery/core/conversions.h"
 #include "osquery/tables/networking/darwin/wifi_utils.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_wifi_networks
 #include <generated/tables/tbl_wifi_networks_defs.hpp>
 
 namespace osquery {

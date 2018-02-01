@@ -15,7 +15,7 @@
 
 #include "osquery/events/darwin/iokit.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_sip_config
 #include <generated/tables/tbl_sip_config_defs.hpp>
 
 namespace osquery {

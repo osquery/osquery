@@ -24,7 +24,7 @@
 
 namespace xp = boost::xpressive;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_shell_history
 #include <generated/tables/tbl_shell_history_defs.hpp>
 
 namespace osquery {

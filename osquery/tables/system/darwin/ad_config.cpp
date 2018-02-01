@@ -12,7 +12,7 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_ad_config
 #include <generated/tables/tbl_ad_config_defs.hpp>
 
 namespace osquery {

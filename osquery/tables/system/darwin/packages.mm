@@ -23,9 +23,11 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_package_bom
 #include <generated/tables/tbl_package_bom_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_package_receipts
 #include <generated/tables/tbl_package_receipts_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_package_install_history
 #include <generated/tables/tbl_package_install_history_defs.hpp>
 
 

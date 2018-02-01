@@ -10,7 +10,7 @@
 
 #include "osquery/events/darwin/event_taps.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_user_interaction_events
 #include <generated/tables/tbl_user_interaction_events_defs.hpp>
 
 namespace osquery {

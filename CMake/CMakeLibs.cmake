@@ -372,7 +372,6 @@ macro(GET_TABLE_RELPATH PATH DEST)
     ${DEST}
     ${PATH}
   )
-
 endmacro(GET_TABLE_RELPATH)
 
 macro(GENERATE_TABLE TABLE_FILE FOREIGN NAME BASE_PATH OUTPUT)
@@ -405,6 +404,7 @@ macro(GENERATE_TABLE TABLE_FILE FOREIGN NAME BASE_PATH OUTPUT)
 endmacro(GENERATE_TABLE)
 
 macro(AMALGAMATE BASE_PATH NAME OUTPUT)
+
   GET_GENERATION_DEPS(${BASE_PATH})
   if("${NAME}" STREQUAL "foreign")
     get_property(TARGETS GLOBAL PROPERTY AMALGAMATE_FOREIGN_TARGETS)
@@ -418,13 +418,11 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
 
   foreach(TARGET ${TARGETS})
     GENERATE_TABLE("${TARGET}" "${FOREIGN}" "${NAME}" "${BASE_PATH}" GENERATED_TARGETS)
-  endforeach()
+    endforeach()
 
   # Include the generated folder in make clean.
   set_directory_properties(PROPERTY
-    ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_BINARY_DIR}/generated")
-
-  #message("TABLES:\"${TABLE_NAMES}\"")
+  ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_BINARY_DIR}/generated")
 
   # Append all of the code to a single amalgamation.
   set(AMALGAMATION_FILE_GEN "${CMAKE_BINARY_DIR}/generated/${NAME}_amalgamation.cpp")

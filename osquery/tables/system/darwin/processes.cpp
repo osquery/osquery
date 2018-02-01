@@ -28,9 +28,12 @@
 
 namespace fs = boost::filesystem;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_processes
+#define DECLARE_TABLE_STRUCT_processes
 #include <generated/tables/tbl_processes_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_process_envs
 #include <generated/tables/tbl_process_envs_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_process_memory_map
 #include <generated/tables/tbl_process_memory_map_defs.hpp>
 
 namespace osquery {
@@ -166,6 +169,25 @@ static inline int genMaxArgs() {
   return argmax;
 }
 
+void genProcRootAndCWD(int pid, tbl_processes_data_t &r) {
+  r.cwd = "";
+  r.root = "";
+
+  struct proc_vnodepathinfo pathinfo;
+  if (proc_pidinfo(
+          pid, PROC_PIDVNODEPATHINFO, 0, &pathinfo, sizeof(pathinfo)) ==
+      sizeof(pathinfo)) {
+    if (pathinfo.pvi_cdir.vip_vi.vi_stat.vst_dev != 0) {
+      r.cwd = std::string(pathinfo.pvi_cdir.vip_path);
+    }
+
+    if (pathinfo.pvi_rdir.vip_vi.vi_stat.vst_dev != 0) {
+      r.root = std::string(pathinfo.pvi_rdir.vip_path);
+    }
+  }
+
+}
+
 void genProcRootAndCWD(int pid, Row& r) {
   r["cwd"] = "";
   r["root"] = "";
@@ -264,14 +286,13 @@ QueryData genProcesses(QueryContext& context) {
   int argmax = genMaxArgs();
 
   for (auto& pid : pidlist) {
-    Row r;
-    r["pid"] = INTEGER(pid);
+    tbl_processes_data_t r;
+    r.pid = pid;
 
     {
       // The command line invocation including arguments.
       auto args = getProcRawArgs(pid, argmax);
-      std::string cmdline = boost::algorithm::join(args.args, " ");
-      r["cmdline"] = cmdline;
+      r.cmdline = boost::algorithm::join(args.args, " ");
     }
 
     // The process relative root and current working directory.
@@ -279,33 +300,33 @@ QueryData genProcesses(QueryContext& context) {
 
     proc_cred cred;
     if (getProcCred(pid, cred)) {
-      r["parent"] = BIGINT(cred.parent);
-      r["pgroup"] = BIGINT(cred.group);
+      r.parent = cred.parent;
+      r.pgroup = cred.group;
       // check if process state is one of the expected ones
-      r["state"] = (1 <= cred.status && cred.status <= 5)
+      r.state = (1 <= cred.status && cred.status <= 5)
                        ? TEXT(kProcessStateMapping[cred.status])
                        : TEXT('?');
-      r["nice"] = INTEGER(cred.nice);
-      r["uid"] = BIGINT(cred.real.uid);
-      r["gid"] = BIGINT(cred.real.gid);
-      r["euid"] = BIGINT(cred.effective.uid);
-      r["egid"] = BIGINT(cred.effective.gid);
-      r["suid"] = BIGINT(cred.saved.uid);
-      r["sgid"] = BIGINT(cred.saved.gid);
+      r.nice = cred.nice;
+      r.uid = cred.real.uid;
+      r.gid = cred.real.gid;
+      r.euid = cred.effective.uid;
+      r.egid = cred.effective.gid;
+      r.suid = cred.saved.uid;
+      r.sgid = cred.saved.gid;
     } else {
       continue;
     }
 
     // If the process is not a Zombie, try to find the path and name.
     if (cred.status != 5) {
-      r["path"] = getProcPath(pid);
+      r.path = getProcPath(pid);
       // OS X proc_name only returns 16 bytes, use the basename of the path.
-      r["name"] = fs::path(r["path"]).filename().string();
+      r.name = fs::path(r.path).filename().string();
     } else {
-      r["path"] = "";
+      r.path = "";
       std::vector<char> name(17);
       proc_name(pid, name.data(), 16);
-      r["name"] = std::string(name.data());
+      r.name = std::string(name.data());
     }
 
     // If the path of the executable that started the process is available and
@@ -313,12 +334,12 @@ QueryData genProcesses(QueryContext& context) {
     // available, set on_disk to -1. If, and only if, the path of the
     // executable is available and the file does NOT exist on disk, set on_disk
     // to 0.
-    if (r["path"].empty()) {
-      r["on_disk"] = INTEGER(-1);
-    } else if (pathExists(r["path"])) {
-      r["on_disk"] = INTEGER(1);
+    if (r.path.empty()) {
+      r.on_disk = -1;
+    } else if (pathExists(r.path)) {
+      r.on_disk = 1;
     } else {
-      r["on_disk"] = INTEGER(0);
+      r.on_disk = 0;
     }
 
     // systems usage and time information
@@ -328,13 +349,13 @@ QueryData genProcesses(QueryContext& context) {
     // proc_pid_rusage returns -1 if it was unable to gather information
     if (status == 0) {
       // size/memory information
-      r["wired_size"] = TEXT(rusage_info_data.ri_wired_size);
-      r["resident_size"] = TEXT(rusage_info_data.ri_resident_size);
-      r["total_size"] = TEXT(rusage_info_data.ri_phys_footprint);
+      r.wired_size = (rusage_info_data.ri_wired_size);
+      r.resident_size = (rusage_info_data.ri_resident_size);
+      r.total_size = (rusage_info_data.ri_phys_footprint);
 
       // time information
-      r["user_time"] = TEXT(rusage_info_data.ri_user_time / CPU_TIME_RATIO);
-      r["system_time"] = TEXT(rusage_info_data.ri_system_time / CPU_TIME_RATIO);
+      r.user_time = (rusage_info_data.ri_user_time / CPU_TIME_RATIO);
+      r.system_time = (rusage_info_data.ri_system_time / CPU_TIME_RATIO);
 
       // Below is the logic to caculate the start_time since boot time
       // with higher precision
@@ -351,26 +372,28 @@ QueryData genProcesses(QueryContext& context) {
           static_cast<long>(diff * multiply) / NSECS_IN_USEC;
 
       // Get the start_time of process since the computer started
-      r["start_time"] = TEXT((uptime + seconds_since_launch) / CPU_TIME_RATIO);
+      r.start_time = ((uptime + seconds_since_launch) / CPU_TIME_RATIO);
     } else {
-      r["wired_size"] = "-1";
-      r["resident_size"] = "-1";
-      r["total_size"] = "-1";
-      r["user_time"] = "-1";
-      r["system_time"] = "-1";
-      r["start_time"] = "-1";
+      r.wired_size = -1;
+      r.resident_size = -1;
+      r.total_size = -1;
+      r.user_time = -1;
+      r.system_time = -1;
+      r.start_time = -1;
     }
 
     struct proc_taskinfo task_info;
     status =
         proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &task_info, sizeof(task_info));
     if (status == sizeof(task_info)) {
-      r["threads"] = INTEGER(task_info.pti_threadnum);
+      r.threads = (task_info.pti_threadnum);
     } else {
-      r["threads"] = "-1";
+      r.threads = -1;
     }
 
-    results.push_back(r);
+    Row row;
+    r.toHashmap(row);
+    results.push_back(row);
   }
 
   return results;

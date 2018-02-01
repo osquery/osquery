@@ -145,6 +145,8 @@ file(GLOB OSQUERY_UTILITY_TABLES "utility/*.cpp")
 ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
   ${OSQUERY_UTILITY_TABLES}
 )
+add_dependencies(osquery_tables_utility osquery_amalgamation)
+add_dependencies(osquery_applications_tables osquery_additional_amalgamation)
 
 if(NOT SKIP_AWS AND LINUX)
   file(GLOB OSQUERY_CLOUD_TABLES "cloud/*.[cpm]*")

@@ -141,7 +141,7 @@ std::string TablePlugin::columnDefinition() const {
 }
 */
 
-/*
+
 PluginResponse TablePlugin::routeInfo() const {
   // Route info consists of the serialized column information.
   PluginResponse response;
@@ -154,13 +154,13 @@ PluginResponse TablePlugin::routeInfo() const {
   }
   // Each table name alias is provided such that the core may add the views.
   // These views need to be removed when the backing table is detached.
-  for (const auto& alias : definition().aliases {
+  for (const auto& alias : definition().aliases) {
     response.push_back({{"id", "alias"}, {"alias", alias}});
   }
 
   // Each column alias must be provided, additionally to the column's option.
   // This sets up the value-replacement move within the SQL implementation.
-  for (const auto& target : definition.columnAliases {
+  for (const auto& target : definition().columnAliases) {
     for (const auto& alias : target.second) {
       response.push_back(
           {{"id", "columnAlias"}, {"name", alias}, {"target", target.first}});
@@ -169,10 +169,9 @@ PluginResponse TablePlugin::routeInfo() const {
 
   response.push_back(
       {{"id", "attributes"},
-       {"attributes", INTEGER(static_cast<size_t>(attributes()))}});
+       {"attributes", INTEGER(static_cast<size_t>(definition().attributes))}});
   return response;
 }
-*/
 
 /*
 static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {

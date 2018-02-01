@@ -31,21 +31,35 @@
 namespace pt = boost::property_tree;
 namespace local = boost::asio::local;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_docker_container_labels
 #include <generated/tables/tbl_docker_container_labels_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_container_mounts
 #include <generated/tables/tbl_docker_container_mounts_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_container_networks
 #include <generated/tables/tbl_docker_container_networks_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_container_ports
 #include <generated/tables/tbl_docker_container_ports_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_container_processes
 #include <generated/tables/tbl_docker_container_processes_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_container_stats
 #include <generated/tables/tbl_docker_container_stats_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_containers
 #include <generated/tables/tbl_docker_containers_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_image_labels
 #include <generated/tables/tbl_docker_image_labels_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_info
 #include <generated/tables/tbl_docker_info_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_images
 #include <generated/tables/tbl_docker_images_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_volumes
 #include <generated/tables/tbl_docker_volumes_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_volume_labels
 #include <generated/tables/tbl_docker_volume_labels_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_version
 #include <generated/tables/tbl_docker_version_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_networks
 #include <generated/tables/tbl_docker_networks_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_docker_network_labels
 #include <generated/tables/tbl_docker_network_labels_defs.hpp>
 
 namespace osquery {

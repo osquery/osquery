@@ -27,8 +27,9 @@
 
 #include "osquery/tables/networking/utils.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_interface_addresses
 #include <generated/tables/tbl_interface_addresses_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_interface_details
 #include <generated/tables/tbl_interface_details_defs.hpp>
 
 

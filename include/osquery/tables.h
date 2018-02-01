@@ -731,6 +731,11 @@ private:
   const std::string tableName_;
 };
 
+/*
+ * @param disabled If true, then TableCacheDisabled instance returned, otherwise TableCacheDB instance
+ */
+TableCache* TableCacheNew(const std::string tableName, bool disabled);
+
 struct TableDefinition {
   std::string              name;
   std::vector<std::string> aliases;
@@ -749,10 +754,12 @@ struct TableDefinition {
  * Note: When updating this class, be sure to update the corresponding template
  * in osquery/tables/templates/default.cpp.in
  */
+
 class TablePlugin : public Plugin {
  public:
 
-   TablePlugin(const TableDefinition& tdef, TableCache &tcache) : Plugin(), tableDef_(tdef), cache_(tcache) { }
+   TablePlugin(const TableDefinition& tdef) : Plugin(), tableDef_(tdef), cache_(*TableCacheNew(tdef.name, (tdef.attributes & TableAttributes::CACHEABLE)))
+   {}
 
    const TableDefinition& definition() const { return tableDef_; }
 
@@ -820,7 +827,7 @@ class TablePlugin : public Plugin {
   //std::string columnDefinition() const;
 
   /// Return the name and column pairs for attaching virtual tables.
-  //PluginResponse routeInfo() const override;
+  PluginResponse routeInfo() const override;
 
 #ifdef NEVER
   /**

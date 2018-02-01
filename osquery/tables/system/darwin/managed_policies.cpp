@@ -18,7 +18,7 @@
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_managed_policies
 #include <generated/tables/tbl_managed_policies_defs.hpp>
 
 namespace osquery {

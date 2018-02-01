@@ -16,7 +16,7 @@
 
 #include "osquery/tables/system/darwin/keychain.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_keychain_items
 #include <generated/tables/tbl_keychain_items_defs.hpp>
 
 namespace osquery {

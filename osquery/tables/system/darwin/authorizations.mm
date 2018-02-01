@@ -19,8 +19,9 @@
 
 #include "osquery/core/conversions.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_authorizations
 #include <generated/tables/tbl_authorizations_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_authorization_mechanisms
 #include <generated/tables/tbl_authorization_mechanisms_defs.hpp>
 
 namespace osquery {

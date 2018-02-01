@@ -14,7 +14,7 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_event_taps
 #include <generated/tables/tbl_event_taps_defs.hpp>
 
 namespace osquery {

@@ -25,7 +25,7 @@
 
 namespace fs = boost::filesystem;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_etc_protocols
 #include <generated/tables/tbl_etc_protocols_defs.hpp>
 
 

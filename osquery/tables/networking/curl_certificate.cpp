@@ -19,7 +19,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_curl_certificate
 #include <generated/tables/tbl_curl_certificate_defs.hpp>
 
 namespace osquery {

@@ -18,7 +18,7 @@
 #include "osquery/events/darwin/iokit.h"
 #include "osquery/tables/system/efi_misc.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_kernel_info
 #include <generated/tables/tbl_kernel_info_defs.hpp>
 
 namespace osquery {

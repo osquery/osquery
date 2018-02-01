@@ -33,7 +33,7 @@ int SMJobIsEnabled(CFStringRef domain, CFStringRef service, Boolean* value);
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_sharing_preferences
 #include <generated/tables/tbl_sharing_preferences_defs.hpp>
 
 namespace osquery {

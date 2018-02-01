@@ -21,8 +21,9 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_preferences
 #include <generated/tables/tbl_preferences_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_plist
 #include <generated/tables/tbl_plist_defs.hpp>
 
 

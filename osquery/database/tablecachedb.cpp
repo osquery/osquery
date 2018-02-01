@@ -5,15 +5,15 @@
 
 namespace osquery {
 
-  // in dispatcher/scheduler
-  extern size_t kCacheInterval;
-  extern size_t kCacheStep;
-
   DECLARE_bool(disable_caching);
+
+  size_t kTableCacheInterval = 0;
+  size_t kTableCacheStep = 0;
 
   class TableCacheDB : public TableCache
   {
   public:
+
     TableCacheDB(std::string tableName) : last_cached_(0), last_interval_(0), tableName_(tableName) {}
     virtual ~TableCacheDB() {}
 
@@ -27,7 +27,7 @@ namespace osquery {
       }
 
       // Perform the step comparison first, because it's easy.
-      return (kCacheStep < last_cached_ + last_interval_ );
+      return (kTableCacheStep < last_cached_ + last_interval_ );
     }
 
     virtual QueryData get() const {
@@ -48,8 +48,8 @@ namespace osquery {
       // Serialize QueryData and save to database.
       std::string content;
       if (serializeQueryDataJSON(results, content)) {
-        last_cached_ = kCacheStep;
-        last_interval_ = kCacheInterval;
+        last_cached_ = kTableCacheStep;
+        last_interval_ = kTableCacheInterval;
         setDatabaseValue(kQueries, "cache." + getTableName(), content);
       }
     }
@@ -60,5 +60,7 @@ namespace osquery {
   };
 
   TableCache* TableCacheDBNew(std::string tableName) { return new TableCacheDB(tableName); }
+
+  TableCache* TableCacheNew(std::string tableName, bool disabled) { if (disabled) return new TableCacheDisabled(tableName); return new TableCacheDB(tableName); }
 
 }

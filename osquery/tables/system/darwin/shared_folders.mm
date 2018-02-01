@@ -15,7 +15,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_shared_folders
 #include <generated/tables/tbl_shared_folders_defs.hpp>
 
 namespace osquery {

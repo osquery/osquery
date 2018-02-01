@@ -17,10 +17,13 @@
 
 namespace pt = boost::property_tree;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_alf
 #include <generated/tables/tbl_alf_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_alf_exceptions
 #include <generated/tables/tbl_alf_exceptions_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_alf_services
 #include <generated/tables/tbl_alf_services_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_alf_explicit_auths
 #include <generated/tables/tbl_alf_explicit_auths_defs.hpp>
 
 namespace osquery {

@@ -41,7 +41,7 @@
 
 #include "osquery/tables/system/hash.h"
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_hash
 #include <generated/tables/tbl_hash_defs.hpp>
 
 namespace osquery {

@@ -710,6 +710,11 @@ Status attachFunctionInternal(
 
 void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
 
+  extern void RegisterLinkedTablesadditional();
+  RegisterLinkedTablesadditional();
+  extern void RegisterLinkedTablesutils();
+  RegisterLinkedTablesutils();
+
   if (FLAGS_enable_foreign) {
 #if !defined(OSQUERY_EXTERNAL)
     // Foreign table schema is available for the shell and daemon only.

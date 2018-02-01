@@ -25,7 +25,7 @@
 
 namespace fs = boost::filesystem;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_etc_services
 #include <generated/tables/tbl_etc_services_defs.hpp>
 
 namespace osquery {

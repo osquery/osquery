@@ -17,7 +17,7 @@
 #include "osquery/core/conversions.h"
 #include <osquery/tables.h>
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_load_average
 #include <generated/tables/tbl_load_average_defs.hpp>
 
 namespace osquery {

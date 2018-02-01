@@ -17,8 +17,8 @@
 #include <osquery/tables.h>
 
 {% if foreign %}
-#define DECLARE_TABLE_FOREIGN_STUB
 {% for table in tables %}
+#define DECLARE_TABLE_FOREIGN_STUB_{{table.name}}
 #include <generated/tables/tbl_{{table.name}}_defs.hpp>
 {% endfor %}
 {% endif %}
@@ -27,25 +27,39 @@ namespace osquery {
 
 {% if foreign %}
   void registerForeignTables() {
+  auto registry = RegistryFactory::get().registry("table");
   {% for table in tables %}
-    tbl_{{table.name}}_register_stub();
+  extern TablePlugin* tbl_{{table.name}}_stub_new();
+  {
+    auto ptr = tbl_{{table.name}}_stub_new();
+    registry->add(ptr->definition().name, std::shared_ptr<TablePlugin>(ptr), false);
+  }
   {% endfor %}
   }
 {% else %}
-  class RegisterLinkedTables{{category}} {
+  void RegisterLinkedTables{{category}}() {
+    auto registry = RegistryFactory::get().registry("table");
+{% for table in tables %}
+{% if table.is_blacklisted %}
+    // table {{table.name}} is blacklisted
+{% else %}
+  extern TablePlugin* tbl_{{table.name}}_plugin_new();
+  {
+    auto ptr = tbl_{{table.name}}_plugin_new();
+    registry->add(ptr->definition().name, std::shared_ptr<TablePlugin>(ptr), {% if category == "utils" %}true{% else %}false{% endif %});
+  }
+{% endif %}
+{% endfor %}
+  }
+  /*
+  class CRegisterLinkedTables{{category}} {
   public:
-    RegisterLinkedTables{{category}}() {
-    {% for table in tables %}
-    {% if table.is_blacklisted %}
-        // table {{table.name}} is blacklisted
-    {% else %}
-        extern void tbl_{{table.name}}_register();
-        tbl_{{table.name}}_register();
-    {% endif %}
-    {% endfor %}
+    CRegisterLinkedTables{{category}}() {
+      RegisterLinkedTables{{category}}();
     }
   };
-  static const auto doAutoReg = RegisterLinkedTables{{category}}();
+  static const auto doAutoReg = CRegisterLinkedTables{{category}}();
+  */
 {% endif %}
 
 } // namespace
