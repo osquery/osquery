@@ -20,8 +20,8 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#include "osquery/events/darwin/diskarbitration.h"
 #include "osquery/core/darwin/iokit.hpp"
+#include "osquery/events/darwin/diskarbitration.h"
 
 namespace osquery {
 namespace tables {

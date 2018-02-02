@@ -24,7 +24,6 @@ const std::string kIOPlatformExpertDeviceClassName_ = "IOPlatformExpertDevice";
 const std::string kIOACPIPlatformDeviceClassName_ = "IOACPIPlatformDevice";
 const std::string kIOPlatformDeviceClassname_ = "IOPlatformDevice";
 
-
 IOKitPCIProperties::IOKitPCIProperties(const std::string& compatible) {
   auto properties = osquery::split(compatible, " ");
   if (properties.size() < 2) {
@@ -99,5 +98,4 @@ long long int getNumIOKitProperty(const CFMutableDictionaryRef& details,
   return 0;
 }
 
-
-}
+} // namespace osquery
