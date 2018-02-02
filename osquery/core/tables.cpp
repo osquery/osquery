@@ -33,6 +33,17 @@ const std::map<ColumnType, std::string> kColumnTypeNames = {
     {BLOB_TYPE, "BLOB"},
 };
 
+/**
+ * @brief Constructor for TablePluginBase
+ * Initializes cache_ with a new instance, enabled only if attributes
+ * include CACHEABLE.
+ */
+TablePluginBase::TablePluginBase(const TableDefinition& tdef)
+    : Plugin(),
+      tableDef_(tdef),
+      cache_(*TableCacheNew(tdef.name,
+                            (tdef.attributes & TableAttributes::CACHEABLE))) {}
+
 Status TablePluginBase::addExternal(const std::string& name,
                                     const PluginResponse& response) {
   // Attach the table.

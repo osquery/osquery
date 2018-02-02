@@ -66,7 +66,7 @@ TablePluginBase* tbl_{{filename}}_stub_new() { return tbl_{{table_name}}_stub_ne
 
 #endif // defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_FOREIGN_STUB)
 
-#if defined(DECLARE_TABLE_STRUCT_{{table_name}})
+#if defined(DECLARE_TABLE_STRUCT_{{table_name}}) || defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}})
 struct tbl_{{table_name}}_data_t {
 
 {% for column in schema %}\

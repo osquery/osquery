@@ -736,14 +736,14 @@ struct TableDefinition {
 
 class TablePluginBase : public Plugin {
  public:
-  TablePluginBase(const TableDefinition& tdef)
-      : Plugin(),
-        tableDef_(tdef),
-        cache_(*TableCacheNew(
-            tdef.name, (tdef.attributes & TableAttributes::CACHEABLE))) {}
+  TablePluginBase(const TableDefinition& tdef);
 
   const TableDefinition& definition() const {
     return tableDef_;
+  }
+
+  virtual TableCache& cache() const {
+    return cache_;
   }
 
   /**
@@ -766,10 +766,6 @@ class TablePluginBase : public Plugin {
   virtual QueryData generate(QueryContext& context) {
     (void)context;
     return QueryData();
-  }
-
-  virtual TableCache& cache() const {
-    return cache_;
   }
 
   /**
