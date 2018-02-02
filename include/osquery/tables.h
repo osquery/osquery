@@ -683,7 +683,6 @@ class TableCache {
    * table "processes" at the interval 60. The first executed will cache results
    * and the second will use the cached results.
    *
-   * @param interval The interval this query expects the tables results.
    * @return True if the cache contains fresh results, otherwise false.
    */
   virtual bool isCached() const = 0;
