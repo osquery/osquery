@@ -177,5 +177,5 @@ QueryData genALFServices(QueryContext& context) {
   }
   return parseALFServicesTree(tree);
 }
-}
-}
+} // namespace tables
+} // namespace osquery

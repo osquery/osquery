@@ -19,9 +19,9 @@
 
 namespace osquery {
 
-  // in database/tablecachedb
-  extern size_t kTableCacheInterval;
-  extern size_t kTableCacheStep;
+// in database/tablecachedb
+extern size_t kTableCacheInterval;
+extern size_t kTableCacheStep;
 
 DECLARE_bool(disable_logging);
 DECLARE_uint64(schedule_reload);

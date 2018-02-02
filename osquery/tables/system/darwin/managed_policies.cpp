@@ -9,8 +9,8 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/logger.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -90,5 +90,5 @@ QueryData genManagedPolicies(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

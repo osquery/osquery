@@ -408,5 +408,4 @@ Status QueryContext::expandConstraints(
   }
   return Status(0);
 }
-
 }

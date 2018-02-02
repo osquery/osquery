@@ -59,5 +59,5 @@ QueryData genOSVersion(QueryContext& context) {
   }
   return {r};
 }
-}
-}
+} // namespace tables
+} // namespace osquery

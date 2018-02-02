@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -75,5 +75,5 @@ QueryData genNFSShares(QueryContext& context) {
   }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

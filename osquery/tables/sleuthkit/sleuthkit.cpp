@@ -32,8 +32,6 @@ namespace fs = boost::filesystem;
 #define DECLARE_TABLE_IMPLEMENTATION_device_partitions
 #include <generated/tables/tbl_device_partitions_defs.hpp>
 
-
-
 namespace osquery {
 namespace tables {
 

@@ -26,7 +26,6 @@ namespace pt = boost::property_tree;
 #define DECLARE_TABLE_IMPLEMENTATION_plist
 #include <generated/tables/tbl_plist_defs.hpp>
 
-
 namespace osquery {
 namespace tables {
 
@@ -343,5 +342,5 @@ QueryData genOSXPlist(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

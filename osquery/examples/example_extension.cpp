@@ -27,20 +27,21 @@ class ExampleConfigPlugin : public ConfigPlugin {
 };
 
 static const TableDefinition tbl_example_def = {
-  "example", { /* no aliases */},
-  {
-      std::make_tuple("example_text", TEXT_TYPE, ColumnOptions::DEFAULT),
-      std::make_tuple("example_integer", INTEGER_TYPE, ColumnOptions::DEFAULT),
-  },
-  {/* no columnAliases */},
-  {/* no attributes */}
-};
+    "example",
+    {/* no aliases */},
+    {
+        std::make_tuple("example_text", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple(
+            "example_integer", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    },
+    {/* no columnAliases */},
+    {/* no attributes */}};
 
 class ExampleTable : public TablePlugin {
-public:
+ public:
   ExampleTable() : TablePlugin(tbl_example_def) {}
- private:
 
+ private:
   QueryData generate(QueryContext& request) {
     QueryData results;
 
@@ -54,14 +55,14 @@ public:
 };
 
 static const TableDefinition tbl_complex_example_def = {
-  "complex_example", { /* no aliases */},
-  {
-    std::make_tuple("flag_test", TEXT_TYPE, ColumnOptions::DEFAULT),
-    std::make_tuple("database_test", TEXT_TYPE, ColumnOptions::DEFAULT),
-  },
-  {/* no columnAliases */},
-  {/* no attributes */}
-};
+    "complex_example",
+    {/* no aliases */},
+    {
+        std::make_tuple("flag_test", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("database_test", TEXT_TYPE, ColumnOptions::DEFAULT),
+    },
+    {/* no columnAliases */},
+    {/* no attributes */}};
 
 /**
  * @brief A more 'complex' example table is provided to assist with tests.

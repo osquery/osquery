@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <DiskArbitration/DASession.h>
 #include <DiskArbitration/DADisk.h>
+#include <DiskArbitration/DASession.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -114,4 +114,4 @@ QueryData genBlockDevs(QueryContext& context) {
   return results;
 }
 }
-}
+} // namespace osquery

@@ -25,7 +25,7 @@ namespace tables {
 
 #define kIODTOptionsPath_ "IODeviceTree:/options"
 
-void genVariable(const void *key, const void *value, void *results) {
+void genVariable(const void* key, const void* value, void* results) {
   if (key == nullptr || value == nullptr || results == nullptr) {
     // Paranoia: don't expect the callback application to yield nullptrs.
     return;
@@ -58,10 +58,10 @@ void genVariable(const void *key, const void *value, void *results) {
 
   // Finally, add the variable value to the row.
   nvram_row["value"] = value_string;
-  ((QueryData *)results)->push_back(nvram_row);
+  ((QueryData*)results)->push_back(nvram_row);
 }
 
-QueryData genNVRAM(QueryContext &context) {
+QueryData genNVRAM(QueryContext& context) {
   QueryData results;
 
   mach_port_t master_port;
@@ -92,4 +92,4 @@ QueryData genNVRAM(QueryContext &context) {
   return results;
 }
 }
-}
+} // namespace osquery

@@ -22,7 +22,7 @@ namespace tables {
 QueryData genMounts(QueryContext& context) {
   QueryData results;
 
-  struct statfs *mnt;
+  struct statfs* mnt;
   int mnts = 0;
   int i;
   char real_path[PATH_MAX];
@@ -53,5 +53,5 @@ QueryData genMounts(QueryContext& context) {
   }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

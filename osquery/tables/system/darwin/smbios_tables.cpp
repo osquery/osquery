@@ -172,4 +172,4 @@ QueryData genPlatformInfo(QueryContext& context) {
   return {r};
 }
 }
-}
+} // namespace osquery

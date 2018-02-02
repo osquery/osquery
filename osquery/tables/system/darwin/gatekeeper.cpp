@@ -28,7 +28,6 @@ namespace pt = boost::property_tree;
 #define DECLARE_TABLE_IMPLEMENTATION_gatekeeper_approved_apps
 #include <generated/tables/tbl_gatekeeper_approved_apps_defs.hpp>
 
-
 namespace osquery {
 namespace tables {
 

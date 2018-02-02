@@ -63,5 +63,5 @@ QueryData genPCIDevices(QueryContext& context) {
   IOObjectRelease(it);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

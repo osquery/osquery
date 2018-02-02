@@ -140,5 +140,5 @@ QueryData genYara(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

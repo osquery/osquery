@@ -431,7 +431,6 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   return SQLITE_OK;
 }
 
-
 static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
   if (!ctx.useCache()) {
     // The query execution did not request use of the warm cache.
@@ -449,9 +448,10 @@ static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
   return true;
 }
 
-static QueryData tableGenerate(TablePlugin &tablePlugin, QueryContext &context)
-{
-  bool useCache = tablePlugin.cache().isEnabled() && cacheAllowed(tablePlugin.definition().columns, context);
+static QueryData tableGenerate(TablePlugin& tablePlugin,
+                               QueryContext& context) {
+  bool useCache = tablePlugin.cache().isEnabled() &&
+                  cacheAllowed(tablePlugin.definition().columns, context);
 
   if (useCache && tablePlugin.cache().isCached()) {
     return tablePlugin.cache().get();
@@ -465,7 +465,6 @@ static QueryData tableGenerate(TablePlugin &tablePlugin, QueryContext &context)
 
   return results;
 }
-
 
 static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
                    int idxNum,
@@ -618,8 +617,6 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   pCur->n = pCur->data.size();
   return SQLITE_OK;
 } // xFilter
-
-
 }
 }
 
@@ -709,7 +706,6 @@ Status attachFunctionInternal(
 }
 
 void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
-
   extern void RegisterLinkedTablesadditional();
   RegisterLinkedTablesadditional();
   extern void RegisterLinkedTablesutils();

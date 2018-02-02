@@ -32,7 +32,6 @@
 #define DECLARE_TABLE_IMPLEMENTATION_interface_details
 #include <generated/tables/tbl_interface_details_defs.hpp>
 
-
 namespace osquery {
 namespace tables {
 

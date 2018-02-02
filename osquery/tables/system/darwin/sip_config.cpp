@@ -9,9 +9,9 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
-#include <osquery/sql.h>
 #include <osquery/logger.h>
+#include <osquery/sql.h>
+#include <osquery/tables.h>
 
 #include "osquery/events/darwin/iokit.h"
 
@@ -154,5 +154,5 @@ QueryData genSIPConfig(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

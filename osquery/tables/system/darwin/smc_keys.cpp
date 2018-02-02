@@ -33,8 +33,12 @@ namespace tables {
 
 #define KERNEL_INDEX_SMC 2
 
-typedef struct { char bytes[32]; } SMCBytes_t;
-typedef struct { char bytes[5]; } UInt32Char_t;
+typedef struct {
+  char bytes[32];
+} SMCBytes_t;
+typedef struct {
+  char bytes[5];
+} UInt32Char_t;
 
 enum class SMCCMDType : char {
   READ_BYTES = 5,
@@ -314,10 +318,12 @@ class SMCHelper : private boost::noncopyable {
   bool open();
 
   /// Shutdown the IOKit connection.
-  void close() { IOServiceClose(connection_); }
+  void close() {
+    IOServiceClose(connection_);
+  }
 
   /// Read a given SMC key into an output parameter value.
-  bool read(const std::string &key, SMCValue_t *val) const;
+  bool read(const std::string& key, SMCValue_t* val) const;
 
   /// Read all keys (a service API call) into a string vector.
   std::vector<std::string> getKeys() const;
@@ -325,8 +331,8 @@ class SMCHelper : private boost::noncopyable {
  private:
   /// Perform an API call to the IOKit AppleSMC service.
   kern_return_t call(uint32_t selector,
-                     SMCKeyData_t *in,
-                     SMCKeyData_t *out) const;
+                     SMCKeyData_t* in,
+                     SMCKeyData_t* out) const;
 
   /// Read the size of the internal SMC key structure.
   size_t getKeysCount() const;
@@ -372,8 +378,8 @@ bool SMCHelper::open() {
 }
 
 kern_return_t SMCHelper::call(uint32_t selector,
-                              SMCKeyData_t *in,
-                              SMCKeyData_t *out) const {
+                              SMCKeyData_t* in,
+                              SMCKeyData_t* out) const {
   size_t in_size = sizeof(SMCKeyData_t);
   size_t out_size = sizeof(SMCKeyData_t);
 
@@ -381,7 +387,7 @@ kern_return_t SMCHelper::call(uint32_t selector,
       connection_, selector, in, in_size, out, &out_size);
 }
 
-inline uint32_t strtoul(const char *str, size_t size, size_t base) {
+inline uint32_t strtoul(const char* str, size_t size, size_t base) {
   uint32_t total = 0;
   for (size_t i = 0; i < size; i++) {
     if (base == 16) {
@@ -393,7 +399,7 @@ inline uint32_t strtoul(const char *str, size_t size, size_t base) {
   return total;
 }
 
-inline float strtof(const char *str, size_t size, size_t e) {
+inline float strtof(const char* str, size_t size, size_t e) {
   float total = 0;
   for (size_t i = 0; i < size; i++) {
     if (i == (size - 1)) {
@@ -405,12 +411,12 @@ inline float strtof(const char *str, size_t size, size_t e) {
   return total;
 }
 
-float getConvertedValue(const std::string &smcType, const std::string &smcVal) {
+float getConvertedValue(const std::string& smcType, const std::string& smcVal) {
   // Convert hex string to decimal.
   std::string val;
   try {
     val = boost::algorithm::unhex(smcVal);
-  } catch (const boost::algorithm::hex_decode_error &e) {
+  } catch (const boost::algorithm::hex_decode_error& e) {
     return -1.0;
   }
 
@@ -430,7 +436,7 @@ float getConvertedValue(const std::string &smcType, const std::string &smcVal) {
   return convertedVal;
 }
 
-bool SMCHelper::read(const std::string &key, SMCValue_t *val) const {
+bool SMCHelper::read(const std::string& key, SMCValue_t* val) const {
   SMCKeyData_t in;
   SMCKeyData_t out;
 
@@ -499,9 +505,9 @@ std::vector<std::string> SMCHelper::getKeys() const {
   return keys;
 }
 
-void genSMCKey(const std::string &key,
-               const SMCHelper &smc,
-               QueryData &results,
+void genSMCKey(const std::string& key,
+               const SMCHelper& smc,
+               QueryData& results,
                bool hidden = false) {
   Row r;
   r["key"] = key;
@@ -525,7 +531,7 @@ void genSMCKey(const std::string &key,
   results.push_back(r);
 }
 
-QueryData genSMCKeys(QueryContext &context) {
+QueryData genSMCKeys(QueryContext& context) {
   QueryData results;
 
   SMCHelper smc;
@@ -546,12 +552,12 @@ QueryData genSMCKeys(QueryContext &context) {
   // Otherwise the default scan will enumerate all keys (maybe 'hidden' keys).
   // 'Maybe' because the hidden keys are only reported in the SMC is unlocked.
   auto keys = smc.getKeys();
-  for (const auto &key : keys) {
+  for (const auto& key : keys) {
     genSMCKey(key, smc, results);
   }
 
   // Potentially report duplicated 'hidden' keys.
-  for (const auto &hidden_key : kSMCHiddenKeys) {
+  for (const auto& hidden_key : kSMCHiddenKeys) {
     genSMCKey(hidden_key, smc, results, true);
   }
 
@@ -559,16 +565,16 @@ QueryData genSMCKeys(QueryContext &context) {
 }
 
 inline QueryData getSMCKeysUsingPredicate(
-    const QueryContext &context,
-    const std::set<std::string> &keys,
-    std::function<void(const Row &r, QueryData &results)> predicate) {
+    const QueryContext& context,
+    const std::set<std::string>& keys,
+    std::function<void(const Row& r, QueryData& results)> predicate) {
   SMCHelper smc;
   if (!smc.open()) {
     return {};
   }
 
   QueryData results;
-  auto wrapped = ([&smc, &keys, &results, &predicate](const std::string &expr) {
+  auto wrapped = ([&smc, &keys, &results, &predicate](const std::string& expr) {
     // Check if the expression key is within the category of 'keys'.
     if (keys.count(expr) > 0) {
       QueryData key_data;
@@ -586,7 +592,7 @@ inline QueryData getSMCKeysUsingPredicate(
     context.iteritems("key", EQUALS, wrapped);
   } else {
     // Perform a full scan of the keys category.
-    for (const auto &key : keys) {
+    for (const auto& key : keys) {
       wrapped(key);
     }
   }
@@ -594,8 +600,8 @@ inline QueryData getSMCKeysUsingPredicate(
   return results;
 }
 
-void genTemperature(const Row &row, QueryData &results) {
-  auto &smcRow = row;
+void genTemperature(const Row& row, QueryData& results) {
+  auto& smcRow = row;
   if (smcRow.at("value").empty()) {
     return;
   }
@@ -617,12 +623,12 @@ void genTemperature(const Row &row, QueryData &results) {
   results.push_back(r);
 }
 
-QueryData genTemperatureSensors(QueryContext &context) {
+QueryData genTemperatureSensors(QueryContext& context) {
   return getSMCKeysUsingPredicate(context, kSMCTemperatureKeys, genTemperature);
 }
 
-void genPower(const Row &row, QueryData &results) {
-  auto &smcRow = row;
+void genPower(const Row& row, QueryData& results) {
+  auto& smcRow = row;
   if (smcRow.at("value").empty()) {
     return;
   }
@@ -640,12 +646,12 @@ void genPower(const Row &row, QueryData &results) {
   results.push_back(r);
 }
 
-QueryData genPowerSensors(QueryContext &context) {
+QueryData genPowerSensors(QueryContext& context) {
   // Define a 'category' for sets of keys.
   std::string category = "";
 
   // Create a predicate wrapper that injects a category.
-  auto wrapper = ([&category](const Row &row, QueryData &results) {
+  auto wrapper = ([&category](const Row& row, QueryData& results) {
     genPower(row, results);
     if (results.size() > 0) {
       // This column does not normally exist from SMC, we intercept and append.
@@ -668,7 +674,7 @@ QueryData genPowerSensors(QueryContext &context) {
   return power;
 }
 
-std::string getFanName(const std::string &smcVal) {
+std::string getFanName(const std::string& smcVal) {
   // Ensure smc value is 32 char string (16 bytes).
   if (smcVal.size() != 32) {
     return "";
@@ -679,14 +685,14 @@ std::string getFanName(const std::string &smcVal) {
   std::string val;
   try {
     val = boost::algorithm::unhex(smcVal.substr(8, 24));
-  } catch (const boost::algorithm::hex_decode_error &e) {
+  } catch (const boost::algorithm::hex_decode_error& e) {
     return "";
   }
 
   return val;
 }
 
-QueryData genFanSpeedSensors(QueryContext &context) {
+QueryData genFanSpeedSensors(QueryContext& context) {
   QueryData results;
 
   SMCHelper smc;
@@ -702,7 +708,7 @@ QueryData genFanSpeedSensors(QueryContext &context) {
     return results;
   }
 
-  auto &smcRow = key_data.back();
+  auto& smcRow = key_data.back();
   if (smcRow["value"].empty()) {
     return results;
   }
@@ -713,7 +719,7 @@ QueryData genFanSpeedSensors(QueryContext &context) {
     Row r;
     r["fan"] = std::to_string(fanIdx);
 
-    for (const auto &smcFanSpeedKey : kSMCFanSpeeds) {
+    for (const auto& smcFanSpeedKey : kSMCFanSpeeds) {
       r[smcFanSpeedKey.second] = INTEGER(0);
 
       std::stringstream key;
@@ -744,4 +750,4 @@ QueryData genFanSpeedSensors(QueryContext &context) {
   return results;
 }
 }
-}
+} // namespace osquery

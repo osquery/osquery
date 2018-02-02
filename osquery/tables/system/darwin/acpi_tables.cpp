@@ -65,4 +65,4 @@ QueryData genACPITables(QueryContext& context) {
   return results;
 }
 }
-}
+} // namespace osquery

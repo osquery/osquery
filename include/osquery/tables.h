@@ -666,7 +666,7 @@ using QueryContext = struct QueryContext;
 using Constraint = struct Constraint;
 
 class TableCache {
-public:
+ public:
   virtual ~TableCache() {}
 
   virtual const std::string getTableName() const = 0;
@@ -705,34 +705,42 @@ public:
    * Set will serialize and save the results to be retrieved later.
    */
   virtual void set(const QueryData& results) = 0;
-
 };
 
 /*
  * Implementation of TableCache for tables that should not be cached.
  */
 class TableCacheDisabled : public TableCache {
-public:
+ public:
   TableCacheDisabled(const std::string tableName) : tableName_(tableName) {}
 
   virtual ~TableCacheDisabled() {}
 
-  virtual bool isEnabled() const { return false; }
+  virtual bool isEnabled() const {
+    return false;
+  }
 
-  virtual const std::string getTableName() const { return tableName_; }
+  virtual const std::string getTableName() const {
+    return tableName_;
+  }
 
-  virtual bool isCached() const { return false; }
+  virtual bool isCached() const {
+    return false;
+  }
 
-  virtual QueryData get() const { return QueryData(); }
+  virtual QueryData get() const {
+    return QueryData();
+  }
 
   virtual void set(const QueryData& results) {}
 
-private:
+ private:
   const std::string tableName_;
 };
 
 /*
- * @param disabled If true, then TableCacheDisabled instance returned, otherwise TableCacheDB instance
+ * @param disabled If true, then TableCacheDisabled instance returned, otherwise
+ * TableCacheDB instance
  */
 TableCache* TableCacheNew(const std::string tableName, bool isCacheable);
 
@@ -740,11 +748,11 @@ TableCache* TableCacheNew(const std::string tableName, bool isCacheable);
  * @brief A TableDefinition is an encapsulation of a .table spec file.
  */
 struct TableDefinition {
-  std::string              name;
+  std::string name;
   std::vector<std::string> aliases;
-  TableColumns             columns;
-  ColumnAliasSet           columnAliases;
-  TableAttributes          attributes;
+  TableColumns columns;
+  ColumnAliasSet columnAliases;
+  TableAttributes attributes;
 };
 
 /**
@@ -760,13 +768,17 @@ struct TableDefinition {
 
 class TablePlugin : public Plugin {
  public:
+  TablePlugin(const TableDefinition& tdef)
+      : Plugin(),
+        tableDef_(tdef),
+        cache_(*TableCacheNew(
+            tdef.name, (tdef.attributes & TableAttributes::CACHEABLE))) {}
 
-   TablePlugin(const TableDefinition& tdef) : Plugin(), tableDef_(tdef), cache_(*TableCacheNew(tdef.name, (tdef.attributes & TableAttributes::CACHEABLE)))
-   {}
+  const TableDefinition& definition() const {
+    return tableDef_;
+  }
 
-   const TableDefinition& definition() const { return tableDef_; }
-
- /**
+  /**
    * @brief Generate a complete table representation.
    *
    * The TablePlugin::generate method is the most important part of the table.
@@ -788,7 +800,9 @@ class TablePlugin : public Plugin {
     return QueryData();
   }
 
-  virtual TableCache& cache() { return cache_; }
+  virtual TableCache& cache() {
+    return cache_;
+  }
 
   /**
    * @brief Generate a table representation by yielding each row.
@@ -821,10 +835,8 @@ class TablePlugin : public Plugin {
   }
 
  protected:
-   const TableDefinition &tableDef_;
-   TableCache &cache_;
-
-
+  const TableDefinition& tableDef_;
+  TableCache& cache_;
 
   /// Return the name and column pairs for attaching virtual tables.
   PluginResponse routeInfo() const override;

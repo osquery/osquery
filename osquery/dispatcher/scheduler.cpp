@@ -45,7 +45,6 @@ HIDDEN_FLAG(bool,
 extern size_t kTableCacheInterval;
 extern size_t kTableCacheStep;
 
-
 /// Used to bypass (optimize-out) the set-differential of query results.
 DECLARE_bool(events_optimize);
 

@@ -105,7 +105,8 @@ void genSignatureForFile(const std::string& path, QueryData& results) {
   }
   CFDictionaryRef codeInfo = nullptr;
   result = SecCodeCopySigningInformation(
-      staticCode, kSecCSSigningInformation | kSecCSRequirementInformation,
+      staticCode,
+      kSecCSSigningInformation | kSecCSRequirementInformation,
       &codeInfo);
   if (result == errSecSuccess) {
     // If we don't get an identifier for this file, then it's not signed.
@@ -146,8 +147,8 @@ void genSignatureForFile(const std::string& path, QueryData& results) {
       // Team Identifier
       r["team_identifier"] = "";
       CFTypeRef teamIdent = nullptr;
-      if (CFDictionaryGetValueIfPresent(codeInfo, kSecCodeInfoTeamIdentifier,
-                                        &teamIdent)) {
+      if (CFDictionaryGetValueIfPresent(
+              codeInfo, kSecCodeInfoTeamIdentifier, &teamIdent)) {
         r["team_identifier"] = stringFromCFString((CFStringRef)teamIdent);
       }
 
@@ -195,7 +196,9 @@ QueryData genSignature(QueryContext& context) {
   // operator.
   auto paths = context.constraints["path"].getAll(EQUALS);
   context.expandConstraints(
-      "path", LIKE, paths,
+      "path",
+      LIKE,
+      paths,
       ([&](const std::string& pattern, std::set<std::string>& out) {
         std::vector<std::string> patterns;
         auto status =

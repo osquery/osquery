@@ -138,14 +138,14 @@ TEST_F(TablesTests, test_constraint_map_cast) {
   EXPECT_FALSE(cm["num"].existsAndMatches("hello"));
 }
 
-const TableDefinition tbl_test1_def = { "test1",
-  { /* table aliases */    },
-  {
-    std::make_tuple("time", BIGINT_TYPE,     ColumnOptions::DEFAULT        ),
-  },
-  { /* column aliases */   },
-  TableAttributes::CACHEABLE
-};
+const TableDefinition tbl_test1_def = {
+    "test1",
+    {/* table aliases */},
+    {
+        std::make_tuple("time", BIGINT_TYPE, ColumnOptions::DEFAULT),
+    },
+    {/* column aliases */},
+    TableAttributes::CACHEABLE};
 
 class TestTablePlugin : public TablePlugin {
  public:
@@ -165,9 +165,10 @@ DECLARE_bool(disable_caching);
 // Since cache instances snapshot interval on set(), conflicts do not occur.
 // When cacheing data, the cache will snapshot the current values:
 //   snapshotStep=kTableCacheStep, snapshotInterval=kTableCacheInterval
-// The cached data remains valid while kTableCacheStep < (snapshotStep + snapshotInterval)
-// For example, if interval is 60 seconds, and data is cached at kTableCacheInterval = 1000,
-// the data is valid until kTableCacheStep >= 1060
+// The cached data remains valid while kTableCacheStep < (snapshotStep +
+// snapshotInterval) For example, if interval is 60 seconds, and data is cached
+// at kTableCacheInterval = 1000, the data is valid until kTableCacheStep >=
+// 1060
 
 TEST_F(TablesTests, test_caching) {
   TestTablePlugin test;
@@ -196,7 +197,7 @@ TEST_F(TablesTests, test_caching) {
 
   test.cache().set(QueryData());
   EXPECT_TRUE(test.cache().isCached());
-  kTableCacheStep += testQueryIntervalSeconds-1;
+  kTableCacheStep += testQueryIntervalSeconds - 1;
   EXPECT_TRUE(test.cache().isCached());
   kTableCacheStep += 1;
   EXPECT_FALSE(test.cache().isCached());

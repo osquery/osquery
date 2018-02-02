@@ -169,7 +169,7 @@ static inline int genMaxArgs() {
   return argmax;
 }
 
-void genProcRootAndCWD(int pid, tbl_processes_data_t &r) {
+void genProcRootAndCWD(int pid, tbl_processes_data_t& r) {
   r.cwd = "";
   r.root = "";
 
@@ -185,7 +185,6 @@ void genProcRootAndCWD(int pid, tbl_processes_data_t &r) {
       r.root = std::string(pathinfo.pvi_rdir.vip_path);
     }
   }
-
 }
 
 void genProcRootAndCWD(int pid, Row& r) {
@@ -304,8 +303,8 @@ QueryData genProcesses(QueryContext& context) {
       r.pgroup = cred.group;
       // check if process state is one of the expected ones
       r.state = (1 <= cred.status && cred.status <= 5)
-                       ? TEXT(kProcessStateMapping[cred.status])
-                       : TEXT('?');
+                    ? TEXT(kProcessStateMapping[cred.status])
+                    : TEXT('?');
       r.nice = cred.nice;
       r.uid = cred.real.uid;
       r.gid = cred.real.gid;
@@ -665,5 +664,5 @@ QueryData genProcessMemoryMap(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

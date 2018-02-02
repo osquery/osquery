@@ -151,4 +151,4 @@ QueryData genKernelInfo(QueryContext& context) {
   return results;
 }
 }
-}
+} // namespace osquery

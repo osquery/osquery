@@ -39,5 +39,5 @@ QueryData genAsl(QueryContext& context) {
 }
 
 _Pragma("clang diagnostic pop");
-}
-}
+} // namespace tables
+} // namespace osquery

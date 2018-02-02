@@ -29,20 +29,20 @@ TEST_F(SQLTests, test_raw_access) {
 }
 
 static const TableDefinition tbl_test_def = {
-  "test", { /* no aliases */},
-  {
-    std::make_tuple("test_int", INTEGER_TYPE, ColumnOptions::DEFAULT),
-    std::make_tuple("test_text", TEXT_TYPE, ColumnOptions::DEFAULT),
-  },
-  {/* no columnAliases */},
-  {/* no attributes */}
-};
+    "test",
+    {/* no aliases */},
+    {
+        std::make_tuple("test_int", INTEGER_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("test_text", TEXT_TYPE, ColumnOptions::DEFAULT),
+    },
+    {/* no columnAliases */},
+    {/* no attributes */}};
 
 class TestTablePlugin : public TablePlugin {
-public:
+ public:
   TestTablePlugin() : TablePlugin(tbl_test_def) {}
- private:
 
+ private:
   QueryData generate(QueryContext& ctx) {
     QueryData results;
     if (ctx.constraints["test_int"].existsAndMatches("1")) {

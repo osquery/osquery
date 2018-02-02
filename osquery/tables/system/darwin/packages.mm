@@ -30,7 +30,6 @@ namespace pt = boost::property_tree;
 #define DECLARE_TABLE_IMPLEMENTATION_package_install_history
 #include <generated/tables/tbl_package_install_history_defs.hpp>
 
-
 namespace osquery {
 namespace tables {
 

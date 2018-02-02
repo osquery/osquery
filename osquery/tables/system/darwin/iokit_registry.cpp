@@ -20,7 +20,6 @@
 #define DECLARE_TABLE_IMPLEMENTATION_iokit_registry
 #include <generated/tables/tbl_iokit_registry_defs.hpp>
 
-
 namespace osquery {
 namespace tables {
 
@@ -201,5 +200,5 @@ QueryData genIOKitRegistry(QueryContext& context) {
 
   return qd;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

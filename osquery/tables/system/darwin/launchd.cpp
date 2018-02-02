@@ -28,7 +28,6 @@ namespace pt = boost::property_tree;
 #define DECLARE_TABLE_IMPLEMENTATION_launchd_overrides
 #include <generated/tables/tbl_launchd_overrides_defs.hpp>
 
-
 namespace osquery {
 namespace tables {
 
@@ -178,5 +177,5 @@ QueryData genLaunchdOverrides(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

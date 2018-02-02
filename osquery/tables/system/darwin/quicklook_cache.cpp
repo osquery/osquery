@@ -104,12 +104,13 @@ QueryData genQuicklookCache(QueryContext& context) {
   for (const auto& index : databases) {
     sqlite3* db = nullptr;
     auto rc = sqlite3_open_v2(
-        index.c_str(), &db,
+        index.c_str(),
+        &db,
         (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX),
         nullptr);
     if (rc != SQLITE_OK || db == nullptr) {
-      VLOG(1) << "Cannot open " << index << " read only: "
-              << rc << " " << getStringForSQLiteReturnCode(rc);
+      VLOG(1) << "Cannot open " << index << " read only: " << rc << " "
+              << getStringForSQLiteReturnCode(rc);
       if (db != nullptr) {
         sqlite3_close(db);
       }
@@ -140,5 +141,5 @@ QueryData genQuicklookCache(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
