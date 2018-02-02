@@ -23,7 +23,7 @@
 
 namespace pt = boost::property_tree;
 
-#define DECLARE_TABLE_IMPLEMENTATION
+#define DECLARE_TABLE_IMPLEMENTATION_ec2_instance_metadata
 #include <generated/tables/tbl_ec2_instance_metadata_defs.hpp>
 
 namespace osquery {
@@ -256,5 +256,5 @@ QueryData genEc2Metadata(QueryContext& context) {
   results.push_back(r);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
