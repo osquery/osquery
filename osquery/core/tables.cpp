@@ -41,8 +41,10 @@ const std::map<ColumnType, std::string> kColumnTypeNames = {
 TablePluginBase::TablePluginBase(const TableDefinition& tdef)
     : Plugin(),
       tableDef_(tdef),
-      cache_(*TableCacheNew(tdef.name, tdef.name.length() > 0 &&
-                            (tdef.attributes & TableAttributes::CACHEABLE))) {}
+      cache_(
+          *TableCacheNew(tdef.name,
+                         tdef.name.length() > 0 &&
+                             (tdef.attributes & TableAttributes::CACHEABLE))) {}
 
 Status TablePluginBase::addExternal(const std::string& name,
                                     const PluginResponse& response) {
@@ -174,7 +176,8 @@ PluginResponse TablePluginBase::routeInfo() const {
 }
 
 /*
- * The core code should no longer be calling this, but access TablePluginBase::cache().
+ * The core code should no longer be calling this, but access
+ * TablePluginBase::cache().
  */
 bool TablePlugin::isCached(size_t interval, const QueryContext& ctx) const {
   assert(false);
@@ -190,8 +193,7 @@ bool TablePlugin::isCached(size_t interval, const QueryContext& ctx) const {
  * new TableCache with the correct table name.
  */
 TableCache& TablePlugin::cache() const {
-  if ((tdef_.attributes & TableAttributes::CACHEABLE) &&
-      !cache_.isEnabled()) {
+  if ((tdef_.attributes & TableAttributes::CACHEABLE) && !cache_.isEnabled()) {
     auto oldCache = &cache_;
     cache_ = *TableCacheNew(getName(), true);
     delete oldCache;
@@ -200,12 +202,14 @@ TableCache& TablePlugin::cache() const {
 }
 
 /*
- * The core code should no longer be calling this, but access TablePluginBase::cache().
+ * The core code should no longer be calling this, but access
+ * TablePluginBase::cache().
  */
 void TablePlugin::setCache(size_t step,
                            size_t interval,
                            const QueryContext& ctx,
-                           const QueryData& results) { /* not implemented */ }
+                           const QueryData& results) { /* not implemented */
+}
 
 /*
  * Returns SQLite CREATE statement body for table columns.

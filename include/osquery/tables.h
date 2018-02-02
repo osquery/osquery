@@ -724,11 +724,13 @@ struct TableDefinition {
 };
 
 /**
- * @brief All table plugins should subclass TablePluginBase and implement generate() or generator().
-  *
+ * @brief All table plugins should subclass TablePluginBase and implement
+ * generate() or generator().
+ *
  * To attach a virtual table create a TablePluginBase subclass and register the
  * virtual table name as the plugin ID. osquery will enumerate all registered
- * TablePluginBase instances and attempt to attach them to SQLite at instantiation.
+ * TablePluginBase instances and attempt to attach them to SQLite at
+ * instantiation.
  *
  * Note: When updating this class, be sure to update the corresponding template
  * in osquery/tables/templates/
@@ -862,14 +864,14 @@ class TablePluginBase : public Plugin {
  * Members columns(), aliases, columnAliases, and attributes() are wrappers for
  * TablePluginBase.definition() members.
  *
- * Members isCached(), getCache(), setCache() are wrappers for TablePluginBase.cache() members.
+ * Members isCached(), getCache(), setCache() are wrappers for
+ * TablePluginBase.cache() members.
  */
 class TablePlugin : public TablePluginBase {
  public:
   TablePlugin()
       : TablePluginBase(tdef_),
         tdef_({"", aliases(), columns(), columnAliases(), attributes()}) {}
-
 
   virtual TableCache& cache() const;
 
