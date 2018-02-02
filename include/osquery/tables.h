@@ -665,6 +665,11 @@ struct QueryContext : private only_movable {
 using QueryContext = struct QueryContext;
 using Constraint = struct Constraint;
 
+/**
+ * @brief TableCache is the abstraction of a table cache.
+ * Each TablePluginBase instance will have a unique TableCache instance, and
+ * uses TableCacheNew() to instantiate.
+ */
 class TableCache {
  public:
   virtual ~TableCache() {}
@@ -706,9 +711,16 @@ class TableCache {
   virtual void set(const QueryData& results) = 0;
 };
 
-/*
- * @param disabled If true, then TableCacheDisabled instance returned, otherwise
- * TableCacheDB instance
+/**
+ * @brief Factory method to create TableCache instances.
+ * This should only be called by tests and TablePluginBase / TablePlugin
+ * internal code.
+ *
+ * @param tableName  Name of table, used to uniquely address cached data for
+ * each table.
+ * @param isCacheable If false, then a the TableCache instance returned will
+ *        always return false for isCached() and do nothing for set().  If true,
+ *        a normal database backed table cache instance is returned.
  */
 TableCache* TableCacheNew(const std::string tableName, bool isCacheable);
 
