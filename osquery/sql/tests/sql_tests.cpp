@@ -38,9 +38,9 @@ static const TableDefinition tbl_test_def = {
     {/* no columnAliases */},
     {/* no attributes */}};
 
-class TestTablePlugin : public TablePlugin {
+class TestTablePlugin : public TablePluginBase {
  public:
-  TestTablePlugin() : TablePlugin(tbl_test_def) {}
+  TestTablePlugin() : TablePluginBase(tbl_test_def) {}
 
  private:
   QueryData generate(QueryContext& ctx) {
@@ -160,4 +160,4 @@ TEST_F(SQLTests, test_sql_sha256) {
   EXPECT_EQ(d[0]["test"],
             "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 }
-}
+} // namespace osquery

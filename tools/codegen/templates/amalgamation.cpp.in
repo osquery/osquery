@@ -14,6 +14,7 @@
 
 #include <osquery/events.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/tables.h>
 
 {% if foreign %}
@@ -29,37 +30,22 @@ namespace osquery {
   void registerForeignTables() {
   auto registry = RegistryFactory::get().registry("table");
   {% for table in tables %}
-  extern TablePlugin* tbl_{{table.name}}_stub_new();
+  extern TablePluginBase* tbl_{{table.name}}_stub_new();
   {
     auto ptr = tbl_{{table.name}}_stub_new();
-    registry->add(ptr->definition().name, std::shared_ptr<TablePlugin>(ptr), false);
+    registry->add(ptr->definition().name, std::shared_ptr<TablePluginBase>(ptr), false);
   }
   {% endfor %}
   }
 {% else %}
-  void RegisterLinkedTables{{category}}() {
-    auto registry = RegistryFactory::get().registry("table");
 {% for table in tables %}
 {% if table.is_blacklisted %}
     // table {{table.name}} is blacklisted
 {% else %}
-  extern TablePlugin* tbl_{{table.name}}_plugin_new();
-  {
-    auto ptr = tbl_{{table.name}}_plugin_new();
-    registry->add(ptr->definition().name, std::shared_ptr<TablePlugin>(ptr), {% if category == "utils" %}true{% else %}false{% endif %});
-  }
+  extern TablePluginBase* tbl_{{table.name}}_plugin_new();
+  REGISTER_OBJ(tbl_{{table.name}}_plugin_new(),TablePluginBase,"table", {{table.name}}, {% if category == "utils" %}true{% else %}false{% endif %});
 {% endif %}
 {% endfor %}
-  }
-  /*
-  class CRegisterLinkedTables{{category}} {
-  public:
-    CRegisterLinkedTables{{category}}() {
-      RegisterLinkedTables{{category}}();
-    }
-  };
-  static const auto doAutoReg = CRegisterLinkedTables{{category}}();
-  */
 {% endif %}
 
 } // namespace

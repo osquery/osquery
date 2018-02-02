@@ -690,6 +690,21 @@ class AP : public AutoRegisterInterface {
   }
 };
 
+template <class P>
+class APObj : public AutoRegisterInterface {
+ public:
+  APObj(P* obj, const char* t, const char* n, bool optional)
+      : AutoRegisterInterface(t, n, optional), obj_(obj) {}
+
+  void run() override {
+    auto registry = RegistryFactory::get().registry(type_);
+    registry->add(name_, std::shared_ptr<P>(obj_), optional_);
+  }
+
+ protected:
+  P* obj_;
+};
+
 template <class R>
 struct RI {
   RI(const char* t, const char* n, bool o = false) {
@@ -701,6 +716,14 @@ template <class P>
 struct PI {
   PI(const char* t, const char* n, bool o = false) {
     AutoRegisterInterface::autoloadPlugin(std::make_unique<AP<P>>(t, n, o));
+  }
+};
+
+template <class P>
+struct PIObj {
+  PIObj(P* obj, const char* t, const char* n, bool o = false) {
+    AutoRegisterInterface::autoloadPlugin(
+        std::make_unique<APObj<P>>(obj, t, n, o));
   }
 };
 } // namespace registries
@@ -718,6 +741,11 @@ struct PI {
 #define REGISTER(t, r, n)                                                      \
   namespace registries {                                                       \
   const PI<t> k##t(r, n, false);                                               \
+  }
+
+#define REGISTER_OBJ(PTR, TYPE, REGNAME, NAMESYM, ISINTERNAL)                  \
+  namespace registries {                                                       \
+  const PIObj<TYPE> k##NAMESYM(PTR, REGNAME, #NAMESYM, ISINTERNAL);            \
   }
 
 #define REGISTER_INTERNAL(t, r, n)                                             \

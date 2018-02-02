@@ -21,7 +21,7 @@ namespace osquery {
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 
-CREATE_LAZY_REGISTRY(TablePlugin, "table");
+CREATE_LAZY_REGISTRY(TablePluginBase, "table");
 
 const std::map<ColumnType, std::string> kColumnTypeNames = {
     {UNKNOWN_TYPE, "UNKNOWN"},
@@ -33,8 +33,8 @@ const std::map<ColumnType, std::string> kColumnTypeNames = {
     {BLOB_TYPE, "BLOB"},
 };
 
-Status TablePlugin::addExternal(const std::string& name,
-                                const PluginResponse& response) {
+Status TablePluginBase::addExternal(const std::string& name,
+                                    const PluginResponse& response) {
   // Attach the table.
   if (response.size() == 0) {
     // Invalid table route info.
@@ -47,13 +47,13 @@ Status TablePlugin::addExternal(const std::string& name,
   return Registry::call("sql", "sql", {{"action", "attach"}, {"table", name}});
 }
 
-void TablePlugin::removeExternal(const std::string& name) {
+void TablePluginBase::removeExternal(const std::string& name) {
   // Detach the table name.
   Registry::call("sql", "sql", {{"action", "detach"}, {"table", name}});
 }
 
-void TablePlugin::setRequestFromContext(const QueryContext& context,
-                                        PluginRequest& request) {
+void TablePluginBase::setRequestFromContext(const QueryContext& context,
+                                            PluginRequest& request) {
   pt::ptree tree;
 
   // The QueryContext contains a constraint map from column to type information
@@ -78,8 +78,8 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
   request["context"] = output.str();
 }
 
-void TablePlugin::setContextFromRequest(const PluginRequest& request,
-                                        QueryContext& context) {
+void TablePluginBase::setContextFromRequest(const PluginRequest& request,
+                                            QueryContext& context) {
   if (request.count("context") == 0) {
     return;
   }
@@ -101,8 +101,8 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
   }
 }
 
-Status TablePlugin::call(const PluginRequest& request,
-                         PluginResponse& response) {
+Status TablePluginBase::call(const PluginRequest& request,
+                             PluginResponse& response) {
   response.clear();
   // TablePlugin API calling requires an action.
   if (request.count("action") == 0) {
@@ -131,8 +131,7 @@ Status TablePlugin::call(const PluginRequest& request,
   return Status(0, "OK");
 }
 
-
-PluginResponse TablePlugin::routeInfo() const {
+PluginResponse TablePluginBase::routeInfo() const {
   // Route info consists of the serialized column information.
   PluginResponse response;
   for (const auto& column : definition().columns) {
@@ -162,6 +161,16 @@ PluginResponse TablePlugin::routeInfo() const {
        {"attributes", INTEGER(static_cast<size_t>(definition().attributes))}});
   return response;
 }
+
+bool TablePlugin::isCached(size_t interval, const QueryContext& ctx) const {
+  assert(false);
+  return false;
+}
+
+void TablePlugin::setCache(size_t step,
+                           size_t interval,
+                           const QueryContext& ctx,
+                           const QueryData& results) {}
 
 std::string columnDefinition(const TableColumns& columns) {
   std::map<std::string, bool> epilog;
@@ -408,4 +417,39 @@ Status QueryContext::expandConstraints(
   }
   return Status(0);
 }
+
+/*
+ * Implementation of TableCache for tables that should not be cached.
+ */
+class TableCacheDisabled : public TableCache {
+ public:
+  TableCacheDisabled(const std::string tableName) : tableName_(tableName) {}
+
+  virtual ~TableCacheDisabled() {}
+
+  virtual bool isEnabled() const {
+    return false;
+  }
+
+  virtual const std::string getTableName() const {
+    return tableName_;
+  }
+
+  virtual bool isCached() const {
+    return false;
+  }
+
+  virtual QueryData get() const {
+    return QueryData();
+  }
+
+  virtual void set(const QueryData& results) {}
+
+ private:
+  const std::string tableName_;
+};
+
+TableCache* TableCacheDisabledNew(std::string tableName) {
+  return new TableCacheDisabled(tableName);
 }
+} // namespace osquery

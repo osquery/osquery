@@ -26,6 +26,28 @@ class ExampleConfigPlugin : public ConfigPlugin {
   }
 };
 
+class OldExampleTable : public TablePlugin {
+ private:
+  TableColumns columns() const {
+    return {
+        std::make_tuple("example_text", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple(
+            "example_integer", INTEGER_TYPE, ColumnOptions::DEFAULT),
+    };
+  }
+
+  QueryData generate(QueryContext& request) {
+    QueryData results;
+
+    Row r;
+    r["example_text"] = "example";
+    r["example_integer"] = INTEGER(1);
+
+    results.push_back(r);
+    return results;
+  }
+};
+
 static const TableDefinition tbl_example_def = {
     "example",
     {/* no aliases */},
@@ -37,9 +59,9 @@ static const TableDefinition tbl_example_def = {
     {/* no columnAliases */},
     {/* no attributes */}};
 
-class ExampleTable : public TablePlugin {
+class ExampleTable : public TablePluginBase {
  public:
-  ExampleTable() : TablePlugin(tbl_example_def) {}
+  ExampleTable() : TablePluginBase(tbl_example_def) {}
 
  private:
   QueryData generate(QueryContext& request) {
@@ -77,9 +99,9 @@ static const TableDefinition tbl_complex_example_def = {
  * Database access should be mediated by the *Database functions.
  * Direct use of the "database" registry will lead to undefined behavior.
  */
-class ComplexExampleTable : public TablePlugin {
+class ComplexExampleTable : public TablePluginBase {
  public:
-  ComplexExampleTable() : TablePlugin(tbl_complex_example_def) {}
+  ComplexExampleTable() : TablePluginBase(tbl_complex_example_def) {}
 
  private:
   QueryData generate(QueryContext& request) {

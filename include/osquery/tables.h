@@ -707,37 +707,6 @@ class TableCache {
 };
 
 /*
- * Implementation of TableCache for tables that should not be cached.
- */
-class TableCacheDisabled : public TableCache {
- public:
-  TableCacheDisabled(const std::string tableName) : tableName_(tableName) {}
-
-  virtual ~TableCacheDisabled() {}
-
-  virtual bool isEnabled() const {
-    return false;
-  }
-
-  virtual const std::string getTableName() const {
-    return tableName_;
-  }
-
-  virtual bool isCached() const {
-    return false;
-  }
-
-  virtual QueryData get() const {
-    return QueryData();
-  }
-
-  virtual void set(const QueryData& results) {}
-
- private:
-  const std::string tableName_;
-};
-
-/*
  * @param disabled If true, then TableCacheDisabled instance returned, otherwise
  * TableCacheDB instance
  */
@@ -765,9 +734,9 @@ struct TableDefinition {
  * in osquery/tables/templates/
  */
 
-class TablePlugin : public Plugin {
+class TablePluginBase : public Plugin {
  public:
-  TablePlugin(const TableDefinition& tdef)
+  TablePluginBase(const TableDefinition& tdef)
       : Plugin(),
         tableDef_(tdef),
         cache_(*TableCacheNew(
@@ -799,7 +768,7 @@ class TablePlugin : public Plugin {
     return QueryData();
   }
 
-  virtual TableCache& cache() {
+  virtual TableCache& cache() const {
     return cache_;
   }
 
@@ -888,6 +857,76 @@ class TablePlugin : public Plugin {
   FRIEND_TEST(VirtualTableTests, test_indexing_costs);
   FRIEND_TEST(VirtualTableTests, test_table_results_cache);
   FRIEND_TEST(VirtualTableTests, test_yield_generator);
+};
+
+/*
+ * @brief Deprecated. Use TablePluginBase for all new derived classes.
+ */
+class TablePlugin : public TablePluginBase {
+ public:
+  TablePlugin()
+      : TablePluginBase(tdef_),
+        tdef_({"", aliases(), columns(), columnAliases(), attributes()}) {}
+
+  virtual TableCache& cache() const {
+    // fix cache type, since we didn't have attributes at TablePluginTime
+    // and the table name isn't set until after registration.
+    if ((tdef_.attributes & TableAttributes::CACHEABLE) &&
+        !cache_.isEnabled()) {
+      cache_ = *TableCacheNew(getName(),
+                              (tdef_.attributes & TableAttributes::CACHEABLE));
+    }
+    return cache_;
+  }
+  /**
+   * @brief Table name aliases create full-scan VIEWs for tables.
+   *
+   * Aliases allow table names to be changed/deprecated without breaking
+   * existing deployments and scheduled queries.
+   *
+   * @return A string vector of qtable name aliases.
+   */
+  virtual std::vector<std::string> aliases() const {
+    return {};
+  }
+
+  /// Return the table's column name and type pairs.
+  virtual TableColumns columns() const {
+    return TableColumns();
+  }
+
+  /// Define a map of target columns to optional aliases.
+  virtual ColumnAliasSet columnAliases() const {
+    return ColumnAliasSet();
+  }
+
+  /// Return a set of attribute flags.
+  virtual TableAttributes attributes() const {
+    return TableAttributes::NONE;
+  }
+
+  /*
+   * deprecated
+   */
+  bool isCached(size_t interval, const QueryContext& ctx) const;
+
+  /*
+   * deprecated. Core should interact with cache() directly.
+   */
+  QueryData getCache() const {
+    return cache().get();
+  }
+
+  /*
+   * deprecated.
+   */
+  void setCache(size_t step,
+                size_t interval,
+                const QueryContext& ctx,
+                const QueryData& results);
+
+ protected:
+  TableDefinition tdef_ = {};
 };
 
 /// Helper method to generate the virtual table CREATE statement.

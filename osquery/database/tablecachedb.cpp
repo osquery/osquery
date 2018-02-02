@@ -83,9 +83,11 @@ TableCache* TableCacheDBNew(std::string tableName) {
   return new TableCacheDB(tableName);
 }
 
+extern TableCache* TableCacheDisabledNew(std::string tableName);
+
 TableCache* TableCacheNew(std::string tableName, bool isCacheable) {
   if (!isCacheable)
-    return new TableCacheDisabled(tableName);
+    return TableCacheDisabledNew(tableName);
   return new TableCacheDB(tableName);
 }
 

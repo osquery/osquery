@@ -32,9 +32,9 @@ static const TableDefinition tbl_sample_def = {
     {/* no attributes */}};
 
 // sample plugin used on tests
-class sampleTablePlugin : public TablePlugin {
+class sampleTablePlugin : public TablePluginBase {
  public:
-  sampleTablePlugin() : TablePlugin(tbl_sample_def) {}
+  sampleTablePlugin() : TablePluginBase(tbl_sample_def) {}
 };
 
 TEST_F(VirtualTableTests, test_tableplugin_columndefinition) {
@@ -55,9 +55,9 @@ static const TableDefinition tbl_options_def = {
     {/* no columnAliases */},
     {/* no attributes */}};
 
-class optionsTablePlugin : public TablePlugin {
+class optionsTablePlugin : public TablePluginBase {
  public:
-  optionsTablePlugin() : TablePlugin(tbl_options_def) {}
+  optionsTablePlugin() : TablePluginBase(tbl_options_def) {}
 
  private:
   FRIEND_TEST(VirtualTableTests, test_tableplugin_options);
@@ -95,9 +95,9 @@ static const TableDefinition tbl_more_options_def = {
     {/* no columnAliases */},
     {/* no attributes */}};
 
-class moreOptionsTablePlugin : public TablePlugin {
+class moreOptionsTablePlugin : public TablePluginBase {
  public:
-  moreOptionsTablePlugin() : TablePlugin(tbl_more_options_def) {}
+  moreOptionsTablePlugin() : TablePluginBase(tbl_more_options_def) {}
 
  private:
   FRIEND_TEST(VirtualTableTests, test_tableplugin_moreoptions);
@@ -120,16 +120,16 @@ static const TableDefinition tbl_aliases_def = {
     "aka",
     {"aliases1", "aliases2"}, // table aliases
     {
-        std::make_tuple("username", TEXT_TYPE, ColumnOptions::ADDITIONAL),
+        std::make_tuple("username", TEXT_TYPE, ColumnOptions::DEFAULT),
         std::make_tuple("name", TEXT_TYPE, ColumnOptions::DEFAULT),
     },
     {{"username", {"user_name"}},
      {"name", {"name1", "name2"}}}, // column aliases
     {/* no attributes */}};
 
-class aliasesTablePlugin : public TablePlugin {
+class aliasesTablePlugin : public TablePluginBase {
  public:
-  aliasesTablePlugin() : TablePlugin(tbl_aliases_def) {}
+  aliasesTablePlugin() : TablePluginBase(tbl_aliases_def) {}
 
  private:
   FRIEND_TEST(VirtualTableTests, test_tableplugin_aliases);
@@ -227,9 +227,9 @@ static const TableDefinition tbl_p_def = {
     {/* no columnAliases */},
     {/* no attributes */}};
 
-class pTablePlugin : public TablePlugin {
+class pTablePlugin : public TablePluginBase {
  public:
-  pTablePlugin() : TablePlugin(tbl_p_def) {}
+  pTablePlugin() : TablePluginBase(tbl_p_def) {}
 
   QueryData generate(QueryContext&) override {
     return {
@@ -251,9 +251,9 @@ static const TableDefinition tbl_k_def = {
     {/* no columnAliases */},
     {/* no attributes */}};
 
-class kTablePlugin : public TablePlugin {
+class kTablePlugin : public TablePluginBase {
  public:
-  kTablePlugin() : TablePlugin(tbl_k_def) {}
+  kTablePlugin() : TablePluginBase(tbl_k_def) {}
 
   QueryData generate(QueryContext&) override {
     return {
@@ -355,9 +355,9 @@ static const TableDefinition tbl_json_test_def = {
     {/* no columnAliases */},
     {/* no attributes */}};
 
-class jsonTablePlugin : public TablePlugin {
+class jsonTablePlugin : public TablePluginBase {
  public:
-  jsonTablePlugin() : TablePlugin(tbl_json_test_def) {}
+  jsonTablePlugin() : TablePluginBase(tbl_json_test_def) {}
   QueryData generate(QueryContext&) override {
     return {
         {{"data", "{\"test\": 1}"}},
@@ -433,9 +433,9 @@ static const TableDefinition tbl_cacher_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class cacheTablePlugin : public TablePlugin {
+class cacheTablePlugin : public TablePluginBase {
  public:
-  cacheTablePlugin() : TablePlugin(tbl_cacher_def) {}
+  cacheTablePlugin() : TablePluginBase(tbl_cacher_def) {}
 
   QueryData generate(QueryContext& context) override {
     if (context.isCached("awesome_data")) {
@@ -488,9 +488,9 @@ static const TableDefinition tbl_cache_table_test_def = {
     {/* no columnAliases */},
     TableAttributes::CACHEABLE};
 
-class tableCacheTablePlugin : public TablePlugin {
+class tableCacheTablePlugin : public TablePluginBase {
  public:
-  tableCacheTablePlugin() : TablePlugin(tbl_cache_table_test_def) {}
+  tableCacheTablePlugin() : TablePluginBase(tbl_cache_table_test_def) {}
 
   QueryData generate(QueryContext& ctx) override {
     generates_++;
@@ -577,9 +577,9 @@ static const TableDefinition tbl_yield_test_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class yieldTablePlugin : public TablePlugin {
+class yieldTablePlugin : public TablePluginBase {
  public:
-  yieldTablePlugin() : TablePlugin(tbl_yield_test_def) {}
+  yieldTablePlugin() : TablePluginBase(tbl_yield_test_def) {}
 
   bool usesGenerator() const override {
     return true;
@@ -629,9 +629,9 @@ static const TableDefinition tbl_like_test_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class likeTablePlugin : public TablePlugin {
+class likeTablePlugin : public TablePluginBase {
  public:
-  likeTablePlugin() : TablePlugin(tbl_like_test_def) {}
+  likeTablePlugin() : TablePluginBase(tbl_like_test_def) {}
 
   QueryData generate(QueryContext& context) override {
     QueryData results;
@@ -742,9 +742,9 @@ static const TableDefinition tbl_indexIOptimized_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class indexIOptimizedTablePlugin : public TablePlugin {
+class indexIOptimizedTablePlugin : public TablePluginBase {
  public:
-  indexIOptimizedTablePlugin() : TablePlugin(tbl_indexIOptimized_def) {}
+  indexIOptimizedTablePlugin() : TablePluginBase(tbl_indexIOptimized_def) {}
 
   QueryData generate(QueryContext& context) override {
     scans++;
@@ -778,9 +778,9 @@ static const TableDefinition tbl_indexJOptimized_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class indexJOptimizedTablePlugin : public TablePlugin {
+class indexJOptimizedTablePlugin : public TablePluginBase {
  public:
-  indexJOptimizedTablePlugin() : TablePlugin(tbl_indexJOptimized_def) {}
+  indexJOptimizedTablePlugin() : TablePluginBase(tbl_indexJOptimized_def) {}
 
   QueryData generate(QueryContext& context) override {
     scans++;
@@ -812,9 +812,9 @@ static const TableDefinition tbl_defaultScan_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class defaultScanTablePlugin : public TablePlugin {
+class defaultScanTablePlugin : public TablePluginBase {
  public:
-  defaultScanTablePlugin() : TablePlugin(tbl_defaultScan_def) {}
+  defaultScanTablePlugin() : TablePluginBase(tbl_defaultScan_def) {}
 
   QueryData generate(QueryContext& context) override {
     scans++;
@@ -886,4 +886,4 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
   EXPECT_EQ(10U, i->scans);
   EXPECT_EQ(10U, j->scans);
 }
-}
+} // namespace osquery

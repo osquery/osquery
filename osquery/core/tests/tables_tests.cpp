@@ -147,9 +147,9 @@ const TableDefinition tbl_test1_def = {
     {/* column aliases */},
     TableAttributes::CACHEABLE};
 
-class TestTablePlugin : public TablePlugin {
+class TestTablePlugin : public TablePluginBase {
  public:
-  TestTablePlugin() : TablePlugin(tbl_test1_def) {}
+  TestTablePlugin() : TablePluginBase(tbl_test1_def) {}
 };
 
 extern size_t kTableCacheStep;
@@ -202,4 +202,4 @@ TEST_F(TablesTests, test_caching) {
   kTableCacheStep += 1;
   EXPECT_FALSE(test.cache().isCached());
 }
-}
+} // namespace osquery

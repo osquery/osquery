@@ -56,12 +56,12 @@ const TableDefinition tbl_{{table_name}}_def = { "{{table_name}}",
 
 #if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}})
 
-TablePlugin* tbl_{{table_name}}_stub_new()
+TablePluginBase* tbl_{{table_name}}_stub_new()
 {
-  return new TablePlugin(tables::tbl_{{table_name}}_def);
+  return new TablePluginBase(tables::tbl_{{table_name}}_def);
 }
 {% if table_name != filename %}\
-TablePlugin* tbl_{{filename}}_stub_new() { return tbl_{{table_name}}_stub_new(); } // filename differs from table name
+TablePluginBase* tbl_{{filename}}_stub_new() { return tbl_{{table_name}}_stub_new(); } // filename differs from table name
 {% endif %}\
 
 #endif // defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_FOREIGN_STUB)
@@ -104,9 +104,9 @@ class {{class_name}} {
 {% endif %}\
 }
 
-class {{table_name_cc}}TablePlugin : public TablePlugin {
+class {{table_name_cc}}TablePlugin : public TablePluginBase {
 public:
- {{table_name_cc}}TablePlugin(const TableDefinition& tdef) : TablePlugin(tdef) { }
+ {{table_name_cc}}TablePlugin(const TableDefinition& tdef) : TablePluginBase(tdef) { }
 
  private:
 {% if generator %}\
@@ -133,18 +133,18 @@ public:
 
 };
 
-TablePlugin* tbl_{{table_name}}_plugin_new()
+TablePluginBase* tbl_{{table_name}}_plugin_new()
 {
   return new {{table_name_cc}}TablePlugin(tables::tbl_{{table_name}}_def);
 }
 {% if table_name != filename %}\
-TablePlugin* tbl_{{filename}}_plugin_new() { return tbl_{{table_name}}_plugin_new(); } // filename differs from table name
+TablePluginBase* tbl_{{filename}}_plugin_new() { return tbl_{{table_name}}_plugin_new(); } // filename differs from table name
 {% endif %}\
 #endif // defined(DECLARE_TABLE_IMPLEMENTATION)
 
-extern TablePlugin* tbl_{{table_name}}_plugin_new();
+extern TablePluginBase* tbl_{{table_name}}_plugin_new();
 {% if table_name != filename %}\
-extern TablePlugin* tbl_{{filename}}_plugin_new();
+extern TablePluginBase* tbl_{{filename}}_plugin_new();
 {% endif %}\
 
 } // namespace osquery
