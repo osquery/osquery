@@ -724,11 +724,11 @@ struct TableDefinition {
 };
 
 /**
- * @brief The TablePlugin defines the name, types, and column information.
- *
- * To attach a virtual table create a TablePlugin subclass and register the
+ * @brief All table plugins should subclass TablePluginBase and implement generate() or generator().
+  *
+ * To attach a virtual table create a TablePluginBase subclass and register the
  * virtual table name as the plugin ID. osquery will enumerate all registered
- * TablePlugins and attempt to attach them to SQLite at instantiation.
+ * TablePluginBase instances and attempt to attach them to SQLite at instantiation.
  *
  * Note: When updating this class, be sure to update the corresponding template
  * in osquery/tables/templates/
@@ -855,8 +855,14 @@ class TablePluginBase : public Plugin {
   FRIEND_TEST(VirtualTableTests, test_yield_generator);
 };
 
-/*
- * @brief Deprecated. Use TablePluginBase for all new derived classes.
+/**
+ * @brief Deprecated. Use TablePluginBase for all new table implementations.
+ * TablePlugin remains for backwards compatibility with existing extensions.
+ *
+ * Members columns(), aliases, columnAliases, and attributes() are wrappers for
+ * TablePluginBase.definition() members.
+ *
+ * Members isCached(), getCache(), setCache() are wrappers for TablePluginBase.cache() members.
  */
 class TablePlugin : public TablePluginBase {
  public:
@@ -864,16 +870,9 @@ class TablePlugin : public TablePluginBase {
       : TablePluginBase(tdef_),
         tdef_({"", aliases(), columns(), columnAliases(), attributes()}) {}
 
-  virtual TableCache& cache() const {
-    // fix cache type, since we didn't have attributes at TablePluginTime
-    // and the table name isn't set until after registration.
-    if ((tdef_.attributes & TableAttributes::CACHEABLE) &&
-        !cache_.isEnabled()) {
-      cache_ = *TableCacheNew(getName(),
-                              (tdef_.attributes & TableAttributes::CACHEABLE));
-    }
-    return cache_;
-  }
+
+  virtual TableCache& cache() const;
+
   /**
    * @brief Table name aliases create full-scan VIEWs for tables.
    *
@@ -901,20 +900,20 @@ class TablePlugin : public TablePluginBase {
     return TableAttributes::NONE;
   }
 
-  /*
-   * deprecated
+  /**
+   * @brief deprecated
    */
   bool isCached(size_t interval, const QueryContext& ctx) const;
 
-  /*
-   * deprecated. Core should interact with cache() directly.
+  /**
+   * @brief deprecated. Core should interact with cache() directly.
    */
   QueryData getCache() const {
     return cache().get();
   }
 
   /*
-   * deprecated.
+   * @brief deprecated.  @see TablePluginBase.cache()
    */
   void setCache(size_t step,
                 size_t interval,
