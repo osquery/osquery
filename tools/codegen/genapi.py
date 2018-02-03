@@ -22,7 +22,7 @@ import sys
 import uuid
 import subprocess
 
-from gentable import *
+from gentabledefs import *
 from utils import platform
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
