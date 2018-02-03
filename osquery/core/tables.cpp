@@ -65,34 +65,8 @@ void TablePluginBase::removeExternal(const std::string& name) {
   Registry::call("sql", "sql", {{"action", "detach"}, {"table", name}});
 }
 
-void TablePluginBase::setRequestFromContext(const QueryContext& context,
-                                            PluginRequest& request) {
-  pt::ptree tree;
-
-  // The QueryContext contains a constraint map from column to type information
-  // and the list of operand/expression constraints applied to that column from
-  // the query given.
-  pt::ptree constraints;
-  for (const auto& constraint : context.constraints) {
-    pt::ptree child;
-    child.put("name", constraint.first);
-    constraint.second.serialize(child);
-    constraints.push_back(std::make_pair("", child));
-  }
-  tree.add_child("constraints", constraints);
-
-  // Write the property tree as a JSON string into the PluginRequest.
-  std::ostringstream output;
-  try {
-    pt::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
-    // The content could not be represented as JSON.
-  }
-  request["context"] = output.str();
-}
-
-void TablePluginBase::setContextFromRequest(const PluginRequest& request,
-                                            QueryContext& context) {
+static void setContextFromRequest(const PluginRequest& request,
+                                  QueryContext& context) {
   if (request.count("context") == 0) {
     return;
   }

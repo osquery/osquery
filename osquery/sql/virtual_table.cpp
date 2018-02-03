@@ -33,6 +33,9 @@ DECLARE_bool(disable_events);
 
 RecursiveMutex kAttachMutex;
 
+extern void setRequestFromContext(const QueryContext& context,
+                                  PluginRequest& request); // sql.cpp
+
 namespace tables {
 namespace sqlite {
 
@@ -610,7 +613,7 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
     pCur->data = tableGenerate(*table, context);
   } else {
     PluginRequest request = {{"action", "generate"}};
-    TablePluginBase::setRequestFromContext(context, request);
+    setRequestFromContext(context, request);
     Registry::call("table", pVtab->content->name, request, pCur->data);
   }
 

@@ -70,7 +70,7 @@ TablePluginBase* tbl_{{filename}}_stub_new() { return tbl_{{table_name}}_stub_ne
 struct tbl_{{table_name}}_data_t {
 
 {% for column in schema %}\
-      {{column.type.type}}      {{column.name}};
+      {{column.type.type}}      {{column.safename}};
 {% endfor %}\
 
   /*
@@ -78,7 +78,7 @@ struct tbl_{{table_name}}_data_t {
    */
   void toHashmap(Row &dest) const {
     {% for column in schema %}\
-    dest["{{column.name}}"] = __sqliteField({{column.name}});
+    dest["{{column.name}}"] = __sqliteField({{column.safename}});
     {% endfor %}\
   }
 

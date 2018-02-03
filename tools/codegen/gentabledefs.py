@@ -89,6 +89,12 @@ TABLE_ATTRIBUTES = {
     "kernel_required": "KERNEL_REQUIRED",
 }
 
+# When generating C++ structs for a table defintion, avoid field that conflict with C / C++ / ObjectiveC keywords
+CPP_KEYWORDS = [ "protected", "class", "auto", "int", "virtual", "double", "float", "try", "catch",
+    "cast", "case", "const", "default", "delete", "continue", "concept", "char", "break",
+    "do", "export", "explicit", "public", "private", "synchronized", "volatile", "while", "signed",
+    "template", "inline", "namespace","not","friend","extern", "mutable"
+]
 
 def WINDOWS():
     return PLATFORM in ['windows', 'win32', 'cygwin']
@@ -301,6 +307,11 @@ class TableState(Singleton):
 
 table = TableState()
 
+def getSafeNameForCpp(name) :
+    if name in CPP_KEYWORDS :
+        return name + "_";
+    return name
+
 
 class Column(object):
 
@@ -316,6 +327,7 @@ class Column(object):
         self.description = description
         self.aliases = aliases
         self.options = kwargs
+        self.safename = getSafeNameForCpp(name)
 
 
 class ForeignKey(object):

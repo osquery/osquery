@@ -18,6 +18,8 @@
 
 #include "osquery/core/conversions.h"
 
+namespace pt = boost::property_tree;
+
 namespace osquery {
 
 FLAG(int32, value_max, 512, "Maximum returned row value size");
@@ -104,6 +106,35 @@ QueryData SQL::selectAllFrom(const std::string& table) {
   return response;
 }
 
+// static void setRequestFromContext(const QueryContext& context,
+// PluginRequest& request);
+
+void setRequestFromContext(const QueryContext& context,
+                           PluginRequest& request) {
+  pt::ptree tree;
+
+  // The QueryContext contains a constraint map from column to type information
+  // and the list of operand/expression constraints applied to that column from
+  // the query given.
+  pt::ptree constraints;
+  for (const auto& constraint : context.constraints) {
+    pt::ptree child;
+    child.put("name", constraint.first);
+    constraint.second.serialize(child);
+    constraints.push_back(std::make_pair("", child));
+  }
+  tree.add_child("constraints", constraints);
+
+  // Write the property tree as a JSON string into the PluginRequest.
+  std::ostringstream output;
+  try {
+    pt::write_json(output, tree, false);
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
+    // The content could not be represented as JSON.
+  }
+  request["context"] = output.str();
+}
+
 QueryData SQL::selectAllFrom(const std::string& table,
                              const std::string& column,
                              ConstraintOperator op,
@@ -113,7 +144,7 @@ QueryData SQL::selectAllFrom(const std::string& table,
     // Create a fake content, there will be no caching.
     QueryContext ctx;
     ctx.constraints[column].add(Constraint(op, expr));
-    TablePlugin::setRequestFromContext(ctx, request);
+    setRequestFromContext(ctx, request);
   }
 
   PluginResponse response;
@@ -211,4 +242,4 @@ Status getQueryTables(const std::string& q, std::vector<std::string>& tables) {
   }
   return status;
 }
-}
+} // namespace osquery

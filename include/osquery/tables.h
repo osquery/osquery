@@ -836,15 +836,6 @@ class TablePluginBase : public Plugin {
   Status call(const PluginRequest& request, PluginResponse& response) override;
 
  public:
-  /// Helper data structure transformation methods.
-  static void setRequestFromContext(const QueryContext& context,
-                                    PluginRequest& request);
-
-  /// Helper data structure transformation methods.
-  static void setContextFromRequest(const PluginRequest& request,
-                                    QueryContext& context);
-
- public:
   /**
    * @brief Add a virtual table that exists in an extension.
    *
