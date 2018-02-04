@@ -408,7 +408,9 @@ class EXInternal : private boost::noncopyable {
   std::string path_;
   int raw_socket_{0};
 
-#if !defined(FBTHRIFT)
+#ifdef FBTHRIFT
+  folly::EventBase base_;
+#else
   TPlatformSocketRef socket_;
   TTransportRef transport_;
   TProtocolRef protocol_;
