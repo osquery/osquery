@@ -121,7 +121,8 @@ void ExtensionManagerHandler::registerExtension(ExtensionStatus& _return,
                                                 _info_param info,
                                                 _registry_param registry) {
   if (exists(GI(info, name))) {
-    LOG(WARNING) << "Refusing to register duplicate extension " << GI(info, name);
+    LOG(WARNING) << "Refusing to register duplicate extension "
+                 << GI(info, name);
     _return.code = (int)ExtensionCode::EXT_FAILED;
     _return.message = "Duplicate extension registered";
     return;
@@ -146,8 +147,8 @@ void ExtensionManagerHandler::registerExtension(ExtensionStatus& _return,
   // Every call to registerExtension is assigned a new RouteUUID.
   RouteUUID uuid = static_cast<uint16_t>(rand());
   VLOG(1) << "Registering extension (" << GI(info, name) << ", " << uuid
-          << ", version=" << GI(info, version) << ", sdk=" << GI(info, sdk_version)
-          << ")";
+          << ", version=" << GI(info, version)
+          << ", sdk=" << GI(info, sdk_version) << ")";
 
   auto status = RegistryFactory::get().addBroadcast(uuid, GP(registry));
   if (!status.ok()) {
@@ -258,10 +259,12 @@ ExtensionRunner::ExtensionRunner(const std::string& manager_path,
 ExtensionRunnerCore::~ExtensionRunnerCore() {
   removePath(path_);
 
+#ifdef FBTHRIFT
   if (raw_socket_ > 0) {
     close(raw_socket_);
     raw_socket_ = 0;
   }
+#endif
 }
 
 void ExtensionRunnerCore::stop() {
@@ -306,14 +309,7 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
       removeStalePaths(path_);
     }
 
-#if !defined(FBTHRIFT)
-    // Construct the service's transport, protocol, thread pool.
-    auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
-    auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
-
-    server_ = TThreadedServerRef(new TThreadedServer(
-        processor, transport_, transport_fac, protocol_fac));
-#else
+#ifdef FBTHRIFT
     server_ = TThreadedServerRef(new ThriftServer());
     server_->setProcessorFactory(processor);
 
@@ -326,6 +322,13 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
       throw std::runtime_error("Cannot bind to socket");
     }
     server_->useExistingSocket(raw_socket_);
+#else
+    // Construct the service's transport, protocol, thread pool.
+    auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
+    auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
+
+    server_ = TThreadedServerRef(new TThreadedServer(
+        processor, transport_, transport_fac, protocol_fac));
 #endif
   }
 
@@ -340,12 +343,12 @@ RouteUUID ExtensionRunner::getUUID() const {
 void ExtensionRunner::start() {
   // Create the thrift instances.
   auto handler = ExtensionHandlerRef(new ExtensionHandler(uuid_));
-#if !defined(FBTHRIFT)
-  auto processor = TProcessorRef(new ExtensionProcessor(handler));
-#else
+#ifdef FBTHRIFT
   auto processor =
       std::make_shared<ThriftServerAsyncProcessorFactory<ExtensionHandler>>(
           handler);
+#else
+  auto processor = TProcessorRef(new ExtensionProcessor(handler));
 #endif
 
   VLOG(1) << "Extension service starting: " << path_;
@@ -368,11 +371,11 @@ ExtensionManagerRunner::~ExtensionManagerRunner() {
 void ExtensionManagerRunner::start() {
   // Create the thrift instances.
   auto handler = ExtensionManagerHandlerRef(new ExtensionManagerHandler());
-#if !defined(FBTHRIFT)
-  auto processor = TProcessorRef(new ExtensionManagerProcessor(handler));
-#else
+#ifdef FBTHRIFT
   auto processor = std::make_shared<
       ThriftServerAsyncProcessorFactory<ExtensionManagerHandler>>(handler);
+#else
+  auto processor = TProcessorRef(new ExtensionManagerProcessor(handler));
 #endif
 
   VLOG(1) << "Extension manager service starting: " << path_;
@@ -422,9 +425,8 @@ void EXInternal::setTimeouts(size_t timeouts) {
 EXClient::EXClient(const std::string& path, size_t timeout) : EXInternal(path) {
   setTimeouts(timeout);
 #ifdef FBTHRIFT
-  client_ = std::make_shared<_Client>(
-      HeaderClientChannel::newChannel(async::TAsyncSocket::newSocket(
-          &base_, raw_socket_)));
+  client_ = std::make_shared<_Client>(HeaderClientChannel::newChannel(
+      async::TAsyncSocket::newSocket(&base_, raw_socket_)));
 #else
   client_ = std::make_shared<_Client>(protocol_);
   (void)transport_->open();
@@ -436,9 +438,8 @@ EXManagerClient::EXManagerClient(const std::string& manager_path,
     : EXInternal(manager_path) {
   setTimeouts(timeout);
 #ifdef FBTHRIFT
-  client_ = std::make_shared<_ManagerClient>(
-      HeaderClientChannel::newChannel(async::TAsyncSocket::newSocket(
-          &base_, raw_socket_)));
+  client_ = std::make_shared<_ManagerClient>(HeaderClientChannel::newChannel(
+      async::TAsyncSocket::newSocket(&base_, raw_socket_)));
 #else
   client_ = std::make_shared<_ManagerClient>(protocol_);
   (void)transport_->open();
