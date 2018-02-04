@@ -30,13 +30,8 @@ rm -rf "$SYNC_DIR/osquery*"
 mkdir -p "$SYNC_DIR/osquery/generated"
 
 # merge the headers with the implementation files
-cp -R osquery "$SYNC_DIR"
 cp -R include/osquery "$SYNC_DIR"
-for file in $BUILD_DIR/generated/*.cpp; do
-  cp "$file" "$SYNC_DIR/osquery/generated/";
-done
-cp osquery.thrift "$SYNC_DIR/osquery/extensions"
-rm -rf "$SYNC_DIR/osquery/examples"
+cp $BUILD_DIR/generated/utils_amalgamation.cpp "$SYNC_DIR/osquery/generated/"
 
 # delete all of the old CMake files
 find "$SYNC_DIR" -type f -name "CMakeLists.txt" -exec rm -f {} \;
@@ -44,8 +39,13 @@ find "$SYNC_DIR" -type f -name "CMakeLists.txt" -exec rm -f {} \;
 # make the targets file
 mkdir -p "$SYNC_DIR/code-analysis"
 (cd "$SYNC_DIR/code-analysis" && SDK=True cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../../../../)
-python tools/codegen/gentargets.py -v $VERSION --sdk $VERSION \
-  -i "$SYNC_DIR/code-analysis/compile_commands.json" >$SYNC_DIR/osquery/TARGETS
+python tools/codegen/gentargets.py \
+  -v $VERSION --sdk $VERSION \
+  -i "$SYNC_DIR/code-analysis/compile_commands.json" \
+  -o $SYNC_DIR/osquery \
+  -s osquery
+
+cp osquery.thrift "$SYNC_DIR/osquery/extensions"
 
 # wrap it up in a tarball
 (cd "$SYNC_DIR" && tar -zcf osquery-sync-$VERSION.tar.gz osquery)

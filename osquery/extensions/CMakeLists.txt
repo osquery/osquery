@@ -48,7 +48,7 @@ if(LINUX OR DARWIN)
 else()
   add_custom_command(
     COMMAND
-      ${THRIFT_COMPILER} --gen ${THRIFT_TYPE} --gen py
+      ${THRIFT_COMPILER} --gen cpp --gen py
         "${CMAKE_SOURCE_DIR}/osquery.thrift"
     DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
