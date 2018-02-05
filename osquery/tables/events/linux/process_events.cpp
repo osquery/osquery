@@ -15,6 +15,9 @@
 
 #include "osquery/events/linux/audit.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_process_events
+#include <generated/tables/tbl_process_events_defs.hpp>
+
 namespace osquery {
 
 #define AUDIT_SYSCALL_EXECVE 59

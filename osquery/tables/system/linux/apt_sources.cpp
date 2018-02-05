@@ -26,6 +26,9 @@
 
 #include "osquery/core/process.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_apt_sources
+#include <generated/tables/tbl_apt_sources_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

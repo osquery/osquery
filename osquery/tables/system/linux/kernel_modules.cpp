@@ -19,6 +19,9 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_kernel_modules
+#include <generated/tables/tbl_kernel_modules_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

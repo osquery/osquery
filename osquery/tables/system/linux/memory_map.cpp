@@ -15,6 +15,9 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_memory_map
+#include <generated/tables/tbl_memory_map_defs.hpp>
+
 namespace fs = boost::filesystem;
 
 namespace osquery {

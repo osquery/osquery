@@ -18,6 +18,9 @@
 #include "osquery/events/linux/syslog.h"
 #include "osquery/tables/events/event_utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_syslog_events
+#include <generated/tables/tbl_syslog_events_defs.hpp>
+
 namespace osquery {
 
 FLAG(uint64,

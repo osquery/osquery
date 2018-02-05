@@ -19,6 +19,9 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_msr
+#include <generated/tables/tbl_msr_defs.hpp>
+
 #define MSR_FILENAME_BUFFER_SIZE 32
 
 #define NO_MASK 0xFFFFFFFFFFFFFFFFULL

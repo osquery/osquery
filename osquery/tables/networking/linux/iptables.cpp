@@ -24,6 +24,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/tables/networking/utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_iptables
+#include <generated/tables/tbl_iptables_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

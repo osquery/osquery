@@ -17,6 +17,9 @@
 
 #include "osquery/events/linux/udev.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_pci_devices
+#include <generated/tables/tbl_pci_devices_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

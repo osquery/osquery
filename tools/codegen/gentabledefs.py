@@ -96,6 +96,9 @@ CPP_KEYWORDS = [ "protected", "class", "auto", "int", "virtual", "double", "floa
     "template", "inline", "namespace","not","friend","extern", "mutable"
 ]
 
+MISLABELED_SPECS={"wifi_scan":"wifi_survey"
+}
+
 def WINDOWS():
     return PLATFORM in ['windows', 'win32', 'cygwin']
 

@@ -18,6 +18,9 @@
 
 #include "osquery/tables/system/intel_me.hpp"
 
+#define DECLARE_TABLE_IMPLEMENTATION_intel_me_info
+#include <generated/tables/tbl_intel_me_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

@@ -11,6 +11,9 @@
 #include "osquery/tables/system/user_groups.h"
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_user_groups
+#include <generated/tables/tbl_user_groups_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

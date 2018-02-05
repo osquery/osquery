@@ -18,6 +18,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/audit.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_socket_events
+#include <generated/tables/tbl_socket_events_defs.hpp>
+
 namespace osquery {
 
 #define AUDIT_SYSCALL_BIND 49

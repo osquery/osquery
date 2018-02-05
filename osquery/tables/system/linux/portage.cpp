@@ -26,6 +26,13 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_portage_keywords
+#include <generated/tables/tbl_portage_keywords_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_portage_packages
+#include <generated/tables/tbl_portage_packages_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_portage_use
+#include <generated/tables/tbl_portage_use_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

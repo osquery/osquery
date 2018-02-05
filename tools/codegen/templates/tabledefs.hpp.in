@@ -20,7 +20,7 @@ namespace osquery {
 namespace tables {
 extern const TableDefinition tbl_{{table_name}}_def;
 
-#if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}}) || defined(DECLARE_TABLE_DEF_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}})
+#if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}}) || defined(DECLARE_TABLE_DEF_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{filename}})
 
 const TableDefinition tbl_{{table_name}}_def = { "{{table_name}}",
   { /* table aliases */  {% for alias in aliases %}"{{alias}}",{% endfor %}  },
@@ -54,7 +54,7 @@ const TableDefinition tbl_{{table_name}}_def = { "{{table_name}}",
 
 } // namespace tables
 
-#if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}})
+#if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{filename}})
 
 TablePluginBase* tbl_{{table_name}}_stub_new()
 {

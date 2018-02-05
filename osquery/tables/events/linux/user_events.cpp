@@ -15,6 +15,9 @@
 
 #include "osquery/events/linux/audit.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_user_events
+#include <generated/tables/tbl_user_events_defs.hpp>
+
 namespace osquery {
 
 // Depend on the external getUptime table method.

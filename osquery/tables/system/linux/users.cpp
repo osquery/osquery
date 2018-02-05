@@ -17,6 +17,11 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_users
+#include <generated/tables/tbl_users_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_startup_items
+#include <generated/tables/tbl_startup_items_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
