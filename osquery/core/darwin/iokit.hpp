@@ -13,11 +13,10 @@
 #include <atomic>
 #include <iomanip>
 
-#include <osquery/status.h>
-
 #include <CoreServices/CoreServices.h>
 #include <IOKit/IOKitLib.h>
 
+#include <osquery/status.h>
 #include "osquery/core/conversions.h"
 
 namespace osquery {
@@ -45,7 +44,6 @@ long long int getNumIOKitProperty(const CFMutableDictionaryRef& details,
 
 inline void idToHex(std::string& id) {
   long base = 0;
-  // = AS_LITERAL(int, id);
   if (safeStrtol(id, 10, base)) {
     std::stringstream hex_id;
     hex_id << std::hex << std::setw(4) << std::setfill('0') << (base & 0xFFFF);

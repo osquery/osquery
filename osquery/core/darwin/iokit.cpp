@@ -8,10 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <IOKit/IOMessage.h>
+
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-
-#include <IOKit/IOMessage.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/darwin/iokit.hpp"
@@ -64,16 +64,18 @@ std::string getIOKitProperty(const CFMutableDictionaryRef& details,
   CFRelease(cfkey);
 
   // Several supported ways of parsing IOKit-encoded data.
-  if (property) {
-    if (CFGetTypeID(property) == CFNumberGetTypeID()) {
-      value = stringFromCFNumber((CFDataRef)property);
-    } else if (CFGetTypeID(property) == CFStringGetTypeID()) {
-      value = stringFromCFString((CFStringRef)property);
-    } else if (CFGetTypeID(property) == CFDataGetTypeID()) {
-      value = stringFromCFData((CFDataRef)property);
-    } else if (CFGetTypeID(property) == CFBooleanGetTypeID()) {
-      value = (CFBooleanGetValue((CFBooleanRef)property)) ? "1" : "0";
-    }
+  if (!property) {
+    return value;
+  }
+
+  if (CFGetTypeID(property) == CFNumberGetTypeID()) {
+    value = stringFromCFNumber((CFDataRef)property);
+  } else if (CFGetTypeID(property) == CFStringGetTypeID()) {
+    value = stringFromCFString((CFStringRef)property);
+  } else if (CFGetTypeID(property) == CFDataGetTypeID()) {
+    value = stringFromCFData((CFDataRef)property);
+  } else if (CFGetTypeID(property) == CFBooleanGetTypeID()) {
+    value = (CFBooleanGetValue((CFBooleanRef)property)) ? "1" : "0";
   }
 
   return value;

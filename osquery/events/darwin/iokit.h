@@ -13,15 +13,14 @@
 #include <atomic>
 #include <iomanip>
 
-#include <osquery/events.h>
-#include <osquery/status.h>
-
 #include <CoreServices/CoreServices.h>
 #include <IOKit/IOKitLib.h>
 
-#include "osquery/core/conversions.h"
+#include <osquery/events.h>
+#include <osquery/status.h>
 
-#include <osquery/core/darwin/iokit.hpp>
+#include "osquery/core/conversions.h"
+#include "osquery/core/darwin/iokit.hpp"
 
 namespace osquery {
 
