@@ -16,8 +16,9 @@
 #include <CoreServices/CoreServices.h>
 #include <IOKit/IOKitLib.h>
 
-#include "osquery/core/conversions.h"
 #include <osquery/status.h>
+
+#include "osquery/core/conversions.h"
 
 namespace osquery {
 
