@@ -1,0 +1,10 @@
+table_name("bitlocker_info")
+description("Retrieve bitlocker status of the machine.")
+schema([
+    Column("device_id", TEXT, "ID of the encrypted drive."),
+    Column("drive_letter", TEXT, "Drive letter of the encrypted drive."),
+	Column("persistent_volume_id", TEXT, "Persistent ID of the drive."),
+	Column("conversion_status", INTEGER, "The bitlocker conversion status of the drive."),
+    Column("protection_status", INTEGER, "The bitlocker protection status of the drive."),
+])
+implementation("bitlocker_info@genBitlockerInfo")
