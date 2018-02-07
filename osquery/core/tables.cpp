@@ -64,7 +64,7 @@ void TablePluginBase::removeExternal(const std::string& name) {
 }
 
 static void setContextFromRequest(const PluginRequest& request,
-                                        QueryContext& context) {
+                                  QueryContext& context) {
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
   if (!doc.doc().HasMember("constraints") ||

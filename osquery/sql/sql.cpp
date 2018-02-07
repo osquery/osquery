@@ -107,7 +107,7 @@ QueryData SQL::selectAllFrom(const std::string& table) {
 }
 
 void setRequestFromContext(const QueryContext& context,
-                                        PluginRequest& request) {
+                           PluginRequest& request) {
   auto doc = JSON::newObject();
   auto constraints = doc.getArray();
 
