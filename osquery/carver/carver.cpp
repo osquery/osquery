@@ -238,6 +238,7 @@ Status Carver::carve(const boost::filesystem::path& path) {
 
 Status Carver::postCarve(const boost::filesystem::path& path) {
   auto startRequest = Request<TLSTransport, JSONSerializer>(startUri_);
+  startRequest.setOption("hostname", FLAGS_tls_hostname);
 
   // Perform the start request to get the session id
   PlatformFile pFile(path, PF_OPEN_EXISTING | PF_READ);
@@ -271,6 +272,7 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   }
 
   auto contRequest = Request<TLSTransport, JSONSerializer>(contUri_);
+  contRequest.setOption("hostname", FLAGS_tls_hostname);
   for (size_t i = 0; i < blkCount; i++) {
     std::vector<char> block(FLAGS_carver_block_size, 0);
     auto r = pFile.read(block.data(), FLAGS_carver_block_size);
