@@ -19,7 +19,6 @@
 
 #include "osquery/core/json.h"
 
-namespace pt = boost::property_tree;
 namespace rj = rapidjson;
 
 namespace osquery {
@@ -83,7 +82,7 @@ static inline void saveQuery(const std::string& name,
 bool Query::isNewQuery() const {
   std::string query;
   getDatabaseValue(kQueries, "query." + name_, query);
-  return (query != query_.query);
+  return (query != query_);
 }
 
 Status Query::addNewResults(QueryData qd,
@@ -105,7 +104,7 @@ Status Query::addNewResults(QueryData current_qd,
     // This is the first encounter of the scheduled query.
     fresh_results = true;
     LOG(INFO) << "Storing initial results for new scheduled query: " << name_;
-    saveQuery(name_, query_.query);
+    saveQuery(name_, query_);
   } else if (getPreviousEpoch() != current_epoch) {
     fresh_results = true;
     LOG(INFO) << "New Epoch " << current_epoch << " for scheduled query "
@@ -114,7 +113,7 @@ Status Query::addNewResults(QueryData current_qd,
     // This query is 'new' in that the previous results may be invalid.
     new_query = true;
     LOG(INFO) << "Scheduled query has been updated: " + name_;
-    saveQuery(name_, query_.query);
+    saveQuery(name_, query_);
   }
 
   // Use a 'target' avoid copying the query data when serializing and saving.
@@ -168,305 +167,174 @@ Status Query::addNewResults(QueryData current_qd,
   return Status(0, "OK");
 }
 
-Status serializeRow(const Row& r, pt::ptree& tree) {
-  try {
-    for (auto& i : r) {
-      tree.put<std::string>(i.first, i.second);
+Status serializeRow(const Row& r,
+                    const ColumnNames& cols,
+                    JSON& doc,
+                    rj::Value& obj) {
+  if (cols.empty()) {
+    for (const auto& i : r) {
+      doc.addRef(i.first, i.second, obj);
     }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
+  } else {
+    for (const auto& c : cols) {
+      auto i = r.find(c);
+      if (i != r.end()) {
+        doc.addRef(c, i->second, obj);
+      }
+    }
   }
-  return Status(0, "OK");
-}
 
-Status serializeRowRJ(const Row& r, rj::Document& d) {
-  try {
-    for (auto& i : r) {
-      d.AddMember(rj::Value(i.first.c_str(), d.GetAllocator()).Move(),
-                  rj::Value(i.second.c_str(), d.GetAllocator()).Move(),
-                  d.GetAllocator());
-    }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
-  return Status(0, "OK");
-}
-
-Status serializeRow(const Row& r, const ColumnNames& cols, pt::ptree& tree) {
-  try {
-    for (auto& c : cols) {
-      tree.add<std::string>(c, r.at(c));
-    }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
-  return Status(0, "OK");
-}
-
-Status serializeRowRJ(const Row& r, const ColumnNames& cols, rj::Document& d) {
-  try {
-    for (auto& c : cols) {
-      d.AddMember(rj::Value(c.c_str(), d.GetAllocator()).Move(),
-                  rj::Value(r.at(c).c_str(), d.GetAllocator()).Move(),
-                  d.GetAllocator());
-    }
-  } catch (const std::exception& e) {
-    return Status(1, e.what());
-  }
-  return Status(0, "OK");
+  return Status();
 }
 
 Status serializeRowJSON(const Row& r, std::string& json) {
-  pt::ptree tree;
-  auto status = serializeRow(r, tree);
+  auto doc = JSON::newObject();
+
+  // An empty column list will traverse the row map.
+  ColumnNames cols;
+  auto status = serializeRow(r, cols, doc, doc.doc());
   if (!status.ok()) {
     return status;
   }
-
-  std::ostringstream output;
-  try {
-    pt::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    // The content could not be represented as JSON.
-    return Status(1, e.what());
-  }
-  json = output.str();
-  return Status(0, "OK");
+  return doc.toString(json);
 }
 
-Status serializeRowJSONRJ(const Row& r, std::string& json) {
-  rj::Document d(rj::kObjectType);
-  auto status = serializeRowRJ(r, d);
-  if (!status.ok()) {
-    return status;
+Status deserializeRow(const rj::Value& doc, Row& r) {
+  if (!doc.IsObject()) {
+    return Status(1);
   }
 
-  rj::StringBuffer sb;
-  rj::Writer<rj::StringBuffer> writer(sb);
-  d.Accept(writer);
-  json = sb.GetString();
-  return Status(0, "OK");
-}
-
-Status deserializeRow(const pt::ptree& tree, Row& r) {
-  for (const auto& i : tree) {
-    if (i.first.length() > 0) {
-      r[i.first] = i.second.data();
-    }
-  }
-  return Status(0, "OK");
-}
-
-Status deserializeRowRJ(const rj::Value& v, Row& r) {
-  if (!v.IsObject()) {
-    return Status(1, "Row not an object");
-  }
-  for (const auto& i : v.GetObject()) {
+  for (const auto& i : doc.GetObject()) {
     std::string name(i.name.GetString());
-    std::string value(i.value.GetString());
-    if (name.length() > 0) {
-      r[name] = value;
+    if (!name.empty() && i.value.IsString()) {
+      r[name] = i.value.GetString();
     }
   }
-  return Status(0, "OK");
+  return Status();
 }
 
 Status deserializeRowJSON(const std::string& json, Row& r) {
-  pt::ptree tree;
-  try {
-    std::stringstream input;
-    input << json;
-    pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    return Status(1, e.what());
+  auto doc = JSON::newObject();
+  if (!doc.fromString(json) || !doc.doc().IsObject()) {
+    return Status(1, "Cannot deserializing JSON");
   }
-  return deserializeRow(tree, r);
-}
-
-Status deserializeRowJSONRJ(const std::string& json, Row& r) {
-  rj::Document d;
-  if (d.Parse(json.c_str()).HasParseError()) {
-    return Status(1, "Error serializing JSON");
-  }
-  return deserializeRowRJ(d, r);
-}
-
-Status serializeQueryData(const QueryData& q, pt::ptree& tree) {
-  for (const auto& r : q) {
-    pt::ptree serialized;
-    auto status = serializeRow(r, serialized);
-    if (!status.ok()) {
-      return status;
-    }
-    tree.push_back(std::make_pair("", serialized));
-  }
-  return Status(0, "OK");
-}
-
-Status serializeQueryData(const QueryData& q,
-                          const ColumnNames& cols,
-                          pt::ptree& tree) {
-  for (const auto& r : q) {
-    pt::ptree serialized;
-    auto status = serializeRow(r, cols, serialized);
-    if (!status.ok()) {
-      return status;
-    }
-    tree.push_back(std::make_pair("", serialized));
-  }
-  return Status(0, "OK");
+  return deserializeRow(doc.doc(), r);
 }
 
 Status serializeQueryDataJSON(const QueryData& q, std::string& json) {
-  pt::ptree tree;
-  auto status = serializeQueryData(q, tree);
+  auto doc = JSON::newArray();
+
+  ColumnNames cols;
+  auto status = serializeQueryData(q, cols, doc, doc.doc());
   if (!status.ok()) {
     return status;
   }
-
-  std::ostringstream output;
-  try {
-    pt::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    // The content could not be represented as JSON.
-    return Status(1, e.what());
-  }
-  json = output.str();
-  return Status(0, "OK");
+  return doc.toString(json);
 }
 
-Status serializeQueryDataJSONRJ(const QueryData& q, std::string& json) {
-  rj::Document d;
-  d.SetArray();
-  auto status = serializeQueryDataRJ(q, d);
-  if (!status.ok()) {
-    return status;
+Status deserializeQueryData(const rj::Value& arr, QueryData& qd) {
+  if (!arr.IsArray()) {
+    return Status(1);
   }
 
-  rj::StringBuffer sb;
-  rj::Writer<rj::StringBuffer> writer(sb);
-  d.Accept(writer);
-  json = sb.GetString();
-  return Status(0, "OK");
-}
-
-Status deserializeQueryData(const pt::ptree& tree, QueryDataSet& qd) {
-  for (const auto& i : tree) {
+  for (const auto& i : arr.GetArray()) {
     Row r;
-    auto status = deserializeRow(i.second, r);
+    auto status = deserializeRow(i, r);
+    if (!status.ok()) {
+      return status;
+    }
+    qd.push_back(r);
+  }
+  return Status();
+}
+
+Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
+  if (!v.IsArray()) {
+    return Status(1, "Not an array");
+  }
+
+  for (const auto& i : v.GetArray()) {
+    Row r;
+    auto status = deserializeRow(i, r);
     if (!status.ok()) {
       return status;
     }
     qd.insert(std::move(r));
   }
-  return Status(0, "OK");
-}
-
-Status deserializeQueryData(const pt::ptree& tree, QueryData& qd) {
-  for (const auto& i : tree) {
-    Row r;
-    auto status = deserializeRow(i.second, r);
-    if (!status.ok()) {
-      return status;
-    }
-    qd.push_back(r);
-  }
-  return Status(0, "OK");
-}
-
-Status deserializeQueryDataRJ(const rj::Value& v, QueryData& qd) {
-  if (!v.IsArray()) {
-    return Status(1, "Not an array");
-  }
-  for (const auto& i : v.GetArray()) {
-    Row r;
-    auto status = deserializeRowRJ(i, r);
-    if (!status.ok()) {
-      return status;
-    }
-    qd.push_back(r);
-  }
-  return Status(0, "OK");
+  return Status();
 }
 
 Status deserializeQueryDataJSON(const std::string& json, QueryData& qd) {
-  pt::ptree tree;
-  try {
-    std::stringstream input;
-    input << json;
-    pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    return Status(1, e.what());
+  auto doc = JSON::newArray();
+  if (!doc.fromString(json) || !doc.doc().IsArray()) {
+    return Status(1, "Cannot deserializing JSON");
   }
-  return deserializeQueryData(tree, qd);
+
+  return deserializeQueryData(doc.doc(), qd);
 }
 
 Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
-  pt::ptree tree;
-  try {
-    std::stringstream input;
-    input << json;
-    pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    return Status(1, e.what());
+  rj::Document doc;
+  if (doc.Parse(json.c_str()).HasParseError()) {
+    return Status(1, "Error serializing JSON");
   }
-  return deserializeQueryData(tree, qd);
+  return deserializeQueryData(doc, qd);
 }
 
-Status serializeDiffResults(const DiffResults& d, pt::ptree& tree) {
+Status serializeDiffResults(const DiffResults& d,
+                            const ColumnNames& cols,
+                            JSON& doc,
+                            rj::Document& obj) {
   // Serialize and add "removed" first.
   // A property tree is somewhat ordered, this provides a loose contract to
   // the logger plugins and their aggregations, allowing them to parse chunked
   // lines. Note that the chunking is opaque to the database functions.
-  pt::ptree removed;
-  auto status = serializeQueryData(d.removed, removed);
+  auto removed_arr = doc.getArray();
+  auto status = serializeQueryData(d.removed, cols, doc, removed_arr);
   if (!status.ok()) {
     return status;
   }
-  tree.add_child("removed", removed);
+  doc.add("removed", removed_arr, obj);
 
-  pt::ptree added;
-  status = serializeQueryData(d.added, added);
+  auto added_arr = doc.getArray();
+  status = serializeQueryData(d.added, cols, doc, added_arr);
   if (!status.ok()) {
     return status;
   }
-  tree.add_child("added", added);
-  return Status(0, "OK");
+  doc.add("added", added_arr, obj);
+  return Status();
 }
 
-Status deserializeDiffResults(const pt::ptree& tree, DiffResults& dr) {
-  if (tree.count("removed") > 0) {
-    auto status = deserializeQueryData(tree.get_child("removed"), dr.removed);
+Status deserializeDiffResults(const rj::Value& doc, DiffResults& dr) {
+  if (!doc.IsObject()) {
+    return Status(1);
+  }
+
+  if (doc.HasMember("removed")) {
+    auto status = deserializeQueryData(doc["removed"], dr.removed);
     if (!status.ok()) {
       return status;
     }
   }
 
-  if (tree.count("added") > 0) {
-    auto status = deserializeQueryData(tree.get_child("added"), dr.added);
+  if (doc.HasMember("added")) {
+    auto status = deserializeQueryData(doc["added"], dr.added);
     if (!status.ok()) {
       return status;
     }
   }
-  return Status(0, "OK");
+  return Status();
 }
 
 Status serializeDiffResultsJSON(const DiffResults& d, std::string& json) {
-  pt::ptree tree;
-  auto status = serializeDiffResults(d, tree);
+  auto doc = JSON::newObject();
+
+  ColumnNames cols;
+  auto status = serializeDiffResults(d, cols, doc, doc.doc());
   if (!status.ok()) {
     return status;
   }
-
-  std::ostringstream output;
-  try {
-    pt::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    // The content could not be represented as JSON.
-    return Status(1, e.what());
-  }
-  json = output.str();
-  return Status(0, "OK");
+  return doc.toString(json);
 }
 
 DiffResults diff(QueryDataSet& old, QueryData& current) {
@@ -489,240 +357,192 @@ DiffResults diff(QueryDataSet& old, QueryData& current) {
 }
 
 inline void addLegacyFieldsAndDecorations(const QueryLogItem& item,
-                                          pt::ptree& tree) {
+                                          JSON& doc,
+                                          rj::Document& obj) {
   // Apply legacy fields.
-  tree.put<std::string>("name", item.name);
-  tree.put<std::string>("hostIdentifier", item.identifier);
-  tree.put<std::string>("calendarTime", item.calendar_time);
-  tree.put<size_t>("unixTime", item.time);
-  tree.put<uint64_t>("epoch", item.epoch);
-  tree.put<uint64_t>("counter", item.counter);
+  doc.addRef("name", item.name, obj);
+  doc.addRef("hostIdentifier", item.identifier, obj);
+  doc.addRef("calendarTime", item.calendar_time, obj);
+  doc.add("unixTime", item.time, obj);
+  doc.add("epoch", static_cast<size_t>(item.epoch), obj);
+  doc.add("counter", static_cast<size_t>(item.counter), obj);
 
   // Append the decorations.
-  if (item.decorations.size() > 0) {
-    auto decorator_parent = std::ref(tree);
-    if (!FLAGS_decorations_top_level) {
-      tree.add_child("decorations", pt::ptree());
-      decorator_parent = tree.get_child("decorations");
+  if (!item.decorations.empty()) {
+    auto dec_obj = doc.getObject();
+    auto target_obj = std::ref(dec_obj);
+    if (FLAGS_decorations_top_level) {
+      target_obj = std::ref(obj);
     }
     for (const auto& name : item.decorations) {
-      decorator_parent.get().put<std::string>(name.first, name.second);
+      doc.addRef(name.first, name.second, target_obj);
+    }
+    if (!FLAGS_decorations_top_level) {
+      doc.add("decorations", dec_obj, obj);
     }
   }
 }
 
-inline void getLegacyFieldsAndDecorations(const pt::ptree& tree,
-                                          QueryLogItem& item) {
-  if (tree.count("decorations") > 0) {
-    auto& decorations = tree.get_child("decorations");
-    for (const auto& name : decorations) {
-      item.decorations[name.first] = name.second.data();
+inline void getLegacyFieldsAndDecorations(const JSON& doc, QueryLogItem& item) {
+  if (doc.doc().HasMember("decorations")) {
+    if (doc.doc()["decorations"].IsObject()) {
+      for (const auto& i : doc.doc()["decorations"].GetObject()) {
+        item.decorations[i.name.GetString()] = i.value.GetString();
+      }
     }
   }
 
-  item.name = tree.get<std::string>("name", "");
-  item.identifier = tree.get<std::string>("hostIdentifier", "");
-  item.calendar_time = tree.get<std::string>("calendarTime", "");
-  item.time = tree.get<int>("unixTime", 0);
+  item.name = doc.doc()["name"].GetString();
+  item.identifier = doc.doc()["hostIdentifier"].GetString();
+  item.calendar_time = doc.doc()["calendarTime"].GetString();
+  item.time = doc.doc()["unixTime"].GetUint64();
 }
 
-Status serializeQueryLogItem(const QueryLogItem& item, pt::ptree& tree) {
-  pt::ptree results;
+Status serializeQueryLogItem(const QueryLogItem& item, JSON& doc) {
   if (item.results.added.size() > 0 || item.results.removed.size() > 0) {
-    auto status = serializeDiffResults(item.results, results);
+    auto obj = doc.getObject();
+    auto status = serializeDiffResults(item.results, item.columns, doc, obj);
     if (!status.ok()) {
       return status;
     }
-    tree.add_child("diffResults", results);
+
+    doc.add("diffResults", obj);
   } else {
-    auto status = serializeQueryData(item.snapshot_results, results);
+    auto arr = doc.getArray();
+    auto status =
+        serializeQueryData(item.snapshot_results, item.columns, doc, arr);
     if (!status.ok()) {
       return status;
     }
-    tree.add_child("snapshot", results);
-    tree.put<std::string>("action", "snapshot");
+
+    doc.add("snapshot", arr);
+    doc.addRef("action", "snapshot");
   }
 
-  addLegacyFieldsAndDecorations(item, tree);
-  return Status(0, "OK");
+  addLegacyFieldsAndDecorations(item, doc, doc.doc());
+  return Status();
 }
 
-static inline Status serializeEvent(const QueryLogItem& item,
-                                    const pt::ptree& event,
-                                    pt::ptree& tree) {
-  addLegacyFieldsAndDecorations(item, tree);
-  pt::ptree columns;
-  for (const auto& i : event) {
+Status serializeEvent(const QueryLogItem& item,
+                      const rj::Value& event_obj,
+                      JSON& doc,
+                      rj::Document& obj) {
+  addLegacyFieldsAndDecorations(item, doc, obj);
+
+  auto columns_obj = doc.getObject();
+  for (const auto& i : event_obj.GetObject()) {
     // Yield results as a "columns." map to avoid namespace collisions.
-    columns.put<std::string>(i.first, i.second.get_value<std::string>());
+    doc.addCopy(i.name.GetString(), i.value.GetString(), columns_obj);
   }
 
-  tree.add_child("columns", columns);
+  doc.add("columns", columns_obj, obj);
   return Status(0, "OK");
 }
 
-Status serializeQueryLogItemAsEvents(const QueryLogItem& item,
-                                     pt::ptree& tree) {
-  pt::ptree results;
+Status serializeQueryLogItemAsEvents(const QueryLogItem& item, JSON& doc) {
+  auto temp_doc = JSON::newObject();
   if (!item.results.added.empty() || !item.results.removed.empty()) {
-    auto status = serializeDiffResults(item.results, results);
+    auto status = serializeDiffResults(
+        item.results, item.columns, temp_doc, temp_doc.doc());
     if (!status.ok()) {
       return status;
     }
   } else if (!item.snapshot_results.empty()) {
-    pt::ptree snapshot_results;
-    auto status = serializeQueryData(item.snapshot_results, snapshot_results);
+    auto arr = doc.getArray();
+    auto status = serializeQueryData(item.snapshot_results, {}, temp_doc, arr);
     if (!status.ok()) {
       return status;
     }
-    results.add_child("snapshot", snapshot_results);
+    temp_doc.add("snapshot", arr);
   } else {
     // This error case may also be represented in serializeQueryLogItem.
-    return Status(1, "No diff results or snapshot results");
+    return Status(1, "No differential or snapshot results");
   }
 
-  for (const auto& action : results) {
-    for (const auto& row : action.second) {
-      pt::ptree event;
-      serializeEvent(item, row.second, event);
-      event.put<std::string>("action", action.first);
-      tree.push_back(std::make_pair("", event));
+  for (auto& action : temp_doc.doc().GetObject()) {
+    for (auto& row : action.value.GetArray()) {
+      auto obj = doc.getObject();
+      serializeEvent(item, row, doc, obj);
+      doc.addCopy("action", action.name.GetString(), obj);
+      doc.push(obj);
     }
   }
-  return Status(0, "OK");
+  return Status();
 }
 
-Status serializeQueryLogItemJSON(const QueryLogItem& i, std::string& json) {
-  pt::ptree tree;
-  auto status = serializeQueryLogItem(i, tree);
+Status serializeQueryLogItemJSON(const QueryLogItem& item, std::string& json) {
+  auto doc = JSON::newObject();
+  auto status = serializeQueryLogItem(item, doc);
   if (!status.ok()) {
     return status;
   }
 
-  std::ostringstream output;
-  try {
-    pt::write_json(output, tree, false);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    // The content could not be represented as JSON.
-    return Status(1, e.what());
-  }
-  json = output.str();
-  return Status(0, "OK");
+  return doc.toString(json);
 }
 
-Status deserializeQueryLogItem(const pt::ptree& tree, QueryLogItem& item) {
-  if (tree.count("diffResults") > 0) {
+Status deserializeQueryLogItem(const JSON& doc, QueryLogItem& item) {
+  if (!doc.doc().IsObject()) {
+    return Status(1);
+  }
+
+  if (doc.doc().HasMember("diffResults")) {
     auto status =
-        deserializeDiffResults(tree.get_child("diffResults"), item.results);
+        deserializeDiffResults(doc.doc()["diffResults"], item.results);
     if (!status.ok()) {
       return status;
     }
-  } else if (tree.count("snapshot") > 0) {
+  } else if (doc.doc().HasMember("snapshot")) {
     auto status =
-        deserializeQueryData(tree.get_child("snapshot"), item.snapshot_results);
+        deserializeQueryData(doc.doc()["snapshot"], item.snapshot_results);
     if (!status.ok()) {
       return status;
     }
   }
 
-  getLegacyFieldsAndDecorations(tree, item);
-  return Status(0, "OK");
+  getLegacyFieldsAndDecorations(doc, item);
+  return Status();
 }
 
 Status deserializeQueryLogItemJSON(const std::string& json,
                                    QueryLogItem& item) {
-  pt::ptree tree;
-  try {
-    std::stringstream input;
-    input << json;
-    pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& e) {
-    return Status(1, e.what());
+  auto doc = JSON::newObject();
+  if (!doc.fromString(json) || !doc.doc().IsObject()) {
+    return Status(1, "Cannot deserialize JSON");
   }
-  return deserializeQueryLogItem(tree, item);
+  return deserializeQueryLogItem(doc, item);
 }
 
-Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& i,
+Status serializeQueryLogItemAsEventsJSON(const QueryLogItem& item,
                                          std::vector<std::string>& items) {
-  pt::ptree tree;
-  auto status = serializeQueryLogItemAsEvents(i, tree);
+  auto doc = JSON::newArray();
+  auto status = serializeQueryLogItemAsEvents(item, doc);
   if (!status.ok()) {
     return status;
   }
 
-  for (auto& event : tree) {
-    std::ostringstream output;
-    try {
-      pt::write_json(output, event.second, false);
-    } catch (const pt::json_parser::json_parser_error& e) {
-      return Status(1, e.what());
-    }
-    items.push_back(output.str());
+  // return doc.toString()
+  for (auto& event : doc.doc().GetArray()) {
+    rj::StringBuffer sb;
+    rj::Writer<rj::StringBuffer> writer(sb);
+    event.Accept(writer);
+    items.push_back(sb.GetString());
   }
-  return Status(0, "OK");
+  return Status();
 }
 
-Status serializeQueryDataRJ(const QueryData& q, rj::Document& d) {
-  if (!d.IsArray()) {
-    return Status(1, "Document is not an array");
-  }
+Status serializeQueryData(const QueryData& q,
+                          const ColumnNames& cols,
+                          JSON& doc,
+                          rj::Document& arr) {
   for (const auto& r : q) {
-    rj::Document serialized;
-    serialized.SetObject();
-    auto status = serializeRowRJ(r, serialized);
+    auto row_obj = doc.getObject();
+    auto status = serializeRow(r, cols, doc, row_obj);
     if (!status.ok()) {
       return status;
     }
-    if (serialized.GetObject().MemberCount()) {
-      d.PushBack(rj::Value(serialized, d.GetAllocator()).Move(),
-                 d.GetAllocator());
-    }
+    doc.push(row_obj, arr);
   }
-  return Status(0, "OK");
-}
-
-Status serializeQueryDataRJ(const QueryData& q,
-                            const ColumnNames& cols,
-                            rj::Document& d) {
-  for (const auto& r : q) {
-    rj::Document serialized;
-    serialized.SetObject();
-    auto status = serializeRowRJ(r, cols, serialized);
-    if (!status.ok()) {
-      return status;
-    }
-    if (serialized.GetObject().MemberCount()) {
-      d.PushBack(rj::Value(serialized, d.GetAllocator()).Move(),
-                 d.GetAllocator());
-    }
-  }
-  return Status(0, "OK");
-}
-
-Status serializeDiffResultsRJ(const DiffResults& d, rj::Document& doc) {
-  // Serialize and add "removed" first.
-  // A property tree is somewhat ordered, this provides a loose contract to
-  // the logger plugins and their aggregations, allowing them to parse chunked
-  // lines. Note that the chunking is opaque to the database functions.
-  rj::Document removed;
-  auto status = serializeQueryDataRJ(d.removed, removed);
-  if (!status.ok()) {
-    return status;
-  }
-
-  doc.AddMember(rj::Value("removed", doc.GetAllocator()).Move(),
-                rj::Value(removed, doc.GetAllocator()).Move(),
-                doc.GetAllocator());
-
-  rj::Document added;
-  status = serializeQueryDataRJ(d.added, added);
-  if (!status.ok()) {
-    return status;
-  }
-  doc.AddMember(rj::Value("added", doc.GetAllocator()).Move(),
-                rj::Value(added, doc.GetAllocator()).Move(),
-                doc.GetAllocator());
-  return Status(0, "OK");
+  return Status();
 }
 
 bool addUniqueRowToQueryData(QueryData& q, const Row& r) {

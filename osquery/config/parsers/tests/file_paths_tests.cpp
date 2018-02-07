@@ -68,8 +68,14 @@ TEST_F(FilePathsConfigParserPluginTests, test_get_files) {
 TEST_F(FilePathsConfigParserPluginTests, test_get_file_accesses) {
   Config::get().update(config_data_);
   auto parser = Config::getParser("file_paths");
-  auto& accesses = parser->getData().get_child("file_accesses");
-  EXPECT_EQ(accesses.size(), 2U);
+  const auto& doc = parser->getData();
+
+  size_t accesses = 0_sz;
+  if (doc.doc().HasMember("file_accesses") &&
+      doc.doc()["file_accesses"].IsArray()) {
+    accesses = doc.doc()["file_accesses"].Size();
+  }
+  EXPECT_EQ(accesses, 2_sz);
 }
 
 TEST_F(FilePathsConfigParserPluginTests, test_remove_source) {

@@ -608,11 +608,8 @@ Status logQueryLogItem(const QueryLogItem& results,
     return status;
   }
 
-  for (auto& json : json_items) {
-    if (!json.empty() && json.back() == '\n') {
-      json.pop_back();
-      status = logString(json, "event", receiver);
-    }
+  for (const auto& json : json_items) {
+    status = logString(json, "event", receiver);
   }
   return status;
 }
@@ -635,11 +632,7 @@ Status logSnapshotQuery(const QueryLogItem& item) {
     return status;
   }
 
-  for (auto& json : json_items) {
-    if (!json.empty() && json.back() == '\n') {
-      json.pop_back();
-    }
-
+  for (const auto& json : json_items) {
     auto receiver = RegistryFactory::get().getActive("logger");
     for (const auto& logger : osquery::split(receiver, ",")) {
       if (FLAGS_logger_secondary_status_only &&

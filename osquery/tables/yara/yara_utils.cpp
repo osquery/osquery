@@ -48,7 +48,7 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
 
   bool compiled = false;
   YR_RULES* tmp_rules;
-  VLOG(1) << "Loading " << file;
+  VLOG(1) << "Loading YARA signature file: " << file;
 
   // First attempt to load the file, in case it is saved (pre-compiled)
   // rules.
@@ -107,7 +107,7 @@ Status compileSingleFile(const std::string& file, YR_RULES** rules) {
  * in the map under the given category.
  */
 Status handleRuleFiles(const std::string& category,
-                       const pt::ptree& rule_files,
+                       const rapidjson::Value& rule_files,
                        std::map<std::string, YR_RULES*>& rules) {
   YR_COMPILER* compiler = nullptr;
   int result = yr_compiler_create(&compiler);
@@ -119,9 +119,9 @@ Status handleRuleFiles(const std::string& category,
   yr_compiler_set_callback(compiler, YARACompilerCallback, nullptr);
 
   bool compiled = false;
-  for (const auto& item : rule_files) {
+  for (const auto& item : rule_files.GetArray()) {
     YR_RULES* tmp_rules = nullptr;
-    auto rule = item.second.get("", "");
+    std::string rule = item.GetString();
     if (rule[0] != '/') {
       rule = kYARAHome + rule;
     }
@@ -247,35 +247,45 @@ Status YARAConfigParserPlugin::setUp() {
     return Status(1, "Unable to initialize YARA");
   }
 
-  return Status(0, "OK");
+  return Status();
 }
 
 Status YARAConfigParserPlugin::update(const std::string& source,
                                       const ParserConfig& config) {
   // The YARA config parser requested the "yara" top-level key in the config.
-  const auto& yara_config = config.at("yara");
+  const auto& yara_config = config.at("yara").doc();
 
   // Look for a "signatures" key with the group/file content.
-  if (yara_config.count("signatures") > 0) {
-    const auto& signatures = yara_config.get_child("signatures");
-    data_.add_child("signatures", signatures);
-    for (const auto& element : signatures) {
-      VLOG(1) << "Compiling YARA signature group: " << element.first;
-      auto status = handleRuleFiles(element.first, element.second, rules_);
-      if (!status.ok()) {
-        VLOG(1) << "YARA rule compile error: " << status.getMessage();
-        return status;
+  if (yara_config.HasMember("signatures")) {
+    auto& signatures = yara_config["signatures"];
+    if (signatures.IsObject()) {
+      auto obj = data_.getObject();
+      data_.copyFrom(signatures, obj);
+      data_.add("signatures", obj);
+
+      for (const auto& element : data_.doc()["signatures"].GetObject()) {
+        std::string category = element.name.GetString();
+        VLOG(1) << "Compiling YARA signature group: " << category;
+        auto status = handleRuleFiles(category, element.value, rules_);
+        if (!status.ok()) {
+          VLOG(1) << "YARA rule compile error: " << status.getMessage();
+          return status;
+        }
       }
     }
   }
 
   // The "file_paths" set maps the rule groups to the "file_paths" top level
   // configuration key. That similar key keeps the groups of file paths.
-  if (yara_config.count("file_paths") > 0) {
-    const auto& file_paths = yara_config.get_child("file_paths");
-    data_.add_child("file_paths", file_paths);
+  if (yara_config.HasMember("file_paths")) {
+    auto& file_paths = yara_config["file_paths"];
+    if (file_paths.IsObject()) {
+      auto obj = data_.getObject();
+      data_.copyFrom(file_paths, obj);
+      data_.add("file_paths", obj);
+    }
   }
-  return Status(0, "OK");
+  return Status();
 }
 
 /// Call the simple YARA ConfigParserPlugin "yara".

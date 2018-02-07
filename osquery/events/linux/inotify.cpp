@@ -132,10 +132,15 @@ void INotifyEventPublisher::buildExcludePathsSet() {
 
   WriteLock lock(subscription_lock_);
   exclude_paths_.clear();
-  for (const auto& excl_category :
-       parser->getData().get_child("exclude_paths")) {
-    for (const auto& excl_path : excl_category.second) {
-      auto pattern = excl_path.second.get_value<std::string>("");
+
+  const auto& doc = parser->getData();
+  if (!doc.doc().HasMember("exclude_paths")) {
+    return;
+  }
+
+  for (const auto& category : doc.doc()["exclude_paths"].GetObject()) {
+    for (const auto& excl_path : category.value.GetArray()) {
+      std::string pattern = excl_path.GetString();
       if (pattern.empty()) {
         continue;
       }
@@ -434,8 +439,8 @@ Status INotifyEventPublisher::addSubscription(
         inotify_sc->mark_for_deletion = false;
         return Status(0);
       }
-      // Returing non zero signals EventSubscriber::subscribe
-      // dont bumpup subscription_count_.
+      // Returning non zero signals EventSubscriber::subscribe
+      // do not bump up subscription_count_.
       return Status(1);
     }
   }

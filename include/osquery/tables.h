@@ -10,18 +10,13 @@
 
 #pragma once
 
-#include <deque>
 #include <map>
-#include <memory>
 #include <set>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #ifdef WIN32
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -33,14 +28,13 @@
 #endif
 
 /// Wrap this include with the above and below ignored warnings for FreeBSD.
-#include <boost/coroutine2/all.hpp>
+#include <boost/coroutine2/coroutine.hpp>
 
 #ifndef WIN32
 #pragma clang diagnostic pop
 #endif
 
 #include <boost/lexical_cast.hpp>
-#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
 #include <osquery/query.h>
@@ -434,10 +428,10 @@ struct ConstraintList : private boost::noncopyable {
    *   ]
    * }
    */
-  void serialize(boost::property_tree::ptree& tree) const;
+  void serialize(JSON& doc, rapidjson::Value& obj) const;
 
   /// See ConstraintList::unserialize.
-  void unserialize(const boost::property_tree::ptree& tree);
+  void deserialize(const rapidjson::Value& obj);
 
  private:
   /// List of constraint operator/expressions.

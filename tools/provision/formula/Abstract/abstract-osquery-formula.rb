@@ -7,6 +7,10 @@ module SkipRelocation
   end
 end
 
+def macos_minimum_sdk
+  return "10.11"
+end
+
 def llvm_version
   return "5.0.1"
 end
@@ -212,10 +216,10 @@ class AbstractOsqueryFormula < Formula
 
     # macOS compatibility flags.
     if OS.mac?
-      append "CFLAGS", "-mmacosx-version-min=10.11"
-      append "CXXFLAGS", "-mmacosx-version-min=10.11"
-      append "LDFLAGS", "-mmacosx-version-min=10.11"
-      ENV["MACOSX_DEPLOYMENT_TARGET"] = "10.11"
+      append "CFLAGS", "-mmacosx-version-min=#{macos_minimum_sdk}"
+      append "CXXFLAGS", "-mmacosx-version-min=#{macos_minimum_sdk}"
+      append "LDFLAGS", "-mmacosx-version-min=#{macos_minimum_sdk}"
+      ENV["MACOSX_DEPLOYMENT_TARGET"] = "#{macos_minimum_sdk}"
       # We cannot include this for various reasons, e.g., curl provides _connectx.
       # append "LDFLAGS", "-Wl,-no_weak_imports" if OS.mac?
 

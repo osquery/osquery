@@ -8,141 +8,166 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/config.h>
+#include <asm/unistd_64.h>
+
 #include <osquery/logger.h>
 #include <osquery/sql.h>
-#include <osquery/system.h>
 
-#include "osquery/events/linux/audit.h"
+#include "osquery/tables/events/linux/process_events.h"
 
 #define DECLARE_TABLE_IMPLEMENTATION_process_events
 #include <generated/tables/tbl_process_events_defs.hpp>
 
 namespace osquery {
 
-#define AUDIT_SYSCALL_EXECVE 59
+FLAG(bool,
+     audit_allow_process_events,
+     true,
+     "Allow the audit publisher to install process event monitoring rules");
 
 // Depend on the external getUptime table method.
 namespace tables {
 extern long getUptime();
 }
 
-bool ProcessUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
-  if (type == AUDIT_SYSCALL) {
-    r["auid"] = (fields.count("auid")) ? fields.at("auid") : "0";
-    r["pid"] = (fields.count("pid")) ? fields.at("pid") : "0";
-    r["parent"] = fields.count("ppid") ? fields.at("ppid") : "0";
-    r["uid"] = fields.count("uid") ? fields.at("uid") : "0";
-    r["euid"] = fields.count("euid") ? fields.at("euid") : "0";
-    r["gid"] = fields.count("gid") ? fields.at("gid") : "0";
-    r["egid"] = fields.count("egid") ? fields.at("euid") : "0";
-    r["path"] = (fields.count("exe")) ? decodeAuditValue(fields.at("exe")) : "";
+REGISTER(AuditProcessEventSubscriber, "event_subscriber", "process_events");
 
-    auto qd = SQL::selectAllFrom("file", "path", EQUALS, r.at("path"));
-    if (qd.size() == 1) {
-      r["ctime"] = qd.front().at("ctime");
-      r["atime"] = qd.front().at("atime");
-      r["mtime"] = qd.front().at("mtime");
-      r["btime"] = "0";
-    }
-
-    // This should get overwritten during the EXECVE state.
-    r["cmdline"] = (fields.count("comm")) ? fields.at("comm") : "";
-    // Do not record a cmdline size. If the final state is reached and no
-    // 'argc'
-    // has been filled in then the EXECVE state was not used.
-    r["cmdline_size"] = "";
-
-    r["overflows"] = "";
-    r["env_size"] = "0";
-    r["env_count"] = "0";
-    r["env"] = "";
+Status AuditProcessEventSubscriber::init() {
+  if (!FLAGS_audit_allow_process_events) {
+    return Status(1, "Subscriber disabled via configuration");
   }
 
-  if (type == AUDIT_EXECVE) {
-    // Reset the temporary storage from the SYSCALL state.
-    r["cmdline"] = "";
-    for (const auto& arg : fields) {
+  auto sc = createSubscriptionContext();
+  subscribe(&AuditProcessEventSubscriber::Callback, sc);
+
+  return Status(0, "OK");
+}
+
+Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
+  std::vector<Row> emitted_row_list;
+  auto status = ProcessEvents(emitted_row_list, ec->audit_events);
+  if (!status.ok()) {
+    return status;
+  }
+
+  for (auto& row : emitted_row_list) {
+    add(row);
+  }
+
+  return Status(0, "Ok");
+}
+
+Status AuditProcessEventSubscriber::ProcessEvents(
+    std::vector<Row>& emitted_row_list,
+    const std::vector<AuditEvent>& event_list) noexcept {
+  // clang-format off
+  /*
+    1300 audit(1502125323.756:6): arch=c000003e syscall=59 success=yes exit=0 a0=23eb8e0 a1=23ebbc0 a2=23c9860 a3=7ffe18d32ed0 items=2 ppid=6882 pid=7841 auid=1000 uid=1000 gid=1000 euid=1000 suid=1000 fsuid=1000 egid=1000 sgid=1000 fsgid=1000 tty=pts1 ses=2 comm="sh" exe="/usr/bin/bash" subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 key=(null)
+    1309 audit(1502125323.756:6): argc=1 a0="sh"
+    1307 audit(1502125323.756:6):  cwd="/home/alessandro"
+    1302 audit(1502125323.756:6): item=0 name="/usr/bin/sh" inode=18867 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:shell_exec_t:s0 objtype=NORMAL
+    1302 audit(1502125323.756:6): item=1 name="/lib64/ld-linux-x86-64.so.2" inode=33604032 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 obj=system_u:object_r:ld_so_t:s0 objtype=NORMAL
+    1320 audit(1502125323.756:6):
+  */
+  // clang-format on
+
+  emitted_row_list.clear();
+
+  for (const auto& event : event_list) {
+    if (event.type != AuditEvent::Type::Syscall) {
+      continue;
+    }
+
+    const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
+    if (event_data.syscall_number != __NR_execve) {
+      continue;
+    }
+
+    const AuditEventRecord* syscall_event_record =
+        GetEventRecord(event, AUDIT_SYSCALL);
+    if (syscall_event_record == nullptr) {
+      VLOG(1) << "Malformed AUDIT_SYSCALL event";
+      continue;
+    }
+
+    const AuditEventRecord* execve_event_record =
+        GetEventRecord(event, AUDIT_EXECVE);
+    if (execve_event_record == nullptr) {
+      VLOG(1) << "Malformed AUDIT_EXECVE event";
+      continue;
+    }
+
+    const AuditEventRecord* first_path_event_record =
+        GetEventRecord(event, AUDIT_PATH);
+    if (first_path_event_record == nullptr) {
+      VLOG(1) << "Malformed AUDIT_PATH event";
+      continue;
+    }
+
+    Row row = {};
+
+    CopyFieldFromMap(row, syscall_event_record->fields, "auid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "pid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "ppid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "uid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "euid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "gid", "0");
+    CopyFieldFromMap(row, syscall_event_record->fields, "egid", "0");
+
+    std::string field_value;
+    GetStringFieldFromMap(field_value, syscall_event_record->fields, "exe", "");
+    row["path"] = DecodeAuditPathValues(field_value);
+
+    auto qd = SQL::selectAllFrom("file", "path", EQUALS, row.at("path"));
+    if (qd.size() == 1) {
+      row["ctime"] = qd.front().at("ctime");
+      row["atime"] = qd.front().at("atime");
+      row["mtime"] = qd.front().at("mtime");
+      row["btime"] = "0";
+    }
+
+    row["overflows"] = "";
+    row["env_size"] = "0";
+    row["env_count"] = "0";
+    row["env"] = "";
+    row["uptime"] = std::to_string(tables::getUptime());
+
+    // build the command line from the AUDIT_EXECVE record
+    row["cmdline"] = "";
+
+    for (const auto& arg : execve_event_record->fields) {
       if (arg.first == "argc") {
         continue;
       }
 
       // Amalgamate all the "arg*" fields.
-      if (r.at("cmdline").size() > 0) {
-        r["cmdline"] += " ";
+      if (row.at("cmdline").size() > 0) {
+        row["cmdline"] += " ";
       }
-      r["cmdline"] += decodeAuditValue(arg.second);
+
+      row["cmdline"] += arg.second;
     }
 
     // There may be a better way to calculate actual size from audit.
     // Then an overflow could be calculated/determined based on
     // actual/expected.
-    r["cmdline_size"] = std::to_string(r.at("cmdline").size());
+    row["cmdline_size"] = std::to_string(row.at("cmdline").size());
 
-    // Uptime is helpful for execution-based events.
-    r["uptime"] = std::to_string(tables::getUptime());
+    // Get the remaining data from the first AUDIT_PATH record
+    CopyFieldFromMap(row, first_path_event_record->fields, "mode", "");
+    GetStringFieldFromMap(
+        row["owner_uid"], first_path_event_record->fields, "ouid", "0");
+    GetStringFieldFromMap(
+        row["owner_gid"], first_path_event_record->fields, "ogid", "0");
+
+    emitted_row_list.push_back(row);
   }
 
-  if (type == AUDIT_PATH) {
-    r["mode"] = (fields.count("mode")) ? fields.at("mode") : "";
-    r["owner_uid"] = fields.count("ouid") ? fields.at("ouid") : "0";
-    r["owner_gid"] = fields.count("ogid") ? fields.at("ogid") : "0";
-  }
-
-  if (type == AUDIT_CWD) {
-    r["cwd"] = fields.count("cwd") ? decodeAuditValue(fields.at("cwd")) : "";
-  }
-  return true;
+  return Status(0, "Ok");
 }
 
-class ProcessEventSubscriber : public EventSubscriber<AuditEventPublisher> {
- public:
-  /// The process event subscriber declares an audit event type subscription.
-  Status init() override;
-
-  /// Kernel events matching the event type will fire.
-  Status Callback(const ECRef& ec, const SCRef& sc);
-
- private:
-  AuditAssembler asm_;
-};
-
-REGISTER(ProcessEventSubscriber, "event_subscriber", "process_events");
-
-Status ProcessEventSubscriber::init() {
-  asm_.start(
-      20, {AUDIT_SYSCALL, AUDIT_EXECVE, AUDIT_PATH, AUDIT_CWD}, &ProcessUpdate);
-
-  auto sc = createSubscriptionContext();
-
-  // Monitor for execve syscalls.
-  sc->rules.push_back({AUDIT_SYSCALL_EXECVE, ""});
-
-  // Request call backs for all parts of the process execution state.
-  // Drop events if they are encountered outside of the expected state.
-  sc->types = {AUDIT_SYSCALL, AUDIT_EXECVE, AUDIT_CWD, AUDIT_PATH};
-  subscribe(&ProcessEventSubscriber::Callback, sc);
-
-  return Status(0, "OK");
-}
-
-Status ProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
-  // Check and set the valid state change.
-  // If this is an unacceptable change reset the state and clear row data.
-  if (ec->fields.count("success") && ec->fields.at("success") == "no") {
-    return Status(0, "OK");
-  }
-
-  if (ec->type == AUDIT_PATH && ec->fields.count("item") &&
-      ec->fields.at("item") != "0") {
-    return Status(0, "OK");
-  }
-
-  auto fields = asm_.add(ec->audit_id, ec->type, ec->fields);
-  if (fields.is_initialized()) {
-    add(*fields);
-  }
-
-  return Status(0, "OK");
+const std::set<int>& AuditProcessEventSubscriber::GetSyscallSet() noexcept {
+  static const std::set<int> syscall_set = {__NR_execve};
+  return syscall_set;
 }
 }

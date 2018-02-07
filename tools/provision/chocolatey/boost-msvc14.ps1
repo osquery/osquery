@@ -13,8 +13,8 @@
 # $version - The version of the software package to build
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
-$version = '1.65.0'
-$chocoVersion = '1.65.0'
+$version = '1.66.0'
+$chocoVersion = '1.66.0'
 $versionUnderscores = $version -replace '\.', '_'
 $packageName = 'boost-msvc14'
 $projectSource = `
@@ -85,7 +85,7 @@ if (-not (Test-Path $b2)) {
   Invoke-BatchFile './bootstrap.bat'
 }
 
-$installPrefix = 'osquery-boost-libs'
+$installPrefix = 'stage'
 $arch = '64'
 $toolset = 'msvc-14.0'
 # Build the boost libraries
@@ -99,14 +99,17 @@ $b2x64args = @(
   'runtime-link=static',
   'optimization=space',
   'define=BOOST_USE_WINAPI_VERSION=0x0601',
-  '--build-type=complete',
+  '--with-filesystem',
+  '--with-regex',
+  '--with-system',
+  '--with-thread',
+  '--with-coroutine',
+  '--with-context',
   '--layout=tagged',
   '--ignore-site-config',
-  '--disable-icu',
-  '--stagedir=stage',
-  'install'
+  '--disable-icu'
 )
-Start-OsqueryProcess $b2 $b2x64args
+Start-OsqueryProcess $b2 $b2x64args $false
 
 # If the build path exists, purge it for a clean packaging
 $chocoDir = Join-Path $(Get-Location) 'osquery-choco'
@@ -132,7 +135,7 @@ Write-NuSpec `
   $license
 
 Copy-Item "..\$installPrefix\lib\*" $libDir
-Copy-Item -Recurse "..\$installPrefix\include\boost" $includeDir
+Copy-Item -Recurse "..\boost" $includeDir
 Copy-Item $buildScriptSource $srcDir
 choco pack
 

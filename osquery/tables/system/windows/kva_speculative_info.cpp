@@ -11,7 +11,7 @@
 
 #include <ntstatus.h>
 #define WIN32_NO_STATUS
-#define WIN32_LEAN_AND_MEAN
+
 #include <windows.h>
 #include <winternl.h>
 
@@ -99,15 +99,16 @@ QueryData genKvaSpeculative(QueryContext& context) {
   r["bp_mitigations"] = INTEGER(specInfo.SpeculationControlFlags.BpbEnabled);
   r["bp_system_policy_disabled"] =
       INTEGER(specInfo.SpeculationControlFlags.BpbDisabledSystemPolicy);
-  r["bp_hardware_supported"] =
+  r["bp_microcode_disabled"] =
       INTEGER(specInfo.SpeculationControlFlags.BpbDisabledNoHardwareSupport);
-  r["speculation_control_support"] =
+  r["cpu_spec_ctrl_supported"] =
       INTEGER(specInfo.SpeculationControlFlags.SpecCtrlEnumerated);
-  r["speculation_command_support"] =
+  r["cpu_pred_cmd_supported"] =
       INTEGER(specInfo.SpeculationControlFlags.SpecCmdEnumerated);
-  r["ibrs_speculation_control_enabled"] =
+  r["ibrs_support_enabled"] =
       INTEGER(specInfo.SpeculationControlFlags.IbrsPresent);
-  r["sti_bp_enabled"] = INTEGER(specInfo.SpeculationControlFlags.StibpPresent);
+  r["stibp_support_enabled"] =
+      INTEGER(specInfo.SpeculationControlFlags.StibpPresent);
 
   return {r};
 }

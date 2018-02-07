@@ -136,12 +136,12 @@ BENCHMARK(EVENTS_add_events);
 static void EVENTS_retrieve_events(benchmark::State& state) {
   auto sub = std::make_shared<BenchmarkEventSubscriber>();
 
-  for (int i = 0; i < state.range_y(); i++) {
+  for (int i = 0; i < state.range(1); i++) {
     sub->benchmarkAdd(i++);
   }
 
   while (state.KeepRunning()) {
-    sub->benchmarkGet(state.range_x(), state.range_y());
+    sub->benchmarkGet(state.range(0), state.range(1));
   }
 
   sub->clearRows();
@@ -155,7 +155,7 @@ BENCHMARK(EVENTS_retrieve_events)
 static void EVENTS_gentable(benchmark::State& state) {
   auto sub = std::make_shared<BenchmarkEventSubscriber>();
 
-  for (int i = 0; i < state.range_y(); i++) {
+  for (int i = 0; i < state.range(1); i++) {
     sub->benchmarkAdd(i++);
   }
 
@@ -175,7 +175,7 @@ static void EVENTS_add_and_gentable(benchmark::State& state) {
   auto sub = std::make_shared<BenchmarkEventSubscriber>();
 
   while (state.KeepRunning()) {
-    for (int i = 0; i < state.range_y(); i++) {
+    for (int i = 0; i < state.range(1); i++) {
       sub->benchmarkAdd(i++);
     }
 

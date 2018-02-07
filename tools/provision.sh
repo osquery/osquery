@@ -85,7 +85,6 @@ function platform_linux_main() {
   # General Linux dependencies and custom formulas for table implementations.
   brew_dependency osquery/osquery-local/libgpg-error
   brew_dependency osquery/osquery-local/libdevmapper
-  brew_dependency osquery/osquery-local/libaptpkg
   brew_dependency osquery/osquery-local/libiptables
   brew_dependency osquery/osquery-local/libgcrypt
   brew_dependency osquery/osquery-local/libcryptsetup
@@ -118,7 +117,6 @@ function platform_darwin_main() {
  function platform_posix_main() {
   # Library secondary dependencies.
   brew_dependency osquery/osquery-local/popt
-  brew_dependency osquery/osquery-local/beecrypt
   brew_dependency osquery/osquery-local/berkeley-db
 
   # libarchive for file carving
@@ -130,8 +128,6 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/libmagic
   brew_dependency osquery/osquery-local/pcre
   brew_dependency osquery/osquery-local/boost
-  brew_dependency osquery/osquery-local/asio
-  brew_dependency osquery/osquery-local/cpp-netlib
   brew_dependency osquery/osquery-local/google-benchmark
   brew_dependency osquery/osquery-local/sleuthkit
   brew_dependency osquery/osquery-local/thrift
@@ -140,7 +136,6 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/aws-sdk-cpp
   brew_dependency osquery/osquery-local/yara
   brew_dependency osquery/osquery-local/glog
-  brew_dependency osquery/osquery-local/linenoise-ng
   brew_dependency osquery/osquery-local/augeas
   brew_dependency osquery/osquery-local/lldpd
   brew_dependency osquery/osquery-local/librdkafka

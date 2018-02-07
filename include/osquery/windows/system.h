@@ -16,7 +16,6 @@
 #define NOMINMAX
 #endif
 
-#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
 /// We define SIGHUP similarly to POSIX.

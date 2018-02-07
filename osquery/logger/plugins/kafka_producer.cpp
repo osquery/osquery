@@ -298,12 +298,10 @@ bool KafkaProducerPlugin::configureTopics() {
   auto parser = Config::getParser("kafka_topics");
 
   if (parser != nullptr || parser.get() != nullptr) {
-    const auto& root =
-        parser->getData().get_child_optional(kKafkaTopicParserRootKey);
-    if (root) {
-      const auto& config = root.get();
-      for (const auto& t : config) {
-        auto topic = initTopic(t.first);
+    const auto& root = parser->getData().doc()[kKafkaTopicParserRootKey];
+    if (!root.IsNull()) {
+      for (const auto& t : root.GetObject()) {
+        auto topic = initTopic(t.name.GetString());
         if (topic == nullptr) {
           continue;
         }
@@ -314,15 +312,15 @@ bool KafkaProducerPlugin::configureTopics() {
                 topic, delKafkaTopic));
 
         // Configure queryToTopics_
-        for (const auto& n :
-             config.get_child(t.first, boost::property_tree::ptree())) {
-          if (!n.first.empty()) {
+        for (const auto& n : t.value.GetArray()) {
+          std::string name = n.GetString();
+          if (name.empty()) {
             LOG(WARNING)
                 << "Query names for a topic must be in JSON array format";
             continue;
           }
 
-          queryToTopics_[n.second.data()] = topic;
+          queryToTopics_[name] = topic;
         }
       }
     }

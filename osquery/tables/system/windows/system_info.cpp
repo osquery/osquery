@@ -16,6 +16,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
+#include "osquery/tables/system/windows/registry.h"
 
 #define DECLARE_TABLE_IMPLEMENTATION_system_info
 #include <generated/tables/tbl_system_info_defs.hpp>
@@ -58,7 +59,23 @@ QueryData genSystemInfo(QueryContext& context) {
     r["hardware_vendor"] = "-1";
     r["hardware_model"] = "-1";
   }
-  
+
+  QueryData regResults;
+  queryKey(
+      "HKEY_LOCAL_MACHINE\\"
+      "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0\\",
+      regResults);
+  for (const auto& key : regResults) {
+    if (key.at("name") == "Update Revision") {
+      if (key.at("data").size() >= 16) {
+        unsigned long int revision = 0;
+        safeStrtoul(key.at("data").substr(8, 2), 16, revision);
+        r["cpu_microcode"] = std::to_string(revision);
+      }
+      break;
+    }
+  }
+
   WmiRequest wmiBiosReq("select * from Win32_Bios");
   std::vector<WmiResultItem>& wmiBiosResults = wmiBiosReq.results();
   if (wmiBiosResults.size() != 0) {

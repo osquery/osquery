@@ -15,8 +15,6 @@
 
 #include "osquery/core/json.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
@@ -66,25 +64,18 @@ void TablePluginBase::removeExternal(const std::string& name) {
 }
 
 static void setContextFromRequest(const PluginRequest& request,
-                                  QueryContext& context) {
-  if (request.count("context") == 0) {
-    return;
-  }
-
-  // Read serialized context from PluginRequest.
-  pt::ptree tree;
-  try {
-    std::stringstream input;
-    input << request.at("context");
-    pt::read_json(input, tree);
-  } catch (const pt::json_parser::json_parser_error& /* e */) {
+                                        QueryContext& context) {
+  auto doc = JSON::newObject();
+  doc.fromString(request.at("context"));
+  if (!doc.doc().HasMember("constraints") ||
+      !doc.doc()["constraints"].IsArray()) {
     return;
   }
 
   // Set the context limit and deserialize each column constraint list.
-  for (const auto& constraint : tree.get_child("constraints")) {
-    auto column_name = constraint.second.get<std::string>("name");
-    context.constraints[column_name].unserialize(constraint.second);
+  for (const auto& constraint : doc.doc()["constraints"].GetArray()) {
+    auto column_name = constraint["name"].GetString();
+    context.constraints[column_name].deserialize(constraint);
   }
 }
 
@@ -358,27 +349,36 @@ std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
   return set;
 }
 
-void ConstraintList::serialize(boost::property_tree::ptree& tree) const {
-  boost::property_tree::ptree expressions;
+void ConstraintList::serialize(JSON& doc, rapidjson::Value& obj) const {
+  auto expressions = doc.getArray();
   for (const auto& constraint : constraints_) {
-    boost::property_tree::ptree child;
-    child.put("op", constraint.op);
-    child.put("expr", constraint.expr);
-    expressions.push_back(std::make_pair("", child));
+    auto child = doc.getObject();
+    doc.add("op", static_cast<size_t>(constraint.op), child);
+    doc.addRef("expr", constraint.expr, child);
+    doc.push(child, expressions);
   }
-  tree.add_child("list", expressions);
-  tree.put("affinity", columnTypeName(affinity));
+  doc.add("list", expressions, obj);
+  doc.addCopy("affinity", columnTypeName(affinity), obj);
 }
 
-void ConstraintList::unserialize(const boost::property_tree::ptree& tree) {
+void ConstraintList::deserialize(const rapidjson::Value& obj) {
   // Iterate through the list of operand/expressions, then set the constraint
   // type affinity.
-  for (const auto& list : tree.get_child("list")) {
-    Constraint constraint(list.second.get<unsigned char>("op"));
-    constraint.expr = list.second.get<std::string>("expr");
+  if (!obj.IsObject() || !obj.HasMember("list") || !obj["list"].IsArray()) {
+    return;
+  }
+
+  for (const auto& list : obj["list"].GetArray()) {
+    auto op = static_cast<unsigned char>(JSON::valueToSize(list["op"]));
+    Constraint constraint(op);
+    constraint.expr = list["expr"].GetString();
     constraints_.push_back(constraint);
   }
-  affinity = columnTypeName(tree.get<std::string>("affinity", "UNKNOWN"));
+
+  auto affinity_name = (obj.HasMember("affinity") && obj["affinity"].IsString())
+                           ? obj["affinity"].GetString()
+                           : "UNKNOWN";
+  affinity = columnTypeName(affinity_name);
 }
 
 void QueryContext::useCache(bool use_cache) {
