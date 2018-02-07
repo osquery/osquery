@@ -20,6 +20,8 @@
 #include <osquery/flags.h>
 #include <osquery/registry.h>
 
+#include <broker/bro.hh>
+
 #include "osquery/core/json.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"
@@ -31,12 +33,6 @@
 namespace pt = boost::property_tree;
 
 namespace osquery {
-
-FLAG(string, bro_ip, "localhost", "IP address of bro (default localhost)")
-
-FLAG(uint64, bro_port, 9999, "Port of bro (default 9999)")
-
-FLAG(string, bro_groups, "{}", "List of groups (default {})")
 
 /**
  * @brief Distributed Plugin for the communication with Bro via broker
@@ -94,7 +90,6 @@ class BRODistributedPlugin : public DistributedPlugin {
   Status writeResults(const std::string& json) override;
 
  private:
-  std::vector<std::string> startup_groups_;
 };
 
 REGISTER(BRODistributedPlugin, "distributed", "bro");
@@ -102,37 +97,9 @@ REGISTER(BRODistributedPlugin, "distributed", "bro");
 Status BRODistributedPlugin::setUp() {
   // Setup Broker Endpoint
   LOG(INFO) << "Starting the Bro Distributed Plugin";
-  broker::init();
   BrokerManager& bm = BrokerManager::get();
 
-  // Subscribe to all and individual topic
-  auto s = bm.createMessageQueue(bm.TOPIC_ALL);
-  if (!s.ok()) {
-    return s;
-  }
-  s = bm.createMessageQueue(bm.TOPIC_PRE_INDIVIDUALS + bm.getNodeID());
-  if (!s.ok()) {
-    return s;
-  }
-
-  // Set Broker groups and subscribe to group topics
-  s = parseBrokerGroups(FLAGS_bro_groups, startup_groups_);
-  if (!s.ok()) {
-    return s;
-  }
-  for (const auto& g : startup_groups_) {
-    bm.addGroup(g);
-  }
-
-  // Connect to Bro
-  s = bm.peerEndpoint(FLAGS_bro_ip, FLAGS_bro_port);
-  if (!s.ok()) {
-    return s;
-  }
-  VLOG(1) << "Broker connection established";
-
-  // Send announce message
-  s = bm.announce();
+  Status s = bm.checkConnection();
   if (!s.ok()) {
     return s;
   }
@@ -156,31 +123,33 @@ Status BRODistributedPlugin::setUp() {
  *  EVENT_HOST_UNSUBSCRIBE: remove the query from schedule of osquery daemon
  * utilizing the QueryManager
  *
- * @param msg the broker message
+ * @param event the broker message
  * @param topic the topic where the broker message was received on
  * @param oT_queries a vector to append one-time queries to
  * @return
  */
-inline Status processMessage(const broker::message& msg,
+inline Status processMessage(const broker::bro::Event& event,
                              const std::string& topic,
                              std::vector<DistributedQueryRequest>& oT_queries) {
   BrokerManager& bm = BrokerManager::get();
   QueryManager& qm = QueryManager::get();
   Status s;
+  auto event_args = event.args();
 
   // Check Event Type
-  if (msg.size() < 1 || !broker::is<std::string>(msg[0])) {
-    return Status(1, "No or invalid event name when processing message");
+  if (event.name().empty()) {
+    return Status(1,
+                  "No or invalid event name '" + event.name() +
+                      "'when processing message");
   }
-  std::string eventName = *broker::get<std::string>(msg[0]);
-  LOG(INFO) << "Received event '" << eventName << "' on topic '" << topic
+  LOG(INFO) << "Received event '" << event.name() << "' on topic '" << topic
             << "'";
 
   // osquery::host_execute
-  if (eventName == bm.EVENT_HOST_EXECUTE) {
+  if (event.name() == bm.EVENT_HOST_EXECUTE) {
     // One-Time Query Execution
     SubscriptionRequest sr;
-    createSubscriptionRequest(EXECUTE, msg, topic, sr);
+    createSubscriptionRequest(EXECUTE, event, topic, sr);
     std::string newQID = qm.addOneTimeQueryEntry(sr);
     if (newQID.empty()) {
       return Status(1, "Unable to add Broker Query Entry");
@@ -191,31 +160,21 @@ inline Status processMessage(const broker::message& msg,
     oT_queries.push_back(dqr);
     return Status(0, "OK");
 
-    // osquery::host_join
-  } else if (eventName == bm.EVENT_HOST_JOIN) {
-    std::string newGroup = *broker::get<std::string>(msg[1]);
-    return bm.addGroup(newGroup);
-
-    // osquery::host_leave
-  } else if (eventName == bm.EVENT_HOST_LEAVE) {
-    std::string newGroup = *broker::get<std::string>(msg[1]);
-    return bm.removeGroup(newGroup);
-
     // osquery::host_subscribe
-  } else if (eventName == bm.EVENT_HOST_SUBSCRIBE) {
+  } else if (event.name() == bm.EVENT_HOST_SUBSCRIBE) {
     // New SQL Query Request
     SubscriptionRequest sr;
-    createSubscriptionRequest(SUBSCRIBE, msg, topic, sr);
+    createSubscriptionRequest(SUBSCRIBE, event, topic, sr);
     s = qm.addScheduleQueryEntry(sr);
     if (!s.ok()) {
       return s;
     }
 
     // osquery::host_unsubscribe
-  } else if (eventName == bm.EVENT_HOST_UNSUBSCRIBE) {
+  } else if (event.name() == bm.EVENT_HOST_UNSUBSCRIBE) {
     // SQL Query Cancel
     SubscriptionRequest sr;
-    createSubscriptionRequest(UNSUBSCRIBE, msg, topic, sr);
+    createSubscriptionRequest(UNSUBSCRIBE, event, topic, sr);
     std::string query = sr.query;
 
     // Use the exact sql string as UNIQUE identifier for identifying a query
@@ -224,9 +183,29 @@ inline Status processMessage(const broker::message& msg,
       return s;
     }
 
+    // osquery::host_join
+  } else if (event.name() == bm.EVENT_HOST_JOIN) {
+    if (event_args.size() != 1) {
+      return Status(1, "Unable to parse message '" + event.name() + "'");
+    }
+    if (auto newGroup = broker::get_if<std::string>(event_args[0])) {
+      return bm.addGroup(*newGroup);
+    }
+    return Status(1, "Unable to parse message '" + event.name() + "'");
+
+    // osquery::host_leave
+  } else if (event.name() == bm.EVENT_HOST_LEAVE) {
+    if (event_args.size() != 1) {
+      return Status(1, "Unable to parse message '" + event.name() + "'");
+    }
+    if (auto newGroup = broker::get_if<std::string>(event_args[0])) {
+      return bm.removeGroup(*newGroup);
+    }
+    return Status(1, "Unable to parse message '" + event.name() + "'");
+
   } else {
     // Unkown Message
-    return Status(1, "Unknown event name '" + eventName + "'");
+    return Status(1, "Unknown event name '" + event.name() + "'");
   }
 
   // Apply to new config/schedule
@@ -242,13 +221,12 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   BrokerManager& bm = BrokerManager::get();
   Status s;
 
-  // Collect file descriptors of the broker message queues
+  // Collect all topics and subscribers
   std::vector<std::string> topics = bm.getTopics();
-  // Retrieve info about each message queue and the file descriptor
+  // Retrieve info about each subscriber and the file descriptor
   std::unique_ptr<pollfd[]> fds(new pollfd[topics.size() + 1]);
   for (unsigned long i = 0; i < topics.size(); i++) {
-    fds[i] =
-        pollfd{bm.getMessageQueue(topics.at(i))->fd(), POLLIN | POLLERR, 0};
+    fds[i] = pollfd{bm.getSubscriber(topics.at(i))->fd(), POLLIN | POLLERR, 0};
   }
   // Append the connection status file descriptor to detect connection failures
   fds[topics.size()] =
@@ -267,6 +245,7 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
       // Nothing to do for this socket
       continue;
     }
+    // Pick topic of the respective socket
     const auto& topic = topics.at(i);
 
     if ((fds[i].revents & POLLERR) == POLLERR) {
@@ -276,12 +255,16 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
     }
 
     // fds[i].revents == POLLIN
-    std::shared_ptr<broker::message_queue> queue = bm.getMessageQueue(topic);
+    std::shared_ptr<broker::subscriber> sub = bm.getSubscriber(topic);
     // Process each message on this socket
-    for (const auto& msg : queue->want_pop()) {
+    for (const auto& msg : sub->poll()) {
       // Directly updates the daemon schedule if requested
       // Returns one time queries otherwise
-      s = processMessage(msg, topic, oT_queries);
+      assert(topic == msg.first);
+      broker::bro::Event event(msg.second);
+      VLOG(1) << "Processing received event: "
+              << broker::to_string(event.as_data());
+      s = processMessage(event, topic, oT_queries);
       if (!s.ok()) {
         LOG(ERROR) << s.getMessage();
         continue;
@@ -306,46 +289,8 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
     return s;
   }
 
-  // Check for connection failure - wait until connection is repaired
-  if ((fds[topics.size()].revents & POLLERR) == POLLERR) {
-    LOG(ERROR) << "Poll error on the broker connection fd";
-  }
-
-  if (fds[topics.size()].revents != 0) {
-    LOG(WARNING) << "Broker connection disconnected";
-    // Connection was/is lost - Retrieve the latest connection status
-    broker::outgoing_connection_status::tag conn_status;
-    s = bm.getOutgoingConnectionStatusChange(conn_status, true);
-
-    // Reset config/schedule
-    std::map<std::string, std::string> config_schedule;
-    config_schedule["bro"] = "";
-    VLOG(1) << "Reset config schedule";
-    Config::get().update(config_schedule);
-
-    QueryManager::get().reset();
-    BrokerManager::get().reset();
-
-    // Set Startup groups and subscribe to group topics
-    for (const auto& g : startup_groups_) {
-      bm.addGroup(g);
-    }
-
-    // Wait for connection to be re-established
-    while (!s.ok() &&
-           conn_status !=
-               broker::outgoing_connection_status::tag::established) {
-      LOG(WARNING) << "Trying to re-establish broker connection...";
-      s = bm.getOutgoingConnectionStatusChange(conn_status, true);
-    }
-
-    // Send announce message
-    s = bm.announce();
-    if (!s.ok()) {
-      LOG(ERROR) << s.getMessage();
-      return s;
-    }
-  }
+  // Check for connection failure and wait for repair
+  bm.checkConnection();
 
   return Status(0, "OK");
 }
