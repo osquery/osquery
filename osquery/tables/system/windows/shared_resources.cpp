@@ -16,6 +16,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_shared_resources
+#include <generated/tables/tbl_shared_resources_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

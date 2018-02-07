@@ -16,6 +16,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/windows/registry.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_appcompat_shims
+#include <generated/tables/tbl_appcompat_shims_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

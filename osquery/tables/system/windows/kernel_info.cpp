@@ -17,6 +17,9 @@
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_kernel_info
+#include <generated/tables/tbl_kernel_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

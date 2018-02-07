@@ -27,6 +27,9 @@
 #include "osquery/core/windows/wmi.h"
 #include "osquery/tables/system/windows/registry.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_startup_items
+#include <generated/tables/tbl_startup_items_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

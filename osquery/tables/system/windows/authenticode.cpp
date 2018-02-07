@@ -33,6 +33,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_authenticode
+#include <generated/tables/tbl_authenticode_defs.hpp>
+
 namespace osquery {
 template <typename T, typename DeleterType, DeleterType deleter>
 struct CustomUniquePtr final {

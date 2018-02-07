@@ -93,7 +93,7 @@ TABLE_ATTRIBUTES = {
 CPP_KEYWORDS = [ "protected", "class", "auto", "int", "virtual", "double", "float", "try", "catch",
     "cast", "case", "const", "default", "delete", "continue", "concept", "char", "break",
     "do", "export", "explicit", "public", "private", "synchronized", "volatile", "while", "signed",
-    "template", "inline", "namespace","not","friend","extern", "mutable"
+    "template", "inline", "interface", "namespace","not","friend","extern", "mutable"
 ]
 
 MISLABELED_SPECS={"wifi_scan":"wifi_survey"

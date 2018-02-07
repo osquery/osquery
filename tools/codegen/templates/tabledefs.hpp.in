@@ -12,7 +12,7 @@
 ** This file is generated. Do not modify it manually!
 */
 
-#include <glog/logging.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 namespace osquery {

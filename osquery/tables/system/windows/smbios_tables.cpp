@@ -12,6 +12,9 @@
 
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_platform_info
+#include <generated/tables/tbl_platform_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

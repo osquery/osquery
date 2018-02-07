@@ -15,6 +15,9 @@
 
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_wmi_filter_consumer_binding
+#include <generated/tables/tbl_wmi_filter_consumer_binding_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

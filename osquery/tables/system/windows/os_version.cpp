@@ -13,6 +13,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_os_version
+#include <generated/tables/tbl_os_version_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

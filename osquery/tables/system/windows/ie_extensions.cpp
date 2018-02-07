@@ -26,6 +26,9 @@
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tables/system/windows/registry.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_ie_extensions
+#include <generated/tables/tbl_ie_extensions_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

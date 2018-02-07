@@ -20,6 +20,9 @@
 
 #include "osquery/tables/system/windows/registry.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_services
+#include <generated/tables/tbl_services_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

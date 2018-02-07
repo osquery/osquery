@@ -33,6 +33,9 @@
 #include "osquery/core/process.h"
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_windows_crashes
+#include <generated/tables/tbl_windows_crashes_defs.hpp>
+
 namespace alg = boost::algorithm;
 namespace fs = boost::filesystem;
 

@@ -15,6 +15,9 @@
 
 #include "win_sockets.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_process_open_sockets
+#include <generated/tables/tbl_process_open_sockets_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

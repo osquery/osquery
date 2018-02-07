@@ -16,6 +16,9 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_pipes
+#include <generated/tables/tbl_pipes_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

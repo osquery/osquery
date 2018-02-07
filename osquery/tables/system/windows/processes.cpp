@@ -31,6 +31,10 @@
 #include "osquery/core/windows/wmi.h"
 #include <osquery/filesystem/fileops.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_processes
+#include <generated/tables/tbl_processes_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_process_memory_map
+#include <generated/tables/tbl_process_memory_map_defs.hpp>
 namespace osquery {
 int getUidFromSid(PSID sid);
 int getGidFromSid(PSID sid);

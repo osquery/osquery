@@ -23,6 +23,9 @@
 #include "osquery/core/windows/wmi.h"
 #include "osquery/filesystem/fileops.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_certificates
+#include <generated/tables/tbl_certificates_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
