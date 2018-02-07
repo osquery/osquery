@@ -1,7 +1,7 @@
 # osquery
 
 <p align="center">
-<img align="center" src="https://osquery.io/img/logo-2x-dark.png" alt="osquery logo" width="200"/>
+<img align="center" src="https://github.com/facebook/osquery/raw/master/docs/img/logo-2x-dark.png" alt="osquery logo" width="200"/>
 
 <p align="center">
 osquery is an operating system instrumentation framework for OS X/macOS, Windows, and Linux. <br/>
