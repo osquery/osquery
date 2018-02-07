@@ -9,7 +9,7 @@ class Broker < AbstractOsqueryFormula
 	  #:tag => "v0.6"
   head "https://github.com/bro/broker.git"
   version "0.6"
-  revision 3
+  revision 4
 
   needs :cxx11
 
@@ -27,7 +27,7 @@ class Broker < AbstractOsqueryFormula
 
   def install
     prepend "CXXFLAGS", "-std=c++11 -Wextra -Wall"
-    args = %W[--prefix=#{prefix} --enable-static-only --with-caf=#{default_prefix}]
+    args = %W[--prefix=#{prefix} --disable-python --enable-static-only --with-caf=#{default_prefix}]
 
     system "./configure", *args
     system "make"
