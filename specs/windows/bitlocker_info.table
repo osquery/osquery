@@ -1,3 +1,4 @@
+
 table_name("bitlocker_info")
 description("Retrieve bitlocker status of the machine.")
 schema([
