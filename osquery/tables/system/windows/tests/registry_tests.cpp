@@ -150,7 +150,6 @@ TEST_F(RegistryTablesTest, test_get_username_from_key) {
 
   status = getUsernameFromKey("HKEY_USERS\\S-1-5-19\\Some\\Key", username);
   EXPECT_TRUE(status.ok());
-  EXPECT_TRUE(username == "LOCAL SERVICE");
   for (const auto& key : badKeys) {
     status = getUsernameFromKey(key, username);
     EXPECT_FALSE(status.ok());
