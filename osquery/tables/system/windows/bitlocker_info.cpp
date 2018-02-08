@@ -21,7 +21,6 @@ namespace tables {
 QueryData genBitlockerInfo(QueryContext& context) {
   Row r;
   QueryData results;
-
   WmiRequest wmiSystemReq("SELECT * FROM Win32_EncryptableVolume",
                           L"ROOT\\CIMV2\\Security\\MicrosoftVolumeEncryption");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
