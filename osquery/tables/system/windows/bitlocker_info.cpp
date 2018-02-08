@@ -26,7 +26,6 @@ QueryData genBitlockerInfo(QueryContext& context) {
                           L"ROOT\\CIMV2\\Security\\MicrosoftVolumeEncryption");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   if (!wmiResults.empty()) {
-    ;
     long protectionstatus = 0;
     wmiResults[0].GetString("DeviceID", r["device_id"]);
     wmiResults[0].GetString("DriveLetter", r["drive_letter"]);
