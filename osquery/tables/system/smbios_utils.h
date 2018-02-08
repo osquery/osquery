@@ -35,6 +35,7 @@ extern const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions;
 
 constexpr uint8_t kSMBIOSTypeBIOS = 0;
 constexpr uint8_t kSMBIOSTypeSystem = 1;
+constexpr uint8_t kSMBIOSTypeMemoryDevice = 17;
 
 /**
  * @brief A generic parser for SMBIOS tables.
@@ -81,5 +82,5 @@ void genSMBIOSTable(size_t index,
  * @Param offset The field index into address.
  */
 std::string dmiString(uint8_t* data, uint8_t* address, size_t offset);
-}
-}
+} // namespace tables
+} // namespace osquery

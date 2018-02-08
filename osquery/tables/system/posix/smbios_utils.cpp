@@ -130,6 +130,10 @@ void genSMBIOSTable(size_t index,
 }
 
 std::string dmiString(uint8_t* data, uint8_t* address, size_t offset) {
+  if (address[offset] == 0) {
+    return "";
+  }
+
   auto index = (uint8_t)(*(address + offset));
   auto bp = (char*)data;
   while (index > 1) {
@@ -142,5 +146,5 @@ std::string dmiString(uint8_t* data, uint8_t* address, size_t offset) {
 
   return std::string(bp);
 }
-}
-}
+} // namespace tables
+} // namespace osquery
