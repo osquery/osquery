@@ -1,0 +1,10 @@
+table_name("bios_info")
+description("Lists important information from the system bios.")
+schema([
+  Column("Name", TEXT, "AMT Status"),
+  Column("Value", TEXT, "Actions executed by the scheduled task"),
+])
+implementation("bios_info@genBiosInfo")
+examples([
+  "select * from bios_info",
+])
