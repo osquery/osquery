@@ -62,5 +62,39 @@ class LinuxSMBIOSParser : public SMBIOSParser {
   /// Hold the raw SMBIOS memory read.
   uint8_t* data_{nullptr};
 };
-}
-}
+
+/**
+ * SMBIOS data in the formatted section can BYTE, WORD, DWORD, QWORD lengths.
+ * They begin at an offset of the structure examined until the end of
+ * length specificed in
+ * https://www.dmtf.org/sites/default/files/standards/documents/DSP0134_3.1.1.pdf
+ **/
+
+/**
+ * @brief Returns uint16_t representation of a WORD length field
+ *
+ *
+ * @param address A pointer to the examined structure.
+ * @Param offset The field index into address.
+ */
+uint16_t linuxDmiToWord(uint8_t* address, uint8_t offset);
+
+/**
+ * @brief Returns uint32_t representation of a DWORD length field
+ *
+ *
+ * @param address A pointer to the examined structure.
+ * @Param offset The field index into address.
+ */
+uint32_t linuxDmiToDword(uint8_t* address, uint8_t offset);
+
+/**
+ * @brief Returns uint64_t representation of a QWORD length field
+ *
+ *
+ * @param address A pointer to the examined structure.
+ * @Param offset The field index into address.
+ */
+uint64_t linuxDmiToQword(uint8_t* address, uint8_t offset);
+} // namespace tables
+} // namespace osquery

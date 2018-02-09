@@ -8,8 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "osquery/tables/system/smbios_utils.h"
+#include <boost/algorithm/string/trim.hpp>
+
 #include "osquery/tables/system/hash.h"
+#include "osquery/tables/system/smbios_utils.h"
 
 namespace osquery {
 namespace tables {
@@ -146,5 +148,21 @@ std::string dmiString(uint8_t* data, uint8_t* address, size_t offset) {
 
   return std::string(bp);
 }
+
+std::string dmiBitFieldToStr(size_t bitField,
+                             const std::map<uint8_t, std::string>& table) {
+  std::stringstream ss;
+
+  for (uint8_t i = 0; i < table.size(); i++) {
+    if (1 << i & bitField) {
+      ss << table.at(i) + " ";
+    }
+  }
+
+  auto result = ss.str();
+  boost::algorithm::trim(result);
+  return result;
+}
+
 } // namespace tables
 } // namespace osquery
