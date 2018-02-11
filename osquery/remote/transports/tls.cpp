@@ -53,13 +53,13 @@ CLI_FLAG(string,
          "Optional path to a TLS client-auth PEM private key");
 
 /// Reuse TLS session sockets.
-CLI_FLAG(bool, tls_keep_alive, true, "Reuse TLS session sockets");
+CLI_FLAG(bool, tls_session_reuse, true, "Reuse TLS session sockets");
 
 /// Tear down TLS sessions after a custom timeout.
 CLI_FLAG(uint32,
-         tls_keep_alive_timeout,
+         tls_session_timeout,
          3600,
-         "TLS session keep alive timeout in sections");
+         "TLS session keep alive timeout in seconds");
 
 #if defined(DEBUG)
 HIDDEN_FLAG(bool,
@@ -96,7 +96,7 @@ http::Client::Options TLSTransport::getOptions() {
   http::Client::Options options;
   options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
 
-  options.keep_alive(FLAGS_tls_keep_alive);
+  options.keep_alive(FLAGS_tls_session_reuse);
 
   if (FLAGS_proxy_hostname.size() > 0) {
     options.proxy_hostname(FLAGS_proxy_hostname);
@@ -165,18 +165,18 @@ inline bool tlsFailure(const std::string& what) {
 
 static auto getClient() {
   std::shared_ptr<http::Client> client = nullptr;
-  if (FLAGS_tls_keep_alive) {
+  if (FLAGS_tls_session_reuse) {
     thread_local std::shared_ptr<http::Client> tl_client;
     client = tl_client;
 
     if (client.get() == nullptr) {
       tl_client = client = std::make_shared<http::Client>();
 
-      if (FLAGS_tls_keep_alive_timeout > 0) {
+      if (FLAGS_tls_session_timeout > 0) {
         thread_local boost::asio::deadline_timer tl_timer(IOService::get());
 
         tl_timer.expires_from_now(
-            boost::posix_time::seconds(FLAGS_tls_keep_alive_timeout));
+            boost::posix_time::seconds(FLAGS_tls_session_timeout));
         auto this_client = &tl_client;
         tl_timer.async_wait([this_client](boost_system::error_code const&) {
           (*this_client).reset();
