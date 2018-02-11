@@ -272,60 +272,65 @@ void Client::sendRequest(STREAM_TYPE& stream,
   }
 }
 
+bool Client::initHTTPRequest(Request& req) {
+  bool create_connection = true;
+  if (req.remoteHost()) {
+    std::string hostname = *req.remoteHost();
+    std::string port;
+
+    if (req.remotePort()) {
+      port = *req.remotePort();
+    } else if (req.protocol() && (*req.protocol()).compare("https") == 0) {
+      port = kHTTPSDefaultPort;
+    } else {
+      port = kHTTPDefaultPort;
+    }
+
+    bool ssl_connection = false;
+    if (req.protocol() && (*req.protocol()).compare("https") == 0) {
+      ssl_connection = true;
+    }
+
+    if (!isSocketOpen() || new_client_options_ ||
+        hostname != *client_options_.remote_hostname_ ||
+        port != *client_options_.remote_port_ ||
+        client_options_.ssl_connection_ != ssl_connection) {
+      client_options_.remote_hostname_ = hostname;
+      client_options_.remote_port_ = port;
+      client_options_.ssl_connection_ = ssl_connection;
+      new_client_options_ = false;
+      closeSocket();
+    } else {
+      create_connection = false;
+    }
+  } else {
+    if (!client_options_.remote_hostname_) {
+      throw std::runtime_error("Remote hostname missing");
+    }
+
+    if (!client_options_.remote_port_) {
+      if (client_options_.ssl_connection_) {
+        client_options_.remote_port_ = kHTTPSDefaultPort;
+      } else {
+        client_options_.remote_port_ = kHTTPDefaultPort;
+      }
+    }
+    closeSocket();
+  }
+  return create_connection;
+}
+
 Response Client::sendHTTPRequest(Request& req) {
-  bool retry_connect = false;
   if (client_options_.timeout_) {
     timer_.expires_from_now(
         boost::posix_time::seconds(client_options_.timeout_));
   }
 
+  bool retry_connect = false;
   do {
     bool create_connection = true;
-
     if (!retry_connect) {
-      if (req.remoteHost()) {
-        std::string hostname = *req.remoteHost();
-        std::string port;
-
-        if (req.remotePort()) {
-          port = *req.remotePort();
-        } else if (req.protocol() && (*req.protocol()).compare("https") == 0) {
-          port = kHTTPSDefaultPort;
-        } else {
-          port = kHTTPDefaultPort;
-        }
-
-        bool ssl_connection = false;
-        if (req.protocol() && (*req.protocol()).compare("https") == 0) {
-          ssl_connection = true;
-      }
-
-      if (!isSocketOpen() || new_client_options_ ||
-          hostname != *client_options_.remote_hostname_ ||
-          port != *client_options_.remote_port_ ||
-          client_options_.ssl_connection_ != ssl_connection) {
-        client_options_.remote_hostname_ = hostname;
-        client_options_.remote_port_ = port;
-        client_options_.ssl_connection_ = ssl_connection;
-        new_client_options_ = false;
-        closeSocket();
-      } else {
-        create_connection = false;
-      }
-      } else {
-        if (!client_options_.remote_hostname_) {
-          throw std::runtime_error("Remote hostname missing");
-        }
-
-        if (!client_options_.remote_port_) {
-          if (client_options_.ssl_connection_) {
-            client_options_.remote_port_ = kHTTPSDefaultPort;
-          } else {
-            client_options_.remote_port_ = kHTTPDefaultPort;
-          }
-        }
-        closeSocket();
-      }
+      create_connection = initHTTPRequest(req);
     }
 
     try {
@@ -359,17 +364,17 @@ Response Client::sendHTTPRequest(Request& req) {
         std::string redir_url = Response(resp.release()).headers()["Location"];
         if (!redir_url.size()) {
           throw std::runtime_error(
-              "Location header missing in redirect response.");
+              "Location header missing in redirect response");
         }
 
         req.uri(redir_url);
-        LOG(INFO) << "HTTP(S) request re-directed to: " << redir_url;
+        VLOG(1) << "HTTP(S) request re-directed to: " << redir_url;
         break;
       }
       default:
         return Response(resp.release());
       }
-    } catch (std::exception const&) {
+    } catch (std::exception const& /* e */) {
       closeSocket();
       if (!retry_connect) {
         retry_connect = true;

@@ -35,4 +35,4 @@ void IOServiceRunner::stop() {
 void startIOService() {
   Dispatcher::addService(std::make_shared<IOServiceRunner>());
 }
-}
+} // namespace osquery

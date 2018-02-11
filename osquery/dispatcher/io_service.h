@@ -39,4 +39,4 @@ class IOServiceRunner : public InternalRunnable {
 
 /// Start IOService
 void startIOService();
-}
+} // namespace osquery

@@ -249,6 +249,7 @@ class Client {
                    Request& req,
                    beast_http_response_parser& resp);
 
+  bool initHTTPRequest(Request& req);
   Response sendHTTPRequest(Request& req);
 
   /// Handles HTTP request timeout.
