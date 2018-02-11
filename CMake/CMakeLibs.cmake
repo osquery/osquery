@@ -385,11 +385,11 @@ macro(GENERATE_TABLE TABLE_FILE FOREIGN NAME BASE_PATH OUTPUT)
 
   set(TABLE_FILE_GEN "${TABLE_FILE}")
   string(REGEX REPLACE
-      ".*/specs.*/(.*)\\.table"
-      "${CMAKE_BINARY_DIR}/generated/tables/tbl_\\1_defs.hpp"
-      TABLE_FILE_GEN
-      ${TABLE_FILE_GEN}
-    )
+    ".*/specs.*/(.*)\\.table"
+    "${CMAKE_BINARY_DIR}/generated/tables/tbl_\\1_defs.hpp"
+    TABLE_FILE_GEN
+    ${TABLE_FILE_GEN}
+  )
 
   add_custom_command(
     OUTPUT "${TABLE_FILE_GEN}"
@@ -406,7 +406,6 @@ macro(GENERATE_TABLE TABLE_FILE FOREIGN NAME BASE_PATH OUTPUT)
 endmacro(GENERATE_TABLE)
 
 macro(AMALGAMATE BASE_PATH NAME OUTPUT)
-
   GET_GENERATION_DEPS(${BASE_PATH})
   if("${NAME}" STREQUAL "foreign")
     get_property(TARGETS GLOBAL PROPERTY AMALGAMATE_FOREIGN_TARGETS)
@@ -420,7 +419,7 @@ macro(AMALGAMATE BASE_PATH NAME OUTPUT)
 
   foreach(TARGET ${TARGETS})
     GENERATE_TABLE("${TARGET}" "${FOREIGN}" "${NAME}" "${BASE_PATH}" GENERATED_TARGETS)
-    endforeach()
+  endforeach()
 
   # Include the generated folder in make clean.
   set_directory_properties(PROPERTY

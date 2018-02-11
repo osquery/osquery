@@ -28,9 +28,6 @@ set(OSQUERY_ADDITIONAL_LINKS "")
 set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
 
-
-
-
 # Add all and extra for osquery code.
 if(CLANG AND POSIX)
   add_compile_options(
@@ -108,7 +105,6 @@ endif()
 
 AMALGAMATE("${CMAKE_SOURCE_DIR}" "foreign" AMALGAMATION_FOREIGN)
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_foreign_amalgamation ${AMALGAMATION_FOREIGN})
-
 
 if(NOT SKIP_TABLES)
   add_subdirectory(tables)
