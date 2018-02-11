@@ -32,33 +32,41 @@ const std::vector<std::string> kSDKVersionChanges = {
 };
 
 void ExtensionHandler::ping(ExtensionStatus& _return) {
-  _return.code = ExtensionCode::EXT_SUCCESS;
+  _return.code = (int)ExtensionCode::EXT_SUCCESS;
   _return.message = "pong";
   _return.uuid = uuid_;
 }
 
+#ifdef FBTHRIFT
+#define GP(x) *x
+#define GI(x, k) x->k
+#else
+#define GP(x) x
+#define GI(x, k) x.k
+#endif
+
 void ExtensionHandler::call(ExtensionResponse& _return,
-                            const std::string& registry,
-                            const std::string& item,
-                            const ExtensionPluginRequest& request) {
+                            _str_param registry,
+                            _str_param item,
+                            _plugin_param request) {
   // Call will receive an extension or core's request to call the other's
   // internal registry call. It is the ONLY actor that resolves registry
   // item aliases.
-  auto local_item = RegistryFactory::get().getAlias(registry, item);
+  auto local_item = RegistryFactory::get().getAlias(GP(registry), GP(item));
   if (local_item.empty()) {
     // Extensions may not know about active (non-option based registries).
-    local_item = RegistryFactory::get().getActive(registry);
+    local_item = RegistryFactory::get().getActive(GP(registry));
   }
 
   PluginResponse response;
   PluginRequest plugin_request;
-  for (const auto& request_item : request) {
+  for (const auto& request_item : GP(request)) {
     // Create a PluginRequest from an ExtensionPluginRequest.
     plugin_request[request_item.first] = request_item.second;
   }
 
   auto status =
-      RegistryFactory::call(registry, local_item, plugin_request, response);
+      RegistryFactory::call(GP(registry), local_item, plugin_request, response);
   _return.status.code = status.getCode();
   _return.status.message = status.getMessage();
   _return.status.uuid = uuid_;
@@ -109,23 +117,23 @@ void ExtensionManagerHandler::options(InternalOptionList& _return) {
   }
 }
 
-void ExtensionManagerHandler::registerExtension(
-    ExtensionStatus& _return,
-    const InternalExtensionInfo& info,
-    const ExtensionRegistry& registry) {
-  if (exists(info.name)) {
-    LOG(WARNING) << "Refusing to register duplicate extension " << info.name;
-    _return.code = ExtensionCode::EXT_FAILED;
+void ExtensionManagerHandler::registerExtension(ExtensionStatus& _return,
+                                                _info_param info,
+                                                _registry_param registry) {
+  if (exists(GI(info, name))) {
+    LOG(WARNING) << "Refusing to register duplicate extension "
+                 << GI(info, name);
+    _return.code = (int)ExtensionCode::EXT_FAILED;
     _return.message = "Duplicate extension registered";
     return;
   }
 
   // Enforce API change requirements.
   for (const auto& change : kSDKVersionChanges) {
-    if (!versionAtLeast(change, info.sdk_version)) {
-      LOG(WARNING) << "Could not add extension " << info.name
-                   << ": incompatible extension SDK " << info.sdk_version;
-      _return.code = ExtensionCode::EXT_FAILED;
+    if (!versionAtLeast(change, GI(info, sdk_version))) {
+      LOG(WARNING) << "Could not add extension " << GI(info, name)
+                   << ": incompatible extension SDK " << GI(info, sdk_version);
+      _return.code = (int)ExtensionCode::EXT_FAILED;
       _return.message = "Incompatible extension SDK version";
       return;
     }
@@ -138,22 +146,22 @@ void ExtensionManagerHandler::registerExtension(
   }
   // Every call to registerExtension is assigned a new RouteUUID.
   RouteUUID uuid = static_cast<uint16_t>(rand());
-  VLOG(1) << "Registering extension (" << info.name << ", " << uuid
-          << ", version=" << info.version << ", sdk=" << info.sdk_version
-          << ")";
+  VLOG(1) << "Registering extension (" << GI(info, name) << ", " << uuid
+          << ", version=" << GI(info, version)
+          << ", sdk=" << GI(info, sdk_version) << ")";
 
-  auto status = RegistryFactory::get().addBroadcast(uuid, registry);
+  auto status = RegistryFactory::get().addBroadcast(uuid, GP(registry));
   if (!status.ok()) {
-    LOG(WARNING) << "Could not add extension " << info.name << ": "
+    LOG(WARNING) << "Could not add extension " << GI(info, name) << ": "
                  << status.getMessage();
-    _return.code = ExtensionCode::EXT_FAILED;
+    _return.code = (int)ExtensionCode::EXT_FAILED;
     _return.message = "Failed adding registry: " + status.getMessage();
     return;
   }
 
   WriteLock lock(extensions_mutex_);
-  extensions_[uuid] = info;
-  _return.code = ExtensionCode::EXT_SUCCESS;
+  extensions_[uuid] = GP(info);
+  _return.code = (int)ExtensionCode::EXT_SUCCESS;
   _return.message = "OK";
   _return.uuid = uuid;
 }
@@ -163,7 +171,7 @@ void ExtensionManagerHandler::deregisterExtension(
   {
     ReadLock lock(extensions_mutex_);
     if (extensions_.count(uuid) == 0) {
-      _return.code = ExtensionCode::EXT_FAILED;
+      _return.code = (int)ExtensionCode::EXT_FAILED;
       _return.message = "No extension UUID registered";
       _return.uuid = 0;
       return;
@@ -175,14 +183,14 @@ void ExtensionManagerHandler::deregisterExtension(
 
   WriteLock lock(extensions_mutex_);
   extensions_.erase(uuid);
-  _return.code = ExtensionCode::EXT_SUCCESS;
+  _return.code = (int)ExtensionCode::EXT_SUCCESS;
   _return.uuid = uuid;
 }
 
 void ExtensionManagerHandler::query(ExtensionResponse& _return,
-                                    const std::string& sql) {
+                                    _str_param sql) {
   QueryData results;
-  auto status = osquery::query(sql, results);
+  auto status = osquery::query(GP(sql), results);
   _return.status.code = status.getCode();
   _return.status.message = status.getMessage();
   _return.status.uuid = uuid_;
@@ -195,9 +203,9 @@ void ExtensionManagerHandler::query(ExtensionResponse& _return,
 }
 
 void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
-                                              const std::string& sql) {
+                                              _str_param sql) {
   TableColumns columns;
-  auto status = osquery::getQueryColumns(sql, columns);
+  auto status = osquery::getQueryColumns(GP(sql), columns);
   _return.status.code = status.getCode();
   _return.status.message = status.getMessage();
   _return.status.uuid = uuid_;
@@ -250,6 +258,13 @@ ExtensionRunner::ExtensionRunner(const std::string& manager_path,
 
 ExtensionRunnerCore::~ExtensionRunnerCore() {
   removePath(path_);
+
+#ifdef FBTHRIFT
+  if (raw_socket_ > 0) {
+    close(raw_socket_);
+    raw_socket_ = 0;
+  }
+#endif
 }
 
 void ExtensionRunnerCore::stop() {
@@ -284,7 +299,9 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
       return;
     }
 
+#if !defined(FBTHRIFT)
     transport_ = TServerTransportRef(new TPlatformServerSocket(path_));
+#endif
 
     if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
       // Before starting and after stopping the manager, remove stale sockets.
@@ -292,15 +309,30 @@ void ExtensionRunnerCore::startServer(TProcessorRef processor) {
       removeStalePaths(path_);
     }
 
+#ifdef FBTHRIFT
+    server_ = TThreadedServerRef(new ThriftServer());
+    server_->setProcessorFactory(processor);
+
+    raw_socket_ = socket(AF_UNIX, SOCK_STREAM, 0);
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, path_.c_str(), sizeof(addr.sun_path) - 1);
+    if (bind(raw_socket_, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+      throw std::runtime_error("Cannot bind to socket");
+    }
+    server_->useExistingSocket(raw_socket_);
+#else
     // Construct the service's transport, protocol, thread pool.
     auto transport_fac = TTransportFactoryRef(new TBufferedTransportFactory());
     auto protocol_fac = TProtocolFactoryRef(new TBinaryProtocolFactory());
 
-    // Start the Thrift server's run loop.
     server_ = TThreadedServerRef(new TThreadedServer(
         processor, transport_, transport_fac, protocol_fac));
+#endif
   }
 
+  // Start the Thrift server's run loop.
   server_->serve();
 }
 
@@ -311,7 +343,13 @@ RouteUUID ExtensionRunner::getUUID() const {
 void ExtensionRunner::start() {
   // Create the thrift instances.
   auto handler = ExtensionHandlerRef(new ExtensionHandler(uuid_));
+#ifdef FBTHRIFT
+  auto processor =
+      std::make_shared<ThriftServerAsyncProcessorFactory<ExtensionHandler>>(
+          handler);
+#else
   auto processor = TProcessorRef(new ExtensionProcessor(handler));
+#endif
 
   VLOG(1) << "Extension service starting: " << path_;
   try {
@@ -333,7 +371,12 @@ ExtensionManagerRunner::~ExtensionManagerRunner() {
 void ExtensionManagerRunner::start() {
   // Create the thrift instances.
   auto handler = ExtensionManagerHandlerRef(new ExtensionManagerHandler());
+#ifdef FBTHRIFT
+  auto processor = std::make_shared<
+      ThriftServerAsyncProcessorFactory<ExtensionManagerHandler>>(handler);
+#else
   auto processor = TProcessorRef(new ExtensionManagerProcessor(handler));
+#endif
 
   VLOG(1) << "Extension manager service starting: " << path_;
   try {
@@ -344,43 +387,70 @@ void ExtensionManagerRunner::start() {
   }
 }
 
+EXInternal::EXInternal(const std::string& path) : path_(path) {
+#ifdef FBTHRIFT
+  raw_socket_ = socket(AF_UNIX, SOCK_STREAM, 0);
+  struct sockaddr_un addr;
+  memset(&addr, 0, sizeof(addr));
+  addr.sun_family = AF_UNIX;
+  strncpy(addr.sun_path, path_.c_str(), sizeof(addr.sun_path) - 1);
+  if (connect(raw_socket_, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+    throw std::runtime_error("Cannot connect to socket");
+  }
+#else
+  socket_ = std::make_shared<TPlatformSocket>(path);
+  transport_ = std::make_shared<TBufferedTransport>(socket_);
+  protocol_ = std::make_shared<TBinaryProtocol>(transport_);
+#endif
+}
+
 EXInternal::~EXInternal() {
+#if !defined(FBTHRIFT)
   try {
     transport_->close();
   } catch (const std::exception& /* e */) {
     // The transport/socket may have exited.
   }
+#endif
 }
 
 void EXInternal::setTimeouts(size_t timeouts) {
-#ifndef WIN32
+#if !defined(WIN32) && !defined(FBTHRIFT)
   // Windows TPipe does not support timeouts.
   socket_->setRecvTimeout(timeouts);
   socket_->setSendTimeout(timeouts);
 #endif
 }
 
-EXClient::EXClient(const std::string& path, size_t timeout)
-    : EXInternal(path),
-      client_(std::make_shared<extensions::ExtensionClient>(protocol_)) {
+EXClient::EXClient(const std::string& path, size_t timeout) : EXInternal(path) {
   setTimeouts(timeout);
+#ifdef FBTHRIFT
+  client_ = std::make_shared<_Client>(HeaderClientChannel::newChannel(
+      async::TAsyncSocket::newSocket(&base_, raw_socket_)));
+#else
+  client_ = std::make_shared<_Client>(protocol_);
   (void)transport_->open();
+#endif
 }
 
 EXManagerClient::EXManagerClient(const std::string& manager_path,
                                  size_t timeout)
-    : EXInternal(manager_path),
-      client_(std::make_shared<extensions::ExtensionManagerClient>(protocol_)) {
+    : EXInternal(manager_path) {
   setTimeouts(timeout);
+#ifdef FBTHRIFT
+  client_ = std::make_shared<_ManagerClient>(HeaderClientChannel::newChannel(
+      async::TAsyncSocket::newSocket(&base_, raw_socket_)));
+#else
+  client_ = std::make_shared<_ManagerClient>(protocol_);
   (void)transport_->open();
+#endif
 }
 
-const std::shared_ptr<extensions::ExtensionClient>& EXClient::get() const {
+const std::shared_ptr<_Client>& EXClient::get() const {
   return client_;
 }
 
-const std::shared_ptr<extensions::ExtensionManagerClient>&
-EXManagerClient::get() const {
+const std::shared_ptr<_ManagerClient>& EXManagerClient::get() const {
   return client_;
 }
 } // namespace osquery

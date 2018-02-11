@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import os
+import shutil
 
 logging_format = '[%(levelname)s] %(message)s'
 logging.basicConfig(level=logging.INFO, format=logging_format)
@@ -94,21 +95,32 @@ if __name__ == "__main__":
     ))
     parser.add_argument("--input", "-i", required=True)
     parser.add_argument("--version", "-v", required=True)
+    parser.add_argument("--output", "-o", required=True)
+    parser.add_argument("--sources", "-s", required=True)
     parser.add_argument("--sdk", required=True)
     args = parser.parse_args()
 
     try:
-        with open(args.input, "r") as f:
-            try:
-                json_data = json.loads(f.read())
-            except ValueError:
-                logging.critical("Error: %s is not valid JSON" % args.input)
+        with open(os.path.join(args.output, "TARGETS"), "w") as out:
+            with open(args.input, "r") as f:
+                try:
+                    json_data = json.loads(f.read())
+                except ValueError:
+                    logging.critical("Error: %s is not valid JSON" % args.input)
 
-            source_files = get_files_to_compile(json_data)
-            print(TARGETS_PREAMBLE)
-            for source_file in source_files:
-                print("    \"%s\"," % source_file)
-            print(TARGETS_POSTSCRIPT % (args.version, args.sdk))
+                source_files = get_files_to_compile(json_data)
+                out.write(TARGETS_PREAMBLE)
+                for source_file in source_files:
+                    out.write("    \"%s\"," % source_file)
+                    p = os.path.join(args.output, source_file)
+                    if p.find("generated") < 0:
+                        try:
+                            os.makedirs(os.path.dirname(p), 0755)
+                        except:
+                            pass
+                        shutil.copyfile(
+                          os.path.join(args.sources, source_file), p)
+                out.write(TARGETS_POSTSCRIPT % (args.version, args.sdk))
 
-    except IOError:
-        logging.critical("Error: %s doesn't exist" % args.input)
+    except IOError as e:
+        logging.critical("Error: %s doesn't exist: %s" % (args.input, str(e)))
