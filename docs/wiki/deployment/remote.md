@@ -10,11 +10,10 @@ The initial step is called an "enroll step" and in the case of **tls** plugins, 
 
 1. Configure a target `--tls_hostname`, `--enroll_tls_endpoint`.
 2. Configure a proxy `--proxy_hostname` (Optional Step).
-3. Configure persistent transport `--tls_persist_transport` (Optional Step).
-4. Place your server's root certificate authority's PEM-encoded certificate into a file, for example `/path/to/server-root.pem` and configure the client to pin to these roots: `--tls_server_certs=`.
-5. Submit an `--enroll_secret_path`, an `--enroll_secret_env`, or use TLS-client authentication, to the enroll endpoint.
-6. Receive a **node_key** and store within the node's persistent storage (RocksDB).
-7. Make config/logger requests while providing **node_key** as identification/authentication.
+3. Place your server's root certificate authority's PEM-encoded certificate into a file, for example `/path/to/server-root.pem` and configure the client to pin to these roots: `--tls_server_certs=`.
+4. Submit an `--enroll_secret_path`, an `--enroll_secret_env`, or use TLS-client authentication, to the enroll endpoint.
+5. Receive a **node_key** and store within the node's persistent storage (RocksDB).
+6. Make config/logger requests while providing **node_key** as identification/authentication.
 
 The validity of a **node_key** is determined and implemented in the TLS server. The node will request the key during an initial enroll step then post the key during subsequent requests for config or logging.
 

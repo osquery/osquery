@@ -183,13 +183,13 @@ When using non-default [remote](../deployment/remote.md) plugins such as the **t
 
 When using **tls**-based config or logger plugins, a single TLS host URI is used. Using separate hosts for configuration and logging is not supported among the **tls**-based plugin suite. Provide a host name and optional port, e.g.: `facebook.com` or `facebook.com:443`.
 
-`--tls_persist_transport`
+`--tls_keep_alive=true`
 
-TLS persistent transport support. Once a secured connection is established it can be used to send multiple HTTPS requests to TLS server.
+Reuse TLS session sockets.
 
-`--tls_persist_transport_timeout=3600`
+`--tls_keep_alive_timeout=3600`
 
-Persistent TLS transport timeout in seconds (default 3600 seconds). Once a persisent transport is created its life time is governed by this flag. If this value is set as zero then transport nerver times out unless of-course other end closes the connection or an error occurs.
+Once a socket is created the life time is governed by this flag. If this value is set as zero then transport never times out unless the remote end closes the connection or an error occurs.
 
 `--tls_client_cert=`
 

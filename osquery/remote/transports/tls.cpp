@@ -52,15 +52,14 @@ CLI_FLAG(string,
          "",
          "Optional path to a TLS client-auth PEM private key");
 
-/// Persitent transport - Once connection is established don't tear it,
-/// unless the request url changes.
-CLI_FLAG(bool, tls_persist_transport, false, "Persistent TLS transport");
+/// Reuse TLS session sockets.
+CLI_FLAG(bool, tls_keep_alive, true, "Reuse TLS session sockets");
 
-/// Persitent transport timeout - tear connection if times out.
+/// Tear down TLS sessions after a custom timeout.
 CLI_FLAG(uint32,
-         tls_persist_transport_timeout,
+         tls_keep_alive_timeout,
          3600,
-         "Persistent TLS transport timeout in seconds(default 3600 seconds)");
+         "TLS session keep alive timeout in sections");
 
 #if defined(DEBUG)
 HIDDEN_FLAG(bool,
@@ -97,7 +96,7 @@ http::Client::Options TLSTransport::getOptions() {
   http::Client::Options options;
   options.follow_redirects(true).always_verify_peer(verify_peer_).timeout(16);
 
-  options.keep_alive(FLAGS_tls_persist_transport);
+  options.keep_alive(FLAGS_tls_keep_alive);
 
   if (FLAGS_proxy_hostname.size() > 0) {
     options.proxy_hostname(FLAGS_proxy_hostname);
@@ -165,19 +164,19 @@ inline bool tlsFailure(const std::string& what) {
 }
 
 static auto getClient() {
-  std::shared_ptr<http::Client> client;
-  if (FLAGS_tls_persist_transport) {
+  std::shared_ptr<http::Client> client = nullptr;
+  if (FLAGS_tls_keep_alive) {
     thread_local std::shared_ptr<http::Client> tl_client;
     client = tl_client;
 
     if (client.get() == nullptr) {
       tl_client = client = std::make_shared<http::Client>();
 
-      if (FLAGS_tls_persist_transport_timeout) {
+      if (FLAGS_tls_keep_alive_timeout > 0) {
         thread_local boost::asio::deadline_timer tl_timer(IOService::get());
 
         tl_timer.expires_from_now(
-            boost::posix_time::seconds(FLAGS_tls_persist_transport_timeout));
+            boost::posix_time::seconds(FLAGS_tls_keep_alive_timeout));
         auto this_client = &tl_client;
         tl_timer.async_wait([this_client](boost_system::error_code const&) {
           (*this_client).reset();
