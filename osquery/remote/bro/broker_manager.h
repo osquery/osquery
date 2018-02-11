@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #pragma once
@@ -19,7 +19,6 @@
 #include <broker/endpoint.hh>
 #include <broker/message_queue.hh>
 
-#include <osquery/database.h>
 #include <osquery/status.h>
 #include <osquery/system.h>
 
@@ -45,29 +44,11 @@ class BrokerManager : private boost::noncopyable {
    * The initial setup includes to adapt the osquery HostUUID for identifying
    * the new broker endpoint.
    */
-  BrokerManager() {
-    // Set Broker UID
-    std::string ident;
-    auto status_huuid = getHostUUID(ident);
-    if (status_huuid.ok()) {
-      setNodeID(ident);
-    }
-    const auto& uid = getNodeID();
-
-    // Create Broker endpoint
-    Status s_ep = createEndpoint(uid);
-    if (!s_ep.ok()) {
-      LOG(ERROR) << "Failed to create broker endpoint";
-      throw std::runtime_error{"Broker endpoint cannot be created"};
-    }
-  }
+  BrokerManager();
 
  public:
   /// Get a singleton instance of the BrokerManager class;
-  static BrokerManager& get() {
-    static BrokerManager bm;
-    return bm;
-  }
+  static BrokerManager& get();
 
   // Broker Topic Prefix
   const std::string TOPIC_PREFIX = "/bro/osquery/";
@@ -199,14 +180,14 @@ class BrokerManager : private boost::noncopyable {
 
  private:
   // The peering to identify the broker remote endpoint
-  std::unique_ptr<broker::peering> p_ = nullptr;
+  std::unique_ptr<broker::peering> p_{nullptr};
 
   // The ID identifying the node (private channel)
-  std::string nodeID_ = "";
+  std::string nodeID_;
   // The groups of the node
   std::vector<std::string> groups_;
   // The Broker Endpoint
-  std::unique_ptr<broker::endpoint> ep_ = nullptr;
+  std::unique_ptr<broker::endpoint> ep_{nullptr};
 
   //  Key: topic_Name, Value: message_queue
   std::map<std::string, std::shared_ptr<broker::message_queue>> messageQueues_;
@@ -215,4 +196,4 @@ class BrokerManager : private boost::noncopyable {
   friend class BrokerManagerTests;
   FRIEND_TEST(BrokerManagerTests, test_reset);
 };
-}
+} // namespace osquery

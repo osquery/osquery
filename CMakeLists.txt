@@ -368,9 +368,10 @@ if(DEFINED ENV{SKIP_CARVER})
   set(SKIP_CARVER TRUE)
   add_definitions(-DSKIP_CARVER=1)
 endif()
-if(DEFINED ENV{SKIP_BRO} OR WINDOWS OR FREEBSD)
+set(SKIP_BRO TRUE)
+if(DEFINED ENV{SKIP_BRO} AND "$ENV{SKIP_BRO}" STREQUAL "False")
   # Bro integration does not work on Windows or FreeBSD.
-  set(SKIP_BRO TRUE)
+  set(SKIP_BRO FALSE)
 endif()
 
 # The kernel builds are skipped by default.

@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <poll.h>
@@ -24,6 +24,28 @@
 #include "osquery/remote/bro/broker_manager.h"
 
 namespace osquery {
+
+BrokerManager::BrokerManager() {
+  // Set Broker UID
+  std::string ident;
+  auto status_huuid = getHostUUID(ident);
+  if (status_huuid.ok()) {
+    setNodeID(ident);
+  }
+  const auto& uid = getNodeID();
+
+  // Create Broker endpoint
+  Status s_ep = createEndpoint(uid);
+  if (!s_ep.ok()) {
+    LOG(ERROR) << "Failed to create broker endpoint";
+    throw std::runtime_error{"Broker endpoint cannot be created"};
+  }
+}
+
+BrokerManager& BrokerManager::get() {
+  static BrokerManager bm;
+  return bm;
+}
 
 Status BrokerManager::reset(bool groups_only) {
   // Unsubscribe from all groups
@@ -155,7 +177,7 @@ Status BrokerManager::peerEndpoint(const std::string& ip,
   }
 
   if (p_ != nullptr) {
-    return Status(1, "Broker conenction already established");
+    return Status(1, "Broker connection already established");
   }
 
   p_ = std::make_unique<broker::peering>(ep_->peer(ip, port));
@@ -396,4 +418,4 @@ Status BrokerManager::sendEvent(const std::string& topic,
 
   return Status(0, "OK");
 }
-}
+} // namespace osquery
