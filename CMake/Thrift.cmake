@@ -6,9 +6,6 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-# For the extensions targets, allow them to include thrift interface headers.
-# include_directories("${OSQUERY_THRIFT_DIR}")
-
 set(THRIFT_NAME "thrift")
 set(OSQUERY_THRIFT_DIR "${CMAKE_BINARY_DIR}/generated/gen-cpp")
 set(THRIFT_GENERATED_FILES
