@@ -5,8 +5,6 @@ class Caf < AbstractOsqueryFormula
   homepage "https://actor-framework.org/"
   url "https://github.com/actor-framework/actor-framework.git",
       :revision => "9c3822a6e09bb08675f103375a6a643170a36754"
-  #url "https://github.com/actor-framework/actor-framework/archive/0.14.6.tar.gz"
-  #sha256 "cbc2033896fe41e42604de2f74673971718a40684996650157484485755f7720"
   head "https://github.com/actor-framework/actor-framework.git"
   version "0.14.6"
 
@@ -23,7 +21,19 @@ class Caf < AbstractOsqueryFormula
   patch :DATA
 
   def install
-    args = %W[--prefix=#{prefix} --no-examples --no-unit-tests --no-opencl --no-nexus --no-cash --no-benchmarks --no-riac --build-static-only]
+    ENV.cxx11
+
+    args = %W[
+      --prefix=#{prefix}
+      --no-examples
+      --no-unit-tests
+      --no-opencl
+      --no-nexus
+      --no-cash
+      --no-benchmarks
+      --no-riac
+      --build-static-only
+    ]
 
     system "./configure", *args
     system "make"

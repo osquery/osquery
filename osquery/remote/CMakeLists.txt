@@ -6,7 +6,7 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-ADD_OSQUERY_LIBRARY(FALSE osquery_remote
+SET(OSQUERY_REMOTE
   enroll/enroll.cpp
   serializers/json.cpp
   transports/tls.cpp
@@ -33,7 +33,11 @@ ADD_OSQUERY_TEST(FALSE ${OSQUERY_ENROLLMENT_PLUGIN_TESTS})
 file(GLOB OSQUERY_REMOTE_TESTS "tests/*.cpp")
 ADD_OSQUERY_TEST(FALSE ${OSQUERY_REMOTE_TESTS})
 
-file(GLOB OSQUERY_REMOTE_COMPONENT_TESTS "*/tests/*.cpp")
+file(GLOB OSQUERY_REMOTE_COMPONENT_TESTS
+  "transports/tests/*.cpp"
+  "enroll/tests/*.cpp"
+  "serializers/tests/*.cpp"
+)
 
 if(NOT SKIP_BRO)
   file(GLOB OSQUERY_REMOTE_BRO_TESTS "bro/tests/*.cpp")

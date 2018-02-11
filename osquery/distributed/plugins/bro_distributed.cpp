@@ -1,13 +1,15 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
+
 #include <poll.h>
+
 #include <sstream>
 #include <vector>
 
@@ -275,7 +277,6 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
       continue;
     }
 
-    // fds[i].revents == POLLIN
     std::shared_ptr<broker::message_queue> queue = bm.getMessageQueue(topic);
     // Process each message on this socket
     for (const auto& msg : queue->want_pop()) {
@@ -335,7 +336,7 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
     while (!s.ok() &&
            conn_status !=
                broker::outgoing_connection_status::tag::established) {
-      LOG(WARNING) << "Trying to re-establish broker connection...";
+      LOG(WARNING) << "Trying to re-establish broker connection";
       s = bm.getOutgoingConnectionStatusChange(conn_status, true);
     }
 
@@ -353,32 +354,34 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
 Status BRODistributedPlugin::writeResults(const std::string& json) {
   QueryManager& qm = QueryManager::get();
 
-  // Put query results into a pt
-  pt::ptree params;
-  Status s = JSONSerializer{}.deserialize(json, params);
-  if (!s.ok()) {
-    return s;
+  JSON doc;
+  if (!doc.fromString(json)) {
+    return Status(1, "Cannot deserialize JSON");
+  }
+
+  if (!doc.doc().HasMember("queries") || !doc.doc()["queries"].IsObject()) {
+    return Status(1, "Cannot find queries object");
   }
 
   // For each query
-  for (const auto& query_params : params.get_child("queries")) {
+  for (const auto& query : doc.doc()["queries"].GetObject()) {
     // Get the query ID
-    std::string queryID = query_params.first;
+    std::string queryID = query.name.GetString();
     VLOG(1) << "Writing results for onetime query with ID '" << queryID << "'";
 
     // Get the query data
     QueryData results;
-    deserializeQueryData(query_params.second, results);
+    deserializeQueryData(query.value, results);
 
     // Get Query Info from QueryManager
     std::string response_event = qm.getEventName(queryID);
-    std::string query, qType;
-    qm.findQueryAndType(queryID, qType, query);
+    std::string queryName, qType;
+    qm.findQueryAndType(queryID, qType, queryName);
 
     // Any results for this query?
     if (results.empty()) {
       VLOG(1) << "One-time query '" << response_event << "' has no results";
-      qm.removeQueryEntry(query);
+      qm.removeQueryEntry(queryName);
       return Status(0, "OK");
     }
 
@@ -396,7 +399,7 @@ Status BRODistributedPlugin::writeResults(const std::string& json) {
     std::string json_str;
     serializeQueryLogItemJSON(item, json_str);
     PluginRequest request = {{"snapshot", json_str}, {"category", "event"}};
-    s = Registry::call(registry_name, item_name, request);
+    auto s = Registry::call(registry_name, item_name, request);
     if (!s.ok()) {
       return s;
     }
@@ -404,4 +407,4 @@ Status BRODistributedPlugin::writeResults(const std::string& json) {
 
   return Status(0, "OK");
 }
-}
+} // namespace osquery

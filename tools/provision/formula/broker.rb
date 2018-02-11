@@ -3,9 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Broker < AbstractOsqueryFormula
   desc "Broker Communication Library"
   homepage "https://github.com/bro/broker"
-  url "https://github.com/bro/broker.git", # Need git url for recursive clone
+  url "https://github.com/bro/broker.git",
       :revision => "68a36ed81480ba935268bcaf7b6f2249d23436da"
-	  #:tag => "v0.6"
   head "https://github.com/bro/broker.git"
   version "0.6"
 
@@ -23,9 +22,14 @@ class Broker < AbstractOsqueryFormula
   patch :DATA
 
   def install
-    #prepend "CXXFLAGS", "-std=c++11 -stdlib=libstdc++ -Wextra -Wall -ftemplate-depth=512 -pedantic"
-    prepend "CXXFLAGS", "-std=c++11 -Wextra -Wall -ftemplate-depth=512"
-    args = %W[--prefix=#{prefix} --disable-pybroker --enable-static-only --with-caf=#{default_prefix}]
+    ENV.cxx11
+
+    args = %W[
+      --prefix=#{prefix}
+      --disable-pybroker
+      --enable-static-only
+      --with-caf=#{default_prefix}
+    ]
 
     system "./configure", *args
     system "make"

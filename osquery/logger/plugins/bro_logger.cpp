@@ -1,11 +1,11 @@
-/*
+/**
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under the BSD-style license found in the
- *  LICENSE file in the root directory of this source tree. An additional grant
- *  of patent rights can be found in the PATENTS file in the same directory.
- *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
  */
 
 #include <osquery/dispatcher.h>
@@ -40,7 +40,7 @@ class BroLoggerPlugin : public LoggerPlugin {
    *
    */
   void init(const std::string& name,
-            const std::vector<StatusLogLine>& log) override;
+            const std::vector<StatusLogLine>& log) override{};
 
  private:
 };
@@ -48,32 +48,16 @@ class BroLoggerPlugin : public LoggerPlugin {
 REGISTER(BroLoggerPlugin, "logger", "bro");
 
 Status BroLoggerPlugin::setUp() {
-  /**
-  // auto distributed_plugin = RegistryFactory::get().getActive("distributed");
-  if (RegistryFactory::get().exists("distributed", "bro")) {
-    return Status(1,
-                  "The distributed bro service is disabled. Please set "
-                  "'--disable_distributed=false' and '--distributed_plugin=bro'
- to "
-                  "use the Bro logger plugin!");
-  }
- **/
   if (FLAGS_disable_distributed) {
-    return Status(1,
-                  "The distributed service is disabled. Please set "
-                  "'--disable-distributed=false'!");
+    return Status(1, "The distributed service is disabled");
   }
 
   if (FLAGS_distributed_plugin != "bro") {
-    return Status(1,
-                  "The distributed bro service is disabled. Please set "
-                  "'--distributed_plugin=bro'!");
+    return Status(1, "The distributed bro service is disabled");
   }
 
   if (FLAGS_logger_event_type) {
-    return Status(1,
-                  "Wrong log format. Cannot deserialize query results. Please "
-                  "disable log_result_events!");
+    return Status(1, "Bro logger cannot use event type logging");
   }
   return Status(0, "OK");
 }
@@ -81,10 +65,8 @@ Status BroLoggerPlugin::setUp() {
 Status BroLoggerPlugin::logString(const std::string& s) {
   QueryLogItem item;
   Status status = deserializeQueryLogItemJSON(s, item);
-  if (status.getCode() == 0) {
-    // printQueryLogItemJSON(s);
-  } else {
-    return Status(1, "Failed to deserialize QueryLogItem");
+  if (!status) {
+    return Status(1, "Failed to deserialize");
   }
   return BrokerManager::get().logQueryLogItemToBro(item);
 }
@@ -94,10 +76,6 @@ Status BroLoggerPlugin::logSnapshot(const std::string& s) {
 }
 
 Status BroLoggerPlugin::logStatus(const std::vector<StatusLogLine>& log) {
-  LOG(ERROR) << "logStatus = ";
   return Status(1, "Not implemented");
 }
-
-void BroLoggerPlugin::init(const std::string& name,
-                           const std::vector<StatusLogLine>& log) {}
-}
+} // namespace osquery
