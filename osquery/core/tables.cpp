@@ -141,15 +141,6 @@ PluginResponse TablePluginBase::routeInfo() const {
 }
 
 /*
- * The core code should no longer be calling this, but access
- * TablePluginBase::cache().
- */
-bool TablePlugin::isCached(size_t interval, const QueryContext& ctx) const {
-  assert(false);
-  return false;
-}
-
-/*
  * The TablePlugin constructor does not have access to the table name,
  * which is set by Registry code during registration.  Therefore, the
  * TablePluginBase code, will allocate a disabled TableCache instance.
@@ -164,16 +155,6 @@ TableCache& TablePlugin::cache() const {
     delete oldCache;
   }
   return cache_;
-}
-
-/*
- * The core code should no longer be calling this, but access
- * TablePluginBase::cache().
- */
-void TablePlugin::setCache(size_t step,
-                           size_t interval,
-                           const QueryContext& ctx,
-                           const QueryData& results) { /* not implemented */
 }
 
 /*

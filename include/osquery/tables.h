@@ -900,12 +900,14 @@ class TablePlugin : public TablePluginBase {
   }
 
   /**
-   * @brief deprecated
+   * @brief deprecated. Core uses cache().isCached().
    */
-  bool isCached(size_t interval, const QueryContext& ctx) const;
+  bool isCached(size_t interval, const QueryContext& ctx) const {
+    return false;
+  }
 
   /**
-   * @brief deprecated. Core should interact with cache() directly.
+   * @brief deprecated. Core code should use cache().get().
    */
   QueryData getCache() const {
     return cache().get();
@@ -917,7 +919,7 @@ class TablePlugin : public TablePluginBase {
   void setCache(size_t step,
                 size_t interval,
                 const QueryContext& ctx,
-                const QueryData& results);
+                const QueryData& results) {}
 
  protected:
   TableDefinition tdef_ = {};
