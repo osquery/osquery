@@ -17,7 +17,7 @@
 #include "osquery/tables/networking/darwin/wifi_utils.h"
 
 #define DECLARE_TABLE_IMPLEMENTATION_wifi_survey
-#include <generated/tables/tbl_wifi_scan_defs.hpp>
+#include <generated/tables/tbl_wifi_survey_defs.hpp>
 
 namespace osquery {
 namespace tables {

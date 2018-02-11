@@ -105,16 +105,6 @@ def main(argc, argv):
     for table_name in table_names:
         tables.append(Table(table_name, is_blacklisted(table_name, args.codegen)))
 
-
-#    tables_folder = os.path.join(args.generated, "tables_%s" % (args.category))
-#    for base, _, filenames in os.walk(tables_folder):
-#        for filename in filenames:
-#            if filename == args.category:
-#                continue
-#            table_data = genTableData(os.path.join(base, filename))
-#            if table_data is not None:
-#                tables.append(table_data)
-
     amalgamation = jinja2.Template(template_data).render(tables=tables,
         foreign=args.foreign, category=args.category)
     output = os.path.join(args.generated, "%s_amalgamation.cpp" % args.category)

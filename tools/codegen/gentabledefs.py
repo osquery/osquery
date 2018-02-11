@@ -90,14 +90,12 @@ TABLE_ATTRIBUTES = {
 }
 
 # When generating C++ structs for a table defintion, avoid field that conflict with C / C++ / ObjectiveC keywords
-CPP_KEYWORDS = [ "protected", "class", "auto", "int", "virtual", "double", "float", "try", "catch",
-    "cast", "case", "const", "default", "delete", "continue", "concept", "char", "break",
-    "do", "export", "explicit", "public", "private", "synchronized", "volatile", "while", "signed",
-    "template", "inline", "interface", "namespace","not","friend","extern", "mutable"
+CPP_KEYWORDS = [ "auto", "break", "case", "cast", "catch", "char", "class", "concept",
+    "continue", "const", "default", "delete", "do", "double", "explicit", "export",
+    "extern", "float", "friend", "protected", "inline", "interface", "int",
+    "namespace", "not", "mutable", "private", "public", "synchronized", "signed",
+    "template", "try", "virtual", "volatile", "while"
 ]
-
-MISLABELED_SPECS={"wifi_scan":"wifi_survey"
-}
 
 def WINDOWS():
     return PLATFORM in ['windows', 'win32', 'cygwin']
@@ -144,7 +142,7 @@ def is_blacklisted(table_name, path=None, blacklist=None):
                     line.strip() for line in fh.read().split("\n")
                     if len(line.strip()) > 0 and line.strip()[0] != "#"
                 ]
-        except Exception as e:
+        except:
             # Blacklist is not readable.
             return False
     if not blacklist:
@@ -503,15 +501,6 @@ def main(argc, argv):
 
             output = os.path.join(outputdir,"tables", "tbl_" + table.filename + "_defs.hpp")
             table.generate(output, template="tabledefs")
-
-            #output = os.path.join(outputdir, get_amalgamation_name(args) + "_amalgamation.cpp")
-            #table.generate(output, template="table_linkage", file_mode="a+")
-
-            #if not args.disable_blacklist and blacklisted:
-            #    table.blacklist(output)
-            #else:
-            #    template_type = "default" if not args.foreign else "foreign"
-            #    table.generate(output, template=template_type)
 
 if __name__ == "__main__":
     SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
