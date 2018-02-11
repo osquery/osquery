@@ -649,7 +649,7 @@ void Config::applyParsers(const std::string& source,
     // For each key requested by the parser, add a property tree reference.
     std::map<std::string, JSON> parser_config;
     for (const auto& key : parser->keys()) {
-      if (obj.HasMember(key)) {
+      if (obj.HasMember(key) && !obj[key].IsNull()) {
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
       } else {
