@@ -56,10 +56,16 @@ typedef HTTP_Request<beast_http_request> Request;
 typedef HTTP_Response<beast_http_response> Response;
 
 /**
- * @brief a simple HTTP client class based upon boost.beast.
+ * @brief A simple HTTP client class based upon Boost.Beast.
+ *        This General-purpose HTTP Client allows HTTP and HTTPS.
  *
  * Implements put, post, get, head and delete methods.
  * These methods take request as reference and  return response by value.
+ *
+ * This does not allow HTTP for the TLS logger plugins.
+ * It uses a state variable `Options::ssl_connection_` to determine if the
+ * connection
+ * should be wrapped in a TLS socket.
  */
 class Client {
  public:
@@ -76,7 +82,19 @@ class Client {
         : ssl_options_(0),
           timeout_(0),
           always_verify_peer_(false),
-          follow_redirects_(false) {}
+          follow_redirects_(false),
+          keep_alive_(false),
+          ssl_connection_(false) {}
+
+    Options& ssl_connection(bool ct) {
+      ssl_connection_ = ct;
+      return *this;
+    }
+
+    Options& keep_alive(bool ka) {
+      keep_alive_ = ka;
+      return *this;
+    }
 
     Options& follow_redirects(bool fr) {
       follow_redirects_ = fr;
@@ -143,6 +161,19 @@ class Client {
       return *this;
     }
 
+    bool operator==(Options const& ropts) {
+      return (server_certificate_ == ropts.server_certificate_) &&
+             (verify_path_ == ropts.verify_path_) &&
+             (client_certificate_file_ == ropts.client_certificate_file_) &&
+             (client_private_key_file_ == ropts.client_private_key_file_) &&
+             (ciphers_ == ropts.ciphers_) &&
+             (sni_hostname_ == ropts.sni_hostname_) &&
+             (ssl_options_ == ropts.ssl_options_) &&
+             (always_verify_peer_ == ropts.always_verify_peer_) &&
+             (proxy_hostname_ == ropts.proxy_hostname_) &&
+             (keep_alive_ == ropts.keep_alive_);
+    }
+
    private:
     boost::optional<std::string> server_certificate_;
     boost::optional<std::string> verify_path_;
@@ -157,12 +188,21 @@ class Client {
     int timeout_;
     bool always_verify_peer_;
     bool follow_redirects_;
+    bool keep_alive_;
+    bool ssl_connection_;
     friend class Client;
   };
 
  public:
   Client(Options const& opts = Options())
       : client_options_(opts), r_(ios_), sock_(ios_), timer_(ios_) {}
+
+  void setOptions(Options const& opts) {
+    new_client_options_ = !(client_options_ == opts);
+    if (new_client_options_) {
+      client_options_ = opts;
+    }
+  }
 
   /// HTTP put request method.
   Response put(Request& req,
@@ -209,6 +249,7 @@ class Client {
                    Request& req,
                    beast_http_response_parser& resp);
 
+  bool initHTTPRequest(Request& req);
   Response sendHTTPRequest(Request& req);
 
   /// Handles HTTP request timeout.
@@ -223,6 +264,10 @@ class Client {
    */
   void postResponseHandler(boost_system::error_code const& ec);
 
+  bool isSocketOpen() {
+    return sock_.is_open();
+  }
+
   void closeSocket();
 
  private:
@@ -233,15 +278,7 @@ class Client {
   boost_asio::deadline_timer timer_;
   std::shared_ptr<ssl_stream> ssl_sock_;
   boost_system::error_code ec_;
-
-  /**
-   * @brief This general-purpose HTTP Client allows HTTP and HTTPS.
-   *
-   * This does not allow HTTP for the TLS logger plugins.
-   * It uses a state variable `ssl_connection` to determine if the connection
-   * should be wrapped in a TLS socket.
-   */
-  bool ssl_connection{false};
+  bool new_client_options_{true};
 };
 
 /**
