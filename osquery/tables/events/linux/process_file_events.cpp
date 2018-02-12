@@ -23,6 +23,9 @@
 
 #include "osquery/tables/events/linux/process_file_events.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_process_file_events
+#include <generated/tables/tbl_process_file_events_defs.hpp>
+
 namespace boostfs = boost::filesystem;
 
 namespace osquery {
