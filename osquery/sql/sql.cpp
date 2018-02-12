@@ -18,8 +18,6 @@
 
 #include "osquery/core/conversions.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 FLAG(int32, value_max, 512, "Maximum returned row value size");

@@ -384,7 +384,7 @@ QueryData genProcesses(QueryContext& context) {
     status =
         proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &task_info, sizeof(task_info));
     if (status == sizeof(task_info)) {
-      r.threads = (task_info.pti_threadnum);
+      r.threads = task_info.pti_threadnum;
     } else {
       r.threads = -1;
     }

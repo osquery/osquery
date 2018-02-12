@@ -66,7 +66,7 @@ def is_blacklisted(table_name, codegen_path=None):
                     line.strip() for line in fh.read().split("\n")
                     if len(line.strip()) > 0 and line.strip()[0] != "#"
                 ]
-        except Exception as e:
+        except Exception:
             # Blacklist is not readable.
             return False
     if not gBlacklist:

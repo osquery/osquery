@@ -355,9 +355,9 @@ static const TableDefinition tbl_json_test_def = {
     {/* no columnAliases */},
     {/* no attributes */}};
 
-class jsonTablePlugin : public TablePluginBase {
+class JsonTablePlugin : public TablePluginBase {
  public:
-  jsonTablePlugin() : TablePluginBase(tbl_json_test_def) {}
+  JsonTablePlugin() : TablePluginBase(tbl_json_test_def) {}
   QueryData generate(QueryContext&) override {
     return {
         {{"data", "{\"test\": 1}"}},
@@ -371,7 +371,7 @@ class jsonTablePlugin : public TablePluginBase {
 TEST_F(VirtualTableTests, test_json_extract) {
   // Get a database connection.
   auto tables = RegistryFactory::get().registry("table");
-  auto json = std::make_shared<jsonTablePlugin>();
+  auto json = std::make_shared<JsonTablePlugin>();
   tables->add("json", json);
 
   auto dbc = SQLiteDBManager::getUnique();
@@ -433,9 +433,9 @@ static const TableDefinition tbl_cacher_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class cacheTablePlugin : public TablePluginBase {
+class CacheTablePlugin : public TablePluginBase {
  public:
-  cacheTablePlugin() : TablePluginBase(tbl_cacher_def) {}
+  CacheTablePlugin() : TablePluginBase(tbl_cacher_def) {}
 
   QueryData generate(QueryContext& context) override {
     if (context.isCached("awesome_data")) {
@@ -455,7 +455,7 @@ class cacheTablePlugin : public TablePluginBase {
 TEST_F(VirtualTableTests, test_table_cache) {
   // Get a database connection.
   auto tables = RegistryFactory::get().registry("table");
-  auto cache = std::make_shared<cacheTablePlugin>();
+  auto cache = std::make_shared<CacheTablePlugin>();
   tables->add("cache", cache);
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal(
@@ -488,9 +488,9 @@ static const TableDefinition tbl_cache_table_test_def = {
     {/* no columnAliases */},
     TableAttributes::CACHEABLE};
 
-class tableCacheTablePlugin : public TablePluginBase {
+class TableCacheTablePlugin : public TablePluginBase {
  public:
-  tableCacheTablePlugin() : TablePluginBase(tbl_cache_table_test_def) {}
+  TableCacheTablePlugin() : TablePluginBase(tbl_cache_table_test_def) {}
 
   QueryData generate(QueryContext& ctx) override {
     generates_++;
@@ -505,7 +505,7 @@ class tableCacheTablePlugin : public TablePluginBase {
 TEST_F(VirtualTableTests, test_cacheable_table_not_disabled) {
   // tableCacheTable has TableAttributes::CACHEABLE, so it should have
   // TableCacheDB instance
-  auto table = std::make_shared<tableCacheTablePlugin>();
+  auto table = std::make_shared<TableCacheTablePlugin>();
   ASSERT_TRUE(table->cache().isEnabled());
 
   // pTable does not have TableAttributes::CACHEABLE, so it should have
@@ -517,7 +517,7 @@ TEST_F(VirtualTableTests, test_cacheable_table_not_disabled) {
 TEST_F(VirtualTableTests, test_table_results_cache) {
   // Get a database connection.
   auto tables = RegistryFactory::get().registry("table");
-  auto pTable = std::make_shared<tableCacheTablePlugin>();
+  auto pTable = std::make_shared<TableCacheTablePlugin>();
   tables->add(pTable->definition().name, pTable);
   auto dbc = SQLiteDBManager::getUnique();
   attachTableInternal(
@@ -577,9 +577,9 @@ static const TableDefinition tbl_yield_test_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class yieldTablePlugin : public TablePluginBase {
+class YieldTablePlugin : public TablePluginBase {
  public:
-  yieldTablePlugin() : TablePluginBase(tbl_yield_test_def) {}
+  YieldTablePlugin() : TablePluginBase(tbl_yield_test_def) {}
 
   bool usesGenerator() const override {
     return true;
@@ -598,7 +598,7 @@ class yieldTablePlugin : public TablePluginBase {
 };
 
 TEST_F(VirtualTableTests, test_yield_generator) {
-  auto table = std::make_shared<yieldTablePlugin>();
+  auto table = std::make_shared<YieldTablePlugin>();
   auto table_registry = RegistryFactory::get().registry("table");
   table_registry->add(table->definition().name, table);
 
@@ -629,9 +629,9 @@ static const TableDefinition tbl_like_test_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class likeTablePlugin : public TablePluginBase {
+class LikeTablePlugin : public TablePluginBase {
  public:
-  likeTablePlugin() : TablePluginBase(tbl_like_test_def) {}
+  LikeTablePlugin() : TablePluginBase(tbl_like_test_def) {}
 
   QueryData generate(QueryContext& context) override {
     QueryData results;
@@ -662,7 +662,7 @@ class likeTablePlugin : public TablePluginBase {
 };
 
 TEST_F(VirtualTableTests, test_like_constraints) {
-  auto table = std::make_shared<likeTablePlugin>();
+  auto table = std::make_shared<LikeTablePlugin>();
   auto table_registry = RegistryFactory::get().registry("table");
   table_registry->add("like_table", table);
 
@@ -742,9 +742,9 @@ static const TableDefinition tbl_indexIOptimized_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class indexIOptimizedTablePlugin : public TablePluginBase {
+class IndexIOptimizedTablePlugin : public TablePluginBase {
  public:
-  indexIOptimizedTablePlugin() : TablePluginBase(tbl_indexIOptimized_def) {}
+  IndexIOptimizedTablePlugin() : TablePluginBase(tbl_indexIOptimized_def) {}
 
   QueryData generate(QueryContext& context) override {
     scans++;
@@ -778,9 +778,9 @@ static const TableDefinition tbl_indexJOptimized_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class indexJOptimizedTablePlugin : public TablePluginBase {
+class IndexJOptimizedTablePlugin : public TablePluginBase {
  public:
-  indexJOptimizedTablePlugin() : TablePluginBase(tbl_indexJOptimized_def) {}
+  IndexJOptimizedTablePlugin() : TablePluginBase(tbl_indexJOptimized_def) {}
 
   QueryData generate(QueryContext& context) override {
     scans++;
@@ -812,9 +812,9 @@ static const TableDefinition tbl_defaultScan_def = {
     {/* no columnAliases */},
     TableAttributes::NONE};
 
-class defaultScanTablePlugin : public TablePluginBase {
+class DefaultScanTablePlugin : public TablePluginBase {
  public:
-  defaultScanTablePlugin() : TablePluginBase(tbl_defaultScan_def) {}
+  DefaultScanTablePlugin() : TablePluginBase(tbl_defaultScan_def) {}
 
   QueryData generate(QueryContext& context) override {
     scans++;
@@ -835,17 +835,17 @@ TEST_F(VirtualTableTests, test_indexing_costs) {
   auto dbc = SQLiteDBManager::getUnique();
   auto table_registry = RegistryFactory::get().registry("table");
 
-  auto i = std::make_shared<indexIOptimizedTablePlugin>();
+  auto i = std::make_shared<IndexIOptimizedTablePlugin>();
   table_registry->add("index_i", i);
   attachTableInternal(
       "index_i", columnDefinition(i->definition().columns), dbc);
 
-  auto j = std::make_shared<indexJOptimizedTablePlugin>();
+  auto j = std::make_shared<IndexJOptimizedTablePlugin>();
   table_registry->add("index_j", j);
   attachTableInternal(
       "index_j", columnDefinition(j->definition().columns), dbc);
 
-  auto default_scan = std::make_shared<defaultScanTablePlugin>();
+  auto default_scan = std::make_shared<DefaultScanTablePlugin>();
   table_registry->add("default_scan", default_scan);
   attachTableInternal("default_scan",
                       columnDefinition(default_scan->definition().columns),

@@ -416,7 +416,7 @@ float getConvertedValue(const std::string& smcType, const std::string& smcVal) {
   std::string val;
   try {
     val = boost::algorithm::unhex(smcVal);
-  } catch (const boost::algorithm::hex_decode_error& e) {
+  } catch (const boost::algorithm::hex_decode_error) {
     return -1.0;
   }
 
@@ -685,7 +685,7 @@ std::string getFanName(const std::string& smcVal) {
   std::string val;
   try {
     val = boost::algorithm::unhex(smcVal.substr(8, 24));
-  } catch (const boost::algorithm::hex_decode_error& e) {
+  } catch (const boost::algorithm::hex_decode_error) {
     return "";
   }
 
