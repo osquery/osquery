@@ -567,7 +567,7 @@ if(POSIX AND DEPS)
   endif()
 endif()
 
-if(FREEBSD)
+if(FREEBSD OR WINDOWS)
   # Including Boost Beast within third-party until it's merged into boot 1.66.
   include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
 endif()
