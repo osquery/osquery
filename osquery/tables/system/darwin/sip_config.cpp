@@ -13,7 +13,7 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#include "osquery/events/darwin/iokit.h"
+#include "osquery/core/darwin/iokit.hpp"
 
 #define DECLARE_TABLE_IMPLEMENTATION_sip_config
 #include <generated/tables/tbl_sip_config_defs.hpp>

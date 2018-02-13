@@ -78,7 +78,6 @@ endif()
 set(CXX_STD "c++14")
 
 find_program(PYTHON_EXECUTABLE "python" ${BUILD_DEPS} ENV PATH)
-find_program(THRIFT_COMPILER "thrift" ${BUILD_DEPS} ENV PATH)
 
 # Use osquery language to set platform/os
 if(DEFINED ENV{OSQUERY_PLATFORM})

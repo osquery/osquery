@@ -11,7 +11,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/events/darwin/iokit.h"
+#include "osquery/core/darwin/iokit.hpp"
 
 #define DECLARE_TABLE_IMPLEMENTATION_device_firmware
 #include <generated/tables/tbl_device_firmware_defs.hpp>

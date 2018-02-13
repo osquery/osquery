@@ -16,7 +16,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/events/darwin/iokit.h"
+#include "osquery/core/darwin/iokit.hpp"
 
 #define DECLARE_TABLE_IMPLEMENTATION_block_devices
 #include <generated/tables/tbl_block_devices_defs.hpp>

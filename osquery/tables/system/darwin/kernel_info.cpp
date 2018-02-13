@@ -15,7 +15,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/events/darwin/iokit.h"
+#include "osquery/core/darwin/iokit.hpp"
 #include "osquery/tables/system/efi_misc.h"
 
 #define DECLARE_TABLE_IMPLEMENTATION_kernel_info

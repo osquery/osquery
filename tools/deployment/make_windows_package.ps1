@@ -137,6 +137,10 @@ $wix +=
     </Condition>
 
     <Property Id='SOURCEDIRECTORY' Value='packs'/>
+    
+    <PropertyRef Id="WIX_ACCOUNT_LOCALSYSTEM" />
+    <PropertyRef Id="WIX_ACCOUNT_USERS" />
+    <PropertyRef Id="WIX_ACCOUNT_ADMINISTRATORS" />
 
     <Directory Id='TARGETDIR' Name='SourceDir'>
       <Directory Id='CommonAppDataFolder'>
@@ -145,12 +149,12 @@ $wix +=
             <Component Id='osqueryd'
                 Guid='41c9910d-bded-45dc-8f82-3cd00a24fa2f'>
                 <CreateFolder>
-                <Permission User="Users" Read="yes"
+                <Permission User="[WIX_ACCOUNT_USERS]" Read="yes"
                   ReadExtendedAttributes="yes" Traverse="yes"
                   ReadAttributes="yes" ReadPermission="yes" Synchronize="yes"
                   GenericWrite="no" WriteAttributes="no"/>
-                <Permission User="Administrators" GenericAll="yes"/>
-                <Permission User="SYSTEM" GenericAll="yes"/>
+                <Permission User="[WIX_ACCOUNT_ADMINISTRATORS]" GenericAll="yes"/>
+                <Permission User="[WIX_ACCOUNT_LOCALSYSTEM]" GenericAll="yes"/>
               </CreateFolder>
               <File Id='osqueryd'
                 Name='osqueryd.exe'
@@ -281,6 +285,7 @@ $wix += @'
   $msi = Join-Path $buildPath "osquery.$version.msi"
   $light = (Get-Command 'light').Source
   $lightArgs = @(
+    '-ext WiXUtilExtension',
     "$buildPath\osquery.wixobj",
     "-o $msi"
   )
