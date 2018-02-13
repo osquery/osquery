@@ -101,12 +101,14 @@ if(NOT SKIP_TABLES)
   GENERATE_TABLES("${CMAKE_SOURCE_DIR}")
   AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
   ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_additional_amalgamation ${AMALGAMATION})
+
 endif()
 
 AMALGAMATE("${CMAKE_SOURCE_DIR}" "foreign" AMALGAMATION_FOREIGN)
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_foreign_amalgamation ${AMALGAMATION_FOREIGN})
 
 if(NOT SKIP_TABLES)
+  add_custom_target(generated_table_headers DEPENDS osquery_amalgamation osquery_additional_amalgamation osquery_foreign_amalgamation )
   add_subdirectory(tables)
 endif()
 
