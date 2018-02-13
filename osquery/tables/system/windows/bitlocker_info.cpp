@@ -15,6 +15,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_bitlocker_info
+#include <generated/tables/tbl_bitlocker_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
