@@ -15,14 +15,21 @@
 #include <list>
 #include <memory>
 
+#include <broker/bro.hh>
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
-#include <broker/message_queue.hh>
 
+#include <osquery/core.h>
 #include <osquery/status.h>
 #include <osquery/system.h>
 
+#include "osquery/remote/bro/bro_utils.h"
+
 namespace osquery {
+
+DECLARE_string(bro_ip);
+DECLARE_uint64(bro_port);
+DECLARE_string(bro_groups);
 
 /**
  * @brief Manager class for connections of the broker communication library.
@@ -76,6 +83,24 @@ class BrokerManager : private boost::noncopyable {
   /// Unpeer from existing remote broker endpoint
   Status unpeer();
 
+  /// Initiates the peering to remote endpoint
+  Status initiatePeering();
+
+  /// Initiates the reset of the broker manager
+  Status initiateReset();
+
+  /**
+   * @brief Retrieve the latest connection status change
+   *
+   * Checks for any connection changes and updates cached status to the latest
+   * change.
+   * Returns the latest cached status if no change occurred within timeout
+   *
+   * @param timeout duration how long to wait for a status change
+   * @return
+   */
+  std::pair<broker::status, bool> getPeeringStatus(double timeout = 0);
+
  public:
   /**
    * @brief Reset the BrokerManager to its initial state.
@@ -118,44 +143,29 @@ class BrokerManager : private boost::noncopyable {
   std::vector<std::string> getGroups();
 
   /// Subscribe to the topic
-  Status createMessageQueue(const std::string& topic);
+  Status createSubscriber(const std::string& topic);
 
   /// Unsubscribe from the topic
-  Status deleteMessageQueue(const std::string& topic);
+  Status deleteSubscriber(const std::string& topic);
 
   /// Get the message_queue (i.e. subscription message inbox) of the topic
-  std::shared_ptr<broker::message_queue> getMessageQueue(
-      const std::string& topic);
+  std::shared_ptr<broker::subscriber> getSubscriber(const std::string& topic);
 
   /// Get all subscribed topics
   std::vector<std::string> getTopics();
 
   /**
-   * @brief Establish the connection to a remote broker endpoint.
+   * @brief checks for a working broker connection and wait if requested
    *
-   * Peering with another broker endpoint enables broker overlay communication.
-   * It provides the basic connectivity for communication.
+   * This is also used to initially establishing the connection and to reconnect
+   * after failure
    *
-   * @param ip the ip address of the remote endpoint
-   * @param port the port of the remote endpoint
-   * @param timeout duration to wait before the peering attemp times out.
-   * Negativ value for blocking until connection is established.
-   * @return
+   * @param timeout duration to wait before the peering attempt times out.
+   * @param ignore_error retry to connect, even if remote peer is not reachable
+   * (infinite timeout only)
+   * @return if connection is established
    */
-  Status peerEndpoint(const std::string& ip, int port, int timeout = -1);
-
-  /**
-   * @brief Check if the status of basic connectivity (i.e. peering) changed.
-   *
-   * This indicates that the osquery host became connected or disconnected.
-   *
-   * @param status the latest peering status change (if any)
-   * @param block if true, in case no change occurred the call blocks until a
-   * change happens
-   * @return Failure if no change happened (only possible for non-blocking call)
-   */
-  Status getOutgoingConnectionStatusChange(
-      broker::outgoing_connection_status::tag& status, bool block = false);
+  Status checkConnection(double timeout = -1, bool ignore_error = true);
 
   /**
    * @brief Make the osquery host to announce itself to the remote broker
@@ -176,11 +186,17 @@ class BrokerManager : private boost::noncopyable {
   Status logQueryLogItemToBro(const QueryLogItem& qli);
 
   /// Send the broker message to a specific topic
-  Status sendEvent(const std::string& topic, const broker::message& msg);
+  Status sendEvent(const std::string& topic, const broker::bro::Event& msg);
 
  private:
-  // The peering to identify the broker remote endpoint
-  std::unique_ptr<broker::peering> p_{nullptr};
+  // Mutex to synchronize threats that check connection state
+  mutable Mutex connection_mutex_;
+  // The IP and port of the remote endpoint
+  std::pair<std::string, int> remote_endpoint_{"", 0};
+  // The status_subscriber of the endpoint
+  std::unique_ptr<broker::status_subscriber> ss_{nullptr};
+  // The connection status
+  broker::status connection_status_;
 
   // The ID identifying the node (private channel)
   std::string nodeID_;
@@ -189,11 +205,17 @@ class BrokerManager : private boost::noncopyable {
   // The Broker Endpoint
   std::unique_ptr<broker::endpoint> ep_{nullptr};
 
-  //  Key: topic_Name, Value: message_queue
-  std::map<std::string, std::shared_ptr<broker::message_queue>> messageQueues_;
+  //  Key: topic_Name, Value: subscriber
+  std::map<std::string, std::shared_ptr<broker::subscriber>> subscribers_;
+
+  std::vector<std::string> startup_groups_;
 
  private:
   friend class BrokerManagerTests;
+  FRIEND_TEST(BrokerManagerTests, test_failestablishconnection);
+  FRIEND_TEST(BrokerManagerTests, test_successestablishconnection);
+  FRIEND_TEST(BrokerManagerTests, test_announce);
+  FRIEND_TEST(BrokerManagerTests, test_addandremovegroups);
   FRIEND_TEST(BrokerManagerTests, test_reset);
 };
 } // namespace osquery

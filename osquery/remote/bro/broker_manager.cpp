@@ -12,18 +12,29 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <broker/bro.hh>
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
-#include <broker/message_queue.hh>
+#include <broker/error.hh>
+#include <broker/status.hh>
+#include <broker/status_subscriber.hh>
 
+#include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
+#include "osquery/core/process.h"
 #include "osquery/remote/bro/bro_utils.h"
 #include "osquery/remote/bro/broker_manager.h"
 
 namespace osquery {
+
+FLAG(string, bro_ip, "localhost", "IP address of bro (default localhost)")
+
+FLAG(uint64, bro_port, 9999, "Port of bro (default 9999)")
+
+FLAG(string, bro_groups, "{}", "List of groups (default {})")
 
 BrokerManager::BrokerManager() {
   // Set Broker UID
@@ -33,6 +44,15 @@ BrokerManager::BrokerManager() {
     setNodeID(ident);
   }
   const auto& uid = getNodeID();
+
+  // Read groups from config
+  Status s = parseBrokerGroups(FLAGS_bro_groups, startup_groups_);
+  if (!s.ok()) {
+    LOG(WARNING) << s.getMessage();
+  }
+
+  // Read remote endpoint from config
+  remote_endpoint_ = std::pair<std::string, int>(FLAGS_bro_ip, FLAGS_bro_port);
 
   // Create Broker endpoint
   Status s_ep = createEndpoint(uid);
@@ -62,10 +82,10 @@ Status BrokerManager::reset(bool groups_only) {
   }
 
   // Remove all remaining message queues (manually added)
-  std::map<std::string, std::shared_ptr<broker::message_queue>> cp_queues(
-      messageQueues_);
+  std::map<std::string, std::shared_ptr<broker::subscriber>> cp_queues{
+      subscribers_};
   for (const auto& q : cp_queues) {
-    Status s = deleteMessageQueue(q.first);
+    Status s = deleteSubscriber(q.first);
     if (not s.ok()) {
       return s;
     }
@@ -90,7 +110,7 @@ std::string BrokerManager::getNodeID() {
 }
 
 Status BrokerManager::addGroup(const std::string& group) {
-  Status s = createMessageQueue(TOPIC_PRE_GROUPS + group);
+  Status s = createSubscriber(TOPIC_PRE_GROUPS + group);
   if (not s.ok()) {
     return s;
   }
@@ -112,7 +132,7 @@ Status BrokerManager::removeGroup(const std::string& group) {
     return Status(0, "More subscriptions for group '" + group + "' exist");
   }
 
-  return deleteMessageQueue(TOPIC_PRE_GROUPS + group);
+  return deleteSubscriber(TOPIC_PRE_GROUPS + group);
 }
 
 std::vector<std::string> BrokerManager::getGroups() {
@@ -125,124 +145,245 @@ Status BrokerManager::createEndpoint(const std::string& ep_name) {
   }
 
   VLOG(1) << "Creating broker endpoint with name: " << ep_name;
-  ep_ = std::make_unique<broker::endpoint>(ep_name);
+  ep_ = std::make_unique<broker::endpoint>();
   return Status(0, "OK");
 }
 
-Status BrokerManager::createMessageQueue(const std::string& topic) {
+Status BrokerManager::createSubscriber(const std::string& topic) {
   if (ep_ == nullptr) {
     return Status(1, "Broker Endpoint does not exist");
   }
 
-  if (messageQueues_.count(topic) != 0) {
+  if (subscribers_.count(topic) != 0) {
     return Status(1, "Message queue exists for topic '" + topic + "'");
   }
 
   VLOG(1) << "Creating message queue: " << topic;
-  messageQueues_[topic] =
-      std::make_shared<broker::message_queue>(topic, *(ep_));
+  subscribers_[topic] =
+      std::make_shared<broker::subscriber>(ep_->make_subscriber({topic}));
 
   return Status(0, "OK");
 }
 
-Status BrokerManager::deleteMessageQueue(const std::string& topic) {
-  if (messageQueues_.count(topic) == 0) {
+Status BrokerManager::deleteSubscriber(const std::string& topic) {
+  if (subscribers_.count(topic) == 0) {
     return Status(1, "Message queue does not exist for topic '" + topic + "'");
   }
 
   // shared_ptr should delete the message_queue and unsubscribe from topic
-  messageQueues_.erase(messageQueues_.find(topic));
+  auto subscriber = subscribers_.find(topic);
+  subscriber->second->remove_topic(topic);
+  subscribers_.erase(subscriber);
   return Status(0, "OK");
 }
 
-std::shared_ptr<broker::message_queue> BrokerManager::getMessageQueue(
+std::shared_ptr<broker::subscriber> BrokerManager::getSubscriber(
     const std::string& topic) {
-  return messageQueues_.at(topic);
+  return subscribers_.at(topic);
 }
 
 std::vector<std::string> BrokerManager::getTopics() {
   std::vector<std::string> topics;
-  for (const auto& mq : messageQueues_) {
+  for (const auto& mq : subscribers_) {
     topics.push_back(mq.first);
   }
   return topics;
 }
 
-Status BrokerManager::peerEndpoint(const std::string& ip,
-                                   int port,
-                                   int timeout) {
+Status BrokerManager::checkConnection(double timeout, bool ignore_error) {
+  // Exclusive access
+  WriteLock lock(connection_mutex_);
+  Status s;
+
+  // Are we unpeered or not peered yet?
+  if (!ss_) {
+    VLOG(1) << "Initializing Peering";
+    ss_ = std::make_unique<broker::status_subscriber>(
+        ep_->make_status_subscriber(true));
+    initiatePeering();
+  }
+
+  // Retrieve current connection state and whether is has changed
+  auto ps = getPeeringStatus(timeout);
+
+  // Still connected since last time?
+  if (!ps.second && ps.first.code() == broker::sc::peer_added) {
+    return Status(0, "OK");
+  }
+
+  // If changed then we have to reset
+  if (ps.second) {
+    VLOG(1) << "Resetting because connection status changed";
+    s = initiateReset();
+    if (!s.ok()) {
+      LOG(WARNING) << s.getMessage();
+    }
+  }
+
+  // Check for error
+  if (timeout < 0 && ignore_error) {
+    VLOG(1) << "Waiting until connection is established";
+    auto ip = remote_endpoint_.first;
+    auto port = remote_endpoint_.second;
+    while (ps.first.code() != broker::sc::peer_added) {
+      // We have to sleep since errors cause immediate return
+      sleepFor(3 * 1000);
+      // Reconnect if connection is broken
+      if (ps.first.code() == broker::sc::unspecified ||
+          ep_->peers().size() == 0) {
+        VLOG(1) << "Initiate peering to repair connection";
+        ep_->peer_nosync(ip, port, broker::timeout::seconds(-1));
+      }
+      ps = getPeeringStatus(timeout);
+    }
+  }
+
+  // Check for working connection state
+  if (ps.first.code() == broker::sc::peer_added) {
+    // Send announce message
+    s = announce();
+    if (!s.ok()) {
+      LOG(ERROR) << s.getMessage();
+      return s;
+    }
+
+    return Status(0, "OK");
+  }
+  if (ps.first.message()) {
+    return Status(1, *ps.first.message());
+  }
+
+  return Status(1, "Unknown connection status");
+}
+
+Status BrokerManager::initiatePeering() {
+  auto ip = remote_endpoint_.first;
+  auto port = remote_endpoint_.second;
   LOG(INFO) << "Connecting to Bro " << ip << ":" << port;
-  if (ep_ == nullptr) {
-    return Status(1, "Broker Endpoint not set");
-  }
 
-  if (p_ != nullptr) {
-    return Status(1, "Broker connection already established");
-  }
-
-  p_ = std::make_unique<broker::peering>(ep_->peer(ip, port));
-
-  // Wait for message
-  pollfd pfd{ep_->outgoing_connection_status().fd(), POLLIN, 0};
-  int poll_code = poll(&pfd, 1, timeout);
-  if (poll_code < 0) {
-    return Status(1, "poll error returned connecting to bro endpoint");
-  }
-
-  if (poll_code == 0) {
-    return Status(1, "Connecting to bro endpoint timed out");
-  }
-
-  broker::outgoing_connection_status::tag status;
-  Status s = getOutgoingConnectionStatusChange(status, false);
-  if (!s.ok()) {
-    return s;
-  }
-  if (status == broker::outgoing_connection_status::tag::incompatible) {
-    return Status(1, "Cannot peer because broker versions are incompatible");
-  }
-  if (status == broker::outgoing_connection_status::tag::disconnected) {
-    return Status(1, "Cannot peer because broker connection was disconnected");
-  }
+  ep_->peer_nosync(ip, port, broker::timeout::seconds(-1));
 
   return Status(0, "OK");
 }
 
-Status BrokerManager::unpeer() {
-  if (p_ != nullptr) {
-    ep_->unpeer(*p_);
+Status BrokerManager::initiateReset() {
+  // Reset config/schedule
+  std::map<std::string, std::string> config_schedule;
+  config_schedule["bro"] = "";
+  VLOG(1) << "Reset config schedule";
+  Config::get().update(config_schedule);
 
-    p_ = nullptr;
+  QueryManager::get().reset();
+  reset(false);
 
-    broker::outgoing_connection_status::tag status;
-    Status s = getOutgoingConnectionStatusChange(status, false);
-    if (s.getCode() == 1 or
-        status != broker::outgoing_connection_status::tag::disconnected) {
-      return Status(1, "Unable to disconnect broker connection");
+  // Subscribe to all
+  auto s = createSubscriber(TOPIC_ALL);
+  if (!s.ok()) {
+    return s;
+  }
+  // Subscribe to individual topic
+  s = createSubscriber(TOPIC_PRE_INDIVIDUALS + getNodeID());
+  if (!s.ok()) {
+    return s;
+  }
+  // Set Startup groups and subscribe to group topics
+  for (const auto& g : startup_groups_) {
+    s = addGroup(g);
+    if (!s.ok()) {
+      return s;
     }
   }
 
   return Status(0, "OK");
 }
 
-Status BrokerManager::getOutgoingConnectionStatusChange(
-    broker::outgoing_connection_status::tag& status, bool block) {
-  std::deque<broker::outgoing_connection_status> conn_status;
-  if (block) {
-    conn_status = ep_->outgoing_connection_status().need_pop();
-  } else {
-    conn_status = ep_->outgoing_connection_status().want_pop();
-  }
-  if (conn_status.size() < 1) {
-    return Status(1, "Connecting to bro endpoint timed out");
+std::pair<broker::status, bool> BrokerManager::getPeeringStatus(
+    double timeout) {
+  // Process latest status changes
+  broker::detail::variant<broker::none, broker::error, broker::status> s;
+  bool has_changed = false;
+
+  // Block first to wait for a status change to happen
+  if (timeout != 0) {
+    // with timeout
+    if (timeout > 0) {
+      if (auto s_opt = ss_->get(broker::to_duration(timeout))) {
+        // Status received in time
+        s = s_opt.value();
+      }
+    } else {
+      // block until status change
+      s = ss_->get();
+    }
   }
 
-  if (conn_status.size() > 1) {
-    LOG(WARNING) << "Received multiple connection updates";
+  // Process any remaining change that is queued
+  while (ss_->available()) {
+    s = ss_->get();
   }
 
-  // conn_status.size() == 1
-  status = conn_status.back().status;
+  // Evaluate the latest change (if any)
+  // Check error
+  if (auto err = broker::get_if<broker::error>(s)) {
+    LOG(WARNING) << "Broker error:" << static_cast<int>(err->code()) << ", "
+                 << to_string(*err);
+    connection_status_ = {};
+    has_changed = true;
+  }
+  // Check status
+  if (auto st = broker::get_if<broker::status>(s)) {
+    connection_status_ = *st;
+    has_changed = true;
+  }
+
+  return {connection_status_, has_changed};
+}
+
+Status BrokerManager::unpeer() {
+  // Exclusive access
+  WriteLock lock(connection_mutex_);
+
+  // Check status subscriber
+  if (ss_ == nullptr) {
+    return Status(1, "No broker connection established");
+  }
+
+  // Check remote peer
+  LOG(INFO) << "Number of peers to unpeer: " << ep_->peers().size();
+  if (ep_ == nullptr || ep_->peers().size() == 0) {
+    ss_ = nullptr;
+    connection_status_ = {};
+    LOG(INFO) << "No broker peers to disconnect";
+    return Status(0, "No broker peers to disconnect");
+  }
+
+  // Disconnect peer(s)
+  for (const auto& peer : ep_->peers()) {
+    // Check for network info
+    if (peer.peer.network) {
+      auto netw = peer.peer.network.value();
+      if (!ep_->unpeer(netw.address, netw.port)) {
+        return Status(1, "Disconnect from remote endpoint was not successfull");
+      }
+
+      // Try to disconnect
+      auto ps = BrokerManager::get().getPeeringStatus(3);
+      if (ps.first.code() != broker::sc::peer_removed) {
+        return Status(1, "Unable to unpeer");
+      }
+      LOG(INFO) << "Unpeered from " << netw.address << ":"
+                << static_cast<int>(netw.port);
+
+    } else {
+      return Status(1,
+                    "Cannot disconnect because remote endpoint has no network "
+                    "information");
+    }
+  }
+
+  LOG(INFO) << "Resetting ss_";
+  ss_ = nullptr;
+  connection_status_ = {};
   return Status(0, "OK");
 }
 
@@ -251,13 +392,12 @@ Status BrokerManager::announce() {
   // Collect Groups
   broker::vector group_list;
   for (const auto& g : getGroups()) {
-    group_list.push_back(g);
+    group_list.push_back(broker::data(g));
   }
 
   // Create Message
-  broker::message announceMsg = broker::message{broker::data(EVENT_HOST_NEW),
-                                                broker::data(getNodeID()),
-                                                broker::data(group_list)};
+  broker::bro::Event announceMsg(EVENT_HOST_NEW,
+                                 {broker::data(getNodeID()), group_list});
   Status s = sendEvent(TOPIC_ANNOUNCE, announceMsg);
   if (!s.ok()) {
     return s;
@@ -270,7 +410,7 @@ int BrokerManager::getOutgoingConnectionFD() {
   if (ep_ == nullptr) {
     return -1;
   }
-  return ep_->outgoing_connection_status().fd();
+  return ss_->fd();
 }
 
 Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
@@ -324,16 +464,13 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
     const auto& row = std::get<0>(element);
     const auto& trigger = std::get<1>(element);
 
-    // Set event name, uid and trigger
-    broker::message msg;
-    msg.push_back(event_name);
-    broker::record result_info(
-        {broker::record::field(broker::data(uid)),
-         broker::record::field(
-             broker::data(broker::enum_value{"osquery::" + trigger})),
-         broker::record::field(
-             broker::data(QueryManager::get().getEventCookie(queryID)))});
-    msg.push_back(broker::data(result_info));
+    // Create message data header
+    broker::vector msg_data;
+    broker::vector result_info(
+        {broker::data(uid),
+         broker::data(broker::data(broker::enum_value{"osquery::" + trigger})),
+         broker::data(QueryManager::get().getEventCookie(queryID))});
+    msg_data.push_back(broker::data(result_info));
 
     // Format each column
     for (const auto& t : columns) {
@@ -350,34 +487,34 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
         case ColumnType::UNKNOWN_TYPE: {
           LOG(WARNING) << "Sending unknown column type for column '" + colName +
                               "' as string";
-          msg.push_back(broker::data(value));
+          msg_data.push_back(broker::data(value));
           break;
         }
         case ColumnType::TEXT_TYPE: {
-          msg.push_back(broker::data(AS_LITERAL(TEXT_LITERAL, value)));
+          msg_data.push_back(broker::data(AS_LITERAL(TEXT_LITERAL, value)));
           break;
         }
         case ColumnType::INTEGER_TYPE: {
-          msg.push_back(broker::data(AS_LITERAL(INTEGER_LITERAL, value)));
+          msg_data.push_back(broker::data(AS_LITERAL(INTEGER_LITERAL, value)));
           break;
         }
         case ColumnType::BIGINT_TYPE: {
-          msg.push_back(broker::data(AS_LITERAL(BIGINT_LITERAL, value)));
+          msg_data.push_back(broker::data(AS_LITERAL(BIGINT_LITERAL, value)));
           break;
         }
         case ColumnType::UNSIGNED_BIGINT_TYPE: {
-          msg.push_back(
+          msg_data.push_back(
               broker::data(AS_LITERAL(UNSIGNED_BIGINT_LITERAL, value)));
           break;
         }
         case ColumnType::DOUBLE_TYPE: {
-          msg.push_back(broker::data(AS_LITERAL(DOUBLE_LITERAL, value)));
+          msg_data.push_back(broker::data(AS_LITERAL(DOUBLE_LITERAL, value)));
           break;
         }
         case ColumnType::BLOB_TYPE: {
           LOG(WARNING) << "Sending blob column type for column '" + colName +
                               "' as string";
-          msg.push_back(broker::data(value));
+          msg_data.push_back(broker::data(value));
           break;
         }
         default: {
@@ -395,6 +532,7 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
     }
 
     // Send event message
+    broker::bro::Event msg(event_name, msg_data);
     sendEvent(topic, msg);
   }
 
@@ -407,13 +545,13 @@ Status BrokerManager::logQueryLogItemToBro(const QueryLogItem& qli) {
 }
 
 Status BrokerManager::sendEvent(const std::string& topic,
-                                const broker::message& msg) {
+                                const broker::bro::Event& msg) {
   if (ep_ == nullptr) {
     return Status(1, "Endpoint not set");
   } else {
-    VLOG(1) << "Sending Message '" << broker::to_string(msg) << "' to  topic '"
-            << topic << "'";
-    ep_->send(topic, msg);
+    VLOG(1) << "Sending Message '" << msg.name() << "' to  topic '" << topic
+            << "'";
+    ep_->publish(topic, msg);
   }
 
   return Status(0, "OK");

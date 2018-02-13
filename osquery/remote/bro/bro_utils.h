@@ -12,10 +12,9 @@
 
 #include <iostream>
 
+#include <broker/bro.hh>
 #include <broker/broker.hh>
 #include <broker/endpoint.hh>
-#include <broker/message_queue.hh>
-#include <broker/report.hh>
 
 #include <osquery/status.h>
 #include <osquery/system.h>
@@ -47,13 +46,13 @@ const std::map<BrokerRequestType, std::string> kBrokerRequestTypeNames = {
  * (repeating). Requests for both kinds can be described as SubscriptionRequest.
  *
  * @param rType the request type (EXECUTE, SUBSCRIBE or UNSUBSCRIBE)
- * @param msg the incoming broker message that is parsed
+ * @param event the incoming broker message that is parsed
  * @param incoming_topic the broker topic where the message was received on
  * @param sr the SubscriptionRequest to be filled
  * @return
  */
 Status createSubscriptionRequest(const BrokerRequestType& rType,
-                                 const broker::message& msg,
+                                 const broker::bro::Event& event,
                                  const std::string& incoming_topic,
                                  SubscriptionRequest& sr);
 

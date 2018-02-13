@@ -4,10 +4,12 @@ class Broker < AbstractOsqueryFormula
   desc "Broker Communication Library"
   homepage "https://github.com/bro/broker"
   url "https://github.com/bro/broker.git", # Need git url for recursive clone
-      :revision => "68a36ed81480ba935268bcaf7b6f2249d23436da"
+      :branch => "topic/actor-system"
+      #:revision => "68a36ed81480ba935268bcaf7b6f2249d23436da"
 	  #:tag => "v0.6"
   head "https://github.com/bro/broker.git"
   version "0.6"
+  revision 4
 
   needs :cxx11
 
@@ -17,15 +19,15 @@ class Broker < AbstractOsqueryFormula
   end
 
   depends_on "caf"
+  depends_on "openssl"
   depends_on "cmake" => :build
 
   # Use static libcaf
   patch :DATA
 
   def install
-    #prepend "CXXFLAGS", "-std=c++11 -stdlib=libstdc++ -Wextra -Wall -ftemplate-depth=512 -pedantic"
-    prepend "CXXFLAGS", "-std=c++11 -Wextra -Wall -ftemplate-depth=512"
-    args = %W[--prefix=#{prefix} --disable-pybroker --enable-static-only --with-caf=#{default_prefix}]
+    prepend "CXXFLAGS", "-std=c++11 -Wextra -Wall"
+    args = %W[--prefix=#{prefix} --disable-python --disable-docs --enable-static-only --with-caf=#{default_prefix}]
 
     system "./configure", *args
     system "make"
@@ -36,31 +38,14 @@ end
 
 __END__
 diff --git a/cmake/FindCAF.cmake b/cmake/FindCAF.cmake
-index ea2860c..4a827c1 100644
+index 870137c..d261d19 100644
 --- a/cmake/FindCAF.cmake
 +++ b/cmake/FindCAF.cmake
-@@ -67,7 +67,7 @@ foreach (comp ${CAF_FIND_COMPONENTS})
-       endif ()
-       find_library(CAF_LIBRARY_${UPPERCOMP}
-                    NAMES
--                     "caf_${comp}"
-+                     "caf_${comp}_static"
-                    HINTS
-                      ${library_hints}
-                      /usr/lib
---
-2.7.4
-diff --git a/cmake/FindCAF.cmake b/cmake/FindCAF.cmake
-index 4a827c1..6a40879 100644
---- a/cmake/FindCAF.cmake
-+++ b/cmake/FindCAF.cmake
-@@ -38,7 +38,12 @@ foreach (comp ${CAF_FIND_COMPONENTS})
-             NAMES
+@@ -39,6 +39,11 @@ foreach (comp ${CAF_FIND_COMPONENTS})
                ${HDRNAME}
              HINTS
--              ${header_hints}
-+             ${header_hints}
-+           NO_DEFAULT_PATH)
+               ${header_hints}
++            NO_DEFAULT_PATH)
 +  find_path(CAF_INCLUDE_DIR_${UPPERCOMP}
 +            NAMES
 +              ${HDRNAME}
@@ -68,32 +53,54 @@ index 4a827c1..6a40879 100644
                /usr/include
                /usr/local/include
                /opt/local/include
-@@ -70,6 +75,11 @@ foreach (comp ${CAF_FIND_COMPONENTS})
+@@ -71,6 +76,11 @@ foreach (comp ${CAF_FIND_COMPONENTS})
                       "caf_${comp}_static"
                     HINTS
                       ${library_hints}
-+                    NO_DEFAULT_PATH)
-+      find_library(CAF_LIBRARY_${UPPERCOMP}
++                   NO_DEFAULT_PATH)
++       find_library(CAF_LIBRARY_${UPPERCOMP}
 +                   NAMES
 +                     "caf_${comp}_static"
 +                   HINTS
                       /usr/lib
                       /usr/local/lib
                       /opt/local/lib
---
-2.7.4
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index e439cde..fa224cb 100644
+index df3a82d..eafbb9d 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -161,7 +161,7 @@ endif ()
- add_subdirectory(bindings)
+@@ -242,7 +242,7 @@ macro(add_tool name)
+     target_link_libraries(${name} ${LINK_LIBS} broker)
+     add_dependencies(${name} broker)
+   else()
+-    target_link_libraries(${name} ${LINK_LIBS} broker_static)
++    target_link_libraries(${name} broker_static ${LINK_LIBS} ${LINK_LIBS})
+     add_dependencies(${name} broker_static)
+   endif()
+ endmacro()
+diff --git a/doc/_examples/CMakeLists.txt b/doc/_examples/CMakeLists.txt
+index 663d521..6690e71 100644
+--- a/doc/_examples/CMakeLists.txt
++++ b/doc/_examples/CMakeLists.txt
+@@ -10,7 +10,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+ if (ENABLE_SHARED)
+   set(libbroker broker)
+ else ()
+-  set(libbroker broker_static)
++  set(libbroker broker_static ${LINK_LIBS} ${LINK_LIBS})
+ endif ()
 
- enable_testing()
--add_subdirectory(tests)
-+#add_subdirectory(tests)
-
- string(TOUPPER ${CMAKE_BUILD_TYPE} BuildType)
-
---
-2.7.4
+ macro(make_example cc)
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 7b59102..075fb97 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -28,7 +28,7 @@ set(tests
+ if (ENABLE_SHARED)
+   set(libbroker broker)
+ else ()
+-  set(libbroker broker_static)
++  set(libbroker broker_static ${LINK_LIBS} ${LINK_LIBS})
+ endif ()
+ add_executable(broker-test ${tests})
+ target_link_libraries(broker-test ${libbroker})
