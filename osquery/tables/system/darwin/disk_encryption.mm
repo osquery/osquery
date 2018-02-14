@@ -412,6 +412,7 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
   results.push_back(r);
   CFRelease(properties);
   IOObjectRelease(service);
+  CFRelease(matching_dict);
 }
 
 bool isAPFS(const QueryData& result) {
