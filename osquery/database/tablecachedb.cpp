@@ -7,6 +7,7 @@
  *  in the COPYING file in the root directory of this source tree).
  *  You may select, at your option, one of the above-listed licenses.
  */
+
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -95,8 +96,9 @@ TableCache* TableCacheDBNew(std::string tableName) {
 extern TableCache* TableCacheDisabledNew(std::string tableName);
 
 TableCache* TableCacheNew(std::string tableName, bool isCacheable) {
-  if (!isCacheable)
+  if (!isCacheable) {
     return TableCacheDisabledNew(tableName);
+  }
   return new TableCacheDB(tableName);
 }
 

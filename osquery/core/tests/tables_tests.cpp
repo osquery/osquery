@@ -158,12 +158,12 @@ extern size_t kTableCacheInterval;
 #include <gflags/gflags.h>
 DECLARE_bool(disable_caching);
 
-// emulate how sceduler uses step and interval.
+// emulate how scheduler uses step and interval.
 // kTableCacheStep increments every second.
 // kTableCacheInterval is the interval of the query in seconds.
 // While it's a shared value, it's updated each time a query is run.
 // Since cache instances snapshot interval on set(), conflicts do not occur.
-// When cacheing data, the cache will snapshot the current values:
+// When caching data, the cache will snapshot the current values:
 //   snapshotStep=kTableCacheStep, snapshotInterval=kTableCacheInterval
 // The cached data remains valid while kTableCacheStep < (snapshotStep +
 // snapshotInterval) For example, if interval is 60 seconds, and data is cached

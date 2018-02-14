@@ -26,6 +26,11 @@ class ExampleConfigPlugin : public ConfigPlugin {
   }
 };
 
+/*
+ * Named OldExampleTable, because table plugins should now inherit
+ * TablePluginBase, not TablePlugin, which remains for backwards
+ * compatibility.
+ */
 class OldExampleTable : public TablePlugin {
  private:
   TableColumns columns() const {
