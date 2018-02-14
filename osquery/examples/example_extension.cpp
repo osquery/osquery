@@ -26,33 +26,6 @@ class ExampleConfigPlugin : public ConfigPlugin {
   }
 };
 
-/*
- * Named OldExampleTable, because table plugins should now inherit
- * TablePluginBase, not TablePlugin, which remains for backwards
- * compatibility.
- */
-class OldExampleTable : public TablePlugin {
- private:
-  TableColumns columns() const {
-    return {
-        std::make_tuple("example_text", TEXT_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple(
-            "example_integer", INTEGER_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
-
-  QueryData generate(QueryContext& request) {
-    QueryData results;
-
-    Row r;
-    r["example_text"] = "example";
-    r["example_integer"] = INTEGER(1);
-
-    results.push_back(r);
-    return results;
-  }
-};
-
 static const TableDefinition tbl_example_def = {
     "example",
     {/* no aliases */},
