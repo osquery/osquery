@@ -94,7 +94,8 @@ class JSON : private only_movable {
   /**
    * @brief Add a string value to a JSON object by copying the contents.
    *
-   * This will add the key and value to an input document.
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
    * The input document must be an object type.
    */
   void addCopy(const std::string& key,
@@ -104,7 +105,8 @@ class JSON : private only_movable {
   /**
    * @brief Add a string value to a JSON object by copying the contents.
    *
-   * This will add the key and value to the JSON document.
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
    * The document must be an object type.
    */
   void addCopy(const std::string& key, const std::string& value);
@@ -114,7 +116,8 @@ class JSON : private only_movable {
    *
    * The string value must live longer than the document's use.
    *
-   * This will add the key and value to an input document.
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
    * The input document must be an object type.
    */
   void addRef(const std::string& key,
@@ -126,15 +129,59 @@ class JSON : private only_movable {
    *
    * The string value must live longer than the document's use.
    *
-   * This will add the key and value to the JSON document.
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
    * The input document must be an object type.
    */
   void addRef(const std::string& key, const std::string& value);
 
   /**
+   * @brief Add a string value to a JSON object by copying the contents.
+   *
+   * This is basically and alias for addCopy()
+   *
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
+   * The input document must be an object type.
+   */
+  void add(const std::string& key,
+           const std::string& value,
+           rapidjson::Value& obj);
+
+  /**
+   * @brief Add a string value to a JSON object by copying the contents.
+   *
+   * This is basically and alias for addCopy().
+   *
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
+   * The document must be an object type.
+   */
+  void add(const std::string& key, const std::string& value);
+
+  /**
+   * @brief Add a char* value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
+   * The input document must be an object type.
+   */
+  void add(const std::string& key, const char* value, rapidjson::Value& obj);
+
+  /**
+   * @brief Add a char* value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
+   * The document must be an object type.
+   */
+  void add(const std::string& key, const char* value);
+
+  /**
    * @brief Add a size_t value to a JSON object by copying the contents.
    *
-   * This will add the key and value to an input document.
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
    * The input document must be an object type.
    */
   void add(const std::string& key, size_t value, rapidjson::Value& obj);
@@ -142,7 +189,8 @@ class JSON : private only_movable {
   /**
    * @brief Add a size_t value to a JSON object by copying the contents.
    *
-   * This will add the key and value to the JSON document.
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
    * The document must be an object type.
    */
   void add(const std::string& key, size_t value);
@@ -150,7 +198,8 @@ class JSON : private only_movable {
   /**
    * @brief Add an int value to a JSON object by copying the contents.
    *
-   * This will add the key and value to an input document.
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
    * The input document must be an object type.
    */
   void add(const std::string& key, int value, rapidjson::Value& obj);
@@ -158,17 +207,36 @@ class JSON : private only_movable {
   /**
    * @brief Add an int value to a JSON object by copying the contents.
    *
-   * This will add the key and value to the JSON document.
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
    * The document must be an object type.
    */
   void add(const std::string& key, int value);
 
+  /**
+   * @brief Add a bool value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to an input document. If the key exists
+   * the value will be replaced.
+   * The input document must be an object type.
+   */
+  void add(const std::string& key, bool value, rapidjson::Value& obj);
+
+  /**
+   * @brief Add a bool value to a JSON object by copying the contents.
+   *
+   * This will add the key and value to the JSON document. If the key exists
+   * the value will be replaced.
+   * The document must be an object type.
+   */
+  void add(const std::string& key, bool value);
+
   /// Add a JSON document as a member.
-  void add(const std::string& key, rapidjson::Value& value);
+  void add(const std::string& key, const rapidjson::Value& value);
 
   /// Add a JSON document as a member of another document.
   void add(const std::string& key,
-           rapidjson::Value& value,
+           const rapidjson::Value& value,
            rapidjson::Value& obj);
 
   /**
@@ -177,6 +245,13 @@ class JSON : private only_movable {
    * The type of the base document may change, be careful.
    */
   void copyFrom(const rapidjson::Value& value, rapidjson::Value& target);
+
+  /**
+   * @brief Copy a JSON object/array into the document.
+   *
+   * The type of the base document may change, be careful.
+   */
+  void copyFrom(const rapidjson::Value& value);
 
   /// Convert this document to a JSON string.
   Status toString(std::string& str) const;
