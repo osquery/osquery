@@ -86,6 +86,7 @@ Status genUnlockIdent(CFDataRef& uuid) {
     return Status(0, "ok");
   }
 
+  CFRelease(properties);
   return Status(1, "Could not get unlock ident");
 }
 
@@ -412,7 +413,6 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
   results.push_back(r);
   CFRelease(properties);
   IOObjectRelease(service);
-  CFRelease(matching_dict);
 }
 
 bool isAPFS(const QueryData& result) {
