@@ -276,14 +276,42 @@ static void genGlobs(std::string path,
                      GlobLimits limits) {
   // Use our helped escape/replace for wildcards.
   replaceGlobWildcards(path, limits);
+  // inodes of directory symlinks for loop detection
+  std::set<int> dsym_inos;
 
   // Generate a glob set and recurse for double star.
-  size_t glob_index = 0;
-  while (++glob_index < kMaxRecursiveGlobs) {
+  for (size_t glob_index = 0; ++glob_index < kMaxRecursiveGlobs;) {
     auto glob_results = platformGlob(path);
 
-    for (auto const& result_path : glob_results) {
+    for (auto& result_path : glob_results) {
       results.push_back(result_path);
+      struct stat d_stat;
+
+      if (::lstat(result_path.c_str(), &d_stat) < 0) {
+        continue;
+      }
+
+      if (0 == S_ISDIR(d_stat.st_mode)) {
+        continue;
+      }
+      result_path.pop_back();
+
+      if (::lstat(result_path.c_str(), &d_stat) < 0) {
+        continue;
+      }
+
+      if (0 == S_ISLNK(d_stat.st_mode)) {
+        continue;
+      }
+
+      if (dsym_inos.find(d_stat.st_ino) == dsym_inos.end()) {
+        dsym_inos.insert(d_stat.st_ino);
+      } else {
+        LOG(WARNING) << "Recursive symlink found: " << result_path;
+        results.clear();
+        glob_index = kMaxRecursiveGlobs;
+        break;
+      }
     }
 
     // The end state is a non-recursive ending or empty set of matches.
@@ -293,6 +321,7 @@ static void genGlobs(std::string path,
         wild < path.size() - 3) {
       break;
     }
+
     path += "/**";
   }
 
