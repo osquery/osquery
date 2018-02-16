@@ -142,29 +142,31 @@ QueryData genGroups(QueryContext &context) {
 }
 
 void setRow(Row& r, passwd* pwd, boost::property_tree::ptree& tree) {
-  boost::optional<std::string> creationTime =
-      tree.get_optional<std::string>("creationTime");
-  boost::optional<std::string> failedLoginCount =
-      tree.get_optional<std::string>("failedLoginCount");
-  boost::optional<std::string> failedLoginTimestamp =
-      tree.get_optional<std::string>("failedLoginTimestamp");
-  boost::optional<std::string> passwordLastSetTime =
-      tree.get_optional<std::string>("passwordLastSetTime");
-
-  r["creation_time"] = creationTime ? creationTime.get() : DOUBLE(0);
-  r["failed_login_count"] =
-      failedLoginCount ? failedLoginCount.get() : BIGINT(0);
-  r["failed_login_timestamp"] =
-      failedLoginTimestamp ? failedLoginTimestamp.get() : DOUBLE(0);
-  r["password_last_set_time"] =
-      passwordLastSetTime ? passwordLastSetTime.get() : DOUBLE(0);
-
   r["gid"] = BIGINT(pwd->pw_gid);
   r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
   r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
   r["description"] = TEXT(pwd->pw_gecos);
   r["directory"] = TEXT(pwd->pw_dir);
   r["shell"] = TEXT(pwd->pw_shell);
+
+  if (auto creationTime = tree.get_optional<std::string>("creationTime")) {
+    r["creation_time"] = creationTime.get();
+  }
+
+  if (auto failedLoginCount =
+          tree.get_optional<std::string>("failedLoginCount")) {
+    r["failed_login_count"] = failedLoginCount.get();
+  }
+
+  if (auto failedLoginTimestamp =
+          tree.get_optional<std::string>("failedLoginTimestamp")) {
+    r["failed_login_timestamp"] = failedLoginTimestamp.get();
+  }
+
+  if (auto passwordLastSetTime =
+          tree.get_optional<std::string>("passwordLastSetTime")) {
+    r["password_last_set_time"] = passwordLastSetTime.get();
+  }
 
   uuid_t uuid = {0};
   uuid_string_t uuid_string = {0};
@@ -180,7 +182,6 @@ void setRow(Row& r, passwd* pwd, boost::property_tree::ptree& tree) {
 
 QueryData genUsers(QueryContext &context) {
   QueryData results;
-  pt::ptree tree;
   if (context.constraints["uid"].exists(EQUALS)) {
     auto uids = context.constraints["uid"].getAll<long long>(EQUALS);
     for (const auto &uid : uids) {
@@ -190,6 +191,7 @@ QueryData genUsers(QueryContext &context) {
       }
 
       Row r;
+      pt::ptree tree;
       r["uid"] = BIGINT(uid);
       r["username"] = std::string(pwd->pw_name);
       genPolicyColumns(uid, tree);
@@ -206,6 +208,7 @@ QueryData genUsers(QueryContext &context) {
       }
 
       Row r;
+      pt::ptree tree;
       r["uid"] = BIGINT(pwd->pw_uid);
       r["username"] = username;
       genPolicyColumns(pwd->pw_uid, tree);
