@@ -114,8 +114,7 @@ void ExtensionManagerHandler::registerExtension(
     const InternalExtensionInfo& info,
     const ExtensionRegistry& registry) {
   if (exists(info.name)) {
-    LOG(WARNING) << "Refusing to register duplicate extension "
-                 << info.name;
+    LOG(WARNING) << "Refusing to register duplicate extension " << info.name;
     _return.code = (int)ExtensionCode::EXT_FAILED;
     _return.message = "Duplicate extension registered";
     return;
@@ -140,8 +139,8 @@ void ExtensionManagerHandler::registerExtension(
   // Every call to registerExtension is assigned a new RouteUUID.
   RouteUUID uuid = static_cast<uint16_t>(rand());
   VLOG(1) << "Registering extension (" << info.name << ", " << uuid
-          << ", version=" << info.version
-          << ", sdk=" << info.sdk_version << ")";
+          << ", version=" << info.version << ", sdk=" << info.sdk_version
+          << ")";
 
   auto status = RegistryFactory::get().addBroadcast(uuid, registry);
   if (!status.ok()) {

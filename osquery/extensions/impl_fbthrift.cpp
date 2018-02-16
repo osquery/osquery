@@ -121,7 +121,7 @@ void EXInternal::setTimeouts(size_t timeouts) {}
 
 EXClient::EXClient(const std::string& path, size_t timeout) : EXInternal(path) {
   setTimeouts(timeout);
-  //client_ = std::make_shared<_Client>(HeaderClientChannel::newChannel(
+  // client_ = std::make_shared<_Client>(HeaderClientChannel::newChannel(
   //    async::TAsyncSocket::newSocket(&server->base_, raw_socket_)));
 }
 
@@ -129,7 +129,7 @@ EXManagerClient::EXManagerClient(const std::string& manager_path,
                                  size_t timeout)
     : EXInternal(manager_path) {
   setTimeouts(timeout);
-  //client_ = std::make_shared<_ManagerClient>(HeaderClientChannel::newChannel(
+  // client_ = std::make_shared<_ManagerClient>(HeaderClientChannel::newChannel(
   //    async::TAsyncSocket::newSocket(&server->base_, raw_socket_)));
 }
 

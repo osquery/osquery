@@ -7,6 +7,8 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 # Generate the thrift intermediate/interface code.
+set(THRIFT_IMPL_FILE impl_thrift.cpp)
+
 if(LINUX OR DARWIN)
   if(DEFINED ENV{FBTHRIFT})
     add_custom_command(
@@ -46,8 +48,6 @@ if(LINUX OR DARWIN)
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
       OUTPUT ${THRIFT_GENERATED_FILES}
     )
-
-    set(THRIFT_IMPL_FILE impl_thrift.cpp)
   endif()
 else()
   add_custom_command(

@@ -161,4 +161,4 @@ const std::shared_ptr<_Client>& EXClient::get() const {
 const std::shared_ptr<_ManagerClient>& EXManagerClient::get() const {
   return client_;
 }
-}
+} // namespace osquery
