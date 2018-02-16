@@ -11,8 +11,6 @@
 #import <OpenDirectory/OpenDirectory.h>
 #include <membership.h>
 
-#include "osquery/core/conversions.h"
-#include "osquery/sql/sqlite_util.h"
 #include "osquery/tables/system/user_groups.h"
 
 namespace pt = boost::property_tree;
@@ -190,6 +188,7 @@ QueryData genUsers(QueryContext &context) {
       if (pwd == nullptr) {
         continue;
       }
+
       Row r;
       r["uid"] = BIGINT(uid);
       r["username"] = std::string(pwd->pw_name);
@@ -205,6 +204,7 @@ QueryData genUsers(QueryContext &context) {
       if (pwd == nullptr) {
         continue;
       }
+
       Row r;
       r["uid"] = BIGINT(pwd->pw_uid);
       r["username"] = username;
