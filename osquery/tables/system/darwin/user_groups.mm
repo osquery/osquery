@@ -77,6 +77,7 @@ void genPolicyColumns(int uid, boost::property_tree::ptree& tree) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory query: "
            << std::string([[err localizedDescription] UTF8String]);
+      return;
     }
 
     // Obtain the results synchronously, not good for very large sets.
@@ -151,22 +152,22 @@ void setRow(Row& r, passwd* pwd, boost::property_tree::ptree& tree) {
   r["shell"] = TEXT(pwd->pw_shell);
 
   if (auto creationTime = tree.get_optional<std::string>("creationTime")) {
-    r["creation_time"] = creationTime.get();
+    r["creation_time"] = DOUBLE(creationTime.get());
   }
 
   if (auto failedLoginCount =
           tree.get_optional<std::string>("failedLoginCount")) {
-    r["failed_login_count"] = failedLoginCount.get();
+    r["failed_login_count"] = BIGINT(failedLoginCount.get());
   }
 
   if (auto failedLoginTimestamp =
           tree.get_optional<std::string>("failedLoginTimestamp")) {
-    r["failed_login_timestamp"] = failedLoginTimestamp.get();
+    r["failed_login_timestamp"] = DOUBLE(failedLoginTimestamp.get());
   }
 
   if (auto passwordLastSetTime =
           tree.get_optional<std::string>("passwordLastSetTime")) {
-    r["password_last_set_time"] = passwordLastSetTime.get();
+    r["password_last_set_time"] = DOUBLE(passwordLastSetTime.get());
   }
 
   uuid_t uuid = {0};
