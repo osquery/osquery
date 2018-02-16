@@ -58,6 +58,60 @@ void genODEntries(ODRecordType type, std::set<std::string> &names) {
   }
 }
 
+void genPolicyColumns(int uid, boost::property_tree::ptree& tree) {
+  @autoreleasepool {
+    ODSession* s = [ODSession defaultSession];
+    NSError* err = nullptr;
+    ODNode* root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
+    if (err != nullptr) {
+      TLOG << "Error with OpenDirectory node: "
+           << std::string([[err localizedDescription] UTF8String]);
+    }
+
+    ODQuery* q = [ODQuery queryWithNode:root
+                         forRecordTypes:kODRecordTypeUsers
+                              attribute:kODAttributeTypeUniqueID
+                              matchType:kODMatchEqualTo
+                            queryValues:[NSString stringWithFormat:@"%d", uid]
+                       returnAttributes:@"dsAttrTypeNative:accountPolicyData"
+                         maximumResults:0
+                                  error:&err];
+    if (err != nullptr) {
+      TLOG << "Error with OpenDirectory query: "
+           << std::string([[err localizedDescription] UTF8String]);
+    }
+
+    // Obtain the results synchronously, not good for very large sets.
+    NSArray* od_results = [q resultsAllowingPartial:NO error:&err];
+    if (err != nullptr) {
+      TLOG << "Error with OpenDirectory results: "
+           << std::string([[err localizedDescription] UTF8String]);
+    }
+    for (ODRecord* re in od_results) {
+      if (err != nullptr) {
+        TLOG << "Error with OpenDirectory attribute: "
+             << std::string([[err localizedDescription] UTF8String]);
+      } else {
+        NSData* userPlistData =
+            [re valuesForAttribute:@"dsAttrTypeNative:accountPolicyData"
+                             error:nil][0];
+        std::string userPlistString =
+            [[[NSString alloc] initWithData:userPlistData
+                                   encoding:NSUTF8StringEncoding] UTF8String];
+
+        if (userPlistString.empty()) {
+          continue;
+        }
+
+        if (!osquery::parsePlistContent(userPlistString, tree).ok()) {
+          TLOG << "Error parsing Account Policy data plist";
+          continue;
+        }
+      }
+    }
+  }
+}
+
 QueryData genGroups(QueryContext &context) {
   QueryData results;
   if (context.constraints["gid"].exists(EQUALS)) {
@@ -89,7 +143,24 @@ QueryData genGroups(QueryContext &context) {
   return results;
 }
 
-void setRow(Row &r, passwd *pwd) {
+void setRow(Row& r, passwd* pwd, boost::property_tree::ptree& tree) {
+  boost::optional<std::string> creationTime =
+      tree.get_optional<std::string>("creationTime");
+  boost::optional<std::string> failedLoginCount =
+      tree.get_optional<std::string>("failedLoginCount");
+  boost::optional<std::string> failedLoginTimestamp =
+      tree.get_optional<std::string>("failedLoginTimestamp");
+  boost::optional<std::string> passwordLastSetTime =
+      tree.get_optional<std::string>("passwordLastSetTime");
+
+  r["creation_time"] = creationTime ? creationTime.get() : DOUBLE(0);
+  r["failed_login_count"] =
+      failedLoginCount ? failedLoginCount.get() : BIGINT(0);
+  r["failed_login_timestamp"] =
+      failedLoginTimestamp ? failedLoginTimestamp.get() : DOUBLE(0);
+  r["password_last_set_time"] =
+      passwordLastSetTime ? passwordLastSetTime.get() : DOUBLE(0);
+
   r["gid"] = BIGINT(pwd->pw_gid);
   r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
   r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
@@ -111,6 +182,7 @@ void setRow(Row &r, passwd *pwd) {
 
 QueryData genUsers(QueryContext &context) {
   QueryData results;
+  pt::ptree tree;
   if (context.constraints["uid"].exists(EQUALS)) {
     auto uids = context.constraints["uid"].getAll<long long>(EQUALS);
     for (const auto &uid : uids) {
@@ -118,11 +190,11 @@ QueryData genUsers(QueryContext &context) {
       if (pwd == nullptr) {
         continue;
       }
-
       Row r;
       r["uid"] = BIGINT(uid);
       r["username"] = std::string(pwd->pw_name);
-      setRow(r, pwd);
+      genPolicyColumns(uid, tree);
+      setRow(r, pwd, tree);
       results.push_back(r);
     }
   } else {
@@ -133,39 +205,11 @@ QueryData genUsers(QueryContext &context) {
       if (pwd == nullptr) {
         continue;
       }
-
       Row r;
       r["uid"] = BIGINT(pwd->pw_uid);
       r["username"] = username;
-      std::string accountPolicyDataPath =
-          "/private/var/db/dslocal/nodes/Default/users/";
-      std::string path = accountPolicyDataPath + username.c_str() + ".plist";
-      auto darwinUserData = SQL::selectAllFrom("plist", "path", EQUALS, path);
-
-      for (const auto& row : darwinUserData) {
-        if (row.find("key") == row.end() || row.find("value") == row.end()) {
-          continue;
-        }
-        if (row.at("key") == "accountPolicyData") {
-          std::string userPlistData;
-          userPlistData = base64Decode(row.at("value"));
-          pt::ptree tree;
-
-          if (!osquery::parsePlistContent(userPlistData, tree).ok()) {
-            TLOG << "Error parsing Account Policy data plist: " << path;
-            continue;
-          }
-
-          r["creation_time"] = tree.get<std::string>("creationTime");
-          r["failed_login_count"] = tree.get<std::string>("failedLoginCount");
-          r["failed_login_timestamp"] =
-              tree.get<std::string>("failedLoginTimestamp");
-          r["password_last_set_time"] =
-              tree.get<std::string>("passwordLastSetTime");
-        }
-      }
-
-      setRow(r, pwd);
+      genPolicyColumns(pwd->pw_uid, tree);
+      setRow(r, pwd, tree);
       results.push_back(r);
     }
   }
