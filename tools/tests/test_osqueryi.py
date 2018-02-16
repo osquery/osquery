@@ -191,7 +191,10 @@ class OsqueryiTest(unittest.TestCase):
             ],
             SHELL_TIMEOUT
         )
-        self.assertEqual(proc.stdout, "[\n  {\"0\":\"0\"}\n]\n")
+        if os.name == "nt":
+            self.assertEqual(proc.stdout, "[\r\n  {\"0\":\"0\"}\r\n]\r\n")
+        else:
+            self.assertEqual(proc.stdout, "[\n  {\"0\":\"0\"}\n]\n")
         print(proc.stdout)
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
