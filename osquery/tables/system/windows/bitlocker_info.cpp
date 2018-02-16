@@ -22,7 +22,7 @@ QueryData genBitlockerInfo(QueryContext& context) {
   Row r;
   QueryData results;
   WmiRequest wmiSystemReq("SELECT * FROM Win32_EncryptableVolume",
-                          L"ROOT\\CIMV2\\Security\\MicrosoftVolumeEncryption");
+                          (BSTR)L"ROOT\\CIMV2\\Security\\MicrosoftVolumeEncryption");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   if (!wmiResults.empty()) {
     long protectionstatus = 0;
