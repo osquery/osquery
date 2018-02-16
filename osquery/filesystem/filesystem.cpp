@@ -307,10 +307,9 @@ static void genGlobs(std::string path,
       if (dsym_inos.find(d_stat.st_ino) == dsym_inos.end()) {
         dsym_inos.insert(d_stat.st_ino);
       } else {
-        LOG(WARNING) << "Recursive symlink found: " << result_path;
-        results.clear();
+        LOG(WARNING) << "Symlink loop detected possibly involving: "
+                     << result_path;
         glob_index = kMaxRecursiveGlobs;
-        break;
       }
     }
 
