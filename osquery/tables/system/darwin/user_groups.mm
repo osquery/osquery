@@ -84,6 +84,7 @@ void genPolicyColumns(int uid, boost::property_tree::ptree& tree) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory results: "
            << std::string([[err localizedDescription] UTF8String]);
+      return;
     }
     for (ODRecord* re in od_results) {
       if (err != nullptr) {
