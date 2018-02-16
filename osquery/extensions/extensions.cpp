@@ -91,6 +91,50 @@ EXTENSION_FLAG_ALIAS(socket, extensions_socket);
 EXTENSION_FLAG_ALIAS(timeout, extensions_timeout);
 EXTENSION_FLAG_ALIAS(interval, extensions_interval);
 
+/// A Dispatcher service thread that watches an ExtensionManagerHandler.
+class ExtensionWatcher : public InternalRunnable {
+ public:
+  virtual ~ExtensionWatcher() = default;
+  ExtensionWatcher(const std::string& path, size_t interval, bool fatal);
+
+ public:
+  /// The Dispatcher thread entry point.
+  void start() override;
+
+  /// Perform health checks.
+  virtual void watch();
+
+ protected:
+  /// Exit the extension process with a fatal if the ExtensionManager dies.
+  void exitFatal(int return_code = 1);
+
+ protected:
+  /// The UNIX domain socket path for the ExtensionManager.
+  std::string path_;
+
+  /// The internal in milliseconds to ping the ExtensionManager.
+  size_t interval_;
+
+  /// If the ExtensionManager socket is closed, should the extension exit.
+  bool fatal_;
+};
+
+class ExtensionManagerWatcher : public ExtensionWatcher {
+ public:
+  ExtensionManagerWatcher(const std::string& path, size_t interval)
+      : ExtensionWatcher(path, interval, false) {}
+
+  /// The Dispatcher thread entry point.
+  void start() override;
+
+  /// Start a specialized health check for an ExtensionManager.
+  void watch() override;
+
+ private:
+  /// Allow extensions to fail for several intervals.
+  std::map<RouteUUID, size_t> failures_;
+};
+
 Status applyExtensionDelay(std::function<Status(bool& stop)> predicate) {
   // Make sure the extension manager path exists, and is writable.
   size_t delay = 0;

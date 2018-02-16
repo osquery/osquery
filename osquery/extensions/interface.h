@@ -26,26 +26,6 @@
 #pragma warning(disable : 4250)
 #endif
 
-#ifdef FBTHRIFT
-#include <thrift/lib/cpp/async/TAsyncSocket.h>
-#include <thrift/lib/cpp2/async/HeaderClientChannel.h>
-#include <thrift/lib/cpp2/protocol/BinaryProtocol.h>
-#include <thrift/lib/cpp2/server/ThriftServer.h>
-#else
-#include <thrift/concurrency/ThreadManager.h>
-#include <thrift/protocol/TBinaryProtocol.h>
-#include <thrift/server/TThreadedServer.h>
-#include <thrift/transport/TBufferTransports.h>
-#endif
-
-#ifdef WIN32
-#include <thrift/transport/TPipe.h>
-#include <thrift/transport/TPipeServer.h>
-#elif !defined(FBTHRIFT)
-#include <thrift/transport/TServerSocket.h>
-#include <thrift/transport/TSocket.h>
-#endif
-
 // Include intermediate Thrift-generated interface definitions.
 #include "Extension.h"
 #include "ExtensionManager.h"
@@ -71,59 +51,19 @@
 #endif
 
 namespace osquery {
-
-using namespace apache::thrift;
-using namespace apache::thrift::protocol;
-using namespace apache::thrift::transport;
-using namespace apache::thrift::server;
-using namespace apache::thrift::concurrency;
-
-#ifdef WIN32
-typedef TPipe TPlatformSocket;
-typedef TPipeServer TPlatformServerSocket;
-typedef std::shared_ptr<TPipe> TPlatformSocketRef;
-#elif !defined(FBTHRIFT)
-typedef TSocket TPlatformSocket;
-typedef TServerSocket TPlatformServerSocket;
-typedef std::shared_ptr<TSocket> TPlatformSocketRef;
-#endif
-
-typedef std::shared_ptr<TTransport> TTransportRef;
-typedef std::shared_ptr<TProtocol> TProtocolRef;
-typedef std::shared_ptr<TServerTransport> TServerTransportRef;
-
-#ifdef FBTHRIFT
-typedef std::shared_ptr<AsyncProcessorFactory> TProcessorRef;
-using TThreadedServerRef = std::shared_ptr<ThriftServer>;
-using _Client = extensions::cpp2::ExtensionAsyncClient;
-using _ManagerClient = extensions::cpp2::ExtensionManagerAsyncClient;
-#else
-typedef std::shared_ptr<TProcessor> TProcessorRef;
-typedef std::shared_ptr<TTransportFactory> TTransportFactoryRef;
-typedef std::shared_ptr<TProtocolFactory> TProtocolFactoryRef;
-typedef std::shared_ptr<ThreadManager> TThreadManagerRef;
-using TThreadedServerRef = std::shared_ptr<TThreadedServer>;
-using _Client = extensions::ExtensionClient;
-using _ManagerClient = extensions::ExtensionManagerClient;
-#endif
-
 namespace extensions {
 
 #ifdef FBTHRIFT
 using namespace cpp2;
 using _ExtensionIf = ExtensionSvIf;
 using _ExtensionManagerIf = ExtensionManagerSvIf;
-using _str_param = const std::unique_ptr<std::string>;
-using _plugin_param = const std::unique_ptr<ExtensionPluginRequest>;
-using _info_param = const std::unique_ptr<InternalExtensionInfo>;
-using _registry_param = const std::unique_ptr<ExtensionRegistry>;
+using _Client = extensions::cpp2::ExtensionAsyncClient;
+using _ManagerClient = extensions::cpp2::ExtensionManagerAsyncClient;
 #else
 using _ExtensionIf = ExtensionIf;
 using _ExtensionManagerIf = ExtensionManagerIf;
-using _str_param = const std::string&;
-using _plugin_param = const ExtensionPluginRequest&;
-using _info_param = const InternalExtensionInfo&;
-using _registry_param = const ExtensionRegistry&;
+using _Client = extensions::ExtensionClient;
+using _ManagerClient = extensions::ExtensionManagerClient;
 #endif
 
 /**
@@ -151,9 +91,9 @@ class ExtensionHandler : virtual public _ExtensionIf {
    * @param request The plugin request.
    */
   void call(ExtensionResponse& _return,
-            _str_param registry,
-            _str_param item,
-            _plugin_param request) override;
+            const std::string& registry,
+            const std::string& item,
+            const ExtensionPluginRequest& request) override;
 
   /// Request an extension to shutdown.
   virtual void shutdown() override;
@@ -211,8 +151,8 @@ class ExtensionManagerHandler : virtual public _ExtensionManagerIf,
    * @param registry The Extension's Registry::getBroadcast information.
    */
   void registerExtension(ExtensionStatus& _return,
-                         _info_param info,
-                         _registry_param registry) override;
+                         const InternalExtensionInfo& info,
+                         const ExtensionRegistry& registry) override;
 
   /**
    * @brief Request an Extension removal and removal of Registry routes.
@@ -238,7 +178,7 @@ class ExtensionManagerHandler : virtual public _ExtensionManagerIf,
    * @param _return The output Status and QueryData (as response).
    * @param sql The sql statement.
    */
-  void query(ExtensionResponse& _return, _str_param sql) override;
+  void query(ExtensionResponse& _return, const std::string& sql) override;
 
   /**
    * @brief Get SQL column information for SQL statements in osquery core.
@@ -250,7 +190,8 @@ class ExtensionManagerHandler : virtual public _ExtensionManagerIf,
    * @param _return The output Status and TableColumns (as response).
    * @param sql The sql statement.
    */
-  void getQueryColumns(ExtensionResponse& _return, _str_param sql) override;
+  void getQueryColumns(ExtensionResponse& _return,
+                       const std::string& sql) override;
 
  protected:
   /// A shutdown request does not apply to ExtensionManagers.
@@ -270,83 +211,59 @@ class ExtensionManagerHandler : virtual public _ExtensionManagerIf,
   /// Mutex for extensions accessors.
   Mutex extensions_mutex_;
 };
-
-typedef std::shared_ptr<ExtensionHandler> ExtensionHandlerRef;
-typedef std::shared_ptr<ExtensionManagerHandler> ExtensionManagerHandlerRef;
 }
 
-/// A Dispatcher service thread that watches an ExtensionManagerHandler.
-class ExtensionWatcher : public InternalRunnable {
+struct ImpExtensionRunner;
+struct ImpExtensionManagerServer;
+
+class ExtensionRunnerImpl {
  public:
-  virtual ~ExtensionWatcher() = default;
-  ExtensionWatcher(const std::string& path, size_t interval, bool fatal);
+  virtual ~ExtensionRunnerImpl();
+  ExtensionRunnerImpl();
 
- public:
-  /// The Dispatcher thread entry point.
-  void start() override;
+  /// Call serve.
+  void serve();
 
-  /// Perform health checks.
-  virtual void watch();
+  /// Set up structures.
+  void connect();
 
- protected:
-  /// Exit the extension process with a fatal if the ExtensionManager dies.
-  void exitFatal(int return_code = 1);
+  /// Create processor.
+  void init(RouteUUID uuid);
 
- protected:
-  /// The UNIX domain socket path for the ExtensionManager.
-  std::string path_;
+  /// Create manager processor.
+  void initManager();
 
-  /// The internal in milliseconds to ping the ExtensionManager.
-  size_t interval_;
+  /// Stop server.
+  void stopServer();
 
-  /// If the ExtensionManager socket is closed, should the extension exit.
-  bool fatal_;
-};
-
-class ExtensionManagerWatcher : public ExtensionWatcher {
- public:
-  ExtensionManagerWatcher(const std::string& path, size_t interval)
-      : ExtensionWatcher(path, interval, false) {}
-
-  /// The Dispatcher thread entry point.
-  void start() override;
-
-  /// Start a specialized health check for an ExtensionManager.
-  void watch() override;
-
- private:
-  /// Allow extensions to fail for several intervals.
-  std::map<RouteUUID, size_t> failures_;
-};
-
-class ExtensionRunnerCore : public InternalRunnable {
- public:
-  virtual ~ExtensionRunnerCore();
-  explicit ExtensionRunnerCore(const std::string& path)
-      : InternalRunnable("ExtensionRunnerCore"),
-        path_(path),
-        server_(nullptr) {}
-
- public:
-  /// Given a handler transport and protocol start a thrift threaded server.
-  void startServer(TProcessorRef processor);
-
-  // The Dispatcher thread service stop point.
-  void stop() override;
+  /// Stop server manager.
+  void stopServerManager();
 
  protected:
   /// The UNIX domain socket used for requests from the ExtensionManager.
   std::string path_;
 
+  /// Thrift server implementation.
+  std::unique_ptr<ImpExtensionRunner> server;
+
   /// Raw socket (optional)
   int raw_socket_{0};
+};
 
-  /// Transport instance, will be interrupted if the thread is removed.
-  TServerTransportRef transport_{nullptr};
+class ExtensionRunnerCore : public InternalRunnable,
+                            public ExtensionRunnerImpl {
+ public:
+  virtual ~ExtensionRunnerCore();
+  explicit ExtensionRunnerCore(const std::string& path);
 
-  /// Server instance, will be stopped if thread service is removed.
-  TThreadedServerRef server_{nullptr};
+ public:
+  /// Given a handler transport and protocol start a thrift threaded server.
+  void startServer();
 
+  // The Dispatcher thread service stop point.
+  void stop() override;
+
+ protected:
   /// Protect the service start and stop, this mutex protects server creation.
   Mutex service_start_;
 
@@ -387,8 +304,7 @@ class ExtensionRunner : public ExtensionRunnerCore {
 class ExtensionManagerRunner : public ExtensionRunnerCore {
  public:
   virtual ~ExtensionManagerRunner();
-  explicit ExtensionManagerRunner(const std::string& manager_path)
-      : ExtensionRunnerCore(manager_path) {}
+  explicit ExtensionManagerRunner(const std::string& manager_path);
 
  public:
   void start() override;
@@ -405,16 +321,14 @@ class EXInternal : private boost::noncopyable {
   virtual ~EXInternal();
 
  protected:
-  std::string path_;
+  /// Raw socket (optional)
   int raw_socket_{0};
 
-#ifdef FBTHRIFT
-  folly::EventBase base_;
-#else
-  TPlatformSocketRef socket_;
-  TTransportRef transport_;
-  TProtocolRef protocol_;
-#endif
+  /// Path to extension server socket.
+  std::string path_;
+
+  /// Thrift server implementation.
+  std::unique_ptr<ImpExtensionManagerServer> server;
 };
 
 /// Internal accessor for a client to an extension (from an extension manager).
@@ -430,10 +344,10 @@ class EXClient : public EXInternal {
    */
   explicit EXClient(const std::string& path, size_t timeout = 5000 * 60);
 
-  const std::shared_ptr<_Client>& get() const;
+  const std::shared_ptr<extensions::_Client>& get() const;
 
  private:
-  std::shared_ptr<_Client> client_;
+  std::shared_ptr<extensions::_Client> client_;
 };
 
 /// Internal accessor for a client to an extension manager (from an extension).
@@ -448,11 +362,14 @@ class EXManagerClient : public EXInternal {
   explicit EXManagerClient(const std::string& manager_path,
                            size_t timeout = 5000 * 60);
 
-  const std::shared_ptr<_ManagerClient>& get() const;
+  const std::shared_ptr<extensions::_ManagerClient>& get() const;
 
  private:
-  std::shared_ptr<_ManagerClient> client_;
+  std::shared_ptr<extensions::_ManagerClient> client_;
 };
+
+/// Attempt to remove all stale extension sockets.
+void removeStalePaths(const std::string& manager);
 }
 
 #ifdef WIN32

@@ -12,7 +12,7 @@ if(LINUX OR DARWIN)
     add_custom_command(
       COMMAND
         LD_LIBRARY_PATH=${BUILD_DEPS}/lib:$ENV{LD_LIBRARY_PATH}
-        ${THRIFT_COMPILER} --gen mstch_cpp2:include_prefix=generated --gen py
+        ${THRIFT_COMPILER} --gen mstch_cpp2:stack_arguments,include_prefix=generated --gen py
         --templates "${BUILD_DEPS}/include/thrift/templates"
         -o "${CMAKE_BINARY_DIR}/generated"
         "${CMAKE_SOURCE_DIR}/osquery.thrift"
@@ -34,6 +34,8 @@ if(LINUX OR DARWIN)
     ADD_OSQUERY_LINK_CORE("thriftcpp2 thrift-core thriftprotocol thriftfrozen2")
     ADD_OSQUERY_LINK_CORE("transport server concurrency security protocol async")
     ADD_OSQUERY_LINK_CORE("crypto ssl")
+
+    set(THRIFT_IMPL_FILE impl_fbthrift.cpp)
   else()
     add_custom_command(
       COMMAND
@@ -44,6 +46,8 @@ if(LINUX OR DARWIN)
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
       OUTPUT ${THRIFT_GENERATED_FILES}
     )
+
+    set(THRIFT_IMPL_FILE impl_thrift.cpp)
   endif()
 else()
   add_custom_command(
@@ -64,6 +68,7 @@ endif()
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
   ${THRIFT_GENERATED_FILES}
+  ${THRIFT_IMPL_FILE}
   extensions.cpp
   interface.cpp
 )
