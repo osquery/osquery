@@ -414,6 +414,10 @@ The Kafka topic to publish logs to.  When using multiple topics this configurati
 
 The number of acknowledgments the Kafka leader has to receive before a publish is considered successful.  Valid options are (0, 1, "all").
 
+`--logger_kafka_compression`
+
+Compression codec to use for compressing message sets.  Valid options are ("none", "gzip").  Default is "none".
+
 ### Distributed query service flags
 
 `--distributed_plugin=tls`
