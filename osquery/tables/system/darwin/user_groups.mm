@@ -64,6 +64,7 @@ void genPolicyColumns(int uid, boost::property_tree::ptree& tree) {
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory node: "
            << std::string([[err localizedDescription] UTF8String]);
+      return;
     }
 
     ODQuery* q = [ODQuery queryWithNode:root
@@ -92,11 +93,22 @@ void genPolicyColumns(int uid, boost::property_tree::ptree& tree) {
         TLOG << "Error with OpenDirectory attribute: "
              << std::string([[err localizedDescription] UTF8String]);
       } else {
-        NSData* userPlistData =
+        NSArray* userPolicyDataValues =
             [re valuesForAttribute:@"dsAttrTypeNative:accountPolicyData"
-                             error:nil][0];
+                             error:&err];
+
+        if (err != nullptr) {
+          TLOG << "Error with OpenDirectory attribute data: "
+               << std::string([[err localizedDescription] UTF8String]);
+          continue;
+        }
+
+        if (![userPolicyDataValues count]) {
+          continue;
+        }
+
         std::string userPlistString =
-            [[[NSString alloc] initWithData:userPlistData
+            [[[NSString alloc] initWithData:userPolicyDataValues[0]
                                    encoding:NSUTF8StringEncoding] UTF8String];
 
         if (userPlistString.empty()) {
