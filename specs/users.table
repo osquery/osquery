@@ -14,6 +14,12 @@ schema([
 extended_schema(WINDOWS, [
     Column("type", TEXT, "Whether the account is roaming (domain), local, or a system profile"),
 ])
+extended_schema(DARWIN, [
+    Column("creation_time", DOUBLE, "When the account was first created (Apple)"),
+    Column("failed_login_count", BIGINT, "The number of times the user failed to login with the correct password. Resets after a correct password is entered (Apple)"),
+    Column("failed_login_timestamp", DOUBLE, "The time of the last failed login attempt. Resets after a correct password is entered (Apple)"),
+    Column("password_last_set_time", DOUBLE, "The time the password was last changed (Apple)"),
+])
 implementation("users@genUsers")
 examples([
   "select * from users where uid = 1000",

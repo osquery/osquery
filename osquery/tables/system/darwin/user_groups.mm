@@ -11,8 +11,11 @@
 #import <OpenDirectory/OpenDirectory.h>
 #include <membership.h>
 
+#include "osquery/core/conversions.h"
+#include "osquery/sql/sqlite_util.h"
 #include "osquery/tables/system/user_groups.h"
 
+namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
@@ -134,6 +137,34 @@ QueryData genUsers(QueryContext &context) {
       Row r;
       r["uid"] = BIGINT(pwd->pw_uid);
       r["username"] = username;
+      std::string accountPolicyDataPath =
+          "/private/var/db/dslocal/nodes/Default/users/";
+      std::string path = accountPolicyDataPath + username.c_str() + ".plist";
+      auto darwinUserData = SQL::selectAllFrom("plist", "path", EQUALS, path);
+
+      for (const auto& row : darwinUserData) {
+        if (row.find("key") == row.end() || row.find("value") == row.end()) {
+          continue;
+        }
+        if (row.at("key") == "accountPolicyData") {
+          std::string userPlistData;
+          userPlistData = base64Decode(row.at("value"));
+          pt::ptree tree;
+
+          if (!osquery::parsePlistContent(userPlistData, tree).ok()) {
+            TLOG << "Error parsing Account Policy data plist: " << path;
+            continue;
+          }
+
+          r["creation_time"] = tree.get<std::string>("creationTime");
+          r["failed_login_count"] = tree.get<std::string>("failedLoginCount");
+          r["failed_login_timestamp"] =
+              tree.get<std::string>("failedLoginTimestamp");
+          r["password_last_set_time"] =
+              tree.get<std::string>("passwordLastSetTime");
+        }
+      }
+
       setRow(r, pwd);
       results.push_back(r);
     }
