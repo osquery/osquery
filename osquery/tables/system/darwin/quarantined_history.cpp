@@ -30,6 +30,8 @@ namespace tables {
 const std::string kQuarantineEventsDbPath =
     "Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2";
 
+const int cocoaToUnixEpochOffset = 978307200;
+
 void genQuarantineEventRow(sqlite3_stmt* const stmt,
                            std::string username,
                            Row& r) {
@@ -43,7 +45,13 @@ void genQuarantineEventRow(sqlite3_stmt* const stmt,
       }
     } else if (column_type == SQLITE_FLOAT) {
       auto value = sqlite3_column_double(stmt, i);
-      r[column_name] = DOUBLE(value);
+      // convert to UNIX epoch
+      if (column_name == "timestamp") {
+        auto timestamp = value + cocoaToUnixEpochOffset;
+        r[column_name] = DOUBLE(timestamp);
+      } else {
+        r[column_name] = DOUBLE(value);
+      }
     } else if (column_type == SQLITE_INTEGER) {
       auto value = sqlite3_column_int(stmt, i);
       r[column_name] = INTEGER(value);
@@ -84,7 +92,8 @@ void genQuarantineHistoryItems(const fs::path& qepath,
       "agent_bundle_identifier, LSQuarantineTypeNumber as type,  "
       "LSQuarantineDataURLString as data_url,LSQuarantineOriginURLString as "
       "origin_url, LSQuarantineSenderName as sender_name, "
-      "LSQuarantineSenderAddress as sender_address from LSQuarantineEvent";
+      "LSQuarantineSenderAddress as sender_address, LSQuarantineTimeStamp as "
+      "timestamp from LSQuarantineEvent";
   sqlite3_stmt* stmt = nullptr;
   rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
   while ((sqlite3_step(stmt)) == SQLITE_ROW) {

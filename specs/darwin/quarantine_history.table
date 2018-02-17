@@ -9,6 +9,7 @@ schema([
     Column("origin_url", TEXT, "The URL of the resource originally hosting the quarantined item, from the user's point of view"),
     Column("sender_name", TEXT, "The full name or username of the invidual sending the quarantined file when available (for email attachments and files sent via Airdrop)"),
     Column("sender_address", TEXT, "The email address of the invidual sending the quarantined file"),
+    Column("timestamp", DOUBLE, "The time the quarantining agent created the quarantine event"),
     Column("username", TEXT, "The user associated with the quarantine event")
 ])
 implementation("quarantine_history@genQuarantineHistory")
