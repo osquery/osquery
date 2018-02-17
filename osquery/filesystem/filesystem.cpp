@@ -286,7 +286,7 @@ static void genGlobs(std::string path,
     for (auto& result_path : glob_results) {
       results.push_back(result_path);
 
-      #ifndef WIN32
+#ifndef WIN32
       struct stat d_stat;
       if (::lstat(result_path.c_str(), &d_stat) < 0) {
         continue;
@@ -312,7 +312,7 @@ static void genGlobs(std::string path,
                      << result_path;
         glob_index = kMaxRecursiveGlobs;
       }
-      #endif
+#endif
     }
 
     // The end state is a non-recursive ending or empty set of matches.
