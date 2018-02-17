@@ -89,36 +89,33 @@ void genPolicyColumns(int uid, boost::property_tree::ptree& tree) {
       return;
     }
     for (ODRecord* re in od_results) {
+      NSError* attrErr = nullptr;
+
+      NSArray* userPolicyDataValues =
+          [re valuesForAttribute:@"dsAttrTypeNative:accountPolicyData"
+                           error:&attrErr];
+
       if (err != nullptr) {
-        TLOG << "Error with OpenDirectory attribute: "
-             << std::string([[err localizedDescription] UTF8String]);
-      } else {
-        NSArray* userPolicyDataValues =
-            [re valuesForAttribute:@"dsAttrTypeNative:accountPolicyData"
-                             error:&err];
+        TLOG << "Error with OpenDirectory attribute data: "
+             << std::string([[attrErr localizedDescription] UTF8String]);
+        continue;
+      }
 
-        if (err != nullptr) {
-          TLOG << "Error with OpenDirectory attribute data: "
-               << std::string([[err localizedDescription] UTF8String]);
-          continue;
-        }
+      if (![userPolicyDataValues count]) {
+        continue;
+      }
 
-        if (![userPolicyDataValues count]) {
-          continue;
-        }
+      std::string userPlistString =
+          [[[NSString alloc] initWithData:userPolicyDataValues[0]
+                                 encoding:NSUTF8StringEncoding] UTF8String];
 
-        std::string userPlistString =
-            [[[NSString alloc] initWithData:userPolicyDataValues[0]
-                                   encoding:NSUTF8StringEncoding] UTF8String];
+      if (userPlistString.empty()) {
+        continue;
+      }
 
-        if (userPlistString.empty()) {
-          continue;
-        }
-
-        if (!osquery::parsePlistContent(userPlistString, tree).ok()) {
-          TLOG << "Error parsing Account Policy data plist";
-          continue;
-        }
+      if (!osquery::parsePlistContent(userPlistString, tree).ok()) {
+        TLOG << "Error parsing Account Policy data plist";
+        continue;
       }
     }
   }
