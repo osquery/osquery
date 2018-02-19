@@ -97,14 +97,7 @@ class BRODistributedPlugin : public DistributedPlugin {
 REGISTER(BRODistributedPlugin, "distributed", "bro");
 
 Status BRODistributedPlugin::setUp() {
-  // Setup Broker Endpoint
   LOG(INFO) << "Starting the Bro Distributed Plugin";
-  BrokerManager& bm = BrokerManager::get();
-
-  Status s = bm.checkConnection();
-  if (!s.ok()) {
-    return s;
-  }
 
   return Status(0, "OK");
 }
@@ -223,6 +216,13 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
   BrokerManager& bm = BrokerManager::get();
   Status s;
 
+  // Check for connection failure and wait for repair
+  s = bm.checkConnection();
+  if (!s.ok()) {
+    LOG(WARNING) << "Unable to repair broker connection";
+    return s;
+  }
+
   // Collect all topics and subscribers
   std::vector<std::string> topics = bm.getTopics();
   // Retrieve info about each subscriber and the file descriptor
@@ -274,6 +274,11 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
     }
   }
 
+  // Check the broker connection
+  if (fds[topics.size()].revents == 1) {
+    VLOG(1) << "Break fd loop because broker connection changed";
+  }
+
   // Serialize the distributed query requests
   pt::ptree request_queries;
   for (const auto& ot_query : oT_queries) {
@@ -290,9 +295,6 @@ Status BRODistributedPlugin::getQueries(std::string& json) {
     LOG(ERROR) << s.getMessage();
     return s;
   }
-
-  // Check for connection failure and wait for repair
-  bm.checkConnection(0);
 
   return Status(0, "OK");
 }

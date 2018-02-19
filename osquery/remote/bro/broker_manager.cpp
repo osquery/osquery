@@ -193,67 +193,62 @@ std::vector<std::string> BrokerManager::getTopics() {
 Status BrokerManager::checkConnection(double timeout, bool ignore_error) {
   // Exclusive access
   WriteLock lock(connection_mutex_);
+  bool initial_peering = false;
   Status s;
 
-  // Are we unpeered or not peered yet?
-  if (!ss_) {
+  // Initial or already in operation?
+  if (ss_) {
+    // Get connection state
+    auto ps = getPeeringStatus(0);
+
+    // Still connected since last time?
+    if (!ps.second && ps.first.code() == broker::sc::peer_added) {
+      return Status(0, "OK");
+    } else {
+      // Unpeer when connected previously
+      initiateUnpeering();
+    }
+  } else {
+    // Are we unpeered or not peered yet?
     VLOG(1) << "Initializing Peering";
+    initial_peering = true;
+
     ss_ = std::make_unique<broker::status_subscriber>(
         ep_->make_status_subscriber(true));
-    initiatePeering();
   }
 
-  // Retrieve current connection state and whether is has changed
-  auto ps = getPeeringStatus(timeout);
-
-  // Still connected since last time?
-  if (!ps.second && ps.first.code() == broker::sc::peer_added) {
-    return Status(0, "OK");
+  // Initial state when connecting
+  s = initiateReset();
+  if (!s.ok()) {
+    LOG(WARNING) << s.getMessage();
   }
 
-  // If changed then we have to reset
-  if (ps.second) {
-    VLOG(1) << "Resetting because connection status changed";
-    s = initiateReset();
+  while (true) {
+    // Now connect
+    s = initiatePeering();
     if (!s.ok()) {
       LOG(WARNING) << s.getMessage();
     }
-  }
 
-  // Check for error
-  if (timeout < 0 && ignore_error) {
-    VLOG(1) << "Waiting until connection is established";
-    auto ip = remote_endpoint_.first;
-    auto port = remote_endpoint_.second;
-    while (ps.first.code() != broker::sc::peer_added) {
-      // We have to sleep since errors cause immediate return
+    // Wait for confirmation of the status change
+    auto ps = getPeeringStatus();
+
+    if (ps.first.code() != broker::sc::peer_added) {
+      LOG(WARNING) << "Retrying to connect to Bro...";
       sleepFor(3 * 1000);
-      // Reconnect if connection is broken
-      if (ps.first.code() == broker::sc::unspecified ||
-          ep_->peers().size() == 0) {
-        VLOG(1) << "Initiate peering to repair connection";
-        ep_->peer_nosync(ip, port, broker::timeout::seconds(-1));
-      }
-      ps = getPeeringStatus(timeout);
+    } else {
+      VLOG(1) << "Broker connection established";
+      break;
     }
   }
 
-  // Check for working connection state
-  if (ps.first.code() == broker::sc::peer_added) {
-    // Send announce message
-    s = announce();
-    if (!s.ok()) {
-      LOG(ERROR) << s.getMessage();
-      return s;
-    }
-
-    return Status(0, "OK");
-  }
-  if (ps.first.message()) {
-    return Status(1, *ps.first.message());
+  s = announce();
+  if (!s.ok()) {
+    LOG(ERROR) << s.getMessage();
+    return s;
   }
 
-  return Status(1, "Unknown connection status");
+  return s;
 }
 
 Status BrokerManager::initiatePeering() {
@@ -261,7 +256,17 @@ Status BrokerManager::initiatePeering() {
   auto port = remote_endpoint_.second;
   LOG(INFO) << "Connecting to Bro " << ip << ":" << port;
 
-  ep_->peer_nosync(ip, port, broker::timeout::seconds(-1));
+  ep_->peer(ip, port, broker::timeout::seconds(-1));
+
+  return Status(0, "OK");
+}
+
+Status BrokerManager::initiateUnpeering() {
+  auto ip = remote_endpoint_.first;
+  auto port = remote_endpoint_.second;
+  LOG(INFO) << "Disconnecting from Bro " << ip << ":" << port;
+
+  ep_->unpeer(ip, port);
 
   return Status(0, "OK");
 }
@@ -332,8 +337,14 @@ std::pair<broker::status, bool> BrokerManager::getPeeringStatus(
   }
   // Check status
   if (auto st = broker::get_if<broker::status>(s)) {
+    VLOG(1) << "Broker status:" << static_cast<int>(st->code()) << ", "
+            << to_string(*st);
     connection_status_ = *st;
     has_changed = true;
+  }
+  // Check none
+  if (auto st = broker::get_if<broker::none>(s)) {
+    // No event, there was nothing
   }
 
   return {connection_status_, has_changed};
