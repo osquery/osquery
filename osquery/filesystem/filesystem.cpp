@@ -271,6 +271,37 @@ Status removePath(const fs::path& path) {
   return Status(0, std::to_string(removed_files));
 }
 
+static bool checkForLoops(std::set<int>& dsym_inos, std::string& path) {
+  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
+    return false;
+  }
+  struct stat d_stat;
+  if (::lstat(path.c_str(), &d_stat) < 0) {
+    return false;
+  }
+
+  if (0 == S_ISDIR(d_stat.st_mode)) {
+    return false;
+  }
+  path.pop_back();
+
+  if (::lstat(path.c_str(), &d_stat) < 0) {
+    return false;
+  }
+
+  if (0 == S_ISLNK(d_stat.st_mode)) {
+    return false;
+  }
+
+  if (dsym_inos.find(d_stat.st_ino) == dsym_inos.end()) {
+    dsym_inos.insert(d_stat.st_ino);
+  } else {
+    LOG(WARNING) << "Symlink loop detected possibly involving: " << path;
+    return true;
+  }
+  return false;
+}
+
 static void genGlobs(std::string path,
                      std::vector<std::string>& results,
                      GlobLimits limits) {
@@ -286,33 +317,9 @@ static void genGlobs(std::string path,
     for (auto& result_path : glob_results) {
       results.push_back(result_path);
 
-#ifndef WIN32
-      struct stat d_stat;
-      if (::lstat(result_path.c_str(), &d_stat) < 0) {
-        continue;
-      }
-
-      if (0 == S_ISDIR(d_stat.st_mode)) {
-        continue;
-      }
-      result_path.pop_back();
-
-      if (::lstat(result_path.c_str(), &d_stat) < 0) {
-        continue;
-      }
-
-      if (0 == S_ISLNK(d_stat.st_mode)) {
-        continue;
-      }
-
-      if (dsym_inos.find(d_stat.st_ino) == dsym_inos.end()) {
-        dsym_inos.insert(d_stat.st_ino);
-      } else {
-        LOG(WARNING) << "Symlink loop detected possibly involving: "
-                     << result_path;
+      if (checkForLoops(dsym_inos, result_path)) {
         glob_index = kMaxRecursiveGlobs;
       }
-#endif
     }
 
     // The end state is a non-recursive ending or empty set of matches.
