@@ -360,4 +360,14 @@ Status socketExists(const boost::filesystem::path& path,
  * @return boost::filesystem::path containing the OS root location.
  */
 boost::filesystem::path getSystemRoot();
+
+/**
+ * @brief Returns the succesfully and fills d_stat if lstat was successful.
+ *
+ *
+ * On Windows systems this does not touch the structure.
+ *
+ * @return osquery::Status
+ */
+Status platformLstat(const std::string& path, struct stat& d_stat);
 }

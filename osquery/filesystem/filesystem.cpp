@@ -271,25 +271,19 @@ Status removePath(const fs::path& path) {
   return Status(0, std::to_string(removed_files));
 }
 
-static bool checkForLoops(std::set<int>& dsym_inos, std::string& path) {
-  if (isPlatform(PlatformType::TYPE_WINDOWS)) {
-    return false;
-  }
-  struct stat d_stat;
-  if (::lstat(path.c_str(), &d_stat) < 0) {
+static bool checkForLoops(std::set<int>& dsym_inos, std::string path) {
+  if (path.empty() || path.back() != '/') {
     return false;
   }
 
-  if (0 == S_ISDIR(d_stat.st_mode)) {
-    return false;
-  }
   path.pop_back();
-
-  if (::lstat(path.c_str(), &d_stat) < 0) {
+  struct stat d_stat;
+  // On Windows systems (lstat not implemented) this immiedately returns
+  if (!platformLstat(path, d_stat).ok()) {
     return false;
   }
 
-  if (0 == S_ISLNK(d_stat.st_mode)) {
+  if ((d_stat.st_mode & 0170000) == 0) {
     return false;
   }
 
