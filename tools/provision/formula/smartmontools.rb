@@ -14,7 +14,7 @@ class Smartmontools < AbstractOsqueryFormula
   def install
     system "./autogen.sh"
 
-    ENV.append "CXXFLAGS", "-fPIC"
+    ENV.append "CXXFLAGS", "-fPIC -s -Os"
     system "./configure", "--prefix=#{prefix}"
     system "make", "install"
   end
