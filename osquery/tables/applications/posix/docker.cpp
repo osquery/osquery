@@ -27,7 +27,12 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/json.h"
+
+// When building on linux, the extended schema of docker_containers will
+// add some additional columns to support user namespaces
+#ifdef __linux__
 #include "osquery/filesystem/linux/proc.h"
+#endif
 
 namespace pt = boost::property_tree;
 namespace local = boost::asio::local;
@@ -400,6 +405,9 @@ QueryData genContainers(QueryContext& context) {
       VLOG(1) << "Failed to retrieve the pid for container " << r["id"];
     }
 
+// When building on linux, the extended schema of docker_containers will
+// add some additional columns to support user namespaces
+#ifdef __linux__
     if (r["pid"] != "-1") {
       ProcessNamespaceList namespace_list;
       s = procGetProcessNamespaces(r["pid"], namespace_list);
@@ -412,6 +420,7 @@ QueryData genContainers(QueryContext& context) {
                 << r["id"];
       }
     }
+#endif
 
     results.push_back(r);
   }

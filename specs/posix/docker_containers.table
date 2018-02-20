@@ -10,6 +10,8 @@ schema([
     Column("state", TEXT, "Container state (created, restarting, running, removing, paused, exited, dead)"),
     Column("status", TEXT, "Container status information"),
     Column("pid", TEXT, "Identifier of the initial process"),
+])
+extended_schema(LINUX, [
     Column("cgroup_namespace", TEXT, "cgroup namespace"),
     Column("ipc_namespace", TEXT, "IPC namespace"),
     Column("mnt_namespace", TEXT, "Mount namespace"),

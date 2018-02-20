@@ -11,8 +11,10 @@ schema([
     Column("local_port", INTEGER, "Socket local port"),
     Column("remote_port", INTEGER, "Socket remote port"),
     Column("path", TEXT, "For UNIX sockets (family=AF_UNIX), the domain path"),
+])
+extended_schema(LINUX, [
+    Column("state", TEXT, "TCP socket state"),
     Column("net_namespace", TEXT, "The inode number of the network namespace"),
-    Column("state", TEXT, "TCP socket state")
 ])
 implementation("system/process_open_sockets@genOpenSockets")
 examples([

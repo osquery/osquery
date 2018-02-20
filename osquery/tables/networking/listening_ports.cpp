@@ -40,17 +40,37 @@ QueryData genListeningPorts(QueryContext& context) {
     r["pid"] = socket.at("pid");
 
     if (socket.at("family") == kAF_UNIX) {
+      r["port"] = "0";
       r["path"] = socket.at("path");
+      r["socket"] = "0";
     } else {
       r["address"] = socket.at("local_address");
       r["port"] = socket.at("local_port");
+
+      auto socket_it = socket.find("socket");
+      if (socket_it != socket.end()) {
+        r["socket"] = socket_it->second;
+      } else {
+        r["socket"] = "0";
+      }
     }
 
     r["protocol"] = socket.at("protocol");
     r["family"] = socket.at("family");
-    r["net_namespace"] = socket.at("net_namespace");
-    r["fd"] = socket.at("fd");
-    r["socket"] = socket.at("socket");
+
+    auto fd_it = socket.find("fd");
+    if (fd_it != socket.end()) {
+      r["fd"] = fd_it->second;
+    } else {
+      r["fd"] = "0";
+    }
+
+    // When running under linux, we also have the user namespace
+    // column available. It can be used with the docker_containers
+    // table
+    if (isPlatform(PlatformType::TYPE_LINUX)) {
+      r["net_namespace"] = socket.at("net_namespace");
+    }
 
     results.push_back(r);
   }
