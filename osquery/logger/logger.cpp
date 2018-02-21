@@ -722,16 +722,7 @@ void relayStatusLogs(bool async) {
 }
 
 void systemLog(const std::string& line) {
-#ifdef WIN32
-  REGHANDLE registration_handle = 0;
-  if (!WindowsEventLoggerPlugin::acquireHandle(registration_handle).ok()) {
-    return;
-  }
-
-  WindowsEventLoggerPlugin::emitLogRecord(registration_handle, line);
-  WindowsEventLoggerPlugin::releaseHandle(registration_handle);
-
-#else
+#ifndef WIN32
   syslog(LOG_NOTICE, "%s", line.c_str());
 #endif
 }
