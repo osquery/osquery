@@ -28,8 +28,6 @@ schema([
     Column("smart_enabled", TEXT, "SMART enabled status"),
     Column("packet_device_type", TEXT, "Packet device type"),
     Column("power_mode", TEXT, "Device power mode"),
-    Column("local_time", DATETIME,
-        "Time and date and timezone of when smart information was retrieved"),
     Column("warnings", TEXT, "Warning messages from SMART controller"),
 ])
 implementation("system/smart_drives@genSmartInfo")
