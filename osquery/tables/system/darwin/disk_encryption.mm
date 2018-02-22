@@ -334,25 +334,23 @@ void genFDEStatusForAPFS(Row& r) {
   }
 
   if (cryptoUsers != nullptr) {
-    @autoreleasepool {
-      for (id arrObj in cryptoUsers) {
-        if (![arrObj isKindOfClass:[NSString class]]) {
-          continue;
-        }
+    for (id arrObj in cryptoUsers) {
+      if (![arrObj isKindOfClass:[NSString class]]) {
+        continue;
+      }
 
-        const char* cStr = [(NSString*)arrObj UTF8String];
-        if (cStr == nullptr) {
-          continue;
-        }
-        std::string uuidStr(cStr);
+      const char* cStr = [(NSString*)arrObj UTF8String];
+      if (cStr == nullptr) {
+        continue;
+      }
+      std::string uuidStr(cStr);
 
-        if (kHardcodedDiskUUIDs.count(uuidStr) == 0) {
-          QueryData rows = SQL::selectAllFrom("users");
-          for (const auto& row : rows) {
-            if (row.count("uuid") > 0 && row.at("uuid") == uuidStr) {
-              r["user_uuid"] = row.at("uuid");
-              r["uid"] = row.count("uuid") > 0 ? row.at("uid") : "";
-            }
+      if (kHardcodedDiskUUIDs.count(uuidStr) == 0) {
+        QueryData rows = SQL::selectAllFrom("users");
+        for (const auto& row : rows) {
+          if (row.count("uuid") > 0 && row.at("uuid") == uuidStr) {
+            r["user_uuid"] = row.at("uuid");
+            r["uid"] = row.count("uuid") > 0 ? row.at("uid") : "";
           }
         }
       }

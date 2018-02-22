@@ -238,12 +238,10 @@ Status genAppsFromLaunchServices(std::set<std::string>& apps) {
     return Status(1, "Could not list LaunchServices applications");
   }
 
-  @autoreleasepool {
-    for (id app in (__bridge NSArray*)ls_apps) {
-      if (app != nil && [app isKindOfClass:[NSURL class]]) {
-        apps.insert(std::string([[app path] UTF8String]) +
-                    "/Contents/Info.plist");
-      }
+  for (id app in (__bridge NSArray*)ls_apps) {
+    if (app != nil && [app isKindOfClass:[NSURL class]]) {
+      apps.insert(std::string([[app path] UTF8String]) +
+                  "/Contents/Info.plist");
     }
   }
 
