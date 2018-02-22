@@ -6,6 +6,12 @@ schema([
     Column("protocol", INTEGER, "Transport protocol (TCP/UDP)"),
     Column("family", INTEGER, "Network protocol (IPv4, IPv6)"),
     Column("address", TEXT, "Specific address for bind"),
+    Column("fd", BIGINT, "Socket file descriptor number"),
+    Column("socket", BIGINT, "Socket handle or inode number"),
+    Column("path", TEXT, "Path for UNIX domain sockets")
+])
+extended_schema(LINUX, [
+    Column("net_namespace", TEXT, "The inode number of the network namespace"),
 ])
 attributes(cacheable=True)
 implementation("listening_ports@genListeningPorts")

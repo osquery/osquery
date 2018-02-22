@@ -8,7 +8,17 @@ schema([
     Column("command", TEXT, "Command with arguments"),
     Column("created", BIGINT, "Time of creation as UNIX time"),
     Column("state", TEXT, "Container state (created, restarting, running, removing, paused, exited, dead)"),
-    Column("status", TEXT, "Container status information")
+    Column("status", TEXT, "Container status information"),
+    Column("pid", TEXT, "Identifier of the initial process"),
+])
+extended_schema(LINUX, [
+    Column("cgroup_namespace", TEXT, "cgroup namespace"),
+    Column("ipc_namespace", TEXT, "IPC namespace"),
+    Column("mnt_namespace", TEXT, "Mount namespace"),
+    Column("net_namespace", TEXT, "Network namespace"),
+    Column("pid_namespace", TEXT, "PID namespace"),
+    Column("user_namespace", TEXT, "User namespace"),
+    Column("uts_namespace", TEXT, "UTS namespace")
 ])
 implementation("applications/docker@genContainers")
 examples([
