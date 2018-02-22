@@ -12,6 +12,7 @@
 #include <smartmontools/smartctl_errs.h>
 
 #include <osquery/logger.h>
+#include <osquery/sql.h>
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/udev.h"
@@ -39,10 +40,6 @@ std::ostream& operator<<(std::ostream& stream,
   return stream;
 }
 
-/// delUdevDevice is a lambda function meant to be used with smart pointers for
-/// unreffing for udev_device pointers.
-auto delUdevDevice = [](udev_device* d) { udev_device_unref(d); };
-
 /// Static map of supported controller types.
 static const std::map<std::string, hardwareDriver>
     kSMARTExplicitDriverToDevice = {
@@ -50,87 +47,22 @@ static const std::map<std::string, hardwareDriver>
         {"hpsa", hardwareDriver{"cciss,", 14}},
 };
 
-/// Utility function for traversing sysFs.
-void walkUdevSubSystem(
-    std::string subsystem,
-    std::function<void(udev_list_entry* const, udev* const)> handleDevF) {
-  auto delUdev = [](udev* u) { udev_unref(u); };
-  std::unique_ptr<udev, decltype(delUdev)> ud(udev_new(), delUdev);
-
-  if (ud.get() == nullptr) {
-    LOG(ERROR) << "Could not get libudev handle";
-    return;
-  }
-
-  auto delUdevEnum = [](udev_enumerate* e) { udev_enumerate_unref(e); };
-  std::unique_ptr<udev_enumerate, decltype(delUdevEnum)> enumerate(
-      udev_enumerate_new(ud.get()), delUdevEnum);
-
-  udev_enumerate_add_match_subsystem(enumerate.get(), subsystem.c_str());
-  udev_enumerate_scan_devices(enumerate.get());
-  udev_list_entry* devices = udev_enumerate_get_list_entry(enumerate.get());
-
-  udev_list_entry* dev_list_entry;
-  udev_list_entry_foreach(dev_list_entry, devices) {
-    handleDevF(dev_list_entry, ud.get());
-  }
-}
-
-/// Gets all block devices of system.
-std::vector<std::string> getBlkDevices() {
-  std::vector<std::string> results;
-
-  walkUdevSubSystem(
-      "block", [&results](udev_list_entry* const entry, udev* const ud) {
-        auto path = udev_list_entry_get_name(entry);
-        if (path == nullptr) {
-          return;
-        }
-        if (std::strstr(path, "virtual")) {
-          return;
-        }
-
-        std::unique_ptr<udev_device, decltype(delUdevDevice)> dev(
-            udev_device_new_from_syspath(ud, path), delUdevDevice);
-        if (dev.get() == nullptr) {
-          return;
-        }
-
-        results.push_back(udev_device_get_devnode(dev.get()));
-      });
-
-  return results;
-}
-
 /// Gets all devices of class 'Mass storage controller'.
 std::vector<std::string> getStorageCtlerClassDrivers() {
   std::vector<std::string> results;
 
-  walkUdevSubSystem(
-      "pci", [&results](udev_list_entry* const entry, udev* const ud) {
-        auto path = udev_list_entry_get_name(entry);
-        if (path == nullptr) {
-          return;
-        }
-
-        std::unique_ptr<udev_device, decltype(delUdevDevice)> device(
-            udev_device_new_from_syspath(ud, path), delUdevDevice);
-        if (device.get() == nullptr) {
-          return;
-        }
-
-        if (UdevEventPublisher::getValue(device.get(),
-                                         "ID_PCI_CLASS_FROM_DATABASE") ==
-            "Mass storage controller") {
-          auto driverName =
-              UdevEventPublisher::getValue(device.get(), "DRIVER");
-
-          auto i = std::lower_bound(results.begin(), results.end(), driverName);
-          if (i == results.end() || driverName < *i) {
-            results.insert(i, driverName);
-          }
-        }
-      });
+  auto devices = SQL::selectAllFrom("pci_devices");
+  for (const auto& device : devices) {
+    if (device.find("pci_class") != device.end() &&
+        device.at("pci_class") == "Mass storage controller" &&
+        device.find("driver") != device.end()) {
+      auto i =
+          std::lower_bound(results.begin(), results.end(), device.at("driver"));
+      if (i == results.end() || device.at("driver") < *i) {
+        results.insert(i, std::move(device.at("driver")));
+      }
+    }
+  }
 
   return results;
 }
@@ -174,11 +106,14 @@ void walkDevices(std::function<bool(libsmartctl::Client& c,
     type = &(types[0]);
   }
 
-  std::vector<std::string> devs = getBlkDevices();
-  for (const auto& dev : devs) {
-    if (handleDevF(c, dev, type)) {
-      break;
-    };
+  auto blkDevices = SQL::selectAllFrom("block_devices");
+  for (const auto& device : blkDevices) {
+    if (device.find("size") != device.end() && device.at("size") != "0" &&
+        device.at("size") != "" && device.find("name") != device.end()) {
+      if (handleDevF(c, device.at("name"), type)) {
+        break;
+      };
+    }
   }
 }
 
@@ -196,8 +131,8 @@ QueryData genSmartInfo(QueryContext& context) {
     // Get auto info..
     auto resp = c.getDevInfo(devname, "");
     if (resp.err != NOERR) {
-      LOG(WARNING) << "There was an error retrieving drive information: "
-                   << libsmartctl::errStr(resp.err);
+      LOG(INFO) << "There was an error retrieving drive information: "
+                << libsmartctl::errStr(resp.err);
 
     } else {
       resp.content["device_name"] = devname;
