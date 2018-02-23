@@ -302,6 +302,7 @@ SKIP_INTEGRATION_TESTS=True # Skip python tests when using "make test"
 SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
 SKIP_TABLES=True # Build platform without any table implementations or specs
 SKIP_DISTRO_MAIN=False # Run the sysprep update/install within make deps
+SKIP_SMART=True # Skip SMART drive tables
 ```
 
 ## Custom Packages
