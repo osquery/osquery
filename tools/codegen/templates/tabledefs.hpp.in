@@ -18,11 +18,11 @@
 namespace osquery {
 
 namespace tables {
-extern const TableDefinition tbl_{{table_name}}_def;
 
 #if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}}) || defined(DECLARE_TABLE_DEF_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{filename}})
 
-const TableDefinition tbl_{{table_name}}_def = { "{{table_name}}",
+const TableDefinition &tbl_{{table_name}}_def_get() {
+  static const TableDefinition _def = { "{{table_name}}",
   { /* table aliases */  {% for alias in aliases %}"{{alias}}",{% endfor %}  },
   {
     {% for column in schema %}\
@@ -47,8 +47,9 @@ const TableDefinition tbl_{{table_name}}_def = { "{{table_name}}",
   TableAttributes::{{attribute}} |\
 {% endfor %}
   TableAttributes::NONE
-};
-
+  };
+  return _def;
+}
 
 #endif // defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_DEF)
 
@@ -58,7 +59,7 @@ const TableDefinition tbl_{{table_name}}_def = { "{{table_name}}",
 
 TablePluginBase* tbl_{{table_name}}_stub_new()
 {
-  return new TablePluginBase(tables::tbl_{{table_name}}_def);
+  return new TablePluginBase(tables::tbl_{{table_name}}_def_get());
 }
 {% if table_name != filename %}\
 TablePluginBase* tbl_{{filename}}_stub_new() { return tbl_{{table_name}}_stub_new(); } // filename differs from table name
@@ -135,7 +136,7 @@ public:
 
 TablePluginBase* tbl_{{table_name}}_plugin_new()
 {
-  return new {{table_name_cc}}TablePlugin(tables::tbl_{{table_name}}_def);
+  return new {{table_name_cc}}TablePlugin(tables::tbl_{{table_name}}_def_get());
 }
 {% if table_name != filename %}\
 TablePluginBase* tbl_{{filename}}_plugin_new() { return tbl_{{table_name}}_plugin_new(); } // filename differs from table name
