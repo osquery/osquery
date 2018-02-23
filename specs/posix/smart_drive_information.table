@@ -30,4 +30,4 @@ schema([
     Column("power_mode", TEXT, "Device power mode"),
     Column("warnings", TEXT, "Warning messages from SMART controller"),
 ])
-implementation("system/smart_drives@genSmartInfo")
+implementation("smart/smart_drives@genSmartInfo")
