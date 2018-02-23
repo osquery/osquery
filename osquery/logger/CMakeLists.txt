@@ -8,12 +8,6 @@
 
 file(GLOB OSQUERY_LOGGER "*.cpp")
 
-if(WINDOWS)
-  # The Windows Event Log plugin is also used for the built-in systemLog call. This
-  # is why we are listing it as a core source file.
-  list(APPEND OSQUERY_LOGGER "plugins/windows_event_log.cpp")
-endif()
-
 ADD_OSQUERY_LIBRARY_CORE(osquery_logger ${OSQUERY_LOGGER})
 
 file(GLOB OSQUERY_LOGGER_TESTS "tests/*.cpp")
@@ -29,6 +23,8 @@ set(OSQUERY_LOGGER_PLUGINS
 if(LINUX)
   list(APPEND OSQUERY_LOGGER_PLUGINS "plugins/syslog_logger.cpp")
   ADD_OSQUERY_TEST_ADDITIONAL("logger/plugins/tests/syslog_logger_tests.cpp")
+elseif(WINDOWS)
+  list(APPEND OSQUERY_LOGGER_PLUGINS "plugins/windows_event_log.cpp")
 endif()
 
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_logger_plugins ${OSQUERY_LOGGER_PLUGINS})

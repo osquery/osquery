@@ -360,6 +360,12 @@ std::string join(const std::vector<std::string>& s, const std::string& tok) {
   return boost::algorithm::join(s, tok);
 }
 
+std::string join(const std::set<std::string>& s, const std::string& tok) {
+  std::vector<std::string> toJoin;
+  toJoin.insert(toJoin.end(), s.begin(), s.end());
+  return boost::algorithm::join(toJoin, tok);
+}
+
 std::string getBufferSHA1(const char* buffer, size_t size) {
   // SHA1 produces 160-bit digests, so allocate (5 * 32) bits.
   uint32_t digest[5] = {0};

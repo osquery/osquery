@@ -193,6 +193,22 @@ When supplying the "second type", a search name, CMake will decide to link using
 
 If your code compiled properly, launch the interactive query console by executing `./build/[darwin|linux]/osquery/osqueryi` and try issuing your new table a command: `SELECT * FROM time;`.
 
+Run the leaks analysis to check for memory leaks:
+
+```
+./tools/analysis/profile.py --leaks --query "select * from time" --verbose
+```
+
+If your table parses content from the filesystem you should define fuzzing rules. In your table specification add:
+
+```
+fuzz_paths([
+    "/path/to/directory/used",
+])
+```
+
+Then run `./tools/analysis/fuzz.py --table time`.
+
 ### Getting your query ready for use in osqueryd
 
 You don't have to do anything to make your query work in the osqueryd daemon. All osquery queries work in osqueryd. It's worth noting, however, that osqueryd is a long-running process. If your table leaks memory or uses a lot of systems resources, you will notice poor performance from osqueryd. For more information on ensuring a performant table, see [performance overview](../deployment/performance-safety.md).

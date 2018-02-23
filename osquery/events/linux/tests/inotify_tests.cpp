@@ -499,7 +499,7 @@ TEST_F(INotifyTests, test_inotify_recursion) {
   pub->configure();
 
   // Also expect canonicalized resolution (to prevent loops).
-  EXPECT_EQ(pub->path_descriptors_.size(), 11U);
+  EXPECT_EQ(pub->path_descriptors_.size(), 9U);
   RemoveAll(pub);
 
   // Remove mock directory structure.

@@ -308,6 +308,15 @@ static void deserializeIntermediateLog(const PluginRequest& request,
   }
 }
 
+inline bool logStderrOnly() {
+  // Do not write logfiles if filesystem is not included as a plugin.
+  if (Registry::get().external()) {
+    return true;
+  }
+  return Flag::getValue("logger_plugin").find("filesystem") ==
+         std::string::npos;
+}
+
 void setVerboseLevel() {
   auto default_level = google::GLOG_INFO;
   if (Initializer::isShell()) {
@@ -341,6 +350,10 @@ void setVerboseLevel() {
   if (!FLAGS_logger_stderr) {
     FLAGS_logtostderr = false;
     FLAGS_alsologtostderr = false;
+  }
+
+  if (logStderrOnly()) {
+    FLAGS_logtostderr = true;
   }
 
   if (FLAGS_disable_logging) {
@@ -722,16 +735,7 @@ void relayStatusLogs(bool async) {
 }
 
 void systemLog(const std::string& line) {
-#ifdef WIN32
-  REGHANDLE registration_handle = 0;
-  if (!WindowsEventLoggerPlugin::acquireHandle(registration_handle).ok()) {
-    return;
-  }
-
-  WindowsEventLoggerPlugin::emitLogRecord(registration_handle, line);
-  WindowsEventLoggerPlugin::releaseHandle(registration_handle);
-
-#else
+#ifndef WIN32
   syslog(LOG_NOTICE, "%s", line.c_str());
 #endif
 }

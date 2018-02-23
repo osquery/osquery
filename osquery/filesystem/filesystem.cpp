@@ -271,19 +271,49 @@ Status removePath(const fs::path& path) {
   return Status(0, std::to_string(removed_files));
 }
 
+static bool checkForLoops(std::set<int>& dsym_inos, std::string path) {
+  if (path.empty() || path.back() != '/') {
+    return false;
+  }
+
+  path.pop_back();
+  struct stat d_stat;
+  // On Windows systems (lstat not implemented) this immiedately returns
+  if (!platformLstat(path, d_stat).ok()) {
+    return false;
+  }
+
+  if ((d_stat.st_mode & 0170000) == 0) {
+    return false;
+  }
+
+  if (dsym_inos.find(d_stat.st_ino) == dsym_inos.end()) {
+    dsym_inos.insert(d_stat.st_ino);
+  } else {
+    LOG(WARNING) << "Symlink loop detected possibly involving: " << path;
+    return true;
+  }
+  return false;
+}
+
 static void genGlobs(std::string path,
                      std::vector<std::string>& results,
                      GlobLimits limits) {
   // Use our helped escape/replace for wildcards.
   replaceGlobWildcards(path, limits);
+  // inodes of directory symlinks for loop detection
+  std::set<int> dsym_inos;
 
   // Generate a glob set and recurse for double star.
-  size_t glob_index = 0;
-  while (++glob_index < kMaxRecursiveGlobs) {
+  for (size_t glob_index = 0; ++glob_index < kMaxRecursiveGlobs;) {
     auto glob_results = platformGlob(path);
 
-    for (auto const& result_path : glob_results) {
+    for (auto& result_path : glob_results) {
       results.push_back(result_path);
+
+      if (checkForLoops(dsym_inos, result_path)) {
+        glob_index = kMaxRecursiveGlobs;
+      }
     }
 
     // The end state is a non-recursive ending or empty set of matches.
@@ -293,6 +323,7 @@ static void genGlobs(std::string path,
         wild < path.size() - 3) {
       break;
     }
+
     path += "/**";
   }
 

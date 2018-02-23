@@ -16,48 +16,173 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/conversions.h"
+#include "osquery/filesystem/linux/proc.h"
+
 namespace osquery {
+const std::vector<std::string> kUserNamespaceList = {
+    "cgroup", "ipc", "mnt", "net", "pid", "user", "uts"};
 
-const std::string kLinuxProcPath = "/proc";
+Status procGetNamespaceInode(ino_t& inode,
+                             const std::string& namespace_name,
+                             const std::string& process_namespace_root) {
+  inode = 0;
 
-Status procProcesses(std::set<std::string>& processes) {
-  // Iterate over each process-like directory in proc.
-  boost::filesystem::directory_iterator it(kLinuxProcPath), end;
-  try {
-    for (; it != end; ++it) {
-      if (boost::filesystem::is_directory(it->status())) {
-        // See #792: std::regex is incomplete until GCC 4.9
-        if (std::atoll(it->path().leaf().string().c_str()) > 0) {
-          processes.insert(it->path().leaf().string());
-        }
-      }
-    }
-  } catch (const boost::filesystem::filesystem_error& e) {
-    VLOG(1) << "Exception iterating Linux processes " << e.what();
-    return Status(1, e.what());
+  auto path = process_namespace_root + "/" + namespace_name;
+
+  char link_destination[PATH_MAX] = {};
+  auto link_dest_length = readlink(path.data(), link_destination, PATH_MAX - 1);
+  if (link_dest_length < 0) {
+    return Status(1, "Failed to retrieve the inode for namespace " + path);
+  }
+
+  // The link destination must be in the following form: namespace:[inode]
+  if (std::strncmp(link_destination,
+                   namespace_name.data(),
+                   namespace_name.size()) != 0 ||
+      std::strncmp(link_destination + namespace_name.size(), ":[", 2) != 0) {
+    return Status(1, "Invalid descriptor for namespace " + path);
+  }
+
+  // Parse the inode part of the string; strtoull should return us a pointer
+  // to the closing square bracket
+  const char* inode_string_ptr = link_destination + namespace_name.size() + 2;
+  char* square_bracket_ptr = nullptr;
+
+  inode = static_cast<ino_t>(
+      std::strtoull(inode_string_ptr, &square_bracket_ptr, 10));
+  if (inode == 0 || square_bracket_ptr == nullptr ||
+      *square_bracket_ptr != ']') {
+    return Status(1, "Invalid inode value in descriptor for namespace " + path);
   }
 
   return Status(0, "OK");
 }
 
-Status procDescriptors(const std::string& process,
-                       std::map<std::string, std::string>& descriptors) {
-  auto descriptors_path = kLinuxProcPath + "/" + process + "/fd";
-  try {
-    // Access to the process' /fd may be restricted.
-    boost::filesystem::directory_iterator it(descriptors_path), end;
-    for (; it != end; ++it) {
-      auto fd = it->path().leaf().string();
-      std::string linkname;
-      if (procReadDescriptor(process, fd, linkname).ok()) {
-        descriptors[fd] = linkname;
-      }
+Status procGetProcessNamespaces(const std::string& process_id,
+                                ProcessNamespaceList& namespace_list,
+                                std::vector<std::string> namespaces) {
+  namespace_list.clear();
+
+  if (namespaces.empty()) {
+    namespaces = kUserNamespaceList;
+  }
+
+  auto process_namespace_root = kLinuxProcPath + "/" + process_id + "/ns";
+
+  for (const auto& namespace_name : namespaces) {
+    ino_t namespace_inode;
+    auto status = procGetNamespaceInode(
+        namespace_inode, namespace_name, process_namespace_root);
+    if (!status.ok()) {
+      return status;
     }
-  } catch (boost::filesystem::filesystem_error& e) {
-    return Status(1, "Cannot access descriptors for " + process);
+
+    namespace_list[namespace_name] = namespace_inode;
   }
 
   return Status(0, "OK");
+}
+
+std::string procDecodeAddressFromHex(const std::string& encoded_address,
+                                     int family) {
+  char addr_buffer[INET6_ADDRSTRLEN] = {0};
+  if (family == AF_INET) {
+    struct in_addr decoded;
+    if (encoded_address.length() == 8) {
+      sscanf(encoded_address.c_str(), "%X", &(decoded.s_addr));
+      inet_ntop(AF_INET, &decoded, addr_buffer, INET_ADDRSTRLEN);
+    }
+
+  } else if (family == AF_INET6) {
+    struct in6_addr decoded;
+    if (encoded_address.length() == 32) {
+      sscanf(encoded_address.c_str(),
+             "%8x%8x%8x%8x",
+             (unsigned int*)&(decoded.s6_addr[0]),
+             (unsigned int*)&(decoded.s6_addr[4]),
+             (unsigned int*)&(decoded.s6_addr[8]),
+             (unsigned int*)&(decoded.s6_addr[12]));
+      inet_ntop(AF_INET6, &decoded, addr_buffer, INET6_ADDRSTRLEN);
+    }
+  }
+
+  return std::string(addr_buffer);
+}
+
+unsigned short procDecodePortFromHex(const std::string& encoded_port) {
+  unsigned short decoded = 0;
+  if (encoded_port.length() == 4) {
+    sscanf(encoded_port.c_str(), "%hX", &decoded);
+  }
+  return decoded;
+}
+
+Status procProcesses(std::set<std::string>& processes) {
+  auto procProcessesCallback = [](const std::string& process_id,
+                                  std::set<std::string>& processes) -> bool {
+    processes.insert(process_id);
+    return true;
+  };
+
+  return procProcesses<decltype(processes)>(procProcessesCallback, processes);
+}
+
+Status procProcessSockets(std::vector<ProcessSocket>& socket_list,
+                          const std::string& process_id,
+                          int protocol,
+                          int family) {
+  socket_list.clear();
+
+  auto L_procProcessSocketsCallback =
+      [](const ProcessSocket& proc_socket,
+         std::vector<ProcessSocket>& socket_list) -> bool {
+    socket_list.push_back(proc_socket);
+    return true;
+  };
+
+  return procProcessSockets<decltype(socket_list)>(
+      L_procProcessSocketsCallback, socket_list, process_id, protocol, family);
+}
+
+Status procDescriptors(const std::string& process,
+                       std::map<std::string, std::string>& descriptors) {
+  auto L_procDescriptorsCallback =
+      [](const std::string& fd,
+         const std::string& link_name,
+         std::map<std::string, std::string>& descriptors) -> bool {
+
+    descriptors[fd] = link_name;
+    return true;
+  };
+
+  return procDescriptors<decltype(descriptors)>(
+      process, L_procDescriptorsCallback, descriptors);
+}
+
+Status procSocketInodeToFdMap(
+    const std::string& process,
+    std::unordered_map<std::string, std::string>& inode_to_fd_map) {
+  inode_to_fd_map.clear();
+
+  auto L_procDescriptorsCallback =
+      [](const std::string& fd,
+         const std::string& link_name,
+         std::unordered_map<std::string, std::string>& inode_to_fd_map)
+      -> bool {
+
+    if (link_name.find("socket:[") != 0) {
+      return true;
+    }
+
+    auto inode = link_name.substr(8, link_name.size() - 9);
+    inode_to_fd_map[inode] = fd;
+
+    return true;
+  };
+
+  return procDescriptors<decltype(inode_to_fd_map)>(
+      process, L_procDescriptorsCallback, inode_to_fd_map);
 }
 
 Status procReadDescriptor(const std::string& process,
@@ -73,4 +198,4 @@ Status procReadDescriptor(const std::string& process,
   }
   return Status(1, "Could not read path");
 }
-}
+} // namespace osquery

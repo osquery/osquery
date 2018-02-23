@@ -9,6 +9,7 @@
  */
 
 #include <osquery/flags.h>
+#include <osquery/registry.h>
 
 #include "osquery/core/conversions.h"
 
@@ -63,12 +64,27 @@ bool Flag::isDefault(const std::string& name) {
 }
 
 std::string Flag::getValue(const std::string& name) {
-  if (instance().custom_.count(name)) {
-    return instance().custom_.at(name);
+  const auto& custom = instance().custom_;
+  auto custom_flag = custom.find(name);
+  if (custom_flag != custom.end()) {
+    return custom_flag->second;
   }
 
   std::string current_value;
-  flags::GetCommandLineOption(name.c_str(), &current_value);
+  auto found = flags::GetCommandLineOption(name.c_str(), &current_value);
+
+  // If this is an extension and the flag was not found, forward the request.
+  if (Registry::get().external() && !found) {
+    PluginResponse resp;
+    Registry::call("config", {{"name", name}, {"action", "option"}}, resp);
+    if (resp.size() != 0) {
+      auto value = resp[0].find("value");
+      if (value != resp[0].end()) {
+        return value->second;
+      }
+    }
+  }
+
   return current_value;
 }
 

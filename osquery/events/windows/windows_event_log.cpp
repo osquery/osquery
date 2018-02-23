@@ -26,7 +26,7 @@ namespace pt = boost::property_tree;
 
 namespace osquery {
 
-REGISTER(WindowsEventLogEventPublisher, "event_publisher", "windows_event_log");
+REGISTER(WindowsEventLogEventPublisher, "event_publisher", "windows_events");
 
 const std::chrono::milliseconds kWinEventLogPause(200);
 
