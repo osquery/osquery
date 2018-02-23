@@ -64,9 +64,19 @@ class QueryManager : private boost::noncopyable {
   /**
    * @brief The private constructor of the class.
    *
-   * Nothing to do here.
+   * Retrieves the current config.
    */
-  QueryManager() {}
+  QueryManager() {
+    // Get initial config
+    PluginResponse response;
+    auto status = Registry::call("config", {{"action", "genConfig"}}, response);
+    if (!status.ok()) {
+      LOG(WARNING) << "Unable to retrieve initial config";
+    }
+    if (response.size() > 0) {
+      initial_config = response[0];
+    }
+  }
 
  public:
   /// Get a singleton instance of the QueryManager class
@@ -127,6 +137,10 @@ class QueryManager : private boost::noncopyable {
   /// broker query tracking
   std::string getQueryConfigString();
 
+  /// Update the core schedule with the queries that are currently subscribed
+  /// to from Bro
+  Status updateSchedule();
+
   /// Get the cookie the was given in the subscription request of a query given
   /// by the queryID
   std::string getEventCookie(const std::string& queryID);
@@ -158,6 +172,9 @@ class QueryManager : private boost::noncopyable {
   std::map<std::string, std::string> eventNames_;
   //  Key: QueryID, Value: Topic to use for the response
   std::map<std::string, std::string> eventTopics_;
+
+  // Config at the time the QueryManager was created
+  std::map<std::string, std::string> initial_config;
 
  private:
   friend class QueryManagerTests;

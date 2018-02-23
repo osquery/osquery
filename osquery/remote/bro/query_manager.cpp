@@ -12,6 +12,7 @@
 #include <list>
 #include <sstream>
 
+#include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
@@ -173,6 +174,50 @@ std::string QueryManager::getQueryConfigString() {
       std::string("{\"schedule\": {") + queries + std::string("} }");
 
   return config;
+}
+
+Status QueryManager::updateSchedule() {
+  std::map<std::string, std::string> new_config_schedule;
+
+  VLOG(1) << "Applying new schedule based on bro queries";
+  for (auto const& c : initial_config) {
+    // Base config
+    auto doc_base = JSON::newObject();
+    auto clone_base = c.second;
+    stripConfigComments(clone_base);
+
+    if (!doc_base.fromString(clone_base) || !doc_base.doc().IsObject()) {
+      LOG(WARNING) << "Error parsing the base config JSON";
+    }
+
+    // Bro config
+    auto doc_bro = JSON::newObject();
+    auto clone_bro = getQueryConfigString();
+    stripConfigComments(clone_bro);
+
+    if (!doc_bro.fromString(clone_bro) || !doc_bro.doc().IsObject()) {
+      LOG(WARNING) << "Error parsing the bro config JSON";
+    }
+
+    // Remove old base schedule
+    if (doc_base.doc().HasMember("schedule")) {
+      doc_base.doc().RemoveMember("schedule");
+    }
+
+    // Add new bro schedule
+    if (!doc_bro.doc().HasMember("schedule")) {
+      LOG(WARNING) << "Bro config has no member schedule";
+    }
+    doc_base.add("schedule", doc_bro.doc()["schedule"]);
+
+    std::string result_json;
+    doc_base.toString(result_json);
+
+    new_config_schedule[c.first] = result_json;
+  }
+  Config::get().update(new_config_schedule);
+
+  return Status(0, "OK");
 }
 
 std::string QueryManager::getEventCookie(const std::string& queryID) {

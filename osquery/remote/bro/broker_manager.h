@@ -86,11 +86,8 @@ class BrokerManager : private boost::noncopyable {
   /// Initiates the peering to remote endpoint
   Status initiatePeering();
 
-  /// Initiates the unpeering from remote endpoint
-  Status initiateUnpeering();
-
   /// Initiates the reset of the broker manager
-  Status initiateReset();
+  Status initiateReset(bool reset_schedule = true);
 
   /**
    * @brief Retrieve the latest connection status change
@@ -102,7 +99,7 @@ class BrokerManager : private boost::noncopyable {
    * @param timeout duration how long to wait for a status change
    * @return
    */
-  std::pair<broker::status, bool> getPeeringStatus(double timeout = 0);
+  std::pair<broker::status, bool> getPeeringStatus(long timeout = 0);
 
  public:
   /**
@@ -164,11 +161,9 @@ class BrokerManager : private boost::noncopyable {
    * after failure
    *
    * @param timeout duration to wait before the peering attempt times out.
-   * @param ignore_error retry to connect, even if remote peer is not reachable
-   * (infinite timeout only)
    * @return if connection is established
    */
-  Status checkConnection(double timeout = -1, bool ignore_error = true);
+  Status checkConnection(long timeout = -1);
 
   /**
    * @brief Make the osquery host to announce itself to the remote broker

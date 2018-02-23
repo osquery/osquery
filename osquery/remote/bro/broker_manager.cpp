@@ -190,58 +190,55 @@ std::vector<std::string> BrokerManager::getTopics() {
   return topics;
 }
 
-Status BrokerManager::checkConnection(double timeout, bool ignore_error) {
+Status BrokerManager::checkConnection(long timeout) {
   // Exclusive access
   WriteLock lock(connection_mutex_);
-  bool initial_peering = false;
   Status s;
 
-  // Initial or already in operation?
-  if (ss_) {
-    // Get connection state
-    auto ps = getPeeringStatus(0);
-
-    // Still connected since last time?
-    if (!ps.second && ps.first.code() == broker::sc::peer_added) {
-      return Status(0, "OK");
-    } else {
-      // Unpeer when connected previously
-      initiateUnpeering();
-    }
-  } else {
-    // Are we unpeered or not peered yet?
-    VLOG(1) << "Initializing Peering";
-    initial_peering = true;
-
-    ss_ = std::make_unique<broker::status_subscriber>(
-        ep_->make_status_subscriber(true));
-  }
-
-  // Initial state when connecting
-  s = initiateReset();
-  if (!s.ok()) {
-    LOG(WARNING) << s.getMessage();
-  }
-
-  while (true) {
-    // Now connect
-    s = initiatePeering();
+  // Initiate peering?
+  if (!ss_) {
+    // Initial state when connecting
+    s = initiateReset(false);
     if (!s.ok()) {
       LOG(WARNING) << s.getMessage();
     }
 
-    // Wait for confirmation of the status change
-    auto ps = getPeeringStatus();
+    VLOG(1) << "Initializing Peering";
+    ss_ = std::make_unique<broker::status_subscriber>(
+        ep_->make_status_subscriber(true));
+    s = initiatePeering();
+  }
 
-    if (ps.first.code() != broker::sc::peer_added) {
-      LOG(WARNING) << "Retrying to connect to Bro...";
-      sleepFor(3 * 1000);
+  // Was connected last time we checked?
+  if (connection_status_.code() == broker::sc::peer_added) {
+    // Any pending status changes?
+    if (ss_->available()) {
+      // Reset before processing changes
+      s = initiateReset();
+      if (!s.ok()) {
+        LOG(WARNING) << s.getMessage();
+      }
     } else {
-      VLOG(1) << "Broker connection established";
-      break;
+      // Still connected since last time
+      return Status(0, "OK");
     }
   }
 
+  // Wait for connection to be (re-)established
+  getPeeringStatus(0);
+  while (connection_status_.code() != broker::sc::peer_added) {
+    // Wait for changes
+    getPeeringStatus(timeout);
+
+    // Cancel waiting because of finite timeout
+    if (timeout >= 0) {
+      // Anyway, peering still continues in the background!
+      return Status(1, "Peering timeout for broker connection");
+    }
+  }
+
+  // Became successfully connected!
+  VLOG(1) << "Broker connection established";
   s = announce();
   if (!s.ok()) {
     LOG(ERROR) << s.getMessage();
@@ -256,29 +253,18 @@ Status BrokerManager::initiatePeering() {
   auto port = remote_endpoint_.second;
   LOG(INFO) << "Connecting to Bro " << ip << ":" << port;
 
-  ep_->peer(ip, port, broker::timeout::seconds(-1));
+  // This call tries to reconnect every X seconds automatically
+  ep_->peer_nosync(ip, port, broker::timeout::seconds(3));
 
   return Status(0, "OK");
 }
 
-Status BrokerManager::initiateUnpeering() {
-  auto ip = remote_endpoint_.first;
-  auto port = remote_endpoint_.second;
-  LOG(INFO) << "Disconnecting from Bro " << ip << ":" << port;
-
-  ep_->unpeer(ip, port);
-
-  return Status(0, "OK");
-}
-
-Status BrokerManager::initiateReset() {
-  // Reset config/schedule
-  std::map<std::string, std::string> config_schedule;
-  config_schedule["bro"] = "";
-  VLOG(1) << "Reset config schedule";
-  Config::get().update(config_schedule);
-
+Status BrokerManager::initiateReset(bool reset_schedule) {
+  // Reset queries, schedule and broker
   QueryManager::get().reset();
+  if (reset_schedule) {
+    QueryManager::get().updateSchedule();
+  }
   reset(false);
 
   // Subscribe to all
@@ -302,8 +288,7 @@ Status BrokerManager::initiateReset() {
   return Status(0, "OK");
 }
 
-std::pair<broker::status, bool> BrokerManager::getPeeringStatus(
-    double timeout) {
+std::pair<broker::status, bool> BrokerManager::getPeeringStatus(long timeout) {
   // Process latest status changes
   broker::detail::variant<broker::none, broker::error, broker::status> s;
   bool has_changed = false;

@@ -99,6 +99,9 @@ REGISTER(BRODistributedPlugin, "distributed", "bro");
 Status BRODistributedPlugin::setUp() {
   LOG(INFO) << "Starting the Bro Distributed Plugin";
 
+  // Initiate Peering
+  BrokerManager::get().checkConnection(0);
+
   return Status(0, "OK");
 }
 
@@ -204,10 +207,7 @@ inline Status processMessage(const broker::bro::Event& event,
   }
 
   // Apply to new config/schedule
-  std::map<std::string, std::string> config_schedule;
-  config_schedule["bro"] = qm.getQueryConfigString();
-  VLOG(1) << "Applying new schedule by bro_distributed";
-  Config::get().update(config_schedule);
+  qm.updateSchedule();
 
   return Status(0, "OK");
 }
