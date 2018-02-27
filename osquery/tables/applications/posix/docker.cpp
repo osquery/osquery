@@ -563,11 +563,22 @@ QueryData genContainerProcesses(QueryContext& context) {
     }
 
     pt::ptree container;
-    Status s =
-        dockerApi("/containers/" + id + "/top?ps_args=axwwo%20" +
-                      "pid,state,uid,gid,euid,egid,suid,sgid,rss,vsz,etimes,"
-                      "ppid,pgrp,nlwp,nice,user,time,pcpu,pmem,comm,cmd",
-                  container);
+
+#if defined(__APPLE__)
+    // osx: 19 fields
+    const std::string ps_args =
+        "pid,state,uid,gid,svuid,svgid,rss,vsz,etime,ppid,pgid,wq,nice,user,"
+        "time,pcpu,pmem,comm,command";
+#elif defined(__linux__)
+    // linux: 21 fields
+    const std::string ps_args =
+        "pid,state,uid,gid,euid,egid,suid,sgid,rss,vsz,etime,ppid,pgrp,nlwp,"
+        "nice,user,time,pcpu,pmem,comm,cmd";
+#endif
+
+    Status s = dockerApi(
+        "/containers/" + id + "/top?ps_args=axwwo%20" + ps_args, container);
+
     if (!s.ok()) {
       VLOG(1) << "Error getting docker container " << id << ": " << s.what();
       continue;
@@ -578,18 +589,35 @@ QueryData genContainerProcesses(QueryContext& context) {
         std::vector<std::string> vector;
         BOOST_FOREACH (const auto& v, processes.second) {
           vector.push_back(v.second.data());
-        }
-
-        // On OS X, ps_args are not being honored. Check number of columns
-        if (vector.size() != 21) {
-          continue;
+          VLOG(1) << v.second.data() << "\n";
         }
 
         Row r;
         r["id"] = id;
         r["pid"] = BIGINT(vector.at(0));
-        r["name"] = vector.at(19);
-        r["cmdline"] = vector.at(20);
+        r["wired_size"] = BIGINT(0); // No support for unpagable counters
+#if defined(__APPLE__)
+        r["state"] = "";
+        r["uid"] = BIGINT(vector.at(1));
+        r["gid"] = -1;
+        r["euid"] = -1;
+        r["egid"] = -1;
+        r["suid"] = -1;
+        r["sgid"] = -1;
+        r["resident_size"] = -1;
+        r["total_size"] = -1;
+        r["start_time"] = -1;
+        r["parent"] = -1;
+        r["pgroup"] = -1;
+        r["threads"] = -1;
+        r["nice"] = -1;
+        r["user"] = "";
+        r["time"] = vector.at(2);;
+        r["cpu"] = -1;
+        r["mem"] = -1;
+        r["name"] = "";
+        r["cmdline"] = vector.at(3);
+#elif defined(__linux__)
         r["state"] = vector.at(1);
         r["uid"] = BIGINT(vector.at(2));
         r["gid"] = BIGINT(vector.at(3));
@@ -597,7 +625,6 @@ QueryData genContainerProcesses(QueryContext& context) {
         r["egid"] = BIGINT(vector.at(5));
         r["suid"] = BIGINT(vector.at(6));
         r["sgid"] = BIGINT(vector.at(7));
-        r["wired_size"] = BIGINT(0); // No support for unpagable counters
         r["resident_size"] = BIGINT(vector.at(8) + "000");
         r["total_size"] = BIGINT(vector.at(9) + "000");
         r["start_time"] = BIGINT(vector.at(10));
@@ -609,6 +636,9 @@ QueryData genContainerProcesses(QueryContext& context) {
         r["time"] = vector.at(16);
         r["cpu"] = DOUBLE(vector.at(17));
         r["mem"] = DOUBLE(vector.at(18));
+        r["name"] = vector.at(19);
+        r["cmdline"] = vector.at(20);
+#endif
         results.push_back(r);
       }
     } catch (const pt::ptree_error& e) {
