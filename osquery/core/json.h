@@ -11,6 +11,8 @@
 #pragma once
 
 #include <osquery/core.h>
+// Make sure system is included to work around the GetObject problem on Windows
+#include <osquery/system.h>
 
 #ifdef WIN32
 #pragma warning(push, 3)
