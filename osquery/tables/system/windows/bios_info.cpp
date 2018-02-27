@@ -7,15 +7,15 @@
  *  in the COPYING file in the root directory of this source tree).
  *  You may select, at your option, one of the above-listed licenses.
  */
+
+#include <string>
+
+#include <osquery/tables.h>
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
-#include <osquery/tables.h>
-
-#include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
-
-#include <string>
+#include <boost/algorithm/string.hpp>
 
 namespace osquery {
 namespace tables {
@@ -137,6 +137,9 @@ QueryData genBiosInfo(QueryContext& context) {
 
       results.push_back(r);
     }
+  } else {
+  	LOG(INFO) << "Vendor \"" << manufacturer << 
+  							 "\" is currently not supported";
   }
   return results;
 }
