@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Generate a new website version metadata file based on a new release version
 
 Usage:

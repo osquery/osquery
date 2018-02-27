@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Generate a complete table specification for the website
 
 This script will generate JSON output as expected by the osquery website given
