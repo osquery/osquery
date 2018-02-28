@@ -566,18 +566,14 @@ QueryData genContainerProcesses(QueryContext& context) {
 
 #if defined(__APPLE__)
     // osx: 19 fields
-    const std::string ps_args =
-        "pid,state,uid,gid,svuid,svgid,rss,vsz,etime,ppid,pgid,wq,nice,user,"
-        "time,pcpu,pmem,comm,command";
+    const std::string ps_args = "pid,state,uid,gid,svuid,svgid,rss,vsz,etime,ppid,pgid,wq,nice,user,time,pcpu,pmem,comm,command";
 #elif defined(__linux__)
     // linux: 21 fields
-    const std::string ps_args =
-        "pid,state,uid,gid,euid,egid,suid,sgid,rss,vsz,etime,ppid,pgrp,nlwp,"
-        "nice,user,time,pcpu,pmem,comm,cmd";
+    const std::string ps_args = "pid,state,uid,gid,euid,egid,suid,sgid,rss,vsz,etime,ppid,pgrp,nlwp,nice,user,time,pcpu,pmem,comm,cmd";
 #endif
 
-    Status s = dockerApi(
-        "/containers/" + id + "/top?ps_args=axwwo%20" + ps_args, container);
+    Status s =
+        dockerApi("/containers/" + id + "/top?ps_args=axwwo%20" + ps_args, container);
 
     if (!s.ok()) {
       VLOG(1) << "Error getting docker container " << id << ": " << s.what();
@@ -619,7 +615,7 @@ QueryData genContainerProcesses(QueryContext& context) {
         r["cmdline"] = vector.at(3);
 #elif defined(__linux__)
         r["state"] = vector.at(1);
-        r["uid"] = BIGINT(vector.at(2));
+
         r["gid"] = BIGINT(vector.at(3));
         r["euid"] = BIGINT(vector.at(4));
         r["egid"] = BIGINT(vector.at(5));
