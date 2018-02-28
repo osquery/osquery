@@ -1,7 +1,8 @@
 table_name("quarantine_history")
 description("OS X Quarantine Events (downloaded/streamed files).")
 schema([
-    Column("id", TEXT, "Quarantine event ID (matches ID in quarantined file's extended attributes"),
+    Column("uid", BIGINT, "The user associated with the quarantine event", additional=True),
+    Column("id", TEXT, "Quarantine event ID (matches ID in quarantined file's extended attributes", index=True),
     Column("agent_name", TEXT, "The name of the quarantining agent (application or program)"),
     Column("agent_bundle_identifier", TEXT, "The bundle identifier of the quarantining agent, if available"),
     Column("type", INTEGER, "A symbolic string identifying the why the item is quarantined, if available. 0 = Web Download, 1 = Other Download, 2 = Email Attachement, 3 = Instant Message Attachment, 4 = Calendar Event Attachment, 5 = Other Attachment, 6 = Airdrop Attachment"),
@@ -10,6 +11,10 @@ schema([
     Column("sender_name", TEXT, "The full name or username of the invidual sending the quarantined file when available (for email attachments and files sent via Airdrop)"),
     Column("sender_address", TEXT, "The email address of the invidual sending the quarantined file"),
     Column("timestamp", DOUBLE, "The time the quarantining agent created the quarantine event"),
-    Column("username", TEXT, "The user associated with the quarantine event")
+    ForeignKey(column="uid", table="users"),
 ])
+attributes(user_data=True)
 implementation("quarantine_history@genQuarantineHistory")
+examples([
+    "select * from users join quarantine_history using (uid)",
+])

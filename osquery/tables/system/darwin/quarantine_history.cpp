@@ -19,6 +19,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/sql/sqlite_util.h"
+#include "osquery/tables/system/system_utils.h"
 
 namespace fs = boost::filesystem;
 
@@ -32,7 +33,7 @@ const std::string kQuarantineEventsDbPath =
 const int cocoaToUnixEpochOffset = 978307200;
 
 void genQuarantineEventRow(sqlite3_stmt* const stmt,
-                           std::string username,
+                           const std::string& uid,
                            Row& r) {
   for (int i = 0; i < sqlite3_column_count(stmt); i++) {
     auto column_name = std::string(sqlite3_column_name(stmt, i));
@@ -56,19 +57,15 @@ void genQuarantineEventRow(sqlite3_stmt* const stmt,
       r[column_name] = INTEGER(value);
     }
   }
-  r["username"] = TEXT(username);
+  r["uid"] = INTEGER(uid);
 }
 
 void genQuarantineHistoryItems(const fs::path& qepath,
-                               std::string username,
+                               const std::string& uid,
                                QueryData& results) {
   sqlite3* db = nullptr;
 
-  try {
-    if (!fs::exists(qepath)) {
-      return;
-    }
-  } catch (const boost::filesystem::filesystem_error) {
+  if (!pathExists(qepath).ok()) {
     return;
   }
 
@@ -97,7 +94,7 @@ void genQuarantineHistoryItems(const fs::path& qepath,
   rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
   while ((sqlite3_step(stmt)) == SQLITE_ROW) {
     Row r;
-    genQuarantineEventRow(stmt, username, r);
+    genQuarantineEventRow(stmt, uid, r);
     results.push_back(r);
   }
 
@@ -109,11 +106,12 @@ void genQuarantineHistoryItems(const fs::path& qepath,
 QueryData genQuarantineHistory(QueryContext& context) {
   QueryData results;
 
-  // Get the quarantine events for each user.
-  auto users = SQL::selectAllFrom("users");
+  // Iterate over each user
+  auto users = usersFromContext(context);
   for (const auto& user : users) {
     auto qepath = fs::path(user.at("directory")) / kQuarantineEventsDbPath;
-    genQuarantineHistoryItems(qepath.string(), user.at("username"), results);
+    auto uid = user.find("uid");
+    genQuarantineHistoryItems(qepath.string(), uid->second, results);
   }
 
   return results;
