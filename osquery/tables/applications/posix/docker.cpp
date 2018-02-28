@@ -605,7 +605,7 @@ QueryData genContainerProcesses(QueryContext& context) {
           r["uid"] = BIGINT(vector.at(1));
           r["time"] = vector.at(2);
           r["cmdline"] = vector.at(3);
-        } else if (isPlatform(PlatformType::TYPE_LINUX) && 
+        } else if (isPlatform(PlatformType::TYPE_LINUX) &&
                    vector.size() == 21) {
           r["state"] = vector.at(1);
           r["uid"] = BIGINT(vector.at(2));
