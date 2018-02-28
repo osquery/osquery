@@ -582,8 +582,8 @@ QueryData genContainerProcesses(QueryContext& context) {
       continue;
     }
 
-    auto s = dockerApi(
-        "/containers/" + id + "/top?ps_args=axwwo%20" + ps_args, container);
+    auto s = dockerApi("/containers/" + id + "/top?ps_args=axwwo%20" + ps_args,
+                       container);
 
     if (!s.ok()) {
       VLOG(1) << "Error getting docker container " << id << ": " << s.what();
