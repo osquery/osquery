@@ -557,6 +557,8 @@ QueryData genContainerPorts(QueryContext& context) {
  */
 QueryData genContainerProcesses(QueryContext& context) {
   QueryData results;
+  std::string ps_args;
+
   for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
     if (!checkConstraintValue(id)) {
       continue;
@@ -564,17 +566,17 @@ QueryData genContainerProcesses(QueryContext& context) {
 
     pt::ptree container;
 
-#if defined(__APPLE__)
-    // osx: 19 fields
-    const std::string ps_args =
-        "pid,state,uid,gid,svuid,svgid,rss,vsz,etime,ppid,pgid,wq,nice,user,"
-        "time,pcpu,pmem,comm,command";
-#elif defined(__linux__)
-    // linux: 21 fields
-    const std::string ps_args =
-        "pid,state,uid,gid,euid,egid,suid,sgid,rss,vsz,etime,ppid,pgrp,nlwp,"
-        "nice,user,time,pcpu,pmem,comm,cmd";
-#endif
+    if (isPlatform(PlatformType::TYPE_OSX)) {
+      // osx: 19 fields
+      ps_args =
+          "pid,state,uid,gid,svuid,svgid,rss,vsz,etime,ppid,pgid,wq,nice,user,"
+          "time,pcpu,pmem,comm,command";
+    } else if (isPlatform(PlatformType::TYPE_LINUX)) {
+      // linux: 21 fields
+      ps_args =
+          "pid,state,uid,gid,euid,egid,suid,sgid,rss,vsz,etime,ppid,pgrp,nlwp,"
+          "nice,user,time,pcpu,pmem,comm,cmd";
+    }
 
     Status s = dockerApi(
         "/containers/" + id + "/top?ps_args=axwwo%20" + ps_args, container);
@@ -596,49 +598,33 @@ QueryData genContainerProcesses(QueryContext& context) {
         r["id"] = id;
         r["pid"] = BIGINT(vector.at(0));
         r["wired_size"] = BIGINT(0); // No support for unpagable counters
-#if defined(__APPLE__)
-        r["state"] = "";
-        r["uid"] = BIGINT(vector.at(1));
-        r["gid"] = -1;
-        r["euid"] = -1;
-        r["egid"] = -1;
-        r["suid"] = -1;
-        r["sgid"] = -1;
-        r["resident_size"] = -1;
-        r["total_size"] = -1;
-        r["start_time"] = -1;
-        r["parent"] = -1;
-        r["pgroup"] = -1;
-        r["threads"] = -1;
-        r["nice"] = -1;
-        r["user"] = "";
-        r["time"] = vector.at(2);
-        r["cpu"] = -1;
-        r["mem"] = -1;
-        r["name"] = "";
-        r["cmdline"] = vector.at(3);
-#elif defined(__linux__)
-        r["state"] = vector.at(1);
-        r["uid"] = BIGINT(vector.at(2));
-        r["gid"] = BIGINT(vector.at(3));
-        r["euid"] = BIGINT(vector.at(4));
-        r["egid"] = BIGINT(vector.at(5));
-        r["suid"] = BIGINT(vector.at(6));
-        r["sgid"] = BIGINT(vector.at(7));
-        r["resident_size"] = BIGINT(vector.at(8) + "000");
-        r["total_size"] = BIGINT(vector.at(9) + "000");
-        r["start_time"] = BIGINT(vector.at(10));
-        r["parent"] = BIGINT(vector.at(11));
-        r["pgroup"] = BIGINT(vector.at(12));
-        r["threads"] = INTEGER(vector.at(13));
-        r["nice"] = INTEGER(vector.at(14));
-        r["user"] = vector.at(15);
-        r["time"] = vector.at(16);
-        r["cpu"] = DOUBLE(vector.at(17));
-        r["mem"] = DOUBLE(vector.at(18));
-        r["name"] = vector.at(19);
-        r["cmdline"] = vector.at(20);
-#endif
+        if (isPlatform(PlatformType::TYPE_OSX)) {
+          r["uid"] = BIGINT(vector.at(1));
+          r["time"] = vector.at(2);
+          r["cmdline"] = vector.at(3);
+        } else if (isPlatform(PlatformType::TYPE_LINUX)) {
+          r["state"] = vector.at(1);
+          r["uid"] = BIGINT(vector.at(2));
+          r["gid"] = BIGINT(vector.at(3));
+          r["euid"] = BIGINT(vector.at(4));
+          r["egid"] = BIGINT(vector.at(5));
+          r["suid"] = BIGINT(vector.at(6));
+          r["sgid"] = BIGINT(vector.at(7));
+          r["resident_size"] = BIGINT(vector.at(8) + "000");
+          r["total_size"] = BIGINT(vector.at(9) + "000");
+          r["start_time"] = BIGINT(vector.at(10));
+          r["parent"] = BIGINT(vector.at(11));
+          r["pgroup"] = BIGINT(vector.at(12));
+          r["threads"] = INTEGER(vector.at(13));
+          r["nice"] = INTEGER(vector.at(14));
+          r["user"] = vector.at(15);
+          r["time"] = vector.at(16);
+          r["cpu"] = DOUBLE(vector.at(17));
+          r["mem"] = DOUBLE(vector.at(18));
+          r["name"] = vector.at(19);
+          r["cmdline"] = vector.at(20);
+        }
+
         results.push_back(r);
       }
     } catch (const pt::ptree_error& e) {
