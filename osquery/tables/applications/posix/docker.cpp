@@ -594,7 +594,6 @@ QueryData genContainerProcesses(QueryContext& context) {
         std::vector<std::string> vector;
         BOOST_FOREACH (const auto& v, processes.second) {
           vector.push_back(v.second.data());
-          VLOG(1) << v.second.data() << "\n";
         }
 
         Row r;
