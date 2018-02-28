@@ -13,6 +13,7 @@
 
 #include "osquery/tables/system/user_groups.h"
 
+namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
@@ -55,6 +56,71 @@ void genODEntries(ODRecordType type, std::set<std::string> &names) {
   }
 }
 
+void genPolicyColumns(int uid, boost::property_tree::ptree& tree) {
+  @autoreleasepool {
+    ODSession* s = [ODSession defaultSession];
+    NSError* err = nullptr;
+    ODNode* root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
+    if (err != nullptr) {
+      TLOG << "Error with OpenDirectory node: "
+           << std::string([[err localizedDescription] UTF8String]);
+      return;
+    }
+
+    ODQuery* q = [ODQuery queryWithNode:root
+                         forRecordTypes:kODRecordTypeUsers
+                              attribute:kODAttributeTypeUniqueID
+                              matchType:kODMatchEqualTo
+                            queryValues:[NSString stringWithFormat:@"%d", uid]
+                       returnAttributes:@"dsAttrTypeNative:accountPolicyData"
+                         maximumResults:0
+                                  error:&err];
+    if (err != nullptr) {
+      TLOG << "Error with OpenDirectory query: "
+           << std::string([[err localizedDescription] UTF8String]);
+      return;
+    }
+
+    // Obtain the results synchronously, not good for very large sets.
+    NSArray* od_results = [q resultsAllowingPartial:NO error:&err];
+    if (err != nullptr) {
+      TLOG << "Error with OpenDirectory results: "
+           << std::string([[err localizedDescription] UTF8String]);
+      return;
+    }
+    for (ODRecord* re in od_results) {
+      NSError* attrErr = nullptr;
+
+      NSArray* userPolicyDataValues =
+          [re valuesForAttribute:@"dsAttrTypeNative:accountPolicyData"
+                           error:&attrErr];
+
+      if (err != nullptr) {
+        TLOG << "Error with OpenDirectory attribute data: "
+             << std::string([[attrErr localizedDescription] UTF8String]);
+        continue;
+      }
+
+      if (![userPolicyDataValues count]) {
+        continue;
+      }
+
+      std::string userPlistString =
+          [[[NSString alloc] initWithData:userPolicyDataValues[0]
+                                 encoding:NSUTF8StringEncoding] UTF8String];
+
+      if (userPlistString.empty()) {
+        continue;
+      }
+
+      if (!osquery::parsePlistContent(userPlistString, tree).ok()) {
+        TLOG << "Error parsing Account Policy data plist";
+        continue;
+      }
+    }
+  }
+}
+
 QueryData genGroups(QueryContext &context) {
   QueryData results;
   if (context.constraints["gid"].exists(EQUALS)) {
@@ -86,13 +152,32 @@ QueryData genGroups(QueryContext &context) {
   return results;
 }
 
-void setRow(Row &r, passwd *pwd) {
+void setRow(Row& r, passwd* pwd, boost::property_tree::ptree& tree) {
   r["gid"] = BIGINT(pwd->pw_gid);
   r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
   r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
   r["description"] = TEXT(pwd->pw_gecos);
   r["directory"] = TEXT(pwd->pw_dir);
   r["shell"] = TEXT(pwd->pw_shell);
+
+  if (auto creationTime = tree.get_optional<std::string>("creationTime")) {
+    r["creation_time"] = DOUBLE(creationTime.get());
+  }
+
+  if (auto failedLoginCount =
+          tree.get_optional<std::string>("failedLoginCount")) {
+    r["failed_login_count"] = BIGINT(failedLoginCount.get());
+  }
+
+  if (auto failedLoginTimestamp =
+          tree.get_optional<std::string>("failedLoginTimestamp")) {
+    r["failed_login_timestamp"] = DOUBLE(failedLoginTimestamp.get());
+  }
+
+  if (auto passwordLastSetTime =
+          tree.get_optional<std::string>("passwordLastSetTime")) {
+    r["password_last_set_time"] = DOUBLE(passwordLastSetTime.get());
+  }
 
   uuid_t uuid = {0};
   uuid_string_t uuid_string = {0};
@@ -117,9 +202,11 @@ QueryData genUsers(QueryContext &context) {
       }
 
       Row r;
+      pt::ptree tree;
       r["uid"] = BIGINT(uid);
       r["username"] = std::string(pwd->pw_name);
-      setRow(r, pwd);
+      genPolicyColumns(uid, tree);
+      setRow(r, pwd, tree);
       results.push_back(r);
     }
   } else {
@@ -132,9 +219,11 @@ QueryData genUsers(QueryContext &context) {
       }
 
       Row r;
+      pt::ptree tree;
       r["uid"] = BIGINT(pwd->pw_uid);
       r["username"] = username;
-      setRow(r, pwd);
+      genPolicyColumns(pwd->pw_uid, tree);
+      setRow(r, pwd, tree);
       results.push_back(r);
     }
   }
