@@ -1,0 +1,14 @@
+table_name("account_policy_data")
+description("Additional OS X user account data from the AccountPolicy section of OpenDirectory.")
+schema([
+    Column("uid", BIGINT, "User ID"),
+    Column("creation_time", DOUBLE, "When the account was first created"),
+    Column("failed_login_count", BIGINT, "The number of times the user failed to login with the correct password. Resets after a correct password is entered"),
+    Column("failed_login_timestamp", DOUBLE, "The time of the last failed login attempt. Resets after a correct password is entered"),
+    Column("password_last_set_time", DOUBLE, "The time the password was last changed"),
+    ForeignKey(column="uid", table="users"),
+])
+implementation("account_policy_data@genAccountPolicyData")
+examples([
+  "select * from users join account_policy_data using (uid)",
+])
