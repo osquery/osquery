@@ -568,7 +568,8 @@ QueryData genContainerProcesses(QueryContext& context) {
 
     if (isPlatform(PlatformType::TYPE_OSX)) {
       // osx: 19 fields
-      // currently OS X Docker API will only return "PID","USER","TIME","COMMAND" fields
+      // currently OS X Docker API will only return
+      // "PID","USER","TIME","COMMAND" fields
       ps_args =
           "pid,state,uid,gid,svuid,svgid,rss,vsz,etime,ppid,pgid,wq,nice,user,"
           "time,pcpu,pmem,comm,command";
@@ -604,7 +605,8 @@ QueryData genContainerProcesses(QueryContext& context) {
           r["uid"] = BIGINT(vector.at(1));
           r["time"] = vector.at(2);
           r["cmdline"] = vector.at(3);
-        } else if (isPlatform(PlatformType::TYPE_LINUX) && vector.size() == 21) {
+        } else if (isPlatform(PlatformType::TYPE_LINUX) && 
+                   vector.size() == 21) {
           r["state"] = vector.at(1);
           r["uid"] = BIGINT(vector.at(2));
           r["gid"] = BIGINT(vector.at(3));
