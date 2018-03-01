@@ -571,7 +571,9 @@ include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 
-include_directories("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+if(NOT FREEBSD)
+  include_directories("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+endif()
 
 set(MKDIR_OPTS "")
 if(WINDOWS)
@@ -664,7 +666,10 @@ if(NOT SKIP_TESTS)
 endif()
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
-add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+
+if(NOT FREEBSD)
+  add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+endif()
 
 add_subdirectory(osquery)
 
