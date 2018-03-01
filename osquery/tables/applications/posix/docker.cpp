@@ -557,17 +557,34 @@ QueryData genContainerPorts(QueryContext& context) {
  */
 QueryData genContainerProcesses(QueryContext& context) {
   QueryData results;
+  std::string ps_args;
+
   for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
     if (!checkConstraintValue(id)) {
       continue;
     }
 
     pt::ptree container;
-    Status s =
-        dockerApi("/containers/" + id + "/top?ps_args=axwwo%20" +
-                      "pid,state,uid,gid,euid,egid,suid,sgid,rss,vsz,etimes,"
-                      "ppid,pgrp,nlwp,nice,user,time,pcpu,pmem,comm,cmd",
-                  container);
+
+    if (isPlatform(PlatformType::TYPE_OSX)) {
+      // osx: 19 fields
+      // currently OS X Docker API will only return
+      // "PID","USER","TIME","COMMAND" fields
+      ps_args =
+          "pid,state,uid,gid,svuid,svgid,rss,vsz,etime,ppid,pgid,wq,nice,user,"
+          "time,pcpu,pmem,comm,command";
+    } else if (isPlatform(PlatformType::TYPE_LINUX)) {
+      // linux: 21 fields
+      ps_args =
+          "pid,state,uid,gid,euid,egid,suid,sgid,rss,vsz,etime,ppid,pgrp,nlwp,"
+          "nice,user,time,pcpu,pmem,comm,cmd";
+    } else {
+      continue;
+    }
+
+    auto s = dockerApi("/containers/" + id + "/top?ps_args=axwwo%20" + ps_args,
+                       container);
+
     if (!s.ok()) {
       VLOG(1) << "Error getting docker container " << id << ": " << s.what();
       continue;
@@ -580,35 +597,40 @@ QueryData genContainerProcesses(QueryContext& context) {
           vector.push_back(v.second.data());
         }
 
-        // On OS X, ps_args are not being honored. Check number of columns
-        if (vector.size() != 21) {
-          continue;
-        }
-
         Row r;
         r["id"] = id;
         r["pid"] = BIGINT(vector.at(0));
-        r["name"] = vector.at(19);
-        r["cmdline"] = vector.at(20);
-        r["state"] = vector.at(1);
-        r["uid"] = BIGINT(vector.at(2));
-        r["gid"] = BIGINT(vector.at(3));
-        r["euid"] = BIGINT(vector.at(4));
-        r["egid"] = BIGINT(vector.at(5));
-        r["suid"] = BIGINT(vector.at(6));
-        r["sgid"] = BIGINT(vector.at(7));
         r["wired_size"] = BIGINT(0); // No support for unpagable counters
-        r["resident_size"] = BIGINT(vector.at(8) + "000");
-        r["total_size"] = BIGINT(vector.at(9) + "000");
-        r["start_time"] = BIGINT(vector.at(10));
-        r["parent"] = BIGINT(vector.at(11));
-        r["pgroup"] = BIGINT(vector.at(12));
-        r["threads"] = INTEGER(vector.at(13));
-        r["nice"] = INTEGER(vector.at(14));
-        r["user"] = vector.at(15);
-        r["time"] = vector.at(16);
-        r["cpu"] = DOUBLE(vector.at(17));
-        r["mem"] = DOUBLE(vector.at(18));
+        if (isPlatform(PlatformType::TYPE_OSX) && vector.size() == 4) {
+          r["uid"] = BIGINT(vector.at(1));
+          r["time"] = vector.at(2);
+          r["cmdline"] = vector.at(3);
+        } else if (isPlatform(PlatformType::TYPE_LINUX) &&
+                   vector.size() == 21) {
+          r["state"] = vector.at(1);
+          r["uid"] = BIGINT(vector.at(2));
+          r["gid"] = BIGINT(vector.at(3));
+          r["euid"] = BIGINT(vector.at(4));
+          r["egid"] = BIGINT(vector.at(5));
+          r["suid"] = BIGINT(vector.at(6));
+          r["sgid"] = BIGINT(vector.at(7));
+          r["resident_size"] = BIGINT(vector.at(8) + "000");
+          r["total_size"] = BIGINT(vector.at(9) + "000");
+          r["start_time"] = BIGINT(vector.at(10));
+          r["parent"] = BIGINT(vector.at(11));
+          r["pgroup"] = BIGINT(vector.at(12));
+          r["threads"] = INTEGER(vector.at(13));
+          r["nice"] = INTEGER(vector.at(14));
+          r["user"] = vector.at(15);
+          r["time"] = vector.at(16);
+          r["cpu"] = DOUBLE(vector.at(17));
+          r["mem"] = DOUBLE(vector.at(18));
+          r["name"] = vector.at(19);
+          r["cmdline"] = vector.at(20);
+        } else {
+          continue;
+        }
+
         results.push_back(r);
       }
     } catch (const pt::ptree_error& e) {
