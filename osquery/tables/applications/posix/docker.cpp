@@ -409,6 +409,14 @@ QueryData genContainers(QueryContext& context) {
       r["privileged"] = container_details.get<bool>("Privileged", false)
                             ? INTEGER(1)
                             : INTEGER(0);
+      r["path"] = container_details.get<std::string>("Path", "");
+
+      std::vector<std::string> entry_pts;
+      BOOST_FOREACH (const pt::ptree::value_type& ent_pt,
+                     container_details.get_child("Config.Entrypoint")) {
+        entry_pts.push_back(ent_pt.second.data());
+      }
+      r["config_entrypoint"] = boost::algorithm::join(entry_pts, ", ");
 
       std::vector<std::string> sec_opts;
       BOOST_FOREACH (const pt::ptree::value_type& sec_opt,
