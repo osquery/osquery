@@ -66,6 +66,9 @@ QueryData genBatteryInfo(QueryContext& context) {
   NSDictionary* batteryInfo = getIopmBatteryInfo();
   NSDictionary* advancedBatteryInfo = getIopmpsBatteryInfo();
 
+  NSLog(@"%@", batteryInfo);
+  NSLog(@"%@", advancedBatteryInfo);
+
   // Don't return any rows if we don't have battery data.
   if (batteryInfo == NULL && advancedBatteryInfo == NULL) {
     return results;
@@ -139,6 +142,9 @@ QueryData genBatteryInfo(QueryContext& context) {
   if ([batteryInfo objectForKey:@kIOPSIsChargedKey]) {
     r["charged"] =
         INTEGER([[batteryInfo objectForKey:@kIOPSIsChargedKey] intValue]);
+  } else {
+    // the absence of this value means the battery is not fully charged
+    r["charged"] = INTEGER(0);
   }
 
   if ([advancedBatteryInfo objectForKey:@"DesignCapacity"]) {
