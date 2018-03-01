@@ -13,9 +13,9 @@
 #include <iostream>
 
 #include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
+
 #include <boost/asio.hpp>
 #include <boost/foreach.hpp>
 
@@ -27,6 +27,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
 // When building on linux, the extended schema of docker_containers will
@@ -406,31 +407,31 @@ QueryData genContainers(QueryContext& context) {
           "StartedAt", "");
       r["finished_at"] = container_details.get_child("State").get<std::string>(
           "FinishedAt", "");
-      r["privileged"] = container_details.get<bool>("Privileged", false)
+      r["privileged"] = container_details.get_child("HostConfig")
+                                .get<bool>("Privileged", false)
                             ? INTEGER(1)
                             : INTEGER(0);
       r["path"] = container_details.get<std::string>("Path", "");
 
       std::vector<std::string> entry_pts;
-      BOOST_FOREACH (const pt::ptree::value_type& ent_pt,
-                     container_details.get_child("Config.Entrypoint")) {
+      for (const auto& ent_pt :
+           container_details.get_child("Config.Entrypoint")) {
         entry_pts.push_back(ent_pt.second.data());
       }
-      r["config_entrypoint"] = boost::algorithm::join(entry_pts, ", ");
+      r["config_entrypoint"] = osquery::join(entry_pts, ", ");
 
       std::vector<std::string> sec_opts;
-      BOOST_FOREACH (const pt::ptree::value_type& sec_opt,
-                     container_details.get_child("HostConfig.SecurityOpt")) {
+      for (const auto& sec_opt :
+           container_details.get_child("HostConfig.SecurityOpt")) {
         sec_opts.push_back(sec_opt.second.data());
       }
-      r["security_options"] = boost::algorithm::join(sec_opts, ", ");
+      r["security_options"] = osquery::join(sec_opts, ", ");
 
       std::vector<std::string> env_vars;
-      BOOST_FOREACH (const pt::ptree::value_type& env_var,
-                     container_details.get_child("Config.Env")) {
+      for (const auto& env_var : container_details.get_child("Config.Env")) {
         env_vars.push_back(env_var.second.data());
       }
-      r["env_variables"] = boost::algorithm::join(env_vars, ", ");
+      r["env_variables"] = osquery::join(env_vars, ", ");
 
     } else {
       VLOG(1) << "Failed to retrieve the inspect data for container "
