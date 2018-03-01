@@ -14,8 +14,6 @@
 #include <utility>
 #include <string>
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <osquery/logger.h>
 #include <osquery/status.h>
 
@@ -94,13 +92,13 @@ class Transport {
    *
    * @return The parameters
    */
-  const boost::property_tree::ptree& getResponseParams() const {
+  const JSON& getResponseParams() const {
     return response_params_;
   }
 
   template <typename T>
   void setOption(const std::string& name, const T& value) {
-    options_.put(name, value);
+    options_.add(name, value);
   }
 
   /**
@@ -119,10 +117,10 @@ class Transport {
   Status response_status_;
 
   /// storage for response parameters
-  boost::property_tree::ptree response_params_;
+  JSON response_params_;
 
   /// options from request call (use defined by specific transport)
-  boost::property_tree::ptree options_;
+  JSON options_;
 };
 
 /**
@@ -147,24 +145,22 @@ class Serializer {
   virtual std::string getContentType() const = 0;
 
   /**
-   * @brief Serialize a property tree into a string
+   * @brief Serialize a JSON object into a string
    *
-   * @param params A property tree of parameters
-   * @param serialized the output serialized params
+   * @param params a JSON object to be serialized
+   * @param serialized the output serialized string
    * @return success or failure of the operation
    */
-  virtual Status serialize(const boost::property_tree::ptree& params,
-                           std::string& serialized) = 0;
+  virtual Status serialize(const JSON& json, std::string& serialized) = 0;
 
   /**
-   * @brief Deserialize a property tree into a property tree
+   * @brief Deserialize a JSON string into a JSON object
    *
-   * @param params A string of serialized parameters
-   * @param serialized the output deserialized parameters
+   * @param params a string of JSON
+   * @param serialized the deserialized JSON object
    * @return success or failure of the operation
    */
-  virtual Status deserialize(const std::string& serialized,
-                             boost::property_tree::ptree& params) = 0;
+  virtual Status deserialize(const std::string& serialized, JSON& params) = 0;
 
   /**
    * @brief Virtual destructor
@@ -222,33 +218,39 @@ class Request {
   /**
    * @brief Send a simple request to the destination with parameters
    *
-   * @param params A property tree representing the parameters
+   * @param params a JSON object representing the parameters
    *
    * @return success or failure of the operation
    */
-  Status call(const boost::property_tree::ptree& params) {
+  Status call(const JSON& params) {
     std::string serialized;
     auto s = serializer_->serialize(params, serialized);
     if (!s.ok()) {
       return s;
     }
 
-    return transport_->sendRequest(serialized, options_.get("compress", false));
+    bool compress = false;
+    auto it = options_.doc().FindMember("compress");
+    if (it != options_.doc().MemberEnd() && it->value.IsBool()) {
+      compress = it->value.GetBool();
+    }
+
+    return transport_->sendRequest(serialized, compress);
   }
 
   /**
    * @brief Get the request response
    *
-   * @return A pair of a Status and a property tree of response params
+   * @return A pair of a Status and a JSON object of response params
    */
-  Status getResponse(boost::property_tree::ptree& params) {
-    params = transport_->getResponseParams();
+  Status getResponse(JSON& params) {
+    params.copyFrom(transport_->getResponseParams().doc());
     return transport_->getResponseStatus();
   }
 
   template <typename T>
   void setOption(const std::string& name, const T& value) {
-    options_.put(name, value);
+    options_.add(name, value);
     transport_->setOption(name, value);
   }
 
@@ -263,7 +265,7 @@ class Request {
   std::shared_ptr<TTransport> transport_{nullptr};
 
   /// options from request call (duplicated in transport)
-  boost::property_tree::ptree options_;
+  JSON options_;
 
  private:
   FRIEND_TEST(TLSTransportsTests, test_call);

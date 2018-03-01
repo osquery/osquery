@@ -8,8 +8,6 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -86,41 +84,38 @@ void TLSLoggerPlugin::init(const std::string& name,
 
 Status TLSLogForwarder::send(std::vector<std::string>& log_data,
                              const std::string& log_type) {
-  pt::ptree params;
-  params.put<std::string>("node_key", getNodeKey("tls"));
-  params.put<std::string>("log_type", log_type);
+  JSON params;
+  params.add("node_key", getNodeKey("tls"));
+  params.add("log_type", log_type);
 
   {
     // Read each logged line into JSON and populate a list of lines.
     // The result list will use the 'data' key.
-    pt::ptree children;
-    iterate(log_data, ([&children](std::string& item) {
+    auto children = params.newArray();
+    iterate(log_data, ([&params, &children](std::string& item) {
               // Enforce a max log line size for TLS logging.
               if (item.size() > FLAGS_logger_tls_max) {
                 LOG(WARNING) << "Line exceeds TLS logger max: " << item.size();
                 return;
               }
 
-              pt::ptree child;
-              try {
-                std::stringstream input;
-                input << item;
-                std::string().swap(item);
-                pt::read_json(input, child);
-              } catch (const pt::json_parser::json_parser_error& /* e */) {
+              JSON child;
+              Status s = child.fromString(item);
+              if (!s.ok()) {
                 // The log line entered was not valid JSON, skip it.
                 return;
               }
-              children.push_back(std::make_pair("", std::move(child)));
+              std::string().swap(item);
+              params.push(child.doc(), children.doc());
             }));
-    params.add_child("data", std::move(children));
+    params.add("data", children.doc());
   }
 
   // The response body is ignored (status is set appropriately by
   // TLSRequestHelper::go())
   std::string response;
   if (FLAGS_logger_tls_compress) {
-    params.put("_compress", true);
+    params.add("_compress", true);
   }
   return TLSRequestHelper::go<JSONSerializer>(uri_, params, response);
 }
