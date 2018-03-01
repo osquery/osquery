@@ -140,6 +140,7 @@ else()
   # component-specific globbing is needed.
   if(${OSQUERY_BUILD_PLATFORM} STREQUAL "freebsd")
     set(FREEBSD TRUE)
+    set(DEPS FALSE)
     include_directories("/usr/local/include")
     include_directories("/usr/include")
   else()
@@ -564,11 +565,6 @@ if(POSIX AND DEPS)
   if(CLANG)
     include_directories(SYSTEM "${BUILD_DEPS}/lib/clang/4.0.0/include")
   endif()
-endif()
-
-if(FREEBSD)
-  # Including Boost Beast within third-party until it's merged into boot 1.66.
-  include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
 endif()
 
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
