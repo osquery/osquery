@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/asio.hpp>
@@ -399,10 +400,33 @@ QueryData genContainers(QueryContext& context) {
     s = dockerApi("/containers/" + r["id"] + "/json?stream=false",
                   container_details);
     if (s.ok()) {
-      pid_t process_id = container_details.get<pid_t>("State.Pid", -1);
-      r["pid"] = std::to_string(process_id);
+      r["pid"] = std::to_string(
+          container_details.get_child("State").get<pid_t>("Pid", -1));
+      r["started_at"] = container_details.get_child("State").get<std::string>(
+          "StartedAt", "");
+      r["finished_at"] = container_details.get_child("State").get<std::string>(
+          "FinishedAt", "");
+      r["privileged"] = container_details.get<bool>("Privileged", false)
+                            ? INTEGER(1)
+                            : INTEGER(0);
+
+      std::vector<std::string> sec_opts;
+      BOOST_FOREACH (const pt::ptree::value_type& sec_opt,
+                     container_details.get_child("HostConfig.SecurityOpt")) {
+        sec_opts.push_back(sec_opt.second.data());
+      }
+      r["security_options"] = boost::algorithm::join(sec_opts, ", ");
+
+      std::vector<std::string> env_vars;
+      BOOST_FOREACH (const pt::ptree::value_type& env_var,
+                     container_details.get_child("Config.Env")) {
+        env_vars.push_back(env_var.second.data());
+      }
+      r["env_variables"] = boost::algorithm::join(env_vars, ", ");
+
     } else {
-      VLOG(1) << "Failed to retrieve the pid for container " << r["id"];
+      VLOG(1) << "Failed to retrieve the inspect data for container "
+              << r["id"];
     }
 
 // When building on linux, the extended schema of docker_containers will
