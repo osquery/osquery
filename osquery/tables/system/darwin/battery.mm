@@ -66,9 +66,6 @@ QueryData genBatteryInfo(QueryContext& context) {
   NSDictionary* batteryInfo = getIopmBatteryInfo();
   NSDictionary* advancedBatteryInfo = getIopmpsBatteryInfo();
 
-  NSLog(@"%@", batteryInfo);
-  NSLog(@"%@", advancedBatteryInfo);
-
   // Don't return any rows if we don't have battery data.
   if (batteryInfo == NULL && advancedBatteryInfo == NULL) {
     return results;
