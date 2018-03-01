@@ -25,8 +25,6 @@ namespace osquery {
 namespace tables {
 
 void genAccountPolicyDataRow(const std::string& uid, Row& r) {
-  pt::ptree tree;
-
   ODSession* s = [ODSession defaultSession];
   NSError* err = nullptr;
   ODNode* root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
@@ -58,6 +56,8 @@ void genAccountPolicyDataRow(const std::string& uid, Row& r) {
          << std::string([[err localizedDescription] UTF8String]);
     return;
   }
+
+  pt::ptree tree;
 
   for (ODRecord* re in od_results) {
     NSError* attrErr = nullptr;
@@ -91,25 +91,10 @@ void genAccountPolicyDataRow(const std::string& uid, Row& r) {
   }
 
   r["uid"] = BIGINT(uid);
-
-  if (auto creationTime = tree.get_optional<std::string>("creationTime")) {
-    r["creation_time"] = DOUBLE(creationTime.get());
-  }
-
-  if (auto failedLoginCount =
-          tree.get_optional<std::string>("failedLoginCount")) {
-    r["failed_login_count"] = BIGINT(failedLoginCount.get());
-  }
-
-  if (auto failedLoginTimestamp =
-          tree.get_optional<std::string>("failedLoginTimestamp")) {
-    r["failed_login_timestamp"] = DOUBLE(failedLoginTimestamp.get());
-  }
-
-  if (auto passwordLastSetTime =
-          tree.get_optional<std::string>("passwordLastSetTime")) {
-    r["password_last_set_time"] = DOUBLE(passwordLastSetTime.get());
-  }
+  r["creation_time"] = DOUBLE(tree.get("creationTime", ""));
+  r["failed_login_count"] = BIGINT(tree.get("failedLoginCount", ""));
+  r["failed_login_timestamp"] = DOUBLE(tree.get("failedLoginTimestamp", ""));
+  r["password_last_set_time"] = DOUBLE(tree.get("passwordLastSetTime", ""));
 }
 
 QueryData genAccountPolicyData(QueryContext& context) {
@@ -122,8 +107,9 @@ QueryData genAccountPolicyData(QueryContext& context) {
     auto uid = user.at("uid");
     genAccountPolicyDataRow(uid, r);
 
-    // A blank UID implies no policy exists for the user who is corrupted.
-    // We should only return rows where we successfully read an account policy.
+    // A blank UID implies no policy exists for the user, or the policy is
+    // corrupted. We should only return rows where we successfully read an
+    // account policy.
     if (r["uid"] != "") {
       results.push_back(r);
     }
