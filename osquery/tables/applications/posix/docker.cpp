@@ -401,8 +401,8 @@ QueryData genContainers(QueryContext& context) {
     s = dockerApi("/containers/" + r["id"] + "/json?stream=false",
                   container_details);
     if (s.ok()) {
-      r["pid"] = std::to_string(
-          container_details.get_child("State").get<pid_t>("Pid", -1));
+      r["pid"] =
+          BIGINT(container_details.get_child("State").get<pid_t>("Pid", -1));
       r["started_at"] = container_details.get_child("State").get<std::string>(
           "StartedAt", "");
       r["finished_at"] = container_details.get_child("State").get<std::string>(
