@@ -43,7 +43,7 @@ Status QueryManager::reset() {
 }
 
 std::string QueryManager::addOneTimeQueryEntry(const SubscriptionRequest& qr) {
-  const auto queryID = std::to_string(nextUID_++);
+  const auto queryID = "bro_" + std::to_string(nextUID_++);
   auto status = addQueryEntry(queryID, qr, "ONETIME");
   if (!status.ok()) {
     LOG(WARNING) << status.getMessage();
@@ -53,7 +53,7 @@ std::string QueryManager::addOneTimeQueryEntry(const SubscriptionRequest& qr) {
 }
 
 Status QueryManager::addScheduleQueryEntry(const SubscriptionRequest& qr) {
-  const auto queryID = std::to_string(this->nextUID_++);
+  const auto queryID = "bro_" + std::to_string(this->nextUID_++);
   return addQueryEntry(queryID, qr, "SCHEDULE");
 }
 
