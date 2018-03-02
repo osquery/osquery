@@ -9,7 +9,14 @@ schema([
     Column("created", BIGINT, "Time of creation as UNIX time"),
     Column("state", TEXT, "Container state (created, restarting, running, removing, paused, exited, dead)"),
     Column("status", TEXT, "Container status information"),
-    Column("pid", TEXT, "Identifier of the initial process"),
+    Column("pid", BIGINT, "Identifier of the initial process"),
+    Column("path", TEXT, "Container path"),
+    Column("config_entrypoint", TEXT, "Container entrypoint(s)"),
+    Column("started_at", TEXT, "Container start time as string"),
+    Column("finished_at", TEXT, "Container finish time as string"),
+    Column("privileged", INTEGER, "Is the container privileged"),
+    Column("security_options", TEXT, "List of container security options"),
+    Column("env_variables", TEXT, "Container environmental variables"),
 ])
 extended_schema(LINUX, [
     Column("cgroup_namespace", TEXT, "cgroup namespace"),

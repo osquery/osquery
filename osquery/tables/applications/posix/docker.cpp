@@ -15,6 +15,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
+
 #include <boost/asio.hpp>
 #include <boost/foreach.hpp>
 
@@ -26,6 +27,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
 // When building on linux, the extended schema of docker_containers will
@@ -399,10 +401,41 @@ QueryData genContainers(QueryContext& context) {
     s = dockerApi("/containers/" + r["id"] + "/json?stream=false",
                   container_details);
     if (s.ok()) {
-      pid_t process_id = container_details.get<pid_t>("State.Pid", -1);
-      r["pid"] = std::to_string(process_id);
+      r["pid"] =
+          BIGINT(container_details.get_child("State").get<pid_t>("Pid", -1));
+      r["started_at"] = container_details.get_child("State").get<std::string>(
+          "StartedAt", "");
+      r["finished_at"] = container_details.get_child("State").get<std::string>(
+          "FinishedAt", "");
+      r["privileged"] = container_details.get_child("HostConfig")
+                                .get<bool>("Privileged", false)
+                            ? INTEGER(1)
+                            : INTEGER(0);
+      r["path"] = container_details.get<std::string>("Path", "");
+
+      std::vector<std::string> entry_pts;
+      for (const auto& ent_pt :
+           container_details.get_child("Config.Entrypoint")) {
+        entry_pts.push_back(ent_pt.second.data());
+      }
+      r["config_entrypoint"] = osquery::join(entry_pts, ", ");
+
+      std::vector<std::string> sec_opts;
+      for (const auto& sec_opt :
+           container_details.get_child("HostConfig.SecurityOpt")) {
+        sec_opts.push_back(sec_opt.second.data());
+      }
+      r["security_options"] = osquery::join(sec_opts, ", ");
+
+      std::vector<std::string> env_vars;
+      for (const auto& env_var : container_details.get_child("Config.Env")) {
+        env_vars.push_back(env_var.second.data());
+      }
+      r["env_variables"] = osquery::join(env_vars, ", ");
+
     } else {
-      VLOG(1) << "Failed to retrieve the pid for container " << r["id"];
+      VLOG(1) << "Failed to retrieve the inspect data for container "
+              << r["id"];
     }
 
 // When building on linux, the extended schema of docker_containers will
