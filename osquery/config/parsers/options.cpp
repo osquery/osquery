@@ -14,7 +14,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
-namespace rj = rapidjson;
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -46,53 +46,38 @@ class OptionsConfigParserPlugin : public ConfigParserPlugin {
     return {"options"};
   }
 
+  Status setUp() override;
+
   Status update(const std::string& source, const ParserConfig& config) override;
 };
 
+Status OptionsConfigParserPlugin::setUp() {
+  data_.put_child("options", pt::ptree());
+  return Status(0, "OK");
+}
+
 Status OptionsConfigParserPlugin::update(const std::string& source,
                                          const ParserConfig& config) {
-  auto co = config.find("options");
-  if (co == config.end()) {
-    return Status();
+  if (config.count("options") > 0) {
+    data_ = pt::ptree();
+    data_.put_child("options", config.at("options"));
   }
 
-  if (!data_.doc().HasMember("options")) {
-    auto obj = data_.getObject();
-    data_.add("options", obj);
-  }
-
-  if (co->second.doc().IsObject()) {
-    auto obj = data_.getObject();
-    data_.copyFrom(co->second.doc(), obj);
-    data_.mergeObject(data_.doc()["options"], obj);
-  }
-
-  const auto& options = data_.doc()["options"];
-  for (const auto& option : options.GetObject()) {
-    std::string name = option.name.GetString();
-    std::string value;
-    if (option.value.IsString()) {
-      value = option.value.GetString();
-    } else if (option.value.IsBool()) {
-      value = (option.value.GetBool()) ? "true" : "false";
-    } else if (option.value.IsInt()) {
-      value = std::to_string(option.value.GetInt());
-    } else if (option.value.IsNumber()) {
-      value = std::to_string(option.value.GetUint64());
-    }
-
-    if (value.empty() || name.empty()) {
+  const auto& options = data_.get_child("options");
+  for (const auto& option : options) {
+    std::string value = options.get<std::string>(option.first, "");
+    if (value.empty()) {
       continue;
     }
 
-    bool is_custom = name.find("custom_") == 0;
-    if (!is_custom && Flag::getType(name).empty()) {
-      LOG(WARNING) << "Cannot set unknown or invalid flag: " << name;
+    bool is_custom = option.first.find("custom_") == 0;
+    if (!is_custom && Flag::getType(option.first).empty()) {
+      LOG(WARNING) << "Cannot set unknown or invalid flag: " << option.first;
     }
 
-    Flag::updateValue(name, value);
+    Flag::updateValue(option.first, value);
     // There is a special case for supported Gflags-reserved switches.
-    if (kVerboseOptions.count(name)) {
+    if (kVerboseOptions.count(option.first)) {
       setVerboseLevel();
       if (Flag::getValue("verbose") == "true") {
         VLOG(1) << "Verbose logging enabled by config option";
@@ -100,7 +85,7 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
     }
   }
 
-  return Status();
+  return Status(0, "OK");
 }
 
 REGISTER_INTERNAL(OptionsConfigParserPlugin, "config_parser", "options");

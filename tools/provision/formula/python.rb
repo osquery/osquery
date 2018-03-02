@@ -6,17 +6,36 @@ class Python < AbstractOsqueryFormula
   url "https://www.python.org/ftp/python/2.7.12/Python-2.7.12.tar.xz"
   sha256 "d7837121dd5652a05fef807c361909d255d173280c4e1a4ded94d73d80a1f978"
   head "https://hg.python.org/cpython", :using => :hg, :branch => "2.7"
-  revision 201
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "bdb15b11023e4317fff5a0f309d3112dbc6d6ba394146f13915e17f5b8245da0" => :sierra
-    sha256 "ac3c92cb980e57509b355d540deec8cf546a202e51b75739f18703150489e8d8" => :x86_64_linux
+    sha256 "a43f382991e2636cd1fc01619b5790898e1e40e89da94d5997cc80a0775d8a54" => :sierra
+    sha256 "8245288b9906228f925215162ecba6925d23c7bf544e919ce3152d90398f738c" => :x86_64_linux
   end
 
+  option :universal
+  option "with-quicktest", "Run `make quicktest` after the build (for devs; may fail)"
+  option "with-tcl-tk", "Use Homebrew's Tk instead of OS X Tk (has optional Cocoa and threads support)"
+  option "with-poll", "Enable select.poll, which is not fully implemented on OS X (https://bugs.python.org/issue5154)"
+
+  # Homebrew doesn't accept a wide/ucs4 option because narrow build is the de facto standard
+  # on Windows and OSX, but wide seems to be the default for linux
+  # More details in: https://github.com/Homebrew/homebrew/pull/32368
+  option "with-unicode-ucs4", "Build unicode support with UCS4"
+
+  deprecated_option "quicktest" => "with-quicktest"
+  deprecated_option "with-brewed-tk" => "with-tcl-tk"
+
   depends_on "pkg-config" => :build
+  depends_on "readline" => :recommended
+  depends_on "sqlite" => :recommended
+  depends_on "gdbm" => :recommended
   depends_on "openssl"
+  depends_on "homebrew/dupes/tcl-tk" => :optional
+  depends_on "berkeley-db4" => :optional
+  depends_on :x11 if build.with?("tcl-tk") && Tab.for_name("homebrew/dupes/tcl-tk").with?("x11")
   depends_on "bzip2" unless OS.mac?
 
   skip_clean "bin/pip", "bin/pip-2.7"
@@ -41,9 +60,13 @@ class Python < AbstractOsqueryFormula
   # https://bugs.python.org/issue10910
   # https://trac.macports.org/ticket/44288
   patch do
-    url "https://trac.macports.org/raw-attachment/ticket/44288/issue10910-workaround.txt"
+    url "https://bugs.python.org/file30805/issue10910-workaround.txt"
     sha256 "c075353337f9ff3ccf8091693d278782fcdff62c113245d8de43c5c7acc57daf"
   end
+
+  # Patch to disable the search for Tk.framework, since Homebrew's Tk is
+  # a plain unix build. Remove `-lX11`, too because our Tk is "AquaTk".
+  patch :DATA if build.with? "tcl-tk"
 
   def lib_cellar
     prefix / (OS.mac? ? "Frameworks/Python.framework/Versions/2.7" : "") /
@@ -71,6 +94,10 @@ class Python < AbstractOsqueryFormula
   end
 
   def install
+    if build.with? "poll"
+      opoo "The given option --with-poll enables a somewhat broken poll() on OS X (https://bugs.python.org/issue5154)."
+    end
+
     # Unset these so that installing pip and setuptools puts them where we want
     # and not into some other Python the user has installed.
     ENV["PYTHONHOME"] = nil
@@ -85,8 +112,10 @@ class Python < AbstractOsqueryFormula
       --without-ensurepip
       --disable-shared
       --enable-static
-      --without-gcc
     ]
+
+    args << "--without-gcc" if ENV.compiler == :clang
+    args << "--enable-unicode=ucs4" if build.with? "unicode-ucs4"
 
     cflags   = []
     ldflags  = []
@@ -99,7 +128,9 @@ class Python < AbstractOsqueryFormula
       ldflags  << "-isysroot #{MacOS.sdk_path}"
       cppflags << "-I#{MacOS.sdk_path}/usr/include" # find zlib
       # For the Xlib.h, Python needs this header dir with the system Tk
-      cflags << "-I#{MacOS.sdk_path}/System/Library/Frameworks/Tk.framework/Versions/8.5/Headers"
+      if build.without? "tcl-tk"
+        cflags << "-I#{MacOS.sdk_path}/System/Library/Frameworks/Tk.framework/Versions/8.5/Headers"
+      end
     end
 
     # Python's setup.py parses CPPFLAGS and LDFLAGS to learn search
@@ -111,16 +142,30 @@ class Python < AbstractOsqueryFormula
     end
 
     # Avoid linking to libgcc https://code.activestate.com/lists/python-dev/112195/
-    args << "MACOSX_DEPLOYMENT_TARGET=10.11"
+    args << "MACOSX_DEPLOYMENT_TARGET=#{MacOS.version}"
 
     # We want our readline and openssl! This is just to outsmart the detection code,
     # superenv handles that cc finds includes/libs!
     inreplace "setup.py" do |s|
-      s.gsub! "/usr/local/ssl", Formula["osquery/osquery-local/openssl"].opt_prefix
+      s.gsub! "do_readline = self.compiler.find_library_file(lib_dirs, 'readline')",
+              "do_readline = '#{Formula["readline"].opt_lib}/libhistory.dylib'"
+      s.gsub! "/usr/local/ssl", Formula["openssl"].opt_prefix
+      s.gsub! "/usr/include/db4", Formula["berkeley-db4"].opt_include
     end
 
     # osquery: multiarch paths will shadow our legacy runtime.
     inreplace "setup.py", "self.add_multiarch_paths()", "'''multiarch paths not wanted'''"
+
+    if build.universal?
+      ENV.universal_binary
+      args << "--enable-universalsdk=/" << "--with-universal-archs=intel"
+    end
+
+    # Allow sqlite3 module to load extensions:
+    # https://docs.python.org/library/sqlite3.html#f1
+    if build.with? "sqlite"
+      inreplace("setup.py", 'sqlite_defines.append(("SQLITE_OMIT_LOAD_EXTENSION", "1"))', "")
+    end
 
     # Allow python modules to use ctypes.find_library to find homebrew's stuff
     # even if homebrew is not a /usr/local/lib. Try this with:
@@ -128,6 +173,12 @@ class Python < AbstractOsqueryFormula
     inreplace "./Lib/ctypes/macholib/dyld.py" do |f|
       f.gsub! "DEFAULT_LIBRARY_FALLBACK = [", "DEFAULT_LIBRARY_FALLBACK = [ '#{HOMEBREW_PREFIX}/lib',"
       f.gsub! "DEFAULT_FRAMEWORK_FALLBACK = [", "DEFAULT_FRAMEWORK_FALLBACK = [ '#{HOMEBREW_PREFIX}/Frameworks',"
+    end
+
+    if build.with? "tcl-tk"
+      tcl_tk = Formula["homebrew/dupes/tcl-tk"].opt_prefix
+      cppflags << "-I#{tcl_tk}/include"
+      ldflags  << "-L#{tcl_tk}/lib"
     end
 
     args << "CFLAGS=#{cflags.join(" ")}" unless cflags.empty?
@@ -150,6 +201,7 @@ class Python < AbstractOsqueryFormula
     system "make", "install", "PYTHONAPPSDIR=#{prefix}"
     # Demos and Tools
     system "make", "frameworkinstallextras", "PYTHONAPPSDIR=#{share}/python" if OS.mac?
+    system "make", "quicktest" if build.with? "quicktest"
 
     # Symlink the pkgconfig files into HOMEBREW_PREFIX so they're accessible.
     (lib/"pkgconfig").install_symlink Dir["#{frameworks}/Python.framework/Versions/Current/lib/pkgconfig/*"]
@@ -211,17 +263,18 @@ class Python < AbstractOsqueryFormula
     end
 
     # Help distutils find brewed stuff when building extensions
-    include_dirs = [
-      HOMEBREW_PREFIX/"include",
-      "#{legacy_prefix}/include",
-      Formula["osquery/osquery-local/openssl"].opt_include
-    ]
+    include_dirs = [HOMEBREW_PREFIX/"include", Formula["openssl"].opt_include]
+    library_dirs = [HOMEBREW_PREFIX/"lib", Formula["openssl"].opt_lib]
 
-    library_dirs = [
-      HOMEBREW_PREFIX/"lib",
-      "#{legacy_prefix}/lib",
-      Formula["osquery/osquery-local/openssl"].opt_lib
-    ]
+    if build.with? "sqlite"
+      include_dirs << Formula["sqlite"].opt_include
+      library_dirs << Formula["sqlite"].opt_lib
+    end
+
+    if build.with? "tcl-tk"
+      include_dirs << Formula["homebrew/dupes/tcl-tk"].opt_include
+      library_dirs << Formula["homebrew/dupes/tcl-tk"].opt_lib
+    end
 
     cfg = lib_cellar/"distutils/distutils.cfg"
     cfg.atomic_write <<-EOF.undent
@@ -297,4 +350,63 @@ class Python < AbstractOsqueryFormula
     See: https://github.com/Homebrew/brew/blob/master/share/doc/homebrew/Homebrew-and-Python.md
     EOS
   end
+
+  test do
+    # Check if sqlite is ok, because we build with --enable-loadable-sqlite-extensions
+    # and it can occur that building sqlite silently fails if OSX's sqlite is used.
+    system "#{bin}/python", "-c", "import sqlite3"
+    # Check if some other modules import. Then the linked libs are working.
+    if OS.mac? || build.with?("tcl-tk") && Tab.for_name("homebrew/dupes/tcl-tk").with?("x11")
+      system "#{bin}/python", "-c", "import Tkinter; root = Tkinter.Tk()"
+    end
+    system bin/"pip", "list"
+  end
 end
+
+__END__
+diff --git a/setup.py b/setup.py
+index 716f08e..66114ef 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1810,9 +1810,6 @@ class PyBuildExt(build_ext):
+         # Rather than complicate the code below, detecting and building
+         # AquaTk is a separate method. Only one Tkinter will be built on
+         # Darwin - either AquaTk, if it is found, or X11 based Tk.
+-        if (host_platform == 'darwin' and
+-            self.detect_tkinter_darwin(inc_dirs, lib_dirs)):
+-            return
+
+         # Assume we haven't found any of the libraries or include files
+         # The versions with dots are used on Unix, and the versions without
+@@ -1858,21 +1855,6 @@ class PyBuildExt(build_ext):
+             if dir not in include_dirs:
+                 include_dirs.append(dir)
+
+-        # Check for various platform-specific directories
+-        if host_platform == 'sunos5':
+-            include_dirs.append('/usr/openwin/include')
+-            added_lib_dirs.append('/usr/openwin/lib')
+-        elif os.path.exists('/usr/X11R6/include'):
+-            include_dirs.append('/usr/X11R6/include')
+-            added_lib_dirs.append('/usr/X11R6/lib64')
+-            added_lib_dirs.append('/usr/X11R6/lib')
+-        elif os.path.exists('/usr/X11R5/include'):
+-            include_dirs.append('/usr/X11R5/include')
+-            added_lib_dirs.append('/usr/X11R5/lib')
+-        else:
+-            # Assume default location for X11
+-            include_dirs.append('/usr/X11/include')
+-            added_lib_dirs.append('/usr/X11/lib')
+
+         # If Cygwin, then verify that X is installed before proceeding
+         if host_platform == 'cygwin':
+@@ -1897,9 +1879,6 @@ class PyBuildExt(build_ext):
+         if host_platform in ['aix3', 'aix4']:
+             libs.append('ld')
+
+-        # Finally, link with the X11 libraries (not appropriate on cygwin)
+-        if host_platform != "cygwin":
+-            libs.append('X11')
+
+         ext = Extension('_tkinter', ['_tkinter.c', 'tkappinit.c'],
+                         define_macros=[('WITH_APPINIT', 1)] + defs,

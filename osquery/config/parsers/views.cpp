@@ -17,7 +17,7 @@
 
 #include "osquery/core/conversions.h"
 
-namespace rj = rapidjson;
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -30,24 +30,26 @@ class ViewsConfigParserPlugin : public ConfigParserPlugin {
     return {"views"};
   }
 
+  Status setUp() override;
+
   Status update(const std::string& source, const ParserConfig& config) override;
 
  private:
   const std::string kConfigViews = "config_views.";
 };
 
+Status ViewsConfigParserPlugin::setUp() {
+  data_.put_child("views", pt::ptree());
+  return Status(0, "OK");
+}
+
 Status ViewsConfigParserPlugin::update(const std::string& source,
                                        const ParserConfig& config) {
-  auto cv = config.find("views");
-  if (cv == config.end()) {
-    return Status(1);
+  if (config.count("views") > 0) {
+    data_ = pt::ptree();
+    data_.put_child("views", config.at("views"));
   }
-
-  auto obj = data_.getObject();
-  data_.copyFrom(cv->second.doc(), obj);
-  data_.add("views", obj);
-
-  const auto& views = data_.doc()["views"];
+  const auto& views = data_.get_child("views");
 
   // We use a restricted scope below to change the data structure from
   // an array to a set. This lets us do deletes much more efficiently
@@ -60,15 +62,13 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
       erase_views.insert(view.substr(kConfigViews.size()));
     }
   }
-
   QueryData r;
-  for (const auto& view : views.GetObject()) {
-    std::string name = view.name.GetString();
-    std::string query = view.value.GetString();
+  for (const auto& view : views) {
+    const auto& name = view.first;
+    std::string query = views.get<std::string>(view.first, "");
     if (query.empty()) {
       continue;
     }
-
     std::string old_query = "";
     getDatabaseValue(kQueries, kConfigViews + name, old_query);
     erase_views.erase(name);
@@ -85,7 +85,6 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
       LOG(INFO) << "Error creating view (" << name << "): " << s.getMessage();
     }
   }
-
   // Any views left are views that don't exist in the new configuration file
   // so we tear them down and remove them from the database.
   for (const auto& old_view : erase_views) {

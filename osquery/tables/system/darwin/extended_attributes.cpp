@@ -236,10 +236,9 @@ QueryData genXattr(QueryContext& context) {
 
   for (const auto& path_string : paths) {
     boost::filesystem::path path = path_string;
-    boost::system::error_code ec;
     // Folders can have extended attributes too
-    if (!(boost::filesystem::is_regular_file(path, ec) ||
-          boost::filesystem::is_directory(path, ec))) {
+    if (!(boost::filesystem::is_regular_file(path) ||
+          boost::filesystem::is_directory(path))) {
       continue;
     }
     getFileData(results, path.string());

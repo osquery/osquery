@@ -192,15 +192,10 @@ void FSEventsEventPublisher::buildExcludePathsSet() {
 
   WriteLock lock(subscription_lock_);
   exclude_paths_.clear();
-
-  const auto& doc = parser->getData();
-  if (!doc.doc().HasMember("exclude_paths")) {
-    return;
-  }
-
-  for (const auto& category : doc.doc()["exclude_paths"].GetObject()) {
-    for (const auto& excl_path : category.value.GetArray()) {
-      std::string pattern = excl_path.GetString();
+  for (const auto& excl_category :
+       parser->getData().get_child("exclude_paths")) {
+    for (const auto& excl_path : excl_category.second) {
+      auto pattern = excl_path.second.get_value<std::string>("");
       if (pattern.empty()) {
         continue;
       }

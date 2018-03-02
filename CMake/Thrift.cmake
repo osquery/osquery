@@ -6,9 +6,9 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-set(THRIFT_NAME "thrift")
+# Target for generating osquery thirft (extensions) code.
 set(OSQUERY_THRIFT_DIR "${CMAKE_BINARY_DIR}/generated/gen-cpp")
-set(THRIFT_GENERATED_FILES
+set(OSQUERY_THRIFT_GENERATED_FILES
   ${OSQUERY_THRIFT_DIR}/Extension.cpp
   ${OSQUERY_THRIFT_DIR}/Extension.h
   ${OSQUERY_THRIFT_DIR}/ExtensionManager.cpp
@@ -17,27 +17,5 @@ set(THRIFT_GENERATED_FILES
   ${OSQUERY_THRIFT_DIR}/osquery_types.h
 )
 
-if(DEFINED ENV{FBTHRIFT})
-  set(THRIFT_NAME "thrift1")
-  set(OSQUERY_THRIFT_DIR "${CMAKE_BINARY_DIR}/generated/gen-cpp2")
-  set(THRIFT_GENERATED_FILES
-    ${OSQUERY_THRIFT_DIR}/Extension_client.cpp
-    ${OSQUERY_THRIFT_DIR}/Extension.cpp
-    ${OSQUERY_THRIFT_DIR}/ExtensionManager_client.cpp
-    ${OSQUERY_THRIFT_DIR}/ExtensionManager.cpp
-    ${OSQUERY_THRIFT_DIR}/ExtensionManager_processmap_binary.cpp
-    ${OSQUERY_THRIFT_DIR}/ExtensionManager_processmap_compact.cpp
-    ${OSQUERY_THRIFT_DIR}/Extension_processmap_binary.cpp
-    ${OSQUERY_THRIFT_DIR}/Extension_processmap_compact.cpp
-    ${OSQUERY_THRIFT_DIR}/osquery_constants.cpp
-    ${OSQUERY_THRIFT_DIR}/osquery_data.cpp
-    ${OSQUERY_THRIFT_DIR}/osquery_types.cpp
-  )
-  include_directories("${CMAKE_BINARY_DIR}")
-  add_definitions(-DFBTHRIFT=1)
-endif()
-
-find_program(THRIFT_COMPILER ${THRIFT_NAME} ${BUILD_DEPS} ENV PATH)
-
-# Set the include directory for generated Thrift files.
+# For the extensions targets, allow them to include thrift interface headers.
 include_directories("${OSQUERY_THRIFT_DIR}")

@@ -131,43 +131,50 @@ std::map<std::string, std::string> getTestConfigMap(const std::string& file) {
   return config;
 }
 
-JSON getExamplePacksConfig() {
+pt::ptree getExamplePacksConfig() {
   std::string content;
   auto s = readFile(fs::path(kTestDataPath) / "test_inline_pack.conf", content);
   assert(s.ok());
-  JSON doc = JSON::newObject();
-  doc.fromString(content);
-  return doc;
+  std::stringstream json;
+  json << content;
+  pt::ptree tree;
+  pt::read_json(json, tree);
+  return tree;
 }
 
 /// no discovery queries, no platform restriction
-JSON getUnrestrictedPack() {
-  auto doc = getExamplePacksConfig();
-  return JSON::newFromValue(doc.doc()["packs"]["unrestricted_pack"]);
+pt::ptree getUnrestrictedPack() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("unrestricted_pack");
 }
 
 // several restrictions (version, platform, shard)
-JSON getRestrictedPack() {
-  auto doc = getExamplePacksConfig();
-  return JSON::newFromValue(doc.doc()["packs"]["restricted_pack"]);
+pt::ptree getRestrictedPack() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("restricted_pack");
 }
 
 /// 1 discovery query, darwin platform restriction
-JSON getPackWithDiscovery() {
-  auto doc = getExamplePacksConfig();
-  return JSON::newFromValue(doc.doc()["packs"]["discovery_pack"]);
+pt::ptree getPackWithDiscovery() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("discovery_pack");
 }
 
 /// 1 discovery query which will always pass
-JSON getPackWithValidDiscovery() {
-  auto doc = getExamplePacksConfig();
-  return JSON::newFromValue(doc.doc()["packs"]["valid_discovery_pack"]);
+pt::ptree getPackWithValidDiscovery() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("valid_discovery_pack");
 }
 
 /// no discovery queries, no platform restriction, fake version string
-JSON getPackWithFakeVersion() {
-  auto doc = getExamplePacksConfig();
-  return JSON::newFromValue(doc.doc()["packs"]["fake_version_pack"]);
+pt::ptree getPackWithFakeVersion() {
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  return packs.get_child("fake_version_pack");
 }
 
 QueryData getTestDBExpectedResults() {
@@ -254,108 +261,91 @@ ColumnNames getSerializedRowColumnNames(bool unordered_and_repeated) {
   return cn;
 }
 
-std::pair<JSON, Row> getSerializedRow(bool unordered_and_repeated) {
-  auto cns = getSerializedRowColumnNames(unordered_and_repeated);
-
+std::pair<pt::ptree, Row> getSerializedRow(bool unordered_and_repeated) {
   Row r;
-  auto doc = JSON::newObject();
+  ColumnNames cns = getSerializedRowColumnNames(unordered_and_repeated);
+  pt::ptree arr;
   for (const auto& cn : cns) {
-    auto c_value = cn + "_value";
+    std::string c_value = cn + "_value";
     r[cn] = c_value;
-    doc.addCopy(cn, c_value);
+    arr.add<std::string>(cn, c_value);
   }
-  return std::make_pair(std::move(doc), r);
+  return std::make_pair(arr, r);
 }
 
-std::pair<JSON, QueryData> getSerializedQueryData() {
+std::pair<pt::ptree, QueryData> getSerializedQueryData() {
   auto r = getSerializedRow(false);
   QueryData q = {r.second, r.second};
-
-  JSON doc = JSON::newArray();
-  auto arr1 = doc.getArray();
-  doc.copyFrom(r.first.doc(), arr1);
-  doc.push(arr1);
-
-  auto arr2 = doc.getArray();
-  doc.copyFrom(r.first.doc(), arr2);
-  doc.push(arr2);
-
-  return std::make_pair(std::move(doc), q);
+  pt::ptree arr;
+  arr.push_back(std::make_pair("", r.first));
+  arr.push_back(std::make_pair("", r.first));
+  return std::make_pair(arr, q);
 }
 
-std::pair<JSON, QueryData> getSerializedQueryDataWithColumnOrder() {
+std::pair<pt::ptree, QueryData> getSerializedQueryDataWithColumnOrder() {
   auto r = getSerializedRow(true);
   QueryData q = {r.second, r.second};
-  JSON doc = JSON::newArray();
-  auto arr1 = doc.getArray();
-  doc.copyFrom(r.first.doc(), arr1);
-  doc.push(arr1);
-
-  auto arr2 = doc.getArray();
-  doc.copyFrom(r.first.doc(), arr2);
-  doc.push(arr2);
-
-  return std::make_pair(std::move(doc), q);
+  pt::ptree arr;
+  arr.push_back(std::make_pair("", r.first));
+  arr.push_back(std::make_pair("", r.first));
+  return std::make_pair(arr, q);
 }
 
-std::pair<JSON, DiffResults> getSerializedDiffResults() {
+std::pair<pt::ptree, DiffResults> getSerializedDiffResults() {
   auto qd = getSerializedQueryData();
   DiffResults diff_results;
   diff_results.added = qd.second;
   diff_results.removed = qd.second;
 
-  JSON doc = JSON::newObject();
-  doc.add("removed", qd.first.doc());
-  doc.add("added", qd.first.doc());
+  pt::ptree root;
+  root.add_child("removed", qd.first);
+  root.add_child("added", qd.first);
 
-  return std::make_pair(std::move(doc), std::move(diff_results));
+  return std::make_pair(root, diff_results);
 }
 
 std::pair<std::string, DiffResults> getSerializedDiffResultsJSON() {
   auto results = getSerializedDiffResults();
-  std::string output;
-  results.first.toString(output);
-  return std::make_pair(output, std::move(results.second));
+  std::ostringstream ss;
+  pt::write_json(ss, results.first, false);
+  return std::make_pair(ss.str(), results.second);
 }
 
 std::pair<std::string, QueryData> getSerializedQueryDataJSON() {
   auto results = getSerializedQueryData();
-  std::string output;
-  results.first.toString(output);
-  return std::make_pair(output, results.second);
+  std::ostringstream ss;
+  pt::write_json(ss, results.first, false);
+  return std::make_pair(ss.str(), results.second);
 }
 
-std::pair<JSON, QueryLogItem> getSerializedQueryLogItem() {
-  std::pair<JSON, QueryLogItem> p;
+std::pair<pt::ptree, QueryLogItem> getSerializedQueryLogItem() {
   QueryLogItem i;
-  JSON doc = JSON::newObject();
+  pt::ptree root;
   auto dr = getSerializedDiffResults();
-  i.results = std::move(dr.second);
+  i.results = dr.second;
   i.name = "foobar";
   i.calendar_time = "Mon Aug 25 12:10:57 2014";
   i.time = 1408993857;
   i.identifier = "foobaz";
   i.epoch = 0L;
   i.counter = 0L;
-
-  auto diff_doc = doc.getObject();
-  diff_doc.Swap(dr.first.doc());
-  doc.add("diffResults", diff_doc);
-  doc.addRef("name", "foobar");
-  doc.addRef("hostIdentifier", "foobaz");
-  doc.addRef("calendarTime", "Mon Aug 25 12:10:57 2014");
-  doc.add("unixTime", 1408993857);
-  doc.add("epoch", 0_sz);
-  doc.add("counter", 0_sz);
-
-  return std::make_pair(std::move(doc), std::move(i));
+  root.add_child("diffResults", dr.first);
+  root.put<std::string>("name", "foobar");
+  root.put<std::string>("hostIdentifier", "foobaz");
+  root.put<std::string>("calendarTime", "Mon Aug 25 12:10:57 2014");
+  root.put<int>("unixTime", 1408993857);
+  root.put<uint64_t>("epoch", 0L);
+  root.put<uint64_t>("counter", 0L);
+  return std::make_pair(root, i);
 }
 
 std::pair<std::string, QueryLogItem> getSerializedQueryLogItemJSON() {
   auto results = getSerializedQueryLogItem();
-  std::string output;
-  results.first.toString(output);
-  return std::make_pair(output, std::move(results.second));
+
+  std::ostringstream ss;
+  pt::write_json(ss, results.first, false);
+
+  return std::make_pair(ss.str(), results.second);
 }
 
 std::vector<SplitStringTestData> generateSplitStringTestData() {

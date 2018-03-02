@@ -8,17 +8,20 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <asm/unistd_64.h>
-
+#include <boost/algorithm/hex.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/logger.h>
+#include <osquery/sql.h>
+#include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/events/linux/auditeventpublisher.h"
-#include "osquery/tables/events/linux/socket_events.h"
+#include "osquery/events/linux/audit.h"
 
 namespace osquery {
+
+#define AUDIT_SYSCALL_BIND 49
+#define AUDIT_SYSCALL_CONNECT 42
 
 FLAG(bool,
      audit_allow_sockets,
@@ -35,7 +38,29 @@ namespace tables {
 extern long getUptime();
 }
 
-std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
+class SocketEventSubscriber : public EventSubscriber<AuditEventPublisher> {
+ public:
+  /// This subscriber depends on a configuration boolean.
+  Status setUp() override {
+    if (!FLAGS_audit_allow_sockets) {
+      return Status(1, "Subscriber disabled via configuration");
+    }
+    return Status(0);
+  }
+
+  /// The process event subscriber declares an audit event type subscription.
+  Status init() override;
+
+  /// Kernel events matching the event type will fire.
+  Status Callback(const ECRef& ec, const SCRef& sc);
+
+ private:
+  AuditAssembler asm_;
+};
+
+REGISTER(SocketEventSubscriber, "event_subscriber", "socket_events");
+
+inline std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
   long result{0};
   safeStrtol(saddr.substr(offset, 8), 16, result);
   return std::to_string((result & 0xff000000) >> 24) + '.' +
@@ -44,23 +69,21 @@ std::string ip4FromSaddr(const std::string& saddr, ushort offset) {
          std::to_string((result & 0x000000ff));
 }
 
-bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
-  unix_socket = false;
-
+bool parseSockAddr(const std::string& saddr, AuditFields& r) {
   // The protocol is not included in the audit message.
   if (saddr[0] == '0' && saddr[1] == '2') {
     // IPv4
-    row["family"] = '2';
+    r["family"] = '2';
     long result{0};
     safeStrtol(saddr.substr(4, 4), 16, result);
-    row["remote_port"] = INTEGER(result);
-    row["remote_address"] = ip4FromSaddr(saddr, 8);
+    r["remote_port"] = INTEGER(result);
+    r["remote_address"] = ip4FromSaddr(saddr, 8);
   } else if (saddr[0] == '0' && saddr[1] == 'A') {
     // IPv6
-    row["family"] = "10";
+    r["family"] = "10";
     long result{0};
     safeStrtol(saddr.substr(4, 4), 16, result);
-    row["remote_port"] = INTEGER(result);
+    r["remote_port"] = INTEGER(result);
     std::string address;
     for (size_t i = 0; i < 8; ++i) {
       address += saddr.substr(16 + (i * 4), 4);
@@ -69,20 +92,23 @@ bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
       }
     }
     boost::algorithm::to_lower(address);
-    row["remote_address"] = std::move(address);
+    r["remote_address"] = std::move(address);
   } else if (saddr[0] == '0' && saddr[1] == '1' && saddr.size() > 6) {
-    unix_socket = true;
+    // Unix domain socket.
+    if (!FLAGS_audit_allow_unix) {
+      return false;
+    }
 
-    row["family"] = '1';
-    row["local_port"] = '0';
-    row["remote_port"] = '0';
+    r["family"] = '1';
+    r["local_port"] = '0';
+    r["remote_port"] = '0';
     off_t begin = (saddr[4] == '0' && saddr[5] == '0') ? 6 : 4;
     auto end = saddr.substr(begin).find("00");
     end = (end == std::string::npos) ? saddr.size() : end + 4;
     try {
-      row["socket"] = boost::algorithm::unhex(saddr.substr(begin, end - begin));
+      r["socket"] = boost::algorithm::unhex(saddr.substr(begin, end - begin));
     } catch (const boost::algorithm::hex_decode_error& e) {
-      row["socket"] = "unknown";
+      r["socket"] = "unknown";
     }
   } else {
     // No idea!
@@ -91,117 +117,77 @@ bool parseSockAddr(const std::string& saddr, Row& row, bool& unix_socket) {
   return true;
 }
 
-REGISTER(SocketEventSubscriber, "event_subscriber", "socket_events");
+bool SocketUpdate(size_t type, const AuditFields& fields, AuditFields& r) {
+  if (type == AUDIT_TYPE_SOCKADDR) {
+    const auto& saddr = fields.at("saddr");
+    if (saddr.size() < 4 || saddr[0] == '1') {
+      return false;
+    }
 
-Status SocketEventSubscriber::init() {
-  if (!FLAGS_audit_allow_sockets) {
-    return Status(1, "Subscriber disabled via configuration");
+    r["protocol"] = '0';
+    r["local_port"] = '0';
+    r["remote_port"] = '0';
+    // Parse the struct and emit the row.
+    if (!parseSockAddr(saddr, r)) {
+      return false;
+    }
+    return true;
   }
 
+  r["auid"] = fields.at("auid");
+  r["pid"] = fields.at("pid");
+  r["path"] = decodeAuditValue(fields.at("exe"));
+  // TODO: This is a hex value.
+  r["fd"] = fields.at("a0");
+  // The open/bind success status.
+  r["success"] = (fields.at("success") == "yes") ? "1" : "0";
+  r["uptime"] = std::to_string(tables::getUptime());
+  return true;
+}
+
+Status SocketEventSubscriber::init() {
+  asm_.start(10, {AUDIT_TYPE_SYSCALL, AUDIT_TYPE_SOCKADDR}, &SocketUpdate);
+
   auto sc = createSubscriptionContext();
+
+  // Monitor for bind and connect syscalls.
+  sc->rules.push_back({AUDIT_SYSCALL_BIND, ""});
+  sc->rules.push_back({AUDIT_SYSCALL_CONNECT, ""});
+  // Also grab SADDR structures
+  sc->types.insert(AUDIT_TYPE_SOCKADDR);
+
+  // Drop events if they are encountered outside of the expected state.
+  // sc->types = {AUDIT_SYSCALL};
   subscribe(&SocketEventSubscriber::Callback, sc);
 
   return Status(0, "OK");
 }
 
-Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
-  std::vector<Row> emitted_row_list;
-  auto status = ProcessEvents(emitted_row_list, ec->audit_events);
-  if (!status.ok()) {
-    return status;
+Status SocketEventSubscriber::Callback(const ECRef& ec, const SCRef&) {
+  if (ec->syscall == AUDIT_SYSCALL_CONNECT) {
+    if (ec->fields.count("exit") && ec->fields.at("exit") != "-115") {
+      // The connect syscall may want an exit with EINPROGRESS.
+    }
+  } else if (ec->type == AUDIT_TYPE_SYSCALL &&
+             ec->syscall != AUDIT_SYSCALL_BIND) {
+    return Status(0);
   }
 
-  for (auto& row : emitted_row_list) {
-    add(row);
+  auto fields = asm_.add(ec->audit_id, ec->type, ec->fields);
+  if (ec->syscall == AUDIT_SYSCALL_CONNECT) {
+    asm_.set(ec->audit_id, "action", "connect");
+  } else if (ec->syscall == AUDIT_SYSCALL_BIND) {
+    asm_.set(ec->audit_id, "action", "bind");
   }
 
-  return Status(0, "Ok");
-}
-
-Status SocketEventSubscriber::ProcessEvents(
-    std::vector<Row>& emitted_row_list,
-    const std::vector<AuditEvent>& event_list) noexcept {
-  emitted_row_list.clear();
-
-  for (const auto& event : event_list) {
-    if (event.type != AuditEvent::Type::Syscall) {
-      continue;
+  if (fields.is_initialized()) {
+    if ((*fields)["action"] == "bind") {
+      (*fields)["local_port"] = std::move((*fields)["remote_port"]);
+      (*fields)["local_address"] = std::move((*fields)["remote_address"]);
     }
-
-    Row row = {};
-    const auto& event_data = boost::get<SyscallAuditEventData>(event.data);
-
-    if (event_data.syscall_number == __NR_connect) {
-      row["action"] = "connect";
-    } else if (event_data.syscall_number == __NR_bind) {
-      row["action"] = "bind";
-    } else {
-      continue;
-    }
-
-    const AuditEventRecord* syscall_event_record =
-        GetEventRecord(event, AUDIT_SYSCALL);
-    if (syscall_event_record == nullptr) {
-      VLOG(1) << "Malformed syscall event. The AUDIT_SYSCALL record "
-                 "is missing";
-      continue;
-    }
-
-    const AuditEventRecord* sockaddr_event_record =
-        GetEventRecord(event, AUDIT_SOCKADDR);
-    if (sockaddr_event_record == nullptr) {
-      VLOG(1) << "Malformed syscall event. The AUDIT_SOCKADDR record "
-                 "is missing";
-      continue;
-    }
-
-    std::string saddr;
-    GetStringFieldFromMap(saddr, sockaddr_event_record->fields, "saddr");
-    if (saddr.size() < 4) {
-      VLOG(1) << "Invalid saddr field in AUDIT_SOCKADDR: \"" << saddr << "\"";
-      continue;
-    }
-
-    // skip operations on NETLINK_ROUTE sockets
-    if (saddr[0] == '1' && saddr[1] == '0') {
-      continue;
-    }
-
-    CopyFieldFromMap(row, syscall_event_record->fields, "auid");
-    CopyFieldFromMap(row, syscall_event_record->fields, "pid");
-    GetStringFieldFromMap(row["fd"], syscall_event_record->fields, "a0");
-
-    row["path"] = DecodeAuditPathValues(syscall_event_record->fields.at("exe"));
-    row["fd"] = syscall_event_record->fields.at("a0");
-    row["success"] =
-        (syscall_event_record->fields.at("success") == "yes") ? "1" : "0";
-    row["uptime"] = std::to_string(tables::getUptime());
-
-    // Set some sane defaults and then attempt to parse the sockaddr value
-    row["protocol"] = '0';
-    row["local_port"] = '0';
-    row["remote_port"] = '0';
-
-    bool unix_socket;
-    if (!parseSockAddr(saddr, row, unix_socket)) {
-      VLOG(1) << "Malformed syscall event. The saddr field in the "
-                 "AUDIT_SOCKADDR record could not be parsed: \""
-              << saddr << "\"";
-      continue;
-    }
-
-    if (unix_socket && !FLAGS_audit_allow_unix) {
-      continue;
-    }
-
-    emitted_row_list.push_back(row);
+    add(*fields);
   }
 
-  return Status(0, "Ok");
-}
-
-const std::set<int>& SocketEventSubscriber::GetSyscallSet() noexcept {
-  static const std::set<int> syscall_set = {__NR_bind, __NR_connect};
-  return syscall_set;
+  return Status(0);
 }
 } // namespace osquery

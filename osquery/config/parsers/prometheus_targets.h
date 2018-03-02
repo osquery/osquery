@@ -16,11 +16,12 @@
 
 namespace osquery {
 
-extern const std::string kPrometheusParserRootKey;
+const std::string kConfigParserRootKey("prometheus_targets");
 
 class PrometheusMetricsConfigParserPlugin : public ConfigParserPlugin {
  public:
   std::vector<std::string> keys() const override;
+  Status setUp() override;
   Status update(const std::string& source, const ParserConfig& config) override;
 };
 }

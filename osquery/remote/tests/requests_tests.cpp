@@ -13,7 +13,6 @@
 #include "osquery/remote/requests.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/transports/tls.h"
-#include "osquery/remote/uri.h"
 
 namespace osquery {
 
@@ -52,27 +51,6 @@ class MockSerializer : public Serializer {
     return Status(0, "OK");
   }
 };
-
-TEST_F(RequestsTests, test_url) {
-  Uri test("https://facebook.com");
-  EXPECT_EQ("https", test.scheme());
-  EXPECT_EQ("facebook.com", test.host());
-
-  test = Uri("ftp://teddy@facebook.com:21");
-  EXPECT_EQ("teddy", test.username());
-  uint16_t port(21);
-  EXPECT_EQ(port, test.port());
-
-  test = Uri("https://osquery.io/schema?scroll=1&offset=2#table");
-  EXPECT_EQ("/schema", test.path());
-  EXPECT_EQ("table", test.fragment());
-  EXPECT_EQ(2_sz, test.getQueryParams().size());
-
-  test = Uri("https://[10:10:32::1:f]:8080");
-  port = 8080;
-  EXPECT_EQ(port, test.port());
-  EXPECT_EQ("[10:10:32::1:f]", test.host());
-}
 
 TEST_F(RequestsTests, test_call) {
   auto req = Request<MockTransport, MockSerializer>("foobar");

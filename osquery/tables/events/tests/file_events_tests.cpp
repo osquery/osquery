@@ -76,8 +76,10 @@ TEST_F(FileEventsTableTests, test_table_empty) {
 class FileEventsTestsConfigPlugin : public ConfigPlugin {
  public:
   Status genConfig(std::map<std::string, std::string>& config) override {
-    auto doc = getUnrestrictedPack();
-    return doc.toString(config["data"]);
+    std::stringstream ss;
+    pt::write_json(ss, getUnrestrictedPack(), false);
+    config["data"] = ss.str();
+    return Status(0);
   }
 };
 

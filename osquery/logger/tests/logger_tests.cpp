@@ -383,13 +383,13 @@ TEST_F(LoggerTests, test_logger_scheduled_query) {
 
   // Now the two removed will be individual events.
   logQueryLogItem(item);
-  ASSERT_EQ(4U, LoggerTests::log_lines.size());
+  EXPECT_EQ(4U, LoggerTests::log_lines.size());
 
   // Make sure the JSON output does not have a newline.
   std::string expected =
       "{\"name\":\"test_query\",\"hostIdentifier\":\"unknown_test_host\","
-      "\"calendarTime\":\"no_time\",\"unixTime\":0,\"epoch\":0,"
-      "\"counter\":0,\"columns\":{\"test_column\":\"test_value\"},"
+      "\"calendarTime\":\"no_time\",\"unixTime\":\"0\",\"epoch\":\"0\","
+      "\"counter\":\"0\",\"columns\":{\"test_column\":\"test_value\"},"
       "\"action\":\"added\"}";
   EXPECT_EQ(LoggerTests::log_lines.back(), expected);
 }

@@ -14,6 +14,8 @@
 #include <utility>
 #include <vector>
 
+#include <boost/property_tree/ptree.hpp>
+
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/database.h>
@@ -77,12 +79,12 @@ extern const size_t kExpectedExtensionArgsCount;
 std::map<std::string, std::string> getTestConfigMap(
     const std::string& file = "test_parse_items.conf");
 
-JSON getExamplePacksConfig();
-JSON getUnrestrictedPack();
-JSON getRestrictedPack();
-JSON getPackWithDiscovery();
-JSON getPackWithValidDiscovery();
-JSON getPackWithFakeVersion();
+pt::ptree getExamplePacksConfig();
+pt::ptree getUnrestrictedPack();
+pt::ptree getRestrictedPack();
+pt::ptree getPackWithDiscovery();
+pt::ptree getPackWithValidDiscovery();
+pt::ptree getPackWithFakeVersion();
 
 ScheduledQuery getOsqueryScheduledQuery();
 
@@ -103,27 +105,27 @@ ColumnNames getSerializedRowColumnNames(bool unordered_and_repeated);
 // getSerializedRow() return an std::pair where pair->first is a string which
 // should serialize to pair->second. pair->second should deserialize
 // to pair->first
-std::pair<JSON, Row> getSerializedRow(bool unordered_and_repeated = false);
+std::pair<pt::ptree, Row> getSerializedRow(bool unordered_and_repeated = false);
 
 // getSerializedQueryData() return an std::pair where pair->first is a string
 // which should serialize to pair->second. pair->second should
 // deserialize to pair->first. getSerializedQueryDataWithColumnOrder
 // returns a pair where pair->second is a tree that has a repeated column and
 // the child nodes are not in alphabetical order
-std::pair<JSON, QueryData> getSerializedQueryData();
-std::pair<JSON, QueryData> getSerializedQueryDataWithColumnOrder();
+std::pair<pt::ptree, QueryData> getSerializedQueryData();
+std::pair<pt::ptree, QueryData> getSerializedQueryDataWithColumnOrder();
 std::pair<std::string, QueryData> getSerializedQueryDataJSON();
 
 // getSerializedDiffResults() return an std::pair where pair->first is a string
 // which should serialize to pair->second. pair->second should
 // deserialize to pair->first
-std::pair<JSON, DiffResults> getSerializedDiffResults();
+std::pair<pt::ptree, DiffResults> getSerializedDiffResults();
 std::pair<std::string, DiffResults> getSerializedDiffResultsJSON();
 
 // getSerializedQueryLogItem() return an std::pair where pair->first
 // is a string which should serialize to pair->second. pair->second
 // should deserialize to pair->first
-std::pair<JSON, QueryLogItem> getSerializedQueryLogItem();
+std::pair<pt::ptree, QueryLogItem> getSerializedQueryLogItem();
 std::pair<std::string, QueryLogItem> getSerializedQueryLogItemJSON();
 
 // generate content for a PEM-encoded certificate

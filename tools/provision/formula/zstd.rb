@@ -6,13 +6,13 @@ class Zstd < AbstractOsqueryFormula
   license "GPL-2.0+"
   url "https://github.com/facebook/zstd/archive/v1.2.0.tar.gz"
   sha256 "4a7e4593a3638276ca7f2a09dc4f38e674d8317bbea51626393ca73fc047cbfb"
-  revision 200
+  revision 104
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "dbd2b877c0a5a4d6e76ebcc5a2b72b510573ed8027f4c5b9aeccd4297b366eb4" => :sierra
-    sha256 "e30994deb83d33093fc4aab3a8cdf0c99c91b6da1e0281317a616d19f5bafdda" => :x86_64_linux
+    sha256 "c791cd29dd159b1a6fb3770c9a12fbc92e9b16c9a23ed5c67500c93cb727d5ee" => :sierra
+    sha256 "d02e6fd44e66a99f7a5c92c1a15c82095aaba4e943e274ccb82e8958a3d4f962" => :x86_64_linux
   end
 
   depends_on "cmake" => :build

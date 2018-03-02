@@ -856,21 +856,20 @@ Status EventFactory::registerEventSubscriber(const PluginRef& sub) {
 
   auto plugin = Config::get().getParser("events");
   if (plugin != nullptr && plugin.get() != nullptr) {
-    const auto& data = plugin->getData().doc();
+    const auto& data = plugin->getData();
     // First perform explicit enabling.
-    if (data["events"].HasMember("enable_subscribers")) {
-      for (const auto& item : data["events"]["enable_subscribers"].GetArray()) {
-        if (item.GetString() == name) {
+    if (data.get_child("events").count("enable_subscribers") > 0) {
+      for (const auto& item : data.get_child("events.enable_subscribers")) {
+        if (item.second.data() == name) {
           VLOG(1) << "Enabling event subscriber: " << name;
           specialized_sub->disabled = false;
         }
       }
     }
     // Then use explicit disabling as an ultimate override.
-    if (data["events"].HasMember("disable_subscribers")) {
-      for (const auto& item :
-           data["events"]["disable_subscribers"].GetArray()) {
-        if (item.GetString() == name) {
+    if (data.get_child("events").count("disable_subscribers") > 0) {
+      for (const auto& item : data.get_child("events.disable_subscribers")) {
+        if (item.second.data() == name) {
           VLOG(1) << "Disabling event subscriber: " << name;
           specialized_sub->disabled = true;
         }

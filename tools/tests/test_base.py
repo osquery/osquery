@@ -626,7 +626,6 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
             # Enable the 'hidden' flag "registry_exceptions" to prevent
             # catching.
             "registry_exceptions": True,
-            "ephemeral": True,
         })
         self.assertTrue(self.daemon.isAlive())
 
@@ -663,20 +662,6 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
                 # Query took longer than 2 seconds.
                 duration_ms = utils.lightred(duration_ms)
             print(" (%sms) rows: %d" % (duration_ms, len(result)))
-
-
-class CleanChildProcesses:
-    # SO: 320232/ensuring-subprocesses-are-dead-on-exiting-python-program
-    def __enter__(self):
-        if os.name != "nt":
-            os.setpgrp()
-    def __exit__(self, type, value, traceback):
-        try:
-            if os.name != "nt":
-                os.killpg(0, signal.SIGINT)
-        except KeyboardInterrupt:
-            # SIGINT is delivered to this process and children.
-            pass
 
 
 def expectTrue(functional, interval=0.01, timeout=8):

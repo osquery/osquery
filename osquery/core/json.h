@@ -51,7 +51,6 @@ class JSON : private only_movable {
   explicit JSON(decltype(rapidjson::kObjectType) type);
 
  public:
-  JSON();
   JSON(JSON&&) = default;
   JSON& operator=(JSON&&) = default;
 
@@ -61,9 +60,6 @@ class JSON : private only_movable {
   /// Create a JSON wrapper for an Array (list).
   static JSON newArray();
 
-  /// Create a JSON wrapper from an existing value.
-  static JSON newFromValue(const rapidjson::Value& value);
-
  public:
   /// Make a JSON object (map).
   rapidjson::Document getObject() const;
@@ -72,22 +68,7 @@ class JSON : private only_movable {
   rapidjson::Document getArray() const;
 
   /// Add a JSON object or array to a list.
-  void push(rapidjson::Value& value);
-
-  /// Add a JSON object or array to a list.
-  void push(rapidjson::Value& value, rapidjson::Value& arr);
-
-  /// Add a size_t to a JSON array.
-  void push(size_t value);
-
-  /// Add a size_t to a JSON array.
-  void push(size_t value, rapidjson::Value& arr);
-
-  /// Add a copy of a string to a JSON array.
-  void pushCopy(const std::string& value);
-
-  /// Add a reference to a string to a JSON array.
-  void pushCopy(const std::string& value, rapidjson::Value& arr);
+  void push(rapidjson::Document& line);
 
   /**
    * @brief Add a string value to a JSON object by copying the contents.
@@ -97,7 +78,7 @@ class JSON : private only_movable {
    */
   void addCopy(const std::string& key,
                const std::string& value,
-               rapidjson::Value& obj);
+               rapidjson::Document& line);
 
   /**
    * @brief Add a string value to a JSON object by copying the contents.
@@ -117,7 +98,7 @@ class JSON : private only_movable {
    */
   void addRef(const std::string& key,
               const std::string& value,
-              rapidjson::Value& obj);
+              rapidjson::Document& line);
 
   /**
    * @brief Add a string value to a JSON object by referencing the contents.
@@ -135,7 +116,7 @@ class JSON : private only_movable {
    * This will add the key and value to an input document.
    * The input document must be an object type.
    */
-  void add(const std::string& key, size_t value, rapidjson::Value& obj);
+  void add(const std::string& key, size_t value, rapidjson::Document& line);
 
   /**
    * @brief Add a size_t value to a JSON object by copying the contents.
@@ -146,59 +127,26 @@ class JSON : private only_movable {
   void add(const std::string& key, size_t value);
 
   /**
-   * @brief Add an int value to a JSON object by copying the contents.
+   * @brief Add a int value to a JSON object by copying the contents.
    *
    * This will add the key and value to an input document.
    * The input document must be an object type.
    */
-  void add(const std::string& key, int value, rapidjson::Value& obj);
+  void add(const std::string& key, int value, rapidjson::Document& line);
 
   /**
-   * @brief Add an int value to a JSON object by copying the contents.
+   * @brief Add a int value to a JSON object by copying the contents.
    *
    * This will add the key and value to the JSON document.
    * The document must be an object type.
    */
   void add(const std::string& key, int value);
 
-  /// Add a JSON document as a member.
-  void add(const std::string& key, rapidjson::Value& value);
-
-  /// Add a JSON document as a member of another document.
-  void add(const std::string& key,
-           rapidjson::Value& value,
-           rapidjson::Value& obj);
-
-  /**
-   * @brief Copy a JSON object/array into the document.
-   *
-   * The type of the base document may change, be careful.
-   */
-  void copyFrom(const rapidjson::Value& value, rapidjson::Value& target);
-
   /// Convert this document to a JSON string.
   Status toString(std::string& str) const;
 
-  /// Helper to convert a string into JSON.
-  Status fromString(const std::string& str);
-
-  /// Merge members of source into target, must both be objects.
-  void mergeObject(rapidjson::Value& target_obj, rapidjson::Value& source_obj);
-
-  void mergeArray(rapidjson::Value& target_arr, rapidjson::Value& source_arr);
-
   /// Access the internal document containing the allocator.
   rapidjson::Document& doc();
-
-  /// Access the internal document containing the allocator.
-  const rapidjson::Document& doc() const;
-
- public:
-  /// Get the value as a 'size' or 0.
-  static size_t valueToSize(const rapidjson::Value& value);
-
-  /// Get the value as a 'bool' or false.
-  static bool valueToBool(const rapidjson::Value& value);
 
  private:
   rapidjson::Document doc_;

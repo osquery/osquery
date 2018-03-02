@@ -7,12 +7,12 @@ class Libcryptsetup < AbstractOsqueryFormula
   url "https://gitlab.com/cryptsetup/cryptsetup/repository/v1_7_5/archive.tar.gz"
   sha256 "6dead2f1420ab1c84a7e82f0ee197861f4a52e4c3284a0bfef824a90c392e077"
   version "1.7.5"
-  revision 200
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "dc1d7be5f2518743f0c83a7a7f163a3893f3620f88a615698b5f942286037b43" => :x86_64_linux
+    sha256 "c8d9ab1d4dd42b4046edd8e111f46cc9ce72498a1d2a41f2d052696eb3551a80" => :x86_64_linux
   end
 
   def install

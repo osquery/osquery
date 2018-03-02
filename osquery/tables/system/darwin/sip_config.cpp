@@ -13,7 +13,7 @@
 #include <osquery/sql.h>
 #include <osquery/logger.h>
 
-#include "osquery/core/darwin/iokit.hpp"
+#include "osquery/events/darwin/iokit.h"
 
 namespace osquery {
 namespace tables {
@@ -42,10 +42,15 @@ const std::map<std::string, uint32_t> kRootlessConfigFlags = {
 #define kIODeviceTreeChosenPath_ "IODeviceTree:/options"
 typedef uint32_t csr_config_t;
 
+#if !defined(DARWIN_10_9)
+// mark these symbols as weakly linked, as they may not be available
+// at runtime on older OS X versions.
+// https://developer.apple.com/library/mac/documentation/MacOSX/Conceptual/BPFrameworks/Concepts/WeakLinking.html
 extern "C" {
-int csr_check(csr_config_t mask);
-int csr_get_active_config(csr_config_t* config);
+int csr_check(csr_config_t mask) __attribute__((weak_import));
+int csr_get_active_config(csr_config_t* config) __attribute__((weak_import));
 };
+#endif
 
 Status genCsrConfigFromNvram(uint32_t& config) {
   auto chosen =
@@ -102,6 +107,13 @@ QueryData genSIPConfig(QueryContext& context) {
   }
 
   QueryData results;
+
+#if !defined(DARWIN_10_9)
+  // check if weakly linked symbols exist
+  if (csr_get_active_config == nullptr || csr_check == nullptr) {
+    return {};
+  }
+
   csr_config_t config = 0;
   csr_get_active_config(&config);
 
@@ -135,6 +147,7 @@ QueryData genSIPConfig(QueryContext& context) {
     }
     results.push_back(r);
   }
+#endif
 
   return results;
 }

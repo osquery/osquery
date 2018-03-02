@@ -27,7 +27,7 @@ class QueryTests : public testing::Test {};
 TEST_F(QueryTests, test_private_members) {
   auto query = getOsqueryScheduledQuery();
   auto cf = Query("foobar", query);
-  EXPECT_EQ(cf.query_, query.query);
+  EXPECT_EQ(cf.query_, query);
 }
 
 TEST_F(QueryTests, test_add_and_get_current_results) {

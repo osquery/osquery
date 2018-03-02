@@ -8,13 +8,11 @@
 
 # osquery-specific helper macros
 macro(LOG_PLATFORM NAME)
-  if(NOT DEFINED ENV{SKIP_DEPS})
-    set(LINK "http://osquery.readthedocs.io/en/stable/development/building/")
-    LOG("Welcome to osquery's build-- thank you for your patience! :)")
-    LOG("For a brief tutorial see: ${ESC}[1m${LINK}${ESC}[m")
-    if(NOT WINDOWS)
-      LOG("If at first you dont succeed, perhaps: make distclean; make depsclean")
-    endif()
+  set(LINK "http://osquery.readthedocs.io/en/stable/development/building/")
+  LOG("Welcome to osquery's build-- thank you for your patience! :)")
+  LOG("For a brief tutorial see: ${ESC}[1m${LINK}${ESC}[m")
+  if(NOT WINDOWS)
+    LOG("If at first you dont succeed, perhaps: make distclean; make depsclean")
   endif()
   LOG("Building for platform ${ESC}[36;1m${NAME} (${OSQUERY_BUILD_PLATFORM}, ${OSQUERY_BUILD_DISTRO})${ESC}[m")
   LOG("Building osquery version ${ESC}[36;1m ${OSQUERY_BUILD_VERSION} sdk ${OSQUERY_BUILD_SDK_VERSION}${ESC}[m")
@@ -75,7 +73,7 @@ macro(ADD_OSQUERY_PYTHON_TEST TEST_NAME SOURCE)
   if(NOT DEFINED ENV{SKIP_INTEGRATION_TESTS})
     add_test(NAME python_${TEST_NAME}
       COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tools/tests/${SOURCE}"
-        --verbose --build "${CMAKE_BINARY_DIR}"
+        --build "${CMAKE_BINARY_DIR}"
       WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tools/tests/")
   endif()
 endmacro(ADD_OSQUERY_PYTHON_TEST)
@@ -165,7 +163,7 @@ macro(ADD_OSQUERY_LINK_INTERNAL LINK LINK_PATHS LINK_SET)
         endif()
       endif()
       if("${${ITEM}_library}" MATCHES "/usr/local/lib.*")
-        if(NOT FREEBSD AND NOT DEFINED ENV{SKIP_DEPS})
+        if(NOT FREEBSD)
           WARNING_LOG("Dependent library '${ITEM}' installed locally (beware!)")
         endif()
       endif()

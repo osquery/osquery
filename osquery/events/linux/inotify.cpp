@@ -132,15 +132,10 @@ void INotifyEventPublisher::buildExcludePathsSet() {
 
   WriteLock lock(subscription_lock_);
   exclude_paths_.clear();
-
-  const auto& doc = parser->getData();
-  if (!doc.doc().HasMember("exclude_paths")) {
-    return;
-  }
-
-  for (const auto& category : doc.doc()["exclude_paths"].GetObject()) {
-    for (const auto& excl_path : category.value.GetArray()) {
-      std::string pattern = excl_path.GetString();
+  for (const auto& excl_category :
+       parser->getData().get_child("exclude_paths")) {
+    for (const auto& excl_path : excl_category.second) {
+      auto pattern = excl_path.second.get_value<std::string>("");
       if (pattern.empty()) {
         continue;
       }
@@ -277,8 +272,9 @@ Status INotifyEventPublisher::run() {
 
 INotifyEventContextRef INotifyEventPublisher::createEventContextFrom(
     struct inotify_event* event) const {
+  auto shared_event = std::make_shared<struct inotify_event>(*event);
   auto ec = createEventContext();
-  ec->event = std::make_unique<struct inotify_event>(*event);
+  ec->event = shared_event;
 
   // Get the pathname the watch fired on.
   {
@@ -439,8 +435,8 @@ Status INotifyEventPublisher::addSubscription(
         inotify_sc->mark_for_deletion = false;
         return Status(0);
       }
-      // Returning non zero signals EventSubscriber::subscribe
-      // do not bump up subscription_count_.
+      // Returing non zero signals EventSubscriber::subscribe
+      // dont bumpup subscription_count_.
       return Status(1);
     }
   }

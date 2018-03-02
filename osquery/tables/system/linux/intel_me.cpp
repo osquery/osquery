@@ -8,7 +8,6 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
 
 #include <vector>

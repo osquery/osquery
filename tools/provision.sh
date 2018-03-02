@@ -33,58 +33,70 @@ LINUX_BOTTLE_SUFFIX="x86_64_linux"
 DARWIN_BOTTLE_SUFFIX="sierra"
 
 # If the world needs to be rebuilt, increase the version
-DEPS_VERSION="5"
+DEPS_VERSION="4"
 
 source "$SCRIPT_DIR/lib.sh"
 source "$SCRIPT_DIR/provision/lib.sh"
 
 function platform_linux_main() {
+  # GCC 5x bootstrapping.
   brew_tool patchelf
   brew_tool zlib
+  brew_tool binutils
   brew_tool linux-headers
   brew_tool gmp
   brew_tool mpfr
   brew_tool libmpc
   brew_tool isl
-  brew_tool sqlite
+  brew_tool pkg-config
 
+  # Build a bottle of a modern glibc.
+  brew_tool osquery/osquery-local/glibc
+
+  # Build a bottle for a legacy glibc.
   brew_tool osquery/osquery-local/glibc-legacy
   brew_tool osquery/osquery-local/zlib-legacy
 
-  if [ ! -d "$DEPS_DIR/Cellar/xz" ]; then
-    log "Installing temporary xz..."
-    mkdir -p "$DEPS_DIR/opt/xz/bin"
-    ln -sf `which xz` "$DEPS_DIR/opt/xz/bin"
-  fi
-
+  # GCC 5x.
   brew_tool osquery/osquery-local/gcc
-  brew_tool osquery/osquery-local/llvm
-  brew_dependency osquery/osquery-local/libcpp
-
-  if [ ! -d "$DEPS_DIR/Cellar/xz" ]; then
-    rm -rf "$DEPS_DIR/opt/xz"
-  fi
-
 
   # Need LZMA for final builds.
-  brew_dependency osquery/osquery-local/xz
-  brew_dependency osquery/osquery-local/ncurses
-  brew_dependency osquery/osquery-local/bzip2
-  brew_dependency osquery/osquery-local/util-linux
+  brew_tool osquery/osquery-local/xz
+  brew_tool osquery/osquery-local/ncurses
+  brew_tool osquery/osquery-local/bzip2
+
+  brew_tool unzip
+  brew_tool sqlite
+  brew_tool makedepend
+  brew_tool libidn
+  brew_tool libedit
+  brew_tool libtool
+  brew_tool libyaml
+  brew_tool m4
+  brew_tool autoconf
+  brew_tool automake
 
   # OpenSSL is needed for the final build.
-  brew_dependency osquery/osquery-local/libxml2
-  brew_dependency osquery/osquery-local/openssl
+  brew_tool osquery/osquery-local/libxml2
+  brew_tool osquery/osquery-local/openssl
+  brew_tool osquery/osquery-local/cmake
 
   # Curl and Python are needed for LLVM mostly.
-  brew_dependency osquery/osquery-local/python
-  brew_dependency osquery/osquery-local/cmake
+  brew_tool osquery/osquery-local/curl
+  brew_tool osquery/osquery-local/python
+
+  # LLVM/Clang.
+  brew_tool osquery/osquery-local/llvm
+
+  # Util-Linux provides libuuid.
+  brew_dependency osquery/osquery-local/util-linux
 
   platform_posix_main
 
   # General Linux dependencies and custom formulas for table implementations.
   brew_dependency osquery/osquery-local/libgpg-error
   brew_dependency osquery/osquery-local/libdevmapper
+  brew_dependency osquery/osquery-local/libaptpkg
   brew_dependency osquery/osquery-local/libiptables
   brew_dependency osquery/osquery-local/libgcrypt
   brew_dependency osquery/osquery-local/libcryptsetup
@@ -94,22 +106,23 @@ function platform_linux_main() {
 }
 
 function platform_darwin_main() {
+  brew_tool xz
   brew_tool readline
   brew_tool sqlite
   brew_tool pkg-config
   brew_tool makedepend
+  brew_tool ninja
+  brew_tool osquery/osquery-local/cmake
   brew_tool clang-format
   brew_tool autoconf
   brew_tool automake
   brew_tool libtool
 
-  brew_dependency osquery/osquery-local/xz
-  brew_dependency osquery/osquery-local/cmake
   brew_dependency osquery/osquery-local/libxml2
   brew_dependency osquery/osquery-local/openssl
 
-  brew_dependency osquery/osquery-local/python
-  brew_dependency osquery/osquery-local/bison
+  brew_tool osquery/osquery-local/python
+  brew_tool osquery/osquery-local/bison
 
   platform_posix_main
 }
@@ -117,6 +130,7 @@ function platform_darwin_main() {
  function platform_posix_main() {
   # Library secondary dependencies.
   brew_dependency osquery/osquery-local/popt
+  brew_dependency osquery/osquery-local/beecrypt
   brew_dependency osquery/osquery-local/berkeley-db
 
   # libarchive for file carving
@@ -128,6 +142,8 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/libmagic
   brew_dependency osquery/osquery-local/pcre
   brew_dependency osquery/osquery-local/boost
+  brew_dependency osquery/osquery-local/asio
+  brew_dependency osquery/osquery-local/cpp-netlib
   brew_dependency osquery/osquery-local/google-benchmark
   brew_dependency osquery/osquery-local/sleuthkit
   brew_dependency osquery/osquery-local/thrift
@@ -136,6 +152,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/aws-sdk-cpp
   brew_dependency osquery/osquery-local/yara
   brew_dependency osquery/osquery-local/glog
+  brew_dependency osquery/osquery-local/linenoise-ng
   brew_dependency osquery/osquery-local/augeas
   brew_dependency osquery/osquery-local/lldpd
   brew_dependency osquery/osquery-local/librdkafka

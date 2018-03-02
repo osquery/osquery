@@ -21,7 +21,7 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
-namespace rj = rapidjson;
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -110,24 +110,24 @@ size_t restoreSplayedValue(const std::string& name, size_t interval) {
 
 void Pack::initialize(const std::string& name,
                       const std::string& source,
-                      const rj::Value& obj) {
+                      const pt::ptree& tree) {
   name_ = name;
   source_ = source;
   // Check the shard limitation, shards falling below this value are included.
-  if (obj.HasMember("shard")) {
-    shard_ = JSON::valueToSize(obj["shard"]);
+  if (tree.count("shard") > 0) {
+    shard_ = tree.get<size_t>("shard", 0);
   }
 
   // Check for a platform restriction.
   platform_.clear();
-  if (obj.HasMember("platform") && obj["platform"].IsString()) {
-    platform_ = obj["platform"].GetString();
+  if (tree.count("platform") > 0) {
+    platform_ = tree.get<std::string>("platform", "");
   }
 
   // Check for a version restriction.
   version_.clear();
-  if (obj.HasMember("version") && obj["version"].IsString()) {
-    version_ = obj["version"].GetString();
+  if (tree.count("version") > 0) {
+    version_ = tree.get<std::string>("version", "");
   }
 
   // Apply the shard, platform, and version checking.
@@ -139,9 +139,9 @@ void Pack::initialize(const std::string& name,
   }
 
   discovery_queries_.clear();
-  if (obj.HasMember("discovery") && obj["discovery"].IsArray()) {
-    for (const auto& item : obj["discovery"].GetArray()) {
-      discovery_queries_.push_back(item.GetString());
+  if (tree.count("discovery") > 0) {
+    for (const auto& item : tree.get_child("discovery")) {
+      discovery_queries_.push_back(item.second.get_value<std::string>());
     }
   }
 
@@ -155,70 +155,48 @@ void Pack::initialize(const std::string& name,
   }
 
   schedule_.clear();
-  if (!obj.HasMember("queries") || !obj["queries"].IsObject()) {
+  if (tree.count("queries") == 0) {
     // This pack contained no queries.
     return;
   }
 
   // Iterate the queries (or schedule) and check platform/version/sanity.
-  for (const auto& q : obj["queries"].GetObject()) {
-    if (q.value.HasMember("shard")) {
-      auto shard = JSON::valueToSize(q.value["shard"]);
+  for (const auto& q : tree.get_child("queries")) {
+    if (q.second.count("shard") > 0) {
+      auto shard = q.second.get<size_t>("shard", 0);
       if (shard > 0 && shard < getMachineShard()) {
         continue;
       }
     }
 
-    if (q.value.HasMember("platform") && q.value["platform"].IsString()) {
-      if (!checkPlatform(q.value["platform"].GetString())) {
+    if (q.second.count("platform")) {
+      if (!checkPlatform(q.second.get<std::string>("platform", ""))) {
         continue;
       }
     }
 
-    if (q.value.HasMember("version") && q.value["version"].IsString()) {
-      if (!checkVersion(q.value["version"].GetString())) {
+    if (q.second.count("version")) {
+      if (!checkVersion(q.second.get<std::string>("version", ""))) {
         continue;
       }
-    }
-
-    if (!q.value.HasMember("query") || !q.value["query"].IsString()) {
-      continue;
     }
 
     ScheduledQuery query;
-    query.query = q.value["query"].GetString();
-    if (!q.value.HasMember("interval")) {
-      query.interval = FLAGS_schedule_default_interval;
-    } else {
-      query.interval = JSON::valueToSize(q.value["interval"]);
-    }
+    query.query = q.second.get<std::string>("query", "");
+    query.interval = q.second.get("interval", FLAGS_schedule_default_interval);
     if (query.interval <= 0 || query.query.empty() ||
         query.interval > kMaxQueryInterval) {
       // Invalid pack query.
-      LOG(WARNING) << "Query has invalid interval: " << q.name.GetString()
-                   << ": " << query.interval;
+      LOG(WARNING) << "Query has invalid interval: " << q.first << ": "
+                   << query.interval;
       continue;
     }
 
-    query.splayed_interval =
-        restoreSplayedValue(q.name.GetString(), query.interval);
-
-    if (!q.value.HasMember("snapshot")) {
-      query.options["snapshot"] = false;
-    } else {
-      query.options["snapshot"] = JSON::valueToBool(q.value["snapshot"]);
-    }
-
-    if (!q.value.HasMember("removed")) {
-      query.options["removed"] = true;
-    } else {
-      query.options["removed"] = JSON::valueToBool(q.value["removed"]);
-    }
-    query.options["blacklist"] = (q.value.HasMember("blacklist"))
-                                     ? q.value["blacklist"].GetBool()
-                                     : true;
-
-    schedule_.emplace(std::make_pair(q.name.GetString(), std::move(query)));
+    query.splayed_interval = restoreSplayedValue(q.first, query.interval);
+    query.options["snapshot"] = q.second.get<bool>("snapshot", false);
+    query.options["removed"] = q.second.get<bool>("removed", true);
+    query.options["blacklist"] = q.second.get<bool>("blacklist", true);
+    schedule_[q.first] = query;
   }
 }
 

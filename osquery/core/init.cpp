@@ -18,7 +18,7 @@
 
 #ifdef WIN32
 #define _WIN32_DCOM
-
+#define WIN32_LEAN_AND_MEAN
 #include <WbemIdl.h>
 #include <Windows.h>
 #include <signal.h>
@@ -28,10 +28,6 @@
 
 #ifndef WIN32
 #include <sys/resource.h>
-#endif
-
-#ifdef FBTHRIFT
-#include <folly/init/Init.h>
 #endif
 
 #include <boost/filesystem.hpp>
@@ -338,10 +334,6 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   // Let gflags parse the non-help options/flags.
   GFLAGS_NAMESPACE::ParseCommandLineFlags(argc_, argv_, isShell());
-
-#ifdef FBTHRIFT
-  ::folly::init(&argc, &argv, false);
-#endif
 
   // Initialize registries and plugins
   registryAndPluginInit();

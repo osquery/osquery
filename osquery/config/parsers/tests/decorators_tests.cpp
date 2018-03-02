@@ -92,10 +92,10 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_interval) {
   std::string log_line;
   serializeQueryLogItemJSON(item, log_line);
   std::string expected =
-      "{\"snapshot\":[],\"action\":\"snapshot\",\"name\":\"\","
-      "\"hostIdentifier\":\"\",\"calendarTime\":\"\",\"unixTime\":0,"
-      "\"epoch\":0,\"counter\":0,"
-      "\"decorations\":{\"internal_60_test\":\"test\",\"one\":\"1\"}}";
+      "{\"snapshot\":\"\",\"action\":\"snapshot\",\"name\":\"\","
+      "\"hostIdentifier\":\"\",\"calendarTime\":\"\",\"unixTime\":\"0\","
+      "\"epoch\":\"0\",\"counter\":\"0\","
+      "\"decorations\":{\"internal_60_test\":\"test\",\"one\":\"1\"}}\n";
   EXPECT_EQ(log_line, expected);
 
   // Now clear and run again.
@@ -121,11 +121,11 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load_top_level) {
   ASSERT_EQ(item.decorations.size(), 3U);
   EXPECT_EQ(item.decorations["load_test"], "test");
 
-  // serialize the QueryLogItem and make sure decorations go top level
-  auto doc = JSON::newObject();
-  auto status = serializeQueryLogItem(item, doc);
+  // searialize the QueryLogItem and make sure decorations go top level
+  pt::ptree tree;
+  auto status = serializeQueryLogItem(item, tree);
   std::string expected = "test";
-  std::string result = doc.doc()["load_test"].GetString();
+  std::string result = tree.get("load_test", "none");
   EXPECT_EQ(result, expected);
 
   // disable top level decorations

@@ -79,17 +79,22 @@ QueryData genPrometheusMetrics(QueryContext& context) {
   /* Add a specific value to the default property tree to differentiate it from
    * the scenario where the user does not provide any prometheus_targets config.
    */
-  const auto& root = parser->getData().doc();
-  if (!root.HasMember(kPrometheusParserRootKey)) {
+  const auto& root = parser->getData().get_child_optional(kConfigParserRootKey);
+  if (!root) {
     LOG(WARNING) << "Could not load prometheus_targets root key: "
-                 << kPrometheusParserRootKey;
+                 << kConfigParserRootKey;
     return result;
   }
 
-  const auto& config = root[kPrometheusParserRootKey];
-  if (!config.HasMember("urls")) {
-    LOG(WARNING)
-        << "Configuration for prometheus_targets is missing field: urls";
+  const auto& config = root.get();
+  if (config.count("urls") == 0) {
+    /* Only warn the user if they supplied the config, but did not supply any
+     * urls. */
+    if (!config.empty()) {
+      LOG(WARNING)
+          << "Configuration for prometheus_targets is missing field: urls";
+    }
+
     return result;
   }
 
@@ -97,13 +102,21 @@ QueryData genPrometheusMetrics(QueryContext& context) {
   /* Below should be unreachable if there were no urls child node, but we set
    * handle with default value for consistency's sake and for added robustness.
    */
-  const auto& urls = config["urls"];
-  for (const auto& url : urls.GetArray()) {
-    sr[url.GetString()] = PrometheusResponseData{};
+  auto urls = config.get_child("urls");
+  if (urls.empty()) {
+    return result;
+  }
+  for (const auto& url : config.get_child("urls")) {
+    if (!url.first.empty()) {
+      return result;
+    }
+
+    sr[url.second.data()] = PrometheusResponseData{};
   }
 
-  size_t timeout =
-      (!config.HasMember("timeout")) ? 1 : config["timeout"].GetUint64();
+  size_t timeout = config.get_child("timeout", boost::property_tree::ptree())
+                       .get_value<size_t>(1);
+
   scrapeTargets(sr, timeout);
   parseScrapeResults(sr, result);
 

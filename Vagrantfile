@@ -1,7 +1,4 @@
 targets = {
-  "win10" => {
-    "box" => "inclusivedesign/windows10-eval"
-  },
   "macos10.12" => {
     "box" => "jhcook/macos-sierra"
   },

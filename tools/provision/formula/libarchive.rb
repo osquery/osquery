@@ -6,14 +6,18 @@ class Libarchive < AbstractOsqueryFormula
   license "BSD-2-Clause"
   url "http://www.libarchive.org/downloads/libarchive-3.3.2.tar.gz"
   sha256 "ed2dbd6954792b2c054ccf8ec4b330a54b85904a80cef477a1c74643ddafa0ce"
-  revision 200
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "0dee0d31e321e1046b4c1d996ed9130a0422818f51521bf8a742b5d805ec3e86" => :sierra
-    sha256 "8a64333cdb781499c3ae6596a902eb1df9dc74456ad68b6f5bfc3be357685e97" => :x86_64_linux
+    sha256 "a7bb4138e422a513c76b43dea7dd06ae80c28712451cacd30edb1db9e33be7e6" => :sierra
+    sha256 "ee089bdc10500dc71f2f0ce1571b34b78dd1d06f6bac912ca30b7e10d4083cc1" => :x86_64_linux
   end
+
+  depends_on "xz" => :recommended
+  depends_on "lz4" => :optional
+  depends_on "lzop" => :optional
 
   def install
     system "./configure",
@@ -28,5 +32,11 @@ class Libarchive < AbstractOsqueryFormula
 
     system "make", "install"
 
+  end
+
+  test do
+    (testpath/"test").write("test")
+    system bin/"bsdtar", "-czvf", "test.tar.gz", "test"
+    assert_match /test/, shell_output("#{bin}/bsdtar -xOzf test.tar.gz")
   end
 end

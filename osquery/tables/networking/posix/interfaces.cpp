@@ -22,11 +22,9 @@
 #endif
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/conversions.h"
 #include "osquery/tables/networking/utils.h"
 
 namespace osquery {
@@ -68,22 +66,6 @@ void genAddressesFromAddr(const struct ifaddrs* addr, QueryData& results) {
   results.push_back(r);
 }
 
-static inline void flagsFromSysfs(const std::string& name, std::string& flags) {
-  auto flags_path = "/sys/class/net/" + name + "/flags";
-  if (pathExists(flags_path)) {
-    std::string content;
-    // This will take the form, 0xVALUE\n.
-    if (readFile(flags_path, content) && content.size() > 3) {
-      if (content[0] == '0' && content[1] == 'x') {
-        unsigned long int lflags = 0;
-        if (safeStrtoul(content.substr(2, content.size() - 3), 16, lflags)) {
-          flags = std::to_string(lflags);
-        }
-      }
-    }
-  }
-}
-
 void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
   Row r;
   if (addr->ifa_name != nullptr) {
@@ -92,6 +74,7 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
     r["interface"] = "";
   }
   r["mac"] = macAsString(addr);
+  r["flags"] = INTEGER(addr->ifa_flags);
 
   if (addr->ifa_data != nullptr && addr->ifa_name != nullptr) {
 #ifdef __linux__
@@ -126,14 +109,8 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
         r["type"] = INTEGER_FROM_UCHAR(ifr.ifr_hwaddr.sa_family);
       }
 
-      if (ioctl(fd, SIOCGIFFLAGS, &ifr) >= 0) {
-        r["flags"] = INTEGER(static_cast<size_t>(ifr.ifr_flags));
-      }
       close(fd);
     }
-
-    // Flags populated by sysfs are more reliable.
-    flagsFromSysfs(r["interface"], r["flags"]);
 
     // Last change is not implemented in Linux.
     r["last_change"] = "-1";
@@ -153,8 +130,6 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
     r["odrops"] = INTEGER(0);
     r["collisions"] = BIGINT_FROM_UINT32(ifd->ifi_collisions);
     r["last_change"] = BIGINT_FROM_UINT32(ifd->ifi_lastchange.tv_sec);
-
-    r["flags"] = INTEGER(addr->ifa_flags);
 #endif
   }
 

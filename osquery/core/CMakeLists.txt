@@ -13,7 +13,6 @@ if(APPLE)
   set(OSQUERY_CORE_PLATFORM
     ${OSQUERY_CORE_PLATFORM}
     darwin/conversions.cpp
-    darwin/iokit.cpp
   )
 endif()
 

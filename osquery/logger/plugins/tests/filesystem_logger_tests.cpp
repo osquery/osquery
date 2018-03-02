@@ -159,12 +159,12 @@ TEST_F(FilesystemLoggerTests, test_log_snapshot) {
   EXPECT_TRUE(readFile(snapshot_path.string(), content));
 
   std::string expected =
-      "{\"snapshot\":[],\"action\":\"snapshot\",\"name\":\"test\","
+      "{\"snapshot\":\"\",\"action\":\"snapshot\",\"name\":\"test\","
       "\"hostIdentifier\":\"test\",\"calendarTime\":\"test\","
-      "\"unixTime\":0,\"epoch\":0,\"counter\":0}\n"
-      "{\"snapshot\":[],\"action\":\"snapshot\","
+      "\"unixTime\":\"0\",\"epoch\":\"0\",\"counter\":\"0\"}\n"
+      "{\"snapshot\":\"\",\"action\":\"snapshot\","
       "\"name\":\"test\",\"hostIdentifier\":\"test\",\"calendarTime\":\"test\","
-      "\"unixTime\":0,\"epoch\":0,\"counter\":0}\n";
+      "\"unixTime\":\"0\",\"epoch\":\"0\",\"counter\":\"0\"}\n";
   EXPECT_EQ(content, expected);
 }
 }

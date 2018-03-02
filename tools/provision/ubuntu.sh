@@ -11,28 +11,19 @@
 function distro_main() {
   do_sudo apt-get -y update
 
+  package gawk
+  package autotools-dev
   package autopoint
-  package automake
-  package autoconf
-  package libtool
-  package pkg-config
   package g++
+  package ruby
+  package ruby-dev
   package curl
   package bison
   package flex
-
-  package ruby
-  package ruby-dev
   package bsdtar
   package realpath
   package doxygen
   package valgrind
-
-  # Needed to build LLVM
-  package cmake
-
-  # Needed for libcryptsetup
-  package autotools-dev
 
   GEM=`which gem`
   do_sudo $GEM install --no-ri --no-rdoc fpm

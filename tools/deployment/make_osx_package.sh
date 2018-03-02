@@ -38,10 +38,6 @@ LD_INSTALL="/Library/LaunchDaemons/$LD_IDENTIFIER.plist"
 OUTPUT_PKG_PATH="$BUILD_DIR/osquery-$APP_VERSION.pkg"
 OUTPUT_DEBUG_PKG_PATH="$BUILD_DIR/osquery-debug-$APP_VERSION.pkg"
 KERNEL_OUTPUT_PKG_PATH="$BUILD_DIR/osquery-kernel-${APP_VERSION}.pkg"
-SIGNING_IDENTITY=""
-SIGNING_IDENTITY_COMMAND=""
-KEYCHAIN_IDENTITY=""
-KEYCHAIN_IDENTITY_COMMAND=""
 AUTOSTART=false
 CLEAN=false
 
@@ -155,14 +151,6 @@ function parse_args() {
       -o | --output )         shift
                               OUTPUT_PKG_PATH=$1
                               ;;
-      -s | --sign )           shift
-                              SIGNING_IDENTITY=$1
-                              SIGNING_IDENTITY_COMMAND="--sign "$1
-                              ;;
-      -k | --keychain )       shift
-                              KEYCHAIN_IDENTITY=$1
-                              KEYCHAIN_IDENTITY_COMMAND="--keychain "$1
-                              ;;
       -a | --autostart )      AUTOSTART=true
                               ;;
       -x | --clean )          CLEAN=true
@@ -196,7 +184,7 @@ function main() {
 
   platform OS
   if [[ ! "$OS" = "darwin" ]]; then
-    fatal "This script must be run on macOS"
+    fatal "This script must be ran on OS X"
   fi
 
   rm -rf $WORKING_DIR
@@ -210,20 +198,15 @@ function main() {
   log "copying osquery binaries"
   BINARY_INSTALL_DIR="$INSTALL_PREFIX/usr/local/bin/"
   mkdir -p $BINARY_INSTALL_DIR
+  cp "$BUILD_DIR/osquery/osqueryi" $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
-  ln -s osqueryd $BINARY_INSTALL_DIR/osqueryi
   strip $BINARY_INSTALL_DIR/*
   cp "$OSQUERYCTL_PATH" $BINARY_INSTALL_DIR
 
-  if [[ ! "$SIGNING_IDENTITY" = "" ]]; then
-    log "signing release binaries"
-    codesign -s $SIGNING_IDENTITY --keychain \"$KEYCHAIN_IDENTITY\" $BINARY_INSTALL_DIR/osqueryd
-  fi
-
   BINARY_DEBUG_DIR="$DEBUG_PREFIX/private/var/osquery/debug"
   mkdir -p "$BINARY_DEBUG_DIR"
+  cp "$BUILD_DIR/osquery/osqueryi" $BINARY_DEBUG_DIR/osqueryi.debug
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_DEBUG_DIR/osqueryd.debug
-  ln -s osqueryd.debug $BINARY_DEBUG_DIR/osqueryi.debug
 
   # Create the prefix log dir and copy source configs.
   mkdir -p $INSTALL_PREFIX/$OSQUERY_LOG_DIR
@@ -272,22 +255,16 @@ function main() {
     log "adding $include_dir in the package prefix to be included in the package"
     cp -fR $include_dir/* $INSTALL_PREFIX/
   done
-  if [[ ! "$SIGNING_IDENTITY" = "" ]]; then
-    log "creating signed release package"
-  else
-    log "creating package"
-  fi
+
+  log "creating package"
   pkgbuild --root $INSTALL_PREFIX       \
            --scripts $SCRIPT_ROOT       \
            --identifier $APP_IDENTIFIER \
            --version $APP_VERSION       \
-           $SIGNING_IDENTITY_COMMAND    \
-           $KEYCHAIN_IDENTITY_COMMAND   \
            $OUTPUT_PKG_PATH 2>&1  1>/dev/null
   log "package created at $OUTPUT_PKG_PATH"
 
-  log "creating debug package"
-  pkgbuild --root $DEBUG_PREFIX               \
+  pkgbuild --root $DEBUG_PREFIX          \
            --identifier $APP_IDENTIFIER.debug \
            --version $APP_VERSION             \
            $OUTPUT_DEBUG_PKG_PATH 2>&1  1>/dev/null

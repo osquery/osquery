@@ -15,7 +15,7 @@
 
 #include "osquery/config/parsers/decorators.h"
 
-namespace rj = rapidjson;
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -27,7 +27,7 @@ FLAG(bool,
      "Add decorators as top level JSON objects");
 
 /// Statically define the parser name to avoid mistakes.
-const std::string kDecorationsName{"decorators"};
+#define PARSER_NAME "decorators"
 
 const std::map<DecorationPoint, std::string> kDecorationPointKeys = {
     {DECORATE_LOAD, "load"},
@@ -66,7 +66,7 @@ namespace {
 class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
  public:
   std::vector<std::string> keys() const override {
-    return {kDecorationsName};
+    return {PARSER_NAME};
   }
 
   Status setUp() override;
@@ -74,7 +74,8 @@ class DecoratorsConfigParserPlugin : public ConfigParserPlugin {
   Status update(const std::string& source, const ParserConfig& config) override;
 
   /// Update the set of decorators for a given source.
-  void updateDecorations(const std::string& source, const JSON& doc);
+  void updateDecorations(const std::string& source,
+                         const pt::ptree& decorators);
 
   /// Clear the decorations created from decorators for the given source.
   void clearSources(const std::string& source);
@@ -118,12 +119,11 @@ Status DecoratorsConfigParserPlugin::update(const std::string& source,
                                             const ParserConfig& config) {
   clearSources(source);
   clearDecorations(source);
-  auto decorations = config.find(kDecorationsName);
-  if (decorations != config.end()) {
+  if (config.count(PARSER_NAME) > 0) {
     // Each of these methods acquires the decorator lock separately.
     // The run decorators method is designed to have call sites throughout
     // the code base.
-    updateDecorations(source, decorations->second);
+    updateDecorations(source, config.at(PARSER_NAME));
     runDecorators(DECORATE_LOAD, 0, source);
   }
 
@@ -154,59 +154,42 @@ void DecoratorsConfigParserPlugin::reset() {
   }
 }
 
-void DecoratorsConfigParserPlugin::updateDecorations(const std::string& source,
-                                                     const JSON& doc) {
+void DecoratorsConfigParserPlugin::updateDecorations(
+    const std::string& source, const pt::ptree& decorators) {
   WriteLock lock(DecoratorsConfigParserPlugin::kDecorationsConfigMutex);
   // Assign load decorators.
   auto& load_key = kDecorationPointKeys.at(DECORATE_LOAD);
-  if (doc.doc().HasMember(load_key)) {
-    auto& load = doc.doc()[load_key];
-    if (load.IsArray()) {
-      for (const auto& item : load.GetArray()) {
-        if (item.IsString()) {
-          load_[source].push_back(item.GetString());
-        }
-      }
+  if (decorators.count(load_key) > 0) {
+    for (const auto& item : decorators.get_child(load_key)) {
+      load_[source].push_back(item.second.data());
     }
   }
 
   // Assign always decorators.
   auto& always_key = kDecorationPointKeys.at(DECORATE_ALWAYS);
-  if (doc.doc().HasMember(always_key)) {
-    auto& always = doc.doc()[always_key];
-    if (always.IsArray()) {
-      for (const auto& item : always.GetArray()) {
-        if (item.IsString()) {
-          always_[source].push_back(item.GetString());
-        }
-      }
+  if (decorators.count(always_key) > 0) {
+    for (const auto& item : decorators.get_child(always_key)) {
+      always_[source].push_back(item.second.data());
     }
   }
 
   // Check if intervals are defined.
   auto& interval_key = kDecorationPointKeys.at(DECORATE_INTERVAL);
-  if (doc.doc().HasMember(interval_key)) {
-    const auto& interval = doc.doc()[interval_key];
-    if (interval.IsObject()) {
-      for (const auto& item : interval.GetObject()) {
-        auto rate = doc.valueToSize(item.name);
-        //      size_t rate = std::stoll(item.name.GetString());
-        if (rate % 60 != 0) {
-          LOG(WARNING) << "Invalid decorator interval rate " << rate
-                       << " in config source: " << source;
-          continue;
-        }
+  if (decorators.count(interval_key) > 0) {
+    auto& interval = decorators.get_child(interval_key);
+    for (const auto& item : interval) {
+      size_t rate = std::stoll(item.first);
+      if (rate % 60 != 0) {
+        LOG(WARNING) << "Invalid decorator interval rate " << rate
+                     << " in config source: " << source;
+        continue;
+      }
 
-        // This is a valid interval, update the set of intervals to include
-        // this value. When intervals are checked this set is scanned, if a
-        // match is found, then the associated config data is executed.
-        if (item.value.IsArray()) {
-          for (const auto& interval_query : item.value.GetArray()) {
-            if (interval_query.IsString()) {
-              intervals_[source][rate].push_back(interval_query.GetString());
-            }
-          }
-        }
+      // This is a valid interval, update the set of intervals to include
+      // this value. When intervals are checked this set is scanned, if a
+      // match is found, then the associated config data is executed.
+      for (const auto& interval_query : item.second) {
+        intervals_[source][rate].push_back(interval_query.second.data());
       }
     }
   }
@@ -251,7 +234,7 @@ void runDecorators(DecorationPoint point,
     return;
   }
 
-  auto parser = Config::getParser(kDecorationsName);
+  auto parser = Config::getParser(PARSER_NAME);
   if (parser == nullptr) {
     // The decorators parser does not exist.
     return;
@@ -299,7 +282,5 @@ void getDecorations(std::map<std::string, std::string>& results) {
   }
 }
 
-REGISTER_INTERNAL(DecoratorsConfigParserPlugin,
-                  "config_parser",
-                  kDecorationsName.c_str());
+REGISTER_INTERNAL(DecoratorsConfigParserPlugin, "config_parser", PARSER_NAME);
 }

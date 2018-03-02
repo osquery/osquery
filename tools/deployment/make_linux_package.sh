@@ -138,8 +138,8 @@ function main() {
   log "copying osquery binaries"
   BINARY_INSTALL_DIR="$INSTALL_PREFIX/usr/bin/"
   mkdir -p $BINARY_INSTALL_DIR
+  cp "$BUILD_DIR/osquery/osqueryi" $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
-  ln -s osqueryd $BINARY_INSTALL_DIR/osqueryi
   strip $BINARY_INSTALL_DIR/*
   cp "$CTL_SRC" $BINARY_INSTALL_DIR
 
@@ -246,29 +246,30 @@ function main() {
     # Debian only needs the non-stripped binaries.
     BINARY_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/usr/bin
     mkdir -p $BINARY_DEBUG_DIR
+    cp "$BUILD_DIR/osquery/osqueryi" $BINARY_DEBUG_DIR
     cp "$BUILD_DIR/osquery/osqueryd" $BINARY_DEBUG_DIR
-    ln -s osqueryd $BINARY_DEBUG_DIR/osqueryi
   elif [[ $PACKAGE_TYPE = "rpm" ]]; then
     BUILD_DEBUG_PKG=true
     PACKAGE_DEBUG_NAME="$PACKAGE_NAME-debuginfo"
     PACKAGE_DEBUG_DEPENDENCIES="osquery = $PACKAGE_VERSION"
 
     # Create Build-ID links for executables and Dwarfs.
-    BUILD_ID=`readelf -n "$BUILD_DIR/osquery/osqueryd" | grep "Build ID" | awk '{print $3}'`
+    BUILD_ID_SHELL=`readelf -n "$BUILD_DIR/osquery/osqueryi" | grep "Build ID" | awk '{print $3}'`
+    BUILD_ID_DAEMON=`readelf -n "$BUILD_DIR/osquery/osqueryd" | grep "Build ID" | awk '{print $3}'`
     BUILDLINK_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/.build-id/64
-    if [[ ! "$BUILD_ID" = "" ]]; then
+    if [[ ! "$BUILD_ID_SHELL" = "" ]]; then
       mkdir -p $BUILDLINK_DEBUG_DIR
-      ln -sf ../../../../bin/osqueryi $BUILDLINK_DEBUG_DIR/$BUILD_ID
-      ln -sf ../../bin/osqueryi.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID.debug
-      ln -sf ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/$BUILD_ID
-      ln -sf ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID.debug
+      ln -sf ../../../../bin/osqueryi $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL
+      ln -sf ../../bin/osqueryi.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_SHELL.debug
+      ln -sf ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON
+      ln -sf ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID_DAEMON.debug
     fi
 
     # Install the non-stripped binaries.
     BINARY_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/usr/bin/
     mkdir -p $BINARY_DEBUG_DIR
+    cp "$BUILD_DIR/osquery/osqueryi" "$BINARY_DEBUG_DIR/osqueryi.debug"
     cp "$BUILD_DIR/osquery/osqueryd" "$BINARY_DEBUG_DIR/osqueryd.debug"
-    ln -s osqueryd "$BINARY_DEBUG_DIR/osqueryi.debug"
 
     # Finally install the source.
     SOURCE_DEBUG_DIR=$DEBUG_PREFIX/usr/src/debug/osquery-$PACKAGE_VERSION

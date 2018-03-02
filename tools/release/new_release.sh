@@ -32,12 +32,8 @@ function main() {
   (cd $OSQUERY; git checkout $VERSION)
 
   echo "[+] Writing new table API"
-  GENJSON="$SCRIPT_DIR/../codegen/genwebsitejson.py"
-  /usr/local/osquery/bin/python "$GENJSON" --specs "$OSQUERY/specs" > "$SITE/src/data/osquery_schema_versions/$VERSION.json"
-
-  echo "[+] Writing new version metadata"
-  GENMETADATA="$SCRIPT_DIR/../codegen/genwebsitemetadata.py"
-  /usr/local/osquery/bin/python "$GENMETADATA" --file "$SITE/src/data/osquery_metadata.json" --version "$VERSION"
+  GENAPI="$OSQUERY/tools/codegen/genapi.py"
+  /usr/local/osquery/bin/python "$GENAPI" --tables "$OSQUERY/specs" > "$SITE/schema/$VERSION.json"
 
   printf "[+] Downloading and hashing packages...\n"
   PACKAGE="$URL/linux/osquery-${VERSION}_1.linux_x86_64.tar.gz"
@@ -68,64 +64,30 @@ function main() {
   echo "[+] Downloading $PACKAGE"
   DEBUG_DEB=$(curl $PACKAGE | shasum -a 256 | awk '{print $1}')
 
-  PACKAGES="$SITE/src/data/osquery_package_versions/${VERSION}.json"
-  rm -f "${PACKAGES}"
-  cat << EOF >> ${PACKAGES}
-{
-  "version": "$VERSION",
-  "downloads": {
-    "official": [
-      {
-        "type": "macOS",
-        "package": "osquery-$VERSION.pkg",
-        "content": "$DARWIN",
-        "url": "https://pkg.osquery.io/darwin/osquery-$VERSION.pkg"
-      },
-      {
-        "type": "Linux",
-        "package": "osquery-$VERSION_1.linux_x86_64.tar.gz",
-        "content": "$LINUX",
-        "url": "https://pkg.osquery.io/linux/osquery-$VERSION_1.linux_x86_64.tar.gz"
-      },
-      {
-        "type": "RPM",
-        "package": "osquery-$VERSION-1.linux.x86_64.rpm",
-        "content": "$RPM",
-        "url": "https://pkg.osquery.io/rpm/osquery-$VERSION-1.linux.x86_64.rpm"
-      },
-      {
-        "type": "Debian",
-        "package": "osquery_$VERSION_1.linux.amd64.deb",
-        "content": "$DEB",
-        "url": "https://pkg.osquery.io/deb/osquery_$VERSION_1.linux.amd64.deb"
-      }
-    ],
-    "debug": [
-      {
-        "type": "macOS",
-        "package": "osquery-debug-$VERSION.pkg",
-        "content": "$DEBUG_DARWIN",
-        "url": "https://pkg.osquery.io/darwin/osquery-debug-$VERSION.pkg"
-      },
-      {
-        "type": "RPM",
-        "package": "osquery-debuginfo-$VERSION-1.linux.x86_64.rpm",
-        "content": "$DEBUG_RPM",
-        "url": "https://pkg.osquery.io/rpm/osquery-debuginfo-$VERSION-1.linux.x86_64.rpm"
-      },
-      {
-        "type": "Debian",
-        "package": "osquery-dbg_2.10.2_1.linux.amd64.deb",
-        "content": "$DEBUG_DEB",
-        "url": "https://pkg.osquery.io/deb/osquery-dbg_$VERSION_1.linux.amd64.deb"
-      }
-    ]
-  }
-}
+  EXISTING=$(cat $OSQUERY/docs/_data/versions.yml)
+  OUTPUT="$OSQUERY/docs/_data/versions.yml"
+  rm -f "${OUTPUT}"
+  cat << EOF >> ${OUTPUT}
+- version: $VERSION
+  linux: $LINUX
+  deb: $DEB
+  darwin: $DARWIN
+  rpm: $RPM
+  debug:
+    deb: $DEBUG_DEB
+    darwin: $DEBUG_DARWIN
+    rpm: $DEBUG_RPM
+
+$EXISTING
 EOF
-  echo "[+] Hashes written to $PACKAGES"
+  echo "[+] Hashes written to $OUTPUT"
 
-
+  cat << EOF >> $OSQUERY/docs/_schema/$VERSION.md
+---
+version: $VERSION
+redirect_from: /docs/tables/$VERSION/index.html
+---
+EOF
 
   echo "[+] Finished"
 }

@@ -328,7 +328,6 @@ function Install-PipPackage {
   }
   Write-Host " => Installing from requirements.txt" -foregroundcolor DarkYellow
   & "$pipPath\pip.exe" -q install -r $requirements.path
-  & "$pipPath\pip.exe" -q install thrift
   if ($LastExitCode -ne 0) {
     Write-Host "[-] ERROR: Install packages from requirements failed." -foregroundcolor Red
     Exit -1
@@ -346,17 +345,20 @@ function Install-ThirdParty {
   # List of our third party packages, hosted in our AWS S3 bucket
   $packages = @(
     "aws-sdk-cpp.1.2.7",
-    "boost-msvc14.1.66.0",
+    "boost-msvc14.1.65.0",
     "bzip2.1.0.6",
+    "cpp-netlib.0.12.0-r4",
     "doxygen.1.8.11",
     "gflags-dev.2.2.1",
     "glog.0.3.5",
     "libarchive.3.3.1-r1",
+    "linenoise-ng.1.0.0-r1",
     "llvm-clang.4.0.1",
     "openssl.1.0.2-k",
     "rocksdb.5.7.1-r1",
     "thrift-dev.0.11.0",
     "zlib.1.2.8",
+    "libarchive.3.3.1-r1",
     "rapidjson.1.1.0"
     "zstd.1.2.0-r3"
   )

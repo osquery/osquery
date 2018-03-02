@@ -6,13 +6,13 @@ class Thrift < AbstractOsqueryFormula
   license "Apache-2.0"
   url "https://github.com/apache/thrift/archive/0.11.0.tar.gz"
   sha256 "0e324569321a1b626381baabbb98000c8dd3a59697292dbcc71e67135af0fefd"
-  revision 200
+  revision 103
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "4d556e7005dadd0e0035fa929a25b3e616ab3903ec47288a2138121180c88633" => :sierra
-    sha256 "cfdee5e7bd1d4ff3b0ead4b686620ad5784bfd5f6a51f86543729bd351002ea9" => :x86_64_linux
+    sha256 "3a929dc35860bcd64eae47880f450ab54820fe1e299d3fb824a6cd8814ec6a90" => :sierra
+    sha256 "72fb23a35840b8295b120952dca2061211ae7f133e1f93a98d2ce4057c207965" => :x86_64_linux
   end
 
   depends_on "bison" => :build
@@ -52,7 +52,6 @@ class Thrift < AbstractOsqueryFormula
                           "--enable-static",
                           *exclusions
     system "make", "-j#{ENV.make_jobs}"
-    ENV.delete "MACOSX_DEPLOYMENT_TARGET"
     system "make", "install"
   end
 end

@@ -46,20 +46,6 @@ elseif(CLANGXX_EXECUTABLE)
   set(CMAKE_CXX_COMPILER "clang++")
 endif()
 
-if(CMAKE_CXX_COMPILER MATCHES "clang")
-  set(CLANG TRUE)
-else()
-  set(CLANG FALSE)
-endif()
-
-# We will add a lot of extra flags and options when using the osquery runtime.
-# The "DEPS" environment is the osquery runtime compiler and 3rd-party deps.
-if(NOT DEFINED ENV{SKIP_DEPS})
-  set(DEPS TRUE)
-else()
-  set(DEPS FALSE)
-endif()
-
 if(NOT DEFINED ENV{SKIP_CCACHE})
   find_program(CCACHE_EXECUTABLE ccache ENV PATH)
   if(CCACHE_EXECUTABLE)
@@ -76,8 +62,10 @@ endif()
 
 # osquery additional compiler flags added by CMake.
 set(CXX_STD "c++14")
+set(CXX_COMPILE_FLAGS "")
 
 find_program(PYTHON_EXECUTABLE "python" ${BUILD_DEPS} ENV PATH)
+find_program(THRIFT_COMPILER "thrift" ${BUILD_DEPS} ENV PATH)
 
 # Use osquery language to set platform/os
 if(DEFINED ENV{OSQUERY_PLATFORM})
@@ -102,25 +90,20 @@ string(TOUPPER "${PLATFORM}" PLATFORM)
 list(GET PLATFORM 0 OSQUERY_BUILD_PLATFORM_DEFINE)
 list(GET PLATFORM 1 OSQUERY_BUILD_DISTRO_DEFINE)
 
-if(DEFINED ENV{FAST})
-  set(ENV{OSQUERY_BUILD_SHARED} TRUE)
-endif()
-
 # Set non-C compile flags and whole-loading linker flags.
 # osquery needs ALL symbols in the libraries it includes for relaxed ctors
 # late-loading modules and SQLite introspection utilities.
 if(APPLE)
   if(DEFINED ENV{OSX_VERSION_MIN})
     set(OSX_VERSION_MIN "$ENV{OSX_VERSION_MIN}")
-  elseif(DEFINED ENV{OSX_VERSION_NATIVE})
-    set(OSX_VERSION_MIN "${OSQUERY_BUILD_DISTRO}")
   else()
-    set(OSX_VERSION_MIN "10.11")
+    set(OSX_VERSION_MIN "${OSQUERY_BUILD_DISTRO}")
   endif()
   add_compile_options(
     -mmacosx-version-min=${OSX_VERSION_MIN}
   )
 
+  set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   set(OS_WHOLELINK_PRE "-Wl,-force_load")
   set(OS_WHOLELINK_POST "")
   # Special compile flags for Objective-C++
@@ -142,52 +125,30 @@ else()
     set(FREEBSD TRUE)
     include_directories("/usr/local/include")
     include_directories("/usr/include")
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libc++" CACHE STRING "" FORCE)
   else()
     set(LINUX TRUE)
+    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} -stdlib=libstdc++" CACHE STRING "" FORCE)
   endif()
   set(POSIX TRUE)
 endif()
 
-# Configure the CXX standard and optionally set the stdlib to LLVM's.
-if(NOT WIN32)
-  if(CLANG)
-    set(CXX_STDLIB "-stdlib=libc++")
-  else()
-    set(CXX_STDLIB "")
-  endif()
-
-  # Only allow adding CXX flags if using SKIP_DEPS.
-  if(DEFINED ENV{SKIP_DEPS})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=${CXX_STD} ${CXX_STDLIB}" CACHE STRING "" FORCE)
-  else()
-    set(CMAKE_CXX_FLAGS "-std=${CXX_STD} ${CXX_STDLIB}" CACHE STRING "" FORCE)
-  endif()
-endif()
-
 if(POSIX)
-  if(CLANG)
-    add_compile_options(
-      -Qunused-arguments
-      -Wabi-tag
-      -Wno-unused-local-typedef
-      -Wno-deprecated-register
-      -Wno-unknown-warning-option
-      -Wstrict-aliasing
-      -Wno-missing-field-initializers
-      -Wnon-virtual-dtor
-      -Wchar-subscripts
-      -Wpointer-arith
-      -Woverloaded-virtual
-    )
-  else()
-    add_compile_options(
-      -Wno-unknown-pragmas
-    )
-  endif()
   add_compile_options(
+    -Qunused-arguments
+    -Wstrict-aliasing
+    -Wno-missing-field-initializers
+    -Wno-unused-local-typedef
+    -Wno-deprecated-register
+    -Wno-unknown-warning-option
+    -Wnon-virtual-dtor
+    -Wchar-subscripts
+    -Wpointer-arith
+    -Woverloaded-virtual
     -Wformat
     -Wformat-security
     -Werror=format-security
+    -Wabi-tag
     -fpermissive
     -fstack-protector-all
     -pipe
@@ -196,6 +157,7 @@ if(POSIX)
   )
   if(NOT FREEBSD AND NOT DEFINED ENV{OSQUERY_BUILD_SHARED})
     add_compile_options(
+      -Werror=shadow
       -fvisibility=hidden
       -fvisibility-inlines-hidden
     )
@@ -206,14 +168,11 @@ elseif(WINDOWS)
     /W3
     /guard:cf
   )
-  add_definitions(
-    -DWIN32_LEAN_AND_MEAN
-    -DBOOST_ALL_NO_LIB
-  )
+  add_definitions(-DBOOST_ALL_NO_LIB)
 endif()
 
 set(TEST_ARGS "")
-if(LINUX AND CLANG AND DEPS)
+if(LINUX AND CMAKE_CXX_COMPILER MATCHES "clang")
   # Use the LLVM versions of ar and ranlib to support LTO builds
   find_program(LLVMRANLIB_EXECUTABLE "llvm-ranlib" ENV PATH)
   find_program(LLVMAR_EXECUTABLE "llvm-ar" ENV PATH)
@@ -282,8 +241,6 @@ else()
   set(DEBUG FALSE)
   if(WINDOWS)
     add_compile_options(/Ot /WX)
-  elseif(CLANG)
-    add_compile_options(-Oz)
   else()
     add_compile_options(-Os)
   endif()
@@ -299,7 +256,7 @@ else()
       -fPIC
       -fpic
     )
-    if (CLANG AND DEPS AND NOT FREEBSD)
+    if (CMAKE_CXX_COMPILER MATCHES "clang" AND NOT FREEBSD)
       # Only enable LTO builds when using clang on Unix, for now
       add_compile_options(-flto=thin)
     endif()
@@ -332,6 +289,10 @@ if(DEFINED ENV{SDK})
   set(OSQUERY_BUILD_SDK_ONLY TRUE)
 else()
   set(OSQUERY_BUILD_SDK_ONLY FALSE)
+endif()
+
+if(DEFINED ENV{FAST})
+  set(ENV{OSQUERY_BUILD_SHARED} TRUE)
 endif()
 
 # make packages will set release to true and blacklist development features,
@@ -367,11 +328,6 @@ endif()
 if(DEFINED ENV{SKIP_CARVER})
   set(SKIP_CARVER TRUE)
   add_definitions(-DSKIP_CARVER=1)
-endif()
-set(SKIP_BRO TRUE)
-if(DEFINED ENV{SKIP_BRO} AND "$ENV{SKIP_BRO}" STREQUAL "False")
-  # Bro integration does not work on Windows or FreeBSD.
-  set(SKIP_BRO FALSE)
 endif()
 
 # The kernel builds are skipped by default.
@@ -445,10 +401,12 @@ if(WINDOWS)
   endforeach(flag_var)
 
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
-elseif(CLANG AND DEPS AND NOT FREEBSD)
-  # Clang on Unix uses LTO; we also need to pass -flto when linking
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto=thin")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto=thin")
+elseif(NOT FREEBSD)
+  if (CMAKE_CXX_COMPILER MATCHES "clang")
+    # Clang on Unix uses LTO; we also need to pass -flto when linking
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto=thin")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto=thin")
+  endif()
 endif()
 
 if(NOT IS_DIRECTORY "${CMAKE_SOURCE_DIR}/third-party/sqlite3")
@@ -554,24 +512,18 @@ elseif(LINUX)
   include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third-party/sysroots/linux")
 endif()
 
-if(POSIX AND DEPS)
+if(POSIX)
   set(CMAKE_REQUIRED_INCLUDES
     "${BUILD_DEPS}/legacy/include"
     "${BUILD_DEPS}/include"
   )
 
-  # The order here matters, please do not reorder.
-  if(CLANG)
-    include_directories(SYSTEM "${BUILD_DEPS}/include/c++/v1")
-  endif()
   include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   include_directories(SYSTEM "${BUILD_DEPS}/include")
-  if(CLANG)
-    include_directories(SYSTEM "${BUILD_DEPS}/lib/clang/4.0.0/include")
-  endif()
+  include_directories("${BUILD_DEPS}/include/openssl")
 endif()
 
-if(FREEBSD)
+if(NOT LINUX AND NOT APPLE)
   # Including Boost Beast within third-party until it's merged into boot 1.66.
   include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
 endif()
@@ -579,8 +531,6 @@ endif()
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
-
-include_directories("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
 
 set(MKDIR_OPTS "")
 if(WINDOWS)
@@ -668,18 +618,11 @@ set(GTEST_FLAGS
 )
 join("${GTEST_FLAGS}" " " GTEST_FLAGS)
 
-if(NOT SKIP_TESTS)
-  add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
-endif()
-
+add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/googletest")
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
-add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
 
 add_subdirectory(osquery)
-
-if(NOT SKIP_TESTS)
-  add_subdirectory(tools/tests)
-endif()
+add_subdirectory(tools/tests)
 
 # Include the kernel building targets/macros
 if(NOT SKIP_KERNEL AND NOT ${OSQUERY_BUILD_SDK_ONLY})

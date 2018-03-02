@@ -42,13 +42,10 @@ TEST_F(EventsConfigParserPluginTests, test_get_event) {
   EXPECT_TRUE(plugin != nullptr);
   const auto& data = plugin->getData();
 
-  ASSERT_TRUE(data.doc().HasMember("events"));
-  ASSERT_TRUE(data.doc()["events"].HasMember("environment_variables"));
-  ASSERT_TRUE(data.doc()["events"]["environment_variables"].IsArray());
-  for (const auto& var :
-       data.doc()["events"]["environment_variables"].GetArray()) {
-    std::string value = var.GetString();
-    EXPECT_TRUE(value == "foo" || value == "bar");
+  EXPECT_EQ(data.count("events"), 1U);
+  EXPECT_GT(data.get_child("events").count("environment_variables"), 0U);
+  for (const auto& var : data.get_child("events.environment_variables")) {
+    EXPECT_TRUE(var.second.data() == "foo" || var.second.data() == "bar");
   }
 
   // Reset the configuration.

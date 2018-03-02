@@ -21,7 +21,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/core/darwin/iokit.hpp"
+#include "osquery/events/darwin/iokit.h"
 
 namespace osquery {
 namespace tables {

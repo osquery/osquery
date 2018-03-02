@@ -66,8 +66,8 @@ class ExtensionsTest : public testing::Test {
     for (int i = 0; i < attempts; ++i) {
       try {
         EXManagerClient client(socket_path);
-        client.get()->API_PING(status);
-        return (status.code == (int)ExtensionCode::EXT_SUCCESS);
+        client.get()->ping(status);
+        return (status.code == ExtensionCode::EXT_SUCCESS);
       } catch (const std::exception& /* e */) {
         sleepFor(kDelay);
       }
@@ -82,7 +82,7 @@ class ExtensionsTest : public testing::Test {
     for (int i = 0; i < attempts; ++i) {
       try {
         EXManagerClient client(socket_path);
-        client.get()->API_QUERY(response, sql);
+        client.get()->query(response, sql);
       } catch (const std::exception& /* e */) {
         sleepFor(kDelay);
       }

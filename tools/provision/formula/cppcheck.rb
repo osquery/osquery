@@ -6,13 +6,13 @@ class Cppcheck < AbstractOsqueryFormula
   url "https://github.com/danmar/cppcheck/archive/1.75.tar.gz"
   sha256 "d3732dba3fb4dee075009e2422cd9b48bbd095249994ec60550aee43026030e5"
   head "https://github.com/danmar/cppcheck.git"
-  revision 200
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "cca248e43d8df6b6663998609036bf15ca91c5f79f19d1f45713e3668e352a44" => :sierra
-    sha256 "ed4d2bde63dce396d0f46814fc9d33057c0dc18e140b7d2fb06c0ffb0b6cc9d4" => :x86_64_linux
+    sha256 "f2a840d08824c49920678b68dd80b90e8b2fb542cc798c546600aa7e4997b018" => :sierra
+    sha256 "c90661a8669334718bab86d6768933dfed61c1d3f5c1c0fc16bfd679ac6dd7c3" => :x86_64_linux
   end
 
   option "without-rules", "Build without rules (no pcre dependency)"

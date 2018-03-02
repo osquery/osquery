@@ -6,13 +6,15 @@ class ZlibLegacy < AbstractOsqueryFormula
   license "Zlib"
   url "https://github.com/madler/zlib/archive/v1.2.3.tar.gz"
   sha256 "2134178c123ea8252fd6afc9b794d9a2df480ccd030cc5db720a41883676fc2e"
-  revision 200
+  revision 101
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "43f85be447d9c46beb938fc429aa6298bc400b8d43e965a27fb3541097e1c67a" => :x86_64_linux
+    sha256 "36d4b40c34bc526ec5cf7a8e07ba6ffb2d1fc601a8266d68a68384674f2a4e06" => :x86_64_linux
   end
+
+  option :universal
 
   patch :DATA
 
@@ -20,7 +22,15 @@ class ZlibLegacy < AbstractOsqueryFormula
   # compatibility for the deploy-targets.
   set_legacy
 
+  # http://zlib.net/zlib_how.html
+  resource "test_artifact" do
+    url "http://zlib.net/zpipe.c"
+    version "20051211"
+    sha256 "68140a82582ede938159630bca0fb13a93b4bf1cb2e85b08943c26242cf8f3a6"
+  end
+
   def install
+    ENV.universal_binary if build.universal?
     system "./configure", "--prefix=#{prefix}", "--shared"
     system "make"
     system "make", "install"
@@ -42,6 +52,16 @@ class ZlibLegacy < AbstractOsqueryFormula
       Libs: -L\$\{libdir\} -L\$\{sharedlibdir\} -lz
       Cflags: -I\$\{includedir\}
     EOS
+  end
+
+  test do
+    testpath.install resource("test_artifact")
+    system ENV.cc, "zpipe.c", "-I#{include}", "-L#{lib}", "-lz", "-o", "zpipe"
+
+    touch "foo.txt"
+    output = ("./zpipe < foo.txt > foo.txt.z")
+    system output
+    assert File.exist?("foo.txt.z")
   end
 end
 

@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#define WIN32_LEAN_AND_MEAN
 #include <Objbase.h>
 #include <Windows.h>
 

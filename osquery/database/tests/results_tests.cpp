@@ -41,12 +41,21 @@ TEST_F(ResultsTests, test_simple_diff) {
 
 TEST_F(ResultsTests, test_serialize_row) {
   auto results = getSerializedRow();
-  auto doc = JSON::newObject();
-  auto s = serializeRow(results.second, {}, doc, doc.doc());
+  pt::ptree tree;
+  auto s = serializeRow(results.second, tree);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(doc.doc()["meaning_of_life"], "meaning_of_life_value");
-  EXPECT_EQ(doc.doc()["alphabetical"], "alphabetical_value");
+  EXPECT_EQ(results.first, tree);
+}
+
+TEST_F(ResultsTests, test_serializeRJ_row) {
+  auto results = getSerializedRow();
+  rapidjson::Document d(rapidjson::kObjectType);
+  auto s = serializeRowRJ(results.second, d);
+  EXPECT_TRUE(s.ok());
+  EXPECT_EQ(s.toString(), "OK");
+  EXPECT_EQ(d["meaning_of_life"], "meaning_of_life_value");
+  EXPECT_EQ(d["alphabetical"], "alphabetical_value");
 }
 
 TEST_F(ResultsTests, test_deserialize_row_json) {
@@ -62,23 +71,34 @@ TEST_F(ResultsTests, test_deserialize_row_json) {
   EXPECT_EQ(output, results.second);
 }
 
+TEST_F(ResultsTests, test_deserialize_row_jsonRJ) {
+  auto results = getSerializedRow();
+  std::string input;
+  serializeRowJSONRJ(results.second, input);
+
+  // Pull the serialized JSON back into a Row output container.
+  Row output;
+  auto s = deserializeRowJSONRJ(input, output);
+  EXPECT_TRUE(s.ok());
+}
+
 TEST_F(ResultsTests, test_serialize_query_data) {
   auto results = getSerializedQueryData();
-  auto doc = JSON::newArray();
-  auto s = serializeQueryData(results.second, {}, doc, doc.doc());
+  pt::ptree tree;
+  auto s = serializeQueryData(results.second, tree);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(results.first.doc(), doc.doc());
+  EXPECT_EQ(results.first, tree);
 }
 
 TEST_F(ResultsTests, test_serialize_query_data_in_column_order) {
   auto results = getSerializedQueryDataWithColumnOrder();
   auto column_names = getSerializedRowColumnNames(true);
-  auto doc = JSON::newArray();
-  auto s = serializeQueryData(results.second, column_names, doc, doc.doc());
+  pt::ptree tree;
+  auto s = serializeQueryData(results.second, column_names, tree);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(results.first.doc(), doc.doc());
+  EXPECT_EQ(results.first, tree);
 }
 
 TEST_F(ResultsTests, test_serialize_query_data_json) {
@@ -103,11 +123,11 @@ TEST_F(ResultsTests, test_deserialize_query_data_json) {
 
 TEST_F(ResultsTests, test_serialize_diff_results) {
   auto results = getSerializedDiffResults();
-  auto doc = JSON::newObject();
-  auto s = serializeDiffResults(results.second, {}, doc, doc.doc());
+  pt::ptree tree;
+  auto s = serializeDiffResults(results.second, tree);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(results.first.doc(), doc.doc());
+  EXPECT_EQ(results.first, tree);
 }
 
 TEST_F(ResultsTests, test_serialize_diff_results_json) {
@@ -121,11 +141,11 @@ TEST_F(ResultsTests, test_serialize_diff_results_json) {
 
 TEST_F(ResultsTests, test_serialize_query_log_item) {
   auto results = getSerializedQueryLogItem();
-  auto doc = JSON::newObject();
-  auto s = serializeQueryLogItem(results.second, doc);
+  pt::ptree tree;
+  auto s = serializeQueryLogItem(results.second, tree);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s.toString(), "OK");
-  EXPECT_EQ(results.first.doc(), doc.doc());
+  EXPECT_EQ(results.first, tree);
 }
 
 TEST_F(ResultsTests, test_serialize_query_log_item_json) {

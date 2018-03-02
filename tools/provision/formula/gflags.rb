@@ -6,13 +6,13 @@ class Gflags < AbstractOsqueryFormula
   license "MIT"
   url "https://github.com/gflags/gflags/archive/v2.2.1.tar.gz"
   sha256 "ae27cdbcd6a2f935baa78e4f21f675649271634c092b1be01469440495609d0e"
-  revision 200
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "dd8f29f2e3f51f8ab9071172cdfdb4dfbd0f65c7e56324469901620aa515041e" => :sierra
-    sha256 "207abb23d835c159094abcb723add137fafd19edcc34079b75aa1ca50ff050ee" => :x86_64_linux
+    sha256 "7dcbcafe75a7ea73b5e558e83f78b0d2ce8a194b9cdc92d2860ec465396b7020" => :sierra
+    sha256 "3a7723739d6b7280dfb36e030b15ec75669e95e041596cb6e9f387cd7e3858e4" => :x86_64_linux
   end
 
   depends_on "cmake" => :build

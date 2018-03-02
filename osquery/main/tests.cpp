@@ -9,7 +9,7 @@
  */
 
 #ifdef WIN32
-
+#define WIN32_LEAN_AND_MEAN
 #include <Shlwapi.h>
 #include <Windows.h>
 #endif
@@ -17,10 +17,6 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-
-#ifdef FBTHRIFT
-#include <folly/init/Init.h>
-#endif
 
 #include <osquery/logger.h>
 
@@ -128,10 +124,6 @@ int main(int argc, char* argv[]) {
   osquery::kProcessTestExecPath = argv[0];
   osquery::kExpectedExtensionArgs[0] = argv[0];
   osquery::kExpectedWorkerArgs[0] = argv[0];
-
-#ifdef FBTHRIFT
-  ::folly::init(&argc, &argv, false);
-#endif
 
   if (auto val = osquery::getEnvVar("OSQUERY_WORKER")) {
     return workerMain(argc, argv);

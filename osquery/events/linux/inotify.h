@@ -105,7 +105,7 @@ using INotifySubscriptionContextRef =
  */
 struct INotifyEventContext : public EventContext {
   /// The inotify_event structure if the EventSubscriber want to interact.
-  std::unique_ptr<struct inotify_event> event{nullptr};
+  std::shared_ptr<struct inotify_event> event{nullptr};
 
   /// A string path parsed from the inotify_event.
   std::string path;

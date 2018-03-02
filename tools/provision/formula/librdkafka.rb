@@ -4,21 +4,19 @@ class Librdkafka < AbstractOsqueryFormula
   desc "The Apache Kafka C/C++ library"
   homepage "https://github.com/edenhill/librdkafka"
   license "BSD-2-Clause"
-  url "https://github.com/edenhill/librdkafka/archive/v0.11.3.tar.gz"
-  sha256 "2b96d7ed71470b0d0027bd9f0b6eb8fb68ed979f8092611c148771eb01abb72c"
-  revision 200
+  url "https://github.com/edenhill/librdkafka/archive/v0.11.1.tar.gz"
+  sha256 "dd035d57c8f19b0b612dd6eefe6e5eebad76f506e302cccb7c2066f25a83585e"
 
   depends_on "openssl"
+  depends_on "pkg-config" => :build
+  depends_on "lzlib"
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "01894340a1b04fdf2a8858a75ffc2025ef621792d3e1c66c5b5d3143e0e7b975" => :sierra
-    sha256 "f366a7b46d6f0c3141a64c059ec03d8d2f5880eb08317ae712747e775e05f914" => :x86_64_linux
+    sha256 "059dc732ce4cbe794a92164f451ef524c625f88be8c771a158b8d06be77bc643" => :sierra
+    sha256 "3908e35ba842583f8799a51dd65255e78918e26cd80e98531f6a3debab16dd67" => :x86_64_linux
   end
-
-  # Do not use clock_gettime on macOS (introduced in 10.12).
-  patch :DATA
 
   def install
     args = [
@@ -36,28 +34,19 @@ class Librdkafka < AbstractOsqueryFormula
     system "make"
     system "make", "install"
   end
-end
 
-__END__
-diff --git a/src/tinycthread.c b/src/tinycthread.c
-index 0049db3..9b186a3 100644
---- a/src/tinycthread.c
-+++ b/src/tinycthread.c
-@@ -921,7 +921,7 @@ int _tthread_timespec_get(struct timespec *ts, int base)
- {
- #if defined(_TTHREAD_WIN32_)
-   struct _timeb tb;
--#elif !defined(CLOCK_REALTIME)
-+#elif !defined(CLOCK_REALTIME) || defined(__APPLE__)
-   struct timeval tv;
- #endif
- 
-@@ -934,7 +934,7 @@ int _tthread_timespec_get(struct timespec *ts, int base)
-   _ftime_s(&tb);
-   ts->tv_sec = (time_t)tb.time;
-   ts->tv_nsec = 1000000L * (long)tb.millitm;
--#elif defined(CLOCK_REALTIME)
-+#elif defined(CLOCK_REALTIME) && !defined(__APPLE__)
-   base = (clock_gettime(CLOCK_REALTIME, ts) == 0) ? base : 0;
- #else
-   gettimeofday(&tv, NULL);
+  test do
+    (testpath/"test.c").write <<-EOS.undent
+      #include <librdkafka/rdkafka.h>
+
+      int main (int argc, char **argv)
+      {
+        int partition = RD_KAFKA_PARTITION_UA; /* random */
+        return 0;
+      }
+    EOS
+    system ENV.cc, "test.c", "-L#{lib}", "-lrdkafka", "-lz", "-lpthread", "-o", "test"
+    system "./test"
+  end
+
+end

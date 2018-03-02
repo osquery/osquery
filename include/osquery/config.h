@@ -14,12 +14,12 @@
 #include <memory>
 #include <vector>
 
+#include <boost/property_tree/ptree.hpp>
+
 #include <osquery/core.h>
 #include <osquery/query.h>
 #include <osquery/registry.h>
 #include <osquery/status.h>
-
-#include "osquery/core/json.h"
 
 namespace osquery {
 
@@ -131,7 +131,7 @@ class Config : private boost::noncopyable {
    */
   void addPack(const std::string& name,
                const std::string& source,
-               const rapidjson::Value& obj);
+               const boost::property_tree::ptree& tree);
 
   /**
    * @brief Remove a pack from the osquery schedule
@@ -277,22 +277,22 @@ class Config : private boost::noncopyable {
                  const std::string& target);
 
   /**
-   * @brief Apply each ConfigParser to an input JSON document.
+   * @brief Apply each ConfigParser to an input property tree.
    *
    * This iterates each discovered ConfigParser Plugin and the plugin's keys
-   * to match keys within the input JSON document. If a key matches then the
+   * to match keys within the input property tree. If a key matches then the
    * associated value is passed to the parser.
    *
-   * Use this utility method for both the top-level configuration JSON and
+   * Use this utility method for both the top-level configuration tree and
    * the content of each configuration pack. There is an optional black list
    * parameter to differentiate pack content.
    *
    * @param source The input configuration source name.
-   * @param obj The input configuration JSON.
-   * @param pack True if the JSON was built from pack data, otherwise false.
+   * @param tree The input configuration tree.
+   * @param pack True if the tree was built from pack data, otherwise false.
    */
   void applyParsers(const std::string& source,
-                    const rapidjson::Value& obj,
+                    const boost::property_tree::ptree& tree,
                     bool pack = false);
 
   /**
@@ -491,21 +491,21 @@ class ConfigPlugin : public Plugin {
  */
 class ConfigParserPlugin : public Plugin {
  public:
-  using ParserConfig = std::map<std::string, JSON>;
+  using ParserConfig = std::map<std::string, boost::property_tree::ptree>;
 
  public:
   /**
    * @brief Return a list of top-level config keys to receive in updates.
    *
    * The ConfigParserPlugin::update method will receive a map of these keys
-   * with a JSON-parsed document of configuration data.
+   * with a JSON-parsed property tree of configuration data.
    *
    * @return A list of string top-level JSON keys.
    */
   virtual std::vector<std::string> keys() const = 0;
 
   /**
-   * @brief Receive a merged JSON document for each top-level config key.
+   * @brief Receive a merged property tree for each top-level config key.
    *
    * Called when the Config instance is initially loaded with data from the
    * active config plugin and when it is updated via an async ConfigPlugin
@@ -513,7 +513,7 @@ class ConfigParserPlugin : public Plugin {
    * they requested in keys().
    *
    * @param source source of the config data
-   * @param config A JSON-parsed document map.
+   * @param config A JSON-parsed property tree map.
    * @return Failure if the parser should no longer receive updates.
    */
   virtual Status update(const std::string& source,
@@ -536,7 +536,7 @@ class ConfigParserPlugin : public Plugin {
    *
    * More complex parsers that require dynamic casting are not recommended.
    */
-  const JSON& getData() const {
+  const boost::property_tree::ptree& getData() const {
     return data_;
   }
 
@@ -546,14 +546,14 @@ class ConfigParserPlugin : public Plugin {
 
  protected:
   /// Allow the config parser to keep some global state.
-  JSON data_;
+  boost::property_tree::ptree data_;
 
  private:
   friend class Config;
 };
 
 /**
- * @brief JSON parsers may accept comments.
+ * @brief Boost's 1.59 property tree based JSON parser does not accept comments.
  *
  * For semi-compatibility with existing configurations we will attempt to strip
  * hash and C++ style comments. It is OK for the config update to be latent

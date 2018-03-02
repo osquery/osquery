@@ -30,6 +30,9 @@ function distro_main() {
   package boost-libs
   package magic
   package rocksdb-lite
+  package asio
+  package cpp-netlib
+  package linenoise-ng
   package rapidjson
   package zstd
 

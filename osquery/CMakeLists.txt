@@ -6,8 +6,6 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-cmake_policy(SET CMP0068 NEW)
-
 # The 'core' source files define the osquery SDK (libosquery).
 # There are macros throughout CMake to append sources to this list.
 set(OSQUERY_SOURCES "")
@@ -29,7 +27,7 @@ set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
 
 # Add all and extra for osquery code.
-if(CLANG AND POSIX)
+if(POSIX)
   add_compile_options(
     -Wall
     -Wextra
@@ -61,10 +59,7 @@ endif()
 
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
-set(OSQUERY_OBJECTS
-  $<TARGET_OBJECTS:osquery_sqlite>
-  $<TARGET_OBJECTS:linenoise-ng>
-)
+set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
 
 # Add subdirectories
 add_subdirectory(config)
@@ -106,7 +101,6 @@ if(WINDOWS)
     set(WB_KEY "s")
     set(WO_KEY "")
   endif()
-  ADD_OSQUERY_LINK_CORE("ntdll.lib")
   ADD_OSQUERY_LINK_CORE("ws2_32.lib")
   ADD_OSQUERY_LINK_CORE("iphlpapi.lib")
   ADD_OSQUERY_LINK_CORE("netapi32.lib")
@@ -124,6 +118,7 @@ if(WINDOWS)
   ADD_OSQUERY_LINK_CORE("libboost_context-mt-${WB_KEY}")
   ADD_OSQUERY_LINK_CORE("rocksdb${WO_KEY}")
   ADD_OSQUERY_LINK_CORE("thriftmt${WT_KEY}")
+  ADD_OSQUERY_LINK_CORE("linenoise${WO_KEY}.lib")
   ADD_OSQUERY_LINK_CORE("gflags_static${WO_KEY}")
   ADD_OSQUERY_LINK_CORE("ssleay32")
   ADD_OSQUERY_LINK_CORE("eay32")
@@ -136,13 +131,6 @@ else()
   ADD_OSQUERY_LINK_CORE("libz")
   ADD_OSQUERY_LINK_CORE("gflags")
   ADD_OSQUERY_LINK_CORE("thrift")
-endif()
-
-if(NOT SKIP_BRO)
-  ADD_OSQUERY_LINK_CORE("broker")
-  ADD_OSQUERY_LINK_CORE("caf_openssl_static")
-  ADD_OSQUERY_LINK_CORE("caf_core_static")
-  ADD_OSQUERY_LINK_CORE("caf_io_static")
 endif()
 
 if(APPLE OR LINUX)
@@ -167,12 +155,15 @@ if(LINUX OR FREEBSD)
 endif()
 
 # Remaining additional development libraries.
+ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-uri${WO_KEY}")
+ADD_OSQUERY_LINK_ADDITIONAL("cppnetlib-client-connections${WO_KEY}")
 ADD_OSQUERY_LINK_CORE("glog${WO_KEY}")
 
 if(POSIX)
   ADD_OSQUERY_LINK_ADDITIONAL("ssl")
   ADD_OSQUERY_LINK_ADDITIONAL("crypto")
   ADD_OSQUERY_LINK_ADDITIONAL("libpthread")
+  ADD_OSQUERY_LINK_ADDITIONAL("linenoise")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
 endif()
 
@@ -195,7 +186,6 @@ if(APPLE)
   ADD_OSQUERY_LINK_CORE("-Wl,-dead_strip")
   ADD_OSQUERY_LINK_CORE("-mmacosx-version-min=${OSX_VERSION_MIN}")
   ADD_OSQUERY_LINK_CORE("-Wl,-cache_path_lto,${CMAKE_BINARY_DIR}/ltocache")
-  ADD_OSQUERY_LINK_CORE("-Wl,-no_weak_imports")
 elseif(LINUX OR FREEBSD)
   ADD_OSQUERY_LINK_CORE("-Wl,-zrelro -Wl,-znow")
   if(NOT DEFINED ENV{SANITIZE} AND NOT DEFINED ENV{DEBUG})
@@ -204,24 +194,19 @@ elseif(LINUX OR FREEBSD)
 endif()
 
 if(LINUX)
+  ADD_OSQUERY_LINK_CORE("libgcc_s")
   ADD_OSQUERY_LINK_ADDITIONAL("uuid")
+  if(DEFINED ENV{OSQUERY_BUILD_SHARED})
+    ADD_OSQUERY_LINK_ADDITIONAL("-L${BUILD_DEPS}/legacy/lib")
+  endif()
   if(NOT DEFINED ENV{OSQUERY_BUILD_LINK_SHARED})
     ADD_OSQUERY_LINK_CORE("-static-libstdc++")
     ADD_OSQUERY_LINK_ADDITIONAL("-static-libstdc++")
   endif()
   # For Ubuntu/CentOS packages add the build SHA1.
   ADD_OSQUERY_LINK_CORE("-Wl,--build-id")
-  if (CLANG AND DEPS)
-    # If using GCC, libgcc_s may be needed.
+  if (CMAKE_CXX_COMPILER MATCHES "clang")
     ADD_OSQUERY_LINK_CORE("-fuse-ld=lld")
-    ADD_OSQUERY_LINK_CORE("c++")
-    ADD_OSQUERY_LINK_CORE("c++abi")
-    ADD_OSQUERY_LINK_CORE("unwind")
-    if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0.0)
-      ADD_OSQUERY_LINK_CORE("-Wl,--thinlto-cache-dir=${CMAKE_BINARY_DIR}/cache")
-      ADD_OSQUERY_LINK_CORE("-Wl,--thinlto-cache-policy,cache_size_bytes=2g")
-    endif()
-    ADD_OSQUERY_LINK_CORE("-B${BUILD_DEPS}/legacy/lib")
   endif()
 endif()
 

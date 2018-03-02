@@ -6,12 +6,12 @@ class Libdevmapper < AbstractOsqueryFormula
   license "LGPL-2.1+"
   url "https://www.mirrorservice.org/sites/sourceware.org/pub/lvm2/old/LVM2.2.02.173.tgz"
   sha256 "ceb9168c7e009ef487f96a1fe969b23cbb07d920ffb71769affdbdf30fea8d64"
-  revision 200
+  revision 2
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "797a5eea571a1b16bbf865da06b12bb745912592ba7c0c1db6539c8551df3ce3" => :x86_64_linux
+    sha256 "2ea48fa7fc28b923c1f626b6eab2175953931d2a6f2b8363a5a67ecb3948969a" => :x86_64_linux
   end
 
   def install

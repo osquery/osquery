@@ -100,8 +100,10 @@ class TestConfigPlugin : public ConfigPlugin {
                  const std::string& value,
                  std::string& pack) override {
     gen_pack_count_++;
-    getUnrestrictedPack().toString(pack);
-    return Status();
+    std::stringstream ss;
+    pt::write_json(ss, getUnrestrictedPack(), false);
+    pack = ss.str();
+    return Status(0, "OK");
   }
 
  public:
@@ -199,10 +201,10 @@ TEST_F(ConfigTests, test_pack_noninline) {
 }
 
 TEST_F(ConfigTests, test_pack_restrictions) {
-  auto doc = getExamplePacksConfig();
-  auto& packs = doc.doc()["packs"];
-  for (const auto& pack : packs.GetObject()) {
-    get().addPack(pack.name.GetString(), "", pack.value);
+  auto tree = getExamplePacksConfig();
+  auto packs = tree.get_child("packs");
+  for (const auto& pack : packs) {
+    get().addPack(pack.first, "", pack.second);
   }
 
   std::map<std::string, bool> results = {
@@ -232,7 +234,7 @@ TEST_F(ConfigTests, test_pack_removal) {
   EXPECT_EQ(pack_count, 0U);
 
   pack_count = 0;
-  get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
   get().packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 1U);
 
@@ -268,15 +270,17 @@ TEST_F(ConfigTests, test_content_update) {
 
 TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<std::string> query_names;
-  get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
-  get().scheduledQueries(
-      ([&query_names](const std::string& name, const ScheduledQuery& query) {
-        query_names.push_back(name);
-      }));
+  std::vector<ScheduledQuery> queries;
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
+  get().scheduledQueries(([&queries, &query_names](
+      const std::string& name, const ScheduledQuery& query) {
+    query_names.push_back(name);
+    queries.push_back(query);
+  }));
 
-  auto expected_size = getUnrestrictedPack().doc()["queries"].MemberCount();
-  EXPECT_EQ(query_names.size(), expected_size)
-      << "The number of queries in the schedule (" << query_names.size()
+  auto expected_size = getUnrestrictedPack().get_child("queries").size();
+  EXPECT_EQ(queries.size(), expected_size)
+      << "The number of queries in the schedule (" << queries.size()
       << ") should equal " << expected_size;
   ASSERT_FALSE(query_names.empty());
 
@@ -289,7 +293,7 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
 
   // When the blacklist is edited externally, the config must re-read.
   get().reset();
-  get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
 
   // Clear the query names in the scheduled queries and request again.
   query_names.clear();
@@ -303,20 +307,21 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
 
   // Try again, this time requesting scheduled queries.
   query_names.clear();
-  bool blacklisted = false;
+  queries.clear();
   get().scheduledQueries(
-      ([&blacklisted, &query_names, &query_name](const std::string& name,
-                                                 const ScheduledQuery& query) {
+      ([&queries, &query_names, &query_name](const std::string& name,
+                                             const ScheduledQuery& query) {
         if (name == query_name) {
           // Only populate the query we've blacklisted.
           query_names.push_back(name);
-          blacklisted = query.blacklisted;
+          queries.push_back(query);
         }
       }),
       true);
   ASSERT_EQ(query_names.size(), 1_sz);
   EXPECT_EQ(query_names[0], query_name);
-  EXPECT_TRUE(blacklisted);
+  ASSERT_EQ(queries.size(), 1_sz);
+  EXPECT_TRUE(queries[0].blacklisted);
 }
 
 TEST_F(ConfigTests, test_nonblacklist_query) {
@@ -325,18 +330,18 @@ TEST_F(ConfigTests, test_nonblacklist_query) {
   saveScheduleBlacklist(blacklist);
 
   get().reset();
-  get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
 
-  std::map<std::string, bool> blacklisted;
+  std::map<std::string, ScheduledQuery> queries;
   get().scheduledQueries(
-      ([&blacklisted](const std::string& name, const ScheduledQuery& query) {
-        blacklisted[name] = query.blacklisted;
+      ([&queries](const std::string& name, const ScheduledQuery& query) {
+        queries[name] = query;
       }));
 
   // This query cannot be blacklisted.
-  auto query = blacklisted.find(kConfigTestNonBlacklistQuery);
-  ASSERT_NE(query, blacklisted.end());
-  EXPECT_FALSE(query->second);
+  auto query = queries.find(kConfigTestNonBlacklistQuery);
+  ASSERT_NE(query, queries.end());
+  EXPECT_FALSE(query->second.blacklisted);
 }
 
 class TestConfigParserPlugin : public ConfigParserPlugin {
@@ -352,16 +357,12 @@ class TestConfigParserPlugin : public ConfigParserPlugin {
     update_called = true;
     // Copy all expected keys into the parser's data.
     for (const auto& key : config) {
-      auto obj = data_.getObject();
-      data_.copyFrom(key.second.doc(), obj);
-      data_.add(key.first, obj, data_.doc());
+      data_.put_child(key.first, key.second);
     }
 
     // Set parser-rendered additional data.
-    auto obj2 = data_.getObject();
-    data_.addRef("key2", "value2", obj2);
-    data_.add("dictionary3", obj2, data_.doc());
-    return Status();
+    data_.put("dictionary3.key2", "value2");
+    return Status(0, "OK");
   }
 
   // Flag tracking that the update method was called.
@@ -389,10 +390,10 @@ TEST_F(ConfigTests, test_get_parser) {
 
   const auto& parser =
       std::dynamic_pointer_cast<TestConfigParserPlugin>(plugin);
-  const auto& doc = parser->getData();
+  const auto& data = parser->getData();
 
-  EXPECT_TRUE(doc.doc().HasMember("list"));
-  EXPECT_TRUE(doc.doc().HasMember("dictionary"));
+  EXPECT_EQ(data.count("list"), 1U);
+  EXPECT_EQ(data.count("dictionary"), 1U);
   rf.registry("config_parser")->remove("test");
 }
 
@@ -402,7 +403,7 @@ class PlaceboConfigParserPlugin : public ConfigParserPlugin {
     return {};
   }
   Status update(const std::string&, const ParserConfig&) override {
-    return Status();
+    return Status(0);
   }
 
   /// Make sure configure is called.
@@ -457,7 +458,7 @@ TEST_F(ConfigTests, test_pack_file_paths) {
     count += files.size();
   };
 
-  get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
+  get().addPack("unrestricted_pack", "", getUnrestrictedPack());
   get().files(fileCounter);
   EXPECT_EQ(count, 2U);
 
@@ -467,7 +468,7 @@ TEST_F(ConfigTests, test_pack_file_paths) {
   EXPECT_EQ(count, 0U);
 
   count = 0;
-  get().addPack("restricted_pack", "", getRestrictedPack().doc());
+  get().addPack("restricted_pack", "", getRestrictedPack());
   get().files(fileCounter);
   EXPECT_EQ(count, 0U);
 

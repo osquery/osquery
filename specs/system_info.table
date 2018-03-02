@@ -8,7 +8,6 @@ schema([
     Column("cpu_brand", TEXT, "CPU brand string, contains vendor and model"),
     Column("cpu_physical_cores", INTEGER, "Max number of CPU physical cores"),
     Column("cpu_logical_cores", INTEGER, "Max number of CPU logical cores"),
-    Column("cpu_microcode", TEXT, "Microcode version"),
     Column("physical_memory", BIGINT, "Total physical memory in bytes"),
     Column("hardware_vendor", TEXT, "Hardware or board vendor"),
     Column("hardware_model", TEXT, "Hardware or board model"),
