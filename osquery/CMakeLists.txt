@@ -61,10 +61,14 @@ endif()
 
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
-set(OSQUERY_OBJECTS
-  $<TARGET_OBJECTS:osquery_sqlite>
-  $<TARGET_OBJECTS:linenoise-ng>
-)
+if(FREEBSD)
+  set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
+else()
+  set(OSQUERY_OBJECTS
+    $<TARGET_OBJECTS:osquery_sqlite>
+    $<TARGET_OBJECTS:linenoise-ng>
+  )
+endif()
 
 # Add subdirectories
 add_subdirectory(config)
@@ -143,6 +147,7 @@ if(APPLE OR LINUX)
   ADD_OSQUERY_LINK_ADDITIONAL("rocksdb_lite")
 elseif(FREEBSD)
   ADD_OSQUERY_LINK_CORE("icuuc")
+  ADD_OSQUERY_LINK_CORE("linenoise")
   ADD_OSQUERY_LINK_ADDITIONAL("rocksdb-lite")
 endif()
 
