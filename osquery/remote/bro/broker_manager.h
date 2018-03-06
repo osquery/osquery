@@ -80,9 +80,6 @@ class BrokerManager : private boost::noncopyable {
   /// Create a new broker endpoint
   Status createEndpoint(const std::string& ep_name);
 
-  /// Unpeer from existing remote broker endpoint
-  Status unpeer();
-
   /// Initiates the peering to remote endpoint
   Status initiatePeering();
 
@@ -214,6 +211,7 @@ class BrokerManager : private boost::noncopyable {
   FRIEND_TEST(BrokerManagerTests, test_successestablishconnection);
   FRIEND_TEST(BrokerManagerTests, test_announce);
   FRIEND_TEST(BrokerManagerTests, test_addandremovegroups);
+  FRIEND_TEST(BrokerManagerTests, test_reconnect);
   FRIEND_TEST(BrokerManagerTests, test_reset);
 };
 } // namespace osquery

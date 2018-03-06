@@ -231,7 +231,7 @@ Status BrokerManager::checkConnection(long timeout) {
     getPeeringStatus(timeout);
 
     // Cancel waiting because of finite timeout
-    if (timeout >= 0) {
+    if (connection_status_.code() != broker::sc::peer_added && timeout >= 0) {
       // Anyway, peering still continues in the background!
       return Status(1, "Peering timeout for broker connection");
     }
@@ -333,54 +333,6 @@ std::pair<broker::status, bool> BrokerManager::getPeeringStatus(long timeout) {
   }
 
   return {connection_status_, has_changed};
-}
-
-Status BrokerManager::unpeer() {
-  // Exclusive access
-  WriteLock lock(connection_mutex_);
-
-  // Check status subscriber
-  if (ss_ == nullptr) {
-    return Status(1, "No broker connection established");
-  }
-
-  // Check remote peer
-  LOG(INFO) << "Number of peers to unpeer: " << ep_->peers().size();
-  if (ep_ == nullptr || ep_->peers().size() == 0) {
-    ss_ = nullptr;
-    connection_status_ = {};
-    LOG(INFO) << "No broker peers to disconnect";
-    return Status(0, "No broker peers to disconnect");
-  }
-
-  // Disconnect peer(s)
-  for (const auto& peer : ep_->peers()) {
-    // Check for network info
-    if (peer.peer.network) {
-      auto netw = peer.peer.network.value();
-      if (!ep_->unpeer(netw.address, netw.port)) {
-        return Status(1, "Disconnect from remote endpoint was not successfull");
-      }
-
-      // Try to disconnect
-      auto ps = BrokerManager::get().getPeeringStatus(3);
-      if (ps.first.code() != broker::sc::peer_removed) {
-        return Status(1, "Unable to unpeer");
-      }
-      LOG(INFO) << "Unpeered from " << netw.address << ":"
-                << static_cast<int>(netw.port);
-
-    } else {
-      return Status(1,
-                    "Cannot disconnect because remote endpoint has no network "
-                    "information");
-    }
-  }
-
-  LOG(INFO) << "Resetting ss_";
-  ss_ = nullptr;
-  connection_status_ = {};
-  return Status(0, "OK");
 }
 
 Status BrokerManager::announce() {
