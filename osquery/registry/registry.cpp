@@ -88,7 +88,7 @@ Status RegistryInterface::setActive(const std::string& item_name) {
       // An extension will first broadcast the registry, then receive the list
       // of active plugins, active them if they are extension-local, and finally
       // start their extension socket.
-      status = pingExtension(getExtensionSocket(external_.at(item_name)));
+      status = pingExtension(getExtensionSocket(external_.at(item)));
     }
 
     if (!status.ok()) {
