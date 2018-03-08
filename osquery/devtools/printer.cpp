@@ -137,7 +137,6 @@ void jsonPrint(const QueryData& q) {
     std::string row_string;
 
     if (serializeRowJSON(q[i], row_string).ok()) {
-      row_string.pop_back();
       printf("  %s", row_string.c_str());
       if (i < q.size() - 1) {
         printf(",\n");

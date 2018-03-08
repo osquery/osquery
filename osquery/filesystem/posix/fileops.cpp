@@ -368,4 +368,11 @@ Status socketExists(const fs::path& path, bool remove_socket) {
 fs::path getSystemRoot() {
   return fs::path("/");
 }
+
+Status platformLstat(const std::string& path, struct stat& d_stat) {
+  if (::lstat(path.c_str(), &d_stat) < 0) {
+    return Status(1);
+  }
+  return Status(0);
+}
 }

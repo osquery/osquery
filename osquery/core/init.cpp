@@ -30,6 +30,10 @@
 #include <sys/resource.h>
 #endif
 
+#ifdef FBTHRIFT
+#include <folly/init/Init.h>
+#endif
+
 #include <boost/filesystem.hpp>
 
 #include <osquery/config.h>
@@ -334,6 +338,10 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   // Let gflags parse the non-help options/flags.
   GFLAGS_NAMESPACE::ParseCommandLineFlags(argc_, argv_, isShell());
+
+#ifdef FBTHRIFT
+  ::folly::init(&argc, &argv, false);
+#endif
 
   // Initialize registries and plugins
   registryAndPluginInit();

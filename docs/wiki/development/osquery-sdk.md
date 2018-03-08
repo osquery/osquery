@@ -17,16 +17,16 @@ osquery extensions should statically link the **core** code and use the `<osquer
 using namespace osquery;
 
 // Note 2: Define at least one plugin.
-class ExampleTablePlugin : public tables::TablePlugin {
+class ExampleTablePlugin : public TablePlugin {
  private:
-  tables::TableColumns columns() const override {
+  TableColumns columns() const override {
     return {
       std::make_tuple("example_text", TEXT_TYPE, ColumnOptions::DEFAULT),
       std::make_tuple("example_integer", INTEGER_TYPE, ColumnOptions::DEFAULT),
     };
   }
 
-  QueryData generate(tables::QueryContext& request) override {
+  QueryData generate(QueryContext& request) override {
     QueryData results;
     Row r;
 

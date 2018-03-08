@@ -39,11 +39,24 @@ TEST_F(NetworkingTablesTests, test_listening_ports) {
   server.start();
   auto results = SQL::selectAllFrom("listening_ports");
 
+  // Expect to find a process PID for the server.
   std::string pid;
   for (const auto& row : results) {
-    // Expect to find a process PID for the server.
-    if (row.at("port") == server.port()) {
-      pid = row.at("pid");
+    // We are not interested in rows without ports (i.e. UNIX sockets)
+    const auto& listening_port = row.at("port");
+    if (listening_port.empty()) {
+      continue;
+    }
+
+    if (listening_port == server.port()) {
+      const auto& process_id = row.at("pid");
+      if (process_id.empty()) {
+        VLOG(1) << "Failed to acquire the process id";
+        break;
+      }
+
+      pid = process_id;
+      break;
     }
   }
 

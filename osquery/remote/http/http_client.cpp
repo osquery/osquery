@@ -47,6 +47,9 @@ void Client::postResponseHandler(boost_system::error_code const& ec) {
       (ec.value() == kSSLShortReadError)) {
     // Ignoring short read error, set ec_ to success.
     ec_.clear();
+    // close connection for security reason.
+    LOG(INFO) << "SSL SHORT_READ_ERROR: http_client closing socket";
+    closeSocket();
   } else if ((ec.value() != boost_system::errc::operation_canceled) ||
              (ec.category() != boost_asio::error::system_category)) {
     ec_ = ec;
@@ -72,10 +75,6 @@ void Client::timeoutHandler(boost_system::error_code const& ec) {
 }
 
 void Client::createConnection() {
-  if (!client_options_.remote_hostname_) {
-    throw std::runtime_error("Remote hostname missing");
-  }
-
   std::string port = (client_options_.proxy_hostname_)
                          ? kProxyDefaultPort
                          : *client_options_.remote_port_;
@@ -90,7 +89,6 @@ void Client::createConnection() {
     connect_host = connect_host.substr(0, pos);
   }
 
-  closeSocket();
   boost_system::error_code rc;
   connect(sock_,
           r_.resolve(boost_asio::ip::tcp::resolver::query{connect_host, port}),
@@ -104,6 +102,11 @@ void Client::createConnection() {
     error += connect_host + ":" + port;
     throw std::system_error(
         std::error_code(rc.value(), std::generic_category()), error);
+  }
+
+  if (client_options_.keep_alive_) {
+    boost_asio::socket_base::keep_alive option(true);
+    sock_.set_option(option);
   }
 
   if (client_options_.proxy_hostname_) {
@@ -189,7 +192,7 @@ void Client::sendRequest(STREAM_TYPE& stream,
 
   if (req[beast_http::field::host].empty()) {
     std::string host_header_value = *client_options_.remote_hostname_;
-    if (ssl_connection &&
+    if (client_options_.ssl_connection_ &&
         (kHTTPSDefaultPort != *client_options_.remote_port_)) {
       host_header_value += ':' + *client_options_.remote_port_;
     } else if (kHTTPDefaultPort != *client_options_.remote_port_) {
@@ -221,8 +224,14 @@ void Client::sendRequest(STREAM_TYPE& stream,
         }
       });
 
-  ios_.run();
-  ios_.reset();
+  {
+    boost_system::error_code rc;
+    ios_.run(rc);
+    ios_.reset();
+    if (rc) {
+      ec_ = rc;
+    }
+  }
 
   if (ec_) {
     throw std::system_error(ec_.value(), adapted_category(&ec_.category()));
@@ -245,12 +254,70 @@ void Client::sendRequest(STREAM_TYPE& stream,
         postResponseHandler(ec);
       });
 
-  ios_.run();
-  ios_.reset();
+  {
+    boost_system::error_code rc;
+    ios_.run(rc);
+    ios_.reset();
+    if (rc) {
+      ec_ = rc;
+    }
+  }
 
   if (ec_) {
     throw std::system_error(ec_.value(), adapted_category(&ec_.category()));
   }
+
+  if (resp.get()["Connection"] == "close") {
+    closeSocket();
+  }
+}
+
+bool Client::initHTTPRequest(Request& req) {
+  bool create_connection = true;
+  if (req.remoteHost()) {
+    std::string hostname = *req.remoteHost();
+    std::string port;
+
+    if (req.remotePort()) {
+      port = *req.remotePort();
+    } else if (req.protocol() && (*req.protocol()).compare("https") == 0) {
+      port = kHTTPSDefaultPort;
+    } else {
+      port = kHTTPDefaultPort;
+    }
+
+    bool ssl_connection = false;
+    if (req.protocol() && (*req.protocol()).compare("https") == 0) {
+      ssl_connection = true;
+    }
+
+    if (!isSocketOpen() || new_client_options_ ||
+        hostname != *client_options_.remote_hostname_ ||
+        port != *client_options_.remote_port_ ||
+        client_options_.ssl_connection_ != ssl_connection) {
+      client_options_.remote_hostname_ = hostname;
+      client_options_.remote_port_ = port;
+      client_options_.ssl_connection_ = ssl_connection;
+      new_client_options_ = false;
+      closeSocket();
+    } else {
+      create_connection = false;
+    }
+  } else {
+    if (!client_options_.remote_hostname_) {
+      throw std::runtime_error("Remote hostname missing");
+    }
+
+    if (!client_options_.remote_port_) {
+      if (client_options_.ssl_connection_) {
+        client_options_.remote_port_ = kHTTPSDefaultPort;
+      } else {
+        client_options_.remote_port_ = kHTTPDefaultPort;
+      }
+    }
+    closeSocket();
+  }
+  return create_connection;
 }
 
 Response Client::sendHTTPRequest(Request& req) {
@@ -259,66 +326,67 @@ Response Client::sendHTTPRequest(Request& req) {
         boost::posix_time::seconds(client_options_.timeout_));
   }
 
+  bool retry_connect = false;
   do {
-    if (req.remoteHost()) {
-      client_options_.remote_hostname_ = *req.remoteHost();
+    bool create_connection = true;
+    if (!retry_connect) {
+      create_connection = initHTTPRequest(req);
+    }
 
-      if (req.remotePort()) {
-        client_options_.remote_port_ = *req.remotePort();
-      } else if (req.protocol() && (*req.protocol()).compare("https") == 0) {
-        client_options_.remote_port_ = kHTTPSDefaultPort;
-      } else {
-        client_options_.remote_port_ = kHTTPDefaultPort;
-      }
+    try {
+      beast_http_response_parser resp;
+      if (create_connection) {
+        createConnection();
 
-      if (req.protocol()) {
-        if ((*req.protocol()).compare("https") == 0) {
-          ssl_connection = true;
-        } else {
-          ssl_connection = false;
+        if (client_options_.ssl_connection_) {
+          encryptConnection();
         }
       }
-    }
 
-    beast_http_response_parser resp;
-    createConnection();
+      if (client_options_.ssl_connection_) {
+        sendRequest(*ssl_sock_, req, resp);
+      } else {
+        sendRequest(sock_, req, resp);
+      }
 
-    if (ssl_connection) {
-      encryptConnection();
-    }
+      switch (resp.get().result()) {
+      case beast_http::status::moved_permanently:
+      case beast_http::status::found:
+      case beast_http::status::see_other:
+      case beast_http::status::not_modified:
+      case beast_http::status::use_proxy:
+      case beast_http::status::temporary_redirect:
+      case beast_http::status::permanent_redirect: {
+        if (!client_options_.follow_redirects_) {
+          return Response(resp.release());
+        }
 
-    if (ssl_connection) {
-      sendRequest(*ssl_sock_, req, resp);
-    } else {
-      sendRequest(sock_, req, resp);
-    }
+        std::string redir_url = Response(resp.release()).headers()["Location"];
+        if (!redir_url.size()) {
+          throw std::runtime_error(
+              "Location header missing in redirect response");
+        }
 
-    switch (resp.get().result()) {
-    case beast_http::status::moved_permanently:
-    case beast_http::status::found:
-    case beast_http::status::see_other:
-    case beast_http::status::not_modified:
-    case beast_http::status::use_proxy:
-    case beast_http::status::temporary_redirect:
-    case beast_http::status::permanent_redirect: {
-      if (!client_options_.follow_redirects_) {
+        req.uri(redir_url);
+        VLOG(1) << "HTTP(S) request re-directed to: " << redir_url;
+        break;
+      }
+      default:
         return Response(resp.release());
       }
-
-      std::string redir_url = Response(resp.release()).headers()["Location"];
-      if (redir_url.empty()) {
-        throw std::runtime_error(
-            "Location header missing in redirect response.");
+    } catch (std::exception const& /* e */) {
+      closeSocket();
+      if (!retry_connect) {
+        retry_connect = true;
+      } else {
+        throw;
       }
-
-      req.uri(redir_url);
-      LOG(INFO) << "HTTP(S) request re-directed to: " << redir_url;
-      break;
-    }
-    default:
-      return Response(resp.release());
     }
   } while (true);
+
+  if (!client_options_.keep_alive_) {
+    closeSocket();
+  }
 }
 
 Response Client::put(Request& req,

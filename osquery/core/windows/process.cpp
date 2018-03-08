@@ -14,8 +14,11 @@
 #include <signal.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 
 #include "osquery/core/process.h"
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 
@@ -274,27 +277,35 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchExtension(
     return std::shared_ptr<PlatformProcess>();
   }
 
-  auto status = ::CreateProcessA(exec_path.c_str(),
-                                 mutable_argv.data(),
-                                 nullptr,
-                                 nullptr,
-                                 TRUE,
-                                 0,
-                                 nullptr,
-                                 nullptr,
-                                 &si,
-                                 &pi);
-  unsetEnvVar("OSQUERY_EXTENSION");
+  auto ext_path = fs::path(exec_path);
 
-  if (!status) {
-    return std::shared_ptr<PlatformProcess>();
+  // We are autoloading a Python extension, so pass off to our helper
+  if (ext_path.extension().string() == ".ext") {
+    return launchTestPythonScript(
+        std::string(mutable_argv.begin(), mutable_argv.end()));
+  } else {
+    auto status = ::CreateProcessA(exec_path.c_str(),
+                                   mutable_argv.data(),
+                                   nullptr,
+                                   nullptr,
+                                   TRUE,
+                                   0,
+                                   nullptr,
+                                   nullptr,
+                                   &si,
+                                   &pi);
+    unsetEnvVar("OSQUERY_EXTENSION");
+
+    if (!status) {
+      return std::shared_ptr<PlatformProcess>();
+    }
+
+    auto process = std::make_shared<PlatformProcess>(pi.hProcess);
+    ::CloseHandle(pi.hThread);
+    ::CloseHandle(pi.hProcess);
+
+    return process;
   }
-
-  auto process = std::make_shared<PlatformProcess>(pi.hProcess);
-  ::CloseHandle(pi.hThread);
-  ::CloseHandle(pi.hProcess);
-
-  return process;
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(

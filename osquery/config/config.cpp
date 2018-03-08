@@ -649,7 +649,7 @@ void Config::applyParsers(const std::string& source,
     // For each key requested by the parser, add a property tree reference.
     std::map<std::string, JSON> parser_config;
     for (const auto& key : parser->keys()) {
-      if (obj.HasMember(key)) {
+      if (obj.HasMember(key) && !obj[key].IsNull()) {
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
       } else {
@@ -951,30 +951,46 @@ Status ConfigPlugin::genPack(const std::string& name,
 
 Status ConfigPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
-  if (request.count("action") == 0) {
-    return Status(1, "Config plugins require an action in PluginRequest");
+  auto action = request.find("action");
+  if (action == request.end()) {
+    return Status(1, "Config plugins require an action");
   }
 
-  if (request.at("action") == "genConfig") {
+  if (action->second == "genConfig") {
     std::map<std::string, std::string> config;
     auto stat = genConfig(config);
     response.push_back(config);
     return stat;
-  } else if (request.at("action") == "genPack") {
-    if (request.count("name") == 0 || request.count("value") == 0) {
+  } else if (action->second == "genPack") {
+    auto name = request.find("name");
+    auto value = request.find("value");
+    if (name == request.end() || value == request.end()) {
       return Status(1, "Missing name or value");
     }
+
     std::string pack;
-    auto stat = genPack(request.at("name"), request.at("value"), pack);
-    response.push_back({{request.at("name"), pack}});
+    auto stat = genPack(name->second, value->second, pack);
+    response.push_back({{name->second, pack}});
     return stat;
-  } else if (request.at("action") == "update") {
-    if (request.count("source") == 0 || request.count("data") == 0) {
+  } else if (action->second == "update") {
+    auto source = request.find("source");
+    auto data = request.find("data");
+    if (source == request.end() || data == request.end()) {
       return Status(1, "Missing source or data");
     }
-    return Config::get().update({{request.at("source"), request.at("data")}});
+
+    return Config::get().update({{source->second, data->second}});
+  } else if (action->second == "option") {
+    auto name = request.find("name");
+    if (name == request.end()) {
+      return Status(1, "Missing option name");
+    }
+
+    response.push_back(
+        {{"name", name->second}, {"value", Flag::getValue(name->second)}});
+    return Status();
   }
-  return Status(1, "Config plugin action unknown: " + request.at("action"));
+  return Status(1, "Config plugin action unknown: " + action->second);
 }
 
 Status ConfigParserPlugin::setUp() {
