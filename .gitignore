@@ -60,6 +60,7 @@ doxygen/latex
 \#*\#
 *.swp
 *.vscode
+*.xcodeproj
 
 # Ignored components
 /external/*

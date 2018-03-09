@@ -23,7 +23,7 @@ set(OSQUERY_BENCHMARKS "")
 set(OSQUERY_KERNEL_BENCHMARKS "")
 
 # The 'additional' source files are NOT included with SDK (libosquery_additional).
-set(OSQUERY_ADDITIONAL_SOURCES "")
+set(OSQUERY_ADDITIONAL_SOURCES main/empty.cpp)
 set(OSQUERY_ADDITIONAL_LINKS "")
 set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
