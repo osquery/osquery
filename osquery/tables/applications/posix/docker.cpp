@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <regex>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -63,6 +64,8 @@ namespace tables {
  *         message.
  */
 Status dockerApi(const std::string& uri, pt::ptree& tree) {
+  static const std::regex httpOkRegex("HTTP/1\\.(0|1) 200 OK\\\r");
+
   try {
     local::stream_protocol::endpoint ep(FLAGS_docker_socket);
     local::stream_protocol::iostream stream(ep);
@@ -83,7 +86,9 @@ Status dockerApi(const std::string& uri, pt::ptree& tree) {
     // All status responses are expected to be 200
     std::string str;
     getline(stream, str);
-    if (str != "HTTP/1.0 200 OK\r") {
+
+    std::smatch match;
+    if (!std::regex_match(str, match, httpOkRegex)) {
       stream.close();
       return Status(1, "Invalid docker API response for " + uri + ": " + str);
     }
