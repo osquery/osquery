@@ -104,7 +104,7 @@ Status Distributed::serializeResults(std::string& json) {
   }
 
   doc.add("queries", queries_obj);
-  doc.add("statuses", queries_obj);
+  doc.add("statuses", statuses_obj);
   return doc.toString(json);
 }
 
