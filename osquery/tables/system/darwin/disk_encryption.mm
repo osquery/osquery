@@ -76,10 +76,12 @@ Status genUnlockIdent(CFDataRef& uuid) {
   if (CFDictionaryGetValueIfPresent(
           properties, CFSTR("efilogin-unlock-ident"), &unlock_ident)) {
     if (CFGetTypeID(unlock_ident) != CFDataGetTypeID()) {
+      CFRelease(properties);
       return Status(1, "Unexpected data type for unlock ident");
     }
     uuid = CFDataCreateCopy(kCFAllocatorDefault, (CFDataRef)unlock_ident);
     if (uuid == nullptr) {
+      CFRelease(properties);
       return Status(1, "Could not get UUID");
     }
     CFRelease(properties);
