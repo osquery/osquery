@@ -166,6 +166,31 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
   }
 }
 
+TEST_F(SystemsTablesTests, test_win_drivers_query_time) {
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    return;
+  }
+  SQL results("select * from osquery_info join processes using (pid)");
+  long long utime1, systime1;
+  safeStrtoll(results.rows()[0].at("user_time"), 0, utime1);
+  safeStrtoll(results.rows()[0].at("system_time"), 0, systime1);
+
+  // Query the drivers table and ensure that we don't take too long to exec
+  SQL drivers("select * from drivers");
+
+  // Ensure we at least got some drivers back
+  ASSERT_GT(drivers.rows().size(), 10U);
+
+  // Get a rough idea of the time utilized by the query
+  long long utime2, systime2;
+  SQL results2("select * from osquery_info join processes using (pid)");
+  safeStrtoll(results2.rows()[0].at("user_time"), 0, utime2);
+  safeStrtoll(results2.rows()[0].at("system_time"), 0, systime2);
+
+  EXPECT_LT(utime2 - utime1, 10U);
+  EXPECT_LT(systime2 - systime1, 10U);
+}
+
 class HashTableTest : public testing::Test {
  public:
   const std::vector<std::string> content{"31337 hax0r", "random n00b"};
