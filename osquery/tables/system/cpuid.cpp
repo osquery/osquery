@@ -69,10 +69,16 @@ std::map<size_t, std::vector<FeatureDef>> kCPUFeatures{
      }},
     {0x80000001,
      {
+         FEATURE("lahfsahf", "ecx", 0"),
          FEATURE("svm", "ecx", 2),
+         FEATURE("prefetchw", "ecx", 8),
          FEATURE("ibs", "ecx", 10),
          FEATURE("skinit", "ecx", 12),
          FEATURE("lwp", "ecx", 15),
+         
+         FEATURE("nx", "edx", 20),
+         FEATURE("page1gb", "edx", 26),
+         FEATURE("lm", "edx", 29),
      }}};
 
 static inline void cpuid(size_t eax, size_t ecx, int regs[4]) {
