@@ -132,12 +132,12 @@ void genSMBIOSTable(size_t index,
 }
 
 std::string dmiString(uint8_t* data, uint8_t* address, size_t offset) {
-  if (address[offset] == 0) {
+  auto index = address[offset];
+  if (index == 0) {
     return "";
   }
 
-  auto index = (uint8_t)(*(address + offset));
-  auto bp = (char*)data;
+  auto bp = reinterpret_cast<char*>(data);
   while (index > 1) {
     while (*bp != 0) {
       bp++;
