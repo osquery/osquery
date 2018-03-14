@@ -27,14 +27,14 @@ QueryData genDiskInfo(QueryContext& context) {
   if (!wmiResults.empty()) {
     for (const auto& data : wmiResults) {
       long partitionCount = 0;
-      long diskIndex = 0;
+      long index = 0;
       data.GetLong("Partitions", partitionCount);
       r["partitions"] = INTEGER(partitionCount);
-      data.GetLong("Index", diskIndex);
-      r["disk_index"] = INTEGER(diskIndex);
+      data.GetLong("Index", index);
+      r["disk_index"] = INTEGER(index);
       data.GetString("InterfaceType", r["type"]);
       data.GetString("PNPDeviceID", r["pnp_device_id"]);
-      data.GetString("DeviceID", r["device_id"]);
+      data.GetString("DeviceID", r["id"]);
       data.GetString("Size", r["disk_size"]);
       data.GetString("Manufacturer", r["manufacturer"]);
       data.GetString("Model", r["hardware_model"]);
@@ -48,7 +48,7 @@ QueryData genDiskInfo(QueryContext& context) {
     r["disk_index"] = "-1";
     r["type"] = "-1";
     r["pnp_device_id"] = "-1";
-    r["device_id"] = "-1";
+    r["id"] = "-1";
     r["disk_size"] = "-1";
     r["manufacturer"] = "-1";
     r["hardware_model"] = "-1";
