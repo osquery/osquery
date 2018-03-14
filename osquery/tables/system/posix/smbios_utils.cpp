@@ -146,21 +146,26 @@ std::string dmiString(uint8_t* data, uint8_t* address, size_t offset) {
     index--;
   }
 
-  return std::string(bp);
+  std::string str{bp};
+  // Sometimes vendors leave extraneous spaces on the right side.
+  boost::algorithm::trim_right(str);
+  return str;
 }
 
 std::string dmiBitFieldToStr(size_t bitField,
                              const std::map<uint8_t, std::string>& table) {
-  std::stringstream ss;
+  std::string result;
 
   for (uint8_t i = 0; i < table.size(); i++) {
     if (1 << i & bitField) {
-      ss << table.at(i) + " ";
+      result = result + table.at(i) + ' ';
     }
   }
 
-  auto result = ss.str();
-  boost::algorithm::trim(result);
+  if (!result.empty()) {
+    result.pop_back();
+  }
+
   return result;
 }
 

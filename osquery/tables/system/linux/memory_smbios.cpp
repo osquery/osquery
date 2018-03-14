@@ -97,9 +97,9 @@ QueryData genMemoryDevices(QueryContext& context) {
     r["handle"] = dmiWordToHexStr(address, 0x02);
     r["array_handle"] = dmiWordToHexStr(address, 0x04);
 
-    if (kSMBIOSMemoryFormFactorTable.find(address[0x0E]) !=
-        kSMBIOSMemoryFormFactorTable.end()) {
-      r["form_factor"] = kSMBIOSMemoryFormFactorTable.at(address[0x0E]);
+    auto formFactor = kSMBIOSMemoryFormFactorTable.find(address[0x0E]);
+    if (formFactor != kSMBIOSMemoryFormFactorTable.end()) {
+      r["form_factor"] = formFactor->second;
     }
 
     auto memBits = linuxDmiToWord(address, 0x08);
@@ -126,9 +126,9 @@ QueryData genMemoryDevices(QueryContext& context) {
     r["device_locator"] = dmiString(data, address, 0x10);
     r["bank_locator"] = dmiString(data, address, 0x11);
 
-    if (kSMBIOSMemoryTypeTable.find(address[0x12]) !=
-        kSMBIOSMemoryTypeTable.end()) {
-      r["memory_type"] = kSMBIOSMemoryTypeTable.at(address[0x12]);
+    auto memoryType = kSMBIOSMemoryTypeTable.find(address[0x12]);
+    if (memoryType != kSMBIOSMemoryTypeTable.end()) {
+      r["memory_type"] = memoryType->second;
     }
 
     r["memory_type_details"] = dmiBitFieldToStr(linuxDmiToWord(address, 0x13),
