@@ -79,7 +79,8 @@ class Client {
   class Options {
    public:
     Options()
-        : ssl_options_(0),
+        : payload_size_(std::numeric_limits<unsigned long>::max()),
+          ssl_options_(0),
           timeout_(0),
           always_verify_peer_(false),
           follow_redirects_(false),
@@ -161,6 +162,11 @@ class Client {
       return *this;
     }
 
+    Options& payload_size(unsigned long pls) {
+      payload_size_ = pls;
+      return *this;
+    }
+
     bool operator==(Options const& ropts) {
       return (server_certificate_ == ropts.server_certificate_) &&
              (verify_path_ == ropts.verify_path_) &&
@@ -184,6 +190,7 @@ class Client {
     boost::optional<std::string> proxy_hostname_;
     boost::optional<std::string> remote_hostname_;
     boost::optional<std::string> remote_port_;
+    unsigned long payload_size_;
     long ssl_options_;
     int timeout_;
     bool always_verify_peer_;

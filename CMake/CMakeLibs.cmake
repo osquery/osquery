@@ -268,6 +268,7 @@ endmacro(ADD_OSQUERY_LIBRARY TARGET)
 macro(ADD_OSQUERY_EXTENSION TARGET)
   add_executable(${TARGET} ${ARGN})
   TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery)
+  TARGET_OSQUERY_LINK_WHOLE(${TARGET} libosquery_transport)
   set_target_properties(${TARGET} PROPERTIES OUTPUT_NAME "${TARGET}.ext")
 endmacro(ADD_OSQUERY_EXTENSION)
 

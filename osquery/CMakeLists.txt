@@ -276,6 +276,11 @@ add_custom_target(osquery_library ALL
   DEPENDS libosquery
 )
 
+# Create the static libosquery_transport.
+add_library(libosquery_transport STATIC remote/http/http_client.cpp remote/transports/tls.cpp tables/system/hash.cpp remote/remote.cpp remote/uri.cpp)
+target_link_libraries(libosquery_transport ${OSQUERY_ADDITIONAL_LINKS})
+set_target_properties(libosquery_transport PROPERTIES OUTPUT_NAME osquery_transport)
+
 # make devel (implies install)
 add_custom_target(devel
   COMMAND ${CMAKE_COMMAND} -D COMPONENT=devel -P cmake_install.cmake
@@ -398,7 +403,7 @@ if(NOT SKIP_TESTS)
   # osquery core set of unit tests build with SDK.
   add_executable(osquery_tests main/tests.cpp ${OSQUERY_TESTS})
   ADD_DEFAULT_LINKS(osquery_tests FALSE)
-  target_link_libraries(osquery_tests gtest gmock libosquery_testing)
+  target_link_libraries(osquery_tests gtest gmock libosquery_testing libosquery_transport)
   SET_OSQUERY_COMPILE(osquery_tests "${GTEST_FLAGS}")
   add_test(osquery_tests osquery_tests ${TEST_ARGS})
 

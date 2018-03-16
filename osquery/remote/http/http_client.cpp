@@ -237,6 +237,11 @@ void Client::sendRequest(STREAM_TYPE& stream,
     throw std::system_error(ec_.value(), adapted_category(&ec_.category()));
   }
 
+  if (client_options_.payload_size_ !=
+      std::numeric_limits<unsigned long>::max()) {
+    resp.body_limit(client_options_.payload_size_);
+  }
+
   if (client_options_.timeout_) {
     timer_.async_wait(
         [=](boost_system::error_code const& ec) { timeoutHandler(ec); });
