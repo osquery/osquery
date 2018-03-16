@@ -44,17 +44,7 @@ QueryData genDiskInfo(QueryContext& context) {
       results.push_back(r);
     }
   } else {
-    r["partitions"] = "-1";
-    r["disk_index"] = "-1";
-    r["type"] = "-1";
-    r["pnp_device_id"] = "-1";
-    r["id"] = "-1";
-    r["disk_size"] = "-1";
-    r["manufacturer"] = "-1";
-    r["hardware_model"] = "-1";
-    r["name"] = "-1";
-    r["serial"] = "-1";
-    r["description"] = "-1";
+    LOG(INFO) << "Resultset empty (Possible WMI error).";
   }
 
   return results;
