@@ -345,6 +345,7 @@ TEST_F(INotifyTests, test_inotify_run) {
 
   // Create a temporary file to watch, open writeable
   FILE* fd = fopen(real_test_path.c_str(), "w");
+  fclose(fd);
 
   // Create a subscriber.
   auto sub = std::make_shared<TestINotifyEventSubscriber>();
@@ -364,8 +365,7 @@ TEST_F(INotifyTests, test_inotify_run) {
   EXPECT_TRUE(event_pub_->numEvents() == 0);
 
   // Cause an inotify event by writing to the watched path.
-  fputs("inotify", fd);
-  fclose(fd);
+  TriggerEvent(real_test_path);
 
   // Wait for the thread's run loop to select.
   WaitForEvents(kMaxEventLatency);
