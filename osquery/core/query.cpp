@@ -19,6 +19,7 @@
 
 #include "osquery/core/json.h"
 
+namespace pt = boost::property_tree;
 namespace rj = rapidjson;
 
 namespace osquery {
@@ -125,6 +126,49 @@ Status Query::addNewResults(QueryData current_qd,
     // Get the rows from the last run of this query name.
     QueryDataSet previous_qd;
     auto status = getPreviousQueryResults(previous_qd);
+
+    if (status.getCode() == 2) {
+      // Results needs updating as their using the legacy ptree JSON
+      std::string raw;
+      status = getDatabaseValue(kQueries, name_, raw);
+      if (!status.ok()) {
+        return status;
+      }
+
+      LOG(INFO) << "Converting legacy ptree results to rapidjson array for "
+                << name_;
+      pt::ptree tree;
+      try {
+        std::stringstream input;
+        input << raw;
+        pt::read_json(input, tree);
+      } catch (const pt::json_parser::json_parser_error& /* e */) {
+        return Status(1,
+                      "Conversion from ptree to RapidJSON failed for " + name_);
+      }
+
+      auto json = JSON::newArray();
+      for (const auto& t : tree) {
+        std::stringstream ss;
+        pt::write_json(ss, t.second);
+
+        rj::Document row;
+        if (row.Parse(ss.str()).HasParseError()) {
+          LOG(WARNING) << "Failed to serialize JSON row for " << name_;
+        }
+        json.push(row);
+      }
+      std::string out;
+      json.toString(out);
+      status = setDatabaseValue(kQueries, name_, out);
+      if (!status.ok()) {
+        return status;
+      }
+
+      // Lastly, try to get the previous results again
+      status = getPreviousQueryResults(previous_qd);
+    }
+
     if (!status.ok()) {
       return status;
     }
@@ -250,7 +294,9 @@ Status deserializeQueryData(const rj::Value& arr, QueryData& qd) {
 
 Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
   if (!v.IsArray()) {
-    return Status(1, "Not an array");
+    // Leverage error code 2 as it is likely the case that
+    // this is legacy ptree code and requires an update
+    return Status(2, "JSON object not an array");
   }
 
   for (const auto& i : v.GetArray()) {
@@ -278,6 +324,7 @@ Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
   if (doc.Parse(json.c_str()).HasParseError()) {
     return Status(1, "Error serializing JSON");
   }
+
   return deserializeQueryData(doc, qd);
 }
 
