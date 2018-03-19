@@ -288,6 +288,47 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
 }
 
 /**
+ * Output from string parsing /proc/<pid>/io.
+ */
+struct SimpleProcIo : private boost::noncopyable {
+ public:
+  std::string read_bytes;
+  std::string write_bytes;
+  std::string cancelled_write_bytes;
+
+  /// For errors processing proc data.
+  Status status;
+
+  explicit SimpleProcIo(const std::string& pid);
+};
+
+SimpleProcIo::SimpleProcIo(const std::string& pid) {
+  std::string content;
+  if (!readFile(getProcAttr("io", pid), content).ok()) {
+    status = Status(
+        1, "Cannot read /proc/" + pid + "/io (is osquery running as root?)");
+    return;
+  }
+
+  for (const auto& line : osquery::split(content, "\n")) {
+    // IO lines are formatted: Key: Value....\n.
+    auto detail = osquery::split(line, ":", 1);
+    if (detail.size() != 2) {
+      continue;
+    }
+
+    // There are specific fields from each detail
+    if (detail.at(0) == "read_bytes") {
+      this->read_bytes = detail.at(1);
+    } else if (detail.at(0) == "write_bytes") {
+      this->write_bytes = detail.at(1);
+    } else if (detail.at(0) == "cancelled_write_bytes") {
+      this->cancelled_write_bytes = detail.at(1);
+    }
+  }
+}
+
+/**
  * @brief Determine if the process path (binary) exists on the filesystem.
  *
  * If the path of the executable that started the process is available and
@@ -342,6 +383,8 @@ int getOnDisk(const std::string& pid, std::string& path) {
 void genProcess(const std::string& pid, QueryData& results) {
   // Parse the process stat and status.
   SimpleProcStat proc_stat(pid);
+  // Parse the process io
+  SimpleProcIo proc_io(pid);
 
   if (!proc_stat.status.ok()) {
     VLOG(1) << proc_stat.status.getMessage() << " for pid " << pid;
@@ -379,6 +422,16 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["user_time"] = proc_stat.user_time;
   r["system_time"] = proc_stat.system_time;
   r["start_time"] = proc_stat.start_time;
+
+  if (!proc_io.status.ok()) {
+    // /proc/<pid>/io can require root to access, so don't fail if we can't
+    VLOG(1) << proc_io.status.getMessage();
+  } else {
+    r["disk_bytes_read"] = proc_io.read_bytes;
+    r["disk_bytes_written"] =
+        std::to_string(std::stol(proc_io.write_bytes, nullptr) -
+                       std::stol(proc_io.cancelled_write_bytes, nullptr));
+  }
 
   results.push_back(r);
 }

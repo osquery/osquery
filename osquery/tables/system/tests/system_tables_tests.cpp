@@ -128,6 +128,36 @@ TEST_F(SystemsTablesTests, test_processes_memory_cpu) {
   EXPECT_GE(value - cpu_start, 0U);
 }
 
+TEST_F(SystemsTablesTests, test_processes_disk_io) {
+  // TODO: Remove once implemented on these platforms.
+  if (!isPlatform(PlatformType::TYPE_LINUX) &&
+      !isPlatform(PlatformType::TYPE_OSX)) {
+    return;
+  }
+
+  SQL before("select * from osquery_info join processes using (pid)");
+  boost::filesystem::path tmpFile =
+      boost::filesystem::temp_directory_path() /
+      boost::filesystem::unique_path("osquery_processes_disk_io_%%%%%%%");
+  {
+    std::string content(1024 * 1024, 'x');
+    std::ofstream stream;
+
+    stream.open(tmpFile.string());
+    stream << content;
+    stream.flush();
+  }
+
+  SQL after("select * from osquery_info join processes using (pid)");
+
+  long long bytes_written_before, bytes_written_after;
+  safeStrtoll(
+      before.rows()[0].at("disk_bytes_written"), 0, bytes_written_before);
+  safeStrtoll(after.rows()[0].at("disk_bytes_written"), 0, bytes_written_after);
+
+  EXPECT_GE(bytes_written_after - bytes_written_before, 1024 * 1024);
+}
+
 TEST_F(SystemsTablesTests, test_abstract_joins) {
   // Codify several assumptions about how tables should be joined into tests.
   // The first is an implicit inner join from processes to file information.
