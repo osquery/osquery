@@ -171,6 +171,16 @@ std::string getDriverImagePath(const std::string& service_key) {
 
 QueryData genDrivers(QueryContext& context) {
   QueryData results;
+
+  WmiRequest wmiSignedDriverReq("select * from Win32_PnPSignedDriver");
+  auto& wmiResults = wmiSignedDriverReq.results();
+
+  // As our list relies on the WMI set we first query and bail if no results
+  if (wmiResults.empty()) {
+    LOG(WARNING) << "Failed to query device drivers via WMI";
+    return {};
+  }
+
   auto devInfoset = setupDevInfoSet(DIGCF_ALLCLASSES | DIGCF_PRESENT);
   if (devInfoset == nullptr) {
     win32LogWARNING("Error getting device handle");
@@ -206,19 +216,11 @@ QueryData genDrivers(QueryContext& context) {
     }
 
     if (r.count("service") > 0 && !r.at("service").empty()) {
-      std::string svcKey = kServiceKeyPath + r["service"];
+      auto svcKey = kServiceKeyPath + r["service"];
       r["service_key"] = svcKey;
       r["image"] = getDriverImagePath(svcKey);
     }
     apiDevices[devId] = r;
-  }
-
-  WmiRequest wmiSignedDriverReq("select * from Win32_PnPSignedDriver");
-  auto& wmiResults = wmiSignedDriverReq.results();
-
-  if (wmiResults.empty()) {
-    LOG(WARNING) << "Failed to query device drivers via WMI";
-    return {};
   }
 
   /*
