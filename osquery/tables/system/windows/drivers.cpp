@@ -47,8 +47,10 @@ const std::string kServiceKeyPath =
     "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\";
 
 static inline void win32LogWARNING(const std::string& msg,
-                                   const DWORD code = GetLastError()) {
-  LOG(WARNING) << msg + " Error code: " + std::to_string(code);
+                                   const DWORD code = GetLastError(),
+                                   const std::string& deviceName = "") {
+  LOG(WARNING) << msg << " for device " << deviceName
+               << ", error code: " + std::to_string(code);
 }
 
 device_infoset_t setupDevInfoSet(const DWORD flags) {
@@ -157,10 +159,14 @@ std::string getDriverImagePath(const std::string& service_key) {
     return "";
   }
 
+  // Unify the image path as systemRoot can contain systemroot and/or system32
+  std::transform(path.begin(), path.end(), path.begin(), ::tolower);
+
   char systemRoot[MAX_PATH] = {0};
   GetSystemDirectory(systemRoot, MAX_PATH);
+
   return systemRoot +
-         boost::regex_replace(path, boost::regex("^.*[Ss]ystem32"), "");
+         boost::regex_replace(path, boost::regex("^.*?system32"), "");
 }
 
 QueryData genDrivers(QueryContext& context) {
@@ -259,20 +265,21 @@ QueryData genDrivers(QueryContext& context) {
                                          &infLen);
     }
     if (sdiRet != TRUE) {
-      VLOG(1) << "Failed to derive full driver INF path with "
-              << GetLastError();
+      VLOG(1) << "Failed to derive full driver INF path for "
+              << r["device_name"] << " with " << GetLastError();
       r["inf"] = infName;
     } else {
       r["inf"] = inf.data();
     }
 
     // Add the remaining columns from the APIs
-    if (apiDevices.find(devid) != apiDevices.end()) {
-      r["service"] = apiDevices[devid]["service"];
-      r["service_key"] = apiDevices[devid]["service_key"];
-      r["image"] = apiDevices[devid]["image"];
-      r["driver_key"] = apiDevices[devid]["driver_key"];
-      r["date"] = apiDevices[devid]["date"];
+    auto dev = apiDevices.find(devid);
+    if (dev != apiDevices.end()) {
+      r["service"] = dev->second["service"];
+      r["service_key"] = dev->second["service_key"];
+      r["image"] = dev->second["image"];
+      r["driver_key"] = dev->second["driver_key"];
+      r["date"] = dev->second["date"];
     }
 
     results.push_back(r);
