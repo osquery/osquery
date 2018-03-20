@@ -606,23 +606,10 @@ void Initializer::start() const {
     }
 
     // Ensure the database results version is up to date before proceeding
-    std::string db_results_version{""};
-    try {
-      getDatabaseValue(
-          kPersistentSettings, "results_version", db_results_version);
-    } catch (const std::exception /* e */) {
-    }
-
-    if (db_results_version != kDatabseResultsVersion) {
-      auto status = updateDatabase();
-
-      if (!status.ok()) {
-        LOG(ERROR) << "Failed to upgrade database";
-        auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
-        requestShutdown(retcode);
-      }
-      setDatabaseValue(
-          kPersistentSettings, "results_version", kDatabseResultsVersion);
+    if (!updateDatabase()) {
+      LOG(ERROR) << "Failed to upgrade database";
+      auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
+      requestShutdown(retcode);
     }
   }
 

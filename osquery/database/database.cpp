@@ -352,6 +352,13 @@ void dumpDatabase() {
 }
 
 Status updateDatabase() {
+  std::string db_results_version{""};
+  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
+
+  if (db_results_version == kDatabseResultsVersion) {
+    return Status();
+  }
+
   std::vector<std::string> keys;
   auto s = scanDatabaseKeys(kQueries, keys);
   if (!s.ok()) {
@@ -361,8 +368,7 @@ Status updateDatabase() {
   for (const auto& key : keys) {
     std::string value;
     if (!getDatabaseValue(kQueries, key, value)) {
-      LOG(WARNING) << "Failed to get value from database " << key << ": "
-                   << value;
+      LOG(WARNING) << "Failed to get value from database " << key;
       continue;
     }
 
@@ -372,8 +378,8 @@ Status updateDatabase() {
       ss << value;
       pt::read_json(ss, tree);
     } catch (const pt::json_parser::json_parser_error& /* e */) {
-      LOG(WARNING) << "Conversion from ptree to RapidJSON failed for " << key
-                   << ": " << value;
+      LOG(INFO) << "Conversion from ptree to RapidJSON failed for " << key;
+      continue;
     }
 
     auto json = JSON::newArray();
@@ -395,6 +401,9 @@ Status updateDatabase() {
                    << value;
     }
   }
+
+  setDatabaseValue(
+      kPersistentSettings, "results_version", kDatabseResultsVersion);
   return Status();
 }
 }

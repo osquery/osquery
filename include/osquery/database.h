@@ -59,9 +59,6 @@ extern const std::string kCarves;
  */
 extern const std::string kLogs;
 
-/// Results schema version of the database
-extern const std::string kDatabseResultsVersion;
-
 /**
  * @brief An osquery backing storage (database) type that persists executions.
  *
@@ -251,6 +248,15 @@ void resetDatabase();
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
 
-/// Updates the database results format
+/**
+ * @brief Updates the legacy database json format from ptree to RapidJSON
+ *
+ * This helper function was required as Boost property trees contain json
+ * which leverages empty strings for keys in json arrays. This is incompatible
+ * with rapidjson, thus we require a converter function to upgrade any cached
+ * results in the database.
+ *
+ * @return Success status of upgrading the database
+ */
 Status updateDatabase();
 } // namespace osquery
