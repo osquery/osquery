@@ -61,8 +61,8 @@ ifneq ($(VERBOSE_TEST),)
 	VERBOSE_TEST = "-V"
 endif
 
-ifneq ($(DISTRO),darwin)
-        LINK_FLAGS = -B$(DEPS_DIR)/legacy/lib -rtlib=compiler-rt -fuse-ld=lld
+ifeq ($(PLATFORM),Linux)
+	LINK_FLAGS = -B$(DEPS_DIR)/legacy/lib -rtlib=compiler-rt -fuse-ld=lld
 endif
 
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"

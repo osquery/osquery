@@ -149,8 +149,9 @@ http::Client::Options TLSTransport::getOptions() {
 
   // 'Optionally', though all TLS plugins should set a hostname, supply an SNI
   // hostname. This will reveal the requested domain.
-  if (options_.count("hostname")) {
-    options.openssl_sni_hostname(options_.get<std::string>("hostname"));
+  auto it = options_.doc().FindMember("hostname");
+  if (it != options_.doc().MemberEnd() && it->value.IsString()) {
+    options.openssl_sni_hostname(it->value.GetString());
   }
 
   return options;
@@ -230,10 +231,12 @@ Status TLSTransport::sendRequest(const std::string& params, bool compress) {
   }
 
   // Allow request calls to override the default HTTP POST verb.
-  HTTPVerb verb = HTTP_POST;
-  if (options_.count("_verb") > 0) {
-    verb = (HTTPVerb)options_.get<int>("_verb", HTTP_POST);
-  }
+  HTTPVerb verb;
+  auto it = options_.doc().FindMember("_verb");
+
+  verb = (HTTPVerb)(it != options_.doc().MemberEnd() && it->value.IsInt()
+                        ? it->value.GetInt()
+                        : HTTP_POST);
 
   VLOG(1) << "TLS/HTTPS " << ((verb == HTTP_POST) ? "POST" : "PUT")
           << " request to URI: " << destination_;

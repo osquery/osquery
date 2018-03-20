@@ -23,42 +23,40 @@
 namespace osquery {
 namespace tables {
 
-void genODEntries(ODRecordType type, std::set<std::string>& names) {
-  @autoreleasepool {
-    ODSession* s = [ODSession defaultSession];
-    NSError* err = nullptr;
-    ODNode* root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
-    if (err != nullptr) {
-      TLOG << "Error with OpenDirectory node: "
-           << std::string([[err localizedDescription] UTF8String]);
-      return;
-    }
+void genODEntries(ODRecordType type, std::set<std::string> &names) {
+  ODSession* s = [ODSession defaultSession];
+  NSError* err = nullptr;
+  ODNode* root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
+  if (err != nullptr) {
+    TLOG << "Error with OpenDirectory node: "
+         << std::string([[err localizedDescription] UTF8String]);
+    return;
+  }
 
-    ODQuery* q = [ODQuery queryWithNode:root
-                         forRecordTypes:type
-                              attribute:kODAttributeTypeUniqueID
-                              matchType:kODMatchEqualTo
-                            queryValues:nil
-                       returnAttributes:kODAttributeTypeStandardOnly
-                         maximumResults:0
-                                  error:&err];
-    if (err != nullptr) {
-      TLOG << "Error with OpenDirectory query: "
-           << std::string([[err localizedDescription] UTF8String]);
-      return;
-    }
+  ODQuery* q = [ODQuery queryWithNode:root
+                       forRecordTypes:type
+                            attribute:kODAttributeTypeUniqueID
+                            matchType:kODMatchEqualTo
+                          queryValues:nil
+                     returnAttributes:kODAttributeTypeStandardOnly
+                       maximumResults:0
+                                error:&err];
+  if (err != nullptr) {
+    TLOG << "Error with OpenDirectory query: "
+         << std::string([[err localizedDescription] UTF8String]);
+    return;
+  }
 
-    // Obtain the results synchronously, not good for very large sets.
-    NSArray* od_results = [q resultsAllowingPartial:NO error:&err];
-    if (err != nullptr) {
-      TLOG << "Error with OpenDirectory results: "
-           << std::string([[err localizedDescription] UTF8String]);
-      return;
-    }
+  // Obtain the results synchronously, not good for very large sets.
+  NSArray* od_results = [q resultsAllowingPartial:NO error:&err];
+  if (err != nullptr) {
+    TLOG << "Error with OpenDirectory results: "
+         << std::string([[err localizedDescription] UTF8String]);
+    return;
+  }
 
-    for (ODRecord* re in od_results) {
-      names.insert([[re recordName] UTF8String]);
-    }
+  for (ODRecord* re in od_results) {
+    names.insert([[re recordName] UTF8String]);
   }
 }
 

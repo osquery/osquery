@@ -63,91 +63,86 @@ void authorizations(QueryContext& context, authorizationCallback cb) {
 QueryData genAuthorizationMechanisms(QueryContext& context) {
   QueryData results;
 
-  @autoreleasepool {
-    authorizations(
-        context, ([&results](NSString* label) {
-          CFDictionaryRef rights_ = nullptr;
-          AuthorizationRightGet([label UTF8String], &rights_);
-          if (rights_ == nullptr) {
-            return;
-          }
+  authorizations(
+      context, ([&results](NSString* label) {
+        CFDictionaryRef rights_ = nullptr;
+        AuthorizationRightGet([label UTF8String], &rights_);
+        if (rights_ == nullptr) {
+          return;
+        }
 
-          Row r;
-          NSDictionary* rights = (__bridge NSDictionary*)rights_;
-          NSArray* mechs = [rights objectForKey:@"mechanisms"];
-          if (mechs == nullptr) {
-            CFRelease(rights_);
-            return;
-          }
-
-          for (NSString* mech in mechs) {
-            r["label"] = TEXT([label UTF8String]);
-            r["privileged"] =
-                ([mech rangeOfString:@"privileged"].location != NSNotFound)
-                    ? "true"
-                    : "false";
-            r["entry"] = TEXT([mech UTF8String]);
-            NSRange colon_loc = [mech rangeOfString:@":"];
-            NSRange plugin_loc = NSMakeRange(0, colon_loc.location);
-            NSRange mech_loc =
-                NSMakeRange(colon_loc.location + 1,
-                            [mech length] - (colon_loc.location + 1));
-            r["plugin"] =
-                TEXT([[mech substringWithRange:plugin_loc] UTF8String]);
-            r["mechanism"] = TEXT([[[mech substringWithRange:mech_loc]
-                stringByReplacingOccurrencesOfString:@",privileged"
-                                          withString:@""] UTF8String]);
-            results.push_back(r);
-          }
-
+        Row r;
+        NSDictionary* rights = (__bridge NSDictionary*)rights_;
+        NSArray* mechs = [rights objectForKey:@"mechanisms"];
+        if (mechs == nullptr) {
           CFRelease(rights_);
-        }));
-  }
+          return;
+        }
+
+        for (NSString* mech in mechs) {
+          r["label"] = TEXT([label UTF8String]);
+          r["privileged"] =
+              ([mech rangeOfString:@"privileged"].location != NSNotFound)
+                  ? "true"
+                  : "false";
+          r["entry"] = TEXT([mech UTF8String]);
+          NSRange colon_loc = [mech rangeOfString:@":"];
+          NSRange plugin_loc = NSMakeRange(0, colon_loc.location);
+          NSRange mech_loc = NSMakeRange(
+              colon_loc.location + 1, [mech length] - (colon_loc.location + 1));
+          r["plugin"] = TEXT([[mech substringWithRange:plugin_loc] UTF8String]);
+          r["mechanism"] = TEXT([[[mech substringWithRange:mech_loc]
+              stringByReplacingOccurrencesOfString:@",privileged"
+                                        withString:@""] UTF8String]);
+          results.push_back(r);
+        }
+
+        CFRelease(rights_);
+      }));
+
   return results;
 }
 
 QueryData genAuthorizations(QueryContext& context) {
   QueryData results;
 
-  @autoreleasepool {
-    authorizations(
-        context, ([&results](NSString* label) {
-          CFDictionaryRef rights = nullptr;
-          AuthorizationRightGet([label UTF8String], &rights);
-          if (rights == nullptr) {
-            return;
-          }
+  authorizations(
+      context, ([&results](NSString* label) {
+        CFDictionaryRef rights = nullptr;
+        AuthorizationRightGet([label UTF8String], &rights);
+        if (rights == nullptr) {
+          return;
+        }
 
-          CFIndex count = CFDictionaryGetCount(rights);
-          std::vector<const void*> keys(count);
-          std::vector<const void*> values(count);
-          CFDictionaryGetKeysAndValues(rights, keys.data(), values.data());
-          if (keys.data() == nullptr || values.data() == nullptr) {
-            CFRelease(rights);
-            return;
-          }
-
-          Row r;
-          for (CFIndex i = 0; i < count; i++) {
-            r["label"] = TEXT([label UTF8String]);
-            id value = (__bridge id)values[i];
-            auto key = [[(__bridge NSString*)keys[i]
-                stringByReplacingOccurrencesOfString:@"-"
-                                          withString:@"_"] UTF8String];
-
-            if (CFGetTypeID(values[i]) == CFNumberGetTypeID()) {
-              r[key] = TEXT([value intValue]);
-            } else if (CFGetTypeID(values[i]) == CFStringGetTypeID()) {
-              r[key] = TEXT([value UTF8String]);
-            } else if (CFGetTypeID(values[i]) == CFBooleanGetTypeID()) {
-              r[key] = TEXT(([value boolValue]) ? "true" : "false");
-            }
-          }
-
-          results.push_back(r);
+        CFIndex count = CFDictionaryGetCount(rights);
+        std::vector<const void*> keys(count);
+        std::vector<const void*> values(count);
+        CFDictionaryGetKeysAndValues(rights, keys.data(), values.data());
+        if (keys.data() == nullptr || values.data() == nullptr) {
           CFRelease(rights);
-        }));
-  }
+          return;
+        }
+
+        Row r;
+        for (CFIndex i = 0; i < count; i++) {
+          r["label"] = TEXT([label UTF8String]);
+          id value = (__bridge id)values[i];
+          auto key = [[(__bridge NSString*)keys[i]
+              stringByReplacingOccurrencesOfString:@"-"
+                                        withString:@"_"] UTF8String];
+
+          if (CFGetTypeID(values[i]) == CFNumberGetTypeID()) {
+            r[key] = TEXT([value intValue]);
+          } else if (CFGetTypeID(values[i]) == CFStringGetTypeID()) {
+            r[key] = TEXT([value UTF8String]);
+          } else if (CFGetTypeID(values[i]) == CFBooleanGetTypeID()) {
+            r[key] = TEXT(([value boolValue]) ? "true" : "false");
+          }
+        }
+
+        results.push_back(r);
+        CFRelease(rights);
+      }));
 
   return results;
 }

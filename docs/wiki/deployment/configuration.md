@@ -201,6 +201,11 @@ processes called "foobar" or has users that start with "www".
 Discovery queries are refreshed for all packs every 60 minutes. You can
 change this value via the `pack_refresh_interval` configuration option.
 
+Finally, if you have multiple discovery queries they will short-circuit
+(stop after the first query with no results). This is useful if you are selecting
+from a table provided by an extension because you can verify it is loaded before
+running further queries.
+
 ### Packs FAQs
 
 **Where do packs go?**

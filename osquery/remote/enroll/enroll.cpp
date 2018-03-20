@@ -9,7 +9,6 @@
  */
 
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/core.h>
 #include <osquery/database.h>
@@ -111,16 +110,16 @@ const std::string getEnrollSecret() {
   return enrollment_secret;
 }
 
-void EnrollPlugin::genHostDetails(pt::ptree& host_details) {
+void EnrollPlugin::genHostDetails(JSON& host_details) {
   // Select from each table describing host details.
   for (const auto& table : kEnrollHostDetails) {
     auto results = SQL::selectAllFrom(table);
     if (!results.empty()) {
-      pt::ptree details;
+      JSON details;
       for (const auto& detail : results[0]) {
-        details.put<std::string>(detail.first, detail.second);
+        details.add(detail.first, detail.second);
       }
-      host_details.put_child(table, details);
+      host_details.add(table, details.doc());
     }
   }
 }

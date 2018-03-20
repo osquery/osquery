@@ -140,6 +140,7 @@ else()
   # component-specific globbing is needed.
   if(${OSQUERY_BUILD_PLATFORM} STREQUAL "freebsd")
     set(FREEBSD TRUE)
+    set(DEPS FALSE)
     include_directories("/usr/local/include")
     include_directories("/usr/include")
   else()
@@ -566,16 +567,13 @@ if(POSIX AND DEPS)
   endif()
 endif()
 
-if(FREEBSD)
-  # Including Boost Beast within third-party until it's merged into boot 1.66.
-  include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
-endif()
-
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 
-include_directories("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+if(NOT FREEBSD)
+  include_directories("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+endif()
 
 set(MKDIR_OPTS "")
 if(WINDOWS)
@@ -668,7 +666,10 @@ if(NOT SKIP_TESTS)
 endif()
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
-add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+
+if(NOT FREEBSD)
+  add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+endif()
 
 add_subdirectory(osquery)
 
