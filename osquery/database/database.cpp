@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -39,6 +41,9 @@ const std::string kQueries = "queries";
 const std::string kEvents = "events";
 const std::string kCarves = "carves";
 const std::string kLogs = "logs";
+
+const std::string kDbEpochSuffix = "epoch";
+const std::string kDbCounterSuffix = "counter";
 
 const std::string kDatabseResultsVersion = "1";
 
@@ -366,7 +371,13 @@ Status updateDatabase() {
   }
 
   for (const auto& key : keys) {
-    std::string value;
+    // Skip over epoch and counter entries, as 0 is parsed by ptree
+    if (boost::algorithm::ends_with(key, kDbEpochSuffix) ||
+        boost::algorithm::ends_with(key, kDbCounterSuffix)) {
+      continue;
+    }
+
+    std::string value{""};
     if (!getDatabaseValue(kQueries, key, value)) {
       LOG(WARNING) << "Failed to get value from database " << key;
       continue;
@@ -378,7 +389,8 @@ Status updateDatabase() {
       ss << value;
       pt::read_json(ss, tree);
     } catch (const pt::json_parser::json_parser_error& /* e */) {
-      LOG(INFO) << "Conversion from ptree to RapidJSON failed for " << key;
+      LOG(INFO) << "Conversion from ptree to RapidJSON failed for " << key
+                << ": " << value;
       continue;
     }
 

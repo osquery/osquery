@@ -15,6 +15,8 @@
 #include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
 
+#include <osquery/logger.h>
+
 namespace rj = rapidjson;
 
 namespace osquery {
@@ -84,6 +86,9 @@ TEST_F(DatabaseTests, test_ptree_upgraded_to_rj) {
   auto status = setDatabaseValue(kQueries, "bad_wifi_json", bad_json);
   EXPECT_TRUE(status.ok());
 
+  // Add an integer value to ensure we don't munge non-json objects
+  status = setDatabaseValue(kQueries, "bad_wifi_jsonepoch", "1521583712");
+
   rj::Document bad_doc;
 
   // Potential bug with RJ, in that parsing should fail with empty keys
@@ -101,5 +106,12 @@ TEST_F(DatabaseTests, test_ptree_upgraded_to_rj) {
   EXPECT_FALSE(clean_doc.Parse(good_json).HasParseError());
   EXPECT_TRUE(clean_doc.IsArray());
   EXPECT_EQ(clean_doc.Size(), 3U);
+
+  // Ensure our non-json thing was not destroyed
+  std::string query_epoch{""};
+  status = getDatabaseValue(kQueries, "bad_wifi_jsonepoch", query_epoch);
+  LOG(INFO) << query_epoch;
+  auto ulepoch = std::stoull(query_epoch);
+  EXPECT_EQ(ulepoch, 1521583712U);
 }
 }
