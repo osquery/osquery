@@ -123,12 +123,14 @@ Status Query::addNewResults(QueryData current_qd,
   const auto* target_gd = &current_qd;
   bool update_db = true;
   if (!fresh_results && calculate_diff) {
-    // Get the rows from the last run of this query name.
-    QueryDataSet previous_qd;
-    auto status = getPreviousQueryResults(previous_qd);
 
-    if (status.getCode() == 2) {
-      // Results needs updating as their using the legacy ptree JSON
+    std::string results_version{""};
+    status = getDatabaseValue(kPersistentSetting,
+                              name_ + ".results_version",
+                              results_version);
+
+    // DB migraiton from ptree to rapidjson
+    if (results_version != "1") {
       std::string raw;
       status = getDatabaseValue(kQueries, name_, raw);
       if (!status.ok()) {
@@ -166,8 +168,12 @@ Status Query::addNewResults(QueryData current_qd,
       }
 
       // Lastly, try to get the previous results again
-      status = getPreviousQueryResults(previous_qd);
+      status = setDatabaseValue(kPersistentSetting, name_ + ".results_version", "1");
     }
+
+    // Get the rows from the last run of this query name.
+    QueryDataSet previous_qd;
+    auto status = getPreviousQueryResults(previous_qd);
 
     if (!status.ok()) {
       return status;
