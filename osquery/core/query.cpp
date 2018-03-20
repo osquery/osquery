@@ -19,7 +19,6 @@
 
 #include "osquery/core/json.h"
 
-namespace pt = boost::property_tree;
 namespace rj = rapidjson;
 
 namespace osquery {
@@ -122,61 +121,10 @@ Status Query::addNewResults(QueryData current_qd,
   // query data, otherwise the content is moved to the differential's added set.
   const auto* target_gd = &current_qd;
   bool update_db = true;
-
   if (!fresh_results && calculate_diff) {
-    std::string results_version{""};
-    auto status = getDatabaseValue(
-        kPersistentSettings, name_ + ".results_version", results_version);
-
-    // DB migraiton from ptree to rapidjson
-    if (results_version != "1") {
-      std::string raw;
-      status = getDatabaseValue(kQueries, name_, raw);
-      if (!status.ok()) {
-        return status;
-      }
-      LOG(INFO) << "Converting legacy ptree results to rapidjson array for "
-                << name_;
-      pt::ptree tree;
-      try {
-        std::stringstream input;
-        input << raw;
-        pt::read_json(input, tree);
-      } catch (const pt::json_parser::json_parser_error& /* e */) {
-        return Status(1,
-                      "Conversion from ptree to RapidJSON failed for " + name_);
-      }
-
-      auto json = JSON::newArray();
-      for (const auto& t : tree) {
-        std::stringstream ss;
-        pt::write_json(ss, t.second);
-
-        rj::Document row;
-        if (row.Parse(ss.str()).HasParseError()) {
-          LOG(WARNING) << "Failed to serialize JSON row for " << name_;
-        }
-        json.push(row);
-      }
-      std::string out;
-      json.toString(out);
-      status = setDatabaseValue(kQueries, name_, out);
-      if (!status.ok()) {
-        return status;
-      }
-      // Lastly, try to get the previous results again
-      status = setDatabaseValue(
-          kPersistentSettings, name_ + ".results_version", "1");
-
-      if (!status.ok()) {
-        LOG(WARNING) << "Failed to set results version for " << name_;
-      }
-    }
-
     // Get the rows from the last run of this query name.
     QueryDataSet previous_qd;
-    status = getPreviousQueryResults(previous_qd);
-
+    auto status = getPreviousQueryResults(previous_qd);
     if (!status.ok()) {
       return status;
     }
@@ -330,7 +278,6 @@ Status deserializeQueryDataJSON(const std::string& json, QueryDataSet& qd) {
   if (doc.Parse(json.c_str()).HasParseError()) {
     return Status(1, "Error serializing JSON");
   }
-
   return deserializeQueryData(doc, qd);
 }
 

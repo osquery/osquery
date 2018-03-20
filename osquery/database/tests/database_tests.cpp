@@ -12,7 +12,10 @@
 
 #include <osquery/database.h>
 
+#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
+
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -71,5 +74,32 @@ TEST_F(DatabaseTests, test_delete_values) {
   s = getDatabaseValue(kLogs, "k", value);
   EXPECT_FALSE(s.ok());
   EXPECT_TRUE(value.empty());
+}
+
+TEST_F(DatabaseTests, test_ptree_upgraded_to_rj) {
+  auto bad_json =
+      "{\"\":{\"disabled\":\"0\",\"network_name\":\"BTWifi-Starbucks\"},\"\":{"
+      "\"disabled\":\"0\",\"network_name\":\"Lobo-Guest\"},\"\":{\"disabled\":"
+      "\"0\",\"network_name\":\"GoogleGuest\"}}";
+  auto status = setDatabaseValue(kQueries, "bad_wifi_json", bad_json);
+  EXPECT_TRUE(status.ok());
+
+  rj::Document bad_doc;
+
+  // Potential bug with RJ, in that parsing should fail with empty keys
+  // EXPECT_TRUE(bad_doc.Parse(bad_json).HasParseError());
+  EXPECT_FALSE(bad_doc.IsArray());
+
+  status = updateDatabase();
+  EXPECT_TRUE(status.ok());
+
+  std::string good_json;
+  status = getDatabaseValue(kQueries, "bad_wifi_json", good_json);
+  EXPECT_TRUE(status.ok());
+
+  rj::Document clean_doc;
+  EXPECT_FALSE(clean_doc.Parse(good_json).HasParseError());
+  EXPECT_TRUE(clean_doc.IsArray());
+  EXPECT_EQ(clean_doc.Size(), 3U);
 }
 }

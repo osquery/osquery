@@ -548,7 +548,6 @@ class Query {
   FRIEND_TEST(QueryTests, test_get_executions);
   FRIEND_TEST(QueryTests, test_get_query_results);
   FRIEND_TEST(QueryTests, test_query_name_not_found_in_db);
-  FRIEND_TEST(QueryTests, test_ptree_upgraded_to_rj);
 };
 
 } // namespace osquery

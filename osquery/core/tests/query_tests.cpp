@@ -18,10 +18,7 @@
 
 #include <osquery/query.h>
 
-#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
-
-namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -147,39 +144,5 @@ TEST_F(QueryTests, test_get_stored_query_names) {
   auto names = cf.getStoredQueryNames();
   auto in_vector = std::find(names.begin(), names.end(), "foobar");
   EXPECT_NE(in_vector, names.end());
-}
-
-TEST_F(QueryTests, test_ptree_upgraded_to_rj) {
-  auto scheduled_query = getOsqueryScheduledQuery();
-  auto query = Query("bad_wifi_json", scheduled_query);
-
-  auto bad_json =
-      "{\"\":{\"disabled\":\"0\",\"network_name\":\"BTWifi-Starbucks\"},\"\":{"
-      "\"disabled\":\"0\",\"network_name\":\"Lobo-Guest\"},\"\":{\"disabled\":"
-      "\"0\",\"network_name\":\"GoogleGuest\"}";
-  auto status = setDatabaseValue(kQueries, "bad_wifi_json", bad_json);
-  EXPECT_TRUE(status.ok());
-
-  rj::Document bad_doc;
-  // Potential bug with RJ, in that parsing should fail with empty keys
-  EXPECT_TRUE(bad_doc.Parse(bad_json).HasParseError());
-  EXPECT_FALSE(bad_doc.IsArray());
-
-  QueryData results;
-  uint64_t counter = 128;
-  Row r;
-  r["disabled"] = "1";
-  r["network_name"] = "Pwnies";
-  results.push_back(r);
-  query.addNewResults(results, 0, counter);
-
-  std::string good_json;
-  status = getDatabaseValue(kQueries, "bad_wifi_json", good_json);
-  EXPECT_TRUE(status.ok());
-
-  rj::Document clean_doc;
-  EXPECT_FALSE(clean_doc.Parse(good_json).HasParseError());
-  EXPECT_TRUE(clean_doc.IsArray());
-  EXPECT_EQ(clean_doc.Size(), 1U);
 }
 }

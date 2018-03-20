@@ -59,6 +59,9 @@ extern const std::string kCarves;
  */
 extern const std::string kLogs;
 
+/// Results schema version of the database
+extern const std::string kDatabseResultsVersion;
+
 /**
  * @brief An osquery backing storage (database) type that persists executions.
  *
@@ -247,4 +250,7 @@ void resetDatabase();
 
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
+
+/// Updates the database results format
+Status updateDatabase();
 } // namespace osquery

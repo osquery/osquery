@@ -13,6 +13,11 @@
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 
+#include "osquery/core/json.h"
+
+namespace pt = boost::property_tree;
+namespace rj = rapidjson;
+
 namespace osquery {
 
 /// Generate a specific-use registry for database access abstraction.
@@ -34,6 +39,8 @@ const std::string kQueries = "queries";
 const std::string kEvents = "events";
 const std::string kCarves = "carves";
 const std::string kLogs = "logs";
+
+const std::string kDatabseResultsVersion = "1";
 
 const std::vector<std::string> kDomains = {
     kPersistentSettings, kQueries, kEvents, kLogs, kCarves};
@@ -342,5 +349,52 @@ void dumpDatabase() {
           stdout, "%s[%s]: %s\n", domain.c_str(), key.c_str(), value.c_str());
     }
   }
+}
+
+Status updateDatabase() {
+  std::vector<std::string> keys;
+  auto s = scanDatabaseKeys(kQueries, keys);
+  if (!s.ok()) {
+    return Status(1, "Failed to lookup legacy query data from database");
+  }
+
+  for (const auto& key : keys) {
+    std::string value;
+    if (!getDatabaseValue(kQueries, key, value)) {
+      LOG(WARNING) << "Failed to get value from database " << key << ": "
+                   << value;
+      continue;
+    }
+
+    pt::ptree tree;
+    try {
+      std::stringstream ss;
+      ss << value;
+      pt::read_json(ss, tree);
+    } catch (const pt::json_parser::json_parser_error& /* e */) {
+      LOG(WARNING) << "Conversion from ptree to RapidJSON failed for " << key
+                   << ": " << value;
+    }
+
+    auto json = JSON::newArray();
+    for (const auto& t : tree) {
+      std::stringstream ss;
+      pt::write_json(ss, t.second);
+
+      rj::Document row;
+      if (row.Parse(ss.str()).HasParseError()) {
+        LOG(WARNING) << "Failed to serialize JSON row for " << key;
+      }
+      json.push(row);
+    }
+
+    std::string out;
+    json.toString(out);
+    if (!setDatabaseValue(kQueries, key, out)) {
+      LOG(WARNING) << "Failed to update value in database " << key << ": "
+                   << value;
+    }
+  }
+  return Status();
 }
 }
