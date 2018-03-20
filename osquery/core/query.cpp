@@ -122,12 +122,11 @@ Status Query::addNewResults(QueryData current_qd,
   // query data, otherwise the content is moved to the differential's added set.
   const auto* target_gd = &current_qd;
   bool update_db = true;
-  if (!fresh_results && calculate_diff) {
 
+  if (!fresh_results && calculate_diff) {
     std::string results_version{""};
-    status = getDatabaseValue(kPersistentSetting,
-                              name_ + ".results_version",
-                              results_version);
+    auto status = getDatabaseValue(
+        kPersistentSettings, name_ + ".results_version", results_version);
 
     // DB migraiton from ptree to rapidjson
     if (results_version != "1") {
@@ -136,7 +135,6 @@ Status Query::addNewResults(QueryData current_qd,
       if (!status.ok()) {
         return status;
       }
-
       LOG(INFO) << "Converting legacy ptree results to rapidjson array for "
                 << name_;
       pt::ptree tree;
@@ -166,14 +164,18 @@ Status Query::addNewResults(QueryData current_qd,
       if (!status.ok()) {
         return status;
       }
-
       // Lastly, try to get the previous results again
-      status = setDatabaseValue(kPersistentSetting, name_ + ".results_version", "1");
+      status = setDatabaseValue(
+          kPersistentSettings, name_ + ".results_version", "1");
+
+      if (!status.ok()) {
+        LOG(WARNING) << "Failed to set results version for " << name_;
+      }
     }
 
     // Get the rows from the last run of this query name.
     QueryDataSet previous_qd;
-    auto status = getPreviousQueryResults(previous_qd);
+    status = getPreviousQueryResults(previous_qd);
 
     if (!status.ok()) {
       return status;
@@ -300,9 +302,7 @@ Status deserializeQueryData(const rj::Value& arr, QueryData& qd) {
 
 Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
   if (!v.IsArray()) {
-    // Leverage error code 2 as it is likely the case that
-    // this is legacy ptree code and requires an update
-    return Status(2, "JSON object not an array");
+    return Status(1, "JSON object was not an array");
   }
 
   for (const auto& i : v.GetArray()) {

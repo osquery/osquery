@@ -18,8 +18,8 @@
 
 #include <osquery/query.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/core/json.h"
+#include "osquery/tests/test_util.h"
 
 namespace rj = rapidjson;
 
@@ -150,32 +150,36 @@ TEST_F(QueryTests, test_get_stored_query_names) {
 }
 
 TEST_F(QueryTests, test_ptree_upgraded_to_rj) {
-
   auto scheduled_query = getOsqueryScheduledQuery();
   auto query = Query("bad_wifi_json", scheduled_query);
 
-  auto bad_json = "{\"\":{\"auto_login\":\"0\",\"captive_portal\":\"0\",\"disabled\":\"0\",\"network_name\":\"BTWifi-Starbucks\"},\"\":{\"auto_login\":\"0\",\"captive_portal\":\"0\",\"disabled\":\"0\",\"network_name\":\"Lobo-Guest\"},\"\":{\"auto_login\":\"0\",\"captive_portal\":\"0\",\"disabled\":\"0\",\"network_name\":\"GoogleGuest\"}";
+  auto bad_json =
+      "{\"\":{\"disabled\":\"0\",\"network_name\":\"BTWifi-Starbucks\"},\"\":{"
+      "\"disabled\":\"0\",\"network_name\":\"Lobo-Guest\"},\"\":{\"disabled\":"
+      "\"0\",\"network_name\":\"GoogleGuest\"}";
   auto status = setDatabaseValue(kQueries, "bad_wifi_json", bad_json);
   EXPECT_TRUE(status.ok());
 
   rj::Document bad_doc;
-  // Potential bug with RJ
+  // Potential bug with RJ, in that parsing should fail with empty keys
   EXPECT_TRUE(bad_doc.Parse(bad_json).HasParseError());
   EXPECT_FALSE(bad_doc.IsArray());
 
-  QueryDataSet results;
-  status = query.getPreviousQueryResults(results);
-  EXPECT_FALSE(status.ok());
+  QueryData results;
+  uint64_t counter = 128;
+  Row r;
+  r["disabled"] = "1";
+  r["network_name"] = "Pwnies";
+  results.push_back(r);
+  query.addNewResults(results, 0, counter);
 
   std::string good_json;
   status = getDatabaseValue(kQueries, "bad_wifi_json", good_json);
   EXPECT_TRUE(status.ok());
 
   rj::Document clean_doc;
-  // Potential bug with RJ
-  EXPECT_TRUE(clean_doc.Parse(good_json).HasParseError());
-  EXPECT_FALSE(clean_doc.IsArray());
-  EXPECT_EQ(clean_doc.Size(), 3U);
-
+  EXPECT_FALSE(clean_doc.Parse(good_json).HasParseError());
+  EXPECT_TRUE(clean_doc.IsArray());
+  EXPECT_EQ(clean_doc.Size(), 1U);
 }
 }
