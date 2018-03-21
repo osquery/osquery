@@ -95,7 +95,7 @@ TEST_F(DatabaseTests, test_ptree_upgraded_to_rj) {
   // EXPECT_TRUE(bad_doc.Parse(bad_json).HasParseError());
   EXPECT_FALSE(bad_doc.IsArray());
 
-  status = updateDatabase();
+  status = upgradeDatabase();
   EXPECT_TRUE(status.ok());
 
   std::string good_json;

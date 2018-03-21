@@ -249,7 +249,7 @@ void resetDatabase();
 void dumpDatabase();
 
 /**
- * @brief Updates the legacy database json format from ptree to RapidJSON
+ * @brief Upgrades the legacy database json format from ptree to RapidJSON
  *
  * This helper function was required as Boost property trees contain json
  * which leverages empty strings for keys in json arrays. This is incompatible
@@ -258,5 +258,5 @@ void dumpDatabase();
  *
  * @return Success status of upgrading the database
  */
-Status updateDatabase();
+Status upgradeDatabase();
 } // namespace osquery

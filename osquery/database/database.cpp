@@ -356,7 +356,7 @@ void dumpDatabase() {
   }
 }
 
-Status updateDatabase() {
+Status upgradeDatabase() {
   std::string db_results_version{""};
   getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
 

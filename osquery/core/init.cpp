@@ -606,7 +606,7 @@ void Initializer::start() const {
     }
 
     // Ensure the database results version is up to date before proceeding
-    if (!updateDatabase()) {
+    if (!upgradeDatabase()) {
       LOG(ERROR) << "Failed to upgrade database";
       auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
       requestShutdown(retcode);
