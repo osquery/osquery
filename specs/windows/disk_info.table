@@ -1,0 +1,16 @@
+table_name("disk_info")
+description("Retrieve basic information about the physical disks of a system.")
+schema([
+    Column("partitions", INTEGER, "Number of detected partitions on disk."),
+    Column("disk_index", INTEGER, "Physical drive number of the disk."),
+    Column("type", TEXT, "The interface type of the disk."),
+    Column("id", TEXT, "The unique identifier of the drive on the system."),
+    Column("pnp_device_id", TEXT, "The unique identifier of the drive on the system."),
+    Column("disk_size", BIGINT, "Size of the disk."),
+    Column("manufacturer", TEXT, "The manufacturer of the disk."),
+    Column("hardware_model", TEXT, "Hard drive model."),
+    Column("name", TEXT, "The label of the disk object."),
+    Column("serial", TEXT, "The serial number of the disk."),
+    Column("description", TEXT, "The OS's description of the disk."),
+])
+implementation("disk_info@genDiskInfo")
