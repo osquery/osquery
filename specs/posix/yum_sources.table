@@ -1,5 +1,5 @@
 table_name("yum_sources")
-description("Current list of APT repositories or software channels.")
+description("Current list of Yum repositories or software channels.")
 schema([
     Column("name", TEXT, "Repository name"),
     Column("baseurl", TEXT, "Repository base URL"),

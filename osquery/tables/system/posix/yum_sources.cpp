@@ -7,6 +7,7 @@
  *  in the COPYING file in the root directory of this source tree).
  *  You may select, at your option, one of the above-listed licenses.
  */
+
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -16,9 +17,12 @@
 namespace osquery {
 namespace tables {
 
+const std::string kYumConf { "/etc/yum.conf" };
+const std::string kYumReposDir { "/etc/yum.repos.d" };
+
 void parseYumConf(const std::string& source, QueryData& results, std::string& repos_dir) {
   // Default value
-  repos_dir = "/etc/yum.repos.d";
+  repos_dir = kYumReposDir;
 
   std::string content;
   if (!readFile(source, content)) {
@@ -29,34 +33,36 @@ void parseYumConf(const std::string& source, QueryData& results, std::string& re
   for (const auto& line : osquery::split(content, "\n")) {
     auto size = line.size();
 
-    // Skip comments.
-    if (size == 0 || line[0] == '#') {
+    if (size <= 2) {
       continue;
     }
 
-    if (size > 2) {
-      if  (line[0] == '[' && line[size - 1] == ']') {
-        section = line.substr(1, size - 2);
-      } else {
-        if ("" == "section") {
-          continue;
-        }
-        auto pos = line.find("=");
-        if (pos != std::string::npos) {
-          std::string option = line.substr(0, pos);
-          std::string value = line.substr(pos + 1, size - pos - 1);
-          if ("main" == section) {
-            if ("reposdir" == option) {
-              repos_dir = value;
-            }
-          } else {
-            // Repository section
-            if ("baseurl" == option || "enabled" == option
-                || "gpgcheck" == option || "name" == option) {
-              Row r;
-              r[option] = value;
-              results.push_back(r);
-            }
+    // Skip comments.
+    if (line[0] == '#') {
+      continue;
+    }
+
+    if  (line[0] == '[' && line[size - 1] == ']') {
+      section = line.substr(1, size - 2);
+    } else {
+      if ("" == section) {
+        continue;
+      }
+      auto pos = line.find("=");
+      if (pos != std::string::npos) {
+        std::string option = line.substr(0, pos);
+        std::string value = line.substr(pos + 1, size - pos - 1);
+        if ("main" == section) {
+          if ("reposdir" == option) {
+            repos_dir = value;
+          }
+        } else {
+          // Repository section
+          if ("baseurl" == option || "enabled" == option
+              || "gpgcheck" == option || "name" == option) {
+            Row r;
+            r[option] = value;
+            results.push_back(r);
           }
         }
       }
@@ -73,7 +79,7 @@ QueryData genYumSrcs(QueryContext& context) {
 
   // Expect the YUM home to be /etc/yum.conf
   std::string repos_dir;
-  parseYumConf("/etc/yum.conf", results, repos_dir);
+  parseYumConf(kYumConf, results, repos_dir);
 
   std::vector<std::string> sources;
   if (!resolveFilePattern(repos_dir + "/%.list", sources, GLOB_FILES)) {
@@ -82,7 +88,6 @@ QueryData genYumSrcs(QueryContext& context) {
   }
 
   for (const auto& source : sources) {
-    VLOG(1) << source;
     parseYumConf(source, results, repos_dir);
   }
 
