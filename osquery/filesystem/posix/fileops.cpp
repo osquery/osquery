@@ -32,7 +32,7 @@ namespace osquery {
 
 PlatformFile::PlatformFile(const fs::path& path, int mode, int perms)
     : fname_(path) {
-  int oflag = 0;
+  int oflag {0};
   bool may_create = false;
   bool check_existence = false;
 
@@ -237,7 +237,7 @@ off_t PlatformFile::seek(off_t offset, SeekMode mode) {
     return -1;
   }
 
-  int whence = 0;
+  int whence {0};
   switch (mode) {
   case PF_SEEK_BEGIN:
     whence = SEEK_SET;

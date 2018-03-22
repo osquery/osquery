@@ -259,7 +259,7 @@ void genFDEStatusForAPFS(Row& r) {
 
   char isEncrypted = 0;
   char* isEncryptedPtr = &isEncrypted;
-  int err = 0;
+  int err {0};
 
   @try {
     NSInvocation* inv = [NSInvocation invocationWithMethodSignature:signature];

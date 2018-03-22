@@ -262,7 +262,7 @@ TEST_F(ConversionsTests, test_json_size_like) {
   auto doc = JSON::newObject();
   doc.addRef("key", "10");
 
-  int value = 10;
+  int value {10};
   doc.add("key2", value);
 
   EXPECT_EQ(JSON::valueToSize(doc.doc()["key"]), 10_sz);

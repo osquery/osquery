@@ -130,7 +130,7 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
     }
   }
 
-  int retcode = 0;
+  int retcode {0};
   if (osquery::FLAGS_profile <= 0) {
     runner.start();
 

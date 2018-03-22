@@ -125,7 +125,7 @@ enum LoggerFeatures {
  *   class TestLoggerPlugin : public LoggerPlugin {
  *    public:
  *     osquery::Status logString(const std::string& s) {
- *       int i = 0;
+ *       int i {0};
  *       internal::logStringToFlume(s, i);
  *       std::string message;
  *       if (i == 0) {

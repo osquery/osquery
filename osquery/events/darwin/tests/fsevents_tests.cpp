@@ -25,7 +25,7 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-int kMaxEventLatency = 3000;
+int kMaxEventLatency {3000};
 
 DECLARE_bool(verbose);
 
@@ -68,7 +68,7 @@ class FSEventsTests : public testing::Test {
   }
 
   void WaitForStream(int max) {
-    int delay = 0;
+    int delay {0};
     while (delay < max * 1000 * 2) {
       if (event_pub_->isStreamRunning()) {
         return;
@@ -241,7 +241,7 @@ class TestFSEventsEventSubscriber
   }
 
   void WaitForEvents(int max, int initial = 0) {
-    int delay = 0;
+    int delay {0};
     while (delay < max * 1000) {
       {
         WriteLock lock(mutex_);

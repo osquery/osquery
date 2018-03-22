@@ -102,9 +102,9 @@ void GetDrivesForArrayTestHarness(const std::string& arrayName,
 }
 
 TEST_F(GetDrivesForArrayTest, all_drives_healthy) {
-  int majorAddend = 5;
-  int minorAddend = 10;
-  int numArrayDisks = 6;
+  int majorAddend {5};
+  int minorAddend {10};
+  int numArrayDisks {6};
   std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
@@ -163,7 +163,7 @@ TEST_F(GetDrivesForArrayTest, all_drives_healthy) {
 }
 
 TEST_F(GetDrivesForArrayTest, all_drives_removed) {
-  int numArrayDisks = 6;
+  int numArrayDisks {6};
   std::string blkDevicePrefix {"/dev/sda"};
   std::map<int, mdu_disk_info_t> targets;
   std::string arrayName {"md0"};
@@ -213,9 +213,9 @@ TEST_F(GetDrivesForArrayTest, all_drives_removed) {
 };
 
 TEST_F(GetDrivesForArrayTest, all_drives_faulty) {
-  int majorAddend = 5;
-  int minorAddend = 10;
-  int numArrayDisks = 6;
+  int majorAddend {5};
+  int minorAddend {10};
+  int numArrayDisks {6};
   std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
@@ -274,7 +274,7 @@ TEST_F(GetDrivesForArrayTest, all_drives_faulty) {
 };
 
 TEST_F(GetDrivesForArrayTest, every_other_drives_faulty) {
-  int numArrayDisks = 6;
+  int numArrayDisks {6};
   std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
@@ -334,7 +334,7 @@ TEST_F(GetDrivesForArrayTest, every_other_drives_faulty) {
 };
 
 TEST_F(GetDrivesForArrayTest, some_drives_removed) {
-  int numArrayDisks = 6;
+  int numArrayDisks {6};
   std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
@@ -392,7 +392,7 @@ TEST_F(GetDrivesForArrayTest, some_drives_removed) {
 };
 
 TEST_F(GetDrivesForArrayTest, some_faulty_some_removed) {
-  int numArrayDisks = 6;
+  int numArrayDisks {6};
   std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
@@ -461,7 +461,7 @@ TEST_F(GetDrivesForArrayTest, some_faulty_some_removed) {
  * there are multiple faulties and/or removed and the mdu_disk_info_t number is
  * greater than the number of RAID disks*/
 TEST_F(GetDrivesForArrayTest, scattered_faulty_and_removed) {
-  int numArrayDisks = 6;
+  int numArrayDisks {6};
   std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;

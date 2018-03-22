@@ -302,7 +302,7 @@ class TestINotifyEventSubscriber
   }
 
   void WaitForEvents(int max, int num_events = 1) {
-    int delay = 0;
+    int delay {0};
     while (delay < max * 1000) {
       if (callback_count_ >= num_events) {
         return;

@@ -109,7 +109,7 @@ class ExtensionsTest : public testing::Test {
 
   bool socketExistsLocal(const std::string& check_path) {
     // Wait until the runnable/thread created the socket.
-    int delay = 0;
+    int delay {0};
     while (delay < kTimeout) {
       if (osquery::socketExists(check_path).ok()) {
         return true;

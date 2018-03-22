@@ -128,7 +128,7 @@ class ServiceArgumentParser {
       }
       owns_argv_ptrs_ = false;
     } else {
-      int wargc = 0;
+      int wargc {0};
       LPWSTR* wargv = ::CommandLineToArgvW(::GetCommandLineW(), &wargc);
 
       if (wargv != nullptr) {

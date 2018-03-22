@@ -516,7 +516,7 @@ void EventSubscriberPlugin::get(RowYield& yield,
 
   if (FLAGS_events_optimize && !records.empty()) {
     // If records were returned save the ordered-last as the optimization EID.
-    unsigned long int eidr = 0;
+    unsigned long int eidr {0};
     if (safeStrtoul(records.back().first, 10, eidr)) {
       optimize_eid_ = static_cast<size_t>(eidr);
     }

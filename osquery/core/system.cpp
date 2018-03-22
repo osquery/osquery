@@ -315,7 +315,7 @@ Status checkStalePid(const std::string& content) {
   }
 
   PlatformProcess target(pid);
-  int status = 0;
+  int status {0};
 
   // The pid is running, check if it is an osqueryd process by name.
   std::stringstream query_text;
@@ -388,7 +388,7 @@ bool PlatformProcess::cleanup() const {
   size_t delay = 0;
   size_t timeout = (FLAGS_alarm_timeout + 1) * 1000;
   while (delay < timeout) {
-    int status = 0;
+    int status {0};
     if (checkStatus(status) == PROCESS_EXITED) {
       return true;
     }
