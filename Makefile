@@ -72,6 +72,7 @@ CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib $(LINK_
 CTEST := $(PATH_SET) ctest $(SOURCE_DIR)/
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"
+REGEX_FORMAT_COMMAND := SOURCE_DIR=$(SOURCE_DIR)/osquery tools/formatting/grep-format-checker.sh
 
 ANALYSIS := ${SOURCE_DIR}/tools/analysis
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1 \
@@ -146,6 +147,8 @@ docs: .setup
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
 format_master:
+	@echo "[+] osquery linter"
+	@$(REGEX_FORMAT_COMMAND)
 	@echo "[+] clang-format (`$(PATH_SET) which clang-format`) version: `$(PATH_SET) clang-format --version`"
 	@$(PATH_SET) $(FORMAT_COMMAND)
 
