@@ -171,7 +171,7 @@ AsyncEvent::~AsyncEvent() {
 // Inspired by glob-to-regexp node package
 static std::string globToRegex(const std::string& glob) {
   bool in_group = false;
-  std::string regex("^");
+  std::string regex{"^"};
 
   for (size_t i = 0; i < glob.size(); i++) {
     char c = glob[i];

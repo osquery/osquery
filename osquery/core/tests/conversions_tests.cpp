@@ -182,11 +182,11 @@ TEST_F(ConversionsTests, test_json_strings) {
   auto doc = JSON::newObject();
 
   {
-    std::string value("value");
+    std::string value{"value"};
     doc.addCopy("key", value);
   }
 
-  std::string value2("value2");
+  std::string value2{"value2"};
   doc.addRef("key2", value2);
 
   std::string result;
@@ -201,14 +201,14 @@ TEST_F(ConversionsTests, test_json_strings_array) {
 
   {
     auto arr = doc.getArray();
-    std::string value("value");
+    std::string value{"value"};
     doc.pushCopy(value, arr);
     doc.add("array", arr);
   }
 
   std::string result;
   EXPECT_TRUE(doc.toString(result));
-  std::string expected = "{\"array\":[\"value\"]}";
+  std::string expected{"{\"array\":[\"value\"]}"};
   EXPECT_EQ(expected, result);
 }
 

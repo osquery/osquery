@@ -95,7 +95,7 @@ void Client::createConnection() {
           rc);
 
   if (rc) {
-    std::string error("Failed to connect to ");
+    std::string error{"Failed to connect to "};
     if (client_options_.proxy_hostname_) {
       error += "proxy host ";
     }
