@@ -1,0 +1,9 @@
+table_name("yum_sources")
+description("Current list of APT repositories or software channels.")
+schema([
+    Column("name", TEXT, "Repository name"),
+    Column("baseurl", TEXT, "Repository base URL"),
+    Column("enabled", TEXT, "Whether the repository is used"),
+    Column("gpgcheck", TEXT, "Whether packages are GPG checked"),
+])
+implementation("system/yum_sources@genYumSrcs")
