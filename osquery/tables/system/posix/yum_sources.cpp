@@ -33,6 +33,7 @@ void parseYumConf(const std::string& source, QueryData& results, std::string& re
   for (const auto& line : osquery::split(content, "\n")) {
     auto size = line.size();
 
+    // Skip trivial lines
     if (size <= 2) {
       continue;
     }
@@ -42,30 +43,39 @@ void parseYumConf(const std::string& source, QueryData& results, std::string& re
       continue;
     }
 
+    // Section name
     if  (line[0] == '[' && line[size - 1] == ']') {
       section = line.substr(1, size - 2);
-    } else {
-      if ("" == section) {
-        continue;
+      continue;
+    }
+
+    // Skip option-like lines outside of a section
+    if ("" == section) {
+      continue;
+    }
+
+    // Options
+    auto pos = line.find("=");
+    if (pos == std::string::npos) {
+      continue;
+    }
+
+    std::string option = line.substr(0, pos);
+    std::string value = line.substr(pos + 1, size - pos - 1);
+    if ("main" == section) {
+      // main section
+      if ("reposdir" == option) {
+        repos_dir = value;
       }
-      auto pos = line.find("=");
-      if (pos != std::string::npos) {
-        std::string option = line.substr(0, pos);
-        std::string value = line.substr(pos + 1, size - pos - 1);
-        if ("main" == section) {
-          if ("reposdir" == option) {
-            repos_dir = value;
-          }
-        } else {
-          // Repository section
-          if ("baseurl" == option || "enabled" == option
-              || "gpgcheck" == option || "name" == option) {
-            Row r;
-            r[option] = value;
-            results.push_back(r);
-          }
-        }
-      }
+      continue;
+    }
+
+    // Repository section
+    if ("baseurl" == option || "enabled" == option
+        || "gpgcheck" == option || "name" == option) {
+      Row r;
+      r[option] = value;
+      results.push_back(r);
     }
   }
 }
