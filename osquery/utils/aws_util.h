@@ -34,7 +34,7 @@ using RegionName = const char* const;
 const std::string kEc2MetadataUrl = "http://169.254.169.254/latest/";
 
 /// Hypervisor UUID file
-const std::string kHypervisorUuid = "/sys/hypervisor/uuid";
+const std::string kHypervisorUuid {"/sys/hypervisor/uuid"};
 
 /**
  * @brief Client factory for the Osquery HTTP client

@@ -148,7 +148,7 @@ Status getTLSCertificate(std::string hostname, QueryData& results) {
     return Status(1, "Failed to create OpenSSL BIO object");
   }
 
-  std::string port = ":443";
+  std::string port {":443"};
   auto ext_hostname = hostname;
   auto conn_hostname = hostname;
   auto delim = hostname.find(":");

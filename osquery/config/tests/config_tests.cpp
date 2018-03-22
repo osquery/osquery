@@ -140,7 +140,7 @@ TEST_F(ConfigTests, test_strip_comments) {
   // Test support for stripping C++ and hash style comments from config JSON.
   auto actual = json_comments;
   stripConfigComments(actual);
-  std::string expected = "{\"options\":{}}\n";
+  std::string expected {"{\"options\":{}}\n"};
   EXPECT_EQ(actual, expected);
 
   // Make sure the config update source logic applies the stripping.

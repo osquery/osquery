@@ -16,10 +16,10 @@ namespace osquery {
 namespace tables {
 
 // Registry path separator
-const std::string kRegSep = "\\";
+const std::string kRegSep {"\\"};
 
 // Default registry key name
-const std::string kDefaultRegName = "(Default)";
+const std::string kDefaultRegName {"(Default)"};
 
 // Maximum recursive depth with searching the registry
 const size_t kRegMaxRecursiveDepth = 32;

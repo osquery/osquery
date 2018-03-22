@@ -21,11 +21,11 @@ namespace tables {
 
 class RegistryTablesTest : public testing::Test {};
 
-const std::string kTestKey = "HKEY_LOCAL_MACHINE\\SOFTWARE";
+const std::string kTestKey {"HKEY_LOCAL_MACHINE\\SOFTWARE"};
 const std::string kTestSpecificKey =
     "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Control "
     "Panel";
-const std::string kInvalidTestKey = "HKEY_LOCAL_MACHINE\\PATH\\to\\madeup\\key";
+const std::string kInvalidTestKey {"HKEY_LOCAL_MACHINE\\PATH\\to\\madeup\\key"};
 
 TEST_F(RegistryTablesTest, test_registry_existing_key) {
   QueryData results;
@@ -112,7 +112,7 @@ TEST_F(RegistryTablesTest, test_recursive_registry_globbing) {
 }
 
 TEST_F(RegistryTablesTest, test_registry_path_query_no_separators) {
-  std::string testPath = "HKEY_LOCAL_MACHINE";
+  std::string testPath {"HKEY_LOCAL_MACHINE"};
   SQL results("select * from registry where path like \"" + testPath + "%\"");
   EXPECT_TRUE(results.rows().size() > 1);
   std::for_each(

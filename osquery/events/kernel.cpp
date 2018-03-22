@@ -18,7 +18,7 @@ namespace osquery {
 
 FLAG(bool, disable_kernel, false, "Disable osquery kernel extension");
 
-const std::string kKernelDevice = "/dev/osquery";
+const std::string kKernelDevice {"/dev/osquery"};
 
 /// Kernel shared buffer size in bytes.
 static const size_t kKernelQueueSize = (20 * (1 << 20));

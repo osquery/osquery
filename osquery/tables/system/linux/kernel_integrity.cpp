@@ -14,8 +14,8 @@
 namespace osquery {
 namespace tables {
 
-const std::string kKernelSyscallAddrModifiedPath = "/sys/kernel/camb/syscall_addr_modified";
-const std::string kKernelTextHashPath = "/sys/kernel/camb/text_segment_hash";
+const std::string kKernelSyscallAddrModifiedPath {"/sys/kernel/camb/syscall_addr_modified"};
+const std::string kKernelTextHashPath {"/sys/kernel/camb/text_segment_hash"};
 
 QueryData genKernelIntegrity(QueryContext &context) {
   QueryData results;

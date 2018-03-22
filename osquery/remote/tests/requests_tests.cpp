@@ -140,7 +140,7 @@ TEST_F(RequestsTests, test_compression) {
   // Ask the request to compress the output from serialization.
   req.setOption("compress", true);
 
-  std::string uncompressed = "stringstringstringstring";
+  std::string uncompressed {"stringstringstringstring"};
   for (size_t i = 0; i < 10; i++) {
     uncompressed += uncompressed;
   }
@@ -164,7 +164,7 @@ TEST_F(RequestsTests, test_compression) {
    */
 
   std::string expected("\x1F\x8B\b\0\0\0\0\0\x2", 9);
-  expected += isPlatform(PlatformType::TYPE_WINDOWS) ? "\v" : "\x3";
+  expected += isPlatform(PlatformType::TYPE_WINDOWS) ? "\v" : "\x13";
   expected += std::string(
       "\xED\xC4\xB1\r\0\0\x4\0\xB0s\xC5"
       "b\xC0\xFFq\x84\xB5\x1D:"

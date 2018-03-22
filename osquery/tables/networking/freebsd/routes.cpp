@@ -38,7 +38,7 @@ typedef std::pair<int, std::string> RouteType;
 typedef std::map<int, std::string> InterfaceMap;
 typedef std::vector<struct sockaddr*> AddressMap;
 
-const std::string kDefaultRoute = "0.0.0.0";
+const std::string kDefaultRoute {"0.0.0.0"};
 
 const std::vector<RouteType> kRouteTypes = {
     std::make_pair(RTF_LOCAL, "local"),

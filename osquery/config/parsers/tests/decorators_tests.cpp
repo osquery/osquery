@@ -124,7 +124,7 @@ TEST_F(DecoratorsConfigParserPluginTests, test_decorators_run_load_top_level) {
   // serialize the QueryLogItem and make sure decorations go top level
   auto doc = JSON::newObject();
   auto status = serializeQueryLogItem(item, doc);
-  std::string expected = "test";
+  std::string expected {"test"};
   std::string result = doc.doc()["load_test"].GetString();
   EXPECT_EQ(result, expected);
 

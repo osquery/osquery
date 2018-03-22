@@ -25,8 +25,8 @@ namespace tables {
 #define kLinuxSMBIOSRawAddress_ 0xF0000
 #define kLinuxSMBIOSRawLength_ 0x10000
 
-const std::string kLinuxEFISystabPath = "/sys/firmware/efi/systab";
-const std::string kLinuxDMISysfsPath = "/sys/firmware/dmi/tables/DMI";
+const std::string kLinuxEFISystabPath {"/sys/firmware/efi/systab"};
+const std::string kLinuxDMISysfsPath {"/sys/firmware/dmi/tables/DMI"};
 
 void LinuxSMBIOSParser::readFromAddress(size_t address, size_t length) {
   auto status = osquery::readRawMem(address, length, (void**)&data_);

@@ -23,7 +23,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-const std::string kSystemControlPath = "/proc/sys/";
+const std::string kSystemControlPath {"/proc/sys/"};
 
 void genControlInfo(const std::string& mib_path,
                     QueryData& results,

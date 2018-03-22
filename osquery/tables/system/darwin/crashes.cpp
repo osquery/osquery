@@ -33,7 +33,7 @@ namespace tables {
 const std::set<std::string> kRegisters = {
     "eax", "edi", "ss", "ds", "rax", "rdi", "r8", "r12", "rip", "x0", "x4"};
 /// Location of the system application crash logs in OS X
-const std::string kDiagnosticReportsPath = "/Library/Logs/DiagnosticReports";
+const std::string kDiagnosticReportsPath {"/Library/Logs/DiagnosticReports"};
 /// Location of the user mobile devices crash logs in OS X
 const std::string kMobileDiagnosticReportsPath =
     "/Library/Logs/CrashReporter/MobileDevice";

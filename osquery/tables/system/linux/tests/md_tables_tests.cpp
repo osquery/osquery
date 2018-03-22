@@ -105,7 +105,7 @@ TEST_F(GetDrivesForArrayTest, all_drives_healthy) {
   int majorAddend = 5;
   int minorAddend = 10;
   int numArrayDisks = 6;
-  std::string blkDevicePrefix = "/dev/sda";
+  std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
   for (int i = 0; i < 6; i++) {
@@ -115,7 +115,7 @@ TEST_F(GetDrivesForArrayTest, all_drives_healthy) {
     targets[i] = getDiskInfo(i, i, 6, major, minor);
   }
 
-  std::string arrayName = "md0";
+  std::string arrayName {"md0"};
   QueryData got;
   GetDrivesForArrayTestHarness(
       arrayName, numArrayDisks, blkDevicePrefix, targets, got);
@@ -164,9 +164,9 @@ TEST_F(GetDrivesForArrayTest, all_drives_healthy) {
 
 TEST_F(GetDrivesForArrayTest, all_drives_removed) {
   int numArrayDisks = 6;
-  std::string blkDevicePrefix = "/dev/sda";
+  std::string blkDevicePrefix {"/dev/sda"};
   std::map<int, mdu_disk_info_t> targets;
-  std::string arrayName = "md0";
+  std::string arrayName {"md0"};
   QueryData got;
 
   GetDrivesForArrayTestHarness(
@@ -216,7 +216,7 @@ TEST_F(GetDrivesForArrayTest, all_drives_faulty) {
   int majorAddend = 5;
   int minorAddend = 10;
   int numArrayDisks = 6;
-  std::string blkDevicePrefix = "/dev/sda";
+  std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
   for (int i = 0; i < 6; i++) {
@@ -226,7 +226,7 @@ TEST_F(GetDrivesForArrayTest, all_drives_faulty) {
     targets[i] = getDiskInfo(i, i, 1, major, minor);
   }
 
-  std::string arrayName = "md0";
+  std::string arrayName {"md0"};
   QueryData got;
   GetDrivesForArrayTestHarness(
       arrayName, numArrayDisks, blkDevicePrefix, targets, got);
@@ -275,7 +275,7 @@ TEST_F(GetDrivesForArrayTest, all_drives_faulty) {
 
 TEST_F(GetDrivesForArrayTest, every_other_drives_faulty) {
   int numArrayDisks = 6;
-  std::string blkDevicePrefix = "/dev/sda";
+  std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
 
@@ -286,7 +286,7 @@ TEST_F(GetDrivesForArrayTest, every_other_drives_faulty) {
   targets[2] = getDiskInfo(2, -1, 1, 13, 14);
   targets[4] = getDiskInfo(4, -1, 1, 15, 16);
 
-  std::string arrayName = "md0";
+  std::string arrayName {"md0"};
   QueryData got;
   GetDrivesForArrayTestHarness(
       arrayName, numArrayDisks, blkDevicePrefix, targets, got);
@@ -335,7 +335,7 @@ TEST_F(GetDrivesForArrayTest, every_other_drives_faulty) {
 
 TEST_F(GetDrivesForArrayTest, some_drives_removed) {
   int numArrayDisks = 6;
-  std::string blkDevicePrefix = "/dev/sda";
+  std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
 
@@ -343,7 +343,7 @@ TEST_F(GetDrivesForArrayTest, some_drives_removed) {
   targets[3] = getDiskInfo(3, 3, 6, 7, 8);
   targets[5] = getDiskInfo(5, 5, 6, 9, 10);
 
-  std::string arrayName = "md0";
+  std::string arrayName {"md0"};
   QueryData got;
   GetDrivesForArrayTestHarness(
       arrayName, numArrayDisks, blkDevicePrefix, targets, got);
@@ -393,7 +393,7 @@ TEST_F(GetDrivesForArrayTest, some_drives_removed) {
 
 TEST_F(GetDrivesForArrayTest, some_faulty_some_removed) {
   int numArrayDisks = 6;
-  std::string blkDevicePrefix = "/dev/sda";
+  std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
   targets[0] = getDiskInfo(0, -1, 1, 5, 6);
@@ -403,7 +403,7 @@ TEST_F(GetDrivesForArrayTest, some_faulty_some_removed) {
   targets[5] = getDiskInfo(5, -1, 1, 9, 10);
   targets[6] = getDiskInfo(6, 0, 6, 11, 12);
 
-  std::string arrayName = "md0";
+  std::string arrayName {"md0"};
   QueryData got;
   GetDrivesForArrayTestHarness(
       arrayName, numArrayDisks, blkDevicePrefix, targets, got);
@@ -462,7 +462,7 @@ TEST_F(GetDrivesForArrayTest, some_faulty_some_removed) {
  * greater than the number of RAID disks*/
 TEST_F(GetDrivesForArrayTest, scattered_faulty_and_removed) {
   int numArrayDisks = 6;
-  std::string blkDevicePrefix = "/dev/sda";
+  std::string blkDevicePrefix {"/dev/sda"};
 
   std::map<int, mdu_disk_info_t> targets;
 
@@ -472,7 +472,7 @@ TEST_F(GetDrivesForArrayTest, scattered_faulty_and_removed) {
   targets[9] = getDiskInfo(9, -1, 1, 13, 14);
   targets[17] = getDiskInfo(17, -1, 1, 15, 16);
 
-  std::string arrayName = "md0";
+  std::string arrayName {"md0"};
   QueryData got;
   GetDrivesForArrayTestHarness(
       arrayName, numArrayDisks, blkDevicePrefix, targets, got);
@@ -521,7 +521,7 @@ TEST_F(GetDrivesForArrayTest, scattered_faulty_and_removed) {
 
 TEST_F(GetDrivesForArrayTest, arrayInfo_ioctl_error) {
   MockMD md;
-  std::string arrayDevPath = "/dev/md0";
+  std::string arrayDevPath {"/dev/md0"};
 
   EXPECT_CALL(md, getPathByDevName(_)).WillOnce(Return(arrayDevPath));
   EXPECT_CALL(md, getArrayInfo(arrayDevPath, _)).WillOnce(Return(false));

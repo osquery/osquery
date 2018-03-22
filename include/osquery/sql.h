@@ -202,7 +202,7 @@ class SQLPlugin : public Plugin {
  * This is a lower-level version of osquery::SQL. Prefer to use osquery::SQL.
  *
  * @code{.cpp}
- *   std::string q = "SELECT * FROM time;";
+ *   std::string q {"SELECT * FROM time;"};
  *   QueryData results;
  *   auto status = query(q, results);
  *   if (status.ok()) {

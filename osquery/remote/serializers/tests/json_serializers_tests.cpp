@@ -30,7 +30,7 @@ TEST_F(JSONSerializersTests, test_serialize) {
 TEST_F(JSONSerializersTests, test_deserialize) {
   auto json = JSONSerializer();
   JSON params;
-  std::string serialized = "{\"foo\":\"bar\"}";
+  std::string serialized {"{\"foo\":\"bar\"}"};
   auto s = json.deserialize(serialized, params);
 
   JSON expected;

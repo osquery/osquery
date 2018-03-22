@@ -27,7 +27,7 @@ TEST_F(WifiNetworksTest, test_parse_wifi_networks) {
   auto plist = (__bridge CFDictionaryRef)
       [NSDictionary dictionaryWithContentsOfFile:@(path.c_str())];
   ASSERT_GE((long)CFDictionaryGetCount(plist), 1);
-  std::string key = "KnownNetworks";
+  std::string key {"KnownNetworks"};
   auto cfkey = CFStringCreateWithCString(kCFAllocatorDefault, key.c_str(),
                                          kCFStringEncodingUTF8);
   auto networks = (CFDictionaryRef)CFDictionaryGetValue(plist, cfkey);
@@ -88,7 +88,7 @@ TEST_F(WifiNetworksTest, test_parse_legacy_wifi_networks) {
   auto plist = (__bridge CFDictionaryRef)
       [NSDictionary dictionaryWithContentsOfFile:@(path.c_str())];
   ASSERT_GE((long)CFDictionaryGetCount(plist), 1);
-  std::string key = "RememberedNetworks";
+  std::string key {"RememberedNetworks"};
   auto cfkey = CFStringCreateWithCString(kCFAllocatorDefault, key.c_str(),
                                          kCFStringEncodingUTF8);
   auto networks = (CFArrayRef)CFDictionaryGetValue(plist, cfkey);

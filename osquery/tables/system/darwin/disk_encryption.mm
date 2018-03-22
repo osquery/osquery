@@ -33,11 +33,11 @@ namespace tables {
  * See: https://opensource.apple.com/source/xnu/xnu-2782.1.97/\
  *   libkern/crypto/corecrypto_aesxts.c
  */
-const std::string kEncryptionType = "AES-XTS";
-const std::string kAPFSFileSystem = "apfs";
+const std::string kEncryptionType {"AES-XTS"};
+const std::string kAPFSFileSystem {"apfs"};
 
 /// Expect all device names to include a /dev path prefix.
-const std::string kDeviceNamePrefix = "/dev/";
+const std::string kDeviceNamePrefix {"/dev/"};
 
 const std::set<std::string> kHardcodedDiskUUIDs = {
     "EBC6C064-0000-11AA-AA11-00306543ECA",

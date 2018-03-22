@@ -68,7 +68,7 @@ class SignatureTest : public testing::Test {
  * We use `/bin/ls` as the test binary, since it should be present "everywhere".
  */
 TEST_F(SignatureTest, test_get_valid_signature) {
-  std::string path = "/bin/ls";
+  std::string path {"/bin/ls"};
 
   QueryData results;
   genSignatureForFile(path, results);
@@ -120,7 +120,7 @@ TEST_F(SignatureTest, test_get_unsigned) {
  * byte was, and should thus invalidate the signature.
  */
 TEST_F(SignatureTest, test_get_invalid_signature) {
-  std::string originalPath = "/bin/ls";
+  std::string originalPath {"/bin/ls"};
   std::string newPath = tempFile;
 
   // Create a buffer to hold the entire file.

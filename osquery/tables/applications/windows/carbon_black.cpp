@@ -26,7 +26,7 @@ namespace osquery {
 namespace tables {
 
 // Carbon Black registry path
-const std::string kCbRegLoc = "SOFTWARE\\CarbonBlack\\config";
+const std::string kCbRegLoc {"SOFTWARE\\CarbonBlack\\config"};
 
 void getQueue(Row& r) {
   fs::path cbDir = getSystemRoot();

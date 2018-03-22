@@ -21,7 +21,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-const std::string kManagedPoliciesCache = "/Library/Managed Preferences";
+const std::string kManagedPoliciesCache {"/Library/Managed Preferences"};
 
 void genPolicy(const std::string& path,
                const std::string& username,

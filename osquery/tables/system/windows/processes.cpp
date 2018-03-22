@@ -263,7 +263,7 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
 QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
-  std::string query = "SELECT * FROM Win32_Process";
+  std::string query {"SELECT * FROM Win32_Process"};
 
   std::set<long> pidlist;
   if (context.constraints.count("pid") > 0 &&

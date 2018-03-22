@@ -35,7 +35,7 @@
 namespace osquery {
 namespace tables {
 
-const std::string kMDStatPath = "/proc/mdstat";
+const std::string kMDStatPath {"/proc/mdstat"};
 
 /**
  * @brief Removes prefixing and suffixing character from each string in vector
@@ -145,7 +145,7 @@ std::string MD::getPathByDevName(const std::string& name) {
 }
 
 std::string MD::getDevName(int major, int minor) {
-  std::string devName = "unknown";
+  std::string devName {"unknown"};
 
   walkUdevDevices("block", [&](udev_device* const& device) {
     const char* devMajor = udev_device_get_property_value(device, "MAJOR");

@@ -211,7 +211,7 @@ std::string columnDefinition(const TableColumns& columns) {
   bool indexed = false;
   std::vector<std::string> pkeys;
 
-  std::string statement = "(";
+  std::string statement {"("};
   for (size_t i = 0; i < columns.size(); ++i) {
     const auto& column = columns.at(i);
     statement +=
