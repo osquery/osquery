@@ -85,7 +85,7 @@ void genAlgorithmProperties(X509* cert,
                             std::string& key,
                             std::string& sig,
                             std::string& size) {
-  int nid {0};
+  int nid{0};
   nid = OBJ_obj2nid(cert->cert_info->key->algor->algorithm);
   if (nid != NID_undef) {
     key = std::string(OBJ_nid2ln(nid));

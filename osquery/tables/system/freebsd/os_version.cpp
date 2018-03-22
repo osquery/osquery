@@ -30,7 +30,7 @@ namespace osquery {
 namespace tables {
 
 QueryData genOSVersion(QueryContext& context) {
-  static const std::string kSysctlName {"kern.osrelease"};
+  static const std::string kSysctlName{"kern.osrelease"};
 
   auto result =
       SQL::selectAllFrom("system_controls", "name", EQUALS, kSysctlName);

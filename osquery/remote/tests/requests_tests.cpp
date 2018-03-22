@@ -140,7 +140,7 @@ TEST_F(RequestsTests, test_compression) {
   // Ask the request to compress the output from serialization.
   req.setOption("compress", true);
 
-  std::string uncompressed {"stringstringstringstring"};
+  std::string uncompressed{"stringstringstringstring"};
   for (size_t i = 0; i < 10; i++) {
     uncompressed += uncompressed;
   }

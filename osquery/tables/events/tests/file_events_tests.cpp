@@ -96,7 +96,7 @@ TEST_F(FileEventsTableTests, test_configure_subscriptions) {
   // Explicitly request a configure for subscribers.
   Registry::get().registry("event_subscriber")->configure();
 
-  std::string q {"select * from osquery_events where name = 'file_events'"};
+  std::string q{"select * from osquery_events where name = 'file_events'"};
 
   {
     SQL results(q);

@@ -72,7 +72,7 @@ inline short addBits(unsigned char byte) {
 }
 
 int netmaskFromIP(const struct sockaddr* in) {
-  int mask {0};
+  int mask{0};
 
   if (in->sa_family == AF_INET6) {
     auto in6 = (struct sockaddr_in6*)in;

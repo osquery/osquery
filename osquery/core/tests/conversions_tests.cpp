@@ -40,7 +40,7 @@ TEST_F(ConversionsTests, test_conversion) {
 }
 
 TEST_F(ConversionsTests, test_base64) {
-  std::string unencoded {"HELLO"};
+  std::string unencoded{"HELLO"};
   auto encoded = base64Encode(unencoded);
   EXPECT_NE(encoded.size(), 0U);
 
@@ -49,13 +49,13 @@ TEST_F(ConversionsTests, test_base64) {
 }
 
 TEST_F(ConversionsTests, test_ascii_true) {
-  std::string unencoded {"HELLO"};
+  std::string unencoded{"HELLO"};
   auto result = isPrintable(unencoded);
   EXPECT_TRUE(result);
 }
 
 TEST_F(ConversionsTests, test_ascii_false) {
-  std::string unencoded {"こんにちは"};
+  std::string unencoded{"こんにちは"};
   auto result = isPrintable(unencoded);
   EXPECT_FALSE(result);
 }
@@ -88,7 +88,7 @@ TEST_F(ConversionsTests, test_join) {
 }
 
 TEST_F(ConversionsTests, test_split_occurences) {
-  std::string content {"T: 'S:S'"};
+  std::string content{"T: 'S:S'"};
   std::vector<std::string> expected = {
       "T", "'S:S'",
   };
@@ -96,7 +96,7 @@ TEST_F(ConversionsTests, test_split_occurences) {
 }
 
 TEST_F(ConversionsTests, test_buffer_sha1) {
-  std::string test {"test\n"};
+  std::string test{"test\n"};
   EXPECT_EQ("4e1243bd22c66e76c2ba9eddc1f91394e57f9f83",
             getBufferSHA1(test.c_str(), test.size()));
 }
@@ -119,7 +119,7 @@ TEST_F(ConversionsTests, test_json_array) {
   std::string result;
   EXPECT_TRUE(doc.toString(result));
 
-  std::string expected {"[{\"key\":10,\"key2\":-10},11]"};
+  std::string expected{"[{\"key\":10,\"key2\":-10},11]"};
   EXPECT_EQ(expected, result);
 }
 
@@ -134,12 +134,12 @@ TEST_F(ConversionsTests, test_json_object) {
   std::string result;
   EXPECT_TRUE(doc.toString(result));
 
-  std::string expected {"{\"key\":10}"};
+  std::string expected{"{\"key\":10}"};
   EXPECT_EQ(expected, result);
 }
 
 TEST_F(ConversionsTests, test_json_from_string) {
-  std::string json {"{\"key\":\"value\",\"key2\":{\"key3\":3}}"};
+  std::string json{"{\"key\":\"value\",\"key2\":{\"key3\":3}}"};
   auto doc = JSON::newObject();
 
   EXPECT_TRUE(doc.fromString(json).ok());
@@ -153,7 +153,7 @@ TEST_F(ConversionsTests, test_json_from_string) {
 }
 
 TEST_F(ConversionsTests, test_json_add_object) {
-  std::string json {"{\"key\":\"value\", \"key2\":{\"key3\":[3,2,1]}}"};
+  std::string json{"{\"key\":\"value\", \"key2\":{\"key3\":[3,2,1]}}"};
   auto doc = JSON::newObject();
 
   ASSERT_TRUE(doc.fromString(json));
@@ -172,7 +172,7 @@ TEST_F(ConversionsTests, test_json_add_object) {
   doc4.copyFrom(doc.doc()["key2"]["key3"], arr);
   doc4.push(arr);
 
-  std::string expected {"[[3,2,1]]"};
+  std::string expected{"[[3,2,1]]"};
   std::string output;
   ASSERT_TRUE(doc4.toString(output).ok());
   EXPECT_EQ(expected, output);
@@ -192,7 +192,7 @@ TEST_F(ConversionsTests, test_json_strings) {
   std::string result;
   EXPECT_TRUE(doc.toString(result));
 
-  std::string expected {"{\"key\":\"value\",\"key2\":\"value2\"}"};
+  std::string expected{"{\"key\":\"value\",\"key2\":\"value2\"}"};
   EXPECT_EQ(expected, result);
 }
 
@@ -223,7 +223,7 @@ TEST_F(ConversionsTests, test_json_duplicate_keys) {
   std::string result;
   EXPECT_TRUE(doc.toString(result));
 
-  std::string expected {"{\"key\":11}"};
+  std::string expected{"{\"key\":11}"};
   EXPECT_EQ(expected, result);
 }
 
@@ -262,7 +262,7 @@ TEST_F(ConversionsTests, test_json_size_like) {
   auto doc = JSON::newObject();
   doc.addRef("key", "10");
 
-  int value {10};
+  int value{10};
   doc.add("key2", value);
 
   EXPECT_EQ(JSON::valueToSize(doc.doc()["key"]), 10_sz);

@@ -22,7 +22,7 @@
 namespace osquery {
 namespace tables {
 
-static const std::string kKernelModulePath {"/proc/modules"};
+static const std::string kKernelModulePath{"/proc/modules"};
 
 QueryData genKernelModules(QueryContext& context) {
   QueryData results;

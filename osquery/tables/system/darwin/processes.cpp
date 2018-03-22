@@ -194,7 +194,7 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
   }
 
   // The number of arguments is an integer in front of the result buffer.
-  int nargs {0};
+  int nargs{0};
   memcpy(&nargs, procargs.data(), sizeof(nargs));
   // Walk the \0-tokenized list of arguments until reaching the returned 'max'
   // number of arguments or the number appended to the front.

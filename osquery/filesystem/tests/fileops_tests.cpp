@@ -286,7 +286,7 @@ TEST_F(FileOpsTests, test_asyncIo) {
     std::vector<char> buf(expected_len);
     char* ptr = buf.data();
     ssize_t part_bytes = 0;
-    int iterations {0};
+    int iterations{0};
     do {
       part_bytes = fd.read(ptr, 4);
       if (part_bytes > 0) {

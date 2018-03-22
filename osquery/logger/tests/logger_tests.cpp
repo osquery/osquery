@@ -179,7 +179,7 @@ TEST_F(LoggerTests, test_log_string) {
 }
 
 TEST_F(LoggerTests, test_logger_log_status) {
-  std::string warning {"Logger test is generating a warning status (2)"};
+  std::string warning{"Logger test is generating a warning status (2)"};
   auto now = getUnixTime();
   // This will be printed to stdout.
   LOG(WARNING) << warning;

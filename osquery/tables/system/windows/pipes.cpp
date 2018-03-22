@@ -23,7 +23,7 @@ QueryData genPipes(QueryContext& context) {
   QueryData results;
   WIN32_FIND_DATA findFileData;
 
-  std::string pipeSearch {"\\\\.\\pipe\\*"};
+  std::string pipeSearch{"\\\\.\\pipe\\*"};
   memset(&findFileData, 0, sizeof(findFileData));
   auto findHandle = FindFirstFileA(pipeSearch.c_str(), &findFileData);
 

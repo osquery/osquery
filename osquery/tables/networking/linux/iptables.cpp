@@ -27,8 +27,8 @@
 namespace osquery {
 namespace tables {
 
-static const std::string kLinuxIpTablesNames {"/proc/net/ip_tables_names"};
-static const std::string kHexMap {"0123456789ABCDEF"};
+static const std::string kLinuxIpTablesNames{"/proc/net/ip_tables_names"};
+static const std::string kHexMap{"0123456789ABCDEF"};
 
 static const int kMaskHighBits = 4;
 static const int kMaskLowBits = 15;

@@ -59,7 +59,7 @@ void UdevEventPublisher::tearDown() {
 }
 
 Status UdevEventPublisher::run() {
-  int fd {0};
+  int fd{0};
 
   {
     WriteLock lock(mutex_);

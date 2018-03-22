@@ -18,18 +18,18 @@
 namespace osquery {
 namespace tables {
 
-const std::string kUSBKeyVendorID {"ID_VENDOR_ID"};
-const std::string kUSBKeyVendor {"ID_VENDOR_FROM_DATABASE"};
-const std::string kUSBKeyModelID {"ID_MODEL_ID"};
-const std::string kUSBKeyModel {"ID_MODEL_FROM_DATABASE"};
-const std::string kUSBKeyModelFallback {"ID_MODEL"};
-const std::string kUSBDeviceReleaseNumber {"ID_REVISION"};
-const std::string kUSBKeyDriver {"ID_USB_DRIVER"};
-const std::string kUSBKeySubsystem {"SUBSYSTEM"};
-const std::string kUSBKeySerial {"ID_SERIAL_SHORT"};
-const std::string kUSBKeyAddress {"BUSNUM"};
-const std::string kUSBKeyPort {"DEVNUM"};
-const std::string kUSBKeyType {"TYPE"};
+const std::string kUSBKeyVendorID{"ID_VENDOR_ID"};
+const std::string kUSBKeyVendor{"ID_VENDOR_FROM_DATABASE"};
+const std::string kUSBKeyModelID{"ID_MODEL_ID"};
+const std::string kUSBKeyModel{"ID_MODEL_FROM_DATABASE"};
+const std::string kUSBKeyModelFallback{"ID_MODEL"};
+const std::string kUSBDeviceReleaseNumber{"ID_REVISION"};
+const std::string kUSBKeyDriver{"ID_USB_DRIVER"};
+const std::string kUSBKeySubsystem{"SUBSYSTEM"};
+const std::string kUSBKeySerial{"ID_SERIAL_SHORT"};
+const std::string kUSBKeyAddress{"BUSNUM"};
+const std::string kUSBKeyPort{"DEVNUM"};
+const std::string kUSBKeyType{"TYPE"};
 
 QueryData genUSBDevices(QueryContext &context) {
   QueryData results;

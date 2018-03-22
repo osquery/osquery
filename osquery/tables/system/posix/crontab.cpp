@@ -22,7 +22,7 @@
 namespace osquery {
 namespace tables {
 
-const std::string kSystemCron {"/etc/crontab"};
+const std::string kSystemCron{"/etc/crontab"};
 
 const std::vector<std::string> kCronSearchDirs = {
     "/etc/cron.d/", // system all

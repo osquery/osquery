@@ -633,7 +633,7 @@ void processDebugEngine(const char* fileName, Row& r) {
 }
 
 QueryData genCrashLogs(QueryContext& context) {
-  const std::string kDumpFileExtension {".dmp"};
+  const std::string kDumpFileExtension{".dmp"};
   QueryData results;
   std::string dumpFolderLocation{""};
 

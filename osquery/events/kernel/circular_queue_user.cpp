@@ -83,7 +83,7 @@ int CQueue::kernelSync(int options) {
   sync.read_offset = read_ - buffer_;
   sync.options = options;
 
-  int err {0};
+  int err{0};
   err = ioctl(fd_, OSQUERY_IOCTL_BUF_SYNC, &sync);
   uint8_t *new_max_read = sync.max_read_offset + buffer_;
   max_read_ = new_max_read;

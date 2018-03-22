@@ -100,7 +100,7 @@ struct tm* localtime_r(time_t* t, struct tm* result) {
 
 std::string getHostname() {
   long max_path = 256;
-  long size = 0;
+  long size{0};
 #ifndef WIN32
   static long max_hostname = sysconf(_SC_HOST_NAME_MAX);
   size = (max_hostname > max_path - 1) ? max_hostname + 1 : max_path;
@@ -315,7 +315,7 @@ Status checkStalePid(const std::string& content) {
   }
 
   PlatformProcess target(pid);
-  int status {0};
+  int status{0};
 
   // The pid is running, check if it is an osqueryd process by name.
   std::stringstream query_text;
@@ -388,7 +388,7 @@ bool PlatformProcess::cleanup() const {
   size_t delay = 0;
   size_t timeout = (FLAGS_alarm_timeout + 1) * 1000;
   while (delay < timeout) {
-    int status {0};
+    int status{0};
     if (checkStatus(status) == PROCESS_EXITED) {
       return true;
     }
@@ -427,8 +427,8 @@ bool DropPrivileges::dropToParent(const fs::path& path) {
     return dropTo(link_stat.st_uid, link_stat.st_gid);
   }
 
-  long uid = 0;
-  long gid = 0;
+  long uid{0};
+  long gid{0};
   if (!ownerFromResult(result.front(), uid, gid)) {
     return false;
   }
@@ -442,8 +442,8 @@ bool DropPrivileges::dropTo(const std::string& user) {
     return false;
   }
 
-  long uid = 0;
-  long gid = 0;
+  long uid{0};
+  long gid{0};
   if (!ownerFromResult(result.front(), uid, gid)) {
     return false;
   }

@@ -21,7 +21,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-const std::string kLinuxACPIPath {"/sys/firmware/acpi/tables"};
+const std::string kLinuxACPIPath{"/sys/firmware/acpi/tables"};
 
 void genACPITable(const std::string& table, QueryData& results) {
   fs::path table_path = table;

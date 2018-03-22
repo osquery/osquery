@@ -94,7 +94,7 @@ Status readNetlink(int socket_fd, int seq, char* output, size_t* size) {
 
 void genNetlinkRoutes(const struct nlmsghdr* netlink_msg, QueryData& results) {
   std::string address;
-  int mask {0};
+  int mask{0};
   char interface[IF_NAMESIZE] = {0};
 
   struct rtmsg* message = static_cast<struct rtmsg*>(NLMSG_DATA(netlink_msg));

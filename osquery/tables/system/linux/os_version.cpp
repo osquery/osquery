@@ -27,9 +27,9 @@ namespace xp = boost::xpressive;
 namespace osquery {
 namespace tables {
 
-const std::string kOSRelease {"/etc/os-release"};
-const std::string kRedhatRelease {"/etc/redhat-release"};
-const std::string kGentooRelease {"/etc/gentoo-release"};
+const std::string kOSRelease{"/etc/os-release"};
+const std::string kRedhatRelease{"/etc/redhat-release"};
+const std::string kGentooRelease{"/etc/gentoo-release"};
 
 const std::map<std::string, std::string> kOSReleaseColumns = {
     {"NAME", "name"},

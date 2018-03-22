@@ -33,8 +33,8 @@ struct XAttrAttribute {
   int buffer_length;
 };
 
-const std::string kMetadataXattr {"com.apple.metadata:kMDItemWhereFroms"};
-const std::string kQuarantineXattr {"com.apple.quarantine"};
+const std::string kMetadataXattr{"com.apple.metadata:kMDItemWhereFroms"};
+const std::string kQuarantineXattr{"com.apple.quarantine"};
 
 const std::map<std::string, std::string> kQuarantineKeys = {
     {"quarantine_agent", "LSQuarantineAgentName"},

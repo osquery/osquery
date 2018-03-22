@@ -26,7 +26,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-const std::string kPkgDb {"/var/db/pkg/local.sqlite"};
+const std::string kPkgDb{"/var/db/pkg/local.sqlite"};
 
 void genPkgRow(sqlite3_stmt* stmt, Row& r) {
   for (int i = 0; i < sqlite3_column_count(stmt); i++) {
@@ -62,7 +62,7 @@ QueryData genPkgPackages(QueryContext& context) {
     }
   }
 
-  std::string query {"SELECT name, version, flatsize, arch FROM packages;"};
+  std::string query{"SELECT name, version, flatsize, arch FROM packages;"};
   sqlite3_stmt* stmt = nullptr;
   rc = sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
   while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {

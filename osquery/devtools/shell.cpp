@@ -126,7 +126,7 @@ static const char* modeDescr[] = {
 #define IsDigit(X) isdigit((unsigned char)(X))
 
 // True if the timer is enabled
-static int enableTimer {0};
+static int enableTimer{0};
 
 // Return the current wall-clock time
 static sqlite3_int64 timeOfDay() {
@@ -231,7 +231,7 @@ static int bail_on_error = 0;
 static bool stdin_is_interactive = true;
 
 // True if an interrupt (Control-C) has been received.
-static volatile int seenInterrupt {0};
+static volatile int seenInterrupt{0};
 
 static char mainPrompt[26]; // First line prompt. default: "sqlite> "
 static char continuePrompt[26]; // Continuation prompt. default: "   ...> "
@@ -276,7 +276,7 @@ static void print_bold(const char* zText) {
 */
 static char* local_getline(char* zLine, FILE* in) {
   int nLine = ((zLine == nullptr) ? 0 : 100);
-  int n {0};
+  int n{0};
 
   while (true) {
     if (n + 100 > nLine) {
@@ -534,7 +534,7 @@ static int shell_callback(
     break;
   }
   case MODE_Line: {
-    int w {5};
+    int w{5};
     if (azArg == nullptr) {
       break;
     }
@@ -1003,7 +1003,7 @@ static sqlite3_int64 integerValue(const char* zArg) {
       {(char*)"G", 1000000000},
   };
   int i;
-  int isNeg {0};
+  int isNeg{0};
   if (zArg[0] == '-') {
     isNeg = 1;
     zArg++;
@@ -1213,10 +1213,10 @@ inline void meta_show(struct callback_data* p) {
 ** Return 1 on error, 2 to exit, and 0 otherwise.
 */
 static int do_meta_command(char* zLine, struct callback_data* p) {
-  int i {1};
-  int nArg {0};
+  int i{1};
+  int nArg{0};
   int n, c;
-  int rc {0};
+  int rc{0};
   char* azArg[50];
 
   /* Parse the input line into tokens.
@@ -1460,14 +1460,14 @@ static int process_input(struct callback_data* p, FILE* in) {
   /* Error message returned */
   char* zErrMsg = nullptr;
 
-  int nLine {0}; /* Length of current line */
-  int nSql {0}; /* Bytes of zSql[] used */
-  int nAlloc {0}; /* Allocated zSql[] space */
-  int nSqlPrior {0}; /* Bytes of zSql[] used by prior line */
-  int rc {0}; /* Error code */
-  int errCnt {0}; /* Number of errors seen */
-  int lineno {0}; /* Current line number */
-  int startline {0}; /* Line number for start of current input */
+  int nLine{0}; /* Length of current line */
+  int nSql{0}; /* Bytes of zSql[] used */
+  int nAlloc{0}; /* Allocated zSql[] space */
+  int nSqlPrior{0}; /* Bytes of zSql[] used by prior line */
+  int rc{0}; /* Error code */
+  int errCnt{0}; /* Number of errors seen */
+  int lineno{0}; /* Current line number */
+  int startline{0}; /* Line number for start of current input */
 
   while (errCnt == 0 || (bail_on_error == 0) ||
          (in == nullptr && stdin_is_interactive)) {
@@ -1636,7 +1636,7 @@ int runQuery(struct callback_data* data, const char* query) {
 }
 
 int runPack(struct callback_data* data) {
-  int rc {0};
+  int rc{0};
 
   // Check every pack for a name matching the requested --pack flag.
   Config::get().packs([data, &rc](std::shared_ptr<Pack>& pack) {
@@ -1694,7 +1694,7 @@ int launchIntoShell(int argc, char** argv) {
   sqlite3_snprintf(
       sizeof(data.nullvalue), data.nullvalue, "%s", FLAGS_nullvalue.c_str());
 
-  int rc {0};
+  int rc{0};
   if (FLAGS_L || !FLAGS_A.empty()) {
     // Helper meta commands from shell switches.
     std::string query = (FLAGS_L) ? ".tables" : ".all " + FLAGS_A;

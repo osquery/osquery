@@ -159,7 +159,7 @@ TEST_F(SQLiteUtilTests, test_get_query_columns) {
   auto dbc = getTestDBC();
   TableColumns results;
 
-  std::string query {"SELECT seconds, version FROM time JOIN osquery_info"};
+  std::string query{"SELECT seconds, version FROM time JOIN osquery_info"};
   auto status = getQueryColumnsInternal(query, results, dbc);
   ASSERT_TRUE(status.ok());
   ASSERT_EQ(2U, results.size());
@@ -200,7 +200,7 @@ TEST_F(SQLiteUtilTests, test_query_planner) {
   auto dbc = getTestDBC();
   TableColumns columns;
 
-  std::string query {"select path, path from file"};
+  std::string query{"select path, path from file"};
   getQueryColumnsInternal(query, columns, dbc);
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE, TEXT_TYPE}));
 

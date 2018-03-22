@@ -28,7 +28,7 @@ QueryData genBitlockerInfo(QueryContext& context) {
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   if (!wmiResults.empty()) {
     for (const auto& data : wmiResults) {
-      long status = 0;
+      long status{0};
       data.GetString("DeviceID", r["device_id"]);
       data.GetString("DriveLetter", r["drive_letter"]);
       data.GetString("PersistentVolumeID", r["persistent_volume_id"]);

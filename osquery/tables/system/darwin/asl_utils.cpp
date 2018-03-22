@@ -71,7 +71,7 @@ const std::map<std::string, std::string> kColumnToAslKeyMap = {
  * will be aggregated into a JSON string and dumped into a column with this
  * name.
  */
-const std::string kExtraColumnKey {"extra"};
+const std::string kExtraColumnKey{"extra"};
 
 /**
  * @brief Determine whether to use numeric ASL operations given a column type

@@ -22,7 +22,7 @@ class TimeTests : public testing::Test {};
 
 TEST_F(TimeTests, test_asciitime) {
   const size_t epoch = 1491518994;
-  const std::string expected {"Thu Apr  6 22:49:54 2017 UTC"};
+  const std::string expected{"Thu Apr  6 22:49:54 2017 UTC"};
 
   struct tm result;
   gmtime_r((time_t*)&epoch, &result);
@@ -32,7 +32,7 @@ TEST_F(TimeTests, test_asciitime) {
 
 TEST_F(TimeTests, test_asciitimeutc) {
   const size_t epoch = 1491518994;
-  const std::string expected {"Thu Apr  6 22:49:54 2017 UTC"};
+  const std::string expected{"Thu Apr  6 22:49:54 2017 UTC"};
 
   struct tm result;
   localtime_r((time_t*)&epoch, &result);

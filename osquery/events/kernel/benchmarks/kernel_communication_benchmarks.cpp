@@ -32,7 +32,7 @@ static inline void producerThread(benchmark::State &state) {
 
   osquery_event_t event;
   osquery::CQueue::event *event_buf = nullptr;
-  int drops {0};
+  int drops{0};
   size_t reads0 = 0;
   size_t reads1 = 0;
   size_t syncs = 0;

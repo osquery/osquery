@@ -43,9 +43,9 @@ const std::string kRemoteAppleManagementPath =
     "/Library/Application Support/Apple/Remote "
     "Desktop/RemoteManagement.launchd";
 
-const std::string kRemoteBluetoothSharingPath {"/Library/Preferences/ByHost/"};
+const std::string kRemoteBluetoothSharingPath{"/Library/Preferences/ByHost/"};
 
-const std::string kRemoteBluetoothSharingPattern {"com.apple.Bluetooth.%"};
+const std::string kRemoteBluetoothSharingPattern{"com.apple.Bluetooth.%"};
 
 bool remoteAppleManagementPlistExists() {
   auto remoteAppleManagementFileInfo =

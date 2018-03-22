@@ -41,7 +41,7 @@ QueryData genSystemInfo(QueryContext& context) {
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   std::vector<WmiResultItem>& wmiResultsProc = wmiSystemReqProc.results();
   if (!wmiResults.empty() && !wmiResultsProc.empty()) {
-    long numProcs = 0;
+    long numProcs{0};
     wmiResults[0].GetLong("NumberOfLogicalProcessors", numProcs);
     r["cpu_logical_cores"] = INTEGER(numProcs);
     wmiResultsProc[0].GetLong("NumberOfCores", numProcs);

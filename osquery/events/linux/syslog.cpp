@@ -51,7 +51,7 @@ REGISTER(SyslogEventPublisher, "event_publisher", "syslog");
 
 // rsyslog needs read/write access, osquery process needs read access
 const mode_t kPipeMode = 0460;
-const std::string kPipeGroupName {"syslog"};
+const std::string kPipeGroupName{"syslog"};
 const char* kTimeFormat = "%Y-%m-%dT%H:%M:%S";
 const std::vector<std::string> kCsvFields = {
     "time", "host", "severity", "facility", "tag", "message"};

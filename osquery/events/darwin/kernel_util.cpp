@@ -34,7 +34,7 @@ static const CFStringRef kKernelExtensionDirectory =
 static const std::string kKernelBundleRegex =
     ".*Kernel Extensions in "
     "backtrace:.*com\\.facebook\\.security\\.osquery.*Kernel version:";
-static const std::string kBlockingFile {"/var/osquery/.gtfo"};
+static const std::string kBlockingFile{"/var/osquery/.gtfo"};
 static const std::string kKernelPackageReceipt =
     "/private/var/db/receipts/com.facebook.osquery.kernel.plist";
 

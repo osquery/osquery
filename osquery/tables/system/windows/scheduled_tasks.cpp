@@ -75,7 +75,7 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
     return;
   }
 
-  long numTasks = 0;
+  long numTasks{0};
   pTaskCollection->get_Count(&numTasks);
   for (size_t i = 0; i < numTasks; i++) {
     IRegisteredTask* pRegisteredTask = nullptr;
@@ -142,7 +142,7 @@ void enumerateTasksForFolder(std::string path, QueryData& results) {
       taskDef->get_Actions(&tActionCollection);
     }
 
-    long actionCount = 0;
+    long actionCount{0};
     if (tActionCollection != nullptr) {
       tActionCollection->get_Count(&actionCount);
     }

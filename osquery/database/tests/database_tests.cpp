@@ -29,7 +29,7 @@ TEST_F(DatabaseTests, test_set_value) {
 }
 
 TEST_F(DatabaseTests, test_get_value) {
-  std::string expected {"{}"};
+  std::string expected{"{}"};
   setDatabaseValue(kLogs, "i", expected);
 
   std::string value;
