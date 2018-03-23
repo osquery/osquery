@@ -8,6 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <boost/property_tree/ini_parser.hpp>
+#include <iostream>
+
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -21,62 +24,26 @@ const std::string kYumConf { "/etc/yum.conf" };
 const std::string kYumReposDir { "/etc/yum.repos.d" };
 
 void parseYumConf(const std::string& source, QueryData& results, std::string& repos_dir) {
-  // Default value
-  repos_dir = kYumReposDir;
+  boost::property_tree::ptree tree;
+  boost::property_tree::ini_parser::read_ini(source, tree);
 
-  std::string content;
-  if (!readFile(source, content)) {
-    return;
-  }
+  repos_dir = tree.get("main.reposdir", kYumReposDir);
 
-  std::string section = "";
-  for (const auto& line : osquery::split(content, "\n")) {
-    auto size = line.size();
-
-    // Skip trivial lines
-    if (size <= 2) {
+  for (auto it1: tree) {
+    // Section
+    if (it1.first == "main") {
       continue;
     }
 
-    // Skip comments.
-    if (line[0] == '#') {
-      continue;
-    }
-
-    // Section name
-    if  (line[0] == '[' && line[size - 1] == ']') {
-      section = line.substr(1, size - 2);
-      continue;
-    }
-
-    // Skip option-like lines outside of a section
-    if ("" == section) {
-      continue;
-    }
-
-    // Options
-    auto pos = line.find("=");
-    if (pos == std::string::npos) {
-      continue;
-    }
-
-    std::string option = line.substr(0, pos);
-    std::string value = line.substr(pos + 1, size - pos - 1);
-    if ("main" == section) {
-      // main section
-      if ("reposdir" == option) {
-        repos_dir = value;
+    Row r;
+    for (auto it2: it1.second) {
+      // Option
+      if ("baseurl" == it2.first || "enabled" == it2.first
+          || "gpgcheck" == it2.first || "name" == it2.first) {
+        r[it2.first] = it2.second.data();
       }
-      continue;
     }
-
-    // Repository section
-    if ("baseurl" == option || "enabled" == option
-        || "gpgcheck" == option || "name" == option) {
-      Row r;
-      r[option] = value;
-      results.push_back(r);
-    }
+    results.push_back(r);
   }
 }
 
