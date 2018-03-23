@@ -147,7 +147,6 @@ docs: .setup
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
 format_master:
-	@echo "[+] osquery linter"
 	@$(REGEX_FORMAT_COMMAND)
 	@echo "[+] clang-format (`$(PATH_SET) which clang-format`) version: `$(PATH_SET) clang-format --version`"
 	@$(PATH_SET) $(FORMAT_COMMAND)

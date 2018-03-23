@@ -25,6 +25,12 @@ function applyFixes() {
 	echo "$STDSTRING_EQ"
 }
 
+green "[+] Starting the oquery codemod script"
+if [[ $CODEMOD == "" ]]; then
+	red "[-] codemod is not installed; autofix disabled"
+	red "[-] To enable autofix, install codemod via: pip install codemod"
+fi 
+
 STDSTRING_EQ=$(egrep -rn "(const)* std::string [a-zA-Z]+ = \".*\";" $SOURCE_DIR)
 STDSTRING_EQ_CM="'(.*)std::string ([a-zA-Z]+) = \"(.*)\";' '\1std::string \2 {\"\3\"};'"
 
