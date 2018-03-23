@@ -20,6 +20,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/sql/sqlite_util.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_pkg_packages
+#include <generated/tables/tbl_pkg_packages_defs.hpp>
+
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 

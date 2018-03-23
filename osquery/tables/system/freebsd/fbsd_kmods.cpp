@@ -23,6 +23,9 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_fbsd_kmods
+#include <generated/tables/tbl_fbsd_kmods_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

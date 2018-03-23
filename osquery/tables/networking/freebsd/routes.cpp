@@ -31,6 +31,9 @@
 
 #include "osquery/tables/networking/utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_routes
+#include <generated/tables/tbl_routes_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

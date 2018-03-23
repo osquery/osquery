@@ -24,6 +24,13 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_os_version
+#include <generated/tables/tbl_os_version_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_system_info
+#include <generated/tables/tbl_system_info_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_platform_info
+#include <generated/tables/tbl_platform_info_defs.hpp>
+
 namespace xp = boost::xpressive;
 
 namespace osquery {
