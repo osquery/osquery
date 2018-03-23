@@ -19,6 +19,9 @@
 
 #import <OpenDirectory/OpenDirectory.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_account_policy_data
+#include <generated/tables/tbl_account_policy_data_defs.hpp>
+
 namespace pt = boost::property_tree;
 
 namespace osquery {
