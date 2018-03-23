@@ -101,6 +101,7 @@ The configuration parameters are exposed via command line options and can be set
   "options": {
     "logger_kafka_brokers": "some.example1.com:9092,some.example2.com:9092",
     "logger_kafka_topic": "base_topic",
+    "logger_kafka_compression": "gzip",
     "logger_kafka_acks": "1"
   },
   "packs": {

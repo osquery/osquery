@@ -22,6 +22,8 @@ schema([
         aliases=["phys_footprint"]),
     Column("user_time", BIGINT, "CPU time spent in user space"),
     Column("system_time", BIGINT, "CPU time spent in kernel space"),
+    Column("disk_bytes_read", BIGINT, "Bytes read from disk"),
+    Column("disk_bytes_written", BIGINT, "Bytes written to disk"),
     Column("start_time", BIGINT,
         "Process start in seconds since boot (non-sleeping)"),
     Column("parent", BIGINT, "Process parent's PID"),

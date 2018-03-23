@@ -10,19 +10,21 @@
 
 #include <string>
 
+// clang-format off
 #include <Windows.h>
+#include <SetupAPI.h>
 #include <initguid.h>
-
 #include <Devpkey.h>
 #include <cfgmgr32.h>
+// clang-format on
 
 #include <boost/regex.hpp>
 
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 
+#include "osquery/core/windows/wmi.h"
 #include "osquery/filesystem/fileops.h"
-#include "osquery/tables/system/windows/drivers.h"
 
 #define DECLARE_TABLE_IMPLEMENTATION_drivers
 #include <generated/tables/tbl_drivers_defs.hpp>
@@ -32,19 +34,26 @@ namespace tables {
 
 const auto freePtr = [](auto ptr) { free(ptr); };
 
+const auto closeInfoSet = [](auto infoset) {
+  SetupDiDestroyDeviceInfoList(infoset);
+};
+
+using device_infoset_t = std::unique_ptr<void, decltype(closeInfoSet)>;
+
 const std::map<std::string, DEVPROPKEY> kAdditionalDeviceProps = {
-    {"device_name", DEVPKEY_NAME},
     {"service", DEVPKEY_Device_Service},
     {"driver_key", DEVPKEY_Device_Driver},
-    {"class", DEVPKEY_Device_Class}};
+    {"date", DEVPKEY_Device_DriverDate}};
 const std::string kDriverKeyPath =
     "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Class\\";
 const std::string kServiceKeyPath =
     "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\";
 
 static inline void win32LogWARNING(const std::string& msg,
-                                   const DWORD code = GetLastError()) {
-  LOG(WARNING) << msg + " Error code: " + std::to_string(code);
+                                   const DWORD code = GetLastError(),
+                                   const std::string& deviceName = "") {
+  LOG(WARNING) << msg << " for device " << deviceName
+               << ", error code: " + std::to_string(code);
 }
 
 device_infoset_t setupDevInfoSet(const DWORD flags) {
@@ -83,42 +92,6 @@ Status getDeviceList(const device_infoset_t& infoset,
   if (err != ERROR_NO_MORE_ITEMS) {
     rDevices.clear();
     return Status(GetLastError(), "Error enumerating installed devices");
-  }
-  return Status();
-}
-
-Status getDeviceDriverInfo(const device_infoset_t& infoset,
-                           SP_DEVINFO_DATA& device,
-                           SP_DRVINFO_DATA& rDriverInfo,
-                           SP_DRVINFO_DETAIL_DATA& rDriverInfoDetail) {
-  rDriverInfo.cbSize = sizeof(SP_DRVINFO_DATA);
-  rDriverInfoDetail.cbSize = sizeof(SP_DRVINFO_DETAIL_DATA);
-
-  auto ret =
-      SetupDiBuildDriverInfoList(infoset.get(), &device, SPDIT_CLASSDRIVER);
-  if (ret == FALSE) {
-    return Status(GetLastError(), "Error building driver info list");
-  }
-
-  ret = SetupDiEnumDriverInfo(
-      infoset.get(), &device, SPDIT_CLASSDRIVER, 0, &rDriverInfo);
-  if (ret == FALSE) {
-    return Status(GetLastError(), "Error enumerating driver info");
-  }
-
-  ret = SetupDiGetDriverInfoDetail(infoset.get(),
-                                   &device,
-                                   &rDriverInfo,
-                                   &rDriverInfoDetail,
-                                   sizeof(SP_DRVINFO_DETAIL_DATA),
-                                   nullptr);
-  if (ret == FALSE) {
-    auto err = GetLastError();
-    // It's common to get INSUFFICIENT_BUFFER for some variable length fields in
-    // SP_DRVINFO_DETAIL_DATA, but we don't care about this info so ignore it
-    if (err != ERROR_INSUFFICIENT_BUFFER) {
-      return Status(err, "Error getting detailed driver info");
-    }
   }
   return Status();
 }
@@ -176,30 +149,48 @@ Status getDeviceProperty(const device_infoset_t& infoset,
   return Status();
 }
 
-static inline std::string getDriverImagePath(const std::string& service_key) {
+std::string getDriverImagePath(const std::string& service_key) {
   SQL sql("SELECT data FROM registry WHERE path = '" + service_key +
           "\\ImagePath'");
-  if (sql.rows().size() == 1) {
-    auto path = sql.rows().at(0).at("data");
-    if (!path.empty()) {
-      CHAR systemRoot[MAX_PATH] = {0};
-      GetSystemDirectory(systemRoot, MAX_PATH);
-      return systemRoot +
-             boost::regex_replace(path, boost::regex("^.*[Ss]ystem32"), "");
-    }
+
+  if (sql.rows().empty() || sql.rows().at(0).count("data") == 0) {
+    return "";
   }
-  return "";
+
+  auto path = sql.rows().at(0).at("data");
+  if (path.empty()) {
+    return "";
+  }
+
+  // Unify the image path as systemRoot can contain systemroot and/or system32
+  std::transform(path.begin(), path.end(), path.begin(), ::tolower);
+
+  char systemRoot[MAX_PATH] = {0};
+  GetSystemDirectory(systemRoot, MAX_PATH);
+
+  return systemRoot +
+         boost::regex_replace(path, boost::regex("^.*?system32"), "");
 }
 
 QueryData genDrivers(QueryContext& context) {
   QueryData results;
 
-  auto devInfoset = setupDevInfoSet();
+  WmiRequest wmiSignedDriverReq("select * from Win32_PnPSignedDriver");
+  auto& wmiResults = wmiSignedDriverReq.results();
+
+  // As our list relies on the WMI set we first query and bail if no results
+  if (wmiResults.empty()) {
+    LOG(WARNING) << "Failed to query device drivers via WMI";
+    return {};
+  }
+
+  auto devInfoset = setupDevInfoSet(DIGCF_ALLCLASSES | DIGCF_PRESENT);
   if (devInfoset == nullptr) {
     win32LogWARNING("Error getting device handle");
     return results;
   }
 
+  std::map<std::string, Row> apiDevices;
   std::vector<SP_DEVINFO_DATA> devices;
   auto ret = getDeviceList(devInfoset, devices);
   if (!ret.ok()) {
@@ -207,48 +198,93 @@ QueryData genDrivers(QueryContext& context) {
     return results;
   }
 
+  // Then, leverage the Windows APIs to get whatever remains
   for (auto& device : devices) {
     char devId[MAX_DEVICE_ID_LEN] = {0};
     if (CM_Get_Device_ID(device.DevInst, devId, MAX_DEVICE_ID_LEN, 0) !=
         CR_SUCCESS) {
       win32LogWARNING("Failed to get device ID");
-      return QueryData();
+      continue;
     }
 
-    SP_DRVINFO_DATA drvInfo = {0};
-    SP_DRVINFO_DETAIL_DATA drvInfoDetail = {0};
-    ret = getDeviceDriverInfo(devInfoset, device, drvInfo, drvInfoDetail);
-
     Row r;
-    r["device_id"] = devId;
-    r["inf"] = drvInfoDetail.InfFileName;
-    r["provider"] = drvInfo.ProviderName;
-    r["manufacturer"] = drvInfo.MfgName;
-    r["date"] = std::to_string(osquery::filetimeToUnixtime(drvInfo.DriverDate));
-    r["description"] = drvInfo.Description;
-    ULARGE_INTEGER version;
-    version.QuadPart = drvInfo.DriverVersion;
-    r["version"] = std::to_string(HIWORD(version.HighPart)) + "." +
-                   std::to_string(HIWORD(version.LowPart)) + "." +
-                   std::to_string(LOWORD(version.HighPart)) + "." +
-                   std::to_string(LOWORD(version.LowPart));
-
     for (const auto& elem : kAdditionalDeviceProps) {
       std::string val;
       ret = getDeviceProperty(devInfoset, device, elem.second, val);
       r[elem.first] = std::move(val);
     }
 
-    if (r.count("driver_key") > 0) {
-      if (!r.at("driver_key").empty()) {
-        r["driver_key"].insert(0, kDriverKeyPath);
-      }
+    if (r.count("driver_key") > 0 && !r.at("driver_key").empty()) {
+      r["driver_key"].insert(0, kDriverKeyPath);
     }
-    if (r.count("service") > 0) {
-      if (!r.at("service").empty()) {
-        r["service_key"] = kServiceKeyPath + r["service"];
-        r["image"] = getDriverImagePath(r["service_key"]);
-      }
+
+    if (r.count("service") > 0 && !r.at("service").empty()) {
+      auto svcKey = kServiceKeyPath + r["service"];
+      r["service_key"] = svcKey;
+      r["image"] = getDriverImagePath(svcKey);
+    }
+    apiDevices[devId] = r;
+  }
+
+  /*
+   * We balance getting information from WMI and Win32 APIs as not
+   * all data is available in only one place. Unfortunately this means
+   * two runs through the devices list, but this takes less time
+   * than the Win32 API method
+   */
+  for (const auto& row : wmiResults) {
+    Row r;
+    std::string devid;
+    row.GetString("DeviceID", devid);
+    r["device_id"] = devid;
+    row.GetString("DeviceName", r["device_name"]);
+    row.GetString("Description", r["description"]);
+    row.GetString("DeviceClass", r["class"]);
+    row.GetString("DriverVersion", r["version"]);
+    row.GetString("Manufacturer", r["manufacturer"]);
+    row.GetString("DriverProviderName", r["provider"]);
+
+    bool isSigned;
+    row.GetBool("IsSigned", isSigned);
+    r["signed"] = isSigned ? INTEGER(1) : INTEGER(0);
+
+    std::string infName;
+    row.GetString("InfName", infName);
+    std::vector<char> inf(MAX_PATH, 0x0);
+    unsigned long infLen = 0;
+    auto sdiRet =
+        SetupGetInfDriverStoreLocation(infName.c_str(),
+                                       nullptr,
+                                       nullptr,
+                                       inf.data(),
+                                       static_cast<unsigned long>(inf.size()),
+                                       &infLen);
+    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+      inf.resize(infLen);
+      sdiRet =
+          SetupGetInfDriverStoreLocation(infName.c_str(),
+                                         nullptr,
+                                         nullptr,
+                                         inf.data(),
+                                         static_cast<unsigned long>(inf.size()),
+                                         &infLen);
+    }
+    if (sdiRet != TRUE) {
+      VLOG(1) << "Failed to derive full driver INF path for "
+              << r["device_name"] << " with " << GetLastError();
+      r["inf"] = infName;
+    } else {
+      r["inf"] = inf.data();
+    }
+
+    // Add the remaining columns from the APIs
+    auto dev = apiDevices.find(devid);
+    if (dev != apiDevices.end()) {
+      r["service"] = dev->second["service"];
+      r["service_key"] = dev->second["service_key"];
+      r["image"] = dev->second["image"];
+      r["driver_key"] = dev->second["driver_key"];
+      r["date"] = dev->second["date"];
     }
 
     results.push_back(r);

@@ -604,6 +604,13 @@ void Initializer::start() const {
 
       sleepFor(kDatabaseRetryDelay);
     }
+
+    // Ensure the database results version is up to date before proceeding
+    if (!upgradeDatabase()) {
+      LOG(ERROR) << "Failed to upgrade database";
+      auto retcode = (isWorker()) ? EXIT_CATASTROPHIC : EXIT_FAILURE;
+      requestShutdown(retcode);
+    }
   }
 
   // Bind to an extensions socket and wait for registry additions.

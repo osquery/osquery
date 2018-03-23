@@ -355,6 +355,10 @@ QueryData genProcesses(QueryContext& context) {
       r.user_time = (rusage_info_data.ri_user_time / CPU_TIME_RATIO);
       r.system_time = (rusage_info_data.ri_system_time / CPU_TIME_RATIO);
 
+      // disk i/o information
+      r["disk_bytes_read"] = TEXT(rusage_info_data.ri_diskio_bytesread);
+      r["disk_bytes_written"] = TEXT(rusage_info_data.ri_diskio_byteswritten);
+
       // Below is the logic to caculate the start_time since boot time
       // with higher precision
       auto uptime = getUptimeInUSec();
