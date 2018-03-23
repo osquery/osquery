@@ -69,7 +69,7 @@ std::map<size_t, std::vector<FeatureDef>> kCPUFeatures{
      }},
     {0x80000001,
      {
-         FEATURE("lahfsahf", "ecx", 0"),
+         FEATURE("lahfsahf", "ecx", 0),
          FEATURE("svm", "ecx", 2),
          FEATURE("prefetchw", "ecx", 8),
          FEATURE("ibs", "ecx", 10),
