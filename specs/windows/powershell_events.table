@@ -9,6 +9,7 @@ schema([
     Column("script_block_text", TEXT, "The text content of the Powershell script"),
     Column("script_name", TEXT, "The name of the Powershell script, this value is often null"),
     Column("script_path", TEXT, "The path for the Powershell script, this value is often null"),
+    Column("cosine_similarity", DOUBLE, "The path for the Powershell script, this value is often null"),
 ])
 attributes(event_subscriber=True)
 implementation("powershell_events@PowershellEventSubscriber::genTable")
