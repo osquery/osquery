@@ -5,5 +5,6 @@ schema([
     Column("baseurl", TEXT, "Repository base URL"),
     Column("enabled", TEXT, "Whether the repository is used"),
     Column("gpgcheck", TEXT, "Whether packages are GPG checked"),
+    Column("gpgkey", TEXT, "URL to GPG key"),
 ])
 implementation("system/yum_sources@genYumSrcs")

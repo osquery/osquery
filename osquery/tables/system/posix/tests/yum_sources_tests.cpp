@@ -48,19 +48,24 @@ baseurl=http://some.math.repo.url
 enabled=0
 name=Mathematic library repo
 gpgcheck=0
+gpgkey=ftp://repokeys/mykey
 )STRLIT");
 
   parseYumConf(stream2, results, repos_dir);
   ASSERT_EQ(repos_dir, "/etc/local/yum.repos.d");
   ASSERT_EQ(results.size(), (unsigned long) 2);
+
   ASSERT_EQ(results.at(0).at("baseurl"), "http://my.repo.url/1/v2/3");
   ASSERT_EQ(results.at(0).at("enabled"), "1");
   ASSERT_EQ(results.at(0).at("name"), "My personal repo");
   ASSERT_EQ(results.at(0).find("gpgcheck"), results.at(0).end());
+  ASSERT_EQ(results.at(0).find("gpgkey"), results.at(0).end());
+
   ASSERT_EQ(results.at(1).at("baseurl"), "http://some.math.repo.url");
   ASSERT_EQ(results.at(1).at("enabled"), "0");
   ASSERT_EQ(results.at(1).at("name"), "Mathematic library repo");
   ASSERT_EQ(results.at(1).at("gpgcheck"), "0");
+  ASSERT_EQ(results.at(1).at("gpgkey"), "ftp://repokeys/mykey");
 }
 
 } // namespace tables
