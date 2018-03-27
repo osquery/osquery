@@ -10,6 +10,7 @@
 
 #include <boost/property_tree/ini_parser.hpp>
 #include <iostream>
+#include <fstream>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -23,10 +24,9 @@ namespace tables {
 const std::string kYumConf { "/etc/yum.conf" };
 const std::string kYumReposDir { "/etc/yum.repos.d" };
 
-void parseYumConf(const std::string& source, QueryData& results, std::string& repos_dir) {
+void parseYumConf(std::istream& source, QueryData& results, std::string& repos_dir) {
   boost::property_tree::ptree tree;
   boost::property_tree::ini_parser::read_ini(source, tree);
-
   repos_dir = tree.get("main.reposdir", kYumReposDir);
 
   for (auto it1: tree) {
@@ -47,6 +47,24 @@ void parseYumConf(const std::string& source, QueryData& results, std::string& re
   }
 }
 
+void parseYumConf(const std::string& source, QueryData& results, std::string& repos_dir) {
+  std::ifstream stream(source.c_str());
+  if (!stream) {
+    VLOG(1) << "File " << source
+      << " either cannot be read or cannot be parsed as ini";
+    repos_dir = kYumReposDir;
+    return;
+  }
+
+  try {
+    parseYumConf(stream, results, repos_dir);
+  } catch (boost::property_tree::ini_parser::ini_parser_error& e) {
+    VLOG(1) << "File " << source
+      << " either cannot be read or cannot be parsed as ini";
+    repos_dir = kYumReposDir;
+  }
+}
+
 QueryData genYumSrcs(QueryContext& context) {
   QueryData results;
 
@@ -60,7 +78,7 @@ QueryData genYumSrcs(QueryContext& context) {
 
   std::vector<std::string> sources;
   if (!resolveFilePattern(repos_dir + "/%.list", sources, GLOB_FILES)) {
-    VLOG(1) << "Cannot resolve yum conf files";
+    VLOG(1) << "Cannot resolve yum conf files under" << repos_dir << "/*.list";
     return results;
   }
 
