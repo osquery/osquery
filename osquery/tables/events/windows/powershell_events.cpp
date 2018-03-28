@@ -16,6 +16,7 @@
 
 #include <osquery/config.h>
 #include <osquery/core.h>
+#include <osquery/database.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -56,6 +57,14 @@ double kGlobalFrequencies[255] = {
     0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,
     0.0,   0.0};
 
+const std::string kPowershellDomain{"powershell_script_block_logs"};
+
+const std::string kScriptBlockPrefix{"script_block."};
+
+const std::string kScriptBlocksReceivedSuffix{".blocks_received"};
+
+const int kScriptBlockLoggingEid{4104};
+
 void parseTree(const pt::ptree& tree, std::map<std::string, std::string>& res);
 
 class PowershellEventSubscriber
@@ -71,6 +80,8 @@ class PowershellEventSubscriber
   }
 
   Status Callback(const ECRef& ec, const SCRef& sc);
+
+  void addScriptResult(std::map<std::string, std::string> results);
 };
 
 REGISTER(PowershellEventSubscriber, "event_subscriber", "powershell_events");
@@ -92,7 +103,46 @@ double cosineSimCharFreq(double* freqs, size_t freqListLen) {
   return dot / (mag1 * mag2);
 }
 
+void PowershellEventSubscriber::addScriptResult(
+    std::map<std::string, std::string> results) {
+  Row r;
+  r["script_block_id"] = results["ScriptBlockId"];
+  r["message_number"] = INTEGER(results["MessageNumber"]);
+  r["message_total"] = INTEGER(results["MessageTotal"]);
+  r["script_name"] = results["Name"];
+  r["script_path"] = results["Path"];
+  std::string scriptText = results["ScriptBlockText"];
+  r["script_text"] = scriptText;
+
+  double freqs[255] = {0};
+  auto getFreqs = [scriptText](const std::string& text, double* freqs) {
+    for (const auto chr : text) {
+      // The current data set we have is normalized to Upper :(
+      // TODO: Remove this
+      unsigned char c;
+      if (chr >= 97 && chr <= 122) {
+        c = chr - 32;
+      }
+      if (c < 255) {
+        freqs[c] += 1.0 / scriptText.length();
+      }
+    }
+  };
+  getFreqs(scriptText, freqs);
+
+  r["cosine_similarity"] = DOUBLE(cosineSimCharFreq(freqs, 255));
+
+  // TODO: Reconstruct the powershell scripts locally.
+  add(r);
+}
+
 Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
+  // For script block logging we only care about events with script blocks
+  auto eid = ec->eventRecord.get("Event.System.EventID", -1);
+  if (eid != kScriptBlockLoggingEid) {
+    return Status();
+  }
+
   Row r;
   FILETIME cTime;
   GetSystemTimeAsFileTime(&cTime);
@@ -113,35 +163,59 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     parseTree(node.second, results);
   }
 
-  r["script_block_id"] = results["ScriptBlockId"];
-  r["message_number"] = INTEGER(results["MessageNumber"]);
-  r["message_total"] = INTEGER(results["MessageTotal"]);
-  r["script_name"] = results["Name"];
-  r["script_path"] = results["Path"];
-  std::string scriptText = results["ScriptBlockText"];
-  r["script_block_text"] = scriptText;
+  // If there's only one script block, short-circuit
+  if (results["MessageTotal"] == "1") {
+    addScriptResult(results);
+  }
 
-  // TODO: Cosine similarity analysis of the script block text
-  double freqs[255] = {0};
-  auto getFreqs = [scriptText](const std::string& text, double* freqs) {
-    for (const auto chr : text) {
-      // The current data set we have is normalized to Upper :(
-      unsigned char c;
-      if (chr >= 97 && chr <= 122) {
-        c = chr - 32;
+  // 1.) Get the number of blocks we've received thus far.
+  std::string scriptBlockCount;
+  auto blocksReceviedPrefix = kScriptBlockPrefix + results["ScriptBlockId"] +
+                              kScriptBlocksReceivedSuffix;
+  auto s = getDatabaseValue(
+      kPowershellDomain, blocksReceviedPrefix, scriptBlockCount);
+
+  if (!s.ok()) {
+    // This is a script we have not seen before, we reconstruct only as
+    // many script blocks as we _will_ see
+    s = setDatabaseValue(
+        kPowershellDomain, blocksReceviedPrefix, results["MessageNumber"]);
+  }
+
+  // All script blocks should be accounted for, so reconstruct and ship
+  if (scriptBlockCount == results["MessageNumber"]) {
+    std::vector<std::string> keys;
+    s = scanDatabaseKeys(
+        kPowershellDomain, keys, kScriptBlockPrefix + results["ScriptBlockId"]);
+    if (!s.ok()) {
+      LOG(WARNING) << "Failed to look up powershell script blocks for "
+                   << results["ScriptBlockId"];
+      return Status(1);
+    }
+    std::string powershellScript{""};
+    for (const auto& key : keys) {
+      std::string val{""};
+      s = getDatabaseValue(kPowershellDomain, key, val);
+      if (!s.ok()) {
+        LOG(WARNING) << "Failed to retrieve script block " << key;
+        continue;
       }
-      if (c < 255) {
-        freqs[c] += 1.0 / scriptText.length();
+      powershellScript += val;
+
+      s = deleteDatabaseValue(kPowershellDomain, key);
+      if (!s.ok()) {
+        LOG(WARNING) << "Failed to delete script block key from db " << key;
       }
     }
-  };
-  getFreqs(scriptText, freqs);
 
-  r["cosine_similarity"] = DOUBLE(cosineSimCharFreq(freqs, 255));
+    results["ScriptBlockText"] = powershellScript;
+    addScriptResult(results);
+  } else {
+    // Otherwise store the remaining value in the database
+    s = setDatabaseValue(
+        kPowershellDomain, blocksReceviedPrefix, results["MessageNumber"]);
+  }
 
-  // TODO: Reconstruct the powershell scripts locally.
-
-  add(r);
   return Status(0, "OK");
 }
 }
