@@ -27,7 +27,6 @@ QueryData genVideoInfo(QueryContext& context) {
   WmiRequest wmiSystemReq("SELECT * FROM Win32_VideoController");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   if (!wmiResults.empty()) {
-    ;
     long bitsPerPixel = 0;
     wmiResults[0].GetLong("CurrentBitsPerPixel", bitsPerPixel);
     r["color_depth"] = INTEGER(bitsPerPixel);
