@@ -75,7 +75,7 @@ Status procGetProcessNamespaces(const std::string& process_id,
     auto status = procGetNamespaceInode(
         namespace_inode, namespace_name, process_namespace_root);
     if (!status.ok()) {
-      return status;
+      continue;
     }
 
     namespace_list[namespace_name] = namespace_inode;
