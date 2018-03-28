@@ -18,41 +18,39 @@
 #include "osquery/core/windows/wmi.h"
 
 namespace osquery {
-	namespace tables {
+namespace tables {
 
-		QueryData genVideoInfo(QueryContext& context) {
-			Row r;
-			QueryData results;
+QueryData genVideoInfo(QueryContext& context) {
+  Row r;
+  QueryData results;
 
-			WmiRequest wmiSystemReq("SELECT * FROM Win32_VideoController");
-			std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-			if (!wmiResults.empty()) {;
-			long bitsPerPixel = 0;
-			std::string vramholder;
-			unsigned long long vram = 42;
-				wmiResults[0].GetLong("CurrentBitsPerPixel", bitsPerPixel);
-				r["color_depth"] = INTEGER(bitsPerPixel);
-				wmiResults[0].GetString("InstalledDisplayDrivers", r["driver"]);
-				wmiResults[0].GetString("DriverDate", r["driver_date"]);
-				wmiResults[0].GetString("DriverVersion", r["driver_version"]);
-				wmiResults[0].GetString("AdapterCompatibility", r["manufacturer"]);
-				wmiResults[0].GetString("VideoProcessor", r["model"]);
-				wmiResults[0].GetString("Name", r["series"]);
-				wmiResults[0].GetString("VideoModeDescription", r["video_mode"]);
-			}
-			else {
-				r["color_depth"] = "-1";
-				r["driver"] = "-1";
-				r["driver_date"] = "-1";
-				r["driver_version"] = "-1";
-				r["manufacturer"] = "-1";
-				r["model"] = " - 1";
-				r["series"] = "-1";
-				r["video_mode"] = "-1";
-			}
+  WmiRequest wmiSystemReq("SELECT * FROM Win32_VideoController");
+  std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
+  if (!wmiResults.empty()) {
+    ;
+    long bitsPerPixel = 0;
+    wmiResults[0].GetLong("CurrentBitsPerPixel", bitsPerPixel);
+    r["color_depth"] = INTEGER(bitsPerPixel);
+    wmiResults[0].GetString("InstalledDisplayDrivers", r["driver"]);
+    wmiResults[0].GetString("DriverDate", r["driver_date"]);
+    wmiResults[0].GetString("DriverVersion", r["driver_version"]);
+    wmiResults[0].GetString("AdapterCompatibility", r["manufacturer"]);
+    wmiResults[0].GetString("VideoProcessor", r["model"]);
+    wmiResults[0].GetString("Name", r["series"]);
+    wmiResults[0].GetString("VideoModeDescription", r["video_mode"]);
+  } else {
+    r["color_depth"] = "-1";
+    r["driver"] = "-1";
+    r["driver_date"] = "-1";
+    r["driver_version"] = "-1";
+    r["manufacturer"] = "-1";
+    r["model"] = " - 1";
+    r["series"] = "-1";
+    r["video_mode"] = "-1";
+  }
 
-			results.push_back(r);
-			return results;
-		}
-	}
+  results.push_back(r);
+  return results;
+}
+}
 }
