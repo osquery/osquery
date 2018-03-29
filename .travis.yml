@@ -1,0 +1,22 @@
+language: c++
+
+os:
+  - linux
+  - osx
+
+dist:
+  - precise
+
+osx_image:
+  - xcode9.2
+
+sudo: required
+
+compiler:
+  - clang
+
+install:
+  - sudo make deps
+
+script:
+  - make
