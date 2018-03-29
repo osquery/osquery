@@ -1,0 +1,9 @@
+version: 2
+
+jobs:
+  build:
+    machine: true
+    steps:
+      - run: sudo make deps
+      - run: make build
+      - run: make test
