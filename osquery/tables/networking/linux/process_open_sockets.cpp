@@ -27,12 +27,16 @@ QueryData genOpenSockets(QueryContext& context) {
    * otherwise query all pids from the system and also report on sockets without
    * an associated pid.
    */
-  bool pid_filter = false;
   std::set<std::string> pids;
   if (context.constraints["pid"].exists(EQUALS)) {
     pids = context.constraints["pid"].getAll(EQUALS);
-    pid_filter = true;
-  } else {
+  }
+
+  bool pid_filter = !(pids.empty() ||
+                      std::find(pids.begin(), pids.end(), "-1") != pids.end());
+
+  if (!pid_filter) {
+    pids.clear();
     status = osquery::procProcesses(pids);
     if (!status.ok()) {
       VLOG(1) << "Failed to acquire pid list: " << status.what();
