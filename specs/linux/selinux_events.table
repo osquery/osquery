@@ -1,7 +1,8 @@
 table_name("selinux_events")
 description("Track SELinux events.")
 schema([
-    Column("record", TEXT, "Raw audit record"),
+    Column("type", TEXT, "Event type"),
+    Column("msg", TEXT, "Message"),
     Column("time", BIGINT, "Time of execution in UNIX time"),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
     Column("eid", TEXT, "Event ID", hidden=True),

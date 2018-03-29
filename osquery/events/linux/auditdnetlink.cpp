@@ -65,7 +65,7 @@ DECLARE_bool(audit_allow_selinux_events);
 // also, we should handle the 2nd user message type
 namespace {
 bool IsSELinuxRecord(const audit_reply& reply) noexcept {
-  const auto& selinux_event_set = SELinuxEventSubscriber::GetEventSet();
+  static const auto& selinux_event_set = SELinuxEventSubscriber::GetEventSet();
   return (selinux_event_set.find(reply.type) != selinux_event_set.end());
 }
 

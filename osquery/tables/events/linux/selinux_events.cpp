@@ -30,6 +30,34 @@ namespace tables {
 extern long getUptime();
 }
 
+namespace {
+// clang-format off
+// This map must contain exactly the same elements that
+// SELinuxEventSubscriber::GetEventSet() returns!
+const std::map<int, std::string> record_type_to_label = {
+  {AUDIT_USER_AVC, "USER_AVC"},
+  {AUDIT_AVC, "AVC"},
+  {AUDIT_SELINUX_ERR, "SELINUX_ERR"},
+  {AUDIT_AVC_PATH, "AVC_PATH"},
+  {AUDIT_MAC_POLICY_LOAD, "MAC_POLICY_LOAD"},
+  {AUDIT_MAC_STATUS, "MAC_STATUS"},
+  {AUDIT_MAC_CONFIG_CHANGE, "MAC_CONFIG_CHANGE"},
+  {AUDIT_MAC_UNLBL_ALLOW, "MAC_UNLBL_ALLOW"},
+  {AUDIT_MAC_CIPSOV4_ADD, "MAC_CIPSOV4_ADD"},
+  {AUDIT_MAC_CIPSOV4_DEL, "MAC_CIPSOV4_DEL"},
+  {AUDIT_MAC_MAP_ADD, "MAC_MAP_ADD"},
+  {AUDIT_MAC_MAP_DEL, "MAC_MAP_DEL"},
+  {AUDIT_MAC_IPSEC_ADDSA, "MAC_IPSEC_ADDSA"},
+  {AUDIT_MAC_IPSEC_DELSA, "MAC_IPSEC_DELSA"},
+  {AUDIT_MAC_IPSEC_ADDSPD, "MAC_IPSEC_ADDSPD"},
+  {AUDIT_MAC_IPSEC_DELSPD, "MAC_IPSEC_DELSPD"},
+  {AUDIT_MAC_IPSEC_EVENT, "MAC_IPSEC_EVENT"},
+  {AUDIT_MAC_UNLBL_STCADD, "MAC_UNLBL_STCADD"},
+  {AUDIT_MAC_UNLBL_STCDEL, "MAC_UNLBL_STCDEL"}
+};
+// clang-format on
+} // namespace
+
 Status SELinuxEventSubscriber::init() {
   if (!FLAGS_audit_allow_selinux_events) {
     return Status(1, "Subscriber disabled via configuration");
@@ -67,7 +95,9 @@ Status SELinuxEventSubscriber::ProcessEvents(
 
     for (const auto& record : event.record_list) {
       Row r;
-      r["record"] = record.raw_data;
+
+      r["type"] = record_type_to_label.at(record.type);
+      r["msg"] = record.raw_data;
       r["uptime"] = std::to_string(tables::getUptime());
       emitted_row_list.push_back(r);
     }

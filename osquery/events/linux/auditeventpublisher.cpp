@@ -98,7 +98,7 @@ void AuditEventPublisher::ProcessEvents(
     AuditEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
     AuditTraceContext& trace_context) noexcept {
-  const auto& selinux_event_set = SELinuxEventSubscriber::GetEventSet();
+  static const auto& selinux_event_set = SELinuxEventSubscriber::GetEventSet();
 
   // Assemble each record into a AuditEvent object; multi-record events
   // are complete when we receive the terminator (AUDIT_EOE)
