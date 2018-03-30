@@ -167,4 +167,4 @@ osquery::Status loadSystemdDependencies(bool& enabled) {
   enabled = true;
   return osquery::Status(0, "OK");
 }
-}
+} // namespace systemd_deps

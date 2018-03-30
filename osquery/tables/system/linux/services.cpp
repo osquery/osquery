@@ -167,8 +167,7 @@ Status grabProgramOutput(std::vector<std::string>& output,
     process.wait();
 
     // clang-format off
-    for (std::string line; std::getline(process_output, line);
-         output.push_back(line));
+    for (std::string line; std::getline(process_output, line); output.push_back(line));
     // clang-format on
 
     return Status(0, "OK");
@@ -191,6 +190,7 @@ Status getUpstartServiceStatus(bool& running, const std::string& service_name) {
   auto it = std::find_if(
     output.begin(),
     output.end(),
+
     [service_name](const std::string &obj) -> bool {
       auto str = service_name + " start/";
       return (obj.find(str) != std::string::npos);
@@ -217,6 +217,7 @@ Status getUpstartServiceStartCondition(std::string& condition,
   auto it = std::find_if(
     output.begin(),
     output.end(),
+
     [](const std::string &obj) -> bool {
       return (obj.find("  start on") == 0);
     }
@@ -308,11 +309,11 @@ bool isSystemdEnabled() {
 
 sd_bus* getSystemdBusHandle() {
   /*
-  https://github.com/systemd/systemd/blob/master/ENVIRONMENT.md
+    https://github.com/systemd/systemd/blob/master/ENVIRONMENT.md
 
-  $SYSTEMCTL_FORCE_BUS=1
-    if set, do not connect to PID1's private D-Bus listener, and
-    instead always connect through the dbus-daemon D-bus broker.
+    $SYSTEMCTL_FORCE_BUS=1
+      if set, do not connect to PID1's private D-Bus listener, and
+      instead always connect through the dbus-daemon D-bus broker.
   */
 
   auto force_dbus_env_var = std::getenv("SYSTEMCTL_FORCE_BUS");
@@ -694,9 +695,9 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
 
   // clang-format off
   unit_list.insert(
-      unit_list.end(),
-      inactive_unit_list.begin(),
-      inactive_unit_list.end()
+    unit_list.end(),
+    inactive_unit_list.begin(),
+    inactive_unit_list.end()
   );
   // clang-format on
 
