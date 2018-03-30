@@ -113,7 +113,16 @@ sd_bus_set_allow_interactive_authorization_ptr sd_bus_set_allow_interactive_auth
 osquery::Status loadSystemdDependencies(bool& enabled) {
   enabled = false;
 
-  void* systemd_library = dlopen("libsystemd.so", RTLD_NOW | RTLD_GLOBAL);
+  auto library_list = {"libsystemd.so", "libsystemd.so.0"};
+
+  void* systemd_library = nullptr;
+  for (const auto& library_name : library_list) {
+    systemd_library = dlopen(library_name, RTLD_NOW | RTLD_GLOBAL);
+    if (systemd_library != nullptr) {
+      break;
+    }
+  }
+
   if (systemd_library == nullptr) {
     return osquery::Status(0, "systemd not found");
   }
