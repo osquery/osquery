@@ -4,10 +4,10 @@ schema([
     Column("color_depth", INTEGER, "The amount of bits per pixel to represent color."),
     Column("driver", TEXT, "The driver of the device."),
     Column("driver_date", TEXT, "The date listed on the installed driver."),
-	Column("driver_version", TEXT, "The version of the installed driver."),
+    Column("driver_version", TEXT, "The version of the installed driver."),
     Column("manufacturer", TEXT, "The manufaturer of the gpu."),
     Column("model", TEXT, "The model of the gpu."),
     Column("series", TEXT, "The series of the gpu."),
-	Column("video_mode", TEXT, "The current resolution of the display."),
+    Column("video_mode", TEXT, "The current resolution of the display."),
 ])
 implementation("video_info@genVideoInfo")
