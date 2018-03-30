@@ -10,6 +10,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
