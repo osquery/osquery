@@ -103,7 +103,7 @@ There are several forms of [eventing](http://osquery.readthedocs.org/en/stable/d
 
 ## License
 
-The osquery project is dual-licensed under Apache 2.0 and GPLv2. You may select, at your option, one of the these licenses.
+The osquery project is dual-licensed under Apache 2.0 and GPLv2. You may select, at your option, one of these licenses.
 
 ## Vulnerabilities
 
