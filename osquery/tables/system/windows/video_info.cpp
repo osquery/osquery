@@ -26,7 +26,10 @@ QueryData genVideoInfo(QueryContext& context) {
 
   WmiRequest wmiSystemReq("SELECT * FROM Win32_VideoController");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  if (!wmiResults.empty()) {
+  if (wmiResults.empty()) {
+    LOG(WARNING) << "Failed to retrieve video information";
+    return {};
+  } else {
     long bitsPerPixel = 0;
     wmiResults[0].GetLong("CurrentBitsPerPixel", bitsPerPixel);
     r["color_depth"] = INTEGER(bitsPerPixel);
@@ -37,15 +40,6 @@ QueryData genVideoInfo(QueryContext& context) {
     wmiResults[0].GetString("VideoProcessor", r["model"]);
     wmiResults[0].GetString("Name", r["series"]);
     wmiResults[0].GetString("VideoModeDescription", r["video_mode"]);
-  } else {
-    r["color_depth"] = "-1";
-    r["driver"] = "-1";
-    r["driver_date"] = "-1";
-    r["driver_version"] = "-1";
-    r["manufacturer"] = "-1";
-    r["model"] = " - 1";
-    r["series"] = "-1";
-    r["video_mode"] = "-1";
   }
 
   results.push_back(r);
