@@ -70,7 +70,22 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   return sql;
 }
 
-inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
+inline void launchQuery(const std::string& name, ScheduledQuery& query) {
+  // Check if query is one shot and if it already ran
+  if (query.isOneshot()) {
+    if (query.executed()) {
+      return;
+    }
+
+    // If osquery was restarted, splayed_interval could be reset. Check DB
+    std::string oneshot;
+    getDatabaseValue(kPersistentSettings, "oneshot." + name, oneshot);
+    if (!oneshot.empty()) {
+      query.maskAsExecuted();
+      return;
+    }
+  }
+
   // Execute the scheduled query and create a named query object.
   LOG(INFO) << "Executing scheduled query " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
@@ -147,6 +162,12 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
     LOG(ERROR) << error;
     Initializer::requestShutdown(EXIT_CATASTROPHIC, error);
   }
+
+  if (query.isOneshot() && !query.executed()) {
+    // Mark one shot query as executed
+    query.maskAsExecuted();
+    setDatabaseValue(kPersistentSettings, "oneshot." + name, "1");
+  }
 }
 
 void SchedulerRunner::start() {
@@ -154,7 +175,7 @@ void SchedulerRunner::start() {
   auto i = osquery::getUnixTime();
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
     Config::get().scheduledQueries(
-        ([&i](const std::string& name, const ScheduledQuery& query) {
+        ([&i](const std::string& name, ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
             TablePlugin::kCacheInterval = query.splayed_interval;
             TablePlugin::kCacheStep = i;

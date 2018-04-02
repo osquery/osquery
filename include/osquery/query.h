@@ -282,7 +282,7 @@ struct ScheduledQuery : private only_movable {
   size_t interval{0};
 
   /// A temporary splayed internal.
-  size_t splayed_interval{0};
+  int splayed_interval{0};
 
   /**
    * @brief Queries are blacklisted based on logic in the configuration.
@@ -308,6 +308,21 @@ struct ScheduledQuery : private only_movable {
   /// not equals operator
   bool operator!=(const ScheduledQuery& comp) const {
     return !(*this == comp);
+  }
+
+  /// Whether query is one-shot or not?
+  bool isOneshot() const {
+    return interval == 0;
+  }
+
+  /// If the query already executed. Only relevant for one-shot queries.
+  bool executed() const {
+    return splayed_interval < 0;
+  }
+
+  /// Mark one-shot query as executed.
+  void maskAsExecuted() {
+    splayed_interval = -1;
   }
 };
 

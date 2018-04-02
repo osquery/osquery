@@ -40,6 +40,8 @@ FLAG(uint64,
      "Query interval to use if none is provided");
 
 size_t kMaxQueryInterval = 604800;
+size_t kOneShotInterval = 30;
+size_t kOneShotSplay = 100;
 
 size_t splayValue(size_t original, size_t splayPercent) {
   if (splayPercent == 0 || splayPercent > 100) {
@@ -102,7 +104,12 @@ size_t restoreSplayedValue(const std::string& name, size_t interval) {
   }
 
   // If the splayed interval was not restored from the database.
-  auto splay = splayValue(interval, FLAGS_schedule_splay_percent);
+  size_t splay;
+  if (interval > 0) {
+    splay = splayValue(interval, FLAGS_schedule_splay_percent);
+  } else {
+    splay = splayValue(kOneShotInterval, kOneShotSplay);
+  }
   content = std::to_string(interval) + ":" + std::to_string(splay);
   setDatabaseValue(kPersistentSettings, "interval." + name, content);
   return splay;
@@ -192,16 +199,15 @@ void Pack::initialize(const std::string& name,
     } else {
       query.interval = JSON::valueToSize(q.value["interval"]);
     }
-    if (query.interval <= 0 || query.query.empty() ||
-        query.interval > kMaxQueryInterval) {
+    if (query.query.empty() || query.interval > kMaxQueryInterval) {
       // Invalid pack query.
       LOG(WARNING) << "Query has invalid interval: " << q.name.GetString()
                    << ": " << query.interval;
       continue;
     }
 
-    query.splayed_interval =
-        restoreSplayedValue(q.name.GetString(), query.interval);
+    query.splayed_interval = static_cast<int>(
+        restoreSplayedValue(q.name.GetString(), query.interval));
 
     if (!q.value.HasMember("snapshot")) {
       query.options["snapshot"] = false;
