@@ -69,7 +69,7 @@ void parseNetworkSocket(const struct socket_fdinfo socket_info, Row& r) {
     in = &tcp_in->tcpsi_ini;
     switch (tcp_in->tcpsi_state) {
     case TSI_S_CLOSED:
-        r["state"] = "CLOSE";
+        r["state"] = "CLOSED";
         break;
     case TSI_S_LISTEN:
         r["state"] = "LISTEN";
@@ -81,7 +81,7 @@ void parseNetworkSocket(const struct socket_fdinfo socket_info, Row& r) {
         r["state"] = "SYN_RECV";
         break;
     case TSI_S_ESTABLISHED:
-        r["state"] = "SYN_RECV";
+        r["state"] = "ESTABLISHED";
         break;
     case TSI_S__CLOSE_WAIT:
         r["state"] = "CLOSE_WAIT";
