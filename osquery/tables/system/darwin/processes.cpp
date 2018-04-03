@@ -186,16 +186,16 @@ struct proc_args {
 
 proc_args getProcRawArgs(int pid, size_t argmax) {
   proc_args args;
-  std::vector<char> procargs(argmax);
+  std::unique_ptr<char[]> pprocargs{new char[argmax]};
+  char* procargs = pprocargs.get();
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
-  if (sysctl(mib, 3, procargs.data(), &argmax, nullptr, 0) == -1 ||
-      argmax == 0) {
+  if (sysctl(mib, 3, procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
     return args;
   }
 
   // The number of arguments is an integer in front of the result buffer.
   int nargs = 0;
-  memcpy(&nargs, procargs.data(), sizeof(nargs));
+  memcpy(&nargs, procargs, sizeof(nargs));
   // Walk the \0-tokenized list of arguments until reaching the returned 'max'
   // number of arguments or the number appended to the front.
   const char* current_arg = &procargs[0] + sizeof(nargs);
