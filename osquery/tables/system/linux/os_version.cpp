@@ -99,7 +99,7 @@ QueryData genOSVersion(QueryContext& context) {
     boost::system::error_code ec;
     // Funtoo has an empty os-release file.
     if (boost::filesystem::file_size(kOSRelease, ec) > 0) {
-      return genOSRelease(r);
+      genOSRelease(r);
     }
   }
 
