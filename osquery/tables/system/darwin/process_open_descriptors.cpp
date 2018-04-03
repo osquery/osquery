@@ -69,44 +69,44 @@ void parseNetworkSocket(const struct socket_fdinfo socket_info, Row& r) {
     in = &tcp_in->tcpsi_ini;
     switch (tcp_in->tcpsi_state) {
     case TSI_S_CLOSED:
-        r["state"] = "CLOSED";
-        break;
+      r["state"] = "CLOSED";
+      break;
     case TSI_S_LISTEN:
-        r["state"] = "LISTEN";
-        break;
+      r["state"] = "LISTEN";
+      break;
     case TSI_S_SYN_SENT:
-        r["state"] = "SYN_SENT";
-        break;
+      r["state"] = "SYN_SENT";
+      break;
     case TSI_S_SYN_RECEIVED:
-        r["state"] = "SYN_RECV";
-        break;
+      r["state"] = "SYN_RECV";
+      break;
     case TSI_S_ESTABLISHED:
-        r["state"] = "ESTABLISHED";
-        break;
+      r["state"] = "ESTABLISHED";
+      break;
     case TSI_S__CLOSE_WAIT:
-        r["state"] = "CLOSE_WAIT";
-        break;
+      r["state"] = "CLOSE_WAIT";
+      break;
     case TSI_S_FIN_WAIT_1:
-        r["state"] = "FIN_WAIT1";
-        break;
+      r["state"] = "FIN_WAIT1";
+      break;
     case TSI_S_CLOSING:
-        r["state"] = "CLOSING";
-        break;
+      r["state"] = "CLOSING";
+      break;
     case TSI_S_LAST_ACK:
-        r["state"] = "LAST_ACK";
-        break;
+      r["state"] = "LAST_ACK";
+      break;
     case TSI_S_FIN_WAIT_2:
-        r["state"] = "FIN_WAIT2";
-        break;
+      r["state"] = "FIN_WAIT2";
+      break;
     case TSI_S_TIME_WAIT:
-        r["state"] = "TIME_WAIT";
-        break;
+      r["state"] = "TIME_WAIT";
+      break;
     case TSI_S_RESERVED:
-        r["state"] = "RESERVED";
-        break;
+      r["state"] = "RESERVED";
+      break;
     default:
-        r["state"] = "UNKNOWN";
-        break;
+      r["state"] = "UNKNOWN";
+      break;
     }
   } else {
     in = &socket_info.psi.soi_proto.pri_in;
