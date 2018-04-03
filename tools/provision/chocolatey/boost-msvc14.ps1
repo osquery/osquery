@@ -100,12 +100,6 @@ $b2x64args = @(
   'threading=multi',
   'runtime-link=static',
   'optimization=space',
-  '--with-filesystem',
-  '--with-regex',
-  '--with-system',
-  '--with-thread',
-  '--with-coroutine',
-  '--with-context',
   '--layout=tagged',
   '--ignore-site-config',
   '--disable-icu'
