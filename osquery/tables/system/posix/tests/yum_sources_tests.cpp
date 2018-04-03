@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include<sstream>
+#include <sstream>
 
 #include <gtest/gtest.h>
 
@@ -21,20 +21,25 @@ void parseYumConf(std::istream&, QueryData&ults, std::string&epos_dir);
 
 class YumSourcesTests : public testing::Test {};
 
+TEST_F(YumSourcesTests, parse_empty_yum_conf) {
+  QueryData results;
+  std::string repos_dir;
+  std::istringstream stream1("");
+  parseYumConf(stream1, results, repos_dir);
+  // Default is used when no main.reposdir is set
+  ASSERT_EQ(repos_dir, "/etc/yum.repos.d");
+  ASSERT_EQ(results.size(), (unsigned long) 0);
+}
+
 TEST_F(YumSourcesTests, parse_yum_conf) {
   QueryData results;
   std::string repos_dir;
-
-  std::istringstream stream1("");
-  parseYumConf(stream1, results, repos_dir);
-  ASSERT_EQ(repos_dir, "/etc/yum.repos.d");
-  ASSERT_EQ(results.size(), (unsigned long) 0);
-
   std::istringstream stream2(R"STRLIT(
 # Some comment
 
 [main]
 cachedir=/var/cache/yum
+# This should override the default
 reposdir=/etc/local/yum.repos.d
 
 [personal]

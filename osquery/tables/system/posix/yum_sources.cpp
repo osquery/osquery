@@ -51,8 +51,7 @@ void parseYumConf(std::istream& source, QueryData& results, std::string& repos_d
 void parseYumConf(const std::string& source, QueryData& results, std::string& repos_dir) {
   std::ifstream stream(source.c_str());
   if (!stream) {
-    VLOG(1) << "File " << source
-      << " either cannot be read or cannot be parsed as ini";
+    VLOG(1) << "File " << source << " cannot be read";
     repos_dir = kYumReposDir;
     return;
   }
@@ -79,7 +78,7 @@ QueryData genYumSrcs(QueryContext& context) {
 
   std::vector<std::string> sources;
   if (!resolveFilePattern(repos_dir + "/%.list", sources, GLOB_FILES)) {
-    VLOG(1) << "Cannot resolve yum conf files under" << repos_dir << "/*.list";
+    VLOG(1) << "Cannot resolve yum conf files under " << repos_dir << "/*.list";
     return results;
   }
 
