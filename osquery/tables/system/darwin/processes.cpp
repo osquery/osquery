@@ -288,6 +288,13 @@ void genProcCmdline(int pid, Row& r) {
   r["cmdline"] = cmdline;
 }
 
+void genProcNamePathCmdlineAndOnDisk(int pid,
+                                     const struct proc_cred& cred,
+                                     Row& r) {
+  genProcCmdline(pid, r);
+  genProcNamePathAndOnDisk(pid, cred, r);
+}
+
 static inline long getUptimeInUSec() {
   struct timeval boot_time;
   size_t len = sizeof(boot_time);
@@ -366,8 +373,6 @@ QueryData genProcesses(QueryContext& context) {
     Row r;
     r["pid"] = INTEGER(pid);
 
-    genProcCmdline(pid, r);
-
     // The process relative root and current working directory.
     genProcRootAndCWD(pid, r);
 
@@ -375,8 +380,7 @@ QueryData genProcesses(QueryContext& context) {
     if (!genProcCred(pid, cred, r)) {
       continue;
     }
-
-    genProcNamePathAndOnDisk(pid, cred, r);
+    genProcNamePathCmdlineAndOnDisk(pid, cred, r);
 
     // systems usage and time information
     genProcRUsage(pid, r);
