@@ -288,11 +288,36 @@ void genProcCmdline(int pid, Row& r) {
   r["cmdline"] = cmdline;
 }
 
+struct proc_cached_info {
+  std::string name;
+  std::string path;
+  std::string cmdline;
+  std::string on_disk;
+};
+
 void genProcNamePathCmdlineAndOnDisk(int pid,
                                      const struct proc_cred& cred,
                                      Row& r) {
-  genProcCmdline(pid, r);
-  genProcNamePathAndOnDisk(pid, cred, r);
+  thread_local std::unordered_map<int, proc_cached_info> proc_info_cache;
+
+  struct proc_cached_info cached_info;
+  auto found = proc_info_cache.find(pid);
+  if (found == proc_info_cache.end()) {
+    genProcCmdline(pid, r);
+    genProcNamePathAndOnDisk(pid, cred, r);
+
+    cached_info.name = r["name"];
+    cached_info.path = r["path"];
+    cached_info.cmdline = r["cmdline"];
+    cached_info.on_disk = r["on_disk"];
+    proc_info_cache[pid] = cached_info;
+  } else {
+    cached_info = found->second;
+    r["name"] = cached_info.name;
+    r["path"] = cached_info.path;
+    r["cmdline"] = cached_info.cmdline;
+    r["on_disk"] = cached_info.on_disk;
+  }
 }
 
 static inline long getUptimeInUSec() {
