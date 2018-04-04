@@ -289,6 +289,7 @@ void genProcCmdline(int pid, Row& r) {
 }
 
 struct proc_cached_info {
+  uint64_t start_abstime;
   std::string name;
   std::string path;
   std::string cmdline;
@@ -311,18 +312,27 @@ void evictDeadProcessesFromCache(std::set<int> pidlist) {
 
 void genProcNamePathCmdlineAndOnDisk(int pid,
                                      const struct proc_cred& cred,
+                                     const uint64_t* pproc_start_abstime,
                                      Row& r) {
   struct proc_cached_info cached_info;
   auto found = proc_info_cache.find(pid);
-  if (found == proc_info_cache.end()) {
+  // If not found, or found and the start time doesn't match, recompute
+  if (found == proc_info_cache.end() || pproc_start_abstime == nullptr ||
+      found->second.start_abstime != *pproc_start_abstime) {
     genProcCmdline(pid, r);
     genProcNamePathAndOnDisk(pid, cred, r);
 
-    cached_info.name = r["name"];
-    cached_info.path = r["path"];
-    cached_info.cmdline = r["cmdline"];
-    cached_info.on_disk = r["on_disk"];
-    proc_info_cache[pid] = cached_info;
+    // We use start time (which comes from a high-resolution clock) to verify
+    // that the pid has not been reused since the process was cached. Therefore
+    // if we were unable to find a start time, we cannot cache the data.
+    if (pproc_start_abstime != nullptr) {
+      cached_info.start_abstime = *pproc_start_abstime;
+      cached_info.name = r["name"];
+      cached_info.path = r["path"];
+      cached_info.cmdline = r["cmdline"];
+      cached_info.on_disk = r["on_disk"];
+      proc_info_cache[pid] = cached_info;
+    }
   } else {
     cached_info = found->second;
     r["name"] = cached_info.name;
@@ -351,14 +361,13 @@ static inline long getUptimeInUSec() {
               tv.tv_usec);
 }
 
-void genProcRUsage(int pid, Row& r) {
+bool genProcRUsage(int pid, struct rusage_info_v2& rusage_info_data, Row& r) {
   // Initialize time conversions.
   static mach_timebase_info_data_t time_base;
   if (time_base.denom == 0) {
     mach_timebase_info(&time_base);
   }
 
-  struct rusage_info_v2 rusage_info_data;
   int status =
       proc_pid_rusage(pid, RUSAGE_INFO_V2, (rusage_info_t*)&rusage_info_data);
   // proc_pid_rusage returns -1 if it was unable to gather information
@@ -392,6 +401,7 @@ void genProcRUsage(int pid, Row& r) {
 
     // Get the start_time of process since the computer started
     r["start_time"] = TEXT((uptime + seconds_since_launch) / CPU_TIME_RATIO);
+    return true;
   } else {
     r["wired_size"] = "-1";
     r["resident_size"] = "-1";
@@ -399,6 +409,7 @@ void genProcRUsage(int pid, Row& r) {
     r["user_time"] = "-1";
     r["system_time"] = "-1";
     r["start_time"] = "-1";
+    return false;
   }
 }
 
@@ -418,10 +429,14 @@ QueryData genProcesses(QueryContext& context) {
     if (!genProcCred(pid, cred, r)) {
       continue;
     }
-    genProcNamePathCmdlineAndOnDisk(pid, cred, r);
-
     // systems usage and time information
-    genProcRUsage(pid, r);
+    struct rusage_info_v2 rusage_info_data;
+    uint64_t* pproc_start_abstime = nullptr;
+    if (genProcRUsage(pid, rusage_info_data, r)) {
+      pproc_start_abstime = &rusage_info_data.ri_proc_start_abstime;
+    }
+
+    genProcNamePathCmdlineAndOnDisk(pid, cred, pproc_start_abstime, r);
 
     genProcNumThreads(pid, r);
 
