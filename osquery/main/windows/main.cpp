@@ -15,10 +15,13 @@
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
+#include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
+#include "osquery/core/process.h"
+#include "osquery/core/watcher.h"
 #include "osquery/main/main.h"
 
 DECLARE_string(flagfile);
@@ -28,6 +31,8 @@ namespace osquery {
 static const std::string kDefaultFlagsFile{OSQUERY_HOME "\\osquery.flags"};
 static const std::string kServiceName{"osqueryd"};
 static const std::string kServiceDisplayName{"osquery daemon service"};
+
+const int kServiceShutdownTimeout {500};
 
 static SERVICE_STATUS_HANDLE kStatusHandle = nullptr;
 static SERVICE_STATUS kServiceStatus = {0};
@@ -75,14 +80,17 @@ HANDLE getStopEvent() {
   return stopEvent;
 }
 
-static void UpdateServiceStatus(DWORD controls,
-                                DWORD state,
-                                DWORD exit_code,
-                                DWORD checkpoint) {
+static void UpdateServiceStatus(unsigned long controls,
+  unsigned long state,
+  unsigned long exit_code,
+  unsigned long checkpoint,
+  unsigned long wait_hint = 0) {
+
   kServiceStatus.dwControlsAccepted = controls;
   kServiceStatus.dwCurrentState = state;
   kServiceStatus.dwWin32ExitCode = exit_code;
   kServiceStatus.dwCheckPoint = checkpoint;
+  kServiceStatus.dwWaitHint = wait_hint;
 
   if (!::SetServiceStatus(kStatusHandle, &kServiceStatus)) {
     SLOG("SetServiceStatus failed (lasterror=" +
@@ -101,8 +109,10 @@ static auto kShutdownCallable = ([]() {
   if (stopEvent != nullptr) {
     // Wait forever, until the service handler signals us
     ::WaitForSingleObject(stopEvent, INFINITE);
-    // Interup the worker service threads before joining
+    
+    // Interupt the worker service threads before joining
     Dispatcher::stopServices();
+
     auto ret = ::CloseHandle(stopEvent);
     if (ret != TRUE) {
       SLOG("kShutdownCallable failed to call CloseHandle with (" +
@@ -305,7 +315,7 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
       break;
     }
 
-    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3);
+    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3, 2 * kServiceShutdownTimeout);
     {
       auto stopEvent = osquery::getStopEvent();
       if (stopEvent != nullptr) {
@@ -316,6 +326,16 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
         }
         CloseHandle(stopEvent);
       }
+      // We allow for the watcher primary thread of execution to
+      // shutdown gracefully by pausing for 500 ms. This is set 
+      //Sleep(kServiceShutdownTimeout);
+      unsigned long tid = static_cast<unsigned long>(std::hash<std::thread::id>{}(kMainThreadId));
+      auto mainThread = OpenThread(SYNCHRONIZE, false, tid);
+      WaitForSingleObjectEx(mainThread, kServiceShutdownTimeout, true);
+
+      // Lastly wait for our child process to shut down
+      auto& worker = Watcher::get().getWorker();
+      WaitForSingleObjectEx(worker.nativeHandle(), kServiceShutdownTimeout, true);
     }
     UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
 
