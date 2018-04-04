@@ -295,11 +295,23 @@ struct proc_cached_info {
   std::string on_disk;
 };
 
+thread_local std::unordered_map<int, proc_cached_info> proc_info_cache;
+
+void evictDeadProcessesFromCache(std::set<int> pidlist) {
+  auto iter = proc_info_cache.cbegin();
+  while (iter != proc_info_cache.cend()) {
+    if (pidlist.find(iter->first) == pidlist.end()) {
+      // Process is dead; remove
+      proc_info_cache.erase(iter++);
+    } else {
+      ++iter;
+    }
+  }
+}
+
 void genProcNamePathCmdlineAndOnDisk(int pid,
                                      const struct proc_cred& cred,
                                      Row& r) {
-  thread_local std::unordered_map<int, proc_cached_info> proc_info_cache;
-
   struct proc_cached_info cached_info;
   auto found = proc_info_cache.find(pid);
   if (found == proc_info_cache.end()) {
@@ -394,6 +406,7 @@ QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
   auto pidlist = getProcList(context);
+  evictDeadProcessesFromCache(pidlist);
   for (auto& pid : pidlist) {
     Row r;
     r["pid"] = INTEGER(pid);
