@@ -46,7 +46,7 @@ long getUptime() {
 
   return sys_info.uptime;
 #elif defined(WIN32)
-  return static_cast<long>(GetTickCount64()) / 1000;
+  return static_cast<long>(GetTickCount64() / 1000);
 #endif
 
   return -1;
