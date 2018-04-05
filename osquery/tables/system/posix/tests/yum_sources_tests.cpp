@@ -17,7 +17,7 @@
 namespace osquery {
 namespace tables {
 
-void parseYumConf(std::istream&, QueryData&ults, std::string&epos_dir);
+void parseYumConf(std::istream&, QueryData& ults, std::string& repos_dir);
 
 class YumSourcesTests : public testing::Test {};
 
@@ -28,7 +28,7 @@ TEST_F(YumSourcesTests, parse_empty_yum_conf) {
   parseYumConf(stream1, results, repos_dir);
   // Default is used when no main.reposdir is set
   ASSERT_EQ(repos_dir, "/etc/yum.repos.d");
-  ASSERT_EQ(results.size(), (unsigned long) 0);
+  ASSERT_EQ(results.size(), (unsigned long)0);
 }
 
 TEST_F(YumSourcesTests, parse_yum_conf) {
@@ -58,7 +58,7 @@ gpgkey=ftp://repokeys/mykey
 
   parseYumConf(stream2, results, repos_dir);
   ASSERT_EQ(repos_dir, "/etc/local/yum.repos.d");
-  ASSERT_EQ(results.size(), (unsigned long) 2);
+  ASSERT_EQ(results.size(), (unsigned long)2);
 
   ASSERT_EQ(results.at(0).at("baseurl"), "http://my.repo.url/1/v2/3");
   ASSERT_EQ(results.at(0).at("enabled"), "1");

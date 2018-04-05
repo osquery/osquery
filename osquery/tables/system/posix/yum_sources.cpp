@@ -9,8 +9,8 @@
  */
 
 #include <boost/property_tree/ini_parser.hpp>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -21,26 +21,28 @@
 namespace osquery {
 namespace tables {
 
-const std::string kYumConf { "/etc/yum.conf" };
-const std::string kYumReposDir { "/etc/yum.repos.d" };
+const std::string kYumConf{"/etc/yum.conf"};
+const std::string kYumReposDir{"/etc/yum.repos.d"};
 
-void parseYumConf(std::istream& source, QueryData& results, std::string& repos_dir) {
+void parseYumConf(std::istream& source,
+                  QueryData& results,
+                  std::string& repos_dir) {
   boost::property_tree::ptree tree;
   boost::property_tree::ini_parser::read_ini(source, tree);
   repos_dir = tree.get("main.reposdir", kYumReposDir);
 
-  for (auto it1: tree) {
+  for (auto it1 : tree) {
     // Section
     if (it1.first == "main") {
       continue;
     }
 
     Row r;
-    for (auto it2: it1.second) {
+    for (auto it2 : it1.second) {
       // Option
-      if ("baseurl" == it2.first || "enabled" == it2.first
-          || "gpgcheck" == it2.first || "name" == it2.first
-          || "gpgkey" == it2.first) {
+      if ("baseurl" == it2.first || "enabled" == it2.first ||
+          "gpgcheck" == it2.first || "name" == it2.first ||
+          "gpgkey" == it2.first) {
         r[it2.first] = it2.second.data();
       }
     }
@@ -48,7 +50,9 @@ void parseYumConf(std::istream& source, QueryData& results, std::string& repos_d
   }
 }
 
-void parseYumConf(const std::string& source, QueryData& results, std::string& repos_dir) {
+void parseYumConf(const std::string& source,
+                  QueryData& results,
+                  std::string& repos_dir) {
   std::ifstream stream(source.c_str());
   if (!stream) {
     VLOG(1) << "File " << source << " cannot be read";
@@ -60,7 +64,7 @@ void parseYumConf(const std::string& source, QueryData& results, std::string& re
     parseYumConf(stream, results, repos_dir);
   } catch (boost::property_tree::ini_parser::ini_parser_error& e) {
     VLOG(1) << "File " << source
-      << " either cannot be read or cannot be parsed as ini";
+            << " either cannot be read or cannot be parsed as ini";
     repos_dir = kYumReposDir;
   }
 }
