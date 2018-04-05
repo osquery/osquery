@@ -404,4 +404,9 @@ void registerOperationExtensions(sqlite3* db);
  * @brief Register encoding-related 'custom' functions.
  */
 void registerEncodingExtensions(sqlite3* db);
-}
+
+/**
+ * @brief Register filesystem-related 'custom' functions.
+ */
+void registerFilesystemExtensions(sqlite3* db);
+} // namespace osquery

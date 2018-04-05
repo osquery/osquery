@@ -8,6 +8,7 @@ set(OSQUERY_SQL_INTERNAL
   "sqlite_hashing.cpp"
   "sqlite_encoding.cpp"
   "virtual_table.cpp"
+  "sqlite_filesystem.cpp"
 )
 
 if(NOT FREEBSD)
