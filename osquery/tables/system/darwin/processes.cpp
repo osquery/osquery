@@ -176,9 +176,10 @@ static inline int genMaxArgs() {
   return argmax;
 }
 
-void genProcRootAndCWD(int pid, Row& r) {
-  r["cwd"] = "";
-  r["root"] = "";
+void genProcRootAndCWD(const QueryContext& context, int pid, Row& r) {
+  if (!context.isAnyColumnUsed({"cwd", "root"})) {
+    return;
+  }
 
   struct proc_vnodepathinfo pathinfo;
   if (proc_pidinfo(
@@ -194,7 +195,14 @@ void genProcRootAndCWD(int pid, Row& r) {
   }
 }
 
-void genProcNamePathAndOnDisk(int pid, const struct proc_cred& cred, Row& r) {
+void genProcNamePathAndOnDisk(const QueryContext& context,
+                              int pid,
+                              const struct proc_cred& cred,
+                              Row& r) {
+  if (!context.isAnyColumnUsed({"name", "path", "on_disk"})) {
+    return;
+  }
+
   if (pid == 0) {
     r["path"] = "";
     // For some reason not even proc_name gives back a name for kernel_task
@@ -211,6 +219,10 @@ void genProcNamePathAndOnDisk(int pid, const struct proc_cred& cred, Row& r) {
     r["name"] = std::string(name.data());
   }
 
+  if (!context.isColumnUsed("on_disk")) {
+    return;
+  }
+
   // If the path of the executable that started the process is available and
   // the path exists on disk, set on_disk to 1. If the path is not
   // available, set on_disk to -1. If, and only if, the path of the
@@ -225,7 +237,11 @@ void genProcNamePathAndOnDisk(int pid, const struct proc_cred& cred, Row& r) {
   }
 }
 
-void genProcNumThreads(int pid, Row& r) {
+void genProcNumThreads(QueryContext& context, int pid, Row& r) {
+  if (!context.isColumnUsed("threads")) {
+    return;
+  }
+
   struct proc_taskinfo task_info;
   int status =
       proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &task_info, sizeof(task_info));
@@ -284,7 +300,11 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
   return args;
 }
 
-void genProcCmdline(int pid, Row& r) {
+void genProcCmdline(const QueryContext& context, int pid, Row& r) {
+  if (!context.isColumnUsed("cmdline")) {
+    return;
+  }
+
   int argmax = genMaxArgs();
   // The command line invocation including arguments.
   auto args = getProcRawArgs(pid, argmax);
@@ -311,11 +331,20 @@ static inline long getUptimeInUSec() {
               tv.tv_usec);
 }
 
-void genProcRUsage(int pid, Row& r) {
-  // Initialize time conversions.
-  static mach_timebase_info_data_t time_base;
-  if (time_base.denom == 0) {
-    mach_timebase_info(&time_base);
+void genProcRUsage(const QueryContext& context, int pid, Row& r) {
+  if (!context.isAnyColumnUsed({"name",
+                                "path",
+                                "cmdline",
+                                "on_disk",
+                                "wired_size",
+                                "resident_size",
+                                "total_size",
+                                "user_time",
+                                "system_time",
+                                "disk_bytes_read",
+                                "disk_bytes_written",
+                                "start_time"})) {
+    return;
   }
 
   struct rusage_info_v2 rusage_info_data;
@@ -336,22 +365,30 @@ void genProcRUsage(int pid, Row& r) {
     r["disk_bytes_read"] = TEXT(rusage_info_data.ri_diskio_bytesread);
     r["disk_bytes_written"] = TEXT(rusage_info_data.ri_diskio_byteswritten);
 
-    // Below is the logic to caculate the start_time since boot time
-    // with higher precision
-    auto uptime = getUptimeInUSec();
-    uint64_t absoluteTime = mach_absolute_time();
+    if (context.isColumnUsed("start_time")) {
+      // Initialize time conversions.
+      static mach_timebase_info_data_t time_base;
+      if (time_base.denom == 0) {
+        mach_timebase_info(&time_base);
+      }
 
-    auto multiply = static_cast<double>(time_base.numer) /
-                    static_cast<double>(time_base.denom);
-    auto diff = static_cast<long>(
-        (rusage_info_data.ri_proc_start_abstime - absoluteTime));
+      // Below is the logic to caculate the start_time since boot time
+      // with higher precision
+      auto uptime = getUptimeInUSec();
+      uint64_t absoluteTime = mach_absolute_time();
 
-    // This is a negative value
-    auto seconds_since_launch =
-        static_cast<long>(diff * multiply) / NSECS_IN_USEC;
+      auto multiply = static_cast<double>(time_base.numer) /
+                      static_cast<double>(time_base.denom);
+      auto diff = static_cast<long>(
+          (rusage_info_data.ri_proc_start_abstime - absoluteTime));
 
-    // Get the start_time of process since the computer started
-    r["start_time"] = TEXT((uptime + seconds_since_launch) / CPU_TIME_RATIO);
+      // This is a negative value
+      auto seconds_since_launch =
+          static_cast<long>(diff * multiply) / NSECS_IN_USEC;
+
+      // Get the start_time of process since the computer started
+      r["start_time"] = TEXT((uptime + seconds_since_launch) / CPU_TIME_RATIO);
+    }
   } else {
     r["wired_size"] = "-1";
     r["resident_size"] = "-1";
@@ -370,22 +407,22 @@ QueryData genProcesses(QueryContext& context) {
     Row r;
     r["pid"] = INTEGER(pid);
 
-    genProcCmdline(pid, r);
+    genProcCmdline(context, pid, r);
 
     // The process relative root and current working directory.
-    genProcRootAndCWD(pid, r);
+    genProcRootAndCWD(context, pid, r);
 
     proc_cred cred;
     if (!genProcCred(pid, cred, r)) {
       continue;
     }
 
-    genProcNamePathAndOnDisk(pid, cred, r);
+    genProcNamePathAndOnDisk(context, pid, cred, r);
 
     // systems usage and time information
-    genProcRUsage(pid, r);
+    genProcRUsage(context, pid, r);
 
-    genProcNumThreads(pid, r);
+    genProcNumThreads(context, pid, r);
 
     results.push_back(r);
   }
