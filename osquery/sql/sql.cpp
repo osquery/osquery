@@ -121,6 +121,25 @@ QueryData SQL::selectAllFrom(const std::string& table,
   return response;
 }
 
+QueryData SQL::selectFrom(const std::initializer_list<std::string> columns,
+                          const std::string& table,
+                          const std::string& column,
+                          ConstraintOperator op,
+                          const std::string& expr) {
+  PluginRequest request = {{"action", "generate"}};
+  {
+    // Create a fake content, there will be no caching.
+    QueryContext ctx;
+    ctx.constraints[column].add(Constraint(op, expr));
+    ctx.colsUsed = UsedColumns(columns);
+    TablePlugin::setRequestFromContext(ctx, request);
+  }
+
+  PluginResponse response;
+  Registry::call("table", table, request, response);
+  return response;
+}
+
 Status SQLPlugin::call(const PluginRequest& request, PluginResponse& response) {
   response.clear();
   if (request.count("action") == 0) {

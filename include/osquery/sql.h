@@ -127,6 +127,12 @@ class SQL : private only_movable {
                                  ConstraintOperator op,
                                  const std::string& expr);
 
+  static QueryData selectFrom(const std::initializer_list<std::string> columns,
+                              const std::string& table,
+                              const std::string& column,
+                              ConstraintOperator op,
+                              const std::string& expr);
+
  protected:
   /**
    * @brief Private default constructor.
