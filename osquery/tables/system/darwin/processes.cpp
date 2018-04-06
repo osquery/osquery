@@ -59,6 +59,28 @@ const char kProcessStateMapping[] = {' ', 'I', 'R', 'S', 'T', 'Z'};
  */
 static std::string getProcPath(int pid);
 
+struct proc_cached_info {
+  uint64_t start_abstime;
+  std::string name;
+  std::string path;
+  std::string cmdline;
+  std::string on_disk;
+};
+
+thread_local std::unordered_map<int, proc_cached_info> proc_info_cache;
+
+void evictDeadProcessesFromCache(std::set<int> pidlist) {
+  auto iter = proc_info_cache.cbegin();
+  while (iter != proc_info_cache.cend()) {
+    if (pidlist.find(iter->first) == pidlist.end()) {
+      // Process is dead; remove
+      proc_info_cache.erase(iter++);
+    } else {
+      ++iter;
+    }
+  }
+}
+
 std::set<int> getProcList(const QueryContext& context) {
   std::set<int> pidlist;
   if (context.constraints.count("pid") > 0 &&
@@ -95,6 +117,7 @@ std::set<int> getProcList(const QueryContext& context) {
     }
     pidlist.insert(pids[i]);
   }
+  evictDeadProcessesFromCache(pidlist);
   return pidlist;
 }
 
@@ -288,33 +311,10 @@ void genProcCmdline(int pid, Row& r) {
   r["cmdline"] = cmdline;
 }
 
-struct proc_cached_info {
-  uint64_t start_abstime;
-  std::string name;
-  std::string path;
-  std::string cmdline;
-  std::string on_disk;
-};
-
-thread_local std::unordered_map<int, proc_cached_info> proc_info_cache;
-
-void evictDeadProcessesFromCache(std::set<int> pidlist) {
-  auto iter = proc_info_cache.cbegin();
-  while (iter != proc_info_cache.cend()) {
-    if (pidlist.find(iter->first) == pidlist.end()) {
-      // Process is dead; remove
-      proc_info_cache.erase(iter++);
-    } else {
-      ++iter;
-    }
-  }
-}
-
 void genProcNamePathCmdlineAndOnDisk(int pid,
                                      const struct proc_cred& cred,
                                      const uint64_t* pproc_start_abstime,
                                      Row& r) {
-  struct proc_cached_info cached_info;
   auto found = proc_info_cache.find(pid);
   // If not found, or found and the start time doesn't match, recompute
   if (found == proc_info_cache.end() || pproc_start_abstime == nullptr ||
@@ -326,15 +326,16 @@ void genProcNamePathCmdlineAndOnDisk(int pid,
     // that the pid has not been reused since the process was cached. Therefore
     // if we were unable to find a start time, we cannot cache the data.
     if (pproc_start_abstime != nullptr) {
+      proc_info_cache.emplace(std::piecewise_construct, std::make_tuple(pid), std::make_tuple());
+      proc_cached_info& cached_info = proc_info_cache[pid];
       cached_info.start_abstime = *pproc_start_abstime;
       cached_info.name = r["name"];
       cached_info.path = r["path"];
       cached_info.cmdline = r["cmdline"];
       cached_info.on_disk = r["on_disk"];
-      proc_info_cache[pid] = cached_info;
     }
   } else {
-    cached_info = found->second;
+    const proc_cached_info& cached_info = found->second;
     r["name"] = cached_info.name;
     r["path"] = cached_info.path;
     r["cmdline"] = cached_info.cmdline;
@@ -417,7 +418,6 @@ QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
   auto pidlist = getProcList(context);
-  evictDeadProcessesFromCache(pidlist);
   for (auto& pid : pidlist) {
     Row r;
     r["pid"] = INTEGER(pid);
