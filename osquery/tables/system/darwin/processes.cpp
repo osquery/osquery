@@ -109,7 +109,10 @@ struct proc_cred {
   } real, effective, saved;
 };
 
-inline bool genProcCred(int pid, proc_cred& cred, Row& r) {
+inline bool genProcCred(QueryContext& context,
+                        int pid,
+                        proc_cred& cred,
+                        Row& r) {
   struct proc_bsdinfo bsdinfo;
   struct proc_bsdshortinfo bsdinfo_short;
 
@@ -144,19 +147,20 @@ inline bool genProcCred(int pid, proc_cred& cred, Row& r) {
     return false;
   }
 
-  r["parent"] = BIGINT(cred.parent);
-  r["pgroup"] = BIGINT(cred.group);
-  // check if process state is one of the expected ones
-  r["state"] = (1 <= cred.status && cred.status <= 5)
-                   ? TEXT(kProcessStateMapping[cred.status])
-                   : TEXT('?');
-  r["nice"] = INTEGER(cred.nice);
-  r["uid"] = BIGINT(cred.real.uid);
-  r["gid"] = BIGINT(cred.real.gid);
-  r["euid"] = BIGINT(cred.effective.uid);
-  r["egid"] = BIGINT(cred.effective.gid);
-  r["suid"] = BIGINT(cred.saved.uid);
-  r["sgid"] = BIGINT(cred.saved.gid);
+  context.setBigIntColumnIfUsed(r, "parent", cred.parent);
+  context.setBigIntColumnIfUsed(r, "pgroup", cred.group);
+  context.setTextColumnIfUsed(r,
+                              "state",
+                              (1 <= cred.status && cred.status <= 5)
+                                  ? kProcessStateMapping[cred.status]
+                                  : '?');
+  context.setIntegerColumnIfUsed(r, "nice", cred.nice);
+  context.setBigIntColumnIfUsed(r, "uid", cred.real.uid);
+  context.setBigIntColumnIfUsed(r, "gid", cred.real.gid);
+  context.setBigIntColumnIfUsed(r, "euid", cred.effective.uid);
+  context.setBigIntColumnIfUsed(r, "egid", cred.effective.gid);
+  context.setBigIntColumnIfUsed(r, "suid", cred.saved.uid);
+  context.setBigIntColumnIfUsed(r, "sgid", cred.saved.gid);
 
   return true;
 }
@@ -185,11 +189,13 @@ void genProcRootAndCWD(const QueryContext& context, int pid, Row& r) {
   if (proc_pidinfo(
           pid, PROC_PIDVNODEPATHINFO, 0, &pathinfo, sizeof(pathinfo)) ==
       sizeof(pathinfo)) {
-    if (pathinfo.pvi_cdir.vip_vi.vi_stat.vst_dev != 0) {
+    if (context.isColumnUsed("cwd") &&
+        pathinfo.pvi_cdir.vip_vi.vi_stat.vst_dev != 0) {
       r["cwd"] = std::string(pathinfo.pvi_cdir.vip_path);
     }
 
-    if (pathinfo.pvi_rdir.vip_vi.vi_stat.vst_dev != 0) {
+    if (context.isColumnUsed("root") &&
+        pathinfo.pvi_rdir.vip_vi.vi_stat.vst_dev != 0) {
       r["root"] = std::string(pathinfo.pvi_rdir.vip_path);
     }
   }
@@ -203,21 +209,29 @@ void genProcNamePathAndOnDisk(const QueryContext& context,
     return;
   }
 
+  std::string path;
   if (pid == 0) {
-    r["path"] = "";
-    // For some reason not even proc_name gives back a name for kernel_task
-    r["name"] = "kernel_task";
+    path = "";
+    if (context.isColumnUsed("name")) {
+      // For some reason not even proc_name gives back a name for kernel_task
+      r["name"] = "kernel_task";
+    }
   } else if (cred.status != 5) { // If the process is not a Zombie, try to
                                  // find the path and name.
-    r["path"] = getProcPath(pid);
-    // OS X proc_name only returns 16 bytes, use the basename of the path.
-    r["name"] = fs::path(r["path"]).filename().string();
+    path = getProcPath(pid);
+    if (context.isColumnUsed("name")) {
+      // OS X proc_name only returns 16 bytes, use the basename of the path.
+      r["name"] = fs::path(path).filename().string();
+    }
   } else {
-    r["path"] = "";
-    std::vector<char> name(17);
-    proc_name(pid, name.data(), 16);
-    r["name"] = std::string(name.data());
+    path = "";
+    if (context.isColumnUsed("name")) {
+      std::vector<char> name(17);
+      proc_name(pid, name.data(), 16);
+      r["name"] = std::string(name.data());
+    }
   }
+  context.setTextColumnIfUsed(r, "path", path);
 
   if (!context.isColumnUsed("on_disk")) {
     return;
@@ -228,9 +242,9 @@ void genProcNamePathAndOnDisk(const QueryContext& context,
   // available, set on_disk to -1. If, and only if, the path of the
   // executable is available and the file does NOT exist on disk, set on_disk
   // to 0.
-  if (r["path"].empty()) {
+  if (path.empty()) {
     r["on_disk"] = INTEGER(-1);
-  } else if (pathExists(r["path"])) {
+  } else if (pathExists(path)) {
     r["on_disk"] = INTEGER(1);
   } else {
     r["on_disk"] = INTEGER(0);
@@ -353,17 +367,26 @@ void genProcRUsage(const QueryContext& context, int pid, Row& r) {
   // proc_pid_rusage returns -1 if it was unable to gather information
   if (status == 0) {
     // size/memory information
-    r["wired_size"] = TEXT(rusage_info_data.ri_wired_size);
-    r["resident_size"] = TEXT(rusage_info_data.ri_resident_size);
-    r["total_size"] = TEXT(rusage_info_data.ri_phys_footprint);
+    context.setTextColumnIfUsed(
+        r, "wired_size", TEXT(rusage_info_data.ri_wired_size));
+    context.setTextColumnIfUsed(
+        r, "resident_size", TEXT(rusage_info_data.ri_resident_size));
+    context.setTextColumnIfUsed(
+        r, "total_size", TEXT(rusage_info_data.ri_phys_footprint));
 
     // time information
-    r["user_time"] = TEXT(rusage_info_data.ri_user_time / CPU_TIME_RATIO);
-    r["system_time"] = TEXT(rusage_info_data.ri_system_time / CPU_TIME_RATIO);
+    context.setTextColumnIfUsed(
+        r, "user_time", TEXT(rusage_info_data.ri_user_time / CPU_TIME_RATIO));
+    context.setTextColumnIfUsed(
+        r,
+        "system_time",
+        TEXT(rusage_info_data.ri_system_time / CPU_TIME_RATIO));
 
     // disk i/o information
-    r["disk_bytes_read"] = TEXT(rusage_info_data.ri_diskio_bytesread);
-    r["disk_bytes_written"] = TEXT(rusage_info_data.ri_diskio_byteswritten);
+    context.setTextColumnIfUsed(
+        r, "disk_bytes_read", TEXT(rusage_info_data.ri_diskio_bytesread));
+    context.setTextColumnIfUsed(
+        r, "disk_bytes_written", TEXT(rusage_info_data.ri_diskio_byteswritten));
 
     if (context.isColumnUsed("start_time")) {
       // Initialize time conversions.
@@ -390,12 +413,12 @@ void genProcRUsage(const QueryContext& context, int pid, Row& r) {
       r["start_time"] = TEXT((uptime + seconds_since_launch) / CPU_TIME_RATIO);
     }
   } else {
-    r["wired_size"] = "-1";
-    r["resident_size"] = "-1";
-    r["total_size"] = "-1";
-    r["user_time"] = "-1";
-    r["system_time"] = "-1";
-    r["start_time"] = "-1";
+    context.setTextColumnIfUsed(r, "wired_size", "-1");
+    context.setTextColumnIfUsed(r, "resident_size", "-1");
+    context.setTextColumnIfUsed(r, "total_size", "-1");
+    context.setTextColumnIfUsed(r, "user_time", "-1");
+    context.setTextColumnIfUsed(r, "system_time", "-1");
+    context.setTextColumnIfUsed(r, "start_time", "-1");
   }
 }
 
@@ -405,7 +428,7 @@ QueryData genProcesses(QueryContext& context) {
   auto pidlist = getProcList(context);
   for (auto& pid : pidlist) {
     Row r;
-    r["pid"] = INTEGER(pid);
+    context.setIntegerColumnIfUsed(r, "pid", pid);
 
     genProcCmdline(context, pid, r);
 
@@ -413,7 +436,7 @@ QueryData genProcesses(QueryContext& context) {
     genProcRootAndCWD(context, pid, r);
 
     proc_cred cred;
-    if (!genProcCred(pid, cred, r)) {
+    if (!genProcCred(context, pid, cred, r)) {
       continue;
     }
 

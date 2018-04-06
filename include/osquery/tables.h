@@ -618,6 +618,41 @@ struct QueryContext : private only_movable {
   /// Check if any of the given columns is used by the query
   bool isAnyColumnUsed(std::initializer_list<std::string> colNames) const;
 
+  template <typename Type>
+  inline void setTextColumnIfUsed(Row& r,
+                                  const std::string& colName,
+                                  const Type& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = TEXT(value);
+    }
+  }
+
+  template <typename Type>
+  inline void setIntegerColumnIfUsed(Row& r,
+                                     const std::string& colName,
+                                     const Type& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = INTEGER(value);
+    }
+  }
+
+  template <typename Type>
+  inline void setBigIntColumnIfUsed(Row& r,
+                                    const std::string& colName,
+                                    const Type& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = BIGINT(value);
+    }
+  }
+
+  inline void setColumnIfUsed(Row& r,
+                              const std::string& colName,
+                              const std::string& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = value;
+    }
+  }
+
   /// Check if a table-defined index exists within the query cache.
   bool isCached(const std::string& index) const;
 
