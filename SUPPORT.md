@@ -5,12 +5,12 @@ Welcome to osquery! We use GitHub for tracking bugs and feature requests. This i
 # Documentation
 
  - [User Guide](https://osquery.readthedocs.io/en/stable/)
- 
-# Chat
-
-- [osquery slack](https://osquery-slack.herokuapp.com/)
 
 # StackOverflow
 
 - [osquery on StackOverflow](https://area51.stackexchange.com/proposals/117450/osquery)
+ 
+# Chat
 
+- [osquery slack](https://osquery-slack.herokuapp.com/)
+- [reddit](https://www.reddit.com/r/osquery/)

@@ -7,6 +7,7 @@ If this is a usage question and not a bug report, consider asking it in one of o
 
 Slack: https://osquery-slack.herokuapp.com/
 Stack Overflow: https://area51.stackexchange.com/proposals/117450/osquery
+Reddit: https://www.reddit.com/r/osquery/
 
 -->
 
