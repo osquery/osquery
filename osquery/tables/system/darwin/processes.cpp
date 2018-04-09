@@ -59,6 +59,28 @@ const char kProcessStateMapping[] = {' ', 'I', 'R', 'S', 'T', 'Z'};
  */
 static std::string getProcPath(int pid);
 
+struct proc_cached_info {
+  uint64_t start_abstime;
+  std::string name;
+  std::string path;
+  std::string cmdline;
+  std::string on_disk;
+};
+
+thread_local std::unordered_map<int, proc_cached_info> proc_info_cache;
+
+void evictDeadProcessesFromCache(std::set<int> pidlist) {
+  auto iter = proc_info_cache.cbegin();
+  while (iter != proc_info_cache.cend()) {
+    if (pidlist.find(iter->first) == pidlist.end()) {
+      // Process is dead; remove
+      proc_info_cache.erase(iter++);
+    } else {
+      ++iter;
+    }
+  }
+}
+
 std::set<int> getProcList(const QueryContext& context) {
   std::set<int> pidlist;
   if (context.constraints.count("pid") > 0 &&
@@ -95,6 +117,7 @@ std::set<int> getProcList(const QueryContext& context) {
     }
     pidlist.insert(pids[i]);
   }
+  evictDeadProcessesFromCache(pidlist);
   return pidlist;
 }
 
@@ -109,7 +132,7 @@ struct proc_cred {
   } real, effective, saved;
 };
 
-inline bool getProcCred(int pid, proc_cred& cred) {
+inline bool genProcCred(int pid, proc_cred& cred, Row& r) {
   struct proc_bsdinfo bsdinfo;
   struct proc_bsdshortinfo bsdinfo_short;
 
@@ -125,7 +148,6 @@ inline bool getProcCred(int pid, proc_cred& cred) {
     cred.effective.gid = bsdinfo.pbi_gid;
     cred.saved.uid = bsdinfo.pbi_svuid;
     cred.saved.gid = bsdinfo.pbi_svgid;
-    return true;
   } else if (proc_pidinfo(pid,
                           PROC_PIDT_SHORTBSDINFO,
                           1,
@@ -141,9 +163,25 @@ inline bool getProcCred(int pid, proc_cred& cred) {
     cred.effective.gid = bsdinfo_short.pbsi_gid;
     cred.saved.uid = bsdinfo_short.pbsi_svuid;
     cred.saved.gid = bsdinfo_short.pbsi_svgid;
-    return true;
+  } else {
+    return false;
   }
-  return false;
+
+  r["parent"] = BIGINT(cred.parent);
+  r["pgroup"] = BIGINT(cred.group);
+  // check if process state is one of the expected ones
+  r["state"] = (1 <= cred.status && cred.status <= 5)
+                   ? TEXT(kProcessStateMapping[cred.status])
+                   : TEXT('?');
+  r["nice"] = INTEGER(cred.nice);
+  r["uid"] = BIGINT(cred.real.uid);
+  r["gid"] = BIGINT(cred.real.gid);
+  r["euid"] = BIGINT(cred.effective.uid);
+  r["egid"] = BIGINT(cred.effective.gid);
+  r["suid"] = BIGINT(cred.saved.uid);
+  r["sgid"] = BIGINT(cred.saved.gid);
+
+  return true;
 }
 
 // Get the max args space
@@ -179,6 +217,44 @@ void genProcRootAndCWD(int pid, Row& r) {
   }
 }
 
+void genProcNamePathAndOnDisk(int pid, const struct proc_cred& cred, Row& r) {
+  // If the process is not a Zombie, try to find the path and name.
+  if (cred.status != 5) {
+    r["path"] = getProcPath(pid);
+    // OS X proc_name only returns 16 bytes, use the basename of the path.
+    r["name"] = fs::path(r["path"]).filename().string();
+  } else {
+    r["path"] = "";
+    std::vector<char> name(17);
+    proc_name(pid, name.data(), 16);
+    r["name"] = std::string(name.data());
+  }
+
+  // If the path of the executable that started the process is available and
+  // the path exists on disk, set on_disk to 1. If the path is not
+  // available, set on_disk to -1. If, and only if, the path of the
+  // executable is available and the file does NOT exist on disk, set on_disk
+  // to 0.
+  if (r["path"].empty()) {
+    r["on_disk"] = INTEGER(-1);
+  } else if (pathExists(r["path"])) {
+    r["on_disk"] = INTEGER(1);
+  } else {
+    r["on_disk"] = INTEGER(0);
+  }
+}
+
+void genProcNumThreads(int pid, Row& r) {
+  struct proc_taskinfo task_info;
+  int status =
+      proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &task_info, sizeof(task_info));
+  if (status == sizeof(task_info)) {
+    r["threads"] = INTEGER(task_info.pti_threadnum);
+  } else {
+    r["threads"] = "-1";
+  }
+}
+
 struct proc_args {
   std::vector<std::string> args;
   std::map<std::string, std::string> env;
@@ -186,16 +262,16 @@ struct proc_args {
 
 proc_args getProcRawArgs(int pid, size_t argmax) {
   proc_args args;
-  std::vector<char> procargs(argmax);
+  std::unique_ptr<char[]> pprocargs{new char[argmax]};
+  char* procargs = pprocargs.get();
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
-  if (sysctl(mib, 3, procargs.data(), &argmax, nullptr, 0) == -1 ||
-      argmax == 0) {
+  if (sysctl(mib, 3, procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
     return args;
   }
 
   // The number of arguments is an integer in front of the result buffer.
   int nargs = 0;
-  memcpy(&nargs, procargs.data(), sizeof(nargs));
+  memcpy(&nargs, procargs, sizeof(nargs));
   // Walk the \0-tokenized list of arguments until reaching the returned 'max'
   // number of arguments or the number appended to the front.
   const char* current_arg = &procargs[0] + sizeof(nargs);
@@ -227,6 +303,46 @@ proc_args getProcRawArgs(int pid, size_t argmax) {
   return args;
 }
 
+void genProcCmdline(int pid, Row& r) {
+  int argmax = genMaxArgs();
+  // The command line invocation including arguments.
+  auto args = getProcRawArgs(pid, argmax);
+  std::string cmdline = boost::algorithm::join(args.args, " ");
+  r["cmdline"] = cmdline;
+}
+
+void genProcNamePathCmdlineAndOnDisk(int pid,
+                                     const struct proc_cred& cred,
+                                     const uint64_t* pproc_start_abstime,
+                                     Row& r) {
+  auto found = proc_info_cache.find(pid);
+  // If not found, or found and the start time doesn't match, recompute
+  if (found == proc_info_cache.end() || pproc_start_abstime == nullptr ||
+      found->second.start_abstime != *pproc_start_abstime) {
+    genProcCmdline(pid, r);
+    genProcNamePathAndOnDisk(pid, cred, r);
+
+    // We use start time (which comes from a high-resolution clock) to verify
+    // that the pid has not been reused since the process was cached. Therefore
+    // if we were unable to find a start time, we cannot cache the data.
+    if (pproc_start_abstime != nullptr) {
+      proc_info_cache.emplace(std::piecewise_construct, std::make_tuple(pid), std::make_tuple());
+      proc_cached_info& cached_info = proc_info_cache[pid];
+      cached_info.start_abstime = *pproc_start_abstime;
+      cached_info.name = r["name"];
+      cached_info.path = r["path"];
+      cached_info.cmdline = r["cmdline"];
+      cached_info.on_disk = r["on_disk"];
+    }
+  } else {
+    const proc_cached_info& cached_info = found->second;
+    r["name"] = cached_info.name;
+    r["path"] = cached_info.path;
+    r["cmdline"] = cached_info.cmdline;
+    r["on_disk"] = cached_info.on_disk;
+  }
+}
+
 static inline long getUptimeInUSec() {
   struct timeval boot_time;
   size_t len = sizeof(boot_time);
@@ -246,128 +362,83 @@ static inline long getUptimeInUSec() {
               tv.tv_usec);
 }
 
-QueryData genProcesses(QueryContext& context) {
-  QueryData results;
-
+bool genProcRUsage(int pid, struct rusage_info_v2& rusage_info_data, Row& r) {
   // Initialize time conversions.
   static mach_timebase_info_data_t time_base;
   if (time_base.denom == 0) {
     mach_timebase_info(&time_base);
   }
 
-  auto pidlist = getProcList(context);
-  int argmax = genMaxArgs();
+  int status =
+      proc_pid_rusage(pid, RUSAGE_INFO_V2, (rusage_info_t*)&rusage_info_data);
+  // proc_pid_rusage returns -1 if it was unable to gather information
+  if (status == 0) {
+    // size/memory information
+    r["wired_size"] = TEXT(rusage_info_data.ri_wired_size);
+    r["resident_size"] = TEXT(rusage_info_data.ri_resident_size);
+    r["total_size"] = TEXT(rusage_info_data.ri_phys_footprint);
 
+    // time information
+    r["user_time"] = TEXT(rusage_info_data.ri_user_time / CPU_TIME_RATIO);
+    r["system_time"] = TEXT(rusage_info_data.ri_system_time / CPU_TIME_RATIO);
+
+    // disk i/o information
+    r["disk_bytes_read"] = TEXT(rusage_info_data.ri_diskio_bytesread);
+    r["disk_bytes_written"] = TEXT(rusage_info_data.ri_diskio_byteswritten);
+
+    // Below is the logic to caculate the start_time since boot time
+    // with higher precision
+    auto uptime = getUptimeInUSec();
+    uint64_t absoluteTime = mach_absolute_time();
+
+    auto multiply = static_cast<double>(time_base.numer) /
+                    static_cast<double>(time_base.denom);
+    auto diff = static_cast<long>(
+        (rusage_info_data.ri_proc_start_abstime - absoluteTime));
+
+    // This is a negative value
+    auto seconds_since_launch =
+        static_cast<long>(diff * multiply) / NSECS_IN_USEC;
+
+    // Get the start_time of process since the computer started
+    r["start_time"] = TEXT((uptime + seconds_since_launch) / CPU_TIME_RATIO);
+    return true;
+  } else {
+    r["wired_size"] = "-1";
+    r["resident_size"] = "-1";
+    r["total_size"] = "-1";
+    r["user_time"] = "-1";
+    r["system_time"] = "-1";
+    r["start_time"] = "-1";
+    return false;
+  }
+}
+
+QueryData genProcesses(QueryContext& context) {
+  QueryData results;
+
+  auto pidlist = getProcList(context);
   for (auto& pid : pidlist) {
     Row r;
     r["pid"] = INTEGER(pid);
-
-    {
-      // The command line invocation including arguments.
-      auto args = getProcRawArgs(pid, argmax);
-      std::string cmdline = boost::algorithm::join(args.args, " ");
-      r["cmdline"] = cmdline;
-    }
 
     // The process relative root and current working directory.
     genProcRootAndCWD(pid, r);
 
     proc_cred cred;
-    if (getProcCred(pid, cred)) {
-      r["parent"] = BIGINT(cred.parent);
-      r["pgroup"] = BIGINT(cred.group);
-      // check if process state is one of the expected ones
-      r["state"] = (1 <= cred.status && cred.status <= 5)
-                       ? TEXT(kProcessStateMapping[cred.status])
-                       : TEXT('?');
-      r["nice"] = INTEGER(cred.nice);
-      r["uid"] = BIGINT(cred.real.uid);
-      r["gid"] = BIGINT(cred.real.gid);
-      r["euid"] = BIGINT(cred.effective.uid);
-      r["egid"] = BIGINT(cred.effective.gid);
-      r["suid"] = BIGINT(cred.saved.uid);
-      r["sgid"] = BIGINT(cred.saved.gid);
-    } else {
+    if (!genProcCred(pid, cred, r)) {
       continue;
     }
-
-    // If the process is not a Zombie, try to find the path and name.
-    if (cred.status != 5) {
-      r["path"] = getProcPath(pid);
-      // OS X proc_name only returns 16 bytes, use the basename of the path.
-      r["name"] = fs::path(r["path"]).filename().string();
-    } else {
-      r["path"] = "";
-      std::vector<char> name(17);
-      proc_name(pid, name.data(), 16);
-      r["name"] = std::string(name.data());
-    }
-
-    // If the path of the executable that started the process is available and
-    // the path exists on disk, set on_disk to 1. If the path is not
-    // available, set on_disk to -1. If, and only if, the path of the
-    // executable is available and the file does NOT exist on disk, set on_disk
-    // to 0.
-    if (r["path"].empty()) {
-      r["on_disk"] = INTEGER(-1);
-    } else if (pathExists(r["path"])) {
-      r["on_disk"] = INTEGER(1);
-    } else {
-      r["on_disk"] = INTEGER(0);
-    }
-
     // systems usage and time information
     struct rusage_info_v2 rusage_info_data;
-    int status =
-        proc_pid_rusage(pid, RUSAGE_INFO_V2, (rusage_info_t*)&rusage_info_data);
-    // proc_pid_rusage returns -1 if it was unable to gather information
-    if (status == 0) {
-      // size/memory information
-      r["wired_size"] = TEXT(rusage_info_data.ri_wired_size);
-      r["resident_size"] = TEXT(rusage_info_data.ri_resident_size);
-      r["total_size"] = TEXT(rusage_info_data.ri_phys_footprint);
-
-      // time information
-      r["user_time"] = TEXT(rusage_info_data.ri_user_time / CPU_TIME_RATIO);
-      r["system_time"] = TEXT(rusage_info_data.ri_system_time / CPU_TIME_RATIO);
-
-      // disk i/o information
-      r["disk_bytes_read"] = TEXT(rusage_info_data.ri_diskio_bytesread);
-      r["disk_bytes_written"] = TEXT(rusage_info_data.ri_diskio_byteswritten);
-
-      // Below is the logic to caculate the start_time since boot time
-      // with higher precision
-      auto uptime = getUptimeInUSec();
-      uint64_t absoluteTime = mach_absolute_time();
-
-      auto multiply = static_cast<double>(time_base.numer) /
-                      static_cast<double>(time_base.denom);
-      auto diff = static_cast<long>(
-          (rusage_info_data.ri_proc_start_abstime - absoluteTime));
-
-      // This is a negative value
-      auto seconds_since_launch =
-          static_cast<long>(diff * multiply) / NSECS_IN_USEC;
-
-      // Get the start_time of process since the computer started
-      r["start_time"] = TEXT((uptime + seconds_since_launch) / CPU_TIME_RATIO);
-    } else {
-      r["wired_size"] = "-1";
-      r["resident_size"] = "-1";
-      r["total_size"] = "-1";
-      r["user_time"] = "-1";
-      r["system_time"] = "-1";
-      r["start_time"] = "-1";
+    uint64_t* pproc_start_abstime = nullptr;
+    if (genProcRUsage(pid, rusage_info_data, r)) {
+      pproc_start_abstime = &rusage_info_data.ri_proc_start_abstime;
     }
 
-    struct proc_taskinfo task_info;
-    status =
-        proc_pidinfo(pid, PROC_PIDTASKINFO, 0, &task_info, sizeof(task_info));
-    if (status == sizeof(task_info)) {
-      r["threads"] = INTEGER(task_info.pti_threadnum);
-    } else {
-      r["threads"] = "-1";
-    }
+    genProcNamePathCmdlineAndOnDisk(pid, cred, pproc_start_abstime, r);
+
+    genProcNumThreads(pid, r);
 
     results.push_back(r);
   }
