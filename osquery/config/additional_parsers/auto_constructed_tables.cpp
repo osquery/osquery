@@ -10,6 +10,7 @@
 
 #include <osquery/config.h>
 #include <osquery/database.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
@@ -41,36 +42,41 @@ class ATCConfigParserPlugin : public ConfigParserPlugin {
 };
 
 class ATCPlugin : public TablePlugin {
-  TableColumns tc_columns;
-  std::string sqlite_query;
-  std::string path;
+  TableColumns tc_columns_;
+  std::string sqlite_query_;
+  std::string path_;
 
   TableColumns columns() const override {
-    return tc_columns;
+    return tc_columns_;
   }
 
  public:
   ATCPlugin(const std::string& path,
             const TableColumns& tc_columns,
             const std::string& sqlite_query) {
-    this->path = path;
-    this->sqlite_query = sqlite_query;
-    this->tc_columns = tc_columns;
+    path_ = path;
+    sqlite_query_ = sqlite_query;
+    tc_columns_ = tc_columns;
   }
 
   QueryData generate(QueryContext& context) override {
     QueryData qd;
-    auto s = genQueryDataForSqliteTable(path, sqlite_query, qd);
-    if (!s.ok()) {
-      LOG(WARNING) << "Error Code: " << s.getCode()
-                   << " Could not generate data: " << s.getMessage();
+    std::vector<std::string> paths;
+    auto s = resolveFilePattern(path_, paths);
+
+    for (const auto& path : paths) {
+      s = genQueryDataForSqliteTable(path, sqlite_query_, qd);
+      if (!s.ok()) {
+        LOG(WARNING) << "Error Code: " << s.getCode()
+                     << " Could not generate data: " << s.getMessage();
+      }
     }
     return qd;
   }
 
  protected:
   std::string columnDefinition() const {
-    return ::osquery::columnDefinition(tc_columns);
+    return ::osquery::columnDefinition(tc_columns_);
   }
 };
 
@@ -81,9 +87,9 @@ Status ATCConfigParserPlugin::removeATCTables(
   for (const auto& table : detach_tables) {
     if (registry_table->exists(table)) {
       registry_table->remove(table);
+      LOG(INFO) << "Removed ATC table: " << table;
     }
     deleteDatabaseValue(kPersistentSettings, kDatabaseKeyPrefix + table);
-    LOG(INFO) << "Removed ATC table: " << table;
   }
   return Status{};
 }
@@ -124,8 +130,8 @@ Status ATCConfigParserPlugin::update(const std::string& source,
 
   const auto& ac_tables = data_.doc()[kParserKey];
   auto tables = RegistryFactory::get().registry("table");
-
   auto registered = registeredATCTables();
+
   for (const auto& ac_table : ac_tables.GetObject()) {
     std::string table_name{ac_table.name.GetString()};
     auto params = ac_table.value.GetObject();
@@ -142,6 +148,7 @@ Status ATCConfigParserPlugin::update(const std::string& source,
           std::string(column.GetString()), TEXT_TYPE, ColumnOptions::DEFAULT));
       columns_value += std::string(column.GetString()) + ",";
     }
+
     registered.erase(table_name);
     std::string table_settings{table_name + query + columns_value + path};
     std::string old_setting;
@@ -160,9 +167,13 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     tables->add(table_name, std::make_shared<ATCPlugin>(path, columns, query));
     LOG(INFO) << "Registered ATC table: " << table_name;
   }
-  VLOG(1) << "Removing any ATC tables that were removed in this configuration "
-             "change";
-  removeATCTables(registered);
+
+  if (registered.size() > 0) {
+    VLOG(1)
+        << "Removing any ATC tables that were removed in this configuration "
+           "change";
+    removeATCTables(registered);
+  }
   return Status{};
 }
 

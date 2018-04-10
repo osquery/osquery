@@ -19,7 +19,9 @@ namespace fs = boost::filesystem;
 
 namespace osquery {
 
-Status genSqliteQueryRow(sqlite3_stmt* stmt, QueryData& qd) {
+Status genSqliteQueryRow(sqlite3_stmt* stmt,
+                         QueryData& qd,
+                         const fs::path& sqlite_db) {
   Row r;
   for (auto i{0}; i < sqlite3_column_count(stmt); ++i) {
     auto column_name = std::string(sqlite3_column_name(stmt, i));
@@ -43,6 +45,11 @@ Status genSqliteQueryRow(sqlite3_stmt* stmt, QueryData& qd) {
       break;
     }
     }
+  }
+  if (r.count("path") > 0) {
+    LOG(WARNING) << "Row contains a path key, refusing to overwrite";
+  } else {
+    r["path"] = sqlite_db.string();
   }
   qd.push_back(r);
   return Status{};
@@ -74,11 +81,12 @@ Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
   rc = sqlite3_prepare_v2(db, sqlite_query.c_str(), -1, &stmt, nullptr);
   if (rc != SQLITE_OK) {
     sqlite3_close(db);
+    VLOG(1) << "Could not prepare database at path: " << sqlite_db;
     return Status(rc, "Could not prepare database");
   }
 
   while ((sqlite3_step(stmt)) == SQLITE_ROW) {
-    auto s = genSqliteQueryRow(stmt, results);
+    auto s = genSqliteQueryRow(stmt, results, sqlite_db);
     if (!s.ok()) {
       break;
     }
