@@ -92,7 +92,7 @@ Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
     }
   }
 
-  // Clean up.
+  // Close handles and free memory
   sqlite3_finalize(stmt);
   sqlite3_close(db);
 

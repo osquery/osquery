@@ -86,8 +86,15 @@ Status ATCConfigParserPlugin::removeATCTables(
   auto registry_table = RegistryFactory::get().registry("table");
   for (const auto& table : detach_tables) {
     if (registry_table->exists(table)) {
-      registry_table->remove(table);
-      LOG(INFO) << "Removed ATC table: " << table;
+      std::string value;
+      if (getDatabaseValue(
+              kPersistentSettings, kDatabaseKeyPrefix + table, value)
+              .ok()) {
+        registry_table->remove(table);
+        LOG(INFO) << "Removed ATC table: " << table;
+      } else {
+        return Status(1, "Attempted to remove table that was not ATC table");
+      }
     }
     deleteDatabaseValue(kPersistentSettings, kDatabaseKeyPrefix + table);
   }
@@ -161,7 +168,11 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     }
 
     // Remove the old table to replace with the new one
-    removeATCTables({table_name});
+    s = removeATCTables({table_name});
+    if (!s.ok()) {
+      LOG(WARNING) << "ATC table overrides core table; Refusing registration";
+      continue;
+    }
     setDatabaseValue(
         kPersistentSettings, kDatabaseKeyPrefix + table_name, table_settings);
     tables->add(table_name, std::make_shared<ATCPlugin>(path, columns, query));
