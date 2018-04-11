@@ -337,6 +337,9 @@ class RegistryInterface : private boost::noncopyable {
   /// be directed to the 'active' plugin.
   std::string active_;
 
+  /// Protect concurrent accesses to object's data
+  mutable Mutex mutex_;
+
  private:
   friend class RegistryFactory;
 };
@@ -380,6 +383,8 @@ class RegistryType : public RegistryInterface {
    * @return A std::shared_ptr of type RegistryType.
    */
   PluginRef plugin(const std::string& plugin_name) const override {
+    ReadLock(mutex_);
+
     if (items_.count(plugin_name) == 0) {
       return nullptr;
     }
