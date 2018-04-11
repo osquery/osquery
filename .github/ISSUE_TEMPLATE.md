@@ -1,13 +1,17 @@
 <!--
 
-Thanks for filing an issue! If this is a question or feature request, just delete
-everything here and write out the request, providing as much context as you can.
+Thanks for filing an issue!
 
-If this is a usage or deployment question and not a bug report, consider asking it in one of our community supported channel. 
+If this is a usage or deployment question, and not a bug report,
+consider asking it in one of our community supported channel.
+
+StackOverflow: https://stackoverflow.com/tags/osquery
+Reddit: https://www.reddit.com/r/osquery/
 
 Slack: https://osquery-slack.herokuapp.com/
-Stack Overflow: https://area51.stackexchange.com/proposals/117450/osquery
-Reddit: https://www.reddit.com/r/osquery/
+
+If this is a feature request, just delete everything here and write
+out the request, providing as much context as you can.
 
 -->
 
