@@ -342,6 +342,8 @@ class RegistryInterface : private boost::noncopyable {
 
  private:
   friend class RegistryFactory;
+
+  bool isInternal_(const std::string& item_name) const;
 };
 
 /**

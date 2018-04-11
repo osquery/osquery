@@ -70,11 +70,7 @@ void RegistryInterface::remove(const std::string& item_name) {
 bool RegistryInterface::isInternal(const std::string& item_name) const {
   ReadLock lock(mutex_);
 
-  if (std::find(internal_.begin(), internal_.end(), item_name) ==
-      internal_.end()) {
-    return false;
-  }
-  return true;
+  return isInternal_(item_name);
 }
 
 std::map<std::string, RouteUUID> RegistryInterface::getExternal() const {
@@ -141,7 +137,7 @@ RegistryRoutes RegistryInterface::getRoutes() const {
 
   RegistryRoutes route_table;
   for (const auto& item : items_) {
-    if (isInternal(item.first)) {
+    if (isInternal_(item.first)) {
       // This is an internal plugin, do not include the route.
       continue;
     }
@@ -364,6 +360,14 @@ void RegistryInterface::setname(const std::string& name) {
   WriteLock lock(mutex_);
 
   name_ = name;
+}
+
+bool RegistryInterface::isInternal_(const std::string& item_name) const {
+  if (std::find(internal_.begin(), internal_.end(), item_name) ==
+      internal_.end()) {
+    return false;
+  }
+  return true;
 }
 
 void RegistryFactory::add(const std::string& name, RegistryInterfaceRef reg) {
