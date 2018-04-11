@@ -115,9 +115,9 @@ Status RegistryInterface::setActive(const std::string& item_name) {
 
   // The active plugin is setup when initialized.
   for (const auto& item : osquery::split(item_name, ",")) {
-    if (exists(item, true)) {
+    if (exists_(item, true)) {
       status = RegistryFactory::get().plugin(name_, item)->setUp();
-    } else if (exists(item, false) && !RegistryFactory::get().external()) {
+    } else if (exists_(item, false) && !RegistryFactory::get().external()) {
       // If the active plugin is within an extension we must wait.
       // An extension will first broadcast the registry, then receive the list
       // of active plugins, active them if they are extension-local, and finally
@@ -248,7 +248,7 @@ void RegistryInterface::setUp() {
 
   // If the registry is using a single 'active' plugin, setUp that plugin.
   // For config and logger, only setUp the selected plugin.
-  if (active_.size() != 0 && exists(active_, true)) {
+  if (active_.size() != 0 && exists_(active_, true)) {
     items_.at(active_)->setUp();
     return;
   }
@@ -270,7 +270,7 @@ void RegistryInterface::setUp() {
 void RegistryInterface::configure() {
   ReadLock lock(mutex_);
 
-  if (!active_.empty() && exists(active_, true)) {
+  if (!active_.empty() && exists_(active_, true)) {
     items_.at(active_)->configure();
   } else {
     for (auto& item : items_) {
@@ -328,10 +328,7 @@ void RegistryInterface::removeExternal(const RouteUUID& uuid) {
 bool RegistryInterface::exists(const std::string& item_name, bool local) const {
   ReadLock lock(mutex_);
 
-  bool has_local = (items_.count(item_name) > 0);
-  bool has_external = (external_.count(item_name) > 0);
-  bool has_route = (routes_.count(item_name) > 0);
-  return (local) ? has_local : has_local || has_external || has_route;
+  return exists_(item_name, local);
 }
 
 /// Facility method to list the registry item identifiers.
@@ -368,6 +365,14 @@ bool RegistryInterface::isInternal_(const std::string& item_name) const {
     return false;
   }
   return true;
+}
+
+bool RegistryInterface::exists_(const std::string& item_name,
+                                bool local) const {
+  bool has_local = (items_.count(item_name) > 0);
+  bool has_external = (external_.count(item_name) > 0);
+  bool has_route = (routes_.count(item_name) > 0);
+  return (local) ? has_local : has_local || has_external || has_route;
 }
 
 void RegistryFactory::add(const std::string& name, RegistryInterfaceRef reg) {
