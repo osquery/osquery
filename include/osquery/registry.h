@@ -180,27 +180,19 @@ class RegistryInterface : private boost::noncopyable {
   bool isInternal(const std::string& item_name) const;
 
   /// Allow others to introspect into the routes from extensions.
-  std::map<std::string, RouteUUID> getExternal() const {
-    return external_;
-  }
+  std::map<std::string, RouteUUID> getExternal() const;
 
   /// Get the 'active' plugin, return success with the active plugin name.
-  std::string getActive() const {
-    return active_;
-  }
+  std::string getActive() const;
 
   /// Allow others to introspect into the registered name (for reporting).
-  virtual std::string getName() const {
-    return name_;
-  }
+  virtual std::string getName() const;
 
   /// Facility method to check if a registry item exists.
   bool exists(const std::string& item_name, bool local = false) const;
 
   /// Facility method to count the number of items in this registry.
-  size_t count() const {
-    return items_.size();
-  }
+  size_t count() const;
 
   /// Facility method to list the registry item identifiers.
   std::vector<std::string> names() const;
@@ -221,9 +213,7 @@ class RegistryInterface : private boost::noncopyable {
   virtual PluginRef plugin(const std::string& plugin_name) const = 0;
 
   /// Construct and return a map of plugin names to their implementation.
-  std::map<std::string, PluginRef> plugins() {
-    return items_;
-  }
+  std::map<std::string, PluginRef> plugins();
 
   /**
    * @brief Create a routes table for this registry.
@@ -298,9 +288,7 @@ class RegistryInterface : private boost::noncopyable {
   virtual void removeExternalPlugin(const std::string& name) const = 0;
 
   /// Allow the registry to introspect into the registered name (for logging).
-  void setName(const std::string& name) {
-    name_ = name;
-  }
+  void setname(const std::string& name);
 
   /**
    * @brief The implementation adder will call addPlugin.

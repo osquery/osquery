@@ -69,6 +69,22 @@ bool RegistryInterface::isInternal(const std::string& item_name) const {
   return true;
 }
 
+std::map<std::string, RouteUUID> RegistryInterface::getExternal() const {
+  return external_;
+}
+
+std::string RegistryInterface::getActive() const {
+  return active_;
+}
+
+std::string RegistryInterface::getName() const {
+  return name_;
+}
+
+size_t RegistryInterface::count() const {
+  return items_.size();
+}
+
 Status RegistryInterface::setActive(const std::string& item_name) {
   // Default support multiple active plugins.
   for (const auto& item : osquery::split(item_name, ",")) {
@@ -271,6 +287,14 @@ std::vector<std::string> RegistryInterface::names() const {
     names.push_back(item.first);
   }
   return names;
+}
+
+std::map<std::string, PluginRef> RegistryInterface::plugins() {
+  return items_;
+}
+
+void RegistryInterface::setname(const std::string& name) {
+  name_ = name;
 }
 
 void RegistryFactory::add(const std::string& name, RegistryInterfaceRef reg) {
