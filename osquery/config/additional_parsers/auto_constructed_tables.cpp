@@ -127,11 +127,10 @@ Status ATCConfigParserPlugin::update(const std::string& source,
                                      const ParserConfig& config) {
   auto cv = config.find(kParserKey);
   if (cv == config.end()) {
-    removeATCTables(registeredATCTables());
     return Status(1, "No configuration for ATC (Auto Table Construction)");
   }
-
   auto obj = data_.getObject();
+
   data_.copyFrom(cv->second.doc(), obj);
   data_.add(kParserKey, obj);
 

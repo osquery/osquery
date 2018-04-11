@@ -99,21 +99,23 @@ TEST_F(CarverTests, test_carve_files_locally) {
 }
 
 TEST_F(CarverTests, test_compression) {
-  auto s = osquery::compress(
-      kTestDataPath + "test.config",
-      fs::temp_directory_path() / fs::path("test.config.zst"));
+  auto s = osquery::compress(kTestDataPath + "test.config",
+                             fs::temp_directory_path() / fs::path("test.zst"));
   EXPECT_TRUE(s.ok());
 }
 
 TEST_F(CarverTests, test_decompression) {
+  std::cout << fs::temp_directory_path() << "\n";
+  std::cout << kTestDataPath << "test.config"
+            << "\n";
   auto s = osquery::decompress(
-      fs::temp_directory_path() / fs::path("test.config.zst"),
-      fs::temp_directory_path() / fs::path("test.config"));
+      fs::temp_directory_path() / fs::path("test.zst"),
+      fs::temp_directory_path() / fs::path("test.config.extract"));
   EXPECT_TRUE(s.ok());
-  EXPECT_TRUE(
-      hashFromFile(
-          HashType::HASH_TYPE_SHA256,
-          (fs::temp_directory_path() / fs::path("test.config")).string()) ==
+  EXPECT_EQ(
+      hashFromFile(HashType::HASH_TYPE_SHA256,
+                   (fs::temp_directory_path() / fs::path("test.config.extract"))
+                       .string()),
       hashFromFile(HashType::HASH_TYPE_SHA256, kTestDataPath + "test.config"));
 }
 }

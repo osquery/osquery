@@ -652,8 +652,6 @@ void Config::applyParsers(const std::string& source,
       if (obj.HasMember(key) && !obj[key].IsNull()) {
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
-      } else {
-        parser_config.emplace(std::make_pair(key, JSON::newObject()));
       }
     }
     // The config parser plugin will receive a copy of each property tree for

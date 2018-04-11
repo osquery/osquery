@@ -117,7 +117,7 @@ DEFAULT_CONFIG = {
         "force":
         "true",
     },
-    "schedule": {},
+    "schedule": {}
 }
 
 '''Expect CONFIG to be set during Tester.main() to a python dict.'''
@@ -150,6 +150,7 @@ class OsqueryWrapper(REPLWrapper):
         options["database_path"] += str(random.randint(1000, 9999))
         command = command + " " + " ".join(
             ["--%s=%s" % (k, v) for k, v in options.iteritems()])
+        print(command)
         if os.name == "nt":
             proc = WinExpectSpawn(command, env=env)
         else:

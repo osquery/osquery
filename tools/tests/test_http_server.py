@@ -42,8 +42,8 @@ EXAMPLE_ATC_CONFIG = {
     "auto_table_construction" : {
         "quarantine_items" : {
           "query" : "SELECT LSQuarantineEventIdentifier as id, LSQuarantineAgentName as agent_name, LSQuarantineAgentBundleIdentifier as agent_bundle_identifier, LSQuarantineTypeNumber as type, LSQuarantineDataURLString as data_url,LSQuarantineOriginURLString as origin_url, LSQuarantineSenderName as sender_name, LSQuarantineSenderAddress as sender_address, LSQuarantineTimeStamp as timestamp from LSQuarantineEvent",
-          "path" : "/Users/obelisk/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2",
-          "columns" : ["id", "agent_name", "agent_bundle_identifier"]
+          "path" : "/Users/%/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2",
+          "columns" : ["path", "id", "agent_name", "agent_bundle_identifier"]
         }
     },
     "node_invalid": False,
