@@ -64,7 +64,7 @@ Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
   }
 
   auto rc = sqlite3_open_v2(
-      sqlite_db.c_str(),
+      sqlite_db.string().c_str(),
       &db,
       (SQLITE_OPEN_READONLY | SQLITE_OPEN_PRIVATECACHE | SQLITE_OPEN_NOMUTEX),
       nullptr);
