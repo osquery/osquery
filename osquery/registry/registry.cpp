@@ -447,7 +447,7 @@ Status RegistryFactory::call(const std::string& registry_name,
 Status RegistryFactory::call(const std::string& registry_name,
                              const PluginRequest& request,
                              PluginResponse& response) {
-  auto& plugin = get().registry(registry_name)->getActive();
+  auto plugin = get().registry(registry_name)->getActive();
   return call(registry_name, plugin, request, response);
 }
 

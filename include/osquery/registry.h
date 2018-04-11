@@ -180,17 +180,17 @@ class RegistryInterface : private boost::noncopyable {
   bool isInternal(const std::string& item_name) const;
 
   /// Allow others to introspect into the routes from extensions.
-  const std::map<std::string, RouteUUID>& getExternal() const {
+  std::map<std::string, RouteUUID> getExternal() const {
     return external_;
   }
 
   /// Get the 'active' plugin, return success with the active plugin name.
-  const std::string& getActive() const {
+  std::string getActive() const {
     return active_;
   }
 
   /// Allow others to introspect into the registered name (for reporting).
-  virtual const std::string& getName() const {
+  virtual std::string getName() const {
     return name_;
   }
 
@@ -221,7 +221,7 @@ class RegistryInterface : private boost::noncopyable {
   virtual PluginRef plugin(const std::string& plugin_name) const = 0;
 
   /// Construct and return a map of plugin names to their implementation.
-  const std::map<std::string, PluginRef>& plugins() {
+  std::map<std::string, PluginRef> plugins() {
     return items_;
   }
 
