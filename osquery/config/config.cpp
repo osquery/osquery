@@ -650,6 +650,12 @@ void Config::applyParsers(const std::string& source,
     std::map<std::string, JSON> parser_config;
     for (const auto& key : parser->keys()) {
       if (obj.HasMember(key) && !obj[key].IsNull()) {
+        if (!obj[key].IsArray() && !obj[key].IsObject()) {
+          LOG(WARNING) << "Error config " << key
+                       << " should be an array or object";
+          continue;
+        }
+
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
       } else {
