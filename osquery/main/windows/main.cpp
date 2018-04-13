@@ -20,7 +20,6 @@
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
-#include "osquery/core/watcher.h"
 #include "osquery/main/main.h"
 
 DECLARE_string(flagfile);
@@ -250,7 +249,7 @@ Status installService(const char* const binPath) {
                              nullptr,
                              nullptr,
                              nullptr,
-                             nullptr, // User Account. nullptr => LOCAL SYSTEM
+                             nullptr,
                              nullptr);
 
   CloseServiceHandle(schSCManager);
@@ -313,9 +312,7 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
       break;
     }
 
-    // We give the main thread of execution kServiceShutdownTimeout ms to
-    // shutdown
-    // before closing out forcefully.
+    // Give the main thread a chance to shutdown gracefully before exiting
     UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3, kServiceShutdownTimeout);
     {
       auto stopEvent = osquery::getStopEvent();

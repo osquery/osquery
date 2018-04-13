@@ -132,7 +132,6 @@ void Dispatcher::joinServices() {
 
   for (auto& thread : self.service_threads_) {
     thread->join();
-
     DLOG(INFO) << "Service thread: " << thread.get() << " has joined";
   }
 
