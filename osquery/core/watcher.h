@@ -144,8 +144,7 @@ class Watcher : private boost::noncopyable {
     return *worker_;
   }
 
-private:
-
+ private:
   /// Reset counters after a worker exits.
   void resetWorkerCounters(size_t respawn_time);
 

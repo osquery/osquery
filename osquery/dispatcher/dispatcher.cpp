@@ -127,23 +127,14 @@ inline static void assureRun(const InternalRunnableRef& service) {
 void Dispatcher::joinServices() {
   auto& self = instance();
   DLOG(INFO) << "Thread: " << std::this_thread::get_id()
-    << " requesting a join";
+             << " requesting a join";
   WriteLock join_lock(self.join_mutex_);
 
-#ifdef WIN32
-  unsigned long numHandles = static_cast<unsigned long>(self.service_threads_.size());
-  HANDLE *svcThreads = static_cast<HANDLE*>(malloc(numHandles));
-  for (size_t i = 0; i < numHandles; i++) {
-    svcThreads[i] = self.service_threads_[i]->native_handle();
-  }
-  WaitForMultipleObjectsEx(numHandles, svcThreads, true, 500U, true);
-#else
   for (auto& thread : self.service_threads_) {
     thread->join();
 
     DLOG(INFO) << "Service thread: " << thread.get() << " has joined";
   }
-#endif
 
   WriteLock lock(self.mutex_);
   self.services_.clear();

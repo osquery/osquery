@@ -147,7 +147,6 @@ int platformGetUid() {
 }
 
 bool isLauncherProcessDead(PlatformProcess& launcher) {
-  
   unsigned long code = 0;
   if (launcher.nativeHandle() == INVALID_HANDLE_VALUE) {
     return false;
