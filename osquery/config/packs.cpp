@@ -157,11 +157,17 @@ void Pack::initialize(const std::string& name,
   schedule_.clear();
   if (!obj.HasMember("queries") || !obj["queries"].IsObject()) {
     // This pack contained no queries.
+    VLOG(1) << "No queries defined for pack " << name;
     return;
   }
 
   // Iterate the queries (or schedule) and check platform/version/sanity.
   for (const auto& q : obj["queries"].GetObject()) {
+    if (!q.value.IsObject()) {
+      VLOG(1) << "The pack " << name << " must contain a dictionary of queries";
+      continue;
+    }
+
     if (q.value.HasMember("shard")) {
       auto shard = JSON::valueToSize(q.value["shard"]);
       if (shard > 0 && shard < getMachineShard()) {
@@ -182,6 +188,7 @@ void Pack::initialize(const std::string& name,
     }
 
     if (!q.value.HasMember("query") || !q.value["query"].IsString()) {
+      VLOG(1) << "No query string defined for query " << q.name.GetString();
       continue;
     }
 

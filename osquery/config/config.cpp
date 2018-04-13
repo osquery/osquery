@@ -565,7 +565,15 @@ Status Config::updateSource(const std::string& source,
       auto queries_obj = queries_doc.getObject();
 
       for (auto& query : schedule.GetArray()) {
-        std::string query_name = query["name"].GetString();
+        if (!query.IsObject()) {
+          // This is a legacy structure, and it is malformed.
+          continue;
+        }
+
+        std::string query_name;
+        if (query.HasMember("name") && query["name"].IsString()) {
+          query_name = query["name"].GetString();
+        }
         if (query_name.empty()) {
           return Status(1, "Error getting name from legacy scheduled query");
         }
