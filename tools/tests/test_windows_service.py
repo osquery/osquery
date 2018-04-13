@@ -37,6 +37,7 @@ CONFIG_FILE = """
 """
 
 
+# TODO: Check the user is actually admin
 def assertUserIsAdmin():
     if os.name != "nt":
         sys.exit(-1)
@@ -58,6 +59,7 @@ def sc(*args):
         return False
 
 
+# TODO: Can we modify this to behave like the other tests? They take the buildpath
 def findOsquerydBinary():
     script_root = os.path.split(os.path.abspath(__file__))[0]
     build_root = os.path.abspath(os.path.join(script_root,
@@ -96,6 +98,13 @@ def queryService(name):
 
 def stopService(name):
     return sc("stop", name)
+
+
+def restartService(name):
+    stop_ = sc("stop", name)
+    sleep(1)
+    start_ = sc("start", name)
+    return stop_ & start_
 
 
 def uninstallService(name):
@@ -139,6 +148,7 @@ class OsquerydTest(unittest.TestCase):
         except subprocess.CalledProcessError:
             return ("", "")
 
+    @test_base.flaky
     def testService(self):
         name = "osqueryd_test%d" % random.randint(0, 65535)
         self.assertTrue(installService(name, self.bin_path))
@@ -176,6 +186,9 @@ class OsquerydTest(unittest.TestCase):
 
             self.assertNotEqual(stderr.find("is already running"), -1)
         finally:
+            if status:
+                status = self.assertTrue(restartService(name))
+
             if status:
                 self.assertTrue(stopService(name))
 
