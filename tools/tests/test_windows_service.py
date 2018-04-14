@@ -260,6 +260,7 @@ class OsquerydTest(unittest.TestCase):
         (code, _) = queryService(name)
         self.assertEqual(code, 1060)
 
+    @test_base.flaky
     def test_2_thrash_windows_service(self):
         # Install the service
         name = "osqueryd_test_{}".format(self.test_instance)

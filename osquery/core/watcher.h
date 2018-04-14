@@ -139,12 +139,12 @@ class Watcher : private boost::noncopyable {
     return worker_->isValid();
   }
 
+ private:
   /// Accessor for the worker process.
   PlatformProcess& getWorker() {
     return *worker_;
   }
 
- private:
   /// Reset counters after a worker exits.
   void resetWorkerCounters(size_t respawn_time);
 

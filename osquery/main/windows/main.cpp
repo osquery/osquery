@@ -327,8 +327,13 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
       // Give the watcher an opportunity to shutdown gracefully
       unsigned long tid = static_cast<unsigned long>(
           std::hash<std::thread::id>{}(kMainThreadId));
-      auto mainThread = OpenThread(SYNCHRONIZE, false, tid);
-      WaitForSingleObjectEx(mainThread, INFINITE, true);
+      auto mainThread = OpenThread(SYNCHRONIZE, FALSE, tid);
+      if (mainThread == NULL) {
+        SLOG("Failed to open handle to thread " + std::to_string(tid) +
+             " for service stop with " + std::to_string(GetLastError()));
+      }
+      WaitForSingleObjectEx(mainThread, INFINITE, false);
+      CloseHandle(mainThread);
     }
     UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
 

@@ -197,6 +197,9 @@ ToolType kToolType{ToolType::UNKNOWN};
 /// The saved exit code from a thread's request to stop the process.
 volatile std::sig_atomic_t kExitCode{0};
 
+/// Track the main thread ID for graceful shutdowns
+std::thread::id kMainThreadId;
+
 /// When no flagfile is provided via CLI, attempt to read flag 'defaults'.
 const std::string kBackupDefaultFlagfile{OSQUERY_HOME "/osquery.flags.default"};
 
