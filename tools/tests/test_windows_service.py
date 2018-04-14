@@ -260,6 +260,34 @@ class OsquerydTest(unittest.TestCase):
         (code, _) = queryService(name)
         self.assertEqual(code, 1060)
 
+    def test_2_thrash_windows_service(self):
+        # Install the service
+        name = "osqueryd_test_{}".format(self.test_instance)
+        self.assertTrue(installService(name, self.bin_path))
+
+        status = startService(name, "--flagfile", self.flagfile)
+        self.assertTrue(status)
+
+        test_base.expectTrue(serviceAlive)
+        self.assertTrue(serviceAlive())
+
+        for _ in range(5):
+            self.assertTrue(stopService(name))
+            test_base.expectTrue(serviceDead)
+
+            status = startService(name, "--flagfile", self.flagfile)
+            self.assertTrue(status)
+
+        self.assertTrue(stopService(name))
+        test_base.expectTrue(serviceDead)
+
+        self.assertTrue(serviceDead())
+        self.assertTrue(uninstallService(name))
+
+        # Make sure the service no longer exists, error code 1060
+        (code, _) = queryService(name)
+        self.assertEqual(code, 1060)
+
     def tearDown(self):
         if os.path.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
