@@ -393,7 +393,8 @@ static Status migrateV0V1(void) {
   for (const auto& key : keys) {
     // Skip over epoch and counter entries, as 0 is parsed by ptree
     if (boost::algorithm::ends_with(key, kDbEpochSuffix) ||
-        boost::algorithm::ends_with(key, kDbCounterSuffix)) {
+        boost::algorithm::ends_with(key, kDbCounterSuffix) ||
+        boost::algorithm::starts_with(key, "query.")) {
       continue;
     }
 
