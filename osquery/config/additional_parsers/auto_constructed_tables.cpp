@@ -22,6 +22,31 @@ namespace rj = rapidjson;
 
 namespace osquery {
 
+bool checkPlatform(const std::string& platform) {
+  if (platform.empty() || platform == "null") {
+    return true;
+  }
+
+  if (platform.find("any") != std::string::npos ||
+      platform.find("all") != std::string::npos) {
+    return true;
+  }
+
+  auto linux_type = (platform.find("linux") != std::string::npos ||
+                     platform.find("ubuntu") != std::string::npos ||
+                     platform.find("centos") != std::string::npos);
+  if (linux_type && isPlatform(osquery::PlatformType::TYPE_LINUX)) {
+    return true;
+  }
+
+  auto posix_type = (platform.find("posix") != std::string::npos);
+  if (posix_type && isPlatform(osquery::PlatformType::TYPE_POSIX)) {
+    return true;
+  }
+
+  return (platform.find(osquery::kSDKPlatform) != std::string::npos);
+}
+
 /**
  * @brief A ConfigParserPlugin for ATC (Auto Table Construction)
  */
@@ -142,8 +167,26 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     std::string table_name{ac_table.name.GetString()};
     auto params = ac_table.value.GetObject();
 
-    std::string query{params["query"].GetString()};
-    std::string path{params["path"].GetString()};
+    std::string query{params.HasMember("query") && params["query"].IsString()
+                          ? params["query"].GetString()
+                          : ""};
+    std::string path{params.HasMember("path") && params["path"].IsString()
+                         ? params["path"].GetString()
+                         : ""};
+    std::string platform{params.HasMember("platform") &&
+                                 params["platform"].IsString()
+                             ? params["platform"].GetString()
+                             : ""};
+    
+    if (query == "" || path == "") {
+      LOG(WARNING) << "ATC Table: " << table_name << " is misconfigured";
+      continue;
+    }
+
+    if (!checkPlatform(platform)) {
+      VLOG(1) << "Skipping ATC table: " << table_name << " because platform doesn't match";
+      continue;
+    }
 
     TableColumns columns;
     std::string columns_value;
