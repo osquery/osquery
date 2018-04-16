@@ -133,6 +133,12 @@ std::string genSHA1ForCertificate(X509* cert) {
   return "";
 }
 
+std::string genSerialForCertificate(X509* cert) {
+  ASN1_INTEGER* serial = X509_get_serialNumber(cert);
+  BIGNUM* bignumSerial = ASN1_INTEGER_to_BN(serial, NULL);
+  return BN_bn2hex(bignumSerial);
+}
+
 bool CertificateIsCA(X509* cert) {
   int ca = X509_check_ca(cert);
   return (ca > 0);

@@ -16,6 +16,7 @@ schema([
     Column("authority_key_id", TEXT, "AKID an optionally included SHA1"),
     Column("sha1", TEXT, "SHA1 hash of the raw certificate contents"),
     Column("path", TEXT, "Path to Keychain or PEM bundle"),
+    Column("serial", TEXT, "Certificate serial number"),
 
 ])
 attributes(cacheable=True)
