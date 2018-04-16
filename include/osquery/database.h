@@ -248,6 +248,8 @@ void resetDatabase();
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
 
+Status ptreeToRapidJSON(const std::string& in, std::string& out);
+
 /**
  * @brief Upgrades the legacy database json format from ptree to RapidJSON
  *
