@@ -383,14 +383,7 @@ Status ptreeToRapidJSON(const std::string& in, std::string& out) {
   return Status();
 }
 
-Status upgradeDatabase() {
-  std::string db_results_version{""};
-  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
-
-  if (db_results_version == kDatabseResultsVersion) {
-    return Status();
-  }
-
+static Status migrateV0V1(void) {
   std::vector<std::string> keys;
   auto s = scanDatabaseKeys(kQueries, keys);
   if (!s.ok()) {
@@ -422,6 +415,23 @@ Status upgradeDatabase() {
       LOG(WARNING) << "Failed to update value in database " << key << ": "
                    << value;
     }
+  }
+
+  return Status();
+}
+
+Status upgradeDatabase() {
+  std::string db_results_version{""};
+  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
+
+  if (db_results_version == kDatabseResultsVersion) {
+    return Status();
+  }
+
+  auto s = migrateV0V1();
+  if (!s.ok()) {
+    LOG(WARNING) << "Failed to migrate V0 to V1: " << s.what();
+    return Status(1, "DB migration failed");
   }
 
   setDatabaseValue(
