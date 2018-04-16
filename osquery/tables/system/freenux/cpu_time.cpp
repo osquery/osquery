@@ -18,7 +18,7 @@
 namespace osquery {
 namespace tables {
 
-const std::string kProcStat = "/proc/stat";
+const std::string kProcStat{"/proc/stat"};
 
 std::vector<std::string> procFromFile(const std::string& path) {
   if (!isReadable(path).ok()) {

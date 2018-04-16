@@ -49,7 +49,7 @@ static bool getProcessExitCode(osquery::PlatformProcess& process,
     return true;
   }
 #else
-  int status = 0;
+  int status{0};
   if (::waitpid(process.nativeHandle(), &status, 0) == -1) {
     return false;
   }
@@ -134,7 +134,7 @@ TEST_F(ProcessTests, test_launchExtension) {
                                          true);
     EXPECT_NE(nullptr, process.get());
 
-    int code = 0;
+    int code{0};
     EXPECT_TRUE(getProcessExitCode(*process, code));
     EXPECT_EQ(code, EXTENSION_SUCCESS_CODE);
   }
@@ -162,7 +162,7 @@ TEST_F(ProcessTests, test_launchWorker) {
 
     EXPECT_NE(nullptr, process.get());
 
-    int code = 0;
+    int code{0};
     EXPECT_TRUE(getProcessExitCode(*process, code));
     EXPECT_EQ(code, WORKER_SUCCESS_CODE);
   }

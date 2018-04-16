@@ -26,7 +26,7 @@ namespace osquery {
 namespace tables {
 
 /// Location of the kernel panic crash logs in OS X
-const std::string kDiagnosticReportsPath = "/Library/Logs/DiagnosticReports";
+const std::string kDiagnosticReportsPath{"/Library/Logs/DiagnosticReports"};
 
 /// List of all register values we wish to catch
 const std::set<std::string> kRegisters = {

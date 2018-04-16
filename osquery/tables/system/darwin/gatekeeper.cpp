@@ -26,14 +26,14 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-const std::string kGkeStatusPath = "/var/db/SystemPolicy-prefs.plist";
+const std::string kGkeStatusPath{"/var/db/SystemPolicy-prefs.plist"};
 
-const std::string kGkeBundlePath = "/var/db/gke.bundle/Contents/version.plist";
+const std::string kGkeBundlePath{"/var/db/gke.bundle/Contents/version.plist"};
 
 const std::string kGkeOpaquePath =
     "/var/db/gkopaque.bundle/Contents/version.plist";
 
-const std::string kPolicyDb = "/var/db/SystemPolicy";
+const std::string kPolicyDb{"/var/db/SystemPolicy"};
 
 bool isGateKeeperDevIdEnabled() {
   sqlite3* db = nullptr;

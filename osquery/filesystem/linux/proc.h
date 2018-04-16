@@ -24,7 +24,7 @@
 #include "osquery/core/conversions.h"
 
 namespace osquery {
-const std::string kLinuxProcPath = "/proc";
+const std::string kLinuxProcPath{"/proc"};
 
 struct SocketInfo final {
   std::string socket;

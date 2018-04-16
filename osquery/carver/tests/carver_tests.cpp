@@ -30,7 +30,7 @@ namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 /// Prefix used for posix tar archive.
-const std::string kTestCarveNamePrefix = "carve_";
+const std::string kTestCarveNamePrefix{"carve_"};
 
 std::string genGuid() {
   return boost::uuids::to_string(boost::uuids::random_generator()());
@@ -71,7 +71,7 @@ class CarverTests : public testing::Test {
 TEST_F(CarverTests, test_carve_files_locally) {
   auto guid_ = genGuid();
   auto paths_ = getCarvePaths();
-  std::string requestId = "";
+  std::string requestId{""};
   Carver carve(getCarvePaths(), guid_, requestId);
 
   Status s;

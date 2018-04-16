@@ -20,7 +20,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-const std::string kIOMemLocation = "/proc/iomem";
+const std::string kIOMemLocation{"/proc/iomem"};
 
 QueryData genMemoryMap(QueryContext& context) {
   QueryData results;

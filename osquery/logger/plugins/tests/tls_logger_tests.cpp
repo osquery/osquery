@@ -35,7 +35,7 @@ TEST_F(TLSLoggerTests, test_database) {
   TLSServerRunner::setClientConfig();
 
   auto forwarder = std::make_shared<TLSLogForwarder>();
-  std::string expected = "{\"new_json\": true}";
+  std::string expected{"{\"new_json\": true}"};
   forwarder->logString(expected);
   StatusLogLine status;
   status.message = "{\"status\": \"bar\"}";
@@ -68,7 +68,7 @@ TEST_F(TLSLoggerTests, test_send) {
 
   auto forwarder = std::make_shared<TLSLogForwarder>();
   for (size_t i = 0; i < 20; i++) {
-    std::string expected = "{\"more_json\": true}";
+    std::string expected{"{\"more_json\": true}"};
     forwarder->logString(expected);
   }
 

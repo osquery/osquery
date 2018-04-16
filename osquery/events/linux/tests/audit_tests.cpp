@@ -107,7 +107,7 @@ bool SimpleUpdate(size_t t, const StringMap& f, StringMap& m) {
 
 TEST_F(AuditTests, test_parse_sock_addr) {
   Row r;
-  std::string msg = "02001F907F0000010000000000000000";
+  std::string msg{"02001F907F0000010000000000000000"};
   bool unix_socket;
   parseSockAddr(msg, r, unix_socket);
   ASSERT_FALSE(r["remote_address"].empty());

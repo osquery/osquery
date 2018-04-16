@@ -35,17 +35,17 @@ FLAG_ALIAS(std::string, db_path, database_path);
 
 FLAG(bool, disable_database, false, "Disable the persistent RocksDB storage");
 
-const std::string kInternalDatabase = "rocksdb";
-const std::string kPersistentSettings = "configurations";
-const std::string kQueries = "queries";
-const std::string kEvents = "events";
-const std::string kCarves = "carves";
-const std::string kLogs = "logs";
+const std::string kInternalDatabase{"rocksdb"};
+const std::string kPersistentSettings{"configurations"};
+const std::string kQueries{"queries"};
+const std::string kEvents{"events"};
+const std::string kCarves{"carves"};
+const std::string kLogs{"logs"};
 
-const std::string kDbEpochSuffix = "epoch";
-const std::string kDbCounterSuffix = "counter";
+const std::string kDbEpochSuffix{"epoch"};
+const std::string kDbCounterSuffix{"counter"};
 
-const std::string kDatabseResultsVersion = "1";
+const std::string kDatabseResultsVersion{"1"};
 
 const std::vector<std::string> kDomains = {
     kPersistentSettings, kQueries, kEvents, kLogs, kCarves};

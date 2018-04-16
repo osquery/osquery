@@ -33,8 +33,8 @@ FLAG_ALIAS(std::string, osquery_log_dir, logger_path);
 
 FLAG(int32, logger_mode, 0640, "Decimal mode for log files (default '0640')");
 
-const std::string kFilesystemLoggerFilename = "osqueryd.results.log";
-const std::string kFilesystemLoggerSnapshots = "osqueryd.snapshots.log";
+const std::string kFilesystemLoggerFilename{"osqueryd.results.log"};
+const std::string kFilesystemLoggerSnapshots{"osqueryd.snapshots.log"};
 
 class FilesystemLoggerPlugin : public LoggerPlugin {
  public:

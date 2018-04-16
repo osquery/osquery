@@ -49,7 +49,7 @@ QueryData getMemoryInfo(QueryContext& context) {
       // Look for mapping
       for (const auto& singleMap : kMemInfoMap) {
         if (line.find(singleMap.second) == 0) {
-          long value = 0;
+          long value{0};
           if (safeStrtol(tokens[1], 10, value)) {
             r[singleMap.first] = BIGINT(value * 1024l);
           }

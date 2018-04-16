@@ -19,10 +19,10 @@
 namespace osquery {
 namespace tables {
 
-const std::string kColTargetName = "target_name";
-const std::string kColMetric = "metric_name";
-const std::string kColValue = "metric_value";
-const std::string kColTimeStamp = "timestamp_ms";
+const std::string kColTargetName{"target_name"};
+const std::string kColMetric{"metric_name"};
+const std::string kColValue{"metric_value"};
+const std::string kColTimeStamp{"timestamp_ms"};
 
 struct PrometheusResponseData {
   std::string content;

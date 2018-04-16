@@ -633,7 +633,7 @@ void genPower(const Row &row, QueryData &results) {
 
 QueryData genPowerSensors(QueryContext &context) {
   // Define a 'category' for sets of keys.
-  std::string category = "";
+  std::string category{""};
 
   // Create a predicate wrapper that injects a category.
   auto wrapper = ([&category](const Row &row, QueryData &results) {

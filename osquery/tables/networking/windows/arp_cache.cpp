@@ -58,7 +58,7 @@ QueryData genIPv4ArpCache(QueryContext& context) {
     }
   }
 
-  long lPlaceHolder = 0;
+  long lPlaceHolder{0};
   unsigned char cPlaceHolder;
   std::string strPlaceHolder;
   for (const auto& item : wmiResults) {

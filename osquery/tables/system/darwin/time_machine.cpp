@@ -24,8 +24,8 @@ namespace tables {
 
 const std::string kTimeMachinePrefs =
     "/Library/Preferences/com.apple.TimeMachine.plist";
-const std::string kDestinationKey = "Destinations";
-const std::string kDestinationIdKey = "DestinationID";
+const std::string kDestinationKey{"Destinations"};
+const std::string kDestinationIdKey{"DestinationID"};
 
 QueryData genTimeMachineBackups(QueryContext& context) {
   QueryData results;

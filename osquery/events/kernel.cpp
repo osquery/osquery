@@ -18,16 +18,16 @@ namespace osquery {
 
 FLAG(bool, disable_kernel, false, "Disable osquery kernel extension");
 
-const std::string kKernelDevice = "/dev/osquery";
+const std::string kKernelDevice{"/dev/osquery"};
 
 /// Kernel shared buffer size in bytes.
 static const size_t kKernelQueueSize = (20 * (1 << 20));
 
 /// Handle a maximum of 1000 events before requesting a resync.
-static const int kKernelEventsSyncMax = 1000;
+static const int kKernelEventsSyncMax{1000};
 
 /// Handle a maximum of 10 events before request another lock.
-static const int kKernelEventsIterate = 10;
+static const int kKernelEventsIterate{10};
 
 REGISTER(KernelEventPublisher, "event_publisher", "kernel");
 
@@ -90,7 +90,7 @@ Status KernelEventPublisher::run() {
 
   // Perform queue read min/max synchronization.
   try {
-    int drops = 0;
+    int drops{0};
     WriteLock lock(mutex_);
     if ((drops = queue_->kernelSync(OSQUERY_OPTIONS_NO_BLOCK)) > 0 &&
         Initializer::isDaemon()) {

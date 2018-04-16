@@ -33,7 +33,7 @@ class ViewsConfigParserPlugin : public ConfigParserPlugin {
   Status update(const std::string& source, const ParserConfig& config) override;
 
  private:
-  const std::string kConfigViews = "config_views.";
+  const std::string kConfigViews{"config_views."};
 };
 
 Status ViewsConfigParserPlugin::update(const std::string& source,

@@ -124,7 +124,7 @@ static void EVENTS_add_events(benchmark::State& state) {
   // Simulate the event factory initialization.
   sub->benchmarkInit();
 
-  int i = 0;
+  int i{0};
   while (state.KeepRunning()) {
     sub->benchmarkAdd(i++);
   }

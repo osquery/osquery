@@ -27,8 +27,8 @@ QueryData genDiskInfo(QueryContext& context) {
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   if (!wmiResults.empty()) {
     for (const auto& data : wmiResults) {
-      long partitionCount = 0;
-      long index = 0;
+      long partitionCount{0};
+      long index{0};
       data.GetLong("Partitions", partitionCount);
       r["partitions"] = INTEGER(partitionCount);
       data.GetLong("Index", index);

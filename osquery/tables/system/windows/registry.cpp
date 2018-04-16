@@ -143,7 +143,7 @@ Status getClassName(const std::string& clsId, std::string& rClsName) {
   }
 
   QueryData regQueryResults;
-  std::string constraint("name = '" + kDefaultRegName + "'");
+  std::string constraint{"name = '" + kDefaultRegName + "'"};
   auto ret = queryMultipleRegistryKeys(keys, constraint, regQueryResults);
 
   if (!ret.ok()) {

@@ -184,7 +184,7 @@ TEST_F(VirtualTableTests, test_sqlite3_attach_vtable) {
   status = attachTableInternal("sample", columnDefinition(response), dbc);
   EXPECT_EQ(status.getCode(), SQLITE_OK);
 
-  std::string q = "SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';";
+  std::string q{"SELECT sql FROM sqlite_temp_master WHERE tbl_name='sample';"};
   QueryData results;
   status = queryInternal(q, results, dbc);
   EXPECT_EQ(
@@ -367,7 +367,7 @@ TEST_F(VirtualTableTests, test_json_extract) {
 TEST_F(VirtualTableTests, test_null_values) {
   auto dbc = SQLiteDBManager::getUnique();
 
-  std::string statement = "SELECT NULL as null_value;";
+  std::string statement{"SELECT NULL as null_value;"};
   {
     QueryData results;
     auto status = queryInternal(statement, results, dbc);
@@ -434,7 +434,7 @@ TEST_F(VirtualTableTests, test_table_cache) {
 
   QueryData results;
   // Run a query with a join within.
-  std::string statement = "SELECT c2.data as data FROM cache c1, cache c2;";
+  std::string statement{"SELECT c2.data as data FROM cache c1, cache c2;"};
   auto status = queryInternal(statement, results, dbc);
   dbc->clearAffectedTables();
   EXPECT_TRUE(status.ok());
@@ -486,7 +486,7 @@ TEST_F(VirtualTableTests, test_table_results_cache) {
   attachTableInternal("table_cache", cache->columnDefinition(), dbc);
 
   QueryData results;
-  std::string statement = "SELECT * from table_cache;";
+  std::string statement{"SELECT * from table_cache;"};
   auto status = queryInternal(statement, results, dbc);
   dbc->clearAffectedTables();
 

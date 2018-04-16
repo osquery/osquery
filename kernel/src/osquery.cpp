@@ -173,7 +173,7 @@ static void cleanup_user_kernel_buffer() {
 }
 
 static int allocate_user_kernel_buffer(size_t size, void **buf) {
-  int err = 0;
+  int err{0};
 
   // The user space daemon is requesting a new circular queue.
   // Make sure the requested size is within sane size bounds.
@@ -229,7 +229,7 @@ error_exit:
 
 static int osquery_open(dev_t dev, int oflags, int devtype, struct proc *p) {
   // Close is not working so leave these out for now.
-  int err = 0;
+  int err{0};
   lck_mtx_lock(osquery.mtx);
   if (osquery.open_count == 0) {
     osquery.open_count++;
@@ -299,7 +299,7 @@ static int osquery_ioctl(
   }
 #endif // KERNEL_TEST
 
-  int err = 0;
+  int err{0};
   osquery_subscription_args_t *sub = NULL;
   osquery_buf_sync_args_t *sync = NULL;
   osquery_buf_allocate_args_t *alloc = NULL;

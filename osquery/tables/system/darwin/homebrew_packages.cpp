@@ -25,7 +25,7 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-const std::string kHomebrewBinary = "/usr/local/bin/brew";
+const std::string kHomebrewBinary{"/usr/local/bin/brew"};
 
 std::vector<std::string> getHomebrewAppInfoPlistPaths(const std::string& root) {
   std::vector<std::string> results;

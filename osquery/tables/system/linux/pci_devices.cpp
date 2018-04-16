@@ -20,12 +20,12 @@
 namespace osquery {
 namespace tables {
 
-const std::string kPCIKeySlot = "PCI_SLOT_NAME";
-const std::string kPCIKeyClass = "ID_PCI_CLASS_FROM_DATABASE";
-const std::string kPCIKeyVendor = "ID_VENDOR_FROM_DATABASE";
-const std::string kPCIKeyModel = "ID_MODEL_FROM_DATABASE";
-const std::string kPCIKeyID = "PCI_ID";
-const std::string kPCIKeyDriver = "DRIVER";
+const std::string kPCIKeySlot{"PCI_SLOT_NAME"};
+const std::string kPCIKeyClass{"ID_PCI_CLASS_FROM_DATABASE"};
+const std::string kPCIKeyVendor{"ID_VENDOR_FROM_DATABASE"};
+const std::string kPCIKeyModel{"ID_MODEL_FROM_DATABASE"};
+const std::string kPCIKeyID{"PCI_ID"};
+const std::string kPCIKeyDriver{"DRIVER"};
 
 QueryData genPCIDevices(QueryContext& context) {
   QueryData results;

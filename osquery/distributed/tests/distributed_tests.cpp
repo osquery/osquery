@@ -102,7 +102,7 @@ TEST_F(DistributedTests, test_deserialize_distributed_query_request) {
 }
 
 TEST_F(DistributedTests, test_deserialize_distributed_query_request_json) {
-  std::string json = "{\"query\": \"foo\", \"id\": \"bar\"}";
+  std::string json{"{\"query\": \"foo\", \"id\": \"bar\"}"};
 
   DistributedQueryRequest r;
   auto s = deserializeDistributedQueryRequestJSON(json, r);

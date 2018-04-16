@@ -32,7 +32,7 @@ const std::string kXProtectPath =
     "CoreTypes.bundle/Contents/Resources/";
 
 /// Relative path for each user's logging directory
-const std::string kXProtectReportsPath = "/Library/Logs/DiagnosticReports";
+const std::string kXProtectReportsPath{"/Library/Logs/DiagnosticReports"};
 
 void genMatches(const pt::ptree& entry, std::vector<Row>& results) {
   if (entry.count("Matches") == 0) {

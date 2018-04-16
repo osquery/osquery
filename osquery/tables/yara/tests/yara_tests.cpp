@@ -16,10 +16,10 @@
 
 namespace osquery {
 
-const std::string ruleFile = "/tmp/osquery-yara.sig";
-const std::string ls = "/bin/ls";
-const std::string alwaysTrue = "rule always_true { condition: true }";
-const std::string alwaysFalse = "rule always_false { condition: false }";
+const std::string ruleFile{"/tmp/osquery-yara.sig"};
+const std::string ls{"/bin/ls"};
+const std::string alwaysTrue{"rule always_true { condition: true }"};
+const std::string alwaysFalse{"rule always_false { condition: false }"};
 
 class YARATest : public testing::Test {
  protected:

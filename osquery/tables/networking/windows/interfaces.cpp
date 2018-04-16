@@ -118,7 +118,7 @@ Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
     auto& results = req2.results();
     if (!results.empty()) {
       bool bPlaceHolder;
-      long lPlaceHolder = 0;
+      long lPlaceHolder{0};
       unsigned __int64 ullPlaceHolder = 0;
       results[0].GetString("NetConnectionID", r["connection_id"]);
       results[0].GetLong("NetConnectionStatus", lPlaceHolder);

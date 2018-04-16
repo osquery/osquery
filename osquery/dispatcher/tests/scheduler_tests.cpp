@@ -39,7 +39,7 @@ class SchedulerTests : public testing::Test {
 };
 
 TEST_F(SchedulerTests, test_monitor) {
-  std::string name = "pack_test_test_query";
+  std::string name{"pack_test_test_query"};
 
   // This query has never run so it will not have a timestamp.
   std::string timestamp;

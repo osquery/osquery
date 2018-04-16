@@ -71,7 +71,7 @@ TEST_F(SQLTests, test_raw_access_context) {
 }
 
 TEST_F(SQLTests, test_sql_escape) {
-  std::string input = "しかたがない";
+  std::string input{"しかたがない"};
   escapeNonPrintableBytesEx(input);
   EXPECT_EQ(input,
             "\\xE3\\x81\\x97\\xE3\\x81\\x8B\\xE3\\x81\\x9F\\xE3\\x81\\x8C\\xE3"

@@ -35,7 +35,7 @@
 namespace osquery {
 namespace tables {
 
-const std::string kMDStatPath = "/proc/mdstat";
+const std::string kMDStatPath{"/proc/mdstat"};
 
 /**
  * @brief Removes prefixing and suffixing character from each string in vector
@@ -145,7 +145,7 @@ std::string MD::getPathByDevName(const std::string& name) {
 }
 
 std::string MD::getDevName(int major, int minor) {
-  std::string devName = "unknown";
+  std::string devName{"unknown"};
 
   walkUdevDevices("block", [&](udev_device* const& device) {
     const char* devMajor = udev_device_get_property_value(device, "MAJOR");
@@ -289,7 +289,7 @@ std::string getSuperBlkStateStr(int state) {
 auto const kFClose = [](int* fd) { close(*fd); };
 
 bool MD::getDiskInfo(const std::string& arrayName, mdu_disk_info_t& diskInfo) {
-  int fd = 0;
+  int fd{0};
 
   std::unique_ptr<int, decltype(kFClose)> _(
       &(fd = open(arrayName.c_str(), O_RDONLY)), kFClose);
@@ -305,7 +305,7 @@ bool MD::getDiskInfo(const std::string& arrayName, mdu_disk_info_t& diskInfo) {
 }
 
 bool MD::getArrayInfo(const std::string& name, mdu_array_info_t& array) {
-  int fd = 0;
+  int fd{0};
 
   std::unique_ptr<int, decltype(kFClose)> _(
       &(fd = open(name.c_str(), O_RDONLY)), kFClose);

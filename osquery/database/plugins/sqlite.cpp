@@ -184,7 +184,7 @@ Status SQLiteDatabasePlugin::get(const std::string& domain,
                                  std::string& value) const {
   QueryData results;
   char* err = nullptr;
-  std::string q = "select value from " + domain + " where key = '" + key + "';";
+  std::string q{"select value from " + domain + " where key = '" + key + "';"};
   sqlite3_exec(db_, q.c_str(), getData, &results, &err);
   if (err != nullptr) {
     sqlite3_free(err);
@@ -221,7 +221,7 @@ Status SQLiteDatabasePlugin::put(const std::string& domain,
   }
 
   sqlite3_stmt* stmt = nullptr;
-  std::string q = "insert or replace into " + domain + " values (?1, ?2);";
+  std::string q{"insert or replace into " + domain + " values (?1, ?2);"};
   sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);
 
   sqlite3_bind_text(stmt, 1, key.c_str(), -1, SQLITE_STATIC);
@@ -245,7 +245,7 @@ Status SQLiteDatabasePlugin::remove(const std::string& domain,
   }
 
   sqlite3_stmt* stmt = nullptr;
-  std::string q = "delete from " + domain + " where key IN (?1);";
+  std::string q{"delete from " + domain + " where key IN (?1);"};
   sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);
 
   sqlite3_bind_text(stmt, 1, key.c_str(), -1, SQLITE_STATIC);
@@ -269,7 +269,7 @@ Status SQLiteDatabasePlugin::removeRange(const std::string& domain,
   }
 
   sqlite3_stmt* stmt = nullptr;
-  std::string q = "delete from " + domain + " where key >= ?1 and key <= ?2;";
+  std::string q{"delete from " + domain + " where key >= ?1 and key <= ?2;"};
   sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);
 
   sqlite3_bind_text(stmt, 1, low.c_str(), -1, SQLITE_STATIC);

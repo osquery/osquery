@@ -348,7 +348,7 @@ int getOnDisk(const std::string& pid, std::string& path) {
   }
 
   // The string appended to the exe path when the binary is deleted
-  const std::string kDeletedString = " (deleted)";
+  const std::string kDeletedString{" (deleted)"};
   if (!boost::algorithm::ends_with(path, kDeletedString)) {
     return (osquery::pathExists(path)) ? 1 : 0;
   }

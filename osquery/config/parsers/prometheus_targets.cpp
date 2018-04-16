@@ -17,7 +17,7 @@
 
 namespace osquery {
 
-const std::string kPrometheusParserRootKey("prometheus_targets");
+const std::string kPrometheusParserRootKey{"prometheus_targets"};
 
 std::vector<std::string> PrometheusMetricsConfigParserPlugin::keys() const {
   return {kPrometheusParserRootKey};

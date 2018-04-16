@@ -28,7 +28,7 @@ auto delLLDPAtom = [](lldpctl_atom_t* a) { lldpctl_atom_dec_ref(a); };
 
 /* kNoAtomStrDefault is the default value used when lldp_atom_get_str does not
  * return a valid string value. */
-const std::string kNoAtomStrDefault = "unknown";
+const std::string kNoAtomStrDefault{"unknown"};
 
 struct ChassisCapability {
   bool available;

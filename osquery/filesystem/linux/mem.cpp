@@ -23,7 +23,7 @@ namespace osquery {
 
 #define kLinuxMaxMemRead 0x10000
 
-const std::string kLinuxMemPath = "/dev/mem";
+const std::string kLinuxMemPath{"/dev/mem"};
 
 FLAG(bool, disable_memory, false, "Disable physical memory reads");
 

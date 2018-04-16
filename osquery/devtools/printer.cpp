@@ -23,15 +23,15 @@ namespace osquery {
 DECLARE_string(nullvalue);
 
 static std::vector<char> kOffset = {0, 0};
-static std::string kToken = "|";
+static std::string kToken{"|"};
 
 std::string generateToken(const std::map<std::string, size_t>& lengths,
                           const std::vector<std::string>& columns) {
-  std::string out = "+";
+  std::string out{"+"};
   for (const auto& col : columns) {
     size_t size = ((lengths.count(col) > 0) ? lengths.at(col) : col.size()) + 2;
     if (getEnvVar("ENHANCE").is_initialized()) {
-      std::string e = "\xF0\x9F\x90\x8C";
+      std::string e{"\xF0\x9F\x90\x8C"};
       e[2] += kOffset[1];
       e[3] += kOffset[0];
       for (size_t i = 0; i < size; i++) {
