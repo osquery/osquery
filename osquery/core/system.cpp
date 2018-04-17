@@ -467,8 +467,7 @@ Status setThreadName(const std::string& name) {
 #elif defined(__linux__)
   pthread_setname_np(pthread_self(), name.c_str());
 #elif defined(WIN32)
-    //DWORD threadId = ::GetThreadId( static_cast<HANDLE>( thread->native_handle() ) );
-    //SetThreadName(threadId,threadName);
+  ::SetThreadName(::GetCurrentThreadId(), threadName.c_str());
 #endif
   return Status{};
 }
