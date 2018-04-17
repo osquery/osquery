@@ -366,6 +366,11 @@ Status ptreeToRapidJSON(const std::string& in, std::string& out) {
     return Status(1, "Failed to parse JSON");
   }
 
+  if (tree.empty()) {
+    JSON().toString(out);
+    return Status();
+  }
+
   auto json = JSON::newArray();
   for (const auto& t : tree) {
     std::stringstream ss;
