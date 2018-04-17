@@ -18,6 +18,7 @@
 #include <osquery/logger.h>
 
 namespace rj = rapidjson;
+namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -113,5 +114,76 @@ TEST_F(DatabaseTests, test_ptree_upgraded_to_rj) {
   LOG(INFO) << query_epoch;
   auto ulepoch = std::stoull(query_epoch);
   EXPECT_EQ(ulepoch, 1521583712U);
+}
+
+static void ptree_to_json(const pt::ptree& pt_in, const JSON& rj_in) {
+  /* Convert from ptree to string */
+  std::stringstream ss;
+  pt::write_json(ss, pt_in);
+
+  /* Convert from ptree string to rj string */
+  std::string conversion_out;
+  EXPECT_TRUE(ptreeToRapidJSON(ss.str(), conversion_out));
+
+  /* Convert rj string back to rj */
+  JSON rj_out;
+  EXPECT_TRUE(rj_out.fromString(conversion_out));
+
+  /* Compare original rj with output */
+  EXPECT_EQ(rj_in.doc(), rj_out.doc());
+}
+
+TEST_F(DatabaseTests, test_ptree_to_rj_empty) {
+  /* '{}' */
+
+  pt::ptree pt_in;
+
+  JSON rj_in;
+
+  ptree_to_json(pt_in, rj_in);
+}
+
+TEST_F(DatabaseTests, test_ptree_to_rj_object) {
+  /* '{ "k" : "v" }' */
+
+  pt::ptree pt_in;
+  pt_in.put("k", "v");
+
+  JSON rj_in = JSON::newObject();
+  rj_in.add("k", "v");
+
+  ptree_to_json(pt_in, rj_in);
+}
+
+TEST_F(DatabaseTests, test_ptree_to_rj_array) {
+  /* '{ "" : "a", "" : "b" }' */
+
+  pt::ptree pt_in;
+  pt_in.put("", "a");
+  pt_in.put("", "b");
+
+  JSON rj_in = JSON::newArray();
+  rj_in.pushCopy("a");
+  rj_in.pushCopy("b");
+
+  ptree_to_json(pt_in, rj_in);
+}
+
+TEST_F(DatabaseTests, test_ptree_to_rj_array_objects) {
+  /* '{ "" : { "ka" : "va" } , "" : { "kb" : "vb" } }' */
+
+  pt::ptree pt_in;
+  pt_in.put(".ka", "va");
+  pt_in.put(".kb", "vb");
+
+  JSON rj_in = JSON::newArray();
+  JSON obj1 = rj_in.newObject();
+  obj1.add("ka", "va");
+  JSON obj2 = rj_in.newObject();
+  obj2.add("kb", "vb");
+  rj_in.push(obj1.doc(), rj_in.doc());
+  rj_in.push(obj2.doc(), rj_in.doc());
+
+  ptree_to_json(pt_in, rj_in);
 }
 }
