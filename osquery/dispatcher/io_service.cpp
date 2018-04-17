@@ -16,6 +16,7 @@ namespace osquery {
 
 void IOServiceRunner::start() {
   boost::asio::io_service::work work(IOService::get());
+  setThreadName("io_service_runner");
   for (;;) {
     try {
       IOService::get().run();

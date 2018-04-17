@@ -30,6 +30,7 @@ const size_t kDistributedAccelerationInterval = 5;
 
 void DistributedRunner::start() {
   auto dist = Distributed();
+  setThreadName("distributed");
   while (!interrupted()) {
     dist.pullUpdates();
     if (dist.getPendingQueryCount() > 0) {

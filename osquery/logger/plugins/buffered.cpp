@@ -165,6 +165,7 @@ void BufferedLogForwarder::purge() {
 }
 
 void BufferedLogForwarder::start() {
+  setThreadName("buffered_log_forwarder");
   while (!interrupted()) {
     check();
 

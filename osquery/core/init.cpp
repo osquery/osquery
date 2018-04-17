@@ -574,6 +574,7 @@ void Initializer::installShutdown(std::function<void()>& handler) {
 }
 
 void Initializer::start() const {
+  setThreadName("initializer");
   // Pre-extension manager initialization options checking.
   // If the shell or daemon does not need extensions and it will exit quickly,
   // prefer to disable the extension manager.

@@ -324,4 +324,11 @@ Status createPidFile();
  * @return A bool indicating if the current process is running as admin
  */
 bool isUserAdmin();
+
+/**
+ * @brief Set the name of the thread
+ *
+ * @return If the name was set successfully
+ */
+Status setThreadName(const std::string& name);
 } // namespace osquery

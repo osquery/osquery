@@ -461,6 +461,18 @@ bool setThreadEffective(uid_t uid, gid_t gid) {
   return 0;
 }
 
+Status setThreadName(const std::string& name) {
+#if defined(__APPLE__)
+  pthread_setname_np(name.c_str());
+#elif defined(__linux__)
+  pthread_setname_np(pthread_self(), name.c_str());
+#elif defined(WIN32)
+    //DWORD threadId = ::GetThreadId( static_cast<HANDLE>( thread->native_handle() ) );
+    //SetThreadName(threadId,threadName);
+#endif
+  return Status{};
+}
+
 bool DropPrivileges::dropTo(const std::string& uid, const std::string& gid) {
   unsigned long int _uid = 0;
   unsigned long int _gid = 0;
