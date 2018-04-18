@@ -47,7 +47,7 @@ void OpenBSMEventPublisher::tearDown() {
 }
 
 Status OpenBSMEventPublisher::run() {
-  setThreadName("openbsm_event_publisher");
+  setThreadName(name());
   if (audit_pipe_ == nullptr) {
     return Status(1, "No open audit_pipe");
   }

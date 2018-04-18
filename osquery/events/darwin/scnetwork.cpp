@@ -172,7 +172,7 @@ void SCNetworkEventPublisher::stop() {
 }
 
 Status SCNetworkEventPublisher::run() {
-  setThreadName("scnetwork_event_publisher");
+  setThreadName(name());
   if (run_loop_ == nullptr) {
     run_loop_ = CFRunLoopGetCurrent();
     restart();

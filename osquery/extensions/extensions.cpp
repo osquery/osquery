@@ -196,7 +196,7 @@ void ExtensionWatcher::start() {
   // Watch the manager, if the socket is removed then the extension will die.
   // A check for sane paths and activity is applied before the watcher
   // service is added and started.
-  setThreadName("extension_watcher");
+  setThreadName(name());
   while (!interrupted()) {
     watch();
     pauseMilli(interval_);
@@ -205,7 +205,7 @@ void ExtensionWatcher::start() {
 
 void ExtensionManagerWatcher::start() {
   // Watch each extension.
-  setThreadName("extension_manager_watcher");
+  setThreadName(name());
   while (!interrupted()) {
     watch();
     pauseMilli(interval_);

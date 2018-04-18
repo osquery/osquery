@@ -104,7 +104,7 @@ Status EventTappingEventPublisher::restart() {
 }
 
 Status EventTappingEventPublisher::run() {
-  setThreadName("event_tapping_event_publisher");
+  setThreadName(name());
   Status s = restart();
   if (s.ok()) {
     CFRunLoopRun();

@@ -1016,7 +1016,7 @@ Status ConfigParserPlugin::setUp() {
 }
 
 void ConfigRefreshRunner::start() {
-  setThreadName("config_refresh_runner");
+  setThreadName(name());
   while (!interrupted()) {
     // Cool off and time wait the configured period.
     // Apply this interruption initially as at t=0 the config was read.
