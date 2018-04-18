@@ -461,17 +461,6 @@ bool setThreadEffective(uid_t uid, gid_t gid) {
   return 0;
 }
 
-Status setThreadName(const std::string& name) {
-#if defined(__APPLE__)
-  pthread_setname_np(name.c_str());
-#elif defined(__linux__)
-  pthread_setname_np(pthread_self(), name.c_str());
-#elif defined(WIN32)
-  ::SetThreadName(::GetCurrentThreadId(), threadName.c_str());
-#endif
-  return Status{};
-}
-
 bool DropPrivileges::dropTo(const std::string& uid, const std::string& gid) {
   unsigned long int _uid = 0;
   unsigned long int _gid = 0;
@@ -543,4 +532,32 @@ DropPrivileges::~DropPrivileges() {
   }
 }
 #endif
+
+Status setThreadName(const std::string& name) {
+#if defined(__APPLE__)
+  pthread_setname_np(name.c_str());
+#elif defined(__linux__)
+  pthread_setname_np(pthread_self(), name.c_str());
+#elif defined(WIN32)
+  // The SetThreadDescription API was brought in version 1607 of Windows 10.
+  typedef HRESULT(WINAPI * PFNSetThreadDescription)(HANDLE hThread,
+                                                    PCWSTR lpThreadDescription);
+  // The SetThreadDescription API works even if no debugger is attached.
+  // Chromium does this too:
+  // https://codereview.chromium.org/2692213003/diff/80001/base/threading/platform_thread_win.cc
+  auto pfnSetThreadDescription = reinterpret_cast<PFNSetThreadDescription>(
+      GetProcAddress(GetModuleHandleA("Kernel32.dll"), "SetThreadDescription"));
+  if (pfnSetThreadDescription) {
+    std::wstring wideName;
+    wideName.resize(name.size() + 1);
+    swprintf_s(&(wideName.front()), wideName.size(), L"%S", name.c_str());
+    HRESULT hr = pfnSetThreadDescription(GetCurrentThread(), wideName.c_str());
+    if (!FAILED(hr)) {
+      return Status{0};
+    }
+  }
+  VLOG(1) << "Unable to set thread name";
+#endif
+  return Status{};
+}
 }
