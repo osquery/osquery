@@ -141,10 +141,10 @@ std::string genSerialForCertificate(X509* cert) {
     return hex;
   }
   char* hexBytes = BN_bn2hex(bignumSerial);
+  OPENSSL_free(bignumSerial);
   if (hexBytes == nullptr) {
     return hex;
   }
-  OPENSSL_free(bignumSerial);
   hex = std::string(hexBytes);
   OPENSSL_free(hexBytes);
   return hex;
