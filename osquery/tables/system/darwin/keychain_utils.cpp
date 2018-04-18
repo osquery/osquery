@@ -134,9 +134,20 @@ std::string genSHA1ForCertificate(X509* cert) {
 }
 
 std::string genSerialForCertificate(X509* cert) {
+  std::string hex;
   ASN1_INTEGER* serial = X509_get_serialNumber(cert);
-  BIGNUM* bignumSerial = ASN1_INTEGER_to_BN(serial, NULL);
-  return BN_bn2hex(bignumSerial);
+  BIGNUM* bignumSerial = ASN1_INTEGER_to_BN(serial, nullptr);
+  if (bignumSerial == nullptr) {
+    return hex;
+  }
+  char* hexBytes = BN_bn2hex(bignumSerial);
+  if (hexBytes == nullptr) {
+    return hex;
+  }
+  OPENSSL_free(bignumSerial);
+  hex = std::string(hexBytes);
+  OPENSSL_free(hexBytes);
+  return hex;
 }
 
 bool CertificateIsCA(X509* cert) {
