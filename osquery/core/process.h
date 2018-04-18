@@ -41,6 +41,9 @@ namespace osquery {
 /// Constant for an invalid process
 const auto kInvalidPid = (PlatformPidType)-1;
 
+/// The saved thread ID for shutdown to short-circuit raising a signal.
+extern std::thread::id kMainThreadId;
+
 /**
  * @brief Categories of process states adapted to be platform agnostic
  *

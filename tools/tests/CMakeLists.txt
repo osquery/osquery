@@ -13,7 +13,9 @@ if(NOT DEFINED ENV{SANITIZE})
 endif()
 
 ADD_OSQUERY_PYTHON_TEST(test_osqueryd test_osqueryd.py)
-if(NOT WINDOWS)
+if(WINDOWS)
+  ADD_OSQUERY_PYTHON_TEST(test_windows_service test_windows_service.py)
+else()
   ADD_OSQUERY_PYTHON_TEST(test_additional test_additional.py)
 
   if(NOT DEFINED ENV{SANITIZE})

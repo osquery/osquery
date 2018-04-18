@@ -70,7 +70,9 @@ struct ImpExtensionManagerServer {
 };
 
 ExtensionRunnerImpl::~ExtensionRunnerImpl() {
-  removePath(path_);
+  if (pathExists(path_).ok()) {
+    removePath(path_);
+  }
 };
 
 ExtensionRunnerImpl::ExtensionRunnerImpl()

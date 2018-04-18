@@ -197,8 +197,8 @@ ToolType kToolType{ToolType::UNKNOWN};
 /// The saved exit code from a thread's request to stop the process.
 volatile std::sig_atomic_t kExitCode{0};
 
-/// The saved thread ID for shutdown to short-circuit raising a signal.
-static std::thread::id kMainThreadId;
+/// Track the main thread ID for graceful shutdowns
+std::thread::id kMainThreadId;
 
 /// When no flagfile is provided via CLI, attempt to read flag 'defaults'.
 const std::string kBackupDefaultFlagfile{OSQUERY_HOME "/osquery.flags.default"};
@@ -491,6 +491,7 @@ void Initializer::initWatcher() const {
   if (isWatcher()) {
     if (shutdown_ != nullptr) {
       shutdown_();
+      shutdown_ = nullptr;
     }
 
     // If there are no autoloaded extensions, the watcher service will end,
