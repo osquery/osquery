@@ -67,6 +67,10 @@ TEST_F(ConversionsTests, test_unicode_unescape) {
       std::make_pair("\\uFFFFhi", "\\uFFFFhi"),
       std::make_pair("0000\\u", "0000\\u"),
       std::make_pair("hi", "hi"),
+      std::make_pair("c:\\\\users\\\\obelisk\\\\file.txt",
+                     "c:\\\\users\\\\obelisk\\\\file.txt"),
+      std::make_pair("Edge case test\\", "Edge case test\\"),
+      std::make_pair("Edge case test two\\\\", "Edge case test two\\\\"),
   };
 
   for (const auto& test : conversions) {
