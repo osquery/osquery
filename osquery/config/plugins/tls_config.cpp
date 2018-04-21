@@ -84,10 +84,19 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
 
       // Re-encode the config key into JSON.
       auto it = tree.doc().FindMember("config");
-      config["tls_plugin"] =
-          unescapeUnicode(it != tree.doc().MemberEnd() && it->value.IsString()
-                              ? it->value.GetString()
-                              : "");
+      if (it != tree.doc().MemberEnd() && it->value.IsString()) {
+        config["tls_plugin"] = unescapeUnicode(it->value.GetString());
+      } else if (it != tree.doc().MemberEnd() && it->value.IsObject()) {
+        auto doc = JSON::newFromValue(it->value);
+        std::string serialized{};
+
+        s = doc.toString(config["tls_plugin"]);
+      }
+      //config["tls_plugin"] =
+      //    unescapeUnicode(it != tree.doc().MemberEnd() && it->value.IsString()
+      //                        ? it->value.GetString()
+      //
+      //                        : "");
     } else {
       config["tls_plugin"] = json;
     }
