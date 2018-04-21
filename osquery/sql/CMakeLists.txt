@@ -3,6 +3,7 @@ ADD_OSQUERY_LIBRARY_CORE(osquery_sql
 )
 
 set(OSQUERY_SQL_INTERNAL
+  "hash.cpp"
   "sqlite_util.cpp"
   "sqlite_math.cpp"
   "sqlite_hashing.cpp"
