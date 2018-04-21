@@ -156,6 +156,14 @@ TEST_F(ConversionsTests, test_json_from_string) {
   EXPECT_FALSE(doc.fromString(json).ok());
 }
 
+TEST_F(ConversionsTests, test_json_from_string_error) {
+  std::string json = "{\"key\":\"value\",\"key2\":{\"key3\":'error'}}";
+  auto doc = JSON::newObject();
+  auto s = doc.fromString(json);
+  EXPECT_FALSE(s.ok());
+  EXPECT_EQ(s.getMessage(), "Cannot parse JSON: Invalid value. Offset: 30");
+}
+
 TEST_F(ConversionsTests, test_json_add_object) {
   std::string json = "{\"key\":\"value\", \"key2\":{\"key3\":[3,2,1]}}";
   auto doc = JSON::newObject();
