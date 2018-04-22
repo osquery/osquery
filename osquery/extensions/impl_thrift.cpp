@@ -69,6 +69,11 @@ class ExtensionHandler : virtual public extensions::ExtensionIf,
   RouteUUID getUUID() const;
 };
 
+#ifdef WIN32
+#pragma warning(push, 3)
+#pragma warning(disable : 4250)
+#endif
+
 class ExtensionManagerHandler : virtual public extensions::ExtensionManagerIf,
                                 public ExtensionManagerInterface,
                                 public ExtensionHandler {
@@ -105,6 +110,10 @@ class ExtensionManagerHandler : virtual public extensions::ExtensionManagerIf,
   using ExtensionHandler::call;
   using ExtensionHandler::shutdown;
 };
+
+#ifdef WIN32
+#pragma warning(pop)
+#endif
 
 struct ImplExtensionRunner {
   std::shared_ptr<TServerTransport> transport;

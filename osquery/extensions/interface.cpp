@@ -78,7 +78,6 @@ Status ExtensionManagerInterface::registerExtension(
     const ExtensionInfo& info,
     const ExtensionRegistry& registry,
     RouteUUID& uuid) {
-  ;
   if (exists(info.name)) {
     LOG(WARNING) << "Refusing to register duplicate extension " << info.name;
     return Status((int)ExtensionCode::EXT_FAILED,
