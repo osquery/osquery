@@ -99,6 +99,11 @@ class ExtensionManagerHandler : virtual public extensions::ExtensionManagerIf,
   using ExtensionManagerInterface::getQueryColumns;
   void getQueryColumns(extensions::ExtensionResponse& _return,
                        const std::string& sql) override;
+
+ public:
+  using ExtensionHandler::ping;
+  using ExtensionHandler::call;
+  using ExtensionHandler::shutdown;
 };
 
 struct ImplExtensionRunner {

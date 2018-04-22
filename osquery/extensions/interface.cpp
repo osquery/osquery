@@ -30,7 +30,8 @@ const std::vector<std::string> kSDKVersionChanges = {
 
 Status ExtensionInterface::ping() {
   // Need to translate return code into 0 and extract the UUID.
-  return Status(uuid_, "pong");
+  assert(uuid_ < INT_MAX);
+  return Status(static_cast<int>(uuid_), "pong");
 }
 
 Status ExtensionInterface::call(const std::string& registry,
