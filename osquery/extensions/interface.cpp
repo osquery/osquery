@@ -20,27 +20,23 @@
 
 #include "osquery/extensions/interface.h"
 
-using namespace osquery::extensions;
-
 using chrono_clock = std::chrono::high_resolution_clock;
 
 namespace osquery {
-namespace extensions {
 
 const std::vector<std::string> kSDKVersionChanges = {
     {"1.7.7"},
 };
 
-void ExtensionHandler::ping(ExtensionStatus& _return) {
-  _return.code = (int)ExtensionCode::EXT_SUCCESS;
-  _return.message = "pong";
-  _return.uuid = uuid_;
+Status ExtensionInterface::ping() {
+  // Need to translate return code into 0 and extract the UUID.
+  return Status(uuid_, "pong");
 }
 
-void ExtensionHandler::call(ExtensionResponse& _return,
-                            const std::string& registry,
-                            const std::string& item,
-                            const ExtensionPluginRequest& request) {
+Status ExtensionInterface::call(const std::string& registry,
+                                const std::string& item,
+                                const PluginRequest& request,
+                                PluginResponse& response) {
   // Call will receive an extension or core's request to call the other's
   // internal registry call. It is the ONLY actor that resolves registry
   // item aliases.
@@ -50,74 +46,42 @@ void ExtensionHandler::call(ExtensionResponse& _return,
     local_item = RegistryFactory::get().getActive(registry);
   }
 
-  PluginResponse response;
-  PluginRequest plugin_request;
-  for (const auto& request_item : request) {
-    // Create a PluginRequest from an ExtensionPluginRequest.
-    plugin_request[request_item.first] = request_item.second;
-  }
-
-  auto status =
-      RegistryFactory::call(registry, local_item, plugin_request, response);
-  _return.status.code = status.getCode();
-  _return.status.message = status.getMessage();
-  _return.status.uuid = uuid_;
-  if (status.ok()) {
-    for (const auto& response_item : response) {
-      // Translate a PluginResponse to an ExtensionPluginResponse.
-      _return.response.push_back(response_item);
-    }
-  }
+  return RegistryFactory::call(registry, local_item, request, response);
 }
 
-void ExtensionHandler::shutdown() {
+void ExtensionInterface::shutdown() {
   // Request a graceful shutdown of the Thrift listener.
   VLOG(1) << "Extension " << uuid_ << " requested shutdown";
   Initializer::requestShutdown(EXIT_SUCCESS);
 }
 
-/**
- * @brief Updates the Thrift server output to be VLOG
- *
- * On Windows, the thrift server will output to stdout, which displays
- * messages to the user on exiting the client. This function is used
- * instead of the default output for thrift.
- *
- * @param msg The text to be logged
- */
-void thriftLoggingOutput(const char* msg) {
-  VLOG(1) << "Thrift message: " << msg;
-}
-
-ExtensionManagerHandler::ExtensionManagerHandler() {
-  apache::thrift::GlobalOutput.setOutputFunction(thriftLoggingOutput);
-}
-
-void ExtensionManagerHandler::extensions(InternalExtensionList& _return) {
+ExtensionList ExtensionManagerInterface::extensions() {
   refresh();
 
   ReadLock lock(extensions_mutex_);
-  _return = extensions_;
+  return extensions_;
 }
 
-void ExtensionManagerHandler::options(InternalOptionList& _return) {
+OptionList ExtensionManagerInterface::options() {
+  OptionList options;
   auto flags = Flag::flags();
   for (const auto& flag : flags) {
-    _return[flag.first].value = flag.second.value;
-    _return[flag.first].default_value = flag.second.default_value;
-    _return[flag.first].type = flag.second.type;
+    options[flag.first].value = flag.second.value;
+    options[flag.first].default_value = flag.second.default_value;
+    options[flag.first].type = flag.second.type;
   }
+  return options;
 }
 
-void ExtensionManagerHandler::registerExtension(
-    ExtensionStatus& _return,
-    const InternalExtensionInfo& info,
-    const ExtensionRegistry& registry) {
+Status ExtensionManagerInterface::registerExtension(
+    const ExtensionInfo& info,
+    const ExtensionRegistry& registry,
+    RouteUUID& uuid) {
+  ;
   if (exists(info.name)) {
     LOG(WARNING) << "Refusing to register duplicate extension " << info.name;
-    _return.code = (int)ExtensionCode::EXT_FAILED;
-    _return.message = "Duplicate extension registered";
-    return;
+    return Status((int)ExtensionCode::EXT_FAILED,
+                  "Duplicate extension registered");
   }
 
   // Enforce API change requirements.
@@ -125,9 +89,8 @@ void ExtensionManagerHandler::registerExtension(
     if (!versionAtLeast(change, info.sdk_version)) {
       LOG(WARNING) << "Could not add extension " << info.name
                    << ": incompatible extension SDK " << info.sdk_version;
-      _return.code = (int)ExtensionCode::EXT_FAILED;
-      _return.message = "Incompatible extension SDK version";
-      return;
+      return Status((int)ExtensionCode::EXT_FAILED,
+                    "Incompatible extension SDK version");
     }
   }
 
@@ -137,7 +100,7 @@ void ExtensionManagerHandler::registerExtension(
         chrono_clock::now().time_since_epoch().count()));
   }
   // Every call to registerExtension is assigned a new RouteUUID.
-  RouteUUID uuid = static_cast<uint16_t>(rand());
+  uuid = static_cast<uint16_t>(rand());
   VLOG(1) << "Registering extension (" << info.name << ", " << uuid
           << ", version=" << info.version << ", sdk=" << info.sdk_version
           << ")";
@@ -146,27 +109,24 @@ void ExtensionManagerHandler::registerExtension(
   if (!status.ok()) {
     LOG(WARNING) << "Could not add extension " << info.name << ": "
                  << status.getMessage();
-    _return.code = (int)ExtensionCode::EXT_FAILED;
-    _return.message = "Failed adding registry: " + status.getMessage();
-    return;
+    return Status((int)ExtensionCode::EXT_FAILED,
+                  "Failed adding registry: " + status.getMessage());
   }
 
   WriteLock lock(extensions_mutex_);
   extensions_[uuid] = info;
-  _return.code = (int)ExtensionCode::EXT_SUCCESS;
-  _return.message = "OK";
-  _return.uuid = uuid;
+  return Status();
 }
 
-void ExtensionManagerHandler::deregisterExtension(
-    ExtensionStatus& _return, const ExtensionRouteUUID uuid) {
+Status ExtensionManagerInterface::query(const std::string& sql, QueryData& qd) {
+  return osquery::query(sql, qd);
+}
+
+Status ExtensionManagerInterface::deregisterExtension(RouteUUID uuid) {
   {
     ReadLock lock(extensions_mutex_);
     if (extensions_.count(uuid) == 0) {
-      _return.code = (int)ExtensionCode::EXT_FAILED;
-      _return.message = "No extension UUID registered";
-      _return.uuid = 0;
-      return;
+      return Status((int)ExtensionCode::EXT_FAILED, "No extension UUID found");
     }
   }
 
@@ -175,42 +135,22 @@ void ExtensionManagerHandler::deregisterExtension(
 
   WriteLock lock(extensions_mutex_);
   extensions_.erase(uuid);
-  _return.code = (int)ExtensionCode::EXT_SUCCESS;
-  _return.uuid = uuid;
+  return Status();
 }
 
-void ExtensionManagerHandler::query(ExtensionResponse& _return,
-                                    const std::string& sql) {
-  QueryData results;
-  auto status = osquery::query(sql, results);
-  _return.status.code = status.getCode();
-  _return.status.message = status.getMessage();
-  _return.status.uuid = uuid_;
-
-  if (status.ok()) {
-    for (const auto& row : results) {
-      _return.response.push_back(row);
-    }
-  }
-}
-
-void ExtensionManagerHandler::getQueryColumns(ExtensionResponse& _return,
-                                              const std::string& sql) {
+Status ExtensionManagerInterface::getQueryColumns(const std::string& sql,
+                                                  QueryData& qd) {
   TableColumns columns;
   auto status = osquery::getQueryColumns(sql, columns);
-  _return.status.code = status.getCode();
-  _return.status.message = status.getMessage();
-  _return.status.uuid = uuid_;
-
   if (status.ok()) {
     for (const auto& col : columns) {
-      _return.response.push_back(
-          {{std::get<0>(col), columnTypeName(std::get<1>(col))}});
+      qd.push_back({{std::get<0>(col), columnTypeName(std::get<1>(col))}});
     }
   }
+  return status;
 }
 
-void ExtensionManagerHandler::refresh() {
+void ExtensionManagerInterface::refresh() {
   std::vector<RouteUUID> removed_routes;
   const auto uuids = RegistryFactory::get().routeUUIDs();
 
@@ -228,7 +168,7 @@ void ExtensionManagerHandler::refresh() {
   }
 }
 
-bool ExtensionManagerHandler::exists(const std::string& name) {
+bool ExtensionManagerInterface::exists(const std::string& name) {
   refresh();
 
   // Search the remaining extension list for duplicates.
@@ -240,7 +180,6 @@ bool ExtensionManagerHandler::exists(const std::string& name) {
   }
   return false;
 }
-} // namespace extensions
 
 void removeStalePaths(const std::string& manager) {
   std::vector<std::string> paths;
@@ -254,7 +193,7 @@ void removeStalePaths(const std::string& manager) {
 ExtensionRunnerCore::~ExtensionRunnerCore() = default;
 
 ExtensionRunnerCore::ExtensionRunnerCore(const std::string& path)
-    : InternalRunnable("ExtensionRunnerCore"), ExtensionRunnerImpl() {
+    : InternalRunnable("ExtensionRunnerCore"), ExtensionRunnerInterface() {
   path_ = path;
 }
 
@@ -319,16 +258,14 @@ ExtensionManagerRunner::~ExtensionManagerRunner() {
 }
 
 void ExtensionManagerRunner::start() {
-  initManager();
+  init(0, true);
 
   VLOG(1) << "Extension manager service starting: " << path_;
   try {
-    startServer(/*processor*/);
+    startServer();
   } catch (const std::exception& e) {
     LOG(WARNING) << "Extensions disabled: cannot start extension manager ("
                  << path_ << ") (" << e.what() << ")";
   }
 }
-
-
 } // namespace osquery
