@@ -106,8 +106,8 @@ class ExtensionManagerHandler : virtual public extensions::ExtensionManagerIf,
                        const std::string& sql) override;
 
  public:
-  using ExtensionHandler::ping;
   using ExtensionHandler::call;
+  using ExtensionHandler::ping;
   using ExtensionHandler::shutdown;
 };
 
