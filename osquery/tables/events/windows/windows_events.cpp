@@ -75,8 +75,7 @@ void parseTree(const pt::ptree& tree, std::map<std::string, std::string>& res) {
 
     if (res[nodeName] == "") {
       res[nodeName] = node.second.data();
-    }
-    else {
+    } else {
       res[nodeName] = res[nodeName] + "," + node.second.data();
     }
 
