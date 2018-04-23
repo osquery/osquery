@@ -70,19 +70,21 @@ void genAddressesFromAddr(const struct ifaddrs* addr, QueryData& results) {
 
 static inline void flagsFromSysfs(const std::string& name, size_t& flags) {
   auto flags_path = "/sys/class/net/" + name + "/flags";
-  if (pathExists(flags_path)) {
-    std::string content;
-    // This will take the form, 0xVALUE\n.
-    if (readFile(flags_path, content) && content.size() > 3) {
-      if (content[0] == '0' && content[1] == 'x') {
-        unsigned long int lflags = 0;
-        if (safeStrtoul(content.substr(2, content.size() - 3), 16, lflags)) {
-	   const size_t sysfsFlags =
+  std::string content;
+  if (!pathExists(flags_path)
+	|| !readFile(flags_path, content)
+	|| content.size() <= 3) {
+    return;
+  }
+
+  // This will take the form, 0xVALUE\n.
+  if (content[0] == '0' && content[1] == 'x') {
+    unsigned long int lflags = 0;
+    if (safeStrtoul(content.substr(2, content.size() - 3), 16, lflags)) {
+      const size_t sysfsFlags =
 	      IFF_UP|IFF_DEBUG|IFF_NOTRAILERS|IFF_NOARP|IFF_PROMISC|\
 	      IFF_ALLMULTI|IFF_MULTICAST|IFF_PORTSEL|IFF_AUTOMEDIA|IFF_DYNAMIC;
           flags |= lflags & sysfsFlags;
-        }
-      }
     }
   }
 }
