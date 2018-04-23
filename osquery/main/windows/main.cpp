@@ -200,7 +200,7 @@ class ServiceArgumentParser {
 };
 
 /// Install osqueryd as a service given the path to the binary
-Status installService(const char* const binPath) {
+Status installService(const std::string& binPath) {
   SC_HANDLE schSCManager = OpenSCManager(
       nullptr, nullptr, SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
 
@@ -218,9 +218,8 @@ Status installService(const char* const binPath) {
   }
 
   HANDLE flagsFilePtr = nullptr;
-  std::string binPathWithFlagFile = std::string(binPath) + " --flagfile=";
-  std::string flagsFile =
-      FLAGS_flagfile.empty() ? kDefaultFlagsFile : FLAGS_flagfile;
+  auto binPathWithFlagFile = binPath + " --flagfile=";
+  auto flagsFile = FLAGS_flagfile.empty() ? kDefaultFlagsFile : FLAGS_flagfile;
   binPathWithFlagFile += flagsFile;
   flagsFilePtr = CreateFile(flagsFile.c_str(),
                             GENERIC_READ,
