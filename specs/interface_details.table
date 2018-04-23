@@ -18,6 +18,11 @@ schema([
     Column("collisions", BIGINT, "Packet Collisions detected"),
     Column("last_change", BIGINT, "Time of last device modification (optional)"),
 ])
+
+extended_schema(LINUX, [
+  Column("link_speed", BIGINT, "Interface speed in Mb/s"),
+])
+
 extended_schema(WINDOWS, [
     Column("friendly_name", TEXT, "The friendly display name of the interface."),
     Column("description", TEXT, "Short description of the object—a one-line string."),
