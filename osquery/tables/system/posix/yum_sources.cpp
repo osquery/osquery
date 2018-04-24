@@ -23,7 +23,7 @@ namespace tables {
 
 const std::string kYumConf{"/etc/yum.conf"};
 const std::string kYumReposDir{"/etc/yum.repos.d"};
-const std::vector<std::string> kYumConfigFileExtensions{".list", ".repo"};
+const std::string kYumConfigFileExtensions{"{list,repo}"};
 
 void parseYumConf(std::istream& source,
                   QueryData& results,
@@ -82,13 +82,11 @@ QueryData genYumSrcs(QueryContext& context) {
   parseYumConf(kYumConf, results, repos_dir);
 
   std::vector<std::string> sources;
-  for (const auto& ext : kYumConfigFileExtensions) {
-    if (resolveFilePattern(repos_dir + "/%" + ext, sources, GLOB_FILES)) {
-      for (const auto& source : sources) {
-        parseYumConf(source, results, repos_dir);
-      }
-      return results;
+  if (resolveFilePattern(repos_dir + "/%." + kYumConfigFileExtensions, sources, GLOB_FILES)) {
+    for (const auto& source : sources) {
+      parseYumConf(source, results, repos_dir);
     }
+    return results;
   }
 
   VLOG(1) << "Cannot resolve yum conf files under " << repos_dir;
