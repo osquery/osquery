@@ -100,7 +100,6 @@ def assertUserIsAdmin():
 # with our helper function, other wise error code is the SCM reported issue
 def sc(*args):
     p = None
-    print('DEBUG: calling - {}'.format(['sc.exe'] + list(args)))
     try:
         p = subprocess.Popen(
             ['sc.exe'] + list(args),
@@ -112,8 +111,6 @@ def sc(*args):
     out, _ = p.communicate()
     out = [x.strip() for x in out.split('\r\n') if x.strip() is not '']
 
-    print('DEBUG: got back - {}'.format(out))
-
     if len(out) >= 1:
         if 'SUCCESS' in out[0]:
             return (0, 'SUCCESS')
@@ -121,7 +118,6 @@ def sc(*args):
             err_code = re.findall(r'\d+', out[0])
             return (-1 if len(err_code) == 0 else int(err_code[0]), out[-1])
 
-    status = {}
     for l in out:
         items = l.replace(' ', '').split(':')
         if len(items) > 1 and items[0] == 'STATE':
@@ -189,6 +185,9 @@ def serviceDead():
 
 
 class OsquerydTest(unittest.TestCase):
+
+    service_list_ = []
+
     def setUp(self):
 
         self.test_instance = random.randint(0, 65535)
@@ -250,6 +249,7 @@ class OsquerydTest(unittest.TestCase):
         name = 'osqueryd_test_{}'.format(self.test_instance)
         code, _ = installService(name, self.bin_path)
         self.assertEqual(code, 0)
+        self.service_list_.append(name)
 
         code, _ = startService(name, '--flagfile', self.flagfile)
         self.assertEqual(code, 0)
@@ -282,6 +282,8 @@ class OsquerydTest(unittest.TestCase):
         code, _ = uninstallService(name)
         self.assertEqual(code, 0)
 
+        self.service_list_.remove(name)
+
         # Make sure the service no longer exists, error code 1060
         code, _ = queryService(name)
         self.assertEqual(code, 1060)
@@ -292,6 +294,7 @@ class OsquerydTest(unittest.TestCase):
         name = 'osqueryd_test_{}'.format(self.test_instance)
         code, _ = installService(name, self.bin_path)
         self.assertEqual(code, 0)
+        self.service_list_.append(name)
 
         code, _ = startService(name, '--flagfile', self.flagfile)
         self.assertEqual(code, 0)
@@ -316,6 +319,8 @@ class OsquerydTest(unittest.TestCase):
         code, _ = uninstallService(name)
         self.assertEqual(code, 0)
 
+        self.service_list_.remove(name)
+
         # Make sure the service no longer exists, error code 1060
         (code, _) = queryService(name)
         self.assertEqual(code, 1060)
@@ -323,6 +328,12 @@ class OsquerydTest(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
+
+        # Ensure that even if events fail we always remove the services
+        if len(self.service_list_) > 0:
+            for s in self.service_list_:
+                stopService(s)
+                uninstallService(s)
 
 
 if __name__ == '__main__':
