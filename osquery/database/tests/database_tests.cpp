@@ -78,7 +78,24 @@ TEST_F(DatabaseTests, test_delete_values) {
   EXPECT_TRUE(value.empty());
 }
 
-TEST_F(DatabaseTests, test_ptree_upgraded_to_rj) {
+TEST_F(DatabaseTests, test_ptree_upgraded_to_rj_empty) {
+  auto empty_results { "{}" };
+  auto status = setDatabaseValue(kQueries, "old_empty_results", empty_results);
+  EXPECT_TRUE(status.ok());
+
+  status = upgradeDatabase();
+  EXPECT_TRUE(status.ok());
+
+  std::string new_empty_list;
+  status = getDatabaseValue(kQueries, "old_empty_results", new_empty_list);
+  EXPECT_TRUE(status.ok());
+
+  rj::Document empty_list;
+  EXPECT_FALSE(empty_list.Parse(new_empty_list).HasParseError());
+  EXPECT_TRUE(empty_list.IsArray());
+}
+
+TEST_F(DatabaseTests, test_ptree_upgraded_to_rj_results) {
   auto bad_json =
       "{\"\":{\"disabled\":\"0\",\"network_name\":\"BTWifi-Starbucks\"},\"\":{"
       "\"disabled\":\"0\",\"network_name\":\"Lobo-Guest\"},\"\":{\"disabled\":"
