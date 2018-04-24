@@ -45,7 +45,7 @@ const std::string kLogs = "logs";
 const std::string kDbEpochSuffix = "epoch";
 const std::string kDbCounterSuffix = "counter";
 
-const std::string kDatabseResultsVersion = "1";
+const std::string kDatabaseResultsVersion = "1";
 
 const std::vector<std::string> kDomains = {
     kPersistentSettings, kQueries, kEvents, kLogs, kCarves};
@@ -425,7 +425,7 @@ Status upgradeDatabase() {
   std::string db_results_version{""};
   getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
 
-  if (db_results_version == kDatabseResultsVersion) {
+  if (db_results_version == kDatabaseResultsVersion) {
     return Status();
   }
 
@@ -436,7 +436,7 @@ Status upgradeDatabase() {
   }
 
   setDatabaseValue(
-      kPersistentSettings, "results_version", kDatabseResultsVersion);
+      kPersistentSettings, "results_version", kDatabaseResultsVersion);
   return Status();
 }
 }
