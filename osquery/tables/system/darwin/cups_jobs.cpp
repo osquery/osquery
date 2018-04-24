@@ -34,7 +34,7 @@ QueryData genCupsJobs(QueryContext& request) {
   QueryData results;
   SafeCupsJobs jobs;
 
-  for (auto i{0}; i < jobs.num_jobs; ++i) {
+  for (decltype(jobs.num_jobs) i = 0; i < jobs.num_jobs; ++i) {
     Row r;
     r["title"] = std::string(jobs.job_list[i].title);
     r["destination"] = std::string(jobs.job_list[i].dest);

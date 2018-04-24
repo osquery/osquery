@@ -34,7 +34,9 @@ QueryData genCupsDestinations(QueryContext& request) {
   QueryData results;
   SafeCupsDestinations destinations;
 
-  for (auto i{0}; i < destinations.num_destinations; ++i) {
+  for (decltype(destinations.num_destinations) i = 0;
+       i < destinations.num_destinations;
+       ++i) {
     auto num_options = destinations.destination_list[i].num_options;
     if (num_options == 0) {
       Row r;
