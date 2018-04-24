@@ -86,7 +86,6 @@ FLAGS_FILE = """
 --events_expiry=300
 """
 
-WINDOWS_SERVICES = []
 
 def assertUserIsAdmin():
     if os.name != 'nt':
@@ -250,7 +249,7 @@ class OsquerydTest(unittest.TestCase):
         name = 'osqueryd_test_{}'.format(self.test_instance)
         code, _ = installService(name, self.bin_path)
         self.assertEqual(code, 0)
-        self.service_list_ += name
+        self.service_list_.append(name)
 
         code, _ = startService(name, '--flagfile', self.flagfile)
         self.assertEqual(code, 0)
@@ -295,7 +294,7 @@ class OsquerydTest(unittest.TestCase):
         name = 'osqueryd_test_{}'.format(self.test_instance)
         code, _ = installService(name, self.bin_path)
         self.assertEqual(code, 0)
-        self.service_list_ += name
+        self.service_list_.append(name)
 
         code, _ = startService(name, '--flagfile', self.flagfile)
         self.assertEqual(code, 0)
@@ -327,10 +326,9 @@ class OsquerydTest(unittest.TestCase):
         self.assertEqual(code, 1060)
 
     def tearDown(self):
-        print('[+] DEBUG: CALLING TEARDOWN')
         if os.path.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
-        
+
         # Ensure that even if events fail we always remove the services
         if len(self.service_list_) > 0:
             for s in self.service_list_:
