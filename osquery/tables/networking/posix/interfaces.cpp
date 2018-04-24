@@ -32,6 +32,10 @@
 namespace osquery {
 namespace tables {
 
+const size_t sysfsFlags =
+    IFF_UP|IFF_DEBUG|IFF_NOTRAILERS|IFF_NOARP|IFF_PROMISC|\
+    IFF_ALLMULTI|IFF_MULTICAST|IFF_PORTSEL|IFF_AUTOMEDIA|IFF_DYNAMIC;
+
 // Functions for safe sign-extension
 std::basic_string<char> INTEGER_FROM_UCHAR(unsigned char x) {
   return INTEGER(static_cast<uint16_t>(x));
@@ -81,10 +85,7 @@ static inline void flagsFromSysfs(const std::string& name, size_t& flags) {
   if (content[0] == '0' && content[1] == 'x') {
     unsigned long int lflags = 0;
     if (safeStrtoul(content.substr(2, content.size() - 3), 16, lflags)) {
-      const size_t sysfsFlags =
-	      IFF_UP|IFF_DEBUG|IFF_NOTRAILERS|IFF_NOARP|IFF_PROMISC|\
-	      IFF_ALLMULTI|IFF_MULTICAST|IFF_PORTSEL|IFF_AUTOMEDIA|IFF_DYNAMIC;
-          flags |= lflags & sysfsFlags;
+      flags |= lflags & sysfsFlags;
     }
   }
 }
