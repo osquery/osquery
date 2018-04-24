@@ -19,6 +19,7 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
+#include "osquery/core/process.h"
 #include "osquery/main/main.h"
 
 DECLARE_string(flagfile);
@@ -28,6 +29,8 @@ namespace osquery {
 static const std::string kDefaultFlagsFile{OSQUERY_HOME "\\osquery.flags"};
 static const std::string kServiceName{"osqueryd"};
 static const std::string kServiceDisplayName{"osquery daemon service"};
+
+const int kServiceShutdownTimeout{1000};
 
 static SERVICE_STATUS_HANDLE kStatusHandle = nullptr;
 static SERVICE_STATUS kServiceStatus = {0};
@@ -75,14 +78,16 @@ HANDLE getStopEvent() {
   return stopEvent;
 }
 
-static void UpdateServiceStatus(DWORD controls,
-                                DWORD state,
-                                DWORD exit_code,
-                                DWORD checkpoint) {
+static void UpdateServiceStatus(unsigned long controls,
+                                unsigned long state,
+                                unsigned long exit_code,
+                                unsigned long checkpoint,
+                                unsigned long wait_hint = 0) {
   kServiceStatus.dwControlsAccepted = controls;
   kServiceStatus.dwCurrentState = state;
   kServiceStatus.dwWin32ExitCode = exit_code;
   kServiceStatus.dwCheckPoint = checkpoint;
+  kServiceStatus.dwWaitHint = wait_hint;
 
   if (!::SetServiceStatus(kStatusHandle, &kServiceStatus)) {
     SLOG("SetServiceStatus failed (lasterror=" +
@@ -101,8 +106,10 @@ static auto kShutdownCallable = ([]() {
   if (stopEvent != nullptr) {
     // Wait forever, until the service handler signals us
     ::WaitForSingleObject(stopEvent, INFINITE);
-    // Interup the worker service threads before joining
+
+    // Interupt the worker service threads before joining
     Dispatcher::stopServices();
+
     auto ret = ::CloseHandle(stopEvent);
     if (ret != TRUE) {
       SLOG("kShutdownCallable failed to call CloseHandle with (" +
@@ -242,7 +249,7 @@ Status installService(const char* const binPath) {
                              nullptr,
                              nullptr,
                              nullptr,
-                             nullptr, // User Account. nullptr => LOCAL SYSTEM
+                             nullptr,
                              nullptr);
 
   CloseServiceHandle(schSCManager);
@@ -305,7 +312,8 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
       break;
     }
 
-    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3);
+    // Give the main thread a chance to shutdown gracefully before exiting
+    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3, kServiceShutdownTimeout);
     {
       auto stopEvent = osquery::getStopEvent();
       if (stopEvent != nullptr) {
@@ -316,6 +324,16 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
         }
         CloseHandle(stopEvent);
       }
+      // Give the watcher an opportunity to shutdown gracefully
+      unsigned long tid = static_cast<unsigned long>(
+          std::hash<std::thread::id>{}(kMainThreadId));
+      auto mainThread = OpenThread(SYNCHRONIZE, FALSE, tid);
+      if (mainThread == NULL) {
+        SLOG("Failed to open handle to thread " + std::to_string(tid) +
+             " for service stop with " + std::to_string(GetLastError()));
+      }
+      WaitForSingleObjectEx(mainThread, INFINITE, false);
+      CloseHandle(mainThread);
     }
     UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
 

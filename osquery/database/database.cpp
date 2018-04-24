@@ -356,14 +356,39 @@ void dumpDatabase() {
   }
 }
 
-Status upgradeDatabase() {
-  std::string db_results_version{""};
-  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
+Status ptreeToRapidJSON(const std::string& in, std::string& out) {
+  pt::ptree tree;
+  try {
+    std::stringstream ss;
+    ss << in;
+    pt::read_json(ss, tree);
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
+    return Status(1, "Failed to parse JSON");
+  }
 
-  if (db_results_version == kDatabseResultsVersion) {
+  if (tree.empty()) {
+    JSON().toString(out);
     return Status();
   }
 
+  auto json = JSON::newArray();
+  for (const auto& t : tree) {
+    std::stringstream ss;
+    pt::write_json(ss, t.second);
+
+    rj::Document row;
+    if (row.Parse(ss.str()).HasParseError()) {
+      return Status(1, "Failed to serialize JSON");
+    }
+    json.push(row);
+  }
+
+  json.toString(out);
+
+  return Status();
+}
+
+static Status migrateV0V1(void) {
   std::vector<std::string> keys;
   auto s = scanDatabaseKeys(kQueries, keys);
   if (!s.ok()) {
@@ -373,7 +398,8 @@ Status upgradeDatabase() {
   for (const auto& key : keys) {
     // Skip over epoch and counter entries, as 0 is parsed by ptree
     if (boost::algorithm::ends_with(key, kDbEpochSuffix) ||
-        boost::algorithm::ends_with(key, kDbCounterSuffix)) {
+        boost::algorithm::ends_with(key, kDbCounterSuffix) ||
+        boost::algorithm::starts_with(key, "query.")) {
       continue;
     }
 
@@ -383,35 +409,35 @@ Status upgradeDatabase() {
       continue;
     }
 
-    pt::ptree tree;
-    try {
-      std::stringstream ss;
-      ss << value;
-      pt::read_json(ss, tree);
-    } catch (const pt::json_parser::json_parser_error& /* e */) {
-      LOG(INFO) << "Conversion from ptree to RapidJSON failed for " << key
-                << ": " << value;
+    std::string out;
+    s = ptreeToRapidJSON(value, out);
+    if (!s.ok()) {
+      LOG(WARNING) << "Conversion from ptree to RapidJSON failed for '" << key
+                   << ": " << value << "': " << s.what() << ". Dropping key!";
       continue;
     }
 
-    auto json = JSON::newArray();
-    for (const auto& t : tree) {
-      std::stringstream ss;
-      pt::write_json(ss, t.second);
-
-      rj::Document row;
-      if (row.Parse(ss.str()).HasParseError()) {
-        LOG(WARNING) << "Failed to serialize JSON row for " << key;
-      }
-      json.push(row);
-    }
-
-    std::string out;
-    json.toString(out);
     if (!setDatabaseValue(kQueries, key, out)) {
       LOG(WARNING) << "Failed to update value in database " << key << ": "
                    << value;
     }
+  }
+
+  return Status();
+}
+
+Status upgradeDatabase() {
+  std::string db_results_version{""};
+  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
+
+  if (db_results_version == kDatabseResultsVersion) {
+    return Status();
+  }
+
+  auto s = migrateV0V1();
+  if (!s.ok()) {
+    LOG(WARNING) << "Failed to migrate V0 to V1: " << s.what();
+    return Status(1, "DB migration failed");
   }
 
   setDatabaseValue(

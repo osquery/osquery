@@ -565,7 +565,15 @@ Status Config::updateSource(const std::string& source,
       auto queries_obj = queries_doc.getObject();
 
       for (auto& query : schedule.GetArray()) {
-        std::string query_name = query["name"].GetString();
+        if (!query.IsObject()) {
+          // This is a legacy structure, and it is malformed.
+          continue;
+        }
+
+        std::string query_name;
+        if (query.HasMember("name") && query["name"].IsString()) {
+          query_name = query["name"].GetString();
+        }
         if (query_name.empty()) {
           return Status(1, "Error getting name from legacy scheduled query");
         }
@@ -650,6 +658,12 @@ void Config::applyParsers(const std::string& source,
     std::map<std::string, JSON> parser_config;
     for (const auto& key : parser->keys()) {
       if (obj.HasMember(key) && !obj[key].IsNull()) {
+        if (!obj[key].IsArray() && !obj[key].IsObject()) {
+          LOG(WARNING) << "Error config " << key
+                       << " should be an array or object";
+          continue;
+        }
+
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
       } else {

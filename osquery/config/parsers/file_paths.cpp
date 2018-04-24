@@ -58,6 +58,9 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
     const auto& accesses = config.at("file_accesses").doc();
     if (accesses.IsArray()) {
       for (const auto& category : accesses.GetArray()) {
+        if (!category.IsString()) {
+          continue;
+        }
         std::string path = category.GetString();
         access_map_[source].push_back(path);
       }
@@ -79,17 +82,19 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
 
   // We know this top-level is an Object.
   const auto& file_paths = config.at("file_paths").doc();
-  for (const auto& category : file_paths.GetObject()) {
-    if (category.value.IsArray()) {
-      for (const auto& path : category.value.GetArray()) {
-        std::string pattern = path.GetString();
-        if (pattern.empty()) {
-          continue;
-        }
+  if (file_paths.IsObject()) {
+    for (const auto& category : file_paths.GetObject()) {
+      if (category.value.IsArray()) {
+        for (const auto& path : category.value.GetArray()) {
+          std::string pattern = path.GetString();
+          if (pattern.empty()) {
+            continue;
+          }
 
-        std::string name = category.name.GetString();
-        replaceGlobWildcards(pattern);
-        Config::get().addFile(source, name, pattern);
+          std::string name = category.name.GetString();
+          replaceGlobWildcards(pattern);
+          Config::get().addFile(source, name, pattern);
+        }
       }
     }
   }
@@ -98,16 +103,18 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
   if (config.count("exclude_paths") > 0) {
     auto obj = data_.getObject();
     const auto& exclude_paths = config.at("exclude_paths").doc();
-    for (const auto& category : exclude_paths.GetObject()) {
-      auto arr = data_.getArray();
-      if (category.value.IsArray()) {
-        for (const auto& path : category.value.GetArray()) {
-          std::string path_string = path.GetString();
-          data_.pushCopy(path_string, arr);
-        }
+    if (exclude_paths.IsObject()) {
+      for (const auto& category : exclude_paths.GetObject()) {
+        auto arr = data_.getArray();
+        if (category.value.IsArray()) {
+          for (const auto& path : category.value.GetArray()) {
+            std::string path_string = path.GetString();
+            data_.pushCopy(path_string, arr);
+          }
 
-        std::string category_string = category.name.GetString();
-        data_.add(category_string, arr, obj);
+          std::string category_string = category.name.GetString();
+          data_.add(category_string, arr, obj);
+        }
       }
     }
 
