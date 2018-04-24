@@ -78,9 +78,13 @@ TEST_F(DatabaseTests, test_delete_values) {
   EXPECT_TRUE(value.empty());
 }
 
-TEST_F(DatabaseTests, test_ptree_upgraded_to_rj_empty) {
-  auto empty_results { "{}" };
+TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_empty_v0v1) {
+  auto empty_results{"{}"};
   auto status = setDatabaseValue(kQueries, "old_empty_results", empty_results);
+  EXPECT_TRUE(status.ok());
+
+  // Stage our database to be pre-upgrade to ensure the logic runs
+  status = setDatabaseValue(kPersistentSettings, "results_version", "0");
   EXPECT_TRUE(status.ok());
 
   status = upgradeDatabase();
@@ -93,9 +97,14 @@ TEST_F(DatabaseTests, test_ptree_upgraded_to_rj_empty) {
   rj::Document empty_list;
   EXPECT_FALSE(empty_list.Parse(new_empty_list).HasParseError());
   EXPECT_TRUE(empty_list.IsArray());
+
+  // Expect our DB upgrade logic to have been set
+  std::string db_results_version{""};
+  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
+  EXPECT_EQ(db_results_version, kDatabaseResultsVersion);
 }
 
-TEST_F(DatabaseTests, test_ptree_upgraded_to_rj_results) {
+TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_results_v0v1) {
   auto bad_json =
       "{\"\":{\"disabled\":\"0\",\"network_name\":\"BTWifi-Starbucks\"},\"\":{"
       "\"disabled\":\"0\",\"network_name\":\"Lobo-Guest\"},\"\":{\"disabled\":"
@@ -105,6 +114,11 @@ TEST_F(DatabaseTests, test_ptree_upgraded_to_rj_results) {
 
   // Add an integer value to ensure we don't munge non-json objects
   status = setDatabaseValue(kQueries, "bad_wifi_jsonepoch", "1521583712");
+  EXPECT_TRUE(status.ok());
+
+  // Stage our database to be pre-upgrade to ensure the logic runs
+  status = setDatabaseValue(kPersistentSettings, "results_version", "0");
+  EXPECT_TRUE(status.ok());
 
   rj::Document bad_doc;
 
@@ -130,5 +144,10 @@ TEST_F(DatabaseTests, test_ptree_upgraded_to_rj_results) {
   LOG(INFO) << query_epoch;
   auto ulepoch = std::stoull(query_epoch);
   EXPECT_EQ(ulepoch, 1521583712U);
+
+  // Expect our DB upgrade logic to have been set
+  std::string db_results_version{""};
+  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
+  EXPECT_EQ(db_results_version, kDatabaseResultsVersion);
 }
 }
