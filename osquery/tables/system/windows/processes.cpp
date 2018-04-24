@@ -70,6 +70,7 @@ Status genMemoryMap(unsigned long pid, QueryData& results) {
   auto modSnap =
       CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid);
   if (modSnap == INVALID_HANDLE_VALUE) {
+    CloseHandle(proc);
     return Status(1, "Failed to enumerate modules for " + std::to_string(pid));
   }
 
@@ -113,7 +114,7 @@ Status genMemoryMap(unsigned long pid, QueryData& results) {
     }
     ret = Module32Next(modSnap, &me);
   }
-
+  CloseHandle(proc);
   CloseHandle(modSnap);
   return Status(0, "Ok");
 }
