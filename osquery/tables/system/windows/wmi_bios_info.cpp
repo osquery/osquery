@@ -10,8 +10,8 @@
 
 #include <string>
 
-#include <boost/regex.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
 
 #include <osquery/logger.h>
 #include <osquery/tables.h>
@@ -99,14 +99,13 @@ Row getDellBiosInfo(WmiResultItem& item) {
   item.GetVectorOfStrings("CurrentValue", vCurrentValue);
   item.GetVectorOfStrings("PossibleValues", vPossibleValues);
   item.GetVectorOfStrings("PossibleValuesDescription",
-                                   vPossibleValuesDescription);
+                          vPossibleValuesDescription);
 
   if (vCurrentValue.size() == 1 && !vPossibleValues.empty()) {
     auto pos = std::find(
         vPossibleValues.begin(), vPossibleValues.end(), vCurrentValue[0]);
     if (pos != vPossibleValues.end()) {
-      r["value"] =
-          vPossibleValuesDescription[pos - vPossibleValues.begin()];
+      r["value"] = vPossibleValuesDescription[pos - vPossibleValues.begin()];
     } else {
       r["value"] = "N/A";
     }
@@ -160,13 +159,12 @@ QueryData genBiosInfo(QueryContext& context) {
       } else if (manufacturer == "dell") {
         r = getDellBiosInfo(wmiResults[i]);
       }
-      if (!r.empty()){
+      if (!r.empty()) {
         results.push_back(r);
       }
     }
   } else {
-  	LOG(INFO) << "Vendor \"" << manufacturer << 
-  							 "\" is currently not supported";
+    LOG(INFO) << "Vendor \"" << manufacturer << "\" is currently not supported";
   }
   return results;
 }
