@@ -96,6 +96,10 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getCurrentProcess() {
   return std::make_shared<PlatformProcess>(pid);
 }
 
+int PlatformProcess::getCurrentPid() {
+  return PlatformProcess::getCurrentProcess()->pid();
+}
+
 std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
   pid_t ppid = ::getppid();
   return std::make_shared<PlatformProcess>(ppid);
@@ -202,4 +206,4 @@ std::shared_ptr<PlatformProcess> PlatformProcess::launchTestPythonScript(
 
   return process;
 }
-}
+} // namespace osquery
