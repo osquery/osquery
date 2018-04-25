@@ -476,7 +476,9 @@ class ConfigPlugin : public Plugin {
  * and the updated (still merged) config if any ConfigPlugin updates the
  * instance asynchronously. Each parser specifies a set of top-level JSON
  * keys to receive. The config instance will auto-merge the key values
- * from multiple sources if they are dictionaries or lists.
+ * from multiple sources.
+ *
+ * The keys must contain either dictionaries or lists.
  *
  * If a top-level key is a dictionary, each source with the top-level key
  * will have its own dictionary keys merged and replaced based on the lexical

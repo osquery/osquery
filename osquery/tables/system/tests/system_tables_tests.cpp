@@ -221,6 +221,21 @@ TEST_F(SystemsTablesTests, test_win_drivers_query_time) {
   EXPECT_LT(systime2 - systime1, 10U);
 }
 
+TEST_F(SystemsTablesTests, test_win_crashes_parsing) {
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    return;
+  }
+  SQL results("select * from windows_crashes limit 1");
+
+  // If no local crash dumps are found return
+  if (results.rows().empty()) {
+    return;
+  }
+
+  // Ensure calls to the Windows API to reconstruct the stack trace don't crash
+  EXPECT_FALSE(results.rows()[0].at("stack_trace").empty());
+}
+
 class HashTableTest : public testing::Test {
  public:
   const std::vector<std::string> content{"31337 hax0r", "random n00b"};

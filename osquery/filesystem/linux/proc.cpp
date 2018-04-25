@@ -75,7 +75,7 @@ Status procGetProcessNamespaces(const std::string& process_id,
     auto status = procGetNamespaceInode(
         namespace_inode, namespace_name, process_namespace_root);
     if (!status.ok()) {
-      return status;
+      continue;
     }
 
     namespace_list[namespace_name] = namespace_inode;
@@ -118,71 +118,213 @@ unsigned short procDecodePortFromHex(const std::string& encoded_port) {
   return decoded;
 }
 
-Status procProcesses(std::set<std::string>& processes) {
-  auto procProcessesCallback = [](const std::string& process_id,
-                                  std::set<std::string>& processes) -> bool {
-    processes.insert(process_id);
-    return true;
-  };
+static Status procGetSocketListInet(int family,
+                                    int protocol,
+                                    ino_t net_ns,
+                                    const std::string& path,
+                                    const std::string& content,
+                                    SocketInfoList& result) {
+  // The system's socket information is tokenized by line.
+  bool header = true;
+  for (const auto& line : osquery::split(content, "\n")) {
+    if (header) {
+      if (line.find("sl") != 0 && line.find("sk") != 0) {
+        return Status(1, std::string("Invalid file header for ") + path);
+      }
+      header = false;
+      continue;
+    }
 
-  return procProcesses<decltype(processes)>(procProcessesCallback, processes);
+    // The socket information is tokenized by spaces, each a field.
+    auto fields = osquery::split(line, " ");
+    if (fields.size() < 10) {
+      VLOG(1) << "Invalid socket descriptor found: '" << line
+              << "'. Skipping this entry";
+      continue;
+    }
+
+    // Two of the fields are the local/remote address/port pairs.
+    auto locals = osquery::split(fields[1], ":");
+    auto remotes = osquery::split(fields[2], ":");
+
+    if (locals.size() != 2 || remotes.size() != 2) {
+      VLOG(1) << "Invalid socket descriptor found: '" << line
+              << "'. Skipping this entry";
+      continue;
+    }
+
+    SocketInfo socket_info = {};
+    socket_info.socket = fields[9];
+    socket_info.net_ns = net_ns;
+    socket_info.family = family;
+    socket_info.protocol = protocol;
+    socket_info.local_address = procDecodeAddressFromHex(locals[0], family);
+    socket_info.local_port = procDecodePortFromHex(locals[1]);
+    socket_info.remote_address = procDecodeAddressFromHex(remotes[0], family);
+    socket_info.remote_port = procDecodePortFromHex(remotes[1]);
+
+    if (protocol == IPPROTO_TCP) {
+      char* null_terminator_ptr = nullptr;
+      auto integer_socket_state =
+          std::strtoull(fields[3].data(), &null_terminator_ptr, 16);
+      if (integer_socket_state == 0 ||
+          integer_socket_state >= tcp_states.size() ||
+          null_terminator_ptr == nullptr || *null_terminator_ptr != 0) {
+        socket_info.state = "UNKNOWN";
+      } else {
+        socket_info.state = tcp_states[integer_socket_state];
+      }
+    }
+
+    result.push_back(std::move(socket_info));
+  }
+
+  return Status(0);
 }
 
-Status procProcessSockets(std::vector<ProcessSocket>& socket_list,
-                          const std::string& process_id,
-                          int protocol,
-                          int family) {
-  socket_list.clear();
+static Status procGetSocketListUnix(ino_t net_ns,
+                                    const std::string& path,
+                                    const std::string& content,
+                                    SocketInfoList& result) {
+  // The system's socket information is tokenized by line.
+  bool header = true;
+  for (const auto& line : osquery::split(content, "\n")) {
+    if (header) {
+      if (line.find("Num") != 0) {
+        return Status(1, std::string("Invalid file header for ") + path);
+      }
+      header = false;
+      continue;
+    }
 
-  auto L_procProcessSocketsCallback =
-      [](const ProcessSocket& proc_socket,
-         std::vector<ProcessSocket>& socket_list) -> bool {
-    socket_list.push_back(proc_socket);
+    // The socket information is tokenized by spaces, each a field.
+    auto fields = osquery::split(line, " ");
+    if (fields.size() < 7) {
+      VLOG(1) << "Invalid UNIX socket descriptor found: '" << line
+              << "'. Skipping this entry";
+      continue;
+    }
+
+    SocketInfo socket_info = {};
+    socket_info.socket = fields[6];
+    socket_info.net_ns = net_ns;
+    socket_info.family = AF_UNIX;
+    socket_info.protocol = std::atoll(fields[2].data());
+    socket_info.unix_socket_path = (fields.size() >= 8) ? fields[7] : "";
+
+    result.push_back(std::move(socket_info));
+  }
+
+  return Status(0);
+}
+
+Status procGetSocketList(int family,
+                         int protocol,
+                         ino_t net_ns,
+                         const std::string& pid,
+                         SocketInfoList& result) {
+  std::string path = kLinuxProcPath + "/" + pid + "/net/";
+
+  switch (family) {
+  case AF_INET:
+    if (kLinuxProtocolNames.count(protocol) == 0) {
+      return Status(1,
+                    "Invalid family " + std::to_string(protocol) +
+                        " for AF_INET familiy");
+    } else {
+      path += kLinuxProtocolNames.at(protocol);
+    }
+    break;
+
+  case AF_INET6:
+    if (kLinuxProtocolNames.count(protocol) == 0) {
+      return Status(1,
+                    "Invalid protocol " + std::to_string(protocol) +
+                        " for AF_INET6 familiy");
+    } else {
+      path += kLinuxProtocolNames.at(protocol) + "6";
+    }
+    break;
+
+  case AF_UNIX:
+    if (protocol != IPPROTO_IP) {
+      return Status(1,
+                    "Invalid protocol " + std::to_string(protocol) +
+                        " for AF_UNIX familiy");
+    } else {
+      path += "unix";
+    }
+
+    break;
+
+  default:
+    return Status(1, "Invalid family " + std::to_string(family));
+  }
+
+  std::string content;
+  if (!osquery::readFile(path, content).ok()) {
+    return Status(1, "Could not open socket information from " + path);
+  }
+
+  Status status(0);
+  switch (family) {
+  case AF_INET:
+  case AF_INET6:
+    status =
+        procGetSocketListInet(family, protocol, net_ns, path, content, result);
+    break;
+
+  case AF_UNIX:
+    status = procGetSocketListUnix(net_ns, path, content, result);
+    break;
+  }
+
+  return status;
+}
+
+Status procGetSocketInodeToProcessInfoMap(const std::string& pid,
+                                          SocketInodeToProcessInfoMap& result) {
+  auto callback = [](const std::string& pid,
+                     const std::string& fd,
+                     const std::string& link,
+                     SocketInodeToProcessInfoMap& result) -> bool {
+    /* We only care about sockets. But there will be other descriptors. */
+    if (link.find("socket:[") != 0) {
+      return true;
+    }
+
+    std::string inode = link.substr(8, link.size() - 9);
+    result[inode] = {pid, fd};
     return true;
   };
 
-  return procProcessSockets<decltype(socket_list)>(
-      L_procProcessSocketsCallback, socket_list, process_id, protocol, family);
+  return procEnumerateProcessDescriptors<decltype(result)>(
+      pid, result, callback);
+}
+
+Status procProcesses(std::set<std::string>& processes) {
+  auto callback = [](const std::string& pid,
+                     std::set<std::string>& processes) -> bool {
+    processes.insert(pid);
+    return true;
+  };
+
+  return procEnumerateProcesses<decltype(processes)>(processes, callback);
 }
 
 Status procDescriptors(const std::string& process,
                        std::map<std::string, std::string>& descriptors) {
-  auto L_procDescriptorsCallback =
-      [](const std::string& fd,
-         const std::string& link_name,
-         std::map<std::string, std::string>& descriptors) -> bool {
+  auto callback = [](const std::string& pid,
+                     const std::string& fd,
+                     const std::string& link_name,
+                     std::map<std::string, std::string>& descriptors) -> bool {
 
     descriptors[fd] = link_name;
     return true;
   };
 
-  return procDescriptors<decltype(descriptors)>(
-      process, L_procDescriptorsCallback, descriptors);
-}
-
-Status procSocketInodeToFdMap(
-    const std::string& process,
-    std::unordered_map<std::string, std::string>& inode_to_fd_map) {
-  inode_to_fd_map.clear();
-
-  auto L_procDescriptorsCallback =
-      [](const std::string& fd,
-         const std::string& link_name,
-         std::unordered_map<std::string, std::string>& inode_to_fd_map)
-      -> bool {
-
-    if (link_name.find("socket:[") != 0) {
-      return true;
-    }
-
-    auto inode = link_name.substr(8, link_name.size() - 9);
-    inode_to_fd_map[inode] = fd;
-
-    return true;
-  };
-
-  return procDescriptors<decltype(inode_to_fd_map)>(
-      process, L_procDescriptorsCallback, inode_to_fd_map);
+  return procEnumerateProcessDescriptors<decltype(descriptors)>(
+      process, descriptors, callback);
 }
 
 Status procReadDescriptor(const std::string& process,
@@ -195,7 +337,9 @@ Status procReadDescriptor(const std::string& process,
   if (size >= 0) {
     result = std::string(result_path);
     return Status(0);
+  } else {
+    return Status(1, "Could not read path");
   }
-  return Status(1, "Could not read path");
 }
+
 } // namespace osquery

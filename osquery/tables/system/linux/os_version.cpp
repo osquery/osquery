@@ -41,11 +41,11 @@ const std::map<std::string, std::string> kOSReleaseColumns = {
     {"VERSION_ID", "_id"},
 };
 
-QueryData genOSRelease(Row& r) {
+void genOSRelease(Row& r) {
   // This will parse /etc/os-version according to the systemd manual.
   std::string content;
   if (!readFile(kOSRelease, content).ok()) {
-    return {r};
+    return;
   }
 
   for (const auto& line : osquery::split(content, "\n")) {
@@ -82,7 +82,7 @@ QueryData genOSRelease(Row& r) {
     }
   }
 
-  return {r};
+  return;
 }
 
 QueryData genOSVersion(QueryContext& context) {
@@ -99,7 +99,7 @@ QueryData genOSVersion(QueryContext& context) {
     boost::system::error_code ec;
     // Funtoo has an empty os-release file.
     if (boost::filesystem::file_size(kOSRelease, ec) > 0) {
-      return genOSRelease(r);
+      genOSRelease(r);
     }
   }
 
@@ -147,5 +147,5 @@ QueryData genOSVersion(QueryContext& context) {
 
   return {r};
 }
-}
-}
+} // namespace tables
+} // namespace osquery

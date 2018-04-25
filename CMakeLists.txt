@@ -295,6 +295,7 @@ else()
     # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
     # To be safe, only include them when building 'release' outputs.
     add_compile_options(
+      -g
       -fPIE
       -fpie
       -fPIC

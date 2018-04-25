@@ -624,7 +624,7 @@ void EventFactory::delay() {
     // Publishers that did not set up correctly are put into an ending state.
     if (!publisher.second->isEnding()) {
       auto thread_ = std::make_shared<std::thread>(
-          boost::bind(&EventFactory::run, publisher.first));
+          std::bind(&EventFactory::run, publisher.first));
       ef.threads_.push_back(thread_);
     }
   }
