@@ -426,9 +426,9 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       // column is used.
       uint64_t flag;
       if (i < 63) {
-        flag = 1L << i;
+        flag = 1LL << i;
       } else {
-        flag = 1L << 63;
+        flag = 1LL << 63;
       }
       if ((pIdxInfo->colUsed & flag) != 0) {
         std::string colName = std::get<0>(columns[i]);
