@@ -67,6 +67,7 @@ void genControlInfo(int* oid,
   }
 
   // Now request structure type.
+  response_size = CTL_MAX_VALUE;
   request[1] = CTL_DEBUG_TYPE;
   if (sysctl(request, oid_size + 2, response, &response_size, 0, 0) != 0) {
     // Cannot request MIB type (int, string, struct, etc).
