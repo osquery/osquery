@@ -128,7 +128,8 @@ void genControlInfo(int* oid,
       r["current_value"] = std::string(response);
     } else if (oid_type == CTLTYPE_QUAD) {
       unsigned long long value;
-      memcpy(&value, response, value_size);
+      memcpy(&value, response, sizeof(unsigned long long));
+      r["current_value"] = INTEGER(value);
     }
   }
 
