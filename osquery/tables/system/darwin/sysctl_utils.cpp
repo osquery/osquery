@@ -78,7 +78,7 @@ void genControlInfo(int* oid,
   if (response_size > 0) {
     oid_type = ((size_t)response[0] & CTLTYPE);
     if (oid_type < kControlTypes.size()) {
-      r["type"] = kControlTypes[((int)response[0])];
+      r["type"] = kControlTypes[oid_type];
     }
   }
 
