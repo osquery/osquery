@@ -21,6 +21,7 @@ schema([
 
 extended_schema(LINUX, [
   Column("link_speed", BIGINT, "Interface speed in Mb/s"),
+  Column("pci_slot", TEXT, "PCI slot number"),
 ])
 
 extended_schema(WINDOWS, [

@@ -152,6 +152,14 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
         }
       }
 
+      struct ethtool_drvinfo drvInfo;
+      ifr.ifr_data = reinterpret_cast<char*>(&drvInfo);
+      drvInfo.cmd = ETHTOOL_GDRVINFO;
+
+      if (ioctl(fd, SIOCETHTOOL, &ifr) >= 0) {
+        r["pci_slot"] = drvInfo.bus_info;
+      }
+
       close(fd);
     }
 
