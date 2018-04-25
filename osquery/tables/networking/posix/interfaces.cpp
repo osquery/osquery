@@ -134,13 +134,13 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
         r["type"] = INTEGER_FROM_UCHAR(ifr.ifr_hwaddr.sa_family);
       }
 
-      if (ioctl(fd, SIOCGIFFLAGS, &ifr) >= 0) {
-        flags |= static_cast<size_t>(ifr.ifr_flags);
-      }
       close(fd);
     }
 
-    // Sysfs flags populated by sysfs are more reliable.
+    // Filter out sysfs flags.
+    flags &= ~sysfsFlags;
+
+    // Populate sysfs flags from sysfs.
     flagsFromSysfs(r["interface"], flags);
 
     // Last change is not implemented in Linux.
