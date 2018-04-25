@@ -190,7 +190,6 @@ Vagrant.configure("2") do |config|
         build.vm.synced_folder ".", "/vagrant", group: "staff", type: "rsync",
           rsync__exclude: [
             "build",
-            ".git/objects",
             ".git/modules/third-party/objects"
           ]
       end
