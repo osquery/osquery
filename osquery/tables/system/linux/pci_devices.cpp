@@ -232,7 +232,7 @@ QueryData genPCIDevices(QueryContext& context) {
 
       if (subsystemIDs.size() == 2) {
         r["subsystem_vendor_id"] = subsystemIDs[0];
-        r["subsystem_device_id"] = subsystemIDs[1];
+        r["subsystem_model_id"] = subsystemIDs[1];
 
         if (pcidb.getVendorName(subsystemIDs[0], content).ok()) {
           r["subsystem_vendor"] = content;
@@ -242,7 +242,7 @@ QueryData genPCIDevices(QueryContext& context) {
                 .getSubsystemInfo(
                     ids[0], ids[1], subsystemIDs[0], subsystemIDs[1], content)
                 .ok()) {
-          r["subsystem_device"] = content;
+          r["subsystem_model"] = content;
         }
       }
     }
