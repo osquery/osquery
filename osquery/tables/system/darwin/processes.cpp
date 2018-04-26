@@ -64,7 +64,7 @@ std::set<int> getProcList(const QueryContext& context) {
   if (context.constraints.count("pid") > 0 &&
       context.constraints.at("pid").exists(EQUALS)) {
     for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
-      if (pid > 0) {
+      if (pid >= 0) {
         pidlist.insert(pid);
       }
     }
@@ -88,9 +88,9 @@ std::set<int> getProcList(const QueryContext& context) {
 
   size_t num_pids = bufsize / sizeof(pid_t);
   for (size_t i = 0; i < num_pids; ++i) {
-    // If the pid is negative or 0, it doesn't represent a real process so
+    // If the pid is negative, it doesn't represent a real process so
     // continue the iterations so that we don't add it to the results set
-    if (pids[i] <= 0) {
+    if (pids[i] < 0) {
       continue;
     }
     pidlist.insert(pids[i]);
@@ -291,8 +291,12 @@ QueryData genProcesses(QueryContext& context) {
       continue;
     }
 
-    // If the process is not a Zombie, try to find the path and name.
-    if (cred.status != 5) {
+    if (pid == 0) {
+      r["path"] = "";
+      // For some reason not even proc_name gives back a name for kernel_task
+      r["name"] = "kernel_task";
+    } else if (cred.status != 5) { // If the process is not a Zombie, try to
+                                   // find the path and name.
       r["path"] = getProcPath(pid);
       // OS X proc_name only returns 16 bytes, use the basename of the path.
       r["name"] = fs::path(r["path"]).filename().string();

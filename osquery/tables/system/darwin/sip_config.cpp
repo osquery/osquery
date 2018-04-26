@@ -71,6 +71,7 @@ Status genCsrConfigFromNvram(uint32_t& config) {
   if (CFDictionaryGetValueIfPresent(
           properties, CFSTR("csr-active-config"), &csr_config)) {
     if (CFGetTypeID(csr_config) != CFDataGetTypeID()) {
+      CFRelease(properties);
       return Status(1, "Unexpected data type for csr-active-config");
     }
 
@@ -80,9 +81,10 @@ Status genCsrConfigFromNvram(uint32_t& config) {
                    (UInt8*)buffer);
     CFRelease(properties);
     memcpy(&config, buffer, sizeof(uint32_t));
-    return Status(0, "ok");
+    return Status{0};
   } else {
-    // the default case, csr-active-config is cleared or not set is not an error
+    CFRelease(properties);
+    // The case where csr-active-config is cleared or not set is not an error
     return Status(0, "csr-active-config key not found");
   }
 }
@@ -132,6 +134,8 @@ QueryData genSIPConfig(QueryContext& context) {
     r["enabled"] = (csr_check(kv.second) == 0) ? INTEGER(1) : INTEGER(0);
     if (nvram_status.ok()) {
       r["enabled_nvram"] = (nvram_config & kv.second) ? INTEGER(1) : INTEGER(0);
+    } else {
+      r["enabled_nvram"] = INTEGER(-1);
     }
     results.push_back(r);
   }
