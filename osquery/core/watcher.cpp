@@ -27,6 +27,7 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
+#include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
 
@@ -527,6 +528,10 @@ void WatcherRunner::createWorker() {
   // Get the complete path of the osquery process binary.
   boost::system::error_code ec;
   auto exec_path = fs::system_complete(fs::path(qd[0]["path"]), ec);
+  if (!pathExists(exec_path).ok()) {
+    LOG(WARNING) << "osqueryd doesn't exist in: " << exec_path.string();
+    return;
+  }
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // osqueryd binary has become unsafe.
@@ -566,6 +571,10 @@ void WatcherRunner::createExtension(const std::string& extension) {
   // Check the path to the previously-discovered extension binary.
   boost::system::error_code ec;
   auto exec_path = fs::system_complete(fs::path(extension), ec);
+  if (!pathExists(exec_path).ok()) {
+    LOG(WARNING) << "Extension binary doesn't exist in: " << exec_path.string();
+    return;
+  }
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // Extension binary has become unsafe.
