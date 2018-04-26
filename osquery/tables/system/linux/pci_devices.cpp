@@ -8,14 +8,18 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <locale>
+
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
+#include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/events/linux/udev.h"
+#include "osquery/tables/system/linux/pci_devices.h"
 
 namespace osquery {
 namespace tables {
@@ -26,6 +30,115 @@ const std::string kPCIKeyVendor = "ID_VENDOR_FROM_DATABASE";
 const std::string kPCIKeyModel = "ID_MODEL_FROM_DATABASE";
 const std::string kPCIKeyID = "PCI_ID";
 const std::string kPCIKeyDriver = "DRIVER";
+const std::string kPCISubsysID = "PCI_SUBSYS_ID";
+
+PciDB::PciDB(const std::string& path) {
+  std::ifstream raw(path);
+  if (raw.fail()) {
+    LOG(ERROR) << "failed to read " << path;
+    return;
+  }
+
+  std::string curVendor, curModel, line;
+  while (std::getline(raw, line)) {
+    if (line.size() < 7 || line.at(0) == '\n' || line.at(0) == '#') {
+      continue;
+    }
+
+    switch (line.find_first_of("0123456789abcdef")) {
+    case 0:
+      // Vendor info.
+      curVendor = line.substr(0, 4);
+
+      // Once we get to illege vendor section we can stop since we're not
+      // currently parsing device classes.
+      if (curVendor == "ffff") {
+        return;
+      }
+
+      db_[curVendor] = PciVendor{
+          curVendor,
+          // Bump 2 to account for whitespace separation..
+          line.substr(6),
+      };
+
+      break;
+
+    case 1:
+      // Model info.
+      if (db_.find(curVendor) != db_.end() && line.size() > 7) {
+        curModel = line.substr(1, 4);
+
+        db_[curVendor].models[curModel] = PciModel{
+            curModel,
+            // Bump 2 to account for whitespace separation.
+            line.substr(7),
+        };
+
+        // TODO: remove else line.
+      } else {
+        VLOG(1) << "unexpected error while parsing pci.ids: current vendor ID "
+                << curVendor << " does not exist in DB yet";
+      }
+
+      break;
+
+    case 2:
+      // Subsystem info;
+      if (db_.find(curVendor) != db_.end() &&
+          db_[curVendor].models.find(curModel) != db_[curVendor].models.end() &&
+          line.size() > 11) {
+        db_[curVendor].models[curModel].subsystemInfo[line.substr(2, 9)] =
+            line.substr(12);
+
+        // TODO: remove else line.
+      } else {
+        VLOG(1) << "unexpected error while parsing pci.ids: current vendor ID "
+                << curVendor << " or model ID " << curModel
+                << " does not exist in DB yet";
+      }
+
+      break;
+
+    default:
+      VLOG(1) << "unexpected pci.ids line format";
+    }
+  }
+}
+
+Status PciDB::getVendorName(const std::string& vendorID, std::string& vendor) {
+  if (db_.find(vendorID) == db_.end()) {
+    return Status(1, "Vendor ID does not exist");
+  }
+
+  vendor = db_[vendorID].name;
+  return Status(0, "OK");
+}
+
+Status PciDB::getModel(const std::string& vendorID,
+                       const std::string& modelID,
+                       std::string& model,
+                       const std::string& subsystemID) {
+  if (db_.find(vendorID) == db_.end() ||
+      db_[vendorID].models.find(modelID) == db_[vendorID].models.end()) {
+    return Status(1, "Vendor ID or Model ID does not exist");
+  }
+
+  model = db_[vendorID].models[modelID].desc;
+
+  if (subsystemID != "") {
+    if (db_[vendorID].models[modelID].subsystemInfo.find(subsystemID) !=
+        db_[vendorID].models[modelID].subsystemInfo.end()) {
+      model.append("," +
+                   db_[vendorID].models[modelID].subsystemInfo[subsystemID]);
+    } else {
+      VLOG(1) << "subsystem ID does not exist in system pci.ids: "
+              << subsystemID;
+    }
+  }
+
+  return Status(0, "OK");
+}
 
 QueryData genPCIDevices(QueryContext& context) {
   QueryData results;
@@ -45,6 +158,8 @@ QueryData genPCIDevices(QueryContext& context) {
     VLOG(1) << "Could not get udev_enumerate handle";
     return results;
   }
+
+  PciDB pcidb;
 
   udev_enumerate_add_match_subsystem(enumerate.get(), "pci");
   udev_enumerate_scan_devices(enumerate.get());
@@ -77,6 +192,40 @@ QueryData genPCIDevices(QueryContext& context) {
     if (ids.size() == 2) {
       r["vendor_id"] = ids[0];
       r["model_id"] = ids[1];
+
+      // Now that we know we have VENDOR and MODEL ID's, let's actually check on
+      // the system PCI DB for descriptive information.
+      // pci.ids hex IDs are all lower case, so we down case them.
+      // TODO: should we just stoi instead? Which way is more performant.
+      std::transform(
+          ids[0].begin(), ids[0].end(), ids[0].begin(), [](unsigned char c) {
+            return std::tolower(c);
+          });
+      std::transform(
+          ids[1].begin(), ids[1].end(), ids[1].begin(), [](unsigned char c) {
+            return std::tolower(c);
+          });
+
+      std::string vendor;
+      if (pcidb.getVendorName(ids[0], vendor).ok()) {
+        r["vendor"] = vendor;
+      }
+
+      // Try to enrich model with subsystem info.
+      auto subsystemID =
+          UdevEventPublisher::getValue(device.get(), kPCISubsysID);
+      if (subsystemID.size() == 9) {
+        subsystemID.at(4) = ' ';
+      }
+      std::transform(subsystemID.begin(),
+                     subsystemID.end(),
+                     subsystemID.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+
+      std::string model;
+      if (pcidb.getModel(ids[0], ids[1], model, subsystemID).ok()) {
+        r["model"] = model;
+      }
     }
 
     // Set invalid vendor/model IDs to 0.
@@ -93,5 +242,5 @@ QueryData genPCIDevices(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
