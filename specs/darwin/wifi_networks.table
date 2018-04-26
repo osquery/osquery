@@ -13,6 +13,7 @@ schema([
     Column("auto_login", INTEGER, "1 if auto login is enabled, 0 otherwise"),
     Column("temporarily_disabled", INTEGER, "1 if this network is temporarily disabled, 0 otherwise"),
     Column("disabled", INTEGER, "1 if this network is disabled, 0 otherwise"),
+    Column("bssids", TEXT, "BSSIDs found from the network"),
 ])
 attributes(cacheable=True)
 implementation("networking/wifi@genKnownWifiNetworks")

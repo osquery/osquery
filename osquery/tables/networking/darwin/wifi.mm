@@ -39,7 +39,8 @@ const std::map<std::string, std::string> kKnownWifiNetworkKeys = {
     {"passpoint", "Passpoint"},
     {"possibly_hidden", "PossiblyHiddenNetwork"},
     {"disabled", "Disabled"},
-    {"temporarily_disabled", "TemporarilyDisabled"}};
+    {"temporarily_disabled", "TemporarilyDisabled"},
+    {"bssids", "BSSIDList"}};
 
 // Check if we are running on OS X 10.9, where the key in plist is different
 Status getKnownNetworksKey(std::string& key) {
@@ -54,7 +55,8 @@ Status getKnownNetworksKey(std::string& key) {
   return Status(0, "ok");
 }
 
-std::string extractNetworkProperties(const CFTypeRef& property) {
+std::string extractNetworkProperties(const std::string& key,
+                                     const CFTypeRef& property) {
   if (CFGetTypeID(property) == CFDataGetTypeID()) {
     return extractSsid((CFDataRef)property);
   } else if (CFGetTypeID(property) == CFDateGetTypeID()) {
@@ -66,6 +68,23 @@ std::string extractNetworkProperties(const CFTypeRef& property) {
                                                        : INTEGER(0);
   } else if (CFGetTypeID(property) == CFStringGetTypeID()) {
     return stringFromCFString((CFStringRef)property);
+  } else if (CFGetTypeID(property) == CFArrayGetTypeID() && key == "bssids") {
+    std::string results;
+    // Fetch the first BSSID we can find
+    auto count = CFArrayGetCount((CFArrayRef)property);
+    auto cfkey = CFStringCreateWithCString(
+        kCFAllocatorDefault, "LEAKY_AP_BSSID", kCFStringEncodingUTF8);
+
+    for (CFIndex i = 0; i < count; i++) {
+      auto dref =
+          (CFDictionaryRef)CFArrayGetValueAtIndex((CFArrayRef)property, i);
+      CFTypeRef value = nullptr;
+      if (CFDictionaryGetValueIfPresent(dref, cfkey, &value)) {
+        results += stringFromCFString((CFStringRef)value) + ", ";
+      }
+    }
+    CFRelease(cfkey);
+    return results;
   } else {
     return ""; // Cannot determine CFTypeRef
   }
@@ -84,7 +103,7 @@ void parseNetworks(const CFDictionaryRef& network, QueryData& results) {
     CFTypeRef value = nullptr;
     if (key != nullptr) {
       if (CFDictionaryGetValueIfPresent(network, key, &value)) {
-        r[kv.first] = extractNetworkProperties(value);
+        r[kv.first] = extractNetworkProperties(kv.first, value);
       }
       CFRelease(key);
     }
