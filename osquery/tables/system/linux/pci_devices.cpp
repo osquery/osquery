@@ -117,8 +117,7 @@ Status PciDB::getVendorName(const std::string& vendorID, std::string& vendor) {
 
 Status PciDB::getModel(const std::string& vendorID,
                        const std::string& modelID,
-                       std::string& model,
-                       const std::string& subsystemID) {
+                       std::string& model) {
   if (db_.find(vendorID) == db_.end() ||
       db_[vendorID].models.find(modelID) == db_[vendorID].models.end()) {
     return Status(1, "Vendor ID or Model ID does not exist");
@@ -126,16 +125,23 @@ Status PciDB::getModel(const std::string& vendorID,
 
   model = db_[vendorID].models[modelID].desc;
 
-  if (subsystemID != "") {
-    if (db_[vendorID].models[modelID].subsystemInfo.find(subsystemID) !=
-        db_[vendorID].models[modelID].subsystemInfo.end()) {
-      model.append("," +
-                   db_[vendorID].models[modelID].subsystemInfo[subsystemID]);
-    } else {
-      VLOG(1) << "subsystem ID does not exist in system pci.ids: "
-              << subsystemID;
-    }
+  return Status(0, "OK");
+}
+
+Status PciDB::getSubsystemInfo(const std::string& vendorID,
+                               const std::string& modelID,
+                               const std::string& subsystemVendorID,
+                               const std::string& subsystemDeviceID,
+                               std::string& subsystem) {
+  auto subsystemID = subsystemVendorID + " " + subsystemDeviceID;
+
+  if (db_[vendorID].models[modelID].subsystemInfo.find(subsystemID) ==
+      db_[vendorID].models[modelID].subsystemInfo.end()) {
+    return Status(
+        1, "subsystem ID does not exist in system pci.ids: " + subsystemID);
   }
+
+  subsystem = db_[vendorID].models[modelID].subsystemInfo[subsystemID];
 
   return Status(0, "OK");
 }
@@ -188,43 +194,56 @@ QueryData genPCIDevices(QueryContext& context) {
     // VENDOR:MODEL ID is in the form of HHHH:HHHH.
     std::vector<std::string> ids;
     auto device_id = UdevEventPublisher::getValue(device.get(), kPCIKeyID);
+
+    // pci.ids lower cases everything, so we follow suit.
+    std::transform(device_id.begin(),
+                   device_id.end(),
+                   device_id.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+
     boost::split(ids, device_id, boost::is_any_of(":"));
+
     if (ids.size() == 2) {
       r["vendor_id"] = ids[0];
       r["model_id"] = ids[1];
 
       // Now that we know we have VENDOR and MODEL ID's, let's actually check on
       // the system PCI DB for descriptive information.
-      // pci.ids hex IDs are all lower case, so we down case them.
-      // TODO: should we just stoi instead? Which way is more performant.
-      std::transform(
-          ids[0].begin(), ids[0].end(), ids[0].begin(), [](unsigned char c) {
-            return std::tolower(c);
-          });
-      std::transform(
-          ids[1].begin(), ids[1].end(), ids[1].begin(), [](unsigned char c) {
-            return std::tolower(c);
-          });
+      std::string content;
+      if (pcidb.getVendorName(ids[0], content).ok()) {
+        r["vendor"] = content;
+      }
 
-      std::string vendor;
-      if (pcidb.getVendorName(ids[0], vendor).ok()) {
-        r["vendor"] = vendor;
+      if (pcidb.getModel(ids[0], ids[1], content).ok()) {
+        r["model"] = content;
       }
 
       // Try to enrich model with subsystem info.
+      std::vector<std::string> subsystemIDs;
       auto subsystemID =
           UdevEventPublisher::getValue(device.get(), kPCISubsysID);
-      if (subsystemID.size() == 9) {
-        subsystemID.at(4) = ' ';
-      }
+
       std::transform(subsystemID.begin(),
                      subsystemID.end(),
                      subsystemID.begin(),
                      [](unsigned char c) { return std::tolower(c); });
 
-      std::string model;
-      if (pcidb.getModel(ids[0], ids[1], model, subsystemID).ok()) {
-        r["model"] = model;
+      boost::split(subsystemIDs, subsystemID, boost::is_any_of(":"));
+
+      if (subsystemIDs.size() == 2) {
+        r["subsystem_vendor_id"] = subsystemIDs[0];
+        r["subsystem_device_id"] = subsystemIDs[1];
+
+        if (pcidb.getVendorName(subsystemIDs[0], content).ok()) {
+          r["subsystem_vendor"] = content;
+        }
+
+        if (pcidb
+                .getSubsystemInfo(
+                    ids[0], ids[1], subsystemIDs[0], subsystemIDs[1], content)
+                .ok()) {
+          r["subsystem_device"] = content;
+        }
       }
     }
 

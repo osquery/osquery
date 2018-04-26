@@ -47,16 +47,30 @@ class PciDB {
    * @param modelID ID of the model
    * @param model a reference to a string which will be populated with the
    * model description.
-   * @param subsystemID ID of the subsystem in the format of
-   * "<subsystem vendor> <subsystem device>".  If provided model will be
-   * enriched with the additional information.
    *
    * @return an instance of Status, indicating success or failure.
    */
   Status getModel(const std::string& vendorID,
                   const std::string& modelID,
-                  std::string& model,
-                  const std::string& subsystemID = "");
+                  std::string& model);
+
+  /**
+   * @brief retrieves PCI device subsystem description from pci.ids database.
+   *
+   * @param vendorID ID of the vendor
+   * @param modelID ID of the model
+   * @param subsystemVendorID ID of the subsystem vendor
+   * @param subsystemDeviceID ID of the subsystem model
+   * @param subsystem a reference to a string which will be populated with the
+   * subsystem description.
+   *
+   * @return an instance of Status, indicating success or failure.
+   */
+  Status getSubsystemInfo(const std::string& vendorID,
+                          const std::string& modelID,
+                          const std::string& subsystemVendorID,
+                          const std::string& subsystemDeviceID,
+                          std::string& subsystem);
 
  public:
   PciDB(const std::string& path = "/usr/share/misc/pci.ids");
