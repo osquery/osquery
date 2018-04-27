@@ -88,7 +88,9 @@ class ATCPlugin : public TablePlugin {
     QueryData qd;
     std::vector<std::string> paths;
     auto s = resolveFilePattern(path_, paths);
-
+    if (!s.ok()) {
+      LOG(WARNING) << "Could not glob: " << path_;
+    }
     for (const auto& path : paths) {
       s = genQueryDataForSqliteTable(path, sqlite_query_, qd);
       if (!s.ok()) {
@@ -116,6 +118,9 @@ Status ATCConfigParserPlugin::removeATCTables(
               kPersistentSettings, kDatabaseKeyPrefix + table, value)
               .ok()) {
         registry_table->remove(table);
+        PluginResponse resp;
+        Registry::call(
+            "sql", "sql", {{"action", "detatch"}, {"table", table}}, resp);
         LOG(INFO) << "Removed ATC table: " << table;
       } else {
         return Status(1, "Attempted to remove table that was not ATC table");
@@ -217,7 +222,17 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     }
     setDatabaseValue(
         kPersistentSettings, kDatabaseKeyPrefix + table_name, table_settings);
-    tables->add(table_name, std::make_shared<ATCPlugin>(path, columns, query));
+    s = tables->add(
+        table_name, std::make_shared<ATCPlugin>(path, columns, query), true);
+
+    PluginResponse resp;
+    Registry::call(
+        "sql", "sql", {{"action", "attach"}, {"table", table_name}}, resp);
+
+    if (!s.ok()) {
+      LOG(WARNING) << s.getMessage();
+      continue;
+    }
     LOG(INFO) << "Registered ATC table: " << table_name;
   }
 
