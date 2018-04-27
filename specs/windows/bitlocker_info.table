@@ -7,5 +7,6 @@ schema([
   Column("persistent_volume_id", TEXT, "Persistent ID of the drive."),
   Column("conversion_status", INTEGER, "The bitlocker conversion status of the drive."),
   Column("protection_status", INTEGER, "The bitlocker protection status of the drive."),
+  Column("encryption_method", INTEGER, "The encryption type of the device."),
 ])
 implementation("bitlocker_info@genBitlockerInfo")

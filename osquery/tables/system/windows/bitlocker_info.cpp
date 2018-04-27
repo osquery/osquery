@@ -23,27 +23,24 @@ QueryData genBitlockerInfo(QueryContext& context) {
   QueryData results;
 
   WmiRequest wmiSystemReq(
-      "SELECT * FROM Win32_EncryptableVolume",
-      (BSTR)L"ROOT\\CIMV2\\Security\\MicrosoftVolumeEncryption");
+    "SELECT * FROM Win32_EncryptableVolume",
+    (BSTR)L"ROOT\\CIMV2\\Security\\MicrosoftVolumeEncryption");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  if (!wmiResults.empty()) {
-    for (const auto& data : wmiResults) {
-      long status = 0;
-      data.GetString("DeviceID", r["device_id"]);
-      data.GetString("DriveLetter", r["drive_letter"]);
-      data.GetString("PersistentVolumeID", r["persistent_volume_id"]);
-      data.GetLong("ConversionStatus", status);
-      r["conversion_status"] = INTEGER(status);
-      data.GetLong("ProtectionStatus", status);
-      r["protection_status"] = INTEGER(status);
-      results.push_back(r);
-    }
-  } else {
-    r["device_id"] = "-1";
-    r["drive_letter"] = "-1";
-    r["persistent_volume_id"] = "-1";
-    r["conversion_status"] = "-1";
-    r["protection_status"] = "-1";
+  if (wmiResults.empty()) {
+    LOG(WARNING) << "Error retreiving information from WMI.";
+  }
+  for (const auto& data : wmiResults) {
+    long status = 0;
+    data.GetString("DeviceID", r["device_id"]);
+    data.GetString("DriveLetter", r["drive_letter"]);
+    data.GetString("PersistentVolumeID", r["persistent_volume_id"]);
+    data.GetLong("ConversionStatus", status);
+    r["conversion_status"] = INTEGER(status);
+    data.GetLong("ProtectionStatus", status);
+    r["protection_status"] = INTEGER(status);
+    data.GetLong("EncryptionMethod", status);
+    r["encryption_method"] = INTEGER(status);
+    results.push_back(r);
   }
 
   return results;
