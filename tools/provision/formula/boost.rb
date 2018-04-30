@@ -7,7 +7,7 @@ class Boost < AbstractOsqueryFormula
   url "https://downloads.sourceforge.net/project/boost/boost/1.66.0/boost_1_66_0.tar.bz2"
   sha256 "5721818253e6a0989583192f96782c4a98eb6204965316df9f5ad75819225ca9"
   head "https://github.com/boostorg/boost.git"
-  revision 200
+  revision 300
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -38,12 +38,6 @@ class Boost < AbstractOsqueryFormula
       "--layout=tagged",
       "--ignore-site-config",
       "--disable-icu",
-      "--with-filesystem",
-      "--with-regex",
-      "--with-system",
-      "--with-thread",
-      "--with-coroutine",
-      "--with-context",
       "threading=multi",
       "link=static",
       "optimization=space",
