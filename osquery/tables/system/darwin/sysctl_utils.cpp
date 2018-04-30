@@ -102,6 +102,7 @@ void genControlInfo(int* oid,
       case 'Q':
         oid_type = CTLTYPE_QUAD;
         break;
+        // Otherwise leave the type as it was; we have no additional knowledge
       }
     }
     if (oid_type < kControlTypes.size()) {
