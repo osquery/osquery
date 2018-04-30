@@ -17,6 +17,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/json.h"
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -24,31 +25,59 @@ namespace pt = boost::property_tree;
 namespace osquery {
 namespace tables {
 
-const std::map<std::string, std::string> PackageTopLevelKeys{
+const std::map<std::string, std::string> kPackageTopLevelKeys{
     {"name", "name"},
     {"version", "version"},
     {"description", "description"},
-    {"author.name", "author"},
     {"license", "license"}};
+
+const std::string kLinuxNodeModulesPath = "/usr/lib/";
 
 QueryData genNPMPackages(QueryContext& context) {
   QueryData results;
 
+  std::string searchDirectory = "";
+  if (context.constraints.count("directory") > 0 &&
+      context.constraints.at("directory").exists(EQUALS)) {
+    auto wherePath = (*context.constraints["directory"].getAll(EQUALS).begin());
+    searchDirectory = wherePath;
+  } else {
+    searchDirectory = kLinuxNodeModulesPath;
+  }
+
   std::vector<std::string> paths;
-  resolveFilePattern("/usr/lib/node_modules/%/package.json", paths);
+  resolveFilePattern(searchDirectory + "/node_modules/%/package.json", paths);
 
   for (const auto& path : paths) {
-    pt::ptree tree;
-    if (!osquery::parseJSON(path, tree).ok()) {
+    std::string json;
+    if (!readFile(path, json).ok()) {
+      LOG(WARNING) << "Could not read package JSON: " << path;
+      continue;
+    }
+
+    auto doc = JSON::newObject();
+    if (!doc.fromString(json) || !doc.doc().IsObject()) {
       LOG(WARNING) << "Could not parse JSON from: " << path;
+      continue;
     }
 
     Row r;
-    for (const auto& it : PackageTopLevelKeys) {
-      std::string val = tree.get(it.first, "");
-      r[it.second] = val;
+    for (const auto& it : kPackageTopLevelKeys) {
+      std::string key = it.first;
+      if (doc.doc().HasMember(key)) {
+        const auto& value = doc.doc()[key];
+        r[it.second] = (value.IsString()) ? value.GetString() : "";
+      }
     }
+
     r["path"] = path;
+    r["directory"] = searchDirectory;
+
+    // Manually get nested key (Author name)
+    if (doc.doc().HasMember("author")) {
+      const auto& author = doc.doc()["author"]["name"];
+      r["author"] = (author.IsString()) ? author.GetString() : "";
+    }
 
     results.push_back(r);
   }
