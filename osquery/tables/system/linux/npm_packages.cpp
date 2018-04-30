@@ -20,7 +20,6 @@
 #include "osquery/core/json.h"
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {
