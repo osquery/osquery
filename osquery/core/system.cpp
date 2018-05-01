@@ -409,6 +409,11 @@ static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
   return true;
 }
 
+DropPrivilegesRef DropPrivileges::get() {
+  DropPrivilegesRef handle = DropPrivilegesRef(new DropPrivileges());
+  return handle;
+}
+
 bool DropPrivileges::dropToParent(const fs::path& path) {
   auto parent = path.parent_path().string();
   auto result = SQL::selectAllFrom("file", "path", EQUALS, parent);

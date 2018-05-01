@@ -45,10 +45,8 @@ class Config : private boost::noncopyable {
   Config();
 
  public:
-  static Config& get() {
-    static Config instance;
-    return instance;
-  };
+  /// Singleton accessor.
+  static Config& get();
 
   /**
    * @brief Update the internal config data.

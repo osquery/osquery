@@ -302,6 +302,11 @@ Config::Config()
       valid_(false),
       refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
 
+Config& Config::get() {
+  static Config instance;
+  return instance;
+}
+
 void Config::addPack(const std::string& name,
                      const std::string& source,
                      const rj::Value& obj) {
