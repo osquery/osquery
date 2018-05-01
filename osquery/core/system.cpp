@@ -372,8 +372,7 @@ Status createPidFile() {
   }
 
   // If no pidfile exists or the existing pid was stale, write, log, and run.
-  auto pid = boost::lexical_cast<std::string>(
-      PlatformProcess::getCurrentProcess()->pid());
+  auto pid = std::to_string(PlatformProcess::getCurrentPid());
   VLOG(1) << "Writing osqueryd pid (" << pid << ") to "
           << pidfile_path.string();
   auto status = writeTextFile(pidfile_path, pid, 0644);
@@ -408,6 +407,11 @@ static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
     return false;
   }
   return true;
+}
+
+DropPrivilegesRef DropPrivileges::get() {
+  DropPrivilegesRef handle = DropPrivilegesRef(new DropPrivileges());
+  return handle;
 }
 
 bool DropPrivileges::dropToParent(const fs::path& path) {
@@ -559,4 +563,4 @@ Status setThreadName(const std::string& name) {
 #endif
   return Status{return_code};
 }
-}
+} // namespace osquery

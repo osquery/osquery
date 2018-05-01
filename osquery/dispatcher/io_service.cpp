@@ -34,6 +34,11 @@ void IOServiceRunner::stop() {
 }
 
 void startIOService() {
+// Windows service needs notifications that threads should die: #4235
+#ifdef WIN32
+  boost::asio::detail::win_thread::set_terminate_threads(true);
+#endif
+
   Dispatcher::addService(std::make_shared<IOServiceRunner>());
 }
 } // namespace osquery

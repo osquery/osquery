@@ -459,7 +459,7 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
 
   // Only make a decision about the child sanity if it is still the watcher's
   // child. It's possible for the child to die, and its pid reused.
-  if (change.parent != PlatformProcess::getCurrentProcess()->pid()) {
+  if (change.parent != PlatformProcess::getCurrentPid()) {
     // The child's parent is not the watcher.
     Watcher::get().reset(child);
     // Do not stop or call the child insane, since it is not our child.
@@ -508,11 +508,8 @@ void WatcherRunner::createWorker() {
   }
 
   // Get the path of the current process.
-  auto qd =
-      SQL::selectAllFrom("processes",
-                         "pid",
-                         EQUALS,
-                         INTEGER(PlatformProcess::getCurrentProcess()->pid()));
+  auto qd = SQL::selectAllFrom(
+      "processes", "pid", EQUALS, INTEGER(PlatformProcess::getCurrentPid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
     LOG(ERROR) << "osquery watcher cannot determine process path for worker";
     Initializer::requestShutdown(EXIT_FAILURE);
@@ -547,7 +544,7 @@ void WatcherRunner::createWorker() {
 
   watcher.setWorker(worker);
   watcher.resetWorkerCounters(getUnixTime());
-  VLOG(1) << "osqueryd watcher (" << PlatformProcess::getCurrentProcess()->pid()
+  VLOG(1) << "osqueryd watcher (" << PlatformProcess::getCurrentPid()
           << ") executing worker (" << worker->pid() << ")";
   watcher.worker_status_ = -1;
 }
@@ -598,8 +595,7 @@ void WatcherWatcherRunner::start() {
   while (!interrupted()) {
     if (isLauncherProcessDead(*watcher_)) {
       // Watcher died, the worker must follow.
-      VLOG(1) << "osqueryd worker ("
-              << PlatformProcess::getCurrentProcess()->pid()
+      VLOG(1) << "osqueryd worker (" << PlatformProcess::getCurrentPid()
               << ") detected killed watcher (" << watcher_->pid() << ")";
       // The watcher watcher is a thread. Do not join services after removing.
       Initializer::requestShutdown();
