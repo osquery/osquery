@@ -27,6 +27,7 @@ QueryData genDiskInfo(QueryContext& context) {
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   if (wmiResults.empty()) {
     LOG(WARNING) << "Error retrieving information from WMI.";
+    return results;
   }
   for (const auto& data : wmiResults) {
     long partitionCount = 0;
