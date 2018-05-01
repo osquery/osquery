@@ -375,6 +375,11 @@ bool RegistryInterface::exists_(const std::string& item_name,
   return (local) ? has_local : has_local || has_external || has_route;
 }
 
+RegistryFactory& RegistryFactory::get() {
+  static RegistryFactory instance;
+  return instance;
+}
+
 void RegistryFactory::add(const std::string& name, RegistryInterfaceRef reg) {
   if (exists(name)) {
     throw std::runtime_error("Cannot add duplicate registry: " + name);
@@ -650,5 +655,30 @@ void Plugin::setResponse(const std::string& key,
     // The plugin response could not be serialized.
   }
   response.push_back({{key, output.str()}});
+}
+
+AutoRegisterInterface::AutoRegisterInterface(const char* _type,
+                                             const char* _name,
+                                             bool optional)
+    : type_(_type), name_(_name), optional_(optional) {}
+
+AutoRegisterSet& AutoRegisterInterface::registries() {
+  static AutoRegisterSet registries_;
+  return registries_;
+}
+
+AutoRegisterSet& AutoRegisterInterface::plugins() {
+  static AutoRegisterSet plugins_;
+  return plugins_;
+}
+
+void AutoRegisterInterface::autoloadRegistry(
+    std::unique_ptr<AutoRegisterInterface> ar_) {
+  registries().push_back(std::move(ar_));
+}
+
+void AutoRegisterInterface::autoloadPlugin(
+    std::unique_ptr<AutoRegisterInterface> ar_) {
+  plugins().push_back(std::move(ar_));
 }
 }

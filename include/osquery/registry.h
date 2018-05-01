@@ -420,10 +420,8 @@ using RegistryInterfaceRef = std::shared_ptr<RegistryInterface>;
 
 class RegistryFactory : private boost::noncopyable {
  public:
-  static RegistryFactory& get() {
-    static RegistryFactory instance;
-    return instance;
-  };
+  /// Singleton accessor.
+  static RegistryFactory& get();
 
   /**
    * @brief Call a registry item.
@@ -630,8 +628,7 @@ class AutoRegisterInterface {
   /// Either autoload a registry, or create an internal plugin.
   bool optional_;
 
-  AutoRegisterInterface(const char* _type, const char* _name, bool optional)
-      : type_(_type), name_(_name), optional_(optional) {}
+  AutoRegisterInterface(const char* _type, const char* _name, bool optional);
   virtual ~AutoRegisterInterface() = default;
 
   /// A call-in for the iterator.
@@ -639,26 +636,16 @@ class AutoRegisterInterface {
 
  public:
   /// Access all registries.
-  static AutoRegisterSet& registries() {
-    static AutoRegisterSet registries_;
-    return registries_;
-  }
+  static AutoRegisterSet& registries();
 
   /// Insert a new registry.
-  static void autoloadRegistry(std::unique_ptr<AutoRegisterInterface> ar_) {
-    registries().push_back(std::move(ar_));
-  }
+  static void autoloadRegistry(std::unique_ptr<AutoRegisterInterface> ar_);
 
   /// Access all plugins.
-  static AutoRegisterSet& plugins() {
-    static AutoRegisterSet plugins_;
-    return plugins_;
-  }
+  static AutoRegisterSet& plugins();
 
   /// Insert a new plugin.
-  static void autoloadPlugin(std::unique_ptr<AutoRegisterInterface> ar_) {
-    plugins().push_back(std::move(ar_));
-  }
+  static void autoloadPlugin(std::unique_ptr<AutoRegisterInterface> ar_);
 };
 
 namespace registries {
