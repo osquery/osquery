@@ -32,9 +32,11 @@
 namespace osquery {
 namespace tables {
 
+#ifdef __linux__
 const size_t sysfsFlags = IFF_UP | IFF_DEBUG | IFF_NOTRAILERS | IFF_NOARP |
                           IFF_PROMISC | IFF_ALLMULTI | IFF_MULTICAST |
                           IFF_PORTSEL | IFF_AUTOMEDIA | IFF_DYNAMIC;
+#endif
 
 // Functions for safe sign-extension
 std::basic_string<char> INTEGER_FROM_UCHAR(unsigned char x) {
@@ -72,6 +74,7 @@ void genAddressesFromAddr(const struct ifaddrs* addr, QueryData& results) {
   results.push_back(r);
 }
 
+#ifdef __linux__
 static inline void flagsFromSysfs(const std::string& name, size_t& flags) {
   auto flags_path = "/sys/class/net/" + name + "/flags";
   std::string content;
@@ -88,6 +91,7 @@ static inline void flagsFromSysfs(const std::string& name, size_t& flags) {
     }
   }
 }
+#endif
 
 void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
   Row r;
