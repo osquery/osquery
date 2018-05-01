@@ -387,7 +387,7 @@ class RegistryType : public RegistryInterface {
    * @return A std::shared_ptr of type RegistryType.
    */
   PluginRef plugin(const std::string& plugin_name) const override {
-    ReadLock(mutex_);
+    ReadLock lock(mutex_);
 
     if (items_.count(plugin_name) == 0) {
       return nullptr;
