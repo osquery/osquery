@@ -158,8 +158,7 @@ void ExtensionManagerHandler::options(InternalOptionList& _return) {
 void ExtensionManagerHandler::registerExtension(
     ExtensionStatus& _return,
     const InternalExtensionInfo& info,
-    const ExtensionRegistry& registry,
-    RouteUUID& uuid) {
+    const ExtensionRegistry& registry) {
   ExtensionRegistry er;
   for (const auto& rt : registry) {
     er[rt.first] = rt.second;
