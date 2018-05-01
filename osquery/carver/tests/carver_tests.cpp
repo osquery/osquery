@@ -19,7 +19,7 @@
 #include <osquery/sql.h>
 
 #include "osquery/carver/carver.h"
-#include "osquery/core/hash.h"
+#include "osquery/core/hashing.h"
 #include "osquery/core/json.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tests/test_util.h"

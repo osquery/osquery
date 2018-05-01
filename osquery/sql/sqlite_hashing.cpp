@@ -12,7 +12,7 @@
 #include <string>
 
 #include "osquery/core/conversions.h"
-#include "osquery/core/hash.h"
+#include "osquery/core/hashing.h"
 
 #include <sqlite3.h>
 

@@ -11,7 +11,7 @@
 #include <osquery/events.h>
 #include <osquery/sql.h>
 
-#include "osquery/core/hash.h"
+#include "osquery/core/hashing.h"
 #include "osquery/tables/events/event_utils.h"
 
 namespace osquery {

@@ -14,7 +14,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/hash.h"
+#include "osquery/core/hashing.h"
 
 namespace fs = boost::filesystem;
 

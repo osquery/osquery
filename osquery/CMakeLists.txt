@@ -168,8 +168,10 @@ endif()
 ADD_OSQUERY_LINK_CORE("glog${WO_KEY}")
 
 if(POSIX)
+  # Hashing methods in core use libcrypto.
+  ADD_OSQUERY_LINK_CORE("crypto")
+
   ADD_OSQUERY_LINK_ADDITIONAL("ssl")
-  ADD_OSQUERY_LINK_ADDITIONAL("crypto")
   ADD_OSQUERY_LINK_ADDITIONAL("libpthread")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
 endif()

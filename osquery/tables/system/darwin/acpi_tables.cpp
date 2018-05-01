@@ -14,7 +14,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/core/hash.h"
+#include "osquery/core/hashing.h"
 
 namespace osquery {
 namespace tables {
