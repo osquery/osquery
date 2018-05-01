@@ -29,8 +29,8 @@ DECLARE_string(distributed_plugin);
 const size_t kDistributedAccelerationInterval = 5;
 
 void DistributedRunner::start() {
-  auto dist = Distributed();
   setThreadName(name());
+  auto dist = Distributed();
   while (!interrupted()) {
     dist.pullUpdates();
     if (dist.getPendingQueryCount() > 0) {

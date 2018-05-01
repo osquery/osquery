@@ -190,8 +190,8 @@ bool WatcherRunner::ok() const {
 }
 
 void WatcherRunner::start() {
-  // Hold the current process (watcher) for inspection too.
   setThreadName(name());
+  // Hold the current process (watcher) for inspection too.
   auto& watcher = Watcher::get();
   auto self = PlatformProcess::getCurrentProcess();
 
