@@ -23,12 +23,12 @@
 #include <osquery/system.h>
 
 #include "osquery/carver/carver.h"
+#include "osquery/sql/hash.h"
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"
-#include "osquery/tables/system/hash.h"
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;

@@ -142,6 +142,10 @@ else()
   ADD_OSQUERY_LINK_CORE("thrift")
 endif()
 
+ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
+ADD_OSQUERY_LINK_ADDITIONAL("-framework CoreGraphics")
+ADD_OSQUERY_LINK_ADDITIONAL("libbsm")
+
 if(APPLE OR LINUX)
   ADD_OSQUERY_LINK_CORE("libdl")
   ADD_OSQUERY_LINK_ADDITIONAL("rocksdb_lite")

@@ -39,7 +39,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#include "osquery/tables/system/hash.h"
+#include "osquery/sql/hash.h"
 
 namespace osquery {
 
