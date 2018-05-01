@@ -15,6 +15,7 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
+#include "osquery/config/additional_parsers/auto_constructed_tables.h"
 #include "osquery/core/conversions.h"
 #include "osquery/sql/sqlite_util.h"
 
@@ -22,90 +23,22 @@ namespace rj = rapidjson;
 
 namespace osquery {
 
-bool checkPlatform(const std::string& platform) {
-  if (platform.empty() || platform == "null") {
-    return true;
+QueryData ATCPlugin::generate(QueryContext& context) {
+  QueryData qd;
+  std::vector<std::string> paths;
+  auto s = resolveFilePattern(path_, paths);
+  if (!s.ok()) {
+    LOG(WARNING) << "Could not glob: " << path_;
   }
-
-  if (platform.find("any") != std::string::npos ||
-      platform.find("all") != std::string::npos) {
-    return true;
-  }
-
-  auto linux_type = (platform.find("linux") != std::string::npos ||
-                     platform.find("ubuntu") != std::string::npos ||
-                     platform.find("centos") != std::string::npos);
-  if (linux_type && isPlatform(osquery::PlatformType::TYPE_LINUX)) {
-    return true;
-  }
-
-  auto posix_type = (platform.find("posix") != std::string::npos);
-  if (posix_type && isPlatform(osquery::PlatformType::TYPE_POSIX)) {
-    return true;
-  }
-
-  return (platform.find(osquery::kSDKPlatform) != std::string::npos);
-}
-
-/**
- * @brief A ConfigParserPlugin for ATC (Auto Table Construction)
- */
-class ATCConfigParserPlugin : public ConfigParserPlugin {
-  const std::string kParserKey = "auto_table_construction";
-  const std::string kDatabaseKeyPrefix = "atc.";
-
-  Status removeATCTables(const std::set<std::string>& tables);
-  std::set<std::string> registeredATCTables();
-
- public:
-  std::vector<std::string> keys() const override {
-    return {kParserKey};
-  }
-
-  Status setUp() override;
-  Status update(const std::string& source, const ParserConfig& config) override;
-};
-
-class ATCPlugin : public TablePlugin {
-  TableColumns tc_columns_;
-  std::string sqlite_query_;
-  std::string path_;
-
-  TableColumns columns() const override {
-    return tc_columns_;
-  }
-
- public:
-  ATCPlugin(const std::string& path,
-            const TableColumns& tc_columns,
-            const std::string& sqlite_query) {
-    path_ = path;
-    sqlite_query_ = sqlite_query;
-    tc_columns_ = tc_columns;
-  }
-
-  QueryData generate(QueryContext& context) override {
-    QueryData qd;
-    std::vector<std::string> paths;
-    auto s = resolveFilePattern(path_, paths);
+  for (const auto& path : paths) {
+    s = genQueryDataForSqliteTable(path, sqlite_query_, qd);
     if (!s.ok()) {
-      LOG(WARNING) << "Could not glob: " << path_;
+      LOG(WARNING) << "Error Code: " << s.getCode()
+                   << " Could not generate data: " << s.getMessage();
     }
-    for (const auto& path : paths) {
-      s = genQueryDataForSqliteTable(path, sqlite_query_, qd);
-      if (!s.ok()) {
-        LOG(WARNING) << "Error Code: " << s.getCode()
-                     << " Could not generate data: " << s.getMessage();
-      }
-    }
-    return qd;
   }
-
- protected:
-  std::string columnDefinition() const {
-    return ::osquery::columnDefinition(tc_columns_);
-  }
-};
+  return qd;
+}
 
 /// Remove these ATC tables from the registry and database
 Status ATCConfigParserPlugin::removeATCTables(
@@ -128,7 +61,7 @@ Status ATCConfigParserPlugin::removeATCTables(
     }
     deleteDatabaseValue(kPersistentSettings, kDatabaseKeyPrefix + table);
   }
-  return Status{};
+  return Status();
 }
 
 /// Get all ATC tables that should be registered from the database
@@ -150,7 +83,7 @@ Status ATCConfigParserPlugin::setUp() {
   for (const auto& key : keys) {
     deleteDatabaseValue(kPersistentSettings, key);
   }
-  return Status{};
+  return Status();
 }
 
 Status ATCConfigParserPlugin::update(const std::string& source,
@@ -182,8 +115,8 @@ Status ATCConfigParserPlugin::update(const std::string& source,
                                  params["platform"].IsString()
                              ? params["platform"].GetString()
                              : ""};
-    
-    if (query == "" || path == "") {
+
+    if (query.empty() || path.empty()) {
       LOG(WARNING) << "ATC Table: " << table_name << " is misconfigured";
       continue;
     }
@@ -225,14 +158,14 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     s = tables->add(
         table_name, std::make_shared<ATCPlugin>(path, columns, query), true);
 
-    PluginResponse resp;
-    Registry::call(
-        "sql", "sql", {{"action", "attach"}, {"table", table_name}}, resp);
-
     if (!s.ok()) {
       LOG(WARNING) << s.getMessage();
       continue;
     }
+
+    PluginResponse resp;
+    Registry::call(
+        "sql", "sql", {{"action", "attach"}, {"table", table_name}}, resp);
     LOG(INFO) << "Registered ATC table: " << table_name;
   }
 
@@ -242,7 +175,7 @@ Status ATCConfigParserPlugin::update(const std::string& source,
            "change";
     removeATCTables(registered);
   }
-  return Status{};
+  return Status();
 }
 
 REGISTER_INTERNAL(ATCConfigParserPlugin,

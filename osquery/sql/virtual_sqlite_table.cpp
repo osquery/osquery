@@ -23,7 +23,7 @@ Status genSqliteQueryRow(sqlite3_stmt* stmt,
                          QueryData& qd,
                          const fs::path& sqlite_db) {
   Row r;
-  for (auto i{0}; i < sqlite3_column_count(stmt); ++i) {
+  for (int i = 0; i < sqlite3_column_count(stmt); ++i) {
     auto column_name = std::string(sqlite3_column_name(stmt, i));
     auto column_type = sqlite3_column_type(stmt, i);
     switch (column_type) {
@@ -52,7 +52,7 @@ Status genSqliteQueryRow(sqlite3_stmt* stmt,
     r["path"] = sqlite_db.string();
   }
   qd.push_back(r);
-  return Status{};
+  return Status();
 }
 
 Status genQueryDataForSqliteTable(const fs::path& sqlite_db,
