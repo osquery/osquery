@@ -122,7 +122,8 @@ Status ATCConfigParserPlugin::update(const std::string& source,
     }
 
     if (!checkPlatform(platform)) {
-      VLOG(1) << "Skipping ATC table: " << table_name << " because platform doesn't match";
+      VLOG(1) << "Skipping ATC table: " << table_name
+              << " because platform doesn't match";
       continue;
     }
 
