@@ -32,9 +32,9 @@
 namespace osquery {
 namespace tables {
 
-const size_t sysfsFlags =
-    IFF_UP|IFF_DEBUG|IFF_NOTRAILERS|IFF_NOARP|IFF_PROMISC|\
-    IFF_ALLMULTI|IFF_MULTICAST|IFF_PORTSEL|IFF_AUTOMEDIA|IFF_DYNAMIC;
+const size_t sysfsFlags = IFF_UP | IFF_DEBUG | IFF_NOTRAILERS | IFF_NOARP |
+                          IFF_PROMISC | IFF_ALLMULTI | IFF_MULTICAST |
+                          IFF_PORTSEL | IFF_AUTOMEDIA | IFF_DYNAMIC;
 
 // Functions for safe sign-extension
 std::basic_string<char> INTEGER_FROM_UCHAR(unsigned char x) {
@@ -75,9 +75,8 @@ void genAddressesFromAddr(const struct ifaddrs* addr, QueryData& results) {
 static inline void flagsFromSysfs(const std::string& name, size_t& flags) {
   auto flags_path = "/sys/class/net/" + name + "/flags";
   std::string content;
-  if (!pathExists(flags_path)
-	|| !readFile(flags_path, content)
-	|| content.size() <= 3) {
+  if (!pathExists(flags_path) || !readFile(flags_path, content) ||
+      content.size() <= 3) {
     return;
   }
 
@@ -213,5 +212,5 @@ QueryData genInterfaceDetails(QueryContext& context) {
   freeifaddrs(if_addrs);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
