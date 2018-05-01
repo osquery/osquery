@@ -418,7 +418,6 @@ function(generate_osquery_extension_group)
   target_compile_features("${OSQUERY_EXTENSION_GROUP_NAME}" PUBLIC cxx_std_14)
   target_compile_options("${OSQUERY_EXTENSION_GROUP_NAME}" PRIVATE ${extension_cxx_flags})
 
-  set_target_properties("${OSQUERY_EXTENSION_GROUP_NAME}" PROPERTIES SUFFIX "")
   set_target_properties("${OSQUERY_EXTENSION_GROUP_NAME}" PROPERTIES
     OUTPUT_NAME "${OSQUERY_EXTENSION_GROUP_NAME}.ext"
   )
