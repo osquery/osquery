@@ -386,26 +386,56 @@ function(generate_osquery_extension_group)
   # REGISTER_EXTERNAL directives
   get_property(OSQUERY_EXTENSION_GROUP_INITIALIZERS GLOBAL PROPERTY OSQUERY_EXTENSION_GROUP_INITIALIZERS)
   configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/osquery_main.cpp.template"
-    "${CMAKE_CURRENT_BINARY_DIR}/osquery_main.cpp"
+    "${CMAKE_SOURCE_DIR}/tools/codegen/templates/osquery_extension_group_main.cpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/osquery_extension_group_main.cpp"
   )
+
+  # Extensions can no longer control which compilation flags to use here (as they are shared) so
+  # we are going to enforce sane defaults
+  if(UNIX)
+    set(extension_cxx_flags
+      -pedantic -Wall -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization
+      -Wformat=2 -Winit-self -Wlong-long -Wmissing-declarations -Wmissing-include-dirs -Wcomment
+      -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion
+      -Wsign-promo -Wstrict-overflow=5 -Wswitch-default -Wundef -Werror -Wunused -Wuninitialized
+      -Wconversion
+    )
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+      list(APPEND extension_cxx_flags -g3 --gdwarf-2)
+    endif()
+  else()
+    set(extension_cxx_flags /W4)
+  endif()
 
   # Generate the extension target
   add_executable("${OSQUERY_EXTENSION_GROUP_NAME}"
-    "${CMAKE_CURRENT_BINARY_DIR}/osquery_main.cpp"
+    "${CMAKE_CURRENT_BINARY_DIR}/osquery_extension_group_main.cpp"
     ${extension_source_files}
   )
+
+  set_property(TARGET "${OSQUERY_EXTENSION_GROUP_NAME}" PROPERTY INCLUDE_DIRECTORIES "")
+  target_compile_features("${OSQUERY_EXTENSION_GROUP_NAME}" PUBLIC cxx_std_14)
+  target_compile_options("${OSQUERY_EXTENSION_GROUP_NAME}" PRIVATE ${extension_cxx_flags})
 
   set_target_properties("${OSQUERY_EXTENSION_GROUP_NAME}" PROPERTIES SUFFIX "")
   set_target_properties("${OSQUERY_EXTENSION_GROUP_NAME}" PROPERTIES
     OUTPUT_NAME "${OSQUERY_EXTENSION_GROUP_NAME}.ext"
   )
 
+  # Import the core libraries; note that we are going to inherit include directories
+  # with the wrong scope, so we'll have to fix it
+  set_property(TARGET "${OSQUERY_EXTENSION_GROUP_NAME}" PROPERTY INCLUDE_DIRECTORIES "")
+
+  get_property(include_folder_list TARGET libosquery PROPERTY INCLUDE_DIRECTORIES)
+  target_include_directories("${OSQUERY_EXTENSION_GROUP_NAME}" SYSTEM PRIVATE ${include_folder_list})
+
+  TARGET_OSQUERY_LINK_WHOLE("${OSQUERY_EXTENSION_GROUP_NAME}" libosquery)
+
+  # Apply the user (extension) settings
   get_property(library_list GLOBAL PROPERTY OSQUERY_EXTENSION_GROUP_LIBRARIES)
   if(NOT "${library_list}" STREQUAL "")
-    target_link_libraries("${OSQUERY_EXTENSION_GROUP_NAME}" PRIVATE
-      ${library_list}
-    )
+    target_link_libraries("${OSQUERY_EXTENSION_GROUP_NAME}" ${library_list})
   endif()
 
   get_property(include_folder_list GLOBAL PROPERTY OSQUERY_EXTENSION_GROUP_INCLUDE_FOLDERS)
@@ -414,19 +444,17 @@ function(generate_osquery_extension_group)
       ${include_folder_list}
     )
   endif()
-
-  TARGET_OSQUERY_LINK_WHOLE("${OSQUERY_EXTENSION_GROUP_NAME}" libosquery)
 endfunction()
 
 # Helper to abstract OS/Compiler whole linking.
 macro(TARGET_OSQUERY_LINK_WHOLE TARGET OSQUERY_LIB)
   if(WINDOWS)
-      target_link_libraries(${TARGET} PRIVATE "${OS_WHOLELINK_PRE}$<TARGET_FILE_NAME:${OSQUERY_LIB}>")
-      target_link_libraries(${TARGET} PRIVATE ${OSQUERY_LIB})
+      target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}$<TARGET_FILE_NAME:${OSQUERY_LIB}>")
+      target_link_libraries(${TARGET} ${OSQUERY_LIB})
   else()
-      target_link_libraries(${TARGET} PRIVATE "${OS_WHOLELINK_PRE}")
-      target_link_libraries(${TARGET} PRIVATE ${OSQUERY_LIB})
-      target_link_libraries(${TARGET} PRIVATE "${OS_WHOLELINK_POST}")
+      target_link_libraries(${TARGET} "${OS_WHOLELINK_PRE}")
+      target_link_libraries(${TARGET} ${OSQUERY_LIB})
+      target_link_libraries(${TARGET} "${OS_WHOLELINK_POST}")
   endif()
 endmacro(TARGET_OSQUERY_LINK_WHOLE)
 
