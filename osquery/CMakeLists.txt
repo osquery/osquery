@@ -43,7 +43,8 @@ if(CLANG AND POSIX)
   )
   if(NOT FREEBSD)
     add_compile_options(
-      -Wshadow
+      -Wshadow-all
+      -Wno-shadow-field
     )
   endif()
 endif()
