@@ -1,5 +1,5 @@
 table_name("npm_packages")
-description("Lists all npm packages globally installed in a system.")
+description("Lists all npm packages in a directory or globally installed in a system.")
 schema([
     Column("name", TEXT, "Package display name"),
     Column("version", TEXT, "Package supplied version"),

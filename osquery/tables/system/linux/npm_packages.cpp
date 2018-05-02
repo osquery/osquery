@@ -47,11 +47,10 @@ void genPackageResults(const std::string& directory, QueryData& results) {
     }
 
     Row r;
-    for (const auto& key_it : kPackageKeys) {
-      std::string key{key_it};
+    for (const auto& key : kPackageKeys) {
       if (doc.doc().HasMember(key)) {
         const auto& value = doc.doc()[key];
-        r[key_it] = (value.IsString()) ? value.GetString() : "";
+        r[key] = (value.IsString()) ? value.GetString() : "";
       }
     }
 
