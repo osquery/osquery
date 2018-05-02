@@ -78,10 +78,8 @@ class Flag : private boost::noncopyable {
   /// Create a Gflags alias to name, using the Flag::getValue accessor.
   static int createAlias(const std::string& alias, const FlagDetail& flag);
 
-  static Flag& instance() {
-    static Flag f;
-    return f;
-  }
+  /// Singleton accessor.
+  static Flag& instance();
 
  private:
   /// Keep the ctor private, for accessing through `add` wrapper.
