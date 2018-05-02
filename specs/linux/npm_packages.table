@@ -2,11 +2,11 @@ table_name("npm_packages")
 description("Lists all npm packages globally installed in a system.")
 schema([
     Column("name", TEXT, "Package display name"),
-    Column("version", TEXT, "Package-supplied version"),
-    Column("description", TEXT, "Package-supplied description"),
+    Column("version", TEXT, "Package supplied version"),
+    Column("description", TEXT, "Package supplied description"),
     Column("author", TEXT, "Package author name"),
-    Column("license", TEXT, "License under which package is launched"),
+    Column("license", TEXT, "License for package"),
     Column("path", TEXT, "Path at to this module package.json"),
-    Column("directory", TEXT, "Node Modules directory where this package is located")
+    Column("directory", TEXT, "Node module's directory where this package is located")
 ])
 implementation("system/linux/npm_packages@genNPMPackages")

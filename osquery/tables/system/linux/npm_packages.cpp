@@ -24,53 +24,39 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-const std::map<std::string, std::string> kPackageTopLevelKeys{
-    {"name", "name"},
-    {"version", "version"},
-    {"description", "description"},
-    {"license", "license"}};
+const std::vector<std::string> kPackageKeys{
+    "name", "version", "description", "license"};
 
-const std::string kLinuxNodeModulesPath = "/usr/lib/";
+const std::string kLinuxNodeModulesPath{"/usr/lib/"};
 
-QueryData genNPMPackages(QueryContext& context) {
-  QueryData results;
+void genPackageResults(const std::string& directory, QueryData& results) {
+  std::vector<std::string> packages;
+  resolveFilePattern(directory + "/node_modules/%/package.json", packages);
 
-  std::string searchDirectory = "";
-  if (context.constraints.count("directory") > 0 &&
-      context.constraints.at("directory").exists(EQUALS)) {
-    auto wherePath = (*context.constraints["directory"].getAll(EQUALS).begin());
-    searchDirectory = wherePath;
-  } else {
-    searchDirectory = kLinuxNodeModulesPath;
-  }
-
-  std::vector<std::string> paths;
-  resolveFilePattern(searchDirectory + "/node_modules/%/package.json", paths);
-
-  for (const auto& path : paths) {
+  for (const auto& package_path : packages) {
     std::string json;
-    if (!readFile(path, json).ok()) {
-      LOG(WARNING) << "Could not read package JSON: " << path;
+    if (!readFile(package_path, json).ok()) {
+      LOG(WARNING) << "Could not read package JSON: " << package_path;
       continue;
     }
 
     auto doc = JSON::newObject();
     if (!doc.fromString(json) || !doc.doc().IsObject()) {
-      LOG(WARNING) << "Could not parse JSON from: " << path;
+      LOG(WARNING) << "Could not parse JSON from: " << package_path;
       continue;
     }
 
     Row r;
-    for (const auto& it : kPackageTopLevelKeys) {
-      std::string key = it.first;
+    for (const auto& key_it : kPackageKeys) {
+      std::string key{key_it};
       if (doc.doc().HasMember(key)) {
         const auto& value = doc.doc()[key];
-        r[it.second] = (value.IsString()) ? value.GetString() : "";
+        r[key_it] = (value.IsString()) ? value.GetString() : "";
       }
     }
 
-    r["path"] = path;
-    r["directory"] = searchDirectory;
+    r["path"] = package_path;
+    r["directory"] = directory;
 
     // Manually get nested key (Author name)
     if (doc.doc().HasMember("author")) {
@@ -79,6 +65,20 @@ QueryData genNPMPackages(QueryContext& context) {
     }
 
     results.push_back(r);
+  }
+}
+
+QueryData genNPMPackages(QueryContext& context) {
+  QueryData results;
+
+  std::set<std::string> search_directories = {kLinuxNodeModulesPath};
+  if (context.constraints.count("directory") > 0 &&
+      context.constraints.at("directory").exists(EQUALS)) {
+    search_directories = context.constraints["directory"].getAll(EQUALS);
+  }
+
+  for (const auto& directory : search_directories) {
+    genPackageResults(directory, results);
   }
 
   return results;
