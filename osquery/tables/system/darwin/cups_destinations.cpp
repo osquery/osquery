@@ -10,46 +10,49 @@
 
 #include <cups/cups.h>
 
-#include <osquery/system.h>
 #include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
-class SafeCupsDestinations {
+class CupsDestinations {
  public:
   cups_dest_t* destination_list;
   int num_destinations;
 
-  SafeCupsDestinations() {
+  CupsDestinations() : destination_list(nullptr), num_destinations(0) {
     num_destinations = cupsGetDests(&destination_list);
   }
 
-  ~SafeCupsDestinations() {
+  ~CupsDestinations() {
     cupsFreeDests(num_destinations, destination_list);
+  }
+
+  cups_dest_t* begin() {
+    return destination_list;
+  }
+
+  cups_dest_t* end() {
+    return &destination_list[num_destinations];
   }
 };
 
 QueryData genCupsDestinations(QueryContext& request) {
   QueryData results;
-  SafeCupsDestinations destinations;
+  CupsDestinations dests;
 
-  for (decltype(destinations.num_destinations) i = 0;
-       i < destinations.num_destinations;
-       ++i) {
-    auto num_options = destinations.destination_list[i].num_options;
+  for (const auto& dest : dests) {
+    auto num_options = dest.num_options;
     if (num_options == 0) {
       Row r;
-      r["name"] = std::string(destinations.destination_list[i].name);
+      r["name"] = SQL_TEXT(dest.name);
       results.push_back(r);
     } else {
-      for (auto j{0}; j < num_options; ++j) {
+      for (int j = 0; j < num_options; ++j) {
         Row r;
-        r["name"] = SQL_TEXT(destinations.destination_list[i].name);
-        r["option_name"] =
-            SQL_TEXT(destinations.destination_list[i].options[j].name);
-        r["option_value"] =
-            SQL_TEXT(destinations.destination_list[i].options[j].value);
+        r["name"] = SQL_TEXT(dest.name);
+        r["option_name"] = SQL_TEXT(dest.options[j].name);
+        r["option_value"] = SQL_TEXT(dest.options[j].value);
         results.push_back(r);
       }
     }

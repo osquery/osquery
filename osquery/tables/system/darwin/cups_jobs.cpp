@@ -10,40 +10,49 @@
 
 #include <cups/cups.h>
 
-#include <osquery/system.h>
 #include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
 
-class SafeCupsJobs {
+class CupsJobs {
  public:
+  // The array given to us by the CUPS API
   cups_job_t* job_list;
+  // How long the array is
   int num_jobs;
 
-  SafeCupsJobs() {
+  CupsJobs() : job_list(nullptr), num_jobs(0) {
     num_jobs = cupsGetJobs(&job_list, nullptr, 0, CUPS_WHICHJOBS_ALL);
   }
 
-  ~SafeCupsJobs() {
+  ~CupsJobs() {
     cupsFreeJobs(num_jobs, job_list);
+  }
+
+  cups_job_t* begin() {
+    return job_list;
+  }
+
+  cups_job_t* end() {
+    return &job_list[num_jobs];
   }
 };
 
 QueryData genCupsJobs(QueryContext& request) {
   QueryData results;
-  SafeCupsJobs jobs;
+  CupsJobs jobs;
 
-  for (decltype(jobs.num_jobs) i = 0; i < jobs.num_jobs; ++i) {
+  for (const auto& job : jobs) {
     Row r;
-    r["title"] = SQL_TEXT(jobs.job_list[i].title);
-    r["destination"] = SQL_TEXT(jobs.job_list[i].dest);
-    r["user"] = SQL_TEXT(jobs.job_list[i].user);
-    r["format"] = SQL_TEXT(jobs.job_list[i].format);
-    r["size"] = INTEGER(jobs.job_list[i].size);
-    r["completed_time"] = INTEGER(jobs.job_list[i].completed_time);
-    r["processing_time"] = INTEGER(jobs.job_list[i].processing_time);
-    r["creation_time"] = INTEGER(jobs.job_list[i].creation_time);
+    r["title"] = SQL_TEXT(job.title);
+    r["destination"] = SQL_TEXT(job.dest);
+    r["user"] = SQL_TEXT(job.user);
+    r["format"] = SQL_TEXT(job.format);
+    r["size"] = INTEGER(job.size);
+    r["completed_time"] = INTEGER(job.completed_time);
+    r["processing_time"] = INTEGER(job.processing_time);
+    r["creation_time"] = INTEGER(job.creation_time);
     results.push_back(r);
   }
   return results;
