@@ -36,10 +36,10 @@ QueryData genCupsJobs(QueryContext& request) {
 
   for (decltype(jobs.num_jobs) i = 0; i < jobs.num_jobs; ++i) {
     Row r;
-    r["title"] = std::string(jobs.job_list[i].title);
-    r["destination"] = std::string(jobs.job_list[i].dest);
-    r["user"] = std::string(jobs.job_list[i].user);
-    r["format"] = std::string(jobs.job_list[i].format);
+    r["title"] = SQL_TEXT(jobs.job_list[i].title);
+    r["destination"] = SQL_TEXT(jobs.job_list[i].dest);
+    r["user"] = SQL_TEXT(jobs.job_list[i].user);
+    r["format"] = SQL_TEXT(jobs.job_list[i].format);
     r["size"] = INTEGER(jobs.job_list[i].size);
     r["completed_time"] = INTEGER(jobs.job_list[i].completed_time);
     r["processing_time"] = INTEGER(jobs.job_list[i].processing_time);

@@ -45,11 +45,11 @@ QueryData genCupsDestinations(QueryContext& request) {
     } else {
       for (auto j{0}; j < num_options; ++j) {
         Row r;
-        r["name"] = std::string(destinations.destination_list[i].name);
+        r["name"] = SQL_TEXT(destinations.destination_list[i].name);
         r["option_name"] =
-            std::string(destinations.destination_list[i].options[j].name);
+            SQL_TEXT(destinations.destination_list[i].options[j].name);
         r["option_value"] =
-            std::string(destinations.destination_list[i].options[j].value);
+            SQL_TEXT(destinations.destination_list[i].options[j].value);
         results.push_back(r);
       }
     }
