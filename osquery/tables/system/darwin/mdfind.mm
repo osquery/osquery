@@ -33,8 +33,9 @@ void genResults(const std::vector<NamedQuery>& queries, QueryData& results) {
 
   // Get data from all the queries
   for (const auto& query : queries) {
-    for (auto i{0}; i < MDQueryGetResultCount(query.first); ++i) {
-      MDItemRef mdi = (MDItemRef)(MDQueryGetResultAtIndex(query.first, i));
+    for (int i = 0; i < MDQueryGetResultCount(query.first); ++i) {
+      auto mdi = reinterpret_cast<MDItemRef>(
+          const_cast<void*>(MDQueryGetResultAtIndex(query.first, i)));
       CFTypeRef tr = MDItemCopyAttribute(mdi, CFSTR("kMDItemPath"));
       if (tr == nullptr) {
         continue;

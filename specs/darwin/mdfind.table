@@ -9,5 +9,5 @@ fuzz_paths([])
 examples([
 	"select count(*) from mdfind where query = 'kMDItemTextContent == \"osquery\"';"
 	"select * from mdfind where query = 'kMDItemDisplayName == \"rook.stl\"';",
-    "select * from mdfind where query in ('kMDItemDisplayName == \"rook.stl\"', 'kMDItemDisplayName == \"video.mp4\"')"
+	"select * from mdfind where query in ('kMDItemDisplayName == \"rook.stl\"', 'kMDItemDisplayName == \"video.mp4\"')"
 ])
