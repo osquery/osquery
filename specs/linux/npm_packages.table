@@ -6,7 +6,14 @@ schema([
     Column("description", TEXT, "Package supplied description"),
     Column("author", TEXT, "Package author name"),
     Column("license", TEXT, "License for package"),
-    Column("path", TEXT, "Path at to this module package.json"),
+    Column("path", TEXT, "Module's package.json path"),
     Column("directory", TEXT, "Node module's directory where this package is located")
 ])
 implementation("system/linux/npm_packages@genNPMPackages")
+examples([
+  "select * from npm_modules",
+  "select * from npm_modules where directory = '/home/user/my_project'",
+])
+fuzz_paths([
+    "/usr/lib/node_modules/",
+])
