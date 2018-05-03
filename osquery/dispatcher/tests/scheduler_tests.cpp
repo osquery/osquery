@@ -162,7 +162,7 @@ TEST_F(SchedulerTests, test_scheduler) {
   Config::get().update({{"data", config}});
 
   // Run the scheduler for 1 second with a second interval.
-  SchedulerRunner runner(static_cast<unsigned long int>(now + 1), 1);
+  SchedulerRunner runner(static_cast<unsigned long int>(now + 5), 1);
   runner.start();
 
   // If a query was executed the cache step will have been advanced.

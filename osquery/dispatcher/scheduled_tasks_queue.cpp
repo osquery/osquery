@@ -9,19 +9,16 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <limits>
 #include <algorithm>
+#include <limits>
 
 #include "osquery/dispatcher/scheduled_tasks_queue.h"
 
 namespace osquery {
 
-void ScheduledTaskQueue::add(
-  TaskImplementation impl,
-  UnixTime firstRunTime
-) {
-    taskQueue_.emplace_back(std::move(impl), firstRunTime);
-    std::push_heap(taskQueue_.begin(), taskQueue_.end(), Task::comparator);
+void ScheduledTaskQueue::add(TaskImplementation impl, UnixTime firstRunTime) {
+  taskQueue_.emplace_back(std::move(impl), firstRunTime);
+  std::push_heap(taskQueue_.begin(), taskQueue_.end(), Task::comparator);
 }
 
 bool ScheduledTaskQueue::isEmpty() const {
@@ -43,14 +40,8 @@ void ScheduledTaskQueue::runOne() {
   }
 }
 
-ScheduledTaskQueue::Task::Task(
-  TaskImplementation impl,
-  UnixTime firstRunTime
-)
-  : impl_(std::move(impl))
-  , nextRunTime_(firstRunTime)
-{
-}
+ScheduledTaskQueue::Task::Task(TaskImplementation impl, UnixTime firstRunTime)
+    : impl_(std::move(impl)), nextRunTime_(firstRunTime) {}
 
 bool ScheduledTaskQueue::Task::run() {
   auto startTime = osquery::getUnixTime();
@@ -62,7 +53,8 @@ bool ScheduledTaskQueue::Task::run() {
   return true;
 }
 
-ScheduledTaskQueue::UnixTime ScheduledTaskQueue::Task::getNextRunTime() const noexcept {
+ScheduledTaskQueue::UnixTime ScheduledTaskQueue::Task::getNextRunTime() const
+    noexcept {
   return nextRunTime_;
 }
 
@@ -71,10 +63,8 @@ ScheduledTaskQueue::UnixTime ScheduledTaskQueue::Task::getTimeToWait() const {
   return now < nextRunTime_ ? nextRunTime_ - now : UnixTime{0};
 }
 
-bool ScheduledTaskQueue::Task::comparator(
-    const Task& left, const Task& right
-) {
+bool ScheduledTaskQueue::Task::comparator(const Task& left, const Task& right) {
   return left.getNextRunTime() > right.getNextRunTime();
 }
 
-}
+} // namespace osquery

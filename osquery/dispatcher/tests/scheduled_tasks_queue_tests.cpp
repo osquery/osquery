@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include <thread>
 
 #include <gtest/gtest.h>
@@ -41,10 +41,12 @@ class ScheduledTasksQueueTests : public testing::Test {
 TEST_F(ScheduledTasksQueueTests, run_for_the_one_time) {
   auto tasks = ScheduledTaskQueue{};
   auto counter = int{0};
-  tasks.add([&counter](auto startTime){
-    ++counter;
-    return 0;
-  }, 0);
+  tasks.add(
+      [&counter](auto startTime) {
+        ++counter;
+        return 0;
+      },
+      0);
   while (!tasks.isEmpty()) {
     auto toWaitInSeconds = tasks.timeToWait();
     if (toWaitInSeconds > 0) {
@@ -58,14 +60,18 @@ TEST_F(ScheduledTasksQueueTests, run_for_the_one_time) {
 TEST_F(ScheduledTasksQueueTests, first_start_priority) {
   auto tasks = ScheduledTaskQueue{};
   auto counter = int{0};
-  tasks.add([&counter](auto startTime){
-    ++counter;
-    return 0;
-  }, 10);
-  tasks.add([&counter](auto startTime){
-    counter *= 2;
-    return 0;
-  }, 100);
+  tasks.add(
+      [&counter](auto startTime) {
+        ++counter;
+        return 0;
+      },
+      10);
+  tasks.add(
+      [&counter](auto startTime) {
+        counter *= 2;
+        return 0;
+      },
+      100);
   while (!tasks.isEmpty()) {
     auto toWaitInSeconds = tasks.timeToWait();
     if (toWaitInSeconds > 0) {
@@ -80,11 +86,11 @@ TEST_F(ScheduledTasksQueueTests, one_shot_task) {
   auto tasks = ScheduledTaskQueue{};
   auto oneShotCounter = int{0};
   auto counter = int{0};
-  tasks.add([&counter](auto startTime){
+  tasks.add([&counter](auto startTime) {
     ++counter;
     return startTime;
   });
-  tasks.add([&oneShotCounter](auto startTime){
+  tasks.add([&oneShotCounter](auto startTime) {
     ++oneShotCounter;
     return 0;
   });
@@ -101,9 +107,7 @@ TEST_F(ScheduledTasksQueueTests, one_shot_task) {
 
 TEST_F(ScheduledTasksQueueTests, zero_time_to_wait) {
   auto tasks = ScheduledTaskQueue{};
-  tasks.add([](auto startTime){
-    return startTime;
-  });
+  tasks.add([](auto startTime) { return startTime; });
   auto sumWaitingTime = decltype(tasks.timeToWait()){0};
   for (int i = 0; i < 10 && !tasks.isEmpty(); ++i) {
     auto toWaitInSeconds = tasks.timeToWait();
@@ -119,7 +123,7 @@ TEST_F(ScheduledTasksQueueTests, zero_time_to_wait) {
 TEST_F(ScheduledTasksQueueTests, run_one_regardless_of_time) {
   auto tasks = ScheduledTaskQueue{};
   auto counter = int{0};
-  tasks.add([&counter](auto startTime){
+  tasks.add([&counter](auto startTime) {
     ++counter;
     return startTime + 10;
   });
@@ -129,4 +133,4 @@ TEST_F(ScheduledTasksQueueTests, run_one_regardless_of_time) {
   EXPECT_EQ(counter, 10);
 }
 
-}
+} // namespace osquery
