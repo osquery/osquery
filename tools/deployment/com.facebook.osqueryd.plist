@@ -12,7 +12,6 @@
   <array>
     <string>/usr/local/bin/osqueryd</string>
     <string>--flagfile=/private/var/osquery/osquery.flags</string>
-    <string>--logger_min_stderr=1</string>
   </array>
   <key>RunAtLoad</key>
   <true/>
