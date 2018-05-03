@@ -73,6 +73,11 @@ void InternalRunnable::run() {
   Dispatcher::removeService(this);
 }
 
+Dispatcher& Dispatcher::instance() {
+  static Dispatcher instance;
+  return instance;
+}
+
 Status Dispatcher::addService(InternalRunnableRef service) {
   if (service->hasRun()) {
     return Status(1, "Cannot schedule a service twice");

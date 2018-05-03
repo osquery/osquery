@@ -36,56 +36,61 @@ TARGETS_PREAMBLE = """
 # Automatically generated: make sync
 
 thrift_library(
-  name="if",
-  languages=[
-    "cpp",
-    "py",
-  ],
-  py_base_module="osquery",
-  thrift_srcs={
-    "extensions.thrift": ["Extension", "ExtensionManager"],
-  },
+    name = "if",
+    languages = [
+        "cpp2",
+        "py",
+    ],
+    py_base_module = "osquery",
+    thrift_cpp2_options = "stack_arguments",
+    thrift_srcs = {
+        "extensions.thrift": [
+            "Extension",
+            "ExtensionManager",
+        ],
+    },
 )
 
 cpp_library(
-  name="osquery_sdk",
-  headers=AutoHeaders.RECURSIVE_GLOB,
-  link_whole=True,
-  srcs=["""
+    name="osquery_sdk",
+    headers=AutoHeaders.RECURSIVE_GLOB,
+    link_whole=True,
+    srcs=[
+"""
 
 TARGETS_POSTSCRIPT = """  ],
-  deps=[
-    "@/thrift/lib/cpp/concurrency:concurrency",
-    "@/rocksdb:rocksdb",
-    ":if-cpp",
-  ],
-  external_deps=[
-    "boost",
-    "glog",
-    "gflags",
-    "gtest",
-    ("e2fsprogs", None, "uuid"),
-  ],
-  compiler_flags=[
-    "-Wno-unused-function",
-    "-Wno-non-virtual-dtor",
-    "-Wno-address",
-    "-Wno-overloaded-virtual",
-    "-DOSQUERY_BUILD_PLATFORM=centos7",
-    "-DOSQUERY_BUILD_DISTRO=centos7",
-    "-DOSQUERY_PLATFORM_MASK=9",
-    "-DOSQUERY_THRIFT_LIB=thrift/lib/cpp",
-    "-DOSQUERY_THRIFT_SERVER_LIB=thrift/lib/cpp/server/example",
-    "-DOSQUERY_THRIFT_POINTER=std",
-    "-DOSQUERY_THRIFT=osquery/gen-cpp/",
-  ],
-  propagated_pp_flags=[
-    "-DOSQUERY_BUILD_VERSION=%s",
-    "-DOSQUERY_BUILD_SDK_VERSION=%s",
-    "-DOSQUERY_BUILD_PLATFORM=centos",
-    "-DOSQUERY_BUILD_DISTRO=centos7",
-    "-DOSQUERY_PLATFORM_MASK=9",
-  ]
+    deps = [
+        ":if-cpp2",
+        "//folly/init:init",
+        "//rocksdb:rocksdb",
+        "//thrift/lib/cpp2:server",
+        "//thrift/lib/cpp2:thrift_base",
+    ],
+    external_deps = [
+        ("boost", None, "boost_filesystem"),
+        ("boost", None, "boost_thread"),
+        "boost",
+        "glog",
+        "gflags",
+        ("googletest", None, "gtest"),
+        ("util-linux", None, "uuid"),
+        ("rapidjson"),
+    ],
+    compiler_flags = [
+        "-Wno-unused-function",
+        "-Wno-non-virtual-dtor",
+        "-Wno-address",
+        "-Wno-overloaded-virtual",
+        "-Wno-unknown-pragmas",
+    ],
+    propagated_pp_flags = [
+        "-DOSQUERY_BUILD_VERSION=%s-fb",
+        "-DOSQUERY_BUILD_SDK_VERSION=%s-fb",
+        "-DOSQUERY_BUILD_PLATFORM=centos7",
+        "-DOSQUERY_BUILD_DISTRO=centos7",
+        "-DOSQUERY_PLATFORM_MASK=9",
+        "-DFBTHRIFT",
+    ],
 )
 """
 
@@ -111,7 +116,9 @@ if __name__ == "__main__":
                 source_files = get_files_to_compile(json_data)
                 out.write(TARGETS_PREAMBLE)
                 for source_file in source_files:
-                    out.write("    \"%s\"," % source_file)
+                    if source_file == "extensions/impl_thrift.cpp":
+                        source_file = "extensions/impl_fbthrift.cpp"
+                    out.write("        \"%s\",\n" % source_file)
                     p = os.path.join(args.output, source_file)
                     if p.find("generated") < 0:
                         try:
