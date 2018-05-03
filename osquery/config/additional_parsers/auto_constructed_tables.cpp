@@ -44,6 +44,7 @@ QueryData ATCPlugin::generate(QueryContext& context) {
 Status ATCConfigParserPlugin::removeATCTables(
     const std::set<std::string>& detach_tables) {
   auto registry_table = RegistryFactory::get().registry("table");
+  std::set<std::string> failed_tables;
   for (const auto& table : detach_tables) {
     if (registry_table->exists(table)) {
       std::string value;
@@ -56,12 +57,16 @@ Status ATCConfigParserPlugin::removeATCTables(
             "sql", "sql", {{"action", "detatch"}, {"table", table}}, resp);
         LOG(INFO) << "Removed ATC table: " << table;
       } else {
-        return Status(1, "Attempted to remove table that was not ATC table");
+        failed_tables.insert(table);
       }
     }
     deleteDatabaseValue(kPersistentSettings, kDatabaseKeyPrefix + table);
   }
-  return Status();
+  if (failed_tables.empty()) {
+    return Status();
+  }
+  return Status(
+      1, "Attempted to remove non ATC tables: " + join(failed_tables, ", "));
 }
 
 /// Get all ATC tables that should be registered from the database
@@ -81,7 +86,10 @@ Status ATCConfigParserPlugin::setUp() {
   std::vector<std::string> keys;
   scanDatabaseKeys(kPersistentSettings, keys, kDatabaseKeyPrefix);
   for (const auto& key : keys) {
-    deleteDatabaseValue(kPersistentSettings, key);
+    auto s = deleteDatabaseValue(kPersistentSettings, key);
+    if (!s.ok()) {
+      LOG(INFO) << "Could not clear ATC key " << key << "from database";
+    }
   }
   return Status();
 }
@@ -154,13 +162,21 @@ Status ATCConfigParserPlugin::update(const std::string& source,
       LOG(WARNING) << "ATC table overrides core table; Refusing registration";
       continue;
     }
-    setDatabaseValue(
+
+    s = setDatabaseValue(
         kPersistentSettings, kDatabaseKeyPrefix + table_name, table_settings);
+
+    if (!s.ok()) {
+      LOG(WARNING) << "Could not write to database";
+      continue;
+    }
+
     s = tables->add(
         table_name, std::make_shared<ATCPlugin>(path, columns, query), true);
 
     if (!s.ok()) {
       LOG(WARNING) << s.getMessage();
+      deleteDatabaseValue(kPersistentSettings, kDatabaseKeyPrefix + table_name);
       continue;
     }
 
