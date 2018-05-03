@@ -32,6 +32,8 @@ QueryData genBitlockerInfo(QueryContext& context) {
   }
   for (const auto& data : wmiResults) {
     long status = 0;
+    long emethod;
+    std::string emethod_str;
     data.GetString("DeviceID", r["device_id"]);
     data.GetString("DriveLetter", r["drive_letter"]);
     data.GetString("PersistentVolumeID", r["persistent_volume_id"]);
@@ -39,8 +41,37 @@ QueryData genBitlockerInfo(QueryContext& context) {
     r["conversion_status"] = INTEGER(status);
     data.GetLong("ProtectionStatus", status);
     r["protection_status"] = INTEGER(status);
-    data.GetLong("EncryptionMethod", status);
-    r["encryption_method"] = INTEGER(status);
+    data.GetLong("EncryptionMethod", emethod);
+    switch (emethod) {
+    case 0:
+      emethod_str = "None";
+      break;
+    case 1:
+      emethod_str = "AES_128_WITH_DIFFUSER";
+      break;
+    case 2:
+      emethod_str = "AES_256_WITH_DIFFUSER";
+      break;
+    case 3:
+      emethod_str = "AES_128";
+      break;
+    case 4:
+      emethod_str = "AES_256";
+      break;
+    case 5:
+      emethod_str = "HARDWARE_ENCRYPTION";
+      break;
+    case 6:
+      emethod_str = "XTS_AES_128";
+      break;
+    case 7:
+      emethod_str = "XTS_AES_256";
+      break;
+    default:
+      emethod_str = "UNKNOWN";
+      break;
+    }
+    r["encryption_method"] = emethod_str;
     results.push_back(r);
   }
 
