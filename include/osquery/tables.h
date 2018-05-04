@@ -22,18 +22,7 @@
 #endif
 #endif
 
-#ifndef WIN32
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-variable"
-#endif
-
-/// Wrap this include with the above and below ignored warnings for FreeBSD.
 #include <boost/coroutine2/coroutine.hpp>
-
-#ifndef WIN32
-#pragma clang diagnostic pop
-#endif
-
 #include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>

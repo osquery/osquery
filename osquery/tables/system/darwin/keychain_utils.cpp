@@ -16,8 +16,8 @@
 #include <osquery/filesystem.h>
 #include <osquery/core.h>
 
+#include "osquery/core/hashing.h"
 #include "osquery/tables/system/darwin/keychain.h"
-#include "osquery/tables/system/hash.h"
 
 namespace osquery {
 namespace tables {

@@ -23,6 +23,7 @@ import subprocess
 ORACLE_RELEASE = "/etc/oracle-release"
 SYSTEM_RELEASE = "/etc/system-release"
 LSB_RELEASE    = "/etc/lsb-release"
+OS_RELEASE     = "/etc/os-release"
 DEBIAN_VERSION = "/etc/debian_version"
 GENTOO_RELEASE = "/etc/gentoo-release"
 SUSE_RELEASE   = "/etc/SuSE-release"
@@ -67,6 +68,13 @@ def _platform():
 
                 if fileContents.find("DISTRIB_ID=ManjaroLinux") != -1:
                     return ("arch", "manjaro")
+
+        if os.path.exists(OS_RELEASE):
+            with open(OS_RELEASE, "r") as fd:
+                fileContents = fd.read()
+
+                if fileContents.find("ID=nixos") != -1:
+                    return ("nixos", "nixos")
 
         if os.path.exists(DEBIAN_VERSION):
             return ("debian", "debian")
@@ -163,6 +171,12 @@ def _distro(osType):
         with open(SUSE_RELEASE, "r") as fd:
             contents = fd.read()
             results = re.findall(r'VERSION = (.*)', contents)
+            if len(results) == 1:
+                return results[0]
+    elif osType == "nixos":
+        with open(OS_RELEASE, "r") as fd:
+            contents = fd.read()
+            results = re.findall(r'VERSION_ID=\"(.*)\"', contents)
             if len(results) == 1:
                 return results[0]
     elif osType == "windows":

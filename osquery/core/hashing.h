@@ -129,4 +129,4 @@ MultiHashes hashMultiFromFile(int mask, const std::string& path);
  * @return A string (hex) representation of the hash digest.
  */
 std::string hashFromBuffer(HashType hash_type, const void* buffer, size_t size);
-}
+} // namespace osquery

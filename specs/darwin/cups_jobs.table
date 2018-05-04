@@ -1,0 +1,13 @@
+table_name("cups_jobs")
+description("Returns all completed print jobs from cups.")
+schema([
+    Column("title", TEXT, "Title of the printed job"),
+    Column("destination", TEXT, "The printer the job was sent to"),
+    Column("user", TEXT, "The user who printed the job"),
+    Column("format", TEXT, "The format of the print job"),
+    Column("size", INTEGER, "The size of the print job"),
+    Column("completed_time", INTEGER, "When the job completed printing"),
+    Column("processing_time", INTEGER, "How long the job took to process"),
+    Column("creation_time", INTEGER, "When the print request was initiated"),
+])
+implementation("cups_jobs@genCupsJobs")

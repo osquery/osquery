@@ -16,7 +16,7 @@
 
 namespace osquery {
 
-Status installService(const char* const /*path*/) {
+Status installService(const std::string& /*path*/) {
   LOG(INFO) << "The --install service flag only applies to Windows platforms";
   return Status(1);
 }

@@ -1,0 +1,13 @@
+table_name("mdfind")
+description("Run searches against the spotlight database.")
+schema([
+    Column("path", TEXT, "Path of the file returned from spotlight"),
+    Column("query", TEXT, "The query that was run to find the file"),
+])
+implementation("mdfind@genMdfindResults")
+fuzz_paths([])
+examples([
+	"select count(*) from mdfind where query = 'kMDItemTextContent == \"osquery\"';"
+	"select * from mdfind where query = 'kMDItemDisplayName == \"rook.stl\"';",
+	"select * from mdfind where query in ('kMDItemDisplayName == \"rook.stl\"', 'kMDItemDisplayName == \"video.mp4\"')"
+])
