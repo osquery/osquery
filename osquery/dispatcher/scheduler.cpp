@@ -20,8 +20,8 @@
 
 #include "osquery/config/parsers/decorators.h"
 #include "osquery/core/process.h"
-#include "osquery/dispatcher/scheduled_tasks_queue.h"
 #include "osquery/dispatcher/scheduler.h"
+#include "osquery/dispatcher/task_schedule.h"
 #include "osquery/sql/sqlite_util.h"
 
 namespace osquery {
@@ -151,64 +151,58 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
 }
 
 void SchedulerRunner::start() {
-  auto tasks = ScheduledTaskQueue{};
+  auto tasks = TaskSchedule{};
+  auto now = getUnixTime();
   Config::get().scheduledQueries(
-      [&tasks](const std::string& name, const ScheduledQuery& query) {
+      [&tasks, now](const std::string& name, const ScheduledQuery& query) {
         if (query.splayed_interval > 0) {
           tasks.add(
-              [name, &query](auto startTime) {
+              [name, &query](const auto scheduled_time) {
                 TablePlugin::kCacheInterval = query.splayed_interval;
-                TablePlugin::kCacheStep = startTime;
+                TablePlugin::kCacheStep = scheduled_time;
                 launchQuery(name, query);
-                return query.splayed_interval;
+                return scheduled_time + query.splayed_interval;
               },
-              query.splayed_interval);
+              now + query.splayed_interval);
         }
       });
   {
     // Configuration decorators run on 60 second intervals only.
-    constexpr auto period = ScheduledTaskQueue::UnixTime{60};
-    constexpr auto firstRunTime = period;
-    tasks.add(
-        [](auto startTime) {
-          runDecorators(DECORATE_INTERVAL, startTime);
-          return period + startTime;
-        },
-        firstRunTime);
+    constexpr auto period = TaskSchedule::UnixTime{60};
+    tasks.add([](const auto scheduled_time) {
+      runDecorators(DECORATE_INTERVAL, scheduled_time);
+      return period + scheduled_time;
+    }, now + period);
   }
 
   if (FLAGS_schedule_reload > 0) {
-    tasks.add(
-        [](auto startTime) {
-          if (FLAGS_schedule_reload_sql) {
-            SQLiteDBManager::resetPrimary();
-          }
-          resetDatabase();
-          return FLAGS_schedule_reload + startTime;
-        },
-        FLAGS_schedule_reload);
+    tasks.add([](const auto scheduled_time) {
+      if (FLAGS_schedule_reload_sql) {
+        SQLiteDBManager::resetPrimary();
+      }
+      resetDatabase();
+      return FLAGS_schedule_reload + scheduled_time;
+    }, now + FLAGS_schedule_reload);
   }
 
   // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
   {
-    constexpr auto period = ScheduledTaskQueue::UnixTime{3};
-    constexpr auto firstRunTime = period;
-    tasks.add(
-        [](auto startTime) {
-          relayStatusLogs(true);
-          return startTime + period;
-        },
-        firstRunTime);
+    constexpr auto period = TaskSchedule::UnixTime{3};
+    tasks.add([](const auto scheduled_time) {
+      relayStatusLogs(true);
+      return scheduled_time + period;
+    }, now + period);
   }
-  if (timeout_ == 0) {
-    timeout_ = std::numeric_limits<decltype(timeout_)>::max();
-  }
-  while (getUnixTime() < timeout_ && not interrupted() && not tasks.isEmpty()) {
-    auto waitingTimeInSeconds = tasks.timeToWait();
-    if (waitingTimeInSeconds > 0) {
-      pauseMilli(waitingTimeInSeconds * 1000);
+  now = getUnixTime();
+  while ((timeout_ == 0 || now < timeout_) && !interrupted() &&
+         !tasks.isEmpty()) {
+    auto next_time_to_run = tasks.nextTimeToRun();
+    if (now < next_time_to_run) {
+      pauseMilli((next_time_to_run - now) * 1000);
+    } else {
+      tasks.runNextNow();
     }
-    tasks.runOne();
+    now = getUnixTime();
   }
 }
 
