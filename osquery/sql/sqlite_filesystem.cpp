@@ -79,7 +79,7 @@ static boost::optional<std::string> findExistingProgramPathFromCommandSqlArgs(
       return boost::none;
     }
   }
-  const char* path = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
+  const char* path = (const char*)sqlite3_value_text(argv[0]);
   bool allow_quoting = false;
   if (argc > 1) {
     allow_quoting = sqlite3_value_int(argv[1]) != 0 ? true : false;
@@ -90,8 +90,7 @@ static boost::optional<std::string> findExistingProgramPathFromCommandSqlArgs(
   char escape_symbol = '\\';
 #endif
   if (argc > 2) {
-    const char* escape_symbol_string =
-      reinterpret_cast<const char*>(sqlite3_value_text(argv[2]));
+    const char* escape_symbol_string = (const char*)sqlite3_value_text(argv[2]);
     if (escape_symbol_string == NULL ||
         std::strlen(escape_symbol_string) != 1) {
       return boost::none;
@@ -109,9 +108,10 @@ static void findFilePathInLaunchCommand(sqlite3_context* context,
                                           sqlite3_value** argv) {
   auto result = findExistingProgramPathFromCommandSqlArgs(argc, argv, true);
   if (result) {
+    std::string string = *result;
     sqlite3_result_text(context,
-                        result->c_str()  ,
-                        static_cast<int>(result->size()),
+                        string.c_str(),
+                        static_cast<int>(string.size()),
                         SQLITE_TRANSIENT);
   } else {
     sqlite3_result_error(
