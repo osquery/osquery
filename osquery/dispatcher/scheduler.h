@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <boost/asio.hpp>
 #include <map>
 
 #include <osquery/dispatcher.h>
@@ -31,11 +32,17 @@ class SchedulerRunner : public InternalRunnable {
   void start() override;
 
   /// The Dispatcher interrupt point.
-  void stop() override {}
+  void stop() override;
+
+  void scheduleQueries(size_t present_time);
 
  protected:
   /// The UNIX domain socket path for the ExtensionManager.
   std::map<std::string, size_t> splay_;
+
+  boost::asio::io_service ios_;
+
+  std::atomic_bool is_stopped_{false};
 
   /// Interval in seconds between schedule steps.
   size_t interval_;

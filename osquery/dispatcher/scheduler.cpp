@@ -10,6 +10,8 @@
 
 #include <ctime>
 
+#include <boost/asio/deadline_timer.hpp>
+
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/database.h>
@@ -20,6 +22,7 @@
 
 #include "osquery/config/parsers/decorators.h"
 #include "osquery/core/process.h"
+#include "osquery/dispatcher/io_service.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/sql/sqlite_util.h"
 
@@ -34,6 +37,11 @@ FLAG(uint64,
 
 FLAG(uint64, schedule_epoch, 0, "Epoch for scheduled queries");
 
+FLAG(uint32,
+     query_short_interval,
+     600,
+     "Query intervals under this value will be classified as short intervals");
+
 HIDDEN_FLAG(bool, enable_monitor, true, "Enable the schedule monitor");
 
 HIDDEN_FLAG(bool,
@@ -44,7 +52,10 @@ HIDDEN_FLAG(bool,
 /// Used to bypass (optimize-out) the set-differential of query results.
 DECLARE_bool(events_optimize);
 
+Mutex schedule_monitor_mutex_;
+
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
+  WriteLock lock(schedule_monitor_mutex_);
   // Snapshot the performance and times for the worker before running.
   auto pid = std::to_string(PlatformProcess::getCurrentPid());
   auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
@@ -72,7 +83,7 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
 
 inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
-  LOG(INFO) << "Executing scheduled query " << name << ": " << query.query;
+  VLOG(1) << "Executing scheduled query " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
 
   auto sql = monitor(name, query);
@@ -149,40 +160,65 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
   }
 }
 
-void SchedulerRunner::start() {
-  // Start the counter at the second.
-  auto i = osquery::getUnixTime();
-  for (; (timeout_ == 0) || (i <= timeout_); ++i) {
-    Config::get().scheduledQueries(
-        ([&i](const std::string& name, const ScheduledQuery& query) {
-          if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
-            TablePlugin::kCacheInterval = query.splayed_interval;
-            TablePlugin::kCacheStep = i;
-            launchQuery(name, query);
+void SchedulerRunner::scheduleQueries(size_t present_time) {
+  Config::get().scheduledQueries(
+      ([&present_time](const std::string& name, ScheduledQuery& query) {
+        if (query.splayed_interval > 0) {
+          if ((query.interval > FLAGS_query_short_interval &&
+               (present_time - query.last_runtime) >= query.splayed_interval) ||
+              (query.interval <= FLAGS_query_short_interval &&
+               (present_time % query.splayed_interval == 0))) {
+            if (!*query.is_scheduled) {
+              TablePlugin::kCacheInterval = query.splayed_interval;
+              TablePlugin::kCacheStep = present_time;
+              query.last_runtime = present_time;
+              *query.is_scheduled = true;
+              IOService::get().post([name, &query]() {
+                launchQuery(name, query);
+                *query.is_scheduled = false;
+              });
+            }
           }
-        }));
-    // Configuration decorators run on 60 second intervals only.
-    if ((i % 60) == 0) {
-      runDecorators(DECORATE_INTERVAL, i);
-    }
-    if (FLAGS_schedule_reload > 0 && (i % FLAGS_schedule_reload) == 0) {
-      if (FLAGS_schedule_reload_sql) {
-        SQLiteDBManager::resetPrimary();
-      }
-      resetDatabase();
-    }
-
-    // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
-    if ((i % 3) == 0) {
-      relayStatusLogs(true);
-    }
-
-    // Put the thread into an interruptible sleep without a config instance.
-    pauseMilli(interval_ * 1000);
-    if (interrupted()) {
-      break;
-    }
+        }
+      }));
+  // Configuration decorators run on 60 second intervals only.
+  if ((present_time % 60) == 0) {
+    runDecorators(DECORATE_INTERVAL, present_time);
   }
+  if (FLAGS_schedule_reload > 0 &&
+      (present_time % FLAGS_schedule_reload) == 0) {
+    if (FLAGS_schedule_reload_sql) {
+      SQLiteDBManager::resetPrimary();
+    }
+    resetDatabase();
+  }
+
+  // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
+  if ((present_time % 3) == 0) {
+    relayStatusLogs(true);
+  }
+}
+
+void SchedulerRunner::start() {
+  boost::asio::deadline_timer dl_timer{ios_};
+  size_t time_is;
+
+  do {
+    time_is =
+        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    ios_.reset();
+    dl_timer.expires_at((boost::posix_time::from_time_t(time_is + interval_)));
+    dl_timer.async_wait([&](boost::system::error_code const&) {
+      this->scheduleQueries(time_is + interval_);
+    });
+    ios_.run();
+  } while (!is_stopped_ &&
+           ((timeout_ == 0) || (time_is + interval_) <= timeout_));
+}
+
+void SchedulerRunner::stop() {
+  is_stopped_ = true;
+  ios_.stop();
 }
 
 void startScheduler() {
