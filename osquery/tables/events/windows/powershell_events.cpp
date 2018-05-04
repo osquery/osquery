@@ -45,6 +45,18 @@ class PowershellEventSubscriber
     : public EventSubscriber<WindowsEventLogEventPublisher> {
  public:
   Status init() override {
+    // Before starting our subscription, purge any residual db entries as it's
+    // unlikely we'll finish re-assmebling them
+    std::vector<std::string> keys;
+    scanDatabaseKeys(kEvents, keys, kScriptBlockPrefix);
+    for (const auto& k : keys) {
+      auto s = deleteDatabaseValue(kEvents, k);
+      if (!s.ok()) {
+        VLOG(1) << "Failed to delete stale script block from the database "
+                << k;
+      }
+    }
+
     auto wc = createSubscriptionContext();
     wc->sources.insert(kPowershellEventsChannel);
 
