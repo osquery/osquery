@@ -71,16 +71,16 @@ class PowershellEventSubscriber
 
 REGISTER(PowershellEventSubscriber, "event_subscriber", "powershell_events");
 
-inline double cosineSimilarity(std::vector<double>& scriptFreqs,
-                               std::vector<double>& globalFreqs) {
+inline double cosineSimilarity(std::vector<double>& script_freqs,
+                               std::vector<double>& global_freqs) {
   auto dot = 0.0;
   auto mag1 = 0.0;
   auto mag2 = 0.0;
 
-  for (size_t i = 0; i < globalFreqs.size(); i++) {
-    dot += scriptFreqs[i] * globalFreqs[i];
-    mag1 += scriptFreqs[i] * scriptFreqs[i];
-    mag2 += globalFreqs[i] * globalFreqs[i];
+  for (size_t i = 0; i < global_freqs.size(); i++) {
+    dot += script_freqs[i] * global_freqs[i];
+    mag1 += script_freqs[i] * script_freqs[i];
+    mag2 += global_freqs[i] * global_freqs[i];
   }
 
   mag1 = sqrt(mag1);
@@ -97,8 +97,7 @@ void PowershellEventSubscriber::addScriptResult(Row& results) {
   r["script_block_count"] = INTEGER(results["MessageTotal"]);
   r["script_name"] = results["Name"];
   r["script_path"] = results["Path"];
-  std::string scriptText = results["ScriptBlockText"];
-  r["script_text"] = scriptText;
+  r["script_text"] = results["ScriptBlockText"];
 
   // Grab the feature vectors from the configuration
   auto parser = Config::getParser(kFeatureVectorsRootKey);
@@ -110,9 +109,9 @@ void PowershellEventSubscriber::addScriptResult(Row& results) {
 
   // Get the reassembled powershell scripts character frequency vector
   std::vector<double> freqs(kCharFreqVectorLen, 0.0);
-  for (const auto chr : scriptText) {
+  for (const auto chr : r["script_text"]) {
     if (chr < kCharFreqVectorLen) {
-      freqs[chr] += 1.0 / scriptText.length();
+      freqs[chr] += 1.0 / r["script_text"].length();
     }
   }
 
@@ -124,11 +123,11 @@ void PowershellEventSubscriber::addScriptResult(Row& results) {
     return;
   }
 
-  std::vector<double> cfgFreqs(kCharFreqVectorLen, 0.0);
+  std::vector<double> cfg_freqs(kCharFreqVectorLen, 0.0);
   for (unsigned int i = 0; i < cf.Size(); i++) {
-    cfgFreqs[i] = cf[i].GetDouble();
+    cfg_freqs[i] = cf[i].GetDouble();
   }
-  r["cosine_similarity"] = DOUBLE(cosineSimilarity(freqs, cfgFreqs));
+  r["cosine_similarity"] = DOUBLE(cosineSimilarity(freqs, cfg_freqs));
   add(r);
 }
 
@@ -148,9 +147,9 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     parseTree(node.second, results);
   }
 
-  FILETIME cTime;
-  GetSystemTimeAsFileTime(&cTime);
-  results["time"] = BIGINT(filetimeToUnixtime(cTime));
+  FILETIME etime;
+  GetSystemTimeAsFileTime(&etime);
+  results["time"] = BIGINT(filetimeToUnixtime(etime));
   results["datetime"] =
       ec->eventRecord.get("Event.System.TimeCreated.<xmlattr>.SystemTime", "");
 
@@ -185,7 +184,7 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return Status(1);
   }
 
-  std::string powershellScript{""};
+  std::string powershell_script{""};
   for (const auto& key : keys) {
     std::string val{""};
     s = getDatabaseValue(kEvents, key, val);
@@ -194,7 +193,7 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
       continue;
     }
 
-    powershellScript += val;
+    powershell_script += val;
 
     s = deleteDatabaseValue(kEvents, key);
     if (!s.ok()) {
@@ -202,7 +201,7 @@ Status PowershellEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     }
   }
 
-  results["ScriptBlockText"] = powershellScript;
+  results["ScriptBlockText"] = powershell_script;
   addScriptResult(results);
 
   return Status();
