@@ -206,5 +206,5 @@ QueryData genInterfaceDetails(QueryContext& context) {
   freeifaddrs(if_addrs);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
