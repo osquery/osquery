@@ -236,7 +236,7 @@ class ConfigRefreshRunner : public InternalRunnable {
   ConfigRefreshRunner() : InternalRunnable("ConfigRefreshRunner") {}
 
   /// A simple wait/interruptible lock.
-  void start();
+  void start() override;
 
  private:
   /// The current refresh rate in seconds.
@@ -301,6 +301,11 @@ Config::Config()
     : schedule_(std::make_shared<Schedule>()),
       valid_(false),
       refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
+
+Config& Config::get() {
+  static Config instance;
+  return instance;
+}
 
 void Config::addPack(const std::string& name,
                      const std::string& source,
@@ -565,7 +570,15 @@ Status Config::updateSource(const std::string& source,
       auto queries_obj = queries_doc.getObject();
 
       for (auto& query : schedule.GetArray()) {
-        std::string query_name = query["name"].GetString();
+        if (!query.IsObject()) {
+          // This is a legacy structure, and it is malformed.
+          continue;
+        }
+
+        std::string query_name;
+        if (query.HasMember("name") && query["name"].IsString()) {
+          query_name = query["name"].GetString();
+        }
         if (query_name.empty()) {
           return Status(1, "Error getting name from legacy scheduled query");
         }
@@ -650,6 +663,12 @@ void Config::applyParsers(const std::string& source,
     std::map<std::string, JSON> parser_config;
     for (const auto& key : parser->keys()) {
       if (obj.HasMember(key) && !obj[key].IsNull()) {
+        if (!obj[key].IsArray() && !obj[key].IsObject()) {
+          LOG(WARNING) << "Error config " << key
+                       << " should be an array or object";
+          continue;
+        }
+
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
       } else {

@@ -32,8 +32,8 @@ extern const size_t kExtensionInitializeLatency;
 struct ExtensionInfo {
   std::string name;
   std::string version;
-  std::string min_sdk_version;
   std::string sdk_version;
+  std::string min_sdk_version;
 };
 
 typedef std::map<RouteUUID, ExtensionInfo> ExtensionList;

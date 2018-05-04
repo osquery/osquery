@@ -114,8 +114,13 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getCurrentProcess() {
   if (handle == nullptr) {
     return std::make_shared<PlatformProcess>();
   }
+  auto res = std::make_shared<PlatformProcess>(handle);
+  CloseHandle(handle);
+  return res;
+}
 
-  return std::make_shared<PlatformProcess>(handle);
+int PlatformProcess::getCurrentPid() {
+  return PlatformProcess::getCurrentProcess()->pid();
 }
 
 std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {

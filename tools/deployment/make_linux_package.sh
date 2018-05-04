@@ -247,6 +247,7 @@ function main() {
     BINARY_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/usr/bin
     mkdir -p $BINARY_DEBUG_DIR
     cp "$BUILD_DIR/osquery/osqueryd" $BINARY_DEBUG_DIR
+    strip --only-keep-debug "$BINARY_DEBUG_DIR/osqueryd"
     ln -s osqueryd $BINARY_DEBUG_DIR/osqueryi
   elif [[ $PACKAGE_TYPE = "rpm" ]]; then
     BUILD_DEBUG_PKG=true
@@ -268,6 +269,7 @@ function main() {
     BINARY_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/usr/bin/
     mkdir -p $BINARY_DEBUG_DIR
     cp "$BUILD_DIR/osquery/osqueryd" "$BINARY_DEBUG_DIR/osqueryd.debug"
+    strip --only-keep-debug "$BINARY_DEBUG_DIR/osqueryd.debug"
     ln -s osqueryd "$BINARY_DEBUG_DIR/osqueryi.debug"
 
     # Finally install the source.
