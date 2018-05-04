@@ -13,9 +13,30 @@
 #include "osquery/dispatcher/io_service.h"
 
 namespace osquery {
+CLI_FLAG(uint32, ioservice_subordinates, 1, "IOService subordinate threads");
 
 void IOServiceRunner::start() {
   boost::asio::io_service::work work(IOService::get());
+
+  std::vector<std::shared_ptr<std::thread>> sub_thrs;
+  for (auto count = 0U; count < FLAGS_ioservice_subordinates; ++count) {
+    auto sub_thr = std::make_shared<std::thread>(
+        boost::bind(&IOServiceRunner::subordinates, this));
+    sub_thrs.push_back(sub_thr);
+  }
+
+  runLoop();
+
+  for (auto& thr : sub_thrs) {
+    thr->join();
+  }
+}
+
+void IOServiceRunner::stop() {
+  IOService::get().stop();
+}
+
+void IOServiceRunner::runLoop() {
   for (;;) {
     try {
       IOService::get().run();
@@ -28,8 +49,10 @@ void IOServiceRunner::start() {
   }
 }
 
-void IOServiceRunner::stop() {
-  IOService::get().stop();
+void IOServiceRunner::subordinates() {
+  LOG(INFO) << "IOServiceRunner subordinate started";
+  runLoop();
+  LOG(INFO) << "IOServiceRunner subordinate stopped";
 }
 
 void startIOService() {

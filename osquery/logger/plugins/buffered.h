@@ -208,9 +208,6 @@ class BufferedLogForwarder : public InternalRunnable {
   std::atomic<size_t> log_index_{0};
 
   /// Stores the count of buffered logs
-  size_t buffer_count_{0};
-
-  /// Protects the count of buffered logs
-  RecursiveMutex count_mutex_;
+  std::atomic<size_t> buffer_count_{0};
 };
 }

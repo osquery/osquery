@@ -45,7 +45,6 @@ Status BufferedLogForwarder::setUp() {
     return Status(1, "Error scanning for buffered log count");
   }
 
-  RecursiveLock lock(count_mutex_);
   buffer_count_ = indexes.size();
   return Status(0);
 }
@@ -103,7 +102,6 @@ void BufferedLogForwarder::check() {
 }
 
 void BufferedLogForwarder::purge() {
-  RecursiveLock lock(count_mutex_);
   if (buffer_count_ <= FLAGS_buffered_log_max) {
     return;
   }
@@ -268,8 +266,7 @@ Status BufferedLogForwarder::addValueWithCount(const std::string& domain,
                                                const std::string& value) {
   Status status = setDatabaseValue(domain, key, value);
   if (status.ok()) {
-    RecursiveLock lock(count_mutex_);
-    buffer_count_++;
+    ++buffer_count_;
   }
   return status;
 }
@@ -278,10 +275,11 @@ Status BufferedLogForwarder::deleteValueWithCount(const std::string& domain,
                                                   const std::string& key) {
   Status status = deleteDatabaseValue(domain, key);
   if (status.ok()) {
-    RecursiveLock lock(count_mutex_);
-    if (buffer_count_ > 0) {
-      buffer_count_--;
-    }
+    size_t l_count;
+    do {
+      l_count = buffer_count_;
+    } while (!l_count ||
+             !buffer_count_.compare_exchange_weak(l_count, l_count - 1));
   }
   return status;
 }
