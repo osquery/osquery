@@ -235,12 +235,28 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   auto ret = OpenProcessToken(hProcess, TOKEN_READ, &tok);
   if (ret != 0 && tok != nullptr) {
     unsigned long tokOwnerBuffLen;
-    ret = GetTokenInformation(tok, TokenOwner, nullptr, 0, &tokOwnerBuffLen);
+    ret = GetTokenInformation(tok, TokenUser, nullptr, 0, &tokOwnerBuffLen);
     if (ret == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
       tokOwner.resize(tokOwnerBuffLen);
       ret = GetTokenInformation(
-          tok, TokenOwner, tokOwner.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
+          tok, TokenUser, tokOwner.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
     }
+
+	// Check if the process is using an elevated token
+	BOOL elevated = FALSE;
+	TOKEN_ELEVATION Elevation;
+	DWORD cbSize = sizeof(TOKEN_ELEVATION);
+	if (GetTokenInformation(tok, TokenElevation, &Elevation, sizeof(Elevation), &cbSize)) {
+		elevated = Elevation.TokenIsElevated;
+	}
+
+	if (elevated) {
+		r["is_elevated_token"] = INTEGER(1);
+	} else {
+		r["is_elevated_token"] = INTEGER(0);
+	}
+	
+
   }
   if (uid != 0 && ret != 0 && !tokOwner.empty()) {
     auto sid = PTOKEN_OWNER(tokOwner.data())->Owner;
