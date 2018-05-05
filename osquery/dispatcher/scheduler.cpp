@@ -56,6 +56,7 @@ Mutex schedule_monitor_mutex_;
 
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   WriteLock lock(schedule_monitor_mutex_);
+  TablePlugin::kCacheInterval = query.splayed_interval;
   // Snapshot the performance and times for the worker before running.
   auto pid = std::to_string(PlatformProcess::getCurrentPid());
   auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
@@ -162,20 +163,21 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
 
 void SchedulerRunner::scheduleQueries(size_t present_time) {
   Config::get().scheduledQueries(
-      ([&present_time](const std::string& name, ScheduledQuery& query) {
-        if (query.splayed_interval > 0) {
-          if ((query.interval > FLAGS_query_short_interval &&
-               (present_time - query.last_runtime) >= query.splayed_interval) ||
-              (query.interval <= FLAGS_query_short_interval &&
-               (present_time % query.splayed_interval == 0))) {
-            if (!*query.is_scheduled) {
-              TablePlugin::kCacheInterval = query.splayed_interval;
+      ([&present_time](const std::string& name,
+                       std::shared_ptr<ScheduledQuery> query) {
+        if (query->splayed_interval > 0) {
+          if ((query->interval > FLAGS_query_short_interval &&
+               (present_time - query->last_scheduledtime) >=
+                   query->splayed_interval) ||
+              (query->interval <= FLAGS_query_short_interval &&
+               (present_time % query->splayed_interval == 0))) {
+            if (!*query->is_scheduled) {
               TablePlugin::kCacheStep = present_time;
-              query.last_runtime = present_time;
-              *query.is_scheduled = true;
-              IOService::get().post([name, &query]() {
-                launchQuery(name, query);
-                *query.is_scheduled = false;
+              query->last_scheduledtime = present_time;
+              *query->is_scheduled = true;
+              IOService::get().post([name, query]() {
+                launchQuery(name, *query);
+                *query->is_scheduled = false;
               });
             }
           }

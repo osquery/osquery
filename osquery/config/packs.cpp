@@ -192,48 +192,48 @@ void Pack::initialize(const std::string& name,
       continue;
     }
 
-    ScheduledQuery query;
-    query.query = q.value["query"].GetString();
+    std::shared_ptr<ScheduledQuery> query = std::make_shared<ScheduledQuery>();
+    query->query = q.value["query"].GetString();
     if (!q.value.HasMember("interval")) {
-      query.interval = FLAGS_schedule_default_interval;
+      query->interval = FLAGS_schedule_default_interval;
     } else {
-      query.interval = JSON::valueToSize(q.value["interval"]);
+      query->interval = JSON::valueToSize(q.value["interval"]);
     }
-    if (query.interval <= 0 || query.query.empty() ||
-        query.interval > kMaxQueryInterval) {
+    if (query->interval <= 0 || query->query.empty() ||
+        query->interval > kMaxQueryInterval) {
       // Invalid pack query.
       LOG(WARNING) << "Query has invalid interval: " << q.name.GetString()
-                   << ": " << query.interval;
+                   << ": " << query->interval;
       continue;
     }
 
-    query.splayed_interval =
-        restoreSplayedValue(q.name.GetString(), query.interval);
+    query->splayed_interval =
+        restoreSplayedValue(q.name.GetString(), query->interval);
 
     if (!q.value.HasMember("snapshot")) {
-      query.options["snapshot"] = false;
+      query->options["snapshot"] = false;
     } else {
-      query.options["snapshot"] = JSON::valueToBool(q.value["snapshot"]);
+      query->options["snapshot"] = JSON::valueToBool(q.value["snapshot"]);
     }
 
     if (!q.value.HasMember("removed")) {
-      query.options["removed"] = true;
+      query->options["removed"] = true;
     } else {
-      query.options["removed"] = JSON::valueToBool(q.value["removed"]);
+      query->options["removed"] = JSON::valueToBool(q.value["removed"]);
     }
-    query.options["blacklist"] = (q.value.HasMember("blacklist"))
-                                     ? q.value["blacklist"].GetBool()
-                                     : true;
+    query->options["blacklist"] = (q.value.HasMember("blacklist"))
+                                      ? q.value["blacklist"].GetBool()
+                                      : true;
 
-    schedule_.emplace(std::make_pair(q.name.GetString(), std::move(query)));
+    schedule_.emplace(std::make_pair(q.name.GetString(), query));
   }
 }
 
-const std::map<std::string, ScheduledQuery>& Pack::getSchedule() const {
+const ScheduledQueryMap& Pack::getSchedule() const {
   return schedule_;
 }
 
-std::map<std::string, ScheduledQuery>& Pack::getSchedule() {
+ScheduledQueryMap& Pack::getSchedule() {
   return schedule_;
 }
 

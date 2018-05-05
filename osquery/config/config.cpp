@@ -389,8 +389,8 @@ static inline bool blacklistExpired(size_t blt, const ScheduledQuery& query) {
 }
 
 void Config::scheduledQueries(
-    std::function<void(const std::string& name, ScheduledQuery& query)>
-        predicate,
+    std::function<void(const std::string& name,
+                       std::shared_ptr<ScheduledQuery> query)> predicate,
     bool blacklisted) {
   RecursiveLock lock(config_schedule_mutex_);
   for (PackRef& pack : *schedule_) {
@@ -405,14 +405,14 @@ void Config::scheduledQueries(
       // They query may have failed and been added to the schedule's blacklist.
       auto blacklisted_query = schedule_->blacklist_.find(name);
       if (blacklisted_query != schedule_->blacklist_.end()) {
-        if (blacklistExpired(blacklisted_query->second, it.second)) {
+        if (blacklistExpired(blacklisted_query->second, *it.second)) {
           // The blacklisted query passed the expiration time (remove).
           schedule_->blacklist_.erase(blacklisted_query);
           saveScheduleBlacklist(schedule_->blacklist_);
-          it.second.blacklisted = false;
+          it.second->blacklisted = false;
         } else {
           // The query is still blacklisted.
-          it.second.blacklisted = true;
+          it.second->blacklisted = true;
           if (!blacklisted) {
             // The caller does not want blacklisted queries.
             continue;

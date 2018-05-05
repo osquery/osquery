@@ -166,14 +166,15 @@ class Config : private boost::noncopyable {
    * @code{.cpp}
    *   std::map<std::string, ScheduledQuery> queries;
    *   Config::get().scheduledQueries(
-   *      ([&queries](const std::string& name, ScheduledQuery& query) {
-   *        queries[name] = query;
+   *      ([&queries](const std::string& name, std::shared_ptr<ScheduledQuery>
+   * query) { queries[name] = query;
    *      }));
    * @endcode
    */
-  void scheduledQueries(std::function<void(const std::string& name,
-                                           ScheduledQuery& query)> predicate,
-                        bool blacklisted = false);
+  void scheduledQueries(
+      std::function<void(const std::string& name,
+                         std::shared_ptr<ScheduledQuery> query)> predicate,
+      bool blacklisted = false);
 
   /**
    * @brief Map a function across the set of configured files

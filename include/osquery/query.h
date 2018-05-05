@@ -284,8 +284,8 @@ struct ScheduledQuery : private only_movable {
   /// A temporary splayed internal.
   size_t splayed_interval{0};
 
-  /// Last time query ran
-  std::time_t last_runtime{0};
+  /// Last time query scheduled
+  std::time_t last_scheduledtime{0};
 
   /**
    * @brief Queries are blacklisted based on logic in the configuration.
