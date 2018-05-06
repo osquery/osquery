@@ -11,8 +11,8 @@ schema([
 ])
 implementation("system/linux/npm_packages@genNPMPackages")
 examples([
-  "select * from npm_modules",
-  "select * from npm_modules where directory = '/home/user/my_project'",
+  "select * from npm_packages",
+  "select * from npm_packages where directory = '/home/user/my_project'",
 ])
 fuzz_paths([
     "/usr/lib/node_modules/",
