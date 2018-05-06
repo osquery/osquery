@@ -242,21 +242,16 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
           tok, TokenUser, tokOwner.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
     }
 
-	// Check if the process is using an elevated token
-	BOOL elevated = FALSE;
-	TOKEN_ELEVATION Elevation;
-	DWORD cbSize = sizeof(TOKEN_ELEVATION);
-	if (GetTokenInformation(tok, TokenElevation, &Elevation, sizeof(Elevation), &cbSize)) {
-		elevated = Elevation.TokenIsElevated;
-	}
+    // Check if the process is using an elevated token
+    auto elevated = FALSE;
+    TOKEN_ELEVATION Elevation;
+    DWORD cbSize = sizeof(TOKEN_ELEVATION);
+    if (GetTokenInformation(
+            tok, TokenElevation, &Elevation, sizeof(Elevation), &cbSize)) {
+      elevated = Elevation.TokenIsElevated;
+    }
 
-	if (elevated) {
-		r["is_elevated_token"] = INTEGER(1);
-	} else {
-		r["is_elevated_token"] = INTEGER(0);
-	}
-	
-
+    r["is_elevated_token"] = elevated ? INTEGER(1) : INTEGER(0);
   }
   if (uid != 0 && ret != 0 && !tokOwner.empty()) {
     auto sid = PTOKEN_OWNER(tokOwner.data())->Owner;
