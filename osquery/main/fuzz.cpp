@@ -17,7 +17,6 @@
 // #define OSQUERY_FUZZ_SQL
 #define OSQUERY_FUZZ_CONFIG
 
-
 void init() {
   osquery::registryAndPluginInit();
   osquery::DatabasePlugin::setAllowOpen(true);
@@ -36,7 +35,7 @@ void init() {
  * Example: This will mostly fuzz SQLites internals.
  */
 #ifdef OSQUERY_FUZZ_SQL
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   static bool setup = false;
   if (!setup) {
     init();
@@ -50,7 +49,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   if (q.find("from file") != std::string::npos) {
     return 0;
   }
-
 
   osquery::QueryData r;
   osquery::query(q, r);
