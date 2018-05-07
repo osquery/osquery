@@ -36,7 +36,7 @@ class ReleaseTests(test_base.QueryTester):
     def test_pack_queries(self):
         packs = {}
         PACKS_DIR = SOURCE_DIR + "/packs"
-        for root, dirs, files in os.walk(PACKS_DIR):
+        for _, _, files in os.walk(PACKS_DIR):
             for name in files:
                 with open(os.path.join(PACKS_DIR, name), 'r') as fh:
                     content = fh.read()
@@ -48,13 +48,18 @@ class ReleaseTests(test_base.QueryTester):
             if "platform" in pack and not allowed_platform(pack["platform"]):
                 continue
             queries = []
-            for query_name, query in pack["queries"].items():
+            for _, query in pack["queries"].items():
                 qp = query["platform"] if "platform" in query else ""
                 if allowed_platform(qp):
                     queries.append(query["query"])
             self._execute_set(queries)
 
+    @unittest.skipIf(platform() == "windows",
+                     "Windows not currently supported")
     def test_no_avx_instructions(self):
+        # TODO: Add equivalent logic for Windows
+        if platform() == "windows":
+            tool = "dumpbin /disasm"
         if platform() == "darwin":
             tool = "otool -tV"
         else:
@@ -64,7 +69,12 @@ class ReleaseTests(test_base.QueryTester):
         # Require no AVX instructions
         self.assertEqual(proc, 1)
 
+    @unittest.skipIf(platform() == "windows",
+                     "Windows not currently supported")
     def test_no_local_link(self):
+        # TODO: Add equivalent logic for Windows
+        if platform() == "windows":
+            tool = "dumpbin /imports"
         if platform() == "darwin":
             tool = "otool -L"
         else:
@@ -73,6 +83,7 @@ class ReleaseTests(test_base.QueryTester):
             "%s %s | grep /usr/local/" % (tool, self.binary), shell=True)
         # Require no local dynamic dependent links.
         self.assertEqual(proc, 1)
+
 
 if __name__ == '__main__':
     SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))

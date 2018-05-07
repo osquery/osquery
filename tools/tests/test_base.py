@@ -29,9 +29,11 @@ import threading
 import unittest
 import utils
 
+IS_WINDOWS = True if os.name == "nt" else False
+
 # TODO: Find an implementation that will work for Windows, for now, disable.
 # https://goo.gl/T4AgV5
-if os.name == "nt":
+if IS_WINDOWS:
     # We redefine timeout_decorator on windows
     class timeout_decorator:
         @staticmethod
@@ -42,7 +44,7 @@ else:
     import timeout_decorator
 
 # We use a generic 'expect' style subprocess manager on Windows
-if os.name == "nt":
+if IS_WINDOWS:
     from winexpect import REPLWrapper, WinExpectSpawn
 else:
     import pexpect
@@ -51,7 +53,7 @@ else:
 OSQUERY_DEPENDENCIES = os.getenv("OSQUERY_DEPS", "/usr/local/osquery")
 sys.path = [OSQUERY_DEPENDENCIES + "/lib/python2.7/site-packages"] + sys.path
 
-if os.name != "nt":
+if not IS_WINDOWS:
     try:
         from pexpect.replwrap import REPLWrapper
     except ImportError as e:
@@ -67,11 +69,50 @@ except ImportError:
     print("Cannot import argparse: pip install argparse?")
     exit(1)
 
+
+# As the TPipes transport abstraction hasn't been shipped to upstream
+# Apache thrift, we drop the TPipes implementation file into the thrift
+# python package to avoid import conflicts with our locally generated
+# Extension and ExtensionManager modules
+def win_tpipe_munki_patch():
+    if not IS_WINDOWS:
+        return
+    import site
+    site_packages = ''
+    for package_dir in site.getsitepackages():
+        if 'site-packages' not in package_dir:
+            continue
+        site_packages = package_dir
+        break
+
+    thrift_tpipe = os.path.join(site_packages, "thrift", "transport",
+                                "TPipe.py")
+    if os.path.exists(thrift_tpipe):
+        return
+
+    osquery_tpipe = os.path.join(site_packages, "osquery", "TPipe.py")
+    if not os.path.exists(osquery_tpipe):
+        print("Did not find osquery TPipe implementation.")
+        print("check osquery python package install and re-run")
+        exit(1)
+
+    from shutil import copyfile
+    try:
+        copyfile(osquery_tpipe, thrift_tpipe)
+    except IOError as e:
+        print("Failed to copy osquery TPipe module into thrift")
+        exit(1)
+
+
 try:
     from thrift import Thrift
-    from thrift.transport import TSocket
     from thrift.transport import TTransport
     from thrift.protocol import TBinaryProtocol
+    if IS_WINDOWS:
+        win_tpipe_munki_patch()
+        from thrift.transport import TPipe
+    else:
+        from thrift.transport import TSocket
 except ImportError as e:
     print("Cannot import thrift: pip install thrift?")
     print(str(e))
@@ -79,7 +120,7 @@ except ImportError as e:
 
 
 def getUserId():
-    if os.name == "nt":
+    if IS_WINDOWS:
         return getpass.getuser()
     return "%d" % os.getuid()
 
@@ -119,7 +160,6 @@ DEFAULT_CONFIG = {
     },
     "schedule": {}
 }
-
 '''Expect CONFIG to be set during Tester.main() to a python dict.'''
 CONFIG = None
 '''Expect ARGS to contain the argparsed namespace.'''
@@ -150,7 +190,7 @@ class OsqueryWrapper(REPLWrapper):
         options["database_path"] += str(random.randint(1000, 9999))
         command = command + " " + " ".join(
             ["--%s=%s" % (k, v) for k, v in options.iteritems()])
-        if os.name == "nt":
+        if IS_WINDOWS:
             proc = WinExpectSpawn(command, env=env)
         else:
             proc = pexpect.spawn(command, env=env)
@@ -286,7 +326,7 @@ class ProcRunner(object):
 
     def kill(self, children=False):
         self.requireStarted()
-        sig = signal.SIGINT if os.name == "nt" else signal.SIGKILL
+        sig = signal.SIGINT if IS_WINDOWS else signal.SIGKILL
         if children:
             for child in self.getChildren():
                 try:
@@ -339,9 +379,11 @@ def getLatestOsqueryBinary(binary):
         return os.path.join(ARGS.build, "osquery", binary)
 
     release_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "Release", "{}.exe".format(binary)))
+        os.path.join(ARGS.build, "osquery", "Release",
+                     "{}.exe".format(binary)))
     relwithdebinfo_path = os.path.abspath(
-        os.path.join(ARGS.build, "osquery", "RelWithDebInfo", "{}.exe".format(binary)))
+        os.path.join(ARGS.build, "osquery", "RelWithDebInfo",
+                     "{}.exe".format(binary)))
 
     if os.path.exists(release_path) and os.path.exists(relwithdebinfo_path):
         if os.stat(release_path).st_mtime > os.stat(
@@ -419,7 +461,7 @@ class ProcessGenerator(object):
         Unittest should stop processes they generate, but on failure the
         tearDown method will cleanup.
         '''
-        sig = signal.SIGINT if os.name == "nt" else signal.SIGKILL
+        sig = signal.SIGINT if IS_WINDOWS else signal.SIGKILL
         for generator in self.generators:
             if generator.pid is not None:
                 try:
@@ -445,7 +487,11 @@ class EXClient(object):
         self.path = path
         if uuid:
             self.path += ".%s" % str(uuid)
-        transport = TSocket.TSocket(unix_socket=self.path)
+        if IS_WINDOWS:
+            transport = TPipe.TPipe(pipe_name=self.path)
+        else:
+            transport = TSocket.TSocket(unix_socket=self.path)
+
         transport = TTransport.TBufferedTransport(transport)
         self.protocol = TBinaryProtocol.TBinaryProtocol(transport)
         self.transport = transport
@@ -461,20 +507,20 @@ class EXClient(object):
             self.transport.close()
 
     def try_open(self, timeout=0.1, interval=0.01):
-        '''Try to open, on success, close the UNIX domain socket.'''
+        '''Try to open, on success, close the socket or pipe connection.'''
         did_open = self.open(timeout, interval)
         if did_open:
             self.close()
         return did_open
 
     def open(self, timeout=0.1, interval=0.01):
-        '''Attempt to open the UNIX domain socket.'''
+        '''Attempt to open the socket or pipe connection.'''
         delay = 0
         while delay < timeout:
             try:
                 self.transport.open()
                 return True
-            except Exception as e:
+            except Exception as _:
                 pass
             delay += interval
             time.sleep(interval)
@@ -525,6 +571,7 @@ class TimeoutRunner(object):
 
 def flaky(gen):
     exceptions = []
+
     def attempt(this):
         try:
             worked = gen(this)
@@ -632,7 +679,10 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
 
         # The sets of example tests will use the extensions APIs.
         self.client = EXClient(self.daemon.options["extensions_socket"])
-        expectTrue(self.client.try_open)
+
+        # This logic moves too quickly for Windows named pipes
+        if not IS_WINDOWS:
+            expectTrue(self.client.try_open)
         self.assertTrue(self.client.open())
         self.em = self.client.getEM()
 
@@ -668,11 +718,12 @@ class QueryTester(ProcessGenerator, unittest.TestCase):
 class CleanChildProcesses:
     # SO: 320232/ensuring-subprocesses-are-dead-on-exiting-python-program
     def __enter__(self):
-        if os.name != "nt":
+        if not IS_WINDOWS:
             os.setpgrp()
+
     def __exit__(self, type, value, traceback):
         try:
-            if os.name != "nt":
+            if not IS_WINDOWS:
                 os.killpg(0, signal.SIGINT)
         except KeyboardInterrupt:
             # SIGINT is delivered to this process and children.
@@ -694,8 +745,8 @@ def assertPermissions():
     stat_info = os.stat('.')
     if stat_info.st_uid != os.getuid():
         print(utils.lightred("Will not load modules/extensions in tests."))
-        print(utils.lightred("Repository owner (%d) executer (%d) mismatch" % (
-            stat_info.st_uid, os.getuid())))
+        print(utils.lightred("Repository owner (%d) executer (%d) mismatch" %
+                             (stat_info.st_uid, os.getuid())))
         exit(1)
 
 
@@ -708,9 +759,10 @@ def getTestDirectory(base):
 # Grab the latest info log
 def getLatestInfoLog(base):
     info_path = os.path.join(base, "osqueryd.INFO")
-    if os.name != "nt":
+    if not IS_WINDOWS:
         return info_path
-    query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;".format(info_path+'%')
+    query = "select path from file where path like '{}' ORDER BY mtime DESC LIMIT 1;".format(
+        info_path + '%')
     osqueryi = OsqueryWrapper(getLatestOsqueryBinary('osqueryi'))
     results = osqueryi.run_query(query)
     if len(results) > 0:
@@ -728,5 +780,8 @@ def loadThriftFromBuild(build_dir):
     except ImportError as e:
         print("Cannot import osquery thrift API from %s" % (thrift_path))
         print("Exception: %s" % (str(e)))
-        print("You must first run: make")
+        if IS_WINDOWS:
+            print("You must first run: tools\make-win64-binaries.bat")
+        else:
+            print("You must first run: make")
         exit(1)

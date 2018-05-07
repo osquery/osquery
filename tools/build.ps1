@@ -136,6 +136,11 @@ function Invoke-OsqueryMsbuild {
     }
   }
 
+  # Run the release tests on build hosts
+  if (Test-Path env:OSQUERY_BUILD_HOST) {
+    [Environment]::SetEnvironmentVariable("RUN_RELEASE_TESTS", "1", "Machine")
+  }
+
   # And finally, run the tests
   $ctest = (Get-Command 'ctest').Source
   $ctestArgs = @(

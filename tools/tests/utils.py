@@ -21,6 +21,7 @@ import subprocess
 import shutil
 import re
 
+
 def red(msg):
     return "\033[41m\033[1;30m %s \033[0m" % str(msg)
 
@@ -73,16 +74,20 @@ def platform():
         platform = "linux"
     if platform.find("freebsd") == 0:
         platform = "freebsd"
+    if platform.find("win") == 0:
+        platform = "windows"
     return platform
 
 
 def queries_from_config(config_path):
     config = {}
-    rmcomment = re.compile('\/\*[\*A-Za-z0-9\n\s\.\{\}\'\/\\\:]+\*\/|\s+\/\/.*|^\/\/.*|\x5c\x5c\x0a')
+    rmcomment = re.compile(
+        '\/\*[\*A-Za-z0-9\n\s\.\{\}\'\/\\\:]+\*\/|\s+\/\/.*|^\/\/.*|\x5c\x5c\x0a'
+    )
     try:
         with open(config_path, "r") as fh:
             configcontent = fh.read()
-            content = rmcomment.sub('',configcontent)
+            content = rmcomment.sub('', configcontent)
             config = json.loads(content)
     except Exception as e:
         print("Cannot open/parse config: %s" % str(e))
@@ -95,7 +100,7 @@ def queries_from_config(config_path):
         for name, details in config["schedule"].iteritems():
             queries[name] = details["query"]
     if "packs" in config:
-        for keys,values in config["packs"].iteritems():
+        for keys, values in config["packs"].iteritems():
             # Check if it is an internal pack definition
             if type(values) is dict:
                 for queryname, query in values["queries"].iteritems():
@@ -152,10 +157,8 @@ def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
     import psutil
     start_time = time.time()
     if proc is None:
-        proc = subprocess.Popen(cmd,
-                                shell=shell,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+        proc = subprocess.Popen(
+            cmd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p = psutil.Process(pid=proc.pid)
 
     delay = 0
