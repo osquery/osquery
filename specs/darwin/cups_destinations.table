@@ -1,0 +1,8 @@
+table_name("cups_destinations")
+description("Returns all configured printers.")
+schema([
+    Column("name", TEXT, "Name of the printer"),
+    Column("option_name", TEXT, "Option name"),
+    Column("option_value", TEXT, "Option value")
+])
+implementation("cups_destinations@genCupsDestinations")
