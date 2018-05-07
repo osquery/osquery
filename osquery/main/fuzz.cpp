@@ -13,6 +13,11 @@
 #include <osquery/registry.h>
 #include <osquery/sql.h>
 
+/* Use these defines to flip the fuzzing harnesses. */
+// #define OSQUERY_FUZZ_SQL
+#define OSQUERY_FUZZ_CONFIG
+
+
 void init() {
   osquery::registryAndPluginInit();
   osquery::DatabasePlugin::setAllowOpen(true);
@@ -27,10 +32,10 @@ void init() {
   osquery::Registry::get().call("sql", r, rsp);
 }
 
-#if 0
 /**
  * Example: This will mostly fuzz SQLites internals.
  */
+#ifdef OSQUERY_FUZZ_SQL
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   static bool setup = false;
   if (!setup) {
@@ -56,6 +61,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 /**
  * Example: This will fuzz configuration handling and the config parsers.
  */
+#ifdef OSQUERY_FUZZ_CONFIG
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   static bool setup = false;
   if (!setup) {
@@ -68,3 +74,4 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   return 0;
 }
+#endif
