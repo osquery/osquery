@@ -291,21 +291,22 @@ add_custom_target(devel
 )
 add_dependencies(devel libosquery)
 
-if(NOT SKIP_TABLES)
-  # Generate the osquery additional tables (the non-util).
-  GENERATE_TABLES("${CMAKE_SOURCE_DIR}")
-  AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_additional_amalgamation ${AMALGAMATION})
+if(NOT OSQUERY_BUILD_SDK_ONLY)
+  if(NOT SKIP_TABLES)
+    # Generate the osquery additional tables (the non-util).
+    GENERATE_TABLES("${CMAKE_SOURCE_DIR}")
+    AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
+    ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_additional_amalgamation ${AMALGAMATION})
+
+    AMALGAMATE("${CMAKE_SOURCE_DIR}" "foreign" AMALGAMATION_FOREIGN)
+    ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_foreign_amalgamation ${AMALGAMATION_FOREIGN})
+  endif()
+
+  # Create the static libosquery_additional.
+  add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})
+  target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
+  set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
 endif()
-
-AMALGAMATE("${CMAKE_SOURCE_DIR}" "foreign" AMALGAMATION_FOREIGN)
-ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_foreign_amalgamation ${AMALGAMATION_FOREIGN})
-
-# Create the static libosquery_additional.
-add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})
-target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
-set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
-
 
 if(FUZZ)
   add_executable(fuzz
