@@ -33,7 +33,6 @@ QueryData genBitlockerInfo(QueryContext& context) {
   for (const auto& data : wmiResults) {
     long status = 0;
     long emethod;
-    std::string emethod_str;
     data.GetString("DeviceID", r["device_id"]);
     data.GetString("DriveLetter", r["drive_letter"]);
     data.GetString("PersistentVolumeID", r["persistent_volume_id"]);
@@ -42,6 +41,7 @@ QueryData genBitlockerInfo(QueryContext& context) {
     data.GetLong("ProtectionStatus", status);
     r["protection_status"] = INTEGER(status);
     data.GetLong("EncryptionMethod", emethod);
+    std::string emethod_str;
     switch (emethod) {
     case 0:
       emethod_str = "None";
