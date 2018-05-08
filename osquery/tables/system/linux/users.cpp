@@ -87,25 +87,5 @@ QueryData genUsers(QueryContext& context) {
 
   return results;
 }
-
-QueryData genStartupItems(QueryContext& context) {
-  QueryData results;
-
-  SQL startupResults("SELECT filename as name,path FROM file WHERE path LIKE \"" + kStartupFolderDirectory + "%%\"");
-
-  for (const auto& startup : startupResults.rows()) {
-      Row r;
-
-      r["username"] = "SYSTEM";
-      r["status"] = "enabled";
-      r["name"] = startup.at("name");
-      r["source"] = kStartupFolderDirectory;
-      r["path"] = startup.at("path");
-      r["type"] = "init.d";
-      results.push_back(r);
-  }
-
-  return results;
-}
 }
 }
