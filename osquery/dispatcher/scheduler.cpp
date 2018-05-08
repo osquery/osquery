@@ -152,20 +152,28 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
 void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
-  for (; (timeout_ == 0) || (i <= timeout_); ++i) {
+  size_t current;
+  auto previous = i - 1;
+
+  for (; (timeout_ == 0) || (i <= timeout_);) {
     Config::get().scheduledQueries(
-        ([&i](const std::string& name, const ScheduledQuery& query) {
-          if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
+        ([&i, &previous](const std::string& name, const ScheduledQuery& query) {
+          if (query.splayed_interval > 0 &&
+              (i - previous >= query.splayed_interval ||
+               i % query.splayed_interval <=
+                   previous % query.splayed_interval)) {
             TablePlugin::kCacheInterval = query.splayed_interval;
             TablePlugin::kCacheStep = i;
             launchQuery(name, query);
           }
         }));
     // Configuration decorators run on 60 second intervals only.
-    if ((i % 60) == 0) {
+    if (i - previous >= 60 || i % 60 <= previous % 60) {
       runDecorators(DECORATE_INTERVAL, i);
     }
-    if (FLAGS_schedule_reload > 0 && (i % FLAGS_schedule_reload) == 0) {
+    if (FLAGS_schedule_reload > 0 &&
+        (i - previous >= FLAGS_schedule_reload ||
+         i % FLAGS_schedule_reload <= previous % FLAGS_schedule_reload)) {
       if (FLAGS_schedule_reload_sql) {
         SQLiteDBManager::resetPrimary();
       }
@@ -173,12 +181,22 @@ void SchedulerRunner::start() {
     }
 
     // GLog is not re-entrant, so logs must be flushed in a dedicated thread.
-    if ((i % 3) == 0) {
+    if (i - previous >= 3 || i % 3 <= previous % 3) {
       relayStatusLogs(true);
     }
 
+    previous = i;
+
     // Put the thread into an interruptible sleep without a config instance.
-    pauseMilli(interval_ * 1000);
+    // Do not sleep if the runner is falling behind (by 1s or more).
+    current = osquery::getUnixTime();
+    if (i == current) {
+      ++i;
+      pauseMilli(interval_ * 1000);
+    } else {
+      i = current;
+    }
+
     if (interrupted()) {
       break;
     }
