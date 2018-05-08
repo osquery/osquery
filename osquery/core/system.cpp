@@ -409,6 +409,11 @@ static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
   return true;
 }
 
+DropPrivilegesRef DropPrivileges::get() {
+  DropPrivilegesRef handle = DropPrivilegesRef(new DropPrivileges());
+  return handle;
+}
+
 bool DropPrivileges::dropToParent(const fs::path& path) {
   auto parent = path.parent_path().string();
   auto result = SQL::selectAllFrom("file", "path", EQUALS, parent);
@@ -531,4 +536,29 @@ DropPrivileges::~DropPrivileges() {
   }
 }
 #endif
+
+bool checkPlatform(const std::string& platform) {
+  if (platform.empty() || platform == "null") {
+    return true;
+  }
+
+  if (platform.find("any") != std::string::npos ||
+      platform.find("all") != std::string::npos) {
+    return true;
+  }
+
+  auto linux_type = (platform.find("linux") != std::string::npos ||
+                     platform.find("ubuntu") != std::string::npos ||
+                     platform.find("centos") != std::string::npos);
+  if (linux_type && isPlatform(osquery::PlatformType::TYPE_LINUX)) {
+    return true;
+  }
+
+  auto posix_type = (platform.find("posix") != std::string::npos);
+  if (posix_type && isPlatform(osquery::PlatformType::TYPE_POSIX)) {
+    return true;
+  }
+
+  return (platform.find(osquery::kSDKPlatform) != std::string::npos);
+}
 } // namespace osquery

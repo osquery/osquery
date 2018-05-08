@@ -339,7 +339,9 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   // Let gflags parse the non-help options/flags.
   GFLAGS_NAMESPACE::ParseCommandLineFlags(argc_, argv_, isShell());
 
+  bool init_glog = true;
 #ifdef FBTHRIFT
+  init_glog = false;
   ::folly::init(&argc, &argv, false);
 #endif
 
@@ -379,7 +381,7 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
   }
 
   // Initialize the status and results logger.
-  initStatusLogger(binary_);
+  initStatusLogger(binary_, init_glog);
   if (kToolType != ToolType::EXTENSION) {
     if (isWorker()) {
       VLOG(1) << "osquery worker initialized [watcher="

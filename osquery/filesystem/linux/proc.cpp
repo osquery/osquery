@@ -284,17 +284,17 @@ Status procGetSocketList(int family,
 
 Status procGetSocketInodeToProcessInfoMap(const std::string& pid,
                                           SocketInodeToProcessInfoMap& result) {
-  auto callback = [](const std::string& pid,
+  auto callback = [](const std::string& _pid,
                      const std::string& fd,
                      const std::string& link,
-                     SocketInodeToProcessInfoMap& result) -> bool {
+                     SocketInodeToProcessInfoMap& _result) -> bool {
     /* We only care about sockets. But there will be other descriptors. */
     if (link.find("socket:[") != 0) {
       return true;
     }
 
     std::string inode = link.substr(8, link.size() - 9);
-    result[inode] = {pid, fd};
+    _result[inode] = {_pid, fd};
     return true;
   };
 
@@ -304,8 +304,8 @@ Status procGetSocketInodeToProcessInfoMap(const std::string& pid,
 
 Status procProcesses(std::set<std::string>& processes) {
   auto callback = [](const std::string& pid,
-                     std::set<std::string>& processes) -> bool {
-    processes.insert(pid);
+                     std::set<std::string>& _processes) -> bool {
+    _processes.insert(pid);
     return true;
   };
 
@@ -317,9 +317,9 @@ Status procDescriptors(const std::string& process,
   auto callback = [](const std::string& pid,
                      const std::string& fd,
                      const std::string& link_name,
-                     std::map<std::string, std::string>& descriptors) -> bool {
+                     std::map<std::string, std::string>& _descriptors) -> bool {
 
-    descriptors[fd] = link_name;
+    _descriptors[fd] = link_name;
     return true;
   };
 

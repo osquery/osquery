@@ -67,6 +67,10 @@ TEST_F(ConversionsTests, test_unicode_unescape) {
       std::make_pair("\\uFFFFhi", "\\uFFFFhi"),
       std::make_pair("0000\\u", "0000\\u"),
       std::make_pair("hi", "hi"),
+      std::make_pair("c:\\\\users\\\\obelisk\\\\file.txt",
+                     "c:\\\\users\\\\obelisk\\\\file.txt"),
+      std::make_pair("Edge case test\\", "Edge case test\\"),
+      std::make_pair("Edge case test two\\\\", "Edge case test two\\\\"),
   };
 
   for (const auto& test : conversions) {
@@ -150,6 +154,14 @@ TEST_F(ConversionsTests, test_json_from_string) {
 
   json += ';';
   EXPECT_FALSE(doc.fromString(json).ok());
+}
+
+TEST_F(ConversionsTests, test_json_from_string_error) {
+  std::string json = "{\"key\":\"value\",\"key2\":{\"key3\":'error'}}";
+  auto doc = JSON::newObject();
+  auto s = doc.fromString(json);
+  EXPECT_FALSE(s.ok());
+  EXPECT_EQ(s.getMessage(), "Cannot parse JSON: Invalid value. Offset: 30");
 }
 
 TEST_F(ConversionsTests, test_json_add_object) {
