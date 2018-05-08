@@ -26,6 +26,7 @@ QueryData genCpuInfo(QueryContext& context) {
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
   if (wmiResults.empty()) {
     LOG(WARNING) << "Error retreiving information from WMI.";
+    return results;
   }
   for (const auto& data : wmiResults) {
     long number = 0;
