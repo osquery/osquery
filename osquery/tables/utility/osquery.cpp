@@ -231,12 +231,13 @@ QueryData genOsquerySchedule(QueryContext& context) {
   QueryData results;
 
   Config::get().scheduledQueries(
-      [&results](const std::string& name, const ScheduledQuery& query) {
+      [&results](const std::string& name,
+                 std::shared_ptr<ScheduledQuery> query) {
         Row r;
         r["name"] = name;
-        r["query"] = query.query;
-        r["interval"] = INTEGER(query.interval);
-        r["blacklisted"] = (query.blacklisted) ? "1" : "0";
+        r["query"] = query->query;
+        r["interval"] = INTEGER(query->interval);
+        r["blacklisted"] = (query->blacklisted) ? "1" : "0";
         // Set default (0) values for each query if it has not yet executed.
         r["executions"] = "0";
         r["output_size"] = "0";

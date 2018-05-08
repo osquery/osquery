@@ -142,10 +142,10 @@ TEST_F(PacksTests, test_discovery_cache) {
   size_t query_count = 0U;
   size_t query_attemts = 5U;
   for (size_t i = 0; i < query_attemts; i++) {
-    c.scheduledQueries(
-        ([&query_count](const std::string& name, const ScheduledQuery& query) {
-          query_count++;
-        }));
+    c.scheduledQueries(([&query_count](const std::string& name,
+                                       std::shared_ptr<ScheduledQuery> query) {
+      query_count++;
+    }));
   }
   EXPECT_EQ(query_count, query_attemts);
 

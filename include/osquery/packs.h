@@ -28,6 +28,9 @@ struct PackStats {
   size_t misses{0};
 };
 
+using ScheduledQueryMap =
+    std::map<std::string, std::shared_ptr<ScheduledQuery>>;
+
 /**
  * @brief The programmatic representation of a query pack
  */
@@ -79,10 +82,10 @@ class Pack : private boost::noncopyable {
   }
 
   /// Returns the schedule dictated by the pack
-  const std::map<std::string, ScheduledQuery>& getSchedule() const;
+  const ScheduledQueryMap& getSchedule() const;
 
   /// Returns the schedule dictated by the pack
-  std::map<std::string, ScheduledQuery>& getSchedule();
+  ScheduledQueryMap& getSchedule();
 
   /// Verify that the platform is compatible
   bool checkPlatform() const;
@@ -114,7 +117,7 @@ class Pack : private boost::noncopyable {
   std::vector<std::string> discovery_queries_;
 
   /// Map of query names to the scheduled query details.
-  std::map<std::string, ScheduledQuery> schedule_;
+  ScheduledQueryMap schedule_;
 
   /// Platform requirement for pack.
   std::string platform_;

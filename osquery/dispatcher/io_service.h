@@ -35,6 +35,10 @@ class IOServiceRunner : public InternalRunnable {
 
   /// The Dispatcher interrupt point.
   void stop() override;
+
+ private:
+  void subordinates();
+  void runLoop();
 };
 
 /// Start IOService

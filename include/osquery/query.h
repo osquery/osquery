@@ -284,6 +284,9 @@ struct ScheduledQuery : private only_movable {
   /// A temporary splayed internal.
   size_t splayed_interval{0};
 
+  /// Last time query scheduled
+  std::time_t last_scheduledtime{0};
+
   /**
    * @brief Queries are blacklisted based on logic in the configuration.
    *
@@ -292,6 +295,10 @@ struct ScheduledQuery : private only_movable {
    * to return all queries, thus it is important to capture this optional data.
    */
   bool blacklisted{false};
+
+  /// Is query already been scheduled
+  std::shared_ptr<std::atomic_bool> is_scheduled{
+      std::make_shared<std::atomic_bool>(false)};
 
   /// Set of query options.
   std::map<std::string, bool> options;

@@ -270,7 +270,8 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   std::vector<std::string> query_names;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
   get().scheduledQueries(
-      ([&query_names](const std::string& name, const ScheduledQuery& query) {
+      ([&query_names](const std::string& name,
+                      std::shared_ptr<ScheduledQuery> query) {
         query_names.push_back(name);
       }));
 
@@ -293,8 +294,8 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
 
   // Clear the query names in the scheduled queries and request again.
   query_names.clear();
-  get().scheduledQueries(
-      ([&query_names](const std::string& name, const ScheduledQuery&) {
+  get().scheduledQueries((
+      [&query_names](const std::string& name, std::shared_ptr<ScheduledQuery>) {
         query_names.push_back(name);
       }));
   // The query should not exist.
@@ -305,12 +306,12 @@ TEST_F(ConfigTests, test_get_scheduled_queries) {
   query_names.clear();
   bool blacklisted = false;
   get().scheduledQueries(
-      ([&blacklisted, &query_names, &query_name](const std::string& name,
-                                                 const ScheduledQuery& query) {
+      ([&blacklisted, &query_names, &query_name](
+           const std::string& name, std::shared_ptr<ScheduledQuery> query) {
         if (name == query_name) {
           // Only populate the query we've blacklisted.
           query_names.push_back(name);
-          blacklisted = query.blacklisted;
+          blacklisted = query->blacklisted;
         }
       }),
       true);
@@ -329,8 +330,9 @@ TEST_F(ConfigTests, test_nonblacklist_query) {
 
   std::map<std::string, bool> blacklisted;
   get().scheduledQueries(
-      ([&blacklisted](const std::string& name, const ScheduledQuery& query) {
-        blacklisted[name] = query.blacklisted;
+      ([&blacklisted](const std::string& name,
+                      std::shared_ptr<ScheduledQuery> query) {
+        blacklisted[name] = query->blacklisted;
       }));
 
   // This query cannot be blacklisted.
