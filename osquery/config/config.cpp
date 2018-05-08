@@ -236,7 +236,7 @@ class ConfigRefreshRunner : public InternalRunnable {
   ConfigRefreshRunner() : InternalRunnable("ConfigRefreshRunner") {}
 
   /// A simple wait/interruptible lock.
-  void start();
+  void start() override;
 
  private:
   /// The current refresh rate in seconds.
@@ -301,6 +301,11 @@ Config::Config()
     : schedule_(std::make_shared<Schedule>()),
       valid_(false),
       refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
+
+Config& Config::get() {
+  static Config instance;
+  return instance;
+}
 
 void Config::addPack(const std::string& name,
                      const std::string& source,
@@ -666,8 +671,6 @@ void Config::applyParsers(const std::string& source,
 
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
-      } else {
-        parser_config.emplace(std::make_pair(key, JSON::newObject()));
       }
     }
     // The config parser plugin will receive a copy of each property tree for
