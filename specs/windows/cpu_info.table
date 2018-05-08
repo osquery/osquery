@@ -1,0 +1,17 @@
+
+table_name("cpu_info")
+description("Retrieve cpu hardware info of the machine.")
+schema([
+  Column("device_id", TEXT, "ID of the encrypted drive."),
+  Column("model", TEXT, "Drive letter of the encrypted drive."),
+  Column("manufacturer", TEXT, "Persistent ID of the drive."),
+  Column("processor_type", TEXT, "Persistent ID of the drive."),
+  Column("availability", TEXT, "Persistent ID of the drive."),
+  Column("cpu_status", INTEGER, "The bitlocker conversion status of the drive."),
+  Column("number_of_cores", TEXT, "Persistent ID of the drive."),
+  Column("logical_processors", INTEGER, "The bitlocker conversion status of the drive."),
+  Column("address_width", TEXT, "Persistent ID of the drive."),
+  Column("current_clock_speed", INTEGER, "The bitlocker protection status of the drive."),
+  Column("max_clock_speed", INTEGER, "The encryption type of the device."),
+])
+implementation("cpu_info@genCpuInfo")
