@@ -14,11 +14,14 @@
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
+#include <osquery/sql.h>
 
 #include "osquery/core/conversions.h"
 
 namespace osquery {
 namespace tables {
+
+const std::string kStartupFolderDirectory = "/etc/init.d/";
 
 Mutex pwdEnumerationMutex;
 
@@ -86,7 +89,23 @@ QueryData genUsers(QueryContext& context) {
 }
 
 QueryData genStartupItems(QueryContext& context) {
-  return QueryData();
+  QueryData results;
+
+  SQL startupResults("SELECT filename as name,path FROM file WHERE path LIKE \"" + kStartupFolderDirectory + "%%\"");
+
+  for (const auto& startup : startupResults.rows()) {
+      Row r;
+
+      r["username"] = "SYSTEM";
+      r["status"] = "enabled";
+      r["name"] = startup.at("name");
+      r["source"] = kStartupFolderDirectory;
+      r["path"] = startup.at("path");
+      r["type"] = "init.d";
+      results.push_back(r);
+  }
+
+  return results;
 }
 }
 }
