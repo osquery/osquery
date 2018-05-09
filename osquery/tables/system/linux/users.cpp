@@ -14,14 +14,11 @@
 
 #include <osquery/core.h>
 #include <osquery/tables.h>
-#include <osquery/sql.h>
 
 #include "osquery/core/conversions.h"
 
 namespace osquery {
 namespace tables {
-
-const std::string kStartupFolderDirectory = "/etc/init.d/";
 
 Mutex pwdEnumerationMutex;
 
