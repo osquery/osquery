@@ -67,6 +67,7 @@ void genControlInfo(int* oid,
   }
 
   // Now request structure type.
+  response_size = CTL_MAX_VALUE;
   request[1] = CTL_DEBUG_TYPE;
   if (sysctl(request, oid_size + 2, response, &response_size, 0, 0) != 0) {
     // Cannot request MIB type (int, string, struct, etc).
@@ -76,8 +77,36 @@ void genControlInfo(int* oid,
   size_t oid_type = 0;
   if (response_size > 0) {
     oid_type = ((size_t)response[0] & CTLTYPE);
+    if ((oid_type == 0 || oid_type == CTLTYPE_INT) && response_size > 4) {
+      // For whatever reason, macOS defines fewer CTLTYPE's than BSD, and
+      // sometimes uses the format character instead of (or in addition to)
+      // the CTLTYPE to specify the type. Here we detect a few such cases and
+      // map them to CTLTYPE's.
+      // TODO: Both CTLTYPE_INT and CTLTYPE_QUAD can be specified as unsigned
+      // using a similar method.
+      char type_char = response[4];
+      switch (type_char) {
+      case 'I':
+        oid_type = CTLTYPE_INT;
+        break;
+      case 'L':
+        if (sizeof(long) == sizeof(long long)) {
+          oid_type = CTLTYPE_QUAD;
+        } else if (sizeof(long) == sizeof(int)) {
+          oid_type = CTLTYPE_INT;
+        }
+        break;
+      case 'S':
+        oid_type = CTLTYPE_STRUCT;
+        break;
+      case 'Q':
+        oid_type = CTLTYPE_QUAD;
+        break;
+        // Otherwise leave the type as it was; we have no additional knowledge
+      }
+    }
     if (oid_type < kControlTypes.size()) {
-      r["type"] = kControlTypes[((int)response[0])];
+      r["type"] = kControlTypes[oid_type];
     }
   }
 
@@ -100,7 +129,8 @@ void genControlInfo(int* oid,
       r["current_value"] = std::string(response);
     } else if (oid_type == CTLTYPE_QUAD) {
       unsigned long long value;
-      memcpy(&value, response, value_size);
+      memcpy(&value, response, sizeof(unsigned long long));
+      r["current_value"] = INTEGER(value);
     }
   }
 
