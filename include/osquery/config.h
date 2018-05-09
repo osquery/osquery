@@ -160,12 +160,7 @@ class Config : private boost::noncopyable {
    *
    * @param predicate is a function which accepts two parameters, the name of
    * the query and the ScheduledQuery struct of the queries data. predicate
-   * will be called on each currently scheduled query. The query name is a
-   * temporary object on stack, because it can be created during the call.
-   * To avoid storing to somewhere the reference to a stack object the name
-   * of query is passed by value to the predicate.
-   * The reference to a scheduled query is passed by permanent const reference
-   * to the predicate (it is permanent as far as it exists in the config).
+   * will be called on each currently scheduled query.
    *
    * @param blacklisted [optional] return blacklisted queries if true.
    *
