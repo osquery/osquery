@@ -24,8 +24,7 @@ namespace fs = boost::filesystem;
 namespace osquery {
 namespace tables {
 
-const std::vector<std::string> kPackageKeys{
-    "name", "version", "description", "license"};
+const std::vector<std::string> kPackageKeys{"name", "version", "description"};
 
 const std::string kLinuxNodeModulesPath{"/usr/lib/"};
 
@@ -50,18 +49,43 @@ void genPackageResults(const std::string& directory, QueryData& results) {
     for (const auto& key : kPackageKeys) {
       if (doc.doc().HasMember(key)) {
         const auto& value = doc.doc()[key];
+        // npm has a schema for package.json, but it is loosely enforced. Some
+        // keys may be missing, so populate the columns we can
         r[key] = (value.IsString()) ? value.GetString() : "";
       }
     }
-
-    r["path"] = package_path;
-    r["directory"] = directory;
 
     // Manually get nested key (Author name)
     if (doc.doc().HasMember("author")) {
       const auto& author = doc.doc()["author"]["name"];
       r["author"] = (author.IsString()) ? author.GetString() : "";
     }
+
+    // Manually get license to support deprecated licence schema.
+    // In the current scheme it is a string, but in previous versions it is a
+    // dictionary with url and type
+    if (doc.doc().HasMember("license")) {
+      const auto& license = doc.doc()["license"];
+      if (license.IsString()) {
+        // Current license schema is just a top level string
+        r["license"] = license.GetString();
+      } else {
+        // If its not a string, is it a dict with 'url' ?
+        if (license.HasMember("url")) {
+          const auto& license_url = doc.doc()["license"]["url"];
+          if (license_url.IsString()) {
+            // Fallback to displaying deprecated licence url
+            r["license"] = license_url.GetString();
+          }
+        }
+      }
+
+      const auto& author = doc.doc()["author"]["name"];
+      r["author"] = (author.IsString()) ? author.GetString() : "";
+    }
+
+    r["path"] = package_path;
+    r["directory"] = directory;
 
     results.push_back(r);
   }
