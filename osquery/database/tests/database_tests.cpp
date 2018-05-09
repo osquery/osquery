@@ -12,7 +12,12 @@
 
 #include <osquery/database.h>
 
+#include "osquery/core/json.h"
 #include "osquery/tests/test_util.h"
+
+#include <osquery/logger.h>
+
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -71,5 +76,78 @@ TEST_F(DatabaseTests, test_delete_values) {
   s = getDatabaseValue(kLogs, "k", value);
   EXPECT_FALSE(s.ok());
   EXPECT_TRUE(value.empty());
+}
+
+TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_empty_v0v1) {
+  auto empty_results{"{}"};
+  auto status = setDatabaseValue(kQueries, "old_empty_results", empty_results);
+  EXPECT_TRUE(status.ok());
+
+  // Stage our database to be pre-upgrade to ensure the logic runs
+  status = setDatabaseValue(kPersistentSettings, "results_version", "0");
+  EXPECT_TRUE(status.ok());
+
+  status = upgradeDatabase();
+  EXPECT_TRUE(status.ok());
+
+  std::string new_empty_list;
+  status = getDatabaseValue(kQueries, "old_empty_results", new_empty_list);
+  EXPECT_TRUE(status.ok());
+
+  rj::Document empty_list;
+  EXPECT_FALSE(empty_list.Parse(new_empty_list).HasParseError());
+  EXPECT_TRUE(empty_list.IsArray());
+
+  // Expect our DB upgrade logic to have been set
+  std::string db_results_version{""};
+  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
+  EXPECT_EQ(db_results_version, kDatabaseResultsVersion);
+}
+
+TEST_F(DatabaseTests, test_ptree_upgrade_to_rj_results_v0v1) {
+  auto bad_json =
+      "{\"\":{\"disabled\":\"0\",\"network_name\":\"BTWifi-Starbucks\"},\"\":{"
+      "\"disabled\":\"0\",\"network_name\":\"Lobo-Guest\"},\"\":{\"disabled\":"
+      "\"0\",\"network_name\":\"GoogleGuest\"}}";
+  auto status = setDatabaseValue(kQueries, "bad_wifi_json", bad_json);
+  EXPECT_TRUE(status.ok());
+
+  // Add an integer value to ensure we don't munge non-json objects
+  status = setDatabaseValue(kQueries, "bad_wifi_jsonepoch", "1521583712");
+  EXPECT_TRUE(status.ok());
+
+  // Stage our database to be pre-upgrade to ensure the logic runs
+  status = setDatabaseValue(kPersistentSettings, "results_version", "0");
+  EXPECT_TRUE(status.ok());
+
+  rj::Document bad_doc;
+
+  // Potential bug with RJ, in that parsing should fail with empty keys
+  // EXPECT_TRUE(bad_doc.Parse(bad_json).HasParseError());
+  EXPECT_FALSE(bad_doc.IsArray());
+
+  status = upgradeDatabase();
+  EXPECT_TRUE(status.ok());
+
+  std::string good_json;
+  status = getDatabaseValue(kQueries, "bad_wifi_json", good_json);
+  EXPECT_TRUE(status.ok());
+
+  rj::Document clean_doc;
+  EXPECT_FALSE(clean_doc.Parse(good_json).HasParseError());
+  EXPECT_TRUE(clean_doc.IsArray());
+  EXPECT_EQ(clean_doc.Size(), 3U);
+
+  // Ensure our non-json thing was not destroyed
+  std::string query_epoch{""};
+  status = getDatabaseValue(kQueries, "bad_wifi_jsonepoch", query_epoch);
+  LOG(INFO) << query_epoch;
+  auto ulepoch = std::stoull(query_epoch);
+  EXPECT_EQ(ulepoch, 1521583712U);
+
+  // Expect our DB upgrade logic to have been set
+  std::string db_results_version{""};
+  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
+  EXPECT_EQ(db_results_version, kDatabaseResultsVersion);
 }
 }

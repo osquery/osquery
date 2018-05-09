@@ -45,10 +45,8 @@ class Config : private boost::noncopyable {
   Config();
 
  public:
-  static Config& get() {
-    static Config instance;
-    return instance;
-  };
+  /// Singleton accessor.
+  static Config& get();
 
   /**
    * @brief Update the internal config data.
@@ -163,18 +161,19 @@ class Config : private boost::noncopyable {
    * @param predicate is a function which accepts two parameters, the name of
    * the query and the ScheduledQuery struct of the queries data. predicate
    * will be called on each currently scheduled query.
+   *
    * @param blacklisted [optional] return blacklisted queries if true.
    *
    * @code{.cpp}
    *   std::map<std::string, ScheduledQuery> queries;
    *   Config::get().scheduledQueries(
-   *      ([&queries](const std::string& name, const ScheduledQuery& query) {
+   *      ([&queries](std::string name, const ScheduledQuery& query) {
    *        queries[name] = query;
    *      }));
    * @endcode
    */
   void scheduledQueries(
-      std::function<void(const std::string& name, const ScheduledQuery& query)>
+      std::function<void(std::string name, const ScheduledQuery& query)>
           predicate,
       bool blacklisted = false);
 
@@ -476,7 +475,9 @@ class ConfigPlugin : public Plugin {
  * and the updated (still merged) config if any ConfigPlugin updates the
  * instance asynchronously. Each parser specifies a set of top-level JSON
  * keys to receive. The config instance will auto-merge the key values
- * from multiple sources if they are dictionaries or lists.
+ * from multiple sources.
+ *
+ * The keys must contain either dictionaries or lists.
  *
  * If a top-level key is a dictionary, each source with the top-level key
  * will have its own dictionary keys merged and replaced based on the lexical

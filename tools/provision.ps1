@@ -458,7 +458,7 @@ function Main {
   $out = Install-ChocoPackage 'cppcheck'
   $out = Install-ChocoPackage '7zip.commandline'
   $out = Install-ChocoPackage 'vswhere'
-  $out = Install-ChocoPackage 'cmake.portable'
+  $out = Install-ChocoPackage 'cmake.portable' '3.10.2'
   $out = Install-ChocoPackage 'windows-sdk-10.0'
 
   # Only install python if it's not needed

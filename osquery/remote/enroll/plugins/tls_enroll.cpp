@@ -8,8 +8,6 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
@@ -22,8 +20,6 @@
 #include "osquery/core/process.h"
 
 #include "osquery/remote/enroll/plugins/tls_enroll.h"
-
-namespace pt = boost::property_tree;
 
 namespace osquery {
 
@@ -78,18 +74,19 @@ std::string TLSEnrollPlugin::enroll() {
 Status TLSEnrollPlugin::requestKey(const std::string& uri,
                                    std::string& node_key) {
   // Read the optional enrollment secret data (sent with an enrollment request).
-  pt::ptree params;
-  params.put<std::string>(FLAGS_tls_enroll_override, getEnrollSecret());
-  params.put<std::string>("host_identifier", getHostIdentifier());
-  params.put<std::string>("platform_type",
+  JSON params;
+  params.add(FLAGS_tls_enroll_override, getEnrollSecret());
+  params.add("host_identifier", getHostIdentifier());
+  params.add(
+      "platform_type",
       boost::lexical_cast<std::string>(static_cast<uint64_t>(kPlatformType)));
 
   // Select from each table describing host details.
-  pt::ptree host_details;
+  JSON host_details;
   genHostDetails(host_details);
-  params.put_child("host_details", host_details);
+  params.add("host_details", host_details.doc());
 
-  auto request = Request<TLSTransport, JSONSerializer>(uri);
+  Request<TLSTransport, JSONSerializer> request(uri);
   request.setOption("hostname", FLAGS_tls_hostname);
   auto status = request.call(params);
   if (!status.ok()) {
@@ -97,17 +94,20 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   }
 
   // The call succeeded, store the node secret key (the enrollment response).
-  boost::property_tree::ptree recv;
+  JSON recv;
   status = request.getResponse(recv);
   if (!status.ok()) {
     return status;
   }
 
   // Support multiple response keys as a node key (identifier).
-  if (recv.count("node_key") > 0) {
-    node_key = recv.get("node_key", "");
-  } else if (recv.count("id") > 0) {
-    node_key = recv.get("id", "");
+  auto it = recv.doc().FindMember("node_key");
+  if (it == recv.doc().MemberEnd()) {
+    it = recv.doc().FindMember("id");
+  }
+
+  if (it != recv.doc().MemberEnd()) {
+    node_key = it->value.IsString() ? it->value.GetString() : "";
   }
 
   if (node_key.empty()) {

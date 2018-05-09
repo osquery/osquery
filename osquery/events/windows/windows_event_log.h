@@ -71,7 +71,7 @@ using WindowsEventLogSubscriptionContextRef =
 class WindowsEventLogEventPublisher
     : public EventPublisher<WindowsEventLogSubscriptionContext,
                             WindowsEventLogEventContext> {
-  DECLARE_PUBLISHER("windows_event_log");
+  DECLARE_PUBLISHER("windows_events");
 
  public:
   /// Checks to see if a Event Log channel matches a given subscriber

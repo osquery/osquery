@@ -250,7 +250,7 @@ Status deserializeQueryData(const rj::Value& arr, QueryData& qd) {
 
 Status deserializeQueryData(const rj::Value& v, QueryDataSet& qd) {
   if (!v.IsArray()) {
-    return Status(1, "Not an array");
+    return Status(1, "JSON object was not an array");
   }
 
   for (const auto& i : v.GetArray()) {

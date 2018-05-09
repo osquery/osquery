@@ -332,60 +332,58 @@ static inline bool genPackagesFromPackageKit(QueryData& results) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
 
-  @autoreleasepool {
-    NSArray* packages = nullptr;
-    if (CFBundleLoadExecutable(bundle)) {
-      auto cls = NSClassFromString(@"PKReceipt");
-      if (cls != nil) {
-        SEL sls = NSSelectorFromString(@"receiptsOnVolumeAtPath:");
-        @try {
-          id receipts = [cls performSelector:sls withObject:@"/"];
-          if ([receipts isKindOfClass:[NSArray class]]) {
-            packages = (NSArray*)receipts;
-          }
-        } @catch (NSException* exception) {
-          // The class did not respond to the selector.
+  NSArray* packages = nullptr;
+  if (CFBundleLoadExecutable(bundle)) {
+    auto cls = NSClassFromString(@"PKReceipt");
+    if (cls != nil) {
+      SEL sls = NSSelectorFromString(@"receiptsOnVolumeAtPath:");
+      @try {
+        id receipts = [cls performSelector:sls withObject:@"/"];
+        if ([receipts isKindOfClass:[NSArray class]]) {
+          packages = (NSArray*)receipts;
         }
+      } @catch (NSException* exception) {
+        // The class did not respond to the selector.
       }
-      CFBundleUnloadExecutable(bundle);
     }
+    CFBundleUnloadExecutable(bundle);
+  }
 
-    CFRelease(bundle);
+  CFRelease(bundle);
 
-    if (packages == nullptr) {
-      // No packages were found.
-      return false;
-    }
+  if (packages == nullptr) {
+    // No packages were found.
+    return false;
+  }
 
-    for (id pkg in packages) {
-      Row r;
-      for (auto& pm : kPKReceiptKeys) {
-        @try {
-          auto selector = [NSString stringWithUTF8String:pm.second.c_str()];
-          auto sls = NSSelectorFromString(selector);
-          id value = [pkg performSelector:sls];
+  for (id pkg in packages) {
+    Row r;
+    for (auto& pm : kPKReceiptKeys) {
+      @try {
+        auto selector = [NSString stringWithUTF8String:pm.second.c_str()];
+        auto sls = NSSelectorFromString(selector);
+        id value = [pkg performSelector:sls];
 
-          if ([value isKindOfClass:[NSString class]]) {
-            r[pm.first] = [value UTF8String];
-          } else if ([value isKindOfClass:[NSDate class]]) {
-            auto seconds =
-                [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
-            r[pm.first] = [[seconds stringValue] UTF8String];
-          } else if ([value isKindOfClass:[NSArray class]]) {
-            for (id first in value) {
-              r[pm.first] = [first UTF8String];
-              break;
-            }
+        if ([value isKindOfClass:[NSString class]]) {
+          r[pm.first] = [value UTF8String];
+        } else if ([value isKindOfClass:[NSDate class]]) {
+          auto seconds =
+              [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+          r[pm.first] = [[seconds stringValue] UTF8String];
+        } else if ([value isKindOfClass:[NSArray class]]) {
+          for (id first in value) {
+            r[pm.first] = [first UTF8String];
+            break;
           }
-        } @catch (NSException* ex) {
-          // The class did not respond to the selector.
-          // The type of data replied may have changes.
-          VLOG(1) << "Could not select " << pm.second << ": "
-                  << [[ex name] UTF8String];
         }
+      } @catch (NSException* ex) {
+        // The class did not respond to the selector.
+        // The type of data replied may have changes.
+        VLOG(1) << "Could not select " << pm.second << ": "
+                << [[ex name] UTF8String];
       }
-      results.push_back(r);
     }
+    results.push_back(r);
   }
 
 #pragma clang diagnostic pop

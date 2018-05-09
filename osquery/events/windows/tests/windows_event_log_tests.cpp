@@ -29,7 +29,7 @@ TEST_F(WindowsEventLogTests, test_register_event_pub) {
   // Make sure only one event type exists
   EXPECT_EQ(EventFactory::numEventPublishers(), 1U);
   // And deregister
-  status = EventFactory::deregisterEventPublisher("windows_event_log");
+  status = EventFactory::deregisterEventPublisher("windows_events");
   EXPECT_TRUE(status.ok());
 }
 }

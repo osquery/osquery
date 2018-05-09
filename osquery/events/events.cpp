@@ -624,7 +624,7 @@ void EventFactory::delay() {
     // Publishers that did not set up correctly are put into an ending state.
     if (!publisher.second->isEnding()) {
       auto thread_ = std::make_shared<std::thread>(
-          boost::bind(&EventFactory::run, publisher.first));
+          std::bind(&EventFactory::run, publisher.first));
       ef.threads_.push_back(thread_);
     }
   }
@@ -665,31 +665,31 @@ void EventFactory::configUpdate() {
   // Scan the schedule for queries that touch "_events" tables.
   // We will count the queries
   std::map<std::string, SubscriberExpirationDetails> subscriber_details;
-  Config::get().scheduledQueries([&subscriber_details](
-      const std::string& name, const ScheduledQuery& query) {
-    std::vector<std::string> tables;
-    // Convert query string into a list of virtual tables effected.
-    if (!getQueryTables(query.query, tables)) {
-      VLOG(1) << "Cannot get tables from query: " << name;
-      return;
-    }
+  Config::get().scheduledQueries(
+      [&subscriber_details](std::string name, const ScheduledQuery& query) {
+        std::vector<std::string> tables;
+        // Convert query string into a list of virtual tables effected.
+        if (!getQueryTables(query.query, tables)) {
+          VLOG(1) << "Cannot get tables from query: " << name;
+          return;
+        }
 
-    // Remove duplicates and select only the subscriber tables.
-    std::set<std::string> subscribers;
-    for (const auto& table : tables) {
-      if (Registry::get().exists("event_subscriber", table)) {
-        subscribers.insert(table);
-      }
-    }
+        // Remove duplicates and select only the subscriber tables.
+        std::set<std::string> subscribers;
+        for (const auto& table : tables) {
+          if (Registry::get().exists("event_subscriber", table)) {
+            subscribers.insert(table);
+          }
+        }
 
-    for (const auto& subscriber : subscribers) {
-      auto& details = subscriber_details[subscriber];
-      details.max_interval = (query.interval > details.max_interval)
-                                 ? query.interval
-                                 : details.max_interval;
-      details.query_count++;
-    }
-  });
+        for (const auto& subscriber : subscribers) {
+          auto& details = subscriber_details[subscriber];
+          details.max_interval = (query.interval > details.max_interval)
+                                     ? query.interval
+                                     : details.max_interval;
+          details.query_count++;
+        }
+      });
 
   auto& ef = EventFactory::getInstance();
   for (const auto& details : subscriber_details) {

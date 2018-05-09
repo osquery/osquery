@@ -31,7 +31,7 @@ namespace tables {
 const auto kMaxBufferAllocRetries = 3;
 const auto kWorkingBufferSize = 15000;
 
-Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
+void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
   r["interface"] = INTEGER(adapter->IfIndex);
   r["mtu"] = INTEGER(adapter->Mtu);
   r["type"] = INTEGER(adapter->IfType);
@@ -57,11 +57,11 @@ Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
   r["collisions"] = BIGINT("-1");
 
   // Grab the remaining table values from WMI
-  Status s;
   auto query =
       "SELECT * FROM Win32_PerfRawData_Tcpip_NetworkInterface WHERE "
       "Name = \"" +
       r["description"] + "\"";
+
   WmiRequest req1(query);
   if (req1.getStatus().ok()) {
     auto& results = req1.results();
@@ -97,15 +97,8 @@ Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
       r["odrops"] = BIGINT(ullPlaceHolder);
     } else {
-      r["ipackets"] = BIGINT("-1");
-      r["opackets"] = BIGINT("-1");
-      r["ibytes"] = BIGINT("-1");
-      r["obytes"] = BIGINT("-1");
-      r["ierrors"] = BIGINT("-1");
-      r["oerrors"] = BIGINT("-1");
-      r["idrops"] = BIGINT("-1");
-      r["odrops"] = BIGINT("-1");
-      s = Status(1, "Failed to enumerate extended interface details");
+      LOG(INFO) << "Failed to retrieve network statistics for interface "
+                << r["interface"];
     }
   }
 
@@ -132,7 +125,8 @@ Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       results[0].GetUnsignedLongLong("Speed", ullPlaceHolder);
       r["speed"] = INTEGER(ullPlaceHolder);
     } else {
-      s = Status(1, "Failed to enumerate extended interface details");
+      LOG(INFO) << "Failed to retrieve physical state for interface "
+                << r["interface"];
     }
   }
 
@@ -158,10 +152,10 @@ Status genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       results[0].GetVectorOfStrings("DNSServerSearchOrder", vPlaceHolder);
       r["dns_server_search_order"] = osquery::join(vPlaceHolder, ", ");
     } else {
-      s = Status(1, "Failed to enumerate extended interface details");
+      LOG(INFO) << "Failed to retrieve DHCP and DNS information for interface "
+                << r["interface"];
     }
   }
-  return s;
 }
 
 QueryData genInterfaceDetails(QueryContext& context) {
@@ -194,12 +188,7 @@ QueryData genInterfaceDetails(QueryContext& context) {
   const IP_ADAPTER_ADDRESSES* currAdapter = adapters.get();
   while (currAdapter != nullptr) {
     Row r;
-    auto s = genInterfaceDetail(currAdapter, r);
-    if (!s.ok()) {
-      // The only failure we might expect is the extended details enumeration
-      // in which we do not care to WARN
-      VLOG(1) << s.getMessage();
-    }
+    genInterfaceDetail(currAdapter, r);
     currAdapter = currAdapter->Next;
     results.push_back(r);
   }

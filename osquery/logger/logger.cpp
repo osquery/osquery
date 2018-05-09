@@ -308,6 +308,15 @@ static void deserializeIntermediateLog(const PluginRequest& request,
   }
 }
 
+inline bool logStderrOnly() {
+  // Do not write logfiles if filesystem is not included as a plugin.
+  if (Registry::get().external()) {
+    return true;
+  }
+  return Flag::getValue("logger_plugin").find("filesystem") ==
+         std::string::npos;
+}
+
 void setVerboseLevel() {
   auto default_level = google::GLOG_INFO;
   if (Initializer::isShell()) {
@@ -343,13 +352,20 @@ void setVerboseLevel() {
     FLAGS_alsologtostderr = false;
   }
 
+  if (logStderrOnly()) {
+    FLAGS_logtostderr = true;
+  }
+
   if (FLAGS_disable_logging) {
     FLAGS_logtostderr = true;
   }
 }
 
 void initStatusLogger(const std::string& name, bool init_glog) {
+#ifndef FBTHRIFT
+  // No color available when using fbthrift.
   FLAGS_colorlogtostderr = true;
+#endif
   FLAGS_logbufsecs = 0;
   FLAGS_stop_logging_if_full_disk = true;
   // The max size for individual log file is 10MB.
@@ -722,16 +738,7 @@ void relayStatusLogs(bool async) {
 }
 
 void systemLog(const std::string& line) {
-#ifdef WIN32
-  REGHANDLE registration_handle = 0;
-  if (!WindowsEventLoggerPlugin::acquireHandle(registration_handle).ok()) {
-    return;
-  }
-
-  WindowsEventLoggerPlugin::emitLogRecord(registration_handle, line);
-  WindowsEventLoggerPlugin::releaseHandle(registration_handle);
-
-#else
+#ifndef WIN32
   syslog(LOG_NOTICE, "%s", line.c_str());
 #endif
 }

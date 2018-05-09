@@ -143,7 +143,7 @@ TEST_F(PacksTests, test_discovery_cache) {
   size_t query_attemts = 5U;
   for (size_t i = 0; i < query_attemts; i++) {
     c.scheduledQueries(
-        ([&query_count](const std::string& name, const ScheduledQuery& query) {
+        ([&query_count](std::string name, const ScheduledQuery& query) {
           query_count++;
         }));
   }

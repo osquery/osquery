@@ -88,6 +88,7 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
     bool is_custom = name.find("custom_") == 0;
     if (!is_custom && Flag::getType(name).empty()) {
       LOG(WARNING) << "Cannot set unknown or invalid flag: " << name;
+      continue;
     }
 
     Flag::updateValue(name, value);

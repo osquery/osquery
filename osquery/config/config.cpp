@@ -236,7 +236,7 @@ class ConfigRefreshRunner : public InternalRunnable {
   ConfigRefreshRunner() : InternalRunnable("ConfigRefreshRunner") {}
 
   /// A simple wait/interruptible lock.
-  void start();
+  void start() override;
 
  private:
   /// The current refresh rate in seconds.
@@ -301,6 +301,11 @@ Config::Config()
     : schedule_(std::make_shared<Schedule>()),
       valid_(false),
       refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
+
+Config& Config::get() {
+  static Config instance;
+  return instance;
+}
 
 void Config::addPack(const std::string& name,
                      const std::string& source,
@@ -384,7 +389,7 @@ static inline bool blacklistExpired(size_t blt, const ScheduledQuery& query) {
 }
 
 void Config::scheduledQueries(
-    std::function<void(const std::string& name, const ScheduledQuery& query)>
+    std::function<void(std::string name, const ScheduledQuery& query)>
         predicate,
     bool blacklisted) {
   RecursiveLock lock(config_schedule_mutex_);
@@ -416,7 +421,7 @@ void Config::scheduledQueries(
       }
 
       // Call the predicate.
-      predicate(name, it.second);
+      predicate(std::move(name), it.second);
     }
   }
 }
@@ -565,7 +570,15 @@ Status Config::updateSource(const std::string& source,
       auto queries_obj = queries_doc.getObject();
 
       for (auto& query : schedule.GetArray()) {
-        std::string query_name = query["name"].GetString();
+        if (!query.IsObject()) {
+          // This is a legacy structure, and it is malformed.
+          continue;
+        }
+
+        std::string query_name;
+        if (query.HasMember("name") && query["name"].IsString()) {
+          query_name = query["name"].GetString();
+        }
         if (query_name.empty()) {
           return Status(1, "Error getting name from legacy scheduled query");
         }
@@ -649,11 +662,15 @@ void Config::applyParsers(const std::string& source,
     // For each key requested by the parser, add a property tree reference.
     std::map<std::string, JSON> parser_config;
     for (const auto& key : parser->keys()) {
-      if (obj.HasMember(key)) {
+      if (obj.HasMember(key) && !obj[key].IsNull()) {
+        if (!obj[key].IsArray() && !obj[key].IsObject()) {
+          LOG(WARNING) << "Error config " << key
+                       << " should be an array or object";
+          continue;
+        }
+
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
-      } else {
-        parser_config.emplace(std::make_pair(key, JSON::newObject()));
       }
     }
     // The config parser plugin will receive a copy of each property tree for
@@ -951,30 +968,46 @@ Status ConfigPlugin::genPack(const std::string& name,
 
 Status ConfigPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
-  if (request.count("action") == 0) {
-    return Status(1, "Config plugins require an action in PluginRequest");
+  auto action = request.find("action");
+  if (action == request.end()) {
+    return Status(1, "Config plugins require an action");
   }
 
-  if (request.at("action") == "genConfig") {
+  if (action->second == "genConfig") {
     std::map<std::string, std::string> config;
     auto stat = genConfig(config);
     response.push_back(config);
     return stat;
-  } else if (request.at("action") == "genPack") {
-    if (request.count("name") == 0 || request.count("value") == 0) {
+  } else if (action->second == "genPack") {
+    auto name = request.find("name");
+    auto value = request.find("value");
+    if (name == request.end() || value == request.end()) {
       return Status(1, "Missing name or value");
     }
+
     std::string pack;
-    auto stat = genPack(request.at("name"), request.at("value"), pack);
-    response.push_back({{request.at("name"), pack}});
+    auto stat = genPack(name->second, value->second, pack);
+    response.push_back({{name->second, pack}});
     return stat;
-  } else if (request.at("action") == "update") {
-    if (request.count("source") == 0 || request.count("data") == 0) {
+  } else if (action->second == "update") {
+    auto source = request.find("source");
+    auto data = request.find("data");
+    if (source == request.end() || data == request.end()) {
       return Status(1, "Missing source or data");
     }
-    return Config::get().update({{request.at("source"), request.at("data")}});
+
+    return Config::get().update({{source->second, data->second}});
+  } else if (action->second == "option") {
+    auto name = request.find("name");
+    if (name == request.end()) {
+      return Status(1, "Missing option name");
+    }
+
+    response.push_back(
+        {{"name", name->second}, {"value", Flag::getValue(name->second)}});
+    return Status();
   }
-  return Status(1, "Config plugin action unknown: " + request.at("action"));
+  return Status(1, "Config plugin action unknown: " + action->second);
 }
 
 Status ConfigParserPlugin::setUp() {

@@ -13,12 +13,14 @@
 #include <limits.h>
 
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <osquery/logger.h>
 #include <osquery/status.h>
 
 #ifdef DARWIN
@@ -109,6 +111,16 @@ inline void replaceAll(std::string& str,
 std::string join(const std::vector<std::string>& s, const std::string& tok);
 
 /**
+ * @brief Join a set of strings inserting a token string between elements
+ *
+ * @param s the set of strings to be joined.
+ * @param tok a token glue string to be inserted between elements.
+ *
+ * @return the joined string.
+ */
+std::string join(const std::set<std::string>& s, const std::string& tok);
+
+/**
  * @brief Decode a base64 encoded string.
  *
  * @param encoded The encode base64 string.
@@ -197,6 +209,8 @@ inline std::string unescapeUnicode(const std::string& escaped) {
       long value{0};
       Status stat = safeStrtol(escaped.substr(i + 2, 4), 16, value);
       if (!stat.ok()) {
+        LOG(WARNING) << "Unescaping a string with length: " << escaped.size()
+                     << " failed at: " << i;
         return "";
       }
       if (value < 255) {
@@ -204,6 +218,13 @@ inline std::string unescapeUnicode(const std::string& escaped) {
         i += 5;
         continue;
       }
+    } else if (i < escaped.size() - 1 && '\\' == escaped[i] &&
+               '\\' == escaped[i + 1]) {
+      // In the case of \\users 'sers' is not a unicode character
+      // If we see \\ we should skip them and we do this by adding
+      // an extra jump forward.
+      unescaped += escaped[i];
+      ++i;
     }
     unescaped += escaped[i];
   }

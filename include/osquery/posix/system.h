@@ -29,10 +29,7 @@ using DropPrivilegesRef = std::shared_ptr<DropPrivileges>;
 class DropPrivileges : private boost::noncopyable {
  public:
   /// Make call sites use 'dropTo' booleans to improve the UI.
-  static DropPrivilegesRef get() {
-    DropPrivilegesRef handle = DropPrivilegesRef(new DropPrivileges());
-    return handle;
-  }
+  static DropPrivilegesRef get();
 
   /**
    * @brief Attempt to drop privileges to that of the parent of a given path.

@@ -25,6 +25,11 @@
 #include "osquery/core/process.h"
 #include "osquery/tests/test_util.h"
 
+// Some proc* functions are only compiled when building on linux
+#ifdef __linux__
+#include "osquery/filesystem/linux/proc.h"
+#endif
+
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
@@ -428,6 +433,25 @@ TEST_F(FilesystemTests, test_safe_permissions) {
   }
 }
 
+// This will fail to link (procGetNamespaceInode) if we are not
+// compiling on linux
+#ifdef __linux__
+TEST_F(FilesystemTests, test_user_namespace_parser) {
+  auto temp_path = fs::unique_path().native();
+  EXPECT_EQ(fs::create_directory(temp_path), true);
+
+  auto symlink_path = temp_path + "/namespace";
+  EXPECT_EQ(symlink("namespace:[112233]", symlink_path.data()), 0);
+
+  ino_t namespace_inode;
+  auto status = procGetNamespaceInode(namespace_inode, "namespace", temp_path);
+  EXPECT_TRUE(status.ok());
+
+  removePath(temp_path);
+  EXPECT_EQ(namespace_inode, static_cast<ino_t>(112233));
+}
+#endif
+
 TEST_F(FilesystemTests, test_read_proc) {
   std::string content;
 
@@ -470,4 +494,4 @@ TEST_F(FilesystemTests, test_read_urandom) {
     EXPECT_NE(first, second);
   }
 }
-}
+} // namespace osquery

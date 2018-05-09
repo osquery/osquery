@@ -31,10 +31,13 @@
 #include "osquery/core/watcher.h"
 #include "osquery/devtools/devtools.h"
 #include "osquery/dispatcher/distributed.h"
+#include "osquery/dispatcher/io_service.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/main/main.h"
 #include "osquery/sql/sqlite_util.h"
+
+namespace fs = boost::filesystem;
 
 namespace osquery {
 
@@ -149,7 +152,8 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
 
   // Options for installing or uninstalling the osqueryd as a service
   if (FLAGS_install) {
-    if (!installService(argv[0])) {
+    auto binPath = fs::system_complete(fs::path(argv[0]));
+    if (!installService(binPath.string())) {
       LOG(ERROR) << "Unable to install the osqueryd service";
     }
     return 1;
@@ -166,6 +170,9 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
   // When a watchdog is used, the current daemon will fork/exec into a worker.
   // In either case the watcher may start optionally loaded extensions.
   runner.initWorkerWatcher(kWatcherWorkerName);
+
+  // Begin adhoc io service thread.
+  startIOService();
 
   if (runner.isDaemon()) {
     return startDaemon(runner);

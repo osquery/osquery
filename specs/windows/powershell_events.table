@@ -1,0 +1,19 @@
+table_name("powershell_events")
+description("Powershell script blocks reconstructed to their full script content, this table requires script block logging to be enabled.")
+schema([
+    Column("time", BIGINT, "Timestamp the event was received by the osquery event publisher"),
+    Column("datetime", TEXT, "System time at which the Powershell script event occurred"),
+    Column("script_block_id", TEXT, "The unique GUID of the powershell script to which this block belongs"),
+    Column("script_block_count", INTEGER, "The total number of script blocks for this script"),
+    Column("script_text", TEXT, "The text content of the Powershell script"),
+    Column("script_name", TEXT, "The name of the Powershell script"),
+    Column("script_path", TEXT, "The path for the Powershell script"),
+    Column("cosine_similarity", DOUBLE, "How similar the Powershell script is to a provided 'normal' character frequency"),
+])
+attributes(event_subscriber=True)
+implementation("powershell_events@PowershellEventSubscriber::genTable")
+examples([
+  "select * from powershell_events;",
+  "select * from powershell_events where script_text like '%Invoke-Mimikatz%';",
+  "select * from powershell_events where cosine_similarity < 0.25;",
+])

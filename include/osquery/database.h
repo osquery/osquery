@@ -50,6 +50,9 @@ extern const std::string kEvents;
 /// The "domain" where the results of carve queries are stored.
 extern const std::string kCarves;
 
+/// The running version of our database schema
+extern const std::string kDatabaseResultsVersion;
+
 /**
  * @brief The "domain" where buffered log results are stored.
  *
@@ -247,4 +250,18 @@ void resetDatabase();
 
 /// Allow callers to scan each column family and print each value.
 void dumpDatabase();
+
+Status ptreeToRapidJSON(const std::string& in, std::string& out);
+
+/**
+ * @brief Upgrades the legacy database json format from ptree to RapidJSON
+ *
+ * This helper function was required as Boost property trees contain json
+ * which leverages empty strings for keys in json arrays. This is incompatible
+ * with rapidjson, thus we require a converter function to upgrade any cached
+ * results in the database.
+ *
+ * @return Success status of upgrading the database
+ */
+Status upgradeDatabase();
 } // namespace osquery
