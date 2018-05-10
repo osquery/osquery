@@ -431,8 +431,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
         flag = 1LL << 63;
       }
       if ((pIdxInfo->colUsed & flag) != 0) {
-        std::string colName = std::get<0>(columns[i]);
-        colsUsed.insert(colName);
+        colsUsed.insert(std::get<0>(columns[i]));
       }
     }
   }

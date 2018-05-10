@@ -345,12 +345,8 @@ static inline long getUptimeInUSec() {
               tv.tv_usec);
 }
 
-void genProcRUsage(const QueryContext& context, int pid, Row& r) {
-  if (!context.isAnyColumnUsed({"name",
-                                "path",
-                                "cmdline",
-                                "on_disk",
-                                "wired_size",
+void genProcResourceUsage(const QueryContext& context, int pid, Row& r) {
+  if (!context.isAnyColumnUsed({"wired_size",
                                 "resident_size",
                                 "total_size",
                                 "user_time",
@@ -368,25 +364,23 @@ void genProcRUsage(const QueryContext& context, int pid, Row& r) {
   if (status == 0) {
     // size/memory information
     context.setTextColumnIfUsed(
-        r, "wired_size", TEXT(rusage_info_data.ri_wired_size));
+        r, "wired_size", rusage_info_data.ri_wired_size);
     context.setTextColumnIfUsed(
-        r, "resident_size", TEXT(rusage_info_data.ri_resident_size));
+        r, "resident_size", rusage_info_data.ri_resident_size);
     context.setTextColumnIfUsed(
-        r, "total_size", TEXT(rusage_info_data.ri_phys_footprint));
+        r, "total_size", rusage_info_data.ri_phys_footprint);
 
     // time information
     context.setTextColumnIfUsed(
-        r, "user_time", TEXT(rusage_info_data.ri_user_time / CPU_TIME_RATIO));
+        r, "user_time", rusage_info_data.ri_user_time / CPU_TIME_RATIO);
     context.setTextColumnIfUsed(
-        r,
-        "system_time",
-        TEXT(rusage_info_data.ri_system_time / CPU_TIME_RATIO));
+        r, "system_time", rusage_info_data.ri_system_time / CPU_TIME_RATIO);
 
     // disk i/o information
     context.setTextColumnIfUsed(
-        r, "disk_bytes_read", TEXT(rusage_info_data.ri_diskio_bytesread));
+        r, "disk_bytes_read", rusage_info_data.ri_diskio_bytesread);
     context.setTextColumnIfUsed(
-        r, "disk_bytes_written", TEXT(rusage_info_data.ri_diskio_byteswritten));
+        r, "disk_bytes_written", rusage_info_data.ri_diskio_byteswritten);
 
     if (context.isColumnUsed("start_time")) {
       // Initialize time conversions.
@@ -426,7 +420,7 @@ QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
   auto pidlist = getProcList(context);
-  for (auto& pid : pidlist) {
+  for (const auto& pid : pidlist) {
     Row r;
     context.setIntegerColumnIfUsed(r, "pid", pid);
 
@@ -443,7 +437,7 @@ QueryData genProcesses(QueryContext& context) {
     genProcNamePathAndOnDisk(context, pid, cred, r);
 
     // systems usage and time information
-    genProcRUsage(context, pid, r);
+    genProcResourceUsage(context, pid, r);
 
     genProcNumThreads(context, pid, r);
 
