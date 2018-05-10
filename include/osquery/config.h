@@ -99,7 +99,7 @@ class Config : private boost::noncopyable {
    *
    * @return The SHA1 hash of the osquery config
    */
-  Status genHash(std::string& hash);
+  Status genHash(std::string& hash) const;
 
   /// Retrieve the hash of a named source.
   std::string getHash(const std::string& source) const;
@@ -175,7 +175,7 @@ class Config : private boost::noncopyable {
   void scheduledQueries(
       std::function<void(std::string name, const ScheduledQuery& query)>
           predicate,
-      bool blacklisted = false);
+      bool blacklisted = false) const;
 
   /**
    * @brief Map a function across the set of configured files
@@ -193,9 +193,9 @@ class Config : private boost::noncopyable {
    *      }));
    * @endcode
    */
-  void files(
-      std::function<void(const std::string& category,
-                         const std::vector<std::string>& files)> predicate);
+  void files(std::function<void(const std::string& category,
+                                const std::vector<std::string>& files)>
+                 predicate) const;
 
   /**
    * @brief Get the performance stats for a specific query, by name
@@ -215,7 +215,7 @@ class Config : private boost::noncopyable {
    */
   void getPerformanceStats(
       const std::string& name,
-      std::function<void(const QueryPerformance& query)> predicate);
+      std::function<void(const QueryPerformance& query)> predicate) const;
 
   /**
    * @brief Helper to access config parsers via the registry
