@@ -57,12 +57,15 @@ void genPackageResults(const std::string& directory, QueryData& results) {
 
     // Manually get nested key (Author name)
     if (doc.doc().HasMember("author")) {
-      const auto& author = doc.doc()["author"]["name"];
-      r["author"] = (author.IsString()) ? author.GetString() : "";
+      const auto& author = doc.doc()["author"];
+      if (author.HasMember("name")) {
+        const auto& author_name = author["name"];
+        r["author"] = (author_name.IsString()) ? author_name.GetString() : "";
+      }
     }
 
     // Manually get license to support deprecated licence schema.
-    // In the current scheme it is a string, but in previous versions it is a
+    // In the current schema it is a string, but in previous versions it is a
     // dictionary with url and type
     if (doc.doc().HasMember("license")) {
       const auto& license = doc.doc()["license"];
@@ -72,16 +75,13 @@ void genPackageResults(const std::string& directory, QueryData& results) {
       } else {
         // If its not a string, is it a dict with 'url' ?
         if (license.HasMember("url")) {
-          const auto& license_url = doc.doc()["license"]["url"];
+          const auto& license_url = license["url"];
           if (license_url.IsString()) {
             // Fallback to displaying deprecated licence url
             r["license"] = license_url.GetString();
           }
         }
       }
-
-      const auto& author = doc.doc()["author"]["name"];
-      r["author"] = (author.IsString()) ? author.GetString() : "";
     }
 
     r["path"] = package_path;
