@@ -42,34 +42,22 @@ QueryData genBitlockerInfo(QueryContext& context) {
     r["protection_status"] = INTEGER(status);
     data.GetLong("EncryptionMethod", emethod);
     std::string emethod_str;
-    switch (emethod) {
-    case 0:
-      emethod_str = "None";
-      break;
-    case 1:
-      emethod_str = "AES_128_WITH_DIFFUSER";
-      break;
-    case 2:
-      emethod_str = "AES_256_WITH_DIFFUSER";
-      break;
-    case 3:
-      emethod_str = "AES_128";
-      break;
-    case 4:
-      emethod_str = "AES_256";
-      break;
-    case 5:
-      emethod_str = "HARDWARE_ENCRYPTION";
-      break;
-    case 6:
-      emethod_str = "XTS_AES_128";
-      break;
-    case 7:
-      emethod_str = "XTS_AES_256";
-      break;
-    default:
+    std::map<long, std::string> methods;
+
+    methods[0]="None";
+    methods[1]="AES_128_WITH_DIFFUSER";
+    methods[2]="AES_256_WITH_DIFFUSER";
+    methods[3]="AES_128";
+    methods[4]="AES_256";
+    methods[5]="HARDWARE_ENCRYPTION";
+    methods[6]="XTS_AES_128";
+    methods[7]="XTS_AES_256";
+
+    if (methods.find(emethod) != methods.end()) {
+      emethod_str = methods.find(emethod)->second;
+    }
+    else {
       emethod_str = "UNKNOWN";
-      break;
     }
     r["encryption_method"] = emethod_str;
     results.push_back(r);
