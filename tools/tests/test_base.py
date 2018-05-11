@@ -117,7 +117,7 @@ DEFAULT_CONFIG = {
         "force":
         "true",
     },
-    "schedule": {},
+    "schedule": {}
 }
 
 '''Expect CONFIG to be set during Tester.main() to a python dict.'''

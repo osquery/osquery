@@ -98,7 +98,7 @@ class PlatformProcess : private boost::noncopyable {
    * nativeHandle() do not differ).
    *
    * NOTE: In most situations, this should ideally not be used on Windows when
-   * dealing when tracking process lifetimes.
+   * dealing with tracking process lifetimes.
    */
   int pid() const;
 
@@ -139,6 +139,9 @@ class PlatformProcess : private boost::noncopyable {
 
   /// Returns the current process
   static std::shared_ptr<PlatformProcess> getCurrentProcess();
+
+  /// Returns the pid of the current process
+  static int getCurrentPid();
 
   /// Returns the launcher process (only works for worker processes)
   static std::shared_ptr<PlatformProcess> getLauncherProcess();
@@ -275,18 +278,18 @@ bool isLauncherProcessDead(PlatformProcess& launcher);
 void setToBackgroundPriority();
 
 /**
-* @brief Returns the current processes pid
-*
-* On Windows, returns the value of GetCurrentProcessId
-* and on posix platforms returns getpid()
-*/
+ * @brief Returns the current processes pid
+ *
+ * On Windows, returns the value of GetCurrentProcessId
+ * and on posix platforms returns getpid()
+ */
 int platformGetPid();
 
 /**
-* @brief Returns the current thread id
-*
-* On Windows, returns the value of GetCurrentThreadId
-* and on posix platforms returns gettid()
-*/
+ * @brief Returns the current thread id
+ *
+ * On Windows, returns the value of GetCurrentThreadId
+ * and on posix platforms returns gettid()
+ */
 int platformGetTid();
 } // namespace osquery

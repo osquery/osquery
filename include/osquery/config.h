@@ -45,10 +45,8 @@ class Config : private boost::noncopyable {
   Config();
 
  public:
-  static Config& get() {
-    static Config instance;
-    return instance;
-  };
+  /// Singleton accessor.
+  static Config& get();
 
   /**
    * @brief Update the internal config data.
@@ -163,18 +161,19 @@ class Config : private boost::noncopyable {
    * @param predicate is a function which accepts two parameters, the name of
    * the query and the ScheduledQuery struct of the queries data. predicate
    * will be called on each currently scheduled query.
+   *
    * @param blacklisted [optional] return blacklisted queries if true.
    *
    * @code{.cpp}
    *   std::map<std::string, ScheduledQuery> queries;
    *   Config::get().scheduledQueries(
-   *      ([&queries](const std::string& name, const ScheduledQuery& query) {
+   *      ([&queries](std::string name, const ScheduledQuery& query) {
    *        queries[name] = query;
    *      }));
    * @endcode
    */
   void scheduledQueries(
-      std::function<void(const std::string& name, const ScheduledQuery& query)>
+      std::function<void(std::string name, const ScheduledQuery& query)>
           predicate,
       bool blacklisted = false);
 
