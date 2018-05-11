@@ -192,8 +192,7 @@ TEST_F(ConfigTests, test_pack_noninline) {
 
   int total_packs = 0;
   // Expect the config to have recorded a pack for the inline and non-inline.
-  get().packs(
-      [&total_packs](const std::shared_ptr<Pack>& pack) { total_packs++; });
+  get().packs([&total_packs](const Pack& pack) { total_packs++; });
   EXPECT_EQ(total_packs, 2);
   rf.registry("config")->remove("test");
 }
@@ -215,30 +214,30 @@ TEST_F(ConfigTests, test_pack_restrictions) {
       {"restricted_pack", false},
   };
 
-  get().packs(([&results](std::shared_ptr<Pack>& pack) {
-    if (results[pack->getName()]) {
-      EXPECT_TRUE(pack->shouldPackExecute())
-          << "Pack " << pack->getName() << " should have executed";
+  get().packs(([&results](const Pack& pack) {
+    if (results[pack.getName()]) {
+      EXPECT_TRUE(const_cast<Pack&>(pack).shouldPackExecute())
+          << "Pack " << pack.getName() << " should have executed";
     } else {
-      EXPECT_FALSE(pack->shouldPackExecute())
-          << "Pack " << pack->getName() << " should not have executed";
+      EXPECT_FALSE(const_cast<Pack&>(pack).shouldPackExecute())
+          << "Pack " << pack.getName() << " should not have executed";
     }
   }));
 }
 
 TEST_F(ConfigTests, test_pack_removal) {
   size_t pack_count = 0;
-  get().packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
+  get().packs(([&pack_count](const Pack& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 0U);
 
   pack_count = 0;
   get().addPack("unrestricted_pack", "", getUnrestrictedPack().doc());
-  get().packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
+  get().packs(([&pack_count](const Pack& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 1U);
 
   pack_count = 0;
   get().removePack("unrestricted_pack");
-  get().packs(([&pack_count](std::shared_ptr<Pack>& pack) { pack_count++; }));
+  get().packs(([&pack_count](const Pack& pack) { pack_count++; }));
   EXPECT_EQ(pack_count, 0U);
 }
 
@@ -254,7 +253,7 @@ TEST_F(ConfigTests, test_content_update) {
   // Update, then clear, packs should have been cleared.
   get().update(config_data);
   size_t count = 0;
-  auto packCounter = [&count](std::shared_ptr<Pack>& pack) { count++; };
+  auto packCounter = [&count](const Pack& pack) { count++; };
   get().packs(packCounter);
   EXPECT_GT(count, 0U);
 
