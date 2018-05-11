@@ -260,6 +260,9 @@ Status YARAConfigParserPlugin::setUp() {
 Status YARAConfigParserPlugin::update(const std::string& source,
                                       const ParserConfig& config) {
   // The YARA config parser requested the "yara" top-level key in the config.
+  if (config.count("yara") == 0) {
+    return Status(0, "No Yara Configuration");
+  }
   const auto& yara_config = config.at("yara").doc();
 
   // Look for a "signatures" key with the group/file content.

@@ -270,9 +270,7 @@ class OsquerydTest(unittest.TestCase):
 
         if code == 0:
             code, _ = stopService(name)
-            # TODO: stopping the service with sc.exe returns error code 109
-            # however the service itself stops correctly with no zombies
-            #self.assertEqual(code, 0)
+            self.assertEqual(code, 0)
 
         test_base.expectTrue(serviceDead)
         self.assertTrue(serviceDead())
