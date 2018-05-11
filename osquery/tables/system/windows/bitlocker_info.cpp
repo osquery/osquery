@@ -44,19 +44,18 @@ QueryData genBitlockerInfo(QueryContext& context) {
     std::string emethod_str;
     std::map<long, std::string> methods;
 
-    methods[0]="None";
-    methods[1]="AES_128_WITH_DIFFUSER";
-    methods[2]="AES_256_WITH_DIFFUSER";
-    methods[3]="AES_128";
-    methods[4]="AES_256";
-    methods[5]="HARDWARE_ENCRYPTION";
-    methods[6]="XTS_AES_128";
-    methods[7]="XTS_AES_256";
+    methods[0] = "None";
+    methods[1] = "AES_128_WITH_DIFFUSER";
+    methods[2] = "AES_256_WITH_DIFFUSER";
+    methods[3] = "AES_128";
+    methods[4] = "AES_256";
+    methods[5] = "HARDWARE_ENCRYPTION";
+    methods[6] = "XTS_AES_128";
+    methods[7] = "XTS_AES_256";
 
     if (methods.find(emethod) != methods.end()) {
       emethod_str = methods.find(emethod)->second;
-    }
-    else {
+    } else {
       emethod_str = "UNKNOWN";
     }
     r["encryption_method"] = emethod_str;
