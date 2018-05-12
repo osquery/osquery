@@ -217,22 +217,17 @@ Status Distributed::acceptWork(const std::string& work) {
       }
     }
   }
-
   if (doc.doc().HasMember("accelerate")) {
     const auto& accelerate = doc.doc()["accelerate"];
-    if (accelerate.IsString()) {
-      auto new_time = std::string(accelerate.GetString());
-      unsigned long duration = 0;
-      Status conversion = safeStrtoul(new_time, 10, duration);
-      if (conversion.ok()) {
-        LOG(INFO) << "Accelerating distributed query checkins for " << duration
-                  << " seconds";
-        setDatabaseValue(kPersistentSettings,
-                         "distributed_accelerate_checkins_expire",
-                         std::to_string(getUnixTime() + duration));
-      } else {
-        LOG(WARNING) << "Failed to Accelerate: Timeframe is not an integer";
-      }
+    if (accelerate.IsInt()) {
+      auto duration = accelerate.GetInt();
+      LOG(INFO) << "Accelerating distributed query checkins for " << duration
+                << " seconds";
+      setDatabaseValue(kPersistentSettings,
+                       "distributed_accelerate_checkins_expire",
+                       std::to_string(getUnixTime() + duration));
+    } else {
+      VLOG(1) << "Falied to Accelerate: Timeframe is not an integer";
     }
   }
   return Status();

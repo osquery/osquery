@@ -155,7 +155,7 @@ function New-MsiPackage() {
     Name='osquery'
     Manufacturer='Facebook'
 '@
-$wix += "`nId='$(New-Guid)'`n"
+$wix += "`n    Id='$(New-Guid)'`n"
 $wix +=
 @'
     UpgradeCode='$(var.OsqueryUpgradeCode)'
@@ -626,7 +626,7 @@ function Main() {
     $version = $latest + '-' + $version.split('-')[2]
   }
   # Strip off potential carriage return or newline from version string
-  $version = $version.trim()
+  $version = $latest.trim()
 
   if ($InstallType.ToLower() -eq 'msi') {
     Write-Host '[*] Building osquery MSI' -ForegroundColor Cyan
@@ -640,7 +640,7 @@ function Main() {
                    -certsPath $certs `
                    -flagsPath $FlagFilePath `
                    -configPath $ConfigFilePath `
-                   -version $latest `
+                   -version $version `
                    -extras $Extras
   } else {
     Write-Host '[*] Building osquery Chocolatey package' -ForegroundColor Cyan

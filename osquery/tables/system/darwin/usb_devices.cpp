@@ -51,6 +51,11 @@ void genUSBDevice(const io_service_t& device, QueryData& results) {
   r["vendor_id"] = getIOKitProperty(details, "idVendor");
   r["version"] = decodeUSBBCD(getNumIOKitProperty(details, "bcdDevice"));
 
+  r["class"] =
+      std::to_string(getNumIOKitProperty(details, "bDeviceClass") & 0xFF);
+  r["subclass"] =
+      std::to_string(getNumIOKitProperty(details, "bDeviceSubClass") & 0xFF);
+
   r["serial"] = getIOKitProperty(details, "USB Serial Number");
   if (r.at("serial").size() == 0) {
     r["serial"] = getIOKitProperty(details, "iSerialNumber");

@@ -27,6 +27,7 @@ extended_schema(WINDOWS, [
     Column("enabled", INTEGER, "Indicates whether the adapter is enabled or not."),
     Column("physical_adapter", INTEGER, "Indicates whether the adapter is a physical or a logical adapter."),
     Column("speed", INTEGER, "Estimate of the current bandwidth in bits per second."),
+    Column("service", TEXT, "The name of the service the network adapter uses."),
     Column("dhcp_enabled", INTEGER, "If TRUE, the dynamic host configuration protocol (DHCP) server automatically assigns an IP address to the computer system when establishing a network connection."),
     Column("dhcp_lease_expires", TEXT, "Expiration date and time for a leased IP address that was assigned to the computer by the dynamic host configuration protocol (DHCP) server."),
     Column("dhcp_lease_obtained", TEXT, "Date and time the lease was obtained for the IP address assigned to the computer by the dynamic host configuration protocol (DHCP) server."),

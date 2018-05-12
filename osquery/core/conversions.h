@@ -20,6 +20,7 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <osquery/logger.h>
 #include <osquery/status.h>
 
 #ifdef DARWIN
@@ -208,6 +209,8 @@ inline std::string unescapeUnicode(const std::string& escaped) {
       long value{0};
       Status stat = safeStrtol(escaped.substr(i + 2, 4), 16, value);
       if (!stat.ok()) {
+        LOG(WARNING) << "Unescaping a string with length: " << escaped.size()
+                     << " failed at: " << i;
         return "";
       }
       if (value < 255) {
@@ -215,6 +218,13 @@ inline std::string unescapeUnicode(const std::string& escaped) {
         i += 5;
         continue;
       }
+    } else if (i < escaped.size() - 1 && '\\' == escaped[i] &&
+               '\\' == escaped[i + 1]) {
+      // In the case of \\users 'sers' is not a unicode character
+      // If we see \\ we should skip them and we do this by adding
+      // an extra jump forward.
+      unescaped += escaped[i];
+      ++i;
     }
     unescaped += escaped[i];
   }

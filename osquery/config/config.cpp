@@ -236,7 +236,7 @@ class ConfigRefreshRunner : public InternalRunnable {
   ConfigRefreshRunner() : InternalRunnable("ConfigRefreshRunner") {}
 
   /// A simple wait/interruptible lock.
-  void start();
+  void start() override;
 
  private:
   /// The current refresh rate in seconds.
@@ -301,6 +301,11 @@ Config::Config()
     : schedule_(std::make_shared<Schedule>()),
       valid_(false),
       refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
+
+Config& Config::get() {
+  static Config instance;
+  return instance;
+}
 
 void Config::addPack(const std::string& name,
                      const std::string& source,
@@ -384,9 +389,9 @@ static inline bool blacklistExpired(size_t blt, const ScheduledQuery& query) {
 }
 
 void Config::scheduledQueries(
-    std::function<void(const std::string& name, const ScheduledQuery& query)>
+    std::function<void(std::string name, const ScheduledQuery& query)>
         predicate,
-    bool blacklisted) {
+    bool blacklisted) const {
   RecursiveLock lock(config_schedule_mutex_);
   for (PackRef& pack : *schedule_) {
     for (auto& it : pack->getSchedule()) {
@@ -416,7 +421,7 @@ void Config::scheduledQueries(
       }
 
       // Call the predicate.
-      predicate(name, it.second);
+      predicate(std::move(name), it.second);
     }
   }
 }
@@ -565,7 +570,15 @@ Status Config::updateSource(const std::string& source,
       auto queries_obj = queries_doc.getObject();
 
       for (auto& query : schedule.GetArray()) {
-        std::string query_name = query["name"].GetString();
+        if (!query.IsObject()) {
+          // This is a legacy structure, and it is malformed.
+          continue;
+        }
+
+        std::string query_name;
+        if (query.HasMember("name") && query["name"].IsString()) {
+          query_name = query["name"].GetString();
+        }
         if (query_name.empty()) {
           return Status(1, "Error getting name from legacy scheduled query");
         }
@@ -650,10 +663,14 @@ void Config::applyParsers(const std::string& source,
     std::map<std::string, JSON> parser_config;
     for (const auto& key : parser->keys()) {
       if (obj.HasMember(key) && !obj[key].IsNull()) {
+        if (!obj[key].IsArray() && !obj[key].IsObject()) {
+          LOG(WARNING) << "Error config " << key
+                       << " should be an array or object";
+          continue;
+        }
+
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
-      } else {
-        parser_config.emplace(std::make_pair(key, JSON::newObject()));
       }
     }
     // The config parser plugin will receive a copy of each property tree for
@@ -874,7 +891,7 @@ void Config::recordQueryStart(const std::string& name) {
 
 void Config::getPerformanceStats(
     const std::string& name,
-    std::function<void(const QueryPerformance& query)> predicate) {
+    std::function<void(const QueryPerformance& query)> predicate) const {
   if (performance_.count(name) > 0) {
     RecursiveLock lock(config_performance_mutex_);
     predicate(performance_.at(name));
@@ -892,7 +909,7 @@ bool Config::hashSource(const std::string& source, const std::string& content) {
   return true;
 }
 
-Status Config::genHash(std::string& hash) {
+Status Config::genHash(std::string& hash) const {
   WriteLock lock(config_hash_mutex_);
   if (!valid_) {
     return Status(1, "Current config is not valid");
@@ -932,9 +949,9 @@ const std::shared_ptr<ConfigParserPlugin> Config::getParser(
   return std::dynamic_pointer_cast<ConfigParserPlugin>(plugin);
 }
 
-void Config::files(
-    std::function<void(const std::string& category,
-                       const std::vector<std::string>& files)> predicate) {
+void Config::files(std::function<void(const std::string& category,
+                                      const std::vector<std::string>& files)>
+                       predicate) const {
   RecursiveLock lock(config_files_mutex_);
   for (const auto& it : files_) {
     for (const auto& category : it.second) {

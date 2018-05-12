@@ -26,7 +26,7 @@ namespace osquery {
  * This disconnect of install flows is a limitation. The POSIX install flows
  * should be refactored into install/uninstall service methods.
  */
-Status installService(const char* const path);
+Status installService(const std::string& path);
 
 /// See installService.
 Status uninstallService();

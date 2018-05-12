@@ -56,6 +56,10 @@ function main() {
   echo "[+] Downloading $PACKAGE"
   DARWIN=$(curl $PACKAGE | shasum -a 256 | awk '{print $1}')
 
+  PACKAGE="$URL/windows/osquery-$VERSION.msi"
+  echo "[+] Downloading $PACKAGE"
+  WINDOWS=$(curl $PACKAGE | shasum -a 256 | awk '{print $1}')
+
   PACKAGE="$URL/darwin/osquery-debug-$VERSION.pkg"
   echo "[+] Downloading $PACKAGE"
   DEBUG_DARWIN=$(curl $PACKAGE | shasum -a 256 | awk '{print $1}')
@@ -98,6 +102,12 @@ function main() {
         "package": "osquery_$VERSION_1.linux.amd64.deb",
         "content": "$DEB",
         "url": "https://pkg.osquery.io/deb/osquery_$VERSION_1.linux.amd64.deb"
+      },
+      {
+        "type": "Windows",
+        "package": "osquery-$VERSION.msi",
+        "content": "$WINDOWS",
+        "url": "https://pkg.osquery.io/windows/osquery-$VERSION.msi"
       }
     ],
     "debug": [
