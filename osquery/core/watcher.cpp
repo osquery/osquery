@@ -439,7 +439,12 @@ QueryData WatcherRunner::getProcessRow(pid_t pid) const {
 #ifdef WIN32
   p = (pid == ULONG_MAX) ? -1 : pid;
 #endif
-  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(p));
+  return SQL::selectFrom(
+      {"parent", "user_time", "system_time", "resident_size"},
+      "processes",
+      "pid",
+      EQUALS,
+      INTEGER(p));
 }
 
 Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
@@ -507,8 +512,11 @@ void WatcherRunner::createWorker() {
   }
 
   // Get the path of the current process.
-  auto qd = SQL::selectAllFrom(
-      "processes", "pid", EQUALS, INTEGER(PlatformProcess::getCurrentPid()));
+  auto qd = SQL::selectFrom({"path"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            INTEGER(PlatformProcess::getCurrentPid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
     LOG(ERROR) << "osquery watcher cannot determine process path for worker";
     Initializer::requestShutdown(EXIT_FAILURE);
