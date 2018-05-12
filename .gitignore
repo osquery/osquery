@@ -61,6 +61,11 @@ doxygen/latex
 *.swp
 *.vscode
 
+# Tags
+tags
+cscope.files
+cscope.out
+
 # Ignored components
 /external/*
 !/external/CMakeLists.txt

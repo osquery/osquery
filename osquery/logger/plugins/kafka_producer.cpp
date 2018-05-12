@@ -43,6 +43,12 @@ FLAG(string,
      "all",
      "The number of acknowledgments the leader has to receive (0, 1, 'all')");
 
+FLAG(
+    string,
+    logger_kafka_compression,
+    "none",
+    "Compression codec to use for compressing message sets ('none' or 'gzip')");
+
 /// How often to poll Kafka broker for publish results.
 const std::chrono::seconds kKafkaPollDuration = std::chrono::seconds(5);
 
@@ -72,8 +78,8 @@ static inline void delKafkaConf(rd_kafka_conf_t* conf) {
 
 static inline bool setConf(rd_kafka_conf_t* conf,
                            const std::string& key,
-                           const std::string& value,
-                           char* errstr) {
+                           const std::string& value) {
+  char errstr[512] = {0};
   if (!value.empty() &&
       rd_kafka_conf_set(
           conf, key.c_str(), value.c_str(), errstr, sizeof(errstr)) !=
@@ -163,9 +169,6 @@ void KafkaProducerPlugin::init(const std::string& name,
 
   msgKey_ = hostname + "_" + name;
 
-  // Configure Kafka producer.
-  char errstr[512] = {0};
-
   /* Per rd_kafka.h in describing `rd_kafka_new`: "The \p conf object is freed
    * by this function on success and must not be used". Therefore we only
    * explicitly delete until that function is called.
@@ -173,23 +176,23 @@ void KafkaProducerPlugin::init(const std::string& name,
   auto conf = rd_kafka_conf_new();
 
   if (FLAGS_verbose) {
-    setConf(conf, "debug", "all", errstr);
+    setConf(conf, "debug", "all");
   }
 
   if (!boost::algorithm::ifind_first(FLAGS_logger_kafka_brokers, "ssl://")
            .empty()) {
-    if (!setConf(conf, "security.protocol", "ssl", errstr) ||
-        !setConf(conf, "ssl.cipher.suites", kTLSCiphers, errstr) ||
-        !setConf(conf, "ssl.ca.location", FLAGS_tls_server_certs, errstr) ||
-        !setConf(conf, "ssl.key.location", FLAGS_tls_client_key, errstr) ||
-        !setConf(
-            conf, "ssl.certificate.location", FLAGS_tls_client_cert, errstr)) {
+    if (!setConf(conf, "security.protocol", "ssl") ||
+        !setConf(conf, "ssl.cipher.suites", kTLSCiphers) ||
+        !setConf(conf, "ssl.ca.location", FLAGS_tls_server_certs) ||
+        !setConf(conf, "ssl.key.location", FLAGS_tls_client_key) ||
+        !setConf(conf, "ssl.certificate.location", FLAGS_tls_client_cert)) {
       return;
     }
   }
 
-  if (!setConf(conf, "client.id", hostname, errstr) ||
-      !setConf(conf, "bootstrap.servers", FLAGS_logger_kafka_brokers, errstr)) {
+  if (!setConf(conf, "client.id", hostname) ||
+      !setConf(conf, "bootstrap.servers", FLAGS_logger_kafka_brokers) ||
+      !setConf(conf, "compression.codec", FLAGS_logger_kafka_compression)) {
     return;
   }
 
@@ -197,6 +200,7 @@ void KafkaProducerPlugin::init(const std::string& name,
   rd_kafka_conf_set_dr_msg_cb(conf, onMsgDelivery);
 
   // Create producer handle.
+  char errstr[512] = {0};
   std::unique_ptr<rd_kafka_t, std::function<void(rd_kafka_t*)>> rk(
       rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr)),
       delKafkaHandle);

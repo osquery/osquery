@@ -23,6 +23,11 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_config_parsers
   ${OSQUERY_CONFIG_PARSERS}
 )
 
+file(GLOB OSQUERY_ADDITIONAL_CONFIG_PARSERS "additional_parsers/*.cpp")
+ADD_OSQUERY_LIBRARY(FALSE osquery_additional_config_parsers
+  ${OSQUERY_ADDITIONAL_CONFIG_PARSERS}
+)
+
 file(GLOB OSQUERY_CONFIG_TESTS "tests/config_tests.cpp")
 ADD_OSQUERY_TEST(TRUE ${OSQUERY_CONFIG_TESTS})
 

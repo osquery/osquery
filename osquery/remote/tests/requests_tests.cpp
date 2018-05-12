@@ -30,7 +30,7 @@ class MockTransport : public Transport {
   }
 
   Status sendRequest(const std::string& params, bool compress) override {
-    response_params_.put<std::string>("foo", "baz");
+    response_params_.add("foo", "baz");
     response_status_ = Status(0, "OK");
     return response_status_;
   }
@@ -42,13 +42,11 @@ class MockSerializer : public Serializer {
     return "mock";
   }
 
-  Status serialize(const boost::property_tree::ptree& params,
-                   std::string& serialized) {
+  Status serialize(const JSON& params, std::string& serialized) {
     return Status(0, "OK");
   }
 
-  Status deserialize(const std::string& serialized,
-                     boost::property_tree::ptree& params) {
+  Status deserialize(const std::string& serialized, JSON& params) {
     return Status(0, "OK");
   }
 };
@@ -75,31 +73,31 @@ TEST_F(RequestsTests, test_url) {
 }
 
 TEST_F(RequestsTests, test_call) {
-  auto req = Request<MockTransport, MockSerializer>("foobar");
+  Request<MockTransport, MockSerializer> req("foobar");
   auto s1 = req.call();
   EXPECT_TRUE(s1.ok());
 
-  boost::property_tree::ptree params;
+  JSON params;
   auto s2 = req.getResponse(params);
   EXPECT_TRUE(s2.ok());
-  boost::property_tree::ptree empty_ptree;
-  EXPECT_EQ(params, empty_ptree);
+  JSON empty;
+  EXPECT_EQ(params.doc(), empty.doc());
 }
 
 TEST_F(RequestsTests, test_call_with_params) {
-  auto req = Request<MockTransport, MockSerializer>("foobar");
-  boost::property_tree::ptree params;
-  params.put<std::string>("foo", "bar");
+  Request<MockTransport, MockSerializer> req("foobar");
+  JSON params;
+  params.add("foo", "bar");
   auto s1 = req.call(params);
   EXPECT_TRUE(s1.ok());
 
-  boost::property_tree::ptree recv;
+  JSON recv;
   auto s2 = req.getResponse(recv);
   EXPECT_TRUE(s2.ok());
 
-  boost::property_tree::ptree expected;
-  expected.put<std::string>("foo", "baz");
-  EXPECT_EQ(recv, expected);
+  JSON expected;
+  expected.add("foo", "baz");
+  EXPECT_EQ(recv.doc(), expected.doc());
 }
 
 class CopyTransport : public Transport {
@@ -122,20 +120,22 @@ class CopySerializer : public Serializer {
     return "copy";
   }
 
-  Status serialize(const boost::property_tree::ptree& params,
-                   std::string& serialized) {
-    serialized = params.get("copy", "");
+  Status serialize(const JSON& params, std::string& serialized) {
+    auto it = params.doc().FindMember("copy");
+    serialized = (it != params.doc().MemberEnd() && it->value.IsString()
+                      ? it->value.GetString()
+                      : "");
+
     return Status(0, "OK");
   }
 
-  Status deserialize(const std::string& serialized,
-                     boost::property_tree::ptree& params) {
+  Status deserialize(const std::string& serialized, JSON& params) {
     return Status(0, "OK");
   }
 };
 
 TEST_F(RequestsTests, test_compression) {
-  auto req = Request<CopyTransport, CopySerializer>("foobar");
+  Request<CopyTransport, CopySerializer> req("foobar");
 
   // Ask the request to compress the output from serialization.
   req.setOption("compress", true);
@@ -146,8 +146,8 @@ TEST_F(RequestsTests, test_compression) {
   }
 
   // Our special 'copy' serializer copies input from the 'copy' key in params.
-  boost::property_tree::ptree params;
-  params.put<std::string>("copy", uncompressed);
+  JSON params;
+  params.add("copy", uncompressed);
 
   // Similarly, the 'copy' transport copies the request params into the
   // response status.
@@ -157,15 +157,15 @@ TEST_F(RequestsTests, test_compression) {
   auto compressed = status.getMessage();
 
   /*
-   * gzip header has a field that specifies the filesystem the compression took
-   * place, we need to separate this for NTFS and Unix
+   * gzip header has a field that specifies the OS the library was built on
+   * we need to skip the 10th byte (index 9) while comparing compressed results
    *
    * Reference: http://www.zlib.org/rfc-gzip.html
+   * https://github.com/madler/zlib/blob/master/zutil.h#L86
    */
 
-  std::string expected("\x1F\x8B\b\0\0\0\0\0\x2", 9);
-  expected += isPlatform(PlatformType::TYPE_WINDOWS) ? "\v" : "\x3";
-  expected += std::string(
+  std::string expected1("\x1F\x8B\b\0\0\0\0\0\x2", 9);
+  std::string expected2(
       "\xED\xC4\xB1\r\0\0\x4\0\xB0s\xC5"
       "b\xC0\xFFq\x84\xB5\x1D:"
       "\xDBY1\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB"
@@ -173,7 +173,8 @@ TEST_F(RequestsTests, test_compression) {
       "1j\xA0\xA8\0`\0\0",
       68);
 
-  EXPECT_EQ(compressed, expected);
+  EXPECT_EQ(compressed.substr(0, 9), expected1);
+  EXPECT_EQ(compressed.substr(10), expected2);
   EXPECT_LT(compressed.size(), uncompressed.size());
 }
 }

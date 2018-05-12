@@ -32,6 +32,7 @@
 #include <ctime>
 #include <sstream>
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
@@ -85,6 +86,13 @@ FLAG(string,
      "Field used to specify the host_identifier when set to \"specified\"");
 
 FLAG(bool, utc, true, "Convert all UNIX times to UTC");
+
+const std::vector<std::string> kPlaceholderHardwareUUIDList{
+    "00000000-0000-0000-0000-000000000000",
+    "03000200-0400-0500-0006-000700080009",
+    "03020100-0504-0706-0809-0a0b0c0d0e0f",
+    "10000000-0000-8000-0040-000000000000",
+};
 
 #ifdef WIN32
 struct tm* gmtime_r(time_t* t, struct tm* result) {
@@ -155,6 +163,14 @@ std::string generateNewUUID() {
   return boost::uuids::to_string(uuid);
 }
 
+bool isPlaceholderHardwareUUID(const std::string& uuid) {
+  std::string lower_uuid = boost::to_lower_copy(uuid);
+
+  return std::find(kPlaceholderHardwareUUIDList.begin(),
+                   kPlaceholderHardwareUUIDList.end(),
+                   lower_uuid) != kPlaceholderHardwareUUIDList.end();
+}
+
 std::string generateHostUUID() {
   std::string hardware_uuid;
 #ifdef __APPLE__
@@ -184,12 +200,20 @@ std::string generateHostUUID() {
   boost::algorithm::trim(hardware_uuid);
   if (!hardware_uuid.empty()) {
     // Construct a new string to remove trailing nulls.
-    return std::string(hardware_uuid.c_str());
+    hardware_uuid = std::string(hardware_uuid.c_str());
   }
 
-  // Unable to get the hardware UUID, just return a new UUID
-  VLOG(1) << "Failed to read system uuid, returning ephemeral uuid";
-  return generateNewUUID();
+  // Check whether the UUID is valid. If not generate an ephemeral UUID.
+  if (hardware_uuid.empty()) {
+    VLOG(1) << "Failed to read system uuid, returning ephemeral uuid";
+    return generateNewUUID();
+  } else if (isPlaceholderHardwareUUID(hardware_uuid)) {
+    VLOG(1) << "Hardware uuid '" << hardware_uuid
+            << "' is a placeholder, returning ephemeral uuid";
+    return generateNewUUID();
+  } else {
+    return hardware_uuid;
+  }
 }
 
 Status getInstanceUUID(std::string& ident) {
@@ -372,8 +396,7 @@ Status createPidFile() {
   }
 
   // If no pidfile exists or the existing pid was stale, write, log, and run.
-  auto pid = boost::lexical_cast<std::string>(
-      PlatformProcess::getCurrentProcess()->pid());
+  auto pid = std::to_string(PlatformProcess::getCurrentPid());
   VLOG(1) << "Writing osqueryd pid (" << pid << ") to "
           << pidfile_path.string();
   auto status = writeTextFile(pidfile_path, pid, 0644);
@@ -408,6 +431,11 @@ static inline bool ownerFromResult(const Row& row, long& uid, long& gid) {
     return false;
   }
   return true;
+}
+
+DropPrivilegesRef DropPrivileges::get() {
+  DropPrivilegesRef handle = DropPrivilegesRef(new DropPrivileges());
+  return handle;
 }
 
 bool DropPrivileges::dropToParent(const fs::path& path) {
@@ -532,4 +560,29 @@ DropPrivileges::~DropPrivileges() {
   }
 }
 #endif
+
+bool checkPlatform(const std::string& platform) {
+  if (platform.empty() || platform == "null") {
+    return true;
+  }
+
+  if (platform.find("any") != std::string::npos ||
+      platform.find("all") != std::string::npos) {
+    return true;
+  }
+
+  auto linux_type = (platform.find("linux") != std::string::npos ||
+                     platform.find("ubuntu") != std::string::npos ||
+                     platform.find("centos") != std::string::npos);
+  if (linux_type && isPlatform(osquery::PlatformType::TYPE_LINUX)) {
+    return true;
+  }
+
+  auto posix_type = (platform.find("posix") != std::string::npos);
+  if (posix_type && isPlatform(osquery::PlatformType::TYPE_POSIX)) {
+    return true;
+  }
+
+  return (platform.find(osquery::kSDKPlatform) != std::string::npos);
 }
+} // namespace osquery

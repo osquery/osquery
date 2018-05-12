@@ -87,7 +87,7 @@ TEST_F(TLSConfigTests, test_retrieve_config) {
   Config c;
   c.load();
 
-  EXPECT_EQ("d9b4a05d914c81a1ed4ce129928e2d9a0309c753",
+  EXPECT_EQ("6f1980704cb3fd0c902a8a1107f65c59016c5dd2",
             c.getHash("tls_plugin"));
 
   // Configure the plugin to use the node API.
@@ -141,14 +141,14 @@ TEST_F(TLSConfigTests, test_setup) {
   ASSERT_TRUE(status.ok());
 
   // Verify that the setup call resulted in no remote requests.
-  pt::ptree response_tree;
+  JSON response_tree;
   std::string test_read_uri =
       "https://" + Flag::getValue("tls_hostname") + "/test_read_requests";
 
-  auto request = Request<TLSTransport, JSONSerializer>(test_read_uri);
+  Request<TLSTransport, JSONSerializer> request(test_read_uri);
   request.setOption("hostname", Flag::getValue("tls_hostname"));
 
-  status = request.call(pt::ptree());
+  status = request.call(JSON());
   ASSERT_TRUE(status.ok());
 
   status = request.getResponse(response_tree);
@@ -156,7 +156,7 @@ TEST_F(TLSConfigTests, test_setup) {
 
   // TLSConfigPlugin should *not* have sent an enroll or any other TLS request
   // It should have used the cached-key
-  EXPECT_EQ(response_tree.size(), 0UL);
+  EXPECT_EQ(response_tree.doc().Size(), 0UL);
 
   status = getDatabaseValue(kPersistentSettings, "nodeKey", db_value);
   ASSERT_TRUE(status.ok());
@@ -177,17 +177,23 @@ TEST_F(TLSConfigTests, test_setup) {
   EXPECT_STRNE(db_value.c_str(), "CachedKey");
 
   // Make sure TLSConfigPlugin called enroll
-  status = request.call(pt::ptree());
+  status = request.call(JSON());
   ASSERT_TRUE(status.ok());
 
   status = request.getResponse(response_tree);
   ASSERT_TRUE(status.ok());
 
   // There should only be one command that should have been posted - an enroll
-  EXPECT_EQ(response_tree.size(), 1UL);
+  EXPECT_EQ(response_tree.doc().Size(), 1UL);
+
+  auto const& obj = response_tree.doc()[0];
+  ASSERT_TRUE(obj.IsObject());
+
+  ASSERT_TRUE(obj.HasMember("command"));
+  ASSERT_TRUE(obj["command"].IsString());
 
   // Verify that it is indeed Enroll
-  db_value = response_tree.get<std::string>(".command");
+  db_value = obj["command"].GetString();
   EXPECT_STREQ(db_value.c_str(), "enroll");
 }
 }

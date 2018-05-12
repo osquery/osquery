@@ -12,6 +12,7 @@
 
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
+#include <osquery/system.h>
 
 #include "osquery/remote/requests.h"
 #include "osquery/remote/transports/tls.h"
@@ -32,7 +33,7 @@ DECLARE_bool(disable_reenrollment);
  * There are many static functions in this class that have very similar
  * behavior, which allow them to be used in many context. Some methods accept
  * parameters, some don't require them. Some have built-in retry logic, some
- * don't. Some return results in a ptree, some return results in JSON, etc.
+ * don't.
  */
 class TLSRequestHelper : private boost::noncopyable {
  public:
@@ -66,17 +67,18 @@ class TLSRequestHelper : private boost::noncopyable {
    * @brief Send a TLS request
    *
    * @param uri is the URI to send the request to
-   * @param params is a ptree of the params to send to the server. This isn't
-   * const because it will be modified to include node_key.
-   * @param output is the ptree which will be populated with the deserialized
+   * @param params is a JSON object containing the params to send to the server.
+   * This isn't const because it will be modified to include node_key.
+   * @param output is the JSON which will be populated with the deserialized
    * results
    *
    * @return a Status object indicating the success or failure of the operation
    */
   template <class TSerializer>
-  static Status go(const std::string& uri,
-                   boost::property_tree::ptree& params,
-                   boost::property_tree::ptree& output) {
+  static Status go(const std::string& uri, JSON& params, JSON& output) {
+    auto& params_doc = params.doc();
+    auto& output_doc = output.doc();
+
     auto node_key = getNodeKey("tls");
 
     // If using a GET request, append the node_key to the URI variables.
@@ -84,42 +86,47 @@ class TLSRequestHelper : private boost::noncopyable {
     if (FLAGS_tls_node_api) {
       uri_suffix = "&node_key=" + node_key;
     } else {
-      params.put<std::string>("node_key", node_key);
+      params.add("node_key", node_key);
     }
 
     // Again check for GET to call with/without parameters.
-    auto request = Request<TLSTransport, TSerializer>(uri + uri_suffix);
+    Request<TLSTransport, TSerializer> request(uri + uri_suffix);
     request.setOption("hostname", FLAGS_tls_hostname);
 
     bool compress = false;
-    if (params.count("_compress")) {
+    auto it = params_doc.FindMember("_compress");
+    if (it != params_doc.MemberEnd()) {
       compress = true;
-      request.setOption("compress", true);
-      params.erase("_compress");
+      request.setOption("compress", compress);
+      params_doc.RemoveMember("_compress");
     }
 
     // The caller-supplied parameters may force a POST request.
     bool force_post = false;
-    if (params.count("_verb")) {
-      force_post = (params.get<std::string>("_verb") == "POST");
-      params.erase("_verb");
+    it = params_doc.FindMember("_verb");
+    if (it != params_doc.MemberEnd()) {
+      assert(it->value.IsString());
+
+      force_post = std::string(it->value.GetString()) == "POST";
+      params_doc.RemoveMember("_verb");
     }
 
     bool use_post = true;
-    if (params.count("_get")) {
+    it = params_doc.FindMember("_get");
+    if (it != params_doc.MemberEnd()) {
       use_post = false;
-      params.erase("_get");
+      params_doc.RemoveMember("_get");
     }
     bool should_post = (use_post || force_post);
     auto status = (should_post) ? request.call(params) : request.call();
 
     // Restore caller-supplied parameters.
     if (force_post) {
-      params.put("_verb", "POST");
+      params.add("_verb", "POST");
     }
 
     if (compress) {
-      params.put("_compress", true);
+      params.add("_compress", true);
     }
 
     if (!status.ok()) {
@@ -133,23 +140,36 @@ class TLSRequestHelper : private boost::noncopyable {
     }
 
     // Receive config or key rejection
-    if (output.count("node_invalid") > 0) {
-      auto invalid = output.get("node_invalid", "");
-      if (invalid == "1" || invalid == "true" || invalid == "True") {
+    it = output_doc.FindMember("node_invalid");
+    if (it != output_doc.MemberEnd()) {
+      assert(it->value.IsBool());
+
+      if (it->value.GetBool()) {
         if (!FLAGS_disable_reenrollment) {
           clearNodeKey();
         }
 
         std::string message = "Request failed: Invalid node key";
-        if (output.count("error") > 0) {
-          message += ": " + output.get("error", "<unknown>");
+
+        it = output_doc.FindMember("error");
+        if (it != output_doc.MemberEnd()) {
+          message +=
+              ": " + std::string(it->value.IsString() ? it->value.GetString()
+                                                      : "<unknown>");
         }
+
         return Status(1, message);
       }
     }
 
-    if (output.count("error") > 0) {
-      return Status(1, "Request failed: " + output.get("error", "<unknown>"));
+    it = output_doc.FindMember("error");
+    if (it != output_doc.MemberEnd()) {
+      std::string message =
+          "Request failed: " + std::string(it->value.IsString()
+                                               ? it->value.GetString()
+                                               : "<unknown>");
+
+      return Status(1, message);
     }
 
     return Status(0, "OK");
@@ -159,15 +179,14 @@ class TLSRequestHelper : private boost::noncopyable {
    * @brief Send a TLS request
    *
    * @param uri is the URI to send the request to
-   * @param output is a ptree of the output from the server
+   * @param output is a JSON object containing the output from the server
    *
    * @return a Status object indicating the success or failure of the operation
    */
   template <class TSerializer>
-  static Status go(const std::string& uri,
-                   boost::property_tree::ptree& output) {
-    boost::property_tree::ptree params;
-    params.put("_get", true);
+  static Status go(const std::string& uri, JSON& output) {
+    JSON params;
+    params.add("_get", true);
     return TLSRequestHelper::go<TSerializer>(uri, params, output);
   }
 
@@ -175,18 +194,16 @@ class TLSRequestHelper : private boost::noncopyable {
    * @brief Send a TLS request
    *
    * @param uri is the URI to send the request to
-   * @param params is a ptree of the params to send to the server. This isn't
-   * const because it will be modified to include node_key.
+   * @param params is a JSON object containing the params to send to the server.
+   * This isn't const because it will be modified to include node_key.
    * @param output is the string which will be populated with the deserialized
    * results
    *
    * @return a Status object indicating the success or failure of the operation
    */
   template <class TSerializer>
-  static Status go(const std::string& uri,
-                   boost::property_tree::ptree& params,
-                   std::string& output) {
-    boost::property_tree::ptree recv;
+  static Status go(const std::string& uri, JSON& params, std::string& output) {
+    JSON recv;
     auto s = TLSRequestHelper::go<TSerializer>(uri, params, recv);
     if (s.ok()) {
       auto serializer = TSerializer();
@@ -206,8 +223,8 @@ class TLSRequestHelper : private boost::noncopyable {
    */
   template <class TSerializer>
   static Status go(const std::string& uri, std::string& output) {
-    boost::property_tree::ptree params;
-    params.put("_get", true);
+    JSON params;
+    params.add("_get", true);
     return TLSRequestHelper::go<TSerializer>(uri, params, output);
   }
 
@@ -215,8 +232,8 @@ class TLSRequestHelper : private boost::noncopyable {
    * @brief Send a TLS request
    *
    * @param uri is the URI to send the request to
-   * @param params is a ptree of the params to send to the server. This isn't
-   * const because it will be modified to include node_key.
+   * @param params is a JSON object containing the params to send to the server.
+   * This isn't const because it will be modified to include node_key.
    * @param output is the string which will be populated with the deserialized
    * results
    * @param attempts is the number of attempts to make if the request fails
@@ -225,15 +242,18 @@ class TLSRequestHelper : private boost::noncopyable {
    */
   template <class TSerializer>
   static Status go(const std::string& uri,
-                   boost::property_tree::ptree& params,
+                   JSON& params,
                    std::string& output,
                    const size_t attempts) {
     Status s;
+    JSON override_params;
+    const auto& params_doc = params.doc();
+    const auto& override_params_doc = override_params.doc();
 
-    boost::property_tree::ptree override_params;
-    for (const auto& param : params) {
-      if (param.first.find('_') == 0) {
-        override_params.put(param.first, param.second.data());
+    for (auto& m : params_doc.GetObject()) {
+      std::string name = m.name.GetString();
+      if (name.find('_') == 0) {
+        override_params.add(name, m.value);
       }
     }
 
@@ -245,8 +265,8 @@ class TLSRequestHelper : private boost::noncopyable {
       if (i == attempts) {
         break;
       }
-      for (const auto& param : override_params) {
-        params.put(param.first, param.second.data());
+      for (auto& m : override_params_doc.GetObject()) {
+        params.add(m.name.GetString(), m.value);
       }
       sleepFor(i * i * 1000);
     }
@@ -267,8 +287,8 @@ class TLSRequestHelper : private boost::noncopyable {
   static Status go(const std::string& uri,
                    std::string& output,
                    const size_t attempts) {
-    boost::property_tree::ptree params;
-    params.put("_get", true);
+    JSON params;
+    params.add("_get", true);
     return TLSRequestHelper::go<TSerializer>(uri, params, output, attempts);
   }
 };

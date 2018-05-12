@@ -8,179 +8,162 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <arpa/inet.h>
-
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/filesystem/linux/proc.h"
 
 namespace osquery {
 namespace tables {
 
-// Linux proc protocol define to net stats file name.
-const std::map<int, std::string> kLinuxProtocolNames = {
-    {IPPROTO_ICMP, "icmp"},
-    {IPPROTO_TCP, "tcp"},
-    {IPPROTO_UDP, "udp"},
-    {IPPROTO_UDPLITE, "udplite"},
-    {IPPROTO_RAW, "raw"},
-};
-
-// A map of socket handles (inodes) to their pid and file descriptor.
-typedef std::map<std::string, std::pair<std::string, std::string> > InodeMap;
-
-std::string addressFromHex(const std::string &encoded_address, int family) {
-  char addr_buffer[INET6_ADDRSTRLEN] = {0};
-  if (family == AF_INET) {
-    struct in_addr decoded;
-    if (encoded_address.length() == 8) {
-      sscanf(encoded_address.c_str(), "%X", &(decoded.s_addr));
-      inet_ntop(AF_INET, &decoded, addr_buffer, INET_ADDRSTRLEN);
-    }
-  } else if (family == AF_INET6) {
-    struct in6_addr decoded;
-    if (encoded_address.length() == 32) {
-      sscanf(encoded_address.c_str(),
-             "%8x%8x%8x%8x",
-             (unsigned int *)&(decoded.s6_addr[0]),
-             (unsigned int *)&(decoded.s6_addr[4]),
-             (unsigned int *)&(decoded.s6_addr[8]),
-             (unsigned int *)&(decoded.s6_addr[12]));
-      inet_ntop(AF_INET6, &decoded, addr_buffer, INET6_ADDRSTRLEN);
-    }
-  }
-
-  return std::string(addr_buffer);
-}
-
-unsigned short portFromHex(const std::string &encoded_port) {
-  unsigned short decoded = 0;
-  if (encoded_port.length() == 4) {
-    sscanf(encoded_port.c_str(), "%hX", &decoded);
-  }
-  return decoded;
-}
-
-void genSocketsFromProc(const InodeMap &inodes,
-                        int protocol,
-                        int family,
-                        QueryData &results) {
-  std::string path = "/proc/net/";
-  if (family == AF_UNIX) {
-    path += "unix";
-  } else {
-    path += kLinuxProtocolNames.at(protocol);
-    path += (family == AF_INET6) ? "6" : "";
-  }
-
-  std::string content;
-  if (!osquery::readFile(path, content).ok()) {
-    // Could not open socket information from /proc.
-    return;
-  }
-
-  // The system's socket information is tokenized by line.
-  size_t index = 0;
-  for (const auto &line : osquery::split(content, "\n")) {
-    if (++index == 1) {
-      // The first line is a textual header and will be ignored.
-      if (line.find("sl") != 0 && line.find("sk") != 0 &&
-          line.find("Num") != 0) {
-        // Header fields are unknown, stop parsing.
-        break;
-      }
-      continue;
-    }
-
-    // The socket information is tokenized by spaces, each a field.
-    auto fields = osquery::split(line, " ");
-    // UNIX socket reporting has a smaller number of fields.
-    size_t min_fields = (family == AF_UNIX) ? 7 : 10;
-    if (fields.size() < min_fields) {
-      // Unknown/malformed socket information.
-      continue;
-    }
-
-    Row r;
-    if (family == AF_UNIX) {
-      r["socket"] = fields[6];
-      r["family"] = "1";
-      r["protocol"] = fields[2];
-      r["local_address"] = "";
-      r["local_port"] = "0";
-      r["remote_address"] = "";
-      r["remote_port"] = "0";
-      r["path"] = (fields.size() >= 8) ? fields[7] : "";
-    } else {
-      // Two of the fields are the local/remote address/port pairs.
-      auto locals = osquery::split(fields[1], ":");
-      auto remotes = osquery::split(fields[2], ":");
-      if (locals.size() != 2 || remotes.size() != 2) {
-        // Unknown/malformed socket information.
-        continue;
-      }
-
-      r["socket"] = fields[9];
-      r["family"] = INTEGER(family);
-      r["protocol"] = INTEGER(protocol);
-      r["local_address"] = addressFromHex(locals[0], family);
-      r["local_port"] = INTEGER(portFromHex(locals[1]));
-      r["remote_address"] = addressFromHex(remotes[0], family);
-      r["remote_port"] = INTEGER(portFromHex(remotes[1]));
-      // Path is only used for UNIX domain sockets.
-      r["path"] = "";
-    }
-
-    if (inodes.count(r["socket"]) > 0) {
-      r["pid"] = inodes.at(r["socket"]).second;
-      r["fd"] = inodes.at(r["socket"]).first;
-    } else {
-      r["pid"] = "-1";
-      r["fd"] = "-1";
-    }
-
-    results.push_back(r);
-  }
-}
-
-QueryData genOpenSockets(QueryContext &context) {
+QueryData genOpenSockets(QueryContext& context) {
+  Status status;
   QueryData results;
 
-  // If a pid is given then set that as the only item in processes.
+  /*
+   * If filtering by pid, restrict results to the list of pids provided
+   * otherwise query all pids from the system and also report on sockets without
+   * an associated pid.
+   */
   std::set<std::string> pids;
   if (context.constraints["pid"].exists(EQUALS)) {
     pids = context.constraints["pid"].getAll(EQUALS);
-  } else {
-    osquery::procProcesses(pids);
   }
 
-  // Generate a map of socket inode to process tid.
-  InodeMap socket_inodes;
-  for (const auto &process : pids) {
-    std::map<std::string, std::string> descriptors;
-    if (osquery::procDescriptors(process, descriptors).ok()) {
-      for (const auto &fd : descriptors) {
-        if (fd.second.find("socket:[") == 0) {
-          // See #792: std::regex is incomplete until GCC 4.9 (skip 8 chars)
-          auto inode = fd.second.substr(8);
-          socket_inodes[inode.substr(0, inode.size() - 1)] =
-              std::make_pair(fd.first, process);
+  bool pid_filter = !(pids.empty() ||
+                      std::find(pids.begin(), pids.end(), "-1") != pids.end());
+
+  if (!pid_filter) {
+    pids.clear();
+    status = osquery::procProcesses(pids);
+    if (!status.ok()) {
+      VLOG(1) << "Failed to acquire pid list: " << status.what();
+      return results;
+    }
+  }
+
+  /* Data for this table is fetched from 3 different sources and correlated.
+   *
+   * 1. Collect all sockets associated with each pid by going through all files
+   * under /proc/<pid>/fd and search for links of the type socket:[<inode>].
+   * Extract the inode and fd (filename) and index it by inode number. The inode
+   * can then be used to correlate pid and fd with the socket information
+   * collected on step 3. The map generated in this step will only contain
+   * sockets associated with pids in the list, so it will also be used to filter
+   * the sockets later if pid_filter is set.
+   *
+   * 2. Collect the inode for the network namespace associated with each pid.
+   * Every time a new namespace is found execute step 3 to get socket basic
+   * information.
+   *
+   * 3. Collect basic socket information for all sockets under a specifc network
+   * namespace. This is done by reading through files under /proc/<pid>/net for
+   * the first pid we find in a certain namespace. Notice this will collect
+   * information for all sockets on the namespace not only for sockets
+   * associated with the specific pid, therefore only needs to be run once. From
+   * this step we collect the inodes of each of the sockets, and will use that
+   * to correlate the socket information with the information collect on steps
+   * 1 and 2.
+   */
+
+  /* Use a set to record the namespaces already processed */
+  std::set<ino_t> netns_list;
+  SocketInodeToProcessInfoMap inode_proc_map;
+  SocketInfoList socket_list;
+  for (const auto& pid : pids) {
+    /* Step 1 */
+    status = procGetSocketInodeToProcessInfoMap(pid, inode_proc_map);
+    if (!status.ok()) {
+      VLOG(1) << "Results for process_open_sockets might be incomplete. Failed "
+                 "to acquire socket inode to process map for pid "
+              << pid << ": " << status.what();
+    }
+
+    /* Step 2 */
+    ino_t ns;
+    ProcessNamespaceList namespaces;
+    status = procGetProcessNamespaces(pid, namespaces, {"net"});
+    if (status.ok()) {
+      ns = namespaces["net"];
+    } else {
+      /* If namespaces are not available we allways set ns to 0 and step 3 will
+       * run once for the first pid in the list.
+       */
+      ns = 0;
+      VLOG(1) << "Results for the process_open_sockets might be incomplete."
+                 "Failed to acquire network namespace information for process "
+                 "with pid "
+              << pid << ": " << status.what();
+    }
+
+    if (netns_list.count(ns) == 0) {
+      netns_list.insert(ns);
+
+      /* Step 3 */
+      for (const auto& pair : kLinuxProtocolNames) {
+        status = procGetSocketList(AF_INET, pair.first, ns, pid, socket_list);
+        if (!status.ok()) {
+          VLOG(1)
+              << "Results for process_open_sockets might be incomplete. Failed "
+                 "to acquire basic socket information for AF_INET "
+              << pair.second << ": " << status.what();
         }
+
+        status = procGetSocketList(AF_INET6, pair.first, ns, pid, socket_list);
+        if (!status.ok()) {
+          VLOG(1)
+              << "Results for process_open_sockets might be incomplete. Failed "
+                 "to acquire basic socket information for AF_INET6 "
+              << pair.second << ": " << status.what();
+        }
+      }
+      status = procGetSocketList(AF_UNIX, IPPROTO_IP, ns, pid, socket_list);
+      if (!status.ok()) {
+        VLOG(1)
+            << "Results for process_open_sockets might be incomplete. Failed "
+               "to acquire basic socket information for AF_UNIX: "
+            << status.what();
       }
     }
   }
 
-  // This used to use netlink (Ref: #1094) to request socket information.
-  // Use proc messages to query socket information.
-  for (const auto &protocol : kLinuxProtocolNames) {
-    genSocketsFromProc(socket_inodes, protocol.first, AF_INET, results);
-    genSocketsFromProc(socket_inodes, protocol.first, AF_INET6, results);
+  /* Finally correlate all the information. Go through all the sockets
+   * collected on step 3 and correlate that with the pid and fd collected from
+   * step 1. If filtering only take sockets for which the inode is available on
+   * the inode to process information map.
+   */
+  for (const auto& info : socket_list) {
+    Row r;
+    auto proc_it = inode_proc_map.find(info.socket);
+    if (proc_it != inode_proc_map.end()) {
+      r["pid"] = proc_it->second.pid;
+      r["fd"] = proc_it->second.fd;
+    } else if (!pid_filter) {
+      r["pid"] = "-1";
+      r["fd"] = "-1";
+    } else {
+      /* If we're filtering by pid we only care about sockets associated with
+       * pids on the list.*/
+      continue;
+    }
+
+    r["socket"] = info.socket;
+    r["family"] = std::to_string(info.family);
+    r["protocol"] = std::to_string(info.protocol);
+    r["local_address"] = info.local_address;
+    r["local_port"] = std::to_string(info.local_port);
+    r["remote_address"] = info.remote_address;
+    r["remote_port"] = std::to_string(info.remote_port);
+    r["path"] = info.unix_socket_path;
+    r["state"] = info.state;
+    r["net_namespace"] = std::to_string(info.net_ns);
+
+    results.push_back(std::move(r));
   }
 
-  genSocketsFromProc(socket_inodes, IPPROTO_IP, AF_UNIX, results);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

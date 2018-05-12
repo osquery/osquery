@@ -50,6 +50,8 @@ void genCertificate(X509* cert, const std::string& path, QueryData& results) {
   r["subject_key_id"] =
       (cert->skid) ? genKIDProperty(cert->skid->data, cert->skid->length) : "";
 
+  r["serial"] = genSerialForCertificate(cert);
+
   results.push_back(r);
 }
 

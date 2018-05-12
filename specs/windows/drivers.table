@@ -13,7 +13,8 @@ schema([
     Column("provider", TEXT, "Driver provider"),
     Column("manufacturer", TEXT, "Device manufacturer"),
     Column("driver_key", TEXT, "Driver key"),
-    Column("date", BIGINT, "Driver date")
+    Column("date", BIGINT, "Driver date"),
+    Column("signed", INTEGER, "Whether the driver is signed or not")
 ])
 implementation("system/windows/Drivers@genDrivers")
 examples([

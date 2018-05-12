@@ -148,6 +148,10 @@ int platformGetUid() {
 
 bool isLauncherProcessDead(PlatformProcess& launcher) {
   unsigned long code = 0;
+  if (launcher.nativeHandle() == INVALID_HANDLE_VALUE) {
+    return true;
+  }
+
   if (!::GetExitCodeProcess(launcher.nativeHandle(), &code)) {
     LOG(WARNING) << "GetExitCodeProcess did not return a value, error code ("
                  << GetLastError() << ")";
@@ -237,5 +241,9 @@ int platformGetPid() {
 
 int platformGetTid() {
   return static_cast<int>(GetCurrentThreadId());
+}
+
+void platformMainThreadExit(int excode) {
+  ExitThread(excode);
 }
 }

@@ -128,6 +128,36 @@ TEST_F(SystemsTablesTests, test_processes_memory_cpu) {
   EXPECT_GE(value - cpu_start, 0U);
 }
 
+TEST_F(SystemsTablesTests, test_processes_disk_io) {
+  // TODO: Remove once implemented on these platforms.
+  if (!isPlatform(PlatformType::TYPE_LINUX) &&
+      !isPlatform(PlatformType::TYPE_OSX)) {
+    return;
+  }
+
+  SQL before("select * from osquery_info join processes using (pid)");
+  boost::filesystem::path tmpFile =
+      boost::filesystem::temp_directory_path() /
+      boost::filesystem::unique_path("osquery_processes_disk_io_%%%%%%%");
+  {
+    std::string content(1024 * 1024, 'x');
+    std::ofstream stream;
+
+    stream.open(tmpFile.string());
+    stream << content;
+    stream.flush();
+  }
+
+  SQL after("select * from osquery_info join processes using (pid)");
+
+  long long bytes_written_before, bytes_written_after;
+  safeStrtoll(
+      before.rows()[0].at("disk_bytes_written"), 0, bytes_written_before);
+  safeStrtoll(after.rows()[0].at("disk_bytes_written"), 0, bytes_written_after);
+
+  EXPECT_GE(bytes_written_after - bytes_written_before, 1024 * 1024);
+}
+
 TEST_F(SystemsTablesTests, test_abstract_joins) {
   // Codify several assumptions about how tables should be joined into tests.
   // The first is an implicit inner join from processes to file information.
@@ -164,6 +194,46 @@ TEST_F(SystemsTablesTests, test_abstract_joins) {
         R"(select path from file where path = '/etc/' or path LIKE '/dev/%' or path LIKE '\Windows\%';)");
     ASSERT_GT(results.rows().size(), 1U);
   }
+}
+
+TEST_F(SystemsTablesTests, test_win_drivers_query_time) {
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    return;
+  }
+  SQL results("select * from osquery_info join processes using (pid)");
+  long long utime1, systime1;
+  safeStrtoll(results.rows()[0].at("user_time"), 0, utime1);
+  safeStrtoll(results.rows()[0].at("system_time"), 0, systime1);
+
+  // Query the drivers table and ensure that we don't take too long to exec
+  SQL drivers("select * from drivers");
+
+  // Ensure we at least got some drivers back
+  ASSERT_GT(drivers.rows().size(), 10U);
+
+  // Get a rough idea of the time utilized by the query
+  long long utime2, systime2;
+  SQL results2("select * from osquery_info join processes using (pid)");
+  safeStrtoll(results2.rows()[0].at("user_time"), 0, utime2);
+  safeStrtoll(results2.rows()[0].at("system_time"), 0, systime2);
+
+  EXPECT_LT(utime2 - utime1, 10U);
+  EXPECT_LT(systime2 - systime1, 10U);
+}
+
+TEST_F(SystemsTablesTests, test_win_crashes_parsing) {
+  if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
+    return;
+  }
+  SQL results("select * from windows_crashes limit 1");
+
+  // If no local crash dumps are found return
+  if (results.rows().empty()) {
+    return;
+  }
+
+  // Ensure calls to the Windows API to reconstruct the stack trace don't crash
+  EXPECT_FALSE(results.rows()[0].at("stack_trace").empty());
 }
 
 class HashTableTest : public testing::Test {
