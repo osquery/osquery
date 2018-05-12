@@ -22,7 +22,7 @@ class DistributedRunner : public InternalRunnable {
 
  public:
   /// The Dispatcher thread entry point.
-  void start();
+  void start() override;
 };
 
 Status startDistributed();

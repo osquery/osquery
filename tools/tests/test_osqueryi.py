@@ -243,5 +243,12 @@ class OsqueryiTest(unittest.TestCase):
         result = self.osqueryi.run_query('SELECT * FROM time;')
         self.assertEqual(len(result), 1)
 
+    @test_base.flaky
+    def test_atc(self):
+        local_osquery_instance = test_base.OsqueryWrapper(self.binary,
+                                                 args={"config_path": "test.config"})
+        result = local_osquery_instance.run_query('SELECT a_number FROM test_atc')
+        self.assertEqual(result, [{'a_number':'314159'}])
+
 if __name__ == '__main__':
     test_base.Tester().run()
