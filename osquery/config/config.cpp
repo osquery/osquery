@@ -389,9 +389,9 @@ static inline bool blacklistExpired(size_t blt, const ScheduledQuery& query) {
 }
 
 void Config::scheduledQueries(
-    std::function<void(const std::string& name, const ScheduledQuery& query)>
+    std::function<void(std::string name, const ScheduledQuery& query)>
         predicate,
-    bool blacklisted) {
+    bool blacklisted) const {
   RecursiveLock lock(config_schedule_mutex_);
   for (PackRef& pack : *schedule_) {
     for (auto& it : pack->getSchedule()) {
@@ -421,7 +421,7 @@ void Config::scheduledQueries(
       }
 
       // Call the predicate.
-      predicate(name, it.second);
+      predicate(std::move(name), it.second);
     }
   }
 }
@@ -671,8 +671,6 @@ void Config::applyParsers(const std::string& source,
 
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
-      } else {
-        parser_config.emplace(std::make_pair(key, JSON::newObject()));
       }
     }
     // The config parser plugin will receive a copy of each property tree for
@@ -893,7 +891,7 @@ void Config::recordQueryStart(const std::string& name) {
 
 void Config::getPerformanceStats(
     const std::string& name,
-    std::function<void(const QueryPerformance& query)> predicate) {
+    std::function<void(const QueryPerformance& query)> predicate) const {
   if (performance_.count(name) > 0) {
     RecursiveLock lock(config_performance_mutex_);
     predicate(performance_.at(name));
@@ -911,7 +909,7 @@ bool Config::hashSource(const std::string& source, const std::string& content) {
   return true;
 }
 
-Status Config::genHash(std::string& hash) {
+Status Config::genHash(std::string& hash) const {
   WriteLock lock(config_hash_mutex_);
   if (!valid_) {
     return Status(1, "Current config is not valid");
@@ -951,9 +949,9 @@ const std::shared_ptr<ConfigParserPlugin> Config::getParser(
   return std::dynamic_pointer_cast<ConfigParserPlugin>(plugin);
 }
 
-void Config::files(
-    std::function<void(const std::string& category,
-                       const std::vector<std::string>& files)> predicate) {
+void Config::files(std::function<void(const std::string& category,
+                                      const std::vector<std::string>& files)>
+                       predicate) const {
   RecursiveLock lock(config_files_mutex_);
   for (const auto& it : files_) {
     for (const auto& category : it.second) {

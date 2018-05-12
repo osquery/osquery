@@ -22,6 +22,7 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
+#include <osquery/filesystem/linux/proc.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
@@ -437,6 +438,18 @@ void genProcess(const std::string& pid, QueryData& results) {
 
     r["disk_bytes_written"] =
         std::to_string(write_bytes - cancelled_write_bytes);
+  }
+
+  ProcessNamespaceList proc_ns;
+  Status status = procGetProcessNamespaces(pid, proc_ns);
+  if (!status.ok()) {
+    VLOG(1) << "Results for processes might be incomplete. Failed to acquire "
+               "at least some namespaces information: "
+            << status.what();
+  }
+
+  for (const auto& pair : proc_ns) {
+    r[pair.first + "_namespace"] = std::to_string(pair.second);
   }
 
   results.push_back(r);

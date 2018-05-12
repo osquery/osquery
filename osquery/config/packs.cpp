@@ -275,28 +275,7 @@ bool Pack::checkPlatform() const {
 }
 
 bool Pack::checkPlatform(const std::string& platform) const {
-  if (platform.empty() || platform == "null") {
-    return true;
-  }
-
-  if (platform.find("any") != std::string::npos ||
-      platform.find("all") != std::string::npos) {
-    return true;
-  }
-
-  auto linux_type = (platform.find("linux") != std::string::npos ||
-                     platform.find("ubuntu") != std::string::npos ||
-                     platform.find("centos") != std::string::npos);
-  if (linux_type && isPlatform(PlatformType::TYPE_LINUX)) {
-    return true;
-  }
-
-  auto posix_type = (platform.find("posix") != std::string::npos);
-  if (posix_type && isPlatform(PlatformType::TYPE_POSIX)) {
-    return true;
-  }
-
-  return (platform.find(kSDKPlatform) != std::string::npos);
+  return ::osquery::checkPlatform(platform);
 }
 
 bool Pack::checkVersion() const {

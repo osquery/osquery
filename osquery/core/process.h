@@ -41,8 +41,8 @@ namespace osquery {
 /// Constant for an invalid process
 const auto kInvalidPid = (PlatformPidType)-1;
 
-/// The saved thread ID for shutdown to short-circuit raising a signal.
-extern std::thread::id kMainThreadId;
+/// Used by Windows to wait on the main execution thread
+extern unsigned long kLegacyThreadId;
 
 /**
  * @brief Categories of process states adapted to be platform agnostic
@@ -292,4 +292,14 @@ int platformGetPid();
  * and on posix platforms returns gettid()
  */
 int platformGetTid();
+
+/**
+ * @brief Allows for platform specific exit logic
+ *
+ * On Windows this makes use of a thread specific exit APIs
+ * to ensure that our main threads shutdown and notify the SCM
+ * thread so we can close the service cleanly. On posix this is
+ * just a stub to exit()
+ */
+void platformMainThreadExit(int excode);
 } // namespace osquery
