@@ -37,7 +37,7 @@ void genSshConfig(const std::string& uid,
                   QueryData& results) {
   std::string ssh_config_content;
   if (!forensicReadFile(filepath, ssh_config_content).ok()) {
-    VLOG(1) << "Cannot read ssh_config file " << filepath; 
+    VLOG(1) << "Cannot read ssh_config file " << filepath;
     return;
   }
   // the ssh_config file consists of a number of host or match
@@ -49,7 +49,7 @@ void genSshConfig(const std::string& uid,
   for (auto& line : split(ssh_config_content, "\n")) {
     boost::trim(line);
     boost::to_lower(line);
-    if (line.empty() || line[0] += '#') {
+    if (line.empty() || line[0] == '#') {
       return;
     }
     if (boost::starts_with(line, "host ") ||

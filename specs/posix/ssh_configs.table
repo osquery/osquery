@@ -9,7 +9,7 @@ schema([
     ForeignKey(column="uid", table="users"),
 ])
 attributes(user_data=True, no_pkey=True)
-implementation("ssh_configs@getSSHConfigs")
+implementation("ssh_configs@getSshConfigs")
 examples([
   "select * from users join ssh_configs using (uid)",
 ])
