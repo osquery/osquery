@@ -21,7 +21,7 @@ namespace osquery {
 namespace tables {
 
 void getLimit(QueryData& results) {
-  std::map<std::string, int> resource_map; // system resources
+  std::map<std::string, int> resource_map;
   resource_map["cpu"] = RLIMIT_CPU;
   resource_map["fsize"] = RLIMIT_FSIZE;
   resource_map["data"] = RLIMIT_DATA;
@@ -38,17 +38,15 @@ void getLimit(QueryData& results) {
   resource_map["nice"] = RLIMIT_NICE;
   resource_map["rtprio"] = RLIMIT_RTPRIO;
 
-  for (std::map<std::string, int>::iterator it = resource_map.begin();
-       it != resource_map.end();
-       ++it) {
+  for (const auto& it : resource_map) {
     struct rlimit rlp;
-    int result = getrlimit(it->second, &rlp);
+    auto result = getrlimit(it.second, &rlp);
     if (result == -1) {
-      LOG(INFO) << "Failed to get limit for " << it->first;
+      LOG(INFO) << "Failed to get limit for " << it.first;
       continue;
     }
     Row r;
-    r["type"] = it->first;
+    r["type"] = it.first;
     r["soft_limit"] = (rlp.rlim_cur == ULONG_MAX)
                           ? "unlimited"
                           : std::to_string(rlp.rlim_cur);
@@ -59,7 +57,7 @@ void getLimit(QueryData& results) {
   }
 }
 
-QueryData genUlimit(QueryContext& context) {
+QueryData genUlimitInfo(QueryContext& context) {
   QueryData results;
 
   getLimit(results);
