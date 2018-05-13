@@ -13,6 +13,10 @@
 
 #include "osquery/remote/uri.h"
 
+#ifndef UINT16_MAX
+#define UINT16_MAX (65535U)
+#endif
+
 namespace osquery {
 
 static std::string submatch(const std::smatch& m, int idx) {
