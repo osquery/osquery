@@ -23,10 +23,10 @@
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/system_utils.h"
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 namespace tables {
-
-namespace fs = boost::filesystem;
 
 const std::string kUserSshConfig = ".ssh/config";
 const std::string kSystemwideSshConfig = "/etc/ssh/ssh_config";
@@ -50,7 +50,7 @@ void genSshConfig(const std::string& uid,
     boost::trim(line);
     boost::to_lower(line);
     if (line.empty() || line[0] == '#') {
-      return;
+      continue;
     }
     if (boost::starts_with(line, "host ") ||
         boost::starts_with(line, "match ")) {
