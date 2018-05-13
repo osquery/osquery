@@ -3,7 +3,7 @@ description("A table of parsed ssh_configs.")
 schema([
     Column("uid", BIGINT, "The local owner of the ssh_config file",
       additional=True),
-    Column("block",TEXT,"the host or match block"),
+    Column("block",TEXT,"The host or match block"),
     Column("option", TEXT, "The option and value", index=True),
     Column("ssh_config_file", TEXT, "Path to the ssh_config file", index=True),
     ForeignKey(column="uid", table="users"),
