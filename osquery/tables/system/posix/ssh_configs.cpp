@@ -11,8 +11,8 @@
 #include <string>
 #include <vector>
 
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -26,16 +26,18 @@
 namespace osquery {
 namespace tables {
 
-const std::string kUserSSHConfig = ".ssh/config";
-const std::string kSystemwideSSHConfig = "/etc/ssh/ssh_config";
+namespace fs = boost::filesystem;
 
-void genSSHConfig(const std::string& uid,
+const std::string kUserSshConfig = ".ssh/config";
+const std::string kSystemwideSshConfig = "/etc/ssh/ssh_config";
+
+void genSshConfig(const std::string& uid,
                   const std::string& gid,
-                  const boost::filesystem::path& filepath,
+                  const fs::path& filepath,
                   QueryData& results) {
   std::string ssh_config_content;
   if (!forensicReadFile(filepath, ssh_config_content).ok()) {
-    // Cannot read a specific ssh_config file.
+    VLOG(1) << "Cannot read ssh_config file " << filepath; 
     return;
   }
   // the ssh_config file consists of a number of host or match
@@ -47,21 +49,22 @@ void genSSHConfig(const std::string& uid,
   for (auto& line : split(ssh_config_content, "\n")) {
     boost::trim(line);
     boost::to_lower(line);
-    if (!line.empty() && line[0] != '#') {
-      if (boost::starts_with(line, "host ") ||
-          boost::starts_with(line, "match ")) {
-        block = line;
-      } else {
-        Row r = {{"uid", uid},
-                 {"block", block},
-                 {"option", line},
-                 {"ssh_config_file", filepath.string()}};
-        results.push_back(r);
-      }
+    if (line.empty() || line[0] += '#') {
+      return;
+    }
+    if (boost::starts_with(line, "host ") ||
+        boost::starts_with(line, "match ")) {
+      block = line;
+    } else {
+      Row r = {{"uid", uid},
+               {"block", block},
+               {"option", line},
+               {"ssh_config_file", filepath.string()}};
+      results.push_back(r);
     }
   }
 }
-void genSSHConfigForUser(const std::string& uid,
+void genSshConfigForUser(const std::string& uid,
                          const std::string& gid,
                          const std::string& directory,
                          QueryData& results) {
@@ -72,11 +75,11 @@ void genSSHConfigForUser(const std::string& uid,
   }
 
   boost::filesystem::path ssh_config_file = directory;
-  ssh_config_file /= kUserSSHConfig;
+  ssh_config_file /= kUserSshConfig;
 
-  genSSHConfig(uid, gid, ssh_config_file, results);
+  genSshConfig(uid, gid, ssh_config_file, results);
 }
-QueryData getSSHConfigs(QueryContext& context) {
+QueryData getSshConfigs(QueryContext& context) {
   QueryData results;
 
   // Iterate over each user
@@ -86,10 +89,10 @@ QueryData getSSHConfigs(QueryContext& context) {
     auto gid = row.find("gid");
     auto directory = row.find("directory");
     if (uid != row.end() && gid != row.end() && directory != row.end()) {
-      genSSHConfigForUser(uid->second, gid->second, directory->second, results);
+      genSshConfigForUser(uid->second, gid->second, directory->second, results);
     }
   }
-  genSSHConfig("0", "0", kSystemwideSSHConfig, results);
+  genSshConfig("0", "0", kSystemwideSshConfig, results);
   return results;
 }
 } // namespace tables

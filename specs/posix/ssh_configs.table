@@ -4,7 +4,7 @@ schema([
     Column("uid", BIGINT, "The local owner of the ssh_config file",
       additional=True),
     Column("block",TEXT,"the host or match block"),
-    Column("option", TEXT, "the option and value", index=True),
+    Column("option", TEXT, "The option and value", index=True),
     Column("ssh_config_file", TEXT, "Path to the ssh_config file", index=True),
     ForeignKey(column="uid", table="users"),
 ])
