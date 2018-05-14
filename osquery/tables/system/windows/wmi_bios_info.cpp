@@ -142,6 +142,10 @@ QueryData genBiosInfo(QueryContext& context) {
     manufacturer = "N/A";
   }
 
+  if (manufacturer == "N/A") {
+    return results;
+  }
+
   if (kQueryMap.find(manufacturer) != kQueryMap.end()) {
     WmiRequest wmiBiosReq(std::get<0>(kQueryMap.at(manufacturer)),
                           (std::get<1>(kQueryMap.at(manufacturer))));
