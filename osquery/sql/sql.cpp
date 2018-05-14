@@ -104,6 +104,7 @@ QueryData SQL::selectAllFrom(const std::string& table) {
   return response;
 }
 
+// referenced also from sqlite::xFilter
 void setRequestFromContext(const QueryContext& context,
                            PluginRequest& request) {
   auto doc = JSON::newObject();
@@ -120,6 +121,15 @@ void setRequestFromContext(const QueryContext& context,
   }
 
   doc.add("constraints", constraints);
+
+  if (context.colsUsed) {
+    auto colsUsed = doc.getArray();
+    for (const auto& columnName : *context.colsUsed) {
+      doc.pushCopy(columnName, colsUsed);
+    }
+    doc.add("colsUsed", colsUsed);
+  }
+
   doc.toString(request["context"]);
 }
 
