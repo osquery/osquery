@@ -175,6 +175,11 @@ fuzz: .setup
 	@echo "[+] zzuf (`$(PATH_SET) which zzuf`) version: `$(PATH_SET) zzuf -V | head -n 1`"
 	@$(PATH_SET) python tools/analysis/fuzz.py
 
+libfuzz: .setup
+	@cd $(BUILD_DIR) && SKIP_TESTS=True SANITIZE=True FUZZ=True $(CMAKE) && \
+		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
+	@echo "[+] Now run the osqueryf target"
+
 sdk: .setup
 	@cd $(BUILD_DIR) && SDK=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)

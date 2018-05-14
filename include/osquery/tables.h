@@ -13,6 +13,7 @@
 #include <map>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -439,6 +440,9 @@ using ConstraintMap = std::map<std::string, struct ConstraintList>;
 /// Populate a constraint list from a query's parsed predicate.
 using ConstraintSet = std::vector<std::pair<std::string, struct Constraint>>;
 
+/// Keep track of which columns are used
+using UsedColumns = std::unordered_set<std::string>;
+
 /**
  * @brief osquery table content descriptor.
  *
@@ -475,6 +479,9 @@ struct VirtualTableContent {
 
   /// Transient set of virtual table access constraints.
   std::unordered_map<size_t, ConstraintSet> constraints;
+
+  /// Transient set of virtual table used columns
+  std::unordered_map<size_t, UsedColumns> colsUsed;
 
   /*
    * @brief A table implementation specific query result cache.
@@ -605,6 +612,47 @@ struct QueryContext : private only_movable {
       std::function<Status(const std::string& constraint,
                            std::set<std::string>& output)> predicate);
 
+  /// Check if the given column is used by the query
+  bool isColumnUsed(const std::string& colName) const;
+
+  /// Check if any of the given columns is used by the query
+  bool isAnyColumnUsed(std::initializer_list<std::string> colNames) const;
+
+  template <typename Type>
+  inline void setTextColumnIfUsed(Row& r,
+                                  const std::string& colName,
+                                  const Type& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = TEXT(value);
+    }
+  }
+
+  template <typename Type>
+  inline void setIntegerColumnIfUsed(Row& r,
+                                     const std::string& colName,
+                                     const Type& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = INTEGER(value);
+    }
+  }
+
+  template <typename Type>
+  inline void setBigIntColumnIfUsed(Row& r,
+                                    const std::string& colName,
+                                    const Type& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = BIGINT(value);
+    }
+  }
+
+  inline void setColumnIfUsed(Row& r,
+                              const std::string& colName,
+                              const std::string& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = value;
+    }
+  }
+
   /// Check if a table-defined index exists within the query cache.
   bool isCached(const std::string& index) const;
 
@@ -630,6 +678,8 @@ struct QueryContext : private only_movable {
 
   /// The map of column name to constraint list.
   ConstraintMap constraints;
+
+  boost::optional<UsedColumns> colsUsed;
 
  private:
   /// If false then the context is maintaining an ephemeral cache.
