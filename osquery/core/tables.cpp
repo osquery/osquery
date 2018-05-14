@@ -93,7 +93,7 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
 }*/
 
 static void setContextFromRequest(const PluginRequest& request,
-                                        QueryContext& context) {
+                                  QueryContext& context) {
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
 
