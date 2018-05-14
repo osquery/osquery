@@ -421,6 +421,24 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
     cost += 200;
   }
 
+  UsedColumns colsUsed;
+  if (pIdxInfo->colUsed > 0) {
+    for (size_t i = 0; i < columns.size(); i++) {
+      // Check whether the column is used. colUsed has one bit for each of the
+      // first 63 columns, and the 64th bit indicates that at least one other
+      // column is used.
+      uint64_t flag;
+      if (i < 63) {
+        flag = 1LL << i;
+      } else {
+        flag = 1LL << 63;
+      }
+      if ((pIdxInfo->colUsed & flag) != 0) {
+        colsUsed.insert(std::get<0>(columns[i]));
+      }
+    }
+  }
+
   pIdxInfo->idxNum = static_cast<int>(kConstraintIndexID++);
 #if defined(DEBUG)
   plan("Recording constraint set for table: " + pVtab->content->name +
@@ -430,6 +448,7 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
 #endif
   // Add the constraint set to the table's tracked constraints.
   pVtab->content->constraints[pIdxInfo->idxNum] = std::move(constraints);
+  pVtab->content->colsUsed[pIdxInfo->idxNum] = std::move(colsUsed);
   pIdxInfo->estimatedCost = cost;
   return SQLITE_OK;
 }
@@ -567,6 +586,10 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
         user_based_satisfied = true;
       }
     }
+  }
+
+  if (content->colsUsed.size() > 0) {
+    context.colsUsed = content->colsUsed[idxNum];
   }
 
   if (!user_based_satisfied) {

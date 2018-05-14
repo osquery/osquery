@@ -231,8 +231,13 @@ Status JSON::toString(std::string& str) const {
 }
 
 Status JSON::fromString(const std::string& str) {
-  if (doc_.Parse(str.c_str()).HasParseError()) {
-    return Status(1, "Cannot parse JSON");
+  rj::ParseResult pr = doc_.Parse(str.c_str());
+  if (!pr) {
+    std::string message{"Cannot parse JSON: "};
+    message += GetParseError_En(pr.Code());
+    message += " Offset: ";
+    message += std::to_string(pr.Offset());
+    return Status(1, message);
   }
   return Status();
 }

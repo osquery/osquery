@@ -157,15 +157,15 @@ TEST_F(RequestsTests, test_compression) {
   auto compressed = status.getMessage();
 
   /*
-   * gzip header has a field that specifies the filesystem the compression took
-   * place, we need to separate this for NTFS and Unix
+   * gzip header has a field that specifies the OS the library was built on
+   * we need to skip the 10th byte (index 9) while comparing compressed results
    *
    * Reference: http://www.zlib.org/rfc-gzip.html
+   * https://github.com/madler/zlib/blob/master/zutil.h#L86
    */
 
-  std::string expected("\x1F\x8B\b\0\0\0\0\0\x2", 9);
-  expected += isPlatform(PlatformType::TYPE_WINDOWS) ? "\v" : "\x3";
-  expected += std::string(
+  std::string expected1("\x1F\x8B\b\0\0\0\0\0\x2", 9);
+  std::string expected2(
       "\xED\xC4\xB1\r\0\0\x4\0\xB0s\xC5"
       "b\xC0\xFFq\x84\xB5\x1D:"
       "\xDBY1\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB\xB6m\xDB"
@@ -173,7 +173,8 @@ TEST_F(RequestsTests, test_compression) {
       "1j\xA0\xA8\0`\0\0",
       68);
 
-  EXPECT_EQ(compressed, expected);
+  EXPECT_EQ(compressed.substr(0, 9), expected1);
+  EXPECT_EQ(compressed.substr(10), expected2);
   EXPECT_LT(compressed.size(), uncompressed.size());
 }
 }

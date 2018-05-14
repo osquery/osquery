@@ -662,7 +662,7 @@ QueryData genContainerProcesses(QueryContext& context) {
     try {
       for (const auto& processes : container.get_child("Processes")) {
         std::vector<std::string> vector;
-        BOOST_FOREACH (const auto& v, processes.second) {
+        for (const auto& v : processes.second) {
           vector.push_back(v.second.data());
         }
 

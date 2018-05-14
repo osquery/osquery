@@ -63,10 +63,48 @@ void TablePluginBase::removeExternal(const std::string& name) {
   Registry::call("sql", "sql", {{"action", "detach"}, {"table", name}});
 }
 
+/*
+void TablePlugin::setRequestFromContext(const QueryContext& context,
+                                        PluginRequest& request) {
+  auto doc = JSON::newObject();
+  auto constraints = doc.getArray();
+
+  // The QueryContext contains a constraint map from column to type information
+  // and the list of operand/expression constraints applied to that column from
+  // the query given.
+  for (const auto& constraint : context.constraints) {
+    auto child = doc.getObject();
+    doc.addRef("name", constraint.first, child);
+    constraint.second.serialize(doc, child);
+    doc.push(child, constraints);
+  }
+
+  doc.add("constraints", constraints);
+
+  if (context.colsUsed) {
+    auto colsUsed = doc.getArray();
+    for (const auto& columnName : *context.colsUsed) {
+      doc.pushCopy(columnName, colsUsed);
+    }
+    doc.add("colsUsed", colsUsed);
+  }
+
+  doc.toString(request["context"]);
+}*/
+
 static void setContextFromRequest(const PluginRequest& request,
-                                  QueryContext& context) {
+                                        QueryContext& context) {
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
+
+  if (doc.doc().HasMember("colsUsed")) {
+    UsedColumns colsUsed;
+    for (const auto& columnName : doc.doc()["colsUsed"].GetArray()) {
+      colsUsed.insert(columnName.GetString());
+    }
+    context.colsUsed = colsUsed;
+  }
+
   if (!doc.doc().HasMember("constraints") ||
       !doc.doc()["constraints"].IsArray()) {
     return;
@@ -360,6 +398,20 @@ void ConstraintList::deserialize(const rapidjson::Value& obj) {
                            ? obj["affinity"].GetString()
                            : "UNKNOWN";
   affinity = columnTypeName(affinity_name);
+}
+
+bool QueryContext::isColumnUsed(const std::string& colName) const {
+  return !colsUsed || colsUsed->find(colName) != colsUsed->end();
+}
+
+bool QueryContext::isAnyColumnUsed(
+    std::initializer_list<std::string> colNames) const {
+  for (auto& colName : colNames) {
+    if (isColumnUsed(colName)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void QueryContext::useCache(bool use_cache) {

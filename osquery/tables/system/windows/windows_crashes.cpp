@@ -289,30 +289,8 @@ Status logStackTrace(IDebugControl5* control, IDebugSymbols3* symbols, Row& r) {
   unsigned long numFrames = 0;
   DEBUG_STACK_FRAME_EX stackFrames[kNumStackFramesToLog] = {0};
 
-  // Get stack frames, either with or without event context
-  if (control->GetStoredEventInformation(&type,
-                                         &procID,
-                                         &threadID,
-                                         &context,
-                                         sizeof(context),
-                                         &contextSize,
-                                         nullptr,
-                                         0,
-                                         0) == S_OK) {
-    symbols->SetScopeFromStoredEvent();
-    if (control->GetContextStackTraceEx(&context,
-                                        contextSize,
-                                        stackFrames,
-                                        kNumStackFramesToLog,
-                                        nullptr,
-                                        0,
-                                        0,
-                                        &numFrames) != S_OK) {
-      return Status(1);
-    }
-  } else if (control->GetStackTraceEx(
-                 0, 0, 0, stackFrames, kNumStackFramesToLog, &numFrames) !=
-             S_OK) {
+  if (control->GetStackTraceEx(
+          0, 0, 0, stackFrames, kNumStackFramesToLog, &numFrames) != S_OK) {
     return Status(1);
   }
 
@@ -568,7 +546,7 @@ void debugEngineCleanup(IDebugClient5* client,
   return;
 }
 
-void processDebugEngine(const char* fileName, Row& r) {
+void processDebugEngine(const std::string& fileName, Row& r) {
   const unsigned long kSymbolOptions =
       SYMOPT_CASE_INSENSITIVE & SYMOPT_UNDNAME & SYMOPT_LOAD_LINES &
       SYMOPT_OMAP_FIND_NEAREST & SYMOPT_LOAD_ANYTHING &
@@ -608,7 +586,7 @@ void processDebugEngine(const char* fileName, Row& r) {
   // Initialize debug engine
   if ((symbols->SetSymbolPath(kSymbolPath.c_str()) != S_OK) ||
       (symbols->SetSymbolOptions(kSymbolOptions) != S_OK) ||
-      (client->OpenDumpFile(fileName) != S_OK) ||
+      (client->OpenDumpFile(fileName.c_str()) != S_OK) ||
       (control->WaitForEvent(DEBUG_WAIT_DEFAULT, INFINITE) != S_OK)) {
     LOG(ERROR) << "Failed during initialization while debugging crash dump: "
                << fileName;
@@ -663,7 +641,7 @@ QueryData genCrashLogs(QueryContext& context) {
     for (const auto& lf : files) {
       if (alg::iends_with(lf, kDumpFileExtension) && fs::is_regular_file(lf)) {
         Row r;
-        processDebugEngine(lf.c_str(), r);
+        processDebugEngine(lf, r);
         if (!r.empty()) {
           results.push_back(r);
         }

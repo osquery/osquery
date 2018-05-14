@@ -16,7 +16,7 @@ Make a new "filename.md" within the category folder within `/docs/wiki/CATEGORY/
 ### Wiki style tips
 
 - Inline code highlighting (`$ echo 'this is inline'`) does not look the best in RTD, try to have as little inline syntax highlighting as possible.
-- **osqueryd**, **osqueryi** and other tool names should be in bold. Use `inline highligh` when a tool or script is mentioned for the first time.
+- **osqueryd**, **osqueryi** and other tool names should be in bold. Use `inline highlight` when a tool or script is mentioned for the first time.
 - Filesystem paths and non-clickable URI examples should also be bold.
 - Flag names are usually in quotes, `inline highlight` when introduced for the first time or used as an example.
 

@@ -362,7 +362,10 @@ void setVerboseLevel() {
 }
 
 void initStatusLogger(const std::string& name, bool init_glog) {
+#ifndef FBTHRIFT
+  // No color available when using fbthrift.
   FLAGS_colorlogtostderr = true;
+#endif
   FLAGS_logbufsecs = 0;
   FLAGS_stop_logging_if_full_disk = true;
   // The max size for individual log file is 10MB.

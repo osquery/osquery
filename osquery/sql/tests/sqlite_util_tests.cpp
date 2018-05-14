@@ -256,5 +256,29 @@ TEST_F(SQLiteUtilTests, test_query_planner) {
       "f1, file as f2, time";
   getQueryColumnsInternal(query, columns, dbc);
   EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE, INTEGER_TYPE, TEXT_TYPE}));
+
+  query = "select CAST(seconds AS INTEGER) FROM time";
+  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_EQ(getTypes(columns), TypeList({BIGINT_TYPE}));
+
+  query = "select CAST(seconds AS TEXT) FROM time";
+  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_EQ(getTypes(columns), TypeList({TEXT_TYPE}));
+
+  query = "select CAST(seconds AS REAL) FROM time";
+  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_EQ(getTypes(columns), TypeList({DOUBLE_TYPE}));
+
+  query = "select CAST(seconds AS BOOLEAN) FROM time";
+  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_EQ(getTypes(columns), TypeList({UNKNOWN_TYPE}));
+
+  query = "select CAST(seconds AS DATETIME) FROM time";
+  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_EQ(getTypes(columns), TypeList({UNKNOWN_TYPE}));
+
+  query = "select CAST(seconds AS BLOB) FROM time";
+  getQueryColumnsInternal(query, columns, dbc);
+  EXPECT_EQ(getTypes(columns), TypeList({BLOB_TYPE}));
 }
 }

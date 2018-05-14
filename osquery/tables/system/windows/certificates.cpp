@@ -200,6 +200,14 @@ void enumerateCertStore(const HCERTSTORE& certStore,
 
     r["path"] = storeLocation + "\\" + certStoreName;
 
+    std::string serial;
+    boost::algorithm::hex(
+        std::string(certContext->pCertInfo->SerialNumber.pbData,
+                    certContext->pCertInfo->SerialNumber.pbData +
+                        certContext->pCertInfo->SerialNumber.cbData),
+        back_inserter(serial));
+    r["serial"] = serial;
+
     std::string authKeyId;
     if (certContext->pCertInfo->cExtension != 0) {
       auto extension = CertFindExtension(szOID_AUTHORITY_KEY_IDENTIFIER2,

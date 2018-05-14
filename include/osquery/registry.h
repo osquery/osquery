@@ -180,27 +180,19 @@ class RegistryInterface : private boost::noncopyable {
   bool isInternal(const std::string& item_name) const;
 
   /// Allow others to introspect into the routes from extensions.
-  const std::map<std::string, RouteUUID>& getExternal() const {
-    return external_;
-  }
+  std::map<std::string, RouteUUID> getExternal() const;
 
   /// Get the 'active' plugin, return success with the active plugin name.
-  const std::string& getActive() const {
-    return active_;
-  }
+  std::string getActive() const;
 
   /// Allow others to introspect into the registered name (for reporting).
-  virtual const std::string& getName() const {
-    return name_;
-  }
+  virtual std::string getName() const;
 
   /// Facility method to check if a registry item exists.
   bool exists(const std::string& item_name, bool local = false) const;
 
   /// Facility method to count the number of items in this registry.
-  size_t count() const {
-    return items_.size();
-  }
+  size_t count() const;
 
   /// Facility method to list the registry item identifiers.
   std::vector<std::string> names() const;
@@ -221,9 +213,7 @@ class RegistryInterface : private boost::noncopyable {
   virtual PluginRef plugin(const std::string& plugin_name) const = 0;
 
   /// Construct and return a map of plugin names to their implementation.
-  const std::map<std::string, PluginRef>& plugins() {
-    return items_;
-  }
+  std::map<std::string, PluginRef> plugins();
 
   /**
    * @brief Create a routes table for this registry.
@@ -298,9 +288,7 @@ class RegistryInterface : private boost::noncopyable {
   virtual void removeExternalPlugin(const std::string& name) const = 0;
 
   /// Allow the registry to introspect into the registered name (for logging).
-  void setName(const std::string& name) {
-    name_ = name;
-  }
+  void setname(const std::string& name);
 
   /**
    * @brief The implementation adder will call addPlugin.
@@ -349,8 +337,15 @@ class RegistryInterface : private boost::noncopyable {
   /// be directed to the 'active' plugin.
   std::string active_;
 
+  /// Protect concurrent accesses to object's data
+  mutable Mutex mutex_;
+
  private:
   friend class RegistryFactory;
+
+  bool isInternal_(const std::string& item_name) const;
+
+  bool exists_(const std::string& item_name, bool local) const;
 };
 
 /**
@@ -392,6 +387,8 @@ class RegistryType : public RegistryInterface {
    * @return A std::shared_ptr of type RegistryType.
    */
   PluginRef plugin(const std::string& plugin_name) const override {
+    ReadLock lock(mutex_);
+
     if (items_.count(plugin_name) == 0) {
       return nullptr;
     }
@@ -423,10 +420,8 @@ using RegistryInterfaceRef = std::shared_ptr<RegistryInterface>;
 
 class RegistryFactory : private boost::noncopyable {
  public:
-  static RegistryFactory& get() {
-    static RegistryFactory instance;
-    return instance;
-  };
+  /// Singleton accessor.
+  static RegistryFactory& get();
 
   /**
    * @brief Call a registry item.
@@ -633,8 +628,7 @@ class AutoRegisterInterface {
   /// Either autoload a registry, or create an internal plugin.
   bool optional_;
 
-  AutoRegisterInterface(const char* _type, const char* _name, bool optional)
-      : type_(_type), name_(_name), optional_(optional) {}
+  AutoRegisterInterface(const char* _type, const char* _name, bool optional);
   virtual ~AutoRegisterInterface() = default;
 
   /// A call-in for the iterator.
@@ -642,26 +636,16 @@ class AutoRegisterInterface {
 
  public:
   /// Access all registries.
-  static AutoRegisterSet& registries() {
-    static AutoRegisterSet registries_;
-    return registries_;
-  }
+  static AutoRegisterSet& registries();
 
   /// Insert a new registry.
-  static void autoloadRegistry(std::unique_ptr<AutoRegisterInterface> ar_) {
-    registries().push_back(std::move(ar_));
-  }
+  static void autoloadRegistry(std::unique_ptr<AutoRegisterInterface> ar_);
 
   /// Access all plugins.
-  static AutoRegisterSet& plugins() {
-    static AutoRegisterSet plugins_;
-    return plugins_;
-  }
+  static AutoRegisterSet& plugins();
 
   /// Insert a new plugin.
-  static void autoloadPlugin(std::unique_ptr<AutoRegisterInterface> ar_) {
-    plugins().push_back(std::move(ar_));
-  }
+  static void autoloadPlugin(std::unique_ptr<AutoRegisterInterface> ar_);
 };
 
 namespace registries {

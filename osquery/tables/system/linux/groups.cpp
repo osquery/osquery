@@ -27,23 +27,37 @@ Mutex grpEnumerationMutex;
 QueryData genGroups(QueryContext& context) {
   QueryData results;
   struct group* grp = nullptr;
-  std::set<long> groups_in;
 
-  WriteLock lock(grpEnumerationMutex);
-  setgrent();
-  while ((grp = getgrent()) != nullptr) {
-    if (std::find(groups_in.begin(), groups_in.end(), grp->gr_gid) ==
-        groups_in.end()) {
+  if (context.constraints["gid"].exists(EQUALS)) {
+    auto gids = context.constraints["gid"].getAll<long long>(EQUALS);
+    for (const auto& gid : gids) {
       Row r;
-      r["gid"] = INTEGER(grp->gr_gid);
-      r["gid_signed"] = INTEGER((int32_t)grp->gr_gid);
-      r["groupname"] = TEXT(grp->gr_name);
+      grp = getgrgid(gid);
+      r["gid"] = BIGINT(gid);
+      if (grp != nullptr) {
+        r["gid_signed"] = INTEGER((int32_t)grp->gr_gid);
+        r["groupname"] = TEXT(grp->gr_name);
+      }
       results.push_back(r);
-      groups_in.insert(grp->gr_gid);
     }
+  } else {
+    std::set<long> groups_in;
+    WriteLock lock(grpEnumerationMutex);
+    setgrent();
+    while ((grp = getgrent()) != nullptr) {
+      if (std::find(groups_in.begin(), groups_in.end(), grp->gr_gid) ==
+          groups_in.end()) {
+        Row r;
+        r["gid"] = INTEGER(grp->gr_gid);
+        r["gid_signed"] = INTEGER((int32_t)grp->gr_gid);
+        r["groupname"] = TEXT(grp->gr_name);
+        results.push_back(r);
+        groups_in.insert(grp->gr_gid);
+      }
+    }
+    endgrent();
+    groups_in.clear();
   }
-  endgrent();
-  groups_in.clear();
 
   return results;
 }

@@ -50,14 +50,22 @@ DECLARE_bool(events_optimize);
 
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   // Snapshot the performance and times for the worker before running.
-  auto pid = std::to_string(PlatformProcess::getCurrentProcess()->pid());
-  auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
+  auto pid = std::to_string(PlatformProcess::getCurrentPid());
+  auto r0 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            pid);
   auto t0 = getUnixTime();
   Config::get().recordQueryStart(name);
   SQLInternal sql(query.query, true);
   // Snapshot the performance after, and compare.
   auto t1 = getUnixTime();
-  auto r1 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
+  auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            pid);
   if (r0.size() > 0 && r1.size() > 0) {
     // Calculate a size as the expected byte output of results.
     // This does not dedup result differentials and is not aware of snapshots.
@@ -158,7 +166,7 @@ void SchedulerRunner::start() {
   auto i = osquery::getUnixTime();
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
     Config::get().scheduledQueries(
-        ([&i](const std::string& name, const ScheduledQuery& query) {
+        ([&i](std::string name, const ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
             kTableCacheInterval = query.splayed_interval;
             kTableCacheStep = i;
@@ -196,4 +204,4 @@ void startScheduler() {
 void startScheduler(unsigned long int timeout, size_t interval) {
   Dispatcher::addService(std::make_shared<SchedulerRunner>(timeout, interval));
 }
-}
+} // namespace osquery
