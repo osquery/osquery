@@ -15,15 +15,27 @@ namespace tables {
 
 /// Represents a model related data for PCI devices of a given vendor and model.
 struct PciModel {
+  /// ID of PCI device.
   std::string id;
+
+  /// Description of PCI device.
   std::string desc;
+
+  /// Stores subsystem information keyed by
+  /// "<subsystem vendor id> <subsystem model id>". Key is preserved same as
+  /// they are in pci.ids since lookup always requires both attribute ids.
   std::unordered_map<std::string, std::string> subsystemInfo;
 };
 
 /// Represents vendor related data for a PCI devices of a given vendor.
 struct PciVendor {
+  /// ID of vendor.
   std::string id;
+
+  /// Name of vendor.
   std::string name;
+
+  /// Stores device models information keyed by PCI device (model) ID.
   std::unordered_map<std::string, PciModel> models;
 };
 
@@ -73,7 +85,7 @@ class PciDB {
                           std::string& subsystem);
 
  public:
-  PciDB(const std::string& path = "/usr/share/misc/pci.ids");
+  PciDB(std::istream& dbfileStream);
 
  private:
   std::unordered_map<std::string, PciVendor> db_;

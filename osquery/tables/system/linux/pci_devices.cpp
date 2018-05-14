@@ -32,21 +32,19 @@ const std::string kPCIKeyID = "PCI_ID";
 const std::string kPCIKeyDriver = "DRIVER";
 const std::string kPCISubsysID = "PCI_SUBSYS_ID";
 
-PciDB::PciDB(const std::string& path) {
-  std::ifstream raw(path);
-  if (raw.fail()) {
-    LOG(ERROR) << "failed to read " << path;
-    return;
-  }
+const std::string kPciIdsPath = "/usr/share/misc/pci.ids";
 
+PciDB::PciDB(std::istream& dbfileStream) {
+  // pci.ids keep track of subsystem information of vendor and models
+  // sequentially so we keep track of what the current vendor and models are.
   std::string curVendor, curModel, line;
-  while (std::getline(raw, line)) {
+  while (std::getline(dbfileStream, line)) {
     if (line.size() < 7 || line.at(0) == '\n' || line.at(0) == '#') {
       continue;
     }
 
     switch (line.find_first_of("0123456789abcdef")) {
-    case 0:
+    case 0: {
       // Vendor info.
       curVendor = line.substr(0, 4);
 
@@ -56,28 +54,30 @@ PciDB::PciDB(const std::string& path) {
         return;
       }
 
-      db_[curVendor] = PciVendor{
-          curVendor,
-          // Bump 2 to account for whitespace separation..
-          line.substr(6),
-      };
+      // Setup current vendor.
+      auto vendor = PciVendor();
+      vendor.id = curVendor;
+      // Bump 2 chars to account for whitespace separation..
+      vendor.name = line.substr(6);
+      db_[curVendor] = vendor;
 
       break;
+    }
 
     case 1:
       // Model info.
       if (db_.find(curVendor) != db_.end() && line.size() > 7) {
         curModel = line.substr(1, 4);
 
-        db_[curVendor].models[curModel] = PciModel{
-            curModel,
-            // Bump 2 to account for whitespace separation.
-            line.substr(7),
-        };
+        // Set up current model under the current vendor.
+        auto model = PciModel();
+        model.id = curModel;
+        // Bump 2 chars to account for whitespace separation.
+        model.desc = line.substr(7);
+        db_[curVendor].models[curModel] = model;
 
-        // TODO: remove else line.
       } else {
-        VLOG(1) << "unexpected error while parsing pci.ids: current vendor ID "
+        VLOG(1) << "Unexpected error while parsing pci.ids: current vendor ID "
                 << curVendor << " does not exist in DB yet";
       }
 
@@ -88,12 +88,12 @@ PciDB::PciDB(const std::string& path) {
       if (db_.find(curVendor) != db_.end() &&
           db_[curVendor].models.find(curModel) != db_[curVendor].models.end() &&
           line.size() > 11) {
+        // Store current subsystem information under current vendor and model.
         db_[curVendor].models[curModel].subsystemInfo[line.substr(2, 9)] =
-            line.substr(12);
+            line.substr(13);
 
-        // TODO: remove else line.
       } else {
-        VLOG(1) << "unexpected error while parsing pci.ids: current vendor ID "
+        VLOG(1) << "Unexpected error while parsing pci.ids: current vendor ID "
                 << curVendor << " or model ID " << curModel
                 << " does not exist in DB yet";
       }
@@ -101,7 +101,7 @@ PciDB::PciDB(const std::string& path) {
       break;
 
     default:
-      VLOG(1) << "unexpected pci.ids line format";
+      VLOG(1) << "Unexpected pci.ids line format";
     }
   }
 }
@@ -138,7 +138,7 @@ Status PciDB::getSubsystemInfo(const std::string& vendorID,
   if (db_[vendorID].models[modelID].subsystemInfo.find(subsystemID) ==
       db_[vendorID].models[modelID].subsystemInfo.end()) {
     return Status(
-        1, "subsystem ID does not exist in system pci.ids: " + subsystemID);
+        1, "Subsystem ID does not exist in system pci.ids: " + subsystemID);
   }
 
   subsystem = db_[vendorID].models[modelID].subsystemInfo[subsystemID];
@@ -165,7 +165,13 @@ QueryData genPCIDevices(QueryContext& context) {
     return results;
   }
 
-  PciDB pcidb;
+  std::ifstream raw(kPciIdsPath);
+  if (raw.fail()) {
+    LOG(ERROR) << "failed to read " << kPciIdsPath;
+    return results;
+  }
+
+  PciDB pcidb(raw);
 
   udev_enumerate_add_match_subsystem(enumerate.get(), "pci");
   udev_enumerate_scan_devices(enumerate.get());
