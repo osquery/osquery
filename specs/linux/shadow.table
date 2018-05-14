@@ -1,5 +1,5 @@
 table_name("shadow")
-description("Local system users encrypted passwords and related information.")
+description("Local system users encrypted passwords and related information. Please note, that you usually need superuser rights to access `/etc/shadow`.")
 schema([
     Column("password_status", TEXT, "Password status"),
     Column("hash_alg", TEXT, "Password hashing algorithm"),

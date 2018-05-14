@@ -181,6 +181,24 @@ class OsqueryiTest(unittest.TestCase):
             result = self.osqueryi.run_command(command)
         pass
 
+    def test_json_output(self):
+        '''Test that the output of --json is valid json'''
+        proc = test_base.TimeoutRunner([
+            self.binary,
+            "select 0",
+            "--disable_extensions",
+            "--json",
+            ],
+            SHELL_TIMEOUT
+        )
+        if os.name == "nt":
+            self.assertEqual(proc.stdout, "[\r\n  {\"0\":\"0\"}\r\n]\r\n")
+        else:
+            self.assertEqual(proc.stdout, "[\n  {\"0\":\"0\"}\n]\n")
+        print(proc.stdout)
+        print(proc.stderr)
+        self.assertEqual(proc.proc.poll(), 0)
+
     @test_base.flaky
     def test_time(self):
         '''Demonstrating basic usage of OsqueryWrapper with the time table'''
@@ -224,6 +242,13 @@ class OsqueryiTest(unittest.TestCase):
                                                  args={"config_path": "/"})
         result = self.osqueryi.run_query('SELECT * FROM time;')
         self.assertEqual(len(result), 1)
+
+    @test_base.flaky
+    def test_atc(self):
+        local_osquery_instance = test_base.OsqueryWrapper(self.binary,
+                                                 args={"config_path": "test.config"})
+        result = local_osquery_instance.run_query('SELECT a_number FROM test_atc')
+        self.assertEqual(result, [{'a_number':'314159'}])
 
 if __name__ == '__main__':
     test_base.Tester().run()

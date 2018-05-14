@@ -62,27 +62,32 @@ Status ViewsConfigParserPlugin::update(const std::string& source,
   }
 
   QueryData r;
-  for (const auto& view : views.GetObject()) {
-    std::string name = view.name.GetString();
-    std::string query = view.value.GetString();
-    if (query.empty()) {
-      continue;
-    }
+  if (views.IsObject()) {
+    for (const auto& view : views.GetObject()) {
+      std::string name = view.name.GetString();
+      if (!view.value.IsString()) {
+        continue;
+      }
+      std::string query = view.value.GetString();
+      if (query.empty()) {
+        continue;
+      }
 
-    std::string old_query = "";
-    getDatabaseValue(kQueries, kConfigViews + name, old_query);
-    erase_views.erase(name);
-    if (old_query == query) {
-      continue;
-    }
+      std::string old_query = "";
+      getDatabaseValue(kQueries, kConfigViews + name, old_query);
+      erase_views.erase(name);
+      if (old_query == query) {
+        continue;
+      }
 
-    // View has been updated
-    osquery::query("DROP VIEW " + name, r);
-    auto s = osquery::query("CREATE VIEW " + name + " AS " + query, r);
-    if (s.ok()) {
-      setDatabaseValue(kQueries, kConfigViews + name, query);
-    } else {
-      LOG(INFO) << "Error creating view (" << name << "): " << s.getMessage();
+      // View has been updated
+      osquery::query("DROP VIEW " + name, r);
+      auto s = osquery::query("CREATE VIEW " + name + " AS " + query, r);
+      if (s.ok()) {
+        setDatabaseValue(kQueries, kConfigViews + name, query);
+      } else {
+        LOG(INFO) << "Error creating view (" << name << "): " << s.getMessage();
+      }
     }
   }
 

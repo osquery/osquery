@@ -11,8 +11,6 @@
 #include <sstream>
 #include <vector>
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <osquery/config.h>
 #include <osquery/dispatcher.h>
 #include <osquery/enroll.h>
@@ -66,10 +64,10 @@ Status TLSConfigPlugin::setUp() {
 
 Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
   std::string json;
-  pt::ptree params;
+  JSON params;
   if (FLAGS_tls_node_api) {
     // The TLS node API morphs some verbs and variables.
-    params.put("_get", true);
+    params.add("_get", true);
   }
 
   auto s = TLSRequestHelper::go<JSONSerializer>(
@@ -77,17 +75,19 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
   if (s.ok()) {
     if (FLAGS_tls_node_api) {
       // The node API embeds configuration data (JSON escaped).
-      pt::ptree tree;
-      try {
-        std::stringstream input;
-        input << json;
-        pt::read_json(input, tree);
-      } catch (const pt::json_parser::json_parser_error& /* e */) {
+
+      JSON tree;
+      Status parse_status = tree.fromString(json);
+      if (!parse_status.ok()) {
         VLOG(1) << "Could not parse JSON from TLS node API";
       }
 
       // Re-encode the config key into JSON.
-      config["tls_plugin"] = unescapeUnicode(tree.get("config", ""));
+      auto it = tree.doc().FindMember("config");
+      config["tls_plugin"] =
+          unescapeUnicode(it != tree.doc().MemberEnd() && it->value.IsString()
+                              ? it->value.GetString()
+                              : "");
     } else {
       config["tls_plugin"] = json;
     }

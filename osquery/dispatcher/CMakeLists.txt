@@ -18,6 +18,7 @@ ADD_OSQUERY_TEST(TRUE
 ADD_OSQUERY_LIBRARY(FALSE osquery_dispatcher_runners
   scheduler.cpp
   distributed.cpp
+  io_service.cpp
 )
 
 ADD_OSQUERY_TEST(FALSE

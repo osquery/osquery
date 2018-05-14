@@ -90,7 +90,8 @@ void YARAEventSubscriber::configure() {
 
   // Bail if there is no configured set of opt-in paths for yara.
   const auto& yara_config = plugin->getData().doc();
-  if (!yara_config.HasMember("file_paths")) {
+  if (!yara_config.HasMember("file_paths") ||
+      !yara_config["file_paths"].IsObject()) {
     return;
   }
 

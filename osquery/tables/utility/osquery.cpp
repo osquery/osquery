@@ -199,7 +199,7 @@ QueryData genOsqueryInfo(QueryContext& context) {
   QueryData results;
 
   Row r;
-  r["pid"] = INTEGER(PlatformProcess::getCurrentProcess()->pid());
+  r["pid"] = INTEGER(PlatformProcess::getCurrentPid());
   r["version"] = kVersion;
 
   std::string hash_string;
@@ -231,7 +231,7 @@ QueryData genOsquerySchedule(QueryContext& context) {
   QueryData results;
 
   Config::get().scheduledQueries(
-      [&results](const std::string& name, const ScheduledQuery& query) {
+      [&results](std::string name, const ScheduledQuery& query) {
         Row r;
         r["name"] = name;
         r["query"] = query.query;
@@ -263,5 +263,5 @@ QueryData genOsquerySchedule(QueryContext& context) {
       true);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

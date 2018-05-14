@@ -104,6 +104,8 @@ class AwsLogForwarder : public BufferedLogForwarder {
       const auto& record = *it;
       const auto& raw_buffer = record.GetData();
 
+      index++;
+
       std::string buffer(
           reinterpret_cast<const char*>(raw_buffer.GetUnderlyingData()),
           raw_buffer.GetLength());

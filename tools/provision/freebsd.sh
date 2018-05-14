@@ -32,6 +32,7 @@ function distro_main() {
   package rocksdb-lite
   package rapidjson
   package zstd
+  package linenoise-ng
 
   # Non-optional features.
   package augeas
@@ -43,6 +44,5 @@ function distro_main() {
   package lldpd
 
   # For testing
-  package doxygen
   package valgrind
 }

@@ -16,8 +16,8 @@
 #include <osquery/filesystem.h>
 #include <osquery/core.h>
 
+#include "osquery/core/hashing.h"
 #include "osquery/tables/system/darwin/keychain.h"
-#include "osquery/tables/system/hash.h"
 
 namespace osquery {
 namespace tables {
@@ -131,6 +131,23 @@ std::string genSHA1ForCertificate(X509* cert) {
     return genKIDProperty(fprint, fprint_size);
   }
   return "";
+}
+
+std::string genSerialForCertificate(X509* cert) {
+  std::string hex;
+  ASN1_INTEGER* serial = X509_get_serialNumber(cert);
+  BIGNUM* bignumSerial = ASN1_INTEGER_to_BN(serial, nullptr);
+  if (bignumSerial == nullptr) {
+    return hex;
+  }
+  char* hexBytes = BN_bn2hex(bignumSerial);
+  OPENSSL_free(bignumSerial);
+  if (hexBytes == nullptr) {
+    return hex;
+  }
+  hex = std::string(hexBytes);
+  OPENSSL_free(hexBytes);
+  return hex;
 }
 
 bool CertificateIsCA(X509* cert) {

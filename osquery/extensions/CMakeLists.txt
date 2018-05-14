@@ -7,22 +7,56 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 # Generate the thrift intermediate/interface code.
+set(THRIFT_IMPL_FILE impl_thrift.cpp)
+
 if(LINUX OR DARWIN)
-  add_custom_command(
-    COMMAND
-      LD_LIBRARY_PATH=${BUILD_DEPS}/lib:$ENV{LD_LIBRARY_PATH}
-      ${THRIFT_COMPILER} --gen cpp --gen py "${CMAKE_SOURCE_DIR}/osquery.thrift"
-    DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
-    OUTPUT ${OSQUERY_THRIFT_GENERATED_FILES}
-  )
+  if(DEFINED ENV{FBTHRIFT})
+    add_custom_command(
+      COMMAND
+        LD_LIBRARY_PATH=${BUILD_DEPS}/lib:$ENV{LD_LIBRARY_PATH}
+        ${THRIFT_COMPILER} --gen mstch_cpp2:stack_arguments,include_prefix=generated --gen py
+        --templates "${BUILD_DEPS}/include/thrift/templates"
+        -o "${CMAKE_BINARY_DIR}/generated"
+        "${CMAKE_SOURCE_DIR}/osquery.thrift"
+      DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
+      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
+      OUTPUT ${THRIFT_GENERATED_FILES}
+    )
+    add_definitions(-DFBTHRIFT -Wno-c++17-extensions)
+
+    ADD_OSQUERY_LINK_CORE("libfolly.so")
+    ADD_OSQUERY_LINK_CORE("libsnappy.so")
+    ADD_OSQUERY_LINK_CORE("wangle")
+    ADD_OSQUERY_LINK_CORE("mstch")
+    ADD_OSQUERY_LINK_CORE("gssapi_krb5")
+    ADD_OSQUERY_LINK_CORE("event")
+    ADD_OSQUERY_LINK_CORE("double-conversion")
+
+    # FBThrift static libraries.
+    ADD_OSQUERY_LINK_CORE("thriftcpp2 thrift-core thriftprotocol thriftfrozen2")
+    ADD_OSQUERY_LINK_CORE("transport server concurrency security protocol async")
+    ADD_OSQUERY_LINK_CORE("crypto ssl")
+
+    set(THRIFT_IMPL_FILE impl_fbthrift.cpp)
+  else()
+    add_custom_command(
+      COMMAND
+        LD_LIBRARY_PATH=${BUILD_DEPS}/lib:$ENV{LD_LIBRARY_PATH}
+        ${THRIFT_COMPILER} --gen cpp --gen py
+        "${CMAKE_SOURCE_DIR}/osquery.thrift"
+      DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
+      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
+      OUTPUT ${THRIFT_GENERATED_FILES}
+    )
+  endif()
 else()
   add_custom_command(
     COMMAND
-      ${THRIFT_COMPILER} --gen cpp --gen py "${CMAKE_SOURCE_DIR}/osquery.thrift"
+      ${THRIFT_COMPILER} --gen cpp --gen py
+        "${CMAKE_SOURCE_DIR}/osquery.thrift"
     DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
-    OUTPUT ${OSQUERY_THRIFT_GENERATED_FILES}
+    OUTPUT ${THRIFT_GENERATED_FILES}
   )
 endif()
 
@@ -33,7 +67,8 @@ if(NOT WINDOWS)
 endif()
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
-  ${OSQUERY_THRIFT_GENERATED_FILES}
+  ${THRIFT_GENERATED_FILES}
+  ${THRIFT_IMPL_FILE}
   extensions.cpp
   interface.cpp
 )

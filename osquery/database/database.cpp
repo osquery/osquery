@@ -8,10 +8,17 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
+
+#include "osquery/core/json.h"
+
+namespace pt = boost::property_tree;
+namespace rj = rapidjson;
 
 namespace osquery {
 
@@ -34,6 +41,11 @@ const std::string kQueries = "queries";
 const std::string kEvents = "events";
 const std::string kCarves = "carves";
 const std::string kLogs = "logs";
+
+const std::string kDbEpochSuffix = "epoch";
+const std::string kDbCounterSuffix = "counter";
+
+const std::string kDatabaseResultsVersion = "1";
 
 const std::vector<std::string> kDomains = {
     kPersistentSettings, kQueries, kEvents, kLogs, kCarves};
@@ -342,5 +354,89 @@ void dumpDatabase() {
           stdout, "%s[%s]: %s\n", domain.c_str(), key.c_str(), value.c_str());
     }
   }
+}
+
+Status ptreeToRapidJSON(const std::string& in, std::string& out) {
+  pt::ptree tree;
+  try {
+    std::stringstream ss;
+    ss << in;
+    pt::read_json(ss, tree);
+  } catch (const pt::json_parser::json_parser_error& /* e */) {
+    return Status(1, "Failed to parse JSON");
+  }
+
+  auto json = JSON::newArray();
+  for (const auto& t : tree) {
+    std::stringstream ss;
+    pt::write_json(ss, t.second);
+
+    rj::Document row;
+    if (row.Parse(ss.str()).HasParseError()) {
+      return Status(1, "Failed to serialize JSON");
+    }
+    json.push(row);
+  }
+
+  json.toString(out);
+
+  return Status();
+}
+
+static Status migrateV0V1(void) {
+  std::vector<std::string> keys;
+  auto s = scanDatabaseKeys(kQueries, keys);
+  if (!s.ok()) {
+    return Status(1, "Failed to lookup legacy query data from database");
+  }
+
+  for (const auto& key : keys) {
+    // Skip over epoch and counter entries, as 0 is parsed by ptree
+    if (boost::algorithm::ends_with(key, kDbEpochSuffix) ||
+        boost::algorithm::ends_with(key, kDbCounterSuffix) ||
+        boost::algorithm::starts_with(key, "query.")) {
+      continue;
+    }
+
+    std::string value{""};
+    if (!getDatabaseValue(kQueries, key, value)) {
+      LOG(WARNING) << "Failed to get value from database " << key;
+      continue;
+    }
+
+    std::string out;
+    s = ptreeToRapidJSON(value, out);
+    if (!s.ok()) {
+      LOG(WARNING) << "Conversion from ptree to RapidJSON failed for '" << key
+                   << ": " << value << "': " << s.what() << ". Dropping key!";
+      continue;
+    }
+
+    if (!setDatabaseValue(kQueries, key, out)) {
+      LOG(WARNING) << "Failed to update value in database " << key << ": "
+                   << value;
+    }
+  }
+
+  return Status();
+}
+
+Status upgradeDatabase() {
+  std::string db_results_version{""};
+  getDatabaseValue(kPersistentSettings, "results_version", db_results_version);
+
+  if (db_results_version == kDatabaseResultsVersion) {
+    return Status();
+  }
+
+  auto s = migrateV0V1();
+  if (!s.ok()) {
+    LOG(WARNING) << "Failed to migrate V0 to V1: " << s.what();
+    return Status(1, "DB migration failed");
+  }
+
+  setDatabaseValue(
+      kPersistentSettings, "results_version", kDatabaseResultsVersion);
+  return Status();
 }
 }

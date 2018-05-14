@@ -64,7 +64,7 @@ std::set<int> getProcList(const QueryContext& context) {
   if (context.constraints.count("pid") > 0 &&
       context.constraints.at("pid").exists(EQUALS)) {
     for (const auto& pid : context.constraints.at("pid").getAll<int>(EQUALS)) {
-      if (pid > 0) {
+      if (pid >= 0) {
         pidlist.insert(pid);
       }
     }
@@ -88,9 +88,9 @@ std::set<int> getProcList(const QueryContext& context) {
 
   size_t num_pids = bufsize / sizeof(pid_t);
   for (size_t i = 0; i < num_pids; ++i) {
-    // If the pid is negative or 0, it doesn't represent a real process so
+    // If the pid is negative, it doesn't represent a real process so
     // continue the iterations so that we don't add it to the results set
-    if (pids[i] <= 0) {
+    if (pids[i] < 0) {
       continue;
     }
     pidlist.insert(pids[i]);
@@ -186,16 +186,16 @@ struct proc_args {
 
 proc_args getProcRawArgs(int pid, size_t argmax) {
   proc_args args;
-  std::vector<char> procargs(argmax);
+  std::unique_ptr<char[]> pprocargs{new char[argmax]};
+  char* procargs = pprocargs.get();
   int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
-  if (sysctl(mib, 3, procargs.data(), &argmax, nullptr, 0) == -1 ||
-      argmax == 0) {
+  if (sysctl(mib, 3, procargs, &argmax, nullptr, 0) == -1 || argmax == 0) {
     return args;
   }
 
   // The number of arguments is an integer in front of the result buffer.
   int nargs = 0;
-  memcpy(&nargs, procargs.data(), sizeof(nargs));
+  memcpy(&nargs, procargs, sizeof(nargs));
   // Walk the \0-tokenized list of arguments until reaching the returned 'max'
   // number of arguments or the number appended to the front.
   const char* current_arg = &procargs[0] + sizeof(nargs);
@@ -291,8 +291,12 @@ QueryData genProcesses(QueryContext& context) {
       continue;
     }
 
-    // If the process is not a Zombie, try to find the path and name.
-    if (cred.status != 5) {
+    if (pid == 0) {
+      r["path"] = "";
+      // For some reason not even proc_name gives back a name for kernel_task
+      r["name"] = "kernel_task";
+    } else if (cred.status != 5) { // If the process is not a Zombie, try to
+                                   // find the path and name.
       r["path"] = getProcPath(pid);
       // OS X proc_name only returns 16 bytes, use the basename of the path.
       r["name"] = fs::path(r["path"]).filename().string();
@@ -330,6 +334,10 @@ QueryData genProcesses(QueryContext& context) {
       // time information
       r["user_time"] = TEXT(rusage_info_data.ri_user_time / CPU_TIME_RATIO);
       r["system_time"] = TEXT(rusage_info_data.ri_system_time / CPU_TIME_RATIO);
+
+      // disk i/o information
+      r["disk_bytes_read"] = TEXT(rusage_info_data.ri_diskio_bytesread);
+      r["disk_bytes_written"] = TEXT(rusage_info_data.ri_diskio_byteswritten);
 
       // Below is the logic to caculate the start_time since boot time
       // with higher precision

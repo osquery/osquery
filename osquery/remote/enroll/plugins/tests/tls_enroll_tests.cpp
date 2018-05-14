@@ -12,8 +12,6 @@
 
 #include <vector>
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <osquery/config.h>
 #include <osquery/database.h>
 #include <osquery/flags.h>
@@ -38,7 +36,7 @@ class TLSEnrollTests : public testing::Test {
   void SetUp() override;
   void TearDown() override;
 
-  Status testReadRequests(pt::ptree& response_tree);
+  Status testReadRequests(JSON& response_tree);
 
  private:
   std::string test_read_uri_;
@@ -60,10 +58,10 @@ void TLSEnrollTests::TearDown() {
   TLSServerRunner::stop();
 }
 
-Status TLSEnrollTests::testReadRequests(pt::ptree& response_tree) {
-  auto request_ = Request<TLSTransport, JSONSerializer>(test_read_uri_);
+Status TLSEnrollTests::testReadRequests(JSON& response_tree) {
+  Request<TLSTransport, JSONSerializer> request_(test_read_uri_);
   request_.setOption("hostname", Flag::getValue("tls_hostname"));
-  auto status = request_.call(pt::ptree());
+  auto status = request_.call(JSON());
   if (status.ok()) {
     status = request_.getResponse(response_tree);
   }
@@ -73,15 +71,23 @@ Status TLSEnrollTests::testReadRequests(pt::ptree& response_tree) {
 TEST_F(TLSEnrollTests, test_tls_enroll) {
   auto node_key = getNodeKey("tls");
 
-  pt::ptree response;
+  JSON response;
+  std::string value;
+
   auto status = testReadRequests(response);
   EXPECT_TRUE(status.ok());
-  EXPECT_EQ(response.size(), 1U);
+  EXPECT_EQ(response.doc().Size(), 1U);
 
-  auto value = response.get<std::string>(".command");
+  auto const& obj = response.doc()[0];
+  EXPECT_TRUE(obj.IsObject());
+  EXPECT_TRUE(obj.HasMember("command"));
+  EXPECT_TRUE(obj["command"].IsString());
+  value = obj["command"].GetString();
   EXPECT_EQ(value, "enroll");
 
-  value = response.get<std::string>(".host_identifier");
+  EXPECT_TRUE(obj.HasMember("host_identifier"));
+  EXPECT_TRUE(obj["host_identifier"].IsString());
+  value = obj["host_identifier"].GetString();
   EXPECT_EQ(value, getHostIdentifier());
 
   // Check that osquery_info exists in the host_details.
@@ -90,7 +96,12 @@ TEST_F(TLSEnrollTests, test_tls_enroll) {
   ASSERT_EQ(osquery_info.size(), 1U);
   ASSERT_EQ(osquery_info[0].count("uuid"), 1U);
 
-  value = response.get<std::string>(".host_details.osquery_info.uuid");
+  EXPECT_TRUE(obj.HasMember("host_details"));
+  EXPECT_TRUE(obj["host_details"].HasMember("osquery_info"));
+  EXPECT_TRUE(obj["host_details"]["osquery_info"].HasMember("uuid"));
+
+  EXPECT_TRUE(obj["host_details"]["osquery_info"]["uuid"].IsString());
+  value = obj["host_details"]["osquery_info"]["uuid"].GetString();
   EXPECT_EQ(osquery_info[0]["uuid"], value);
 }
 }

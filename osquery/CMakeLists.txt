@@ -43,7 +43,8 @@ if(CLANG AND POSIX)
   )
   if(NOT FREEBSD)
     add_compile_options(
-      -Wshadow
+      -Wshadow-all
+      -Wno-shadow-field
     )
   endif()
 endif()
@@ -61,10 +62,14 @@ endif()
 
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
-set(OSQUERY_OBJECTS
-  $<TARGET_OBJECTS:osquery_sqlite>
-  $<TARGET_OBJECTS:linenoise-ng>
-)
+if(FREEBSD)
+  set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
+else()
+  set(OSQUERY_OBJECTS
+    $<TARGET_OBJECTS:osquery_sqlite>
+    $<TARGET_OBJECTS:linenoise-ng>
+  )
+endif()
 
 # Add subdirectories
 add_subdirectory(config)
@@ -143,6 +148,7 @@ if(APPLE OR LINUX)
   ADD_OSQUERY_LINK_ADDITIONAL("rocksdb_lite")
 elseif(FREEBSD)
   ADD_OSQUERY_LINK_CORE("icuuc")
+  ADD_OSQUERY_LINK_CORE("linenoise")
   ADD_OSQUERY_LINK_ADDITIONAL("rocksdb-lite")
 endif()
 
@@ -163,8 +169,10 @@ endif()
 ADD_OSQUERY_LINK_CORE("glog${WO_KEY}")
 
 if(POSIX)
+  # Hashing methods in core use libcrypto.
+  ADD_OSQUERY_LINK_CORE("crypto")
+
   ADD_OSQUERY_LINK_ADDITIONAL("ssl")
-  ADD_OSQUERY_LINK_ADDITIONAL("crypto")
   ADD_OSQUERY_LINK_ADDITIONAL("libpthread")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
 endif()

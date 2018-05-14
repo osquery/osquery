@@ -7,13 +7,61 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 # We make heavy use of Write-Host, because colors are awesome. #dealwithit.
+
+<#
+.SYNOPSIS
+This script will help make install packages for osquery 
+
+.DESCRIPTION
+The script will help make both MSI and Chocolatey install packages for Windows. Great for deploying to Windows via GPO, SCCM, or other deployment tools.
+
+.PARAMETER InstallType
+Allows you to specify either MSI or Chocolatety for output. Can be aliased with 'Type'
+
+.PARAMETER ConfigFilePath
+Specify the path to find your osquery config file that you would like to include in the build. Can be aliased with 'ConfigFile'
+
+.PARAMETER FlagFilePath
+Specify the path to find your osquery flag file that you would like to include in the build. Can be aliased with 'FlagFile'
+
+.PARAMETER Extras
+Specify this option if you want to bundle any other files in the install package
+
+.PARAMETER Help
+This parameter is for old habits. Widows emphasizes the use of Get-Help. It will display similar to using Get-Help .\tools\deployment\make_windows_packages.ps1
+
+.EXAMPLE
+.\tools\deployment\make_windows_package.ps1 -InstallType msi
+
+.EXAMPLE
+.\tools\deployment\make_windows_package.ps1 -help
+
+.EXAMPLE
+Get-Help .\tools\deployment\make_windows_package.ps1 -detailed
+
+.NOTES
+If you don't specify a parameter by default it will build a chocolatey install package
+Last Updated: 02/08/18
+
+.LINK
+https://osquery.io
+
+#>
+
+
+
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", '', Scope = "Function", Target = "*")]
 param(
-  [string] $type = 'chocolatey',
-  [string] $configfile = '',
-  [string] $flagfile = '',
-  [array] $extras = @(),
-  [bool] $help = $false
+
+  [Alias("Type")]
+  [string] $InstallType = 'chocolatey',
+  [Alias("ConfigFile")]
+  [string] $ConfigFilePath = '',
+  [Alias("FlagFile")]
+  [string] $FlagFilePath = '',
+  [array] $Extras = @(),
+  [Alias("-h")]
+  [Switch] $Help = $false
 )
 
 # Import the osquery utility functions
@@ -34,8 +82,10 @@ function New-MsiPackage() {
     [string] $shell = 'build\windows10\osquery\Release\osqueryi.exe',
     [string] $daemon = 'build\windows10\osquery\Release\osqueryd.exe',
     [string] $version = '0.0.0',
-    [array] $extras = @()
+    [array] $Extras = @()
   )
+
+
   $workingDir = Get-Location
   if ((-not (Get-Command 'candle.exe')) -or
       (-not (Get-Command 'light.exe'))) {
@@ -105,7 +155,7 @@ function New-MsiPackage() {
     Name='osquery'
     Manufacturer='Facebook'
 '@
-$wix += "`nId='$(New-Guid)'`n"
+$wix += "`n    Id='$(New-Guid)'`n"
 $wix +=
 @'
     UpgradeCode='$(var.OsqueryUpgradeCode)'
@@ -199,7 +249,7 @@ $wix +=
 '@
 # Bundle along any addition files specified
 $cnt = 0
-foreach ($e in $extras) {
+foreach ($e in $Extras) {
   $name = Split-Path $e -Leaf
   $wix += "`n<File Id='extra_$cnt' Name='$name' Source='$e'/>`n"
   $cnt += 1
@@ -309,6 +359,8 @@ function New-ChocolateyPackage() {
     [string] $version = '0.0.0',
     [string] $latest = '0.0.0'
   )
+
+
   $working_dir = Get-Location
   if (-not (Get-Command '7z.exe')) {
     $msg = '[-] 7z note found, run .\tools\make-win64-dev-env.bat.'
@@ -466,18 +518,87 @@ And verify that the digests match one of the below values:
 }
 
 function Get-Help {
-  $programName = (Get-Item $PSCommandPath ).Name
-  $msg =  "Usage: $programName [-type] [-extras] `n" +
-          "    -help       Prints this message`n" +
-          "    -type       The type of package to build, can be 'chocolatey' or 'msi'`n" +
-          "    -extras     Any additional files to bundle with the packages (msi only)`n`n"
-  Write-Host $msg -ForegroundColor Yellow
+  Write-Host "-help is deprecated in Windows please use Get-Help make_windows_package.ps1" -ForeGroundColor Yellow
+  $msg = 
+"
+NAME
+    C:\osquery\tools\deployment\make_windows_package.ps1
+
+SYNOPSIS
+    This script will help make install packages for osquery
+
+
+SYNTAX
+    C:\osquery\tools\deployment\make_windows_package.ps1 [[-InstallType] <String>] [[-ConfigFilePath] <String>] [[-FlagFilePath] <String>] [[-Extras] <Array>] [-Help] [<CommonParameters>]
+
+
+DESCRIPTION
+    The script will help make both MSI and Chocolatey install packages for Windows. Great for deploying to Windows via GPO, SCCM, or other deployment tools.
+
+
+PARAMETERS
+    -InstallType <String>
+        Allows you to specify either MSI or Chocolatety for output. Can be aliased with 'Type'
+
+    -ConfigFilePath <String>
+        Specify the path to find your osquery config file that you would like to include in the build. Can be aliased with 'ConfigFile'
+
+    -FlagFilePath <String>
+        Specify the path to find your osquery flag file that you would like to include in the build. Can be aliased with 'FlagFile'
+
+    -Extras <Array>
+        Specify this option if you want to bundle any other files in the install package
+
+    -Help [<SwitchParameter>]
+        This parameter is for old habits. Widows emphasizes the use of Get-Help. It will display similar to using Get-Help .\tools\deployment\make_windows_packages.ps1
+
+    <CommonParameters>
+        This cmdlet supports the common parameters: Verbose, Debug,
+        ErrorAction, ErrorVariable, WarningAction, WarningVariable,
+        OutBuffer, PipelineVariable, and OutVariable. For more information, see
+        about_CommonParameters (https:/go.microsoft.com/fwlink/?LinkID=113216).
+
+    -------------------------- EXAMPLE 1 --------------------------
+
+    PS C:\>.\tools\deployment\make_windows_package.ps1 -InstallType msi
+
+
+
+
+
+
+    -------------------------- EXAMPLE 2 --------------------------
+
+    PS C:\>.\tools\deployment\make_windows_package.ps1 -help
+
+
+
+
+
+
+    -------------------------- EXAMPLE 3 --------------------------
+
+    PS C:\>Get-Help .\tools\deployment\make_windows_package.ps1 -detailed
+
+
+
+
+
+
+REMARKS
+    To see the examples, type: 'get-help C:\osquery\tools\deployment\make_windows_package.ps1 -examples'.
+    For more information, type: 'get-help C:\osquery\tools\deployment\make_windows_package.ps1 -detailed'.
+    For technical information, type: 'get-help C:\osquery\tools\deployment\make_windows_package.ps1 -full'.
+    For online help, type: 'get-help C:\osquery\tools\deployment\make_windows_package.ps1 -online'
+
+"
+  Write-Host $msg -ForeGroundColor Green
   exit
 }
 
 function Main() {
 
-  if ($help) {
+  if ($Help) {
     Get-Help
   }
 
@@ -505,22 +626,22 @@ function Main() {
     $version = $latest + '-' + $version.split('-')[2]
   }
   # Strip off potential carriage return or newline from version string
-  $version = $version.trim()
+  $version = $latest.trim()
 
-  if ($type.ToLower() -eq 'msi') {
+  if ($InstallType.ToLower() -eq 'msi') {
     Write-Host '[*] Building osquery MSI' -ForegroundColor Cyan
     $chocoPath = [System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'Machine')
     $certs = $(Join-Path $chocoPath 'lib\openssl\local\certs')
-    if ($configfile -eq '') {
-      $configfile = $(Join-Path (Get-Location) 'tools\deployment\osquery.example.conf')
+    if ($ConfigFilePath -eq '') {
+      $ConfigFilePath = $(Join-Path (Get-Location) 'tools\deployment\osquery.example.conf')
     }
     New-MsiPackage -shell $shell `
                    -daemon $daemon `
                    -certsPath $certs `
-                   -flagsPath $flagfile `
-                   -configPath $configfile `
-                   -version $latest `
-                   -extras $extras
+                   -flagsPath $FlagFilePath `
+                   -configPath $ConfigFilePath `
+                   -version $version `
+                   -extras $Extras
   } else {
     Write-Host '[*] Building osquery Chocolatey package' -ForegroundColor Cyan
     New-ChocolateyPackage -shell $shell `

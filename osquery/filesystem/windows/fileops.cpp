@@ -1475,4 +1475,8 @@ fs::path getSystemRoot() {
   GetWindowsDirectory(winDirectory.data(), MAX_PATH);
   return fs::path(std::string(winDirectory.data()));
 }
+
+Status platformLstat(const std::string& path, struct stat& d_stat) {
+  return Status(1);
+}
 }
