@@ -139,10 +139,6 @@ QueryData genBiosInfo(QueryContext& context) {
     wmiComputerSystemResults[0].GetString("Manufacturer", manufacturer);
     manufacturer = getManufacturer(manufacturer);
   } else {
-    manufacturer = "N/A";
-  }
-
-  if (manufacturer == "N/A") {
     return results;
   }
 
