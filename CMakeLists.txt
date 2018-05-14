@@ -254,6 +254,7 @@ elseif(DEFINED ENV{SANITIZE})
     -fno-omit-frame-pointer
     -fno-optimize-sibling-calls
     -fsanitize-blacklist=${SANITIZE_BLACKLIST}
+    -O1
   )
   if (DEFINED ENV{SANITIZE_THREAD})
     add_compile_options(-fsanitize=thread)
@@ -265,6 +266,13 @@ elseif(DEFINED ENV{SANITIZE})
       # LSAN is not available on OS X 10.12.
       add_compile_options(-fsanitize=leak)
     endif()
+  endif()
+
+  if(DEFINED ENV{FUZZ})
+    add_compile_options(
+      -fsanitize=fuzzer
+    )
+    set(FUZZ TRUE)
   endif()
 
   if(LINUX)

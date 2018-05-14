@@ -197,8 +197,11 @@ ToolType kToolType{ToolType::UNKNOWN};
 /// The saved exit code from a thread's request to stop the process.
 volatile std::sig_atomic_t kExitCode{0};
 
-/// Track the main thread ID for graceful shutdowns
-std::thread::id kMainThreadId;
+/// The saved thread ID for shutdown to short-circuit raising a signal.
+static std::thread::id kMainThreadId;
+
+/// Legacy thread ID to ensure that the windows service waits before exiting
+unsigned long kLegacyThreadId;
 
 /// When no flagfile is provided via CLI, attempt to read flag 'defaults'.
 const std::string kBackupDefaultFlagfile{OSQUERY_HOME "/osquery.flags.default"};
@@ -262,6 +265,9 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   // The 'main' thread is that which executes the initializer.
   kMainThreadId = std::this_thread::get_id();
+
+  // Maintain a legacy thread id for Windows service stops.
+  kLegacyThreadId = platformGetTid();
 
 #ifndef WIN32
   // Set the max number of open files.
@@ -701,7 +707,12 @@ void Initializer::waitForShutdown() {
   // Hopefully release memory used by global string constructors in gflags.
   GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
   DatabasePlugin::shutdown();
-  ::exit((kExitCode != 0) ? kExitCode : EXIT_SUCCESS);
+
+  auto excode = (kExitCode != 0) ? kExitCode : EXIT_SUCCESS;
+  if (isWatcher()) {
+    platformMainThreadExit(excode);
+  }
+  exit(excode);
 }
 
 void Initializer::requestShutdown(int retcode) {

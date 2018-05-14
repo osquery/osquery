@@ -26,24 +26,40 @@ QueryData genBitlockerInfo(QueryContext& context) {
       "SELECT * FROM Win32_EncryptableVolume",
       (BSTR)L"ROOT\\CIMV2\\Security\\MicrosoftVolumeEncryption");
   std::vector<WmiResultItem>& wmiResults = wmiSystemReq.results();
-  if (!wmiResults.empty()) {
-    for (const auto& data : wmiResults) {
-      long status = 0;
-      data.GetString("DeviceID", r["device_id"]);
-      data.GetString("DriveLetter", r["drive_letter"]);
-      data.GetString("PersistentVolumeID", r["persistent_volume_id"]);
-      data.GetLong("ConversionStatus", status);
-      r["conversion_status"] = INTEGER(status);
-      data.GetLong("ProtectionStatus", status);
-      r["protection_status"] = INTEGER(status);
-      results.push_back(r);
+  if (wmiResults.empty()) {
+    LOG(WARNING) << "Error retreiving information from WMI.";
+    return results;
+  }
+  for (const auto& data : wmiResults) {
+    long status = 0;
+    long emethod;
+    data.GetString("DeviceID", r["device_id"]);
+    data.GetString("DriveLetter", r["drive_letter"]);
+    data.GetString("PersistentVolumeID", r["persistent_volume_id"]);
+    data.GetLong("ConversionStatus", status);
+    r["conversion_status"] = INTEGER(status);
+    data.GetLong("ProtectionStatus", status);
+    r["protection_status"] = INTEGER(status);
+    data.GetLong("EncryptionMethod", emethod);
+    std::string emethod_str;
+    std::map<long, std::string> methods;
+
+    methods[0] = "None";
+    methods[1] = "AES_128_WITH_DIFFUSER";
+    methods[2] = "AES_256_WITH_DIFFUSER";
+    methods[3] = "AES_128";
+    methods[4] = "AES_256";
+    methods[5] = "HARDWARE_ENCRYPTION";
+    methods[6] = "XTS_AES_128";
+    methods[7] = "XTS_AES_256";
+
+    if (methods.find(emethod) != methods.end()) {
+      emethod_str = methods.find(emethod)->second;
+    } else {
+      emethod_str = "UNKNOWN";
     }
-  } else {
-    r["device_id"] = "-1";
-    r["drive_letter"] = "-1";
-    r["persistent_volume_id"] = "-1";
-    r["conversion_status"] = "-1";
-    r["protection_status"] = "-1";
+    r["encryption_method"] = emethod_str;
+    results.push_back(r);
   }
 
   return results;
