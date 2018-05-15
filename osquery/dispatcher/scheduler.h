@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <map>
 
 #include <osquery/dispatcher.h>
@@ -39,6 +40,8 @@ class SchedulerRunner : public InternalRunnable {
 
   /// Maximum number of steps.
   unsigned long int timeout_;
+
+  std::chrono::milliseconds sum_overtime_ = std::chrono::milliseconds::zero();
 };
 
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query);

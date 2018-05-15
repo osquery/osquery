@@ -173,6 +173,47 @@ TEST_F(SchedulerTests, test_scheduler) {
   TablePlugin::kCacheInterval = backup_interval;
 }
 
+TEST_F(SchedulerTests, test_scheduler_sum_overtime) {
+  auto backup_step = TablePlugin::kCacheStep;
+  auto backup_interval = TablePlugin::kCacheInterval;
+
+  // Start the scheduler now.
+  auto now = osquery::getUnixTime();
+  TablePlugin::kCacheStep = now;
+
+  // Update the config with a pack/schedule that contains several queries.
+  std::string config = R"config(
+  {
+    "packs": {
+      "scheduler": {
+        "queries": {
+          "1": {"query": "select * from osquery_schedule", "interval": 1},
+          "2": {"query": "select * from osquery_info", "interval": 1},
+          "3": {"query": "select * from processes", "interval": 1},
+          "4": {"query": "select * from osquery_packs", "interval": 1}
+        }
+      }
+    }
+  })config";
+  Config::get().update({{"data", config}});
+
+  // Run the scheduler for 1 second with a second interval.
+  SchedulerRunner runner(now, 1);
+  auto start_time_point = std::chrono::steady_clock::now();
+  runner.start();
+  auto end_time_point = std::chrono::steady_clock::now();
+  auto start_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+      end_time_point - start_time_point);
+
+  EXPECT_GE(start_duration, std::chrono::seconds{1});
+  EXPECT_LE(start_duration, std::chrono::milliseconds{1010});
+  EXPECT_LE(runner.sumOvertime(), std::chrono::milliseconds::zero());
+
+  // Restore plugin settings.
+  TablePlugin::kCacheStep = backup_step;
+  TablePlugin::kCacheInterval = backup_interval;
+}
+
 TEST_F(SchedulerTests, test_scheduler_reload) {
   std::string config =
       "{\"schedule\":{\"1\":{"

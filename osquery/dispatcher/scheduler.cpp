@@ -160,7 +160,10 @@ inline void launchQuery(const std::string& name, const ScheduledQuery& query) {
 void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
+  const auto interval_millisec =
+      std::chrono::milliseconds{std::chrono::seconds{interval_}};
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
+    auto start_time_point = std::chrono::steady_clock::now();
     Config::get().scheduledQueries(
         ([&i](std::string name, const ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
@@ -184,13 +187,23 @@ void SchedulerRunner::start() {
     if ((i % 3) == 0) {
       relayStatusLogs(true);
     }
-
-    // Put the thread into an interruptible sleep without a config instance.
-    pauseMilli(interval_ * 1000);
+    auto loop_step_duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start_time_point);
+    if (loop_step_duration < interval_millisec) {
+      // Put the thread into an interruptible sleep without a config instance.
+      pauseMilli(interval_millisec - loop_step_duration);
+    } else {
+      sum_overtime_ += loop_step_duration - interval_millisec;
+    }
     if (interrupted()) {
       break;
     }
   }
+}
+
+std::chrono::milliseconds SchedulerRunner::sumOvertime() const {
+  return sum_overtime_;
 }
 
 void startScheduler() {
