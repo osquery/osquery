@@ -84,9 +84,5 @@ QueryData genUsers(QueryContext& context) {
 
   return results;
 }
-
-QueryData genStartupItems(QueryContext& context) {
-  return QueryData();
-}
 }
 }
