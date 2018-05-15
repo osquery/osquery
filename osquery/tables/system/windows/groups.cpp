@@ -32,48 +32,6 @@ namespace osquery {
 
 namespace tables {
 
-std::unique_ptr<BYTE[]> getSid(LPCWSTR accountName) {
-  if (accountName == nullptr) {
-    LOG(INFO) << "No account name provided.";
-    return nullptr;
-  }
-
-  // Call LookupAccountNameW() once to retrieve the necessary buffer sizes for
-  // the SID (in bytes) and the domain name (in TCHARS):
-  unsigned long sidBufferSize = 0;
-  unsigned long domainNameSize = 0;
-  auto eSidType = SidTypeUnknown;
-  LookupAccountNameW(nullptr,
-                     accountName,
-                     nullptr,
-                     &sidBufferSize,
-                     nullptr,
-                     &domainNameSize,
-                     &eSidType);
-
-  // Allocate buffers for the (binary data) SID and (wide string) domain name:
-  auto sidBuffer = std::make_unique<BYTE[]>(sidBufferSize);
-  std::vector<wchar_t> domainName(domainNameSize);
-
-  // Call LookupAccountNameW() a second time to actually obtain the SID for the
-  // given account name:
-  auto ret = LookupAccountNameW(nullptr,
-                                accountName,
-                                sidBuffer.get(),
-                                &sidBufferSize,
-                                domainName.data(),
-                                &domainNameSize,
-                                &eSidType);
-  if (ret == 0) {
-    LOG(INFO) << "Failed to LookupAccountNameW(): " << accountName;
-  } else if (IsValidSid(sidBuffer.get()) == FALSE) {
-    LOG(INFO) << "The SID for " << accountName << " is invalid.";
-  }
-
-  // Implicit move operation. Caller "owns" returned pointer:
-  return sidBuffer;
-}
-
 void processLocalGroups(QueryData& results) {
   unsigned long groupInfoLevel = 1;
   unsigned long numGroupsRead = 0;
@@ -101,7 +59,7 @@ void processLocalGroups(QueryData& results) {
 
     for (size_t i = 0; i < numGroupsRead; i++) {
       Row r;
-      sidSmartPtr = getSid(lginfo[i].lgrpi1_name);
+      sidSmartPtr = getSidFromUsername(lginfo[i].lgrpi1_name);
 
       if (sidSmartPtr != nullptr) {
         sidPtr = static_cast<PSID>(sidSmartPtr.get());

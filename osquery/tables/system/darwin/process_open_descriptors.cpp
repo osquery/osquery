@@ -70,7 +70,49 @@ void parseNetworkSocket(const struct socket_fdinfo socket_info, Row& r) {
   // Set socket protocol.
   const struct in_sockinfo* in = nullptr;
   if (socket_info.psi.soi_kind == SOCKINFO_TCP) {
-    in = &socket_info.psi.soi_proto.pri_tcp.tcpsi_ini;
+    const struct tcp_sockinfo* tcp_in = &socket_info.psi.soi_proto.pri_tcp;
+    in = &tcp_in->tcpsi_ini;
+    switch (tcp_in->tcpsi_state) {
+    case TSI_S_CLOSED:
+      r["state"] = "CLOSED";
+      break;
+    case TSI_S_LISTEN:
+      r["state"] = "LISTEN";
+      break;
+    case TSI_S_SYN_SENT:
+      r["state"] = "SYN_SENT";
+      break;
+    case TSI_S_SYN_RECEIVED:
+      r["state"] = "SYN_RECV";
+      break;
+    case TSI_S_ESTABLISHED:
+      r["state"] = "ESTABLISHED";
+      break;
+    case TSI_S__CLOSE_WAIT:
+      r["state"] = "CLOSE_WAIT";
+      break;
+    case TSI_S_FIN_WAIT_1:
+      r["state"] = "FIN_WAIT1";
+      break;
+    case TSI_S_CLOSING:
+      r["state"] = "CLOSING";
+      break;
+    case TSI_S_LAST_ACK:
+      r["state"] = "LAST_ACK";
+      break;
+    case TSI_S_FIN_WAIT_2:
+      r["state"] = "FIN_WAIT2";
+      break;
+    case TSI_S_TIME_WAIT:
+      r["state"] = "TIME_WAIT";
+      break;
+    case TSI_S_RESERVED:
+      r["state"] = "RESERVED";
+      break;
+    default:
+      r["state"] = "UNKNOWN";
+      break;
+    }
   } else {
     in = &socket_info.psi.soi_proto.pri_in;
   }
