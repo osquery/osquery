@@ -5,7 +5,8 @@
 //  Created by Max Kareta on 5/15/18.
 //
 
-#include "error.h"
+#include <include/osquery/error.h>
+#include <include/osquery/status.h>
 
 namespace osquery {
 
@@ -18,6 +19,10 @@ Error::Error(std::string domain,
       message_(message),
       underlyingError_(underlying_error) {}
 
+Error::Error(Status status) : domain_("osquery::Status"),
+  errorCode_(status.getCode()),
+  message_(status.getMessage()) {}
+  
 std::string Error::getShortMessage() const {
   return domain_ + " " + std::to_string(errorCode_);
 }

@@ -13,9 +13,11 @@
 #include <sstream>
 #include <string>
 #include <utility>
+#include <include/osquery/error.h>
 
 namespace osquery {
-
+  //class Error;
+  
 /**
  * @brief A utility class which is used to express the state of operations.
  *
@@ -30,6 +32,7 @@ namespace osquery {
  *   }
  * @endcode
  */
+  
 class Status {
  public:
   /**
@@ -54,7 +57,8 @@ class Status {
    */
   Status(int c, std::string m) : code_(c), message_(std::move(m)) {}
 
- public:
+  Status(std::shared_ptr<Error> error) : code_(error->getErrorCode()), message_(error->getFullMessageRecursive()) {}
+public:
   /**
    * @brief A getter for the status code property
    *

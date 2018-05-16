@@ -13,12 +13,16 @@
 #include <string>
 
 namespace osquery {
+class Status;
+
 class Error {
  public:
   Error(std::string domain,
         int error_code,
         std::string message = "",
         std::shared_ptr<Error> underlying_error = nullptr);
+
+  Error(Status status);
 
   std::string getDomain() const {
     return domain_;

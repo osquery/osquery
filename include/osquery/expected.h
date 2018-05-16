@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <osquery/core/error.h>
+#include <include/osquery/error.h>
 
 /** Utility class that should be used in function that return
  * either error or value. Expected enforce developer to test for success and

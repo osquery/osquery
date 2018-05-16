@@ -6,8 +6,8 @@
 //
 
 #include <gtest/gtest.h>
-#include <osquery/core/error.h>
-#include <osquery/core/expected.h>
+#include <include/osquery/error.h>
+#include <include/osquery/expected.h>
 
 namespace osquery {
 

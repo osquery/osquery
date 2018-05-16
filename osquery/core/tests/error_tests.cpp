@@ -6,7 +6,7 @@
 //
 
 #include <gtest/gtest.h>
-#include <osquery/core/error.h>
+#include <include/osquery/error.h>
 
 GTEST_TEST(ErrorTest, initialization) {
   auto error = osquery::Error("TestDomain", 32, "TestMessage");
