@@ -31,6 +31,9 @@ schema([
     Column("threads", INTEGER, "Number of threads used by process"),
     Column("nice", INTEGER, "Process nice level (-20 to 20, default 0)"),
 ])
+extended_schema(WINDOWS, [
+    Column("is_elevated_token", INTEGER, "Process uses elevated token yes=1, no=0"),
+])
 extended_schema(LINUX, [
     Column("cgroup_namespace", TEXT, "cgroup namespace inode"),
     Column("ipc_namespace", TEXT, "ipc namespace inode"),

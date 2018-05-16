@@ -160,17 +160,21 @@ If you want to make build changes see the Cookbook for `revision` edits. Note th
 **If this is a new dependency** then you need to add a line to `./tools/provision.sh` for Linux and or macOS at the order/time it should be installed.
 
 When a dependency is updated by a maintainer or contributor the flow should follow:
+
 * Update the target formula in `./tools/provision/formula/`.
 * Run `make deps` and the dependency change should cause a rebuild from source.
 * Build and run the osquery tests, and submit the change in a pull request.
 
 After the change is merged, a maintainer can provide a bottle/binary version:
+
 * Run `./tools/provision.sh uninstall TARGET` to remove the from-source build.
 * Run `make build_deps` to build a bottle version from source.
 * Run `./tools/provision.sh bottle TARGET` to generate the bottle.
 * Update the formula again with the SHA256 printed to stdout.
 * Upload the `/usr/local/osquery/TARGET-VERSION.tar.gz` to the S3 `bottles` folder.
 * Create a pull request with the updated SHA256.
+
+This post-merge process can be automated using `./tools/release/deps_release.sh TARGET`. This will update the formula files and place the bottled TAR.GZ in the osquery root. You will need to place these bottles into S3 manually.
 
 ## AWS EC2 Backed Vagrant Targets
 
@@ -269,12 +273,11 @@ OSQUERY_BUILD_DEPS=True # Install dependencies from source when using make deps
 OSQUERY_BUILD_BOTTLES=True # Create bottles from installed dependencies
 OSQUERY_BUILD_VERSION=9.9.9 # Set a wacky version string
 OSQUERY_PLATFORM=custom_linux;1.0 # Set a wacky platform/distro name
-OSQUERY_OSQUERY_DEPS=/usr/local/osquery # Set alternative dependency path
+OSQUERY_DEPS=/usr/local/osquery # Set alternative dependency path
 OSQUERY_NOSUDO=True # If sudo is not available to user building osquery
 SDK_VERSION=9.9.9 # Set a wacky SDK-version string.
 OSX_VERSION_MIN=10.11 # Override the native minimum macOS version ABI
 OSX_VERSION_NATIVE=True # Set the macOS version ABI to the build system ABI
-OSQUERY_DEPS=/path/to/dependencies # Use a custom dependency environment
 FAST=True # Build and link as quick as possible.
 SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
 SANITIZE_UNDEFINED=True # Add -fsanitize=undefined when using "make sanitize"

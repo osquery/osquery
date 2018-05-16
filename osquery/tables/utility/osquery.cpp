@@ -231,7 +231,7 @@ QueryData genOsquerySchedule(QueryContext& context) {
   QueryData results;
 
   Config::get().scheduledQueries(
-      [&results](const std::string& name, const ScheduledQuery& query) {
+      [&results](std::string name, const ScheduledQuery& query) {
         Row r;
         r["name"] = name;
         r["query"] = query.query;

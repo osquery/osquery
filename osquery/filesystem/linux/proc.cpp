@@ -318,7 +318,6 @@ Status procDescriptors(const std::string& process,
                      const std::string& fd,
                      const std::string& link_name,
                      std::map<std::string, std::string>& _descriptors) -> bool {
-
     _descriptors[fd] = link_name;
     return true;
   };
