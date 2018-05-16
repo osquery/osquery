@@ -84,7 +84,10 @@ QueryData genGroups(QueryContext &context) {
   return results;
 }
 
-void setRow(Row &r, passwd *pwd) {
+void genUser(const struct passwd* pwd, QueryData& results) {
+  Row r;
+  r["uid"] = BIGINT(pwd->pw_uid);
+  r["username"] = std::string(pwd->pw_name);
   r["gid"] = BIGINT(pwd->pw_gid);
   r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
   r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
@@ -102,6 +105,7 @@ void setRow(Row &r, passwd *pwd) {
 
   uuid_unparse(uuid, uuid_string);
   r["uuid"] = TEXT(uuid_string);
+  results.push_back(r);
 }
 
 QueryData genUsers(QueryContext &context) {
@@ -113,12 +117,16 @@ QueryData genUsers(QueryContext &context) {
       if (pwd == nullptr) {
         continue;
       }
-
-      Row r;
-      r["uid"] = BIGINT(uid);
-      r["username"] = std::string(pwd->pw_name);
-      setRow(r, pwd);
-      results.push_back(r);
+      genUser(pwd, results);
+    }
+  } else if (context.constraints["username"].exists(EQUALS)) {
+    auto usernames = context.constraints["username"].getAll(EQUALS);
+    for (const auto& username : usernames) {
+      struct passwd* pwd = getpwnam(username.c_str());
+      if (pwd == nullptr) {
+        continue;
+      }
+      genUser(pwd, results);
     }
   } else {
     std::set<std::string> usernames;
@@ -128,12 +136,7 @@ QueryData genUsers(QueryContext &context) {
       if (pwd == nullptr) {
         continue;
       }
-
-      Row r;
-      r["uid"] = BIGINT(pwd->pw_uid);
-      r["username"] = username;
-      setRow(r, pwd);
-      results.push_back(r);
+      genUser(pwd, results);
     }
   }
   return results;
