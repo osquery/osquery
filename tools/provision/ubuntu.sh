@@ -34,6 +34,9 @@ function distro_main() {
   # Needed for libcryptsetup
   package autotools-dev
 
+  # Needed for systemd/sd-bus.h
+  package libsystemd-dev
+
   GEM=`which gem`
   do_sudo $GEM install --no-ri --no-rdoc fpm
 }
