@@ -1,4 +1,4 @@
-table_name("smart_drive_information")
+table_name("smart_drive_info")
 description("Drive information read by SMART controller utilizing autodetect.")
 schema([
     Column("device_name", TEXT, "Name of block device", index=True),
@@ -9,7 +9,7 @@ schema([
     Column("model_family", TEXT, "Drive model family"),
     Column("device_model", TEXT, "Device Model"),
     Column("serial_number", TEXT, "Device serial number"),
-    Column("LU_WWN_device_id", TEXT, "Device Identifier"),
+    Column("lu_wwn_device_id", TEXT, "Device Identifier"),
     Column("additional_product_id", TEXT,
         "An additional drive identifier if any"),
     Column("firmware_version", TEXT, "Drive firmware version"),
