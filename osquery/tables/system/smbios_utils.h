@@ -30,11 +30,22 @@ typedef struct DMIEntryPoint {
   uint8_t bcdRevision;
 } __attribute__((packed)) DMIEntryPoint;
 
+/**
+ * SMBIOS Lookup for SMBIOS ENUM values as defined in:
+ * https://www.dmtf.org/sites/default/files/standards/documents/
+ *   DSP0134_3.1.1.pdf
+ */
+
+extern const std::map<uint8_t, std::string> kSMBIOSMemoryFormFactorTable;
+extern const std::map<uint8_t, std::string> kSMBIOSMemoryDetailsTable;
+extern const std::map<uint8_t, std::string> kSMBIOSMemoryTypeTable;
+
 /// Get friendly names for each SMBIOS table/section type.
 extern const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions;
 
 constexpr uint8_t kSMBIOSTypeBIOS = 0;
 constexpr uint8_t kSMBIOSTypeSystem = 1;
+constexpr uint8_t kSMBIOSTypeMemoryDevice = 17;
 
 /**
  * @brief A generic parser for SMBIOS tables.
@@ -68,6 +79,13 @@ void genSMBIOSTable(size_t index,
                     size_t size,
                     QueryData& results);
 
+/// Helper, cross platform, table row generator for memory devices.
+void genSMBIOSMemoryDevices(size_t index,
+                            const SMBStructHeader* hdr,
+                            uint8_t* address,
+                            size_t size,
+                            QueryData& results);
+
 /**
  * @brief Return a 0-terminated strings from an SMBIOS address and handle.
  *
@@ -81,5 +99,18 @@ void genSMBIOSTable(size_t index,
  * @Param offset The field index into address.
  */
 std::string dmiString(uint8_t* data, uint8_t* address, size_t offset);
-}
-}
+
+/**
+ * @brief Return std::string representation of a bitfield.
+ *
+ * SMBIOS fields can contain bit field values where whose values can be resolved
+ * with a provided lookup table.
+ *
+ * @param bitField size_t representation of the bit field.
+ * @param table Lookup table for each bit of the bitField.
+ */
+std::string dmiBitFieldToStr(size_t bitField,
+                             const std::map<uint8_t, std::string>& table);
+
+} // namespace tables
+} // namespace osquery
