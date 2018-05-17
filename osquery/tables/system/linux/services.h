@@ -11,6 +11,7 @@
 #pragma once
 
 #include <osquery/core.h>
+#include <osquery/logger.h>
 
 /*
   systemd does not support static linking; not only it doesn't work, but they
@@ -110,9 +111,7 @@ sd_bus_message_enter_container_ptr sd_bus_message_enter_container = nullptr;
 sd_bus_set_allow_interactive_authorization_ptr sd_bus_set_allow_interactive_authorization = nullptr;
 // clang-format on
 
-osquery::Status loadSystemdDependencies(bool& enabled) {
-  enabled = false;
-
+bool loadSystemdDependencies() {
   auto library_list = {"libsystemd.so", "libsystemd.so.0"};
 
   void* systemd_library = nullptr;
@@ -124,7 +123,8 @@ osquery::Status loadSystemdDependencies(bool& enabled) {
   }
 
   if (systemd_library == nullptr) {
-    return osquery::Status(0, "systemd not found");
+    VLOG(1) << "systemd not found";
+    return false;
   }
 
   // clang-format off
@@ -160,11 +160,10 @@ osquery::Status loadSystemdDependencies(bool& enabled) {
       sd_bus_message_new_method_call == nullptr || sd_bus_call == nullptr ||
       sd_bus_call_method == nullptr ||
       sd_bus_message_enter_container == nullptr) {
-    return osquery::Status(
-        1, "Failed to locate a required function in the systemd library");
+    VLOG(1) << "Failed to locate a required function in the systemd library";
+    return false;
   }
 
-  enabled = true;
-  return osquery::Status(0, "OK");
+  return true;
 }
 } // namespace systemd_deps

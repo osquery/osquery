@@ -11,15 +11,15 @@
 #include <algorithm>
 #include <cstdlib>
 #include <mutex>
-#include <set>
 #include <unordered_map>
+#include <vector>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/process.hpp>
 
 #include <osquery/core.h>
-#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 /*
@@ -40,44 +40,30 @@ namespace {
 namespace boostfs = boost::filesystem;
 namespace boostproc = boost::process;
 
-bool sysVinitEnabled() {
-  static boost::optional<bool> enabled;
-  if (enabled != boost::none) {
-    return enabled.get();
-  }
+bool isSysVinitEnabled() {
+  auto enabled = boostfs::exists("/etc/init.d");
+  VLOG(1) << "SysVinit support has been " << (enabled ? "enabled" : "disabled");
 
-  static std::mutex m;
-  std::lock_guard<std::mutex> lock(m);
-  if (enabled != boost::none) {
-    return enabled.get();
-  }
-
-  enabled = boostfs::exists("/etc/init.d");
-  VLOG(1) << "SysVinit was" << (enabled.get() ? " " : " NOT ") << "found";
-
-  return enabled.get();
+  return enabled;
 }
 
-bool upstartEnabled() {
-  static boost::optional<bool> enabled;
-  if (enabled != boost::none) {
-    return enabled.get();
-  }
+bool isUpstartEnabled() {
+  auto enabled = boostfs::exists("/etc/init");
+  VLOG(1) << "Upstart support has been " << (enabled ? "enabled" : "disabled");
 
-  static std::mutex m;
-  std::lock_guard<std::mutex> lock(m);
-  if (enabled != boost::none) {
-    return enabled.get();
-  }
+  return enabled;
+}
 
-  enabled = boostfs::exists("/etc/init");
-  VLOG(1) << "Upstart was" << (enabled.get() ? " " : " NOT ") << "found";
+bool isSystemdEnabled() {
+  static auto enabled = loadSystemdDependencies();
+  VLOG(1) << "systemd support has been " << (enabled ? "enabled" : "disabled");
 
-  return enabled.get();
+  return enabled;
 }
 
 Status enumerateSysVinitServices(QueryData& query_data) {
-  if (!sysVinitEnabled()) {
+  static bool sysvinit_enabled = isSysVinitEnabled();
+  if (!sysvinit_enabled) {
     return Status(0, "OK");
   }
 
@@ -90,7 +76,7 @@ Status enumerateSysVinitServices(QueryData& query_data) {
                                                               "/etc/rc6.d",
                                                               "/etc/rcS.d"};
 
-  std::unordered_map<std::string, std::set<size_t>> service_list;
+  std::unordered_map<std::string, std::vector<size_t>> service_list;
 
   for (size_t run_level = 0U; run_level < run_level_dir_list.size();
        ++run_level) {
@@ -114,16 +100,16 @@ Status enumerateSysVinitServices(QueryData& query_data) {
         }
 
         auto service_name = symlink_destination.filename().string();
-        service_list[service_name].insert(run_level);
+        service_list[service_name].push_back(run_level);
       }
     } catch (const boostfs::filesystem_error& e) {
       VLOG(1) << "An error has occurred: " << e.what() << ". Continuing anyway";
     }
   }
 
-  for (auto it = service_list.begin(); it != service_list.end(); it++) {
-    const auto& service_name = it->first;
-    const auto& run_level_list = it->second;
+  for (const auto& p : service_list) {
+    const auto& service_name = p.first;
+    const auto& run_level_list = p.second;
 
     Row r;
     r["name"] = service_name;
@@ -135,7 +121,7 @@ Status enumerateSysVinitServices(QueryData& query_data) {
     if (!run_level_list.empty()) {
       r["start_type"] = "runlevel [";
 
-      for (auto run_level : run_level_list) {
+      for (const auto& run_level : run_level_list) {
         if (run_level != 7) {
           r["start_type"] += std::to_string(run_level);
         } else {
@@ -219,7 +205,7 @@ Status getUpstartServiceStartCondition(std::string& condition,
     output.end(),
 
     [](const std::string &obj) -> bool {
-      return (obj.find("  start on") == 0);
+      return boost::algorithm::starts_with(obj, "  start on");
     }
   );
   // clang-format on
@@ -234,7 +220,8 @@ Status getUpstartServiceStartCondition(std::string& condition,
 }
 
 Status enumerateUpstartServices(QueryData& query_data) {
-  if (!upstartEnabled()) {
+  static bool upstart_enabled = isUpstartEnabled();
+  if (!upstart_enabled) {
     return Status(0, "OK");
   }
 
@@ -281,30 +268,6 @@ Status enumerateUpstartServices(QueryData& query_data) {
   }
 
   return Status(0, "OK");
-}
-
-bool isSystemdEnabled() {
-  static bool initialized = false;
-  static std::mutex mutex;
-
-  static bool systemd_found = false;
-
-  if (!initialized) {
-    std::lock_guard<std::mutex> lock(mutex);
-
-    if (!initialized) {
-      initialized = true;
-
-      auto status = loadSystemdDependencies(systemd_found);
-      if (!status.ok()) {
-        VLOG(1) << status.getMessage();
-      }
-
-      VLOG(1) << "systemd was " << (systemd_found ? "" : "NOT ") << "found";
-    }
-  }
-
-  return systemd_found;
 }
 
 sd_bus* getSystemdBusHandle() {
@@ -481,10 +444,8 @@ struct SystemdUnitInfo final {
   pid_t process_id;
 };
 
-Status getLoadedSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
-                                sd_bus* bus) {
-  unit_list.clear();
-
+Status appendLoadedSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
+                                   sd_bus* bus) {
   sd_bus_message* message = nullptr;
   sd_bus_message* reply = nullptr;
   sd_bus_error bus_error = SD_BUS_ERROR_NULL;
@@ -595,10 +556,8 @@ Status getLoadedSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
   }
 }
 
-Status getInactiveSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
-                                  sd_bus* bus) {
-  unit_list.clear();
-
+Status appendInactiveSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
+                                     sd_bus* bus) {
   sd_bus_message* message = nullptr;
   sd_bus_message* reply = nullptr;
   sd_bus_error bus_error = SD_BUS_ERROR_NULL;
@@ -678,28 +637,15 @@ Status getSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
                           sd_bus* bus) {
   unit_list.clear();
 
-  std::vector<SystemdUnitInfo> loaded_unit_list;
-  auto status = getLoadedSystemdUnitList(loaded_unit_list, bus);
+  auto status = appendLoadedSystemdUnitList(unit_list, bus);
   if (!status.ok()) {
     return status;
   }
 
-  std::vector<SystemdUnitInfo> inactive_unit_list;
-  status = getInactiveSystemdUnitList(inactive_unit_list, bus);
+  status = appendInactiveSystemdUnitList(unit_list, bus);
   if (!status.ok()) {
     return status;
   }
-
-  unit_list = std::move(loaded_unit_list);
-  loaded_unit_list.clear();
-
-  // clang-format off
-  unit_list.insert(
-    unit_list.end(),
-    inactive_unit_list.begin(),
-    inactive_unit_list.end()
-  );
-  // clang-format on
 
   return Status(0, "OK");
 }
@@ -752,8 +698,9 @@ QueryData genServices(QueryContext& context) {
   // disabling systemd. The "/etc/systemd/system" folder remains
   // intact when doing so, but the packages conflict with each
   // other so you can't have both binaries installed
+  static bool systemd_enabled = isSystemdEnabled();
 
-  if (isSystemdEnabled()) {
+  if (systemd_enabled) {
     status = enumerateSystemdServices(query_data);
     if (!status.ok()) {
       VLOG(1) << "Failed to enumerate the systemd services: "
