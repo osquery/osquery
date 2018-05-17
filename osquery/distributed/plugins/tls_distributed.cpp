@@ -25,8 +25,6 @@
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 DECLARE_bool(tls_node_api);

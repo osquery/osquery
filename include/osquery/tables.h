@@ -24,6 +24,7 @@
 #endif
 
 #include <boost/coroutine2/coroutine.hpp>
+#include <boost/optional.hpp>
 
 #include <osquery/core.h>
 #include <osquery/plugin.h>

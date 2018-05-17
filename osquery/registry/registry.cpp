@@ -631,26 +631,6 @@ void Plugin::setName(const std::string& name) {
   name_ = name;
 }
 
-void Plugin::getResponse(const std::string& key,
-                         const PluginResponse& response,
-                         JSON& doc) {
-  for (const auto& item : response) {
-    auto child = doc.getObject();
-    for (const auto& item_detail : item) {
-      doc.addRef(item_detail.first, item_detail.second, child);
-    }
-    doc.add(key, child);
-  }
-}
-
-void Plugin::setResponse(const std::string& key,
-                         const JSON& doc,
-                         PluginResponse& response) {
-  std::string output;
-  doc.toString(output);
-  response.push_back({{key, std::move(output)}});
-}
-
 AutoRegisterInterface::AutoRegisterInterface(const char* _type,
                                              const char* _name,
                                              bool optional)

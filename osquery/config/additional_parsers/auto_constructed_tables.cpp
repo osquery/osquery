@@ -12,6 +12,7 @@
 #include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 

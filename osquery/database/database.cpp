@@ -9,6 +9,8 @@
  */
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/database.h>
 #include <osquery/flags.h>
@@ -16,6 +18,10 @@
 #include <osquery/registry.h>
 
 #include "osquery/core/flagalias.h"
+#include "osquery/core/json.h"
+
+namespace pt = boost::property_tree;
+namespace rj = rapidjson;
 
 namespace osquery {
 

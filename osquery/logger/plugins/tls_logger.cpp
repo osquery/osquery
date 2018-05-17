@@ -19,8 +19,6 @@
 #include "osquery/core/json.h"
 #include "osquery/logger/plugins/tls_logger.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 constexpr size_t kTLSMaxLogLines = 1024;

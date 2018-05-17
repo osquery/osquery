@@ -338,7 +338,7 @@ Status createPidFile();
  * @return A bool indicating if the current process is running as admin
  */
 bool isUserAdmin();
-    
+
 bool checkPlatform(const std::string& platform);
 
 /// Returns the ASCII version of the timeptr as a C++ string
