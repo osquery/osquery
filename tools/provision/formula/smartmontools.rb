@@ -3,8 +3,8 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Smartmontools < AbstractOsqueryFormula
   desc "SMART hard drive monitoring; Fork with smartctl exposed as a static library"
   homepage "https://www.smartmontools.org/"
-  url "https://github.com/allanliu/smartmontools/archive/v0.3.0.tar.gz"
-  sha256 "2bc19bc974ec7e69f474ba3e22ad847f7c270a4881d3e3ce66c57d73f07ee3b4"
+  url "https://github.com/allanliu/smartmontools/archive/v0.3.1.tar.gz"
+  sha256 "a7bde3039f207a88bee72ae7c89bc4442dc65fbe76fc1a9974718d1a128a1c0b"
 
 
   depends_on "automake" => :build

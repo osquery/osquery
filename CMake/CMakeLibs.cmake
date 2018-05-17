@@ -494,7 +494,7 @@ macro(GENERATE_TABLES TABLES_PATH)
     list(APPEND TABLE_CATEGORIES "sleuthkit")
   endif()
   if(NOT SKIP_SMART AND NOT WINDOWS)
-    list(APPEND TABLE_CATEGORIES "SMART")
+    list(APPEND TABLE_CATEGORIES "smart")
   endif()
 
   file(GLOB TABLE_FILES "${TABLES_SPECS}/*.table")
