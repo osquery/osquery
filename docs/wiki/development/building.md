@@ -17,6 +17,10 @@ For our build hosts (CentOS, Ubuntu 12, 14, 16, macOS 10.12, Windows 2016) we us
 make sysprep
 ```
 
+## Building on Windows
+
+Building on Windows is documented at [Windows Provisioning](https://osquery.readthedocs.io/en/stable/development/windows-provisioning/)
+
 ## Building on macOS
 
 `make deps` will take care of installing the appropriate library dependencies, but it's recommended to take a look at the Makefile, just in case something conflicts with your environment.
