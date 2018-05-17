@@ -24,3 +24,6 @@ schema([
 ])
 
 implementation("memory_smbios@genMemoryDevices")
+fuzz_paths([
+    "/sys/firmware/efi/systab",
+])

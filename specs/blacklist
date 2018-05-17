@@ -16,6 +16,7 @@ freebsd:pci_devices
 freebsd:usb_devices
 freebsd:yara_events
 freebsd:smbios_tables
+freebsd:memory_devices
 
 # Blacklisting as an example:
 example

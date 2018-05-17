@@ -110,18 +110,6 @@ bool LinuxSMBIOSParser::discover() {
   return valid();
 }
 
-uint16_t linuxDmiToWord(uint8_t* address, uint8_t offset) {
-  return (static_cast<uint16_t>(address[offset + 1]) << 8) |
-         static_cast<uint16_t>(address[offset]);
-}
-
-uint32_t linuxDmiToDword(uint8_t* address, uint8_t offset) {
-  return (static_cast<uint32_t>(address[offset + 3]) << 24) |
-         (static_cast<uint32_t>(address[offset + 2]) << 16) |
-         (static_cast<uint32_t>(address[offset + 1]) << 8) |
-         static_cast<uint32_t>(address[offset]);
-}
-
 QueryData genSMBIOSTables(QueryContext& context) {
   LinuxSMBIOSParser parser;
   if (!parser.discover()) {
@@ -136,6 +124,24 @@ QueryData genSMBIOSTables(QueryContext& context) {
                             size_t size) {
     genSMBIOSTable(index, hdr, address, size, results);
   }));
+
+  return results;
+}
+
+QueryData genMemoryDevices(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           size_t size) {
+    genSMBIOSMemoryDevices(index, hdr, address, size, results);
+  });
 
   return results;
 }

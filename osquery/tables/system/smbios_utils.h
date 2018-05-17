@@ -30,14 +30,18 @@ typedef struct DMIEntryPoint {
   uint8_t bcdRevision;
 } __attribute__((packed)) DMIEntryPoint;
 
-/// Get friendly names for each SMBIOS table/section type.
-extern const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions;
+/**
+ * SMBIOS Lookup for SMBIOS ENUM values as defined in:
+ * https://www.dmtf.org/sites/default/files/standards/documents/
+ *   DSP0134_3.1.1.pdf
+ */
 
-/// SMBIOS Lookup for SMBIOS ENUM values as specced in:
-/// https://www.dmtf.org/sites/default/files/standards/documents/DSP0134_3.1.1.pdf
 extern const std::map<uint8_t, std::string> kSMBIOSMemoryFormFactorTable;
 extern const std::map<uint8_t, std::string> kSMBIOSMemoryDetailsTable;
 extern const std::map<uint8_t, std::string> kSMBIOSMemoryTypeTable;
+
+/// Get friendly names for each SMBIOS table/section type.
+extern const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions;
 
 constexpr uint8_t kSMBIOSTypeBIOS = 0;
 constexpr uint8_t kSMBIOSTypeSystem = 1;
@@ -74,6 +78,13 @@ void genSMBIOSTable(size_t index,
                     uint8_t* address,
                     size_t size,
                     QueryData& results);
+
+/// Helper, cross platform, table row generator for memory devices.
+void genSMBIOSMemoryDevices(size_t index,
+                            const SMBStructHeader* hdr,
+                            uint8_t* address,
+                            size_t size,
+                            QueryData& results);
 
 /**
  * @brief Return a 0-terminated strings from an SMBIOS address and handle.
