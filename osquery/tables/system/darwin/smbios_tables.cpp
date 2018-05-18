@@ -21,6 +21,11 @@
 #include "osquery/core/darwin/iokit.hpp"
 #include "osquery/tables/system/smbios_utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_smbios_tables
+#include <generated/tables/tbl_smbios_tables_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_platform_info
+#include <generated/tables/tbl_platform_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -185,4 +190,4 @@ QueryData genPlatformInfo(QueryContext& context) {
   return {r};
 }
 }
-}
+} // namespace osquery

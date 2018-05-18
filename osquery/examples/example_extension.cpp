@@ -26,16 +26,22 @@ class ExampleConfigPlugin : public ConfigPlugin {
   }
 };
 
-class ExampleTable : public TablePlugin {
- private:
-  TableColumns columns() const {
-    return {
+static const TableDefinition tbl_example_def = {
+    "example",
+    {/* no aliases */},
+    {
         std::make_tuple("example_text", TEXT_TYPE, ColumnOptions::DEFAULT),
         std::make_tuple(
             "example_integer", INTEGER_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+    },
+    {/* no columnAliases */},
+    {/* no attributes */}};
 
+class ExampleTable : public TablePluginBase {
+ public:
+  ExampleTable() : TablePluginBase(tbl_example_def) {}
+
+ private:
   QueryData generate(QueryContext& request) {
     QueryData results;
 
@@ -47,6 +53,16 @@ class ExampleTable : public TablePlugin {
     return results;
   }
 };
+
+static const TableDefinition tbl_complex_example_def = {
+    "complex_example",
+    {/* no aliases */},
+    {
+        std::make_tuple("flag_test", TEXT_TYPE, ColumnOptions::DEFAULT),
+        std::make_tuple("database_test", TEXT_TYPE, ColumnOptions::DEFAULT),
+    },
+    {/* no columnAliases */},
+    {/* no attributes */}};
 
 /**
  * @brief A more 'complex' example table is provided to assist with tests.
@@ -61,15 +77,11 @@ class ExampleTable : public TablePlugin {
  * Database access should be mediated by the *Database functions.
  * Direct use of the "database" registry will lead to undefined behavior.
  */
-class ComplexExampleTable : public TablePlugin {
- private:
-  TableColumns columns() const {
-    return {
-        std::make_tuple("flag_test", TEXT_TYPE, ColumnOptions::DEFAULT),
-        std::make_tuple("database_test", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+class ComplexExampleTable : public TablePluginBase {
+ public:
+  ComplexExampleTable() : TablePluginBase(tbl_complex_example_def) {}
 
+ private:
   QueryData generate(QueryContext& request) {
     Row r;
 

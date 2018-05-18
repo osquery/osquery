@@ -25,6 +25,9 @@
 #include "osquery/core/windows/wmi.h"
 #include "osquery/filesystem/fileops.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_scheduled_tasks
+#include <generated/tables/tbl_scheduled_tasks_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

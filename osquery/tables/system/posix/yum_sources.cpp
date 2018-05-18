@@ -18,6 +18,9 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_yum_sources
+#include <generated/tables/tbl_yum_sources_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

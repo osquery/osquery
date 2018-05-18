@@ -22,6 +22,9 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
+#define DECLARE_TABLE_IMPLEMENTATION_homebrew_packages
+#include <generated/tables/tbl_homebrew_packages_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -119,5 +122,5 @@ QueryData genHomebrewPackages(QueryContext& context) {
   }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

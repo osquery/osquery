@@ -18,6 +18,9 @@
 #include "osquery/events/linux/auditeventpublisher.h"
 #include "osquery/tables/events/linux/socket_events.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_socket_events
+#include <generated/tables/tbl_socket_events_defs.hpp>
+
 namespace osquery {
 
 FLAG(bool,

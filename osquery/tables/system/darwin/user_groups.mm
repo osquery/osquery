@@ -13,6 +13,13 @@
 
 #include "osquery/tables/system/user_groups.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_user_groups
+#include <generated/tables/tbl_user_groups_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_groups
+#include <generated/tables/tbl_groups_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_users
+#include <generated/tables/tbl_users_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -53,13 +60,13 @@ void genODEntries(ODRecordType type, std::set<std::string> &names) {
   }
 }
 
-QueryData genGroups(QueryContext &context) {
+QueryData genGroups(QueryContext& context) {
   QueryData results;
   if (context.constraints["gid"].exists(EQUALS)) {
     auto gids = context.constraints["gid"].getAll<long long>(EQUALS);
-    for (const auto &gid : gids) {
+    for (const auto& gid : gids) {
       Row r;
-      struct group *grp = getgrgid(gid);
+      struct group* grp = getgrgid(gid);
       r["gid"] = BIGINT(gid);
       if (grp != nullptr) {
         r["groupname"] = std::string(grp->gr_name);
@@ -70,9 +77,9 @@ QueryData genGroups(QueryContext &context) {
   } else {
     std::set<std::string> groupnames;
     genODEntries(kODRecordTypeGroups, groupnames);
-    for (const auto &groupname : groupnames) {
+    for (const auto& groupname : groupnames) {
       Row r;
-      struct group *grp = getgrnam(groupname.c_str());
+      struct group* grp = getgrnam(groupname.c_str());
       r["groupname"] = groupname;
       if (grp != nullptr) {
         r["gid"] = BIGINT(grp->gr_gid);
@@ -84,7 +91,7 @@ QueryData genGroups(QueryContext &context) {
   return results;
 }
 
-void setRow(Row &r, passwd *pwd) {
+void setRow(Row& r, passwd* pwd) {
   r["gid"] = BIGINT(pwd->pw_gid);
   r["uid_signed"] = BIGINT((int32_t)pwd->pw_uid);
   r["gid_signed"] = BIGINT((int32_t)pwd->pw_gid);
@@ -104,12 +111,12 @@ void setRow(Row &r, passwd *pwd) {
   r["uuid"] = TEXT(uuid_string);
 }
 
-QueryData genUsers(QueryContext &context) {
+QueryData genUsers(QueryContext& context) {
   QueryData results;
   if (context.constraints["uid"].exists(EQUALS)) {
     auto uids = context.constraints["uid"].getAll<long long>(EQUALS);
-    for (const auto &uid : uids) {
-      struct passwd *pwd = getpwuid(uid);
+    for (const auto& uid : uids) {
+      struct passwd* pwd = getpwuid(uid);
       if (pwd == nullptr) {
         continue;
       }
@@ -123,8 +130,8 @@ QueryData genUsers(QueryContext &context) {
   } else {
     std::set<std::string> usernames;
     genODEntries(kODRecordTypeUsers, usernames);
-    for (const auto &username : usernames) {
-      struct passwd *pwd = getpwnam(username.c_str());
+    for (const auto& username : usernames) {
+      struct passwd* pwd = getpwnam(username.c_str());
       if (pwd == nullptr) {
         continue;
       }
@@ -139,13 +146,13 @@ QueryData genUsers(QueryContext &context) {
   return results;
 }
 
-QueryData genUserGroups(QueryContext &context) {
+QueryData genUserGroups(QueryContext& context) {
   QueryData results;
   if (context.constraints["uid"].exists(EQUALS)) {
     // Use UID as the index.
     auto uids = context.constraints["uid"].getAll<long long>(EQUALS);
-    for (const auto &uid : uids) {
-      struct passwd *pwd = getpwuid(uid);
+    for (const auto& uid : uids) {
+      struct passwd* pwd = getpwuid(uid);
       if (pwd != nullptr) {
         user_t<int, int> user;
         user.name = pwd->pw_name;
@@ -157,8 +164,8 @@ QueryData genUserGroups(QueryContext &context) {
   } else {
     std::set<std::string> usernames;
     genODEntries(kODRecordTypeUsers, usernames);
-    for (const auto &username : usernames) {
-      struct passwd *pwd = getpwnam(username.c_str());
+    for (const auto& username : usernames) {
+      struct passwd* pwd = getpwnam(username.c_str());
       if (pwd != nullptr) {
         user_t<int, int> user;
         user.name = pwd->pw_name;

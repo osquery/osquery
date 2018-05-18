@@ -186,13 +186,16 @@ bool SQLInternal::eventBased() const {
 
 Status SQLiteSQLPlugin::attach(const std::string& name) {
   PluginResponse response;
+
   auto status =
       Registry::call("table", name, {{"action", "columns"}}, response);
   if (!status.ok()) {
+    LOG(ERROR) << "attach failed for " << name;
     return status;
   }
 
   auto statement = columnDefinition(response);
+
   // Attach requests occurring via the plugin/registry APIs must act on the
   // primary database. To allow this, getConnection can explicitly request the
   // primary instance and avoid the contention decisions.
@@ -549,4 +552,4 @@ Status getQueryColumnsInternal(const std::string& q,
 
   return status;
 }
-}
+} // namespace osquery

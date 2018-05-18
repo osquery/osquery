@@ -40,6 +40,9 @@
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/tables/system/windows/registry.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_registry
+#include <generated/tables/tbl_registry_defs.hpp>
+
 namespace fs = boost::filesystem;
 
 namespace osquery {

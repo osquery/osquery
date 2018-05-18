@@ -19,6 +19,9 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_kva_speculative_info
+#include <generated/tables/tbl_kva_speculative_info_defs.hpp>
+
 #define SystemSpeculationControlInformation (SYSTEM_INFORMATION_CLASS)201
 typedef struct _SYSTEM_SPECULATION_CONTROL_INFORMATION {
   struct {

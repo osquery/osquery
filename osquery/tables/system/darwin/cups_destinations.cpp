@@ -12,6 +12,9 @@
 
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_cups_destinations
+#include <generated/tables/tbl_cups_destinations_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

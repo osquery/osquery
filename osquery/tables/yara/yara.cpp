@@ -22,6 +22,9 @@
 #endif
 #include <yara.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_yara
+#include <generated/tables/tbl_yara_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -137,5 +140,5 @@ QueryData genYara(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

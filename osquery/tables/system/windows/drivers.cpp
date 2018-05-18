@@ -26,6 +26,9 @@
 #include "osquery/core/windows/wmi.h"
 #include "osquery/filesystem/fileops.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_drivers
+#include <generated/tables/tbl_drivers_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

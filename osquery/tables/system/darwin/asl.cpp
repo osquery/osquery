@@ -10,6 +10,9 @@
 
 #include "osquery/tables/system/darwin/asl_utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_asl
+#include <generated/tables/tbl_asl_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -36,5 +39,5 @@ QueryData genAsl(QueryContext& context) {
 }
 
 _Pragma("clang diagnostic pop");
-}
-}
+} // namespace tables
+} // namespace osquery

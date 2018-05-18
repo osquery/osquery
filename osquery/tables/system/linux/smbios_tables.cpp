@@ -19,6 +19,11 @@
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/linux/smbios_utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_smbios_tables
+#include <generated/tables/tbl_smbios_tables_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_platform_info
+#include <generated/tables/tbl_platform_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

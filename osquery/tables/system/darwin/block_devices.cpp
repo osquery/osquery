@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <DiskArbitration/DASession.h>
 #include <DiskArbitration/DADisk.h>
+#include <DiskArbitration/DASession.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -17,6 +17,9 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/darwin/iokit.hpp"
+
+#define DECLARE_TABLE_IMPLEMENTATION_block_devices
+#include <generated/tables/tbl_block_devices_defs.hpp>
 
 namespace osquery {
 namespace tables {
@@ -111,4 +114,4 @@ QueryData genBlockDevs(QueryContext& context) {
   return results;
 }
 }
-}
+} // namespace osquery

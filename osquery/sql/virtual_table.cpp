@@ -33,6 +33,9 @@ DECLARE_bool(disable_events);
 
 RecursiveMutex kAttachMutex;
 
+extern void setRequestFromContext(const QueryContext& context,
+                                  PluginRequest& request); // sql.cpp
+
 namespace tables {
 namespace sqlite {
 
@@ -355,10 +358,10 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       const auto& constraint_info = pIdxInfo->aConstraint[i];
 #if defined(DEBUG)
       plan("Evaluating constraints for table: " + pVtab->content->name +
-           " [index=" + std::to_string(i) + " column=" +
-           std::to_string(constraint_info.iColumn) + " term=" +
-           std::to_string((int)constraint_info.iTermOffset) + " usable=" +
-           std::to_string((int)constraint_info.usable) + "]");
+           " [index=" + std::to_string(i) +
+           " column=" + std::to_string(constraint_info.iColumn) +
+           " term=" + std::to_string((int)constraint_info.iTermOffset) +
+           " usable=" + std::to_string((int)constraint_info.usable) + "]");
 #endif
       if (!constraint_info.usable) {
         // A higher cost less priority, prefer more usable query constraints.
@@ -439,15 +442,50 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   pIdxInfo->idxNum = static_cast<int>(kConstraintIndexID++);
 #if defined(DEBUG)
   plan("Recording constraint set for table: " + pVtab->content->name +
-       " [cost=" + std::to_string(cost) + " size=" +
-       std::to_string(constraints.size()) + " idx=" +
-       std::to_string(pIdxInfo->idxNum) + "]");
+       " [cost=" + std::to_string(cost) +
+       " size=" + std::to_string(constraints.size()) +
+       " idx=" + std::to_string(pIdxInfo->idxNum) + "]");
 #endif
   // Add the constraint set to the table's tracked constraints.
   pVtab->content->constraints[pIdxInfo->idxNum] = std::move(constraints);
   pVtab->content->colsUsed[pIdxInfo->idxNum] = std::move(colsUsed);
   pIdxInfo->estimatedCost = cost;
   return SQLITE_OK;
+}
+
+static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
+  if (!ctx.useCache()) {
+    // The query execution did not request use of the warm cache.
+    return false;
+  }
+
+  auto uncachable = ColumnOptions::INDEX | ColumnOptions::REQUIRED |
+                    ColumnOptions::ADDITIONAL | ColumnOptions::OPTIMIZED;
+  for (const auto& column : cols) {
+    auto opts = std::get<2>(column) & uncachable;
+    if (opts && ctx.constraints.at(std::get<0>(column)).exists()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static QueryData tableGenerate(TablePluginBase& tablePlugin,
+                               QueryContext& context) {
+  bool useCache = tablePlugin.cache().isEnabled() &&
+                  cacheAllowed(tablePlugin.definition().columns, context);
+
+  if (useCache && tablePlugin.cache().isCached()) {
+    return tablePlugin.cache().get();
+  }
+
+  QueryData results = tablePlugin.generate(context);
+
+  if (useCache) {
+    tablePlugin.cache().set(results);
+  }
+
+  return results;
 }
 
 static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
@@ -505,9 +543,10 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
 // Filtering between cursors happens iteratively, not consecutively.
 // If there are multiple sets of constraints, they apply to each cursor.
 #if defined(DEBUG)
-  plan("Filtering called for table: " + content->name + " [constraint_count=" +
-       std::to_string(content->constraints.size()) + " argc=" +
-       std::to_string(argc) + " idx=" + std::to_string(idxNum) + "]");
+  plan("Filtering called for table: " + content->name +
+       " [constraint_count=" + std::to_string(content->constraints.size()) +
+       " argc=" + std::to_string(argc) + " idx=" + std::to_string(idxNum) +
+       "]");
 #endif
 
   // Iterate over every argument to xFilter, filling in constraint values.
@@ -581,11 +620,11 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   plan("Scanning rows for cursor (" + std::to_string(pCur->id) + ")");
   if (Registry::get().exists("table", pVtab->content->name, true)) {
     auto plugin = Registry::get().plugin("table", pVtab->content->name);
-    auto table = std::dynamic_pointer_cast<TablePlugin>(plugin);
+    auto table = std::dynamic_pointer_cast<TablePluginBase>(plugin);
     if (table->usesGenerator()) {
       pCur->uses_generator = true;
       pCur->generator = std::make_unique<RowGenerator::pull_type>(
-          std::bind(&TablePlugin::generator,
+          std::bind(&TablePluginBase::generator,
                     table,
                     std::placeholders::_1,
                     std::move(context)));
@@ -594,19 +633,19 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
       }
       return SQLITE_OK;
     }
-    pCur->data = table->generate(context);
+    pCur->data = tableGenerate(*table, context);
   } else {
     PluginRequest request = {{"action", "generate"}};
-    TablePlugin::setRequestFromContext(context, request);
+    setRequestFromContext(context, request);
     Registry::call("table", pVtab->content->name, request, pCur->data);
   }
 
   // Set the number of rows.
   pCur->n = pCur->data.size();
   return SQLITE_OK;
-}
-}
-}
+} // xFilter
+} // namespace sqlite
+} // namespace tables
 
 Status attachTableInternal(const std::string& name,
                            const std::string& statement,
@@ -712,4 +751,4 @@ void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
     }
   }
 }
-}
+} // namespace osquery

@@ -89,6 +89,13 @@ TABLE_ATTRIBUTES = {
     "kernel_required": "KERNEL_REQUIRED",
 }
 
+# When generating C++ structs for a table defintion, avoid field that conflict with C / C++ / ObjectiveC keywords
+CPP_KEYWORDS = [ "auto", "break", "case", "cast", "catch", "char", "class", "concept",
+    "continue", "const", "default", "delete", "do", "double", "explicit", "export",
+    "extern", "float", "friend", "protected", "inline", "interface", "int",
+    "namespace", "not", "mutable", "private", "public", "synchronized", "signed",
+    "template", "try", "virtual", "volatile", "while"
+]
 
 def WINDOWS():
     return PLATFORM in ['windows', 'win32', 'cygwin']
@@ -211,7 +218,7 @@ class TableState(Singleton):
     def foreign_keys(self):
         return [i for i in self.schema if isinstance(i, ForeignKey)]
 
-    def generate(self, path, template="default"):
+    def generate(self, path, template="default", file_mode="w+"):
         """Generate the virtual table files"""
         logging.debug("TableState.generate")
 
@@ -274,6 +281,7 @@ class TableState(Singleton):
         self.impl_content = jinja2.Template(TEMPLATES[template]).render(
             table_name=self.table_name,
             table_name_cc=to_camel_case(self.table_name),
+            filename=self.filename,
             schema=self.columns(),
             header=self.header,
             impl=self.impl,
@@ -284,11 +292,13 @@ class TableState(Singleton):
             aliases=self.aliases,
             has_options=self.has_options,
             has_column_aliases=self.has_column_aliases,
+            is_blacklisted=self.is_blacklisted,
+            is_foreign=self.is_foreign,
             generator=self.generator,
             attribute_set=[TABLE_ATTRIBUTES[attr] for attr in self.attributes if attr in TABLE_ATTRIBUTES],
         )
 
-        with open(path, "w+") as file_h:
+        with open(path, file_mode) as file_h:
             file_h.write(self.impl_content)
 
     def blacklist(self, path):
@@ -297,6 +307,11 @@ class TableState(Singleton):
         self.generate(path, template="blacklist")
 
 table = TableState()
+
+def getSafeNameForCpp(name) :
+    if name in CPP_KEYWORDS :
+        return name + "_";
+    return name
 
 
 class Column(object):
@@ -313,6 +328,7 @@ class Column(object):
         self.description = description
         self.aliases = aliases
         self.options = kwargs
+        self.safename = getSafeNameForCpp(name)
 
 
 class ForeignKey(object):
@@ -434,6 +450,15 @@ def implementation(impl_string, generator=False):
                     table.table_name, BIGINT)))
             sys.exit(1)
 
+# There are three different amalgamations
+# additional  The default
+# foreign     For tables not present on target platform
+# utils       Internal tables (specs/utility/*.table)
+def get_amalgamation_name(args):
+    if (args.foreign) : return "foreign"
+    if (args.spec_file.find("utility") > 0) : return "utils"
+    return "additional"
+
 
 def main(argc, argv):
     parser = argparse.ArgumentParser(
@@ -449,7 +474,7 @@ def main(argc, argv):
     parser.add_argument("--templates", default=SCRIPT_DIR + "/templates",
                         help="Path to codegen output .cpp.in templates")
     parser.add_argument("spec_file", help="Path to input .table spec file")
-    parser.add_argument("output", help="Path to output .cpp file")
+    parser.add_argument("outputdir", help="Path to build/*/generated directory")
     args = parser.parse_args()
 
     if args.debug:
@@ -458,20 +483,24 @@ def main(argc, argv):
         logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
 
     filename = args.spec_file
-    output = args.output
+    outputdir = args.outputdir
     if filename.endswith(".table"):
         # Adding a 3rd parameter will enable the blacklist
+
+        # sometimes spec filename is not same as table name (darwin/wifi_scan.table is for wifi_survey)
+        table_file_name = os.path.basename(filename).replace('.table','')
 
         setup_templates(args.templates)
         with open(filename, "rU") as file_handle:
             tree = ast.parse(file_handle.read())
             exec(compile(tree, "<string>", "exec"))
-            blacklisted = is_blacklisted(table.table_name, path=filename)
-            if not args.disable_blacklist and blacklisted:
-                table.blacklist(output)
-            else:
-                template_type = "default" if not args.foreign else "foreign"
-                table.generate(output, template=template_type)
+
+            table.is_blacklisted = is_blacklisted(table.table_name, path=filename)
+            table.is_foreign = args.foreign
+            table.filename = table_file_name
+
+            output = os.path.join(outputdir,"tables", "tbl_" + table.filename + "_defs.hpp")
+            table.generate(output, template="tabledefs")
 
 if __name__ == "__main__":
     SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))

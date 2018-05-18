@@ -18,6 +18,9 @@
 #include "osquery/core/windows/wmi.h"
 #include "osquery/tables/system/windows/registry.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_system_info
+#include <generated/tables/tbl_system_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

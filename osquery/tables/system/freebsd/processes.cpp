@@ -30,6 +30,13 @@
 
 #include "osquery/tables/system/freebsd/procstat.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_processes
+#include <generated/tables/tbl_processes_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_process_envs
+#include <generated/tables/tbl_process_envs_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_process_memory_map
+#include <generated/tables/tbl_process_memory_map_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

@@ -11,6 +11,9 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_listening_ports
+#include <generated/tables/tbl_listening_ports_defs.hpp>
+
 namespace {
 const std::string kAF_UNIX = "1";
 const std::string kAF_INET = "2";

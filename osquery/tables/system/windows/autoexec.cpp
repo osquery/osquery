@@ -19,6 +19,9 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_autoexec
+#include <generated/tables/tbl_autoexec_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

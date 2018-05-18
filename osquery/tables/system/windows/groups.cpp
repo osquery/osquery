@@ -25,6 +25,9 @@
 #include "osquery/tables/system/windows/registry.h"
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_groups
+#include <generated/tables/tbl_groups_defs.hpp>
+
 namespace osquery {
 
 namespace tables {

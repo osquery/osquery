@@ -16,6 +16,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/hashing.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_acpi_tables
+#include <generated/tables/tbl_acpi_tables_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -62,4 +65,4 @@ QueryData genACPITables(QueryContext& context) {
   return results;
 }
 }
-}
+} // namespace osquery

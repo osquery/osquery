@@ -28,15 +28,21 @@ TEST_F(SQLTests, test_raw_access) {
   EXPECT_EQ(results.size(), 1U);
 }
 
-class TestTablePlugin : public TablePlugin {
- private:
-  TableColumns columns() const {
-    return {
+static const TableDefinition tbl_test_def = {
+    "test",
+    {/* no aliases */},
+    {
         std::make_tuple("test_int", INTEGER_TYPE, ColumnOptions::DEFAULT),
         std::make_tuple("test_text", TEXT_TYPE, ColumnOptions::DEFAULT),
-    };
-  }
+    },
+    {/* no columnAliases */},
+    {/* no attributes */}};
 
+class TestTablePlugin : public TablePluginBase {
+ public:
+  TestTablePlugin() : TablePluginBase(tbl_test_def) {}
+
+ private:
   QueryData generate(QueryContext& ctx) {
     QueryData results;
     if (ctx.constraints["test_int"].existsAndMatches("1")) {
@@ -154,4 +160,4 @@ TEST_F(SQLTests, test_sql_sha256) {
   EXPECT_EQ(d[0]["test"],
             "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 }
-}
+} // namespace osquery

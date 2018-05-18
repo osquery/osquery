@@ -9,14 +9,17 @@
  */
 
 #include <osquery/core.h>
-#include <osquery/logger.h>
 #include <osquery/filesystem.h>
+#include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
+
+#define DECLARE_TABLE_IMPLEMENTATION_managed_policies
+#include <generated/tables/tbl_managed_policies_defs.hpp>
 
 namespace osquery {
 namespace tables {
@@ -87,5 +90,5 @@ QueryData genManagedPolicies(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

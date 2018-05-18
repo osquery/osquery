@@ -13,6 +13,13 @@
 
 #include "osquery/core/darwin/iokit.hpp"
 
+#define DECLARE_TABLE_IMPLEMENTATION_device_firmware
+#include <generated/tables/tbl_device_firmware_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_iokit_devicetree
+#include <generated/tables/tbl_iokit_devicetree_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_iokit_registry
+#include <generated/tables/tbl_iokit_registry_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -193,5 +200,5 @@ QueryData genIOKitRegistry(QueryContext& context) {
 
   return qd;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

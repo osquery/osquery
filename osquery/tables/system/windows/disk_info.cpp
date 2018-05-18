@@ -16,6 +16,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_disk_info
+#include <generated/tables/tbl_disk_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

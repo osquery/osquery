@@ -13,6 +13,9 @@
 #include <osquery/tables.h>
 #include <osquery/filesystem.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_process_open_files
+#include <generated/tables/tbl_process_open_files_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

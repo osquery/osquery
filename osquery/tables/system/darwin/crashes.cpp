@@ -26,6 +26,9 @@
 namespace fs = boost::filesystem;
 namespace alg = boost::algorithm;
 
+#define DECLARE_TABLE_IMPLEMENTATION_crashes
+#include <generated/tables/tbl_crashes_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -195,5 +198,5 @@ QueryData genCrashLogs(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

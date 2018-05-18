@@ -25,6 +25,9 @@
 
 namespace fs = boost::filesystem;
 
+#define DECLARE_TABLE_IMPLEMENTATION_etc_hosts
+#include <generated/tables/tbl_etc_hosts_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

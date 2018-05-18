@@ -23,6 +23,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/darwin/iokit.hpp"
 
+#define DECLARE_TABLE_IMPLEMENTATION_system_info
+#include <generated/tables/tbl_system_info_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -114,5 +117,5 @@ QueryData genSystemInfo(QueryContext& context) {
   results.push_back(r);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

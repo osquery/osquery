@@ -63,6 +63,8 @@ if(DEFINED ENV{SANITIZE})
   endif()
 endif()
 
+include_directories("${CMAKE_BINARY_DIR}/") # for <generated/tables/tbl_xx_defs.hpp>
+
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
 if(FREEBSD)
@@ -99,12 +101,25 @@ if(NOT DEFINED ENV{FUZZ})
 endif()
 
 if(NOT SKIP_TABLES)
-  add_subdirectory(tables)
 
   # Amalgamate the utility tables needed to compile.
   GENERATE_UTILITIES("${CMAKE_SOURCE_DIR}")
   AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
   ADD_OSQUERY_LIBRARY_CORE(osquery_amalgamation ${AMALGAMATION_UTILS})
+
+  # Generate the osquery additional tables (the non-util).
+  GENERATE_TABLES("${CMAKE_SOURCE_DIR}")
+  AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_additional_amalgamation ${AMALGAMATION})
+
+endif()
+
+AMALGAMATE("${CMAKE_SOURCE_DIR}" "foreign" AMALGAMATION_FOREIGN)
+ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_foreign_amalgamation ${AMALGAMATION_FOREIGN})
+
+if(NOT SKIP_TABLES)
+  add_custom_target(generated_table_headers DEPENDS osquery_amalgamation osquery_additional_amalgamation osquery_foreign_amalgamation )
+  add_subdirectory(tables)
 endif()
 
 if(WINDOWS)
@@ -292,15 +307,6 @@ add_custom_target(devel
 add_dependencies(devel libosquery)
 
 if(NOT OSQUERY_BUILD_SDK_ONLY)
-  if(NOT SKIP_TABLES)
-    # Generate the osquery additional tables (the non-util).
-    GENERATE_TABLES("${CMAKE_SOURCE_DIR}")
-    AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
-    ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_additional_amalgamation ${AMALGAMATION})
-
-    AMALGAMATE("${CMAKE_SOURCE_DIR}" "foreign" AMALGAMATION_FOREIGN)
-    ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_foreign_amalgamation ${AMALGAMATION_FOREIGN})
-  endif()
 
   # Create the static libosquery_additional.
   add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})

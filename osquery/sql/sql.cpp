@@ -104,6 +104,35 @@ QueryData SQL::selectAllFrom(const std::string& table) {
   return response;
 }
 
+// referenced also from sqlite::xFilter
+void setRequestFromContext(const QueryContext& context,
+                           PluginRequest& request) {
+  auto doc = JSON::newObject();
+  auto constraints = doc.getArray();
+
+  // The QueryContext contains a constraint map from column to type information
+  // and the list of operand/expression constraints applied to that column from
+  // the query given.
+  for (const auto& constraint : context.constraints) {
+    auto child = doc.getObject();
+    doc.addRef("name", constraint.first, child);
+    constraint.second.serialize(doc, child);
+    doc.push(child, constraints);
+  }
+
+  doc.add("constraints", constraints);
+
+  if (context.colsUsed) {
+    auto colsUsed = doc.getArray();
+    for (const auto& columnName : *context.colsUsed) {
+      doc.pushCopy(columnName, colsUsed);
+    }
+    doc.add("colsUsed", colsUsed);
+  }
+
+  doc.toString(request["context"]);
+}
+
 QueryData SQL::selectAllFrom(const std::string& table,
                              const std::string& column,
                              ConstraintOperator op,
@@ -113,7 +142,7 @@ QueryData SQL::selectAllFrom(const std::string& table,
     // Create a fake content, there will be no caching.
     QueryContext ctx;
     ctx.constraints[column].add(Constraint(op, expr));
-    TablePlugin::setRequestFromContext(ctx, request);
+    setRequestFromContext(ctx, request);
   }
 
   PluginResponse response;
@@ -132,7 +161,7 @@ QueryData SQL::selectFrom(const std::initializer_list<std::string> columns,
     QueryContext ctx;
     ctx.constraints[column].add(Constraint(op, expr));
     ctx.colsUsed = UsedColumns(columns);
-    TablePlugin::setRequestFromContext(ctx, request);
+    setRequestFromContext(ctx, request);
   }
 
   PluginResponse response;
@@ -230,4 +259,4 @@ Status getQueryTables(const std::string& q, std::vector<std::string>& tables) {
   }
   return status;
 }
-}
+} // namespace osquery

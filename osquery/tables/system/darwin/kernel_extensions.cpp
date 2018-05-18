@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <IOKit/kext/KextManager.h>
 #include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/kext/KextManager.h>
 
 #include <boost/algorithm/string/trim.hpp>
 
@@ -19,22 +19,25 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_kernel_extensions
+#include <generated/tables/tbl_kernel_extensions_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
-inline std::string getKextInt(const CFDictionaryRef &value,
+inline std::string getKextInt(const CFDictionaryRef& value,
                               const CFStringRef key) {
   auto num = (CFDataRef)CFDictionaryGetValue(value, key);
   return stringFromCFNumber(num, kCFNumberSInt32Type);
 }
 
-inline std::string getKextBigInt(const CFDictionaryRef &value,
+inline std::string getKextBigInt(const CFDictionaryRef& value,
                                  const CFStringRef key) {
   auto num = (CFDataRef)CFDictionaryGetValue(value, key);
   return stringFromCFNumber(num, kCFNumberSInt64Type);
 }
 
-inline std::string getKextString(const CFDictionaryRef &value,
+inline std::string getKextString(const CFDictionaryRef& value,
                                  const CFStringRef key) {
   // Some values are optional, meaning the key is empty or does not exist.
   if (!CFDictionaryContainsKey(value, key)) {
@@ -48,7 +51,7 @@ inline std::string getKextString(const CFDictionaryRef &value,
   return stringFromCFString(string);
 }
 
-inline std::string getKextLinked(const CFDictionaryRef &value,
+inline std::string getKextLinked(const CFDictionaryRef& value,
                                  const CFStringRef key) {
   std::string result;
   auto links = (CFArrayRef)CFDictionaryGetValue(value, key);
@@ -73,7 +76,7 @@ inline std::string getKextLinked(const CFDictionaryRef &value,
     int link;
     CFNumberGetValue((CFNumberRef)CFArrayGetValueAtIndex(link_indexes, i),
                      kCFNumberSInt32Type,
-                     (void *)&link);
+                     (void*)&link);
     if (i > 0) {
       result += " ";
     }
@@ -85,7 +88,7 @@ inline std::string getKextLinked(const CFDictionaryRef &value,
   return "<" + result + ">";
 }
 
-void genExtension(const void *key, const void *value, void *results) {
+void genExtension(const void* key, const void* value, void* results) {
   if (key == nullptr || value == nullptr || results == nullptr) {
     return;
   }
@@ -108,10 +111,10 @@ void genExtension(const void *key, const void *value, void *results) {
   r["version"] = getKextString(extension, CFSTR("CFBundleVersion"));
   r["linked_against"] = getKextLinked(extension, CFSTR("OSBundleDependencies"));
   r["path"] = getKextString(extension, CFSTR("OSBundlePath"));
-  ((QueryData *)results)->push_back(r);
+  ((QueryData*)results)->push_back(r);
 }
 
-QueryData genKernelExtensions(QueryContext &context) {
+QueryData genKernelExtensions(QueryContext& context) {
   QueryData results;
 
   // Populate dict of kernel extensions.
@@ -124,5 +127,5 @@ QueryData genKernelExtensions(QueryContext &context) {
   CFRelease(dict);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

@@ -699,42 +699,98 @@ using QueryContext = struct QueryContext;
 using Constraint = struct Constraint;
 
 /**
- * @brief The TablePlugin defines the name, types, and column information.
+ * @brief TableCache is the abstraction of a table cache.
+ * Each TablePluginBase instance will have a unique TableCache instance, and
+ * uses TableCacheNew() to instantiate.
+ */
+class TableCache {
+ public:
+  virtual ~TableCache() {}
+
+  virtual const std::string getTableName() const = 0;
+
+  virtual bool isEnabled() const = 0;
+
+  /**
+   * @brief Check if there are fresh cache results for this table.
+   *
+   * Table results are considered fresh when evaluated against a given interval.
+   * The interval is the expected rate for which this data should be generated.
+   * Caching and cache freshness only applies to queries acting on tables
+   * within a schedule. If two queries "one" and "two" both inspect the
+   * table "processes" at the interval 60. The first executed will cache results
+   * and the second will use the cached results.
+   *
+   * @return True if the cache contains fresh results, otherwise false.
+   */
+  virtual bool isCached() const = 0;
+
+  /**
+   * @brief Perform a database lookup of cached results and deserialize.
+   *
+   * If a query determined the table's cached results are fresh, it may ask the
+   * table to retrieve results from the database and deserialized them into
+   * table row data.
+   *
+   * @return The deserialized row data of cached results.
+   */
+  virtual QueryData get() const = 0;
+
+  /**
+   * @brief Similar to getCache, stores the results from generate.
+   *
+   * Set will serialize and save the results to be retrieved later.
+   */
+  virtual void set(const QueryData& results) = 0;
+};
+
+/**
+ * @brief Factory method to create TableCache instances.
+ * This should only be called by tests and TablePluginBase / TablePlugin
+ * internal code.
  *
- * To attach a virtual table create a TablePlugin subclass and register the
+ * @param tableName  Name of table, used to uniquely address cached data for
+ * each table.
+ * @param isCacheable If false, then a the TableCache instance returned will
+ *        always return false for isCached() and do nothing for set().  If true,
+ *        a normal database backed table cache instance is returned.
+ */
+TableCache* TableCacheNew(const std::string tableName, bool isCacheable);
+
+/**
+ * @brief A TableDefinition is an encapsulation of a .table spec file.
+ */
+struct TableDefinition {
+  std::string name;
+  std::vector<std::string> aliases;
+  TableColumns columns;
+  ColumnAliasSet columnAliases;
+  TableAttributes attributes;
+};
+
+/**
+ * @brief All table plugins should subclass TablePluginBase and implement
+ * generate() or generator().
+ *
+ * To attach a virtual table create a TablePluginBase subclass and register the
  * virtual table name as the plugin ID. osquery will enumerate all registered
- * TablePlugins and attempt to attach them to SQLite at instantiation.
+ * TablePluginBase instances and attempt to attach them to SQLite at
+ * instantiation.
  *
  * Note: When updating this class, be sure to update the corresponding template
- * in osquery/tables/templates/default.cpp.in
+ * in osquery/tables/templates/
  */
-class TablePlugin : public Plugin {
+
+class TablePluginBase : public Plugin {
  public:
-  /**
-   * @brief Table name aliases create full-scan VIEWs for tables.
-   *
-   * Aliases allow table names to be changed/deprecated without breaking
-   * existing deployments and scheduled queries.
-   *
-   * @return A string vector of qtable name aliases.
-   */
-  virtual std::vector<std::string> aliases() const {
-    return {};
+  TablePluginBase(const TableDefinition& tdef);
+
+  const TableDefinition& definition() const {
+    return tableDef_;
   }
 
-  /// Return the table's column name and type pairs.
-  virtual TableColumns columns() const {
-    return TableColumns();
-  }
-
-  /// Define a map of target columns to optional aliases.
-  virtual ColumnAliasSet columnAliases() const {
-    return ColumnAliasSet();
-  }
-
-  /// Return a set of attribute flags.
-  virtual TableAttributes attributes() const {
-    return TableAttributes::NONE;
+  virtual TableCache& cache() const {
+    return cache_;
   }
 
   /**
@@ -790,79 +846,11 @@ class TablePlugin : public Plugin {
   }
 
  protected:
-  /// An SQL table containing the table definition/syntax.
-  std::string columnDefinition() const;
+  const TableDefinition& tableDef_;
+  TableCache& cache_;
 
   /// Return the name and column pairs for attaching virtual tables.
   PluginResponse routeInfo() const override;
-
-  /**
-   * @brief Check if there are fresh cache results for this table.
-   *
-   * Table results are considered fresh when evaluated against a given interval.
-   * The interval is the expected rate for which this data should be generated.
-   * Caching and cache freshness only applies to queries acting on tables
-   * within a schedule. If two queries "one" and "two" both inspect the
-   * table "processes" at the interval 60. The first executed will cache results
-   * and the second will use the cached results.
-   *
-   * Table results are not cached if a QueryContext contains constraints or
-   * provides HOB (hand-off blocks) to additional tables within a query.
-   * Currently, the query scheduler cannot communicate to table implementations.
-   * An interval is set globally by the scheduler and passed to the table
-   * implementation as a future-proof API. There is no "shortcut" for caching
-   * when used in external tables. A cache lookup within an extension means
-   * a database call API and re-serialization to the virtual table APIs. In
-   * practice this does not perform well and is explicitly disabled.
-   *
-   * @param interval The interval this query expects the tables results.
-   * @param ctx The query context.
-   * @return True if the cache contains fresh results, otherwise false.
-   */
-  bool isCached(size_t interval, const QueryContext& ctx) const;
-
-  /**
-   * @brief Perform a database lookup of cached results and deserialize.
-   *
-   * If a query determined the table's cached results are fresh, it may ask the
-   * table to retrieve results from the database and deserialized them into
-   * table row data.
-   *
-   * @return The deserialized row data of cached results.
-   */
-  QueryData getCache() const;
-
-  /**
-   * @brief Similar to getCache, stores the results from generate.
-   *
-   * Set will serialize and save the results as JSON to be retrieved later.
-   * It will inspect the query context, if any required/indexed/optimized or
-   * additional columns are used then the cache will not be saved.
-   */
-  void setCache(size_t step,
-                size_t interval,
-                const QueryContext& ctx,
-                const QueryData& results);
-
- private:
-  /// The last time in seconds the table data results were saved to cache.
-  size_t last_cached_{0};
-
-  /// The last interval in seconds when the table data was cached.
-  size_t last_interval_{0};
-
- public:
-  /**
-   * @brief The scheduled interval for the executing query.
-   *
-   * Scheduled queries execute within a pseudo-mutex, and each may communicate
-   * their scheduled interval to internal TablePlugin implementations. If the
-   * table is cachable then the interval can be used to calculate freshness.
-   */
-  static size_t kCacheInterval;
-
-  /// The schedule step, this is the current position of the schedule.
-  static size_t kCacheStep;
 
  public:
   /**
@@ -879,15 +867,6 @@ class TablePlugin : public Plugin {
    * @param response A plugin response, for generation this contains the rows.
    */
   Status call(const PluginRequest& request, PluginResponse& response) override;
-
- public:
-  /// Helper data structure transformation methods.
-  static void setRequestFromContext(const QueryContext& context,
-                                    PluginRequest& request);
-
-  /// Helper data structure transformation methods.
-  static void setContextFromRequest(const PluginRequest& request,
-                                    QueryContext& context);
 
  public:
   /**
@@ -912,6 +891,77 @@ class TablePlugin : public Plugin {
   FRIEND_TEST(VirtualTableTests, test_indexing_costs);
   FRIEND_TEST(VirtualTableTests, test_table_results_cache);
   FRIEND_TEST(VirtualTableTests, test_yield_generator);
+};
+
+/**
+ * @brief Deprecated. Use TablePluginBase for all new table implementations.
+ * TablePlugin remains for backwards compatibility with existing extensions.
+ *
+ * Members columns(), aliases, columnAliases, and attributes() are wrappers for
+ * TablePluginBase.definition() members.
+ *
+ * Members isCached(), getCache(), setCache() are wrappers for
+ * TablePluginBase.cache() members.
+ */
+class TablePlugin : public TablePluginBase {
+ public:
+  TablePlugin()
+      : TablePluginBase(tdef_),
+        tdef_({"", aliases(), columns(), columnAliases(), attributes()}) {}
+
+  virtual TableCache& cache() const;
+
+  /**
+   * @brief Table name aliases create full-scan VIEWs for tables.
+   *
+   * Aliases allow table names to be changed/deprecated without breaking
+   * existing deployments and scheduled queries.
+   *
+   * @return A string vector of qtable name aliases.
+   */
+  virtual std::vector<std::string> aliases() const {
+    return {};
+  }
+
+  /// Return the table's column name and type pairs.
+  virtual TableColumns columns() const {
+    return TableColumns();
+  }
+
+  /// Define a map of target columns to optional aliases.
+  virtual ColumnAliasSet columnAliases() const {
+    return ColumnAliasSet();
+  }
+
+  /// Return a set of attribute flags.
+  virtual TableAttributes attributes() const {
+    return TableAttributes::NONE;
+  }
+
+  /**
+   * @brief deprecated. Core uses cache().isCached().
+   */
+  bool isCached(size_t interval, const QueryContext& ctx) const {
+    return false;
+  }
+
+  /**
+   * @brief deprecated. Core code should use cache().get().
+   */
+  QueryData getCache() const {
+    return cache().get();
+  }
+
+  /*
+   * @brief deprecated.  @see TablePluginBase.cache()
+   */
+  void setCache(size_t step,
+                size_t interval,
+                const QueryContext& ctx,
+                const QueryData& results) {}
+
+ protected:
+  TableDefinition tdef_ = {};
 };
 
 /// Helper method to generate the virtual table CREATE statement.

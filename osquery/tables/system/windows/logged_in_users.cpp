@@ -21,6 +21,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/filesystem/fileops.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_logged_in_users
+#include <generated/tables/tbl_logged_in_users_defs.hpp>
+
 const std::map<int, std::string> kSessionStates = {
     {WTSActive, "active"},
     {WTSDisconnected, "disconnected"},

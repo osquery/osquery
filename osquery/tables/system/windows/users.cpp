@@ -24,6 +24,9 @@
 #include "osquery/tables/system/windows/registry.h"
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_users
+#include <generated/tables/tbl_users_defs.hpp>
+
 namespace osquery {
 
 std::string psidToString(PSID sid);

@@ -28,6 +28,9 @@
 #endif
 #include <yara.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_yara_events
+#include <generated/tables/tbl_yara_events_defs.hpp>
+
 namespace osquery {
 
 /// The file change event publishers are slightly different in OS X and Linux.

@@ -19,10 +19,7 @@ namespace osquery {
 
 FLAG(bool, disable_caching, false, "Disable scheduled query caching");
 
-CREATE_LAZY_REGISTRY(TablePlugin, "table");
-
-size_t TablePlugin::kCacheInterval = 0;
-size_t TablePlugin::kCacheStep = 0;
+CREATE_LAZY_REGISTRY(TablePluginBase, "table");
 
 const std::map<ColumnType, std::string> kColumnTypeNames = {
     {UNKNOWN_TYPE, "UNKNOWN"},
@@ -34,8 +31,21 @@ const std::map<ColumnType, std::string> kColumnTypeNames = {
     {BLOB_TYPE, "BLOB"},
 };
 
-Status TablePlugin::addExternal(const std::string& name,
-                                const PluginResponse& response) {
+/**
+ * @brief Constructor for TablePluginBase
+ * Initializes cache_ with a new instance, enabled only if attributes
+ * include CACHEABLE.
+ */
+TablePluginBase::TablePluginBase(const TableDefinition& tdef)
+    : Plugin(),
+      tableDef_(tdef),
+      cache_(
+          *TableCacheNew(tdef.name,
+                         tdef.name.length() > 0 &&
+                             (tdef.attributes & TableAttributes::CACHEABLE))) {}
+
+Status TablePluginBase::addExternal(const std::string& name,
+                                    const PluginResponse& response) {
   // Attach the table.
   if (response.size() == 0) {
     // Invalid table route info.
@@ -48,41 +58,16 @@ Status TablePlugin::addExternal(const std::string& name,
   return Registry::call("sql", "sql", {{"action", "attach"}, {"table", name}});
 }
 
-void TablePlugin::removeExternal(const std::string& name) {
+void TablePluginBase::removeExternal(const std::string& name) {
   // Detach the table name.
   Registry::call("sql", "sql", {{"action", "detach"}, {"table", name}});
 }
 
-void TablePlugin::setRequestFromContext(const QueryContext& context,
-                                        PluginRequest& request) {
-  auto doc = JSON::newObject();
-  auto constraints = doc.getArray();
-
-  // The QueryContext contains a constraint map from column to type information
-  // and the list of operand/expression constraints applied to that column from
-  // the query given.
-  for (const auto& constraint : context.constraints) {
-    auto child = doc.getObject();
-    doc.addRef("name", constraint.first, child);
-    constraint.second.serialize(doc, child);
-    doc.push(child, constraints);
-  }
-
-  doc.add("constraints", constraints);
-
-  if (context.colsUsed) {
-    auto colsUsed = doc.getArray();
-    for (const auto& columnName : *context.colsUsed) {
-      doc.pushCopy(columnName, colsUsed);
-    }
-    doc.add("colsUsed", colsUsed);
-  }
-
-  doc.toString(request["context"]);
-}
-
-void TablePlugin::setContextFromRequest(const PluginRequest& request,
-                                        QueryContext& context) {
+/*
+ * The analogue to this (setRequestFromContext) is in sql.cpp
+ */
+static void setContextFromRequest(const PluginRequest& request,
+                                  QueryContext& context) {
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
 
@@ -106,8 +91,8 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
   }
 }
 
-Status TablePlugin::call(const PluginRequest& request,
-                         PluginResponse& response) {
+Status TablePluginBase::call(const PluginRequest& request,
+                             PluginResponse& response) {
   response.clear();
   // TablePlugin API calling requires an action.
   if (request.count("action") == 0) {
@@ -136,14 +121,10 @@ Status TablePlugin::call(const PluginRequest& request,
   return Status(0, "OK");
 }
 
-std::string TablePlugin::columnDefinition() const {
-  return osquery::columnDefinition(columns());
-}
-
-PluginResponse TablePlugin::routeInfo() const {
+PluginResponse TablePluginBase::routeInfo() const {
   // Route info consists of the serialized column information.
   PluginResponse response;
-  for (const auto& column : columns()) {
+  for (const auto& column : definition().columns) {
     response.push_back(
         {{"id", "column"},
          {"name", std::get<0>(column)},
@@ -152,13 +133,13 @@ PluginResponse TablePlugin::routeInfo() const {
   }
   // Each table name alias is provided such that the core may add the views.
   // These views need to be removed when the backing table is detached.
-  for (const auto& alias : aliases()) {
+  for (const auto& alias : definition().aliases) {
     response.push_back({{"id", "alias"}, {"alias", alias}});
   }
 
   // Each column alias must be provided, additionally to the column's option.
   // This sets up the value-replacement move within the SQL implementation.
-  for (const auto& target : columnAliases()) {
+  for (const auto& target : definition().columnAliases) {
     for (const auto& alias : target.second) {
       response.push_back(
           {{"id", "columnAlias"}, {"name", alias}, {"target", target.first}});
@@ -167,63 +148,31 @@ PluginResponse TablePlugin::routeInfo() const {
 
   response.push_back(
       {{"id", "attributes"},
-       {"attributes", INTEGER(static_cast<size_t>(attributes()))}});
+       {"attributes", INTEGER(static_cast<size_t>(definition().attributes))}});
   return response;
 }
 
-static bool cacheAllowed(const TableColumns& cols, const QueryContext& ctx) {
-  if (!ctx.useCache()) {
-    // The query execution did not request use of the warm cache.
-    return false;
+/*
+ * The TablePlugin constructor does not have access to the table name,
+ * which is set by Registry code during registration.  Therefore, the
+ * TablePluginBase code, will allocate a disabled TableCache instance.
+ * If the table attributes include CACHEABLE, and the TableCache
+ * instance is disabled, then this method will fix it by allocating a
+ * new TableCache with the correct table name.
+ */
+TableCache& TablePlugin::cache() const {
+  if ((tdef_.attributes & TableAttributes::CACHEABLE) && !cache_.isEnabled()) {
+    auto oldCache = &cache_;
+    cache_ = *TableCacheNew(getName(), true);
+    delete oldCache;
   }
-
-  auto uncachable = ColumnOptions::INDEX | ColumnOptions::REQUIRED |
-                    ColumnOptions::ADDITIONAL | ColumnOptions::OPTIMIZED;
-  for (const auto& column : cols) {
-    auto opts = std::get<2>(column) & uncachable;
-    if (opts && ctx.constraints.at(std::get<0>(column)).exists()) {
-      return false;
-    }
-  }
-  return true;
+  return cache_;
 }
 
-bool TablePlugin::isCached(size_t step, const QueryContext& ctx) const {
-  if (FLAGS_disable_caching) {
-    return false;
-  }
-
-  // Perform the step comparison first, because it's easy.
-  return (step < last_cached_ + last_interval_ && cacheAllowed(columns(), ctx));
-}
-
-QueryData TablePlugin::getCache() const {
-  VLOG(1) << "Retrieving results from cache for table: " << getName();
-  // Lookup results from database and deserialize.
-  std::string content;
-  getDatabaseValue(kQueries, "cache." + getName(), content);
-  QueryData results;
-  deserializeQueryDataJSON(content, results);
-  return results;
-}
-
-void TablePlugin::setCache(size_t step,
-                           size_t interval,
-                           const QueryContext& ctx,
-                           const QueryData& results) {
-  if (FLAGS_disable_caching || !cacheAllowed(columns(), ctx)) {
-    return;
-  }
-
-  // Serialize QueryData and save to database.
-  std::string content;
-  if (serializeQueryDataJSON(results, content)) {
-    last_cached_ = step;
-    last_interval_ = interval;
-    setDatabaseValue(kQueries, "cache." + getName(), content);
-  }
-}
-
+/*
+ * Returns SQLite CREATE statement body for table columns.
+ * This should only be called by core/tables.cpp and tests.
+ */
 std::string columnDefinition(const TableColumns& columns) {
   std::map<std::string, bool> epilog;
   bool indexed = false;
@@ -492,4 +441,39 @@ Status QueryContext::expandConstraints(
   }
   return Status(0);
 }
+
+/*
+ * Implementation of TableCache for tables that should not be cached.
+ */
+class TableCacheDisabled : public TableCache {
+ public:
+  TableCacheDisabled(const std::string tableName) : tableName_(tableName) {}
+
+  virtual ~TableCacheDisabled() {}
+
+  virtual bool isEnabled() const {
+    return false;
+  }
+
+  virtual const std::string getTableName() const {
+    return tableName_;
+  }
+
+  virtual bool isCached() const {
+    return false;
+  }
+
+  virtual QueryData get() const {
+    return QueryData();
+  }
+
+  virtual void set(const QueryData& results) {}
+
+ private:
+  const std::string tableName_;
+};
+
+TableCache* TableCacheDisabledNew(std::string tableName) {
+  return new TableCacheDisabled(tableName);
 }
+} // namespace osquery

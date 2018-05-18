@@ -29,6 +29,9 @@
 
 #include "osquery/core/hashing.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_hash
+#include <generated/tables/tbl_hash_defs.hpp>
+
 namespace osquery {
 
 FLAG(bool,

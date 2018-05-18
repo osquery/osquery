@@ -11,6 +11,9 @@
 
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_logical_drives
+#include <generated/tables/tbl_logical_drives_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

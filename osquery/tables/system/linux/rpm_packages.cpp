@@ -25,6 +25,11 @@
 
 #include "osquery/core/process.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_rpm_packages
+#include <generated/tables/tbl_rpm_packages_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_rpm_package_files
+#include <generated/tables/tbl_rpm_package_files_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

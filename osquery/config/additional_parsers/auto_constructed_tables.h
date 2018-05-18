@@ -14,32 +14,6 @@ namespace osquery {
 /**
  * @brief A ConfigParserPlugin for ATC (Auto Table Construction)
  */
-class ATCPlugin : public TablePlugin {
-  TableColumns tc_columns_;
-  std::string sqlite_query_;
-  std::string path_;
-
- protected:
-  std::string columnDefinition() const {
-    return ::osquery::columnDefinition(tc_columns_);
-  }
-
-  TableColumns columns() const override {
-    return tc_columns_;
-  }
-
- public:
-  ATCPlugin(const std::string& path,
-            const TableColumns& tc_columns,
-            const std::string& sqlite_query)
-      : path_(path), tc_columns_(tc_columns), sqlite_query_(sqlite_query) {}
-
-  QueryData generate(QueryContext& context) override;
-};
-
-/**
- * @brief A ConfigParserPlugin for ATC (Auto Table Construction)
- */
 class ATCConfigParserPlugin : public ConfigParserPlugin {
   const std::string kParserKey{"auto_table_construction"};
   const std::string kDatabaseKeyPrefix{"atc."};

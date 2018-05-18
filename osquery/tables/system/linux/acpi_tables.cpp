@@ -16,6 +16,9 @@
 
 #include "osquery/core/hashing.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_acpi_tables
+#include <generated/tables/tbl_acpi_tables_defs.hpp>
+
 namespace fs = boost::filesystem;
 
 namespace osquery {

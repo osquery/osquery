@@ -16,6 +16,9 @@
 
 #include "osquery/tables/system/windows/registry.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_programs
+#include <generated/tables/tbl_programs_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

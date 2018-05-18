@@ -17,6 +17,9 @@
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_time
+#include <generated/tables/tbl_time_defs.hpp>
+
 namespace osquery {
 
 DECLARE_bool(utc);

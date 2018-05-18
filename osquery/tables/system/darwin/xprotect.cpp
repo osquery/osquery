@@ -17,11 +17,18 @@
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/tables.h>
 #include <osquery/sql.h>
+#include <osquery/tables.h>
 
 namespace pt = boost::property_tree;
 namespace fs = boost::filesystem;
+
+#define DECLARE_TABLE_IMPLEMENTATION_xprotect_entries
+#include <generated/tables/tbl_xprotect_entries_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_xprotect_meta
+#include <generated/tables/tbl_xprotect_meta_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_xprotect_reports
+#include <generated/tables/tbl_xprotect_reports_defs.hpp>
 
 namespace osquery {
 namespace tables {
@@ -216,5 +223,5 @@ QueryData genXProtectMeta(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

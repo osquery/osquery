@@ -20,6 +20,9 @@
 
 #include "osquery/utils/aws_util.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_ec2_instance_tags
+#include <generated/tables/tbl_ec2_instance_tags_defs.hpp>
+
 namespace osquery {
 namespace tables {
 
@@ -66,5 +69,5 @@ QueryData genEc2InstanceTags(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

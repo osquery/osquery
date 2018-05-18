@@ -24,6 +24,9 @@
 
 namespace fs = boost::filesystem;
 
+#define DECLARE_TABLE_IMPLEMENTATION_python_packages
+#include <generated/tables/tbl_python_packages_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

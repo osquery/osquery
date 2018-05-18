@@ -12,6 +12,9 @@
 
 #include "osquery/events/linux/auditeventpublisher.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_user_events
+#include <generated/tables/tbl_user_events_defs.hpp>
+
 namespace osquery {
 
 FLAG(bool,

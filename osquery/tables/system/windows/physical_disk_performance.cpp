@@ -13,6 +13,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_physical_disk_performance
+#include <generated/tables/tbl_physical_disk_performance_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

@@ -25,6 +25,9 @@ extern "C" {
 #include <osquery/system.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_deb_packages
+#include <generated/tables/tbl_deb_packages_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

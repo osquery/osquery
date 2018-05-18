@@ -17,6 +17,9 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_arp_cache
+#include <generated/tables/tbl_arp_cache_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

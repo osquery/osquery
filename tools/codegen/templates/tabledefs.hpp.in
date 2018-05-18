@@ -1,0 +1,155 @@
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
+ */
+
+/*
+** This file is generated. Do not modify it manually!
+*/
+
+#include <osquery/logger.h>
+#include <osquery/tables.h>
+
+namespace osquery {
+
+namespace tables {
+
+#if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}}) || defined(DECLARE_TABLE_DEF_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{filename}})
+
+#if defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{filename}})
+const TableDefinition &tbl_{{table_name}}_def_foreign_get() {
+#else
+const TableDefinition &tbl_{{table_name}}_def_get() {
+#endif
+  static const TableDefinition _def = { "{{table_name}}",
+  { /* table aliases */  {% for alias in aliases %}"{{alias}}",{% endfor %}  },
+  {
+    {% for column in schema %}\
+      std::make_tuple("{{column.name}}", {{column.type.affinity}},\
+    {% if column.options|length > 0 %} {{column.options_set}}\
+    {% else %} ColumnOptions::DEFAULT\
+    {% endif %}\
+    ),
+    {% endfor %}\
+  },
+  { /* column aliases */ \
+{% for column in schema %}\
+{% if column.aliases|length > 0 %}\
+{"{{column.name}}", {% raw %}{{% endraw %}\
+{% for alias in column.aliases %}"{{alias}}"\
+{% if not loop.last %}, {% endif %}\
+{% endfor %}}},\
+{% endif %}\
+{% endfor %}\
+  },
+{% for attribute in attribute_set %}\
+  TableAttributes::{{attribute}} |\
+{% endfor %}
+  TableAttributes::NONE
+  };
+  return _def;
+}
+
+#endif // defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_DEF)
+
+} // namespace tables
+
+#if defined(DECLARE_TABLE_FOREIGN_STUB_{{table_name}}) || defined(DECLARE_TABLE_FOREIGN_STUB_{{filename}})
+
+TablePluginBase* tbl_{{table_name}}_stub_new()
+{
+  return new TablePluginBase(tables::tbl_{{table_name}}_def_foreign_get());
+}
+{% if table_name != filename %}\
+TablePluginBase* tbl_{{filename}}_stub_new() { return tbl_{{table_name}}_stub_new(); } // filename differs from table name
+{% endif %}\
+
+#endif // defined(DECLARE_TABLE_IMPLEMENTATION) || defined(DECLARE_TABLE_FOREIGN_STUB)
+
+#if defined(DECLARE_TABLE_STRUCT_{{table_name}}) || defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}})
+struct tbl_{{table_name}}_data_t {
+
+{% for column in schema %}\
+      {{column.type.type}}      {{column.safename}};
+{% endfor %}\
+
+  /*
+   * Convert to osquery Row format
+   */
+  void toHashmap(Row &dest) const {
+    {% for column in schema %}\
+    dest["{{column.name}}"] = __sqliteField({{column.safename}});
+    {% endfor %}\
+  }
+
+};
+
+#endif // DECLARE_TABLE_STRUCT_
+
+#if defined(DECLARE_TABLE_IMPLEMENTATION_{{table_name}})
+
+// forward declaration of funcs
+namespace tables {
+{% if class_name == "" %}\
+{% if generator %}\
+void {{function}}(RowYield& yield, QueryContext& context);
+{% else %}\
+osquery::QueryData {{function}}(QueryContext& context);
+{% endif %}\
+{% else %}
+class {{class_name}} {
+ public:
+  void {{function}}(RowYield& yield, QueryContext& context);
+};
+{% endif %}\
+}
+
+class {{table_name_cc}}TablePlugin : public TablePluginBase {
+public:
+ {{table_name_cc}}TablePlugin(const TableDefinition& tdef) : TablePluginBase(tdef) { }
+
+ private:
+{% if generator %}\
+  bool usesGenerator() const override { return true; }
+
+  void generator(RowYield& yield, QueryContext& context) override {
+{% if class_name != "" %}\
+    if (EventFactory::exists(getName())) {
+      auto subscriber = EventFactory::getEventSubscriber(getName());
+      return subscriber->{{function}}(yield, context);
+    } else {
+      LOG(ERROR) << "Subscriber table missing: " << getName();
+    }
+{% else %}\
+    tables::{{function}}(yield, context);
+{% endif %}\
+  }
+{% else %}\
+  QueryData generate(QueryContext& context) override {
+    auto results = tables::{{function}}(context);
+    return results;
+  }
+{% endif %}\
+
+};
+
+TablePluginBase* tbl_{{table_name}}_plugin_new()
+{
+  return new {{table_name_cc}}TablePlugin(tables::tbl_{{table_name}}_def_get());
+}
+{% if table_name != filename %}\
+TablePluginBase* tbl_{{filename}}_plugin_new() { return tbl_{{table_name}}_plugin_new(); } // filename differs from table name
+{% endif %}\
+#endif // defined(DECLARE_TABLE_IMPLEMENTATION)
+
+extern TablePluginBase* tbl_{{table_name}}_plugin_new();
+{% if table_name != filename %}\
+extern TablePluginBase* tbl_{{filename}}_plugin_new();
+{% endif %}\
+
+} // namespace osquery

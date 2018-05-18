@@ -15,6 +15,9 @@
 
 #include "osquery/core/windows/wmi.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_wmi_event_filters
+#include <generated/tables/tbl_wmi_event_filters_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

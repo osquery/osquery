@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -12,6 +12,9 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+
+#define DECLARE_TABLE_IMPLEMENTATION_nfs_shares
+#include <generated/tables/tbl_nfs_shares_defs.hpp>
 
 namespace osquery {
 namespace tables {
@@ -72,5 +75,5 @@ QueryData genNFSShares(QueryContext& context) {
   }
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

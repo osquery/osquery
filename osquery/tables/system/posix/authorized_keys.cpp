@@ -20,6 +20,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/system_utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_authorized_keys
+#include <generated/tables/tbl_authorized_keys_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

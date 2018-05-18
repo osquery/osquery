@@ -23,6 +23,9 @@
 #include "osquery/events/windows/windows_event_log.h"
 #include "osquery/filesystem/fileops.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_windows_events
+#include <generated/tables/tbl_windows_events_defs.hpp>
+
 namespace pt = boost::property_tree;
 
 namespace osquery {

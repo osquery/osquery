@@ -23,22 +23,40 @@ namespace rj = rapidjson;
 
 namespace osquery {
 
-QueryData ATCPlugin::generate(QueryContext& context) {
-  QueryData qd;
-  std::vector<std::string> paths;
-  auto s = resolveFilePattern(path_, paths);
-  if (!s.ok()) {
-    LOG(WARNING) << "Could not glob: " << path_;
-  }
-  for (const auto& path : paths) {
-    s = genQueryDataForSqliteTable(path, sqlite_query_, qd);
+/**
+ * @brief A table plugin for each ATC (Auto Table Construction)
+ */
+class ATCPlugin : public TablePluginBase {
+  std::string path_;
+  std::string sqlite_query_;
+  std::shared_ptr<TableDefinition> spTableDef_;
+
+ public:
+  ATCPlugin(std::shared_ptr<TableDefinition> spTableDef,
+            const std::string& path,
+            const std::string& sqlite_query)
+      : TablePluginBase(*spTableDef),
+        path_(path),
+        sqlite_query_(sqlite_query),
+        spTableDef_(spTableDef) {}
+
+  QueryData generate(QueryContext& context) override {
+    QueryData qd;
+    std::vector<std::string> paths;
+    auto s = resolveFilePattern(path_, paths);
     if (!s.ok()) {
-      LOG(WARNING) << "Error Code: " << s.getCode()
-                   << " Could not generate data: " << s.getMessage();
+      LOG(WARNING) << "Could not glob: " << path_;
     }
+    for (const auto& path : paths) {
+      s = genQueryDataForSqliteTable(path, sqlite_query_, qd);
+      if (!s.ok()) {
+        LOG(WARNING) << "Error Code: " << s.getCode()
+                     << " Could not generate data: " << s.getMessage();
+      }
+    }
+    return qd;
   }
-  return qd;
-}
+};
 
 /// Remove these ATC tables from the registry and database
 Status ATCConfigParserPlugin::removeATCTables(
@@ -135,12 +153,15 @@ Status ATCConfigParserPlugin::update(const std::string& source,
       continue;
     }
 
-    TableColumns columns;
+    auto spTableDef = std::make_shared<TableDefinition>();
+    spTableDef->name = table_name;
     std::string columns_value;
     columns_value.reserve(256);
 
+    // build table definition columns
+
     for (const auto& column : params["columns"].GetArray()) {
-      columns.push_back(make_tuple(
+      spTableDef->columns.push_back(make_tuple(
           std::string(column.GetString()), TEXT_TYPE, ColumnOptions::DEFAULT));
       columns_value += std::string(column.GetString()) + ",";
     }
@@ -171,8 +192,10 @@ Status ATCConfigParserPlugin::update(const std::string& source,
       continue;
     }
 
-    s = tables->add(
-        table_name, std::make_shared<ATCPlugin>(path, columns, query), true);
+    // register table plugin
+
+    auto spTablePlugin = std::make_shared<ATCPlugin>(spTableDef, path, query);
+    s = tables->add(table_name, spTablePlugin, true);
 
     if (!s.ok()) {
       LOG(WARNING) << s.getMessage();

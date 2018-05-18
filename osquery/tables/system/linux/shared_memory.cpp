@@ -16,6 +16,9 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_shared_memory
+#include <generated/tables/tbl_shared_memory_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

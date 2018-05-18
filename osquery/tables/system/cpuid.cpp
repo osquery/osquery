@@ -23,6 +23,9 @@
 
 #define FEATURE(name, reg, bit) std::make_pair(name, std::make_pair(reg, bit))
 
+#define DECLARE_TABLE_IMPLEMENTATION_cpuid
+#include <generated/tables/tbl_cpuid_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

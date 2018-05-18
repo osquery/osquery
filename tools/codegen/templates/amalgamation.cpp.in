@@ -14,17 +14,38 @@
 
 #include <osquery/events.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/tables.h>
 
+{% if foreign %}
+{% for table in tables %}
+#define DECLARE_TABLE_FOREIGN_STUB_{{table.name}}
+#include <generated/tables/tbl_{{table.name}}_defs.hpp>
+{% endfor %}
+{% endif %}
 
 namespace osquery {
+
 {% if foreign %}
-void registerForeignTables() {
-{% endif %}
+  void registerForeignTables() {
+  auto registry = RegistryFactory::get().registry("table");
+  {% for table in tables %}
+  extern TablePluginBase* tbl_{{table.name}}_stub_new();
+  {
+    auto ptr = tbl_{{table.name}}_stub_new();
+    registry->add(ptr->definition().name, std::shared_ptr<TablePluginBase>(ptr), false);
+  }
+  {% endfor %}
+  }
+{% else %}
 {% for table in tables %}
-{{table}}
-{% endfor %}
-{% if foreign %}
-}
+{% if table.is_blacklisted %}
+    // table {{table.name}} is blacklisted
+{% else %}
+  extern TablePluginBase* tbl_{{table.name}}_plugin_new();
+  REGISTER_OBJ(tbl_{{table.name}}_plugin_new(),TablePluginBase,"table", {{table.name}}, {% if category == "utils" %}true{% else %}false{% endif %});
 {% endif %}
-}
+{% endfor %}
+{% endif %}
+
+} // namespace

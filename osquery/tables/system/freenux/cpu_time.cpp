@@ -15,6 +15,9 @@
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_cpu_time
+#include <generated/tables/tbl_cpu_time_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

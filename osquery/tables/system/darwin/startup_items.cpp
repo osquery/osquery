@@ -11,12 +11,15 @@
 #include <boost/filesystem.hpp>
 
 #include <osquery/core.h>
-#include <osquery/tables.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/tables.h>
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
+
+#define DECLARE_TABLE_IMPLEMENTATION_startup_items
+#include <generated/tables/tbl_startup_items_defs.hpp>
 
 namespace osquery {
 namespace tables {
@@ -111,5 +114,5 @@ QueryData genStartupItems(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

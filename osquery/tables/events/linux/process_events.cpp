@@ -15,6 +15,9 @@
 
 #include "osquery/tables/events/linux/process_events.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_process_events
+#include <generated/tables/tbl_process_events_defs.hpp>
+
 namespace osquery {
 
 FLAG(bool,

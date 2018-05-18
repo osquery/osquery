@@ -32,6 +32,13 @@
 #include "osquery/events/linux/udev.h"
 #include "osquery/tables/system/linux/md_tables.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_md_devices
+#include <generated/tables/tbl_md_devices_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_md_drives
+#include <generated/tables/tbl_md_drives_defs.hpp>
+#define DECLARE_TABLE_IMPLEMENTATION_md_personalities
+#include <generated/tables/tbl_md_personalities_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

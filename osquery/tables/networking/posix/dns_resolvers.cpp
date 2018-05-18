@@ -18,6 +18,9 @@
 
 #include "osquery/tables/networking/utils.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_dns_resolvers
+#include <generated/tables/tbl_dns_resolvers_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

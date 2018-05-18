@@ -17,6 +17,9 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_mdfind
+#include <generated/tables/tbl_mdfind_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

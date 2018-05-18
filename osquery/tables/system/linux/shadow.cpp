@@ -19,6 +19,9 @@
 
 #include "osquery/core/conversions.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_shadow
+#include <generated/tables/tbl_shadow_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

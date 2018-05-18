@@ -21,6 +21,9 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
+#define DECLARE_TABLE_IMPLEMENTATION_chocolatey_packages
+#include <generated/tables/tbl_chocolatey_packages_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

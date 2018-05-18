@@ -19,6 +19,9 @@
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
+#define DECLARE_TABLE_IMPLEMENTATION_npm_packages
+#include <generated/tables/tbl_npm_packages_defs.hpp>
+
 namespace fs = boost::filesystem;
 
 namespace osquery {

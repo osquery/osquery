@@ -13,6 +13,9 @@
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
+#define DECLARE_TABLE_IMPLEMENTATION_opera_extensions
+#include <generated/tables/tbl_opera_extensions_defs.hpp>
+
 namespace osquery {
 namespace tables {
 

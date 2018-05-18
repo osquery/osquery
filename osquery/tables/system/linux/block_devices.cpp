@@ -20,6 +20,9 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#define DECLARE_TABLE_IMPLEMENTATION_block_devices
+#include <generated/tables/tbl_block_devices_defs.hpp>
+
 extern "C" {
 #include <lvm2app.h>
 #include <sys/sysmacros.h>
