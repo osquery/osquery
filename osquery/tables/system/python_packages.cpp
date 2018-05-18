@@ -9,7 +9,7 @@
  */
 
 #include <string>
-#include <stdlib.h>
+
 #include <boost/filesystem.hpp>
 
 #include <osquery/filesystem.h>
@@ -29,13 +29,16 @@ namespace tables {
 
 /// Number of fields when splitting metadata and info.
 const size_t kNumFields = 2;
+
+/// Locations of site and dist packages.
 const std::set<std::string> kPythonPath = {
-        "/usr/local/lib/python2.7/",
-        "/usr/local/lib/python2.7/site-packages/",
-        "/usr/lib/python2.7/dist-packages/",
-        "/usr/lib/python2.7/site-packages/",
-        "/Library/Python/2.7/site-packages/",
-        };
+    "/usr/local/lib/python2.7/dist-packages/",
+    "/usr/local/lib/python2.7/site-packages/",
+    "/usr/lib/python2.7/dist-packages/",
+    "/usr/lib/python2.7/site-packages/",
+    "/Library/Python/2.7/site-packages/",
+};
+
 const std::set<std::string> kDarwinPythonPath = {
     "/System/Library/Frameworks/Python.framework/Versions/",
 };
@@ -45,11 +48,11 @@ const std::string kWinPythonInstallKey =
 
 void genPackage(const std::string& path, Row& r) {
   std::string content;
+
   if (!readFile(path, content).ok()) {
     TLOG << "Cannot find info file: " << path;
     return;
   }
-
 
   auto lines = split(content, "\n");
 
@@ -96,8 +99,6 @@ void genSiteDirectories(const std::string& site, QueryData& results) {
     } else {
       continue;
     }
-
-    r["directory"]=site;
     r["path"] = directory;
     results.push_back(r);
   }
@@ -121,29 +122,11 @@ void genWinPythonPackages(const std::string& keyGlob, QueryData& results) {
 #endif
 }
 
-
-
-
 QueryData genPythonPackages(QueryContext& context) {
   QueryData results;
-  //std::set<std::string> paths;
-  if (context.constraints.count("directory") > 0 &&
-       context.constraints.at("directory").exists(EQUALS)) {
-      std::set<std::string> paths;
-      paths = context.constraints["directory"].getAll(EQUALS);
-      for (const auto& key: paths) {
-          genSiteDirectories(key, results);
-    }
-  } else {
-    for (const auto& key: kPythonPath) {
-        genSiteDirectories(key, results);
-    }
-}
-  
 
-  for (const auto& key: kPythonPath) {
+  for (const auto& key : kPythonPath) {
     genSiteDirectories(key, results);
-
   }
 
   if (isPlatform(PlatformType::TYPE_OSX)) {
