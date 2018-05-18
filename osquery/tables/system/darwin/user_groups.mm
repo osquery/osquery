@@ -122,7 +122,9 @@ QueryData genUsers(QueryContext &context) {
     }
   } else {
     std::set<std::string> usernames;
-    genODEntries(kODRecordTypeUsers, usernames);
+    @autoreleasepool {
+      genODEntries(kODRecordTypeUsers, usernames);
+    }
     for (const auto &username : usernames) {
       struct passwd *pwd = getpwnam(username.c_str());
       if (pwd == nullptr) {
@@ -141,30 +143,32 @@ QueryData genUsers(QueryContext &context) {
 
 QueryData genUserGroups(QueryContext &context) {
   QueryData results;
-  if (context.constraints["uid"].exists(EQUALS)) {
-    // Use UID as the index.
-    auto uids = context.constraints["uid"].getAll<long long>(EQUALS);
-    for (const auto &uid : uids) {
-      struct passwd *pwd = getpwuid(uid);
-      if (pwd != nullptr) {
-        user_t<int, int> user;
-        user.name = pwd->pw_name;
-        user.uid = pwd->pw_uid;
-        user.gid = pwd->pw_gid;
-        getGroupsForUser<int, int>(results, user);
+  @autoreleasepool {
+    if (context.constraints["uid"].exists(EQUALS)) {
+      // Use UID as the index.
+      auto uids = context.constraints["uid"].getAll<long long>(EQUALS);
+      for (const auto &uid : uids) {
+        struct passwd *pwd = getpwuid(uid);
+        if (pwd != nullptr) {
+          user_t<int, int> user;
+          user.name = pwd->pw_name;
+          user.uid = pwd->pw_uid;
+          user.gid = pwd->pw_gid;
+          getGroupsForUser<int, int>(results, user);
+        }
       }
-    }
-  } else {
-    std::set<std::string> usernames;
-    genODEntries(kODRecordTypeUsers, usernames);
-    for (const auto &username : usernames) {
-      struct passwd *pwd = getpwnam(username.c_str());
-      if (pwd != nullptr) {
-        user_t<int, int> user;
-        user.name = pwd->pw_name;
-        user.uid = pwd->pw_uid;
-        user.gid = pwd->pw_gid;
-        getGroupsForUser<int, int>(results, user);
+    } else {
+      std::set<std::string> usernames;
+      genODEntries(kODRecordTypeUsers, usernames);
+      for (const auto &username : usernames) {
+        struct passwd *pwd = getpwnam(username.c_str());
+        if (pwd != nullptr) {
+          user_t<int, int> user;
+          user.name = pwd->pw_name;
+          user.uid = pwd->pw_uid;
+          user.gid = pwd->pw_gid;
+          getGroupsForUser<int, int>(results, user);
+        }
       }
     }
   }

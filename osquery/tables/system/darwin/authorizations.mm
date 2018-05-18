@@ -100,45 +100,46 @@ QueryData genAuthorizationMechanisms(QueryContext& context) {
 
 QueryData genAuthorizations(QueryContext& context) {
   QueryData results;
-
-  authorizations(
-      context, ([&results](NSString* label) {
-        CFDictionaryRef rights = nullptr;
-        AuthorizationRightGet([label UTF8String], &rights);
-        if (rights == nullptr) {
-          return;
-        }
-
-        CFIndex count = CFDictionaryGetCount(rights);
-        std::vector<const void*> keys(count);
-        std::vector<const void*> values(count);
-        CFDictionaryGetKeysAndValues(rights, keys.data(), values.data());
-        if (keys.data() == nullptr || values.data() == nullptr) {
-          CFRelease(rights);
-          return;
-        }
-
-        Row r;
-        for (CFIndex i = 0; i < count; i++) {
-          r["label"] = TEXT([label UTF8String]);
-          id value = (__bridge id)values[i];
-          auto key = [[(__bridge NSString*)keys[i]
-              stringByReplacingOccurrencesOfString:@"-"
-                                        withString:@"_"] UTF8String];
-
-          if (CFGetTypeID(values[i]) == CFNumberGetTypeID()) {
-            r[key] = TEXT([value intValue]);
-          } else if (CFGetTypeID(values[i]) == CFStringGetTypeID()) {
-            r[key] = TEXT([value UTF8String]);
-          } else if (CFGetTypeID(values[i]) == CFBooleanGetTypeID()) {
-            r[key] = TEXT(([value boolValue]) ? "true" : "false");
+  
+  @autoreleasepool {
+    authorizations(
+        context, ([&results](NSString* label) {
+          CFDictionaryRef rights = nullptr;
+          AuthorizationRightGet([label UTF8String], &rights);
+          if (rights == nullptr) {
+            return;
           }
-        }
 
-        results.push_back(r);
-        CFRelease(rights);
-      }));
+          CFIndex count = CFDictionaryGetCount(rights);
+          std::vector<const void*> keys(count);
+          std::vector<const void*> values(count);
+          CFDictionaryGetKeysAndValues(rights, keys.data(), values.data());
+          if (keys.data() == nullptr || values.data() == nullptr) {
+            CFRelease(rights);
+            return;
+          }
 
+          Row r;
+          for (CFIndex i = 0; i < count; i++) {
+            r["label"] = TEXT([label UTF8String]);
+            id value = (__bridge id)values[i];
+            auto key = [[(__bridge NSString*)keys[i]
+                stringByReplacingOccurrencesOfString:@"-"
+                                          withString:@"_"] UTF8String];
+
+            if (CFGetTypeID(values[i]) == CFNumberGetTypeID()) {
+              r[key] = TEXT([value intValue]);
+            } else if (CFGetTypeID(values[i]) == CFStringGetTypeID()) {
+              r[key] = TEXT([value UTF8String]);
+            } else if (CFGetTypeID(values[i]) == CFBooleanGetTypeID()) {
+              r[key] = TEXT(([value boolValue]) ? "true" : "false");
+            }
+          }
+
+          results.push_back(r);
+          CFRelease(rights);
+        }));
+  }
   return results;
 }
 }
