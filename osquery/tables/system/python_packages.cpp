@@ -29,6 +29,13 @@ namespace tables {
 
 /// Number of fields when splitting metadata and info.
 const size_t kNumFields = 2;
+const std::set<std::string> kPythonPath = {
+    "/usr/local/lib/python2.7/dist-packages/",
+    "/usr/local/lib/python2.7/site-packages/",
+    "/usr/lib/python2.7/dist-packages/",
+    "/usr/lib/python2.7/site-packages/",
+    "/Library/Python/2.7/site-packages/",
+    };
 
 const std::set<std::string> kDarwinPythonPath = {
     "/System/Library/Frameworks/Python.framework/Versions/",
@@ -124,11 +131,14 @@ QueryData genPythonPackages(QueryContext& context) {
   if (context.constraints.count("directory") > 0 &&
        context.constraints.at("directory").exists(EQUALS)) {
         paths = context.constraints["directory"].getAll(EQUALS);
-  }
-
-  for (const auto& key: paths) {
-    genSiteDirectories(key, results);
-
+         for (const auto& key: paths) {
+          genSiteDirectories(key, results);
+        }
+  } else {
+      for (const auto& key: kPythonPath) {
+          genSiteDirectories(key, results);
+          
+      }
   }
 
   if (isPlatform(PlatformType::TYPE_OSX)) {
