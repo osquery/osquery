@@ -150,12 +150,12 @@ TEST_F(PacksTests, test_discovery_cache) {
   EXPECT_EQ(query_count, query_attemts);
 
   size_t pack_count = 0U;
-  c.packs(([&pack_count, query_attemts](std::shared_ptr<Pack>& p) {
+  c.packs(([&pack_count, query_attemts](const Pack& p) {
     pack_count++;
     // There is one pack without a discovery query.
-    EXPECT_EQ(p->getStats().total, query_attemts + 1);
-    EXPECT_EQ(p->getStats().hits, query_attemts);
-    EXPECT_EQ(p->getStats().misses, 1U);
+    EXPECT_EQ(p.getStats().total, query_attemts + 1);
+    EXPECT_EQ(p.getStats().hits, query_attemts);
+    EXPECT_EQ(p.getStats().misses, 1U);
   }));
 
   EXPECT_EQ(pack_count, 1U);
@@ -171,9 +171,8 @@ TEST_F(PacksTests, test_multi_pack) {
   c.addPack("*", "", multi_pack.doc());
 
   std::vector<std::string> pack_names;
-  c.packs(([&pack_names](std::shared_ptr<Pack>& p) {
-    pack_names.push_back(p->getName());
-  }));
+  c.packs(
+      ([&pack_names](const Pack& p) { pack_names.push_back(p.getName()); }));
 
   std::vector<std::string> expected = {"first", "second"};
   ASSERT_EQ(expected.size(), pack_names.size());
