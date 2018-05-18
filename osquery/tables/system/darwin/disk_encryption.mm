@@ -234,48 +234,25 @@ void genFDEStatusForAPFS(Row& r) {
     CFRelease(bundle);
   };
 
-  // err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
-  char* typeEncodings = nullptr;
-  asprintf(&typeEncodings,
-           "%s%s%s%s%s",
-           @encode(int), // return
-           @encode(id), // self
-           @encode(SEL), // _cmd
-           @encode(DADiskRef),
-           @encode(char*));
-  if (typeEncodings == nullptr) {
-    LOG(ERROR) << "asprintf returned nullptr for typeEncodings";
-    cleanup();
-    return;
-  }
-  NSMethodSignature* signature =
-      [NSMethodSignature signatureWithObjCTypes:typeEncodings];
-  free(typeEncodings);
-  if (signature == nullptr) {
-    LOG(ERROR) << "Got null NSMethodSignature";
-    cleanup();
-    return;
-  }
-
-  char isEncrypted = 0;
-  char* isEncryptedPtr = &isEncrypted;
   int err = 0;
-
+  
+  char isEncrypted = 0;
+  // err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
   @try {
-    NSInvocation* inv = [NSInvocation invocationWithMethodSignature:signature];
-    if (inv == nullptr) {
+    SEL selector = @selector(isEncryptedVolume:encrypted:);
+    IMP methodIMP = [apfs methodForSelector:selector];
+    if (methodIMP == nullptr) {
       LOG(ERROR)
-          << "Failed to create NSInvocation for isEncryptedVolume:encrypted:";
+        << "Failed to get method IMP for isEncryptedVolume:encrypted:";
       cleanup();
       return;
     }
-    [inv setSelector:@selector(isEncryptedVolume:encrypted:)];
-    [inv setReturnValue:&err];
-    [inv setArgument:&targetVol atIndex:2];
-    [inv setArgument:&isEncryptedPtr atIndex:3];
-    [inv invokeWithTarget:apfs];
+    int (*function)(id, SEL, DADiskRef, char *) =
+      (int (*)(id, SEL, DADiskRef, char *))(methodIMP);
+    err = function(apfs, selector, targetVol, &isEncrypted);
   } @catch (NSException* exception) {
-    LOG(ERROR) << "NSInvocation threw for isEncryptedVolume:encrypted:";
+    LOG(ERROR)
+      << "isEncryptedVolume:encrypted: threw exception" << exception.name;
     cleanup();
     return;
   }
@@ -286,44 +263,22 @@ void genFDEStatusForAPFS(Row& r) {
   }
 
   // err = [apfs cryptoUsersForVolume:targetVol users:&cryptoUsers];
-  typeEncodings = nullptr;
-  asprintf(&typeEncodings,
-           "%s%s%s%s%s",
-           @encode(int), // return
-           @encode(id), // self
-           @encode(SEL), // _cmd
-           @encode(DADiskRef),
-           @encode(void*));
-  if (typeEncodings == nullptr) {
-    LOG(ERROR) << "asprintf returned nullptr for typeEncodings";
-    cleanup();
-    return;
-  }
-  signature = [NSMethodSignature signatureWithObjCTypes:typeEncodings];
-  free(typeEncodings);
-  if (signature == nullptr) {
-    LOG(ERROR) << "Got null NSMethodSignature";
-    cleanup();
-    return;
-  }
-
   NSArray* cryptoUsers = nullptr;
-  void* cryptoUsersPtr = &cryptoUsers;
   @try {
-    NSInvocation* inv = [NSInvocation invocationWithMethodSignature:signature];
-    if (inv == nullptr) {
+    SEL selector = @selector(cryptoUsersForVolume:users:);
+    IMP methodIMP = [apfs methodForSelector:selector];
+    if (methodIMP == nullptr) {
       LOG(ERROR)
-          << "Failed to create NSInvocation for cryptoUsersForVolume:users:";
+        << "Failed to get method IMP for cryptoUsersForVolume:users:";
       cleanup();
       return;
     }
-    [inv setSelector:@selector(cryptoUsersForVolume:users:)];
-    [inv setReturnValue:&err];
-    [inv setArgument:&targetVol atIndex:2];
-    [inv setArgument:&cryptoUsersPtr atIndex:3];
-    [inv invokeWithTarget:apfs];
+    int (*function)(id, SEL, DADiskRef, id *) =
+      (int (*)(id, SEL, DADiskRef, id __autoreleasing *))(methodIMP);
+    err = function(apfs, selector, targetVol, &cryptoUsers);
   } @catch (NSException* exception) {
-    LOG(ERROR) << "NSInvocation threw for cryptoUsersForVolume:users:";
+    LOG(ERROR)
+      << "cryptoUsersForVolume:users: threw exception" << exception.name;
     cleanup();
     return;
   }
