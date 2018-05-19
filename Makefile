@@ -235,6 +235,7 @@ ifeq ($(CTAGS_EXISTS),)
 	@false
 endif
 	@ctags -R ./external ./include ./kernel ./osquery ./third-party
+.PHONY: tags
 
 ctags: .setup tags
 
@@ -244,6 +245,7 @@ cscope.files:
 		./external ./include ./kernel ./osquery ./third-party \
 		-type f \
 		-iregex '.*\.(c|cc|h|hh|cpp|hpp)' > $@
+.PHONY: cscope.files
 
 cscope.out: cscope.files
 ifeq ($(CSCOPE_EXISTS),)
@@ -251,6 +253,7 @@ ifeq ($(CSCOPE_EXISTS),)
 	@false
 endif
 	@cscope -b -i cscope.files > $@
+.PHONY: cscope.out
 
 cscope: .setup cscope.out
 
