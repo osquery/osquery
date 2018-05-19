@@ -737,6 +737,20 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     EventFactory::configUpdate();
   }
 
+  // This cannot be under the previous if block because on extensions loaded_
+  // allways false.
+  if (needs_reconfigure) {
+    std::string loggers = RegistryFactory::get().getActive("logger");
+    for (const auto& logger : osquery::split(loggers, ",")) {
+      LOG(INFO) << "Calling configure for logger " << logger;
+      PluginRef plugin = Registry::get().plugin("logger", logger);
+
+      if (plugin) {
+        plugin->configure();
+      }
+    }
+  }
+
   return Status(0, "OK");
 }
 
