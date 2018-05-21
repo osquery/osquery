@@ -1,13 +1,20 @@
-//
-//  expected.hpp
-//  gmock
-//
-//  Created by Max Kareta on 5/15/18.
-//
+/**
+ *  Copyright (c) 2018-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
+ */
 
 #pragma once
 
-#include <include/osquery/error.h>
+#include <memory>
+#include <osquery/error.h>
+#include <string>
+#include <type_traits>
+#include <utility>
 
 /** Utility class that should be used in function that return
  * either error or value. Expected enforce developer to test for success and
@@ -18,16 +25,16 @@
  *   if (test) {
  *    return "ok";
  *   } else {
- *    return std::shared_prt(new Error(error_domain, error_code));
+ *    return std::make_shared<Error>(error_domain, error_code);
  *   }
  * }
  *
  * Expected:
  * Expected<PlatformProcess> function() {
  *   if (test) {
- *    return std::unique_prt(new PlatformProcess(pid));
+ *    return std::make_unique<PlatformProcess>(pid);
  *   } else {
- *    return std::shared_prt(new Error(error_domain, error_code));
+ *    return std::make_shared<Error>(error_domain, error_code);
  *   }
  * }
  *
@@ -51,7 +58,7 @@ class ExpectedBase {
   ExpectedBase(std::unique_ptr<Error> error)
       : error_(std::move(error)), hasError_(true) {}
 
-  ~ExpectedBase() {
+  virtual ~ExpectedBase() {
     assert(errorChecked_ && (!hasError_ || errorUsed_));
   }
 
@@ -66,7 +73,7 @@ class ExpectedBase {
     return !hasError_;
   }
 
- protected:
+ private:
   std::shared_ptr<Error> error_;
   bool hasError_;
   bool errorChecked_;
@@ -78,17 +85,17 @@ class ExpectedValue : public ExpectedBase {
  private:
   static const bool isPointer = std::is_pointer<T>::value;
   static_assert(!isPointer, "Use Expected class for pointers");
-  using reference = typename std::remove_reference<T>::type&;
-  using const_reference = const typename std::remove_reference<T>::type&;
-  using pointer = typename std::remove_reference<T>::type*;
-  using const_pointer = const typename std::remove_reference<T>::type*;
 
  public:
   using ExpectedBase::ExpectedBase;
 
   ExpectedValue(T object) : ExpectedBase(), object_(std::move(object)) {}
 
-  reference get() {
+  T& get() {
+    return object_;
+  }
+
+  const T& get() const {
     return object_;
   }
 
@@ -96,19 +103,19 @@ class ExpectedValue : public ExpectedBase {
     return std::move(object_);
   }
 
-  pointer operator->() {
+  T* operator->() {
     return object_;
   }
 
-  const_pointer operator->() const {
+  const T* operator->() const {
     return object_;
   }
 
-  reference operator*() {
+  T& operator*() {
     return object_;
   }
 
-  const_reference operator*() const {
+  const T& operator*() const {
     return object_;
   }
 
@@ -119,15 +126,7 @@ class ExpectedValue : public ExpectedBase {
 template <class T>
 class Expected : public ExpectedBase {
  private:
-  static const bool isPointer = std::is_pointer<T>::value;
   using value_type = typename std::remove_pointer<T>::type;
-  using storage_type = std::shared_ptr<value_type>;
-
-  using reference = typename std::remove_reference<value_type>::type&;
-  using const_reference =
-      const typename std::remove_reference<value_type>::type&;
-  using pointer = typename std::remove_reference<value_type>::type*;
-  using const_pointer = const typename std::remove_reference<value_type>::type*;
 
  public:
   using ExpectedBase::ExpectedBase;
@@ -137,28 +136,32 @@ class Expected : public ExpectedBase {
   Expected(std::unique_ptr<value_type> object)
       : ExpectedBase(), object_(std::move(object)) {}
 
-  reference get() {
+  T& get() {
     return object_;
   }
 
-  pointer operator->() {
+  const T& get() const {
+    return object_;
+  }
+
+  T* operator->() {
     return *object_;
   }
 
-  const_pointer operator->() const {
+  const T* operator->() const {
     return *object_;
   }
 
-  reference operator*() {
+  value_type& operator*() {
     return *object_;
   }
 
-  const_reference operator*() const {
+  const value_type& operator*() const {
     return *object_;
   }
 
  private:
-  storage_type object_;
+  std::shared_ptr<value_type> object_;
 };
 
 } // namespace osquery

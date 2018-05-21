@@ -10,10 +10,32 @@
 
 #pragma once
 
+#include <exception>
+#include <functional>
+#include <ios>
+#include <memory>
+#include <new>
+#include <stdexcept>
 #include <string>
+#include <typeinfo>
 
 namespace osquery {
 class Status;
+
+static const std::string kExceptionDomain{"std::exception"};
+
+enum ExceptionCode : int {
+  kGenericException = 1, // generic exception code
+  kRuntimeException,
+  kLogicException,
+  kBadCastException,
+  kBadExcpetion,
+  kBadTypeIDExcpetion,
+  kBadWeakPtrExcpetion,
+  kBadFunctionCallExcpetion,
+  kBadAllocExcpetion,
+  kBaseIOFailuerExcpetion,
+};
 
 class Error {
  public:
@@ -21,6 +43,10 @@ class Error {
         int error_code,
         std::string message = "",
         std::shared_ptr<Error> underlying_error = nullptr);
+  Error(std::string domain,
+        int error_code,
+        std::exception exception,
+        std::string message = "");
 
   Error(Status status);
 
@@ -61,10 +87,26 @@ class Error {
   }
 
  private:
+  /// Please use Error(domain,error_code,exception,message) for exceptions
+  /// Error created from exception does provide enough information
+  /// for reporting or error handling
+  Error(std::exception excpetion, int error_code = kGenericException);
+  Error(std::runtime_error exception);
+  Error(std::logic_error exception);
+  Error(std::bad_cast exception);
+  Error(std::bad_exception exception);
+  Error(std::bad_typeid exception);
+  Error(std::bad_weak_ptr exception);
+  Error(std::bad_function_call exception);
+  Error(std::bad_alloc exception);
+  Error(std::ios_base::failure exception);
+
   std::string domain_;
   int errorCode_;
   std::string message_;
   std::shared_ptr<Error> underlyingError_;
 };
+
+std::ostream& operator<<(std::ostream& out, const Error& point);
 
 } // namespace osquery

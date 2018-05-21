@@ -6,8 +6,8 @@
 //
 
 #include <gtest/gtest.h>
-#include <include/osquery/error.h>
-#include <include/osquery/expected.h>
+#include <osquery/error.h>
+#include <osquery/expected.h>
 
 namespace osquery {
 
@@ -18,8 +18,7 @@ GTEST_TEST(ExpectedValueTest, initialization) {
   }
   EXPECT_EQ(value.get(), "Test");
 
-  ExpectedValue<std::string> error =
-      std::shared_ptr<Error>(new Error("Test", 1));
+  ExpectedValue<std::string> error = std::make_shared<Error>("Test", 1);
   if (error) {
     GTEST_FAIL();
   }
@@ -28,29 +27,28 @@ GTEST_TEST(ExpectedValueTest, initialization) {
 
 GTEST_TEST(ExpectedTest, initialization) {
   osquery::Expected<std::string> sharedPointer =
-      std::shared_ptr<std::string>(new std::string("Test"));
+      std::make_shared<std::string>("Test");
   if (!sharedPointer) {
     GTEST_FAIL();
   }
   EXPECT_EQ(*sharedPointer, "Test");
 
   osquery::Expected<std::string> uniquePointer =
-      std::unique_ptr<std::string>(new std::string("Test"));
+      std::make_unique<std::string>("Test");
   if (!uniquePointer) {
     GTEST_FAIL();
   }
   EXPECT_EQ(*uniquePointer, "Test");
 
   osquery::Expected<std::string*> sharedPointer2 =
-      std::shared_ptr<std::string>(new std::string("Test"));
+      std::make_shared<std::string>("Test");
 
   if (!sharedPointer2) {
     GTEST_FAIL();
   }
   EXPECT_EQ(*sharedPointer2, "Test");
 
-  osquery::Expected<std::string*> error =
-      std::shared_ptr<Error>(new Error("Test", 1));
+  osquery::Expected<std::string*> error = std::make_shared<Error>("Test", 1);
   if (error) {
     GTEST_FAIL();
   }
