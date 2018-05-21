@@ -99,16 +99,16 @@ void genAccountPolicyDataRow(const std::string& uid, Row& r) {
 
 QueryData genAccountPolicyData(QueryContext& context) {
   QueryData results;
-  
+
   // Iterate over each user
   auto users = SQL::selectAllFrom("users");
   @autoreleasepool {
     for (const auto& user : users) {
       Row r;
       auto uid = user.at("uid");
-      
+
       genAccountPolicyDataRow(uid, r);
-    
+
 
       // A blank UID implies no policy exists for the user, or the policy is
       // corrupted. We should only return rows where we successfully read an

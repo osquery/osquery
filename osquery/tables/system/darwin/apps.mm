@@ -304,7 +304,7 @@ QueryData genApps(QueryContext& context) {
 
 QueryData genAppSchemes(QueryContext& context) {
   QueryData results;
-  
+
   @autoreleasepool {
     for (const auto& scheme : kApplicationSchemes) {
       auto protocol = scheme.first + "://";

@@ -100,7 +100,7 @@ QueryData genAuthorizationMechanisms(QueryContext& context) {
 
 QueryData genAuthorizations(QueryContext& context) {
   QueryData results;
-  
+
   @autoreleasepool {
     authorizations(
         context, ([&results](NSString* label) {
