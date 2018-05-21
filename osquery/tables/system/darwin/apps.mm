@@ -258,7 +258,8 @@ QueryData genApps(QueryContext& context) {
     // Try to use the OS X LaunchServices API.
     if (!genAppsFromLaunchServices(apps).ok()) {
       // Otherwise, the LaunchServices API failed, 'manually' search for apps.
-      // Walk through several groups of common search paths that may contain apps.
+      // Walk through several groups of common search paths that may contain
+      // apps.
       if (context.constraints["path"].exists(EQUALS)) {
         auto app_constraints = context.constraints["path"].getAll(EQUALS);
         for (const auto& app : app_constraints) {
@@ -269,7 +270,8 @@ QueryData genApps(QueryContext& context) {
           genApplicationsFromPath(path, apps);
         }
 
-        // List all users on the system, and walk common search paths with homes.
+        // List all users on the system, and walk common search paths with
+        // homes.
         auto homes = osquery::getHomeDirectories();
         for (const auto& home : homes) {
           for (const auto& path : kHomeDirSearchPaths) {
@@ -315,7 +317,8 @@ QueryData genAppSchemes(QueryContext& context) {
       }
 
       // Create a "fake" URL that only contains the protocol component of a URI.
-      auto url = CFURLCreateWithString(kCFAllocatorDefault, cfprotocol, nullptr);
+      auto url =
+          CFURLCreateWithString(kCFAllocatorDefault, cfprotocol, nullptr);
       CFRelease(cfprotocol);
       if (url == nullptr) {
         continue;
@@ -356,7 +359,8 @@ QueryData genAppSchemes(QueryContext& context) {
           continue;
         }
 
-        auto path = CFURLCopyFileSystemPath((CFURLRef)app, kCFURLPOSIXPathStyle);
+        auto path =
+            CFURLCopyFileSystemPath((CFURLRef)app, kCFURLPOSIXPathStyle);
         if (path == nullptr) {
           continue;
         }

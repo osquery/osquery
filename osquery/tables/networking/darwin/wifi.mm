@@ -79,8 +79,8 @@ void parseNetworks(const CFDictionaryRef& network, QueryData& results) {
 
   Row r;
   for (const auto& kv : kKnownWifiNetworkKeys) {
-    auto key = CFStringCreateWithCString(kCFAllocatorDefault, kv.second.c_str(),
-                                         kCFStringEncodingUTF8);
+    auto key = CFStringCreateWithCString(
+        kCFAllocatorDefault, kv.second.c_str(), kCFStringEncodingUTF8);
     CFTypeRef value = nullptr;
     if (key != nullptr) {
       if (CFDictionaryGetValueIfPresent(network, key, &value)) {
@@ -123,8 +123,8 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
     if (plist == nullptr || CFDictionaryGetCount(plist) == 0) {
       return {};
     }
-    auto cfkey = CFStringCreateWithCString(kCFAllocatorDefault, key.c_str(),
-                                           kCFStringEncodingUTF8);
+    auto cfkey = CFStringCreateWithCString(
+        kCFAllocatorDefault, key.c_str(), kCFStringEncodingUTF8);
     CFTypeRef networks = CFDictionaryGetValue(plist, cfkey);
     CFRelease(cfkey);
     if (networks == nullptr) {
@@ -141,10 +141,10 @@ QueryData genKnownWifiNetworks(QueryContext& context) {
       }
     } else if (CFGetTypeID(networks) == CFDictionaryGetTypeID()) {
       auto count = CFDictionaryGetCount((CFDictionaryRef)networks);
-      std::vector<const void *> keys(count);
-      std::vector<const void *> values(count);
-      CFDictionaryGetKeysAndValues((CFDictionaryRef)networks, keys.data(),
-                                   values.data());
+      std::vector<const void*> keys(count);
+      std::vector<const void*> values(count);
+      CFDictionaryGetKeysAndValues(
+          (CFDictionaryRef)networks, keys.data(), values.data());
       for (CFIndex i = 0; i < count; i++) {
         parseNetworks((CFDictionaryRef)values[i], results);
       }

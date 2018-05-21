@@ -158,7 +158,8 @@ QueryData genCerts(QueryContext& context) {
     }
 
     // Keychains/certificate stores belonging to the OS.
-    CFArrayRef certs = CreateKeychainItems(keychain_paths, kSecClassCertificate);
+    CFArrayRef certs =
+        CreateKeychainItems(keychain_paths, kSecClassCertificate);
     // Must have returned an array of matching certificates.
     if (certs != nullptr) {
       if (CFGetTypeID(certs) == CFArrayGetTypeID()) {

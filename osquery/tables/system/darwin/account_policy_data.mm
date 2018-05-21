@@ -109,7 +109,6 @@ QueryData genAccountPolicyData(QueryContext& context) {
 
       genAccountPolicyDataRow(uid, r);
 
-
       // A blank UID implies no policy exists for the user, or the policy is
       // corrupted. We should only return rows where we successfully read an
       // account policy.
