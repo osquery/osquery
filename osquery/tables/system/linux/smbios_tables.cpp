@@ -146,6 +146,78 @@ QueryData genMemoryDevices(QueryContext& context) {
   return results;
 }
 
+QueryData genMemoryArrays(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           size_t size) {
+    genSMBIOSMemoryArrays(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryArrayMappedAddresses(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           size_t size) {
+    genSMBIOSMemoryArrayMappedAddresses(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryErrorInfo(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           size_t size) {
+    genSMBIOSMemoryErrorInfo(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryDeviceMappedAddresses(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           size_t size) {
+    genSMBIOSMemoryDeviceMappedAddresses(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
 QueryData genPlatformInfo(QueryContext& context) {
   LinuxSMBIOSParser parser;
   if (!parser.discover()) {
@@ -190,5 +262,5 @@ QueryData genPlatformInfo(QueryContext& context) {
 
   return results;
 }
-}
+} // namespace tables
 } // namespace osquery
