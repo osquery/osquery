@@ -127,7 +127,6 @@ QueryData genMdfindResults(QueryContext& context) {
   genResults(queries, results);
   releaseQueries(queries);
 
-  genResults(queries, results);
   return results;
 }
 }
