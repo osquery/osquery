@@ -8,9 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <string>
-#include <stdlib.h>
 #include <boost/filesystem.hpp>
+#include <stdlib.h>
+#include <string>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -35,7 +35,7 @@ const std::set<std::string> kPythonPath = {
     "/usr/lib/python2.7/dist-packages/",
     "/usr/lib/python2.7/site-packages/",
     "/Library/Python/2.7/site-packages/",
-    };
+};
 
 const std::set<std::string> kDarwinPythonPath = {
     "/System/Library/Frameworks/Python.framework/Versions/",
@@ -50,7 +50,6 @@ void genPackage(const std::string& path, Row& r) {
     TLOG << "Cannot find info file: " << path;
     return;
   }
-
 
   auto lines = split(content, "\n");
 
@@ -92,13 +91,13 @@ void genSiteDirectories(const std::string& site, QueryData& results) {
       auto path = directory + "/METADATA";
       genPackage(path, r);
     } else if (directory.find(".egg-info") != std::string::npos) {
-      auto path = directory + "PKG-INFO";
+      auto path = directory + "/PKG-INFO";
       genPackage(path, r);
     } else {
       continue;
     }
 
-    r["directory"]=site;
+    r["directory"] = site;
     r["path"] = directory;
     results.push_back(r);
   }
@@ -122,23 +121,17 @@ void genWinPythonPackages(const std::string& keyGlob, QueryData& results) {
 #endif
 }
 
-
-
-
 QueryData genPythonPackages(QueryContext& context) {
   QueryData results;
   std::set<std::string> paths;
   if (context.constraints.count("directory") > 0 &&
-       context.constraints.at("directory").exists(EQUALS)) {
-        paths = context.constraints["directory"].getAll(EQUALS);
-         for (const auto& key: paths) {
-          genSiteDirectories(key, results);
-        }
+      context.constraints.at("directory").exists(EQUALS)) {
+    paths = context.constraints["directory"].getAll(EQUALS);
   } else {
-      for (const auto& key: kPythonPath) {
-          genSiteDirectories(key, results);
-          
-      }
+    paths = kPythonPath;
+  }
+  for (const auto& key : paths) {
+    genSiteDirectories(key, results);
   }
 
   if (isPlatform(PlatformType::TYPE_OSX)) {

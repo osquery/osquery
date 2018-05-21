@@ -62,5 +62,5 @@ class LinuxSMBIOSParser : public SMBIOSParser {
   /// Hold the raw SMBIOS memory read.
   uint8_t* data_{nullptr};
 };
-}
-}
+} // namespace tables
+} // namespace osquery
