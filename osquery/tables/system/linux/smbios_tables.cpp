@@ -118,8 +118,10 @@ QueryData genSMBIOSTables(QueryContext& context) {
   }
 
   QueryData results;
-  parser.tables(([&results](
-      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+  parser.tables(([&results](size_t index,
+                            const SMBStructHeader* hdr,
+                            uint8_t* address,
+                            size_t size) {
     genSMBIOSTable(index, hdr, address, size, results);
   }));
 
@@ -134,8 +136,10 @@ QueryData genPlatformInfo(QueryContext& context) {
   }
 
   QueryData results;
-  parser.tables(([&results](
-      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+  parser.tables(([&results](size_t index,
+                            const SMBStructHeader* hdr,
+                            uint8_t* address,
+                            size_t size) {
     if (hdr->type != kSMBIOSTypeBIOS || size < 0x12) {
       return;
     }
@@ -169,4 +173,4 @@ QueryData genPlatformInfo(QueryContext& context) {
   return results;
 }
 }
-}
+} // namespace osquery

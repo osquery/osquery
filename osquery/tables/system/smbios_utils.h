@@ -81,5 +81,5 @@ void genSMBIOSTable(size_t index,
  * @Param offset The field index into address.
  */
 std::string dmiString(uint8_t* data, uint8_t* address, size_t offset);
-}
-}
+} // namespace tables
+} // namespace osquery
