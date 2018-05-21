@@ -64,7 +64,8 @@ std::vector<NamedQuery> genSpotlightSearches(
       LOG(WARNING) << str_query << " is invalid";
       continue;
     }
-    Boolean started = MDQueryExecute(query, static_cast<MDQueryOptionFlags>(0x0));
+    Boolean started =
+        MDQueryExecute(query, static_cast<MDQueryOptionFlags>(0x0));
 
     // Query could not be started, warn the user and move on
     if (!started) {
@@ -78,7 +79,7 @@ std::vector<NamedQuery> genSpotlightSearches(
 
   return mdrefs;
 }
-  
+
 void releaseQueries(std::vector<NamedQuery>& queries) {
   for (const auto& query : queries) {
     CFRelease(query.first);
@@ -118,7 +119,7 @@ QueryData genMdfindResults(QueryContext& context) {
   auto query_strings = context.constraints["query"].getAll(EQUALS);
 
   auto queries = genSpotlightSearches(query_strings);
-  
+
   if (!waitForSpotlight(queries).ok()) {
     releaseQueries(queries);
     return results;
