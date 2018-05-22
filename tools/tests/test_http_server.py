@@ -55,6 +55,20 @@ EXAMPLE_CONFIG = {
     "node_invalid": False,
 }
 
+EXAMPLE_ATC_CONFIG = {
+    "schedule": {
+        "tls_proc": {"query": "select * from processes", "interval": 10},
+    },
+    "auto_table_construction" : {
+        "quarantine_items" : {
+          "query" : "SELECT LSQuarantineEventIdentifier as id, LSQuarantineAgentName as agent_name, LSQuarantineAgentBundleIdentifier as agent_bundle_identifier, LSQuarantineTypeNumber as type, LSQuarantineDataURLString as data_url,LSQuarantineOriginURLString as origin_url, LSQuarantineSenderName as sender_name, LSQuarantineSenderAddress as sender_address, LSQuarantineTimeStamp as timestamp from LSQuarantineEvent",
+          "path" : "/Users/%/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2",
+          "columns" : ["path", "id", "agent_name", "agent_bundle_identifier"]
+        }
+    },
+    "node_invalid": False,
+}
+
 EXAMPLE_EMPTY_CONFIG = {
     "schedule": {
         "tls_proc": {

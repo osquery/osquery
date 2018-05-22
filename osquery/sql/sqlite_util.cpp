@@ -295,6 +295,7 @@ void SQLiteDBInstance::clearAffectedTables() {
   for (const auto& table : affected_tables_) {
     table.second->constraints.clear();
     table.second->cache.clear();
+    table.second->colsUsed.clear();
   }
   // Since the affected tables are cleared, there are no more affected tables.
   // There is no concept of compounding tables between queries.

@@ -381,10 +381,7 @@ bool isEc2Instance() {
     checked = true;
 
     std::ifstream fd(kHypervisorUuid, std::ifstream::in);
-    if (!fd) {
-      return; // No hypervisor UUID file. Not EC2
-    }
-    if (!(fd.get() == 'e' && fd.get() == 'c' && fd.get() == '2')) {
+    if (fd && !(fd.get() == 'e' && fd.get() == 'c' && fd.get() == '2')) {
       return; // Not EC2 instance
     }
 

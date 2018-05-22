@@ -12,7 +12,7 @@ def macos_minimum_sdk
 end
 
 def llvm_version
-  return "5.0.1"
+  return "6.0.0"
 end
 
 def legacy_prefix

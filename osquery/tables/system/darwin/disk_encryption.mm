@@ -424,13 +424,13 @@ QueryData genFDEStatus(QueryContext& context) {
   QueryData results;
 
   auto block_devices = SQL::selectAllFrom("block_devices");
-
   for (const auto& row : block_devices) {
     const auto bsd_name = row.at("name").substr(kDeviceNamePrefix.size());
     auto mount = SQL::selectAllFrom("mounts", "device", EQUALS, bsd_name);
-    genFDEStatusForBSDName(bsd_name, row.at("uuid"), isAPFS(mount), results);
+    @autoreleasepool {
+      genFDEStatusForBSDName(bsd_name, row.at("uuid"), isAPFS(mount), results);
+    }
   }
-
   return results;
 }
 }

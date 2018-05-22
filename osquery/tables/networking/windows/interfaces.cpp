@@ -113,6 +113,7 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       bool bPlaceHolder;
       long lPlaceHolder = 0;
       unsigned __int64 ullPlaceHolder = 0;
+      results[0].GetString("Manufacturer", r["manufacturer"]);
       results[0].GetString("NetConnectionID", r["connection_id"]);
       results[0].GetLong("NetConnectionStatus", lPlaceHolder);
       r["connection_status"] = INTEGER(lPlaceHolder);
@@ -120,6 +121,7 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       r["enabled"] = INTEGER(bPlaceHolder);
       results[0].GetBool("PhysicalAdapter", bPlaceHolder);
       r["physical_adapter"] = INTEGER(bPlaceHolder);
+      results[0].GetString("ServiceName", r["service"]);
       results[0].GetUnsignedLongLong("Speed", ullPlaceHolder);
       r["speed"] = INTEGER(ullPlaceHolder);
     } else {

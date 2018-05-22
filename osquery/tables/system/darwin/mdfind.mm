@@ -107,13 +107,16 @@ Status waitForSpotlight(const std::vector<NamedQuery>& queries) {
 QueryData genMdfindResults(QueryContext& context) {
   QueryData results;
   auto query_strings = context.constraints["query"].getAll(EQUALS);
-  auto queries = genSpotlightSearches(query_strings);
 
-  if (!waitForSpotlight(queries).ok()) {
-    return results;
+  @autoreleasepool {
+    auto queries = genSpotlightSearches(query_strings);
+
+    if (!waitForSpotlight(queries).ok()) {
+      return results;
+    }
+
+    genResults(queries, results);
   }
-
-  genResults(queries, results);
   return results;
 }
 }
