@@ -108,6 +108,24 @@ QueryData genSMBIOSTables(QueryContext& context) {
   return results;
 }
 
+QueryData genMemoryDevices(QueryContext& context) {
+  QueryData results;
+
+  DarwinSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           size_t size) {
+    genSMBIOSMemoryDevices(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
 QueryData genPlatformInfo(QueryContext& context) {
   auto rom = IORegistryEntryFromPath(kIOMasterPortDefault, "IODeviceTree:/rom");
   if (rom == 0) {

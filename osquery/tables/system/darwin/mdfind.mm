@@ -118,16 +118,17 @@ QueryData genMdfindResults(QueryContext& context) {
   QueryData results;
   auto query_strings = context.constraints["query"].getAll(EQUALS);
 
-  auto queries = genSpotlightSearches(query_strings);
+  @autoreleasepool {
+    auto queries = genSpotlightSearches(query_strings);
 
-  if (!waitForSpotlight(queries).ok()) {
+    if (!waitForSpotlight(queries).ok()) {
+      releaseQueries(queries);
+      return results;
+    }
+
+    genResults(queries, results);
     releaseQueries(queries);
-    return results;
   }
-
-  genResults(queries, results);
-  releaseQueries(queries);
-
   return results;
 }
 }

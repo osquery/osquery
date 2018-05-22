@@ -256,13 +256,13 @@ function main() {
 
     # Create Build-ID links for executables and Dwarfs.
     BUILD_ID=`readelf -n "$BUILD_DIR/osquery/osqueryd" | grep "Build ID" | awk '{print $3}'`
-    BUILDLINK_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/.build-id/64
     if [[ ! "$BUILD_ID" = "" ]]; then
+      BUILDLINK_DEBUG_DIR=$DEBUG_PREFIX/usr/lib/debug/.build-id/${BUILD_ID:0:2}
       mkdir -p $BUILDLINK_DEBUG_DIR
-      ln -sf ../../../../bin/osqueryi $BUILDLINK_DEBUG_DIR/$BUILD_ID
-      ln -sf ../../bin/osqueryi.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID.debug
-      ln -sf ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/$BUILD_ID
-      ln -sf ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/$BUILD_ID.debug
+      ln -sf ../../../../bin/osqueryi $BUILDLINK_DEBUG_DIR/${BUILD_ID:2}
+      ln -sf ../../bin/osqueryi.debug $BUILDLINK_DEBUG_DIR/${BUILD_ID:2}.debug
+      ln -sf ../../../../bin/osqueryd $BUILDLINK_DEBUG_DIR/${BUILD_ID:2}
+      ln -sf ../../bin/osqueryd.debug $BUILDLINK_DEBUG_DIR/${BUILD_ID:2}.debug
     fi
 
     # Install the non-stripped binaries.

@@ -221,9 +221,11 @@ void Pack::initialize(const std::string& name,
     } else {
       query.options["removed"] = JSON::valueToBool(q.value["removed"]);
     }
-    query.options["blacklist"] = (q.value.HasMember("blacklist"))
-                                     ? q.value["blacklist"].GetBool()
-                                     : true;
+
+    query.options["blacklist"] = true;
+    if (q.value.HasMember("blacklist")) {
+      query.options["blacklist"] = JSON::valueToBool(q.value["blacklist"]);
+    }
 
     schedule_.emplace(std::make_pair(q.name.GetString(), std::move(query)));
   }
