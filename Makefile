@@ -258,6 +258,10 @@ clean: .setup
 	@cd $(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) clean --no-print-directory $(MAKEFLAGS)
 
+debug_clean: .setup
+	@cd $(DEBUG_BUILD_DIR) && DEBUG=True $(CMAKE) && \
+		$(DEFINES) $(MAKE) clean --no-print-directory $(MAKEFLAGS)
+
 strip: .setup
 	cd $(BUILD_DIR) && find ./osquery -executable -type f | xargs strip
 
