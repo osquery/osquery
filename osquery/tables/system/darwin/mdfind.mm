@@ -58,22 +58,32 @@ std::vector<NamedQuery> genSpotlightSearches(
   for (const auto& str_query : queries) {
     CFStringRef cfquery = CFStringCreateWithCString(
         kCFAllocatorDefault, str_query.c_str(), kCFStringEncodingUTF8);
-    auto query = MDQueryCreate(nullptr, cfquery, nullptr, nullptr);
+    MDQueryRef query = MDQueryCreate(nullptr, cfquery, nullptr, nullptr);
+    CFRelease(cfquery);
     if (query == nullptr) {
       LOG(WARNING) << str_query << " is invalid";
       continue;
     }
-    auto started = MDQueryExecute(query, static_cast<MDQueryOptionFlags>(0x0));
+    Boolean started =
+        MDQueryExecute(query, static_cast<MDQueryOptionFlags>(0x0));
 
     // Query could not be started, warn the user and move on
     if (!started) {
+      CFRelease(query);
       LOG(WARNING) << "Could not execute mdfind query";
       continue;
     }
+    // Push retained query, will release later
     mdrefs.push_back(std::make_pair(query, str_query));
   }
 
   return mdrefs;
+}
+
+void releaseQueries(std::vector<NamedQuery>& queries) {
+  for (const auto& query : queries) {
+    CFRelease(query.first);
+  }
 }
 
 Status waitForSpotlight(const std::vector<NamedQuery>& queries) {
@@ -112,10 +122,12 @@ QueryData genMdfindResults(QueryContext& context) {
     auto queries = genSpotlightSearches(query_strings);
 
     if (!waitForSpotlight(queries).ok()) {
+      releaseQueries(queries);
       return results;
     }
 
     genResults(queries, results);
+    releaseQueries(queries);
   }
   return results;
 }
