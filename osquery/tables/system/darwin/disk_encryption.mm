@@ -242,13 +242,12 @@ void genFDEStatusForAPFS(Row& r) {
     SEL selector = @selector(isEncryptedVolume:encrypted:);
     IMP methodIMP = [apfs methodForSelector:selector];
     if (methodIMP == nullptr) {
-      LOG(ERROR)
-        << "Failed to get method IMP for isEncryptedVolume:encrypted:";
+      LOG(ERROR) << "Failed to get method IMP for isEncryptedVolume:encrypted:";
       cleanup();
       return;
     }
-    int (*function)(id, SEL, DADiskRef, char *) =
-      (int (*)(id, SEL, DADiskRef, char *))(methodIMP);
+    int (*function)(id, SEL, DADiskRef, char*) =
+        (int (*)(id, SEL, DADiskRef, char*))(methodIMP);
     err = function(apfs, selector, targetVol, &isEncrypted);
   } @catch (NSException* exception) {
     LOG(ERROR) << "isEncryptedVolume:encrypted: threw exception "
@@ -268,13 +267,12 @@ void genFDEStatusForAPFS(Row& r) {
     SEL selector = @selector(cryptoUsersForVolume:users:);
     IMP methodIMP = [apfs methodForSelector:selector];
     if (methodIMP == nullptr) {
-      LOG(ERROR)
-        << "Failed to get method IMP for cryptoUsersForVolume:users:";
+      LOG(ERROR) << "Failed to get method IMP for cryptoUsersForVolume:users:";
       cleanup();
       return;
     }
-    int (*function)(id, SEL, DADiskRef, id *) =
-      (int (*)(id, SEL, DADiskRef, id __autoreleasing *))(methodIMP);
+    int (*function)(id, SEL, DADiskRef, id*) =
+        (int (*)(id, SEL, DADiskRef, id __autoreleasing*))(methodIMP);
     err = function(apfs, selector, targetVol, &cryptoUsers);
   } @catch (NSException* exception) {
     LOG(ERROR) << "cryptoUsersForVolume:users: threw exception "
