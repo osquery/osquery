@@ -235,7 +235,7 @@ void genFDEStatusForAPFS(Row& r) {
   };
 
   int err = 0;
-  
+
   char isEncrypted = 0;
   // err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
   @try {
@@ -277,8 +277,8 @@ void genFDEStatusForAPFS(Row& r) {
       (int (*)(id, SEL, DADiskRef, id __autoreleasing *))(methodIMP);
     err = function(apfs, selector, targetVol, &cryptoUsers);
   } @catch (NSException* exception) {
-    LOG(ERROR)
-      << "cryptoUsersForVolume:users: threw exception" << exception.name;
+    LOG(ERROR) << "cryptoUsersForVolume:users: threw exception "
+               << exception.name;
     cleanup();
     return;
   }
@@ -287,7 +287,7 @@ void genFDEStatusForAPFS(Row& r) {
   cleanup();
 
   if (err != 0) {
-    LOG(ERROR) << "Error calling cryptoUsersForVolume:users:";
+    LOG(ERROR) << "Error calling cryptoUsersForVolume:users: ";
     return;
   }
 
