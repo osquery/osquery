@@ -251,8 +251,8 @@ void genFDEStatusForAPFS(Row& r) {
       (int (*)(id, SEL, DADiskRef, char *))(methodIMP);
     err = function(apfs, selector, targetVol, &isEncrypted);
   } @catch (NSException* exception) {
-    LOG(ERROR)
-      << "isEncryptedVolume:encrypted: threw exception" << exception.name;
+    LOG(ERROR) << "isEncryptedVolume:encrypted: threw exception "
+               << exception.name;
     cleanup();
     return;
   }
