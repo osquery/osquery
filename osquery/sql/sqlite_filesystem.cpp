@@ -14,9 +14,9 @@
 #include <sqlite3.h>
 
 namespace osquery {
-  
+
 static boost::optional<std::string> findExistingProgramPathFromCommand(
-    const char *path, char escape_symbol, bool allow_quoting, bool shortest) {
+    const char* path, char escape_symbol, bool allow_quoting, bool shortest) {
   size_t length = strlen(path);
   std::string result;
   size_t pos = 0;
@@ -91,26 +91,24 @@ static boost::optional<std::string> findExistingProgramPathFromCommandSqlArgs(
 #endif
   if (argc > 2) {
     const char* escape_symbol_string =
-      reinterpret_cast<const char*>(sqlite3_value_text(argv[2]));
+        reinterpret_cast<const char*>(sqlite3_value_text(argv[2]));
     if (escape_symbol_string == NULL ||
         std::strlen(escape_symbol_string) != 1) {
       return boost::none;
     }
     escape_symbol = escape_symbol_string[0];
   }
-  return findExistingProgramPathFromCommand(path,
-                                            escape_symbol,
-                                            allow_quoting,
-                                            shortest);
+  return findExistingProgramPathFromCommand(
+      path, escape_symbol, allow_quoting, shortest);
 }
-  
+
 static void findFilePathInLaunchCommand(sqlite3_context* context,
-                                          int argc,
-                                          sqlite3_value** argv) {
+                                        int argc,
+                                        sqlite3_value** argv) {
   auto result = findExistingProgramPathFromCommandSqlArgs(argc, argv, true);
   if (result) {
     sqlite3_result_text(context,
-                        result->c_str()  ,
+                        result->c_str(),
                         static_cast<int>(result->size()),
                         SQLITE_TRANSIENT);
   } else {
