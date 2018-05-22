@@ -565,6 +565,9 @@ Status LoggerPlugin::call(const PluginRequest& request,
     features |= (usesLogStatus()) ? LOGGER_FEATURE_LOGSTATUS : 0;
     features |= (usesLogEvent()) ? LOGGER_FEATURE_LOGEVENT : 0;
     return Status(static_cast<int>(features));
+  } else if (request.count("action") && request.at("action") == "configure") {
+    configure();
+    return Status();
   } else {
     return Status(1, "Unsupported call to logger plugin");
   }

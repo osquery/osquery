@@ -699,6 +699,22 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     }
   }
 
+  Status status;
+  std::string loggers = RegistryFactory::get().getActive("logger");
+  for (const auto& logger : osquery::split(loggers, ",")) {
+    PluginRef plugin = Registry::get().plugin("logger", logger);
+
+    if (plugin) {
+      plugin->configure();
+    } else {
+      status = Registry::call("logger", logger, {{"action", "configure"}});
+      if (!status.ok()) {
+        VLOG(2) << "Failed to call configure for logger " << logger << ": "
+                << status.what();
+      }
+    }
+  }
+
   // Iterate though each source and overwrite config data.
   // This will add/overwrite pack data, append to the schedule, change watched
   // files, set options, etc.
@@ -707,7 +723,7 @@ Status Config::update(const std::map<std::string, std::string>& config) {
 
   bool needs_reconfigure = false;
   for (const auto& source : config) {
-    auto status = updateSource(source.first, source.second);
+    status = updateSource(source.first, source.second);
     if (status.getCode() == 2) {
       // The source content did not change.
       continue;
