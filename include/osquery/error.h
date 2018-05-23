@@ -58,9 +58,9 @@ class Error {
     }
     return *this;
   }
-  
+
   Error(Error&& other);
-  
+
   std::string getDomain() const {
     return domain_;
   }
