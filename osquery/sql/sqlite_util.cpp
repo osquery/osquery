@@ -236,6 +236,7 @@ static inline void openOptimized(sqlite3*& db) {
 #if !defined(SKIP_CARVER)
   registerOperationExtensions(db);
 #endif
+  registerFilesystemExtensions(db);
   registerHashingExtensions(db);
   registerEncodingExtensions(db);
 }
@@ -549,4 +550,4 @@ Status getQueryColumnsInternal(const std::string& q,
 
   return status;
 }
-}
+} // namespace osquery
