@@ -1639,12 +1639,12 @@ int runPack(struct callback_data* data) {
   int rc = 0;
 
   // Check every pack for a name matching the requested --pack flag.
-  Config::get().packs([data, &rc](std::shared_ptr<Pack>& pack) {
-    if (pack->getName() != FLAGS_pack) {
+  Config::get().packs([data, &rc](const Pack& pack) {
+    if (pack.getName() != FLAGS_pack) {
       return;
     }
 
-    for (const auto& query : pack->getSchedule()) {
+    for (const auto& query : pack.getSchedule()) {
       rc = runQuery(data, query.second.query.c_str());
       if (rc != 0) {
         fprintf(stderr,

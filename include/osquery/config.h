@@ -139,7 +139,7 @@ class Config : private boost::noncopyable {
   /**
    * @brief Iterate through all packs
    */
-  void packs(std::function<void(std::shared_ptr<Pack>& pack)> predicate);
+  void packs(std::function<void(const Pack& pack)> predicate) const;
 
   /**
    * @brief Add a file

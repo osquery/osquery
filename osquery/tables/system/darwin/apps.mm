@@ -254,133 +254,138 @@ QueryData genApps(QueryContext& context) {
 
   // Application path accumulator.
   std::set<std::string> apps;
+  @autoreleasepool {
+    // Try to use the OS X LaunchServices API.
+    if (!genAppsFromLaunchServices(apps).ok()) {
+      // Otherwise, the LaunchServices API failed, 'manually' search for apps.
+      // Walk through several groups of common search paths that may contain
+      // apps.
+      if (context.constraints["path"].exists(EQUALS)) {
+        auto app_constraints = context.constraints["path"].getAll(EQUALS);
+        for (const auto& app : app_constraints) {
+          apps.insert(app + "/Contents/Info.plist");
+        }
+      } else {
+        for (const auto& path : kSystemSearchPaths) {
+          genApplicationsFromPath(path, apps);
+        }
 
-  // Try to use the OS X LaunchServices API.
-  if (!genAppsFromLaunchServices(apps).ok()) {
-    // Otherwise, the LaunchServices API failed, 'manually' search for apps.
-    // Walk through several groups of common search paths that may contain apps.
-    if (context.constraints["path"].exists(EQUALS)) {
-      auto app_constraints = context.constraints["path"].getAll(EQUALS);
-      for (const auto& app : app_constraints) {
-        apps.insert(app + "/Contents/Info.plist");
-      }
-    } else {
-      for (const auto& path : kSystemSearchPaths) {
-        genApplicationsFromPath(path, apps);
-      }
-
-      // List all users on the system, and walk common search paths with homes.
-      auto homes = osquery::getHomeDirectories();
-      for (const auto& home : homes) {
-        for (const auto& path : kHomeDirSearchPaths) {
-          genApplicationsFromPath(home / path, apps);
+        // List all users on the system, and walk common search paths with
+        // homes.
+        auto homes = osquery::getHomeDirectories();
+        for (const auto& home : homes) {
+          for (const auto& path : kHomeDirSearchPaths) {
+            genApplicationsFromPath(home / path, apps);
+          }
         }
       }
     }
-  }
 
-  // The osquery::parsePlist method will reset/clear a property tree.
-  // Keeping the data structure in a larger scope preserves allocations
-  // between similar-sized trees.
-  pt::ptree tree;
+    // The osquery::parsePlist method will reset/clear a property tree.
+    // Keeping the data structure in a larger scope preserves allocations
+    // between similar-sized trees.
+    pt::ptree tree;
 
-  // For each found application (path with an Info.plist) parse the plist.
-  for (const auto& path : apps) {
-    if (!osquery::pathExists(path)) {
-      continue;
+    // For each found application (path with an Info.plist) parse the plist.
+    for (const auto& path : apps) {
+      if (!osquery::pathExists(path)) {
+        continue;
+      }
+
+      if (!osquery::parsePlist(path, tree).ok()) {
+        TLOG << "Error parsing application plist: " << path;
+        continue;
+      }
+
+      // Using the parsed plist, pull out each interesting key.
+      genApplication(tree, path, results);
     }
-
-    if (!osquery::parsePlist(path, tree).ok()) {
-      TLOG << "Error parsing application plist: " << path;
-      continue;
-    }
-
-    // Using the parsed plist, pull out each interesting key.
-    genApplication(tree, path, results);
   }
-
   return results;
 }
 
 QueryData genAppSchemes(QueryContext& context) {
   QueryData results;
 
-  for (const auto& scheme : kApplicationSchemes) {
-    auto protocol = scheme.first + "://";
-    auto cfprotocol = CFStringCreateWithCString(
-        kCFAllocatorDefault, protocol.c_str(), protocol.length());
-    if (cfprotocol == nullptr) {
-      continue;
-    }
+  @autoreleasepool {
+    for (const auto& scheme : kApplicationSchemes) {
+      auto protocol = scheme.first + "://";
+      auto cfprotocol = CFStringCreateWithCString(
+          kCFAllocatorDefault, protocol.c_str(), protocol.length());
+      if (cfprotocol == nullptr) {
+        continue;
+      }
 
-    // Create a "fake" URL that only contains the protocol component of a URI.
-    auto url = CFURLCreateWithString(kCFAllocatorDefault, cfprotocol, nullptr);
-    CFRelease(cfprotocol);
-    if (url == nullptr) {
-      continue;
-    }
+      // Create a "fake" URL that only contains the protocol component of a URI.
+      auto url =
+          CFURLCreateWithString(kCFAllocatorDefault, cfprotocol, nullptr);
+      CFRelease(cfprotocol);
+      if (url == nullptr) {
+        continue;
+      }
 
-    // List all application bundles that request this protocol scheme.
-    auto apps = LSCopyApplicationURLsForURL(url, kLSRolesAll);
-    if (apps == nullptr) {
+      // List all application bundles that request this protocol scheme.
+      auto apps = LSCopyApplicationURLsForURL(url, kLSRolesAll);
+      if (apps == nullptr) {
+        CFRelease(url);
+        continue;
+      }
+
+      // Check the default handler assigned to the protocol scheme.
+      // This only applies to 10.10, so resolve the symbol at runtime.
+      CFBundleRef ls_bundle =
+          CFBundleGetBundleWithIdentifier(CFSTR("com.apple.LaunchServices"));
+      CFURLRef default_app = nullptr;
+      if (ls_bundle != nullptr) {
+        auto _LSCopyDefaultApplicationURLForURL =
+            (CFURLRef(*)(CFURLRef, LSRolesMask, CFErrorRef*))
+                CFBundleGetFunctionPointerForName(
+                    ls_bundle, CFSTR("LSCopyDefaultApplicationURLForURL"));
+        // If the symbol did not exist we will not have a handle.
+        if (_LSCopyDefaultApplicationURLForURL != nullptr) {
+          default_app =
+              _LSCopyDefaultApplicationURLForURL(url, kLSRolesAll, nullptr);
+        }
+      }
+
       CFRelease(url);
-      continue;
-    }
+      for (CFIndex i = 0; i < CFArrayGetCount(apps); i++) {
+        Row r;
+        r["scheme"] = scheme.first;
 
-    // Check the default handler assigned to the protocol scheme.
-    // This only applies to 10.10, so resolve the symbol at runtime.
-    CFBundleRef ls_bundle =
-        CFBundleGetBundleWithIdentifier(CFSTR("com.apple.LaunchServices"));
-    CFURLRef default_app = nullptr;
-    if (ls_bundle != nullptr) {
-      auto _LSCopyDefaultApplicationURLForURL =
-          (CFURLRef(*)(CFURLRef, LSRolesMask, CFErrorRef*))
-              CFBundleGetFunctionPointerForName(
-                  ls_bundle, CFSTR("LSCopyDefaultApplicationURLForURL"));
-      // If the symbol did not exist we will not have a handle.
-      if (_LSCopyDefaultApplicationURLForURL != nullptr) {
-        default_app =
-            _LSCopyDefaultApplicationURLForURL(url, kLSRolesAll, nullptr);
-      }
-    }
+        auto app = CFArrayGetValueAtIndex(apps, i);
+        if (app == nullptr || CFGetTypeID(app) != CFURLGetTypeID()) {
+          // Handle problems with application listings.
+          continue;
+        }
 
-    CFRelease(url);
-    for (CFIndex i = 0; i < CFArrayGetCount(apps); i++) {
-      Row r;
-      r["scheme"] = scheme.first;
+        auto path =
+            CFURLCopyFileSystemPath((CFURLRef)app, kCFURLPOSIXPathStyle);
+        if (path == nullptr) {
+          continue;
+        }
 
-      auto app = CFArrayGetValueAtIndex(apps, i);
-      if (app == nullptr || CFGetTypeID(app) != CFURLGetTypeID()) {
-        // Handle problems with application listings.
-        continue;
-      }
+        r["handler"] = stringFromCFString(path);
+        CFRelease(path);
+        // Check if the handler is set (in the OS) as the default.
+        if (default_app != nullptr &&
+            CFEqual((CFTypeRef)app, (CFTypeRef)default_app)) {
+          r["enabled"] = "1";
+        } else {
+          r["enabled"] = "0";
+        }
 
-      auto path = CFURLCopyFileSystemPath((CFURLRef)app, kCFURLPOSIXPathStyle);
-      if (path == nullptr) {
-        continue;
+        r["external"] = (scheme.second & kSchemeSystemDefault) ? "0" : "1";
+        r["protected"] = (scheme.second & kSchemeProtected) ? "1" : "0";
+        results.push_back(r);
       }
 
-      r["handler"] = stringFromCFString(path);
-      CFRelease(path);
-      // Check if the handler is set (in the OS) as the default.
-      if (default_app != nullptr &&
-          CFEqual((CFTypeRef)app, (CFTypeRef)default_app)) {
-        r["enabled"] = "1";
-      } else {
-        r["enabled"] = "0";
+      if (default_app != nullptr) {
+        CFRelease(default_app);
       }
-
-      r["external"] = (scheme.second & kSchemeSystemDefault) ? "0" : "1";
-      r["protected"] = (scheme.second & kSchemeProtected) ? "1" : "0";
-      results.push_back(r);
+      CFRelease(apps);
     }
-
-    if (default_app != nullptr) {
-      CFRelease(default_app);
-    }
-    CFRelease(apps);
   }
-
   return results;
 }
 }

@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -426,10 +427,10 @@ void Config::scheduledQueries(
   }
 }
 
-void Config::packs(std::function<void(PackRef& pack)> predicate) {
+void Config::packs(std::function<void(const Pack& pack)> predicate) const {
   RecursiveLock lock(config_schedule_mutex_);
   for (PackRef& pack : schedule_->packs_) {
-    predicate(pack);
+    predicate(std::cref(*pack.get()));
   }
 }
 
