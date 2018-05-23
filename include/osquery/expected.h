@@ -122,7 +122,7 @@ class Expected {
   T object_;
   std::shared_ptr<Error> error_;
   bool hasError_;
-  mutable bool errorChecked_;
+  mutable bool errorChecked_ = false;
 };
 
 template <class T>

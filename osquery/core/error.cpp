@@ -58,6 +58,12 @@ Error::Error(std::bad_alloc exception) : Error(exception, kBadAllocExcpetion) {}
 Error::Error(std::ios_base::failure exception)
     : Error(exception, kBaseIOFailuerExcpetion) {}
 
+Error::Error(Error&& other) {
+  domain_ = std::move(other.domain_);
+  errorCode_ = other.errorCode_;
+  message_ = std::move(other.message_);
+}
+  
 std::string Error::getShortMessage() const {
   return domain_ + " " + std::to_string(errorCode_);
 }
