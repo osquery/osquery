@@ -51,7 +51,7 @@ namespace osquery {
 template <class T>
 class Expected {
  public:
-  Expected(T object) : object_(std::move(object)) {}
+  Expected(T object) : object_(std::move(object)), hasError_(false) {}
   Expected(Error* error) = delete;
   Expected(Error error) = delete;
   Expected() : error_(nullptr), hasError_(false) {}
@@ -66,17 +66,17 @@ class Expected {
     assert(errorChecked_ || "Error was not checked");
   }
 
-  Expected& operator=(Expected&& Other) {
-    object_ = std::move(Other.object_);
-    error_ = std::move(Other.error_);
-    hasError_ = Other.hasError_;
+  Expected& operator=(Expected&& other) {
+    object_ = std::move(other.object_);
+    error_ = std::move(other.error_);
+    hasError_ = other.hasError_;
     return *this;
   }
 
-  Expected(Expected&& Other) {
-    object_ = std::move(Other.object_);
-    error_ = std::move(Other.error_);
-    hasError_ = Other.hasError_;
+  Expected(Expected&& other) {
+    object_ = std::move(other.object_);
+    error_ = std::move(other.error_);
+    hasError_ = other.hasError_;
   }
 
   std::shared_ptr<Error> getError() const {

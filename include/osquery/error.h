@@ -50,6 +50,21 @@ class Error {
 
   Error(Status status);
 
+  Error& operator=(Error&& other) {
+    if (this != &other) {
+      domain_ = std::move(other.domain_);
+      errorCode_ = other.errorCode_;
+      message_ = std::move(other.message_);
+    }
+    return *this;
+  }
+
+  Error(Error&& other) {
+    domain_ = std::move(other.domain_);
+    errorCode_ = other.errorCode_;
+    message_ = std::move(other.message_);
+  }
+
   std::string getDomain() const {
     return domain_;
   }
