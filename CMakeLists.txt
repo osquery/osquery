@@ -166,6 +166,9 @@ if(NOT WIN32)
 endif()
 
 if(POSIX)
+  add_definitions(
+    -DOSQUERY_POSIX
+  )
   if(CLANG)
     add_compile_options(
       -Qunused-arguments
@@ -202,6 +205,9 @@ if(POSIX)
     )
   endif()
 elseif(WINDOWS)
+  add_definitions(
+    -DOSQUERY_WINDOWS
+  )
   add_compile_options(
     /EHsc
     /W3

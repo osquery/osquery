@@ -27,6 +27,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/utils.h"
 
 namespace osquery {
 namespace tables {
@@ -55,16 +56,18 @@ inline std::string readProcLink(const std::string& attr,
                                 const std::string& pid) {
   // The exe is a symlink to the binary on-disk.
   auto attr_path = getProcAttr(attr, pid);
-  char full_path[PATH_MAX] = {0};
 
-  char* link_path = realpath(attr_path.c_str(), full_path);
+  char* link_path = canonicalize_file_name(attr_path.c_str());
+
+  std::string result = "";
   if (link_path != nullptr) {
-    return std::string(link_path);
+    result = std::string(link_path);
+    free(link_path);
   } else if (attr_path.compare(std::string(full_path)) != 0) {
-    return std::string(full_path);
+    result = std::string(full_path);
   }
 
-  return "";
+  return result;
 }
 
 // In the case where the linked binary path ends in " (deleted)", and a file

@@ -14,6 +14,7 @@
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
+#include "osquery/core/utils.h"
 
 namespace osquery {
 namespace tables {
@@ -26,14 +27,20 @@ QueryData genMounts(QueryContext &context) {
     return {};
   }
 
-  char real_path[PATH_MAX + 1] = {0};
   struct mntent *ent = nullptr;
   while ((ent = getmntent(mounts))) {
     Row r;
 
     r["device"] = std::string(ent->mnt_fsname);
-    r["device_alias"] = std::string(
-        realpath(ent->mnt_fsname, real_path) ? real_path : ent->mnt_fsname);
+
+    char *real_path = canonicalize_file_name(ent->mnt_fsname);
+    if (real_path) {
+      r["device_alias"] = std::string(real_path);
+      free(real_path);
+    } else {
+      r["device_alias"] = ent->mnt_fsname;
+    }
+
     r["path"] = std::string(ent->mnt_dir);
     r["type"] = std::string(ent->mnt_type);
     r["flags"] = std::string(ent->mnt_opts);

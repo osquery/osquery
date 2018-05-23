@@ -26,4 +26,9 @@ std::string platformStrerr(int errnum);
 
 /// Copies src string into the dst string buffer with error checks
 Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count);
+
+#ifdef OSQUERY_POSIX
+/// Safer way to do realpath. Caller is responsible for releasing memory
+char *canonicalize_file_name(char *name);
+#endif
 }
