@@ -10,14 +10,13 @@
 
 #pragma once
 
+#include <include/osquery/error.h>
 #include <sstream>
 #include <string>
 #include <utility>
-#include <include/osquery/error.h>
 
 namespace osquery {
-  //class Error;
-  
+
 /**
  * @brief A utility class which is used to express the state of operations.
  *
@@ -32,7 +31,7 @@ namespace osquery {
  *   }
  * @endcode
  */
-  
+
 class Status {
  public:
   /**
@@ -57,14 +56,19 @@ class Status {
    */
   Status(int c, std::string m) : code_(c), message_(std::move(m)) {}
 
-  Status(std::shared_ptr<Error> error) : code_(error->getErrorCode()), message_(error->getFullMessageRecursive()) {}
-public:
+  Status(std::shared_ptr<Error> error)
+      : code_(error->getErrorCode()),
+        message_(error->getFullMessageRecursive()) {}
+
+ public:
   /**
    * @brief A getter for the status code property
    *
    * @return an integer representing the status code of the operation.
    */
-  int getCode() const { return code_; }
+  int getCode() const {
+    return code_;
+  }
 
   /**
    * @brief A getter for the message property
@@ -73,7 +77,9 @@ public:
    * success or failure of an operation. On successful operations, the idiom
    * is for the message to be "OK"
    */
-  std::string getMessage() const { return message_; }
+  std::string getMessage() const {
+    return message_;
+  }
 
   /**
    * @brief A convenience method to check if the return code is 0
@@ -89,15 +95,21 @@ public:
    *
    * @return a boolean which is true if the status code is 0, false otherwise.
    */
-  bool ok() const { return getCode() == 0; }
+  bool ok() const {
+    return getCode() == 0;
+  }
 
   /**
    * @brief A synonym for osquery::Status::getMessage()
    *
    * @see getMessage()
    */
-  std::string toString() const { return getMessage(); }
-  std::string what() const { return getMessage(); }
+  std::string toString() const {
+    return getMessage();
+  }
+  std::string what() const {
+    return getMessage();
+  }
 
   /**
    * @brief implicit conversion to bool
@@ -122,7 +134,9 @@ public:
   }
 
   // Enables use of gtest (ASSERT|EXPECT)_NE
-  bool operator!=(const Status& rhs) const { return !operator==(rhs); }
+  bool operator!=(const Status& rhs) const {
+    return !operator==(rhs);
+  }
 
   // Enables pretty-printing in gtest (ASSERT|EXPECT)_(EQ|NE)
   friend ::std::ostream& operator<<(::std::ostream& os, const Status& s);

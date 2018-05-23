@@ -20,8 +20,7 @@
  * either error or value. Expected enforce developer to test for success and
  * check error if any.
  *
- * ExpectedValue:
- * ExpectedValue<std::string> function() {
+ * Expected<std::string> function() {
  *   if (test) {
  *    return "ok";
  *   } else {
@@ -30,7 +29,7 @@
  * }
  *
  * Expected:
- * Expected<PlatformProcess> function() {
+ * ExpectedUnique<PlatformProcess> function() {
  *   if (test) {
  *    return std::make_unique<PlatformProcess>(pid);
  *   } else {
