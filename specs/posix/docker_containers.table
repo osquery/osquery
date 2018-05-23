@@ -17,6 +17,7 @@ schema([
     Column("privileged", INTEGER, "Is the container privileged"),
     Column("security_options", TEXT, "List of container security options"),
     Column("env_variables", TEXT, "Container environmental variables"),
+    Column("readonly_rootfs", INTEGER, "Is the root filesystem mounted as read only"),
 ])
 extended_schema(LINUX, [
     Column("cgroup_namespace", TEXT, "cgroup namespace"),

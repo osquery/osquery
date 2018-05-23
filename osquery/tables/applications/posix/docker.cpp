@@ -416,6 +416,10 @@ QueryData genContainers(QueryContext& context) {
                                 .get<bool>("Privileged", false)
                             ? INTEGER(1)
                             : INTEGER(0);
+      r["readonly_rootfs"] = container_details.get_child("HostConfig")
+                                     .get<bool>("ReadonlyRootfs", false)
+                                 ? INTEGER(1)
+                                 : INTEGER(0);
       r["path"] = container_details.get<std::string>("Path", "");
 
       std::vector<std::string> entry_pts;
