@@ -12,43 +12,47 @@
 namespace osquery {
 
 GTEST_TEST(ExpectedValueTest, initialization) {
-  ExpectedValue<std::string> value = std::string("Test");
+  Expected<std::string> value = std::string("Test");
   if (!value) {
     GTEST_FAIL();
   }
   EXPECT_EQ(value.get(), "Test");
 
-  ExpectedValue<std::string> error = std::make_shared<Error>("Test", 1);
+  Expected<std::string> error = std::make_shared<Error>("Test", 1);
   if (error) {
     GTEST_FAIL();
   }
   EXPECT_EQ(error.getError()->getErrorCode(), 1);
 }
 
-GTEST_TEST(ExpectedTest, initialization) {
-  osquery::Expected<std::string> sharedPointer =
+osquery::ExpectedUnique<std::string> testFunction() {
+  return std::make_unique<std::string>("Test");
+}
+
+GTEST_TEST(ExpectedPointerTest, initialization) {
+  osquery::Expected<std::shared_ptr<std::string>> sharedPointer =
       std::make_shared<std::string>("Test");
   if (!sharedPointer) {
     GTEST_FAIL();
   }
-  EXPECT_EQ(*sharedPointer, "Test");
+  EXPECT_EQ(**sharedPointer, "Test");
 
-  osquery::Expected<std::string> uniquePointer =
-      std::make_unique<std::string>("Test");
+  osquery::ExpectedUnique<std::string> uniquePointer = testFunction();
   if (!uniquePointer) {
     GTEST_FAIL();
   }
-  EXPECT_EQ(*uniquePointer, "Test");
+  EXPECT_EQ(**uniquePointer, "Test");
 
-  osquery::Expected<std::string*> sharedPointer2 =
+  osquery::ExpectedShared<std::string> sharedPointer2 =
       std::make_shared<std::string>("Test");
 
   if (!sharedPointer2) {
     GTEST_FAIL();
   }
-  EXPECT_EQ(*sharedPointer2, "Test");
+  EXPECT_EQ(**sharedPointer2, "Test");
 
-  osquery::Expected<std::string*> error = std::make_shared<Error>("Test", 1);
+  osquery::ExpectedShared<std::string> error =
+      std::make_shared<Error>("Test", 1);
   if (error) {
     GTEST_FAIL();
   }

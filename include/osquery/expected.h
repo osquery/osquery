@@ -48,48 +48,45 @@
 
 namespace osquery {
 
-class ExpectedBase {
+template <class T>
+class Expected {
  public:
-  ExpectedBase(Error* error) = delete;
-  ExpectedBase(Error error) = delete;
-  ExpectedBase() : error_(nullptr), hasError_(false) {}
-  ExpectedBase(std::shared_ptr<Error> error)
+  Expected(T object) : object_(std::move(object)) {}
+  Expected(Error* error) = delete;
+  Expected(Error error) = delete;
+  Expected() : error_(nullptr), hasError_(false) {}
+  Expected(std::shared_ptr<Error> error)
       : error_(std::move(error)), hasError_(true) {}
-  ExpectedBase(std::unique_ptr<Error> error)
+  Expected(std::unique_ptr<Error> error)
       : error_(std::move(error)), hasError_(true) {}
 
-  virtual ~ExpectedBase() {
-    assert(errorChecked_ && (!hasError_ || errorUsed_));
+  Expected(const Expected&) = delete;
+
+  ~Expected() {
+    assert(errorChecked_ || "Error was not checked");
   }
 
-  std::shared_ptr<Error> getError() {
-    errorUsed_ = true;
-    errorChecked_ = true;
+  Expected& operator=(Expected&& Other) {
+    object_ = std::move(Other.object_);
+    error_ = std::move(Other.error_);
+    hasError_ = Other.hasError_;
+    return *this;
+  }
+
+  Expected(Expected&& Other) {
+    object_ = std::move(Other.object_);
+    error_ = std::move(Other.error_);
+    hasError_ = Other.hasError_;
+  }
+
+  std::shared_ptr<Error> getError() const {
     return error_;
   }
 
-  explicit operator bool() {
+  explicit operator bool() const {
     errorChecked_ = true;
     return !hasError_;
   }
-
- private:
-  std::shared_ptr<Error> error_;
-  bool hasError_;
-  bool errorChecked_;
-  bool errorUsed_;
-};
-
-template <class T>
-class ExpectedValue : public ExpectedBase {
- private:
-  static const bool isPointer = std::is_pointer<T>::value;
-  static_assert(!isPointer, "Use Expected class for pointers");
-
- public:
-  using ExpectedBase::ExpectedBase;
-
-  ExpectedValue(T object) : ExpectedBase(), object_(std::move(object)) {}
 
   T& get() {
     return object_;
@@ -120,48 +117,18 @@ class ExpectedValue : public ExpectedBase {
   }
 
  private:
+  static const bool isPointer = std::is_pointer<T>::value;
+  static_assert(!isPointer, "Use shared/unique pointer");
+
   T object_;
+  std::shared_ptr<Error> error_;
+  bool hasError_;
+  mutable bool errorChecked_;
 };
 
 template <class T>
-class Expected : public ExpectedBase {
- private:
-  using value_type = typename std::remove_pointer<T>::type;
-
- public:
-  using ExpectedBase::ExpectedBase;
-
-  Expected(std::shared_ptr<value_type> object)
-      : ExpectedBase(), object_(std::move(object)) {}
-  Expected(std::unique_ptr<value_type> object)
-      : ExpectedBase(), object_(std::move(object)) {}
-
-  T& get() {
-    return object_;
-  }
-
-  const T& get() const {
-    return object_;
-  }
-
-  T* operator->() {
-    return *object_;
-  }
-
-  const T* operator->() const {
-    return *object_;
-  }
-
-  value_type& operator*() {
-    return *object_;
-  }
-
-  const value_type& operator*() const {
-    return *object_;
-  }
-
- private:
-  std::shared_ptr<value_type> object_;
-};
+using ExpectedShared = Expected<std::shared_ptr<T>>;
+template <class T>
+using ExpectedUnique = Expected<std::unique_ptr<T>>;
 
 } // namespace osquery
