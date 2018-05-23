@@ -418,5 +418,6 @@ void registerEncodingExtensions(sqlite3* db);
  */
 Status genQueryDataForSqliteTable(const boost::filesystem::path& sqlite_db,
                                   const std::string& sqlite_query,
-                                  QueryData& results);
+                                  QueryData& results,
+                                  bool respect_locking = true);
 }
