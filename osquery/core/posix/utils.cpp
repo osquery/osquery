@@ -42,12 +42,12 @@ Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count) {
   return Status(0, "OK");
 }
 
-char *canonicalize_file_name(char *name) {
-  // This implementaion mimic behaviour of realpath 
-  // function with NULL as buffer, except the fact 
+char* canonicalize_file_name(char* name) {
+  // This implementaion mimic behaviour of realpath
+  // function with NULL as buffer, except the fact
   // that default fallback buffer is 4096 instead of 1024
   // since PATH_MAX default value is usually 4096+
-  // In modern versions of libc pathing PATH_MAX buffer 
+  // In modern versions of libc pathing PATH_MAX buffer
   // is safe and will be handled corrrectly.
   // There is no strong evidence that using PATH_MAX can lead to
   // buffer overflow on supported OS versions
@@ -61,8 +61,8 @@ char *canonicalize_file_name(char *name) {
     path_max = 1024 * 4;
   }
 #endif
-  char *buffer = reinterpret_cast<char *>(malloc(path_max));
-  char *resolved = realpath(name, buffer);
+  char* buffer = reinterpret_cast<char*>(malloc(path_max));
+  char* resolved = realpath(name, buffer);
   if (resolved == nullptr) {
     free(buffer);
     return nullptr;
@@ -70,4 +70,4 @@ char *canonicalize_file_name(char *name) {
   return resolved;
 }
 
-}
+} // namespace osquery

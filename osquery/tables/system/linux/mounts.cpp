@@ -11,29 +11,29 @@
 #include <mntent.h>
 #include <sys/vfs.h>
 
+#include "osquery/core/utils.h"
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
-#include "osquery/core/utils.h"
 
 namespace osquery {
 namespace tables {
 
-QueryData genMounts(QueryContext &context) {
+QueryData genMounts(QueryContext& context) {
   QueryData results;
 
-  FILE *mounts = setmntent("/proc/mounts", "r");
+  FILE* mounts = setmntent("/proc/mounts", "r");
   if (mounts == nullptr) {
     return {};
   }
 
-  struct mntent *ent = nullptr;
+  struct mntent* ent = nullptr;
   while ((ent = getmntent(mounts))) {
     Row r;
 
     r["device"] = std::string(ent->mnt_fsname);
 
-    char *real_path = canonicalize_file_name(ent->mnt_fsname);
+    char* real_path = canonicalize_file_name(ent->mnt_fsname);
     if (real_path) {
       r["device_alias"] = std::string(real_path);
       free(real_path);
@@ -61,5 +61,5 @@ QueryData genMounts(QueryContext &context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery
