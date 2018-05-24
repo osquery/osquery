@@ -285,26 +285,22 @@ MultiHashes hashInode(TskFsFile* file) {
 
   // Allocate some heap memory and iterate over reading a chunk and updating.
   auto buffer_size = (size < 4096) ? size : 4096;
-  auto* buffer = (char*)malloc(buffer_size * sizeof(char));
-  if (buffer != nullptr) {
-    ssize_t chunk_size = 0;
-    for (ssize_t offset = 0; offset < size; offset += chunk_size) {
-      // Here max represents the local max requested bytes.
-      auto max = (size - offset < buffer_size) ? (size - offset) : buffer_size;
-      chunk_size =
-          file->read(offset, buffer, max, (TSK_FS_FILE_READ_FLAG_ENUM)0U);
-      if (chunk_size == -1 || chunk_size != max) {
-        // Huge problem, either a read failed or didn't read the max size.
-        free(buffer);
-        delete meta;
-        return MultiHashes();
-      }
-
-      md5.update(buffer, chunk_size);
-      sha1.update(buffer, chunk_size);
-      sha256.update(buffer, chunk_size);
+  char buffer[buffer_size];
+  ssize_t chunk_size = 0;
+  for (ssize_t offset = 0; offset < size; offset += chunk_size) {
+    // Here max represents the local max requested bytes.
+    auto max = (size - offset < buffer_size) ? (size - offset) : buffer_size;
+    chunk_size =
+        file->read(offset, buffer, max, (TSK_FS_FILE_READ_FLAG_ENUM)0U);
+    if (chunk_size == -1 || chunk_size != max) {
+      // Huge problem, either a read failed or didn't read the max size.
+      delete meta;
+      return MultiHashes();
     }
-    free(buffer);
+
+    md5.update(buffer, chunk_size);
+    sha1.update(buffer, chunk_size);
+    sha256.update(buffer, chunk_size);
   }
   delete meta;
 
