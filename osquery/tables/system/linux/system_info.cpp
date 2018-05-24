@@ -61,7 +61,6 @@ QueryData genSystemInfo(QueryContext& context) {
 
   r["cpu_subtype"] = "0";
 
-  // https://github.com/karelzak/util-linux/blob/7085f1e49b0a2a670ba068705da6084d19a41a5a/sys-utils/lscpu.c#L394-L400
   struct utsname utsbuf;
   if (uname(&utsbuf) == -1) {
     VLOG(1) << "Error: uname failed";
@@ -75,12 +74,10 @@ QueryData genSystemInfo(QueryContext& context) {
   if (readFile("/proc/cpuinfo", content)) {
     for (const auto& line : osquery::split(content, "\n")) {
       // Iterate each line and look for labels (there is also a model type).
-      if (line.find("cpu family") == 0 || line.find("model\t") == 0) {
+      if (line.find("model\t") == 0) {
         auto details = osquery::split(line, ":");
-        if (details.size() == 2) {
-          if(line[0] != 'c'){
-            r["cpu_subtype"] = details[1];
-          }
+        if(line[0] != 'c'){
+          r["cpu_subtype"] = details[1];
         }
       } else if (line.find("microcode") == 0) {
         auto details = osquery::split(line, ":");
