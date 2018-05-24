@@ -70,6 +70,7 @@ class SMBIOSParser : private boost::noncopyable {
   virtual void tables(std::function<void(size_t index,
                                          const SMBStructHeader* hdr,
                                          uint8_t* address,
+                                         uint8_t* textAddrs,
                                          size_t size)> predicate);
 
  public:
@@ -94,6 +95,7 @@ void genSMBIOSTable(size_t index,
 void genSMBIOSMemoryDevices(size_t index,
                             const SMBStructHeader* hdr,
                             uint8_t* address,
+                            uint8_t* textAddrs,
                             size_t size,
                             QueryData& results);
 

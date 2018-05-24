@@ -11,9 +11,9 @@
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/filesystem.h>
-#include <osquery/tables.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
+#include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/linux/smbios_utils.h"
@@ -93,21 +93,21 @@ QueryData genSystemInfo(QueryContext& context) {
       parser.tables(([&r](size_t index,
                           const SMBStructHeader* hdr,
                           uint8_t* address,
+                          uint8_t* textAddrs,
                           size_t size) {
         if (hdr->type != kSMBIOSTypeSystem || size < 0x12) {
           return;
         }
 
-        uint8_t* data = address + hdr->length;
-        r["hardware_vendor"] = dmiString(data, address, 0x04);
-        r["hardware_model"] = dmiString(data, address, 0x05);
-        r["hardware_version"] = dmiString(data, address, 0x06);
-        r["hardware_serial"] = dmiString(data, address, 0x07);
+        r["hardware_vendor"] = dmiString(textAddrs, address, 0x04);
+        r["hardware_model"] = dmiString(textAddrs, address, 0x05);
+        r["hardware_version"] = dmiString(textAddrs, address, 0x06);
+        r["hardware_serial"] = dmiString(textAddrs, address, 0x07);
       }));
     }
   }
 
   return {r};
 }
-}
-}
+} // namespace tables
+} // namespace osquery
