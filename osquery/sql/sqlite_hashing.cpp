@@ -58,17 +58,29 @@ static void sqliteSHA256Func(sqlite3_context* context,
 }
 
 void registerHashingExtensions(sqlite3* db) {
-  sqlite3_create_function(
-      db, "md5", 1, SQLITE_UTF8, nullptr, sqliteMD5Func, nullptr, nullptr);
-  sqlite3_create_function(
-      db, "sha1", 1, SQLITE_UTF8, nullptr, sqliteSHA1Func, nullptr, nullptr);
+  sqlite3_create_function(db,
+                          "md5",
+                          1,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          sqliteMD5Func,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "sha1",
+                          1,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          sqliteSHA1Func,
+                          nullptr,
+                          nullptr);
   sqlite3_create_function(db,
                           "sha256",
                           1,
-                          SQLITE_UTF8,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           sqliteSHA256Func,
                           nullptr,
                           nullptr);
 }
-}
+} // namespace osquery
