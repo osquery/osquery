@@ -76,7 +76,7 @@ QueryData genSystemInfo(QueryContext& context) {
       // Iterate each line and look for labels (there is also a model type).
       if (line.find("model\t") == 0) {
         auto details = osquery::split(line, ":");
-        if(line[0] != 'c'){
+        if (details.size() == 2) {
           r["cpu_subtype"] = details[1];
         }
       } else if (line.find("microcode") == 0) {
