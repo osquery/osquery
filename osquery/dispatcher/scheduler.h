@@ -24,8 +24,9 @@ class SchedulerRunner : public InternalRunnable {
  public:
   SchedulerRunner(unsigned long int timeout, size_t interval)
       : InternalRunnable("SchedulerRunner"),
-        interval_(interval),
-        timeout_(timeout) {}
+        interval_{std::chrono::seconds{interval}},
+        timeout_(timeout),
+        time_drift_{std::chrono::milliseconds::zero()} {}
 
  public:
   /// The Dispatcher thread entry point.
@@ -34,14 +35,16 @@ class SchedulerRunner : public InternalRunnable {
   /// The Dispatcher interrupt point.
   void stop() override {}
 
+  std::chrono::milliseconds getTimeDrift() const noexcept;
+
  private:
   /// Interval in seconds between schedule steps.
-  size_t interval_;
+  std::chrono::milliseconds interval_;
 
   /// Maximum number of steps.
   unsigned long int timeout_;
 
-  std::chrono::milliseconds sum_overtime_ = std::chrono::milliseconds::zero();
+  std::chrono::milliseconds time_drift_;
 };
 
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query);

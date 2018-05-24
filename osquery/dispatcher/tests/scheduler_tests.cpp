@@ -207,7 +207,7 @@ TEST_F(SchedulerTests, test_scheduler_sum_overtime) {
 
   EXPECT_GE(start_duration, std::chrono::seconds{1});
   EXPECT_LE(start_duration, std::chrono::milliseconds{1010});
-  EXPECT_LE(runner.sumOvertime(), std::chrono::milliseconds::zero());
+  EXPECT_LE(runner.getTimeDrift(), std::chrono::milliseconds::zero());
 
   // Restore plugin settings.
   TablePlugin::kCacheStep = backup_step;
