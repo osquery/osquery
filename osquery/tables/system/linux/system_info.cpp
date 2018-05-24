@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <sys/utsname.h>
+
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/filesystem.h>
@@ -57,8 +59,16 @@ QueryData genSystemInfo(QueryContext& context) {
     r["physical_memory"] = "-1";
   }
 
-  r["cpu_type"] = "0";
   r["cpu_subtype"] = "0";
+
+  // https://github.com/karelzak/util-linux/blob/7085f1e49b0a2a670ba068705da6084d19a41a5a/sys-utils/lscpu.c#L394-L400
+  struct utsname utsbuf;
+  if (uname(&utsbuf) == -1) {
+    VLOG(1) << "Error: uname failed";
+    r["cpu_type"] = "0";
+  } else {
+    r["cpu_type"] = std::string(utsbuf.machine);
+  }
 
   // Read the types from CPU info within proc.
   std::string content;
@@ -68,8 +78,9 @@ QueryData genSystemInfo(QueryContext& context) {
       if (line.find("cpu family") == 0 || line.find("model\t") == 0) {
         auto details = osquery::split(line, ":");
         if (details.size() == 2) {
-          // Not the most elegant but prevents us from splitting each line.
-          r[(line[0] == 'c') ? "cpu_type" : "cpu_subtype"] = details[1];
+          if(line[0] != 'c'){
+            r["cpu_subtype"] = details[1];
+          }
         }
       } else if (line.find("microcode") == 0) {
         auto details = osquery::split(line, ":");
