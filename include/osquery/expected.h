@@ -70,7 +70,7 @@ class Expected {
   }
 
   Expected& operator=(Expected&& other) {
-    if (this != &other)
+    if (this != &other) {
       object_ = std::move(other.object_);
       error_ = std::move(other.error_);
       hasError_ = other.hasError_;
