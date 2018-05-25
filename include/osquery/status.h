@@ -56,9 +56,8 @@ class Status {
    */
   Status(int c, std::string m) : code_(c), message_(std::move(m)) {}
 
-  Status(std::shared_ptr<Error> error)
-      : code_(error->getErrorCode()),
-        message_(error->getFullMessageRecursive()) {}
+  Status(const ErrorBase& error)
+      : code_(1), message_(error.getFullMessageRecursive()) {}
 
  public:
   /**

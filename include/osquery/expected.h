@@ -20,11 +20,12 @@
  * either error or value. Expected enforce developer to test for success and
  * check error if any.
  *
+ * enum class TestError { SomeError = 1, AnotherError = 2 };
  * Expected<std::string> function() {
  *   if (test) {
  *    return "ok";
  *   } else {
- *    return std::make_shared<Error>(error_domain, error_code);
+ *    return std::make_shared<Error<TestError>>(TestError::SomeError);
  *   }
  * }
  *
@@ -33,7 +34,7 @@
  *   if (test) {
  *    return std::make_unique<PlatformProcess>(pid);
  *   } else {
- *    return std::make_shared<Error>(error_domain, error_code);
+ *    return std::make_shared<Error<TestError>>(TestError::AnotherError);
  *   }
  * }
  *
@@ -51,13 +52,16 @@ template <class T>
 class Expected {
  public:
   Expected(T object) : object_(std::move(object)), hasError_(false) {}
-  Expected(Error* error) = delete;
-  Expected(Error error) = delete;
+  Expected(ErrorBase* error) = delete;
+  Expected(ErrorBase error) = delete;
   Expected() : error_(nullptr), hasError_(false) {}
-  Expected(std::shared_ptr<Error> error)
+  Expected(std::shared_ptr<ErrorBase> error)
       : error_(std::move(error)), hasError_(true) {}
-  Expected(std::unique_ptr<Error> error)
+  Expected(std::unique_ptr<ErrorBase> error)
       : error_(std::move(error)), hasError_(true) {}
+  template <class ErrorT>
+  Expected(std::shared_ptr<Error<ErrorT>> error)
+      : error_(std::static_pointer_cast<ErrorBase>(error)), hasError_(true){};
 
   Expected(const Expected&) = delete;
 
@@ -66,9 +70,11 @@ class Expected {
   }
 
   Expected& operator=(Expected&& other) {
-    object_ = std::move(other.object_);
-    error_ = std::move(other.error_);
-    hasError_ = other.hasError_;
+    if (this != &other)
+      object_ = std::move(other.object_);
+      error_ = std::move(other.error_);
+      hasError_ = other.hasError_;
+    }
     return *this;
   }
 
@@ -78,7 +84,7 @@ class Expected {
     hasError_ = other.hasError_;
   }
 
-  std::shared_ptr<Error> getError() const {
+  std::shared_ptr<ErrorBase> getError() const {
     return error_;
   }
 
@@ -120,7 +126,7 @@ class Expected {
   static_assert(!isPointer, "Use shared/unique pointer");
 
   T object_;
-  std::shared_ptr<Error> error_;
+  std::shared_ptr<ErrorBase> error_;
   bool hasError_;
   mutable bool errorChecked_ = false;
 };

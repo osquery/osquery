@@ -11,25 +11,33 @@
 #include <gtest/gtest.h>
 #include <osquery/error.h>
 
+enum class TestError { SomeError = 1, AnotherError = 2 };
+
 GTEST_TEST(ErrorTest, initialization) {
-  auto error = osquery::Error("TestDomain", 32, "TestMessage");
+  auto error = osquery::Error<TestError>(TestError::SomeError, "TestMessage");
   EXPECT_EQ(error.getUnderlyingError(), nullptr);
-  EXPECT_EQ(error.getDomain(), "TestDomain");
-  EXPECT_EQ(error.getErrorCode(), 32);
-  EXPECT_EQ(error.getShortMessage(), "TestDomain 32");
-  EXPECT_EQ(error.getFullMessage(), "TestDomain 32 (TestMessage)");
-  EXPECT_TRUE(error == "TestDomain");
-  EXPECT_TRUE(error == 32);
-  EXPECT_TRUE(error == osquery::Error("TestDomain", 32));
+  EXPECT_TRUE(error == TestError::SomeError);
+  EXPECT_EQ(error.getShortMessage(), "TestError 1");
+  EXPECT_EQ(error.getFullMessage(), "TestError 1 (TestMessage)");
+}
+
+GTEST_TEST(ErrorTest, exception) {
+  auto exception = std::logic_error("Logic error exception");
+  auto error = osquery::Error<TestError>(
+      TestError::AnotherError, exception, "TestMessage");
+  EXPECT_NE(error.getUnderlyingError(), nullptr);
+  EXPECT_TRUE(error == TestError::AnotherError);
+  EXPECT_EQ(error.getShortMessage(), "TestError 2");
+  EXPECT_EQ(error.getFullMessage(), "TestError 2 (TestMessage)");
 }
 
 GTEST_TEST(ErrorTest, recursive) {
-  auto orignalError = std::shared_ptr<osquery::Error>(
-      new osquery::Error("SuperDomain", 32, "SuperTestMessage"));
-  auto error = osquery::Error("TestDomain", 55, "TestMessage", orignalError);
+  auto orignalError = std::make_shared<osquery::Error<TestError>>(
+      TestError::SomeError, "SuperTestMessage");
+  auto error = osquery::Error<TestError>(
+      TestError::AnotherError, "TestMessage", orignalError);
   EXPECT_NE(error.getUnderlyingError(), nullptr);
-  EXPECT_EQ(error.getShortMessageRecursive(),
-            "TestDomain 55 <- SuperDomain 32");
+  EXPECT_EQ(error.getShortMessageRecursive(), "TestError 2 <- TestError 1");
   EXPECT_EQ(error.getFullMessageRecursive(),
-            "TestDomain 55 (TestMessage) <- SuperDomain 32 (SuperTestMessage)");
+            "TestError 2 (TestMessage) <- TestError 1 (SuperTestMessage)");
 }

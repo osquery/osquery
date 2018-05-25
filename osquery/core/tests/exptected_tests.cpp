@@ -5,11 +5,14 @@
 //  Created by Max Kareta on 5/15/18.
 //
 
+#include <boost/optional.hpp>
 #include <gtest/gtest.h>
 #include <osquery/error.h>
 #include <osquery/expected.h>
 
 namespace osquery {
+
+enum class TestError { SomeError = 1, AnotherError = 2 };
 
 GTEST_TEST(ExpectedValueTest, initialization) {
   Expected<std::string> value = std::string("Test");
@@ -18,11 +21,12 @@ GTEST_TEST(ExpectedValueTest, initialization) {
   }
   EXPECT_EQ(value.get(), "Test");
 
-  Expected<std::string> error = std::make_shared<Error>("Test", 1);
+  Expected<std::string> error =
+      std::make_shared<Error<TestError>>(TestError::SomeError);
   if (error) {
     GTEST_FAIL();
   }
-  EXPECT_EQ(error.getError()->getErrorCode(), 1);
+  EXPECT_EQ(*error.getError(), TestError::SomeError);
 }
 
 osquery::ExpectedUnique<std::string> testFunction() {
@@ -52,11 +56,18 @@ GTEST_TEST(ExpectedPointerTest, initialization) {
   EXPECT_EQ(**sharedPointer2, "Test");
 
   osquery::ExpectedShared<std::string> error =
-      std::make_shared<Error>("Test", 1);
+      std::make_shared<Error<TestError>>(TestError::AnotherError);
   if (error) {
     GTEST_FAIL();
   }
-  EXPECT_EQ(error.getError()->getErrorCode(), 1);
+  EXPECT_EQ(*error.getError(), TestError::AnotherError);
+
+  boost::optional<std::string> optional = std::string("123");
+  osquery::Expected<boost::optional<std::string>> optionalExpected = optional;
+  if (!optionalExpected) {
+    GTEST_FAIL();
+  }
+  EXPECT_EQ(**optionalExpected, "123");
 }
 
 } // namespace osquery
