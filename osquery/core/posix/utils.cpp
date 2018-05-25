@@ -42,32 +42,34 @@ Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count) {
   return Status(0, "OK");
 }
 
-char* canonicalize_file_name(char* name) {
-  // This implementaion mimic behaviour of realpath
-  // function with NULL as buffer, except the fact
-  // that default fallback buffer is 4096 instead of 1024
-  // since PATH_MAX default value is usually 4096+
-  // In modern versions of libc pathing PATH_MAX buffer
-  // is safe and will be handled corrrectly.
-  // There is no strong evidence that using PATH_MAX can lead to
-  // buffer overflow on supported OS versions
-
-  long int path_max = 0;
+std::string canonicalize_file_name(char* name) {
+  char* buffer = nullptr;
 #ifdef PATH_MAX
-  path_max = PATH_MAX;
+  // On supported platforms where PATH_MAX is defined we can pass null
+  // as buffer, and allow libc to alloced space
+  // On centos/ubuntu libc will use realloc so we will be able to resolve
+  // any path
+  // On darwin libc will allocate PATH_MAX buffer for us
+  buffer = nullptr;
+  char* resolved = realpath(name, nullptr);
+  std::string result = (resolved == nullptr) ? name : resolved;
+  free(resolved);
 #else
-  path_max = pathconf(name, _PC_PATH_MAX);
+#warnign PATH_MAX is undefined, please read comment below
+  // PATH_MAX is not defined, very likely it's not officially supported
+  // os, our best guess is _PC_PATH_MAX if available
+  // In case of failure fallback to "safe" buffer of 8K
+
+  long int path_max = pathconf(name, _PC_PATH_MAX);
   if (path_max <= 0) {
-    path_max = 1024 * 4;
+    path_max = 8 * 1024;
   }
-#endif
   char* buffer = reinterpret_cast<char*>(malloc(path_max));
   char* resolved = realpath(name, buffer);
-  if (resolved == nullptr) {
-    free(buffer);
-    return nullptr;
-  }
-  return resolved;
+  std::string result = (resolved == nullptr) ? name : resolved;
+  free(buffer)
+#endif
+  return result;
 }
 
 } // namespace osquery

@@ -32,15 +32,7 @@ QueryData genMounts(QueryContext& context) {
     Row r;
 
     r["device"] = std::string(ent->mnt_fsname);
-
-    char* real_path = canonicalize_file_name(ent->mnt_fsname);
-    if (real_path) {
-      r["device_alias"] = std::string(real_path);
-      free(real_path);
-    } else {
-      r["device_alias"] = ent->mnt_fsname;
-    }
-
+    r["device_alias"] = canonicalize_file_name(ent->mnt_fsname);
     r["path"] = std::string(ent->mnt_dir);
     r["type"] = std::string(ent->mnt_type);
     r["flags"] = std::string(ent->mnt_opts);

@@ -34,15 +34,7 @@ QueryData genMounts(QueryContext& context) {
     Row r;
     r["path"] = TEXT(mnt[i].f_mntonname);
     r["device"] = TEXT(mnt[i].f_mntfromname);
-
-    char* real_path = canonicalize_file_name(mnt[i].f_mntfromname);
-    if (real_path) {
-      r["device_alias"] = std::string(real_path);
-      free(real_path);
-    } else {
-      r["device_alias"] = mnt[i].f_mntfromname;
-    }
-
+    r["device_alias"] = canonicalize_file_name(mnt[i].f_mntfromname);
     r["type"] = TEXT(mnt[i].f_fstypename);
     r["flags"] = INTEGER(mnt[i].f_flags);
     r["blocks"] = BIGINT(mnt[i].f_blocks);
