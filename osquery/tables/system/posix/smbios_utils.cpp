@@ -433,9 +433,8 @@ void genSMBIOSMemoryArrays(size_t index,
                           : INTEGER(cap / 1048576);
 
   auto errHandle = dmiToWord(address, 0x0B);
-  if (errHandle != 0xFFFE) {
-    r["memory_error_info_handle"] =
-        (errHandle == 0xFFFF) ? "No Errors" : toHexStr(errHandle);
+  if (errHandle != 0xFFFE && errHandle != 0xFFFF) {
+    r["memory_error_info_handle"] = toHexStr(errHandle);
   }
 
   r["number_memory_devices"] = INTEGER(dmiToWord(address, 0x0D));
