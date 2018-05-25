@@ -221,10 +221,10 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
     ULARGE_INTEGER utime;
     utime.HighPart = userTime.dwHighDateTime;
     utime.LowPart = userTime.dwLowDateTime;
-    r["user_time"] = BIGINT(utime.QuadPart / 10000000);
+    r["user_time"] = BIGINT(utime.QuadPart / 10000);
     utime.HighPart = kernelTime.dwHighDateTime;
     utime.LowPart = kernelTime.dwLowDateTime;
-    r["system_time"] = BIGINT(utime.QuadPart / 10000000);
+    r["system_time"] = BIGINT(utime.QuadPart / 10000);
     r["start_time"] = BIGINT(osquery::filetimeToUnixtime(createTime));
   }
 
