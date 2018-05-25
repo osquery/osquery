@@ -183,7 +183,7 @@ inline bool operator==(const ErrorBase* lhs, const T rhs) {
   return casted_lhs != nullptr && casted_lhs == rhs;
 }
 
-std::ostream& operator<<(std::ostream& out, const ErrorBase& error) {
+inline std::ostream& operator<<(std::ostream& out, const ErrorBase& error) {
   out << error.getFullMessageRecursive();
   return out;
 }
