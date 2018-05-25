@@ -10,8 +10,8 @@
 
 #include <boost/algorithm/string/trim.hpp>
 
-#include "osquery/tables/system/smbios_utils.h"
 #include "osquery/core/hashing.h"
+#include "osquery/tables/system/smbios_utils.h"
 
 namespace osquery {
 namespace tables {
@@ -116,6 +116,76 @@ const std::map<uint8_t, std::string> kSMBIOSMemoryTypeTable = {
     {0x1C, "LPDDR2"},   {0x1D, "LPDDR3"},       {0x1E, "LPDDR4"},
 };
 
+const std::map<uint8_t, std::string> kSMBIOSMemoryArrayLocationTable = {
+    {0x01, "Other"},
+    {0x02, "Unknown"},
+    {0x03, "System board or motherboard"},
+    {0x04, "ISA add-on card"},
+    {0x05, "EISA add-on card"},
+    {0x06, "PCI add-on card"},
+    {0x07, "MCA add-on card"},
+    {0x08, "PCMCIA add-on card"},
+    {0x09, "Proprietary add-on card"},
+    {0x0A, "NuBus"},
+    {0xA0, "PC-98/C20 add-on card"},
+    {0xA1, "PC-98/C24 add-on card"},
+    {0xA2, "PC-98/E add-on card"},
+    {0xA3, "PC-98/Local bus add-on card"},
+};
+
+const std::map<uint8_t, std::string> kSMBIOSMemoryArrayUseTable = {
+    {0x01, "Other"},
+    {0x02, "Unknown"},
+    {0x03, "System memory"},
+    {0x04, "Video memory"},
+    {0x05, "Flash memory"},
+    {0x06, "Non-volatile RAM"},
+    {0x07, "Cache memory"},
+};
+
+const std::map<uint8_t, std::string>
+    kSMBIOSMemoryArrayErrorCorrectionTypesTable = {
+        {0x01, "Other"},
+        {0x02, "Unknown"},
+        {0x03, "none"},
+        {0x04, "Parity"},
+        {0x05, "Single-bit ECC"},
+        {0x06, "Multi-bit ECC"},
+        {0x07, "CRC"},
+};
+
+const std::map<uint8_t, std::string> kSMBIOSMemoryErrorTypeTable = {
+    {0x01, "Other"},
+    {0x02, "Unknown"},
+    {0x03, "OK"},
+    {0x04, "Bad read"},
+    {0x05, "Parity error"},
+    {0x06, "Single-bit error"},
+    {0x07, "Double-bit error"},
+    {0x08, "Multi-bit error"},
+    {0x09, "Nibble error"},
+    {0x0A, "Checksum error"},
+    {0x0B, "CRC error"},
+    {0x0C, "Corrected single-bit error"},
+    {0x0D, "Corrected error"},
+    {0x0E, "Uncorrectable error"},
+};
+
+const std::map<uint8_t, std::string> kSMBIOSMemoryErrorGranularityTable = {
+    {0x01, "Other"},
+    {0x02, "Unknown"},
+    {0x03, "Device level"},
+    {0x04, "Memory partition level"},
+};
+
+const std::map<uint8_t, std::string> kSMBIOSMemoryErrorOperationTable = {
+    {0x01, "Other"},
+    {0x02, "Unknown"},
+    {0x03, "Read"},
+    {0x04, "Write"},
+    {0x05, "Partial write"},
+};
+
 template <class T>
 static inline std::string toHexStr(T num, int width = 4) {
   std::stringstream ss;
@@ -154,6 +224,24 @@ inline uint32_t dmiToDWord(uint8_t* address, uint8_t offset) {
          (static_cast<uint32_t>(address[offset + 2]) << 16) |
          (static_cast<uint32_t>(address[offset + 1]) << 8) |
          static_cast<uint32_t>(address[offset]);
+}
+
+/**
+ * @brief Returns uint64_t representation of a QWORD length field
+ *
+ *
+ * @param address A pointer to the examined structure.
+ * @Param offset The field index into address.
+ */
+inline uint64_t dmiToQWord(uint8_t* address, uint8_t offset) {
+  return (static_cast<uint64_t>(address[offset + 7]) << 56) |
+         (static_cast<uint64_t>(address[offset + 6]) << 48) |
+         (static_cast<uint64_t>(address[offset + 5]) << 40) |
+         (static_cast<uint64_t>(address[offset + 4]) << 32) |
+         (static_cast<uint64_t>(address[offset + 3]) << 24) |
+         (static_cast<uint64_t>(address[offset + 2]) << 16) |
+         (static_cast<uint64_t>(address[offset + 1]) << 8) |
+         static_cast<uint64_t>(address[offset]);
 }
 
 static inline std::string dmiWordToHexStr(uint8_t* address, uint8_t offset) {
@@ -305,6 +393,157 @@ void genSMBIOSMemoryDevices(size_t index,
   if (vt != 0) {
     r["configured_voltage"] = INTEGER(vt);
   }
+
+  results.push_back(std::move(r));
+}
+
+void genSMBIOSMemoryArrays(size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           size_t size,
+                           QueryData& results) {
+  if (hdr->type != kSMBIOSTypeMemoryArray || size < 0x12) {
+    return;
+  }
+
+  Row r;
+  r["handle"] = dmiWordToHexStr(address, 0x02);
+
+  auto location = kSMBIOSMemoryArrayLocationTable.find(address[0x04]);
+  if (location != kSMBIOSMemoryArrayLocationTable.end()) {
+    r["location"] = location->second;
+  }
+
+  auto use = kSMBIOSMemoryArrayUseTable.find(address[0x05]);
+  if (use != kSMBIOSMemoryArrayUseTable.end()) {
+    r["use"] = use->second;
+  }
+
+  auto errCorrection =
+      kSMBIOSMemoryArrayErrorCorrectionTypesTable.find(address[0x06]);
+  if (errCorrection != kSMBIOSMemoryArrayErrorCorrectionTypesTable.end()) {
+    r["memory_error_correction"] = errCorrection->second;
+  }
+
+  auto cap = dmiToDWord(address, 0x07);
+  // SMBIOS returns capacity in KB or bytes, but we want a more human
+  // friendly GB.
+  r["max_capacity"] = (cap >= 0x80000000)
+                          ? INTEGER(dmiToQWord(address, 0x0F) / 1073741824)
+                          : INTEGER(cap / 1048576);
+
+  auto errHandle = dmiToWord(address, 0x0B);
+  if (errHandle != 0xFFFE && errHandle != 0xFFFF) {
+    r["memory_error_info_handle"] = toHexStr(errHandle);
+  }
+
+  r["number_memory_devices"] = INTEGER(dmiToWord(address, 0x0D));
+
+  results.push_back(std::move(r));
+}
+
+void genSMBIOSMemoryArrayMappedAddresses(size_t index,
+                                         const SMBStructHeader* hdr,
+                                         uint8_t* address,
+                                         size_t size,
+                                         QueryData& results) {
+  if (hdr->type != kSMBIOSTypeMemoryArrayMappedAddress || size < 0x12) {
+    return;
+  }
+
+  Row r;
+  r["handle"] = dmiWordToHexStr(address, 0x02);
+
+  auto addr = dmiToDWord(address, 0x04);
+  if (addr != 0xFFFFFFFF) {
+    r["starting_address"] = toHexStr(addr, 8);
+    r["ending_address"] = toHexStr(dmiToDWord(address, 0x08), 8);
+  } else {
+    r["starting_address"] = toHexStr(dmiToQWord(address, 0x0F), 12);
+    r["ending_address"] = toHexStr(dmiToQWord(address, 0x17), 12);
+  }
+
+  r["memory_array_handle"] = dmiWordToHexStr(address, 0x0C);
+  r["partition_width"] = INTEGER(static_cast<int>(address[0x0E]));
+
+  results.push_back(std::move(r));
+}
+
+void genSMBIOSMemoryErrorInfo(size_t index,
+                              const SMBStructHeader* hdr,
+                              uint8_t* address,
+                              size_t size,
+                              QueryData& results) {
+  if (hdr->type != kSMBIOSTypeMemoryErrorInformation || size < 0x12) {
+    return;
+  }
+
+  Row r;
+  r["handle"] = dmiWordToHexStr(address, 0x02);
+
+  auto errType = kSMBIOSMemoryErrorTypeTable.find(address[0x04]);
+  if (errType != kSMBIOSMemoryErrorTypeTable.end()) {
+    r["error_type"] = errType->second;
+  }
+
+  auto errGran = kSMBIOSMemoryErrorGranularityTable.find(address[0x05]);
+  if (errGran != kSMBIOSMemoryErrorGranularityTable.end()) {
+    r["error_granularity"] = errGran->second;
+  }
+
+  auto errOp = kSMBIOSMemoryErrorOperationTable.find(address[0x06]);
+  if (errOp != kSMBIOSMemoryErrorOperationTable.end()) {
+    r["error_operation"] = errOp->second;
+  }
+
+  auto dword = dmiToDWord(address, 0x07);
+  if (dword != 0x00000000) {
+    r["vendor_syndrome"] = toHexStr(dword, 8);
+  }
+
+  dword = dmiToDWord(address, 0x0B);
+  if (dword != 0x80000000) {
+    r["memory_array_error_address"] = toHexStr(dword, 8);
+  }
+
+  dword = dmiToDWord(address, 0x0F);
+  if (dword != 0x80000000) {
+    r["device_error_address"] = toHexStr(dword, 8);
+  }
+
+  dword = dmiToDWord(address, 0x13);
+  if (dword != 0x80000000) {
+    r["error_resolution"] = toHexStr(dword, 8);
+  }
+
+  results.push_back(std::move(r));
+}
+
+void genSMBIOSMemoryDeviceMappedAddresses(size_t index,
+                                          const SMBStructHeader* hdr,
+                                          uint8_t* address,
+                                          size_t size,
+                                          QueryData& results) {
+  if (hdr->type != kSMBIOSTypeMemoryDeviceMappedAddress || size < 0x12) {
+    return;
+  }
+
+  Row r;
+  r["handle"] = dmiWordToHexStr(address, 0x02);
+
+  auto addr = dmiToDWord(address, 0x04);
+  if (addr != 0xFFFFFFFF) {
+    r["starting_address"] = toHexStr(addr, 8);
+    r["ending_address"] = toHexStr(dmiToDWord(address, 0x08), 8);
+  } else {
+    r["starting_address"] = toHexStr(dmiToQWord(address, 0x13), 12);
+    r["ending_address"] = toHexStr(dmiToQWord(address, 0x1B), 12);
+  }
+
+  r["memory_device_handle"] = dmiWordToHexStr(address, 0x0C);
+  r["partition_row_position"] = INTEGER(static_cast<int>(address[0x10]));
+  r["interleave_position"] = INTEGER(static_cast<int>(address[0x11]));
+  r["interleave_data_depth"] = INTEGER(static_cast<int>(address[0x12]));
 
   results.push_back(std::move(r));
 }
