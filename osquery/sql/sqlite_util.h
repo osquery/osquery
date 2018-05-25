@@ -406,6 +406,11 @@ void registerOperationExtensions(sqlite3* db);
 void registerEncodingExtensions(sqlite3* db);
 
 /**
+ * @brief Register filesystem-related 'custom' functions.
+ */
+void registerFilesystemExtensions(sqlite3* db);
+
+/**
  * @brief Generate the data for auto-constructed sqlite tables
  *
  * When auto-consturcted sqlite tables are queried, this function
@@ -419,4 +424,4 @@ void registerEncodingExtensions(sqlite3* db);
 Status genQueryDataForSqliteTable(const boost::filesystem::path& sqlite_db,
                                   const std::string& sqlite_query,
                                   QueryData& results);
-}
+} // namespace osquery
