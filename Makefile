@@ -317,3 +317,7 @@ test: .setup
 	fi
 	@cd $(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS) $(MAKECMDGOALS)
+
+xcode:
+	@cd $(BUILD_DIR) && $(CMAKE) -G Xcode && \
+		ln -s $(BUILD_DIR)/OSQUERY.xcodeproj $(SOURCE_DIR)/OSQUERY.xcodeproj

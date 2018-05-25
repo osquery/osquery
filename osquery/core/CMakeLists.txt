@@ -12,7 +12,7 @@ file(GLOB OSQUERY_CORE_PLATFORM_TESTS "tests/${PROCESS_FAMILY}/*.cpp")
 if(APPLE)
   set(OSQUERY_CORE_PLATFORM
     ${OSQUERY_CORE_PLATFORM}
-    darwin/conversions.cpp
+    darwin/conversions_darwin.cpp
     darwin/iokit.cpp
   )
 endif()
