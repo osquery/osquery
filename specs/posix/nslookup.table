@@ -1,0 +1,11 @@
+table_name("nslookup")
+description("Do DNS and reverse DNS lookups.")
+schema([
+    Column("address", TEXT, "The IP address of the host"),
+    Column("hostname", TEXT, "The hostname of the host")
+])
+examples([
+    "SELECT address FROM nslookup WHERE hostname = 'www.google.com'",
+    "SELECT hostname FROM nslookup WHERE address = '8.8.8.8'"
+])
+implementation("nslookup@genLookup")

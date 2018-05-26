@@ -75,5 +75,29 @@ TEST_F(NetworkingTablesTests, test_address_details_join) {
   auto results = SQL(query);
   EXPECT_GT(results.rows().size(), 0U);
 }
+
+TEST_F(NetworkingTablesTests, test_nslookup_by_name) {
+  auto query =
+      "select * from nslookup where hostname = 'www.facebook.com';";
+
+  auto results = SQL(query);
+  EXPECT_GT(results.rows().size(), 0U);
+  for (const auto& row : results.rows()) {
+    EXPECT_EQ(row.at("hostname"), "www.facebook.com");
+    EXPECT_NE(row.at("address"), "");
+  }
+}
+
+TEST_F(NetworkingTablesTests, test_nslookup_by_address) {
+  auto query =
+      "select * from nslookup where address = '8.8.8.8';";
+
+  auto results = SQL(query);
+  EXPECT_GT(results.rows().size(), 0U);
+  for (const auto& row : results.rows()) {
+    EXPECT_EQ(row.at("address"), "8.8.8.8");
+    EXPECT_NE(row.at("hostname"), "");
+  }
+}
 } // namespace tables
 } // namespace osquery
