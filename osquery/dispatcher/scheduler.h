@@ -33,10 +33,7 @@ class SchedulerRunner : public InternalRunnable {
   /// The Dispatcher interrupt point.
   void stop() override {}
 
- protected:
-  /// The UNIX domain socket path for the ExtensionManager.
-  std::map<std::string, size_t> splay_;
-
+ private:
   /// Interval in seconds between schedule steps.
   size_t interval_;
 
