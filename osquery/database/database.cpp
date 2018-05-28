@@ -9,6 +9,7 @@
  */
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/database.h>
 #include <osquery/flags.h>

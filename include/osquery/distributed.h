@@ -14,7 +14,6 @@
 #include <vector>
 
 #include <osquery/query.h>
-#include <osquery/registry.h>
 #include <osquery/status.h>
 
 namespace osquery {

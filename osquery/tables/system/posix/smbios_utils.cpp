@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <iomanip>
+
 #include <boost/algorithm/string/trim.hpp>
 
 #include "osquery/tables/system/smbios_utils.h"

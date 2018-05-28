@@ -9,6 +9,7 @@
  */
 
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
 #include <IOKit/IOMessage.h>
