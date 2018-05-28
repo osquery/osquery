@@ -6,7 +6,7 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.10)
 string(ASCII 27 ESC)
 macro(WARNING_LOG MESSAGE)
   message("-- ${ESC}[31m${MESSAGE}${ESC}[m")
