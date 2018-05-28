@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include <osquery/plugin.h>
 #include <osquery/query.h>
 #include <osquery/status.h>
 
