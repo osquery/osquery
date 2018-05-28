@@ -15,6 +15,7 @@
 #include <osquery/enroll.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/tests/test_util.h"
 
