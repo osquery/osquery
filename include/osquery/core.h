@@ -10,15 +10,7 @@
 
 #pragma once
 
-#include <csignal>
-#include <memory>
 #include <string>
-#include <vector>
-
-#include <boost/thread/recursive_mutex.hpp>
-#include <boost/thread/shared_mutex.hpp>
-
-#include <osquery/status.h>
 
 // clang-format off
 #ifndef STR
@@ -189,21 +181,6 @@ extern const PlatformType kPlatformType;
 inline bool isPlatform(PlatformType a, const PlatformType& t = kPlatformType) {
   return (static_cast<int>(t) & static_cast<int>(a)) != 0;
 }
-
-/// Helper alias for defining mutexes.
-using Mutex = boost::shared_timed_mutex;
-
-/// Helper alias for write locking a mutex.
-using WriteLock = boost::unique_lock<Mutex>;
-
-/// Helper alias for read locking a mutex.
-using ReadLock = boost::shared_lock<Mutex>;
-
-/// Helper alias for defining recursive mutexes.
-using RecursiveMutex = boost::recursive_mutex;
-
-/// Helper alias for write locking a recursive mutex.
-using RecursiveLock = boost::unique_lock<boost::recursive_mutex>;
 
 /**
  * @brief An abstract similar to boost's noncopyable that defines moves.

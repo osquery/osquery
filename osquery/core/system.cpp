@@ -53,7 +53,6 @@
 #endif
 #include "osquery/core/conversions.h"
 #include "osquery/core/process.h"
-#include "osquery/core/utils.h"
 
 namespace fs = boost::filesystem;
 

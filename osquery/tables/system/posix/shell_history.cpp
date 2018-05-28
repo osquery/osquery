@@ -74,7 +74,8 @@ void genShellHistoryForUser(const std::string& uid,
         prev_bash_timestamp.clear();
       } else if (xp::regex_search(
                      line, zsh_timestamp_matches, zsh_timestamp_rx)) {
-        r["time"] = INTEGER(zsh_timestamp_matches["timestamp"]);
+        std::string timestamp = zsh_timestamp_matches["timestamp"];
+        r["time"] = INTEGER(timestamp);
         r["command"] = zsh_timestamp_matches["command"];
       } else {
         r["command"] = line;

@@ -238,11 +238,7 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
     this->system_time = details.at(12);
     this->nice = details.at(16);
     this->threads = details.at(17);
-    try {
-      this->start_time = TEXT(AS_LITERAL(BIGINT_LITERAL, details.at(19)) / 100);
-    } catch (const boost::bad_lexical_cast& e) {
-      this->start_time = "-1";
-    }
+    this->start_time = TEXT(std::stol(details.at(19)) / 100);
   }
 
   // /proc/N/status may be not available, or readable by this user.

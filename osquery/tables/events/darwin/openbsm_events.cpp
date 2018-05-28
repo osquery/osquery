@@ -7,6 +7,7 @@
  *  in the COPYING file in the root directory of this source tree).
  *  You may select, at your option, one of the above-listed licenses.
  */
+
 #include <arpa/inet.h>
 
 #include <bsm/audit_kevents.h>
@@ -14,6 +15,7 @@
 
 #include <osquery/events.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 #include <unordered_map>
 

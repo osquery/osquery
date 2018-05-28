@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <boost/property_tree/json_parser.hpp>
+
 #include "osquery/core/json.h"
 #include "osquery/remote/serializers/json.h"
 

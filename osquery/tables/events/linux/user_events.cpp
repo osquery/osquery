@@ -9,6 +9,7 @@
  */
 
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 #include "osquery/events/linux/auditeventpublisher.h"
 

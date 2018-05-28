@@ -20,6 +20,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 

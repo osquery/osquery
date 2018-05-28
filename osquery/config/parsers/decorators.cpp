@@ -11,6 +11,7 @@
 #include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/sql.h>
 
 #include "osquery/config/parsers/decorators.h"

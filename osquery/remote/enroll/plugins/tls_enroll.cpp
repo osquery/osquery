@@ -11,6 +11,7 @@
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
@@ -77,9 +78,8 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   JSON params;
   params.add(FLAGS_tls_enroll_override, getEnrollSecret());
   params.add("host_identifier", getHostIdentifier());
-  params.add(
-      "platform_type",
-      boost::lexical_cast<std::string>(static_cast<uint64_t>(kPlatformType)));
+  params.add("platform_type",
+             std::to_string(static_cast<uint64_t>(kPlatformType)));
 
   // Select from each table describing host details.
   JSON host_details;

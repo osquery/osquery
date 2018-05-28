@@ -15,6 +15,7 @@
 #include <boost/regex.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"

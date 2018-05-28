@@ -10,9 +10,8 @@
 
 #include <pwd.h>
 
-#include <mutex>
-
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"

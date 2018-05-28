@@ -36,6 +36,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/packs.h>
+#include <osquery/registry.h>
 
 #include "osquery/core/process.h"
 #include "osquery/devtools/devtools.h"

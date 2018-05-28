@@ -224,7 +224,7 @@ QueryData genPlatformInfo(QueryContext& context) {
   {
     auto address = getIOKitProperty(details, "fv-main-address");
     if (!address.empty()) {
-      auto value = boost::lexical_cast<size_t>(address);
+      auto value = std::stoull(address);
 
       std::stringstream hex_id;
       hex_id << std::hex << std::setw(8) << std::setfill('0') << value;

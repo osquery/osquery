@@ -9,6 +9,7 @@
  */
 
 #include <osquery/flags.h>
+#include <osquery/registry.h>
 
 #include "osquery/events/darwin/event_taps.h"
 

@@ -15,8 +15,8 @@
 #include <vector>
 
 #include <osquery/flags.h>
+#include <osquery/plugin.h>
 #include <osquery/query.h>
-#include <osquery/registry.h>
 #include <osquery/tables.h>
 
 namespace osquery {

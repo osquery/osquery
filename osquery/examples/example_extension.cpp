@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <osquery/registry.h>
 #include <osquery/sdk.h>
 #include <osquery/system.h>
 

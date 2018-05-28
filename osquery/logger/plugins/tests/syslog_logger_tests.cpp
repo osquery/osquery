@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 #include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"

@@ -13,6 +13,7 @@
 #include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 namespace rj = rapidjson;
 

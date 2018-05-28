@@ -12,6 +12,7 @@
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 #include "osquery/tests/test_util.h"
 

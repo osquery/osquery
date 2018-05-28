@@ -9,8 +9,7 @@
  */
 
 #include <osquery/config.h>
-
-namespace pt = boost::property_tree;
+#include <osquery/registry.h>
 
 namespace osquery {
 

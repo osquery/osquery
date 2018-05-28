@@ -13,6 +13,7 @@
 
 #include <osquery/config.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 #include "osquery/tables/yara/yara_utils.h"
 

@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <osquery/registry.h>
+
 #include "osquery/events/darwin/event_taps.h"
 
 namespace osquery {

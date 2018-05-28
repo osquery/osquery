@@ -30,9 +30,6 @@ namespace tables {
 // Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on
 // the OS version.
 Status getVerifyFlags(SecCSFlags& flags) {
-  using boost::lexical_cast;
-  using boost::bad_lexical_cast;
-
   static SecCSFlags sFlags;
 
   if (sFlags == 0) {
@@ -41,13 +38,7 @@ Status getVerifyFlags(SecCSFlags& flags) {
       return Status(-1, "Couldn't determine OS X version");
     }
 
-    int minorVersion;
-    try {
-      minorVersion = lexical_cast<int>(qd.front().at("minor"));
-    } catch (const bad_lexical_cast& e) {
-      return Status(-1, "Couldn't determine OS X version");
-    }
-
+    int minorVersion = std::stol(qd.front().at("minor"));
     sFlags = kSecCSStrictValidate | kSecCSCheckAllArchitectures;
     if (minorVersion > 8) {
       sFlags |= kSecCSCheckNestedCode;

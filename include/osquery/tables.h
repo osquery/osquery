@@ -24,11 +24,11 @@
 #endif
 
 #include <boost/coroutine2/coroutine.hpp>
-#include <boost/lexical_cast.hpp>
+#include <boost/optional.hpp>
 
 #include <osquery/core.h>
+#include <osquery/plugin.h>
 #include <osquery/query.h>
-#include <osquery/registry.h>
 #include <osquery/status.h>
 
 /// Allow Tables to use "tracked" deprecated OS APIs.
@@ -62,19 +62,30 @@ namespace osquery {
  */
 template <typename Type>
 inline std::string __sqliteField(const Type& source) noexcept {
-  std::string dest;
-  if (!boost::conversion::try_lexical_convert(source, dest)) {
-    return SQL_NULL_RESULT;
-  }
-  return dest;
+  return std::to_string(source);
+}
+
+template <size_t N>
+inline std::string __sqliteField(const char (&source)[N]) noexcept {
+  return std::string(source);
+}
+
+inline std::string __sqliteField(const char* source) noexcept {
+  return std::string(source);
+}
+
+inline std::string __sqliteField(char* const source) noexcept {
+  return std::string(source);
+}
+
+inline std::string __sqliteField(const std::string& source) noexcept {
+  return source;
 }
 
 #ifdef WIN32
 // TEXT is also defined in windows.h, we should not re-define it
 #define SQL_TEXT(x) __sqliteField(x)
 #else
-// For everything except Windows, aldo define TEXT() to be compatible with
-// existing tables
 #define SQL_TEXT(x) __sqliteField(x)
 #define TEXT(x) __sqliteField(x)
 #endif
@@ -105,8 +116,6 @@ inline std::string __sqliteField(const Type& source) noexcept {
 #define UNSIGNED_BIGINT_LITERAL uint64_t
 /// See the literal type documentation for TEXT_LITERAL.
 #define DOUBLE_LITERAL double
-/// Cast an SQLite affinity type to the literal type.
-#define AS_LITERAL(literal, value) boost::lexical_cast<literal>(value)
 
 enum ColumnType {
   UNKNOWN_TYPE = 0,
@@ -381,17 +390,8 @@ struct ConstraintList : private boost::noncopyable {
    * @return A list of TEXT%-represented types matching the operator.
    */
   std::set<std::string> getAll(ConstraintOperator op) const;
-
-  /// See ConstraintList::getAll, but as a selected literal type.
   template <typename T>
-  std::set<T> getAll(ConstraintOperator op) const {
-    std::set<T> literal_matches;
-    auto matches = getAll(op);
-    for (const auto& match : matches) {
-      literal_matches.insert(AS_LITERAL(T, match));
-    }
-    return literal_matches;
-  }
+  std::set<T> getAll(ConstraintOperator op) const;
 
   /// Constraint list accessor, types and operator.
   const std::vector<struct Constraint>& getAll() const {

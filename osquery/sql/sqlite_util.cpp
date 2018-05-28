@@ -8,9 +8,12 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <boost/lexical_cast.hpp>
+
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 #include <osquery/sql.h>
 
 #include "osquery/sql/sqlite_util.h"

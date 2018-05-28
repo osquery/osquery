@@ -27,7 +27,6 @@
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
-#include "osquery/core/utils.h"
 #include "osquery/core/watcher.h"
 #include "osquery/devtools/devtools.h"
 #include "osquery/dispatcher/distributed.h"

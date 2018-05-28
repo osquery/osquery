@@ -13,6 +13,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/tests/test_util.h"

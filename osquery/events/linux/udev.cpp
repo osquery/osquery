@@ -13,6 +13,7 @@
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry.h>
 
 #include "osquery/events/linux/udev.h"
 

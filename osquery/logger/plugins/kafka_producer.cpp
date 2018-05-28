@@ -17,6 +17,7 @@
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
+#include <osquery/registry.h>
 #include <osquery/system.h>
 
 #include "osquery/config/parsers/kafka_topics.h"

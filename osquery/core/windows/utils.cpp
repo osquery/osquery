@@ -10,11 +10,12 @@
 
 #include <string.h>
 #include <time.h>
+
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
 
-#include "osquery/core/utils.h"
+#include <osquery/system.h>
 
 #define MAX_BUFFER_SIZE 256
 

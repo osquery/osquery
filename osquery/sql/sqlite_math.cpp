@@ -23,7 +23,7 @@
 
 #include <sqlite3.h>
 
-#include "osquery/core/utils.h"
+#include <osquery/system.h>
 
 namespace osquery {
 
