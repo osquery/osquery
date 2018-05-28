@@ -15,9 +15,10 @@
 #include <boost/optional.hpp>
 
 #include <osquery/core.h>
-#include <osquery/status.h>
 
 namespace osquery {
+
+class Status;
 
 /// Returns the ASCII version of the timeptr as a C++ string
 std::string platformAsctime(const struct tm* timeptr);

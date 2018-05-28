@@ -16,7 +16,6 @@
 
 #include <osquery/core.h>
 #include <osquery/mutex.h>
-#include <osquery/status.h>
 
 #ifdef WIN32
 #include <osquery/windows/system.h>
@@ -25,6 +24,8 @@
 #endif
 
 namespace osquery {
+
+class Status;
 
 /**
  * @brief The requested exit code.

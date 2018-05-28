@@ -22,7 +22,6 @@
 #include <gflags/gflags.h>
 
 #include <osquery/core.h>
-#include <osquery/status.h>
 
 #ifdef FREEBSD
 #define GFLAGS_NAMESPACE gflags
@@ -41,6 +40,8 @@ std::string lexical_cast<std::string, bool>(const bool& arg);
 } // namespace boost
 
 namespace osquery {
+
+class Status;
 
 struct FlagDetail {
   std::string description;
