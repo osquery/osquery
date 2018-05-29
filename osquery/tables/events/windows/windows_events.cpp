@@ -16,6 +16,7 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
