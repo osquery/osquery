@@ -9,14 +9,15 @@
  */
 
 #include <boost/algorithm/string.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/logger.h>
-#include <osquery/tables.h>
 #include <osquery/registry_factory.h>
+#include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
