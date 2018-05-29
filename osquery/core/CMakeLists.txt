@@ -63,7 +63,6 @@ endif()
 ADD_OSQUERY_TEST(TRUE
   "${CMAKE_CURRENT_LIST_DIR}/tests/conversions_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/flags_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/tests/posix/permissions_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/process_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/query_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/status_tests.cpp"
@@ -73,3 +72,8 @@ ADD_OSQUERY_TEST(TRUE
   "${CMAKE_CURRENT_LIST_DIR}/tests/watcher_tests.cpp"
 )
 
+if (UNIX) 
+  ADD_OSQUERY_TEST(TRUE
+    "${CMAKE_CURRENT_LIST_DIR}/tests/posix/permissions_tests.cpp"
+  )   
+endif()
