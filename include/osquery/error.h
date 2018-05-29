@@ -11,30 +11,12 @@
 #pragma once
 
 #include <boost/core/demangle.hpp>
-#include <exception>
-#include <functional>
-#include <ios>
-#include <memory>
 #include <new>
-#include <stdexcept>
 #include <string>
 #include <typeinfo>
 
 namespace osquery {
 class Status;
-
-enum class ExceptionCode {
-  Generic = 1,
-  Runtime = 2,
-  Logic = 3,
-  BadCast = 4,
-  Bad = 5,
-  BadTypeID = 6,
-  BadWeakPtr = 7,
-  BadFunctionCall = 8,
-  BadAlloc = 9,
-  BaseIOFailuer = 10,
-};
 
 class ErrorBase {
  public:
@@ -59,11 +41,6 @@ class Error : public ErrorBase {
       : errorCode_(error_code),
         message_(std::move(message)),
         underlyingError_(std::move(underlying_error)) {}
-
-  Error(T error_code, std::exception exception, std::string message = "")
-      : errorCode_(error_code),
-        message_(std::move(message)),
-        underlyingError_(new Error<ExceptionCode>(exception)) {}
 
   Error(Error&& other) {
     errorCode_ = other.errorCode_;
@@ -116,29 +93,6 @@ class Error : public ErrorBase {
     }
     return full_message;
   }
-
-  /// Please use Error(domain,error_code,exception,message) for exceptions
-  /// Error created from exception does provide enough information
-  /// for reporting or error handling
-  Error<ExceptionCode>(std::exception exception,
-                       ExceptionCode code = ExceptionCode::Generic)
-      : errorCode_(code),
-        message_(exception.what()),
-        underlyingError_(nullptr) {}
-  Error(std::runtime_error exception)
-      : Error(exception, ExceptionCode::Runtime) {}
-  Error(std::logic_error exception) : Error(exception, ExceptionCode::Logic) {}
-  Error(std::bad_cast exception) : Error(exception, ExceptionCode::BadCast) {}
-  Error(std::bad_exception exception) : Error(exception, ExceptionCode::Bad) {}
-  Error(std::bad_typeid exception)
-      : Error(exception, ExceptionCode::BadTypeID) {}
-  Error(std::bad_weak_ptr exception)
-      : Error(exception, ExceptionCode::BadWeakPtr) {}
-  Error(std::bad_function_call exception)
-      : Error(exception, ExceptionCode::BadFunctionCall) {}
-  Error(std::bad_alloc exception) : Error(exception, ExceptionCode::BadAlloc) {}
-  Error(std::ios_base::failure exception)
-      : Error(exception, ExceptionCode::BaseIOFailuer) {}
 
  private:
   T errorCode_;

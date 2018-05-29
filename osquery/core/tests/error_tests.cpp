@@ -21,16 +21,6 @@ GTEST_TEST(ErrorTest, initialization) {
   EXPECT_EQ(error.getFullMessage(), "TestError 1 (TestMessage)");
 }
 
-GTEST_TEST(ErrorTest, exception) {
-  auto exception = std::logic_error("Logic error exception");
-  auto error = osquery::Error<TestError>(
-      TestError::AnotherError, exception, "TestMessage");
-  EXPECT_NE(error.getUnderlyingError(), nullptr);
-  EXPECT_TRUE(error == TestError::AnotherError);
-  EXPECT_EQ(error.getShortMessage(), "TestError 2");
-  EXPECT_EQ(error.getFullMessage(), "TestError 2 (TestMessage)");
-}
-
 GTEST_TEST(ErrorTest, recursive) {
   auto orignalError = std::make_shared<osquery::Error<TestError>>(
       TestError::SomeError, "SuperTestMessage");
