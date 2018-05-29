@@ -11,7 +11,6 @@
 #pragma once
 
 #include <boost/core/demangle.hpp>
-#include <cxxabi.h>
 #include <exception>
 #include <functional>
 #include <ios>
