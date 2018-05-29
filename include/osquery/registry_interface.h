@@ -18,6 +18,7 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 #include <osquery/plugin.h>
 #include <osquery/status.h>
 

@@ -10,13 +10,13 @@
 
 #pragma once
 
+#include <csignal>
 #include <mutex>
 #include <string>
-#include <vector>
-
-#include <boost/filesystem/path.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
+#include <osquery/status.h>
 
 #ifdef WIN32
 #include <osquery/windows/system.h>

@@ -20,6 +20,8 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
+#include <osquery/status.h>
 
 namespace osquery {
 

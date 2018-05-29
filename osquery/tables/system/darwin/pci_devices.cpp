@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/darwin/iokit.hpp"

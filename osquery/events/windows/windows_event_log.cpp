@@ -18,6 +18,7 @@
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/core/windows/wmi.h"
 #include "osquery/events/windows/windows_event_log.h"
