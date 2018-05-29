@@ -66,7 +66,7 @@ class Expected {
   Expected(const Expected&) = delete;
 
   ~Expected() {
-    assert(errorChecked_ || "Error was not checked");
+    assert(errorChecked_ && "Error was not checked");
   }
 
   Expected& operator=(Expected&& other) {
