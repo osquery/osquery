@@ -15,6 +15,7 @@
 #include <osquery/config.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/events/linux/inotify.h"
 #include "osquery/tables/events/event_utils.h"
