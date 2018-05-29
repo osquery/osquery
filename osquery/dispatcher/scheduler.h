@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <chrono>
 #include <map>
 
 #include <osquery/dispatcher.h>
@@ -21,10 +22,15 @@ namespace osquery {
 /// A Dispatcher service thread that watches an ExtensionManagerHandler.
 class SchedulerRunner : public InternalRunnable {
  public:
-  SchedulerRunner(unsigned long int timeout, size_t interval)
+  SchedulerRunner(
+      unsigned long int timeout,
+      size_t interval,
+      std::chrono::milliseconds max_time_drift = std::chrono::seconds::zero())
       : InternalRunnable("SchedulerRunner"),
-        interval_(interval),
-        timeout_(timeout) {}
+        interval_{std::chrono::seconds{interval}},
+        timeout_(timeout),
+        time_drift_{std::chrono::milliseconds::zero()},
+        max_time_drift_{max_time_drift} {}
 
  public:
   /// The Dispatcher thread entry point.
@@ -33,12 +39,22 @@ class SchedulerRunner : public InternalRunnable {
   /// The Dispatcher interrupt point.
   void stop() override {}
 
+  /// Accumulated for some time time drift to compensate.
+  std::chrono::milliseconds getCurrentTimeDrift() const noexcept;
+
  private:
   /// Interval in seconds between schedule steps.
-  size_t interval_;
+  const std::chrono::milliseconds interval_;
 
   /// Maximum number of steps.
-  unsigned long int timeout_;
+  const unsigned long int timeout_;
+
+  /// Accumulated for some time time drift to compensate.
+  /// It will be either reduced during compensation process or
+  /// after exceding the limit @see max_time_drift_
+  std::chrono::milliseconds time_drift_;
+
+  const std::chrono::milliseconds max_time_drift_;
 };
 
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query);
