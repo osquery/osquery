@@ -14,6 +14,7 @@
 #define _WIN32_DCOM
 
 #include <Windows.h>
+#include <iomanip>
 #include <psapi.h>
 #include <stdlib.h>
 #include <tlhelp32.h>
