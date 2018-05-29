@@ -24,7 +24,6 @@ function distro_main() {
   package ruby
   package ruby-dev
   package bsdtar
-  package realpath
   package doxygen
   package valgrind
 
