@@ -101,11 +101,6 @@ class Error : public ErrorBase {
 };
 
 template <class T>
-inline bool operator==(const Error<T>* lhs, const Error<T>* rhs) {
-  return lhs->getErrorCode() == rhs->getErrorCode();
-}
-
-template <class T>
 inline bool operator==(const Error<T>& lhs, const Error<T>& rhs) {
   return lhs.getErrorCode() == rhs.getErrorCode();
 }
