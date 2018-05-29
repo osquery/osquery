@@ -53,7 +53,6 @@ class Expected {
  public:
   Expected(T object) : object_(std::move(object)), hasError_(false) {}
   Expected(ErrorBase* error) = delete;
-  Expected(ErrorBase error) = delete;
   Expected() : error_(nullptr), hasError_(false) {}
   Expected(std::shared_ptr<ErrorBase> error)
       : error_(std::move(error)), hasError_(true) {}

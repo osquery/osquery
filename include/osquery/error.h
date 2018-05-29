@@ -11,10 +11,10 @@
 #pragma once
 
 #include <boost/core/demangle.hpp>
+#include <memory>
 #include <new>
 #include <string>
 #include <typeinfo>
-#include <memory>
 
 namespace osquery {
 class Status;
