@@ -10,6 +10,7 @@
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/logger/plugins/windows_event_log.h"
 
