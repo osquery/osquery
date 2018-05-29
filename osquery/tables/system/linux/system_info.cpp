@@ -63,7 +63,8 @@ QueryData genSystemInfo(QueryContext& context) {
 
   struct utsname utsbuf;
   if (uname(&utsbuf) == -1) {
-    LOG(WARNING) << "Failed to get cpu_type, uname failed with error code: " << std::to_string(errno);
+    LOG(WARNING) << "Failed to get cpu_type, uname failed with error code: "
+                 << std::to_string(errno);
   } else {
     r["cpu_type"] = std::string(utsbuf.machine);
   }
