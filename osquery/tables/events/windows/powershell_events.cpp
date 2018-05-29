@@ -17,8 +17,8 @@
 #include <osquery/core.h>
 #include <osquery/database.h>
 #include <osquery/logger.h>
-#include <osquery/tables.h>
 #include <osquery/registry_factory.h>
+#include <osquery/tables.h>
 
 #include "osquery/config/parsers/feature_vectors.h"
 #include "osquery/core/conversions.h"
