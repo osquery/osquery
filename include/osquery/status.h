@@ -13,7 +13,6 @@
 #include <include/osquery/error.h>
 #include <sstream>
 #include <string>
-#include <utility>
 
 namespace osquery {
 

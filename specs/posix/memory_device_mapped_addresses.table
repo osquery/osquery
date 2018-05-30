@@ -1,0 +1,21 @@
+table_name("memory_device_mapped_addresses")
+description("Data associated for address mapping of physical memory devices.")
+schema([
+    Column("handle",  TEXT, "Handle, or instance number, associated with the structure"),
+    Column("memory_device_handle", TEXT,
+      "Handle of the memory device structure associated with this structure"),
+    Column("memory_array_mapped_address_handle", TEXT,
+      "Handle of the memory array mapped address to which this device range is mapped to"),
+    Column("starting_address",  TEXT,
+      "Physical stating address, in kilobytes, of a range of memory mapped to physical memory array"),
+    Column("ending_address", TEXT,
+      "Physical ending address of last kilobyte of a range of memory mapped to physical memory array"),
+    Column("partition_row_position", INTEGER,
+      "Identifies the position of the referenced memory device in a row of the address partition"),
+    Column("interleave_position", INTEGER,
+      "The position of the device in a interleave, i.e. 0 indicates non-interleave, 1 indicates 1st interleave, 2 indicates 2nd interleave, etc."),
+    Column("interleave_data_depth", INTEGER,
+      "The max number of consecutive rows from memory device that are accessed in a single interleave transfer; 0 indicates device is non-interleave"),
+])
+
+implementation("smbios_tables@genMemoryDeviceMappedAddresses")

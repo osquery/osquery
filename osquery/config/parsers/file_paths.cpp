@@ -11,6 +11,7 @@
 #include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 namespace pt = boost::property_tree;
 

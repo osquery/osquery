@@ -14,11 +14,11 @@
 #include <string>
 #include <vector>
 
-#include <osquery/registry.h>
-#include <osquery/status.h>
+#include <osquery/plugin.h>
 
 namespace osquery {
 
+class Status;
 /**
  * @brief A list of supported backing storage categories: called domains.
  *
