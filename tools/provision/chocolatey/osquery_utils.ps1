@@ -225,3 +225,39 @@ function Start-OsqueryProcess {
     }
   }
 }
+
+# A helper function to derive the latest VS install
+function Get-VSInfo {
+
+  # Attempt to make use of vswhere to derive the build tools scripts
+  $vswhere = (Get-Command 'vswhere').Source
+  $vswhereArgs = @('-latest', '-legacy')
+  $vswhereOut = (Start-OsqueryProcess $vswhere $vswhereArgs).stdout
+  $vsinfo = "" | Select-Object -Property location,version
+  $vsinfo.location = ''
+  $vsinfo.version = ''
+  foreach ($l in $vswhereOut.split([environment]::NewLine)) {
+    $toks = $l.split(":")
+    if ($toks.Length -lt 2) {
+      continue
+    }
+    if ($toks[0].trim() -like 'installationVersion') {
+      $vsinfo.version = $toks[1].Split(".")[0]
+    }
+    if ($toks[0].trim() -like 'installationPath') {
+      $vsinfo.location = [System.String]::Join(":", $toks[1..$toks.Length])
+    }
+  }
+  $vsinfo.location = $vsinfo.location.trim()
+  $vsinfo.version = $vsinfo.version.trim()
+  return $vsinfo
+}
+
+# A helper function to determine if VS 2017 is installed
+function Check-VSInstall {
+  $vsinfo = Get-VSInfo
+  if ($($vsinfo.version) -eq '15') {
+    return $true
+  }
+  return $false
+}

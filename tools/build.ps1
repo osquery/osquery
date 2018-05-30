@@ -67,11 +67,14 @@ function Invoke-VcVarsAll {
 
 # A helper function to call CMake and generate our solution file
 function Invoke-OsqueryCmake {
+  $vsinfo = Get-VSInfo
   $cmake = (Get-Command 'cmake').Source
-  $cmakeArgs = @(
-    '-G "Visual Studio 14 2015 Win64"',
-    '../../'
-  )
+  if ($($vsinfo.version) -eq '15'){
+    $cmakeArgs = @('-G "Visual Studio 15 2017 Win64"')
+  } else {
+    $cmakeArgs = @('-G "Visual Studio 14 2015 Win64"')
+  }
+  $cmakeArgs += '../../'
   $null = Start-OsqueryProcess $cmake $cmakeArgs $false
 }
 
