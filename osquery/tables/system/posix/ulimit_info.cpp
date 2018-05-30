@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <cerrno>
 #include <climits>
 #include <map>
 #include <string>
@@ -17,42 +18,11 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
-#ifndef RLIMIT_LOCKS
-#define RLIMIT_LOCKS -1
-#endif
-#ifndef RLIMIT_SIGPENDING
-#define RLIMIT_SIGPENDING -1
-#endif
-#ifndef RLIMIT_MSGQUEUE
-#define RLIMIT_MSGQUEUE -1
-#endif
-#ifndef RLIMIT_NICE
-#define RLIMIT_NICE -1
-#endif
-#ifndef RLIMIT_RTPRIO
-#define RLIMIT_RTPRIO -1
-#endif
-#ifndef RLIMIT_SBSIZE
-#define RLIMIT_SBSIZE -1
-#endif
-#ifndef RLIMIT_NPTS
-#define RLIMIT_NPTS -1
-#endif
-#ifndef RLIMIT_SWAP
-#define RLIMIT_SWAP -1
-#endif
-#ifndef RLIMIT_KQUEUES
-#define RLIMIT_KQUEUES -1
-#endif
-#ifndef RLIMIT_UMTXP
-#define RLIMIT_UMTXP -1
-#endif
-
 namespace osquery {
 namespace tables {
 
 void getLimit(QueryData& results) {
-  std::map<std::string, int> resource_map = {
+  static const std::map<std::string, int> resource_map = {
       {"cpu", RLIMIT_CPU},
       {"fsize", RLIMIT_FSIZE},
       {"data", RLIMIT_DATA},
@@ -63,23 +33,44 @@ void getLimit(QueryData& results) {
       {"rss", RLIMIT_RSS},
       {"memlock", RLIMIT_MEMLOCK},
       {"nproc", RLIMIT_NPROC},
+#ifdef RLIMIT_LOCKS
       {"locks", RLIMIT_LOCKS},
+#endif
+#ifdef RLIMIT_SIGPENDING
       {"sigpending", RLIMIT_SIGPENDING},
+#endif
+#ifdef RLIMIT_MSGQUEUE
       {"msgqueue", RLIMIT_MSGQUEUE},
+#endif
+#ifdef RLIMIT_NICE
       {"nice", RLIMIT_NICE},
+#endif
+#ifdef RLIMIT_RTPRIO
       {"rtprio", RLIMIT_RTPRIO},
+#endif
+#ifdef RLIMIT_SBSIZE
       {"sbsize", RLIMIT_SBSIZE},
+#endif
+#ifdef RLIMIT_NPTS
       {"npts", RLIMIT_NPTS},
+#endif
+#ifdef RLIMIT_SWAP
       {"swap", RLIMIT_SWAP},
+#endif
+#ifdef RLIMIT_KQUEUES
       {"kqueues", RLIMIT_KQUEUES},
+#endif
+#ifdef RLIMIT_UMTXP
       {"umtxp", RLIMIT_UMTXP},
+#endif
   };
 
   for (const auto& it : resource_map) {
     struct rlimit rlp;
     auto result = getrlimit(it.second, &rlp);
     if (result == -1) {
-      LOG(INFO) << "Failed to get limit for " << it.first;
+      LOG(INFO) << "Failed to get limit for " << it.first << ": "
+                << std::strerror(errno);
       continue;
     }
     Row r;
