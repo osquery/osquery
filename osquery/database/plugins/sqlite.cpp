@@ -8,22 +8,16 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <mutex>
-
 #include <sqlite3.h>
-
 #include <sys/stat.h>
 
-#include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
-#include <osquery/registry_factory.h>
 
 #include "osquery/filesystem/fileops.h"
+#include "osquery/database/plugins/sqlite.h"
 
 namespace osquery {
-
-DECLARE_string(database_path);
 
 const std::map<std::string, std::string> kDBSettings = {
     {"synchronous", "OFF"},
@@ -34,60 +28,6 @@ const std::map<std::string, std::string> kDBSettings = {
     {"cache_size", "1000"},
     {"page_count", "1000"},
 };
-
-class SQLiteDatabasePlugin : public DatabasePlugin {
- public:
-  /// Data retrieval method.
-  Status get(const std::string& domain,
-             const std::string& key,
-             std::string& value) const override;
-
-  /// Data storage method.
-  Status put(const std::string& domain,
-             const std::string& key,
-             const std::string& value) override;
-
-  /// Data removal method.
-  Status remove(const std::string& domain, const std::string& k) override;
-
-  /// Data range removal method.
-  Status removeRange(const std::string& domain,
-                     const std::string& low,
-                     const std::string& high) override;
-
-  /// Key/index lookup method.
-  Status scan(const std::string& domain,
-              std::vector<std::string>& results,
-              const std::string& prefix,
-              size_t max) const override;
-
- public:
-  /// Database workflow: open and setup.
-  Status setUp() override;
-
-  /// Database workflow: close and cleanup.
-  void tearDown() override {
-    close();
-  }
-
-  /// Need to tear down open resources,
-  virtual ~SQLiteDatabasePlugin() {
-    close();
-  }
-
- private:
-  void close();
-
- private:
-  /// The long-lived sqlite3 database.
-  sqlite3* db_{nullptr};
-
-  /// Deconstruction mutex.
-  Mutex close_mutex_;
-};
-
-/// Backing-storage provider for osquery internal/core.
-REGISTER_INTERNAL(SQLiteDatabasePlugin, "database", "sqlite");
 
 Status SQLiteDatabasePlugin::setUp() {
   if (!DatabasePlugin::kDBAllowOpen) {
