@@ -11,8 +11,6 @@
 #include <string>
 #include <iomanip>
 
-#include <boost/lexical_cast.hpp>
-
 #include <osquery/filesystem.h>
 #include <osquery/core.h>
 

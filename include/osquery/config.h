@@ -17,12 +17,12 @@
 #include <osquery/core.h>
 #include <osquery/plugin.h>
 #include <osquery/query.h>
-#include <osquery/status.h>
 
 #include "osquery/core/json.h"
 
 namespace osquery {
 
+class Status;
 class Config;
 class Pack;
 class Schedule;

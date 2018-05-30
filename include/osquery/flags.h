@@ -42,6 +42,8 @@ std::string lexical_cast<std::string, bool>(const bool& arg);
 
 namespace osquery {
 
+class Status;
+
 struct FlagDetail {
   std::string description;
   bool shell;
