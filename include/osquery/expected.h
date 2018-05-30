@@ -49,7 +49,7 @@
 namespace osquery {
 
 template <class T>
-class Expected {
+class Expected final {
  public:
   Expected(T object) : object_(std::move(object)), hasError_(false) {}
   Expected(ErrorBase* error) = delete;

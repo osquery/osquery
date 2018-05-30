@@ -17,7 +17,6 @@
 #include <typeinfo>
 
 namespace osquery {
-class Status;
 
 class ErrorBase {
  public:
