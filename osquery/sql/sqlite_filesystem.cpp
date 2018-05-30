@@ -17,33 +17,31 @@ namespace osquery {
 
 static boost::optional<std::string> findExistingProgramPathFromCommand(
     const char* path, char escape_symbol, bool allow_quoting, bool shortest) {
-  size_t length = strlen(path);
   std::string result;
-  size_t pos = 0;
   // Skip spaces
-  for (; pos < length; ++pos) {
-    if (!isspace(path[pos])) {
+  for (; *path != '\0'; ++path) {
+    if (!isspace(*path)) {
       break;
     }
   }
   std::string temp_string;
   bool is_quoted = false;
   bool is_escaped = false;
-  for (; pos < length; ++pos) {
+  for (; *path != '\0'; ++path) {
     if (is_escaped) {
-      temp_string += path[pos];
+      temp_string += *path;
       is_escaped = false;
       continue;
     }
-    if (allow_quoting && path[pos] == '"') {
+    if (allow_quoting && *path == '"') {
       is_quoted = !is_quoted;
       continue;
     }
-    if (path[pos] == escape_symbol) {
+    if (*path == escape_symbol) {
       is_escaped = true;
       continue;
     }
-    if (!is_quoted && isspace(path[pos])) {
+    if (!is_quoted && isspace(*path)) {
       // validate temp string
       boost::filesystem::path test_path = temp_string;
       auto status = boost::filesystem::status(test_path);
@@ -55,7 +53,7 @@ static boost::optional<std::string> findExistingProgramPathFromCommand(
         }
       }
     }
-    temp_string += path[pos];
+    temp_string += *path;
   }
   if (result.length() == 0 || !shortest) {
     boost::filesystem::path test_path = temp_string;
