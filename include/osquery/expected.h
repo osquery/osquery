@@ -16,7 +16,8 @@
 #include <type_traits>
 #include <utility>
 
-/** Utility class that should be used in function that return
+/**
+ * Utility class that should be used in function that return
  * either error or value. Expected enforce developer to test for success and
  * check error if any.
  *
@@ -48,10 +49,11 @@
 
 namespace osquery {
 
-template <class T>
+template <class ErrorCodeEnumType>
 class Expected final {
  public:
-  Expected(T object) : object_(std::move(object)), hasError_(false) {}
+  Expected(ErrorCodeEnumType object)
+      : object_(std::move(object)), hasError_(false) {}
   Expected(ErrorBase* error) = delete;
   Expected() : error_(nullptr), hasError_(false) {}
   Expected(std::shared_ptr<ErrorBase> error)
@@ -92,39 +94,39 @@ class Expected final {
     return !hasError_;
   }
 
-  T& get() {
+  ErrorCodeEnumType& get() {
     return object_;
   }
 
-  const T& get() const {
+  const ErrorCodeEnumType& get() const {
     return object_;
   }
 
-  T take() {
+  ErrorCodeEnumType take() {
     return std::move(object_);
   }
 
-  T* operator->() {
+  ErrorCodeEnumType* operator->() {
     return object_;
   }
 
-  const T* operator->() const {
+  const ErrorCodeEnumType* operator->() const {
     return object_;
   }
 
-  T& operator*() {
+  ErrorCodeEnumType& operator*() {
     return object_;
   }
 
-  const T& operator*() const {
+  const ErrorCodeEnumType& operator*() const {
     return object_;
   }
 
  private:
-  static const bool isPointer = std::is_pointer<T>::value;
+  static const bool isPointer = std::is_pointer<ErrorCodeEnumType>::value;
   static_assert(!isPointer, "Use shared/unique pointer");
 
-  T object_;
+  ErrorCodeEnumType object_;
   std::shared_ptr<ErrorBase> error_;
   bool hasError_;
   mutable bool errorChecked_ = false;
