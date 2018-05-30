@@ -209,6 +209,9 @@ class DatabasePlugin : public Plugin {
 Status getDatabaseValue(const std::string& domain,
                         const std::string& key,
                         std::string& value);
+Status getDatabaseValue(const std::string& domain,
+                        const std::string& key,
+                        int& value);
 
 /**
  * @brief Set or put a value into the active osquery DatabasePlugin storage.
@@ -225,6 +228,9 @@ Status getDatabaseValue(const std::string& domain,
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         const std::string& value);
+Status setDatabaseValue(const std::string& domain,
+                        const std::string& key,
+                        int value);
 
 /// Remove a domain/key identified value from backing-store.
 Status deleteDatabaseValue(const std::string& domain, const std::string& key);
