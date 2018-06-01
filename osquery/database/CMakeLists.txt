@@ -38,6 +38,8 @@ target_compile_definitions(osquery_database_plugins
 )
 
 ADD_OSQUERY_TEST(FALSE
+  "${CMAKE_CURRENT_LIST_DIR}/tests/plugin_tests.cpp"  
+  "${CMAKE_CURRENT_LIST_DIR}/tests/plugin_tests.h"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/rocksdb_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/sqlite_tests.cpp"
 )
