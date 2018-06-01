@@ -204,15 +204,16 @@ QueryData genSignature(QueryContext& context) {
         }
         return status;
       }));
-  for (const auto& path_string : paths) {
-    // Note: we are explicitly *not* using is_regular_file here, since you can
-    // pass a directory path to the verification functions (e.g. for app
-    // bundles, etc.)
-    if (!pathExists(path_string).ok()) {
-      continue;
+  @autoreleasepool {
+    for (const auto& path_string : paths) {
+      // Note: we are explicitly *not* using is_regular_file here, since you can
+      // pass a directory path to the verification functions (e.g. for app
+      // bundles, etc.)
+      if (!pathExists(path_string).ok()) {
+        continue;
+      }
+      genSignatureForFile(path_string, results);
     }
-
-    genSignatureForFile(path_string, results);
   }
 
   return results;

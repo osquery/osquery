@@ -18,25 +18,25 @@ class JSONSerializersTests : public testing::Test {};
 
 TEST_F(JSONSerializersTests, test_serialize) {
   auto json = JSONSerializer();
-  boost::property_tree::ptree params;
-  params.put<std::string>("foo", "bar");
+  JSON params;
+  params.add("foo", "bar");
 
   std::string serialized;
   auto s = json.serialize(params, serialized);
   EXPECT_TRUE(s.ok());
-  EXPECT_EQ(serialized, "{\"foo\":\"bar\"}\n");
+  EXPECT_EQ(serialized, "{\"foo\":\"bar\"}");
 }
 
 TEST_F(JSONSerializersTests, test_deserialize) {
   auto json = JSONSerializer();
-  boost::property_tree::ptree params;
-  std::string serialized = "{\"foo\":\"bar\"}\n";
+  JSON params;
+  std::string serialized = "{\"foo\":\"bar\"}";
   auto s = json.deserialize(serialized, params);
 
-  boost::property_tree::ptree expected;
-  expected.put<std::string>("foo", "bar");
+  JSON expected;
+  expected.add("foo", "bar");
 
   EXPECT_TRUE(s.ok());
-  EXPECT_EQ(params, expected);
+  EXPECT_EQ(params.doc(), expected.doc());
 }
 }

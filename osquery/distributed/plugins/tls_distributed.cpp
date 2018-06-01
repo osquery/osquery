@@ -16,8 +16,6 @@
 #include <vector>
 #include <sstream>
 
-#include <boost/property_tree/ptree.hpp>
-
 #include <osquery/distributed.h>
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
@@ -70,19 +68,18 @@ Status TLSDistributedPlugin::setUp() {
 }
 
 Status TLSDistributedPlugin::getQueries(std::string& json) {
-  pt::ptree params;
-  params.put("_verb", "POST");
+  JSON params;
+  params.add("_verb", "POST");
   return TLSRequestHelper::go<JSONSerializer>(
       read_uri_, params, json, FLAGS_distributed_tls_max_attempts);
 }
 
 Status TLSDistributedPlugin::writeResults(const std::string& json) {
-  pt::ptree params;
-  try {
-    std::stringstream ss(json);
-    pt::read_json(ss, params);
-  } catch (const pt::ptree_error& e) {
-    return Status(1, "Error parsing JSON: " + std::string(e.what()));
+  JSON params;
+  Status s = params.fromString(json);
+
+  if (!s.ok()) {
+    return s;
   }
 
   // The response is ignored.

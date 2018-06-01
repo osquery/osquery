@@ -14,13 +14,13 @@
 #define _WIN32_DCOM
 
 #include <Windows.h>
+#include <iomanip>
 #include <psapi.h>
 #include <stdlib.h>
 #include <tlhelp32.h>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -29,7 +29,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
-#include <osquery/filesystem/fileops.h>
+#include "osquery/filesystem/fileops.h"
 
 namespace osquery {
 int getUidFromSid(PSID sid);
@@ -70,6 +70,7 @@ Status genMemoryMap(unsigned long pid, QueryData& results) {
   auto modSnap =
       CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid);
   if (modSnap == INVALID_HANDLE_VALUE) {
+    CloseHandle(proc);
     return Status(1, "Failed to enumerate modules for " + std::to_string(pid));
   }
 
@@ -113,7 +114,7 @@ Status genMemoryMap(unsigned long pid, QueryData& results) {
     }
     ret = Module32Next(modSnap, &me);
   }
-
+  CloseHandle(proc);
   CloseHandle(modSnap);
   return Status(0, "Ok");
 }
@@ -234,12 +235,23 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   auto ret = OpenProcessToken(hProcess, TOKEN_READ, &tok);
   if (ret != 0 && tok != nullptr) {
     unsigned long tokOwnerBuffLen;
-    ret = GetTokenInformation(tok, TokenOwner, nullptr, 0, &tokOwnerBuffLen);
+    ret = GetTokenInformation(tok, TokenUser, nullptr, 0, &tokOwnerBuffLen);
     if (ret == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
       tokOwner.resize(tokOwnerBuffLen);
       ret = GetTokenInformation(
-          tok, TokenOwner, tokOwner.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
+          tok, TokenUser, tokOwner.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
     }
+
+    // Check if the process is using an elevated token
+    auto elevated = FALSE;
+    TOKEN_ELEVATION Elevation;
+    DWORD cbSize = sizeof(TOKEN_ELEVATION);
+    if (GetTokenInformation(
+            tok, TokenElevation, &Elevation, sizeof(Elevation), &cbSize)) {
+      elevated = Elevation.TokenIsElevated;
+    }
+
+    r["is_elevated_token"] = elevated ? INTEGER(1) : INTEGER(0);
   }
   if (uid != 0 && ret != 0 && !tokOwner.empty()) {
     auto sid = PTOKEN_OWNER(tokOwner.data())->Owner;

@@ -12,7 +12,7 @@ def macos_minimum_sdk
 end
 
 def llvm_version
-  return "5.0.1"
+  return "6.0.0"
 end
 
 def legacy_prefix
@@ -66,6 +66,18 @@ class AbstractOsqueryFormula < Formula
       "-DCMAKE_LIBRARY_PATH=#{ENV["LIBRARY_PATH"]}",
       "-DCMAKE_INCLUDE_PATH=#{includes}",
     ]
+  end
+
+  def osquery_autoconf_flags
+    autoconf_flags = [
+      "--disable-debug",
+      "--disable-dependency-tracking",
+      "--disable-silent-rules",
+      "--prefix=#{prefix}",
+      "--disable-shared",
+      "--enable-static",
+    ]
+    autoconf_flags
   end
 
   def reset(name)
@@ -135,8 +147,9 @@ class AbstractOsqueryFormula < Formula
       ENV["CC"] = "gcc"
       ENV["CXX"] = "g++"
       prepend "CFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
-      prepend "CXXFLAGS", "-I#{legacy_prefix}/include" if OS.linux?
-      prepend "CXXFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
+      prepend "CXXFLAGS", "-idirafter/usr/include -idirafter/usr/include/x86_64-linux-gnu" if OS.linux?
+      prepend "CXXFLAGS", "-idirafter#{legacy_prefix}/include" if OS.linux?
+      prepend "CXXFLAGS", "-no-canonical-prefixes --sysroot=#{legacy_prefix}" if OS.linux?
       append "CFLAGS", "-Os"
       append "CXXFLAGS", "-Os"
     end
@@ -152,19 +165,13 @@ class AbstractOsqueryFormula < Formula
     end
 
     if runtime_build
-      # RapidJSON does not use CPPFlags.
-      prepend "CXXFLAGS", "-isystem#{default_prefix}/lib/clang/#{llvm_version}/include" if OS.linux?
-      prepend "CXXFLAGS", "-isystem#{default_prefix}/include"
-      prepend "CXXFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
-      prepend "CXXFLAGS", "-isystem#{default_prefix}/include/c++/v1" if OS.linux?
-
-      prepend "CFLAGS", "-isystem#{default_prefix}/lib/clang/#{llvm_version}/include" if OS.linux?
+      prepend "CPPFLAGS", "-I#{default_prefix}/include"
       prepend "CFLAGS", "-isystem#{default_prefix}/include"
-      prepend "CFLAGS", "-isystem#{legacy_prefix}/include" if OS.linux?
 
       if !libcpp_build
         # Clang will place -I before the -isystem from CPPFlags.
-        prepend "CXXFLAGS", "-I#{default_prefix}/include/c++/v1" if OS.linux?
+        prepend "CXXFLAGS", "-cxx-isystem#{default_prefix}/include/c++/v1" if OS.linux?
+
         append "CXXFLAGS", "-stdlib=libc++" if OS.linux?
         append "LDFLAGS", "-rtlib=compiler-rt" if OS.linux?
 
@@ -173,6 +180,9 @@ class AbstractOsqueryFormula < Formula
           append "CXXFLAGS", "-fvisibility=hidden -fvisibility-inlines-hidden"
         end
       end
+
+      # Finally, add the first CXXFLAGS.
+      prepend "CXXFLAGS", "-isystem#{default_prefix}/include"
 
       if !["libgcrypt"].include?(self.name)
         # GCrypt includes a Pragma GCC to disable optimization.
@@ -186,8 +196,9 @@ class AbstractOsqueryFormula < Formula
 
     if !stage1_build
       # Set the search path for header files.
-      prepend_path "CPATH", "#{default_prefix}/include"
       prepend_path "CPATH", "#{legacy_prefix}/include" if OS.linux?
+      prepend_path "CPATH", "#{default_prefix}/lib/clang/#{llvm_version}/include" if OS.linux?
+      prepend_path "CPATH", "#{default_prefix}/include"
       prepend_path "LD_RUN_PATH", "#{default_prefix}/lib"
     end
 
@@ -220,8 +231,8 @@ class AbstractOsqueryFormula < Formula
       self.setup_runtimes
     end
 
-    append "CFLAGS", "-fPIC -DNDEBUG -march=core2"
-    append "CXXFLAGS", "-fPIC -DNDEBUG -march=core2"
+    append "CFLAGS", "-fPIC -DNDEBUG -march=x86-64"
+    append "CXXFLAGS", "-fPIC -DNDEBUG -march=x86-64"
 
     # macOS compatibility flags.
     if OS.mac?

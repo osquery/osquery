@@ -19,13 +19,12 @@
 
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/core/process.h"
 #include "osquery/extensions/interface.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/tests/test_util.h"
-
-using namespace osquery::extensions;
 
 namespace osquery {
 
@@ -62,12 +61,12 @@ class ExtensionsTest : public testing::Test {
 
   bool ping(int attempts = 3) {
     // Calling open will except if the socket does not exist.
-    ExtensionStatus status;
     for (int i = 0; i < attempts; ++i) {
       try {
-        EXManagerClient client(socket_path);
-        client.get()->API_PING(status);
-        return (status.code == (int)ExtensionCode::EXT_SUCCESS);
+        ExtensionManagerClient client(socket_path);
+
+        auto status = client.ping();
+        return (status.getCode() == (int)ExtensionCode::EXT_SUCCESS);
       } catch (const std::exception& /* e */) {
         sleepFor(kDelay);
       }
@@ -78,19 +77,15 @@ class ExtensionsTest : public testing::Test {
 
   QueryData query(const std::string& sql, int attempts = 3) {
     // Calling open will except if the socket does not exist.
-    ExtensionResponse response;
+    QueryData qd;
     for (int i = 0; i < attempts; ++i) {
       try {
-        EXManagerClient client(socket_path);
-        client.get()->API_QUERY(response, sql);
+        ExtensionManagerClient client(socket_path);
+
+        client.query(sql, qd);
       } catch (const std::exception& /* e */) {
         sleepFor(kDelay);
       }
-    }
-
-    QueryData qd;
-    for (const auto& row : response.response) {
-      qd.push_back(row);
     }
 
     return qd;
@@ -151,9 +146,9 @@ TEST_F(ExtensionsTest, test_extension_start) {
   // Now allow duplicates (for testing, since EM/E are the same).
   rf.allowDuplicates(true);
   status = startExtension(socket_path, "test", "0.1", "0.0.0", "9.9.9");
-  // This will not be false since we are allowing deplicate items.
+  // This will not be false since we are allowing duplicate items.
   // Otherwise, starting an extension and extensionManager would fatal.
-  ASSERT_TRUE(status.ok());
+  ASSERT_NE(status.getCode(), (int)ExtensionCode::EXT_FAILED);
 
   // Checks for version comparisons (also used by packs).
   ASSERT_FALSE(versionAtLeast("1.1.1", "0.0.1"));

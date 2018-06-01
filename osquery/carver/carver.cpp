@@ -15,7 +15,6 @@
 #endif
 
 #include <boost/algorithm/string.hpp>
-#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/database.h>
 #include <osquery/distributed.h>
@@ -25,11 +24,11 @@
 
 #include "osquery/carver/carver.h"
 #include "osquery/core/conversions.h"
+#include "osquery/core/hashing.h"
 #include "osquery/core/json.h"
 #include "osquery/filesystem/fileops.h"
 #include "osquery/remote/serializers/json.h"
 #include "osquery/remote/utility.h"
-#include "osquery/tables/system/hash.h"
 
 namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
@@ -85,20 +84,22 @@ void updateCarveValue(const std::string& guid,
     return;
   }
 
-  pt::ptree tree;
-  try {
-    std::stringstream ss(carve);
-    pt::read_json(ss, tree);
-  } catch (const pt::ptree_error& e) {
-    VLOG(1) << "Failed to parse carve entries: " << e.what();
+  JSON tree;
+  s = tree.fromString(carve);
+  if (!s.ok()) {
+    VLOG(1) << "Failed to parse carve entries: " << s.what();
     return;
   }
 
-  tree.put(key, value);
+  tree.add(key, value);
 
-  std::ostringstream os;
-  pt::write_json(os, tree, false);
-  s = setDatabaseValue(kCarveDbDomain, kCarverDBPrefix + guid, os.str());
+  std::string out;
+  s = tree.toString(out);
+  if (!s.ok()) {
+    VLOG(1) << "Failed to serialize carve entries: " << s.what();
+  }
+
+  s = setDatabaseValue(kCarveDbDomain, kCarverDBPrefix + guid, out);
   if (!s.ok()) {
     VLOG(1) << "Failed to update status of carve in database " << guid;
   }
@@ -237,7 +238,7 @@ Status Carver::carve(const boost::filesystem::path& path) {
 };
 
 Status Carver::postCarve(const boost::filesystem::path& path) {
-  auto startRequest = Request<TLSTransport, JSONSerializer>(startUri_);
+  Request<TLSTransport, JSONSerializer> startRequest(startUri_);
   startRequest.setOption("hostname", FLAGS_tls_hostname);
 
   // Perform the start request to get the session id
@@ -245,14 +246,14 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   auto blkCount =
       static_cast<size_t>(ceil(static_cast<double>(pFile.size()) /
                                static_cast<double>(FLAGS_carver_block_size)));
-  pt::ptree startParams;
+  JSON startParams;
 
-  startParams.put<size_t>("block_count", blkCount);
-  startParams.put<size_t>("block_size", FLAGS_carver_block_size);
-  startParams.put<size_t>("carve_size", pFile.size());
-  startParams.put<std::string>("carve_id", carveGuid_);
-  startParams.put<std::string>("request_id", requestId_);
-  startParams.put<std::string>("node_key", getNodeKey("tls"));
+  startParams.add("block_count", blkCount);
+  startParams.add("block_size", size_t(FLAGS_carver_block_size));
+  startParams.add("carve_size", pFile.size());
+  startParams.add("carve_id", carveGuid_);
+  startParams.add("request_id", requestId_);
+  startParams.add("node_key", getNodeKey("tls"));
 
   auto status = startRequest.call(startParams);
   if (!status.ok()) {
@@ -260,18 +261,26 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
   }
 
   // The call succeeded, store the session id for future posts
-  boost::property_tree::ptree startRecv;
+  JSON startRecv;
   status = startRequest.getResponse(startRecv);
   if (!status.ok()) {
     return status;
   }
 
-  auto session_id = startRecv.get("session_id", "");
-  if (session_id.empty()) {
+  auto it = startRecv.doc().FindMember("session_id");
+  if (it == startRecv.doc().MemberEnd()) {
     return Status(1, "No session_id received from remote endpoint");
   }
+  if (!it->value.IsString()) {
+    return Status(1, "Invalid session_id received from remote endpoint");
+  }
 
-  auto contRequest = Request<TLSTransport, JSONSerializer>(contUri_);
+  std::string session_id = it->value.GetString();
+  if (session_id.empty()) {
+    return Status(1, "Empty session_id received from remote endpoint");
+  }
+
+  Request<TLSTransport, JSONSerializer> contRequest(contUri_);
   contRequest.setOption("hostname", FLAGS_tls_hostname);
   for (size_t i = 0; i < blkCount; i++) {
     std::vector<char> block(FLAGS_carver_block_size, 0);
@@ -282,12 +291,11 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
       block.resize(r);
     }
 
-    pt::ptree params;
-    params.put<size_t>("block_id", i);
-    params.put<std::string>("session_id", session_id);
-    params.put<std::string>("request_id", requestId_);
-    params.put<std::string>(
-        "data", base64Encode(std::string(block.begin(), block.end())));
+    JSON params;
+    params.add("block_id", i);
+    params.add("session_id", session_id);
+    params.add("request_id", requestId_);
+    params.add("data", base64Encode(std::string(block.begin(), block.end())));
 
     // TODO: Error sending files.
     status = contRequest.call(params);
@@ -303,24 +311,30 @@ Status Carver::postCarve(const boost::filesystem::path& path) {
 };
 
 Status carvePaths(const std::set<std::string>& paths) {
+  Status s;
   auto guid = generateNewUUID();
 
-  pt::ptree tree;
-  tree.put("carve_guid", guid);
-  tree.put("time", getUnixTime());
-  tree.put("status", "STARTING");
-  tree.put("sha256", "");
-  tree.put("size", -1);
+  JSON tree;
+  tree.add("carve_guid", guid);
+  tree.add("time", getUnixTime());
+  tree.add("status", "STARTING");
+  tree.add("sha256", "");
+  tree.add("size", -1);
 
   if (paths.size() > 1) {
-    tree.put("path", boost::algorithm::join(paths, ","));
+    tree.add("path", boost::algorithm::join(paths, ","));
   } else {
-    tree.put("path", *(paths.begin()));
+    tree.add("path", *(paths.begin()));
   }
 
-  std::ostringstream os;
-  pt::write_json(os, tree, false);
-  auto s = setDatabaseValue(kCarveDbDomain, kCarverDBPrefix + guid, os.str());
+  std::string out;
+  s = tree.toString(out);
+  if (!s.ok()) {
+    VLOG(1) << "Failed to serialize carve paths: " << s.what();
+    return s;
+  }
+
+  s = setDatabaseValue(kCarveDbDomain, kCarverDBPrefix + guid, out);
   if (!s.ok()) {
     return s;
   } else {

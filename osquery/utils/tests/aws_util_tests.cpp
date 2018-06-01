@@ -46,43 +46,50 @@ TEST_F(AwsUtilTests, test_get_credentials) {
   unsetEnvVar(kAwsAccessKeyEnvVar);
   unsetEnvVar(kAwsSecretKeyEnvVar);
 
-  OsqueryAWSCredentialsProviderChain provider;
   Aws::Auth::AWSCredentials credentials("", "");
 
   FLAGS_aws_access_key_id = "FLAG_ACCESS_KEY_ID";
   FLAGS_aws_secret_access_key = "flag_secret_key";
-  // With the flags set, those credentials should be used
-  provider = OsqueryAWSCredentialsProviderChain();
-  credentials = provider.GetAWSCredentials();
-  ASSERT_EQ("FLAG_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
-  ASSERT_EQ("flag_secret_key", credentials.GetAWSSecretKey());
+  {
+    // With the flags set, those credentials should be used
+    OsqueryAWSCredentialsProviderChain provider;
+    credentials = provider.GetAWSCredentials();
+    ASSERT_EQ("FLAG_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+    ASSERT_EQ("flag_secret_key", credentials.GetAWSSecretKey());
+  }
 
   FLAGS_aws_access_key_id = "FLAG_ACCESS_KEY_ID";
   FLAGS_aws_secret_access_key = "flag_secret_key";
-  // With the flags set and sts disabled, those credentials should be used
-  provider = OsqueryAWSCredentialsProviderChain(false);
-  credentials = provider.GetAWSCredentials();
-  ASSERT_EQ("FLAG_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
-  ASSERT_EQ("flag_secret_key", credentials.GetAWSSecretKey());
+  {
+    // With the flags set and sts disabled, those credentials should be used
+    OsqueryAWSCredentialsProviderChain provider(false);
+    credentials = provider.GetAWSCredentials();
+    ASSERT_EQ("FLAG_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+    ASSERT_EQ("flag_secret_key", credentials.GetAWSSecretKey());
+  }
 
   // Profiles are not working on Windows; see the constructor of
   // OsqueryAWSCredentialsProviderChain for more information
   if (!isPlatform(PlatformType::TYPE_WINDOWS)) {
     FLAGS_aws_access_key_id = "";
     FLAGS_aws_secret_access_key = "flag_secret_key";
-    // With the flags set improperly, the profile should be used
-    provider = OsqueryAWSCredentialsProviderChain();
-    credentials = provider.GetAWSCredentials();
-    ASSERT_EQ("DEFAULT_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
-    ASSERT_EQ("default_secret_key", credentials.GetAWSSecretKey());
+    {
+      // With the flags set improperly, the profile should be used
+      OsqueryAWSCredentialsProviderChain provider;
+      credentials = provider.GetAWSCredentials();
+      ASSERT_EQ("DEFAULT_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+      ASSERT_EQ("default_secret_key", credentials.GetAWSSecretKey());
+    }
 
     FLAGS_aws_access_key_id = "FLAG_ACCESS_KEY_ID";
     FLAGS_aws_secret_access_key = "";
-    // With the flags set improperly, the profile should be used
-    provider = OsqueryAWSCredentialsProviderChain();
-    credentials = provider.GetAWSCredentials();
-    ASSERT_EQ("DEFAULT_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
-    ASSERT_EQ("default_secret_key", credentials.GetAWSSecretKey());
+    {
+      // With the flags set improperly, the profile should be used
+      OsqueryAWSCredentialsProviderChain provider;
+      credentials = provider.GetAWSCredentials();
+      ASSERT_EQ("DEFAULT_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+      ASSERT_EQ("default_secret_key", credentials.GetAWSSecretKey());
+    }
 
     // Clear flags
     FLAGS_aws_access_key_id = "";
@@ -90,18 +97,22 @@ TEST_F(AwsUtilTests, test_get_credentials) {
 
     setEnvVar(kAwsAccessKeyEnvVar, "ENV_ACCESS_KEY_ID");
     setEnvVar(kAwsSecretKeyEnvVar, "env_secret_key");
-    // Now env variables should be the primary source
-    provider = OsqueryAWSCredentialsProviderChain();
-    credentials = provider.GetAWSCredentials();
-    ASSERT_EQ("ENV_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
-    ASSERT_EQ("env_secret_key", credentials.GetAWSSecretKey());
+    {
+      // Now env variables should be the primary source
+      OsqueryAWSCredentialsProviderChain provider;
+      credentials = provider.GetAWSCredentials();
+      ASSERT_EQ("ENV_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+      ASSERT_EQ("env_secret_key", credentials.GetAWSSecretKey());
+    }
 
     FLAGS_aws_profile_name = "test";
-    provider = OsqueryAWSCredentialsProviderChain();
-    credentials = provider.GetAWSCredentials();
-    // Now the "test" profile should take precedence
-    ASSERT_EQ("TEST_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
-    ASSERT_EQ("test_secret_key", credentials.GetAWSSecretKey());
+    {
+      OsqueryAWSCredentialsProviderChain provider;
+      credentials = provider.GetAWSCredentials();
+      // Now the "test" profile should take precedence
+      ASSERT_EQ("TEST_ACCESS_KEY_ID", credentials.GetAWSAccessKeyId());
+      ASSERT_EQ("test_secret_key", credentials.GetAWSSecretKey());
+    }
   }
 }
 

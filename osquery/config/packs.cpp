@@ -157,11 +157,17 @@ void Pack::initialize(const std::string& name,
   schedule_.clear();
   if (!obj.HasMember("queries") || !obj["queries"].IsObject()) {
     // This pack contained no queries.
+    VLOG(1) << "No queries defined for pack " << name;
     return;
   }
 
   // Iterate the queries (or schedule) and check platform/version/sanity.
   for (const auto& q : obj["queries"].GetObject()) {
+    if (!q.value.IsObject()) {
+      VLOG(1) << "The pack " << name << " must contain a dictionary of queries";
+      continue;
+    }
+
     if (q.value.HasMember("shard")) {
       auto shard = JSON::valueToSize(q.value["shard"]);
       if (shard > 0 && shard < getMachineShard()) {
@@ -182,6 +188,7 @@ void Pack::initialize(const std::string& name,
     }
 
     if (!q.value.HasMember("query") || !q.value["query"].IsString()) {
+      VLOG(1) << "No query string defined for query " << q.name.GetString();
       continue;
     }
 
@@ -214,9 +221,11 @@ void Pack::initialize(const std::string& name,
     } else {
       query.options["removed"] = JSON::valueToBool(q.value["removed"]);
     }
-    query.options["blacklist"] = (q.value.HasMember("blacklist"))
-                                     ? q.value["blacklist"].GetBool()
-                                     : true;
+
+    query.options["blacklist"] = true;
+    if (q.value.HasMember("blacklist")) {
+      query.options["blacklist"] = JSON::valueToBool(q.value["blacklist"]);
+    }
 
     schedule_.emplace(std::make_pair(q.name.GetString(), std::move(query)));
   }
@@ -268,28 +277,7 @@ bool Pack::checkPlatform() const {
 }
 
 bool Pack::checkPlatform(const std::string& platform) const {
-  if (platform.empty() || platform == "null") {
-    return true;
-  }
-
-  if (platform.find("any") != std::string::npos ||
-      platform.find("all") != std::string::npos) {
-    return true;
-  }
-
-  auto linux_type = (platform.find("linux") != std::string::npos ||
-                     platform.find("ubuntu") != std::string::npos ||
-                     platform.find("centos") != std::string::npos);
-  if (linux_type && isPlatform(PlatformType::TYPE_LINUX)) {
-    return true;
-  }
-
-  auto posix_type = (platform.find("posix") != std::string::npos);
-  if (posix_type && isPlatform(PlatformType::TYPE_POSIX)) {
-    return true;
-  }
-
-  return (platform.find(kSDKPlatform) != std::string::npos);
+  return ::osquery::checkPlatform(platform);
 }
 
 bool Pack::checkVersion() const {

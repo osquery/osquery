@@ -35,6 +35,9 @@ targets = {
   "ubuntu17.04" => {
     "box" => "bento/ubuntu17.04"
   },
+  "ubuntu18.04" => {
+    "box" => "ubuntu/bionic64"
+  },
   "ubuntu12" => {
     "box" => "ubuntu/precise64"
   },
@@ -213,7 +216,7 @@ Vagrant.configure("2") do |config|
         build.vm.provision 'shell',
           inline:
             # Switching to latest may cause failures if dependencies are not built.
-            # "sudo sed -i '' -e 's/quarterly/latest/g' /etc/pkg/FreeBSD.conf;"\
+            "sudo sed -i '' -e 's/quarterly/latest/g' /etc/pkg/FreeBSD.conf;"\
             "su -m root -c 'hostname vagrant';"\
             "su -m root -c 'pkg update -f';"\
             "sudo pkg install -y openjdk8 bash git gmake python ruby;"\

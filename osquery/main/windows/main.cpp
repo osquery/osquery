@@ -19,6 +19,7 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
+#include "osquery/core/process.h"
 #include "osquery/main/main.h"
 
 DECLARE_string(flagfile);
@@ -31,6 +32,8 @@ static const std::string kServiceDisplayName{"osquery daemon service"};
 
 static SERVICE_STATUS_HANDLE kStatusHandle = nullptr;
 static SERVICE_STATUS kServiceStatus = {0};
+
+const unsigned long kServiceShutdownWait{100};
 
 /*
  * This event is set when a SERVICE_CONTROL_STOP or SERVICE_CONTROL_SHUTDOWN
@@ -75,14 +78,16 @@ HANDLE getStopEvent() {
   return stopEvent;
 }
 
-static void UpdateServiceStatus(DWORD controls,
-                                DWORD state,
-                                DWORD exit_code,
-                                DWORD checkpoint) {
+static void UpdateServiceStatus(unsigned long controls,
+                                unsigned long state,
+                                unsigned long exit_code,
+                                unsigned long checkpoint,
+                                unsigned long wait_hint = 0) {
   kServiceStatus.dwControlsAccepted = controls;
   kServiceStatus.dwCurrentState = state;
   kServiceStatus.dwWin32ExitCode = exit_code;
   kServiceStatus.dwCheckPoint = checkpoint;
+  kServiceStatus.dwWaitHint = wait_hint;
 
   if (!::SetServiceStatus(kStatusHandle, &kServiceStatus)) {
     SLOG("SetServiceStatus failed (lasterror=" +
@@ -101,8 +106,10 @@ static auto kShutdownCallable = ([]() {
   if (stopEvent != nullptr) {
     // Wait forever, until the service handler signals us
     ::WaitForSingleObject(stopEvent, INFINITE);
-    // Interup the worker service threads before joining
+
+    // Interupt the worker service threads before joining
     Dispatcher::stopServices();
+
     auto ret = ::CloseHandle(stopEvent);
     if (ret != TRUE) {
       SLOG("kShutdownCallable failed to call CloseHandle with (" +
@@ -200,7 +207,7 @@ class ServiceArgumentParser {
 };
 
 /// Install osqueryd as a service given the path to the binary
-Status installService(const char* const binPath) {
+Status installService(const std::string& binPath) {
   SC_HANDLE schSCManager = OpenSCManager(
       nullptr, nullptr, SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
 
@@ -218,9 +225,8 @@ Status installService(const char* const binPath) {
   }
 
   HANDLE flagsFilePtr = nullptr;
-  std::string binPathWithFlagFile = std::string(binPath) + " --flagfile=";
-  std::string flagsFile =
-      FLAGS_flagfile.empty() ? kDefaultFlagsFile : FLAGS_flagfile;
+  auto binPathWithFlagFile = binPath + " --flagfile=";
+  auto flagsFile = FLAGS_flagfile.empty() ? kDefaultFlagsFile : FLAGS_flagfile;
   binPathWithFlagFile += flagsFile;
   flagsFilePtr = CreateFile(flagsFile.c_str(),
                             GENERIC_READ,
@@ -242,7 +248,7 @@ Status installService(const char* const binPath) {
                              nullptr,
                              nullptr,
                              nullptr,
-                             nullptr, // User Account. nullptr => LOCAL SYSTEM
+                             nullptr,
                              nullptr);
 
   CloseServiceHandle(schSCManager);
@@ -305,7 +311,8 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
       break;
     }
 
-    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3);
+    // Give the main thread a chance to shutdown gracefully before exiting
+    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3, kServiceShutdownWait);
     {
       auto stopEvent = osquery::getStopEvent();
       if (stopEvent != nullptr) {
@@ -315,6 +322,14 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
                ")");
         }
         CloseHandle(stopEvent);
+      }
+      auto thread = OpenThread(SYNCHRONIZE, false, kLegacyThreadId);
+      if (thread != nullptr) {
+        WaitForSingleObjectEx(thread, INFINITE, FALSE);
+        CloseHandle(thread);
+      } else {
+        SLOG("Failed to open handle to main thread of execution with " +
+             std::to_string(GetLastError()));
       }
     }
     UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
@@ -369,7 +384,7 @@ int main(int argc, char* argv[]) {
        static_cast<LPSERVICE_MAIN_FUNCTION>(osquery::ServiceMain)},
       {nullptr, nullptr}};
 
-  if (!::StartServiceCtrlDispatcherA(serviceTable)) {
+  if (!StartServiceCtrlDispatcherA(serviceTable)) {
     DWORD last_error = ::GetLastError();
     if (last_error == ERROR_FAILED_SERVICE_CONTROLLER_CONNECT) {
       // Failing to start the service control dispatcher with this error

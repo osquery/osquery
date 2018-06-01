@@ -15,6 +15,7 @@
 
 #include <osquery/dispatcher.h>
 #include <osquery/filesystem.h>
+#include <osquery/status.h>
 
 namespace osquery {
 
@@ -45,7 +46,7 @@ class Carver : public InternalRunnable {
    * in one fell swoop. Use of this class should largely happen through
    * this function.
    */
-  void start();
+  void start() override;
 
  private:
   /*

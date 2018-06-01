@@ -109,6 +109,59 @@ int getGidFromSid(PSID sid) {
   return gid;
 }
 
+std::unique_ptr<BYTE[]> getSidFromUsername(std::wstring accountName) {
+  if (accountName.empty()) {
+    LOG(INFO) << "No account name provided.";
+    return nullptr;
+  }
+
+  // Call LookupAccountNameW() once to retrieve the necessary buffer sizes for
+  // the SID (in bytes) and the domain name (in TCHARS):
+  unsigned long sidBufferSize = 0;
+  unsigned long domainNameSize = 0;
+  auto eSidType = SidTypeUnknown;
+  auto ret = LookupAccountNameW(nullptr,
+                                accountName.c_str(),
+                                nullptr,
+                                &sidBufferSize,
+                                nullptr,
+                                &domainNameSize,
+                                &eSidType);
+
+  if (ret == 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+    LOG(INFO) << "Failed to lookup accoun name "
+              << wstringToString(accountName.c_str()) << " with "
+              << GetLastError();
+    return nullptr;
+  }
+
+  // Allocate buffers for the (binary data) SID and (wide string) domain name:
+  auto sidBuffer = std::make_unique<BYTE[]>(sidBufferSize);
+  std::vector<wchar_t> domainName(domainNameSize);
+
+  // Call LookupAccountNameW() a second time to actually obtain the SID for the
+  // given account name:
+  ret = LookupAccountNameW(nullptr,
+                           accountName.c_str(),
+                           sidBuffer.get(),
+                           &sidBufferSize,
+                           domainName.data(),
+                           &domainNameSize,
+                           &eSidType);
+  if (ret == 0) {
+    LOG(INFO) << "Failed to lookup accoun name "
+              << wstringToString(accountName.c_str()) << " with "
+              << GetLastError();
+    return nullptr;
+  } else if (IsValidSid(sidBuffer.get()) == FALSE) {
+    LOG(INFO) << "The SID for " << wstringToString(accountName.c_str())
+              << " is invalid.";
+  }
+
+  // Implicit move operation. Caller "owns" returned pointer:
+  return sidBuffer;
+}
+
 unsigned long getRidFromSid(PSID sid) {
   BYTE* countPtr = GetSidSubAuthorityCount(sid);
   unsigned long indexOfRid = static_cast<unsigned long>(*countPtr - 1);
@@ -148,6 +201,10 @@ int platformGetUid() {
 
 bool isLauncherProcessDead(PlatformProcess& launcher) {
   unsigned long code = 0;
+  if (launcher.nativeHandle() == INVALID_HANDLE_VALUE) {
+    return true;
+  }
+
   if (!::GetExitCodeProcess(launcher.nativeHandle(), &code)) {
     LOG(WARNING) << "GetExitCodeProcess did not return a value, error code ("
                  << GetLastError() << ")";
@@ -237,5 +294,9 @@ int platformGetPid() {
 
 int platformGetTid() {
   return static_cast<int>(GetCurrentThreadId());
+}
+
+void platformMainThreadExit(int excode) {
+  ExitThread(excode);
 }
 }

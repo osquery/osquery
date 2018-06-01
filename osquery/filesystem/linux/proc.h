@@ -26,8 +26,10 @@
 namespace osquery {
 const std::string kLinuxProcPath = "/proc";
 
-struct ProcessSocket final {
+struct SocketInfo final {
   std::string socket;
+  ino_t net_ns;
+
   int family{0};
   int protocol{0};
 
@@ -39,9 +41,15 @@ struct ProcessSocket final {
 
   std::string unix_socket_path;
 
-  int fd{0};
   std::string state;
 };
+typedef std::vector<SocketInfo> SocketInfoList;
+
+struct SocketProcessInfo final {
+  std::string pid;
+  std::string fd;
+};
+typedef std::map<std::string, SocketProcessInfo> SocketInodeToProcessInfoMap;
 
 // Linux proc protocol define to net stats file name.
 const std::map<int, std::string> kLinuxProtocolNames = {
@@ -59,7 +67,7 @@ const std::vector<std::string> tcp_states = {"UNKNOWN",
                                              "FIN_WAIT1",
                                              "FIN_WAIT2",
                                              "TIME_WAIT",
-                                             "CLOSE",
+                                             "CLOSED",
                                              "CLOSE_WAIT",
                                              "LAST_ACK",
                                              "LISTEN",
@@ -87,13 +95,54 @@ std::string procDecodeAddressFromHex(const std::string& encoded_address,
 
 unsigned short procDecodePortFromHex(const std::string& encoded_port);
 
-Status procSocketInodeToFdMap(
-    const std::string& process,
-    std::unordered_map<std::string, std::string>& inode_to_fd_map);
+/**
+ * @brief Construct a map of socket inode number to socket information collected
+ * from /proc/<pid>/net for a certain family and protocol under a certain pid.
+ *
+ * The output parameter result is used as-is, i.e. it IS NOT cleared beforehand,
+ * so values will either be added or replace existing ones without check.
+ *
+ * @param family The socket family. One of AF_INET, AF_INET6 or AF_UNIX.
+ * @param protocol The socket protocol. For AF_INET and AF_INET6 one of the keys
+ * @param pid Query data for this pid.
+ * of kLinuxProtocolNames. For AF_UNIX only IPPROTO_IP is valid.
+ * @param result The output parameter.
+ */
+Status procGetSocketList(int family,
+                         int protocol,
+                         ino_t net_ns,
+                         const std::string& pid,
+                         SocketInfoList& result);
 
+/**
+ * @brief Construct a map of socket inode number to process information for the
+ * process that owns the socket by reading entries under /proc/<pid>/fd.
+ *
+ * The output parameter result is used as-is, i.e. it IS NOT cleared beforehand,
+ * so values will either be added or replace existing ones without check.
+ *
+ * @param pid The process of interests
+ * @param result The output parameter.
+ */
+Status procGetSocketInodeToProcessInfoMap(const std::string& pid,
+                                          SocketInodeToProcessInfoMap& result);
+
+/**
+ * @brief Enumerate all pids in the system by listing pid numbers under /proc
+ * and execute a callback for each one of them. The callback will receive the
+ * pid and the user_data provided as argument.
+ *
+ * Notice there isn't any type of locking here so race conditions might occur,
+ * e.g. a process is destroyed right before the callback being called.
+ *
+ * The loop will stop after the first callback failed, i.e. returned false.
+ *
+ * @param user_data User provided data to be passed to the callback
+ * @param callback A pointer to the callback function
+ */
 template <typename UserData>
-Status procProcesses(bool (*callback)(const std::string&, UserData),
-                     UserData data) {
+Status procEnumerateProcesses(UserData& user_data,
+                              bool (*callback)(const std::string&, UserData&)) {
   boost::filesystem::directory_iterator it(kLinuxProcPath), end;
 
   try {
@@ -108,26 +157,42 @@ Status procProcesses(bool (*callback)(const std::string&, UserData),
         continue;
       }
 
-      if (!callback(pid, data)) {
+      bool ret = callback(pid, user_data);
+      if (ret == false) {
         break;
       }
     }
-
   } catch (const boost::filesystem::filesystem_error& e) {
-    VLOG(1) << "Exception iterating Linux processes " << e.what();
+    VLOG(1) << "Exception iterating Linux processes: " << e.what();
     return Status(1, e.what());
   }
 
-  return Status(0, "OK");
+  return Status(0);
 }
 
+/**
+ * @brief Enumerate all file descriptors of a certain process identified by its
+ * pid by listing files under /proc/<pid>/fd and execute a callback for each one
+ * of them. The callback will receive the pid the file descriptor and the real
+ * path the file descriptor links to, and the user_data provided as argument.
+ *
+ * Notice there isn't any type of locking here so race conditions might occur,
+ * e.g. a socket is closed right before the callback being called.
+ *
+ * The loop will stop after the first callback failed, i.e. returned false.
+ *
+ * @param pid The process id of interest
+ * @param user_data User provided data to be passed to the callback
+ * @param callback A pointer to the callback function
+ */
 template <typename UserData>
-Status procDescriptors(const std::string& process_id,
-                       bool (*callback)(const std::string&,
-                                        const std::string&,
-                                        UserData),
-                       UserData data) {
-  auto descriptors_path = kLinuxProcPath + "/" + process_id + "/fd";
+Status procEnumerateProcessDescriptors(const std::string& pid,
+                                       UserData& user_data,
+                                       bool (*callback)(const std::string& pid,
+                                                        const std::string& fd,
+                                                        const std::string& link,
+                                                        UserData& user_data)) {
+  std::string descriptors_path = kLinuxProcPath + "/" + pid + "/fd";
 
   try {
     boost::filesystem::directory_iterator it(descriptors_path), end;
@@ -135,152 +200,24 @@ Status procDescriptors(const std::string& process_id,
     for (; it != end; ++it) {
       auto fd = it->path().leaf().string();
 
-      std::string linkname;
-      if (!procReadDescriptor(process_id, fd, linkname).ok()) {
-        continue;
+      std::string link;
+      Status status = procReadDescriptor(pid, fd, link);
+      if (!status.ok()) {
+        VLOG(1) << "Failed to read the link for file descriptor " << fd
+                << " of pid " << pid << ". Data might be incomplete.";
       }
 
-      if (!callback(fd, linkname, data)) {
+      bool ret = callback(pid, fd, link, user_data);
+      if (ret == false) {
         break;
       }
     }
-
-    return Status(0, "OK");
-
   } catch (boost::filesystem::filesystem_error& e) {
-    return Status(1,
-                  std::string("Cannot access descriptors for ") + process_id);
+    VLOG(1) << "Exception iterating process file descriptors: " << e.what();
+    return Status(1, e.what());
   }
+
+  return Status(0);
 }
 
-template <typename UserData>
-Status procProcessSockets(bool (*callback)(const ProcessSocket&, UserData),
-                          UserData user_data,
-                          const std::string& process_id,
-                          int protocol,
-                          int family,
-                          std::unordered_map<std::string, std::string>*
-                              inode_to_fd_map_ptr = nullptr) {
-  if (protocol == IPPROTO_IP && family != AF_UNIX) {
-    return Status(
-        1, "The IPPROTO_IP protocol can only be used with the AF_UNIX family");
-  }
-
-  if (protocol != IPPROTO_IP &&
-      kLinuxProtocolNames.find(protocol) == kLinuxProtocolNames.end()) {
-    return Status(1, "Invalid protocol specified");
-  }
-
-  if (family != AF_UNIX && family != AF_INET && family != AF_INET6) {
-    return Status(1, "Invalid address family specified");
-  }
-
-  std::unordered_map<std::string, std::string> inode_to_fd_map;
-  if (inode_to_fd_map_ptr != nullptr) {
-    inode_to_fd_map = *inode_to_fd_map_ptr;
-  } else {
-    auto status = procSocketInodeToFdMap(process_id, inode_to_fd_map);
-    if (!status.ok()) {
-      return Status(1, "Failed to enumerate the process descriptors");
-    }
-  }
-
-  auto socket_list_path = kLinuxProcPath + "/" + process_id + "/net/";
-
-  if (family == AF_UNIX) {
-    socket_list_path += "unix";
-  } else {
-    socket_list_path += kLinuxProtocolNames.at(protocol);
-    socket_list_path += (family == AF_INET6) ? "6" : "";
-  }
-
-  std::string content;
-  if (!osquery::readFile(socket_list_path, content).ok()) {
-    return Status(1, "Could not open socket information from /proc");
-  }
-
-  // The system's socket information is tokenized by line.
-  size_t index = 0;
-
-  for (const auto& line : osquery::split(content, "\n")) {
-    if (++index == 1) {
-      // The first line is a textual header and will be ignored.
-      if (line.find("sl") != 0 && line.find("sk") != 0 &&
-          line.find("Num") != 0) {
-        return Status(1,
-                      std::string("Invalid file header encountered in ") +
-                          socket_list_path);
-      }
-
-      continue;
-    }
-
-    // The socket information is tokenized by spaces, each a field.
-    auto fields = osquery::split(line, " ");
-
-    // UNIX socket reporting has a smaller number of fields.
-    size_t min_fields = (family == AF_UNIX) ? 7 : 10;
-    if (fields.size() < min_fields) {
-      VLOG(1) << "Invalid UNIX socket descriptor found: '" << line
-              << "'. Skipping this entry";
-      continue;
-    }
-
-    ProcessSocket proc_socket = {};
-
-    if (family == AF_UNIX) {
-      proc_socket.socket = fields[6];
-      proc_socket.family = family;
-      proc_socket.protocol = std::atoll(fields[2].data());
-      proc_socket.local_port = proc_socket.remote_port = 0U;
-      proc_socket.unix_socket_path = (fields.size() >= 8) ? fields[7] : "";
-    } else {
-      // Two of the fields are the local/remote address/port pairs.
-      auto locals = osquery::split(fields[1], ":");
-      auto remotes = osquery::split(fields[2], ":");
-
-      if (locals.size() != 2 || remotes.size() != 2) {
-        VLOG(1) << "Invalid socket descriptor found: '" << line
-                << "'. Skipping this entry";
-
-        continue;
-      }
-
-      proc_socket.socket = fields[9];
-      proc_socket.family = family;
-      proc_socket.protocol = protocol;
-      proc_socket.local_address = procDecodeAddressFromHex(locals[0], family);
-      proc_socket.local_port = procDecodePortFromHex(locals[1]);
-      proc_socket.remote_address = procDecodeAddressFromHex(remotes[0], family);
-      proc_socket.remote_port = procDecodePortFromHex(remotes[1]);
-
-      if (proc_socket.protocol == IPPROTO_TCP) {
-        char* null_terminator_ptr = nullptr;
-        auto integer_socket_state =
-            std::strtoull(fields[3].data(), &null_terminator_ptr, 16);
-        if (integer_socket_state == 0 ||
-            integer_socket_state >= tcp_states.size() ||
-            null_terminator_ptr == nullptr || *null_terminator_ptr != 0) {
-          proc_socket.state = "UNKNOWN";
-        } else {
-          proc_socket.state = tcp_states[integer_socket_state];
-        }
-      }
-    }
-
-    // If this socket has no fd, then it means that it is not owned by
-    // this process
-    auto it = inode_to_fd_map.find(proc_socket.socket);
-    if (it == inode_to_fd_map.end()) {
-      continue;
-    }
-
-    proc_socket.fd = std::atoll(it->second.data());
-    if (!callback(proc_socket, user_data)) {
-      break;
-    }
-  }
-
-  return Status(0, "OK");
-}
 } // namespace osquery

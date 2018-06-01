@@ -20,34 +20,17 @@ namespace osquery {
 class JSONSerializer : public Serializer {
  public:
   /**
-   * @brief Serialize a property tree into a string
-   *
-   * @param params A property tree of parameters
-   *
-   * @param serialized The string to populate the final serialized params into
-   *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @brief See Serializer::serialize
    */
-  Status serialize(const boost::property_tree::ptree& params,
-                   std::string& serialized);
+  Status serialize(const JSON& json, std::string& serialized);
 
   /**
-   * @brief Deerialize a property tree into a property tree
-   *
-   * @param params A string of serialized parameters
-   *
-   * @param serialized The property tree to populate the final serialized
-   * params into
-   *
-   * @return An instance of osquery::Status indicating the success or failure
-   * of the operation
+   * @brief See Serializer::desiralize
    */
-  Status deserialize(const std::string& serialized,
-                     boost::property_tree::ptree& params);
+  Status deserialize(const std::string& serialized, JSON& json);
 
   /**
-   * @brief Returns the HTTP content type, for HTTP/TLS transport
+   * @brief See Serializer::getContentType
    *
    * @return The content type
    */

@@ -20,9 +20,11 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 
 namespace osquery {
 
+class Status;
 class Dispatcher;
 
 /// A throw/catch relay between a pause request and cancel event.
@@ -181,10 +183,7 @@ class Dispatcher : private boost::noncopyable {
    *
    * @return The osquery::Dispatcher instance.
    */
-  static Dispatcher& instance() {
-    static Dispatcher instance;
-    return instance;
-  }
+  static Dispatcher& instance();
 
   /// See `add`, but services are not limited to a thread poll size.
   static Status addService(InternalRunnableRef service);

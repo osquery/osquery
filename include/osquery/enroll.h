@@ -13,10 +13,9 @@
 #include <set>
 #include <string>
 
-#include <boost/property_tree/ptree.hpp>
-
+#include <osquery/core/json.h>
 #include <osquery/flags.h>
-#include <osquery/registry.h>
+#include <osquery/plugin.h>
 
 namespace osquery {
 
@@ -63,15 +62,15 @@ class EnrollPlugin : public Plugin {
   virtual std::string enroll() = 0;
 
   /**
-   * @brief Populate a property tree with host details.
+   * @brief Populate a JSON object with host details.
    *
    * This will use kEnrollHostDetails to select from each table and
-   * construct a property tree from the results of the first row of each.
-   * The input property tree will have a key set for each table.
+   * construct a JSON object from the results of the first row of each.
+   * The input JSON object will have a key set for each table.
    *
-   * @param host_details An output property tree containing each table.
+   * @param host_details An output JSON object containing each table.
    */
-  void genHostDetails(boost::property_tree::ptree& host_details);
+  void genHostDetails(JSON& host_details);
 };
 
 /**

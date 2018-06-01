@@ -11,6 +11,7 @@
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
 #include "osquery/sql/sqlite_util.h"
@@ -236,6 +237,7 @@ static inline void openOptimized(sqlite3*& db) {
 #if !defined(SKIP_CARVER)
   registerOperationExtensions(db);
 #endif
+  registerFilesystemExtensions(db);
   registerHashingExtensions(db);
   registerEncodingExtensions(db);
 }
@@ -294,6 +296,7 @@ void SQLiteDBInstance::clearAffectedTables() {
   for (const auto& table : affected_tables_) {
     table.second->constraints.clear();
     table.second->cache.clear();
+    table.second->colsUsed.clear();
   }
   // Since the affected tables are cleared, there are no more affected tables.
   // There is no concept of compounding tables between queries.
@@ -414,6 +417,31 @@ Status QueryPlanner::applyTypes(TableColumns& columns) {
           column_types.erase(from + i);
         }
       }
+    } else if (row.at("opcode") == "Cast") {
+      auto value = boost::lexical_cast<size_t>(row.at("p1"));
+      auto to = boost::lexical_cast<size_t>(row.at("p2"));
+      switch (to) {
+      case 'A': // BLOB
+        column_types[value] = BLOB_TYPE;
+        break;
+      case 'B': // TEXT
+        column_types[value] = TEXT_TYPE;
+        break;
+      case 'C': // NUMERIC
+        // We don't exactly have an equivalent to NUMERIC (which includes such
+        // things as DATETIME and DECIMAL
+        column_types[value] = UNKNOWN_TYPE;
+        break;
+      case 'D': // INTEGER
+        column_types[value] = BIGINT_TYPE;
+        break;
+      case 'E': // REAL
+        column_types[value] = DOUBLE_TYPE;
+        break;
+      default:
+        column_types[value] = UNKNOWN_TYPE;
+        break;
+      }
     }
 
     if (kSQLOpcodes.count(row.at("opcode"))) {
@@ -523,4 +551,4 @@ Status getQueryColumnsInternal(const std::string& q,
 
   return status;
 }
-}
+} // namespace osquery

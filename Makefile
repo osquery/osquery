@@ -1,5 +1,7 @@
 PLATFORM := $(shell uname -s)
 BASH_EXISTS := $(shell which bash)
+CTAGS_EXISTS := $(shell which ctags)
+CSCOPE_EXISTS := $(shell which cscope)
 SHELL := $(shell which bash)
 SOURCE_DIR := $(shell pwd)
 
@@ -61,8 +63,8 @@ ifneq ($(VERBOSE_TEST),)
 	VERBOSE_TEST = "-V"
 endif
 
-ifneq ($(DISTRO),darwin)
-        LINK_FLAGS = -B$(DEPS_DIR)/legacy/lib -rtlib=compiler-rt -fuse-ld=lld
+ifeq ($(PLATFORM),Linux)
+	LINK_FLAGS = -B$(DEPS_DIR)/legacy/lib -rtlib=compiler-rt -fuse-ld=lld
 endif
 
 PATH_SET := PATH="$(DEPS_DIR)/bin:/usr/local/bin:$(PATH)"
@@ -173,6 +175,11 @@ fuzz: .setup
 	@echo "[+] zzuf (`$(PATH_SET) which zzuf`) version: `$(PATH_SET) zzuf -V | head -n 1`"
 	@$(PATH_SET) python tools/analysis/fuzz.py
 
+libfuzz: .setup
+	@cd $(BUILD_DIR) && SKIP_TESTS=True SANITIZE=True FUZZ=True $(CMAKE) && \
+		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
+	@echo "[+] Now run the osqueryf target"
+
 sdk: .setup
 	@cd $(BUILD_DIR) && SDK=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
@@ -222,8 +229,40 @@ sysprep: .setup
 build_deps: .setup
 	@OSQUERY_BUILD_DEPS=1 SKIP_DISTRO_MAIN=1 make deps
 
+tags:
+ifeq ($(CTAGS_EXISTS),)
+	@echo "problem: cannot find 'ctags'"
+	@false
+endif
+	@ctags -R ./external ./include ./kernel ./osquery ./third-party
+.PHONY: tags
+
+ctags: .setup tags
+
+cscope.files:
+	@find \
+		-E \
+		./external ./include ./kernel ./osquery ./third-party \
+		-type f \
+		-iregex '.*\.(c|cc|h|hh|cpp|hpp)' > $@
+.PHONY: cscope.files
+
+cscope.out: cscope.files
+ifeq ($(CSCOPE_EXISTS),)
+	@echo "problem: cannot find 'cscope'"
+	@false
+endif
+	@cscope -b -i cscope.files > $@
+.PHONY: cscope.out
+
+cscope: .setup cscope.out
+
 clean: .setup
 	@cd $(BUILD_DIR) && $(CMAKE) && \
+		$(DEFINES) $(MAKE) clean --no-print-directory $(MAKEFLAGS)
+
+debug_clean: .setup
+	@cd $(DEBUG_BUILD_DIR) && DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) clean --no-print-directory $(MAKEFLAGS)
 
 strip: .setup
@@ -231,6 +270,7 @@ strip: .setup
 
 distclean:
 	rm -rf .sources $(BUILD_DIR) $(DEBUG_BUILD_DIR) build/docs build/wiki
+	rm -f tags cscope.files cscope.out
 ifeq ($(PLATFORM),Linux)
 	rm -rf build/linux build/debug_linux
 endif

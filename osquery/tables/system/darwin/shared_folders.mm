@@ -22,15 +22,15 @@ QueryData genSharedFolders(QueryContext &context) {
   QueryData results;
 
   @autoreleasepool {
-    ODSession *s = [ODSession defaultSession];
-    NSError *err = nullptr;
-    ODNode *root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
+    ODSession* s = [ODSession defaultSession];
+    NSError* err = nullptr;
+    ODNode* root = [ODNode nodeWithSession:s name:@"/Local/Default" error:&err];
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory node: "
            << std::string([[err localizedDescription] UTF8String]);
     }
 
-    ODQuery *q = [ODQuery queryWithNode:root
+    ODQuery* q = [ODQuery queryWithNode:root
                          forRecordTypes:kODRecordTypeSharePoints
                               attribute:@"dsAttrTypeNative:directory_path"
                               matchType:kODMatchEqualTo
@@ -44,14 +44,14 @@ QueryData genSharedFolders(QueryContext &context) {
     }
 
     // Obtain the results synchronously, not good for very large sets.
-    NSArray *od_results = [q resultsAllowingPartial:NO error:&err];
+    NSArray* od_results = [q resultsAllowingPartial:NO error:&err];
     if (err != nullptr) {
       TLOG << "Error with OpenDirectory results: "
            << std::string([[err localizedDescription] UTF8String]);
     }
 
-    for (ODRecord *re in od_results) {
-      NSDictionary *recordPath = [re recordDetailsForAttributes:nil error:&err];
+    for (ODRecord* re in od_results) {
+      NSDictionary* recordPath = [re recordDetailsForAttributes:nil error:&err];
       Row r;
 
       if (err != nullptr) {

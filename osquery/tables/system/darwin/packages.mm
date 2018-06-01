@@ -314,25 +314,25 @@ void genPackageReceipt(const std::string& path, QueryData& results) {
  * @return true of the APIs succeeded, otherwise false.
  */
 static inline bool genPackagesFromPackageKit(QueryData& results) {
-  auto bundle_url = CFURLCreateWithFileSystemPath(
-      kCFAllocatorDefault,
-      CFSTR("/System/Library/PrivateFrameworks/PackageKit.framework"),
-      kCFURLPOSIXPathStyle,
-      true);
-  if (bundle_url == nullptr) {
-    return false;
-  }
+  @autoreleasepool {
+    auto bundle_url = CFURLCreateWithFileSystemPath(
+        kCFAllocatorDefault,
+        CFSTR("/System/Library/PrivateFrameworks/PackageKit.framework"),
+        kCFURLPOSIXPathStyle,
+        true);
+    if (bundle_url == nullptr) {
+      return false;
+    }
 
-  auto bundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
-  CFRelease(bundle_url);
-  if (bundle == nullptr) {
-    return false;
-  }
+    auto bundle = CFBundleCreate(kCFAllocatorDefault, bundle_url);
+    CFRelease(bundle_url);
+    if (bundle == nullptr) {
+      return false;
+    }
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
 
-  @autoreleasepool {
     NSArray* packages = nullptr;
     if (CFBundleLoadExecutable(bundle)) {
       auto cls = NSClassFromString(@"PKReceipt");
@@ -386,10 +386,8 @@ static inline bool genPackagesFromPackageKit(QueryData& results) {
       }
       results.push_back(r);
     }
-  }
-
 #pragma clang diagnostic pop
-
+  }
   // Add a final assumption that PackageKit will have found 1 package.
   return (results.empty()) ? false : true;
 }

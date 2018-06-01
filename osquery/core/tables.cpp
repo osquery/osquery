@@ -11,6 +11,7 @@
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/json.h"
@@ -69,6 +70,15 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
   }
 
   doc.add("constraints", constraints);
+
+  if (context.colsUsed) {
+    auto colsUsed = doc.getArray();
+    for (const auto& columnName : *context.colsUsed) {
+      doc.pushCopy(columnName, colsUsed);
+    }
+    doc.add("colsUsed", colsUsed);
+  }
+
   doc.toString(request["context"]);
 }
 
@@ -76,6 +86,15 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
                                         QueryContext& context) {
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
+
+  if (doc.doc().HasMember("colsUsed")) {
+    UsedColumns colsUsed;
+    for (const auto& columnName : doc.doc()["colsUsed"].GetArray()) {
+      colsUsed.insert(columnName.GetString());
+    }
+    context.colsUsed = colsUsed;
+  }
+
   if (!doc.doc().HasMember("constraints") ||
       !doc.doc()["constraints"].IsArray()) {
     return;
@@ -405,6 +424,20 @@ void ConstraintList::deserialize(const rapidjson::Value& obj) {
                            ? obj["affinity"].GetString()
                            : "UNKNOWN";
   affinity = columnTypeName(affinity_name);
+}
+
+bool QueryContext::isColumnUsed(const std::string& colName) const {
+  return !colsUsed || colsUsed->find(colName) != colsUsed->end();
+}
+
+bool QueryContext::isAnyColumnUsed(
+    std::initializer_list<std::string> colNames) const {
+  for (auto& colName : colNames) {
+    if (isColumnUsed(colName)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void QueryContext::useCache(bool use_cache) {

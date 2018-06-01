@@ -17,17 +17,13 @@
 #include <osquery/core.h>
 #include <osquery/distributed.h>
 #include <osquery/enroll.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
 #include "osquery/core/json.h"
 #include "osquery/sql/sqlite_util.h"
 #include "osquery/tests/test_additional_util.h"
 #include "osquery/tests/test_util.h"
-
-#include <rapidjson/prettywriter.h>
-
-// distributed.cpp for why this is undefed
-#undef GetObject
 
 namespace pt = boost::property_tree;
 

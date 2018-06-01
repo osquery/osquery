@@ -3,7 +3,7 @@ initialization, disable/enable features, and select plugins. These flags are pow
 
 Most flags apply to both tools, `osqueryi` and `osqueryd`. The shell contains a few more to help with printing and other helpful one-off modes of operation. Expect Linux / macOS / and Windows to include platform specific flags too. Most platform specific flags will control the OS API and library integrations used by osquery. Warning, this list is still not the 'complete set' of flags. Refer to the techniques below for obtaining ground truth and check other components of this Wiki.
 
-Flags that do not control startup settings may be included as "options" within [configuration](../deployment/configuration.md). Essentially, any flag needed to help osquery determine and discovery a configuration must be supplied via command line arguments. Google Flags enhances this to allow flags to be set within environment variables or via a "master" flag file.
+Flags that do not control startup settings may be included as "options" within [configuration](../deployment/configuration.md). Essentially, any flag needed to help osquery determine and discover a configuration must be supplied via command line arguments. Google Flags enhances this to allow flags to be set within environment variables or via a "master" flag file.
 
 To see a full list of flags for your osquery version use `--help` or select from the `osquery_flags` table:
 
@@ -413,6 +413,10 @@ The Kafka topic to publish logs to.  When using multiple topics this configurati
 `--logger_kafka_acks`
 
 The number of acknowledgments the Kafka leader has to receive before a publish is considered successful.  Valid options are (0, 1, "all").
+
+`--logger_kafka_compression`
+
+Compression codec to use for compressing message sets.  Valid options are ("none", "gzip").  Default is "none".
 
 ### Distributed query service flags
 

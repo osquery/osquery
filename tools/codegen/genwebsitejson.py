@@ -33,7 +33,7 @@ from gentable import *
 # This data structure represents the directories in specs/ and how they map to
 # the operating systems which support tables found in those directories
 PLATFORM_DIRS = {
-    "specs": ["darwin", "linux"],
+    "specs": ["darwin", "linux", "windows", "freebsd"],
     "utility": ["darwin", "linux", "freebsd", "windows"],
     "yara": ["darwin", "linux"],
     "darwin": ["darwin"],

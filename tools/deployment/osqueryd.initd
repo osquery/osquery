@@ -87,7 +87,6 @@ start() {
 
   $PROG $ARGS \
         --pidfile=$PIDFILE \
-        --logger_min_stderr=1 \
         --daemonize=true
   RETVAL=$?
 }

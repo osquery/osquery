@@ -27,6 +27,7 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
+#include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
 
@@ -439,7 +440,12 @@ QueryData WatcherRunner::getProcessRow(pid_t pid) const {
 #ifdef WIN32
   p = (pid == ULONG_MAX) ? -1 : pid;
 #endif
-  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(p));
+  return SQL::selectFrom(
+      {"parent", "user_time", "system_time", "resident_size"},
+      "processes",
+      "pid",
+      EQUALS,
+      INTEGER(p));
 }
 
 Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
@@ -458,7 +464,7 @@ Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
 
   // Only make a decision about the child sanity if it is still the watcher's
   // child. It's possible for the child to die, and its pid reused.
-  if (change.parent != PlatformProcess::getCurrentProcess()->pid()) {
+  if (change.parent != PlatformProcess::getCurrentPid()) {
     // The child's parent is not the watcher.
     Watcher::get().reset(child);
     // Do not stop or call the child insane, since it is not our child.
@@ -507,11 +513,11 @@ void WatcherRunner::createWorker() {
   }
 
   // Get the path of the current process.
-  auto qd =
-      SQL::selectAllFrom("processes",
-                         "pid",
-                         EQUALS,
-                         INTEGER(PlatformProcess::getCurrentProcess()->pid()));
+  auto qd = SQL::selectFrom({"path"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            INTEGER(PlatformProcess::getCurrentPid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
     LOG(ERROR) << "osquery watcher cannot determine process path for worker";
     Initializer::requestShutdown(EXIT_FAILURE);
@@ -527,6 +533,10 @@ void WatcherRunner::createWorker() {
   // Get the complete path of the osquery process binary.
   boost::system::error_code ec;
   auto exec_path = fs::system_complete(fs::path(qd[0]["path"]), ec);
+  if (!pathExists(exec_path).ok()) {
+    LOG(WARNING) << "osqueryd doesn't exist in: " << exec_path.string();
+    return;
+  }
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // osqueryd binary has become unsafe.
@@ -546,7 +556,7 @@ void WatcherRunner::createWorker() {
 
   watcher.setWorker(worker);
   watcher.resetWorkerCounters(getUnixTime());
-  VLOG(1) << "osqueryd watcher (" << PlatformProcess::getCurrentProcess()->pid()
+  VLOG(1) << "osqueryd watcher (" << PlatformProcess::getCurrentPid()
           << ") executing worker (" << worker->pid() << ")";
   watcher.worker_status_ = -1;
 }
@@ -566,6 +576,10 @@ void WatcherRunner::createExtension(const std::string& extension) {
   // Check the path to the previously-discovered extension binary.
   boost::system::error_code ec;
   auto exec_path = fs::system_complete(fs::path(extension), ec);
+  if (!pathExists(exec_path).ok()) {
+    LOG(WARNING) << "Extension binary doesn't exist in: " << exec_path.string();
+    return;
+  }
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // Extension binary has become unsafe.
@@ -596,8 +610,7 @@ void WatcherWatcherRunner::start() {
   while (!interrupted()) {
     if (isLauncherProcessDead(*watcher_)) {
       // Watcher died, the worker must follow.
-      VLOG(1) << "osqueryd worker ("
-              << PlatformProcess::getCurrentProcess()->pid()
+      VLOG(1) << "osqueryd worker (" << PlatformProcess::getCurrentPid()
               << ") detected killed watcher (" << watcher_->pid() << ")";
       // The watcher watcher is a thread. Do not join services after removing.
       Initializer::requestShutdown();

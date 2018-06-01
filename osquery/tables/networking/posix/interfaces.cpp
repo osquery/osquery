@@ -17,7 +17,10 @@
 #include <sys/socket.h>
 
 #ifdef __linux__
+#include <limits>
+#include <linux/ethtool.h>
 #include <linux/if_link.h>
+#include <linux/sockios.h>
 #include <sys/ioctl.h>
 #endif
 
@@ -31,6 +34,12 @@
 
 namespace osquery {
 namespace tables {
+
+#ifdef __linux__
+const size_t sysfsFlags = IFF_UP | IFF_DEBUG | IFF_NOTRAILERS | IFF_NOARP |
+                          IFF_PROMISC | IFF_ALLMULTI | IFF_MULTICAST |
+                          IFF_PORTSEL | IFF_AUTOMEDIA | IFF_DYNAMIC;
+#endif
 
 // Functions for safe sign-extension
 std::basic_string<char> INTEGER_FROM_UCHAR(unsigned char x) {
@@ -68,21 +77,24 @@ void genAddressesFromAddr(const struct ifaddrs* addr, QueryData& results) {
   results.push_back(r);
 }
 
-static inline void flagsFromSysfs(const std::string& name, std::string& flags) {
+#ifdef __linux__
+static inline void flagsFromSysfs(const std::string& name, size_t& flags) {
   auto flags_path = "/sys/class/net/" + name + "/flags";
-  if (pathExists(flags_path)) {
-    std::string content;
-    // This will take the form, 0xVALUE\n.
-    if (readFile(flags_path, content) && content.size() > 3) {
-      if (content[0] == '0' && content[1] == 'x') {
-        unsigned long int lflags = 0;
-        if (safeStrtoul(content.substr(2, content.size() - 3), 16, lflags)) {
-          flags = std::to_string(lflags);
-        }
-      }
+  std::string content;
+  if (!pathExists(flags_path) || !readFile(flags_path, content) ||
+      content.size() <= 3) {
+    return;
+  }
+
+  // This will take the form, 0xVALUE\n.
+  if (content[0] == '0' && content[1] == 'x') {
+    unsigned long int lflags = 0;
+    if (safeStrtoul(content.substr(2, content.size() - 3), 16, lflags)) {
+      flags |= lflags & sysfsFlags;
     }
   }
 }
+#endif
 
 void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
   Row r;
@@ -92,6 +104,8 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
     r["interface"] = "";
   }
   r["mac"] = macAsString(addr);
+
+  size_t flags = addr->ifa_flags;
 
   if (addr->ifa_data != nullptr && addr->ifa_name != nullptr) {
 #ifdef __linux__
@@ -126,14 +140,34 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
         r["type"] = INTEGER_FROM_UCHAR(ifr.ifr_hwaddr.sa_family);
       }
 
-      if (ioctl(fd, SIOCGIFFLAGS, &ifr) >= 0) {
-        r["flags"] = INTEGER(static_cast<size_t>(ifr.ifr_flags));
+      struct ethtool_cmd cmd;
+      ifr.ifr_data = reinterpret_cast<char*>(&cmd);
+      cmd.cmd = ETHTOOL_GSET;
+
+      if (ioctl(fd, SIOCETHTOOL, &ifr) >= 0) {
+        auto speed = ethtool_cmd_speed(&cmd);
+
+        if (speed != std::numeric_limits<uint32_t>::max()) {
+          r["link_speed"] = BIGINT_FROM_UINT32(speed);
+        }
       }
+
+      struct ethtool_drvinfo drvInfo;
+      ifr.ifr_data = reinterpret_cast<char*>(&drvInfo);
+      drvInfo.cmd = ETHTOOL_GDRVINFO;
+
+      if (ioctl(fd, SIOCETHTOOL, &ifr) >= 0) {
+        r["pci_slot"] = drvInfo.bus_info;
+      }
+
       close(fd);
     }
 
-    // Flags populated by sysfs are more reliable.
-    flagsFromSysfs(r["interface"], r["flags"]);
+    // Filter out sysfs flags.
+    flags &= ~sysfsFlags;
+
+    // Populate sysfs flags from sysfs.
+    flagsFromSysfs(r["interface"], flags);
 
     // Last change is not implemented in Linux.
     r["last_change"] = "-1";
@@ -153,9 +187,8 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
     r["odrops"] = INTEGER(0);
     r["collisions"] = BIGINT_FROM_UINT32(ifd->ifi_collisions);
     r["last_change"] = BIGINT_FROM_UINT32(ifd->ifi_lastchange.tv_sec);
-
-    r["flags"] = INTEGER(addr->ifa_flags);
 #endif
+    r["flags"] = INTEGER(flags);
   }
 
   results.push_back(r);
@@ -206,5 +239,5 @@ QueryData genInterfaceDetails(QueryContext& context) {
   freeifaddrs(if_addrs);
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

@@ -7,7 +7,9 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_registry
-  registry.cpp
+  registry_factory.cpp
+  registry_interface.cpp
+  plugin.cpp
 )
 
 file(GLOB OSQUERY_REGISTRY_TESTS "tests/*.cpp")

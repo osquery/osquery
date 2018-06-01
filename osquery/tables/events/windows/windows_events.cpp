@@ -9,12 +9,14 @@
  */
 
 #include <boost/algorithm/string.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -61,14 +63,22 @@ REGISTER(WindowsEventSubscriber, "event_subscriber", "windows_events");
 /// Helper function to recursively parse a boost ptree
 void parseTree(const pt::ptree& tree, std::map<std::string, std::string>& res) {
   for (const auto& node : tree) {
-    auto nodeName = node.second.get("<xmlattr>.Name", "");
+    // Skip this since it's not actually part of the EventData. Also prevents
+    // us from adding every Name attribute into its own key invalidly. This is
+    // part of a quirk of boost::ptree and its parsing of XML.
+    if (node.first == "<xmlattr>") {
+      continue;
+    }
 
+    auto nodeName = node.second.get("<xmlattr>.Name", "");
     if (nodeName.empty()) {
       nodeName = node.first.empty() ? "DataElement" : node.first;
     }
-    res[nodeName] = res[nodeName] == ""
+
+    res[nodeName] = res[nodeName].empty()
                         ? node.second.data()
                         : res[nodeName] + "," + node.second.data();
+
     parseTree(node.second, res);
   }
 }

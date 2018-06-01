@@ -58,46 +58,43 @@ void authorizations(QueryContext& context, authorizationCallback cb) {
 QueryData genAuthorizationMechanisms(QueryContext& context) {
   QueryData results;
 
-  @autoreleasepool {
-    authorizations(
-        context, ([&results](NSString* label) {
-          CFDictionaryRef rights_ = nullptr;
-          AuthorizationRightGet([label UTF8String], &rights_);
-          if (rights_ == nullptr) {
-            return;
-          }
+  authorizations(
+      context, ([&results](NSString* label) {
+        CFDictionaryRef rights_ = nullptr;
+        AuthorizationRightGet([label UTF8String], &rights_);
+        if (rights_ == nullptr) {
+          return;
+        }
 
-          Row r;
-          NSDictionary* rights = (__bridge NSDictionary*)rights_;
-          NSArray* mechs = [rights objectForKey:@"mechanisms"];
-          if (mechs == nullptr) {
-            CFRelease(rights_);
-            return;
-          }
-
-          for (NSString* mech in mechs) {
-            r["label"] = TEXT([label UTF8String]);
-            r["privileged"] =
-                ([mech rangeOfString:@"privileged"].location != NSNotFound)
-                    ? "true"
-                    : "false";
-            r["entry"] = TEXT([mech UTF8String]);
-            NSRange colon_loc = [mech rangeOfString:@":"];
-            NSRange plugin_loc = NSMakeRange(0, colon_loc.location);
-            NSRange mech_loc =
-                NSMakeRange(colon_loc.location + 1,
-                            [mech length] - (colon_loc.location + 1));
-            r["plugin"] =
-                TEXT([[mech substringWithRange:plugin_loc] UTF8String]);
-            r["mechanism"] = TEXT([[[mech substringWithRange:mech_loc]
-                stringByReplacingOccurrencesOfString:@",privileged"
-                                          withString:@""] UTF8String]);
-            results.push_back(r);
-          }
-
+        Row r;
+        NSDictionary* rights = (__bridge NSDictionary*)rights_;
+        NSArray* mechs = [rights objectForKey:@"mechanisms"];
+        if (mechs == nullptr) {
           CFRelease(rights_);
-        }));
-  }
+          return;
+        }
+
+        for (NSString* mech in mechs) {
+          r["label"] = TEXT([label UTF8String]);
+          r["privileged"] =
+              ([mech rangeOfString:@"privileged"].location != NSNotFound)
+                  ? "true"
+                  : "false";
+          r["entry"] = TEXT([mech UTF8String]);
+          NSRange colon_loc = [mech rangeOfString:@":"];
+          NSRange plugin_loc = NSMakeRange(0, colon_loc.location);
+          NSRange mech_loc = NSMakeRange(
+              colon_loc.location + 1, [mech length] - (colon_loc.location + 1));
+          r["plugin"] = TEXT([[mech substringWithRange:plugin_loc] UTF8String]);
+          r["mechanism"] = TEXT([[[mech substringWithRange:mech_loc]
+              stringByReplacingOccurrencesOfString:@",privileged"
+                                        withString:@""] UTF8String]);
+          results.push_back(r);
+        }
+
+        CFRelease(rights_);
+      }));
+
   return results;
 }
 
@@ -143,7 +140,6 @@ QueryData genAuthorizations(QueryContext& context) {
           CFRelease(rights);
         }));
   }
-
   return results;
 }
 }

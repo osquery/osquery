@@ -11,10 +11,13 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <regex>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #include <boost/asio.hpp>
 #include <boost/foreach.hpp>
 
@@ -26,6 +29,7 @@
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
 // When building on linux, the extended schema of docker_containers will
@@ -61,6 +65,8 @@ namespace tables {
  *         message.
  */
 Status dockerApi(const std::string& uri, pt::ptree& tree) {
+  static const std::regex httpOkRegex("HTTP/1\\.(0|1) 200 OK\\\r");
+
   try {
     local::stream_protocol::endpoint ep(FLAGS_docker_socket);
     local::stream_protocol::iostream stream(ep);
@@ -81,7 +87,9 @@ Status dockerApi(const std::string& uri, pt::ptree& tree) {
     // All status responses are expected to be 200
     std::string str;
     getline(stream, str);
-    if (str != "HTTP/1.0 200 OK\r") {
+
+    std::smatch match;
+    if (!std::regex_match(str, match, httpOkRegex)) {
       stream.close();
       return Status(1, "Invalid docker API response for " + uri + ": " + str);
     }
@@ -399,10 +407,45 @@ QueryData genContainers(QueryContext& context) {
     s = dockerApi("/containers/" + r["id"] + "/json?stream=false",
                   container_details);
     if (s.ok()) {
-      pid_t process_id = container_details.get<pid_t>("State.Pid", -1);
-      r["pid"] = std::to_string(process_id);
+      r["pid"] =
+          BIGINT(container_details.get_child("State").get<pid_t>("Pid", -1));
+      r["started_at"] = container_details.get_child("State").get<std::string>(
+          "StartedAt", "");
+      r["finished_at"] = container_details.get_child("State").get<std::string>(
+          "FinishedAt", "");
+      r["privileged"] = container_details.get_child("HostConfig")
+                                .get<bool>("Privileged", false)
+                            ? INTEGER(1)
+                            : INTEGER(0);
+      r["readonly_rootfs"] = container_details.get_child("HostConfig")
+                                     .get<bool>("ReadonlyRootfs", false)
+                                 ? INTEGER(1)
+                                 : INTEGER(0);
+      r["path"] = container_details.get<std::string>("Path", "");
+
+      std::vector<std::string> entry_pts;
+      for (const auto& ent_pt :
+           container_details.get_child("Config.Entrypoint")) {
+        entry_pts.push_back(ent_pt.second.data());
+      }
+      r["config_entrypoint"] = osquery::join(entry_pts, ", ");
+
+      std::vector<std::string> sec_opts;
+      for (const auto& sec_opt :
+           container_details.get_child("HostConfig.SecurityOpt")) {
+        sec_opts.push_back(sec_opt.second.data());
+      }
+      r["security_options"] = osquery::join(sec_opts, ", ");
+
+      std::vector<std::string> env_vars;
+      for (const auto& env_var : container_details.get_child("Config.Env")) {
+        env_vars.push_back(env_var.second.data());
+      }
+      r["env_variables"] = osquery::join(env_vars, ", ");
+
     } else {
-      VLOG(1) << "Failed to retrieve the pid for container " << r["id"];
+      VLOG(1) << "Failed to retrieve the inspect data for container "
+              << r["id"];
     }
 
 // When building on linux, the extended schema of docker_containers will
@@ -557,17 +600,34 @@ QueryData genContainerPorts(QueryContext& context) {
  */
 QueryData genContainerProcesses(QueryContext& context) {
   QueryData results;
+  std::string ps_args;
+
   for (const auto& id : context.constraints["id"].getAll(EQUALS)) {
     if (!checkConstraintValue(id)) {
       continue;
     }
 
     pt::ptree container;
-    Status s =
-        dockerApi("/containers/" + id + "/top?ps_args=axwwo%20" +
-                      "pid,state,uid,gid,euid,egid,suid,sgid,rss,vsz,etimes,"
-                      "ppid,pgrp,nlwp,nice,user,time,pcpu,pmem,comm,cmd",
-                  container);
+
+    if (isPlatform(PlatformType::TYPE_OSX)) {
+      // osx: 19 fields
+      // currently OS X Docker API will only return
+      // "PID","USER","TIME","COMMAND" fields
+      ps_args =
+          "pid,state,uid,gid,svuid,svgid,rss,vsz,etime,ppid,pgid,wq,nice,user,"
+          "time,pcpu,pmem,comm,command";
+    } else if (isPlatform(PlatformType::TYPE_LINUX)) {
+      // linux: 21 fields
+      ps_args =
+          "pid,state,uid,gid,euid,egid,suid,sgid,rss,vsz,etime,ppid,pgrp,nlwp,"
+          "nice,user,time,pcpu,pmem,comm,cmd";
+    } else {
+      continue;
+    }
+
+    auto s = dockerApi("/containers/" + id + "/top?ps_args=axwwo%20" + ps_args,
+                       container);
+
     if (!s.ok()) {
       VLOG(1) << "Error getting docker container " << id << ": " << s.what();
       continue;
@@ -576,39 +636,44 @@ QueryData genContainerProcesses(QueryContext& context) {
     try {
       for (const auto& processes : container.get_child("Processes")) {
         std::vector<std::string> vector;
-        BOOST_FOREACH (const auto& v, processes.second) {
+        for (const auto& v : processes.second) {
           vector.push_back(v.second.data());
-        }
-
-        // On OS X, ps_args are not being honored. Check number of columns
-        if (vector.size() != 21) {
-          continue;
         }
 
         Row r;
         r["id"] = id;
         r["pid"] = BIGINT(vector.at(0));
-        r["name"] = vector.at(19);
-        r["cmdline"] = vector.at(20);
-        r["state"] = vector.at(1);
-        r["uid"] = BIGINT(vector.at(2));
-        r["gid"] = BIGINT(vector.at(3));
-        r["euid"] = BIGINT(vector.at(4));
-        r["egid"] = BIGINT(vector.at(5));
-        r["suid"] = BIGINT(vector.at(6));
-        r["sgid"] = BIGINT(vector.at(7));
         r["wired_size"] = BIGINT(0); // No support for unpagable counters
-        r["resident_size"] = BIGINT(vector.at(8) + "000");
-        r["total_size"] = BIGINT(vector.at(9) + "000");
-        r["start_time"] = BIGINT(vector.at(10));
-        r["parent"] = BIGINT(vector.at(11));
-        r["pgroup"] = BIGINT(vector.at(12));
-        r["threads"] = INTEGER(vector.at(13));
-        r["nice"] = INTEGER(vector.at(14));
-        r["user"] = vector.at(15);
-        r["time"] = vector.at(16);
-        r["cpu"] = DOUBLE(vector.at(17));
-        r["mem"] = DOUBLE(vector.at(18));
+        if (isPlatform(PlatformType::TYPE_OSX) && vector.size() == 4) {
+          r["uid"] = BIGINT(vector.at(1));
+          r["time"] = vector.at(2);
+          r["cmdline"] = vector.at(3);
+        } else if (isPlatform(PlatformType::TYPE_LINUX) &&
+                   vector.size() == 21) {
+          r["state"] = vector.at(1);
+          r["uid"] = BIGINT(vector.at(2));
+          r["gid"] = BIGINT(vector.at(3));
+          r["euid"] = BIGINT(vector.at(4));
+          r["egid"] = BIGINT(vector.at(5));
+          r["suid"] = BIGINT(vector.at(6));
+          r["sgid"] = BIGINT(vector.at(7));
+          r["resident_size"] = BIGINT(vector.at(8) + "000");
+          r["total_size"] = BIGINT(vector.at(9) + "000");
+          r["start_time"] = BIGINT(vector.at(10));
+          r["parent"] = BIGINT(vector.at(11));
+          r["pgroup"] = BIGINT(vector.at(12));
+          r["threads"] = INTEGER(vector.at(13));
+          r["nice"] = INTEGER(vector.at(14));
+          r["user"] = vector.at(15);
+          r["time"] = vector.at(16);
+          r["cpu"] = DOUBLE(vector.at(17));
+          r["mem"] = DOUBLE(vector.at(18));
+          r["name"] = vector.at(19);
+          r["cmdline"] = vector.at(20);
+        } else {
+          continue;
+        }
+
         results.push_back(r);
       }
     } catch (const pt::ptree_error& e) {

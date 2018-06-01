@@ -10,13 +10,12 @@
 
 #pragma once
 
+#include <csignal>
 #include <mutex>
 #include <string>
-#include <vector>
-
-#include <boost/filesystem/path.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 
 #ifdef WIN32
 #include <osquery/windows/system.h>
@@ -25,6 +24,8 @@
 #endif
 
 namespace osquery {
+
+class Status;
 
 /**
  * @brief The requested exit code.
@@ -255,6 +256,19 @@ Status getEphemeralUUID(std::string& ident);
 Status getHostUUID(std::string& ident);
 
 /**
+ * @brief Determine whether the UUID is a placeholder.
+ *
+ * Some motherboards report placeholder UUIDs which, from point of view of being
+ * unique, are useless. This method checks the provided UUID against a list of
+ * known placeholders so that it can be treated as invalid. This method ignores
+ * case.
+ *
+ * @param uuid UUID to test.
+ * @return true if UUID is a placeholder and false otherwise.
+ */
+bool isPlaceholderHardwareUUID(const std::string& uuid);
+
+/**
  * @brief generate a uuid to uniquely identify this machine
  *
  * @return uuid string to identify this machine
@@ -324,4 +338,6 @@ Status createPidFile();
  * @return A bool indicating if the current process is running as admin
  */
 bool isUserAdmin();
+
+bool checkPlatform(const std::string& platform);
 } // namespace osquery

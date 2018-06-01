@@ -28,16 +28,53 @@ import threading
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from urlparse import parse_qs
 
+# Script run directory, used for default values
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+# Default values for global variables
+HTTP_SERVER_USE_TLS = False
+HTTP_SERVER_PERSIST = False
+HTTP_SERVER_TIMEOUT = 10
+HTTP_SERVER_VERBOSE = False
+HTTP_SERVER_CERT = SCRIPT_DIR + "/test_server.pem"
+HTTP_SERVER_KEY = SCRIPT_DIR + "/test_server.key"
+HTTP_SERVER_CA = SCRIPT_DIR + "/test_server_ca.pem"
+HTTP_SERVER_USE_ENROLL_SECRET = True
+HTTP_SERVER_ENROLL_SECRET = SCRIPT_DIR + "/test_enroll_secret.txt"
+
+# Global accessor value for arguments passed to the server
+ARGS = None
+
 EXAMPLE_CONFIG = {
     "schedule": {
-        "tls_proc": {"query": "select * from processes", "interval": 1},
+        "tls_proc": {
+            "query": "select * from processes",
+            "interval": 1
+        },
+    },
+    "node_invalid": False,
+}
+
+EXAMPLE_ATC_CONFIG = {
+    "schedule": {
+        "tls_proc": {"query": "select * from processes", "interval": 10},
+    },
+    "auto_table_construction" : {
+        "quarantine_items" : {
+          "query" : "SELECT LSQuarantineEventIdentifier as id, LSQuarantineAgentName as agent_name, LSQuarantineAgentBundleIdentifier as agent_bundle_identifier, LSQuarantineTypeNumber as type, LSQuarantineDataURLString as data_url,LSQuarantineOriginURLString as origin_url, LSQuarantineSenderName as sender_name, LSQuarantineSenderAddress as sender_address, LSQuarantineTimeStamp as timestamp from LSQuarantineEvent",
+          "path" : "/Users/%/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2",
+          "columns" : ["path", "id", "agent_name", "agent_bundle_identifier"]
+        }
     },
     "node_invalid": False,
 }
 
 EXAMPLE_EMPTY_CONFIG = {
     "schedule": {
-        "tls_proc": {"query": "select * from processes", "interval": 1},
+        "tls_proc": {
+            "query": "select * from processes",
+            "interval": 1
+        },
     },
     "node_invalid": False,
 }
@@ -55,8 +92,10 @@ EXAMPLE_DISTRIBUTED = {
 
 EXAMPLE_DISTRIBUTED_DISCOVERY = {
     "queries": {
-        "windows_info": "select * from system_info",
-        "darwin_chrome_ex": "select users.username, ce.* from users join chrome_extensions ce using (uid)",
+        "windows_info":
+        "select * from system_info",
+        "darwin_chrome_ex":
+        "select users.username, ce.* from users join chrome_extensions ce using (uid)",
     },
     "discovery": {
         "windows_info": "select * from os_version where platform='windows'",
@@ -68,12 +107,13 @@ EXAMPLE_DISTRIBUTED_ACCELERATE = {
     "queries": {
         "info": "select * from osquery_info",
     },
-    "accelerate" : "60"
+    "accelerate": "60"
 }
 
 EXAMPLE_CARVE = {
     "queries": {
-        "test_carve" : "select * from carves where path='/tmp/rook.stl' and carve = 1"
+        "test_carve":
+        "select * from carves where path='/tmp/rook.stl' and carve = 1"
     }
 }
 
@@ -91,28 +131,27 @@ NODE_KEYS = [
     "this_is_also_a_node_secret",
 ]
 
-FAILED_ENROLL_RESPONSE = {
-    "node_invalid": True
-}
+FAILED_ENROLL_RESPONSE = {"node_invalid": True}
 
-ENROLL_RESPONSE = {
-    "node_key": "this_is_a_node_secret"
-}
+ENROLL_RESPONSE = {"node_key": "this_is_a_node_secret"}
 
 RECEIVED_REQUESTS = []
 FILE_CARVE_DIR = '/tmp/'
 FILE_CARVE_MAP = {}
 
+
 def debug(response):
-    if ARGS.verbose:
+    if ARGS['verbose']:
         print("-- [DEBUG] %s" % str(response))
         sys.stdout.flush()
         sys.stderr.flush()
+
 
 ENROLL_RESET = {
     "count": 1,
     "max": 3,
 }
+
 
 class RealSimpleHandler(BaseHTTPRequestHandler):
     def _set_headers(self):
@@ -175,7 +214,7 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # Then, access to the enrollment endpoint implies the required auth.
         # A generated node_key is still supplied for identification.
         self._push_request('enroll', request)
-        if ARGS.use_enroll_secret and ENROLL_SECRET != request["enroll_secret"]:
+        if ARGS['use_enroll_secret'] and HTTP_SERVER_ENROLL_SECRET != request["enroll_secret"]:
             self._reply(FAILED_ENROLL_RESPONSE)
             return
         self._reply(ENROLL_RESPONSE)
@@ -237,7 +276,9 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         # 'session id' through which they'll communicate in future POSTs.
         # We use this internally to connect the request to the person
         # who requested the carve, and to prepare space for the data.
-        sid = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+        sid = ''.join(
+            random.choice(string.ascii_uppercase + string.digits)
+            for _ in range(10))
 
         # The agent will send up the total number of expected blocks, the
         # size of each block, the size of the carve overall, and the carve GUID
@@ -247,46 +288,51 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
         FILE_CARVE_MAP[sid] = {
             'block_count': int(request['block_count']),
             'block_size': int(request['block_size']),
-            'blocks_received' : {},
+            'blocks_received': {},
             'carve_size': int(request['carve_size']),
             'carve_guid': request['carve_id'],
         }
 
         # Lastly we let the agent know that the carve is good to start,
         # and send the session id back
-        self._reply({'session_id' : sid})
-
+        self._reply({'session_id': sid})
 
     # Endpoint where the blocks of the carve are received, and
     # susequently reassembled.
     def continue_carve(self, request):
         # First check if we have already received this block
-        if request['block_id'] in FILE_CARVE_MAP[request['session_id']]['blocks_received']:
+        if request['block_id'] in FILE_CARVE_MAP[request['session_id']][
+                'blocks_received']:
             return
 
         # Store block data to be reassembled later
-        FILE_CARVE_MAP[request['session_id']]['blocks_received'][int(request['block_id'])] = request['data']
+        FILE_CARVE_MAP[request['session_id']]['blocks_received'][int(
+            request['block_id'])] = request['data']
 
         # Are we expecting to receive more blocks?
-        if len(FILE_CARVE_MAP[request['session_id']]['blocks_received']) < FILE_CARVE_MAP[request['session_id']]['block_count']:
+        if len(FILE_CARVE_MAP[request['session_id']]['blocks_received']
+               ) < FILE_CARVE_MAP[request['session_id']]['block_count']:
             return
 
         # If not, let's reassemble everything
-        out_file_name = FILE_CARVE_DIR+FILE_CARVE_MAP[request['session_id']]['carve_guid']
+        out_file_name = FILE_CARVE_DIR + FILE_CARVE_MAP[request['session_id']]['carve_guid']
 
         # Check the first four bytes for the zstd header. If not no
         # compression was used, it's an uncompressed .tar
-        if (base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]['blocks_received'][0])[0:4] == b'\x28\xB5\x2F\xFD'):
-            out_file_name +=  '.zst'
+        if (base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']][
+                'blocks_received'][0])[0:4] == b'\x28\xB5\x2F\xFD'):
+            out_file_name += '.zst'
         else:
-            out_file_name +=  '.tar'
+            out_file_name += '.tar'
         f = open(out_file_name, 'wb')
-        for x in range(0, FILE_CARVE_MAP[request['session_id']]['block_count']):
-            f.write(base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]['blocks_received'][x]))
+        for x in range(0,
+                       FILE_CARVE_MAP[request['session_id']]['block_count']):
+            f.write(
+                base64.standard_b64decode(FILE_CARVE_MAP[request['session_id']]
+                                          ['blocks_received'][x]))
         f.close()
         debug("File successfully carved to: %s" % out_file_name)
         FILE_CARVE_MAP[request['session_id']] = {}
-
 
     def _push_request(self, command, request):
         # Archive the http command and the request body so that unit tests
@@ -300,99 +346,110 @@ class RealSimpleHandler(BaseHTTPRequestHandler):
 
 
 def handler():
-    debug("Shutting down HTTP server via timeout (%d) seconds."
-          % (ARGS.timeout))
+    debug("Shutting down HTTP server via timeout (%d) seconds." %
+          (ARGS['timeout']))
     thread.interrupt_main()
 
-if __name__ == '__main__':
-    SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-    parser = argparse.ArgumentParser(description=(
-        "osquery python https server for client TLS testing."
-    ))
-    parser.add_argument(
-        "--tls", default=False, action="store_true",
-        help="Wrap the HTTP server socket in TLS."
-    )
 
-    parser.add_argument(
-        "--persist", default=False, action="store_true",
-        help="Wrap the HTTP server socket in TLS."
-    )
-    parser.add_argument(
-        "--timeout", default=10, type=int,
-        help="If not persisting, exit after a number of seconds"
-    )
-    parser.add_argument(
-        '--verbose', default=False, action='store_true',
-        help='Output version/debug messages')
-
-    parser.add_argument(
-        "--cert", metavar="CERT_FILE",
-        default=SCRIPT_DIR + "/test_server.pem",
-        help="TLS server cert."
-    )
-    parser.add_argument(
-        "--key", metavar="PRIVATE_KEY_FILE",
-        default=SCRIPT_DIR + "/test_server.key",
-        help="TLS server cert private key."
-    )
-    parser.add_argument(
-        "--ca", metavar="CA_FILE",
-        default=SCRIPT_DIR + "/test_server_ca.pem",
-        help="TLS server CA list for client-auth."
-    )
-
-    parser.add_argument(
-        "--use_enroll_secret", action="store_true",
-        default=True,
-        help="Require an enrollment secret for node enrollment"
-    )
-    parser.add_argument(
-        "--enroll_secret", metavar="SECRET_FILE",
-        default=SCRIPT_DIR + "/test_enroll_secret.txt",
-        help="File containing enrollment secret"
-    )
-
-    parser.add_argument(
-        "port", metavar="PORT", type=int,
-        help="Bind to which local TCP port."
-    )
-
-    ARGS = parser.parse_args()
-
-    ENROLL_SECRET = ""
-    if ARGS.use_enroll_secret:
+def run_http_server(bind_port=80, **kwargs):
+    global HTTP_SERVER_ENROLL_SECRET
+    global ARGS
+    ARGS = kwargs
+    if ARGS['use_enroll_secret']:
         try:
-            with open(ARGS.enroll_secret, "r") as fh:
-                ENROLL_SECRET = fh.read().strip()
+            with open(ARGS['enroll_secret'], "r") as fh:
+                HTTP_SERVER_ENROLL_SECRET = fh.read().strip()
         except IOError as e:
             print("Cannot read --enroll_secret: %s" % str(e))
             exit(1)
 
-    if not ARGS.persist:
-        timer = threading.Timer(ARGS.timeout, handler)
+    if not ARGS['persist']:
+        timer = threading.Timer(ARGS['timeout'], handler)
         timer.start()
 
-    httpd = HTTPServer(('localhost', ARGS.port), RealSimpleHandler)
-    if ARGS.tls:
+    httpd = HTTPServer(('localhost', bind_port), RealSimpleHandler)
+    if ARGS['tls']:
         if 'SSLContext' in vars(ssl):
             ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-            ctx.load_cert_chain(ARGS.cert, keyfile=ARGS.key)
-            ctx.load_verify_locations(capath=ARGS.ca)
+            ctx.load_cert_chain(ARGS['cert'], keyfile=ARGS['key'])
+            ctx.load_verify_locations(capath=ARGS['ca'])
             ctx.options ^= ssl.OP_NO_SSLv2 | ssl.OP_NO_SSLv3
             httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
         else:
-            httpd.socket = ssl.wrap_socket(httpd.socket,
-                                           ca_certs=ARGS.ca,
-                                           ssl_version=ssl.PROTOCOL_SSLv23,
-                                           certfile=ARGS.cert,
-                                           keyfile=ARGS.key,
-                                           server_side=True)
-        debug("Starting TLS/HTTPS server on TCP port: %d" % ARGS.port)
+            httpd.socket = ssl.wrap_socket(
+                httpd.socket,
+                ca_certs=ARGS['ca'],
+                ssl_version=ssl.PROTOCOL_SSLv23,
+                certfile=ARGS['cert'],
+                keyfile=ARGS['key'],
+                server_side=True)
+        debug("Starting TLS/HTTPS server on TCP port: %d" % bind_port)
     else:
-        debug("Starting HTTP server on TCP port: %d" % ARGS.port)
+        debug("Starting HTTP server on TCP port: %d" % bind_port)
 
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         sys.exit(0)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description=("osquery python https server for client TLS testing."))
+    parser.add_argument(
+        "--tls",
+        default=HTTP_SERVER_USE_TLS,
+        action="store_true",
+        help="Wrap the HTTP server socket in TLS.")
+
+    parser.add_argument(
+        "--persist",
+        default=HTTP_SERVER_PERSIST,
+        action="store_true",
+        help="Wrap the HTTP server socket in TLS.")
+    parser.add_argument(
+        "--timeout",
+        default=HTTP_SERVER_TIMEOUT,
+        type=int,
+        help="If not persisting, exit after a number of seconds")
+    parser.add_argument(
+        '--verbose',
+        default=HTTP_SERVER_VERBOSE,
+        action='store_true',
+        help='Output version/debug messages')
+
+    parser.add_argument(
+        "--cert",
+        metavar="CERT_FILE",
+        default=HTTP_SERVER_CERT,
+        help="TLS server cert.")
+    parser.add_argument(
+        "--key",
+        metavar="PRIVATE_KEY_FILE",
+        default=HTTP_SERVER_KEY,
+        help="TLS server cert private key.")
+    parser.add_argument(
+        "--ca",
+        metavar="CA_FILE",
+        default=HTTP_SERVER_CA,
+        help="TLS server CA list for client-auth.")
+
+    parser.add_argument(
+        "--use_enroll_secret",
+        action="store_true",
+        default=HTTP_SERVER_USE_ENROLL_SECRET,
+        help="Require an enrollment secret for node enrollment")
+    parser.add_argument(
+        "--enroll_secret",
+        metavar="SECRET_FILE",
+        default=HTTP_SERVER_ENROLL_SECRET,
+        help="File containing enrollment secret")
+
+    parser.add_argument(
+        "port", metavar="PORT", type=int, help="Bind to which local TCP port.")
+
+    args = {
+        k: v
+        for k, v in vars(parser.parse_args()).items() if v is not None
+    }
+    run_http_server(args['port'], **args)

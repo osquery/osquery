@@ -13,6 +13,7 @@
 
 #include <osquery/config.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/tables/yara/yara_utils.h"
 
@@ -120,6 +121,10 @@ Status handleRuleFiles(const std::string& category,
 
   bool compiled = false;
   for (const auto& item : rule_files.GetArray()) {
+    if (!item.IsString()) {
+      continue;
+    }
+
     YR_RULES* tmp_rules = nullptr;
     std::string rule = item.GetString();
     if (rule[0] != '/') {
@@ -241,6 +246,9 @@ int YARACallback(int message, void* message_data, void* user_data) {
 }
 
 Status YARAConfigParserPlugin::setUp() {
+  auto obj = data_.getObject();
+  data_.add("yara", obj);
+
   int result = yr_initialize();
   if (result != ERROR_SUCCESS) {
     LOG(WARNING) << "Unable to initialize YARA (" << result << ")";
@@ -253,23 +261,36 @@ Status YARAConfigParserPlugin::setUp() {
 Status YARAConfigParserPlugin::update(const std::string& source,
                                       const ParserConfig& config) {
   // The YARA config parser requested the "yara" top-level key in the config.
+  if (config.count("yara") == 0) {
+    return Status(0, "No Yara Configuration");
+  }
   const auto& yara_config = config.at("yara").doc();
 
   // Look for a "signatures" key with the group/file content.
+  if (!yara_config.IsObject()) {
+    return Status(1);
+  }
+
   if (yara_config.HasMember("signatures")) {
     auto& signatures = yara_config["signatures"];
-    if (signatures.IsObject()) {
+    if (!signatures.IsObject()) {
+      VLOG(1) << "YARA signatures must contain a dictionary";
+    } else {
       auto obj = data_.getObject();
       data_.copyFrom(signatures, obj);
       data_.add("signatures", obj);
 
       for (const auto& element : data_.doc()["signatures"].GetObject()) {
         std::string category = element.name.GetString();
-        VLOG(1) << "Compiling YARA signature group: " << category;
-        auto status = handleRuleFiles(category, element.value, rules_);
-        if (!status.ok()) {
-          VLOG(1) << "YARA rule compile error: " << status.getMessage();
-          return status;
+        if (!element.value.IsArray()) {
+          VLOG(1) << "YARA signature group " << category << " must be an array";
+        } else {
+          VLOG(1) << "Compiling YARA signature group: " << category;
+          auto status = handleRuleFiles(category, element.value, rules_);
+          if (!status.ok()) {
+            VLOG(1) << "YARA rule compile error: " << status.getMessage();
+            return status;
+          }
         }
       }
     }
@@ -283,6 +304,8 @@ Status YARAConfigParserPlugin::update(const std::string& source,
       auto obj = data_.getObject();
       data_.copyFrom(file_paths, obj);
       data_.add("file_paths", obj);
+    } else {
+      VLOG(1) << "YARA file_paths key is invalid";
     }
   }
   return Status();

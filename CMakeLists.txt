@@ -6,7 +6,7 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.10)
 string(ASCII 27 ESC)
 macro(WARNING_LOG MESSAGE)
   message("-- ${ESC}[31m${MESSAGE}${ESC}[m")
@@ -140,6 +140,7 @@ else()
   # component-specific globbing is needed.
   if(${OSQUERY_BUILD_PLATFORM} STREQUAL "freebsd")
     set(FREEBSD TRUE)
+    set(DEPS FALSE)
     include_directories("/usr/local/include")
     include_directories("/usr/include")
   else()
@@ -253,6 +254,7 @@ elseif(DEFINED ENV{SANITIZE})
     -fno-omit-frame-pointer
     -fno-optimize-sibling-calls
     -fsanitize-blacklist=${SANITIZE_BLACKLIST}
+    -O1
   )
   if (DEFINED ENV{SANITIZE_THREAD})
     add_compile_options(-fsanitize=thread)
@@ -264,6 +266,13 @@ elseif(DEFINED ENV{SANITIZE})
       # LSAN is not available on OS X 10.12.
       add_compile_options(-fsanitize=leak)
     endif()
+  endif()
+
+  if(DEFINED ENV{FUZZ})
+    add_compile_options(
+      -fsanitize=fuzzer
+    )
+    set(FUZZ TRUE)
   endif()
 
   if(LINUX)
@@ -294,6 +303,7 @@ else()
     # TSAN and MSAN do not like PIE/PIC on Linux 4.1.
     # To be safe, only include them when building 'release' outputs.
     add_compile_options(
+      -g
       -fPIE
       -fpie
       -fPIC
@@ -566,16 +576,13 @@ if(POSIX AND DEPS)
   endif()
 endif()
 
-if(FREEBSD)
-  # Including Boost Beast within third-party until it's merged into boot 1.66.
-  include_directories("${CMAKE_SOURCE_DIR}/third-party/beast")
-endif()
-
 include_directories("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
 include_directories("${CMAKE_SOURCE_DIR}/include")
 include_directories("${CMAKE_SOURCE_DIR}")
 
-include_directories("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+if(NOT FREEBSD)
+  include_directories("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+endif()
 
 set(MKDIR_OPTS "")
 if(WINDOWS)
@@ -668,7 +675,10 @@ if(NOT SKIP_TESTS)
 endif()
 
 add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/sqlite3")
-add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+
+if(NOT FREEBSD)
+  add_subdirectory("${CMAKE_SOURCE_DIR}/third-party/linenoise-ng")
+endif()
 
 add_subdirectory(osquery)
 

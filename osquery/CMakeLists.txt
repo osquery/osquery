@@ -43,7 +43,8 @@ if(CLANG AND POSIX)
   )
   if(NOT FREEBSD)
     add_compile_options(
-      -Wshadow
+      -Wshadow-all
+      -Wno-shadow-field
     )
   endif()
 endif()
@@ -57,14 +58,21 @@ if(DEFINED ENV{SANITIZE})
     ADD_OSQUERY_LINK_CORE(-fsanitize=address -fsanitize=leak)
   endif()
   ADD_OSQUERY_LINK_CORE(-fsanitize-blacklist=${SANITIZE_BLACKLIST})
+  if(DEFINED ENV{FUZZ})
+    ADD_OSQUERY_LINK_CORE(-fsanitize=fuzzer)
+  endif()
 endif()
 
 # Construct a set of all object files, starting with third-party and all
 # of the osquery core objects (sources from ADD_CORE_LIBRARY macros).
-set(OSQUERY_OBJECTS
-  $<TARGET_OBJECTS:osquery_sqlite>
-  $<TARGET_OBJECTS:linenoise-ng>
-)
+if(FREEBSD)
+  set(OSQUERY_OBJECTS $<TARGET_OBJECTS:osquery_sqlite>)
+else()
+  set(OSQUERY_OBJECTS
+    $<TARGET_OBJECTS:osquery_sqlite>
+    $<TARGET_OBJECTS:linenoise-ng>
+  )
+endif()
 
 # Add subdirectories
 add_subdirectory(config)
@@ -86,7 +94,9 @@ if(NOT SKIP_CARVER)
 endif()
 
 # Add externals directory from parent
-add_subdirectory("${CMAKE_SOURCE_DIR}/external" "${CMAKE_BINARY_DIR}/external")
+if(NOT DEFINED ENV{FUZZ})
+  add_subdirectory("${CMAKE_SOURCE_DIR}/external" "${CMAKE_BINARY_DIR}/external")
+endif()
 
 if(NOT SKIP_TABLES)
   add_subdirectory(tables)
@@ -143,6 +153,7 @@ if(APPLE OR LINUX)
   ADD_OSQUERY_LINK_ADDITIONAL("rocksdb_lite")
 elseif(FREEBSD)
   ADD_OSQUERY_LINK_CORE("icuuc")
+  ADD_OSQUERY_LINK_CORE("linenoise")
   ADD_OSQUERY_LINK_ADDITIONAL("rocksdb-lite")
 endif()
 
@@ -163,8 +174,10 @@ endif()
 ADD_OSQUERY_LINK_CORE("glog${WO_KEY}")
 
 if(POSIX)
+  # Hashing methods in core use libcrypto.
+  ADD_OSQUERY_LINK_CORE("crypto")
+
   ADD_OSQUERY_LINK_ADDITIONAL("ssl")
-  ADD_OSQUERY_LINK_ADDITIONAL("crypto")
   ADD_OSQUERY_LINK_ADDITIONAL("libpthread")
   ADD_OSQUERY_LINK_ADDITIONAL("magic")
 endif()
@@ -284,16 +297,28 @@ if(NOT OSQUERY_BUILD_SDK_ONLY)
     GENERATE_TABLES("${CMAKE_SOURCE_DIR}")
     AMALGAMATE("${CMAKE_SOURCE_DIR}" "additional" AMALGAMATION)
     ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_additional_amalgamation ${AMALGAMATION})
-  endif()
 
-  AMALGAMATE("${CMAKE_SOURCE_DIR}" "foreign" AMALGAMATION_FOREIGN)
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_foreign_amalgamation ${AMALGAMATION_FOREIGN})
+    AMALGAMATE("${CMAKE_SOURCE_DIR}" "foreign" AMALGAMATION_FOREIGN)
+    ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_foreign_amalgamation ${AMALGAMATION_FOREIGN})
+  endif()
 
   # Create the static libosquery_additional.
   add_library(libosquery_additional STATIC ${OSQUERY_ADDITIONAL_SOURCES})
   target_link_libraries(libosquery_additional ${OSQUERY_ADDITIONAL_LINKS})
   set_target_properties(libosquery_additional PROPERTIES OUTPUT_NAME osquery_additional)
+endif()
 
+if(FUZZ)
+  add_executable(fuzz
+    main/fuzz.cpp
+  )
+
+  ADD_DEFAULT_LINKS(fuzz TRUE)
+  SET_OSQUERY_COMPILE(fuzz)
+  set_target_properties(fuzz PROPERTIES OUTPUT_NAME osqueryf)
+endif()
+
+if(NOT OSQUERY_BUILD_SDK_ONLY AND NOT FUZZ)
   # Create the dynamic libosquery_additional.
   if(DEFINED ENV{OSQUERY_BUILD_SHARED})
     add_library(libosquery_additional_shared SHARED ${OSQUERY_ADDITIONAL_SOURCES})

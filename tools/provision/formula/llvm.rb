@@ -4,47 +4,47 @@ class Llvm < AbstractOsqueryFormula
   desc "Next-gen compiler infrastructure"
   homepage "http://llvm.org/"
   license "NCSA"
-  revision 200
+  revision 201
 
   stable do
     url "http://releases.llvm.org/#{llvm_version}/llvm-#{llvm_version}.src.tar.xz"
-    sha256 "5fa7489fc0225b11821cab0362f5813a05f2bcf2533e8a4ea9c9c860168807b0"
+    sha256 "1ff53c915b4e761ef400b803f07261ade637b0c269d99569f18040f3dcee4408"
 
     resource "clang" do
       url "http://releases.llvm.org/#{llvm_version}/cfe-#{llvm_version}.src.tar.xz"
-      sha256 "135f6c9b0cd2da1aff2250e065946258eb699777888df39ca5a5b4fe5e23d0ff"
+      sha256 "e07d6dd8d9ef196cfc8e8bb131cbd6a2ed0b1caf1715f9d05b0f0eeaddb6df32"
     end
 
     resource "clang-extra-tools" do
       url "http://releases.llvm.org/#{llvm_version}/clang-tools-extra-#{llvm_version}.src.tar.xz"
-      sha256 "9aada1f9d673226846c3399d13fab6bba4bfd38bcfe8def5ee7b0ec24f8cd225"
+      sha256 "053b424a4cd34c9335d8918734dd802a8da612d13a26bbb88fcdf524b2d989d2"
     end
 
     resource "lld" do
       url "http://releases.llvm.org/#{llvm_version}/lld-#{llvm_version}.src.tar.xz"
-      sha256 "d5b36c0005824f07ab093616bdff247f3da817cae2c51371e1d1473af717d895"
+      sha256 "6b8c4a833cf30230c0213d78dbac01af21387b298225de90ab56032ca79c0e0b"
     end
 
     resource "lldb" do
       url "http://releases.llvm.org/#{llvm_version}/lldb-#{llvm_version}.src.tar.xz"
-      sha256 "b7c1c9e67975ca219089a3a6a9c77c2d102cead2dc38264f2524aa3326da376a"
+      sha256 "46f54c1d7adcd047d87c0179f7b6fa751614f339f4f87e60abceaa45f414d454"
     end
 
     resource "openmp" do
       url "http://releases.llvm.org/#{llvm_version}/openmp-#{llvm_version}.src.tar.xz"
-      sha256 "adb635cdd2f9f828351b1e13d892480c657fb12500e69c70e007bddf0fca2653"
+      sha256 "7c0e050d5f7da3b057579fb3ea79ed7dc657c765011b402eb5bbe5663a7c38fc"
     end
 
     resource "polly" do
       url "http://releases.llvm.org/#{llvm_version}/polly-#{llvm_version}.src.tar.xz"
-      sha256 "9dd52b17c07054aa8998fc6667d41ae921430ef63fa20ae130037136fdacf36e"
+      sha256 "47e493a799dca35bc68ca2ceaeed27c5ca09b12241f87f7220b5f5882194f59c"
     end
   end
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "ada916f175f62e8ed5f5c7630edb5783d927e20989f0d6c843c66bde1d863e2d" => :x86_64_linux
+    sha256 "5b5e788ee9a9437fd49c1707ccccff73eae8812abd6b468ff9b4112d5d05347b" => :x86_64_linux
   end
 
   depends_on "cmake" => :build
@@ -77,6 +77,7 @@ class Llvm < AbstractOsqueryFormula
       -DLLVM_BUILD_LLVM_DYLIB=ON
       -DBUILD_SHARED_LIBS=OFF
       -DLLVM_LINK_LLVM_DYLIB=ON
+      -DC_INCLUDE_DIRS=/usr/local/osquery/legacy/include
     ]
 
     # osquery added a link for pthread
