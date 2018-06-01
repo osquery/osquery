@@ -17,7 +17,7 @@ schema([
     Column("percent_remaining", INTEGER, "The percentage of battery remaining before it is drained"),
     Column("amperage", INTEGER, "The battery’s current amperage in mA"),
     Column("voltage", INTEGER, "The battery’s current voltage in mV"),
-    Column("minutes_until_empty", BIGINT, "The number of minutes until the battery is fully depleted. This value is -1 if this time is still being calculated"),
-    Column("minutes_to_full_charge", BIGINT, "The number of minutes until the battery is fully charged. This value is -1 if this time is still being calculated"),
+    Column("minutes_until_empty", INTEGER, "The number of minutes until the battery is fully depleted. This value is -1 if this time is still being calculated"),
+    Column("minutes_to_full_charge", INTEGER, "The number of minutes until the battery is fully charged. This value is -1 if this time is still being calculated"),
 ])
 implementation("battery@genBatteryInfo")

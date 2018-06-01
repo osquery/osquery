@@ -12,12 +12,12 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <Foundation/Foundation.h>
 
-#include <osquery/tables.h>
-
 #import <IOKit/ps/IOPSKeys.h>
 #import <IOKit/ps/IOPowerSources.h>
 #import <IOKit/pwr_mgt/IOPM.h>
 #import <IOKit/pwr_mgt/IOPMLib.h>
+
+#include <osquery/tables.h>
 
 namespace osquery {
 namespace tables {
@@ -25,13 +25,16 @@ namespace tables {
 NSDictionary* getIopmBatteryInfo() {
   CFTypeRef info = IOPSCopyPowerSourcesInfo();
 
-  if (info == NULL)
+  if (info == NULL) {
     return NULL;
+  }
 
   CFArrayRef list = IOPSCopyPowerSourcesList(info);
+  if(!list) return NULL;
+  int count = CFArrayGetCount(list);
 
   // Release if there are not viable battery sources
-  if (list == NULL || !CFArrayGetCount(list)) {
+  if (count == 0) {
     if (list) {
       CFRelease(list);
     }
@@ -39,15 +42,22 @@ NSDictionary* getIopmBatteryInfo() {
     return NULL;
   }
 
-  // Assumes the first battery returned in the array is the internal battery
-  CFDictionaryRef battery = CFDictionaryCreateCopy(
-      NULL,
-      IOPSGetPowerSourceDescription(info, CFArrayGetValueAtIndex(list, 0)));
+  // Iterate through power_sources and break at the first internal battery.
+  for(int i=0; i<count; i++) {
+    CFTypeRef name = CFArrayGetValueAtIndex(list, i);
+    CFDictionaryRef ps = IOPSGetPowerSourceDescription(info, name);
+    if(ps) {
+      CFStringRef transport_type = (CFStringRef) CFDictionaryGetValue(ps, CFSTR(kIOPSTransportTypeKey));
+      if(transport_type && CFEqual(transport_type, CFSTR(kIOPSInternalType))) {
+        CFDictionaryRef battery = CFDictionaryCreateCopy(NULL,IOPSGetPowerSourceDescription(info, CFArrayGetValueAtIndex(list, i)));
+        CFRelease(list);
+        CFRelease(info);
+        return (__bridge_transfer NSDictionary*)battery;
+      }
+    }
+  }
 
-  CFRelease(list);
-  CFRelease(info);
-
-  return (__bridge_transfer NSDictionary*)battery;
+  return NULL;
 }
 
 NSDictionary* getIopmpsBatteryInfo() {
@@ -55,7 +65,7 @@ NSDictionary* getIopmpsBatteryInfo() {
   io_registry_entry_t entry = 0;
   matching = IOServiceNameMatching("AppleSmartBattery");
   entry = IOServiceGetMatchingService(kIOMasterPortDefault, matching);
-  IORegistryEntryCreateCFProperties(entry, &properties, NULL, 0);
+  IORegistryEntryCreateCFProperties(entry, &properties, nullptr, 0);
   return (__bridge_transfer NSDictionary*)properties;
 }
 
@@ -67,13 +77,13 @@ QueryData genBatteryInfo(QueryContext& context) {
   NSDictionary* advancedBatteryInfo = getIopmpsBatteryInfo();
 
   // Don't return any rows if we don't have battery data.
-  if (batteryInfo == NULL && advancedBatteryInfo == NULL) {
+  if (batteryInfo == NULL && advancedBatteryInfo == nullptr) {
     return results;
   }
 
-  if ([advancedBatteryInfo objectForKey:@"Manufacturer"]) {
+  if ([advancedBatteryInfo objectForKey:@kIOPMPSManufacturerKey]) {
     r["manufacturer"] =
-        TEXT([[advancedBatteryInfo objectForKey:@"Manufacturer"] UTF8String]);
+        TEXT([[advancedBatteryInfo objectForKey:@kIOPMPSManufacturerKey] UTF8String]);
   }
 
   if ([advancedBatteryInfo objectForKey:@kIOPMPSManufactureDateKey]) {
@@ -109,9 +119,9 @@ QueryData genBatteryInfo(QueryContext& context) {
         [[batteryInfo objectForKey:@kIOPSHardwareSerialNumberKey] UTF8String]);
   }
 
-  if ([advancedBatteryInfo objectForKey:@"CycleCount"]) {
+  if ([advancedBatteryInfo objectForKey:@kIOPMPSCycleCountKey]) {
     r["cycle_count"] =
-        INTEGER([[advancedBatteryInfo objectForKey:@"CycleCount"] intValue]);
+        INTEGER([[advancedBatteryInfo objectForKey:@kIOPMPSCycleCountKey] intValue]);
   }
 
   if ([batteryInfo objectForKey:@kIOPSBatteryHealthKey]) {
@@ -137,10 +147,8 @@ QueryData genBatteryInfo(QueryContext& context) {
   }
 
   if ([batteryInfo objectForKey:@kIOPSIsChargedKey]) {
-    r["charged"] =
-        INTEGER([[batteryInfo objectForKey:@kIOPSIsChargedKey] intValue]);
-  } else {
-    // the absence of this value means the battery is not fully charged
+    r["charged"] = INTEGER(1);
+    } else {
     r["charged"] = INTEGER(0);
   }
 
@@ -149,14 +157,14 @@ QueryData genBatteryInfo(QueryContext& context) {
         [[advancedBatteryInfo objectForKey:@"DesignCapacity"] intValue]);
   }
 
-  if ([advancedBatteryInfo objectForKey:@"MaxCapacity"]) {
+  if ([advancedBatteryInfo objectForKey:@kIOPMPSMaxCapacityKey]) {
     r["max_capacity"] =
-        INTEGER([[advancedBatteryInfo objectForKey:@"MaxCapacity"] intValue]);
+        INTEGER([[advancedBatteryInfo objectForKey:@kIOPMPSMaxCapacityKey] intValue]);
   }
 
-  if ([advancedBatteryInfo objectForKey:@"CurrentCapacity"]) {
+  if ([advancedBatteryInfo objectForKey:@kIOPMPSCurrentCapacityKey]) {
     r["current_capacity"] = INTEGER(
-        [[advancedBatteryInfo objectForKey:@"CurrentCapacity"] intValue]);
+        [[advancedBatteryInfo objectForKey:@kIOPMPSCurrentCapacityKey] intValue]);
   }
 
   if ([batteryInfo objectForKey:@kIOPSCurrentCapacityKey]) {
@@ -164,9 +172,9 @@ QueryData genBatteryInfo(QueryContext& context) {
         INTEGER([[batteryInfo objectForKey:@kIOPSCurrentCapacityKey] intValue]);
   }
 
-  if ([advancedBatteryInfo objectForKey:@kIOPSVoltageKey]) {
+  if ([advancedBatteryInfo objectForKey:@kIOPMPSAmperageKey]) {
     r["amperage"] =
-        INTEGER([[advancedBatteryInfo objectForKey:@"Amperage"] intValue]);
+        INTEGER([[advancedBatteryInfo objectForKey:@kIOPMPSAmperageKey] intValue]);
   }
 
   if ([advancedBatteryInfo objectForKey:@kIOPSVoltageKey]) {
@@ -176,12 +184,12 @@ QueryData genBatteryInfo(QueryContext& context) {
 
   if ([batteryInfo objectForKey:@kIOPSTimeToEmptyKey]) {
     r["minutes_until_empty"] =
-        BIGINT([[batteryInfo objectForKey:@kIOPSTimeToEmptyKey] intValue]);
+        INTEGER([[batteryInfo objectForKey:@kIOPSTimeToEmptyKey] intValue]);
   }
 
   if ([batteryInfo objectForKey:@kIOPSTimeToFullChargeKey]) {
     r["minutes_to_full_charge"] =
-        BIGINT([[batteryInfo objectForKey:@kIOPSTimeToFullChargeKey] intValue]);
+        INTEGER([[batteryInfo objectForKey:@kIOPSTimeToFullChargeKey] intValue]);
   }
 
   results.push_back(r);
