@@ -17,6 +17,8 @@
 
 #include <osquery/logger.h>
 
+#include <limits>
+
 namespace rj = rapidjson;
 
 namespace osquery {
@@ -58,7 +60,15 @@ TEST_F(DatabaseTests, test_get_value_does_not_exist) {
 }
 
 TEST_F(DatabaseTests, test_get_value_str) {
-  std::string expected = "{}";
+  std::string expected;
+  for (unsigned char i = std::numeric_limits<unsigned char>::min();
+       i < std::numeric_limits<unsigned char>::max();
+       i++) {
+    if (std::isprint(i)) {
+      expected += i;
+    }
+  }
+
   setDatabaseValue(kLogs, "str", expected);
 
   std::string value;
@@ -69,10 +79,10 @@ TEST_F(DatabaseTests, test_get_value_str) {
 }
 
 TEST_F(DatabaseTests, test_get_value_int) {
-  int expected = -1;
+  int expected = std::numeric_limits<int>::min();
   setDatabaseValue(kLogs, "int", expected);
 
-  int value;
+  int value = 0;
   auto s = getDatabaseValue(kLogs, "int", value);
 
   EXPECT_TRUE(s.ok());
@@ -80,7 +90,8 @@ TEST_F(DatabaseTests, test_get_value_int) {
 }
 
 TEST_F(DatabaseTests, test_get_value_mix1) {
-  int expected = -1;
+  int expected = std::numeric_limits<int>::max();
+  setDatabaseValue(kLogs, "strint", "{}");
   setDatabaseValue(kLogs, "strint", expected);
 
   int value;
@@ -92,6 +103,7 @@ TEST_F(DatabaseTests, test_get_value_mix1) {
 
 TEST_F(DatabaseTests, test_get_value_mix2) {
   std::string expected = "{}";
+  setDatabaseValue(kLogs, "intstr", -1);
   setDatabaseValue(kLogs, "intstr", expected);
 
   std::string value;
@@ -136,7 +148,7 @@ TEST_F(DatabaseTests, test_delete_values_str) {
 
 TEST_F(DatabaseTests, test_delete_values_int) {
   int expected = 0;
-  setDatabaseValue(kLogs, "k", 0);
+  setDatabaseValue(kLogs, "k", expected);
 
   int value;
   getDatabaseValue(kLogs, "k", value);
