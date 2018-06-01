@@ -57,4 +57,4 @@ class EphemeralDatabasePlugin : public DatabasePlugin {
 /// Backing-storage provider for osquery internal/core.
 REGISTER_INTERNAL(EphemeralDatabasePlugin, "database", "ephemeral");
 
-}
+} // namespace osquery

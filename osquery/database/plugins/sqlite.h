@@ -75,4 +75,4 @@ class SQLiteDatabasePlugin : public DatabasePlugin {
 /// Backing-storage provider for osquery internal/core.
 REGISTER_INTERNAL(SQLiteDatabasePlugin, "database", "sqlite");
 
-}
+} // namespace osquery
