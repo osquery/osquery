@@ -222,10 +222,10 @@ Status getDatabaseValue(const std::string& domain,
 
 Status getDatabaseValue(const std::string& domain,
                         const std::string& key,
-                        int& value){
+                        int& value) {
   std::string result;
   auto s = getDatabaseValue(domain, key, result);
-  if(s.ok()){
+  if (s.ok()) {
     value = std::stoi(result);
   }
   return s;
@@ -257,7 +257,7 @@ Status setDatabaseValue(const std::string& domain,
 
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
-                        int value){
+                        int value) {
   return setDatabaseValue(domain, key, std::to_string(value));
 }
 
