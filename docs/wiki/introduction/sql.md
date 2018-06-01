@@ -154,7 +154,7 @@ osquery> SELECT count(1) FROM file WHERE path LIKE '/dev/%';
 count(1) = 568
 ```
 
-The documentation for [`file`](https://osquery.io/schema/#file) says both `path` and `directory` can be used as input parameters. In *most* cases these columns and tables should "do the right thing" and respond to various operators. String data, like paths, are not easily compared so `=` or `<>` and `LIKE` are the only operators that make sense.
+The documentation for [`file`](https://osquery.io/schema/current/#file) says both `path` and `directory` can be used as input parameters. In *most* cases these columns and tables should "do the right thing" and respond to various operators. String data, like paths, are not easily compared so `=` or `<>` and `LIKE` are the only operators that make sense.
 
 Let's get semi-fancy:
 ```
@@ -167,7 +167,7 @@ inode = 304
  type = character
 ```
 
-Now let's introduce the [`hash`](https://osquery.io/schema/#hash) table and hopefully show something useful, like the hash of the last file modified in `/etc`:
+Now let's introduce the [`hash`](https://osquery.io/schema/current/#hash) table and hopefully show something useful, like the hash of the last file modified in `/etc`:
 ```
 osquery> SELECT path, mtime, sha256
     ...>   FROM file
