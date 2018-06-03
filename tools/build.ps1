@@ -70,6 +70,7 @@ function Invoke-OsqueryCmake {
   $cmake = (Get-Command 'cmake').Source
   $cmakeArgs = @(
     '-G "Visual Studio 14 2015 Win64"',
+    '-T v140',
     '../../'
   )
   $null = Start-OsqueryProcess $cmake $cmakeArgs $false

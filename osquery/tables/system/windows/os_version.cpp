@@ -67,7 +67,6 @@ const std::map<DWORD, std::string> kOsVersion = {
      "Windows Essential Business Server Messaging Server"},
     {PRODUCT_MEDIUMBUSINESS_SERVER_SECURITY,
      "Windows Essential Business Server Security Server"},
-    {PRODUCT_MOBILE_CORE, "Windows 10 Mobile"},
     {PRODUCT_MULTIPOINT_PREMIUM_SERVER,
      "Windows MultiPoint Server Premium (full installation)"},
     {PRODUCT_MULTIPOINT_STANDARD_SERVER,
