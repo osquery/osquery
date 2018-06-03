@@ -160,7 +160,8 @@ It is important to provide a header file that can be included by the generated m
 
 An example is included in the `osquery/examples/extension_group_example`.
 
-Please note that when using bundling the source directory of each extension is added to the include folder list; developers should always use uniquely named include files.
+Please note that when using bundling the source directory of each extension is added to the include folder list; developers should always use uniquely named include files. Additionally if you are using RapidJSON documents in your extension, you should instead leverage the osquery `json.h` header to avoid linking issues from how we have configured RapidJSON `#define`s.
+
 
 ## Thrift API
 
