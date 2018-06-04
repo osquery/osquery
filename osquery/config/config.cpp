@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <algorithm>
 #include <functional>
 #include <map>
 #include <string>
@@ -111,7 +112,7 @@ using PackRef = std::unique_ptr<Pack>;
 class Schedule : private boost::noncopyable {
  public:
   /// Under the hood, the schedule is just a list of the Pack objects
-  using container = std::list<PackRef>;
+  using container = std::vector<PackRef>;
 
   /**
    * @brief Create a schedule maintained by the configuration.
@@ -193,23 +194,30 @@ void Schedule::remove(const std::string& pack) {
 }
 
 void Schedule::remove(const std::string& pack, const std::string& source) {
-  packs_.remove_if([pack, source](const PackRef& p) {
-    if (p->getName() == pack && (p->getSource() == source || source == "")) {
-      Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
-      return true;
-    }
-    return false;
-  });
+  auto new_end = std::remove_if(
+      packs_.begin(), packs_.end(), [pack, source](const PackRef& p) {
+        if (p->getName() == pack &&
+            (p->getSource() == source || source == "")) {
+          Config::get().removeFiles(source + FLAGS_pack_delimiter +
+                                    p->getName());
+          return true;
+        }
+        return false;
+      });
+  packs_.erase(new_end, packs_.end());
 }
 
 void Schedule::removeAll(const std::string& source) {
-  packs_.remove_if(([source](const PackRef& p) {
-    if (p->getSource() == source) {
-      Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
-      return true;
-    }
-    return false;
-  }));
+  auto new_end =
+      std::remove_if(packs_.begin(), packs_.end(), [source](const PackRef& p) {
+        if (p->getSource() == source) {
+          Config::get().removeFiles(source + FLAGS_pack_delimiter +
+                                    p->getName());
+          return true;
+        }
+        return false;
+      });
+  packs_.erase(new_end, packs_.end());
 }
 
 Schedule::iterator Schedule::begin() {
