@@ -254,6 +254,16 @@ Status RocksDBDatabasePlugin::get(const std::string& domain,
   return Status(s.code(), s.ToString());
 }
 
+Status RocksDBDatabasePlugin::get(const std::string& domain,
+                                  const std::string& key,
+                                  int& value) const {
+  std::string result;
+  auto s = this->get(domain, key, result);
+  if (s.ok()) {
+    value = std::stoi(result);
+  }
+  return s;
+}
 Status RocksDBDatabasePlugin::put(const std::string& domain,
                                   const std::string& key,
                                   const std::string& value) {
@@ -283,6 +293,14 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
   }
   return Status(s.code(), s.ToString());
 }
+
+Status RocksDBDatabasePlugin::put(const std::string& domain,
+                                  const std::string& key,
+                                  const int& value) {
+  return this->put(domain, key, std::to_string(value));
+}
+
+void RocksDBDatabasePlugin::dumpDatabase() const {}
 
 Status RocksDBDatabasePlugin::remove(const std::string& domain,
                                      const std::string& key) {

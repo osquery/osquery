@@ -257,7 +257,7 @@ Status setDatabaseValue(const std::string& domain,
 
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
-                        int value) {
+                        const int& value) {
   return setDatabaseValue(domain, key, std::to_string(value));
 }
 
@@ -358,20 +358,8 @@ void resetDatabase() {
 }
 
 void dumpDatabase() {
-  for (const auto& domain : kDomains) {
-    std::vector<std::string> keys;
-    if (!scanDatabaseKeys(domain, keys)) {
-      continue;
-    }
-    for (const auto& key : keys) {
-      std::string value;
-      if (!getDatabaseValue(domain, key, value)) {
-        continue;
-      }
-      fprintf(
-          stdout, "%s[%s]: %s\n", domain.c_str(), key.c_str(), value.c_str());
-    }
-  }
+  auto plugin = getDatabasePlugin();
+  plugin->dumpDatabase();
 }
 
 Status ptreeToRapidJSON(const std::string& in, std::string& out) {

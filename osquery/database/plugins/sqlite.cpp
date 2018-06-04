@@ -139,6 +139,17 @@ Status SQLiteDatabasePlugin::get(const std::string& domain,
   return Status(1);
 }
 
+Status SQLiteDatabasePlugin::get(const std::string& domain,
+                                 const std::string& key,
+                                 int& value) const {
+  std::string result;
+  auto s = this->get(domain, key, result);
+  if (s.ok()) {
+    value = std::stoi(result);
+  }
+  return s;
+}
+
 static void tryVacuum(sqlite3* db) {
   std::string q =
       "SELECT (sum(s1.pageno + 1 == s2.pageno) * 1.0 / count(*)) < 0.01 as v "
@@ -179,6 +190,12 @@ Status SQLiteDatabasePlugin::put(const std::string& domain,
   return Status(0);
 }
 
+Status SQLiteDatabasePlugin::put(const std::string& domain,
+                                 const std::string& key,
+                                 const int& value) {
+  return this->put(domain, key, std::to_string(value));
+}
+
 Status SQLiteDatabasePlugin::remove(const std::string& domain,
                                     const std::string& key) {
   if (read_only_) {
@@ -201,6 +218,8 @@ Status SQLiteDatabasePlugin::remove(const std::string& domain,
   }
   return Status(0);
 }
+
+void SQLiteDatabasePlugin::dumpDatabase() const {}
 
 Status SQLiteDatabasePlugin::removeRange(const std::string& domain,
                                          const std::string& low,

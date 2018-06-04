@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <iostream>
+
 #include "osquery/database/plugins/ephemeral.h"
 
 namespace osquery {
@@ -16,7 +18,24 @@ Status EphemeralDatabasePlugin::get(const std::string& domain,
                                     const std::string& key,
                                     std::string& value) const {
   if (db_.count(domain) > 0 && db_.at(domain).count(key) > 0) {
-    value = db_.at(domain).at(key);
+    value = boost::get<std::string>(db_.at(domain).at(key));
+    return Status(0);
+  } else {
+    return Status(1);
+  }
+}
+
+Status EphemeralDatabasePlugin::get(const std::string& domain,
+                                    const std::string& key,
+                                    int& value) const {
+  if (db_.count(domain) > 0 && db_.at(domain).count(key) > 0) {
+    try {
+      value = boost::get<int>(db_.at(domain).at(key));
+    } catch (const std::exception& e) {
+      LOG(WARNING) << "Type error getting int value for (domain,key) : (" << key
+                   << "," << domain << ") " << e.what();
+      return Status(1);
+    }
     return Status(0);
   } else {
     return Status(1);
@@ -28,6 +47,24 @@ Status EphemeralDatabasePlugin::put(const std::string& domain,
                                     const std::string& value) {
   db_[domain][key] = value;
   return Status(0);
+}
+
+Status EphemeralDatabasePlugin::put(const std::string& domain,
+                                    const std::string& key,
+                                    const int& value) {
+  db_[domain][key] = value;
+  return Status(0);
+}
+
+void EphemeralDatabasePlugin::dumpDatabase() const {
+  for (const auto& domainValue : db_) {
+    const auto& domain = domainValue.first;
+    for (const auto& keyValue : domainValue.second) {
+      const auto& key = keyValue.first;
+      const auto& value = keyValue.second;
+      std::cout << domain << "[" << key << "]: " << value << std::endl;
+    }
+  }
 }
 
 Status EphemeralDatabasePlugin::remove(const std::string& domain,
