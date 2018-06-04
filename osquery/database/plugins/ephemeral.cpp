@@ -19,11 +19,13 @@ Status EphemeralDatabasePlugin::get(const std::string& domain,
                                     std::string& value) const {
   if (db_.count(domain) > 0 && db_.at(domain).count(key) > 0) {
     try {
-      value = boost::get<string>(db_.at(domain).at(key));
+      value = boost::get<std::string>(db_.at(domain).at(key));
     } catch (const std::exception& e) {
-      LOG(WARNING) << "Type error getting string value for (domain,key) : (" << key
-                   << "," << domain << ") " << e.what();
-      return Status(1, "EphemeralDatabasePlugin::get was requested incorrect type(string)");
+      LOG(WARNING) << "Type error getting string value for (domain,key) : ("
+                   << key << "," << domain << ") " << e.what();
+      return Status(
+          1,
+          "EphemeralDatabasePlugin::get was requested incorrect type(string)");
     }
     return Status(0);
   } else {
@@ -40,7 +42,8 @@ Status EphemeralDatabasePlugin::get(const std::string& domain,
     } catch (const std::exception& e) {
       LOG(WARNING) << "Type error getting int value for (domain,key) : (" << key
                    << "," << domain << ") " << e.what();
-      return Status(1, "EphemeralDatabasePlugin::get was requested incorrect type(int)");
+      return Status(
+          1, "EphemeralDatabasePlugin::get was requested incorrect type(int)");
     }
     return Status(0);
   } else {
