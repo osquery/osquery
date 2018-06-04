@@ -257,7 +257,7 @@ Status setDatabaseValue(const std::string& domain,
 
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
-                        const int& value) {
+                        int value) {
   return setDatabaseValue(domain, key, std::to_string(value));
 }
 

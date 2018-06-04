@@ -296,7 +296,7 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
 
 Status RocksDBDatabasePlugin::put(const std::string& domain,
                                   const std::string& key,
-                                  const int& value) {
+                                  int value) {
   return this->put(domain, key, std::to_string(value));
 }
 

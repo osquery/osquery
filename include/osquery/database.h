@@ -115,7 +115,7 @@ class DatabasePlugin : public Plugin {
 
   virtual Status put(const std::string& domain,
                      const std::string& key,
-                     const int& value) = 0;
+                     int value) = 0;
 
   virtual void dumpDatabase() const = 0;
 
@@ -242,7 +242,7 @@ Status setDatabaseValue(const std::string& domain,
 
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
-                        const int& value);
+                        int value);
 
 /// Remove a domain/key identified value from backing-store.
 Status deleteDatabaseValue(const std::string& domain, const std::string& key);
