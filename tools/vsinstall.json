@@ -1,4 +1,5 @@
 {
+  "channelUri": "https://aka.ms/vs/15/release/channel",
   "channelId": "VisualStudio.15.Release",
   "productId": "Microsoft.VisualStudio.Product.Community",
   "add": [

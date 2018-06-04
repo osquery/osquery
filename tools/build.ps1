@@ -17,27 +17,9 @@ if (-not (Test-Path $utils)) {
 
 # A helper function to derive the latest VS install and call vcvarsall.bat
 function Invoke-VcVarsAll {
-
-  # Attempt to make use of vswhere to derive the build tools scripts
-  $vswhere = (Get-Command 'vswhere').Source
-  $vswhereArgs = @('-latest', '-legacy')
-  $vswhereOut = (Start-OsqueryProcess $vswhere $vswhereArgs).stdout
-  $vsLoc = ''
-  $vsVersion = ''
-  foreach ($l in $vswhereOut.split([environment]::NewLine)) {
-    $toks = $l.split(":")
-    if ($toks.Length -lt 2) {
-      continue
-    }
-    if ($toks[0].trim() -like 'installationVersion') {
-      $vsVersion = $toks[1].Split(".")[0]
-    }
-    if ($toks[0].trim() -like 'installationPath') {
-      $vsLoc = [System.String]::Join(":", $toks[1..$toks.Length])
-    }
-  }
-  $vsLoc = $vsLoc.trim()
-  $vsVersion = $vsVersion.trim()
+  $vsinfo = Get-VSInfo
+  $vsLoc = $($vsinfo.location)
+  $vsVersion = $($vsinfo.version)
 
   if ($vsLoc -ne '') {
     $vcvarsall = Join-Path $vsLoc 'VC'
