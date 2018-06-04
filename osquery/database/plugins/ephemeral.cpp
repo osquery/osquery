@@ -8,53 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/database.h>
-#include <osquery/logger.h>
+#include "osquery/database/plugins/ephemeral.h"
 
 namespace osquery {
-
-DECLARE_string(database_path);
-
-class EphemeralDatabasePlugin : public DatabasePlugin {
-  using DBType = std::map<std::string, std::map<std::string, std::string>>;
-
- public:
-  /// Data retrieval method.
-  Status get(const std::string& domain,
-             const std::string& key,
-             std::string& value) const override;
-
-  /// Data storage method.
-  Status put(const std::string& domain,
-             const std::string& key,
-             const std::string& value) override;
-
-  /// Data removal method.
-  Status remove(const std::string& domain, const std::string& k) override;
-
-  Status removeRange(const std::string& domain,
-                     const std::string& low,
-                     const std::string& high) override;
-
-  /// Key/index lookup method.
-  Status scan(const std::string& domain,
-              std::vector<std::string>& results,
-              const std::string& prefix,
-              size_t max) const override;
-
- public:
-  /// Database workflow: open and setup.
-  Status setUp() override {
-    DBType().swap(db_);
-    return Status(0);
-  }
-
- private:
-  DBType db_;
-};
-
-/// Backing-storage provider for osquery internal/core.
-REGISTER_INTERNAL(EphemeralDatabasePlugin, "database", "ephemeral");
 
 Status EphemeralDatabasePlugin::get(const std::string& domain,
                                     const std::string& key,

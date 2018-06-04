@@ -20,9 +20,11 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 
 namespace osquery {
 
+class Status;
 class Dispatcher;
 
 /// A throw/catch relay between a pause request and cancel event.

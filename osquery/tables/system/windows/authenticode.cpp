@@ -22,6 +22,7 @@
 #include <tlhelp32.h>
 #include <wincrypt.h>
 #include <Softpub.h>
+#include <iomanip>
 // clang-format on
 
 #include <osquery/filesystem.h>

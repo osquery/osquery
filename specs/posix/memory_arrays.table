@@ -1,0 +1,15 @@
+table_name("memory_arrays")
+description("Data associated with collection of memory devices that operate to form a memory address.")
+schema([
+    Column("handle",  TEXT, "Handle, or instance number, associated with the array"),
+    Column("location",  TEXT, "Physical location of the memory array"),
+    Column("use", TEXT, "Function for which the array is used"),
+    Column("memory_error_correction", TEXT,
+      "Primary hardware error correction or detection method supported"),
+    Column("max_capacity", INTEGER, "Maximum capacity of array in gigabytes"),
+    Column("memory_error_info_handle", TEXT,
+      "Handle, or instance number, associated with any error that was detected for the array"),
+    Column("number_memory_devices", INTEGER, "Number of memory devices on array"),
+])
+
+implementation("smbios_tables@genMemoryArrays")

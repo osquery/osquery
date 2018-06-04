@@ -17,6 +17,10 @@ freebsd:usb_devices
 freebsd:yara_events
 freebsd:smbios_tables
 freebsd:memory_devices
+freebsd:memory_arrays
+freebsd:memory_error_info
+freebsd:memory_array_mapped_addresses
+freebsd:memory_device_mapped_addresses
 
 # Blacklisting as an example:
 example

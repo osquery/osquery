@@ -11,6 +11,8 @@
 #include <string.h>
 #include <time.h>
 
+#include <osquery/status.h>
+
 #include "osquery/core/utils.h"
 
 namespace osquery {

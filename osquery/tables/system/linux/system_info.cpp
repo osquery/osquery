@@ -8,12 +8,14 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <sys/utsname.h>
+
 #include <boost/algorithm/string.hpp>
 
 #include <osquery/filesystem.h>
-#include <osquery/tables.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
+#include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/tables/system/linux/smbios_utils.h"
@@ -57,19 +59,25 @@ QueryData genSystemInfo(QueryContext& context) {
     r["physical_memory"] = "-1";
   }
 
-  r["cpu_type"] = "0";
   r["cpu_subtype"] = "0";
+
+  struct utsname utsbuf;
+  if (uname(&utsbuf) == -1) {
+    LOG(WARNING) << "Failed to get cpu_type, uname failed with error code: "
+                 << std::to_string(errno);
+  } else {
+    r["cpu_type"] = std::string(utsbuf.machine);
+  }
 
   // Read the types from CPU info within proc.
   std::string content;
   if (readFile("/proc/cpuinfo", content)) {
     for (const auto& line : osquery::split(content, "\n")) {
       // Iterate each line and look for labels (there is also a model type).
-      if (line.find("cpu family") == 0 || line.find("model\t") == 0) {
+      if (line.find("model\t") == 0) {
         auto details = osquery::split(line, ":");
         if (details.size() == 2) {
-          // Not the most elegant but prevents us from splitting each line.
-          r[(line[0] == 'c') ? "cpu_type" : "cpu_subtype"] = details[1];
+          r["cpu_subtype"] = details[1];
         }
       } else if (line.find("microcode") == 0) {
         auto details = osquery::split(line, ":");
@@ -93,21 +101,21 @@ QueryData genSystemInfo(QueryContext& context) {
       parser.tables(([&r](size_t index,
                           const SMBStructHeader* hdr,
                           uint8_t* address,
+                          uint8_t* textAddrs,
                           size_t size) {
         if (hdr->type != kSMBIOSTypeSystem || size < 0x12) {
           return;
         }
 
-        uint8_t* data = address + hdr->length;
-        r["hardware_vendor"] = dmiString(data, address, 0x04);
-        r["hardware_model"] = dmiString(data, address, 0x05);
-        r["hardware_version"] = dmiString(data, address, 0x06);
-        r["hardware_serial"] = dmiString(data, address, 0x07);
+        r["hardware_vendor"] = dmiString(textAddrs, address, 0x04);
+        r["hardware_model"] = dmiString(textAddrs, address, 0x05);
+        r["hardware_version"] = dmiString(textAddrs, address, 0x06);
+        r["hardware_serial"] = dmiString(textAddrs, address, 0x07);
       }));
     }
   }
 
   return {r};
 }
-}
-}
+} // namespace tables
+} // namespace osquery
