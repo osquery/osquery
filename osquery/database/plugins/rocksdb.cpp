@@ -74,50 +74,55 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
 }
 
 Status RocksDBDatabasePlugin::setUp() {
+  /// Column family descriptors which are used to connect to RocksDB
+  std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
+  /// The RocksDB connection options that are used to connect to RocksDB
+  rocksdb::Options options;
+
   if (!DatabasePlugin::kDBAllowOpen) {
     LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
   }
 
   if (!initialized_) {
     initialized_ = true;
-    options_.OptimizeForSmallDb();
+    options.OptimizeForSmallDb();
 
     // Set meta-data (mostly) handling options.
-    options_.create_if_missing = true;
-    options_.create_missing_column_families = true;
-    options_.info_log_level = rocksdb::ERROR_LEVEL;
-    options_.log_file_time_to_roll = 0;
-    options_.keep_log_file_num = 10;
-    options_.max_log_file_size = 1024 * 1024 * 1;
-    options_.max_open_files = 128;
-    options_.stats_dump_period_sec = 0;
-    options_.max_manifest_file_size = 1024 * 500;
+    options.create_if_missing = true;
+    options.create_missing_column_families = true;
+    options.info_log_level = rocksdb::ERROR_LEVEL;
+    options.log_file_time_to_roll = 0;
+    options.keep_log_file_num = 10;
+    options.max_log_file_size = 1024 * 1024 * 1;
+    options.max_open_files = 128;
+    options.stats_dump_period_sec = 0;
+    options.max_manifest_file_size = 1024 * 500;
 
     // Performance and optimization settings.
     // Use rocksdb::kZSTD to use ZSTD database compression
-    options_.compression = rocksdb::kNoCompression;
-    options_.compaction_style = rocksdb::kCompactionStyleLevel;
-    options_.arena_block_size = (4 * 1024);
-    options_.write_buffer_size = (4 * 1024) * FLAGS_rocksdb_buffer_blocks;
-    options_.max_write_buffer_number =
+    options.compression = rocksdb::kNoCompression;
+    options.compaction_style = rocksdb::kCompactionStyleLevel;
+    options.arena_block_size = (4 * 1024);
+    options.write_buffer_size = (4 * 1024) * FLAGS_rocksdb_buffer_blocks;
+    options.max_write_buffer_number =
         static_cast<int>(FLAGS_rocksdb_write_buffer);
-    options_.min_write_buffer_number_to_merge =
+    options.min_write_buffer_number_to_merge =
         static_cast<int>(FLAGS_rocksdb_merge_number);
-    options_.max_background_flushes =
+    options.max_background_flushes =
         static_cast<int>(FLAGS_rocksdb_background_flushes);
 
     // Create an environment to replace the default logger.
     if (logger_ == nullptr) {
       logger_ = std::make_shared<GlogRocksDBLogger>();
     }
-    options_.info_log = logger_;
+    options.info_log = logger_;
 
-    column_families_.push_back(rocksdb::ColumnFamilyDescriptor(
-        rocksdb::kDefaultColumnFamilyName, options_));
+    column_families.push_back(rocksdb::ColumnFamilyDescriptor(
+        rocksdb::kDefaultColumnFamilyName, options));
 
     for (const auto& cf_name : kDomains) {
-      column_families_.push_back(
-          rocksdb::ColumnFamilyDescriptor(cf_name, options_));
+      column_families.push_back(
+          rocksdb::ColumnFamilyDescriptor(cf_name, options));
     }
   }
 
@@ -137,13 +142,12 @@ Status RocksDBDatabasePlugin::setUp() {
   close();
 
   // Attempt to create a RocksDB instance and handles.
-  auto s =
-      rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+  auto s = rocksdb::DB::Open(options, path_, column_families, &handles_, &db_);
 
   if (s.IsCorruption()) {
     // The database is corrupt - try to repair it
     repairDB();
-    s = rocksdb::DB::Open(options_, path_, column_families_, &handles_, &db_);
+    s = rocksdb::DB::Open(options, path_, column_families, &handles_, &db_);
   }
 
   if (!s.ok() || db_ == nullptr) {
@@ -228,16 +232,12 @@ rocksdb::DB* RocksDBDatabasePlugin::getDB() const {
 
 rocksdb::ColumnFamilyHandle* RocksDBDatabasePlugin::getHandleForColumnFamily(
     const std::string& cf) const {
-  try {
-    for (size_t i = 0; i < kDomains.size(); i++) {
-      if (kDomains[i] == cf) {
-        return handles_[i];
-      }
-    }
-  } catch (const std::exception& /* e */) {
-    // pass through and return nullptr
+  size_t i = std::find(kDomains.begin(), kDomains.end(), cf) - kDomains.begin();
+  if (i != kDomains.size()) {
+    return handles_[i];
+  } else {
+    return nullptr;
   }
-  return nullptr;
 }
 
 Status RocksDBDatabasePlugin::get(const std::string& domain,
