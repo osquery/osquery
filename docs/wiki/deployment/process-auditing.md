@@ -52,7 +52,7 @@ member-clear-sflags-mask:has_authenticated
 
 It is also possible to enable process auditing using a kernel extension. You can build the extension using the osquery build system's `make kernel`. It must be kept up to date alongside the osquery daemon and shell since there are automatic API restrictions applied. If you are running a 1.7.5 daemon, a 1.7.5 extension is needed otherwise the extension will not be used. If you are interested in the extension's design and development please check out the [kernel](../development/kernel.md) development guide.
 
-At the heart of the extension is a replica of the userland Table Pubsub Framework. All osquery-developed kernel code is 100% OS public API compatible and designed to introduce as little stability risk as possible. Running the kernel extension without the osquery daemon should not impact performance.
+At the heart of the extension is a replica of the userland Table Pubsub Framework. All osquery-developed kernel code is designed to introduce as little stability risk as possible. Running the kernel extension without the osquery daemon should not impact performance. However, the kernel code for process events uses the MAC framework, which is not an Apple supported Kernel Programming Interface and according to [QA1574](https://developer.apple.com/library/content/qa/qa1574/_index.html) is scheduled for removal.
 
 There are no configuration or additional options required to enable process auditing on macOS if the kernel extension is installed. The osquery daemon will auto-detect the extension and attempt to load and connect when the process starts.
 
