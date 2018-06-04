@@ -60,7 +60,7 @@ Status EphemeralDatabasePlugin::put(const std::string& domain,
 
 Status EphemeralDatabasePlugin::put(const std::string& domain,
                                     const std::string& key,
-                                    const int& value) {
+                                    int value) {
   db_[domain][key] = value;
   return Status(0);
 }

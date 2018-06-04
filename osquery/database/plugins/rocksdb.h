@@ -50,7 +50,7 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
 
   Status put(const std::string& domain,
              const std::string& key,
-             const int& value) override;
+             int value) override;
 
   void dumpDatabase() const override;
 
