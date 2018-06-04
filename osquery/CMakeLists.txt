@@ -257,16 +257,6 @@ elseif(FREEBSD)
   math(EXPR PLATFORM_MASK "1 + 4 + 32")
 endif()
 
-if(WINDOWS)
-  add_definitions(
-    -DOSQUERY_WINDOWS
-  )
-else 
-  add_definitions(
-    -DOSQUERY_POSIX
-  )
-endif()
-
 # Create the static libosquery (everything but non-utility tables).
 set(OSQUERY_LIBRARY_FLAGS
   -DOSQUERY_BUILD_VERSION=${OSQUERY_BUILD_VERSION}

@@ -31,6 +31,16 @@ if(WIN32)
   list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/*/tools")
 endif()
 
+if(WINDOWS)
+  add_definitions(
+    -DOSQUERY_WINDOWS
+  )
+else()
+  add_definitions(
+    -DOSQUERY_POSIX
+  )
+endif()
+
 # If no explicit compiler override and clang++ exists, prefer clang.
 find_program(CLANGXX_EXECUTABLE "clang++" ENV PATH)
 if(DEFINED ENV{CC})
