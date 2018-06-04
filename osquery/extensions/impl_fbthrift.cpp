@@ -89,9 +89,10 @@ struct ImplExtensionRunner {
 };
 
 struct ImplExtensionClient {
+  folly::EventBase base;
+
   std::shared_ptr<extensions::ExtensionAsyncClient> e;
   std::shared_ptr<extensions::ExtensionManagerAsyncClient> em;
-  folly::EventBase base;
 
   /// Raw socket descriptor.
   int sd;
