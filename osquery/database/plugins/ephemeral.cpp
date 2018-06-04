@@ -20,7 +20,7 @@ Status EphemeralDatabasePlugin::get(const std::string& domain,
   if (db_.count(domain) > 0 && db_.at(domain).count(key) > 0) {
     try {
       value = boost::get<std::string>(db_.at(domain).at(key));
-    } catch (const std::exception& e) {
+    } catch (const boost::bad_get& e) {
       LOG(WARNING) << "Type error getting string value for (domain,key) : ("
                    << key << "," << domain << ") " << e.what();
       return Status(
@@ -39,7 +39,7 @@ Status EphemeralDatabasePlugin::get(const std::string& domain,
   if (db_.count(domain) > 0 && db_.at(domain).count(key) > 0) {
     try {
       value = boost::get<int>(db_.at(domain).at(key));
-    } catch (const std::exception& e) {
+    } catch (const boost::bad_get& e) {
       LOG(WARNING) << "Type error getting int value for (domain,key) : (" << key
                    << "," << domain << ") " << e.what();
       return Status(
