@@ -20,52 +20,51 @@
 
 namespace osquery {
 namespace tables {
-
-void getLimit(QueryData& results) {
-  static const std::map<std::string, int> resource_map = {
-      {"cpu", RLIMIT_CPU},
-      {"fsize", RLIMIT_FSIZE},
-      {"data", RLIMIT_DATA},
-      {"stack", RLIMIT_STACK},
-      {"core", RLIMIT_CORE},
-      {"nofile", RLIMIT_NOFILE},
-      {"as", RLIMIT_AS},
-      {"rss", RLIMIT_RSS},
-      {"memlock", RLIMIT_MEMLOCK},
-      {"nproc", RLIMIT_NPROC},
+const std::map<std::string, int> kLimitsResourceMap = {
+    {"cpu", RLIMIT_CPU},
+    {"fsize", RLIMIT_FSIZE},
+    {"data", RLIMIT_DATA},
+    {"stack", RLIMIT_STACK},
+    {"core", RLIMIT_CORE},
+    {"nofile", RLIMIT_NOFILE},
+    {"as", RLIMIT_AS},
+    {"rss", RLIMIT_RSS},
+    {"memlock", RLIMIT_MEMLOCK},
+    {"nproc", RLIMIT_NPROC},
 #ifdef RLIMIT_LOCKS
-      {"locks", RLIMIT_LOCKS},
+    {"locks", RLIMIT_LOCKS},
 #endif
 #ifdef RLIMIT_SIGPENDING
-      {"sigpending", RLIMIT_SIGPENDING},
+    {"sigpending", RLIMIT_SIGPENDING},
 #endif
 #ifdef RLIMIT_MSGQUEUE
-      {"msgqueue", RLIMIT_MSGQUEUE},
+    {"msgqueue", RLIMIT_MSGQUEUE},
 #endif
 #ifdef RLIMIT_NICE
-      {"nice", RLIMIT_NICE},
+    {"nice", RLIMIT_NICE},
 #endif
 #ifdef RLIMIT_RTPRIO
-      {"rtprio", RLIMIT_RTPRIO},
+    {"rtprio", RLIMIT_RTPRIO},
 #endif
 #ifdef RLIMIT_SBSIZE
-      {"sbsize", RLIMIT_SBSIZE},
+    {"sbsize", RLIMIT_SBSIZE},
 #endif
 #ifdef RLIMIT_NPTS
-      {"npts", RLIMIT_NPTS},
+    {"npts", RLIMIT_NPTS},
 #endif
 #ifdef RLIMIT_SWAP
-      {"swap", RLIMIT_SWAP},
+    {"swap", RLIMIT_SWAP},
 #endif
 #ifdef RLIMIT_KQUEUES
-      {"kqueues", RLIMIT_KQUEUES},
+    {"kqueues", RLIMIT_KQUEUES},
 #endif
 #ifdef RLIMIT_UMTXP
-      {"umtxp", RLIMIT_UMTXP},
+    {"umtxp", RLIMIT_UMTXP},
 #endif
-  };
+};
 
-  for (const auto& it : resource_map) {
+void getLimit(QueryData& results) {
+  for (const auto& it : kLimitsResourceMap) {
     struct rlimit rlp;
     auto result = getrlimit(it.second, &rlp);
     if (result == -1) {
