@@ -22,16 +22,20 @@ class EphemeralDatabasePlugin : public DatabasePlugin {
   using DBType =
       std::map<std::string,
                std::map<std::string, boost::variant<int, std::string>>>;
+  template <typename T>
+  Status getAny(const std::string& domain,
+                const std::string& key,
+                T& value) const;
 
  public:
   /// Data retrieval method.
+
   Status get(const std::string& domain,
              const std::string& key,
              std::string& value) const override;
   Status get(const std::string& domain,
              const std::string& key,
              int& value) const override;
-
   /// Data storage method.
   Status put(const std::string& domain,
              const std::string& key,
