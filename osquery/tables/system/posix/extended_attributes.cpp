@@ -77,7 +77,6 @@ Status getExtendedAttributeList(std::vector<std::string>& attribute_list,
 
   std::string raw_attribute_list;
   raw_attribute_list.resize(buffer_length);
-
   if (listxattr(path.c_str(), &raw_attribute_list[0], buffer_length) !=
       buffer_length) {
     return Status(1, "Failed to retrieve the attribute list");
@@ -118,7 +117,7 @@ Status appendDirectoryEntryAttributes(QueryData& results,
               << path;
     }
 
-    std::unordered_map<std::string, std::string> expanded_attributes;
+    std::vector<std::pair<std::string, std::string>> expanded_attributes;
     status = readSpecialExtendedAttribute(expanded_attributes, path, raw_name);
     if (!status.ok()) {
       VLOG(1) << status.getMessage();
@@ -127,7 +126,7 @@ Status appendDirectoryEntryAttributes(QueryData& results,
     // If we received nothing (or had a decoding error), include the raw
     // attribute
     if (expanded_attributes.empty()) {
-      expanded_attributes.insert({raw_name, raw_value});
+      expanded_attributes.push_back(std::make_pair(raw_name, raw_value));
     }
 
     Row r;

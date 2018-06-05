@@ -30,6 +30,8 @@
 #endif
 #endif
 
+namespace fs = boost::filesystem;
+
 namespace osquery {
 Status getAllExtendedAttributes(
     std::unordered_map<std::string, std::string>& attributes,
@@ -38,11 +40,18 @@ Status getAllExtendedAttributes(
 class ExtendedAttributesTests : public testing::Test {};
 
 TEST_F(ExtendedAttributesTests, test_extended_attributes) {
-  std::string test_file_path = kTestDataPath + "test_xattrs.txt";
-  std::vector<std::string> dummy_attributes = {
+  auto test_file_path =
+      (fs::temp_directory_path() / fs::unique_path()).string();
+
+  {
+    std::fstream test_file(test_file_path, std::ios::out);
+    EXPECT_EQ(!test_file, false);
+  }
+
+  std::vector<std::string> dummy_attrs = {
       "user.attribute01", "user.attribute02", "user.attribute03"};
 
-  for (const auto& dummy_attr : dummy_attributes) {
+  for (const auto& dummy_attr : dummy_attrs) {
     EXPECT_EQ(setxattr(test_file_path.c_str(),
                        dummy_attr.data(),
                        dummy_attr.data(),
@@ -60,18 +69,27 @@ TEST_F(ExtendedAttributesTests, test_extended_attributes) {
     return;
   }
 
-  EXPECT_EQ(attributes.size(), dummy_attributes.size());
+  size_t matching_entries = 0U;
 
   for (const auto& p : attributes) {
     const auto& attribute_name = p.first;
     const auto& attribute_value = p.second;
 
-    auto it = std::find(
-        dummy_attributes.begin(), dummy_attributes.end(), attribute_name);
-    EXPECT_TRUE(it != dummy_attributes.end());
+    auto it = std::find(dummy_attrs.begin(), dummy_attrs.end(), attribute_name);
+    if (it == dummy_attrs.end()) {
+      continue;
+    }
 
     const auto& expected_value = *it;
-    EXPECT_EQ(attribute_value, expected_value);
+    if (attribute_value != expected_value) {
+      continue;
+    }
+
+    matching_entries++;
   }
+
+  EXPECT_EQ(matching_entries, dummy_attrs.size());
+
+  fs::remove(test_file_path);
 }
 } // namespace osquery
