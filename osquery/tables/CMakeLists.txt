@@ -76,6 +76,7 @@ if(LINUX)
   ADD_OSQUERY_LINK_ADDITIONAL("dpkg lzma bz2")
   ADD_OSQUERY_LINK_ADDITIONAL("rpm rpmio popt db")
   ADD_OSQUERY_LINK_ADDITIONAL("elf++")
+  ADD_OSQUERY_LINK_ADDITIONAL("cap")
 endif()
 
 if(POSIX)

@@ -43,6 +43,7 @@ function platform_linux_main() {
   brew_tool osquery/osquery-local/zlib
   brew_tool osquery/osquery-local/linux-headers
   brew_tool osquery/osquery-local/sqlite
+  brew_tool libcap
 
   brew_tool osquery/osquery-local/glibc-legacy
   brew_tool osquery/osquery-local/zlib-legacy
