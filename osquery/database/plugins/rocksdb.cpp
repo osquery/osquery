@@ -20,6 +20,7 @@
 
 #include "osquery/database/plugins/rocksdb.h"
 #include "osquery/filesystem/fileops.h"
+#include "osquery/core/conversions.h"
 
 namespace fs = boost::filesystem;
 
@@ -260,7 +261,9 @@ Status RocksDBDatabasePlugin::get(const std::string& domain,
   std::string result;
   auto s = this->get(domain, key, result);
   if (s.ok()) {
-    value = std::stoi(result);
+    if (safeStrtoi(result, 10, value)) {
+      return Status(1, "Could not deserialize str to int");
+    }
   }
   return s;
 }

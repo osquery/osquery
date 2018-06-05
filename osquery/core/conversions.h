@@ -182,6 +182,19 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
 }
 
 /// Safely convert a string representation of an integer base.
+inline Status safeStrtoi(const std::string& rep, size_t base, int& out) {
+  try {
+    out = std::stoi(rep, 0, base);
+  } catch (const std::invalid_argument& ia) {
+    return Status(1, "If no conversion could be performed.");
+  } catch (const std::out_of_range& oor) {
+    return Status(
+        1, "Value read is out of the range of representable values by an int.");
+  }
+  return Status(0);
+}
+
+/// Safely convert a string representation of an integer base.
 inline Status safeStrtoull(const std::string& rep,
                            size_t base,
                            unsigned long long& out) {
