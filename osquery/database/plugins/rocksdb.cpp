@@ -18,9 +18,9 @@
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/database/plugins/rocksdb.h"
 #include "osquery/filesystem/fileops.h"
-#include "osquery/core/conversions.h"
 
 namespace fs = boost::filesystem;
 

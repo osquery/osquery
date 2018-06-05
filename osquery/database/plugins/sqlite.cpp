@@ -14,9 +14,9 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/database/plugins/sqlite.h"
 #include "osquery/filesystem/fileops.h"
-#include "osquery/core/conversions.h"
 
 namespace osquery {
 
