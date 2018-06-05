@@ -123,11 +123,11 @@ class RocksDBDatabasePlugin : public DatabasePlugin {
   /// Column family descriptors which are used to connect to RocksDB
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families_;
 
-  /// The RocksDB connection options that are used to connect to RocksDB
-  rocksdb::Options options_;
-
   /// A vector of pointers to column family handles
   std::vector<rocksdb::ColumnFamilyHandle*> handles_;
+
+  /// The RocksDB connection options that are used to connect to RocksDB
+  rocksdb::Options options_;
 
   /// Deconstruction mutex.
   Mutex close_mutex_;
