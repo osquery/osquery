@@ -6,22 +6,74 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-file(GLOB OSQUERY_CORE_PLATFORM "${PROCESS_FAMILY}/*.cpp")
-file(GLOB OSQUERY_CORE_PLATFORM_TESTS "tests/${PROCESS_FAMILY}/*.cpp")
+ADD_OSQUERY_LIBRARY(TRUE osquery_core "")
 
-if(APPLE)
-  set(OSQUERY_CORE_PLATFORM
-    ${OSQUERY_CORE_PLATFORM}
-    darwin/conversions.cpp
-    darwin/iokit.cpp
+target_sources(osquery_core
+  PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/conversions.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/conversions.h"
+    "${CMAKE_CURRENT_LIST_DIR}/flags.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/hashing.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/hashing.h"
+    "${CMAKE_CURRENT_LIST_DIR}/init.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/json.h"
+    "${CMAKE_CURRENT_LIST_DIR}/process.h"
+    "${CMAKE_CURRENT_LIST_DIR}/query.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/system.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/tables.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/utils.h"
+    "${CMAKE_CURRENT_LIST_DIR}/watcher.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/watcher.h"
+)
+
+ADD_OSQUERY_LIBRARY(TRUE osquery_core_platform "")
+
+if (APPLE)
+  darwin_target_sources(osquery_core_platform
+    PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/darwin/conversions.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.hpp"
   )
 endif()
 
-file(GLOB OSQUERY_CORE "*.cpp")
-ADD_OSQUERY_LIBRARY(TRUE osquery_core
-  ${OSQUERY_CORE_PLATFORM}
-  ${OSQUERY_CORE}
+if (UNIX)
+  target_sources(osquery_core_platform
+    PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/posix/initializer.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/posix/process_ops.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/posix/process.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/posix/utils.cpp"
+  )
+endif()
+
+if (WINDOWS)
+  target_sources(osquery_core_platform
+    PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/windows/initializer.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/windows/process_ops.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/windows/process_ops.h"
+      "${CMAKE_CURRENT_LIST_DIR}/windows/process.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/windows/utils.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/windows/wmi.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/windows/wmi.h"
+  )
+endif()
+
+ADD_OSQUERY_TEST(TRUE
+  "${CMAKE_CURRENT_LIST_DIR}/tests/conversions_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/flags_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/process_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/query_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/status_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/system_test.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/tables_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/time_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/watcher_tests.cpp"
 )
 
-file(GLOB OSQUERY_CORE_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(TRUE ${OSQUERY_CORE_TESTS} ${OSQUERY_CORE_PLATFORM_TESTS})
+if (UNIX) 
+  ADD_OSQUERY_TEST(TRUE
+    "${CMAKE_CURRENT_LIST_DIR}/tests/posix/permissions_tests.cpp"
+  )   
+endif()

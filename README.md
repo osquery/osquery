@@ -12,7 +12,7 @@ The tools make low-level operating system analytics and monitoring both performa
 macOS 10.12    | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.12/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildOSX10.12/) | | **Homepage:** | https://osquery.io
 CentOS 6.x | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS6/) | | **Downloads:** | https://osquery.io/downloads
 CentOS 7.x   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildCentOS7/) | | **Tables:** | https://osquery.io/schema
-Ubuntu 14.04   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Packs:** | https://osquery.io/packs
+Ubuntu 14.04   | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu14/) | | **Packs:** | [https://osquery.io/packs](https://github.com/facebook/osquery/tree/master/packs)
 Ubuntu 16.04 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildUbuntu16/) | | **Guide:** | https://osquery.readthedocs.org
 Windows 2016 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildWindows2016/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildWindows2016/) | | [![Slack Status](https://osquery-slack.herokuapp.com/badge.svg)](https://osquery-slack.herokuapp.com) | https://osquery-slack.herokuapp.com
 Windows 10 | [![Build Status](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/badge/icon)](https://jenkins.osquery.io/job/osqueryMasterBuildWindows10/) | | |
@@ -26,12 +26,12 @@ osquery exposes an operating system as a high-performance relational database. T
 
 SQL tables are implemented via a simple plugin and extensions API. A variety of tables already exist and more are being written: [https://osquery.io/schema](https://osquery.io/schema/). To best understand the expressiveness that is afforded to you by osquery, consider the following SQL queries:
 
-List the [`users`](https://osquery.io/schema/#users):
+List the [`users`](https://osquery.io/schema/current#users):
 ```sql
 SELECT * FROM users;
 ```
 
-Check the [`processes`](https://osquery.io/schema/#processes) that have a deleted executable:
+Check the [`processes`](https://osquery.io/schema/current#processes) that have a deleted executable:
 ```sql
 SELECT * FROM processes WHERE on_disk = 0;
 ```
@@ -93,7 +93,7 @@ We *officially* support a subset of OS versions for **building** because it is r
 
 ## File Integrity Monitoring (FIM)
 
-osquery provides several [FIM features](http://osquery.readthedocs.org/en/stable/deployment/file-integrity-monitoring/) too! Just as OS concepts are represented in tabular form, the daemon can track OS events and later expose them in a table. Tables like [`file_events`](https://osquery.io/schema/#file_events) or [`yara_events`](https://osquery.io/schema/#yara_events) can be selected to retrieve buffered events.
+osquery provides several [FIM features](http://osquery.readthedocs.org/en/stable/deployment/file-integrity-monitoring/) too! Just as OS concepts are represented in tabular form, the daemon can track OS events and later expose them in a table. Tables like [`file_events`](https://osquery.io/schema/current#file_events) or [`yara_events`](https://osquery.io/schema/current#yara_events) can be selected to retrieve buffered events.
 
 The configuration allows you to organize files and directories for monitoring. Those sets can be paired with lists of YARA signatures or configured for additional monitoring such as access events.
 

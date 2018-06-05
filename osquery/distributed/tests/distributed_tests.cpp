@@ -17,6 +17,7 @@
 #include <osquery/core.h>
 #include <osquery/distributed.h>
 #include <osquery/enroll.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
 #include "osquery/core/json.h"

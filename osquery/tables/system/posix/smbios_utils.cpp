@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <iomanip>
+
 #include <boost/algorithm/string/trim.hpp>
 
 #include "osquery/core/hashing.h"
@@ -252,6 +254,7 @@ static inline std::string dmiWordToHexStr(uint8_t* address, uint8_t offset) {
 void SMBIOSParser::tables(std::function<void(size_t index,
                                              const SMBStructHeader* hdr,
                                              uint8_t* address,
+                                             uint8_t* textAddrs,
                                              size_t size)> predicate) {
   if (table_data_ == nullptr) {
     return;
@@ -286,7 +289,7 @@ void SMBIOSParser::tables(std::function<void(size_t index,
     }
 
     auto table_length = next_table - table;
-    predicate(index++, header, table, table_length);
+    predicate(index++, header, table, table + header->length, table_length);
     table = next_table;
   }
 }
@@ -317,6 +320,7 @@ void genSMBIOSTable(size_t index,
 void genSMBIOSMemoryDevices(size_t index,
                             const SMBStructHeader* hdr,
                             uint8_t* address,
+                            uint8_t* textAddrs,
                             size_t size,
                             QueryData& results) {
   if (hdr->type != kSMBIOSTypeMemoryDevice || size < 0x12) {
@@ -352,9 +356,8 @@ void genSMBIOSMemoryDevices(size_t index,
     r["set"] = INTEGER(static_cast<int>(address[0x0F]));
   }
 
-  uint8_t* data = address + hdr->length;
-  r["device_locator"] = dmiString(data, address, 0x10);
-  r["bank_locator"] = dmiString(data, address, 0x11);
+  r["device_locator"] = dmiString(textAddrs, address, 0x10);
+  r["bank_locator"] = dmiString(textAddrs, address, 0x11);
 
   auto memoryType = kSMBIOSMemoryTypeTable.find(address[0x12]);
   if (memoryType != kSMBIOSMemoryTypeTable.end()) {
@@ -374,10 +377,10 @@ void genSMBIOSMemoryDevices(size_t index,
     r["configured_clock_speed"] = INTEGER(speed);
   }
 
-  r["manufacturer"] = dmiString(data, address, 0x17);
-  r["serial_number"] = dmiString(data, address, 0x18);
-  r["asset_tag"] = dmiString(data, address, 0x19);
-  r["part_number"] = dmiString(data, address, 0x1A);
+  r["manufacturer"] = dmiString(textAddrs, address, 0x17);
+  r["serial_number"] = dmiString(textAddrs, address, 0x18);
+  r["asset_tag"] = dmiString(textAddrs, address, 0x19);
+  r["part_number"] = dmiString(textAddrs, address, 0x1A);
 
   auto vt = dmiToWord(address, 0x22);
   if (vt != 0) {

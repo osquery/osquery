@@ -18,9 +18,9 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <osquery/status.h>
-
 namespace osquery {
+
+class Status;
 
 /// Globbing directory traversal function recursive limit.
 enum GlobLimits : size_t {

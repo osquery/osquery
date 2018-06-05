@@ -29,12 +29,14 @@ const std::vector<std::string> kLenovo = {"lenovo"};
 const std::vector<std::string> kDell = {"dell inc."};
 const std::map<std::string, std::pair<std::string, BSTR>> kQueryMap = {
     {"hp",
-     {"select Name,Value from HP_BiosSetting", L"root\\hp\\instrumentedBIOS"}},
-    {"lenovo", {"select CurrentSetting from Lenovo_BiosSetting", L"root\\wmi"}},
+     {"select Name,Value from HP_BiosSetting",
+      (BSTR) "root\\hp\\instrumentedBIOS"}},
+    {"lenovo",
+     {"select CurrentSetting from Lenovo_BiosSetting", (BSTR) "root\\wmi"}},
     {"dell",
      {"select AttributeName,CurrentValue,PossibleValues, "
       "PossibleValuesDescription from DCIM_BIOSEnumeration",
-      L"root\\dcim\\sysman"}}};
+      (BSTR) "root\\dcim\\sysman"}}};
 
 std::string getManufacturer(std::string manufacturer) {
   transform(manufacturer.begin(),

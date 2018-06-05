@@ -14,11 +14,11 @@
 #include <string>
 #include <vector>
 
-#include <osquery/registry.h>
-#include <osquery/status.h>
+#include <osquery/plugin.h>
 
 namespace osquery {
 
+class Status;
 /**
  * @brief A list of supported backing storage categories: called domains.
  *
@@ -210,6 +210,10 @@ Status getDatabaseValue(const std::string& domain,
                         const std::string& key,
                         std::string& value);
 
+Status getDatabaseValue(const std::string& domain,
+                        const std::string& key,
+                        int& value);
+
 /**
  * @brief Set or put a value into the active osquery DatabasePlugin storage.
  *
@@ -225,6 +229,10 @@ Status getDatabaseValue(const std::string& domain,
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         const std::string& value);
+
+Status setDatabaseValue(const std::string& domain,
+                        const std::string& key,
+                        int value);
 
 /// Remove a domain/key identified value from backing-store.
 Status deleteDatabaseValue(const std::string& domain, const std::string& key);

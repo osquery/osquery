@@ -9,6 +9,7 @@
  */
 
 #include <osquery/config/parsers/logger.h>
+#include <osquery/registry_factory.h>
 
 namespace rj = rapidjson;
 

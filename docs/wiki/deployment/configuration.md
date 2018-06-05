@@ -439,7 +439,7 @@ Example:
 ```json
 {
   "views": {
-    "kernel_hashses" : "SELECT hash.path AS kernel_binary, version, hash.sha256 AS sha256, hash.sha1 AS sha1, hash.md5 AS md5 FROM (SELECT path || '/Contents/MacOS/' AS directory, name, version FROM kernel_extensions) JOIN hash USING (directory);"
+    "kernel_hashes" : "SELECT hash.path AS kernel_binary, version, hash.sha256 AS sha256, hash.sha1 AS sha1, hash.md5 AS md5 FROM (SELECT path || '/Contents/MacOS/' AS directory, name, version FROM kernel_extensions) JOIN hash USING (directory);"
   }
 }
 ```

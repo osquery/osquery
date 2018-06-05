@@ -27,9 +27,8 @@
 #include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
+#include <osquery/plugin.h>
 #include <osquery/query.h>
-#include <osquery/registry.h>
-#include <osquery/status.h>
 
 /// Allow Tables to use "tracked" deprecated OS APIs.
 #define OSQUERY_USE_DEPRECATED(expr)                                           \
@@ -41,6 +40,7 @@
 
 namespace osquery {
 
+class Status;
 /**
  * @brief osquery does not yet use a NULL type.
  *

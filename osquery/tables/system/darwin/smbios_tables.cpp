@@ -101,6 +101,7 @@ QueryData genSMBIOSTables(QueryContext& context) {
     parser.tables(([&results](size_t index,
                               const SMBStructHeader* hdr,
                               uint8_t* address,
+                              uint8_t* textAddrs,
                               size_t size) {
       genSMBIOSTable(index, hdr, address, size, results);
     }));
@@ -119,8 +120,9 @@ QueryData genMemoryDevices(QueryContext& context) {
   parser.tables([&results](size_t index,
                            const SMBStructHeader* hdr,
                            uint8_t* address,
+                           uint8_t* textAddrs,
                            size_t size) {
-    genSMBIOSMemoryDevices(index, hdr, address, size, results);
+    genSMBIOSMemoryDevices(index, hdr, address, textAddrs, size, results);
   });
 
   return results;
@@ -137,6 +139,7 @@ QueryData genMemoryArrays(QueryContext& context) {
   parser.tables([&results](size_t index,
                            const SMBStructHeader* hdr,
                            uint8_t* address,
+                           uint8_t* textAddrs,
                            size_t size) {
     genSMBIOSMemoryArrays(index, hdr, address, size, results);
   });
@@ -155,6 +158,7 @@ QueryData genMemoryArrayMappedAddresses(QueryContext& context) {
   parser.tables([&results](size_t index,
                            const SMBStructHeader* hdr,
                            uint8_t* address,
+                           uint8_t* textAddrs,
                            size_t size) {
     genSMBIOSMemoryArrayMappedAddresses(index, hdr, address, size, results);
   });
@@ -173,6 +177,7 @@ QueryData genMemoryErrorInfo(QueryContext& context) {
   parser.tables([&results](size_t index,
                            const SMBStructHeader* hdr,
                            uint8_t* address,
+                           uint8_t* textAddrs,
                            size_t size) {
     genSMBIOSMemoryErrorInfo(index, hdr, address, size, results);
   });
@@ -191,6 +196,7 @@ QueryData genMemoryDeviceMappedAddresses(QueryContext& context) {
   parser.tables([&results](size_t index,
                            const SMBStructHeader* hdr,
                            uint8_t* address,
+                           uint8_t* textAddrs,
                            size_t size) {
     genSMBIOSMemoryDeviceMappedAddresses(index, hdr, address, size, results);
   });

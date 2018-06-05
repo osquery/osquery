@@ -18,10 +18,12 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 #include <osquery/plugin.h>
-#include <osquery/status.h>
 
 namespace osquery {
+
+class Status;
 
 using AddExternalCallback =
     std::function<Status(const std::string&, const PluginResponse&)>;

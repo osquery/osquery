@@ -148,6 +148,21 @@ Scanning dependencies of target external_extension_awesome
 [100%] Built target externals
 ```
 
+## Bundling extensions into a single executable
+All the extensions declared with the **add_osquery_extension_ex()** CMake function will be automatically bundled into a single executable.
+
+The executable name and version can be changed using the following two environment variables:
+
+1. OSQUERY_EXTENSION_GROUP_NAME (default: osquery_extension_group)
+2. OSQUERY_EXTENSION_GROUP_VERSION (default: 1.0)
+
+It is important to provide a header file that can be included by the generated main.cpp file; its purpose is to define the types used by the **REGISTER_EXTERNAL** directive.
+
+An example is included in the `osquery/examples/extension_group_example`.
+
+Please note that when using bundling the source directory of each extension is added to the include folder list; developers should always use uniquely named include files. Additionally if you are using RapidJSON documents in your extension, you should instead leverage the osquery `json.h` header to avoid linking issues from how we have configured RapidJSON `#define`s.
+
+
 ## Thrift API
 
 [Thrift](https://thrift.apache.org/) is a code-generation/cross-language service development framework. osquery uses Thrift to allow plugin extensions for config retrieval, log export, table implementations, event subscribers, and event publishers. We also use Thrift to wrap our SQL implementation using SQLite.

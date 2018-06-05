@@ -14,6 +14,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/dispatcher.h>

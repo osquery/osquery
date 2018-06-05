@@ -52,9 +52,15 @@ function Invoke-OsqueryCmake {
   $vsinfo = Get-VSInfo
   $cmake = (Get-Command 'cmake').Source
   if ($($vsinfo.version) -eq '15'){
-    $cmakeArgs = @('-G "Visual Studio 15 2017 Win64"')
+    $cmakeArgs = @(
+      '-G "Visual Studio 15 2017 Win64"',
+      '-T v141'
+    )
   } else {
-    $cmakeArgs = @('-G "Visual Studio 14 2015 Win64"')
+    $cmakeArgs = @(
+      '-G "Visual Studio 14 2015 Win64"',
+      '-T v140'
+    )
   }
   $cmakeArgs += '../../'
   $null = Start-OsqueryProcess $cmake $cmakeArgs $false

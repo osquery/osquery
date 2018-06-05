@@ -10,13 +10,12 @@
 
 #pragma once
 
+#include <csignal>
 #include <mutex>
 #include <string>
-#include <vector>
-
-#include <boost/filesystem/path.hpp>
 
 #include <osquery/core.h>
+#include <osquery/mutex.h>
 
 #ifdef WIN32
 #include <osquery/windows/system.h>
@@ -25,6 +24,8 @@
 #endif
 
 namespace osquery {
+
+class Status;
 
 /**
  * @brief The requested exit code.

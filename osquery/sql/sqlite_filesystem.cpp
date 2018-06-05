@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <string>
+
 #include <boost/filesystem.hpp>
 #include <boost/optional.hpp>
 
@@ -143,6 +145,38 @@ static void isPathDeterministic(sqlite3_context* context,
   sqlite3_result_error(context, "Invalid inputs to is_path_deterministic", -1);
 }
 
+static void getParentDirectory(sqlite3_context* context,
+                               int argc,
+                               sqlite3_value** argv) {
+  if (sqlite3_value_type(argv[0]) != SQLITE_TEXT) {
+    sqlite3_result_error(
+        context, "Invalid inputs to parent_directory, TEXT was expected", -1);
+    return;
+  }
+  const char* path = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
+  int pos = 0;
+  int last_slash_pos = -1;
+#ifdef WIN32
+  char directory_symbol = '/';
+#else
+  char directory_symbol = '\\';
+#endif
+  while (path[pos] != '\0') {
+    if (path[pos] == directory_symbol) {
+      last_slash_pos = pos;
+    }
+    pos++;
+  }
+  if (last_slash_pos < 0) {
+    // No parent directory
+    sqlite3_result_null(context);
+    return;
+  }
+  char* result = reinterpret_cast<char*>(malloc(last_slash_pos));
+  memcpy(result, path, last_slash_pos);
+  sqlite3_result_text(context, result, last_slash_pos, free);
+}
+
 void registerFilesystemExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "is_path_deterministic",
@@ -158,6 +192,14 @@ void registerFilesystemExtensions(sqlite3* db) {
                           SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           findFilePathInLaunchCommand,
+                          nullptr,
+                          nullptr);
+  sqlite3_create_function(db,
+                          "parent_directory",
+                          1,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          getParentDirectory,
                           nullptr,
                           nullptr);
 }
