@@ -14,13 +14,13 @@
 #define _WIN32_DCOM
 
 #include <Windows.h>
+#include <iomanip>
 #include <psapi.h>
 #include <stdlib.h>
 #include <tlhelp32.h>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -29,7 +29,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
-#include <osquery/filesystem/fileops.h>
+#include "osquery/filesystem/fileops.h"
 
 namespace osquery {
 int getUidFromSid(PSID sid);

@@ -11,6 +11,7 @@
 #include <asm/unistd_64.h>
 
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
 #include "osquery/tables/events/linux/process_events.h"

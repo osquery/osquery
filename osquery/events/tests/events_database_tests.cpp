@@ -18,10 +18,10 @@
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include <osquery/logger.h>
 
 #include "osquery/tests/test_util.h"
 

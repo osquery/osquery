@@ -9,6 +9,7 @@
  */
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <osquery/database.h>
 #include <osquery/flags.h>
@@ -219,6 +220,17 @@ Status getDatabaseValue(const std::string& domain,
   }
 }
 
+Status getDatabaseValue(const std::string& domain,
+                        const std::string& key,
+                        int& value) {
+  std::string result;
+  auto s = getDatabaseValue(domain, key, result);
+  if (s.ok()) {
+    value = std::stoi(result);
+  }
+  return s;
+}
+
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         const std::string& value) {
@@ -241,6 +253,12 @@ Status setDatabaseValue(const std::string& domain,
     auto plugin = getDatabasePlugin();
     return plugin->put(domain, key, value);
   }
+}
+
+Status setDatabaseValue(const std::string& domain,
+                        const std::string& key,
+                        int value) {
+  return setDatabaseValue(domain, key, std::to_string(value));
 }
 
 Status deleteDatabaseValue(const std::string& domain, const std::string& key) {

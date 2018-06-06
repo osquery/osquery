@@ -15,7 +15,7 @@
 
 #include <osquery/core/json.h>
 #include <osquery/flags.h>
-#include <osquery/registry.h>
+#include <osquery/plugin.h>
 
 namespace osquery {
 

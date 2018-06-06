@@ -482,7 +482,7 @@ function Main {
     $out = Install-ChocoPackage 'visualcppbuildtools'
   } else {
     $install17 = Check-VS2017Install
-    $install15 = Check-VS2017Install
+    $install15 = Check-VS2015Install
     if ($install17 -eq $false -and $install15 -eq $false) {
       $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsinstall.json'))
       $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--in ${deploymentFile}")

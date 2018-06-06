@@ -17,6 +17,7 @@
 
 #include <sqlite3.h>
 
+#include <boost/filesystem.hpp>
 #include <boost/noncopyable.hpp>
 
 #include <osquery/sql.h>

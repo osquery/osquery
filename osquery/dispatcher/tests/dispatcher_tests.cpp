@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/dispatcher.h>
+#include <osquery/status.h>
 
 namespace osquery {
 

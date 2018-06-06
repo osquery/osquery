@@ -15,14 +15,14 @@
 #include <vector>
 
 #include <osquery/core.h>
+#include <osquery/plugin.h>
 #include <osquery/query.h>
-#include <osquery/registry.h>
-#include <osquery/status.h>
 
 #include "osquery/core/json.h"
 
 namespace osquery {
 
+class Status;
 class Config;
 class Pack;
 class Schedule;
@@ -45,6 +45,8 @@ class Config : private boost::noncopyable {
   Config();
 
  public:
+  ~Config();
+
   /// Singleton accessor.
   static Config& get();
 
@@ -310,9 +312,9 @@ class Config : private boost::noncopyable {
    */
   void reset();
 
- protected:
+ private:
   /// Schedule of packs and their queries.
-  std::shared_ptr<Schedule> schedule_;
+  std::unique_ptr<Schedule> schedule_;
 
   /// A set of performance stats for each query in the schedule.
   std::map<std::string, QueryPerformance> performance_;
