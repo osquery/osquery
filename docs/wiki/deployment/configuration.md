@@ -175,7 +175,7 @@ One solution to this problem is discovery queries.
 Query packs allow you to define a set of osquery queries which control whether
 or not the pack will execute. Discovery queries are represented by the
 top-level "discovery" key-word in a pack. The value should be a list of osquery
-queries. If all of the queries return more than zero rows, then the queries are
+queries. If any of the queries return more than zero rows, then the queries are
 added to the query schedule. This allows you to distribute configurations for
 many services and programs, while ensuring that only relevant queries will be
 executing on your host.
