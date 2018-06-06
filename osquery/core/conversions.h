@@ -186,10 +186,10 @@ inline Status safeStrtoi(const std::string& rep, int base, int& out) {
   try {
     out = std::stoi(rep, 0, base);
   } catch (const std::invalid_argument& ia) {
-    return Status(1, "If no conversion could be performed.");
+    return Status(1, "If no conversion could be performed. " + ia.what());
   } catch (const std::out_of_range& oor) {
     return Status(
-        1, "Value read is out of the range of representable values by an int.");
+        1, "Value read is out of the range of representable values by an int. " + oor.what());
   }
   return Status(0);
 }
