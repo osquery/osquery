@@ -30,20 +30,12 @@ const std::map<std::string, std::string> kDBSettings = {
 };
 
 Status SQLiteDatabasePlugin::setUp() {
-  if (!DatabasePlugin::kDBAllowOpen) {
-    LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
-  }
-
   // Consume the current settings.
   // A configuration update may change them, but that does not affect state.
   path_ = FLAGS_database_path;
 
   if (pathExists(path_).ok() && !isReadable(path_).ok()) {
     return Status(1, "Cannot read database path: " + path_);
-  }
-
-  if (!DatabasePlugin::kDBChecking) {
-    VLOG(1) << "Opening database handle: " << path_;
   }
 
   // Tests may trash calls to setUp, make sure subsequent calls do not leak.
@@ -57,17 +49,8 @@ Status SQLiteDatabasePlugin::setUp() {
       nullptr);
 
   if (result != SQLITE_OK || db_ == nullptr) {
-    if (DatabasePlugin::kDBRequireWrite) {
-      close();
-      // A failed open in R/W mode is a runtime error.
-      return Status(1, "Cannot open database: " + std::to_string(result));
-    }
-
-    if (!DatabasePlugin::kDBChecking) {
-      VLOG(1) << "Opening database failed: Continuing with read-only support";
-    }
-
-    read_only_ = true;
+    close();
+    return Status(1, "Cannot open database: " + std::to_string(result));
   }
 
   if (!read_only_) {

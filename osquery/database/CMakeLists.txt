@@ -11,6 +11,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_database "")
 target_sources(osquery_database
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/database.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/database_plugin.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/plugins/ephemeral.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/plugins/ephemeral.h"
 )

@@ -481,8 +481,7 @@ void Initializer::initWatcher() const {
   if (isWatcher()) {
     FLAGS_disable_database = true;
     FLAGS_disable_logging = true;
-    DatabasePlugin::setAllowOpen(true);
-    DatabasePlugin::initPlugin();
+    initializeDatabase();
   }
 
   // The watcher takes a list of paths to autoload extensions from.
@@ -595,12 +594,9 @@ void Initializer::start() const {
   // If there are spurious access then warning logs will be emitted since the
   // set-allow-open will never be called.
   if (!isWatcher()) {
-    DatabasePlugin::setAllowOpen(true);
     // A daemon must always have R/W access to the database.
-    DatabasePlugin::setRequireWrite(isDaemon());
-
     for (size_t i = 1; i <= kDatabaseMaxRetryCount; i++) {
-      if (DatabasePlugin::initPlugin().ok()) {
+      if (initializeDatabase().ok()) {
         break;
       }
 
@@ -706,7 +702,7 @@ void Initializer::waitForShutdown() {
 
   // Hopefully release memory used by global string constructors in gflags.
   GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
-  DatabasePlugin::shutdown();
+  shutdownDatabase();
 
   auto excode = (kExitCode != 0) ? kExitCode : EXIT_SUCCESS;
   if (isWatcher()) {

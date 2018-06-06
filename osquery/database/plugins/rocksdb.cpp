@@ -74,10 +74,6 @@ void GlogRocksDBLogger::Logv(const char* format, va_list ap) {
 }
 
 Status RocksDBDatabasePlugin::setUp() {
-  if (!DatabasePlugin::kDBAllowOpen) {
-    LOG(WARNING) << RLOG(1629) << "Not allowed to set up database plugin";
-  }
-
   if (!initialized_) {
     initialized_ = true;
     options_.OptimizeForSmallDb();
@@ -129,10 +125,6 @@ Status RocksDBDatabasePlugin::setUp() {
     return Status(1, "Cannot read RocksDB path: " + path_);
   }
 
-  if (!DatabasePlugin::kDBChecking) {
-    VLOG(1) << "Opening RocksDB handle: " << path_;
-  }
-
   // Tests may trash calls to setUp, make sure subsequent calls do not leak.
   close();
 
@@ -149,17 +141,7 @@ Status RocksDBDatabasePlugin::setUp() {
   if (!s.ok() || db_ == nullptr) {
     LOG(INFO) << "Rocksdb open failed (" << s.code() << ":" << s.subcode()
               << ") " << s.ToString();
-    if (kDBRequireWrite) {
-      // A failed open in R/W mode is a runtime error.
-      return Status(1, s.ToString());
-    }
-
-    if (!DatabasePlugin::kDBChecking) {
-      LOG(INFO) << "Opening RocksDB failed: Continuing with read-only support";
-    }
-    // Also disable event publishers.
-    Flag::updateValue("disable_events", "true");
-    read_only_ = true;
+    return Status(1, s.ToString());
   }
 
   // RocksDB may not create/append a directory with acceptable permissions.

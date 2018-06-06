@@ -112,14 +112,13 @@ void initTesting() {
 
   // Tests need a database plugin.
   // Set up the database instance for the unittests.
-  DatabasePlugin::setAllowOpen(true);
-  DatabasePlugin::initPlugin();
+  initializeDatabase();
 
   Initializer::platformSetup();
 }
 
 void shutdownTesting() {
-  DatabasePlugin::shutdown();
+  shutdownDatabase();
 
   Initializer::platformTeardown();
 }

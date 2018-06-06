@@ -62,7 +62,6 @@ void DatabasePluginTests::testPluginCheck() {
   // Get an instance of the database plugin and call check.
   auto plugin = rf.plugin("database", getName());
   auto db_plugin = std::dynamic_pointer_cast<DatabasePlugin>(plugin);
-  EXPECT_TRUE(db_plugin->checkDB());
 
   // Testing relies on database resetting too.
   EXPECT_TRUE(db_plugin->reset());
