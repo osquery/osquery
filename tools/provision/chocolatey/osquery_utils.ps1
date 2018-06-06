@@ -233,9 +233,9 @@ function Get-VSInfo {
   $vswhere = (Get-Command 'vswhere').Source
   $vswhereArgs = @('-latest', '-legacy')
   $vswhereOut = (Start-OsqueryProcess $vswhere $vswhereArgs).stdout
-  $vsinfo = "" | Select-Object -Property location,version
-  $vsinfo.location = ''
-  $vsinfo.version = ''
+  $vsinfo = New-Object -TypeName psobject
+  $vsinfo | Add-Member -MemberType NoteProperty -Name version -Value ''
+  $vsinfo | Add-Member -MemberType NoteProperty -Name location -Value ''
   foreach ($l in $vswhereOut.split([environment]::NewLine)) {
     $toks = $l.split(":")
     if ($toks.Length -lt 2) {
@@ -254,9 +254,18 @@ function Get-VSInfo {
 }
 
 # A helper function to determine if VS 2017 is installed
-function Check-VSInstall {
+function Check-VS2017Install {
   $vsinfo = Get-VSInfo
-  if ($($vsinfo.version) -eq '15') {
+  if ($vsinfo.version -eq '15') {
+    return $true
+  }
+  return $false
+}
+
+# A helper function to determine if VS 2015 is installed
+function Check-VS2015Install {
+  $vsinfo = Get-VSInfo
+  if ($vsinfo.version -eq '14') {
     return $true
   }
   return $false

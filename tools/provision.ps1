@@ -481,8 +481,9 @@ function Main {
   if (Test-Path env:OSQUERY_BUILD_HOST) {
     $out = Install-ChocoPackage 'visualcppbuildtools'
   } else {
-    $install = Check-VSInstall
-    if ($install -eq $false) {
+    $install17 = Check-VS2017Install
+    $install15 = Check-VS2017Install
+    if ($install17 -eq $false -and $install15 -eq $false) {
       $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsinstall.json'))
       $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--in ${deploymentFile}")
       $out = Install-ChocoPackage 'visualstudio2017community' '' ${chocoParams}
@@ -493,7 +494,7 @@ function Main {
         Exit 0
       }
     } else {
-      Write-Host "[*] Visual Studio 2017 installation found. Skipping install." -foregroundcolor Green
+      Write-Host "[*] Visual Studio installation found. Skipping install." -foregroundcolor Green
     }
     if ($PSVersionTable.PSVersion.Major -lt 5 -and $PSVersionTable.PSVersion.Minor -lt 1 ) {
       Write-Host "[*] Powershell version is < 5.1. Skipping Powershell Linter Installation." -foregroundcolor yellow
