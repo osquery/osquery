@@ -18,31 +18,13 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#include <unordered_map>
-
 #include "osquery/core/base64.h"
 #include "osquery/core/conversions.h"
-
-#ifdef __APPLE__
-#include <TargetConditionals.h>
-
-#ifdef TARGET_OS_MAC
-#include "osquery/tables/system/darwin/xattr_utils.h"
-#else
-#error Unsupported macOS target
-#endif
-
-#elif defined __linux__
-#include "osquery/tables/system/linux/xattr_utils.h"
-#endif
+#include "osquery/tables/system/posix/extended_attributes.h"
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
-Status getAllExtendedAttributes(
-    std::unordered_map<std::string, std::string>& attributes,
-    const std::string& path);
-
 namespace {
 Status getExtendedAttribute(std::string& value,
                             const std::string& path,
@@ -99,15 +81,15 @@ Status getExtendedAttributeList(std::vector<std::string>& attribute_list,
 
 Status appendDirectoryEntryAttributes(QueryData& results,
                                       const std::string& path) {
-  std::unordered_map<std::string, std::string> attributes;
-  auto status = getAllExtendedAttributes(attributes, path);
+  ExtendedAttributeList attribute_list;
+  auto status = getAllExtendedAttributes(attribute_list, path);
   if (!status) {
     return status;
   }
 
-  for (const auto& attr_pair : attributes) {
-    const auto& raw_name = attr_pair.first;
-    const auto& raw_value = attr_pair.second;
+  for (const auto& p : attribute_list) {
+    const auto& name = p.first;
+    const auto& value = p.second;
 
     std::string parent_path;
     try {
@@ -117,43 +99,24 @@ Status appendDirectoryEntryAttributes(QueryData& results,
               << path;
     }
 
-    std::vector<std::pair<std::string, std::string>> expanded_attributes;
-    status = readSpecialExtendedAttribute(expanded_attributes, path, raw_name);
-    if (!status.ok()) {
-      VLOG(1) << status.getMessage();
-    }
-
-    // If we received nothing (or had a decoding error), include the raw
-    // attribute
-    if (expanded_attributes.empty()) {
-      expanded_attributes.push_back(std::make_pair(raw_name, raw_value));
-    }
-
     Row r;
     r["path"] = path;
     r["directory"] = parent_path;
+    r["key"] = name;
 
-    for (const auto& expanded_attr_pair : expanded_attributes) {
-      const auto& name = expanded_attr_pair.first;
-      const auto& value = expanded_attr_pair.second;
+    auto value_printable = isPrintable(value);
+    r["value"] = (value_printable) ? value : base64::encode(value);
+    r["base64"] = (value_printable) ? INTEGER(0) : INTEGER(1);
 
-      r["key"] = name;
-
-      auto value_printable = isPrintable(value);
-      r["value"] = (value_printable) ? value : base64::encode(value);
-      r["base64"] = (value_printable) ? INTEGER(0) : INTEGER(1);
-
-      results.push_back(r);
-    }
+    results.push_back(r);
   }
 
   return Status(0, "OK");
 }
 } // namespace
 
-Status getAllExtendedAttributes(
-    std::unordered_map<std::string, std::string>& attributes,
-    const std::string& path) {
+Status getAllExtendedAttributes(ExtendedAttributeList& attributes,
+                                const std::string& path) {
   attributes = {};
 
   std::vector<std::string> attribute_list;
@@ -172,7 +135,21 @@ Status getAllExtendedAttributes(
       continue;
     }
 
-    attributes.insert({attribute_name, attribute_value});
+    if (isSpecialExtendedAttribute(attribute_name)) {
+      ExtendedAttributeList expanded_attributes;
+      status = expandSpecialExtendedAttribute(
+          expanded_attributes, path, attribute_name);
+      if (status.ok()) {
+        attributes.insert(attributes.end(),
+                          expanded_attributes.begin(),
+                          expanded_attributes.end());
+      } else {
+        VLOG(1) << status.getMessage();
+      }
+
+    } else {
+      attributes.push_back(std::make_pair(attribute_name, attribute_value));
+    }
   }
 
   if (error_occurred) {

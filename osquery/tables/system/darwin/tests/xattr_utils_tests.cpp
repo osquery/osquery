@@ -14,9 +14,10 @@
 
 #include <boost/filesystem.hpp>
 
-#include "osquery/tests/test_util.h"
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+
+#include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
 

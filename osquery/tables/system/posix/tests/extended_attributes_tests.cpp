@@ -14,28 +14,17 @@
 
 #include <boost/filesystem.hpp>
 
-#include "osquery/tests/test_util.h"
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-// Include the 'xattr_utils.h' header file for macOS; it contains the
-// compatibility wrappers for setxattr/getxattr/listxattr/removexattr
-#ifdef __APPLE__
-#include <TargetConditionals.h>
-
-#ifdef TARGET_OS_MAC
-#include "osquery/tables/system/darwin/xattr_utils.h"
-#else
-#error Unsupported macOS target
-#endif
-#endif
+#include "osquery/tables/system/posix/extended_attributes.h"
+#include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
-Status getAllExtendedAttributes(
-    std::unordered_map<std::string, std::string>& attributes,
-    const std::string& path);
+Status getAllExtendedAttributes(ExtendedAttributeList& attributes,
+                                const std::string& path);
 
 class ExtendedAttributesTests : public testing::Test {};
 
@@ -60,7 +49,7 @@ TEST_F(ExtendedAttributesTests, test_extended_attributes) {
               0);
   }
 
-  std::unordered_map<std::string, std::string> attributes;
+  ExtendedAttributeList attributes;
   auto status = getAllExtendedAttributes(attributes, test_file_path);
 
   EXPECT_TRUE(status.ok());

@@ -8,24 +8,31 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "osquery/tables/system/linux/xattr_utils.h"
+#include "osquery/tables/system/posix/extended_attributes.h"
 
 namespace osquery {
 namespace {
 using cap_t = void*;
+
 extern "C" cap_t cap_get_file(const char*);
 extern "C" char* cap_to_text(cap_t, ssize_t*);
 extern "C" int cap_free(void*);
 } // namespace
 
-Status readSpecialExtendedAttribute(
-    std::vector<std::pair<std::string, std::string>>& output,
-    const std::string& path,
-    const std::string& name) {
+const std::string kSecurityCapabilityXattrName = "security.capability";
+
+bool isSpecialExtendedAttribute(const std::string& name) {
+  return (name == kSecurityCapabilityXattrName);
+}
+
+Status expandSpecialExtendedAttribute(ExtendedAttributeList& output,
+                                      const std::string& path,
+                                      const std::string& name) {
   output.clear();
 
-  if (name != "security.capability") {
-    return Status(0, "OK");
+  if (name != kSecurityCapabilityXattrName) {
+    return Status(
+        1, "The specified extended attribute does not need to be expanded");
   }
 
   errno = 0;

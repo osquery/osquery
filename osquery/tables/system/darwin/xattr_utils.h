@@ -8,7 +8,11 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#pragma once
+
 #include <osquery/tables.h>
+
+#include "osquery/tables/system/posix/extended_attributes.h"
 
 namespace osquery {
 ssize_t getxattr(const char* path, const char* name, void* value, size_t size);
@@ -18,9 +22,4 @@ int setxattr(const char* path,
              const void* value,
              size_t size,
              int flags);
-
-Status readSpecialExtendedAttribute(
-    std::vector<std::pair<std::string, std::string>>& output,
-    const std::string& path,
-    const std::string& name);
 } // namespace osquery

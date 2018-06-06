@@ -9,7 +9,6 @@
  */
 
 #include <CoreServices/CoreServices.h>
-#include <iostream>
 #include <sys/xattr.h>
 
 #include <boost/filesystem.hpp>
@@ -48,7 +47,6 @@ Status parseWhereFrom(std::vector<std::pair<std::string, std::string>>& output,
   CFRelease(CFPath);
 
   if (metadata == nullptr) {
-    std::cout << __LINE__ << std::endl;
     return Status(1, "The metadata for the following path is NULL: " + path);
   }
 
@@ -163,10 +161,17 @@ int setxattr(const char* path,
   return ::setxattr(path, name, value, size, 0, flags);
 }
 
-Status readSpecialExtendedAttribute(
-    std::vector<std::pair<std::string, std::string>>& output,
-    const std::string& path,
-    const std::string& name) {
+bool isSpecialExtendedAttribute(const std::string& name) {
+  if (name == kWhereFromXattr || name == kQuarantineXattr) {
+    return true;
+  }
+
+  return false;
+}
+
+Status expandSpecialExtendedAttribute(ExtendedAttributeList& output,
+                                      const std::string& path,
+                                      const std::string& name) {
   output.clear();
 
   if (name == kWhereFromXattr) {
@@ -175,13 +180,19 @@ Status readSpecialExtendedAttribute(
       return status;
     }
 
+    return Status(0, "OK");
+
   } else if (name == kQuarantineXattr) {
     auto status = parseQuarantineFile(output, path);
     if (!status.ok()) {
       return status;
     }
-  }
 
-  return Status(0, "OK");
+    return Status(0, "OK");
+
+  } else {
+    return Status(
+        1, "The specified extended attribute does not need to be expanded");
+  }
 }
 } // namespace osquery
