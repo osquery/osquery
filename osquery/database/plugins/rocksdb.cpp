@@ -228,16 +228,12 @@ rocksdb::DB* RocksDBDatabasePlugin::getDB() const {
 
 rocksdb::ColumnFamilyHandle* RocksDBDatabasePlugin::getHandleForColumnFamily(
     const std::string& cf) const {
-  try {
-    for (size_t i = 0; i < kDomains.size(); i++) {
-      if (kDomains[i] == cf) {
-        return handles_[i];
-      }
-    }
-  } catch (const std::exception& /* e */) {
-    // pass through and return nullptr
+  size_t i = std::find(kDomains.begin(), kDomains.end(), cf) - kDomains.begin();
+  if (i != kDomains.size()) {
+    return handles_[i];
+  } else {
+    return nullptr;
   }
-  return nullptr;
 }
 
 Status RocksDBDatabasePlugin::get(const std::string& domain,
