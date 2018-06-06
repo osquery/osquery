@@ -20,7 +20,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/tables/system/darwin/xattr_utils.h"
+#include "osquery/tables/system/posix/extended_attributes.h"
 
 namespace fs = boost::filesystem;
 

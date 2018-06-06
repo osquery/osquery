@@ -17,16 +17,12 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/tables/system/posix/extended_attributes.h"
 #include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
-Status readSpecialExtendedAttribute(
-    std::vector<std::pair<std::string, std::string>>& output,
-    const std::string& path,
-    const std::string& name);
-
 namespace tables {
 const std::string kQuarantineXattr = "com.apple.quarantine";
 const std::uint8_t kQuarantineXattrValue[] = {
@@ -53,15 +49,14 @@ TEST_F(MacOSExtendedAttrTests, test_invalid_special_xattr) {
                      dummy_string,
                      dummy_string,
                      sizeof(dummy_string),
-                     0,
-                     XATTR_NOFOLLOW),
+                     0),
             0);
 
   // The function should not attempt to expand this attribute
-  std::vector<std::pair<std::string, std::string>> expanded_attributes;
-  auto status = readSpecialExtendedAttribute(
+  ExtendedAttributeList expanded_attributes;
+  auto status = expandSpecialExtendedAttribute(
       expanded_attributes, test_file_path, dummy_string);
-  EXPECT_TRUE(status.ok());
+  EXPECT_FALSE(status.ok());
 
   EXPECT_EQ(expanded_attributes.size(), 0U);
 
@@ -81,12 +76,11 @@ TEST_F(MacOSExtendedAttrTests, test_quarantine_xattrs) {
                      kQuarantineXattr.c_str(),
                      kQuarantineXattrValue,
                      sizeof(kQuarantineXattrValue),
-                     0,
-                     XATTR_NOFOLLOW),
+                     0),
             0);
 
-  std::vector<std::pair<std::string, std::string>> expanded_attributes;
-  auto status = readSpecialExtendedAttribute(
+  ExtendedAttributeList expanded_attributes;
+  auto status = expandSpecialExtendedAttribute(
       expanded_attributes, test_file_path, kQuarantineXattr);
   EXPECT_TRUE(status.ok());
 

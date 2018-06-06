@@ -10,10 +10,6 @@
 
 #pragma once
 
-#include <osquery/tables.h>
-
-#include "osquery/tables/system/posix/extended_attributes.h"
-
 namespace osquery {
 ssize_t getxattr(const char* path, const char* name, void* value, size_t size);
 ssize_t listxattr(const char* path, char* list, size_t size);
