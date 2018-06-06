@@ -9,6 +9,7 @@
  */
 
 #include <osquery/config.h>
+#include <osquery/registry_factory.h>
 
 namespace osquery {
 

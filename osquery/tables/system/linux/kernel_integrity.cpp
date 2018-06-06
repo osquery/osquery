@@ -3,7 +3,6 @@
 #include <fstream>
 
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
 #include <osquery/database.h>

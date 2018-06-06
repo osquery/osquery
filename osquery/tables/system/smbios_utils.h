@@ -39,13 +39,24 @@ typedef struct DMIEntryPoint {
 extern const std::map<uint8_t, std::string> kSMBIOSMemoryFormFactorTable;
 extern const std::map<uint8_t, std::string> kSMBIOSMemoryDetailsTable;
 extern const std::map<uint8_t, std::string> kSMBIOSMemoryTypeTable;
+extern const std::map<uint8_t, std::string> kSMBIOSMemoryArrayLocationTable;
+extern const std::map<uint8_t, std::string> kSMBIOSMemoryArrayUseTable;
+extern const std::map<uint8_t, std::string>
+    kSMBIOSMemoryArrayErrorCorrectionTypesTable;
+extern const std::map<uint8_t, std::string> kSMBIOSMemoryErrorTypeTable;
+extern const std::map<uint8_t, std::string> kSMBIOSMemoryErrorGranularityTable;
+extern const std::map<uint8_t, std::string> kSMBIOSMemoryErrorOperationTable;
 
 /// Get friendly names for each SMBIOS table/section type.
 extern const std::map<uint8_t, std::string> kSMBIOSTypeDescriptions;
 
 constexpr uint8_t kSMBIOSTypeBIOS = 0;
 constexpr uint8_t kSMBIOSTypeSystem = 1;
+constexpr uint8_t kSMBIOSTypeMemoryArray = 16;
 constexpr uint8_t kSMBIOSTypeMemoryDevice = 17;
+constexpr uint8_t kSMBIOSTypeMemoryErrorInformation = 18;
+constexpr uint8_t kSMBIOSTypeMemoryArrayMappedAddress = 19;
+constexpr uint8_t kSMBIOSTypeMemoryDeviceMappedAddress = 20;
 
 /**
  * @brief A generic parser for SMBIOS tables.
@@ -59,6 +70,7 @@ class SMBIOSParser : private boost::noncopyable {
   virtual void tables(std::function<void(size_t index,
                                          const SMBStructHeader* hdr,
                                          uint8_t* address,
+                                         uint8_t* textAddrs,
                                          size_t size)> predicate);
 
  public:
@@ -83,8 +95,38 @@ void genSMBIOSTable(size_t index,
 void genSMBIOSMemoryDevices(size_t index,
                             const SMBStructHeader* hdr,
                             uint8_t* address,
+                            uint8_t* textAddrs,
                             size_t size,
                             QueryData& results);
+
+/// Helper, cross platform, table row generator for memory arrays.
+void genSMBIOSMemoryArrays(size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           size_t size,
+                           QueryData& results);
+
+/// Helper, cross platform, table row generator for memory mapped addresses.
+void genSMBIOSMemoryArrayMappedAddresses(size_t index,
+                                         const SMBStructHeader* hdr,
+                                         uint8_t* address,
+                                         size_t size,
+                                         QueryData& results);
+
+/// Helper, cross platform, table row generator for memory error info.
+void genSMBIOSMemoryErrorInfo(size_t index,
+                              const SMBStructHeader* hdr,
+                              uint8_t* address,
+                              size_t size,
+                              QueryData& results);
+
+/// Helper, cross platform, table row generator for memory device mapped
+/// addresses.
+void genSMBIOSMemoryDeviceMappedAddresses(size_t index,
+                                          const SMBStructHeader* hdr,
+                                          uint8_t* address,
+                                          size_t size,
+                                          QueryData& results);
 
 /**
  * @brief Return a 0-terminated strings from an SMBIOS address and handle.

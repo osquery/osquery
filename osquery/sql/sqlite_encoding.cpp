@@ -75,7 +75,7 @@ void registerEncodingExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "conditional_to_base64",
                           1,
-                          SQLITE_UTF8,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           sqliteB64ConditionalEncFunc,
                           nullptr,
@@ -83,7 +83,7 @@ void registerEncodingExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "to_base64",
                           1,
-                          SQLITE_UTF8,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           sqliteB64EncFunc,
                           nullptr,
@@ -91,10 +91,10 @@ void registerEncodingExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "from_base64",
                           1,
-                          SQLITE_UTF8,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
                           nullptr,
                           sqliteB64DecFunc,
                           nullptr,
                           nullptr);
 }
-}
+} // namespace osquery

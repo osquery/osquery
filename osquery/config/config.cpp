@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <algorithm>
 #include <functional>
 #include <map>
 #include <string>
@@ -101,7 +102,7 @@ RecursiveMutex config_schedule_mutex_;
 RecursiveMutex config_files_mutex_;
 RecursiveMutex config_performance_mutex_;
 
-using PackRef = std::shared_ptr<Pack>;
+using PackRef = std::unique_ptr<Pack>;
 
 /**
  * The schedule is an iterable collection of Packs. When you iterate through
@@ -111,7 +112,7 @@ using PackRef = std::shared_ptr<Pack>;
 class Schedule : private boost::noncopyable {
  public:
   /// Under the hood, the schedule is just a list of the Pack objects
-  using container = std::list<PackRef>;
+  using container = std::vector<PackRef>;
 
   /**
    * @brief Create a schedule maintained by the configuration.
@@ -130,11 +131,11 @@ class Schedule : private boost::noncopyable {
    * next iterator element or skipped.
    */
   struct Step {
-    bool operator()(PackRef& pack);
+    bool operator()(const PackRef& pack) const;
   };
 
   /// Add a pack to the schedule
-  void add(PackRef&& pack);
+  void add(PackRef pack);
 
   /// Remove a pack, by name.
   void remove(const std::string& pack);
@@ -179,13 +180,13 @@ class Schedule : private boost::noncopyable {
   friend class Config;
 };
 
-bool Schedule::Step::operator()(PackRef& pack) {
+bool Schedule::Step::operator()(const PackRef& pack) const {
   return pack->shouldPackExecute();
 }
 
-void Schedule::add(PackRef&& pack) {
+void Schedule::add(PackRef pack) {
   remove(pack->getName(), pack->getSource());
-  packs_.push_back(pack);
+  packs_.push_back(std::move(pack));
 }
 
 void Schedule::remove(const std::string& pack) {
@@ -193,23 +194,30 @@ void Schedule::remove(const std::string& pack) {
 }
 
 void Schedule::remove(const std::string& pack, const std::string& source) {
-  packs_.remove_if([pack, source](PackRef& p) {
-    if (p->getName() == pack && (p->getSource() == source || source == "")) {
-      Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
-      return true;
-    }
-    return false;
-  });
+  auto new_end = std::remove_if(
+      packs_.begin(), packs_.end(), [pack, source](const PackRef& p) {
+        if (p->getName() == pack &&
+            (p->getSource() == source || source == "")) {
+          Config::get().removeFiles(source + FLAGS_pack_delimiter +
+                                    p->getName());
+          return true;
+        }
+        return false;
+      });
+  packs_.erase(new_end, packs_.end());
 }
 
 void Schedule::removeAll(const std::string& source) {
-  packs_.remove_if(([source](PackRef& p) {
-    if (p->getSource() == source) {
-      Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
-      return true;
-    }
-    return false;
-  }));
+  auto new_end =
+      std::remove_if(packs_.begin(), packs_.end(), [source](const PackRef& p) {
+        if (p->getSource() == source) {
+          Config::get().removeFiles(source + FLAGS_pack_delimiter +
+                                    p->getName());
+          return true;
+        }
+        return false;
+      });
+  packs_.erase(new_end, packs_.end());
 }
 
 Schedule::iterator Schedule::begin() {
@@ -299,7 +307,7 @@ Schedule::Schedule() {
 }
 
 Config::Config()
-    : schedule_(std::make_shared<Schedule>()),
+    : schedule_(std::make_unique<Schedule>()),
       valid_(false),
       refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
 
@@ -317,7 +325,7 @@ void Config::addPack(const std::string& name,
                                         const rj::Value& pack_obj) {
     RecursiveLock wlock(config_schedule_mutex_);
     try {
-      schedule_->add(std::make_shared<Pack>(pack_name, source, pack_obj));
+      schedule_->add(std::make_unique<Pack>(pack_name, source, pack_obj));
       if (schedule_->last()->shouldPackExecute()) {
         applyParsers(source + FLAGS_pack_delimiter + pack_name, pack_obj, true);
       }
@@ -737,6 +745,20 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     EventFactory::configUpdate();
   }
 
+  // This cannot be under the previous if block because on extensions loaded_
+  // allways false.
+  if (needs_reconfigure) {
+    std::string loggers = RegistryFactory::get().getActive("logger");
+    for (const auto& logger : osquery::split(loggers, ",")) {
+      LOG(INFO) << "Calling configure for logger " << logger;
+      PluginRef plugin = Registry::get().plugin("logger", logger);
+
+      if (plugin) {
+        plugin->configure();
+      }
+    }
+  }
+
   return Status(0, "OK");
 }
 
@@ -745,8 +767,8 @@ void Config::purge() {
   std::vector<std::string> saved_queries;
   scanDatabaseKeys(kQueries, saved_queries);
 
-  const auto& schedule = this->schedule_;
-  auto queryExists = [&schedule](const std::string& query_name) {
+  auto queryExists = [schedule = static_cast<const Schedule*>(schedule_.get())](
+                         const std::string& query_name) {
     for (const auto& pack : schedule->packs_) {
       const auto& pack_queries = pack->getSchedule();
       if (pack_queries.count(query_name)) {
@@ -798,7 +820,7 @@ void Config::purge() {
 void Config::reset() {
   setStartTime(getUnixTime());
 
-  schedule_ = std::make_shared<Schedule>();
+  schedule_ = std::make_unique<Schedule>();
   std::map<std::string, QueryPerformance>().swap(performance_);
   std::map<std::string, FileCategories>().swap(files_);
   std::map<std::string, std::string>().swap(hash_);
@@ -960,6 +982,8 @@ void Config::files(std::function<void(const std::string& category,
     }
   }
 }
+
+Config::~Config() = default;
 
 Status ConfigPlugin::genPack(const std::string& name,
                              const std::string& value,
