@@ -8,21 +8,15 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <errno.h>
+#include <map>
+
 #include <CoreServices/CoreServices.h>
-#include <sys/xattr.h>
 
-#include <boost/filesystem.hpp>
-#include <boost/property_tree/json_parser.hpp>
-
-#include <osquery/filesystem.h>
-#include <osquery/logger.h>
-#include <osquery/sql.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/tables/system/posix/extended_attributes.h"
-
-namespace fs = boost::filesystem;
+#include "osquery/tables/system/darwin/special_xattr_decoder.h"
 
 namespace osquery {
 namespace {
@@ -38,7 +32,7 @@ const std::map<std::string, std::string> kQuarantineKeys = {
     {"quarantine_data_url", "LSQuarantineDataURL"},
     {"quarantine_origin_url", "LSQuarantineOriginURL"}};
 
-Status parseWhereFrom(std::vector<std::pair<std::string, std::string>>& output,
+Status parseWhereFrom(ExtendedAttributes& output,
                       const std::string& path) {
   CFStringRef CFPath = CFStringCreateWithCString(
       kCFAllocatorDefault, path.c_str(), kCFStringEncodingUTF8);
@@ -74,7 +68,7 @@ Status parseWhereFrom(std::vector<std::pair<std::string, std::string>>& output,
 }
 
 void extractQuarantineProperty(
-    std::vector<std::pair<std::string, std::string>>& output,
+    ExtendedAttributes &output,
     const std::string& table_key_name,
     CFTypeRef property,
     const std::string& path) {
@@ -96,7 +90,7 @@ void extractQuarantineProperty(
 }
 
 Status parseQuarantineFile(
-    std::vector<std::pair<std::string, std::string>>& output,
+    ExtendedAttributes &output,
     const std::string& path) {
   CFURLRef url = CFURLCreateFromFileSystemRepresentation(
       kCFAllocatorDefault, (const UInt8*)path.c_str(), path.length(), false);
@@ -143,33 +137,13 @@ Status parseQuarantineFile(
 
   return Status(0, "OK");
 }
-} // namespace
-
-ssize_t getxattr(const char* path, const char* name, void* value, size_t size) {
-  return ::getxattr(path, name, value, size, 0, 0);
 }
 
-ssize_t listxattr(const char* path, char* list, size_t size) {
-  return ::listxattr(path, list, size, 0);
+bool isSpecialExtendedAttribute(const std::string &name) {
+  return (name == kWhereFromXattr || name == kQuarantineXattr);
 }
 
-int setxattr(const char* path,
-             const char* name,
-             const void* value,
-             size_t size,
-             int flags) {
-  return ::setxattr(path, name, value, size, 0, flags);
-}
-
-bool isSpecialExtendedAttribute(const std::string& name) {
-  if (name == kWhereFromXattr || name == kQuarantineXattr) {
-    return true;
-  }
-
-  return false;
-}
-
-Status expandSpecialExtendedAttribute(ExtendedAttributeList& output,
+bool decodeSpecialExtendedAttribute(ExtendedAttributes& output,
                                       const std::string& path,
                                       const std::string& name) {
   output.clear();
@@ -177,22 +151,23 @@ Status expandSpecialExtendedAttribute(ExtendedAttributeList& output,
   if (name == kWhereFromXattr) {
     auto status = parseWhereFrom(output, path);
     if (!status.ok()) {
-      return status;
+      VLOG(1) << status.getMessage();
+      return false;
     }
 
-    return Status(0, "OK");
+    return true;
 
   } else if (name == kQuarantineXattr) {
     auto status = parseQuarantineFile(output, path);
     if (!status.ok()) {
-      return status;
+      VLOG(1) << status.getMessage();
+      return false;
     }
 
-    return Status(0, "OK");
+    return true;
 
   } else {
-    return Status(
-        1, "The specified extended attribute does not need to be expanded");
+    return false;
   }
 }
 } // namespace osquery

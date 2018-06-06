@@ -10,12 +10,12 @@
 
 #pragma once
 
+#include "osquery/tables/system/posix/xattr_utils.h"
+
 namespace osquery {
-ssize_t getxattr(const char* path, const char* name, void* value, size_t size);
-ssize_t listxattr(const char* path, char* list, size_t size);
-int setxattr(const char* path,
-             const char* name,
-             const void* value,
-             size_t size,
-             int flags);
+bool isSpecialExtendedAttribute(const std::string &name);
+
+bool decodeSpecialExtendedAttribute(ExtendedAttributes& output,
+                                      const std::string& path,
+                                      const std::string& name);
 } // namespace osquery

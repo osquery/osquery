@@ -17,7 +17,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-#include "osquery/tables/system/posix/extended_attributes.h"
+#include "osquery/tables/system/darwin/special_xattr_decoder.h"
 #include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
@@ -44,21 +44,21 @@ TEST_F(MacOSExtendedAttrTests, test_invalid_special_xattr) {
     EXPECT_EQ(!test_file, false);
   }
 
-  const char dummy_string[] = "test";
-  EXPECT_EQ(setxattr(test_file_path.c_str(),
-                     dummy_string,
-                     dummy_string,
-                     sizeof(dummy_string),
-                     0),
-            0);
+  const std::unordered_map<std::string, std::string> dummy_attributes = {
+    {"test", "test"}
+  };
 
-  // The function should not attempt to expand this attribute
-  ExtendedAttributeList expanded_attributes;
-  auto status = expandSpecialExtendedAttribute(
-      expanded_attributes, test_file_path, dummy_string);
-  EXPECT_FALSE(status.ok());
+  auto succeeded = setExtendedAttributes(test_file_path, dummy_attributes);
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    return;
+  }
 
-  EXPECT_EQ(expanded_attributes.size(), 0U);
+  EXPECT_FALSE(isSpecialExtendedAttribute(dummy_attributes.begin()->first));
+
+  ExtendedAttributes output;
+  EXPECT_FALSE(decodeSpecialExtendedAttribute(output, test_file_path, dummy_attributes.begin()->first));
+  EXPECT_EQ(output.size(), 0U);
 
   fs::remove(test_file_path);
 }
@@ -72,26 +72,33 @@ TEST_F(MacOSExtendedAttrTests, test_quarantine_xattrs) {
     EXPECT_EQ(!test_file, false);
   }
 
-  EXPECT_EQ(setxattr(test_file_path.c_str(),
-                     kQuarantineXattr.c_str(),
-                     kQuarantineXattrValue,
-                     sizeof(kQuarantineXattrValue),
-                     0),
-            0);
+  const std::unordered_map<std::string, std::string> dummy_attributes = {
+    {kQuarantineXattr, std::string(reinterpret_cast<const char *>(kQuarantineXattrValue), sizeof(kQuarantineXattrValue))}
+  };
 
-  ExtendedAttributeList expanded_attributes;
-  auto status = expandSpecialExtendedAttribute(
-      expanded_attributes, test_file_path, kQuarantineXattr);
-  EXPECT_TRUE(status.ok());
+  auto succeeded = setExtendedAttributes(test_file_path, dummy_attributes);
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    return;
+  }
 
-  const std::map<std::string, std::string> expected = {
+  EXPECT_TRUE(isSpecialExtendedAttribute(dummy_attributes.begin()->first));
+
+  ExtendedAttributes output;
+  succeeded = decodeSpecialExtendedAttribute(output, test_file_path, dummy_attributes.begin()->first);
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    return;
+  }
+
+  const std::unordered_map<std::string, std::string> expected = {
       {"quarantine_agent", "Google Chrome"},
       {"quarantine_event_id", "6A0EC92D-1882-4358-A315-586BA65F8F77"},
       {"quarantine_timestamp", "1430867427"}};
 
   size_t matching_entries = 0U;
 
-  for (const auto& p : expanded_attributes) {
+  for (const auto& p : output) {
     const auto& name = p.first;
     const auto& value = p.second;
 

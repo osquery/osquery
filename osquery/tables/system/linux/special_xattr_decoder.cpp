@@ -8,7 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include "osquery/tables/system/posix/extended_attributes.h"
+#include <errno.h>
+#include "osquery/tables/system/linux/special_xattr_decoder.h"
 
 namespace osquery {
 namespace {
@@ -21,43 +22,40 @@ extern "C" int cap_free(void*);
 
 const std::string kSecurityCapabilityXattrName = "security.capability";
 
-bool isSpecialExtendedAttribute(const std::string& name) {
+bool isSpecialExtendedAttribute(const std::string &name) {
   return (name == kSecurityCapabilityXattrName);
 }
 
-Status expandSpecialExtendedAttribute(ExtendedAttributeList& output,
+bool decodeSpecialExtendedAttribute(ExtendedAttributes& output,
                                       const std::string& path,
                                       const std::string& name) {
   output.clear();
 
   if (name != kSecurityCapabilityXattrName) {
-    return Status(
-        1, "The specified extended attribute does not need to be expanded");
+    return false;
   }
 
   errno = 0;
   auto capabilities = cap_get_file(path.data());
   if (capabilities == nullptr) {
     if (errno == ENODATA) {
-      return Status(0, "OK");
+      return true;
     }
 
-    return Status(
-        1, "Failed to read the capabilities for the following file: " + path);
+    return false;
   }
 
   auto description = cap_to_text(capabilities, nullptr);
   cap_free(capabilities);
 
   if (description == nullptr) {
-    return Status(
-        1, "Failed to parse the capabilities for the following file: " + path);
+    return false;
   }
 
-  output.push_back(std::make_pair(
-      name, description + 2)); // libcap prefixes descriptions with '= '
+  // libcap prefixes descriptions with '= '
+  output.push_back(std::make_pair(name, description + 2)); 
   cap_free(description);
 
-  return Status(0, "OK");
+  return true;
 }
 } // namespace osquery

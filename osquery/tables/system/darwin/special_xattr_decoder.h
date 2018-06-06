@@ -10,27 +10,12 @@
 
 #pragma once
 
-#ifdef __APPLE__
-#include <TargetConditionals.h>
-
-#ifdef TARGET_OS_MAC
-#include "osquery/tables/system/darwin/xattr_utils.h"
-#else
-#error Unsupported macOS target
-#endif
-#endif
-
-#include <osquery/tables.h>
+#include "osquery/tables/system/posix/xattr_utils.h"
 
 namespace osquery {
-using ExtendedAttributeList = std::vector<std::pair<std::string, std::string>>;
+bool isSpecialExtendedAttribute(const std::string &name);
 
-bool isSpecialExtendedAttribute(const std::string& name);
-
-Status expandSpecialExtendedAttribute(ExtendedAttributeList& output,
+bool decodeSpecialExtendedAttribute(ExtendedAttributes& output,
                                       const std::string& path,
                                       const std::string& name);
-
-Status getAllExtendedAttributes(ExtendedAttributeList& attributes,
-                                const std::string& path);
 } // namespace osquery

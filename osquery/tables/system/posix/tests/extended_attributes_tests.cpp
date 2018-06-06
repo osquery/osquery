@@ -8,24 +8,32 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <gtest/gtest.h>
+#include <iostream>
 
-#include <sys/xattr.h>
+#include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-#include "osquery/tables/system/posix/extended_attributes.h"
 #include "osquery/tests/test_util.h"
+#include "osquery/tables/system/posix/xattr_utils.h"
 
 namespace fs = boost::filesystem;
 
-namespace osquery {
-Status getAllExtendedAttributes(ExtendedAttributeList& attributes,
-                                const std::string& path);
+#ifdef __linux__
+#define WRITE_ATTRIBUTE_NAME_PREFIX "user."
+#define READ_ATTRIBUTE_NAME_PREFIX "user."
+#elif defined(__FreeBSD__)
+#define WRITE_ATTRIBUTE_NAME_PREFIX ""
+#define READ_ATTRIBUTE_NAME_PREFIX "user."
+#else
+#define WRITE_ATTRIBUTE_NAME_PREFIX ""
+#define READ_ATTRIBUTE_NAME_PREFIX ""
+#endif
 
+namespace osquery {
 class ExtendedAttributesTests : public testing::Test {};
 
 TEST_F(ExtendedAttributesTests, test_extended_attributes) {
@@ -37,39 +45,44 @@ TEST_F(ExtendedAttributesTests, test_extended_attributes) {
     EXPECT_EQ(!test_file, false);
   }
 
-  std::vector<std::string> dummy_attrs = {
-      "user.attribute01", "user.attribute02", "user.attribute03"};
+  std::unordered_map<std::string, std::string> test_attributes = {
+    {WRITE_ATTRIBUTE_NAME_PREFIX "attribute01", "value01"},
+    {WRITE_ATTRIBUTE_NAME_PREFIX "attribute02", "value02"},
+    {WRITE_ATTRIBUTE_NAME_PREFIX "attribute03", "value03"}
+  };
 
-  for (const auto& dummy_attr : dummy_attrs) {
-    EXPECT_EQ(setxattr(test_file_path.c_str(),
-                       dummy_attr.data(),
-                       dummy_attr.data(),
-                       dummy_attr.size(),
-                       0),
-              0);
-  }
-
-  ExtendedAttributeList attributes;
-  auto status = getAllExtendedAttributes(attributes, test_file_path);
-
-  EXPECT_TRUE(status.ok());
-  if (!status.ok()) {
-    std::cerr << status.getMessage() << "\n";
+  auto succeeded = setExtendedAttributes(test_file_path, test_attributes);
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    std::cerr << "Failed to set the extended attributes on the test file\n";
     return;
   }
 
-  size_t matching_entries = 0U;
+  ExtendedAttributes attributes;
+  succeeded = getExtendedAttributes(attributes, test_file_path);
+  EXPECT_TRUE(succeeded);
+  if (!succeeded) {
+    std::cerr << "Failed to get the extended attributes from the test file\n";
+    return;
+  }
 
+  std::unordered_map<std::string, std::string> expected_attributes = {
+    {READ_ATTRIBUTE_NAME_PREFIX "attribute01", "value01"},
+    {READ_ATTRIBUTE_NAME_PREFIX "attribute02", "value02"},
+    {READ_ATTRIBUTE_NAME_PREFIX "attribute03", "value03"},
+  };
+
+  size_t matching_entries = 0U;
   for (const auto& p : attributes) {
-    const auto& attribute_name = p.first;
+    const auto &attribute_name = p.first;
     const auto& attribute_value = p.second;
 
-    auto it = std::find(dummy_attrs.begin(), dummy_attrs.end(), attribute_name);
-    if (it == dummy_attrs.end()) {
+    auto it = expected_attributes.find(attribute_name);
+    if (it == expected_attributes.end()) {
       continue;
     }
 
-    const auto& expected_value = *it;
+    const auto& expected_value = it->second;
     if (attribute_value != expected_value) {
       continue;
     }
@@ -77,7 +90,7 @@ TEST_F(ExtendedAttributesTests, test_extended_attributes) {
     matching_entries++;
   }
 
-  EXPECT_EQ(matching_entries, dummy_attrs.size());
+  EXPECT_EQ(matching_entries, test_attributes.size());
 
   fs::remove(test_file_path);
 }
