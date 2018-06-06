@@ -38,7 +38,7 @@ const std::wstring kPowershellEventsChannel{
     L"microsoft-windows-powershell/operational"};
 
 const int kScriptBlockLoggingEid{4104};
-const int kCharFreqVectorLen{255};
+const int kCharFreqVectorLen{256};
 
 void parseTree(const pt::ptree& tree, std::map<std::string, std::string>& res);
 
@@ -119,7 +119,7 @@ void PowershellEventSubscriber::addScriptResult(Row& results) {
   const auto& cf =
       parser->getData().doc()["feature_vectors"]["character_frequencies"];
   if (cf.Empty() || cf.Size() != kCharFreqVectorLen) {
-    VLOG(1) << "Invalid character frequency map found, using default values";
+    VLOG(1) << "Invalid character frequency map found, skipping computation";
     add(r);
     return;
   }
