@@ -182,7 +182,7 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
 }
 
 /// Safely convert a string representation of an integer base.
-inline Status safeStrtoi(const std::string& rep, size_t base, int& out) {
+inline Status safeStrtoi(const std::string& rep, int base, int& out) {
   try {
     out = std::stoi(rep, 0, base);
   } catch (const std::invalid_argument& ia) {
