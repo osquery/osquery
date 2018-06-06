@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 
 #include <osquery/database.h>
+#include <osquery/database_plugin.h>
 
 #include "osquery/tests/test_util.h"
 

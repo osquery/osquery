@@ -9,6 +9,7 @@
  */
 
 #include <osquery/database.h>
+#include <osquery/database_plugin.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 

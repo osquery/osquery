@@ -13,6 +13,7 @@
 #include <sqlite3.h>
 
 #include <osquery/database.h>
+#include <osquery/database_plugin.h>
 #include <osquery/registry_factory.h>
 
 #include "osquery/filesystem/fileops.h"
