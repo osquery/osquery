@@ -45,8 +45,7 @@ TEST_F(MacOSExtendedAttrTests, test_invalid_special_xattr) {
   }
 
   const std::unordered_map<std::string, std::string> dummy_attributes = {
-    {"test", "test"}
-  };
+      {"test", "test"}};
 
   auto succeeded = setExtendedAttributes(test_file_path, dummy_attributes);
   EXPECT_TRUE(succeeded);
@@ -57,7 +56,8 @@ TEST_F(MacOSExtendedAttrTests, test_invalid_special_xattr) {
   EXPECT_FALSE(isSpecialExtendedAttribute(dummy_attributes.begin()->first));
 
   ExtendedAttributes output;
-  EXPECT_FALSE(decodeSpecialExtendedAttribute(output, test_file_path, dummy_attributes.begin()->first));
+  EXPECT_FALSE(decodeSpecialExtendedAttribute(
+      output, test_file_path, dummy_attributes.begin()->first));
   EXPECT_EQ(output.size(), 0U);
 
   fs::remove(test_file_path);
@@ -73,8 +73,9 @@ TEST_F(MacOSExtendedAttrTests, test_quarantine_xattrs) {
   }
 
   const std::unordered_map<std::string, std::string> dummy_attributes = {
-    {kQuarantineXattr, std::string(reinterpret_cast<const char *>(kQuarantineXattrValue), sizeof(kQuarantineXattrValue))}
-  };
+      {kQuarantineXattr,
+       std::string(reinterpret_cast<const char*>(kQuarantineXattrValue),
+                   sizeof(kQuarantineXattrValue))}};
 
   auto succeeded = setExtendedAttributes(test_file_path, dummy_attributes);
   EXPECT_TRUE(succeeded);
@@ -85,7 +86,8 @@ TEST_F(MacOSExtendedAttrTests, test_quarantine_xattrs) {
   EXPECT_TRUE(isSpecialExtendedAttribute(dummy_attributes.begin()->first));
 
   ExtendedAttributes output;
-  succeeded = decodeSpecialExtendedAttribute(output, test_file_path, dummy_attributes.begin()->first);
+  succeeded = decodeSpecialExtendedAttribute(
+      output, test_file_path, dummy_attributes.begin()->first);
   EXPECT_TRUE(succeeded);
   if (!succeeded) {
     return;

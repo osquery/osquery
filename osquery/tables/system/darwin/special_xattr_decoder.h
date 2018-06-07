@@ -13,9 +13,9 @@
 #include "osquery/tables/system/posix/xattr_utils.h"
 
 namespace osquery {
-bool isSpecialExtendedAttribute(const std::string &name);
+bool isSpecialExtendedAttribute(const std::string& name);
 
 bool decodeSpecialExtendedAttribute(ExtendedAttributes& output,
-                                      const std::string& path,
-                                      const std::string& name);
+                                    const std::string& path,
+                                    const std::string& name);
 } // namespace osquery

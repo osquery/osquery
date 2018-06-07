@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <errno.h>
 #include "osquery/tables/system/linux/special_xattr_decoder.h"
+#include <errno.h>
 
 namespace osquery {
 namespace {
@@ -22,13 +22,13 @@ extern "C" int cap_free(void*);
 
 const std::string kSecurityCapabilityXattrName = "security.capability";
 
-bool isSpecialExtendedAttribute(const std::string &name) {
+bool isSpecialExtendedAttribute(const std::string& name) {
   return (name == kSecurityCapabilityXattrName);
 }
 
 bool decodeSpecialExtendedAttribute(ExtendedAttributes& output,
-                                      const std::string& path,
-                                      const std::string& name) {
+                                    const std::string& path,
+                                    const std::string& name) {
   output.clear();
 
   if (name != kSecurityCapabilityXattrName) {
@@ -53,7 +53,7 @@ bool decodeSpecialExtendedAttribute(ExtendedAttributes& output,
   }
 
   // libcap prefixes descriptions with '= '
-  output.push_back(std::make_pair(name, description + 2)); 
+  output.push_back(std::make_pair(name, description + 2));
   cap_free(description);
 
   return true;

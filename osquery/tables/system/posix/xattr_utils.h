@@ -8,13 +8,16 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <vector>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace osquery {
 using ExtendedAttributes = std::vector<std::pair<std::string, std::string>>;
 
-bool getExtendedAttributes(ExtendedAttributes &attributes, const std::string &path);
-bool setExtendedAttributes(const std::string &path, const std::unordered_map<std::string, std::string> &attributes);
-}
+bool getExtendedAttributes(ExtendedAttributes& attributes,
+                           const std::string& path);
+bool setExtendedAttributes(
+    const std::string& path,
+    const std::unordered_map<std::string, std::string>& attributes);
+} // namespace osquery

@@ -30,7 +30,10 @@ Status appendDirectoryEntryAttributes(QueryData& results,
                                       const std::string& path) {
   ExtendedAttributes attributes;
   if (!getExtendedAttributes(attributes, path)) {
-    return Status(1, "Failed to acquire the extended attributes for the following path: " + path);
+    return Status(
+        1,
+        "Failed to acquire the extended attributes for the following path: " +
+            path);
   }
 
   for (const auto& p : attributes) {

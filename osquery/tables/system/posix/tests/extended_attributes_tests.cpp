@@ -17,8 +17,8 @@
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/tables/system/posix/xattr_utils.h"
+#include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
 
@@ -46,10 +46,9 @@ TEST_F(ExtendedAttributesTests, test_extended_attributes) {
   }
 
   std::unordered_map<std::string, std::string> test_attributes = {
-    {WRITE_ATTRIBUTE_NAME_PREFIX "attribute01", "value01"},
-    {WRITE_ATTRIBUTE_NAME_PREFIX "attribute02", "value02"},
-    {WRITE_ATTRIBUTE_NAME_PREFIX "attribute03", "value03"}
-  };
+      {WRITE_ATTRIBUTE_NAME_PREFIX "attribute01", "value01"},
+      {WRITE_ATTRIBUTE_NAME_PREFIX "attribute02", "value02"},
+      {WRITE_ATTRIBUTE_NAME_PREFIX "attribute03", "value03"}};
 
   auto succeeded = setExtendedAttributes(test_file_path, test_attributes);
   EXPECT_TRUE(succeeded);
@@ -67,14 +66,14 @@ TEST_F(ExtendedAttributesTests, test_extended_attributes) {
   }
 
   std::unordered_map<std::string, std::string> expected_attributes = {
-    {READ_ATTRIBUTE_NAME_PREFIX "attribute01", "value01"},
-    {READ_ATTRIBUTE_NAME_PREFIX "attribute02", "value02"},
-    {READ_ATTRIBUTE_NAME_PREFIX "attribute03", "value03"},
+      {READ_ATTRIBUTE_NAME_PREFIX "attribute01", "value01"},
+      {READ_ATTRIBUTE_NAME_PREFIX "attribute02", "value02"},
+      {READ_ATTRIBUTE_NAME_PREFIX "attribute03", "value03"},
   };
 
   size_t matching_entries = 0U;
   for (const auto& p : attributes) {
-    const auto &attribute_name = p.first;
+    const auto& attribute_name = p.first;
     const auto& attribute_value = p.second;
 
     auto it = expected_attributes.find(attribute_name);

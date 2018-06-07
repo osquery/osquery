@@ -32,8 +32,7 @@ const std::map<std::string, std::string> kQuarantineKeys = {
     {"quarantine_data_url", "LSQuarantineDataURL"},
     {"quarantine_origin_url", "LSQuarantineOriginURL"}};
 
-Status parseWhereFrom(ExtendedAttributes& output,
-                      const std::string& path) {
+Status parseWhereFrom(ExtendedAttributes& output, const std::string& path) {
   CFStringRef CFPath = CFStringCreateWithCString(
       kCFAllocatorDefault, path.c_str(), kCFStringEncodingUTF8);
 
@@ -67,11 +66,10 @@ Status parseWhereFrom(ExtendedAttributes& output,
   return Status(0, "OK");
 }
 
-void extractQuarantineProperty(
-    ExtendedAttributes &output,
-    const std::string& table_key_name,
-    CFTypeRef property,
-    const std::string& path) {
+void extractQuarantineProperty(ExtendedAttributes& output,
+                               const std::string& table_key_name,
+                               CFTypeRef property,
+                               const std::string& path) {
   std::string value;
   if (CFGetTypeID(property) == CFStringGetTypeID()) {
     value = stringFromCFString((CFStringRef)property);
@@ -89,9 +87,8 @@ void extractQuarantineProperty(
   output.push_back(std::make_pair(table_key_name, value));
 }
 
-Status parseQuarantineFile(
-    ExtendedAttributes &output,
-    const std::string& path) {
+Status parseQuarantineFile(ExtendedAttributes& output,
+                           const std::string& path) {
   CFURLRef url = CFURLCreateFromFileSystemRepresentation(
       kCFAllocatorDefault, (const UInt8*)path.c_str(), path.length(), false);
 
@@ -137,15 +134,15 @@ Status parseQuarantineFile(
 
   return Status(0, "OK");
 }
-}
+} // namespace
 
-bool isSpecialExtendedAttribute(const std::string &name) {
+bool isSpecialExtendedAttribute(const std::string& name) {
   return (name == kWhereFromXattr || name == kQuarantineXattr);
 }
 
 bool decodeSpecialExtendedAttribute(ExtendedAttributes& output,
-                                      const std::string& path,
-                                      const std::string& name) {
+                                    const std::string& path,
+                                    const std::string& name) {
   output.clear();
 
   if (name == kWhereFromXattr) {

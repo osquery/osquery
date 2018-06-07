@@ -8,9 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <unordered_map>
-#include <string>
 #include <cstdlib>
+#include <string>
+#include <unordered_map>
 
 #include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
@@ -19,8 +19,8 @@
 #include <osquery/logger.h>
 #include <osquery/system.h>
 
-#include "osquery/tests/test_util.h"
 #include "osquery/tables/system/linux/special_xattr_decoder.h"
+#include "osquery/tests/test_util.h"
 
 namespace fs = boost::filesystem;
 
@@ -49,7 +49,8 @@ TEST_F(SpecialXattrDecoder, special_xattr_decoder) {
   }
 
   ExtendedAttributes decoded_attribute;
-  succeeded = decodeSpecialExtendedAttribute(decoded_attribute, test_file_path, kSecurityCapabilityXattr);
+  succeeded = decodeSpecialExtendedAttribute(
+      decoded_attribute, test_file_path, kSecurityCapabilityXattr);
   EXPECT_TRUE(succeeded);
   if (!succeeded) {
     return;
