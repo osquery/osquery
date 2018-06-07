@@ -316,29 +316,26 @@ bool JSON::valueToBool(const rj::Value& value) {
   return false;
 }
 
-std::string base64Decode(const std::string& encoded) {
-  std::string is;
+std::string base64Decode(std::string is) {
   std::stringstream os;
 
-  is = encoded;
   boost::replace_all(is, "\r\n", "");
   boost::replace_all(is, "\n", "");
-  size_t size = is.size();
 
   // Remove the padding characters
-  if (size && is[size - 1] == '=') {
-    --size;
-    if (size && is[size - 1] == '=') {
-      --size;
+  for (int i = 0; i < 2; i++) {
+    if (is.size() && is.back() == '=') {
+      is.pop_back();
     }
   }
 
-  if (size == 0) {
+  if (is.size() == 0) {
     return "";
   }
+
   try {
     std::copy(base64_dec(is.data()),
-              base64_dec(is.data() + size),
+              base64_dec(is.data() + is.size()),
               std::ostream_iterator<char>(os));
   } catch (const boost::archive::iterators::dataflow_exception& e) {
     LOG(INFO) << "Could not base64 decode string: " << e.what();
@@ -355,9 +352,15 @@ std::string base64Encode(const std::string& unencoded) {
   }
 
   size_t writePaddChars = (3U - unencoded.length() % 3U) % 3U;
-  std::string base64(it_base64(unencoded.begin()), it_base64(unencoded.end()));
-  base64.append(writePaddChars, '=');
-  os << base64;
+  try {
+    std::copy(it_base64(unencoded.begin()),
+              it_base64(unencoded.end()),
+              std::ostream_iterator<char>(os));
+  } catch (const boost::archive::iterators::dataflow_exception& e) {
+    LOG(INFO) << "Could not base64 decode string: " << e.what();
+    return "";
+  }
+  os << std::string(writePaddChars, '=');
   return os.str();
 }
 
