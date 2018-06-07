@@ -305,6 +305,10 @@ sync: .setup
 	@cd $(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) sync --no-print-directory $(MAKEFLAGS)
 
+git_hooks: 
+	@mkdir -p ./.git/hooks/
+	@ln -s ../../tools/hooks/pre-commit.py ./.git/hooks/pre-commit
+
 test: .setup
 	@cd build/$(BUILD_NAME) && $(DEFINES) $(CTEST) $(VERBOSE_TEST)
 
