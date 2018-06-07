@@ -33,8 +33,10 @@ schema([
     Column("parent", BIGINT, "Process parent's PID"),
     Column("time", BIGINT, "Time of execution in UNIX time"),
     Column("uptime", BIGINT, "Time of execution in system uptime"),
-    Column("status", BIGINT, "OpenBSM Attribute: Status of the process"),
     Column("eid", TEXT, "Event ID", hidden=True),
+])
+extended_schema(DARWIN, [
+    Column("status", BIGINT, "OpenBSM Attribute: Status of the process"),
 ])
 attributes(event_subscriber=True)
 implementation("process_events@process_events::genTable")
