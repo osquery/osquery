@@ -18,6 +18,7 @@
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/database/plugins/rocksdb.h"
 #include "osquery/filesystem/fileops.h"
 
@@ -250,6 +251,18 @@ Status RocksDBDatabasePlugin::get(const std::string& domain,
   return Status(s.code(), s.ToString());
 }
 
+Status RocksDBDatabasePlugin::get(const std::string& domain,
+                                  const std::string& key,
+                                  int& value) const {
+  std::string result;
+  auto s = this->get(domain, key, result);
+  if (s.ok()) {
+    if (safeStrtoi(result, 10, value)) {
+      return Status(1, "Could not deserialize str to int");
+    }
+  }
+  return s;
+}
 Status RocksDBDatabasePlugin::put(const std::string& domain,
                                   const std::string& key,
                                   const std::string& value) {
@@ -279,6 +292,14 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
   }
   return Status(s.code(), s.ToString());
 }
+
+Status RocksDBDatabasePlugin::put(const std::string& domain,
+                                  const std::string& key,
+                                  int value) {
+  return this->put(domain, key, std::to_string(value));
+}
+
+void RocksDBDatabasePlugin::dumpDatabase() const {}
 
 Status RocksDBDatabasePlugin::remove(const std::string& domain,
                                      const std::string& key) {
