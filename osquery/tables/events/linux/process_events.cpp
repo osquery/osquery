@@ -158,6 +158,10 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     GetStringFieldFromMap(
         row["owner_gid"], first_path_event_record->fields, "ogid", "0");
 
+    // We currently do not support parent, however parent is a BIGINT so it
+    // needs to be set. Set it to -1.
+    row["parent"] = "-1";
+
     emitted_row_list.push_back(row);
   }
 
