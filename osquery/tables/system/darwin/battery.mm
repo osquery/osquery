@@ -25,12 +25,12 @@ namespace tables {
 NSDictionary* getIopmBatteryInfo() {
   CFTypeRef info = IOPSCopyPowerSourcesInfo();
 
-  if (info == NULL) {
+  if (info == nullptr) {
     return nil;
   }
 
   CFArrayRef list = IOPSCopyPowerSourcesList(info);
-  if (!list) {
+  if (list == nullptr) {
     CFRelease(info);
     return nil;
   }
@@ -63,14 +63,14 @@ NSDictionary* getIopmpsBatteryInfo() {
   CFMutableDictionaryRef matching = IOServiceNameMatching("AppleSmartBattery");
   io_service_t entry =
       IOServiceGetMatchingService(kIOMasterPortDefault, matching);
-  matching = NULL; // Dictionary consumed by IOServiceGetMatchingService
+  matching = nullptr; // Dictionary consumed by IOServiceGetMatchingService
   // From Apple docs:
   // IOService is a subclass of IORegistryEntry, which means any of the
   // IORegistryEntryXXX functions in IOKitLib may be used
   // with io_service_t's as well as io_registry_t's
-  CFMutableDictionaryRef properties = NULL;
+  CFMutableDictionaryRef properties = nullptr;
   kern_return_t error =
-      IORegistryEntryCreateCFProperties(entry, &properties, NULL, 0);
+      IORegistryEntryCreateCFProperties(entry, &properties, nullptr, 0);
   IOObjectRelease(entry);
 
   // dictionary is NULL on kIOReturnInternalError
@@ -88,7 +88,7 @@ QueryData genBatteryInfo(QueryContext& context) {
     NSDictionary* advancedBatteryInfo = getIopmpsBatteryInfo();
 
     // Don't return any rows if we don't have battery data.
-    if (batteryInfo == NULL && advancedBatteryInfo == NULL) {
+    if (batteryInfo == nullptr && advancedBatteryInfo == nullptr) {
       return results;
     }
 
