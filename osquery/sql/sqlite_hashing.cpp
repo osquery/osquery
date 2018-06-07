@@ -32,9 +32,9 @@ static void hashSqliteValue(sqlite3_context* ctx,
   }
 
   // Parse and verify the split input parameters.
-  std::string input((char*)sqlite3_value_text(argv[0]));
+  const char* input = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
 
-  auto result = hashFromBuffer(ht, input.data(), input.size());
+  auto result = hashFromBuffer(ht, input, strlen(input));
   sqlite3_result_text(
       ctx, result.c_str(), static_cast<int>(result.size()), SQLITE_TRANSIENT);
 }
