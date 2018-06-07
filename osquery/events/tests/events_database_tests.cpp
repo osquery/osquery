@@ -189,6 +189,25 @@ TEST_F(EventsDatabaseTests, test_record_range) {
   EXPECT_EQ(33U, records.size()); // (61) 110 - 139 + 3601, 7201
 }
 
+TEST_F(EventsDatabaseTests, test_record_corruption) {
+  auto sub = std::make_shared<DBFakeEventSubscriber>();
+
+  std::string corrupted_index = "60.25440186";
+  std::string key =
+      "records.DBFakePublisher.DBFakeSubscriber." + corrupted_index;
+  std::string value =
+      "0002985852:1526411162,0002985853:1526411162,00??E/"
+      "?:1526411170,0002985912:1526411170,0002??E/"
+      "?526411178,0002985921:1526411178,0002985922:1526411178";
+
+  // Set some corrupted values in the DB
+  auto s = setDatabaseValue(kEvents, key, value);
+  auto records = sub->getRecords({corrupted_index});
+
+  // We should gracefully skip over corrupted record entries
+  EXPECT_EQ(6U, records.size());
+}
+
 TEST_F(EventsDatabaseTests, test_record_expiration) {
   auto sub = std::make_shared<DBFakeEventSubscriber>();
   auto status = sub->testAdd(1);
@@ -366,4 +385,4 @@ TEST_F(EventsDatabaseTests, test_expire_check) {
     }
   }
 }
-}
+} // namespace osquery

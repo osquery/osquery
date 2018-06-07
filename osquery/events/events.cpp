@@ -405,15 +405,15 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
     }
 
     // Iterate over every 2 items: EID:TIME.
-    for (size_t i = 0; i < bin_records.size(); i++) {
-      auto vals = split(bin_records[i], ":");
+    for (const auto& record : bin_records) {
+      const auto vals = split(record, ":");
       if (vals.size() != 2) {
-        LOG(WARNING) << "Event records mismatch, " << bin_records[i]
+        LOG(WARNING) << "Event records mismatch: " << record
                      << " does not have a matching eid/event_time";
         continue;
       }
       const auto eid = vals[0];
-      EventTime et = timeFromRecord(vals[1]);
+      const EventTime et = timeFromRecord(vals[1]);
       if (FLAGS_events_optimize && optimize && et <= optimize_time_ + 1) {
         auto eidr = timeFromRecord(eid);
         if (eidr <= optimize_eid_) {
