@@ -316,6 +316,7 @@ bool JSON::valueToBool(const rj::Value& value) {
 }
 
 std::string base64Decode(std::string encoded) {
+  boost::trim_right_if(encoded, boost::is_any_of("="));
   boost::erase_all(encoded, "\r\n");
   boost::erase_all(encoded, "\n");
 
