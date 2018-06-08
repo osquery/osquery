@@ -20,12 +20,6 @@
 #include "osquery/tables/system/posix/xattr_utils.h"
 
 #ifdef __APPLE__
-#include <TargetConditionals.h>
-
-#ifndef TARGET_OS_MAC
-#error Unsupported macOS target
-#endif
-
 #include "osquery/tables/system/darwin/special_xattr_decoder.h"
 
 #else
@@ -35,7 +29,7 @@
 namespace osquery {
 namespace {
 // Compatibility wrappers for macOS
-#if defined(TARGET_OS_MAC)
+#ifdef __APPLE__
 ssize_t getxattr(const char* path, const char* name, void* value, size_t size) {
   return ::getxattr(path, name, value, size, 0, 0);
 }
@@ -44,6 +38,8 @@ ssize_t listxattr(const char* path, char* list, size_t size) {
   return ::listxattr(path, list, size, 0);
 }
 
+// Used by the tests in
+// osquery/tables/system/posix/tests/extended_attributes_tests.cpp
 int setxattr(const char* path,
              const char* name,
              const void* value,
@@ -168,6 +164,8 @@ bool getExtendedAttributes(ExtendedAttributes& attributes,
   return true;
 }
 
+// Used by the tests in
+// osquery/tables/system/posix/tests/extended_attributes_tests.cpp
 bool setExtendedAttributes(
     const std::string& path,
     const std::unordered_map<std::string, std::string>& attributes) {

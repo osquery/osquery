@@ -40,17 +40,16 @@ Status appendDirectoryEntryAttributes(QueryData& results,
     const auto& name = p.first;
     const auto& value = p.second;
 
-    std::string parent_path;
-    try {
-      parent_path = boost::filesystem::path(path).parent_path().string();
-    } catch (...) {
+    auto current_path = boost::filesystem::path(path);
+    auto parent_path = current_path.parent_path();
+    if (parent_path.empty() && current_path != current_path.root_path()) {
       VLOG(1) << "Failed to determine the parent path for directory entry "
               << path;
     }
 
     Row r;
+    r["directory"] = parent_path.string();
     r["path"] = path;
-    r["directory"] = parent_path;
     r["key"] = name;
 
     auto value_printable = isPrintable(value);

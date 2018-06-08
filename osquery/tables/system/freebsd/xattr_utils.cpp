@@ -155,6 +155,8 @@ bool getExtendedAttributes(ExtendedAttributes& attributes,
   return true;
 }
 
+// Used by the tests in
+// osquery/tables/system/posix/tests/extended_attributes_tests.cpp
 bool setExtendedAttributes(
     const std::string& path,
     const std::unordered_map<std::string, std::string>& attributes) {
