@@ -289,7 +289,7 @@ bool AuditdNetlinkReader::configureAuditService() noexcept {
   // enforce sane minimums: -b 8192 -e 100
   audit_set_backlog_wait_time(audit_netlink_handle_, 1);
   audit_set_backlog_limit(audit_netlink_handle_, 4096);
-  audit_set_failure(audit_netlink_handle_, AUDIT_FAIL_SILENT);
+  audit_set_failure(audit_netlink_handle_, AUDIT_FAIL_PRINTK);
 
   // Request only the highest priority of audit status messages.
   set_aumessage_mode(MSG_QUIET, DBG_NO);
