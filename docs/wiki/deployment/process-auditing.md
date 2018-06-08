@@ -129,9 +129,9 @@ There are no configuration or additional options required to enable process audi
 
 This section provides a brief overview of common and recommended optimizations for event-based tables. These optimizations also apply to the FIM events.
 
-1. `--events_optimize=true` apply optimizations when `SELECT`ing from events-based tables, default enabled.
-2. `--events_expiry` the lifetime of buffered events in seconds. The default value is 86000.
-3. `--events_max` the maximum number of events to store in the buffer before expiring them. The default value is 1000.
+1. `--events_optimize=true` apply optimizations when `SELECT`ing from events-based tables, enabled by default.
+2. `--events_expiry` the lifetime of buffered events in seconds with a default value of 86000.
+3. `--events_max` the maximum number of events to store in the buffer before expiring them with a default value of 1000.
 
 The goal of optimizations are to protect the running process and system from impacting performance. By default these are all enabled, which is good for configuration and performance, but may introduce inconsistencies on highly-stressed systems using process auditing.
 
