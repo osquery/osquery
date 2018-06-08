@@ -10,7 +10,6 @@
 
 #include <iomanip>
 #include <locale>
-#include <sstream>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
@@ -316,49 +315,44 @@ bool JSON::valueToBool(const rj::Value& value) {
   return false;
 }
 
-std::string base64Decode(const std::string& encoded) {
-  std::string is;
-  std::stringstream os;
-
-  is = encoded;
-  boost::replace_all(is, "\r\n", "");
-  boost::replace_all(is, "\n", "");
-  size_t size = is.size();
+std::string base64Decode(std::string encoded) {
+  boost::replace_all(encoded, "\r\n", "");
+  boost::replace_all(encoded, "\n", "");
 
   // Remove the padding characters
-  if (size && is[size - 1] == '=') {
-    --size;
-    if (size && is[size - 1] == '=') {
-      --size;
+  for (int i = 0; i < 2; i++) {
+    if (!encoded.empty() && encoded.back() == '=') {
+      encoded.pop_back();
     }
   }
 
-  if (size == 0) {
+  if (encoded.empty()) {
     return "";
   }
+
   try {
-    std::copy(base64_dec(is.data()),
-              base64_dec(is.data() + size),
-              std::ostream_iterator<char>(os));
+    return std::string(base64_dec(encoded.data()),
+                       base64_dec(encoded.data() + encoded.size()));
   } catch (const boost::archive::iterators::dataflow_exception& e) {
     LOG(INFO) << "Could not base64 decode string: " << e.what();
     return "";
   }
-  return os.str();
 }
 
 std::string base64Encode(const std::string& unencoded) {
-  std::stringstream os;
-
-  if (unencoded.size() == 0) {
+  if (unencoded.empty()) {
     return std::string();
   }
 
   size_t writePaddChars = (3U - unencoded.length() % 3U) % 3U;
-  std::string base64(it_base64(unencoded.begin()), it_base64(unencoded.end()));
-  base64.append(writePaddChars, '=');
-  os << base64;
-  return os.str();
+  try {
+    return std::string(it_base64(unencoded.begin()),
+                       it_base64(unencoded.end())) +
+           std::string(writePaddChars, '=');
+  } catch (const boost::archive::iterators::dataflow_exception& e) {
+    LOG(INFO) << "Could not base64 decode string: " << e.what();
+    return "";
+  }
 }
 
 bool isPrintable(const std::string& check) {
@@ -380,28 +374,6 @@ std::vector<std::string> split(const std::string& s, const std::string& delim) {
   elems.erase(start, elems.end());
   for (auto& each : elems) {
     boost::algorithm::trim(each);
-  }
-  return elems;
-}
-
-std::vector<std::string> split(const std::string& s,
-                               const std::string& delim,
-                               size_t occurences) {
-  // Split the string normally with the required delimiter.
-  auto content = split(s, delim);
-  // While the result split exceeds the number of requested occurrences, join.
-  std::vector<std::string> accumulator;
-  std::vector<std::string> elems;
-  for (size_t i = 0; i < content.size(); i++) {
-    if (i < occurences) {
-      elems.push_back(content.at(i));
-    } else {
-      accumulator.push_back(content.at(i));
-    }
-  }
-  // Join the optional accumulator.
-  if (accumulator.size() > 0) {
-    elems.push_back(join(accumulator, delim));
   }
   return elems;
 }
