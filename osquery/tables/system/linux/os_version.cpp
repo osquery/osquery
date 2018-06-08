@@ -69,7 +69,7 @@ void genOSRelease(Row& r) {
     }
 
     if (column.get() == "_id") {
-      auto parts = osquery::split(r.at(column), ".", 2);
+      auto parts = osquery::split(r.at(column), '.', 2);
       switch (parts.size()) {
       case 3:
         r["patch"] = parts[2];
