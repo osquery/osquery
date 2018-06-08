@@ -10,7 +10,6 @@
 
 #include <iomanip>
 #include <locale>
-#include <sstream>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
@@ -317,51 +316,43 @@ bool JSON::valueToBool(const rj::Value& value) {
 }
 
 std::string base64Decode(std::string is) {
-  std::stringstream os;
-
   boost::replace_all(is, "\r\n", "");
   boost::replace_all(is, "\n", "");
 
   // Remove the padding characters
   for (int i = 0; i < 2; i++) {
-    if (is.size() && is.back() == '=') {
+    if (!is.empty() && is.back() == '=') {
       is.pop_back();
     }
   }
 
-  if (is.size() == 0) {
+  if (is.empty()) {
     return "";
   }
 
   try {
-    std::copy(base64_dec(is.data()),
-              base64_dec(is.data() + is.size()),
-              std::ostream_iterator<char>(os));
+    return std::string(base64_dec(is.data()),
+                       base64_dec(is.data() + is.size()));
   } catch (const boost::archive::iterators::dataflow_exception& e) {
     LOG(INFO) << "Could not base64 decode string: " << e.what();
     return "";
   }
-  return os.str();
 }
 
 std::string base64Encode(const std::string& unencoded) {
-  std::stringstream os;
-
-  if (unencoded.size() == 0) {
+  if (unencoded.empty()) {
     return std::string();
   }
 
   size_t writePaddChars = (3U - unencoded.length() % 3U) % 3U;
   try {
-    std::copy(it_base64(unencoded.begin()),
-              it_base64(unencoded.end()),
-              std::ostream_iterator<char>(os));
+    return std::string(it_base64(unencoded.begin()),
+                       it_base64(unencoded.end())) +
+           std::string(writePaddChars, '=');
   } catch (const boost::archive::iterators::dataflow_exception& e) {
     LOG(INFO) << "Could not base64 decode string: " << e.what();
     return "";
   }
-  os << std::string(writePaddChars, '=');
-  return os.str();
 }
 
 bool isPrintable(const std::string& check) {
