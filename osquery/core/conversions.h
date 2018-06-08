@@ -113,7 +113,7 @@ std::string join(const std::set<std::string>& s, const std::string& tok);
  * @param encoded The encode base64 string.
  * @return Decoded string.
  */
-std::string base64Decode(std::string encoded);
+std::string base64Decode(const std::string& encoded);
 
 /**
  * @brief Encode a  string.
