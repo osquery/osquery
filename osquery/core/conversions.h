@@ -67,19 +67,6 @@ std::vector<std::string> split(const std::string& s,
                                const std::string& delim = "\t ");
 
 /**
- * @brief Split a given string based on an delimiter.
- *
- * @param s the string that you'd like to split.
- * @param delim the delimiter which you'd like to split the string by.
- * @param occurrences the number of times to split by delim.
- *
- * @return a vector of strings split by delim for occurrences.
- */
-std::vector<std::string> split(const std::string& s,
-                               const std::string& delim,
-                               size_t occurences);
-
-/**
  * @brief In-line replace all instances of from with to.
  *
  * @param str The input/output mutable string.

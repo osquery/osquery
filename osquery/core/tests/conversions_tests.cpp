@@ -91,14 +91,6 @@ TEST_F(ConversionsTests, test_join) {
   EXPECT_EQ(join(content, ", "), "one, two, three");
 }
 
-TEST_F(ConversionsTests, test_split_occurences) {
-  std::string content = "T: 'S:S'";
-  std::vector<std::string> expected = {
-      "T", "'S:S'",
-  };
-  EXPECT_EQ(split(content, ":", 1), expected);
-}
-
 TEST_F(ConversionsTests, test_buffer_sha1) {
   std::string test = "test\n";
   EXPECT_EQ("4e1243bd22c66e76c2ba9eddc1f91394e57f9f83",
