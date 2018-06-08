@@ -481,9 +481,9 @@ function Main {
   if (Test-Path env:OSQUERY_BUILD_HOST) {
     $out = Install-ChocoPackage 'visualcppbuildtools'
   } else {
-    $install17 = Check-VS2017Install
-    $install15 = Check-VS2015Install
-    if ($install17 -eq $false -and $install15 -eq $false) {
+	$vsinfo = Get-VSInfo
+	# Install visual studio 2017 if no vs installation is found
+    if ($vsinfo.version -ne '15' -and $vsinfo.version -ne '14') {
       $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsinstall.json'))
       $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--in ${deploymentFile}")
       $out = Install-ChocoPackage 'visualstudio2017community' '' ${chocoParams}

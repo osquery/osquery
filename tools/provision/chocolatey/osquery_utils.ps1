@@ -252,21 +252,3 @@ function Get-VSInfo {
   $vsinfo.version = $vsinfo.version.trim()
   return $vsinfo
 }
-
-# A helper function to determine if VS 2017 is installed
-function Check-VS2017Install {
-  $vsinfo = Get-VSInfo
-  if ($vsinfo.version -eq '15') {
-    return $true
-  }
-  return $false
-}
-
-# A helper function to determine if VS 2015 is installed
-function Check-VS2015Install {
-  $vsinfo = Get-VSInfo
-  if ($vsinfo.version -eq '14') {
-    return $true
-  }
-  return $false
-}
