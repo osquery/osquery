@@ -339,7 +339,8 @@ std::string base64Encode(const std::string& unencoded) {
 
   size_t writePaddChars = (3U - unencoded.length() % 3U) % 3U;
   try {
-    auto encoded = std::string(it_base64(unencoded.begin()), it_base64(unencoded.end()));
+    auto encoded =
+        std::string(it_base64(unencoded.begin()), it_base64(unencoded.end()));
     encoded.append(std::string(writePaddChars, '='));
     return encoded;
   } catch (const boost::archive::iterators::dataflow_exception& e) {
