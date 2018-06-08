@@ -316,18 +316,11 @@ bool JSON::valueToBool(const rj::Value& value) {
 }
 
 std::string base64Decode(std::string encoded) {
-  boost::replace_all(encoded, "\r\n", "");
-  boost::replace_all(encoded, "\n", "");
-
-  // Remove the padding characters
-  for (int i = 0; i < 2; i++) {
-    if (!encoded.empty() && encoded.back() == '=') {
-      encoded.pop_back();
-    }
-  }
+  boost::erase_all(encoded, "\r\n");
+  boost::erase_all(encoded, "\n");
 
   if (encoded.empty()) {
-    return "";
+    return encoded;
   }
 
   try {
@@ -341,14 +334,13 @@ std::string base64Decode(std::string encoded) {
 
 std::string base64Encode(const std::string& unencoded) {
   if (unencoded.empty()) {
-    return std::string();
+    return unencoded;
   }
 
   size_t writePaddChars = (3U - unencoded.length() % 3U) % 3U;
   try {
-    return std::string(it_base64(unencoded.begin()),
-                       it_base64(unencoded.end())) +
-           std::string(writePaddChars, '=');
+    return std::string(it_base64(unencoded.begin()), it_base64(unencoded.end()))
+        .append(std::string(writePaddChars, '='));
   } catch (const boost::archive::iterators::dataflow_exception& e) {
     LOG(INFO) << "Could not base64 decode string: " << e.what();
     return "";
