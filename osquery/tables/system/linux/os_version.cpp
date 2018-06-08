@@ -49,7 +49,7 @@ void genOSRelease(Row& r) {
   }
 
   for (const auto& line : osquery::split(content, "\n")) {
-    auto fields = osquery::split(line, "=", 1);
+    auto fields = osquery::split(line, '=', 1);
     if (fields.size() != 2) {
       continue;
     }
