@@ -381,11 +381,14 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   percent_ul = (percent_ul > 100) ? 100 : percent_ul;
 
   UNSIGNED_BIGINT_LITERAL iv_milliseconds = change.iv * 1000;
-  UNSIGNED_BIGINT_LITERAL ul =
+  UNSIGNED_BIGINT_LITERAL cpu_ul =
       (percent_ul * iv_milliseconds * kNumOfCPUs) / 100;
 
-  if (((user_time - state.user_time) + (system_time - state.system_time)) >
-      ul) {
+  auto user_time_diff = user_time - state.user_time;
+  auto sys_time_diff = system_time - state.system_time;
+  auto cpu_utilization_time = user_time_diff + sys_time_diff;
+
+  if (cpu_utilization_time > cpu_ul) {
     state.sustained_latency++;
   } else {
     state.sustained_latency = 0;
