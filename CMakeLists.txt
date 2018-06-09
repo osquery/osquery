@@ -510,6 +510,7 @@ add_definitions(
   -DSTRIP_FLAG_HELP=1
   -DBOOST_NETWORK_ENABLE_HTTPS
   -DNOMINMAX
+  -DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE
 
   # See boost 1.65 breakage https://github.com/Homebrew/homebrew-core/pull/17150
   -D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0
@@ -603,6 +604,9 @@ else()
 endif()
 
 if(WINDOWS)
+  if(NOT OS_LIB_DIRS)
+    set(OS_LIB_DIRS)
+  endif()
   foreach(DEP_DIR ${WINDOWS_DEP_LIST})
     file(GLOB_RECURSE WINDOWS_LOCAL_LIB_DIRS LIST_DIRECTORIES false "${DEP_DIR}/*.lib")
     foreach(LIB_FILE ${WINDOWS_LOCAL_LIB_DIRS})

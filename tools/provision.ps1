@@ -481,16 +481,21 @@ function Main {
   if (Test-Path env:OSQUERY_BUILD_HOST) {
     $out = Install-ChocoPackage 'visualcppbuildtools'
   } else {
-    $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsdeploy.xml'))
-    $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--AdminFile ${deploymentFile}")
-    $out = Install-ChocoPackage 'visualstudio2015community' '' ${chocoParams}
+	$vsinfo = Get-VSInfo
+	# Install visual studio 2017 if no vs installation is found
+    if ($vsinfo.version -ne '15' -and $vsinfo.version -ne '14') {
+      $deploymentFile = Resolve-Path ([System.IO.Path]::Combine($PSScriptRoot, 'vsinstall.json'))
+      $chocoParams = @("--execution-timeout", "7200", "-packageParameters", "--in ${deploymentFile}")
+      $out = Install-ChocoPackage 'visualstudio2017community' '' ${chocoParams}
 
-    if (Test-RebootPending -eq $true) {
-      Write-Host "[*] Windows requires a reboot to complete installing Visual Studio." -foregroundcolor yellow
-      Write-Host "[*] Please reboot your system and re-run this provisioning script." -foregroundcolor yellow
-      Exit 0
+      if (Test-RebootPending -eq $true) {
+        Write-Host "[*] Windows requires a reboot to complete installing Visual Studio." -foregroundcolor yellow
+        Write-Host "[*] Please reboot your system and re-run this provisioning script." -foregroundcolor yellow
+        Exit 0
+      }
+    } else {
+      Write-Host "[*] Visual Studio installation found. Skipping install." -foregroundcolor Green
     }
-
     if ($PSVersionTable.PSVersion.Major -lt 5 -and $PSVersionTable.PSVersion.Minor -lt 1 ) {
       Write-Host "[*] Powershell version is < 5.1. Skipping Powershell Linter Installation." -foregroundcolor yellow
     } else {
