@@ -401,16 +401,20 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
       }
 
       // Each list is tokenized into a record=event_id:time.
-      boost::split(bin_records, record_value, boost::is_any_of(",:"));
+      bin_records = split(record_value, ",");
     }
 
-    auto bin_it = bin_records.begin();
     // Iterate over every 2 items: EID:TIME.
-    for (; bin_it != bin_records.end(); bin_it++) {
-      const auto& eid = *bin_it;
-      EventTime et = timeFromRecord(*(++bin_it));
+    for (const auto& record : bin_records) {
+      const auto vals = split(record, ":");
+      if (vals.size() != 2) {
+        LOG(WARNING) << "Event records mismatch: " << record
+                     << " does not have a matching eid/event_time";
+        continue;
+      }
+      const auto eid = vals[0];
+      const EventTime et = timeFromRecord(vals[1]);
       if (FLAGS_events_optimize && optimize && et <= optimize_time_ + 1) {
-        // There is an optimization collision, check for colliding IDs.
         auto eidr = timeFromRecord(eid);
         if (eidr <= optimize_eid_) {
           continue;
@@ -464,7 +468,7 @@ Status EventSubscriberPlugin::recordEvent(const std::string& eid,
   if (!status.ok()) {
     LOG(ERROR) << "Could not put Event Record key: " << record_key;
   }
-  return Status(0, "OK");
+  return Status();
 }
 
 size_t EventSubscriberPlugin::getEventsExpiry() {
@@ -1085,4 +1089,4 @@ void attachEvents() {
   // Configure the event publishers and subscribers.
   EventFactory::configUpdate();
 }
-}
+} // namespace osquery
