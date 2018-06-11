@@ -124,13 +124,15 @@ std::string trusteeToStr(const TRUSTEE& t) {
     return "Invalid";
   case TRUSTEE_IS_OBJECTS_AND_SID:
     // ptstrName member is a pointer to an OBJECTS_AND_SID struct
-    if (!LookupAccountSid(nullptr,
-                          reinterpret_cast<PSID>(reinterpret_cast<OBJECTS_AND_SID*>(t.ptstrName)->pSid),
-                          name,
-                          &size,
-                          domain,
-                          &size,
-                          &accountType)) {
+    if (!LookupAccountSid(
+            nullptr,
+            reinterpret_cast<PSID>(
+                reinterpret_cast<OBJECTS_AND_SID*>(t.ptstrName)->pSid),
+            name,
+            &size,
+            domain,
+            &size,
+            &accountType)) {
       // printf("LookupAccountSid error: %u\n", GetLastError());
       TLOG << "LookupAccountSid error: " << GetLastError();
     } else {
@@ -154,7 +156,6 @@ QueryData genNTFSACLPerms(QueryContext& context) {
   auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& path_string : paths) {
     if (fs::exists(path_string)) {
-
       // Get a pointer to the existing DACL.
 
       result = GetNamedSecurityInfo(path_string.c_str(),
