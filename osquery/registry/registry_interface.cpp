@@ -255,41 +255,47 @@ void RegistryInterface::configure() {
 
 Status RegistryInterface::addExternal(const RouteUUID& uuid,
                                       const RegistryRoutes& routes) {
-  UpgradeLock lock(mutex_);
-
   // Add each route name (item name) to the tracking.
   for (const auto& route : routes) {
     // Keep the routes info assigned to the registry.
     {
-      WriteUpgradeLock wlock(lock);
+      WriteLock wlock(mutex_);
       routes_[route.first] = route.second;
     }
+
     auto status = addExternalPlugin(route.first, route.second);
-    {
-      WriteUpgradeLock wlock(lock);
+
+    if (status.ok()) {
+      WriteLock wlock(mutex_);
       external_[route.first] = uuid;
-    }
-    if (!status.ok()) {
+    } else {
       return status;
     }
   }
+
   return Status(0, "OK");
 }
 
 /// Remove all the routes for a given uuid.
 void RegistryInterface::removeExternal(const RouteUUID& uuid) {
-  UpgradeLock lock(mutex_);
-
   std::vector<std::string> removed_items;
-  for (const auto& item : external_) {
-    if (item.second == uuid) {
-      removeExternalPlugin(item.first);
-      removed_items.push_back(item.first);
+
+  {
+    ReadLock rlock(mutex_);
+    // Create list of items to remove by filtering uuid
+    for (const auto& item : external_) {
+      if (item.second == uuid) {
+        removed_items.push_back(item.first);
+      }
     }
   }
 
+  for (const auto& item : removed_items) {
+    removeExternalPlugin(item);
+  }
+
   {
-    WriteUpgradeLock wlock(lock);
+    WriteLock wlock(mutex_);
     // Remove items belonging to the external uuid.
     for (const auto& item : removed_items) {
       external_.erase(item);
