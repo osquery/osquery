@@ -440,14 +440,20 @@ void genProcess(const std::string& pid, QueryData& results) {
         std::to_string(write_bytes - cancelled_write_bytes);
   }
 
+  results.push_back(r);
+}
+
+void genNamespaces(const std::string& pid, QueryData& results) {
+  Row r;
+
   ProcessNamespaceList proc_ns;
   Status status = procGetProcessNamespaces(pid, proc_ns);
   if (!status.ok()) {
-    VLOG(1) << "Results for processes might be incomplete. Failed to acquire "
-               "at least some namespaces information: "
-            << status.what();
+    VLOG(1) << "Namespaces for pid " << pid
+            << " are imcomplete: " << status.what();
   }
 
+  r["pid"] = pid;
   for (const auto& pair : proc_ns) {
     r[pair.first + "_namespace"] = std::to_string(pair.second);
   }
@@ -483,6 +489,17 @@ QueryData genProcessMemoryMap(QueryContext& context) {
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
     genProcessMap(pid, results);
+  }
+
+  return results;
+}
+
+QueryData genProcessNamespaces(QueryContext& context) {
+  QueryData results;
+
+  auto pidlist = getProcList(context);
+  for (const auto& pid : pidlist) {
+    genNamespaces(pid, results);
   }
 
   return results;
