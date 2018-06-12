@@ -497,7 +497,7 @@ QueryData genProcessMemoryMap(QueryContext& context) {
 QueryData genProcessNamespaces(QueryContext& context) {
   QueryData results;
 
-  auto pidlist = getProcList(context);
+  const auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
     genNamespaces(pid, results);
   }
