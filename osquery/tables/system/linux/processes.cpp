@@ -253,7 +253,7 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
 
   for (const auto& line : osquery::split(content, "\n")) {
     // Status lines are formatted: Key: Value....\n.
-    auto detail = osquery::split(line, ":", 1);
+    auto detail = osquery::split(line, ':', 1);
     if (detail.size() != 2) {
       continue;
     }
@@ -313,7 +313,7 @@ SimpleProcIo::SimpleProcIo(const std::string& pid) {
 
   for (const auto& line : osquery::split(content, "\n")) {
     // IO lines are formatted: Key: Value....\n.
-    auto detail = osquery::split(line, ":", 1);
+    auto detail = osquery::split(line, ':', 1);
     if (detail.size() != 2) {
       continue;
     }
