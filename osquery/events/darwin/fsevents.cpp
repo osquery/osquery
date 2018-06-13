@@ -69,7 +69,7 @@ void FSEventsEventPublisher::restart() {
 
   if (paths_.empty()) {
     // There are no paths to watch.
-    paths_.insert("/dev/null");
+    return;
   }
 
   std::vector<CFStringRef> cf_paths;
