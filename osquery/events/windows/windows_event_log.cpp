@@ -61,7 +61,7 @@ void WindowsEventLogEventPublisher::configure() {
 }
 
 Status WindowsEventLogEventPublisher::run() {
-  pause();
+  pauseMilli(100);
   return Status(0, "OK");
 }
 
