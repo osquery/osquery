@@ -28,7 +28,7 @@ namespace osquery {
 namespace tables {
 
 // map to get access mode string
-static std::unordered_map<ACCESS_MODE, std::string> accessModeToStr = {
+static const std::unordered_map<ACCESS_MODE, std::string> accessModeToStr = {
     {NOT_USED_ACCESS, "Not Used"},
     {GRANT_ACCESS, "Grant"},
     {SET_ACCESS, "Set"},
@@ -38,7 +38,7 @@ static std::unordered_map<ACCESS_MODE, std::string> accessModeToStr = {
     {SET_AUDIT_FAILURE, "Set Audit Failure"}};
 
 // map to build access string
-static std::map<unsigned long, std::string> permVals = {
+static const std::map<unsigned long, std::string> permVals = {
     {DELETE, "Delete"},
     {READ_CONTROL, "Read Control"},
     {WRITE_DAC, "Write DAC"},
@@ -55,7 +55,7 @@ static std::map<unsigned long, std::string> permVals = {
     {GENERIC_ALL, "Generic All"}};
 
 // map to get inheritance string
-static std::unordered_map<unsigned long, std::string> inheritanceToStr = {
+static const std::unordered_map<unsigned long, std::string> inheritanceToStr = {
     {CONTAINER_INHERIT_ACE, "Container Inherit Ace"},
     {INHERIT_NO_PROPAGATE, "Inherit No Propagate"},
     {INHERIT_ONLY, "Inherit Only"},
@@ -79,21 +79,21 @@ std::string accessPermsToStr(const unsigned long pmask) {
 // helper function to get account/group name from trustee
 std::string trusteeToStr(const TRUSTEE& trustee) {
   // Max username length for Windows
-  int r;
   const unsigned long kMaxBuffSize = 256;
   char name[kMaxBuffSize];
   char domain[kMaxBuffSize];
-  unsigned long size = kMaxBuffSize;
   SID_NAME_USE accountType;
 
   switch (trustee.TrusteeForm) {
   case TRUSTEE_IS_SID: {
     // get the name from the SID
     PSID psid = trustee.ptstrName;
-    r = LookupAccountSid(
+    auto size = kMaxBuffSize;
+    auto r = LookupAccountSid(
         nullptr, psid, name, &size, domain, &size, &accountType);
-    if (!r) {
+    if (r == FALSE) {
       VLOG(1) << "LookupAccountSid error: " << GetLastError();
+      return "";
     } else {
       return name;
     }
@@ -107,11 +107,13 @@ std::string trusteeToStr(const TRUSTEE& trustee) {
     return "Invalid";
   case TRUSTEE_IS_OBJECTS_AND_SID: {
     // ptstrName member is a pointer to an OBJECTS_AND_SID struct
-    PSID psid = reinterpret_cast<POBJECTS_AND_SID>(trustee.ptstrName)->pSid;
-    r = LookupAccountSid(
+    auto psid = reinterpret_cast<POBJECTS_AND_SID>(trustee.ptstrName)->pSid;
+    auto size = kMaxBuffSize;
+    auto r = LookupAccountSid(
         nullptr, psid, name, &size, domain, &size, &accountType);
-    if (!r) {
+    if (r == FALSE) {
       VLOG(1) << "LookupAccountSid error: " << GetLastError();
+      return "";
     } else {
       return name;
     }
@@ -126,10 +128,6 @@ std::string trusteeToStr(const TRUSTEE& trustee) {
 
 QueryData genNtfsAclPerms(QueryContext& context) {
   QueryData results;
-  unsigned long result = 0;
-  PACL dacl = nullptr;
-  PEXPLICIT_ACCESS aceList = nullptr;
-  unsigned long aceCount = 0;
 
   auto paths = context.constraints["path"].getAll(EQUALS);
   for (const auto& pathString : paths) {
@@ -137,20 +135,23 @@ QueryData genNtfsAclPerms(QueryContext& context) {
       continue;
     }
     // Get a pointer to the existing DACL.
-    result = GetNamedSecurityInfo(pathString.c_str(),
-                                  SE_FILE_OBJECT,
-                                  DACL_SECURITY_INFORMATION,
-                                  nullptr,
-                                  nullptr,
-                                  &dacl,
-                                  nullptr,
-                                  nullptr);
+    PACL dacl = nullptr;
+    auto result = GetNamedSecurityInfo(pathString.c_str(),
+                                       SE_FILE_OBJECT,
+                                       DACL_SECURITY_INFORMATION,
+                                       nullptr,
+                                       nullptr,
+                                       &dacl,
+                                       nullptr,
+                                       nullptr);
     if (ERROR_SUCCESS != result) {
       VLOG(1) << "GetExplicitEnteriesFromAcl Error " << result;
       continue;
     }
 
     // get list of ACEs from DACL pointer
+    unsigned long aceCount = 0;
+    PEXPLICIT_ACCESS aceList = nullptr;
     result = GetExplicitEntriesFromAcl(dacl, &aceCount, &aceList);
     if (ERROR_SUCCESS != result) {
       VLOG(1) << "GetExplicitEnteriesFromAcl Error " << result;
@@ -164,8 +165,9 @@ QueryData genNtfsAclPerms(QueryContext& context) {
       Row r;
 
       auto perms = accessPermsToStr(aceItem->grfAccessPermissions);
-      auto accessMode = accessModeToStr[aceItem->grfAccessMode];
-      auto inheritedFrom = inheritanceToStr[aceItem->grfInheritance];
+      auto accessMode = accessModeToStr.find(aceItem->grfAccessMode)->second;
+      auto inheritedFrom =
+          inheritanceToStr.find(aceItem->grfInheritance)->second;
       auto trusteeName = trusteeToStr(aceItem->Trustee);
 
       r["path"] = TEXT(pathString);
@@ -173,7 +175,7 @@ QueryData genNtfsAclPerms(QueryContext& context) {
       r["principal"] = TEXT(trusteeName);
       r["access"] = TEXT(perms);
       r["inherited_from"] = TEXT(inheritedFrom);
-      results.push_back(r);
+      results.push_back(std::move(r));
     }
   }
 
