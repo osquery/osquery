@@ -12,7 +12,8 @@ def main():
     p = subprocess.Popen(" ".join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, env=my_env)
     out, err = p.communicate() 
 
-    if not out.startswith("no modified files to format"):
+    if not (out.startswith("no modified files to format") or
+            out.startswith("clang-format did not modify any files")):
       print("clang format failed")
       print("please run make format_master or apply diff:")
       print(out)
