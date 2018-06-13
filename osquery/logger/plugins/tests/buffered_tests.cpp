@@ -232,8 +232,7 @@ TEST_F(BufferedLogForwarderTests, test_multiple) {
   runner1.check();
   runner2.check();
 }
-#include <chrono>
-#include <thread>
+
 TEST_F(BufferedLogForwarderTests, test_async) {
   auto runner = std::make_shared<StrictMock<MockBufferedLogForwarder>>(
       "mock", kLogPeriod);
@@ -243,7 +242,6 @@ TEST_F(BufferedLogForwarderTests, test_async) {
   runner->logString("foo");
 
   Dispatcher::addService(runner);
-  // std::this_thread::sleep_for(std::chrono::seconds(2));
   runner->interrupt();
   Dispatcher::joinServices();
 }
