@@ -43,8 +43,20 @@ class TestRunnable : public InternalRunnable {
     return i;
   }
 
+  bool interrupted() {
+    // A small conditional to force-skip an interruption check, used in testing.
+    if (!checked_) {
+      checked_ = true;
+      return false;
+    } else {
+      return InternalRunnable::interrupted();
+    }
+  }
+
  private:
   static std::atomic<size_t> i;
+  /// Testing only, track the interruptible check for interruption.
+  bool checked_{false};
 };
 
 std::atomic<size_t> TestRunnable::i{0};
@@ -66,7 +78,6 @@ TEST_F(DispatcherTests, test_service_count) {
 
 TEST_F(DispatcherTests, test_run) {
   auto runnable = std::make_shared<TestRunnable>();
-  runnable->mustRun();
   runnable->reset();
 
   // The service exits after incrementing.
@@ -87,8 +98,6 @@ TEST_F(DispatcherTests, test_independent_run) {
   // Nothing stops two instances of the same service from running.
   auto r1 = std::make_shared<TestRunnable>();
   auto r2 = std::make_shared<TestRunnable>();
-  r1->mustRun();
-  r2->mustRun();
   r1->reset();
 
   Dispatcher::addService(r1);
@@ -106,11 +115,23 @@ class BlockingTestRunnable : public InternalRunnable {
     // Wow that's a long sleep!
     pauseMilli(100 * 1000);
   }
+
+  bool interrupted() {
+    // A small conditional to force-skip an interruption check, used in testing.
+    if (!checked_) {
+      checked_ = true;
+      return false;
+    } else {
+      return InternalRunnable::interrupted();
+    }
+  }
+
+ private:
+  bool checked_{false};
 };
 
 TEST_F(DispatcherTests, test_interruption) {
   auto r1 = std::make_shared<BlockingTestRunnable>();
-  r1->mustRun();
   Dispatcher::addService(r1);
 
   // This service would normally wait for 100 seconds.
