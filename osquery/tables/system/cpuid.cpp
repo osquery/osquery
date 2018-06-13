@@ -75,7 +75,7 @@ std::map<size_t, std::vector<FeatureDef>> kCPUFeatures{
          FEATURE("ibs", "ecx", 10),
          FEATURE("skinit", "ecx", 12),
          FEATURE("lwp", "ecx", 15),
-         
+
          FEATURE("nx", "edx", 20),
          FEATURE("page1gb", "edx", 26),
          FEATURE("lm", "edx", 29),
