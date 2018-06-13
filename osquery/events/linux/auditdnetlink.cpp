@@ -209,8 +209,11 @@ bool AuditdNetlinkReader::acquireMessages() noexcept {
     }
 
     if (poll_status < 0) {
-      VLOG(1) << "poll() failed with error " << errno;
-      reset_handle = true;
+      if (errno != EINTR) {
+        reset_handle = true;
+        VLOG(1) << "poll() failed with error " << errno;
+      }
+
       break;
     }
 
