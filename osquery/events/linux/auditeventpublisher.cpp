@@ -64,7 +64,7 @@ void AuditEventPublisher::configure() {
     return;
   }
 
-  if (!audit_netlink_) {
+  if (audit_netlink_ == nullptr) {
     audit_netlink_ = std::make_unique<AuditdNetlink>();
   }
 }
