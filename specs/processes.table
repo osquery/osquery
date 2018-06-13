@@ -34,15 +34,6 @@ schema([
 extended_schema(WINDOWS, [
     Column("is_elevated_token", INTEGER, "Process uses elevated token yes=1, no=0"),
 ])
-extended_schema(LINUX, [
-    Column("cgroup_namespace", TEXT, "cgroup namespace inode"),
-    Column("ipc_namespace", TEXT, "ipc namespace inode"),
-    Column("mnt_namespace", TEXT, "mnt namespace inode"),
-    Column("net_namespace", TEXT, "net namespace inode"),
-    Column("pid_namespace", TEXT, "pid namespace inode"),
-    Column("user_namespace", TEXT, "user namespace inode"),
-    Column("uts_namespace", TEXT, "uts namespace inode")
-])
 attributes(cacheable=True)
 implementation("system/processes@genProcesses")
 examples([
