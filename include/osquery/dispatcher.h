@@ -45,12 +45,12 @@ class InterruptableRunnable {
   virtual void stop() = 0;
 
   /// Put the runnable into an interruptible sleep.
-  virtual void pauseMilli(size_t milli) {
-    pauseMilli(std::chrono::milliseconds(milli));
+  inline bool pauseMilli(size_t milli) {
+    return pauseMilli(std::chrono::milliseconds(milli));
   }
 
   /// Put the runnable into an interruptible sleep.
-  virtual void pauseMilli(std::chrono::milliseconds milli);
+  bool pauseMilli(std::chrono::milliseconds milli);
 
  private:
   /**

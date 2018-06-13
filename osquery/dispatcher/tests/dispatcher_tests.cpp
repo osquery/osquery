@@ -43,7 +43,7 @@ class TestRunnable : public InternalRunnable {
     return i;
   }
 
-  bool interrupted() {
+  bool interrupted() override{
     // A small conditional to force-skip an interruption check, used in testing.
     if (!checked_) {
       checked_ = true;
@@ -116,7 +116,7 @@ class BlockingTestRunnable : public InternalRunnable {
     pauseMilli(100 * 1000);
   }
 
-  bool interrupted() {
+  bool interrupted() override{
     // A small conditional to force-skip an interruption check, used in testing.
     if (!checked_) {
       checked_ = true;
