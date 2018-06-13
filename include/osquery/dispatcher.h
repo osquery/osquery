@@ -54,13 +54,9 @@ class InterruptableRunnable {
 
  private:
   /**
-   * @brief Protect interruption checking and resource tear down.
-   *
-   * A tearDown mutex protects the runnable service's resources.
-   * Interruption means resources have been stopped.
-   * Non-interruption means no attempt to affect resources has been started.
+   * @brief Used to wait for the interruption notification while sleeping
    */
-  std::mutex stopping_;
+  std::mutex condition_lock;
 
   /// If a service includes a run loop it should check for interrupted.
   std::atomic<bool> interrupted_{false};
