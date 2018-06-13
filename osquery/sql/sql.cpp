@@ -121,7 +121,7 @@ QueryData SQL::selectAllFrom(const std::string& table,
   return response;
 }
 
-QueryData SQL::selectFrom(const std::initializer_list<std::string> columns,
+QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
                           const std::string& table,
                           const std::string& column,
                           ConstraintOperator op,
