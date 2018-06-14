@@ -33,6 +33,9 @@ function distro_main() {
   # Needed for libcryptsetup
   package autotools-dev
 
+  # Needed for python
+  package unzip
+
   GEM=`which gem`
   do_sudo $GEM install --no-ri --no-rdoc fpm
 }
