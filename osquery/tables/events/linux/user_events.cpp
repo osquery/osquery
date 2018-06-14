@@ -12,6 +12,7 @@
 #include <osquery/registry_factory.h>
 
 #include "osquery/events/linux/auditeventpublisher.h"
+#include "osquery/tables/events/linux/user_events.h"
 
 namespace osquery {
 
@@ -24,20 +25,6 @@ FLAG(bool,
 namespace tables {
 extern long getUptime();
 }
-
-class UserEventSubscriber final : public EventSubscriber<AuditEventPublisher> {
- public:
-  /// The process event subscriber declares an audit event type subscription.
-  Status init() override;
-
-  /// Kernel events matching the event type will fire.
-  Status Callback(const ECRef& ec, const SCRef& sc);
-
-  /// Processes the updates received from the callback
-  static Status ProcessEvents(
-      std::vector<Row>& emitted_row_list,
-      const std::vector<AuditEvent>& event_list) noexcept;
-};
 
 REGISTER(UserEventSubscriber, "event_subscriber", "user_events");
 
