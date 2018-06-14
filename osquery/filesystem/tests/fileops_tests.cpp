@@ -63,12 +63,11 @@ class FileOpsTests : public testing::Test {
 
 class TempFile {
  public:
-  TempFile()
-      : path_((fs::temp_directory_path() /
-               (std::string("osquery-") +
-                std::to_string((rand() % 10000) + 20000)))
-                  .make_preferred()
-                  .string()) {}
+  TempFile() {
+    do {
+      path_ = generateTempPath();
+    } while (fs::exists(path_));
+  }
 
   ~TempFile() {
     if (fs::exists(path_)) {
@@ -78,6 +77,13 @@ class TempFile {
 
   const std::string& path() const {
     return path_;
+  }
+
+ private:
+  static std::string generateTempPath() {
+    return (fs::temp_directory_path() / fs::unique_path("osquery-%%%%-%%%%"))
+        .make_preferred()
+        .string();
   }
 
  private:
