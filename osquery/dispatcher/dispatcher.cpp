@@ -27,7 +27,7 @@ void InterruptableRunnable::interrupt() {
     // Tear down the service's resources such that exiting the expected run
     // loop within ::start does not need to.
     stop();
-
+    std::lock_guard<std::mutex> lock(condition_lock);
     // Cancel the run loop's pause request.
     condition_.notify_one();
   }
@@ -38,8 +38,8 @@ bool InterruptableRunnable::interrupted() {
 }
 
 void InterruptableRunnable::pauseMilli(std::chrono::milliseconds milli) {
+  std::unique_lock<std::mutex> lock(condition_lock);
   if (!interrupted_) {
-    std::unique_lock<std::mutex> lock(condition_lock);
     condition_.wait_for(lock, milli);
   }
 }
