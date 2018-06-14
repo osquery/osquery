@@ -27,9 +27,28 @@ TEST_F(DispatcherTests, test_singleton) {
   EXPECT_EQ(&one, &two);
 }
 
-class TestRunnable : public InternalRunnable {
+class InternalTestableRunnable : public InternalRunnable {
  public:
-  explicit TestRunnable() : InternalRunnable("TestRunnable") {}
+  InternalTestableRunnable(const std::string& name) : InternalRunnable(name) {}
+
+  bool interrupted() override {
+    // A small conditional to force-skip an interruption check, used in testing.
+    if (!checked_) {
+      checked_ = true;
+      return false;
+    } else {
+      return InternalRunnable::interrupted();
+    }
+  }
+
+ private:
+  /// Testing only, track the interruptible check for interruption.
+  bool checked_{false};
+};
+
+class TestRunnable : public InternalTestableRunnable {
+ public:
+  explicit TestRunnable() : InternalTestableRunnable("TestRunnable") {}
 
   virtual void start() override {
     ++i;
@@ -43,20 +62,8 @@ class TestRunnable : public InternalRunnable {
     return i;
   }
 
-  bool interrupted() override {
-    // A small conditional to force-skip an interruption check, used in testing.
-    if (!checked_) {
-      checked_ = true;
-      return false;
-    } else {
-      return InternalRunnable::interrupted();
-    }
-  }
-
  private:
   static std::atomic<size_t> i;
-  /// Testing only, track the interruptible check for interruption.
-  bool checked_{false};
 };
 
 std::atomic<size_t> TestRunnable::i{0};
@@ -107,27 +114,15 @@ TEST_F(DispatcherTests, test_independent_run) {
   EXPECT_EQ(2U, r1->count());
 }
 
-class BlockingTestRunnable : public InternalRunnable {
+class BlockingTestRunnable : public InternalTestableRunnable {
  public:
-  explicit BlockingTestRunnable() : InternalRunnable("BlockingTestRunnable") {}
+  explicit BlockingTestRunnable()
+      : InternalTestableRunnable("BlockingTestRunnable") {}
 
   virtual void start() override {
     // Wow that's a long sleep!
     pauseMilli(100 * 1000);
   }
-
-  bool interrupted() override {
-    // A small conditional to force-skip an interruption check, used in testing.
-    if (!checked_) {
-      checked_ = true;
-      return false;
-    } else {
-      return InternalRunnable::interrupted();
-    }
-  }
-
- private:
-  bool checked_{false};
 };
 
 TEST_F(DispatcherTests, test_interruption) {
