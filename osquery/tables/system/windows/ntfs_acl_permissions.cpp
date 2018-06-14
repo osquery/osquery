@@ -28,7 +28,7 @@ namespace osquery {
 namespace tables {
 
 // map to get access mode string
-static const std::unordered_map<ACCESS_MODE, std::string> accessModeToStr = {
+static const std::unordered_map<ACCESS_MODE, std::string> kAccessModeToStr = {
     {NOT_USED_ACCESS, "Not Used"},
     {GRANT_ACCESS, "Grant"},
     {SET_ACCESS, "Set"},
@@ -38,7 +38,7 @@ static const std::unordered_map<ACCESS_MODE, std::string> accessModeToStr = {
     {SET_AUDIT_FAILURE, "Set Audit Failure"}};
 
 // map to build access string
-static const std::map<unsigned long, std::string> permVals = {
+static const std::map<unsigned long, std::string> kPermVals = {
     {DELETE, "Delete"},
     {READ_CONTROL, "Read Control"},
     {WRITE_DAC, "Write DAC"},
@@ -55,19 +55,19 @@ static const std::map<unsigned long, std::string> permVals = {
     {GENERIC_ALL, "Generic All"}};
 
 // map to get inheritance string
-static const std::unordered_map<unsigned long, std::string> inheritanceToStr = {
-    {CONTAINER_INHERIT_ACE, "Container Inherit Ace"},
-    {INHERIT_NO_PROPAGATE, "Inherit No Propagate"},
-    {INHERIT_ONLY, "Inherit Only"},
-    {OBJECT_INHERIT_ACE, "Object Inherit Ace"},
-    {SUB_CONTAINERS_AND_OBJECTS_INHERIT, "Sub containers and Objects Inherit"},
-    {NO_INHERITANCE, "No Inheritence"}};
+static const std::unordered_map<unsigned long, std::string> kInheritanceToStr =
+    {{CONTAINER_INHERIT_ACE, "Container Inherit Ace"},
+     {INHERIT_NO_PROPAGATE, "Inherit No Propagate"},
+     {INHERIT_ONLY, "Inherit Only"},
+     {OBJECT_INHERIT_ACE, "Object Inherit Ace"},
+     {SUB_CONTAINERS_AND_OBJECTS_INHERIT, "Sub containers and Objects Inherit"},
+     {NO_INHERITANCE, "No Inheritence"}};
 
 // helper function to build access string from permission bit mask
 std::string accessPermsToStr(const unsigned long pmask) {
   std::vector<std::string> permList;
 
-  for (auto const& perm : permVals) {
+  for (auto const& perm : kPermVals) {
     if ((pmask & perm.first) != 0) {
       permList.push_back(perm.second);
     }
@@ -88,9 +88,9 @@ std::string trusteeToStr(const TRUSTEE& trustee) {
   case TRUSTEE_IS_SID: {
     // get the name from the SID
     PSID psid = trustee.ptstrName;
-    auto size = kMaxBuffSize;
+    auto sizea = kMaxBuffSize;
     auto r = LookupAccountSid(
-        nullptr, psid, name, &size, domain, &size, &accountType);
+        nullptr, psid, name, &sizea, domain, &size, &accountType);
     if (r == FALSE) {
       VLOG(1) << "LookupAccountSid error: " << GetLastError();
       return "";
@@ -108,9 +108,9 @@ std::string trusteeToStr(const TRUSTEE& trustee) {
   case TRUSTEE_IS_OBJECTS_AND_SID: {
     // ptstrName member is a pointer to an OBJECTS_AND_SID struct
     auto psid = reinterpret_cast<POBJECTS_AND_SID>(trustee.ptstrName)->pSid;
-    auto size = kMaxBuffSize;
+    auto sizeb = kMaxBuffSize;
     auto r = LookupAccountSid(
-        nullptr, psid, name, &size, domain, &size, &accountType);
+        nullptr, psid, name, &sizeb, domain, &size, &accountType);
     if (r == FALSE) {
       VLOG(1) << "LookupAccountSid error: " << GetLastError();
       return "";
@@ -165,9 +165,9 @@ QueryData genNtfsAclPerms(QueryContext& context) {
       Row r;
 
       auto perms = accessPermsToStr(aceItem->grfAccessPermissions);
-      auto accessMode = accessModeToStr.find(aceItem->grfAccessMode)->second;
+      auto accessMode = kAccessModeToStr.find(aceItem->grfAccessMode)->second;
       auto inheritedFrom =
-          inheritanceToStr.find(aceItem->grfInheritance)->second;
+          kInheritanceToStr.find(aceItem->grfInheritance)->second;
       auto trusteeName = trusteeToStr(aceItem->Trustee);
 
       r["path"] = TEXT(pathString);
