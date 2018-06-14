@@ -163,4 +163,4 @@ bool WindowsEventLogEventPublisher::shouldFire(
 bool WindowsEventLogEventPublisher::isSubscriptionActive() const {
   return win_event_handles_.size() > 0;
 }
-}
+} // namespace osquery
