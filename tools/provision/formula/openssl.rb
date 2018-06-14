@@ -79,7 +79,7 @@ class Openssl < AbstractOsqueryFormula
 
   def post_install
     ENV.delete "LIBRARY_PATH"
-    (etc/"openssl").install resource("cacert").files("cacert-2017-09-20.pem" => "cert.pem")
+    (etc/"openssl").install resource("cacert").files("cacert-2018-03-07.pem" => "cert.pem")
   end
 
   def caveats; <<-EOS.undent
