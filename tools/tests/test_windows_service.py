@@ -148,26 +148,9 @@ def uninstallService(name):
     return sc('delete', name)
 
 
-def startService(name, *argv):
-    args = ['start', name] + list(argv)
-    return sc(*args)
-
-
 def queryService(name):
     args = ['query', name]
     return sc(*args)
-
-
-def stopService(name):
-    return sc('stop', name)
-
-
-def restartService(name, *argv):
-    stop_ = sc('stop', name)
-    test_base.expectTrue(serviceDead)
-    start_ = sc('start', name, *argv)
-    test_base.expectTrue(serviceAlive)
-    return start_[0] == 0 & stop_[0] == 0
 
 
 def serviceAlive():
@@ -182,6 +165,24 @@ def serviceDead():
         p.name() for p in psutil.process_iter() if p.name() == 'osqueryd.exe'
     ])
     return procs == 0
+
+
+def startService(name, *argv):
+    start_ = sc('start', name, *argv)
+    test_base.expectTrue(serviceAlive)
+    return start_[0]
+    
+
+def stopService(name):
+    stop_ = sc('stop', name)
+    test_base.expectTrue(serviceDead)
+    return stop_[0]
+
+
+def restartService(name, *argv):
+    stop = stopService(name)
+    start = startService(name, *argv)
+    return start == 0 & stop == 0
 
 
 class OsquerydTest(unittest.TestCase):
@@ -251,7 +252,7 @@ class OsquerydTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.service_list_.append(name)
 
-        code, _ = startService(name, '--flagfile', self.flagfile)
+        code = startService(name, '--flagfile', self.flagfile)
         self.assertEqual(code, 0)
 
         # Ensure the service is online before proceeding
@@ -269,7 +270,7 @@ class OsquerydTest(unittest.TestCase):
         self.assertNotEqual(stderr.find('is already running'), -1)
 
         if code == 0:
-            code, _ = stopService(name)
+            code = stopService(name)
             self.assertEqual(code, 0)
 
         test_base.expectTrue(serviceDead)
@@ -294,7 +295,7 @@ class OsquerydTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.service_list_.append(name)
 
-        code, _ = startService(name, '--flagfile', self.flagfile)
+        code = startService(name, '--flagfile', self.flagfile)
         self.assertEqual(code, 0)
 
         test_base.expectTrue(serviceAlive)
@@ -306,7 +307,7 @@ class OsquerydTest(unittest.TestCase):
             test_base.expectTrue(serviceAlive)
             self.assertTrue(serviceAlive())
 
-        code, _ = stopService(name)
+        code = stopService(name)
         # See TODO note above
         #self.assertEqual(code, 0)
         test_base.expectTrue(serviceDead)
