@@ -143,7 +143,8 @@ void Dispatcher::joinServices() {
   DLOG(INFO) << "Thread: " << std::this_thread::get_id()
              << " requesting a join";
 
-  // Stops when service_threads_ is empty. Before stopping and releasing of the lock, empties services_ .
+  // Stops when service_threads_ is empty. Before stopping and releasing of the
+  // lock, empties services_ .
   while (1) {
     InternalThreadRef thread = nullptr;
     {
