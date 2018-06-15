@@ -52,7 +52,6 @@ const std::string canonicalize_file_name(char* name) {
   // On centos/ubuntu libc will use realloc so we will be able to resolve
   // any path
   // On darwin libc will allocate PATH_MAX buffer for us
-  buffer = nullptr;
   char* resolved = realpath(name, nullptr);
   std::string result = (resolved == nullptr) ? name : resolved;
   free(resolved);

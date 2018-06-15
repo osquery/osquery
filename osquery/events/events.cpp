@@ -1085,4 +1085,4 @@ void attachEvents() {
   // Configure the event publishers and subscribers.
   EventFactory::configUpdate();
 }
-}
+} // namespace osquery

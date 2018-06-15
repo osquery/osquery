@@ -60,20 +60,20 @@ inline std::string readProcLink(const std::string& attr,
   struct stat sb;
   if (lstat(attr_path.c_str(), &sb) != -1) {
     // Some symlinks may report 'st_size' as zero
-    // Use PATH_MAX as best guess 
-    // For cases when 'st_size' is not zero but smaller than 
-    // PATH_MAX we will still use PATH_MAX to minimize chance 
+    // Use PATH_MAX as best guess
+    // For cases when 'st_size' is not zero but smaller than
+    // PATH_MAX we will still use PATH_MAX to minimize chance
     // of output trucation during race condition
     ssize_t buf_size = sb.st_size < PATH_MAX ? PATH_MAX : sb.st_size;
-    // +1 for \0, since readlink does not append a null 
-    char *linkname = static_cast<char*>malloc(buf_size + 1);
+    // +1 for \0, since readlink does not append a null
+    char* linkname = static_cast<char*>(malloc(buf_size + 1));
     ssize_t r = readlink(attr_path.c_str(), linkname, buf_size);
-    
+
     if (r > 0) { // Success check
       // r may not be equal to buf_size
-      // if r == buf_size there was race condition 
-      // and link is longer than buf_size and because of this 
-      // truncated 
+      // if r == buf_size there was race condition
+      // and link is longer than buf_size and because of this
+      // truncated
       linkname[r] = '\0';
       result = std::string(linkname);
     }

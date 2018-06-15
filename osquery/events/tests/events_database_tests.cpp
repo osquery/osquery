@@ -366,4 +366,4 @@ TEST_F(EventsDatabaseTests, test_expire_check) {
     }
   }
 }
-}
+} // namespace osquery
