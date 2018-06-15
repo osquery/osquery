@@ -1,4 +1,4 @@
-  #!/usr/bin/env bash
+#!/usr/bin/env bash
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
@@ -10,9 +10,9 @@
 
 set -e
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 BUILD_DIR"
-  exit 1
+if [ "$#" -ne 2 ]; then
+echo "Usage: $0 BUILD_DIR LIBRARY_PATH"
+exit 1
 fi
 
 SOURCE=$(pwd)
@@ -21,14 +21,16 @@ SYNC_DIR="$BUILD_DIR/sync"
 VERSION=`git describe --tags HEAD --always`
 
 if [ -f "$BUILD_DIR/generated" ]; then
-  echo "Error: $BUILD_DIR/generated not found."
-  echo "Run 'make sdk' first"
-  exit 1
+echo "Error: $BUILD_DIR/generated not found."
+echo "Run 'make sdk' first"
+exit 1
 fi
 
 mkdir -p "$SYNC_DIR"
 rm -rf "$SYNC_DIR/osquery*"
 mkdir -p "$SYNC_DIR/osquery/generated"
+
+export LIBRARY_PATH=$2:$LIBRARY_PATH
 
 # merge the headers with the implementation files
 cp -R include/osquery "$SYNC_DIR"
@@ -42,10 +44,10 @@ find "$SYNC_DIR" -type f -name "CMakeLists.txt" -exec rm -f {} \;
 mkdir -p "$SYNC_DIR/code-analysis"
 (cd "$SYNC_DIR/code-analysis" && SDK=True cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $SOURCE)
 python tools/codegen/gentargets.py \
-  -v $VERSION --sdk $VERSION \
-  -i "$SYNC_DIR/code-analysis/compile_commands.json" \
-  -o $SYNC_DIR/osquery \
-  -s osquery
+-v $VERSION --sdk $VERSION \
+-i "$SYNC_DIR/code-analysis/compile_commands.json" \
+-o $SYNC_DIR/osquery \
+-s osquery
 
 cp osquery.thrift "$SYNC_DIR/osquery/extensions"
 
