@@ -246,6 +246,21 @@ void WatcherRunner::start() {
   } while (!interrupted() && ok());
 }
 
+void WatcherRunner::stop() {
+  auto& watcher = Watcher::get();
+
+  for (const auto& extension : watcher.extensions()) {
+    try {
+      stopChild(*extension.second);
+    } catch (std::exception& e) {
+      LOG(ERROR) << "[WatcherRunner] couldn't kill the extension "
+                 << extension.first << "nicely. Reason: " << e.what()
+                 << std::endl;
+      extension.second->kill();
+    }
+  }
+}
+
 void WatcherRunner::watchExtensions() {
   auto& watcher = Watcher::get();
 

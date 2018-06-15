@@ -76,7 +76,7 @@ std::vector<std::string> split(const std::string& s,
  * @return a vector of strings split by delim for occurrences.
  */
 std::vector<std::string> split(const std::string& s,
-                               const std::string& delim,
+                               char delim,
                                size_t occurences);
 
 /**
@@ -126,7 +126,7 @@ std::string join(const std::set<std::string>& s, const std::string& tok);
  * @param encoded The encode base64 string.
  * @return Decoded string.
  */
-std::string base64Decode(const std::string& encoded);
+std::string base64Decode(std::string encoded);
 
 /**
  * @brief Encode a  string.
@@ -177,6 +177,22 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
       ((out == LLONG_MIN || out == LLONG_MAX) && errno == ERANGE)) {
     out = 0;
     return Status(1);
+  }
+  return Status(0);
+}
+
+/// Safely convert a string representation of an integer base.
+inline Status safeStrtoi(const std::string& rep, int base, int& out) {
+  try {
+    out = std::stoi(rep, 0, base);
+  } catch (const std::invalid_argument& ia) {
+    return Status(
+        1, std::string("If no conversion could be performed. ") + ia.what());
+  } catch (const std::out_of_range& oor) {
+    return Status(1,
+                  std::string("Value read is out of the range of representable "
+                              "values by an int. ") +
+                      oor.what());
   }
   return Status(0);
 }

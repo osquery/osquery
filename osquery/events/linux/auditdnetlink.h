@@ -82,7 +82,10 @@ using AuditdContextRef = std::shared_ptr<AuditdContext>;
 class AuditdNetlinkReader final : public InternalRunnable {
  public:
   explicit AuditdNetlinkReader(AuditdContextRef context);
+
+ protected:
   virtual void start() override;
+  virtual void stop() override;
 
  private:
   /// Reads as many audit event records as possible before returning.

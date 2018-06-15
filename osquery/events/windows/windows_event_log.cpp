@@ -12,6 +12,8 @@
 
 #include <Windows.h>
 
+#include <algorithm>
+
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
@@ -157,7 +159,9 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
 bool WindowsEventLogEventPublisher::shouldFire(
     const WindowsEventLogSubscriptionContextRef& sc,
     const WindowsEventLogEventContextRef& ec) const {
-  return sc->sources.find(ec->channel) != sc->sources.end();
+  std::wstring chan = ec->channel;
+  std::transform(chan.begin(), chan.end(), chan.begin(), ::tolower);
+  return sc->sources.find(chan) != sc->sources.end();
 }
 
 bool WindowsEventLogEventPublisher::isSubscriptionActive() const {

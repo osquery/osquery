@@ -143,7 +143,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
         row["cmdline"] += " ";
       }
 
-      row["cmdline"] += arg.second;
+      row["cmdline"] += DecodeAuditPathValues(arg.second);
     }
 
     // There may be a better way to calculate actual size from audit.
@@ -157,6 +157,9 @@ Status AuditProcessEventSubscriber::ProcessEvents(
         row["owner_uid"], first_path_event_record->fields, "ouid", "0");
     GetStringFieldFromMap(
         row["owner_gid"], first_path_event_record->fields, "ogid", "0");
+
+    // Parent is currently not supported on Linux.
+    row["parent"] = "-1";
 
     emitted_row_list.push_back(row);
   }

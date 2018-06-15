@@ -27,11 +27,19 @@ class SQLiteDatabasePlugin : public DatabasePlugin {
   Status get(const std::string& domain,
              const std::string& key,
              std::string& value) const override;
+  Status get(const std::string& domain,
+             const std::string& key,
+             int& value) const override;
 
   /// Data storage method.
   Status put(const std::string& domain,
              const std::string& key,
              const std::string& value) override;
+  Status put(const std::string& domain,
+             const std::string& key,
+             int value) override;
+
+  void dumpDatabase() const override;
 
   /// Data removal method.
   Status remove(const std::string& domain, const std::string& k) override;

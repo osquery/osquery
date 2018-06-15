@@ -96,7 +96,7 @@ TEST_F(ConversionsTests, test_split_occurences) {
   std::vector<std::string> expected = {
       "T", "'S:S'",
   };
-  EXPECT_EQ(split(content, ":", 1), expected);
+  EXPECT_EQ(split(content, ':', 1), expected);
 }
 
 TEST_F(ConversionsTests, test_buffer_sha1) {
