@@ -79,16 +79,16 @@ std::string accessPermsToStr(const unsigned long pmask) {
 // helper function to get account/group name from trustee
 std::string trusteeToStr(const TRUSTEE& trustee) {
   // Max username length for Windows
-  const unsigned long kMaxBuffSize = 256;
-  char name[kMaxBuffSize];
-  char domain[kMaxBuffSize];
+  const unsigned long maxBuffSize = 256;
+  char name[maxBuffSize];
+  char domain[maxBuffSize];
   SID_NAME_USE accountType;
 
   switch (trustee.TrusteeForm) {
   case TRUSTEE_IS_SID: {
     // get the name from the SID
     PSID psid = trustee.ptstrName;
-    auto sizea = kMaxBuffSize;
+    auto sizea = maxBuffSize;
     auto r = LookupAccountSid(
         nullptr, psid, name, &sizea, domain, &size, &accountType);
     if (r == FALSE) {
@@ -108,7 +108,7 @@ std::string trusteeToStr(const TRUSTEE& trustee) {
   case TRUSTEE_IS_OBJECTS_AND_SID: {
     // ptstrName member is a pointer to an OBJECTS_AND_SID struct
     auto psid = reinterpret_cast<POBJECTS_AND_SID>(trustee.ptstrName)->pSid;
-    auto sizeb = kMaxBuffSize;
+    auto sizeb = maxBuffSize;
     auto r = LookupAccountSid(
         nullptr, psid, name, &sizeb, domain, &size, &accountType);
     if (r == FALSE) {
