@@ -165,7 +165,7 @@ class InternalRunnable : private boost::noncopyable,
 
 /// An internal runnable used throughout osquery as dispatcher services.
 using InternalRunnableRef = std::shared_ptr<InternalRunnable>;
-using InternalThreadRef = std::shared_ptr<std::thread>;
+using InternalThreadRef = std::unique_ptr<std::thread>;
 
 /**
  * @brief Singleton for queuing asynchronous tasks to be executed in parallel
@@ -195,9 +195,7 @@ class Dispatcher : private boost::noncopyable {
   static void stopServices();
 
   /// Return number of services.
-  size_t serviceCount() {
-    return services_.size();
-  }
+  size_t serviceCount();
 
  private:
   /**
@@ -229,8 +227,6 @@ class Dispatcher : private boost::noncopyable {
   // Protection around service access.
   mutable Mutex mutex_;
 
-  // Protection around double joins.
-  mutable Mutex join_mutex_;
 
   /**
    * @brief Signal to the Dispatcher that no services should be created.
