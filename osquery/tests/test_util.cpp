@@ -39,8 +39,7 @@ std::string kFakeDirectory;
 std::string kTestWorkingDirectory;
 
 /// The relative path within the source repo to find test content.
-//std::string kTestDataPath{"../../../tools/tests/"};
-std::string kTestDataPath{"/Users/mkareta/projects/osquery/tools/tests/"};
+std::string kTestDataPath{"../../../tools/tests/"};
 
 DECLARE_string(database_path);
 DECLARE_string(extensions_socket);
