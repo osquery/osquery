@@ -25,6 +25,8 @@ import time
 import threading
 import unittest
 
+from signal import SIGTERM
+
 # osquery-specific testing utils
 import test_base
 import test_http_server
@@ -148,40 +150,48 @@ def uninstallService(name):
     return sc('delete', name)
 
 
-def startService(name, *argv):
-    args = ['start', name] + list(argv)
-    return sc(*args)
-
-
 def queryService(name):
     args = ['query', name]
     return sc(*args)
 
 
-def stopService(name):
-    return sc('stop', name)
-
-
-def restartService(name, *argv):
-    stop_ = sc('stop', name)
-    test_base.expectTrue(serviceDead)
-    start_ = sc('start', name, *argv)
-    test_base.expectTrue(serviceAlive)
-    return start_[0] == 0 & stop_[0] == 0
+def getOsqueryProcs():
+    return [
+        p.pid for p in psutil.process_iter() if p.name() == 'osqueryd.exe'
+    ]
 
 
 def serviceAlive():
-    procs = len([
-        p.name() for p in psutil.process_iter() if p.name() == 'osqueryd.exe'
-    ])
-    return procs == 2
+    return len(getOsqueryProcs()) == 2
 
 
 def serviceDead():
-    procs = len([
-        p.name() for p in psutil.process_iter() if p.name() == 'osqueryd.exe'
-    ])
-    return procs == 0
+    return len(getOsqueryProcs()) == 0
+
+
+def startService(name, *argv):
+    start_ = sc('start', name, *argv)
+    test_base.expectTrue(serviceAlive)
+    return start_[0]
+    
+
+def stopService(name):
+    stop_ = sc('stop', name)
+    test_base.expectTrue(serviceDead)
+    return stop_[0]
+
+
+def restartService(name, *argv):
+    stop = stopService(name)
+    start = startService(name, *argv)
+    return start == 0 & stop == 0
+
+
+def killOsqueryProcesses():
+    if serviceAlive():
+        procs = getOsqueryProcs()
+        for p in procs:
+            os.kill(p, SIGTERM)
 
 
 class OsquerydTest(unittest.TestCase):
@@ -189,6 +199,8 @@ class OsquerydTest(unittest.TestCase):
     service_list_ = []
 
     def setUp(self):
+        # Ensure that no residual processes are alive before starting
+        killOsqueryProcesses()
 
         self.test_instance = random.randint(0, 65535)
         self.tmp_dir = os.path.join(tempfile.gettempdir(),
@@ -251,7 +263,7 @@ class OsquerydTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.service_list_.append(name)
 
-        code, _ = startService(name, '--flagfile', self.flagfile)
+        code = startService(name, '--flagfile', self.flagfile)
         self.assertEqual(code, 0)
 
         # Ensure the service is online before proceeding
@@ -269,7 +281,7 @@ class OsquerydTest(unittest.TestCase):
         self.assertNotEqual(stderr.find('is already running'), -1)
 
         if code == 0:
-            code, _ = stopService(name)
+            code = stopService(name)
             self.assertEqual(code, 0)
 
         test_base.expectTrue(serviceDead)
@@ -294,7 +306,7 @@ class OsquerydTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.service_list_.append(name)
 
-        code, _ = startService(name, '--flagfile', self.flagfile)
+        code = startService(name, '--flagfile', self.flagfile)
         self.assertEqual(code, 0)
 
         test_base.expectTrue(serviceAlive)
@@ -306,9 +318,8 @@ class OsquerydTest(unittest.TestCase):
             test_base.expectTrue(serviceAlive)
             self.assertTrue(serviceAlive())
 
-        code, _ = stopService(name)
-        # See TODO note above
-        #self.assertEqual(code, 0)
+        code = stopService(name)
+        self.assertEqual(code, 0)
         test_base.expectTrue(serviceDead)
         self.assertTrue(serviceDead())
 
@@ -331,6 +342,7 @@ class OsquerydTest(unittest.TestCase):
         if len(self.service_list_) > 0:
             for s in self.service_list_:
                 stopService(s)
+                test_base.expectTrue(serviceDead)
                 uninstallService(s)
 
 
