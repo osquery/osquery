@@ -21,9 +21,9 @@ SYNC_DIR="$BUILD_DIR/sync"
 VERSION=`git describe --tags HEAD --always`
 
 if [ -f "$BUILD_DIR/generated" ]; then
-echo "Error: $BUILD_DIR/generated not found."
-echo "Run 'make sdk' first"
-exit 1
+  echo "Error: $BUILD_DIR/generated not found."
+  echo "Run 'make sdk' first"
+  exit 1
 fi
 
 mkdir -p "$SYNC_DIR"
@@ -44,10 +44,10 @@ find "$SYNC_DIR" -type f -name "CMakeLists.txt" -exec rm -f {} \;
 mkdir -p "$SYNC_DIR/code-analysis"
 (cd "$SYNC_DIR/code-analysis" && SDK=True cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $SOURCE)
 python tools/codegen/gentargets.py \
--v $VERSION --sdk $VERSION \
--i "$SYNC_DIR/code-analysis/compile_commands.json" \
--o $SYNC_DIR/osquery \
--s osquery
+  -v $VERSION --sdk $VERSION \
+  -i "$SYNC_DIR/code-analysis/compile_commands.json" \
+  -o $SYNC_DIR/osquery \
+  -s osquery
 
 cp osquery.thrift "$SYNC_DIR/osquery/extensions"
 
