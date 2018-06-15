@@ -57,6 +57,12 @@ Dispatcher& Dispatcher::instance() {
   return instance;
 }
 
+size_t Dispatcher::serviceCount() {
+  auto& self = Dispatcher::instance();
+  ReadLock lock(self.mutex_);
+  return services_.size();
+}
+
 Status Dispatcher::addService(InternalRunnableRef service) {
   if (service->hasRun()) {
     return Status(1, "Cannot schedule a service twice");
@@ -69,15 +75,18 @@ Status Dispatcher::addService(InternalRunnableRef service) {
     return Status(1, "Cannot add service, dispatcher is stopping");
   }
 
-  auto thread = std::make_shared<std::thread>(
+  auto thread = std::make_unique<std::thread>(
       std::bind(&InternalRunnable::run, &*service));
-  WriteLock lock(self.mutex_);
+
   DLOG(INFO) << "Adding new service: " << service->name() << " ("
              << service.get() << ") to thread: " << thread->get_id() << " ("
              << thread.get() << ") in process " << platformGetPid();
+  {
+    WriteLock lock(self.mutex_);
 
-  self.service_threads_.push_back(thread);
-  self.services_.push_back(std::move(service));
+    self.service_threads_.push_back(std::move(thread));
+    self.services_.push_back(std::move(service));
+  }
   return Status(0, "OK");
 }
 
@@ -112,16 +121,27 @@ void Dispatcher::joinServices() {
   auto& self = instance();
   DLOG(INFO) << "Thread: " << std::this_thread::get_id()
              << " requesting a join";
-  WriteLock join_lock(self.join_mutex_);
 
-  for (auto& thread : self.service_threads_) {
-    thread->join();
-    DLOG(INFO) << "Service thread: " << thread.get() << " has joined";
+  // Stops when service_threads_ is empty. Before stopping and releasing of the
+  // lock, empties services_ .
+  while (1) {
+    InternalThreadRef thread = nullptr;
+    {
+      WriteLock lock(self.mutex_);
+      if (!self.service_threads_.empty()) {
+        thread = std::move(self.service_threads_.back());
+        self.service_threads_.pop_back();
+      } else {
+        self.services_.clear();
+        break;
+      }
+    }
+    if (thread != nullptr) {
+      thread->join();
+      DLOG(INFO) << "Service thread: " << thread.get() << " has joined";
+    }
   }
 
-  WriteLock lock(self.mutex_);
-  self.services_.clear();
-  self.service_threads_.clear();
   self.stopping_ = false;
   DLOG(INFO) << "Services and threads have been cleared";
 }
