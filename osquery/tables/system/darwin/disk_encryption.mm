@@ -35,6 +35,9 @@ namespace tables {
  */
 const std::string kEncryptionType = "AES-XTS";
 const std::string kAPFSFileSystem = "apfs";
+const std::string kEncryptionStatusEncrypted = "encrypted";
+const std::string kEncryptionStatusUndefined = "undefined";
+const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 
 /// Expect all device names to include a /dev path prefix.
 const std::string kDeviceNamePrefix = "/dev/";
@@ -121,6 +124,10 @@ Status genUid(id_t& uid, uuid_string_t& uuid_str) {
 }
 
 void genFDEStatusForAPFS(Row& r) {
+  // Set encryption_status as undefined at start 
+  // and change it to encrypted | not encrypted in future
+  r["encryption_status"] = kEncryptionStatusUndefined;
+
   // BEWARE: Because of the dynamic nature of the calls in this function, we
   // must be careful to properly clean up the memory. Any future modifications
   // to this function should attempt to ensure there are no leaks.
@@ -256,7 +263,12 @@ void genFDEStatusForAPFS(Row& r) {
     return;
   }
   if (err != 0) {
-    LOG(ERROR) << "Error calling isEncryptedVolume:encrypted:";
+    // This is expected behaviour on some configurations
+    // We can't handle error here so just log 
+    LOG(INFO) << "Error calling isEncryptedVolume:encrypted:";
+    // For backward compatibility reasons mark disk as 
+    // not encrypted
+    r["encrypted"] = "0";
     cleanup();
     return;
   }
@@ -313,6 +325,7 @@ void genFDEStatusForAPFS(Row& r) {
     }
   }
 
+  r["encryption_status"] = isEncrypted ? kEncryptionStatusEncrypted : kEncryptionStatusNotEncrypted;
   r["encrypted"] = isEncrypted ? "1" : "0";
   r["type"] = isEncrypted ? "APFS Encryption" : "";
 }
@@ -350,9 +363,11 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
   } else {
     auto encrypted = getIOKitProperty(properties, kCoreStorageIsEncryptedKey_);
     if (encrypted.empty()) {
+      r["encryption_status"] = kEncryptionStatusUndefined;
       r["encrypted"] = "0";
     } else {
       r["encrypted"] = encrypted;
+      r["encryption_status"] = encrypted == "1" ? kEncryptionStatusEncrypted : kEncryptionStatusNotEncrypted;
       id_t uid;
       uuid_string_t uuid_string = {0};
       if (genUid(uid, uuid_string).ok()) {
