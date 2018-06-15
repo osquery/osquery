@@ -60,4 +60,20 @@ TEST_F(OptionsConfigParserPluginTests, test_unknown_option) {
   EXPECT_EQ(1U, doc["custom_fake"].GetUint());
   EXPECT_FALSE(Flag::getValue("custom_fake").empty());
 }
+
+TEST_F(OptionsConfigParserPluginTests, test_json_option) {
+  Config c;
+  std::map<std::string, std::string> update;
+
+  update["awesome"] =
+          "{\"options\": {\"complex\": {\"foo\": 1, \"bar\": \"baz\"}}}";
+  auto s = c.update(update);
+
+  const auto& doc = c.getParser("options")->getData().doc()["options"];
+
+  EXPECT_TRUE(doc.HasMember("complex"));
+  EXPECT_FALSE(Flag::getValue("complex").empty());
+  EXPECT_EQ("{\"foo\": 1, \"bar\": \"baz\"}", std::string(doc["complex"].GetString()));
+  EXPECT_EQ("{\"foo\": 1, \"bar\": \"baz\"}", Flag::getValue("complex"));
+}
 }
