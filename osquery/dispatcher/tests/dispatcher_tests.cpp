@@ -27,9 +27,28 @@ TEST_F(DispatcherTests, test_singleton) {
   EXPECT_EQ(&one, &two);
 }
 
-class TestRunnable : public InternalRunnable {
+class InternalTestableRunnable : public InternalRunnable {
  public:
-  explicit TestRunnable() : InternalRunnable("TestRunnable") {}
+  InternalTestableRunnable(const std::string& name) : InternalRunnable(name) {}
+
+  bool interrupted() override {
+    // A small conditional to force-skip an interruption check, used in testing.
+    if (!checked_) {
+      checked_ = true;
+      return false;
+    } else {
+      return InternalRunnable::interrupted();
+    }
+  }
+
+ private:
+  /// Testing only, track the interruptible check for interruption.
+  bool checked_{false};
+};
+
+class TestRunnable : public InternalTestableRunnable {
+ public:
+  explicit TestRunnable() : InternalTestableRunnable("TestRunnable") {}
 
   virtual void start() override {
     ++i;
@@ -66,7 +85,6 @@ TEST_F(DispatcherTests, test_service_count) {
 
 TEST_F(DispatcherTests, test_run) {
   auto runnable = std::make_shared<TestRunnable>();
-  runnable->mustRun();
   runnable->reset();
 
   // The service exits after incrementing.
@@ -87,8 +105,6 @@ TEST_F(DispatcherTests, test_independent_run) {
   // Nothing stops two instances of the same service from running.
   auto r1 = std::make_shared<TestRunnable>();
   auto r2 = std::make_shared<TestRunnable>();
-  r1->mustRun();
-  r2->mustRun();
   r1->reset();
 
   Dispatcher::addService(r1);
@@ -98,9 +114,10 @@ TEST_F(DispatcherTests, test_independent_run) {
   EXPECT_EQ(2U, r1->count());
 }
 
-class BlockingTestRunnable : public InternalRunnable {
+class BlockingTestRunnable : public InternalTestableRunnable {
  public:
-  explicit BlockingTestRunnable() : InternalRunnable("BlockingTestRunnable") {}
+  explicit BlockingTestRunnable()
+      : InternalTestableRunnable("BlockingTestRunnable") {}
 
   virtual void start() override {
     // Wow that's a long sleep!
@@ -110,7 +127,6 @@ class BlockingTestRunnable : public InternalRunnable {
 
 TEST_F(DispatcherTests, test_interruption) {
   auto r1 = std::make_shared<BlockingTestRunnable>();
-  r1->mustRun();
   Dispatcher::addService(r1);
 
   // This service would normally wait for 100 seconds.

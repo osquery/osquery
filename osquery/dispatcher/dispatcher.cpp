@@ -20,48 +20,27 @@ namespace osquery {
 /// The worker_threads define the default thread pool size.
 FLAG(int32, worker_threads, 4, "Number of work dispatch threads");
 
-/// Cancel the pause request.
-void RunnerInterruptPoint::cancel() {
-  std::unique_lock<std::mutex> lock(mutex_);
-  stop_ = true;
-  condition_.notify_all();
-}
-
-/// Pause until the requested millisecond delay has elapsed or a cancel.
-void RunnerInterruptPoint::pause(std::chrono::milliseconds milli) {
-  std::unique_lock<std::mutex> lock(mutex_);
-  if (stop_ || condition_.wait_for(lock, milli) == std::cv_status::no_timeout) {
-    stop_ = false;
-    throw RunnerInterruptError();
-  }
-}
 
 void InterruptableRunnable::interrupt() {
-  WriteLock lock(stopping_);
   // Set the service as interrupted.
-  interrupted_ = true;
-  // Tear down the service's resources such that exiting the expected run
-  // loop within ::start does not need to.
-  stop();
-  // Cancel the run loop's pause request.
-  point_.cancel();
+  if (!interrupted_.exchange(true)) {
+    // Tear down the service's resources such that exiting the expected run
+    // loop within ::start does not need to.
+    stop();
+    std::lock_guard<std::mutex> lock(condition_lock);
+    // Cancel the run loop's pause request.
+    condition_.notify_one();
+  }
 }
 
 bool InterruptableRunnable::interrupted() {
-  WriteLock lock(stopping_);
-  // A small conditional to force-skip an interruption check, used in testing.
-  if (bypass_check_ && !checked_) {
-    checked_ = true;
-    return false;
-  }
   return interrupted_;
 }
 
 void InterruptableRunnable::pauseMilli(std::chrono::milliseconds milli) {
-  try {
-    point_.pause(milli);
-  } catch (const RunnerInterruptError&) {
-    // The pause request was canceled.
+  std::unique_lock<std::mutex> lock(condition_lock);
+  if (!interrupted_) {
+    condition_.wait_for(lock, milli);
   }
 }
 
@@ -78,6 +57,12 @@ Dispatcher& Dispatcher::instance() {
   return instance;
 }
 
+size_t Dispatcher::serviceCount() {
+  auto& self = Dispatcher::instance();
+  ReadLock lock(self.mutex_);
+  return services_.size();
+}
+
 Status Dispatcher::addService(InternalRunnableRef service) {
   if (service->hasRun()) {
     return Status(1, "Cannot schedule a service twice");
@@ -90,15 +75,18 @@ Status Dispatcher::addService(InternalRunnableRef service) {
     return Status(1, "Cannot add service, dispatcher is stopping");
   }
 
-  auto thread = std::make_shared<std::thread>(
+  auto thread = std::make_unique<std::thread>(
       std::bind(&InternalRunnable::run, &*service));
-  WriteLock lock(self.mutex_);
+
   DLOG(INFO) << "Adding new service: " << service->name() << " ("
              << service.get() << ") to thread: " << thread->get_id() << " ("
              << thread.get() << ") in process " << platformGetPid();
+  {
+    WriteLock lock(self.mutex_);
 
-  self.service_threads_.push_back(thread);
-  self.services_.push_back(std::move(service));
+    self.service_threads_.push_back(std::move(thread));
+    self.services_.push_back(std::move(service));
+  }
   return Status(0, "OK");
 }
 
@@ -133,16 +121,27 @@ void Dispatcher::joinServices() {
   auto& self = instance();
   DLOG(INFO) << "Thread: " << std::this_thread::get_id()
              << " requesting a join";
-  WriteLock join_lock(self.join_mutex_);
 
-  for (auto& thread : self.service_threads_) {
-    thread->join();
-    DLOG(INFO) << "Service thread: " << thread.get() << " has joined";
+  // Stops when service_threads_ is empty. Before stopping and releasing of the
+  // lock, empties services_ .
+  while (1) {
+    InternalThreadRef thread = nullptr;
+    {
+      WriteLock lock(self.mutex_);
+      if (!self.service_threads_.empty()) {
+        thread = std::move(self.service_threads_.back());
+        self.service_threads_.pop_back();
+      } else {
+        self.services_.clear();
+        break;
+      }
+    }
+    if (thread != nullptr) {
+      thread->join();
+      DLOG(INFO) << "Service thread: " << thread.get() << " has joined";
+    }
   }
 
-  WriteLock lock(self.mutex_);
-  self.services_.clear();
-  self.service_threads_.clear();
   self.stopping_ = false;
   DLOG(INFO) << "Services and threads have been cleared";
 }
