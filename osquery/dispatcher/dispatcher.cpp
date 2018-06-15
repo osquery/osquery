@@ -20,48 +20,27 @@ namespace osquery {
 /// The worker_threads define the default thread pool size.
 FLAG(int32, worker_threads, 4, "Number of work dispatch threads");
 
-/// Cancel the pause request.
-void RunnerInterruptPoint::cancel() {
-  std::unique_lock<std::mutex> lock(mutex_);
-  stop_ = true;
-  condition_.notify_all();
-}
-
-/// Pause until the requested millisecond delay has elapsed or a cancel.
-void RunnerInterruptPoint::pause(std::chrono::milliseconds milli) {
-  std::unique_lock<std::mutex> lock(mutex_);
-  if (stop_ || condition_.wait_for(lock, milli) == std::cv_status::no_timeout) {
-    stop_ = false;
-    throw RunnerInterruptError();
-  }
-}
 
 void InterruptableRunnable::interrupt() {
-  WriteLock lock(stopping_);
   // Set the service as interrupted.
-  interrupted_ = true;
-  // Tear down the service's resources such that exiting the expected run
-  // loop within ::start does not need to.
-  stop();
-  // Cancel the run loop's pause request.
-  point_.cancel();
+  if (!interrupted_.exchange(true)) {
+    // Tear down the service's resources such that exiting the expected run
+    // loop within ::start does not need to.
+    stop();
+    std::lock_guard<std::mutex> lock(condition_lock);
+    // Cancel the run loop's pause request.
+    condition_.notify_one();
+  }
 }
 
 bool InterruptableRunnable::interrupted() {
-  WriteLock lock(stopping_);
-  // A small conditional to force-skip an interruption check, used in testing.
-  if (bypass_check_ && !checked_) {
-    checked_ = true;
-    return false;
-  }
   return interrupted_;
 }
 
 void InterruptableRunnable::pauseMilli(std::chrono::milliseconds milli) {
-  try {
-    point_.pause(milli);
-  } catch (const RunnerInterruptError&) {
-    // The pause request was canceled.
+  std::unique_lock<std::mutex> lock(condition_lock);
+  if (!interrupted_) {
+    condition_.wait_for(lock, milli);
   }
 }
 
