@@ -380,14 +380,6 @@ if(DEFINED ENV{SKIP_CARVER})
   add_definitions(-DSKIP_CARVER=1)
 endif()
 
-# The kernel builds are skipped by default.
-if(DEFINED ENV{SKIP_KERNEL} AND "$ENV{SKIP_KERNEL}" STREQUAL "False")
-  set(SKIP_KERNEL FALSE)
-else()
-  set(SKIP_KERNEL TRUE)
-endif()
-
-
 # Similar to the feature skips, there are default-build skips.
 if(DEFINED ENV{SKIP_TESTS})
   set(SKIP_TESTS TRUE)
@@ -689,11 +681,6 @@ add_subdirectory(osquery)
 
 if(NOT SKIP_TESTS)
   add_subdirectory(tools/tests)
-endif()
-
-# Include the kernel building targets/macros
-if(NOT SKIP_KERNEL AND NOT ${OSQUERY_BUILD_SDK_ONLY})
-  add_subdirectory(kernel)
 endif()
 
 # Packages must be included after all other CMake includes.

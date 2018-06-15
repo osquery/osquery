@@ -234,7 +234,7 @@ ifeq ($(CTAGS_EXISTS),)
 	@echo "problem: cannot find 'ctags'"
 	@false
 endif
-	@ctags -R ./external ./include ./kernel ./osquery ./third-party
+	@ctags -R ./external ./include ./osquery ./third-party
 .PHONY: tags
 
 ctags: .setup tags
@@ -242,7 +242,7 @@ ctags: .setup tags
 cscope.files:
 	@find \
 		-E \
-		./external ./include ./kernel ./osquery ./third-party \
+		./external ./include ./osquery ./third-party \
 		-type f \
 		-iregex '.*\.(c|cc|h|hh|cpp|hpp)' > $@
 .PHONY: cscope.files
