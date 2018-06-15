@@ -143,33 +143,22 @@ void Dispatcher::joinServices() {
   DLOG(INFO) << "Thread: " << std::this_thread::get_id()
              << " requesting a join";
 
-  // Stops when service_threads_ is empty. Before exiting empties services_ while holding the lock.
+  // Stops when service_threads_ is empty. Befor stopping and releasing of the lock, empties services_ .
   while (1) {
-
-    // Stops when service_threads_ is empty
-    while (1) {
-      InternalThreadRef thread = nullptr;
-      {
-        WriteLock lock(self.mutex_);
-        if (!self.service_threads_.empty()) {
-          thread = std::move(self.service_threads_.back());
-          self.service_threads_.pop_back();
-        }
-      }
-      if (thread != nullptr) {
-        thread->join();
-        DLOG(INFO) << "Service thread: " << thread.get() << " has joined";
-      } else {
-        break;
-      }
-    }
-
+    InternalThreadRef thread = nullptr;
     {
       WriteLock lock(self.mutex_);
-      if (self.service_threads_.empty()) {
+      if (!self.service_threads_.empty()) {
+        thread = std::move(self.service_threads_.back());
+        self.service_threads_.pop_back();
+      } else {
         self.services_.clear();
         break;
       }
+    }
+    if (thread != nullptr) {
+      thread->join();
+      DLOG(INFO) << "Service thread: " << thread.get() << " has joined";
     }
   }
 
