@@ -8,10 +8,6 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-/*
-** This file is generated. Do not modify it manually!
-*/
-
 #include <osquery/events.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
