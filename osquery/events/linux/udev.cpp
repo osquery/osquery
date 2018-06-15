@@ -68,7 +68,6 @@ Status UdevEventPublisher::run() {
       return Status(1);
     }
     fd = udev_monitor_get_fd(monitor_);
-  }
 
   struct pollfd fds[1];
   fds[0].fd = fd;
@@ -85,7 +84,6 @@ Status UdevEventPublisher::run() {
     return Status(0, "Finished");
   }
 
-  {
     WriteLock lock(mutex_);
     struct udev_device* device = udev_monitor_receive_device(monitor_);
     if (device == nullptr) {
