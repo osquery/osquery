@@ -16,8 +16,8 @@ if(APPLE)
   file(GLOB OSQUERY_EVENTS_DARWIN "darwin/*.cpp")
   ADD_OSQUERY_LIBRARY(FALSE osquery_events_darwin ${OSQUERY_EVENTS_DARWIN})
 elseif(FREEBSD)
-  file(GLOB OSQUERY_EVENTS_FREEBSD "freebsd/*.cpp")
-  ADD_OSQUERY_LIBRARY(FALSE osquery_events_freebsd ${OSQUERY_EVENTS_FREEBSD})
+  # no-op
+  # no files for FREEBSD
 elseif(WINDOWS)
   ADD_OSQUERY_LINK_CORE("wevtapi.lib")
   file(GLOB OSQUERY_EVENTS_WINDOWS "windows/*.cpp")
