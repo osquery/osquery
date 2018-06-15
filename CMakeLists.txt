@@ -304,6 +304,7 @@ else()
     # To be safe, only include them when building 'release' outputs.
     add_compile_options(
       -g
+      -fno-limit-debug-info
       -fPIE
       -fpie
       -fPIC
