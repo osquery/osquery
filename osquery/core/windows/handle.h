@@ -8,28 +8,31 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#define _WIN32_DCOM
-
-#include <Windows.h>
+#include <windows.h>
 #include <string>
+
+#include <osquery/status.h>
 
 namespace osquery {
 namespace tables {
 
-class KObjHandle {
+class Handle {
   HANDLE _h;
 
  public:
-  KObjHandle();
-  ~KObjHandle();
+  Handle();
+  ~Handle();
 
-  bool openDirObj(std::wstring directory);
-  bool openSymLinkObj(std::wstring symlink);
+  /// open a Windows object directory by name with OPEN_DIRECTORY access mask
+  Status openDirObj(const std::wstring& directory);
+
+  /// open a Windows symbolic link by name with SYMBOLIC_LINK_QUERY access mask
+  Status openSymLinkObj(const std::wstring& symlink);
 
   HANDLE getAsHandle();
 
   void close();
   bool valid();
 };
-}
-}
+} // namespace tables
+} // namespace osquery

@@ -6,16 +6,11 @@
  *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
  *  in the COPYING file in the root directory of this source tree).
  *  You may select, at your option, one of the above-listed licenses.
- *
- *  The purpose of this header is to provide a common place to define Windows
- *  native api constructs for use across Windows-specific tables
- *
  */
 
 #pragma once
 
-#include <osquery/core.h>
-#include <osquery/tables.h>
+
 #include <windows.h>
 namespace osquery {
 namespace tables {
@@ -26,6 +21,22 @@ namespace tables {
 #define OBJ_CASE_INSENSITIVE 64L
 #define DIRECTORY_QUERY 0x0001
 #define SYMBOLIC_LINK_QUERY 0x0001
+
+typedef enum _SYSTEM_INFORMATION_CLASS {
+  SystemProcessorInformation,
+  SystemPerformanceInformation,
+  SystemTimeOfDayInformation,
+  SystemPathInformation,
+  SystemProcessInformation
+} SYSTEM_INFORMATION_CLASS;
+
+typedef enum _OBJECT_INFORMATION_CLASS {
+  ObjectBasicInformation,
+  ObjectNameInformation,
+  ObjectTypeInformation,
+  ObjectAllTypesInformation,
+  ObjectHandleInformation
+} OBJECT_INFORMATION_CLASS;
 
 typedef struct _UNICODE_STRING {
   USHORT Length;
@@ -43,22 +54,24 @@ typedef struct _OBJECT_ATTRIBUTES {
 } OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
 
 typedef NTSTATUS(WINAPI* ZwQueryObject)(HANDLE h,
-                                        INT /*OBJECT_INFORMATION_CLASS*/ oic,
-                                        PVOID ObjectInformation,
-                                        ULONG ObjectInformationLength,
-                                        PULONG ReturnLength);
+  OBJECT_INFORMATION_CLASS oic,
+  PVOID ObjectInformation,
+  ULONG ObjectInformationLength,
+  PULONG ReturnLength);
 
 typedef NTSTATUS(WINAPI* ZwQuerySystemInformation)(
-    INT /*SYSTEM_INFORMATION_CLASS*/ SystemInformationClass,
+    SYSTEM_INFORMATION_CLASS SystemInformationClass,
     PVOID SystemInformation,
     ULONG SystemInformationLength,
     PULONG ReturnLength);
 
 typedef NTSTATUS(WINAPI* NTCLOSE)(HANDLE Handle);
+
 typedef NTSTATUS(WINAPI* NTOPENDIRECTORYOBJECT)(
     PHANDLE DirectoryHandle,
     ACCESS_MASK DesiredAccess,
     POBJECT_ATTRIBUTES ObjectAttributes);
+
 typedef NTSTATUS(WINAPI* NTQUERYDIRECTORYOBJECT)(HANDLE DirectoryHandle,
                                                  PVOID Buffer,
                                                  ULONG Length,

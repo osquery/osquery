@@ -8,51 +8,45 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#define _WIN32_DCOM
-
-#include "Kobjhandle.h"
-#include "ntapi.h"
-
 #include <Windows.h>
+
+#include "osquery/core/windows/ntapi.h"
+#include "osquery/core/windows/handle.h"
 
 namespace osquery {
 namespace tables {
 
-KObjHandle::KObjHandle() {
+Handle::Handle() {
   _h = NULL;
 }
 
-KObjHandle::~KObjHandle() {
+Handle::~Handle() {
   close();
 }
 
-HANDLE KObjHandle::getAsHandle() {
+HANDLE Handle::getAsHandle() {
   return _h;
 }
 
-bool KObjHandle::valid() {
-  if (NULL != _h) {
-    return true;
-  }
-
-  return false;
+bool Handle::valid() {
+  return (NULL != _h);
 }
 
-void KObjHandle::close() {
-  if (NULL != _h) {
+void Handle::close() {
+  if (valid()) {
     CloseHandle(_h);
     _h = NULL;
   }
 }
 
-// open a Windows symbolic link by name with SYMBOLIC_LINK_QUERY
-bool KObjHandle::openSymLinkObj(std::wstring strName) {
+bool Handle::openSymLinkObj(const std::wstring& strName) {
   if (valid()) {
     return false;
   }
 
   // look up address of NtOpenSymbolicLinkObject, exported from ntdll
-  NTOPENSYMBOLICLINKOBJECT NtOpenSymbolicLinkObject =
+  //
+  auto NtOpenSymbolicLinkObject =
       (NTOPENSYMBOLICLINKOBJECT)GetProcAddress(GetModuleHandleA("ntdll"),
                                                "NtOpenSymbolicLinkObject");
   if (NULL == NtOpenSymbolicLinkObject) {
@@ -72,7 +66,7 @@ bool KObjHandle::openSymLinkObj(std::wstring strName) {
   oa.SecurityDescriptor = NULL;
   oa.SecurityQualityOfService = NULL;
 
-  NTSTATUS ntStatus = NtOpenSymbolicLinkObject(&_h, SYMBOLIC_LINK_QUERY, &oa);
+  auto ntStatus = NtOpenSymbolicLinkObject(&_h, SYMBOLIC_LINK_QUERY, &oa);
   if (STATUS_SUCCESS != ntStatus) {
     return false;
   }
@@ -80,15 +74,15 @@ bool KObjHandle::openSymLinkObj(std::wstring strName) {
   return true;
 }
 
-// open a Windows object directory object with DIRECTORY_QUERY
-bool KObjHandle::openDirObj(std::wstring strName) {
+bool Handle::openDirObj(const std::wstring& strName) {
   if (valid()) {
     return false;
   }
 
   // NtOpenDirectoryObject is documented on MSDN at
   // https://msdn.microsoft.com/en-us/library/bb470234(v=vs.85).aspx
-  NTOPENDIRECTORYOBJECT NtOpenDirectoryObject =
+  //
+  auto NtOpenDirectoryObject =
       (NTOPENDIRECTORYOBJECT)GetProcAddress(GetModuleHandleA("ntdll"),
                                             "NtOpenDirectoryObject");
   if (NULL == NtOpenDirectoryObject) {
@@ -96,6 +90,7 @@ bool KObjHandle::openDirObj(std::wstring strName) {
   }
 
   // set up object attributes structure to describe the directory object
+  //
   OBJECT_ATTRIBUTES oa;
   UNICODE_STRING us;
   oa.Length = sizeof(OBJECT_ATTRIBUTES);
@@ -112,12 +107,12 @@ bool KObjHandle::openDirObj(std::wstring strName) {
   // open the directory object
   // if successful, this returns STATUS_SUCCESS and populates _h with
   // a valid HANDLE to a kernel object
-  NTSTATUS ntStatus = NtOpenDirectoryObject(&_h, DIRECTORY_QUERY, &oa);
+  auto ntStatus = NtOpenDirectoryObject(&_h, DIRECTORY_QUERY, &oa);
   if (STATUS_SUCCESS != ntStatus) {
     return false;
   }
 
   return true;
 }
-} // tables
-} // osquery
+} // namespace tables
+} // namespace osquery
