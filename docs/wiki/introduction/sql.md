@@ -204,9 +204,9 @@ We have added `sha1`, `sha256`, and `md5` functions that take a single argument 
 **Encoding functions**
 
 There are also encoding functions available to you to process query results.
-- `base64`: base64 encode a string.
-- `unbase64`: Decode a base64 encoded string. If the string is not valid base64 an empty string is returned.
-- `conditional_base64`: Encode a string if and only if the string contains non-ASCII characters. 
+- `to_base64`: base64 encode a string.
+- `from_base64`: Decode a base64 encoded string. If the string is not valid base64 an empty string is returned.
+- `conditional_to_base64`: Encode a string if and only if the string contains non-ASCII characters.
 
 ### Table and column name deprecations
 

@@ -42,7 +42,7 @@ class Ccache < AbstractOsqueryFormula
     end
   end
 
-  def caveats; <<-EOS.undent
+  def caveats; <<-EOS
     To install symlinks for compilers that will automatically use
     ccache, prepend this directory to your PATH:
       #{opt_libexec}

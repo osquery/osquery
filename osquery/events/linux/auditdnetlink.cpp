@@ -180,6 +180,14 @@ void AuditdNetlinkReader::start() {
       auditd_context_->acquire_handle = true;
     }
   }
+}
+
+void AuditdNetlinkReader::stop() {
+  if (audit_netlink_handle_ == -1) {
+    return;
+  }
+
+  VLOG(1) << "Releasing the audit handle...";
 
   auditd_context_->unprocessed_records_cv.notify_all();
   restoreAuditServiceConfiguration();
@@ -209,8 +217,11 @@ bool AuditdNetlinkReader::acquireMessages() noexcept {
     }
 
     if (poll_status < 0) {
-      VLOG(1) << "poll() failed with error " << errno;
-      reset_handle = true;
+      if (errno != EINTR) {
+        reset_handle = true;
+        VLOG(1) << "poll() failed with error " << errno;
+      }
+
       break;
     }
 

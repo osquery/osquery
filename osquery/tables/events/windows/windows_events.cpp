@@ -49,6 +49,10 @@ class WindowsEventSubscriber
       // We remove quotes if they exist
       boost::erase_all(chan, "\"");
       boost::erase_all(chan, "\'");
+
+      // To enforce unification we lower case all channel names for shouldFire
+      std::transform(chan.begin(), chan.end(), chan.begin(), ::tolower);
+
       wc->sources.insert(stringToWstring(chan));
     }
     subscribe(&WindowsEventSubscriber::Callback, wc);
