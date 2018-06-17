@@ -9,7 +9,6 @@
 ADD_OSQUERY_LIBRARY(TRUE osquery_config
   "${CMAKE_CURRENT_LIST_DIR}/config.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/packs.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/update.cpp"
 )
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
