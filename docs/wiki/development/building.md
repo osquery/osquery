@@ -299,7 +299,6 @@ SKIP_LLDPD=True # Skip LLDP tables
 SKIP_YARA=True # Skip Yara integrations, both events and the virtual tables
 SKIP_KAFKA=True # Skip support for Kafka logger plugins
 SKIP_CARVER=True # Skip support for file carving
-SKIP_KERNEL=True # Enabled by default, set to 'False' to enable
 SKIP_TESTS=True # Skip unit test building (very very not recommended!)
 SKIP_INTEGRATION_TESTS=True # Skip python tests when using "make test"
 SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets
