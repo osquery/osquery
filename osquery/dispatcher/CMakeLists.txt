@@ -7,20 +7,23 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_dispatcher
-  dispatcher.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/dispatcher.cpp"
 )
 
 ADD_OSQUERY_TEST(TRUE
-  dispatcher/tests/dispatcher_tests.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/tests/dispatcher_tests.cpp"
 )
 
 # The following dispatcher ("runner") implementations are additional.
 ADD_OSQUERY_LIBRARY(FALSE osquery_dispatcher_runners
-  scheduler.cpp
-  distributed.cpp
-  io_service.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/scheduler.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/scheduler.h"
+  "${CMAKE_CURRENT_LIST_DIR}/distributed_runner.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/distributed_runner.h"
+  "${CMAKE_CURRENT_LIST_DIR}/io_service.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/io_service.h"
 )
 
 ADD_OSQUERY_TEST(FALSE
-  dispatcher/tests/scheduler_tests.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/tests/scheduler_tests.cpp"
 )
