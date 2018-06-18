@@ -29,7 +29,7 @@ def check(base_commit):
                 )
         out, err = p.communicate()
     except OSError as e:
-        print("{}\n\n{}".format("Failed to call git-clang-format.py", str(e)))
+        print("{}\n\n{!r}".format("Failed to call git-clang-format.py", e))
         return False
 
     if p.returncode:
