@@ -349,6 +349,7 @@ class WatcherRunner : public InternalRunnable {
 
   /// Similarly to the uncontrolled worker restarted, count each extension.
   std::map<std::string, size_t> extension_restarts_;
+  std::map<std::string, size_t> extension_backoff_;
 
  private:
   FRIEND_TEST(WatcherTests, test_watcherrunner_watch);

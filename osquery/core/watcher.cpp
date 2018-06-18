@@ -287,17 +287,21 @@ void WatcherRunner::watchExtensions() {
 
       // The extension manager also watches for extension-related failures.
       // The watchdog is more general, but may find failed extensions first.
-      createExtension(extension.first);
-      extension_restarts_[extension.first] += 1;
+      if (extension_backoff_[extension.first] == 0) {
+        createExtension(extension.first);
+        ++extension_restarts_[extension.first];
+        extension_backoff_[extension.first] =
+            2 * extension_restarts_[extension.first];
+        VLOG(1) << extension.first << " back off set to "
+                << extension_backoff_[extension.first];
+      } else {
+        --extension_backoff_[extension.first];
+      }
     } else {
-      extension_restarts_[extension.first] = 0;
-    }
-  }
-  // If any extension creations failed, stop managing them.
-  for (auto& extension : extension_restarts_) {
-    if (extension.second > 3) {
-      watcher.removeExtensionPath(extension.first);
-      extension.second = 0;
+      if (extension_restarts_[extension.first] > 0) {
+        extension_restarts_[extension.first] = 0;
+        VLOG(1) << "Setting backoff for " << extension.first << " to 0";
+      }
     }
   }
 }
