@@ -27,7 +27,7 @@ class ZlibLegacy < AbstractOsqueryFormula
 
     mkdir_p "#{legacy_prefix}/lib/pkgconfig"
     config = Pathname.new("#{prefix}/lib/pkgconfig/zlib.pc")
-    config.write <<-EOS
+    config.write <<~EOS
       prefix=#{prefix}
       exec_prefix=\$\{prefix\}
       libdir=\$\{exec_prefix\}/lib
