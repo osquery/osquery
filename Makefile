@@ -321,3 +321,11 @@ test: .setup
 	fi
 	@cd $(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS) $(MAKECMDGOALS)
+
+xcode:
+	# Use _xcode suffix to avoid conflict with regular "make"
+	# so both "make" and "make xcode" can be used at the same time
+	@rm -rf ${BUILD_DIR}_xcode
+	@mkdir -p ${BUILD_DIR}_xcode
+	@cd ${BUILD_DIR}_xcode && ${CMAKE} -G Xcode
+
