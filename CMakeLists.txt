@@ -487,7 +487,7 @@ if(OSQUERY_BUILD_VERSION STREQUAL "")
   set(OSQUERY_BUILD_VERSION "1.0.0-unknown")
 endif()
 
-# SDK_VERSION is defined by XCode as current osx sdk version
+# SDK_VERSION is defined by XCode as current macOS sdk version
 if(DEFINED ENV{SDK_VERSION} AND NOT (CMAKE_GENERATOR STREQUAL Xcode))
   set(OSQUERY_BUILD_SDK_VERSION "$ENV{SDK_VERSION}")
 else()
