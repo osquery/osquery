@@ -58,4 +58,4 @@ Status startDistributed() {
     return Status(1, "Distributed query service not enabled.");
   }
 }
-}
+} // namespace osquery
