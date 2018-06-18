@@ -147,6 +147,11 @@ void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
   get(yield, start, stop);
 }
 
+size_t EventPublisherPlugin::numSubscriptions() {
+  ReadLock lock(subscription_lock_);
+  return subscriptions_.size();
+}
+
 void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   if (isEnding()) {
     // Cannot emit/fire while ending
@@ -154,10 +159,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   }
 
   EventContextID ec_id = 0;
-  {
-    WriteLock lock(ec_id_lock_);
-    ec_id = next_ec_id_++;
-  }
+  ec_id = next_ec_id_.fetch_add(1);
 
   // Fill in EventContext ID and time if needed.
   if (ec != nullptr) {
@@ -170,7 +172,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
     }
   }
 
-  WriteLock lock(subscription_lock_);
+  ReadLock lock(subscription_lock_);
   for (const auto& subscription : subscriptions_) {
     auto es = EventFactory::getEventSubscriber(subscription->subscriber_name);
     if (es != nullptr && es->state() == EventState::EVENT_RUNNING) {
@@ -813,10 +815,10 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
       return Status(1, "Duplicate publisher type");
     }
 
-    // Do not set up event publisher if events are disabled.
     ef.event_pubs_[type_id] = specialized_pub;
   }
 
+  // Do not set up event publisher if events are disabled.
   if (!FLAGS_disable_events) {
     if (specialized_pub->state() != EventState::EVENT_NONE) {
       specialized_pub->tearDown();
@@ -1071,8 +1073,7 @@ void attachEvents() {
 
   const auto& subscribers = RegistryFactory::get().plugins("event_subscriber");
   for (const auto& subscriber : subscribers) {
-    if (subscriber.first.find("_events") == std::string::npos ||
-        subscriber.first.find("_events") + 7 != subscriber.first.size()) {
+    if (!boost::ends_with(subscriber.first, "_events")) {
       LOG(ERROR) << "Error registering subscriber: " << subscriber.first
                  << ": Must use a '_events' suffix";
       continue;
