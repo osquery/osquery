@@ -61,11 +61,10 @@ static inline EventTime timeFromRecord(const std::string& record) {
 
 static inline std::string toIndex(size_t i) {
   auto j = std::to_string(i);
-  size_t n = 1;
-  while (i /= 10) {
-    n++;
+  if (j.size() < 10) {
+    j = std::string(10 - j.size(), '0').append(std::move(j));
   }
-  return (n >= 10) ? j : std::string(10 - n, '0').append(std::move(j));
+  return j;
 }
 
 static inline void getOptimizeData(EventTime& o_time,
