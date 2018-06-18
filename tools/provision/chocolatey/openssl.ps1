@@ -11,8 +11,8 @@
 # $version - The version of the software package to build
 # $chocoVersion - The chocolatey package version, used for incremental bumps
 #                 without changing the version of the software package
-$version = '1_0_2k'
-$chocoVersion = '1.0.2-k'
+$version = '1_0_2o'
+$chocoVersion = '1.0.2-o'
 $packageName = 'openssl'
 $projectSource = 'https://github.com/apache/thrift'
 $packageSourceUrl = 'https://github.com/apache/thrift'
@@ -23,9 +23,9 @@ $license = 'https://github.com/openssl/openssl/blob/master/LICENSE'
 $url = "https://github.com/openssl/openssl/archive/OpenSSL_$version.zip"
 
 # Public Cert bundle we bring alonge with openssl libs
-$curlCerts = "https://curl.haxx.se/ca/cacert-2016-11-02.pem"
+$curlCerts = "https://curl.haxx.se/ca/cacert-2018-03-07.pem"
 $curlCertsShaSum =
-  "cc7c9e2d259e20b72634371b146faec98df150d18dd9da9ad6ef0b2deac2a9d3"
+  "79ea479e9f329de7075c40154c591b51eb056d458bc4dff76d9a4b9c6c4f6d0b"
 
 # Invoke our utilities file
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"

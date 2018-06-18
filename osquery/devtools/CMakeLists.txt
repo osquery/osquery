@@ -7,8 +7,10 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_devtools
-  printer.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/printer.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/devtools.h"
 )
 
-file(GLOB OSQUERY_DEVTOOLS_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_DEVTOOLS_TESTS})
+ADD_OSQUERY_TEST(FALSE 
+  "${CMAKE_CURRENT_LIST_DIR}/tests/printer_tests.cpp"
+)
