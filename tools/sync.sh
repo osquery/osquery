@@ -11,8 +11,8 @@
 set -e
 
 if [ "$#" -ne 2 ]; then
-echo "Usage: $0 BUILD_DIR LIBRARY_PATH"
-exit 1
+  echo "Usage: $0 BUILD_DIR LIBRARY_PATH"
+  exit 1
 fi
 
 SOURCE=$(pwd)
@@ -44,7 +44,7 @@ find "$SYNC_DIR" -type f -name "CMakeLists.txt" -exec rm -f {} \;
 mkdir -p "$SYNC_DIR/code-analysis"
 (cd "$SYNC_DIR/code-analysis" && SDK=True cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $SOURCE)
 python tools/codegen/gentargets.py \
-  -v $VERSION --sdk $VERSION \
+  -v $VERSION --sdk $VERSION \
   -i "$SYNC_DIR/code-analysis/compile_commands.json" \
   -o $SYNC_DIR/osquery \
   -s osquery
