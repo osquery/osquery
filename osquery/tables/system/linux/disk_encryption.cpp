@@ -23,6 +23,12 @@ extern "C" {
 
 #include "osquery/core/conversions.h"
 
+// FIXME: Add enum generation for tables and remove following code
+// Copy of values in disk_encryption.mm
+const std::string kEncryptionStatusEncrypted = "encrypted";
+const std::string kEncryptionStatusUndefined = "undefined";
+const std::string kEncryptionStatusNotEncrypted = "not encrypted";
+
 namespace osquery {
 namespace tables {
 
@@ -40,8 +46,9 @@ void genFDEStatusForBlockDevice(const std::string& name,
 
   switch (ci) {
   case CRYPT_ACTIVE:
-  case CRYPT_BUSY: {
+  case CRYPT_BUSY: { 
     r["encrypted"] = "1";
+    r["encryption_status"] = kEncryptionStatusEncrypted;
 
     auto crypt_init = crypt_init_by_name_and_header(&cd, name.c_str(), nullptr);
     if (crypt_init < 0) {
@@ -81,9 +88,11 @@ void genFDEStatusForBlockDevice(const std::string& name,
   default:
     if (encrypted_rows.count(parent_name)) {
       auto parent_row = encrypted_rows[parent_name];
+      r["encryption_status"] = kEncryptionStatusEncrypted;
       r["encrypted"] = "1";
       r["type"] = parent_row["type"];
     } else {
+      r["encryption_status"] = kEncryptionStatusNotEncrypted;
       r["encrypted"] = "0";
     }
   }
