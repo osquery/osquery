@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <sstream>
+
 #include <sqlite3.h>
 #include <sys/stat.h>
 
@@ -171,16 +173,56 @@ static void tryVacuum(sqlite3* db) {
 Status SQLiteDatabasePlugin::put(const std::string& domain,
                                  const std::string& key,
                                  const std::string& value) {
+  return putBatch(domain, {std::make_pair(key, value)});
+}
+
+Status SQLiteDatabasePlugin::put(const std::string& domain,
+                                 const std::string& key,
+                                 int value) {
+  return putBatch(domain, {std::make_pair(key, std::to_string(value))});
+}
+
+Status SQLiteDatabasePlugin::putBatch(const std::string& domain,
+                                      const DatabaseStringValueList& data) {
   if (read_only_) {
     return Status(0, "Database in readonly mode");
   }
 
+  // Prepare the query, adding placeholders for all the rows we have in `data`
+  std::stringstream buffer;
+  buffer << "insert or replace into " + domain + " values ";
+
+  for (auto i = 1U; i <= data.size(); i++) {
+    auto index = i * 2;
+    buffer << "(?" << index - 1 << ", ?" << index << ")";
+
+    if (i + 1 > data.size()) {
+      buffer << ";";
+    } else {
+      buffer << ", ";
+    }
+  }
+
+  const auto& q = buffer.str();
+
+  // Bind each value from the rows we got
   sqlite3_stmt* stmt = nullptr;
-  std::string q = "insert or replace into " + domain + " values (?1, ?2);";
   sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);
 
-  sqlite3_bind_text(stmt, 1, key.c_str(), -1, SQLITE_STATIC);
-  sqlite3_bind_text(stmt, 2, value.c_str(), -1, SQLITE_STATIC);
+  {
+    size_t i = 1U;
+
+    for (const auto& p : data) {
+      const auto& key = p.first;
+      const auto& value = p.second;
+
+      sqlite3_bind_text(stmt, i, key.c_str(), -1, SQLITE_STATIC);
+      sqlite3_bind_text(stmt, i + 1, value.c_str(), -1, SQLITE_STATIC);
+
+      i += 2U;
+    }
+  }
+
   auto rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
     return Status(1);
@@ -190,13 +232,8 @@ Status SQLiteDatabasePlugin::put(const std::string& domain,
   if (rand() % 10 == 0) {
     tryVacuum(db_);
   }
-  return Status(0);
-}
 
-Status SQLiteDatabasePlugin::put(const std::string& domain,
-                                 const std::string& key,
-                                 int value) {
-  return this->put(domain, key, std::to_string(value));
+  return Status(0, "OK");
 }
 
 Status SQLiteDatabasePlugin::remove(const std::string& domain,
@@ -273,4 +310,4 @@ Status SQLiteDatabasePlugin::scan(const std::string& domain,
 
   return Status(0, "OK");
 }
-}
+} // namespace osquery

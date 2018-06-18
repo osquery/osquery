@@ -153,6 +153,41 @@ Status DatabasePlugin::call(const PluginRequest& request,
       return Status(1, "Database plugin put action requires a value");
     }
     return this->put(domain, key, request.at("value"));
+  } else if (request.at("action") == "putBatch") {
+    if (request.count("json") == 0) {
+      return Status(
+          1,
+          "Database plugin putBatch action requires a json-encoded value list");
+    }
+
+    auto json_object = JSON::newObject();
+
+    auto status = json_object.fromString(request.at("json"));
+    if (!status.ok()) {
+      VLOG(1) << status.getMessage();
+      return status;
+    }
+
+    const auto& json_object_list = json_object.doc().GetObject();
+
+    DatabaseStringValueList data;
+    data.reserve(json_object_list.MemberCount());
+    if (data.capacity() != json_object_list.MemberCount()) {
+      return Status(1, "Memory allocation failure");
+    }
+
+    for (auto& item : json_object_list) {
+      if (!item.value.IsString()) {
+        return Status(1,
+                      "Database plugin putBatch action with an invalid json "
+                      "received. Only string values are supported");
+      }
+
+      data.push_back(
+          std::make_pair(item.name.GetString(), item.value.GetString()));
+    }
+
+    return this->putBatch(domain, data);
   } else if (request.at("action") == "remove") {
     return this->remove(domain, key);
   } else if (request.at("action") == "remove_range") {
@@ -188,6 +223,52 @@ static inline std::shared_ptr<DatabasePlugin> getDatabasePlugin() {
   auto plugin = rf.plugin("database", rf.getActive("database"));
   return std::dynamic_pointer_cast<DatabasePlugin>(plugin);
 }
+
+namespace {
+Status sendPutBatchDatabaseRequest(const std::string& domain,
+                                   const DatabaseStringValueList& data) {
+  auto json_object = JSON::newObject();
+  for (const auto& p : data) {
+    const auto& key = p.first;
+    const auto& value = p.second;
+
+    json_object.addRef(key, value);
+  }
+
+  std::string serialized_data;
+  auto status = json_object.toString(serialized_data);
+  if (!status.ok()) {
+    VLOG(1) << status.getMessage();
+    return status;
+  }
+
+  PluginRequest request = {
+      {"action", "putBatch"}, {"domain", domain}, {"json", serialized_data}};
+
+  status = Registry::call("database", request);
+  if (!status.ok()) {
+    VLOG(1) << status.getMessage();
+  }
+
+  return status;
+}
+
+Status sendPutDatabaseRequest(const std::string& domain,
+                              const DatabaseStringValueList& data) {
+  const auto& key = data[0].first;
+  const auto& value = data[1].second;
+
+  PluginRequest request = {
+      {"action", "put"}, {"domain", domain}, {"key", key}, {"value", value}};
+
+  auto status = Registry::call("database", request);
+  if (!status.ok()) {
+    VLOG(1) << status.getMessage();
+  }
+
+  return status;
+}
+} // namespace
 
 Status getDatabaseValue(const std::string& domain,
                         const std::string& key,
@@ -235,31 +316,38 @@ Status getDatabaseValue(const std::string& domain,
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         const std::string& value) {
+  return setDatabaseBatch(domain, {std::make_pair(key, value)});
+}
+
+Status setDatabaseBatch(const std::string& domain,
+                        const DatabaseStringValueList& data) {
   if (domain.empty()) {
     return Status(1, "Missing domain");
   }
 
+  // External registries (extensions) do not have databases active.
+  // It is not possible to use an extension-based database.
   if (RegistryFactory::get().external()) {
-    // External registries (extensions) do not have databases active.
-    // It is not possible to use an extension-based database.
-    PluginRequest request = {
-        {"action", "put"}, {"domain", domain}, {"key", key}, {"value", value}};
-    return Registry::call("database", request);
+    if (data.size() >= 1) {
+      return sendPutBatchDatabaseRequest(domain, data);
+    } else {
+      return sendPutDatabaseRequest(domain, data);
+    }
   }
 
   ReadLock lock(kDatabaseReset);
   if (!DatabasePlugin::kDBInitialized) {
-    throw std::runtime_error("Cannot set database value: " + key);
-  } else {
-    auto plugin = getDatabasePlugin();
-    return plugin->put(domain, key, value);
+    throw std::runtime_error("Cannot set database values");
   }
+
+  auto plugin = getDatabasePlugin();
+  return plugin->putBatch(domain, data);
 }
 
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         int value) {
-  return setDatabaseValue(domain, key, std::to_string(value));
+  return setDatabaseBatch(domain, {std::make_pair(key, std::to_string(value))});
 }
 
 Status deleteDatabaseValue(const std::string& domain, const std::string& key) {
@@ -446,4 +534,4 @@ Status upgradeDatabase() {
       kPersistentSettings, "results_version", kDatabaseResultsVersion);
   return Status();
 }
-}
+} // namespace osquery
