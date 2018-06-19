@@ -74,6 +74,7 @@ CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib $(LINK_
 CTEST := $(PATH_SET) ctest $(SOURCE_DIR)/
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"
+FORMAT_CHECK_COMMAND := python tools/formatting/format-check.py
 
 ANALYSIS := ${SOURCE_DIR}/tools/analysis
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1 \
@@ -146,6 +147,10 @@ docs: .setup
 	@mkdir -p docs
 	@cd build/docs && DOCS=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
+
+format_check:
+	@echo "[+] clang-format (`$(PATH_SET) which clang-format`) version: `$(PATH_SET) clang-format --version`"
+	@$(PATH_SET) $(FORMAT_CHECK_COMMAND)
 
 format_master:
 	@echo "[+] clang-format (`$(PATH_SET) which clang-format`) version: `$(PATH_SET) clang-format --version`"
