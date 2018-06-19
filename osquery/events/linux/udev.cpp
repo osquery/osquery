@@ -68,25 +68,22 @@ Status UdevEventPublisher::run() {
       return Status(1);
     }
     fd = udev_monitor_get_fd(monitor_);
-  }
 
-  struct pollfd fds[1];
-  fds[0].fd = fd;
-  fds[0].events = POLLIN;
+    struct pollfd fds[1];
+    fds[0].fd = fd;
+    fds[0].events = POLLIN;
 
-  int selector = ::poll(fds, 1, 1000);
-  if (selector == -1 && errno != EINTR && errno != EAGAIN) {
-    LOG(ERROR) << "Could not read udev monitor";
-    return Status(1, "udev monitor failed.");
-  }
+    int selector = ::poll(fds, 1, 1000);
+    if (selector == -1 && errno != EINTR && errno != EAGAIN) {
+      LOG(ERROR) << "Could not read udev monitor";
+      return Status(1, "udev monitor failed.");
+    }
 
-  if (selector == 0 || !(fds[0].revents & POLLIN)) {
-    // Read timeout.
-    return Status(0, "Finished");
-  }
+    if (selector == 0 || !(fds[0].revents & POLLIN)) {
+      // Read timeout.
+      return Status(0, "Finished");
+    }
 
-  {
-    WriteLock lock(mutex_);
     struct udev_device* device = udev_monitor_receive_device(monitor_);
     if (device == nullptr) {
       LOG(ERROR) << "udev monitor returned invalid device";
@@ -180,4 +177,4 @@ bool UdevEventPublisher::shouldFire(const UdevSubscriptionContextRef& sc,
 
   return true;
 }
-}
+} // namespace osquery
