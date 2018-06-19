@@ -15,6 +15,7 @@
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/numeric_monitoring.h>
 #include <osquery/query.h>
 #include <osquery/system.h>
 
@@ -171,6 +172,8 @@ void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
+    monitoring::record("dispatcher.scheduler_runner.step_time",
+                       static_cast<monitoring::ValueType>(i));
     auto start_time_point = std::chrono::steady_clock::now();
     Config::get().scheduledQueries(
         ([&i](std::string name, const ScheduledQuery& query) {
