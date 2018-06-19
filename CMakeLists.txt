@@ -329,7 +329,7 @@ if (POSIX)
     "$<$<CONFIG:RELEASE>:-fPIE>"
     "$<$<CONFIG:RELEASE>:-fpie>"
     "$<$<CONFIG:RELEASE>:-fPIC>"
-    "$<$<CONFIG:Release>:-fpic>"
+    "$<$<CONFIG:RELEASE>:-fpic>"
   ) 
   if (CLANG AND DEPS AND NOT FREEBSD)
       # Only enable LTO builds when using clang on Unix, for now
