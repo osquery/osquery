@@ -220,6 +220,7 @@ function main() {
   elif [[ $OS = "freebsd" ]]; then
     BREW_TYPE="freebsd"
   else
+    export HOMEBREW_BOTTLE_DOMAIN=https://linuxbrew.bintray.com
     BREW_TYPE="linux"
   fi
 
