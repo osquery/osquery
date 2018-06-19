@@ -252,7 +252,7 @@ std::vector<std::string> RegistryFactory::names() const {
 
 std::vector<std::string> RegistryFactory::names(
     const std::string& registry_name) const {
-  if (registries_.at(registry_name) == 0) {
+  if (registries_.at(registry_name) == nullptr) {
     std::vector<std::string> names;
     return names;
   }
