@@ -31,7 +31,7 @@ def get_files_to_compile(json_data):
             files_to_compile.append(filename)
     return files_to_compile
 
-TARGETS_PREAMBLE = """
+TARGETS_PREAMBLE = """\
 # DO NOT EDIT
 # Automatically generated: make sync
 
@@ -52,13 +52,28 @@ thrift_library(
 )
 
 cpp_library(
-    name="osquery_sdk",
-    headers=AutoHeaders.RECURSIVE_GLOB,
-    link_whole=True,
-    srcs=[
+    name = "osquery_sdk",
+    srcs = [
 """
 
-TARGETS_POSTSCRIPT = """  ],
+TARGETS_POSTSCRIPT = """    ],
+    headers = AutoHeaders.RECURSIVE_GLOB,
+    compiler_flags = [
+        "-Wno-unused-function",
+        "-Wno-non-virtual-dtor",
+        "-Wno-address",
+        "-Wno-overloaded-virtual",
+        "-Wno-unknown-pragmas",
+    ],
+    link_whole = True,
+    propagated_pp_flags = [
+        "-DOSQUERY_BUILD_VERSION=%s-fb",
+        "-DOSQUERY_BUILD_SDK_VERSION=%s-fb",
+        "-DOSQUERY_BUILD_PLATFORM=centos7",
+        "-DOSQUERY_BUILD_DISTRO=centos7",
+        "-DOSQUERY_PLATFORM_MASK=9",
+        "-DFBTHRIFT",
+    ],
     deps = [
         ":if-cpp2",
         "//folly/init:init",
@@ -75,21 +90,6 @@ TARGETS_POSTSCRIPT = """  ],
         ("googletest", None, "gtest"),
         ("util-linux", None, "uuid"),
         ("rapidjson"),
-    ],
-    compiler_flags = [
-        "-Wno-unused-function",
-        "-Wno-non-virtual-dtor",
-        "-Wno-address",
-        "-Wno-overloaded-virtual",
-        "-Wno-unknown-pragmas",
-    ],
-    propagated_pp_flags = [
-        "-DOSQUERY_BUILD_VERSION=%s-fb",
-        "-DOSQUERY_BUILD_SDK_VERSION=%s-fb",
-        "-DOSQUERY_BUILD_PLATFORM=centos7",
-        "-DOSQUERY_BUILD_DISTRO=centos7",
-        "-DOSQUERY_PLATFORM_MASK=9",
-        "-DFBTHRIFT",
     ],
 )
 """
@@ -114,6 +114,7 @@ if __name__ == "__main__":
                     logging.critical("Error: %s is not valid JSON" % args.input)
 
                 source_files = get_files_to_compile(json_data)
+                source_files.sort()
                 out.write(TARGETS_PREAMBLE)
                 for source_file in source_files:
                     if source_file == "extensions/impl_thrift.cpp":
