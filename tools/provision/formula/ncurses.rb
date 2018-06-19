@@ -15,7 +15,7 @@ class Ncurses < AbstractOsqueryFormula
     sha256 "386157fc0984dd0fe8a6c6a0ba4dac08933703e51d76b61a4aa98780d188721d" => :x86_64_linux
   end
 
-  keg_only :provided_by_macos
+  keg_only :provided_by_osx
 
   def install
     # Fix the build for GCC 5.1
