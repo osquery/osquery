@@ -53,6 +53,9 @@ struct AuditEventRecord final {
   std::string raw_data;
 };
 
+static_assert(std::is_move_constructible<AuditEventRecord>::value,
+              "not move constructible");
+
 // This structure is used to share data between the reading and processing
 // services
 struct AuditdContext final {

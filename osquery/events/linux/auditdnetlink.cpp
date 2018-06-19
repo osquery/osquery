@@ -689,6 +689,11 @@ void AuditdNetlinkParser::start() {
     }
 
     std::vector<AuditEventRecord> audit_event_record_queue;
+    audit_event_record_queue.reserve(queue.size());
+    if (audit_event_record_queue.capacity() != queue.size()) {
+      VLOG(1) << "Memory allocation failure";
+      return;
+    }
 
     for (auto& reply : queue) {
       if (interrupted()) {
