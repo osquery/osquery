@@ -14,7 +14,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/dispatcher/distributed.h"
+#include "osquery/dispatcher/distributed_runner.h"
 
 namespace osquery {
 
