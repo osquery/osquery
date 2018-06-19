@@ -15,7 +15,7 @@
 namespace osquery {
 bool isSpecialExtendedAttribute(const std::string& name);
 
-bool decodeSpecialExtendedAttribute(ExtendedAttributes& output,
-                                    const std::string& path,
-                                    const std::string& name);
+Status decodeSpecialExtendedAttribute(ExtendedAttributes& output,
+                                      const std::string& path,
+                                      const std::string& name);
 } // namespace osquery

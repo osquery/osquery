@@ -50,18 +50,18 @@ TEST_F(ExtendedAttributesTests, test_extended_attributes) {
       {WRITE_ATTRIBUTE_NAME_PREFIX "attribute02", "value02"},
       {WRITE_ATTRIBUTE_NAME_PREFIX "attribute03", "value03"}};
 
-  auto succeeded = setExtendedAttributes(test_file_path, test_attributes);
-  EXPECT_TRUE(succeeded);
-  if (!succeeded) {
-    std::cerr << "Failed to set the extended attributes on the test file\n";
+  auto s = setExtendedAttributes(test_file_path, test_attributes);
+  EXPECT_TRUE(s.ok());
+  if (!s.ok()) {
+    std::cerr << s.getMessage() << "\n";
     return;
   }
 
   ExtendedAttributes attributes;
-  succeeded = getExtendedAttributes(attributes, test_file_path);
-  EXPECT_TRUE(succeeded);
-  if (!succeeded) {
-    std::cerr << "Failed to get the extended attributes from the test file\n";
+  s = getExtendedAttributes(attributes, test_file_path);
+  EXPECT_TRUE(s.ok());
+  if (!s.ok()) {
+    std::cerr << s.getMessage() << "\n";
     return;
   }
 

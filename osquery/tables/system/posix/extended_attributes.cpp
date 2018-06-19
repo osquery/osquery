@@ -25,15 +25,12 @@
 namespace fs = boost::filesystem;
 
 namespace osquery {
-namespace {
 Status appendDirectoryEntryAttributes(QueryData& results,
                                       const std::string& path) {
   ExtendedAttributes attributes;
-  if (!getExtendedAttributes(attributes, path)) {
-    return Status(
-        1,
-        "Failed to acquire the extended attributes for the following path: " +
-            path);
+  auto s = getExtendedAttributes(attributes, path);
+  if (!s.ok()) {
+    return s;
   }
 
   for (const auto& p : attributes) {
@@ -61,7 +58,6 @@ Status appendDirectoryEntryAttributes(QueryData& results,
 
   return Status(0, "OK");
 }
-} // namespace
 
 namespace tables {
 QueryData genXattr(QueryContext& context) {

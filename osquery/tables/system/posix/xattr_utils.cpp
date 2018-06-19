@@ -49,41 +49,48 @@ int setxattr(const char* path,
 }
 #endif
 
-ssize_t getExtendedAttributeListSize(const std::string& path) {
+Status getExtendedAttributeListSize(size_t& size, const std::string& path) {
   auto length = listxattr(path.data(), nullptr, 0);
   if (length == -1) {
-    return -1;
+    return Status(
+        1,
+        "Failed to list the extended attributes for the following path: " +
+            path);
   }
 
-  return length;
+  size = static_cast<size_t>(length);
+  return Status(0);
 }
 
-bool getRawExtendedAttributeList(std::string& buffer, const std::string& path) {
-  auto list_size = getExtendedAttributeListSize(path);
-  if (list_size == -1) {
-    return false;
+Status getRawExtendedAttributeList(std::string& buffer,
+                                   const std::string& path) {
+  size_t list_size;
+  auto s = getExtendedAttributeListSize(list_size, path);
+  if (!s.ok()) {
+    return s;
   }
 
-  buffer.resize(static_cast<size_t>(list_size));
-  if (buffer.size() != static_cast<size_t>(list_size)) {
-    return false;
+  buffer.resize(list_size);
+  if (buffer.size() != list_size) {
+    return Status(1, "Memory allocation failure");
   }
 
   auto read_bytes = listxattr(path.data(), &buffer[0], buffer.size());
   if (read_bytes == -1) {
-    return false;
+    return Status(1, "Failed to retrieve the extended attribute list");
   }
 
-  return true;
+  return Status(0);
 }
 
-bool getExtendedAttributeList(std::vector<std::string>& attribute_list,
-                              const std::string& path) {
+Status getExtendedAttributeList(std::vector<std::string>& attribute_list,
+                                const std::string& path) {
   attribute_list.clear();
 
   std::string raw_attribute_list;
-  if (!getRawExtendedAttributeList(raw_attribute_list, path)) {
-    return false;
+  auto s = getRawExtendedAttributeList(raw_attribute_list, path);
+  if (!s.ok()) {
+    return s;
   }
 
   size_t start_index = 0U;
@@ -99,48 +106,50 @@ bool getExtendedAttributeList(std::vector<std::string>& attribute_list,
     attribute_list.push_back(name);
   }
 
-  return true;
+  return Status(0);
 }
 
-bool getExtendedAttribute(std::string& value,
-                          const std::string& path,
-                          const std::string& name) {
+Status getExtendedAttribute(std::string& value,
+                            const std::string& path,
+                            const std::string& name) {
   value.clear();
 
   auto buffer_size = getxattr(path.data(), name.data(), nullptr, 0U);
   if (buffer_size == -1) {
-    return false;
+    return Status(1, "Failed to get the extended attribute size");
   }
 
   value.resize(static_cast<size_t>(buffer_size));
   if (value.size() != static_cast<size_t>(buffer_size)) {
-    return false;
+    return Status(1, "Memory allocation failure");
   }
 
   buffer_size = getxattr(path.data(), name.data(), &value[0], value.size());
   if (buffer_size == -1) {
-    return false;
+    return Status(1, "Failed to get the extended attribute");
   }
 
   if (value.size() != static_cast<size_t>(buffer_size)) {
     value.resize(buffer_size);
   }
 
-  return true;
+  return Status(0);
 }
-}
+} // namespace
 
-bool getExtendedAttributes(ExtendedAttributes& attributes,
-                           const std::string& path) {
+Status getExtendedAttributes(ExtendedAttributes& attributes,
+                             const std::string& path) {
   std::vector<std::string> attribute_list;
-  if (!getExtendedAttributeList(attribute_list, path)) {
-    return false;
+  auto s = getExtendedAttributeList(attribute_list, path);
+  if (!s.ok()) {
+    return s;
   }
 
   for (const auto& attribute_name : attribute_list) {
     std::string attribute_value;
-    if (!getExtendedAttribute(attribute_value, path, attribute_name)) {
-      return false;
+    s = getExtendedAttribute(attribute_value, path, attribute_name);
+    if (!s.ok()) {
+      return s;
     }
 
     if (isSpecialExtendedAttribute(attribute_name)) {
@@ -149,7 +158,9 @@ bool getExtendedAttributes(ExtendedAttributes& attributes,
               decoded_attributes, path, attribute_name)) {
         VLOG(1) << "Failed to decode the special attribute '" << attribute_name
                 << "' for file " << path;
+
         attributes.push_back(std::make_pair(attribute_name, attribute_value));
+
       } else {
         attributes.insert(attributes.end(),
                           decoded_attributes.begin(),
@@ -161,12 +172,12 @@ bool getExtendedAttributes(ExtendedAttributes& attributes,
     }
   }
 
-  return true;
+  return Status(0);
 }
 
 // Used by the tests in
 // osquery/tables/system/posix/tests/extended_attributes_tests.cpp
-bool setExtendedAttributes(
+Status setExtendedAttributes(
     const std::string& path,
     const std::unordered_map<std::string, std::string>& attributes) {
   for (const auto& p : attributes) {
@@ -176,11 +187,11 @@ bool setExtendedAttributes(
     errno = 0;
     if (setxattr(path.data(), name.data(), value.data(), value.size(), 0) ==
         -1) {
-      return false;
+      return Status(1, "Failed to set the extended attribute");
     }
   }
 
-  return true;
+  return Status(0);
 }
 } // namespace osquery
 

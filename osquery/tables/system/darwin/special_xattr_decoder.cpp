@@ -51,11 +51,12 @@ Status parseWhereFrom(ExtendedAttributes& output, const std::string& path) {
     return Status(1, "No attributes found for the following path: " + path);
   }
 
-  CFArrayRef attribs = (CFArrayRef)attributes;
+  auto attribs = static_cast<CFArrayRef>(attributes);
   CFIndex count = CFArrayGetCount(attribs);
 
   for (CFIndex i = 0; i < count; i++) {
-    CFStringRef attribute = (CFStringRef)CFArrayGetValueAtIndex(attribs, i);
+    auto attribute =
+        static_cast<CFStringRef>(CFArrayGetValueAtIndex(attribs, i));
     auto where_from_attribute = stringFromCFString(attribute);
     if (!where_from_attribute.empty()) {
       output.push_back(std::make_pair("where_from", where_from_attribute));
@@ -63,7 +64,7 @@ Status parseWhereFrom(ExtendedAttributes& output, const std::string& path) {
   }
 
   CFRelease(attributes);
-  return Status(0, "OK");
+  return Status(0);
 }
 
 void extractQuarantineProperty(ExtendedAttributes& output,
@@ -72,7 +73,7 @@ void extractQuarantineProperty(ExtendedAttributes& output,
                                const std::string& path) {
   std::string value;
   if (CFGetTypeID(property) == CFStringGetTypeID()) {
-    value = stringFromCFString((CFStringRef)property);
+    value = stringFromCFString(static_cast<CFStringRef>(property));
 
   } else if (CFGetTypeID(property) == CFDateGetTypeID()) {
     auto unix_time = CFDateGetAbsoluteTime((CFDateRef)property) +
@@ -81,7 +82,7 @@ void extractQuarantineProperty(ExtendedAttributes& output,
     value = INTEGER(std::llround(unix_time));
 
   } else if (CFGetTypeID(property) == CFURLGetTypeID()) {
-    value = stringFromCFString(CFURLGetString((CFURLRef)property));
+    value = stringFromCFString(CFURLGetString(static_cast<CFURLRef>(property)));
   }
 
   output.push_back(std::make_pair(table_key_name, value));
@@ -90,7 +91,10 @@ void extractQuarantineProperty(ExtendedAttributes& output,
 Status parseQuarantineFile(ExtendedAttributes& output,
                            const std::string& path) {
   CFURLRef url = CFURLCreateFromFileSystemRepresentation(
-      kCFAllocatorDefault, (const UInt8*)path.c_str(), path.length(), false);
+      kCFAllocatorDefault,
+      reinterpret_cast<const UInt8*>(path.c_str()),
+      path.length(),
+      false);
 
   if (url == nullptr) {
     return Status(1,
@@ -121,7 +125,9 @@ Status parseQuarantineFile(ExtendedAttributes& output,
 
     if (key != nullptr) {
       if (CFDictionaryGetValueIfPresent(
-              (CFDictionaryRef)quarantine_properties, key, &property)) {
+              static_cast<CFDictionaryRef>(quarantine_properties),
+              key,
+              &property)) {
         extractQuarantineProperty(output, kv.first, property, path);
       }
 
@@ -132,7 +138,7 @@ Status parseQuarantineFile(ExtendedAttributes& output,
   CFRelease(quarantine_properties);
   CFRelease(url);
 
-  return Status(0, "OK");
+  return Status(0);
 }
 } // namespace
 
@@ -140,31 +146,21 @@ bool isSpecialExtendedAttribute(const std::string& name) {
   return (name == kWhereFromXattr || name == kQuarantineXattr);
 }
 
-bool decodeSpecialExtendedAttribute(ExtendedAttributes& output,
-                                    const std::string& path,
-                                    const std::string& name) {
+Status decodeSpecialExtendedAttribute(ExtendedAttributes& output,
+                                      const std::string& path,
+                                      const std::string& name) {
   output.clear();
 
+  Status status;
+
   if (name == kWhereFromXattr) {
-    auto status = parseWhereFrom(output, path);
-    if (!status.ok()) {
-      VLOG(1) << status.getMessage();
-      return false;
-    }
-
-    return true;
-
+    status = parseWhereFrom(output, path);
   } else if (name == kQuarantineXattr) {
     auto status = parseQuarantineFile(output, path);
-    if (!status.ok()) {
-      VLOG(1) << status.getMessage();
-      return false;
-    }
-
-    return true;
-
   } else {
-    return false;
+    status = Status(1, "Invalid special attribute name");
   }
+
+  return status;
 }
 } // namespace osquery

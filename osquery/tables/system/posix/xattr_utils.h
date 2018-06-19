@@ -12,12 +12,14 @@
 #include <unordered_map>
 #include <vector>
 
+#include <osquery/status.h>
+
 namespace osquery {
 using ExtendedAttributes = std::vector<std::pair<std::string, std::string>>;
 
-bool getExtendedAttributes(ExtendedAttributes& attributes,
-                           const std::string& path);
-bool setExtendedAttributes(
+Status getExtendedAttributes(ExtendedAttributes& attributes,
+                             const std::string& path);
+Status setExtendedAttributes(
     const std::string& path,
     const std::unordered_map<std::string, std::string>& attributes);
 } // namespace osquery

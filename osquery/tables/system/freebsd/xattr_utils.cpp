@@ -17,51 +17,56 @@
 
 namespace osquery {
 namespace {
-ssize_t getExtendedAttributeListSize(const std::string& path,
-                                     bool user_namespace) {
-  int namespace_ =
-      user_namespace ? EXTATTR_NAMESPACE_USER : EXTATTR_NAMESPACE_SYSTEM;
-
+Status getExtendedAttributeListSize(size_t& size,
+                                    const std::string& path,
+                                    int namespace_) {
   auto length = extattr_list_file(path.data(), namespace_, nullptr, 0);
   if (length == -1) {
-    return -1;
+    return Status(
+        1,
+        "Failed to list the extended attributes for the following file: " +
+            path);
   }
 
-  return length;
+  size = static_cast<size_t>(length);
+  return Status(0);
 }
 
-bool getRawExtendedAttributeList(std::string& buffer,
-                                 const std::string& path,
-                                 bool user_namespace) {
-  auto list_size = getExtendedAttributeListSize(path, user_namespace);
-  if (list_size == -1) {
-    return false;
+Status getRawExtendedAttributeList(std::string& buffer,
+                                   const std::string& path,
+                                   int namespace_) {
+  size_t list_size;
+  auto s = getExtendedAttributeListSize(list_size, path, namespace_);
+  if (!s.ok()) {
+    return s;
   }
 
-  buffer.resize(static_cast<size_t>(list_size));
-  if (buffer.size() != static_cast<size_t>(list_size)) {
-    return false;
+  buffer.resize(list_size);
+  if (buffer.size() != list_size) {
+    return Status(1, "Memory allocation failure");
   }
 
-  int namespace_ =
-      user_namespace ? EXTATTR_NAMESPACE_USER : EXTATTR_NAMESPACE_SYSTEM;
   auto read_bytes =
       extattr_list_file(path.data(), namespace_, &buffer[0], buffer.size());
   if (read_bytes == -1) {
-    return false;
+    return Status(
+        1,
+        "Failed to acqiore the extended attributes for the following file: " +
+            path);
   }
 
-  return true;
+  return Status(0);
 }
 
-bool getExtendedAttributeList(std::vector<std::string>& attribute_list,
-                              const std::string& path,
-                              bool user_namespace) {
+Status getExtendedAttributeList(std::vector<std::string>& attribute_list,
+                                const std::string& path,
+                                int namespace_) {
   attribute_list.clear();
 
   std::string raw_attribute_list;
-  if (!getRawExtendedAttributeList(raw_attribute_list, path, user_namespace)) {
-    return false;
+  auto s = getRawExtendedAttributeList(raw_attribute_list, path, namespace_);
+  if (!s.ok()) {
+    return s;
   }
 
   size_t index = 0U;
@@ -70,7 +75,7 @@ bool getExtendedAttributeList(std::vector<std::string>& attribute_list,
     index++;
 
     if (index + name_length > raw_attribute_list.size()) {
-      return false;
+      return Status(1, "Unexpected attribute list format");
     }
 
     auto current_attribute_name = raw_attribute_list.substr(index, name_length);
@@ -79,85 +84,83 @@ bool getExtendedAttributeList(std::vector<std::string>& attribute_list,
     attribute_list.push_back(current_attribute_name);
   }
 
-  return true;
+  return Status(0);
 }
 
-bool getExtendedAttribute(std::string& value,
-                          const std::string& path,
-                          bool user_namespace,
-                          const std::string& name) {
+Status getExtendedAttribute(std::string& value,
+                            const std::string& path,
+                            int namespace_,
+                            const std::string& name) {
   value.clear();
-
-  int namespace_ =
-      user_namespace ? EXTATTR_NAMESPACE_USER : EXTATTR_NAMESPACE_SYSTEM;
 
   auto buffer_size =
       extattr_get_file(path.data(), namespace_, name.data(), nullptr, 0U);
   if (buffer_size == -1) {
-    return false;
+    return Status(1, "Failed to retrieve the extended attribute length");
   }
 
   value.resize(static_cast<size_t>(buffer_size));
   if (value.size() != static_cast<size_t>(buffer_size)) {
-    return false;
+    return Status(1, "Memory allocation failure");
   }
 
   buffer_size = extattr_get_file(
       path.data(), namespace_, name.data(), &value[0], value.size());
   if (buffer_size == -1) {
-    return false;
+    return Status(1, "Failed to read the extended attribute");
   }
 
   if (value.size() != static_cast<size_t>(buffer_size)) {
     value.resize(buffer_size);
   }
 
-  return true;
+  return Status(0);
 }
 
-bool appendExtendedAttributesForNamespace(ExtendedAttributes& attributes,
-                                          const std::string& path,
-                                          bool user_namespace) {
+Status appendExtendedAttributesForNamespace(ExtendedAttributes& attributes,
+                                            const std::string& path,
+                                            int namespace_) {
   std::vector<std::string> attribute_list;
-  if (!getExtendedAttributeList(attribute_list, path, user_namespace)) {
-    return false;
+  auto s = getExtendedAttributeList(attribute_list, path, namespace_);
+  if (!s.ok()) {
+    return s;
   }
 
-  std::string name_prefix = user_namespace ? "user." : "system.";
+  std::string name_prefix =
+      (namespace_ == EXTATTR_NAMESPACE_USER) ? "user." : "system.";
 
   for (const auto& attribute_name : attribute_list) {
     std::string attribute_value;
-    if (!getExtendedAttribute(
-            attribute_value, path, user_namespace, attribute_name)) {
-      return false;
+    s = getExtendedAttribute(attribute_value, path, namespace_, attribute_name);
+    if (!s.ok()) {
+      return s;
     }
 
     attributes.push_back(
         std::make_pair(name_prefix + attribute_name, attribute_value));
   }
 
-  return true;
+  return Status(0);
 }
 } // namespace
 
-bool getExtendedAttributes(ExtendedAttributes& attributes,
-                           const std::string& path) {
+Status getExtendedAttributes(ExtendedAttributes& attributes,
+                             const std::string& path) {
   attributes.clear();
 
-  if (!appendExtendedAttributesForNamespace(attributes, path, true)) {
-    return false;
+  for (int namespace_ : {EXTATTR_NAMESPACE_USER, EXTATTR_NAMESPACE_SYSTEM}) {
+    auto s = appendExtendedAttributesForNamespace(attributes, path, namespace_);
+    if (!s.ok()) {
+      return s;
+    }
   }
 
-  if (!appendExtendedAttributesForNamespace(attributes, path, false)) {
-    return false;
-  }
-
-  return true;
+  return Status(0);
 }
 
 // Used by the tests in
 // osquery/tables/system/posix/tests/extended_attributes_tests.cpp
-bool setExtendedAttributes(
+Status setExtendedAttributes(
     const std::string& path,
     const std::unordered_map<std::string, std::string>& attributes) {
   for (const auto& p : attributes) {
@@ -169,10 +172,10 @@ bool setExtendedAttributes(
                          name.data(),
                          value.data(),
                          value.size()) == -1) {
-      return false;
+      return Status(1, "Failed to set the extended attribute");
     }
   }
 
-  return true;
+  return Status(0);
 }
 } // namespace osquery
