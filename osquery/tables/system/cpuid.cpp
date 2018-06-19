@@ -71,7 +71,7 @@ std::map<size_t, std::vector<FeatureDef>> kCPUFeatures{
      {
          FEATURE("lahfsahf", "ecx", 0),
          FEATURE("svm", "ecx", 2),
-         FEATURE("prefetchw", "ecx", 8),
+         FEATURE("3dnowprefetch", "ecx", 8),
          FEATURE("ibs", "ecx", 10),
          FEATURE("skinit", "ecx", 12),
          FEATURE("lwp", "ecx", 15),
