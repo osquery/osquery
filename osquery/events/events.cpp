@@ -62,7 +62,7 @@ static inline EventTime timeFromRecord(const std::string& record) {
 static inline std::string toIndex(size_t i) {
   auto j = std::to_string(i);
   if (j.size() < 10) {
-    j = std::string(10 - j.size(), '0').append(std::move(j));
+    j.insert(j.begin(), 10 - j.size(), '0');
   }
   return j;
 }
