@@ -740,7 +740,7 @@ add_custom_target(
 # make sync
 add_custom_target(
   sync
-  "${CMAKE_SOURCE_DIR}/tools/sync.sh" "${CMAKE_BINARY_DIR}"
+  "${CMAKE_SOURCE_DIR}/tools/sync.sh" "${CMAKE_BINARY_DIR}" "${BUILD_DEPS}/lib:${BUILD_DEPS}/legacy/lib"
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
   COMMENT "Generating sdk sync: ${CMAKE_BINARY_DIR}/sync"
   DEPENDS osquery_extensions osquery_amalgamation
