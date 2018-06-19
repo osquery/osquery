@@ -26,7 +26,7 @@ LINUXBREW_CORE_REPO="https://github.com/Linuxbrew/homebrew-core"
 HOMEBREW_CORE="99221d219eaa59faf170945b5f94e985d036c118"
 LINUXBREW_CORE="f54281a496bb7d3dd2f46b2f3067193d05f5013b"
 HOMEBREW_BREW="e39b6f5891f2aa98fa2bef7775aecf73fc246afb"
-LINUXBREW_BREW="c324fccf9fb697615c048ef8160dee1f643d97a2"
+LINUXBREW_BREW="fea90825fb6298e972ca416d39c7327c4d2f0c1a"
 
 # These suffixes are used when building bottle tarballs.
 LINUX_BOTTLE_SUFFIX="x86_64_linux"
