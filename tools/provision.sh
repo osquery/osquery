@@ -24,9 +24,9 @@ LINUXBREW_CORE_REPO="https://github.com/Linuxbrew/homebrew-core"
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
 HOMEBREW_CORE="99221d219eaa59faf170945b5f94e985d036c118"
-LINUXBREW_CORE="f54281a496bb7d3dd2f46b2f3067193d05f5013b"
+LINUXBREW_CORE="16ebe5f1843e6cb54856311ff0f676be53007329"
 HOMEBREW_BREW="e39b6f5891f2aa98fa2bef7775aecf73fc246afb"
-LINUXBREW_BREW="fea90825fb6298e972ca416d39c7327c4d2f0c1a"
+LINUXBREW_BREW="7c96cd48203a663220e165febc07d350e2789b5c"
 
 # These suffixes are used when building bottle tarballs.
 LINUX_BOTTLE_SUFFIX="x86_64_linux"
@@ -220,6 +220,7 @@ function main() {
   elif [[ $OS = "freebsd" ]]; then
     BREW_TYPE="freebsd"
   else
+    export HOMEBREW_BOTTLE_DOMAIN=https://linuxbrew.bintray.com
     BREW_TYPE="linux"
   fi
 
