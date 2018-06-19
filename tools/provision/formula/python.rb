@@ -62,7 +62,7 @@ class Python < AbstractOsqueryFormula
   # setuptools remembers the build flags python is built with and uses them to
   # build packages later. Xcode-only systems need different flags.
   pour_bottle? do
-    reason <<~EOS
+    reason <<-EOS
     The bottle needs the Apple Command Line Tools to be installed.
       You can install them, if desired, with:
         xcode-select --install
@@ -224,7 +224,7 @@ class Python < AbstractOsqueryFormula
     ]
 
     cfg = lib_cellar/"distutils/distutils.cfg"
-    cfg.atomic_write <<~EOF
+    cfg.atomic_write <<-EOF
       [install]
       prefix=#{HOMEBREW_PREFIX}
 
@@ -235,7 +235,7 @@ class Python < AbstractOsqueryFormula
   end
 
   def sitecustomize
-    <<~EOF
+    <<-EOF
       # This file is created by Homebrew and is executed on each python startup.
       # Don't print from here, or else python command line scripts may fail!
       # <https://github.com/Homebrew/brew/blob/master/share/doc/homebrew/Homebrew-and-Python.md>
@@ -284,7 +284,7 @@ class Python < AbstractOsqueryFormula
     EOF
   end
 
-  def caveats; <<~EOS
+  def caveats; <<-EOS
     Pip and setuptools have been installed. To update them
       pip install --upgrade pip setuptools
 
