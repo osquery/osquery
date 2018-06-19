@@ -17,7 +17,7 @@ class FbthriftMstch < AbstractOsqueryFormula
     (lib/"pkgconfig/mstch.pc").write pc_file
   end
 
-  def pc_file; <<~EOS
+  def pc_file; <<-EOS.undent
     prefix=#{HOMEBREW_PREFIX}
     exec_prefix=${prefix}
     libdir=${exec_prefix}/lib
