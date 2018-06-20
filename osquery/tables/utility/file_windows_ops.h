@@ -1,6 +1,6 @@
 #pragma once
-#include <Windows.h>
 #include "osquery/core/conversions.h"
+#include <Windows.h>
 
 #include "accctrl.h"
 #include "aclapi.h"
@@ -8,9 +8,7 @@
 
 namespace osquery {
 
-	std::string getFileAttribStr(ULONG);
-	time_t FileTimeToUnixTime(FILETIME &);
-	time_t LongIntToUnixTime(LARGE_INTEGER &);
-	
-
+std::string getFileAttribStr(ULONG);
+time_t FileTimeToUnixTime(FILETIME&);
+time_t LongIntToUnixTime(LARGE_INTEGER&);
 }
