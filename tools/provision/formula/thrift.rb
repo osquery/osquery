@@ -6,7 +6,7 @@ class Thrift < AbstractOsqueryFormula
   license "Apache-2.0"
   url "https://github.com/apache/thrift/archive/0.11.0.tar.gz"
   sha256 "0e324569321a1b626381baabbb98000c8dd3a59697292dbcc71e67135af0fefd"
-  revision 202
+  revision 203
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
@@ -41,6 +41,7 @@ class Thrift < AbstractOsqueryFormula
       "--without-rs",
       "--with-python",
       "--with-cpp",
+      "--with-libevent=no",
       "--enable-tutorial=no",
       "--with-openssl=#{Formula["osquery/osquery-local/openssl"].prefix}",
       "--with-boost=#{Formula["osquery/osquery-local/boost"].prefix}"
