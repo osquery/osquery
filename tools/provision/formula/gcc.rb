@@ -168,7 +168,7 @@ class Gcc < AbstractOsqueryFormula
     # to be available and backward compatible on the system.
     glibc = Formula["glibc-legacy"]
     libgcc = lib/"gcc/x86_64-unknown-linux-gnu"/version
-    specs.write specs_string + <<-EOS.undent
+    specs.write specs_string + <<~EOS
       *link_libgcc:
       #{glibc.installed? ? "-nostdlib -L#{libgcc}" : "+"} -L#{legacy_prefix}/lib -L#{default_prefix}/lib -lrt -lpthread
 
