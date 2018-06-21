@@ -34,9 +34,17 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem
   "${CMAKE_CURRENT_LIST_DIR}/filesystem.cpp"
 )
 
+if(WINDOWS)
+  target_sources(osquery_filesystem
+    PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/windows/fileops.cpp"
+  )
+endif()
+
 if(POSIX)
-  ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem_posix
-    "${CMAKE_CURRENT_LIST_DIR}/posix/fileops.cpp"
+  target_sources(osquery_filesystem
+    PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/posix/fileops.cpp"
   )
 endif()
 
