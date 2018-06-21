@@ -56,6 +56,7 @@ namespace osquery {
 /// Define flags used by the shell. They are parsed by the drop-in shell.
 SHELL_FLAG(bool, csv, false, "Set output mode to 'csv'");
 SHELL_FLAG(bool, json, false, "Set output mode to 'json'");
+SHELL_FLAG(bool, pack_single_json, false, "Set output mode to 'pack_single_json'");
 SHELL_FLAG(bool, line, false, "Set output mode to 'line'");
 SHELL_FLAG(bool, list, false, "Set output mode to 'list'");
 SHELL_FLAG(string, separator, "|", "Set output field separator, default '|'");
@@ -908,7 +909,7 @@ static int shell_exec(
   dbc->clearAffectedTables();
 
   if ((pArg != nullptr) && pArg->mode == MODE_Pretty) {
-    if (osquery::FLAGS_json) {
+    if (osquery::FLAGS_json || osquery::FLAGS_pack_single_json) {
       osquery::jsonPrint(pArg->prettyPrint->results);
     } else {
       osquery::prettyPrint(pArg->prettyPrint->results,
@@ -1639,13 +1640,25 @@ int runQuery(struct callback_data* data, const char* query) {
 int runPack(struct callback_data* data) {
   int rc = 0;
 
+  if (osquery::FLAGS_pack_single_json) {
+    printf("{");
+  }
   // Check every pack for a name matching the requested --pack flag.
   Config::get().packs([data, &rc](const Pack& pack) {
     if (pack.getName() != FLAGS_pack) {
       return;
     }
+    if (osquery::FLAGS_pack_single_json) {
+      printf("\"%s\" : {",pack.getName().c_str());
+    }
 
+    int counter = 0;
+    int count = pack.getSchedule().size();
     for (const auto& query : pack.getSchedule()) {
+      counter++;
+      if (osquery::FLAGS_pack_single_json) {
+        printf("\"%s\" : ",query.first.c_str());
+      }
       rc = runQuery(data, query.second.query.c_str());
       if (rc != 0) {
         fprintf(stderr,
@@ -1654,8 +1667,20 @@ int runPack(struct callback_data* data) {
                 query.second.query.c_str());
         return;
       }
+      if (osquery::FLAGS_pack_single_json) {
+        if (counter < count) {
+          printf(",");
+        }
+      }
+    }
+
+    if (osquery::FLAGS_pack_single_json) {
+      printf("}");
     }
   });
+  if (osquery::FLAGS_pack_single_json) {
+    printf("}");
+  }
   return rc;
 }
 
