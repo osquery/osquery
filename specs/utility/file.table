@@ -20,9 +20,9 @@ schema([
     Column("type", TEXT, "File status"),
 ])
 extended_schema(WINDOWS, [
-    Column("attrib", TEXT, "File attrib string"),
+    Column("attributes", TEXT, "File attrib string"),
     Column("volume_serial", TEXT, "Volume serial number"),
-    Column("fileId", TEXT, "file ID"),
+    Column("file_id", TEXT, "file ID"),
 ])
 attributes(utility=True)
 implementation("utility/file@genFile")
