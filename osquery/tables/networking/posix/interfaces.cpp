@@ -17,7 +17,10 @@
 #include <sys/socket.h>
 
 #ifdef __linux__
+#include <limits>
+#include <linux/ethtool.h>
 #include <linux/if_link.h>
+#include <linux/sockios.h>
 #include <sys/ioctl.h>
 #endif
 
@@ -135,6 +138,26 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
 
       if (ioctl(fd, SIOCGIFHWADDR, &ifr) >= 0) {
         r["type"] = INTEGER_FROM_UCHAR(ifr.ifr_hwaddr.sa_family);
+      }
+
+      struct ethtool_cmd cmd;
+      ifr.ifr_data = reinterpret_cast<char*>(&cmd);
+      cmd.cmd = ETHTOOL_GSET;
+
+      if (ioctl(fd, SIOCETHTOOL, &ifr) >= 0) {
+        auto speed = ethtool_cmd_speed(&cmd);
+
+        if (speed != std::numeric_limits<uint32_t>::max()) {
+          r["link_speed"] = BIGINT_FROM_UINT32(speed);
+        }
+      }
+
+      struct ethtool_drvinfo drvInfo;
+      ifr.ifr_data = reinterpret_cast<char*>(&drvInfo);
+      drvInfo.cmd = ETHTOOL_GDRVINFO;
+
+      if (ioctl(fd, SIOCETHTOOL, &ifr) >= 0) {
+        r["pci_slot"] = drvInfo.bus_info;
       }
 
       close(fd);

@@ -15,14 +15,14 @@
 #include <vector>
 
 #include <osquery/core.h>
+#include <osquery/plugin.h>
 #include <osquery/query.h>
-#include <osquery/registry.h>
-#include <osquery/status.h>
 
 #include "osquery/core/json.h"
 
 namespace osquery {
 
+class Status;
 class Config;
 class Pack;
 class Schedule;
@@ -45,6 +45,8 @@ class Config : private boost::noncopyable {
   Config();
 
  public:
+  ~Config();
+
   /// Singleton accessor.
   static Config& get();
 
@@ -139,7 +141,7 @@ class Config : private boost::noncopyable {
   /**
    * @brief Iterate through all packs
    */
-  void packs(std::function<void(std::shared_ptr<Pack>& pack)> predicate);
+  void packs(std::function<void(const Pack& pack)> predicate) const;
 
   /**
    * @brief Add a file
@@ -310,9 +312,9 @@ class Config : private boost::noncopyable {
    */
   void reset();
 
- protected:
+ private:
   /// Schedule of packs and their queries.
-  std::shared_ptr<Schedule> schedule_;
+  std::unique_ptr<Schedule> schedule_;
 
   /// A set of performance stats for each query in the schedule.
   std::map<std::string, QueryPerformance> performance_;
@@ -360,6 +362,7 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(ViewsConfigParserPluginTests, test_swap_view);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_update_view);
   FRIEND_TEST(OptionsConfigParserPluginTests, test_unknown_option);
+  FRIEND_TEST(OptionsConfigParserPluginTests, test_json_option);
   FRIEND_TEST(EventsConfigParserPluginTests, test_get_event);
   FRIEND_TEST(PacksTests, test_discovery_cache);
   FRIEND_TEST(PacksTests, test_multi_pack);

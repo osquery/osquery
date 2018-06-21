@@ -12,6 +12,7 @@
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditeventpublisher.h"
@@ -63,7 +64,9 @@ void AuditEventPublisher::configure() {
     return;
   }
 
-  audit_netlink_ = std::make_unique<AuditdNetlink>();
+  if (audit_netlink_ == nullptr) {
+    audit_netlink_ = std::make_unique<AuditdNetlink>();
+  }
 }
 
 void AuditEventPublisher::tearDown() {

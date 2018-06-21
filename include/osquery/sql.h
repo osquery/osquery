@@ -16,7 +16,6 @@
 
 #include <osquery/flags.h>
 #include <osquery/query.h>
-#include <osquery/registry.h>
 #include <osquery/tables.h>
 
 namespace osquery {
@@ -138,7 +137,7 @@ class SQL : private only_movable {
    * @param expr The constraint expression.
    * @return A QueryData object of the 'SELECT [columns] ...' query results.
    */
-  static QueryData selectFrom(const std::initializer_list<std::string> columns,
+  static QueryData selectFrom(const std::initializer_list<std::string>& columns,
                               const std::string& table,
                               const std::string& column,
                               ConstraintOperator op,

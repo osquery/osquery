@@ -12,12 +12,15 @@
 
 #include <Windows.h>
 
+#include <algorithm>
+
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/core/windows/wmi.h"
 #include "osquery/events/windows/windows_event_log.h"
@@ -60,7 +63,7 @@ void WindowsEventLogEventPublisher::configure() {
 }
 
 Status WindowsEventLogEventPublisher::run() {
-  pause();
+  pauseMilli(100);
   return Status(0, "OK");
 }
 
@@ -156,10 +159,12 @@ Status WindowsEventLogEventPublisher::parseEvent(EVT_HANDLE evt,
 bool WindowsEventLogEventPublisher::shouldFire(
     const WindowsEventLogSubscriptionContextRef& sc,
     const WindowsEventLogEventContextRef& ec) const {
-  return sc->sources.find(ec->channel) != sc->sources.end();
+  std::wstring chan = ec->channel;
+  std::transform(chan.begin(), chan.end(), chan.begin(), ::tolower);
+  return sc->sources.find(chan) != sc->sources.end();
 }
 
 bool WindowsEventLogEventPublisher::isSubscriptionActive() const {
   return win_event_handles_.size() > 0;
 }
-}
+} // namespace osquery

@@ -27,6 +27,7 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
+#include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
 
@@ -245,6 +246,21 @@ void WatcherRunner::start() {
   } while (!interrupted() && ok());
 }
 
+void WatcherRunner::stop() {
+  auto& watcher = Watcher::get();
+
+  for (const auto& extension : watcher.extensions()) {
+    try {
+      stopChild(*extension.second);
+    } catch (std::exception& e) {
+      LOG(ERROR) << "[WatcherRunner] couldn't kill the extension "
+                 << extension.first << "nicely. Reason: " << e.what()
+                 << std::endl;
+      extension.second->kill();
+    }
+  }
+}
+
 void WatcherRunner::watchExtensions() {
   auto& watcher = Watcher::get();
 
@@ -275,13 +291,6 @@ void WatcherRunner::watchExtensions() {
       extension_restarts_[extension.first] += 1;
     } else {
       extension_restarts_[extension.first] = 0;
-    }
-  }
-  // If any extension creations failed, stop managing them.
-  for (auto& extension : extension_restarts_) {
-    if (extension.second > 3) {
-      watcher.removeExtensionPath(extension.first);
-      extension.second = 0;
     }
   }
 }
@@ -532,6 +541,10 @@ void WatcherRunner::createWorker() {
   // Get the complete path of the osquery process binary.
   boost::system::error_code ec;
   auto exec_path = fs::system_complete(fs::path(qd[0]["path"]), ec);
+  if (!pathExists(exec_path).ok()) {
+    LOG(WARNING) << "osqueryd doesn't exist in: " << exec_path.string();
+    return;
+  }
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // osqueryd binary has become unsafe.
@@ -571,6 +584,10 @@ void WatcherRunner::createExtension(const std::string& extension) {
   // Check the path to the previously-discovered extension binary.
   boost::system::error_code ec;
   auto exec_path = fs::system_complete(fs::path(extension), ec);
+  if (!pathExists(exec_path).ok()) {
+    LOG(WARNING) << "Extension binary doesn't exist in: " << exec_path.string();
+    return;
+  }
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // Extension binary has become unsafe.

@@ -130,17 +130,6 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CATEGORY}_TABLES_TESTS})
 endforeach()
 
-if(NOT SKIP_KERNEL)
-  file(GLOB OSQUERY_KERNEL_TABLES
-    "kernel/*.[cpm]*"
-    "*/${TABLE_PLATFORM}/kernel/*.[cpm]*"
-  )
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(
-    osquery_kernel_tables
-    ${OSQUERY_KERNEL_TABLES}
-  )
-endif()
-
 file(GLOB OSQUERY_UTILITY_TABLES "utility/*.cpp")
 ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
   ${OSQUERY_UTILITY_TABLES}

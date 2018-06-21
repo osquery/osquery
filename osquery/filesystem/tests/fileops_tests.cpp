@@ -63,12 +63,11 @@ class FileOpsTests : public testing::Test {
 
 class TempFile {
  public:
-  TempFile()
-      : path_((fs::temp_directory_path() /
-               (std::string("osquery-") +
-                std::to_string((rand() % 10000) + 20000)))
-                  .make_preferred()
-                  .string()) {}
+  TempFile() {
+    do {
+      path_ = generateTempPath();
+    } while (fs::exists(path_));
+  }
 
   ~TempFile() {
     if (fs::exists(path_)) {
@@ -78,6 +77,13 @@ class TempFile {
 
   const std::string& path() const {
     return path_;
+  }
+
+ private:
+  static std::string generateTempPath() {
+    return (fs::temp_directory_path() / fs::unique_path("osquery-%%%%-%%%%"))
+        .make_preferred()
+        .string();
   }
 
  private:
@@ -168,13 +174,13 @@ TEST_F(FileOpsTests, test_shareRead) {
 
   {
     PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     EXPECT_EQ(test1_size, fd.write(test1_data, test1_size));
   }
 
   {
     auto reader_fd = openRWSharedFile(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_TRUE(reader_fd->isValid());
+    ASSERT_TRUE(reader_fd->isValid());
 
     std::vector<char> buf;
     buf.assign(test1_size, '\0');
@@ -202,15 +208,15 @@ TEST_F(FileOpsTests, test_fileIo) {
 
   {
     PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     EXPECT_EQ(expected_write_len, fd.write(expected_read, expected_read_len));
   }
 
   {
     std::vector<char> buf(expected_read_len);
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_TRUE(fd.isValid());
-    EXPECT_FALSE(fd.isSpecialFile());
+    ASSERT_TRUE(fd.isValid());
+    ASSERT_FALSE(fd.isSpecialFile());
     EXPECT_EQ(expected_read_len, fd.read(buf.data(), expected_read_len));
     EXPECT_EQ(expected_buf_size, buf.size());
     for (ssize_t i = 0; i < expected_read_len; i++) {
@@ -230,19 +236,19 @@ TEST_F(FileOpsTests, test_append) {
 
   {
     PlatformFile fd(path, PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     EXPECT_EQ(test1_size, fd.write(test_data, test1_size));
   }
 
   {
     PlatformFile fd(path, PF_OPEN_ALWAYS | PF_WRITE | PF_APPEND);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     EXPECT_EQ(test2_size, fd.write(&test_data[7], test2_size));
   }
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
 
     std::vector<char> buf;
     buf.assign(test_size, '\0');
@@ -264,14 +270,14 @@ TEST_F(FileOpsTests, test_asyncIo) {
 
   {
     PlatformFile fd(path, PF_CREATE_NEW | PF_WRITE | PF_NONBLOCK);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     EXPECT_EQ(expected_len, fd.write(expected, expected_len));
   }
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
-    EXPECT_TRUE(fd.isValid());
-    EXPECT_FALSE(fd.isSpecialFile());
+    ASSERT_TRUE(fd.isValid());
+    ASSERT_FALSE(fd.isSpecialFile());
 
     std::vector<char> buf(expected_len);
     EXPECT_EQ(expected_len, fd.read(buf.data(), expected_len));
@@ -280,8 +286,8 @@ TEST_F(FileOpsTests, test_asyncIo) {
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ | PF_NONBLOCK);
-    EXPECT_TRUE(fd.isValid());
-    EXPECT_FALSE(fd.isSpecialFile());
+    ASSERT_TRUE(fd.isValid());
+    ASSERT_FALSE(fd.isSpecialFile());
 
     std::vector<char> buf(expected_len);
     char* ptr = buf.data();
@@ -310,7 +316,7 @@ TEST_F(FileOpsTests, test_seekFile) {
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     EXPECT_EQ(expected_len,
               fd.write("AAAAAAAAAAAAAAAAAAAAAAAAAAAA", expected_len));
   }
@@ -320,7 +326,7 @@ TEST_F(FileOpsTests, test_seekFile) {
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
 
     EXPECT_EQ(expected_offs, fd.seek(-12, PF_SEEK_END));
     EXPECT_EQ(4, fd.write("DDDD", 4));
@@ -336,7 +342,7 @@ TEST_F(FileOpsTests, test_seekFile) {
     std::vector<char> buffer(expected_len);
 
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
 
     EXPECT_EQ(expected_len, fd.read(buffer.data(), expected_len));
     EXPECT_EQ(0, ::memcmp(buffer.data(), expected, expected_len));
@@ -353,7 +359,7 @@ TEST_F(FileOpsTests, test_large_read_write) {
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     auto write_len = fd.write(expected.c_str(), expected_len);
     EXPECT_EQ(expected_len, write_len);
   }
@@ -361,7 +367,7 @@ TEST_F(FileOpsTests, test_large_read_write) {
   {
     std::vector<char> buffer(expected_len);
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     auto read_len = fd.read(buffer.data(), expected_len);
     EXPECT_EQ(expected_len, read_len);
     EXPECT_EQ(expected, std::string(buffer.data(), buffer.size()));
@@ -374,7 +380,7 @@ TEST_F(FileOpsTests, test_chmod_no_exec) {
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     EXPECT_EQ(4, fd.write("TEST", 4));
   }
 
@@ -382,7 +388,7 @@ TEST_F(FileOpsTests, test_chmod_no_exec) {
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
 
     auto status = fd.isExecutable();
     EXPECT_TRUE(!status.ok());
@@ -394,7 +400,7 @@ TEST_F(FileOpsTests, test_chmod_no_exec) {
 
   {
     PlatformFile fd(path, PF_OPEN_EXISTING | PF_READ);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
 
     EXPECT_TRUE(fd.isExecutable().ok());
   }
@@ -406,7 +412,7 @@ TEST_F(FileOpsTests, test_chmod_no_read) {
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     EXPECT_EQ(4, fd.write("TEST", 4));
   }
 
@@ -429,7 +435,7 @@ TEST_F(FileOpsTests, test_chmod_no_write) {
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     EXPECT_EQ(4, fd.write("TEST", 4));
   }
 
@@ -455,7 +461,7 @@ TEST_F(FileOpsTests, test_access) {
 
   {
     PlatformFile fd(path, PF_CREATE_ALWAYS | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
     EXPECT_EQ(4, fd.write("TEST", 4));
   }
 
@@ -554,7 +560,7 @@ TEST_F(FileOpsTests, test_safe_permissions) {
 
   {
     PlatformFile fd(temp_file, PF_CREATE_ALWAYS | PF_WRITE);
-    EXPECT_TRUE(fd.isValid());
+    ASSERT_TRUE(fd.isValid());
 
     EXPECT_TRUE(
         platformChmod(temp_file, S_IRUSR | S_IWGRP | S_IROTH | S_IWOTH));

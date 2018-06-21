@@ -27,6 +27,9 @@
 namespace osquery {
 namespace tables {
 
+// Empty string runs default verification on a file
+std::set<std::string> kCheckedArches{"", "i386", "ppc", "arm", "x86_64"};
+
 // Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on
 // the OS version.
 Status getVerifyFlags(SecCSFlags& flags) {
@@ -48,7 +51,8 @@ Status getVerifyFlags(SecCSFlags& flags) {
       return Status(-1, "Couldn't determine OS X version");
     }
 
-    sFlags = kSecCSStrictValidate | kSecCSCheckAllArchitectures;
+    sFlags = kSecCSStrictValidate | kSecCSCheckAllArchitectures |
+             kSecCSCheckNestedCode;
     if (minorVersion > 8) {
       sFlags |= kSecCSCheckNestedCode;
     }
@@ -58,130 +62,166 @@ Status getVerifyFlags(SecCSFlags& flags) {
   return Status(0, "ok");
 }
 
-// Generate a signature for a single file.
-void genSignatureForFile(const std::string& path, QueryData& results) {
-  Row r;
+Status genSignatureForFileAndArch(const std::string& path,
+                                  const std::string& arch,
+                                  QueryData& results) {
   OSStatus result;
-
-  // Defaults
-  r["path"] = path;
-  r["signed"] = INTEGER(0);
-  r["identifier"] = "";
-
-  // Get flags for the file.
-  SecCSFlags flags = 0;
-  if (!getVerifyFlags(flags).ok()) {
-    VLOG(1) << "Could not get verify flags";
-    return;
-  }
+  SecStaticCodeRef static_code = nullptr;
 
   // Create a URL that points to this file.
   auto url = (__bridge CFURLRef)[NSURL fileURLWithPath:@(path.c_str())];
   if (url == nullptr) {
-    VLOG(1) << "Could not create URL from file: " << path;
-    return;
+    return Status(1, "Could not create URL from file");
   }
 
-  // Create the static code object.
-  SecStaticCodeRef staticCode = nullptr;
-  result = SecStaticCodeCreateWithPath(url, kSecCSDefaultFlags, &staticCode);
-  if (result != errSecSuccess || staticCode == nullptr) {
-    VLOG(1) << "Could not create static code object for file: " << path;
-    return;
+  if (arch.empty()) {
+    // Create the static code object.
+    result = SecStaticCodeCreateWithPath(url, kSecCSDefaultFlags, &static_code);
+    if (result != errSecSuccess) {
+      if (static_code != nullptr) {
+        CFRelease(static_code);
+      }
+      return Status(1, "Could not create static code object");
+    }
+  } else {
+    CFMutableDictionaryRef context =
+        CFDictionaryCreateMutable(nullptr,
+                                  0,
+                                  &kCFTypeDictionaryKeyCallBacks,
+                                  &kCFTypeDictionaryValueCallBacks);
+    auto cfkey = CFStringCreateWithCString(
+        kCFAllocatorDefault, arch.c_str(), kCFStringEncodingUTF8);
+    CFDictionaryAddValue(context, kSecCodeAttributeArchitecture, cfkey);
+    CFRelease(cfkey);
+    result = SecStaticCodeCreateWithPathAndAttributes(
+        url, kSecCSDefaultFlags, context, &static_code);
+    CFRelease(context);
+    if (result != errSecSuccess) {
+      if (static_code != nullptr) {
+        CFRelease(static_code);
+      }
+      return Status(0, "No code to verify");
+    }
   }
 
-  // Actually validate.
-  bool isValidated = false;
-  result =
-      SecStaticCodeCheckValidityWithErrors(staticCode, flags, nullptr, nullptr);
+  Row r;
+  r["path"] = path;
+  r["arch"] = arch;
+  r["identifier"] = "";
+
+  SecCSFlags flags = 0;
+  getVerifyFlags(flags);
+  result = SecStaticCodeCheckValidityWithErrors(
+      static_code, flags, nullptr, nullptr);
   if (result == errSecSuccess) {
-    isValidated = true;
+    r["signed"] = "1";
   } else {
     // If this errors, then we either don't have a signature, or it's malformed.
-    VLOG(1) << "Static code validity check failed for file: " << path;
+    r["signed"] = "0";
   }
-  CFDictionaryRef codeInfo = nullptr;
+
+  CFDictionaryRef code_info = nullptr;
   result = SecCodeCopySigningInformation(
-      staticCode, kSecCSSigningInformation | kSecCSRequirementInformation,
-      &codeInfo);
-  if (result == errSecSuccess) {
-    // If we don't get an identifier for this file, then it's not signed.
-    CFStringRef ident =
-        (CFStringRef)CFDictionaryGetValue(codeInfo, kSecCodeInfoIdentifier);
-    if (ident != nullptr) {
-      // We have an identifier - this indicates that the file is signed,
-      // and, since it didn't error above, it's *also* a valid signature.
-      if (isValidated) {
-        r["signed"] = INTEGER(1);
-      }
-      r["identifier"] = stringFromCFString(ident);
+      static_code,
+      kSecCSSigningInformation | kSecCSRequirementInformation,
+      &code_info);
 
-      // Get CDHash
-      r["cdhash"] = "";
-      CFDataRef hashInfo =
-          (CFDataRef)CFDictionaryGetValue(codeInfo, kSecCodeInfoUnique);
-      if (hashInfo != nullptr) {
-        r["cdhash"].reserve(CC_SHA1_DIGEST_LENGTH);
-        // Get the SHA-1 bytes
-        std::stringstream ss;
-        auto bytes = CFDataGetBytePtr(hashInfo);
-        if (bytes != nullptr &&
-            CFDataGetLength(hashInfo) == CC_SHA1_DIGEST_LENGTH) {
-          // Write bytes as hex strings
-          for (size_t n = 0; n < CC_SHA1_DIGEST_LENGTH; n++) {
-            ss << std::hex << std::setfill('0') << std::setw(2);
-            ss << (unsigned int)bytes[n];
-          }
-          r["cdhash"] = ss.str();
-        }
-        if (r["cdhash"].length() != CC_SHA1_DIGEST_LENGTH * 2) {
-          VLOG(1) << "Error extracting code directory hash";
-          r["cdhash"] = "";
-        }
-      }
+  if (result != errSecSuccess) {
+    results.push_back(r);
+    CFRelease(static_code);
 
-      // Team Identifier
-      r["team_identifier"] = "";
-      CFTypeRef teamIdent = nullptr;
-      if (CFDictionaryGetValueIfPresent(codeInfo, kSecCodeInfoTeamIdentifier,
-                                        &teamIdent)) {
-        r["team_identifier"] = stringFromCFString((CFStringRef)teamIdent);
-      }
-
-      // Get common name
-      r["authority"] = "";
-      CFArrayRef certChain =
-          (CFArrayRef)CFDictionaryGetValue(codeInfo, kSecCodeInfoCertificates);
-      if (certChain != nullptr && CFArrayGetCount(certChain) > 0) {
-        auto cert = SecCertificateRef(CFArrayGetValueAtIndex(certChain, 0));
-        auto der_encoded_data = SecCertificateCopyData(cert);
-        if (der_encoded_data != nullptr) {
-          auto der_bytes = CFDataGetBytePtr(der_encoded_data);
-          auto length = CFDataGetLength(der_encoded_data);
-          auto x509_cert = d2i_X509(nullptr, &der_bytes, length);
-          if (x509_cert != nullptr) {
-            std::string subject;
-            std::string issuer;
-            std::string commonName;
-            genCommonName(x509_cert, subject, commonName, issuer);
-            r["authority"] = commonName;
-            X509_free(x509_cert);
-          } else {
-            VLOG(1) << "Error decoding DER encoded certificate";
-          }
-          CFRelease(der_encoded_data);
-        }
-      }
-    } else {
-      VLOG(1) << "No identifier found for file: " << path;
+    if (code_info != nullptr) {
+      CFRelease(code_info);
     }
-    CFRelease(codeInfo);
-  } else {
-    VLOG(1) << "Could not get signing information for file: " << path;
+    return Status(1, "Could not get signing information for file");
+  }
+
+  // If we don't get an identifier for this file, then it's not signed.
+  CFStringRef ident =
+      (CFStringRef)CFDictionaryGetValue(code_info, kSecCodeInfoIdentifier);
+
+  if (ident == nullptr) {
+    results.push_back(r);
+    CFRelease(code_info);
+    CFRelease(static_code);
+    return Status(1, "No identifier found for arch: " + arch);
+  }
+
+  r["identifier"] = stringFromCFString(ident);
+
+  // Get CDHash
+  r["cdhash"] = "";
+  CFDataRef hashInfo =
+      (CFDataRef)CFDictionaryGetValue(code_info, kSecCodeInfoUnique);
+  if (hashInfo != nullptr) {
+    // Get the SHA-1 bytes
+    std::stringstream ss;
+    auto bytes = CFDataGetBytePtr(hashInfo);
+    if (bytes != nullptr &&
+        CFDataGetLength(hashInfo) == CC_SHA1_DIGEST_LENGTH) {
+      // Write bytes as hex strings
+      for (size_t n = 0; n < CC_SHA1_DIGEST_LENGTH; n++) {
+        ss << std::hex << std::setfill('0') << std::setw(2);
+        ss << (unsigned int)bytes[n];
+      }
+      r["cdhash"] = ss.str();
+    }
+    if (r["cdhash"].length() != CC_SHA1_DIGEST_LENGTH * 2) {
+      VLOG(1) << "Error extracting code directory hash";
+      r["cdhash"] = "";
+    }
+  }
+
+  // Team Identifier
+  r["team_identifier"] = "";
+  CFTypeRef team_ident = nullptr;
+  if (CFDictionaryGetValueIfPresent(
+          code_info, kSecCodeInfoTeamIdentifier, &team_ident)) {
+    if (CFGetTypeID(team_ident) == CFStringGetTypeID()) {
+      r["team_identifier"] = stringFromCFString((CFStringRef)team_ident);
+    } else {
+      VLOG(1) << "Team identifier was not a string";
+    }
+  }
+
+  // Get common name
+  r["authority"] = "";
+  CFArrayRef certChain =
+      (CFArrayRef)CFDictionaryGetValue(code_info, kSecCodeInfoCertificates);
+  if (certChain != nullptr && CFArrayGetCount(certChain) > 0) {
+    auto cert = SecCertificateRef(CFArrayGetValueAtIndex(certChain, 0));
+    auto der_encoded_data = SecCertificateCopyData(cert);
+    if (der_encoded_data != nullptr) {
+      auto der_bytes = CFDataGetBytePtr(der_encoded_data);
+      auto length = CFDataGetLength(der_encoded_data);
+      auto x509_cert = d2i_X509(nullptr, &der_bytes, length);
+      if (x509_cert != nullptr) {
+        std::string subject;
+        std::string issuer;
+        std::string commonName;
+        genCommonName(x509_cert, subject, commonName, issuer);
+        r["authority"] = commonName;
+        X509_free(x509_cert);
+      } else {
+        VLOG(1) << "Error decoding DER encoded certificate";
+      }
+      CFRelease(der_encoded_data);
+    }
   }
 
   results.push_back(r);
-  CFRelease(staticCode);
+  CFRelease(static_code);
+  CFRelease(code_info);
+  return Status(0);
+}
+
+// Generate a signature for a single file.
+void genSignatureForFile(const std::string& path, QueryData& results) {
+  for (const auto& arch : kCheckedArches) {
+    // This returns a status but there is nothing we need to handle
+    // here so we can safely ignore it
+    genSignatureForFileAndArch(path, arch, results);
+  }
 }
 
 QueryData genSignature(QueryContext& context) {
@@ -204,15 +244,16 @@ QueryData genSignature(QueryContext& context) {
         }
         return status;
       }));
-  for (const auto& path_string : paths) {
-    // Note: we are explicitly *not* using is_regular_file here, since you can
-    // pass a directory path to the verification functions (e.g. for app
-    // bundles, etc.)
-    if (!pathExists(path_string).ok()) {
-      continue;
+  @autoreleasepool {
+    for (const auto& path_string : paths) {
+      // Note: we are explicitly *not* using is_regular_file here, since you can
+      // pass a directory path to the verification functions (e.g. for app
+      // bundles, etc.)
+      if (!pathExists(path_string).ok()) {
+        continue;
+      }
+      genSignatureForFile(path_string, results);
     }
-
-    genSignatureForFile(path_string, results);
   }
 
   return results;

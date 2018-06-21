@@ -8,21 +8,17 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <mutex>
-
 #include <sqlite3.h>
-
 #include <sys/stat.h>
 
-#include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/conversions.h"
+#include "osquery/database/plugins/sqlite.h"
 #include "osquery/filesystem/fileops.h"
 
 namespace osquery {
-
-DECLARE_string(database_path);
 
 const std::map<std::string, std::string> kDBSettings = {
     {"synchronous", "OFF"},
@@ -33,60 +29,6 @@ const std::map<std::string, std::string> kDBSettings = {
     {"cache_size", "1000"},
     {"page_count", "1000"},
 };
-
-class SQLiteDatabasePlugin : public DatabasePlugin {
- public:
-  /// Data retrieval method.
-  Status get(const std::string& domain,
-             const std::string& key,
-             std::string& value) const override;
-
-  /// Data storage method.
-  Status put(const std::string& domain,
-             const std::string& key,
-             const std::string& value) override;
-
-  /// Data removal method.
-  Status remove(const std::string& domain, const std::string& k) override;
-
-  /// Data range removal method.
-  Status removeRange(const std::string& domain,
-                     const std::string& low,
-                     const std::string& high) override;
-
-  /// Key/index lookup method.
-  Status scan(const std::string& domain,
-              std::vector<std::string>& results,
-              const std::string& prefix,
-              size_t max) const override;
-
- public:
-  /// Database workflow: open and setup.
-  Status setUp() override;
-
-  /// Database workflow: close and cleanup.
-  void tearDown() override {
-    close();
-  }
-
-  /// Need to tear down open resources,
-  virtual ~SQLiteDatabasePlugin() {
-    close();
-  }
-
- private:
-  void close();
-
- private:
-  /// The long-lived sqlite3 database.
-  sqlite3* db_{nullptr};
-
-  /// Deconstruction mutex.
-  Mutex close_mutex_;
-};
-
-/// Backing-storage provider for osquery internal/core.
-REGISTER_INTERNAL(SQLiteDatabasePlugin, "database", "sqlite");
 
 Status SQLiteDatabasePlugin::setUp() {
   if (!DatabasePlugin::kDBAllowOpen) {
@@ -198,6 +140,19 @@ Status SQLiteDatabasePlugin::get(const std::string& domain,
   return Status(1);
 }
 
+Status SQLiteDatabasePlugin::get(const std::string& domain,
+                                 const std::string& key,
+                                 int& value) const {
+  std::string result;
+  auto s = this->get(domain, key, result);
+  if (s.ok()) {
+    if (safeStrtoi(result, 10, value)) {
+      return Status(1, "Could not deserialize str to int");
+    }
+  }
+  return s;
+}
+
 static void tryVacuum(sqlite3* db) {
   std::string q =
       "SELECT (sum(s1.pageno + 1 == s2.pageno) * 1.0 / count(*)) < 0.01 as v "
@@ -238,6 +193,12 @@ Status SQLiteDatabasePlugin::put(const std::string& domain,
   return Status(0);
 }
 
+Status SQLiteDatabasePlugin::put(const std::string& domain,
+                                 const std::string& key,
+                                 int value) {
+  return this->put(domain, key, std::to_string(value));
+}
+
 Status SQLiteDatabasePlugin::remove(const std::string& domain,
                                     const std::string& key) {
   if (read_only_) {
@@ -260,6 +221,8 @@ Status SQLiteDatabasePlugin::remove(const std::string& domain,
   }
   return Status(0);
 }
+
+void SQLiteDatabasePlugin::dumpDatabase() const {}
 
 Status SQLiteDatabasePlugin::removeRange(const std::string& domain,
                                          const std::string& low,

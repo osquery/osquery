@@ -7,33 +7,53 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_config
-  config.cpp
-  packs.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/config.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/packs.cpp"
 )
-
-file(GLOB OSQUERY_CONFIG_PLUGINS "plugins/*.cpp")
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_config_plugins
-  ${OSQUERY_CONFIG_PLUGINS}
-  update.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/plugins/filesystem_config.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/plugins/tls_config.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/plugins/tls_config.h"
+  "${CMAKE_CURRENT_LIST_DIR}/update.cpp"
 )
 
-file(GLOB OSQUERY_CONFIG_PARSERS "parsers/*.cpp")
 ADD_OSQUERY_LIBRARY(TRUE osquery_config_parsers
-  ${OSQUERY_CONFIG_PARSERS}
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/decorators.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/decorators.h"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/events_parser.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/feature_vectors.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/feature_vectors.h"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/file_paths.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/kafka_topics.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/kafka_topics.h"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/logger.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/logger.h"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/options.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/prometheus_targets.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/prometheus_targets.h"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/views.cpp"
 )
 
-file(GLOB OSQUERY_ADDITIONAL_CONFIG_PARSERS "additional_parsers/*.cpp")
 ADD_OSQUERY_LIBRARY(FALSE osquery_additional_config_parsers
-  ${OSQUERY_ADDITIONAL_CONFIG_PARSERS}
+  "${CMAKE_CURRENT_LIST_DIR}/additional_parsers/auto_constructed_tables.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/additional_parsers/auto_constructed_tables.h"
 )
 
-file(GLOB OSQUERY_CONFIG_TESTS "tests/config_tests.cpp")
-ADD_OSQUERY_TEST(TRUE ${OSQUERY_CONFIG_TESTS})
+ADD_OSQUERY_TEST(TRUE
+  "${CMAKE_CURRENT_LIST_DIR}/tests/config_tests.cpp"
+)
 
 # The packs tests will attempt to execute SQL, they must be additional
-file(GLOB OSQUERY_PACKS_TESTS "tests/packs_tests.cpp")
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_PACKS_TESTS})
+ADD_OSQUERY_TEST(FALSE
+  "${CMAKE_CURRENT_LIST_DIR}/tests/packs_tests.cpp"
+)
 
-file(GLOB OSQUERY_CONFIG_PLUGIN_TESTS "*/tests/*.cpp")
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_CONFIG_PLUGIN_TESTS})
+ADD_OSQUERY_TEST(FALSE
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/file_paths_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/views_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/options_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/decorators_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/parsers/tests/events_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/tls_config_tests.cpp"
+)

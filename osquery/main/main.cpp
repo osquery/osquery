@@ -24,13 +24,14 @@
 #include <osquery/extensions.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/system.h>
 
 #include "osquery/core/process.h"
 #include "osquery/core/utils.h"
 #include "osquery/core/watcher.h"
 #include "osquery/devtools/devtools.h"
-#include "osquery/dispatcher/distributed.h"
+#include "osquery/dispatcher/distributed_runner.h"
 #include "osquery/dispatcher/io_service.h"
 #include "osquery/dispatcher/scheduler.h"
 #include "osquery/filesystem/fileops.h"

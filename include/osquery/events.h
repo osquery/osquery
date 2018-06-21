@@ -21,7 +21,6 @@
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
-#include <osquery/registry.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
 
@@ -698,6 +697,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   FRIEND_TEST(EventsDatabaseTests, test_gentable);
   FRIEND_TEST(EventsDatabaseTests, test_expire_check);
   FRIEND_TEST(EventsDatabaseTests, test_optimize);
+  FRIEND_TEST(EventsDatabaseTests, test_record_corruption);
   FRIEND_TEST(EventsTests, test_event_subscriber_configure);
   friend class DBFakeEventSubscriber;
   friend class BenchmarkEventSubscriber;

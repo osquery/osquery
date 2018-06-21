@@ -14,13 +14,13 @@
 #define _WIN32_DCOM
 
 #include <Windows.h>
+#include <iomanip>
 #include <psapi.h>
 #include <stdlib.h>
 #include <tlhelp32.h>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -29,7 +29,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
-#include <osquery/filesystem/fileops.h>
+#include "osquery/filesystem/fileops.h"
 
 namespace osquery {
 int getUidFromSid(PSID sid);
@@ -53,7 +53,7 @@ const std::map<unsigned long, std::string> kMemoryConstants = {
 /// Given a pid, enumerates all loaded modules and memory pages for that process
 Status genMemoryMap(unsigned long pid, QueryData& results) {
   auto proc = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
-  if (proc == INVALID_HANDLE_VALUE) {
+  if (proc == nullptr) {
     Row r;
     r["pid"] = INTEGER(pid);
     r["start"] = INTEGER(-1);
@@ -183,14 +183,20 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   r["on_disk"] = osquery::pathExists(r["path"]).toString();
   result.GetLong("ThreadCount", lPlaceHolder);
   r["threads"] = INTEGER(lPlaceHolder);
+  result.GetString("PrivatePageCount", sPlaceHolder);
+  r["wired_size"] = BIGINT(sPlaceHolder);
+  result.GetString("WorkingSetSize", sPlaceHolder);
+  r["resident_size"] = sPlaceHolder;
+  result.GetString("VirtualSize", sPlaceHolder);
+  r["total_size"] = BIGINT(sPlaceHolder);
 
-  std::vector<char> fileName(MAX_PATH);
-  fileName.assign(MAX_PATH + 1, '\0');
+  std::vector<char> fileName(MAX_PATH + 1, 0x0);
   if (pid == currentPid) {
     GetModuleFileName(nullptr, fileName.data(), MAX_PATH);
   } else {
     GetModuleFileNameEx(hProcess, nullptr, fileName.data(), MAX_PATH);
   }
+
   r["cwd"] = SQL_TEXT(fileName.data());
   r["root"] = r["cwd"];
 
@@ -221,13 +227,6 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
     r["system_time"] = BIGINT(utime.QuadPart / 10000000);
     r["start_time"] = BIGINT(osquery::filetimeToUnixtime(createTime));
   }
-
-  result.GetString("PrivatePageCount", sPlaceHolder);
-  r["wired_size"] = BIGINT(sPlaceHolder);
-  result.GetString("WorkingSetSize", sPlaceHolder);
-  r["resident_size"] = sPlaceHolder;
-  result.GetString("VirtualSize", sPlaceHolder);
-  r["total_size"] = BIGINT(sPlaceHolder);
 
   /// Get the process UID and GID from its SID
   HANDLE tok = nullptr;

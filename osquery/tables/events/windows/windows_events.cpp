@@ -9,12 +9,14 @@
  */
 
 #include <boost/algorithm/string.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
 #include <osquery/config.h>
 #include <osquery/core.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
@@ -47,6 +49,10 @@ class WindowsEventSubscriber
       // We remove quotes if they exist
       boost::erase_all(chan, "\"");
       boost::erase_all(chan, "\'");
+
+      // To enforce unification we lower case all channel names for shouldFire
+      std::transform(chan.begin(), chan.end(), chan.begin(), ::tolower);
+
       wc->sources.insert(stringToWstring(chan));
     }
     subscribe(&WindowsEventSubscriber::Callback, wc);

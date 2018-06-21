@@ -2,6 +2,7 @@ table_name("signature")
 description("File (executable, bundle, installer, disk) code signing status.")
 schema([
     Column("path", TEXT, "Must provide a path or directory", required=True),
+    Column("arch", TEXT, "If applicable, the arch of the signed code"),
     Column("signed", INTEGER, "1 If the file is signed else 0"),
     Column("identifier", TEXT, "The signing identifier sealed into the signature"),
     Column("cdhash", TEXT, "SHA1 hash of the application Code Directory"),
@@ -10,5 +11,6 @@ schema([
 ])
 implementation("signature@genSignature")
 examples([
-  "select * from signature where path = '/bin/ls'",
+  "SELECT * FROM signature WHERE path = '/bin/ls'",
+  "SELECT * FROM (SELECT path, MIN(signed) AS all_signed, MIN(CASE WHEN authority = 'Software Signing' AND signed = 1 THEN 1 ELSE 0 END) AS all_signed_by_apple FROM signature WHERE path LIKE '/bin/%' GROUP BY path);"
 ])

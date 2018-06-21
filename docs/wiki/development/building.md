@@ -17,6 +17,10 @@ For our build hosts (CentOS, Ubuntu 12, 14, 16, macOS 10.12, Windows 2016) we us
 make sysprep
 ```
 
+## Building on Windows
+
+Building on Windows is documented at [Windows Provisioning](https://osquery.readthedocs.io/en/stable/development/windows-provisioning/)
+
 ## Building on macOS
 
 `make deps` will take care of installing the appropriate library dependencies, but it's recommended to take a look at the Makefile, just in case something conflicts with your environment.
@@ -273,12 +277,11 @@ OSQUERY_BUILD_DEPS=True # Install dependencies from source when using make deps
 OSQUERY_BUILD_BOTTLES=True # Create bottles from installed dependencies
 OSQUERY_BUILD_VERSION=9.9.9 # Set a wacky version string
 OSQUERY_PLATFORM=custom_linux;1.0 # Set a wacky platform/distro name
-OSQUERY_OSQUERY_DEPS=/usr/local/osquery # Set alternative dependency path
+OSQUERY_DEPS=/usr/local/osquery # Set alternative dependency path
 OSQUERY_NOSUDO=True # If sudo is not available to user building osquery
 SDK_VERSION=9.9.9 # Set a wacky SDK-version string.
 OSX_VERSION_MIN=10.11 # Override the native minimum macOS version ABI
 OSX_VERSION_NATIVE=True # Set the macOS version ABI to the build system ABI
-OSQUERY_DEPS=/path/to/dependencies # Use a custom dependency environment
 FAST=True # Build and link as quick as possible.
 SANITIZE_THREAD=True # Add -fsanitize=thread when using "make sanitize"
 SANITIZE_UNDEFINED=True # Add -fsanitize=undefined when using "make sanitize"
@@ -296,7 +299,6 @@ SKIP_LLDPD=True # Skip LLDP tables
 SKIP_YARA=True # Skip Yara integrations, both events and the virtual tables
 SKIP_KAFKA=True # Skip support for Kafka logger plugins
 SKIP_CARVER=True # Skip support for file carving
-SKIP_KERNEL=True # Enabled by default, set to 'False' to enable
 SKIP_TESTS=True # Skip unit test building (very very not recommended!)
 SKIP_INTEGRATION_TESTS=True # Skip python tests when using "make test"
 SKIP_BENCHMARKS=True # Build unit tests but skip building benchmark targets

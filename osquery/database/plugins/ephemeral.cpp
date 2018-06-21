@@ -8,70 +8,70 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/database.h>
-#include <osquery/logger.h>
+#include <iostream>
+
+#include "osquery/database/plugins/ephemeral.h"
 
 namespace osquery {
 
-DECLARE_string(database_path);
-
-class EphemeralDatabasePlugin : public DatabasePlugin {
-  using DBType = std::map<std::string, std::map<std::string, std::string>>;
-
- public:
-  /// Data retrieval method.
-  Status get(const std::string& domain,
-             const std::string& key,
-             std::string& value) const override;
-
-  /// Data storage method.
-  Status put(const std::string& domain,
-             const std::string& key,
-             const std::string& value) override;
-
-  /// Data removal method.
-  Status remove(const std::string& domain, const std::string& k) override;
-
-  Status removeRange(const std::string& domain,
-                     const std::string& low,
-                     const std::string& high) override;
-
-  /// Key/index lookup method.
-  Status scan(const std::string& domain,
-              std::vector<std::string>& results,
-              const std::string& prefix,
-              size_t max) const override;
-
- public:
-  /// Database workflow: open and setup.
-  Status setUp() override {
-    DBType().swap(db_);
-    return Status(0);
+template <typename T>
+Status EphemeralDatabasePlugin::getAny(const std::string& domain,
+                                       const std::string& key,
+                                       T& value) const {
+  auto domainIterator = db_.find(domain);
+  if (domainIterator == db_.end()) {
+    return Status(1, "Domain " + domain + " does not exist");
   }
 
- private:
-  DBType db_;
-};
+  auto keyIterator = domainIterator->second.find(key);
+  if (keyIterator == domainIterator->second.end()) {
+    return Status(1, "Key " + key + " in domain " + domain + " does not exist");
+  }
 
-/// Backing-storage provider for osquery internal/core.
-REGISTER_INTERNAL(EphemeralDatabasePlugin, "database", "ephemeral");
+  try {
+    value = boost::get<T>(keyIterator->second);
+  } catch (const boost::bad_get& e) {
+    LOG(WARNING) << "Type error getting string value for (domain,key) : ("
+                 << key << "," << domain << ") " << e.what();
+    return Status(
+        1, "EphemeralDatabasePlugin::get was requested incorrect type(string)");
+  }
+  return Status(0);
+}
 
 Status EphemeralDatabasePlugin::get(const std::string& domain,
                                     const std::string& key,
                                     std::string& value) const {
-  if (db_.count(domain) > 0 && db_.at(domain).count(key) > 0) {
-    value = db_.at(domain).at(key);
-    return Status(0);
-  } else {
-    return Status(1);
-  }
+  return this->getAny(domain, key, value);
 }
-
+Status EphemeralDatabasePlugin::get(const std::string& domain,
+                                    const std::string& key,
+                                    int& value) const {
+  return this->getAny(domain, key, value);
+}
 Status EphemeralDatabasePlugin::put(const std::string& domain,
                                     const std::string& key,
                                     const std::string& value) {
   db_[domain][key] = value;
   return Status(0);
+}
+
+Status EphemeralDatabasePlugin::put(const std::string& domain,
+                                    const std::string& key,
+                                    int value) {
+  db_[domain][key] = value;
+  return Status(0);
+}
+
+void EphemeralDatabasePlugin::dumpDatabase() const {
+  for (const auto& domainValue : db_) {
+    const auto& domain = domainValue.first;
+    for (const auto& keyValue : domainValue.second) {
+      const auto& key = keyValue.first;
+      const auto& value = keyValue.second;
+      std::cout << domain << "[" << key << "]: " << value << std::endl;
+    }
+  }
 }
 
 Status EphemeralDatabasePlugin::remove(const std::string& domain,
