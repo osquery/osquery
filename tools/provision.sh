@@ -23,9 +23,9 @@ LINUXBREW_CORE_REPO="https://github.com/Linuxbrew/homebrew-core"
 
 # Set the SHA1 commit hashes for the pinned homebrew Taps.
 # Pinning allows determinism for bottle availability, expect to update often.
-HOMEBREW_CORE="941ca36839ea354031846d73ad538e1e44e673f4"
+HOMEBREW_CORE="d7eb77b5c3c5c7786efdee272e3931da982f08ad"
 LINUXBREW_CORE="f54281a496bb7d3dd2f46b2f3067193d05f5013b"
-HOMEBREW_BREW="ac2cbd2137006ebfe84d8584ccdcb5d78c1130d9"
+HOMEBREW_BREW="25542d7398512df4f0add9381fec1d375ab5b4d6"
 LINUXBREW_BREW="20bcce2c176469cec271b46d523eef1510217436"
 
 # These suffixes are used when building bottle tarballs.
@@ -91,6 +91,7 @@ function platform_linux_main() {
   brew_dependency osquery/osquery-local/libudev
   brew_dependency osquery/osquery-local/libaudit
   brew_dependency osquery/osquery-local/libdpkg
+  brew_dependency osquery/osquery-local/smartmontools
 }
 
 function platform_darwin_main() {
