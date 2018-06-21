@@ -35,7 +35,7 @@ ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem
 )
 
 if(POSIX)
-  ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem_linux
+  ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem_posix
     "${CMAKE_CURRENT_LIST_DIR}/posix/fileops.cpp"
   )
 endif()
