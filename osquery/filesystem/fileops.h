@@ -17,6 +17,8 @@
 #ifdef WIN32
 
 #include <windows.h>
+#include "accctrl.h"
+#include "aclapi.h"
 #else
 #include <unistd.h>
 #endif
@@ -105,6 +107,10 @@ enum SeekMode { PF_SEEK_BEGIN = 0, PF_SEEK_CURRENT, PF_SEEK_END };
 #ifdef WIN32
 /// Takes a Windows FILETIME object and returns seconds since epoch
 LONGLONG filetimeToUnixtime(const FILETIME& ft);
+
+LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
+
+std::string getFileAttribStr(ULONG);
 
 /**
  * @brief Stores information about the last Windows async request
