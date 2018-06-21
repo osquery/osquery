@@ -4,7 +4,7 @@ set -e
 BUILD_DIR=$1
 CMAKE_COMMAND="$2 -G Xcode"
 
-echo "Cleanup build dir:$BUILD_DIR"
+echo "Cleaning build directory: $BUILD_DIR"
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
 
