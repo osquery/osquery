@@ -286,9 +286,9 @@ if(CMAKE_GENERATOR STREQUAL Xcode)
   set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS
     "$(inherited)"
   )
-  # set_property(DIRECTORY APPEND PROPERTY COMPILE_OPTIONS
-  #   "$(inherited)"
-  # )
+  set_property(DIRECTORY APPEND PROPERTY COMPILE_OPTIONS
+    "$(inherited)"
+  )
 else()
   if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-DDEBUG)
@@ -297,14 +297,17 @@ else()
   endif()
 endif()
 
+# osquery cmake is using CMake generator expressions to support multiconfig IDEs
+# https://cmake.org/cmake/help/v3.10/manual/cmake-generator-expressions.7.html
+
 if(WINDOWS)
-# TODO(#1985): Is there a MSVC flag congruent to -fstandalone-debug?
-add_compile_options(
-  "$<$<CONFIG:DEBUG>:/Zi>"
-  "$<$<CONFIG:DEBUG>:/Od>"
-  "$<$<CONFIG:RELEASE>:/Ot>"
-  "$<$<CONFIG:RELEASE>:/WX>"
-)
+  # TODO(#1985): Is there a MSVC flag congruent to -fstandalone-debug?
+  add_compile_options(
+    "$<$<CONFIG:DEBUG>:/Zi>"
+    "$<$<CONFIG:DEBUG>:/Od>"
+    "$<$<CONFIG:RELEASE>:/Ot>"
+    "$<$<CONFIG:RELEASE>:/WX>"
+  )
 else()
   add_compile_options(
     "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:RELEASE>>:-Oz>"
