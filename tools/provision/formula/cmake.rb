@@ -3,9 +3,9 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Cmake < AbstractOsqueryFormula
   desc "Cross-platform make"
   homepage "https://www.cmake.org/"
-  url "https://cmake.org/files/v3.10/cmake-3.10.1.tar.gz"
-  sha256 "7be36ee24b0f5928251b644d29f5ff268330a916944ef4a75e23ba01e7573284"
-  revision 200
+  url "https://cmake.org/files/v3.12/cmake-3.12.0-rc1.tar.gz"
+  sha256 "aac7476c40018006c36ae4ee4137d355d824f0f16b065871c9f989a96500fc00"
+  revision 100
 
   head "https://cmake.org/cmake.git"
 
