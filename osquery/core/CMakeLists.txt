@@ -28,7 +28,7 @@ target_sources(osquery_core
 
 ADD_OSQUERY_LIBRARY(TRUE osquery_core_platform "")
 
-if (APPLE)
+if(APPLE)
   darwin_target_sources(osquery_core_platform
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/darwin/conversions.cpp"
@@ -37,7 +37,7 @@ if (APPLE)
   )
 endif()
 
-if (UNIX)
+if(POSIX)
   target_sources(osquery_core_platform
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/posix/initializer.cpp"
@@ -47,7 +47,7 @@ if (UNIX)
   )
 endif()
 
-if (WINDOWS)
+if(WINDOWS)
   target_sources(osquery_core_platform
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/windows/initializer.cpp"
@@ -72,7 +72,7 @@ ADD_OSQUERY_TEST(TRUE
   "${CMAKE_CURRENT_LIST_DIR}/tests/watcher_tests.cpp"
 )
 
-if (UNIX) 
+if(POSIX) 
   ADD_OSQUERY_TEST(TRUE
     "${CMAKE_CURRENT_LIST_DIR}/tests/posix/permissions_tests.cpp"
   )   
