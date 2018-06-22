@@ -1,0 +1,12 @@
+table_name("ssdeep")
+description("Filesystem ssdeep data.")
+schema([
+    Column("path", TEXT, "Must provide a path or directory", index=True, required=True),
+    Column("directory", TEXT, "Must provide a path or directory", required=True),
+    Column("ssdeep", TEXT, "ssdeep hash of provided filesystem data"),
+])
+implementation("ssdeep@genSsdeep")
+examples([
+  "select * from ssdeep where path = '/etc/passwd'",
+  "select * from ssdeep where directory = '/etc/'",
+])
