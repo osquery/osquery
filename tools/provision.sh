@@ -110,6 +110,7 @@ function platform_darwin_main() {
 
   brew_dependency osquery/osquery-local/python
   brew_dependency osquery/osquery-local/bison
+  brew_dependency osquery/osquery-local/ssdeep-cpp
 
   platform_posix_main
 }

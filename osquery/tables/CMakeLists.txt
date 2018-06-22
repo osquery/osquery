@@ -35,6 +35,7 @@ if(APPLE)
   ADD_OSQUERY_LINK_ADDITIONAL("libcups")
   ADD_OSQUERY_LINK_ADDITIONAL("libiconv")
   ADD_OSQUERY_LINK_ADDITIONAL("libbsm")
+  ADD_OSQUERY_LINK_ADDITIONAL("fuzzy")
 endif()
 
 # FreeBSD specific and applicable tables.
