@@ -16,9 +16,14 @@
 
 #ifdef WIN32
 
-#include <windows.h>
 #include "accctrl.h"
 #include "aclapi.h"
+#include <Shlwapi.h>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <windows.h>
 #else
 #include <unistd.h>
 #endif
@@ -63,6 +68,16 @@ using PlatformTimeType = FILETIME;
 #define S_IXOTH (S_IXGRP >> 3)
 #define S_IRWXO (S_IRWXG >> 3)
 
+const std::map<std::int32_t, std::string> kDriveLetters{
+    {0, "A:\\\0"},  {1, "B:\\\0"},  {2, "C:\\\0"},  {3, "D:\\\0"},
+    {4, "E:\\\0"},  {5, "F:\\\0"},  {6, "G:\\\0"},  {7, "H:\\\0"},
+    {8, "I:\\\0"},  {9, "J:\\\0"},  {10, "K:\\\0"}, {11, "L:\\\0"},
+    {12, "M:\\\0"}, {13, "N:\\\0"}, {14, "O:\\\0"}, {15, "P:\\\0"},
+    {16, "Q:\\\0"}, {17, "R:\\\0"}, {18, "S:\\\0"}, {19, "T:\\\0"},
+    {20, "U:\\\0"}, {21, "V:\\\0"}, {22, "W:\\\0"}, {23, "X:\\\0"},
+    {24, "Y:\\\0"}, {25, "Z:\\\0"},
+};
+
 #else
 
 using PlatformHandle = int;
@@ -73,6 +88,29 @@ typedef struct { PlatformTimeType times[2]; } PlatformTime;
 
 /// Constant for an invalid handle.
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
+
+typedef struct win_stat {
+  std::string path;
+  std::string filename;
+  int symlink;
+  std::string file_id;
+  LONGLONG inode;
+  int uid;
+  int gid;
+  std::string mode;
+  LONGLONG device;
+  LONGLONG size;
+  int block_size;
+  LONGLONG atime;
+  LONGLONG mtime;
+  LONGLONG ctime;
+  LONGLONG btime;
+  int hard_links;
+  std::string type;
+  std::string attributes;
+  std::string volume_serial;
+
+} WINDOWS_STAT;
 
 /**
  * @brief File access modes for PlatformFile.
@@ -111,6 +149,8 @@ LONGLONG filetimeToUnixtime(const FILETIME& ft);
 LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
 
 std::string getFileAttribStr(ULONG);
+
+int platformStat(const boost::filesystem::path&, WINDOWS_STAT*);
 
 /**
  * @brief Stores information about the last Windows async request
