@@ -1,0 +1,10 @@
+version: 1.0.{build}
+environment:
+  matrix:
+    - {}
+install:
+  - cmd: tools\make-win64-dev-env.bat
+build_script:
+  - cmd: tools\make-win64-binaries.bat
+on_failure:
+  - cmd: type C:\ProgramData\chocolatey\logs\chocolatey.log
