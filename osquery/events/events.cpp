@@ -147,6 +147,10 @@ void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
   get(yield, start, stop);
 }
 
+EventContextID EventPublisherPlugin::numEvents() const {
+  return next_ec_id_.load();
+}
+
 size_t EventPublisherPlugin::numSubscriptions() {
   ReadLock lock(subscription_lock_);
   return subscriptions_.size();

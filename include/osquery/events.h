@@ -309,9 +309,7 @@ class EventPublisherPlugin : public Plugin,
    *
    * @return The number of events.
    */
-  EventContextID numEvents() const {
-    return next_ec_id_.load();
-  }
+  EventContextID numEvents() const;
 
   /// Check if the EventFactory is ending all publisher threads.
   bool isEnding() const {
