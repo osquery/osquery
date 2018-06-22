@@ -247,37 +247,43 @@ class AP : public AutoRegisterInterface {
 
 template <class R>
 struct RI {
-  RI(const char* t, const char* n, bool o = false) {
-    AutoRegisterInterface::autoloadRegistry(std::make_unique<AR<R>>(t, n, o));
+  RI(const char* class_name,
+     const char* registry_name,
+     bool is_optional = false) {
+    AutoRegisterInterface::autoloadRegistry(
+        std::make_unique<AR<R>>(class_name, registry_name, is_optional));
   }
 };
 
 template <class P>
 struct PI {
-  PI(const char* t, const char* n, bool o = false) {
-    AutoRegisterInterface::autoloadPlugin(std::make_unique<AP<P>>(t, n, o));
+  PI(const char* registry_name,
+     const char* plugin_name,
+     bool is_optional = false) {
+    AutoRegisterInterface::autoloadPlugin(
+        std::make_unique<AP<P>>(registry_name, plugin_name, is_optional));
   }
 };
 } // namespace registries
 
-#define CREATE_REGISTRY(t, n)                                                  \
+#define CREATE_REGISTRY(class_name, registry_name)                             \
   namespace registries {                                                       \
-  const RI<t> k##t(n, n, false);                                               \
+  const RI<class_name> k##class_name(registry_name, registry_name, false);     \
   }
 
-#define CREATE_LAZY_REGISTRY(t, n)                                             \
+#define CREATE_LAZY_REGISTRY(class_name, registry_name)                        \
   namespace registries {                                                       \
-  const RI<t> k##t(n, n, true);                                                \
+  const RI<class_name> k##class_name(registry_name, registry_name, true);      \
   }
 
-#define REGISTER(t, r, n)                                                      \
+#define REGISTER(class_name, registry_name, plugin_name)                       \
   namespace registries {                                                       \
-  const PI<t> k##t(r, n, false);                                               \
+  const PI<class_name> k##class_name(registry_name, plugin_name, false);       \
   }
 
-#define REGISTER_INTERNAL(t, r, n)                                             \
+#define REGISTER_INTERNAL(class_name, registry_name, plugin_name)              \
   namespace registries {                                                       \
-  const PI<t> k##t(r, n, true);                                                \
+  const PI<class_name> k##class_name(registry_name, plugin_name, true);        \
   }
 
 } // namespace osquery

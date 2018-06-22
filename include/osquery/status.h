@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <include/osquery/error.h>
+#include <osquery/error.h>
 #include <sstream>
 #include <string>
 

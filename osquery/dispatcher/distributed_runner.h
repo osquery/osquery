@@ -26,4 +26,4 @@ class DistributedRunner : public InternalRunnable {
 };
 
 Status startDistributed();
-}
+} // namespace osquery
