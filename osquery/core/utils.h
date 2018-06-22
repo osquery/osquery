@@ -32,6 +32,6 @@ Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count);
 
 #ifdef OSQUERY_POSIX
 /// Safer way to do realpath
-const std::string canonicalize_file_name(char* name);
+const std::string canonicalize_file_name(const char* name);
 #endif
 }

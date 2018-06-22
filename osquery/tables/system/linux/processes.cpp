@@ -57,7 +57,8 @@ inline std::string readProcLink(const std::string& attr,
   // The exe is a symlink to the binary on-disk.
   auto attr_path = getProcAttr(attr, pid);
 
-  std::string result = "" struct stat sb;
+  std::string result = "";
+  struct stat sb;
   if (lstat(attr_path.c_str(), &sb) != -1) {
     // Some symlinks may report 'st_size' as zero
     // Use PATH_MAX as best guess
@@ -66,7 +67,7 @@ inline std::string readProcLink(const std::string& attr,
     // of output trucation during race condition
     ssize_t buf_size = sb.st_size < PATH_MAX ? PATH_MAX : sb.st_size;
     // +1 for \0, since readlink does not append a null
-    linkname = malloc(buf_size + 1);
+    char* linkname = static_cast<char *>(malloc(buf_size + 1));
     ssize_t r = readlink(attr_path.c_str(), linkname, buf_size);
 
     if (r > 0) { // Success check

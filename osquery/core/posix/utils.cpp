@@ -44,8 +44,7 @@ Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count) {
   return Status(0, "OK");
 }
 
-const std::string canonicalize_file_name(char* name) {
-  char* buffer = nullptr;
+const std::string canonicalize_file_name(const char* name) {
 #ifdef PATH_MAX
   // On supported platforms where PATH_MAX is defined we can pass null
   // as buffer, and allow libc to alloced space
