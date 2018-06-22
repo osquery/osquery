@@ -75,7 +75,7 @@ Status Dispatcher::addService(InternalRunnableRef service) {
     return Status(1, "Cannot add service, dispatcher is stopping");
   }
 
-  auto thread = std::make_shared<std::thread>(
+  auto thread = std::make_unique<std::thread>(
       std::bind(&InternalRunnable::run, &*service));
 
   DLOG(INFO) << "Adding new service: " << service->name() << " ("
