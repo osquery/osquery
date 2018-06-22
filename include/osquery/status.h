@@ -127,6 +127,16 @@ class Status {
     return ok();
   }
 
+  static Status success() {
+    return Status(success_code, std::string{"ok"});
+  }
+
+  static Status failure(std::string message) {
+    return Status(1, std::move(message));
+  }
+
+  static Status failure(int code, std::string message);
+
   // Below operator implementations useful for testing with gtest
 
   // Enables use of gtest (ASSERT|EXPECT)_EQ
