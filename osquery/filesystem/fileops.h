@@ -24,6 +24,7 @@
 #include <sstream>
 #include <string>
 #include <windows.h>
+#include <map>
 #else
 #include <unistd.h>
 #endif
@@ -69,13 +70,13 @@ using PlatformTimeType = FILETIME;
 #define S_IRWXO (S_IRWXG >> 3)
 
 const std::map<std::int32_t, std::string> kDriveLetters{
-    {0, "A:\\\0"},  {1, "B:\\\0"},  {2, "C:\\\0"},  {3, "D:\\\0"},
-    {4, "E:\\\0"},  {5, "F:\\\0"},  {6, "G:\\\0"},  {7, "H:\\\0"},
-    {8, "I:\\\0"},  {9, "J:\\\0"},  {10, "K:\\\0"}, {11, "L:\\\0"},
-    {12, "M:\\\0"}, {13, "N:\\\0"}, {14, "O:\\\0"}, {15, "P:\\\0"},
-    {16, "Q:\\\0"}, {17, "R:\\\0"}, {18, "S:\\\0"}, {19, "T:\\\0"},
-    {20, "U:\\\0"}, {21, "V:\\\0"}, {22, "W:\\\0"}, {23, "X:\\\0"},
-    {24, "Y:\\\0"}, {25, "Z:\\\0"},
+    {0, "A:\\"},  {1, "B:\\"},  {2, "C:\\"},  {3, "D:\\"},
+    {4, "E:\\"},  {5, "F:\\"},  {6, "G:\\"},  {7, "H:\\"},
+    {8, "I:\\"},  {9, "J:\\"},  {10, "K:\\"}, {11, "L:\\"},
+    {12, "M:\\"}, {13, "N:\\"}, {14, "O:\\"}, {15, "P:\\"},
+    {16, "Q:\\"}, {17, "R:\\"}, {18, "S:\\"}, {19, "T:\\"},
+    {20, "U:\\"}, {21, "V:\\"}, {22, "W:\\"}, {23, "X:\\"},
+    {24, "Y:\\"}, {25, "Z:\\"},
 };
 
 #else
@@ -148,7 +149,7 @@ LONGLONG filetimeToUnixtime(const FILETIME& ft);
 
 LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
 
-std::string getFileAttribStr(ULONG);
+std::string getFileAttribStr(unsigned long);
 
 int platformStat(const boost::filesystem::path&, WINDOWS_STAT*);
 
