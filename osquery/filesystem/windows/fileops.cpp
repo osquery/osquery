@@ -1480,81 +1480,74 @@ LONGLONG longIntToUnixtime(LARGE_INTEGER& ft) {
   return ull.QuadPart / 10000000ULL - 11644473600ULL;
 }
 
-std::string getFileAttribStr(ULONG FileAttributes) {
+std::string getFileAttribStr(unsigned long file_attributes) {
   std::string attribs;
 
-  if (FileAttributes & FILE_ATTRIBUTE_ARCHIVE) {
+  if (file_attributes & FILE_ATTRIBUTE_ARCHIVE) {
     // Archive file attribute
     attribs.push_back('A');
-    FileAttributes &= ~FILE_ATTRIBUTE_ARCHIVE;
+    file_attributes &= ~FILE_ATTRIBUTE_ARCHIVE;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_COMPRESSED) {
+  if (file_attributes & FILE_ATTRIBUTE_COMPRESSED) {
     // Compressed (Not included in attrib.exe output)
     attribs.push_back('C');
-    FileAttributes &= ~FILE_ATTRIBUTE_COMPRESSED;
+    file_attributes &= ~FILE_ATTRIBUTE_COMPRESSED;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_ENCRYPTED) {
+  if (file_attributes & FILE_ATTRIBUTE_ENCRYPTED) {
     // Encrypted (Not included in attrib.exe output)
     attribs.push_back('E');
-    FileAttributes &= ~FILE_ATTRIBUTE_ENCRYPTED;
+    file_attributes &= ~FILE_ATTRIBUTE_ENCRYPTED;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+  if (file_attributes & FILE_ATTRIBUTE_REPARSE_POINT) {
     // Hidden file attribute
     attribs.push_back('L');
-    FileAttributes &= ~FILE_ATTRIBUTE_HIDDEN;
+    file_attributes &= ~FILE_ATTRIBUTE_HIDDEN;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_HIDDEN) {
+  if (file_attributes & FILE_ATTRIBUTE_HIDDEN) {
     // Hidden file attribute
     attribs.push_back('H');
-    FileAttributes &= ~FILE_ATTRIBUTE_HIDDEN;
+    file_attributes &= ~FILE_ATTRIBUTE_HIDDEN;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_INTEGRITY_STREAM) {
+  if (file_attributes & FILE_ATTRIBUTE_INTEGRITY_STREAM) {
     //
     attribs.push_back('V');
-    FileAttributes &= ~FILE_ATTRIBUTE_INTEGRITY_STREAM;
+    file_attributes &= ~FILE_ATTRIBUTE_INTEGRITY_STREAM;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_NORMAL) {
+  if (file_attributes & FILE_ATTRIBUTE_NORMAL) {
     // Normal (Not included in attrib.exe output)
     attribs.push_back('N');
-    FileAttributes &= ~FILE_ATTRIBUTE_NORMAL;
+    file_attributes &= ~FILE_ATTRIBUTE_NORMAL;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_NOT_CONTENT_INDEXED) {
+  if (file_attributes & FILE_ATTRIBUTE_NOT_CONTENT_INDEXED) {
     // Not content indexed file attribute
     attribs.push_back('I');
-    FileAttributes &= ~FILE_ATTRIBUTE_NOT_CONTENT_INDEXED;
+    file_attributes &= ~FILE_ATTRIBUTE_NOT_CONTENT_INDEXED;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_NO_SCRUB_DATA) {
+  if (file_attributes & FILE_ATTRIBUTE_NO_SCRUB_DATA) {
     // No scrub file attribute
     attribs.push_back('X');
-    FileAttributes &= ~FILE_ATTRIBUTE_NO_SCRUB_DATA;
+    file_attributes &= ~FILE_ATTRIBUTE_NO_SCRUB_DATA;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_OFFLINE) {
+  if (file_attributes & FILE_ATTRIBUTE_OFFLINE) {
     // Offline attribute
     attribs.push_back('O');
-    FileAttributes &= ~FILE_ATTRIBUTE_OFFLINE;
+    file_attributes &= ~FILE_ATTRIBUTE_OFFLINE;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_READONLY) {
+  if (file_attributes & FILE_ATTRIBUTE_READONLY) {
     // Read-only file attribute
     attribs.push_back('R');
-    FileAttributes &= ~FILE_ATTRIBUTE_READONLY;
+    file_attributes &= ~FILE_ATTRIBUTE_READONLY;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_SYSTEM) {
+  if (file_attributes & FILE_ATTRIBUTE_SYSTEM) {
     // System file attribute
     attribs.push_back('S');
-    FileAttributes &= ~FILE_ATTRIBUTE_SYSTEM;
+    file_attributes &= ~FILE_ATTRIBUTE_SYSTEM;
   }
-  if (FileAttributes & FILE_ATTRIBUTE_TEMPORARY) {
+  if (file_attributes & FILE_ATTRIBUTE_TEMPORARY) {
     // Temporary file attribute (Not included in attrib.exe output)
     attribs.push_back('T');
-    FileAttributes &= ~FILE_ATTRIBUTE_TEMPORARY;
+    file_attributes &= ~FILE_ATTRIBUTE_TEMPORARY;
   }
-
-  /*
-  NOTE:  The following are included in attrib.exe output as of Win 8/10, but
-  docs are limited
-  P   Pinned attribute.
-  U   Unpinned attribute.
-  */
 
   return attribs;
 }
@@ -1598,7 +1591,7 @@ int platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   FILE_BASIC_INFO basic_info;
   BY_HANDLE_FILE_INFORMATION file_info;
 
-  if (0 == GetFileInformationByHandle(file_handle, &file_info)) {
+  if (GetFileInformationByHandle(file_handle, &file_info) == 0) {
     CloseHandle(file_handle);
     return -1;
   }
@@ -1623,7 +1616,7 @@ int platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   // Permission bits don't make sense for Windows. Use ntfs_acl_permissions
   // table
-  wfile_stat->mode = "-";
+  wfile_stat->mode = "-1";
 
   wfile_stat->symlink = 0;
 
@@ -1631,41 +1624,36 @@ int platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   // Try to assign a human readable file type
   switch (file_type) {
-    {
-    case FILE_TYPE_CHAR:
+  case FILE_TYPE_CHAR: {
+    wfile_stat->type = "Character";
 
-      wfile_stat->type = "Character";
-      break;
+    break;
+  }
+  case FILE_TYPE_DISK: {
+    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+      wfile_stat->type = "Directory";
 
-    case FILE_TYPE_DISK:
-
-      if (file_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-        wfile_stat->type = "Directory";
-
-      } else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_NORMAL) {
-        wfile_stat->type = "Regular";
-      }
-
-      else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-        wfile_stat->type = "Symbolic";
-        wfile_stat->symlink = 1;
-
-      } else {
-        // This is the type returned from GetFileType -> FILE_TYPE_DISK
-        wfile_stat->type = "Disk";
-      }
-      break;
-
-    case FILE_TYPE_PIPE:
-
-      // If GetNamedPipeInfo fails we assume it's a socket
-      (GetNamedPipeInfo(file_handle, 0, 0, 0, 0)) ? wfile_stat->type = "Pipe"
-                                                  : wfile_stat->type = "Socket";
-      break;
-
-    default:
-      wfile_stat->type = "Unknown";
+    } else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_NORMAL) {
+      wfile_stat->type = "Regular";
     }
+
+    else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+      wfile_stat->type = "Symbolic";
+      wfile_stat->symlink = 1;
+
+    } else {
+      // This is the type returned from GetFileType -> FILE_TYPE_DISK
+      wfile_stat->type = "Disk";
+    }
+    break;
+  }
+  case FILE_TYPE_PIPE: {
+    // If GetNamedPipeInfo fails we assume it's a socket
+    (GetNamedPipeInfo(file_handle, 0, 0, 0, 0)) ? wfile_stat->type = "Pipe"
+                                                : wfile_stat->type = "Socket";
+    break;
+  }
+  default: { wfile_stat->type = "Unknown"; }
   }
 
   wfile_stat->attributes = getFileAttribStr(file_info.dwFileAttributes);
@@ -1699,6 +1687,8 @@ int platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
                          &free_clusters,
                          &total_clusters) != 0) {
       wfile_stat->block_size = bytes_per_sect;
+    } else {
+      wfile_stat->block_size = -1;
     }
 
   } else {
