@@ -6,13 +6,13 @@ class Thrift < AbstractOsqueryFormula
   license "Apache-2.0"
   url "https://github.com/apache/thrift/archive/0.11.0.tar.gz"
   sha256 "0e324569321a1b626381baabbb98000c8dd3a59697292dbcc71e67135af0fefd"
-  revision 200
+  revision 202
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "4d556e7005dadd0e0035fa929a25b3e616ab3903ec47288a2138121180c88633" => :sierra
-    sha256 "cfdee5e7bd1d4ff3b0ead4b686620ad5784bfd5f6a51f86543729bd351002ea9" => :x86_64_linux
+    sha256 "151e914504c08a6849a3560a2478b7be91de6364fa781eaa57341b6e772a4c04" => :sierra
+    sha256 "4fec1ff06e235b0e3c971d6372aadba717655295a59157099f5daa79b9305b3c" => :x86_64_linux
   end
 
   depends_on "bison" => :build
@@ -38,18 +38,22 @@ class Thrift < AbstractOsqueryFormula
       "--without-qt",
       "--without-qt4",
       "--without-nodejs",
+      "--without-rs",
       "--with-python",
       "--with-cpp",
-      "--with-openssl=#{Formula["osquery/osquery-local/openssl"].prefix}"
+      "--enable-tutorial=no",
+      "--with-openssl=#{Formula["osquery/osquery-local/openssl"].prefix}",
+      "--with-boost=#{Formula["osquery/osquery-local/boost"].prefix}"
     ]
 
     ENV.prepend_path "PATH", Formula["bison"].bin
+
+    # Prevent unknown yylex.
+    ENV["LIBS"] = "/usr/lib/x86_64-linux-gnu/libfl.a" if OS.linux?
+
     system "./bootstrap.sh"
-    system "./configure", "--disable-debug",
-                          "--prefix=#{prefix}",
+    system "./configure", *osquery_autoconf_flags,
                           "--libdir=#{lib}",
-                          "--disable-shared",
-                          "--enable-static",
                           *exclusions
     system "make", "-j#{ENV.make_jobs}"
     ENV.delete "MACOSX_DEPLOYMENT_TARGET"

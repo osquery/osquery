@@ -17,7 +17,7 @@ namespace osquery {
 
 const std::string LoggerConfigParserPlugin::kLoggerKey{"logger"};
 
-Status LoggerConfigParserPlugin::update(const std::string& source,
+Status LoggerConfigParserPlugin::update(const std::string& /* source */,
                                         const ParserConfig& config) {
   rj::Document& doc = data_.doc();
 

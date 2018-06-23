@@ -293,13 +293,6 @@ void WatcherRunner::watchExtensions() {
       extension_restarts_[extension.first] = 0;
     }
   }
-  // If any extension creations failed, stop managing them.
-  for (auto& extension : extension_restarts_) {
-    if (extension.second > 3) {
-      watcher.removeExtensionPath(extension.first);
-      extension.second = 0;
-    }
-  }
 }
 
 size_t WatcherRunner::delayedTime() const {

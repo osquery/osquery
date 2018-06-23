@@ -14,7 +14,7 @@ if(LINUX OR DARWIN)
     add_custom_command(
       COMMAND
         LD_LIBRARY_PATH=${BUILD_DEPS}/lib:$ENV{LD_LIBRARY_PATH}
-        ${THRIFT_COMPILER} --gen mstch_cpp2:stack_arguments,include_prefix=generated --gen py
+        ${THRIFT_COMPILER} --gen mstch_cpp2:stack_arguments,include_prefix=generated --gen py:no_utf8strings
         --templates "${BUILD_DEPS}/include/thrift/templates"
         -o "${CMAKE_BINARY_DIR}/generated"
         "${CMAKE_SOURCE_DIR}/osquery.thrift"
@@ -42,7 +42,7 @@ if(LINUX OR DARWIN)
     add_custom_command(
       COMMAND
         LD_LIBRARY_PATH=${BUILD_DEPS}/lib:$ENV{LD_LIBRARY_PATH}
-        ${THRIFT_COMPILER} --gen cpp --gen py
+        ${THRIFT_COMPILER} --gen cpp --gen py:no_utf8strings
         "${CMAKE_SOURCE_DIR}/osquery.thrift"
       DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
@@ -52,7 +52,7 @@ if(LINUX OR DARWIN)
 else()
   add_custom_command(
     COMMAND
-      ${THRIFT_COMPILER} --gen cpp --gen py
+      ${THRIFT_COMPILER} --gen cpp --gen py:no_utf8strings
         "${CMAKE_SOURCE_DIR}/osquery.thrift"
     DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"

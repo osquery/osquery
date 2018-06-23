@@ -14,7 +14,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
-#include "osquery/dispatcher/distributed.h"
+#include "osquery/dispatcher/distributed_runner.h"
 
 namespace osquery {
 
@@ -58,4 +58,4 @@ Status startDistributed() {
     return Status(1, "Distributed query service not enabled.");
   }
 }
-}
+} // namespace osquery

@@ -16,14 +16,19 @@ set(OSQUERY_SOURCES "")
 # the 'core' set of sources.
 set(OSQUERY_LINKS "")
 
-# Finally a set of 'core' tests and kernel-tests, and benchmark tests, is kept.
+# Finally a set of 'core' tests, and benchmark tests, is kept.
 set(OSQUERY_TESTS "")
-set(OSQUERY_KERNEL_TESTS "")
 set(OSQUERY_BENCHMARKS "")
-set(OSQUERY_KERNEL_BENCHMARKS "")
 
 # The 'additional' source files are NOT included with SDK (libosquery_additional).
 set(OSQUERY_ADDITIONAL_SOURCES "")
+
+# Temporary hack for additional library, this library is sourceless 
+# so for some reason CMake adds "rm -f" as PostBuild step to XCode project
+if(CMAKE_GENERATOR STREQUAL Xcode)
+  set(OSQUERY_ADDITIONAL_SOURCES main/empty.cpp)
+endif()
+
 set(OSQUERY_ADDITIONAL_LINKS "")
 set(OSQUERY_ADDITIONAL_TESTS "")
 set(OSQUERY_TABLES_TESTS "")
@@ -108,7 +113,7 @@ if(NOT SKIP_TABLES)
 endif()
 
 if(WINDOWS)
-  if(DEFINED ENV{DEBUG})
+  if(CMAKE_BUILD_TYPE EQUAL "DEBUG")
     set(WB_KEY "sgd")
     set(WO_KEY "_dbg")
     set(WT_KEY "d_dbg")
@@ -204,7 +209,7 @@ if(APPLE)
   ADD_OSQUERY_LINK_CORE("-Wl,-no_weak_imports")
 elseif(LINUX OR FREEBSD)
   ADD_OSQUERY_LINK_CORE("-Wl,-zrelro -Wl,-znow")
-  if(NOT DEFINED ENV{SANITIZE} AND NOT DEFINED ENV{DEBUG})
+  if(NOT DEFINED ENV{SANITIZE} AND (CMAKE_BUILD_TYPE STREQUAL "RELEASE"))
     ADD_OSQUERY_LINK_CORE("-pie")
   endif()
 endif()
@@ -422,14 +427,6 @@ if(NOT SKIP_TESTS)
   SET_OSQUERY_COMPILE(osquery_tests "${GTEST_FLAGS}")
   add_test(osquery_tests osquery_tests ${TEST_ARGS})
 
-  # osquery kernel tests.
-  if(NOT SKIP_KERNEL AND NOT ${OSQUERY_BUILD_SDK_ONLY} AND NOT WINDOWS)
-    add_executable(osquery_kernel_tests main/tests.cpp ${OSQUERY_KERNEL_TESTS})
-    ADD_DEFAULT_LINKS(osquery_kernel_tests TRUE)
-    target_link_libraries(osquery_kernel_tests gtest gmock libosquery_testing)
-    SET_OSQUERY_COMPILE(osquery_kernel_tests "${GTEST_FLAGS} -DKERNEL_TEST=1")
-  endif()
-
   # osquery benchmarks.
   if(NOT SKIP_BENCHMARKS AND NOT OSQUERY_BUILD_SDK_ONLY)
     add_executable(osquery_benchmarks main/benchmarks.cpp ${OSQUERY_BENCHMARKS})
@@ -437,14 +434,6 @@ if(NOT SKIP_TESTS)
     ADD_DEFAULT_LINKS(osquery_benchmarks TRUE)
     SET_OSQUERY_COMPILE(osquery_benchmarks "${GTEST_FLAGS}")
     set(BENCHMARK_TARGET "$<TARGET_FILE:osquery_benchmarks>")
-
-    # osquery kernel benchmarks.
-    if (NOT SKIP_KERNEL)
-      add_executable(osquery_kernel_benchmarks main/benchmarks.cpp ${OSQUERY_KERNEL_BENCHMARKS})
-      target_link_libraries(osquery_kernel_benchmarks benchmark libosquery_testing pthread)
-      ADD_DEFAULT_LINKS(osquery_kernel_benchmarks TRUE)
-      SET_OSQUERY_COMPILE(osquery_kernel_benchmarks "${GTEST_FLAGS} -DKERNEL_TEST=1")
-    endif()
 
     # make benchmark
     add_custom_target(

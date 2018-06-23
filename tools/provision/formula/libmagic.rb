@@ -15,7 +15,7 @@ class Libmagic < AbstractOsqueryFormula
     sha256 "b92728f8418492c61283600befdabbb891eba150d0611f10a4bc53989825952a" => :x86_64_linux
   end
 
-  depends_on "python@2" => :optional
+  depends_on :python => :optional
 
   option :universal
 
