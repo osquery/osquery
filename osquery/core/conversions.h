@@ -157,7 +157,7 @@ inline Status safeStrtol(const std::string& rep, size_t base, long int& out) {
 }
 
 /// Safely convert a std::wstring to an integer
-inline int safe_wstr_to_int(std::wstring str) {
+inline int safeWstrToInt(std::wstring str) {
   //std::stoi can throw, and std::stol doesn't support std::wstring
   try {
     return std::stoi(str);

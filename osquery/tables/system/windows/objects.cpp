@@ -13,10 +13,11 @@
 #include <osquery/core.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
-#include <osquery/core/windows/ntapi.h>
-#include <osquery/core/windows/wmi.h>
-#include <osquery/core/conversions.h>
-#include <osquery/core/windows/handle.h>
+
+#include "osquery/core/windows/ntapi.h"
+#include "osquery/core/windows/wmi.h"
+#include "osquery/core/conversions.h"
+#include "osquery/core/windows/handle.h"
 
 namespace osquery {
 namespace tables {
@@ -153,7 +154,7 @@ Status enumerateBaseNamedObjectsLinks(const std::wstring& session_num,
   // another approach is to enumerate windows terminal services sessions with
   // WTSEnumerateSessions and validate against that list
   //
-  if (!(L"0" == session_num || safe_wstr_to_int(session_num) > 0)) {
+  if (!(L"0" == session_num || safeWstrToInt(session_num) > 0)) {
     return Status(ERROR_INVALID_PARAMETER, "Unrecognized Session Id");
   }
 
@@ -214,7 +215,7 @@ QueryData genBaseNamedObjects(QueryContext& context) {
 
     for (auto& object : objects) {
       Row r;
-      r["session_id"] = INTEGER(safe_wstr_to_int(session.first));
+      r["session_id"] = INTEGER(safeWstrToInt(session.first));
       r["object_name"] = wstringToString(object.first.c_str());
       r["object_type"] = wstringToString(object.second.c_str());
 
