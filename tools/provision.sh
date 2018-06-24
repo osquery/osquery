@@ -140,6 +140,7 @@ function platform_darwin_main() {
   brew_dependency osquery/osquery-local/lldpd
   brew_dependency osquery/osquery-local/librdkafka
   brew_dependency osquery/osquery-local/librpm
+  brew_dependency osquery/osquery-local/jemalloc
 
   # POSIX-shared locally-managed tools.
   brew_dependency osquery/osquery-local/zzuf
