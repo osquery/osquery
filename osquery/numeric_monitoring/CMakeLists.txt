@@ -6,14 +6,14 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-file(GLOB OSQUERY_NUMERIC_MONITORING "*.cpp")
+file(GLOB OSQUERY_NUMERIC_MONITORING "numeric_monitoring.cpp")
 
 ADD_OSQUERY_LIBRARY_CORE(
   OSQUERY_NUMERIC_MONITORING
   ${OSQUERY_NUMERIC_MONITORING}
 )
 
-file(GLOB OSQUERY_NUMERIC_MONITORING_TESTS "tests/*.cpp")
+file(GLOB OSQUERY_NUMERIC_MONITORING_TESTS)
 ADD_OSQUERY_TEST_CORE(${OSQUERY_NUMERIC_MONITORING_TESTS})
 
 set(OSQUERY_NUMERIC_MONITORING_PLUGINS
