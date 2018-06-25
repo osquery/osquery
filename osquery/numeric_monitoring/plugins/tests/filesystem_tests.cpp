@@ -45,10 +45,8 @@ TEST_F(NumericMonitoringFilesystemPluginTests, init) {
   const auto log_path =
       fs::temp_directory_path() /
       fs::unique_path(
-          "osquery.numeric_monitoring_filesystem_plugin_test.%%%%-%%%%.log");
-  fs::remove(log_path); // in case it is already exists for some reason
+          "osquery.numeric_monitoring_filesystem_plugin_test.%%%%-%%%%%%.log");
   FLAGS_numeric_monitoring_filesystem_path = log_path.string();
-
   NumericMonitoringFilesystemPlugin plugin{};
   ASSERT_FALSE(plugin.isSetUp());
   ASSERT_TRUE(plugin.setUp().ok());
