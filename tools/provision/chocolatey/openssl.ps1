@@ -93,15 +93,20 @@ if (-not (Test-Path $zipFile)) {
   Invoke-WebRequest $url -OutFile "$zipFile"
 }
 
+$7z = (Get-Command '7z').Source
+$7zargs = 'x ' + $zipFile
+$perl = (Get-Command 'perl').Source
+$nmake = (Get-Command 'nmake').Source
+
 # Extract the source
-7z x $zipFile
+Start-OsqueryProcess $7z $7zargs $false
 $sourceDir = "$packageName-OpenSSL_$version"
 Set-Location $sourceDir
 
 # Build the libraries
-perl Configure VC-WIN64A
-ms\do_win64a
-nmake -f ms\nt.mak
+Start-OsqueryProcess $perl 'Configure VC-WIN64A' $false
+Invoke-BatchFile 'ms\do_win64a.bat'
+Start-OsqueryProcess $nmake '-f ms\nt.mak' $false
 
 #$buildDir = New-Item -Force -ItemType Directory -Path 'osquery-win-build'
 #Set-Location $buildDir
