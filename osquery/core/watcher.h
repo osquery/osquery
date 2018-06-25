@@ -292,7 +292,9 @@ class WatcherRunner : public InternalRunnable {
 
  private:
   /// Dispatcher (this service thread's) entry point.
-  void start();
+  void start() override;
+
+  void stop() override;
 
   /// Boilerplate function to sleep for some configured latency
   bool ok() const;
@@ -365,7 +367,7 @@ class WatcherWatcherRunner : public InternalRunnable {
       : InternalRunnable("WatcherWatcherRunner"), watcher_(watcher) {}
 
   /// Runnable thread's entry point.
-  void start();
+  void start() override;
 
  private:
   /// Parent, or watchdog, process ID.

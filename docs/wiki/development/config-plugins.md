@@ -31,7 +31,7 @@ class FilesystemConfigPlugin : public ConfigPlugin {
                     std::istreambuf_iterator<char>());
 
     // Note 4: Return an osquery Status and JSON encoded config.
-    content["default_source"] = std::move(content);
+    config["default_source"] = std::move(content);
     return Status(0, "OK");
   }
 };

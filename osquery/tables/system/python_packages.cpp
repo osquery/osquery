@@ -8,9 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <string>
-
 #include <boost/filesystem.hpp>
+#include <stdlib.h>
+#include <string>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -29,8 +29,6 @@ namespace tables {
 
 /// Number of fields when splitting metadata and info.
 const size_t kNumFields = 2;
-
-/// Locations of site and dist packages.
 const std::set<std::string> kPythonPath = {
     "/usr/local/lib/python2.7/dist-packages/",
     "/usr/local/lib/python2.7/site-packages/",
@@ -48,7 +46,6 @@ const std::string kWinPythonInstallKey =
 
 void genPackage(const std::string& path, Row& r) {
   std::string content;
-
   if (!readFile(path, content).ok()) {
     TLOG << "Cannot find info file: " << path;
     return;
@@ -99,6 +96,8 @@ void genSiteDirectories(const std::string& site, QueryData& results) {
     } else {
       continue;
     }
+
+    r["directory"] = site;
     r["path"] = directory;
     results.push_back(r);
   }
@@ -124,8 +123,14 @@ void genWinPythonPackages(const std::string& keyGlob, QueryData& results) {
 
 QueryData genPythonPackages(QueryContext& context) {
   QueryData results;
-
-  for (const auto& key : kPythonPath) {
+  std::set<std::string> paths;
+  if (context.constraints.count("directory") > 0 &&
+      context.constraints.at("directory").exists(EQUALS)) {
+    paths = context.constraints["directory"].getAll(EQUALS);
+  } else {
+    paths = kPythonPath;
+  }
+  for (const auto& key : paths) {
     genSiteDirectories(key, results);
   }
 

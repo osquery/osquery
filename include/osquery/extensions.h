@@ -12,6 +12,7 @@
 
 #include <osquery/core.h>
 #include <osquery/flags.h>
+#include <osquery/registry_interface.h>
 #include <osquery/sql.h>
 
 namespace osquery {
@@ -55,11 +56,14 @@ class ExternalSQLPlugin : public SQLPlugin {
   Status query(const std::string& query,
                QueryData& results,
                bool use_cache = false) const override {
+    static_cast<void>(use_cache);
     return queryExternal(query, results);
   }
 
   Status getQueryTables(const std::string& query,
                         std::vector<std::string>& tables) const override {
+    static_cast<void>(query);
+    static_cast<void>(tables);
     return Status(0, "Not used");
   }
 

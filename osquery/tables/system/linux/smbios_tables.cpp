@@ -118,10 +118,108 @@ QueryData genSMBIOSTables(QueryContext& context) {
   }
 
   QueryData results;
-  parser.tables(([&results](
-      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+  parser.tables(([&results](size_t index,
+                            const SMBStructHeader* hdr,
+                            uint8_t* address,
+                            uint8_t* textAddrs,
+                            size_t size) {
     genSMBIOSTable(index, hdr, address, size, results);
   }));
+
+  return results;
+}
+
+QueryData genMemoryDevices(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryDevices(index, hdr, address, textAddrs, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryArrays(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryArrays(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryArrayMappedAddresses(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryArrayMappedAddresses(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryErrorInfo(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryErrorInfo(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryDeviceMappedAddresses(QueryContext& context) {
+  QueryData results;
+
+  LinuxSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryDeviceMappedAddresses(index, hdr, address, size, results);
+  });
 
   return results;
 }
@@ -134,19 +232,20 @@ QueryData genPlatformInfo(QueryContext& context) {
   }
 
   QueryData results;
-  parser.tables(([&results](
-      size_t index, const SMBStructHeader* hdr, uint8_t* address, size_t size) {
+  parser.tables(([&results](size_t index,
+                            const SMBStructHeader* hdr,
+                            uint8_t* address,
+                            uint8_t* textAddrs,
+                            size_t size) {
     if (hdr->type != kSMBIOSTypeBIOS || size < 0x12) {
       return;
     }
 
     Row r;
-    // The DMI string data uses offsets (indexes) into a data section that
-    // trails the header and structure offsets.
-    uint8_t* data = address + hdr->length;
-    r["vendor"] = dmiString(data, address, 0x04);
-    r["version"] = dmiString(data, address, 0x05);
-    r["date"] = dmiString(data, address, 0x08);
+
+    r["vendor"] = dmiString(textAddrs, address, 0x04);
+    r["version"] = dmiString(textAddrs, address, 0x05);
+    r["date"] = dmiString(textAddrs, address, 0x08);
 
     // Firmware load address as a WORD.
     size_t firmware_address = (address[0x07] << 8) + address[0x06];
@@ -168,5 +267,5 @@ QueryData genPlatformInfo(QueryContext& context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

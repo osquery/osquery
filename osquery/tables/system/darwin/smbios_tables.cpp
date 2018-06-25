@@ -101,10 +101,106 @@ QueryData genSMBIOSTables(QueryContext& context) {
     parser.tables(([&results](size_t index,
                               const SMBStructHeader* hdr,
                               uint8_t* address,
+                              uint8_t* textAddrs,
                               size_t size) {
       genSMBIOSTable(index, hdr, address, size, results);
     }));
   }
+  return results;
+}
+
+QueryData genMemoryDevices(QueryContext& context) {
+  QueryData results;
+
+  DarwinSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryDevices(index, hdr, address, textAddrs, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryArrays(QueryContext& context) {
+  QueryData results;
+
+  DarwinSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryArrays(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryArrayMappedAddresses(QueryContext& context) {
+  QueryData results;
+
+  DarwinSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryArrayMappedAddresses(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryErrorInfo(QueryContext& context) {
+  QueryData results;
+
+  DarwinSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryErrorInfo(index, hdr, address, size, results);
+  });
+
+  return results;
+}
+
+QueryData genMemoryDeviceMappedAddresses(QueryContext& context) {
+  QueryData results;
+
+  DarwinSMBIOSParser parser;
+  if (!parser.discover()) {
+    return results;
+  }
+
+  parser.tables([&results](size_t index,
+                           const SMBStructHeader* hdr,
+                           uint8_t* address,
+                           uint8_t* textAddrs,
+                           size_t size) {
+    genSMBIOSMemoryDeviceMappedAddresses(index, hdr, address, size, results);
+  });
+
   return results;
 }
 
@@ -166,5 +262,5 @@ QueryData genPlatformInfo(QueryContext& context) {
   CFRelease(details);
   return {r};
 }
-}
-}
+} // namespace tables
+} // namespace osquery

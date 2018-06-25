@@ -22,6 +22,7 @@
 #include <gflags/gflags.h>
 
 #include <osquery/core.h>
+#include <osquery/status.h>
 
 #ifdef FREEBSD
 #define GFLAGS_NAMESPACE gflags
@@ -40,6 +41,8 @@ std::string lexical_cast<std::string, bool>(const bool& arg);
 } // namespace boost
 
 namespace osquery {
+
+class Status;
 
 struct FlagDetail {
   std::string description;
@@ -78,10 +81,8 @@ class Flag : private boost::noncopyable {
   /// Create a Gflags alias to name, using the Flag::getValue accessor.
   static int createAlias(const std::string& alias, const FlagDetail& flag);
 
-  static Flag& instance() {
-    static Flag f;
-    return f;
-  }
+  /// Singleton accessor.
+  static Flag& instance();
 
  private:
   /// Keep the ctor private, for accessing through `add` wrapper.

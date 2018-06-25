@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <algorithm>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -100,7 +102,7 @@ RecursiveMutex config_schedule_mutex_;
 RecursiveMutex config_files_mutex_;
 RecursiveMutex config_performance_mutex_;
 
-using PackRef = std::shared_ptr<Pack>;
+using PackRef = std::unique_ptr<Pack>;
 
 /**
  * The schedule is an iterable collection of Packs. When you iterate through
@@ -110,7 +112,7 @@ using PackRef = std::shared_ptr<Pack>;
 class Schedule : private boost::noncopyable {
  public:
   /// Under the hood, the schedule is just a list of the Pack objects
-  using container = std::list<PackRef>;
+  using container = std::vector<PackRef>;
 
   /**
    * @brief Create a schedule maintained by the configuration.
@@ -129,11 +131,11 @@ class Schedule : private boost::noncopyable {
    * next iterator element or skipped.
    */
   struct Step {
-    bool operator()(PackRef& pack);
+    bool operator()(const PackRef& pack) const;
   };
 
   /// Add a pack to the schedule
-  void add(PackRef&& pack);
+  void add(PackRef pack);
 
   /// Remove a pack, by name.
   void remove(const std::string& pack);
@@ -178,13 +180,13 @@ class Schedule : private boost::noncopyable {
   friend class Config;
 };
 
-bool Schedule::Step::operator()(PackRef& pack) {
+bool Schedule::Step::operator()(const PackRef& pack) const {
   return pack->shouldPackExecute();
 }
 
-void Schedule::add(PackRef&& pack) {
+void Schedule::add(PackRef pack) {
   remove(pack->getName(), pack->getSource());
-  packs_.push_back(pack);
+  packs_.push_back(std::move(pack));
 }
 
 void Schedule::remove(const std::string& pack) {
@@ -192,23 +194,30 @@ void Schedule::remove(const std::string& pack) {
 }
 
 void Schedule::remove(const std::string& pack, const std::string& source) {
-  packs_.remove_if([pack, source](PackRef& p) {
-    if (p->getName() == pack && (p->getSource() == source || source == "")) {
-      Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
-      return true;
-    }
-    return false;
-  });
+  auto new_end = std::remove_if(
+      packs_.begin(), packs_.end(), [pack, source](const PackRef& p) {
+        if (p->getName() == pack &&
+            (p->getSource() == source || source == "")) {
+          Config::get().removeFiles(source + FLAGS_pack_delimiter +
+                                    p->getName());
+          return true;
+        }
+        return false;
+      });
+  packs_.erase(new_end, packs_.end());
 }
 
 void Schedule::removeAll(const std::string& source) {
-  packs_.remove_if(([source](PackRef& p) {
-    if (p->getSource() == source) {
-      Config::get().removeFiles(source + FLAGS_pack_delimiter + p->getName());
-      return true;
-    }
-    return false;
-  }));
+  auto new_end =
+      std::remove_if(packs_.begin(), packs_.end(), [source](const PackRef& p) {
+        if (p->getSource() == source) {
+          Config::get().removeFiles(source + FLAGS_pack_delimiter +
+                                    p->getName());
+          return true;
+        }
+        return false;
+      });
+  packs_.erase(new_end, packs_.end());
 }
 
 Schedule::iterator Schedule::begin() {
@@ -236,7 +245,7 @@ class ConfigRefreshRunner : public InternalRunnable {
   ConfigRefreshRunner() : InternalRunnable("ConfigRefreshRunner") {}
 
   /// A simple wait/interruptible lock.
-  void start();
+  void start() override;
 
  private:
   /// The current refresh rate in seconds.
@@ -298,7 +307,7 @@ Schedule::Schedule() {
 }
 
 Config::Config()
-    : schedule_(std::make_shared<Schedule>()),
+    : schedule_(std::make_unique<Schedule>()),
       valid_(false),
       refresh_runner_(std::make_shared<ConfigRefreshRunner>()) {}
 
@@ -316,7 +325,7 @@ void Config::addPack(const std::string& name,
                                         const rj::Value& pack_obj) {
     RecursiveLock wlock(config_schedule_mutex_);
     try {
-      schedule_->add(std::make_shared<Pack>(pack_name, source, pack_obj));
+      schedule_->add(std::make_unique<Pack>(pack_name, source, pack_obj));
       if (schedule_->last()->shouldPackExecute()) {
         applyParsers(source + FLAGS_pack_delimiter + pack_name, pack_obj, true);
       }
@@ -389,9 +398,9 @@ static inline bool blacklistExpired(size_t blt, const ScheduledQuery& query) {
 }
 
 void Config::scheduledQueries(
-    std::function<void(const std::string& name, const ScheduledQuery& query)>
+    std::function<void(std::string name, const ScheduledQuery& query)>
         predicate,
-    bool blacklisted) {
+    bool blacklisted) const {
   RecursiveLock lock(config_schedule_mutex_);
   for (PackRef& pack : *schedule_) {
     for (auto& it : pack->getSchedule()) {
@@ -421,15 +430,15 @@ void Config::scheduledQueries(
       }
 
       // Call the predicate.
-      predicate(name, it.second);
+      predicate(std::move(name), it.second);
     }
   }
 }
 
-void Config::packs(std::function<void(PackRef& pack)> predicate) {
+void Config::packs(std::function<void(const Pack& pack)> predicate) const {
   RecursiveLock lock(config_schedule_mutex_);
   for (PackRef& pack : schedule_->packs_) {
-    predicate(pack);
+    predicate(std::cref(*pack.get()));
   }
 }
 
@@ -671,8 +680,6 @@ void Config::applyParsers(const std::string& source,
 
         auto doc = JSON::newFromValue(obj[key]);
         parser_config.emplace(std::make_pair(key, std::move(doc)));
-      } else {
-        parser_config.emplace(std::make_pair(key, JSON::newObject()));
       }
     }
     // The config parser plugin will receive a copy of each property tree for
@@ -696,7 +703,11 @@ Status Config::update(const std::map<std::string, std::string>& config) {
       // A "update" registry item within core should call the core's update
       // method. The config plugin call action handling must also know to
       // update.
-      Registry::call("config", "update", request);
+      auto status = Registry::call("config", "update", request);
+      if (!status.ok()) {
+        // If something goes wrong, do not go with update further
+        return status;
+      }
     }
   }
 
@@ -738,6 +749,20 @@ Status Config::update(const std::map<std::string, std::string>& config) {
     EventFactory::configUpdate();
   }
 
+  // This cannot be under the previous if block because on extensions loaded_
+  // allways false.
+  if (needs_reconfigure) {
+    std::string loggers = RegistryFactory::get().getActive("logger");
+    for (const auto& logger : osquery::split(loggers, ",")) {
+      LOG(INFO) << "Calling configure for logger " << logger;
+      PluginRef plugin = Registry::get().plugin("logger", logger);
+
+      if (plugin) {
+        plugin->configure();
+      }
+    }
+  }
+
   return Status(0, "OK");
 }
 
@@ -746,8 +771,8 @@ void Config::purge() {
   std::vector<std::string> saved_queries;
   scanDatabaseKeys(kQueries, saved_queries);
 
-  const auto& schedule = this->schedule_;
-  auto queryExists = [&schedule](const std::string& query_name) {
+  auto queryExists = [schedule = static_cast<const Schedule*>(schedule_.get())](
+                         const std::string& query_name) {
     for (const auto& pack : schedule->packs_) {
       const auto& pack_queries = pack->getSchedule();
       if (pack_queries.count(query_name)) {
@@ -799,7 +824,7 @@ void Config::purge() {
 void Config::reset() {
   setStartTime(getUnixTime());
 
-  schedule_ = std::make_shared<Schedule>();
+  schedule_ = std::make_unique<Schedule>();
   std::map<std::string, QueryPerformance>().swap(performance_);
   std::map<std::string, FileCategories>().swap(files_);
   std::map<std::string, std::string>().swap(hash_);
@@ -893,7 +918,7 @@ void Config::recordQueryStart(const std::string& name) {
 
 void Config::getPerformanceStats(
     const std::string& name,
-    std::function<void(const QueryPerformance& query)> predicate) {
+    std::function<void(const QueryPerformance& query)> predicate) const {
   if (performance_.count(name) > 0) {
     RecursiveLock lock(config_performance_mutex_);
     predicate(performance_.at(name));
@@ -911,7 +936,7 @@ bool Config::hashSource(const std::string& source, const std::string& content) {
   return true;
 }
 
-Status Config::genHash(std::string& hash) {
+Status Config::genHash(std::string& hash) const {
   WriteLock lock(config_hash_mutex_);
   if (!valid_) {
     return Status(1, "Current config is not valid");
@@ -951,9 +976,9 @@ const std::shared_ptr<ConfigParserPlugin> Config::getParser(
   return std::dynamic_pointer_cast<ConfigParserPlugin>(plugin);
 }
 
-void Config::files(
-    std::function<void(const std::string& category,
-                       const std::vector<std::string>& files)> predicate) {
+void Config::files(std::function<void(const std::string& category,
+                                      const std::vector<std::string>& files)>
+                       predicate) const {
   RecursiveLock lock(config_files_mutex_);
   for (const auto& it : files_) {
     for (const auto& category : it.second) {
@@ -961,6 +986,8 @@ void Config::files(
     }
   }
 }
+
+Config::~Config() = default;
 
 Status ConfigPlugin::genPack(const std::string& name,
                              const std::string& value,

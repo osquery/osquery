@@ -375,6 +375,10 @@ static bool isFileSafe(std::string& path, ExtendableType type) {
   fs::path extendable(path);
   // Set the output sanitized path.
   path = extendable.string();
+  if (!pathExists(path).ok()) {
+    LOG(WARNING) << type_name << " doesn't exist at: " << path;
+    return false;
+  }
   if (!safePermissions(extendable.parent_path().string(), path, true)) {
     LOG(WARNING) << "Will not autoload " << type_name
                  << " with unsafe directory permissions: " << path;

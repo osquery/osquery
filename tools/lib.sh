@@ -96,11 +96,6 @@ function in_ec2() {
   fi
 }
 
-function build_kernel_cleanup() {
-  # Cleanup kernel
-  $MAKE kernel-test-unload || sudo reboot
-}
-
 function checkout_thirdparty() {
   # Reset any work or artifacts from build tests in TP.
   (cd third-party && git reset --hard HEAD)
@@ -160,14 +155,6 @@ function build() {
   platform PLATFORM
   distro $PLATFORM DISTRO
 
-  # Build kernel extension/module and tests.
-  BUILD_KERNEL=0
-  if [[ -z "$SKIP_KERNEL" && "$PLATFORM" = "darwin" ]]; then
-    if [[ "$DISTRO" = "$DARWIN_KERNEL_VERSION" ]]; then
-      BUILD_KERNEL=1
-    fi
-  fi
-
   MAKE=make
   if [[ "$PLATFORM" = "freebsd" ]]; then
     MAKE=gmake
@@ -187,17 +174,6 @@ function build() {
   # Build osquery.
   build_target
 
-  if [[ $BUILD_KERNEL = 1 ]]; then
-    # Build osquery kernel (optional).
-    $MAKE kernel-build
-
-    # Setup cleanup code for catastrophic test failures.
-    trap build_kernel_cleanup EXIT INT TERM
-
-    # Load osquery kernel (optional).
-    $MAKE kernel-test-load
-  fi
-
   if [[ ! -z "$RUN_DETERMINISTIC" ]]; then
     check_deterministic
   fi
@@ -205,10 +181,5 @@ function build() {
   if [[ $RUN_TESTS = true ]]; then
     # Run code unit and integration tests.
     $MAKE test
-
-    if [[ $BUILD_KERNEL = 1 ]]; then
-      # Run kernel unit and integration tests (optional).
-      $MAKE kernel-test/fast
-    fi
   fi
 }

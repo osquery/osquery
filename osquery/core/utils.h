@@ -15,8 +15,11 @@
 #include <boost/optional.hpp>
 
 #include <osquery/core.h>
+#include <osquery/status.h>
 
 namespace osquery {
+
+class Status;
 
 /// Returns the ASCII version of the timeptr as a C++ string
 std::string platformAsctime(const struct tm* timeptr);
@@ -26,4 +29,9 @@ std::string platformStrerr(int errnum);
 
 /// Copies src string into the dst string buffer with error checks
 Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count);
+
+#ifdef OSQUERY_POSIX
+/// Safer way to do realpath
+const std::string canonicalize_file_name(const char* name);
+#endif
 }

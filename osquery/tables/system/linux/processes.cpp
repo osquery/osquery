@@ -22,10 +22,12 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
+#include <osquery/filesystem/linux/proc.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/utils.h"
 
 namespace osquery {
 namespace tables {
@@ -54,16 +56,32 @@ inline std::string readProcLink(const std::string& attr,
                                 const std::string& pid) {
   // The exe is a symlink to the binary on-disk.
   auto attr_path = getProcAttr(attr, pid);
-  char full_path[PATH_MAX] = {0};
 
-  char* link_path = realpath(attr_path.c_str(), full_path);
-  if (link_path != nullptr) {
-    return std::string(link_path);
-  } else if (attr_path.compare(std::string(full_path)) != 0) {
-    return std::string(full_path);
+  std::string result = "";
+  struct stat sb;
+  if (lstat(attr_path.c_str(), &sb) != -1) {
+    // Some symlinks may report 'st_size' as zero
+    // Use PATH_MAX as best guess
+    // For cases when 'st_size' is not zero but smaller than
+    // PATH_MAX we will still use PATH_MAX to minimize chance
+    // of output trucation during race condition
+    ssize_t buf_size = sb.st_size < PATH_MAX ? PATH_MAX : sb.st_size;
+    // +1 for \0, since readlink does not append a null
+    char* linkname = static_cast<char*>(malloc(buf_size + 1));
+    ssize_t r = readlink(attr_path.c_str(), linkname, buf_size);
+
+    if (r > 0) { // Success check
+      // r may not be equal to buf_size
+      // if r == buf_size there was race condition
+      // and link is longer than buf_size and because of this
+      // truncated
+      linkname[r] = '\0';
+      result = std::string(linkname);
+    }
+    free(linkname);
   }
 
-  return "";
+  return result;
 }
 
 // In the case where the linked binary path ends in " (deleted)", and a file
@@ -252,7 +270,7 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
 
   for (const auto& line : osquery::split(content, "\n")) {
     // Status lines are formatted: Key: Value....\n.
-    auto detail = osquery::split(line, ":", 1);
+    auto detail = osquery::split(line, ':', 1);
     if (detail.size() != 2) {
       continue;
     }
@@ -312,7 +330,7 @@ SimpleProcIo::SimpleProcIo(const std::string& pid) {
 
   for (const auto& line : osquery::split(content, "\n")) {
     // IO lines are formatted: Key: Value....\n.
-    auto detail = osquery::split(line, ":", 1);
+    auto detail = osquery::split(line, ':', 1);
     if (detail.size() != 2) {
       continue;
     }
@@ -442,6 +460,24 @@ void genProcess(const std::string& pid, QueryData& results) {
   results.push_back(r);
 }
 
+void genNamespaces(const std::string& pid, QueryData& results) {
+  Row r;
+
+  ProcessNamespaceList proc_ns;
+  Status status = procGetProcessNamespaces(pid, proc_ns);
+  if (!status.ok()) {
+    VLOG(1) << "Namespaces for pid " << pid
+            << " are imcomplete: " << status.what();
+  }
+
+  r["pid"] = pid;
+  for (const auto& pair : proc_ns) {
+    r[pair.first + "_namespace"] = std::to_string(pair.second);
+  }
+
+  results.push_back(r);
+}
+
 QueryData genProcesses(QueryContext& context) {
   QueryData results;
 
@@ -470,6 +506,17 @@ QueryData genProcessMemoryMap(QueryContext& context) {
   auto pidlist = getProcList(context);
   for (const auto& pid : pidlist) {
     genProcessMap(pid, results);
+  }
+
+  return results;
+}
+
+QueryData genProcessNamespaces(QueryContext& context) {
+  QueryData results;
+
+  const auto pidlist = getProcList(context);
+  for (const auto& pid : pidlist) {
+    genNamespaces(pid, results);
   }
 
   return results;

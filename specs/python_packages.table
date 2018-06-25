@@ -6,7 +6,10 @@ schema([
     Column("summary", TEXT, "Package-supplied summary"),
     Column("author", TEXT, "Optional package author"),
     Column("license", TEXT, "License under which package is launched"),
-    Column("path", TEXT, "Path at which this module resides")
+    Column("path", TEXT, "Path at which this module resides"),
+    Column("directory", TEXT, "Directory where Python modules are located"),
 ])
 implementation("system/linux/python_packages@genPythonPackages")
-
+examples([
+"select * from python_packages where directory='/usr/'",
+])

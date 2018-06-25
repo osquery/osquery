@@ -1,4 +1,4 @@
-  #!/usr/bin/env bash
+#!/usr/bin/env bash
 
 #  Copyright (c) 2014-present, Facebook, Inc.
 #  All rights reserved.
@@ -10,11 +10,12 @@
 
 set -e
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 BUILD_DIR"
+if [ "$#" -ne 2 ]; then
+  echo "Usage: $0 BUILD_DIR LIBRARY_PATH"
   exit 1
 fi
 
+SOURCE=$(pwd)
 BUILD_DIR=$1
 SYNC_DIR="$BUILD_DIR/sync"
 VERSION=`git describe --tags HEAD --always`
@@ -29,8 +30,11 @@ mkdir -p "$SYNC_DIR"
 rm -rf "$SYNC_DIR/osquery*"
 mkdir -p "$SYNC_DIR/osquery/generated"
 
+export LIBRARY_PATH=$2:$LIBRARY_PATH
+
 # merge the headers with the implementation files
 cp -R include/osquery "$SYNC_DIR"
+find ./osquery | grep "\.h" | grep -v tests/ | grep -v tables/ | xargs -i cp --parents {} "$SYNC_DIR"
 cp $BUILD_DIR/generated/utils_amalgamation.cpp "$SYNC_DIR/osquery/generated/"
 
 # delete all of the old CMake files
@@ -38,7 +42,7 @@ find "$SYNC_DIR" -type f -name "CMakeLists.txt" -exec rm -f {} \;
 
 # make the targets file
 mkdir -p "$SYNC_DIR/code-analysis"
-(cd "$SYNC_DIR/code-analysis" && SDK=True cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ../../../../)
+(cd "$SYNC_DIR/code-analysis" && SDK=True cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $SOURCE)
 python tools/codegen/gentargets.py \
   -v $VERSION --sdk $VERSION \
   -i "$SYNC_DIR/code-analysis/compile_commands.json" \

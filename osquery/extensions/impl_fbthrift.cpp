@@ -89,9 +89,10 @@ struct ImplExtensionRunner {
 };
 
 struct ImplExtensionClient {
-  std::shared_ptr<extensions::ExtensionAsyncClient> e;
-  std::shared_ptr<extensions::ExtensionManagerAsyncClient> em;
   folly::EventBase base;
+
+  std::unique_ptr<extensions::ExtensionAsyncClient> e;
+  std::unique_ptr<extensions::ExtensionManagerAsyncClient> em;
 
   /// Raw socket descriptor.
   int sd;
@@ -158,8 +159,7 @@ void ExtensionManagerHandler::options(InternalOptionList& _return) {
 void ExtensionManagerHandler::registerExtension(
     ExtensionStatus& _return,
     const InternalExtensionInfo& info,
-    const ExtensionRegistry& registry,
-    RouteUUID& uuid) {
+    const ExtensionRegistry& registry) {
   ExtensionRegistry er;
   for (const auto& rt : registry) {
     er[rt.first] = rt.second;
@@ -301,10 +301,10 @@ void ExtensionClientCore::init(const std::string& path, bool manager) {
   channel->setClientType(THRIFT_UNFRAMED_DEPRECATED);
 
   if (!manager_) {
-    client_->e = std::make_shared<ExtensionAsyncClient>(std::move(channel));
+    client_->e = std::make_unique<ExtensionAsyncClient>(std::move(channel));
   } else {
     client_->em =
-        std::make_shared<ExtensionManagerAsyncClient>(std::move(channel));
+        std::make_unique<ExtensionManagerAsyncClient>(std::move(channel));
   }
 }
 
@@ -329,7 +329,7 @@ ExtensionManagerClient::ExtensionManagerClient(const std::string& path,
 
 Status ExtensionClient::ping() {
   ExtensionStatus status;
-  auto client = manager() ? client_->em : client_->e;
+  auto client = manager() ? client_->em.get() : client_->e.get();
   client->sync_ping(status);
   if (status.code != (int)extensions::ExtensionCode::EXT_FAILED) {
     return Status(0, status.message);
@@ -342,7 +342,7 @@ Status ExtensionClient::call(const std::string& registry,
                              const PluginRequest& request,
                              PluginResponse& response) {
   ExtensionResponse er;
-  auto client = manager() ? client_->em : client_->e;
+  auto client = manager() ? client_->em.get() : client_->e.get();
   client->sync_call(er, registry, item, request);
   for (const auto& r : er.response) {
     response.push_back(r);
@@ -352,7 +352,7 @@ Status ExtensionClient::call(const std::string& registry,
 }
 
 void ExtensionClient::shutdown() {
-  auto client = manager() ? client_->em : client_->e;
+  auto client = manager() ? client_->em.get() : client_->e.get();
   client->sync_shutdown();
 }
 

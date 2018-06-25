@@ -85,15 +85,15 @@ QueryData genOsqueryEvents(QueryContext& context) {
 QueryData genOsqueryPacks(QueryContext& context) {
   QueryData results;
 
-  Config::get().packs([&results](std::shared_ptr<Pack>& pack) {
+  Config::get().packs([&results](const Pack& pack) {
     Row r;
-    r["name"] = pack->getName();
-    r["version"] = pack->getVersion();
-    r["platform"] = pack->getPlatform();
-    r["shard"] = INTEGER(pack->getShard());
-    r["active"] = INTEGER(pack->isActive() ? 1 : 0);
+    r["name"] = pack.getName();
+    r["version"] = pack.getVersion();
+    r["platform"] = pack.getPlatform();
+    r["shard"] = INTEGER(pack.getShard());
+    r["active"] = INTEGER(pack.isActive() ? 1 : 0);
 
-    auto stats = pack->getStats();
+    auto stats = pack.getStats();
     r["discovery_cache_hits"] = INTEGER(stats.hits);
     r["discovery_executions"] = INTEGER(stats.misses);
     results.push_back(r);
@@ -231,7 +231,7 @@ QueryData genOsquerySchedule(QueryContext& context) {
   QueryData results;
 
   Config::get().scheduledQueries(
-      [&results](const std::string& name, const ScheduledQuery& query) {
+      [&results](std::string name, const ScheduledQuery& query) {
         Row r;
         r["name"] = name;
         r["query"] = query.query;

@@ -13,6 +13,7 @@
 #include <osquery/config.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 namespace rj = rapidjson;
 
@@ -79,6 +80,11 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
       value = std::to_string(option.value.GetInt());
     } else if (option.value.IsNumber()) {
       value = std::to_string(option.value.GetUint64());
+    } else if (option.value.IsObject() || option.value.IsArray()) {
+      auto doc = JSON::newFromValue(option.value);
+      doc.toString(value);
+    } else {
+      LOG(WARNING) << "Cannot parse unknown value type for option: " << name;
     }
 
     if (value.empty() || name.empty()) {
@@ -88,6 +94,7 @@ Status OptionsConfigParserPlugin::update(const std::string& source,
     bool is_custom = name.find("custom_") == 0;
     if (!is_custom && Flag::getType(name).empty()) {
       LOG(WARNING) << "Cannot set unknown or invalid flag: " << name;
+      continue;
     }
 
     Flag::updateValue(name, value);

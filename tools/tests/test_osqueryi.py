@@ -41,14 +41,15 @@ class OsqueryiTest(unittest.TestCase):
         self.assertRaises(test_base.OsqueryException,
                           self.osqueryi.run_query, 'foo')
 
-    @test_base.flaky
     def test_config_check_success(self):
         '''Test that a 0-config passes'''
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
             "--database_path=%s" % (self.dbpath),
-            "--config_path=%s/test.config" % test_base.SCRIPT_DIR
+            "--config_path=%s/test.config" % test_base.SCRIPT_DIR,
+            "--extensions_autoload=",
+            "--verbose",
         ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.stdout, "")
@@ -56,14 +57,15 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 0)
 
-    @test_base.flaky
     def test_config_dump(self):
         '''Test that config raw output is dumped when requested'''
         config = os.path.join(test_base.SCRIPT_DIR, "test_noninline_packs.conf")
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_dump",
-                "--config_path=%s" % config
+                "--config_path=%s" % config,
+                "--extensions_autoload=",
+                "--verbose",
             ],
             SHELL_TIMEOUT)
         content = ""
@@ -85,6 +87,8 @@ class OsqueryiTest(unittest.TestCase):
             self.binary,
             "--config_check",
             "--database_path=%s" % (self.dbpath),
+            "--disable_extensions",
+            "--verbose",
             "--config_path=/this/path/does/not/exist"
         ],
             SHELL_TIMEOUT)
@@ -93,12 +97,13 @@ class OsqueryiTest(unittest.TestCase):
         print(proc.stderr)
         self.assertEqual(proc.proc.poll(), 1)
 
-    @test_base.flaky
     def test_config_check_failure_valid_path(self):
         # Now with a valid path, but invalid content.
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
+            "--extensions_autoload=",
+            "--verbose",
             "--database_path=%s" % (self.dbpath),
             "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "test.badconfig")
         ],
@@ -106,13 +111,14 @@ class OsqueryiTest(unittest.TestCase):
         self.assertEqual(proc.proc.poll(), 1)
         self.assertNotEqual(proc.stderr, "")
 
-    @test_base.flaky
     def test_config_check_failure_missing_plugin(self):
         # Finally with a missing config plugin
         proc = test_base.TimeoutRunner([
             self.binary,
             "--config_check",
             "--database_path=%s" % (self.dbpath),
+            "--extensions_autoload=",
+            "--verbose",
             "--config_plugin=does_not_exist"
         ],
             SHELL_TIMEOUT)
@@ -121,14 +127,15 @@ class OsqueryiTest(unittest.TestCase):
         # Also do not accept a SIGSEG
         self.assertEqual(proc.proc.poll(), EXIT_CATASTROPHIC)
 
-    @test_base.flaky
     def test_config_check_example(self):
         '''Test that the example config passes'''
         example_path = os.path.join("deployment", "osquery.example.conf")
         proc = test_base.TimeoutRunner([
                 self.binary,
                 "--config_check",
-                "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "..", example_path)
+                "--config_path=%s" % os.path.join(test_base.SCRIPT_DIR, "..", example_path),
+                "--extensions_autoload=",
+                "--verbose",
             ],
             SHELL_TIMEOUT)
         self.assertEqual(proc.stdout, "")
@@ -242,6 +249,13 @@ class OsqueryiTest(unittest.TestCase):
                                                  args={"config_path": "/"})
         result = self.osqueryi.run_query('SELECT * FROM time;')
         self.assertEqual(len(result), 1)
+
+    @test_base.flaky
+    def test_atc(self):
+        local_osquery_instance = test_base.OsqueryWrapper(self.binary,
+                                                 args={"config_path": "test.config"})
+        result = local_osquery_instance.run_query('SELECT a_number FROM test_atc')
+        self.assertEqual(result, [{'a_number':'314159'}])
 
 if __name__ == '__main__':
     test_base.Tester().run()

@@ -27,6 +27,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
@@ -362,7 +363,10 @@ void setVerboseLevel() {
 }
 
 void initStatusLogger(const std::string& name, bool init_glog) {
+#ifndef FBTHRIFT
+  // No color available when using fbthrift.
   FLAGS_colorlogtostderr = true;
+#endif
   FLAGS_logbufsecs = 0;
   FLAGS_stop_logging_if_full_disk = true;
   // The max size for individual log file is 10MB.

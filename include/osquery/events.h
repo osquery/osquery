@@ -21,7 +21,6 @@
 
 #include <osquery/core.h>
 #include <osquery/dispatcher.h>
-#include <osquery/registry.h>
 #include <osquery/status.h>
 #include <osquery/tables.h>
 
@@ -303,18 +302,14 @@ class EventPublisherPlugin : public Plugin,
 
  public:
   /// Number of Subscription%s watching this EventPublisher.
-  size_t numSubscriptions() const {
-    return subscriptions_.size();
-  }
+  size_t numSubscriptions();
 
   /**
    * @brief The number of events fired by this EventPublisher.
    *
    * @return The number of events.
    */
-  EventContextID numEvents() const {
-    return next_ec_id_;
-  }
+  EventContextID numEvents() const;
 
   /// Check if the EventFactory is ending all publisher threads.
   bool isEnding() const {
@@ -362,7 +357,7 @@ class EventPublisherPlugin : public Plugin,
                             const EventContextRef& ec) const = 0;
 
   /// A lock for subscription manipulation.
-  Mutex subscription_lock_;
+  mutable Mutex subscription_lock_;
 
   /// The EventPublisher will keep track of Subscription%s that contain callins.
   SubscriptionVector subscriptions_;
@@ -377,9 +372,6 @@ class EventPublisherPlugin : public Plugin,
 
   /// Set to indicate whether the event run loop ever started.
   std::atomic<bool> started_{false};
-
-  /// A lock for incrementing the next EventContextID.
-  Mutex ec_id_lock_;
 
   /// A helper count of event publisher runloop iterations.
   std::atomic<size_t> restart_count_{0};
@@ -698,6 +690,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   FRIEND_TEST(EventsDatabaseTests, test_gentable);
   FRIEND_TEST(EventsDatabaseTests, test_expire_check);
   FRIEND_TEST(EventsDatabaseTests, test_optimize);
+  FRIEND_TEST(EventsDatabaseTests, test_record_corruption);
   FRIEND_TEST(EventsTests, test_event_subscriber_configure);
   friend class DBFakeEventSubscriber;
   friend class BenchmarkEventSubscriber;

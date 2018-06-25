@@ -154,7 +154,7 @@ osquery> SELECT count(1) FROM file WHERE path LIKE '/dev/%';
 count(1) = 568
 ```
 
-The documentation for [`file`](https://osquery.io/schema/#file) says both `path` and `directory` can be used as input parameters. In *most* cases these columns and tables should "do the right thing" and respond to various operators. String data, like paths, are not easily compared so `=` or `<>` and `LIKE` are the only operators that make sense.
+The documentation for [`file`](https://osquery.io/schema/current/#file) says both `path` and `directory` can be used as input parameters. In *most* cases these columns and tables should "do the right thing" and respond to various operators. String data, like paths, are not easily compared so `=` or `<>` and `LIKE` are the only operators that make sense.
 
 Let's get semi-fancy:
 ```
@@ -167,7 +167,7 @@ inode = 304
  type = character
 ```
 
-Now let's introduce the [`hash`](https://osquery.io/schema/#hash) table and hopefully show something useful, like the hash of the last file modified in `/etc`:
+Now let's introduce the [`hash`](https://osquery.io/schema/current/#hash) table and hopefully show something useful, like the hash of the last file modified in `/etc`:
 ```
 osquery> SELECT path, mtime, sha256
     ...>   FROM file
@@ -204,9 +204,9 @@ We have added `sha1`, `sha256`, and `md5` functions that take a single argument 
 **Encoding functions**
 
 There are also encoding functions available to you to process query results.
-- `base64`: base64 encode a string.
-- `unbase64`: Decode a base64 encoded string. If the string is not valid base64 an empty string is returned.
-- `conditional_base64`: Encode a string if and only if the string contains non-ASCII characters. 
+- `to_base64`: base64 encode a string.
+- `from_base64`: Decode a base64 encoded string. If the string is not valid base64 an empty string is returned.
+- `conditional_to_base64`: Encode a string if and only if the string contains non-ASCII characters.
 
 ### Table and column name deprecations
 
