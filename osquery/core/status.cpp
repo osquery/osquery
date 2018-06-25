@@ -11,15 +11,18 @@
 #include <osquery/logger.h>
 #include <osquery/status.h>
 
+#include <cassert>
+
+#include <iostream>
+
 namespace osquery {
 
 constexpr int Status::success_code;
 
 Status Status::failure(int code, std::string message) {
-  if (code == Status::success_code) {
-    LOG(ERROR) << "Using Status::failure to create Status object with "
-                  "a Status::success_code";
-  }
+  assert(code != Status::success_code &&
+         "Using Status::failure to create Status object with a "
+         "Status::success_code");
   return Status(code, std::move(message));
 }
 

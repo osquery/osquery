@@ -66,4 +66,12 @@ TEST_F(StatusTests, test_failure_double_arg) {
   EXPECT_EQ(s.toString(), "One more proper error message!");
   EXPECT_FALSE(s.ok());
 }
+
+TEST_F(StatusTests, test_failure_with_success_code) {
+#ifndef NDEBUG
+  ASSERT_DEATH(Status::failure(Status::success_code, "message"),
+               "Using Status::failure to create Status object with a "
+               "Status::success_code");
+#endif
+}
 }
