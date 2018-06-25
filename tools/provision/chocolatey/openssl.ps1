@@ -31,7 +31,11 @@ $curlCertsShaSum =
 . "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)\osquery_utils.ps1"
 
 # Invoke the MSVC developer tools/env
-Invoke-BatchFile "$env:VS140COMNTOOLS\..\..\vc\vcvarsall.bat" amd64
+$ret = Invoke-VcVarsAll
+if ($ret -ne $true) {
+	Write-Host "[-] vcvarsall.bat failed to run" Red
+	exit
+}
 
 if (-not
      (
@@ -46,7 +50,8 @@ if (-not
 }
 
 # Check that Perl is installed
-if (-not (Get-Command 'perl' -ErrorAction SilentlyContinue)) {
+$checkPerl = Get-Command 'perl' -ErrorAction SilentlyContinue
+if (-not ($checkPerl -and $checkPerl.Source.StartsWith('C:\Perl64\bin\'))) {
   $msg = "[-] This build requires perl which was not found. Please install " +
          "perl from http://www.activestate.com/activeperl/downloads and add " +
          "to the SYSTEM path before continuing"
