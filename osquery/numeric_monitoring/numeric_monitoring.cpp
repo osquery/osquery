@@ -8,12 +8,12 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <exception>
+
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
 #include <osquery/registry_factory.h>
-
-#include <exception>
 
 namespace osquery {
 
@@ -64,18 +64,16 @@ void record(const std::string& path, ValueType value, TimePoint timePoint) {
   auto status =
       Registry::call(registryName(),
                      FLAGS_numeric_monitoring_plugins,
-                     PluginRequest{
+                     {
                          {recordKeys().path, path},
                          {recordKeys().value, std::to_string(value)},
                          {recordKeys().timestamp,
                           std::to_string(timePoint.time_since_epoch().count())},
                      });
   if (!status.ok()) {
-    LOG(ERROR) << "Sending numeric monitoring record was not succed: "
-               << status.what();
+    LOG(ERROR) << "Failed to send numeric monitoring record: " << status.what();
   }
 }
 
 } // namespace monitoring
-
 } // namespace osquery

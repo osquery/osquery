@@ -10,14 +10,14 @@
 
 #pragma once
 
-#include <osquery/numeric_monitoring.h>
-
 #include <fstream>
 #include <functional>
 #include <string>
 #include <vector>
 
 #include <boost/filesystem.hpp>
+
+#include <osquery/numeric_monitoring.h>
 
 namespace osquery {
 
