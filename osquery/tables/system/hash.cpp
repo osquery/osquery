@@ -17,6 +17,10 @@
 #include <unistd.h>
 #endif
 
+#ifndef WINDOWS
+#include <fuzzy.h>
+#endif
+
 #include <set>
 #include <thread>
 
@@ -182,6 +186,13 @@ bool FileHashCache::load(const std::string& path, MultiHashes& out) {
   return true;
 }
 
+std::string genSsdeepForFile(const std::string& path) {
+  std::string file_ssdeep_hash(FUZZY_MAX_RESULT, '\0');
+  auto did_ssdeep_fail =
+    fuzzy_hash_filename(path.c_str(), &file_ssdeep_hash.front());
+  return did_ssdeep_fail ? "-1" : std::move(file_ssdeep_hash);
+}
+
 void genHashForFile(const std::string& path,
                     const std::string& dir,
                     QueryContext& context,
@@ -210,11 +221,36 @@ void genHashForFile(const std::string& path,
   r["md5"] = std::move(hashes.md5);
   r["sha1"] = std::move(hashes.sha1);
   r["sha256"] = std::move(hashes.sha256);
+
+  if (isPlatform(PlatformType::TYPE_POSIX) && context.isColumnUsed("ssdeep")) {
+    r["ssdeep"] = genSsdeepForFile(path);
+  }
+
   if (FLAGS_disable_hash_cache) {
     context.setCache(path, r);
   }
 
-  results.push_back(r);
+  results.push_back(std::move(r));
+}
+
+void expandFSPathConstraints(QueryContext& context,
+                             std::string path_column_name,
+                             std::set<std::string>& paths) {
+  context.expandConstraints(
+    path_column_name,
+    LIKE,
+    paths,
+    ([&](const std::string& pattern, std::set<std::string>& out) {
+      std::vector<std::string> patterns;
+      auto status =
+        resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+      if (status.ok()) {
+        for (const auto& resolved : patterns) {
+          out.insert(resolved);
+        }
+      }
+      return status;
+    }));
 }
 
 QueryData genHash(QueryContext& context) {
@@ -225,21 +261,7 @@ QueryData genHash(QueryContext& context) {
   // directory. We search for the parsed predicate constraints with the equals
   // operator.
   auto paths = context.constraints["path"].getAll(EQUALS);
-  context.expandConstraints(
-      "path",
-      LIKE,
-      paths,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
+  expandFSPathConstraints(context, "path", paths);
 
   // Iterate through the file paths, adding the hash results
   for (const auto& path_string : paths) {
@@ -253,21 +275,7 @@ QueryData genHash(QueryContext& context) {
 
   // Now loop through constraints using the directory column constraint.
   auto directories = context.constraints["directory"].getAll(EQUALS);
-  context.expandConstraints(
-      "directory",
-      LIKE,
-      directories,
-      ([&](const std::string& pattern, std::set<std::string>& out) {
-        std::vector<std::string> patterns;
-        auto status =
-            resolveFilePattern(pattern, patterns, GLOB_FOLDERS | GLOB_NO_CANON);
-        if (status.ok()) {
-          for (const auto& resolved : patterns) {
-            out.insert(resolved);
-          }
-        }
-        return status;
-      }));
+  expandFSPathConstraints(context, "directory", directories);
 
   // Iterate over the directory paths
   for (const auto& directory_string : directories) {

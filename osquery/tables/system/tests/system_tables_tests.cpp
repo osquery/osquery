@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
 #include <gflags/gflags.h>
 
 #include <osquery/core.h>
@@ -243,6 +244,7 @@ class HashTableTest : public testing::Test {
   const std::string contentSha1 = "21bd89f4580ef635e87f655fab5807a01e0ff2e9";
   const std::string contentSha256 =
       "6f1c16ac918f64721d14ff4bb3c51fe25ffde92f795ce6dbeb45722ce9d6e05c";
+  const std::string contentSsdeep = "3:Ttn:Jn";
   const std::string badContentMd5 = "e1cd6c58b0d4d9d7bcbfc0ec2b55ce94";
 
   void SetContent(int n) {
@@ -257,8 +259,12 @@ class HashTableTest : public testing::Test {
     tmpPath = boost::filesystem::temp_directory_path();
     tmpPath /= boost::filesystem::unique_path(
         "osquery_hash_t_test-%%%%-%%%%-%%%%-%%%%");
-    qry = std::string("select md5, sha1, sha256 from hash where path='") +
-          tmpPath.string() + "'";
+    auto maybe_ssdeep = isPlatform(PlatformType::TYPE_POSIX) ? ", ssdeep" : "";
+    std::stringstream qry_stream;
+    qry_stream << boost::format(
+                    "select md5, sha1, sha256%s from hash where path='%s'")
+                    % maybe_ssdeep % tmpPath.string();
+    qry = qry_stream.str();
   }
 
   virtual void TearDown() {
@@ -277,6 +283,7 @@ TEST_F(HashTableTest, hashes_are_correct) {
   EXPECT_EQ(rows[0].at("md5"), contentMd5);
   EXPECT_EQ(rows[0].at("sha1"), contentSha1);
   EXPECT_EQ(rows[0].at("sha256"), contentSha256);
+  EXPECT_EQ(rows[0].at("ssdeep"), contentSsdeep);
 }
 
 TEST_F(HashTableTest, test_cache_works) {
