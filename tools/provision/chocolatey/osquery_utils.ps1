@@ -111,13 +111,20 @@ function Invoke-BatchFile {
     [string]$path,
     [string]$parameters
   )
+
   $tempFile = [IO.Path]::GetTempFileName()
+
   cmd.exe /c " `"$path`" $parameters && set > `"$tempFile`" "
+  if (-Not $?) {
+    throw "The invoked .bat script has failed. Please see the following output log for more information: `"$tempFile`""
+  }
+
   Get-Content $tempFile | Foreach-Object {
     if ($_ -match '^(.*?)=(.*)$') {
       Set-Content "env:\$($matches[1])" $matches[2]
     }
   }
+
   Remove-Item $tempFile
 }
 
