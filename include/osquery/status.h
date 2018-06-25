@@ -33,14 +33,14 @@ namespace osquery {
 
 class Status {
  public:
-  static constexpr int success_code = 0;
+  static constexpr int kSuccessCode = 0;
   /**
    * @brief Default constructor
    *
    * Note that the default constructor initialized an osquery::Status instance
    * to a state such that a successful operation is indicated.
    */
-  explicit Status(int c = Status::success_code) : code_(c), message_("OK") {}
+  explicit Status(int c = Status::kSuccessCode) : code_(c), message_("OK") {}
 
   /**
    * @brief A constructor which can be used to concisely express the status of
@@ -82,7 +82,7 @@ class Status {
 
   /**
    * @brief A convenience method to check if the return code is
-   * Status::success_code
+   * Status::kSuccessCode
    *
    * @code{.cpp}
    *   auto s = doSomething();
@@ -93,11 +93,11 @@ class Status {
    *   }
    * @endcode
    *
-   * @return a boolean which is true if the status code is Status::success_code,
+   * @return a boolean which is true if the status code is Status::kSuccessCode,
    * false otherwise.
    */
   bool ok() const {
-    return getCode() == Status::success_code;
+    return getCode() == Status::kSuccessCode;
   }
 
   /**
@@ -128,7 +128,7 @@ class Status {
   }
 
   static Status success() {
-    return Status(success_code, std::string{"ok"});
+    return Status(kSuccessCode);
   }
 
   static Status failure(std::string message) {

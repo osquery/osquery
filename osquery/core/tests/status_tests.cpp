@@ -46,7 +46,7 @@ TEST_F(StatusTests, test_default_constructor) {
 }
 
 TEST_F(StatusTests, test_success_code) {
-  auto s = Status(Status::success_code);
+  auto s = Status(Status::kSuccessCode);
   EXPECT_TRUE(s.ok());
 }
 
@@ -69,9 +69,8 @@ TEST_F(StatusTests, test_failure_double_arg) {
 
 TEST_F(StatusTests, test_failure_with_success_code) {
 #ifndef NDEBUG
-  ASSERT_DEATH(Status::failure(Status::success_code, "message"),
-               "Using Status::failure to create Status object with a "
-               "Status::success_code");
+  ASSERT_DEATH(Status::failure(Status::kSuccessCode, "message"),
+               "Using 'failure' to create Status object with a kSuccessCode");
 #endif
 }
 }

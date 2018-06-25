@@ -17,12 +17,11 @@
 
 namespace osquery {
 
-constexpr int Status::success_code;
+constexpr int Status::kSuccessCode;
 
 Status Status::failure(int code, std::string message) {
-  assert(code != Status::success_code &&
-         "Using Status::failure to create Status object with a "
-         "Status::success_code");
+  assert(code != Status::kSuccessCode &&
+         "Using 'failure' to create Status object with a kSuccessCode");
   return Status(code, std::move(message));
 }
 
