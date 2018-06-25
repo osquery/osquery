@@ -41,15 +41,15 @@ static const std::map<std::string, hardwareDriver>
 void getStorageCtlerClassDrivers(std::vector<std::string>& results) {
   auto devices = SQL::selectAllFrom("pci_devices");
   for (const auto& device : devices) {
-    auto pciClass = device.find("pci_class");
+    auto pci_class = device.find("pci_class");
     auto driver = device.find("driver");
-    if (pciClass != device.end() &&
-        pciClass->second == "Mass storage controller" &&
+    if (pci_class != device.end() &&
+        pci_class->second == "Mass storage controller" &&
         driver != device.end()) {
-      auto driverName = driver->second;
-      auto i = std::lower_bound(results.begin(), results.end(), driverName);
-      if (i == results.end() || driverName < *i) {
-        results.insert(i, std::move(driverName));
+      auto driver_name = driver->second;
+      auto i = std::lower_bound(results.begin(), results.end(), driver_name);
+      if (i == results.end() || driver_name < *i) {
+        results.insert(i, std::move(driver_name));
       }
     }
   }
@@ -57,33 +57,34 @@ void getStorageCtlerClassDrivers(std::vector<std::string>& results) {
 
 /// Gets supported hardwareDriver from system storage controllers.
 static inline void getSmartCtlDeviceType(
-    const std::vector<std::string>& storageDrivers,
+    const std::vector<std::string>& storage_drivers,
     std::vector<hardwareDriver>& types) {
-  for (const auto& driver : storageDrivers) {
-    auto hwDriver = kSmartExplicitDriverToDevice.find(driver);
-    if (hwDriver != kSmartExplicitDriverToDevice.end()) {
-      types.push_back(hwDriver->second);
+  for (const auto& driver : storage_drivers) {
+    auto hw_driver = kSmartExplicitDriverToDevice.find(driver);
+    if (hw_driver != kSmartExplicitDriverToDevice.end()) {
+      types.push_back(hw_driver->second);
     }
   }
 }
 
 /// Utility function for traversing system devices.
-void walkBlkDevices(std::function<void(const std::string& devname,
-                                       hardwareDriver* type)> handleDevF) {
+void walkBlkDevices(
+    std::function<void(const std::string& devname, hardwareDriver* type)>
+        handle_device_func) {
   if (getuid() != 0 || geteuid() != 0) {
     LOG(WARNING) << "Need root access for smart information";
     return;
   }
 
-  std::vector<std::string> storageDrivers;
-  getStorageCtlerClassDrivers(storageDrivers);
+  std::vector<std::string> storage_drivers;
+  getStorageCtlerClassDrivers(storage_drivers);
 
   std::vector<hardwareDriver> types;
-  getSmartCtlDeviceType(storageDrivers, types);
+  getSmartCtlDeviceType(storage_drivers, types);
 
   if (types.size() > 1) {
     LOG(WARNING) << "Found more than 1 hardware storage controller:" << types
-                 << "; only handling the first";
+                 << "; we do not currently support this setup";
     return;
   }
 
@@ -92,32 +93,32 @@ void walkBlkDevices(std::function<void(const std::string& devname,
     type = &(types[0]);
   }
 
-  auto blkDevices = SQL::selectAllFrom("block_devices");
-  for (const auto& device : blkDevices) {
+  auto blk_devices = SQL::selectAllFrom("block_devices");
+  for (const auto& device : blk_devices) {
     auto size = device.find("size");
     auto name = device.find("name");
     if (size != device.end() && size->second != "0" && size->second != "" &&
         name != device.end()) {
-      handleDevF(name->second, type);
+      handle_device_func(name->second, type);
     }
   }
 }
 
 void querySmartDevices(
-    libsmartctl::ClientInterface& c,
-    std::function<
-        void(std::function<void(const std::string&, hardwareDriver*)>)> walkF,
+    libsmartctl::ClientInterface& smartctl,
+    std::function<void(
+        std::function<void(const std::string&, hardwareDriver*)>)> walk_func,
     QueryData& results) {
-  // hwInfo is for tracking info retrieve with an explicit HW controller.  It is
-  // indexed by serial_number, since that's how you correlate the data with
+  // hw_info is for tracking info retrieve with an explicit HW controller.  It
+  // is indexed by serial_number, since that's how you correlate the data with
   // auto-detect retrieved SMART info.
-  std::map<std::string, Row> hwInfo;
+  std::map<std::string, Row> hw_info;
 
   // Flag for indicating found state utilizing hardware driver info.
   bool found = false;
-  walkF([&](const std::string& devname, hardwareDriver* type) {
+  walk_func([&](const std::string& devname, hardwareDriver* type) {
     // Get autodetected info..
-    auto resp = c.getDevInfo(devname, "");
+    auto resp = smartctl.getDevInfo(devname, "");
     if (resp.err != NOERR) {
       LOG(INFO) << "There was an error retrieving drive information: "
                 << libsmartctl::errStr(resp.err);
@@ -146,23 +147,23 @@ void querySmartDevices(
 
     // We now try to find device information based on any explicit storage
     // controller info.  Once we find one, we can search until the max ID of
-    // that controller, and assume that all information with that controller has
-    // been retrived.
+    // that controller, and assume that all information with that controller
+    // has been retrived.
     for (size_t i = 0; i <= type->maxID; i++) {
-      std::string fullType = type->driver + std::to_string(i);
+      std::string full_type = type->driver + std::to_string(i);
 
-      auto cantId = c.cantIdDev(devname, fullType);
-      if (cantId.err != NOERR) {
+      auto cant_id = smartctl.cantIdDev(devname, full_type);
+      if (cant_id.err != NOERR) {
         LOG(INFO) << "Error while trying to identify device: "
-                  << libsmartctl::errStr(cantId.err);
+                  << libsmartctl::errStr(cant_id.err);
         continue;
       }
       // If device is not identifiable, the type is invalid, skip..
-      if (cantId.content) {
+      if (cant_id.content) {
         continue;
       }
 
-      resp = c.getDevInfo(devname, fullType);
+      resp = smartctl.getDevInfo(devname, full_type);
       if (resp.err != NOERR) {
         LOG(WARNING) << "There was an error retrieving drive information with "
                         "hardware driver: "
@@ -173,21 +174,19 @@ void querySmartDevices(
       found = true;
 
       resp.content["disk_id"] = std::to_string(i);
-      // Change device type to driver_type
+      // Change device type to driver_typerrr
       resp.content["driver_type"] =
           type->driver.substr(0, type->driver.length() - 1);
 
       auto serial = resp.content.find("serial_number");
       if (serial != resp.content.end()) {
-        hwInfo[serial->second] = resp.content;
+        hw_info[serial->second] = resp.content;
       };
     }
-
-    return;
   });
 
   // Join results..
-  for (auto& entry : hwInfo) {
+  for (auto& entry : hw_info) {
     bool matched = false;
     for (auto& row : results) {
       auto serial = row.find("serial_number");
@@ -212,8 +211,8 @@ void querySmartDevices(
 
 QueryData genSmartInfo(QueryContext& context) {
   QueryData results;
-  libsmartctl::Client c;
-  querySmartDevices(c, walkBlkDevices, results);
+  libsmartctl::Client smartctl;
+  querySmartDevices(smartctl, walkBlkDevices, results);
 
   return results;
 }

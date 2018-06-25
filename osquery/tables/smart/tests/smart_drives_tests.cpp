@@ -57,7 +57,7 @@ class MockLibsmartctlClient : public libsmartctl::ClientInterface {
                                       std::string const& type = "") override {
     libsmartctl::DevInfoResp resp;
 
-    if (type == "") {
+    if (type.empty()) {
       auto deviceData = data_.find(devname);
       if (deviceData != data_.end()) {
         resp.content = deviceData->second;

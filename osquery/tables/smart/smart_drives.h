@@ -31,15 +31,15 @@ struct hardwareDriver {
  * @brief Queries SMART devices on the system by autodetection and explicit
  * storage controller arguments.
  *
- * @param c libsmartctl client
- * @param walkF function that walks the system devices and runs the handler
+ * @param client libsmartctl client
+ * @param walk_func function that walks the system devices and runs the handler
  * function on each device
  * @param results reference to QueryData to store results in
  */
 void querySmartDevices(
-    libsmartctl::ClientInterface& c,
-    std::function<
-        void(std::function<void(const std::string&, hardwareDriver*)>)> walkF,
+    libsmartctl::ClientInterface& client,
+    std::function<void(
+        std::function<void(const std::string&, hardwareDriver*)>)> walk_func,
     QueryData& results);
 
 } // namespace tables
