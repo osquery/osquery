@@ -94,7 +94,6 @@ std::atomic<size_t> kStartTime;
 
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
-Mutex config_valid_mutex_;
 Mutex config_refresh_mutex_;
 
 /// Several config methods require enumeration via predicate lambdas.
