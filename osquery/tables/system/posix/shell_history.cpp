@@ -20,6 +20,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/tables/system/posix/shell_history.h"
 #include "osquery/tables/system/system_utils.h"
 
 namespace xp = boost::xpressive;
@@ -77,6 +78,7 @@ void genShellHistoryForUser(const std::string& uid,
         r["time"] = INTEGER(zsh_timestamp_matches["timestamp"]);
         r["command"] = zsh_timestamp_matches["command"];
       } else {
+        r["time"] = INTEGER(0);
         r["command"] = line;
       }
 
