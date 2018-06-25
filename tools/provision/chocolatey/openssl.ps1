@@ -148,4 +148,5 @@ if (Test-Path "$packageName.$chocoVersion.nupkg") {
 else {
   Write-Host "[-] Failed to build $packageName v$chocoVersion." -foregroundcolor Red
 }
+
 Set-Location $currentLoc
