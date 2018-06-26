@@ -22,7 +22,7 @@ namespace osquery {
 namespace monitoring {
 
 /**
- * Types for used clock and time poing in monitoring plugin
+ * Types for clock and time point in monitoring plugin
  */
 using Clock = std::chrono::system_clock;
 using TimePoint = Clock::time_point;
@@ -33,7 +33,7 @@ using ValueType = double;
  * @brief Record new point to numeric monitoring system.
  *
  * @param path A unique key in monitoring system. If you need to add some common
- * * prefix for all osquery points do it in the plugin code.
+ * prefix for all osquery points do it in the plugin code.
  * @param value A numeric value of new point.
  * @param timePoint A time of new point, in vast majority of cases it is just
  * a now time (default time).
