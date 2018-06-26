@@ -79,13 +79,17 @@ else()
   )
 endif()
 
+#main library
+add_library(libosquery STATIC main/lib.cpp)
+
 # Add subdirectories
-add_subdirectory(config)
-add_subdirectory(core)
-add_subdirectory(database)
-add_subdirectory(devtools)
-add_subdirectory(dispatcher)
-add_subdirectory(distributed)
+include(config/CMakeLists.txt)
+include(core/CMakeLists.txt)
+include(database/CMakeLists.txt)
+include(devtools/CMakeLists.txt)
+include(dispatcher/CMakeLists.txt)
+include(distributed/CMakeLists.txt)
+
 add_subdirectory(events)
 add_subdirectory(extensions)
 add_subdirectory(filesystem)
@@ -111,6 +115,8 @@ if(NOT SKIP_TABLES)
   AMALGAMATE("${CMAKE_SOURCE_DIR}" "utils" AMALGAMATION_UTILS)
   ADD_OSQUERY_LIBRARY_CORE(osquery_amalgamation ${AMALGAMATION_UTILS})
 endif()
+
+target_group_sources(libosquery "${CMAKE_CURRENT_LIST_DIR}")
 
 if(WINDOWS)
   if(CMAKE_BUILD_TYPE EQUAL "DEBUG")
@@ -269,14 +275,14 @@ set(OSQUERY_LIBRARY_FLAGS
 )
 JOIN("${OSQUERY_LIBRARY_FLAGS}" " " OSQUERY_LIBRARY_FLAGS)
 
-add_library(libosquery STATIC main/lib.cpp ${OSQUERY_OBJECTS})
+target_sources(libosquery PRIVATE ${OSQUERY_OBJECTS})
 target_link_libraries(libosquery ${OSQUERY_LIBS})
 set_target_properties(libosquery PROPERTIES OUTPUT_NAME osquery)
 set_target_properties(libosquery PROPERTIES COMPILE_FLAGS "${OSQUERY_LIBRARY_FLAGS}")
 
 # Create the dynamic libosquery.
 if(DEFINED ENV{OSQUERY_BUILD_SHARED})
-  add_library(libosquery_shared SHARED main/lib.cpp ${OSQUERY_OBJECTS})
+  add_library(a_shared SHARED main/lib.cpp ${OSQUERY_OBJECTS})
   target_link_libraries(libosquery_shared PRIVATE ${OSQUERY_LIBS})
   set_target_properties(libosquery_shared PROPERTIES COMPILE_FLAGS "${OSQUERY_LIBRARY_FLAGS}")
   set_target_properties(libosquery_shared PROPERTIES OUTPUT_NAME osquery)
