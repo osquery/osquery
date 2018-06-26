@@ -103,7 +103,7 @@ void genFileInfo(const fs::path& path,
 
   WINDOWS_STAT file_stat;
 
-  if (platformStat(path, &file_stat) != 0) {
+  if (!platformStat(path, &file_stat).ok()) {
     return;
   }
 
