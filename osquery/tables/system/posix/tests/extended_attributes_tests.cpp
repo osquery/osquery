@@ -51,17 +51,15 @@ TEST_F(ExtendedAttributesTests, test_extended_attributes) {
       {WRITE_ATTRIBUTE_NAME_PREFIX "attribute03", "value03"}};
 
   auto s = setExtendedAttributes(test_file_path, test_attributes);
-  EXPECT_TRUE(s.ok());
+  EXPECT_TRUE(s.ok()) << s.getMessage();
   if (!s.ok()) {
-    std::cerr << s.getMessage() << "\n";
     return;
   }
 
   ExtendedAttributes attributes;
   s = getExtendedAttributes(attributes, test_file_path);
-  EXPECT_TRUE(s.ok());
+  EXPECT_TRUE(s.ok()) << s.getMessage();
   if (!s.ok()) {
-    std::cerr << s.getMessage() << "\n";
     return;
   }
 

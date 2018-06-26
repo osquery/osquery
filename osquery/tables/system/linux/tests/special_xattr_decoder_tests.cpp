@@ -44,7 +44,7 @@ TEST_F(SpecialXattrDecoder, special_xattr_decoder) {
   bool succeeded = std::system(command_line.data()) == 0;
   EXPECT_TRUE(succeeded);
   if (!succeeded) {
-    std::cerr << "setcap failed; are you running as root?\n";
+    LOG(ERROR) << "setcap failed; are you running as root?\n";
     return;
   }
 
