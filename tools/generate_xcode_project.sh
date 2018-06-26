@@ -11,6 +11,3 @@ mkdir -p ${BUILD_DIR}
 echo "Generating xcode project using cmake: $CMAKE_COMMAND"
 cd ${BUILD_DIR} 
 eval ${CMAKE_COMMAND}
-
-echo "Fixing cmake quotes around \$(inherited)"
-sed -i -e "s/'\$(inherited)'/\$(inherited)/g" ./OSQUERY.xcodeproj/project.pbxproj
