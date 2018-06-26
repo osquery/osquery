@@ -16,13 +16,12 @@
 
 #ifdef WIN32
 
-#include "accctrl.h"
-#include "aclapi.h"
-#include <Shlwapi.h>
+//#include "accctrl.h"
+//#include "aclapi.h"
+//#include <Shlwapi.h>
 #include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <string>
+//#include <iostream>
+//#include <sstream>
 #include <windows.h>
 #include <map>
 #else
@@ -151,7 +150,7 @@ LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
 
 std::string getFileAttribStr(unsigned long);
 
-int platformStat(const boost::filesystem::path&, WINDOWS_STAT*);
+Status platformStat(const boost::filesystem::path&, WINDOWS_STAT*);
 
 /**
  * @brief Stores information about the last Windows async request

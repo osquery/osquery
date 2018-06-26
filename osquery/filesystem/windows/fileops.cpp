@@ -1552,10 +1552,10 @@ std::string getFileAttribStr(unsigned long file_attributes) {
   return attribs;
 }
 
-int platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
+Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   PSID sid_owner = nullptr;
   SID_NAME_USE name_use = SidTypeUnknown;
-  PSECURITY_DESCRIPTOR security_descriptor = NULL;
+  PSECURITY_DESCRIPTOR security_descriptor = nullptr;
 
   // Get the handle of the file object.
   auto file_handle = CreateFile(TEXT(path.string().c_str()),
@@ -1569,7 +1569,7 @@ int platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   // Check GetLastError for CreateFile error code.
   if (file_handle == INVALID_HANDLE_VALUE) {
     CloseHandle(file_handle);
-    return -1;
+	Status(-1, "Platform Stat failed with " + std::to_string(GetLastError()));
   }
 
   // Get the owner SID of the file.
@@ -1585,7 +1585,7 @@ int platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   // Check GetLastError for GetSecurityInfo error condition.
   if (ret != ERROR_SUCCESS) {
     CloseHandle(file_handle);
-    return -1;
+	Status(-1, "Platform Stat failed with " + std::to_string(GetLastError()));
   }
 
   FILE_BASIC_INFO basic_info;
@@ -1593,7 +1593,7 @@ int platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   if (GetFileInformationByHandle(file_handle, &file_info) == 0) {
     CloseHandle(file_handle);
-    return -1;
+	Status(-1, "Platform Stat failed with " + std::to_string(GetLastError()));
   }
 
   auto file_index =
@@ -1709,7 +1709,7 @@ int platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   CloseHandle(file_handle);
 
-  return 0;
+  return Status(0);
 }
 
 fs::path getSystemRoot() {
