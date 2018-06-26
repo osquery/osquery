@@ -41,48 +41,51 @@ class NumericMonitoringFilesystemPluginTests : public testing::Test {
   std::string old_flag_value_;
 };
 
-TEST_F(NumericMonitoringFilesystemPluginTests, init) {
+TEST_F(NumericMonitoringFilesystemPluginTests, simple_workflow) {
   const auto log_path =
       fs::temp_directory_path() /
       fs::unique_path(
           "osquery.numeric_monitoring_filesystem_plugin_test.%%%%-%%%%%%.log");
   FLAGS_numeric_monitoring_filesystem_path = log_path.string();
-  NumericMonitoringFilesystemPlugin plugin{};
-  ASSERT_FALSE(plugin.isSetUp());
-  ASSERT_TRUE(plugin.setUp().ok());
-  ASSERT_TRUE(plugin.isSetUp());
-  const auto path = R"path(p !"#$%&'()*+,-./0127:;<=>?@0AZ[\]^_`4bcyz{|}~)path";
-  const auto value = double{1.5};
-  const auto tm = int{1051};
-  const auto request = PluginRequest{
-      {monitoring::recordKeys().path, path},
-      {monitoring::recordKeys().value, std::to_string(value)},
-      {monitoring::recordKeys().timestamp, std::to_string(tm)},
-  };
-  auto response = PluginResponse{};
-  EXPECT_TRUE(plugin.call(request, response).ok());
-  EXPECT_TRUE(plugin.call(request, response).ok());
+  {
+    NumericMonitoringFilesystemPlugin plugin{};
+    ASSERT_FALSE(plugin.isSetUp());
+    ASSERT_TRUE(plugin.setUp().ok());
+    ASSERT_TRUE(plugin.isSetUp());
+    const auto path =
+        R"path(p !"#$%&'()*+,-./0127:;<=>?@0AZ[\]^_`4bcyz{|}~)path";
+    const auto value = double{1.5};
+    const auto tm = int{1051};
+    const auto request = PluginRequest{
+        {monitoring::recordKeys().path, path},
+        {monitoring::recordKeys().value, std::to_string(value)},
+        {monitoring::recordKeys().timestamp, std::to_string(tm)},
+    };
+    auto response = PluginResponse{};
+    EXPECT_TRUE(plugin.call(request, response).ok());
+    EXPECT_TRUE(plugin.call(request, response).ok());
 
-  ASSERT_TRUE(fs::exists(log_path));
-  ASSERT_FALSE(fs::is_empty(log_path));
+    ASSERT_TRUE(fs::exists(log_path));
+    ASSERT_FALSE(fs::is_empty(log_path));
 
-  auto fin = std::ifstream(log_path.native(), std::ios::in | std::ios::binary);
-  auto line = std::string{};
+    auto fin =
+        std::ifstream(log_path.native(), std::ios::in | std::ios::binary);
+    auto line = std::string{};
 
-  std::getline(fin, line);
-  auto first_line = split(line, "\t");
-  EXPECT_EQ(first_line.size(), 3);
-  EXPECT_EQ(first_line[0], path);
-  EXPECT_NEAR(std::stod(first_line[1]), value, 0.00001);
-  EXPECT_EQ(std::stol(first_line[2]), tm);
+    std::getline(fin, line);
+    auto first_line = split(line, "\t");
+    EXPECT_EQ(first_line.size(), 3);
+    EXPECT_EQ(first_line[0], path);
+    EXPECT_NEAR(std::stod(first_line[1]), value, 0.00001);
+    EXPECT_EQ(std::stol(first_line[2]), tm);
 
-  std::getline(fin, line);
-  auto second_line = split(line, "\t");
-  EXPECT_EQ(second_line.size(), 3);
-  EXPECT_EQ(second_line[0], path);
-  EXPECT_NEAR(std::stod(second_line[1]), value, 0.00001);
-  EXPECT_EQ(std::stol(second_line[2]), tm);
-
+    std::getline(fin, line);
+    auto second_line = split(line, "\t");
+    EXPECT_EQ(second_line.size(), 3);
+    EXPECT_EQ(second_line[0], path);
+    EXPECT_NEAR(std::stod(second_line[1]), value, 0.00001);
+    EXPECT_EQ(std::stol(second_line[2]), tm);
+  }
   fs::remove(log_path);
 }
 
