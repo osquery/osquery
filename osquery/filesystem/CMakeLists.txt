@@ -15,34 +15,37 @@ else()
 endif()
 
 if(APPLE)
-  ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem_plist
-    "${CMAKE_CURRENT_LIST_DIR}/darwin/plist.mm"
+  target_sources(libosquery
+    PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/darwin/plist.mm"
   )
 
   ADD_OSQUERY_LINK(TRUE "-framework Foundation")
 elseif(FREEBSD)
 elseif(LINUX)
-  ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem_linux
-    "${CMAKE_CURRENT_LIST_DIR}/linux/mem.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/linux/proc.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/linux/proc.h"
+  target_sources(libosquery
+    PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/linux/mem.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/linux/proc.cpp"
+      "${CMAKE_CURRENT_LIST_DIR}/linux/proc.h"
   )
 endif()
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_filesystem
-  "${CMAKE_CURRENT_LIST_DIR}/fileops.h"
-  "${CMAKE_CURRENT_LIST_DIR}/filesystem.cpp"
+target_sources(libosquery
+    PRIVATE
+      "${CMAKE_CURRENT_LIST_DIR}/fileops.h"
+      "${CMAKE_CURRENT_LIST_DIR}/filesystem.cpp"
 )
 
 if(WINDOWS)
-  target_sources(osquery_filesystem
+  target_sources(libosquery
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/windows/fileops.cpp"
   )
 endif()
 
 if(POSIX)
-  target_sources(osquery_filesystem
+  target_sources(libosquery
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/posix/fileops.cpp"
   )
@@ -52,13 +55,13 @@ ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_filesystem_compression
   "${CMAKE_CURRENT_LIST_DIR}/file_compression.cpp"
 )
 
-ADD_OSQUERY_TEST(TRUE
+ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/fileops_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/filesystem_tests.cpp"
 )
 
 if(APPLE)
-  ADD_OSQUERY_TEST(TRUE
+  ADD_OSQUERY_TEST_CORE(
     "${CMAKE_CURRENT_LIST_DIR}/darwin/tests/plist_tests.cpp"
   )
 

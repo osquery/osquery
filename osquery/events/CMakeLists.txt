@@ -54,11 +54,12 @@ else()
   )
 endif()
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_events
-  "${CMAKE_CURRENT_LIST_DIR}/events.cpp"
+target_sources(libosquery
+  PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/events.cpp"  
 )
 
-ADD_OSQUERY_TEST(TRUE
+ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/events_database_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/events_tests.cpp"
 )
@@ -70,18 +71,18 @@ if(NOT WINDOWS)
 endif()
 
 if(APPLE) 
-  ADD_OSQUERY_TEST(FALSE
+  ADD_OSQUERY_TEST_ADDITIONAL(
     "${CMAKE_CURRENT_LIST_DIR}/darwin/tests/fsevents_tests.cpp"
   )
 elseif(LINUX)
-  ADD_OSQUERY_TEST(FALSE
+  ADD_OSQUERY_TEST_ADDITIONAL(
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/audit_tests.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/inotify_tests.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/process_file_events_tests.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/linux/tests/syslog_tests.cpp"
   )
 elseif(WINDOWS)
-  ADD_OSQUERY_TEST(FALSE
+  ADD_OSQUERY_TEST_ADDITIONAL(
     "${CMAKE_CURRENT_LIST_DIR}/windows/tests/windows_event_log_tests.cpp"
   )
 endif()
