@@ -8,7 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/numeric_monitoring/plugins/filesystem.h>
+#include <gtest/gtest.h>
+
+#include <boost/filesystem.hpp>
 
 #include <osquery/core/conversions.h>
 #include <osquery/filesystem.h>
@@ -17,9 +19,7 @@
 
 #include <osquery/tests/test_util.h>
 
-#include <gtest/gtest.h>
-
-#include <boost/filesystem.hpp>
+#include "osquery/numeric_monitoring/plugins/filesystem.h"
 
 namespace fs = boost::filesystem;
 
