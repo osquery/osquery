@@ -36,8 +36,8 @@ $currentLoc = Get-Location
 # Invoke the MSVC developer tools/env
 $ret = Invoke-VcVarsAll
 if ($ret -ne $true) {
-	Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
-	exit
+  Write-Host "[-] vcvarsall.bat failed to run" -ForegroundColor Red
+  exit
 }
 
 if (-not
@@ -97,8 +97,9 @@ if (-not (Test-Path $zipFile)) {
 }
 
 $7z = (Get-Command '7z' -ErrorAction SilentlyContinue).Source
-$7zargs = @('x',
-	$zipFile
+$7zargs = @(
+  'x',
+  $zipFile
 )
 $perl = (Get-Command 'perl' -ErrorAction SilentlyContinue).Source
 $nmake = (Get-Command 'nmake' -ErrorAction SilentlyContinue).Source
