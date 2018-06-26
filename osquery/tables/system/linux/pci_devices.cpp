@@ -34,11 +34,11 @@ const std::string kPCISubsysID = "PCI_SUBSYS_ID";
 
 const std::string kPciIdsPath = "/usr/share/misc/pci.ids";
 
-PciDB::PciDB(std::istream& dbfileStream) {
+PciDB::PciDB(std::istream& db_filestream) {
   // pci.ids keep track of subsystem information of vendor and models
   // sequentially so we keep track of what the current vendor and models are.
-  std::string curVendor, curModel, line;
-  while (std::getline(dbfileStream, line)) {
+  std::string cur_vendor, cur_model, line;
+  while (std::getline(db_filestream, line)) {
     if (line.size() < 7 || line.at(0) == '\n' || line.at(0) == '#') {
       continue;
     }
@@ -46,55 +46,55 @@ PciDB::PciDB(std::istream& dbfileStream) {
     switch (line.find_first_of("0123456789abcdef")) {
     case 0: {
       // Vendor info.
-      curVendor = line.substr(0, 4);
+      cur_vendor = line.substr(0, 4);
 
       // Once we get to illege vendor section we can stop since we're not
       // currently parsing device classes.
-      if (curVendor == "ffff") {
+      if (cur_vendor == "ffff") {
         return;
       }
 
       // Setup current vendor.
       auto vendor = PciVendor();
-      vendor.id = curVendor;
+      vendor.id = cur_vendor;
       // Bump 2 chars to account for whitespace separation..
       vendor.name = line.substr(6);
-      db_[curVendor] = vendor;
+      db_[cur_vendor] = vendor;
 
       break;
     }
 
     case 1:
       // Model info.
-      if (db_.find(curVendor) != db_.end() && line.size() > 7) {
-        curModel = line.substr(1, 4);
+      if (db_.find(cur_vendor) != db_.end() && line.size() > 7) {
+        cur_model = line.substr(1, 4);
 
         // Set up current model under the current vendor.
         auto model = PciModel();
-        model.id = curModel;
+        model.id = cur_model;
         // Bump 2 chars to account for whitespace separation.
         model.desc = line.substr(7);
-        db_[curVendor].models[curModel] = model;
+        db_[cur_vendor].models[cur_model] = model;
 
       } else {
         VLOG(1) << "Unexpected error while parsing pci.ids: current vendor ID "
-                << curVendor << " does not exist in DB yet";
+                << cur_vendor << " does not exist in DB yet";
       }
 
       break;
 
     case 2:
       // Subsystem info;
-      if (db_.find(curVendor) != db_.end() &&
-          db_[curVendor].models.find(curModel) != db_[curVendor].models.end() &&
+      if (db_.find(cur_vendor) != db_.end() &&
+          db_[cur_vendor].models.find(cur_model) != db_[cur_vendor].models.end() &&
           line.size() > 11) {
         // Store current subsystem information under current vendor and model.
-        db_[curVendor].models[curModel].subsystemInfo[line.substr(2, 9)] =
+        db_[cur_vendor].models[cur_model].subsystemInfo[line.substr(2, 9)] =
             line.substr(13);
 
       } else {
         VLOG(1) << "Unexpected error while parsing pci.ids: current vendor ID "
-                << curVendor << " or model ID " << curModel
+                << cur_vendor << " or model ID " << cur_model
                 << " does not exist in DB yet";
       }
 
@@ -106,42 +106,42 @@ PciDB::PciDB(std::istream& dbfileStream) {
   }
 }
 
-Status PciDB::getVendorName(const std::string& vendorID, std::string& vendor) {
-  if (db_.find(vendorID) == db_.end()) {
+Status PciDB::getVendorName(const std::string& vendor_id, std::string& vendor) {
+  if (db_.find(vendor_id) == db_.end()) {
     return Status(1, "Vendor ID does not exist");
   }
 
-  vendor = db_[vendorID].name;
+  vendor = db_[vendor_id].name;
   return Status(0, "OK");
 }
 
-Status PciDB::getModel(const std::string& vendorID,
-                       const std::string& modelID,
+Status PciDB::getModel(const std::string& vendor_id,
+                       const std::string& model_id,
                        std::string& model) {
-  if (db_.find(vendorID) == db_.end() ||
-      db_[vendorID].models.find(modelID) == db_[vendorID].models.end()) {
+  if (db_.find(vendor_id) == db_.end() ||
+      db_[vendor_id].models.find(model_id) == db_[vendor_id].models.end()) {
     return Status(1, "Vendor ID or Model ID does not exist");
   }
 
-  model = db_[vendorID].models[modelID].desc;
+  model = db_[vendor_id].models[model_id].desc;
 
   return Status(0, "OK");
 }
 
-Status PciDB::getSubsystemInfo(const std::string& vendorID,
-                               const std::string& modelID,
-                               const std::string& subsystemVendorID,
-                               const std::string& subsystemDeviceID,
+Status PciDB::getSubsystemInfo(const std::string& vendor_id,
+                               const std::string& model_id,
+                               const std::string& subsystem_vendor_id,
+                               const std::string& subsystem_device_id,
                                std::string& subsystem) {
-  auto subsystemID = subsystemVendorID + " " + subsystemDeviceID;
+  auto subsystem_id = subsystem_vendor_id + " " + subsystem_device_id;
 
-  if (db_[vendorID].models[modelID].subsystemInfo.find(subsystemID) ==
-      db_[vendorID].models[modelID].subsystemInfo.end()) {
+  if (db_[vendor_id].models[model_id].subsystemInfo.find(subsystem_id) ==
+      db_[vendor_id].models[model_id].subsystemInfo.end()) {
     return Status(
-        1, "Subsystem ID does not exist in system pci.ids: " + subsystemID);
+        1, "Subsystem ID does not exist in system pci.ids: " + subsystem_id);
   }
 
-  subsystem = db_[vendorID].models[modelID].subsystemInfo[subsystemID];
+  subsystem = db_[vendor_id].models[model_id].subsystemInfo[subsystem_id];
 
   return Status(0, "OK");
 }
@@ -149,17 +149,17 @@ Status PciDB::getSubsystemInfo(const std::string& vendorID,
 QueryData genPCIDevices(QueryContext& context) {
   QueryData results;
 
-  auto delUdev = [](udev* u) { udev_unref(u); };
-  std::unique_ptr<udev, decltype(delUdev)> udev_handle(udev_new(), delUdev);
+  auto del_udev = [](udev* u) { udev_unref(u); };
+  std::unique_ptr<udev, decltype(del_udev)> udev_handle(udev_new(), del_udev);
   if (udev_handle.get() == nullptr) {
     VLOG(1) << "Could not get udev handle";
     return results;
   }
 
   // Perform enumeration/search.
-  auto delUdevEnum = [](udev_enumerate* e) { udev_enumerate_unref(e); };
-  std::unique_ptr<udev_enumerate, decltype(delUdevEnum)> enumerate(
-      udev_enumerate_new(udev_handle.get()), delUdevEnum);
+  auto del_udev_enum = [](udev_enumerate* e) { udev_enumerate_unref(e); };
+  std::unique_ptr<udev_enumerate, decltype(del_udev_enum)> enumerate(
+      udev_enumerate_new(udev_handle.get()), del_udev_enum);
   if (enumerate.get() == nullptr) {
     VLOG(1) << "Could not get udev_enumerate handle";
     return results;
@@ -180,11 +180,11 @@ QueryData genPCIDevices(QueryContext& context) {
   struct udev_list_entry *device_entries, *entry;
   device_entries = udev_enumerate_get_list_entry(enumerate.get());
 
-  auto delUdevDevice = [](udev_device* d) { udev_device_unref(d); };
+  auto del_udev_device = [](udev_device* d) { udev_device_unref(d); };
   udev_list_entry_foreach(entry, device_entries) {
     const char* path = udev_list_entry_get_name(entry);
-    std::unique_ptr<udev_device, decltype(delUdevDevice)> device(
-        udev_device_new_from_syspath(udev_handle.get(), path), delUdevDevice);
+    std::unique_ptr<udev_device, decltype(del_udev_device)> device(
+        udev_device_new_from_syspath(udev_handle.get(), path), del_udev_device);
     if (device.get() == nullptr) {
       VLOG(1) << "Could not get device";
       return results;
@@ -225,28 +225,28 @@ QueryData genPCIDevices(QueryContext& context) {
       }
 
       // Try to enrich model with subsystem info.
-      std::vector<std::string> subsystemIDs;
-      auto subsystemID =
+      std::vector<std::string> subsystem_ids;
+      auto subsystem_id =
           UdevEventPublisher::getValue(device.get(), kPCISubsysID);
 
-      std::transform(subsystemID.begin(),
-                     subsystemID.end(),
-                     subsystemID.begin(),
+      std::transform(subsystem_id.begin(),
+                     subsystem_id.end(),
+                     subsystem_id.begin(),
                      [](unsigned char c) { return std::tolower(c); });
 
-      boost::split(subsystemIDs, subsystemID, boost::is_any_of(":"));
+      boost::split(subsystem_ids, subsystem_id, boost::is_any_of(":"));
 
-      if (subsystemIDs.size() == 2) {
-        r["subsystem_vendor_id"] = subsystemIDs[0];
-        r["subsystem_model_id"] = subsystemIDs[1];
+      if (subsystem_ids.size() == 2) {
+        r["subsystem_vendor_id"] = subsystem_ids[0];
+        r["subsystem_model_id"] = subsystem_ids[1];
 
-        if (pcidb.getVendorName(subsystemIDs[0], content).ok()) {
+        if (pcidb.getVendorName(subsystem_ids[0], content).ok()) {
           r["subsystem_vendor"] = content;
         }
 
         if (pcidb
                 .getSubsystemInfo(
-                    ids[0], ids[1], subsystemIDs[0], subsystemIDs[1], content)
+                    ids[0], ids[1], subsystem_ids[0], subsystem_ids[1], content)
                 .ok()) {
           r["subsystem_model"] = content;
         }

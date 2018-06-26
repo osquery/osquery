@@ -21,7 +21,7 @@ namespace tables {
 class PciDBTest : public ::testing::Test {};
 
 TEST_F(PciDBTest, basic_db_format) {
-  std::istringstream rawDB(
+  std::istringstream raw_db(
       "# Some Test Comment\n"
       "8002  Fake Vendor, Inc.\n"
       "\t1312  Foobar\n"
@@ -64,55 +64,55 @@ TEST_F(PciDBTest, basic_db_format) {
       "\t00  SCSI storage controller\n"
       "\t01  IDE interface\n");
 
-  PciDB parsedDB(rawDB);
+  PciDB parsed_db(raw_db);
 
   std::string got;
 
   // Happy Path Tests
-  parsedDB.getVendorName("8002", got);
+  parsed_db.getVendorName("8002", got);
   EXPECT_EQ("Fake Vendor, Inc.", got);
 
-  parsedDB.getModel("8002", "1313", got);
+  parsed_db.getModel("8002", "1313", got);
   EXPECT_EQ("Foobar [Some R7 Rapidfire]", got);
 
-  parsedDB.getModel("8002", "1314", got);
+  parsed_db.getModel("8002", "1314", got);
   EXPECT_EQ("Wrestler HDMI Audio", got);
 
-  parsedDB.getModel("8002", "4136", got);
+  parsed_db.getModel("8002", "4136", got);
   EXPECT_EQ("RS100 [Loops ABC 320M]", got);
 
-  parsedDB.getSubsystemInfo("8002", "1314", "174b", "1001", got);
+  parsed_db.getSubsystemInfo("8002", "1314", "174b", "1001", got);
   EXPECT_EQ("90K Diffusion Mini", got);
 
-  parsedDB.getSubsystemInfo("8002", "3150", "103c", "0934", got);
+  parsed_db.getSubsystemInfo("8002", "3150", "103c", "0934", got);
   EXPECT_EQ("nx8220", got);
 
-  parsedDB.getSubsystemInfo("8002", "1714", "103c", "168b", got);
+  parsed_db.getSubsystemInfo("8002", "1714", "103c", "168b", got);
   EXPECT_EQ("ProBook 4535s", got);
 
   // Negative Tests
   got = "";
 
-  parsedDB.getVendorName("8086", got);
+  parsed_db.getVendorName("8086", got);
   EXPECT_EQ("", got);
 
-  parsedDB.getModel("8002", "1388", got);
+  parsed_db.getModel("8002", "1388", got);
   EXPECT_EQ("", got);
 
-  parsedDB.getSubsystemInfo("8002", "1714", "103c", "168c", got);
+  parsed_db.getSubsystemInfo("8002", "1714", "103c", "168c", got);
   EXPECT_EQ("", got);
 
   // Things below 'ffff' should not be retrievable.
-  parsedDB.getVendorName("ffff", got);
+  parsed_db.getVendorName("ffff", got);
   EXPECT_EQ("", got);
 
-  parsedDB.getVendorName("C 00", got);
+  parsed_db.getVendorName("C 00", got);
   EXPECT_EQ("", got);
 
-  parsedDB.getVendorName("C 01", got);
+  parsed_db.getVendorName("C 01", got);
   EXPECT_EQ("", got);
 
-  parsedDB.getModel("C 00", "00", got);
+  parsed_db.getModel("C 00", "00", got);
   EXPECT_EQ("", got);
 }
 } // namespace tables

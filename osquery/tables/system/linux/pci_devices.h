@@ -44,48 +44,48 @@ class PciDB {
   /**
    * @brief retrieves PCI device vendor name from system pci.ids database.
    *
-   * @param vendorID ID of the vendor
+   * @param vendor_id ID of the vendor
    * @param vendor a reference to a string which will be populated with the
    * vendor name
    *
    * @return an instance of Status, indicating success or failure.
    */
-  Status getVendorName(const std::string& vendorID, std::string& vendor);
+  Status getVendorName(const std::string& vendor_id, std::string& vendor);
 
   /**
    * @brief retrieves PCI device model description from pci.ids database.
    *
-   * @param vendorID ID of the vendor
-   * @param modelID ID of the model
+   * @param vendor_id ID of the vendor
+   * @param model_id ID of the model
    * @param model a reference to a string which will be populated with the
    * model description.
    *
    * @return an instance of Status, indicating success or failure.
    */
-  Status getModel(const std::string& vendorID,
-                  const std::string& modelID,
+  Status getModel(const std::string& vendor_id,
+                  const std::string& model_id,
                   std::string& model);
 
   /**
    * @brief retrieves PCI device subsystem description from pci.ids database.
    *
-   * @param vendorID ID of the vendor
-   * @param modelID ID of the model
-   * @param subsystemVendorID ID of the subsystem vendor
-   * @param subsystemDeviceID ID of the subsystem model
+   * @param vendor_id ID of the vendor
+   * @param model_id ID of the model
+   * @param subsystem_vendor_id ID of the subsystem vendor
+   * @param subsystem_device_id ID of the subsystem model
    * @param subsystem a reference to a string which will be populated with the
    * subsystem description.
    *
    * @return an instance of Status, indicating success or failure.
    */
-  Status getSubsystemInfo(const std::string& vendorID,
-                          const std::string& modelID,
-                          const std::string& subsystemVendorID,
-                          const std::string& subsystemDeviceID,
+  Status getSubsystemInfo(const std::string& vendor_id,
+                          const std::string& model_id,
+                          const std::string& subsystem_vendor_id,
+                          const std::string& subsystem_device_id,
                           std::string& subsystem);
 
  public:
-  PciDB(std::istream& dbfileStream);
+  PciDB(std::istream& db_filestream);
 
  private:
   std::unordered_map<std::string, PciVendor> db_;
