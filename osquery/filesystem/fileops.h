@@ -15,13 +15,7 @@
 #include <sys/types.h>
 
 #ifdef WIN32
-
-//#include "accctrl.h"
-//#include "aclapi.h"
-//#include <Shlwapi.h>
 #include <iomanip>
-//#include <iostream>
-//#include <sstream>
 #include <windows.h>
 #include <map>
 #else
