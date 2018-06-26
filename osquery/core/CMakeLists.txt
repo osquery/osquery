@@ -18,6 +18,7 @@ target_sources(libosquery
     "${CMAKE_CURRENT_LIST_DIR}/process.h"
     "${CMAKE_CURRENT_LIST_DIR}/query.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/system.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/status.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/tables.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/utils.h"
     "${CMAKE_CURRENT_LIST_DIR}/watcher.cpp"
