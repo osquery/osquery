@@ -283,7 +283,9 @@ TEST_F(HashTableTest, hashes_are_correct) {
   EXPECT_EQ(rows[0].at("md5"), contentMd5);
   EXPECT_EQ(rows[0].at("sha1"), contentSha1);
   EXPECT_EQ(rows[0].at("sha256"), contentSha256);
-  EXPECT_EQ(rows[0].at("ssdeep"), contentSsdeep);
+  if (isPlatform(PlatformType::TYPE_POSIX)) {
+    EXPECT_EQ(rows[0].at("ssdeep"), contentSsdeep);
+  }
 }
 
 TEST_F(HashTableTest, test_cache_works) {

@@ -190,7 +190,11 @@ std::string genSsdeepForFile(const std::string& path) {
   std::string file_ssdeep_hash(FUZZY_MAX_RESULT, '\0');
   auto did_ssdeep_fail =
     fuzzy_hash_filename(path.c_str(), &file_ssdeep_hash.front());
-  return did_ssdeep_fail ? "-1" : std::move(file_ssdeep_hash);
+  if (did_ssdeep_fail) {
+    LOG(WARNING) << "ssdeep failed: " << path;
+    return "-1";
+  }
+  return file_ssdeep_hash;
 }
 
 void genHashForFile(const std::string& path,
@@ -234,7 +238,7 @@ void genHashForFile(const std::string& path,
 }
 
 void expandFSPathConstraints(QueryContext& context,
-                             std::string path_column_name,
+                             const std::string& path_column_name,
                              std::set<std::string>& paths) {
   context.expandConstraints(
     path_column_name,
