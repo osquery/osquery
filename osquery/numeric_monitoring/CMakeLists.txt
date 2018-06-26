@@ -6,27 +6,16 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-file(GLOB OSQUERY_NUMERIC_MONITORING "numeric_monitoring.cpp")
-
-ADD_OSQUERY_LIBRARY_CORE(
-  OSQUERY_NUMERIC_MONITORING
-  ${OSQUERY_NUMERIC_MONITORING}
-)
-
-file(GLOB OSQUERY_NUMERIC_MONITORING_TESTS)
-ADD_OSQUERY_TEST_CORE(${OSQUERY_NUMERIC_MONITORING_TESTS})
-
-set(OSQUERY_NUMERIC_MONITORING_PLUGINS
-  "plugins/filesystem.cpp"
+target_sources(libosquery
+  PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/numeric_monitoring.cpp"
 )
 
 ADD_OSQUERY_LIBRARY_ADDITIONAL(
-  OSQUERY_NUMERIC_MONITORING_PLUGINS
-  ${OSQUERY_NUMERIC_MONITORING_PLUGINS}
+  osquery_numeric_monitoring_plugins
+  "${CMAKE_CURRENT_LIST_DIR}/plugins/filesystem.cpp"
 )
 
-set(OSQUERY_NUMERIC_MONITORING_PLUGIN_TESTS
-  "numeric_monitoring/plugins/tests/filesystem_tests.cpp"
+ADD_OSQUERY_TEST_ADDITIONAL(
+  "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/filesystem_tests.cpp"
 )
-
-ADD_OSQUERY_TEST_ADDITIONAL(${OSQUERY_NUMERIC_MONITORING_PLUGIN_TESTS})
