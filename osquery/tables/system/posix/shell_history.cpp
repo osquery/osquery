@@ -102,6 +102,19 @@ QueryData genShellHistory(QueryContext& context) {
     auto dir = row.find("directory");
     if (uid != row.end() && gid != row.end() && dir != row.end()) {
       genShellHistoryForUser(uid->second, gid->second, dir->second, results);
+      boost::filesystem::path bash_sessions = dir->second;
+      bash_sessions /= ".bash_sessions";
+
+      if (pathExists(bash_sessions)) {
+        bash_sessions /= "*.history";
+        std::vector<std::string> session_hist_files;
+        resolveFilePattern(bash_sessions, session_hist_files);
+
+        for (const auto& hfile : session_hist_files) {
+          boost::filesystem::path history_file = hfile;
+          genShellHistoryFromFile(uid->second, history_file, results);
+        }
+      }
     }
   }
 
