@@ -34,6 +34,9 @@ import test_http_server
 # Whether or not to use the watchdog process. leave this as false.
 DISABLE_WATCHDOG = 'false'
 
+# Global variable for powershell binary
+POWERSHELL_ARGS = ['powershell.exe', '-noprofile']
+
 TLS_SERVER_ARGS = {
     'tls': True,
     'persist': True,
@@ -169,6 +172,16 @@ def serviceDead():
     return len(getOsqueryProcs()) == 0
 
 
+def serviceStopped(service_name):
+    _, message = queryService(service_name)
+    return message == '1STOPPED'
+
+
+def serviceStarted(service_name):
+    _, message = queryService(service_name)
+    return message == '4RUNNING'
+
+
 def startService(name, *argv):
     start_ = sc('start', name, *argv)
     test_base.expectTrue(serviceAlive)
@@ -193,6 +206,25 @@ def killOsqueryProcesses():
         for p in procs:
             os.kill(p, SIGTERM)
 
+# Before running this test, we should ensure that no residual 
+# processes exist on the system. We do so by getting any service 
+# that matches our regex, stopping it, and then deleting the service
+def cleanOsqueryServices():
+    service_args = POWERSHELL_ARGS + ['$(Get-Service osqueryd_test_*).Name']
+    services = subprocess.check_output(service_args).split()
+    
+    # No services found on the system
+    if len(services) == 0:
+        return
+    
+    for service in services:
+        stopService(service)
+        # Local workaround as we need the service name
+        def isServiceStopped():
+            return serviceStopped(service)
+        test_base.expectTrue(isServiceStopped)
+        uninstallService(service)
+
 
 class OsquerydTest(unittest.TestCase):
 
@@ -200,7 +232,7 @@ class OsquerydTest(unittest.TestCase):
 
     def setUp(self):
         # Ensure that no residual processes are alive before starting
-        killOsqueryProcesses()
+        cleanOsqueryServices()
 
         self.test_instance = random.randint(0, 65535)
         self.tmp_dir = os.path.join(tempfile.gettempdir(),

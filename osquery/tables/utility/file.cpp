@@ -54,7 +54,7 @@ void genFileInfo(const fs::path& path,
     // Path was not real, had too may links, or could not be accessed.
     return;
   }
-  if ((link_stat.st_mode & S_IFLNK) != 0) {
+  if (S_ISLNK(link_stat.st_mode)) {
     r["symlink"] = "1";
   }
 #endif

@@ -140,7 +140,7 @@ function main() {
   mkdir -p $BINARY_INSTALL_DIR
   cp "$BUILD_DIR/osquery/osqueryd" $BINARY_INSTALL_DIR
   ln -s osqueryd $BINARY_INSTALL_DIR/osqueryi
-  strip $BINARY_INSTALL_DIR/*
+  strip --strip-debug $BINARY_INSTALL_DIR/*
   cp "$CTL_SRC" $BINARY_INSTALL_DIR
 
   # Create the prefix log dir and copy source configs

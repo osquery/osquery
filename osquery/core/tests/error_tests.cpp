@@ -17,8 +17,13 @@ GTEST_TEST(ErrorTest, initialization) {
   auto error = osquery::Error<TestError>(TestError::SomeError, "TestMessage");
   EXPECT_EQ(error.getUnderlyingError(), nullptr);
   EXPECT_TRUE(error == TestError::SomeError);
-  EXPECT_EQ(error.getShortMessage(), "TestError 1");
-  EXPECT_EQ(error.getFullMessage(), "TestError 1 (TestMessage)");
+
+  auto shortMsg = error.getShortMessageRecursive();
+  EXPECT_NE(std::string::npos, shortMsg.find("TestError 1"));
+
+  auto fullMsg = error.getFullMessageRecursive();
+  EXPECT_NE(std::string::npos, fullMsg.find("TestError 1"));
+  EXPECT_NE(std::string::npos, fullMsg.find("TestMessage"));
 }
 
 GTEST_TEST(ErrorTest, recursive) {
@@ -27,7 +32,14 @@ GTEST_TEST(ErrorTest, recursive) {
   auto error = osquery::Error<TestError>(
       TestError::AnotherError, "TestMessage", orignalError);
   EXPECT_NE(error.getUnderlyingError(), nullptr);
-  EXPECT_EQ(error.getShortMessageRecursive(), "TestError 2 <- TestError 1");
-  EXPECT_EQ(error.getFullMessageRecursive(),
-            "TestError 2 (TestMessage) <- TestError 1 (SuperTestMessage)");
+
+  auto shortMsg = error.getShortMessageRecursive();
+  EXPECT_NE(std::string::npos, shortMsg.find("TestError 1"));
+  EXPECT_NE(std::string::npos, shortMsg.find("TestError 2"));
+
+  auto fullMsg = error.getFullMessageRecursive();
+  EXPECT_NE(std::string::npos, fullMsg.find("TestError 1"));
+  EXPECT_NE(std::string::npos, fullMsg.find("SuperTestMessage"));
+  EXPECT_NE(std::string::npos, fullMsg.find("TestError 2"));
+  EXPECT_NE(std::string::npos, fullMsg.find("TestMessage"));
 }
