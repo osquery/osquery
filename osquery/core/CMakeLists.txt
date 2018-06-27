@@ -59,6 +59,8 @@ endif()
 
 ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/conversions_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/error_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/exptected_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/flags_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/process_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/query_tests.cpp"
