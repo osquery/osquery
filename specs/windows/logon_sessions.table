@@ -1,0 +1,23 @@
+﻿table_name("logon_sessions")
+description("Windows Logon Session.")
+schema([
+    Column("logon_id", INTEGER, "A locally unique identifier (LUID) that identifies a logon session.", index=True),
+    Column("user", TEXT, "The account name of the security principal that owns the logon session."),
+    Column("logon_domain", TEXT, "The name of the domain used to authenticate the owner of the logon session."),
+    Column("authentication_package", TEXT, "The authentication package used to authenticate the owner of the logon session."),
+    Column("logon_type", TEXT, "The logon method."),
+    Column("session_id", INTEGER, "The Terminal Services session identifier."),
+    Column("logon_sid", TEXT, "The user's security identifier (SID)."),
+    Column("logon_time", BIGINT, "The time the session owner logged on."),
+    Column("logon_server", TEXT, "The name of the server used to authenticate the owner of the logon session."),
+    Column("dns_domain_name", TEXT, "The DNS name for the owner of the logon session."),
+    Column("upn", TEXT, "The user principal name (UPN) for the owner of the logon session."),
+    Column("logon_script", TEXT, "The script used for logging on."),
+    Column("profile_path", TEXT, "The home directory for the logon session."),
+    Column("home_directory", TEXT, "The home directory for the logon session."),
+    Column("home_directory_drive", TEXT, "The drive location of the home directory of the logon session.")
+])
+implementation("logon_sessions@QueryLogonSessions")
+examples([
+  "select * from logon_sessions;"
+])
