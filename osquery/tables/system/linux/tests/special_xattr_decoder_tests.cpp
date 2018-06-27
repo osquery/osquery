@@ -37,24 +37,26 @@ TEST_F(SpecialXattrDecoder, special_xattr_decoder) {
 
   {
     std::fstream test_file(test_file_path, std::ios::out);
-    EXPECT_EQ(!test_file, false);
+    ASSERT_EQ(!test_file, false);
   }
 
   auto command_line = "setcap cap_net_admin+ep \"" + test_file_path + "\"";
+
   bool succeeded = std::system(command_line.data()) == 0;
-  EXPECT_TRUE(succeeded);
   if (!succeeded) {
-    LOG(ERROR) << "setcap failed; are you running as root?\n";
-    return;
+    if (geteuid() != 0) {
+      LOG(WARNING)
+          << "setcap failed; are you running as root? Skipping the test...";
+      return;
+    }
+
+    ASSERT_TRUE(succeeded);
   }
 
   ExtendedAttributes decoded_attribute;
   succeeded = decodeSpecialExtendedAttribute(
       decoded_attribute, test_file_path, kSecurityCapabilityXattr);
-  EXPECT_TRUE(succeeded);
-  if (!succeeded) {
-    return;
-  }
+  ASSERT_TRUE(succeeded);
 
   EXPECT_EQ(decoded_attribute.size(), 1U);
   EXPECT_EQ(decoded_attribute[0].first, kSecurityCapabilityXattr);
