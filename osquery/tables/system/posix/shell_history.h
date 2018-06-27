@@ -16,6 +16,10 @@
 namespace osquery {
 namespace tables {
 
+void genShellHistoryFromBashSessions(const std::string& uid,
+                                     const std::string& directory,
+                                     QueryData& results);
+                                     
 void genShellHistoryForUser(const std::string& uid,
                             const std::string& gid,
                             const std::string& directory,
