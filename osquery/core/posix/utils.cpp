@@ -31,19 +31,6 @@ std::string platformStrerr(int errnum) {
   return ::strerror(errnum);
 }
 
-Status platformStrncpy(char* dst, size_t nelms, const char* src, size_t count) {
-  if (dst == nullptr || src == nullptr || nelms == 0) {
-    return Status(1, "Failed to strncpy: invalid arguments");
-  }
-
-  if (count > nelms) {
-    return Status(1, "Failed to strncpy: dst too small");
-  }
-
-  ::strncpy(dst, src, count);
-  return Status(0, "OK");
-}
-
 const std::string canonicalize_file_name(const char* name) {
 #ifdef PATH_MAX
   // On supported platforms where PATH_MAX is defined we can pass null
