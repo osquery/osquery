@@ -11,11 +11,14 @@
 #include <gtest/gtest.h>
 #include <osquery/error.h>
 
-enum class TestError { SomeError = 1, AnotherError = 2 };
+enum class TestError {
+  SomeError = 1,
+  AnotherError = 2,
+};
 
 GTEST_TEST(ErrorTest, initialization) {
   auto error = osquery::Error<TestError>(TestError::SomeError, "TestMessage");
-  EXPECT_EQ(error.getUnderlyingError(), nullptr);
+  EXPECT_FALSE(error.hasUnderlyingError());
   EXPECT_TRUE(error == TestError::SomeError);
 
   auto shortMsg = error.getShortMessageRecursive();
@@ -27,11 +30,11 @@ GTEST_TEST(ErrorTest, initialization) {
 }
 
 GTEST_TEST(ErrorTest, recursive) {
-  auto orignalError = std::make_shared<osquery::Error<TestError>>(
+  auto orignalError = std::make_unique<osquery::Error<TestError>>(
       TestError::SomeError, "SuperTestMessage");
   auto error = osquery::Error<TestError>(
-      TestError::AnotherError, "TestMessage", orignalError);
-  EXPECT_NE(error.getUnderlyingError(), nullptr);
+      TestError::AnotherError, "TestMessage", std::move(orignalError));
+  EXPECT_TRUE(error.hasUnderlyingError());
 
   auto shortMsg = error.getShortMessageRecursive();
   EXPECT_NE(std::string::npos, shortMsg.find("TestError 1"));
