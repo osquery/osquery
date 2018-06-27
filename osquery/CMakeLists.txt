@@ -93,13 +93,12 @@ include(events/CMakeLists.txt)
 include(extensions/CMakeLists.txt)
 include(filesystem/CMakeLists.txt)
 include(logger/CMakeLists.txt)
-
-add_subdirectory(registry)
-add_subdirectory(sql)
-add_subdirectory(remote)
-add_subdirectory(utils)
+include(registry/CMakeLists.txt)
+include(sql/CMakeLists.txt)
+include(remote/CMakeLists.txt)
+include(utils/CMakeLists.txt)
 if(NOT SKIP_CARVER)
-  add_subdirectory(carver)
+  include(carver/CMakeLists.txt)
 endif()
 
 # Add externals directory from parent
