@@ -10,11 +10,12 @@
 
 #pragma once
 
+#include <cassert>
 #include <memory>
-#include <osquery/error.h>
 #include <string>
 #include <type_traits>
-#include <utility>
+
+#include <osquery/error.h>
 
 #include <boost/blank.hpp>
 #include <boost/variant.hpp>
@@ -63,8 +64,6 @@
  */
 
 namespace osquery {
-
-using Success = boost::blank;
 
 template <typename ValueType_, typename ErrorCodeEnumType>
 class Expected final {
@@ -119,35 +118,41 @@ class Expected final {
     return getError().getErrorCode();
   }
 
-  bool isOk() const {
+  bool isOk() const noexcept {
 #ifndef NDEBUG
     errorChecked_ = true;
 #endif
     return object_.which() == kValueType_;
   }
 
-  explicit operator bool() const {
+  explicit operator bool() const noexcept {
     return isOk();
   }
 
   ValueType& get() {
+#ifndef NDEBUG
+    assert(isOk() && "Do not try to get value from Expected with error");
+#endif
     return boost::get<ValueType>(object_);
   }
 
   const ValueType& get() const {
+#ifndef NDEBUG
+    assert(isOk() && "Do not try to get value from Expected with error");
+#endif
     return boost::get<ValueType>(object_);
   }
 
   ValueType take() {
-    return std::move(boost::get<ValueType>(object_));
+    return std::move(get());
   }
 
   ValueType* operator->() {
-    return &boost::get<ValueType>(object_);
+    return &get();
   }
 
   const ValueType* operator->() const {
-    return &boost::get<ValueType>(object_);
+    return &get();
   }
 
   ValueType& operator*() {
@@ -183,6 +188,8 @@ using ExpectedShared = Expected<std::shared_ptr<ValueType>, ErrorCodeEnumType>;
 
 template <typename ValueType, typename ErrorCodeEnumType>
 using ExpectedUnique = Expected<std::unique_ptr<ValueType>, ErrorCodeEnumType>;
+
+using Success = boost::blank;
 
 template <typename ErrorCodeEnumType>
 using ExpectedSuccess = Expected<Success, ErrorCodeEnumType>;

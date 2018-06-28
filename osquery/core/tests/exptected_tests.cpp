@@ -8,7 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <boost/algorithm/string.hpp>
+#include <boost/core/ignore_unused.hpp>
 #include <boost/optional.hpp>
+
 #include <gtest/gtest.h>
 #include <osquery/error.h>
 #include <osquery/expected.h>
@@ -38,15 +41,19 @@ GTEST_TEST(ExpectedTest, failure_error_contructor_initialization) {
   EXPECT_EQ(error.getErrorCode(), TestError::Some);
 }
 
+bool stringContains(const std::string& what, const std::string& where) {
+  return boost::contains(what, where);
+};
+
 GTEST_TEST(ExpectedTest, failure_error_str_contructor_initialization) {
-  auto expected = Expected<std::string, TestError>::failure(
-      "error message !?#$%&'()*+,-./089:;<[=]>");
+  const auto msg =
+      std::string{"\"#$%&'()*+,-./089:;<[=]>\" is it a valid error message?"};
+  auto expected = Expected<std::string, TestError>::failure(msg);
   EXPECT_FALSE(expected);
   EXPECT_FALSE(expected.isOk());
   EXPECT_EQ(expected.getErrorCode(), TestError::Some);
   auto fullMsg = expected.getError().getFullMessage();
-  EXPECT_NE(std::string::npos,
-            fullMsg.find("error message !?#$%&'()*+,-./089:;<[=]>)"));
+  EXPECT_PRED2(stringContains, fullMsg, msg);
 }
 
 osquery::ExpectedUnique<std::string, TestError> testFunction() {
@@ -92,14 +99,15 @@ using LocalExpected = Expected<ValueType, TestError>;
 GTEST_TEST(ExpectedTest, createError_example) {
   auto giveMeDozen = [](bool valid) -> LocalExpected<int> {
     if (valid) {
-      return 12;
+      return 50011971;
     }
-    return createError(TestError::Logical, "error message");
+    return createError(TestError::Logical,
+                       "an error message is supposed to be here");
   };
   auto v = giveMeDozen(true);
   EXPECT_TRUE(v);
   ASSERT_TRUE(v.isOk());
-  EXPECT_EQ(*v, 12);
+  EXPECT_EQ(*v, 50011971);
 
   auto errV = giveMeDozen(false);
   EXPECT_FALSE(errV);
@@ -112,32 +120,34 @@ GTEST_TEST(ExpectedTest, ExpectedSuccess_example) {
     if (valid) {
       return Success{};
     }
-    return Error<TestError>(TestError::Runtime, "error message");
+    return Error<TestError>(TestError::Runtime,
+                            "an error message is supposed to be here");
   };
-  auto v = giveMeStatus(true);
-  EXPECT_TRUE(v);
-  ASSERT_TRUE(v.isOk());
+  auto s = giveMeStatus(true);
+  EXPECT_TRUE(s);
+  ASSERT_TRUE(s.isOk());
 
-  auto errV = giveMeStatus(false);
-  EXPECT_FALSE(errV);
-  ASSERT_FALSE(errV.isOk());
+  auto errS = giveMeStatus(false);
+  EXPECT_FALSE(errS);
+  ASSERT_FALSE(errS.isOk());
 }
 
 GTEST_TEST(ExpectedTest, nested_errors_example) {
-  auto firstFailureSource = []() -> Expected<std::vector<int>, TestError> {
-    return createError(TestError::Semantic, "Test error message b#$%&");
+  const auto msg = std::string{"Write a good error message"};
+  auto firstFailureSource = [&msg]() -> Expected<std::vector<int>, TestError> {
+    return createError(TestError::Semantic, msg);
   };
   auto giveMeNestedError = [&]() -> Expected<std::vector<int>, TestError> {
     auto ret = firstFailureSource();
     ret.isOk();
-    return createError(
-        TestError::Runtime, "Test error message b#$%&", ret.takeError());
+    return createError(TestError::Runtime, msg, ret.takeError());
   };
   auto ret = giveMeNestedError();
   EXPECT_FALSE(ret);
   ASSERT_FALSE(ret.isOk());
   EXPECT_EQ(ret.getErrorCode(), TestError::Runtime);
   ASSERT_TRUE(ret.getError().hasUnderlyingError());
+  EXPECT_PRED2(stringContains, ret.getError().getFullMessage(), msg);
 }
 
 GTEST_TEST(ExpectedTest, error_handling_example) {
@@ -151,12 +161,12 @@ GTEST_TEST(ExpectedTest, error_handling_example) {
     case TestError::Another:
     case TestError::Semantic:
     case TestError::Logical:
-      FAIL() << "There is must be Runtime type";
+      FAIL() << "There is must be a Runtime type of error";
     case TestError::Runtime:
       SUCCEED();
     }
   } else {
-    FAIL() << "There is must be error";
+    FAIL() << "There is must be an error";
   }
 }
 
@@ -164,6 +174,50 @@ GTEST_TEST(ExpectedTest, error_was_not_checked) {
   auto action = []() { auto expected = ExpectedSuccess<TestError>{Success()}; };
 #ifndef NDEBUG
   ASSERT_DEATH(action(), "Error was not checked");
+#else
+  boost::ignore_unused(action);
+#endif
+}
+
+GTEST_TEST(ExpectedTest, get_value_from_expected_with_error) {
+  auto action = []() {
+    auto expected = Expected<int, TestError>(TestError::Logical,
+                                             "Test error message @#$0k+Qh");
+    auto value = expected.get();
+    boost::ignore_unused(value);
+  };
+#ifndef NDEBUG
+  ASSERT_DEATH(action(), "Do not try to get value from Expected with error");
+#else
+  boost::ignore_unused(action);
+#endif
+}
+
+GTEST_TEST(ExpectedTest, const_get_value_from_expected_with_error) {
+  auto action = []() {
+    const auto expected = Expected<int, TestError>(
+        TestError::Semantic, "Test error message {}()[].");
+    auto value = expected.get();
+    boost::ignore_unused(value);
+  };
+#ifndef NDEBUG
+  ASSERT_DEATH(action(), "Do not try to get value from Expected with error");
+#else
+  boost::ignore_unused(action);
+#endif
+}
+
+GTEST_TEST(ExpectedTest, take_value_from_expected_with_error) {
+  auto action = []() {
+    auto expected = Expected<int, TestError>(TestError::Semantic,
+                                             "Test error message !&^?<>.");
+    auto value = expected.take();
+    boost::ignore_unused(value);
+  };
+#ifndef NDEBUG
+  ASSERT_DEATH(action(), "Do not try to get value from Expected with error");
+#else
+  boost::ignore_unused(action);
 #endif
 }
 
