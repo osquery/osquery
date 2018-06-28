@@ -9,9 +9,8 @@ class SsdeepCpp < AbstractOsqueryFormula
   revision 200
 
   def install
-    ENV.cxx11
-
-    system "CXXFLAGS='-stdlib=libstdc++' ./configure --prefix=#{prefix} --enable-static --enable-shared=no"
+    append "CXXFLAGS", "-stdlib=libc++"
+    system "./configure --prefix=#{prefix} --enable-static --enable-shared=no"
     system "make"
     system "make", "install"
   end
