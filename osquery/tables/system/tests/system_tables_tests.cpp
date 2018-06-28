@@ -262,8 +262,8 @@ class HashTableTest : public testing::Test {
     auto maybe_ssdeep = isPlatform(PlatformType::TYPE_POSIX) ? ", ssdeep" : "";
     std::stringstream qry_stream;
     qry_stream << boost::format(
-                    "select md5, sha1, sha256%s from hash where path='%s'")
-                    % maybe_ssdeep % tmpPath.string();
+                      "select md5, sha1, sha256%s from hash where path='%s'") %
+                      maybe_ssdeep % tmpPath.string();
     qry = qry_stream.str();
   }
 

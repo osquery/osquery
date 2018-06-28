@@ -189,7 +189,7 @@ bool FileHashCache::load(const std::string& path, MultiHashes& out) {
 std::string genSsdeepForFile(const std::string& path) {
   std::string file_ssdeep_hash(FUZZY_MAX_RESULT, '\0');
   auto did_ssdeep_fail =
-    fuzzy_hash_filename(path.c_str(), &file_ssdeep_hash.front());
+      fuzzy_hash_filename(path.c_str(), &file_ssdeep_hash.front());
   if (did_ssdeep_fail) {
     LOG(WARNING) << "ssdeep failed: " << path;
     return "-1";
@@ -241,20 +241,20 @@ void expandFSPathConstraints(QueryContext& context,
                              const std::string& path_column_name,
                              std::set<std::string>& paths) {
   context.expandConstraints(
-    path_column_name,
-    LIKE,
-    paths,
-    ([&](const std::string& pattern, std::set<std::string>& out) {
-      std::vector<std::string> patterns;
-      auto status =
-        resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
-      if (status.ok()) {
-        for (const auto& resolved : patterns) {
-          out.insert(resolved);
+      path_column_name,
+      LIKE,
+      paths,
+      ([&](const std::string& pattern, std::set<std::string>& out) {
+        std::vector<std::string> patterns;
+        auto status =
+            resolveFilePattern(pattern, patterns, GLOB_ALL | GLOB_NO_CANON);
+        if (status.ok()) {
+          for (const auto& resolved : patterns) {
+            out.insert(resolved);
+          }
         }
-      }
-      return status;
-    }));
+        return status;
+      }));
 }
 
 QueryData genHash(QueryContext& context) {
