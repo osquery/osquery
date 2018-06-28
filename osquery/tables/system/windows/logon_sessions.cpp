@@ -1,5 +1,6 @@
 // clang-format off
 #include <Windows.h>
+#include <NTSecAPI.h>
 #include <sddl.h>
 #include <tchar.h>
 #include <vector>
@@ -12,86 +13,48 @@
 // clang-format on
 
 #define CHECK_BIT(var, pos) ((var) & (1 << (pos)))
+#define JAN_1_1601_TO_JAN_1_1970 116444736000000000
+#define HUNDREDNANOSECONDS_TO_SECONDS 10000000
 
 namespace osquery {
 namespace tables {
-typedef LONG NTSTATUS;
-
-typedef struct _LSA_UNICODE_STRING {
-  USHORT Length;
-  USHORT MaximumLength;
-  PWSTR Buffer;
-} LSA_UNICODE_STRING, *PLSA_UNICODE_STRING;
-
-typedef struct _LSA_LAST_INTER_LOGON_INFO {
-  LARGE_INTEGER LastSuccessfulLogon;
-  LARGE_INTEGER LastFailedLogon;
-  ULONG FailedAttemptCountSinceLastSuccessfulLogon;
-} LSA_LAST_INTER_LOGON_INFO, *PLSA_LAST_INTER_LOGON_INFO;
-
-typedef struct _SECURITY_LOGON_SESSION_DATA {
-  ULONG Size;
-  LUID LogonId;
-  LSA_UNICODE_STRING UserName;
-  LSA_UNICODE_STRING LogonDomain;
-  LSA_UNICODE_STRING AuthenticationPackage;
-  ULONG LogonType;
-  ULONG Session;
-  PSID Sid;
-  LARGE_INTEGER LogonTime;
-  LSA_UNICODE_STRING LogonServer;
-  LSA_UNICODE_STRING DnsDomainName;
-  LSA_UNICODE_STRING Upn;
-  ULONG UserFlags;
-  LSA_LAST_INTER_LOGON_INFO LastLogonInfo;
-  LSA_UNICODE_STRING LogonScript;
-  LSA_UNICODE_STRING ProfilePath;
-  LSA_UNICODE_STRING HomeDirectory;
-  LSA_UNICODE_STRING HomeDirectoryDrive;
-  LARGE_INTEGER LogoffTime;
-  LARGE_INTEGER KickOffTime;
-  LARGE_INTEGER PasswordLastSet;
-  LARGE_INTEGER PasswordCanChange;
-  LARGE_INTEGER PasswordMustChange;
-} SECURITY_LOGON_SESSION_DATA, *PSECURITY_LOGON_SESSION_DATA;
-
 LONGLONG filetimeToUnixtime(const LARGE_INTEGER& ft) {
   LARGE_INTEGER date, adjust;
   date.HighPart = ft.HighPart;
   date.LowPart = ft.LowPart;
-  adjust.QuadPart = 11644473600000 * 10000;
+  adjust.QuadPart = JAN_1_1601_TO_JAN_1_1970;
   date.QuadPart -= adjust.QuadPart;
-  return date.QuadPart / 10000000;
+  return date.QuadPart / HUNDREDNANOSECONDS_TO_SECONDS;
 }
 
-LPTSTR GetLogonType(ULONG logonType) {
+LPWSTR GetLogonType(ULONG logonType) {
   switch (logonType) {
   case 2:
-    return TEXT("Interactive");
+    return L"Interactive";
   case 3:
-    return TEXT("Network");
+    return L"Network";
   case 4:
-    return TEXT("Batch");
+    return L"Batch";
   case 5:
-    return TEXT("Service");
+    return L"Service";
   case 6:
-    return TEXT("Proxy");
+    return L"Proxy";
   case 7:
-    return TEXT("Unlock");
+    return L"Unlock";
   case 8:
-    return TEXT("NetworkCleartext");
+    return L"NetworkCleartext";
   case 9:
-    return TEXT("NewCredentials");
+    return L"NewCredentials";
   case 10:
-    return TEXT("RemoteInteractive");
+    return L"RemoteInteractive";
   case 11:
-    return TEXT("CachedInteractive");
+    return L"CachedInteractive";
   case 12:
-    return TEXT("CachedRemoteInteractive");
+    return L"CachedRemoteInteractive";
   case 13:
-    return TEXT("CachedUnlock");
+    return L"CachedUnlock";
   default:
-    return TEXT("None");
+    return L"None";
   }
 }
 
@@ -127,57 +90,41 @@ QueryData QueryLogonSessions(QueryContext& context) {
     ULONG sessionCount = 0;
     NTSTATUS status = LsaEnumerateLogonSessions(&sessionCount, &sessions);
 
-    for (size_t i = 0; i < sessionCount; i++) {
-      PSECURITY_LOGON_SESSION_DATA sessionData = NULL;
-      NTSTATUS status = LsaGetLogonSessionData(&sessions[i], &sessionData);
+    if (status == 0) {
+      for (size_t i = 0; i < sessionCount; i++) {
+        PSECURITY_LOGON_SESSION_DATA sessionData = NULL;
+        NTSTATUS status = LsaGetLogonSessionData(&sessions[i], &sessionData);
 
-      // I need to go back and convert LARGE_INTEGER values to Unix Timestamp
-      if (status == 0) {
-        Row r;
-        r["logon_id"] = INTEGER(sessionData->LogonId.LowPart);
-        r["user"] = wstringToString(sessionData->UserName.Buffer);
-        r["logon_domain"] = wstringToString(sessionData->LogonDomain.Buffer);
-        r["authentication_package"] =
-            wstringToString(sessionData->AuthenticationPackage.Buffer);
-        r["logon_type"] = GetLogonType(sessionData->LogonType);
-        r["session_id"] = INTEGER(sessionData->Session);
-        LPTSTR sid;
-        ConvertSidToStringSid(sessionData->Sid, &sid);
-        r["logon_sid"] = sid;
-        r["logon_time"] = BIGINT(filetimeToUnixtime(sessionData->LogonTime));
-        r["logon_server"] = wstringToString(sessionData->LogonServer.Buffer);
-        r["dns_domain_name"] =
-            wstringToString(sessionData->DnsDomainName.Buffer);
-        //r["upn"] = wstringToString(sessionData->Upn.Buffer);
-        r["upn"] = INTEGER(sessionData->Upn.Length);
-        /*
-				r["user_flags"] = INTEGER(sessionData->UserFlags); 
-				r["last_successful_logon"] = BIGINT(
-            filetimeToUnixtime(sessionData->LastLogonInfo.LastSuccessfulLogon));
-        r["last_failed_logon"] = BIGINT(
-            filetimeToUnixtime(sessionData->LastLogonInfo.LastFailedLogon));
-        r["failed_attempt_count_since_last_successful_logon"] =
-            INTEGER(sessionData->LastLogonInfo
-                        .FailedAttemptCountSinceLastSuccessfulLogon);
-        */
-				r["logon_script"] = wstringToString(sessionData->LogonScript.Buffer);
-        r["profile_path"] = wstringToString(sessionData->ProfilePath.Buffer);
-        r["home_directory"] =
-            wstringToString(sessionData->HomeDirectory.Buffer);
-        r["home_directory_drive"] =
-            wstringToString(sessionData->HomeDirectoryDrive.Buffer);
-        /*
-				r["logoff_time"] = BIGINT(filetimeToUnixtime(sessionData->LogoffTime));
-        r["kick_off_time"] =
-            BIGINT(filetimeToUnixtime(sessionData->KickOffTime));
-        r["password_last_set"] =
-            BIGINT(filetimeToUnixtime(sessionData->PasswordLastSet));
-        r["password_can_change"] =
-            BIGINT(filetimeToUnixtime(sessionData->PasswordCanChange));
-        r["password_must_change"] =
-            BIGINT(filetimeToUnixtime(sessionData->PasswordMustChange));
-        */
-				results.push_back(r);
+        if (status == 0) {
+          Row r;
+          r["logon_id"] = INTEGER(sessionData->LogonId.LowPart);
+          r["user"] = wstringToString(sessionData->UserName.Buffer);
+          r["logon_domain"] = wstringToString(sessionData->LogonDomain.Buffer);
+          r["authentication_package"] =
+              wstringToString(sessionData->AuthenticationPackage.Buffer);
+          r["logon_type"] =
+              wstringToString(GetLogonType(sessionData->LogonType));
+          r["session_id"] = INTEGER(sessionData->Session);
+          LPTSTR sid;
+          if (ConvertSidToStringSid(sessionData->Sid, &sid)) {
+            r["logon_sid"] = sid;
+          }
+          if (sid) {
+            LocalFree(sid);
+          }
+          r["logon_time"] = BIGINT(filetimeToUnixtime(sessionData->LogoffTime));
+          r["logon_server"] = wstringToString(sessionData->LogonServer.Buffer);
+          r["dns_domain_name"] =
+              wstringToString(sessionData->DnsDomainName.Buffer);
+          r["upn"] = wstringToString(sessionData->Upn.Buffer);
+          r["logon_script"] = wstringToString(sessionData->LogonScript.Buffer);
+          r["profile_path"] = wstringToString(sessionData->ProfilePath.Buffer);
+          r["home_directory"] =
+              wstringToString(sessionData->HomeDirectory.Buffer);
+          r["home_directory_drive"] =
+              wstringToString(sessionData->HomeDirectoryDrive.Buffer);
+          results.push_back(r);
+        }
       }
     }
 
