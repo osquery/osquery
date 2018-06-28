@@ -9,6 +9,9 @@
  */
 
 #include <gtest/gtest.h>
+
+#include <boost/algorithm/string.hpp>
+
 #include <osquery/error.h>
 
 enum class TestError {
@@ -45,4 +48,40 @@ GTEST_TEST(ErrorTest, recursive) {
   EXPECT_NE(std::string::npos, fullMsg.find("SuperTestMessage"));
   EXPECT_NE(std::string::npos, fullMsg.find("TestError 2"));
   EXPECT_NE(std::string::npos, fullMsg.find("TestMessage"));
+}
+
+bool stringContains(const std::string& where, const std::string& what) {
+  return boost::contains(where, what);
+};
+
+GTEST_TEST(ErrorTest, createErrorSimple) {
+  const auto msg = std::string{
+      "\"!ab#c$d%e&f'g(h)i*j+k,l-m.n/o\" this is not a human readable text"};
+  auto err = osquery::createError(TestError::AnotherError, msg);
+  EXPECT_EQ(TestError::AnotherError, err.getErrorCode());
+  EXPECT_FALSE(err.hasUnderlyingError());
+
+  auto shortMsg = err.getFullMessageRecursive();
+  EXPECT_PRED2(stringContains, shortMsg, "TestError");
+  EXPECT_PRED2(stringContains, shortMsg, msg);
+}
+
+GTEST_TEST(ErrorTest, createErrorFromOtherError) {
+  const auto firstMsg = std::string{"2018-06-28 08:13 451014"};
+
+  auto firstErr = osquery::createError(TestError::SomeError, firstMsg);
+  EXPECT_EQ(TestError::SomeError, firstErr.getErrorCode());
+  EXPECT_FALSE(firstErr.hasUnderlyingError());
+
+  EXPECT_PRED2(stringContains, firstErr.getFullMessageRecursive(), firstMsg);
+
+  const auto secondMsg = std::string{"what's wrong with the first message?!"};
+  auto secondErr = osquery::createError(
+      TestError::AnotherError, secondMsg, std::move(firstErr));
+  EXPECT_EQ(TestError::AnotherError, secondErr.getErrorCode());
+  EXPECT_TRUE(secondErr.hasUnderlyingError());
+  auto secondShortMsg = secondErr.getFullMessageRecursive();
+  EXPECT_PRED2(stringContains, secondShortMsg, "TestError");
+  EXPECT_PRED2(stringContains, secondShortMsg, firstMsg);
+  EXPECT_PRED2(stringContains, secondShortMsg, secondMsg);
 }
