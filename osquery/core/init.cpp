@@ -43,6 +43,7 @@
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
@@ -177,6 +178,7 @@ namespace osquery {
 DECLARE_string(config_plugin);
 DECLARE_string(logger_plugin);
 DECLARE_string(distributed_plugin);
+DECLARE_string(killswitch_plugin);
 DECLARE_bool(config_check);
 DECLARE_bool(config_dump);
 DECLARE_bool(database_dump);
@@ -185,6 +187,7 @@ DECLARE_bool(disable_distributed);
 DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
 DECLARE_bool(disable_logging);
+DECLARE_bool(enable_killswitch);
 
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");
@@ -679,6 +682,10 @@ void Initializer::start() const {
   // Initialize the distributed plugin, if necessary
   if (!FLAGS_disable_distributed) {
     initActivePlugin("distributed", FLAGS_distributed_plugin);
+  }
+
+  if (FLAGS_enable_killswitch) {
+    initActivePlugin("killswitch", FLAGS_killswitch_plugin);
   }
 
   // Start event threads.
