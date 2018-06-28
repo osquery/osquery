@@ -230,15 +230,15 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
 
   /// Get the process UID and GID from its SID
   HANDLE tok = nullptr;
-  std::vector<char> tokOwner(sizeof(TOKEN_OWNER), 0x0);
+  std::vector<char> tokUser(sizeof(TOKEN_USER), 0x0);
   auto ret = OpenProcessToken(hProcess, TOKEN_READ, &tok);
   if (ret != 0 && tok != nullptr) {
     unsigned long tokOwnerBuffLen;
     ret = GetTokenInformation(tok, TokenUser, nullptr, 0, &tokOwnerBuffLen);
     if (ret == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-      tokOwner.resize(tokOwnerBuffLen);
+      tokUser.resize(tokOwnerBuffLen);
       ret = GetTokenInformation(
-          tok, TokenUser, tokOwner.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
+          tok, TokenUser, tokUser.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
     }
 
     // Check if the process is using an elevated token
@@ -252,8 +252,8 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
 
     r["is_elevated_token"] = elevated ? INTEGER(1) : INTEGER(0);
   }
-  if (uid != 0 && ret != 0 && !tokOwner.empty()) {
-    auto sid = PTOKEN_OWNER(tokOwner.data())->Owner;
+  if (uid != 0 && ret != 0 && !tokUser.empty()) {
+    auto sid = PTOKEN_OWNER(tokUser.data())->Owner;
     r["uid"] = INTEGER(getUidFromSid(sid));
     r["gid"] = INTEGER(getGidFromSid(sid));
   } else {
