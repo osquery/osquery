@@ -118,15 +118,15 @@ class Expected final {
     return getError().getErrorCode();
   }
 
-  bool isOk() const noexcept {
+  bool isError() const noexcept {
 #ifndef NDEBUG
     errorChecked_ = true;
 #endif
-    return object_.which() == kValueType_;
+    return object_.which() == kErrorType_;
   }
 
   explicit operator bool() const noexcept {
-    return isOk();
+    return !isError();
   }
 
   ValueType& get() {

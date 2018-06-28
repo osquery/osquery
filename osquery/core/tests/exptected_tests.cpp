@@ -29,7 +29,7 @@ enum class TestError {
 GTEST_TEST(ExpectedTest, success_contructor_initialization) {
   Expected<std::string, TestError> value = std::string("Test");
   EXPECT_TRUE(value);
-  EXPECT_TRUE(value.isOk());
+  EXPECT_FALSE(value.isError());
   EXPECT_EQ(value.get(), "Test");
 }
 
@@ -37,7 +37,7 @@ GTEST_TEST(ExpectedTest, failure_error_contructor_initialization) {
   Expected<std::string, TestError> error =
       Error<TestError>(TestError::Some, "Please try again");
   EXPECT_FALSE(error);
-  EXPECT_FALSE(error.isOk());
+  EXPECT_TRUE(error.isError());
   EXPECT_EQ(error.getErrorCode(), TestError::Some);
 }
 
@@ -50,7 +50,7 @@ GTEST_TEST(ExpectedTest, failure_error_str_contructor_initialization) {
       std::string{"\"#$%&'()*+,-./089:;<[=]>\" is it a valid error message?"};
   auto expected = Expected<std::string, TestError>::failure(msg);
   EXPECT_FALSE(expected);
-  EXPECT_FALSE(expected.isOk());
+  EXPECT_TRUE(expected.isError());
   EXPECT_EQ(expected.getErrorCode(), TestError::Some);
   auto fullMsg = expected.getError().getFullMessage();
   EXPECT_PRED2(stringContains, fullMsg, msg);
@@ -106,12 +106,12 @@ GTEST_TEST(ExpectedTest, createError_example) {
   };
   auto v = giveMeDozen(true);
   EXPECT_TRUE(v);
-  ASSERT_TRUE(v.isOk());
+  ASSERT_FALSE(v.isError());
   EXPECT_EQ(*v, 50011971);
 
   auto errV = giveMeDozen(false);
   EXPECT_FALSE(errV);
-  ASSERT_FALSE(errV.isOk());
+  ASSERT_TRUE(errV.isError());
   EXPECT_EQ(errV.getErrorCode(), TestError::Logical);
 }
 
@@ -125,11 +125,11 @@ GTEST_TEST(ExpectedTest, ExpectedSuccess_example) {
   };
   auto s = giveMeStatus(true);
   EXPECT_TRUE(s);
-  ASSERT_TRUE(s.isOk());
+  ASSERT_FALSE(s.isError());
 
   auto errS = giveMeStatus(false);
   EXPECT_FALSE(errS);
-  ASSERT_FALSE(errS.isOk());
+  ASSERT_TRUE(errS.isError());
 }
 
 GTEST_TEST(ExpectedTest, nested_errors_example) {
@@ -139,12 +139,12 @@ GTEST_TEST(ExpectedTest, nested_errors_example) {
   };
   auto giveMeNestedError = [&]() -> Expected<std::vector<int>, TestError> {
     auto ret = firstFailureSource();
-    ret.isOk();
+    ret.isError();
     return createError(TestError::Runtime, msg, ret.takeError());
   };
   auto ret = giveMeNestedError();
   EXPECT_FALSE(ret);
-  ASSERT_FALSE(ret.isOk());
+  ASSERT_TRUE(ret.isError());
   EXPECT_EQ(ret.getErrorCode(), TestError::Runtime);
   ASSERT_TRUE(ret.getError().hasUnderlyingError());
   EXPECT_PRED2(stringContains, ret.getError().getFullMessage(), msg);
@@ -155,7 +155,7 @@ GTEST_TEST(ExpectedTest, error_handling_example) {
     return createError(TestError::Runtime, "Test error message ()*+,-.");
   };
   auto ret = failureSource();
-  if (!ret.isOk()) {
+  if (ret.isError()) {
     switch (ret.getErrorCode()) {
     case TestError::Some:
     case TestError::Another:
