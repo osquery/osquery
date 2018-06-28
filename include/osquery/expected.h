@@ -131,14 +131,16 @@ class Expected final {
 
   ValueType& get() {
 #ifndef NDEBUG
-    assert(isOk() && "Do not try to get value from Expected with error");
+    assert(object_.which() == kValueType_ &&
+           "Do not try to get value from Expected with error");
 #endif
     return boost::get<ValueType>(object_);
   }
 
   const ValueType& get() const {
 #ifndef NDEBUG
-    assert(isOk() && "Do not try to get value from Expected with error");
+    assert(object_.which() == kValueType_ &&
+           "Do not try to get value from Expected with error");
 #endif
     return boost::get<ValueType>(object_);
   }
