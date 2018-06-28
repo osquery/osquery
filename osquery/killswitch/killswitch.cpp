@@ -11,8 +11,16 @@ FLAG(string, killswitch_plugin, "killswitch_test", "Killswitch plugin name.");
 
 CREATE_REGISTRY(KillswitchPlugin, "killswitch");
 
-bool KillswitchPlugin::isEnabled(std::string switchKey) {
-  return true;
+Status KillswitchPlugin::call(const PluginRequest& request, PluginResponse& response){
+  auto action = request.find("action");
+  if (action == request.end()) {
+    return Status(1, "Config plugins require an action");
+  }
+
+  if(action->second == "refresh"){
+    return refresh();
+  }
+
 }
 
 } // namespace osquery

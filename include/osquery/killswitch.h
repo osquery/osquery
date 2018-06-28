@@ -9,6 +9,7 @@
  */
 
 #pragma once
+
 #include <string>
 
 #include <osquery/core.h>
@@ -24,7 +25,12 @@ namespace osquery {
  */
 class KillswitchPlugin : public Plugin {
  public:
-  bool isEnabled(std::string switchKey);
+  virtual Status isEnabled(std::string switchKe, bool& isEnabled) = 0;
+
+  virtual Status refresh() = 0;
+
+  /// Main entrypoint for killswitch plugin requests
+  Status call(const PluginRequest& request, PluginResponse& response) override;
 };
 
 } // namespace osquery
