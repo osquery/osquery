@@ -10,11 +10,15 @@
 
 #pragma once
 
+#include <cassert>
 #include <memory>
-#include <osquery/error.h>
 #include <string>
 #include <type_traits>
-#include <utility>
+
+#include <osquery/error.h>
+
+#include <boost/blank.hpp>
+#include <boost/variant.hpp>
 
 /**
  * Utility class that should be used in function that return
@@ -22,20 +26,24 @@
  * check error if any.
  *
  * enum class TestError { SomeError = 1, AnotherError = 2 };
- * Expected<std::string> function() {
+ * Expected<std::string, TestError> function() {
  *   if (test) {
  *    return "ok";
  *   } else {
- *    return std::make_shared<Error<TestError>>(TestError::SomeError);
+ *    if (first_error) {
+ *      return Error<TestError>>(TestError::SomeError, "some error message");
+ *    } else {
+ *      return createError(TestError::SomeError, "one more error message");
+ *    }
  *   }
  * }
  *
  * Expected:
- * ExpectedUnique<PlatformProcess> function() {
+ * ExpectedUnique<PlatformProcess, TestError> function() {
  *   if (test) {
  *    return std::make_unique<PlatformProcess>(pid);
  *   } else {
- *    return std::make_shared<Error<TestError>>(TestError::AnotherError);
+ *    return createError(TestError::AnotherError, "something wrong");
  *   }
  * }
  *
@@ -43,98 +51,149 @@
  * if (result) {
  *   ...use *result
  * } else {
- *   auto error = result->getError();
+ *   switch (result.getErrorCode()) {
+ *     case TestError::SomeError:
+ *        ...do something with it
+ *        break;
+ *     case TestError::AnotherError:
+ *        ...do something with it
+ *        break;
+ *   }
  * }
+ * @see osquery/core/tests/exptected_tests.cpp for more examples
  */
 
 namespace osquery {
 
-template <class ErrorCodeEnumType>
+template <typename ValueType_, typename ErrorCodeEnumType>
 class Expected final {
  public:
-  Expected(ErrorCodeEnumType object)
-      : object_(std::move(object)), hasError_(false) {}
-  Expected(ErrorBase* error) = delete;
-  Expected() : error_(nullptr), hasError_(false) {}
-  Expected(std::shared_ptr<ErrorBase> error)
-      : error_(std::move(error)), hasError_(true) {}
-  Expected(std::unique_ptr<ErrorBase> error)
-      : error_(std::move(error)), hasError_(true) {}
-  template <class ErrorT>
-  Expected(std::shared_ptr<Error<ErrorT>> error)
-      : error_(std::static_pointer_cast<ErrorBase>(error)), hasError_(true){};
+  using ValueType = ValueType_;
+  using ErrorType = Error<ErrorCodeEnumType>;
+  using SelfType = Expected<ValueType, ErrorCodeEnumType>;
 
+ public:
+  Expected(ValueType value) : object_{std::move(value)} {}
+
+  Expected(ErrorType error) : object_{std::move(error)} {}
+
+  explicit Expected(ErrorCodeEnumType code, std::string message)
+      : object_{ErrorType(code, message)} {}
+
+  Expected(Expected&& other) = default;
+
+  Expected() = delete;
   Expected(const Expected&) = delete;
+  Expected(ErrorBase* error) = delete;
+
+  Expected& operator=(Expected&& other) = default;
+  Expected& operator=(const Expected& other) = delete;
 
   ~Expected() {
     assert(errorChecked_ && "Error was not checked");
   }
 
-  Expected& operator=(Expected&& other) {
-    if (this != &other) {
-      object_ = std::move(other.object_);
-      error_ = std::move(other.error_);
-      hasError_ = other.hasError_;
-    }
-    return *this;
+  static SelfType success(ValueType value) {
+    return SelfType{std::move(value)};
   }
 
-  Expected(Expected&& other) {
-    object_ = std::move(other.object_);
-    error_ = std::move(other.error_);
-    hasError_ = other.hasError_;
+  static SelfType failure(std::string message) {
+    auto defaultCode = ErrorCodeEnumType{};
+    return SelfType(defaultCode, std::move(message));
   }
 
-  std::shared_ptr<ErrorBase> getError() const {
-    return error_;
+  static SelfType failure(ErrorCodeEnumType code, std::string message) {
+    return SelfType(code, std::move(message));
   }
 
-  explicit operator bool() const {
+  ErrorType takeError() {
+    return std::move(boost::get<ErrorType>(object_));
+  }
+
+  const ErrorType& getError() const {
+    return boost::get<ErrorType>(object_);
+  }
+
+  ErrorCodeEnumType getErrorCode() const {
+    return getError().getErrorCode();
+  }
+
+  bool isError() const noexcept {
+#ifndef NDEBUG
     errorChecked_ = true;
-    return !hasError_;
+#endif
+    return object_.which() == kErrorType_;
   }
 
-  ErrorCodeEnumType& get() {
-    return object_;
+  explicit operator bool() const noexcept {
+    return !isError();
   }
 
-  const ErrorCodeEnumType& get() const {
-    return object_;
+  ValueType& get() {
+#ifndef NDEBUG
+    assert(object_.which() == kValueType_ &&
+           "Do not try to get value from Expected with error");
+#endif
+    return boost::get<ValueType>(object_);
   }
 
-  ErrorCodeEnumType take() {
-    return std::move(object_);
+  const ValueType& get() const {
+#ifndef NDEBUG
+    assert(object_.which() == kValueType_ &&
+           "Do not try to get value from Expected with error");
+#endif
+    return boost::get<ValueType>(object_);
   }
 
-  ErrorCodeEnumType* operator->() {
-    return object_;
+  ValueType take() {
+    return std::move(get());
   }
 
-  const ErrorCodeEnumType* operator->() const {
-    return object_;
+  ValueType* operator->() {
+    return &get();
   }
 
-  ErrorCodeEnumType& operator*() {
-    return object_;
+  const ValueType* operator->() const {
+    return &get();
   }
 
-  const ErrorCodeEnumType& operator*() const {
-    return object_;
+  ValueType& operator*() {
+    return get();
+  }
+
+  const ValueType& operator*() const {
+    return get();
   }
 
  private:
-  static const bool isPointer = std::is_pointer<ErrorCodeEnumType>::value;
-  static_assert(!isPointer, "Use shared/unique pointer");
+  static_assert(
+      !std::is_pointer<ValueType>::value,
+      "Please do not use raw pointers as expected value, "
+      "use smart pointers instead. See CppCoreGuidelines for explanation. "
+      "https://github.com/isocpp/CppCoreGuidelines/blob/master/"
+      "CppCoreGuidelines.md#Rf-unique_ptr");
+  static_assert(std::is_enum<ErrorCodeEnumType>::value,
+                "ErrorCodeEnumType template parameter must be enum");
 
-  ErrorCodeEnumType object_;
-  std::shared_ptr<ErrorBase> error_;
-  bool hasError_;
+  boost::variant<ValueType, ErrorType> object_;
+  enum ETypeId {
+    kValueType_ = 0,
+    kErrorType_ = 1,
+  };
+#ifndef NDEBUG
   mutable bool errorChecked_ = false;
+#endif
 };
 
-template <class T>
-using ExpectedShared = Expected<std::shared_ptr<T>>;
-template <class T>
-using ExpectedUnique = Expected<std::unique_ptr<T>>;
+template <typename ValueType, typename ErrorCodeEnumType>
+using ExpectedShared = Expected<std::shared_ptr<ValueType>, ErrorCodeEnumType>;
+
+template <typename ValueType, typename ErrorCodeEnumType>
+using ExpectedUnique = Expected<std::unique_ptr<ValueType>, ErrorCodeEnumType>;
+
+using Success = boost::blank;
+
+template <typename ErrorCodeEnumType>
+using ExpectedSuccess = Expected<Success, ErrorCodeEnumType>;
 
 } // namespace osquery

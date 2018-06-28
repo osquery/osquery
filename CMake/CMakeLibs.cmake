@@ -595,3 +595,19 @@ function(JOIN VALUES GLUE OUTPUT)
   string(REPLACE ";" "${GLUE}" _TMP_STR "${VALUES}")
   set(${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction(JOIN)
+
+function(target_group_sources target root)
+  get_filename_component(root ${root} ABSOLUTE)
+  
+  get_target_property(files ${target} SOURCES)
+  
+  foreach(file ${files})
+    get_filename_component(file ${file} ABSOLUTE)
+    string(REGEX MATCH "^${root}" item ${file})
+    if(item)
+      LIST(APPEND root_files ${file})
+    endif(item)
+  endforeach(file)
+  source_group(TREE ${root} FILES ${root_files})
+endfunction()
+
