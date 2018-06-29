@@ -17,7 +17,7 @@
 #include <unistd.h>
 #endif
 
-#ifndef WINDOWS
+#ifdef OSQUERY_POSIX
 #include <fuzzy.h>
 #endif
 
@@ -187,7 +187,7 @@ bool FileHashCache::load(const std::string& path, MultiHashes& out) {
 }
 
 std::string genSsdeepForFile(const std::string& path) {
-#ifndef WINDOWS
+#ifdef OSQUERY_POSIX
   std::string file_ssdeep_hash(FUZZY_MAX_RESULT, '\0');
   auto did_ssdeep_fail =
       fuzzy_hash_filename(path.c_str(), &file_ssdeep_hash.front());
@@ -195,6 +195,7 @@ std::string genSsdeepForFile(const std::string& path) {
     LOG(WARNING) << "ssdeep failed: " << path;
     return "-1";
   }
+  file_ssdeep_hash.resize(file_ssdeep_hash.find('\0'));
   return file_ssdeep_hash;
 #else
   return "-1";

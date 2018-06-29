@@ -31,7 +31,7 @@ if(WIN32)
   list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/*/tools")
 endif()
 
-if(WINDOWS)
+if(WIN32)
   add_definitions(
     -DOSQUERY_WINDOWS
   )

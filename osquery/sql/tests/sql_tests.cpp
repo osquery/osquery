@@ -156,7 +156,7 @@ TEST_F(SQLTests, test_sql_sha256) {
             "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 }
 
-#ifndef WINDOWS
+#ifdef OSQUERY_POSIX
 TEST_F(SQLTests, test_sql_ssdeep_compare) {
   QueryData d;
   // random 32KB file vs same file concatenated with another random 32KB file

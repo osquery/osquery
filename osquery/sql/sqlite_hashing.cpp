@@ -16,7 +16,7 @@
 
 #include <sqlite3.h>
 
-#ifndef WINDOWS
+#ifdef OSQUERY_POSIX
 #include <fuzzy.h>
 #endif
 
@@ -62,7 +62,7 @@ static void sqliteSHA256Func(sqlite3_context* context,
   hashSqliteValue(context, argc, argv, HASH_TYPE_SHA256);
 }
 
-#ifndef WINDOWS
+#ifdef OSQUERY_POSIX
 static void sqliteSsdeepCompareFunc(sqlite3_context* context,
                                     int argc,
                                     sqlite3_value** argv) {
@@ -103,7 +103,7 @@ void registerHashingExtensions(sqlite3* db) {
                           sqliteSHA256Func,
                           nullptr,
                           nullptr);
-#ifndef WINDOWS
+#ifdef OSQUERY_POSIX
   sqlite3_create_function(db,
                           "ssdeep_compare",
                           2,
