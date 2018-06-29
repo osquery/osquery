@@ -44,7 +44,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
-#include <osquery/numeric_monitoring.h>
+#include <osquery/numeric_monitoring/plugin_interface.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
 
