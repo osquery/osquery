@@ -156,9 +156,7 @@ class Expected final {
     return std::move(get());
   }
 
-  template<
-    typename ValueTypeUniversal = ValueType
-  >
+  template <typename ValueTypeUniversal = ValueType>
   ValueType take_or(ValueTypeUniversal&& defaultValue) {
     if (isError()) {
       return std::forward<ValueTypeUniversal>(defaultValue);

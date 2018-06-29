@@ -240,9 +240,8 @@ GTEST_TEST(ExpectedTest, value__take_or) {
 }
 
 GTEST_TEST(ExpectedTest, error__take_or) {
-  auto expectedError = Expected<std::string, TestError>(
-      TestError::Semantic, "error message"
-  );
+  auto expectedError =
+      Expected<std::string, TestError>(TestError::Semantic, "error message");
   EXPECT_EQ(expectedError.take_or(std::string{"default text"}), "default text");
 }
 
