@@ -15,8 +15,18 @@
 #include <osquery/core.h>
 #include <osquery/plugin.h>
 #include <osquery/query.h>
+#include <osquery/expected.h>
 
 namespace osquery {
+
+enum class KillSwitchErrors {
+    asdasdasd = 1,
+    asdasd = 2,
+}
+
+namespace killswitch {
+Expected<bool, KillSwitchErrors> isTestSwitchOn();
+}
 
 /**
  * @brief Interface class for numeric monitoring system plugins.
@@ -25,9 +35,9 @@ namespace osquery {
  */
 class KillswitchPlugin : public Plugin {
  public:
-  virtual Status isEnabled(std::string switchKe, bool& isEnabled) = 0;
-
   virtual Status refresh() = 0;
+
+  virtual Expected<bool, KillSwitchErrors> isEnabled(const std::string& key) = 0;
 
   /// Main entrypoint for killswitch plugin requests
   Status call(const PluginRequest& request, PluginResponse& response) override;
