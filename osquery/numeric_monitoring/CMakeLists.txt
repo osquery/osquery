@@ -9,6 +9,7 @@
 target_sources(libosquery
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/numeric_monitoring.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/plugin_interface.cpp"
 )
 
 ADD_OSQUERY_LIBRARY_ADDITIONAL(

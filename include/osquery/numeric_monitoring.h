@@ -10,10 +10,6 @@
 
 #pragma once
 
-#include <osquery/core.h>
-#include <osquery/plugin.h>
-#include <osquery/query.h>
-
 #include <chrono>
 #include <string>
 
@@ -47,25 +43,6 @@ void record(const std::string& path,
             ValueType value,
             TimePoint timePoint = Clock::now());
 
-const char* registryName();
-
-struct RecordKeys {
-  std::string path;
-  std::string value;
-  std::string timestamp;
-};
-const RecordKeys& recordKeys();
-
 } // namespace monitoring
-
-/**
- * @brief Interface class for numeric monitoring system plugins.
- * e.g. @see NumericMonitoringFilesystemPlugin from
- * osquery/numeric_monitoring/plugins/filesystem.h
- */
-class NumericMonitoringPlugin : public Plugin {
- public:
-  Status call(const PluginRequest& request, PluginResponse& response) override;
-};
 
 } // namespace osquery
