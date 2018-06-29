@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <boost/format.hpp>
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
@@ -154,4 +155,21 @@ TEST_F(SQLTests, test_sql_sha256) {
   EXPECT_EQ(d[0]["test"],
             "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
 }
+
+#ifndef WINDOWS
+TEST_F(SQLTests, test_sql_ssdeep_compare) {
+  QueryData d;
+  // random 32KB file vs same file concatenated with another random 32KB file
+  std::stringstream query_stream;
+  query_stream << boost::format(
+                      "select ssdeep_compare('%s', '%s') as test_int;") %
+                      "768:hRWoDxStE/p76XkJx2HIjxZ2bhX+wQp+uCRdONCGav/"
+                      "IGdBR:aoD582YotZMLQp+5RdONCGM/BR" %
+                      "1536:aoD582YotZMLQp+5RdONCGM/BnxFEu4vNz/xC+Oi+u/UD/"
+                      "9LYD:h22YWZVsRBGMZndQNz/xCfi+qeYD";
+  query(query_stream.str(), d);
+  EXPECT_EQ(d.size(), 1U);
+  EXPECT_EQ(d[0]["test_int"], "68");
+}
+#endif
 }
