@@ -8,11 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <exception>
-
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 #include <osquery/numeric_monitoring.h>
+#include <osquery/numeric_monitoring/plugin_interface.h>
 #include <osquery/registry_factory.h>
 
 namespace osquery {
@@ -26,36 +25,7 @@ FLAG(string,
      "filesystem",
      "Coma separated numeric monitoring plugins names");
 
-CREATE_REGISTRY(NumericMonitoringPlugin, monitoring::registryName());
-
-Status NumericMonitoringPlugin::call(const PluginRequest& request,
-                                     PluginResponse& response) {
-  return Status();
-}
-
 namespace monitoring {
-
-const char* registryName() {
-  static const auto name = "numeric_monitoring";
-  return name;
-}
-
-namespace {
-
-RecordKeys createRecordKeys() {
-  auto keys = RecordKeys{};
-  keys.path = "path";
-  keys.value = "value";
-  keys.timestamp = "timestamp";
-  return keys;
-};
-
-} // namespace
-
-const RecordKeys& recordKeys() {
-  static const auto keys = createRecordKeys();
-  return keys;
-}
 
 void record(const std::string& path, ValueType value, TimePoint timePoint) {
   if (!FLAGS_enable_numeric_monitoring) {

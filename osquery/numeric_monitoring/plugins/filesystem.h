@@ -17,7 +17,7 @@
 
 #include <boost/filesystem.hpp>
 
-#include <osquery/numeric_monitoring.h>
+#include <osquery/numeric_monitoring/plugin_interface.h>
 
 namespace osquery {
 
