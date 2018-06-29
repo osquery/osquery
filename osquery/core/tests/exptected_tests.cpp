@@ -221,4 +221,29 @@ GTEST_TEST(ExpectedTest, take_value_from_expected_with_error) {
 #endif
 }
 
+GTEST_TEST(ExpectedTest, value__get_or) {
+  const auto expectedValue = Expected<int, TestError>(225);
+  EXPECT_EQ(expectedValue.get_or(29), 225);
+  EXPECT_EQ(expectedValue.get_or(-29), 225);
+}
+
+GTEST_TEST(ExpectedTest, error__get_or) {
+  const auto err = Expected<int, TestError>(TestError::Semantic, "message");
+  EXPECT_EQ(err.get_or(37), 37);
+  EXPECT_EQ(err.get_or(-59), -59);
+}
+
+GTEST_TEST(ExpectedTest, value__take_or) {
+  const auto text = std::string{"some text"};
+  auto expectedValue = Expected<std::string, TestError>(text);
+  EXPECT_EQ(expectedValue.take_or(std::string{"default text"}), text);
+}
+
+GTEST_TEST(ExpectedTest, error__take_or) {
+  auto expectedError = Expected<std::string, TestError>(
+      TestError::Semantic, "error message"
+  );
+  EXPECT_EQ(expectedError.take_or(std::string{"default text"}), "default text");
+}
+
 } // namespace osquery
