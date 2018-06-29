@@ -14,6 +14,7 @@
 #include <string>
 
 #include <osquery/core.h>
+#include <osquery/expected.h>
 #include <osquery/plugin.h>
 #include <osquery/query.h>
 
