@@ -63,7 +63,8 @@ TEST_F(ShellHistoryTests, bash_sessions_no_exist) {
   auto results = QueryData{};
   auto directory =
       fs::temp_directory_path() /
-      fs::unique_path("osquery.shell_history_tests.bash_sessions_no_exist.%%%%-%%%%");
+      fs::unique_path(
+          "osquery.shell_history_tests.bash_sessions_no_exist.%%%%-%%%%");
   ASSERT_TRUE(fs::create_directory(directory));
   auto const uid = std::to_string(geteuid());
 
@@ -77,14 +78,16 @@ TEST_F(ShellHistoryTests, bash_sessions_no_history) {
   auto results = QueryData{};
   auto directory =
       fs::temp_directory_path() /
-      fs::unique_path("osquery.shell_history_tests.bash_sessions_no_exist.%%%%-%%%%");
+      fs::unique_path(
+          "osquery.shell_history_tests.bash_sessions_no_exist.%%%%-%%%%");
   ASSERT_TRUE(fs::create_directory(directory));
 
   auto bash_sessions_directory = directory / ".bash_sessions";
   ASSERT_TRUE(fs::create_directory(bash_sessions_directory));
   //create a junk session file that will not be read
   auto filepath = bash_sessions_directory / fs::path("some_guid_here.session");
-  auto const restore_string = R"raw(echo Restored session: "$(date -r 1479082319)")raw";
+  auto const restore_string = 
+      R"raw(echo Restored session: "$(date -r 1479082319)")raw";
   {
     auto fout =
         std::ofstream(filepath.native(), std::ios::out | std::ios::binary);
@@ -101,7 +104,8 @@ TEST_F(ShellHistoryTests, bash_sessions_empty_ts) {
   auto results = QueryData{};
   auto directory =
       fs::temp_directory_path() /
-      fs::unique_path("osquery.shell_history_tests.bash_sessions_empty_ts.%%%%-%%%%");
+      fs::unique_path(
+          "osquery.shell_history_tests.bash_sessions_empty_ts.%%%%-%%%%");
   ASSERT_TRUE(fs::create_directory(directory));
 
   auto bash_sessions_directory = directory / ".bash_sessions";
