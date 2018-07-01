@@ -68,7 +68,7 @@ TEST_F(ShellHistoryTests, bash_sessions_no_exist) {
   ASSERT_TRUE(fs::create_directory(directory));
   auto const uid = std::to_string(geteuid());
 
-  //test non-existent .bash_sessions directory
+  // test non-existent .bash_sessions directory
   genShellHistoryFromBashSessions(uid, directory.native(), results);
   ASSERT_EQ(results.size(), 0u);
   fs::remove_all(directory);
@@ -84,9 +84,9 @@ TEST_F(ShellHistoryTests, bash_sessions_no_history) {
 
   auto bash_sessions_directory = directory / ".bash_sessions";
   ASSERT_TRUE(fs::create_directory(bash_sessions_directory));
-  //create a junk session file that will not be read
+  // create a junk session file that will not be read
   auto filepath = bash_sessions_directory / fs::path("some_guid_here.session");
-  auto const restore_string = 
+  auto const restore_string =
       R"raw(echo Restored session: "$(date -r 1479082319)")raw";
   {
     auto fout =
@@ -94,7 +94,7 @@ TEST_F(ShellHistoryTests, bash_sessions_no_history) {
     fout << restore_string << '\n';
   }
   auto const uid = std::to_string(geteuid());
-  //test non-existent some_guid_here.history file
+  // test non-existent some_guid_here.history file
   genShellHistoryFromBashSessions(uid, directory.native(), results);
   ASSERT_EQ(results.size(), 0u);
   fs::remove_all(directory);
@@ -110,7 +110,7 @@ TEST_F(ShellHistoryTests, bash_sessions_empty_ts) {
 
   auto bash_sessions_directory = directory / ".bash_sessions";
   ASSERT_TRUE(fs::create_directory(bash_sessions_directory));
-  //create a junk session file that will not be read
+  // create a junk session file that will not be read
   auto filepath = bash_sessions_directory / fs::path("some_guid_here.history");
   auto const first_line = R"raw([\]^_`!a"b#c$d %e&f'g(h)i*j+k,l-m.n/o0p1q2)raw";
   auto const second_line = R"raw(r 3 s4t5u6v7w8 x9y:9:z; {<|=}>~?)raw";
@@ -137,7 +137,6 @@ TEST_F(ShellHistoryTests, bash_sessions_empty_ts) {
   EXPECT_EQ(second_row.at("history_file"), fs::canonical(filepath).native());
   fs::remove_all(directory);
 }
-
 
 } // namespace tables
 } // namespace osquery
