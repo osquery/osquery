@@ -6,7 +6,7 @@ class Thrift < AbstractOsqueryFormula
   license "Apache-2.0"
   url "https://github.com/apache/thrift/archive/0.11.0.tar.gz"
   sha256 "0e324569321a1b626381baabbb98000c8dd3a59697292dbcc71e67135af0fefd"
-  revision 203
+  revision 202
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
