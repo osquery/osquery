@@ -235,14 +235,34 @@ GTEST_TEST(ExpectedTest, error__get_or) {
 
 GTEST_TEST(ExpectedTest, value__take_or) {
   const auto text = std::string{"some text"};
-  auto expectedValue = Expected<std::string, TestError>(text);
-  EXPECT_EQ(expectedValue.take_or(std::string{"default text"}), text);
+  auto callable = [&text]() -> Expected<std::string, TestError> {
+    return text;
+  };
+  auto expected = callable();
+  EXPECT_EQ(expected ? expected.take() : std::string{"default text"}, text);
+
+  EXPECT_EQ(callable().take_or(std::string{"default text"}), text);
 }
 
 GTEST_TEST(ExpectedTest, error__take_or) {
-  auto expectedError =
+  auto expected =
       Expected<std::string, TestError>(TestError::Semantic, "error message");
-  EXPECT_EQ(expectedError.take_or(std::string{"default text"}), "default text");
+  EXPECT_EQ(expected.take_or(std::string{"default text"}), "default text");
+}
+
+GTEST_TEST(ExpectedTest, error__take_or_with_user_defined_class) {
+  class SomeTestClass {
+   public:
+    explicit SomeTestClass(const std::string& prefix, const std::string& sufix)
+        : text{prefix + " - " + sufix} {}
+
+    std::string text;
+  };
+  auto callable = []() -> Expected<SomeTestClass, TestError> {
+    return createError(TestError::Semantic, "error message");
+  };
+  EXPECT_EQ(callable().take_or(SomeTestClass("427 BC", "347 BC")).text,
+            "427 BC - 347 BC");
 }
 
 } // namespace osquery
