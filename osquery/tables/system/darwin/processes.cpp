@@ -8,7 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <kern/kcdata.h>
 #include <libproc.h>
+#include <limits.h>
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #include <sys/sysctl.h>
@@ -266,6 +268,67 @@ void genProcNumThreads(QueryContext& context, int pid, Row& r) {
   }
 }
 
+uint64_t handle_kcdata_item(kcdata_item_t Item) {
+  switch (Item->type) {
+  case STACKSHOT_KCTYPE_TASK_SNAPSHOT: {
+    struct task_snapshot_v2* tsv2 = (struct task_snapshot_v2*)Item->data;
+    return tsv2->ts_unique_pid;
+  }
+  default:
+    return ULLONG_MAX;
+  }
+}
+
+void genProcUniquePid(QueryContext& context, int pid, Row& r) {
+  if (!context.isColumnUsed("unique_pid")) {
+    return;
+  }
+
+  // A definition of the stackshot_config structure so we can pull data out of the kernel
+  typedef struct stackshot_config {
+    int pid;
+    uint32_t flags;
+    uint64_t dtimestamp;
+    uint64_t buf;
+    uint32_t buf_size;
+    uint64_t out_buf_addr;
+    uint64_t out_buf_size_addr;
+  } stackshot_config_t;
+
+  char* addr = nullptr;
+  uint64_t size = 0;
+
+  stackshot_config_t stconf = {0};
+  stconf.pid = pid;
+  stconf.buf = 0;
+  stconf.buf_size = 0;
+  stconf.flags = 0x10000; // STACKSHOT_KCDATA_FORMAT
+  stconf.out_buf_addr = (uint64_t)&addr;
+  stconf.out_buf_size_addr = (uint64_t)&size;
+
+  auto rc = syscall(491, 1, (uint64_t)&stconf, sizeof(stconf));
+
+  if (rc < 0) {
+    r["unique_pid"] = INTEGER(-1);
+    return;
+  }
+
+  uint64_t off = 16;
+  while (off < size) {
+    kcdata_item_t item = (kcdata_item_t)(addr + off);
+    auto upid = handle_kcdata_item(item);
+    if (upid != ULLONG_MAX) {
+      r["unique_pid"] = INTEGER(upid);
+      break;
+    }
+    int padding = item->size % 16;
+    if (padding) {
+      padding = 16 - padding;
+    }
+    off += item->size + 16 + padding;
+  }
+}
+
 struct proc_args {
   std::vector<std::string> args;
   std::map<std::string, std::string> env;
@@ -440,6 +503,8 @@ QueryData genProcesses(QueryContext& context) {
     genProcResourceUsage(context, pid, r);
 
     genProcNumThreads(context, pid, r);
+
+    genProcUniquePid(context, pid, r);
 
     results.push_back(r);
   }
