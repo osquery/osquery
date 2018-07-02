@@ -34,6 +34,10 @@ schema([
 extended_schema(WINDOWS, [
     Column("is_elevated_token", INTEGER, "Process uses elevated token yes=1, no=0"),
 ])
+
+extended_schema(DARWIN, [
+    Column("unique_pid", BIGINT, "A 64bit pid from the XNU kernel that is never reused"),
+])
 attributes(cacheable=True)
 implementation("system/processes@genProcesses")
 examples([
