@@ -11,7 +11,6 @@
 #include <iomanip>
 #include <locale>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
@@ -391,19 +390,9 @@ std::vector<std::string> split(const std::string& s,
   }
   // Join the optional accumulator.
   if (accumulator.size() > 0) {
-    elems.push_back(join(accumulator, delims));
+    elems.push_back(boost::algorithm::join(accumulator, delims));
   }
   return elems;
-}
-
-std::string join(const std::vector<std::string>& s, const std::string& tok) {
-  return boost::algorithm::join(s, tok);
-}
-
-std::string join(const std::set<std::string>& s, const std::string& tok) {
-  std::vector<std::string> toJoin;
-  toJoin.insert(toJoin.end(), s.begin(), s.end());
-  return boost::algorithm::join(toJoin, tok);
 }
 
 std::string getBufferSHA1(const char* buffer, size_t size) {
