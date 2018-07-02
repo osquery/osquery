@@ -27,50 +27,53 @@ class ErrorBase {
   virtual ~ErrorBase(){};
 };
 
-template <class T>
-class Error : public ErrorBase {
+template <typename ErrorCodeEnumType>
+class Error final : public ErrorBase {
  private:
   static std::string getErrorTypeName() {
-    return boost::core::demangle(typeid(T).name());
+    return boost::core::demangle(typeid(ErrorCodeEnumType).name());
   }
 
  public:
-  explicit Error(T error_code,
-                 std::string message = "",
-                 std::shared_ptr<ErrorBase> underlying_error = nullptr)
+  using SelfType = Error<ErrorCodeEnumType>;
+
+  explicit Error(ErrorCodeEnumType error_code,
+                 std::string message,
+                 std::unique_ptr<ErrorBase> underlying_error = nullptr)
       : errorCode_(error_code),
         message_(std::move(message)),
         underlyingError_(std::move(underlying_error)) {}
 
-  Error(Error&& other) {
-    errorCode_ = other.errorCode_;
-    message_ = std::move(other.message_);
-    underlyingError_ = std::move(other.underlyingError_);
-  }
+  virtual ~Error() = default;
 
-  Error& operator=(Error&& other) {
-    if (this != &other) {
-      errorCode_ = other.errorCode_;
-      message_ = std::move(other.message_);
-      underlyingError_ = std::move(other.underlyingError_);
-    }
-    return *this;
-  }
+  Error(Error&& other) = default;
+  Error(const Error& other) = delete;
 
-  T getErrorCode() const {
+  Error& operator=(Error&& other) = default;
+  Error& operator=(const Error& other) = delete;
+
+  ErrorCodeEnumType getErrorCode() const {
     return errorCode_;
   }
 
-  virtual std::shared_ptr<ErrorBase> getUnderlyingError() const {
-    return underlyingError_;
+  bool hasUnderlyingError() const {
+    return underlyingError_ != nullptr;
   }
 
-  virtual std::string getShortMessage() const {
+  const ErrorBase& getUnderlyingError() const {
+    return *underlyingError_;
+  }
+
+  std::unique_ptr<ErrorBase> takeUnderlyingError() const {
+    return std::move(underlyingError_);
+  }
+
+  std::string getShortMessage() const override {
     return getErrorTypeName() + " " +
            std::to_string(static_cast<int>(errorCode_));
   }
 
-  virtual std::string getFullMessage() const {
+  std::string getFullMessage() const override {
     std::string full_message = getShortMessage();
     if (message_.size() > 0) {
       full_message += " (" + message_ + ")";
@@ -78,7 +81,7 @@ class Error : public ErrorBase {
     return full_message;
   }
 
-  virtual std::string getShortMessageRecursive() const {
+  std::string getShortMessageRecursive() const override {
     std::string full_message = getShortMessage();
     if (underlyingError_) {
       full_message += " <- " + underlyingError_->getShortMessageRecursive();
@@ -86,7 +89,7 @@ class Error : public ErrorBase {
     return full_message;
   }
 
-  virtual std::string getFullMessageRecursive() const {
+  std::string getFullMessageRecursive() const override {
     std::string full_message = getFullMessage();
     if (underlyingError_) {
       full_message += " <- " + underlyingError_->getFullMessageRecursive();
@@ -95,9 +98,9 @@ class Error : public ErrorBase {
   }
 
  private:
-  T errorCode_;
+  ErrorCodeEnumType errorCode_;
   std::string message_;
-  std::shared_ptr<ErrorBase> underlyingError_;
+  std::unique_ptr<ErrorBase> underlyingError_;
 };
 
 template <class T>
@@ -134,6 +137,27 @@ inline bool operator==(const ErrorBase* lhs, const T rhs) {
 inline std::ostream& operator<<(std::ostream& out, const ErrorBase& error) {
   out << error.getFullMessageRecursive();
   return out;
+}
+
+template <typename ErrorCodeEnumType>
+Error<ErrorCodeEnumType> createError(
+    ErrorCodeEnumType error_code,
+    std::string message,
+    std::unique_ptr<ErrorBase> underlying_error = nullptr) {
+  return Error<ErrorCodeEnumType>(
+      error_code, std::move(message), std::move(underlying_error));
+}
+
+template <typename ErrorCodeEnumType, typename OtherErrorCodeEnumType>
+Error<ErrorCodeEnumType> createError(
+    ErrorCodeEnumType error_code,
+    std::string message,
+    Error<OtherErrorCodeEnumType> underlying_error) {
+  return Error<ErrorCodeEnumType>(
+      error_code,
+      std::move(message),
+      std::make_unique<Error<OtherErrorCodeEnumType>>(
+          std::move(underlying_error)));
 }
 
 } // namespace osquery

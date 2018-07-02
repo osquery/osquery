@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -108,17 +109,10 @@ inline void replaceAll(std::string& str,
  *
  * @return the joined string.
  */
-std::string join(const std::vector<std::string>& s, const std::string& tok);
-
-/**
- * @brief Join a set of strings inserting a token string between elements
- *
- * @param s the set of strings to be joined.
- * @param tok a token glue string to be inserted between elements.
- *
- * @return the joined string.
- */
-std::string join(const std::set<std::string>& s, const std::string& tok);
+template <typename SequenceType>
+inline std::string join(const SequenceType& s, const std::string& tok) {
+  return boost::algorithm::join(s, tok);
+}
 
 /**
  * @brief Decode a base64 encoded string.

@@ -118,6 +118,7 @@ function platform_darwin_main() {
   # Library secondary dependencies.
   brew_dependency osquery/osquery-local/popt
   brew_dependency osquery/osquery-local/berkeley-db
+  brew_dependency osquery/osquery-local/ssdeep-cpp
 
   # libarchive for file carving
   brew_dependency osquery/osquery-local/libarchive
