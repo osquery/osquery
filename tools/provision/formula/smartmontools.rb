@@ -12,10 +12,12 @@ class Smartmontools < AbstractOsqueryFormula
   depends_on "libtool" => :build
 
   def install
+    system "which", "automake"
+    system "automake", "--version"
     system "./autogen.sh"
 
     ENV.append "CXXFLAGS", "-fPIC -s -Os"
-    system "./configure", "--prefix=#{prefix}"
+    system "./configure", *osquery_autoconf_flags
     system "make", "install"
   end
 end

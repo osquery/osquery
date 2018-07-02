@@ -9,6 +9,7 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 function distro_main() {
+  printf "\n\nEXECUTING DISTRO_MAIN!!!!!!\n\n"
   do_sudo yum update -y
 
   package doxygen

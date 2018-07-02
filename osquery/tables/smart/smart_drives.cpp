@@ -15,7 +15,6 @@
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
-#include "osquery/events/linux/udev.h"
 #include "osquery/tables/smart/smart_drives.h"
 
 namespace osquery {
