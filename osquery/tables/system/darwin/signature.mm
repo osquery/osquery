@@ -30,40 +30,46 @@ namespace tables {
 // Empty string runs default verification on a file
 std::set<std::string> kCheckedArches{"", "i386", "ppc", "arm", "x86_64"};
 
-// Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on
-// the OS version.
-Status getVerifyFlags(SecCSFlags& flags) {
+int getOSMinorVersion() {
   using boost::lexical_cast;
   using boost::bad_lexical_cast;
 
-  static SecCSFlags sFlags;
-
-  if (sFlags == 0) {
-    auto qd = SQL::selectAllFrom("os_version");
-    if (qd.size() != 1) {
-      return Status(-1, "Couldn't determine OS X version");
-    }
-
-    int minorVersion;
-    try {
-      minorVersion = lexical_cast<int>(qd.front().at("minor"));
-    } catch (const bad_lexical_cast& e) {
-      return Status(-1, "Couldn't determine OS X version");
-    }
-
-    sFlags = kSecCSStrictValidate | kSecCSCheckAllArchitectures |
-             kSecCSCheckNestedCode;
-    if (minorVersion > 8) {
-      sFlags |= kSecCSCheckNestedCode;
-    }
+  auto qd = SQL::selectAllFrom("os_version");
+  if (qd.size() != 1) {
+    return -1;
   }
 
-  flags = sFlags;
+  try {
+    return lexical_cast<int>(qd.front().at("minor"));
+  } catch (const bad_lexical_cast& e) {
+    return -1;
+  }
+}
+
+// Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on
+// the OS version.
+Status getVerifyFlags(SecCSFlags& flags, bool hashResources) {
+  static const auto minorVersion = getOSMinorVersion();
+  if (minorVersion == -1) {
+    return Status(-1, "Couldn't determine OS X version");
+  }
+
+  flags = kSecCSStrictValidate | kSecCSCheckAllArchitectures |
+          kSecCSCheckNestedCode;
+  if (minorVersion > 8) {
+    flags |= kSecCSCheckNestedCode;
+  }
+
+  if (!hashResources) {
+    flags |= kSecCSDoNotValidateResources;
+  }
+
   return Status(0, "ok");
 }
 
 Status genSignatureForFileAndArch(const std::string& path,
                                   const std::string& arch,
+                                  bool hashResources,
                                   QueryData& results) {
   OSStatus result;
   SecStaticCodeRef static_code = nullptr;
@@ -106,11 +112,12 @@ Status genSignatureForFileAndArch(const std::string& path,
 
   Row r;
   r["path"] = path;
+  r["hash_resources"] = INTEGER(hashResources);
   r["arch"] = arch;
   r["identifier"] = "";
 
   SecCSFlags flags = 0;
-  getVerifyFlags(flags);
+  getVerifyFlags(flags, hashResources);
   result = SecStaticCodeCheckValidityWithErrors(
       static_code, flags, nullptr, nullptr);
   if (result == errSecSuccess) {
@@ -216,11 +223,13 @@ Status genSignatureForFileAndArch(const std::string& path,
 }
 
 // Generate a signature for a single file.
-void genSignatureForFile(const std::string& path, QueryData& results) {
+void genSignatureForFile(const std::string& path,
+                         bool hashResources,
+                         QueryData& results) {
   for (const auto& arch : kCheckedArches) {
     // This returns a status but there is nothing we need to handle
     // here so we can safely ignore it
-    genSignatureForFileAndArch(path, arch, results);
+    genSignatureForFileAndArch(path, arch, hashResources, results);
   }
 }
 
@@ -232,7 +241,9 @@ QueryData genSignature(QueryContext& context) {
   // operator.
   auto paths = context.constraints["path"].getAll(EQUALS);
   context.expandConstraints(
-      "path", LIKE, paths,
+      "path",
+      LIKE,
+      paths,
       ([&](const std::string& pattern, std::set<std::string>& out) {
         std::vector<std::string> patterns;
         auto status =
@@ -244,6 +255,19 @@ QueryData genSignature(QueryContext& context) {
         }
         return status;
       }));
+
+  auto hashResContraints = context.constraints["hash_resources"].getAll(EQUALS);
+  if (hashResContraints.size() > 1) {
+    VLOG(1) << "Received multiple constraint values for column hash_resources. "
+               "Only the first one will be evaluated.";
+  }
+
+  bool hashResources = true;
+  if (!hashResContraints.empty()) {
+    const auto& value = *hashResContraints.begin();
+    hashResources = (value != "0");
+  }
+
   @autoreleasepool {
     for (const auto& path_string : paths) {
       // Note: we are explicitly *not* using is_regular_file here, since you can
@@ -252,7 +276,7 @@ QueryData genSignature(QueryContext& context) {
       if (!pathExists(path_string).ok()) {
         continue;
       }
-      genSignatureForFile(path_string, results);
+      genSignatureForFile(path_string, hashResources, results);
     }
   }
 
