@@ -1569,7 +1569,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   // Check GetLastError for CreateFile error code.
   if (file_handle == INVALID_HANDLE_VALUE) {
     CloseHandle(file_handle);
-	Status(-1, "Platform Stat failed with " + std::to_string(GetLastError()));
+    return Status(-1, "Platform Stat failed with " + std::to_string(GetLastError()));
   }
 
   // Get the owner SID of the file.
@@ -1585,7 +1585,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   // Check GetLastError for GetSecurityInfo error condition.
   if (ret != ERROR_SUCCESS) {
     CloseHandle(file_handle);
-	Status(-1, "Platform Stat failed with " + std::to_string(GetLastError()));
+    return Status(-1, "Platform Stat failed with " + std::to_string(GetLastError()));
   }
 
   FILE_BASIC_INFO basic_info;
@@ -1593,7 +1593,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   if (GetFileInformationByHandle(file_handle, &file_info) == 0) {
     CloseHandle(file_handle);
-	Status(-1, "Platform Stat failed with " + std::to_string(GetLastError()));
+    return Status(-1, "Platform Stat failed with " + std::to_string(GetLastError()));
   }
 
   auto file_index =
@@ -1632,15 +1632,11 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   case FILE_TYPE_DISK: {
     if (file_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
       wfile_stat->type = "Directory";
-
     } else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_NORMAL) {
       wfile_stat->type = "Regular";
-    }
-
-    else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+    } else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
       wfile_stat->type = "Symbolic";
       wfile_stat->symlink = 1;
-
     } else {
       // This is the type returned from GetFileType -> FILE_TYPE_DISK
       wfile_stat->type = "Disk";
@@ -1653,7 +1649,9 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
                                                 : wfile_stat->type = "Socket";
     break;
   }
-  default: { wfile_stat->type = "Unknown"; }
+  default: {
+    wfile_stat->type = "Unknown";
+  }
   }
 
   wfile_stat->attributes = getFileAttribStr(file_info.dwFileAttributes);
@@ -1709,7 +1707,7 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   CloseHandle(file_handle);
 
-  return Status(0);
+  return Status();
 }
 
 fs::path getSystemRoot() {
