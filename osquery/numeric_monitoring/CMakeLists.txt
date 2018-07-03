@@ -18,5 +18,6 @@ ADD_OSQUERY_LIBRARY_ADDITIONAL(
 )
 
 ADD_OSQUERY_TEST_ADDITIONAL(
+  "${CMAKE_CURRENT_LIST_DIR}/tests/numeric_monitoring_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/filesystem_tests.cpp"
 )
