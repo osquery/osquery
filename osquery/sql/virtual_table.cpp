@@ -36,7 +36,6 @@ RecursiveMutex kAttachMutex;
 
 namespace tables {
 namespace sqlite {
-
 /// For planner and debugging an incrementing cursor ID is used.
 static std::atomic<size_t> kPlannerCursorID{0};
 
@@ -73,6 +72,174 @@ static inline std::string opString(unsigned char op) {
   }
   return "?";
 }
+
+/// A list of tables that come from extensions; it is used to determine which
+/// table can be read/write
+std::vector<std::string> extension_table_list;
+std::mutex extension_table_list_mutex;
+
+bool isExtensionTable(const std::string& table_name) {
+  std::lock_guard<std::mutex> locker(extension_table_list_mutex);
+  return (std::find(extension_table_list.begin(),
+                    extension_table_list.end(),
+                    table_name) != extension_table_list.end());
+}
+
+namespace {
+// A map containing an sqlite module object for each virtual table
+std::unordered_map<std::string, struct sqlite3_module> sqlite_module_map;
+std::mutex sqlite_module_map_mutex;
+
+bool getColumnValue(std::string& value,
+                    int index,
+                    int argc,
+                    sqlite3_value** argv) {
+  value.clear();
+
+  if (index >= argc) {
+    return false;
+  }
+
+  auto sqlite_value = argv[index];
+  switch (sqlite3_value_type(sqlite_value)) {
+  case SQLITE_INTEGER: {
+    auto temp = sqlite3_value_int64(sqlite_value);
+    value = std::to_string(temp);
+    break;
+  }
+
+  case SQLITE_FLOAT: {
+    auto temp = sqlite3_value_double(sqlite_value);
+    value = std::to_string(temp);
+    break;
+  }
+
+  case SQLITE_BLOB:
+  case SQLITE3_TEXT: {
+    auto data_pointer = sqlite3_value_blob(sqlite_value);
+
+    auto buffer_size = sqlite3_value_bytes(sqlite_value);
+    value.resize(buffer_size);
+    std::memcpy(&value[0], data_pointer, buffer_size);
+
+    break;
+  }
+
+  case SQLITE_NULL: {
+    break;
+  }
+
+  default: {
+    VLOG(1) << "Invalid column type";
+    return false;
+  }
+  }
+
+  return true;
+}
+
+// Type-aware serializer to pass parameters between osquery and the extension
+int serializeUpdateParameters(std::string& json_value_array,
+                              int argc,
+                              sqlite3_value** argv,
+                              const TableColumns& columnDescriptors) {
+  if (columnDescriptors.size() != static_cast<size_t>(argc - 2)) {
+    VLOG(1) << "Wrong column count: " << argc - 2
+            << ". Expected: " << columnDescriptors.size();
+    return SQLITE_RANGE;
+  }
+
+  auto document = rapidjson::Document();
+  document.SetArray();
+
+  auto& allocator = document.GetAllocator();
+
+  for (int i = 2U; i < argc; i++) {
+    auto sqlite_value = argv[i];
+
+    const auto& columnDescriptor = columnDescriptors[i - 2U];
+    const auto& columnType = std::get<1>(columnDescriptor);
+
+    const auto& columnOptions = std::get<2>(columnDescriptor);
+    bool requiredColumn = (columnOptions == ColumnOptions::INDEX ||
+                           columnOptions == ColumnOptions::REQUIRED);
+
+    auto receivedValueType = sqlite3_value_type(sqlite_value);
+    switch (receivedValueType) {
+    case SQLITE_INTEGER: {
+      if (columnType != INTEGER_TYPE && columnType != BIGINT_TYPE &&
+          columnType != UNSIGNED_BIGINT_TYPE) {
+        return SQLITE_MISMATCH;
+      }
+
+      auto integer =
+          static_cast<std::int64_t>(sqlite3_value_int64(sqlite_value));
+
+      document.PushBack(integer, allocator);
+      break;
+    }
+
+    case SQLITE_FLOAT: {
+      if (columnType != DOUBLE_TYPE) {
+        return SQLITE_MISMATCH;
+      }
+
+      document.PushBack(sqlite3_value_double(sqlite_value), allocator);
+      break;
+    }
+
+    case SQLITE_BLOB:
+    case SQLITE3_TEXT: {
+      bool typeMismatch = false;
+      if (receivedValueType == SQLITE_BLOB) {
+        typeMismatch = columnType != BLOB_TYPE;
+      } else {
+        typeMismatch = columnType != TEXT_TYPE;
+      }
+
+      if (typeMismatch) {
+        return SQLITE_MISMATCH;
+      }
+
+      auto data_pointer = sqlite3_value_blob(sqlite_value);
+      auto buffer_size = sqlite3_value_bytes(sqlite_value);
+
+      std::string string_data;
+      string_data.resize(buffer_size);
+      std::memcpy(&string_data[0], data_pointer, buffer_size);
+
+      rapidjson::Value value(string_data, allocator);
+      document.PushBack(value, allocator);
+
+      break;
+    }
+
+    case SQLITE_NULL: {
+      if (requiredColumn) {
+        return SQLITE_MISMATCH;
+      }
+
+      rapidjson::Value value;
+      value.SetNull();
+
+      document.PushBack(value, allocator);
+      break;
+    }
+
+    default: { return SQLITE_MISMATCH; }
+    }
+  }
+
+  rapidjson::StringBuffer buffer;
+  buffer.Clear();
+
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  document.Accept(writer);
+
+  json_value_array = buffer.GetString();
+  return SQLITE_OK;
+}
+} // namespace
 
 inline std::string table_doc(const std::string& name) {
   return "https://osquery.io/schema/#" + name;
@@ -145,8 +312,199 @@ int xNext(sqlite3_vtab_cursor* cur) {
 }
 
 int xRowid(sqlite3_vtab_cursor* cur, sqlite_int64* pRowid) {
+  *pRowid = 0;
+
   const BaseCursor* pCur = (BaseCursor*)cur;
-  *pRowid = pCur->row;
+  auto data_it = std::next(pCur->data.begin(), pCur->row);
+  if (data_it >= pCur->data.end()) {
+    return SQLITE_ERROR;
+  }
+
+  // Use the rowid returned by the extension, if available; most likely, this
+  // will only be used by extensions providing read/write tables
+  const auto& current_row = *data_it;
+
+  auto rowid_it = current_row.find("rowid");
+  if (rowid_it != current_row.end()) {
+    const auto& rowid_text_field = rowid_it->second;
+
+    auto status = safeStrtoll(rowid_text_field, 10, *pRowid);
+    if (!status.ok()) {
+      VLOG(1) << "Invalid rowid value returned";
+      return SQLITE_ERROR;
+    }
+
+  } else {
+    *pRowid = pCur->row;
+  }
+
+  return SQLITE_OK;
+}
+
+int xUpdate(sqlite3_vtab* p,
+            int argc,
+            sqlite3_value** argv,
+            sqlite3_int64* pRowid) {
+  auto* pVtab = (VirtualTable*)p;
+
+  auto* content = pVtab->content;
+  const auto& columnDescriptors = content->columns;
+
+  std::string table_name = pVtab->content->name;
+
+  if (FLAGS_table_delay > 0 && pVtab->instance->tableCalled(content)) {
+    // Apply an optional sleep between table calls.
+    sleepFor(FLAGS_table_delay);
+  }
+  pVtab->instance->addAffectedTable(content);
+
+  // The SQLite instance communicates to the TablePlugin via the context.
+  QueryContext context(content);
+  context.useCache(pVtab->instance->useCache());
+
+  PluginRequest plugin_request;
+
+  if (argc == 1) {
+    // This is a simple delete operation
+    plugin_request = {{"action", "delete"}};
+
+    auto row_to_delete = sqlite3_value_int64(argv[0]);
+    plugin_request.insert({"id", std::to_string(row_to_delete)});
+
+  } else if (sqlite3_value_type(argv[0]) == SQLITE_NULL) {
+    // This is an INSERT query; if the rowid has been generated for us, we'll
+    // find it inside argv[1]
+    plugin_request = {{"action", "insert"}};
+
+    // Add the values to insert; we should have a value for each column present
+    // in the table, even if the user did not specify a value (in which case
+    // we will find a nullptr)
+    std::string json_value_array;
+    auto serializerError = serializeUpdateParameters(
+        json_value_array, argc, argv, columnDescriptors);
+    if (serializerError != SQLITE_OK) {
+      VLOG(1) << "Failed to serialize the INSERT request";
+      return serializerError;
+    }
+
+    plugin_request.insert({"json_value_array", json_value_array});
+
+    if (sqlite3_value_type(argv[1]) != SQLITE_NULL) {
+      plugin_request.insert({"auto_rowid", "true"});
+
+      std::string auto_generated_rowid;
+      if (!getColumnValue(auto_generated_rowid, 1, argc, argv)) {
+        VLOG(1) << "Failed to retrieve the column value";
+        return SQLITE_ERROR;
+      }
+
+      plugin_request.insert({"id", auto_generated_rowid});
+
+    } else {
+      plugin_request.insert({"auto_rowid", "false"});
+    }
+
+  } else if (sqlite3_value_type(argv[0]) == SQLITE_INTEGER) {
+    // This is an UPDATE query; we have to update the rowid value in some
+    // cases (if argv[1] is populated)
+    plugin_request = {{"action", "update"}};
+
+    std::string current_rowid;
+    if (!getColumnValue(current_rowid, 0, argc, argv)) {
+      VLOG(1) << "Failed to retrieve the column value";
+      return SQLITE_ERROR;
+    }
+
+    plugin_request.insert({"id", current_rowid});
+
+    // Get the new rowid, if any
+    if (sqlite3_value_type(argv[1]) == SQLITE_INTEGER) {
+      std::string new_rowid;
+      if (!getColumnValue(new_rowid, 1, argc, argv)) {
+        VLOG(1) << "Failed to retrieve the column value";
+        return SQLITE_ERROR;
+      }
+
+      if (new_rowid != plugin_request.at("id")) {
+        plugin_request.insert({"new_id", new_rowid});
+      }
+    }
+
+    // Get the values to update
+    std::string json_value_array;
+    auto serializerError = serializeUpdateParameters(
+        json_value_array, argc, argv, columnDescriptors);
+    if (serializerError != SQLITE_OK) {
+      VLOG(1) << "Failed to serialize the UPDATE request";
+      return serializerError;
+    }
+
+    plugin_request.insert({"json_value_array", json_value_array});
+
+  } else {
+    VLOG(1) << "Invalid xUpdate call";
+    return SQLITE_ERROR;
+  }
+
+  TablePlugin::setRequestFromContext(context, plugin_request);
+
+  // Forward the query to the table extension
+  PluginResponse response_list;
+  Registry::call("table", table_name, plugin_request, response_list);
+
+  // Validate the response
+  if (response_list.size() != 1) {
+    VLOG(1) << "Invalid response from the extension table";
+    return SQLITE_ERROR;
+  }
+
+  const auto& response = response_list.at(0);
+  if (response.count("status") == 0) {
+    VLOG(1) << "Invalid response from the extension table; the status field is "
+               "missing";
+
+    return SQLITE_ERROR;
+  }
+
+  if (response.at("status") == "failure") {
+    return SQLITE_ERROR;
+
+  } else if (response.at("status") == "constraint") {
+    return SQLITE_CONSTRAINT;
+
+  } else if (response.at("status") != "success") {
+    VLOG(1) << "Invalid response from the extension table; the status field "
+               "could not be recognized";
+    return SQLITE_ERROR;
+  }
+
+  // INSERT actions must always return a valid rowid to sqlite
+  if (plugin_request.at("action") == "insert") {
+    std::string rowid;
+
+    if (plugin_request.at("auto_rowid") == "true") {
+      if (!getColumnValue(rowid, 1, argc, argv)) {
+        VLOG(1) << "Failed to retrieve the rowid value";
+        return SQLITE_ERROR;
+      }
+
+    } else {
+      auto id_it = response.find("id");
+      if (id_it == response.end()) {
+        VLOG(1) << "The plugin did not return a row id";
+        return SQLITE_ERROR;
+      }
+
+      rowid = id_it->second;
+    }
+
+    auto status = safeStrtoll(rowid, 10, *pRowid);
+    if (!status.ok()) {
+      VLOG(1) << "The plugin did not return a valid row id";
+      return SQLITE_ERROR;
+    }
+  }
+
   return SQLITE_OK;
 }
 
@@ -170,6 +528,7 @@ int xCreate(sqlite3* db,
   PluginResponse response;
   pVtab->content->name = std::string(argv[0]);
   const auto& name = pVtab->content->name;
+
   // Get the table column information.
   auto status =
       Registry::call("table", name, {{"action", "columns"}}, response);
@@ -179,13 +538,20 @@ int xCreate(sqlite3* db,
     return SQLITE_ERROR;
   }
 
+  // Tables implemented from extensions can be made read/write if they implement
+  // the correct methods
+  bool is_extension = isExtensionTable(name);
+
   // Generate an SQL create table statement from the retrieved column details.
   // This call to columnDefinition requests column aliases (as HIDDEN columns).
-  auto statement = "CREATE TABLE " + name + columnDefinition(response, true);
+  auto statement =
+      "CREATE TABLE " + name + columnDefinition(response, true, is_extension);
+
   int rc = sqlite3_declare_vtab(db, statement.c_str());
   if (rc != SQLITE_OK || !status.ok() || response.size() == 0) {
     LOG(ERROR) << "Error creating virtual table: " << name << " (" << rc
                << "): " << getStringForSQLiteReturnCode(rc);
+
     VLOG(1) << "Cannot create virtual table using: " << statement;
     delete pVtab->content;
     delete pVtab;
@@ -211,9 +577,11 @@ int xCreate(sqlite3* db,
           std::make_tuple(column.at("name"),
                           columnTypeName(column.at("type")),
                           (ColumnOptions)std::stol(column.at("op"))));
+
     } else if (column.at("id") == "alias" && column.count("alias")) {
       // Create associated views for table aliases.
       views.insert(column.at("alias"));
+
     } else if (column.at("id") == "columnAlias" && column.count("name") &&
                column.count("target")) {
       // Record the column in the set of columns.
@@ -221,6 +589,7 @@ int xCreate(sqlite3* db,
       // Use an UNKNOWN_TYPE as a pseudo-mask, since the type does not matter.
       pVtab->content->columns.push_back(std::make_tuple(
           column.at("name"), UNKNOWN_TYPE, ColumnOptions::HIDDEN));
+
       // Record a mapping of the requested column alias name.
       size_t target_index = 0;
       for (size_t i = 0; i < pVtab->content->columns.size(); i++) {
@@ -230,7 +599,9 @@ int xCreate(sqlite3* db,
           break;
         }
       }
+
       pVtab->content->aliases[column.at("name")] = target_index;
+
     } else if (column.at("id") == "attributes") {
       // Store the attributes locally so they may be passed to the SQL object.
       pVtab->content->attributes =
@@ -243,6 +614,7 @@ int xCreate(sqlite3* db,
     statement = "CREATE VIEW " + view + " AS SELECT * FROM " + name;
     sqlite3_exec(db, statement.c_str(), nullptr, nullptr, nullptr);
   }
+
   *ppVtab = (sqlite3_vtab*)pVtab;
   return rc;
 }
@@ -356,10 +728,10 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
       const auto& constraint_info = pIdxInfo->aConstraint[i];
 #if defined(DEBUG)
       plan("Evaluating constraints for table: " + pVtab->content->name +
-           " [index=" + std::to_string(i) + " column=" +
-           std::to_string(constraint_info.iColumn) + " term=" +
-           std::to_string((int)constraint_info.iTermOffset) + " usable=" +
-           std::to_string((int)constraint_info.usable) + "]");
+           " [index=" + std::to_string(i) +
+           " column=" + std::to_string(constraint_info.iColumn) +
+           " term=" + std::to_string((int)constraint_info.iTermOffset) +
+           " usable=" + std::to_string((int)constraint_info.usable) + "]");
 #endif
       if (!constraint_info.usable) {
         // A higher cost less priority, prefer more usable query constraints.
@@ -440,9 +812,9 @@ static int xBestIndex(sqlite3_vtab* tab, sqlite3_index_info* pIdxInfo) {
   pIdxInfo->idxNum = static_cast<int>(kConstraintIndexID++);
 #if defined(DEBUG)
   plan("Recording constraint set for table: " + pVtab->content->name +
-       " [cost=" + std::to_string(cost) + " size=" +
-       std::to_string(constraints.size()) + " idx=" +
-       std::to_string(pIdxInfo->idxNum) + "]");
+       " [cost=" + std::to_string(cost) +
+       " size=" + std::to_string(constraints.size()) +
+       " idx=" + std::to_string(pIdxInfo->idxNum) + "]");
 #endif
   // Add the constraint set to the table's tracked constraints.
   pVtab->content->constraints[pIdxInfo->idxNum] = std::move(constraints);
@@ -506,9 +878,10 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
 // Filtering between cursors happens iteratively, not consecutively.
 // If there are multiple sets of constraints, they apply to each cursor.
 #if defined(DEBUG)
-  plan("Filtering called for table: " + content->name + " [constraint_count=" +
-       std::to_string(content->constraints.size()) + " argc=" +
-       std::to_string(argc) + " idx=" + std::to_string(idxNum) + "]");
+  plan("Filtering called for table: " + content->name +
+       " [constraint_count=" + std::to_string(content->constraints.size()) +
+       " argc=" + std::to_string(argc) + " idx=" + std::to_string(idxNum) +
+       "]");
 #endif
 
   // Iterate over every argument to xFilter, filling in constraint values.
@@ -606,59 +979,79 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
   pCur->n = pCur->data.size();
   return SQLITE_OK;
 }
+
+struct sqlite3_module* getVirtualTableModule(const std::string& table_name,
+                                             bool extension) {
+  std::lock_guard<std::mutex> lock(sqlite_module_map_mutex);
+
+  if (sqlite_module_map.find(table_name) != sqlite_module_map.end()) {
+    return &sqlite_module_map[table_name];
+  }
+
+  sqlite_module_map[table_name] = {};
+  sqlite_module_map[table_name].xCreate = tables::sqlite::xCreate;
+  sqlite_module_map[table_name].xConnect = tables::sqlite::xCreate;
+  sqlite_module_map[table_name].xBestIndex = tables::sqlite::xBestIndex;
+  sqlite_module_map[table_name].xDisconnect = tables::sqlite::xDestroy;
+  sqlite_module_map[table_name].xDestroy = tables::sqlite::xDestroy;
+  sqlite_module_map[table_name].xOpen = tables::sqlite::xOpen;
+  sqlite_module_map[table_name].xClose = tables::sqlite::xClose;
+  sqlite_module_map[table_name].xFilter = tables::sqlite::xFilter;
+  sqlite_module_map[table_name].xNext = tables::sqlite::xNext;
+  sqlite_module_map[table_name].xEof = tables::sqlite::xEof;
+  sqlite_module_map[table_name].xColumn = tables::sqlite::xColumn;
+  sqlite_module_map[table_name].xRowid = tables::sqlite::xRowid;
+
+  // Allow the table to receive INSERT/UPDATE/DROP events if it is
+  // implemented from an extension and is overwriting the right methods
+  // in the TablePlugin class
+  if (extension) {
+    std::lock_guard<std::mutex> locker(extension_table_list_mutex);
+    extension_table_list.push_back(table_name);
+
+    sqlite_module_map[table_name].xUpdate = tables::sqlite::xUpdate;
+  }
+
+  return &sqlite_module_map[table_name];
 }
-}
+} // namespace sqlite
+} // namespace tables
 
 Status attachTableInternal(const std::string& name,
                            const std::string& statement,
-                           const SQLiteDBInstanceRef& instance) {
+                           const SQLiteDBInstanceRef& instance,
+                           bool is_extension) {
   if (SQLiteDBManager::isDisabled(name)) {
     VLOG(1) << "Table " << name << " is disabled, not attaching";
     return Status(0, getStringForSQLiteReturnCode(0));
   }
 
-  // A static module structure does not need specific logic per-table.
-  // clang-format off
-  static sqlite3_module module = {
-      0,
-      tables::sqlite::xCreate,
-      tables::sqlite::xCreate,
-      tables::sqlite::xBestIndex,
-      tables::sqlite::xDestroy,
-      tables::sqlite::xDestroy,
-      tables::sqlite::xOpen,
-      tables::sqlite::xClose,
-      tables::sqlite::xFilter,
-      tables::sqlite::xNext,
-      tables::sqlite::xEof,
-      tables::sqlite::xColumn,
-      tables::sqlite::xRowid,
-      nullptr, /* Update */
-      nullptr, /* Begin */
-      nullptr, /* Sync */
-      nullptr, /* Commit */
-      nullptr, /* Rollback */
-      nullptr, /* FindFunction */
-      nullptr, /* Rename */
-      nullptr, /* Savepoint */
-      nullptr, /* Release */
-      nullptr, /* RollbackTo */
-  };
-  // clang-format on
+  struct sqlite3_module* module =
+      tables::sqlite::getVirtualTableModule(name, is_extension);
+  if (module == nullptr) {
+    VLOG(1) << "Failed to retrieve the virtual table module for \"" << name
+            << "\"";
+    return Status(1);
+  }
 
   // Note, if the clientData API is used then this will save a registry call
   // within xCreate.
   auto lock(instance->attachLock());
 
   int rc = sqlite3_create_module(
-      instance->db(), name.c_str(), &module, (void*)&(*instance));
+      instance->db(), name.c_str(), module, (void*)&(*instance));
+
   if (rc == SQLITE_OK || rc == SQLITE_MISUSE) {
     auto format =
         "CREATE VIRTUAL TABLE temp." + name + " USING " + name + statement;
-    rc = sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, 0);
+
+    rc =
+        sqlite3_exec(instance->db(), format.c_str(), nullptr, nullptr, nullptr);
+
   } else {
     LOG(ERROR) << "Error attaching table: " << name << " (" << rc << ")";
   }
+
   return Status(rc, getStringForSQLiteReturnCode(rc));
 }
 
@@ -703,14 +1096,16 @@ void attachVirtualTables(const SQLiteDBInstanceRef& instance) {
   }
 
   PluginResponse response;
+  bool is_extension = false;
+
   for (const auto& name : RegistryFactory::get().names("table")) {
     // Column information is nice for virtual table create call.
     auto status =
         Registry::call("table", name, {{"action", "columns"}}, response);
     if (status.ok()) {
-      auto statement = columnDefinition(response, true);
-      attachTableInternal(name, statement, instance);
+      auto statement = columnDefinition(response, true, is_extension);
+      attachTableInternal(name, statement, instance, is_extension);
     }
   }
 }
-}
+} // namespace osquery
