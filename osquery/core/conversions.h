@@ -21,6 +21,7 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <osquery/expected.h>
 #include <osquery/logger.h>
 #include <osquery/status.h>
 
@@ -306,4 +307,19 @@ std::string stringFromCFAbsoluteTime(const CFDataRef& cf_abstime);
 
 std::string stringFromCFData(const CFDataRef& cf_data);
 #endif
+
+enum class ConversionError {
+  InvalidArgument,
+  OutOfRange,
+};
+
+template <typename ToType, typename FromType>
+inline typename std::enable_if<
+    std::is_same<ToType,
+                 typename std::remove_cv<typename std::remove_reference<
+                     FromType>::type>::type>::value,
+    Expected<ToType, ConversionError>>::type
+tryTo(FromType&& from) {
+  return std::forward<FromType>(from);
+}
 }
