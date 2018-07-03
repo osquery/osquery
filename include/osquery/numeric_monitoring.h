@@ -13,6 +13,7 @@
 #include <chrono>
 #include <string>
 
+#include <osquery/core/conversions.h>
 #include <osquery/expected.h>
 
 namespace osquery {
@@ -59,12 +60,8 @@ void record(const std::string& path,
 
 } // namespace monitoring
 
-enum class ConversionError {
-  InvalidArgument,
-};
-
 /**
- * Conversional generic to convert AggregationType to string
+ * Generic to convert AggregationType to string
  */
 template <typename ToType>
 typename std::enable_if<std::is_same<std::string, ToType>::value,
@@ -72,7 +69,7 @@ typename std::enable_if<std::is_same<std::string, ToType>::value,
 tryTo(const monitoring::AggregationType& from);
 
 /**
- * Conversional generic to parse AggregationType from string
+ * Generic to parse AggregationType from string
  */
 template <typename ToType>
 typename std::enable_if<
