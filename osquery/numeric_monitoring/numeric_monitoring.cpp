@@ -90,7 +90,7 @@ namespace monitoring {
 void record(const std::string& path,
             ValueType value,
             AggregationType aggr_type,
-            TimePoint timePoint) {
+            TimePoint time_point) {
   if (!FLAGS_enable_numeric_monitoring) {
     return;
   }
@@ -99,16 +99,16 @@ void record(const std::string& path,
     auto repr = tryTo<std::string>(aggr_type);
     aggrTypeStringRepr = repr ? repr.take() : "";
   }
-  auto status =
-      Registry::call(registryName(),
-                     FLAGS_numeric_monitoring_plugins,
-                     {
-                         {recordKeys().path, path},
-                         {recordKeys().value, std::to_string(value)},
-                         {recordKeys().timestamp,
-                          std::to_string(timePoint.time_since_epoch().count())},
-                         {recordKeys().aggregation, aggrTypeStringRepr},
-                     });
+  auto status = Registry::call(
+      registryName(),
+      FLAGS_numeric_monitoring_plugins,
+      {
+          {recordKeys().path, path},
+          {recordKeys().value, std::to_string(value)},
+          {recordKeys().timestamp,
+           std::to_string(time_point.time_since_epoch().count())},
+          {recordKeys().aggregation, aggrTypeStringRepr},
+      });
   if (!status.ok()) {
     LOG(ERROR) << "Failed to send numeric monitoring record: " << status.what();
   }

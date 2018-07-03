@@ -40,7 +40,9 @@ enum class AggregationType : unsigned {
  * @param path A unique key in monitoring system. If you need to add some common
  * prefix for all osquery points do it in the plugin code.
  * @param value A numeric value of new point.
- * @param timePoint A time of new point, in vast majority of cases it is just
+ * @param aggr_type An aggregation type for this particular path @see
+ * AggregationType. It allows some plugin pre-aggregate points before send it.
+ * @param time_point A time of new point, in vast majority of cases it is just
  * a now time (default time).
  *
  * Common way to use it:
@@ -53,7 +55,7 @@ enum class AggregationType : unsigned {
 void record(const std::string& path,
             ValueType value,
             AggregationType aggr_type = AggregationType::None,
-            TimePoint timePoint = Clock::now());
+            TimePoint time_point = Clock::now());
 
 } // namespace monitoring
 
