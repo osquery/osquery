@@ -10,7 +10,6 @@
 
 #include <kern/kcdata.h>
 #include <libproc.h>
-#include <limits.h>
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #include <sys/sysctl.h>
@@ -270,10 +269,10 @@ void genProcNumThreads(QueryContext& context, int pid, Row& r) {
 
 uint64_t parseKCItem(kcdata_item_t item) {
   if (item->type == STACKSHOT_KCTYPE_TASK_SNAPSHOT) {
-    struct task_snapshot_v2* tsv2 = (struct task_snapshot_v2*)item->data;
+    struct task_snapshot_v2* tsv2 = reinterpret_cast<struct task_snapshot_v2*>(item->data);
     return tsv2->ts_unique_pid;
   } else {
-    return ULLONG_MAX;
+    return std::numeric_limits<std::uint64_t>::max();
   }
 }
 
@@ -302,22 +301,24 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
   stconf.buf = 0;
   stconf.buf_size = 0;
   stconf.flags = 0x10000; // STACKSHOT_KCDATA_FORMAT
-  stconf.out_buf_addr = (uint64_t)&addr;
-  stconf.out_buf_size_addr = (uint64_t)&size;
+  stconf.out_buf_addr = reinterpret_cast<uint64_t>(&addr);
+  stconf.out_buf_size_addr = reinterpret_cast<uint64_t>(&size);
 
+  // Syscall 491 is the syscall to get stackshots which can return data from
+  // the stack of all running process or only one if a pid is provided
   auto rc = syscall(491, 1, (uint64_t)&stconf, sizeof(stconf));
 
   if (rc < 0) {
-    r["unique_pid"] = INTEGER(-1);
+    r["unique_pid"] = BIGINT(-1);
     return;
   }
 
   uint64_t off = 16;
   while (off < size) {
-    kcdata_item_t item = (kcdata_item_t)(addr + off);
+    kcdata_item_t item = reinterpret_cast<kcdata_item_t>(addr + off);
     auto upid = parseKCItem(item);
     if (upid != ULLONG_MAX) {
-      r["unique_pid"] = INTEGER(upid);
+      r["unique_pid"] = BIGINT(upid);
       break;
     }
     int padding = item->size % 16;

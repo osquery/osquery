@@ -309,4 +309,19 @@ TEST_F(ConversionsTests, test_json_bool_like) {
   EXPECT_FALSE(JSON::valueToBool(doc.doc()["false5"]));
   EXPECT_FALSE(JSON::valueToBool(doc.doc()["false6"]));
 }
+
+TEST_F(ConversionsTests, tryTo_same_type) {
+  class First {};
+  // rvalue
+  auto ret0 = tryTo<First>(First{});
+  ASSERT_FALSE(ret0.isError());
+
+  auto test_lvalue = First{};
+  auto ret1 = tryTo<First>(test_lvalue);
+  ASSERT_FALSE(ret1.isError());
+
+  const auto const_test_lvalue = First{};
+  auto ret2 = tryTo<First>(const_test_lvalue);
+  ASSERT_FALSE(ret2.isError());
 }
+} // namespace osquery
