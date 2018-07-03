@@ -16,8 +16,8 @@
 
 #ifdef WIN32
 #include <iomanip>
-#include <windows.h>
 #include <map>
+#include <windows.h>
 #else
 #include <unistd.h>
 #endif
@@ -63,35 +63,34 @@ using PlatformTimeType = FILETIME;
 #define S_IRWXO (S_IRWXG >> 3)
 
 const std::map<std::int32_t, std::string> kDriveLetters{
-    {0, "A:\\"},  {1, "B:\\"},  {2, "C:\\"},  {3, "D:\\"},
-    {4, "E:\\"},  {5, "F:\\"},  {6, "G:\\"},  {7, "H:\\"},
-    {8, "I:\\"},  {9, "J:\\"},  {10, "K:\\"}, {11, "L:\\"},
-    {12, "M:\\"}, {13, "N:\\"}, {14, "O:\\"}, {15, "P:\\"},
-    {16, "Q:\\"}, {17, "R:\\"}, {18, "S:\\"}, {19, "T:\\"},
-    {20, "U:\\"}, {21, "V:\\"}, {22, "W:\\"}, {23, "X:\\"},
-    {24, "Y:\\"}, {25, "Z:\\"},
+    {0, "A:\\"},  {1, "B:\\"},  {2, "C:\\"},  {3, "D:\\"},  {4, "E:\\"},
+    {5, "F:\\"},  {6, "G:\\"},  {7, "H:\\"},  {8, "I:\\"},  {9, "J:\\"},
+    {10, "K:\\"}, {11, "L:\\"}, {12, "M:\\"}, {13, "N:\\"}, {14, "O:\\"},
+    {15, "P:\\"}, {16, "Q:\\"}, {17, "R:\\"}, {18, "S:\\"}, {19, "T:\\"},
+    {20, "U:\\"}, {21, "V:\\"}, {22, "W:\\"}, {23, "X:\\"}, {24, "Y:\\"},
+    {25, "Z:\\"},
 };
 
 typedef struct win_stat {
-	std::string path;
-	std::string filename;
-	int symlink;
-	std::string file_id;
-	LONGLONG inode;
-	int uid;
-	int gid;
-	std::string mode;
-	LONGLONG device;
-	LONGLONG size;
-	int block_size;
-	LONGLONG atime;
-	LONGLONG mtime;
-	LONGLONG ctime;
-	LONGLONG btime;
-	int hard_links;
-	std::string type;
-	std::string attributes;
-	std::string volume_serial;
+  std::string path;
+  std::string filename;
+  int symlink;
+  std::string file_id;
+  LONGLONG inode;
+  int uid;
+  int gid;
+  std::string mode;
+  LONGLONG device;
+  LONGLONG size;
+  int block_size;
+  LONGLONG atime;
+  LONGLONG mtime;
+  LONGLONG ctime;
+  LONGLONG btime;
+  int hard_links;
+  std::string type;
+  std::string attributes;
+  std::string volume_serial;
 
 } WINDOWS_STAT;
 
