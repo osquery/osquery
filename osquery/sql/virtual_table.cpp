@@ -239,6 +239,26 @@ int serializeUpdateParameters(std::string& json_value_array,
   json_value_array = buffer.GetString();
   return SQLITE_OK;
 }
+
+void setTableErrorMessage(sqlite3_vtab* vtable,
+                          const std::string& error_message) {
+  // We are required to always replace the pointer with memory
+  // allocated with sqlite3_malloc. This buffer is freed automatically
+  // by sqlite3 on exit
+  //
+  // Documentation: https://www.sqlite.org/vtab.html section 1.2
+
+  if (vtable->zErrMsg != nullptr) {
+    sqlite3_free(vtable->zErrMsg);
+  }
+
+  auto buffer_size = static_cast<int>(error_message.size() + 1);
+
+  vtable->zErrMsg = static_cast<char*>(sqlite3_malloc(buffer_size));
+  if (vtable->zErrMsg != nullptr) {
+    memcpy(vtable->zErrMsg, error_message.c_str(), buffer_size);
+  }
+}
 } // namespace
 
 inline std::string table_doc(const std::string& name) {
@@ -466,15 +486,31 @@ int xUpdate(sqlite3_vtab* p,
     return SQLITE_ERROR;
   }
 
-  if (response.at("status") == "failure") {
+  const auto& status_value = response.at("status");
+  if (status_value == "readonly") {
+    auto error_message =
+        "table " + pVtab->content->name + " may not be modified";
+
+    setTableErrorMessage(p, error_message);
+    return SQLITE_READONLY;
+
+  } else if (status_value == "failure") {
+    auto custom_error_message_it = response.find("message");
+    if (custom_error_message_it == response.end()) {
+      return SQLITE_ERROR;
+    }
+
+    const auto& custom_error_message = custom_error_message_it->second;
+    setTableErrorMessage(p, custom_error_message);
     return SQLITE_ERROR;
 
-  } else if (response.at("status") == "constraint") {
+  } else if (status_value == "constraint") {
     return SQLITE_CONSTRAINT;
 
-  } else if (response.at("status") != "success") {
+  } else if (status_value != "success") {
     VLOG(1) << "Invalid response from the extension table; the status field "
                "could not be recognized";
+
     return SQLITE_ERROR;
   }
 

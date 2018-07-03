@@ -779,7 +779,7 @@ class TablePlugin : public Plugin {
     static_cast<void>(context);
     static_cast<void>(request);
 
-    return {{std::make_pair("status", "failure")}};
+    return {{std::make_pair("status", "readonly")}};
   }
 
   /// Callback for INSERT statements
@@ -788,7 +788,7 @@ class TablePlugin : public Plugin {
     static_cast<void>(context);
     static_cast<void>(request);
 
-    return {{std::make_pair("status", "failure")}};
+    return {{std::make_pair("status", "readonly")}};
   }
 
   /// Callback for UPDATE statements
@@ -797,7 +797,7 @@ class TablePlugin : public Plugin {
     static_cast<void>(context);
     static_cast<void>(request);
 
-    return {{std::make_pair("status", "failure")}};
+    return {{std::make_pair("status", "readonly")}};
   }
 
   /**

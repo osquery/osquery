@@ -137,8 +137,8 @@ class WritableTable : public TablePlugin {
     Row row;
     auto status = getRowData(row, json_value_array);
     if (!status.ok()) {
-      VLOG(1) << status.getMessage();
-      return {{std::make_pair("status", "failure")}};
+      return {{std::make_pair("status", "failure"),
+               std::make_pair("message", status.getMessage())}};
     }
 
     // Make the 'text' column NOT NULL
@@ -162,8 +162,9 @@ class WritableTable : public TablePlugin {
       unsigned long long int existing_rowid;
       status = safeStrtoull(request.at("id"), 10, existing_rowid);
       if (!status.ok()) {
-        VLOG(1) << "Invalid rowid defined by osquery";
-        return {{std::make_pair("status", "failure")}};
+        return {
+            {std::make_pair("status", "failure"),
+             std::make_pair("message", "Invalid rowid defined by osquery")}};
       }
 
       row["rowid"] = std::to_string(existing_rowid);
@@ -173,8 +174,8 @@ class WritableTable : public TablePlugin {
     // the function doesn't have to compute it again
     status = saveRow(row, primary_key);
     if (!status.ok()) {
-      VLOG(1) << status.getMessage();
-      return {{std::make_pair("status", "failure")}};
+      return {{std::make_pair("status", "failure"),
+               std::make_pair("message", status.getMessage())}};
     }
 
     Row result;
@@ -194,16 +195,17 @@ class WritableTable : public TablePlugin {
 
     auto primary_key_it = rowid_to_primary_key.find(rowid);
     if (primary_key_it == rowid_to_primary_key.end()) {
-      VLOG(1) << "The rowid is not mapped to an internal rowid";
-      return {{std::make_pair("status", "failure")}};
+      return {{std::make_pair("status", "failure"),
+               std::make_pair("message",
+                              "The rowid is not mapped to an internal rowid")}};
     }
 
     const auto& primary_key = primary_key_it->second;
 
     auto row_it = data.find(primary_key);
     if (row_it == data.end()) {
-      VLOG(1) << "Internal error; row id -> primary key mismatch";
-      return {{std::make_pair("status", "failure")}};
+      return {{std::make_pair("status", "failure"),
+               std::make_pair("message", "Row id -> primary key mismatch")}};
     }
 
     data.erase(row_it);
@@ -221,16 +223,17 @@ class WritableTable : public TablePlugin {
 
     auto orig_primary_key_it = rowid_to_primary_key.find(original_rowid);
     if (orig_primary_key_it == rowid_to_primary_key.end()) {
-      VLOG(1) << "The rowid is not mapped to an internal rowid";
-      return {{std::make_pair("status", "failure")}};
+      return {{std::make_pair("status", "failure"),
+               std::make_pair("message",
+                              "The rowid is not mapped to an internal rowid")}};
     }
 
     const auto& original_primary_key = orig_primary_key_it->second;
 
     auto row_it = data.find(original_primary_key);
     if (row_it == data.end()) {
-      VLOG(1) << "Internal error; row id -> primary key mismatch";
-      return {{std::make_pair("status", "failure")}};
+      return {{std::make_pair("status", "failure"),
+               std::make_pair("message", "Row id -> primary key mismatch")}};
     }
 
     // Generate the Row from the json_value_array json
@@ -239,8 +242,8 @@ class WritableTable : public TablePlugin {
     Row row;
     auto status = getRowData(row, json_value_array);
     if (!status.ok()) {
-      VLOG(1) << status.getMessage();
-      return {{std::make_pair("status", "failure")}};
+      return {{std::make_pair("status", "failure"),
+               std::make_pair("message", status.getMessage())}};
     }
 
     // Make the 'text' column NOT NULL
@@ -273,8 +276,8 @@ class WritableTable : public TablePlugin {
 
     status = saveRow(row, new_primary_key);
     if (!status.ok()) {
-      VLOG(1) << status.getMessage();
-      return {{std::make_pair("status", "failure")}};
+      return {{std::make_pair("status", "failure"),
+               std::make_pair("message", status.getMessage())}};
     }
 
     return {{std::make_pair("status", "success")}};
