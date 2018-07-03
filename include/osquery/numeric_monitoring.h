@@ -25,7 +25,7 @@ namespace monitoring {
 using Clock = std::chrono::system_clock;
 using TimePoint = Clock::time_point;
 
-using ValueType = double;
+using ValueType = long long int;
 
 enum class AggregationType : unsigned {
   None,
