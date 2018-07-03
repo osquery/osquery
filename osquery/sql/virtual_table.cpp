@@ -76,10 +76,10 @@ static inline std::string opString(unsigned char op) {
 /// A list of tables that come from extensions; it is used to determine which
 /// table can be read/write
 std::vector<std::string> extension_table_list;
-std::mutex extension_table_list_mutex;
+Mutex extension_table_list_mutex;
 
 bool isExtensionTable(const std::string& table_name) {
-  std::lock_guard<std::mutex> locker(extension_table_list_mutex);
+  ReadLock lock(extension_table_list_mutex);
   return (std::find(extension_table_list.begin(),
                     extension_table_list.end(),
                     table_name) != extension_table_list.end());
@@ -88,7 +88,7 @@ bool isExtensionTable(const std::string& table_name) {
 namespace {
 // A map containing an sqlite module object for each virtual table
 std::unordered_map<std::string, struct sqlite3_module> sqlite_module_map;
-std::mutex sqlite_module_map_mutex;
+Mutex sqlite_module_map_mutex;
 
 bool getColumnValue(std::string& value,
                     int index,
@@ -372,16 +372,8 @@ int xUpdate(sqlite3_vtab* p,
 
   std::string table_name = pVtab->content->name;
 
-  if (FLAGS_table_delay > 0 && pVtab->instance->tableCalled(content)) {
-    // Apply an optional sleep between table calls.
-    sleepFor(FLAGS_table_delay);
-  }
-  pVtab->instance->addAffectedTable(content);
-
   // The SQLite instance communicates to the TablePlugin via the context.
   QueryContext context(content);
-  context.useCache(pVtab->instance->useCache());
-
   PluginRequest plugin_request;
 
   if (argc == 1) {
@@ -1018,11 +1010,13 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
 
 struct sqlite3_module* getVirtualTableModule(const std::string& table_name,
                                              bool extension) {
-  std::lock_guard<std::mutex> lock(sqlite_module_map_mutex);
+  UpgradeLock lock(sqlite_module_map_mutex);
 
   if (sqlite_module_map.find(table_name) != sqlite_module_map.end()) {
     return &sqlite_module_map[table_name];
   }
+
+  WriteUpgradeLock wlock(lock);
 
   sqlite_module_map[table_name] = {};
   sqlite_module_map[table_name].xCreate = tables::sqlite::xCreate;
@@ -1042,7 +1036,7 @@ struct sqlite3_module* getVirtualTableModule(const std::string& table_name,
   // implemented from an extension and is overwriting the right methods
   // in the TablePlugin class
   if (extension) {
-    std::lock_guard<std::mutex> locker(extension_table_list_mutex);
+    WriteLock lock(extension_table_list_mutex);
     extension_table_list.push_back(table_name);
 
     sqlite_module_map[table_name].xUpdate = tables::sqlite::xUpdate;

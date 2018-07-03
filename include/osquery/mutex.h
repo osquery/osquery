@@ -30,4 +30,10 @@ using RecursiveMutex = boost::recursive_mutex;
 /// Helper alias for write locking a recursive mutex.
 using RecursiveLock = boost::unique_lock<boost::recursive_mutex>;
 
+/// Helper alias for upgrade locking a mutex.
+using UpgradeLock = boost::upgrade_lock<Mutex>;
+
+/// Helper alias for write locking an upgrade lock.
+using WriteUpgradeLock = boost::upgrade_to_unique_lock<Mutex>;
+
 } // namespace osquery
