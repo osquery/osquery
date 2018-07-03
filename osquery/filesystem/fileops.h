@@ -72,6 +72,29 @@ const std::map<std::int32_t, std::string> kDriveLetters{
     {24, "Y:\\"}, {25, "Z:\\"},
 };
 
+typedef struct win_stat {
+	std::string path;
+	std::string filename;
+	int symlink;
+	std::string file_id;
+	LONGLONG inode;
+	int uid;
+	int gid;
+	std::string mode;
+	LONGLONG device;
+	LONGLONG size;
+	int block_size;
+	LONGLONG atime;
+	LONGLONG mtime;
+	LONGLONG ctime;
+	LONGLONG btime;
+	int hard_links;
+	std::string type;
+	std::string attributes;
+	std::string volume_serial;
+
+} WINDOWS_STAT;
+
 #else
 
 using PlatformHandle = int;
@@ -82,29 +105,6 @@ typedef struct { PlatformTimeType times[2]; } PlatformTime;
 
 /// Constant for an invalid handle.
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
-
-typedef struct win_stat {
-  std::string path;
-  std::string filename;
-  int symlink;
-  std::string file_id;
-  LONGLONG inode;
-  int uid;
-  int gid;
-  std::string mode;
-  LONGLONG device;
-  LONGLONG size;
-  int block_size;
-  LONGLONG atime;
-  LONGLONG mtime;
-  LONGLONG ctime;
-  LONGLONG btime;
-  int hard_links;
-  std::string type;
-  std::string attributes;
-  std::string volume_serial;
-
-} WINDOWS_STAT;
 
 /**
  * @brief File access modes for PlatformFile.
