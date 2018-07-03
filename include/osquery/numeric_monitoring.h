@@ -17,10 +17,6 @@
 
 namespace osquery {
 
-enum class TemporaryErrorType {
-  InvalidArgument,
-};
-
 namespace monitoring {
 
 /**
@@ -59,33 +55,27 @@ void record(const std::string& path,
             AggregationType aggr_type = AggregationType::None,
             TimePoint timePoint = Clock::now());
 
-Expected<AggregationType, TemporaryErrorType>
-tryDeserializeAggregationTypeFromString(const std::string& from);
-Expected<std::string, TemporaryErrorType> trySerializeAggregationTypeToString(
-    const AggregationType& from);
-
 } // namespace monitoring
 
-template <typename ToType, typename FromType>
-typename std::enable_if<
-    std::is_same<std::string, ToType>::value &&
-        std::is_same<monitoring::AggregationType,
-                     typename std::remove_cv<typename std::remove_reference<
-                         FromType>::type>::type>::value,
-    Expected<ToType, TemporaryErrorType>>::type
-tryTo(const FromType& from) {
-  return monitoring::trySerializeAggregationTypeToString(from);
-}
+enum class ConversionError {
+  InvalidArgument,
+};
 
-template <typename ToType, typename FromType>
+/**
+ * Conversional generic to convert AggregationType to string
+ */
+template <typename ToType>
+typename std::enable_if<std::is_same<std::string, ToType>::value,
+                        Expected<ToType, ConversionError>>::type
+tryTo(const monitoring::AggregationType& from);
+
+/**
+ * Conversional generic to parse AggregationType from string
+ */
+template <typename ToType>
 typename std::enable_if<
-    std::is_same<monitoring::AggregationType, ToType>::value &&
-        std::is_same<std::string,
-                     typename std::remove_cv<typename std::remove_reference<
-                         FromType>::type>::type>::value,
-    Expected<ToType, TemporaryErrorType>>::type
-tryTo(const FromType& from) {
-  return monitoring::tryDeserializeAggregationTypeFromString(from);
-}
+    std::is_same<monitoring::AggregationType, ToType>::value,
+    Expected<ToType, ConversionError>>::type
+tryTo(const std::string& from);
 
 } // namespace osquery

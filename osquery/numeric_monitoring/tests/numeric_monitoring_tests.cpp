@@ -24,7 +24,7 @@
 namespace osquery {
 
 namespace {
-void testAggregationTypeSerialisation(
+void testAggregationTypeToStringAndBack(
     const monitoring::AggregationType& aggrType,
     const std::string& aggrTypeStrRepr) {
   auto fRet = tryTo<std::string>(aggrType);
@@ -38,10 +38,10 @@ void testAggregationTypeSerialisation(
 } // namespace
 
 GTEST_TEST(NumericMonitoringTests, AggregationTypeToStringAndBack) {
-  testAggregationTypeSerialisation(monitoring::AggregationType::None, "none");
-  testAggregationTypeSerialisation(monitoring::AggregationType::Sum, "sum");
-  testAggregationTypeSerialisation(monitoring::AggregationType::Min, "min");
-  testAggregationTypeSerialisation(monitoring::AggregationType::Max, "max");
+  testAggregationTypeToStringAndBack(monitoring::AggregationType::None, "none");
+  testAggregationTypeToStringAndBack(monitoring::AggregationType::Sum, "sum");
+  testAggregationTypeToStringAndBack(monitoring::AggregationType::Min, "min");
+  testAggregationTypeToStringAndBack(monitoring::AggregationType::Max, "max");
 }
 
 } // namespace osquery

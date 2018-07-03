@@ -29,9 +29,9 @@ FLAG(string,
      "filesystem",
      "Coma separated numeric monitoring plugins names");
 
-namespace monitoring {
-
 namespace {
+
+using monitoring::AggregationType;
 
 template <typename KeyType, typename ValueType>
 inline auto reverseMap(const std::unordered_map<KeyType, ValueType>& straight) {
@@ -59,12 +59,24 @@ const auto& getStringToAggregationTypeTable() {
 
 } // namespace
 
-Expected<AggregationType, TemporaryErrorType>
-tryDeserializeAggregationTypeFromString(const std::string& from) {
+template <>
+Expected<std::string, ConversionError> tryTo<std::string>(
+    const monitoring::AggregationType& from) {
+  auto it = getAggregationTypeToStringTable().find(from);
+  if (it == getAggregationTypeToStringTable().end()) {
+    return createError(ConversionError::InvalidArgument,
+                       "Such `AggregationType` does not exist");
+  }
+  return it->second;
+}
+
+template <>
+Expected<monitoring::AggregationType, ConversionError>
+tryTo<monitoring::AggregationType>(const std::string& from) {
   auto it = getStringToAggregationTypeTable().find(from);
   if (it == getStringToAggregationTypeTable().end()) {
     return createError(
-        TemporaryErrorType::InvalidArgument,
+        ConversionError::InvalidArgument,
         boost::str(
             boost::format(
                 "Wrong string representation of `AggregationType`: \"%s\"") %
@@ -73,15 +85,7 @@ tryDeserializeAggregationTypeFromString(const std::string& from) {
   return it->second;
 }
 
-Expected<std::string, TemporaryErrorType> trySerializeAggregationTypeToString(
-    const AggregationType& from) {
-  auto it = getAggregationTypeToStringTable().find(from);
-  if (it == getAggregationTypeToStringTable().end()) {
-    return createError(TemporaryErrorType::InvalidArgument,
-                       "Such `AggregationType` does not exist");
-  }
-  return it->second;
-}
+namespace monitoring {
 
 void record(const std::string& path,
             ValueType value,
