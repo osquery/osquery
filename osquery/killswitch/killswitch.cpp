@@ -18,7 +18,8 @@ Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key) {
   PluginResponse response;
   auto status = Registry::call("killswitch",
                                {
-                                   {"action", "isEnabled"}, {"key", key},
+                                   {"action", "isEnabled"},
+                                   {"key", key},
                                },
                                response);
   if (!status.ok()) {
@@ -51,8 +52,7 @@ Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key) {
 
 Status Killswitch::refresh() {
   PluginResponse response;
-  auto status = Registry::call(
-      "killswitch", FLAGS_killswitch_plugin, {{"action", "refresh"}}, response);
+  auto status = Registry::call("killswitch", {{"action", "refresh"}}, response);
   return status;
 }
 

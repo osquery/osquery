@@ -34,7 +34,7 @@ Status KillswitchFilesystem::refresh() {
 
   auto doc = JSON::newObject();
   if (!doc.fromString(content) || !doc.doc().IsObject()) {
-    return Status(1, "Error parsing the config JSON");
+    return Status(1, "Error parsing the config JSON. Content : " + content);
   }
   clearCache();
 
