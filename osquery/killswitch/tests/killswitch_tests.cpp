@@ -32,8 +32,7 @@ namespace osquery {
 
 DECLARE_uint32(killswitch_refresh_rate);
 
-class KillswitchTests : public testing::Test {
-};
+class KillswitchTests : public testing::Test {};
 
 TEST_F(KillswitchTests, test_killswitch_plugin) {
   auto& rf = RegistryFactory::get();
