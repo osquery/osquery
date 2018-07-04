@@ -57,7 +57,6 @@ class KillswitchTests : public testing::Test {
   size_t refresh_{0};
 };
 
-
 TEST_F(KillswitchTests, test_killswitch_filesystem_plugin) {
   auto& rf = RegistryFactory::get();
   auto plugin = std::make_shared<KillswitchFilesystem>(kTestDataPath +
