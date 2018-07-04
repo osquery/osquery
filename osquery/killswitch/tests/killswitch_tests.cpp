@@ -23,6 +23,7 @@
 
 #include "osquery/core/json.h"
 #include "osquery/core/process.h"
+#include "osquery/killswitch.h"
 #include "osquery/killswitch/killswitch_plugin.h"
 #include "osquery/killswitch/plugins/killswitch_filesystem.h"
 #include "osquery/tests/test_util.h"
@@ -30,17 +31,12 @@
 namespace osquery {
 
 DECLARE_uint32(killswitch_refresh_rate);
-DECLARE_uint32(x);
-// DECLARE_string(killswitch_config_path);
 
 class KillswitchTests : public testing::Test {
  protected:
   void SetUp() {
     refresh_ = FLAGS_killswitch_refresh_rate;
     FLAGS_killswitch_refresh_rate = 0;
-    refresh_ = FLAGS_x;
-    // config_path_ = FLAGS_killswitch_config_path;
-    // FLAGS_killswitch_config_path = kTestDataPath + "test_killswitch.conf";
 
     createMockFileStructure();
   }
@@ -49,7 +45,6 @@ class KillswitchTests : public testing::Test {
     tearDownMockFileStructure();
 
     FLAGS_killswitch_refresh_rate = refresh_;
-    // FLAGS_killswitch_config_path = config_path_;
   }
 
  protected:
@@ -62,17 +57,91 @@ class KillswitchTests : public testing::Test {
   size_t refresh_{0};
 };
 
-class TestKillswitchPlugin : public KillswitchFilesystem {
- public:
-  std::atomic<int> refresh_count_{0};
+TEST_F(KillswitchTests, test_killswitch_plugin) {
+  auto& rf = RegistryFactory::get();
+  auto plugin = std::make_shared<KillswitchPlugin>();
+  rf.registry("killswitch")->add("test", plugin);
+  // Change the active config plugin.
+  EXPECT_TRUE(rf.setActive("killswitch", "test").ok());
 
- private:
-  virtual Status refresh() override{
-    refresh_count_++;
-    return KillswitchFilesystem::refresh();
+  {
+    PluginResponse response;
+    auto status =
+        Registry::call("killswitch",
+                       {{"action", "isEnabled"}, {"key", "testSwitch"}},
+                       response);
+    EXPECT_FALSE(status.ok());
   }
-};
 
-TEST_F(KillswitchTests, test_plugin) {}
+  {
+    PluginResponse response;
+    auto status =
+        Registry::call("killswitch", {{"key", "testSwitch"}}, response);
+    EXPECT_FALSE(status.ok());
+  }
+
+  {
+    PluginResponse response;
+    auto status =
+        Registry::call("killswitch", {{"action", "testSwitch"}}, response);
+    EXPECT_FALSE(status.ok());
+  }
+
+  EXPECT_TRUE(plugin->addCacheEntry("testSwitch", true).ok());
+
+  {
+    bool value = false;
+    EXPECT_TRUE(plugin->isEnabled("testSwitch", value).ok());
+    EXPECT_TRUE(value);
+
+    PluginResponse response;
+    auto status =
+        Registry::call("killswitch",
+                       {{"action", "isEnabled"}, {"key", "testSwitch"}},
+                       response);
+    EXPECT_TRUE(status.ok());
+    EXPECT_EQ(response[0]["isEnabled"], std::string("true"));
+    auto result = Killswitch::get().isTestSwitchOn();
+    EXPECT_TRUE(result);
+    EXPECT_TRUE(*result);
+  }
+
+  EXPECT_TRUE(plugin->addCacheEntry("testSwitch", false).ok());
+
+  {
+    bool value = true;
+    EXPECT_TRUE(plugin->isEnabled("testSwitch", value).ok());
+    EXPECT_FALSE(value);
+
+    PluginResponse response;
+    auto status =
+        Registry::call("killswitch",
+                       {{"action", "isEnabled"}, {"key", "testSwitch"}},
+                       response);
+    EXPECT_TRUE(status.ok());
+    EXPECT_EQ(response[0]["isEnabled"], std::string("false"));
+    auto result = Killswitch::get().isTestSwitchOn();
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(*result);
+  }
+
+  plugin->clearCache();
+
+  {
+    PluginResponse response;
+    auto status =
+        Registry::call("killswitch",
+                       {{"action", "isEnabled"}, {"key", "testSwitch"}},
+                       response);
+    EXPECT_FALSE(status.ok());
+    EXPECT_EQ(response.size(), 0);
+    auto result = Killswitch::get().isTestSwitchOn();
+    EXPECT_FALSE(result);
+  }
+
+  EXPECT_FALSE(Killswitch::get().refresh().ok());
+
+  rf.registry("killswitch")->remove("test");
+}
 
 } // namespace osquery

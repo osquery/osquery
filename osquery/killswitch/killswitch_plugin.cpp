@@ -4,35 +4,11 @@
 #include <osquery/flags.h>
 #include <osquery/killswitch.h>
 #include <osquery/killswitch/killswitch_plugin.h>
-#include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 
 namespace osquery {
 
 CREATE_REGISTRY(KillswitchPlugin, "killswitch");
-
-FLAG(uint32,
-     killswitch_refresh_rate,
-     10,
-     "Refresh rate of killswitch in seconds");
-
-class KillswitchRefresher : public InternalRunnable {
- public:
-  KillswitchRefresher(size_t update_interval)
-      : InternalRunnable("KillswitchRefreshRunner"),
-        update_interval_(update_interval) {}
-  /// A simple wait/interruptible lock.
-  void start() override {
-    while (!interrupted()) {
-      osquery::Killswitch::get().refresh();
-      pauseMilli(
-          std::chrono::milliseconds(std::chrono::seconds(update_interval_)));
-    }
-  }
-
- private:
-  const size_t update_interval_;
-};
 
 Status KillswitchPlugin::call(const PluginRequest& request,
                               PluginResponse& response) {
@@ -40,10 +16,7 @@ Status KillswitchPlugin::call(const PluginRequest& request,
   if (action == request.end()) {
     return Status(1, "Config plugins require an action");
   }
-
-  if (action->second == "refresh") {
-    return refresh();
-  } else if (action->second == "isEnabled") {
+  if (action->second == "isEnabled") {
     auto key = request.find("key");
     if (key == request.end()) {
       return Status(1, "isEnabled action requires key");
@@ -51,27 +24,19 @@ Status KillswitchPlugin::call(const PluginRequest& request,
 
     bool enabled = 0;
     auto status = isEnabled(key->second, enabled);
-    response.push_back({{"isEnabled", enabled ? "true" : "false"}});
+    if (status.ok()) {
+      response.push_back({{"isEnabled", enabled ? "true" : "false"}});
+    }
     return status;
   }
   return Status(1, "Could not find appropirate action mapping");
 }
 
-Status KillswitchPlugin::setUp() {
-  if (FLAGS_killswitch_refresh_rate > 0) {
-    Dispatcher::addService(
-        std::make_shared<KillswitchRefresher>(FLAGS_killswitch_refresh_rate));
-  }
-  return Status::success();
-}
-
 void KillswitchPlugin::clearCache() {
   killswitchMap.clear();
 }
+
 Status KillswitchPlugin::addCacheEntry(const std::string& key, bool value) {
-  if (killswitchMap.find(key) == killswitchMap.end()) {
-    return Status::failure(1, "Key already exists");
-  }
   killswitchMap[key] = value;
   return Status();
 }

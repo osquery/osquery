@@ -14,8 +14,6 @@
 #include <string>
 
 #include <osquery/core.h>
-#include <osquery/dispatcher.h>
-#include <osquery/expected.h>
 #include <osquery/plugin.h>
 #include <osquery/query.h>
 
@@ -25,20 +23,18 @@ namespace osquery {
  */
 class KillswitchPlugin : public Plugin {
  public:
-  Status setUp() override;
-
   /// Main entrypoint for killswitch plugin requests
-  Status call(const PluginRequest& request, PluginResponse& response) override;
+  virtual Status call(const PluginRequest& request,
+                      PluginResponse& response) override;
 
  protected:
   void clearCache();
   Status addCacheEntry(const std::string& key, bool value);
-  virtual Status refresh() = 0;
   Status isEnabled(const std::string& key, bool& isEnabled);
 
  private:
   std::map<std::string, bool> killswitchMap;
 
-  friend class TestKillswitchPlugin;
+  FRIEND_TEST(KillswitchTests, test_killswitch_plugin);
 };
 } // namespace osquery

@@ -9,19 +9,27 @@
  */
 
 #pragma once
-#include <string>
 
-#include <osquery/core.h>
+#include <boost/core/noncopyable.hpp>
 #include <osquery/expected.h>
-#include <osquery/plugin.h>
-#include <osquery/query.h>
+#include <osquery/status.h>
+#include <string>
 
 namespace osquery {
 
-enum class SwitchOnError { CallFailed = 1, };
+enum class SwitchOnError {
+  CallFailed = 1,
+  IncorrectResponseFormat = 2,
+  IncorrectValue = 3
+};
 
-class Killswitch {
+class Killswitch : private boost::noncopyable {
+ private:
+  Killswitch();
+
  public:
+  ~Killswitch();
+
   static Killswitch& get() {
     static Killswitch killswitch;
     return killswitch;
@@ -29,8 +37,8 @@ class Killswitch {
 
   Status refresh();
 
-
   Expected<bool, SwitchOnError> isTestSwitchOn();
+  Expected<bool, SwitchOnError> isTest2SwitchOn();
 
  private:
   Expected<bool, SwitchOnError> isSwitchOn(const std::string& key);
