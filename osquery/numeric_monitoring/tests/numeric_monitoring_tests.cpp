@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <limits>
+
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
@@ -27,11 +29,10 @@ namespace {
 void testAggregationTypeToStringAndBack(
     const monitoring::AggregationType& aggrType,
     const std::string& aggrTypeStrRepr) {
-  auto fRet = tryTo<std::string>(aggrType);
-  EXPECT_FALSE(fRet.isError());
-  EXPECT_EQ(fRet.get(), aggrTypeStrRepr);
+  auto str = to<std::string>(aggrType);
+  EXPECT_EQ(str, aggrTypeStrRepr);
 
-  auto bRet = tryTo<monitoring::AggregationType>(aggrTypeStrRepr);
+  auto bRet = tryTo<monitoring::AggregationType>(str);
   EXPECT_FALSE(bRet.isError());
   EXPECT_EQ(bRet.get(), aggrType);
 }
@@ -42,6 +43,16 @@ GTEST_TEST(NumericMonitoringTests, AggregationTypeToStringAndBack) {
   testAggregationTypeToStringAndBack(monitoring::AggregationType::Sum, "sum");
   testAggregationTypeToStringAndBack(monitoring::AggregationType::Min, "min");
   testAggregationTypeToStringAndBack(monitoring::AggregationType::Max, "max");
+}
+
+GTEST_TEST(NumericMonitoringTests, AggregationTypeToStringRecall) {
+  // let's make sure we have string representation for every AggregationType
+  for (int i = 0;
+       i < static_cast<int>(monitoring::AggregationType::InvalidTypeUpperLimit);
+       ++i) {
+    auto e = static_cast<monitoring::AggregationType>(i);
+    EXPECT_FALSE(to<std::string>(e).empty());
+  }
 }
 
 } // namespace osquery

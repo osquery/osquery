@@ -60,12 +60,13 @@ const auto& getStringToAggregationTypeTable() {
 } // namespace
 
 template <>
-Expected<std::string, ConversionError> tryTo<std::string>(
-    const monitoring::AggregationType& from) {
+std::string to<std::string>(const monitoring::AggregationType& from) {
   auto it = getAggregationTypeToStringTable().find(from);
   if (it == getAggregationTypeToStringTable().end()) {
-    return createError(ConversionError::InvalidArgument,
-                       "Such `AggregationType` does not exist");
+    LOG(ERROR) << "Unknown AggregationType "
+               << static_cast<std::underlying_type<AggregationType>::type>(from)
+               << " could not be converted to the string";
+    return "";
   }
   return it->second;
 }
@@ -94,11 +95,6 @@ void record(const std::string& path,
   if (!FLAGS_enable_numeric_monitoring) {
     return;
   }
-  auto aggrTypeStringRepr = std::string{};
-  {
-    auto repr = tryTo<std::string>(aggr_type);
-    aggrTypeStringRepr = repr ? repr.take() : "";
-  }
   auto status = Registry::call(
       registryName(),
       FLAGS_numeric_monitoring_plugins,
@@ -107,7 +103,7 @@ void record(const std::string& path,
           {recordKeys().value, std::to_string(value)},
           {recordKeys().timestamp,
            std::to_string(time_point.time_since_epoch().count())},
-          {recordKeys().aggregation, aggrTypeStringRepr},
+          {recordKeys().aggregation, to<std::string>(aggr_type)},
       });
   if (!status.ok()) {
     LOG(ERROR) << "Failed to send numeric monitoring record: " << status.what();

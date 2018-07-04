@@ -33,6 +33,7 @@ enum class AggregationType : unsigned {
   Sum,
   Min,
   Max,
+  InvalidTypeUpperLimit, // not existing AggregationType, upper limit definition
 };
 
 /**
@@ -64,9 +65,8 @@ void record(const std::string& path,
  * Generic to convert AggregationType to string
  */
 template <typename ToType>
-typename std::enable_if<std::is_same<std::string, ToType>::value,
-                        Expected<ToType, ConversionError>>::type
-tryTo(const monitoring::AggregationType& from);
+typename std::enable_if<std::is_same<std::string, ToType>::value, ToType>::type
+to(const monitoring::AggregationType& from);
 
 /**
  * Generic to parse AggregationType from string
