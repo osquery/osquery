@@ -9,8 +9,13 @@
 target_sources(libosquery
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/killswitch.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/killswitch_plugin.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/killswitch_plugin.h"
 )
 ADD_OSQUERY_LIBRARY_ADDITIONAL(
   osquery_killswitch_plugin
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/killswitch_test.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/plugins/killswitch_filesystem.cpp"
+)
+ADD_OSQUERY_TEST_CORE(
+  "${CMAKE_CURRENT_LIST_DIR}/tests/killswitch_tests.cpp"
 )

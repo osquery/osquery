@@ -7,52 +7,55 @@
 
 namespace osquery {
 
-FLAG(int32,
-     killswitch_refresh_rate,
-     10,
-     "Refresh rate of killswitch in seconds");
 FLAG(bool, enable_killswitch, true, "Enable killswitch plugin");
-FLAG(string, killswitch_plugin, "killswitch_test", "Killswitch plugin name.");
+FLAG(string,
+     killswitch_plugin,
+     "killswitch_filesystem",
+     "Killswitch plugin name.");
 
-namespace killswitch {
-Status isTestSwitchOn(bool& isEnabled) {
-  if (!FLAGS_enable_killswitch) {
-    return Status(1);
-  }
-
+Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key, bool& isEnabled) {
   PluginResponse response;
-  auto status =
-      Registry::call("killswitch",
-                     FLAGS_killswitch_plugin,
-                     {{"action", "isEnabled"}, {"key", "testSwitch"},},
-                      response);
-
-}
-} // namespace killswitch
-
-CREATE_REGISTRY(KillswitchPlugin, "killswitch");
-
-Status KillswitchPlugin::call(const PluginRequest& request,
-                              PluginResponse& response) {
-  auto action = request.find("action");
-  if (action == request.end()) {
-    return Status(1, "Config plugins require an action");
-  }
-
-  if (action->second == "refresh") {
-    return refresh();
-  } else if (action->second == "isEnabled") {
-    auto key = request.find("key");
-    if (key == request.end()) {
-      return Status(1, "isEnabled action requires key");
-    }
-
-    bool enabled = 0;
-    auto status = isEnabled(key->second, enabled);
-    response.push_back({{"isEnabled", enabled ? "true" : "false"}});
+  auto status = Registry::call("killswitch",
+                               FLAGS_killswitch_plugin,
+                               {
+                                   {"action", "isEnabled"}, {"key", key},
+                               },
+                               response);
+  if (!status.ok()) {
     return status;
   }
-  return Status(1, "Could not find appropirate action mapping");
+  if (response.size() != 1) {
+    return Status::failure("Response size should be 1 but is " +
+                           std::to_string(response.size()));
+  }
+  const auto& responseMap = response[0];
+  const auto& isEnabledItem = responseMap.find("isEnabled");
+  if (isEnabledItem == responseMap.end()) {
+    return Status::failure(
+        "isEnabled key missing in reponse of the action: isEnabled");
+  }
+
+  const auto& isEnabledValue = isEnabledItem->second;
+  if (isEnabledValue == "True") {
+    isEnabled = true;
+    return Status::success();
+  } else if (isEnabledValue == "False") {
+    isEnabled = false;
+    return Status::success();
+  } else {
+    return Status::failure("Unknown isEnabled value " + isEnabledValue);
+  }
+}
+
+Status Killswitch::refresh() {
+  PluginResponse response;
+  auto status = Registry::call(
+      "killswitch", FLAGS_killswitch_plugin, {{"action", "refresh"}}, response);
+  return status;
+}
+
+Expected<bool, SwitchOnError> Killswitch::isTestSwitchOn() {
+  return isSwitchOn("testSwitch");
 }
 
 } // namespace osquery
