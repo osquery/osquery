@@ -18,4 +18,5 @@ ADD_OSQUERY_LIBRARY_ADDITIONAL(
 )
 ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/killswitch_tests.cpp"
+
 )

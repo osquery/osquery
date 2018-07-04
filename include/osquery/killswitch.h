@@ -9,11 +9,17 @@
  */
 
 #pragma once
+<<<<<<< HEAD
 
 #include <string>
 
 #include <osquery/core.h>
 #include <osquery/expected.h>
+=======
+#include <string>
+
+#include <osquery/core.h>
+>>>>>>> e33f645c894b057f6380f4b6109b6e81fac00ae9
 #include <osquery/plugin.h>
 #include <osquery/query.h>
 
@@ -36,4 +42,5 @@ class Killswitch {
  private:
   Expected<bool, SwitchOnError> isSwitchOn(const std::string& key);
 };
+
 } // namespace osquery

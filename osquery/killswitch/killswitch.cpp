@@ -25,6 +25,7 @@ Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key, boo
     return status;
   }
   if (response.size() != 1) {
+    return Error<>
     return Status::failure("Response size should be 1 but is " +
                            std::to_string(response.size()));
   }
