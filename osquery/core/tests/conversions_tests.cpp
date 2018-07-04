@@ -8,6 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <string>
+#include <cstdint>
+
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -324,4 +327,149 @@ TEST_F(ConversionsTests, tryTo_same_type) {
   auto ret2 = tryTo<First>(const_test_lvalue);
   ASSERT_FALSE(ret2.isError());
 }
+
+template<
+  typename ValueType
+  , typename StrType
+>
+void testTryToForRvalue(ValueType value, const StrType& str) {
+  auto ret = tryTo<ValueType>(StrType{str});
+  ASSERT_FALSE(ret.isError());
+  ASSERT_EQ(ret.get(), value);
+}
+
+template<
+  typename ValueType
+  , typename StrType
+>
+void testTryToForLValue(ValueType value, StrType str) {
+  auto ret = tryTo<ValueType>(str);
+  ASSERT_FALSE(ret.isError());
+  ASSERT_EQ(ret.get(), value);
+}
+
+template<
+  typename ValueType
+  , typename StrType
+>
+void testTryToForConstLValue(ValueType value, const StrType str) {
+  auto ret = tryTo<ValueType>(str);
+  ASSERT_FALSE(ret.isError());
+  ASSERT_EQ(ret.get(), value);
+}
+
+template<
+  typename ValueType
+  , typename StrType
+>
+void testTryToForString(ValueType value, const StrType str) {
+  testTryToForRvalue(value, str);
+  testTryToForLValue(value, str);
+  testTryToForConstLValue(value, str);
+}
+
+template<
+  typename ValueType
+>
+void testTryToForValue(ValueType value) {
+  testTryToForString(value, std::to_string(value));
+  testTryToForString(value, std::to_wstring(value));
+}
+
+template<
+  typename IntType
+>
+void testTryToForInt() {
+  testTryToForValue<IntType>(119);
+  testTryToForValue<IntType>(std::numeric_limits<IntType>::max());
+  testTryToForValue<IntType>(std::numeric_limits<IntType>::min());
+  testTryToForValue<IntType>(std::numeric_limits<IntType>::lowest());
+  {
+    auto ret = tryTo<IntType>(std::string{"0xfb"}, 16);
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), 251);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"FB"}, 16);
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), 251);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"0xFb"}, 16);
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), 251);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"E1bC2"}, 16);
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), 924610);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"10101"}, 2);
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), 21);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"035"}, 8);
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), 29);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"47"}, 8);
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), 39);
+  }
+}
+
+TEST_F(ConversionsTests, try_i_to_string_and_back) {
+  testTryToForInt<int>();
+  testTryToForValue<int>(-126);
+}
+
+TEST_F(ConversionsTests, try_l_to_string_and_back) {
+  testTryToForInt<long>();
+  testTryToForValue<long>(-126);
+}
+
+TEST_F(ConversionsTests, try_ll_to_string_and_back) {
+  testTryToForInt<long long>();
+  testTryToForValue<long long>(-126);
+}
+
+TEST_F(ConversionsTests, try_i32_to_string_and_back) {
+  testTryToForInt<std::int32_t>();
+}
+
+TEST_F(ConversionsTests, try_i64_to_string_and_back) {
+  testTryToForInt<std::int64_t>();
+}
+
+TEST_F(ConversionsTests, try_imax_to_string_and_back) {
+  testTryToForInt<std::intmax_t>();
+}
+
+TEST_F(ConversionsTests, try_u_to_string_and_back) {
+  testTryToForInt<unsigned>();
+}
+
+TEST_F(ConversionsTests, try_ul_to_string_and_back) {
+  testTryToForInt<unsigned long>();
+}
+
+TEST_F(ConversionsTests, try_ull_to_string_and_back) {
+  testTryToForInt<unsigned long long>();
+}
+
+TEST_F(ConversionsTests, try_u32_to_string_and_back) {
+  testTryToForInt<std::uint32_t>();
+}
+
+TEST_F(ConversionsTests, try_u64_to_string_and_back) {
+  testTryToForInt<std::uint64_t>();
+}
+
+TEST_F(ConversionsTests, try_umax_to_string_and_back) {
+  testTryToForInt<std::uintmax_t>();
+}
+
 } // namespace osquery

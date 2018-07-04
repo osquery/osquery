@@ -177,22 +177,6 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
 }
 
 /// Safely convert a string representation of an integer base.
-inline Status safeStrtoi(const std::string& rep, int base, int& out) {
-  try {
-    out = std::stoi(rep, nullptr, base);
-  } catch (const std::invalid_argument& ia) {
-    return Status(
-        1, std::string("If no conversion could be performed. ") + ia.what());
-  } catch (const std::out_of_range& oor) {
-    return Status(1,
-                  std::string("Value read is out of the range of representable "
-                              "values by an int. ") +
-                      oor.what());
-  }
-  return Status(0);
-}
-
-/// Safely convert a string representation of an integer base.
 inline Status safeStrtoull(const std::string& rep,
                            size_t base,
                            unsigned long long& out) {
@@ -321,5 +305,103 @@ inline typename std::enable_if<
     Expected<ToType, ConversionError>>::type
 tryTo(FromType&& from) {
   return std::forward<FromType>(from);
+}
+
+/**
+ * tryTo [w]string to integer implementation
+ * int
+ * long int
+ * long long int
+ * unsigned int
+ * unsigned long int
+ * unsigned long long int
+ * Do not use throwingStringToIntImpl, it throws exception in case of error
+ */
+template <typename ToType, typename FromType>
+inline
+    typename std::enable_if<std::is_same<ToType, int>::value &&
+                                (std::is_same<FromType, std::string>::value ||
+                                 std::is_same<FromType, std::wstring>::value),
+                            ToType>::type
+    throwingStringToIntImpl(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stoi(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline
+    typename std::enable_if<std::is_same<ToType, long int>::value &&
+                                (std::is_same<FromType, std::string>::value ||
+                                 std::is_same<FromType, std::wstring>::value),
+                            ToType>::type
+    throwingStringToIntImpl(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stol(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline
+    typename std::enable_if<std::is_same<ToType, long long int>::value &&
+                                (std::is_same<FromType, std::string>::value ||
+                                 std::is_same<FromType, std::wstring>::value),
+                            ToType>::type
+    throwingStringToIntImpl(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stoll(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline
+    typename std::enable_if<std::is_same<ToType, unsigned int>::value &&
+                                (std::is_same<FromType, std::string>::value ||
+                                 std::is_same<FromType, std::wstring>::value),
+                            ToType>::type
+    throwingStringToIntImpl(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stoul(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline
+    typename std::enable_if<std::is_same<ToType, unsigned long int>::value &&
+                                (std::is_same<FromType, std::string>::value ||
+                                 std::is_same<FromType, std::wstring>::value),
+                            ToType>::type
+    throwingStringToIntImpl(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stoul(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline typename std::enable_if<
+    std::is_same<ToType, unsigned long long int>::value &&
+        (std::is_same<FromType, std::string>::value ||
+         std::is_same<FromType, std::wstring>::value),
+    ToType>::type
+throwingStringToIntImpl(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stoull(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline
+    typename std::enable_if<std::is_integral<ToType>::value &&
+                                !std::is_same<ToType, bool>::value &&
+                                (std::is_same<FromType, std::string>::value ||
+                                 std::is_same<FromType, std::wstring>::value),
+                            Expected<ToType, ConversionError>>::type
+    tryTo(const FromType& from, const int base = 10) noexcept {
+  try {
+    return throwingStringToIntImpl<ToType>(from, base);
+  } catch (const std::invalid_argument& ia) {
+    return createError(ConversionError::InvalidArgument,
+                       "If no conversion could be performed. ")
+           << ia.what();
+  } catch (const std::out_of_range& oor) {
+    return createError(ConversionError::OutOfRange,
+                       "Value read is out of the range of representable values "
+                       "by an int. ")
+           << oor.what();
+  }
 }
 }
