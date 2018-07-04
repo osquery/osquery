@@ -41,6 +41,7 @@ class Thrift < AbstractOsqueryFormula
       "--without-rs",
       "--with-python",
       "--with-cpp",
+      "--with-libevent=no",
       "--enable-tutorial=no",
       "--with-openssl=#{Formula["osquery/osquery-local/openssl"].prefix}",
       "--with-boost=#{Formula["osquery/osquery-local/boost"].prefix}"
