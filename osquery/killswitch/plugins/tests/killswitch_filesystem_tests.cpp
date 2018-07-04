@@ -54,7 +54,7 @@ class KillswitchTests : public testing::Test {
 
  private:
   std::string config_path_;
-  size_t refresh_{0};
+  google::uint32 refresh_{0};
 };
 
 TEST_F(KillswitchTests, test_killswitch_filesystem_plugin) {

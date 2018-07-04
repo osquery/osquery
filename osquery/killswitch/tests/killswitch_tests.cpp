@@ -33,28 +33,6 @@ namespace osquery {
 DECLARE_uint32(killswitch_refresh_rate);
 
 class KillswitchTests : public testing::Test {
- protected:
-  void SetUp() {
-    refresh_ = FLAGS_killswitch_refresh_rate;
-    FLAGS_killswitch_refresh_rate = 0;
-
-    createMockFileStructure();
-  }
-
-  void TearDown() {
-    tearDownMockFileStructure();
-
-    FLAGS_killswitch_refresh_rate = refresh_;
-  }
-
- protected:
-  Killswitch& get() {
-    return Killswitch::get();
-  }
-
- private:
-  std::string config_path_;
-  size_t refresh_{0};
 };
 
 TEST_F(KillswitchTests, test_killswitch_plugin) {
