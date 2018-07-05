@@ -28,12 +28,13 @@ using TimePoint = Clock::time_point;
 
 using ValueType = long long int;
 
-enum class AggregationType : unsigned {
+enum class PreAggregationType {
   None,
   Sum,
   Min,
   Max,
-  InvalidTypeUpperLimit, // not existing AggregationType, upper limit definition
+  // not existing PreAggregationType, upper limit definition
+  InvalidTypeUpperLimit,
 };
 
 /**
@@ -42,8 +43,9 @@ enum class AggregationType : unsigned {
  * @param path A unique key in monitoring system. If you need to add some common
  * prefix for all osquery points do it in the plugin code.
  * @param value A numeric value of new point.
- * @param aggr_type An aggregation type for this particular path @see
- * AggregationType. It allows some plugin pre-aggregate points before send it.
+ * @param pre_aggr_type An preliminary aggregation type for this particular path
+ * @see PreAggregationType. It allows some numeric monitoring plugins
+ * pre-aggregate points before send it.
  * @param time_point A time of new point, in vast majority of cases it is just
  * a now time (default time).
  *
@@ -51,29 +53,29 @@ enum class AggregationType : unsigned {
  * @code{.cpp}
  * monitoring::record("watched.parameter.path",
  *                    10.42,
- *                    monitoring::AggregationType::Sum);
+ *                    monitoring::PreAggregationType::Sum);
  * @endcode
  */
 void record(const std::string& path,
             ValueType value,
-            AggregationType aggr_type = AggregationType::None,
+            PreAggregationType pre_aggregation = PreAggregationType::None,
             TimePoint time_point = Clock::now());
 
 } // namespace monitoring
 
 /**
- * Generic to convert AggregationType to string
+ * Generic to convert PreAggregationType to string
  */
 template <typename ToType>
 typename std::enable_if<std::is_same<std::string, ToType>::value, ToType>::type
-to(const monitoring::AggregationType& from);
+to(const monitoring::PreAggregationType& from);
 
 /**
- * Generic to parse AggregationType from string
+ * Generic to parse PreAggregationType from string
  */
 template <typename ToType>
 typename std::enable_if<
-    std::is_same<monitoring::AggregationType, ToType>::value,
+    std::is_same<monitoring::PreAggregationType, ToType>::value,
     Expected<ToType, ConversionError>>::type
 tryTo(const std::string& from);
 

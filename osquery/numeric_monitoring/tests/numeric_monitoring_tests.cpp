@@ -26,31 +26,31 @@
 namespace osquery {
 
 namespace {
-void testAggregationTypeToStringAndBack(
-    const monitoring::AggregationType& aggrType,
-    const std::string& aggrTypeStrRepr) {
+void testAggrTypeToStringAndBack(const monitoring::PreAggregationType& aggrType,
+                                 const std::string& aggrTypeStrRepr) {
   auto str = to<std::string>(aggrType);
   EXPECT_EQ(str, aggrTypeStrRepr);
 
-  auto bRet = tryTo<monitoring::AggregationType>(str);
+  auto bRet = tryTo<monitoring::PreAggregationType>(str);
   EXPECT_FALSE(bRet.isError());
   EXPECT_EQ(bRet.get(), aggrType);
 }
 } // namespace
 
-GTEST_TEST(NumericMonitoringTests, AggregationTypeToStringAndBack) {
-  testAggregationTypeToStringAndBack(monitoring::AggregationType::None, "none");
-  testAggregationTypeToStringAndBack(monitoring::AggregationType::Sum, "sum");
-  testAggregationTypeToStringAndBack(monitoring::AggregationType::Min, "min");
-  testAggregationTypeToStringAndBack(monitoring::AggregationType::Max, "max");
+GTEST_TEST(NumericMonitoringTests, PreAggregationTypeToStringAndBack) {
+  testAggrTypeToStringAndBack(monitoring::PreAggregationType::None, "none");
+  testAggrTypeToStringAndBack(monitoring::PreAggregationType::Sum, "sum");
+  testAggrTypeToStringAndBack(monitoring::PreAggregationType::Min, "min");
+  testAggrTypeToStringAndBack(monitoring::PreAggregationType::Max, "max");
 }
 
-GTEST_TEST(NumericMonitoringTests, AggregationTypeToStringRecall) {
-  // let's make sure we have string representation for every AggregationType
-  for (int i = 0;
-       i < static_cast<int>(monitoring::AggregationType::InvalidTypeUpperLimit);
-       ++i) {
-    auto e = static_cast<monitoring::AggregationType>(i);
+GTEST_TEST(NumericMonitoringTests, PreAggregationTypeToStringRecall) {
+  // let's make sure we have string representation for every PreAggregationType
+  using UnderType = std::underlying_type<monitoring::PreAggregationType>::type;
+  const auto upper_limit = static_cast<UnderType>(
+      monitoring::PreAggregationType::InvalidTypeUpperLimit);
+  for (auto i = UnderType{}; i < upper_limit; ++i) {
+    auto e = static_cast<monitoring::PreAggregationType>(i);
     EXPECT_FALSE(to<std::string>(e).empty());
   }
 }

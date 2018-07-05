@@ -31,7 +31,7 @@ FLAG(string,
 
 namespace {
 
-using monitoring::AggregationType;
+using monitoring::PreAggregationType;
 
 template <typename KeyType, typename ValueType>
 inline auto reverseMap(const std::unordered_map<KeyType, ValueType>& straight) {
@@ -43,11 +43,11 @@ inline auto reverseMap(const std::unordered_map<KeyType, ValueType>& straight) {
 }
 
 const auto& getAggregationTypeToStringTable() {
-  const auto static table = std::unordered_map<AggregationType, std::string>{
-      {AggregationType::None, "none"},
-      {AggregationType::Sum, "sum"},
-      {AggregationType::Min, "min"},
-      {AggregationType::Max, "max"},
+  const auto static table = std::unordered_map<PreAggregationType, std::string>{
+      {PreAggregationType::None, "none"},
+      {PreAggregationType::Sum, "sum"},
+      {PreAggregationType::Min, "min"},
+      {PreAggregationType::Max, "max"},
   };
   return table;
 }
@@ -60,11 +60,12 @@ const auto& getStringToAggregationTypeTable() {
 } // namespace
 
 template <>
-std::string to<std::string>(const monitoring::AggregationType& from) {
+std::string to<std::string>(const monitoring::PreAggregationType& from) {
   auto it = getAggregationTypeToStringTable().find(from);
   if (it == getAggregationTypeToStringTable().end()) {
-    LOG(ERROR) << "Unknown AggregationType "
-               << static_cast<std::underlying_type<AggregationType>::type>(from)
+    LOG(ERROR) << "Unknown PreAggregationType "
+               << static_cast<std::underlying_type<PreAggregationType>::type>(
+                      from)
                << " could not be converted to the string";
     return "";
   }
@@ -72,15 +73,15 @@ std::string to<std::string>(const monitoring::AggregationType& from) {
 }
 
 template <>
-Expected<monitoring::AggregationType, ConversionError>
-tryTo<monitoring::AggregationType>(const std::string& from) {
+Expected<monitoring::PreAggregationType, ConversionError>
+tryTo<monitoring::PreAggregationType>(const std::string& from) {
   auto it = getStringToAggregationTypeTable().find(from);
   if (it == getStringToAggregationTypeTable().end()) {
     return createError(
         ConversionError::InvalidArgument,
         boost::str(
             boost::format(
-                "Wrong string representation of `AggregationType`: \"%s\"") %
+                "Wrong string representation of `PreAggregationType`: \"%s\"") %
             from));
   }
   return it->second;
@@ -90,7 +91,7 @@ namespace monitoring {
 
 void record(const std::string& path,
             ValueType value,
-            AggregationType aggr_type,
+            PreAggregationType pre_aggregation,
             TimePoint time_point) {
   if (!FLAGS_enable_numeric_monitoring) {
     return;
@@ -103,7 +104,7 @@ void record(const std::string& path,
           {recordKeys().value, std::to_string(value)},
           {recordKeys().timestamp,
            std::to_string(time_point.time_since_epoch().count())},
-          {recordKeys().aggregation, to<std::string>(aggr_type)},
+          {recordKeys().pre_aggregation, to<std::string>(pre_aggregation)},
       });
   if (!status.ok()) {
     LOG(ERROR) << "Failed to send numeric monitoring record: " << status.what();

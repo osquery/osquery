@@ -30,7 +30,7 @@ RecordKeys createRecordKeys() {
   keys.path = "path";
   keys.value = "value";
   keys.timestamp = "timestamp";
-  keys.aggregation = "aggregation";
+  keys.pre_aggregation = "pre_aggregation";
   return keys;
 };
 

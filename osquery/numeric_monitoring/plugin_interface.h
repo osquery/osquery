@@ -28,7 +28,7 @@ struct RecordKeys {
   std::string path;
   std::string value;
   std::string timestamp;
-  std::string aggregation;
+  std::string pre_aggregation;
 };
 
 const RecordKeys& recordKeys();
