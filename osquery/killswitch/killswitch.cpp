@@ -27,14 +27,14 @@ Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key) {
   }
 
   if (response.size() != 1) {
-    return Error<SwitchOnError>(
+    return createError(
         SwitchOnError::IncorrectResponseFormat,
-        "Response size should be 1 but is " + std::to_string(response.size()));
+        "Response size should be 1 but is ") << std::to_string(response.size()));
   }
   const auto& responseMap = response[0];
   const auto& isEnabledItem = responseMap.find("isEnabled");
   if (isEnabledItem == responseMap.end()) {
-    return Error<SwitchOnError>(
+    return createError(
         SwitchOnError::IncorrectResponseFormat,
         "isEnabled key missing in reponse of the action: isEnabled");
   }

@@ -9,10 +9,10 @@ class KillswitchFilesystem : public KillswitchJSON {
   KillswitchFilesystem(const std::string& conf_path);
 
  protected:
-  virtual Status getJSON(std::string& content) override;
+  Status getJSON(std::string& content) override;
 
  private:
-  std::string conf_path_;
+  const std::string conf_path_;
 
   FRIEND_TEST(KillswitchFilesystemTests, test_killswitch_filesystem_plugin);
 };

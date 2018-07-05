@@ -38,13 +38,13 @@ void KillswitchPlugin::clearCache() {
 
 Status KillswitchPlugin::addCacheEntry(const std::string& key, bool value) {
   killswitchMap[key] = value;
-  return Status();
+  return Status::success();
 }
 
 Status KillswitchPlugin::isEnabled(const std::string& key, bool& isEnabled) {
   if (killswitchMap.count(key)) {
     isEnabled = killswitchMap[key];
-    return Status();
+    return Status::success();
   } else {
     isEnabled = false;
     return Status(1, "Could not find key " + key);

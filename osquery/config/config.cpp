@@ -998,7 +998,7 @@ Status ConfigPlugin::call(const PluginRequest& request,
                           PluginResponse& response) {
   auto action = request.find("action");
   if (action == request.end()) {
-    return Status(1, "Config plugins require an action");
+    return Status::failure("Config plugins require an action");
   }
 
   if (action->second == "genConfig") {

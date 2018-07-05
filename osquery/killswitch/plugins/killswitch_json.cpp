@@ -24,7 +24,7 @@ Status KillswitchJSON::refresh() {
     if (!m.name.IsString()) {
       return Status::failure(1, "Killswitch config key was not string");
     }
-    std::string key = m.name.GetString();
+    auto key = m.name.GetString();
     if (!m.value.IsBool()) {
       return Status::failure(
           1, "At Killswitch config key: " + key + "value was not bool");
@@ -36,7 +36,7 @@ Status KillswitchJSON::refresh() {
     }
   }
 
-  return Status();
+  return Status::success();
 }
 
 } // namespace osquery

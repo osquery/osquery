@@ -28,10 +28,10 @@ Status KillswitchFilesystem::getJSON(std::string& content) {
   boost::system::error_code ec;
   if (!fs::is_regular_file(conf_path_, ec) || ec.value() != errc::success ||
       !readFile(conf_path_, content).ok()) {
-    return Status(1, "config file does not exist: " + conf_path_);
+    return Status::failure("config file does not exist: " + conf_path_);
   }
 
-  return Status();
+  return Status::success();
 }
 
 REGISTER(KillswitchFilesystem, "killswitch", "killswitch_filesystem");

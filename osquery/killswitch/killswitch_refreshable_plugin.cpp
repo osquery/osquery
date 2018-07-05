@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include <osquery/dispatcher.h>
 #include <osquery/flags.h>
 #include <osquery/killswitch.h>
@@ -14,18 +16,18 @@ class KillswitchRefresher : public InternalRunnable {
  public:
   KillswitchRefresher(size_t update_interval)
       : InternalRunnable("KillswitchRefreshRunner"),
-        update_interval_(update_interval) {}
+        update_interval_(std::chrono::seconds(update_interval)) {}
   /// A simple wait/interruptible lock.
   void start() override {
     while (!interrupted()) {
       osquery::Killswitch::get().refresh();
       pauseMilli(
-          std::chrono::milliseconds(std::chrono::seconds(update_interval_)));
+          std::chrono::milliseconds(update_interval_));
     }
   }
 
  private:
-  const size_t update_interval_;
+  const std::chrono::seconds update_interval_;
 };
 
 Status KillswitchRefreshablePlugin::setUp() {

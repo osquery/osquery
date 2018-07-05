@@ -48,7 +48,7 @@ Status FilesystemConfigPlugin::genConfig(
   boost::system::error_code ec;
   if (!fs::is_regular_file(FLAGS_config_path, ec) ||
       ec.value() != errc::success) {
-    return Status(1, "config file does not exist: " + FLAGS_config_path);
+    return Status::failure("config file does not exist: " + FLAGS_config_path);
   }
 
   std::vector<std::string> conf_files;

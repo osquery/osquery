@@ -7,7 +7,7 @@ namespace osquery {
 class KillswitchJSON : public KillswitchRefreshablePlugin {
  public:
  protected:
-  virtual Status refresh() override;
+  Status refresh() override;
   virtual Status getJSON(std::string& content) = 0;
 };
 
