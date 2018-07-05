@@ -120,7 +120,7 @@ TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid) {
   EXPECT_TRUE(result);
   EXPECT_TRUE(*result);
 
-  auto result = Killswitch::get().isTest2SwitchOn();
+  result = Killswitch::get().isTest2SwitchOn();
   EXPECT_TRUE(result);
   EXPECT_FALSE(*result);
 }
