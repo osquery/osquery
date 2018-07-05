@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <vector>
+#include <cstdint>
 
 #include <gtest/gtest.h>
 
@@ -54,7 +55,7 @@ class KillswitchTests : public testing::Test {
 
  private:
   std::string config_path_;
-  google::uint32 refresh_{0};
+  uint32_t refresh_{0};
 };
 
 TEST_F(KillswitchTests, test_killswitch_filesystem_plugin) {
