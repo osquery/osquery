@@ -38,7 +38,6 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
   auto& rf = RegistryFactory::get();
   auto plugin = std::make_shared<KillswitchPlugin>();
   rf.registry("killswitch")->add("test", plugin);
-  // Change the active config plugin.
   EXPECT_TRUE(rf.setActive("killswitch", "test").ok());
 
   {

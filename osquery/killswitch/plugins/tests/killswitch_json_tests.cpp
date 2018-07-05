@@ -41,7 +41,6 @@ class KillswitchJSONTests : public testing::Test {
   }
 
   void TearDown() {
-    RegistryFactory::get().registry("killswitch")->remove("test");
     FLAGS_killswitch_refresh_rate = refresh_;
   }
 
@@ -52,21 +51,23 @@ class KillswitchJSONTests : public testing::Test {
 class KillswitchJSONTestHelper : public KillswitchJSON {
  public:
   std::atomic<int> refresh_{0};
-  Status refresh() override {
-    refresh_++;
-    return status_;
-  }
-
-  Status getJSON(std::string& content) override {
-    if (status_.ok()) {
-      content = content_;
-    }
-    return status_;
-  }
+  std::atomic<int> get_{0};
+  std::atomic<int> get_error_{0};
 
   void set(Status status, std::string content) {
     content_ = content;
     status_ = status;
+  }
+
+ protected:
+  Status getJSON(std::string& content) override {
+    get_++;
+    if (status_.ok()) {
+      content = content_;
+    } else {
+      get_error_++;
+    }
+    return status_;
   }
 
  private:
@@ -80,6 +81,7 @@ TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_set) {
 
   rf.registry("killswitch")->add("test", plugin);
   EXPECT_TRUE(rf.setActive("killswitch", "test").ok());
+  RegistryFactory::get().registry("killswitch")->remove("test");
 }
 
 TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_initial_values) {
@@ -94,18 +96,7 @@ TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_initial_values) {
 
   result = Killswitch::get().isTest2SwitchOn();
   EXPECT_FALSE(result);
-}
-
-TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_refresh) {
-  auto& rf = RegistryFactory::get();
-  auto plugin = std::make_shared<KillswitchJSONTestHelper>();
-
-  rf.registry("killswitch")->add("test", plugin);
-  rf.setActive("killswitch", "test");
-
-  EXPECT_TRUE(Killswitch::get().refresh().ok());
-  plugin->set(Status(1), "");
-  EXPECT_FALSE(Killswitch::get().refresh().ok());
+  RegistryFactory::get().registry("killswitch")->remove("test");
 }
 
 TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid) {
@@ -113,8 +104,11 @@ TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid) {
   auto plugin = std::make_shared<KillswitchJSONTestHelper>();
 
   rf.registry("killswitch")->add("test", plugin);
-  plugin->set(Status(), "{\"testSwitch\":true,\"test2Switch\":false}");
+  rf.setActive("killswitch", "test");
+  plugin->set(Status(), "{ \"testSwitch\":true, \"test2Switch\":false }");
   EXPECT_TRUE(Killswitch::get().refresh().ok());
+  EXPECT_EQ(plugin->get_, 1);
+  EXPECT_EQ(plugin->get_error_, 0);
 
   auto result = Killswitch::get().isTestSwitchOn();
   EXPECT_TRUE(result);
@@ -123,5 +117,6 @@ TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid) {
   result = Killswitch::get().isTest2SwitchOn();
   EXPECT_TRUE(result);
   EXPECT_FALSE(*result);
+  RegistryFactory::get().registry("killswitch")->remove("test");
 }
 } // namespace osquery

@@ -11,13 +11,13 @@ namespace osquery {
 CLI_FLAG(uint64,
          killswitch_tls_max_attempts,
          3,
-         "Number of attempts to retry a TLS config/enroll request");
+         "Number of attempts to retry a TLS killswitch config request");
 
 /// Config retrieval TLS endpoint (path) using TLS hostname.
 CLI_FLAG(string,
          killswitch_tls_endpoint,
          "",
-         "TLS/HTTPS endpoint for config retrieval");
+         "TLS/HTTPS endpoint for killswitch config retrieval");
 
 DECLARE_bool(enroll_always);
 

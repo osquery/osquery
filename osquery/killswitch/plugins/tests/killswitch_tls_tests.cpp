@@ -54,7 +54,6 @@ class KillswitchTLSTests : public testing::Test {
   }
 
  private:
-  std::string config_path_;
   uint32_t refresh_{0};
 };
 

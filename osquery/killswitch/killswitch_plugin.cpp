@@ -14,7 +14,7 @@ Status KillswitchPlugin::call(const PluginRequest& request,
                               PluginResponse& response) {
   auto action = request.find("action");
   if (action == request.end()) {
-    return Status(1, "Config plugins require an action");
+    return Status(1, "Killswitch plugins require an action");
   }
   if (action->second == "isEnabled") {
     auto key = request.find("key");

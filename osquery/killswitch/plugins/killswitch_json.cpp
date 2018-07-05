@@ -9,7 +9,6 @@ namespace osquery {
 
 Status KillswitchJSON::refresh() {
   std::string content;
-
   auto status = getJSON(content);
   if (!status.ok()) {
     return status;
@@ -17,7 +16,7 @@ Status KillswitchJSON::refresh() {
 
   auto doc = JSON::newObject();
   if (!doc.fromString(content) || !doc.doc().IsObject()) {
-    return Status(1, "Error parsing the config JSON. Content : " + content);
+    return Status(1, "Error parsing the killswitch JSON. Content : " + content);
   }
   clearCache();
 

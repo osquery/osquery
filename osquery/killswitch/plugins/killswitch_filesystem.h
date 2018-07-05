@@ -14,7 +14,7 @@ class KillswitchFilesystem : public KillswitchJSON {
  private:
   std::string conf_path_;
 
-  FRIEND_TEST(KillswitchTests, test_killswitch_filesystem_plugin);
+  FRIEND_TEST(KillswitchFilesystemTests, test_killswitch_filesystem_plugin);
 };
 
 } // namespace osquery
