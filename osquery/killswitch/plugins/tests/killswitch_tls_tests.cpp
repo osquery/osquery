@@ -26,14 +26,14 @@
 #include "osquery/core/process.h"
 #include "osquery/killswitch.h"
 #include "osquery/killswitch/killswitch_plugin.h"
-#include "osquery/killswitch/plugins/killswitch_filesystem.h"
+#include "osquery/killswitch/plugins/killswitch_tls.h"
 #include "osquery/tests/test_util.h"
 
 namespace osquery {
 
 DECLARE_uint32(killswitch_refresh_rate);
 
-class KillswitchTests : public testing::Test {
+class KillswitchTLSTests : public testing::Test {
  protected:
   void SetUp() {
     refresh_ = FLAGS_killswitch_refresh_rate;
@@ -43,46 +43,19 @@ class KillswitchTests : public testing::Test {
   }
 
   void TearDown() {
-    RegistryFactory::get().registry("killswitch")->remove("test");
     tearDownMockFileStructure();
 
     FLAGS_killswitch_refresh_rate = refresh_;
   }
 
+ protected:
+  Killswitch& get() {
+    return Killswitch::get();
+  }
+
  private:
+  std::string config_path_;
   uint32_t refresh_{0};
 };
-
-TEST_F(KillswitchTests, test_killswitch_filesystem_plugin) {
-  auto& rf = RegistryFactory::get();
-  auto plugin = std::make_shared<KillswitchFilesystem>(kTestDataPath +
-                                                       "test_killswitch.conf");
-
-  rf.registry("killswitch")->add("test", plugin);
-  // Change the active config plugin.
-  EXPECT_TRUE(rf.setActive("killswitch", "test").ok());
-
-  {
-    auto result = Killswitch::get().isTestSwitchOn();
-    EXPECT_FALSE(result);
-  }
-  {
-    auto result = Killswitch::get().isTest2SwitchOn();
-    EXPECT_FALSE(result);
-  }
-
-  EXPECT_TRUE(Killswitch::get().refresh().ok());
-
-  {
-    auto result = Killswitch::get().isTestSwitchOn();
-    EXPECT_TRUE(result);
-    EXPECT_TRUE(*result);
-  }
-  {
-    auto result = Killswitch::get().isTest2SwitchOn();
-    EXPECT_TRUE(result);
-    EXPECT_FALSE(*result);
-  }
-}
 
 } // namespace osquery

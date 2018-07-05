@@ -28,4 +28,6 @@ ADD_OSQUERY_TEST_CORE(
 )
 ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/killswitch_filesystem_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/killswitch_json_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/killswitch_tls_tests.cpp"
 )
