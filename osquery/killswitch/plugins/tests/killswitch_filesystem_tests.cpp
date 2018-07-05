@@ -8,9 +8,9 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <cstdint>
 #include <memory>
 #include <vector>
-#include <cstdint>
 
 #include <gtest/gtest.h>
 
