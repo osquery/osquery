@@ -46,7 +46,7 @@ namespace osquery {
  */
 class JSON : private only_movable {
  private:
-  explicit JSON(decltype(rapidjson::kObjectType) type);
+  explicit JSON(rapidjson::Type type);
 
  public:
   JSON();

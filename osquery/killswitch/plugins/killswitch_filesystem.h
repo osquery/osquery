@@ -1,15 +1,15 @@
-#include <osquery/killswitch/killswitch_refreshable_plugin.h>
+#include "osquery/killswitch/plugins/killswitch_json.h"
 #include <string>
 
 namespace osquery {
 
-class KillswitchFilesystem : public KillswitchRefreshablePlugin {
+class KillswitchFilesystem : public KillswitchJSON {
  public:
   KillswitchFilesystem();
   KillswitchFilesystem(const std::string& conf_path);
 
  protected:
-  virtual Status refresh() override;
+  virtual Status getJSON(std::string& content) override;
 
  private:
   std::string conf_path_;

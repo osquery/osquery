@@ -31,7 +31,7 @@ typedef bai::transform_width<base64_str, 8, 6> base64_dec;
 typedef bai::transform_width<std::string::const_iterator, 6, 8> base64_enc;
 typedef bai::base64_from_binary<base64_enc> it_base64;
 
-JSON::JSON(decltype(rj::kObjectType) type) : type_(type) {
+JSON::JSON(rj::Type type) : type_(type) {
   if (type_ == rj::kObjectType) {
     doc_.SetObject();
   } else {
