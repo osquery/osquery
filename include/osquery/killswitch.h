@@ -37,11 +37,11 @@ class Killswitch : private boost::noncopyable {
 
   Status refresh();
 
-  Expected<bool, SwitchOnError> isTestSwitchOn();
-  Expected<bool, SwitchOnError> isTest2SwitchOn();
-
  private:
   Expected<bool, SwitchOnError> isSwitchOn(const std::string& key);
+  FRIEND_TEST(KillswitchJSONTests, test_killswitch_JSON_plugin_initial_values);
+  FRIEND_TEST(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid);
+  FRIEND_TEST(KillswitchTests, test_killswitch_plugin);
 };
 
 } // namespace osquery

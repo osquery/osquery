@@ -29,7 +29,7 @@ Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key) {
   if (response.size() != 1) {
     return createError(
         SwitchOnError::IncorrectResponseFormat,
-        "Response size should be 1 but is ") << std::to_string(response.size()));
+        "Response size should be 1 but is ") << std::to_string(response.size());
   }
   const auto& responseMap = response[0];
   const auto& isEnabledItem = responseMap.find("isEnabled");
@@ -54,13 +54,6 @@ Status Killswitch::refresh() {
   PluginResponse response;
   auto status = Registry::call("killswitch", {{"action", "refresh"}}, response);
   return status;
-}
-
-Expected<bool, SwitchOnError> Killswitch::isTestSwitchOn() {
-  return isSwitchOn("testSwitch");
-}
-Expected<bool, SwitchOnError> Killswitch::isTest2SwitchOn() {
-  return isSwitchOn("test2Switch");
 }
 
 } // namespace osquery

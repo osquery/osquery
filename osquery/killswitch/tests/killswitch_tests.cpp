@@ -77,7 +77,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
                        response);
     EXPECT_TRUE(status.ok());
     EXPECT_EQ(response[0]["isEnabled"], std::string("true"));
-    auto result = Killswitch::get().isTestSwitchOn();
+    auto result = Killswitch::get().isSwitchOn("testSwitch");
     EXPECT_TRUE(result);
     EXPECT_TRUE(*result);
   }
@@ -96,7 +96,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
                        response);
     EXPECT_TRUE(status.ok());
     EXPECT_EQ(response[0]["isEnabled"], std::string("false"));
-    auto result = Killswitch::get().isTestSwitchOn();
+    auto result = Killswitch::get().isSwitchOn("testSwitch");
     EXPECT_TRUE(result);
     EXPECT_FALSE(*result);
   }
@@ -111,7 +111,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
                        response);
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(response.size(), 0);
-    auto result = Killswitch::get().isTestSwitchOn();
+    auto result = Killswitch::get().isSwitchOn("testSwitch");
     EXPECT_FALSE(result);
   }
 

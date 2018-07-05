@@ -1,3 +1,4 @@
+
 #include "osquery/killswitch/plugins/killswitch_json.h"
 #include <string>
 
@@ -6,13 +7,13 @@ namespace osquery {
 class KillswitchFilesystem : public KillswitchJSON {
  public:
   KillswitchFilesystem();
-  KillswitchFilesystem(const std::string& conf_path);
+  KillswitchFilesystem(const boost::filesystem::path& conf_path);
 
  protected:
   Status getJSON(std::string& content) override;
 
  private:
-  const std::string conf_path_;
+  const boost::filesystem::path conf_path_;
 
   FRIEND_TEST(KillswitchFilesystemTests, test_killswitch_filesystem_plugin);
 };

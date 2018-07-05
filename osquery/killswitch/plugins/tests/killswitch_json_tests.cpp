@@ -91,10 +91,10 @@ TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_initial_values) {
   rf.registry("killswitch")->add("test", plugin);
   rf.setActive("killswitch", "test");
 
-  auto result = Killswitch::get().isTestSwitchOn();
+  auto result = Killswitch::get().isSwitchOn("testSwitch");
   EXPECT_FALSE(result);
 
-  result = Killswitch::get().isTest2SwitchOn();
+  result = Killswitch::get().isSwitchOn("test2Switch");
   EXPECT_FALSE(result);
   RegistryFactory::get().registry("killswitch")->remove("test");
 }
@@ -110,11 +110,11 @@ TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid) {
   EXPECT_EQ(plugin->get_, 1);
   EXPECT_EQ(plugin->get_error_, 0);
 
-  auto result = Killswitch::get().isTestSwitchOn();
+  auto result = Killswitch::get().isSwitchOn("testSwitch");
   EXPECT_TRUE(result);
   EXPECT_TRUE(*result);
 
-  result = Killswitch::get().isTest2SwitchOn();
+  result = Killswitch::get().isSwitchOn("test2Switch");
   EXPECT_TRUE(result);
   EXPECT_FALSE(*result);
   RegistryFactory::get().registry("killswitch")->remove("test");

@@ -20,16 +20,15 @@ Status KillswitchJSON::refresh() {
   }
   clearCache();
 
-  for (auto& m : doc.doc().GetObject()) {
-    if (!m.name.IsString()) {
-      return Status::failure(1, "Killswitch config key was not string");
+  for (const auto& keyValue : doc.doc().GetObject()) {
+    if (!keyValue.name.IsString()) {
+      return Status::failure("Killswitch config key was not string");
     }
-    auto key = m.name.GetString();
-    if (!m.value.IsBool()) {
-      return Status::failure(
-          1, "At Killswitch config key: " + key + "value was not bool");
+    auto key = keyValue.name.GetString();
+    if (!keyValue.value.IsBool()) {
+      return Status::failure(std::string("At Killswitch config key: ") + key + "value was not bool");
     }
-    bool value = m.value.GetBool();
+    bool value = keyValue.value.GetBool();
     status = addCacheEntry(key, value);
     if (!status.ok()) {
       LOG(WARNING) << status.getMessage();
