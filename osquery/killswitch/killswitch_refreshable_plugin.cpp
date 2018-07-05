@@ -14,9 +14,9 @@ FLAG(uint32,
 
 class KillswitchRefresher : public InternalRunnable {
  public:
-  KillswitchRefresher(size_t update_interval)
+  KillswitchRefresher(std::chrono::seconds update_interval)
       : InternalRunnable("KillswitchRefreshRunner"),
-        update_interval_(std::chrono::seconds(update_interval)) {}
+        update_interval_(update_interval) {}
   /// A simple wait/interruptible lock.
   void start() override {
     while (!interrupted()) {
@@ -32,7 +32,7 @@ class KillswitchRefresher : public InternalRunnable {
 Status KillswitchRefreshablePlugin::setUp() {
   if (FLAGS_killswitch_refresh_rate > 0) {
     Dispatcher::addService(
-        std::make_shared<KillswitchRefresher>(FLAGS_killswitch_refresh_rate));
+        std::make_shared<KillswitchRefresher>(std::chrono::seconds(FLAGS_killswitch_refresh_rate)));
   }
   return Status::success();
 }
