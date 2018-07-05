@@ -21,8 +21,7 @@ class KillswitchRefresher : public InternalRunnable {
   void start() override {
     while (!interrupted()) {
       osquery::Killswitch::get().refresh();
-      pauseMilli(
-          std::chrono::milliseconds(update_interval_));
+      pauseMilli(std::chrono::milliseconds(update_interval_));
     }
   }
 

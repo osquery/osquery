@@ -27,9 +27,9 @@ Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key) {
   }
 
   if (response.size() != 1) {
-    return createError(
-        SwitchOnError::IncorrectResponseFormat,
-        "Response size should be 1 but is ") << std::to_string(response.size());
+    return createError(SwitchOnError::IncorrectResponseFormat,
+                       "Response size should be 1 but is ")
+           << std::to_string(response.size());
   }
   const auto& responseMap = response[0];
   const auto& isEnabledItem = responseMap.find("isEnabled");

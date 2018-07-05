@@ -26,7 +26,8 @@ Status KillswitchJSON::refresh() {
     }
     auto key = keyValue.name.GetString();
     if (!keyValue.value.IsBool()) {
-      return Status::failure(std::string("At Killswitch config key: ") + key + "value was not bool");
+      return Status::failure(std::string("At Killswitch config key: ") + key +
+                             "value was not bool");
     }
     bool value = keyValue.value.GetBool();
     status = addCacheEntry(key, value);

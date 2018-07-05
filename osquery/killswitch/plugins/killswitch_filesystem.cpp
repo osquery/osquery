@@ -1,7 +1,7 @@
 #include <string>
 
-#include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
@@ -20,7 +20,8 @@ FLAG(string,
      (fs::path(OSQUERY_HOME) / "killswitch.conf").make_preferred().string(),
      "Path to JSON killswitch config file");
 
-KillswitchFilesystem::KillswitchFilesystem(const boost::filesystem::path& conf_path)
+KillswitchFilesystem::KillswitchFilesystem(
+    const boost::filesystem::path& conf_path)
     : conf_path_(conf_path) {}
 KillswitchFilesystem::KillswitchFilesystem()
     : KillswitchFilesystem(FLAGS_killswitch_config_path) {}
@@ -29,7 +30,8 @@ Status KillswitchFilesystem::getJSON(std::string& content) {
   boost::system::error_code ec;
   if (!fs::is_regular_file(conf_path_, ec) || ec.value() != errc::success ||
       !readFile(conf_path_, content).ok()) {
-    return Status::failure("config file does not exist: " + conf_path_.string());
+    return Status::failure("config file does not exist: " +
+                           conf_path_.string());
   }
 
   return Status::success();
