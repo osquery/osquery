@@ -31,7 +31,7 @@
  *    return "ok";
  *   } else {
  *    if (first_error) {
- *      return Error<TestError>>(TestError::SomeError, "some error message");
+ *      return Error<TestError>(TestError::SomeError, "some error message");
  *    } else {
  *      return createError(TestError::SomeError, "one more error message");
  *    }

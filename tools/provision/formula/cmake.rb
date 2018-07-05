@@ -3,17 +3,15 @@ require File.expand_path("../Abstract/abstract-osquery-formula", __FILE__)
 class Cmake < AbstractOsqueryFormula
   desc "Cross-platform make"
   homepage "https://www.cmake.org/"
-  url "https://cmake.org/files/v3.10/cmake-3.10.1.tar.gz"
-  sha256 "7be36ee24b0f5928251b644d29f5ff268330a916944ef4a75e23ba01e7573284"
-  revision 200
-
-  head "https://cmake.org/cmake.git"
+  url "https://cmake.org/files/v3.12/cmake-3.12.0-rc1.tar.gz"
+  sha256 "aac7476c40018006c36ae4ee4137d355d824f0f16b065871c9f989a96500fc00"
+  revision 100
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "e7e2ab13b5793cfa86e178989babd97d096976e65d9b05ac862918383f0e94b5" => :sierra
-    sha256 "5db395e595d9e37f9ea85f36340dbee5c995a27e8a959e7ce77358b8fa490289" => :x86_64_linux
+    sha256 "531c5d07e1f9ffe5fd8ead11f3b928c8405c33061118c0b69832b2a24ebd09e7" => :sierra
+    sha256 "aeb3ef3663e91ef1206afe965dfe358249a1994f8c96ac946e5d3ed7376e3fd6" => :x86_64_linux
   end
 
   # The `with-qt` GUI option was removed due to circular dependencies if
@@ -30,11 +28,12 @@ class Cmake < AbstractOsqueryFormula
       --datadir=/share/cmake
       --docdir=/share/doc/cmake
       --mandir=/share/man
+      --system-zlib
       --system-bzip2
-      --system-liblzma
+      --system-curl
     ]
 
-    system "./bootstrap", *args
+    system "./bootstrap", *args, "--", "-DCMAKE_BUILD_TYPE=Release"
     system "make"
     system "make", "install"
 
