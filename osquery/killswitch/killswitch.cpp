@@ -14,7 +14,8 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
-Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key) {
+Expected<bool, Killswitch::SwitchOnError> Killswitch::isSwitchOn(
+    const std::string& key) {
   PluginResponse response;
   auto status = Registry::call("killswitch",
                                {
@@ -23,11 +24,12 @@ Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key) {
                                },
                                response);
   if (!status.ok()) {
-    return Error<SwitchOnError>(SwitchOnError::CallFailed, status.getMessage());
+    return createError(Killswitch::SwitchOnError::CallFailed,
+                       status.getMessage());
   }
 
   if (response.size() != 1) {
-    return createError(SwitchOnError::IncorrectResponseFormat,
+    return createError(Killswitch::SwitchOnError::IncorrectResponseFormat,
                        "Response size should be 1 but is ")
            << std::to_string(response.size());
   }
@@ -35,7 +37,7 @@ Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key) {
   const auto& isEnabledItem = responseMap.find("isEnabled");
   if (isEnabledItem == responseMap.end()) {
     return createError(
-        SwitchOnError::IncorrectResponseFormat,
+        Killswitch::SwitchOnError::IncorrectResponseFormat,
         "isEnabled key missing in reponse of the action: isEnabled");
   }
 
@@ -45,8 +47,8 @@ Expected<bool, SwitchOnError> Killswitch::isSwitchOn(const std::string& key) {
   } else if (isEnabledValue == "false") {
     return false;
   } else {
-    return Error<SwitchOnError>(SwitchOnError::IncorrectValue,
-                                "Unknown isEnabled value " + isEnabledValue);
+    return createError(Killswitch::SwitchOnError::IncorrectValue,
+                       "Unknown isEnabled value " + isEnabledValue);
   }
 }
 

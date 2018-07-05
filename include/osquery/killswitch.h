@@ -17,13 +17,14 @@
 
 namespace osquery {
 
-enum class SwitchOnError {
-  CallFailed = 1,
-  IncorrectResponseFormat = 2,
-  IncorrectValue = 3
-};
-
 class Killswitch : private boost::noncopyable {
+ public:
+  enum class SwitchOnError {
+    CallFailed = 1,
+    IncorrectResponseFormat = 2,
+    IncorrectValue = 3
+  };
+
  private:
   Killswitch();
 
@@ -39,6 +40,7 @@ class Killswitch : private boost::noncopyable {
 
  private:
   Expected<bool, SwitchOnError> isSwitchOn(const std::string& key);
+
   FRIEND_TEST(KillswitchJSONTests, test_killswitch_JSON_plugin_initial_values);
   FRIEND_TEST(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid);
   FRIEND_TEST(KillswitchTests, test_killswitch_plugin);

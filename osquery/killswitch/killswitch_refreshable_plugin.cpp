@@ -31,8 +31,8 @@ class KillswitchRefresher : public InternalRunnable {
 
 Status KillswitchRefreshablePlugin::setUp() {
   if (FLAGS_killswitch_refresh_rate > 0) {
-    Dispatcher::addService(
-        std::make_shared<KillswitchRefresher>(std::chrono::seconds(FLAGS_killswitch_refresh_rate)));
+    Dispatcher::addService(std::make_shared<KillswitchRefresher>(
+        std::chrono::seconds(FLAGS_killswitch_refresh_rate)));
   }
   return Status::success();
 }
@@ -45,7 +45,12 @@ Status KillswitchRefreshablePlugin::call(const PluginRequest& request,
   }
 
   if (action->second == "refresh") {
-    return refresh();
+    auto result = refresh();
+    if (result) {
+      return Status::success();
+    } else {
+      return Status::failure(result.getError().getFullMessageRecursive());
+    }
   } else {
     return KillswitchPlugin::call(request, response);
   }

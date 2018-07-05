@@ -1,10 +1,14 @@
 #include <osquery/killswitch/killswitch_plugin.h>
+#include <osquery/expected.h>
 
 namespace osquery {
 /**
  * @brief Interface class for killswitch plugins.
  */
 class KillswitchRefreshablePlugin : public KillswitchPlugin {
+ public:
+  enum class RefreshError {NoContent = 1};
+
  public:
   Status setUp() override;
 
@@ -13,6 +17,6 @@ class KillswitchRefreshablePlugin : public KillswitchPlugin {
                       PluginResponse& response) override;
 
  protected:
-  virtual Status refresh() = 0;
+  virtual ExpectedSuccess<RefreshError> refresh() = 0;
 };
 } // namespace osquery

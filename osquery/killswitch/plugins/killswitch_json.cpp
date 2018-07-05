@@ -1,16 +1,20 @@
 #include <string>
 
+
 #include <osquery/killswitch/killswitch_plugin.h>
 
 #include "osquery/core/json.h"
 #include "osquery/killswitch/plugins/killswitch_json.h"
 
+
+
 namespace osquery {
 
-Status KillswitchJSON::refresh() {
+ExpectedSuccess<KillswitchRefreshablePlugin::RefreshError> KillswitchJSON::refresh() {
   std::string content;
   auto status = getJSON(content);
   if (!status.ok()) {
+    return createError(KillswitchRefreshablePlugin::RefreshError::NoContent, )
     return status;
   }
 
@@ -30,10 +34,7 @@ Status KillswitchJSON::refresh() {
                              "value was not bool");
     }
     bool value = keyValue.value.GetBool();
-    status = addCacheEntry(key, value);
-    if (!status.ok()) {
-      LOG(WARNING) << status.getMessage();
-    }
+    addCacheEntry(key, value);
   }
 
   return Status::success();

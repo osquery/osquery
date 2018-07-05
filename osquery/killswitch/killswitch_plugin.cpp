@@ -22,12 +22,14 @@ Status KillswitchPlugin::call(const PluginRequest& request,
       return Status(1, "isEnabled action requires key");
     }
 
-    bool enabled = 0;
-    auto status = isEnabled(key->second, enabled);
-    if (status.ok()) {
-      response.push_back({{"isEnabled", enabled ? "true" : "false"}});
+    auto result = isEnabled(key->second);
+
+    if (result) {
+      response.push_back({{"isEnabled", *result ? "true" : "false"}});
+      return Status::success();
+    } else {
+      return Status::failure(result.getError().getFullMessageRecursive());
     }
-    return status;
   }
   return Status(1, "Could not find appropirate action mapping");
 }
@@ -36,18 +38,18 @@ void KillswitchPlugin::clearCache() {
   killswitchMap.clear();
 }
 
-Status KillswitchPlugin::addCacheEntry(const std::string& key, bool value) {
+void KillswitchPlugin::addCacheEntry(const std::string& key, bool value) {
   killswitchMap[key] = value;
-  return Status::success();
 }
 
-Status KillswitchPlugin::isEnabled(const std::string& key, bool& isEnabled) {
-  if (killswitchMap.count(key)) {
-    isEnabled = killswitchMap[key];
-    return Status::success();
+Expected<bool, KillswitchPlugin::IsEnabledError> KillswitchPlugin::isEnabled(
+    const std::string& key) {
+  if (killswitchMap.find(key) != killswitchMap.end()) {
+    return killswitchMap[key];
   } else {
-    isEnabled = false;
-    return Status(1, "Could not find key " + key);
+    return createError(KillswitchPlugin::IsEnabledError::NoKeyFound,
+                       "Could not find key ")
+           << key;
   }
 }
 

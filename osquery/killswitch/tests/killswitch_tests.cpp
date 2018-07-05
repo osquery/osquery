@@ -63,13 +63,14 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
     EXPECT_FALSE(status.ok());
   }
 
-  EXPECT_TRUE(plugin->addCacheEntry("testSwitch", true).ok());
+  plugin->addCacheEntry("testSwitch", true);
 
   {
-    bool value = false;
-    EXPECT_TRUE(plugin->isEnabled("testSwitch", value).ok());
-    EXPECT_TRUE(value);
-
+    auto result = plugin->isEnabled("testSwitch");
+    EXPECT_TRUE(result);
+    EXPECT_TRUE(*result);
+  }
+  {
     PluginResponse response;
     auto status =
         Registry::call("killswitch",
@@ -82,13 +83,14 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
     EXPECT_TRUE(*result);
   }
 
-  EXPECT_TRUE(plugin->addCacheEntry("testSwitch", false).ok());
+  plugin->addCacheEntry("testSwitch", false);
 
   {
-    bool value = true;
-    EXPECT_TRUE(plugin->isEnabled("testSwitch", value).ok());
-    EXPECT_FALSE(value);
-
+    auto result = plugin->isEnabled("testSwitch");
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(*result);
+  }
+  {
     PluginResponse response;
     auto status =
         Registry::call("killswitch",
