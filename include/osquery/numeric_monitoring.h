@@ -43,7 +43,8 @@ enum class PreAggregationType {
  * @param path A unique key in monitoring system. If you need to add some common
  * prefix for all osquery points do it in the plugin code.
  * @param value A numeric value of new point.
- * @param pre_aggr_type An preliminary aggregation type for this particular path
+ * @param pre_aggregation An preliminary aggregation type for this particular
+ * path
  * @see PreAggregationType. It allows some numeric monitoring plugins
  * pre-aggregate points before send it.
  * @param time_point A time of new point, in vast majority of cases it is just
