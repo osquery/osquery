@@ -40,7 +40,9 @@ TEST_F(KillswitchFilesystemTests, test_killswitch_filesystem_plugin) {
   std::string content;
   auto status = plugin.getJSON(content);
   EXPECT_TRUE(status.ok());
-  // TODO  EXPECT_EQ()
+  content.erase(remove_if(content.begin(), content.end(), isspace),
+                content.end());
+  EXPECT_EQ(content, "{\"testSwitch\":true,\"test2Switch\":false}");
 }
 
 } // namespace osquery
