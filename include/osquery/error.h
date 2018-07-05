@@ -13,6 +13,7 @@
 #include <boost/core/demangle.hpp>
 #include <memory>
 #include <new>
+#include <sstream>
 #include <string>
 #include <typeinfo>
 
@@ -97,6 +98,10 @@ class Error final : public ErrorBase {
     return full_message;
   }
 
+  void appendToMessage(const std::string& text) {
+    message_.append(text);
+  }
+
  private:
   ErrorCodeEnumType errorCode_;
   std::string message_;
@@ -158,6 +163,17 @@ Error<ErrorCodeEnumType> createError(
       std::move(message),
       std::make_unique<Error<OtherErrorCodeEnumType>>(
           std::move(underlying_error)));
+}
+
+template <typename ErrorType,
+          typename ValueType,
+          typename = typename std::enable_if<
+              std::is_base_of<ErrorBase, ErrorType>::value>::type>
+inline ErrorType operator<<(ErrorType&& error, const ValueType& value) {
+  std::ostringstream ostr{};
+  ostr << value;
+  error.appendToMessage(ostr.str());
+  return std::forward<ErrorType>(error);
 }
 
 } // namespace osquery
