@@ -19,8 +19,11 @@ schema([
     Column("last_change", BIGINT, "Time of last device modification (optional)"),
 ])
 
-extended_schema(LINUX, [
+extended_schema(POSIX, [
   Column("link_speed", BIGINT, "Interface speed in Mb/s"),
+])
+
+extended_schema(LINUX, [
   Column("pci_slot", TEXT, "PCI slot number"),
 ])
 
