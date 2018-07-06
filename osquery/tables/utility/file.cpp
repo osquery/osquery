@@ -103,7 +103,10 @@ void genFileInfo(const fs::path& path,
 
   WINDOWS_STAT file_stat;
 
-  if (!platformStat(path, &file_stat).ok()) {
+  auto rtn = platformStat(path, &file_stat);
+  if (!rtn.ok()) {
+	VLOG(1) << rtn.getMessage();
+	results.push_back(r);
     return;
   }
 
