@@ -40,7 +40,7 @@ TEST_F(KillswitchFilesystemTests, test_killswitch_filesystem_plugin) {
   auto content = plugin.getJSON();
   EXPECT_TRUE(content);
   content->erase(remove_if(content->begin(), content->end(), isspace),
-                content->end());
+                 content->end());
   EXPECT_EQ(*content, "{\"testSwitch\":true,\"test2Switch\":false}");
 }
 

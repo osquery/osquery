@@ -35,17 +35,20 @@ Status KillswitchPlugin::call(const PluginRequest& request,
 }
 
 void KillswitchPlugin::clearCache() {
-  killswitchMap.clear();
+  WriteLock wlock(lock_);
+  killswitchMap_.clear();
 }
 
 void KillswitchPlugin::addCacheEntry(const std::string& key, bool value) {
-  killswitchMap[key] = value;
+  WriteLock wlock(lock_);
+  killswitchMap_[key] = value;
 }
 
 Expected<bool, KillswitchPlugin::IsEnabledError> KillswitchPlugin::isEnabled(
     const std::string& key) {
-  if (killswitchMap.find(key) != killswitchMap.end()) {
-    return killswitchMap[key];
+  ReadLock rlock(lock_);
+  if (killswitchMap_.find(key) != killswitchMap_.end()) {
+    return killswitchMap_[key];
   } else {
     return createError(KillswitchPlugin::IsEnabledError::NoKeyFound,
                        "Could not find key ")

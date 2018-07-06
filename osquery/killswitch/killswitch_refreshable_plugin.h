@@ -1,5 +1,5 @@
-#include <osquery/killswitch/killswitch_plugin.h>
 #include <osquery/expected.h>
+#include <osquery/killswitch/killswitch_plugin.h>
 
 namespace osquery {
 /**
@@ -14,7 +14,12 @@ class KillswitchRefreshablePlugin : public KillswitchPlugin {
                       PluginResponse& response) override;
 
  protected:
-     enum class RefreshError {NoContent = 1, ParsingError = 2, IncorrectKeyType = 3, IncorrectValueType = 4};
+  enum class RefreshError {
+    NoContent = 1,
+    ParsingError = 2,
+    IncorrectKeyType = 3,
+    IncorrectValueType = 4
+  };
   virtual ExpectedSuccess<RefreshError> refresh() = 0;
 };
 } // namespace osquery

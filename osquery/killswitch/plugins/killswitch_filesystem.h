@@ -10,7 +10,7 @@ class KillswitchFilesystem : public KillswitchJSON {
   KillswitchFilesystem(const boost::filesystem::path& conf_path);
 
  protected:
-  Expected<std::string, KillswitchJSON::GetJSONError>  getJSON() override;
+  Expected<std::string, KillswitchJSON::GetJSONError> getJSON() override;
 
  private:
   const boost::filesystem::path conf_path_;

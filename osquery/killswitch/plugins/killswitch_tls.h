@@ -23,7 +23,8 @@ class TLSKillswitchPlugin
   Status setUp() override;
 
  protected:
-  virtual Expected<std::string, KillswitchJSON::GetJSONError> getJSON() override;
+  virtual Expected<std::string, KillswitchJSON::GetJSONError> getJSON()
+      override;
   /// Calculate the URL once and cache the result.
   std::string uri_;
 };

@@ -38,7 +38,8 @@ Status TLSKillswitchPlugin::setUp() {
   return Status(0, "OK");
 }
 
-Expected<std::string, KillswitchJSON::GetJSONError> TLSKillswitchPlugin::getJSON() {
+Expected<std::string, KillswitchJSON::GetJSONError>
+TLSKillswitchPlugin::getJSON() {
   std::string json, content;
   JSON params;
   // The TLS node API morphs some verbs and variables.
@@ -46,10 +47,11 @@ Expected<std::string, KillswitchJSON::GetJSONError> TLSKillswitchPlugin::getJSON
 
   auto s = TLSRequestHelper::go<JSONSerializer>(
       uri_, params, content, FLAGS_killswitch_tls_max_attempts);
-  if(s.ok()){
+  if (s.ok()) {
     return content;
-  }else{
-    return createError(KillswitchJSON::GetJSONError::NetworkFailure,  "Could not retreive config file from network");
+  } else {
+    return createError(KillswitchJSON::GetJSONError::NetworkFailure,
+                       "Could not retreive config file from network");
   }
 }
 } // namespace osquery

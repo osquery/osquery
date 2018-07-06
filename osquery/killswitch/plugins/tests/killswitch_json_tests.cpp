@@ -53,29 +53,29 @@ class KillswitchJSONTestHelper : public KillswitchJSON {
   std::atomic<int> get_{0};
   std::atomic<int> get_error_{0};
 
-  void set(std::string content){
+  void set(std::string content) {
     content_ = content;
   }
 
-  void set(KillswitchJSON::GetJSONError error){
+  void set(KillswitchJSON::GetJSONError error) {
     error_ = error;
     content_ = "";
   }
 
  protected:
-  Expected<std::string, KillswitchJSON::GetJSONError> getJSON()override {
+  Expected<std::string, KillswitchJSON::GetJSONError> getJSON() override {
     get_++;
-    if(content_.size() == 0){
+    if (content_.size() == 0) {
       get_error_++;
       return createError(error_, "");
-    }else{
+    } else {
       return content_;
     }
   }
 
  private:
-   std::string content_;
-   KillswitchJSON::GetJSONError error_;
+  std::string content_;
+  KillswitchJSON::GetJSONError error_;
 };
 
 TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_set) {

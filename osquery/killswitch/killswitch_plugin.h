@@ -15,6 +15,7 @@
 
 #include <osquery/core.h>
 #include <osquery/expected.h>
+#include <osquery/mutex.h>
 #include <osquery/plugin.h>
 #include <osquery/query.h>
 
@@ -31,11 +32,12 @@ class KillswitchPlugin : public Plugin {
  protected:
   void clearCache();
   void addCacheEntry(const std::string& key, bool value);
-    enum class IsEnabledError { NoKeyFound = 1 };
+  enum class IsEnabledError { NoKeyFound = 1 };
   Expected<bool, IsEnabledError> isEnabled(const std::string& key);
 
  private:
-  std::map<std::string, bool> killswitchMap;
+  std::map<std::string, bool> killswitchMap_;
+  Mutex lock_;
 
  private:
   FRIEND_TEST(KillswitchTests, test_killswitch_plugin);
