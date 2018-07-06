@@ -110,12 +110,21 @@ class PreAggregationBuffer final : public InternalRunnable {
                                 std::chrono::milliseconds time_quantum)
       : InternalRunnable(name), time_quantum_(std::move(time_quantum)) {}
 
-  static std::shared_ptr<PreAggregationBuffer> create() {
-    auto self = std::make_shared<PreAggregationBuffer>(
+  static void reset() {
+    if (instance) {
+      instance->interrupt();
+    }
+    instance = std::make_shared<PreAggregationBuffer>(
         "numeric_monitoring_pre_aggregation_buffer",
         std::chrono::seconds(FLAGS_numeric_monitoring_pre_aggregation_time));
-    Dispatcher::addService(self);
-    return self;
+    Dispatcher::addService(instance);
+  }
+
+  static PreAggregationBuffer& get() {
+    if (nullptr == instance) {
+      reset();
+    }
+    return *instance.get();
   }
 
   void start() override {
@@ -172,7 +181,12 @@ class PreAggregationBuffer final : public InternalRunnable {
   const std::chrono::milliseconds time_quantum_;
   PreAggregationCache cache_;
   std::mutex cache_lock_;
+
+ private:
+  static std::shared_ptr<PreAggregationBuffer> instance;
 };
+
+std::shared_ptr<PreAggregationBuffer> PreAggregationBuffer::instance;
 
 } // namespace
 
@@ -183,8 +197,12 @@ void record(const std::string& path,
   if (!FLAGS_enable_numeric_monitoring) {
     return;
   }
-  static auto buffer = PreAggregationBuffer::create();
-  buffer->record(path, value, pre_aggregation, std::move(time_point));
+  PreAggregationBuffer::get().record(
+      path, value, pre_aggregation, std::move(time_point));
+}
+
+void reset() {
+  PreAggregationBuffer::reset();
 }
 
 } // namespace monitoring
