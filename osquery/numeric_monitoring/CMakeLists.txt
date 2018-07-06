@@ -10,6 +10,7 @@ target_sources(libosquery
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/numeric_monitoring.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/plugin_interface.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/pre_aggregation_cache.cpp"
 )
 
 ADD_OSQUERY_LIBRARY_ADDITIONAL(
@@ -19,5 +20,6 @@ ADD_OSQUERY_LIBRARY_ADDITIONAL(
 
 ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/tests/numeric_monitoring_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/pre_aggregation_cache_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/filesystem_tests.cpp"
 )
