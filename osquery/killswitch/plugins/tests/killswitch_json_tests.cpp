@@ -94,10 +94,10 @@ TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_initial_values) {
   rf.registry("killswitch")->add("test", plugin);
   rf.setActive("killswitch", "test");
 
-  auto result = Killswitch::get().isSwitchOn("testSwitch");
-  EXPECT_FALSE(result);
+  auto result = Killswitch::get().isEnabled("testSwitch", true);
+  EXPECT_TRUE(result);
 
-  result = Killswitch::get().isSwitchOn("test2Switch");
+  result = Killswitch::get().isEnabled("test2Switch", false);
   EXPECT_FALSE(result);
   RegistryFactory::get().registry("killswitch")->remove("test");
 }
@@ -113,13 +113,11 @@ TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid) {
   EXPECT_EQ(plugin->get_, 1);
   EXPECT_EQ(plugin->get_error_, 0);
 
-  auto result = Killswitch::get().isSwitchOn("testSwitch");
+  auto result = Killswitch::get().isEnabled("testSwitch", false);
   EXPECT_TRUE(result);
-  EXPECT_TRUE(*result);
 
-  result = Killswitch::get().isSwitchOn("test2Switch");
-  EXPECT_TRUE(result);
-  EXPECT_FALSE(*result);
+  result = Killswitch::get().isEnabled("test2Switch", true);
+  EXPECT_FALSE(result);
   RegistryFactory::get().registry("killswitch")->remove("test");
 }
 } // namespace osquery

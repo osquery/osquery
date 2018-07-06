@@ -25,7 +25,7 @@ Status KillswitchPlugin::call(const PluginRequest& request,
     auto result = isEnabled(key->second);
 
     if (result) {
-      response.push_back({{"isEnabled", *result ? "true" : "false"}});
+      response.push_back({{"isEnabled", std::to_string(*result)}});
       return Status::success();
     } else {
       return Status::failure(result.getError().getFullMessageRecursive());
@@ -34,11 +34,11 @@ Status KillswitchPlugin::call(const PluginRequest& request,
   return Status(1, "Could not find appropirate action mapping");
 }
 
-void KillswitchPlugin::clearCache() {
+void KillswitchPlugin::setCache(
+    const std::map<std::string, bool>& killswitchMap) {
   WriteLock wlock(lock_);
-  killswitchMap_.clear();
+  killswitchMap_ = killswitchMap;
 }
-
 void KillswitchPlugin::addCacheEntry(const std::string& key, bool value) {
   WriteLock wlock(lock_);
   killswitchMap_[key] = value;

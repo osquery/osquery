@@ -30,12 +30,12 @@ class KillswitchPlugin : public Plugin {
                       PluginResponse& response) override;
 
  protected:
-  void clearCache();
   void addCacheEntry(const std::string& key, bool value);
-  enum class IsEnabledError { NoKeyFound = 1 };
-  Expected<bool, IsEnabledError> isEnabled(const std::string& key);
+  void setCache(const std::map<std::string, bool>& killswitchMap);
 
  private:
+  enum class IsEnabledError { NoKeyFound = 1 };
+  Expected<bool, IsEnabledError> isEnabled(const std::string& key);
   std::map<std::string, bool> killswitchMap_;
   Mutex lock_;
 

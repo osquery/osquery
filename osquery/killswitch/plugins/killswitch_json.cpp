@@ -21,7 +21,8 @@ KillswitchJSON::refresh() {
         KillswitchRefreshablePlugin::RefreshError::ParsingError,
         "Error parsing the killswitch JSON. Content : " + *content);
   }
-  clearCache();
+
+  std::map<std::string, bool> mm;
 
   for (const auto& keyValue : doc.doc().GetObject()) {
     if (!keyValue.name.IsString()) {
@@ -37,8 +38,9 @@ KillswitchJSON::refresh() {
               "value was not bool");
     }
     bool value = keyValue.value.GetBool();
-    addCacheEntry(key, value);
+    mm[key] = value;
   }
+  setCache(mm);
   return Success();
 }
 

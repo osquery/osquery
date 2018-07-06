@@ -77,8 +77,8 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
                        {{"action", "isEnabled"}, {"key", "testSwitch"}},
                        response);
     EXPECT_TRUE(status.ok());
-    EXPECT_EQ(response[0]["isEnabled"], std::string("true"));
-    auto result = Killswitch::get().isSwitchOn("testSwitch");
+    EXPECT_EQ(response[0]["isEnabled"], std::string("1"));
+    auto result = Killswitch::get().isEnabled("testSwitch");
     EXPECT_TRUE(result);
     EXPECT_TRUE(*result);
   }
@@ -97,13 +97,13 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
                        {{"action", "isEnabled"}, {"key", "testSwitch"}},
                        response);
     EXPECT_TRUE(status.ok());
-    EXPECT_EQ(response[0]["isEnabled"], std::string("false"));
-    auto result = Killswitch::get().isSwitchOn("testSwitch");
+    EXPECT_EQ(response[0]["isEnabled"], std::string("0"));
+    auto result = Killswitch::get().isEnabled("testSwitch");
     EXPECT_TRUE(result);
     EXPECT_FALSE(*result);
   }
 
-  plugin->clearCache();
+  plugin->setCache(std::map<std::string, bool>());
 
   {
     PluginResponse response;
@@ -113,8 +113,11 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
                        response);
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(response.size(), 0);
-    auto result = Killswitch::get().isSwitchOn("testSwitch");
+    auto result = Killswitch::get().isEnabled("testSwitch");
     EXPECT_FALSE(result);
+
+    EXPECT_FALSE(Killswitch::get().isEnabled("testSwitch", false));
+    EXPECT_TRUE(Killswitch::get().isEnabled("testSwitch", true));
   }
 
   EXPECT_FALSE(Killswitch::get().refresh());

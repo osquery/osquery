@@ -1,5 +1,6 @@
 #include <osquery/flags.h>
 #include <osquery/killswitch.h>
+#include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <string>
 
@@ -14,15 +15,21 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
-Expected<bool, Killswitch::SwitchOnError> Killswitch::isSwitchOn(
+bool Killswitch::isEnabled(const std::string& key, bool isEnabledDefault) {
+  auto result = isEnabled(key);
+  if (result) {
+    return *result;
+  } else {
+    VLOG(1) << result.getError().getFullMessageRecursive();
+    return isEnabledDefault;
+  }
+}
+
+Expected<bool, Killswitch::SwitchOnError> Killswitch::isEnabled(
     const std::string& key) {
   PluginResponse response;
-  auto status = Registry::call("killswitch",
-                               {
-                                   {"action", "isEnabled"},
-                                   {"key", key},
-                               },
-                               response);
+  auto status = Registry::call(
+      "killswitch", {{"action", "isEnabled"}, {"key", key}}, response);
   if (!status.ok()) {
     return createError(Killswitch::SwitchOnError::CallFailed,
                        status.getMessage());
@@ -42,9 +49,9 @@ Expected<bool, Killswitch::SwitchOnError> Killswitch::isSwitchOn(
   }
 
   const auto& isEnabledValue = isEnabledItem->second;
-  if (isEnabledValue == "true") {
+  if (isEnabledValue == "1") {
     return true;
-  } else if (isEnabledValue == "false") {
+  } else if (isEnabledValue == "0") {
     return false;
   } else {
     return createError(Killswitch::SwitchOnError::IncorrectValue,
