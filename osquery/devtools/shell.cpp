@@ -15,6 +15,7 @@
 
 #include <csignal>
 #include <cstdio>
+#include <sstream>
 
 #ifdef WIN32
 
@@ -757,6 +758,21 @@ static void set_table_name(struct callback_data* p, const char* zName) {
   z[n] = 0;
 }
 
+static void pretty_print_if_needed(struct callback_data* pArg) {
+  if ((pArg != nullptr) && pArg->mode == MODE_Pretty) {
+    if (osquery::FLAGS_json) {
+      osquery::jsonPrint(pArg->prettyPrint->results);
+    } else {
+      osquery::prettyPrint(pArg->prettyPrint->results,
+                           pArg->prettyPrint->columns,
+                           pArg->prettyPrint->lengths);
+    }
+    pArg->prettyPrint->results.clear();
+    pArg->prettyPrint->columns.clear();
+    pArg->prettyPrint->lengths.clear();
+  }
+}
+
 /*
 ** Allocate space and save off current error string.
 */
@@ -908,18 +924,7 @@ static int shell_exec(
   } /* end while */
   dbc->clearAffectedTables();
 
-  if ((pArg != nullptr) && pArg->mode == MODE_Pretty) {
-    if (osquery::FLAGS_json) {
-      osquery::jsonPrint(pArg->prettyPrint->results);
-    } else {
-      osquery::prettyPrint(pArg->prettyPrint->results,
-                           pArg->prettyPrint->columns,
-                           pArg->prettyPrint->lengths);
-    }
-    pArg->prettyPrint->results.clear();
-    pArg->prettyPrint->columns.clear();
-    pArg->prettyPrint->lengths.clear();
-  }
+  pretty_print_if_needed(pArg);
 
   return rc;
 }
@@ -1065,6 +1070,30 @@ inline void meta_tables(int nArg, char** azArg) {
     if (nArg == 1 || table_name.find(azArg[1]) == 0) {
       printf("  => %s\n", table_name.c_str());
     }
+  }
+}
+
+inline void meta_types(struct callback_data* pArg, char* zSql) {
+  char* COLUMN_NAMES[] = { "name", "type" };
+
+  auto dbc = osquery::SQLiteDBManager::get();
+  osquery::TableColumns columns;
+  auto status = getQueryColumnsInternal(zSql, columns, dbc);
+
+  if (status.ok()) {
+    for (const auto& column_info : columns) {
+      const auto& name = std::get<0>(column_info);
+      const auto& type = columnTypeName(std::get<1>(column_info));
+
+      std::vector<char *> row;
+      row.push_back(const_cast<char*>(name.c_str()));
+      row.push_back(const_cast<char*>(type.c_str()));
+
+      shell_callback(pArg, 2, &row[0], COLUMN_NAMES, nullptr);
+    }
+    pretty_print_if_needed(pArg);
+  } else {
+    fprintf(stdout, "Error %d: %s\n", status.getCode(), status.toString().c_str());
   }
 }
 
@@ -1473,6 +1502,7 @@ static int process_input(struct callback_data* p, FILE* in) {
   int errCnt = 0; /* Number of errors seen */
   int lineno = 0; /* Current line number */
   int startline = 0; /* Line number for start of current input */
+  bool typesQuery = false;
 
   while (errCnt == 0 || (bail_on_error == 0) ||
          (in == nullptr && stdin_is_interactive)) {
@@ -1502,13 +1532,17 @@ static int process_input(struct callback_data* p, FILE* in) {
       if (p->echoOn != 0) {
         printf("%s\n", zLine);
       }
-      rc = do_meta_command(zLine, p);
-      if (rc == 2) { /* exit requested */
-        break;
-      } else if (rc != 0) {
-        errCnt++;
+      if (strncmp(zLine, ".types ", 7) == 0) {
+        typesQuery = true;
+      } else {
+        rc = do_meta_command(zLine, p);
+        if (rc == 2) { /* exit requested */
+          break;
+        } else if (rc != 0) {
+          errCnt++;
+        }
+        continue;
       }
-      continue;
     }
     nLine = strlen30(zLine);
     if (nSql + nLine + 2 >= nAlloc) {
@@ -1527,7 +1561,7 @@ static int process_input(struct callback_data* p, FILE* in) {
     nSqlPrior = nSql;
     if (nSql == 0) {
       int i;
-      for (i = 0; (zLine[i] != 0) && IsSpace(zLine[i]); i++) {
+      for (i = typesQuery ? 7 : 0; (zLine[i] != 0) && IsSpace(zLine[i]); i++) {
       }
       assert(nAlloc > 0 && zSql != nullptr);
       if (zSql != nullptr) {
@@ -1543,24 +1577,29 @@ static int process_input(struct callback_data* p, FILE* in) {
     if ((nSql != 0) &&
         (line_contains_semicolon(&zSql[nSqlPrior], nSql - nSqlPrior) != 0) &&
         (sqlite3_complete(zSql) != 0)) {
-      p->cnt = 0;
-      BEGIN_TIMER;
-      rc = shell_exec(zSql, shell_callback, p, &zErrMsg);
-      END_TIMER;
-      if ((rc != 0) || zErrMsg != nullptr) {
-        char zPrefix[100] = {0};
-        if (in != nullptr || !stdin_is_interactive) {
-          sqlite3_snprintf(
-              sizeof(zPrefix), zPrefix, "Error: near line %d:", startline);
-        } else {
-          sqlite3_snprintf(sizeof(zPrefix), zPrefix, "Error:");
+      if (typesQuery) {
+        meta_types(p, zSql);
+        typesQuery = false;
+      } else {
+        p->cnt = 0;
+        BEGIN_TIMER;
+        rc = shell_exec(zSql, shell_callback, p, &zErrMsg);
+        END_TIMER;
+        if ((rc != 0) || zErrMsg != nullptr) {
+          char zPrefix[100] = {0};
+          if (in != nullptr || !stdin_is_interactive) {
+            sqlite3_snprintf(
+                sizeof(zPrefix), zPrefix, "Error: near line %d:", startline);
+          } else {
+            sqlite3_snprintf(sizeof(zPrefix), zPrefix, "Error:");
+          }
+          if (zErrMsg != nullptr) {
+            fprintf(stderr, "%s %s\n", zPrefix, zErrMsg);
+            sqlite3_free(zErrMsg);
+            zErrMsg = nullptr;
+          }
+          errCnt++;
         }
-        if (zErrMsg != nullptr) {
-          fprintf(stderr, "%s %s\n", zPrefix, zErrMsg);
-          sqlite3_free(zErrMsg);
-          zErrMsg = nullptr;
-        }
-        errCnt++;
       }
       nSql = 0;
     } else if ((nSql != 0) && (_all_whitespace(zSql) != 0)) {
