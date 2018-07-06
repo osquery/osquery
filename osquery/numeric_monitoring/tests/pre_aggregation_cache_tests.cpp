@@ -26,7 +26,7 @@ GTEST_TEST(PreAggregationPoint, tryToUpdate_same_path_none) {
       monitoring::Point(path, 1, monitoring::PreAggregationType::None, now);
   auto new_pt =
       monitoring::Point(path, 1, monitoring::PreAggregationType::None, now);
-  ASSERT_FALSE(prev_pt.tryToUpdate(new_pt));
+  ASSERT_FALSE(prev_pt.tryToAggregate(new_pt));
 }
 
 GTEST_TEST(PreAggregationPoint, tryToUpdate_same_path_different_types) {
@@ -46,9 +46,9 @@ GTEST_TEST(PreAggregationPoint, tryToUpdate_same_path_different_types) {
       auto new_pt = monitoring::Point(path, 1, new_aggr, now);
       if (new_aggr == prev_aggr &&
           new_aggr != monitoring::PreAggregationType::None) {
-        ASSERT_TRUE(prev_pt.tryToUpdate(new_pt));
+        ASSERT_TRUE(prev_pt.tryToAggregate(new_pt));
       } else {
-        ASSERT_FALSE(prev_pt.tryToUpdate(new_pt));
+        ASSERT_FALSE(prev_pt.tryToAggregate(new_pt));
       }
     }
   }
@@ -62,8 +62,8 @@ GTEST_TEST(PreAggregationPoint, tryToUpdate_different_path_sum) {
   const auto new_path = "test.path.to.nowhere/something.else";
   auto new_pt =
       monitoring::Point(new_path, 1, monitoring::PreAggregationType::Sum, now);
-  ASSERT_FALSE(prev_pt.tryToUpdate(new_pt));
-  ASSERT_FALSE(new_pt.tryToUpdate(prev_pt));
+  ASSERT_FALSE(prev_pt.tryToAggregate(new_pt));
+  ASSERT_FALSE(new_pt.tryToAggregate(prev_pt));
 }
 
 GTEST_TEST(PreAggregationPoint, tryToUpdate_sum) {
@@ -75,7 +75,7 @@ GTEST_TEST(PreAggregationPoint, tryToUpdate_sum) {
                                   -8,
                                   monitoring::PreAggregationType::Sum,
                                   now - std::chrono::seconds{2});
-  ASSERT_TRUE(prev_pt.tryToUpdate(new_pt));
+  ASSERT_TRUE(prev_pt.tryToAggregate(new_pt));
   EXPECT_EQ(now, prev_pt.time_point_);
   EXPECT_EQ(391, prev_pt.value_);
 }
@@ -89,7 +89,7 @@ GTEST_TEST(PreAggregationPoint, tryToUpdate_min) {
                                   8,
                                   monitoring::PreAggregationType::Min,
                                   now - std::chrono::seconds{2});
-  ASSERT_TRUE(prev_pt.tryToUpdate(new_pt));
+  ASSERT_TRUE(prev_pt.tryToAggregate(new_pt));
   EXPECT_EQ(now, prev_pt.time_point_);
   EXPECT_EQ(3, prev_pt.value_);
 }
@@ -103,7 +103,7 @@ GTEST_TEST(PreAggregationPoint, tryToUpdate_max) {
                                   42,
                                   monitoring::PreAggregationType::Max,
                                   now - std::chrono::hours{2});
-  ASSERT_TRUE(prev_pt.tryToUpdate(new_pt));
+  ASSERT_TRUE(prev_pt.tryToAggregate(new_pt));
   EXPECT_EQ(now, prev_pt.time_point_);
   EXPECT_EQ(42, prev_pt.value_);
 }

@@ -10,7 +10,7 @@
 
 #include <boost/io/detail/quoted_manip.hpp>
 
-#include <osquery/numeric_monitoring/pre_aggregation_cache.h>
+#include "osquery/numeric_monitoring/pre_aggregation_cache.h"
 
 namespace osquery {
 
@@ -25,21 +25,21 @@ Point::Point(std::string path,
       pre_aggregation_type_(std::move(pre_aggregation_type)),
       time_point_(std::move(time_point)) {}
 
-bool Point::tryToUpdate(const Point& new_point) {
+bool Point::tryToAggregate(const Point& new_point) {
   if (path_ != new_point.path_) {
-    LOG(ERROR) << "Pre-aggregation is no possible, point paths is not equal. "
-                  "That should not happen at all. Previous path is "
-               << boost::io::quoted(path_) << ", new one is "
-               << boost::io::quoted(new_point.path_);
+    LOG(WARNING) << "Pre-aggregation is no possible, point paths is not equal. "
+                    "That should not happen at all. Previous path is "
+                 << boost::io::quoted(path_) << ", new one is "
+                 << boost::io::quoted(new_point.path_);
     return false;
   }
   if (pre_aggregation_type_ != new_point.pre_aggregation_type_) {
-    LOG(ERROR) << "Pre-aggregation is no possible, "
-                  "PreAggregationType type missmatch. Previous type is "
-               << boost::io::quoted(to<std::string>(pre_aggregation_type_))
-               << ", new one is "
-               << boost::io::quoted(
-                      to<std::string>(new_point.pre_aggregation_type_));
+    LOG(WARNING) << "Pre-aggregation is no possible, PreAggregationType type "
+                    "missmatch. Previous type is "
+                 << boost::io::quoted(to<std::string>(pre_aggregation_type_))
+                 << ", new one is "
+                 << boost::io::quoted(
+                        to<std::string>(new_point.pre_aggregation_type_));
     return false;
   }
   // time_point_ = new_point.time_point_;
@@ -72,7 +72,7 @@ void PreAggregationCache::addPoint(Point point) {
     points_.push_back(std::move(point));
   } else {
     auto& previous = points_[previousIndex->second];
-    if (!previous.tryToUpdate(point)) {
+    if (!previous.tryToAggregate(point)) {
       points_intex_[point.path_] = points_.size();
       points_.push_back(std::move(point));
     }

@@ -25,7 +25,7 @@ class Point {
                  PreAggregationType pre_aggregation_type,
                  TimePoint time_point);
 
-  bool tryToUpdate(const Point& new_point);
+  bool tryToAggregate(const Point& new_point);
 
  public:
   std::string path_;
