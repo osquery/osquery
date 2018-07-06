@@ -37,12 +37,11 @@ class KillswitchFilesystemTests : public testing::Test {};
 
 TEST_F(KillswitchFilesystemTests, test_killswitch_filesystem_plugin) {
   KillswitchFilesystem plugin(kTestDataPath + "test_killswitch.conf");
-  std::string content;
-  auto status = plugin.getJSON(content);
-  EXPECT_TRUE(status.ok());
-  content.erase(remove_if(content.begin(), content.end(), isspace),
-                content.end());
-  EXPECT_EQ(content, "{\"testSwitch\":true,\"test2Switch\":false}");
+  auto content = plugin.getJSON();
+  EXPECT_TRUE(content);
+  content->erase(remove_if(content->begin(), content->end(), isspace),
+                content->end());
+  EXPECT_EQ(*content, "{\"testSwitch\":true,\"test2Switch\":false}");
 }
 
 } // namespace osquery

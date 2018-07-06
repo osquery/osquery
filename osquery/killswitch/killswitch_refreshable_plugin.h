@@ -7,9 +7,6 @@ namespace osquery {
  */
 class KillswitchRefreshablePlugin : public KillswitchPlugin {
  public:
-  enum class RefreshError {NoContent = 1};
-
- public:
   Status setUp() override;
 
   /// Main entrypoint for killswitch plugin requests
@@ -17,6 +14,7 @@ class KillswitchRefreshablePlugin : public KillswitchPlugin {
                       PluginResponse& response) override;
 
  protected:
+     enum class RefreshError {NoContent = 1, ParsingError = 2, IncorrectKeyType = 3, IncorrectValueType = 4};
   virtual ExpectedSuccess<RefreshError> refresh() = 0;
 };
 } // namespace osquery

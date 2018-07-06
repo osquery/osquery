@@ -24,9 +24,6 @@ namespace osquery {
  */
 class KillswitchPlugin : public Plugin {
  public:
-  enum class IsEnabledError { NoKeyFound = 1 };
-
- public:
   /// Main entrypoint for killswitch plugin requests
   virtual Status call(const PluginRequest& request,
                       PluginResponse& response) override;
@@ -34,6 +31,7 @@ class KillswitchPlugin : public Plugin {
  protected:
   void clearCache();
   void addCacheEntry(const std::string& key, bool value);
+    enum class IsEnabledError { NoKeyFound = 1 };
   Expected<bool, IsEnabledError> isEnabled(const std::string& key);
 
  private:

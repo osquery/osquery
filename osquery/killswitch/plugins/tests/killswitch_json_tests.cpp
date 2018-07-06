@@ -50,29 +50,32 @@ class KillswitchJSONTests : public testing::Test {
 
 class KillswitchJSONTestHelper : public KillswitchJSON {
  public:
-  std::atomic<int> refresh_{0};
   std::atomic<int> get_{0};
   std::atomic<int> get_error_{0};
 
-  void set(Status status, std::string content) {
+  void set(std::string content){
     content_ = content;
-    status_ = status;
+  }
+
+  void set(KillswitchJSON::GetJSONError error){
+    error_ = error;
+    content_ = "";
   }
 
  protected:
-  Status getJSON(std::string& content) override {
+  Expected<std::string, KillswitchJSON::GetJSONError> getJSON()override {
     get_++;
-    if (status_.ok()) {
-      content = content_;
-    } else {
+    if(content_.size() == 0){
       get_error_++;
+      return createError(error_, "");
+    }else{
+      return content_;
     }
-    return status_;
   }
 
  private:
-  std::string content_;
-  Status status_;
+   std::string content_;
+   KillswitchJSON::GetJSONError error_;
 };
 
 TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_set) {
@@ -105,8 +108,8 @@ TEST_F(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid) {
 
   rf.registry("killswitch")->add("test", plugin);
   rf.setActive("killswitch", "test");
-  plugin->set(Status(), "{ \"testSwitch\":true, \"test2Switch\":false }");
-  EXPECT_TRUE(Killswitch::get().refresh().ok());
+  plugin->set("{ \"testSwitch\":true, \"test2Switch\":false }");
+  EXPECT_TRUE(Killswitch::get().refresh());
   EXPECT_EQ(plugin->get_, 1);
   EXPECT_EQ(plugin->get_error_, 0);
 

@@ -6,13 +6,15 @@
 namespace osquery {
 
 class KillswitchJSON : public KillswitchRefreshablePlugin {
- public:
-   enum class GetJSONError{
-
-   }
  protected:
   ExpectedSuccess<KillswitchRefreshablePlugin::RefreshError> refresh() override;
-  virtual ExpectedSuccess<GetJSONError> getJSON(std::string& content) = 0;
+  enum class GetJSONError{
+    MissingConfigFile = 1,
+    NetworkFailure = 2
+  };
+  virtual Expected<std::string, GetJSONError> getJSON() = 0;
+
+  friend class KillswitchJSONTestHelper;
 };
 
 } // namespace osquery

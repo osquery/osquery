@@ -117,7 +117,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
     EXPECT_FALSE(result);
   }
 
-  EXPECT_FALSE(Killswitch::get().refresh().ok());
+  EXPECT_FALSE(Killswitch::get().refresh());
 
   rf.registry("killswitch")->remove("test");
 }
