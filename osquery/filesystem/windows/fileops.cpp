@@ -1553,33 +1553,29 @@ std::string getFileAttribStr(unsigned long file_attributes) {
   return attribs;
 }
 
-std::string lastErrorMessage(unsigned long error_code)
-{
-	
-	LPTSTR msg_buffer = nullptr;
+std::string lastErrorMessage(unsigned long error_code) {
+  LPTSTR msg_buffer = nullptr;
 
-	FormatMessage(
-		FORMAT_MESSAGE_ALLOCATE_BUFFER |
-		FORMAT_MESSAGE_FROM_SYSTEM |
-		FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL,
-		error_code,
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		(LPTSTR) &msg_buffer,
-		0, NULL);
+  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                    FORMAT_MESSAGE_IGNORE_INSERTS,
+                NULL,
+                error_code,
+                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                (LPTSTR)&msg_buffer,
+                0,
+                NULL);
 
-	if (msg_buffer != NULL)
-	{
-		auto error_message = std::string(msg_buffer);
-		LocalFree(msg_buffer);
-		msg_buffer = nullptr;
+  if (msg_buffer != NULL) {
+    auto error_message = std::string(msg_buffer);
+    LocalFree(msg_buffer);
+    msg_buffer = nullptr;
 
-		return error_message;
-	}
+    return error_message;
+  }
 
-	VLOG(1) << "FormatMessage failed for code (" << std::to_string(error_code) << ")";
-	return std::string("Error code" + std::to_string(error_code) + "not found");
-
+  VLOG(1) << "FormatMessage failed for code (" << std::to_string(error_code)
+          << ")";
+  return std::string("Error code" + std::to_string(error_code) + "not found");
 }
 
 Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
@@ -1599,8 +1595,9 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   // Check GetLastError for CreateFile error code.
   if (file_handle == INVALID_HANDLE_VALUE) {
     CloseHandle(file_handle);
-    return Status(
-        -1, "Platform Stat failed for " + path.string() + " with " + lastErrorMessage(GetLastError()));
+    return Status(-1,
+                  "Platform Stat failed for " + path.string() + " with " +
+                      lastErrorMessage(GetLastError()));
   }
 
   // Get the owner SID of the file.
@@ -1616,8 +1613,9 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   // Check GetLastError for GetSecurityInfo error condition.
   if (ret != ERROR_SUCCESS) {
     CloseHandle(file_handle);
-	return Status(
-		-1, "Platform Stat failed for " + path.string() + " with " + lastErrorMessage(GetLastError()));
+    return Status(-1,
+                  "Platform Stat failed for " + path.string() + " with " +
+                      lastErrorMessage(GetLastError()));
   }
 
   FILE_BASIC_INFO basic_info;
@@ -1625,8 +1623,9 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   if (GetFileInformationByHandle(file_handle, &file_info) == 0) {
     CloseHandle(file_handle);
-	return Status(
-		-1, "Platform Stat failed for " + path.string() + " with " + lastErrorMessage(GetLastError()));
+    return Status(-1,
+                  "Platform Stat failed for " + path.string() + " with " +
+                      lastErrorMessage(GetLastError()));
   }
 
   auto file_index =
