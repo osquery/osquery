@@ -8,8 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <string>
 #include <cstdint>
+#include <string>
 
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
@@ -328,57 +328,41 @@ TEST_F(ConversionsTests, tryTo_same_type) {
   ASSERT_FALSE(ret2.isError());
 }
 
-template<
-  typename ValueType
-  , typename StrType
->
+template <typename ValueType, typename StrType>
 void testTryToForRvalue(ValueType value, const StrType& str) {
   auto ret = tryTo<ValueType>(StrType{str});
   ASSERT_FALSE(ret.isError());
   ASSERT_EQ(ret.get(), value);
 }
 
-template<
-  typename ValueType
-  , typename StrType
->
+template <typename ValueType, typename StrType>
 void testTryToForLValue(ValueType value, StrType str) {
   auto ret = tryTo<ValueType>(str);
   ASSERT_FALSE(ret.isError());
   ASSERT_EQ(ret.get(), value);
 }
 
-template<
-  typename ValueType
-  , typename StrType
->
+template <typename ValueType, typename StrType>
 void testTryToForConstLValue(ValueType value, const StrType str) {
   auto ret = tryTo<ValueType>(str);
   ASSERT_FALSE(ret.isError());
   ASSERT_EQ(ret.get(), value);
 }
 
-template<
-  typename ValueType
-  , typename StrType
->
+template <typename ValueType, typename StrType>
 void testTryToForString(ValueType value, const StrType str) {
   testTryToForRvalue(value, str);
   testTryToForLValue(value, str);
   testTryToForConstLValue(value, str);
 }
 
-template<
-  typename ValueType
->
+template <typename ValueType>
 void testTryToForValue(ValueType value) {
   testTryToForString(value, std::to_string(value));
   testTryToForString(value, std::to_wstring(value));
 }
 
-template<
-  typename IntType
->
+template <typename IntType>
 void testTryToForInt() {
   testTryToForValue<IntType>(119);
   testTryToForValue<IntType>(std::numeric_limits<IntType>::max());
