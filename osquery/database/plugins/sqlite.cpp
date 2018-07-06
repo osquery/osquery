@@ -210,7 +210,7 @@ Status SQLiteDatabasePlugin::putBatch(const std::string& domain,
   sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);
 
   {
-    size_t i = 1U;
+    int i = 1;
 
     for (const auto& p : data) {
       const auto& key = p.first;
@@ -219,7 +219,7 @@ Status SQLiteDatabasePlugin::putBatch(const std::string& domain,
       sqlite3_bind_text(stmt, i, key.c_str(), -1, SQLITE_STATIC);
       sqlite3_bind_text(stmt, i + 1, value.c_str(), -1, SQLITE_STATIC);
 
-      i += 2U;
+      i += 2;
     }
   }
 
