@@ -15,6 +15,10 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
+// bool Killswitch::isMyTutorialSwitchEnabled();{
+//   return isEnabled("tutorialSwitch", true);
+// }
+
 bool Killswitch::isEnabled(const std::string& key, bool isEnabledDefault) {
   auto result = isEnabled(key);
   if (result) {
