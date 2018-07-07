@@ -161,19 +161,18 @@ Status genSignatureForFileAndArch(const std::string& path,
   CFDataRef hashInfo =
       (CFDataRef)CFDictionaryGetValue(code_info, kSecCodeInfoUnique);
   if (hashInfo != nullptr) {
-    // Get the SHA-1 bytes
+    // Get the CDHash bytes
     std::stringstream ss;
     auto bytes = CFDataGetBytePtr(hashInfo);
-    if (bytes != nullptr &&
-        CFDataGetLength(hashInfo) == CC_SHA1_DIGEST_LENGTH) {
+    if (bytes != nullptr && CFDataGetLength(hashInfo) > 0) {
       // Write bytes as hex strings
-      for (size_t n = 0; n < CC_SHA1_DIGEST_LENGTH; n++) {
+      for (size_t n = 0; n < CFDataGetLength(hashInfo); n++) {
         ss << std::hex << std::setfill('0') << std::setw(2);
         ss << (unsigned int)bytes[n];
       }
       r["cdhash"] = ss.str();
     }
-    if (r["cdhash"].length() != CC_SHA1_DIGEST_LENGTH * 2) {
+    if (r["cdhash"].length() != CFDataGetLength(hashInfo) * 2) {
       VLOG(1) << "Error extracting code directory hash";
       r["cdhash"] = "";
     }
