@@ -218,8 +218,8 @@ TEST_F(SystemsTablesTests, test_win_drivers_query_time) {
   safeStrtoll(results2.rows()[0].at("user_time"), 0, utime2);
   safeStrtoll(results2.rows()[0].at("system_time"), 0, systime2);
 
-  EXPECT_LT(utime2 - utime1, 10U);
-  EXPECT_LT(systime2 - systime1, 10U);
+  EXPECT_LT(utime2 - utime1, 10000U);
+  EXPECT_LT(systime2 - systime1, 10000U);
 }
 
 TEST_F(SystemsTablesTests, test_win_crashes_parsing) {
