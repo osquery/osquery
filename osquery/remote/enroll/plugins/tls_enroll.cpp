@@ -80,7 +80,7 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   params.add("host_identifier", getHostIdentifier());
   params.add(
       "platform_type",
-      boost::lexical_cast<std::string>(static_cast<uint64_t>(kPlatformType)));
+      std::to_string(static_cast<uint64_t>(kPlatformType)));
 
   // Select from each table describing host details.
   JSON host_details;

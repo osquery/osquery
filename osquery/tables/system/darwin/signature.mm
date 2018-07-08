@@ -31,19 +31,12 @@ namespace tables {
 std::set<std::string> kCheckedArches{"", "i386", "ppc", "arm", "x86_64"};
 
 int getOSMinorVersion() {
-  using boost::lexical_cast;
-  using boost::bad_lexical_cast;
-
   auto qd = SQL::selectAllFrom("os_version");
   if (qd.size() != 1) {
     return -1;
   }
 
-  try {
-    return lexical_cast<int>(qd.front().at("minor"));
-  } catch (const bad_lexical_cast& e) {
-    return -1;
-  }
+  return std::stol(qd.front().at("minor"));
 }
 
 // Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on
