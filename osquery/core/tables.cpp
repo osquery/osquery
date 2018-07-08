@@ -427,6 +427,17 @@ std::set<unsigned long long> ConstraintList::getAll<unsigned long long>(
   return cs;
 }
 
+template <>
+std::set<std::string> ConstraintList::getAll<std::string>(
+    ConstraintOperator op) const {
+  std::set<std::string> cs;
+  std::transform(constraints_.begin(),
+                 constraints_.end(),
+                 std::inserter(cs, cs.begin()),
+                 [](const Constraint& c) { return c.expr; });
+  return cs;
+}
+
 void ConstraintList::serialize(JSON& doc, rapidjson::Value& obj) const {
   auto expressions = doc.getArray();
   for (const auto& constraint : constraints_) {

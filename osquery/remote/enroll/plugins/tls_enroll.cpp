@@ -78,9 +78,8 @@ Status TLSEnrollPlugin::requestKey(const std::string& uri,
   JSON params;
   params.add(FLAGS_tls_enroll_override, getEnrollSecret());
   params.add("host_identifier", getHostIdentifier());
-  params.add(
-      "platform_type",
-      std::to_string(static_cast<uint64_t>(kPlatformType)));
+  params.add("platform_type",
+             std::to_string(static_cast<uint64_t>(kPlatformType)));
 
   // Select from each table describing host details.
   JSON host_details;
