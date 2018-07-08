@@ -314,6 +314,11 @@ inline bool logStderrOnly() {
   if (Registry::get().external()) {
     return true;
   }
+
+  if (FLAGS_disable_logging) {
+    return true;
+  }
+
   return Flag::getValue("logger_plugin").find("filesystem") ==
          std::string::npos;
 }
@@ -349,15 +354,11 @@ void setVerboseLevel() {
   }
 
   if (!FLAGS_logger_stderr) {
-    FLAGS_logtostderr = false;
+    FLAGS_stderrthreshold = 3;
     FLAGS_alsologtostderr = false;
   }
 
   if (logStderrOnly()) {
-    FLAGS_logtostderr = true;
-  }
-
-  if (FLAGS_disable_logging) {
     FLAGS_logtostderr = true;
   }
 }
@@ -371,6 +372,10 @@ void initStatusLogger(const std::string& name, bool init_glog) {
   FLAGS_stop_logging_if_full_disk = true;
   // The max size for individual log file is 10MB.
   FLAGS_max_log_size = 10;
+
+  // Begin with only logging to stderr.
+  FLAGS_logtostderr = true;
+  FLAGS_stderrthreshold = 3;
 
   setVerboseLevel();
   // Start the logging, and announce the daemon is starting.
