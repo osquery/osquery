@@ -104,70 +104,49 @@ namespace monitoring {
 
 namespace {
 
-class PreAggregationBuffer final : public InternalRunnable {
+class FlusherIsScheduled{};
+FlusherIsScheduled schedule();
+
+class PreAggregationBuffer final {
  public:
-  explicit PreAggregationBuffer(const std::string& name,
-                                std::chrono::milliseconds time_quantum)
-      : InternalRunnable(name), time_quantum_(std::move(time_quantum)) {}
-
-  void reset() {
-    std::lock_guard<std::mutex> lock(lock_);
-    time_quantum_ = std::chrono::seconds(
-        FLAGS_numeric_monitoring_pre_aggregation_time
-    );
-  }
-
-  static std::shared_ptr<PreAggregationBuffer> get() {
-    static std::shared_ptr<PreAggregationBuffer> instance = createSharedInstance();
+  static PreAggregationBuffer& get() {
+    static PreAggregationBuffer instance{};
+    static auto const flusher_is_scheduled = schedule();
+    boost::ignore_unused(flusher_is_scheduled);
     return instance;
-  }
-
-  void start() override {
-    while (!interrupted()) {
-      auto points = takeCachedPoints();
-      for (const auto& pt : points) {
-        unbufferedRecord(
-            pt.path_, pt.value_, pt.pre_aggregation_type_, pt.time_point_);
-      }
-      if (time_quantum_ == std::chrono::milliseconds::zero()) {
-        interrupt();
-      } else {
-        pauseMilli(time_quantum_);
-      }
-    }
   }
 
   void record(const std::string& path,
               const ValueType& value,
               const PreAggregationType& pre_aggregation,
               const TimePoint& time_point) {
-    if (time_quantum_ == std::chrono::milliseconds::zero()) {
-      unbufferedRecord(path, value, pre_aggregation, time_point);
+    if (0 == FLAGS_numeric_monitoring_pre_aggregation_time) {
+      dispatchOne(path, value, pre_aggregation, time_point);
     } else {
-      std::lock_guard<std::mutex> lock(lock_);
+      std::lock_guard<std::mutex> lock(mutex_);
       cache_.addPoint(Point(path, value, pre_aggregation, time_point));
     }
   }
 
- private:
-  static std::shared_ptr<PreAggregationBuffer> createSharedInstance() {
-    auto shared_instance = std::make_shared<PreAggregationBuffer>(
-        "numeric_monitoring_pre_aggregation_buffer",
-        std::chrono::seconds(FLAGS_numeric_monitoring_pre_aggregation_time));
-    Dispatcher::addService(shared_instance);
-    return shared_instance;
+  void flush() {
+    auto points = takeCachedPoints();
+    for (const auto& pt : points) {
+      dispatchOne(
+          pt.path_, pt.value_, pt.pre_aggregation_type_, pt.time_point_);
+    }
   }
 
+ private:
   std::vector<Point> takeCachedPoints() {
-    std::lock_guard<std::mutex> lock(lock_);
+    std::lock_guard<std::mutex> lock(mutex_);
     auto points = cache_.takePoints();
     return points;
   }
 
-  void unbufferedRecord(const std::string& path,
-                        const ValueType& value,
-                        const PreAggregationType& pre_aggregation,
-                        const TimePoint& time_point) {
+  void dispatchOne(const std::string& path,
+                   const ValueType& value,
+                   const PreAggregationType& pre_aggregation,
+                   const TimePoint& time_point) {
     auto status = Registry::call(
         registryName(),
         FLAGS_numeric_monitoring_plugins,
@@ -185,27 +164,47 @@ class PreAggregationBuffer final : public InternalRunnable {
   }
 
  private:
-  std::chrono::milliseconds time_quantum_;
   PreAggregationCache cache_;
-  std::mutex lock_;
+  std::mutex mutex_;
 };
+
+class PreAggregationFlusher : public InternalRunnable {
+ public:
+  explicit PreAggregationFlusher()
+      : InternalRunnable("numeric_monitoring_pre_aggregation_buffer_flusher") {}
+
+  void start() override {
+    while (!interrupted() && 0 != FLAGS_numeric_monitoring_pre_aggregation_time) {
+      pauseMilli(
+          std::chrono::seconds(FLAGS_numeric_monitoring_pre_aggregation_time)
+      );
+      PreAggregationBuffer::get().flush();
+    }
+  }
+};
+
+FlusherIsScheduled schedule() {
+  Dispatcher::addService(
+      std::make_shared<PreAggregationFlusher>()
+  );
+  return FlusherIsScheduled{};
+}
 
 } // namespace
 
+void flush() {
+  PreAggregationBuffer::get().flush();
+}
+
 void record(const std::string& path,
-            const ValueType value,
-            const PreAggregationType pre_aggregation,
-            const TimePoint time_point) {
+            ValueType value,
+            PreAggregationType pre_aggregation,
+            TimePoint time_point) {
   if (!FLAGS_enable_numeric_monitoring) {
     return;
   }
-  PreAggregationBuffer::get()->record(
+  PreAggregationBuffer::get().record(
       path, value, pre_aggregation, std::move(time_point));
-}
-
-void reset() {
-  PreAggregationBuffer::get()->reset();
-  Dispatcher::addService(PreAggregationBuffer::get());
 }
 
 } // namespace monitoring

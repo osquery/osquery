@@ -94,12 +94,13 @@ GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
   FLAGS_numeric_monitoring_plugins = kNameForTestPlugin;
   FLAGS_numeric_monitoring_pre_aggregation_time = 1;
 
-  monitoring::reset();
-  NumericMonitoringInMemoryTestPlugin::points.clear();
-
   auto status = RegistryFactory::get().setActive(
       monitoring::registryName(), FLAGS_numeric_monitoring_plugins);
   ASSERT_TRUE(status.ok());
+
+  monitoring::flush();
+  NumericMonitoringInMemoryTestPlugin::points.clear();
+
   const auto monitoring_path = "some.path.to.heaven";
   monitoring::record(monitoring_path,
                      monitoring::ValueType{83},
@@ -110,7 +111,7 @@ GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
   monitoring::record(monitoring_path,
                      monitoring::ValueType{93},
                      monitoring::PreAggregationType::Sum);
-  std::this_thread::sleep_for(std::chrono::seconds(2));
+  monitoring::flush();
 
   EXPECT_EQ(1, NumericMonitoringInMemoryTestPlugin::points.size());
   EXPECT_EQ(monitoring_path,
@@ -123,6 +124,9 @@ GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
   FLAGS_enable_numeric_monitoring = isEnabled;
   FLAGS_numeric_monitoring_plugins = plugins;
   FLAGS_numeric_monitoring_pre_aggregation_time = pre_aggregation_time;
+
+  Dispatcher::stopServices();
+  Dispatcher::joinServices();
 }
 
 GTEST_TEST(NumericMonitoringTests, record_without_buffer) {
@@ -135,7 +139,8 @@ GTEST_TEST(NumericMonitoringTests, record_without_buffer) {
   FLAGS_numeric_monitoring_plugins = kNameForTestPlugin;
   FLAGS_numeric_monitoring_pre_aggregation_time = 0;
 
-  monitoring::reset();
+  //monitoring::reschedule();
+  monitoring::flush();
   NumericMonitoringInMemoryTestPlugin::points.clear();
 
   auto status = RegistryFactory::get().setActive(
@@ -156,17 +161,22 @@ GTEST_TEST(NumericMonitoringTests, record_without_buffer) {
   EXPECT_EQ(monitoring_path,
             NumericMonitoringInMemoryTestPlugin::points.back().at(
                 monitoring::recordKeys().path));
-  auto fristValueInStr = NumericMonitoringInMemoryTestPlugin::points.front().at(
+  auto fristValueInStr =
+  NumericMonitoringInMemoryTestPlugin::points.front().at(
       monitoring::recordKeys().value);
   EXPECT_EQ(146, std::stoll(fristValueInStr));
 
-  auto lastValueInStr = NumericMonitoringInMemoryTestPlugin::points.back().at(
+  auto lastValueInStr =
+  NumericMonitoringInMemoryTestPlugin::points.back().at(
       monitoring::recordKeys().value);
   EXPECT_EQ(152, std::stoll(lastValueInStr));
 
   FLAGS_enable_numeric_monitoring = isEnabled;
   FLAGS_numeric_monitoring_plugins = plugins;
   FLAGS_numeric_monitoring_pre_aggregation_time = pre_aggregation_time;
+
+  Dispatcher::stopServices();
+  Dispatcher::joinServices();
 }
 
 } // namespace osquery

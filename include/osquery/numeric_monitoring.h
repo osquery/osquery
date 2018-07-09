@@ -62,9 +62,10 @@ void record(const std::string& path,
             TimePoint time_point = Clock::now());
 
 /**
- * Only for tests, please do not use it anywhere
+ * Force flush the pre-aggregation buffer.
+ * Only for tests, please do not use it anywhere.
  */
-void reset();
+void flush();
 
 }; // namespace monitoring
 
