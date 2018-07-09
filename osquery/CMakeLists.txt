@@ -97,6 +97,8 @@ include(registry/CMakeLists.txt)
 include(sql/CMakeLists.txt)
 include(remote/CMakeLists.txt)
 include(utils/CMakeLists.txt)
+include(numeric_monitoring/CMakeLists.txt)
+
 if(NOT SKIP_CARVER)
   include(carver/CMakeLists.txt)
 endif()
