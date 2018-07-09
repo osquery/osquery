@@ -1,0 +1,12 @@
+# Copyright (c) 1993-2001 Microsoft Corp.
+#
+# This file has been automatically generated for use by Microsoft Internet
+# Connection Sharing. It contains the mappings of IP addresses to host names
+# for the home network. Please do not make changes to the HOSTS.ICS file.
+# Any changes may result in a loss of connectivity between machines on the
+# local network.
+#
+
+192.168.11.81 VM-q27rkc8son.mshome.net # 2023 7 6 8 20 49 1 850
+
+
