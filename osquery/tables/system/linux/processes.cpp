@@ -32,6 +32,8 @@
 namespace osquery {
 namespace tables {
 
+const int kMSIn1CLKTCK = (1000 / sysconf(_SC_CLK_TCK));
+
 inline std::string getProcAttr(const std::string& attr,
                                const std::string& pid) {
   return "/proc/" + pid + "/" + attr;
@@ -437,8 +439,10 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["total_size"] = proc_stat.total_size;
 
   // time information
-  r["user_time"] = proc_stat.user_time;
-  r["system_time"] = proc_stat.system_time;
+  auto usr_time = std::strtoull(proc_stat.user_time.data(), nullptr, 10);
+  r["user_time"] = std::to_string(usr_time * kMSIn1CLKTCK);
+  auto sys_time = std::strtoull(proc_stat.system_time.data(), nullptr, 10);
+  r["system_time"] = std::to_string(sys_time * kMSIn1CLKTCK);
   r["start_time"] = proc_stat.start_time;
 
   if (!proc_io.status.ok()) {
