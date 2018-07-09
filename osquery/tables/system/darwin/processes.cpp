@@ -296,19 +296,22 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
   char* addr = nullptr;
   uint64_t size = 0;
 
-  stackshot_config_t stconf = {0};
-  stconf.pid = pid;
-  stconf.buf = 0;
-  stconf.buf_size = 0;
-  stconf.flags = 0x10000; // STACKSHOT_KCDATA_FORMAT
-  stconf.out_buf_addr = reinterpret_cast<uint64_t>(&addr);
-  stconf.out_buf_size_addr = reinterpret_cast<uint64_t>(&size);
+  stackshot_config_t stconf {
+    pid,
+    0x10000, // STACKSHOT_KCDATA_FORMAT
+    0,
+    0,
+    0,
+    reinterpret_cast<uint64_t>(&addr),
+    reinterpret_cast<uint64_t>(&size)
+   };
 
   // Syscall 491 is the syscall to get stackshots which can return data from
   // the stack of all running process or only one if a pid is provided
-  auto rc = syscall(491, 1, (uint64_t)&stconf, sizeof(stconf));
+  auto rc = syscall(491, 1, reinterpret_cast<uint64_t>(&stconf), sizeof(stconf));
 
   if (rc < 0) {
+    VLOG(1) << "Could not find unique pid for " << pid;
     r["unique_pid"] = BIGINT(-1);
     return;
   }
@@ -321,11 +324,8 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
       r["unique_pid"] = BIGINT(upid);
       break;
     }
-    int padding = item->size % 16;
-    if (padding) {
-      padding = 16 - padding;
-    }
-    off += item->size + 16 + padding;
+    off += item->size + 16;
+    off += off % 16; // padding
   }
 }
 
