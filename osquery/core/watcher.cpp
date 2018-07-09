@@ -368,8 +368,8 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
   try {
     change.parent = static_cast<pid_t>(std::stoll(r.at("parent")));
-    user_time = std::stoll(r.at("user_time")) / change.iv;
-    system_time = std::stoll(r.at("system_time")) / change.iv;
+    user_time = std::stoll(r.at("user_time"));
+    system_time = std::stoll(r.at("system_time"));
     change.footprint = std::stoll(r.at("resident_size"));
   } catch (const std::exception& /* e */) {
     state.sustained_latency = 0;
