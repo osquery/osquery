@@ -66,12 +66,12 @@ inline std::string __sqliteField(const Type& source) noexcept {
 
 template <size_t N>
 inline std::string __sqliteField(const char (&source)[N]) noexcept {
-  return std::string(source);
+  return std::string(source, N - 1U);
 }
 
 template <size_t N>
 inline std::string __sqliteField(const unsigned char (&source)[N]) noexcept {
-  return std::string(reinterpret_cast<const char*>(source), N);
+  return std::string(reinterpret_cast<const char*>(source), N - 1U);
 }
 
 inline std::string __sqliteField(const char* source) noexcept {
@@ -84,6 +84,10 @@ inline std::string __sqliteField(char* const source) noexcept {
 
 inline std::string __sqliteField(const unsigned char* source) noexcept {
   return std::string(reinterpret_cast<const char*>(source));
+}
+
+inline std::string __sqliteField(unsigned char* const source) noexcept {
+  return std::string(reinterpret_cast<char* const>(source));
 }
 
 inline std::string __sqliteField(const std::string& source) noexcept {
