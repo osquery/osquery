@@ -8,20 +8,14 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <chrono>
-#include <limits>
-#include <thread>
-
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
 
 #include <osquery/core/conversions.h>
-#include <osquery/filesystem.h>
+#include <osquery/dispatcher.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include <osquery/tests/test_util.h>
 
 #include <include/osquery/numeric_monitoring.h>
 
