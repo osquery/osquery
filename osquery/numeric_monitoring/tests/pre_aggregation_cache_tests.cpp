@@ -39,7 +39,6 @@ GTEST_TEST(PreAggregationPoint, tryToUpdate_same_path_different_types) {
 
   for (auto prev_ind = UnderType{}; prev_ind < upper_limit; ++prev_ind) {
     for (auto new_ind = UnderType{}; new_ind < upper_limit; ++new_ind) {
-
       auto prev_aggr = static_cast<monitoring::PreAggregationType>(prev_ind);
       auto prev_pt = monitoring::Point(path, 1, prev_aggr, now);
 
