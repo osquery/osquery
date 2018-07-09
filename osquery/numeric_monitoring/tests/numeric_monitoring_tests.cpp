@@ -65,7 +65,7 @@ DECLARE_bool(enable_numeric_monitoring);
 DECLARE_string(numeric_monitoring_plugins);
 DECLARE_uint64(numeric_monitoring_pre_aggregation_time);
 
-const auto name_for_test_plugin =
+const auto kNameForTestPlugin =
     "test_plugin_osquery/numeric_monitoring/tests/numeric_monitoring_tests";
 
 class NumericMonitoringInMemoryTestPlugin : public NumericMonitoringPlugin {
@@ -82,7 +82,7 @@ std::vector<PluginRequest> NumericMonitoringInMemoryTestPlugin::points;
 
 REGISTER(NumericMonitoringInMemoryTestPlugin,
          monitoring::registryName(),
-         name_for_test_plugin);
+         kNameForTestPlugin);
 
 GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
   const auto isEnabled = FLAGS_enable_numeric_monitoring;
@@ -91,7 +91,7 @@ GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
       FLAGS_numeric_monitoring_pre_aggregation_time;
 
   FLAGS_enable_numeric_monitoring = true;
-  FLAGS_numeric_monitoring_plugins = name_for_test_plugin;
+  FLAGS_numeric_monitoring_plugins = kNameForTestPlugin;
   FLAGS_numeric_monitoring_pre_aggregation_time = 1;
 
   monitoring::reset();
@@ -132,7 +132,7 @@ GTEST_TEST(NumericMonitoringTests, record_without_buffer) {
       FLAGS_numeric_monitoring_pre_aggregation_time;
 
   FLAGS_enable_numeric_monitoring = true;
-  FLAGS_numeric_monitoring_plugins = name_for_test_plugin;
+  FLAGS_numeric_monitoring_plugins = kNameForTestPlugin;
   FLAGS_numeric_monitoring_pre_aggregation_time = 0;
 
   monitoring::reset();
@@ -151,7 +151,6 @@ GTEST_TEST(NumericMonitoringTests, record_without_buffer) {
   monitoring::record(monitoring_path,
                      monitoring::ValueType{152},
                      monitoring::PreAggregationType::Sum);
-  std::this_thread::sleep_for(std::chrono::seconds(2));
 
   EXPECT_EQ(3, NumericMonitoringInMemoryTestPlugin::points.size());
   EXPECT_EQ(monitoring_path,

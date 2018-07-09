@@ -110,21 +110,16 @@ class PreAggregationBuffer final : public InternalRunnable {
                                 std::chrono::milliseconds time_quantum)
       : InternalRunnable(name), time_quantum_(std::move(time_quantum)) {}
 
-  static void reset() {
-    if (instance) {
-      instance->interrupt();
-    }
-    instance = std::make_shared<PreAggregationBuffer>(
-        "numeric_monitoring_pre_aggregation_buffer",
-        std::chrono::seconds(FLAGS_numeric_monitoring_pre_aggregation_time));
-    Dispatcher::addService(instance);
+  void reset() {
+    std::lock_guard<std::mutex> lock(lock_);
+    time_quantum_ = std::chrono::seconds(
+        FLAGS_numeric_monitoring_pre_aggregation_time
+    );
   }
 
-  static PreAggregationBuffer& get() {
-    if (nullptr == instance) {
-      reset();
-    }
-    return *instance.get();
+  static std::shared_ptr<PreAggregationBuffer> get() {
+    static std::shared_ptr<PreAggregationBuffer> instance = createSharedInstance();
+    return instance;
   }
 
   void start() override {
@@ -134,7 +129,11 @@ class PreAggregationBuffer final : public InternalRunnable {
         unbufferedRecord(
             pt.path_, pt.value_, pt.pre_aggregation_type_, pt.time_point_);
       }
-      pauseMilli(time_quantum_);
+      if (time_quantum_ == std::chrono::milliseconds::zero()) {
+        interrupt();
+      } else {
+        pauseMilli(time_quantum_);
+      }
     }
   }
 
@@ -145,14 +144,22 @@ class PreAggregationBuffer final : public InternalRunnable {
     if (time_quantum_ == std::chrono::milliseconds::zero()) {
       unbufferedRecord(path, value, pre_aggregation, time_point);
     } else {
-      std::lock_guard<std::mutex> lock(cache_lock_);
+      std::lock_guard<std::mutex> lock(lock_);
       cache_.addPoint(Point(path, value, pre_aggregation, time_point));
     }
   }
 
  private:
+  static std::shared_ptr<PreAggregationBuffer> createSharedInstance() {
+    auto shared_instance = std::make_shared<PreAggregationBuffer>(
+        "numeric_monitoring_pre_aggregation_buffer",
+        std::chrono::seconds(FLAGS_numeric_monitoring_pre_aggregation_time));
+    Dispatcher::addService(shared_instance);
+    return shared_instance;
+  }
+
   std::vector<Point> takeCachedPoints() {
-    std::lock_guard<std::mutex> lock(cache_lock_);
+    std::lock_guard<std::mutex> lock(lock_);
     auto points = cache_.takePoints();
     return points;
   }
@@ -178,15 +185,10 @@ class PreAggregationBuffer final : public InternalRunnable {
   }
 
  private:
-  const std::chrono::milliseconds time_quantum_;
+  std::chrono::milliseconds time_quantum_;
   PreAggregationCache cache_;
-  std::mutex cache_lock_;
-
- private:
-  static std::shared_ptr<PreAggregationBuffer> instance;
+  std::mutex lock_;
 };
-
-std::shared_ptr<PreAggregationBuffer> PreAggregationBuffer::instance;
 
 } // namespace
 
@@ -197,12 +199,13 @@ void record(const std::string& path,
   if (!FLAGS_enable_numeric_monitoring) {
     return;
   }
-  PreAggregationBuffer::get().record(
+  PreAggregationBuffer::get()->record(
       path, value, pre_aggregation, std::move(time_point));
 }
 
 void reset() {
-  PreAggregationBuffer::reset();
+  PreAggregationBuffer::get()->reset();
+  Dispatcher::addService(PreAggregationBuffer::get());
 }
 
 } // namespace monitoring
