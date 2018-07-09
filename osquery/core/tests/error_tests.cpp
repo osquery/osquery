@@ -11,12 +11,14 @@
 #include <gtest/gtest.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/io/detail/quoted_manip.hpp>
 
 #include <osquery/error.h>
 
 enum class TestError {
   SomeError = 1,
   AnotherError = 2,
+  MusicError,
 };
 
 GTEST_TEST(ErrorTest, initialization) {
@@ -84,4 +86,19 @@ GTEST_TEST(ErrorTest, createErrorFromOtherError) {
   EXPECT_PRED2(stringContains, secondShortMsg, "TestError");
   EXPECT_PRED2(stringContains, secondShortMsg, firstMsg);
   EXPECT_PRED2(stringContains, secondShortMsg, secondMsg);
+}
+
+GTEST_TEST(ErrorTest, createErrorAndStreamToIt) {
+  const auto a4 = std::string{"A4"};
+  const auto err = osquery::createError(TestError::MusicError, "Do")
+                   << '-' << "Re"
+                   << "-Mi"
+                   << "-Fa"
+                   << "-Sol"
+                   << "-La"
+                   << "-Si La" << boost::io::quoted(a4) << ' ' << 440 << " Hz";
+  EXPECT_EQ(TestError::MusicError, err.getErrorCode());
+  auto fullMsg = err.getFullMessageRecursive();
+  EXPECT_PRED2(
+      stringContains, fullMsg, "Do-Re-Mi-Fa-Sol-La-Si La\"A4\" 440 Hz");
 }

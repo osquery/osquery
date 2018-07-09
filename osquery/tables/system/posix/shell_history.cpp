@@ -91,6 +91,24 @@ void genShellHistoryForUser(const std::string& uid,
   }
 }
 
+void genShellHistoryFromBashSessions(const std::string& uid,
+                                     const std::string& directory,
+                                     QueryData& results) {
+  boost::filesystem::path bash_sessions = directory;
+  bash_sessions /= ".bash_sessions";
+
+  if (pathExists(bash_sessions)) {
+    bash_sessions /= "*.history";
+    std::vector<std::string> session_hist_files;
+    resolveFilePattern(bash_sessions, session_hist_files);
+
+    for (const auto& hfile : session_hist_files) {
+      boost::filesystem::path history_file = hfile;
+      genShellHistoryFromFile(uid, history_file, results);
+    }
+  }
+}
+
 QueryData genShellHistory(QueryContext& context) {
   QueryData results;
 
@@ -102,6 +120,7 @@ QueryData genShellHistory(QueryContext& context) {
     auto dir = row.find("directory");
     if (uid != row.end() && gid != row.end() && dir != row.end()) {
       genShellHistoryForUser(uid->second, gid->second, dir->second, results);
+      genShellHistoryFromBashSessions(uid->second, dir->second, results);
     }
   }
 
