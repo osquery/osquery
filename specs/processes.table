@@ -36,7 +36,8 @@ extended_schema(WINDOWS, [
 ])
 
 extended_schema(DARWIN, [
-    Column("unique_pid", INTEGER, "A 64bit pid from the XNU kernel that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("unique_pid", INTEGER, "A 64bit pid that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("unique_ppid", INTEGER, "The 64bit parent pid that is never reused. Returns -1 if we couldn't gather them from the system."),
 ])
 attributes(cacheable=True)
 implementation("system/processes@genProcesses")

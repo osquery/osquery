@@ -12,7 +12,6 @@
 #include <libproc.h>
 #include <mach/mach.h>
 #include <mach/mach_time.h>
-#include <mach/mach_vm.h>
 #include <sys/sysctl.h>
 
 #include <mach-o/dyld_images.h>
@@ -268,72 +267,29 @@ void genProcNumThreads(QueryContext& context, int pid, Row& r) {
   }
 }
 
-uint64_t parseKCItem(kcdata_item_t item) {
-  if (item->type == STACKSHOT_KCTYPE_TASK_SNAPSHOT) {
-    struct task_snapshot_v2* tsv2 =
-        reinterpret_cast<struct task_snapshot_v2*>(item->data);
-    return tsv2->ts_unique_pid;
-  } else {
-    return std::numeric_limits<std::uint64_t>::max();
-  }
-}
-
 void genProcUniquePid(QueryContext& context, int pid, Row& r) {
-  if (!context.isColumnUsed("unique_pid")) {
+  if (!context.isColumnUsed("unique_pid") &&
+      !context.isColumnUsed("unique_ppid")) {
     return;
   }
 
-  // A definition of the stackshot_config structure so we can pull data out of
-  // the kernel
-  typedef struct stackshot_config {
-    int pid;
-    uint32_t flags;
-    uint64_t dtimestamp;
-    uint64_t buf;
-    uint32_t buf_size;
-    uint64_t out_buf_addr;
-    uint64_t out_buf_size;
-  } stackshot_config_t;
+  struct proc_uniqidentifierinfo {
+    uint8_t p_uuid[16];
+    uint64_t p_uniqueid;
+    uint64_t p_puniqueid;
+    uint64_t p_reserve2;
+    uint64_t p_reserve3;
+    uint64_t p_reserve4;
+  };
 
-  char* addr = nullptr;
-  uint64_t size = 0;
-
-  stackshot_config_t stconf{pid,
-                            0x10000, // STACKSHOT_KCDATA_FORMAT
-                            0,
-                            0,
-                            0,
-                            reinterpret_cast<uint64_t>(&addr),
-                            reinterpret_cast<uint64_t>(&size)};
-
-  // Syscall 491 is the syscall to get stackshots which can return data from
-  // the stack of all running process or only one if a pid is provided
-  auto rc =
-      syscall(491, 1, reinterpret_cast<uint64_t>(&stconf), sizeof(stconf));
-
-  if (rc < 0) {
-    VLOG(1) << "Could not make syscall for unique pids";
-    r["unique_pid"] = INTEGER(-1);
-    return;
-  }
-
-  uint64_t off = 16;
-  while (off < size) {
-    kcdata_item_t item = reinterpret_cast<kcdata_item_t>(addr + off);
-    auto upid = parseKCItem(item);
-    if (upid != ULLONG_MAX) {
-      r["unique_pid"] = INTEGER(upid);
-      break;
-    }
-    off += item->size + 16 - (off % 16);
-  }
-  auto mach_free = mach_vm_deallocate(mach_task_self(),
-                                      reinterpret_cast<mach_vm_offset_t>(addr),
-                                      static_cast<mach_vm_size_t>(size));
-
-  if (mach_free != KERN_SUCCESS) {
-    LOG(WARNING) << "Could not free memory from mach! Processes might be "
-                    "leaking memory!";
+  struct proc_uniqidentifierinfo uniqidinfo;
+  int status = proc_pidinfo(pid, 17, 0, &uniqidinfo, sizeof(uniqidinfo));
+  if (status == sizeof(uniqidinfo)) {
+    r["unique_pid"] = INTEGER(uniqidinfo.p_uniqueid);
+    r["unique_ppid"] = INTEGER(uniqidinfo.p_puniqueid);
+  } else {
+    r["unique_pid"] = "-1";
+    r["unique_ppid"] = "-1";
   }
 }
 
