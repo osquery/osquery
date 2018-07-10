@@ -115,8 +115,9 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
           for (const auto& query : category.value.GetArray()) {
             auto sql = SQL(query.GetString());
             if (!sql.ok()) {
-              LOG(ERROR) << "Could not add file_paths using file_paths_query: "
-                         << sql.getMessageString();
+              LOG(ERROR) << "Could not add file_paths using file_paths_query '"
+                         << query.GetString()
+                         << "': " << sql.getMessageString();
             } else {
               for (auto& row : sql.rows()) {
                 std::string name = category.name.GetString();
