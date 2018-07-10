@@ -124,7 +124,7 @@ Status genUid(id_t& uid, uuid_string_t& uuid_str) {
 }
 
 void genFDEStatusForAPFS(Row& r) {
-  // Set encryption_status as undefined at start 
+  // Set encryption_status as undefined at start
   // and change it to encrypted | not encrypted in future
   r["encryption_status"] = kEncryptionStatusUndefined;
 
@@ -264,9 +264,9 @@ void genFDEStatusForAPFS(Row& r) {
   }
   if (err != 0) {
     // This is expected behaviour on some configurations
-    // We can't handle error here so just log 
+    // We can't handle error here so just log
     LOG(INFO) << "Error calling isEncryptedVolume:encrypted:";
-    // For backward compatibility reasons mark disk as 
+    // For backward compatibility reasons mark disk as
     // not encrypted
     r["encrypted"] = "0";
     cleanup();
@@ -325,7 +325,8 @@ void genFDEStatusForAPFS(Row& r) {
     }
   }
 
-  r["encryption_status"] = isEncrypted ? kEncryptionStatusEncrypted : kEncryptionStatusNotEncrypted;
+  r["encryption_status"] =
+      isEncrypted ? kEncryptionStatusEncrypted : kEncryptionStatusNotEncrypted;
   r["encrypted"] = isEncrypted ? "1" : "0";
   r["type"] = isEncrypted ? "APFS Encryption" : "";
 }
@@ -367,7 +368,8 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
       r["encrypted"] = "0";
     } else {
       r["encrypted"] = encrypted;
-      r["encryption_status"] = encrypted == "1" ? kEncryptionStatusEncrypted : kEncryptionStatusNotEncrypted;
+      r["encryption_status"] = encrypted == "1" ? kEncryptionStatusEncrypted
+                                                : kEncryptionStatusNotEncrypted;
       id_t uid;
       uuid_string_t uuid_string = {0};
       if (genUid(uid, uuid_string).ok()) {
