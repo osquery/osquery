@@ -133,7 +133,6 @@ GTEST_TEST(NumericMonitoringTests, record_without_buffer) {
   FLAGS_numeric_monitoring_plugins = kNameForTestPlugin;
   FLAGS_numeric_monitoring_pre_aggregation_time = 0;
 
-  //monitoring::reschedule();
   monitoring::flush();
   NumericMonitoringInMemoryTestPlugin::points.clear();
 
@@ -151,17 +150,17 @@ GTEST_TEST(NumericMonitoringTests, record_without_buffer) {
                      monitoring::ValueType{152},
                      monitoring::PreAggregationType::Sum);
 
+  // pay attention there is no flush
+
   EXPECT_EQ(3, NumericMonitoringInMemoryTestPlugin::points.size());
   EXPECT_EQ(monitoring_path,
             NumericMonitoringInMemoryTestPlugin::points.back().at(
                 monitoring::recordKeys().path));
-  auto fristValueInStr =
-  NumericMonitoringInMemoryTestPlugin::points.front().at(
+  auto fristValueInStr = NumericMonitoringInMemoryTestPlugin::points.front().at(
       monitoring::recordKeys().value);
   EXPECT_EQ(146, std::stoll(fristValueInStr));
 
-  auto lastValueInStr =
-  NumericMonitoringInMemoryTestPlugin::points.back().at(
+  auto lastValueInStr = NumericMonitoringInMemoryTestPlugin::points.back().at(
       monitoring::recordKeys().value);
   EXPECT_EQ(152, std::stoll(lastValueInStr));
 

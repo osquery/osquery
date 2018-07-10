@@ -104,7 +104,7 @@ namespace monitoring {
 
 namespace {
 
-class FlusherIsScheduled{};
+class FlusherIsScheduled {};
 FlusherIsScheduled schedule();
 
 class PreAggregationBuffer final {
@@ -174,19 +174,17 @@ class PreAggregationFlusher : public InternalRunnable {
       : InternalRunnable("numeric_monitoring_pre_aggregation_buffer_flusher") {}
 
   void start() override {
-    while (!interrupted() && 0 != FLAGS_numeric_monitoring_pre_aggregation_time) {
+    while (!interrupted() &&
+           0 != FLAGS_numeric_monitoring_pre_aggregation_time) {
       pauseMilli(
-          std::chrono::seconds(FLAGS_numeric_monitoring_pre_aggregation_time)
-      );
+          std::chrono::seconds(FLAGS_numeric_monitoring_pre_aggregation_time));
       PreAggregationBuffer::get().flush();
     }
   }
 };
 
 FlusherIsScheduled schedule() {
-  Dispatcher::addService(
-      std::make_shared<PreAggregationFlusher>()
-  );
+  Dispatcher::addService(std::make_shared<PreAggregationFlusher>());
   return FlusherIsScheduled{};
 }
 
