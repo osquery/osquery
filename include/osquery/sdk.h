@@ -53,9 +53,10 @@ REGISTER_INTERNAL(ExternalSQLPlugin, "sql", "sql");
  * module call-in well defined symbol, declare their SDK constraints, then
  * use the REGISTER_MODULE call within `initModule`.
  */
-#define REGISTER_EXTERNAL(t, r, n)                                             \
+#define REGISTER_EXTERNAL(class_name, registry_name, plugin_name)              \
   namespace registries {                                                       \
-  const ::osquery::registries::PI<t> k##ExtensionRegistryItem##t(r, n, false); \
+  const ::osquery::registries::PI<class_name>                                  \
+      k##ExtensionRegistryItem##class_name(registry_name, plugin_name, false); \
   }
 
 /**

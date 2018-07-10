@@ -8,26 +8,70 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <iostream>
+
 #include "osquery/database/plugins/ephemeral.h"
 
 namespace osquery {
 
+template <typename T>
+Status EphemeralDatabasePlugin::getAny(const std::string& domain,
+                                       const std::string& key,
+                                       T& value) const {
+  auto domainIterator = db_.find(domain);
+  if (domainIterator == db_.end()) {
+    return Status(1, "Domain " + domain + " does not exist");
+  }
+
+  auto keyIterator = domainIterator->second.find(key);
+  if (keyIterator == domainIterator->second.end()) {
+    return Status(1, "Key " + key + " in domain " + domain + " does not exist");
+  }
+
+  try {
+    value = boost::get<T>(keyIterator->second);
+  } catch (const boost::bad_get& e) {
+    LOG(WARNING) << "Type error getting string value for (domain,key) : ("
+                 << key << "," << domain << ") " << e.what();
+    return Status(
+        1, "EphemeralDatabasePlugin::get was requested incorrect type(string)");
+  }
+  return Status(0);
+}
+
 Status EphemeralDatabasePlugin::get(const std::string& domain,
                                     const std::string& key,
                                     std::string& value) const {
-  if (db_.count(domain) > 0 && db_.at(domain).count(key) > 0) {
-    value = db_.at(domain).at(key);
-    return Status(0);
-  } else {
-    return Status(1);
-  }
+  return this->getAny(domain, key, value);
 }
-
+Status EphemeralDatabasePlugin::get(const std::string& domain,
+                                    const std::string& key,
+                                    int& value) const {
+  return this->getAny(domain, key, value);
+}
 Status EphemeralDatabasePlugin::put(const std::string& domain,
                                     const std::string& key,
                                     const std::string& value) {
   db_[domain][key] = value;
   return Status(0);
+}
+
+Status EphemeralDatabasePlugin::put(const std::string& domain,
+                                    const std::string& key,
+                                    int value) {
+  db_[domain][key] = value;
+  return Status(0);
+}
+
+void EphemeralDatabasePlugin::dumpDatabase() const {
+  for (const auto& domainValue : db_) {
+    const auto& domain = domainValue.first;
+    for (const auto& keyValue : domainValue.second) {
+      const auto& key = keyValue.first;
+      const auto& value = keyValue.second;
+      std::cout << domain << "[" << key << "]: " << value << std::endl;
+    }
+  }
 }
 
 Status EphemeralDatabasePlugin::remove(const std::string& domain,

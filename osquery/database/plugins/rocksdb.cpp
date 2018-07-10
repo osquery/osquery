@@ -18,6 +18,7 @@
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/database/plugins/rocksdb.h"
 #include "osquery/filesystem/fileops.h"
 
@@ -228,16 +229,12 @@ rocksdb::DB* RocksDBDatabasePlugin::getDB() const {
 
 rocksdb::ColumnFamilyHandle* RocksDBDatabasePlugin::getHandleForColumnFamily(
     const std::string& cf) const {
-  try {
-    for (size_t i = 0; i < kDomains.size(); i++) {
-      if (kDomains[i] == cf) {
-        return handles_[i];
-      }
-    }
-  } catch (const std::exception& /* e */) {
-    // pass through and return nullptr
+  size_t i = std::find(kDomains.begin(), kDomains.end(), cf) - kDomains.begin();
+  if (i != kDomains.size()) {
+    return handles_[i];
+  } else {
+    return nullptr;
   }
-  return nullptr;
 }
 
 Status RocksDBDatabasePlugin::get(const std::string& domain,
@@ -254,6 +251,18 @@ Status RocksDBDatabasePlugin::get(const std::string& domain,
   return Status(s.code(), s.ToString());
 }
 
+Status RocksDBDatabasePlugin::get(const std::string& domain,
+                                  const std::string& key,
+                                  int& value) const {
+  std::string result;
+  auto s = this->get(domain, key, result);
+  if (s.ok()) {
+    if (safeStrtoi(result, 10, value)) {
+      return Status(1, "Could not deserialize str to int");
+    }
+  }
+  return s;
+}
 Status RocksDBDatabasePlugin::put(const std::string& domain,
                                   const std::string& key,
                                   const std::string& value) {
@@ -283,6 +292,14 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
   }
   return Status(s.code(), s.ToString());
 }
+
+Status RocksDBDatabasePlugin::put(const std::string& domain,
+                                  const std::string& key,
+                                  int value) {
+  return this->put(domain, key, std::to_string(value));
+}
+
+void RocksDBDatabasePlugin::dumpDatabase() const {}
 
 Status RocksDBDatabasePlugin::remove(const std::string& domain,
                                      const std::string& key) {

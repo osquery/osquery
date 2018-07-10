@@ -15,64 +15,22 @@ if (-not (Test-Path $utils)) {
 }
 . $utils
 
-# A helper function to derive the latest VS install and call vcvarsall.bat
-function Invoke-VcVarsAll {
-
-  # Attempt to make use of vswhere to derive the build tools scripts
-  $vswhere = (Get-Command 'vswhere').Source
-  $vswhereArgs = @('-latest', '-legacy')
-  $vswhereOut = (Start-OsqueryProcess $vswhere $vswhereArgs).stdout
-  $vsLoc = ''
-  $vsVersion = ''
-  foreach ($l in $vswhereOut.split([environment]::NewLine)) {
-    $toks = $l.split(":")
-    if ($toks.Length -lt 2) {
-      continue
-    }
-    if ($toks[0].trim() -like 'installationVersion') {
-      $vsVersion = $toks[1].Split(".")[0]
-    }
-    if ($toks[0].trim() -like 'installationPath') {
-      $vsLoc = [System.String]::Join(":", $toks[1..$toks.Length])
-    }
-  }
-  $vsLoc = $vsLoc.trim()
-  $vsVersion = $vsVersion.trim()
-
-  if ($vsLoc -ne '') {
-    $vcvarsall = Join-Path $vsLoc 'VC'
-    if ($vsVersion -eq '15') {
-      $vcvarsall = Join-Path $vcvarsall '\Auxiliary\Build\vcvarsall.bat'
-    } else {
-      $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
-    }
-  
-    # Lastly invoke the environment provisioning script
-    $null = Invoke-BatchFile "$vcvarsall" "amd64"
-    return $true
-  }
-
-  # As a last ditch effort, attempt to find the env variables set by VS2015
-  # in order to derive the location of vcvarsall
-  $vsComnTools = [environment]::GetEnvironmentVariable("VS140COMNTOOLS")
-  if ($vsComnTools -eq '') {
-    return $false
-  }
-  $vcvarsall = Resolve-Path $(Join-Path "$vsComnTools" "..\..\VC")
-  $vcvarsall = Join-Path $vcvarsall 'vcvarsall.bat'
-  $null = Invoke-BatchFile "$vcvarsall" "amd64"
-  return $true
-}
-
-
 # A helper function to call CMake and generate our solution file
 function Invoke-OsqueryCmake {
+  $vsinfo = Get-VSInfo
   $cmake = (Get-Command 'cmake').Source
-  $cmakeArgs = @(
-    '-G "Visual Studio 14 2015 Win64"',
-    '-T v140',
-    '../../'
-  )
+  if ($vsinfo.version -eq '15'){
+    $cmakeArgs = @(
+      '-G "Visual Studio 15 2017 Win64"',
+      '-T v141'
+    )
+  } else {
+    $cmakeArgs = @(
+      '-G "Visual Studio 14 2015 Win64"',
+      '-T v140'
+    )
+  }
+  $cmakeArgs += '../../'
   $null = Start-OsqueryProcess $cmake $cmakeArgs $false
 }
 

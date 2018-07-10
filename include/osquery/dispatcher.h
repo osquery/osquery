@@ -27,34 +27,6 @@ namespace osquery {
 class Status;
 class Dispatcher;
 
-/// A throw/catch relay between a pause request and cancel event.
-struct RunnerInterruptError {};
-
-class RunnerInterruptPoint : private boost::noncopyable {
- public:
-  RunnerInterruptPoint() = default;
-
-  /// Cancel the pause request.
-  void cancel();
-
-  /// Pause until the requested millisecond delay has elapsed or a cancel.
-  void pause(size_t milli) {
-    pause(std::chrono::milliseconds(milli));
-  }
-
-  /// Pause until the requested millisecond delay has elapsed or a cancel.
-  void pause(std::chrono::milliseconds milli);
-
- private:
-  /// Communicate between the pause and cancel event.
-  bool stop_{false};
-
-  /// Protection around pause and cancel calls.
-  std::mutex mutex_;
-
-  /// Wait for notification or a pause expiration.
-  std::condition_variable condition_;
-};
 
 class InterruptableRunnable {
  public:
@@ -67,52 +39,30 @@ class InterruptableRunnable {
 
  protected:
   /// Allow the runnable to check interruption.
-  bool interrupted();
+  virtual bool interrupted();
 
   /// Require the runnable thread to define a stop/interrupt point.
   virtual void stop() = 0;
 
   /// Put the runnable into an interruptible sleep.
-  virtual void pause() {
-    pauseMilli(std::chrono::milliseconds(100));
-  }
-
-  /// Put the runnable into an interruptible sleep.
-  virtual void pauseMilli(size_t milli) {
+  inline void pauseMilli(size_t milli) {
     pauseMilli(std::chrono::milliseconds(milli));
   }
 
   /// Put the runnable into an interruptible sleep.
-  virtual void pauseMilli(std::chrono::milliseconds milli);
-
- private:
-  /// Testing only, the interruptible will bypass initial interruption check.
-  void mustRun() {
-    bypass_check_ = true;
-  }
+  void pauseMilli(std::chrono::milliseconds milli);
 
  private:
   /**
-   * @brief Protect interruption checking and resource tear down.
-   *
-   * A tearDown mutex protects the runnable service's resources.
-   * Interruption means resources have been stopped.
-   * Non-interruption means no attempt to affect resources has been started.
+   * @brief Used to wait for the interruption notification while sleeping
    */
-  Mutex stopping_;
+  std::mutex condition_lock;
 
   /// If a service includes a run loop it should check for interrupted.
   std::atomic<bool> interrupted_{false};
 
-  /// Use an interruption point to exit a pause if the thread was interrupted.
-  RunnerInterruptPoint point_;
-
- private:
-  /// Testing only, track the interruptible check for interruption.
-  bool checked_{false};
-
-  /// Testing only, require that the interruptible bypass the first check.
-  std::atomic<bool> bypass_check_{false};
+  /// Wait for notification or a pause expiration.
+  std::condition_variable condition_;
 
  private:
   FRIEND_TEST(DispatcherTests, test_run);
@@ -195,9 +145,7 @@ class Dispatcher : private boost::noncopyable {
   static void stopServices();
 
   /// Return number of services.
-  size_t serviceCount() {
-    return services_.size();
-  }
+  size_t serviceCount() const;
 
  private:
   /**
@@ -229,8 +177,6 @@ class Dispatcher : private boost::noncopyable {
   // Protection around service access.
   mutable Mutex mutex_;
 
-  // Protection around double joins.
-  mutable Mutex join_mutex_;
 
   /**
    * @brief Signal to the Dispatcher that no services should be created.

@@ -208,14 +208,6 @@ macro(ADD_OSQUERY_TABLE_TEST)
   endif()
 endmacro(ADD_OSQUERY_TABLE_TEST)
 
-# Add kernel test macro.
-macro(ADD_OSQUERY_KERNEL_TEST)
-  if(NOT SKIP_TESTS)
-    list(APPEND OSQUERY_KERNEL_TESTS ${ARGN})
-    set(OSQUERY_KERNEL_TESTS ${OSQUERY_KERNEL_TESTS} PARENT_SCOPE)
-  endif()
-endmacro(ADD_OSQUERY_KERNEL_TEST)
-
 # Add benchmark macro.
 macro(ADD_OSQUERY_BENCHMARK)
   if(NOT SKIP_TESTS)
@@ -223,14 +215,6 @@ macro(ADD_OSQUERY_BENCHMARK)
     set(OSQUERY_BENCHMARKS ${OSQUERY_BENCHMARKS} PARENT_SCOPE)
   endif()
 endmacro(ADD_OSQUERY_BENCHMARK)
-
-# Add kernel benchmark macro.
-macro(ADD_OSQUERY_KERNEL_BENCHMARK)
-  if(NOT SKIP_TESTS)
-    list(APPEND OSQUERY_KERNEL_BENCHMARKS ${ARGN})
-    set(OSQUERY_KERNEL_BENCHMARKS ${OSQUERY_KERNEL_BENCHMARKS} PARENT_SCOPE)
-  endif()
-endmacro(ADD_OSQUERY_KERNEL_BENCHMARK)
 
 # Add sources to libosquery.a (the core library)
 macro(ADD_OSQUERY_LIBRARY_CORE TARGET)
@@ -611,3 +595,19 @@ function(JOIN VALUES GLUE OUTPUT)
   string(REPLACE ";" "${GLUE}" _TMP_STR "${VALUES}")
   set(${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction(JOIN)
+
+function(target_group_sources target root)
+  get_filename_component(root ${root} ABSOLUTE)
+  
+  get_target_property(files ${target} SOURCES)
+  
+  foreach(file ${files})
+    get_filename_component(file ${file} ABSOLUTE)
+    string(REGEX MATCH "^${root}" item ${file})
+    if(item)
+      LIST(APPEND root_files ${file})
+    endif(item)
+  endforeach(file)
+  source_group(TREE ${root} FILES ${root_files})
+endfunction()
+

@@ -4,16 +4,16 @@ class Libxml2 < AbstractOsqueryFormula
   desc "GNOME XML library"
   homepage "http://xmlsoft.org"
   license "MIT"
-  url "http://xmlsoft.org/sources/libxml2-2.9.5.tar.gz"
-  mirror "ftp://xmlsoft.org/libxml2/libxml2-2.9.5.tar.gz"
-  sha256 "4031c1ecee9ce7ba4f313e91ef6284164885cdb69937a123f6a83bb6a72dcd38"
+  url "http://xmlsoft.org/sources/libxml2-2.9.7.tar.gz"
+  mirror "ftp://xmlsoft.org/libxml2/libxml2-2.9.7.tar.gz"
+  sha256 "f63c5e7d30362ed28b38bfa1ac6313f9a80230720b7fb6c80575eeab3ff5900c"
   revision 200
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "19363b22cf72a3b7371e21c7da40f4523977bfd4599ed71f547f1dfbed960695" => :sierra
-    sha256 "af20f230a00b4bcc59361e99fa51c2278a448f7b50b256af31ac3e48c2187e9f" => :x86_64_linux
+    sha256 "78b01c23d2f2391b5c0ea9c9e52489c11a28cd85b7e14f8b7a040a471e420e0c" => :sierra
+    sha256 "484eeb6ff8dab7fe909a70a2ba22747796e43cf09df3f83e122c7633c0adb5e4" => :x86_64_linux
   end
 
   def install

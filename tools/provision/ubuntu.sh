@@ -27,11 +27,17 @@ function distro_main() {
   package doxygen
   package valgrind
 
+  # Needed to build thrift
+  package libfl-dev
+
   # Needed to build LLVM
   package cmake
 
   # Needed for libcryptsetup
   package autotools-dev
+
+  # Needed for python
+  package unzip
 
   GEM=`which gem`
   do_sudo $GEM install --no-ri --no-rdoc fpm

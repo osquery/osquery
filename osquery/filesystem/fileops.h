@@ -403,7 +403,7 @@ Status socketExists(const boost::filesystem::path& path,
 boost::filesystem::path getSystemRoot();
 
 /**
- * @brief Returns the succesfully and fills d_stat if lstat was successful.
+ * @brief Returns the successfully and fills d_stat if lstat was successful.
  *
  *
  * On Windows systems this does not touch the structure.

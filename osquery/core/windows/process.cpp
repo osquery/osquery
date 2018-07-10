@@ -137,9 +137,9 @@ std::shared_ptr<PlatformProcess> PlatformProcess::getLauncherProcess() {
   try {
     handle = reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(
         std::stoull(*launcher_handle, nullptr, 16)));
-  } catch (std::invalid_argument e) {
+  } catch (const std::invalid_argument& /* e */) {
     return std::make_shared<PlatformProcess>();
-  } catch (std::out_of_range e) {
+  } catch (const std::out_of_range& /* e */) {
     return std::make_shared<PlatformProcess>();
   }
 

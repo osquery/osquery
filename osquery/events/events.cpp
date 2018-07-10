@@ -60,12 +60,11 @@ static inline EventTime timeFromRecord(const std::string& record) {
 }
 
 static inline std::string toIndex(size_t i) {
-  auto j = std::to_string(i);
-  size_t n = 1;
-  while (i /= 10) {
-    n++;
+  auto str_index = std::to_string(i);
+  if (str_index.size() < 10) {
+    str_index.insert(str_index.begin(), 10 - str_index.size(), '0');
   }
-  return (n >= 10) ? j : std::string(10 - n, '0').append(std::move(j));
+  return str_index;
 }
 
 static inline void getOptimizeData(EventTime& o_time,
@@ -148,6 +147,15 @@ void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
   get(yield, start, stop);
 }
 
+EventContextID EventPublisherPlugin::numEvents() const {
+  return next_ec_id_.load();
+}
+
+size_t EventPublisherPlugin::numSubscriptions() {
+  ReadLock lock(subscription_lock_);
+  return subscriptions_.size();
+}
+
 void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   if (isEnding()) {
     // Cannot emit/fire while ending
@@ -155,10 +163,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   }
 
   EventContextID ec_id = 0;
-  {
-    WriteLock lock(ec_id_lock_);
-    ec_id = next_ec_id_++;
-  }
+  ec_id = next_ec_id_.fetch_add(1);
 
   // Fill in EventContext ID and time if needed.
   if (ec != nullptr) {
@@ -171,7 +176,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
     }
   }
 
-  WriteLock lock(subscription_lock_);
+  ReadLock lock(subscription_lock_);
   for (const auto& subscription : subscriptions_) {
     auto es = EventFactory::getEventSubscriber(subscription->subscriber_name);
     if (es != nullptr && es->state() == EventState::EVENT_RUNNING) {
@@ -401,16 +406,20 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
       }
 
       // Each list is tokenized into a record=event_id:time.
-      boost::split(bin_records, record_value, boost::is_any_of(",:"));
+      bin_records = split(record_value, ",");
     }
 
-    auto bin_it = bin_records.begin();
     // Iterate over every 2 items: EID:TIME.
-    for (; bin_it != bin_records.end(); bin_it++) {
-      const auto& eid = *bin_it;
-      EventTime et = timeFromRecord(*(++bin_it));
+    for (const auto& record : bin_records) {
+      const auto vals = split(record, ":");
+      if (vals.size() != 2) {
+        LOG(WARNING) << "Event records mismatch: " << record
+                     << " does not have a matching eid/event_time";
+        continue;
+      }
+      const auto eid = vals[0];
+      const EventTime et = timeFromRecord(vals[1]);
       if (FLAGS_events_optimize && optimize && et <= optimize_time_ + 1) {
-        // There is an optimization collision, check for colliding IDs.
         auto eidr = timeFromRecord(eid);
         if (eidr <= optimize_eid_) {
           continue;
@@ -464,7 +473,7 @@ Status EventSubscriberPlugin::recordEvent(const std::string& eid,
   if (!status.ok()) {
     LOG(ERROR) << "Could not put Event Record key: " << record_key;
   }
-  return Status(0, "OK");
+  return Status();
 }
 
 size_t EventSubscriberPlugin::getEventsExpiry() {
@@ -810,10 +819,10 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
       return Status(1, "Duplicate publisher type");
     }
 
-    // Do not set up event publisher if events are disabled.
     ef.event_pubs_[type_id] = specialized_pub;
   }
 
+  // Do not set up event publisher if events are disabled.
   if (!FLAGS_disable_events) {
     if (specialized_pub->state() != EventState::EVENT_NONE) {
       specialized_pub->tearDown();
@@ -1068,8 +1077,7 @@ void attachEvents() {
 
   const auto& subscribers = RegistryFactory::get().plugins("event_subscriber");
   for (const auto& subscriber : subscribers) {
-    if (subscriber.first.find("_events") == std::string::npos ||
-        subscriber.first.find("_events") + 7 != subscriber.first.size()) {
+    if (!boost::ends_with(subscriber.first, "_events")) {
       LOG(ERROR) << "Error registering subscriber: " << subscriber.first
                  << ": Must use a '_events' suffix";
       continue;
@@ -1085,4 +1093,4 @@ void attachEvents() {
   // Configure the event publishers and subscribers.
   EventFactory::configUpdate();
 }
-}
+} // namespace osquery

@@ -98,15 +98,19 @@ namespace osquery {
 namespace tables {
 
 QueryData genTime(QueryContext &context) {
-  Row r;
   QueryData results;
+  if (!context.isAnyColumnUsed({"hour", "minutes", "seconds"})) {
+    return results;
+  }
+
+  Row r;
 
   time_t _time = time(0);
   struct tm* now = localtime(&_time);
 
-  r["hour"] = INTEGER(now->tm_hour);
-  r["minutes"] = INTEGER(now->tm_min);
-  r["seconds"] = INTEGER(now->tm_sec);
+  context.setIntegerColumnIfUsed(r, "hour", now->tm_hour);
+  context.setIntegerColumnIfUsed(r, "minutes", now->tm_min);
+  context.setIntegerColumnIfUsed(r, "seconds", now->tm_sec);
 
   results.push_back(r);
   return results;
@@ -119,6 +123,8 @@ Key points to remember:
 
 - Your implementation function should be in the `osquery::tables` namespace.
 - Your implementation function should accept on `QueryContext&` parameter and return an instance of `QueryData`.
+- Your implementation function should use `context.isAnyColumnUsed` to run only the code necessary for the query,
+and `context.setXXXColumnIfUsed` to set result columns
 
 ## Using where clauses
 
@@ -191,7 +197,7 @@ When supplying the "second type", a search name, CMake will decide to link using
 
 ### Testing your table
 
-If your code compiled properly, launch the interactive query console by executing `./build/[darwin|linux]/osquery/osqueryi` and try issuing your new table a command: `SELECT * FROM time;`.
+If your code compiled properly, launch the interactive query console by executing `./build/[darwin|linux]/osquery/osqueryi` and try issuing your new table a command: `SELECT * FROM time;`. (If your table implementation has nontrivial conditional code based on the columns used in the query, try issuing more focused commands to test that logic as well.)
 
 Run the leaks analysis to check for memory leaks:
 

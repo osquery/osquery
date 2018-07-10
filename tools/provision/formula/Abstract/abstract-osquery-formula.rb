@@ -76,6 +76,7 @@ class AbstractOsqueryFormula < Formula
       "--prefix=#{prefix}",
       "--disable-shared",
       "--enable-static",
+      "--oldincludedir=#{default_prefix}/include",
     ]
     autoconf_flags
   end

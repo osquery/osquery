@@ -10,7 +10,7 @@
 
 <#
 .SYNOPSIS
-This script will help make install packages for osquery 
+This script will help make install packages for osquery
 
 .DESCRIPTION
 The script will help make both MSI and Chocolatey install packages for Windows. Great for deploying to Windows via GPO, SCCM, or other deployment tools.
@@ -134,7 +134,7 @@ function New-MsiPackage() {
   # if no flags file specified, create a stub to run the service
   if ($flagsPath -eq '') {
     $flagspath = Join-Path $buildPath 'osquery.flags'
-    Write-Output '' | Out-File $flagspath -NoNewline
+    New-Item -ItemType file $flagspath
   }
 
   # We take advantage of a trick with WiX to copy folders
@@ -187,7 +187,7 @@ $wix +=
     </Condition>
 
     <Property Id='SOURCEDIRECTORY' Value='packs'/>
-    
+
     <PropertyRef Id="WIX_ACCOUNT_LOCALSYSTEM" />
     <PropertyRef Id="WIX_ACCOUNT_USERS" />
     <PropertyRef Id="WIX_ACCOUNT_ADMINISTRATORS" />
@@ -519,7 +519,7 @@ And verify that the digests match one of the below values:
 
 function Get-Help {
   Write-Host "-help is deprecated in Windows please use Get-Help make_windows_package.ps1" -ForeGroundColor Yellow
-  $msg = 
+  $msg =
 "
 NAME
     C:\osquery\tools\deployment\make_windows_package.ps1
