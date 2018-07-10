@@ -42,7 +42,6 @@ bool Point::tryToAggregate(const Point& new_point) {
                         to<std::string>(new_point.pre_aggregation_type_));
     return false;
   }
-  // time_point_ = new_point.time_point_;
   time_point_ = std::max(time_point_, new_point.time_point_);
   switch (pre_aggregation_type_) {
   case PreAggregationType::None:
@@ -60,7 +59,7 @@ bool Point::tryToAggregate(const Point& new_point) {
     // nothing to do, the type is invalid
     LOG(ERROR) << "Invalid Pre-aggregation type "
                << boost::io::quoted(to<std::string>(pre_aggregation_type_));
-    break;
+    return false;
   }
   return true;
 }
