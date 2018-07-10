@@ -307,67 +307,61 @@ tryTo(FromType&& from) {
   return std::forward<FromType>(from);
 }
 
-/**
- * tryTo [w]string to integer implementation
- * int
- * long int
- * long long int
- * unsigned int
- * unsigned long int
- * unsigned long long int
- * Do not use throwingStringToIntImpl, it throws exception in case of error
- */
+namespace impl {
+
+template <typename Type>
+struct IsStlString {
+  static constexpr bool value = std::is_same<Type, std::string>::value ||
+                                std::is_same<Type, std::wstring>::value;
+};
+
+template <typename Type>
+struct IsInteger {
+  static constexpr bool value =
+      std::is_integral<Type>::value && !std::is_same<Type, bool>::value;
+};
+
 template <typename ToType, typename FromType>
-inline
-    typename std::enable_if<std::is_same<ToType, int>::value &&
-                                (std::is_same<FromType, std::string>::value ||
-                                 std::is_same<FromType, std::wstring>::value),
-                            ToType>::type
-    throwingStringToIntImpl(const FromType& from, const int base) {
+inline typename std::enable_if<std::is_same<ToType, int>::value &&
+                                   IsStlString<FromType>::value,
+                               ToType>::type
+throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stoi(from, &pos, base);
 }
 
 template <typename ToType, typename FromType>
-inline
-    typename std::enable_if<std::is_same<ToType, long int>::value &&
-                                (std::is_same<FromType, std::string>::value ||
-                                 std::is_same<FromType, std::wstring>::value),
-                            ToType>::type
-    throwingStringToIntImpl(const FromType& from, const int base) {
+inline typename std::enable_if<std::is_same<ToType, long int>::value &&
+                                   IsStlString<FromType>::value,
+                               ToType>::type
+throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stol(from, &pos, base);
 }
 
 template <typename ToType, typename FromType>
-inline
-    typename std::enable_if<std::is_same<ToType, long long int>::value &&
-                                (std::is_same<FromType, std::string>::value ||
-                                 std::is_same<FromType, std::wstring>::value),
-                            ToType>::type
-    throwingStringToIntImpl(const FromType& from, const int base) {
+inline typename std::enable_if<std::is_same<ToType, long long int>::value &&
+                                   IsStlString<FromType>::value,
+                               ToType>::type
+throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stoll(from, &pos, base);
 }
 
 template <typename ToType, typename FromType>
-inline
-    typename std::enable_if<std::is_same<ToType, unsigned int>::value &&
-                                (std::is_same<FromType, std::string>::value ||
-                                 std::is_same<FromType, std::wstring>::value),
-                            ToType>::type
-    throwingStringToIntImpl(const FromType& from, const int base) {
+inline typename std::enable_if<std::is_same<ToType, unsigned int>::value &&
+                                   IsStlString<FromType>::value,
+                               ToType>::type
+throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stoul(from, &pos, base);
 }
 
 template <typename ToType, typename FromType>
-inline
-    typename std::enable_if<std::is_same<ToType, unsigned long int>::value &&
-                                (std::is_same<FromType, std::string>::value ||
-                                 std::is_same<FromType, std::wstring>::value),
-                            ToType>::type
-    throwingStringToIntImpl(const FromType& from, const int base) {
+inline typename std::enable_if<std::is_same<ToType, unsigned long int>::value &&
+                                   IsStlString<FromType>::value,
+                               ToType>::type
+throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stoul(from, &pos, base);
 }
@@ -375,24 +369,25 @@ inline
 template <typename ToType, typename FromType>
 inline typename std::enable_if<
     std::is_same<ToType, unsigned long long int>::value &&
-        (std::is_same<FromType, std::string>::value ||
-         std::is_same<FromType, std::wstring>::value),
+        IsStlString<FromType>::value,
     ToType>::type
-throwingStringToIntImpl(const FromType& from, const int base) {
+throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stoull(from, &pos, base);
 }
 
+} // namespace impl
+
+/**
+ * Template tryTo for [w]string to integer conversion
+ */
 template <typename ToType, typename FromType>
-inline
-    typename std::enable_if<std::is_integral<ToType>::value &&
-                                !std::is_same<ToType, bool>::value &&
-                                (std::is_same<FromType, std::string>::value ||
-                                 std::is_same<FromType, std::wstring>::value),
-                            Expected<ToType, ConversionError>>::type
-    tryTo(const FromType& from, const int base = 10) noexcept {
+inline typename std::enable_if<impl::IsInteger<ToType>::value &&
+                                   impl::IsStlString<FromType>::value,
+                               Expected<ToType, ConversionError>>::type
+tryTo(const FromType& from, const int base = 10) noexcept {
   try {
-    return throwingStringToIntImpl<ToType>(from, base);
+    return impl::throwingStringToInt<ToType>(from, base);
   } catch (const std::invalid_argument& ia) {
     return createError(ConversionError::InvalidArgument,
                        "If no conversion could be performed. ")
