@@ -396,6 +396,8 @@ QueryData genFDEStatus(QueryContext& context) {
   auto block_devices = SQL::selectAllFrom("block_devices");
   for (const auto& row : block_devices) {
     auto name = row.at("name");
+    // FIXME: fetching all mounts is not efficient, we need to
+    // fetch all mounts before loop
     auto mount = SQL::selectAllFrom("mounts", "device", EQUALS, name);
     @autoreleasepool {
       const auto bsd_name = name.substr(kDeviceNamePrefix.size());
