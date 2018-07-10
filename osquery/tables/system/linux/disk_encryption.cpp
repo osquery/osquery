@@ -46,7 +46,7 @@ void genFDEStatusForBlockDevice(const std::string& name,
 
   switch (ci) {
   case CRYPT_ACTIVE:
-  case CRYPT_BUSY: { 
+  case CRYPT_BUSY: {
     r["encrypted"] = "1";
     r["encryption_status"] = kEncryptionStatusEncrypted;
 
