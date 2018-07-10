@@ -12,10 +12,11 @@
 #include <sys/stat.h>
 #endif
 
-#include "osquery/filesystem/fileops.h"
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
+
+#include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
 
@@ -105,8 +106,7 @@ void genFileInfo(const fs::path& path,
 
   auto rtn = platformStat(path, &file_stat);
   if (!rtn.ok()) {
-	VLOG(1) << rtn.getMessage();
-	results.push_back(r);
+    VLOG(1) << "PlatformStat failed with " << rtn.getMessage();
     return;
   }
 
@@ -198,4 +198,4 @@ QueryData genFile(QueryContext& context) {
   return results;
 }
 }
-}
+} // namespace osquery
