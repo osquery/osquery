@@ -156,10 +156,12 @@ static void getParentDirectory(sqlite3_context* context,
   const char* path = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
   int pos = 0;
   int last_slash_pos = -1;
-#ifdef WIN32
+#if defined(OSQUERY_WINDOWS)
+  char directory_symbol = '\\';
+#elif defined(OSQUERY_POSIX)
   char directory_symbol = '/';
 #else
-  char directory_symbol = '\\';
+#error Unsupported platform
 #endif
   while (path[pos] != '\0') {
     if (path[pos] == directory_symbol) {
