@@ -39,4 +39,38 @@ TEST_F(StatusTests, test_to_string) {
   auto s = Status(0, "foobar");
   EXPECT_EQ(s.toString(), "foobar");
 }
+
+TEST_F(StatusTests, test_default_constructor) {
+  auto s = Status{};
+  EXPECT_TRUE(s.ok());
+}
+
+TEST_F(StatusTests, test_success_code) {
+  auto s = Status(Status::kSuccessCode);
+  EXPECT_TRUE(s.ok());
+}
+
+TEST_F(StatusTests, test_success) {
+  auto s = Status::success();
+  EXPECT_TRUE(s.ok());
+}
+
+TEST_F(StatusTests, test_failure_single_arg) {
+  auto s = Status::failure("Some proper error message.");
+  EXPECT_EQ(s.toString(), "Some proper error message.");
+  EXPECT_FALSE(s.ok());
+}
+
+TEST_F(StatusTests, test_failure_double_arg) {
+  auto s = Status::failure(105, "One more proper error message!");
+  EXPECT_EQ(s.toString(), "One more proper error message!");
+  EXPECT_FALSE(s.ok());
+}
+
+TEST_F(StatusTests, test_failure_with_success_code) {
+#ifndef NDEBUG
+  ASSERT_DEATH(Status::failure(Status::kSuccessCode, "message"),
+               "Using 'failure' to create Status object with a kSuccessCode");
+#endif
+}
 }

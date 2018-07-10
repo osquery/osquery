@@ -79,6 +79,7 @@ endif()
 
 if(POSIX)
   ADD_OSQUERY_LINK_ADDITIONAL("augeas fa xml2")
+  ADD_OSQUERY_LINK_ADDITIONAL("fuzzy")
 endif()
 
 # For each general category, add the C++ files in the base.
@@ -130,66 +131,43 @@ foreach(CATEGORY ${TABLE_CATEGORIES})
   ADD_OSQUERY_TABLE_TEST(${OSQUERY_${CATEGORY}_TABLES_TESTS})
 endforeach()
 
-if(NOT SKIP_KERNEL)
-  file(GLOB OSQUERY_KERNEL_TABLES
-    "kernel/*.[cpm]*"
-    "*/${TABLE_PLATFORM}/kernel/*.[cpm]*"
-  )
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(
-    osquery_kernel_tables
-    ${OSQUERY_KERNEL_TABLES}
-  )
-endif()
-
-file(GLOB OSQUERY_UTILITY_TABLES "utility/*.cpp")
 ADD_OSQUERY_LIBRARY_CORE(osquery_tables_utility
-  ${OSQUERY_UTILITY_TABLES}
+  "${CMAKE_CURRENT_LIST_DIR}/utility/file.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/utility/osquery.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/utility/time.cpp"
 )
 
 if(NOT SKIP_AWS AND LINUX)
-  file(GLOB OSQUERY_CLOUD_TABLES "cloud/*.[cpm]*")
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_cloud_tables ${OSQUERY_CLOUD_TABLES})
-
-  file(GLOB OSQUERY_CLOUD_TABLES_TESTS "cloud/tests/*.[cpm]*")
-  if(OSQUERY_CLOUD_TABLES_TESTS)
-    ADD_OSQUERY_TABLE_TEST(${OSQUERY_CLOUD_TABLES_TESTS})
-  endif()
-
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_cloud_tables
+    "${CMAKE_CURRENT_LIST_DIR}/cloud/ec2_instance_metadata.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/cloud/ec2_instance_tags.cpp"
+  )
   ADD_OSQUERY_LINK_ADDITIONAL("aws-cpp-sdk-ec2")
 endif()
 
 if(NOT SKIP_TSK AND POSIX)
-  file(GLOB OSQUERY_TSK_TABLES "sleuthkit/*.[cpm]*")
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_sleuthkit_tables ${OSQUERY_TSK_TABLES})
-
-  file(GLOB OSQUERY_TSK_TABLES_TESTS "sleuthkit/tests/*.[cpm]*")
-  if(OSQUERY_TSK_TABLES_TESTS)
-    ADD_OSQUERY_TABLE_TEST(${OSQUERY_TSK_TABLES_TESTS})
-  endif()
-
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_sleuthkit_tables
+    "${CMAKE_CURRENT_LIST_DIR}/sleuthkit/sleuthkit.cpp"
+  )
   ADD_OSQUERY_LINK_ADDITIONAL("tsk")
 endif()
 
 if(NOT SKIP_YARA AND POSIX)
-  file(GLOB OSQUERY_YARA_TABLES "yara/*.[cpm]*")
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_yara_tables ${OSQUERY_YARA_TABLES})
-
-  file(GLOB OSQUERY_YARA_TABLES_TESTS "yara/tests/*.[cpm]*")
-  if(OSQUERY_YARA_TABLES_TESTS)
-    ADD_OSQUERY_TABLE_TEST(${OSQUERY_YARA_TABLES_TESTS})
-  endif()
-
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_yara_tables
+    "${CMAKE_CURRENT_LIST_DIR}/yara/yara.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/yara/yara_events.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/yara/yara_utils.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/yara/yara_utils.h"
+  )
+  ADD_OSQUERY_TABLE_TEST(
+    "${CMAKE_CURRENT_LIST_DIR}/yara/tests/yara_tests.cpp"
+  )
   ADD_OSQUERY_LINK_ADDITIONAL("yara")
 endif()
 
 if(NOT SKIP_LLDPD AND POSIX)
-  file(GLOB OSQUERY_LLDPD_TABLES "lldpd/*.[cpm]*")
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_lldpd_tables ${OSQUERY_LLDPD_TABLES})
-
-  file(GLOB OSQUERY_LLDPD_TABLES_TESTS "lldpd/tests/*.[cpm]*")
-  if(OSQUERY_LLDPD_TABLES_TESTS)
-    ADD_OSQUERY_TABLE_TEST(${OSQUERY_LLDPD_TABLES_TESTS})
-  endif()
-
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_lldpd_tables
+    "${CMAKE_CURRENT_LIST_DIR}/lldpd/lldp_neighbors.cpp"
+  )
   ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
 endif()

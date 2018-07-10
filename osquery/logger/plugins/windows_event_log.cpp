@@ -144,4 +144,4 @@ Status WindowsEventLoggerPlugin::emitLogRecord(
 
   return Status();
 }
-}
+} // namespace osquery

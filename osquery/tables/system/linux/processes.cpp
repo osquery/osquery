@@ -27,9 +27,12 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/utils.h"
 
 namespace osquery {
 namespace tables {
+
+const int kMSIn1CLKTCK = (1000 / sysconf(_SC_CLK_TCK));
 
 inline std::string getProcAttr(const std::string& attr,
                                const std::string& pid) {
@@ -55,16 +58,32 @@ inline std::string readProcLink(const std::string& attr,
                                 const std::string& pid) {
   // The exe is a symlink to the binary on-disk.
   auto attr_path = getProcAttr(attr, pid);
-  char full_path[PATH_MAX] = {0};
 
-  char* link_path = realpath(attr_path.c_str(), full_path);
-  if (link_path != nullptr) {
-    return std::string(link_path);
-  } else if (attr_path.compare(std::string(full_path)) != 0) {
-    return std::string(full_path);
+  std::string result = "";
+  struct stat sb;
+  if (lstat(attr_path.c_str(), &sb) != -1) {
+    // Some symlinks may report 'st_size' as zero
+    // Use PATH_MAX as best guess
+    // For cases when 'st_size' is not zero but smaller than
+    // PATH_MAX we will still use PATH_MAX to minimize chance
+    // of output trucation during race condition
+    ssize_t buf_size = sb.st_size < PATH_MAX ? PATH_MAX : sb.st_size;
+    // +1 for \0, since readlink does not append a null
+    char* linkname = static_cast<char*>(malloc(buf_size + 1));
+    ssize_t r = readlink(attr_path.c_str(), linkname, buf_size);
+
+    if (r > 0) { // Success check
+      // r may not be equal to buf_size
+      // if r == buf_size there was race condition
+      // and link is longer than buf_size and because of this
+      // truncated
+      linkname[r] = '\0';
+      result = std::string(linkname);
+    }
+    free(linkname);
   }
 
-  return "";
+  return result;
 }
 
 // In the case where the linked binary path ends in " (deleted)", and a file
@@ -420,8 +439,10 @@ void genProcess(const std::string& pid, QueryData& results) {
   r["total_size"] = proc_stat.total_size;
 
   // time information
-  r["user_time"] = proc_stat.user_time;
-  r["system_time"] = proc_stat.system_time;
+  auto usr_time = std::strtoull(proc_stat.user_time.data(), nullptr, 10);
+  r["user_time"] = std::to_string(usr_time * kMSIn1CLKTCK);
+  auto sys_time = std::strtoull(proc_stat.system_time.data(), nullptr, 10);
+  r["system_time"] = std::to_string(sys_time * kMSIn1CLKTCK);
   r["start_time"] = proc_stat.start_time;
 
   if (!proc_io.status.ok()) {

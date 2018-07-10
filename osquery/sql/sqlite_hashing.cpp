@@ -16,6 +16,10 @@
 
 #include <sqlite3.h>
 
+#ifdef OSQUERY_POSIX
+#include <fuzzy.h>
+#endif
+
 namespace osquery {
 
 static void hashSqliteValue(sqlite3_context* ctx,
@@ -58,6 +62,22 @@ static void sqliteSHA256Func(sqlite3_context* context,
   hashSqliteValue(context, argc, argv, HASH_TYPE_SHA256);
 }
 
+#ifdef OSQUERY_POSIX
+static void sqliteSsdeepCompareFunc(sqlite3_context* context,
+                                    int argc,
+                                    sqlite3_value** argv) {
+  if (sqlite3_value_type(argv[0]) != SQLITE_TEXT ||
+      sqlite3_value_type(argv[1]) != SQLITE_TEXT) {
+    sqlite3_result_error(
+        context, "Invalid inputs to ssdeep_compare, TEXT was expected", -1);
+    return;
+  }
+  const char* sig1 = reinterpret_cast<const char*>(sqlite3_value_text(argv[0]));
+  const char* sig2 = reinterpret_cast<const char*>(sqlite3_value_text(argv[1]));
+  sqlite3_result_int(context, fuzzy_compare(sig1, sig2));
+}
+#endif
+
 void registerHashingExtensions(sqlite3* db) {
   sqlite3_create_function(db,
                           "md5",
@@ -83,5 +103,15 @@ void registerHashingExtensions(sqlite3* db) {
                           sqliteSHA256Func,
                           nullptr,
                           nullptr);
+#ifdef OSQUERY_POSIX
+  sqlite3_create_function(db,
+                          "ssdeep_compare",
+                          2,
+                          SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+                          nullptr,
+                          sqliteSsdeepCompareFunc,
+                          nullptr,
+                          nullptr);
+#endif
 }
 } // namespace osquery

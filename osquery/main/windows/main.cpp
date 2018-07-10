@@ -206,6 +206,28 @@ class ServiceArgumentParser {
   std::vector<LPSTR> args_;
 };
 
+// Set recovery behavior on service failure
+static void setupServiceRecovery(SC_HANDLE schService) {
+  SC_ACTION actionRestartService{};
+  actionRestartService.Type = SC_ACTION_RESTART;
+  actionRestartService.Delay = 5000; // delay in ms
+  SC_ACTION actionNone{};
+  actionNone.Type = SC_ACTION_NONE;
+
+  // Try restarting once, on subsequent failures give up
+  SC_ACTION actions[] = {actionRestartService, actionNone};
+
+  SERVICE_FAILURE_ACTIONS failureActions{};
+  failureActions.cActions = sizeof(actions) / sizeof(*actions);
+  failureActions.lpsaActions = actions;
+
+  if (!ChangeServiceConfig2(
+          schService, SERVICE_CONFIG_FAILURE_ACTIONS, &failureActions)) {
+    SLOG("ChangeServiceConfig2 failed (lasterror=" +
+         std::to_string(GetLastError()) + ")");
+  }
+}
+
 /// Install osqueryd as a service given the path to the binary
 Status installService(const std::string& binPath) {
   SC_HANDLE schSCManager = OpenSCManager(
@@ -250,6 +272,10 @@ Status installService(const std::string& binPath) {
                              nullptr,
                              nullptr,
                              nullptr);
+
+  if (schService) {
+    setupServiceRecovery(schService);
+  }
 
   CloseServiceHandle(schSCManager);
   CloseServiceHandle(schService);

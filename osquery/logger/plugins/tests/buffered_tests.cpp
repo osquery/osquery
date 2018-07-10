@@ -74,6 +74,16 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
       : BufferedLogForwarder(
             "MockBufferedLogForwarder", name, log_period, max_log_lines) {}
 
+  bool interrupted() {
+    // A small conditional to force-skip an interruption check, used in testing.
+    if (!checked_) {
+      checked_ = true;
+      return false;
+    } else {
+      return BufferedLogForwarder::interrupted();
+    }
+  }
+
   MOCK_METHOD2(send,
                Status(std::vector<std::string>& log_data,
                       const std::string& log_type));
@@ -85,6 +95,9 @@ class MockBufferedLogForwarder : public BufferedLogForwarder {
   FRIEND_TEST(BufferedLogForwarderTests, test_split);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge);
   FRIEND_TEST(BufferedLogForwarderTests, test_purge_max);
+
+ private:
+  bool checked_{false};
 };
 
 TEST_F(BufferedLogForwarderTests, test_index) {
@@ -223,7 +236,6 @@ TEST_F(BufferedLogForwarderTests, test_multiple) {
 TEST_F(BufferedLogForwarderTests, test_async) {
   auto runner = std::make_shared<StrictMock<MockBufferedLogForwarder>>(
       "mock", kLogPeriod);
-  runner->mustRun();
 
   EXPECT_CALL(*runner, send(ElementsAre("foo"), "result"))
       .WillOnce(Return(Status(0)));
