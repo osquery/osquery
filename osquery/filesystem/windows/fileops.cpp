@@ -1487,67 +1487,54 @@ std::string getFileAttribStr(unsigned long file_attributes) {
   if (file_attributes & FILE_ATTRIBUTE_ARCHIVE) {
     // Archive file attribute
     attribs.push_back('A');
-    file_attributes &= ~FILE_ATTRIBUTE_ARCHIVE;
   }
   if (file_attributes & FILE_ATTRIBUTE_COMPRESSED) {
     // Compressed (Not included in attrib.exe output)
     attribs.push_back('C');
-    file_attributes &= ~FILE_ATTRIBUTE_COMPRESSED;
   }
   if (file_attributes & FILE_ATTRIBUTE_ENCRYPTED) {
     // Encrypted (Not included in attrib.exe output)
     attribs.push_back('E');
-    file_attributes &= ~FILE_ATTRIBUTE_ENCRYPTED;
   }
   if (file_attributes & FILE_ATTRIBUTE_REPARSE_POINT) {
     // Hidden file attribute
     attribs.push_back('L');
-    file_attributes &= ~FILE_ATTRIBUTE_HIDDEN;
   }
   if (file_attributes & FILE_ATTRIBUTE_HIDDEN) {
     // Hidden file attribute
     attribs.push_back('H');
-    file_attributes &= ~FILE_ATTRIBUTE_HIDDEN;
   }
   if (file_attributes & FILE_ATTRIBUTE_INTEGRITY_STREAM) {
     //
     attribs.push_back('V');
-    file_attributes &= ~FILE_ATTRIBUTE_INTEGRITY_STREAM;
   }
   if (file_attributes & FILE_ATTRIBUTE_NORMAL) {
     // Normal (Not included in attrib.exe output)
     attribs.push_back('N');
-    file_attributes &= ~FILE_ATTRIBUTE_NORMAL;
   }
   if (file_attributes & FILE_ATTRIBUTE_NOT_CONTENT_INDEXED) {
     // Not content indexed file attribute
     attribs.push_back('I');
-    file_attributes &= ~FILE_ATTRIBUTE_NOT_CONTENT_INDEXED;
   }
   if (file_attributes & FILE_ATTRIBUTE_NO_SCRUB_DATA) {
     // No scrub file attribute
     attribs.push_back('X');
-    file_attributes &= ~FILE_ATTRIBUTE_NO_SCRUB_DATA;
   }
   if (file_attributes & FILE_ATTRIBUTE_OFFLINE) {
     // Offline attribute
     attribs.push_back('O');
-    file_attributes &= ~FILE_ATTRIBUTE_OFFLINE;
   }
   if (file_attributes & FILE_ATTRIBUTE_READONLY) {
     // Read-only file attribute
     attribs.push_back('R');
-    file_attributes &= ~FILE_ATTRIBUTE_READONLY;
   }
   if (file_attributes & FILE_ATTRIBUTE_SYSTEM) {
     // System file attribute
     attribs.push_back('S');
-    file_attributes &= ~FILE_ATTRIBUTE_SYSTEM;
   }
   if (file_attributes & FILE_ATTRIBUTE_TEMPORARY) {
     // Temporary file attribute (Not included in attrib.exe output)
     attribs.push_back('T');
-    file_attributes &= ~FILE_ATTRIBUTE_TEMPORARY;
   }
 
   return attribs;
@@ -1579,17 +1566,15 @@ std::string lastErrorMessage(unsigned long error_code) {
 }
 
 Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
-  
-  auto FLAGS_AND_ATTRIBUTES = FILE_ATTRIBUTE_ARCHIVE | FILE_ATTRIBUTE_ENCRYPTED |
-	  FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_NORMAL |
-	  FILE_ATTRIBUTE_OFFLINE | FILE_ATTRIBUTE_READONLY |
-	  FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY;
+  auto FLAGS_AND_ATTRIBUTES = FILE_ATTRIBUTE_ARCHIVE |
+                              FILE_ATTRIBUTE_ENCRYPTED | FILE_ATTRIBUTE_HIDDEN |
+                              FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_OFFLINE |
+                              FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_SYSTEM |
+                              FILE_ATTRIBUTE_TEMPORARY;
 
   if (fs::is_directory(path)) {
-
     FLAGS_AND_ATTRIBUTES |= FILE_FLAG_BACKUP_SEMANTICS;
-
-  } 
+  }
 
   // Get the handle of the file object.
   auto file_handle = CreateFile(path.string().c_str(),
