@@ -108,17 +108,7 @@ QueryData SQL::selectAllFrom(const std::string& table,
                              const std::string& column,
                              ConstraintOperator op,
                              const std::string& expr) {
-  PluginRequest request = {{"action", "generate"}};
-  {
-    // Create a fake content, there will be no caching.
-    QueryContext ctx;
-    ctx.constraints[column].add(Constraint(op, expr));
-    TablePlugin::setRequestFromContext(ctx, request);
-  }
-
-  PluginResponse response;
-  Registry::call("table", table, request, response);
-  return response;
+  return selectFrom({}, table, column, op, expr);
 }
 
 QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
@@ -127,16 +117,23 @@ QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
                           ConstraintOperator op,
                           const std::string& expr) {
   PluginRequest request = {{"action", "generate"}};
-  {
-    // Create a fake content, there will be no caching.
-    QueryContext ctx;
-    ctx.constraints[column].add(Constraint(op, expr));
+  // Create a fake content, there will be no caching.
+  QueryContext ctx;
+  ctx.constraints[column].add(Constraint(op, expr));
+  if (columns.size() > 0) {
     ctx.colsUsed = UsedColumns(columns);
-    TablePlugin::setRequestFromContext(ctx, request);
   }
+  TablePlugin::setRequestFromContext(ctx, request);
 
   PluginResponse response;
   Registry::call("table", table, request, response);
+  response.erase(
+      std::remove_if(response.begin(),
+                     response.end(),
+                     [&ctx, &column](const PluginRequest& row) -> bool {
+                       return !ctx.constraints[column].matches(row.at(column));
+                     }),
+      response.end());
   return response;
 }
 
