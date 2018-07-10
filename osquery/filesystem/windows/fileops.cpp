@@ -1579,18 +1579,26 @@ std::string lastErrorMessage(unsigned long error_code) {
 }
 
 Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
+  
+  auto FLAGS_AND_ATTRIBUTES = FILE_ATTRIBUTE_ARCHIVE | FILE_ATTRIBUTE_ENCRYPTED |
+	  FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_NORMAL |
+	  FILE_ATTRIBUTE_OFFLINE | FILE_ATTRIBUTE_READONLY |
+	  FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY;
+
+  if (fs::is_directory(path)) {
+
+    FLAGS_AND_ATTRIBUTES |= FILE_FLAG_BACKUP_SEMANTICS;
+
+  } 
+
   // Get the handle of the file object.
-  auto file_handle =
-      CreateFile(path.string().c_str(),
-                 GENERIC_READ,
-                 FILE_SHARE_READ | FILE_SHARE_WRITE,
-                 nullptr,
-                 OPEN_EXISTING,
-                 FILE_ATTRIBUTE_ARCHIVE | FILE_ATTRIBUTE_ENCRYPTED |
-                     FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_NORMAL |
-                     FILE_ATTRIBUTE_OFFLINE | FILE_ATTRIBUTE_READONLY |
-                     FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY,
-                 nullptr);
+  auto file_handle = CreateFile(path.string().c_str(),
+                                GENERIC_READ,
+                                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                nullptr,
+                                OPEN_EXISTING,
+                                FLAGS_AND_ATTRIBUTES,
+                                nullptr);
 
   // Check GetLastError for CreateFile error code.
   if (file_handle == INVALID_HANDLE_VALUE) {
@@ -1662,9 +1670,6 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
     break;
   }
   case FILE_TYPE_DISK: {
-    if(file_info.dwFileAttributes != FILE_ATTRIBUTE_ARCHIVE) {
-      LOG(ERROR) << "[+] File Attrib: " << file_info.dwFileAttributes;
-    }
     if ((file_info.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) ||
         (file_info.dwFileAttributes & FILE_ATTRIBUTE_NORMAL)) {
       wfile_stat->type = "regular";
