@@ -12,6 +12,7 @@
 #include <libproc.h>
 #include <mach/mach.h>
 #include <mach/mach_time.h>
+#include <mach/mach_vm.h>
 #include <sys/sysctl.h>
 
 #include <mach-o/dyld_images.h>
@@ -291,7 +292,7 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
     uint64_t buf;
     uint32_t buf_size;
     uint64_t out_buf_addr;
-    uint64_t out_buf_size_addr;
+    uint64_t out_buf_size;
   } stackshot_config_t;
 
   char* addr = nullptr;
@@ -312,7 +313,7 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
 
   if (rc < 0) {
     VLOG(1) << "Could not make syscall for unique pids";
-    r["unique_pid"] = BIGINT(-1);
+    r["unique_pid"] = INTEGER(-1);
     return;
   }
 
@@ -321,10 +322,18 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
     kcdata_item_t item = reinterpret_cast<kcdata_item_t>(addr + off);
     auto upid = parseKCItem(item);
     if (upid != ULLONG_MAX) {
-      r["unique_pid"] = BIGINT(upid);
+      r["unique_pid"] = INTEGER(upid);
       break;
     }
     off += item->size + 16 - (off % 16);
+  }
+  auto mach_free = mach_vm_deallocate(mach_task_self(),
+                                      reinterpret_cast<mach_vm_offset_t>(addr),
+                                      static_cast<mach_vm_size_t>(size));
+
+  if (mach_free != KERN_SUCCESS) {
+    LOG(WARNING) << "Could not free memory from mach! Processes might be "
+                    "leaking memory!";
   }
 }
 
