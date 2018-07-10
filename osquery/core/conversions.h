@@ -322,4 +322,13 @@ inline typename std::enable_if<
 tryTo(FromType&& from) {
   return std::forward<FromType>(from);
 }
+
+Expected<bool, ConversionError> stringToBoolImpl(std::string from);
+
+template <typename ToType>
+inline typename std::enable_if<std::is_same<ToType, bool>::value,
+                               Expected<ToType, ConversionError>>::type
+tryTo(std::string from) {
+  return stringToBoolImpl(std::move(from));
+}
 }

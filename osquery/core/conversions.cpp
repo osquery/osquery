@@ -10,10 +10,12 @@
 
 #include <iomanip>
 #include <locale>
+#include <unordered_map>
 
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
+#include <boost/io/detail/quoted_manip.hpp>
 #include <boost/uuid/sha1.hpp>
 
 #include <osquery/logger.h>
@@ -413,5 +415,43 @@ std::string getBufferSHA1(const char* buffer, size_t size) {
 
 size_t operator"" _sz(unsigned long long int x) {
   return x;
+}
+
+Expected<bool, ConversionError> stringToBoolImpl(std::string from) {
+  static const auto table = std::unordered_map<std::string, bool>{
+      {"1", true},
+      {"0", false},
+      {"y", true},
+      {"n", false},
+      {"yes", true},
+      {"no", false},
+      {"t", true},
+      {"f", false},
+      {"true", true},
+      {"false", false},
+      {"ok", true},
+      {"nope", false},
+      {"positive", true},
+      {"negative", false},
+      {"enable", true},
+      {"disable", false},
+      {"enabled", true},
+      {"disabled", false},
+  };
+  using CharType = std::string::value_type;
+  // Classic locale could be used here because all available string
+  // representations of boolean have ascii encoding. It must be a bit faster.
+  static const auto& ctype =
+      std::use_facet<std::ctype<CharType>>(std::locale::classic());
+  for (auto& ch : from) {
+    ch = ctype.tolower(ch);
+  }
+  const auto it = table.find(from);
+  if (it == table.end()) {
+    return createError(ConversionError::InvalidArgument,
+                       "Wrong string representation of boolean ")
+           << boost::io::quoted(from);
+  }
+  return it->second;
 }
 }
