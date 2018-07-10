@@ -121,7 +121,9 @@ QueryData SQL::selectFrom(const std::initializer_list<std::string>& columns,
   QueryContext ctx;
   ctx.constraints[column].add(Constraint(op, expr));
   if (columns.size() > 0) {
-    ctx.colsUsed = UsedColumns(columns);
+    auto colsUsed = UsedColumns(columns);
+    colsUsed.insert(column);
+    ctx.colsUsed = colsUsed;
   }
   TablePlugin::setRequestFromContext(ctx, request);
 
