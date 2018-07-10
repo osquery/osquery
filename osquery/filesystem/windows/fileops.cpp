@@ -1579,28 +1579,30 @@ std::string lastErrorMessage(unsigned long error_code) {
 }
 
 Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
-  PSID sid_owner = nullptr;
-  SID_NAME_USE name_use = SidTypeUnknown;
-  PSECURITY_DESCRIPTOR security_descriptor = nullptr;
-
   // Get the handle of the file object.
-  auto file_handle = CreateFile(TEXT(path.string().c_str()),
-                                GENERIC_READ,
-                                FILE_SHARE_READ,
-                                NULL,
-                                OPEN_EXISTING,
-                                FILE_ATTRIBUTE_NORMAL,
-                                NULL);
+  auto file_handle =
+      CreateFile(path.string().c_str(),
+                 GENERIC_READ,
+                 FILE_SHARE_READ | FILE_SHARE_WRITE,
+                 nullptr,
+                 OPEN_EXISTING,
+                 FILE_ATTRIBUTE_ARCHIVE | FILE_ATTRIBUTE_ENCRYPTED |
+                     FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_NORMAL |
+                     FILE_ATTRIBUTE_OFFLINE | FILE_ATTRIBUTE_READONLY |
+                     FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY,
+                 nullptr);
 
   // Check GetLastError for CreateFile error code.
   if (file_handle == INVALID_HANDLE_VALUE) {
     CloseHandle(file_handle);
     return Status(-1,
-                  "Platform Stat failed for " + path.string() + " with " +
-                      lastErrorMessage(GetLastError()));
+                  "CreateFile failed for " + path.string() + " with " +
+                      std::to_string(GetLastError()));
   }
 
   // Get the owner SID of the file.
+  PSID sid_owner = nullptr;
+  PSECURITY_DESCRIPTOR security_descriptor = nullptr;
   auto ret = GetSecurityInfo(file_handle,
                              SE_FILE_OBJECT,
                              OWNER_SECURITY_INFORMATION,
@@ -1614,8 +1616,8 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   if (ret != ERROR_SUCCESS) {
     CloseHandle(file_handle);
     return Status(-1,
-                  "Platform Stat failed for " + path.string() + " with " +
-                      lastErrorMessage(GetLastError()));
+                  "GetSecurityInfo failed for " + path.string() + " with " +
+                      std::to_string(GetLastError()));
   }
 
   FILE_BASIC_INFO basic_info;
@@ -1624,12 +1626,12 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   if (GetFileInformationByHandle(file_handle, &file_info) == 0) {
     CloseHandle(file_handle);
     return Status(-1,
-                  "Platform Stat failed for " + path.string() + " with " +
-                      lastErrorMessage(GetLastError()));
+                  "GetFileInformationByHandle failed for " + path.string() +
+                      " with " + std::to_string(GetLastError()));
   }
 
   auto file_index =
-      (static_cast<unsigned long long>(file_info.nFileIndexHigh) << 32) +
+      (static_cast<unsigned long long>(file_info.nFileIndexHigh) << 32) |
       static_cast<unsigned long long>(file_info.nFileIndexLow);
 
   std::stringstream stream;
@@ -1653,35 +1655,37 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
   wfile_stat->symlink = 0;
 
   auto file_type = GetFileType(file_handle);
-
   // Try to assign a human readable file type
   switch (file_type) {
   case FILE_TYPE_CHAR: {
-    wfile_stat->type = "Character";
-
+    wfile_stat->type = "character";
     break;
   }
   case FILE_TYPE_DISK: {
-    if (file_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-      wfile_stat->type = "Directory";
-    } else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_NORMAL) {
-      wfile_stat->type = "Regular";
+    if(file_info.dwFileAttributes != FILE_ATTRIBUTE_ARCHIVE) {
+      LOG(ERROR) << "[+] File Attrib: " << file_info.dwFileAttributes;
+    }
+    if ((file_info.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) ||
+        (file_info.dwFileAttributes & FILE_ATTRIBUTE_NORMAL)) {
+      wfile_stat->type = "regular";
+    } else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+      wfile_stat->type = "directory";
     } else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-      wfile_stat->type = "Symbolic";
+      wfile_stat->type = "symbolic";
       wfile_stat->symlink = 1;
     } else {
       // This is the type returned from GetFileType -> FILE_TYPE_DISK
-      wfile_stat->type = "Disk";
+      wfile_stat->type = "disk";
     }
     break;
   }
   case FILE_TYPE_PIPE: {
     // If GetNamedPipeInfo fails we assume it's a socket
-    (GetNamedPipeInfo(file_handle, 0, 0, 0, 0)) ? wfile_stat->type = "Pipe"
-                                                : wfile_stat->type = "Socket";
+    (GetNamedPipeInfo(file_handle, 0, 0, 0, 0)) ? wfile_stat->type = "pipe"
+                                                : wfile_stat->type = "socket";
     break;
   }
-  default: { wfile_stat->type = "Unknown"; }
+  default: { wfile_stat->type = "unknown"; }
   }
 
   wfile_stat->attributes = getFileAttribStr(file_info.dwFileAttributes);
