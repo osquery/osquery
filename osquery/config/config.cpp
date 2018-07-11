@@ -28,6 +28,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/flagalias.h"
 
 namespace rj = rapidjson;
 

@@ -31,6 +31,7 @@
 #include <osquery/system.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/flagalias.h"
 #include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;

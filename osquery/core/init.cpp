@@ -45,6 +45,7 @@
 #include <osquery/flags.h>
 #include <osquery/killswitch.h>
 #include <osquery/logger.h>
+#include <osquery/numeric_monitoring/plugin_interface.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
 
@@ -177,6 +178,7 @@ namespace osquery {
 
 DECLARE_string(config_plugin);
 DECLARE_string(logger_plugin);
+DECLARE_string(numeric_monitoring_plugins);
 DECLARE_string(distributed_plugin);
 DECLARE_string(killswitch_plugin);
 DECLARE_bool(config_check);
@@ -188,6 +190,7 @@ DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
 DECLARE_bool(disable_logging);
 DECLARE_bool(enable_killswitch);
+DECLARE_bool(enable_numeric_monitoring);
 
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");
@@ -686,6 +689,10 @@ void Initializer::start() const {
 
   if (FLAGS_enable_killswitch) {
     initActivePlugin("killswitch", FLAGS_killswitch_plugin);
+  }
+  if (FLAGS_enable_numeric_monitoring) {
+    initActivePlugin(monitoring::registryName(),
+                     FLAGS_numeric_monitoring_plugins);
   }
 
   // Start event threads.
