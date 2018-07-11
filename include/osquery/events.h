@@ -413,10 +413,7 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    *
    * @return Was the element added to the backing store.
    */
-  Status add(const Row& r) {
-    std::vector<Row> batch = {r};
-    return addBatch(batch, getUnixTime());
-  }
+  Status add(const Row& r);
 
   /**
    * @brief Store parsed event data from an EventCallback in a backing store.

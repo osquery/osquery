@@ -242,8 +242,9 @@ Status sendPutBatchDatabaseRequest(const std::string& domain,
     return status;
   }
 
-  PluginRequest request = {
-      {"action", "putBatch"}, {"domain", domain}, {"json", serialized_data}};
+  PluginRequest request = {{"action", "putBatch"},
+                           {"domain", domain},
+                           {"json", std::move(serialized_data)}};
 
   status = Registry::call("database", request);
   if (!status.ok()) {

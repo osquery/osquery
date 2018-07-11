@@ -446,16 +446,13 @@ Status EventSubscriberPlugin::recordEvents(
   std::string record_key = "records." + dbNamespace() + ".60.";
 
   // The list key includes the list type (bin size) and the list ID (bin).
-  //
   // The list_id is the MOST-Specific key ID, the bin for this list.
   // If the event time was 13 and the time_list is 5 seconds, lid = 2.
   auto list_id = boost::lexical_cast<std::string>(event_time / 60);
+  std::string time_value = boost::lexical_cast<std::string>(event_time);
 
   for (const auto& eid : event_id_list) {
-    std::string time_value = boost::lexical_cast<std::string>(event_time);
-
     // The record is identified by the event type then module name.
-
     // Append the record (eid, unix_time) to the list bin.
     std::string record_value;
     auto database_key = record_key + list_id;
@@ -578,6 +575,11 @@ void EventSubscriberPlugin::get(RowYield& yield,
   if (FLAGS_events_optimize) {
     setOptimizeData(optimize_time_, optimize_eid_, dbNamespace());
   }
+}
+
+Status EventSubscriberPlugin::add(const Row& r) {
+  std::vector<Row> batch = {r};
+  return addBatch(batch, getUnixTime());
 }
 
 Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list) {
