@@ -19,9 +19,10 @@ namespace osquery {
 namespace monitoring {
 
 /**
- * Representation of smallest unit of monitoring system.
+ * Monitoring system smallest unit
  * Consists of watched value itself, watching time, unique name for this set of
  * values and pre-aggregation type.
+ * Performs pre-aggregation operations @see tryToAggregate.
  */
 class Point {
  public:
@@ -40,6 +41,13 @@ class Point {
                  PreAggregationType pre_aggregation_type,
                  TimePoint time_point);
 
+  /**
+   * Try to aggregate @param new_point into itself.
+   * If `pre_aggregation_type` and `path` are the same in `new_point`, the value
+   * of `new_point` will be aggregated with `value` from self and written to
+   * self `value`.  `true` will be returned in this case.
+   * Otherwise nothing will be changed and `false` will be returned.
+   */
   bool tryToAggregate(const Point& new_point);
 
  public:
