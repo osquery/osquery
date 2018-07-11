@@ -21,7 +21,7 @@ namespace osquery {
 namespace debug_only {
 
 /**
- * Use it for unconditional abort in debug mode with message
+ * Use it for unconditional abort with message only in debug mode
  */
 inline void fail(const char* msg) {
 #ifndef NDEBUG
@@ -32,7 +32,7 @@ inline void fail(const char* msg) {
 }
 
 /**
- * Use it for verifys in debug mode
+ * To verify something vital only in debug mode
  * See examples of usage in tests osquery/debug/tests/debug_only_tests.cpp
  */
 template <typename FunctionType>
@@ -43,6 +43,19 @@ inline void verify(FunctionType checker, const char* msg) {
   }
 #endif
   boost::ignore_unused(checker);
+  boost::ignore_unused(msg);
+}
+
+/**
+ * Pretty much the same as verify, but for the simple boolean condition
+ */
+inline void verifyTrue(bool expected_true, const char* msg) {
+#ifndef NDEBUG
+  if (!expected_true) {
+    fail(msg);
+  }
+#endif
+  boost::ignore_unused(expected_true);
   boost::ignore_unused(msg);
 }
 

@@ -40,6 +40,14 @@ GTEST_TEST(DebugOnly, verify) {
 #endif
 }
 
+GTEST_TEST(DebugOnly, verifyTrue) {
+  debug_only::verifyTrue(true, "This code must not fail");
+#ifndef NDEBUG
+  ASSERT_DEATH(debug_only::verifyTrue(false, "This code should fail"),
+               "debug.*This code should fail");
+#endif
+}
+
 GTEST_TEST(DebugOnly, verify_do_nothing_in_non_debug_mode) {
 #ifdef NDEBUG
   // This code will be compiled and run only in release mode according to macro
