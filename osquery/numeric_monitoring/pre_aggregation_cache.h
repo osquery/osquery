@@ -18,8 +18,23 @@ namespace osquery {
 
 namespace monitoring {
 
+/**
+ * Representation of smallest unit of monitoring system.
+ * Consists of watched value itself, watching time, unique name for this set of
+ * values and pre-aggregation type.
+ */
 class Point {
  public:
+  /**
+   * Constructor
+   * Consists of watched value itself, watching time, unique name for this set
+   * of values and pre-aggregation type.
+   * @param path Path or in other words unique name for the sequence of
+   * monitoring values
+   * @param value Observed value
+   * @param pre_aggregation_type Pre-aggregation type for the sequence
+   * @param time_point Time point at which value was observed
+   */
   explicit Point(std::string path,
                  ValueType value,
                  PreAggregationType pre_aggregation_type,
