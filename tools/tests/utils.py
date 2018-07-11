@@ -179,7 +179,11 @@ def profile_cmd(cmd, proc=None, shell=False, timeout=0, count=1):
         if timeout > 0 and delay >= timeout + 2:
             proc.kill()
             break
+
+    # there are two sleep(1) calls in the profiling code, so we subtract 2 here to account for it.
     duration = time.time() - start_time - 2
+    # occasionally this can lead to negative results, so max up to zero in case that happens
+    duration = max(duration, 0)
 
     utilization = [percent for percent in percents if percent != 0]
     if len(utilization) == 0:
