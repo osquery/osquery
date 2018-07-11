@@ -1,33 +1,33 @@
 table_name("processes")
 description("All running processes on the host system.")
 schema([
-    Column("pid", INTEGER, "Process (or thread) ID", index=True),
+    Column("pid", BIGINT, "Process (or thread) ID", index=True),
     Column("name", TEXT, "The process path or shorthand argv[0]"),
     Column("path", TEXT, "Path to executed binary"),
     Column("cmdline", TEXT, "Complete argv"),
     Column("state", TEXT, "Process state"),
     Column("cwd", TEXT, "Process current working directory"),
     Column("root", TEXT, "Process virtual root directory"),
-    Column("uid", INTEGER, "Unsigned user ID"),
-    Column("gid", INTEGER, "Unsigned group ID"),
-    Column("euid", INTEGER, "Unsigned effective user ID"),
-    Column("egid", INTEGER, "Unsigned effective group ID"),
-    Column("suid", INTEGER, "Unsigned saved user ID"),
-    Column("sgid", INTEGER, "Unsigned saved group ID"),
+    Column("uid", BIGINT, "Unsigned user ID"),
+    Column("gid", BIGINT, "Unsigned group ID"),
+    Column("euid", BIGINT, "Unsigned effective user ID"),
+    Column("egid", BIGINT, "Unsigned effective group ID"),
+    Column("suid", BIGINT, "Unsigned saved user ID"),
+    Column("sgid", BIGINT, "Unsigned saved group ID"),
     Column("on_disk", INTEGER,
         "The process path exists yes=1, no=0, unknown=-1"),
-    Column("wired_size", INTEGER, "Bytes of unpagable memory used by process"),
-    Column("resident_size", INTEGER, "Bytes of private memory used by process"),
-    Column("total_size", INTEGER, "Total virtual memory size",
+    Column("wired_size", BIGINT, "Bytes of unpagable memory used by process"),
+    Column("resident_size", BIGINT, "Bytes of private memory used by process"),
+    Column("total_size", BIGINT, "Total virtual memory size",
         aliases=["phys_footprint"]),
-    Column("user_time", INTEGER, "CPU time in milliseconds spent in user space"),
-    Column("system_time", INTEGER, "CPU time in milliseconds spent in kernel space"),
-    Column("disk_bytes_read", INTEGER, "Bytes read from disk"),
-    Column("disk_bytes_written", INTEGER, "Bytes written to disk"),
-    Column("start_time", INTEGER,
+    Column("user_time", BIGINT, "CPU time in milliseconds spent in user space"),
+    Column("system_time", BIGINT, "CPU time in milliseconds spent in kernel space"),
+    Column("disk_bytes_read", BIGINT, "Bytes read from disk"),
+    Column("disk_bytes_written", BIGINT, "Bytes written to disk"),
+    Column("start_time", BIGINT,
         "Process start in seconds since boot (non-sleeping)"),
-    Column("parent", INTEGER, "Process parent's PID"),
-    Column("pgroup", INTEGER, "Process group"),
+    Column("parent", BIGINT, "Process parent's PID"),
+    Column("pgroup", BIGINT, "Process group"),
     Column("threads", INTEGER, "Number of threads used by process"),
     Column("nice", INTEGER, "Process nice level (-20 to 20, default 0)"),
 ])
@@ -36,8 +36,8 @@ extended_schema(WINDOWS, [
 ])
 
 extended_schema(DARWIN, [
-    Column("unique_pid", INTEGER, "A 64bit pid that is never reused. Returns -1 if we couldn't gather them from the system."),
-    Column("unique_ppid", INTEGER, "The 64bit parent pid that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("upid", BIGINT, "A 64bit pid that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("uppid", BIGINT, "The 64bit parent pid that is never reused. Returns -1 if we couldn't gather them from the system."),
 ])
 attributes(cacheable=True)
 implementation("system/processes@genProcesses")

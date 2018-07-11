@@ -8,7 +8,6 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <kern/kcdata.h>
 #include <libproc.h>
 #include <mach/mach.h>
 #include <mach/mach_time.h>
@@ -268,8 +267,7 @@ void genProcNumThreads(QueryContext& context, int pid, Row& r) {
 }
 
 void genProcUniquePid(QueryContext& context, int pid, Row& r) {
-  if (!context.isColumnUsed("unique_pid") &&
-      !context.isColumnUsed("unique_ppid")) {
+  if (!context.isColumnUsed("upid") && !context.isColumnUsed("uppid")) {
     return;
   }
 
@@ -285,11 +283,11 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
   struct proc_uniqidentifierinfo uniqidinfo;
   int status = proc_pidinfo(pid, 17, 0, &uniqidinfo, sizeof(uniqidinfo));
   if (status == sizeof(uniqidinfo)) {
-    r["unique_pid"] = INTEGER(uniqidinfo.p_uniqueid);
-    r["unique_ppid"] = INTEGER(uniqidinfo.p_puniqueid);
+    r["upid"] = BIGINT(uniqidinfo.p_uniqueid);
+    r["uppid"] = BIGINT(uniqidinfo.p_puniqueid);
   } else {
-    r["unique_pid"] = "-1";
-    r["unique_ppid"] = "-1";
+    r["upid"] = "-1";
+    r["uppid"] = "-1";
   }
 }
 
