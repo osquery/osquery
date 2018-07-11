@@ -25,6 +25,8 @@ class Killswitch : private boost::noncopyable {
   ~Killswitch();
 
   /*
+  // Author: @guliashvili
+  // Creation Time: 11 / 07 / 2018
   bool isMyTutorialFeatureEnabled();
   */
 
