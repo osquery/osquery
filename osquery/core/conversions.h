@@ -295,6 +295,7 @@ std::string stringFromCFData(const CFDataRef& cf_data);
 enum class ConversionError {
   InvalidArgument,
   OutOfRange,
+  Unknown,
 };
 
 template <typename ToType, typename FromType>
@@ -397,6 +398,10 @@ tryTo(const FromType& from, const int base = 10) noexcept {
                        "Value read is out of the range of representable values "
                        "by an int. ")
            << oor.what();
+  } catch (...) {
+    return createError(ConversionError::Unknown,
+                       "Unknown error during conversion string to ")
+           << boost::core::demangle(typeid(ToType).name()) << " base " << base;
   }
 }
 }
