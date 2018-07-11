@@ -291,6 +291,30 @@ void genProcUniquePid(QueryContext& context, int pid, Row& r) {
   }
 }
 
+void genProcArch(QueryContext& context, int pid, Row& r) {
+  if (!context.isColumnUsed("cpu_type") &&
+      !context.isColumnUsed("cpu_subtype")) {
+    return;
+  }
+
+  struct proc_uniqidentifierinfo {
+    cpu_type_t p_cputype;
+    cpu_subtype_t p_cpusubtype;
+  };
+
+  struct proc_uniqidentifierinfo proc_archinfo {
+    0, 0
+  };
+  int status = proc_pidinfo(pid, 19, 0, &proc_archinfo, sizeof(proc_archinfo));
+  if (status == sizeof(proc_archinfo)) {
+    r["cpu_type"] = INTEGER(proc_archinfo.p_cputype);
+    r["cpu_subtype"] = INTEGER(proc_archinfo.p_cpusubtype);
+  } else {
+    r["cpu_type"] = "-1";
+    r["cpu_subtype"] = "-1";
+  }
+}
+
 struct proc_args {
   std::vector<std::string> args;
   std::map<std::string, std::string> env;
@@ -467,6 +491,8 @@ QueryData genProcesses(QueryContext& context) {
     genProcNumThreads(context, pid, r);
 
     genProcUniquePid(context, pid, r);
+
+    genProcArch(context, pid, r);
 
     results.push_back(r);
   }

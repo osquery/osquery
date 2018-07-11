@@ -38,6 +38,8 @@ extended_schema(WINDOWS, [
 extended_schema(DARWIN, [
     Column("upid", BIGINT, "A 64bit pid that is never reused. Returns -1 if we couldn't gather them from the system."),
     Column("uppid", BIGINT, "The 64bit parent pid that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("cpu_type", INTEGER, "A 64bit pid that is never reused. Returns -1 if we couldn't gather them from the system."),
+    Column("cpu_subtype", INTEGER, "The 64bit parent pid that is never reused. Returns -1 if we couldn't gather them from the system."),
 ])
 attributes(cacheable=True)
 implementation("system/processes@genProcesses")
