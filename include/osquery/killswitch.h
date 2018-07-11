@@ -25,7 +25,7 @@ class Killswitch : private boost::noncopyable {
   ~Killswitch();
 
   /*
-  bool isMyTutorialSwitchEnabled();
+  bool isMyTutorialFeatureEnabled();
   */
 
   static Killswitch& get() {

@@ -15,7 +15,7 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
-// bool Killswitch::isMyTutorialSwitchEnabled();{
+// bool Killswitch::isMyTutorialFeatureEnabled();{
 //   return isNewCodeEnabled("tutorialSwitch");
 // }
 
