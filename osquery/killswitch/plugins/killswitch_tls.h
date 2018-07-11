@@ -10,21 +10,20 @@
 
 #pragma once
 
-#include "osquery/killswitch/plugins/killswitch_json.h"
+#include "osquery/killswitch/killswitch_refreshable_plugin.h"
 
 namespace osquery {
 
 class TLSKillswitchPlugin;
 
 class TLSKillswitchPlugin
-    : public KillswitchJSON,
+    : public KillswitchRefreshablePlugin,
       public std::enable_shared_from_this<TLSKillswitchPlugin> {
  public:
   Status setUp() override;
 
  protected:
-  virtual Expected<std::string, KillswitchJSON::GetJSONError> getJSON()
-      override;
+  ExpectedSuccess<KillswitchRefreshablePlugin::RefreshError> refresh() override;
   /// Calculate the URL once and cache the result.
   std::string uri_;
 };

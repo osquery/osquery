@@ -20,14 +20,10 @@ ADD_OSQUERY_LIBRARY_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/plugins/killswitch_filesystem.h"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/killswitch_tls.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/plugins/killswitch_tls.h"
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/killswitch_json.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/killswitch_json.h"
 )
 ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/killswitch_tests.cpp"
 )
 ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/killswitch_filesystem_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/killswitch_json_tests.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/plugins/tests/killswitch_tls_tests.cpp"
 )

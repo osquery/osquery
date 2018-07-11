@@ -16,31 +16,31 @@ Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
 // bool Killswitch::isMyTutorialSwitchEnabled();{
-//   return isEnabled("tutorialSwitch", true);
+//   return isNewCodeEnabled("tutorialSwitch");
 // }
 
-bool Killswitch::isEnabled(const std::string& key, bool isEnabledDefault) {
+bool Killswitch::isNewCodeEnabled(const std::string& key) {
   auto result = isEnabled(key);
   if (result) {
     return *result;
   } else {
     VLOG(1) << result.getError().getFullMessageRecursive();
-    return isEnabledDefault;
+    return true;
   }
 }
 
-Expected<bool, Killswitch::SwitchOnError> Killswitch::isEnabled(
+Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
     const std::string& key) {
   PluginResponse response;
   auto status = Registry::call(
       "killswitch", {{"action", "isEnabled"}, {"key", key}}, response);
   if (!status.ok()) {
-    return createError(Killswitch::SwitchOnError::CallFailed,
+    return createError(Killswitch::IsEnabledError::CallFailed,
                        status.getMessage());
   }
 
   if (response.size() != 1) {
-    return createError(Killswitch::SwitchOnError::IncorrectResponseFormat,
+    return createError(Killswitch::IsEnabledError::IncorrectResponseFormat,
                        "Response size should be 1 but is ")
            << std::to_string(response.size());
   }
@@ -48,7 +48,7 @@ Expected<bool, Killswitch::SwitchOnError> Killswitch::isEnabled(
   const auto& isEnabledItem = responseMap.find("isEnabled");
   if (isEnabledItem == responseMap.end()) {
     return createError(
-        Killswitch::SwitchOnError::IncorrectResponseFormat,
+        Killswitch::IsEnabledError::IncorrectResponseFormat,
         "isEnabled key missing in reponse of the action: isEnabled");
   }
 
@@ -58,7 +58,7 @@ Expected<bool, Killswitch::SwitchOnError> Killswitch::isEnabled(
   } else if (isEnabledValue == "0") {
     return false;
   } else {
-    return createError(Killswitch::SwitchOnError::IncorrectValue,
+    return createError(Killswitch::IsEnabledError::IncorrectValue,
                        "Unknown isEnabled value " + isEnabledValue);
   }
 }

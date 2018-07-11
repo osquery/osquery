@@ -1,16 +1,16 @@
 
-#include "osquery/killswitch/plugins/killswitch_json.h"
+#include "osquery/killswitch/killswitch_refreshable_plugin.h"
 #include <string>
 
 namespace osquery {
 
-class KillswitchFilesystem : public KillswitchJSON {
+class KillswitchFilesystem : public KillswitchRefreshablePlugin {
  public:
   KillswitchFilesystem();
   KillswitchFilesystem(const boost::filesystem::path& conf_path);
 
  protected:
-  Expected<std::string, KillswitchJSON::GetJSONError> getJSON() override;
+  ExpectedSuccess<KillswitchRefreshablePlugin::RefreshError> refresh() override;
 
  private:
   const boost::filesystem::path conf_path_;

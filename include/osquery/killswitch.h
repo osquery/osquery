@@ -36,14 +36,14 @@ class Killswitch : private boost::noncopyable {
   Status refresh();
 
  private:
-  bool isEnabled(const std::string& key, bool isEnabledDefault);
+  bool isNewCodeEnabled(const std::string& key);
 
-  enum class SwitchOnError {
+  enum class IsEnabledError {
     CallFailed = 1,
     IncorrectResponseFormat = 2,
     IncorrectValue = 3
   };
-  Expected<bool, Killswitch::SwitchOnError> isEnabled(const std::string& key);
+  Expected<bool, Killswitch::IsEnabledError> isEnabled(const std::string& key);
 
   FRIEND_TEST(KillswitchJSONTests, test_killswitch_JSON_plugin_initial_values);
   FRIEND_TEST(KillswitchJSONTests, test_killswitch_JSON_plugin_switch_valid);

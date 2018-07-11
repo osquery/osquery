@@ -10,6 +10,36 @@ namespace osquery {
 
 CREATE_REGISTRY(KillswitchPlugin, "killswitch");
 
+Expected<std::map<std::string, bool>, KillswitchPlugin::ParseMapJSONError>
+KillswitchPlugin::parseMapJSON(const std::string& content) {
+  std::map<std::string, bool> result;
+
+  auto doc = JSON::newObject();
+  if (!doc.fromString(content) || !doc.doc().IsObject()) {
+    return createError(
+        KillswitchPlugin::ParseMapJSONError::UnknownParsingProblem,
+        "Error parsing the killswitch JSON. Content : " + content);
+  }
+
+  for (const auto& keyValue : doc.doc().GetObject()) {
+    if (!keyValue.name.IsString()) {
+      return createError(KillswitchPlugin::ParseMapJSONError::IncorrectKeyType,
+                         "Killswitch config key was not string");
+    }
+    auto key = keyValue.name.GetString();
+    if (!keyValue.value.IsBool()) {
+      return createError(
+          KillswitchPlugin::ParseMapJSONError::IncorrectValueType,
+          std::string("At Killswitch config key: ") + key +
+              "value was not bool");
+    }
+    bool value = keyValue.value.GetBool();
+    result[key] = value;
+  }
+
+  return result;
+}
+
 Status KillswitchPlugin::call(const PluginRequest& request,
                               PluginResponse& response) {
   auto action = request.find("action");

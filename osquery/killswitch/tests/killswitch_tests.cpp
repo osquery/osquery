@@ -2,8 +2,10 @@
  *  Copyright (c) 2014-present, Facebook, Inc.
  *  All rights reserved.
  *
- *  This source code is licensed under both the Apache 2.0 license (found in the
- *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  This source code is licensed under both the Apache 2.0 license (found in
+ the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2
+ (found
  *  in the COPYING file in the root directory of this source tree).
  *  You may select, at your option, one of the above-listed licenses.
  */
@@ -69,6 +71,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
     auto result = plugin->isEnabled("testSwitch");
     EXPECT_TRUE(result);
     EXPECT_TRUE(*result);
+    EXPECT_TRUE(Killswitch::get().isNewCodeEnabled("testSwitch"));
   }
   {
     PluginResponse response;
@@ -81,6 +84,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
     auto result = Killswitch::get().isEnabled("testSwitch");
     EXPECT_TRUE(result);
     EXPECT_TRUE(*result);
+    EXPECT_TRUE(Killswitch::get().isNewCodeEnabled("testSwitch"));
   }
 
   plugin->addCacheEntry("testSwitch", false);
@@ -89,6 +93,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
     auto result = plugin->isEnabled("testSwitch");
     EXPECT_TRUE(result);
     EXPECT_FALSE(*result);
+    EXPECT_FALSE(Killswitch::get().isNewCodeEnabled("testSwitch"));
   }
   {
     PluginResponse response;
@@ -101,6 +106,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
     auto result = Killswitch::get().isEnabled("testSwitch");
     EXPECT_TRUE(result);
     EXPECT_FALSE(*result);
+    EXPECT_FALSE(Killswitch::get().isNewCodeEnabled("testSwitch"));
   }
 
   plugin->setCache(std::map<std::string, bool>());
@@ -116,8 +122,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
     auto result = Killswitch::get().isEnabled("testSwitch");
     EXPECT_FALSE(result);
 
-    EXPECT_FALSE(Killswitch::get().isEnabled("testSwitch", false));
-    EXPECT_TRUE(Killswitch::get().isEnabled("testSwitch", true));
+    EXPECT_TRUE(Killswitch::get().isNewCodeEnabled("testSwitch"));
   }
 
   EXPECT_FALSE(Killswitch::get().refresh());

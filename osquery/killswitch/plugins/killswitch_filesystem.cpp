@@ -26,17 +26,24 @@ KillswitchFilesystem::KillswitchFilesystem(
 KillswitchFilesystem::KillswitchFilesystem()
     : KillswitchFilesystem(FLAGS_killswitch_config_path) {}
 
-Expected<std::string, KillswitchJSON::GetJSONError>
-KillswitchFilesystem::getJSON() {
+ExpectedSuccess<KillswitchRefreshablePlugin::RefreshError>
+KillswitchFilesystem::refresh() {
   std::string content;
   boost::system::error_code ec;
   if (!fs::is_regular_file(conf_path_, ec) || ec.value() != errc::success ||
       !readFile(conf_path_, content).ok()) {
-    createError(KillswitchJSON::GetJSONError::MissingConfigFile,
+    createError(KillswitchRefreshablePlugin::RefreshError::NoContentReached,
                 "config file does not exist: " + conf_path_.string());
   }
 
-  return content;
+  auto result = KillswitchPlugin::parseMapJSON(content);
+  if (result) {
+    setCache(*result);
+    return Success();
+  } else {
+    return createError(KillswitchRefreshablePlugin::RefreshError::ParsingError,
+                       result.getError().getFullMessageRecursive());
+  }
 }
 
 REGISTER(KillswitchFilesystem, "killswitch", "killswitch_filesystem");

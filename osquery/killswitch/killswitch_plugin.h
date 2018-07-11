@@ -33,6 +33,14 @@ class KillswitchPlugin : public Plugin {
   void addCacheEntry(const std::string& key, bool value);
   void setCache(const std::map<std::string, bool>& killswitchMap);
 
+  enum class ParseMapJSONError {
+    IncorrectKeyType = 1,
+    IncorrectValueType = 2,
+    UnknownParsingProblem = 3
+  };
+  static Expected<std::map<std::string, bool>, ParseMapJSONError> parseMapJSON(
+      const std::string& content);
+
  private:
   enum class IsEnabledError { NoKeyFound = 1 };
   Expected<bool, IsEnabledError> isEnabled(const std::string& key);
@@ -41,5 +49,6 @@ class KillswitchPlugin : public Plugin {
 
  private:
   FRIEND_TEST(KillswitchTests, test_killswitch_plugin);
+  FRIEND_TEST(KillswitchFilesystemTests, test_killswitch_filesystem_plugin);
 };
 } // namespace osquery
