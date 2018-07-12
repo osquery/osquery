@@ -363,7 +363,7 @@ void testTryToForValue(ValueType value) {
 }
 
 template <typename IntType>
-void testTryToForInt() {
+void testTryToForUnsignedInt() {
   testTryToForValue<IntType>(119);
   testTryToForValue<IntType>(std::numeric_limits<IntType>::max());
   testTryToForValue<IntType>(std::numeric_limits<IntType>::min());
@@ -403,57 +403,181 @@ void testTryToForInt() {
     ASSERT_FALSE(ret.isError());
     ASSERT_EQ(ret.get(), 39);
   }
+  {
+    auto ret = tryTo<IntType>(std::string{"+15"});
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), 15);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"+1A"}, 16);
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), 26);
+  }
+  // failure tests
+  {
+    auto ret = tryTo<IntType>(std::string{""});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"x"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"xor"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{".1"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"(10)"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"O"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"lO0"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"IV"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"s1"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"u1"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"#12"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"%99"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"*483"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"/488"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"\\493"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"+ 19"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string(2, '\0'));
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+}
+
+template <typename IntType>
+void testTryToForSignedInt() {
+  testTryToForUnsignedInt<IntType>();
+  testTryToForValue<int>(-126);
+  {
+    auto ret = tryTo<IntType>(std::string{"-7A"}, 16);
+    ASSERT_FALSE(ret.isError());
+    ASSERT_EQ(ret.get(), -122);
+  }
+  // failure tests
+  {
+    auto ret = tryTo<IntType>(std::string{"--14779"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"+-1813"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
+  {
+    auto ret = tryTo<IntType>(std::string{"- 3"});
+    ASSERT_TRUE(ret.isError());
+    ASSERT_EQ(ret.getErrorCode(), ConversionError::InvalidArgument);
+  }
 }
 
 TEST_F(ConversionsTests, try_i_to_string_and_back) {
-  testTryToForInt<int>();
-  testTryToForValue<int>(-126);
+  testTryToForSignedInt<int>();
 }
 
 TEST_F(ConversionsTests, try_l_to_string_and_back) {
-  testTryToForInt<long>();
-  testTryToForValue<long>(-126);
+  testTryToForSignedInt<long>();
 }
 
 TEST_F(ConversionsTests, try_ll_to_string_and_back) {
-  testTryToForInt<long long>();
-  testTryToForValue<long long>(-126);
+  testTryToForSignedInt<long long>();
 }
 
 TEST_F(ConversionsTests, try_i32_to_string_and_back) {
-  testTryToForInt<std::int32_t>();
+  testTryToForSignedInt<std::int32_t>();
 }
 
 TEST_F(ConversionsTests, try_i64_to_string_and_back) {
-  testTryToForInt<std::int64_t>();
+  testTryToForSignedInt<std::int64_t>();
 }
 
 TEST_F(ConversionsTests, try_imax_to_string_and_back) {
-  testTryToForInt<std::intmax_t>();
+  testTryToForSignedInt<std::intmax_t>();
 }
 
 TEST_F(ConversionsTests, try_u_to_string_and_back) {
-  testTryToForInt<unsigned>();
+  testTryToForUnsignedInt<unsigned>();
 }
 
 TEST_F(ConversionsTests, try_ul_to_string_and_back) {
-  testTryToForInt<unsigned long>();
+  testTryToForUnsignedInt<unsigned long>();
 }
 
 TEST_F(ConversionsTests, try_ull_to_string_and_back) {
-  testTryToForInt<unsigned long long>();
+  testTryToForUnsignedInt<unsigned long long>();
 }
 
 TEST_F(ConversionsTests, try_u32_to_string_and_back) {
-  testTryToForInt<std::uint32_t>();
+  testTryToForUnsignedInt<std::uint32_t>();
 }
 
 TEST_F(ConversionsTests, try_u64_to_string_and_back) {
-  testTryToForInt<std::uint64_t>();
+  testTryToForUnsignedInt<std::uint64_t>();
 }
 
 TEST_F(ConversionsTests, try_umax_to_string_and_back) {
-  testTryToForInt<std::uintmax_t>();
+  testTryToForUnsignedInt<std::uintmax_t>();
+}
+
+TEST_F(ConversionsTests, try_size_t_to_string_and_back) {
+  testTryToForUnsignedInt<std::size_t>();
 }
 
 TEST_F(ConversionsTests, tryTo_string_to_boolean_valid_args) {
