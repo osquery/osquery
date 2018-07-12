@@ -174,12 +174,12 @@ endif()
 
 if(NOT SKIP_SMART AND POSIX)
   file(GLOB OSQUERY_SMART_TABLES "smart/*.[cpm]*")
-  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_smart_tables ${OSQUERY_SMART_TABLES})
-
-  file(GLOB OSQUERY_SMART_TABLES_TESTS "smart/tests/*.[cpm]*")
-  if(OSQUERY_SMART_TABLES_TESTS)
-    ADD_OSQUERY_TABLE_TEST(${OSQUERY_SMART_TABLES_TESTS})
-  endif()
-
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_smart_tables
+    "${CMAKE_CURRENT_LIST_DIR}/smart/smart_drives.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/smart/smart_drives.h"
+  )
+  ADD_OSQUERY_TABLE_TEST(
+    "${CMAKE_CURRENT_LIST_DIR}/smart/tests/smart_drives_tests.cpp"
+  )
   ADD_OSQUERY_LINK_ADDITIONAL("smartctl")
 endif()

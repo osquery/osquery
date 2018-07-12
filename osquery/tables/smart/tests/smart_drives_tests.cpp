@@ -25,16 +25,19 @@ namespace tables {
 
 class QuerySmartDevicesTest : public ::testing::Test {};
 
-/// Mock client to simulate calls to libsmartctl.  Utilizing constructor arg to
-/// determine device hits and misses.
-///
-/// Naming convention for devices: `some_name_[a - z]`
-/// Serial numbers are always the reverse of the name.
-/// Device names should always be in order of the downcased alphabet suffix
-/// where the place of letter in the alphabet represents the index of utilized
-/// with the HW controller type info.  For example:
-/// `device_a` while also yield to the entry requested with
-/// `getDevInfo("some_device_a", "some_ctler,0")`.
+/**
+ * @brief Mock client to simulate calls to libsmartctl.
+ *
+ * Utilizing constructor arg to determine device hits and misses.
+ *
+ * Naming convention for devices: `some_name_[a - z]`
+ * Serial numbers are always the reverse of the name.
+ * Device names should always be in order of the downcased alphabet suffix
+ * where the place of letter in the alphabet represents the index of utilized
+ * with the HW controller type info.  For example:
+ * `device_a` while also yield to the entry requested with
+ * `getDevInfo("some_device_a", "some_ctler,0")`.
+ */
 class MockLibsmartctlClient : public libsmartctl::ClientInterface {
  private:
   std::map<std::string, std::map<std::string, std::string>> data_;

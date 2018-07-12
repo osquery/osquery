@@ -82,8 +82,7 @@ void walkBlkDevices(
   getSmartCtlDeviceType(storage_drivers, types);
 
   if (types.size() > 1) {
-    LOG(WARNING) << "Found more than 1 hardware storage controller:" << types
-                 << "; we do not currently support this setup";
+    LOG(WARNING) << "Found more than 1 hardware storage controller: " << types;
     return;
   }
 
@@ -201,7 +200,7 @@ void querySmartDevices(
     }
 
     // If we don't find a serial_number match, we assume this drive information
-    // can only be retrieved by explicitely passing driver information.
+    // can only be retrieved by explicitly passing driver information.
     if (!matched) {
       results.push_back(std::move(entry.second));
     }

@@ -13,6 +13,4 @@ function distro_main() {
 
   package doxygen
   package valgrind
-  package autoconf
-  package automake
 }
