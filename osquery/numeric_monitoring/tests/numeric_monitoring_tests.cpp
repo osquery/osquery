@@ -15,9 +15,8 @@
 #include <osquery/core/conversions.h>
 #include <osquery/dispatcher.h>
 #include <osquery/logger.h>
+#include <osquery/numeric_monitoring.h>
 #include <osquery/registry_factory.h>
-
-#include <include/osquery/numeric_monitoring.h>
 
 #include "osquery/numeric_monitoring/plugin_interface.h"
 
@@ -92,7 +91,7 @@ GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
       monitoring::registryName(), FLAGS_numeric_monitoring_plugins);
   ASSERT_TRUE(status.ok());
 
-  monitoring::flush();
+  monitoring::flushForTests();
   NumericMonitoringInMemoryTestPlugin::points.clear();
 
   const auto monitoring_path = "some.path.to.heaven";
@@ -105,7 +104,7 @@ GTEST_TEST(NumericMonitoringTests, record_with_buffer) {
   monitoring::record(monitoring_path,
                      monitoring::ValueType{93},
                      monitoring::PreAggregationType::Sum);
-  monitoring::flush();
+  monitoring::flushForTests();
 
   EXPECT_EQ(1, NumericMonitoringInMemoryTestPlugin::points.size());
   EXPECT_EQ(monitoring_path,
@@ -133,7 +132,7 @@ GTEST_TEST(NumericMonitoringTests, record_without_buffer) {
   FLAGS_numeric_monitoring_plugins = kNameForTestPlugin;
   FLAGS_numeric_monitoring_pre_aggregation_time = 0;
 
-  monitoring::flush();
+  monitoring::flushForTests();
   NumericMonitoringInMemoryTestPlugin::points.clear();
 
   auto status = RegistryFactory::get().setActive(
