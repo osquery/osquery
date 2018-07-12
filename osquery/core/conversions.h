@@ -435,5 +435,4 @@ inline typename std::enable_if<std::is_same<ToType, bool>::value,
 tryTo(std::string from) {
   return impl::stringToBool(std::move(from));
 }
-
 }
