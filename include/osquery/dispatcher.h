@@ -145,7 +145,7 @@ class Dispatcher : private boost::noncopyable {
   static void stopServices();
 
   /// Return number of services.
-  size_t serviceCount();
+  size_t serviceCount() const;
 
  private:
   /**

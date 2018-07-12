@@ -266,6 +266,31 @@ void genProcNumThreads(QueryContext& context, int pid, Row& r) {
   }
 }
 
+void genProcUniquePid(QueryContext& context, int pid, Row& r) {
+  if (!context.isColumnUsed("upid") && !context.isColumnUsed("uppid")) {
+    return;
+  }
+
+  struct proc_uniqidentifierinfo {
+    uint8_t p_uuid[16];
+    uint64_t p_uniqueid;
+    uint64_t p_puniqueid;
+    uint64_t p_reserve2;
+    uint64_t p_reserve3;
+    uint64_t p_reserve4;
+  };
+
+  struct proc_uniqidentifierinfo uniqidinfo;
+  int status = proc_pidinfo(pid, 17, 0, &uniqidinfo, sizeof(uniqidinfo));
+  if (status == sizeof(uniqidinfo)) {
+    r["upid"] = BIGINT(uniqidinfo.p_uniqueid);
+    r["uppid"] = BIGINT(uniqidinfo.p_puniqueid);
+  } else {
+    r["upid"] = "-1";
+    r["uppid"] = "-1";
+  }
+}
+
 struct proc_args {
   std::vector<std::string> args;
   std::map<std::string, std::string> env;
@@ -440,6 +465,8 @@ QueryData genProcesses(QueryContext& context) {
     genProcResourceUsage(context, pid, r);
 
     genProcNumThreads(context, pid, r);
+
+    genProcUniquePid(context, pid, r);
 
     results.push_back(r);
   }

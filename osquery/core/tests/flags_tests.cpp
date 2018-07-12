@@ -25,6 +25,8 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/flagalias.h"
+
 namespace osquery {
 
 DECLARE_string(test_string_flag);

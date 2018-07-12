@@ -46,10 +46,10 @@ class FilePathsConfigParserPluginTests : public testing::Test {
 
 TEST_F(FilePathsConfigParserPluginTests, test_get_files) {
   std::vector<std::string> expected_categories = {
-      "config_files", "logs", "logs"};
+      "config_files", "config_files_query", "logs", "logs"};
   std::vector<std::string> categories;
   std::vector<std::string> expected_values = {
-      "/dev", "/dev/zero", "/dev/null", "/dev/random"};
+      "/dev", "/dev/zero", "/dev/urandom", "/dev/null", "/dev/random"};
   std::vector<std::string> values;
 
   Config::get().update(config_data_);
