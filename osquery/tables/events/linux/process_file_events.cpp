@@ -1171,10 +1171,8 @@ Status ProcessFileEventSubscriber::Callback(const ECRef& event_context,
   std::vector<Row> emitted_row_list;
   auto exit_status =
       ProcessEvents(emitted_row_list, context_, event_context->audit_events);
-  for (Row& row : emitted_row_list) {
-    add(row);
-  }
 
+  addBatch(emitted_row_list);
   return exit_status;
 }
 
@@ -1183,6 +1181,11 @@ Status ProcessFileEventSubscriber::ProcessEvents(
     AuditdFimContext& fim_context,
     const std::vector<AuditEvent>& event_list) noexcept {
   emitted_row_list.clear();
+
+  emitted_row_list.reserve(event_list.size());
+  if (emitted_row_list.capacity() != event_list.size()) {
+    return Status(1, "Memory allocation error");
+  }
 
   auto L_ShouldHandle = [](std::uint64_t syscall_number) -> bool {
     const auto& syscall_set = ProcessFileEventSubscriber::GetSyscallSet();
