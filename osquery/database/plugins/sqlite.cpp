@@ -148,8 +148,11 @@ Status SQLiteDatabasePlugin::get(const std::string& domain,
   std::string result;
   auto s = this->get(domain, key, result);
   if (s.ok()) {
-    if (safeStrtoi(result, 10, value)) {
-      return Status(1, "Could not deserialize str to int");
+    auto expectedValue = tryTo<int>(result);
+    if (expectedValue.isError()) {
+      return Status::failure("Could not deserialize str to int");
+    } else {
+      value = expectedValue.take();
     }
   }
   return s;

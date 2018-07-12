@@ -177,22 +177,6 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
 }
 
 /// Safely convert a string representation of an integer base.
-inline Status safeStrtoi(const std::string& rep, int base, int& out) {
-  try {
-    out = std::stoi(rep, nullptr, base);
-  } catch (const std::invalid_argument& ia) {
-    return Status(
-        1, std::string("If no conversion could be performed. ") + ia.what());
-  } catch (const std::out_of_range& oor) {
-    return Status(1,
-                  std::string("Value read is out of the range of representable "
-                              "values by an int. ") +
-                      oor.what());
-  }
-  return Status(0);
-}
-
-/// Safely convert a string representation of an integer base.
 inline Status safeStrtoull(const std::string& rep,
                            size_t base,
                            unsigned long long& out) {
@@ -311,6 +295,7 @@ std::string stringFromCFData(const CFDataRef& cf_data);
 enum class ConversionError {
   InvalidArgument,
   OutOfRange,
+  Unknown,
 };
 
 template <typename ToType, typename FromType>
@@ -325,9 +310,113 @@ tryTo(FromType&& from) {
 
 namespace impl {
 
+template <typename Type>
+struct IsStlString {
+  static constexpr bool value = std::is_same<Type, std::string>::value ||
+                                std::is_same<Type, std::wstring>::value;
+};
+
+template <typename Type>
+struct IsInteger {
+  static constexpr bool value =
+      std::is_integral<Type>::value && !std::is_same<Type, bool>::value;
+};
+
+template <typename FromType,
+          typename ToType,
+          typename IntType,
+          typename =
+              typename std::enable_if<std::is_same<ToType, IntType>::value &&
+                                          IsStlString<FromType>::value,
+                                      IntType>::type>
+struct IsConversionFromStringToIntEnabledFor {
+  using type = IntType;
+};
+
+template <typename ToType, typename FromType>
+inline
+    typename IsConversionFromStringToIntEnabledFor<FromType, ToType, int>::type
+    throwingStringToInt(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stoi(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline typename IsConversionFromStringToIntEnabledFor<FromType,
+                                                      ToType,
+                                                      long int>::type
+throwingStringToInt(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stol(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline typename IsConversionFromStringToIntEnabledFor<FromType,
+                                                      ToType,
+                                                      long long int>::type
+throwingStringToInt(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stoll(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline typename IsConversionFromStringToIntEnabledFor<FromType,
+                                                      ToType,
+                                                      unsigned int>::type
+throwingStringToInt(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stoul(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline typename IsConversionFromStringToIntEnabledFor<FromType,
+                                                      ToType,
+                                                      unsigned long int>::type
+throwingStringToInt(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stoul(from, &pos, base);
+}
+
+template <typename ToType, typename FromType>
+inline
+    typename IsConversionFromStringToIntEnabledFor<FromType,
+                                                   ToType,
+                                                   unsigned long long int>::type
+    throwingStringToInt(const FromType& from, const int base) {
+  auto pos = std::size_t{};
+  return std::stoull(from, &pos, base);
+}
+
 Expected<bool, ConversionError> stringToBool(std::string from);
 
 } // namespace impl
+
+/**
+ * Template tryTo for [w]string to integer conversion
+ */
+template <typename ToType, typename FromType>
+inline typename std::enable_if<impl::IsInteger<ToType>::value &&
+                                   impl::IsStlString<FromType>::value,
+                               Expected<ToType, ConversionError>>::type
+tryTo(const FromType& from, const int base = 10) noexcept {
+  try {
+    return impl::throwingStringToInt<ToType>(from, base);
+  } catch (const std::invalid_argument& ia) {
+    return createError(ConversionError::InvalidArgument,
+                       "If no conversion could be performed. ")
+           << ia.what();
+  } catch (const std::out_of_range& oor) {
+    return createError(ConversionError::OutOfRange,
+                       "Value read is out of the range of representable values "
+                       "by an int. ")
+           << oor.what();
+  } catch (...) {
+    return createError(ConversionError::Unknown,
+                       "Unknown error during conversion ")
+           << boost::core::demangle(typeid(FromType).name()) << " to "
+           << boost::core::demangle(typeid(ToType).name()) << " base " << base;
+  }
+}
 
 /**
  * Parsing general representation of boolean value in string.
