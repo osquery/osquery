@@ -27,15 +27,16 @@ Point::Point(std::string path,
 
 bool Point::tryToAggregate(const Point& new_point) {
   if (path_ != new_point.path_) {
-    LOG(WARNING) << "Pre-aggregation is no possible, point paths is not equal. "
-                    "That should not happen at all. Previous path is "
-                 << boost::io::quoted(path_) << ", new one is "
+    LOG(WARNING) << "Pre-aggregation is not possible as point paths are not "
+                    "equal, previous path "
+                 << boost::io::quoted(path_) << ", new path "
                  << boost::io::quoted(new_point.path_);
+
     return false;
   }
   if (pre_aggregation_type_ != new_point.pre_aggregation_type_) {
-    LOG(WARNING) << "Pre-aggregation is no possible, PreAggregationType type "
-                    "missmatch. Previous type is "
+    LOG(WARNING) << "Pre-aggregation is not possible as PreAggregationType "
+                    "types are not equal, previous type is "
                  << boost::io::quoted(to<std::string>(pre_aggregation_type_))
                  << ", new one is "
                  << boost::io::quoted(
@@ -65,14 +66,14 @@ bool Point::tryToAggregate(const Point& new_point) {
 }
 
 void PreAggregationCache::addPoint(Point point) {
-  auto previousIndex = points_intex_.find(point.path_);
-  if (previousIndex == points_intex_.end()) {
-    points_intex_.emplace(point.path_, points_.size());
+  auto previous_index = points_index_.find(point.path_);
+  if (previous_index == points_index_.end()) {
+    points_index_.emplace(point.path_, points_.size());
     points_.push_back(std::move(point));
   } else {
-    auto& previous = points_[previousIndex->second];
+    auto& previous = points_[previous_index->second];
     if (!previous.tryToAggregate(point)) {
-      points_intex_[point.path_] = points_.size();
+      points_index_[point.path_] = points_.size();
       points_.push_back(std::move(point));
     }
   }
@@ -81,7 +82,7 @@ void PreAggregationCache::addPoint(Point point) {
 std::vector<Point> PreAggregationCache::takePoints() {
   auto taken_points = std::vector<Point>{};
   std::swap(taken_points, points_);
-  points_intex_.clear();
+  points_index_.clear();
   return taken_points;
 }
 

@@ -70,7 +70,7 @@ class PreAggregationCache {
   }
 
  private:
-  std::unordered_map<std::string, std::size_t> points_intex_;
+  std::unordered_map<std::string, std::size_t> points_index_;
   std::vector<Point> points_;
 };
 
