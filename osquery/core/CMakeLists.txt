@@ -6,9 +6,7 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_core "")
-
-target_sources(osquery_core
+target_sources(libosquery
   PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/conversions.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/conversions.h"
@@ -20,16 +18,15 @@ target_sources(osquery_core
     "${CMAKE_CURRENT_LIST_DIR}/process.h"
     "${CMAKE_CURRENT_LIST_DIR}/query.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/system.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/status.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/tables.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/utils.h"
     "${CMAKE_CURRENT_LIST_DIR}/watcher.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/watcher.h"
 )
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_core_platform "")
-
-if (APPLE)
-  darwin_target_sources(osquery_core_platform
+if(APPLE)
+  target_sources(libosquery
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/darwin/conversions.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/darwin/iokit.cpp"
@@ -37,8 +34,8 @@ if (APPLE)
   )
 endif()
 
-if (UNIX)
-  target_sources(osquery_core_platform
+if(POSIX)
+  target_sources(libosquery
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/posix/initializer.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/posix/process_ops.cpp"
@@ -47,8 +44,8 @@ if (UNIX)
   )
 endif()
 
-if (WINDOWS)
-  target_sources(osquery_core_platform
+if(WINDOWS)
+  target_sources(libosquery
     PRIVATE
       "${CMAKE_CURRENT_LIST_DIR}/windows/initializer.cpp"
       "${CMAKE_CURRENT_LIST_DIR}/windows/process_ops.cpp"
@@ -60,8 +57,10 @@ if (WINDOWS)
   )
 endif()
 
-ADD_OSQUERY_TEST(TRUE
+ADD_OSQUERY_TEST_CORE(
   "${CMAKE_CURRENT_LIST_DIR}/tests/conversions_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/error_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/tests/exptected_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/flags_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/process_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/tests/query_tests.cpp"
@@ -72,8 +71,8 @@ ADD_OSQUERY_TEST(TRUE
   "${CMAKE_CURRENT_LIST_DIR}/tests/watcher_tests.cpp"
 )
 
-if (UNIX) 
-  ADD_OSQUERY_TEST(TRUE
+if(POSIX) 
+  ADD_OSQUERY_TEST_CORE(
     "${CMAKE_CURRENT_LIST_DIR}/tests/posix/permissions_tests.cpp"
   )   
 endif()

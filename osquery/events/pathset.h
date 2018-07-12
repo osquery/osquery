@@ -24,7 +24,7 @@
 namespace osquery {
 
 /**
- * @brief multiset based implemention for path search.
+ * @brief multiset based implementation for path search.
  *
  * 'multiset' is used because with patterns we can serach for equivalent keys.
  * Since  '/This/Path/is' ~= '/This/Path/%' ~= '/This/Path/%%' (equivalent).

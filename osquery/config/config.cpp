@@ -94,7 +94,6 @@ std::atomic<size_t> kStartTime;
 
 // The config may be accessed and updated asynchronously; use mutexes.
 Mutex config_hash_mutex_;
-Mutex config_valid_mutex_;
 Mutex config_refresh_mutex_;
 
 /// Several config methods require enumeration via predicate lambdas.
@@ -703,7 +702,11 @@ Status Config::update(const std::map<std::string, std::string>& config) {
       // A "update" registry item within core should call the core's update
       // method. The config plugin call action handling must also know to
       // update.
-      Registry::call("config", "update", request);
+      auto status = Registry::call("config", "update", request);
+      if (!status.ok()) {
+        // If something goes wrong, do not go with update further
+        return status;
+      }
     }
   }
 

@@ -362,6 +362,7 @@ class Config : private boost::noncopyable {
   FRIEND_TEST(ViewsConfigParserPluginTests, test_swap_view);
   FRIEND_TEST(ViewsConfigParserPluginTests, test_update_view);
   FRIEND_TEST(OptionsConfigParserPluginTests, test_unknown_option);
+  FRIEND_TEST(OptionsConfigParserPluginTests, test_json_option);
   FRIEND_TEST(EventsConfigParserPluginTests, test_get_event);
   FRIEND_TEST(PacksTests, test_discovery_cache);
   FRIEND_TEST(PacksTests, test_multi_pack);

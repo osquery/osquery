@@ -17,9 +17,11 @@
 #include <string>
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <osquery/expected.h>
 #include <osquery/logger.h>
 #include <osquery/status.h>
 
@@ -76,7 +78,7 @@ std::vector<std::string> split(const std::string& s,
  * @return a vector of strings split by delim for occurrences.
  */
 std::vector<std::string> split(const std::string& s,
-                               const std::string& delim,
+                               char delim,
                                size_t occurences);
 
 /**
@@ -108,17 +110,10 @@ inline void replaceAll(std::string& str,
  *
  * @return the joined string.
  */
-std::string join(const std::vector<std::string>& s, const std::string& tok);
-
-/**
- * @brief Join a set of strings inserting a token string between elements
- *
- * @param s the set of strings to be joined.
- * @param tok a token glue string to be inserted between elements.
- *
- * @return the joined string.
- */
-std::string join(const std::set<std::string>& s, const std::string& tok);
+template <typename SequenceType>
+inline std::string join(const SequenceType& s, const std::string& tok) {
+  return boost::algorithm::join(s, tok);
+}
 
 /**
  * @brief Decode a base64 encoded string.
@@ -126,7 +121,7 @@ std::string join(const std::set<std::string>& s, const std::string& tok);
  * @param encoded The encode base64 string.
  * @return Decoded string.
  */
-std::string base64Decode(const std::string& encoded);
+std::string base64Decode(std::string encoded);
 
 /**
  * @brief Encode a  string.
@@ -177,6 +172,22 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
       ((out == LLONG_MIN || out == LLONG_MAX) && errno == ERANGE)) {
     out = 0;
     return Status(1);
+  }
+  return Status(0);
+}
+
+/// Safely convert a string representation of an integer base.
+inline Status safeStrtoi(const std::string& rep, int base, int& out) {
+  try {
+    out = std::stoi(rep, nullptr, base);
+  } catch (const std::invalid_argument& ia) {
+    return Status(
+        1, std::string("If no conversion could be performed. ") + ia.what());
+  } catch (const std::out_of_range& oor) {
+    return Status(1,
+                  std::string("Value read is out of the range of representable "
+                              "values by an int. ") +
+                      oor.what());
   }
   return Status(0);
 }
@@ -296,4 +307,19 @@ std::string stringFromCFAbsoluteTime(const CFDataRef& cf_abstime);
 
 std::string stringFromCFData(const CFDataRef& cf_data);
 #endif
+
+enum class ConversionError {
+  InvalidArgument,
+  OutOfRange,
+};
+
+template <typename ToType, typename FromType>
+inline typename std::enable_if<
+    std::is_same<ToType,
+                 typename std::remove_cv<typename std::remove_reference<
+                     FromType>::type>::type>::value,
+    Expected<ToType, ConversionError>>::type
+tryTo(FromType&& from) {
+  return std::forward<FromType>(from);
+}
 }

@@ -7,14 +7,14 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 # Generate the thrift intermediate/interface code.
-set(THRIFT_IMPL_FILE impl_thrift.cpp)
+set(THRIFT_IMPL_FILE "${CMAKE_CURRENT_LIST_DIR}/impl_thrift.cpp")
 
 if(LINUX OR DARWIN)
   if(DEFINED ENV{FBTHRIFT})
     add_custom_command(
       COMMAND
         LD_LIBRARY_PATH=${BUILD_DEPS}/lib:$ENV{LD_LIBRARY_PATH}
-        ${THRIFT_COMPILER} --gen mstch_cpp2:stack_arguments,include_prefix=generated --gen py
+        ${THRIFT_COMPILER} --gen mstch_cpp2:stack_arguments,include_prefix=generated --gen py:no_utf8strings
         --templates "${BUILD_DEPS}/include/thrift/templates"
         -o "${CMAKE_BINARY_DIR}/generated"
         "${CMAKE_SOURCE_DIR}/osquery.thrift"
@@ -37,12 +37,12 @@ if(LINUX OR DARWIN)
     ADD_OSQUERY_LINK_CORE("transport server concurrency security protocol async")
     ADD_OSQUERY_LINK_CORE("crypto ssl")
 
-    set(THRIFT_IMPL_FILE impl_fbthrift.cpp)
+    set(THRIFT_IMPL_FILE "${CMAKE_CURRENT_LIST_DIR}/impl_fbthrift.cpp")
   else()
     add_custom_command(
       COMMAND
         LD_LIBRARY_PATH=${BUILD_DEPS}/lib:$ENV{LD_LIBRARY_PATH}
-        ${THRIFT_COMPILER} --gen cpp --gen py
+        ${THRIFT_COMPILER} --gen cpp --gen py:no_utf8strings
         "${CMAKE_SOURCE_DIR}/osquery.thrift"
       DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
       WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
@@ -52,7 +52,7 @@ if(LINUX OR DARWIN)
 else()
   add_custom_command(
     COMMAND
-      ${THRIFT_COMPILER} --gen cpp --gen py
+      ${THRIFT_COMPILER} --gen cpp --gen py:no_utf8strings
         "${CMAKE_SOURCE_DIR}/osquery.thrift"
     DEPENDS "${CMAKE_SOURCE_DIR}/osquery.thrift"
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/generated"
@@ -66,12 +66,13 @@ if(NOT WINDOWS)
   )
 endif()
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_extensions
-  ${THRIFT_GENERATED_FILES}
-  ${THRIFT_IMPL_FILE}
-  extensions.cpp
-  interface.cpp
+ADD_OSQUERY_LIBRARY_CORE(osquery_extensions
+    ${THRIFT_GENERATED_FILES}
+    ${THRIFT_IMPL_FILE}
+    "${CMAKE_CURRENT_LIST_DIR}/extensions.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/interface.cpp"
 )
 
-file(GLOB OSQUERY_EXTENSIONS_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(TRUE ${OSQUERY_EXTENSIONS_TESTS})
+ADD_OSQUERY_TEST_CORE(
+  "${CMAKE_CURRENT_LIST_DIR}/tests/extensions_tests.cpp"
+)

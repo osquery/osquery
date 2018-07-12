@@ -1,5 +1,5 @@
 table_name("users")
-description("Local system users.")
+description("Local user accounts (including domain accounts that have logged on locally (Windows)).")
 schema([
     Column("uid", BIGINT, "User ID", index=True),
     Column("gid", BIGINT, "Group ID (unsigned)"),
@@ -9,7 +9,7 @@ schema([
     Column("description", TEXT, "Optional user description"),
     Column("directory", TEXT, "User's home directory"),
     Column("shell", TEXT, "User's configured default shell"),
-    Column("uuid", TEXT, "User's UUID (Apple)"),
+    Column("uuid", TEXT, "User's UUID (Apple) or SID (Windows)"),
 ])
 extended_schema(WINDOWS, [
     Column("type", TEXT, "Whether the account is roaming (domain), local, or a system profile"),

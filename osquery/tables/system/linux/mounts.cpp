@@ -11,6 +11,7 @@
 #include <mntent.h>
 #include <sys/vfs.h>
 
+#include "osquery/core/utils.h"
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
@@ -18,22 +19,20 @@
 namespace osquery {
 namespace tables {
 
-QueryData genMounts(QueryContext &context) {
+QueryData genMounts(QueryContext& context) {
   QueryData results;
 
-  FILE *mounts = setmntent("/proc/mounts", "r");
+  FILE* mounts = setmntent("/proc/mounts", "r");
   if (mounts == nullptr) {
     return {};
   }
 
-  char real_path[PATH_MAX + 1] = {0};
-  struct mntent *ent = nullptr;
+  struct mntent* ent = nullptr;
   while ((ent = getmntent(mounts))) {
     Row r;
 
     r["device"] = std::string(ent->mnt_fsname);
-    r["device_alias"] = std::string(
-        realpath(ent->mnt_fsname, real_path) ? real_path : ent->mnt_fsname);
+    r["device_alias"] = canonicalize_file_name(ent->mnt_fsname);
     r["path"] = std::string(ent->mnt_dir);
     r["type"] = std::string(ent->mnt_type);
     r["flags"] = std::string(ent->mnt_opts);
@@ -54,5 +53,5 @@ QueryData genMounts(QueryContext &context) {
 
   return results;
 }
-}
-}
+} // namespace tables
+} // namespace osquery

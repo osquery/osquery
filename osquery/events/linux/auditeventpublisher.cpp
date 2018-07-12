@@ -16,6 +16,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditeventpublisher.h"
+#include "osquery/tables/events/linux/selinux_events.h"
 
 namespace osquery {
 /// The audit subsystem may have a performance impact on the system.
@@ -29,6 +30,7 @@ DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
+DECLARE_bool(audit_allow_selinux_events);
 
 REGISTER(AuditEventPublisher, "event_publisher", "auditeventpublisher");
 
@@ -39,7 +41,8 @@ bool IsPublisherEnabled() noexcept {
   }
 
   return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events ||
-          FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events);
+          FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events ||
+          FLAGS_audit_allow_selinux_events);
 }
 } // namespace
 
@@ -64,7 +67,9 @@ void AuditEventPublisher::configure() {
     return;
   }
 
-  audit_netlink_ = std::make_unique<AuditdNetlink>();
+  if (audit_netlink_ == nullptr) {
+    audit_netlink_ = std::make_unique<AuditdNetlink>();
+  }
 }
 
 void AuditEventPublisher::tearDown() {
@@ -96,6 +101,8 @@ void AuditEventPublisher::ProcessEvents(
     AuditEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
     AuditTraceContext& trace_context) noexcept {
+  static const auto& selinux_event_set = SELinuxEventSubscriber::GetEventSet();
+
   // Assemble each record into a AuditEvent object; multi-record events
   // are complete when we receive the terminator (AUDIT_EOE)
   for (const auto& audit_event_record : record_list) {
@@ -112,6 +119,15 @@ void AuditEventPublisher::ProcessEvents(
       audit_event.type = AuditEvent::Type::UserEvent;
       audit_event.record_list.push_back(audit_event_record);
       audit_event.data = data;
+
+      event_context->audit_events.push_back(audit_event);
+
+      // SELinux events
+    } else if (selinux_event_set.find(audit_event_record.type) !=
+               selinux_event_set.end()) {
+      AuditEvent audit_event;
+      audit_event.type = AuditEvent::Type::SELinux;
+      audit_event.record_list.push_back(audit_event_record);
 
       event_context->audit_events.push_back(audit_event);
 

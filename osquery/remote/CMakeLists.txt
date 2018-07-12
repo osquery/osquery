@@ -7,23 +7,33 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_remote
-  enroll/enroll.cpp
-  serializers/json.cpp
-  transports/tls.cpp
-  http/http_client.cpp
-  remote.cpp
-  uri.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/enroll/enroll.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/serializers/json.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/serializers/json.h"
+  "${CMAKE_CURRENT_LIST_DIR}/transports/tls.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/transports/tls.h"
+  "${CMAKE_CURRENT_LIST_DIR}/http/http_client.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/remote.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/uri.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/uri.h"
+  "${CMAKE_CURRENT_LIST_DIR}/utility.h"
 )
 
 ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
-  enroll/plugins/tls_enroll.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/enroll/plugins/tls_enroll.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/enroll/plugins/tls_enroll.h"
 )
 
-file(GLOB OSQUERY_ENROLLMENT_PLUGIN_TESTS "enroll/plugins/tests/*.cpp")
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_ENROLLMENT_PLUGIN_TESTS})
+ADD_OSQUERY_TEST_ADDITIONAL(
+  "${CMAKE_CURRENT_LIST_DIR}/enroll/plugins/tests/tls_enroll_tests.cpp"
+)
 
-file(GLOB OSQUERY_REMOTE_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_REMOTE_TESTS})
+ADD_OSQUERY_TEST_ADDITIONAL(
+  "${CMAKE_CURRENT_LIST_DIR}/tests/requests_tests.cpp"
+)
 
-file(GLOB OSQUERY_REMOTE_COMPONENT_TESTS "*/tests/*.cpp")
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_REMOTE_COMPONENT_TESTS})
+ADD_OSQUERY_TEST_ADDITIONAL(
+  "${CMAKE_CURRENT_LIST_DIR}/enroll/tests/enroll_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/serializers/tests/json_serializers_tests.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/transports/tests/tls_transports_tests.cpp"
+)
