@@ -348,14 +348,17 @@ TEST_F(ConversionsTests, tryTo_string_to_boolean_valid_args) {
 
 TEST_F(ConversionsTests, tryTo_string_to_boolean_invalid_args) {
   const auto test_table = std::vector<std::string>{
-      "ADS",  "7251",   "20.09", "M0V+K7V", "+",      "-",      "1.0",
-      "11",   "00",     " 0 ",   "2",       "3",      "10",     "100%",
-      "_0",   "1_",     "1.",    "2.",      "uh-uh",  "nix",    "nixie",
-      "nixy", "nixey",  "nay",   "nah",     "no way", "veto",   "yea",
-      "okey", "aye",    "roger", "uh-huh",  "righto", "yup",    "yuppers",
-      "ja",   "surely", "amen",  "totally", "sure",   "yessir", "true.",
-      "tru",  "tr",     "tr.",   "o",       "yy",     "nn",     "nop",
-      "null", "nil",    "dis",   "able",    "pos",    "neg",    "ack"};
+      "",      "\0",      "\n",      "\x06",   "\x15",    "\x27", "ADS",
+      "7251",  "20.09",   "M0V+K7V", "+",      "-",       ".",    "@",
+      "1.0",   "11",      "00",      " 0 ",    "1 ",      "2",    "3",
+      "10",    "100%",    "_0",      "1_",     "1.",      "2.",   "E",
+      "e",     "d",       "uh-uh",   "nix",    "nixie",   "nixy", "nixey",
+      "nay",   "nah",     "no way",  "veto",   "yea",     "okey", "aye",
+      "roger", "uh-huh",  "righto",  "yup",    "yuppers", "ja",   "surely",
+      "amen",  "totally", "sure",    "yessir", "true.",   "tru",  "tr",
+      "tr.",   "o",       "yy",      "nn",     "nop",     "null", "nil",
+      "dis",   "able",    "pos",     "neg",    "ack",     "ACK",  "NAK",
+  };
   for (const auto& wrong : test_table) {
     auto exp = tryTo<bool>(wrong);
     ASSERT_TRUE(exp.isError());

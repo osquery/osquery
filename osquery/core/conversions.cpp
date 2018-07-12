@@ -417,26 +417,28 @@ size_t operator"" _sz(unsigned long long int x) {
   return x;
 }
 
-Expected<bool, ConversionError> stringToBoolImpl(std::string from) {
+namespace impl {
+
+Expected<bool, ConversionError> stringToBool(std::string from) {
   static const auto table = std::unordered_map<std::string, bool>{
       {"1", true},
       {"0", false},
       {"y", true},
-      {"n", false},
       {"yes", true},
+      {"n", false},
       {"no", false},
       {"t", true},
-      {"f", false},
       {"true", true},
+      {"f", false},
       {"false", false},
       {"ok", true},
       {"nope", false},
       {"positive", true},
       {"negative", false},
-      {"enable", true},
       {"disable", false},
-      {"enabled", true},
       {"disabled", false},
+      {"enable", true},
+      {"enabled", true},
   };
   using CharType = std::string::value_type;
   // Classic locale could be used here because all available string
@@ -454,4 +456,7 @@ Expected<bool, ConversionError> stringToBoolImpl(std::string from) {
   }
   return it->second;
 }
-}
+
+} // namespace impl
+
+} // namespace osquery
