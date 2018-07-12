@@ -232,12 +232,9 @@ void genDetailsFromAddr(const struct ifaddrs* addr,
     if (context.isColumnUsed("link_speed")) {
       int fd = socket(AF_INET, SOCK_DGRAM, 0);
       if (fd >= 0) {
-        struct ifmediareq ifmr;
-        memset(&ifmr, 0, sizeof(ifmr));
+        struct ifmediareq ifmr = {};
         memcpy(ifmr.ifm_name, addr->ifa_name, sizeof(ifmr.ifm_name));
-        // int *media_list = (int *)malloc(ifmr.ifm_count * sizeof(int));
-        const std::unique_ptr<int[]> media_list(new int[ifmr.ifm_count]);
-        ifmr.ifm_ulist = media_list.get();
+        ifmr.ifm_ulist = new int[ifmr.ifm_count];
         if (ioctl(fd, SIOCGIFMEDIA, &ifmr) >= 0) {
           if (IFM_TYPE(ifmr.ifm_active) == IFM_ETHER) {
             int ifmls = get_linkspeed(IFM_SUBTYPE(ifmr.ifm_active));
@@ -247,6 +244,7 @@ void genDetailsFromAddr(const struct ifaddrs* addr,
           }
         }
       }
+      close(fd);
     }
 #endif // Apple and FreeBSD interface details parsing.
 
