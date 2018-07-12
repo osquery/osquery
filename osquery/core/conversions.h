@@ -322,57 +322,67 @@ struct IsInteger {
       std::is_integral<Type>::value && !std::is_same<Type, bool>::value;
 };
 
+template <typename FromType,
+          typename ToType,
+          typename IntType,
+          typename =
+              typename std::enable_if<std::is_same<ToType, IntType>::value &&
+                                          IsStlString<FromType>::value,
+                                      IntType>::type>
+struct IsConversionFromStringToIntEnabledFor {
+  using type = IntType;
+};
+
 template <typename ToType, typename FromType>
-inline typename std::enable_if<std::is_same<ToType, int>::value &&
-                                   IsStlString<FromType>::value,
-                               ToType>::type
-throwingStringToInt(const FromType& from, const int base) {
+inline
+    typename IsConversionFromStringToIntEnabledFor<FromType, ToType, int>::type
+    throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stoi(from, &pos, base);
 }
 
 template <typename ToType, typename FromType>
-inline typename std::enable_if<std::is_same<ToType, long int>::value &&
-                                   IsStlString<FromType>::value,
-                               ToType>::type
+inline typename IsConversionFromStringToIntEnabledFor<FromType,
+                                                      ToType,
+                                                      long int>::type
 throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stol(from, &pos, base);
 }
 
 template <typename ToType, typename FromType>
-inline typename std::enable_if<std::is_same<ToType, long long int>::value &&
-                                   IsStlString<FromType>::value,
-                               ToType>::type
+inline typename IsConversionFromStringToIntEnabledFor<FromType,
+                                                      ToType,
+                                                      long long int>::type
 throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stoll(from, &pos, base);
 }
 
 template <typename ToType, typename FromType>
-inline typename std::enable_if<std::is_same<ToType, unsigned int>::value &&
-                                   IsStlString<FromType>::value,
-                               ToType>::type
+inline typename IsConversionFromStringToIntEnabledFor<FromType,
+                                                      ToType,
+                                                      unsigned int>::type
 throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stoul(from, &pos, base);
 }
 
 template <typename ToType, typename FromType>
-inline typename std::enable_if<std::is_same<ToType, unsigned long int>::value &&
-                                   IsStlString<FromType>::value,
-                               ToType>::type
+inline typename IsConversionFromStringToIntEnabledFor<FromType,
+                                                      ToType,
+                                                      unsigned long int>::type
 throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stoul(from, &pos, base);
 }
 
 template <typename ToType, typename FromType>
-inline typename std::enable_if<
-    std::is_same<ToType, unsigned long long int>::value &&
-        IsStlString<FromType>::value,
-    ToType>::type
-throwingStringToInt(const FromType& from, const int base) {
+inline
+    typename IsConversionFromStringToIntEnabledFor<FromType,
+                                                   ToType,
+                                                   unsigned long long int>::type
+    throwingStringToInt(const FromType& from, const int base) {
   auto pos = std::size_t{};
   return std::stoull(from, &pos, base);
 }
@@ -400,7 +410,8 @@ tryTo(const FromType& from, const int base = 10) noexcept {
            << oor.what();
   } catch (...) {
     return createError(ConversionError::Unknown,
-                       "Unknown error during conversion string to ")
+                       "Unknown error during conversion ")
+           << boost::core::demangle(typeid(FromType).name()) << " to "
            << boost::core::demangle(typeid(ToType).name()) << " base " << base;
   }
 }
