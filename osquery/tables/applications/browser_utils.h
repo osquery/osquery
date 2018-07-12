@@ -19,6 +19,7 @@
 #pragma warning(pop)
 #endif
 
+#include <osquery/core/conversions.h>
 #include <osquery/filesystem.h>
 #include <osquery/tables.h>
 
@@ -33,10 +34,9 @@ QueryData genChromeBasedExtensions(QueryContext& context,
 
 /// A helper check to rename bool-type values as 1 or 0.
 inline void jsonBoolAsInt(std::string& s) {
-  if (s == "true" || s == "YES" || s == "Yes") {
-    s = "1";
-  } else if (s == "false" || s == "NO" || s == "No") {
-    s = "0";
+  auto expected = tryTo<bool>(s);
+  if (!expected.isError()) {
+    s = expected.get() ? "1" : "0";
   }
 }
 }

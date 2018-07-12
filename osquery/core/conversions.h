@@ -322,4 +322,28 @@ inline typename std::enable_if<
 tryTo(FromType&& from) {
   return std::forward<FromType>(from);
 }
+
+namespace impl {
+
+Expected<bool, ConversionError> stringToBool(std::string from);
+
+} // namespace impl
+
+/**
+ * Parsing general representation of boolean value in string.
+ *     "1" : true
+ *     "0" : false
+ *     "y" : true
+ *   "yes" : true
+ *     "n" : false
+ *    "no" : false
+ *   ... and so on
+ *   For the full list of possible valid values @see stringToBool definition
+ */
+template <typename ToType>
+inline typename std::enable_if<std::is_same<ToType, bool>::value,
+                               Expected<ToType, ConversionError>>::type
+tryTo(std::string from) {
+  return impl::stringToBool(std::move(from));
+}
 }
