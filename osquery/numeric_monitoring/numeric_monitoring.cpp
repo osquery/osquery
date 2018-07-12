@@ -33,15 +33,7 @@ FLAG(string,
 FLAG(uint64,
      numeric_monitoring_pre_aggregation_time,
      60,
-     "Time period in _seconds_ for numeric monitoring pre-aggreagation buffer. "
-     "During this period of time monitoring points are going to be "
-     "pre-aggregated and accumulated in buffer. At the end of this period "
-     "aggregated points will be flushed to [numeric_monitoring_plugins]. "
-     "0 means work without buffer at all. "
-     "For the most of monitoring data some aggregation will be applied on the "
-     "user side. It means for such monitoring particular points means not "
-     "much. And to reduce a disk usage and a network traffic some "
-     "pre-aggregation is applied on osquery side.");
+     "Time period in seconds for numeric monitoring pre-aggreagation buffer.");
 
 namespace {
 using monitoring::PreAggregationType;
