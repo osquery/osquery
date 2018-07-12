@@ -63,7 +63,9 @@ class BenchmarkEventSubscriber
   void benchmarkAdd(int t) {
     Row r;
     r["testing"] = "hello";
-    add(r, t);
+
+    std::vector<Row> row_list = {std::move(r)};
+    addBatch(row_list, t);
   }
 
   void clearRows() {
@@ -190,4 +192,4 @@ BENCHMARK(EVENTS_add_and_gentable)
     ->ArgPair(0, 100)
     ->ArgPair(0, 1000)
     ->ArgPair(0, 10000);
-}
+} // namespace osquery

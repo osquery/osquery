@@ -387,6 +387,8 @@ inline
   return std::stoull(from, &pos, base);
 }
 
+Expected<bool, ConversionError> stringToBool(std::string from);
+
 } // namespace impl
 
 /**
@@ -415,4 +417,23 @@ tryTo(const FromType& from, const int base = 10) noexcept {
            << boost::core::demangle(typeid(ToType).name()) << " base " << base;
   }
 }
+
+/**
+ * Parsing general representation of boolean value in string.
+ *     "1" : true
+ *     "0" : false
+ *     "y" : true
+ *   "yes" : true
+ *     "n" : false
+ *    "no" : false
+ *   ... and so on
+ *   For the full list of possible valid values @see stringToBool definition
+ */
+template <typename ToType>
+inline typename std::enable_if<std::is_same<ToType, bool>::value,
+                               Expected<ToType, ConversionError>>::type
+tryTo(std::string from) {
+  return impl::stringToBool(std::move(from));
+}
+
 }
