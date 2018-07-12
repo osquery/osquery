@@ -15,6 +15,8 @@
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 
+#include "osquery/core/flagalias.h"
+
 namespace fs = boost::filesystem;
 
 /**

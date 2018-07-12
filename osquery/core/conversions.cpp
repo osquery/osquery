@@ -16,7 +16,11 @@
 #include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
 #include <boost/io/detail/quoted_manip.hpp>
+#if (BOOST_VERSION >= 106600)
+#include <boost/uuid/detail/sha1.hpp>
+#else
 #include <boost/uuid/sha1.hpp>
+#endif
 
 #include <osquery/logger.h>
 

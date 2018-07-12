@@ -16,6 +16,7 @@
 #include <osquery/logger.h>
 #include <osquery/registry.h>
 
+#include "osquery/core/flagalias.h"
 #include "osquery/core/json.h"
 
 namespace pt = boost::property_tree;
