@@ -23,6 +23,7 @@
 #endif
 #endif
 
+#include <boost/core/ignore_unused.hpp>
 #include <boost/coroutine2/coroutine.hpp>
 
 #include <osquery/core.h>
@@ -776,8 +777,8 @@ class TablePlugin : public Plugin {
   /// Callback for DELETE statements
   virtual QueryData delete_(QueryContext& context,
                             const PluginRequest& request) {
-    static_cast<void>(context);
-    static_cast<void>(request);
+    boost::ignore_unused(context);
+    boost::ignore_unused(request);
 
     return {{std::make_pair("status", "readonly")}};
   }
@@ -785,8 +786,8 @@ class TablePlugin : public Plugin {
   /// Callback for INSERT statements
   virtual QueryData insert(QueryContext& context,
                            const PluginRequest& request) {
-    static_cast<void>(context);
-    static_cast<void>(request);
+    boost::ignore_unused(context);
+    boost::ignore_unused(request);
 
     return {{std::make_pair("status", "readonly")}};
   }
@@ -794,8 +795,8 @@ class TablePlugin : public Plugin {
   /// Callback for UPDATE statements
   virtual QueryData update(QueryContext& context,
                            const PluginRequest& request) {
-    static_cast<void>(context);
-    static_cast<void>(request);
+    boost::ignore_unused(context);
+    boost::ignore_unused(request);
 
     return {{std::make_pair("status", "readonly")}};
   }

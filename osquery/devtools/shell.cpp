@@ -1078,10 +1078,14 @@ inline void meta_schema(int nArg, char** azArg) {
     auto status = osquery::Registry::call(
         "table", table, {{"action", "columns"}}, response);
     if (status.ok()) {
-      fprintf(stdout,
-              "CREATE TABLE %s%s;\n",
-              table.c_str(),
-              osquery::columnDefinition(response, true, false).c_str());
+      auto const aliases = true;
+      auto const is_extension = false;
+
+      fprintf(
+          stdout,
+          "CREATE TABLE %s%s;\n",
+          table.c_str(),
+          osquery::columnDefinition(response, aliases, is_extension).c_str());
     }
   }
 }

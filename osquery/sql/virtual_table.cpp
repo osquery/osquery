@@ -116,12 +116,10 @@ bool getColumnValue(std::string& value,
 
   case SQLITE_BLOB:
   case SQLITE3_TEXT: {
-    auto data_pointer = sqlite3_value_blob(sqlite_value);
+    auto data_ptr = static_cast<const char*>(sqlite3_value_blob(sqlite_value));
+    auto buffer_size = static_cast<size_t>(sqlite3_value_bytes(sqlite_value));
 
-    auto buffer_size = sqlite3_value_bytes(sqlite_value);
-    value.resize(buffer_size);
-    std::memcpy(&value[0], data_pointer, buffer_size);
-
+    value.assign(data_ptr, buffer_size);
     break;
   }
 
@@ -130,7 +128,7 @@ bool getColumnValue(std::string& value,
   }
 
   default: {
-    VLOG(1) << "Invalid column type";
+    LOG(ERROR) << "Invalid column type returned by sqlite";
     return false;
   }
   }
@@ -226,7 +224,10 @@ int serializeUpdateParameters(std::string& json_value_array,
       break;
     }
 
-    default: { return SQLITE_MISMATCH; }
+    default: {
+      LOG(ERROR) << "Invalid column type returned by sqlite";
+      return SQLITE_MISMATCH;
+    }
     }
   }
 
@@ -1036,7 +1037,7 @@ struct sqlite3_module* getVirtualTableModule(const std::string& table_name,
   // implemented from an extension and is overwriting the right methods
   // in the TablePlugin class
   if (extension) {
-    WriteLock lock(extension_table_list_mutex);
+    WriteLock write_lock(extension_table_list_mutex);
     extension_table_list.push_back(table_name);
 
     sqlite_module_map[table_name].xUpdate = tables::sqlite::xUpdate;
