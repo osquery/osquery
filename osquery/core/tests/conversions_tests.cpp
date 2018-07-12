@@ -327,17 +327,15 @@ TEST_F(ConversionsTests, tryTo_same_type) {
 
 TEST_F(ConversionsTests, tryTo_string_to_boolean_valid_args) {
   const auto test_table = std::unordered_map<std::string, bool>{
-      {"1", true},        {"0", false},        {"y", true},
-      {"n", false},       {"yes", true},       {"yEs", true},
-      {"Yes", true},      {"no", false},       {"No", false},
-      {"t", true},        {"T", true},         {"f", false},
-      {"F", false},       {"true", true},      {"True", true},
-      {"tRUE", true},     {"false", false},    {"fALse", false},
-      {"ok", true},       {"OK", true},        {"Ok", true},
-      {"nope", false},    {"NOPE", false},     {"positive", true},
-      {"POSitive", true}, {"negative", false}, {"NEGative", false},
-      {"enable", true},   {"disable", false},  {"enabled", true},
-      {"ENABLEd", true},  {"disabled", false}, {"DISABLEd", false},
+      {"1", true},        {"0", false},       {"y", true},
+      {"n", false},       {"yes", true},      {"yEs", true},
+      {"Yes", true},      {"no", false},      {"No", false},
+      {"t", true},        {"T", true},        {"f", false},
+      {"F", false},       {"true", true},     {"True", true},
+      {"tRUE", true},     {"false", false},   {"fALse", false},
+      {"ok", true},       {"OK", true},       {"Ok", true},
+      {"enable", true},   {"Enable", true},   {"ENABLE", true},
+      {"disable", false}, {"Disable", false}, {"DISABLE", false},
   };
   for (const auto& argAndAnswer : test_table) {
     auto exp = tryTo<bool>(argAndAnswer.first);
@@ -348,16 +346,18 @@ TEST_F(ConversionsTests, tryTo_string_to_boolean_valid_args) {
 
 TEST_F(ConversionsTests, tryTo_string_to_boolean_invalid_args) {
   const auto test_table = std::vector<std::string>{
-      "",      "\0",      "\n",      "\x06",   "\x15",    "\x27", "ADS",
-      "7251",  "20.09",   "M0V+K7V", "+",      "-",       ".",    "@",
-      "1.0",   "11",      "00",      " 0 ",    "1 ",      "2",    "3",
-      "10",    "100%",    "_0",      "1_",     "1.",      "2.",   "E",
-      "e",     "d",       "uh-uh",   "nix",    "nixie",   "nixy", "nixey",
-      "nay",   "nah",     "no way",  "veto",   "yea",     "okey", "aye",
-      "roger", "uh-huh",  "righto",  "yup",    "yuppers", "ja",   "surely",
-      "amen",  "totally", "sure",    "yessir", "true.",   "tru",  "tr",
-      "tr.",   "o",       "yy",      "nn",     "nop",     "null", "nil",
-      "dis",   "able",    "pos",     "neg",    "ack",     "ACK",  "NAK",
+      "",       "\0",      "\n",      "\x06",  "\x15",   "\x27",     "ADS",
+      "7251",   "20.09",   "M0V+K7V", "+",     "-",      ".",        "@",
+      "1.0",    "11",      "00",      " 0",    "1 ",     "2",        "10",
+      "100%",   "_0",      "1_",      "1.",    "2.",     "E",        "a",
+      "b",      "d",       "e",       "o",     "p",      "uh",       "nix",
+      "nixie",  "nixy",    "nixey",   "nay",   "nah",    "no way",   "veto",
+      "yea",    "yeah",    "yep",     "okey",  "aye",    "roger",    "uh-huh",
+      "righto", "yup",     "yuppers", "ja",    "surely", "amen",     "totally",
+      "sure",   "yessir",  "true.",   "tru",   "tr",     "tr.",      "ff",
+      "yy",     "nn",      "nope",    "null",  "nil",    "dis",      "able",
+      "pos",    "neg",     "ack",     "ACK",   "NAK",    "enabled",  "disabled",
+      "valid",  "invalid", "void",    "allow", "permit", "positive", "negative",
   };
   for (const auto& wrong : test_table) {
     auto exp = tryTo<bool>(wrong);

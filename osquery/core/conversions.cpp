@@ -436,13 +436,8 @@ Expected<bool, ConversionError> stringToBool(std::string from) {
       {"f", false},
       {"false", false},
       {"ok", true},
-      {"nope", false},
-      {"positive", true},
-      {"negative", false},
       {"disable", false},
-      {"disabled", false},
       {"enable", true},
-      {"enabled", true},
   };
   using CharType = std::string::value_type;
   // Classic locale could be used here because all available string
