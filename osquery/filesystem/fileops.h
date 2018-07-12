@@ -77,8 +77,8 @@ typedef struct win_stat {
   int symlink;
   std::string file_id;
   LONGLONG inode;
-  int uid;
-  int gid;
+  unsigned long uid;
+  unsigned long gid;
   std::string mode;
   LONGLONG device;
   LONGLONG size;
