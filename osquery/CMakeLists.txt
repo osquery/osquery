@@ -23,7 +23,7 @@ set(OSQUERY_BENCHMARKS "")
 # The 'additional' source files are NOT included with SDK (libosquery_additional).
 set(OSQUERY_ADDITIONAL_SOURCES "")
 
-# Temporary hack for additional library, this library is sourceless 
+# Temporary hack for additional library, this library is sourceless
 # so for some reason CMake adds "rm -f" as PostBuild step to XCode project
 if(CMAKE_GENERATOR STREQUAL Xcode)
   set(OSQUERY_ADDITIONAL_SOURCES main/empty.cpp)
@@ -208,6 +208,11 @@ endif()
 # The platform-specific SDK + core linker flags.
 if(POSIX)
   ADD_OSQUERY_LINK_CORE("-rdynamic")
+endif()
+
+# Link with jemalloc on Posix
+if(POSIX)
+  ADD_OSQUERY_LINK_CORE("jemalloc")
 endif()
 
 if(APPLE)
