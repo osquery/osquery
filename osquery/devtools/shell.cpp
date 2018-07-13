@@ -1074,7 +1074,7 @@ inline void meta_tables(int nArg, char** azArg) {
 }
 
 inline void meta_types(struct callback_data* pArg, char* zSql) {
-  char* COLUMN_NAMES[] = { "name", "type" };
+  char* COLUMN_NAMES[] = {"name", "type"};
 
   auto dbc = osquery::SQLiteDBManager::get();
   osquery::TableColumns columns;
@@ -1085,7 +1085,7 @@ inline void meta_types(struct callback_data* pArg, char* zSql) {
       const auto& name = std::get<0>(column_info);
       const auto& type = columnTypeName(std::get<1>(column_info));
 
-      std::vector<char *> row;
+      std::vector<char*> row;
       row.push_back(const_cast<char*>(name.c_str()));
       row.push_back(const_cast<char*>(type.c_str()));
 
@@ -1093,7 +1093,8 @@ inline void meta_types(struct callback_data* pArg, char* zSql) {
     }
     pretty_print_if_needed(pArg);
   } else {
-    fprintf(stdout, "Error %d: %s\n", status.getCode(), status.toString().c_str());
+    fprintf(
+        stdout, "Error %d: %s\n", status.getCode(), status.toString().c_str());
   }
 }
 
