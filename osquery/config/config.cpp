@@ -406,7 +406,7 @@ void Config::scheduledQueries(
     for (auto& it : pack->getSchedule()) {
       std::string name = it.first;
       // The query name may be synthetic.
-      if (pack->getName() != "main" && pack->getName() != "legacy_main") {
+      if (pack->getName() != "main") {
         name = "pack" + FLAGS_pack_delimiter + pack->getName() +
                FLAGS_pack_delimiter + it.first;
       }
@@ -569,33 +569,6 @@ Status Config::updateSource(const std::string& source,
       main_doc.copyFrom(schedule, queries_obj);
       main_doc.add("queries", queries_obj);
       addPack("main", source, main_doc.doc());
-    }
-  }
-
-  if (doc.doc().HasMember("scheduledQueries") && !rf.external()) {
-    auto& schedule = doc.doc()["scheduledQueries"];
-    if (schedule.IsArray()) {
-      auto queries_doc = JSON::newObject();
-      auto queries_obj = queries_doc.getObject();
-
-      for (auto& query : schedule.GetArray()) {
-        if (!query.IsObject()) {
-          // This is a legacy structure, and it is malformed.
-          continue;
-        }
-
-        std::string query_name;
-        if (query.HasMember("name") && query["name"].IsString()) {
-          query_name = query["name"].GetString();
-        }
-        if (query_name.empty()) {
-          return Status(1, "Error getting name from legacy scheduled query");
-        }
-        queries_doc.add(query_name, query, queries_obj);
-      }
-
-      queries_doc.add("queries", queries_obj);
-      addPack("legacy_main", source, queries_doc.doc());
     }
   }
 
