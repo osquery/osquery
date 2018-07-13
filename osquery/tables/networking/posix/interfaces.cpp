@@ -234,8 +234,7 @@ void genDetailsFromAddr(const struct ifaddrs* addr,
       if (fd >= 0) {
         struct ifmediareq ifmr = {};
         memcpy(ifmr.ifm_name, addr->ifa_name, sizeof(ifmr.ifm_name));
-        int ulist[ifmr.ifm_count];
-        ifmr.ifm_ulist = ulist;
+        const std::unique_ptr<int[]> media_list(new int[ifmr.ifm_count]);
         if (ioctl(fd, SIOCGIFMEDIA, &ifmr) >= 0) {
           if (IFM_TYPE(ifmr.ifm_active) == IFM_ETHER) {
             int ifmls = get_linkspeed(IFM_SUBTYPE(ifmr.ifm_active));
