@@ -13,6 +13,9 @@ schema([
 ])
 
 implementation("elf_info@getELFSections")
+examples([
+    "select * from elf_sections where path = '/usr/bin/grep'",
+])
 fuzz_paths([
-    "/usr/bin/grep",
+    "/usr/bin",
 ])

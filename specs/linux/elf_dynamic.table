@@ -8,6 +8,9 @@ schema([
 ])
 
 implementation("elf_info@getELFDynamic")
+examples([
+    "select * from elf_dynamic where path = '/usr/bin/grep'",
+])
 fuzz_paths([
-    "/usr/bin/grep",
+    "/usr/bin",
 ])

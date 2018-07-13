@@ -12,6 +12,9 @@ schema([
 ])
 
 implementation("elf_info@getELFSymbols")
+examples([
+    "select * from elf_symbols where path = '/usr/bin/grep'",
+])
 fuzz_paths([
     "/usr/bin/grep",
 ])
