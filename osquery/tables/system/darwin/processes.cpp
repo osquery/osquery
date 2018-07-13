@@ -297,18 +297,20 @@ void genProcArch(QueryContext& context, int pid, Row& r) {
     return;
   }
 
-  struct proc_uniqidentifierinfo {
+  struct proc_archinfo {
     cpu_type_t p_cputype;
     cpu_subtype_t p_cpusubtype;
   };
 
-  struct proc_uniqidentifierinfo proc_archinfo {
+  struct proc_archinfo archinfo {
     0, 0
   };
-  int status = proc_pidinfo(pid, 19, 0, &proc_archinfo, sizeof(proc_archinfo));
-  if (status == sizeof(proc_archinfo)) {
-    r["cpu_type"] = INTEGER(proc_archinfo.p_cputype);
-    r["cpu_subtype"] = INTEGER(proc_archinfo.p_cpusubtype);
+  // 19 is the flavor for this API call. It is normally used by Apple code
+  // under the constant PROC_PIDARCHINFO but is unexported
+  int status = proc_pidinfo(pid, 19, 0, &archinfo, sizeof(archinfo));
+  if (status == sizeof(archinfo)) {
+    r["cpu_type"] = INTEGER(archinfo.p_cputype);
+    r["cpu_subtype"] = INTEGER(archinfo.p_cpusubtype);
   } else {
     r["cpu_type"] = "-1";
     r["cpu_subtype"] = "-1";
