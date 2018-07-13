@@ -39,6 +39,9 @@ class SQLiteDatabasePlugin : public DatabasePlugin {
              const std::string& key,
              int value) override;
 
+  Status putBatch(const std::string& domain,
+                  const DatabaseStringValueList& data) override;
+
   void dumpDatabase() const override;
 
   /// Data removal method.

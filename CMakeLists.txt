@@ -31,7 +31,7 @@ if(WIN32)
   list(APPEND CMAKE_PROGRAM_PATH "${WINDOWS_DEP_DIR}/*/tools")
 endif()
 
-if(WINDOWS)
+if(WIN32)
   add_definitions(
     -DOSQUERY_WINDOWS
   )
@@ -285,20 +285,9 @@ else()
   set(CMAKE_BUILD_TYPE "RELEASE")
 endif()
 
-# Please put all xcode specific stuff to either CMAKE_XCODE_ATTRIBUTE_*
-# for global project settings or 
-# XCODE_ATTRIBUTE_* for specific target 
-# all global definitions/compile options will be inherited 
-# using xcode $(inherited) variable
 if(CMAKE_GENERATOR STREQUAL Xcode)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_PREPROCESSOR_DEFINITIONS[variant=Debug] "DEBUG=1")
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_PREPROCESSOR_DEFINITIONS[variant=Release] "NDEBUG=1")
-  set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS
-    "$(inherited)"
-  )
-  set_property(DIRECTORY APPEND PROPERTY COMPILE_OPTIONS
-    "$(inherited)"
-  )
+  #DNDEBUG is added automatically by cmake in non debug build
+  add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG=1>")
 else()
   if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     add_definitions(-DDEBUG)
@@ -400,6 +389,10 @@ endif()
 if(DEFINED ENV{SKIP_LLDPD})
   set(SKIP_LLDPD TRUE)
   add_definitions(-DSKIP_LLDPD=1)
+endif()
+if(DEFINED ENV{SKIP_SMART})
+  set(SKIP_SMART TRUE)
+  add_definitions(-DSKIP_SMART=1)
 endif()
 if(DEFINED ENV{SKIP_YARA})
   set(SKIP_YARA TRUE)

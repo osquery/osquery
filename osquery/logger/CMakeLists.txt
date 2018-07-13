@@ -7,8 +7,9 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 
-ADD_OSQUERY_LIBRARY_CORE(osquery_logger 
-  "${CMAKE_CURRENT_LIST_DIR}/logger.cpp"
+target_sources(libosquery
+  PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/logger.cpp"
 )
 
 ADD_OSQUERY_TEST_CORE(

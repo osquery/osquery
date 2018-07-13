@@ -32,6 +32,7 @@ namespace tables {
 fs::path kEtcHosts = "/etc/hosts";
 #else
 fs::path kEtcHosts = (getSystemRoot() / "system32\\drivers\\etc\\hosts");
+fs::path kEtcHostsIcs = (getSystemRoot() / "system32\\drivers\\etc\\hosts.ics");
 #endif
 QueryData parseEtcHostsContent(const std::string& content) {
   QueryData results;
@@ -62,11 +63,22 @@ QueryData parseEtcHostsContent(const std::string& content) {
 
 QueryData genEtcHosts(QueryContext& context) {
   std::string content;
+  QueryData qres = {};
+
   if (readFile(kEtcHosts, content).ok()) {
-    return parseEtcHostsContent(content);
-  } else {
-    return {};
+    qres = parseEtcHostsContent(content);
   }
+
+#ifdef WIN32
+  content.clear();
+  QueryData qres_ics = {};
+  if (readFile(kEtcHostsIcs, content).ok()) {
+    qres_ics = parseEtcHostsContent(content);
+    qres.insert(qres.end(), qres_ics.begin(), qres_ics.end());
+  }
+#endif
+
+  return qres;
 }
 }
 }

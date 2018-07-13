@@ -24,15 +24,15 @@ ADD_OSQUERY_LIBRARY(FALSE osquery_enrollment_plugins
   "${CMAKE_CURRENT_LIST_DIR}/enroll/plugins/tls_enroll.h"
 )
 
-ADD_OSQUERY_TEST(FALSE
+ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/enroll/plugins/tests/tls_enroll_tests.cpp"
 )
 
-ADD_OSQUERY_TEST(FALSE
+ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/tests/requests_tests.cpp"
 )
 
-ADD_OSQUERY_TEST(FALSE 
+ADD_OSQUERY_TEST_ADDITIONAL(
   "${CMAKE_CURRENT_LIST_DIR}/enroll/tests/enroll_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/serializers/tests/json_serializers_tests.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/transports/tests/tls_transports_tests.cpp"

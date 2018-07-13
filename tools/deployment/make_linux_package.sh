@@ -188,6 +188,8 @@ function main() {
   if [[ $PACKAGE_TYPE = "deb" ]]; then
     #Change config path in service unit
     sed -i 's/sysconfig/default/g' $INSTALL_PREFIX$SYSTEMD_SERVICE_DST
+    #Change config path in initd script
+    sed -i 's/sysconfig/default/g' $INSTALL_PREFIX$INITD_DST
   fi
 
   log "creating $PACKAGE_TYPE package"

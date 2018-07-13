@@ -57,9 +57,8 @@ Dispatcher& Dispatcher::instance() {
   return instance;
 }
 
-size_t Dispatcher::serviceCount() {
-  auto& self = Dispatcher::instance();
-  ReadLock lock(self.mutex_);
+size_t Dispatcher::serviceCount() const {
+  ReadLock lock(mutex_);
   return services_.size();
 }
 
