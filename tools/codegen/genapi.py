@@ -40,6 +40,7 @@ CANONICAL_PLATFORMS = {
     "windows": "Microsoft Windows",
     "utility": "Utility",
     "yara": "YARA",
+    "smart": "SMART",
     "lldpd": "LLDPD",
     "sleuthkit": "The Sleuth Kit",
     "macwin": "MacOS and Windows",
