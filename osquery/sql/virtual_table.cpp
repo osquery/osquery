@@ -9,6 +9,7 @@
  */
 
 #include <atomic>
+#include <unordered_set>
 
 #include <osquery/core.h>
 #include <osquery/flags.h>
@@ -73,19 +74,29 @@ static inline std::string opString(unsigned char op) {
   return "?";
 }
 
+namespace {
 /// A list of tables that come from extensions; it is used to determine which
 /// table can be read/write
-std::vector<std::string> extension_table_list;
-Mutex extension_table_list_mutex;
+class TableList final {
+  std::unordered_set<std::string> table_list;
+  mutable Mutex mutex;
 
-bool isExtensionTable(const std::string& table_name) {
-  ReadLock lock(extension_table_list_mutex);
-  return (std::find(extension_table_list.begin(),
-                    extension_table_list.end(),
-                    table_name) != extension_table_list.end());
-}
+ public:
+  void insert(const std::string& table) {
+    WriteLock write_lock(mutex);
+    table_list.insert(table);
+  }
 
-namespace {
+  bool contains(const std::string& table_name) const {
+    ReadLock lock(mutex);
+
+    return (std::find(table_list.begin(), table_list.end(), table_name) !=
+            table_list.end());
+  }
+};
+
+TableList extension_table_list;
+
 // A map containing an sqlite module object for each virtual table
 std::unordered_map<std::string, struct sqlite3_module> sqlite_module_map;
 Mutex sqlite_module_map_mutex;
@@ -569,7 +580,7 @@ int xCreate(sqlite3* db,
 
   // Tables implemented from extensions can be made read/write if they implement
   // the correct methods
-  bool is_extension = isExtensionTable(name);
+  bool is_extension = extension_table_list.contains(name);
 
   // Generate an SQL create table statement from the retrieved column details.
   // This call to columnDefinition requests column aliases (as HIDDEN columns).
@@ -1037,9 +1048,7 @@ struct sqlite3_module* getVirtualTableModule(const std::string& table_name,
   // implemented from an extension and is overwriting the right methods
   // in the TablePlugin class
   if (extension) {
-    WriteLock write_lock(extension_table_list_mutex);
-    extension_table_list.push_back(table_name);
-
+    extension_table_list.insert(table_name);
     sqlite_module_map[table_name].xUpdate = tables::sqlite::xUpdate;
   }
 
