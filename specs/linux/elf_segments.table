@@ -1,0 +1,17 @@
+table_name("elf_segments")
+description("ELF segment information.")
+schema([
+    Column("name", TEXT, "Segment type/name"),
+    Column("offset", INTEGER, "Segment offset in file"),
+    Column("vaddr", INTEGER, "Segment virtual address in memory"),
+    Column("psize", INTEGER, "Size of segment in file"),
+    Column("msize", INTEGER, "Segment offset in memory"),
+    Column("flags", TEXT, "Segment attributes"),
+    Column("align", INTEGER, "Segment alignment"),
+    Column("path", TEXT, "Path to ELF file", required=True, index=True),
+])
+
+implementation("elf_info@getELFSegments")
+fuzz_paths([
+    "/usr/bin/grep",
+])
