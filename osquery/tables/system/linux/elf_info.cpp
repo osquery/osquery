@@ -62,17 +62,17 @@ QueryData getELFInfo(QueryContext& context) {
   auto lambda = [&results](const elf::elf& f, const std::string& path) {
     auto& hdr = f.get_hdr();
 
-      Row r;
-      r["path"] = path;
-      r["class"] = (hdr.ei_class == elf::elfclass::_32) ? "32" : "64";
-      r["abi"] = to_string(hdr.ei_osabi);
-      r["abi_version"] = std::to_string(hdr.ei_abiversion);
-      r["type"] = to_string(hdr.type);
-      r["machine"] = std::to_string(hdr.machine);
-      r["version"] = std::to_string(hdr.version);
-      r["entry"] = std::to_string(hdr.entry);
-      r["flags"] = std::to_string(hdr.flags);
-      results.push_back(r);
+    Row r;
+    r["path"] = path;
+    r["class"] = (hdr.ei_class == elf::elfclass::_32) ? "32" : "64";
+    r["abi"] = to_string(hdr.ei_osabi);
+    r["abi_version"] = std::to_string(hdr.ei_abiversion);
+    r["type"] = to_string(hdr.type);
+    r["machine"] = std::to_string(hdr.machine);
+    r["version"] = std::to_string(hdr.version);
+    r["entry"] = std::to_string(hdr.entry);
+    r["flags"] = std::to_string(hdr.flags);
+    results.push_back(r);
   };
 
   genElfInfo(context, lambda);
