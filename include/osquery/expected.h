@@ -63,9 +63,9 @@
  * @see osquery/core/tests/exptected_tests.cpp for more examples
  *
  * Rvalue ref-qualified methods of unconditional access value or error are
- * explicitly deleted. As far as osquery does not have an exceptions we
- * definetely would like to avoid using unsafe way of getting either value or
- * error without a poper check in advance.
+ * explicitly deleted. As far as `osquery` does not have an exceptions we
+ * definitely would like to avoid using unsafe way of getting either value or
+ * error without a proper check in advance.
  */
 
 namespace osquery {
