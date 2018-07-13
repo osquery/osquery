@@ -50,9 +50,11 @@ void genElfInfo(
 
   for (const auto& path : paths) {
     auto fd = open(path.c_str(), O_RDONLY);
-    elf::elf f(elf::create_mmap_loader(fd));
-    predicate(f, path);
-    close(fd);
+    if (fd >= 0) {
+      elf::elf f(elf::create_mmap_loader(fd));
+      predicate(f, path);
+      close(fd);
+    }
   }
 }
 
