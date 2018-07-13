@@ -574,18 +574,16 @@ Status setThreadName(const std::string& name) {
                                                     PCWSTR lpThreadDescription);
   auto pfnSetThreadDescription = reinterpret_cast<PFNSetThreadDescription>(
       GetProcAddress(GetModuleHandleA("Kernel32.dll"), "SetThreadDescription"));
-  if (pfnSetThreadDescription) {
-    std::wstring wideName;
-    wideName.resize(name.size() + 1);
-    swprintf_s(&(wideName.front()), wideName.size(), L"%S", name.c_str());
+  if (pfnSetThreadDescription != nullptr) {
+    std::wstring wideName{stringToWstring(name)};
     HRESULT hr = pfnSetThreadDescription(GetCurrentThread(), wideName.c_str());
     if (!FAILED(hr)) {
-      return Status{0};
+      return Status();
     }
   }
-  return Status(1, "Unable to set thread name");
+  return Status(1);
 #endif
-  return Status{return_code};
+  return Status(return_code == 0 ? 0 : 1);
 }
 
 bool checkPlatform(const std::string& platform) {
