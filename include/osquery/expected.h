@@ -61,6 +61,11 @@
  *   }
  * }
  * @see osquery/core/tests/exptected_tests.cpp for more examples
+ *
+ * Rvalue ref-qualified methods of unconditional access value or error are
+ * explicitly deleted. As far as osquery does not have an exceptions we
+ * definetely would like to avoid using unsafe way of getting either value or
+ * error without a poper check in advance.
  */
 
 namespace osquery {
@@ -106,15 +111,18 @@ class Expected final {
     return SelfType(code, std::move(message));
   }
 
-  ErrorType takeError() {
+  ErrorType takeError() && = delete;
+  ErrorType takeError() & {
     return std::move(boost::get<ErrorType>(object_));
   }
 
-  const ErrorType& getError() const {
+  const ErrorType& getError() const&& = delete;
+  const ErrorType& getError() const& {
     return boost::get<ErrorType>(object_);
   }
 
-  ErrorCodeEnumType getErrorCode() const {
+  ErrorCodeEnumType getErrorCode() const&& = delete;
+  ErrorCodeEnumType getErrorCode() const& {
     return getError().getErrorCode();
   }
 
@@ -129,7 +137,8 @@ class Expected final {
     return !isError();
   }
 
-  ValueType& get() {
+  ValueType& get() && = delete;
+  ValueType& get() & {
 #ifndef NDEBUG
     assert(object_.which() == kValueType_ &&
            "Do not try to get value from Expected with error");
@@ -137,7 +146,8 @@ class Expected final {
     return boost::get<ValueType>(object_);
   }
 
-  const ValueType& get() const {
+  const ValueType& get() const&& = delete;
+  const ValueType& get() const& {
 #ifndef NDEBUG
     assert(object_.which() == kValueType_ &&
            "Do not try to get value from Expected with error");
@@ -152,7 +162,8 @@ class Expected final {
     return boost::get<ValueType>(object_);
   }
 
-  ValueType take() {
+  ValueType take() && = delete;
+  ValueType take() & {
     return std::move(get());
   }
 
@@ -166,19 +177,23 @@ class Expected final {
     return std::move(get());
   }
 
-  ValueType* operator->() {
+  ValueType* operator->() && = delete;
+  ValueType* operator->() & {
     return &get();
   }
 
-  const ValueType* operator->() const {
+  const ValueType* operator->() const&& = delete;
+  const ValueType* operator->() const& {
     return &get();
   }
 
-  ValueType& operator*() {
+  ValueType& operator*() && = delete;
+  ValueType& operator*() & {
     return get();
   }
 
-  const ValueType& operator*() const {
+  const ValueType& operator*() const&& = delete;
+  const ValueType& operator*() const& {
     return get();
   }
 
