@@ -21,8 +21,11 @@
 #include <linux/ethtool.h>
 #include <linux/if_link.h>
 #include <linux/sockios.h>
-#include <sys/ioctl.h>
+#else //  Apple || FreeBSD
+#include <net/if_media.h>
+#include <sys/sockio.h>
 #endif
+#include <sys/ioctl.h>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -94,9 +97,47 @@ static inline void flagsFromSysfs(const std::string& name, size_t& flags) {
     }
   }
 }
+#else //  Apple || FreeBSD
+// Based on IFM_SUBTYPE_ETHERNET_DESCRIPTIONS in if_media.h
+static int get_linkspeed(int ifm_subtype) {
+  switch (ifm_subtype) {
+  case IFM_HPNA_1:
+    return 1;
+  case IFM_10_T:
+  case IFM_10_2:
+  case IFM_10_5:
+  case IFM_10_STP:
+  case IFM_10_FL:
+    return 10;
+  case IFM_100_TX:
+  case IFM_100_FX:
+  case IFM_100_T4:
+  case IFM_100_VG:
+  case IFM_100_T2:
+    return 100;
+  case IFM_1000_SX:
+  case IFM_1000_LX:
+  case IFM_1000_CX:
+  case IFM_1000_T:
+    return 1'000;
+  case IFM_2500_T:
+    return 2'500;
+  case IFM_5000_T:
+    return 5'000;
+  case IFM_10G_SR:
+  case IFM_10G_LR:
+  case IFM_10G_CX4:
+  case IFM_10G_T:
+    return 10'000;
+  }
+  return 0;
+}
+
 #endif
 
-void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
+void genDetailsFromAddr(const struct ifaddrs* addr,
+                        QueryData& results,
+                        QueryContext& context) {
   Row r;
   if (addr->ifa_name != nullptr) {
     r["interface"] = std::string(addr->ifa_name);
@@ -140,18 +181,19 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
         r["type"] = INTEGER_FROM_UCHAR(ifr.ifr_hwaddr.sa_family);
       }
 
-      struct ethtool_cmd cmd;
-      ifr.ifr_data = reinterpret_cast<char*>(&cmd);
-      cmd.cmd = ETHTOOL_GSET;
+      if (context.isColumnUsed("link_speed")) {
+        struct ethtool_cmd cmd;
+        ifr.ifr_data = reinterpret_cast<char*>(&cmd);
+        cmd.cmd = ETHTOOL_GSET;
 
-      if (ioctl(fd, SIOCETHTOOL, &ifr) >= 0) {
-        auto speed = ethtool_cmd_speed(&cmd);
+        if (ioctl(fd, SIOCETHTOOL, &ifr) >= 0) {
+          auto speed = ethtool_cmd_speed(&cmd);
 
-        if (speed != std::numeric_limits<uint32_t>::max()) {
-          r["link_speed"] = BIGINT_FROM_UINT32(speed);
+          if (speed != std::numeric_limits<uint32_t>::max()) {
+            r["link_speed"] = BIGINT_FROM_UINT32(speed);
+          }
         }
       }
-
       struct ethtool_drvinfo drvInfo;
       ifr.ifr_data = reinterpret_cast<char*>(&drvInfo);
       drvInfo.cmd = ETHTOOL_GDRVINFO;
@@ -187,7 +229,25 @@ void genDetailsFromAddr(const struct ifaddrs* addr, QueryData& results) {
     r["odrops"] = INTEGER(0);
     r["collisions"] = BIGINT_FROM_UINT32(ifd->ifi_collisions);
     r["last_change"] = BIGINT_FROM_UINT32(ifd->ifi_lastchange.tv_sec);
-#endif
+    if (context.isColumnUsed("link_speed")) {
+      int fd = socket(AF_INET, SOCK_DGRAM, 0);
+      if (fd >= 0) {
+        struct ifmediareq ifmr = {};
+        memcpy(ifmr.ifm_name, addr->ifa_name, sizeof(ifmr.ifm_name));
+        const std::unique_ptr<int[]> media_list(new int[ifmr.ifm_count]);
+        if (ioctl(fd, SIOCGIFMEDIA, &ifmr) >= 0) {
+          if (IFM_TYPE(ifmr.ifm_active) == IFM_ETHER) {
+            int ifmls = get_linkspeed(IFM_SUBTYPE(ifmr.ifm_active));
+            if (ifmls > 0) {
+              r["link_speed"] = BIGINT_FROM_UINT32(ifmls);
+            }
+          }
+        }
+        close(fd);
+      }
+    }
+#endif // Apple and FreeBSD interface details parsing.
+
     r["flags"] = INTEGER(flags);
   }
 
@@ -233,7 +293,7 @@ QueryData genInterfaceDetails(QueryContext& context) {
       continue;
     }
 
-    genDetailsFromAddr(if_addr, results);
+    genDetailsFromAddr(if_addr, results, context);
   }
 
   freeifaddrs(if_addrs);
