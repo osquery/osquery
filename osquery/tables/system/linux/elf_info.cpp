@@ -51,8 +51,12 @@ void genElfInfo(
   for (const auto& path : paths) {
     auto fd = open(path.c_str(), O_RDONLY);
     if (fd >= 0) {
-      elf::elf f(elf::create_mmap_loader(fd));
-      predicate(f, path);
+      try {
+        elf::elf f(elf::create_mmap_loader(fd));
+        predicate(f, path);
+      } catch (const std::exception& e) {
+        VLOG(1) << "Could not read ELF header: " << path;
+      }
       close(fd);
     }
   }
