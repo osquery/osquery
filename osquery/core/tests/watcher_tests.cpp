@@ -276,9 +276,7 @@ TEST_F(WatcherTests, test_watcherrunner_unhealthy_delay) {
 
   // Set up a fake test process and place it into an healthy state.
   Row r;
-  r["parent"] = isPlatform(PlatformType::TYPE_WINDOWS)
-                    ? INTEGER(test_process->pid())
-                    : INTEGER(test_process->nativeHandle());
+  r["parent"] = INTEGER(test_process->pid());
   r["user_time"] = INTEGER(100);
   r["system_time"] = INTEGER(100);
   r["resident_size"] = INTEGER(100);
