@@ -171,3 +171,15 @@ if(NOT SKIP_LLDPD AND POSIX)
   )
   ADD_OSQUERY_LINK_ADDITIONAL("lldpctl")
 endif()
+
+if(NOT SKIP_SMART AND POSIX)
+  file(GLOB OSQUERY_SMART_TABLES "smart/*.[cpm]*")
+  ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_smart_tables
+    "${CMAKE_CURRENT_LIST_DIR}/smart/smart_drives.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/smart/smart_drives.h"
+  )
+  ADD_OSQUERY_TABLE_TEST(
+    "${CMAKE_CURRENT_LIST_DIR}/smart/tests/smart_drives_tests.cpp"
+  )
+  ADD_OSQUERY_LINK_ADDITIONAL("smartctl")
+endif()
