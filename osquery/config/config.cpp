@@ -842,24 +842,28 @@ void Config::recordQueryPerformance(const std::string& name,
 
   // Grab access to the non-const schedule item.
   auto& query = performance_.at(name);
-  BIGINT_LITERAL diff = 0;
   if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
-    diff = std::stoll(r1.at("user_time")) - std::stoll(r0.at("user_time"));
+    auto ut1 = tryTo<long long>(r1.at("user_time"));
+    auto ut0 = tryTo<long long>(r0.at("user_time"));
+    auto diff = (ut1 && ut0) ? ut1.take() - ut0.take() : 0;
     if (diff > 0) {
       query.user_time += diff;
     }
   }
 
   if (!r1.at("system_time").empty() && !r0.at("system_time").empty()) {
-    diff = std::stoll(r1.at("system_time")) - std::stoll(r0.at("system_time"));
+    auto st1 = tryTo<long long>(r1.at("system_time"));
+    auto st0 = tryTo<long long>(r0.at("system_time"));
+    auto diff = (st1 && st0) ? st1.take() - st0.take() : 0;
     if (diff > 0) {
       query.system_time += diff;
     }
   }
 
   if (!r1.at("resident_size").empty() && !r0.at("resident_size").empty()) {
-    diff =
-        std::stoll(r1.at("resident_size")) - std::stoll(r0.at("resident_size"));
+    auto rs1 = tryTo<long long>(r1.at("resident_size"));
+    auto rs0 = tryTo<long long>(r0.at("resident_size"));
+    auto diff = (rs1 && rs0) ? rs1.take() - rs0.take() : 0;
     if (diff > 0) {
       // Memory is stored as an average of RSS changes between query executions.
       query.average_memory = (query.average_memory * query.executions) + diff;

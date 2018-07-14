@@ -16,12 +16,12 @@
 #include <Security/CodeSigning.h>
 
 #include <osquery/core.h>
-#include <osquery/core/conversions.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/darwin/keychain.h"
 
 namespace osquery {
@@ -36,7 +36,8 @@ int getOSMinorVersion() {
     return -1;
   }
 
-  return std::stol(qd.front().at("minor"));
+  auto minor = tryTo<long>(qd.front.at("minor"));
+  return (minor) ? minor.take() : -1;
 }
 
 // Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on

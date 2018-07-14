@@ -22,12 +22,12 @@
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
-#include <osquery/filesystem/linux/proc.h>
 #include <osquery/logger.h>
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/utils.h"
+#include "osquery/filesystem/linux/proc.h"
 
 namespace osquery {
 namespace tables {
@@ -182,14 +182,8 @@ void genProcessMap(const std::string& pid, QueryData& results) {
     }
 
     r["permissions"] = fields[1];
-    try {
-      auto offset = std::stoll(fields[2], nullptr, 16);
-      r["offset"] = (offset != 0) ? BIGINT(offset) : r["start"];
-
-    } catch (const std::exception& e) {
-      // Value was out of range or could not be interpreted as a hex long long.
-      r["offset"] = "-1";
-    }
+    auto offset = tryTo<long long>(fields[2], 16);
+    r["offset"] = BIGINT((offset) ? offset.take() : -1);
     r["device"] = fields[3];
     r["inode"] = fields[4];
 
@@ -257,7 +251,8 @@ SimpleProcStat::SimpleProcStat(const std::string& pid) {
     this->system_time = details.at(12);
     this->nice = details.at(16);
     this->threads = details.at(17);
-    this->start_time = TEXT(std::stol(details.at(19)) / 100);
+    auto st = tryTo<long>(details.at(19));
+    this->start_time = INTEGER((st) ? st.take() / 100 : -1);
   }
 
   // /proc/N/status may be not available, or readable by this user.
