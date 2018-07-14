@@ -88,9 +88,6 @@ def queries_from_config(config_path):
         print("Cannot open/parse config: %s" % str(e))
         exit(1)
     queries = {}
-    if "scheduledQueries" in config:
-        for query in config["scheduledQueries"]:
-            queries[query["name"]] = query["query"]
     if "schedule" in config:
         for name, details in config["schedule"].iteritems():
             queries[name] = details["query"]
