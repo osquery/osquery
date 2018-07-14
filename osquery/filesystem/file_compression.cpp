@@ -33,13 +33,15 @@ DECLARE_uint32(carver_block_size);
 Status compress(const boost::filesystem::path& in,
                 const boost::filesystem::path& out) {
   PlatformFile inFile(in, PF_OPEN_EXISTING | PF_READ);
-  if(!inFile.isValid()){
-    return Status::failure("Could not open in file :  " + in.string() + " for compression");
+  if (!inFile.isValid()) {
+    return Status::failure("Could not open in file :  " + in.string() +
+                           " for compression");
   }
 
   PlatformFile outFile(out, PF_CREATE_ALWAYS | PF_WRITE);
-  if(!outFile.isValid()){
-    return Status::failure("Could not open out file :  " + out.string() + " for compression");
+  if (!outFile.isValid()) {
+    return Status::failure("Could not open out file :  " + out.string() +
+                           " for compression");
   }
 
   auto inFileSize = inFile.size();
@@ -107,13 +109,15 @@ Status compress(const boost::filesystem::path& in,
 Status decompress(const boost::filesystem::path& in,
                   const boost::filesystem::path& out) {
   PlatformFile inFile(in, PF_OPEN_EXISTING | PF_READ);
-  if(!inFile.isValid()){
-    return Status::failure("Could not open in file :  " + in.string() + " for decompression");
+  if (!inFile.isValid()) {
+    return Status::failure("Could not open in file :  " + in.string() +
+                           " for decompression");
   }
 
   PlatformFile outFile(out, PF_CREATE_ALWAYS | PF_WRITE);
-  if(!outFile.isValid()){
-    return Status::failure("Could not open in file :  " + in.string() + " for decompression");
+  if (!outFile.isValid()) {
+    return Status::failure("Could not open in file :  " + in.string() +
+                           " for decompression");
   }
 
   auto inFileSize = inFile.size();
