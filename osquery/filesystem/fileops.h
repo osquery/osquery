@@ -85,7 +85,7 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 
 #define PF_OPTIONS_MASK 0x001c
 #define PF_GET_OPTIONS(x) ((x & PF_OPTIONS_MASK) >> 2)
-// Create new fail only if it does not exist, or else fail.
+// Create new file only if it does not exist, or else fail.
 #define PF_CREATE_NEW (0 << 2)
 // If file exists truncate it, or else create new one.
 #define PF_CREATE_ALWAYS (1 << 2)
