@@ -6,7 +6,7 @@ schema([
     Column("arch", TEXT, "If applicable, the arch of the signed code"),
     Column("signed", INTEGER, "1 If the file is signed else 0"),
     Column("identifier", TEXT, "The signing identifier sealed into the signature"),
-    Column("cdhash", TEXT, "SHA1 hash of the application Code Directory"),
+    Column("cdhash", TEXT, "Hash of the application Code Directory"),
     Column("team_identifier", TEXT, "The team signing identifier sealed into the signature"),
     Column("authority", TEXT, "Certificate Common Name"),
 ])

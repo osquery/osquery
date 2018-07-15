@@ -28,6 +28,7 @@
 #include <osquery/tables.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/flagalias.h"
 
 namespace rj = rapidjson;
 
@@ -405,7 +406,7 @@ void Config::scheduledQueries(
     for (auto& it : pack->getSchedule()) {
       std::string name = it.first;
       // The query name may be synthetic.
-      if (pack->getName() != "main" && pack->getName() != "legacy_main") {
+      if (pack->getName() != "main") {
         name = "pack" + FLAGS_pack_delimiter + pack->getName() +
                FLAGS_pack_delimiter + it.first;
       }
@@ -568,33 +569,6 @@ Status Config::updateSource(const std::string& source,
       main_doc.copyFrom(schedule, queries_obj);
       main_doc.add("queries", queries_obj);
       addPack("main", source, main_doc.doc());
-    }
-  }
-
-  if (doc.doc().HasMember("scheduledQueries") && !rf.external()) {
-    auto& schedule = doc.doc()["scheduledQueries"];
-    if (schedule.IsArray()) {
-      auto queries_doc = JSON::newObject();
-      auto queries_obj = queries_doc.getObject();
-
-      for (auto& query : schedule.GetArray()) {
-        if (!query.IsObject()) {
-          // This is a legacy structure, and it is malformed.
-          continue;
-        }
-
-        std::string query_name;
-        if (query.HasMember("name") && query["name"].IsString()) {
-          query_name = query["name"].GetString();
-        }
-        if (query_name.empty()) {
-          return Status(1, "Error getting name from legacy scheduled query");
-        }
-        queries_doc.add(query_name, query, queries_obj);
-      }
-
-      queries_doc.add("queries", queries_obj);
-      addPack("legacy_main", source, queries_doc.doc());
     }
   }
 
@@ -870,24 +844,22 @@ void Config::recordQueryPerformance(const std::string& name,
   auto& query = performance_.at(name);
   BIGINT_LITERAL diff = 0;
   if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
-    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("user_time")) -
-           AS_LITERAL(BIGINT_LITERAL, r0.at("user_time"));
+    diff = std::stoll(r1.at("user_time")) - std::stoll(r0.at("user_time"));
     if (diff > 0) {
       query.user_time += diff;
     }
   }
 
   if (!r1.at("system_time").empty() && !r0.at("system_time").empty()) {
-    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("system_time")) -
-           AS_LITERAL(BIGINT_LITERAL, r0.at("system_time"));
+    diff = std::stoll(r1.at("system_time")) - std::stoll(r0.at("system_time"));
     if (diff > 0) {
       query.system_time += diff;
     }
   }
 
   if (!r1.at("resident_size").empty() && !r0.at("resident_size").empty()) {
-    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("resident_size")) -
-           AS_LITERAL(BIGINT_LITERAL, r0.at("resident_size"));
+    diff =
+        std::stoll(r1.at("resident_size")) - std::stoll(r0.at("resident_size"));
     if (diff > 0) {
       // Memory is stored as an average of RSS changes between query executions.
       query.average_memory = (query.average_memory * query.executions) + diff;

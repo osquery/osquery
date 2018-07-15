@@ -88,8 +88,16 @@ Status AuditEventPublisher::run() {
   auto audit_event_record_queue = audit_netlink_->getEvents();
 
   auto event_context = createEventContext();
-  ProcessEvents(event_context, audit_event_record_queue, audit_trace_context_);
 
+  // This is a simple estimate based on the process_file_events_tests.cpp
+  // records
+  auto event_count_estimate = audit_event_record_queue.size() / 4U;
+  event_context->audit_events.reserve(event_count_estimate);
+  if (event_context->audit_events.capacity() != event_count_estimate) {
+    return Status(1, "Memory allocation failure");
+  }
+
+  ProcessEvents(event_context, audit_event_record_queue, audit_trace_context_);
   if (!event_context->audit_events.empty()) {
     fire(event_context);
   }
@@ -117,7 +125,7 @@ void AuditEventPublisher::ProcessEvents(
 
       AuditEvent audit_event;
       audit_event.type = AuditEvent::Type::UserEvent;
-      audit_event.record_list.push_back(audit_event_record);
+      audit_event.record_list.push_back(std::move(audit_event_record));
       audit_event.data = data;
 
       event_context->audit_events.push_back(audit_event);
@@ -139,6 +147,9 @@ void AuditEventPublisher::ProcessEvents(
 
       AuditEvent audit_event;
       audit_event.type = AuditEvent::Type::Syscall;
+
+      // Estimate based on the process_file_events_tests.cpp records
+      audit_event.record_list.reserve(4U);
 
       SyscallAuditEventData data;
 
@@ -248,7 +259,7 @@ void AuditEventPublisher::ProcessEvents(
       auto completed_audit_event = audit_event_it->second;
       trace_context.erase(audit_event_it);
 
-      event_context->audit_events.push_back(completed_audit_event);
+      event_context->audit_events.push_back(std::move(completed_audit_event));
 
     } else {
       if (audit_event_it == trace_context.end()) {

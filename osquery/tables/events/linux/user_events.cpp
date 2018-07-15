@@ -59,10 +59,7 @@ Status UserEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
-  for (auto& row : emitted_row_list) {
-    add(row);
-  }
-
+  addBatch(emitted_row_list);
   return Status(0, "Ok");
 }
 
@@ -70,6 +67,11 @@ Status UserEventSubscriber::ProcessEvents(
     std::vector<Row>& emitted_row_list,
     const std::vector<AuditEvent>& event_list) noexcept {
   emitted_row_list.clear();
+
+  emitted_row_list.reserve(event_list.size());
+  if (emitted_row_list.capacity() != event_list.size()) {
+    return Status(1, "Memory allocation error");
+  }
 
   for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::UserEvent) {

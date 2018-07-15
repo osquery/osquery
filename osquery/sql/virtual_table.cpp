@@ -207,10 +207,10 @@ int xCreate(sqlite3* db,
         column.count("type")) {
       // This is a malformed column definition.
       // Populate the virtual table specific persistent column information.
-      pVtab->content->columns.push_back(std::make_tuple(
-          column.at("name"),
-          columnTypeName(column.at("type")),
-          (ColumnOptions)AS_LITERAL(INTEGER_LITERAL, column.at("op"))));
+      pVtab->content->columns.push_back(
+          std::make_tuple(column.at("name"),
+                          columnTypeName(column.at("type")),
+                          (ColumnOptions)std::stol(column.at("op"))));
     } else if (column.at("id") == "alias" && column.count("alias")) {
       // Create associated views for table aliases.
       views.insert(column.at("alias"));
@@ -234,7 +234,7 @@ int xCreate(sqlite3* db,
     } else if (column.at("id") == "attributes") {
       // Store the attributes locally so they may be passed to the SQL object.
       pVtab->content->attributes =
-          (TableAttributes)AS_LITERAL(INTEGER_LITERAL, column.at("attributes"));
+          (TableAttributes)std::stol(column.at("attributes"));
     }
   }
 

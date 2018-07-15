@@ -48,8 +48,8 @@ QueryData genOSVersion(QueryContext& context) {
   xp::smatch matches;
   for (auto& line : osquery::split(result[0]["current_value"], "\n")) {
     if (xp::regex_search(line, matches, rx)) {
-      r["major"] = INTEGER(matches["major"]);
-      r["minor"] = INTEGER(matches["minor"]);
+      r["major"] = matches["major"];
+      r["minor"] = matches["minor"];
       r["build"] = matches["build"];
       r["patch"] = matches["patch"];
       break;

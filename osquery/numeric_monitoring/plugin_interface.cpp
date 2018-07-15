@@ -8,9 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <osquery/numeric_monitoring/plugin_interface.h>
 #include <osquery/plugin.h>
 #include <osquery/registry_factory.h>
+
+#include "osquery/numeric_monitoring/plugin_interface.h"
 
 namespace osquery {
 
