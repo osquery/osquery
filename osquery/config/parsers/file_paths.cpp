@@ -112,6 +112,7 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
     if (path_query_node.IsObject()) {
       for (const auto& category : path_query_node.GetObject()) {
         if (category.value.IsArray()) {
+          std::string name = category.name.GetString();
           for (const auto& query : category.value.GetArray()) {
             auto sql = SQL(query.GetString());
             if (!sql.ok()) {
@@ -119,11 +120,17 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
                          << query.GetString()
                          << "': " << sql.getMessageString();
             } else {
-              for (auto& row : sql.rows()) {
-                std::string name = category.name.GetString();
-                std::string path = row["path"];
-                replaceGlobWildcards(path);
-                Config::get().addFile(source, name, path);
+              for (const auto& row : sql.rows()) {
+                auto pathIt = row.find("path");
+                if (pathIt == row.end()) {
+                  LOG(ERROR) << "Cold not find non-empty 'path' column in the "
+                                "results of file_paths_query '"
+                             << query.GetString();
+                } else {
+                  std::string path = pathIt->second;
+                  replaceGlobWildcards(path);
+                  Config::get().addFile(source, name, path);
+                }
               }
             }
           }
@@ -140,12 +147,11 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
       for (const auto& category : exclude_paths.GetObject()) {
         auto arr = data_.getArray();
         if (category.value.IsArray()) {
+          std::string category_string = category.name.GetString();
           for (const auto& path : category.value.GetArray()) {
             std::string path_string = path.GetString();
             data_.pushCopy(path_string, arr);
           }
-
-          std::string category_string = category.name.GetString();
           data_.add(category_string, arr, obj);
         }
       }

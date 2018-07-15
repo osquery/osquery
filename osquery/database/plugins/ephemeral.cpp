@@ -49,18 +49,43 @@ Status EphemeralDatabasePlugin::get(const std::string& domain,
                                     int& value) const {
   return this->getAny(domain, key, value);
 }
+
+void EphemeralDatabasePlugin::setValue(const std::string& domain,
+                                       const std::string& key,
+                                       const std::string& value) {
+  db_[domain][key] = value;
+}
+
+void EphemeralDatabasePlugin::setValue(const std::string& domain,
+                                       const std::string& key,
+                                       int value) {
+  db_[domain][key] = value;
+}
+
 Status EphemeralDatabasePlugin::put(const std::string& domain,
                                     const std::string& key,
                                     const std::string& value) {
-  db_[domain][key] = value;
+  setValue(domain, key, value);
   return Status(0);
 }
 
 Status EphemeralDatabasePlugin::put(const std::string& domain,
                                     const std::string& key,
                                     int value) {
-  db_[domain][key] = value;
+  setValue(domain, key, value);
   return Status(0);
+}
+
+Status EphemeralDatabasePlugin::putBatch(const std::string& domain,
+                                         const DatabaseStringValueList& data) {
+  for (const auto& p : data) {
+    const auto& key = p.first;
+    const auto& value = p.second;
+
+    setValue(domain, key, value);
+  }
+
+  return Status(0, "OK");
 }
 
 void EphemeralDatabasePlugin::dumpDatabase() const {
@@ -117,4 +142,4 @@ Status EphemeralDatabasePlugin::scan(const std::string& domain,
   }
   return Status(0);
 }
-}
+} // namespace osquery

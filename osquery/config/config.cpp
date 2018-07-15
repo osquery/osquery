@@ -871,24 +871,22 @@ void Config::recordQueryPerformance(const std::string& name,
   auto& query = performance_.at(name);
   BIGINT_LITERAL diff = 0;
   if (!r1.at("user_time").empty() && !r0.at("user_time").empty()) {
-    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("user_time")) -
-           AS_LITERAL(BIGINT_LITERAL, r0.at("user_time"));
+    diff = std::stoll(r1.at("user_time")) - std::stoll(r0.at("user_time"));
     if (diff > 0) {
       query.user_time += diff;
     }
   }
 
   if (!r1.at("system_time").empty() && !r0.at("system_time").empty()) {
-    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("system_time")) -
-           AS_LITERAL(BIGINT_LITERAL, r0.at("system_time"));
+    diff = std::stoll(r1.at("system_time")) - std::stoll(r0.at("system_time"));
     if (diff > 0) {
       query.system_time += diff;
     }
   }
 
   if (!r1.at("resident_size").empty() && !r0.at("resident_size").empty()) {
-    diff = AS_LITERAL(BIGINT_LITERAL, r1.at("resident_size")) -
-           AS_LITERAL(BIGINT_LITERAL, r0.at("resident_size"));
+    diff =
+        std::stoll(r1.at("resident_size")) - std::stoll(r0.at("resident_size"));
     if (diff > 0) {
       // Memory is stored as an average of RSS changes between query executions.
       query.average_memory = (query.average_memory * query.executions) + diff;

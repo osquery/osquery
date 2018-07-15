@@ -407,6 +407,17 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
   /**
    * @brief Store parsed event data from an EventCallback in a backing store.
    *
+   * This method stores a single event
+   *
+   * @param r The row to add
+   *
+   * @return Was the element added to the backing store.
+   */
+  Status add(const Row& r);
+
+  /**
+   * @brief Store parsed event data from an EventCallback in a backing store.
+   *
    * Within a EventCallback the EventSubscriber has an opportunity to create
    * an osquery Row element, add the relevant table data for the EventSubscriber
    * and store that element in the osquery backing store. At query-time
@@ -414,13 +425,11 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * The backing store data retrieval is optimized by time-based indexes. It
    * is important to added EventTime as it relates to "when the event occurred".
    *
-   * @param r An osquery Row element.
+   * @param row_list A (writable) vector of osquery Row elements.
    *
    * @return Was the element added to the backing store.
    */
-  Status add(Row& r) {
-    return add(r, 0);
-  }
+  Status addBatch(std::vector<Row>& row_list);
 
   /**
    * @brief Return all events added by this EventSubscriber within start, stop.
@@ -436,7 +445,8 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
 
  private:
   /// Overload add for tests and allow them to override the event time.
-  virtual Status add(Row& r, EventTime event_time) final;
+  virtual Status addBatch(std::vector<Row>& row_list,
+                          EventTime custom_event_time) final;
 
  private:
   /*
@@ -520,12 +530,14 @@ class EventSubscriberPlugin : public Plugin, public Eventer {
    * 60 seconds and 3600 seconds and `time` is 92, this pair will be added to
    * list type 1 bin 4 and list type 2 bin 1.
    *
-   * @param eid A unique EventID.
-   * @param time The time when this EventID%'s event occurred.
+   * @param event_id_list A vector of (unique) EventIDs
+   * @param event_time The event time for this batch
    *
    * @return Were the indexes recorded.
    */
-  Status recordEvent(const std::string& eid, EventTime time);
+
+  Status recordEvents(const std::vector<std::string>& event_id_list,
+                      EventTime event_time);
 
   /**
    * @brief Get the expiration timeout for this event type

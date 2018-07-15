@@ -27,6 +27,9 @@
   TEST_F(n, test_put) {                                                        \
     testPut();                                                                 \
   }                                                                            \
+  TEST_F(n, test_putBatch) {                                                   \
+    testPutBatch();                                                            \
+  }                                                                            \
   TEST_F(n, test_get) {                                                        \
     testGet();                                                                 \
   }                                                                            \
@@ -86,10 +89,11 @@ class DatabasePluginTests : public testing::Test {
   void testPluginCheck();
   void testReset();
   void testPut();
+  void testPutBatch();
   void testGet();
   void testDelete();
   void testDeleteRange();
   void testScan();
   void testScanLimit();
 };
-}
+} // namespace osquery
