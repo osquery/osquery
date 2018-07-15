@@ -10,6 +10,7 @@
 
 #include <DiskArbitration/DASession.h>
 #include <DiskArbitration/DADisk.h>
+#include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>

@@ -45,7 +45,7 @@ class KillswitchPlugin : public Plugin {
   enum class IsEnabledError { NoKeyFound = 1 };
   Expected<bool, IsEnabledError> isEnabled(const std::string& key);
   std::map<std::string, bool> killswitchMap_;
-  Mutex lock_;
+  mutable Mutex mutex_;
 
  private:
   FRIEND_TEST(KillswitchTests, test_killswitch_plugin);

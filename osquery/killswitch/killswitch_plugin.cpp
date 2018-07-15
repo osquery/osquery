@@ -66,17 +66,17 @@ Status KillswitchPlugin::call(const PluginRequest& request,
 
 void KillswitchPlugin::setCache(
     const std::map<std::string, bool>& killswitchMap) {
-  WriteLock wlock(lock_);
+  WriteLock wlock(mutex_);
   killswitchMap_ = killswitchMap;
 }
 void KillswitchPlugin::addCacheEntry(const std::string& key, bool value) {
-  WriteLock wlock(lock_);
+  WriteLock wlock(mutex_);
   killswitchMap_[key] = value;
 }
 
 Expected<bool, KillswitchPlugin::IsEnabledError> KillswitchPlugin::isEnabled(
     const std::string& key) {
-  ReadLock rlock(lock_);
+  ReadLock rlock(mutex_);
   if (killswitchMap_.find(key) != killswitchMap_.end()) {
     return killswitchMap_[key];
   } else {

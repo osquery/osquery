@@ -49,7 +49,7 @@ Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
   if (isEnabledItem == responseMap.end()) {
     return createError(
         Killswitch::IsEnabledError::IncorrectResponseFormat,
-        "isEnabled key missing in reponse of the action: isEnabled");
+        "isEnabled key missing in response of the action: isEnabled");
   }
 
   const auto& isEnabledValue = isEnabledItem->second;

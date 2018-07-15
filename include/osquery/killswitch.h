@@ -22,7 +22,7 @@ class Killswitch : private boost::noncopyable {
   Killswitch();
 
  public:
-  ~Killswitch();
+  virtual ~Killswitch();
 
   /*
   // Author: @guliashvili
