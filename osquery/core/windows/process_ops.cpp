@@ -26,11 +26,28 @@ std::string psidToString(PSID sid) {
 int getUidFromSid(PSID sid) {
   unsigned long uid = -1;
   LPTSTR sidString;
-  ConvertSidToStringSid(sid, &sidString);
+  if (ConvertSidToStringSid(sid, &sidString) == 0) {
+    VLOG(1) << "getUidFromSid failed ConvertSidToStringSid error " +
+                   std::to_string(GetLastError());
+    LocalFree(sidString);
+    return uid;
+  }
   auto toks = osquery::split(sidString, "-");
-  safeStrtoul(toks.at(toks.size() - 1), 10, uid);
-  LocalFree(sidString);
 
+  if (toks.size() < 1) {
+    LocalFree(sidString);
+    return uid;
+  }
+
+  auto ret = safeStrtoul(toks.at(toks.size() - 1), 10, uid);
+
+  if (!ret.ok()) {
+    LocalFree(sidString);
+    VLOG(1) << "getUidFromSid failed with safeStrtoul failed to parse PSID";
+    return uid;
+  }
+
+  LocalFree(sidString);
   return uid;
 }
 

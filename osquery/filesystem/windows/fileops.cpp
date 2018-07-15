@@ -1595,15 +1595,17 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   // Get the owner SID of the file.
   PSID sid_owner = nullptr;
+  PSID gid_owner = nullptr;
   PSECURITY_DESCRIPTOR security_descriptor = nullptr;
-  auto ret = GetSecurityInfo(file_handle,
-                             SE_FILE_OBJECT,
-                             OWNER_SECURITY_INFORMATION,
-                             &sid_owner,
-                             NULL,
-                             NULL,
-                             NULL,
-                             &security_descriptor);
+  auto ret =
+      GetSecurityInfo(file_handle,
+                      SE_FILE_OBJECT,
+                      OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION,
+                      &sid_owner,
+                      &gid_owner,
+                      NULL,
+                      NULL,
+                      &security_descriptor);
 
   // Check GetLastError for GetSecurityInfo error condition.
   if (ret != ERROR_SUCCESS) {
@@ -1638,8 +1640,12 @@ Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
 
   // inode is the decimal equivalent of fileid
   wfile_stat->inode = file_index;
+
   wfile_stat->uid = getUidFromSid(sid_owner);
-  wfile_stat->gid = getGidFromSid(sid_owner);
+
+  wfile_stat->gid = getUidFromSid(gid_owner);
+
+  LocalFree(security_descriptor);
 
   // Permission bits don't make sense for Windows. Use ntfs_acl_permissions
   // table
