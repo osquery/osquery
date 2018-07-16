@@ -31,6 +31,7 @@ FLAG(string,
 KillswitchFilesystem::KillswitchFilesystem(
     const boost::filesystem::path& conf_path)
     : conf_path_(conf_path) {}
+
 KillswitchFilesystem::KillswitchFilesystem()
     : KillswitchFilesystem(FLAGS_killswitch_config_path) {}
 
