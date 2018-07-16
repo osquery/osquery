@@ -9,11 +9,12 @@
  */
 
 #pragma once
+#include <string>
 
 #include <boost/core/noncopyable.hpp>
+
 #include <osquery/expected.h>
 #include <osquery/status.h>
-#include <string>
 
 namespace osquery {
 

@@ -1,12 +1,23 @@
+/**
+ *  Copyright (c) 2014-present, Facebook, Inc.
+ *  All rights reserved.
+ *
+ *  This source code is licensed under both the Apache 2.0 license (found in the
+ *  LICENSE file in the root directory of this source tree) and the GPLv2 (found
+ *  in the COPYING file in the root directory of this source tree).
+ *  You may select, at your option, one of the above-listed licenses.
+ */
+
+#include <string>
+
 #include <osquery/flags.h>
 #include <osquery/killswitch.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-#include <string>
 
 namespace osquery {
 
-FLAG(bool, enable_killswitch, true, "Enable killswitch plugin");
+FLAG(bool, enable_killswitch, false, "Enable killswitch plugin");
 FLAG(string,
      killswitch_plugin,
      "killswitch_filesystem",
@@ -44,22 +55,22 @@ Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
                        "Response size should be 1 but is ")
            << std::to_string(response.size());
   }
-  const auto& responseMap = response[0];
-  const auto& isEnabledItem = responseMap.find("isEnabled");
-  if (isEnabledItem == responseMap.end()) {
+  const auto& response_map = response[0];
+  const auto& is_enabled_item = response_map.find("isEnabled");
+  if (is_enabled_item == response_map.end()) {
     return createError(
         Killswitch::IsEnabledError::IncorrectResponseFormat,
         "isEnabled key missing in response of the action: isEnabled");
   }
 
-  const auto& isEnabledValue = isEnabledItem->second;
-  if (isEnabledValue == "1") {
+  const auto& is_enabled_value = is_enabled_item->second;
+  if (is_enabled_value == "1") {
     return true;
-  } else if (isEnabledValue == "0") {
+  } else if (is_enabled_value == "0") {
     return false;
   } else {
     return createError(Killswitch::IsEnabledError::IncorrectValue,
-                       "Unknown isEnabled value " + isEnabledValue);
+                       "Unknown isEnabled value " + is_enabled_value);
   }
 }
 
