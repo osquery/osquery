@@ -8,11 +8,10 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <chrono>
 #include <string>
 
-#include <chrono>
 #include <osquery/flags.h>
-#include <osquery/killswitch.h>
 #include <osquery/killswitch/killswitch_plugin.h>
 #include <osquery/registry_factory.h>
 
@@ -79,6 +78,7 @@ void KillswitchPlugin::setCache(
   WriteLock wlock(mutex_);
   killswitchMap_ = killswitchMap;
 }
+
 void KillswitchPlugin::addCacheEntry(const std::string& key, bool value) {
   WriteLock wlock(mutex_);
   killswitchMap_[key] = value;
@@ -91,8 +91,7 @@ Expected<bool, KillswitchPlugin::IsEnabledError> KillswitchPlugin::isEnabled(
     return killswitchMap_[key];
   } else {
     return createError(KillswitchPlugin::IsEnabledError::NoKeyFound,
-                       "Could not find key ")
-           << key;
+                       "Could not find key " + key);
   }
 }
 

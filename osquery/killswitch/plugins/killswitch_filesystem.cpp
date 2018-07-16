@@ -15,12 +15,12 @@
 
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
-#include <osquery/killswitch/killswitch_plugin.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 
 #include "osquery/core/json.h"
 #include "osquery/killswitch/plugins/killswitch_filesystem.h"
+
 namespace errc = boost::system::errc;
 namespace fs = boost::filesystem;
 
