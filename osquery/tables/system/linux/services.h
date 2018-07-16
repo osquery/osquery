@@ -14,13 +14,12 @@
 #include <osquery/logger.h>
 
 /*
-  systemd does not support static linking; not only it doesn't work, but they
-  also want to prevent this entirely from happening by changing the meson
-  project files.
+  systemd build options for creating a static library are not working, so we
+  have to import it dynamically!
 
   The following declarations are based on systemd 229 from Ubuntu 16.04. The
-  interface we are using is the most compatible one both with previous and
-  next versions.
+  interface we are using is the most compatible one both with previous
+  (Ubuntu 14.04 or CentOS 7) and next versions.
 
   You can find the original declarations inside the libsystemd-dev files:
    - systemd/sd-bus.h
