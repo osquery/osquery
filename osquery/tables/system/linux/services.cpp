@@ -465,7 +465,9 @@ Status appendInactiveSystemdUnitList(std::vector<SystemdUnitInfo>& unit_list,
     return Status(1, "Failed to enter the data container");
   }
 
-  while (true) {
+  // Limit the amount of services we can enumerate to avoid possible infinite
+  // loops. 10k services looks like a good upper limit
+  for (auto i = 1U; i < 10000U; i++) {
     const char* unit_path = nullptr;
     const char* unit_state = nullptr;
 
