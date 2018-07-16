@@ -76,6 +76,39 @@ class DBFakeEventSubscriber : public EventSubscriber<DBFakeEventPublisher> {
     return addBatch(row_list, t);
   }
 
+  /// Add 10 fake events at time t
+  Status testAddBatch(size_t t) {
+    Row r;
+    r["testing"] = "hello from space";
+    r["time"] = INTEGER(t);
+    r["uptime"] = INTEGER(10);
+
+    std::vector<Row> row_list;
+    for (int i = 0; i < 10; i++) {
+      row_list.push_back(r);
+    }
+
+    auto status = addBatch(row_list, t);
+    if (!status.ok()) {
+      return Status(1, "Failed to save the batch to the database");
+    }
+
+    auto indexes = getIndexes(0, 1);
+    if (indexes.size() != 1) {
+      return Status(1, "Only one index should have been created!");
+    }
+
+    auto records = getRecords(indexes);
+    if (records.size() != row_list.size()) {
+      return Status(1,
+                    "We expected " + std::to_string(row_list.size()) +
+                        " records but only " + std::to_string(records.size()) +
+                        " were found!");
+    }
+
+    return Status(0);
+  }
+
   size_t getEventsMax() override {
     return max_;
   }
@@ -112,6 +145,12 @@ TEST_F(EventsDatabaseTests, test_event_module_id) {
 TEST_F(EventsDatabaseTests, test_event_add) {
   auto sub = std::make_shared<DBFakeEventSubscriber>();
   auto status = sub->testAdd(1);
+  EXPECT_TRUE(status.ok());
+}
+
+TEST_F(EventsDatabaseTests, test_event_add_batch) {
+  auto sub = std::make_shared<DBFakeEventSubscriber>();
+  auto status = sub->testAddBatch(1);
   EXPECT_TRUE(status.ok());
 }
 

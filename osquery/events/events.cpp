@@ -431,25 +431,25 @@ Status EventSubscriberPlugin::recordEvents(
   DatabaseStringValueList database_data;
   database_data.reserve(event_id_list.size());
 
-  std::string index_key = "indexes." + dbNamespace() + ".60";
-  std::string record_key = "records." + dbNamespace() + ".60.";
-
   // The list key includes the list type (bin size) and the list ID (bin).
   // The list_id is the MOST-Specific key ID, the bin for this list.
   // If the event time was 13 and the time_list is 5 seconds, lid = 2.
   auto list_id = boost::lexical_cast<std::string>(event_time / 60);
   std::string time_value = boost::lexical_cast<std::string>(event_time);
 
-  for (const auto& eid : event_id_list) {
-    // The record is identified by the event type then module name.
-    // Append the record (eid, unix_time) to the list bin.
-    std::string record_value;
-    auto database_key = record_key + list_id;
-    getDatabaseValue(kEvents, database_key, record_value);
+  // The record is identified by the event type then module name.
+  // Append the record (eid, unix_time) to the list bin.
+  auto database_key = "records." + dbNamespace() + ".60." + list_id;
 
+  std::string record_value;
+  getDatabaseValue(kEvents, database_key, record_value);
+
+  for (const auto& eid : event_id_list) {
     if (record_value.length() == 0) {
       // This is a new list_id for list_key, append the ID to the indirect
       // lookup for this list_key.
+      std::string index_key = "indexes." + dbNamespace() + ".60";
+
       std::string index_value;
       getDatabaseValue(kEvents, index_key, index_value);
       if (index_value.length() == 0) {
@@ -458,12 +458,14 @@ Status EventSubscriberPlugin::recordEvents(
       } else {
         index_value += "," + list_id;
       }
+
       database_data.push_back(std::make_pair(index_key, index_value));
       record_value = eid + ":" + time_value;
     } else {
       // Tokenize a record using ',' and the EID/time using ':'.
       record_value += "," + eid + ":" + time_value;
     }
+
     database_data.push_back(std::make_pair(database_key, record_value));
   }
 
@@ -610,8 +612,8 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
     // Store the event data in the batch
     database_data.push_back(std::make_pair(
         "data." + dbNamespace() + "." + row["eid"], serialized_row));
-    event_id_list.push_back(std::move(row["eid"]));
 
+    event_id_list.push_back(std::move(row["eid"]));
     event_count_++;
   }
 
