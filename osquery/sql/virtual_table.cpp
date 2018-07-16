@@ -102,8 +102,8 @@ std::unordered_map<std::string, struct sqlite3_module> sqlite_module_map;
 Mutex sqlite_module_map_mutex;
 
 bool getColumnValue(std::string& value,
-                    int index,
-                    int argc,
+                    size_t index,
+                    size_t argc,
                     sqlite3_value** argv) {
   value.clear();
 
@@ -149,11 +149,11 @@ bool getColumnValue(std::string& value,
 
 // Type-aware serializer to pass parameters between osquery and the extension
 int serializeUpdateParameters(std::string& json_value_array,
-                              int argc,
+                              size_t argc,
                               sqlite3_value** argv,
                               const TableColumns& columnDescriptors) {
-  if (columnDescriptors.size() != static_cast<size_t>(argc - 2)) {
-    VLOG(1) << "Wrong column count: " << argc - 2
+  if (columnDescriptors.size() != argc - 2U) {
+    VLOG(1) << "Wrong column count: " << argc - 2U
             << ". Expected: " << columnDescriptors.size();
     return SQLITE_RANGE;
   }
@@ -163,7 +163,7 @@ int serializeUpdateParameters(std::string& json_value_array,
 
   auto& allocator = document.GetAllocator();
 
-  for (int i = 2U; i < argc; i++) {
+  for (size_t i = 2U; i < argc; i++) {
     auto sqlite_value = argv[i];
 
     const auto& columnDescriptor = columnDescriptors[i - 2U];
@@ -377,6 +377,7 @@ int xUpdate(sqlite3_vtab* p,
             int argc,
             sqlite3_value** argv,
             sqlite3_int64* pRowid) {
+  auto argument_count = static_cast<size_t>(argc);
   auto* pVtab = (VirtualTable*)p;
 
   auto* content = pVtab->content;
@@ -388,7 +389,7 @@ int xUpdate(sqlite3_vtab* p,
   QueryContext context(content);
   PluginRequest plugin_request;
 
-  if (argc == 1) {
+  if (argument_count == 1U) {
     // This is a simple delete operation
     plugin_request = {{"action", "delete"}};
 
@@ -405,7 +406,7 @@ int xUpdate(sqlite3_vtab* p,
     // we will find a nullptr)
     std::string json_value_array;
     auto serializerError = serializeUpdateParameters(
-        json_value_array, argc, argv, columnDescriptors);
+        json_value_array, argument_count, argv, columnDescriptors);
     if (serializerError != SQLITE_OK) {
       VLOG(1) << "Failed to serialize the INSERT request";
       return serializerError;
@@ -417,7 +418,7 @@ int xUpdate(sqlite3_vtab* p,
       plugin_request.insert({"auto_rowid", "true"});
 
       std::string auto_generated_rowid;
-      if (!getColumnValue(auto_generated_rowid, 1, argc, argv)) {
+      if (!getColumnValue(auto_generated_rowid, 1U, argument_count, argv)) {
         VLOG(1) << "Failed to retrieve the column value";
         return SQLITE_ERROR;
       }
@@ -434,7 +435,7 @@ int xUpdate(sqlite3_vtab* p,
     plugin_request = {{"action", "update"}};
 
     std::string current_rowid;
-    if (!getColumnValue(current_rowid, 0, argc, argv)) {
+    if (!getColumnValue(current_rowid, 0U, argument_count, argv)) {
       VLOG(1) << "Failed to retrieve the column value";
       return SQLITE_ERROR;
     }
@@ -444,7 +445,7 @@ int xUpdate(sqlite3_vtab* p,
     // Get the new rowid, if any
     if (sqlite3_value_type(argv[1]) == SQLITE_INTEGER) {
       std::string new_rowid;
-      if (!getColumnValue(new_rowid, 1, argc, argv)) {
+      if (!getColumnValue(new_rowid, 1U, argument_count, argv)) {
         VLOG(1) << "Failed to retrieve the column value";
         return SQLITE_ERROR;
       }
@@ -457,7 +458,7 @@ int xUpdate(sqlite3_vtab* p,
     // Get the values to update
     std::string json_value_array;
     auto serializerError = serializeUpdateParameters(
-        json_value_array, argc, argv, columnDescriptors);
+        json_value_array, argument_count, argv, columnDescriptors);
     if (serializerError != SQLITE_OK) {
       VLOG(1) << "Failed to serialize the UPDATE request";
       return serializerError;
@@ -523,7 +524,7 @@ int xUpdate(sqlite3_vtab* p,
     std::string rowid;
 
     if (plugin_request.at("auto_rowid") == "true") {
-      if (!getColumnValue(rowid, 1, argc, argv)) {
+      if (!getColumnValue(rowid, 1U, argument_count, argv)) {
         VLOG(1) << "Failed to retrieve the rowid value";
         return SQLITE_ERROR;
       }
