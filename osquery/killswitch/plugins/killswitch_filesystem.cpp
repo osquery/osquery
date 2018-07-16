@@ -11,15 +11,13 @@
 #include <string>
 
 #include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
 
+#include <osquery/core/json.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
+#include <osquery/killswitch/plugins/killswitch_filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
-
-#include "osquery/core/json.h"
-#include "osquery/killswitch/plugins/killswitch_filesystem.h"
 
 namespace errc = boost::system::errc;
 namespace fs = boost::filesystem;
