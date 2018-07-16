@@ -167,4 +167,4 @@ QueryData genFile(QueryContext& context) {
   return results;
 }
 }
-}
+} // namespace osquery
