@@ -65,35 +65,34 @@ size_t RegistryInterface::count() const {
 }
 
 Status RegistryInterface::setActive(const std::string& item_name) {
-  {
-    WriteLock lock(mutex_);
+  WriteLock lock(mutex_);
 
-    // Default support multiple active plugins.
-    for (const auto& item : osquery::split(item_name, ",")) {
-      if (items_.count(item) == 0 && external_.count(item) == 0) {
-        return Status(1, "Unknown registry plugin: " + item);
-      }
+  // Default support multiple active plugins.
+  for (const auto& item : osquery::split(item_name, ",")) {
+    if (items_.count(item) == 0 && external_.count(item) == 0) {
+      return Status(1, "Unknown registry plugin: " + item);
     }
+  }
 
     active_ = item_name;
-  }
-  Status status;
 
-  // The active plugin is setup when initialized.
-  for (const auto& item : osquery::split(item_name, ",")) {
-    if (exists_(item, true)) {
-      status = RegistryFactory::get().plugin(name_, item)->setUp();
-    } else if (exists_(item, false) && !RegistryFactory::get().external()) {
-      // If the active plugin is within an extension we must wait.
-      // An extension will first broadcast the registry, then receive the list
-      // of active plugins, active them if they are extension-local, and finally
-      // start their extension socket.
-      status = pingExtension(getExtensionSocket(external_.at(item)));
-    }
+    Status status;
 
-    if (!status.ok()) {
-      break;
-    }
+    // The active plugin is setup when initialized.
+    for (const auto& item : osquery::split(item_name, ",")) {
+      if (exists_(item, true)) {
+        status = RegistryFactory::get().plugin(name_, item)->setUp();
+      } else if (exists_(item, false) && !RegistryFactory::get().external()) {
+        // If the active plugin is within an extension we must wait.
+        // An extension will first broadcast the registry, then receive the list
+        // of active plugins, active them if they are extension-local, and
+        // finally start their extension socket.
+        status = pingExtension(getExtensionSocket(external_.at(item)));
+      }
+
+      if (!status.ok()) {
+        break;
+      }
   }
   return status;
 }
