@@ -61,7 +61,13 @@ void record(const std::string& path,
             PreAggregationType pre_aggregation = PreAggregationType::None,
             TimePoint time_point = Clock::now());
 
-} // namespace monitoring
+/**
+ * Force flush the pre-aggregation buffer.
+ * Only for tests, please do not use it anywhere.
+ */
+void flushForTests();
+
+}; // namespace monitoring
 
 /**
  * Generic to convert PreAggregationType to string
