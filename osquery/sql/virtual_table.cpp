@@ -1023,13 +1023,19 @@ static int xFilter(sqlite3_vtab_cursor* pVtabCursor,
 
 struct sqlite3_module* getVirtualTableModule(const std::string& table_name,
                                              bool extension) {
-  UpgradeLock lock(sqlite_module_map_mutex);
+  {
+    ReadLock lock(sqlite_module_map_mutex);
+
+    if (sqlite_module_map.find(table_name) != sqlite_module_map.end()) {
+      return &sqlite_module_map[table_name];
+    }
+  }
+
+  WriteLock lock(sqlite_module_map_mutex);
 
   if (sqlite_module_map.find(table_name) != sqlite_module_map.end()) {
     return &sqlite_module_map[table_name];
   }
-
-  WriteUpgradeLock wlock(lock);
 
   sqlite_module_map[table_name] = {};
   sqlite_module_map[table_name].xCreate = tables::sqlite::xCreate;
