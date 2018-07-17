@@ -67,35 +67,28 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
     auto& results = req1.results();
     if (!results.empty()) {
       std::string sPlaceHolder;
-      unsigned long long ullPlaceHolder = 0;
+      using ull = unsigned long long;
+      const auto defaultValue = ull{0};
 
       results[0].GetString("PacketsReceivedPerSec", sPlaceHolder);
-      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-      r["ipackets"] = BIGINT(ullPlaceHolder);
+      r["ipackets"] = BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
       results[0].GetString("PacketsSentPerSec", sPlaceHolder);
-      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-      r["opackets"] = BIGINT(ullPlaceHolder);
+      r["opackets"] = BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
 
       results[0].GetString("BytesReceivedPerSec", sPlaceHolder);
-      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-      r["ibytes"] = BIGINT(ullPlaceHolder);
+      r["ibytes"] = BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
       results[0].GetString("BytesSentPerSec", sPlaceHolder);
-      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-      r["obytes"] = BIGINT(ullPlaceHolder);
+      r["obytes"] = BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
 
       results[0].GetString("PacketsReceivedErrors", sPlaceHolder);
-      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-      r["ierrors"] = BIGINT(ullPlaceHolder);
+      r["ierrors"] = BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
       results[0].GetString("PacketsOutboundErrors", sPlaceHolder);
-      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-      r["oerrors"] = BIGINT(ullPlaceHolder);
+      r["oerrors"] = BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
 
       results[0].GetString("PacketsReceivedDiscarded", sPlaceHolder);
-      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-      r["idrops"] = BIGINT(ullPlaceHolder);
+      r["idrops"] = BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
       results[0].GetString("PacketsOutboundDiscarded", sPlaceHolder);
-      safeStrtoull(sPlaceHolder, 10, ullPlaceHolder);
-      r["odrops"] = BIGINT(ullPlaceHolder);
+      r["odrops"] = BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
     } else {
       LOG(INFO) << "Failed to retrieve network statistics for interface "
                 << r["interface"];
