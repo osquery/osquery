@@ -32,6 +32,13 @@ FLAG(string,
 Killswitch::Killswitch() {}
 Killswitch::~Killswitch() = default;
 
+/**
+ * It's always recommended to use the same skeleton,
+ * while implementing the new killswitch.
+ * Only changing isNewCodeEnabled argument should be okay in most of the cases.
+ * However, if a different implementation is necessary,
+ * it's recommended to explicitly discuss it in the PR.
+ */
 // bool Killswitch::isMyTutorialFeatureEnabled();{
 //   return isNewCodeEnabled("tutorialSwitch");
 // }
