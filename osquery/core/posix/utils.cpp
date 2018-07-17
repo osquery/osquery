@@ -54,7 +54,7 @@ const std::string canonicalize_file_name(const char* name) {
   char* buffer = static_cast<char*>(malloc(path_max));
   char* resolved = realpath(name, buffer);
   std::string result = (resolved == nullptr) ? name : resolved;
-  free(buffer)
+  free(buffer);
 #endif
   return result;
 }
