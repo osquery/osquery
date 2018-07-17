@@ -57,7 +57,7 @@ KillswitchFilesystem::refresh() {
 }
 
 REGISTER(KillswitchFilesystem,
-         Killswitch::killswitch_str,
+         Killswitch::killswitch_,
          "killswitch_filesystem");
 
 } // namespace osquery

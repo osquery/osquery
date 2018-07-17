@@ -26,31 +26,29 @@ class KillswitchTests : public testing::Test {};
 TEST_F(KillswitchTests, test_killswitch_plugin) {
   auto& rf = RegistryFactory::get();
   auto plugin = std::make_shared<KillswitchPlugin>();
-  rf.registry(Killswitch::killswitch_str)->add("test", plugin);
-  EXPECT_TRUE(rf.setActive(Killswitch::killswitch_str, "test").ok());
+  rf.registry(Killswitch::killswitch_)->add("test", plugin);
+  EXPECT_TRUE(rf.setActive(Killswitch::killswitch_, "test").ok());
 
   {
     PluginResponse response;
-    auto status =
-        Registry::call(Killswitch::killswitch_str,
-                       {{Killswitch::action_str, Killswitch::isEnabled_str},
-                        {Killswitch::key_str, "testSwitch"}},
-                       response);
-    EXPECT_FALSE(status.ok());
-  }
-
-  {
-    PluginResponse response;
-    auto status = Registry::call(Killswitch::killswitch_str,
-                                 {{Killswitch::key_str, "testSwitch"}},
+    auto status = Registry::call(Killswitch::killswitch_,
+                                 {{Killswitch::action_, Killswitch::isEnabled_},
+                                  {Killswitch::key_, "testSwitch"}},
                                  response);
     EXPECT_FALSE(status.ok());
   }
 
   {
     PluginResponse response;
-    auto status = Registry::call(Killswitch::killswitch_str,
-                                 {{Killswitch::action_str, "testSwitch"}},
+    auto status = Registry::call(
+        Killswitch::killswitch_, {{Killswitch::key_, "testSwitch"}}, response);
+    EXPECT_FALSE(status.ok());
+  }
+
+  {
+    PluginResponse response;
+    auto status = Registry::call(Killswitch::killswitch_,
+                                 {{Killswitch::action_, "testSwitch"}},
                                  response);
     EXPECT_FALSE(status.ok());
   }
@@ -65,13 +63,12 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
   }
   {
     PluginResponse response;
-    auto status =
-        Registry::call(Killswitch::killswitch_str,
-                       {{Killswitch::action_str, Killswitch::isEnabled_str},
-                        {Killswitch::key_str, "testSwitch"}},
-                       response);
+    auto status = Registry::call(Killswitch::killswitch_,
+                                 {{Killswitch::action_, Killswitch::isEnabled_},
+                                  {Killswitch::key_, "testSwitch"}},
+                                 response);
     EXPECT_TRUE(status.ok());
-    EXPECT_EQ(response[0][Killswitch::isEnabled_str], std::string("1"));
+    EXPECT_EQ(response[0][Killswitch::isEnabled_], std::string("1"));
     auto result = Killswitch::get().isEnabled("testSwitch");
     EXPECT_TRUE(result);
     EXPECT_TRUE(*result);
@@ -88,13 +85,12 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
   }
   {
     PluginResponse response;
-    auto status =
-        Registry::call(Killswitch::killswitch_str,
-                       {{Killswitch::action_str, Killswitch::isEnabled_str},
-                        {Killswitch::key_str, "testSwitch"}},
-                       response);
+    auto status = Registry::call(Killswitch::killswitch_,
+                                 {{Killswitch::action_, Killswitch::isEnabled_},
+                                  {Killswitch::key_, "testSwitch"}},
+                                 response);
     EXPECT_TRUE(status.ok());
-    EXPECT_EQ(response[0][Killswitch::isEnabled_str], std::string("0"));
+    EXPECT_EQ(response[0][Killswitch::isEnabled_], std::string("0"));
     auto result = Killswitch::get().isEnabled("testSwitch");
     EXPECT_TRUE(result);
     EXPECT_FALSE(*result);
@@ -105,11 +101,10 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
 
   {
     PluginResponse response;
-    auto status =
-        Registry::call(Killswitch::killswitch_str,
-                       {{Killswitch::action_str, Killswitch::isEnabled_str},
-                        {Killswitch::key_str, "testSwitch"}},
-                       response);
+    auto status = Registry::call(Killswitch::killswitch_,
+                                 {{Killswitch::action_, Killswitch::isEnabled_},
+                                  {Killswitch::key_, "testSwitch"}},
+                                 response);
     EXPECT_FALSE(status.ok());
     EXPECT_EQ(response.size(), 0);
     auto result = Killswitch::get().isEnabled("testSwitch");
@@ -120,7 +115,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
 
   EXPECT_FALSE(Killswitch::get().refresh());
 
-  rf.registry(Killswitch::killswitch_str)->remove("test");
+  rf.registry(Killswitch::killswitch_)->remove("test");
 }
 
 } // namespace osquery

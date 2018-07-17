@@ -17,10 +17,11 @@
 
 namespace osquery {
 
-const char Killswitch::killswitch_str[] = "killswitch";
-const char Killswitch::action_str[] = "action";
-const char Killswitch::isEnabled_str[] = "isEnabled";
-const char Killswitch::key_str[] = "key";
+const char Killswitch::killswitch_[] = "killswitch";
+const char Killswitch::action_[] = "action";
+const char Killswitch::isEnabled_[] = "isEnabled";
+const char Killswitch::key_[] = "key";
+const char Killswitch::refresh_[] = "refresh";
 
 FLAG(bool, enable_killswitch, false, "Enable killswitch plugin");
 FLAG(string,
@@ -48,11 +49,10 @@ bool Killswitch::isNewCodeEnabled(const std::string& key) {
 Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
     const std::string& key) {
   PluginResponse response;
-  auto status =
-      Registry::call(Killswitch::killswitch_str,
-                     {{Killswitch::action_str, Killswitch::isEnabled_str},
-                      {Killswitch::key_str, key}},
-                     response);
+  auto status = Registry::call(
+      Killswitch::killswitch_,
+      {{Killswitch::action_, Killswitch::isEnabled_}, {Killswitch::key_, key}},
+      response);
   if (!status.ok()) {
     return createError(Killswitch::IsEnabledError::CallFailed,
                        status.getMessage());
@@ -64,7 +64,7 @@ Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
            << std::to_string(response.size());
   }
   const auto& response_map = response[0];
-  const auto& is_enabled_item = response_map.find(Killswitch::isEnabled_str);
+  const auto& is_enabled_item = response_map.find(Killswitch::isEnabled_);
   if (is_enabled_item == response_map.end()) {
     return createError(
         Killswitch::IsEnabledError::IncorrectResponseFormat,
@@ -84,10 +84,9 @@ Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
 
 Status Killswitch::refresh() {
   PluginResponse response;
-  auto status = Registry::call(
-      Killswitch::killswitch_str,
-      {{Killswitch::action_str, KillswitchRefreshablePlugin::refresh_str}},
-      response);
+  auto status = Registry::call(Killswitch::killswitch_,
+                               {{Killswitch::action_, Killswitch::refresh_}},
+                               response);
   return status;
 }
 

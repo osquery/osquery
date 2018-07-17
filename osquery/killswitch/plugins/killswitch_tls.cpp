@@ -32,7 +32,7 @@ CLI_FLAG(string,
 
 DECLARE_bool(enroll_always);
 
-REGISTER(TLSKillswitchPlugin, Killswitch::killswitch_str, "tls");
+REGISTER(TLSKillswitchPlugin, Killswitch::killswitch_, "tls");
 
 Status TLSKillswitchPlugin::setUp() {
   if (FLAGS_enroll_always && !FLAGS_disable_enrollment) {

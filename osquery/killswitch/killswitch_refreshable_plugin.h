@@ -18,7 +18,6 @@ namespace osquery {
  */
 class KillswitchRefreshablePlugin : public KillswitchPlugin {
  public:
-  static const char refresh_str[];
   Status setUp() override;
 
   /// Main entrypoint for killswitch plugin requests
