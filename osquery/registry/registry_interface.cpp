@@ -65,20 +65,19 @@ size_t RegistryInterface::count() const {
 }
 
 Status RegistryInterface::setActive(const std::string& item_name) {
-  UpgradeLock lock(mutex_);
-
-  // Default support multiple active plugins.
-  for (const auto& item : osquery::split(item_name, ",")) {
-    if (items_.count(item) == 0 && external_.count(item) == 0) {
-      return Status(1, "Unknown registry plugin: " + item);
-    }
-  }
-
-  Status status;
   {
-    WriteUpgradeLock wlock(lock);
+    WriteLock lock(mutex_);
+
+    // Default support multiple active plugins.
+    for (const auto& item : osquery::split(item_name, ",")) {
+      if (items_.count(item) == 0 && external_.count(item) == 0) {
+        return Status(1, "Unknown registry plugin: " + item);
+      }
+    }
+
     active_ = item_name;
   }
+  Status status;
 
   // The active plugin is setup when initialized.
   for (const auto& item : osquery::split(item_name, ",")) {
