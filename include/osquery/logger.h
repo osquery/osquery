@@ -81,11 +81,7 @@ struct StatusLogLine {
  * A specific registry call action can be used to retrieve an overloaded Status
  * object containing all of the opt-in features.
  */
-enum LoggerFeatures {
-  LOGGER_FEATURE_BLANK = 0,
-  LOGGER_FEATURE_LOGSTATUS = 1,
-  LOGGER_FEATURE_LOGEVENT = 2,
-};
+enum LoggerFeatures { LOGGER_FEATURE_BLANK = 0, LOGGER_FEATURE_LOGSTATUS = 1 };
 
 /**
  * @brief Helper logging macro for table-generated verbose log lines.
@@ -159,17 +155,6 @@ class LoggerPlugin : public Plugin {
   }
 
   /**
-   * @brief A feature method to decide if events should be forwarded.
-   *
-   * See the optional logEvent method.
-   *
-   * @return false if this logger plugin should NOT handle events directly.
-   */
-  virtual bool usesLogEvent() {
-    return false;
-  }
-
-  /**
    * @brief Set the process name.
    */
   void setProcessName(const std::string& name) {
@@ -216,16 +201,6 @@ class LoggerPlugin : public Plugin {
    */
   virtual Status logSnapshot(const std::string& s) {
     return logString(s);
-  }
-
-  /**
-   * @brief Optionally handle each published event via the logger.
-   *
-   * It is possible to skip the database representation of event subscribers
-   * and instead forward each added event to the active logger plugin.
-   */
-  virtual Status logEvent(const std::string& /*s*/) {
-    return Status(1, "Not enabled");
   }
 
  protected:
