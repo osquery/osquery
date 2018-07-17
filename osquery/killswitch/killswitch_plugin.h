@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <map>
 #include <string>
+#include <unordered_map>
 
 #include <osquery/core.h>
 #include <osquery/expected.h>
@@ -31,20 +31,20 @@ class KillswitchPlugin : public Plugin {
 
  protected:
   void addCacheEntry(const std::string& key, bool value);
-  void setCache(const std::map<std::string, bool>& killswitchMap);
+  void setCache(const std::unordered_map<std::string, bool>& killswitchMap);
 
   enum class ParseMapJSONError {
     IncorrectKeyType = 1,
     IncorrectValueType = 2,
     UnknownParsingProblem = 3
   };
-  static Expected<std::map<std::string, bool>, ParseMapJSONError> parseMapJSON(
-      const std::string& content);
+  static Expected<std::unordered_map<std::string, bool>, ParseMapJSONError>
+  parseMapJSON(const std::string& content);
 
  private:
   enum class IsEnabledError { NoKeyFound = 1 };
   Expected<bool, IsEnabledError> isEnabled(const std::string& key);
-  std::map<std::string, bool> killswitchMap_;
+  std::unordered_map<std::string, bool> killswitchMap_;
   mutable Mutex mutex_;
 
  private:

@@ -19,9 +19,10 @@ namespace osquery {
 
 CREATE_REGISTRY(KillswitchPlugin, "killswitch");
 
-Expected<std::map<std::string, bool>, KillswitchPlugin::ParseMapJSONError>
+Expected<std::unordered_map<std::string, bool>,
+         KillswitchPlugin::ParseMapJSONError>
 KillswitchPlugin::parseMapJSON(const std::string& content) {
-  std::map<std::string, bool> result;
+  std::unordered_map<std::string, bool> result;
 
   auto doc = JSON::newObject();
   if (!doc.fromString(content) || !doc.doc().IsObject()) {
@@ -74,7 +75,7 @@ Status KillswitchPlugin::call(const PluginRequest& request,
 }
 
 void KillswitchPlugin::setCache(
-    const std::map<std::string, bool>& killswitchMap) {
+    const std::unordered_map<std::string, bool>& killswitchMap) {
   WriteLock wlock(mutex_);
   killswitchMap_ = killswitchMap;
 }

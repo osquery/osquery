@@ -8,25 +8,14 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <memory>
-#include <vector>
-
 #include <gtest/gtest.h>
 
 #include <osquery/core.h>
-#include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/killswitch.h>
-#include <osquery/packs.h>
+#include <osquery/killswitch/killswitch_plugin.h>
 #include <osquery/registry.h>
-#include <osquery/sql.h>
-
-#include "osquery/core/json.h"
-#include "osquery/core/process.h"
-#include "osquery/killswitch.h"
-#include "osquery/killswitch/killswitch_plugin.h"
-#include "osquery/killswitch/plugins/killswitch_filesystem.h"
-#include "osquery/tests/test_util.h"
+#include <osquery/tests/test_util.h>
 
 namespace osquery {
 
@@ -107,7 +96,7 @@ TEST_F(KillswitchTests, test_killswitch_plugin) {
     EXPECT_FALSE(Killswitch::get().isNewCodeEnabled("testSwitch"));
   }
 
-  plugin->setCache(std::map<std::string, bool>());
+  plugin->setCache(std::unordered_map<std::string, bool>());
 
   {
     PluginResponse response;
