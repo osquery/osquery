@@ -21,6 +21,7 @@
 #include <osquery/events.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
@@ -59,12 +60,11 @@ static inline EventTime timeFromRecord(const std::string& record) {
 }
 
 static inline std::string toIndex(size_t i) {
-  auto j = std::to_string(i);
-  size_t n = 1;
-  while (i /= 10) {
-    n++;
+  auto str_index = std::to_string(i);
+  if (str_index.size() < 10) {
+    str_index.insert(str_index.begin(), 10 - str_index.size(), '0');
   }
-  return (n >= 10) ? j : std::string(10 - n, '0').append(std::move(j));
+  return str_index;
 }
 
 static inline void getOptimizeData(EventTime& o_time,
@@ -147,6 +147,15 @@ void EventSubscriberPlugin::genTable(RowYield& yield, QueryContext& context) {
   get(yield, start, stop);
 }
 
+EventContextID EventPublisherPlugin::numEvents() const {
+  return next_ec_id_.load();
+}
+
+size_t EventPublisherPlugin::numSubscriptions() {
+  ReadLock lock(subscription_lock_);
+  return subscriptions_.size();
+}
+
 void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   if (isEnding()) {
     // Cannot emit/fire while ending
@@ -154,10 +163,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
   }
 
   EventContextID ec_id = 0;
-  {
-    WriteLock lock(ec_id_lock_);
-    ec_id = next_ec_id_++;
-  }
+  ec_id = next_ec_id_.fetch_add(1);
 
   // Fill in EventContext ID and time if needed.
   if (ec != nullptr) {
@@ -170,7 +176,7 @@ void EventPublisherPlugin::fire(const EventContextRef& ec, EventTime time) {
     }
   }
 
-  WriteLock lock(subscription_lock_);
+  ReadLock lock(subscription_lock_);
   for (const auto& subscription : subscriptions_) {
     auto es = EventFactory::getEventSubscriber(subscription->subscriber_name);
     if (es != nullptr && es->state() == EventState::EVENT_RUNNING) {
@@ -400,16 +406,20 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
       }
 
       // Each list is tokenized into a record=event_id:time.
-      boost::split(bin_records, record_value, boost::is_any_of(",:"));
+      bin_records = split(record_value, ",");
     }
 
-    auto bin_it = bin_records.begin();
     // Iterate over every 2 items: EID:TIME.
-    for (; bin_it != bin_records.end(); bin_it++) {
-      const auto& eid = *bin_it;
-      EventTime et = timeFromRecord(*(++bin_it));
+    for (const auto& record : bin_records) {
+      const auto vals = split(record, ":");
+      if (vals.size() != 2) {
+        LOG(WARNING) << "Event records mismatch: " << record
+                     << " does not have a matching eid/event_time";
+        continue;
+      }
+      const auto eid = vals[0];
+      const EventTime et = timeFromRecord(vals[1]);
       if (FLAGS_events_optimize && optimize && et <= optimize_time_ + 1) {
-        // There is an optimization collision, check for colliding IDs.
         auto eidr = timeFromRecord(eid);
         if (eidr <= optimize_eid_) {
           continue;
@@ -422,48 +432,58 @@ std::vector<EventRecord> EventSubscriberPlugin::getRecords(
   return records;
 }
 
-Status EventSubscriberPlugin::recordEvent(const std::string& eid,
-                                          EventTime et) {
-  std::string time_value = boost::lexical_cast<std::string>(et);
+Status EventSubscriberPlugin::recordEvents(
+    const std::vector<std::string>& event_id_list, EventTime event_time) {
+  WriteLock lock(event_record_lock_);
 
-  // The record is identified by the event type then module name.
-  std::string index_key = "indexes." + dbNamespace();
-  std::string record_key = "records." + dbNamespace();
+  DatabaseStringValueList database_data;
+  database_data.reserve(event_id_list.size());
+  if (database_data.capacity() != event_id_list.size()) {
+    return Status(1, "Memory allocation error");
+  }
+
+  std::string index_key = "indexes." + dbNamespace() + ".60";
+  std::string record_key = "records." + dbNamespace() + ".60.";
+
   // The list key includes the list type (bin size) and the list ID (bin).
-  std::string list_id;
-
   // The list_id is the MOST-Specific key ID, the bin for this list.
   // If the event time was 13 and the time_list is 5 seconds, lid = 2.
-  list_id = boost::lexical_cast<std::string>(et / 60);
+  auto list_id = boost::lexical_cast<std::string>(event_time / 60);
+  std::string time_value = boost::lexical_cast<std::string>(event_time);
 
-  WriteLock lock(event_record_lock_);
-  // Append the record (eid, unix_time) to the list bin.
-  std::string record_value;
-  getDatabaseValue(kEvents, record_key + ".60." + list_id, record_value);
+  for (const auto& eid : event_id_list) {
+    // The record is identified by the event type then module name.
+    // Append the record (eid, unix_time) to the list bin.
+    std::string record_value;
+    auto database_key = record_key + list_id;
+    getDatabaseValue(kEvents, database_key, record_value);
 
-  if (record_value.length() == 0) {
-    // This is a new list_id for list_key, append the ID to the indirect
-    // lookup for this list_key.
-    std::string index_value;
-    getDatabaseValue(kEvents, index_key + ".60", index_value);
-    if (index_value.length() == 0) {
-      // A new index.
-      index_value = list_id;
+    if (record_value.length() == 0) {
+      // This is a new list_id for list_key, append the ID to the indirect
+      // lookup for this list_key.
+      std::string index_value;
+      getDatabaseValue(kEvents, index_key, index_value);
+      if (index_value.length() == 0) {
+        // A new index.
+        index_value = list_id;
+      } else {
+        index_value += "," + list_id;
+      }
+      database_data.push_back(std::make_pair(index_key, index_value));
+      record_value = eid + ":" + time_value;
     } else {
-      index_value += "," + list_id;
+      // Tokenize a record using ',' and the EID/time using ':'.
+      record_value += "," + eid + ":" + time_value;
     }
-    setDatabaseValue(kEvents, index_key + ".60", index_value);
-    record_value = eid + ":" + time_value;
-  } else {
-    // Tokenize a record using ',' and the EID/time using ':'.
-    record_value += "," + eid + ":" + time_value;
+    database_data.push_back(std::make_pair(database_key, record_value));
   }
-  auto status =
-      setDatabaseValue(kEvents, record_key + ".60." + list_id, record_value);
+
+  auto status = setDatabaseBatch(kEvents, database_data);
   if (!status.ok()) {
-    LOG(ERROR) << "Could not put Event Record key: " << record_key;
+    LOG(ERROR) << "Could not put Event Records";
   }
-  return Status(0, "OK");
+
+  return status;
 }
 
 size_t EventSubscriberPlugin::getEventsExpiry() {
@@ -557,25 +577,63 @@ void EventSubscriberPlugin::get(RowYield& yield,
   }
 }
 
-Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
-  // Get and increment the EID for this module.
-  const std::string eid = getEventID();
-  // Without encouraging a missing event time, do not support a 0-time.
-  if (event_time == 0) {
-    event_time = getUnixTime();
+Status EventSubscriberPlugin::add(const Row& r) {
+  std::vector<Row> batch = {r};
+  return addBatch(batch, getUnixTime());
+}
+
+Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list) {
+  return addBatch(row_list, getUnixTime());
+}
+
+Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
+                                       EventTime custom_event_time) {
+  DatabaseStringValueList database_data;
+  database_data.reserve(row_list.size());
+  if (database_data.capacity() != row_list.size()) {
+    return Status(1, "Memory allocation error");
   }
 
-  r["time"] = std::to_string(event_time);
-  r["eid"] = eid;
-  // Serialize and store the row data, for query-time retrieval.
-  std::string data;
-  auto status = serializeRowJSON(r, data);
-  if (!status.ok()) {
-    return status;
+  std::vector<std::string> event_id_list;
+  event_id_list.reserve(row_list.size());
+  if (event_id_list.capacity() != row_list.size()) {
+    return Status(1, "Memory allocation error");
   }
-  // Then remove the newline.
-  if (data.size() > 0 && data.back() == '\n') {
-    data.pop_back();
+
+  auto event_time = custom_event_time != 0 ? custom_event_time : getUnixTime();
+  auto event_time_str = std::to_string(event_time);
+
+  for (auto& row : row_list) {
+    row["time"] = event_time_str;
+    row["eid"] = getEventID();
+
+    // Serialize and store the row data, for query-time retrieval.
+    std::string serialized_row;
+    auto status = serializeRowJSON(row, serialized_row);
+    if (!status.ok()) {
+      VLOG(1) << status.getMessage();
+      continue;
+    }
+
+    // Then remove the newline.
+    if (serialized_row.size() > 0 && serialized_row.back() == '\n') {
+      serialized_row.pop_back();
+    }
+
+    // Logger plugins may request events to be forwarded directly.
+    // If no active logger is marked 'usesLogEvent' then this is a no-op.
+    EventFactory::forwardEvent(serialized_row);
+
+    // Store the event data in the batch
+    database_data.push_back(std::make_pair(
+        "data." + dbNamespace() + "." + row["eid"], serialized_row));
+    event_id_list.push_back(std::move(row["eid"]));
+
+    event_count_++;
+  }
+
+  if (database_data.empty()) {
+    return Status(1, "Failed to process the rows");
   }
 
   // Use the last EventID and a checkpoint bucket size to periodically apply
@@ -584,17 +642,13 @@ Status EventSubscriberPlugin::add(Row& r, EventTime event_time) {
     expireCheck();
   }
 
-  // Logger plugins may request events to be forwarded directly.
-  // If no active logger is marked 'usesLogEvent' then this is a no-op.
-  EventFactory::forwardEvent(data);
+  // Save the batched data inside the database
+  auto status = setDatabaseBatch(kEvents, database_data);
+  if (!status.ok()) {
+    return status;
+  }
 
-  // Store the event data.
-  std::string event_key = "data." + dbNamespace() + "." + eid;
-  status = setDatabaseValue(kEvents, event_key, data);
-  // Record the event in the indexing bins, using the index time.
-  recordEvent(eid, event_time);
-  event_count_++;
-  return status;
+  return recordEvents(event_id_list, event_time);
 }
 
 EventPublisherRef EventSubscriberPlugin::getPublisher() const {
@@ -665,31 +719,31 @@ void EventFactory::configUpdate() {
   // Scan the schedule for queries that touch "_events" tables.
   // We will count the queries
   std::map<std::string, SubscriberExpirationDetails> subscriber_details;
-  Config::get().scheduledQueries([&subscriber_details](
-      const std::string& name, const ScheduledQuery& query) {
-    std::vector<std::string> tables;
-    // Convert query string into a list of virtual tables effected.
-    if (!getQueryTables(query.query, tables)) {
-      VLOG(1) << "Cannot get tables from query: " << name;
-      return;
-    }
+  Config::get().scheduledQueries(
+      [&subscriber_details](std::string name, const ScheduledQuery& query) {
+        std::vector<std::string> tables;
+        // Convert query string into a list of virtual tables effected.
+        if (!getQueryTables(query.query, tables)) {
+          VLOG(1) << "Cannot get tables from query: " << name;
+          return;
+        }
 
-    // Remove duplicates and select only the subscriber tables.
-    std::set<std::string> subscribers;
-    for (const auto& table : tables) {
-      if (Registry::get().exists("event_subscriber", table)) {
-        subscribers.insert(table);
-      }
-    }
+        // Remove duplicates and select only the subscriber tables.
+        std::set<std::string> subscribers;
+        for (const auto& table : tables) {
+          if (Registry::get().exists("event_subscriber", table)) {
+            subscribers.insert(table);
+          }
+        }
 
-    for (const auto& subscriber : subscribers) {
-      auto& details = subscriber_details[subscriber];
-      details.max_interval = (query.interval > details.max_interval)
-                                 ? query.interval
-                                 : details.max_interval;
-      details.query_count++;
-    }
-  });
+        for (const auto& subscriber : subscribers) {
+          auto& details = subscriber_details[subscriber];
+          details.max_interval = (query.interval > details.max_interval)
+                                     ? query.interval
+                                     : details.max_interval;
+          details.query_count++;
+        }
+      });
 
   auto& ef = EventFactory::getInstance();
   for (const auto& details : subscriber_details) {
@@ -809,10 +863,10 @@ Status EventFactory::registerEventPublisher(const PluginRef& pub) {
       return Status(1, "Duplicate publisher type");
     }
 
-    // Do not set up event publisher if events are disabled.
     ef.event_pubs_[type_id] = specialized_pub;
   }
 
+  // Do not set up event publisher if events are disabled.
   if (!FLAGS_disable_events) {
     if (specialized_pub->state() != EventState::EVENT_NONE) {
       specialized_pub->tearDown();
@@ -1067,8 +1121,7 @@ void attachEvents() {
 
   const auto& subscribers = RegistryFactory::get().plugins("event_subscriber");
   for (const auto& subscriber : subscribers) {
-    if (subscriber.first.find("_events") == std::string::npos ||
-        subscriber.first.find("_events") + 7 != subscriber.first.size()) {
+    if (!boost::ends_with(subscriber.first, "_events")) {
       LOG(ERROR) << "Error registering subscriber: " << subscriber.first
                  << ": Must use a '_events' suffix";
       continue;
@@ -1084,4 +1137,4 @@ void attachEvents() {
   // Configure the event publishers and subscribers.
   EventFactory::configUpdate();
 }
-}
+} // namespace osquery

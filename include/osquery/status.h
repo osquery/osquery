@@ -10,9 +10,9 @@
 
 #pragma once
 
+#include <osquery/error.h>
 #include <sstream>
 #include <string>
-#include <utility>
 
 namespace osquery {
 
@@ -30,15 +30,17 @@ namespace osquery {
  *   }
  * @endcode
  */
+
 class Status {
  public:
+  static constexpr int kSuccessCode = 0;
   /**
    * @brief Default constructor
    *
    * Note that the default constructor initialized an osquery::Status instance
    * to a state such that a successful operation is indicated.
    */
-  explicit Status(int c = 0) : code_(c), message_("OK") {}
+  explicit Status(int c = Status::kSuccessCode) : code_(c), message_("OK") {}
 
   /**
    * @brief A constructor which can be used to concisely express the status of
@@ -54,13 +56,18 @@ class Status {
    */
   Status(int c, std::string m) : code_(c), message_(std::move(m)) {}
 
+  Status(const ErrorBase& error)
+      : code_(1), message_(error.getFullMessageRecursive()) {}
+
  public:
   /**
    * @brief A getter for the status code property
    *
    * @return an integer representing the status code of the operation.
    */
-  int getCode() const { return code_; }
+  int getCode() const {
+    return code_;
+  }
 
   /**
    * @brief A getter for the message property
@@ -69,10 +76,13 @@ class Status {
    * success or failure of an operation. On successful operations, the idiom
    * is for the message to be "OK"
    */
-  std::string getMessage() const { return message_; }
+  std::string getMessage() const {
+    return message_;
+  }
 
   /**
-   * @brief A convenience method to check if the return code is 0
+   * @brief A convenience method to check if the return code is
+   * Status::kSuccessCode
    *
    * @code{.cpp}
    *   auto s = doSomething();
@@ -83,17 +93,24 @@ class Status {
    *   }
    * @endcode
    *
-   * @return a boolean which is true if the status code is 0, false otherwise.
+   * @return a boolean which is true if the status code is Status::kSuccessCode,
+   * false otherwise.
    */
-  bool ok() const { return getCode() == 0; }
+  bool ok() const {
+    return getCode() == Status::kSuccessCode;
+  }
 
   /**
    * @brief A synonym for osquery::Status::getMessage()
    *
    * @see getMessage()
    */
-  std::string toString() const { return getMessage(); }
-  std::string what() const { return getMessage(); }
+  std::string toString() const {
+    return getMessage();
+  }
+  std::string what() const {
+    return getMessage();
+  }
 
   /**
    * @brief implicit conversion to bool
@@ -110,6 +127,16 @@ class Status {
     return ok();
   }
 
+  static Status success() {
+    return Status(kSuccessCode);
+  }
+
+  static Status failure(std::string message) {
+    return Status(1, std::move(message));
+  }
+
+  static Status failure(int code, std::string message);
+
   // Below operator implementations useful for testing with gtest
 
   // Enables use of gtest (ASSERT|EXPECT)_EQ
@@ -118,7 +145,9 @@ class Status {
   }
 
   // Enables use of gtest (ASSERT|EXPECT)_NE
-  bool operator!=(const Status& rhs) const { return !operator==(rhs); }
+  bool operator!=(const Status& rhs) const {
+    return !operator==(rhs);
+  }
 
   // Enables pretty-printing in gtest (ASSERT|EXPECT)_(EQ|NE)
   friend ::std::ostream& operator<<(::std::ostream& os, const Status& s);

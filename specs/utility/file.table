@@ -19,6 +19,11 @@ schema([
     Column("symlink", INTEGER, "1 if the path is a symlink, otherwise 0"),
     Column("type", TEXT, "File status"),
 ])
+extended_schema(WINDOWS, [
+    Column("attributes", TEXT, "File attrib string. See: https://ss64.com/nt/attrib.html"),
+    Column("volume_serial", TEXT, "Volume serial number"),
+    Column("file_id", TEXT, "file ID"),
+])
 attributes(utility=True)
 implementation("utility/file@genFile")
 examples([

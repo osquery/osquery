@@ -14,11 +14,14 @@
 #include <string>
 #include <vector>
 
-#include <osquery/registry.h>
-#include <osquery/status.h>
+#include <osquery/plugin.h>
 
 namespace osquery {
+// A list of key/str pairs; used for write batching with setDatabaseBatch
+using DatabaseStringValueList =
+    std::vector<std::pair<std::string, std::string>>;
 
+class Status;
 /**
  * @brief A list of supported backing storage categories: called domains.
  *
@@ -94,6 +97,10 @@ class DatabasePlugin : public Plugin {
                      const std::string& key,
                      std::string& value) const = 0;
 
+  virtual Status get(const std::string& domain,
+                     const std::string& key,
+                     int& value) const = 0;
+
   /**
    * @brief Store a string-represented value using a domain and key index.
    *
@@ -108,6 +115,15 @@ class DatabasePlugin : public Plugin {
   virtual Status put(const std::string& domain,
                      const std::string& key,
                      const std::string& value) = 0;
+
+  virtual Status put(const std::string& domain,
+                     const std::string& key,
+                     int value) = 0;
+
+  virtual Status putBatch(const std::string& domain,
+                          const DatabaseStringValueList& data) = 0;
+
+  virtual void dumpDatabase() const = 0;
 
   /// Data removal method.
   virtual Status remove(const std::string& domain, const std::string& k) = 0;
@@ -210,6 +226,10 @@ Status getDatabaseValue(const std::string& domain,
                         const std::string& key,
                         std::string& value);
 
+Status getDatabaseValue(const std::string& domain,
+                        const std::string& key,
+                        int& value);
+
 /**
  * @brief Set or put a value into the active osquery DatabasePlugin storage.
  *
@@ -225,6 +245,13 @@ Status getDatabaseValue(const std::string& domain,
 Status setDatabaseValue(const std::string& domain,
                         const std::string& key,
                         const std::string& value);
+
+Status setDatabaseValue(const std::string& domain,
+                        const std::string& key,
+                        int value);
+
+Status setDatabaseBatch(const std::string& domain,
+                        const DatabaseStringValueList& data);
 
 /// Remove a domain/key identified value from backing-store.
 Status deleteDatabaseValue(const std::string& domain, const std::string& key);

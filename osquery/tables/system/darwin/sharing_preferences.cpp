@@ -47,6 +47,9 @@ const std::string kRemoteBluetoothSharingPath = "/Library/Preferences/ByHost/";
 
 const std::string kRemoteBluetoothSharingPattern = "com.apple.Bluetooth.%";
 
+const std::string kContentCachingPath =
+    "/Library/Preferences/com.apple.AssetCache.plist";
+
 bool remoteAppleManagementPlistExists() {
   auto remoteAppleManagementFileInfo =
       SQL::selectAllFrom("file", "path", EQUALS, kRemoteAppleManagementPath);
@@ -185,6 +188,23 @@ int getBluetoothSharingStatus() {
   return 0;
 }
 
+int getContentCachingStatus() {
+  auto contentCachingStatus =
+      SQL::selectAllFrom("plist", "path", EQUALS, kContentCachingPath);
+  if (contentCachingStatus.empty()) {
+    return 0;
+  }
+  for (const auto& row : contentCachingStatus) {
+    if (row.find("key") == row.end() || row.find("value") == row.end()) {
+      continue;
+    }
+    if (row.at("key") == "Activated" && row.at("value") == INTEGER(1)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 QueryData genSharingPreferences(QueryContext& context) {
   Row r;
   r["screen_sharing"] = INTEGER(getScreenSharingStatus());
@@ -196,6 +216,7 @@ QueryData genSharingPreferences(QueryContext& context) {
   r["internet_sharing"] = INTEGER(getInterNetSharingStatus());
   r["bluetooth_sharing"] = INTEGER(getBluetoothSharingStatus());
   r["disc_sharing"] = INTEGER(getDiscSharingStatus());
+  r["content_caching"] = INTEGER(getContentCachingStatus());
   return {r};
 }
 

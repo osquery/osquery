@@ -28,6 +28,16 @@ namespace osquery {
 FLAG(uint64, schedule_timeout, 0, "Limit the schedule, 0 for no limit");
 
 FLAG(uint64,
+     schedule_max_drift,
+     60,
+     "Max time drift in seconds. Scheduler tries to compensate the drift until "
+     "the drift exceed this value. After it the drift will be reseted to zero "
+     "and the compensation process will start from the beginning. It is needed "
+     "to avoid the problem of endless compensation (which is CPU greedy) after "
+     "a long SIGSTOP/SIGCONT pause or something similar. Set it to zero to "
+     "switch off a drift compensation. Default: 60");
+
+FLAG(uint64,
      schedule_reload,
      300,
      "Interval in seconds to reload database arenas");
@@ -47,13 +57,21 @@ DECLARE_bool(events_optimize);
 SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   // Snapshot the performance and times for the worker before running.
   auto pid = std::to_string(PlatformProcess::getCurrentPid());
-  auto r0 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
+  auto r0 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            pid);
   auto t0 = getUnixTime();
   Config::get().recordQueryStart(name);
   SQLInternal sql(query.query, true);
   // Snapshot the performance after, and compare.
   auto t1 = getUnixTime();
-  auto r1 = SQL::selectAllFrom("processes", "pid", EQUALS, pid);
+  auto r1 = SQL::selectFrom({"resident_size", "user_time", "system_time"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            pid);
   if (r0.size() > 0 && r1.size() > 0) {
     // Calculate a size as the expected byte output of results.
     // This does not dedup result differentials and is not aware of snapshots.
@@ -153,8 +171,9 @@ void SchedulerRunner::start() {
   // Start the counter at the second.
   auto i = osquery::getUnixTime();
   for (; (timeout_ == 0) || (i <= timeout_); ++i) {
+    auto start_time_point = std::chrono::steady_clock::now();
     Config::get().scheduledQueries(
-        ([&i](const std::string& name, const ScheduledQuery& query) {
+        ([&i](std::string name, const ScheduledQuery& query) {
           if (query.splayed_interval > 0 && i % query.splayed_interval == 0) {
             TablePlugin::kCacheInterval = query.splayed_interval;
             TablePlugin::kCacheStep = i;
@@ -176,13 +195,28 @@ void SchedulerRunner::start() {
     if ((i % 3) == 0) {
       relayStatusLogs(true);
     }
-
-    // Put the thread into an interruptible sleep without a config instance.
-    pauseMilli(interval_ * 1000);
+    auto loop_step_duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start_time_point);
+    if (loop_step_duration + time_drift_ < interval_) {
+      pauseMilli(interval_ - loop_step_duration - time_drift_);
+      time_drift_ = std::chrono::milliseconds::zero();
+    } else {
+      time_drift_ += loop_step_duration - interval_;
+      if (time_drift_ > max_time_drift_) {
+        // giving up
+        time_drift_ = std::chrono::milliseconds::zero();
+      }
+    }
     if (interrupted()) {
       break;
     }
   }
+}
+
+std::chrono::milliseconds SchedulerRunner::getCurrentTimeDrift() const
+    noexcept {
+  return time_drift_;
 }
 
 void startScheduler() {
@@ -190,6 +224,7 @@ void startScheduler() {
 }
 
 void startScheduler(unsigned long int timeout, size_t interval) {
-  Dispatcher::addService(std::make_shared<SchedulerRunner>(timeout, interval));
+  Dispatcher::addService(std::make_shared<SchedulerRunner>(
+      timeout, interval, std::chrono::seconds{FLAGS_schedule_max_drift}));
 }
 } // namespace osquery

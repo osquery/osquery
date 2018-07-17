@@ -35,6 +35,9 @@ namespace tables {
  */
 const std::string kEncryptionType = "AES-XTS";
 const std::string kAPFSFileSystem = "apfs";
+const std::string kEncryptionStatusEncrypted = "encrypted";
+const std::string kEncryptionStatusUndefined = "undefined";
+const std::string kEncryptionStatusNotEncrypted = "not encrypted";
 
 /// Expect all device names to include a /dev path prefix.
 const std::string kDeviceNamePrefix = "/dev/";
@@ -121,6 +124,10 @@ Status genUid(id_t& uid, uuid_string_t& uuid_str) {
 }
 
 void genFDEStatusForAPFS(Row& r) {
+  // Set encryption_status as undefined at start
+  // and change it to encrypted | not encrypted in future
+  r["encryption_status"] = kEncryptionStatusUndefined;
+
   // BEWARE: Because of the dynamic nature of the calls in this function, we
   // must be careful to properly clean up the memory. Any future modifications
   // to this function should attempt to ensure there are no leaks.
@@ -234,96 +241,54 @@ void genFDEStatusForAPFS(Row& r) {
     CFRelease(bundle);
   };
 
-  // err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
-  char* typeEncodings = nullptr;
-  asprintf(&typeEncodings,
-           "%s%s%s%s%s",
-           @encode(int), // return
-           @encode(id), // self
-           @encode(SEL), // _cmd
-           @encode(DADiskRef),
-           @encode(char*));
-  if (typeEncodings == nullptr) {
-    LOG(ERROR) << "asprintf returned nullptr for typeEncodings";
-    cleanup();
-    return;
-  }
-  NSMethodSignature* signature =
-      [NSMethodSignature signatureWithObjCTypes:typeEncodings];
-  free(typeEncodings);
-  if (signature == nullptr) {
-    LOG(ERROR) << "Got null NSMethodSignature";
-    cleanup();
-    return;
-  }
-
-  char isEncrypted = 0;
-  char* isEncryptedPtr = &isEncrypted;
   int err = 0;
 
+  char isEncrypted = 0;
+  // err = [apfs isEncryptedVolume:targetVol encrypted:&isEncrypted];
   @try {
-    NSInvocation* inv = [NSInvocation invocationWithMethodSignature:signature];
-    if (inv == nullptr) {
-      LOG(ERROR)
-          << "Failed to create NSInvocation for isEncryptedVolume:encrypted:";
+    SEL selector = @selector(isEncryptedVolume:encrypted:);
+    IMP methodIMP = [apfs methodForSelector:selector];
+    if (methodIMP == nullptr) {
+      LOG(ERROR) << "Failed to get method IMP for isEncryptedVolume:encrypted:";
       cleanup();
       return;
     }
-    [inv setSelector:@selector(isEncryptedVolume:encrypted:)];
-    [inv setReturnValue:&err];
-    [inv setArgument:&targetVol atIndex:2];
-    [inv setArgument:&isEncryptedPtr atIndex:3];
-    [inv invokeWithTarget:apfs];
+    int (*function)(id, SEL, DADiskRef, char*) =
+        (int (*)(id, SEL, DADiskRef, char*))(methodIMP);
+    err = function(apfs, selector, targetVol, &isEncrypted);
   } @catch (NSException* exception) {
-    LOG(ERROR) << "NSInvocation threw for isEncryptedVolume:encrypted:";
+    LOG(ERROR) << "isEncryptedVolume:encrypted: threw exception "
+               << exception.name;
     cleanup();
     return;
   }
   if (err != 0) {
-    LOG(ERROR) << "Error calling isEncryptedVolume:encrypted:";
+    // This is expected behaviour on some configurations
+    // We can't handle error here so just log
+    LOG(INFO) << "Error calling isEncryptedVolume:encrypted:";
+    // For backward compatibility reasons mark disk as
+    // not encrypted
+    r["encrypted"] = "0";
     cleanup();
     return;
   }
 
   // err = [apfs cryptoUsersForVolume:targetVol users:&cryptoUsers];
-  typeEncodings = nullptr;
-  asprintf(&typeEncodings,
-           "%s%s%s%s%s",
-           @encode(int), // return
-           @encode(id), // self
-           @encode(SEL), // _cmd
-           @encode(DADiskRef),
-           @encode(void*));
-  if (typeEncodings == nullptr) {
-    LOG(ERROR) << "asprintf returned nullptr for typeEncodings";
-    cleanup();
-    return;
-  }
-  signature = [NSMethodSignature signatureWithObjCTypes:typeEncodings];
-  free(typeEncodings);
-  if (signature == nullptr) {
-    LOG(ERROR) << "Got null NSMethodSignature";
-    cleanup();
-    return;
-  }
-
   NSArray* cryptoUsers = nullptr;
-  void* cryptoUsersPtr = &cryptoUsers;
   @try {
-    NSInvocation* inv = [NSInvocation invocationWithMethodSignature:signature];
-    if (inv == nullptr) {
-      LOG(ERROR)
-          << "Failed to create NSInvocation for cryptoUsersForVolume:users:";
+    SEL selector = @selector(cryptoUsersForVolume:users:);
+    IMP methodIMP = [apfs methodForSelector:selector];
+    if (methodIMP == nullptr) {
+      LOG(ERROR) << "Failed to get method IMP for cryptoUsersForVolume:users:";
       cleanup();
       return;
     }
-    [inv setSelector:@selector(cryptoUsersForVolume:users:)];
-    [inv setReturnValue:&err];
-    [inv setArgument:&targetVol atIndex:2];
-    [inv setArgument:&cryptoUsersPtr atIndex:3];
-    [inv invokeWithTarget:apfs];
+    int (*function)(id, SEL, DADiskRef, id*) =
+        (int (*)(id, SEL, DADiskRef, id __autoreleasing*))(methodIMP);
+    err = function(apfs, selector, targetVol, &cryptoUsers);
   } @catch (NSException* exception) {
-    LOG(ERROR) << "NSInvocation threw for cryptoUsersForVolume:users:";
+    LOG(ERROR) << "cryptoUsersForVolume:users: threw exception "
+               << exception.name;
     cleanup();
     return;
   }
@@ -332,7 +297,7 @@ void genFDEStatusForAPFS(Row& r) {
   cleanup();
 
   if (err != 0) {
-    LOG(ERROR) << "Error calling cryptoUsersForVolume:users:";
+    LOG(ERROR) << "Error calling cryptoUsersForVolume:users: ";
     return;
   }
 
@@ -360,6 +325,8 @@ void genFDEStatusForAPFS(Row& r) {
     }
   }
 
+  r["encryption_status"] =
+      isEncrypted ? kEncryptionStatusEncrypted : kEncryptionStatusNotEncrypted;
   r["encrypted"] = isEncrypted ? "1" : "0";
   r["type"] = isEncrypted ? "APFS Encryption" : "";
 }
@@ -397,9 +364,12 @@ void genFDEStatusForBSDName(const std::string& bsd_name,
   } else {
     auto encrypted = getIOKitProperty(properties, kCoreStorageIsEncryptedKey_);
     if (encrypted.empty()) {
+      r["encryption_status"] = kEncryptionStatusUndefined;
       r["encrypted"] = "0";
     } else {
       r["encrypted"] = encrypted;
+      r["encryption_status"] = encrypted == "1" ? kEncryptionStatusEncrypted
+                                                : kEncryptionStatusNotEncrypted;
       id_t uid;
       uuid_string_t uuid_string = {0};
       if (genUid(uid, uuid_string).ok()) {
@@ -424,13 +394,13 @@ QueryData genFDEStatus(QueryContext& context) {
   QueryData results;
 
   auto block_devices = SQL::selectAllFrom("block_devices");
-
   for (const auto& row : block_devices) {
     const auto bsd_name = row.at("name").substr(kDeviceNamePrefix.size());
     auto mount = SQL::selectAllFrom("mounts", "device", EQUALS, bsd_name);
-    genFDEStatusForBSDName(bsd_name, row.at("uuid"), isAPFS(mount), results);
+    @autoreleasepool {
+      genFDEStatusForBSDName(bsd_name, row.at("uuid"), isAPFS(mount), results);
+    }
   }
-
   return results;
 }
 }

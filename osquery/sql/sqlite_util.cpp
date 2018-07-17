@@ -8,13 +8,16 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "osquery/sql/sqlite_util.h"
+#include "osquery/sql/virtual_table.h"
+
 #include <osquery/core.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
-#include "osquery/sql/sqlite_util.h"
-#include "osquery/sql/virtual_table.h"
+#include <boost/lexical_cast.hpp>
 
 namespace osquery {
 
@@ -236,6 +239,7 @@ static inline void openOptimized(sqlite3*& db) {
 #if !defined(SKIP_CARVER)
   registerOperationExtensions(db);
 #endif
+  registerFilesystemExtensions(db);
   registerHashingExtensions(db);
   registerEncodingExtensions(db);
 }
@@ -294,6 +298,7 @@ void SQLiteDBInstance::clearAffectedTables() {
   for (const auto& table : affected_tables_) {
     table.second->constraints.clear();
     table.second->cache.clear();
+    table.second->colsUsed.clear();
   }
   // Since the affected tables are cleared, there are no more affected tables.
   // There is no concept of compounding tables between queries.
@@ -548,4 +553,4 @@ Status getQueryColumnsInternal(const std::string& q,
 
   return status;
 }
-}
+} // namespace osquery

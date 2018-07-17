@@ -15,6 +15,7 @@ from __future__ import unicode_literals
 
 import argparse
 import ast
+import fnmatch
 import jinja2
 import logging
 import os
@@ -160,7 +161,8 @@ def setup_templates(templates_path):
         if not os.path.exists(templates_path):
             print("Cannot read templates path: %s" % (templates_path))
             exit(1)
-    for template in os.listdir(templates_path):
+    templates = (f for f in os.listdir(templates_path) if fnmatch.fnmatch(f, "*.in"))
+    for template in templates:
         template_name = template.split(".", 1)[0]
         with open(os.path.join(templates_path, template), "r") as fh:
             TEMPLATES[template_name] = fh.read().replace("\\\n", "")

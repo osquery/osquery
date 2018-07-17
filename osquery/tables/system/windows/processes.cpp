@@ -14,13 +14,13 @@
 #define _WIN32_DCOM
 
 #include <Windows.h>
+#include <iomanip>
 #include <psapi.h>
 #include <stdlib.h>
 #include <tlhelp32.h>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
 #include <osquery/filesystem.h>
@@ -29,7 +29,7 @@
 
 #include "osquery/core/conversions.h"
 #include "osquery/core/windows/wmi.h"
-#include <osquery/filesystem/fileops.h>
+#include "osquery/filesystem/fileops.h"
 
 namespace osquery {
 int getUidFromSid(PSID sid);
@@ -53,7 +53,7 @@ const std::map<unsigned long, std::string> kMemoryConstants = {
 /// Given a pid, enumerates all loaded modules and memory pages for that process
 Status genMemoryMap(unsigned long pid, QueryData& results) {
   auto proc = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
-  if (proc == INVALID_HANDLE_VALUE) {
+  if (proc == nullptr) {
     Row r;
     r["pid"] = INTEGER(pid);
     r["start"] = INTEGER(-1);
@@ -183,14 +183,20 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
   r["on_disk"] = osquery::pathExists(r["path"]).toString();
   result.GetLong("ThreadCount", lPlaceHolder);
   r["threads"] = INTEGER(lPlaceHolder);
+  result.GetString("PrivatePageCount", sPlaceHolder);
+  r["wired_size"] = BIGINT(sPlaceHolder);
+  result.GetString("WorkingSetSize", sPlaceHolder);
+  r["resident_size"] = sPlaceHolder;
+  result.GetString("VirtualSize", sPlaceHolder);
+  r["total_size"] = BIGINT(sPlaceHolder);
 
-  std::vector<char> fileName(MAX_PATH);
-  fileName.assign(MAX_PATH + 1, '\0');
+  std::vector<char> fileName(MAX_PATH + 1, 0x0);
   if (pid == currentPid) {
     GetModuleFileName(nullptr, fileName.data(), MAX_PATH);
   } else {
     GetModuleFileNameEx(hProcess, nullptr, fileName.data(), MAX_PATH);
   }
+
   r["cwd"] = SQL_TEXT(fileName.data());
   r["root"] = r["cwd"];
 
@@ -215,31 +221,24 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
     ULARGE_INTEGER utime;
     utime.HighPart = userTime.dwHighDateTime;
     utime.LowPart = userTime.dwLowDateTime;
-    r["user_time"] = BIGINT(utime.QuadPart / 10000000);
+    r["user_time"] = BIGINT(utime.QuadPart / 10000);
     utime.HighPart = kernelTime.dwHighDateTime;
     utime.LowPart = kernelTime.dwLowDateTime;
-    r["system_time"] = BIGINT(utime.QuadPart / 10000000);
+    r["system_time"] = BIGINT(utime.QuadPart / 10000);
     r["start_time"] = BIGINT(osquery::filetimeToUnixtime(createTime));
   }
 
-  result.GetString("PrivatePageCount", sPlaceHolder);
-  r["wired_size"] = BIGINT(sPlaceHolder);
-  result.GetString("WorkingSetSize", sPlaceHolder);
-  r["resident_size"] = sPlaceHolder;
-  result.GetString("VirtualSize", sPlaceHolder);
-  r["total_size"] = BIGINT(sPlaceHolder);
-
   /// Get the process UID and GID from its SID
   HANDLE tok = nullptr;
-  std::vector<char> tokOwner(sizeof(TOKEN_OWNER), 0x0);
+  std::vector<char> tokUser(sizeof(TOKEN_USER), 0x0);
   auto ret = OpenProcessToken(hProcess, TOKEN_READ, &tok);
   if (ret != 0 && tok != nullptr) {
     unsigned long tokOwnerBuffLen;
     ret = GetTokenInformation(tok, TokenUser, nullptr, 0, &tokOwnerBuffLen);
     if (ret == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-      tokOwner.resize(tokOwnerBuffLen);
+      tokUser.resize(tokOwnerBuffLen);
       ret = GetTokenInformation(
-          tok, TokenUser, tokOwner.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
+          tok, TokenUser, tokUser.data(), tokOwnerBuffLen, &tokOwnerBuffLen);
     }
 
     // Check if the process is using an elevated token
@@ -253,8 +252,8 @@ void genProcess(const WmiResultItem& result, QueryData& results_data) {
 
     r["is_elevated_token"] = elevated ? INTEGER(1) : INTEGER(0);
   }
-  if (uid != 0 && ret != 0 && !tokOwner.empty()) {
-    auto sid = PTOKEN_OWNER(tokOwner.data())->Owner;
+  if (uid != 0 && ret != 0 && !tokUser.empty()) {
+    auto sid = PTOKEN_OWNER(tokUser.data())->Owner;
     r["uid"] = INTEGER(getUidFromSid(sid));
     r["gid"] = INTEGER(getGidFromSid(sid));
   } else {

@@ -8,21 +8,19 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <mutex>
+#include <sstream>
 
 #include <sqlite3.h>
-
 #include <sys/stat.h>
 
-#include <osquery/database.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/conversions.h"
+#include "osquery/database/plugins/sqlite.h"
 #include "osquery/filesystem/fileops.h"
 
 namespace osquery {
-
-DECLARE_string(database_path);
 
 const std::map<std::string, std::string> kDBSettings = {
     {"synchronous", "OFF"},
@@ -33,60 +31,6 @@ const std::map<std::string, std::string> kDBSettings = {
     {"cache_size", "1000"},
     {"page_count", "1000"},
 };
-
-class SQLiteDatabasePlugin : public DatabasePlugin {
- public:
-  /// Data retrieval method.
-  Status get(const std::string& domain,
-             const std::string& key,
-             std::string& value) const override;
-
-  /// Data storage method.
-  Status put(const std::string& domain,
-             const std::string& key,
-             const std::string& value) override;
-
-  /// Data removal method.
-  Status remove(const std::string& domain, const std::string& k) override;
-
-  /// Data range removal method.
-  Status removeRange(const std::string& domain,
-                     const std::string& low,
-                     const std::string& high) override;
-
-  /// Key/index lookup method.
-  Status scan(const std::string& domain,
-              std::vector<std::string>& results,
-              const std::string& prefix,
-              size_t max) const override;
-
- public:
-  /// Database workflow: open and setup.
-  Status setUp() override;
-
-  /// Database workflow: close and cleanup.
-  void tearDown() override {
-    close();
-  }
-
-  /// Need to tear down open resources,
-  virtual ~SQLiteDatabasePlugin() {
-    close();
-  }
-
- private:
-  void close();
-
- private:
-  /// The long-lived sqlite3 database.
-  sqlite3* db_{nullptr};
-
-  /// Deconstruction mutex.
-  Mutex close_mutex_;
-};
-
-/// Backing-storage provider for osquery internal/core.
-REGISTER_INTERNAL(SQLiteDatabasePlugin, "database", "sqlite");
 
 Status SQLiteDatabasePlugin::setUp() {
   if (!DatabasePlugin::kDBAllowOpen) {
@@ -198,6 +142,22 @@ Status SQLiteDatabasePlugin::get(const std::string& domain,
   return Status(1);
 }
 
+Status SQLiteDatabasePlugin::get(const std::string& domain,
+                                 const std::string& key,
+                                 int& value) const {
+  std::string result;
+  auto s = this->get(domain, key, result);
+  if (s.ok()) {
+    auto expectedValue = tryTo<int>(result);
+    if (expectedValue.isError()) {
+      return Status::failure("Could not deserialize str to int");
+    } else {
+      value = expectedValue.take();
+    }
+  }
+  return s;
+}
+
 static void tryVacuum(sqlite3* db) {
   std::string q =
       "SELECT (sum(s1.pageno + 1 == s2.pageno) * 1.0 / count(*)) < 0.01 as v "
@@ -216,16 +176,56 @@ static void tryVacuum(sqlite3* db) {
 Status SQLiteDatabasePlugin::put(const std::string& domain,
                                  const std::string& key,
                                  const std::string& value) {
+  return putBatch(domain, {std::make_pair(key, value)});
+}
+
+Status SQLiteDatabasePlugin::put(const std::string& domain,
+                                 const std::string& key,
+                                 int value) {
+  return putBatch(domain, {std::make_pair(key, std::to_string(value))});
+}
+
+Status SQLiteDatabasePlugin::putBatch(const std::string& domain,
+                                      const DatabaseStringValueList& data) {
   if (read_only_) {
     return Status(0, "Database in readonly mode");
   }
 
+  // Prepare the query, adding placeholders for all the rows we have in `data`
+  std::stringstream buffer;
+  buffer << "insert or replace into " + domain + " values ";
+
+  for (auto i = 1U; i <= data.size(); i++) {
+    auto index = i * 2;
+    buffer << "(?" << index - 1 << ", ?" << index << ")";
+
+    if (i + 1 > data.size()) {
+      buffer << ";";
+    } else {
+      buffer << ", ";
+    }
+  }
+
+  const auto& q = buffer.str();
+
+  // Bind each value from the rows we got
   sqlite3_stmt* stmt = nullptr;
-  std::string q = "insert or replace into " + domain + " values (?1, ?2);";
   sqlite3_prepare_v2(db_, q.c_str(), -1, &stmt, nullptr);
 
-  sqlite3_bind_text(stmt, 1, key.c_str(), -1, SQLITE_STATIC);
-  sqlite3_bind_text(stmt, 2, value.c_str(), -1, SQLITE_STATIC);
+  {
+    int i = 1;
+
+    for (const auto& p : data) {
+      const auto& key = p.first;
+      const auto& value = p.second;
+
+      sqlite3_bind_text(stmt, i, key.c_str(), -1, SQLITE_STATIC);
+      sqlite3_bind_text(stmt, i + 1, value.c_str(), -1, SQLITE_STATIC);
+
+      i += 2;
+    }
+  }
+
   auto rc = sqlite3_step(stmt);
   if (rc != SQLITE_DONE) {
     return Status(1);
@@ -235,7 +235,8 @@ Status SQLiteDatabasePlugin::put(const std::string& domain,
   if (rand() % 10 == 0) {
     tryVacuum(db_);
   }
-  return Status(0);
+
+  return Status(0, "OK");
 }
 
 Status SQLiteDatabasePlugin::remove(const std::string& domain,
@@ -260,6 +261,8 @@ Status SQLiteDatabasePlugin::remove(const std::string& domain,
   }
   return Status(0);
 }
+
+void SQLiteDatabasePlugin::dumpDatabase() const {}
 
 Status SQLiteDatabasePlugin::removeRange(const std::string& domain,
                                          const std::string& low,
@@ -310,4 +313,4 @@ Status SQLiteDatabasePlugin::scan(const std::string& domain,
 
   return Status(0, "OK");
 }
-}
+} // namespace osquery

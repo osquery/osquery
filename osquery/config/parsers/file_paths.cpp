@@ -11,6 +11,8 @@
 #include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
+#include <osquery/sql.h>
 
 namespace pt = boost::property_tree;
 
@@ -24,7 +26,7 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
   virtual ~FilePathsConfigParserPlugin() = default;
 
   std::vector<std::string> keys() const override {
-    return {"file_paths", "file_accesses", "exclude_paths"};
+    return {"file_paths", "file_paths_query", "file_accesses", "exclude_paths"};
   }
 
   Status setUp() override;
@@ -39,6 +41,8 @@ class FilePathsConfigParserPlugin : public ConfigParserPlugin {
 Status FilePathsConfigParserPlugin::setUp() {
   auto paths_obj = data_.getObject();
   data_.add("file_paths", paths_obj);
+  auto paths_query_obj = data_.getObject();
+  data_.add("file_paths_query", paths_query_obj);
   auto accesses_arr = data_.getArray();
   data_.add("file_accesses", accesses_arr);
   auto exclude_obj = data_.getObject();
@@ -50,7 +54,8 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
                                            const ParserConfig& config) {
   Config::get().removeFiles(source);
   access_map_.erase(source);
-  if (config.count("file_paths") == 0) {
+  if (config.count("file_paths") == 0 &&
+      config.count("file_paths_query") == 0) {
     return Status();
   }
 
@@ -80,20 +85,55 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
     data_.add("file_accesses", arr);
   }
 
-  // We know this top-level is an Object.
-  const auto& file_paths = config.at("file_paths").doc();
-  if (file_paths.IsObject()) {
-    for (const auto& category : file_paths.GetObject()) {
-      if (category.value.IsArray()) {
-        for (const auto& path : category.value.GetArray()) {
-          std::string pattern = path.GetString();
-          if (pattern.empty()) {
-            continue;
-          }
+  if (config.count("file_paths") > 0) {
+    // We know this top-level is an Object.
+    const auto& file_paths = config.at("file_paths").doc();
+    if (file_paths.IsObject()) {
+      for (const auto& category : file_paths.GetObject()) {
+        if (category.value.IsArray()) {
+          for (const auto& path : category.value.GetArray()) {
+            std::string pattern = path.GetString();
+            if (pattern.empty()) {
+              continue;
+            }
 
+            std::string name = category.name.GetString();
+            replaceGlobWildcards(pattern);
+            Config::get().addFile(source, name, pattern);
+          }
+        }
+      }
+    }
+  }
+
+  if (config.count("file_paths_query") > 0) {
+    // We know this top-level is an Object.
+    const auto& path_query_node = config.at("file_paths_query").doc();
+    if (path_query_node.IsObject()) {
+      for (const auto& category : path_query_node.GetObject()) {
+        if (category.value.IsArray()) {
           std::string name = category.name.GetString();
-          replaceGlobWildcards(pattern);
-          Config::get().addFile(source, name, pattern);
+          for (const auto& query : category.value.GetArray()) {
+            auto sql = SQL(query.GetString());
+            if (!sql.ok()) {
+              LOG(ERROR) << "Could not add file_paths using file_paths_query '"
+                         << query.GetString()
+                         << "': " << sql.getMessageString();
+            } else {
+              for (const auto& row : sql.rows()) {
+                auto pathIt = row.find("path");
+                if (pathIt == row.end()) {
+                  LOG(ERROR) << "Cold not find non-empty 'path' column in the "
+                                "results of file_paths_query '"
+                             << query.GetString();
+                } else {
+                  std::string path = pathIt->second;
+                  replaceGlobWildcards(path);
+                  Config::get().addFile(source, name, path);
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -107,12 +147,11 @@ Status FilePathsConfigParserPlugin::update(const std::string& source,
       for (const auto& category : exclude_paths.GetObject()) {
         auto arr = data_.getArray();
         if (category.value.IsArray()) {
+          std::string category_string = category.name.GetString();
           for (const auto& path : category.value.GetArray()) {
             std::string path_string = path.GetString();
             data_.pushCopy(path_string, arr);
           }
-
-          std::string category_string = category.name.GetString();
           data_.add(category_string, arr, obj);
         }
       }

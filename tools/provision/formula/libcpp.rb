@@ -4,44 +4,44 @@ class Libcpp < AbstractOsqueryFormula
   desc "Next-gen compiler infrastructure"
   homepage "http://llvm.org/"
   license "NCSA"
-  revision 200
+  revision 201
 
   stable do
     url "http://releases.llvm.org/#{llvm_version}/llvm-#{llvm_version}.src.tar.xz"
-    sha256 "5fa7489fc0225b11821cab0362f5813a05f2bcf2533e8a4ea9c9c860168807b0"
+    sha256 "1ff53c915b4e761ef400b803f07261ade637b0c269d99569f18040f3dcee4408"
 
     # Only required to build & run Compiler-RT tests on macOS, optional otherwise.
     # https://clang.llvm.org/get_started.html
     resource "libcxx" do
       url "http://releases.llvm.org/#{llvm_version}/libcxx-#{llvm_version}.src.tar.xz"
-      sha256 "fa8f99dd2bde109daa3276d529851a3bce5718d46ce1c5d0806f46caa3e57c00"
+      sha256 "70931a87bde9d358af6cb7869e7535ec6b015f7e6df64def6d2ecdd954040dd9"
     end
 
     resource "clang" do
       url "http://releases.llvm.org/#{llvm_version}/cfe-#{llvm_version}.src.tar.xz"
-      sha256 "135f6c9b0cd2da1aff2250e065946258eb699777888df39ca5a5b4fe5e23d0ff"
+      sha256 "e07d6dd8d9ef196cfc8e8bb131cbd6a2ed0b1caf1715f9d05b0f0eeaddb6df32"
     end
 
     resource "libcxxabi" do
       url "http://llvm.org/releases/#{llvm_version}/libcxxabi-#{llvm_version}.src.tar.xz"
-      sha256 "5a25152cb7f21e3c223ad36a1022faeb8a5ac27c9e75936a5ae2d3ac48f6e854"
+      sha256 "91c6d9c5426306ce28d0627d6a4448e7d164d6a3f64b01cb1d196003b16d641b"
     end
 
     resource "compiler-rt" do
       url "http://releases.llvm.org/#{llvm_version}/compiler-rt-#{llvm_version}.src.tar.xz"
-      sha256 "4edd1417f457a9b3f0eb88082530490edf3cf6a7335cdce8ecbc5d3e16a895da"
+      sha256 "d0cc1342cf57e9a8d52f5498da47a3b28d24ac0d39cbc92308781b3ee0cea79a"
     end
 
     resource "libunwind" do
       url "http://releases.llvm.org/#{llvm_version}/libunwind-#{llvm_version}.src.tar.xz"
-      sha256 "6bbfbf6679435b858bd74bdf080386d084a76dfbf233fb6e47b2c28e0872d0fe"
+      sha256 "256c4ed971191bde42208386c8d39e5143fa4afd098e03bd2c140c878c63f1d6"
     end
   end
 
   bottle do
     root_url "https://osquery-packages.s3.amazonaws.com/bottles"
     cellar :any_skip_relocation
-    sha256 "068bf3beabbb71f4ba62e5e52abddbc30acb829374a28d3e1440c3135b0d3b24" => :x86_64_linux
+    sha256 "a33a4c4b63e2e6f8d0beda67fcd3470161034c2a488e96f300280e831a43264e" => :x86_64_linux
   end
 
   depends_on "binutils"
@@ -74,6 +74,7 @@ class Libcpp < AbstractOsqueryFormula
       -DLIBCXXABI_USE_LLVM_UNWINDER=ON
       -DLLVM_BUILD_EXTERNAL_COMPILER_RT=ON
       -DCLANG_DEFAULT_CXX_STDLIB=libstdc++
+      -DLIBFUZZER_ENABLE=YES
     ]
 
     mktemp do

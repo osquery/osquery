@@ -35,6 +35,9 @@ targets = {
   "ubuntu17.04" => {
     "box" => "bento/ubuntu17.04"
   },
+  "ubuntu18.04" => {
+    "box" => "ubuntu/bionic64"
+  },
   "ubuntu12" => {
     "box" => "ubuntu/precise64"
   },

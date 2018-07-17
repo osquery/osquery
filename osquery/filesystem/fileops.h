@@ -15,7 +15,8 @@
 #include <sys/types.h>
 
 #ifdef WIN32
-
+#include <iomanip>
+#include <map>
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -61,6 +62,38 @@ using PlatformTimeType = FILETIME;
 #define S_IXOTH (S_IXGRP >> 3)
 #define S_IRWXO (S_IRWXG >> 3)
 
+const std::map<std::int32_t, std::string> kDriveLetters{
+    {0, "A:\\"},  {1, "B:\\"},  {2, "C:\\"},  {3, "D:\\"},  {4, "E:\\"},
+    {5, "F:\\"},  {6, "G:\\"},  {7, "H:\\"},  {8, "I:\\"},  {9, "J:\\"},
+    {10, "K:\\"}, {11, "L:\\"}, {12, "M:\\"}, {13, "N:\\"}, {14, "O:\\"},
+    {15, "P:\\"}, {16, "Q:\\"}, {17, "R:\\"}, {18, "S:\\"}, {19, "T:\\"},
+    {20, "U:\\"}, {21, "V:\\"}, {22, "W:\\"}, {23, "X:\\"}, {24, "Y:\\"},
+    {25, "Z:\\"},
+};
+
+typedef struct win_stat {
+  std::string path;
+  std::string filename;
+  int symlink;
+  std::string file_id;
+  LONGLONG inode;
+  unsigned long uid;
+  unsigned long gid;
+  std::string mode;
+  LONGLONG device;
+  LONGLONG size;
+  int block_size;
+  LONGLONG atime;
+  LONGLONG mtime;
+  LONGLONG ctime;
+  LONGLONG btime;
+  int hard_links;
+  std::string type;
+  std::string attributes;
+  std::string volume_serial;
+
+} WINDOWS_STAT;
+
 #else
 
 using PlatformHandle = int;
@@ -71,6 +104,8 @@ typedef struct { PlatformTimeType times[2]; } PlatformTime;
 
 /// Constant for an invalid handle.
 const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
+
+std::string lastErrorMessage(unsigned long);
 
 /**
  * @brief File access modes for PlatformFile.
@@ -85,9 +120,13 @@ const PlatformHandle kInvalidHandle = (PlatformHandle)-1;
 
 #define PF_OPTIONS_MASK 0x001c
 #define PF_GET_OPTIONS(x) ((x & PF_OPTIONS_MASK) >> 2)
+// Create new file only if it does not exist, or else fail.
 #define PF_CREATE_NEW (0 << 2)
+// If file exists truncate it, or else create new one.
 #define PF_CREATE_ALWAYS (1 << 2)
+// If file exists open it, or else fail.
 #define PF_OPEN_EXISTING (2 << 2)
+// If file exists open it, or else create new one.
 #define PF_OPEN_ALWAYS (3 << 2)
 #define PF_TRUNCATE (4 << 2)
 
@@ -105,6 +144,12 @@ enum SeekMode { PF_SEEK_BEGIN = 0, PF_SEEK_CURRENT, PF_SEEK_END };
 #ifdef WIN32
 /// Takes a Windows FILETIME object and returns seconds since epoch
 LONGLONG filetimeToUnixtime(const FILETIME& ft);
+
+LONGLONG longIntToUnixtime(LARGE_INTEGER& ft);
+
+std::string getFileAttribStr(unsigned long);
+
+Status platformStat(const boost::filesystem::path&, WINDOWS_STAT*);
 
 /**
  * @brief Stores information about the last Windows async request
@@ -362,7 +407,7 @@ Status socketExists(const boost::filesystem::path& path,
 boost::filesystem::path getSystemRoot();
 
 /**
- * @brief Returns the succesfully and fills d_stat if lstat was successful.
+ * @brief Returns the successfully and fills d_stat if lstat was successful.
  *
  *
  * On Windows systems this does not touch the structure.

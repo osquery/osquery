@@ -16,7 +16,9 @@
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/database/plugins/rocksdb.h"
 #include "osquery/filesystem/fileops.h"
 
@@ -227,16 +229,12 @@ rocksdb::DB* RocksDBDatabasePlugin::getDB() const {
 
 rocksdb::ColumnFamilyHandle* RocksDBDatabasePlugin::getHandleForColumnFamily(
     const std::string& cf) const {
-  try {
-    for (size_t i = 0; i < kDomains.size(); i++) {
-      if (kDomains[i] == cf) {
-        return handles_[i];
-      }
-    }
-  } catch (const std::exception& /* e */) {
-    // pass through and return nullptr
+  size_t i = std::find(kDomains.begin(), kDomains.end(), cf) - kDomains.begin();
+  if (i != kDomains.size()) {
+    return handles_[i];
+  } else {
+    return nullptr;
   }
-  return nullptr;
 }
 
 Status RocksDBDatabasePlugin::get(const std::string& domain,
@@ -253,9 +251,29 @@ Status RocksDBDatabasePlugin::get(const std::string& domain,
   return Status(s.code(), s.ToString());
 }
 
+Status RocksDBDatabasePlugin::get(const std::string& domain,
+                                  const std::string& key,
+                                  int& value) const {
+  std::string result;
+  auto s = this->get(domain, key, result);
+  if (s.ok()) {
+    auto expectedValue = tryTo<int>(result);
+    if (expectedValue.isError()) {
+      return Status::failure("Could not deserialize str to int");
+    } else {
+      value = expectedValue.take();
+    }
+  }
+  return s;
+}
 Status RocksDBDatabasePlugin::put(const std::string& domain,
                                   const std::string& key,
                                   const std::string& value) {
+  return putBatch(domain, {std::make_pair(key, value)});
+}
+
+Status RocksDBDatabasePlugin::putBatch(const std::string& domain,
+                                       const DatabaseStringValueList& data) {
   if (read_only_) {
     return Status(0, "Database in readonly mode");
   }
@@ -265,12 +283,23 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
     return Status(1, "Could not get column family for " + domain);
   }
 
-  auto options = rocksdb::WriteOptions();
   // Events should be fast, and do not need to force syncs.
-  if (kEvents != domain) {
+  auto options = rocksdb::WriteOptions();
+  if (kEvents == domain) {
+    options.disableWAL = true;
+  } else {
     options.sync = true;
   }
-  auto s = getDB()->Put(options, cfh, key, value);
+
+  rocksdb::WriteBatch batch;
+  for (const auto& p : data) {
+    const auto& key = p.first;
+    const auto& value = p.second;
+
+    batch.Put(cfh, key, value);
+  }
+
+  auto s = getDB()->Write(options, &batch);
   if (s.code() != 0 && s.IsIOError()) {
     // An error occurred, check if it is an IO error and remove the offending
     // specific filename or log name.
@@ -280,8 +309,17 @@ Status RocksDBDatabasePlugin::put(const std::string& domain,
       return Status(s.code(), "IOError: " + error_string.substr(error_pos + 2));
     }
   }
+
   return Status(s.code(), s.ToString());
 }
+
+Status RocksDBDatabasePlugin::put(const std::string& domain,
+                                  const std::string& key,
+                                  int value) {
+  return putBatch(domain, {std::make_pair(key, std::to_string(value))});
+}
+
+void RocksDBDatabasePlugin::dumpDatabase() const {}
 
 Status RocksDBDatabasePlugin::remove(const std::string& domain,
                                      const std::string& key) {
@@ -362,4 +400,4 @@ Status RocksDBDatabasePlugin::scan(const std::string& domain,
   delete it;
   return Status(0, "OK");
 }
-}
+} // namespace osquery

@@ -105,7 +105,8 @@ QueryData genLoggedInUsers(QueryContext& context) {
                   std::to_string(wtsClient->ClientAddress[3]);
     } else if (wtsClient->ClientAddressFamily == AF_INET6) {
       // TODO: IPv6 addresses are given as an array of byte values.
-      r["host"] = SQL_TEXT(wtsClient->ClientAddress);
+      auto addr = reinterpret_cast<const char*>(wtsClient->ClientAddress);
+      r["host"] = std::string(addr, CLIENTADDRESS_LENGTH);
     }
 
     r["pid"] = INTEGER(-1);

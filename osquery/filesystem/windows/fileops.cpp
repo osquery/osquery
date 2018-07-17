@@ -14,6 +14,7 @@
 #include <Shlwapi.h>
 #include <io.h>
 #include <sddl.h>
+#include <strsafe.h>
 
 #include <memory>
 #include <regex>
@@ -25,6 +26,7 @@
 #include <osquery/logger.h>
 
 #include "osquery/core/process.h"
+#include "osquery/core/windows/process_ops.h"
 #include "osquery/filesystem/fileops.h"
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
@@ -34,6 +36,9 @@ namespace fs = boost::filesystem;
 namespace errc = boost::system::errc;
 
 namespace osquery {
+
+int getUidFromSid(PSID sid);
+int getGidFromSid(PSID sid);
 
 /*
  * Avoid having the same right being used in multiple CHMOD_* macros. Doing so
@@ -1467,6 +1472,272 @@ LONGLONG filetimeToUnixtime(const FILETIME& ft) {
   adjust.QuadPart = 11644473600000 * 10000;
   date.QuadPart -= adjust.QuadPart;
   return date.QuadPart / 10000000;
+}
+
+LONGLONG longIntToUnixtime(LARGE_INTEGER& ft) {
+  ULARGE_INTEGER ull;
+  ull.LowPart = ft.LowPart;
+  ull.HighPart = ft.HighPart;
+  return ull.QuadPart / 10000000ULL - 11644473600ULL;
+}
+
+std::string getFileAttribStr(unsigned long file_attributes) {
+  std::string attribs;
+
+  if (file_attributes & FILE_ATTRIBUTE_ARCHIVE) {
+    // Archive file attribute
+    attribs.push_back('A');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_COMPRESSED) {
+    // Compressed (Not included in attrib.exe output)
+    attribs.push_back('C');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_ENCRYPTED) {
+    // Encrypted (Not included in attrib.exe output)
+    attribs.push_back('E');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+    // Hidden file attribute
+    attribs.push_back('L');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_HIDDEN) {
+    // Hidden file attribute
+    attribs.push_back('H');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_INTEGRITY_STREAM) {
+    //
+    attribs.push_back('V');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_NORMAL) {
+    // Normal (Not included in attrib.exe output)
+    attribs.push_back('N');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_NOT_CONTENT_INDEXED) {
+    // Not content indexed file attribute
+    attribs.push_back('I');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_NO_SCRUB_DATA) {
+    // No scrub file attribute
+    attribs.push_back('X');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_OFFLINE) {
+    // Offline attribute
+    attribs.push_back('O');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_READONLY) {
+    // Read-only file attribute
+    attribs.push_back('R');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_SYSTEM) {
+    // System file attribute
+    attribs.push_back('S');
+  }
+  if (file_attributes & FILE_ATTRIBUTE_TEMPORARY) {
+    // Temporary file attribute (Not included in attrib.exe output)
+    attribs.push_back('T');
+  }
+
+  return attribs;
+}
+
+std::string lastErrorMessage(unsigned long error_code) {
+  LPTSTR msg_buffer = nullptr;
+
+  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                    FORMAT_MESSAGE_IGNORE_INSERTS,
+                NULL,
+                error_code,
+                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                (LPTSTR)&msg_buffer,
+                0,
+                NULL);
+
+  if (msg_buffer != NULL) {
+    auto error_message = std::string(msg_buffer);
+    LocalFree(msg_buffer);
+    msg_buffer = nullptr;
+
+    return error_message;
+  }
+
+  VLOG(1) << "FormatMessage failed for code (" << std::to_string(error_code)
+          << ")";
+  return std::string("Error code" + std::to_string(error_code) + "not found");
+}
+
+Status platformStat(const fs::path& path, WINDOWS_STAT* wfile_stat) {
+  auto FLAGS_AND_ATTRIBUTES = FILE_ATTRIBUTE_ARCHIVE |
+                              FILE_ATTRIBUTE_ENCRYPTED | FILE_ATTRIBUTE_HIDDEN |
+                              FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_OFFLINE |
+                              FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_SYSTEM |
+                              FILE_ATTRIBUTE_TEMPORARY;
+
+  if (fs::is_directory(path)) {
+    FLAGS_AND_ATTRIBUTES |= FILE_FLAG_BACKUP_SEMANTICS;
+  }
+
+  // Get the handle of the file object.
+  auto file_handle = CreateFile(path.string().c_str(),
+                                GENERIC_READ,
+                                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                nullptr,
+                                OPEN_EXISTING,
+                                FLAGS_AND_ATTRIBUTES,
+                                nullptr);
+
+  // Check GetLastError for CreateFile error code.
+  if (file_handle == INVALID_HANDLE_VALUE) {
+    CloseHandle(file_handle);
+    return Status(-1,
+                  "CreateFile failed for " + path.string() + " with " +
+                      std::to_string(GetLastError()));
+  }
+
+  // Get the owner SID of the file.
+  PSID sid_owner = nullptr;
+  PSID gid_owner = nullptr;
+  PSECURITY_DESCRIPTOR security_descriptor = nullptr;
+  auto ret =
+      GetSecurityInfo(file_handle,
+                      SE_FILE_OBJECT,
+                      OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION,
+                      &sid_owner,
+                      &gid_owner,
+                      NULL,
+                      NULL,
+                      &security_descriptor);
+
+  // Check GetLastError for GetSecurityInfo error condition.
+  if (ret != ERROR_SUCCESS) {
+    CloseHandle(file_handle);
+    return Status(-1,
+                  "GetSecurityInfo failed for " + path.string() + " with " +
+                      std::to_string(GetLastError()));
+  }
+
+  FILE_BASIC_INFO basic_info;
+  BY_HANDLE_FILE_INFORMATION file_info;
+
+  if (GetFileInformationByHandle(file_handle, &file_info) == 0) {
+    CloseHandle(file_handle);
+    return Status(-1,
+                  "GetFileInformationByHandle failed for " + path.string() +
+                      " with " + std::to_string(GetLastError()));
+  }
+
+  auto file_index =
+      (static_cast<unsigned long long>(file_info.nFileIndexHigh) << 32) |
+      static_cast<unsigned long long>(file_info.nFileIndexLow);
+
+  std::stringstream stream;
+  stream << "0x" << std::setfill('0')
+         << std::setw(sizeof(unsigned long long) * 2) << std::hex << file_index;
+  std::string file_id(stream.str());
+
+  // Windows has fileid's that are displayed in hex using:
+  // fsutil file queryfileid <filename>
+  wfile_stat->file_id = file_id;
+
+  // inode is the decimal equivalent of fileid
+  wfile_stat->inode = file_index;
+
+  wfile_stat->uid = getUidFromSid(sid_owner);
+
+  wfile_stat->gid = getUidFromSid(gid_owner);
+
+  LocalFree(security_descriptor);
+
+  // Permission bits don't make sense for Windows. Use ntfs_acl_permissions
+  // table
+  wfile_stat->mode = "-1";
+
+  wfile_stat->symlink = 0;
+
+  auto file_type = GetFileType(file_handle);
+  // Try to assign a human readable file type
+  switch (file_type) {
+  case FILE_TYPE_CHAR: {
+    wfile_stat->type = "character";
+    break;
+  }
+  case FILE_TYPE_DISK: {
+    if ((file_info.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE) ||
+        (file_info.dwFileAttributes & FILE_ATTRIBUTE_NORMAL)) {
+      wfile_stat->type = "regular";
+    } else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+      wfile_stat->type = "directory";
+    } else if (file_info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+      wfile_stat->type = "symbolic";
+      wfile_stat->symlink = 1;
+    } else {
+      // This is the type returned from GetFileType -> FILE_TYPE_DISK
+      wfile_stat->type = "disk";
+    }
+    break;
+  }
+  case FILE_TYPE_PIPE: {
+    // If GetNamedPipeInfo fails we assume it's a socket
+    (GetNamedPipeInfo(file_handle, 0, 0, 0, 0)) ? wfile_stat->type = "pipe"
+                                                : wfile_stat->type = "socket";
+    break;
+  }
+  default: { wfile_stat->type = "unknown"; }
+  }
+
+  wfile_stat->attributes = getFileAttribStr(file_info.dwFileAttributes);
+
+  std::stringstream volume_serial;
+  volume_serial << std::hex << std::setfill('0') << std::setw(4)
+                << HIWORD(file_info.dwVolumeSerialNumber) << "-" << std::setw(4)
+                << LOWORD(file_info.dwVolumeSerialNumber);
+
+  wfile_stat->device = file_info.dwVolumeSerialNumber;
+  wfile_stat->volume_serial = volume_serial.str();
+
+  LARGE_INTEGER li = {0};
+  (GetFileSizeEx(file_handle, &li) == 0) ? wfile_stat->size = -1
+                                         : wfile_stat->size = li.QuadPart;
+
+  const char* drive_letter = nullptr;
+  auto drive_letter_index = PathGetDriveNumber(path.string().c_str());
+
+  if (drive_letter_index != -1 && kDriveLetters.count(drive_letter_index)) {
+    drive_letter = kDriveLetters.at(drive_letter_index).c_str();
+
+    unsigned long sect_per_cluster;
+    unsigned long bytes_per_sect;
+    unsigned long free_clusters;
+    unsigned long total_clusters;
+
+    if (GetDiskFreeSpace(drive_letter,
+                         &sect_per_cluster,
+                         &bytes_per_sect,
+                         &free_clusters,
+                         &total_clusters) != 0) {
+      wfile_stat->block_size = bytes_per_sect;
+    } else {
+      wfile_stat->block_size = -1;
+    }
+
+  } else {
+    wfile_stat->block_size = -1;
+  }
+
+  wfile_stat->hard_links = file_info.nNumberOfLinks;
+  wfile_stat->atime = filetimeToUnixtime(file_info.ftLastAccessTime);
+  wfile_stat->mtime = filetimeToUnixtime(file_info.ftLastWriteTime);
+  wfile_stat->btime = filetimeToUnixtime(file_info.ftCreationTime);
+
+  // Change time is not available in GetFileInformationByHandle
+  ret = GetFileInformationByHandleEx(
+      file_handle, FileBasicInfo, &basic_info, sizeof(basic_info));
+
+  (!ret) ? wfile_stat->ctime = -1
+         : wfile_stat->ctime = longIntToUnixtime(basic_info.ChangeTime);
+
+  CloseHandle(file_handle);
+
+  return Status();
 }
 
 fs::path getSystemRoot() {

@@ -12,9 +12,11 @@
 
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 
 #include "osquery/core/conversions.h"
 #include "osquery/events/linux/auditeventpublisher.h"
+#include "osquery/tables/events/linux/selinux_events.h"
 
 namespace osquery {
 /// The audit subsystem may have a performance impact on the system.
@@ -28,6 +30,7 @@ DECLARE_bool(audit_allow_fim_events);
 DECLARE_bool(audit_allow_process_events);
 DECLARE_bool(audit_allow_sockets);
 DECLARE_bool(audit_allow_user_events);
+DECLARE_bool(audit_allow_selinux_events);
 
 REGISTER(AuditEventPublisher, "event_publisher", "auditeventpublisher");
 
@@ -38,7 +41,8 @@ bool IsPublisherEnabled() noexcept {
   }
 
   return (FLAGS_audit_allow_fim_events || FLAGS_audit_allow_process_events ||
-          FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events);
+          FLAGS_audit_allow_sockets || FLAGS_audit_allow_user_events ||
+          FLAGS_audit_allow_selinux_events);
 }
 } // namespace
 
@@ -63,7 +67,9 @@ void AuditEventPublisher::configure() {
     return;
   }
 
-  audit_netlink_ = std::make_unique<AuditdNetlink>();
+  if (audit_netlink_ == nullptr) {
+    audit_netlink_ = std::make_unique<AuditdNetlink>();
+  }
 }
 
 void AuditEventPublisher::tearDown() {
@@ -82,8 +88,16 @@ Status AuditEventPublisher::run() {
   auto audit_event_record_queue = audit_netlink_->getEvents();
 
   auto event_context = createEventContext();
-  ProcessEvents(event_context, audit_event_record_queue, audit_trace_context_);
 
+  // This is a simple estimate based on the process_file_events_tests.cpp
+  // records
+  auto event_count_estimate = audit_event_record_queue.size() / 4U;
+  event_context->audit_events.reserve(event_count_estimate);
+  if (event_context->audit_events.capacity() != event_count_estimate) {
+    return Status(1, "Memory allocation failure");
+  }
+
+  ProcessEvents(event_context, audit_event_record_queue, audit_trace_context_);
   if (!event_context->audit_events.empty()) {
     fire(event_context);
   }
@@ -95,6 +109,8 @@ void AuditEventPublisher::ProcessEvents(
     AuditEventContextRef event_context,
     const std::vector<AuditEventRecord>& record_list,
     AuditTraceContext& trace_context) noexcept {
+  static const auto& selinux_event_set = SELinuxEventSubscriber::GetEventSet();
+
   // Assemble each record into a AuditEvent object; multi-record events
   // are complete when we receive the terminator (AUDIT_EOE)
   for (const auto& audit_event_record : record_list) {
@@ -109,8 +125,17 @@ void AuditEventPublisher::ProcessEvents(
 
       AuditEvent audit_event;
       audit_event.type = AuditEvent::Type::UserEvent;
-      audit_event.record_list.push_back(audit_event_record);
+      audit_event.record_list.push_back(std::move(audit_event_record));
       audit_event.data = data;
+
+      event_context->audit_events.push_back(audit_event);
+
+      // SELinux events
+    } else if (selinux_event_set.find(audit_event_record.type) !=
+               selinux_event_set.end()) {
+      AuditEvent audit_event;
+      audit_event.type = AuditEvent::Type::SELinux;
+      audit_event.record_list.push_back(audit_event_record);
 
       event_context->audit_events.push_back(audit_event);
 
@@ -122,6 +147,9 @@ void AuditEventPublisher::ProcessEvents(
 
       AuditEvent audit_event;
       audit_event.type = AuditEvent::Type::Syscall;
+
+      // Estimate based on the process_file_events_tests.cpp records
+      audit_event.record_list.reserve(4U);
 
       SyscallAuditEventData data;
 
@@ -231,7 +259,7 @@ void AuditEventPublisher::ProcessEvents(
       auto completed_audit_event = audit_event_it->second;
       trace_context.erase(audit_event_it);
 
-      event_context->audit_events.push_back(completed_audit_event);
+      event_context->audit_events.push_back(std::move(completed_audit_event));
 
     } else {
       if (audit_event_it == trace_context.end()) {

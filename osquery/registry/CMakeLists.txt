@@ -6,9 +6,13 @@
 #  in the COPYING file in the root directory of this source tree).
 #  You may select, at your option, one of the above-listed licenses.
 
-ADD_OSQUERY_LIBRARY(TRUE osquery_registry
-  registry.cpp
+target_sources(libosquery
+  PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/plugin.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/registry_factory.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/registry_interface.cpp"
 )
 
-file(GLOB OSQUERY_REGISTRY_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(TRUE ${OSQUERY_REGISTRY_TESTS})
+ADD_OSQUERY_TEST(TRUE
+  "${CMAKE_CURRENT_LIST_DIR}/tests/registry_tests.cpp"
+)

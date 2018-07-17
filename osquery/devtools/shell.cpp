@@ -36,7 +36,9 @@
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/packs.h>
+#include <osquery/registry_factory.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/process.h"
 #include "osquery/devtools/devtools.h"
 #include "osquery/filesystem/fileops.h"
@@ -1048,15 +1050,12 @@ static int booleanValue(char* zArg) {
   if (i > 0 && zArg[i] == 0) {
     return static_cast<int>(integerValue(zArg) & 0xffffffff);
   }
-  if (sqlite3_stricmp(zArg, "on") == 0 || sqlite3_stricmp(zArg, "yes") == 0) {
-    return 1;
+  auto expected = osquery::tryTo<bool>(std::string{zArg});
+  if (expected.isError()) {
+    fprintf(
+        stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n", zArg);
   }
-  if (sqlite3_stricmp(zArg, "off") == 0 || sqlite3_stricmp(zArg, "no") == 0) {
-    return 0;
-  }
-  fprintf(
-      stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n", zArg);
-  return 0;
+  return expected.get_or(false) ? 1 : 0;
 }
 
 inline void meta_tables(int nArg, char** azArg) {
@@ -1639,12 +1638,12 @@ int runPack(struct callback_data* data) {
   int rc = 0;
 
   // Check every pack for a name matching the requested --pack flag.
-  Config::get().packs([data, &rc](std::shared_ptr<Pack>& pack) {
-    if (pack->getName() != FLAGS_pack) {
+  Config::get().packs([data, &rc](const Pack& pack) {
+    if (pack.getName() != FLAGS_pack) {
       return;
     }
 
-    for (const auto& query : pack->getSchedule()) {
+    for (const auto& query : pack.getSchedule()) {
       rc = runQuery(data, query.second.query.c_str());
       if (rc != 0) {
         fprintf(stderr,

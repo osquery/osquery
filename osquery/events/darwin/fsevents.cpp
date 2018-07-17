@@ -15,6 +15,7 @@
 #include <osquery/config.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
 #include "osquery/events/darwin/fsevents.h"
@@ -68,7 +69,7 @@ void FSEventsEventPublisher::restart() {
 
   if (paths_.empty()) {
     // There are no paths to watch.
-    paths_.insert("/dev/null");
+    return;
   }
 
   std::vector<CFStringRef> cf_paths;

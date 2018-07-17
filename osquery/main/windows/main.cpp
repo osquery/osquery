@@ -30,10 +30,10 @@ static const std::string kDefaultFlagsFile{OSQUERY_HOME "\\osquery.flags"};
 static const std::string kServiceName{"osqueryd"};
 static const std::string kServiceDisplayName{"osquery daemon service"};
 
-const int kServiceShutdownTimeout{1000};
-
 static SERVICE_STATUS_HANDLE kStatusHandle = nullptr;
 static SERVICE_STATUS kServiceStatus = {0};
+
+const unsigned long kServiceShutdownWait{100};
 
 /*
  * This event is set when a SERVICE_CONTROL_STOP or SERVICE_CONTROL_SHUTDOWN
@@ -206,6 +206,28 @@ class ServiceArgumentParser {
   std::vector<LPSTR> args_;
 };
 
+// Set recovery behavior on service failure
+static void setupServiceRecovery(SC_HANDLE schService) {
+  SC_ACTION actionRestartService{};
+  actionRestartService.Type = SC_ACTION_RESTART;
+  actionRestartService.Delay = 5000; // delay in ms
+  SC_ACTION actionNone{};
+  actionNone.Type = SC_ACTION_NONE;
+
+  // Try restarting once, on subsequent failures give up
+  SC_ACTION actions[] = {actionRestartService, actionNone};
+
+  SERVICE_FAILURE_ACTIONS failureActions{};
+  failureActions.cActions = sizeof(actions) / sizeof(*actions);
+  failureActions.lpsaActions = actions;
+
+  if (!ChangeServiceConfig2(
+          schService, SERVICE_CONFIG_FAILURE_ACTIONS, &failureActions)) {
+    SLOG("ChangeServiceConfig2 failed (lasterror=" +
+         std::to_string(GetLastError()) + ")");
+  }
+}
+
 /// Install osqueryd as a service given the path to the binary
 Status installService(const std::string& binPath) {
   SC_HANDLE schSCManager = OpenSCManager(
@@ -250,6 +272,10 @@ Status installService(const std::string& binPath) {
                              nullptr,
                              nullptr,
                              nullptr);
+
+  if (schService) {
+    setupServiceRecovery(schService);
+  }
 
   CloseServiceHandle(schSCManager);
   CloseServiceHandle(schService);
@@ -312,7 +338,7 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
     }
 
     // Give the main thread a chance to shutdown gracefully before exiting
-    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3, kServiceShutdownTimeout);
+    UpdateServiceStatus(0, SERVICE_STOP_PENDING, 0, 3, kServiceShutdownWait);
     {
       auto stopEvent = osquery::getStopEvent();
       if (stopEvent != nullptr) {
@@ -323,16 +349,14 @@ void WINAPI ServiceControlHandler(DWORD control_code) {
         }
         CloseHandle(stopEvent);
       }
-      // Give the watcher an opportunity to shutdown gracefully
-      unsigned long tid = static_cast<unsigned long>(
-          std::hash<std::thread::id>{}(kMainThreadId));
-      auto mainThread = OpenThread(SYNCHRONIZE, FALSE, tid);
-      if (mainThread == NULL) {
-        SLOG("Failed to open handle to thread " + std::to_string(tid) +
-             " for service stop with " + std::to_string(GetLastError()));
+      auto thread = OpenThread(SYNCHRONIZE, false, kLegacyThreadId);
+      if (thread != nullptr) {
+        WaitForSingleObjectEx(thread, INFINITE, FALSE);
+        CloseHandle(thread);
+      } else {
+        SLOG("Failed to open handle to main thread of execution with " +
+             std::to_string(GetLastError()));
       }
-      WaitForSingleObjectEx(mainThread, INFINITE, false);
-      CloseHandle(mainThread);
     }
     UpdateServiceStatus(0, SERVICE_STOPPED, 0, 4);
 
@@ -386,7 +410,7 @@ int main(int argc, char* argv[]) {
        static_cast<LPSERVICE_MAIN_FUNCTION>(osquery::ServiceMain)},
       {nullptr, nullptr}};
 
-  if (!::StartServiceCtrlDispatcherA(serviceTable)) {
+  if (!StartServiceCtrlDispatcherA(serviceTable)) {
     DWORD last_error = ::GetLastError();
     if (last_error == ERROR_FAILED_SERVICE_CONTROLLER_CONNECT) {
       // Failing to start the service control dispatcher with this error

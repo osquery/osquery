@@ -1,0 +1,19 @@
+table_name("npm_packages")
+description("Lists all npm packages in a directory or globally installed in a system.")
+schema([
+    Column("name", TEXT, "Package display name"),
+    Column("version", TEXT, "Package supplied version"),
+    Column("description", TEXT, "Package supplied description"),
+    Column("author", TEXT, "Package author name"),
+    Column("license", TEXT, "License for package"),
+    Column("path", TEXT, "Module's package.json path"),
+    Column("directory", TEXT, "Node module's directory where this package is located")
+])
+implementation("system/linux/npm_packages@genNPMPackages")
+examples([
+  "select * from npm_packages",
+  "select * from npm_packages where directory = '/home/user/my_project'",
+])
+fuzz_paths([
+    "/usr/lib/node_modules/",
+])

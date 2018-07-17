@@ -7,8 +7,10 @@
 #  You may select, at your option, one of the above-listed licenses.
 
 ADD_OSQUERY_LIBRARY_ADDITIONAL(osquery_carver
-  carver.cpp
+  "${CMAKE_CURRENT_LIST_DIR}/carver.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/carver.h"
 )
 
-file(GLOB OSQUERY_CARVER_TESTS "tests/*.cpp")
-ADD_OSQUERY_TEST(FALSE ${OSQUERY_CARVER_TESTS})
+ADD_OSQUERY_TEST(FALSE 
+  "${CMAKE_CURRENT_LIST_DIR}/tests/carver_tests.cpp"
+)

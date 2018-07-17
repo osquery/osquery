@@ -13,6 +13,7 @@
 #include <map>
 #include <set>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -23,12 +24,10 @@
 #endif
 
 #include <boost/coroutine2/coroutine.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <osquery/core.h>
+#include <osquery/plugin.h>
 #include <osquery/query.h>
-#include <osquery/registry.h>
-#include <osquery/status.h>
 
 /// Allow Tables to use "tracked" deprecated OS APIs.
 #define OSQUERY_USE_DEPRECATED(expr)                                           \
@@ -40,6 +39,7 @@
 
 namespace osquery {
 
+class Status;
 /**
  * @brief osquery does not yet use a NULL type.
  *
@@ -61,19 +61,43 @@ namespace osquery {
  */
 template <typename Type>
 inline std::string __sqliteField(const Type& source) noexcept {
-  std::string dest;
-  if (!boost::conversion::try_lexical_convert(source, dest)) {
-    return SQL_NULL_RESULT;
-  }
-  return dest;
+  return std::to_string(source);
+}
+
+template <size_t N>
+inline std::string __sqliteField(const char (&source)[N]) noexcept {
+  return std::string(source, N - 1U);
+}
+
+template <size_t N>
+inline std::string __sqliteField(const unsigned char (&source)[N]) noexcept {
+  return std::string(reinterpret_cast<const char*>(source), N - 1U);
+}
+
+inline std::string __sqliteField(const char* source) noexcept {
+  return std::string(source);
+}
+
+inline std::string __sqliteField(char* const source) noexcept {
+  return std::string(source);
+}
+
+inline std::string __sqliteField(const unsigned char* source) noexcept {
+  return std::string(reinterpret_cast<const char*>(source));
+}
+
+inline std::string __sqliteField(unsigned char* const source) noexcept {
+  return std::string(reinterpret_cast<char* const>(source));
+}
+
+inline std::string __sqliteField(const std::string& source) noexcept {
+  return source;
 }
 
 #ifdef WIN32
 // TEXT is also defined in windows.h, we should not re-define it
 #define SQL_TEXT(x) __sqliteField(x)
 #else
-// For everything except Windows, aldo define TEXT() to be compatible with
-// existing tables
 #define SQL_TEXT(x) __sqliteField(x)
 #define TEXT(x) __sqliteField(x)
 #endif
@@ -104,8 +128,6 @@ inline std::string __sqliteField(const Type& source) noexcept {
 #define UNSIGNED_BIGINT_LITERAL uint64_t
 /// See the literal type documentation for TEXT_LITERAL.
 #define DOUBLE_LITERAL double
-/// Cast an SQLite affinity type to the literal type.
-#define AS_LITERAL(literal, value) boost::lexical_cast<literal>(value)
 
 enum ColumnType {
   UNKNOWN_TYPE = 0,
@@ -383,14 +405,7 @@ struct ConstraintList : private boost::noncopyable {
 
   /// See ConstraintList::getAll, but as a selected literal type.
   template <typename T>
-  std::set<T> getAll(ConstraintOperator op) const {
-    std::set<T> literal_matches;
-    auto matches = getAll(op);
-    for (const auto& match : matches) {
-      literal_matches.insert(AS_LITERAL(T, match));
-    }
-    return literal_matches;
-  }
+  std::set<T> getAll(ConstraintOperator op) const;
 
   /// Constraint list accessor, types and operator.
   const std::vector<struct Constraint>& getAll() const {
@@ -439,6 +454,9 @@ using ConstraintMap = std::map<std::string, struct ConstraintList>;
 /// Populate a constraint list from a query's parsed predicate.
 using ConstraintSet = std::vector<std::pair<std::string, struct Constraint>>;
 
+/// Keep track of which columns are used
+using UsedColumns = std::unordered_set<std::string>;
+
 /**
  * @brief osquery table content descriptor.
  *
@@ -475,6 +493,9 @@ struct VirtualTableContent {
 
   /// Transient set of virtual table access constraints.
   std::unordered_map<size_t, ConstraintSet> constraints;
+
+  /// Transient set of virtual table used columns
+  std::unordered_map<size_t, UsedColumns> colsUsed;
 
   /*
    * @brief A table implementation specific query result cache.
@@ -605,6 +626,47 @@ struct QueryContext : private only_movable {
       std::function<Status(const std::string& constraint,
                            std::set<std::string>& output)> predicate);
 
+  /// Check if the given column is used by the query
+  bool isColumnUsed(const std::string& colName) const;
+
+  /// Check if any of the given columns is used by the query
+  bool isAnyColumnUsed(std::initializer_list<std::string> colNames) const;
+
+  template <typename Type>
+  inline void setTextColumnIfUsed(Row& r,
+                                  const std::string& colName,
+                                  const Type& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = TEXT(value);
+    }
+  }
+
+  template <typename Type>
+  inline void setIntegerColumnIfUsed(Row& r,
+                                     const std::string& colName,
+                                     const Type& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = INTEGER(value);
+    }
+  }
+
+  template <typename Type>
+  inline void setBigIntColumnIfUsed(Row& r,
+                                    const std::string& colName,
+                                    const Type& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = BIGINT(value);
+    }
+  }
+
+  inline void setColumnIfUsed(Row& r,
+                              const std::string& colName,
+                              const std::string& value) const {
+    if (isColumnUsed(colName)) {
+      r[colName] = value;
+    }
+  }
+
   /// Check if a table-defined index exists within the query cache.
   bool isCached(const std::string& index) const;
 
@@ -630,6 +692,8 @@ struct QueryContext : private only_movable {
 
   /// The map of column name to constraint list.
   ConstraintMap constraints;
+
+  boost::optional<UsedColumns> colsUsed;
 
  private:
   /// If false then the context is maintaining an ephemeral cache.

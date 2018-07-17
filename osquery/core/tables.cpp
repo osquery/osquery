@@ -8,12 +8,15 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "osquery/core/json.h"
+
 #include <osquery/database.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/tables.h>
 
-#include "osquery/core/json.h"
+#include <boost/lexical_cast.hpp>
 
 namespace osquery {
 
@@ -69,6 +72,15 @@ void TablePlugin::setRequestFromContext(const QueryContext& context,
   }
 
   doc.add("constraints", constraints);
+
+  if (context.colsUsed) {
+    auto colsUsed = doc.getArray();
+    for (const auto& columnName : *context.colsUsed) {
+      doc.pushCopy(columnName, colsUsed);
+    }
+    doc.add("colsUsed", colsUsed);
+  }
+
   doc.toString(request["context"]);
 }
 
@@ -76,6 +88,15 @@ void TablePlugin::setContextFromRequest(const PluginRequest& request,
                                         QueryContext& context) {
   auto doc = JSON::newObject();
   doc.fromString(request.at("context"));
+
+  if (doc.doc().HasMember("colsUsed")) {
+    UsedColumns colsUsed;
+    for (const auto& columnName : doc.doc()["colsUsed"].GetArray()) {
+      colsUsed.insert(columnName.GetString());
+    }
+    context.colsUsed = colsUsed;
+  }
+
   if (!doc.doc().HasMember("constraints") ||
       !doc.doc()["constraints"].IsArray()) {
     return;
@@ -270,10 +291,9 @@ std::string columnDefinition(const PluginResponse& response, bool aliases) {
 
     if (column.at("id") == "column" && column.count("name") &&
         column.count("type")) {
-      auto options =
-          (column.count("op"))
-              ? (ColumnOptions)AS_LITERAL(INTEGER_LITERAL, column.at("op"))
-              : ColumnOptions::DEFAULT;
+      auto options = (column.count("op"))
+                         ? (ColumnOptions)std::stol(column.at("op"))
+                         : ColumnOptions::DEFAULT;
       auto column_type = columnTypeName(column.at("type"));
       columns.push_back(make_tuple(column.at("name"), column_type, options));
       if (aliases) {
@@ -321,13 +341,13 @@ bool ConstraintList::matches(const std::string& expr) const {
     if (affinity == TEXT_TYPE) {
       return literal_matches<TEXT_LITERAL>(expr);
     } else if (affinity == INTEGER_TYPE) {
-      INTEGER_LITERAL lexpr = AS_LITERAL(INTEGER_LITERAL, expr);
+      auto lexpr = boost::lexical_cast<INTEGER_LITERAL>(expr);
       return literal_matches<INTEGER_LITERAL>(lexpr);
     } else if (affinity == BIGINT_TYPE) {
-      BIGINT_LITERAL lexpr = AS_LITERAL(BIGINT_LITERAL, expr);
+      auto lexpr = boost::lexical_cast<BIGINT_LITERAL>(expr);
       return literal_matches<BIGINT_LITERAL>(lexpr);
     } else if (affinity == UNSIGNED_BIGINT_TYPE) {
-      UNSIGNED_BIGINT_LITERAL lexpr = AS_LITERAL(UNSIGNED_BIGINT_LITERAL, expr);
+      auto lexpr = boost::lexical_cast<UNSIGNED_BIGINT_LITERAL>(expr);
       return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
     }
   } catch (const boost::bad_lexical_cast& /* e */) {
@@ -341,7 +361,7 @@ template <typename T>
 bool ConstraintList::literal_matches(const T& base_expr) const {
   bool aggregate = true;
   for (size_t i = 0; i < constraints_.size(); ++i) {
-    T constraint_expr = AS_LITERAL(T, constraints_[i].expr);
+    auto constraint_expr = boost::lexical_cast<T>(constraints_[i].expr);
     if (constraints_[i].op == EQUALS) {
       aggregate = aggregate && (base_expr == constraint_expr);
     } else if (constraints_[i].op == GREATER_THAN) {
@@ -375,6 +395,49 @@ std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
   return set;
 }
 
+template <>
+std::set<int> ConstraintList::getAll<int>(ConstraintOperator op) const {
+  std::set<int> cs;
+  std::transform(constraints_.begin(),
+                 constraints_.end(),
+                 std::inserter(cs, cs.begin()),
+                 [](const Constraint& c) { return std::stoi(c.expr); });
+  return cs;
+}
+
+template <>
+std::set<long long> ConstraintList::getAll<long long>(
+    ConstraintOperator op) const {
+  std::set<long long> cs;
+  std::transform(constraints_.begin(),
+                 constraints_.end(),
+                 std::inserter(cs, cs.begin()),
+                 [](const Constraint& c) { return std::stoll(c.expr); });
+  return cs;
+}
+
+template <>
+std::set<unsigned long long> ConstraintList::getAll<unsigned long long>(
+    ConstraintOperator op) const {
+  std::set<unsigned long long> cs;
+  std::transform(constraints_.begin(),
+                 constraints_.end(),
+                 std::inserter(cs, cs.begin()),
+                 [](const Constraint& c) { return std::stoull(c.expr); });
+  return cs;
+}
+
+template <>
+std::set<std::string> ConstraintList::getAll<std::string>(
+    ConstraintOperator op) const {
+  std::set<std::string> cs;
+  std::transform(constraints_.begin(),
+                 constraints_.end(),
+                 std::inserter(cs, cs.begin()),
+                 [](const Constraint& c) { return c.expr; });
+  return cs;
+}
+
 void ConstraintList::serialize(JSON& doc, rapidjson::Value& obj) const {
   auto expressions = doc.getArray();
   for (const auto& constraint : constraints_) {
@@ -405,6 +468,20 @@ void ConstraintList::deserialize(const rapidjson::Value& obj) {
                            ? obj["affinity"].GetString()
                            : "UNKNOWN";
   affinity = columnTypeName(affinity_name);
+}
+
+bool QueryContext::isColumnUsed(const std::string& colName) const {
+  return !colsUsed || colsUsed->find(colName) != colsUsed->end();
+}
+
+bool QueryContext::isAnyColumnUsed(
+    std::initializer_list<std::string> colNames) const {
+  for (auto& colName : colNames) {
+    if (isColumnUsed(colName)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void QueryContext::useCache(bool use_cache) {

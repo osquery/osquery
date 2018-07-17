@@ -49,7 +49,7 @@ void genOSRelease(Row& r) {
   }
 
   for (const auto& line : osquery::split(content, "\n")) {
-    auto fields = osquery::split(line, "=", 1);
+    auto fields = osquery::split(line, '=', 1);
     if (fields.size() != 2) {
       continue;
     }
@@ -69,7 +69,7 @@ void genOSRelease(Row& r) {
     }
 
     if (column.get() == "_id") {
-      auto parts = osquery::split(r.at(column), ".", 2);
+      auto parts = osquery::split(r.at(column), '.', 2);
       switch (parts.size()) {
       case 3:
         r["patch"] = parts[2];
@@ -123,11 +123,13 @@ QueryData genOSVersion(QueryContext& context) {
   xp::smatch matches;
   for (const auto& line : osquery::split(content, "\n")) {
     if (xp::regex_search(line, matches, rx)) {
-      r["major"] = INTEGER(matches["major"]);
-      r["minor"] = INTEGER(matches["minor"]);
-      r["patch"] =
-          (matches["patch"].length() > 0) ? INTEGER(matches["patch"]) : "0";
       r["name"] = matches["name"];
+      r["major"] = matches["major"];
+      r["minor"] = matches["minor"];
+      r["patch"] = matches["patch"];
+      if (r["patch"].empty()) {
+        r["patch"] = "0";
+      }
       break;
     }
   }

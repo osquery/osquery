@@ -18,10 +18,10 @@
 #include <osquery/database.h>
 #include <osquery/events.h>
 #include <osquery/flags.h>
+#include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/system.h>
 #include <osquery/tables.h>
-
-#include <osquery/logger.h>
 
 #include "osquery/tests/test_util.h"
 
@@ -71,7 +71,9 @@ class DBFakeEventSubscriber : public EventSubscriber<DBFakeEventPublisher> {
     r["testing"] = "hello from space";
     r["time"] = INTEGER(t);
     r["uptime"] = INTEGER(10);
-    return add(r, t);
+
+    std::vector<Row> row_list = {std::move(r)};
+    return addBatch(row_list, t);
   }
 
   size_t getEventsMax() override {
@@ -187,6 +189,25 @@ TEST_F(EventsDatabaseTests, test_record_range) {
   EXPECT_EQ("60.1, 60.2, 60.60, 60.120", output);
   records = sub->getRecords(indexes);
   EXPECT_EQ(33U, records.size()); // (61) 110 - 139 + 3601, 7201
+}
+
+TEST_F(EventsDatabaseTests, test_record_corruption) {
+  auto sub = std::make_shared<DBFakeEventSubscriber>();
+
+  std::string corrupted_index = "60.25440186";
+  std::string key =
+      "records.DBFakePublisher.DBFakeSubscriber." + corrupted_index;
+  std::string value =
+      "0002985852:1526411162,0002985853:1526411162,00??E/"
+      "?:1526411170,0002985912:1526411170,0002??E/"
+      "?526411178,0002985921:1526411178,0002985922:1526411178";
+
+  // Set some corrupted values in the DB
+  auto s = setDatabaseValue(kEvents, key, value);
+  auto records = sub->getRecords({corrupted_index});
+
+  // We should gracefully skip over corrupted record entries
+  EXPECT_EQ(6U, records.size());
 }
 
 TEST_F(EventsDatabaseTests, test_record_expiration) {
@@ -366,4 +387,4 @@ TEST_F(EventsDatabaseTests, test_expire_check) {
     }
   }
 }
-}
+} // namespace osquery

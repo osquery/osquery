@@ -18,6 +18,7 @@
 #endif
 
 #include <boost/filesystem.hpp>
+#include <boost/thread.hpp>
 
 #include <osquery/config.h>
 #include <osquery/filesystem.h>
@@ -27,10 +28,13 @@
 
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
+#include "osquery/filesystem/fileops.h"
 
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
+const auto kNumOfCPUs = boost::thread::physical_concurrency();
 
 struct LimitDefinition {
   size_t normal;
@@ -50,8 +54,9 @@ using WatchdogLimitMap = std::map<WatchdogLimitType, LimitDefinition>;
 const WatchdogLimitMap kWatchdogLimits = {
     // Maximum MB worker can privately allocate.
     {WatchdogLimitType::MEMORY_LIMIT, {200, 100, 10000}},
-    // User or system CPU worker can utilize for LATENCY_LIMIT seconds.
-    {WatchdogLimitType::UTILIZATION_LIMIT, {90, 80, 1000}},
+    // % of (User + System + Idle) CPU time worker can utilize
+    // for LATENCY_LIMIT seconds.
+    {WatchdogLimitType::UTILIZATION_LIMIT, {10, 5, 100}},
     // Number of seconds the worker should run, else consider the exit fatal.
     {WatchdogLimitType::RESPAWN_LIMIT, {4, 4, 1000}},
     // If the worker respawns too quickly, backoff on creating additional.
@@ -245,6 +250,21 @@ void WatcherRunner::start() {
   } while (!interrupted() && ok());
 }
 
+void WatcherRunner::stop() {
+  auto& watcher = Watcher::get();
+
+  for (const auto& extension : watcher.extensions()) {
+    try {
+      stopChild(*extension.second);
+    } catch (std::exception& e) {
+      LOG(ERROR) << "[WatcherRunner] couldn't kill the extension "
+                 << extension.first << "nicely. Reason: " << e.what()
+                 << std::endl;
+      extension.second->kill();
+    }
+  }
+}
+
 void WatcherRunner::watchExtensions() {
   auto& watcher = Watcher::get();
 
@@ -275,13 +295,6 @@ void WatcherRunner::watchExtensions() {
       extension_restarts_[extension.first] += 1;
     } else {
       extension_restarts_[extension.first] = 0;
-    }
-  }
-  // If any extension creations failed, stop managing them.
-  for (auto& extension : extension_restarts_) {
-    if (extension.second > 3) {
-      watcher.removeExtensionPath(extension.first);
-      extension.second = 0;
     }
   }
 }
@@ -354,19 +367,27 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
   UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
   try {
-    change.parent =
-        static_cast<pid_t>(AS_LITERAL(BIGINT_LITERAL, r.at("parent")));
-    user_time = AS_LITERAL(BIGINT_LITERAL, r.at("user_time")) / change.iv;
-    system_time = AS_LITERAL(BIGINT_LITERAL, r.at("system_time")) / change.iv;
-    change.footprint = AS_LITERAL(BIGINT_LITERAL, r.at("resident_size"));
+    change.parent = static_cast<pid_t>(std::stoll(r.at("parent")));
+    user_time = std::stoll(r.at("user_time"));
+    system_time = std::stoll(r.at("system_time"));
+    change.footprint = std::stoll(r.at("resident_size"));
   } catch (const std::exception& /* e */) {
     state.sustained_latency = 0;
   }
 
   // Check the difference of CPU time used since last check.
-  auto ul = getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT);
-  if (user_time - state.user_time > ul ||
-      system_time - state.system_time > ul) {
+  auto percent_ul = getWorkerLimit(WatchdogLimitType::UTILIZATION_LIMIT);
+  percent_ul = (percent_ul > 100) ? 100 : percent_ul;
+
+  UNSIGNED_BIGINT_LITERAL iv_milliseconds = change.iv * 1000;
+  UNSIGNED_BIGINT_LITERAL cpu_ul =
+      (percent_ul * iv_milliseconds * kNumOfCPUs) / 100;
+
+  auto user_time_diff = user_time - state.user_time;
+  auto sys_time_diff = system_time - state.system_time;
+  auto cpu_utilization_time = user_time_diff + sys_time_diff;
+
+  if (cpu_utilization_time > cpu_ul) {
     state.sustained_latency++;
   } else {
     state.sustained_latency = 0;
@@ -439,7 +460,12 @@ QueryData WatcherRunner::getProcessRow(pid_t pid) const {
 #ifdef WIN32
   p = (pid == ULONG_MAX) ? -1 : pid;
 #endif
-  return SQL::selectAllFrom("processes", "pid", EQUALS, INTEGER(p));
+  return SQL::selectFrom(
+      {"parent", "user_time", "system_time", "resident_size"},
+      "processes",
+      "pid",
+      EQUALS,
+      INTEGER(p));
 }
 
 Status WatcherRunner::isChildSane(const PlatformProcess& child) const {
@@ -507,8 +533,11 @@ void WatcherRunner::createWorker() {
   }
 
   // Get the path of the current process.
-  auto qd = SQL::selectAllFrom(
-      "processes", "pid", EQUALS, INTEGER(PlatformProcess::getCurrentPid()));
+  auto qd = SQL::selectFrom({"path"},
+                            "processes",
+                            "pid",
+                            EQUALS,
+                            INTEGER(PlatformProcess::getCurrentPid()));
   if (qd.size() != 1 || qd[0].count("path") == 0 || qd[0]["path"].size() == 0) {
     LOG(ERROR) << "osquery watcher cannot determine process path for worker";
     Initializer::requestShutdown(EXIT_FAILURE);
@@ -524,6 +553,10 @@ void WatcherRunner::createWorker() {
   // Get the complete path of the osquery process binary.
   boost::system::error_code ec;
   auto exec_path = fs::system_complete(fs::path(qd[0]["path"]), ec);
+  if (!pathExists(exec_path).ok()) {
+    LOG(WARNING) << "osqueryd doesn't exist in: " << exec_path.string();
+    return;
+  }
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // osqueryd binary has become unsafe.
@@ -563,6 +596,10 @@ void WatcherRunner::createExtension(const std::string& extension) {
   // Check the path to the previously-discovered extension binary.
   boost::system::error_code ec;
   auto exec_path = fs::system_complete(fs::path(extension), ec);
+  if (!pathExists(exec_path).ok()) {
+    LOG(WARNING) << "Extension binary doesn't exist in: " << exec_path.string();
+    return;
+  }
   if (!safePermissions(
           exec_path.parent_path().string(), exec_path.string(), true)) {
     // Extension binary has become unsafe.

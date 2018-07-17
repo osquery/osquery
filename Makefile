@@ -74,6 +74,7 @@ CMAKE := $(PATH_SET) LDFLAGS="-L$(DEPS_DIR)/legacy/lib -L$(DEPS_DIR)/lib $(LINK_
 CTEST := $(PATH_SET) ctest $(SOURCE_DIR)/
 FORMAT_COMMAND := python tools/formatting/git-clang-format.py \
 	"--commit" "master" "-f" "--style=file"
+FORMAT_CHECK_COMMAND := python tools/formatting/format-check.py
 
 ANALYSIS := ${SOURCE_DIR}/tools/analysis
 DEFINES := CTEST_OUTPUT_ON_FAILURE=1 \
@@ -147,6 +148,10 @@ docs: .setup
 	@cd build/docs && DOCS=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) docs --no-print-directory $(MAKEFLAGS)
 
+format_check:
+	@echo "[+] clang-format (`$(PATH_SET) which clang-format`) version: `$(PATH_SET) clang-format --version`"
+	@$(PATH_SET) $(FORMAT_CHECK_COMMAND)
+
 format_master:
 	@echo "[+] clang-format (`$(PATH_SET) which clang-format`) version: `$(PATH_SET) clang-format --version`"
 	@$(PATH_SET) $(FORMAT_COMMAND)
@@ -174,6 +179,11 @@ sanitize: .setup
 fuzz: .setup
 	@echo "[+] zzuf (`$(PATH_SET) which zzuf`) version: `$(PATH_SET) zzuf -V | head -n 1`"
 	@$(PATH_SET) python tools/analysis/fuzz.py
+
+libfuzz: .setup
+	@cd $(BUILD_DIR) && SKIP_TESTS=True SANITIZE=True FUZZ=True $(CMAKE) && \
+		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS)
+	@echo "[+] Now run the osqueryf target"
 
 sdk: .setup
 	@cd $(BUILD_DIR) && SDK=True $(CMAKE) && \
@@ -229,16 +239,18 @@ ifeq ($(CTAGS_EXISTS),)
 	@echo "problem: cannot find 'ctags'"
 	@false
 endif
-	@ctags -R ./external ./include ./kernel ./osquery ./third-party
+	@ctags -R ./external ./include ./osquery ./third-party
+.PHONY: tags
 
 ctags: .setup tags
 
 cscope.files:
 	@find \
 		-E \
-		./external ./include ./kernel ./osquery ./third-party \
+		./external ./include ./osquery ./third-party \
 		-type f \
 		-iregex '.*\.(c|cc|h|hh|cpp|hpp)' > $@
+.PHONY: cscope.files
 
 cscope.out: cscope.files
 ifeq ($(CSCOPE_EXISTS),)
@@ -246,11 +258,16 @@ ifeq ($(CSCOPE_EXISTS),)
 	@false
 endif
 	@cscope -b -i cscope.files > $@
+.PHONY: cscope.out
 
 cscope: .setup cscope.out
 
 clean: .setup
 	@cd $(BUILD_DIR) && $(CMAKE) && \
+		$(DEFINES) $(MAKE) clean --no-print-directory $(MAKEFLAGS)
+
+debug_clean: .setup
+	@cd $(DEBUG_BUILD_DIR) && DEBUG=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) clean --no-print-directory $(MAKEFLAGS)
 
 strip: .setup
@@ -293,6 +310,10 @@ sync: .setup
 	@cd $(BUILD_DIR) && PACKAGE=True $(CMAKE) && \
 		$(DEFINES) $(MAKE) sync --no-print-directory $(MAKEFLAGS)
 
+git_hooks: 
+	@mkdir -p ./.git/hooks/
+	@ln -s ../../tools/hooks/pre-commit.py ./.git/hooks/pre-commit
+
 test: .setup
 	@cd build/$(BUILD_NAME) && $(DEFINES) $(CTEST) $(VERBOSE_TEST)
 
@@ -305,3 +326,9 @@ test: .setup
 	fi
 	@cd $(BUILD_DIR) && $(CMAKE) && \
 		$(DEFINES) $(MAKE) --no-print-directory $(MAKEFLAGS) $(MAKECMDGOALS)
+
+xcode:
+	@# Use _xcode suffix to avoid conflict with regular "make"
+	@# so both "make" and "make xcode" can be used at the same time
+	@./tools/generate_xcode_project.sh ${BUILD_DIR}_xcode '${CMAKE}'
+

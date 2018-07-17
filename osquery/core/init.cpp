@@ -44,6 +44,7 @@
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
 #include <osquery/logger.h>
+#include <osquery/numeric_monitoring/plugin_interface.h>
 #include <osquery/registry.h>
 #include <osquery/system.h>
 
@@ -176,6 +177,7 @@ namespace osquery {
 
 DECLARE_string(config_plugin);
 DECLARE_string(logger_plugin);
+DECLARE_string(numeric_monitoring_plugins);
 DECLARE_string(distributed_plugin);
 DECLARE_bool(config_check);
 DECLARE_bool(config_dump);
@@ -185,6 +187,7 @@ DECLARE_bool(disable_distributed);
 DECLARE_bool(disable_database);
 DECLARE_bool(disable_events);
 DECLARE_bool(disable_logging);
+DECLARE_bool(enable_numeric_monitoring);
 
 CLI_FLAG(bool, S, false, "Run as a shell process");
 CLI_FLAG(bool, D, false, "Run as a daemon process");
@@ -197,8 +200,11 @@ ToolType kToolType{ToolType::UNKNOWN};
 /// The saved exit code from a thread's request to stop the process.
 volatile std::sig_atomic_t kExitCode{0};
 
-/// Track the main thread ID for graceful shutdowns
-std::thread::id kMainThreadId;
+/// The saved thread ID for shutdown to short-circuit raising a signal.
+static std::thread::id kMainThreadId;
+
+/// Legacy thread ID to ensure that the windows service waits before exiting
+unsigned long kLegacyThreadId;
 
 /// When no flagfile is provided via CLI, attempt to read flag 'defaults'.
 const std::string kBackupDefaultFlagfile{OSQUERY_HOME "/osquery.flags.default"};
@@ -262,6 +268,9 @@ Initializer::Initializer(int& argc, char**& argv, ToolType tool)
 
   // The 'main' thread is that which executes the initializer.
   kMainThreadId = std::this_thread::get_id();
+
+  // Maintain a legacy thread id for Windows service stops.
+  kLegacyThreadId = platformGetTid();
 
 #ifndef WIN32
   // Set the max number of open files.
@@ -675,6 +684,11 @@ void Initializer::start() const {
     initActivePlugin("distributed", FLAGS_distributed_plugin);
   }
 
+  if (FLAGS_enable_numeric_monitoring) {
+    initActivePlugin(monitoring::registryName(),
+                     FLAGS_numeric_monitoring_plugins);
+  }
+
   // Start event threads.
   osquery::attachEvents();
   EventFactory::delay();
@@ -701,7 +715,12 @@ void Initializer::waitForShutdown() {
   // Hopefully release memory used by global string constructors in gflags.
   GFLAGS_NAMESPACE::ShutDownCommandLineFlags();
   DatabasePlugin::shutdown();
-  ::exit((kExitCode != 0) ? kExitCode : EXIT_SUCCESS);
+
+  auto excode = (kExitCode != 0) ? kExitCode : EXIT_SUCCESS;
+  if (isWatcher()) {
+    platformMainThreadExit(excode);
+  }
+  exit(excode);
 }
 
 void Initializer::requestShutdown(int retcode) {

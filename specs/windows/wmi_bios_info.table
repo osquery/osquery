@@ -1,0 +1,11 @@
+table_name("wmi_bios_info")
+description("Lists important information from the system bios.")
+schema([
+  Column("name", TEXT, "Name of the Bios setting"),
+  Column("value", TEXT, "Value of the Bios setting"),
+])
+implementation("wmi_bios_info@genBiosInfo")
+examples([
+  "select * from wmi_bios_info",
+  "select * from wmi_bios_info where name = 'AMTControl'",
+])

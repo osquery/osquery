@@ -11,6 +11,7 @@
 #include <asm/unistd_64.h>
 
 #include <osquery/logger.h>
+#include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
 #include "osquery/tables/events/linux/process_events.h"
@@ -47,10 +48,7 @@ Status AuditProcessEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
     return status;
   }
 
-  for (auto& row : emitted_row_list) {
-    add(row);
-  }
-
+  addBatch(emitted_row_list);
   return Status(0, "Ok");
 }
 
@@ -69,6 +67,11 @@ Status AuditProcessEventSubscriber::ProcessEvents(
   // clang-format on
 
   emitted_row_list.clear();
+
+  emitted_row_list.reserve(event_list.size());
+  if (emitted_row_list.capacity() != event_list.size()) {
+    return Status(1, "Memory allocation error");
+  }
 
   for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::Syscall) {
@@ -142,7 +145,7 @@ Status AuditProcessEventSubscriber::ProcessEvents(
         row["cmdline"] += " ";
       }
 
-      row["cmdline"] += arg.second;
+      row["cmdline"] += DecodeAuditPathValues(arg.second);
     }
 
     // There may be a better way to calculate actual size from audit.
@@ -157,6 +160,9 @@ Status AuditProcessEventSubscriber::ProcessEvents(
     GetStringFieldFromMap(
         row["owner_gid"], first_path_event_record->fields, "ogid", "0");
 
+    // Parent is currently not supported on Linux.
+    row["parent"] = "-1";
+
     emitted_row_list.push_back(row);
   }
 
@@ -167,4 +173,4 @@ const std::set<int>& AuditProcessEventSubscriber::GetSyscallSet() noexcept {
   static const std::set<int> syscall_set = {__NR_execve};
   return syscall_set;
 }
-}
+} // namespace osquery

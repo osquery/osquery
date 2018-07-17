@@ -12,6 +12,7 @@
 #include <osquery/registry.h>
 
 #include "osquery/core/conversions.h"
+#include "osquery/core/flagalias.h"
 
 namespace boost {
 template <>

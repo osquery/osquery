@@ -20,6 +20,7 @@
 #include <DbgHelp.h>
 #pragma warning(pop)
 #include <DbgEng.h>
+#include <iomanip>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>

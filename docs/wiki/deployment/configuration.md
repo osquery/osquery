@@ -439,7 +439,7 @@ Example:
 ```json
 {
   "views": {
-    "kernel_hashses" : "SELECT hash.path AS kernel_binary, version, hash.sha256 AS sha256, hash.sha1 AS sha1, hash.md5 AS md5 FROM (SELECT path || '/Contents/MacOS/' AS directory, name, version FROM kernel_extensions) JOIN hash USING (directory);"
+    "kernel_hashes" : "SELECT hash.path AS kernel_binary, version, hash.sha256 AS sha256, hash.sha1 AS sha1, hash.md5 AS md5 FROM (SELECT path || '/Contents/MacOS/' AS directory, name, version FROM kernel_extensions) JOIN hash USING (directory);"
   }
 }
 ```
@@ -490,7 +490,7 @@ The columns, and their values, will be appended to each log line as follows. Ass
 
 Expect the normal set of log keys to be included and note that `decorations` is a top-level key in the log line whose value is an embedded map.
 
-The configuration flag `decorators_top_level` can be set to `true` to make decorator data populate as top level key/value objects instead of being contained as a child of `decorations`.  When using this feature, you must be weary of key collisions in existing, reserved, top-level keys.  When collisions do occur, existing key/value data will likely be overwritten by the decorator key/value.  The following example shows the results of collisions on various top-level keys:
+The configuration flag `decorations_top_level` can be set to `true` to make decorator data populate as top level key/value objects instead of being contained as a child of `decorations`.  When using this feature, you must be weary of key collisions in existing, reserved, top-level keys.  When collisions do occur, existing key/value data will likely be overwritten by the decorator key/value.  The following example shows the results of collisions on various top-level keys:
 
 Example configuration:
 
