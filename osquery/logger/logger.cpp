@@ -22,7 +22,6 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/database.h>
-#include <osquery/events.h>
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
