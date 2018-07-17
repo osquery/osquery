@@ -832,12 +832,6 @@ class EventFactory : private boost::noncopyable {
   /// Return a list of subscriber registry names,
   static std::vector<std::string> subscriberNames();
 
-  /// Set log forwarding by adding a logger receiver.
-  static void addForwarder(const std::string& logger);
-
-  /// Optionally forward events to loggers.
-  static void forwardEvent(const std::string& event);
-
   /**
    * @brief The event factory, subscribers, and publishers respond to updates.
    *
@@ -905,9 +899,6 @@ class EventFactory : private boost::noncopyable {
 
   /// Set of running EventPublisher run loop threads.
   std::vector<std::shared_ptr<std::thread>> threads_;
-
-  /// Set of logger plugins to forward events.
-  std::vector<std::string> loggers_;
 
   /// Factory publisher state manipulation.
   Mutex factory_lock_;

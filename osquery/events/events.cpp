@@ -590,15 +590,9 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
                                        EventTime custom_event_time) {
   DatabaseStringValueList database_data;
   database_data.reserve(row_list.size());
-  if (database_data.capacity() != row_list.size()) {
-    return Status(1, "Memory allocation error");
-  }
 
   std::vector<std::string> event_id_list;
   event_id_list.reserve(row_list.size());
-  if (event_id_list.capacity() != row_list.size()) {
-    return Status(1, "Memory allocation error");
-  }
 
   auto event_time = custom_event_time != 0 ? custom_event_time : getUnixTime();
   auto event_time_str = std::to_string(event_time);
@@ -619,10 +613,6 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
     if (serialized_row.size() > 0 && serialized_row.back() == '\n') {
       serialized_row.pop_back();
     }
-
-    // Logger plugins may request events to be forwarded directly.
-    // If no active logger is marked 'usesLogEvent' then this is a no-op.
-    EventFactory::forwardEvent(serialized_row);
 
     // Store the event data in the batch
     database_data.push_back(std::make_pair(
@@ -703,16 +693,6 @@ void EventPublisherPlugin::removeSubscriptions(const std::string& subscriber) {
                        return (subscription->subscriber_name == subscriber);
                      });
   subscriptions_.erase(end, subscriptions_.end());
-}
-
-void EventFactory::addForwarder(const std::string& logger) {
-  getInstance().loggers_.push_back(logger);
-}
-
-void EventFactory::forwardEvent(const std::string& event) {
-  for (const auto& logger : getInstance().loggers_) {
-    Registry::call("logger", logger, {{"event", event}});
-  }
 }
 
 void EventFactory::configUpdate() {

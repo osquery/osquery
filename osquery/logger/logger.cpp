@@ -34,7 +34,6 @@
 #include "osquery/core/flagalias.h"
 #include "osquery/core/json.h"
 
-namespace pt = boost::property_tree;
 namespace rj = rapidjson;
 
 namespace osquery {
@@ -416,10 +415,6 @@ void initLogger(const std::string& name) {
       // return a success status after initialization.
       BufferedLogSink::get().addPlugin(logger);
     }
-
-    if ((status.getCode() & LOGGER_FEATURE_LOGEVENT) > 0) {
-      EventFactory::addForwarder(logger);
-    }
   }
 
   if (forward) {
@@ -565,12 +560,9 @@ Status LoggerPlugin::call(const PluginRequest& request,
   } else if (request.count("status") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     return this->logStatus(intermediate_logs);
-  } else if (request.count("event") > 0) {
-    return this->logEvent(request.at("event"));
   } else if (request.count("action") && request.at("action") == "features") {
     size_t features = 0;
     features |= (usesLogStatus()) ? LOGGER_FEATURE_LOGSTATUS : 0;
-    features |= (usesLogEvent()) ? LOGGER_FEATURE_LOGEVENT : 0;
     return Status(static_cast<int>(features));
   } else {
     return Status(1, "Unsupported call to logger plugin");
