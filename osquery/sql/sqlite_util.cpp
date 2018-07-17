@@ -195,12 +195,16 @@ Status SQLiteSQLPlugin::attach(const std::string& name) {
     return status;
   }
 
-  auto statement = columnDefinition(response);
+  bool is_extension = true;
+  auto statement = columnDefinition(response, false, is_extension);
+
   // Attach requests occurring via the plugin/registry APIs must act on the
   // primary database. To allow this, getConnection can explicitly request the
   // primary instance and avoid the contention decisions.
   auto dbc = SQLiteDBManager::getConnection(true);
-  return attachTableInternal(name, statement, dbc);
+
+  // Attach as an extension, allowing read/write tables
+  return attachTableInternal(name, statement, dbc, is_extension);
 }
 
 void SQLiteSQLPlugin::detach(const std::string& name) {

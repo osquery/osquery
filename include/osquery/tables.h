@@ -23,6 +23,7 @@
 #endif
 #endif
 
+#include <boost/core/ignore_unused.hpp>
 #include <boost/coroutine2/coroutine.hpp>
 
 #include <osquery/core.h>
@@ -773,6 +774,33 @@ class TablePlugin : public Plugin {
     return QueryData();
   }
 
+  /// Callback for DELETE statements
+  virtual QueryData delete_(QueryContext& context,
+                            const PluginRequest& request) {
+    boost::ignore_unused(context);
+    boost::ignore_unused(request);
+
+    return {{std::make_pair("status", "readonly")}};
+  }
+
+  /// Callback for INSERT statements
+  virtual QueryData insert(QueryContext& context,
+                           const PluginRequest& request) {
+    boost::ignore_unused(context);
+    boost::ignore_unused(request);
+
+    return {{std::make_pair("status", "readonly")}};
+  }
+
+  /// Callback for UPDATE statements
+  virtual QueryData update(QueryContext& context,
+                           const PluginRequest& request) {
+    boost::ignore_unused(context);
+    boost::ignore_unused(request);
+
+    return {{std::make_pair("status", "readonly")}};
+  }
+
   /**
    * @brief Generate a table representation by yielding each row.
    *
@@ -805,7 +833,7 @@ class TablePlugin : public Plugin {
 
  protected:
   /// An SQL table containing the table definition/syntax.
-  std::string columnDefinition() const;
+  std::string columnDefinition(bool is_extension = false) const;
 
   /// Return the name and column pairs for attaching virtual tables.
   PluginResponse routeInfo() const override;
@@ -922,6 +950,7 @@ class TablePlugin : public Plugin {
  private:
   friend class RegistryFactory;
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
+  FRIEND_TEST(VirtualTableTests, test_extension_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
   FRIEND_TEST(VirtualTableTests, test_indexing_costs);
   FRIEND_TEST(VirtualTableTests, test_table_results_cache);
@@ -929,11 +958,13 @@ class TablePlugin : public Plugin {
 };
 
 /// Helper method to generate the virtual table CREATE statement.
-std::string columnDefinition(const TableColumns& columns);
+std::string columnDefinition(const TableColumns& columns,
+                             bool is_extension = false);
 
 /// Helper method to generate the virtual table CREATE statement.
 std::string columnDefinition(const PluginResponse& response,
-                             bool aliases = false);
+                             bool aliases = false,
+                             bool is_extension = false);
 
 /// Get the string representation for an SQLite column type.
 inline const std::string& columnTypeName(ColumnType type) {
