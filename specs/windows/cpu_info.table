@@ -13,5 +13,6 @@ schema([
   Column("address_width", TEXT, "The width of the CPU address bus."),
   Column("current_clock_speed", INTEGER, "The current frequency of the CPU."),
   Column("max_clock_speed", INTEGER, "The maximum possible frequency of the CPU."),
+  Column("socket_designation", TEXT, "The assigned socket on the board for the given CPU."),
 ])
 implementation("cpu_info@genCpuInfo")
