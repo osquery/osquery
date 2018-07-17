@@ -38,8 +38,9 @@ FLAG(uint64,
 namespace {
 using monitoring::PreAggregationType;
 
-template <typename KeyType, typename ValueType>
-inline auto reverseMap(const std::unordered_map<KeyType, ValueType>& straight) {
+template <typename KeyType, typename ValueType, typename... Other>
+inline auto reverseMap(
+    const std::unordered_map<KeyType, ValueType, Other...>& straight) {
   auto reversed = std::unordered_map<ValueType, KeyType>{};
   for (const auto& item : straight) {
     reversed.emplace(item.second, item.first);
@@ -47,13 +48,26 @@ inline auto reverseMap(const std::unordered_map<KeyType, ValueType>& straight) {
   return reversed;
 }
 
+/**
+ * This is just a ad-hoc fix up to handle libc++ and libstdc++ bug:
+ * http://www.open-std.org/jtc1/sc22/wg21/docs/lwg-defects.html#2148
+ * Eventually it will be removed.
+ */
+struct EnumClassHash {
+  template <typename EnumClassType>
+  std::size_t operator()(EnumClassType t) const {
+    return static_cast<std::size_t>(t);
+  }
+};
+
 const auto& getAggregationTypeToStringTable() {
-  const auto static table = std::unordered_map<PreAggregationType, std::string>{
-      {PreAggregationType::None, "none"},
-      {PreAggregationType::Sum, "sum"},
-      {PreAggregationType::Min, "min"},
-      {PreAggregationType::Max, "max"},
-  };
+  const auto static table =
+      std::unordered_map<PreAggregationType, std::string, EnumClassHash>{
+          {PreAggregationType::None, "none"},
+          {PreAggregationType::Sum, "sum"},
+          {PreAggregationType::Min, "min"},
+          {PreAggregationType::Max, "max"},
+      };
   return table;
 }
 
