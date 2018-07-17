@@ -23,6 +23,7 @@ namespace errc = boost::system::errc;
 namespace fs = boost::filesystem;
 
 namespace osquery {
+
 FLAG(string,
      killswitch_config_path,
      (fs::path(OSQUERY_HOME) / "killswitch.conf").make_preferred().string(),
@@ -55,6 +56,8 @@ KillswitchFilesystem::refresh() {
   }
 }
 
-REGISTER(KillswitchFilesystem, "killswitch", "killswitch_filesystem");
+REGISTER(KillswitchFilesystem,
+         Killswitch::killswitch_str,
+         "killswitch_filesystem");
 
 } // namespace osquery

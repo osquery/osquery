@@ -19,6 +19,12 @@
 namespace osquery {
 
 class Killswitch : private boost::noncopyable {
+ public:
+  static const char killswitch_str[];
+  static const char action_str[];
+  static const char isEnabled_str[];
+  static const char key_str[];
+
  private:
   Killswitch();
 

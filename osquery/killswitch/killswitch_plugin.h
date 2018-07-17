@@ -15,11 +15,13 @@
 
 #include <osquery/core.h>
 #include <osquery/expected.h>
+#include <osquery/killswitch.h>
 #include <osquery/mutex.h>
 #include <osquery/plugin.h>
 #include <osquery/query.h>
 
 namespace osquery {
+
 /**
  * @brief Interface class for killswitch plugins.
  */

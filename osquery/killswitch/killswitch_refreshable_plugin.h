@@ -12,11 +12,13 @@
 #include <osquery/killswitch/killswitch_plugin.h>
 
 namespace osquery {
+
 /**
  * @brief Interface class for killswitch plugins.
  */
 class KillswitchRefreshablePlugin : public KillswitchPlugin {
  public:
+  static const char refresh_str[];
   Status setUp() override;
 
   /// Main entrypoint for killswitch plugin requests

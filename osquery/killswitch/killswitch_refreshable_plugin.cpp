@@ -17,6 +17,7 @@
 
 namespace osquery {
 
+static const char KillswitchRefreshablePlugin::refresh_str[] = "refresh";
 FLAG(uint32,
      killswitch_refresh_rate,
      10,
@@ -49,12 +50,12 @@ Status KillswitchRefreshablePlugin::setUp() {
 
 Status KillswitchRefreshablePlugin::call(const PluginRequest& request,
                                          PluginResponse& response) {
-  auto action = request.find("action");
+  auto action = request.find(Killswitch::action_str);
   if (action == request.end()) {
     return Status::failure("Config plugins require an action");
   }
 
-  if (action->second == "refresh") {
+  if (action->second == KillswitchRefreshablePlugin::refresh_str) {
     auto result = refresh();
     if (result) {
       return Status::success();

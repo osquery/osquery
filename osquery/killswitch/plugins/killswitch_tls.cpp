@@ -18,6 +18,7 @@
 #include <osquery/remote/utility.h>
 
 namespace osquery {
+
 CLI_FLAG(uint64,
          killswitch_tls_max_attempts,
          3,
@@ -31,7 +32,7 @@ CLI_FLAG(string,
 
 DECLARE_bool(enroll_always);
 
-REGISTER(TLSKillswitchPlugin, "killswitch", "tls");
+REGISTER(TLSKillswitchPlugin, Killswitch::killswitch_str, "tls");
 
 Status TLSKillswitchPlugin::setUp() {
   if (FLAGS_enroll_always && !FLAGS_disable_enrollment) {

@@ -17,6 +17,11 @@
 
 namespace osquery {
 
+const char Killswitch::killswitch_str[] = "killswitch";
+const char Killswitch::action_str[] = "action";
+const char Killswitch::isEnabled_str[] = "isEnabled";
+const char Killswitch::key_str[] = "key";
+
 FLAG(bool, enable_killswitch, false, "Enable killswitch plugin");
 FLAG(string,
      killswitch_plugin,
@@ -43,8 +48,11 @@ bool Killswitch::isNewCodeEnabled(const std::string& key) {
 Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
     const std::string& key) {
   PluginResponse response;
-  auto status = Registry::call(
-      "killswitch", {{"action", "isEnabled"}, {"key", key}}, response);
+  auto status =
+      Registry::call(Killswitch::killswitch_str,
+                     {{Killswitch::action_str, Killswitch::isEnabled_str},
+                      {Killswitch::key_str, key}},
+                     response);
   if (!status.ok()) {
     return createError(Killswitch::IsEnabledError::CallFailed,
                        status.getMessage());
@@ -56,7 +64,7 @@ Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
            << std::to_string(response.size());
   }
   const auto& response_map = response[0];
-  const auto& is_enabled_item = response_map.find("isEnabled");
+  const auto& is_enabled_item = response_map.find(Killswitch::isEnabled_str);
   if (is_enabled_item == response_map.end()) {
     return createError(
         Killswitch::IsEnabledError::IncorrectResponseFormat,
@@ -76,7 +84,10 @@ Expected<bool, Killswitch::IsEnabledError> Killswitch::isEnabled(
 
 Status Killswitch::refresh() {
   PluginResponse response;
-  auto status = Registry::call("killswitch", {{"action", "refresh"}}, response);
+  auto status = Registry::call(
+      Killswitch::killswitch_str,
+      {{Killswitch::action_str, KillswitchRefreshablePlugin::refresh_str}},
+      response);
   return status;
 }
 

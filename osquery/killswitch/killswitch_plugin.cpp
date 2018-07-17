@@ -17,7 +17,7 @@
 
 namespace osquery {
 
-CREATE_REGISTRY(KillswitchPlugin, "killswitch");
+CREATE_REGISTRY(KillswitchPlugin, Killswitch::killswitch_str);
 
 Expected<std::unordered_map<std::string, bool>,
          KillswitchPlugin::ParseMapJSONError>
@@ -52,12 +52,12 @@ KillswitchPlugin::parseMapJSON(const std::string& content) {
 
 Status KillswitchPlugin::call(const PluginRequest& request,
                               PluginResponse& response) {
-  auto action = request.find("action");
+  auto action = request.find(Killswitch::action_str);
   if (action == request.end()) {
     return Status(1, "Killswitch plugins require an action");
   }
-  if (action->second == "isEnabled") {
-    auto key = request.find("key");
+  if (action->second == Killswitch::isEnabled_str) {
+    auto key = request.find(Killswitch::key_str);
     if (key == request.end()) {
       return Status(1, "isEnabled action requires key");
     }
@@ -65,7 +65,8 @@ Status KillswitchPlugin::call(const PluginRequest& request,
     auto result = isEnabled(key->second);
 
     if (result) {
-      response.push_back({{"isEnabled", std::to_string(*result)}});
+      response.push_back(
+          {{Killswitch::isEnabled_str, std::to_string(*result)}});
       return Status::success();
     } else {
       return Status::failure(result.getError().getFullMessageRecursive());
