@@ -65,7 +65,7 @@ size_t RegistryInterface::count() const {
 }
 
 Status RegistryInterface::setActive(const std::string& item_name) {
-  UpgradeLock lock(mutex_);
+  WriteLock lock(mutex_);
 
   // Default support multiple active plugins.
   for (const auto& item : osquery::split(item_name, ",")) {
@@ -74,27 +74,25 @@ Status RegistryInterface::setActive(const std::string& item_name) {
     }
   }
 
-  Status status;
-  {
-    WriteUpgradeLock wlock(lock);
     active_ = item_name;
-  }
 
-  // The active plugin is setup when initialized.
-  for (const auto& item : osquery::split(item_name, ",")) {
-    if (exists_(item, true)) {
-      status = RegistryFactory::get().plugin(name_, item)->setUp();
-    } else if (exists_(item, false) && !RegistryFactory::get().external()) {
-      // If the active plugin is within an extension we must wait.
-      // An extension will first broadcast the registry, then receive the list
-      // of active plugins, active them if they are extension-local, and finally
-      // start their extension socket.
-      status = pingExtension(getExtensionSocket(external_.at(item)));
-    }
+    Status status;
 
-    if (!status.ok()) {
-      break;
-    }
+    // The active plugin is setup when initialized.
+    for (const auto& item : osquery::split(item_name, ",")) {
+      if (exists_(item, true)) {
+        status = RegistryFactory::get().plugin(name_, item)->setUp();
+      } else if (exists_(item, false) && !RegistryFactory::get().external()) {
+        // If the active plugin is within an extension we must wait.
+        // An extension will first broadcast the registry, then receive the list
+        // of active plugins, active them if they are extension-local, and
+        // finally start their extension socket.
+        status = pingExtension(getExtensionSocket(external_.at(item)));
+      }
+
+      if (!status.ok()) {
+        break;
+      }
   }
   return status;
 }
