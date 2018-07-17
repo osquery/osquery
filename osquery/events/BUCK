@@ -45,6 +45,7 @@ osquery_cxx_library(
             WINDOWS,
             [
                 "windows/windows_event_log.h",
+                "windows/windows_file_events.h",
             ],
         ),
     ],
@@ -85,6 +86,7 @@ osquery_cxx_library(
             WINDOWS,
             [
                 "windows/windows_event_log.cpp",
+                "windows/windows_file_events.cpp",
             ],
         ),
     ],
