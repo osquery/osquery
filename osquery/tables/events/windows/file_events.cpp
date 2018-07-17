@@ -37,6 +37,7 @@ namespace osquery {
     r["action"] = stm.str();
     r["target_path"] = ec->path;
     r["category"] = sc->category;
+    r["event_id"] = std::to_string(ec->record.Usn);
 
     add(r);
     return Status(0, "OK");

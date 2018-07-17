@@ -46,6 +46,7 @@ namespace osquery {
     Status run() override;
 
     Status addSubscription(const SubscriptionRef &SCRef) override;
+    void removeSubscriptions(const std::string &) override;
 
     FileEventPublisher();
 
@@ -57,6 +58,7 @@ namespace osquery {
 
     struct FileTrackingContext {
       std::string path;
+      DWORDLONG parent_file_reference;
       std::set<WindowsFileEventSubscriptionContextRef> subscriptions;
     };
 
@@ -81,7 +83,7 @@ namespace osquery {
 
     char *_scratch{nullptr};
     Mutex _private_data_mutex;
-    Mutex _tracked_data_mutex;
+    Mutex _tracking_data_mutex;
     Mutex _scratch_mutex;
   };
 }

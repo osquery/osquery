@@ -71,6 +71,18 @@ namespace osquery {
     return true;
   }
 
+  void FileEventPublisher::removeSubscriptions(const std::string& subscriber) {
+    WriteLock lock(subscription_lock_);
+    std::for_each(subscriptions_.begin(),
+        subscriptions_.end(),
+        [&subscriber](const SubscriptionRef& sub) {
+        if (sub->subscriber_name == subscriber) {
+        getSubscriptionContext(sub->context)->mark_for_deletion =
+        true;
+        }
+        });
+  }    
+
   Status FileEventPublisher::addSubscription(const SubscriptionRef& subscription) {
     WriteLock lock(subscription_lock_);
     auto received_sc = getSubscriptionContext(subscription->context);
@@ -133,16 +145,21 @@ namespace osquery {
 
   bool FileEventPublisher::addMonitor(const std::string &path, WindowsFileEventSubscriptionContextRef& sc)
   {
-    LOG(WARNING) << "addMonitor(" << path << ")";
     if (FALSE == ::PathFileExistsA(path.c_str())) {
       LOG(WARNING) << "Path not found: " << path.c_str() << " " << ::GetLastError();
       return false;
     }
 
     DWORDLONG fileRefNumber = 0;
+    DWORDLONG parentFileRefNumber = 0;
     if (!get_file_ref_number(path, fileRefNumber))
     {
       LOG(WARNING) << "Could not get file reference number: " << path.c_str() << " " << ::GetLastError();
+      return false;
+    }
+
+    if (!get_file_ref_number(fs::path(path).parent_path().string(), parentFileRefNumber)) {
+      LOG(WARNING) << "Could not get parent file reference number: " << path.c_str() << " " << ::GetLastError();
       return false;
     }
 
@@ -150,15 +167,12 @@ namespace osquery {
 
     auto tf_iter = tracked_files.find(fileRefNumber);
     if (tf_iter == tracked_files.end()) {
-      tracked_files[fileRefNumber] = {path, {sc} };
+      tracked_files[fileRefNumber] = {path, parentFileRefNumber, {sc} };
     } else {
       tf_iter->second.subscriptions.insert(sc);
     }
 
-    LOG(WARNING) << "added " << path << " to tracked files";
-
     if (sc->recursive && isDirectory(path).ok()) {
-      LOG(WARNING) << " collecting children of " << path << " to monitor";
       auto tp_iter = tracked_parent_dirs.find(fileRefNumber);
       if (tp_iter == tracked_parent_dirs.end())
       {
@@ -185,7 +199,6 @@ namespace osquery {
 
   bool FileEventPublisher::addParentMonitor(const std::string &path, const std::string &filter, WindowsFileEventSubscriptionContextRef& sc)
   {
-    LOG(WARNING) << "addMonitor(" << path << ")";
     if (FALSE == ::PathFileExistsA(path.c_str())) {
       LOG(WARNING) << "Path not found: " << path.c_str() << " " << ::GetLastError();
       return false;
@@ -203,11 +216,11 @@ namespace osquery {
     auto tp_iter = tracked_parent_dirs.find(fileRefNumber);
     if (tp_iter == tracked_parent_dirs.end())
     {
-      tracked_parent_dirs[fileRefNumber] = {path, {std::make_pair(sc, std::string("*") ) } };
+      tracked_parent_dirs[fileRefNumber] = {path, {std::make_pair(sc, filter ) } };
     }
     else
     {
-      tp_iter->second.subscriptions.insert(std::make_pair(sc, std::string("*") ));
+      tp_iter->second.subscriptions.insert(std::make_pair(sc, filter ));
     }
     return true;
   }
@@ -236,20 +249,16 @@ namespace osquery {
       if (fullpath.filename().string().find('*') != std::string::npos) {
         filter = fullpath.filename().string();
         monitor_parent_dir = true;
-        LOG(WARNING) << "filter is \"" << filter << "\"";
       }
       std::vector<std::string> paths;
       resolveFilePattern(fullpath.string(), paths);
       for (const auto& _path : paths) {
-        LOG(WARNING) << "adding monitor for " << _path ;
         addMonitor(_path, sc);
         if (isDirectory(_path).ok()) {
-          LOG(WARNING) << "adding parent monitor for " << _path << " with filter " << filter;
           addParentMonitor(_path, filter, sc);
         }
       }
       if (monitor_parent_dir) {
-        LOG(WARNING) << "adding parent monitor for " << fullpath.parent_path().string() << " with filter " << filter;
         addParentMonitor(fullpath.parent_path().string(), filter, sc);
       }
       return true;
@@ -260,13 +269,64 @@ namespace osquery {
 
   void FileEventPublisher::configure() {
 
-    //TODO: delete all current subscriptions
-    //then go through subscriptions_ and add them in
-    //take a look at the inotify configure to get it right
-    //
+    SubscriptionVector delete_subscriptions; 
+    { 
+      WriteLock lock(subscription_lock_);
+      auto end = std::remove_if(
+          subscriptions_.begin(),
+          subscriptions_.end(),
+          [&delete_subscriptions](const SubscriptionRef& subscription) {
+          auto sc = getSubscriptionContext(subscription->context);
+          if (sc->mark_for_deletion == true) {
+          delete_subscriptions.push_back(subscription);
+          return true;
+          }
+          return false;
+          });
+      subscriptions_.erase(end, subscriptions_.end());
+    }
 
-    for (auto &sub : subscriptions_) {
-      monitorSubscription(getSubscriptionContext(sub->context));
+    {
+      WriteLock(_tracking_data_mutex);
+      for (auto &tf = tracked_files.begin(); tf != tracked_files.end(); ) {
+        for (auto sub_iter = tf->second.subscriptions.begin(); sub_iter != tf->second.subscriptions.end();) {
+          if ((*sub_iter)->mark_for_deletion) {
+            sub_iter = tf->second.subscriptions.erase(sub_iter);
+          } else {
+            sub_iter++;
+          }
+        }
+        if (tf->second.subscriptions.empty()) {
+          tf = tracked_files.erase(tf);
+        } else {
+          tf++;
+        }
+      }
+
+      for (auto &tp = tracked_parent_dirs.begin(); tp != tracked_parent_dirs.end(); ) {
+        for (auto sub_iter = tp->second.subscriptions.begin(); sub_iter != tp->second.subscriptions.end();) {
+          if (sub_iter->first->mark_for_deletion) {
+            sub_iter = tp->second.subscriptions.erase(sub_iter);
+          } else {
+            sub_iter++;
+          }
+        }
+        if (tp->second.subscriptions.empty()) {
+          tp = tracked_parent_dirs.erase(tp);
+        } else {
+          tp++;
+        }
+      }
+
+    }
+
+    delete_subscriptions.clear();
+
+    {
+      WriteLock(_tracking_data_mutex);
+      for (auto &sub : subscriptions_) {
+        monitorSubscription(getSubscriptionContext(sub->context));
+      }
     }
 
   }
@@ -303,13 +363,56 @@ namespace osquery {
   }
 
   void FileEventPublisher::process_usn_record(USN_RECORD *record) {
+    WriteLock(_tracking_data_mutex);
+
     auto tf_iter = tracked_files.find(record->FileReferenceNumber);
     if (tracked_files.end() != tf_iter) {
-      //fire event
+
       if (record->Reason & USN_REASON_RENAME_NEW_NAME)
       {
-        auto parent_path = fs::path(tf_iter->second.path).parent_path().string();
-        tf_iter->second.path = create_full_path(parent_path, record);
+        if (record->ParentFileReferenceNumber != tf_iter->second.parent_file_reference)
+        {
+          //moved to a new directory.
+          //remove any old subscriptions that are directory based
+          auto tp_iter = tracked_parent_dirs.find(tf_iter->second.parent_file_reference);
+          if (tp_iter != tracked_parent_dirs.end())
+          {
+            for (auto &sub : tp_iter->second.subscriptions) {
+              tf_iter->second.subscriptions.erase(sub.first);
+            }
+          }
+
+          tf_iter->second.parent_file_reference = record->ParentFileReferenceNumber;
+
+          //check to see if the resulting directory has a matching subsciption
+          tp_iter = tracked_parent_dirs.find(record->ParentFileReferenceNumber);
+          if (tp_iter != tracked_parent_dirs.end())
+          {
+            std::string full_path = create_full_path(tp_iter->second.path, record);
+            tf_iter->second.path = full_path;
+
+            //add additional subscription data to file tracking
+            for (auto &sub : tp_iter->second.subscriptions) {
+              if (filter_matches(sub.second, record)) {
+                tf_iter = tracked_files.find(record->FileReferenceNumber);
+                tf_iter->second.subscriptions.insert(sub.first);
+              }
+            }
+          }
+
+          //if the file was tracked directly, we'll keep watching
+          //moved out of a monitored directory into an unmonitored one, no more tracking?
+          if (tf_iter->second.subscriptions.empty())
+          {
+            tracked_files.erase(tf_iter);
+            return;
+          }
+
+        }
+        else{
+          auto parent_path = fs::path(tf_iter->second.path).parent_path().string();
+          tf_iter->second.path = create_full_path(parent_path, record);
+        }
       }
 
       auto ec = createEventContext();
@@ -328,6 +431,7 @@ namespace osquery {
     }
 
 
+    //for all created files, check if they're in a directory we're tracking
     if (record->Reason & USN_REASON_FILE_CREATE) {
       auto parent_dir_iter = tracked_parent_dirs.find(record->ParentFileReferenceNumber);
       if (tracked_parent_dirs.end() != parent_dir_iter) {
@@ -338,7 +442,7 @@ namespace osquery {
           if (filter_matches(sub.second, record)) {
             tf_iter = tracked_files.find(record->FileReferenceNumber);
             if (tf_iter == tracked_files.end()) {
-              tracked_files[record->FileReferenceNumber] = { full_path, { sub.first } } ;
+              tracked_files[record->FileReferenceNumber] = { full_path, record->ParentFileReferenceNumber, { sub.first } } ;
             }
             else
             {

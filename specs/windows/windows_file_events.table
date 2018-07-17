@@ -5,6 +5,7 @@ schema ([
   Column("category", TEXT, "The category of the file defined in the config"),
   Column("action", TEXT, "Change action (UPDATE, REMOVE, etc)"),
   Column("time", BIGINT, "Time of file event"),
+  Column("event_id", BIGINT, "The internal id of the event"),
 ])
 attributes(event_subscriber=True)
 implementation("windows_file_events@FileEventSubscriber::genTable")
