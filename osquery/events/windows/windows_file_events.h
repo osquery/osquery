@@ -1,13 +1,16 @@
 #pragma once
 
+#include <string>
+#include <set>
+
 #include <Windows.h>
 #include <winioctl.h>
-
-#include <string>
 
 #include <osquery/events.h>
 
 namespace osquery {
+
+  class FileEventPublisher;
 
   struct WindowsFileEventSubscriptionContext : public SubscriptionContext {
     std::string category;
@@ -15,6 +18,11 @@ namespace osquery {
     std::string opath;
     bool recursive;
     DWORDLONG mask;
+
+    private:
+
+    bool mark_for_deletion{false};
+    friend class FileEventPublisher;
   };
 
   using WindowsFileEventSubscriptionContextRef = std::shared_ptr<WindowsFileEventSubscriptionContext>;
@@ -23,7 +31,10 @@ namespace osquery {
     std::string path;
     DWORD action;
     USN_RECORD record;
+    WindowsFileEventSubscriptionContextRef sub_ctx;
   };
+
+  using WindowsFileEventContextRef = std::shared_ptr<WindowsFileEventContext>;
 
   class FileEventPublisher : public EventPublisher<WindowsFileEventSubscriptionContext, WindowsFileEventContext> {
     DECLARE_PUBLISHER("windows_file_events");
@@ -43,9 +54,27 @@ namespace osquery {
     }
 
     private:
+
+    struct FileTrackingContext {
+      std::string path;
+      std::set<WindowsFileEventSubscriptionContextRef> subscriptions;
+    };
+
+    struct DirectoryMonitoringContext {
+      std::string path;
+      std::set< std::pair<WindowsFileEventSubscriptionContextRef, std::string> > subscriptions;
+    };
+
+    bool addMonitor(const std::string &path, WindowsFileEventSubscriptionContextRef& sc);
+    void addVolume(char volume);
+    bool monitorSubscription(WindowsFileEventSubscriptionContextRef &sc);
+    bool addParentMonitor(const std::string &path, const std::string &filter, WindowsFileEventSubscriptionContextRef& sc);
+
+    bool shouldFire(const WindowsFileEventSubscriptionContextRef& sc, const WindowsFileEventContextRef& ec) const;
+
     void process_usn_record(USN_RECORD *);
-    std::map<DWORDLONG, std::string> tracked_files;
-    std::map<DWORDLONG, std::string> tracked_parent_dirs;
+    std::map<DWORDLONG, FileTrackingContext> tracked_files;
+    std::map<DWORDLONG, DirectoryMonitoringContext > tracked_parent_dirs;
 
     struct PrivateData;
     std::shared_ptr<PrivateData> data;

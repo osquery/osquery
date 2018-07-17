@@ -14,12 +14,18 @@ namespace osquery {
   REGISTER(FileEventSubscriber, "event_subscriber", "windows_file_events");
 
   Status FileEventSubscriber::init() {
-    LOG(WARNING) << "testing the warning system in FileEventSubscriber::init()";
     auto sc = createSubscriptionContext();
     sc->recursive = false;
-    sc->opath = sc->path = std::string("C:\\Users\\Garret\\workspace\\test.txt");
+    sc->opath = sc->path = std::string("C:/Users/Garret/workspace/test_dir/*");
     sc->mask = 0xFFFFFFFF;
     sc->category = "test";
+    subscribe(&FileEventSubscriber::Callback, sc);
+
+    sc = createSubscriptionContext();
+    sc->recursive = false;
+    sc->opath = sc->path = std::string("C:/Users/Garret/workspace/*.txt");
+    sc->mask = 0xFFFFFFFF;
+    sc->category = "workspace_txt";
     subscribe(&FileEventSubscriber::Callback, sc);
     return Status(0, "OK");
   }
