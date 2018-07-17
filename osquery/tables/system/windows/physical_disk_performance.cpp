@@ -35,43 +35,43 @@ QueryData genPhysicalDiskPerformance(QueryContext& context) {
 
     disk.GetString("AvgDiskBytesPerRead", sPlaceHolder);
     r["avg_disk_bytes_per_read"] =
-        BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
     disk.GetString("AvgDiskBytesPerWrite", sPlaceHolder);
     r["avg_disk_bytes_per_write"] =
-        BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
 
     disk.GetString("AvgDiskReadQueueLength", sPlaceHolder);
     r["avg_disk_read_queue_length"] =
-        BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
     disk.GetString("AvgDiskWriteQueueLength", sPlaceHolder);
     r["avg_disk_write_queue_length"] =
-        BIGINT(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
 
     disk.GetString("AvgDiskSecPerRead", sPlaceHolder);
     r["avg_disk_sec_per_read"] =
-        INTEGER(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        INTEGER(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
     disk.GetString("AvgDiskSecPerWrite", sPlaceHolder);
     r["avg_disk_sec_per_write"] =
-        INTEGER(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        INTEGER(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
 
     disk.GetString("PercentDiskReadTime", sPlaceHolder);
     r["percent_disk_read_time"] =
-        INTEGER(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        INTEGER(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
     disk.GetString("PercentDiskWriteTime", sPlaceHolder);
     r["percent_disk_write_time"] =
-        INTEGER(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        INTEGER(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
 
     disk.GetString("CurrentDiskQueueLength", sPlaceHolder);
     r["current_disk_queue_length"] =
-        INTEGER(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        INTEGER(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
 
     disk.GetString("PercentDiskTime", sPlaceHolder);
     r["percent_disk_time"] =
-        INTEGER(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        INTEGER(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
 
     disk.GetString("PercentIdleTime", sPlaceHolder);
     r["percent_idle_time"] =
-        INTEGER(tryTo<ull>(sPlaceHolder).take_or(defaultValue));
+        INTEGER(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
 
     results.push_back(r);
   }
