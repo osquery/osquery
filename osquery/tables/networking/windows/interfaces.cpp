@@ -67,28 +67,26 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
     auto& results = req1.results();
     if (!results.empty()) {
       std::string sPlaceHolder;
-      using ull = unsigned long long;
-      const auto defaultValue = ull{0};
 
       results[0].GetString("PacketsReceivedPerSec", sPlaceHolder);
-      r["ipackets"] = BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
+      r["ipackets"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
       results[0].GetString("PacketsSentPerSec", sPlaceHolder);
-      r["opackets"] = BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
+      r["opackets"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
 
       results[0].GetString("BytesReceivedPerSec", sPlaceHolder);
-      r["ibytes"] = BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
+      r["ibytes"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
       results[0].GetString("BytesSentPerSec", sPlaceHolder);
-      r["obytes"] = BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
+      r["obytes"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
 
       results[0].GetString("PacketsReceivedErrors", sPlaceHolder);
-      r["ierrors"] = BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
+      r["ierrors"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
       results[0].GetString("PacketsOutboundErrors", sPlaceHolder);
-      r["oerrors"] = BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
+      r["oerrors"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
 
       results[0].GetString("PacketsReceivedDiscarded", sPlaceHolder);
-      r["idrops"] = BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
+      r["idrops"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
       results[0].GetString("PacketsOutboundDiscarded", sPlaceHolder);
-      r["odrops"] = BIGINT(tryTo<ull>(sPlaceHolder).get_or(defaultValue));
+      r["odrops"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
     } else {
       LOG(INFO) << "Failed to retrieve network statistics for interface "
                 << r["interface"];
