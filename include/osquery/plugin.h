@@ -14,7 +14,6 @@
 #include <vector>
 
 #include <boost/noncopyable.hpp>
-#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/status.h>
 
@@ -85,16 +84,6 @@ class Plugin : private boost::noncopyable {
   }
 
  public:
-  /// Set the output request key to a serialized property tree.
-  /// Used by the plugin to set a serialized PluginResponse.
-  static void setResponse(const std::string& key,
-                          const boost::property_tree::ptree& tree,
-                          PluginResponse& response);
-
-  /// Get a PluginResponse key as a property tree.
-  static void getResponse(const std::string& key,
-                          const PluginResponse& response,
-                          boost::property_tree::ptree& tree);
 
   /**
    * @brief Bind this plugin to an external plugin reference.

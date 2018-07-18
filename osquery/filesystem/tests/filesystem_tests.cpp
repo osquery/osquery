@@ -16,7 +16,6 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
@@ -31,7 +30,6 @@
 #endif
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 

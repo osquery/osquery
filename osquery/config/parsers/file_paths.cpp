@@ -14,8 +14,6 @@
 #include <osquery/registry_factory.h>
 #include <osquery/sql.h>
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 /**

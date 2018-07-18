@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+ #include <boost/property_tree/ptree.hpp>
+
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
 #include <osquery/registry.h>
@@ -18,8 +20,6 @@
 #include "osquery/config/parsers/decorators.h"
 #include "osquery/core/json.h"
 #include "osquery/logger/plugins/tls_logger.h"
-
-namespace pt = boost::property_tree;
 
 namespace osquery {
 
