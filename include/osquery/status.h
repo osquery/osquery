@@ -11,6 +11,7 @@
 #pragma once
 
 #include <osquery/error.h>
+#include <osquery/expected.h>
 #include <sstream>
 #include <string>
 
@@ -159,4 +160,14 @@ class Status {
   /// the internal storage of the status message
   std::string message_;
 };
+
+template <typename ToType, typename ValueType, typename ErrorCodeEnumType>
+inline
+    typename std::enable_if<std::is_same<ToType, Status>::value, Status>::type
+    to(const Expected<ValueType, ErrorCodeEnumType>& expected) {
+  return expected
+             ? Status::success()
+             : Status::failure(expected.getError().getFullMessageRecursive());
+}
+
 } // namespace osquery
