@@ -3,9 +3,10 @@
 #include <osquery/tables.h>
 
 namespace osquery {
-  class FileEventSubscriber : public EventSubscriber<FileEventPublisher> {
-    public:
-    Status init() override;
-    Status Callback(const ECRef& ec, const SCRef& sc);
-  };
+class FileEventSubscriber : public EventSubscriber<FileEventPublisher> {
+ public:
+  Status init() override;
+  Status Callback(const ECRef& ec, const SCRef& sc);
+  void configure() override;
+};
 }
