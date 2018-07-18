@@ -143,7 +143,7 @@ namespace osquery {
     }
   }
 
-  bool FileEventPublisher::addMonitor(const std::string &path, WindowsFileEventSubscriptionContextRef& sc)
+  bool FileEventPublisher::addMonitor(const std::string &path, WindowsFileEventSubscriptionContextRef& sc, bool descend)
   {
     if (FALSE == ::PathFileExistsA(path.c_str())) {
       LOG(WARNING) << "Path not found: " << path.c_str() << " " << ::GetLastError();
@@ -165,36 +165,49 @@ namespace osquery {
 
     addVolume(path[0]);
 
-    auto tf_iter = tracked_files.find(fileRefNumber);
-    if (tf_iter == tracked_files.end()) {
-      tracked_files[fileRefNumber] = {path, parentFileRefNumber, {sc} };
-    } else {
-      tf_iter->second.subscriptions.insert(sc);
-    }
+    insert_tracked_file(fileRefNumber, path, parentFileRefNumber, sc);
 
     if (sc->recursive && isDirectory(path).ok()) {
-      auto tp_iter = tracked_parent_dirs.find(fileRefNumber);
-      if (tp_iter == tracked_parent_dirs.end())
-      {
-        tracked_parent_dirs[fileRefNumber] = {path, {std::make_pair(sc, std::string("*") ) } };
-      }
-      else
-      {
-        tp_iter->second.subscriptions.insert(std::make_pair(sc, std::string("*")));
-      }
+
+      insert_tracked_parent_dir(fileRefNumber, path, sc, std::string("*"));
 
       std::vector<std::string> children;
       // Get a list of children of this directory (requested recursive watches).
-      listDirectoriesInDirectory(path, children, true);
+      listFilesInDirectory(path, children, true);
 
       boost::system::error_code ec;
       for (const auto& child : children) {
         auto canonicalized = fs::canonical(child, ec).string();
+        LOG(WARNING) << "about to call addMonitor on child file " << child;
         addMonitor(canonicalized, sc);
       }
     }
 
     return true;
+  }
+
+  void FileEventPublisher::insert_tracked_parent_dir(DWORDLONG fileRefNumber, const std::string &path, const WindowsFileEventSubscriptionContextRef &sc, const std::string &filter)
+  {
+    auto tp_iter = tracked_parent_dirs.find(fileRefNumber);
+    if (tp_iter == tracked_parent_dirs.end())
+    {
+      tracked_parent_dirs[fileRefNumber] = { path, { std::make_pair(sc, filter) } };
+    }
+    else
+    {
+      tp_iter->second.subscriptions.insert(std::make_pair(sc, filter) );
+    }
+  }
+
+  void FileEventPublisher::insert_tracked_file(DWORDLONG fileRef, const std::string &path, DWORDLONG parentRef, const WindowsFileEventSubscriptionContextRef &sc) {
+    auto tf_iter = tracked_files.find(fileRef);
+    if (tf_iter == tracked_files.end()) {
+      tracked_files[fileRef] = { path, parentRef, { sc } } ;
+    }
+    else
+    {
+      tf_iter->second.subscriptions.insert(sc);
+    }
   }
 
   bool FileEventPublisher::addParentMonitor(const std::string &path, const std::string &filter, WindowsFileEventSubscriptionContextRef& sc)
@@ -213,15 +226,8 @@ namespace osquery {
 
     addVolume(path[0]);
 
-    auto tp_iter = tracked_parent_dirs.find(fileRefNumber);
-    if (tp_iter == tracked_parent_dirs.end())
-    {
-      tracked_parent_dirs[fileRefNumber] = {path, {std::make_pair(sc, filter ) } };
-    }
-    else
-    {
-      tp_iter->second.subscriptions.insert(std::make_pair(sc, filter ));
-    }
+    insert_tracked_parent_dir(fileRefNumber, path, sc, filter);
+
     return true;
   }
 
@@ -235,13 +241,11 @@ namespace osquery {
 
     if (sc->path.find("**") != std::string::npos) {
       sc->recursive = true;
-      discovered = sc->path.substr(0, sc->path.find("**"));
+      discovered = sc->path.substr(0, sc->path.find("**") + 1); //keep the last * as a wildcard
       sc->path = discovered;
     } 
 
     if (sc->path.find('*') != std::string::npos) {
-      // If the wildcard exists within the file (leaf), remove and monitor the
-      // directory instead. Apply a fnmatch on fired events to filter leafs.
 
       std::string filter = "*";
 
@@ -253,18 +257,24 @@ namespace osquery {
       std::vector<std::string> paths;
       resolveFilePattern(fullpath.string(), paths);
       for (const auto& _path : paths) {
-        addMonitor(_path, sc);
+        addMonitor(_path, sc, sc->recursive);
         if (isDirectory(_path).ok()) {
           addParentMonitor(_path, filter, sc);
         }
       }
       if (monitor_parent_dir) {
-        addParentMonitor(fullpath.parent_path().string(), filter, sc);
+        std::vector<std::string> paths;
+        resolveFilePattern(fullpath.parent_path().string(), paths);
+        for (const auto& _path : paths) {
+          if (isDirectory(_path).ok()) {
+            addParentMonitor(_path, filter, sc);
+          }
+        }
       }
       return true;
     }
 
-    return addMonitor(discovered, sc);
+    return addMonitor(discovered, sc, sc->recursive);
   }
 
   void FileEventPublisher::configure() {
@@ -351,8 +361,14 @@ namespace osquery {
   std::string create_full_path(std::string &parent_path, USN_RECORD *record)
   {
         char buffer[1024];
-        sprintf_s(buffer, 1024, "%s/%.*S", parent_path.c_str(), record->FileNameLength/2, record->FileName);
-        return std::string(buffer);
+        sprintf_s(buffer, 1024, "%.*S", record->FileNameLength/2, record->FileName);
+        std::stringstream sstream;
+        sstream << parent_path;
+        if (parent_path.back() != '/' && parent_path.back() != '\\') {
+          sstream << '/';
+        }
+        sstream << buffer;
+        return sstream.str();
   }
 
   BOOL filter_matches(const std::string &filter, USN_RECORD *record)
@@ -360,6 +376,45 @@ namespace osquery {
         char buffer[1024];
         sprintf_s(buffer, 1024, "%.*S", record->FileNameLength/2, record->FileName);
         return PathMatchSpecA(buffer, filter.c_str());
+  }
+
+  std::string collect_path_from_file_id(DWORDLONG fileReferenceNumber)
+  {
+    HANDLE hint = ::CreateFile(".",
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS,
+        NULL);
+    if (hint == INVALID_HANDLE_VALUE) {
+      LOG(WARNING) << "Unable to get handle to local directory: " << GetLastError();
+      return "";
+    }
+
+    FILE_ID_DESCRIPTOR id_descriptor;
+    id_descriptor.Type = (FILE_ID_TYPE)0;
+    id_descriptor.FileId.QuadPart = fileReferenceNumber;
+
+    HANDLE hFile = OpenFileById(hint, &id_descriptor, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, FILE_FLAG_BACKUP_SEMANTICS);
+    CloseHandle(hint);
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+      LOG(WARNING) << "Unable to get handle to moved file : " << GetLastError();
+      return "";
+    }
+
+    char buffer[MAX_PATH];
+    auto rc = GetFinalPathNameByHandleA(hFile, buffer, MAX_PATH, 0);
+    CloseHandle(hFile);
+    if (rc > 0) {
+      return fs::path(&buffer[4]).string();
+    }
+
+    LOG(WARNING) << "Unable to get final path name for moved file: " << GetLastError();
+    return "";
+  
+
   }
 
   void FileEventPublisher::process_usn_record(USN_RECORD *record) {
@@ -399,14 +454,20 @@ namespace osquery {
               }
             }
           }
-
-          //if the file was tracked directly, we'll keep watching
-          //moved out of a monitored directory into an unmonitored one, no more tracking?
-          if (tf_iter->second.subscriptions.empty())
+          else
           {
-            tracked_files.erase(tf_iter);
-            return;
+            //if the file was tracked directly, we'll keep watching
+            //moved out of a monitored directory into an unmonitored one, no more tracking?
+            if (tf_iter->second.subscriptions.empty())
+            {
+              tracked_files.erase(tf_iter);
+              return;
+            }
+            //otherwise we need to work out what the file's new path is
+            auto new_path = collect_path_from_file_id(record->FileReferenceNumber);
+            tf_iter->second.path = new_path;
           }
+
 
         }
         else{
@@ -437,16 +498,13 @@ namespace osquery {
       if (tracked_parent_dirs.end() != parent_dir_iter) {
         std::string full_path = create_full_path(parent_dir_iter->second.path, record);
 
+        bool directory = isDirectory(full_path).ok();
         //add file into to tracked files
         for (auto &sub : parent_dir_iter->second.subscriptions) {
           if (filter_matches(sub.second, record)) {
-            tf_iter = tracked_files.find(record->FileReferenceNumber);
-            if (tf_iter == tracked_files.end()) {
-              tracked_files[record->FileReferenceNumber] = { full_path, record->ParentFileReferenceNumber, { sub.first } } ;
-            }
-            else
-            {
-              tf_iter->second.subscriptions.insert(sub.first);
+            insert_tracked_file(record->FileReferenceNumber, full_path, record->ParentFileReferenceNumber, sub.first);
+            if (sub.first->recursive && directory) {
+              insert_tracked_parent_dir(record->FileReferenceNumber, full_path, sub.first, std::string("*"));
             }
             auto ec = createEventContext();
             ec->record = *record;

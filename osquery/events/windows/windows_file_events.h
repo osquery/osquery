@@ -67,7 +67,10 @@ namespace osquery {
       std::set< std::pair<WindowsFileEventSubscriptionContextRef, std::string> > subscriptions;
     };
 
-    bool addMonitor(const std::string &path, WindowsFileEventSubscriptionContextRef& sc);
+    void insert_tracked_parent_dir(DWORDLONG, const std::string &path, const WindowsFileEventSubscriptionContextRef &, const std::string &);
+    void insert_tracked_file(DWORDLONG, const std::string &path, DWORDLONG parentRefNumber, const WindowsFileEventSubscriptionContextRef &sc);
+
+    bool addMonitor(const std::string &path, WindowsFileEventSubscriptionContextRef& sc, bool descend=false);
     void addVolume(char volume);
     bool monitorSubscription(WindowsFileEventSubscriptionContextRef &sc);
     bool addParentMonitor(const std::string &path, const std::string &filter, WindowsFileEventSubscriptionContextRef& sc);
