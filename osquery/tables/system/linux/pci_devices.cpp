@@ -87,7 +87,8 @@ PciDB::PciDB(std::istream& db_filestream) {
     case 2:
       // Subsystem info;
       if (db_.find(cur_vendor) != db_.end() &&
-          db_[cur_vendor].models.find(cur_model) != db_[cur_vendor].models.end() &&
+          db_[cur_vendor].models.find(cur_model) !=
+              db_[cur_vendor].models.end() &&
           line.size() > 11) {
         // Store current subsystem information under current vendor and model.
         db_[cur_vendor].models[cur_model].subsystemInfo[line.substr(2, 9)] =
