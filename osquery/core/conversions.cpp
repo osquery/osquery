@@ -294,12 +294,8 @@ const rj::Document& JSON::doc() const {
 }
 
 size_t JSON::valueToSize(const rj::Value& value) {
-  unsigned long long i = 0;
   if (value.IsString()) {
-    if (!safeStrtoull(value.GetString(), 10, i)) {
-      return 0_sz;
-    }
-    return static_cast<size_t>(i);
+    return tryTo<std::size_t>(std::string{value.GetString()}).get_or(0_sz);
   } else if (value.IsNumber()) {
     return static_cast<size_t>(value.GetUint64());
   }
