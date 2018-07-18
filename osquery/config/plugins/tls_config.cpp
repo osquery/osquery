@@ -40,8 +40,6 @@ CLI_FLAG(string,
          "",
          "TLS/HTTPS endpoint for config retrieval");
 
-DECLARE_bool(tls_secret_always);
-DECLARE_string(tls_enroll_override);
 DECLARE_bool(tls_node_api);
 DECLARE_bool(enroll_always);
 
@@ -79,7 +77,7 @@ Status TLSConfigPlugin::genConfig(std::map<std::string, std::string>& config) {
       JSON tree;
       Status parse_status = tree.fromString(json);
       if (!parse_status.ok()) {
-        VLOG(1) << "Could not parse JSON from TLS node API";
+        VLOG(1) << "Could not parse JSON from TLS config node API";
       }
 
       // Re-encode the config key into JSON.
