@@ -69,9 +69,11 @@ void genInterfaceDetail(const IP_ADAPTER_ADDRESSES* adapter, Row& r) {
       std::string sPlaceHolder;
 
       results[0].GetString("PacketsReceivedPerSec", sPlaceHolder);
-      r["ipackets"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
+      r["ipackets"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
       results[0].GetString("PacketsSentPerSec", sPlaceHolder);
-      r["opackets"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
+      r["opackets"] =
+          BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
 
       results[0].GetString("BytesReceivedPerSec", sPlaceHolder);
       r["ibytes"] = BIGINT(tryTo<unsigned long long>(sPlaceHolder).take_or(0));
