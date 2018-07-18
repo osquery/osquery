@@ -14,7 +14,7 @@ The software housed in this repo is known as osquery core. While there are occas
 3. osquery doesn’t create network traffic to third parties
 4. osquery’s endpoint binaries have a light memory footprint
 5. osquery minimizes system overhead & maximizes performance
-6. The query schema for osquery seeks uniformity between multiple operating systems
+6. The query schema for osquery seeks uniformity between operating systems
 
 For new features that do not align with the mission principles of core, you may build outside of osquery core in separate integrated processes called extensions: https://osquery.readthedocs.io/en/stable/development/osquery-sdk/.
 
