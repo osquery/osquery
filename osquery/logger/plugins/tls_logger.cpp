@@ -8,7 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
- #include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include <osquery/enroll.h>
 #include <osquery/flags.h>
