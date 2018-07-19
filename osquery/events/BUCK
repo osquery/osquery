@@ -45,7 +45,8 @@ osquery_cxx_library(
             WINDOWS,
             [
                 "windows/windows_event_log.h",
-                "windows/windows_file_events.h",
+                "windows/usn_journal_reader.h",
+                "windows/ntfs_event_publisher.h",
             ],
         ),
     ],
@@ -86,7 +87,8 @@ osquery_cxx_library(
             WINDOWS,
             [
                 "windows/windows_event_log.cpp",
-                "windows/windows_file_events.cpp",
+                "windows/usn_journal_reader.cpp",
+                "windows/ntfs_event_publisher.cpp",
             ],
         ),
     ],

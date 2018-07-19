@@ -1,4 +1,4 @@
-table_name("windows_file_events")
+table_name("ntfs_file_events")
 description("Track time/action changes to files specified in configuration data.")
 schema ([
     Column("target_path", TEXT, "The path associated with the event"),
