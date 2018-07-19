@@ -122,9 +122,6 @@ Status SocketEventSubscriber::ProcessEvents(
   emitted_row_list.clear();
 
   emitted_row_list.reserve(event_list.size());
-  if (emitted_row_list.capacity() != event_list.size()) {
-    return Status(1, "Memory allocation error");
-  }
 
   for (const auto& event : event_list) {
     if (event.type != AuditEvent::Type::Syscall) {
