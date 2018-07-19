@@ -60,7 +60,7 @@ static inline std::string getValue(id value) {
     return [dataString UTF8String];
   } else if ([value isKindOfClass:[NSDate class]]) {
     NSNumber* seconds =
-        [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]];
+      [[[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]] autorelease];
     return [[seconds stringValue] UTF8String];
   } else if ([value isEqual:@(YES)]) {
     return "true";
