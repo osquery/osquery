@@ -42,7 +42,6 @@ const std::string canonicalize_file_name(const char* name) {
   std::string result = (resolved == nullptr) ? name : resolved;
   free(resolved);
 #else
-#warning PATH_MAX is undefined, please read comment below
   // PATH_MAX is not defined, very likely it's not officially supported
   // os, our best guess is _PC_PATH_MAX if available
   // In case of failure fallback to "safe" buffer of 8K
