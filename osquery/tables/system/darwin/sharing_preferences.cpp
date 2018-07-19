@@ -31,7 +31,6 @@ int SMJobIsEnabled(CFStringRef domain, CFStringRef service, Boolean* value);
 #endif
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {

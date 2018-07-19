@@ -25,8 +25,6 @@
 
 #include "osquery/config/plugins/tls_config.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 CLI_FLAG(uint64,

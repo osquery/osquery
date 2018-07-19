@@ -25,6 +25,7 @@
 
 #include <boost/core/ignore_unused.hpp>
 #include <boost/coroutine2/coroutine.hpp>
+#include <boost/optional.hpp>
 
 #include <osquery/core.h>
 #include <osquery/plugin.h>

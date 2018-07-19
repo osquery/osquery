@@ -31,7 +31,6 @@
 #include "osquery/remote/utility.h"
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 
