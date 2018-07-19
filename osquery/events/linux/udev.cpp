@@ -60,17 +60,15 @@ void UdevEventPublisher::tearDown() {
 }
 
 Status UdevEventPublisher::run() {
-
-
   {
     WriteLock lock(mutex_);
     if (monitor_ == nullptr) {
       return Status(1);
     }
     int fd = udev_monitor_get_fd(monitor_);
-    if(fd < 0){
-        LOG(ERROR) << "Could not get udev monitor fd";
-        return Status::failure("udev monitor failed");
+    if (fd < 0) {
+      LOG(ERROR) << "Could not get udev monitor fd";
+      return Status::failure("udev monitor failed");
     }
 
     struct pollfd fds[1];
