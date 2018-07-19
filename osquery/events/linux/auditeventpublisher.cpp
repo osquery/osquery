@@ -93,9 +93,6 @@ Status AuditEventPublisher::run() {
   // records
   auto event_count_estimate = audit_event_record_queue.size() / 4U;
   event_context->audit_events.reserve(event_count_estimate);
-  if (event_context->audit_events.capacity() != event_count_estimate) {
-    return Status(1, "Memory allocation failure");
-  }
 
   ProcessEvents(event_context, audit_event_record_queue, audit_trace_context_);
   if (!event_context->audit_events.empty()) {
