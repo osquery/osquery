@@ -22,7 +22,6 @@
 #include <boost/noncopyable.hpp>
 
 #include <osquery/database.h>
-#include <osquery/events.h>
 #include <osquery/extensions.h>
 #include <osquery/filesystem.h>
 #include <osquery/flags.h>
@@ -60,11 +59,6 @@ FLAG(bool,
 /// Alias for the minloglevel used internally by GLOG.
 FLAG(int32, logger_min_status, 0, "Minimum level for status log recording");
 
-FLAG(bool,
-     logger_secondary_status_only,
-     false,
-     "Only send status logs to secondary logger plugins");
-
 /// Alias for the stderrthreshold used internally by GLOG.
 FLAG(int32,
      logger_min_stderr,
@@ -96,8 +90,6 @@ HIDDEN_FLAG(bool,
  * a helper member for transforming PluginRequest%s to strings.
  */
 CREATE_REGISTRY(LoggerPlugin, "logger");
-
-class LoggerDisabler;
 
 /**
  * @brief A custom Glog log sink for forwarding or buffering status logs.
@@ -163,26 +155,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Retrieve the list of enabled plugins that should have logs forwarded.
   const std::vector<std::string>& enabledPlugins() const;
 
-  /**
-   * @brief Check if a given logger plugin was the first or 'primary'.
-   *
-   * Within the osquery core the BufferedLogSink acts as a router for status
-   * logs. While initializing it inspects the set of logger plugins and saves
-   * the first as the 'primary'.
-   *
-   * Checks within the core may act on this state. Checks within extensions
-   * cannot, and thus any check for primary logger plugins is true.
-   * While this is a limitation, in practice if a remote logger plugin is called
-   * it is intended to receive all logging data.
-   *
-   * @param plugin Check if this target plugin is primary.
-   * @return true of the provided plugin was the first specified.
-   */
-  bool isPrimaryLogger(const std::string& plugin) const;
-
-  /// Set the primary logger plugin is none has been previously specified.
-  void setPrimary(const std::string& plugin);
-
  public:
   /// Queue of sender functions that relay status logs to all plugins.
   std::queue<std::future<void>> senders;
@@ -219,12 +191,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /// Track multiple loggers that should receive sinks from the send forwarder.
   std::vector<std::string> sinks_;
 
-  /// Keep track of the first, or 'primary' logger.
-  std::string primary_;
-
-  /// Mutex for checking primary status.
-  mutable Mutex primary_mutex_;
-
   /// Mutex protecting activation and enabling of the buffered status logger.
   Mutex enable_mutex_;
 
@@ -237,35 +203,6 @@ Mutex kBufferedLogSinkLogs;
 
 /// Mutex protecting queued status log futures.
 Mutex kBufferedLogSinkSenders;
-
-/// Scoped helper to perform logging actions without races.
-class LoggerDisabler : private boost::noncopyable {
- public:
-  LoggerDisabler();
-  ~LoggerDisabler();
-
- private:
-  /// Value of the 'logtostderr' Glog status when constructed.
-  bool stderr_status_;
-
-  /// Value of the BufferedLogSink's enabled status when constructed.
-  bool enabled_;
-};
-
-LoggerDisabler::LoggerDisabler()
-    : stderr_status_(FLAGS_logtostderr),
-      enabled_(BufferedLogSink::get().enabled_) {
-  BufferedLogSink::get().disable();
-  FLAGS_logtostderr = true;
-}
-
-LoggerDisabler::~LoggerDisabler() {
-  // Only enable if the sink was enabled when the disabler was requested.
-  if (enabled_) {
-    BufferedLogSink::get().enable();
-  }
-  FLAGS_logtostderr = stderr_status_;
-}
 
 static void serializeIntermediateLog(const std::vector<StatusLogLine>& log,
                                      PluginRequest& request) {
@@ -401,7 +338,6 @@ void initLogger(const std::string& name) {
   auto logger_plugin = RegistryFactory::get().getActive("logger");
   // Allow multiple loggers, make sure each is accessible.
   for (const auto& logger : osquery::split(logger_plugin, ",")) {
-    BufferedLogSink::get().setPrimary(logger);
     if (!RegistryFactory::get().exists("logger", logger)) {
       continue;
     }
@@ -416,9 +352,6 @@ void initLogger(const std::string& name) {
       BufferedLogSink::get().addPlugin(logger);
     }
 
-    if ((status.getCode() & LOGGER_FEATURE_LOGEVENT) > 0) {
-      EventFactory::addForwarder(logger);
-    }
   }
 
   if (forward) {
@@ -516,20 +449,8 @@ void BufferedLogSink::WaitTillSent() {
   }
 }
 
-void BufferedLogSink::setPrimary(const std::string& plugin) {
-  WriteLock lock(primary_mutex_);
-  if (primary_.empty()) {
-    primary_ = plugin;
-  }
-}
-
 std::vector<StatusLogLine>& BufferedLogSink::dump() {
   return logs_;
-}
-
-bool BufferedLogSink::isPrimaryLogger(const std::string& plugin) const {
-  WriteLock lock(primary_mutex_);
-  return (primary_.empty() || plugin == primary_);
 }
 
 void BufferedLogSink::addPlugin(const std::string& name) {
@@ -564,12 +485,9 @@ Status LoggerPlugin::call(const PluginRequest& request,
   } else if (request.count("status") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     return this->logStatus(intermediate_logs);
-  } else if (request.count("event") > 0) {
-    return this->logEvent(request.at("event"));
   } else if (request.count("action") && request.at("action") == "features") {
     size_t features = 0;
     features |= (usesLogStatus()) ? LOGGER_FEATURE_LOGSTATUS : 0;
-    features |= (usesLogEvent()) ? LOGGER_FEATURE_LOGEVENT : 0;
     return Status(static_cast<int>(features));
   } else {
     return Status(1, "Unsupported call to logger plugin");
@@ -590,11 +508,6 @@ Status logString(const std::string& message,
 
   Status status;
   for (const auto& logger : osquery::split(receiver, ",")) {
-    if (FLAGS_logger_secondary_status_only &&
-        !BufferedLogSink::get().isPrimaryLogger(logger)) {
-      continue;
-    }
-
     if (Registry::get().exists("logger", logger, true)) {
       auto plugin = Registry::get().plugin("logger", logger);
       auto logger_plugin = std::dynamic_pointer_cast<LoggerPlugin>(plugin);
@@ -657,11 +570,6 @@ Status logSnapshotQuery(const QueryLogItem& item) {
   for (const auto& json : json_items) {
     auto receiver = RegistryFactory::get().getActive("logger");
     for (const auto& logger : osquery::split(receiver, ",")) {
-      if (FLAGS_logger_secondary_status_only &&
-          !BufferedLogSink::get().isPrimaryLogger(logger)) {
-        continue;
-      }
-
       if (Registry::get().exists("logger", logger, true)) {
         auto plugin = Registry::get().plugin("logger", logger);
         auto logger_plugin = std::dynamic_pointer_cast<LoggerPlugin>(plugin);

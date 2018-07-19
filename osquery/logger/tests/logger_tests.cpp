@@ -58,7 +58,6 @@ class LoggerTests : public testing::Test {
 
   // Count calls to logStatus
   static size_t statuses_logged;
-  static size_t events_logged;
   // Count added and removed snapshot rows
   static size_t snapshot_rows_added;
   static size_t snapshot_rows_removed;
@@ -72,7 +71,6 @@ std::vector<std::string> LoggerTests::log_lines;
 StatusLogLine LoggerTests::last_status;
 std::vector<std::string> LoggerTests::status_messages;
 size_t LoggerTests::statuses_logged = 0;
-size_t LoggerTests::events_logged = 0;
 size_t LoggerTests::snapshot_rows_added = 0;
 size_t LoggerTests::snapshot_rows_removed = 0;
 
@@ -91,15 +89,6 @@ class TestLoggerPlugin : public LoggerPlugin {
  protected:
   bool usesLogStatus() override {
     return shouldLogStatus;
-  }
-
-  bool usesLogEvent() override {
-    return shouldLogEvent;
-  }
-
-  Status logEvent(const std::string& e) override {
-    LoggerTests::events_logged++;
-    return Status(0, "OK");
   }
 
   Status logString(const std::string& s) override {
@@ -126,9 +115,6 @@ class TestLoggerPlugin : public LoggerPlugin {
  public:
   /// Allow test methods to change status logging state.
   bool shouldLogStatus{true};
-
-  /// Allow test methods to change event logging state.
-  bool shouldLogEvent{true};
 };
 
 TEST_F(LoggerTests, test_plugin) {
@@ -235,7 +221,6 @@ TEST_F(LoggerTests, test_feature_request) {
   auto plugin = RegistryFactory::get().plugin("logger", "test");
   auto logger = std::dynamic_pointer_cast<TestLoggerPlugin>(plugin);
 
-  logger->shouldLogEvent = false;
   logger->shouldLogStatus = false;
   auto status = Registry::call("logger", "test", {{"action", "features"}});
   EXPECT_EQ(0, status.getCode());
