@@ -9,7 +9,6 @@
  */
 
 #include <string.h>
-#include <time.h>
 #include <vector>
 
 #include <boost/algorithm/string.hpp>

@@ -9,7 +9,6 @@
  */
 
 #include <string.h>
-#include <time.h>
 
 #include <osquery/status.h>
 
