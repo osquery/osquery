@@ -8,39 +8,21 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
-#include <cstdint>
 #include <string>
-
-#include <boost/make_shared.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include <gtest/gtest.h>
 
-#include <osquery/core.h>
 #include <osquery/flags.h>
-#include <osquery/system.h>
+
+#include <osquery/tests/test_util.h>
 
 #include "osquery/core/conversions.h"
-
-#include "osquery/tests/test_util.h"
 
 namespace osquery {
 
 DECLARE_bool(utc);
 
 class ConversionsTests : public testing::Test {};
-
-class Foobar {};
-
-TEST_F(ConversionsTests, test_conversion) {
-  boost::shared_ptr<Foobar> b1 = boost::make_shared<Foobar>();
-  std::shared_ptr<Foobar> s1 = boost_to_std_shared_ptr(b1);
-  EXPECT_EQ(s1.get(), b1.get());
-
-  std::shared_ptr<Foobar> s2 = std::make_shared<Foobar>();
-  boost::shared_ptr<Foobar> b2 = std_to_boost_shared_ptr(s2);
-  EXPECT_EQ(s2.get(), b2.get());
-}
 
 TEST_F(ConversionsTests, test_base64) {
   std::string unencoded = "HELLO";
