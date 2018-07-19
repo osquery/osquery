@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include <climits>
 #include <string.h>
 
 #include <osquery/status.h>
