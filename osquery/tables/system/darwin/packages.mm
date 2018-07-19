@@ -368,8 +368,8 @@ static inline bool genPackagesFromPackageKit(QueryData& results) {
           if ([value isKindOfClass:[NSString class]]) {
             r[pm.first] = [value UTF8String];
           } else if ([value isKindOfClass:[NSDate class]]) {
-            auto seconds =
-                [[NSNumber alloc] initWithDouble:[value timeIntervalSince1970] autorelease];
+            auto seconds = [[NSNumber alloc]
+                initWithDouble:[value timeIntervalSince1970]];
             r[pm.first] = [[seconds stringValue] UTF8String];
           } else if ([value isKindOfClass:[NSArray class]]) {
             for (id first in value) {

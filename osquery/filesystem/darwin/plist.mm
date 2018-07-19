@@ -59,8 +59,8 @@ static inline std::string getValue(id value) {
     NSString* dataString = [value base64EncodedStringWithOptions:0];
     return [dataString UTF8String];
   } else if ([value isKindOfClass:[NSDate class]]) {
-    NSNumber* seconds =
-      [[[NSNumber alloc] initWithDouble:[value timeIntervalSince1970]] autorelease];
+    NSNumber* seconds = [[[NSNumber alloc]
+        initWithDouble:[value timeIntervalSince1970]] autorelease];
     return [[seconds stringValue] UTF8String];
   } else if ([value isEqual:@(YES)]) {
     return "true";
