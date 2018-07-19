@@ -177,9 +177,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
   /**
    * @Brief Is the logger temporarily disabled.
    *
-   * This is an atomic because the friend class LoggerDisabler will toggle the
-   * enabled/disabled flag and call enable()/disable().
-   *
    * The Google Log Sink will still be active, but the send method also checks
    * enabled and drops log lines to the flood if the forwarder is not enabled.
    */
@@ -193,9 +190,6 @@ class BufferedLogSink : public google::LogSink, private boost::noncopyable {
 
   /// Mutex protecting activation and enabling of the buffered status logger.
   Mutex enable_mutex_;
-
- private:
-  friend class LoggerDisabler;
 };
 
 /// Mutex protecting accesses to buffered status logs.
