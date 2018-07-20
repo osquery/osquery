@@ -66,7 +66,7 @@ QueryData getELFInfo(QueryContext& context) {
   QueryData results;
 
   auto lambda = [&results](const elf::elf& f, const std::string& path) {
-    auto& hdr = f.get_hdr();
+    const auto& hdr = f.get_hdr();
 
     Row r;
     r["path"] = path;
@@ -89,8 +89,8 @@ QueryData getELFSegments(QueryContext& context) {
   QueryData results;
 
   auto lambda = [&results](const elf::elf& f, const std::string& path) {
-    for (auto& seg : f.segments()) {
-      auto& hdr = seg.get_hdr();
+    for (const auto& seg : f.segments()) {
+      const auto& hdr = seg.get_hdr();
 
       Row r;
       r["path"] = path;
@@ -119,8 +119,8 @@ QueryData getELFSymbols(QueryContext& context) {
   QueryData results;
 
   auto lambda = [&results](const elf::elf& f, const std::string& path) {
-    for (auto& sec : f.sections()) {
-      auto& hdr = sec.get_hdr();
+    for (const auto& sec : f.sections()) {
+      const auto& hdr = sec.get_hdr();
 
       if (hdr.type != elf::sht::symtab && hdr.type != elf::sht::dynsym) {
         continue;
@@ -131,7 +131,7 @@ QueryData getELFSymbols(QueryContext& context) {
       r["table"] = sec.get_name();
 
       for (const auto& sym : sec.as_symtab()) {
-        auto& d = sym.get_data();
+        const auto& d = sym.get_data();
         r["addr"] = std::to_string(d.value);
         r["size"] = std::to_string(d.size);
         r["type"] = to_string(d.type());
@@ -151,16 +151,11 @@ QueryData getELFSections(QueryContext& context) {
   QueryData results;
 
   auto lambda = [&results](const elf::elf& f, const std::string& path) {
-    for (auto& sec : f.sections()) {
-      auto& hdr = sec.get_hdr();
+    for (const auto& sec : f.sections()) {
+      const auto& hdr = sec.get_hdr();
 
       Row r;
       r["path"] = path;
-
-      // -d == dynamic section!
-      printf(
-          "section: %s type=%d\n", sec.get_name().c_str(), sec.get_hdr().type);
-
       r["name"] = sec.get_name();
       r["type"] = std::to_string(static_cast<elf::ElfTypes::Word>(hdr.type));
       r["addr"] = std::to_string(hdr.addr);
@@ -181,8 +176,8 @@ QueryData getELFDynamic(QueryContext& context) {
   QueryData results;
 
   auto lambda = [&results](const elf::elf& f, const std::string& path) {
-    for (auto& sec : f.sections()) {
-      auto& hdr = sec.get_hdr();
+    for (const auto& sec : f.sections()) {
+      const auto& hdr = sec.get_hdr();
       if (hdr.type != elf::sht::dynamic) {
         continue;
       }
