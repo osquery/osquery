@@ -172,8 +172,11 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
   // In either case the watcher may start optionally loaded extensions.
   runner.initWorkerWatcher(kWatcherWorkerName);
 
-  // Begin adhoc io service thread.
-  startIOService();
+  // In profile mode dont start io service thread
+  if (FLAGS_profile == 0) {
+    // Begin adhoc io service thread.
+    startIOService();
+  }
 
   if (runner.isDaemon()) {
     return startDaemon(runner);
