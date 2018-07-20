@@ -91,7 +91,8 @@ SQLInternal monitor(const std::string& name, const ScheduledQuery& query) {
   return sql;
 }
 
-inline Status launchQuery(const std::string& name, const ScheduledQuery& query) {
+inline Status launchQuery(const std::string& name,
+                          const ScheduledQuery& query) {
   // Execute the scheduled query and create a named query object.
   LOG(INFO) << "Executing scheduled query " << name << ": " << query.query;
   runDecorators(DECORATE_ALWAYS);
@@ -171,24 +172,17 @@ inline Status launchQuery(const std::string& name, const ScheduledQuery& query) 
   return status;
 }
 
-inline void launchQueryWithProfiling(
-    const std::string& name
-    , const ScheduledQuery& query
-) {
+inline void launchQueryWithProfiling(const std::string& name,
+                                     const ScheduledQuery& query) {
   auto start_time_point = std::chrono::steady_clock::now();
   auto status = launchQuery(name, query);
-  auto query_duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::steady_clock::now() - start_time_point);
-  auto monitoring_path = boost::format("scheduler.executing_query.%s.%s")
-      % name
-      % (status.ok() ? "success" : "failure")
-  ;
-  monitoring::record(
-      monitoring_path.str(),
-      query_duration.count(),
-      monitoring::PreAggregationType::Min
-  );
+  auto query_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - start_time_point);
+  auto monitoring_path = boost::format("scheduler.executing_query.%s.%s") %
+                         name % (status.ok() ? "success" : "failure");
+  monitoring::record(monitoring_path.str(),
+                     query_duration.count(),
+                     monitoring::PreAggregationType::Min);
 }
 
 void SchedulerRunner::start() {
