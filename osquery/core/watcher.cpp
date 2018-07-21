@@ -366,16 +366,13 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
 
   // IV is the check interval in seconds, and utilization is set per-second.
   change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
-  UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
+  long long user_time = 0, system_time = 0;
   try {
-    auto cchange = tryTo<long long>(r.at("parent"));
-    change.parent = (cchange) ? static_cast<pid_t>(cchange.take()) : 0;
-    cchange = tryTo<long long>(r.at("user_time"));
-    user_time = (cchange) ? cchange.take() : 0;
-    cchange = tryTo<long long>(r.at("system_time"));
-    system_time = (cchange) ? cchange.take() : 0;
-    cchange = tryTo<long long>(r.at("resident_size"));
-    change.footprint = (cchange) ? cchange.take() : 0;
+    change.parent =
+        static_cast<pid_t>(tryTo<long long>(r.at("parent")).take_or(0));
+    user_time = tryTo<long long>(r.at("user_time")).take_or(0);
+    system_time = tryTo<long long>(r.at("system_time")).take_or(0);
+    change.footprint = tryTo<long long>(r.at("resident_size")).take_or(0);
   } catch (const std::exception& /* e */) {
     state.sustained_latency = 0;
   }

@@ -36,8 +36,7 @@ int getOSMinorVersion() {
     return -1;
   }
 
-  auto minor = tryTo<long>(qd.front.at("minor"));
-  return (minor) ? minor.take() : -1;
+  return tryTo<long>(qd.front.at("minor")).take_or(-1);
 }
 
 // Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on
