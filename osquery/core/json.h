@@ -19,9 +19,6 @@
 #pragma warning(disable : 4715)
 #endif
 
-#define RAPIDJSON_HAS_STDSTRING 1
-
-#define RAPIDJSON_NO_SIZETYPEDEFINE
 namespace rapidjson {
 using SizeType = ::std::size_t;
 } // namespace rapidjson
@@ -33,7 +30,6 @@ using SizeType = ::std::size_t;
 
 #ifdef WIN32
 #pragma warning(pop)
-
 #endif
 
 namespace osquery {

@@ -29,8 +29,13 @@ namespace tables {
 const std::string kDiagnosticReportsPath = "/Library/Logs/DiagnosticReports";
 
 /// List of all register values we wish to catch
-const std::set<std::string> kRegisters = {
-    "CR0", "RAX", "RSP", "R8", "R12", "RFL",
+const std::set<std::string> kKernelRegisters = {
+    "CR0",
+    "RAX",
+    "RSP",
+    "R8",
+    "R12",
+    "RFL",
 };
 
 /// List of the days of the Week, used to grab our timestamp.
@@ -69,7 +74,7 @@ void readKernelPanic(const std::string& appLog, QueryData& results) {
       r["time"] = line;
     }
 
-    if (kRegisters.count(toks[0]) > 0) {
+    if (kKernelRegisters.count(toks[0]) > 0) {
       auto registerTokens = osquery::split(line, ",");
       if (registerTokens.size() == 0) {
         continue;

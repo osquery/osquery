@@ -8,8 +8,11 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#pragma once
+
 #include <osquery/expected.h>
-#include <osquery/killswitch/killswitch_plugin.h>
+
+#include "osquery/killswitch/killswitch_plugin.h"
 
 namespace osquery {
 

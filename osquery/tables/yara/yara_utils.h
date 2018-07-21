@@ -8,6 +8,8 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#pragma once
+
 #include <boost/property_tree/ptree.hpp>
 
 #include <osquery/config.h>
