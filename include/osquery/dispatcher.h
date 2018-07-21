@@ -115,7 +115,7 @@ class InternalRunnable : private boost::noncopyable,
 
 /// An internal runnable used throughout osquery as dispatcher services.
 using InternalRunnableRef = std::shared_ptr<InternalRunnable>;
-using InternalThreadRef = std::shared_ptr<std::thread>;
+using InternalThreadRef = std::unique_ptr<std::thread>;
 
 /**
  * @brief Singleton for queuing asynchronous tasks to be executed in parallel
@@ -126,7 +126,7 @@ using InternalThreadRef = std::shared_ptr<std::thread>;
  */
 class Dispatcher : private boost::noncopyable {
  public:
-   virtual ~Dispatcher();
+  virtual ~Dispatcher();
   /**
    * @brief The primary way to access the Dispatcher factory facility.
    *

@@ -15,10 +15,10 @@
 namespace osquery {
 
 void IOContextRunner::start() {
-
-  while(!interrupted()) {
+  while (!interrupted()) {
     try {
-      boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work = boost::asio::make_work_guard(IOContext::get());
+      boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+          work = boost::asio::make_work_guard(IOContext::get());
       work.reset();
       return;
     } catch (const std::exception& e) {
