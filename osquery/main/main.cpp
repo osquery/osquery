@@ -173,7 +173,7 @@ int startOsquery(int argc, char* argv[], std::function<void()> shutdown) {
   runner.initWorkerWatcher(kWatcherWorkerName);
 
   // Begin adhoc io service thread.
-  startIOService();
+  startIOContext();
 
   if (runner.isDaemon()) {
     return startDaemon(runner);

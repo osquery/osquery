@@ -16,18 +16,18 @@
 
 namespace osquery {
 
-class IOService {
+class IOContext {
  public:
-  static boost::asio::io_service& get() {
-    static boost::asio::io_service instance;
+  static boost::asio::io_context& get() {
+    static boost::asio::io_context instance;
     return instance;
   }
 };
 
 /// A Dispatcher service thread runs adhoc io service provider.
-class IOServiceRunner : public InternalRunnable {
+class IOContextRunner : public InternalRunnable {
  public:
-  IOServiceRunner() : InternalRunnable("IOServiceRunner") {}
+  IOContextRunner() : InternalRunnable("IOContextRunner") {}
 
  public:
   /// The Dispatcher thread entry point.
@@ -38,5 +38,5 @@ class IOServiceRunner : public InternalRunnable {
 };
 
 /// Start IOService
-void startIOService();
+void startIOContext();
 } // namespace osquery
