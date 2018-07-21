@@ -458,8 +458,6 @@ template std::set<long long> ConstraintList::getAll<long long>(
 template std::set<unsigned long long>
     ConstraintList::getAll<unsigned long long>(ConstraintOperator) const;
 
-/// Explicit getAll for UNSIGNED_BIGINT.
-
 void ConstraintList::serialize(JSON& doc, rapidjson::Value& obj) const {
   auto expressions = doc.getArray();
   for (const auto& constraint : constraints_) {
