@@ -605,48 +605,66 @@ int xCreate(sqlite3* db,
   // Keep a local copy of the column details in the VirtualTableContent struct.
   // This allows introspection into the column type without additional calls.
   for (const auto& column : response) {
-    if (column.count("id") == 0) {
+    auto cid = column.find("id");
+    if (cid == column.end()) {
       // This does not define a column type.
       continue;
     }
 
-    if (column.at("id") == "column" && column.count("name") &&
-        column.count("type")) {
+    auto cname = column.find("name");
+    auto ctype = column.find("type");
+    if (cid->second == "column" && cname != column.end() &&
+        ctype != column.end()) {
       // This is a malformed column definition.
       // Populate the virtual table specific persistent column information.
-      pVtab->content->columns.push_back(
-          std::make_tuple(column.at("name"),
-                          columnTypeName(column.at("type")),
-                          (ColumnOptions)std::stol(column.at("op"))));
+      auto options = ColumnOptions::DEFAULT;
+      auto cop = column.find("op");
+      if (cop != column.end()) {
+        auto op = tryTo<long>(cop->second);
+        if (op) {
+          options = static_cast<ColumnOptions>(op.take());
+        }
+      }
 
-    } else if (column.at("id") == "alias" && column.count("alias")) {
+      pVtab->content->columns.push_back(std::make_tuple(
+          cname->second, columnTypeName(ctype->second), options));
+    } else if (cid->second == "alias") {
       // Create associated views for table aliases.
-      views.insert(column.at("alias"));
+      auto calias = column.find("alias");
+      if (calias != column.end()) {
+        views.insert(calias->second);
+      }
+    } else if (cid->second == "columnAlias" && cname != column.end()) {
+      auto ctarget = column.find("target");
+      if (ctarget == column.end()) {
+        continue;
+      }
 
-    } else if (column.at("id") == "columnAlias" && column.count("name") &&
-               column.count("target")) {
       // Record the column in the set of columns.
       // This is required because SQLITE uses indexes to identify columns.
       // Use an UNKNOWN_TYPE as a pseudo-mask, since the type does not matter.
-      pVtab->content->columns.push_back(std::make_tuple(
-          column.at("name"), UNKNOWN_TYPE, ColumnOptions::HIDDEN));
-
+      pVtab->content->columns.push_back(
+          std::make_tuple(cname->second, UNKNOWN_TYPE, ColumnOptions::HIDDEN));
       // Record a mapping of the requested column alias name.
       size_t target_index = 0;
       for (size_t i = 0; i < pVtab->content->columns.size(); i++) {
         const auto& target_column = pVtab->content->columns[i];
-        if (std::get<0>(target_column) == column.at("target")) {
+        if (std::get<0>(target_column) == ctarget->second) {
           target_index = i;
           break;
         }
       }
-
-      pVtab->content->aliases[column.at("name")] = target_index;
-
-    } else if (column.at("id") == "attributes") {
+      pVtab->content->aliases[cname->second] = target_index;
+    } else if (cid->second == "attributes") {
+      auto cattr = column.find("attributes");
       // Store the attributes locally so they may be passed to the SQL object.
-      pVtab->content->attributes =
-          (TableAttributes)std::stol(column.at("attributes"));
+      if (cattr != column.end()) {
+        auto attr = tryTo<long>(cattr->second);
+        if (attr) {
+          pVtab->content->attributes =
+              static_cast<TableAttributes>(attr.take());
+        }
+      }
     }
   }
 

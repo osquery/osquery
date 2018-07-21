@@ -8,6 +8,7 @@
  *  You may select, at your option, one of the above-listed licenses.
  */
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/json.h"
 
 #include <osquery/database.h>
@@ -15,8 +16,6 @@
 #include <osquery/logger.h>
 #include <osquery/registry_factory.h>
 #include <osquery/tables.h>
-
-#include <boost/lexical_cast.hpp>
 
 namespace osquery {
 namespace {
@@ -304,29 +303,39 @@ std::string columnDefinition(const PluginResponse& response,
   // Maintain a map of column to the type, for alias type lookups.
   std::map<std::string, ColumnType> column_types;
   for (const auto& column : response) {
-    if (column.count("id") == 0) {
+    auto id = column.find("id");
+    if (id == column.end()) {
       continue;
     }
 
-    if (column.at("id") == "column" && column.count("name") &&
-        column.count("type")) {
-      auto options = (column.count("op"))
-                         ? (ColumnOptions)std::stol(column.at("op"))
-                         : ColumnOptions::DEFAULT;
-      auto column_type = columnTypeName(column.at("type"));
-      columns.push_back(make_tuple(column.at("name"), column_type, options));
+    auto cname = column.find("name");
+    auto ctype = column.find("type");
+    if (id->second == "column" && cname != column.end() &&
+        ctype != column.end()) {
+      auto options = ColumnOptions::DEFAULT;
+
+      auto cop = column.find("op");
+      if (cop != column.end()) {
+        auto op = tryTo<int>(cop->second);
+        if (op) {
+          options = static_cast<ColumnOptions>(op.take());
+        }
+      }
+      auto column_type = columnTypeName(ctype->second);
+      columns.push_back(make_tuple(cname->second, column_type, options));
       if (aliases) {
-        column_types[column.at("name")] = column_type;
+        column_types[cname->second] = column_type;
       }
-    } else if (column.at("id") == "columnAlias" && column.count("name") &&
-               column.count("target") && aliases) {
-      const auto& target = column.at("target");
-      if (column_types.count(target) == 0) {
-        // No type was defined for the alias target.
-        continue;
+    } else if (id->second == "columnAlias" && cname != column.end() &&
+               aliases) {
+      auto ctarget = column.find("target");
+      if (ctarget != column.end()) {
+        auto target_ctype = column_types.find(ctarget->second);
+        if (target_ctype != column_types.end()) {
+          columns.push_back(make_tuple(
+              cname->second, target_ctype->second, ColumnOptions::HIDDEN));
+        }
       }
-      columns.push_back(make_tuple(
-          column.at("name"), column_types.at(target), ColumnOptions::HIDDEN));
     }
   }
   return columnDefinition(columns, is_extension);
@@ -356,21 +365,23 @@ bool ConstraintList::exists(const ConstraintOperatorFlag ops) const {
 
 bool ConstraintList::matches(const std::string& expr) const {
   // Support each SQL affinity type casting.
-  try {
-    if (affinity == TEXT_TYPE) {
-      return literal_matches<TEXT_LITERAL>(expr);
-    } else if (affinity == INTEGER_TYPE) {
-      auto lexpr = boost::lexical_cast<INTEGER_LITERAL>(expr);
-      return literal_matches<INTEGER_LITERAL>(lexpr);
-    } else if (affinity == BIGINT_TYPE) {
-      auto lexpr = boost::lexical_cast<BIGINT_LITERAL>(expr);
-      return literal_matches<BIGINT_LITERAL>(lexpr);
-    } else if (affinity == UNSIGNED_BIGINT_TYPE) {
-      auto lexpr = boost::lexical_cast<UNSIGNED_BIGINT_LITERAL>(expr);
-      return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr);
+  if (affinity == TEXT_TYPE) {
+    return literal_matches<TEXT_LITERAL>(expr);
+  } else if (affinity == INTEGER_TYPE) {
+    auto lexpr = tryTo<INTEGER_LITERAL>(expr);
+    if (lexpr) {
+      return literal_matches<INTEGER_LITERAL>(lexpr.take());
     }
-  } catch (const boost::bad_lexical_cast& /* e */) {
-    // Unsupported affinity type or unable to cast content type.
+  } else if (affinity == BIGINT_TYPE) {
+    auto lexpr = tryTo<BIGINT_LITERAL>(expr);
+    if (lexpr) {
+      return literal_matches<BIGINT_LITERAL>(lexpr.take());
+    }
+  } else if (affinity == UNSIGNED_BIGINT_TYPE) {
+    auto lexpr = tryTo<UNSIGNED_BIGINT_LITERAL>(expr);
+    if (lexpr) {
+      return literal_matches<UNSIGNED_BIGINT_LITERAL>(lexpr.take());
+    }
   }
 
   return false;
@@ -380,17 +391,21 @@ template <typename T>
 bool ConstraintList::literal_matches(const T& base_expr) const {
   bool aggregate = true;
   for (size_t i = 0; i < constraints_.size(); ++i) {
-    auto constraint_expr = boost::lexical_cast<T>(constraints_[i].expr);
+    auto constraint_expr = tryTo<T>(constraints_[i].expr);
+    if (!constraint_expr) {
+      // Cannot cast input constraint to column type.
+      return false;
+    }
     if (constraints_[i].op == EQUALS) {
-      aggregate = aggregate && (base_expr == constraint_expr);
+      aggregate = aggregate && (base_expr == constraint_expr.take());
     } else if (constraints_[i].op == GREATER_THAN) {
-      aggregate = aggregate && (base_expr > constraint_expr);
+      aggregate = aggregate && (base_expr > constraint_expr.take());
     } else if (constraints_[i].op == LESS_THAN) {
-      aggregate = aggregate && (base_expr < constraint_expr);
+      aggregate = aggregate && (base_expr < constraint_expr.take());
     } else if (constraints_[i].op == GREATER_THAN_OR_EQUALS) {
-      aggregate = aggregate && (base_expr >= constraint_expr);
+      aggregate = aggregate && (base_expr >= constraint_expr.take());
     } else if (constraints_[i].op == LESS_THAN_OR_EQUALS) {
-      aggregate = aggregate && (base_expr <= constraint_expr);
+      aggregate = aggregate && (base_expr <= constraint_expr.take());
     } else {
       // Unsupported constraint. Should match every thing.
       return true;
@@ -414,48 +429,34 @@ std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
   return set;
 }
 
-template <>
-std::set<int> ConstraintList::getAll<int>(ConstraintOperator op) const {
-  std::set<int> cs;
-  std::transform(constraints_.begin(),
-                 constraints_.end(),
-                 std::inserter(cs, cs.begin()),
-                 [](const Constraint& c) { return std::stoi(c.expr); });
+template <typename T>
+std::set<T> ConstraintList::getAll(ConstraintOperator op) const {
+  std::set<T> cs;
+  for (const auto& item : constraints_) {
+    auto exp = tryTo<T>(item.expr);
+    if (exp) {
+      cs.insert(exp.take());
+    }
+  }
   return cs;
 }
 
 template <>
-std::set<long long> ConstraintList::getAll<long long>(
-    ConstraintOperator op) const {
-  std::set<long long> cs;
-  std::transform(constraints_.begin(),
-                 constraints_.end(),
-                 std::inserter(cs, cs.begin()),
-                 [](const Constraint& c) { return std::stoll(c.expr); });
-  return cs;
+std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
+  return getAll(op);
 }
 
-template <>
-std::set<unsigned long long> ConstraintList::getAll<unsigned long long>(
-    ConstraintOperator op) const {
-  std::set<unsigned long long> cs;
-  std::transform(constraints_.begin(),
-                 constraints_.end(),
-                 std::inserter(cs, cs.begin()),
-                 [](const Constraint& c) { return std::stoull(c.expr); });
-  return cs;
-}
+/// Explicit getAll for INTEGER.
+template std::set<INTEGER_LITERAL> ConstraintList::getAll<int>(
+    ConstraintOperator) const;
 
-template <>
-std::set<std::string> ConstraintList::getAll<std::string>(
-    ConstraintOperator op) const {
-  std::set<std::string> cs;
-  std::transform(constraints_.begin(),
-                 constraints_.end(),
-                 std::inserter(cs, cs.begin()),
-                 [](const Constraint& c) { return c.expr; });
-  return cs;
-}
+/// Explicit getAll for BIGINT.
+template std::set<long long> ConstraintList::getAll<long long>(
+    ConstraintOperator) const;
+
+/// Explicit getAll for UNSIGNED_BIGINT.
+template std::set<unsigned long long>
+    ConstraintList::getAll<unsigned long long>(ConstraintOperator) const;
 
 void ConstraintList::serialize(JSON& doc, rapidjson::Value& obj) const {
   auto expressions = doc.getArray();

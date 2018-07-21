@@ -26,6 +26,7 @@
 #include <osquery/sql.h>
 #include <osquery/system.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/core/process.h"
 #include "osquery/core/watcher.h"
 #include "osquery/filesystem/fileops.h"
@@ -365,12 +366,13 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
 
   // IV is the check interval in seconds, and utilization is set per-second.
   change.iv = std::max(getWorkerLimit(WatchdogLimitType::INTERVAL), 1_sz);
-  UNSIGNED_BIGINT_LITERAL user_time = 0, system_time = 0;
+  long long user_time = 0, system_time = 0;
   try {
-    change.parent = static_cast<pid_t>(std::stoll(r.at("parent")));
-    user_time = std::stoll(r.at("user_time"));
-    system_time = std::stoll(r.at("system_time"));
-    change.footprint = std::stoll(r.at("resident_size"));
+    change.parent =
+        static_cast<pid_t>(tryTo<long long>(r.at("parent")).take_or(0LL));
+    user_time = tryTo<long long>(r.at("user_time")).take_or(0LL);
+    system_time = tryTo<long long>(r.at("system_time")).take_or(0LL);
+    change.footprint = tryTo<long long>(r.at("resident_size")).take_or(0LL);
   } catch (const std::exception& /* e */) {
     state.sustained_latency = 0;
   }
