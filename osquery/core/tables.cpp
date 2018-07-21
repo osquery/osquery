@@ -432,14 +432,12 @@ std::set<std::string> ConstraintList::getAll(ConstraintOperator op) const {
 template <typename T>
 std::set<T> ConstraintList::getAll(ConstraintOperator op) const {
   std::set<T> cs;
-  auto mc_ = constraints_;
-  std::transform(
-      mc_.begin(),
-      std::remove_if(mc_.begin(),
-                     mc_.end(),
-                     [](const Constraint& c) { return !tryTo<T>(c.expr); }),
-      std::inserter(cs, cs.begin()),
-      [](const Constraint& c) { return tryTo<T>(c.expr).take(); });
+  for (const auto& item : constraints_) {
+    auto exp = tryTo<T>(item.expr);
+    if (exp) {
+      cs.insert(exp.take());
+    }
+  }
   return cs;
 }
 
