@@ -126,6 +126,7 @@ using InternalThreadRef = std::shared_ptr<std::thread>;
  */
 class Dispatcher : private boost::noncopyable {
  public:
+   virtual ~Dispatcher();
   /**
    * @brief The primary way to access the Dispatcher factory facility.
    *
@@ -155,7 +156,6 @@ class Dispatcher : private boost::noncopyable {
    * Dispatcher's constructor is private.
    */
   Dispatcher() = default;
-  virtual ~Dispatcher() = default;
 
  private:
   /// When a service ends, it will remove itself from the dispatcher.
