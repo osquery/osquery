@@ -85,7 +85,6 @@ const std::map<std::string, QueryPlanner::Opcode> kSQLOpcodes = {
 
     // Arithmetic yields a BIGINT for safety.
     Arithmetic("BitAnd"),
-    Arithmetic("BitAnd"),
     Arithmetic("BitOr"),
     Arithmetic("ShiftLeft"),
     Arithmetic("ShiftRight"),

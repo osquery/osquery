@@ -90,8 +90,8 @@ std::set<std::string> kSMCTemperatureKeys = {
     "TCGC", "TCGc", "TG0P", "TG0D", "TG1D", "TG0H", "TG1H", "Ts0S", "TM0P",
     "TM1P", "TM8P", "TM9P", "TM0S", "TM1S", "TM8S", "TM9S", "TN0D", "TN0P",
     "TN1P", "TN0C", "TN0H", "TP0D", "TPCD", "TP0P", "TA0P", "TA1P", "Th0H",
-    "Th1H", "Th2H", "Tm0P", "Tp0P", "Ts0P", "Tb0P", "TL0P", "TW0P", "TH0P",
-    "TH1P", "TH2P", "TH3P", "TO0P", "TB0T", "TB1T", "TB2T", "TB3T", "Tp0P",
+    "Th1H", "Th2H", "Tm0P", "Ts0P", "Tb0P", "TL0P", "TW0P", "TH0P",
+    "TH1P", "TH2P", "TH3P", "TO0P", "TB0T", "TB1T", "TB2T", "TB3T",
     "Tp0C", "Tp1P", "Tp1C", "Tp2P", "Tp3P", "Tp4P", "Tp5P", "TS0C", "TA0S",
     "TA1S", "TA2S", "TA3S",
 };
