@@ -198,7 +198,7 @@ void IOKitEventPublisher::deviceDetach(void* refcon,
 }
 
 Status IOKitEventPublisher::run() {
-  setThreadName(name());
+  
   // The run entrypoint executes in a dedicated thread.
   if (run_loop_ == nullptr) {
     run_loop_ = CFRunLoopGetCurrent();

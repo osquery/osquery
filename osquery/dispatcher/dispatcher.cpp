@@ -46,6 +46,7 @@ void InterruptableRunnable::pauseMilli(std::chrono::milliseconds milli) {
 
 void InternalRunnable::run() {
   run_ = true;
+  setThreadName(name());
   start();
 
   // The service is complete.
