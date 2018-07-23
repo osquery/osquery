@@ -233,7 +233,6 @@ void FSEventsEventPublisher::configure() {
 }
 
 Status FSEventsEventPublisher::run() {
-  
   // The run entrypoint executes in a dedicated thread.
   bool needs_reset = false;
   {

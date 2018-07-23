@@ -166,7 +166,6 @@ void BufferedLogForwarder::purge() {
 }
 
 void BufferedLogForwarder::start() {
-  
   while (!interrupted()) {
     check();
 

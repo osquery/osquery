@@ -52,7 +52,6 @@ void DiskArbitrationEventPublisher::restart() {
 }
 
 Status DiskArbitrationEventPublisher::run() {
-
   restart();
   CFRunLoopRun();
   return Status(0, "OK");

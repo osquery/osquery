@@ -146,7 +146,6 @@ Carver::~Carver() {
 }
 
 void Carver::start() {
-  
   // If status_ is not Ok, the creation of our tmp FS failed
   if (!status_.ok()) {
     LOG(WARNING) << "Carver has not been properly constructed";

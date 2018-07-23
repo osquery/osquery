@@ -48,7 +48,6 @@ void OpenBSMEventPublisher::tearDown() {
 }
 
 Status OpenBSMEventPublisher::run() {
-  
   if (audit_pipe_ == nullptr) {
     return Status(1, "No open audit_pipe");
   }

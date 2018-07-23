@@ -105,7 +105,6 @@ Status EventTappingEventPublisher::restart() {
 }
 
 Status EventTappingEventPublisher::run() {
-  
   Status s = restart();
   if (s.ok()) {
     CFRunLoopRun();
