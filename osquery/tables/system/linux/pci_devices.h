@@ -89,7 +89,7 @@ class PciDB {
    * @brief retrieves PciVendor structure of database for custom work.
    *
    * @param vendor_id ID of the vendor
-   * @param predicate work function with vendor pass as param.
+   * @param predicate work function with vendor structure of vendor_id as param.
    *
    * @return an instance of Status, indicating success or failure.
    */
