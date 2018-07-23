@@ -139,11 +139,11 @@ int startShell(osquery::Initializer& runner, int argc, char* argv[]) {
 
     // Virtual tables will be attached to the shell's in-memory SQLite DB.
     retcode = osquery::launchIntoShell(argc, argv);
-    // Finally shutdown.
-    runner.requestShutdown();
   } else {
     retcode = profile(argc, argv);
   }
+  // Finally shutdown.
+  runner.requestShutdown();
   return retcode;
 }
 
