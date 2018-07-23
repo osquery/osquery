@@ -1055,7 +1055,7 @@ static int booleanValue(char* zArg) {
     fprintf(
         stderr, "ERROR: Not a boolean value: \"%s\". Assuming \"no\".\n", zArg);
   }
-  return expected.get_or(false) ? 1 : 0;
+  return expected.getOr(false) ? 1 : 0;
 }
 
 inline void meta_tables(int nArg, char** azArg) {

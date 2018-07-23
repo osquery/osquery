@@ -369,10 +369,10 @@ PerformanceChange getChange(const Row& r, PerformanceState& state) {
   long long user_time = 0, system_time = 0;
   try {
     change.parent =
-        static_cast<pid_t>(tryTo<long long>(r.at("parent")).take_or(0LL));
-    user_time = tryTo<long long>(r.at("user_time")).take_or(0LL);
-    system_time = tryTo<long long>(r.at("system_time")).take_or(0LL);
-    change.footprint = tryTo<long long>(r.at("resident_size")).take_or(0LL);
+        static_cast<pid_t>(tryTo<long long>(r.at("parent")).takeOr(0LL));
+    user_time = tryTo<long long>(r.at("user_time")).takeOr(0LL);
+    system_time = tryTo<long long>(r.at("system_time")).takeOr(0LL);
+    change.footprint = tryTo<long long>(r.at("resident_size")).takeOr(0LL);
   } catch (const std::exception& /* e */) {
     state.sustained_latency = 0;
   }
