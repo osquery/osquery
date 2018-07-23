@@ -155,7 +155,7 @@ class Expected final {
     return boost::get<ValueType>(object_);
   }
 
-  const ValueType& get_or(const ValueType& defaultValue) const {
+  const ValueType& getOr(const ValueType& defaultValue) const {
     if (isError()) {
       return defaultValue;
     }
@@ -170,7 +170,7 @@ class Expected final {
   template <typename ValueTypeUniversal = ValueType>
   typename std::enable_if<std::is_same<ValueTypeUniversal, ValueType>::value,
                           ValueType>::type
-  take_or(ValueTypeUniversal&& defaultValue) {
+  takeOr(ValueTypeUniversal&& defaultValue) {
     if (isError()) {
       return std::forward<ValueTypeUniversal>(defaultValue);
     }
