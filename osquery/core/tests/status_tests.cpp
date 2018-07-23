@@ -97,7 +97,8 @@ TEST_F(StatusTests, test_expected_to_status_failure) {
 }
 
 TEST_F(StatusTests, test_expected_to_status_success) {
-  const auto expected = Expected<std::string, TestError>("This is not a failure");
+  const auto expected =
+      Expected<std::string, TestError>("This is not a failure");
   auto s = to<Status>(expected);
   EXPECT_TRUE(s.ok());
   EXPECT_EQ(s, Status::success());
