@@ -37,6 +37,11 @@ class InterruptableRunnable {
    */
   virtual void interrupt() final;
 
+  /// Returns the runner name
+  std::string name() const {
+    return runnable_name_;
+  }
+
  protected:
   /// Allow the runnable to check interruption.
   virtual bool interrupted();
@@ -51,6 +56,9 @@ class InterruptableRunnable {
 
   /// Put the runnable into an interruptible sleep.
   void pauseMilli(std::chrono::milliseconds milli);
+
+  /// Name of the InterruptableRunnable which is also the thread name
+  std::string runnable_name_;
 
  private:
   /**
@@ -74,7 +82,9 @@ class InterruptableRunnable {
 class InternalRunnable : private boost::noncopyable,
                          public InterruptableRunnable {
  public:
-  InternalRunnable(const std::string& name) : run_(false), name_(name) {}
+  InternalRunnable(const std::string& name) : run_(false) {
+    runnable_name_ = name;
+  }
   virtual ~InternalRunnable() override = default;
 
  public:
@@ -96,11 +106,6 @@ class InternalRunnable : private boost::noncopyable,
     return run_;
   }
 
-  /// Returns the runner name
-  std::string name() const {
-    return name_;
-  }
-
  protected:
   /// Require the runnable thread define an entrypoint.
   virtual void start() = 0;
@@ -110,12 +115,11 @@ class InternalRunnable : private boost::noncopyable,
 
  private:
   std::atomic<bool> run_{false};
-  std::string name_;
 };
 
 /// An internal runnable used throughout osquery as dispatcher services.
 using InternalRunnableRef = std::shared_ptr<InternalRunnable>;
-using InternalThreadRef = std::shared_ptr<std::thread>;
+using InternalThreadRef = std::unique_ptr<std::thread>;
 
 /**
  * @brief Singleton for queuing asynchronous tasks to be executed in parallel
@@ -126,6 +130,7 @@ using InternalThreadRef = std::shared_ptr<std::thread>;
  */
 class Dispatcher : private boost::noncopyable {
  public:
+  virtual ~Dispatcher();
   /**
    * @brief The primary way to access the Dispatcher factory facility.
    *
@@ -155,7 +160,6 @@ class Dispatcher : private boost::noncopyable {
    * Dispatcher's constructor is private.
    */
   Dispatcher() = default;
-  virtual ~Dispatcher() = default;
 
  private:
   /// When a service ends, it will remove itself from the dispatcher.

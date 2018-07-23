@@ -21,8 +21,6 @@
 #define OLD_ASL_API
 #endif
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 namespace tables {
 

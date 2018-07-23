@@ -46,6 +46,7 @@ void InterruptableRunnable::pauseMilli(std::chrono::milliseconds milli) {
 
 void InternalRunnable::run() {
   run_ = true;
+  setThreadName(name());
   start();
 
   // The service is complete.
@@ -74,7 +75,7 @@ Status Dispatcher::addService(InternalRunnableRef service) {
     return Status(1, "Cannot add service, dispatcher is stopping");
   }
 
-  auto thread = std::make_shared<std::thread>(
+  auto thread = std::make_unique<std::thread>(
       std::bind(&InternalRunnable::run, &*service));
 
   DLOG(INFO) << "Adding new service: " << service->name() << " ("
@@ -143,6 +144,11 @@ void Dispatcher::joinServices() {
 
   self.stopping_ = false;
   DLOG(INFO) << "Services and threads have been cleared";
+}
+
+Dispatcher::~Dispatcher() {
+  stopServices();
+  joinServices();
 }
 
 void Dispatcher::stopServices() {

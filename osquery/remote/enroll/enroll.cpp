@@ -21,8 +21,6 @@
 
 #include "osquery/core/process.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 /// At startup, always do a new enrollment instead of using a cached one

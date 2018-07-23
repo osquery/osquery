@@ -14,7 +14,6 @@
 #pragma warning(push, 3)
 #pragma warning(disable : 4715)
 #endif
-#include <boost/property_tree/json_parser.hpp>
 #ifdef WIN32
 #pragma warning(pop)
 #endif
@@ -24,7 +23,6 @@
 #include <osquery/tables.h>
 
 namespace fs = boost::filesystem;
-namespace pt = boost::property_tree;
 
 namespace osquery {
 namespace tables {

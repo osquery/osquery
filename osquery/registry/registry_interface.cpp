@@ -15,13 +15,6 @@
 #include "osquery/core/conversions.h"
 
 namespace osquery {
-
-/// Helper alias for upgrade locking a mutex.
-using UpgradeLock = boost::upgrade_lock<Mutex>;
-
-/// Helper alias for write locking an upgrade lock.
-using WriteUpgradeLock = boost::upgrade_to_unique_lock<Mutex>;
-
 void RegistryInterface::remove(const std::string& item_name) {
   if (items_.count(item_name) > 0) {
     items_[item_name]->tearDown();

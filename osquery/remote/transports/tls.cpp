@@ -174,7 +174,7 @@ static auto getClient() {
       tl_client = client = std::make_shared<http::Client>();
 
       if (FLAGS_tls_session_timeout > 0) {
-        thread_local boost::asio::deadline_timer tl_timer(IOService::get());
+        thread_local boost::asio::deadline_timer tl_timer(IOContext::get());
 
         tl_timer.expires_from_now(
             boost::posix_time::seconds(FLAGS_tls_session_timeout));

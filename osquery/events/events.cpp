@@ -438,9 +438,6 @@ Status EventSubscriberPlugin::recordEvents(
 
   DatabaseStringValueList database_data;
   database_data.reserve(event_id_list.size());
-  if (database_data.capacity() != event_id_list.size()) {
-    return Status(1, "Memory allocation error");
-  }
 
   std::string index_key = "indexes." + dbNamespace() + ".60";
   std::string record_key = "records." + dbNamespace() + ".60.";
@@ -590,15 +587,9 @@ Status EventSubscriberPlugin::addBatch(std::vector<Row>& row_list,
                                        EventTime custom_event_time) {
   DatabaseStringValueList database_data;
   database_data.reserve(row_list.size());
-  if (database_data.capacity() != row_list.size()) {
-    return Status(1, "Memory allocation error");
-  }
 
   std::vector<std::string> event_id_list;
   event_id_list.reserve(row_list.size());
-  if (event_id_list.capacity() != row_list.size()) {
-    return Status(1, "Memory allocation error");
-  }
 
   auto event_time = custom_event_time != 0 ? custom_event_time : getUnixTime();
   auto event_time_str = std::to_string(event_time);
@@ -797,6 +788,7 @@ Status EventFactory::run(const std::string& type_id) {
   } else if (publisher->hasStarted()) {
     return Status(1, "Cannot restart an event publisher");
   }
+  setThreadName(publisher->name());
   VLOG(1) << "Starting event publisher run loop: " + type_id;
   publisher->hasStarted(true);
 

@@ -172,9 +172,6 @@ Status DatabasePlugin::call(const PluginRequest& request,
 
     DatabaseStringValueList data;
     data.reserve(json_object_list.MemberCount());
-    if (data.capacity() != json_object_list.MemberCount()) {
-      return Status(1, "Memory allocation failure");
-    }
 
     for (auto& item : json_object_list) {
       if (!item.value.IsString()) {

@@ -221,19 +221,19 @@ GTEST_TEST(ExpectedTest, take_value_from_expected_with_error) {
 #endif
 }
 
-GTEST_TEST(ExpectedTest, value__get_or) {
+GTEST_TEST(ExpectedTest, value__getOr) {
   const auto expectedValue = Expected<int, TestError>(225);
-  EXPECT_EQ(expectedValue.get_or(29), 225);
-  EXPECT_EQ(expectedValue.get_or(-29), 225);
+  EXPECT_EQ(expectedValue.getOr(29), 225);
+  EXPECT_EQ(expectedValue.getOr(-29), 225);
 }
 
-GTEST_TEST(ExpectedTest, error__get_or) {
+GTEST_TEST(ExpectedTest, error__getOr) {
   const auto err = Expected<int, TestError>(TestError::Semantic, "message");
-  EXPECT_EQ(err.get_or(37), 37);
-  EXPECT_EQ(err.get_or(-59), -59);
+  EXPECT_EQ(err.getOr(37), 37);
+  EXPECT_EQ(err.getOr(-59), -59);
 }
 
-GTEST_TEST(ExpectedTest, value__take_or) {
+GTEST_TEST(ExpectedTest, value__takeOr) {
   const auto text = std::string{"some text"};
   auto callable = [&text]() -> Expected<std::string, TestError> {
     return text;
@@ -241,16 +241,16 @@ GTEST_TEST(ExpectedTest, value__take_or) {
   auto expected = callable();
   EXPECT_EQ(expected ? expected.take() : std::string{"default text"}, text);
 
-  EXPECT_EQ(callable().take_or(std::string{"default text"}), text);
+  EXPECT_EQ(callable().takeOr(std::string{"default text"}), text);
 }
 
-GTEST_TEST(ExpectedTest, error__take_or) {
+GTEST_TEST(ExpectedTest, error__takeOr) {
   auto expected =
       Expected<std::string, TestError>(TestError::Semantic, "error message");
-  EXPECT_EQ(expected.take_or(std::string{"default text"}), "default text");
+  EXPECT_EQ(expected.takeOr(std::string{"default text"}), "default text");
 }
 
-GTEST_TEST(ExpectedTest, error__take_or_with_user_defined_class) {
+GTEST_TEST(ExpectedTest, error__takeOr_with_user_defined_class) {
   class SomeTestClass {
    public:
     explicit SomeTestClass(const std::string& prefix, const std::string& sufix)
@@ -261,7 +261,7 @@ GTEST_TEST(ExpectedTest, error__take_or_with_user_defined_class) {
   auto callable = []() -> Expected<SomeTestClass, TestError> {
     return createError(TestError::Semantic, "error message");
   };
-  EXPECT_EQ(callable().take_or(SomeTestClass("427 BC", "347 BC")).text,
+  EXPECT_EQ(callable().takeOr(SomeTestClass("427 BC", "347 BC")).text,
             "427 BC - 347 BC");
 }
 
