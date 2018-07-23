@@ -260,7 +260,6 @@ ExtensionManagerRunner::~ExtensionManagerRunner() {
 }
 
 void ExtensionManagerRunner::start() {
-  setThreadName(name());
   init(0, true);
 
   VLOG(1) << "Extension manager service starting: " << path_;

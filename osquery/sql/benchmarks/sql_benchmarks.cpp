@@ -249,7 +249,7 @@ static void SQL_virtual_table_internal_wide(benchmark::State& state) {
   attachTableInternal(
       "wide_benchmark", columnDefinition(res, false, false), dbc, false);
 
-  kWideCount = state.range_y();
+  kWideCount = state.range(1);
   while (state.KeepRunning()) {
     QueryData results;
     queryInternal("select * from wide_benchmark", results, dbc);
@@ -276,7 +276,7 @@ static void SQL_virtual_table_internal_wide_yield(benchmark::State& state) {
   attachTableInternal(
       "wide_benchmark_yield", columnDefinition(res, false, false), dbc, false);
 
-  kWideCount = state.range_y();
+  kWideCount = state.range(1);
   while (state.KeepRunning()) {
     QueryData results;
     queryInternal("select * from wide_benchmark_yield", results, dbc);
