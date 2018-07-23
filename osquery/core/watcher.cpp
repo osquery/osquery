@@ -196,6 +196,7 @@ bool WatcherRunner::ok() const {
 }
 
 void WatcherRunner::start() {
+  setThreadName(name());
   // Hold the current process (watcher) for inspection too.
   auto& watcher = Watcher::get();
   auto self = PlatformProcess::getCurrentProcess();
@@ -629,6 +630,7 @@ void WatcherRunner::createExtension(const std::string& extension) {
 }
 
 void WatcherWatcherRunner::start() {
+  setThreadName(name());
   while (!interrupted()) {
     if (isLauncherProcessDead(*watcher_)) {
       // Watcher died, the worker must follow.
