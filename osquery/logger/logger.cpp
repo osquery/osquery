@@ -326,9 +326,7 @@ void initLogger(const std::string& name) {
   BufferedLogSink::get().disable();
   BufferedLogSink::get().resetPlugins();
 
-  bool forward = false;
   PluginRequest init_request = {{"init", name}};
-  PluginRequest features_request = {{"action", "features"}};
   auto logger_plugin = RegistryFactory::get().getActive("logger");
   // Allow multiple loggers, make sure each is accessible.
   for (const auto& logger : osquery::split(logger_plugin, ",")) {
@@ -337,22 +335,14 @@ void initLogger(const std::string& name) {
     }
 
     Registry::call("logger", logger, init_request);
-    auto status = Registry::call("logger", logger, features_request);
-    if ((status.getCode() & LOGGER_FEATURE_LOGSTATUS) > 0) {
-      // Glog status logs are forwarded to logStatus.
-      forward = true;
       // To support multiple plugins we only add the names of plugins that
       // return a success status after initialization.
       BufferedLogSink::get().addPlugin(logger);
-    }
-
   }
 
-  if (forward) {
     // Begin forwarding after all plugins have been set up.
     BufferedLogSink::get().enable();
     relayStatusLogs(true);
-  }
 }
 
 BufferedLogSink& BufferedLogSink::get() {
@@ -479,10 +469,6 @@ Status LoggerPlugin::call(const PluginRequest& request,
   } else if (request.count("status") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     return this->logStatus(intermediate_logs);
-  } else if (request.count("action") && request.at("action") == "features") {
-    size_t features = 0;
-    features |= (usesLogStatus()) ? LOGGER_FEATURE_LOGSTATUS : 0;
-    return Status(static_cast<int>(features));
   } else {
     return Status(1, "Unsupported call to logger plugin");
   }

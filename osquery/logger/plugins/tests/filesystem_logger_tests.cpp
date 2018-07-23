@@ -88,10 +88,6 @@ class FilesystemTestLoggerPlugin : public LoggerPlugin {
     return Status(0, "OK");
   }
 
-  bool usesLogStatus() override {
-    return true;
-  }
-
  protected:
   void init(const std::string& binary_name,
             const std::vector<StatusLogLine>& log) override {}

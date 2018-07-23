@@ -71,22 +71,6 @@ struct StatusLogLine {
 };
 
 /**
- * @brief Logger plugin feature bits for complicated loggers.
- *
- * Logger plugins may opt-in to additional features like explicitly handling
- * Glog status events or requesting event subscribers to forward each event
- * directly to the logger. This enumeration tracks, and corresponds to, each
- * of the feature methods defined in a logger plugin.
- *
- * A specific registry call action can be used to retrieve an overloaded Status
- * object containing all of the opt-in features.
- */
-enum LoggerFeatures {
-  LOGGER_FEATURE_BLANK = 0,
-  LOGGER_FEATURE_LOGSTATUS = 1
-};
-
-/**
  * @brief Helper logging macro for table-generated verbose log lines.
  *
  * Since logging in tables does not always mean a critical warning or error
@@ -145,19 +129,6 @@ class LoggerPlugin : public Plugin {
   Status call(const PluginRequest& request, PluginResponse& response) override;
 
   /**
-   * @brief A feature method to decide if Glog should stop handling statuses.
-   *
-   * Return true if this logger plugin's #logStatus method should handle Glog
-   * statuses exclusively. If true then Glog will stop writing status lines
-   * to the configured log path.
-   *
-   * @return false if this logger plugin should NOT handle Glog statuses.
-   */
-  virtual bool usesLogStatus() {
-    return false;
-  }
-
-  /**
    * @brief Set the process name.
    */
   void setProcessName(const std::string& name) {
@@ -182,7 +153,7 @@ class LoggerPlugin : public Plugin {
   virtual Status logString(const std::string& s) = 0;
 
   /**
-   * @brief See the usesLogStatus method, log a Glog status.
+   * @brief log a Glog status.
    *
    * @param log A vector of parsed Glog log lines.
    * @return Status non-op indicating success or failure.

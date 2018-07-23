@@ -21,9 +21,6 @@ DECLARE_bool(disable_logging);
 
 class DummyLoggerPlugin : public LoggerPlugin {
  public:
-  bool usesLogStatus() override {
-    return true;
-  }
 
  protected:
   Status logString(const std::string& s) override {
