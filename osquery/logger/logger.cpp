@@ -469,8 +469,6 @@ Status LoggerPlugin::call(const PluginRequest& request,
   } else if (request.count("status") > 0) {
     deserializeIntermediateLog(request, intermediate_logs);
     return this->logStatus(intermediate_logs);
-  } else if (request.count("event") > 0) {
-    return this->logEvent(request.at("event"));
   } else {
     return Status(1, "Unsupported call to logger plugin");
   }
