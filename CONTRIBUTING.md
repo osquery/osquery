@@ -4,7 +4,7 @@ In order to accept your pull request, we need you to submit a CLA. You only need
 
 Complete your CLA here: <https://code.facebook.com/cla>
 
-By contributing to osquery, you agree that your contributions will be licensed under both the `LICENSE` file and the `COPYING` file in the root directory of this source tree.
+By contributing to osquery you agree that your contributions will be licensed as defined on the [LICENSE](LICENSE) file.
 
 ## Guidelines for contributing features to osquery core
 
