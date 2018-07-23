@@ -12,14 +12,12 @@
 
 #include <limits.h>
 
-#include <memory>
-#include <set>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
+#include <boost/core/demangle.hpp>
 
 #include <osquery/expected.h>
 #include <osquery/logger.h>
@@ -30,30 +28,6 @@
 #endif
 
 namespace osquery {
-
-template <typename T>
-void do_release_boost(typename boost::shared_ptr<T> const&, T*) {}
-
-/**
- * @brief Convert a boost::shared_ptr to a std::shared_ptr
- */
-template <typename T>
-typename std::shared_ptr<T> boost_to_std_shared_ptr(
-    typename boost::shared_ptr<T> const& p) {
-  return std::shared_ptr<T>(p.get(), boost::bind(&do_release_boost<T>, p, _1));
-}
-
-template <typename T>
-void do_release_std(typename std::shared_ptr<T> const&, T*) {}
-
-/**
- * @brief Convert a std::shared_ptr to a boost::shared_ptr
- */
-template <typename T>
-typename boost::shared_ptr<T> std_to_boost_shared_ptr(
-    typename std::shared_ptr<T> const& p) {
-  return boost::shared_ptr<T>(p.get(), boost::bind(&do_release_std<T>, p, _1));
-}
 
 /**
  * @brief Split a given string based on an optional delimiter.
@@ -80,27 +54,6 @@ std::vector<std::string> split(const std::string& s,
 std::vector<std::string> split(const std::string& s,
                                char delim,
                                size_t occurences);
-
-/**
- * @brief In-line replace all instances of from with to.
- *
- * @param str The input/output mutable string.
- * @param from Search string
- * @param to Replace string
- */
-inline void replaceAll(std::string& str,
-                       const std::string& from,
-                       const std::string& to) {
-  if (from.empty()) {
-    return;
-  }
-
-  size_t start_pos = 0;
-  while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-    str.replace(start_pos, from.length(), to);
-    start_pos += to.length();
-  }
-}
 
 /**
  * @brief Join a vector of strings inserting a token string between elements
@@ -170,20 +123,6 @@ inline Status safeStrtoll(const std::string& rep, size_t base, long long& out) {
   out = strtoll(rep.c_str(), &end, static_cast<int>(base));
   if (end == nullptr || end == rep.c_str() || *end != '\0' ||
       ((out == LLONG_MIN || out == LLONG_MAX) && errno == ERANGE)) {
-    out = 0;
-    return Status(1);
-  }
-  return Status(0);
-}
-
-/// Safely convert a string representation of an integer base.
-inline Status safeStrtoull(const std::string& rep,
-                           size_t base,
-                           unsigned long long& out) {
-  char* end{nullptr};
-  out = strtoull(rep.c_str(), &end, static_cast<int>(base));
-  if (end == nullptr || end == rep.c_str() || *end != '\0' ||
-      (out == ULLONG_MAX && errno == ERANGE)) {
     out = 0;
     return Status(1);
   }

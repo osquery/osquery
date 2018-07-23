@@ -23,8 +23,9 @@
 #endif
 #endif
 
+#include <boost/core/ignore_unused.hpp>
 #include <boost/coroutine2/coroutine.hpp>
-#include <boost/lexical_cast.hpp>
+#include <boost/optional.hpp>
 
 #include <osquery/core.h>
 #include <osquery/plugin.h>
@@ -62,19 +63,43 @@ class Status;
  */
 template <typename Type>
 inline std::string __sqliteField(const Type& source) noexcept {
-  std::string dest;
-  if (!boost::conversion::try_lexical_convert(source, dest)) {
-    return SQL_NULL_RESULT;
-  }
-  return dest;
+  return std::to_string(source);
+}
+
+template <size_t N>
+inline std::string __sqliteField(const char (&source)[N]) noexcept {
+  return std::string(source, N - 1U);
+}
+
+template <size_t N>
+inline std::string __sqliteField(const unsigned char (&source)[N]) noexcept {
+  return std::string(reinterpret_cast<const char*>(source), N - 1U);
+}
+
+inline std::string __sqliteField(const char* source) noexcept {
+  return std::string(source);
+}
+
+inline std::string __sqliteField(char* const source) noexcept {
+  return std::string(source);
+}
+
+inline std::string __sqliteField(const unsigned char* source) noexcept {
+  return std::string(reinterpret_cast<const char*>(source));
+}
+
+inline std::string __sqliteField(unsigned char* const source) noexcept {
+  return std::string(reinterpret_cast<char* const>(source));
+}
+
+inline std::string __sqliteField(const std::string& source) noexcept {
+  return source;
 }
 
 #ifdef WIN32
 // TEXT is also defined in windows.h, we should not re-define it
 #define SQL_TEXT(x) __sqliteField(x)
 #else
-// For everything except Windows, aldo define TEXT() to be compatible with
-// existing tables
 #define SQL_TEXT(x) __sqliteField(x)
 #define TEXT(x) __sqliteField(x)
 #endif
@@ -105,8 +130,6 @@ inline std::string __sqliteField(const Type& source) noexcept {
 #define UNSIGNED_BIGINT_LITERAL uint64_t
 /// See the literal type documentation for TEXT_LITERAL.
 #define DOUBLE_LITERAL double
-/// Cast an SQLite affinity type to the literal type.
-#define AS_LITERAL(literal, value) boost::lexical_cast<literal>(value)
 
 enum ColumnType {
   UNKNOWN_TYPE = 0,
@@ -384,14 +407,7 @@ struct ConstraintList : private boost::noncopyable {
 
   /// See ConstraintList::getAll, but as a selected literal type.
   template <typename T>
-  std::set<T> getAll(ConstraintOperator op) const {
-    std::set<T> literal_matches;
-    auto matches = getAll(op);
-    for (const auto& match : matches) {
-      literal_matches.insert(AS_LITERAL(T, match));
-    }
-    return literal_matches;
-  }
+  std::set<T> getAll(ConstraintOperator op) const;
 
   /// Constraint list accessor, types and operator.
   const std::vector<struct Constraint>& getAll() const {
@@ -759,6 +775,33 @@ class TablePlugin : public Plugin {
     return QueryData();
   }
 
+  /// Callback for DELETE statements
+  virtual QueryData delete_(QueryContext& context,
+                            const PluginRequest& request) {
+    boost::ignore_unused(context);
+    boost::ignore_unused(request);
+
+    return {{std::make_pair("status", "readonly")}};
+  }
+
+  /// Callback for INSERT statements
+  virtual QueryData insert(QueryContext& context,
+                           const PluginRequest& request) {
+    boost::ignore_unused(context);
+    boost::ignore_unused(request);
+
+    return {{std::make_pair("status", "readonly")}};
+  }
+
+  /// Callback for UPDATE statements
+  virtual QueryData update(QueryContext& context,
+                           const PluginRequest& request) {
+    boost::ignore_unused(context);
+    boost::ignore_unused(request);
+
+    return {{std::make_pair("status", "readonly")}};
+  }
+
   /**
    * @brief Generate a table representation by yielding each row.
    *
@@ -791,7 +834,7 @@ class TablePlugin : public Plugin {
 
  protected:
   /// An SQL table containing the table definition/syntax.
-  std::string columnDefinition() const;
+  std::string columnDefinition(bool is_extension = false) const;
 
   /// Return the name and column pairs for attaching virtual tables.
   PluginResponse routeInfo() const override;
@@ -908,6 +951,7 @@ class TablePlugin : public Plugin {
  private:
   friend class RegistryFactory;
   FRIEND_TEST(VirtualTableTests, test_tableplugin_columndefinition);
+  FRIEND_TEST(VirtualTableTests, test_extension_tableplugin_columndefinition);
   FRIEND_TEST(VirtualTableTests, test_tableplugin_statement);
   FRIEND_TEST(VirtualTableTests, test_indexing_costs);
   FRIEND_TEST(VirtualTableTests, test_table_results_cache);
@@ -915,11 +959,13 @@ class TablePlugin : public Plugin {
 };
 
 /// Helper method to generate the virtual table CREATE statement.
-std::string columnDefinition(const TableColumns& columns);
+std::string columnDefinition(const TableColumns& columns,
+                             bool is_extension = false);
 
 /// Helper method to generate the virtual table CREATE statement.
 std::string columnDefinition(const PluginResponse& response,
-                             bool aliases = false);
+                             bool aliases = false,
+                             bool is_extension = false);
 
 /// Get the string representation for an SQLite column type.
 inline const std::string& columnTypeName(ColumnType type) {

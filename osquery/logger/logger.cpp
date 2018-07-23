@@ -34,7 +34,6 @@
 #include "osquery/core/flagalias.h"
 #include "osquery/core/json.h"
 
-namespace pt = boost::property_tree;
 namespace rj = rapidjson;
 
 namespace osquery {

@@ -16,12 +16,12 @@
 #include <Security/CodeSigning.h>
 
 #include <osquery/core.h>
-#include <osquery/core/conversions.h>
 #include <osquery/filesystem.h>
 #include <osquery/logger.h>
 #include <osquery/sql.h>
 #include <osquery/tables.h>
 
+#include "osquery/core/conversions.h"
 #include "osquery/tables/system/darwin/keychain.h"
 
 namespace osquery {
@@ -31,19 +31,12 @@ namespace tables {
 std::set<std::string> kCheckedArches{"", "i386", "ppc", "arm", "x86_64"};
 
 int getOSMinorVersion() {
-  using boost::lexical_cast;
-  using boost::bad_lexical_cast;
-
   auto qd = SQL::selectAllFrom("os_version");
   if (qd.size() != 1) {
     return -1;
   }
 
-  try {
-    return lexical_cast<int>(qd.front().at("minor"));
-  } catch (const bad_lexical_cast& e) {
-    return -1;
-  }
+  return tryTo<int>(qd.front().at("minor")).take_or(-1);
 }
 
 // Get the flags to pass to SecStaticCodeCheckValidityWithErrors, depending on
@@ -164,15 +157,16 @@ Status genSignatureForFileAndArch(const std::string& path,
     // Get the CDHash bytes
     std::stringstream ss;
     auto bytes = CFDataGetBytePtr(hashInfo);
-    if (bytes != nullptr && CFDataGetLength(hashInfo) > 0) {
+    auto bytes_length = static_cast<size_t>(CFDataGetLength(hashInfo));
+    if (bytes != nullptr && bytes_length > 0) {
       // Write bytes as hex strings
-      for (size_t n = 0; n < CFDataGetLength(hashInfo); n++) {
+      for (size_t n = 0; n < bytes_length; n++) {
         ss << std::hex << std::setfill('0') << std::setw(2);
         ss << (unsigned int)bytes[n];
       }
       r["cdhash"] = ss.str();
     }
-    if (r["cdhash"].length() != CFDataGetLength(hashInfo) * 2) {
+    if (r["cdhash"].length() != bytes_length * 2) {
       VLOG(1) << "Error extracting code directory hash";
       r["cdhash"] = "";
     }

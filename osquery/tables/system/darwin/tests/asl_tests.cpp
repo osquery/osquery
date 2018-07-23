@@ -23,8 +23,6 @@
 #include "osquery/tables/system/darwin/asl_utils.h"
 #include "osquery/tests/test_util.h"
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 namespace tables {
 

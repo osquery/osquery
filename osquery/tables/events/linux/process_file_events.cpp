@@ -1183,9 +1183,6 @@ Status ProcessFileEventSubscriber::ProcessEvents(
   emitted_row_list.clear();
 
   emitted_row_list.reserve(event_list.size());
-  if (emitted_row_list.capacity() != event_list.size()) {
-    return Status(1, "Memory allocation error");
-  }
 
   auto L_ShouldHandle = [](std::uint64_t syscall_number) -> bool {
     const auto& syscall_set = ProcessFileEventSubscriber::GetSyscallSet();

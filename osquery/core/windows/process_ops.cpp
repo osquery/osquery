@@ -24,47 +24,30 @@ std::string psidToString(PSID sid) {
 }
 
 int getUidFromSid(PSID sid) {
-  auto eUse = SidTypeUnknown;
-  unsigned long unameSize = 0;
-  unsigned long domNameSize = 1;
-
-  // LookupAccountSid first gets the size of the username buff required.
-  LookupAccountSidW(
-      nullptr, sid, nullptr, &unameSize, nullptr, &domNameSize, &eUse);
-  std::vector<wchar_t> uname(unameSize);
-  std::vector<wchar_t> domName(domNameSize);
-  auto ret = LookupAccountSidW(nullptr,
-                               sid,
-                               uname.data(),
-                               &unameSize,
-                               domName.data(),
-                               &domNameSize,
-                               &eUse);
-
-  if (ret == 0) {
-    return -1;
-  }
-  // USER_INFO_3 struct contains the RID (uid) of our user
-  unsigned long userInfoLevel = 3;
-  unsigned char* userBuff = nullptr;
   unsigned long uid = -1;
-  ret = NetUserGetInfo(nullptr, uname.data(), userInfoLevel, &userBuff);
-  if (ret != NERR_Success && ret != NERR_UserNotFound) {
+  LPTSTR sidString;
+  if (ConvertSidToStringSid(sid, &sidString) == 0) {
+    VLOG(1) << "getUidFromSid failed ConvertSidToStringSid error " +
+                   std::to_string(GetLastError());
+    LocalFree(sidString);
+    return uid;
+  }
+  auto toks = osquery::split(sidString, "-");
+
+  if (toks.size() < 1) {
+    LocalFree(sidString);
     return uid;
   }
 
-  // SID belongs to a domain user, so we return the relative identifier (RID)
-  if (ret == NERR_UserNotFound) {
-    LPTSTR sidString;
-    ConvertSidToStringSid(sid, &sidString);
-    auto toks = osquery::split(sidString, "-");
-    safeStrtoul(toks.at(toks.size() - 1), 10, uid);
+  auto ret = safeStrtoul(toks.at(toks.size() - 1), 10, uid);
+
+  if (!ret.ok()) {
     LocalFree(sidString);
-  } else if (ret == NERR_Success) {
-    uid = LPUSER_INFO_3(userBuff)->usri3_user_id;
+    VLOG(1) << "getUidFromSid failed with safeStrtoul failed to parse PSID";
+    return uid;
   }
 
-  NetApiBufferFree(userBuff);
+  LocalFree(sidString);
   return uid;
 }
 
@@ -101,6 +84,7 @@ int getGidFromSid(PSID sid) {
     auto toks = osquery::split(sidString, "-");
     safeStrtoul(toks.at(toks.size() - 1), 10, gid);
     LocalFree(sidString);
+
   } else if (ret == NERR_Success) {
     gid = LPUSER_INFO_3(userBuff)->usri3_primary_group_id;
   }

@@ -23,7 +23,7 @@ set(OSQUERY_BENCHMARKS "")
 # The 'additional' source files are NOT included with SDK (libosquery_additional).
 set(OSQUERY_ADDITIONAL_SOURCES "")
 
-# Temporary hack for additional library, this library is sourceless 
+# Temporary hack for additional library, this library is sourceless
 # so for some reason CMake adds "rm -f" as PostBuild step to XCode project
 if(CMAKE_GENERATOR STREQUAL Xcode)
   set(OSQUERY_ADDITIONAL_SOURCES main/empty.cpp)
@@ -93,6 +93,8 @@ include(events/CMakeLists.txt)
 include(extensions/CMakeLists.txt)
 include(filesystem/CMakeLists.txt)
 include(logger/CMakeLists.txt)
+
+include(killswitch/CMakeLists.txt)
 include(registry/CMakeLists.txt)
 include(sql/CMakeLists.txt)
 include(remote/CMakeLists.txt)

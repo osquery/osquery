@@ -13,8 +13,6 @@
 
 #include <cassert>
 
-#include <iostream>
-
 namespace osquery {
 
 constexpr int Status::kSuccessCode;

@@ -20,8 +20,6 @@
 #include <osquery/events.h>
 #include <osquery/filesystem.h>
 
-namespace pt = boost::property_tree;
-
 namespace osquery {
 
 /// The following codes are specifically for checking whether the child worker
