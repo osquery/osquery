@@ -307,7 +307,7 @@ void genProcArch(QueryContext& context, int pid, Row& r) {
   };
   // 19 is the flavor for this API call. It is normally used by Apple code
   // under the constant PROC_PIDARCHINFO but is unexported
-  int status = proc_pidinfo(pid, 19, 0, &archinfo, sizeof(archinfo));
+  size_t status = proc_pidinfo(pid, 19, 0, &archinfo, sizeof(archinfo));
   if (status == sizeof(archinfo)) {
     r["cpu_type"] = INTEGER(archinfo.p_cputype);
     r["cpu_subtype"] = INTEGER(archinfo.p_cpusubtype);
