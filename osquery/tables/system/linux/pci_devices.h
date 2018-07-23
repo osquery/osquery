@@ -84,6 +84,18 @@ class PciDB {
                           const std::string& subsystem_device_id,
                           std::string& subsystem);
 
+ private:
+  /**
+   * @brief retrieves PciVendor structure of database for custom work.
+   *
+   * @param vendor_id ID of the vendor
+   * @param predicate work function with vendor pass as param.
+   *
+   * @return an instance of Status, indicating success or failure.
+   */
+  Status vendor(const std::string& vendor_id,
+                std::function<Status(const PciVendor&)> predicate);
+
  public:
   PciDB(std::istream& db_filestream);
 

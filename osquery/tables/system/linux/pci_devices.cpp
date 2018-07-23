@@ -40,7 +40,9 @@ PciDB::PciDB(std::istream& db_filestream) {
   // sequentially so we keep track of what the current vendor and models are.
   std::string cur_vendor, cur_model, line;
   while (std::getline(db_filestream, line)) {
-    if (line.size() < 7 || line.at(0) == '\n' || line.at(0) == '#') {
+    line = line.substr(0, line.find_first_of('#'));
+    boost::trim_right(line);
+    if (line.size() < 7) {
       continue;
     }
 
@@ -56,7 +58,7 @@ PciDB::PciDB(std::istream& db_filestream) {
       }
 
       // Setup current vendor.
-      auto vendor = PciVendor();
+      auto& vendor = db_[cur_vendor];
       vendor.id = cur_vendor;
       // Bump 2 chars to account for whitespace separation..
       vendor.name = line.substr(6);
@@ -65,17 +67,18 @@ PciDB::PciDB(std::istream& db_filestream) {
       break;
     }
 
-    case 1:
+    case 1: {
       // Model info.
-      if (db_.find(cur_vendor) != db_.end() && line.size() > 7) {
+      auto vendor = db_.find(cur_vendor);
+      if (vendor != db_.end() && line.size() > 7) {
         cur_model = line.substr(1, 4);
 
         // Set up current model under the current vendor.
-        auto model = PciModel();
+        auto& model = db_[cur_vendor].models[cur_model];
         model.id = cur_model;
         // Bump 2 chars to account for whitespace separation.
         model.desc = line.substr(7);
-        db_[cur_vendor].models[cur_model] = model;
+        vendor->second.models[cur_model] = model;
 
       } else {
         VLOG(1) << "Unexpected error while parsing pci.ids: current vendor ID "
@@ -83,24 +86,33 @@ PciDB::PciDB(std::istream& db_filestream) {
       }
 
       break;
+    }
 
-    case 2:
+    case 2: {
       // Subsystem info;
-      if (db_.find(cur_vendor) != db_.end() &&
-          db_[cur_vendor].models.find(cur_model) !=
-              db_[cur_vendor].models.end() &&
-          line.size() > 11) {
-        // Store current subsystem information under current vendor and model.
-        db_[cur_vendor].models[cur_model].subsystemInfo[line.substr(2, 9)] =
-            line.substr(13);
-
-      } else {
+      auto vendor = db_.find(cur_vendor);
+      if (vendor == db_.end()) {
         VLOG(1) << "Unexpected error while parsing pci.ids: current vendor ID "
-                << cur_vendor << " or model ID " << cur_model
-                << " does not exist in DB yet";
+                << cur_vendor << "does not exist in DB yet";
+        continue;
+      }
+
+      auto model = vendor->second.models.find(cur_model);
+      if (model == vendor->second.models.end()) {
+        VLOG(1) << "Unexpected error while parsing pci.ids: current model ID "
+                << cur_model << "does not exist in DB yet";
+        continue;
+      }
+
+      if (line.size() > 11) {
+        // Store current subsystem information under current vendor and model.
+        auto subsystemInfo = line.substr(11);
+        boost::trim(subsystemInfo);
+        model->second.subsystemInfo[line.substr(2, 9)] = subsystemInfo;
       }
 
       break;
+    }
 
     default:
       VLOG(1) << "Unexpected pci.ids line format";
@@ -108,26 +120,26 @@ PciDB::PciDB(std::istream& db_filestream) {
   }
 }
 
-Status PciDB::getVendorName(const std::string& vendor_id, std::string& vendor) {
-  if (db_.find(vendor_id) == db_.end()) {
-    return Status(1, "Vendor ID does not exist");
-  }
-
-  vendor = db_[vendor_id].name;
-  return Status(0, "OK");
+Status PciDB::getVendorName(const std::string& vendor_id, std::string& name) {
+  return vendor(vendor_id, [&](const PciVendor& v) {
+    name = v.name;
+    return Status::success();
+  });
 }
 
 Status PciDB::getModel(const std::string& vendor_id,
                        const std::string& model_id,
                        std::string& model) {
-  if (db_.find(vendor_id) == db_.end() ||
-      db_[vendor_id].models.find(model_id) == db_[vendor_id].models.end()) {
-    return Status(1, "Vendor ID or Model ID does not exist");
-  }
+  return vendor(vendor_id, [&](const PciVendor& v) {
+    auto model_it = v.models.find(model_id);
+    if (model_it == v.models.end()) {
+      return Status::failure("Model ID does not exist");
+    }
 
-  model = db_[vendor_id].models[model_id].desc;
+    model = model_it->second.desc;
 
-  return Status(0, "OK");
+    return Status::success();
+  });
 }
 
 Status PciDB::getSubsystemInfo(const std::string& vendor_id,
@@ -135,17 +147,34 @@ Status PciDB::getSubsystemInfo(const std::string& vendor_id,
                                const std::string& subsystem_vendor_id,
                                const std::string& subsystem_device_id,
                                std::string& subsystem) {
-  auto subsystem_id = subsystem_vendor_id + " " + subsystem_device_id;
+  return vendor(vendor_id, [&](const PciVendor& v) {
+    auto model_it = v.models.find(model_id);
+    if (model_it == v.models.end()) {
+      return Status::failure("Model ID does not exist");
+    }
 
-  if (db_[vendor_id].models[model_id].subsystemInfo.find(subsystem_id) ==
-      db_[vendor_id].models[model_id].subsystemInfo.end()) {
-    return Status(
-        1, "Subsystem ID does not exist in system pci.ids: " + subsystem_id);
+    auto subsystem_id = subsystem_vendor_id + " " + subsystem_device_id;
+
+    auto subsystem_it = model_it->second.subsystemInfo.find(subsystem_id);
+    if (subsystem_it == model_it->second.subsystemInfo.end()) {
+      return Status::failure("Subsystem ID does not exist in system pci.ids: " +
+                             subsystem_id);
+    }
+
+    subsystem = subsystem_it->second;
+
+    return Status::success();
+  });
+}
+
+Status PciDB::vendor(const std::string& vendor_id,
+                     std::function<Status(const PciVendor&)> predicate) {
+  auto vendor_it = db_.find(vendor_id);
+  if (vendor_it == db_.end()) {
+    return Status::failure("Vendor ID does not exist");
   }
 
-  subsystem = db_[vendor_id].models[model_id].subsystemInfo[subsystem_id];
-
-  return Status(0, "OK");
+  return predicate(vendor_it->second);
 }
 
 QueryData genPCIDevices(QueryContext& context) {
