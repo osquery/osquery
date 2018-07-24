@@ -11,6 +11,7 @@
 #include <fstream>
 #include <locale>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
@@ -62,7 +63,6 @@ PciDB::PciDB(std::istream& db_filestream) {
       vendor.id = cur_vendor;
       // Bump 2 chars to account for whitespace separation..
       vendor.name = line.substr(6);
-      db_[cur_vendor] = vendor;
 
       break;
     }
@@ -74,11 +74,10 @@ PciDB::PciDB(std::istream& db_filestream) {
         cur_model = line.substr(1, 4);
 
         // Set up current model under the current vendor.
-        auto& model = db_[cur_vendor].models[cur_model];
+        auto& model = vendor->second.models[cur_model];
         model.id = cur_model;
         // Bump 2 chars to account for whitespace separation.
         model.desc = line.substr(7);
-        vendor->second.models[cur_model] = model;
 
       } else {
         VLOG(1) << "Unexpected error while parsing pci.ids: current vendor ID "
@@ -121,25 +120,31 @@ PciDB::PciDB(std::istream& db_filestream) {
 }
 
 Status PciDB::getVendorName(const std::string& vendor_id, std::string& name) {
-  return vendor(vendor_id, [&](const PciVendor& v) {
-    name = v.name;
-    return Status::success();
-  });
+  auto vendor_it = db_.find(vendor_id);
+  if (vendor_it == db_.end()) {
+    return Status::failure("Vendor ID does not exist");
+  }
+
+  name = vendor_it->second.name;
+  return Status::success();
 }
 
 Status PciDB::getModel(const std::string& vendor_id,
                        const std::string& model_id,
                        std::string& model) {
-  return vendor(vendor_id, [&](const PciVendor& v) {
-    auto model_it = v.models.find(model_id);
-    if (model_it == v.models.end()) {
-      return Status::failure("Model ID does not exist");
-    }
+  auto vendor_it = db_.find(vendor_id);
+  if (vendor_it == db_.end()) {
+    return Status::failure("Vendor ID does not exist");
+  }
 
-    model = model_it->second.desc;
+  auto model_it = vendor_it->second.models.find(model_id);
+  if (model_it == vendor_it->second.models.end()) {
+    return Status::failure("Model ID does not exist");
+  }
 
-    return Status::success();
-  });
+  model = model_it->second.desc;
+
+  return Status::success();
 }
 
 Status PciDB::getSubsystemInfo(const std::string& vendor_id,
@@ -147,34 +152,27 @@ Status PciDB::getSubsystemInfo(const std::string& vendor_id,
                                const std::string& subsystem_vendor_id,
                                const std::string& subsystem_device_id,
                                std::string& subsystem) {
-  return vendor(vendor_id, [&](const PciVendor& v) {
-    auto model_it = v.models.find(model_id);
-    if (model_it == v.models.end()) {
-      return Status::failure("Model ID does not exist");
-    }
-
-    auto subsystem_id = subsystem_vendor_id + " " + subsystem_device_id;
-
-    auto subsystem_it = model_it->second.subsystemInfo.find(subsystem_id);
-    if (subsystem_it == model_it->second.subsystemInfo.end()) {
-      return Status::failure("Subsystem ID does not exist in system pci.ids: " +
-                             subsystem_id);
-    }
-
-    subsystem = subsystem_it->second;
-
-    return Status::success();
-  });
-}
-
-Status PciDB::vendor(const std::string& vendor_id,
-                     std::function<Status(const PciVendor&)> predicate) {
   auto vendor_it = db_.find(vendor_id);
   if (vendor_it == db_.end()) {
     return Status::failure("Vendor ID does not exist");
   }
 
-  return predicate(vendor_it->second);
+  auto model_it = vendor_it->second.models.find(model_id);
+  if (model_it == vendor_it->second.models.end()) {
+    return Status::failure("Model ID does not exist");
+  }
+
+  auto subsystem_id = subsystem_vendor_id + " " + subsystem_device_id;
+
+  auto subsystem_it = model_it->second.subsystemInfo.find(subsystem_id);
+  if (subsystem_it == model_it->second.subsystemInfo.end()) {
+    return Status::failure("Subsystem ID does not exist in system pci.ids: " +
+                           subsystem_id);
+  }
+
+  subsystem = subsystem_it->second;
+
+  return Status::success();
 }
 
 QueryData genPCIDevices(QueryContext& context) {
@@ -198,7 +196,8 @@ QueryData genPCIDevices(QueryContext& context) {
 
   std::ifstream raw(kPciIdsPath);
   if (raw.fail()) {
-    LOG(ERROR) << "failed to read " << kPciIdsPath;
+    LOG(ERROR) << "Unexpected error attempting to read pci.ids at path: "
+               << kPciIdsPath;
     return results;
   }
 
@@ -233,10 +232,7 @@ QueryData genPCIDevices(QueryContext& context) {
     auto device_id = UdevEventPublisher::getValue(device.get(), kPCIKeyID);
 
     // pci.ids lower cases everything, so we follow suit.
-    std::transform(device_id.begin(),
-                   device_id.end(),
-                   device_id.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
+    boost::algorithm::to_lower(device_id);
 
     boost::split(ids, device_id, boost::is_any_of(":"));
 
@@ -260,10 +256,7 @@ QueryData genPCIDevices(QueryContext& context) {
       auto subsystem_id =
           UdevEventPublisher::getValue(device.get(), kPCISubsysID);
 
-      std::transform(subsystem_id.begin(),
-                     subsystem_id.end(),
-                     subsystem_id.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
+      boost::algorithm::to_lower(subsystem_id);
 
       boost::split(subsystem_ids, subsystem_id, boost::is_any_of(":"));
 
