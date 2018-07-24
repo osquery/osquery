@@ -32,7 +32,7 @@ CLI_FLAG(bool, database_dump, false, "Dump the contents of the backing store");
 
 CLI_FLAG(string,
          database_path,
-         OSQUERY_DB_HOME "/osquery.db",
+         OSQUERY_DB_HOME "osquery.db",
          "If using a disk-based backing store, specify a path");
 FLAG_ALIAS(std::string, db_path, database_path);
 
