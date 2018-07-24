@@ -573,7 +573,7 @@ size_t queuedSenders() {
   return BufferedLogSink::get().senders.size();
 }
 
-void relayStatusLogs(bool async) {
+void relayStatusLogs(bool sync) {
   if (FLAGS_disable_logging || !DatabasePlugin::kDBInitialized) {
     // The logger plugins may not be setUp if logging is disabled.
     // If the database is not setUp, or is in a reset, status logs continue
@@ -618,7 +618,7 @@ void relayStatusLogs(bool async) {
     }
   });
 
-  if (async) {
+  if (sync) {
     sender();
   } else {
     std::packaged_task<void()> task(std::move(sender));
