@@ -285,12 +285,7 @@ void AuditEventPublisher::ProcessEvents(
     if (timestamp_it == timestamp_cache.end()) {
       std::string string_timestamp = audit_event_id.substr(0, 10);
 
-      long long int converted_value;
-      if (!safeStrtoll(string_timestamp, 10, converted_value)) {
-        event_timestamp = 0;
-      } else {
-        event_timestamp = static_cast<std::time_t>(converted_value);
-      }
+      event_timestamp = tryTo<long long>(string_timestamp).takeOr(0ll);
 
       timestamp_cache[audit_event_id] = event_timestamp;
 
@@ -345,15 +340,9 @@ bool GetIntegerFieldFromMap(std::uint64_t& value,
     value = default_value;
     return false;
   }
-
-  long long temp;
-  if (!safeStrtoll(string_value, base, temp)) {
-    value = default_value;
-    return false;
-  }
-
-  value = static_cast<std::uint64_t>(temp);
-  return true;
+  auto exp = tryTo<std::uint64_t>(string_value, base);
+  value = exp.getOr(default_value);
+  return !exp.isError();
 }
 
 void CopyFieldFromMap(Row& row,

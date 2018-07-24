@@ -52,11 +52,7 @@ FLAG(uint64, events_max, 50000, "Maximum number of events per type to buffer");
 
 static inline EventTime timeFromRecord(const std::string& record) {
   // Convert a stored index "as string bytes" to a time value.
-  long long afinite;
-  if (!safeStrtoll(record, 10, afinite)) {
-    return 0;
-  }
-  return afinite;
+  return static_cast<EventTime>(tryTo<long long>(record).takeOr(0ll));
 }
 
 static inline std::string toIndex(size_t i) {
@@ -82,17 +78,13 @@ static inline void getOptimizeData(EventTime& o_time,
   {
     std::string content;
     getDatabaseValue(kEvents, "optimize." + query_name, content);
-    long long optimize_time = 0;
-    safeStrtoll(content, 10, optimize_time);
-    o_time = static_cast<EventTime>(optimize_time);
+    o_time = timeFromRecord(content);
   }
 
   {
     std::string content;
     getDatabaseValue(kEvents, "optimize_eid." + query_name, content);
-    long long optimize_eid = 0;
-    safeStrtoll(content, 10, optimize_eid);
-    o_eid = static_cast<size_t>(optimize_eid);
+    o_eid = tryTo<std::size_t>(content).getOr(std::size_t{0});
   }
 }
 
