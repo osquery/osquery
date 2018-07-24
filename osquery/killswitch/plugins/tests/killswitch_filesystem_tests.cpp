@@ -23,7 +23,7 @@ class KillswitchFilesystemTests : public testing::Test {};
 
 TEST_F(KillswitchFilesystemTests, test_killswitch_filesystem_plugin) {
   KillswitchFilesystem plugin(kTestDataPath + "test_killswitch.conf");
-  plugin.refresh();
+  EXPECT_TRUE(plugin.refresh());
   {
     auto result = plugin.isEnabled("testSwitch");
     ASSERT_TRUE(result);
