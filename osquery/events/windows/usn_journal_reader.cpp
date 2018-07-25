@@ -19,6 +19,7 @@
 #include <osquery/flags.h>
 #include <osquery/logger.h>
 
+#include "osquery/core/utils.h"
 #include "osquery/core/windows/wmi.h"
 #include "osquery/events/windows/usn_journal_reader.h"
 
@@ -398,6 +399,82 @@ USNJournalReader::USNJournalReader(
 
 USNJournalReader::~USNJournalReader() {}
 
+Status USNJournalReader::query(std::string& name,
+                               USNFileReferenceNumber& parent_ref,
+                               const USNFileReferenceNumber& ref) const {
+  // The query we are going to perform only supports 64-bit reference numbers;
+  // the 128-bit
+  // ones are used when reading but they never actually use the high qword
+  FILE_ID_DESCRIPTOR native_file_id = {};
+  GetNativeFileIdFromUSNReference(native_file_id, ref);
+
+  DWORDLONG native_reference = 0U;
+  if (native_file_id.Type == FileIdType) {
+    native_reference = static_cast<DWORDLONG>(native_file_id.FileId.QuadPart);
+  } else {
+    const auto ref_ptr = reinterpret_cast<const DWORDLONG*>(
+        native_file_id.ExtendedFileId.Identifier);
+    native_reference = *ref_ptr;
+  }
+
+  // Attempt to get the USN record for the reference number we have been given
+  MFT_ENUM_DATA_V1 query = {};
+  query.StartFileReferenceNumber = native_reference;
+  query.HighUsn = std::numeric_limits<std::uint64_t>::max();
+  query.MinMajorVersion = 2U;
+  query.MaxMajorVersion = 3U;
+
+  std::uint8_t buffer[2048] = {};
+  DWORD bytes_read = 0U;
+
+  if (!DeviceIoControl(d->volume_handle,
+                       FSCTL_ENUM_USN_DATA,
+                       &query,
+                       sizeof(query),
+                       buffer,
+                       sizeof(buffer),
+                       &bytes_read,
+                       nullptr)) {
+    std::stringstream message;
+    message << "Failed to query the journal for volume '"
+            << d->journal_reader_context->drive_letter << "'. Error: ";
+
+    std::string description;
+    if (!getWindowsErrorDescription(description, GetLastError())) {
+      description = "Unknown error";
+    }
+
+    message << description;
+    return Status(1, message.str());
+  }
+
+  // Validate what we got and return the result to the caller
+  const auto usn_record =
+      reinterpret_cast<const USN_RECORD*>(buffer + sizeof(USN));
+  USNFileReferenceNumber current_ref = {};
+
+  if (!USNParsers::GetFileReferenceNumber(current_ref, usn_record)) {
+    return Status(
+        1, "Failed to acquire the file reference number from the record");
+  }
+
+  if (current_ref != ref) {
+    return Status(1, "The requested file reference number was not found");
+  }
+
+  if (!USNParsers::GetParentFileReferenceNumber(parent_ref, usn_record)) {
+    return Status(
+        1, "Failed to acquire the file reference number from the record");
+  }
+
+  if (!USNParsers::GetEventString(name, usn_record)) {
+    return Status(1, "Failed to acquire the file_name string from the record");
+  }
+
+  LOG(ERROR) << "ONE REQUEST HAS PASSED";
+  return Status(0);
+}
+
 // TODO(alessandro): Write a test for this
 Status USNJournalReader::DecompressRecord(
     std::vector<USNJournalEventRecord>& new_records,
@@ -518,16 +595,24 @@ void GetNativeFileIdFromUSNReference(FILE_ID_DESCRIPTOR& file_id,
                                      const USNFileReferenceNumber& ref) {
   std::vector<unsigned char> buffer;
   boostmp::export_bits(ref, std::back_inserter(buffer), 8);
-  assert(buffer.size() == sizeof(FILE_ID_128::Identifier));
+  assert(buffer.size() == sizeof(FILE_ID_128::Identifier) ||
+         buffer.size() == sizeof(std::uint64_t));
 
   file_id = {};
   file_id.dwSize = sizeof(FILE_ID_DESCRIPTOR);
-  file_id.Type = ExtendedFileIdType;
 
-  auto i = 0U;
-  for (const auto& b : buffer) {
-    file_id.ExtendedFileId.Identifier[i] = b;
-    i++;
+  if (buffer.size() == sizeof(std::uint64_t)) {
+    file_id.Type = FileIdType;
+
+    auto id_ptr = reinterpret_cast<const std::uint64_t*>(buffer.data());
+    file_id.FileId.QuadPart = *id_ptr;
+
+  } else {
+    file_id.Type = ExtendedFileIdType;
+
+    for (auto i = 0U; i < sizeof(FILE_ID_128::Identifier); i++) {
+      file_id.ExtendedFileId.Identifier[i] = buffer[i];
+    }
   }
 }
 

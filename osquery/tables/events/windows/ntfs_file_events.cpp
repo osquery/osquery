@@ -36,22 +36,20 @@ Status NTFSEventSubscriber::init() {
 void NTFSEventSubscriber::configure() {}
 
 Status NTFSEventSubscriber::Callback(const ECRef& ec, const SCRef& sc) {
-  // TODO(alessandro): remove this
-  std::stringstream path_list;
-  path_list << "New events: ";
+  std::stringstream stream;
 
-  for (const auto& p : ec->ref_to_path_map) {
-    const auto& ref = p.first;
-    const auto& path = p.second;
+  for (const auto& event : ec->event_list) {
+    stream.str();
 
-    path_list << path << ", ";
+    stream << "ntfs_file_events:\"" << event.type << "\" ";
+    stream << "parent_path:\"" << event.parent_path << "\" ";
+
+    if (!event.old_path.empty()) {
+      stream << "old_path:\"" << event.old_path << "\" ";
+    }
+
+    stream << "path:\"" << event.path << "\" ";
   }
-
-  path_list << std::endl;
-  std::cout << path_list.str();
-
-  std::vector<Row> emitted_row_list;
-  addBatch(emitted_row_list);
 
   return Status(0);
 }

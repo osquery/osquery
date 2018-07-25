@@ -176,6 +176,12 @@ class USNJournalReader final : public InternalRunnable {
   /// Destructor
   virtual ~USNJournalReader();
 
+  /// Queries the volume in order to get the node name for an unknown file
+  /// reference number
+  Status query(std::string& name,
+               USNFileReferenceNumber& parent_ref,
+               const USNFileReferenceNumber& ref) const;
+
   /// Decompresses the record by generating distinct events
   static Status DecompressRecord(
       std::vector<USNJournalEventRecord>& new_records,

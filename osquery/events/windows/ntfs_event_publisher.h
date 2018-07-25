@@ -32,15 +32,48 @@ struct NTFSEventSubscriptionContext final : public SubscriptionContext {
 using NTFSEventSubscriptionContextRef =
     std::shared_ptr<NTFSEventSubscriptionContext>;
 
+/// A single NTFS event record
+struct NTFSEventRecord final {
+  /// Event type
+  USNJournalEventRecord::Type type;
+
+  /// Parent path
+  std::string parent_path;
+
+  /// Path
+  std::string path;
+
+  /// Previous path (only valid for rename operations)
+  std::string old_path;
+
+  /// Event timestamp
+  std::time_t timestamp;
+
+  /// Node attributes
+  DWORD attributes;
+};
+
+/// This structure is used to save volume handles and reference ids
+struct VolumeData final {
+  /// Volume handle, used to perform journal queries
+  HANDLE volume_handle;
+
+  /// Root folder handle
+  HANDLE root_folder_handle;
+
+  /// This is the root folder reference number; we need it when walking
+  /// the file reference tree
+  USNFileReferenceNumber root_ref;
+};
+
+static_assert(std::is_move_constructible<NTFSEventRecord>::value,
+              "not move constructible");
+
 /// A file change event context can contain many file change descriptors,
 /// depending on how much data from the journal has been processed
 struct NTFSEventContext final : public EventContext {
-  /// This map contains the full paths for the references we found in
-  /// the USN journal records
-  std::unordered_map<USNFileReferenceNumber, std::string> ref_to_path_map;
-
   /// The list of events received from the USN journal
-  std::vector<USNJournalEventRecord> event_list;
+  std::vector<NTFSEventRecord> event_list;
 };
 
 using NTFSEventContextRef = std::shared_ptr<NTFSEventContext>;
@@ -71,47 +104,30 @@ class NTFSEventPublisher final
 
   /// Acquires new events from the reader service, firing new events to
   /// subscribers
-  std::vector<USNJournalEventRecord> acquireEvents();
-
-  /// Updates the components cache used for passive path resolution
-  void updatePathComponentCache(
-      const std::vector<USNJournalEventRecord>& event_list);
-
-  /// Takes ownership of the given event list and dispatches them to the
-  /// subscribers
-  void takeEventsAndNotifySuscribers(
-      std::vector<USNJournalEventRecord>& event_list);
+  std::vector<USNJournalEventRecord> acquireJournalRecords();
 
   /// Reads the configuration, saving the list of drives that need to be
   /// monitored
   NTFSEventPublisherConfiguration readConfiguration();
 
-  /// Builds a map (ref id -> path) used to dereference the paths in the event
-  void buildEventPathMap(NTFSEventContextRef event_context);
-
-  /// Attempts to fetch the path for the given referece number from the path
-  /// resolution cache
-  bool getPathFromResolutionCache(std::string& path,
-                                  const USNFileReferenceNumber& ref);
-
-  /// Attempts to resolve the path by using the cached path components
-  bool resolvePathFromComponentsCache(std::string& path,
-                                      const USNJournalEventRecord& record);
-
   /// Attempts to resolve the reference number into a full path
-  Status resolvePathFromFileReferenceNumber(std::string& path,
-                                            char drive_letter,
-                                            const USNFileReferenceNumber& ref);
+  Status getPathFromReferenceNumber(std::string& path,
+                                    char drive_letter,
+                                    const USNFileReferenceNumber& ref);
 
-  /// Returns a HANDLE for the specified drive
-  Status getDriveHandle(HANDLE& handle, char drive_letter);
+  /// Queries the volume in order to get the node name for an unknown file
+  /// reference number
+  Status queryVolumeJournal(std::string& name,
+                            USNFileReferenceNumber& parent_ref,
+                            char drive_letter,
+                            const USNFileReferenceNumber& ref);
+
+  /// Returns a VolumeData structure containing the volume handle and the
+  /// root folder reference number
+  Status getVolumeData(VolumeData& volume, char drive_letter);
 
   /// Releases the drive handle cache
   void releaseDriveHandleMap();
-
-  /// Updates the path resolution cache
-  void updatePathResolutionCache(const USNFileReferenceNumber& ref,
-                                 const std::string& path);
 
  public:
   /// Constructor
