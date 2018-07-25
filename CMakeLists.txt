@@ -309,8 +309,8 @@ if(WINDOWS)
   )
 else()
   add_compile_options(
-    "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:RELEASE>>:-Oz>"
-    "$<$<AND:$<NOT:$<CXX_COMPILER_ID:Clang>>,$<CONFIG:RELEASE>>:-Os>"
+    "$<$<AND:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:RELEASE>>:-Oz>"
+    "$<$<AND:$<NOT:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>>,$<CONFIG:RELEASE>>:-Os>"
   )
 endif()
 
@@ -332,10 +332,10 @@ if (POSIX)
     "$<$<CONFIG:RELEASE>:-fpie>"
     "$<$<CONFIG:RELEASE>:-fPIC>"
     "$<$<CONFIG:RELEASE>:-fpic>"
-  ) 
+  )
   if (CLANG AND DEPS AND NOT FREEBSD)
-      # Only enable LTO builds when using clang on Unix, for now
-      add_compile_options("$<$<CONFIG:RELEASE>:-flto=thin>")
+    # Only enable LTO builds when using clang on Unix, for now
+    add_compile_options("$<$<CONFIG:RELEASE>:-flto=thin>")
   endif()
 endif()
 
@@ -533,6 +533,8 @@ add_definitions(
   -DBOOST_NETWORK_ENABLE_HTTPS
   -DNOMINMAX
   -DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE
+  -DRAPIDJSON_HAS_STDSTRING=1
+  -DRAPIDJSON_NO_SIZETYPEDEFINE
 
   # See boost 1.65 breakage https://github.com/Homebrew/homebrew-core/pull/17150
   -D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0
@@ -589,12 +591,12 @@ if(POSIX AND DEPS)
   )
 
   # The order here matters, please do not reorder.
-  if(CLANG)
+  if(LINUX AND CLANG)
     include_directories(SYSTEM "${BUILD_DEPS}/include/c++/v1")
+    include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   endif()
-  include_directories(SYSTEM "${BUILD_DEPS}/legacy/include")
   include_directories(SYSTEM "${BUILD_DEPS}/include")
-  if(CLANG)
+  if(LINUX AND CLANG)
     include_directories(SYSTEM "${BUILD_DEPS}/lib/clang/4.0.0/include")
   endif()
 endif()
