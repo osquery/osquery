@@ -84,7 +84,7 @@ class DBFakeEventSubscriber : public EventSubscriber<DBFakeEventPublisher> {
     r["uptime"] = INTEGER(10);
 
     std::vector<Row> row_list;
-    for (int i = 0; i < 10; i++) {
+    for (size_t i = 0U; i < 10U; i++) {
       row_list.push_back(r);
     }
 

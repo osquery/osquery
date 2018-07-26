@@ -429,7 +429,7 @@ Status EventSubscriberPlugin::recordEvents(
   WriteLock lock(event_record_lock_);
 
   DatabaseStringValueList database_data;
-  database_data.reserve(event_id_list.size());
+  database_data.reserve(2U);
 
   // The list key includes the list type (bin size) and the list ID (bin).
   // The list_id is the MOST-Specific key ID, the bin for this list.
@@ -440,6 +440,7 @@ Status EventSubscriberPlugin::recordEvents(
   // The record is identified by the event type then module name.
   // Append the record (eid, unix_time) to the list bin.
   auto database_key = "records." + dbNamespace() + ".60." + list_id;
+  auto index_key = "indexes." + dbNamespace() + ".60";
 
   std::string record_value;
   getDatabaseValue(kEvents, database_key, record_value);
@@ -448,8 +449,6 @@ Status EventSubscriberPlugin::recordEvents(
     if (record_value.length() == 0) {
       // This is a new list_id for list_key, append the ID to the indirect
       // lookup for this list_key.
-      std::string index_key = "indexes." + dbNamespace() + ".60";
-
       std::string index_value;
       getDatabaseValue(kEvents, index_key, index_value);
       if (index_value.length() == 0) {
@@ -458,17 +457,15 @@ Status EventSubscriberPlugin::recordEvents(
       } else {
         index_value += "," + list_id;
       }
-
       database_data.push_back(std::make_pair(index_key, index_value));
       record_value = eid + ":" + time_value;
     } else {
       // Tokenize a record using ',' and the EID/time using ':'.
       record_value += "," + eid + ":" + time_value;
     }
-
-    database_data.push_back(std::make_pair(database_key, record_value));
   }
 
+  database_data.push_back(std::make_pair(database_key, record_value));
   auto status = setDatabaseBatch(kEvents, database_data);
   if (!status.ok()) {
     LOG(ERROR) << "Could not put Event Records";
